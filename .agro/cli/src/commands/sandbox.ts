@@ -5,6 +5,8 @@ import { resolveExecutionTarget } from "../lib/execution/index.js";
 import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import {
   defaultOhConfig,
+  getOhConfigValue,
+  OH_CONFIG_FIELDS,
   ohConfigPath,
   readOhConfig,
   writeOhConfig,
@@ -66,26 +68,61 @@ function readSeedConfig(repo: string | undefined): OhConfig | undefined {
   return existsSync(file) ? readOhConfig(file) : undefined;
 }
 
+function readEntryConfig(name: string): OhConfig | undefined {
+  const file = ohConfigPath(entryRoot(name));
+  return existsSync(file) ? readOhConfig(file) : undefined;
+}
+
+function assignSetting(target: OhConfig, path: string, value: unknown): void {
+  const segments = path.split(".");
+  let cursor = target as unknown as Record<string, unknown>;
+  for (const segment of segments.slice(0, -1)) {
+    const section = cursor[segment];
+    if (!section || typeof section !== "object" || Array.isArray(section)) cursor[segment] = {};
+    cursor = cursor[segment] as Record<string, unknown>;
+  }
+  cursor[segments[segments.length - 1]] = value;
+}
+
+function overlaySettings(target: OhConfig, source: OhConfig | undefined): OhConfig {
+  if (source === undefined) return target;
+  for (const field of OH_CONFIG_FIELDS) {
+    const value = getOhConfigValue(source, field.path);
+    if (value !== undefined) assignSetting(target, field.path, value);
+  }
+  return target;
+}
+
+function mergeSettings(...sources: (OhConfig | undefined)[]): OhConfig | undefined {
+  const present = sources.filter((source): source is OhConfig => source !== undefined);
+  if (present.length === 0) return undefined;
+  const merged: OhConfig = { version: 1 };
+  for (const source of present) overlaySettings(merged, source);
+  return merged;
+}
+
+function nonEmpty(value: string | undefined): string | undefined {
+  return value === undefined || value === "" ? undefined : value;
+}
+
 function seedConfig(
   name: string,
   repo: string | undefined,
   seed: OhConfig | undefined,
   run: LifecycleRunner,
 ): OhConfig {
-  const config = defaultOhConfig(name);
+  const config = overlaySettings(defaultOhConfig(name), seed);
+  config.name = name;
   config.runtime = "docker";
   if (repo !== undefined) config.repo = repo;
-  config.timezone = seed?.timezone ?? hostTimezone();
+  config.timezone = nonEmpty(seed?.timezone) ?? hostTimezone();
   config.git = {
-    userName: seed?.git?.userName ?? gitIdentity(run, "user.name"),
-    userEmail: seed?.git?.userEmail ?? gitIdentity(run, "user.email"),
+    userName: nonEmpty(seed?.git?.userName) ?? gitIdentity(run, "user.name"),
+    userEmail: nonEmpty(seed?.git?.userEmail) ?? gitIdentity(run, "user.email"),
   };
-  if (seed?.storage?.homePath !== undefined) config.storage = { homePath: seed.storage.homePath };
-  config.access = { ...config.access, ...(seed?.access ?? {}) };
   config.image = {
     ...config.image,
-    ...(seed?.image ?? {}),
-    mode: seed?.image?.mode ?? (repo === undefined ? "image" : "build"),
+    mode: seed?.image?.mode ?? (config.repo === undefined ? "image" : "build"),
   };
   return config;
 }
@@ -163,8 +200,8 @@ export async function runSandboxInstall(
     return 1;
   }
 
-  const seed = readSeedConfig(repo);
-  const name = opts.name ?? seed?.name ?? nextDefaultName(run);
+  const repoSeed = readSeedConfig(repo);
+  const name = opts.name ?? repoSeed?.name ?? nextDefaultName(run);
   try {
     assertSandboxName(name);
   } catch (error) {
@@ -172,7 +209,7 @@ export async function runSandboxInstall(
     return 1;
   }
 
-  const config = seedConfig(name, repo, seed, run);
+  const config = seedConfig(name, repo, mergeSettings(readEntryConfig(name), repoSeed), run);
   const interactive =
     opts.yes !== true && (process.stdin.isTTY === true || io.ask !== undefined);
   if (interactive) {

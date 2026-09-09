@@ -19,6 +19,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 - Require verified dependency acceptance and safe resume eligibility before dispatching delegated work. ([#1004](https://github.com/mifunedev/openharness/pull/1004))
 - Point the pi banner at the Mifune GitHub organization. ([#1001](https://github.com/mifunedev/openharness/issues/1001))
 - Release publishing waits for npm registry propagation with an uncached `npm view` before publishing the `@mifune/openharness` shim and fails when its deprecation notice is not applied. ([#994](https://github.com/mifunedev/openharness/issues/994))
+- Preserve an existing sandbox's configuration when `agro sandbox install` runs again, so a reinstall no longer discards settings such as a pinned `storage.homePath`. ([#1021](https://github.com/mifunedev/agro/issues/1021))
 
 ### Added
 
