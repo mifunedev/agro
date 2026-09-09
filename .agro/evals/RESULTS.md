@@ -114,6 +114,7 @@ probe id; git history is the time series.** Schema and exit-code semantics are i
 | retro-deterministic-contract | A | 2026-09-09 03:51 | PASS | issue #443 — /retro deterministic output and self-contained helper contract |
 | rlm-context-budget | A | 2026-09-09 03:51 | PASS | .agro/tasks/rlm-weighted-trajectories/prd.json US-006 |
 | roles-are-skills | A | 2026-09-09 03:51 | PASS | ADR #929 — roles are behavior, skills encode behavior, agents execute behavior; |
+| sandbox-boot-advisory-recovery | A | 2026-09-09 05:39 | SKIPPED | issue #1019 — GHSA-82fw-gwwq-j7x9 turned the 0.9.0 manifest's `pnpm:devPreinstall` audit |
 | sandbox-boot-guard-ci | A | 2026-09-09 03:51 | PASS | issue #449 (sandbox image build CI guard) 2026-06-19; |
 | sandbox-node-base | A | 2026-09-09 03:51 | PASS | openharness#878 — oh as the only front door, T0 sandbox base image |
 | sandbox-registry | A | 2026-09-09 03:51 | PASS | issue #950 US-005 / D10 — `oh sandbox install` owns sandbox creation from a |
