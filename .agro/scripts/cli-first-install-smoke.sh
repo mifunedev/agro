@@ -387,15 +387,26 @@ stat_in() {
   docker exec "$cid" stat -c '%a %u %g' "$path"
 }
 
+remove_container_keep_volume() {
+  local name="$1"
+  local cid="$2"
+  [ -n "$cid" ] || die "no container id to remove for $name"
+  agro_cmd stop "$name" || true
+  docker rm "$cid" >/dev/null || die "failed to remove container $cid (volume must stay)"
+}
+
 recreate_one() {
   local socket_value="$1"
   local name="${NAME_PREFIX}-sock-${socket_value}-$$"
   echo "=== recreate access.dockerSocket=${socket_value} ==="
   provision "$name"
-  agro_cmd config set --sandbox "$name" access.dockerSocket "$socket_value"
-  agro_cmd stop "$name" || true
-  agro_cmd sandbox install docker --name "$name" --yes --image="$IMAGE"
   local cid
+  cid=$(container_id "$name")
+  [ -n "$cid" ] || die "no container for $name"
+  record container "$cid"
+  agro_cmd config set --sandbox "$name" access.dockerSocket "$socket_value"
+  remove_container_keep_volume "$name" "$cid"
+  agro_cmd sandbox install docker --name "$name" --yes --image="$IMAGE"
   cid=$(container_id "$name")
   [ -n "$cid" ] || die "no container after applying dockerSocket=$socket_value"
   record container "$cid"
@@ -432,7 +443,7 @@ recreate_one() {
   echo "before_marker=$marker_hash"
   agro_cmd config show --sandbox "$name" | sed -n '1,80p' | sed 's/^/before_config /'
 
-  agro_cmd stop "$name"
+  remove_container_keep_volume "$name" "$before_cid"
   agro_cmd sandbox install docker --name "$name" --yes --image="$IMAGE"
   local after_cid
   after_cid=$(container_id "$name")

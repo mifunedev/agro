@@ -42,6 +42,7 @@ function fixtureDocker(opts: { keepId?: boolean; inheritHost?: boolean; socketMo
       "set -euo pipefail",
       `state=${JSON.stringify(state)}`,
       `INHERIT=${inheritHost}`,
+      `KEEP=${opts.keepId ? "1" : "0"}`,
       'seqf="$state/seq"',
       'cidf="$state/cid"',
       'sockf="$state/socket"',
@@ -81,8 +82,14 @@ function fixtureDocker(opts: { keepId?: boolean; inheritHost?: boolean; socketMo
       "    if [[ \"\$all\" == *'stat -c'* ]]; then echo \"600 1000 1000\"; exit 0; fi",
       "    exit 0",
       "    ;;",
-      "  volume|rm)",
+      "  rm)",
+      '    if [ "$KEEP" = "1" ]; then exit 0; fi',
+      '    rm -f "$cidf"',
       "    exit 0",
+      "    ;;",
+      "  volume)",
+      '    echo "volume rm must not run during recreate" >&2',
+      "    exit 1",
       "    ;;",
       "  *)",
       "    exit 0",
@@ -151,6 +158,9 @@ describe("cli-first-install-smoke.sh", () => {
     expect(source).toContain("*openharness-*.tgz");
     expect(source).toContain("mifune-agro-*.tgz");
     expect(source).toContain('echo "node_after=$(command -v node) version=$(node --version)"');
+    expect(source).toContain("remove_container_keep_volume");
+    expect(source).toContain('docker rm "$cid"');
+    expect(source).not.toMatch(/remove_container_keep_volume[\s\S]{0,400}down -v/);
     const parsed = spawnSync("bash", ["-n", SCRIPT], { encoding: "utf8" });
     expect(parsed.status, parsed.stderr).toBe(0);
   });
@@ -229,6 +239,9 @@ describe("cli-first-install-smoke.sh", () => {
     );
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("recreation kept container id");
+    const dockerLog = readFileSync(join(fx.state, "docker.log"), "utf8");
+    expect(dockerLog).toMatch(/^rm /m);
+    expect(dockerLog).not.toMatch(/^volume /m);
   });
 
   it("targets the socket inside the container and ignores runner DOCKER_HOST", () => {
