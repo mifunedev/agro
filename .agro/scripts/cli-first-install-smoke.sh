@@ -25,7 +25,7 @@ HEALTH_CMD=${CLI_FIRST_HEALTH_CMD:-bash /home/sandbox/harness/.agro/scripts/sand
 PHASE=all
 IMAGE=""
 WORKDIR=""
-NAME_PREFIX=agro-cli-first
+NAME_PREFIX="agro-cli-first"
 BUNDLE=""
 REQUIRE_DOCKER=0
 BOOTSTRAP_WITHOUT_NODE=0
@@ -105,7 +105,7 @@ refuse_latest() {
   local ref="${1:-}"
   case "$ref" in
     "" ) return 0 ;;
-    *:latest|*/agro:latest|*/openharness:latest)
+    *:latest)
       die "refusing released latest image '$ref' — pass a locally built candidate"
       ;;
   esac
@@ -222,6 +222,12 @@ phase_bootstrap() {
   record home "$home"
   local bin_dir="$home/.local/bin"
   mkdir -p "$bin_dir"
+  # get-agro.sh and nvm only append PATH to an existing profile. debian:bookworm-slim
+  # and an isolated HOME have none — create .profile before install so a new login
+  # shell can find both nvm Node and agro.
+  if [ ! -f "$home/.profile" ]; then
+    : > "$home/.profile"
+  fi
   local url="file://$BUNDLE"
   HOME="$home" AGRO_BIN_DIR="$bin_dir" AGRO_JS_URL="$url" AGRO_ASSUME_YES=1 \
     bash "$GET_AGRO" --yes
@@ -230,7 +236,13 @@ phase_bootstrap() {
     die "installed agro is not the candidate bundle"
   fi
   local version
-  version=$(HOME="$home" PATH="$bin_dir:$PATH" bash -lc 'agro --version')
+  version=$(HOME="$home" bash -lc '
+    [ -f "$HOME/.profile" ] && . "$HOME/.profile"
+    export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+    command -v agro >/dev/null 2>&1 || { echo "agro not on PATH in new login shell" >&2; exit 127; }
+    agro --version
+  ')
   echo "bootstrap_agro=$bin_dir/agro"
   echo "bootstrap_version=$version"
   if command -v node >/dev/null 2>&1; then

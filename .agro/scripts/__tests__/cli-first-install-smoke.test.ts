@@ -145,6 +145,8 @@ describe("cli-first-install-smoke.sh", () => {
     expect(statSync(SCRIPT).mode & 0o111).not.toBe(0);
     expect(source.startsWith("#!/usr/bin/env bash\n")).toBe(true);
     expect(source).toContain("set -euo pipefail");
+    expect(source).toContain('NAME_PREFIX="agro-cli-first"');
+    expect(source).toContain('if [ ! -f "$home/.profile" ]; then');
     const parsed = spawnSync("bash", ["-n", SCRIPT], { encoding: "utf8" });
     expect(parsed.status, parsed.stderr).toBe(0);
   });

@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # tier: A
 # source: conversation 2026-07-05 (basic Docker deployment — prebuilt-image mode)
-# desc: guards prebuilt-image deployment mode — compose image/pull_policy parameterized (OH_SANDBOX_IMAGE/OH_PULL_POLICY) with the build: block retained so local build stays default; agro.json carries image.ref/image.pullPolicy, config-render.ts renders both, docs/configuration.md documents both; docker-compose.sh passes `up -d --no-build` through verbatim; oh sandbox (lifecycle.ts/cli.ts) wires --image/--no-build, defaults to ghcr.io/mifunedev/openharness, and threads OH_SANDBOX_IMAGE; get-oh.sh no longer claims the CLI is unpublished
+# desc: guards prebuilt-image deployment mode — compose image/pull_policy parameterized (AGRO_SANDBOX_IMAGE over OH_SANDBOX_IMAGE, AGRO_PULL_POLICY over OH_PULL_POLICY) with the build: block retained so local build stays default; agro.json carries image.ref/image.pullPolicy, config-render.ts renders both, docs/configuration.md documents both; docker-compose.sh passes `up -d --no-build` through verbatim; agro sandbox (lifecycle.ts/cli.ts) wires --image/--no-build, unselected default ghcr.io/mifunedev/agro:latest, and threads SANDBOX_IMAGE; get-oh.sh no longer claims the CLI is unpublished
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 COMPOSE="$ROOT/.devcontainer/docker-compose.yml"
+IMAGE_ONLY="$ROOT/.devcontainer/docker-compose.image-only.yml"
 CONFIG_DOC="$ROOT/docs/configuration.md"
 CONFIG_SRC="$ROOT/.agro/cli/src/lib/oh-config.ts"
 RENDER_SRC="$ROOT/.agro/cli/src/lib/config-render.ts"
@@ -63,8 +64,12 @@ grep -Fq -- '--no-build' "$LIFECYCLE" \
   || fails+=("lifecycle.ts must issue 'up -d --no-build' in image/no-build mode")
 grep -Fq 'DEFAULT_SANDBOX_IMAGE' "$LIFECYCLE" \
   || fails+=("lifecycle.ts must define DEFAULT_SANDBOX_IMAGE")
-grep -Fq 'ghcr.io/mifunedev/openharness' "$LIFECYCLE" \
-  || fails+=("lifecycle.ts default image must point at ghcr.io/mifunedev/openharness")
+grep -Fq 'DEFAULT_SANDBOX_IMAGE = "ghcr.io/mifunedev/agro:latest"' "$LIFECYCLE" \
+  || fails+=("lifecycle.ts unselected default image must be ghcr.io/mifunedev/agro:latest")
+if [[ -f "$IMAGE_ONLY" ]]; then
+  grep -Eq 'image:[[:space:]]*\$\{AGRO_SANDBOX_IMAGE:-\$\{OH_SANDBOX_IMAGE:-ghcr.io/mifunedev/agro:latest\}\}' "$IMAGE_ONLY" \
+    || fails+=("docker-compose.image-only.yml unselected fallback must be \${AGRO_SANDBOX_IMAGE:-\${OH_SANDBOX_IMAGE:-ghcr.io/mifunedev/agro:latest}}")
+fi
 if [[ -f "$CLI" ]]; then
   grep -Fq -- '--image=' "$CLI" \
     || fails+=("cli.ts parseSandboxArgs must handle --image=<ref>")
@@ -80,5 +85,5 @@ if (( ${#fails[@]} > 0 )); then
   exit 1
 fi
 
-echo "PASS: prebuilt-image mode — compose image/pull_policy parameterized (build: retained), agro.json carries image.ref/image.pullPolicy and config-render.ts renders both, docs/configuration.md documents them, docker-compose.sh passes --no-build verbatim, oh sandbox wires --image/--no-build with the ghcr.io default, get-oh.sh publish note current" >&2
+echo "PASS: prebuilt-image mode — compose image/pull_policy parameterized (build: retained), agro.json carries image.ref/image.pullPolicy and config-render.ts renders both, docs/configuration.md documents them, docker-compose.sh passes --no-build verbatim, agro sandbox wires --image/--no-build with unselected default ghcr.io/mifunedev/agro:latest, get-oh.sh publish note current" >&2
 exit 0
