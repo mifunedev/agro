@@ -7,7 +7,6 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 EXEC="$ROOT/.claude/skills/spec/references/execute.md"
 SPEC="$ROOT/.agro/skills/spec/SKILL.md"
-PI_EXEC="$ROOT/.pi/skills/spec/references/execute.md"
 
 [ -f "$EXEC" ] || { echo "SKIPPED: missing /spec execute procedure: $EXEC" >&2; exit 2; }
 [ -f "$SPEC" ] || { echo "SKIPPED: missing /spec dispatcher: $SPEC" >&2; exit 2; }
@@ -93,11 +92,6 @@ fi
 if ! grep -qE 'ready PR|ready-for-review' <<<"$execute_line"; then
   echo "REGRESSION: /spec execute row must name the ready PR terminal state" >&2
   echo "$execute_line" >&2
-  exit 1
-fi
-
-if [[ -e "$PI_EXEC" ]] && ! grep -qF 'Finalization contract' "$PI_EXEC"; then
-  echo "REGRESSION: .pi /spec execute surface lacks the finalization contract" >&2
   exit 1
 fi
 

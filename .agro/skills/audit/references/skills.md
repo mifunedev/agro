@@ -77,7 +77,7 @@ SKILL_REFS=$(grep -oP '/[a-z][a-z0-9-]+' "<skill-file>" | grep -v '^/home' | sor
 ```
 
 For each extracted path reference: check `[ -e "<path>" ]`.
-For each skill reference like `/foo-bar`: check whether `<root>/.agro/skills/foo-bar/SKILL.md` or `<ws>/.agro/skills/foo-bar/SKILL.md` exists. Provider symlinks (`.claude/skills`, `.pi/skills`) are never discovery roots.
+For each skill reference like `/foo-bar`: check whether `<root>/.agro/skills/foo-bar/SKILL.md` or `<ws>/.agro/skills/foo-bar/SKILL.md` exists. Provider symlinks (`.agents/skills`, `.claude/skills`, `.codex/skills`) are never discovery roots.
 
 Count total broken references (`BROKEN_COUNT`).
 

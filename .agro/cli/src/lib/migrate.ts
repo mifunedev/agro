@@ -45,11 +45,17 @@ export interface RelinkSpec {
   to: string;
 }
 
+export interface RetireLinkSpec {
+  path: string;
+  targets: string[];
+}
+
 export interface MigrationSpec {
   root: string;
   pairs: MigrationPair[];
   rewrites?: RewriteSpec[];
   relinks?: RelinkSpec[];
+  retireLinks?: RetireLinkSpec[];
 }
 
 export interface EntrySnapshot {
@@ -213,6 +219,22 @@ function planRelink(root: string, relink: RelinkSpec): PlanStep {
   return { kind: "relink", path, from: relink.from, to: relink.to, snapshot: current };
 }
 
+function planRetireLink(root: string, retire: RetireLinkSpec): PlanStep | MigrationConflict {
+  const path = assertInsideRoot(root, retire.path, "retired link");
+  const current = snapshot(path);
+  if (current === undefined) return { kind: "noop", path, reason: "link absent" };
+  if (current.type !== "symlink") return { kind: "noop", path, reason: "not a symlink" };
+  const target = readlinkSync(path);
+  if (!retire.targets.includes(target)) {
+    return { kind: "noop", path, reason: `link points at ${target}, not a retired Open Harness target` };
+  }
+  const retired = `${path}${RETIRED_SUFFIX}`;
+  if (lstatSync(retired, { throwIfNoEntry: false }) !== undefined) {
+    return { path: retired, reason: "retired copy already exists" };
+  }
+  return { kind: "retire", from: path, to: retired, snapshot: current };
+}
+
 function isStep(entry: PlanStep | MigrationConflict): entry is PlanStep {
   return "kind" in entry;
 }
@@ -225,6 +247,11 @@ export function planMigration(spec: MigrationSpec): MigrationPlan {
 
   for (const pair of spec.pairs) {
     const planned = planPair(root, pair);
+    if (isStep(planned)) steps.push(planned);
+    else conflicts.push(planned);
+  }
+  for (const retired of spec.retireLinks ?? []) {
+    const planned = planRetireLink(root, retired);
     if (isStep(planned)) steps.push(planned);
     else conflicts.push(planned);
   }
@@ -393,7 +420,10 @@ export const PROVIDER_LINKS: ReadonlyArray<{ link: string; target: string }> = [
   { link: ".claude/hooks", target: "hooks" },
   { link: ".codex/skills", target: "skills" },
   { link: ".agents/skills", target: "skills" },
-  { link: ".pi/skills", target: "skills" },
+];
+
+export const RETIRED_PROVIDER_LINKS: ReadonlyArray<{ link: string; targets: string[] }> = [
+  { link: ".pi/skills", targets: ["../.oh/skills", "../.agro/skills", "../.claude/skills"] },
 ];
 
 export function providerRelinks(root: string): RelinkSpec[] {
@@ -405,6 +435,14 @@ export function providerRelinks(root: string): RelinkSpec[] {
   }));
 }
 
+export function retiredProviderLinks(root: string): RetireLinkSpec[] {
+  const dir = resolve(root);
+  return RETIRED_PROVIDER_LINKS.map(({ link, targets }) => ({
+    path: resolve(dir, ...link.split("/")),
+    targets,
+  }));
+}
+
 export function projectMigrationSpec(root: string): MigrationSpec {
   const dir = resolve(root);
   return {
@@ -413,6 +451,7 @@ export function projectMigrationSpec(root: string): MigrationSpec {
       { legacy: `${dir}${sep}.oh`, agro: `${dir}${sep}.agro`, kind: "dir" },
       { legacy: `${dir}${sep}oh.json`, agro: `${dir}${sep}agro.json`, kind: "file" },
     ],
+    retireLinks: retiredProviderLinks(dir),
     relinks: providerRelinks(dir),
   };
 }

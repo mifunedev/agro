@@ -71,8 +71,9 @@ Usage:
 Project mode (default) finds the nearest ancestor of the current directory that
 holds .oh/, .agro/, oh.json or agro.json and renames .oh/ -> .agro/ and
 oh.json -> agro.json wholesale. Provider links (.claude/skills, .claude/hooks,
-.codex/skills, .agents/skills, .pi/skills) that point at ../.oh/... are
-re-pointed at ../.agro/...; links that are absent or already AGRO are left alone.
+.codex/skills, .agents/skills) that point at ../.oh/... are re-pointed at
+../.agro/...; the retired .pi/skills link is moved to .pi/skills.migrated when
+it points at a known Open Harness skill target. Other links are left alone.
 
 Flags:
   --check   Print the plan and change nothing.

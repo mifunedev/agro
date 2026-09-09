@@ -33,6 +33,7 @@ describe("standard project skills", () => {
     const path = join(dir, ".agents/skills");
     expect(readlinkSync(path)).toBe("../.agro/skills");
     expect(readFileSync(join(path, "git/SKILL.md"), "utf8")).toBe(readFileSync(join(root, ".agro/skills/git/SKILL.md"), "utf8"));
+    expect(existsSync(join(dir, ".pi/skills"))).toBe(false);
     expect(link(dir, "--check").status).toBe(0);
     rmSync(path);
     symlinkSync("../missing", path);
@@ -40,6 +41,51 @@ describe("standard project skills", () => {
     expect(link(dir, "--init").status).toBe(0);
     expect(readlinkSync(path)).toBe("../.agro/skills");
     for (const retired of [".agro/agents", ".claude/agents", ".codex/agents", ".pi/agents"]) expect(existsSync(join(dir, retired))).toBe(false);
+  });
+
+  it("retires an old Open Harness Pi skill link", () => {
+    const dir = fixture();
+    mkdirSync(join(dir, ".pi"), { recursive: true });
+    symlinkSync("../.agro/skills", join(dir, ".pi/skills"));
+    expect(link(dir, "--check").status).toBe(1);
+    const result = link(dir, "--init");
+    expect(result.status, result.stderr).toBe(0);
+    expect(existsSync(join(dir, ".pi/skills"))).toBe(false);
+    expect(readlinkSync(join(dir, ".pi/skills.migrated"))).toBe("../.agro/skills");
+  });
+
+  it("preserves an existing retired marker", () => {
+    const dir = fixture();
+    mkdirSync(join(dir, ".pi"), { recursive: true });
+    symlinkSync("../.agro/skills", join(dir, ".pi/skills"));
+    writeFileSync(join(dir, ".pi/skills.migrated"), "operator-owned\n");
+    const result = link(dir, "--init");
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("already exists");
+    expect(readlinkSync(join(dir, ".pi/skills"))).toBe("../.agro/skills");
+    expect(readFileSync(join(dir, ".pi/skills.migrated"), "utf8")).toBe("operator-owned\n");
+  });
+
+  it("preserves a foreign Pi skill link", () => {
+    const dir = fixture();
+    mkdirSync(join(dir, ".pi"), { recursive: true });
+    symlinkSync("../custom/skills", join(dir, ".pi/skills"));
+    const result = link(dir, "--init");
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("foreign symlink");
+    expect(readlinkSync(join(dir, ".pi/skills"))).toBe("../custom/skills");
+  });
+
+  it("refuses a symlinked provider parent without touching its target", () => {
+    const dir = fixture();
+    const outside = mkdtempSync(join(tmpdir(), "oh-provider-parent-"));
+    scratch.push(outside);
+    symlinkSync("../.agro/skills", join(outside, "skills"));
+    symlinkSync(outside, join(dir, ".pi"));
+    const result = link(dir, "--init");
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(".pi is a symlink");
+    expect(readlinkSync(join(outside, "skills"))).toBe("../.agro/skills");
   });
 
   it("refuses a real-directory collision without losing user skills", () => {

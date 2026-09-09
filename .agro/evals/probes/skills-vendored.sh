@@ -31,7 +31,9 @@ for path in \
   git ls-files --error-unmatch "$path" >/dev/null 2>&1 || fail "pack file not tracked in-repo: $path"
 done
 
-for link in .agents/skills .pi/skills .claude/skills .codex/skills .claude/hooks; do
+[ ! -e .pi/skills ] && [ ! -L .pi/skills ] || fail ".pi/skills is a retired provider surface"
+
+for link in .agents/skills .claude/skills .codex/skills .claude/hooks; do
   [ -L "$link" ] || fail "$link is not a symlink"
   [ -e "$link" ] || fail "$link target does not resolve"
 done
@@ -45,7 +47,7 @@ if [ "${SKILLS_VENDORED_SKIP_CLEAN_CLONE:-0}" != "1" ]; then
   cd "$tmp/openharness"
   [ -f .agro/skills/git/SKILL.md ] || fail "clean clone is missing the vendored .agro/skills pack"
   [ -f .agents/skills/git/SKILL.md ] || fail "standard skill symlink does not resolve in a clean clone"
-  [ -f .pi/skills/git/SKILL.md ] || fail "Pi skill symlink does not resolve in a clean clone"
+  [ ! -e .pi/skills ] && [ ! -L .pi/skills ] || fail "clean clone still contains the retired .pi/skills surface"
   [ -f .claude/skills/spec/SKILL.md ] || fail "Claude skill symlink does not resolve in a clean clone"
   [ -f .codex/skills/git/SKILL.md ] || fail "Codex skill symlink does not resolve in a clean clone"
   fake_bin="$tmp/bin"

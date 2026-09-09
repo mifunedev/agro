@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Removed
+
+- Remove the redundant `.pi/skills` project surface so shared skills load once from `.agents/skills` without a collision. ([#1025](https://github.com/mifunedev/agro/issues/1025))
+
 ### Changed
 
 - Fresh installs now create `.agro/`, `agro.json`, `~/.agro/sandboxes`, and `/opt/agro-seed`; legacy `.oh/` state keeps working, and `agro migrate` moves a project or registry. ([#942](https://github.com/mifunedev/openharness/issues/942))

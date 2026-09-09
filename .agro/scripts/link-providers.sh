@@ -25,10 +25,13 @@ required_execs=(
 
 provider_links=(
   ".agents/skills|../.agro/skills"
-  ".pi/skills|../.agro/skills"
   ".claude/skills|../.agro/skills"
   ".codex/skills|../.agro/skills"
   ".claude/hooks|../.agro/hooks"
+)
+
+retired_links=(
+  ".pi/skills|../.oh/skills|../.agro/skills|../.claude/skills"
 )
 
 HERMES_LINK=".hermes/skills/openharness"
@@ -85,13 +88,27 @@ fail() {
 print_state() {
   cat >&2 <<EOF
 Vendored skill pack: .agro/skills (expected to exist as tracked files)
-Provider surfaces:   .agents/skills .pi/skills .claude/skills .codex/skills -> ../.agro/skills
+Provider surfaces:   .agents/skills .claude/skills .codex/skills -> ../.agro/skills
+Retired surface:     .pi/skills (moved to .pi/skills.migrated when it points at a known Open Harness pack)
 Remediation: bash .agro/scripts/link-providers.sh --init
 EOF
 }
 
+provider_parent_safe() {
+  local parent="$1"
+  if [ -L "$parent" ]; then
+    fail "$parent is a symlink; preserve it and resolve the provider-path conflict before linking"
+    return 1
+  fi
+  if [ -e "$parent" ] && [ ! -d "$parent" ]; then
+    fail "$parent is not a directory; preserve it and resolve the provider-path conflict before linking"
+    return 1
+  fi
+}
+
 link_provider() {
   local path="$1" target="$2"
+  provider_parent_safe "$(dirname "$path")" || return 1
   mkdir -p "$(dirname "$path")"
   if [ -L "$path" ]; then
     [ "$(readlink "$path")" = "$target" ] && return 0
@@ -101,6 +118,52 @@ link_provider() {
     return 1
   fi
   ln -s "$target" "$path"
+}
+
+retire_link() {
+  local spec="$1" path target known_targets retired
+  path="${spec%%|*}"
+  known_targets="${spec#*|}"
+  provider_parent_safe "$(dirname "$path")" || return 1
+  if [ ! -e "$path" ] && [ ! -L "$path" ]; then
+    return 0
+  fi
+  if [ ! -L "$path" ]; then
+    fail "$path is a retired provider surface but is not a symlink; preserve it and move it aside"
+    return 1
+  fi
+  target="$(readlink "$path")"
+  case "|$known_targets|" in
+    *"|$target|"*)
+      retired="${path}.migrated"
+      if [ -e "$retired" ] || [ -L "$retired" ]; then
+        fail "$retired already exists; preserve it and resolve the retired provider collision"
+        return 1
+      fi
+      mv "$path" "$retired"
+      ;;
+    *) fail "$path is a foreign symlink; preserve it and resolve the retired provider collision"; return 1 ;;
+  esac
+}
+
+check_retired_links() {
+  local spec path target known_targets
+  for spec in "${retired_links[@]}"; do
+    path="${spec%%|*}"
+    known_targets="${spec#*|}"
+    if [ ! -e "$path" ] && [ ! -L "$path" ]; then
+      continue
+    fi
+    if [ ! -L "$path" ]; then
+      fail "$path is a retired provider surface but is not a symlink"
+      continue
+    fi
+    target="$(readlink "$path")"
+    case "|$known_targets|" in
+      *"|$target|"*) fail "$path is retired; run --init to remove the old Open Harness link" ;;
+      *) fail "$path is a foreign symlink; preserve it and resolve the retired provider collision" ;;
+    esac
+  done
 }
 
 hermes_managed_here() {
@@ -156,6 +219,9 @@ init_links() {
   fi
 
   local link path target
+  for link in "${retired_links[@]}"; do
+    retire_link "$link" || true
+  done
   for link in "${provider_links[@]}"; do
     path="${link%%|*}"
     target="${link#*|}"
@@ -220,6 +286,29 @@ check_protected_paths() {
   done < "$PROTECTED_PATHS_FILE"
 }
 
+check_skill_description_lengths() {
+  local skill length
+  while IFS= read -r -d '' skill; do
+    length="$(
+      LC_ALL=C awk '
+        NR == 1 && $0 == "---" { in_frontmatter = 1; next }
+        in_frontmatter && /^---[[:space:]]*$/ { exit }
+        in_frontmatter && /^description:/ {
+          found = 1
+          sub(/^description:[[:space:]]*/, "")
+          print
+          next
+        }
+        found && /^[[:space:]]/ { print; next }
+        found { exit }
+      ' "$skill" | LC_ALL=C awk '{ total += length($0) + 1 } END { print total + 0 }'
+    )"
+    if (( length > 1024 )); then
+      fail "$skill description exceeds the 1024-character loader limit"
+    fi
+  done < <(find .agro/skills -mindepth 2 -maxdepth 2 -type f -name SKILL.md -print0)
+}
+
 check_cc_safety_net() {
   local off="${CC_SAFETY_NET_OFF:-}" version
   if ! command -v cc-safety-net >/dev/null 2>&1; then
@@ -255,6 +344,7 @@ check_links() {
   for f in "${required_execs[@]}"; do
     [ -x "$f" ] || fail "required pack executable missing or not executable: $f"
   done
+  check_skill_description_lengths
 
   if [ "${CC_SAFETY_NET_STRICT:-}" = "1" ]; then
     check_cc_safety_net
@@ -270,6 +360,7 @@ check_links() {
     check_symlink "$path" "$expected_target"
   done
 
+  check_retired_links
   check_hermes_link
   check_protected_paths
 }
@@ -294,5 +385,5 @@ fi
 if [ "$hermes_only" = true ]; then
   printf 'Hermes OK: .hermes/skills/openharness -> .agro/skills\n'
 else
-  printf 'Providers OK: .agents/.pi/.claude/.codex skills -> .agro/skills (vendored pack present)\n'
+  printf 'Providers OK: .agents/.claude/.codex skills -> .agro/skills (vendored pack present)\n'
 fi

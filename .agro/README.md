@@ -20,8 +20,8 @@ is obsolete):
 
 - **`.agro/`** — *OpenHarness's own machinery* as one unit, including the
   provider-portable *primitives* — `skills/`, `hooks/` (+ `skills.lock`)
-  — exported to the four agent providers via symlinks (`.claude/`, `.codex/`,
-  `.pi/`, `.hermes/`): the `oh` CLI (`cli/`), installer + lifecycle scripts
+  — exported through the standard skill surface (`.agents/skills`) and provider
+  symlinks (`.claude/`, `.codex/`, `.hermes/`): the `oh` CLI (`cli/`), installer + lifecycle scripts
   (`scripts/`), container-install inputs (`install/`), the
   regression/capability eval suite (`evals/`), the durable repository-knowledge
   surface (`knowledge/`), user-local deploy
@@ -106,7 +106,7 @@ root `docs/` (Markdown only — no build machinery; guarded by
 
 The shared skills and hooks are vendored directly under `.agro/` (`.agro/skills`, `.agro/hooks`) and tracked in this repo — there is no submodule and no network fetch. `oh update` lays the pack down with the rest of `.agro/`; `.agro/scripts/link-providers.sh --init` (re)creates the provider symlinks into it, and `--check` verifies the vendored pack is present, the required executables, the protected paths, the provider symlinks, and the Hermes link when enabled.
 
-`.pi/` remains the Pi provider surface in v1; its `.pi/skills` is one of the symlinks into `.agro/skills`.
+`.agents/skills` is the standard project skill surface. `.pi/` remains the Pi provider surface for Pi-specific configuration and extensions.
 
 ## Contents
 

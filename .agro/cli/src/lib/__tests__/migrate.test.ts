@@ -318,7 +318,6 @@ describe("relink steps", () => {
         relink(root, ".claude/hooks", "hooks"),
         relink(root, ".codex/skills", "skills"),
         relink(root, ".agents/skills", "skills"),
-        relink(root, ".pi/skills", "skills"),
       ],
     });
     expect(plan.status).toBe("ready");
@@ -327,7 +326,6 @@ describe("relink steps", () => {
       "noop:link already points at the AGRO target",
       "noop:not a symlink",
       "noop:link points at ../elsewhere/skills, not ../.oh/skills",
-      "noop:link absent",
     ]);
     expect(plan.steps[0]).toMatchObject({
       kind: "relink",
@@ -338,7 +336,7 @@ describe("relink steps", () => {
     });
   });
 
-  it("project spec relinks the five provider links after the renames and applies them in order", () => {
+  it("project spec retires the Pi link and relinks the four active provider links", () => {
     const root = fixture({
       ".oh/skills/a": "x\n",
       ".oh/hooks/h": "x\n",
@@ -349,12 +347,14 @@ describe("relink steps", () => {
       ".pi/skills": { symlink: "../.oh/skills" },
     });
     const plan = planMigration(projectMigrationSpec(root));
-    expect(plan.steps.map((s) => s.kind)).toEqual(["rename", "noop", "relink", "relink", "relink", "relink", "relink"]);
+    expect(plan.steps.map((s) => s.kind)).toEqual(["rename", "noop", "retire", "relink", "relink", "relink", "relink"]);
     const result = applyMigration(plan);
     expect(result.status).toBe("applied");
-    for (const link of [".claude/skills", ".codex/skills", ".agents/skills", ".pi/skills"]) {
+    for (const link of [".claude/skills", ".codex/skills", ".agents/skills"]) {
       expect(readlinkSync(join(root, ...link.split("/")))).toBe("../.agro/skills");
     }
+    expect(existsSync(join(root, ".pi", "skills"))).toBe(false);
+    expect(readlinkSync(join(root, ".pi", "skills.migrated"))).toBe("../.oh/skills");
     expect(readlinkSync(join(root, ".claude", "hooks"))).toBe("../.agro/hooks");
     expect(readFileSync(join(root, ".claude", "skills", "a"), "utf8")).toBe("x\n");
     expect(readdirSync(join(root, ".claude")).sort()).toEqual(["hooks", "skills"]);
@@ -367,6 +367,23 @@ describe("relink steps", () => {
     const root = fixture({ ".oh/README.md": "x\n" });
     expect(applyMigration(planMigration(projectMigrationSpec(root))).status).toBe("applied");
     for (const dir of [".claude", ".codex", ".agents", ".pi"]) expect(existsSync(join(root, dir))).toBe(false);
+  });
+
+  it("retires only known Open Harness skill links", () => {
+    const root = fixture({
+      ".agro/README.md": "x\n",
+      ".pi/skills": { symlink: "../.agro/skills" },
+      ".pi/foreign": { symlink: "../elsewhere" },
+    });
+    const plan = planMigration(projectMigrationSpec(root));
+    expect(plan.steps.find((step) => step.kind === "retire")).toMatchObject({
+      from: join(root, ".pi", "skills"),
+      to: join(root, ".pi", "skills.migrated"),
+    });
+    expect(applyMigration(plan).status).toBe("applied");
+    expect(existsSync(join(root, ".pi", "skills"))).toBe(false);
+    expect(readlinkSync(join(root, ".pi", "skills.migrated"))).toBe("../.agro/skills");
+    expect(readlinkSync(join(root, ".pi", "foreign"))).toBe("../elsewhere");
   });
 
   it("refuses a relink whose link was retargeted after planning", () => {
