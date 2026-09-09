@@ -1,0 +1,640 @@
+{
+  "schemaVersion": 1,
+  "slug": "agro-cloud-consumer-migration",
+  "issue": 944,
+  "parentIssue": 939,
+  "branchName": "feat/944-agro-cloud-consumer-migration",
+  "repos": {
+    "record": "mifunedev/agro",
+    "implementation": "mifunedev/openharness-cloud"
+  },
+  "groundedAt": {
+    "mifunedev/agro": "b10ecac3",
+    "mifunedev/openharness-cloud": "0aa8f99"
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Organization-wide downstream dependency inventory",
+      "repo": "mifunedev/agro",
+      "passes": true,
+      "acceptanceCriteria": [
+        "Every non-archived mifunedev repository is scanned by a recorded, reproducible command against a recorded commit SHA",
+        "The scan does not rely on gh search code alone, which omits private repositories",
+        "Every occurrence of mifunedev/openharness, @mifune/openharness, ghcr.io/mifunedev/openharness, oh.mifune.dev, /get-oh.sh, /oh.js, openharness-release, executable oh, .oh/, oh.json, and OH_* is classified into exactly one of the five #939 categories",
+        "mifunedev/website's oh.mifune.dev occurrences carry an explicit disposition",
+        "The inventory is written to .agro/tasks/agro-cloud-consumer-migration/consumer-inventory.md"
+      ],
+      "acceptedBy": "advisor, 2026-09-08, after independent verification: all 32 org repos present in the inventory table (set-compared against gh repo list), 35 recorded scan SHAs, and 3 classifications spot-checked against freshly cloned content"
+    },
+    {
+      "id": "US-002",
+      "title": "Cloud name classification record",
+      "repo": "mifunedev/openharness-cloud",
+      "passes": true,
+      "acceptanceCriteria": [
+        "A reviewable classification record lives in the Cloud repository",
+        "Every category 3 and category 4 retention carries a written justification",
+        "mifunedev/openharness-cloud, ghcr.io/mifunedev/openharness-cloud/*, and @openharness-cloud/* are explicitly retained",
+        "No durable database name, persistence identifier, or API token prefix is changed",
+        "Q1 and Q2 decisions are recorded as resolved before any dependent edit"
+      ],
+      "acceptedBy": "advisor, 2026-09-08. Re-ran pnpm type-check && pnpm test on the integrated tree AFTER these edits: exit 0, shared 113/113, db 189/189, gateway 37/37, web 2898/2898 across 126 files, provisioner 84/84 — identical to the certified baseline, so the prose work introduced no regression.",
+      "record": "docs/agro-runtime-name-classification.md",
+      "rule": "Built on a decision rule keyed on WHO OWNS THE NAME rather than on whether the string contains 'openharness'. That correctly separates ~/.openharness-bootstrap-status from github.com/mifunedev/openharness.git despite the shared substring, and it is reusable by a future reader instead of being a memorised list.",
+      "counts": {
+        "cat1_migrated": 10,
+        "cat2_compat": 2,
+        "cat3_product_identity": 5,
+        "cat4_durable_or_internal": 17,
+        "cat5_historical": 5
+      },
+      "widerThanPrd": "Category 4 is materially larger than the PRD table: the node-side systemd unit family (openharness-code-server, -code-server-apply, -install-code-server, -register-runtime-settings, -browser-gateway, ohmanage, -bootstrap-workspace), /etc/openharness/{runtime-settings.env,code-server.yaml,node-token,management-key}, the oh-keys group, /home/sandbox/oh.code-workspace, deployed container/tunnel/key names (oh-cloud-*, oh-gateway, oh-ed25519), app-openharness-cloud, and three browser localStorage keys. Category 2 gained OH_CLOUD_API_URL / OH_CLOUD_PROVISION_KEY, which the AGRO CLI itself still spells OH_CLOUD_* at v0.9.0 (PROVISION_KEY_SECRET, cloud.ts:12) — Cloud's docs quote the shipped spelling, so it changes when the CLI changes it, not before."
+    },
+    {
+      "id": "US-003",
+      "title": "Artifact-based node provisioning replaces the deleted make sandbox path",
+      "repo": "mifunedev/openharness-cloud",
+      "passes": true,
+      "acceptanceCriteria": [
+        "Generated node userData contains no git clone of a runtime source repository and no make sandbox invocation",
+        "AGRO is installed from its published artifact distribution",
+        "The sandbox is provisioned through agro sandbox install docker",
+        "No managed source checkout is created, neither ~/.openharness nor a renamed equivalent",
+        "A provisioning fixture fails if make sandbox or a runtime source clone reappears in userData",
+        "Bootstrap status, log, and readiness markers behave per the resolved Q2 decision",
+        "The browser editor workspace root and /home/sandbox/oh.code-workspace point at a path that exists after the new bootstrap and holds durable user state; no dangling folder entry survives the removal of ~/.openharness"
+      ],
+      "acceptedBy": "advisor, 2026-09-08. Integrated verification: both workers' full diffs applied cleanly into a fresh worktree at 0aa8f99 (19 files, zero conflicts, including the two files both workers touched); advisor ran pnpm install --frozen-lockfile && pnpm type-check && pnpm test on the integrated tree — exit 0, shared 113/113, db 189/189, gateway 37/37, web 2898/2898 across 126 files, provisioner 84/84. The five assertions red in the rebuild worktree flipped green on integration, as predicted.",
+      "residualLimit": "End-to-end fresh provisioning is NOT proven and is not claimed. As of 2026-09-08 every published AGRO sandbox image resolved to the #1019 build, so a real cold boot cannot succeed yet. `latest` is a moving tag: the affected artifacts are version tag 0.9.0, tag sha-823aabbd..., and their shared digest. US-003's criteria are static and unit-verifiable; the end-to-end leg belongs to US-007a and is gated on the patched release.",
+      "editorRootDecision": "Editor workspace root is /home/sandbox/workspace, pinned as the sandbox's durable home mount via storage.homePath / AGRO_HOME_MOUNT. Chosen because the default is a named volume a host-native code-server cannot open, while a host path survives container recycle and down -v. Pre-created in runcmd before code-server is enabled, with a test pinning that ordering, so it can never dangle."
+    },
+    {
+      "id": "US-004",
+      "title": "Harness and tool selections become explicit installation calls",
+      "repo": "mifunedev/openharness-cloud",
+      "passes": true,
+      "acceptanceCriteria": [
+        "Generated userData emits no INSTALL_OPENCODE, INSTALL_GROK_BUILD, INSTALL_DEEPAGENTS, INSTALL_HERMES, or INSTALL_AGENT_BROWSER",
+        "opencode, hermes, and grok_build resolve to explicit agro harness install calls, with grok_build mapped to the AGRO id grok-build",
+        "agentBrowserEnabled resolves to an explicit agro tool install agent-browser call",
+        "deepagents is reported to the user as an unsupported legacy selection and is never silently dropped or substituted",
+        "A test asserts each retired flag is absent and each supported selection produces its installation call"
+      ],
+      "acceptedBy": "advisor, 2026-09-08. Integrated verification: both workers' full diffs applied cleanly into a fresh worktree at 0aa8f99 (19 files, zero conflicts, including the two files both workers touched); advisor ran pnpm install --frozen-lockfile && pnpm type-check && pnpm test on the integrated tree — exit 0, shared 113/113, db 189/189, gateway 37/37, web 2898/2898 across 126 files, provisioner 84/84. The five assertions red in the rebuild worktree flipped green on integration, as predicted.",
+      "deepagentsDisposition": "Removed from the picker (offering it promises an installation AGRO cannot perform) but retained in NODE_HARNESS_CATALOG and nodeHarnessSchema so a stored row or an older client's in-flight request still parses. On arrival it emits a reported, logged unsupported-selection line and installs nothing, substituting nothing. The ok/failed:<n> status contract is unchanged."
+    },
+    {
+      "id": "US-005",
+      "title": "Canonical AGRO refs and variables across Cloud runtime surfaces",
+      "repo": "mifunedev/openharness-cloud",
+      "passes": true,
+      "acceptanceCriteria": [
+        "Runtime source, installer, and GHCR references resolve to the canonical AGRO repository and image",
+        "Node-side OH_* runtime variables, including OH_CODE_SERVER_ENABLED, migrate to AGRO_* with Phase 0 compatibility",
+        "Node-facing CLI invocation is agro",
+        "cloud-init, host-management assets, workspace-bootstrap assets, provisioning tests and fixtures are consistent with each other",
+        "OH_IMAGE_TAG, OH_ENV_FILE, ghcr.io/mifunedev/openharness-cloud/*, and @openharness-cloud/* are unchanged"
+      ],
+      "acceptedBy": "advisor, 2026-09-08. Integrated verification: both workers' full diffs applied cleanly into a fresh worktree at 0aa8f99 (19 files, zero conflicts, including the two files both workers touched); advisor ran pnpm install --frozen-lockfile && pnpm type-check && pnpm test on the integrated tree — exit 0, shared 113/113, db 189/189, gateway 37/37, web 2898/2898 across 126 files, provisioner 84/84. The five assertions red in the rebuild worktree flipped green on integration, as predicted.",
+      "containerNameBoundary": "The AGRO name grammar closes the CREATE boundary only. Verified independently: index.ts:304 nodeSchema.containerName is a plain z.string(), index.ts:542 applies the strict schema to createNodeRequestSchema, and db/index.ts:4379 maps row.container_name straight through. An existing non-conforming row still parses and yields a typed UnsupportedSandboxNameError at provisioning time naming the node and the remedy. No silent rename, which would disconnect a node from its own container."
+    },
+    {
+      "id": "US-006",
+      "title": "Bounded node.rebuild implementation",
+      "repo": "mifunedev/openharness-cloud",
+      "passes": true,
+      "acceptanceCriteria": [
+        "node.rebuild performs a real node-side operation through the existing management SSH path",
+        "The TODO referencing git -C ~/.openharness pull and make sandbox is gone, not merely reworded",
+        "A failed node-side operation does not advance the node to running",
+        "Persistent user state is preserved across a rebuild",
+        "Scope stays within the D11 prerequisite and introduces no lifecycle redesign",
+        "Readiness is proven by observed in-container service state, not by container liveness: a running container whose openharness-bootstrap.service has failed must land the node in failed, never running",
+        "A regression test covers running-container plus failed-bootstrap explicitly",
+        "The node-side step budgets and the outer transport timeout are derived from one another, with the relationship asserted by a test, so the outer budget cannot kill a legitimate bounded sequence",
+        "The pinned SSH boundary and the narrow forced-command grammar are not loosened to obtain the readiness signal"
+      ],
+      "acceptedBy": "advisor, 2026-09-08. Independent verification: readiness oracle confirmed at .agro/scripts/sandbox-healthcheck.sh:72 (require_unit openharness-bootstrap.service) with the cron unit conditional at :75, so the worker used the project's own definition of ready; budget derivation confirmed at host-management-assets.ts:158-172 and management-ssh.ts:20-22 with the shell literals generated from the same constant and the independently chosen 960 removed; regression coverage confirmed at host-management-assets.test.ts:260 and provision.test.ts:724/743; the TODO naming ~/.openharness pull and make sandbox is absent from apps/provisioner/src; advisor re-ran pnpm type-check && pnpm test independently, exit 0.",
+      "residualLimit": "Unit-level only. No real agro, Docker, or node was exercised. Volume re-attachment across a real stop+install is an inference from the compose model and is owned by US-007a as an observation."
+    },
+    {
+      "id": "US-007a",
+      "title": "Node-bootstrap lifecycle evidence on a real local host",
+      "repo": "mifunedev/openharness-cloud",
+      "passes": false,
+      "acceptanceCriteria": [
+        "The generated bootstrap script is executed on a real disposable Linux host, not simulated",
+        "Fresh AGRO provisioning completes and is confirmed by observed filesystem and container state",
+        "A representative OpenHarness-era ~/.openharness workspace is shown to remain recoverable and operable",
+        "AGRO is shown to operate existing legacy project state",
+        "Migration to native AGRO state is explicit and safe where performed",
+        "No mock, fixture, or status transition is accepted as evidence of node state",
+        "A rebuild is shown to preserve persistent user state, confirmed by observed state before and after",
+        "ATTACH, surface 1: ssh to the host then tmux attach -t docker-build-oh-sandbox succeeds and shows the real bootstrap session",
+        "ATTACH, surface 2: re-attach to the running sandbox container (agro shell / docker exec) succeeds and observes user state written before the transition",
+        "ATTACH, surface 3: a real loopback code-server on 127.0.0.1:8080 is reachable through a pinned SSH forward, and its workspace root resolves to the path that actually holds durable user state",
+        "ATTACH after lifecycle transitions: each of the three surfaces is re-exercised after a restart and after a rebuild, and each observes the same user state written beforehand",
+        "The criterion is re-attach landing on preserved state, not survival of an existing session: node.rebuild deliberately calls revokeNodeBrowserAccess, so a revoked session is correct and a lost workspace is not",
+        "Volume and mount preservation across a real stop-then-install sequence is OBSERVED (volume identity and contents before and after), not inferred from the absence of a down -v in the command list",
+        "A node whose container is running but whose bootstrap unit failed is exercised, confirming the rebuild path reports failure rather than readiness"
+      ],
+      "verdict": "DOES NOT PASS. Executed in full on a real disposable Linux host; nothing was BLOCKED. Three legs fail and one is partial.",
+      "perCriterion": {
+        "fresh_provisioning": "PASS — openharness-bootstrap.service ActiveState=active SubState=exited Result=success ExecMainStatus=0, reproduced twice, with the full cold-boot journal.",
+        "legacy_state": "PASS — empty before/after diff (sha256 + uid + gid + mode) across 9 seeded paths; git working tree intact; ~/.openharness content intact; agro migrate --check reports ready on a seeded .oh/oh.json project.",
+        "rebuild_state_preservation": "PASS WITH CAVEAT — real MANAGEMENT_HELPER over the pinned ohmanage forced command returned state=complete step=ready, with identical bind and identical dev=bc inode=1486974 and an empty state diff. Caveat: a no-change rebuild reported the same success with an UNCHANGED container id, so the verb does not always recreate the container; the first rebuild's id change came from the image-ref change, not the verb.",
+        "attach_a_ssh_tmux": "FAIL — structural, not environmental. See tmuxSessionFinding.",
+        "attach_b_container_reattach": "PASS after restart and after rebuild.",
+        "attach_c_code_server": "PASS after restart and after rebuild, on the second clean run. See exit144.",
+        "uid_alignment": "PARTIAL — passes as configured (1000/1000) but the latent risk is CONFIRMED REAL. See uidFinding.",
+        "harness_config_A_none": "PASS.",
+        "harness_config_B_one_harness": "FAIL — see principalFinding. This is the headline result.",
+        "published_image_contrast": "FAIL, as expected and deliberately exercised — ActiveState=failed ExecMainStatus=1 (#1019) while the container reported 'Up 5 seconds (health: starting)'."
+      },
+      "principalFinding": {
+        "title": "Any Cloud node created with a default harness fails to bootstrap",
+        "evidence": "Config B (harnesses: ['opencode']) -> status=failed:243 and NO /run/openharness-ready, twice. Config A control -> ok, twice.",
+        "rootCause": "buildBootstrapInstallCommands() runs `agro harness install` as soon as `agro sandbox install docker` returns, while the container's bootstrap unit is still `activating` and the entrypoint has not yet repaired /home/sandbox ownership. The install fails with npm EACCES mkdir '/home/sandbox/.local/lib'. The identical command 30s later, once is-active returned active, succeeded.",
+        "notAnArtifact": "The ordering is in the accepted Cloud builder and the failing write is in the published-lineage entrypoint. Not caused by the test substitution.",
+        "consequence": "The sandbox itself still reaches active/Result=success, so a config-B node ends up HEALTHY BUT PERMANENTLY INVISIBLE to the control plane.",
+        "fixAlreadyExistsNearby": "The rebuild helper contains exactly the readiness loop the bootstrap script lacks.",
+        "bearingOnOD1": "This is a hard technical precondition on operator decision OD-1. Choosing 'install three by default' today would fail every node's bootstrap."
+      },
+      "readinessProofGap": "The bootstrap's own `ok` marker fires when Compose reports Started and never consults the unit. This is the THIRD independent instance in this epic of liveness being mistaken for readiness (after handleRebuild's status advance and the first rebuild readiness check). Demonstrated live: the published image booted with the container reporting 'Up 5 seconds (health: starting)' while ActiveState=failed.",
+      "tmuxSessionFinding": {
+        "observed": "docker-build-oh-sandbox exists only while the bootstrap script runs: present at t=1, 'no server running' at t=2; 'no sessions'/exit 1 after restart and after rebuild.",
+        "deterministic": "index.ts:1142 uses `tmux new-session -d -s <session> <script>` with no remain-on-exit. The rebuild helper never uses tmux. Nothing re-runs the launch line.",
+        "correctionToAdvisorReading": "Access is NOT lost and no state is disconnected — the same SSH connection that returns 'no sessions' successfully ran agro shell and docker exec reaching every durable path. The criterion is violated in the narrow sense that a DOCUMENTED attach surface silently stops working, not the broad sense that state becomes unreachable.",
+        "workerVerdict": "(ii) a docs/contract problem, with a self-contradiction inside the accepted source: index.ts:786-791 calls it the 'Access model' and workspace-bootstrap-assets.ts says the owner can attach to it, while README.md:363, docs/quickstart.md:591 and docs/runtime-settings-runbook.md:157 all say 'watch the provision'. The bounded framing is truthful; 'Access model' is false for essentially all of a node's life.",
+        "operatorDecisionLatent": "It becomes (i) a product defect if the intended contract is index.ts:791, in which case the fix is a persistent session or remain-on-exit, not a docs edit. The worker did not make that call and changed nothing.",
+        "secondary": "The failure is silent: after a SUCCESSFUL bootstrap the documented command returns a bare 'no sessions'/exit 1, indistinguishable from a broken node."
+      },
+      "uidFinding": "At node uid 1500 the entrypoint chowned the host bind directory to 1000 and the host user got HOST-WRITE=DENIED HOST-CREATE=DENIED, breaking attach surface (c). The entrypoint's UID-sync path is gated on a checkout bind, which image-only cloud nodes never have. Today's alignment is two constants coincidentally both being 1000 — not a guarantee.",
+      "exit144": "RESOLVED, and it was the worker's own harness, not the product. Determined by experiment rather than decoded: `kill -l TERM` is 15 so 128+SIGTERM would be 143, and `kill -l 16` is STKFLT — so the arithmetic was tested. Two controlled experiments (`kill -s TERM $$`, and a self-matching pkill) both produced exit 144, establishing that in this harness a tool shell terminated by SIGTERM reports 144. Cause: the worker backgrounded a non-terminating `ssh -N -L 18099` and called `wait`, then a later `pkill -f 18099` matched its own shell and the background task. This is the PASS branch, not the FAIL branch: sub-checks 1 and 2 had already completed exit=0 BEFORE the kill, recording the editor reading durable state, and the whole thing was independently reproduced in a separate clean call at 06:07:03, exit=0. Explicitly NOT a repoint of the editor away from durable state — the editor root is dev=bc inode=1486974, the container's bind source. Nothing in the product changed between runs.",
+      "declaredNotVerified": "Sub-check 3, 'ohproxy cannot obtain a shell', never executed and was never re-run. The worker declared it NOT VERIFIED and corrected its own earlier cross-reference rather than letting the claim stand. It is a hardening check on the proxy principal, not an attach-surface assertion.",
+      "candidateDependency": "Every PASS ran on agro-candidate:us007a (sha256:d963de3d2b25) plus a candidate CLI 0.9.0 built from the idempotency-fix worktree. Every PASS is PROVISIONAL on a re-run against the published patched image and CLI. No local build repairs or substitutes for a published release.",
+      "otherDefects": [
+        "A failed rebuild leaves the sandbox stopped, with no rollback.",
+        "`agro shell` needs a pty and misreports the cause when it does not have one.",
+        "Naming drift: `agro config set` prints `oh.json:` while writing `agro.json`."
+      ],
+      "cleanup": "Verified back to the exact pre-run baseline: 22 images / 7.18 GB / 2 pre-existing containers / 2 pre-existing volumes, including the orphaned build container and dangling layers from a cancelled build."
+    },
+    {
+      "id": "US-007b",
+      "title": "Provider-level lifecycle evidence (D11 remainder)",
+      "repo": "mifunedev/openharness-cloud",
+      "passes": false,
+      "blockedBy": "Q3 explicit operator authorization to provision paid OVH infrastructure",
+      "acceptanceCriteria": [
+        "OVH instance create and destroy are exercised against disposable nodes",
+        "suspend and resume are exercised and shown not to disconnect persistent user state",
+        "ATTACH end to end through the live cloudflared tunnel and gateway to a real node, before and after suspend/resume, landing on preserved user state",
+        "Browser-session revocation and re-establishment across suspend/resume/rebuild behave as the access model documents",
+        "The provisioner's OVH-side reconciliation is exercised",
+        "No live infrastructure is touched before explicit operator authorization"
+      ]
+    },
+    {
+      "id": "US-008",
+      "title": "Equipped-repository migration through the supported path",
+      "repo": "mifunedev/agro",
+      "passes": true,
+      "acceptanceCriteria": [
+        "agro migrate --check output is recorded for mifunedev/openharness-cloud and mifunedev/agro-web",
+        "Where the supported migration path applies it is used, with no ad hoc directory rename",
+        "Where it does not apply the reason is recorded",
+        "Historical .oh/tasks content is preserved unmodified"
+      ],
+      "acceptedBy": "advisor, 2026-09-08. Both halves of the delivery are done in the branches that become the PRs, with preflight root confirmation, applied migrations, hash-and-mode manifests, byte-identical historical task content, both git views, and reference sweeps. Cloud: 131/131. agro-web: 6/6. The earlier scratch-clone run remains recorded as rehearsal evidence only.",
+      "corroboration": "git blob OIDs and git modes match across the rename for every path; an inode check shows .oh -> .agro and a file inside keep the same inodes, consistent with a single renameSync that never opened a file; a second run is noop exit 0; no .agro-migrate.lock residue.",
+      "scopeNote": "The real repositories are NOT migrated. This story's deliverable is evidence that the supported path preserves content. Applying it to the real repos is a later, separately authorized step.",
+      "advisorCorrection": "I marked this true on 2026-09-08 and that was wrong. migration-evidence.md states plainly that both applies happened in disposable scratch clones and that the real repositories remain unmigrated. That is a successful REHEARSAL of the supported path, not delivery of #944's consumer migration. The criterion says the supported path IS USED, so it is not met until the migration runs in the branches that become the PRs. The original DoD is unchanged; only my bookkeeping was wrong.",
+      "rehearsalComplete": {
+        "status": "done and accepted as rehearsal evidence",
+        "artifact": "migration-evidence.md",
+        "what_it_proves": "the supported path preserves content exactly — agro-web 6/6 and openharness-cloud 131/131 sha256 and modes identical, 0 lost, 0 gained, tasks/** byte-identical, R100 renames once staged",
+        "what_it_does_not_prove": "that either consumer repository has been migrated"
+      },
+      "deliveryOutstanding": {
+        "status": "OPEN",
+        "requirement": "Run the supported migration in the isolated implementation worktrees that become the PRs: openharness-cloud .worktrees/944-integrate2 and agro-web .worktrees/944-docs.",
+        "preflight": "MUST confirm the migrate plan targets the WORKTREE root, not the parent clone. Both worktrees are nested under a clone that itself carries .oh/, and ROOT_MARKERS resolution walks upward — the rehearsal explicitly listed this nested case as unexercised. Abort if the plan names anything but the worktree root.",
+        "alsoRequired": "The 8 .oh/skills/dev-tmux paths in docs/browser-gateway-runbook.md must be repointed in the same change, because agro migrate rewrites no prose and the rename alone would leave them dangling.",
+        "notAuthorized": "No production clone, no `agro migrate --home` registry migration, no merge, no deployment.",
+        "cloudHalf": {
+          "status": "DELIVERED and accepted",
+          "worktree": "openharness-cloud .worktrees/944-integrate2 (the PR branch)",
+          "preflightResult": "PASSED. `agro migrate --check` named ONLY the worktree root. The nested-parent hazard did not fire, and the worker explained why rather than just reporting the happy path: findProjectRoot (migrate.ts:98) stops at the FIRST ancestor carrying a marker, and cwd itself carried .oh, so it returned without walking up to the parent clone. pwd -P and realpath both resolve to the worktree root with no symlink indirection.",
+          "result": "exit 0, `applied`, stderr empty",
+          "preservation": {
+            "entries": "171 before / 171 after (131 files, 40 dirs, 0 symlinks both sides)",
+            "sha256": "131/131 identical",
+            "modes": "131/131 identical (130x644, 1x755 keeping the dev-tmux exec bit)",
+            "sizes": "131/131, total 3,063,421 bytes both sides",
+            "lost_gained": "0 / 0",
+            "tasks_byte_identity": "129/129; subtree digest b60a0ab0... unchanged, and it MATCHES the rehearsal digest for the same commit",
+            "git_corroboration": "blob OIDs and modes identical for all 131 paths between HEAD:.oh/* and index .agro/*"
+          },
+          "advisorVerification": [
+            "git diff --cached -M: 131 R100, 0 D, 0 non-R100 renames",
+            "tracked .oh/ = 0, tracked .agro/ = 131",
+            ".dockerignore:9 is .agro; .gitignore:36 is !.agro",
+            "0 remaining .oh/ references in docs/browser-gateway-runbook.md",
+            ".agro/skills/dev-tmux/scripts/dev-tmux.sh present, mode 755",
+            "parent clone status clean apart from the pre-existing untracked .worktrees/",
+            "pnpm type-check and pnpm test both exit 0, counts identical to the certified baseline"
+          ],
+          "functionalCatchBeyondBrief": ".dockerignore:9 still said .oh. Left unfixed, the rename would have pushed 131 files and ~3 MB of task records into EVERY Docker build context. This was real breakage the rename introduced, found by the worker's own sweep rather than by the brief.",
+          "crossArtifactEdit": "The worker edited docs/agro-runtime-name-classification.md:100 — another worker's accepted artifact — repointing a Category 4 'where' pointer that the rename made factually false, and flagged it for reversal. ACCEPTED: a pointer that no longer resolves is a defect, not a preserved record. It correctly left line 111 alone, which sits under 'Category 5 - historical, retained verbatim' and is prose ABOUT the pre-migration name.",
+          "leftAlone": "17 references across 16 files: source comments and doc prose citing .oh/tasks/<slug>/prd.md as provenance. None is resolved at build, test or run time; all are historical citations. No CI workflow references .oh at all.",
+          "agroWebHalf": {
+            "status": "QUEUED, not started",
+            "reason": "agro-web .worktrees/944-docs currently has a writer in it (the docs-drift worker). A second writer in an occupied worktree would break the isolation guarantee. The migration runs there once that worker lands, so the drift fix and the migration ship in one PR."
+          }
+        },
+        "agroWebHalf": {
+          "status": "DELIVERED and accepted",
+          "worktree": "agro-web .worktrees/944-docs (the PR branch)",
+          "preflightResult": "PASSED, and the worker did not assume the Cloud result carried over. It walked the ancestors explicitly and confirmed the hazard was REAL BUT INERT: the worktree carries .oh, the parent clone carries .oh, and /home/sandbox/harness carries .agro + agro.json — findProjectRoot stopped at the first marker, which was cwd. pwd, pwd -P, realpath and readlink -f all resolved identically with no symlink indirection.",
+          "result": "exit 0, `applied`, stderr empty (0 bytes); second run `noop` exit 0, so idempotent",
+          "preservation": {
+            "entries": "9 / 9",
+            "files": 6,
+            "sha256": "6/6 identical",
+            "modes": "6/6 identical (644; 3 dirs at 755)",
+            "sizes": "6/6, total 68,028 bytes both sides",
+            "lost_gained": "0 / 0",
+            "symlinks": "0 / 0",
+            "tasks_byte_identity": "all 6 files are under tasks/; subtree digest fd2c0fd1... unchanged",
+            "mechanism": "inodes identical across the rename (.oh 1402214 -> .agro 1402214; prd.md 1402223 -> 1402223), consistent with a single renameSync that never opened a file"
+          },
+          "advisorVerification": [
+            "git diff --cached -M: 6 R100 for the migration; the 5 A and 13 M are the prior accepted docs work",
+            "tracked .oh/ = 0, tracked .agro/ = 6",
+            "parent clone still carries its own .oh/ and has no .agro/"
+          ],
+          "sweepResult": "NO functional breakage in this repo, and the worker changed no file rather than inventing work. It checked each analogue of the Cloud findings and reported why each was inapplicable: .gitignore has no .oh entry; .dockerignore does not exist (this repo deploys a Pages artifact, not a Docker build context, so the Cloud 3 MB failure mode has no analogue); netlify.toml absent; docusaurus.config.ts scans only docs and blog with no root glob; no .oh reference in the workflow or package.json. It swept all 31 files mentioning .oh and found the only literal .oh/tasks hit outside the directory is a dated blog record of the HARNESS layout, not a path into this repo.",
+          "compatSurfacesPreserved": "oh-source.mjs; build-oh-cli.mjs including its CLI_DIRS ['.agro/cli', '.oh/cli'] fallback; sync-external-scripts.mjs including PRE_RENAME_SCRIPTS_DIR; the get-oh.sh / oh.js mirroring; the GHCR ghcr.io/mifunedev/openharness references; the repository-name gates in the workflow; and README.md's documented .agro -> .oh ref fallback. check-docs-drift.mjs was read first.",
+          "checks": "check-docs-drift exit 0 (PASS, 44 files); pnpm build exit 0; pnpm typecheck exit 0",
+          "honestCaveat": "Zero broken links and anchors is verified by ABSENCE of the warning block, not by a throwing gate — docusaurus.config.ts:24-25 sets onBrokenLinks: 'warn', not 'throw'. The worker stated this precisely rather than claiming a gate it does not have."
+        }
+      }
+    },
+    {
+      "id": "US-009",
+      "title": "Operator- and user-facing copy reflects the AGRO runtime contract",
+      "repo": "mifunedev/openharness-cloud",
+      "passes": true,
+      "acceptanceCriteria": [
+        "README, quickstart, threat model, deploy and gateway runbooks, cloud-init README, and the console setup guide no longer present OpenHarness as the canonical runtime name",
+        "Cloud's own product identity and historical references are retained",
+        "Setup instructions match the actual artifact-based provisioning implemented in US-003 and US-004",
+        "No instruction references make sandbox, a runtime source clone, or a retired INSTALL_* flag"
+      ],
+      "acceptedBy": "advisor, 2026-09-08. Re-ran pnpm type-check && pnpm test on the integrated tree AFTER these edits: exit 0, shared 113/113, db 189/189, gateway 37/37, web 2898/2898 across 126 files, provisioner 84/84 — identical to the certified baseline, so the prose work introduced no regression.",
+      "materialDefectFixed": "README.md and docs/quickstart.md documented the Cloud provisioning credential as living at ~/.config/openharness/cloud.json with mode 0600. The released CLI never creates that file. Verified against v0.9.0 directly: secrets.ts:6 is SECRETS_FILE = '.env', and cloud.ts:39-41's own help text says `oh cloud config` writes cloud.apiUrl to the repository oh.json and stores OH_CLOUD_PROVISION_KEY in the gitignored root .env. An operator following the old docs would have gone looking for a file that does not exist. This was a live documentation defect, not staleness.",
+      "releaseAwareness": "The prerequisite row was corrected to `AGRO CLI >= 0.9.0` because the CLI bin is `oh` at v0.5.1-v0.8.0 and becomes `agro` only at v0.9.0 — the previous `>= 0.2.0` was wrong for the agro verb, not merely stale. oh.json was documented rather than agro.json, since the namespace cutover is unreleased.",
+      "deliberateRetentions": [
+        "docs/design/console-mvp.md — densest concentration of dead commands in the repo, but it is the approved design record (category 5) and rewriting it would falsify what was approved.",
+        "docs/cost.md and docs/provider-comparison.md — dated analysis records; cost.md states outright that it records how the ORIGINAL flavors were chosen.",
+        "Six other READMEs verified against the diff and the released runtime and confirmed to need NO change; every openharness name in them is category 3 or 4."
+      ],
+      "residual": "Strings and tests asserting the always-installed-three claim are deliberately untouched pending operator decision OD-1, including create-node-form.tsx:181 which is false on both halves but sits inside the block under decision."
+    },
+    {
+      "id": "US-010",
+      "title": "mifunedev/website — repair published guidance that is broken, not merely stale",
+      "repo": "mifunedev/website",
+      "passes": true,
+      "acceptanceCriteria": [
+        "posts/openharness-getting-started.md no longer publishes make harness-config, make sandbox, make shell, or harness.yaml, none of which have existed since agro#893 deleted the Makefile",
+        "Replacement instructions are grounded on agro@main (the released v0.9.0 surface), never on unreleased development",
+        "Live constants offerings.ts:3-4 and AgentPickerSection.tsx:6 present the canonical runtime name",
+        "The GitHub API target github.ts:34 and its match key AgentPickerSection.tsx:186 resolve to the canonical repository, and are changed together so the key still matches",
+        "faqs.ts:48 is dispositioned",
+        "generate-llm-txt.mjs:111,112,125 is updated and public/llm.txt regenerated from it, not hand-edited",
+        "schema.ts:11, cloud-pricing.ts:7,45 and tasks/** are retained with a written justification"
+      ],
+      "acceptedBy": "advisor, 2026-09-08. Independent verification: LICENSE on agro@main is Apache 2.0, confirming the post contradicted its own site rather than the worker inventing a change; the '## Install' heading exists on agro@main so the #-install anchor still resolves; both worktrees are content-only dirty with exactly the reported files. Worker ran npm ci, generate-llm-txt, next lint and next build — all exit 0, 24/24 static pages, all 7 blog routes prerendered.",
+      "releaseAwareness": "Verified by the worker against agro@main rather than the working tree: root tree has .oh and oh.json and no .agro/agro.json, so no unreleased namespace prose was published. Every published command was checked to exist in v0.9.0's own README.md and docs/lifecycle-commands.md, and the get-agro.sh release asset was fetched live (200).",
+      "scopeJudgements": [
+        "Two edits beyond the enumerated targets, both flagged rather than slipped in. (a) The post claimed MIT; the repo is Apache-2.0 and the site's own generate-llm-txt.mjs already said Apache-2.0. Corrected. (b) AgentPickerSection.tsx:233 is the caption directly under the star count; repointing the fetch at :186 without it would have labelled agro's star count as openharness. Changing them together avoided introducing a new falsehood. Both accepted.",
+        "Product identity deliberately preserved: 'Open Harness' prose, OpenHarnessBrandBar, OpenHarnessValueSection, the openHarnessRepo identifier and the post slug are unchanged. Only repo identifiers and URLs migrated.",
+        "Retentions honoured with no edit: schema.ts:11 CLOUD_SERVICE_ID, cloud-pricing.ts:7,45 (where :7 names openharness-cloud, a different and still-current repo), and all of tasks/**.",
+        "public/llm.txt regenerated by its generator and never hand-edited; the build's prebuild hook reproduced it byte-identically. The incidental next-pwa public/sw.js rebuild was restored to HEAD so the diff stays content-only."
+      ],
+      "apiPairing": "github.ts builds fullName as `${owner}/${name}` (:61); after the change it yields 'mifunedev/agro', matching the key at AgentPickerSection.tsx:186. api.github.com/repos/mifunedev/agro returns 200 with stargazers_count, so the live star fetch succeeds rather than silently falling back."
+    },
+    {
+      "id": "US-011",
+      "title": "mifunedev/agro-web — close the documentation drift left by Phase 3",
+      "repo": "mifunedev/agro-web",
+      "passes": true,
+      "acceptanceCriteria": [
+        "docs prose is re-mirrored from agro@main, the released surface, so it describes what a reader can install today",
+        "docs/lifecycle-commands.md no longer presents oh as the only front door",
+        "The 14 pages present in agro@main but absent from agro-web are reconciled: mirrored, or their absence justified in writing",
+        "Namespace prose that main has not yet released (.oh -> .agro, oh.json -> agro.json) is NOT pre-emptively rewritten; it moves with the rename-bearing release",
+        "The deliberate exceptions in check-docs-drift.mjs:41 (GHCR default image, get-oh.sh, oh.js mirroring) are preserved, not swept up",
+        "A successful manual Pages build is not recorded as evidence that the drift is fixed"
+      ],
+      "acceptedBy": "advisor, 2026-09-08. Verified: check-docs-drift.mjs polarity inverted so the retired spelling is now .env.example (the one absent from agro@main) with `instead` naming .example.env; node scripts/check-docs-drift.mjs exit 0 PASS across 44 files; pnpm build exit 0; pnpm typecheck exit 0. Drift measured 0 -> 159 agro verbs and 373 -> 257 oh verbs, with the residual gap accounted for by pages deliberately not mirrored.",
+      "method": "Not a blind overwrite. The worker located the commit the site last mirrored (61f4dcd4, verified an ancestor of agro@main) and used it as a three-way merge base, which isolated real drift from the site's own edits — and preserved systemd/SYS_ADMIN prose in connecting.md and quickstart.md that exists only on the site and would have been destroyed by a copy from main.",
+      "advisorRuleWasWrong": "I told the worker check-docs-drift.mjs was authoritative. It was stale: agro#980 renamed .env.example to .example.env, released in v0.9.0, and `git ls-tree origin/main` confirms the root file is .example.env — while the checker retired that exact spelling and pointed at a file that does not exist on main. The worker obeyed a rule that was wrong; I inverted it on review. Six lines across four pages needed correcting, not one.",
+      "selfCaughtCollateral": "Reverting the spelling exposed that the worker's own earlier sed had corrupted .claude/.example.env.claude and a deny-secret-paths sentence in security-considerations.md. It found and restored both to match main rather than leaving them for review to catch.",
+      "deliberateDivergenceFromMain": [
+        "docs/integrations/sshd.md — two commands gain `install docker`, because main's bare `oh sandbox` prints help and exits non-zero. Recorded as an upstream bug; a future mirror must not 'correct' it back.",
+        "docs/deployment-prebuilt-image.md — placeholders retained where main's docker run recipe hardcodes a real name and email address. This is PII and must not pass through on any future mirror.",
+        "get-agro.sh URLs point at the site-served path, because main's spelling contains mifunedev/openharness which LEGACY_IDENTITY rejects outside a compatibility section."
+      ],
+      "notMirrored": "agro-compatibility.md and rfcs/** stay unmirrored until the rename-bearing release: the former's central table declares .agro/ and agro.json as the AGRO spellings, which is exactly the unreleased-namespace hazard on a site serving v0.9.0. Inbound links point at GitHub and will need retargeting when it ships."
+    }
+  ],
+  "resolvedDecisions": {
+    "Q1": "OH_IMAGE_TAG and OH_ENV_FILE retained as category 4; grounded application of #944's retention boundary, not a new decision",
+    "Q2": "Bootstrap marker/log/readiness paths and the docker-build-oh-sandbox tmux session retained as category 4; only runtime-facing prose changes"
+  },
+  "dodCoverage": {
+    "sourceCriterion": "#944: suspend/resume/rebuild/attach flows do not silently disconnect persistent user state",
+    "split": {
+      "suspend": "US-007b",
+      "resume": "US-007b",
+      "rebuild": "US-007a (state preservation) + US-007b (provider-level)",
+      "attach": "US-007a (all three node-side surfaces, incl. after restart and rebuild) + US-007b (live tunnel, across suspend/resume)"
+    },
+    "note": "attach was omitted when US-007 was first split; restored 2026-09-08 so no leg of the original criterion is lost to the local/provider boundary"
+  },
+  "crossRepoOrder": {
+    "note": "Four repositories, not two. Order is set by what is RELEASED, not by what is merged.",
+    "releaseFacts": {
+      "agro@main": "823aabbd = v0.9.0. Ships the agro executable (npm @mifune/agro@0.9.0 bin=agro). Still carries .oh/ and oh.json.",
+      "phase2_a227bbf3": "NOT an ancestor of main. The .oh -> .agro namespace cutover is merged to development and unreleased.",
+      "phase3_b10ecac3": "NOT an ancestor of main.",
+      "makefile_0b292bf8": "IS an ancestor of main, so make sandbox is dead in the released surface. This is why website guidance is broken rather than stale."
+    },
+    "sequence": [
+      "1. mifunedev/openharness-cloud — US-002..US-006, US-009. Independent of the others.",
+      "2. mifunedev/website — US-010. Independent; grounded on agro@main. Highest user-visible urgency: its published instructions cannot work.",
+      "3. mifunedev/agro-web — US-011. Grounded on agro@main. Must NOT pre-empt unreleased namespace prose.",
+      "4. mifunedev/agro — US-001, US-008 record PR plus evidence. Lands last so it can cite the other three."
+    ],
+    "deferredToReleaseWindow": [
+      "agro-web namespace prose (.oh -> .agro, oh.json -> agro.json) moves only when the rename-bearing release ships.",
+      "The legacy-host Cloudflare redirect rule and the oh-redirect Worker move from .oh/scripts/install.sh to .agro/scripts/install.sh in that same window."
+    ]
+  },
+  "correctionsAccepted": [
+    "F4 was wrong: three repositories carry .oh/ (agro, openharness-cloud, agro-web), not two.",
+    "The PRD hypothesis that agro migrate requires a fully equipped control plane was wrong. migrate.ts ROOT_MARKERS is the only precondition; both candidate repos report ready, exit 0.",
+    "agro@main's .oh/ and oh.json are default-branch release lag from Phase 2, NOT unfinished Phase 5 retirement work, and are not Phase 4's business.",
+    "The claimed @mifune/openharness dependency pin in Cloud does not exist. The identifier occurs once at 0aa8f99, in docs/quickstart.md:35, and is a docs reference handled under US-009."
+  ],
+  "prerequisiteFixes": [
+    {
+      "id": "US-012",
+      "repo": "mifunedev/agro",
+      "title": "agro sandbox install preserves an existing registry entry's settings",
+      "why": "seedConfig seeds only from --repo and never from the existing entry; writeOhConfig is unconditional; config-render maps timezone->TZ and access.dockerSocket->DOCKER_SOCKET. The CLI's own documented recycle therefore discards a user's Docker-socket and timezone selections, and Cloud cannot work around it because no flags exist for those fields.",
+      "authority": "plan S5: 'If incomplete Cloud lifecycle operations block D11, obtain a bounded prerequisite fix before claiming Phase 4 completion.'",
+      "worker": "W8",
+      "passes": true,
+      "acceptedBy": "advisor, 2026-09-08. Independent verification: OH_CONFIG_FIELDS confirmed as the authoritative user-settable registry (it backs agro config set/show via findOhConfigField and ohConfigFieldPaths), so the worker's completeness argument is structural rather than a hand-enumeration; advisor re-ran typecheck, test and build in the worktree: 74 files, 1257 tests, dist/agro.js 205.1kb, exit 0.",
+      "widerThanDiagnosed": "The defect was worse than the advisor described. Beyond timezone and dockerSocket, config.repo was also lost, and registry.ts selects docker-compose.image-only.yml versus the build base off config.repo (pinned by the existing test 'picks the image-only base without a repo and the build base with one'). A recycle would have silently flipped a node from build mode to image-only, dropping the harness bind mount, not merely reverting two settings.",
+      "decisions": {
+        "precedence": "defaultOhConfig < existing registry entry < --repo seed < explicit flags < wizard. Accepted: --repo is typed on this invocation, so it is a per-invocation explicit input like a flag, not stored state; this also keeps --repo's documented meaning literally true.",
+        "corruptConfig": "A corrupt agro.json now aborts install with exit 2 instead of overwriting it. ACCEPTED as correct: silently discarding a user's settings is the exact class of bug being fixed, and the error names the offending path so the user can act. No recovery path added.",
+        "emptyStringFallback": "nonEmpty() guard on timezone and git identity accepted: without it, install reading back its own first-install output would freeze a blank git identity across every future recycle, a regression against today's re-read behaviour."
+      },
+      "docsConsequence": "cli.ts:141, docs/configuration.md:51 and docs/quickstart.md:335 already instruct users to apply a config change with `agro stop <name> && agro sandbox install docker --name <name>`. That instruction was false before this fix; it is now true. No doc change required."
+    }
+  ],
+  "operatorActionItems": [
+    {
+      "id": "OA-1",
+      "title": "Audit existing nodes.container_name values before the Cloud change ships",
+      "why": "The AGRO name grammar now closes the create boundary. Existing rows still parse, but a row containing _, . or uppercase cannot be re-provisioned and will raise UnsupportedSandboxNameError.",
+      "query": "psql \"$DATABASE_URL\" -c \"select id, container_name, status, created_at from nodes where container_name !~ '^[a-z0-9][a-z0-9-]*$' or length(container_name) > 64 order by created_at;\"",
+      "note": "Read-only. status is included so already destroyed/failed rows can be dismissed. An empty result makes the tightening a no-op in production. Neither advisor nor worker can query production."
+    },
+    {
+      "id": "OA-2",
+      "title": "Stage the migrating commit with git add -A and review it from git diff --cached -M",
+      "why": "Rename detection does not fire in `git status --short` until the change is staged. Immediately after `agro migrate`, openharness-cloud shows 131 ' D' lines plus one '?? .agro/' and agro-web shows 6 ' D' — it reads like a mass deletion. After staging, every path becomes R100 with 0 insertions and 0 deletions. Content is safe either way, but an unstaged review would look alarming and could prompt someone to abort a correct migration.",
+      "extra": "Git stores no rename; R100 is read-time similarity, so history across the boundary depends on --follow and diff.renameLimit (default 1000; both repos are well under)."
+    },
+    {
+      "id": "OA-3",
+      "title": "Operators must upgrade the CLI past 0.7.0 before running the real migration",
+      "why": "The shipped sandbox image's `oh` is 0.7.0 and has no `migrate` verb, so the migration is not reproducible on this image as shipped."
+    }
+  ],
+  "operatorDecisions": [
+    {
+      "id": "OD-1",
+      "title": "Should a new Cloud node arrive with claude-code, codex and pi installed?",
+      "status": "OPEN - operator decision, not taken by the advisor",
+      "background": "The old flow baked the three into the image via ARG AGENTS. Upstream deliberately unbaked them in two steps (0b6dad57 / #905, then 55ceece1 / #949) and machine-enforces boot-installs-nothing via harness-one-door.sh, sandbox-boot-smoke.sh and verify-sandbox-image.sh. So without action, new nodes arrive with no agent unless the user picked one.",
+      "advisorRecommendation": "Install the three explicitly at bootstrap. Upstream's rule is that the IMAGE installs nothing; a consumer calling agro harness install is the supported path, not a violation. Cost is low: no TTY, no sudo, no auth at install time, idempotent via a --version short-circuit, and they land in /home/sandbox/.local inside the durable mount, so with the new host bind they survive down -v and become no-ops on later boots. CI already runs exactly these unattended.",
+      "caveats": [
+        "the correct catalog id is `pi`, not `pi-coding-agent`",
+        "CI wraps each install in a 2-attempt retry with 15s backoff; the bootstrap has none, so a registry blip fails the node fast rather than hanging",
+        "install duration is not quotable — no timing instrumentation exists anywhere in the repo"
+      ],
+      "blockingDetail": "Cloud's DEFAULT_INSTALLED_HARNESSES uses the id `pi-coding-agent`, which is NOT an AGRO catalog id (the id is `pi`). Under the install-three outcome that value must change or the install call fails. Also confirmed: the released Dockerfile writes `claude` and `codex` shell aliases at lines 101-102 for binaries it does not ship, so `claude` on a fresh node fails today.",
+      "minimalEditPerOutcome": {
+        "installThree": "Behaviour change only, user-facing copy unchanged: append unconditional `agro harness install claude-code|codex|pi` to the bootstrap install loop; fix pi-coding-agent -> pi in create-node-bootstrap.ts:79 and its test; retarget two stale comments; add one cloud-init fixture asserting the three calls reach userData.",
+        "installNone": "Larger: delete DEFAULT_INSTALLED_HARNESSES and its import, the 'Always installed' <dl> block and its explanatory paragraph, four create-node-bootstrap tests and one multi-presentation test, then rewrite node-setup-guide step 5 from 'sign in to your agents' to 'install a harness, then sign in' and update its presentation test. This removes a disclosure the create page was redesigned around."
+      },
+      "hardPrecondition": "MEASURED, not predicted: choosing 'install three by default' today would fail EVERY node's bootstrap. A node with one default harness returns status=failed:243 with no readiness marker, because the bootstrap installs harnesses before the container's unit is active. The install-three option is not available until the bootstrap gains the readiness loop the rebuild helper already has. This does not decide OD-1; it prices it."
+    }
+  ],
+  "findingsForSeparateIssues": [
+    {
+      "title": "AGRO Dockerfile bakes --dangerously-skip-permissions aliases for binaries the image no longer ships",
+      "detail": ".devcontainer/Dockerfile:101-102 defines claude='claude --dangerously-skip-permissions' and codex='codex --dangerously-bypass-approvals-and-sandbox' in .bashrc. The image ships neither binary since #905/#949, so the aliases are inert today — but they would apply silently the moment anyone installs those harnesses.",
+      "scope": "Not Phase 4. Raised to the operator for a separate issue."
+    },
+    {
+      "id": "agro#1020",
+      "filed": true,
+      "summary": "Every workflow path filter in mifunedev/agro still names .oh/**, which has 0 tracked files after the Phase 3 rename (.agro/ has 760). Control-plane changes trigger no CI. The probe added by PR #1023 is unreachable by any CI path. Same failure shape as #981."
+    },
+    {
+      "id": "migrate-rehearsal availability probe",
+      "filed": false,
+      "summary": "dockerComposeAvailable() in .agro/cli/src/commands/__tests__/migrate-rehearsal.test.ts probes the Compose plugin binary rather than daemon reachability, so it asserts success from a command that cannot succeed without a daemon. Causes 2 failures on any machine with the docker CLI but no socket. Pre-existing at b10ecac3."
+    }
+  ],
+  "advisorCorrections": [
+    {
+      "date": "2026-09-08",
+      "what": "I described ghcr.io/mifunedev/agro:latest as an immutable broken build in several places.",
+      "why_wrong": "The digest is immutable; the tag is not. `latest` moves on the next publish, so the claim expires silently and would misdirect the #1019 release decision.",
+      "correction": "Pin claims to version tag 0.9.0, tag sha-823aabbd..., or the digest. Date any observation about `latest`."
+    }
+  ],
+  "followUps": [
+    {
+      "title": "Repoint 8 .oh/skills/dev-tmux paths in docs/browser-gateway-runbook.md in the same commit as the Cloud migration",
+      "why": "agro migrate rewrites no prose — confirmed by the applied runs reporting 1 rename step and 0 rewrite steps — so these references would be left dangling by the rename alone. agro-web needs no equivalent follow-up."
+    }
+  ],
+  "completedInventoryItems": [
+    {
+      "repo": "mifunedev/orchestra",
+      "item": "decks/slides/onepager.html:242 'Powered by Orchestra + OpenHarness' -> 'Powered by Orchestra + AGRO'",
+      "category": "1 (product-facing runtime reference)",
+      "evidence": "Name taken from the live public repo description, 'AGRO — Agent Governance Runtime Orchestrator', not from the working tree. Case-insensitive repo-wide scan found exactly one occurrence, so there was no historical or dated instance to weigh; post-change scan is clean. No Orchestra product name, repository or identifier renamed. Static slide with no build target in the repo."
+    }
+  ],
+  "relatedWork": {
+    "issue1019PartA": {
+      "status": "COMPLETE and accepted by the advisor",
+      "worktree": ".worktrees/bug/1019-boot-recovery (branch bug/1019-boot-recovery, off b10ecac3)",
+      "artifacts": [
+        "docs/repair-sandbox-boot-advisory.md — the state-preserving recovery runbook",
+        "docs/release-requirements-1019-boot-fix.md — Part B requirements for the operator, R3 and R4 deliberately undecided",
+        ".agro/evals/probes/sandbox-boot-advisory-recovery.sh — new tier-A probe, live half behind SANDBOX_BOOT_RECOVERY_LIVE=1",
+        ".agro/evals/probes/pnpm-audit-ci-gate.sh — extended to forbid any lifecycle hook on any boot-install manifest"
+      ],
+      "coreFinding": "The container-stays-up hypothesis was TESTED and held. Against the real published image, the bootstrap oneshot fails while systemd keeps the container running and docker exec still reaches a shell at uid 1000. Population B therefore has intact, reachable state behind a broken boot — the same systemd property that made the rebuild readiness check wrong is what makes recovery possible.",
+      "advisorVerification": [
+        "reproduced the original defect: mktemp+mv changed package.json 644 -> 600 and reassigned ownership",
+        "reproduced the fix: cat > preserves mode 644 AND the same inode, with unrelated keys intact",
+        "confirmed the corrected block in the runbook at :100-102 (jq --indent 2, then cat > package.json)",
+        "confirmed three refusals at :93-98 — non-regular/symlink manifest, absent hook, and a hook that is not exactly the audit-only value",
+        "grep immutable across both documents returns nothing; latest observations are dated",
+        "re-ran the live probe independently after the corrections: exit 0, PASS"
+      ],
+      "threeDefectsCorrected": {
+        "1_manifest_mutation": "Recovery writes back through the existing file, preserving mode, owner and inode. Reformatting was MEASURED, not assumed: jq --indent 2 round-trips the published 0.9.0 manifest byte-identically, so the runbook states that as a property of that file and tells a reader with a reformatted manifest what will change.",
+        "2_unconditional_delete": "The hook value must equal the audit-only value or the block refuses. It never parses, splits, or partially rewrites a combined hook. Symlink and non-regular manifests refuse too.",
+        "3_moving_tag": "Absolute claims about `latest` removed from both documents; claims pinned to 0.9.0, sha-823aabbd..., or the image id, with dated observations. The requirements doc opens 'Tags move; digests do not' and R3/R5 say what to re-check before acting."
+      },
+      "faultInjection": "Every new assertion has an observed red transition, including the decisive live one: reverting the block to mv fails with mode/owner/inode changed (644 -> 600). Removing either guard fails with 'did not refuse'. The four earlier injections still go red.",
+      "notClaimed": "Nothing here repairs the published artifacts. A locally built candidate image cold-boots clean, which proves the source revision only. Boot-install network isolation was NOT proven and is not claimed.",
+      "steCheck": "11 advisory findings on the runbook, mostly line-wrap false positives on passive/pronoun heuristics. Gates nothing in CI. Deliberately not chased — churning prose for a non-gating heuristic is not worth the diff."
+    }
+  },
+  "groundingChecks": [
+    {
+      "date": "2026-09-08",
+      "check": "agro-web base currency before PR readiness",
+      "finding": "The local parent checkout HEAD bd9f104 is an ANCESTOR of origin/main (409ef104), not ahead of it — the local clone is BEHIND the remote. Proof: `git merge-base --is-ancestor bd9f104 origin/main` succeeds, `git log 409ef104..origin/main` is empty, and CNAME reads oh.mifune.dev at bd9f104 versus agro.mifune.dev at origin/main, so the stale checkout predates the Phase 3 domain cutover. The 944-docs worktree is based on 409ef104 and carries agro.mifune.dev, i.e. it is correctly grounded on current origin/main. No re-basing needed; the stale artifact is the local parent checkout, which is not a PR input."
+    }
+  ],
+  "codeGates": {
+    "newCommentCleanup": {
+      "status": "COMPLETE and verified",
+      "scope": "Newly-introduced explanatory comments in the Cloud implementation diff only. The harness-repo diff was already clean at 0.",
+      "removed": 102,
+      "retained": 87,
+      "retainedJustification": "Every retained '+' comment line has a paired '-' line: these are PRE-EXISTING comments whose text the rename made factually false (e.g. 'the provisioner writes them into .devcontainer/.env so make sandbox reads them' -> the agro harness install reality). Updating them keeps legacy comments truthful. Deleting them instead would either leave false statements in the tree or trigger the legacy sweep that was explicitly out of scope. Advisor sampled the diff with -U0 and confirmed the pairing.",
+      "namedTargetsRemoved": [
+        "SANDBOX_READY_UNIT docblock",
+        "SANDBOX_REBUILD_BUDGET_SECONDS docblock",
+        "handleRebuild header block and its inline revoke-ordering rationale",
+        "both deepagents explanation blocks",
+        "DEFAULT_AGRO_SANDBOX_IMAGE latest/#1019 rationale",
+        "UnsupportedSandboxNameError and assertSandboxName docblocks",
+        "every newly-added narrating // line across the five test files"
+      ],
+      "advisorRuleCorrection": "I first allowed a 'sibling convention' exception — keep short 'what it is' TSDoc where neighbouring symbols carry one. That invented an exception the rule does not have, and it was withdrawn. The operative rule is: keep newly-added comment text ONLY where a verified doc generator, tool or oracle consumes it, and name the consumer. Verified there is no typedoc, api-extractor, @microsoft/tsdoc, or doc script anywhere in the Cloud repo, so nothing survived on that basis; the ~9 one-liners kept under the first instruction were removed.",
+      "advisorPremiseCorrection": "I repeatedly told workers that this repository's AGENTS.md forbids explanatory comments. It does not: the Cloud repo has no AGENTS.md or CLAUDE.md and its existing code is pervasively commented. The rule lives in the harness repo. The cleanup stands on the operator's explicit instruction, not on a rule this repo carries.",
+      "preservedWithConsumerNamed": "Four lines in host-management-assets.test.ts and one in index.ts that a naive '+ comment' scan flags are NOT comments — they are shell `case`-pattern arms in an executed fake-binary fixture. The worker also checked every readFileSync-of-source test in the repo and confirmed none reads a comment in the eleven edited files; the only assertion touching one is a negative match that deletion can only help.",
+      "verification": "advisor re-checked: named docblocks absent, 0 new comment lines in provision.ts, suite exit 0 at unchanged counts (shared 113, db 189, gateway 37, web 2898/126, provisioner 84)"
+    }
+  },
+  "mustAppearInPrBody": [
+    {
+      "item": "The reason the sandbox image ref is NOT pinned to 0.9.0",
+      "why": "The cleanup removed the only place the mifunedev/agro#1019 issue number appeared in source. The CONSTRAINT is still enforced by a test — 'the sandbox image ref is configurable and defaults to the canonical AGRO image, unpinned', asserting doesNotMatch(/agro:0\\.9\\.0/) — but the provenance is no longer recoverable from the tree. The worker flagged this itself rather than letting it vanish silently. It must be stated in the PR body and the evidence record."
+    }
+  ],
+  "blockedOn": {
+    "blocker": "Anthropic monthly spend limit (HTTP 429, rate_limit). Both bounded workers terminated mid-task within seconds of each other; session limit resets 01:20 America/Denver.",
+    "requestIds": [
+      "req_011CesQ8vZ6gQzJKAgmCiqon (bootstrap owner)",
+      "req_011CesQAbALZYv1weJejyMfW (lifecycle matrix)"
+    ],
+    "advisorAction": "No workers restarted. Retrying now would be repeated 429 retries against a MONTHLY cap that does not lift until reset, which is explicitly out of bounds. No provider switch, no limit raise.",
+    "verifiedPartialState": {
+      "readiness_gate": "NOT LANDED. grep for is-active/sandbox_ready/READY_UNIT in workspace-bootstrap-assets.ts returns 0. The worker died before writing anything. The PR worktree is otherwise intact and green, carrying the accepted migration (staged R100 renames), docs and comment cleanup.",
+      "ohproxy_negative_test": "NOT RUN. local-lifecycle-evidence.md still carries the NOT VERIFIED declaration; no observed refusal recorded.",
+      "uid_gid_contract_writeup": "NOT LANDED. grep for the required-contract and fail-before-mutation headings returns 0.",
+      "evidence_file": "Intact at 51,416 bytes, 16 sections, ending at 14.2 (surface 4a). Sections 14.1 and 14.2 — the exit-144 determination and the 4a product finding — DID land and are accepted."
+    },
+    "resumeOrder": [
+      "1. Readiness-ordering repair in workspace-bootstrap-assets.ts through the bounded owner: await the rebuild helper's bounded unit-completion oracle after `agro sandbox install docker` and before any harness/tool install or the ok/ready writes; runs for config A too; fails on failed or timeout; never emits ready prematurely. Plus ordering, failure, timeout and constant-derivation tests.",
+      "2. ohproxy-no-shell negative test with PID-scoped cleanup (never a pattern the invoking shell also matches).",
+      "3. UID/GID contract write-up plus fail-before-mutation ASSESSMENT only — no remap, no chown, no opportunistic remediation.",
+      "4. Real A+B lifecycle re-run with candidate artifacts, only after item 1 is in the tree."
+    ],
+    "note": "The operator instruction was to implement item 1 THROUGH THE EXISTING BOUNDED OWNER. I am not substituting a direct advisor edit while that instruction stands; if the cap persists and the operator prefers a recorded direct-owner exception, that is their call."
+  },
+  "scopeNarrowing": {
+    "date": "2026-09-09",
+    "by": "operator",
+    "activeFinishLine": [
+      "mifunedev/agro",
+      "mifunedev/agro-web"
+    ],
+    "deferred": {
+      "mifunedev/openharness-cloud": "US-002, US-003, US-004, US-005, US-006, US-009 and the Cloud half of US-008. Preserved on draft PR #145. Not merged, not reverted.",
+      "mifunedev/orchestra": "One customer-facing credit line. Preserved on draft PR #983.",
+      "mifunedev/website": "US-010. Branch pushed; PR deliberately WITHHELD because opening it triggers a Netlify Deploy Preview build on a project with an unresolved credit issue."
+    },
+    "dodEffect": "NONE. Deferred items remain part of #944's definition of done, and #944 remains part of #939. Completion is not redefined and the EPIC is not closable because agro and agro-web are ready.",
+    "gatesRetained": "#945 still requires Phase 4 complete AND 90 days AND three releases since the first public AGRO release. Anchor v0.9.0 2026-09-06; earliest date 2026-12-05; one release observed."
+  },
+  "pullRequests": [
+    {
+      "repo": "mifunedev/openharness-cloud",
+      "issue": 144,
+      "pr": 145,
+      "head": "4b4124c7caff31a84b2367b75472c7b8ef26ce2f",
+      "state": "DRAFT",
+      "note": "parked/deferred at operator request"
+    },
+    {
+      "repo": "mifunedev/orchestra",
+      "issue": 982,
+      "pr": 983,
+      "head": "1acc415bf347991ed2dbd3b0d0ac937b9006faa0",
+      "state": "DRAFT",
+      "note": "parked/deferred at operator request"
+    },
+    {
+      "repo": "mifunedev/agro-web",
+      "issue": 48,
+      "pr": 49,
+      "head": "0b0a6d28da979d6eb4a92e5a798cef8c95f3e1c4",
+      "state": "READY"
+    },
+    {
+      "repo": "mifunedev/agro",
+      "issue": 1021,
+      "pr": 1022,
+      "head": "909b3ec3e294a2dcfad15bd3036730a094c07610",
+      "state": "READY"
+    },
+    {
+      "repo": "mifunedev/agro",
+      "issue": 1019,
+      "pr": 1023,
+      "head": "f8b72d7f5845d797039b8cfd8f87d7c23d9165c5",
+      "state": "READY",
+      "note": "does NOT close #1019; population B needs a release"
+    },
+    {
+      "repo": "mifunedev/website",
+      "issue": null,
+      "pr": null,
+      "head": "5e5f34cc45ed8ab174f1354b3cd2e97f62b1c3a9",
+      "state": "BRANCH PUSHED, PR WITHHELD",
+      "note": "opening a PR triggers a Netlify Deploy Preview build; branch push measured to trigger nothing"
+    }
+  ]
+}

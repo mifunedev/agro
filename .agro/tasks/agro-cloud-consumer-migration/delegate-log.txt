@@ -1,0 +1,219 @@
+# delegate-log.txt — append-only. Advisor writes; workers never write here.
+# slug=agro-cloud-consumer-migration issue=944 owner=advisor session_018Gh4FRUfcQYD6CcNNH1xRU
+
+2026-09-08  PLAN     Task folder scaffolded after read-only grounding of mifunedev/agro@b10ecac3 and
+                     mifunedev/openharness-cloud@0aa8f99. 9 stories, later 10 after the US-007 split.
+2026-09-08  DECIDE   Q1/Q2 resolved as grounded applications of #944's own retention boundary, not as new
+                     naming decisions: OH_IMAGE_TAG, OH_ENV_FILE, the bootstrap marker/log/readiness paths
+                     and the docker-build-oh-sandbox tmux session are retained (category 4). Runtime-facing
+                     prose only. Recorded in prd.json.resolvedDecisions.
+2026-09-08  DECIDE   US-007 split by what actually needs the provider. US-007a (node bootstrap on a real
+                     local Linux host) is executable without paid infrastructure. US-007b (OVH create /
+                     destroy / suspend / resume / reconciliation) is genuinely gated on Q3. A mock, fixture
+                     or status transition is never accepted as observed state for either half.
+2026-09-08  WORKTREE .worktrees/feat/944-agro-cloud-consumer-migration off origin/development b10ecac3 (record)
+2026-09-08  WORKTREE cloud .worktrees/944-bootstrap off origin/development 0aa8f99 (W2)
+2026-09-08  WORKTREE cloud .worktrees/944-rebuild   off origin/development 0aa8f99 (W3)
+2026-09-08  DISPATCH W1 ab16f3c765ba00e63  US-001,US-008  record worktree, 2 owned files. RUNNING.
+2026-09-08  DISPATCH W3 aa588cf40102fb5f1  US-006         cloud .worktrees/944-rebuild, 2 owned files. RUNNING.
+2026-09-08  DISPATCH W2 ae551523e1c3b9519  US-003/4/5     cloud .worktrees/944-bootstrap. RUNNING.
+2026-09-08  CORRECT  Task folder relocated from the uncommitted development-branch copy into the record
+                     worktree; the old path was removed to keep development clean. Path correction sent to
+                     W1 and W2 (both were briefed against the old path) and an informational note to W3.
+2026-09-08  CORRECT  Informed W3 that the only published AGRO image (v0.9.0) is the broken one from #1019,
+                     so no rebuild path may pin it and no end-to-end image claim may be made.
+2026-09-08  LEDGER   delegate-graph.json upgraded to schemaVersion 2 with native worker IDs, model/effort
+                     provenance (modelObserved recorded as unreported rather than inferred — the Agent tool
+                     returns no model attestation), owned write paths, forbidden paths, acceptance commands,
+                     evidence destination, repair route and status per worker. W4 and W5 given explicit
+                     owned write paths before launch, per the acceptance note.
+2026-09-08  CORRECT  DoD coverage gap caught in review: the US-007 split lost the `attach` leg of #944's
+                     suspend/resume/rebuild/attach criterion. Restored, and the three node-side attach
+                     surfaces identified from source (ssh+tmux per index.ts:788; browser editor via
+                     gateway proxy.ts:86 / dialer.ts:48 to loopback code-server; container attach).
+                     US-007a now carries all three plus re-exercise after restart and after rebuild;
+                     US-007b carries live-tunnel attach across suspend/resume. prd.json gained a
+                     dodCoverage map so no leg can silently vanish at the local/provider boundary.
+2026-09-08  ESCALATE Surface 2 turned out to be a DESIGN constraint on US-003, not just a test: README.md:356
+                     records that the browser editor opens ~/.openharness by default, which is exactly the
+                     directory US-003 deletes. Sent W2 the constraint — choose the editor workspace root
+                     from the durable-state path in .devcontainer, repoint /home/sandbox/oh.code-workspace,
+                     and fix the now-false header comment at packages/shared/src/index.ts:785-790.
+2026-09-08  ERROR    Advisor transposed W1 and W3 native worker IDs when recording the dispatch, so each
+                     worker received the other's correction message. W1 (aa588cf4) recognised the mis-route,
+                     judged it outside its brief, applied only the one relevant part, and continued
+                     correctly. W3 (ab16f3c7) was re-briefed with its true scope. Ledger IDs corrected:
+                     W1=aa588cf40102fb5f1, W3=ab16f3c765ba00e63. No work was lost. Caught by W1, not by me.
+2026-09-08  DELIVER  W1 returned consumer-inventory.md and migrate-check.md. 32/32 org repos cloned and
+                     grepped by content, 0 clone failures, every scanned SHA recorded. Verdicts: 4 consumers
+                     to migrate, 1 compatibility (agro), 1 historical (skills), 26 no active dependency.
+2026-09-08  ACCEPT   Three W1 corrections to MY plan accepted as correct:
+                     (a) three repos carry .oh/ (agro, openharness-cloud, agro-web), not two — F4 was wrong;
+                     (b) agro migrate has no equipped-control-plane precondition, ROOT_MARKERS is the only
+                         gate, both candidates report ready exit 0 — my PRD hypothesis was wrong;
+                     (c) .agro/tasks/* is gitignored, so the record PR needs git add -f.
+2026-09-08  REJECT   Two W1 claims sent back for correction:
+                     (a) the "@mifune/openharness pin" in Cloud. Verified with git grep -F at 0aa8f99: one
+                         occurrence, docs/quickstart.md:35. Not in any package.json, not in pnpm-lock.yaml.
+                         Restated as a docs reference under US-009, not a dependency migration.
+                     (b) agro@main's .oh/ + oh.json framed as retirement work. It is default-branch release
+                         lag from Phase 2, which is merged to development and unreleased. Not Phase 4's
+                         business and must not be reimplemented.
+2026-09-08  VERIFY   Release facts established by ancestry, not assumption:
+                       0b292bf8 (Makefile deleted)  IS  an ancestor of main -> website guidance is BROKEN
+                       a227bbf3 (Phase 2 namespace) NOT an ancestor of main -> .oh/ on main is release lag
+                       b10ecac3 (Phase 3)           NOT an ancestor of main
+                       @mifune/agro@0.9.0 bin = agro -> the agro executable IS released
+                     Consequence: public docs must be grounded on agro@main, never on development.
+2026-09-08  SCOPE    #944 expanded from two repositories to four, with an explicit ordering, rather than
+                     declaring the original two PRs sufficient. Added US-010 (mifunedev/website — published
+                     getting-started guidance is broken, not stale) and US-011 (mifunedev/agro-web — the
+                     documentation drift Phase 3 left behind; prose is hand-copied with no sync per
+                     check-docs-drift.mjs, and a successful manual Pages build does NOT fix it).
+                     Order: openharness-cloud -> website -> agro-web -> agro record PR last so it can cite
+                     the others. Namespace prose and the install.sh redirect/Worker move stay deferred to
+                     the rename-bearing release window.
+2026-09-08  LEDGER   W6 (website) and W7 (agro-web) registered with owned and forbidden write paths and
+                     acceptance commands before launch, per the acceptance-hygiene note.
+2026-09-08  ACCEPT   W1 complete. Both corrections applied and independently re-verified by the worker
+                     before it edited. It also flagged a stale cell in migrate-check.md rather than editing
+                     a file it had been told not to touch; I authorized that single edit and it made only
+                     that one. orchestra decided: category 1, present-tense platform panel above live
+                     contact routes, names the runtime a reader is invited to run today.
+2026-09-08  DELIVER  W3 returned US-006. Scope escalation into management-ssh.ts, host-management-assets.ts
+                     and their tests ACCEPTED as load-bearing, verified independently: host-management-
+                     assets.ts:45 pins command="sudo -n ${MANAGEMENT_HELPER_PATH}" and the helper rejects
+                     any non-canonical string with exit 64, so a client-only change could not have produced
+                     a node-side effect. Client verb and node-side verb had to land together.
+2026-09-08  REJECT   W3 NOT accepted — blocking defect. MANAGEMENT_HELPER reported `complete` on a non-empty
+                     `agro ps --quiet --status running`. That proves a container exists, not that the
+                     workspace booted. systemd is PID 1 in the sandbox, so the container stays running even
+                     when boot fails — the exact published-0.9.0 failure mode (#1019), which I reproduced.
+                     Accepting it would have reinstated F3 one layer down, inside the fix for F3.
+                     Repair routed to the same worker: require observed readiness from
+                     openharness-bootstrap.service (Type=oneshot, RemainAfterExit=yes, so `active` only
+                     after a successful boot, `failed` on failure) plus whichever units genuinely gate the
+                     attach surfaces, with a regression test for running-container + failed-bootstrap.
+                     Explicitly forbade loosening the pinned SSH boundary or the forced-command grammar to
+                     obtain the signal.
+2026-09-08  REJECT   W3 timeout budgets inconsistent: helper permits 300+900+60 = 1260s while
+                     SANDBOX_REBUILD_TIMEOUT_MS is 960s, so the outer transport could kill a legitimate
+                     bounded sequence and report a failure that did not occur. Required the budgets to be
+                     derived from one another and the relationship asserted by a test.
+2026-09-08  ESCALATE W3 caveat 3 verified and found worse than reported. seedConfig seeds only from --repo
+                     and never from the existing registry entry; writeOhConfig is unconditional; and
+                     config-render maps timezone->TZ and access.dockerSocket->DOCKER_SOCKET. So the CLI's own
+                     documented recycle (stop && sandbox install) silently discards a user's Docker-socket
+                     and timezone selections. Cloud cannot work around it — no flags exist for those fields
+                     and --yes skips the wizard. Fixed upstream in the runtime rather than papered over in
+                     the consumer, because it affects every caller, not just Cloud.
+2026-09-08  DISPATCH W8 a1a9a4ca502958aa1  bug/944-sandbox-install-preserve-config in
+                     .worktrees/bug/944-sandbox-install-idempotent off b10ecac3. Make agro sandbox install
+                     preserve an existing registry entry's settings. Bounded prerequisite fix; no new flags
+                     without reporting first. RUNNING.
+2026-09-08  EVIDENCE Recorded that "no down -v appears" is an argument from absence. Volume and mount
+                     preservation across a real stop + install must be OBSERVED in the local lifecycle
+                     evidence (US-007a), not inferred from the command list.
+2026-09-08  ACCEPT   W1 ACCEPTED. Advisor verification, not worker claims: all 32 org repos present in the
+                     inventory (set-compared against gh repo list, zero missing); 35 recorded scan SHAs;
+                     three classifications spot-checked against freshly cloned content.
+                     spot-check 1 website src/config/offerings.ts:3 openSource -> github.com/mifunedev/
+                       openharness. Live constant. Category 1 confirmed.
+                     spot-check 2 orchestra decks/slides/onepager.html:242 "Powered by Orchestra +
+                       OpenHarness" in a present-tense platform panel above live contact routes.
+                       Category 1 confirmed.
+                     spot-check 3 skills. The advisor suspected under-classification and checked rather
+                       than accepting or overriding. The make destroy / openharness strings are
+                       illustrative prose inside the ste TECHNICAL-WRITING skill — rules.md:322-323 is a
+                       Wrong:/Right: sentence lesson, examples.md hits are before/after writing samples.
+                       Fixtures teaching style, not operational guidance. W1's historical verdict stands
+                       and the advisor's suspicion was wrong.
+                     US-001 -> passes true. US-008 stays false: a --check plan is not an applied migration
+                     and preservation is read from the plan rather than observed.
+2026-09-08  DELIVER  W3 returned its repair. Advisor verification of the three load-bearing claims:
+                     (a) readiness oracle. VERIFIED. .agro/scripts/sandbox-healthcheck.sh:72 is
+                         `require_unit openharness-bootstrap.service` and :75 makes the cron unit
+                         conditional, exactly as W3 described. The unit is the project's own definition of
+                         ready, not one the worker invented. Its Type=oneshot + RemainAfterExit=yes shape
+                         makes `active` a completion proof and `failed` a failure proof.
+                     (b) budget derivation. VERIFIED. host-management-assets.ts:158-172 defines the budget
+                         and derives SANDBOX_REBUILD_NODE_BUDGET_SECONDS from its parts; the shell literals
+                         at :201-206 are generated from the same constant so they cannot drift;
+                         management-ssh.ts:20-22 derives the outer timeout as node budget + headroom. The
+                         independently chosen 960 is gone. The 1260-over-960 inversion is now structurally
+                         impossible rather than merely corrected.
+                     (c) regression coverage. VERIFIED. host-management-assets.test.ts:260 stubs a running
+                         container with a failed unit and asserts the exact record
+                         `state=failed step=ready` at exit 65, plus that a failed unit is decided on the
+                         first probe and never polled out. provision.test.ts:724 is the handler-level twin
+                         and :743 asserts the outer budget exceeds the node-side budget. The TODO naming
+                         `~/.openharness pull` and `make sandbox` is absent from apps/provisioner/src.
+2026-09-08  SECURITY Recorded as a deliberate boundary decision, disclosed by the worker rather than
+                     hidden: the readiness probe adds `docker exec <name> systemctl is-active <unit>` to
+                     the root forced-command endpoint. Assessed acceptable — the container name is regex
+                     allowlisted and re-checked against the exact canonical SSH_ORIGINAL_COMMAND, the unit
+                     name is a compile-time constant, the probe is read-only, and its output is matched
+                     against a closed vocabulary and discarded rather than relayed. The endpoint already
+                     ran `agro sandbox install`, so a read-only exec is not a meaningful escalation. The
+                     pinned SSH surface, principal, key, option set and 0600 known-hosts pin are unchanged.
+2026-09-08  EVIDENCE W3 correctly withdrew the volume-preservation claim when challenged. It now states
+                     only that no volume-deleting verb appears in the rebuild path, and records that actual
+                     re-attachment of the named workspace volume across a real stop + install is an
+                     inference from the compose model, not an observation. That observation is owned by
+                     US-007a.
+2026-09-08  ACCEPT   W8 ACCEPTED (US-012 prerequisite). Advisor verification: OH_CONFIG_FIELDS confirmed as
+                     the registry backing agro config set/show, so the completeness argument is structural
+                     rather than hand-enumerated; advisor re-ran typecheck + test + build independently —
+                     74 files, 1257 tests, dist/agro.js 205.1kb, exit 0.
+2026-09-08  CORRECT  The defect W8 fixed was WIDER than the advisor diagnosed. I described it as losing
+                     timezone and access.dockerSocket. config.repo was also lost, and registry.ts selects
+                     docker-compose.image-only.yml versus the build base off config.repo — pinned by the
+                     pre-existing test "picks the image-only base without a repo and the build base with
+                     one". A recycle would have silently flipped a node from build mode to image-only and
+                     dropped the harness bind mount. Correction recorded against my own finding.
+2026-09-08  DECIDE   W8 open questions ruled: corrupt agro.json ABORTS install with exit 2 rather than
+                     overwriting — silently discarding a user's settings is the exact bug class being
+                     fixed, and the error names the path. Precedence accepted as
+                     default < existing entry < --repo seed < flags < wizard. nonEmpty() guard accepted.
+                     Noted that cli.ts:141, docs/configuration.md:51 and docs/quickstart.md:335 already
+                     documented this recycle; the instruction was false before the fix and is now true.
+2026-09-08  ERROR    Advisor ownership-map failure. When I accepted W3's escalation into
+                     packages/shared/src/host-management-assets.ts and its test, I did NOT move those paths
+                     out of W2's ownership or record the shared claim. Two workers consequently edited the
+                     same two files in separate worktrees. W3 caught it and flagged it; I did not. Separate
+                     worktrees contained the damage, but the ledger was wrong for the whole overlap window.
+2026-09-08  VERIFY   Trial three-way merge of the overlap, rather than trusting the prediction: extracted
+                     both workers' diffs for the two shared files and applied them in sequence into a fresh
+                     integration worktree at 0aa8f99. Both applied cleanly, no conflict. W3's disjoint-region
+                     analysis (its readiness/budget constants and sandbox_* block versus W2's observe()
+                     env-state read and apply-branch printf) is confirmed empirically.
+2026-09-08  DELIVER  W3 returned the cross-worker test reconciliation and exceeded the brief in the right
+                     direction: rather than writing to my specification, it observed that provision.ts is
+                     byte-identical in both worktrees and ran a scratch generator importing each tree's
+                     modules, then validated all five updated assertions against BOTH real outputs — pass
+                     against the integrated generator, fail against the pre-integration one, which is the
+                     correct signature. It also confirmed the :342 assertion had been passing incidentally.
+                     Its replacement is anchored to the 6-space write_files indent so it can no longer match
+                     the compat alternation — tighter than the original, not looser.
+2026-09-08  REJECT   W2 NOT accepted. nodeContainerNameSchema was tightened from
+                     /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/ to /^[a-z0-9][a-z0-9-]*$/, which would fail
+                     re-provisioning for any existing node row containing _, . or uppercase. #944 forbids
+                     exactly this: "Do not make an existing node appear fresh or orphaned merely because the
+                     control-plane source, image, CLI, or namespace has changed." The goal is right and the
+                     blast radius is wrong. Required: tighten at the CREATE boundary only; existing rows must
+                     still parse; a non-conforming name yields an explicit typed provisioning error naming
+                     the node and the remedy; never a silent rename, which would disconnect a node from its
+                     own container. Tests required in both directions.
+2026-09-08  DECISION Raised to the operator, not decided by the advisor: the old flow baked claude-code,
+                     codex and pi into the image via ARG AGENTS, so every node arrived with three agents.
+                     The AGRO image installs none at boot, so new nodes would arrive with no agent unless
+                     the user picked one — a silent capability regression of the class #944 forbids. W2 was
+                     correct to defer it rather than make an unrequested behaviour change. Advisor
+                     recommendation is to preserve prior behaviour by installing the three explicitly;
+                     evidence requested from W2 on cost and on whether any need interactive auth that would
+                     break an unattended tmux bootstrap.
+2026-09-08  ACTION   Operator action item recorded: audit existing container_name values in the Cloud
+                     database. Neither advisor nor worker can query production from here.
+2026-09-08  EVIDENCE W2's UID-alignment gap recorded against US-007a: node-host `sandbox` versus the
+                     container's uid 1000. A mismatch would take the host bind directory away from the
+                     host-native code-server, breaking attach surface 2. Must be observed, not assumed.
