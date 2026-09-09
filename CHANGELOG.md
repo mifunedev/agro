@@ -10,7 +10,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Removed
 
-- Remove the redundant `.pi/skills` project surface so shared skills load once from `.agents/skills` without a collision. ([#1025](https://github.com/mifunedev/agro/issues/1025))
+- Retire the `.pi/skills` surface only when `.agents/skills` is a direct, independent link that survives the migration, and preserve it otherwise so Pi keeps a skill discovery root. ([#1025](https://github.com/mifunedev/agro/issues/1025))
 
 ### Changed
 

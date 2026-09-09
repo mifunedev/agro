@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { resolve, join } from "node:path";
+import { relative, resolve, join } from "node:path";
 
 const root = resolve(import.meta.dirname, "../../..");
 const scratch: string[] = [];
@@ -23,6 +23,33 @@ function link(dir: string, mode: string) {
     cwd: dir, encoding: "utf8",
     env: { PATH: "/usr/bin:/bin", HOME: dir, OH_PROJECT_ROOT: dir },
   });
+}
+
+const PI_DISCOVERY_ROOTS = [".pi/skills", ".agents/skills"];
+
+function discoverable(dir: string): string[] {
+  const names = new Set<string>();
+  for (const discovery of PI_DISCOVERY_ROOTS) {
+    const path = join(dir, ...discovery.split("/"));
+    if (!existsSync(path)) continue;
+    for (const entry of readdirSync(path)) {
+      if (existsSync(join(path, entry, "SKILL.md"))) names.add(entry);
+    }
+  }
+  return [...names].sort();
+}
+
+function manifest(dir: string, base: string = dir): string[] {
+  const rows: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const abs = join(dir, entry.name);
+    const rel = relative(base, abs);
+    const stats = lstatSync(abs);
+    if (stats.isSymbolicLink()) rows.push(`symlink ${rel} -> ${readlinkSync(abs)}`);
+    else if (stats.isDirectory()) rows.push(`directory ${rel}`, ...manifest(abs, base));
+    else rows.push(`file ${rel} ${stats.size} ${(stats.mode & 0o777).toString(8)}`);
+  }
+  return rows.sort();
 }
 
 describe("standard project skills", () => {
@@ -72,8 +99,99 @@ describe("standard project skills", () => {
     symlinkSync("../custom/skills", join(dir, ".pi/skills"));
     const result = link(dir, "--init");
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("foreign symlink");
+    expect(result.stderr).toContain("does not resolve to the vendored .agro/skills pack");
     expect(readlinkSync(join(dir, ".pi/skills"))).toBe("../custom/skills");
+  });
+
+  it("preserves the Pi link when .agents/skills cannot become the replacement", () => {
+    const dir = fixture();
+    mkdirSync(join(dir, ".pi"), { recursive: true });
+    symlinkSync("../.agro/skills", join(dir, ".pi/skills"));
+    mkdirSync(join(dir, ".agents/skills"), { recursive: true });
+    writeFileSync(join(dir, ".agents/skills/keep.txt"), "user-owned");
+    const result = link(dir, "--init");
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("still carries skill discovery");
+    expect(readlinkSync(join(dir, ".pi/skills"))).toBe("../.agro/skills");
+    expect(discoverable(dir)).toContain("git");
+  });
+
+  it("preserves an operator-owned Claude skill directory reached through the Pi link", () => {
+    const dir = fixture();
+    mkdirSync(join(dir, ".claude/skills/custom"), { recursive: true });
+    writeFileSync(join(dir, ".claude/skills/custom/SKILL.md"), "operator-owned\n");
+    mkdirSync(join(dir, ".pi"), { recursive: true });
+    symlinkSync("../.claude/skills", join(dir, ".pi/skills"));
+    const result = link(dir, "--init");
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("does not resolve to the vendored .agro/skills pack");
+    expect(readlinkSync(join(dir, ".pi/skills"))).toBe("../.claude/skills");
+    expect(discoverable(dir)).toContain("custom");
+    expect(discoverable(dir)).toContain("git");
+  });
+
+  it("retires a Pi link that reaches the pack through the Claude link", () => {
+    const dir = fixture();
+    symlinkSync("../.agro/skills", join(dir, ".claude/skills"));
+    mkdirSync(join(dir, ".pi"), { recursive: true });
+    symlinkSync("../.claude/skills", join(dir, ".pi/skills"));
+    const result = link(dir, "--init");
+    expect(result.status, result.stderr).toBe(0);
+    expect(existsSync(join(dir, ".pi/skills"))).toBe(false);
+    expect(readlinkSync(join(dir, ".pi/skills.migrated"))).toBe("../.claude/skills");
+    expect(discoverable(dir)).toContain("git");
+  });
+
+  it("keeps skill discovery when .agents/skills chains through the retired link", () => {
+    const dir = fixture();
+    mkdirSync(join(dir, ".pi"), { recursive: true });
+    symlinkSync("../.agro/skills", join(dir, ".pi/skills"));
+    mkdirSync(join(dir, ".agents"), { recursive: true });
+    symlinkSync("../.pi/skills", join(dir, ".agents/skills"));
+    const before = discoverable(dir);
+    expect(before).toContain("git");
+    const result = link(dir, "--init");
+    expect(result.status, result.stderr).toBe(0);
+    expect(readlinkSync(join(dir, ".agents/skills"))).toBe("../.agro/skills");
+    expect(discoverable(dir)).toEqual(before);
+  });
+
+  it("keeps skill discovery when .agents/skills names the pack by absolute path", () => {
+    const dir = fixture();
+    mkdirSync(join(dir, ".pi"), { recursive: true });
+    symlinkSync("../.agro/skills", join(dir, ".pi/skills"));
+    mkdirSync(join(dir, ".agents"), { recursive: true });
+    symlinkSync(join(dir, ".agro/skills"), join(dir, ".agents/skills"));
+    const before = discoverable(dir);
+    expect(before).toContain("git");
+    const result = link(dir, "--init");
+    expect(result.status, result.stderr).toBe(0);
+    expect(readlinkSync(join(dir, ".agents/skills"))).toBe("../.agro/skills");
+    expect(discoverable(dir)).toEqual(before);
+  });
+
+  it("refuses to retire while .agents/skills only chains through the retired link", () => {
+    const dir = fixture();
+    mkdirSync(join(dir, ".pi"), { recursive: true });
+    symlinkSync("../.agro/skills", join(dir, ".pi/skills"));
+    mkdirSync(join(dir, ".agents"), { recursive: true });
+    symlinkSync("../.pi/skills", join(dir, ".agents/skills"));
+    const before = manifest(dir);
+    const result = link(dir, "--check");
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("is not an independent link to .agro/skills");
+    expect(manifest(dir)).toEqual(before);
+    expect(discoverable(dir)).toContain("git");
+  });
+
+  it("changes nothing while checking", () => {
+    const dir = fixture();
+    mkdirSync(join(dir, ".pi"), { recursive: true });
+    symlinkSync("../.agro/skills", join(dir, ".pi/skills"));
+    const before = manifest(dir);
+    expect(link(dir, "--check").status).toBe(1);
+    expect(manifest(dir)).toEqual(before);
+    expect(discoverable(dir)).toContain("git");
   });
 
   it("refuses a symlinked provider parent without touching its target", () => {

@@ -33,6 +33,20 @@ function fixture(spec: Parameters<typeof materializeFixture>[0]): string {
   return root;
 }
 
+const PI_DISCOVERY_ROOTS = [".pi/skills", ".agents/skills"];
+
+function discoverable(root: string): string[] {
+  const names = new Set<string>();
+  for (const discovery of PI_DISCOVERY_ROOTS) {
+    const dir = join(root, ...discovery.split("/"));
+    if (!existsSync(dir)) continue;
+    for (const entry of readdirSync(dir)) {
+      if (existsSync(join(dir, entry, "SKILL.md"))) names.add(entry);
+    }
+  }
+  return [...names].sort();
+}
+
 interface ManifestEntry {
   rel: string;
   type: string;
@@ -369,9 +383,10 @@ describe("relink steps", () => {
     for (const dir of [".claude", ".codex", ".agents", ".pi"]) expect(existsSync(join(root, dir))).toBe(false);
   });
 
-  it("retires only known Open Harness skill links", () => {
+  it("retires only skill links that resolve to the canonical pack", () => {
     const root = fixture({
-      ".agro/README.md": "x\n",
+      ".agro/skills/a/SKILL.md": "x\n",
+      ".agents/skills": { symlink: "../.agro/skills" },
       ".pi/skills": { symlink: "../.agro/skills" },
       ".pi/foreign": { symlink: "../elsewhere" },
     });
@@ -384,6 +399,130 @@ describe("relink steps", () => {
     expect(existsSync(join(root, ".pi", "skills"))).toBe(false);
     expect(readlinkSync(join(root, ".pi", "skills.migrated"))).toBe("../.agro/skills");
     expect(readlinkSync(join(root, ".pi", "foreign"))).toBe("../elsewhere");
+  });
+
+  it("preserves Pi discovery when the project has no .agents/skills replacement", () => {
+    const root = fixture({
+      ".oh/skills/example/SKILL.md": "x\n",
+      ".pi/skills": { symlink: "../.oh/skills" },
+    });
+    expect(applyMigration(planMigration(projectMigrationSpec(root))).status).toBe("applied");
+    expect(existsSync(join(root, ".pi", "skills.migrated"))).toBe(false);
+    expect(readlinkSync(join(root, ".pi", "skills"))).toBe("../.agro/skills");
+    expect(discoverable(root)).toEqual(["example"]);
+  });
+
+  it("preserves Pi discovery when .agents/skills points somewhere else", () => {
+    const root = fixture({
+      ".oh/skills/example/SKILL.md": "x\n",
+      ".elsewhere/skills/other/SKILL.md": "x\n",
+      ".agents/skills": { symlink: "../.elsewhere/skills" },
+      ".pi/skills": { symlink: "../.oh/skills" },
+    });
+    expect(applyMigration(planMigration(projectMigrationSpec(root))).status).toBe("applied");
+    expect(existsSync(join(root, ".pi", "skills.migrated"))).toBe(false);
+    expect(readlinkSync(join(root, ".pi", "skills"))).toBe("../.agro/skills");
+    expect(discoverable(root)).toEqual(["example", "other"]);
+  });
+
+  it("preserves an operator-owned Claude skill directory reached through the Pi link", () => {
+    const root = fixture({
+      ".oh/skills/shared/SKILL.md": "x\n",
+      ".claude/skills/custom/SKILL.md": "x\n",
+      ".agents/skills": { symlink: "../.oh/skills" },
+      ".pi/skills": { symlink: "../.claude/skills" },
+    });
+    expect(discoverable(root)).toEqual(["custom", "shared"]);
+    expect(applyMigration(planMigration(projectMigrationSpec(root))).status).toBe("applied");
+    expect(existsSync(join(root, ".pi", "skills.migrated"))).toBe(false);
+    expect(readlinkSync(join(root, ".pi", "skills"))).toBe("../.claude/skills");
+    expect(discoverable(root)).toEqual(["custom", "shared"]);
+  });
+
+  it("retires a Pi link that reaches the canonical pack through the Claude link", () => {
+    const root = fixture({
+      ".oh/skills/shared/SKILL.md": "x\n",
+      ".claude/skills": { symlink: "../.oh/skills" },
+      ".agents/skills": { symlink: "../.oh/skills" },
+      ".pi/skills": { symlink: "../.claude/skills" },
+    });
+    expect(applyMigration(planMigration(projectMigrationSpec(root))).status).toBe("applied");
+    expect(existsSync(join(root, ".pi", "skills"))).toBe(false);
+    expect(readlinkSync(join(root, ".pi", "skills.migrated"))).toBe("../.claude/skills");
+    expect(discoverable(root)).toEqual(["shared"]);
+  });
+
+  it("preserves Pi discovery when .agents/skills chains through the retired link", () => {
+    const root = fixture({
+      ".oh/skills/shared/SKILL.md": "x\n",
+      ".agents/skills": { symlink: "../.pi/skills" },
+      ".pi/skills": { symlink: "../.oh/skills" },
+    });
+    const before = discoverable(root);
+    expect(before).toEqual(["shared"]);
+    expect(applyMigration(planMigration(projectMigrationSpec(root))).status).toBe("applied");
+    expect(existsSync(join(root, ".pi", "skills.migrated"))).toBe(false);
+    expect(readlinkSync(join(root, ".pi", "skills"))).toBe("../.agro/skills");
+    expect(discoverable(root)).toEqual(before);
+  });
+
+  it("preserves Pi discovery when .agents/skills names the pack by absolute path", () => {
+    const root = fixture({
+      ".oh/skills/shared/SKILL.md": "x\n",
+      ".pi/skills": { symlink: "../.oh/skills" },
+    });
+    mkdirSync(join(root, ".agents"), { recursive: true });
+    symlinkSync(join(root, ".oh", "skills"), join(root, ".agents", "skills"));
+    const before = discoverable(root);
+    expect(before).toEqual(["shared"]);
+    expect(applyMigration(planMigration(projectMigrationSpec(root))).status).toBe("applied");
+    expect(existsSync(join(root, ".pi", "skills.migrated"))).toBe(false);
+    expect(readlinkSync(join(root, ".pi", "skills"))).toBe("../.agro/skills");
+    expect(discoverable(root)).toEqual(before);
+  });
+
+  it("refuses a Pi retirement when the retired name is already taken", () => {
+    const root = fixture({
+      ".oh/skills/shared/SKILL.md": "x\n",
+      ".agents/skills": { symlink: "../.oh/skills" },
+      ".pi/skills": { symlink: "../.oh/skills" },
+      ".pi/skills.migrated": "operator-owned\n",
+    });
+    const before = manifest(root);
+    const plan = planMigration(projectMigrationSpec(root));
+    expect(plan.status).toBe("conflict");
+    expect(plan.conflicts.map((c) => c.reason)).toContain("retired copy already exists");
+    expect(manifest(root)).toEqual(before);
+    const result = applyMigration(plan);
+    expect(result.status).toBe("refused");
+    expect(manifest(root)).toEqual(before);
+    expect(readFileSync(join(root, ".pi", "skills.migrated"), "utf8")).toBe("operator-owned\n");
+    expect(discoverable(root)).toEqual(["shared"]);
+  });
+
+  it("keeps planning pure for every Pi retirement decision", () => {
+    const specs: Parameters<typeof fixture>[0][] = [
+      { ".oh/skills/example/SKILL.md": "x\n", ".pi/skills": { symlink: "../.oh/skills" } },
+      {
+        ".oh/skills/shared/SKILL.md": "x\n",
+        ".claude/skills/custom/SKILL.md": "x\n",
+        ".agents/skills": { symlink: "../.oh/skills" },
+        ".pi/skills": { symlink: "../.claude/skills" },
+      },
+      {
+        ".oh/skills/shared/SKILL.md": "x\n",
+        ".agents/skills": { symlink: "../.oh/skills" },
+        ".pi/skills": { symlink: "../.oh/skills" },
+      },
+    ];
+    for (const spec of specs) {
+      const root = fixture(spec);
+      const before = manifest(root);
+      const discovery = discoverable(root);
+      planMigration(projectMigrationSpec(root));
+      expect(manifest(root)).toEqual(before);
+      expect(discoverable(root)).toEqual(discovery);
+    }
   });
 
   it("refuses a relink whose link was retargeted after planning", () => {
