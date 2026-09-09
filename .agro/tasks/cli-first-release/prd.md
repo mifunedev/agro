@@ -2,7 +2,7 @@
 
 ## 1. Overview and authority
 
-Prepare a verified CLI-first candidate and an honest release handoff for issue #939.
+Complete the in-scope CLI-first implementation for issue #939 in review-ready core and linked agro-web PRs.
 The reader is the implementation advisor and the bounded core and agro-web workers.
 
 This PRD owns acceptance criteria. [The plan](../../plans/cli-first-release/plan.md) owns source grounding, sequencing, and bounded write sets.
@@ -18,6 +18,8 @@ The current S1–S6 section of issue #939 controls release acceptance; this task
 1. Align CLI-first onboarding, executable-aware help, and canonical fresh image defaults.
 2. Align release behavior and instructions; build documentation from the exact source commit.
 3. Prove candidate installation and state-preserving recreation on existing disposable Docker CI.
+
+Completion means both implementation PRs are ready for review with every story and acceptance criterion satisfied, not merely a candidate handoff.
 
 ## 3. User stories and acceptance criteria
 
@@ -124,7 +126,8 @@ IDs match `prd.json`. US-001 precedes implementation; US-012 verifies the candid
 - [ ] Never substitute a released `latest` image. US-004 verifies default selection separately; record image, tarball, bundle, and executable identities.
 - [ ] Provision through `agro`; inspection commands collect evidence only. Cleanup affects only recorded fixture resources after success or failure.
 - [ ] Define the script argument contract before CI integration. Shell syntax, focused bootstrap tests, and safety tests pass, including rejection of unscoped cleanup.
-- [ ] The bootstrap candidate case starts with supported Node available. Record the separate Node-missing S4 obligation; do not claim this case proves Node installation.
+- [ ] The bootstrap case starts without supported Node in one disposable CI environment and exercises real nvm/Node provisioning, not a mock.
+- [ ] Record the initial Node absence, installed Node version, and successful candidate CLI execution in a new shell; retain all host isolation boundaries.
 
 ### US-011: Add saved-state recreation assertions to the candidate smoke
 
@@ -154,15 +157,18 @@ IDs match `prd.json`. US-001 precedes implementation; US-012 verifies the candid
 - [ ] Install missing worktree dependencies rather than claiming an environmental waiver. A missing local Docker daemon routes verification to existing CI.
 - [ ] Failed or skipped required cases remain incomplete. No socket access or lifecycle operation may affect the operator's host or live sandbox.
 
-### US-013: Produce a source-completion handoff
+### US-013: Complete the implementation PRs for review
 
-**Description:** As the operator, I want reviewed source evidence separated from release operations so that I can authorize the remaining work explicitly.
+**Description:** As the operator, I want completed implementation PRs with all required evidence so that review covers every in-scope item without deferred work.
 
-- [ ] Review both complete diffs, final SHAs, test logs, and evidence links against every story and D1–D7 criterion.
-- [ ] Reject missing, stale, skipped, or substituted evidence; report remaining obligations in the release-gate table below.
-- [ ] Record actual-install inventory, backup, migration rehearsal, version selection, publication approval, and post-publication checks separately from source completion.
+- [ ] The core implementation PR links its agro-web implementation PR; both contain the scoped code, tests, documentation, and acceptance evidence, not just planning artifacts.
+- [ ] US-001–US-012 pass. Review both complete diffs, final SHAs, test logs, and evidence links against every story and D1–D7 criterion.
+- [ ] All in-scope criteria have passing evidence; no required item remains deferred, skipped, substituted, or described only as future work.
+- [ ] Exact-head CI and `/audit implementation` pass for each implementation PR before the advisor marks either PR ready for review.
+- [ ] Record both PR URLs, head SHAs, review results, and the complete criterion-to-evidence mapping in `evidence/closeout.md`; the closeout passes STE.
 - [ ] Resolve agreed-scope changes with the advisor and update issue #939 during approved execution; do not claim publication readiness or epic completion.
-- [ ] The closeout passes STE and includes exact-head CI results. Keep every uncompleted release gate explicit.
+- [ ] Record live inventory, backup, migration, release-version selection, publication approval, and post-publication checks separately; those operations cannot replace missing PR acceptance.
+- [ ] Mark all 13 JSON stories passed only after their criteria pass. Mark both implementation PRs ready, without merging or publishing.
 
 ## 4. Functional requirement traceability
 
@@ -236,8 +242,10 @@ Apply STE to changed prose and the applicable skill probes to canonical instruct
 
 ## 8. Success metrics and Definition of Done
 
-Success means every story passes its checks with current evidence; no required skipped case counts as completion.
+Success means review-ready implementation PRs addressing every in-scope item, with all 13 stories passed and current criterion-level evidence.
+A planning-only PR, candidate handoff, or deferred required check does not satisfy completion.
 The plan maps D1–D7 to owners, stories, and evidence files. The advisor accepts those rows after workers stop writing.
+Both PRs must have green exact-head CI and passing implementation review before they leave draft; unresolved findings block completion.
 Evidence paths are relative to `.agro/tasks/cli-first-release/` in the execution worktree.
 The source task does not mark S1–S6 complete merely because candidate CI passes.
 
@@ -250,7 +258,7 @@ No new product-scope decision blocks this source draft. The following obligation
 | S1 | Identify `<operator-installation>`, its host/image/state locations, and recovery route; verify a restorable backup at `<backup-location>` before live changes. |
 | S2 | Rehearse migration on a disposable copy of that identified state, including data, uncommitted work, credentials, permissions, and recovery commands. Synthetic fixtures cannot replace this evidence. |
 | S3 | Use candidate installation, seeding, CLI, and runtime evidence from US-010–US-012; do not infer coverage of every historical image. |
-| S4 | Verify the advertised install sequence, including `get-agro.sh` on a disposable host initially without supported Node. Candidate npm/bootstrap checks do not establish this Node-provisioning case. Record any advertised `npx` path and retained executable URLs in the release checklist; do not silently waive them. |
+| S4 | US-010–US-012 must prove candidate npm and real Node-missing bootstrap installation before PR completion. Record advertised `npx` paths and retained executable URLs in the release checklist; verify their published behavior under S6 rather than claiming candidate substitutes prove it. |
 | S5 | Select `<release-version>` and verify version/files/CI agreement plus a short release/recovery procedure before requesting publication approval. A green unbumped no-op publishes nothing. |
 | S6 | After `<publication-approver>` authorizes publication, verify public npm/GHCR/release-asset provenance, advertised URLs, deployed docs, fresh installation, and migration on the disposable state copy. |
 

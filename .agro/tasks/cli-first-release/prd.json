@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "Agro (Open Harness)",
   "branchName": "task/939-cli-first-release",
-  "description": "CLI-first release preparation: a verified candidate and an honest release handoff. .agro/tasks/cli-first-release/prd.md owns acceptance, safety boundaries, and remaining S1–S6 gates; .agro/plans/cli-first-release/plan.md owns write sets and isolated core/web assignments. Story IDs match the PRD. Typecheck means the affected repository checks in PRD section 7; advisor acceptance uses both repositories. This planning-only conversion authorizes no implementation, live operation, or publication.",
+  "description": "Complete review-ready core and linked agro-web implementation PRs addressing every in-scope item, with all 13 stories passed, criterion-level evidence, exact-head green CI, and passing implementation review. .agro/tasks/cli-first-release/prd.md owns acceptance and boundaries; .agro/plans/cli-first-release/plan.md owns write sets and isolated assignments. Story IDs match the PRD. Typecheck means the affected repository checks in PRD section 7; advisor acceptance uses both repositories. This planning-only conversion starts no implementation and authorizes no merge, live migration, or publication.",
   "userStories": [
     {
       "id": "US-001",
@@ -168,7 +168,8 @@
         "Never substitute a released `latest` image. US-004 verifies default selection separately; record image, tarball, bundle, and executable identities.",
         "Provision through `agro`; inspection commands collect evidence only. Cleanup affects only recorded fixture resources after success or failure.",
         "Define the script argument contract before CI integration. Shell syntax, focused bootstrap tests, and safety tests pass, including rejection of unscoped cleanup.",
-        "The bootstrap candidate case starts with supported Node available. Record the separate Node-missing S4 obligation; do not claim this case proves Node installation.",
+        "The bootstrap case starts without supported Node in one disposable CI environment and exercises real nvm/Node provisioning, not a mock.",
+        "Record the initial Node absence, installed Node version, and successful candidate CLI execution in a new shell; retain all host isolation boundaries.",
         "Tests pass",
         "Typecheck passes"
       ],
@@ -220,14 +221,17 @@
     },
     {
       "id": "US-013",
-      "title": "Produce a source-completion handoff",
-      "description": "As the operator, I want reviewed source evidence separated from release operations so that I can authorize the remaining work explicitly.",
+      "title": "Complete the implementation PRs for review",
+      "description": "As the operator, I want completed implementation PRs with all required evidence so that review covers every in-scope item without deferred work.",
       "acceptanceCriteria": [
-        "Review both complete diffs, final SHAs, test logs, and evidence links against every story and D1–D7 criterion.",
-        "Reject missing, stale, skipped, or substituted evidence; report remaining obligations in the release-gate table below.",
-        "Record actual-install inventory, backup, migration rehearsal, version selection, publication approval, and post-publication checks separately from source completion.",
+        "The core implementation PR links its agro-web implementation PR; both contain the scoped code, tests, documentation, and acceptance evidence, not just planning artifacts.",
+        "US-001–US-012 pass. Review both complete diffs, final SHAs, test logs, and evidence links against every story and D1–D7 criterion.",
+        "All in-scope criteria have passing evidence; no required item remains deferred, skipped, substituted, or described only as future work.",
+        "Exact-head CI and `/audit implementation` pass for each implementation PR before the advisor marks either PR ready for review.",
+        "Record both PR URLs, head SHAs, review results, and the complete criterion-to-evidence mapping in `evidence/closeout.md`; the closeout passes STE.",
         "Resolve agreed-scope changes with the advisor and update issue #939 during approved execution; do not claim publication readiness or epic completion.",
-        "The closeout passes STE and includes exact-head CI results. Keep every uncompleted release gate explicit.",
+        "Record live inventory, backup, migration, release-version selection, publication approval, and post-publication checks separately; those operations cannot replace missing PR acceptance.",
+        "Mark all 13 JSON stories passed only after their criteria pass. Mark both implementation PRs ready, without merging or publishing.",
         "Typecheck passes"
       ],
       "priority": 13,

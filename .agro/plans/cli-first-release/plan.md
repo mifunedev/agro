@@ -4,7 +4,7 @@ Status: DRAFT
 
 ## Goal and scope
 
-Deliver a verified candidate and an honest release handoff through three bounded outcomes:
+Deliver a review-ready core implementation PR and a linked review-ready agro-web PR that address every in-scope item through three bounded outcomes:
 
 1. Align CLI-first onboarding, help, and fresh image defaults.
 2. Align canonical release policy, release instructions, and documentation source identity.
@@ -44,7 +44,7 @@ The original plan recorded these accepted refs. Revalidate them before implement
 | Fresh image defaults still select the legacy repository. | `.agro/cli/src/commands/lifecycle.ts`; `.devcontainer/docker-compose.image-only.yml` | Apply US-004 without migrating existing selections. |
 | Workflows, probes, and release instructions enforce legacy npm co-release. | `.github/workflows/{publish-cli,release}.yml`; `.agro/evals/probes/{version-parity,agro-legacy-shim}.sh`; `.agro/skills/{git,release}/SKILL.md` | Apply US-005/US-006, including canonical instruction updates. |
 | Docs pass a SHA to branch-clone logic. | Agro release notification; agro-web `scripts/build-oh-cli.mjs` | Apply US-007/US-008; retain the current builder and JS endpoints. |
-| Bootstrap tests install a version-printing stub, not the candidate CLI. | `.agro/scripts/__tests__/get-agro.test.ts:11,97` | Extend US-010 with the real built bundle. Keep unverified S4/S6 cases explicit. |
+| Bootstrap tests install a version-printing stub, not the candidate CLI. | `.agro/scripts/__tests__/get-agro.test.ts:11,97` | Extend US-010 with the real built bundle and Node-missing provisioning. Keep published-artifact checks under S6. |
 | Fresh seeding has function tests but lacks explicit full-image assertions. | `.agro/scripts/__tests__/entrypoint-seed.test.ts:102`; `sandbox-boot-smoke.sh:239` | Add empty-volume and seed-preservation assertions to US-010/US-011. |
 | Upgrade snapshots compare bytes but not modes or ownership. | `.agro/scripts/sandbox-upgrade-smoke.sh:158–187,210–213` | Add synthetic persisted-file metadata assertions to US-011. |
 
@@ -68,7 +68,10 @@ Assert behavior rather than legacy-name literals. Leave unrelated knowledge page
 
 ## Definition of Done
 
-Every cited PRD story must satisfy its acceptance criteria. A missing or skipped required case leaves its criterion incomplete.
+Every cited PRD story must satisfy its acceptance criteria. A missing, deferred, or skipped in-scope case leaves the task incomplete.
+Completion requires all 13 stories to pass, current evidence, green exact-head CI, and passing implementation review for both PRs.
+The advisor then marks the implementation PRs ready for review; a planning-only PR or source handoff does not satisfy this DoD.
+Merging and release publication require separate authority.
 `E` means `.agro/tasks/cli-first-release/evidence/` in the execution worktree. The advisor owns final acceptance of every row.
 
 | ID | Observable outcome and verification | PRD stories | Evidence | Producer |
@@ -78,8 +81,8 @@ Every cited PRD story must satisfy its acceptance criteria. A missing or skipped
 | D3 | Default-selection and state-protection tests pass without rewriting existing settings. | US-004 | `E/image-selection.md` | Core worker |
 | D4 | Behavioral publication tests, parity mutation fixtures, and release-instruction review agree with the canonical-only npm policy. | US-005, US-006 | `E/release-contract.md` | Continuing core worker |
 | D5 | Real checkout/fetch tests prove exact source identity or failure for all specified ref cases. | US-007, US-008 | `E/docs-ref.md` | Web worker |
-| D6 | Real candidate installation and both recreation cases pass on Docker CI with source identity, state, metadata, runtime, and cleanup evidence. | US-010, US-011, US-012 | `E/candidate.md` | Continuing core worker; advisor verifies exact-head CI |
-| D7 | The closeout maps all evidence and separately lists unmet S1–S6 release obligations. | US-013 | `E/closeout.md` | Advisor |
+| D6 | Real npm and Node-missing bootstrap installation plus both recreation cases pass on Docker CI with identity, state, metadata, runtime, and cleanup evidence. | US-010, US-011, US-012 | `E/candidate.md` | Continuing core worker; advisor verifies exact-head CI |
+| D7 | Core and linked agro-web implementation PRs are ready for review with all 13 stories passed, complete evidence, exact-head green CI, and passing implementation review. No in-scope item remains deferred. | US-013 | `E/closeout.md`, PR URLs, head SHAs, and review results | Advisor |
 
 ## Implementation steps
 
@@ -107,6 +110,7 @@ Paths are repository-relative. The advisor must approve any additional write pat
 - `CHANGELOG.md`
 
 Use the existing `get-agro.sh` interface and real built bundle; this plan does not authorize a bootstrapper redesign.
+Test its real Node-provisioning path in one disposable CI environment initially without supported Node. Do not add a platform matrix.
 Add seeding and metadata assertions to the candidate smoke, not a second upgrade framework.
 Reuse existing PID1 and supervision checks rather than duplicating their implementation.
 
@@ -126,7 +130,7 @@ Preserve the Pages workflow and producer/consumer drafts unless verification dem
 | 2 | Apply T2 runtime and onboarding edits. | Step 1 | Isolated core worktree | D2, D3 |
 | 3 | Continue with T3 release instructions, contracts, and candidate tests. | Step 2 | Same core worktree and worker | D4, D6 |
 | 4 | Apply T4 onboarding and exact-source docs edits. | Step 1 | Separate agro-web worktree | D2, D5 |
-| 5 | Review stopped-writer trees, exact-head CI, and residual release gates. | Steps 3, 4 | Advisor | D1–D7 |
+| 5 | Review both implementation PRs against all criteria and exact-head CI; mark them ready only after implementation review passes. | Steps 3, 4 | Advisor | D1–D7 |
 
 ## advisor orchestration strategy
 
@@ -145,7 +149,7 @@ Requested settings below are not observed settings. Apply `/delegate` capability
 | T2 | High: state selection; `inherit / high` | T1 | Read CLI, registry, compatibility code; own T2 write set. Exclude release files and live state. | Isolated core worktree; native `general-purpose`; retain for T3 | US-002–US-004 tests and docs review; D2/D3 evidence | Advisor accepts; same core worker repairs. |
 | T3 | High: release safety and runtime evidence; `inherit / high` | T2 | Read release/probe/seed/bootstrap contracts and PRD checks; own T3 write set. Exclude publication, secrets, and GHCR retirement. | Same core worker/worktree; native resume or checkpoint-and-rebrief | US-005/US-006/US-010–US-012; D4/D6 evidence | Advisor accepts exact-head evidence; same worker repairs. |
 | T4 | High: source identity; `inherit / high` | T1 | Read core source contract and web pipeline; own T4 write set. Exclude routing, credentials, deployment, and historical posts. | Separate agro-web worktree; native `general-purpose`; resume or checkpoint-and-rebrief | US-007–US-009 tests and browser review; D2/D5 evidence | Advisor accepts; web worker repairs. |
-| T5 | Standard: independent acceptance; `inherit / medium` | T3, T4 | Read complete diffs and logs; own acceptance records only. No source edits. | Active advisor after writers stop | US-013 review of every D1–D7 row; `E/closeout.md` | Return defects to the owning worker; unresolved scope returns to operator. |
+| T5 | Standard: independent acceptance; `inherit / medium` | T3, T4 | Read complete diffs and logs; own acceptance records and PR readiness only. No source edits or merges. | Active advisor after writers stop | US-013; every D1–D7 row, exact-head CI, and `/audit implementation` pass; both PRs ready; `E/closeout.md` | Return defects to the owning worker; unresolved scope returns to operator. |
 
 Bounded briefs:
 
@@ -153,14 +157,14 @@ Bounded briefs:
 - **T2:** In the core worktree, edit only the T2 files for executable-aware help, canonical fallbacks, and onboarding. Preserve state guards.
 - **T3:** Continue the core worktree. Edit only the T3 files for canonical npm policy and candidate tests. Apply the PRD's fixture and evidence boundaries.
 - **T4:** In the web worktree, edit only the T4 files for onboarding and exact-commit builds. Retain served JS paths and shell-safe outputs.
-- **T5:** Review both completed diffs and every evidence artifact. Reject stale, skipped, or substituted results. Keep live release obligations separate.
+- **T5:** Review both implementation PRs and every artifact. Require all stories, exact-head CI, and implementation review to pass before marking either PR ready. Keep live release obligations separate.
 
 | Wave | Work | Dependency | Handoff | DoD |
 |---|---|---|---|---|
 | 1 | T1 advisor | None | Accepted scope and source identities | D1 |
 | 2 | T2 core and T4 web | T1 | Independent bounded changes | D2, D3, D5 |
 | 3 | T3 continuing core; T4 may finish | T2 for T3 | Release and candidate evidence | D4, D6 |
-| 4 | T5 advisor | T3, T4 | Accepted source handoff | D1–D7 |
+| 4 | T5 advisor | T3, T4 | Review-ready implementation PRs with complete acceptance evidence | D1–D7 |
 
 Each worker stops at its bounded deliverable or first unmet prerequisite. Summaries identify changed paths, commands, exit statuses, failures, and evidence.
 The advisor records native worker settings, source SHAs, and acceptance before releasing dependent work.
@@ -197,4 +201,5 @@ No new product-scope decision blocks this draft. The PRD explicitly lists unreso
 
 The operator authorized updating planning-only draft PR #1031. That authorization does not start implementation or complete any story.
 After separate execution approval, use `/spec` with this plan and its PRD. Revalidate refs and ownership before dispatch.
-The task ends at verified candidate source and a release handoff, not publication readiness or completion of epic #939.
+The future build ends at review-ready implementation PRs addressing every in-scope item, not a partial handoff.
+This planning revision alone cannot satisfy that DoD. Live migration, merge, publication, and epic #939 completion remain outside this task.
