@@ -470,7 +470,8 @@
     {
       "id": "agro-web#50",
       "filed": true,
-      "summary": "The docs build's Build site step passes no token, so the GitHub API call is unauthenticated (60/hr per shared runner IP), and isTransientStatus() omits 403 — GitHub's primary rate-limit code. Exhaustion is therefore misreported as 'ref does not resolve' and hard-fails the deploy. Proved by an unchanged re-run succeeding."
+      "summary": "The docs build's Build site step passes no token, so the GitHub API call is unauthenticated (60/hr per shared runner IP), and isTransientStatus() omits 403 — GitHub's primary rate-limit code. Exhaustion is therefore misreported as 'ref does not resolve' and hard-fails the deploy. Proved by an unchanged re-run succeeding.",
+      "state": "FIXED by PR #51"
     }
   ],
   "advisorCorrections": [
@@ -641,6 +642,14 @@
       "head": "5e5f34cc45ed8ab174f1354b3cd2e97f62b1c3a9",
       "state": "DRAFT",
       "note": "Opened with [skip netlify] in the TITLE, the documented Netlify directive for PR Deploy Previews. Verified 0 statuses and 0 check-runs on the head. The directive must stay in the title until the credit issue is resolved."
+    },
+    {
+      "repo": "mifunedev/agro-web",
+      "issue": 50,
+      "pr": 51,
+      "head": "55d4cfc5adec6fb77c1dfa0026aca6c1f55239f7",
+      "state": "READY",
+      "note": "Closes #50. Token + 403-only-with-x-ratelimit-remaining:0. 9 tests, gating CI step. Verified at exact head on the first run; CI log confirms the step executed and the token is in effect."
     }
   ],
   "ciAtExactHead": {
@@ -650,6 +659,7 @@
     "agro#1022": "5/5 success",
     "agro#1023": "5/5 success",
     "agro#1024": "5/5 success",
-    "website#66": "0 by design, [skip netlify]"
+    "website#66": "0 by design, [skip netlify]",
+    "agro-web#51": "Build docs site success on first run; Deploy to GitHub Pages skipped; test step executed 9/9; GITHUB_TOKEN present"
   }
 }

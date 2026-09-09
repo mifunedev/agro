@@ -430,3 +430,66 @@ Nothing above changes it. US-007a still FAILS and its re-run is still blocked on
 absent Docker socket. US-007b is still behind the paid-OVH gate. #944 and #939 remain
 OPEN, no PR carries a closing trailer for either, and #945's time-and-release gate is
 untouched. Host cleanup remains UNVERIFIED — nobody has checked.
+
+
+## 2026-09-09 (final) — agro-web#50 fixed and verified; website#66 body corrected
+
+### agro-web#50 IMPLEMENTED — PR #51, head 55d4cfc5adec6fb77c1dfa0026aca6c1f55239f7
+
+Bounded fix, on a fresh worktree off origin/main (409ef10) so it does not mix with the
+docs PR:
+
+1. `.github/workflows/pages.yml` — the `Build site` step now receives the job's own
+   `secrets.GITHUB_TOKEN`. No new credential; it is the token the workflow already has.
+   Unauthenticated the mirror call ran against 60 requests/hour per shared runner IP.
+2. `scripts/oh-source.mjs` — `isTransientStatus(status)` becomes
+   `isTransientResponse(res)`, reading the response rather than the status alone. A 403
+   is transient ONLY with `x-ratelimit-remaining: 0`. Without that header a 403 stays
+   FATAL, so a genuine auth failure or a bad ref still fails the deploy — treating every
+   403 as transient would have been the dangerous fix. raw.githubusercontent.com sends no
+   such header, so a 403 there stays fatal, which is correct since it is not
+   quota-limited. Both call sites migrated, so there is one rule, not two. A
+   rate-limited failure now reports "GitHub rate limit exhausted" instead of blaming the
+   ref.
+3. Tests — the repository had NO test runner. Added `pnpm test` (`node --test`, no new
+   dependency) and `scripts/oh-source.test.mjs`, 9 tests: the exhausted-quota 403; the
+   bare 403 and remaining=1/4999; 401 and a 403 carrying only retry-after; the UNCHANGED
+   408/429/5xx behaviour; 400/404/409/410/422 still fatal; the header believed only on a
+   403; a header-less response; and case-insensitive header matching. Wired as a GATING
+   CI step on every event, unlike the advisory drift check, because this rule decides
+   whether a bad mirror ships.
+
+**Verified at the exact head, on the FIRST run — not a rerun.** Local: 9/9 tests,
+typecheck exit 0, build SUCCESS, theme-order PASS, docs-drift PASS (39 files), and the
+build exercised the real mirror path end to end (resolved agro@main at 823aabbd, wrote
+get-agro.sh, get-oh.sh, agro.js, oh.js). CI run 34386051054: `Build docs site` success,
+`Deploy to GitHub Pages` skipped. The CI LOG was read rather than trusting the green —
+the new step executed (`# tests 9 / # pass 9 / # fail 0`) and `GITHUB_TOKEN: ***`
+appears in the Build site step's env, so the token is genuinely in effect.
+
+### website#66 body corrected — metadata only, no source change
+
+Two corrections at the operator's direction:
+
+1. **Removed the claim that a new cold boot is "not locally repairable."** A volume
+   seeded during a FAILED fresh boot is repairable in place too, exactly like a
+   previously-seeded one. What a local repair does not change is the published image
+   DIGEST, so the next cold boot from that digest fails identically until a new image is
+   published. Repairability and the image fix are separate questions; the earlier wording
+   conflated them.
+2. **Reframed the deploy claim as evidence, not guarantee.** The body now says GitHub
+   reports 0 check-runs and 0 commit statuses on the head — *no deployment evidence
+   observed on the GitHub side* — and states explicitly that this is not a guarantee from
+   Netlify's backend and says nothing about billing, neither of which was queried and for
+   neither of which a credential exists here.
+
+`[skip netlify]` remains in the title and the PR remains a draft. The same conflation
+survives in `posts/openharness-getting-started.md` itself; correcting published copy is a
+content change and was explicitly out of scope, so it is flagged in the PR body rather
+than silently edited.
+
+### Story state STILL 10 of 12
+
+Unchanged. US-007a still FAILS with its re-run blocked on the absent Docker socket;
+US-007b still behind the paid-OVH gate. #944 and #939 OPEN, no closing trailer anywhere.
+#945's gate untouched. Host cleanup still UNVERIFIED.
