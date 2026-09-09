@@ -266,6 +266,245 @@ describe("oh sandbox install — the entry it writes", () => {
   });
 });
 
+describe("oh sandbox install — re-installing an existing name", () => {
+  it("preserves the saved timezone, docker socket and git identity", async () => {
+    const registryPath = registry();
+    const { run } = makeRunner();
+    const { io } = makeIo(["box", "Europe/Berlin", "Ada", "ada@example.com", "n", "y"]);
+
+    expect(await runSandboxInstall({ runtime: "docker", run }, io)).toBe(0);
+    const entry = join(registryPath, "box", "agro.json");
+    expect(readJson(entry)).toMatchObject({
+      timezone: "Europe/Berlin",
+      git: { userName: "Ada", userEmail: "ada@example.com" },
+      access: { dockerSocket: true },
+    });
+
+    expect(
+      await runSandboxInstall({ runtime: "docker", name: "box", yes: true, run }, makeIo().io),
+    ).toBe(0);
+    expect(readJson(entry)).toMatchObject({
+      name: "box",
+      timezone: "Europe/Berlin",
+      git: { userName: "Ada", userEmail: "ada@example.com" },
+      access: { dockerSocket: true },
+    });
+  });
+
+  it("keeps DOCKER_SOCKET and TZ in the compose env the recreated container gets", async () => {
+    registry();
+    const rendered: string[] = [];
+    const run: LifecycleRunner = (cmd, args) => {
+      if (cmd === "git") return { status: 0, stdout: "" };
+      const i = args.indexOf("--extra-env-file");
+      if (i !== -1) rendered.push(readFileSync(args[i + 1], "utf8"));
+      return { status: 0 };
+    };
+    const { io } = makeIo(["box", "Europe/Berlin", "", "", "n", "y"]);
+
+    expect(await runSandboxInstall({ runtime: "docker", run }, io)).toBe(0);
+    rendered.length = 0;
+
+    expect(
+      await runSandboxInstall({ runtime: "docker", name: "box", yes: true, run }, makeIo().io),
+    ).toBe(0);
+    expect(rendered.join("")).toContain("DOCKER_SOCKET=true");
+    expect(rendered.join("")).toContain("TZ=Europe/Berlin");
+  });
+
+  it("preserves the ssh port, home path, repo and every other config-set field", async () => {
+    const registryPath = registry();
+    const checkout = mkdtempSync(join(tmpdir(), "oh-sandbox-repo-"));
+    cleanups.push(checkout);
+    const { run } = makeRunner();
+
+    expect(
+      await runSandboxInstall(
+        { runtime: "docker", name: "box", repo: checkout, yes: true, run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+
+    const entry = join(registryPath, "box", "agro.json");
+    const saved = readJson(entry);
+    writeFileSync(
+      entry,
+      `${JSON.stringify({
+        ...saved,
+        access: { ssh: true, sshPort: 2345, sshPasswordAuth: true, dockerSocket: true },
+        storage: { homePath: "/srv/oh-home" },
+        hermesDashboard: { enabled: true, port: 9200 },
+        cron: { agentBin: "codex" },
+        build: { skipPnpmInstall: true },
+        cloud: { apiUrl: "https://cloud.example.test" },
+        langfuse: { baseUrl: "https://lf.example.test", privacyPreset: "prompts-only" },
+        composeOverrides: ["docker-compose.extra.yml"],
+      })}\n`,
+    );
+
+    expect(
+      await runSandboxInstall({ runtime: "docker", name: "box", yes: true, run }, makeIo().io),
+    ).toBe(0);
+    expect(readJson(entry)).toMatchObject({
+      repo: checkout,
+      access: { ssh: true, sshPort: 2345, sshPasswordAuth: true, dockerSocket: true },
+      storage: { homePath: "/srv/oh-home" },
+      hermesDashboard: { enabled: true, port: 9200 },
+      cron: { agentBin: "codex" },
+      build: { skipPnpmInstall: true },
+      cloud: { apiUrl: "https://cloud.example.test" },
+      langfuse: { baseUrl: "https://lf.example.test", privacyPreset: "prompts-only" },
+      composeOverrides: ["docker-compose.extra.yml"],
+      image: { mode: "build" },
+    });
+  });
+
+  it("preserves image.ref and image.pullPolicy across a recycle", async () => {
+    const registryPath = registry();
+    const { run } = makeRunner();
+
+    expect(
+      await runSandboxInstall(
+        { runtime: "docker", name: "box", yes: true, imageRef: "example.test/img:1", run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    expect(
+      await runSandboxInstall({ runtime: "docker", name: "box", yes: true, run }, makeIo().io),
+    ).toBe(0);
+    expect(readJson(join(registryPath, "box", "agro.json"))).toMatchObject({
+      image: { ref: "example.test/img:1", mode: "image", pullPolicy: "missing" },
+    });
+  });
+
+  it("still lets an explicit --image=<ref> override the preserved image ref", async () => {
+    const registryPath = registry();
+    const { run } = makeRunner();
+
+    expect(
+      await runSandboxInstall(
+        { runtime: "docker", name: "box", yes: true, imageRef: "example.test/img:1", run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    expect(
+      await runSandboxInstall(
+        { runtime: "docker", name: "box", yes: true, imageRef: "example.test/img:2", run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    expect(readJson(join(registryPath, "box", "agro.json"))).toMatchObject({
+      image: { ref: "example.test/img:2" },
+    });
+  });
+
+  it("offers the preserved value as the wizard default and still lets an answer override it", async () => {
+    const registryPath = registry();
+    const { run } = makeRunner();
+    const entry = join(registryPath, "box", "agro.json");
+
+    expect(
+      await runSandboxInstall(
+        { runtime: "docker", run },
+        makeIo(["box", "Europe/Berlin", "Ada", "ada@example.com", "n", "y"]).io,
+      ),
+    ).toBe(0);
+
+    const { asked, io } = makeIo(["", "Asia/Tokyo", "", "", "", ""]);
+    expect(await runSandboxInstall({ runtime: "docker", name: "box", run }, io)).toBe(0);
+
+    expect(asked[1]).toContain("[Europe/Berlin]");
+    expect(asked[2]).toContain("[Ada]");
+    expect(asked[5]).toContain("[Y/n]");
+    expect(readJson(entry)).toMatchObject({
+      name: "box",
+      timezone: "Asia/Tokyo",
+      git: { userName: "Ada", userEmail: "ada@example.com" },
+      access: { dockerSocket: true },
+    });
+  });
+
+  it("lets a --repo seed override the existing entry", async () => {
+    const registryPath = registry();
+    const checkout = mkdtempSync(join(tmpdir(), "oh-sandbox-repo-"));
+    cleanups.push(checkout);
+    const { run } = makeRunner();
+    const { io } = makeIo(["box", "Europe/Berlin", "", "", "n", "y"]);
+
+    expect(await runSandboxInstall({ runtime: "docker", run }, io)).toBe(0);
+    writeFileSync(
+      join(checkout, "agro.json"),
+      `${JSON.stringify({ version: 1, timezone: "Asia/Tokyo" })}\n`,
+    );
+
+    expect(
+      await runSandboxInstall(
+        { runtime: "docker", name: "box", repo: checkout, yes: true, run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    expect(readJson(join(registryPath, "box", "agro.json"))).toMatchObject({
+      timezone: "Asia/Tokyo",
+      access: { dockerSocket: true },
+    });
+  });
+
+  it("a first install with no entry of its own is unaffected by another sandbox", async () => {
+    const registryPath = registry();
+    const { run } = makeRunner();
+    const { io } = makeIo(["saved", "Europe/Berlin", "", "", "n", "y"]);
+
+    expect(await runSandboxInstall({ runtime: "docker", run }, io)).toBe(0);
+    expect(
+      await runSandboxInstall({ runtime: "docker", name: "fresh", yes: true, run }, makeIo().io),
+    ).toBe(0);
+
+    expect(readJson(join(registryPath, "fresh", "agro.json"))).toMatchObject({
+      name: "fresh",
+      timezone: "UTC",
+      git: { userName: "Ada Lovelace", userEmail: "Ada Lovelace" },
+      access: { ssh: false, sshPort: 2222, dockerSocket: false },
+      image: { mode: "image" },
+    });
+  });
+
+  it("drops retired and secret keys carried by a stale entry", async () => {
+    const registryPath = registry();
+    const { run } = makeRunner();
+    const root = join(registryPath, "box");
+    mkdirSync(root, { recursive: true });
+    writeFileSync(
+      join(root, "agro.json"),
+      `${JSON.stringify({
+        version: 1,
+        name: "box",
+        runtime: "docker",
+        timezone: "Europe/Berlin",
+        WORKTREES_DIR: "/srv/worktrees",
+        INSTALL_TAILSCALE: true,
+        SANDBOX_SSH_AUTHORIZED_KEYS: "ssh-ed25519 AAAA",
+        LANGFUSE_PRIVACY_PRESET: "full-debug",
+        GH_TOKEN: "ghp_stale",
+      })}\n`,
+    );
+
+    expect(
+      await runSandboxInstall({ runtime: "docker", name: "box", yes: true, run }, makeIo().io),
+    ).toBe(0);
+    const config = readJson(join(root, "agro.json"));
+    expect(config).toMatchObject({ timezone: "Europe/Berlin" });
+    for (const key of [
+      "WORKTREES_DIR",
+      "INSTALL_TAILSCALE",
+      "SANDBOX_SSH_AUTHORIZED_KEYS",
+      "LANGFUSE_PRIVACY_PRESET",
+      "GH_TOKEN",
+    ]) {
+      expect(config[key], key).toBeUndefined();
+    }
+  });
+});
+
 describe("oh sandbox install — the wizard", () => {
   it("asks exactly six questions in order and writes the answers", async () => {
     const registryPath = registry();
