@@ -18,7 +18,8 @@ describe("sandbox upgrade smoke script", () => {
   });
 
   it("seeds from the last legacy image by default and accepts the documented knobs", () => {
-    expect(script).toContain("LEGACY_IMAGE=${LEGACY_IMAGE:-ghcr.io/mifunedev/openharness:0.9.0}");
+    expect(script).toContain("LEGACY_IMAGE=${LEGACY_IMAGE:-ghcr.io/mifunedev/openharness@sha256:");
+    expect(script).toMatch(/@sha256:[0-9a-f]{64}\}/);
     expect(script).toContain("NEW_IMAGE=${NEW_IMAGE:-}");
     expect(script).toContain("KEEP=${KEEP:-0}");
     expect(script).toContain("docker-compose.image-only.yml");

@@ -17,7 +17,7 @@ COMPOSE_FILE="$ROOT/.devcontainer/docker-compose.image-only.yml"
 SYMPTOM='pnpm install failed — see /tmp/pnpm-install.log; aborting sandbox boot'
 HOOK_DELETE='jq --indent 2 '\''del(.scripts["pnpm:devPreinstall"])'\'' package.json'
 
-LEGACY_IMAGE="${LEGACY_IMAGE:-ghcr.io/mifunedev/openharness:0.9.0}"
+LEGACY_IMAGE="${LEGACY_IMAGE:-ghcr.io/mifunedev/openharness@sha256:5ecfe69bbc0654ca733535d710c0c61fd5f7913945bef7d1beec97506f03e60c}"
 LIVE="${SANDBOX_BOOT_RECOVERY_LIVE:-0}"
 TIMEOUT="${SANDBOX_BOOT_RECOVERY_TIMEOUT_SECONDS:-600}"
 INTERVAL="${SANDBOX_BOOT_RECOVERY_INTERVAL_SECONDS:-5}"

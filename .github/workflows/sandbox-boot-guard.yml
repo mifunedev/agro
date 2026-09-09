@@ -184,7 +184,7 @@ jobs:
 
       - name: Upgrade a legacy workspace volume to the freshly built image
         env:
-          LEGACY_IMAGE: ghcr.io/mifunedev/openharness:0.9.0
+          LEGACY_IMAGE: ghcr.io/mifunedev/openharness@sha256:5ecfe69bbc0654ca733535d710c0c61fd5f7913945bef7d1beec97506f03e60c
           UPGRADE_SMOKE_PROJECT: agro-upgrade-${{ github.run_id }}
           UPGRADE_SMOKE_TIMEOUT_SECONDS: "1200"
           UPGRADE_SMOKE_INTERVAL_SECONDS: "10"
