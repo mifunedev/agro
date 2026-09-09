@@ -493,3 +493,64 @@ than silently edited.
 Unchanged. US-007a still FAILS with its re-run blocked on the absent Docker socket;
 US-007b still behind the paid-OVH gate. #944 and #939 OPEN, no closing trailer anywhere.
 #945's gate untouched. Host cleanup still UNVERIFIED.
+
+
+## 2026-09-09 — agro-web merged and deployed; agro source merges executed
+
+### agro-web is merged to `main`
+
+Order was **#51 first, then #49**, so the rate-limit fix was in place before the docs
+PR's own deploy build ran.
+
+| PR | Merge commit on `main` | Post-merge run | Build | Deploy |
+|---|---|---|---|---|
+| #51 mirror rate-limit fix | `c65d41b8741e70b684b89fd5916bdb88b71eb53b` | 34387266599 | success | success |
+| #49 Phase-3 drift closure | `956bb1d723100b5779b02d617620fb9cf7193090` | 34387537372 | success | success |
+
+`main` is `956bb1d723100b5779b02d617620fb9cf7193090`. Run **34387537372** is the final
+combined deployment; 34387266599 is #51's earlier one. Issues #50 and #48 are CLOSED.
+
+Correction to an earlier reading: a branch-filtered `gh run list` omitted the newest
+runs, which made the earlier run look final. Query runs by exact head SHA through the
+REST API rather than trusting a filtered listing.
+
+Independent read-only verification of the deployed contract: the canonical homepage
+returns 200; the legacy `oh` homepage redirects to an identical canonical body;
+`get-agro.sh`, `get-oh.sh` and both `install.sh` endpoints return 200 with a valid
+shebang and `bash -n` exit 0; and all four script bodies BYTE-MATCH their sources at
+agro `main` `823aabbd7324e08e3b685af6b0a5ef5c3467a15f`. That is a compatibility pass
+against the CURRENT released main. It is not a release-cutover approval.
+
+### The missing changelog entry on #1022
+
+Independent review found #1022 carried only `sandbox.ts` and its tests, with no
+`CHANGELOG.md` entry, while the root changelog policy requires one for every
+user-visible change. #1023's entries cover recovery only and do not describe it.
+
+Added as a single `### Fixed` line linked to #1021, at head
+`b17d4d35d72ca4153ca00665928d439d09c64db1`. It was placed at the END of the `### Fixed`
+list rather than the top, so it occupies a different hunk from #1023's insertion and the
+two merge without a conflict. **This makes the earlier zero-file-overlap statement
+stale**: #1022 and #1023 now share `CHANGELOG.md`.
+
+Re-verified after the change:
+
+- All 5 named CI checks pass at `b17d4d35` (conclusions read, not merely absence of pending).
+- Merging all three branches onto `development` in either order yields the IDENTICAL
+  tree `314c10a776fdb27e32a7c00b88c57b2fd6a1575b` with zero conflicts.
+- Combined suite: 1255 passed, 2 failed — the same two pre-existing `migrate-rehearsal`
+  Docker-socket failures, unchanged.
+- `parseClosingRefs` still returns `[1021]` for #1022 and `[]` for #1023 and #1024.
+
+### Nothing below changed
+
+Story state is STILL **10 of 12**. US-007a still FAILS and its re-run is still blocked on
+the absent Docker socket; US-007b is still behind the paid-OVH gate. **#939, #944, #945
+and #1019 all remain OPEN.** No PR carries a closing trailer for any of them. Host
+cleanup remains UNVERIFIED. Cloud #145, orchestra #983 and website #66 remain DRAFT and
+parked, with `[skip netlify]` intact in the website title. The root checkout's dirty
+files were not touched.
+
+Direct advisor edits this turn — the one-line changelog entry and this record — were made
+without a bounded worker at explicit operator instruction, recorded here as the exception
+the workflow requires.
