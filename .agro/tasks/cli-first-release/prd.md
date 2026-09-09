@@ -251,7 +251,7 @@ The source task does not mark S1–S6 complete merely because candidate CI passe
 
 ## 9. Open release gates and deferred decisions
 
-No new product-scope decision blocks this source draft. The following obligations remain separate from its acceptance:
+No new product-scope decision blocks this source draft. This table distinguishes candidate PR evidence from the remaining live-state and release obligations:
 
 | Gate | Remaining evidence or decision |
 |---|---|
