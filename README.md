@@ -212,7 +212,7 @@ defaults. Details: [lifecycle commands](docs/lifecycle-commands.md#vs-code-reope
 
 Open Harness vendors the shared skills/hooks primitive pack directly into the `.agro/` control plane: `.agro/skills/`, `.agro/hooks/`, and `.agro/skills.lock` are tracked as ordinary files in this repo. Skills are the reusable-behavior primitive; the harness ships no repository-authored agent definitions, and provider-native sub-agents remain available as a bounded execution primitive through `/delegate`. `oh update` lays them down, so a fresh checkout has the skills immediately — no submodule, no recursive clone, no network step.
 
-Provider surfaces are symlinks into `.agro/`: `.pi/skills`, `.claude/skills`, and `.codex/skills` point at `.agro/skills`; `.claude/hooks` → `.agro/hooks`. `.pi/` itself remains the Pi provider surface in v1.
+The standard project skill surface is `.agents/skills -> ../.agro/skills`; `.claude/skills` and `.codex/skills` expose the same pack, and `.claude/hooks` → `.agro/hooks`. `.pi/` remains the Pi provider surface for Pi-specific configuration and extensions.
 
 ## 🚀 Use it
 

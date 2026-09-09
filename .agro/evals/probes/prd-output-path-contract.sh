@@ -7,9 +7,6 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 
 skill_files=("$ROOT/.claude/skills/prd/SKILL.md")
-if [ -f "$ROOT/.pi/skills/prd/SKILL.md" ]; then
-  skill_files+=("$ROOT/.pi/skills/prd/SKILL.md")
-fi
 
 missing=()
 for file in "${skill_files[@]}"; do

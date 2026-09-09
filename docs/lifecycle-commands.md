@@ -136,10 +136,11 @@ are yours. It never prompts. It does not upgrade the CLI itself; that is
 
 `agro migrate` moves an installation created under the legacy names to the AGRO
 names. It renames `.oh/` to `.agro/` and `oh.json` to `agro.json` wholesale,
-re-points the five provider links (`.claude/skills`, `.claude/hooks`,
-`.codex/skills`, `.agents/skills`, `.pi/skills`) from `../.oh/…` to `../.agro/…`,
-and retires a byte-identical legacy copy to `<name>.migrated` instead of deleting
-it. `oh migrate` dispatches to the same command.
+re-points the four active provider links (`.claude/skills`, `.claude/hooks`,
+`.codex/skills`, `.agents/skills`) from `../.oh/…` to `../.agro/…`, and moves a
+legacy `.pi/skills` link to `.pi/skills.migrated` when it points at a known Open
+Harness pack. Byte-identical legacy copies are retired to `<name>.migrated`
+instead of deleted. `oh migrate` dispatches to the same command.
 
 Project mode is the default: it starts at the current directory and walks up to
 the nearest ancestor holding `.oh/`, `.agro/`, `oh.json`, or `agro.json`.

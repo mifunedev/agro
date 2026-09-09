@@ -62,13 +62,16 @@ function manifest(base: string, dir: string = base): ManifestEntry[] {
 
 function legacyRelToAgro(rel: string): string {
   if (rel === "oh.json") return "agro.json";
+  if (rel === ".pi/skills") return ".pi/skills.migrated";
   return rel.replace(/^\.oh(\/|$)/, ".agro$1");
 }
 
 function expectedAfterRename(before: ManifestEntry[]): ManifestEntry[] {
   return before
     .map((row) => {
-      const relinked = row.hash?.startsWith("link:../.oh/") ? `link:../.agro/${row.hash.slice("link:../.oh/".length)}` : row.hash;
+      const relinked = row.rel !== ".pi/skills" && row.hash?.startsWith("link:../.oh/")
+        ? `link:../.agro/${row.hash.slice("link:../.oh/".length)}`
+        : row.hash;
       return { ...row, rel: legacyRelToAgro(row.rel), hash: relinked };
     })
     .sort((a, b) => a.rel.localeCompare(b.rel));
@@ -193,7 +196,7 @@ describe("runMigrate --check", () => {
     expect(plan.root).toBe(root);
     expect(plan.status).toBe("ready");
     expect(plan.conflicts).toEqual([]);
-    expect(plan.steps.map((s) => s.kind)).toEqual(["rename", "rename", "relink", "relink", "relink", "relink", "relink"]);
+    expect(plan.steps.map((s) => s.kind)).toEqual(["rename", "rename", "retire", "relink", "relink", "relink", "relink"]);
     expect(existsSync(join(root, ".oh"))).toBe(true);
   });
 
@@ -225,7 +228,8 @@ describe("runMigrate apply", () => {
     expect(readlinkSync(join(root, ".claude", "hooks"))).toBe("../.agro/hooks");
     expect(readlinkSync(join(root, ".codex", "skills"))).toBe("../.agro/skills");
     expect(readlinkSync(join(root, ".agents", "skills"))).toBe("../.agro/skills");
-    expect(readlinkSync(join(root, ".pi", "skills"))).toBe("../.agro/skills");
+    expect(existsSync(join(root, ".pi", "skills"))).toBe(false);
+    expect(readlinkSync(join(root, ".pi", "skills.migrated"))).toBe("../.oh/skills");
     expect(readFileSync(join(root, ".claude", "skills", "git", "SKILL.md"), "utf8")).toBe("skill\n");
     expect((lstatSync(join(root, ".agro", "scripts", "run.sh")).mode & 0o777).toString(8)).toBe("755");
     expect((lstatSync(join(root, ".agro", "secret.env")).mode & 0o777).toString(8)).toBe("600");
@@ -235,7 +239,7 @@ describe("runMigrate apply", () => {
     const text = result.out.join("");
     expect(text).toContain("agro migrate: applied");
     expect(text).toContain(`done    rename  ${join(root, ".oh")} -> ${join(root, ".agro")}`);
-    expect(text).toContain(`done    relink  ${join(root, ".pi", "skills")}: ../.oh/skills -> ../.agro/skills`);
+    expect(text).toContain(`done    retire  ${join(root, ".pi", "skills")} -> ${join(root, ".pi", "skills.migrated")}`);
   });
 
   it("is a noop on the second run and changes nothing", () => {
@@ -274,7 +278,6 @@ describe("runMigrate apply", () => {
     expect(byPath.get(join(root, ".claude", "hooks"))).toMatchObject({ kind: "noop", reason: "link already points at the AGRO target" });
     expect(byPath.get(join(root, ".codex", "skills"))).toMatchObject({ kind: "noop", reason: "not a symlink" });
     expect(byPath.get(join(root, ".agents", "skills"))).toMatchObject({ kind: "noop", reason: "link points at /elsewhere/skills, not ../.oh/skills" });
-    expect(byPath.get(join(root, ".pi", "skills"))).toMatchObject({ kind: "noop", reason: "link absent" });
     expect(readlinkSync(join(root, ".claude", "skills"))).toBe("../.agro/skills");
     expect(readlinkSync(join(root, ".claude", "hooks"))).toBe("../.agro/hooks");
     expect(readlinkSync(join(root, ".agents", "skills"))).toBe("/elsewhere/skills");

@@ -1,19 +1,14 @@
 ---
 name: spec
 description: >-
-  Canonical build dispatcher and repo-knowledge learning loop. Routes to plan,
-  execute, or retro; an approved plan path runs plan then execute. Recalls and
-  re-grounds .agro/knowledge/, scaffolds .agro/tasks/<slug>/, assigns implementation
-  to bounded workers under one owner, and derives knowledge invalidation from the
-  diff. Owns the only build
-  path. Procedures: references/{plan,execute,retro}.md.
-  TRIGGER when: an approved plan file should become a ready PR without further
-  hand-holding, "/spec <plan-path>", "build this plan end to end" -> the default
-  plan-then-execute path; a topic/plan/issue needs to become a buildable task
-  folder without building it, "plan <topic>", "scaffold the task for <issue>"
-  -> plan; an approved .agro/tasks/<slug>/ folder needs building to a promotable
-  PR, "execute <slug>", "build <slug>" -> execute; a build PASSed audit and its
-  lessons should be captured, "retro the <slug> build" -> retro.
+  Build dispatcher and repo-knowledge loop. Routes to plan, execute, or retro;
+  approved plan paths run plan then execute. Re-grounds .agro/knowledge/,
+  scaffolds .agro/tasks/<slug>/, owns one build path, and derives knowledge
+  invalidation from the diff. Procedures: references/{plan,execute,retro}.md.
+  TRIGGER when: an approved plan needs a ready PR -> "/spec <plan-path>" or
+  "build this plan end to end"; a topic or issue needs a task folder ->
+  "plan <topic>"; an approved task needs implementation -> "execute <slug>";
+  a PASSed build needs lessons captured -> "retro <slug>".
 argument-hint: "<plan-path> | plan <topic> [--plan <path>] [--issue <N>] [--slug <slug>] [--prefix <type>] [--repo <o/n>] [--base <branch>] | execute <slug> [--pr <N>] [--repo <o/n>] [--remote <name>] [--base <branch>] | retro <slug> [--dry-run]"
 ---
 

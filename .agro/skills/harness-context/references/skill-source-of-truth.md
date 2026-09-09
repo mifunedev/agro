@@ -7,9 +7,9 @@ When asked to list, audit, or reason about Open Harness skills, distinguish the 
 - Source of truth: `.agro/skills/*/SKILL.md` in the Open Harness repo.
 - These are tracked repo artifacts and are the skills that define Open Harness orchestration workflows.
 - Agent-specific skill paths are symlinks or runtime links to the same tracked collection:
+  - `.agents/skills -> ../.agro/skills`
   - `.claude/skills -> ../.agro/skills`
   - `.codex/skills -> ../.agro/skills`
-  - `.pi/skills -> ../.agro/skills`
   - `.hermes/skills/openharness -> ../../.agro/skills` when Hermes is enabled
 - Cite `.agro/skills/...` as the neutral source path, and mention agent-specific symlink paths only when relevant to a specific runtime.
 

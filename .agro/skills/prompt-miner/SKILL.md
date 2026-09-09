@@ -224,4 +224,3 @@ Announce `RESULT: MINING-COMPLETE` once the gate has run.
 - `references/scoring.md` — the friction + ground-truth scoring model.
 - `references/markers.md` — the feature taxonomy + falsifiable marker schema + thresholds.
 - `references/report-schema.md` — the emitted JSON/MD dataset shape.
-- `references/pi-parity.md` — why `.pi/skills/prompt-miner` needs no byte copy.

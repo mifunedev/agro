@@ -45,11 +45,20 @@ export interface RelinkSpec {
   to: string;
 }
 
+export interface RetireLinkSpec {
+  path: string;
+  packs: string[];
+  replacement: string;
+  replacementTargets: string[];
+  preserve: { from: string; to: string };
+}
+
 export interface MigrationSpec {
   root: string;
   pairs: MigrationPair[];
   rewrites?: RewriteSpec[];
   relinks?: RelinkSpec[];
+  retireLinks?: RetireLinkSpec[];
 }
 
 export interface EntrySnapshot {
@@ -213,6 +222,54 @@ function planRelink(root: string, relink: RelinkSpec): PlanStep {
   return { kind: "relink", path, from: relink.from, to: relink.to, snapshot: current };
 }
 
+function resolved(path: string): string | undefined {
+  try {
+    return realpathSync(path);
+  } catch {
+    return undefined;
+  }
+}
+
+function resolvesToPack(path: string, packs: string[]): boolean {
+  const target = resolved(path);
+  if (target === undefined) return false;
+  return packs.some((pack) => resolved(pack) === target);
+}
+
+function replacementSurvives(retire: RetireLinkSpec): boolean {
+  const current = snapshot(retire.replacement);
+  if (current === undefined || current.type !== "symlink") return false;
+  if (!retire.replacementTargets.includes(readlinkSync(retire.replacement))) return false;
+  return resolvesToPack(retire.replacement, retire.packs);
+}
+
+function preserveRetiredLink(root: string, retire: RetireLinkSpec, reason: string): PlanStep {
+  const step = planRelink(root, { path: retire.path, ...retire.preserve });
+  return step.kind === "relink" ? step : { kind: "noop", path: resolve(retire.path), reason };
+}
+
+function planRetireLink(root: string, retire: RetireLinkSpec): PlanStep | MigrationConflict {
+  const path = assertInsideRoot(root, retire.path, "retired link");
+  const current = snapshot(path);
+  if (current === undefined) return { kind: "noop", path, reason: "link absent" };
+  if (current.type !== "symlink") return { kind: "noop", path, reason: "not a symlink" };
+  if (!resolvesToPack(path, retire.packs)) {
+    return preserveRetiredLink(root, retire, "link does not resolve to the Open Harness skill pack");
+  }
+  if (!replacementSurvives(retire)) {
+    return preserveRetiredLink(
+      root,
+      retire,
+      `${retire.replacement} is not an independent skill-pack link that survives the migration`,
+    );
+  }
+  const retired = `${path}${RETIRED_SUFFIX}`;
+  if (lstatSync(retired, { throwIfNoEntry: false }) !== undefined) {
+    return { path: retired, reason: "retired copy already exists" };
+  }
+  return { kind: "retire", from: path, to: retired, snapshot: current };
+}
+
 function isStep(entry: PlanStep | MigrationConflict): entry is PlanStep {
   return "kind" in entry;
 }
@@ -225,6 +282,11 @@ export function planMigration(spec: MigrationSpec): MigrationPlan {
 
   for (const pair of spec.pairs) {
     const planned = planPair(root, pair);
+    if (isStep(planned)) steps.push(planned);
+    else conflicts.push(planned);
+  }
+  for (const retired of spec.retireLinks ?? []) {
+    const planned = planRetireLink(root, retired);
     if (isStep(planned)) steps.push(planned);
     else conflicts.push(planned);
   }
@@ -393,7 +455,22 @@ export const PROVIDER_LINKS: ReadonlyArray<{ link: string; target: string }> = [
   { link: ".claude/hooks", target: "hooks" },
   { link: ".codex/skills", target: "skills" },
   { link: ".agents/skills", target: "skills" },
-  { link: ".pi/skills", target: "skills" },
+];
+
+export const CANONICAL_SKILL_PACKS: ReadonlyArray<string> = [".oh/skills", ".agro/skills"];
+
+export const SURVIVING_SKILL_LINK_TARGETS: ReadonlyArray<string> = ["../.oh/skills", "../.agro/skills"];
+
+export const RETIRED_PROVIDER_LINKS: ReadonlyArray<{
+  link: string;
+  replacement: string;
+  preserve: { from: string; to: string };
+}> = [
+  {
+    link: ".pi/skills",
+    replacement: ".agents/skills",
+    preserve: { from: "../.oh/skills", to: "../.agro/skills" },
+  },
 ];
 
 export function providerRelinks(root: string): RelinkSpec[] {
@@ -405,6 +482,18 @@ export function providerRelinks(root: string): RelinkSpec[] {
   }));
 }
 
+export function retiredProviderLinks(root: string): RetireLinkSpec[] {
+  const dir = resolve(root);
+  const packs = CANONICAL_SKILL_PACKS.map((pack) => resolve(dir, ...pack.split("/")));
+  return RETIRED_PROVIDER_LINKS.map(({ link, replacement, preserve }) => ({
+    path: resolve(dir, ...link.split("/")),
+    packs,
+    replacement: resolve(dir, ...replacement.split("/")),
+    replacementTargets: [...SURVIVING_SKILL_LINK_TARGETS],
+    preserve,
+  }));
+}
+
 export function projectMigrationSpec(root: string): MigrationSpec {
   const dir = resolve(root);
   return {
@@ -413,6 +502,7 @@ export function projectMigrationSpec(root: string): MigrationSpec {
       { legacy: `${dir}${sep}.oh`, agro: `${dir}${sep}.agro`, kind: "dir" },
       { legacy: `${dir}${sep}oh.json`, agro: `${dir}${sep}agro.json`, kind: "file" },
     ],
+    retireLinks: retiredProviderLinks(dir),
     relinks: providerRelinks(dir),
   };
 }

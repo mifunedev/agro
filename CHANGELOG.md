@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Removed
+
+- Retire the `.pi/skills` surface only when `.agents/skills` is a direct, independent link that survives the migration, and preserve it otherwise so Pi keeps a skill discovery root. ([#1025](https://github.com/mifunedev/agro/issues/1025))
+
 ### Changed
 
 - Fresh installs now create `.agro/`, `agro.json`, `~/.agro/sandboxes`, and `/opt/agro-seed`; legacy `.oh/` state keeps working, and `agro migrate` moves a project or registry. ([#942](https://github.com/mifunedev/openharness/issues/942))

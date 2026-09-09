@@ -1,18 +1,12 @@
 ---
 name: wiki
 description: |
-  Dispatch four subcommands: ingest, query, lint, or compile.
-  This skill owns procedures; .agro/knowledge/ owns tracked source pages, patterns,
-  and raw snapshots. Queries exclude local scratch. Canonical schema:
-  .agro/skills/wiki/references/schema.md. Procedures:
+  Dispatch four subcommands: ingest, query, lint, or compile. Manage tracked knowledge; .agro/knowledge/
+  owns source pages, patterns, and raw snapshots; local scratch is excluded.
+  Canonical schema: .agro/skills/wiki/references/schema.md. Procedures:
   references/{ingest,query,lint,compile}.md.
-  TRIGGER when: "add to wiki", "capture this page", "snapshot this source",
-  "ingest <url|path>", or promoting a sub-agent draft -> ingest; "what does the
-  wiki say about X", "find knowledge entries for X", "look up X in the wiki",
-  or recalling tracked knowledge before planning -> query; "lint the wiki",
-  "regenerate the knowledge index", "which pages need review" -> lint;
-  "compile the retro into patterns", "what did this run teach",
-  "record this lesson as a pattern" -> compile.
+  TRIGGER when: ingest a URL, path, or draft; query the wiki before planning;
+  lint the index or review status; or compile a retro lesson into a pattern.
 argument-hint: "ingest <url|path> [--slug <override>] | ingest --from-draft <slug> [--allow-stale] | query <topic> [--patterns] | lint [--dry-run] | compile [--from <path>] [--task <slug>] [--dry-run]"
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch
 ---

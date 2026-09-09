@@ -124,7 +124,7 @@ describe("Hermes-only additive linking", () => {
         HERMES_HOME: "/home/sandbox/harness/.hermes", CC_SAFETY_NET_STRICT: "" },
     });
     expect(result.status, result.stderr).toBe(0);
-    expect(readlinkSync(join(root, ".pi/skills"))).toBe("../.agro/skills");
+    expect(existsSync(join(root, ".pi/skills"))).toBe(false);
     expect(readlinkSync(join(root, ".agents/skills"))).toBe("../.agro/skills");
     expect(existsSync(join(root, ".hermes"))).toBe(false);
   });

@@ -6,9 +6,9 @@ Use this when changing how Open Harness skills are shared across agent runtimes.
 
 - Keep the tracked source of truth neutral: `.agro/skills/*/SKILL.md`.
 - Expose that source through runtime-specific paths rather than copying skills:
+  - `.agents/skills -> ../.agro/skills`
   - `.claude/skills -> ../.agro/skills`
   - `.codex/skills -> ../.agro/skills`
-  - `.pi/skills -> ../.agro/skills`
   - `.hermes/skills/openharness -> ../../.agro/skills` when Hermes is enabled.
 - For Hermes, prefer a symlink under `$HERMES_HOME/skills` over mutating `skills.external_dirs` in runtime config. Hermes scans local skills with `os.walk(..., followlinks=True)`, so a linked child directory works while keeping `.hermes/skills` runtime/profile state non-authoritative.
 
@@ -24,12 +24,12 @@ When moving or renaming the canonical skill path, update all path-sensitive call
 
 ## Script pitfall
 
-Skill support scripts may be executed through `.agro/skills/...`, `.claude/skills/...`, `.codex/skills/...`, `.pi/skills/...`, or Hermes' linked `.hermes/skills/openharness/...` path. Avoid fixed-depth root derivation such as `SCRIPT_DIR/../../..`. Instead, walk upward until an invariant repo marker exists, e.g. `.agro/evals/probes`, `AGENTS.md`, or `.git`.
+Skill support scripts may be executed through `.agro/skills/...`, `.agents/skills/...`, `.claude/skills/...`, `.codex/skills/...`, or Hermes' linked `.hermes/skills/openharness/...` path. Avoid fixed-depth root derivation such as `SCRIPT_DIR/../../..`. Instead, walk upward until an invariant repo marker exists, e.g. `.agro/evals/probes`, `AGENTS.md`, or `.git`.
 
 ## Verification checklist
 
-- `find -L <agent-skill-path> -name SKILL.md | wc -l` returns the same count for `.agro/skills`, `.claude/skills`, `.codex/skills`, `.pi/skills`, and Hermes' linked path.
-- `find .claude .codex .pi .hermes/skills -xtype l -print` is empty.
+- `find -L <agent-skill-path> -name SKILL.md | wc -l` returns the same count for `.agro/skills`, `.agents/skills`, `.claude/skills`, `.codex/skills`, and Hermes' linked path.
+- `find .agents .claude .codex .hermes/skills -xtype l -print` is empty.
 - Hermes reload/list shows Open Harness skills under the shared linked source.
 - `bash -n` passes for touched shell scripts.
 - `git diff --check` passes.

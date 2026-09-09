@@ -28,7 +28,7 @@ like every other harness: run `oh harness install hermes`, then `hermes setup`.
 
 ## How the primitive pack ships
 
-Open Harness vendors the shared skills/hooks primitive pack directly into the `.agro/` control plane (`.agro/skills/`, `.agro/hooks/`, `.agro/skills.lock`), tracked as ordinary files — `oh update` lays them down, so a fresh checkout has them with no submodule or network step. Provider paths such as `.pi/skills`, `.claude/skills`, and `.codex/skills` are symlinks into `.agro/skills`; `.pi/` remains a provider surface for v1.
+Open Harness vendors the shared skills/hooks primitive pack directly into the `.agro/` control plane (`.agro/skills/`, `.agro/hooks/`, `.agro/skills.lock`), tracked as ordinary files — `oh update` lays them down, so a fresh checkout has them with no submodule or network step. The standard project skill surface is `.agents/skills`; `.claude/skills` and `.codex/skills` are symlinks into `.agro/skills`. `.pi/` remains a provider surface for Pi-specific configuration and extensions.
 
 ## Setup & first steps
 

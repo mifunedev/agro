@@ -93,8 +93,8 @@ These names describe separate layers, not interchangeable jobs:
   Source: [`.agro/skills/git/SKILL.md`](../.agro/skills/git/SKILL.md).
 
 - **primitive** — A reusable unit from the shared pack — skills and hooks —
-  vendored directly into the `.agro/` control plane and exposed to each provider
-  (`.claude/`, `.codex/`, `.pi/`) via symlinks into `.agro/`.
+  vendored directly into the `.agro/` control plane and exposed through the
+  standard `.agents/skills` surface plus `.claude/` and `.codex/` symlinks into `.agro/`.
   Source: [`README.md`](README.md) (the primitive pack under `.agro/skills/`,
   `.agro/hooks/`).
 

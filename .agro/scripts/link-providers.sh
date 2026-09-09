@@ -25,10 +25,13 @@ required_execs=(
 
 provider_links=(
   ".agents/skills|../.agro/skills"
-  ".pi/skills|../.agro/skills"
   ".claude/skills|../.agro/skills"
   ".codex/skills|../.agro/skills"
   ".claude/hooks|../.agro/hooks"
+)
+
+retired_links=(
+  ".pi/skills|.agents/skills"
 )
 
 HERMES_LINK=".hermes/skills/openharness"
@@ -85,13 +88,27 @@ fail() {
 print_state() {
   cat >&2 <<EOF
 Vendored skill pack: .agro/skills (expected to exist as tracked files)
-Provider surfaces:   .agents/skills .pi/skills .claude/skills .codex/skills -> ../.agro/skills
+Provider surfaces:   .agents/skills .claude/skills .codex/skills -> ../.agro/skills
+Retired surface:     .pi/skills (moved to .pi/skills.migrated only when it resolves to .agro/skills and .agents/skills independently links to it)
 Remediation: bash .agro/scripts/link-providers.sh --init
 EOF
 }
 
+provider_parent_safe() {
+  local parent="$1"
+  if [ -L "$parent" ]; then
+    fail "$parent is a symlink; preserve it and resolve the provider-path conflict before linking"
+    return 1
+  fi
+  if [ -e "$parent" ] && [ ! -d "$parent" ]; then
+    fail "$parent is not a directory; preserve it and resolve the provider-path conflict before linking"
+    return 1
+  fi
+}
+
 link_provider() {
   local path="$1" target="$2"
+  provider_parent_safe "$(dirname "$path")" || return 1
   mkdir -p "$(dirname "$path")"
   if [ -L "$path" ]; then
     [ "$(readlink "$path")" = "$target" ] && return 0
@@ -101,6 +118,75 @@ link_provider() {
     return 1
   fi
   ln -s "$target" "$path"
+}
+
+resolves_to_pack() {
+  local resolved pack
+  resolved="$(realpath "$1" 2>/dev/null || true)"
+  pack="$(realpath .agro/skills 2>/dev/null || true)"
+  [ -n "$pack" ] && [ "$resolved" = "$pack" ]
+}
+
+replacement_survives() {
+  local path="$1"
+  [ -L "$path" ] || return 1
+  case "$(readlink "$path")" in
+    ../.oh/skills|../.agro/skills) ;;
+    *) return 1 ;;
+  esac
+  resolves_to_pack "$path"
+}
+
+retire_link() {
+  local spec="$1" path replacement retired
+  path="${spec%%|*}"
+  replacement="${spec#*|}"
+  provider_parent_safe "$(dirname "$path")" || return 1
+  if [ ! -e "$path" ] && [ ! -L "$path" ]; then
+    return 0
+  fi
+  if [ ! -L "$path" ]; then
+    fail "$path is a retired provider surface but is not a symlink; preserve it and move it aside"
+    return 1
+  fi
+  if ! resolves_to_pack "$path"; then
+    fail "$path does not resolve to the vendored .agro/skills pack; preserve it and resolve the retired provider collision"
+    return 1
+  fi
+  if ! replacement_survives "$replacement"; then
+    fail "$path still carries skill discovery because $replacement is not an independent link to .agro/skills; repair $replacement, then run --init again"
+    return 1
+  fi
+  retired="${path}.migrated"
+  if [ -e "$retired" ] || [ -L "$retired" ]; then
+    fail "$retired already exists; preserve it and resolve the retired provider collision"
+    return 1
+  fi
+  mv "$path" "$retired"
+}
+
+check_retired_links() {
+  local spec path replacement
+  for spec in "${retired_links[@]}"; do
+    path="${spec%%|*}"
+    replacement="${spec#*|}"
+    if [ ! -e "$path" ] && [ ! -L "$path" ]; then
+      continue
+    fi
+    if [ ! -L "$path" ]; then
+      fail "$path is a retired provider surface but is not a symlink"
+      continue
+    fi
+    if ! resolves_to_pack "$path"; then
+      fail "$path does not resolve to the vendored .agro/skills pack; preserve it and resolve the retired provider collision"
+      continue
+    fi
+    if ! replacement_survives "$replacement"; then
+      fail "$path still carries skill discovery because $replacement is not an independent link to .agro/skills; repair $replacement, then run --init again"
+      continue
+    fi
+    fail "$path is retired; run --init to remove the old Open Harness link"
+  done
 }
 
 hermes_managed_here() {
@@ -160,6 +246,9 @@ init_links() {
     path="${link%%|*}"
     target="${link#*|}"
     link_provider "$path" "$target" || true
+  done
+  for link in "${retired_links[@]}"; do
+    retire_link "$link" || true
   done
 
   local f
@@ -270,6 +359,7 @@ check_links() {
     check_symlink "$path" "$expected_target"
   done
 
+  check_retired_links
   check_hermes_link
   check_protected_paths
 }
@@ -294,5 +384,5 @@ fi
 if [ "$hermes_only" = true ]; then
   printf 'Hermes OK: .hermes/skills/openharness -> .agro/skills\n'
 else
-  printf 'Providers OK: .agents/.pi/.claude/.codex skills -> .agro/skills (vendored pack present)\n'
+  printf 'Providers OK: .agents/.claude/.codex skills -> .agro/skills (vendored pack present)\n'
 fi
