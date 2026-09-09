@@ -457,14 +457,20 @@
       "scope": "Not Phase 4. Raised to the operator for a separate issue."
     },
     {
-      "id": "agro#1020",
-      "filed": true,
-      "summary": "Every workflow path filter in mifunedev/agro still names .oh/**, which has 0 tracked files after the Phase 3 rename (.agro/ has 760). Control-plane changes trigger no CI. The probe added by PR #1023 is unreachable by any CI path. Same failure shape as #981."
-    },
-    {
       "id": "migrate-rehearsal availability probe",
       "filed": false,
       "summary": "dockerComposeAvailable() in .agro/cli/src/commands/__tests__/migrate-rehearsal.test.ts probes the Compose plugin binary rather than daemon reachability, so it asserts success from a command that cannot succeed without a daemon. Causes 2 failures on any machine with the docker CLI but no socket. Pre-existing at b10ecac3."
+    },
+    {
+      "id": "agro#1020",
+      "filed": true,
+      "state": "CLOSED AS INVALID — the defect does not exist",
+      "summary": "RETRACTED. Claimed every workflow path filter still named .oh/**. The advisor grepped the root checkout's dirty working tree, not origin/development, which names .agro/** correctly throughout. Disproved by 5 green checks each on PR #1022 and #1023, including the Eval Probe Regression Gate on the very probe claimed unreachable. Lesson: grep the ref, not the worktree."
+    },
+    {
+      "id": "agro-web#50",
+      "filed": true,
+      "summary": "The docs build's Build site step passes no token, so the GitHub API call is unauthenticated (60/hr per shared runner IP), and isTransientStatus() omits 403 — GitHub's primary rate-limit code. Exhaustion is therefore misreported as 'ref does not resolve' and hard-fails the deploy. Proved by an unchanged re-run succeeding."
     }
   ],
   "advisorCorrections": [
@@ -630,11 +636,20 @@
     },
     {
       "repo": "mifunedev/website",
-      "issue": null,
-      "pr": null,
+      "issue": 65,
+      "pr": 66,
       "head": "5e5f34cc45ed8ab174f1354b3cd2e97f62b1c3a9",
-      "state": "BRANCH PUSHED, PR WITHHELD",
-      "note": "opening a PR triggers a Netlify Deploy Preview build; branch push measured to trigger nothing"
+      "state": "DRAFT",
+      "note": "Opened with [skip netlify] in the TITLE, the documented Netlify directive for PR Deploy Previews. Verified 0 statuses and 0 check-runs on the head. The directive must stay in the title until the credit issue is resolved."
     }
-  ]
+  ],
+  "ciAtExactHead": {
+    "cloud#145": "4/4 success",
+    "orchestra#983": "0 checks — decks/** is in test.yml paths-ignore; absence of jobs is not green",
+    "agro-web#49": "Build docs site success (after an unchanged re-run cleared a rate-limit 403); Deploy to GitHub Pages skipped",
+    "agro#1022": "5/5 success",
+    "agro#1023": "5/5 success",
+    "agro#1024": "5/5 success",
+    "website#66": "0 by design, [skip netlify]"
+  }
 }

@@ -330,3 +330,103 @@ parked/deferred status. The EPIC's definition of done is NOT redefined by this n
 those items remain part of #944, and #944 remains part of #939. #945's gate — Phase 4
 complete AND 90 days AND three releases since the first public AGRO release (anchor
 v0.9.0 2026-09-06; earliest date 2026-12-05; one release observed) — is unchanged.
+
+
+## 2026-09-09 (later) — RETRACTION of #1020, website draft opened, all heads green
+
+### RETRACTION — issue #1020 was FALSE and is closed as invalid
+
+I filed mifunedev/agro#1020 claiming that every workflow path filter still named
+`.oh/**`, which has no tracked files, and therefore that control-plane changes trigger
+no CI — including the assertion that the probe added by PR #1023 was unreachable by any
+CI path.
+
+**All of that is wrong.** I ran `grep -rn '\.agro/' .github/workflows/` against the ROOT
+CHECKOUT'S WORKING TREE and read the result as repository state. All six workflow files
+are locally modified there, reverted to the pre-AGRO generation — the same silent
+working-tree divergence already recorded in this file as HAZARD 1 for `.devcontainer/`.
+I had documented that exact hazard and then walked into it again for a different
+directory.
+
+`origin/development` was correct all along: ci-harness.yml names `.agro/**`,
+`.agro/skills/**`, `.agro/hooks/**`, `.agro/evals/**`, `.agro/knowledge/**`,
+`agro.json` and `.example.env`; sandbox-boot-guard.yml names `.agro/**` and
+`.agro/scripts/*`. Both `.agro/**` and `.oh/**` are listed, which is correct during the
+alias SLA.
+
+Disproof from real runs: PR #1022 (changes confined to `.agro/cli/src/**`) and PR #1023
+(adds a probe under `.agro/evals/`) each ran 5 checks, all success, including the Eval
+Probe Regression Gate. The probe I claimed was unreachable was gated green on its own PR.
+
+#1020 is closed as not-planned with that correction written into it, and the three PR
+bodies that cited it (#1022, #1023, #1024) were edited to remove the false claim and
+carry the actual check results.
+
+**Rule for the next session: grep the ref, not the worktree.** `git show
+origin/<branch>:<path>` — never the working copy at /home/sandbox/harness.
+
+### Website: draft PR opened without triggering a deploy
+
+The operator asked whether Netlify documents a native skip directive for PR-opening
+Deploy Previews. It does, and it is title-scoped:
+
+- Netlify docs: "To avoid generating a Deploy Preview for a pull/merge request, add
+  `[skip ci]` or `[skip netlify]` to **the title of the pull/merge request**."
+- The commit-message form covers only branch and production deploys. That distinction is
+  the documented cause of the "it was ignored" support reports; Netlify staff confirmed
+  the PR title is the working mechanism and the docs were updated to say so.
+
+So website PR #66 was opened as a DRAFT titled
+`[skip netlify] FROM docs/65-agro-runtime-references TO development`. Metadata on the PR
+only — no site configuration, billing or DNS was touched, and the Netlify credit issue
+itself was not investigated.
+
+**Verified no deploy launched:** 90+ seconds after opening, the head
+5e5f34cc45ed8ab174f1354b3cd2e97f62b1c3a9 carries 0 commit statuses and 0 check-runs.
+Existing PRs (#64, #62, #60) register their `netlify/promptengineers/deploy-preview`
+check within about a minute, so a launched build would have appeared by then.
+
+**`[skip netlify]` must stay in that title** until the credit issue is resolved.
+Removing it and pushing a commit is what resumes previews.
+
+### NEW FINDING — agro-web docs build hard-fails on a rate-limit 403. Filed as agro-web#50.
+
+PR #49's first run failed with `ref mifunedev/agro@main does not resolve (... -> HTTP
+403)`. Re-running the IDENTICAL commit with no change succeeded, so the message names
+the wrong cause. Two compounding defects:
+
+1. `.github/workflows/pages.yml`'s `Build site` step sets no `env:`, so
+   `oh-source.mjs`'s `authHeaders()` finds neither GITHUB_TOKEN nor GH_TOKEN and the
+   API call goes out unauthenticated — 60 requests/hour per IP, on shared runner IPs.
+2. `isTransientStatus()` covers 408/429/5xx but NOT 403, which is what GitHub returns on
+   primary rate-limit exhaustion. Exhaustion therefore falls through to
+   "the mirror would publish something wrong" and hard-fails the deploy.
+
+`mifunedev/agro` is public and the same URL returns 200 unauthenticated from a
+non-exhausted address, so this is not a permissions problem. Not fixed here — filed,
+with the token fix and the `x-ratelimit-remaining: 0` discriminator proposed.
+
+### Final CI state — every PR verified at its exact head
+
+| PR | Head | Checks |
+|---|---|---|
+| cloud #145 (draft) | 4b4124c7caff31a84b2367b75472c7b8ef26ce2f | 4/4 success |
+| orchestra #983 (draft) | 1acc415bf347991ed2dbd3b0d0ac937b9006faa0 | 0 — `decks/**` is in test.yml's paths-ignore, and slides.yml only fires on a push to development. Absence of jobs is NOT green, and is reported as absence. |
+| agro-web #49 (ready) | 0b0a6d28da979d6eb4a92e5a798cef8c95f3e1c4 | Build docs site success; Deploy to GitHub Pages skipped |
+| agro #1022 (ready) | 909b3ec3e294a2dcfad15bd3036730a094c07610 | 5/5 success |
+| agro #1023 (ready) | f8b72d7f5845d797039b8cfd8f87d7c23d9165c5 | 5/5 success |
+| agro #1024 (ready) | 53f24aa207ceac8a608bf6f79a8f826ac3620868 | 5/5 success |
+| website #66 (draft) | 5e5f34cc45ed8ab174f1354b3cd2e97f62b1c3a9 | 0 by design — `[skip netlify]` |
+
+The accidentally committed node_modules symlink is confirmed ABSENT from every pushed
+tree: `git ls-tree -r` over bug/1021-sandbox-install-idempotent and bug/1019-boot-recovery
+returns 0 node_modules paths. #1022's head is 909b3ec3e294a2dcfad15bd3036730a094c07610 and
+was never affected — the symlink was committed on the 1019 branch and amended away before
+that branch was pushed.
+
+### Story state is STILL 10 of 12
+
+Nothing above changes it. US-007a still FAILS and its re-run is still blocked on the
+absent Docker socket. US-007b is still behind the paid-OVH gate. #944 and #939 remain
+OPEN, no PR carries a closing trailer for either, and #945's time-and-release gate is
+untouched. Host cleanup remains UNVERIFIED — nobody has checked.
