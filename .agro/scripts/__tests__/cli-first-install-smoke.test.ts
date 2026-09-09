@@ -147,6 +147,10 @@ describe("cli-first-install-smoke.sh", () => {
     expect(source).toContain("set -euo pipefail");
     expect(source).toContain('NAME_PREFIX="agro-cli-first"');
     expect(source).toContain('if [ ! -f "$home/.profile" ]; then');
+    expect(source).toContain('cd "$cli_dir"');
+    expect(source).toContain("*openharness-*.tgz");
+    expect(source).toContain("mifune-agro-*.tgz");
+    expect(source).toContain('echo "node_after=$(command -v node) version=$(node --version)"');
     const parsed = spawnSync("bash", ["-n", SCRIPT], { encoding: "utf8" });
     expect(parsed.status, parsed.stderr).toBe(0);
   });
@@ -252,6 +256,51 @@ describe("cli-first-install-smoke.sh", () => {
     expect(workflow).toContain("--require-docker");
     expect(workflow).toContain("--bootstrap-without-node");
     expect(workflow).toContain("debian:bookworm-slim");
+    expect(workflow).toContain("set -o pipefail");
     expect(workflow).not.toContain("ghcr.io/mifunedev/agro:latest");
+    expect(workflow).not.toMatch(/cli-first-install-smoke[\s\S]*continue-on-error/);
+  });
+
+  it("rejects npm pack of the root openharness package", () => {
+    const dir = mkdtempSync(join(tmpdir(), "cli-first-pack-"));
+    cleanups.push(dir);
+    const bin = join(dir, "bin");
+    mkdirSync(bin);
+    const bundle = join(dir, "agro.js");
+    writeFileSync(bundle, "#!/usr/bin/env node\nconsole.log(\"9.9.9\")\n");
+    chmodSync(bundle, 0o755);
+    writeFileSync(
+      join(bin, "npm"),
+      [
+        "#!/usr/bin/env bash",
+        "set -euo pipefail",
+        'if [[ "$*" == *pack* ]]; then',
+        "  dest=",
+        "  prev=",
+        '  for a in "$@"; do',
+        '    if [ "$prev" = "--pack-destination" ]; then dest="$a"; fi',
+        '    prev="$a"',
+        "  done",
+        '  [ -n "$dest" ] || dest="."',
+        '  : > "$dest/openharness-0.9.0.tgz"',
+        "  echo openharness-0.9.0.tgz",
+        "  exit 0",
+        "fi",
+        "exit 0",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    chmodSync(join(bin, "npm"), 0o755);
+    const workdir = join(dir, "work");
+    mkdirSync(workdir);
+    const result = run(
+      ["--phase", "pack", "--workdir", workdir, "--bundle", bundle, "--keep"],
+      {},
+      { path: `${bin}:${process.env.PATH ?? ""}` },
+    );
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("openharness");
+    expect(result.stderr).toContain(".agro/cli");
   });
 });

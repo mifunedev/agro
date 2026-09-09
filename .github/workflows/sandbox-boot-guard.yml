@@ -153,6 +153,7 @@ jobs:
         env:
           CANDIDATE_IMAGE: openharness-sandbox-boot-guard:${{ github.sha }}
         run: |
+          set -o pipefail
           bash .agro/scripts/cli-first-install-smoke.sh \
             --phase all \
             --image "$CANDIDATE_IMAGE" \

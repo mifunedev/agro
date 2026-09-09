@@ -180,16 +180,30 @@ fi
 
 phase_pack() {
   echo "=== pack ==="
-  npm --prefix "$REPO_ROOT/.agro/cli" ci --ignore-scripts
-  npm --prefix "$REPO_ROOT/.agro/cli" run build
+  local cli_dir="$REPO_ROOT/.agro/cli"
+  [ -f "$cli_dir/package.json" ] || die "missing $cli_dir/package.json"
+  npm --prefix "$cli_dir" ci --ignore-scripts
+  npm --prefix "$cli_dir" run build
   [ -f "$BUNDLE" ] || die "missing candidate bundle $BUNDLE"
   local prefix="$WORKDIR/prefix"
   mkdir -p "$prefix"
   record prefix "$prefix"
-  local tarball
-  tarball=$(npm pack --pack-destination "$WORKDIR" --silent --prefix "$REPO_ROOT/.agro/cli")
-  tarball="$WORKDIR/${tarball##*/}"
+  local packed tarball
+  packed=$(
+    cd "$cli_dir" || exit 1
+    npm pack --pack-destination "$WORKDIR" --silent
+  )
+  tarball="$WORKDIR/${packed##*/}"
   [ -f "$tarball" ] || die "npm pack did not write $tarball"
+  case "$tarball" in
+    *openharness-*.tgz)
+      die "npm pack produced the root openharness package ($tarball) — pack must run in .agro/cli"
+      ;;
+  esac
+  case "${packed##*/}" in
+    mifune-agro-*.tgz) ;;
+    *) die "npm pack must produce mifune-agro-*.tgz, got ${packed##*/}" ;;
+  esac
   echo "tarball=$tarball"
   echo "bundle=$BUNDLE"
   npm install -g --prefix "$prefix" "$tarball"
@@ -235,21 +249,21 @@ phase_bootstrap() {
   if ! cmp -s "$BUNDLE" "$bin_dir/agro"; then
     die "installed agro is not the candidate bundle"
   fi
-  local version
-  version=$(HOME="$home" bash -lc '
+  local login_out
+  login_out=$(HOME="$home" bash -lc '
     [ -f "$HOME/.profile" ] && . "$HOME/.profile"
     export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
     [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
     command -v agro >/dev/null 2>&1 || { echo "agro not on PATH in new login shell" >&2; exit 127; }
-    agro --version
+    echo "bootstrap_version=$(agro --version)"
+    if command -v node >/dev/null 2>&1; then
+      echo "node_after=$(command -v node) version=$(node --version)"
+    else
+      echo "node_after=ABSENT"
+    fi
   ')
   echo "bootstrap_agro=$bin_dir/agro"
-  echo "bootstrap_version=$version"
-  if command -v node >/dev/null 2>&1; then
-    echo "node_after=$(command -v node) version=$(node --version)"
-  else
-    echo "node_after=ABSENT"
-  fi
+  printf '%s\n' "$login_out"
 }
 
 wait_health() {
