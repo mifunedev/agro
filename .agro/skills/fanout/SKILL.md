@@ -118,15 +118,26 @@ misplaced session.
 
 ## 6. Monitor without attaching
 
-Poll status; never attach to a running agent's terminal. Prefer server-side waits
-over sleep loops.
+Never attach to a running agent's terminal. When the supervising session is Pi, use
+`MonitorCreate` for long-running command completion and use Herdr's blocking waits
+for agent status instead of recurring `LoopCreate` polling:
+
+```text
+MonitorCreate command="..." description="Watch the command" onDone="Report the result"
+```
+
+`@trevonistrevon/pi-loop` provides `MonitorCreate` and uses `onDone` to create a
+one-shot completion loop internally. Keep that completion behavior. This
+supervision guidance does not prohibit scheduling that the operator explicitly
+requests.
 
 ```bash
 herdr agent list | jq -r '.result.agents[] | select(.pane_id|startswith("'"$WS"'")) | "\(.pane_id)\t\(.agent_status)"'
 herdr agent wait "$PANE" --status idle --timeout 1800000
 ```
 
-Read a pane only to confirm it is on-brief or to diagnose a stall.
+Read a pane only to confirm it is on-brief or to diagnose a stall. Prefer
+server-side blocking waits over sleep loops.
 
 ## 7. Pre-merge verification
 
