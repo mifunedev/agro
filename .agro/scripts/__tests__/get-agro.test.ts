@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { loadVectors, type Vector } from "../../cli/src/lib/__tests__/fixtures/compat-fixture.js";
@@ -164,6 +164,39 @@ describe("get-agro.sh end to end", () => {
     expect(result.stderr).toContain(`file://${h.artifact}`);
     expect(result.stderr).toContain(NPM_ALTERNATIVE);
     expect(() => statSync(join(binDir, "agro"))).toThrow();
+  });
+
+  it("installs the real built agro.js bundle and reports its version in a new shell", () => {
+    const bundle = join(REPO_ROOT, ".agro", "cli", "dist", "agro.js");
+    if (!existsSync(bundle)) {
+      const ci = spawnSync("npm", ["--prefix", join(REPO_ROOT, ".agro", "cli"), "ci", "--ignore-scripts"], {
+        encoding: "utf8",
+      });
+      expect(ci.status, ci.stderr).toBe(0);
+      const build = spawnSync("npm", ["--prefix", join(REPO_ROOT, ".agro", "cli"), "run", "build"], {
+        encoding: "utf8",
+      });
+      expect(build.status, build.stderr).toBe(0);
+    }
+    const real = readFileSync(bundle);
+    expect(real.toString("utf8").startsWith("#!/usr/bin/env node\n")).toBe(true);
+    expect(real.equals(Buffer.from(FAKE_ARTIFACT))).toBe(false);
+    const h = makeHome(null);
+    writeFileSync(h.artifact, real);
+    const binDir = join(h.home, "real-bin");
+    const result = install(h, { AGRO_BIN_DIR: binDir, AGRO_JS_URL: `file://${h.artifact}` });
+    expect(result.status, result.stderr).toBe(0);
+    const installed = join(binDir, "agro");
+    expect(readFileSync(installed).equals(real)).toBe(true);
+    const version = spawnSync(process.execPath, [installed, "--version"], { encoding: "utf8" });
+    expect(version.status, version.stderr).toBe(0);
+    expect(version.stdout.trim()).toMatch(/^\d+\.\d+\.\d+/);
+    const fresh = spawnSync("bash", ["-lc", "agro --version"], {
+      encoding: "utf8",
+      env: { ...baseEnv(), PATH: `${binDir}:${process.env.PATH ?? ""}`, HOME: h.home },
+    });
+    expect(fresh.status, fresh.stderr).toBe(0);
+    expect(fresh.stdout.trim()).toBe(version.stdout.trim());
   });
 
   it("skips the profile edit when the bin dir is already on PATH", () => {

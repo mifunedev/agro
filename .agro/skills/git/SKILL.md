@@ -232,10 +232,11 @@ Do **not** manually pre-create a release tag or `release/<version>` branch.
 Versioning is SemVer: `MAJOR.MINOR.PATCH`, tagged `vMAJOR.MINOR.PATCH`. Root
 `package.json` holds the release version. The workflow reads that file and never
 derives a version from the clock, so cutting a release is a deliberate bump, not
-a side effect of pushing. A cut bumps four sites to the same value: root
-`package.json`; `.agro/cli/package.json` with its `package-lock.json`;
-`.agro/cli/legacy/package.json` `version`; and the exact `@mifune/agro` pin in
-`.agro/cli/legacy/package.json`. `version-parity.sh` fails the build on drift.
+a side effect of pushing. A cut bumps root `package.json` and `.agro/cli/package.json`
+(with its `package-lock.json`) to the same value. `version-parity.sh` fails the
+build on that canonical drift. The retained shim at `.agro/cli/legacy/` keeps its
+own version and an exact `@mifune/agro` pin that equals that shim version. The
+shim version does not have to match a later canonical version.
 
 Creating `refs/tags/v<version>` is the atomic reservation. A retry reads the same
 version from the same commit, so it reuses a same-SHA draft, and a retry of an
@@ -250,9 +251,10 @@ The `v` prefix appears only in the git tag and the GitHub Release name. The step
 output, the GHCR image tags, and the concurrency group all stay bare
 (`ghcr.io/mifunedev/openharness:0.1.0`, `ghcr.io/mifunedev/agro:0.1.0`).
 
-One release publishes both generations from one build: the npm packages
-`@mifune/agro` (`agro`) and the `@mifune/openharness` shim (`oh`, deprecated
-toward `@mifune/agro` on publication); the GHCR tags
+One release publishes the canonical npm package `@mifune/agro` (`agro`). The
+`@mifune/openharness` shim source remains at `.agro/cli/legacy/` and already-published
+shim versions remain on the registry. The release path does not publish, wait for,
+or deprecate the shim. The same build still publishes the GHCR tags
 `ghcr.io/mifunedev/openharness:<version>`, `:sha-<sha>`,
 `ghcr.io/mifunedev/agro:<version>`, `:sha-<sha>`, verified to share one digest,
 plus `latest` on both repositories; and the release assets `agro.js`, `oh.js`,
@@ -269,7 +271,7 @@ main|master push → validate + boot-lint + eval → read version from package.j
                  → build once + boot smoke + agro/oh version smoke
                  → push openharness + agro <version> and sha-<full-SHA> GHCR tags
                  → verify one digest → canonical latest-by-digest on both
-                 → publish/no-op @mifune/agro, then the @mifune/openharness shim
+                 → publish/no-op @mifune/agro
                  → attach agro.js, oh.js, get-agro.sh, get-oh.sh
                  → publish GitHub Release
 ```

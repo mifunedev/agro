@@ -14,6 +14,7 @@ on:
       - ".agro/scripts/docker-compose.sh"
       - ".agro/scripts/sandbox-boot-smoke.sh"
       - ".agro/scripts/sandbox-upgrade-smoke.sh"
+      - ".agro/scripts/cli-first-install-smoke.sh"
       - ".agro/scripts/harness-config.sh"
       - "agro.json"
       - "oh.json"
@@ -30,6 +31,7 @@ on:
       - ".agro/scripts/docker-compose.sh"
       - ".agro/scripts/sandbox-boot-smoke.sh"
       - ".agro/scripts/sandbox-upgrade-smoke.sh"
+      - ".agro/scripts/cli-first-install-smoke.sh"
       - ".agro/scripts/harness-config.sh"
       - "agro.json"
       - "oh.json"
@@ -122,6 +124,48 @@ jobs:
           # pre-seeded tree matches what the container runs — spec §9 parity.
           node-version: 22
           cache: pnpm
+
+      - name: Build candidate CLI
+        run: |
+          npm --prefix .agro/cli ci --ignore-scripts
+          npm --prefix .agro/cli run build
+
+      - name: Candidate bootstrap without Node
+        run: |
+          docker run --rm \
+            -e AGRO_ASSUME_YES=1 \
+            -v "${{ github.workspace }}:/src:ro" \
+            debian:bookworm-slim \
+            bash -lc '
+              set -euo pipefail
+              apt-get update
+              apt-get install -y --no-install-recommends curl ca-certificates bash
+              if command -v node >/dev/null 2>&1; then echo "node unexpectedly present"; exit 1; fi
+              echo "node_before=ABSENT"
+              bash /src/.agro/scripts/cli-first-install-smoke.sh \
+                --phase bootstrap \
+                --bootstrap-without-node \
+                --bundle /src/.agro/cli/dist/agro.js \
+                --keep
+            '
+
+      - name: Candidate CLI-first install and recreation smoke
+        env:
+          CANDIDATE_IMAGE: openharness-sandbox-boot-guard:${{ github.sha }}
+        run: |
+          bash .agro/scripts/cli-first-install-smoke.sh \
+            --phase all \
+            --image "$CANDIDATE_IMAGE" \
+            --require-docker \
+            2>&1 | tee cli-first-install-smoke.log
+
+      - name: Upload the CLI-first smoke log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-first-install-smoke-log-${{ github.run_id }}
+          path: cli-first-install-smoke.log
+          if-no-files-found: warn
 
       - name: Pre-seed node_modules in the checkout (out of the boot window)
         run: pnpm install --frozen-lockfile

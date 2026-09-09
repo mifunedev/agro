@@ -23,10 +23,10 @@ an unchanged version gives a clean, green no-op run.
 
 One release produces, from one build and one commit:
 
-- Two npm packages: `@mifune/agro` (the `agro` executable, from `.agro/cli`) and the
-  `@mifune/openharness` delegation shim (the `oh` executable, from
-  `.agro/cli/legacy`), published in that order. The shim is deprecated toward
-  `@mifune/agro` immediately after publication.
+- The canonical npm package `@mifune/agro` (the `agro` executable, from `.agro/cli`).
+  The `@mifune/openharness` shim source remains at `.agro/cli/legacy/` and
+  already-published shim versions remain on the registry. The release path does
+  not publish, wait for, or deprecate the shim.
 - Four immutable GHCR tags: `ghcr.io/mifunedev/openharness:<version>`,
   `:sha-<sha>`, `ghcr.io/mifunedev/agro:<version>`, and `:sha-<sha>`, verified to
   share one manifest digest (`.agro/scripts/verify-release-aliases.sh`), then
@@ -37,14 +37,16 @@ One release produces, from one build and one commit:
 
 ## Version sites
 
-A release cut bumps the same version in four places, and `version-parity.sh`
+A release cut bumps the canonical version in two places, and `version-parity.sh`
 fails the build when they drift:
 
 1. `package.json` (root).
 2. `.agro/cli/package.json` and `.agro/cli/package-lock.json`.
-3. `.agro/cli/legacy/package.json` `version`.
-4. `.agro/cli/legacy/package.json` `dependencies["@mifune/agro"]` (exact pin, no
-   range).
+
+The retained shim at `.agro/cli/legacy/package.json` keeps its own `version` and
+an exact `@mifune/agro` pin that equals that shim version. The shim version does
+not have to match a later canonical version. `agro-legacy-shim.sh` checks that
+internal coherence.
 
 ## Operator prerequisites this repository cannot verify
 
@@ -104,10 +106,11 @@ Require all of the following before a release push:
 - The working tree is clean.
 - The source commit is pushed to the canonical remote.
 - CI for the source commit is green.
-- Root `package.json` names the version to publish, the three other version
-  sites match it (`bash .agro/evals/probes/version-parity.sh`), and no
-  `v<version>` tag exists yet. An unbumped push is a green no-op that publishes
-  nothing.
+- Root `package.json` names the version to publish, `.agro/cli/package.json`
+  matches it (`bash .agro/evals/probes/version-parity.sh`), the retained shim
+  stays internally coherent (`bash .agro/evals/probes/agro-legacy-shim.sh`), and
+  no `v<version>` tag exists yet. An unbumped push is a green no-op that publishes
+  nothing. A newly published `@mifune/openharness` version is not required.
 - `CHANGELOG.md` has a `## [<version>]` section matching that version (the
   workflow falls back to `[Unreleased]` when the section is absent).
 - The remote release branch is an ancestor of the source commit, so promotion is
@@ -167,9 +170,10 @@ gh run watch <run-id> --repo "$REPO" --exit-status
 ```
 
 After success, fetch tags and identify the SemVer tag pointing to the exact SHA,
-then verify the four immutable image tags, the two npm packages, the release
+then verify the four immutable image tags, the canonical npm package, the release
 assets, and the GitHub Release. The tag carries the `v` prefix; the image tags
-do not:
+do not. A newly published `@mifune/openharness` version is not a release gate.
+Automatic `notify-docs` dispatch is not the only documentation acceptance path.
 
 ```bash
 git fetch "$REMOTE" --tags
@@ -181,7 +185,6 @@ gh release view "$TAG" --repo "$REPO" --json assets -q '.assets[].name'
 .agro/scripts/verify-release-aliases.sh check \
   "ghcr.io/mifunedev/openharness:${TAG#v}" "ghcr.io/mifunedev/agro:${TAG#v}"
 npm view "@mifune/agro@${TAG#v}" version
-npm view "@mifune/openharness@${TAG#v}" version deprecated
 printf 'Images: ghcr.io/mifunedev/{openharness,agro}:%s and :sha-%s\n' "${TAG#v}" "$SHA"
 ```
 
