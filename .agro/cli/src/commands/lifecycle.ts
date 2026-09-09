@@ -101,7 +101,7 @@ function sandboxRoot(opts: SandboxTargetOptions): string {
 
 export const DEFAULT_CONTAINER_NAME = DEFAULT_SANDBOX_NAME;
 
-export const DEFAULT_SANDBOX_IMAGE = "ghcr.io/mifunedev/openharness:latest";
+export const DEFAULT_SANDBOX_IMAGE = "ghcr.io/mifunedev/agro:latest";
 
 function configuredField(root: string, path: string): unknown {
   const file = ohConfigPath(root);

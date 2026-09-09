@@ -27,6 +27,7 @@ import {
   runShell,
   composeVerbs,
   DEFAULT_CONTAINER_NAME,
+  DEFAULT_SANDBOX_IMAGE,
   type ComposeVerb,
   type LifecycleIO,
 } from "./commands/lifecycle.js";
@@ -99,6 +100,10 @@ function compatibilityNote(product: Product): string {
 
 export function printOhHelp(product: Product = LEGACY_PRODUCT): void {
   const { bin, title } = product;
+  const updateSummary =
+    bin === AGRO_PRODUCT.bin
+      ? `Upgrade the installed ${bin} CLI`
+      : `Vendor or upgrade the ${stateNames(bin).controlDir}/ control plane`;
   process.stdout.write(`${bin} — ${title} (v${VERSION})
 
 Usage:
@@ -106,7 +111,7 @@ Usage:
   ${bin} shell [name]           Open a zsh shell in the running sandbox container
   ${bin} config <args...>       Read and write ${stateNames(bin).configFile} (show|set), or run a wizard
   ${bin} secret <args...>       Read and write the gitignored root .env (set|list)
-  ${bin} update                 Vendor or upgrade the ${stateNames(bin).controlDir}/ control plane
+  ${bin} update                 ${updateSummary}
   ${bin} migrate                Move a legacy .oh/ project or ~/.oh registry to AGRO names (--check|--home)
   ${bin} stop [name]            Stop the sandbox, preserving volumes
   ${bin} restart [name]         Restart the sandbox service
@@ -268,7 +273,7 @@ Flags:
   --yes            Non-interactive: keep every default and ask nothing
   --image[=<ref>]  Run the prebuilt image instead of building (implies
                    --no-build). Ref resolves last-wins: --image=<ref> >
-                   ${stateNames(bin).configFile} image.ref > ghcr.io/mifunedev/openharness:latest.
+                   ${stateNames(bin).configFile} image.ref > ${DEFAULT_SANDBOX_IMAGE}.
   --no-build       Suppress the local build and reuse an existing image
   --print-argv     Print the docker compose argv that would run, then exit
                    without writing an entry

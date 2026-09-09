@@ -310,9 +310,10 @@ does not exist on `main` yet, and an early change breaks the endpoint.
 
 ### Unchanged in Phase 3
 
-The default image reference `ghcr.io/mifunedev/openharness:latest` is unchanged;
-both image names are published from one digest, so the default selects the same
-image under either name. The CLI install root `/opt/oh`, the Cloud variables, the
+The unselected image fallback is `ghcr.io/mifunedev/agro:latest`. An explicit
+`image.ref`, `AGRO_SANDBOX_IMAGE`, or `OH_SANDBOX_IMAGE` value stays as stored,
+including `ghcr.io/mifunedev/openharness:latest`. Both image names publish from
+one digest. The CLI install root `/opt/oh`, the Cloud variables, the
 Python kernel home `~/.local/share/oh/`, `oh`, `@mifune/openharness`, `get-oh.sh`,
 `oh.js`, every `OH_*` variable, `~/.oh`, and the legacy GHCR tags stay valid
 through the SLA. This repository keeps `"name": "openharness"` in `agro.json`.

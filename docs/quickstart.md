@@ -86,7 +86,7 @@ wrapper script the CLI regenerates on every lifecycle call — edit only
 it when you choose.
 
 Without `--repo` the sandbox runs the published image
-(`ghcr.io/mifunedev/openharness:latest`) and seeds its workspace from the
+(`ghcr.io/mifunedev/agro:latest`) and seeds its workspace from the
 image's `/opt/agro-seed`, so there is no build and no clone.
 
 Finish by attaching:

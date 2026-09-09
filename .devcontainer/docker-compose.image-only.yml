@@ -2,7 +2,7 @@ name: ${SANDBOX_NAME:-agro}
 
 services:
   sandbox:
-    image: ${AGRO_SANDBOX_IMAGE:-${OH_SANDBOX_IMAGE:-ghcr.io/mifunedev/openharness:latest}}
+    image: ${AGRO_SANDBOX_IMAGE:-${OH_SANDBOX_IMAGE:-ghcr.io/mifunedev/agro:latest}}
     pull_policy: ${AGRO_PULL_POLICY:-${OH_PULL_POLICY:-always}}
     container_name: ${SANDBOX_NAME:-agro}
     volumes:
