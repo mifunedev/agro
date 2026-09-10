@@ -41,18 +41,17 @@ npx @mifune/agro --help
 
 Use `npx @mifune/agro` in place of `agro` in later commands.
 
-**curl** — no Node yet; the bootstrap downloads the prebuilt `agro` artifact from
-the latest GitHub release (nothing is cloned or built on your host) and offers to
-install nvm + Node 22 for you:
+**curl**
 
 ```bash
+# Install AGRO to ~/.local/bin; offers Node.js setup if needed
 curl -fsSL https://agro.mifune.dev/get-agro.sh | bash
+
+# Add AGRO to this shell's PATH
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
 For a download-and-review alternative, see [Installation](docs/installation.md).
-
-It installs to `~/.local/bin/agro`; `AGRO_BIN_DIR` overrides the location, and
-`export PATH="$HOME/.local/bin:$PATH"` puts it on an already-open shell's PATH.
 
 `agro update` upgrades it later. `oh` remains the compatibility alias for the
 same executable — `npm install -g @mifune/openharness` or the `get-oh.sh`
