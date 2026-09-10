@@ -184,17 +184,58 @@ See the [contributing guide](docs/contributing.md) for the full workflow.
 
 </details>
 
-### 6. Slack and scheduled work (optional)
+### 6. Configure messaging (optional)
 
-Configure Slack ([docs/integrations/slack.md](docs/integrations/slack.md),
-[docs/harnesses/hermes.md](docs/harnesses/hermes.md)), then run and verify the
-gateways from inside the sandbox:
+Set up either gateway inside the sandbox. If you use both with Slack, give each
+its own Slack app and configuration.
+
+#### Pi
+
+Create a Slack app and collect its app-level and bot tokens using the
+[Pi Slack setup guide](docs/integrations/slack.md).
 
 ```bash
-gateway pi && gateway hermes
+# Install Pi, then use /login in Pi and exit back to the shell
+agro harness install pi
+pi
+
+# Save Slack tokens using hidden input prompts
+cd /home/sandbox/harness
+agro secret set PI_SLACK_APP_TOKEN
+agro secret set PI_SLACK_BOT_TOKEN
+
+# Start the Pi bridge and check its status
+gateway pi
 gateway status
-tmux attach -r -t client-slack-pi   # read-only view; detach with Ctrl-b d
+
+# View the bridge; detach with Ctrl-b d
+tmux attach -r -t client-slack-pi
 ```
+
+Message the bot in Slack and complete the trust challenge shown in the bridge.
+
+#### Hermes
+
+Use Hermes' own setup wizard for provider login and messaging configuration.
+See the [Hermes gateway guide](docs/harnesses/hermes.md#model-and-gateway).
+
+```bash
+# Install Hermes and configure its provider
+agro harness install hermes
+hermes setup
+
+# Configure messaging, including the separate Slack app and access rules
+hermes gateway setup
+
+# Start the Hermes gateway and check its status
+gateway hermes
+gateway status
+
+# View the gateway; detach with Ctrl-b d
+tmux attach -r -t client-slack-hermes
+```
+
+Send a message through the configured channel and confirm that Hermes replies.
 
 ## 📚 Table of Contents
 
