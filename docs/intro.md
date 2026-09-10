@@ -2,31 +2,38 @@
 title: "Introduction"
 ---
 
-# Open Harness
+# AGRO — Open Harness
 
-Open Harness is your **portable harness** — one repo per sandbox — that wraps your project in an isolated Docker container and versions its state. The repo tracks the agent's identity, skills, crons, and memory in git; the sandbox keeps the agent (Claude Code, Codex, Pi, or another of your choice) off your host machine. The agent owns its workspace, runs against your code, and wakes itself on a schedule via a tiny croner runtime.
+AGRO gives your chosen coding harness a durable workspace and shared control plane, locally or on a remote VM. You own the workspace. Keep tools, project state, schedules, and communication settings together across sessions. Shared procedures, bounded delegation, and evidence checks support reviewable agent work.
 
 ## What is Open Harness?
 
-Open Harness is a single repo that *is* your harness: it boots one Docker container — the sandbox — and wraps your project inside it. You bring the sandbox up with `oh sandbox install docker`, attach to it from your terminal or VS Code, and let your chosen agent work the project over time. Because the harness is a git repo, its whole setup is tracked and versioned — reproducible and portable. There is no per-agent fan-out: one host CLI, `oh`, drives the whole lifecycle, and the croner runtime that ships in the image wakes the agent on a schedule.
+AGRO surrounds Claude Code, Codex, Pi, or another coding harness; it does not replace the harness. `.devcontainer/` defines the Docker runtime. `.agro/` provides shared skills, hooks, task procedures, and checks. This open control plane is not Mifune's proprietary hosted fleet-management platform. See the [open-core boundary](open-core.md).
+
+The recommended path needs no fork or host-side harness checkout. Start from the published image with `agro sandbox install docker`. For an existing project, you can bind a checkout with `--repo`. Version selected project files in git; keep credentials and runtime state outside tracked files.
 
 Key capabilities:
 
-- **One repo, one sandbox.** Your portable harness is one repo; it boots one container. The agent owns its workspace; your machine stays clean — you're not running agents straight on your host.
+- **A durable workspace.** Agents develop inside the sandbox, with tools and state in the persistent home mount.
+- **Separate parallel changes.** Bounded workers use separate git worktrees. Worktrees separate checkouts, not security boundaries; provider capabilities and enforcement differ.
 - **Markdown-defined crons.** `crons/*.md` files declare schedules; an in-container croner runtime fires the bodies as agent prompts so the agent can work autonomously while you focus on other things.
-- **Host dependencies: Docker, Git, and Node.js ≥ 20.** No Python, no pnpm, no agent CLIs, and no toolchain maintenance on your laptop — Node runs the `oh` CLI and nothing else, and `get-oh.sh` installs it for you when it is missing. (See [Prerequisites](/docs/installation#prerequisites).)
+- **Host dependencies: Docker with Compose, Git, and Node.js ≥ 20.** Run coding harnesses and development tools inside the sandbox. See [Prerequisites](installation.md#prerequisites).
 - **Cloudflared previews.** Share sandbox app ports through Cloudflared tunnels; SSH and pack-supplied services remain opt-in Docker Compose overlays.
 - **Multi-agent messaging.** Bridge Slack (and other messengers) to a Pi agent with the [`pi-messenger-bridge`](/docs/integrations/slack) npm package; SSH and pack-supplied services remain opt-in Docker Compose overlays.
 
 ## How it works
 
-The harness uses Docker Compose to build a sandbox image from `.devcontainer/`. Bring it up with `oh sandbox install docker`, attach with `oh shell <name>` (or VS Code), then run `oh tool install herdr` and `herdr` first — nothing installs at boot. Authenticate GitHub and your chosen provider and launch agents from Herdr panes. `oh stop` preserves state; `oh destroy` is the destructive teardown, and it asks before it wipes the volumes. Every one of those verbs runs `.agro/scripts/docker-compose.sh` — see [lifecycle commands](/docs/lifecycle-commands).
+On the **host**, run `agro sandbox install docker`, then `agro shell <name>`. Inside the **sandbox**, run `agro tool install herdr`, then `herdr`. Install and authenticate Claude Code in a Herdr pane. Follow [Quickstart](quickstart.md#first-task-create-and-verify-a-program) to create and verify a small program in a new scratch directory. GitHub setup is optional until you need GitHub repository access.
 
-The primary agent pane at the project root inside Herdr is your **orchestrator** — git, sandbox lifecycle, and most file edits all flow through that organized workspace. When the optional Docker socket is enabled (off by default — see [security-considerations.md](security-considerations.md#3-sandbox-isolation--the-docker-socket-caveat--enforced-with-a-caveat)), the orchestrator can also drive other containers and edit files inside them over that socket, so day-to-day work rarely needs anything else. Drop back to the host shell only when something can't be done from inside the container — typically adding a new bind-mounted volume, which requires a `.devcontainer/docker-compose.yml` change and restart.
+Installable harnesses and tools need explicit commands. Bootstrap can install workspace dependencies. Use [lifecycle commands](lifecycle-commands.md) to inspect or manage the sandbox. `agro update` upgrades the CLI; the legacy `oh update` command instead vendors the project payload.
 
-Stand up a **second sandbox** only when you want isolation — an independent identity, branch, or provider key running on its own. Most users won't need this.
+The root orchestrator manages harness infrastructure and bounded assignments. Application agents develop inside their assigned sandbox workspaces. Use Herdr for interactive work and named tmux sessions for headless gateways and tunnels.
 
-Inside the sandbox, systemd runs `scripts/cron-runtime.ts` as `openharness-cron.service`, which reads `crons/*.md` and fires each body as a prompt to the configured agent on its declared schedule.
+Leave the host Docker socket disabled unless its authority is required: socket access is effectively host root. Sudo access and permission-skipping agent aliases also require trust. Read [security considerations](security-considerations.md) before granting credentials or mounts.
+
+Local and remote operation both require a running host and container for live processes. Home-mount files persist across stops; running agents and servers do not. Before destructive teardown with `agro destroy`, back up workspace data and credentials. See [Quickstart cleanup](quickstart.md#stop-or-destroy) for host commands and the host-bind exception.
+
+Inside the sandbox, systemd runs `.agro/scripts/cron-runtime.ts` as `openharness-cron.service`, which reads `crons/*.md` and fires each body as a prompt to the configured agent on its declared schedule.
 
 ```mermaid
 flowchart TB
@@ -37,12 +44,12 @@ flowchart TB
 
     subgraph sandbox["Sandbox container — default workspace"]
         Herdr["<b>Herdr</b><br/>interactive workspaces · panes"]
-        Orch{{"<b>Orchestrator pane</b><br/>chosen agent @ project root<br/>git · lifecycle · file edits"}}
+        Orch{{"<b>Orchestrator pane</b><br/>chosen agent @ project root<br/>infrastructure · bounded assignments"}}
         Tmux["managed tmux services<br/>client-slack-pi · gateways · detached cron fires"]
         Sock(["docker.sock<br/><i>opt-in</i>"])
     end
 
-    Sb2["Second sandbox<br/><i>only if you need isolation</i>"]
+    Docker["Host Docker daemon<br/><i>host-root-equivalent authority</i>"]
 
     You ==>|attach · install · run herdr| Herdr
     Herdr --> Orch
@@ -52,15 +59,15 @@ flowchart TB
     Orch <-->|API| LLM
     Tmux <-->|API| LLM
     Orch -.->|docker socket · opt-in| Sock
-    Sock -.->|provisions| Sb2
+    Sock -.->|controls| Docker
 ```
 
 ## How to read these docs
 
 If you are new, follow this order:
 
-1. [Installation](/docs/installation) — install Docker, Git, and the `oh` CLI.
-2. [Quickstart](/docs/quickstart) — go from zero to a running sandbox in under five minutes.
+1. [Installation](installation.md) — install Docker, Git, Node, and the `agro` CLI.
+2. [Quickstart](quickstart.md) — create the sandbox and complete a first task with observable output.
 
 If you already have a sandbox running, jump directly to the page you need.
 

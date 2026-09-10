@@ -1,32 +1,29 @@
 # Herdr
 
-[Herdr](https://herdr.dev/) is Open Harness's primary interactive workspace. It is not in the image. It enters the sandbox only through `oh tool install herdr`.
+[Herdr](https://herdr.dev/) is Open Harness's primary interactive workspace. It is not in the image. Install it explicitly with `agro tool install herdr`.
 
 ## Start here
 
-A fresh sandbox has no `herdr`. After entering the sandbox, install it, then run it:
+A fresh sandbox requires Herdr installation.
+
+**Host — enter the running sandbox:**
 
 ```bash
-# host
-oh shell
+agro shell <name>
+```
 
-# first commands inside the sandbox
-oh tool install herdr
+**Sandbox — install and open Herdr:**
+
+```bash
+agro tool install herdr
 herdr
 ```
 
-The install lands in `~/.local/bin` inside the persistent home volume, so later
-boots find `herdr` on PATH immediately. `oh destroy` removes the volume and the
-install with it.
+The install lands in `~/.local/bin` inside the persistent home mount. Later boots retain the install when the mount remains.
 
-Bare Herdr works before GitHub or provider authentication. It creates or reattaches a workspace for the current repository. Complete GitHub setup, provider authentication, agent sessions, tests, development servers, and reviews from Herdr panes so interactive work stays together.
+Bare Herdr works before GitHub or provider authentication. It creates or reattaches a workspace for the current repository. In a sandbox Herdr pane, follow [Quickstart's Claude Code setup](../quickstart.md#set-up-claude-code-inside-herdr), then complete the [first task](../quickstart.md#first-task-create-and-verify-a-program).
 
-```bash
-# inside the initial Herdr pane
-gh auth login && gh auth setup-git
-claude auth login                 # or configure codex / pi
-claude                            # launch agents from Herdr panes
-```
+Authenticate GitHub only before GitHub repository work. Follow the [manual GitHub login prerequisite](../quickstart.md#authenticate-github-before-any-repository-work); provider authentication does not grant GitHub access. Keep agent sessions, tests, development servers, and reviews in Herdr panes.
 
 Agent detection works without extra hooks. Optional integrations provide richer status and session restore, but modify provider configuration and are never installed automatically:
 
@@ -50,9 +47,13 @@ herdr integration status
 
 Both persist in the single `/home/sandbox` mount.
 
-`oh stop` and normal rebuilds preserve metadata and layout in these volumes, but stopped containers do not preserve running agent, test, or server processes. `oh destroy` runs Compose with `-v` and removes the volumes too.
+Run lifecycle commands on the host. `agro stop` keeps the home mount and its saved metadata and layout. Container stops and recreation end running agents, tests, and servers; restart those processes.
+
+Back up before `agro destroy`: the command deletes named volumes, including Herdr state and installs. If `storage.homePath` selects a host bind, that directory remains. See [Persistent storage](../installation.md#persistent-storage).
 
 ## Troubleshooting
+
+Run inside the sandbox:
 
 ```bash
 herdr --version
@@ -63,6 +64,8 @@ herdr server stop              # end a broken Herdr server
 herdr --no-session             # run Herdr without its server/client session
 ```
 
-Herdr is pinned in the tool catalog (`.agro/cli/src/lib/tools/catalog.ts`) and provisioned into `~/.local/bin/herdr` at boot from a checksum-verified binary. Upgrade it by bumping that pin and running `oh tool install herdr`, not by self-updating the binary in place.
+The tool catalog (`.agro/cli/src/lib/tools/catalog.ts`) pins Herdr's checksum-verified binary. `agro tool install herdr` installs it explicitly into `~/.local/bin/herdr`, not at boot. If the existing binary passes its presence check, the command reports `already installed` and skips. Repeating installation is not an upgrade procedure.
+
+For upgrade instructions, consult the [upstream Herdr documentation](https://herdr.dev/docs/quick-start/) for your installed version. Do not assume that changing the catalog pin replaces an existing install.
 
 See the upstream [quick start](https://herdr.dev/docs/quick-start/), [agents guide](https://herdr.dev/docs/agents/), and [configuration reference](https://herdr.dev/docs/configuration/).

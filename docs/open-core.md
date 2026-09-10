@@ -4,16 +4,14 @@ title: "Open-core boundary"
 
 # Open-core boundary
 
-Open Harness ships under [Apache-2.0](../LICENSE). Mifune's hosted control
-plane is separate and proprietary. This page states that split explicitly so
-an evaluator does not have to infer it from the code.
+AGRO (Open Harness) ships under [Apache-2.0](../LICENSE). Its shared `.agro/` control plane is part of the open runtime. Mifune's hosted provisioning and fleet-management platform is separate and proprietary.
 
 ## The split
 
 | Apache-2.0 | Proprietary |
 |---|---|
-| The runtime | The Mifune Console |
-| The `oh` CLI and public SDKs | Provisioning and fleet-management control plane |
+| The runtime and shared `.agro/` control plane | The Mifune Console |
+| The `agro` CLI, legacy `oh` entry point, and public SDKs | Hosted provisioning and fleet management |
 | Container definitions and public deployment integrations | Billing, enterprise policy, RBAC, hosted operations |
 | The harness spec and interop formats | — |
 
@@ -23,9 +21,9 @@ the runtime.
 
 ## Why Apache-2.0 rather than MIT
 
-Open Harness's documented adoption model is clone-and-own — companies fork
-the repo into private infrastructure and extend it. MIT's bare copyright
-grant is sufficient for that but leaves three gaps Apache-2.0 closes:
+The recommended adoption path is sandbox-first: install the CLI, create a sandbox, and work inside it. No fork or host-side harness checkout is required. Operators can also modify, fork, and use the runtime commercially.
+
+Compared with MIT's copyright grant, Apache-2.0 adds three explicit terms:
 
 - an **explicit patent license** from every contributor for claims their
   contribution infringes,
@@ -33,8 +31,7 @@ grant is sufficient for that but leaves three gaps Apache-2.0 closes:
 - an **explicit withholding of trademark rights** ([§6](../LICENSE)) — a
   fork may run and sell the software but may not present itself as *Mifune*.
 
-The trademark point is load-bearing precisely because clone-and-own is
-encouraged, not merely tolerated.
+These terms still matter when an operator distributes a modified runtime. The sandbox-first setup path does not change the license rights or trademark restrictions.
 
 ## Why not the alternatives
 

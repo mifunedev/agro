@@ -4,11 +4,11 @@ title: "Installation"
 
 # Installation
 
-Open Harness is a portable harness that boots an isolated Docker sandbox. The `agro` CLI is the only front door: it creates a sandbox (`agro sandbox install docker`) and drives the rest of the lifecycle; `oh update` equips a checkout with the control plane during the compatibility window. Two shapes exist — a sandbox on its own, running the published image, or a sandbox with a checkout bind-mounted into it (`--repo`) — and both use the same commands. See [lifecycle commands](lifecycle-commands.md) for the verb reference.
+AGRO gives your chosen coding harness a durable Docker workspace and shared control plane. The `agro` CLI creates the sandbox and drives its lifecycle. Run the published image without a checkout, or bind an existing checkout with `--repo`. See [lifecycle commands](lifecycle-commands.md) for the verb reference.
 
-Installing this harness never means cloning it onto your host. There is no fork step, no host-side source checkout, and no managed clone directory. You install the CLI, create a sandbox, and work inside it.
+The recommended installation does not require cloning the harness onto your host. There is no fork step, no host-side source checkout, and no managed clone directory. You install the CLI, create a sandbox, and work inside it.
 
-Every `agro` verb is also available as `oh <verb>`: `oh` is the compatibility alias for the same executable, and the [AGRO compatibility contract](agro-compatibility.md) states how long it stays. This page writes `agro`.
+`oh` runs the same bundle under the legacy name, with one command exception: `agro update` upgrades the CLI; `oh update` vendors project payloads. This page uses `agro` for lifecycle commands.
 
 The CLI writes only what you ask it to: a registry entry under `~/.agro/sandboxes/<name>/`, and — when you run `oh update` — `.agro/` and `crons/` inside a checkout. It writes no `AGENTS.md`, no provider configuration, and no `.gitignore` line beyond the `.env` line `agro secret set` adds inside a git checkout. Those files are yours.
 
@@ -20,7 +20,9 @@ The CLI writes only what you ask it to: a registry entry under `~/.agro/sandboxe
 | git | Cloning a repo, and `oh update --from-remote` | [git-scm.com](https://git-scm.com/) |
 | Node.js ≥ 20 (22 recommended) | Running the `agro` CLI itself | [nodejs.org](https://nodejs.org/) — or let [`get-agro.sh`](#get-the-cli-agro) install nvm + Node 22 for you |
 
-That is the entire host requirement. Node runs `agro` and nothing else: pnpm, Python, and every AI CLI live inside the sandbox.
+These are the host software prerequisites. Install and authenticate coding harnesses inside the sandbox. The [Quickstart](quickstart.md) uses an Anthropic account with Claude Code access; provider usage can incur charges. Installation and provider access need network connectivity.
+
+Before setup, review [security considerations](security-considerations.md). Leave the host Docker socket off for the first task: socket access is effectively host root. Agents can modify mounted files. Worktrees are separate checkouts, not security boundaries.
 
 ## Get the CLI: `agro`
 
@@ -60,7 +62,7 @@ Upgrade the installed CLI later with `agro update`; it upgrades the running exec
 
 ### Compatibility entry point (`oh`)
 
-`oh` remains installable for the whole compatibility window and runs the same bundle as `agro`. Get it from npm as [`@mifune/openharness`](https://www.npmjs.com/package/@mifune/openharness) — a shim that contains no CLI code and pins the exact `@mifune/agro` version it delegates to:
+`oh` runs the same bundle as `agro` under the legacy name. Get it from npm as [`@mifune/openharness`](https://www.npmjs.com/package/@mifune/openharness) — a shim that contains no CLI code and pins the exact `@mifune/agro` version it delegates to:
 
 ```bash
 npm install -g @mifune/openharness   # puts `oh` on your PATH
@@ -111,7 +113,7 @@ agro migrate --home           # ~/.oh/sandboxes -> ~/.agro/sandboxes
 
 `agro sandbox install docker` materialises the compose files and the wrapper into the entry, then runs `.agro/scripts/docker-compose.sh up -d`, which resolves the compose overlays your `agro.json` selects. Running `docker compose -f .devcontainer/docker-compose.yml up -d --build` by hand skips that resolution and applies **no** overlays.
 
-With `--repo` and `image.mode` set to `build`, a cold Docker cache takes around ten minutes; subsequent starts are a few seconds. The default is to pull the published release image instead — see [`agro sandbox install docker`](deployment-prebuilt-image.md) for the image-mode recipe and the `--image` / `--no-build` flags.
+With `--repo` and `image.mode` set to `build`, Docker builds from the checkout. Build duration depends on the host, network, and cache. Without `--repo`, the default is to pull the published release image. See [`agro sandbox install docker`](deployment-prebuilt-image.md) for the image-mode recipe and the `--image` / `--no-build` flags.
 
 Check the sandbox health before attaching:
 
@@ -132,27 +134,41 @@ Omit the name when exactly one sandbox is registered, or when you are standing i
 
 ### GitHub authentication and repository work
 
-Creating the sandbox needs no GitHub account, and local sandbox use stays available without one. Pushing, creating a repository, and opening a pull request need one. Complete the GitHub-login prerequisite inside the sandbox first — `gh auth login`, `gh auth setup-git`, `gh auth status`, then confirm the account — and only then hand the workspace to a coding agent. The five steps and the two optional agent prompts (private versioning; AGRO contribution) are in [Quickstart → Authenticate GitHub before any repository work](./quickstart.md#authenticate-github-before-any-repository-work); command-level detail and recovery are in [GitHub auth](./integrations/github.md), and the contribution workflow is in [Contributing](./contributing.md).
+Creating the sandbox needs no GitHub account, and local sandbox use stays available without one. Pushing, creating a repository, and opening a pull request need one. Before GitHub repository work, complete the manual login inside the sandbox: run `gh auth login`, `gh auth setup-git`, and `gh auth status`, then confirm the account. The first scratch task needs no GitHub login. The five steps and the two optional agent prompts (private versioning; AGRO contribution) are in [Quickstart → Authenticate GitHub before any repository work](./quickstart.md#authenticate-github-before-any-repository-work); command-level detail and recovery are in [GitHub auth](./integrations/github.md), and the contribution workflow is in [Contributing](./contributing.md).
 
-`agro config repo` (and `oh config repo`) creates a repository and re-points `origin` for the retired clone-and-own recipe. It stays supported through the [AGRO compatibility](./agro-compatibility.md) window and is not the canonical onboarding path.
+`agro config repo` (and `oh config repo`) creates a repository and re-points `origin` for the retired clone-and-own recipe. It is not the canonical onboarding path. See [AGRO compatibility](./agro-compatibility.md) for legacy behavior.
 
 ## Equip an existing repo
 
 A sandbox created above runs the published image and needs no repository of yours. This section is the other shape: it equips **your existing project repo** with the control plane and drives the sandbox, still without keeping a harness checkout on your host. The host requirements are the same [Prerequisites](#prerequisites) — Docker, git, and Node ≥ 20 — and the CLI comes from [Get the CLI](#get-the-cli-agro). The published package is one single self-contained bundle: it carries the compose files and the wrapper a sandbox needs, and `oh update` carries the `.agro/` payload (falling back to an on-demand fetch, no repo clone).
 
-Then, in any project:
+**Host:** Create the sandbox using one of the two forms, then enter it:
 
 ```bash
-agro sandbox install docker              # create a sandbox from the published image
-agro sandbox install docker --repo <dir> # ...or bind a checkout at /home/sandbox/harness
-agro sandbox list                        # name, runtime, status, repo
-agro shell <name>                        # zsh in the running container
-agro tool install herdr                  # install the terminal workspace — nothing installs at boot
-agro harness install pi                  # install an agent CLI the same way
-agro gateway status                      # manage messaging client sessions (pi|hermes)
+agro sandbox install docker
 ```
 
-To equip your own checkout with the control plane, run `oh update` inside it:
+To bind an existing checkout instead:
+
+```bash
+agro sandbox install docker --repo <dir>
+```
+
+```bash
+agro sandbox list
+agro shell <name>
+```
+
+**Sandbox:** Install and open the terminal workspace:
+
+```bash
+agro tool install herdr
+herdr
+```
+
+Continue with the [first task](quickstart.md#set-up-claude-code-inside-herdr) inside a Herdr pane.
+
+**Host, before creating a checkout-backed sandbox:** Run `oh update` inside the checkout to add the control plane:
 
 ```bash
 cd <your-project>
@@ -175,7 +191,7 @@ A checkout bound with `--repo` mounts at `/home/sandbox/harness`. Without `--rep
 
 ## Next step
 
-Once installed, proceed to the [Quickstart](./quickstart.md) to authenticate inside the sandbox and start an agent.
+Proceed to the [Quickstart](./quickstart.md) to authenticate Claude Code and create a small program with independently verifiable output.
 
 ## What's Installed
 
@@ -185,29 +201,23 @@ Project-local Pi packages are loaded from `.pi/settings.json`; the defaults incl
 
 ### Base image
 
-Debian Trixie (slim), the current Debian stable. The `sandbox` user has passwordless sudo.
+The image uses Debian Trixie (slim) through `node:22-trixie-slim`. The `sandbox` user has sudo access; the tracked sudoers rule requires a password. Passwordless sudo, if enabled locally, removes that password gate. The entrypoint sets the sandbox password; replace the weak default before network exposure. Shell aliases also skip agent permission prompts. Review [security considerations](security-considerations.md) before granting access.
 
-Docker's apt repository tracks the `trixie` suite, and it is now the only third-party apt source in the image. cloudflared used to force a `bookworm` suite here because Cloudflare publishes no Trixie suite (`pkg.cloudflare.com/cloudflared/dists/trixie` returns HTTP 404); moving it to a pinned, checksum-verified binary in the tool catalog removed that exception.
+Docker's apt repository tracks the `trixie` suite. The image also uses GitHub's apt repository for `gh`. cloudflared used to force a `bookworm` suite here because Cloudflare publishes no Trixie suite (`pkg.cloudflare.com/cloudflared/dists/trixie` returns HTTP 404); moving it to a pinned, checksum-verified binary in the tool catalog removed that exception.
 
 ### AI agent CLIs
 
-No agent CLI is baked into the image, and nothing installs one at boot. A
-harness enters the sandbox only when you run `agro harness install <id>`, which
-installs into `~/.local` — inside the home mount — as the `sandbox` user. That
-placement is what makes an in-place upgrade possible: a copy in a root-owned
-system path is unwritable from a running sandbox. Consequences worth knowing:
+Coding harnesses are not preinstalled in a fresh sandbox. Run `agro harness install <id>` to install into the home mount as the `sandbox` user. Bootstrap can run `pnpm install` for workspace dependencies; that does not install a coding harness. Installation behavior:
 
 - A **fresh sandbox has no agent CLI and no Herdr**. `agro shell` lands you in a
   plain shell, and `tmux` is the fallback multiplexer until you run
   `agro tool install herdr`.
 - Every install needs network. Run the verb when you have a link.
-- An existing install is never replaced. The verb reports `already installed`
-  and exits 0.
-- Every download is pinned and `sha256sum`-verified before it is installed.
+- If an existing binary passes its presence check, the verb reports `already installed` and exits 0. Repeating the command does not guarantee an upgrade.
+- Installation methods differ by catalog entry. npm-installed harnesses do not share the pinned-binary checksum policy used by Herdr.
 - npm's cache lives in the home mount at `~/.npm` and grows across upgrades.
   `npm cache clean --force` reclaims it.
-- The install persists because the home volume persists. `agro destroy` removes
-  the volume, and every install with it.
+- Installs persist in the home mount. `agro destroy` deletes named volumes and their installs, but leaves host bind-mounted directories.
 
 | Tool | Command | Source | Install |
 |------|---------|--------|--------|
@@ -242,7 +252,7 @@ recreate.
 | Tool | Version |
 |------|---------|
 | Node.js | 22.x |
-| pnpm | latest (via corepack) |
+| pnpm | 10.33.0 (via corepack) |
 | Bun | latest |
 | uv | latest (Python package manager) |
 
@@ -251,16 +261,15 @@ recreate.
 `agro tool list` reports which of these are present, and `agro tool status <name>`
 adds a version where the tool has a verified version flag. Herdr and cloudflared
 are `kind: "installable"` — `agro tool install <name>` puts a pinned,
-checksum-verified binary into `~/.local/bin`, and upgrades it in place. The rest
-are baked into the image, so there is nothing to install.
+checksum-verified binary into `~/.local/bin`. An existing binary that passes its presence check makes the install command skip. The image already includes the other tools in this table.
 
 | Tool | Purpose |
 |------|---------|
 | Herdr (`herdr`) | Multi-agent terminal workspace; run `agro tool install herdr`, after which state and binary both persist in the home mount |
-| Docker CLI + Compose | Container management from inside the sandbox (host docker socket bind-mounted by the base compose) |
+| Docker CLI + Compose | Container management; host Docker socket access requires an explicit opt-in overlay |
 | GitHub CLI (`gh`) | PRs, issues, releases from the terminal |
 | cloudflared | Cloudflare Tunnel client, for exposing a sandbox port (see the `/cloudflared` skill); run `agro tool install cloudflared` |
-| tmux | Detachable terminal sessions for long-running agents |
+| tmux | Named sessions for gateways, tunnels, and detached cron fires; use Herdr for interactive agents |
 | croner | Markdown-frontmatter cron scheduler for autonomous agent tasks |
 
 ### Utilities
@@ -306,8 +315,9 @@ Leave `storage.homePath` unset to keep the Docker-managed volume. Use a
 **dedicated, empty** directory — the sandbox takes ownership of everything in
 it, so never point it at your own host `$HOME`.
 
-The repository checkout is bind-mounted at `/home/sandbox/harness`, nested
-inside that mount. Its location is fixed, not configurable.
+With `--repo`, the checkout is bind-mounted at `/home/sandbox/harness`, nested inside the home mount. Without `--repo`, the image seeds that workspace inside the home mount. The workspace path is fixed.
+
+Saved files and Herdr metadata persist across container recreation when the mount remains. Running agents, tests, and servers do not; restart those processes. Back up important data separately.
 
 The image ships its baked home at `/opt/home-seed`. On every boot the entrypoint
 copies in each **top-level** entry the mount does not already have, and never
@@ -360,4 +370,4 @@ docker run --rm -v <sandbox-name>_workspace:/to -v /srv/openharness-home:/from \
 Skipping this loses every agent login and the SSH keys; nothing else breaks, and
 you simply sign in again.
 
-Downstream harness packs and Pi extensions can introduce additional volumes or bind-mount overlays by adding paths to `composeOverrides[]` in the tracked `agro.json`. That list is the one place overlay paths live, and only `oh` applies it: VS Code "Reopen in Container" reads `.devcontainer/docker-compose.yml` alone and applies [no overlays at all](lifecycle-commands.md#vs-code-reopen-in-container-applies-no-overlays).
+Downstream harness packs and Pi extensions can introduce additional volumes or bind-mount overlays by adding paths to `composeOverrides[]` in the tracked `agro.json`. That list is the one place overlay paths live, and the AGRO lifecycle wrapper applies it: VS Code "Reopen in Container" reads `.devcontainer/docker-compose.yml` alone and applies [no overlays at all](lifecycle-commands.md#vs-code-reopen-in-container-applies-no-overlays).

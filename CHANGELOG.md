@@ -10,6 +10,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 
+- Clarify AGRO's workspace mission and guide newcomers through a safe first task with consistent setup and trust guidance. ([#1036](https://github.com/mifunedev/agro/issues/1036))
+
 - Align package and display names with AGRO, correct sandbox setup guidance, and remove the stale root sandbox name. ([#1032](https://github.com/mifunedev/agro/issues/1032))
 - Publish only `@mifune/agro` on the automatic release path; keep the `@mifune/openharness` shim source and already-published versions without a new shim publish, wait, or deprecate step. ([#939](https://github.com/mifunedev/agro/issues/939))
 

@@ -9,22 +9,19 @@ live in [`mifunedev/agro-web`](https://github.com/mifunedev/agro-web).
 
 ## Start here
 
-Open Harness provides the sandbox; you choose the harness — a Docker workspace you
-own, where `agro sandbox install docker` boots one long-lived container and the coding agent
-of your choice (Claude Code, Codex, Pi, Hermes, and more) works on its own branch and
-identity, running identically on your laptop or an unattended, lights-out remote VM.
+AGRO gives your chosen coding harness a durable workspace and shared control plane, locally or on a remote VM. You own the workspace. Shared procedures, bounded delegation, and evidence checks support development across coding harnesses; provider capabilities and enforcement differ.
 
-**Attach in 3 steps (VS Code):**
+**Start with the terminal and Herdr:**
 
-1. `oh sandbox install docker` — write the registry entry and boot the container.
-2. VS Code → Command Palette (Ctrl/Cmd+Shift+P) → "Dev Containers: Attach to Running
-   Container" → select your sandbox name from `agro sandbox list`. Ports auto-forward while attached.
-3. Open a terminal and run `oh tool install herdr`, then `herdr`. Nothing installs at boot, so install each agent the same way — `oh harness install claude-code`, `codex`, `pi`, or `hermes` — then launch it from a Herdr pane.
+1. **Host:** Install the CLI with `npm install -g @mifune/agro`. Host prerequisites are Docker with Compose, Git, and Node.js ≥ 20.
+2. **Host:** Run `agro sandbox install docker`. Leave SSH and the host Docker socket disabled for the first task.
+3. **Host:** Enter with `agro shell <name>`.
+4. **Sandbox:** Install Herdr with `agro tool install herdr`, then open it with `herdr`.
+5. **Sandbox, Herdr pane:** Follow [Quickstart](quickstart.md#set-up-claude-code-inside-herdr) to install and authenticate Claude Code, then create and verify `hello.mjs` in a new scratch directory.
 
-Full terminal, VS Code, and Remote-SSH options: see [Connecting to the sandbox](connecting.md).
+The first task needs provider access, not GitHub credentials. Read the [trust warnings](quickstart.md#before-you-start) before setup. Bootstrap can install workspace dependencies; installable harnesses and tools require explicit commands.
 
-[Hermes](harnesses/hermes.md) — Nous Research's self-improving agent CLI — installs
-like every other harness: run `oh harness install hermes`, then `hermes setup`.
+For optional VS Code and Remote-SSH access, see [Connecting to the sandbox](connecting.md).
 
 ## How the primitive pack ships
 
@@ -35,7 +32,7 @@ Open Harness vendors the shared skills/hooks primitive pack directly into the `.
 - [Introduction](intro.md)
 - [Quickstart](quickstart.md)
 - [Installation](installation.md)
-- [Creating a sandbox: `oh sandbox install docker`](deployment-prebuilt-image.md)
+- [Creating a sandbox: `agro sandbox install docker`](deployment-prebuilt-image.md)
 - [Connecting to the sandbox](connecting.md)
 - [Contributing](contributing.md)
 - [AGRO compatibility contract](agro-compatibility.md)

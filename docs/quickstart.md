@@ -4,22 +4,26 @@ title: "Quickstart"
 
 # Quickstart
 
-This guide takes you from zero to a running sandbox with an interactive shell in under five minutes. Required host dependencies are [Docker](https://docs.docker.com/get-docker/) with the Compose plugin, [Git](https://git-scm.com/), and [Node.js](https://nodejs.org/) ≥ 20 — the full list with install commands is in [Prerequisites](./installation.md#prerequisites).
+This guide takes you from installation to a small program with observable output inside the sandbox. Use the terminal and Herdr for the primary path. Local hosts and remote VMs are both supported; host requirements are in [Prerequisites](./installation.md#prerequisites).
 
 ## Before you start
 
-Install Docker with the Compose plugin ([docs.docker.com/get-docker](https://docs.docker.com/get-docker/)), Git ([git-scm.com](https://git-scm.com/)), and Node.js ≥ 20 ([nodejs.org](https://nodejs.org/)) — Node runs the `agro` CLI, and `get-agro.sh` below installs it for you if you skip it. Python, pnpm, and the agent CLIs run inside the container.
+**Release status — 2026-09-10:** The latest release, `v0.9.0` (published 2026-09-06), has a known fresh-volume bootstrap failure: [#1019](https://github.com/mifunedev/agro/issues/1019). A corrected release image still needs verification and publication. The [recovery guide](./repair-sandbox-boot-advisory.md) repairs existing seeded volumes, not the published image. The commands below describe the intended path, not independently verified clean-release acceptance.
+
+Install [Docker with the Compose plugin](https://docs.docker.com/get-docker/), [Git](https://git-scm.com/), and [Node.js ≥ 20](https://nodejs.org/) on the host. Python, pnpm, and the agent CLIs run inside the container. You need network access and an Anthropic account with Claude Code access for the recommended login path. Provider usage can incur charges.
+
+Leave the host Docker socket disabled for the first task: socket access is effectively host root. The sandbox user has sudo access. Passwordless sudo, if enabled locally, removes the password gate. Shell aliases skip Claude Code and Codex permission prompts. Review [security considerations](./security-considerations.md) before granting credentials or mounts. Worktrees separate checkouts; they are not security boundaries.
 
 ## Install
 
-`agro` is the only front door. Get it, then create a sandbox. Every `agro` verb
-is also available as `oh <verb>` — `oh` is the compatibility alias for the same
-executable (see [Compatibility entry point](#compatibility-entry-point-oh)).
+Run this section's commands on the **host**. On a remote VM, use a host shell reached through SSH.
+
+`agro` is the lifecycle entry point. `oh` runs the same bundle under the legacy name, but `update` differs: `agro update` upgrades the CLI; `oh update` vendors project files. See [Compatibility entry point](#compatibility-entry-point-oh).
 
 **1. Get `agro`** — from npm if you already have Node ≥ 20:
 
 ```bash
-npm install -g @mifune/agro   # or, zero-install: npx @mifune/agro --help
+npm install -g @mifune/agro
 ```
 
 …or with the curl bootstrap, which downloads the prebuilt `agro` artifact from
@@ -54,7 +58,7 @@ replace. Details: [Installation → Package and PATH rules](./installation.md#pa
 
 ### Compatibility entry point (`oh`)
 
-`oh` keeps working for the whole compatibility window and runs the same bundle.
+`oh` runs the same bundle under the legacy name.
 From npm it is the deprecated shim `@mifune/openharness`
 (`npm install -g @mifune/openharness`, or `npx @mifune/openharness --help`);
 `oh update` remains the command that vendors `.agro/` + `crons/` into a checkout.
@@ -96,8 +100,7 @@ agro sandbox list  # name, runtime, status, repo
 agro shell <name>  # zsh in the container, as the sandbox user
 ```
 
-**3. (Optional) Mount your own project.** Point the sandbox at a checkout and it
-is bind-mounted at `/home/sandbox/harness`:
+**3. (Optional, Host) Mount your own project instead.** Use a host shell, not the sandbox shell opened above. Point the new sandbox at an existing checkout:
 
 ```bash
 cd <your-project>
@@ -109,12 +112,13 @@ agro sandbox install docker --repo "$PWD" --name <your-project>
 `.env`, no `AGENTS.md`, no provider configuration, and no `.gitignore` line
 beyond the `.env` line `agro secret set` adds inside a git checkout. Those files
 are yours to author. With `--repo` and `image.mode` set to `build`, the sandbox
-builds from that checkout's `.devcontainer/Dockerfile` instead of pulling
-(~10 min cold, ~30s warm).
+builds from that checkout's `.devcontainer/Dockerfile` instead of pulling. Build duration depends on the host, network, and cache.
 
 ## Enter the sandbox
 
-**Recommended: attach with VS Code's Dev Containers extension.** Works identically whether the sandbox is on your laptop or on a remote host you're SSH'd into (with VS Code's Remote-SSH extension). One window, your normal editor, integrated terminal, file tree — the most consistent and productive setup across environments.
+**Recommended: run `agro shell <name>` on the host, then open Herdr inside the sandbox.** The shell starts as `sandbox` in `/home/sandbox/harness`.
+
+**Optional editor: attach with VS Code's Dev Containers extension.** Provision with `agro sandbox install docker` first. Do not provision with “Reopen in Container”; that path skips [Compose overlays](./lifecycle-commands.md#vs-code-reopen-in-container-applies-no-overlays). For a remote VM, connect to the host with Remote-SSH before attaching.
 
 1. Install the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
 2. Open the Command Palette with `Ctrl+Shift+P` (`Cmd+Shift+P` on macOS) → **Dev Containers: Attach to Running Container...** → select your sandbox name from `agro sandbox list`.
@@ -126,7 +130,7 @@ builds from that checkout's `.devcontainer/Dockerfile` instead of pulling
 > variable inspection. It is not tied to one agent and is unnecessary for the terminal path.
 > Runbook: [DebugMCP](./integrations/debugmcp.md#confirmed-setup-runbook).
 
-**Terminal fallback** for when VS Code isn't available or you just need a shell:
+**Host — terminal entry and recovery:**
 
 ```bash
 agro shell <name>
@@ -142,8 +146,7 @@ directory: `/home/sandbox/harness`.
 
 ## Install and start Herdr first
 
-A fresh sandbox has no `herdr`. Nothing installs at boot. Your first two commands
-inside a fresh sandbox should be:
+A fresh sandbox requires explicit Herdr installation. Run these commands **inside the sandbox**:
 
 ```bash
 agro tool install herdr
@@ -151,54 +154,49 @@ herdr
 ```
 
 Herdr creates or reattaches the persistent interactive workspace for this repository.
-Complete GitHub and provider authentication, launch agents, and run tests and servers
-inside its panes. Detach with `Ctrl-b q`; run `herdr` again to return while the container
+Complete provider authentication and run interactive work inside its panes. Authenticate GitHub there only before GitHub repository work. Detach with `Ctrl-b q`; run `herdr` again to return while the container
 keeps running. A container stop/rebuild restores metadata and layout, not terminated
-agent or server processes. Raw shells and direct agent commands remain recovery paths. Cron, Slack, and gateway infrastructure
-continue to run independently under tmux.
+agent or server processes. Raw shells and direct agent commands remain recovery paths. systemd supervises the cron runtime. Slack gateways, tunnels, and detached cron fires use named tmux sessions.
 
-## Set up agents inside Herdr
+## Set up Claude Code inside Herdr
 
-No agent CLI and no tool is baked into the image, and nothing installs one at
-boot. Install what you need through the one door:
+Run in a **sandbox Herdr pane**:
 
 ```bash
-agro harness install claude-code   # or codex, pi, opencode, hermes, grok-build, muse-code
-agro tool install cloudflared      # or herdr, agent-browser, tailscale
+agro harness install claude-code
+claude auth login
+claude auth status
 ```
 
-Each install lands in `~/.local` inside the persistent home volume, not in the
-image, so `agro harness install <id>` also upgrades in place without a rebuild. An
-install needs network access. T3 Code is on demand: it has no install, and the
-`/t3` skill (or direct `npx`) fetches it at each run. Authenticate at least one
-harness before use.
+Complete the displayed OAuth instructions in your browser. On a remote sandbox, follow the URL and any code-transfer instructions the CLI displays. Continue only after the status command confirms authentication. See [Claude Code authentication](./harnesses/claude-code.md#authentication) for details.
 
-> **Simplest cross-provider login — device mode via `/login`.** The most straightforward path
-> that works the same across most harnesses: launch the agent in **interactive mode**, run
-> **`/login`**, and choose **device mode** (device-auth). You get a short code + a URL to open
-> in a browser on *any* device — no local browser on the host required, so it works cleanly on
-> a **headless or remote sandbox** (e.g. a cloud VM you SSH into). Browser-redirect OAuth
-> assumes a local browser and often fails there; device mode doesn't. The per-harness commands
-> below are equivalents for when you prefer a one-liner — several expose an explicit
-> `--device-auth` flag (e.g. `codex login --device-auth`, `grok login --device-auth`).
+Coding harnesses and installable tools require explicit installation. The image already includes runtimes and utilities such as Node, Git, and `gh`. Bootstrap can run `pnpm install` for workspace dependencies. Existing harness or tool installations can report `already installed` and skip; repeating the command is not an upgrade guarantee.
 
-- **[Claude Code](./harnesses/claude-code.md)**: `claude auth login` (or `/login` in an interactive session), then `claude auth status` to verify
-- **[Codex](./harnesses/codex.md)**: `codex login --device-auth` (device mode; or `/login` in-session)
-- **[OpenCode](./harnesses/opencode.md)**: `agro harness install opencode`, then run `opencode auth login`
-- **[Pi](./harnesses/pi.md)**: configure provider keys via environment variables
-- **[Hermes](./harnesses/hermes.md)**: `agro harness install hermes`, then run `hermes setup`
-- **[Muse Code](./harnesses/muse-code.md)**: `agro harness install muse-code`, verify `muse --version`, then run `muse login`
-- **[Grok Build](./harnesses/grok-build.md)**: `agro harness install grok-build`, verify `grok --version`, then run `grok login --device-auth` (headless/remote) or `grok login`
-- **[T3 Code](./harnesses/t3code.md)**: authenticate one of Claude / Codex / OpenCode, then `/t3` or `npx t3` (browser UI on port 3773)
+## First task: create and verify a program
 
-Claude Code remains the documented default. See
-[the harnesses overview](./harnesses/overview.md) for the full list and
-per-harness setup.
+No GitHub account or repository is needed. In the same **sandbox Herdr pane**, create a unique scratch directory outside the harness checkout:
 
-[Connecting to the Sandbox](/docs/connecting)
+```bash
+TASK_DIR="$(mktemp -d "$HOME/agro-first-task.XXXXXX")" && cd "$TASK_DIR" && pwd && claude
+```
 
-An installed and authenticated harness inside Herdr is already a working
-sandbox. Everything below is optional.
+The chained command starts Claude only after directory creation and entry succeed. Keep the printed absolute directory path. Send this prompt:
+
+> Work only in the current scratch directory. Create one zero-dependency file named `hello.mjs` that prints exactly `Hello from AGRO!` followed by a newline. Run `node hello.mjs`. Report the absolute file path and actual output. Do not install packages, use the network, run git commands, make commits, or change any other directory. Stop after reporting the result.
+
+Open another **sandbox Herdr pane** for independent verification. Replace `<task-directory>` with the absolute path printed above:
+
+```bash
+node "<task-directory>/hello.mjs"
+```
+
+Expected output:
+
+```text
+Hello from AGRO!
+```
+
+The first-task endpoint is the file plus its observed terminal output. Everything below is optional. For another coding harness, use the [harnesses overview](./harnesses/overview.md); authentication methods differ by provider.
 
 ## Authenticate GitHub before any repository work
 
@@ -261,9 +259,7 @@ live in [Contributing](./contributing.md).
 ### `agro config repo` is a compatibility helper
 
 `agro config repo` (and `oh config repo`) creates a repository and re-points
-`origin` for the retired clone-and-own recipe. It stays supported through the
-[AGRO compatibility](./agro-compatibility.md) window and is **not** the
-canonical onboarding path. Prefer the prompts above, which inspect the workspace
+`origin` for the retired clone-and-own recipe. It is **not** the canonical onboarding path. See [AGRO compatibility](./agro-compatibility.md) for legacy behavior. Prefer the prompts above, which inspect the workspace
 before they change anything.
 
 ## Configuration
@@ -281,12 +277,7 @@ Each sandbox keeps its own pair inside its registry entry at
 instead. In an equipped checkout, `.devcontainer/.env` is a symlink to that root
 `.env`.
 
-Both work on **every** path. `agro ...` renders `agro.json` and passes it plus the
-secrets file to compose with `--env-file`; the VS Code "Reopen in Container"
-path loads `.devcontainer/docker-compose.yml` directly, and compose auto-loads
-the `.devcontainer/.env` symlink sitting beside it — so secrets arrive, every
-non-secret falls back to its compose default, and
-[no overlay applies](./lifecycle-commands.md#vs-code-reopen-in-container-applies-no-overlays).
+The AGRO wrapper renders configuration and passes the secrets file to Compose. VS Code “Reopen in Container” reads the base Compose file directly. Compose still loads the adjacent dotenv symlink, but rendered variables use Compose defaults and [no overlay applies](./lifecycle-commands.md#vs-code-reopen-in-container-applies-no-overlays). The entrypoint separately reads project configuration, including Hermes dashboard settings.
 (Before 0.4.0 a
 `harness.yaml` layer sat in front of the dotenv and was readable on the first
 path only, so a key set there silently did nothing under VS Code. It was
@@ -330,92 +321,31 @@ entry:
 `agro.json` carries no install field. Install a harness or a tool with
 `agro harness install <id>` or `agro tool install <id>` instead.
 
-Set one field with `agro config set <field> <value>` and one secret with
-`agro secret set <KEY>`, then apply with
-`agro stop <name> && agro sandbox install docker --name <name>`.
+For a registered sandbox, run configuration commands on the **host** with `--sandbox <name>`. Apply the change from the host with `agro stop <name> && agro sandbox install docker --name <name>`.
 
 For additional services (databases, tunnels, reverse proxies), add overlay
 paths to `composeOverrides[]` in `agro.json` (last wins).
 
-## End-to-end setup walkthrough
+## Optional messaging
 
-The full path from a bare host to a working sandbox. Steps 1–5 are the whole
-required path; everything after them is optional and can wait. Steps 4 onward run
-**inside the sandbox** (`agro shell <name>`).
+Configure only the integration you intend to use. Follow [Slack](./integrations/slack.md) for Pi or [Hermes](./harnesses/hermes.md) for its native gateway. Each guide covers authentication, trust settings, and sandbox-only startup. Neither integration is required for the first task.
 
-1. **Install host prerequisites** — Docker (+ Compose), Git, and Node.js ≥ 20
-   ([details](./installation.md#prerequisites)):
-   ```bash
-   curl -fsSL -o get-agro.sh https://agro.mifune.dev/get-agro.sh   # review it first
-   bash get-agro.sh                                          # installs `agro`, and Node if missing
-   ```
+## Stop or destroy
 
-   To skip the review step: `curl -fsSL https://agro.mifune.dev/get-agro.sh | bash`. `npm install -g @mifune/agro` is the npm equivalent when Node is already present.
-2. **Create the sandbox** — the wizard asks for the name, timezone, git identity,
-   SSH, and the Docker socket, then writes `~/.agro/sandboxes/<name>/`:
-   ```bash
-   agro sandbox install docker
-   ```
-   Add `--repo "$PWD" --name <your-project>` to bind an existing checkout at
-   `/home/sandbox/harness` instead of running the published image.
-3. **Enter the sandbox**:
-   ```bash
-   agro shell <name>   # attach as the sandbox user
-   ```
-4. **Install and start Herdr** — a fresh sandbox has none; all remaining setup runs in its panes:
-   ```bash
-   agro tool install herdr
-   herdr
-   ```
-5. **Install and authenticate one harness** — Claude Code is the documented
-   default ([Claude Code](./harnesses/claude-code.md)):
-   ```bash
-   agro harness install claude-code
-   claude auth login && claude auth status
-   ```
-   That is a working sandbox. Stop here until you need more.
+Run these lifecycle commands on the **host**, not in a Herdr pane.
 
-Optional, in any order:
-
-6. **Authenticate GitHub** before any repository work — the five checks in
-   [Authenticate GitHub before any repository work](#authenticate-github-before-any-repository-work),
-   then either optional prompt.
-7. **Add more harnesses** — `agro harness install codex`
-   ([Codex](./harnesses/codex.md)), `agro harness install pi` ([Pi](./harnesses/pi.md)),
-   `agro harness install hermes && hermes setup` ([Hermes](./harnesses/hermes.md)).
-   The simplest cross-provider method is `/login` → **device mode** inside each
-   agent's interactive session (see [Set up agents inside Herdr](#set-up-agents-inside-herdr));
-   the explicit commands are equivalents.
-   > Optional: DebugMCP (cross-harness debugging over MCP) is available if you attached via
-   > VS Code — see [Enter the sandbox](#enter-the-sandbox) above.
-8. **Configure Slack** for Pi (and Hermes) — create the Slack app, add tokens, set trust
-   ([Slack](./integrations/slack.md); Hermes uses `hermes gateway setup`).
-9. **Run and verify the gateways** (sandbox-only; watch read-only so you can't kill them —
-   [Slack § Run and verify](./integrations/slack.md), [Hermes § Run and verify](./harnesses/hermes.md#run-and-verify-read-only)):
-   ```bash
-   gateway pi && gateway hermes        # start the client-slack-* sessions
-   gateway status                      # both sessions + state
-   tmux attach -r -t client-slack-pi   # read-only view; detach with Ctrl-b d
-   ```
-
-> Shortcut: if `GH_TOKEN` was set at install, the entrypoint already ran `gh auth login`
-> + `gh auth setup-git` and generated/uploaded an SSH key for you. Verify with
-> `gh auth status` before you rely on it.
-
-## Tear down
-
-When you're finished, exit the shell and clean up from the host:
-
-```bash
-agro destroy <name>
-```
-
-This stops the container, removes its volumes, and drops the registry entry, so
-the name becomes free again. To keep auth credentials across rebuilds, stop
-without removing volumes:
+To stop without deleting volumes:
 
 ```bash
 agro stop <name>
 ```
 
-Bring it back later with `agro sandbox install docker --name <name>`.
+Start again with `agro sandbox install docker --name <name>`. Files and saved Herdr metadata remain in the home mount, but stopped agent and server processes need restarting. Volume persistence is not a backup.
+
+**Back up before destructive cleanup.** The next command removes the container, registry entry, and named volumes, including workspace files and provider credentials. Host bind-mounted directories remain. Read the deletion list and confirm the sandbox name only when you intend that loss.
+
+```bash
+agro destroy <name>
+```
+
+See [Persistent storage](./installation.md#persistent-storage) for the named-volume and host-bind distinction.

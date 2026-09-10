@@ -8,10 +8,7 @@ title: "Lifecycle commands"
 source of truth for the verbs; every other document links here rather than
 restating them.
 
-Every `agro <verb>` is also available as `oh <verb>`. `oh` is the compatibility
-alias: the same executable, invoked under its legacy name, for the window the
-[AGRO compatibility contract](agro-compatibility.md) defines. The one verb whose
-meaning depends on the name is `update` — see
+`oh` runs the same CLI bundle under the legacy name. The `update` verb has different meanings under `agro` and `oh` — see
 [`agro update`](#upgrading-the-cli-agro-update) and
 [`oh update`](#equipping-a-checkout-oh-update) below.
 
@@ -46,7 +43,7 @@ sandbox.
 | `agro compose config` | `docker-compose.sh config` — the resolved compose file |
 | `agro update [--dry-run]` | upgrade the installed `agro` executable through the mechanism that installed it — see below |
 | `agro migrate [--check] [--home] [--json]` | move a legacy `.oh/` project or `~/.oh` registry to the AGRO names — see below |
-| `oh update [--from <dir> \| --from-remote [--ref <ref>]] [--dry-run] [--force]` | equip an empty checkout with `.agro/` + `crons/`, and upgrade an equipped one (compatibility window) |
+| `oh update [--from <dir> \| --from-remote [--ref <ref>]] [--dry-run] [--force]` | equip an empty checkout with `.agro/` + `crons/`, and upgrade an equipped one |
 | `agro config show [--sandbox <name>]` · `agro config set <field> <value> [--sandbox <name>]` | read and write `agro.json` |
 | `agro config repo` · `agro config <integration>` | GitHub-remote and integration wizards |
 | `agro secret set <KEY> [--sandbox <name>]` · `agro secret list [--sandbox <name>]` | read and write the gitignored `.env` |
@@ -120,7 +117,7 @@ and versions without changing anything.
 
 ## Equipping a checkout: `oh update`
 
-During the compatibility window, `oh update` is the command that vendors the
+`oh update` is the command that vendors the
 `.agro/` control plane and `crons/` into the current directory. An empty directory
 is equipped from scratch; an equipped one is upgraded. Payload precedence:
 `--from <dir>`, then `--from-remote [--ref <ref>]`, then the CLI's own bundled
@@ -201,11 +198,9 @@ legacy `OH_EXECUTION_TARGET` spelling still applies when the AGRO one is unset.
 `agro sandbox install` changes the sandbox's own Docker configuration, so it stays
 host-only rather than failing halfway.
 
-`agro harness install <id>` and `agro tool install <id>` are the only way a harness
-or a tool enters the sandbox. Nothing installs at boot, so a fresh sandbox has
-no `herdr` until you run `agro tool install herdr`. Each install lands in
-`~/.local` in the persistent home volume; `agro destroy` removes it. See
-[Harnesses Overview](harnesses/overview.md#installing-a-harness).
+Install coding harnesses and installable tools explicitly with `agro harness install <id>` and `agro tool install <id>`. A fresh sandbox needs `agro tool install herdr` before `herdr` is available. The image already includes runtimes and utilities such as Node, Git, and `gh`. Bootstrap can run `pnpm install` for workspace dependencies.
+
+Harness and tool installs use the persistent home mount. If the installed binary passes its presence check, the command reports `already installed` and skips. Repeating the install command does not guarantee an upgrade. `agro destroy` deletes named volumes, not host bind-mounted directories. See [Harnesses Overview](harnesses/overview.md#installing-a-harness).
 
 ## `agro destroy` and its confirmation policy
 
@@ -252,9 +247,7 @@ lists `docker-compose.yml` and nothing else. It never runs
 
 Secrets still reach that container: compose auto-loads the `.devcontainer/.env`
 beside the compose file, and that file is a symlink to the root `.env`.
-Non-secret `agro.json` settings only reach compose when `oh` renders them, so on
-this path each variable falls back to its default in
-`.devcontainer/docker-compose.yml`.
+Non-secret `agro.json` settings reach Compose through the AGRO wrapper, so this direct path uses Compose defaults for rendered variables. The entrypoint separately reads project configuration. For example, `hermesDashboard.enabled` controls a tmux-launched dashboard on container loopback; it does not select a Compose overlay. Do not infer that missing overlays disable that dashboard.
 
 :::danger `storage.homePath` is ignored on this path
 `AGRO_HOME_MOUNT` is one of those rendered-only variables, so *Reopen in

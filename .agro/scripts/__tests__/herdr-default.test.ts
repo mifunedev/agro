@@ -54,12 +54,23 @@ describe("default Herdr integration", () => {
     const harnessOverview = readRepoFile("docs/harnesses/overview.md");
     const zshrc = readRepoFile(".agro/install/.zshrc");
 
-    expect(readme.indexOf("\nherdr\n")).toBeGreaterThan(-1);
-    expect(readme.indexOf("\nherdr\n")).toBeLessThan(readme.indexOf("gh auth login"));
-    expect(quickstart.indexOf("## Start Herdr first")).toBeLessThan(quickstart.indexOf("gh auth login"));
-    expect(agents.indexOf("Start the primary interactive workspace")).toBeLessThan(agents.indexOf("gh auth login"));
-    expect(contributing.indexOf("\nherdr\n")).toBeLessThan(contributing.indexOf("gh auth login"));
-    expect(intro).toContain("run `oh tool install herdr` and `herdr` first");
+    const expectBefore = (text: string, first: string, second: string): void => {
+      const firstIndex = text.indexOf(first);
+      const secondIndex = text.indexOf(second);
+      expect(firstIndex, `missing anchor: ${first}`).toBeGreaterThanOrEqual(0);
+      expect(secondIndex, `missing anchor: ${second}`).toBeGreaterThanOrEqual(0);
+      expect(firstIndex).toBeLessThan(secondIndex);
+    };
+
+    expectBefore(readme, "agro tool install herdr", "\nherdr\n");
+    expectBefore(readme, "\nherdr\n", "gh auth login");
+    expectBefore(quickstart, "## Install and start Herdr first", "agro tool install herdr");
+    expectBefore(quickstart, "agro tool install herdr", "\nherdr\n");
+    expectBefore(quickstart, "\nherdr\n", "gh auth login");
+    expectBefore(agents, "agro tool install herdr", "`herdr`");
+    expectBefore(agents, "`herdr`", "gh auth login");
+    expectBefore(contributing, "\nherdr\n", "gh auth login");
+    expect(intro).toMatch(/`agro\s+tool\s+install\s+herdr`[^`]*`herdr`/);
     expect(harnessOverview).toContain("run `oh tool install herdr`, then run `herdr`");
     expect(zshrc).toContain(".agro/install/banner.sh");
   });
