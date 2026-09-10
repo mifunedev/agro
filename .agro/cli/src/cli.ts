@@ -136,7 +136,7 @@ function printConfigHelp(bin: string = LEGACY_PRODUCT.bin): void {
 
 Usage:
   ${bin} config show [--sandbox <name>]
-  ${bin} config set <field> <value> [--sandbox <name>]
+  ${bin} config set <field> <value> [--sandbox <name>] [--force]
   ${bin} config repo                  Create your own GitHub repo and point origin at it
   ${bin} config <integration>         Run an integration wizard
   ${bin} config <integration> --help
@@ -146,6 +146,10 @@ in the gitignored root .env — write those with \`${bin} secret set <KEY>\`. Ap
 change with \`${bin} stop <name> && ${bin} sandbox install docker --name <name>\`. Field
 reference:
 ${sourceDocsUrl("docs/configuration.md")}
+
+\`${bin} config set storage.homePath <dir>\` refuses the change when the sandbox's named
+volume already exists, because the next start would orphan every file in it. Pass
+--force to change it anyway.
 
 Fields:
 ${configFieldList()}
@@ -486,16 +490,19 @@ export interface ConfigArgs {
   key?: string;
   value?: string;
   sandbox?: string;
+  force?: boolean;
 }
 
 export function parseConfigArgs(input: string[], bin: string = LEGACY_PRODUCT.bin): ParseResult<ConfigArgs> {
   const scoped = extractSandboxFlag(`${bin} config`, input);
   if (!scoped.ok) return scoped;
-  const rest = scoped.args.rest;
+  const forced = scoped.args.rest.includes("--force");
+  const rest = scoped.args.rest.filter((arg) => arg !== "--force");
   const args: ConfigArgs = {
     help: false,
     integrationHelp: false,
     ...(scoped.args.sandbox === undefined ? {} : { sandbox: scoped.args.sandbox }),
+    ...(forced ? { force: true } : {}),
   };
   if (rest.length === 0 || isHelpFlag(rest[0])) {
     return { ok: true, args: { ...args, help: true } };
@@ -1067,7 +1074,10 @@ async function main(argv: string[]): Promise<number> {
         stdout: (s) => process.stdout.write(s),
         stderr: (s) => process.stderr.write(s),
       };
-      const scope = a.sandbox === undefined ? {} : { sandbox: a.sandbox };
+      const scope = {
+        ...(a.sandbox === undefined ? {} : { sandbox: a.sandbox }),
+        ...(a.force === true ? { force: true } : {}),
+      };
       if (a.verb === "show") return await runConfigShow(scope, io);
       if (a.verb === "repo") return await runConfigRepo({}, io);
       return await runConfigSet(a.key as string, a.value as string, scope, io);
