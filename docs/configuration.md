@@ -139,8 +139,8 @@ Recipe: [`agro sandbox install docker`](deployment-prebuilt-image.md).
 
 | Field | Type | Default | Compose variable | What it does |
 | --- | --- | --- | --- | --- |
-| `image.ref` | string | `ghcr.io/mifunedev/agro:latest` | `AGRO_SANDBOX_IMAGE` (legacy alias `OH_SANDBOX_IMAGE`) | Published image reference. Set it per sandbox with `agro config set --sandbox <name> image.ref <ref>`. |
-| `image.mode` | `"build"` \| `"image"` | `build` | — | Whether the lifecycle builds locally or runs `image.ref`. A build happens only when `repo` is also set. Pairs with `agro sandbox install docker --image`. |
+| `image.ref` | string | `ghcr.io/mifunedev/agro:latest` | `AGRO_SANDBOX_IMAGE` (legacy alias `OH_SANDBOX_IMAGE`) | Published image reference. Set it per sandbox with `agro config set --sandbox <name> image.ref <ref>`. `agro sandbox install docker` writes this field when it binds a `--repo` directory that holds no `.devcontainer/Dockerfile`. The sandbox then runs the published image instead of a local build target. A configured value wins, and the install preserves that value. |
+| `image.mode` | `"build"` \| `"image"` | `build` | — | Whether the lifecycle builds locally or runs `image.ref`. A build happens only when the entry carries `repo` and that directory holds `.devcontainer/Dockerfile`. Pairs with `agro sandbox install docker --image`. |
 | `image.pullPolicy` | `"missing"` \| `"always"` \| `"never"` | `missing` | `AGRO_PULL_POLICY` (legacy alias `OH_PULL_POLICY`) | Compose pull policy for `image.ref`. |
 
 ### Cloud
