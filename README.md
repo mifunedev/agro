@@ -186,20 +186,55 @@ See the [contributing guide](docs/contributing.md) for the full workflow.
 
 ### 6. Configure messaging (optional)
 
-Set up either gateway inside the sandbox. If you use both with Slack, give each
-its own Slack app and configuration.
+Run setup inside the sandbox from a Herdr pane. Use a separate Slack app and
+configuration for each gateway. We recommend opening another Herdr pane to
+attach to its tmux session; detach with `Ctrl-b d` to leave the gateway running.
+
+#### Hermes
+
+```bash
+# Install Hermes and configure its provider
+agro harness install hermes
+hermes setup
+
+# Generate the Slack app manifest and print its location
+hermes slack manifest --agent-view --write
+```
+
+Open [Slack Apps](https://api.slack.com/apps), choose **Create New App → From an
+app manifest**, and paste the generated JSON. Review its permissions, then
+install the app to your workspace. Collect the bot token (`xoxb-`) and an
+app-level token (`xapp-`) with `connections:write` scope.
+
+```bash
+# Enter the Slack tokens and configure access rules
+hermes gateway setup
+
+# Start the Hermes gateway and check its status
+gateway hermes
+gateway status
+
+# Attach read-only from a Herdr pane; detach with Ctrl-b d
+tmux attach -r -t client-slack-hermes
+```
+
+Send the bot a message and confirm a reply. See the
+[Hermes Slack setup guide](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/messaging/slack.md)
+and [gateway documentation](docs/harnesses/hermes.md#model-and-gateway).
 
 #### Pi
 
-Create a Slack app and collect its app-level and bot tokens using the
-[Pi Slack setup guide](docs/integrations/slack.md).
+In [Slack Apps](https://api.slack.com/apps), create an app **From an app
+manifest** using [Pi's manifest](.pi/install/slack-manifest.json). It configures
+Socket Mode, events, and admin commands. Review permissions, install the app,
+and collect its own `xapp-` (`connections:write`) and `xoxb-` tokens.
 
 ```bash
 # Install Pi, then use /login in Pi and exit back to the shell
 agro harness install pi
 pi
 
-# Save Slack tokens using hidden input prompts
+# Save Pi's Slack tokens using hidden input prompts
 cd /home/sandbox/harness
 agro secret set PI_SLACK_APP_TOKEN
 agro secret set PI_SLACK_BOT_TOKEN
@@ -208,34 +243,13 @@ agro secret set PI_SLACK_BOT_TOKEN
 gateway pi
 gateway status
 
-# View the bridge; detach with Ctrl-b d
+# Attach read-only from a Herdr pane; detach with Ctrl-b d
 tmux attach -r -t client-slack-pi
 ```
 
-Message the bot in Slack and complete the trust challenge shown in the bridge.
-
-#### Hermes
-
-Use Hermes' own setup wizard for provider login and messaging configuration.
-See the [Hermes gateway guide](docs/harnesses/hermes.md#model-and-gateway).
-
-```bash
-# Install Hermes and configure its provider
-agro harness install hermes
-hermes setup
-
-# Configure messaging, including the separate Slack app and access rules
-hermes gateway setup
-
-# Start the Hermes gateway and check its status
-gateway hermes
-gateway status
-
-# View the gateway; detach with Ctrl-b d
-tmux attach -r -t client-slack-hermes
-```
-
-Send a message through the configured channel and confirm that Hermes replies.
+Message the bot and complete the trust challenge shown in the bridge. See the
+[Pi Slack setup guide](docs/integrations/slack.md) for token locations and access
+configuration.
 
 ## 📚 Table of Contents
 

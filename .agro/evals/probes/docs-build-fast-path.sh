@@ -106,7 +106,7 @@ release_build="$(workflow_build_run "$RELEASE_WORKFLOW")"
 for f in "$README" "$DOCS_INDEX"; do
   grep -Fq 'https://github.com/mifunedev/agro-web' "$f" || failures+=("$(basename "$f") must point to mifunedev/agro-web")
 done
-grep -Fiq 'deepwiki' "$README" || failures+=("README.md must point readers to DeepWiki for generated navigation")
+grep -Fq 'https://agro.mifune.dev' "$README" || failures+=("README.md must point readers to the maintained documentation site")
 grep -Fq 'docs/README.md' "$README" || failures+=("README.md must point readers to docs/README.md")
 
 if git -C "$ROOT" grep -nE 'docusaurus build|pnpm (run )?docs:build|pnpm --dir (\.agro/)?docs build|@openharness/docs' -- \
