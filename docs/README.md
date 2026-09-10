@@ -1,7 +1,8 @@
 # AGRO documentation
 
-Browse the [searchable docs](https://agro.mifune.dev) or use the guides below.
-The documentation site source lives in [`mifunedev/agro-web`](https://github.com/mifunedev/agro-web).
+Start with the guides below for documentation maintained alongside AGRO.
+The [docs website](https://agro.mifune.dev) is a separate presentation, with its
+source in [`mifunedev/agro-web`](https://github.com/mifunedev/agro-web).
 
 ## Start here
 

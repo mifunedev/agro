@@ -18,7 +18,7 @@
 
 Develop on your laptop or a remote VM. Install tools and harnesses on demand, organize parallel changes in separate git worktrees, and use shared skills and evidence checks to guide the work.
 
-Start with the quickstart below. See the [docs](https://agro.mifune.dev) and [Start Here hub](docs/README.md) for more guidance.
+Start with the quickstart below. See the [documentation](docs/README.md) for more guidance.
 
 ## 📦 Quickstart
 
@@ -253,7 +253,7 @@ configuration.
 
 ## 📚 Table of Contents
 
-Explore the [searchable docs](https://agro.mifune.dev) or [full docs index](docs/README.md).
+Browse the [documentation](docs/README.md) or jump to a topic below.
 
 | Topic | Documentation |
 | --- | --- |
@@ -292,4 +292,4 @@ Apache-2.0 §6 grants no permission to use the Mifune or Open Harness names, log
 
 ---
 
-[Read the docs](https://agro.mifune.dev) · [Docs index](docs/README.md) · [Docs site source](https://github.com/mifunedev/agro-web)
+[Documentation](docs/README.md) · [Docs website](https://agro.mifune.dev) · [Docs site source](https://github.com/mifunedev/agro-web)
