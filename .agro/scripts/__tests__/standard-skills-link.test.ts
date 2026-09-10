@@ -61,6 +61,7 @@ describe("standard project skills", () => {
     expect(readlinkSync(path)).toBe("../.agro/skills");
     expect(readFileSync(join(path, "git/SKILL.md"), "utf8")).toBe(readFileSync(join(root, ".agro/skills/git/SKILL.md"), "utf8"));
     expect(existsSync(join(dir, ".pi/skills"))).toBe(false);
+    expect(lstatSync(join(dir, ".codex/skills"), { throwIfNoEntry: false })).toBeUndefined();
     expect(link(dir, "--check").status).toBe(0);
     rmSync(path);
     symlinkSync("../missing", path);
@@ -204,6 +205,71 @@ describe("standard project skills", () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(".pi is a symlink");
     expect(readlinkSync(join(outside, "skills"))).toBe("../.agro/skills");
+  });
+
+  describe.each([".pi", ".codex"])("%s safe retirement", (provider) => {
+    it.each(["../.agro/skills", "../.oh/skills", "../.claude/skills"])("retires %s once and keeps the replacement", (target) => {
+      const dir = fixture();
+      expect(link(dir, "--init").status).toBe(0);
+      symlinkSync(".agro", join(dir, ".oh"));
+      mkdirSync(join(dir, provider), { recursive: true });
+      symlinkSync(target, join(dir, provider, "skills"));
+      writeFileSync(join(dir, provider, "config.toml"), "operator-owned\n");
+      const before = manifest(dir);
+      expect(link(dir, "--check").status).toBe(1);
+      expect(manifest(dir)).toEqual(before);
+      expect(link(dir, "--init").status).toBe(0);
+      expect(lstatSync(join(dir, provider, "skills"), { throwIfNoEntry: false })).toBeUndefined();
+      expect(readlinkSync(join(dir, provider, "skills.migrated"))).toBe(target);
+      expect(existsSync(join(dir, ".agents/skills/git/SKILL.md"))).toBe(true);
+      expect(readFileSync(join(dir, provider, "config.toml"), "utf8")).toBe("operator-owned\n");
+      const after = manifest(dir);
+      expect(link(dir, "--init").status).toBe(0);
+      expect(link(dir, "--check").status).toBe(0);
+      expect(manifest(dir)).toEqual(after);
+    });
+
+    it.each(["directory", "foreign", "broken", "collision", "replacement directory", "symlink parent"])("refuses %s without changing user paths", (kind) => {
+      const dir = fixture();
+      expect(link(dir, "--init").status).toBe(0);
+      mkdirSync(join(dir, "custom/skills"), { recursive: true });
+      writeFileSync(join(dir, "custom/skills/keep"), "operator-owned\n");
+      if (kind === "symlink parent") symlinkSync("custom", join(dir, provider));
+      else mkdirSync(join(dir, provider), { recursive: true });
+      const path = join(dir, provider, "skills");
+      if (kind === "directory") {
+        mkdirSync(path);
+        writeFileSync(join(path, "keep"), "operator-owned\n");
+      } else if (kind !== "symlink parent") {
+        symlinkSync(kind === "foreign" ? "../custom/skills" : kind === "broken" ? "../missing" : "../.agro/skills", path);
+      }
+      if (kind === "collision") symlinkSync("../missing", `${path}.migrated`);
+      if (kind === "replacement directory") {
+        rmSync(join(dir, ".agents/skills"));
+        mkdirSync(join(dir, ".agents/skills"));
+      }
+      const before = manifest(dir);
+      expect(link(dir, "--check").status).toBe(1);
+      expect(manifest(dir)).toEqual(before);
+      expect(link(dir, "--init").status).toBe(1);
+      expect(manifest(dir)).toEqual(before);
+    });
+
+    it.each(["chained", "absolute"])("repairs a %s replacement before retirement", (kind) => {
+      const dir = fixture();
+      expect(link(dir, "--init").status).toBe(0);
+      mkdirSync(join(dir, provider), { recursive: true });
+      symlinkSync("../.agro/skills", join(dir, provider, "skills"));
+      rmSync(join(dir, ".agents/skills"));
+      symlinkSync(kind === "chained" ? `../${provider}/skills` : join(dir, ".agro/skills"), join(dir, ".agents/skills"));
+      const before = manifest(dir);
+      expect(link(dir, "--check").status).toBe(1);
+      expect(manifest(dir)).toEqual(before);
+      expect(link(dir, "--init").status).toBe(0);
+      expect(readlinkSync(join(dir, ".agents/skills"))).toBe("../.agro/skills");
+      expect(existsSync(join(dir, ".agents/skills/git/SKILL.md"))).toBe(true);
+      expect(lstatSync(join(dir, provider, "skills"), { throwIfNoEntry: false })).toBeUndefined();
+    });
   });
 
   it("refuses a real-directory collision without losing user skills", () => {

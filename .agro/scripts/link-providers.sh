@@ -26,12 +26,12 @@ required_execs=(
 provider_links=(
   ".agents/skills|../.agro/skills"
   ".claude/skills|../.agro/skills"
-  ".codex/skills|../.agro/skills"
   ".claude/hooks|../.agro/hooks"
 )
 
 retired_links=(
   ".pi/skills|.agents/skills"
+  ".codex/skills|.agents/skills"
 )
 
 HERMES_LINK=".hermes/skills/openharness"
@@ -88,8 +88,8 @@ fail() {
 print_state() {
   cat >&2 <<EOF
 Vendored skill pack: .agro/skills (expected to exist as tracked files)
-Provider surfaces:   .agents/skills .claude/skills .codex/skills -> ../.agro/skills
-Retired surface:     .pi/skills (moved to .pi/skills.migrated only when it resolves to .agro/skills and .agents/skills independently links to it)
+Provider surfaces:   .agents/skills .claude/skills -> ../.agro/skills
+Retired surfaces:    .pi/skills .codex/skills (moved to <path>.migrated only when each resolves to .agro/skills and .agents/skills independently links to it)
 Remediation: bash .agro/scripts/link-providers.sh --init
 EOF
 }
@@ -384,5 +384,5 @@ fi
 if [ "$hermes_only" = true ]; then
   printf 'Hermes OK: .hermes/skills/openharness -> .agro/skills\n'
 else
-  printf 'Providers OK: .agents/.claude/.codex skills -> .agro/skills (vendored pack present)\n'
+  printf 'Providers OK: .agents/.claude skills -> .agro/skills (vendored pack present)\n'
 fi

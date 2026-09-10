@@ -19,6 +19,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Removed
 
+- Retire `.codex/skills` in favor of `.agents/skills` while preserving legacy links and other Codex configuration ([#1034](https://github.com/mifunedev/agro/issues/1034)).
 - Retire the `.pi/skills` surface only when `.agents/skills` is a direct, independent link that survives the migration, and preserve it otherwise so Pi keeps a skill discovery root. ([#1025](https://github.com/mifunedev/agro/issues/1025))
 
 ### Changed

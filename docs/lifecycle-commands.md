@@ -136,11 +136,21 @@ are yours. It never prompts. It does not upgrade the CLI itself; that is
 
 `agro migrate` moves an installation created under the legacy names to the AGRO
 names. It renames `.oh/` to `.agro/` and `oh.json` to `agro.json` wholesale,
-re-points the four active provider links (`.claude/skills`, `.claude/hooks`,
-`.codex/skills`, `.agents/skills`) from `../.oh/…` to `../.agro/…`, and moves a
-legacy `.pi/skills` link to `.pi/skills.migrated` when it points at a known Open
-Harness pack. Byte-identical legacy copies are retired to `<name>.migrated`
-instead of deleted. `oh migrate` dispatches to the same command.
+and re-points three active provider links from `../.oh/…` to `../.agro/…`:
+`.claude/skills`, `.claude/hooks`, and `.agents/skills`.
+The retired links are `.pi/skills` and `.codex/skills`.
+If a retired link resolves to the Open Harness pack and `.agents/skills` independently links to that pack, migration moves the retired link to `<path>.migrated`.
+Otherwise, migration preserves the retired path. Migration re-points a preserved
+`../.oh/skills` link to `../.agro/skills` so discovery survives the pack rename.
+Custom directories and foreign links remain unchanged. An existing retirement
+marker blocks retirement without overwriting the marker.
+Byte-identical legacy copies move to `<name>.migrated` instead of deletion.
+`oh migrate` dispatches to the same command.
+
+`bash .agro/scripts/link-providers.sh --init` repairs active links before retirement.
+Unlike CLI migration, this script refuses custom retired paths and unresolved collisions.
+Its `--check` mode reports retired links without changing files.
+Fresh clones omit both retired links; `.codex/` and `.pi/` retain provider configuration.
 
 Project mode is the default: it starts at the current directory and walks up to
 the nearest ancestor holding `.oh/`, `.agro/`, `oh.json`, or `agro.json`.

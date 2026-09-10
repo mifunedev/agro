@@ -9,8 +9,8 @@ When asked to list, audit, or reason about Open Harness skills, distinguish the 
 - Agent-specific skill paths are symlinks or runtime links to the same tracked collection:
   - `.agents/skills -> ../.agro/skills`
   - `.claude/skills -> ../.agro/skills`
-  - `.codex/skills -> ../.agro/skills`
   - `.hermes/skills/openharness -> ../../.agro/skills` when Hermes is enabled
+- Codex and Pi discover the pack through `.agents/skills`, not the retired `.codex/skills` or `.pi/skills` paths.
 - Cite `.agro/skills/...` as the neutral source path, and mention agent-specific symlink paths only when relevant to a specific runtime.
 
 ## Hermes runtime skills

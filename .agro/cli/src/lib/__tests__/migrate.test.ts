@@ -350,7 +350,7 @@ describe("relink steps", () => {
     });
   });
 
-  it("project spec retires the Pi link and relinks the four active provider links", () => {
+  it("project spec retires Pi and Codex links and relinks the three active provider links", () => {
     const root = fixture({
       ".oh/skills/a": "x\n",
       ".oh/hooks/h": "x\n",
@@ -361,14 +361,16 @@ describe("relink steps", () => {
       ".pi/skills": { symlink: "../.oh/skills" },
     });
     const plan = planMigration(projectMigrationSpec(root));
-    expect(plan.steps.map((s) => s.kind)).toEqual(["rename", "noop", "retire", "relink", "relink", "relink", "relink"]);
+    expect(plan.steps.map((s) => s.kind)).toEqual(["rename", "noop", "retire", "retire", "relink", "relink", "relink"]);
     const result = applyMigration(plan);
     expect(result.status).toBe("applied");
-    for (const link of [".claude/skills", ".codex/skills", ".agents/skills"]) {
+    for (const link of [".claude/skills", ".agents/skills"]) {
       expect(readlinkSync(join(root, ...link.split("/")))).toBe("../.agro/skills");
     }
     expect(existsSync(join(root, ".pi", "skills"))).toBe(false);
     expect(readlinkSync(join(root, ".pi", "skills.migrated"))).toBe("../.oh/skills");
+    expect(lstatSync(join(root, ".codex/skills"), { throwIfNoEntry: false })).toBeUndefined();
+    expect(readlinkSync(join(root, ".codex/skills.migrated"))).toBe("../.oh/skills");
     expect(readlinkSync(join(root, ".claude", "hooks"))).toBe("../.agro/hooks");
     expect(readFileSync(join(root, ".claude", "skills", "a"), "utf8")).toBe("x\n");
     expect(readdirSync(join(root, ".claude")).sort()).toEqual(["hooks", "skills"]);
@@ -523,6 +525,75 @@ describe("relink steps", () => {
       expect(manifest(root)).toEqual(before);
       expect(discoverable(root)).toEqual(discovery);
     }
+  });
+
+  describe.each([".pi", ".codex"])("%s safe retirement", (provider) => {
+    it.each([".oh", ".agro"])("retires a %s link without changing discovery", (pack) => {
+      const root = fixture({
+        [`${pack}/skills/shared/SKILL.md`]: "shared\n",
+        ".agents/skills": { symlink: `../${pack}/skills` },
+        [`${provider}/skills`]: { symlink: `../${pack}/skills` },
+        [`${provider}/config.toml`]: "operator-owned\n",
+      });
+      const before = manifest(root);
+      const plan = planMigration(projectMigrationSpec(root));
+      expect(manifest(root)).toEqual(before);
+      expect(applyMigration(plan).status).toBe("applied");
+      expect(lstatSync(join(root, provider, "skills"), { throwIfNoEntry: false })).toBeUndefined();
+      expect(readlinkSync(join(root, provider, "skills.migrated"))).toBe(`../${pack}/skills`);
+      expect(readFileSync(join(root, ".agents/skills/shared/SKILL.md"), "utf8")).toBe("shared\n");
+      expect(readFileSync(join(root, provider, "config.toml"), "utf8")).toBe("operator-owned\n");
+      expect(planMigration(projectMigrationSpec(root)).status).toBe("noop");
+    });
+
+    it.each(["directory", "foreign", "broken", "collision", "missing replacement", "chained replacement", "absolute replacement"])("preserves %s", (kind) => {
+      const root = fixture({
+        ".agro/skills/shared/SKILL.md": "shared\n",
+        "custom/skills/local/SKILL.md": "local\n",
+      });
+      mkdirSync(join(root, provider), { recursive: true });
+      const path = join(root, provider, "skills");
+      if (kind === "directory") {
+        mkdirSync(path);
+        writeFileSync(join(path, "keep"), "operator-owned\n");
+      } else {
+        symlinkSync(kind === "foreign" ? "../custom/skills" : kind === "broken" ? "../missing" : "../.agro/skills", path);
+      }
+      if (kind !== "missing replacement") {
+        mkdirSync(join(root, ".agents"));
+        symlinkSync(kind === "chained replacement" ? `../${provider}/skills` : kind === "absolute replacement" ? join(root, ".agro/skills") : "../.agro/skills", join(root, ".agents/skills"));
+      }
+      if (kind === "collision") symlinkSync("../missing", `${path}.migrated`);
+      const before = manifest(root);
+      const plan = planMigration(projectMigrationSpec(root));
+      expect(manifest(root)).toEqual(before);
+      expect(applyMigration(plan).status).toBe(kind === "collision" ? "refused" : "noop");
+      expect(manifest(root)).toEqual(before);
+    });
+
+    it("refuses a symlinked parent outside the root without changing its target", () => {
+      const outside = fixture({ "skills": { symlink: "../.oh/skills" } });
+      const root = fixture({ ".agro/skills/shared/SKILL.md": "shared\n" });
+      symlinkSync(outside, join(root, provider));
+      const before = manifest(outside);
+      expect(() => planMigration(projectMigrationSpec(root))).toThrow(/outside/);
+      expect(manifest(outside)).toEqual(before);
+    });
+
+    it.each(["absent", "foreign", "chained", "absolute"])("keeps legacy discovery with an %s replacement", (kind) => {
+      const root = fixture({
+        ".oh/skills/shared/SKILL.md": "shared\n",
+        [`${provider}/skills`]: { symlink: "../.oh/skills" },
+      });
+      if (kind !== "absent") {
+        mkdirSync(join(root, ".agents"));
+        symlinkSync(kind === "chained" ? `../${provider}/skills` : kind === "absolute" ? join(root, ".oh/skills") : "../custom", join(root, ".agents/skills"));
+      }
+      expect(applyMigration(planMigration(projectMigrationSpec(root))).status).toBe("applied");
+      expect(readlinkSync(join(root, provider, "skills"))).toBe("../.agro/skills");
+      expect(readFileSync(join(root, provider, "skills/shared/SKILL.md"), "utf8")).toBe("shared\n");
+      expect(planMigration(projectMigrationSpec(root)).status).toBe("noop");
+    });
   });
 
   it("refuses a relink whose link was retargeted after planning", () => {

@@ -453,7 +453,6 @@ export function applyMigration(plan: MigrationPlan): MigrationResult {
 export const PROVIDER_LINKS: ReadonlyArray<{ link: string; target: string }> = [
   { link: ".claude/skills", target: "skills" },
   { link: ".claude/hooks", target: "hooks" },
-  { link: ".codex/skills", target: "skills" },
   { link: ".agents/skills", target: "skills" },
 ];
 
@@ -468,6 +467,11 @@ export const RETIRED_PROVIDER_LINKS: ReadonlyArray<{
 }> = [
   {
     link: ".pi/skills",
+    replacement: ".agents/skills",
+    preserve: { from: "../.oh/skills", to: "../.agro/skills" },
+  },
+  {
+    link: ".codex/skills",
     replacement: ".agents/skills",
     preserve: { from: "../.oh/skills", to: "../.agro/skills" },
   },
