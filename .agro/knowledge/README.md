@@ -56,6 +56,7 @@ Schema, frontmatter spec, provenance kinds, and every authoring rule:
 | --- | --- | --- | --- |
 | oh-cli-portable-lifecycle | oh CLI Portable Lifecycle | [cli, oh, agro, lifecycle, standalone, registry, sandbox, remote-fetch, execution-target, update, self-upgrade, npm] | 2026-09-10 |
 | fresh-machine-setup | Fresh-Machine Setup Flow | [setup, onboarding, installation, agro, registry, gateway, ssh, github, slack] | 2026-09-10 |
+| compose-env-boundary | Compose Environment Boundary | [compose, devcontainer, oh-json, cli, entrypoint, boundary, installs, sandbox, registry] | 2026-09-10 |
 | release-versioning | Release Versioning | [release, versioning, semver, calver, github-actions, ghcr, tags, workflow, package-json, agro, npm, repository-dispatch, docs-site] | 2026-09-09 |
 | pattern-wiki-frontmatter-edit-without-reindex | A frontmatter edit without a reindex leaves the generated index stale while the freshness probe stays green | [wiki, knowledge, evals, probes, index, ci] | 2026-09-08 |
 | pattern-evals-tracked-only-scan-misses-uncommitted | A repository scan over git ls-files passes on uncommitted files and fails once they are committed | [evals, testing, git, inventory, ci, false-pass] | 2026-09-08 |
@@ -68,7 +69,6 @@ Schema, frontmatter spec, provenance kinds, and every authoring rule:
 | pattern-delegate-ledger-stale-at-acceptance | A run ledger written at dispatch and not updated at acceptance is itself the duplicate-worker hazard | [delegate, resume, ledger, duplicate-worker, acceptance, evidence] | 2026-09-07 |
 | managed-agents | Scaling Managed Agents: Decoupling the brain from the hands | [agents, meta-harness, sessions, sandbox, resilience, security, scaling, anthropic, model-evolution] | 2026-09-07 |
 | document-ingestion | Local Document Ingestion | [wiki, ingestion, markitdown, documents, provenance, security] | 2026-09-07 |
-| compose-env-boundary | Compose Environment Boundary | [compose, devcontainer, oh-json, cli, entrypoint, boundary, installs, sandbox, registry] | 2026-09-07 |
 | audit-architecture | Audit Architecture | [audit, pr, workflow, safety, observability] | 2026-09-07 |
 | pattern-scripts-sibling-dependency-standalone-copies | A script that gains a sourced sibling breaks every test and probe that copies it alone | [scripts, compose, testing, probes, bundling, registry, boot] | 2026-09-06 |
 | pattern-evals-product-name-literal-pinning | Probes and tests that pin the product name beside a verb break when the executable is renamed or templated | [evals, probes, cli, docs, rename, false-failure] | 2026-09-06 |
