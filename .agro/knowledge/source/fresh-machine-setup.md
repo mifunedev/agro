@@ -4,7 +4,7 @@ slug: fresh-machine-setup
 kind: repo
 tags: [setup, onboarding, installation, agro, registry, gateway, ssh, github, slack]
 created: 2026-07-02
-updated: 2026-09-09
+updated: 2026-09-10
 sources:
   - README.md
   - docs/quickstart.md
@@ -22,7 +22,7 @@ sources:
   - .agro/scripts/hermes-install-smoke.sh
   - .agro/scripts/gateway.sh
   - .agro/scripts/get-agro.sh
-verified_at: c078c91e80647bc0c60cebb7ad1f11d929159d33
+verified_at: 270b2dbd2d9f081622f6edf6eaf00fb1ae69ec5f
 related: [sandbox-dependency-installs, oh-cli-portable-lifecycle]
 confidence: provisional
 ---
@@ -80,8 +80,10 @@ default takes effect once the rename lands. [[agro-web-pipeline]] describes the 
 that serves the installers.
 
 No checkout is required to create a sandbox: `agro sandbox install docker` runs from
-any directory and asks name, timezone, git identity, SSH (with port), and Docker
-socket, or takes every default with `--yes`. The default name is `agro-sbx-<n>`, the
+any directory and asks name, timezone, git identity, SSH (with port), Docker socket,
+and — last — the host path for `/home/sandbox`, whose blank default keeps the
+Docker-managed named volume; `--home-mount <dir>` answers that question ahead of time
+and `--yes` takes every default. The default name is `agro-sbx-<n>`, the
 lowest unused number. The answers land in a registry entry at
 `~/.agro/sandboxes/<name>/agro.json`, beside the compose files and the wrapper the CLI
 regenerates on every lifecycle call — the operator edits only `agro.json`. A registry
@@ -89,7 +91,10 @@ written by an earlier release stays at `~/.oh/sandboxes/<name>/oh.json` and keep
 working under both names; `agro migrate --home` moves it when the operator chooses.
 Without `--repo` the unselected fallback is `ghcr.io/mifunedev/agro:latest`
 (`DEFAULT_SANDBOX_IMAGE`, `lifecycle.ts:104`) and the sandbox seeds its workspace from
-the image's `/opt/agro-seed`, so nothing is cloned and nothing is built. An explicit
+the image's `/opt/agro-seed`, so nothing is cloned and nothing is built. Since #1042 a
+`--repo <dir>` that is not itself a harness checkout reaches the same outcome: build
+mode follows `<dir>/.devcontainer/Dockerfile`, so such a path binds and builds nothing,
+and the install pins `image.ref` to the same published image. An explicit
 `image.ref` and `AGRO_SANDBOX_IMAGE` over `OH_SANDBOX_IMAGE` are unchanged.
 Non-secret configuration is edited with `agro config set --sandbox <name>`; secrets go
 through `agro secret set --sandbox <name>` into the entry's gitignored dotenv. The CLI

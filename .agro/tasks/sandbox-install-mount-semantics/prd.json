@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "project": "Open Harness",
+  "branchName": "bug/1042-sandbox-install-mount-semantics",
+  "description": "Separate the sandbox persistence mount from the checkout mount in `agro sandbox install`. Build mode stops depending on the presence of --repo, and --home-mount becomes the create-time door to storage.homePath. Addresses issue #1042. The --repo to --checkout rename is issue #1043 and is out of scope.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Select build mode from directory contents",
+      "description": "As an operator, I want --repo <dir> to work with any existing directory, so that binding a path does not silently require a harness checkout.",
+      "acceptanceCriteria": [
+        "seedConfig() in .agro/cli/src/commands/sandbox.ts:118-121 sets image.mode to 'build' only when <repo>/.devcontainer/Dockerfile exists",
+        "A --repo path without .devcontainer/Dockerfile resolves to image.mode 'image' and still renders AGRO_REPO_DIR",
+        "An explicit image.mode from an agro.json seed still outranks the inference",
+        "--print-argv for a non-checkout --repo shows no --build",
+        "Existing build-mode coverage at .agro/cli/src/__tests__/sandbox.test.ts:148 stays green",
+        "Compose files, AGRO_REPO_DIR, and AGRO_HOME_MOUNT are unedited",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "isBuildCapable() at sandbox.ts:66, applied at :142. Advisor verified against the real CLI: a checkout --repo writes image.mode build and the build-capable base; a non-checkout --repo writes image.mode image, still writes repo, and pins image.ref (D-3). Commits 051c65ac, 04c85fe1."
+    },
+    {
+      "id": "US-002",
+      "title": "Fail early when build mode is impossible",
+      "description": "As an operator, I want a clear agro error instead of a buildx lstat line, so that I can tell which flag caused the failure.",
+      "acceptanceCriteria": [
+        "When image.mode is 'build' and <repo>/.devcontainer/Dockerfile is absent, runSandboxInstall exits non-zero before the wizard runs",
+        "The message names the flag, the resolved path, and the missing file",
+        "The message is emitted by agro, not by Docker",
+        "A test asserts the exit code and the message content",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Preflight at sandbox.ts:238-251, above runWizard and above entryRoot/mkdirSync. Message names --repo, the resolved path, and the missing .devcontainer/Dockerfile. Skips under --no-build/--image/--image=<ref>, where no build runs; the PRD does not name that case and the advisor accepted it."
+    },
+    {
+      "id": "US-003",
+      "title": "Leave no registry entry on preflight failure",
+      "description": "As an operator, I want a failed install to leave no trace, so that a retry starts clean.",
+      "acceptanceCriteria": [
+        "No directory is created under the registry root when install fails preflight",
+        "agro sandbox list shows no entry after a failed install",
+        "An install that fails after the entry is written keeps its current behaviour",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Preflight ordering pinned by test. R2 moved the preflight above prepareHomeMount so a failed install also creates no --home-mount directory. Verified: no registry root and no home directory after a failed preflight."
+    },
+    {
+      "id": "US-004",
+      "title": "Add the --home-mount install flag",
+      "description": "As an operator, I want to bind /home/sandbox to a host path at create time, so that host tools can read the sandbox's files.",
+      "acceptanceCriteria": [
+        "agro sandbox install docker --home-mount <dir> sets storage.homePath",
+        "The rendered compose env contains AGRO_HOME_MOUNT=<dir> per .agro/cli/src/lib/config-render.ts:40",
+        "--home-mount alone keeps image.mode 'image' and selects the image-only compose base per .agro/cli/src/lib/registry.ts:95",
+        "--home-mount combined with a checkout --repo renders both keys and selects the build base",
+        "A relative path argument is resolved to an absolute path, the directory is created when absent, and a non-empty directory is accepted",
+        "agro sandbox install --help documents the flag at .agro/cli/src/cli.ts:255-271",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Flag parsed at cli.ts:735/744-748, threaded at :1180, help at :255-282. prepareHomeMount() at sandbox.ts:70 resolves absolute, creates when absent, accepts non-empty, rejects a non-directory (D-2). Advisor verified --home-mount alone keeps the image-only base and writes storage.homePath."
+    },
+    {
+      "id": "US-005",
+      "title": "Prompt for the home mount in the wizard",
+      "description": "As an operator running the wizard, I want to be offered the host-path choice, so that I do not have to know the config key exists.",
+      "acceptanceCriteria": [
+        "runWizard asks for the home mount path",
+        "The default is unset, which means the Docker-managed named volume",
+        "Pressing Enter accepts the default and writes no storage.homePath",
+        "An explicit --home-mount value is shown as the prompt default",
+        "--yes skips the prompt",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Wizard prompt at sandbox.ts:196-201, last question. Empty answer writes no storage.homePath key. An explicit --home-mount is shown as the default. --yes skips via the existing interactive guard."
+    },
+    {
+      "id": "US-006",
+      "title": "Guard late storage.homePath changes",
+      "description": "As an operator, I want config set storage.homePath to refuse when it would orphan existing state, so that I do not lose a sandbox's data silently.",
+      "acceptanceCriteria": [
+        "agro config set storage.homePath <dir> exits non-zero when the sandbox's named volume already exists",
+        "The message states that existing state in the volume would be orphaned, and names the volume",
+        "An explicit --force flag proceeds with the change",
+        "The guard does not fire when no named volume exists",
+        "The guard respects --sandbox <name> per .agro/cli/src/cli.ts:455-461",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Guard at config.ts:74-90, reusing destroyConfirmationPhrase() + namedVolumes() exactly as lifecycle.ts:349 composes <project>_<volume>. --force per D-1, parsed at cli.ts:494-505. Fails OPEN when docker is missing or the daemon is unreachable, so the guard cannot become a new failure mode. R3 added a no-op skip so the message never claims a hazard that does not exist. Advisor verified fail-open, no-op, and --force end to end against the built CLI on a host with no Docker daemon. The true-positive refusal is proven only against a stubbed runner. Commits d4d390e0, 270b2dbd."
+    },
+    {
+      "id": "US-007",
+      "title": "Update the documentation and changelog",
+      "description": "As an operator reading the docs, I want the two mounts described separately, so that I pick the right flag the first time.",
+      "acceptanceCriteria": [
+        "docs/installation.md:97-114 states that --repo is a host path, and that build mode applies only when that path is itself a harness checkout",
+        "docs/quickstart.md:88-111 matches",
+        "docs/configuration.md:88 documents --home-mount as the create-time door to storage.homePath, and the orphaned-volume hazard of setting it later",
+        "docs/configuration.md:86 no longer implies repo selects build mode unconditionally",
+        "Prose passes the /ste checker",
+        "A CHANGELOG entry exists per .agro/skills/git/SKILL.md",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Commits 0994ff6c and 7a588c25. Advisor reconciled the prose against the landed implementation: the documented --home-mount semantics (absolute resolution, directory creation, non-empty accepted) match prepareHomeMount(); the documented config-set refusal and --force match the landed guard; docs/configuration.md:142-143 cover D-3 and the corrected build condition. STE: zero new findings against a 96-finding pre-existing baseline in prose this story does not own."
+    },
+    {
+      "id": "US-008",
+      "title": "Confirm the regression floor",
+      "description": "As the advisor, I want the probe suite green and unedited, so that the change is provably contained to the CLI.",
+      "acceptanceCriteria": [
+        "/eval reports no regression",
+        ".agro/evals/probes/oh-devcontainer-restructure.sh, oh-home-mount.sh, and oh-image-only-deploy.sh are unedited and pass",
+        ".agro/cli/src/lib/__tests__/registry.test.ts:192 is unedited and passes",
+        "A lifecycle verb run from inside a bound checkout still resolves the correct sandbox, covering entryRepo() at .agro/cli/src/lib/registry.ts:56,136-137",
+        ".devcontainer/entrypoint.sh is unchanged",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "/eval runner exit 0, 146 probes, no green->red delta. oh-devcontainer-restructure, oh-home-mount, oh-image-only-deploy all PASS and byte-identical to the pre-work sha256 baseline; registry.test.ts byte-identical and 22/22 passing. entryRepo() proven: with two entries registered, an unrelated cwd yields the ambiguity error while either bound directory resolves the entry and reaches Docker. git diff origin/development...HEAD -- .devcontainer/ is empty. 1393 passing (up 13); the 2 migrate-rehearsal failures are pre-existing and were reproduced by the advisor on the clean development checkout."
+    }
+  ]
+}

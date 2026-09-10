@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { resolveExecutionTarget } from "../lib/execution/index.js";
@@ -22,7 +22,7 @@ import {
   registryRoot,
 } from "../lib/registry.js";
 import { findRuntime, runtimeIds } from "../lib/runtimes/catalog.js";
-import { runSandbox, type LifecycleIO } from "./lifecycle.js";
+import { DEFAULT_SANDBOX_IMAGE, runSandbox, type LifecycleIO } from "./lifecycle.js";
 
 export interface SandboxIO extends LifecycleIO {
   ask?: (q: string) => Promise<string>;
@@ -32,6 +32,7 @@ export interface SandboxInstallOptions {
   runtime: string;
   name?: string;
   repo?: string;
+  homeMount?: string;
   yes?: boolean;
   image?: boolean;
   imageRef?: string;
@@ -60,6 +61,22 @@ function gitIdentity(run: LifecycleRunner, key: string): string {
   }
   if (result.error || result.status !== 0) return "";
   return (result.stdout ?? "").trim();
+}
+
+function isBuildCapable(repo: string | undefined): boolean {
+  return repo !== undefined && existsSync(join(repo, ".devcontainer", "Dockerfile"));
+}
+
+function prepareHomeMount(value: string): string {
+  const path = resolve(value);
+  if (existsSync(path)) {
+    if (!statSync(path).isDirectory()) {
+      throw new Error(`--home-mount path exists and is not a directory: ${path}`);
+    }
+    return path;
+  }
+  mkdirSync(path, { recursive: true });
+  return path;
 }
 
 function readSeedConfig(repo: string | undefined): OhConfig | undefined {
@@ -122,7 +139,7 @@ function seedConfig(
   };
   config.image = {
     ...config.image,
-    mode: seed?.image?.mode ?? (config.repo === undefined ? "image" : "build"),
+    mode: seed?.image?.mode ?? (isBuildCapable(config.repo) ? "build" : "image"),
   };
   return config;
 }
@@ -175,6 +192,13 @@ async function runWizard(config: OhConfig, io: SandboxIO): Promise<void> {
     config.access?.dockerSocket === true,
   );
   config.access = access;
+
+  const homePath = await askDefaulted(
+    ask,
+    "Host path for /home/sandbox (blank keeps the Docker-managed volume)",
+    config.storage?.homePath ?? "",
+  );
+  if (homePath !== "") config.storage = { ...config.storage, homePath: resolve(homePath) };
 }
 
 export async function runSandboxInstall(
@@ -210,15 +234,60 @@ export async function runSandboxInstall(
   }
 
   const config = seedConfig(name, repo, mergeSettings(readEntryConfig(name), repoSeed), run);
+
+  const buildRequested =
+    config.image?.mode === "build" &&
+    opts.noBuild !== true &&
+    opts.image !== true &&
+    opts.imageRef === undefined;
+  if (buildRequested && !isBuildCapable(config.repo)) {
+    const target = config.repo ?? resolve(opts.repo ?? ".");
+    io.stderr(
+      `oh sandbox install: image.mode is "build" but ${join(target, ".devcontainer", "Dockerfile")} ` +
+        "does not exist — point --repo <dir> at a harness checkout that has .devcontainer/Dockerfile, " +
+        'or set image.mode to "image" to run the prebuilt image\n',
+    );
+    return 1;
+  }
+
+  if (opts.homeMount !== undefined) {
+    try {
+      config.storage = { ...config.storage, homePath: prepareHomeMount(opts.homeMount) };
+    } catch (error) {
+      io.stderr(`oh sandbox install: ${error instanceof Error ? error.message : String(error)}\n`);
+      return 1;
+    }
+  }
+
   const interactive =
     opts.yes !== true && (process.stdin.isTTY === true || io.ask !== undefined);
+  const homePathBeforeWizard = config.storage?.homePath;
   if (interactive) {
     prompt.header("Configure the sandbox  (press Enter to accept the shown default)");
     await runWizard(config, io);
+    const chosen = config.storage?.homePath;
+    if (chosen !== undefined && chosen !== homePathBeforeWizard) {
+      try {
+        config.storage = { ...config.storage, homePath: prepareHomeMount(chosen) };
+      } catch (error) {
+        io.stderr(
+          `oh sandbox install: ${error instanceof Error ? error.message : String(error)}\n`,
+        );
+        return 1;
+      }
+    }
   }
 
   if (opts.imageRef !== undefined) {
     config.image = { ...config.image, ref: opts.imageRef, mode: "image" };
+  }
+
+  if (
+    config.repo !== undefined &&
+    config.image?.mode === "image" &&
+    nonEmpty(config.image?.ref) === undefined
+  ) {
+    config.image = { ...config.image, ref: DEFAULT_SANDBOX_IMAGE };
   }
 
   const useNoBuild =

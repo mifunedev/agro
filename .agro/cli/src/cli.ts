@@ -136,7 +136,7 @@ function printConfigHelp(bin: string = LEGACY_PRODUCT.bin): void {
 
 Usage:
   ${bin} config show [--sandbox <name>]
-  ${bin} config set <field> <value> [--sandbox <name>]
+  ${bin} config set <field> <value> [--sandbox <name>] [--force]
   ${bin} config repo                  Create your own GitHub repo and point origin at it
   ${bin} config <integration>         Run an integration wizard
   ${bin} config <integration> --help
@@ -146,6 +146,10 @@ in the gitignored root .env — write those with \`${bin} secret set <KEY>\`. Ap
 change with \`${bin} stop <name> && ${bin} sandbox install docker --name <name>\`. Field
 reference:
 ${sourceDocsUrl("docs/configuration.md")}
+
+\`${bin} config set storage.homePath <dir>\` refuses the change when the sandbox's named
+volume already exists, because the next start would orphan every file in it. Pass
+--force to change it anyway.
 
 Fields:
 ${configFieldList()}
@@ -252,7 +256,8 @@ export function printSandboxHelp(bin: string = LEGACY_PRODUCT.bin): void {
   process.stdout.write(`${bin} sandbox — Create and list sandboxes
 
 Usage:
-  ${bin} sandbox install <runtime> [--name <name>] [--repo <dir>] [--yes]
+  ${bin} sandbox install <runtime> [--name <name>] [--repo <dir>]
+                               [--home-mount <dir>] [--yes]
                                [--image[=<ref>]] [--no-build] [--print-argv]
   ${bin} sandbox list [--json]
 
@@ -260,16 +265,23 @@ Usage:
 materialises the compose files and the compose wrapper into it, then starts the
 container. It needs no project checkout and runs from any directory. Without
 --repo the sandbox runs the prebuilt image; with --repo <dir> that checkout is
-bound at /home/sandbox/harness and can be built locally.
+bound at /home/sandbox/harness; the sandbox builds locally only when that
+directory holds .devcontainer/Dockerfile.
 
 On a terminal without --yes it asks for the sandbox name, the timezone, the git
-identity, SSH (with its host port), and the host Docker socket. With --repo it
-seeds those answers from that checkout's ${stateNames(bin).configFile}.
+identity, SSH (with its host port), the host Docker socket, and the host path
+for /home/sandbox. With --repo it seeds those answers from that checkout's ${stateNames(bin).configFile}.
 
 Flags:
   --name <name>    Registry entry name (default: the lowest free ${DEFAULT_NAME_PREFIX}<n>)
   --repo <dir>     Bind this checkout into the sandbox and seed the defaults
-                   from its ${stateNames(bin).configFile}
+                   from its ${stateNames(bin).configFile}. The sandbox builds
+                   locally only when that directory holds
+                   .devcontainer/Dockerfile
+  --home-mount <dir>
+                   Bind this host directory at /home/sandbox instead of the
+                   Docker-managed volume. Relative paths resolve against the
+                   working directory. The directory is created when absent
   --yes            Non-interactive: keep every default and ask nothing
   --image[=<ref>]  Run the prebuilt image instead of building (implies
                    --no-build). Ref resolves last-wins: --image=<ref> >
@@ -478,16 +490,19 @@ export interface ConfigArgs {
   key?: string;
   value?: string;
   sandbox?: string;
+  force?: boolean;
 }
 
 export function parseConfigArgs(input: string[], bin: string = LEGACY_PRODUCT.bin): ParseResult<ConfigArgs> {
   const scoped = extractSandboxFlag(`${bin} config`, input);
   if (!scoped.ok) return scoped;
-  const rest = scoped.args.rest;
+  const forced = scoped.args.rest.includes("--force");
+  const rest = scoped.args.rest.filter((arg) => arg !== "--force");
   const args: ConfigArgs = {
     help: false,
     integrationHelp: false,
     ...(scoped.args.sandbox === undefined ? {} : { sandbox: scoped.args.sandbox }),
+    ...(forced ? { force: true } : {}),
   };
   if (rest.length === 0 || isHelpFlag(rest[0])) {
     return { ok: true, args: { ...args, help: true } };
@@ -724,6 +739,7 @@ export interface SandboxArgs {
   runtime?: string;
   name?: string;
   repo?: string;
+  homeMount?: string;
   yes: boolean;
   image: boolean;
   imageRef?: string;
@@ -732,9 +748,10 @@ export interface SandboxArgs {
   json: boolean;
 }
 
-const SANDBOX_VALUE_FLAGS: Record<string, "name" | "repo"> = {
+const SANDBOX_VALUE_FLAGS: Record<string, "name" | "repo" | "homeMount"> = {
   "--name": "name",
   "--repo": "repo",
+  "--home-mount": "homeMount",
 };
 
 export function parseSandboxArgs(rest: string[], bin: string = LEGACY_PRODUCT.bin): ParseResult<SandboxArgs> {
@@ -1057,7 +1074,10 @@ async function main(argv: string[]): Promise<number> {
         stdout: (s) => process.stdout.write(s),
         stderr: (s) => process.stderr.write(s),
       };
-      const scope = a.sandbox === undefined ? {} : { sandbox: a.sandbox };
+      const scope = {
+        ...(a.sandbox === undefined ? {} : { sandbox: a.sandbox }),
+        ...(a.force === true ? { force: true } : {}),
+      };
       if (a.verb === "show") return await runConfigShow(scope, io);
       if (a.verb === "repo") return await runConfigRepo({}, io);
       return await runConfigSet(a.key as string, a.value as string, scope, io);
@@ -1167,6 +1187,7 @@ async function main(argv: string[]): Promise<number> {
         runtime: a.runtime as string,
         ...(a.name !== undefined ? { name: a.name } : {}),
         ...(a.repo !== undefined ? { repo: a.repo } : {}),
+        ...(a.homeMount !== undefined ? { homeMount: a.homeMount } : {}),
         yes: a.yes,
         image: a.image,
         ...(a.imageRef !== undefined ? { imageRef: a.imageRef } : {}),

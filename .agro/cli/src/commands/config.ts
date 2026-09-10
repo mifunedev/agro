@@ -10,6 +10,7 @@ import { resolveProjectRoot } from "../lib/project.js";
 import * as prompt from "../lib/prompt.js";
 import { resolveSandboxRoot } from "../lib/registry.js";
 import { isSecretKey } from "../lib/secrets.js";
+import { destroyConfirmationPhrase, namedVolumes } from "./lifecycle.js";
 
 export interface ConfigIO {
   stdout: (s: string) => void;
@@ -19,6 +20,23 @@ export interface ConfigIO {
 export interface ConfigOptions {
   cwd?: string;
   sandbox?: string;
+  force?: boolean;
+  run?: LifecycleRunner;
+}
+
+const HOME_PATH_FIELD = "storage.homePath";
+
+function currentHomePath(root: string): string | undefined {
+  return readOhConfig(ohConfigPath(root)).storage?.homePath;
+}
+
+function existingNamedVolume(root: string, run: LifecycleRunner): string | undefined {
+  const project = destroyConfirmationPhrase(root);
+  for (const volume of namedVolumes(root).map((name) => `${project}_${name}`)) {
+    const result = run("docker", ["volume", "inspect", volume], { stdio: "capture" });
+    if (result.error === undefined && result.status === 0) return volume;
+  }
+  return undefined;
 }
 
 function configRoot(opts: ConfigOptions): string {
@@ -60,6 +78,20 @@ export async function runConfigSet(
   }
 
   const root = configRoot(opts);
+
+  if (key === HOME_PATH_FIELD && opts.force !== true && currentHomePath(root) !== value) {
+    const volume = existingNamedVolume(root, opts.run ?? spawnRunner);
+    if (volume !== undefined) {
+      io.stderr(
+        `oh config set: ${HOME_PATH_FIELD} refused — the named volume ${volume} already exists.\n` +
+          `The next start would mount ${value} at /home/sandbox instead, and every file already ` +
+          `in ${volume} would be orphaned there, invisible to the sandbox.\n` +
+          "Pass --force to change it anyway.\n",
+      );
+      return 1;
+    }
+  }
+
   let outcome: string;
   try {
     outcome = setConfigField(root, key, value);
@@ -81,9 +113,7 @@ export interface RepoIO extends ConfigIO {
   isTTY?: boolean;
 }
 
-export interface RepoOptions extends ConfigOptions {
-  run?: LifecycleRunner;
-}
+export type RepoOptions = ConfigOptions;
 
 interface PlannedCommand {
   cmd: string;
