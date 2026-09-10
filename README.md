@@ -39,25 +39,17 @@ Node.js ≥ 20.
 
 ### 1. Get `agro`
 
-<details open><summary>npm</summary>
-
 **npm** — you already have Node ≥ 20:
 
 ```bash
-npm install -g @mifune/agro   # puts `agro` on your PATH
-```
+# Install globally
+npm install -g @mifune/agro
 
-Or run without a global install:
-
-```bash
+# Or run without a global install
 npx @mifune/agro --help
 ```
 
 Use `npx @mifune/agro` in place of `agro` in later commands.
-
-</details>
-
-<details><summary>curl</summary>
 
 **curl** — no Node yet; the bootstrap downloads the prebuilt `agro` artifact from
 the latest GitHub release (nothing is cloned or built on your host) and offers to
@@ -71,8 +63,6 @@ For a download-and-review alternative, see [Installation](docs/installation.md).
 
 It installs to `~/.local/bin/agro`; `AGRO_BIN_DIR` overrides the location, and
 `export PATH="$HOME/.local/bin:$PATH"` puts it on an already-open shell's PATH.
-
-</details>
 
 `agro update` upgrades it later. `oh` remains the compatibility alias for the
 same executable — `npm install -g @mifune/openharness` or the `get-oh.sh`

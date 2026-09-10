@@ -10,7 +10,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 
-- Group README installation options into npm and curl disclosures and add an npx alternative without a global install. ([#1038](https://github.com/mifunedev/agro/issues/1038))
+- Combine the README npm/npx example and remove the review-first block. ([#1038](https://github.com/mifunedev/agro/issues/1038))
 - Align package and display names with AGRO, correct sandbox setup guidance, and remove the stale root sandbox name. ([#1032](https://github.com/mifunedev/agro/issues/1032))
 - Publish only `@mifune/agro` on the automatic release path; keep the `@mifune/openharness` shim source and already-published versions without a new shim publish, wait, or deprecate step. ([#939](https://github.com/mifunedev/agro/issues/939))
 
