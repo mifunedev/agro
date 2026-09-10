@@ -62,14 +62,14 @@ function manifest(base: string, dir: string = base): ManifestEntry[] {
 
 function legacyRelToAgro(rel: string): string {
   if (rel === "oh.json") return "agro.json";
-  if (rel === ".pi/skills") return ".pi/skills.migrated";
+  if ([".pi/skills", ".codex/skills"].includes(rel)) return `${rel}.migrated`;
   return rel.replace(/^\.oh(\/|$)/, ".agro$1");
 }
 
 function expectedAfterRename(before: ManifestEntry[]): ManifestEntry[] {
   return before
     .map((row) => {
-      const relinked = row.rel !== ".pi/skills" && row.hash?.startsWith("link:../.oh/")
+      const relinked = ![".pi/skills", ".codex/skills"].includes(row.rel) && row.hash?.startsWith("link:../.oh/")
         ? `link:../.agro/${row.hash.slice("link:../.oh/".length)}`
         : row.hash;
       return { ...row, rel: legacyRelToAgro(row.rel), hash: relinked };
@@ -196,7 +196,7 @@ describe("runMigrate --check", () => {
     expect(plan.root).toBe(root);
     expect(plan.status).toBe("ready");
     expect(plan.conflicts).toEqual([]);
-    expect(plan.steps.map((s) => s.kind)).toEqual(["rename", "rename", "retire", "relink", "relink", "relink", "relink"]);
+    expect(plan.steps.map((s) => s.kind)).toEqual(["rename", "rename", "retire", "retire", "relink", "relink", "relink"]);
     expect(existsSync(join(root, ".oh"))).toBe(true);
   });
 
@@ -226,7 +226,8 @@ describe("runMigrate apply", () => {
     expect(existsSync(join(root, LOCK_FILE))).toBe(false);
     expect(readlinkSync(join(root, ".claude", "skills"))).toBe("../.agro/skills");
     expect(readlinkSync(join(root, ".claude", "hooks"))).toBe("../.agro/hooks");
-    expect(readlinkSync(join(root, ".codex", "skills"))).toBe("../.agro/skills");
+    expect(lstatSync(join(root, ".codex", "skills"), { throwIfNoEntry: false })).toBeUndefined();
+    expect(readlinkSync(join(root, ".codex", "skills.migrated"))).toBe("../.oh/skills");
     expect(readlinkSync(join(root, ".agents", "skills"))).toBe("../.agro/skills");
     expect(existsSync(join(root, ".pi", "skills"))).toBe(false);
     expect(readlinkSync(join(root, ".pi", "skills.migrated"))).toBe("../.oh/skills");

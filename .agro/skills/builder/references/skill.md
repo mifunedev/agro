@@ -1,8 +1,8 @@
 # Reference Skill Builder
 
 Author a domain or guidance skill that Claude loads inline when relevant. In Open
-Harness, write `.agro/skills/<name>/SKILL.md`; `.agents/skills`, `.claude/skills`, and
-`.codex/skills` are exposure surfaces, not additional copies.
+Harness, write `.agro/skills/<name>/SKILL.md`. Codex and Pi use `.agents/skills`;
+Claude uses `.claude/skills`. These exposure surfaces link to the canonical pack.
 
 ## Contents
 
