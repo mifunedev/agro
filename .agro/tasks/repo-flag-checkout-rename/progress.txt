@@ -1,0 +1,33 @@
+# progress
+
+
+## 2026-09-10 — plan phase
+Scope approved by the operator from issue #1043. Branch task/1043-repo-flag-checkout-rename
+cut from origin/development at e65e7a50 (the #1042 merge), so the planning base and the
+execution base are the same commit. No re-grounding drift.
+
+Advisor decisions on the PRD's two open questions:
+- Q1 legacy-field normalisation on write: NO. Reads are aliased; a write never rewrites a
+  field the operator did not touch. checkout outranks repo when a file holds both.
+- Q2 deprecation notice on --repo: NO, silent. No removal date exists. The deprecation
+  signal lives in --help and the docs.
+
+Implementation contract fixed by the advisor before dispatch:
+- oh-config.ts gains configCheckout(config) returning config.checkout ?? config.repo,
+  empty-string-safe. Every read site routes through it.
+- OhConfig.checkout added; repo retained. Both validated and both in OH_CONFIG_FIELDS.
+- seedConfig writes checkout.
+- MaterializeOptions gains checkout and keeps repo. registry.test.ts calls
+  materialize(root, { repo }) and addEntry(name, { repo }) directly and is byte-frozen.
+- entryRepo keeps its exported name. AGRO_REPO_DIR keeps its spelling.
+- `agro config repo` (the GitHub-remote verb) is a different concept and is untouched.
+
+Protected-file sha256 baseline recorded before any work:
+  0bc2686007e137d090f9a9b543a08fefd92376a9eeccd7752eade97b147f373c  .agro/evals/probes/oh-devcontainer-restructure.sh
+  664447701d78612ea1ebb4029aa91c8b0919400237cd9e508d6fe2be46e555ec  .agro/evals/probes/oh-home-mount.sh
+  826fef45e2e665b3ef11c88647f165510142108f355b0b41ec4853af49fbd974  .agro/evals/probes/oh-image-only-deploy.sh
+  ac25e4b410d1a344defada4719184ce8e988ad232ac883ca208c0c36f668a513  .agro/cli/src/lib/__tests__/registry.test.ts
+  28106a310cfee535ff64a22f27e5970377a2ffcacea106dd8b3256718b6bee0c  .devcontainer/docker-compose.yml
+  9da95d66aa419da0f1eb458a813d69e70aa2cf54a6b5814344d568ddb1a2938f  .devcontainer/docker-compose.image-only.yml
+  fc15dcc07bef1badaec51991d453a7f55ac420507ca41ecb6deb7d142602d3e6  .devcontainer/entrypoint.sh
+Re-checked by the owner after every worker commit, never taken from a worker report.
