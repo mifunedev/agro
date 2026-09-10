@@ -115,3 +115,44 @@ Changed in house style with the #1043 link.
   probe asserts it.
 - materialize() base selection is untouched, per the PRD Technical
   Considerations. The live install confirms the coupling is intact.
+
+## 2026-09-10 — reopened before merge: the README surfaces
+
+The operator reviewed the ready PR and found the docs sweep had been scoped to
+docs/, missing README.md and .agro/cli/README.md. AGENTS.md treats a directory
+README.md as first-class documentation. PR returned to draft; gap closed in
+c99286e5.
+
+Root cause is method, not judgement. The first sweep took a path list, so it
+could only find surfaces it already expected. The second sweep is git grep over
+all tracked files with every hit classified renamed / deliberately-frozen /
+unrelated-gh-flag. A path-scoped sweep cannot find the surface you forgot.
+
+Renamed: README.md:77 (flag plus the caption, which was close to the wording
+that caused #1042), .agro/cli/README.md:65,70,99, and
+.agro/scripts/cli-first-install-smoke.sh:57 — the third found by the sweep and
+not named in the operator report.
+
+Also closed: --home-mount was absent from BOTH READMEs although #1042 added it,
+so the front door never mentioned the persistence flag. Both now document it,
+and README.md records that the two mount flags bind different paths and compose
+in one command. The worker first wrote a lead-in implying the flags were
+mutually exclusive; the owner rejected that and had it reworded.
+
+Knowledge: fresh-machine-setup declares README.md as a source, so it was
+re-read at the new HEAD. State REVERIFIED, verified_at advanced to c99286e5.
+The worker found the page claimed README.md has five numbered steps when it has
+eight, and refused to stamp verified_at over a claim it had disproved — correct
+judgement. Its replacement claim was itself wrong (it asserted step 8 is marked
+optional; only 5, 6 and 7 are), the owner caught that against the headings and
+had it corrected to "eight numbered steps, three of them marked optional".
+compose-env-boundary and oh-cli-portable-lifecycle are FRESH: no declared
+source of theirs moved after their verified_at.
+
+Disclosed, not fixed: pre-existing stale line citations on fresh-machine-setup
+(already wrong at the base commit; this branch moved the true targets to
+README.md:341,366), and the stale pre-#942 ${OH_HOME:-~/.oh} paths at
+.agro/cli/README.md:57,60,101. Both want their own issue.
+
+Frozen sha256 re-checked 7/7 OK after the commit. /eval re-run: exit 0, 146
+probes, zero status changes against the base, oh-config-surfaces byte-identical.

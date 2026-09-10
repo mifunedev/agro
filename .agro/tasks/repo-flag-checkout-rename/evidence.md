@@ -154,7 +154,7 @@ NOT-APPLICABLE.
 |---|---|---|
 | `compose-env-boundary` | UPDATED | Claimed `AGRO_REPO_DIR` is "rendered only when `repo` is set"; now states it is rendered from `configCheckout()` and that the key keeps its spelling. `verified_at` advanced after re-reading against `config-render.ts`, `oh-config.ts`, `registry.ts` and both compose files. |
 | `oh-cli-portable-lifecycle` | UPDATED | Described `--repo` as the flag and `repo` as the field throughout, including the D-3 sentence and the cwd-resolution sentence. Rewritten to the alias model; stale `sandbox.ts` line cites corrected against HEAD. `verified_at` advanced. |
-| `fresh-machine-setup` | UPDATED | Mirrored the docs pages this branch changed. Brought in line with them. `verified_at` advanced. |
+| `fresh-machine-setup` | UPDATED, then REVERIFIED at `c99286e5` | Mirrored the docs pages this branch changed. Re-read again after the README round, because it declares `README.md` as a source. Its `--home-mount` sentence is a claim about CLI behaviour, not about which docs mention the flag, so the new README coverage falsified nothing. |
 
 `.agro/knowledge/README.md` regenerated; `wiki-readme-index.sh` PASSes.
 
@@ -169,6 +169,43 @@ NOT-APPLICABLE.
   `oh-devcontainer-restructure`, `oh-home-mount`, `oh-image-only-deploy` PASS and
   are byte-identical; the frozen `registry.test.ts` passes on the alias.
 - Tests: 1411 passing, typecheck clean.
+
+### README surfaces, added after the first ready-for-review
+
+The operator reviewed the branch and found that the docs sweep had been scoped to
+`docs/`, so it missed the README surfaces, which `AGENTS.md` treats as first-class
+documentation. The PR was returned to draft and the gap closed in `c99286e5`.
+
+The root cause was method, not judgement: the first sweep took a path list rather
+than a repository-wide grep, so it could only find what it already expected. The
+second sweep is `git grep` over all tracked files, classified exhaustively.
+
+| surface | change |
+|---|---|
+| `README.md:77` | flag renamed, and the caption rewritten — "Or mount an existing project at /home/sandbox/harness" was close to the wording that caused #1042 |
+| `.agro/cli/README.md:65,70,99` | prose and the canonical flag table |
+| `.agro/scripts/cli-first-install-smoke.sh:57` | `--help` contract text; found by the sweep, not named in the report |
+
+`--home-mount` was also absent from **both** READMEs, though #1042 added it, so the
+project front door never mentioned the persistence flag at all. Both READMEs now
+document it, and `README.md` records that the two mount flags bind different paths
+and therefore compose in one command.
+
+Repository-wide classification of `git grep -n -- '--repo'`:
+
+- **Renamed**: the three surfaces above.
+- **Deliberately frozen**: `--repo-dir` (a `docker-compose.sh` flag, a different
+  surface); `cli.ts:282`, the deprecated-alias help line; the alias sentences in
+  the six updated docs pages and two knowledge pages; `CHANGELOG.md:22,144`
+  (shipped entries, which `/git` forbids rewriting); everything under
+  `.agro/tasks/**`, which is a historical record;
+  `.agro/evals/probes/sandbox-registry.sh:73`, an internal probe label.
+- **Unrelated**: every `gh --repo <owner/name>` in `.agro/skills/**`,
+  `crons/prompt-miner.md`, `docs/agro-cutover-runbook.md`, and two knowledge
+  pages. Untouched.
+
+`git grep -n 'storage.homePath\|--home-mount'` confirmed the omission was total:
+zero hits in either README before this commit.
 
 ## 3. Where the implementation diverged from the plan, and why
 
@@ -230,3 +267,20 @@ Three divergences. None is silent.
   lines across all three knowledge pages). Not addressed.
 - **`agro config repo`** — the unrelated GitHub-remote verb that shares the word —
   was confirmed untouched by inspection, not by a dedicated test run.
+- **Stale line citations on `fresh-machine-setup`, pre-existing, left alone.** The
+  page cites `README.md:51` and `README.md:29,287`. Both were already wrong at the
+  base commit: `get-agro.sh` sits at `README.md:47` before and after, and the
+  `mifunedev/agro-web` links were at `333/358` on the base. This branch did not
+  break them — but `c99286e5` did move the true targets to `341/366`, so a later
+  citation sweep should start from those. `docs/installation.md:38` and `:74` were
+  checked and are correct. A citation sweep is separate work from a rename.
+- **One already-false claim on `fresh-machine-setup` was corrected, not carried.**
+  The page said `README.md` holds "the same path in five numbered steps"; it holds
+  eight, and held eight at the base commit too. Advancing `verified_at` over a
+  claim just read and disproved would launder staleness into freshness, so the
+  line was corrected to "eight numbered steps, three of them marked optional" —
+  verified against the headings — without enumerating which, since that detail is
+  what rotted into "five".
+- **`.agro/cli/README.md` carries a stale `${OH_HOME:-~/.oh}` state path** at lines
+  57, 60, and 101, predating #942; the live CLI says `${AGRO_HOME:-~/.agro}`. The
+  operator put it out of scope for this PR. It wants its own issue.

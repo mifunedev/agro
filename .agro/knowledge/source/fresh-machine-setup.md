@@ -22,7 +22,7 @@ sources:
   - .agro/scripts/hermes-install-smoke.sh
   - .agro/scripts/gateway.sh
   - .agro/scripts/get-agro.sh
-verified_at: 4bdd930dcf3652336662874c2711eda1b28d1552
+verified_at: c99286e5c35f281432808ce8bc9f256a85df3f20
 related: [sandbox-dependency-installs, oh-cli-portable-lifecycle]
 confidence: provisional
 ---
@@ -31,7 +31,7 @@ confidence: provisional
 
 ## Relevant Source Files
 - `docs/quickstart.md` — the **canonical human walkthrough**: get `agro`, create the sandbox, enter it, install Herdr, install and authenticate one harness, then the GitHub-login prerequisite and the two optional agent prompts. This entry is a synthesis and doc-handoff map only.
-- `README.md` — the same path in five numbered steps, and the shortest statement of what onboarding now is.
+- `README.md` — the same path in eight numbered steps, three of them marked optional, and the shortest statement of what onboarding now is.
 - `docs/installation.md` — host prerequisites, the `agro` install paths, the `oh` compatibility entry point, the package/PATH rules, and the second shape: equipping an existing project repo with `oh update`.
 - `.agro/scripts/get-agro.sh` — artifact-only installer: the `agro.js` release asset, `AGRO_<NAME>` with `OH_<NAME>` fallback, no clone and no build.
 - `docs/deployment-prebuilt-image.md` — the `agro sandbox install docker` page: image-only by default, `--checkout` to bind a checkout.
