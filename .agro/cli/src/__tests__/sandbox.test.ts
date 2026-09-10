@@ -588,6 +588,80 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
     expect(rendered.join("")).toContain(`AGRO_REPO_DIR=${plain}`);
   });
 
+  it("pins the published image for a --repo directory that is not a checkout", async () => {
+    const registryPath = registry();
+    const plain = tempDir("oh-sandbox-plain-");
+    const rendered: string[] = [];
+    const run: LifecycleRunner = (cmd, args) => {
+      if (cmd === "git") return { status: 0, stdout: "" };
+      const i = args.indexOf("--extra-env-file");
+      if (i !== -1) rendered.push(readFileSync(args[i + 1], "utf8"));
+      return { status: 0 };
+    };
+
+    expect(
+      await runSandboxInstall(
+        { runtime: "docker", name: "box", repo: plain, yes: true, run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    expect(readJson(join(registryPath, "box", "agro.json"))).toMatchObject({
+      repo: plain,
+      image: { mode: "image", ref: "ghcr.io/mifunedev/agro:latest" },
+    });
+    const env = rendered.join("");
+    expect(env).toContain("AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/agro:latest");
+    expect(env).toContain(`AGRO_REPO_DIR=${plain}`);
+  });
+
+  it("keeps a seeded image.ref instead of the published default", async () => {
+    const registryPath = registry();
+    const plain = tempDir("oh-sandbox-plain-");
+    writeFileSync(
+      join(plain, "agro.json"),
+      `${JSON.stringify({ version: 1, image: { ref: "example.test/img:1" } })}\n`,
+    );
+    const { run } = makeRunner();
+
+    expect(
+      await runSandboxInstall(
+        { runtime: "docker", name: "box", repo: plain, yes: true, run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    expect(readJson(join(registryPath, "box", "agro.json"))).toMatchObject({
+      image: { mode: "image", ref: "example.test/img:1" },
+    });
+  });
+
+  it("writes no image.ref for a checkout --repo that builds locally", async () => {
+    const registryPath = registry();
+    const checkout = harnessCheckout();
+    const { run } = makeRunner();
+
+    expect(
+      await runSandboxInstall(
+        { runtime: "docker", name: "box", repo: checkout, yes: true, run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    const config = readJson(join(registryPath, "box", "agro.json"));
+    expect(config).toMatchObject({ image: { mode: "build" } });
+    expect((config.image as Record<string, unknown>).ref).toBeUndefined();
+  });
+
+  it("leaves the no-repo image-only path without an image.ref", async () => {
+    const registryPath = registry();
+    const { run } = makeRunner();
+
+    expect(
+      await runSandboxInstall({ runtime: "docker", name: "box", yes: true, run }, makeIo().io),
+    ).toBe(0);
+    const config = readJson(join(registryPath, "box", "agro.json"));
+    expect(config).toMatchObject({ image: { mode: "image" } });
+    expect((config.image as Record<string, unknown>).ref).toBeUndefined();
+  });
+
   it("--print-argv shows no --build for a --repo directory that is not a checkout", async () => {
     registry();
     const plain = tempDir("oh-sandbox-plain-");
@@ -658,6 +732,26 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
     ).not.toBe(0);
     expect(existsSync(registryPath)).toBe(false);
     expect(calls.some((c) => c.cmd === "bash")).toBe(false);
+  });
+
+  it("creates no --home-mount directory when the build preflight fails", async () => {
+    const registryPath = registry();
+    const plain = tempDir("oh-sandbox-plain-");
+    writeFileSync(
+      join(plain, "agro.json"),
+      `${JSON.stringify({ version: 1, image: { mode: "build" } })}\n`,
+    );
+    const home = join(tempDir("oh-sandbox-home-"), "never-created");
+    const { run } = makeRunner();
+
+    expect(
+      await runSandboxInstall(
+        { runtime: "docker", name: "box", repo: plain, homeMount: home, yes: true, run },
+        makeIo().io,
+      ),
+    ).not.toBe(0);
+    expect(existsSync(home)).toBe(false);
+    expect(existsSync(registryPath)).toBe(false);
   });
 
   it("--home-mount alone renders AGRO_HOME_MOUNT and keeps the image-only base", async () => {
