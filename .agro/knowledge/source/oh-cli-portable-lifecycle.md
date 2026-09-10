@@ -34,7 +34,7 @@ sources:
   - docs/lifecycle-commands.md
   - docs/oh-directory-layout.md
   - docs/rfcs/rfc-brain-hands-boundary.md
-verified_at: c078c91e80647bc0c60cebb7ad1f11d929159d33
+verified_at: 20a9e2ba1e56d0447841d3b9e6dfe856db308a4d
 related: [fresh-machine-setup, compose-env-boundary]
 confidence: provisional
 ---
