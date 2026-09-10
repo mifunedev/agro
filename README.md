@@ -160,37 +160,22 @@ Use `agro harness install <id>` for other installable harnesses. Follow the link
 guides for authentication and launch commands. T3 Code requires an authenticated
 Claude Code, Codex, or OpenCode provider.
 
-### 5. Repository workflows (optional)
+### 5. Track your harness changes (optional)
 
-After completing GitHub authentication in step 3, send either prompt below to
-your coding agent. Provider login and GitHub login are separate.
+With your coding harness and GitHub CLI configured, ask the agent to create a
+repository for your harness changes. We recommend **private visibility by
+default**, with `origin` pointing to your repository:
 
-**Optional — version-control this sandbox in your own private repository.**
+> Create a private GitHub repository to track my harness changes and configure it as `origin`.
+> Verify my GitHub account and inspect existing history and remotes first. Ask before replacing an existing remote.
+> Exclude credentials, runtime state, and unrelated projects. Confirm the repository name and proposed files with me before creating it or pushing.
+> Work inside this sandbox and preserve my existing files.
 
-> I have completed `gh auth login` and verified the intended GitHub account inside this sandbox.
-> Help me version-control this sandbox workspace in my own private GitHub repository.
-> Recheck GitHub authentication before acting, then inspect existing Git history and remotes.
-> Preserve my files and existing repository configuration.
-> Review ignore rules and the proposed tracked files for credentials, runtime state, logs, and unrelated projects.
-> Ask me to confirm the account, repository name, and private visibility before creating the repository.
-> Show me the proposed commit contents and ask before pushing.
-> Do all work inside this sandbox; do not create a host-side source checkout.
-
-**Optional — prepare a contribution to AGRO.**
-
-> I have completed `gh auth login` and verified the intended GitHub account inside this sandbox.
-> Help me prepare an AGRO contribution from this sandbox.
-> Recheck GitHub authentication before acting.
-> Inspect existing remotes and check whether this checkout shares history with the canonical AGRO repository.
-> If the histories share ancestry, help me configure an upstream remote and a contribution branch without changing my private origin.
-> Otherwise, use a separate ordinary upstream checkout inside this sandbox and transfer only the changes I select.
-> Keep private configuration, credentials, and unrelated files out of the contribution.
-> Confirm the fork, target branch, and diff with me before pushing or opening a pull request.
-> Do not replace the live workspace or create a host-side source checkout.
-
-`agro config repo` (and `oh config repo`) remains a compatibility helper for the
-retired clone-and-own recipe and stays supported through the SLA. It is not the
-canonical onboarding path.
+To contribute back, ask the agent to configure
+[`mifunedev/agro`](https://github.com/mifunedev/agro) as `upstream`, keeping your
+private `origin`. If the histories differ, use a separate checkout inside the
+sandbox and transfer only the changes you intend to contribute. See the
+[contributing guide](docs/contributing.md) for the branch and pull-request workflow.
 
 ### 6. Slack and scheduled work (optional)
 
