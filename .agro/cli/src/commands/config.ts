@@ -26,6 +26,10 @@ export interface ConfigOptions {
 
 const HOME_PATH_FIELD = "storage.homePath";
 
+function currentHomePath(root: string): string | undefined {
+  return readOhConfig(ohConfigPath(root)).storage?.homePath;
+}
+
 function existingNamedVolume(root: string, run: LifecycleRunner): string | undefined {
   const project = destroyConfirmationPhrase(root);
   for (const volume of namedVolumes(root).map((name) => `${project}_${name}`)) {
@@ -75,7 +79,7 @@ export async function runConfigSet(
 
   const root = configRoot(opts);
 
-  if (key === HOME_PATH_FIELD && opts.force !== true) {
+  if (key === HOME_PATH_FIELD && opts.force !== true && currentHomePath(root) !== value) {
     const volume = existingNamedVolume(root, opts.run ?? spawnRunner);
     if (volume !== undefined) {
       io.stderr(

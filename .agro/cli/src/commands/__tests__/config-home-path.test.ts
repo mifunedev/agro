@@ -117,6 +117,28 @@ describe("config set storage.homePath guard", () => {
     }
   });
 
+  it("does not fire when the value is already set to the same path", async () => {
+    const root = makeRoot("demo");
+    const { run, calls } = runnerReturning(VOLUME_PRESENT);
+    const { io, out } = makeIo();
+
+    expect(
+      await runConfigSet(
+        "storage.homePath",
+        "/srv/demo-home",
+        { cwd: root, run, force: true },
+        io,
+      ),
+    ).toBe(0);
+
+    const code = await runConfigSet("storage.homePath", "/srv/demo-home", { cwd: root, run }, io);
+
+    expect(code).toBe(0);
+    expect(calls).toEqual([]);
+    expect(out.join("")).toContain("already /srv/demo-home");
+    expect(readConfig(root).storage?.homePath).toBe("/srv/demo-home");
+  });
+
   it("leaves an unrelated field unguarded", async () => {
     const root = makeRoot("demo");
     const { run, calls } = runnerReturning(VOLUME_PRESENT);
