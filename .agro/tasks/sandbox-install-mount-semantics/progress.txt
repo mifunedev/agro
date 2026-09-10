@@ -1,0 +1,21 @@
+# progress
+
+
+## 2026-09-10 — plan phase (advisor)
+Operator approved prd.md. Advisor closed both open questions:
+- D-1: the FR-9 override flag is --force, matching `agro update --force`.
+- D-2: --home-mount accepts a non-empty directory; it creates the directory
+  when absent and fails only on a non-directory path.
+Both decisions are recorded in prd.md under `## Decisions` and tightened into
+the US-004 and US-006 acceptance criteria in prd.json.
+Advisor added `## Knowledge Context`, `## Expected Knowledge Impact`, and
+`## Plan Reconciliation` to prd.md to complete the three-file contract. No
+goal, functional requirement, non-goal, or acceptance criterion changed.
+Re-grounded every cited path at base commit f94c1ad5. Every file and line
+reference in prd.md resolves as written.
+Protected-path baseline recorded (sha256), asserted byte-identical before
+acceptance:
+  0bc2686007e1 .agro/evals/probes/oh-devcontainer-restructure.sh
+  664447701d78 .agro/evals/probes/oh-home-mount.sh
+  826fef45e2e6 .agro/evals/probes/oh-image-only-deploy.sh
+  ac25e4b410d1 .agro/cli/src/lib/__tests__/registry.test.ts
