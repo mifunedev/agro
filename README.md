@@ -81,23 +81,52 @@ agro sandbox install docker --repo ~/my-project --name my-project
 agro shell <name>
 ```
 
-Equip that checkout with the control plane first — `cd ~/my-project && oh
-update` writes `.agro/` and `crons/` and **nothing else**: no `AGENTS.md`, no
-provider configuration, no `.gitignore` line beyond the `.env` line
-`agro secret set` adds. Those files stay yours.
+### 3. Install tools
 
-Then, inside the sandbox, install and open the persistent interactive workspace
-first — a fresh sandbox has no `herdr`, because nothing installs at boot:
+Inside the sandbox, start with [Herdr](docs/integrations/herdr.md), the terminal
+workspace for your agents and development tools:
 
 ```bash
+# Install and open Herdr
 agro tool install herdr
 herdr
 ```
 
-Run the remaining setup, authentication, agents, tests, and servers from its
-panes.
+Run the remaining commands in a Herdr pane. Install only the tools you need:
 
-### 3. Authenticate one coding harness
+| Tool | Purpose | Availability |
+| --- | --- | --- |
+| `herdr` | Interactive terminal workspace | Install on demand |
+| `agent-browser` | Browser automation | Install on demand |
+| `cloudflared` | Public tunnels for local apps | Install on demand |
+| `microsandbox` | MicroVM runtime CLI | Install on demand |
+| `tailscale` | Private network connectivity | Install on demand |
+| `gh` | GitHub CLI | Included |
+| `docker-cli` | Docker client and Compose | Included |
+
+```bash
+# List tools and check availability
+agro tool list
+
+# Install an optional tool
+agro tool install <id>
+```
+
+**GitHub (optional):** authenticate before repository work that uses GitHub.
+Confirm that the status output shows your intended account.
+
+```bash
+# Sign in and configure Git credentials
+gh auth login
+gh auth setup-git
+
+# Verify your account
+gh auth status
+```
+
+See [GitHub authentication](docs/integrations/github.md) for help.
+
+### 4. Authenticate one coding harness
 
 Install and authenticate one harness from a Herdr pane. That is a complete first
 session — no fork, no clone, no private repository, no Slack, and no upstream
@@ -116,26 +145,10 @@ boot. The simplest cross-provider login is `/login` inside the agent, then
 **device mode**, which works on a headless or remote sandbox. Per-harness detail:
 [harnesses overview](docs/harnesses/overview.md).
 
-### 4. Authenticate GitHub before any repository work (optional)
+### 5. Repository workflows (optional)
 
-Local sandbox use stays available without a GitHub account. Work that reaches
-GitHub — pushing, creating a repository, opening a pull request — does not.
-Provider authentication authenticates the model, not GitHub, and grants no
-repository access.
-
-Run these five steps in this order, inside a Herdr pane:
-
-1. Authenticate the intended GitHub account with `gh auth login`.
-2. Run `gh auth setup-git` to configure Git's credential helper.
-3. Run `gh auth status`.
-4. Confirm the status output identifies the intended account with authenticated
-   access.
-5. Only after those checks pass, send either optional prompt below to the
-   authenticated coding agent.
-
-The initial login is never delegated to the prompts. Both prompts assume it is
-already complete and recheck it before acting. Command-level detail and recovery:
-[GitHub auth](docs/integrations/github.md).
+After completing GitHub authentication in step 3, send either prompt below to
+your coding agent. Provider login and GitHub login are separate.
 
 **Optional — version-control this sandbox in your own private repository.**
 
@@ -164,7 +177,7 @@ already complete and recheck it before acting. Command-level detail and recovery
 retired clone-and-own recipe and stays supported through the SLA. It is not the
 canonical onboarding path.
 
-### 5. Slack and scheduled work (optional)
+### 6. Slack and scheduled work (optional)
 
 Configure Slack ([docs/integrations/slack.md](docs/integrations/slack.md),
 [docs/harnesses/hermes.md](docs/harnesses/hermes.md)), then run and verify the
