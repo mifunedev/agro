@@ -18,8 +18,8 @@
         "Typecheck passes."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Advisor accepted source-backed docs, manual link review, isolated first-task specimen, STE, targeted tests, typecheck/build and current-content CI. See evidence.md for pre-existing local Docker test failures and unverified clean-release/demo/site work."
     },
     {
       "id": "US-002",
@@ -34,8 +34,8 @@
         "Typecheck passes."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Advisor accepted source-backed docs, manual link review, isolated first-task specimen, STE, targeted tests, typecheck/build and current-content CI. See evidence.md for pre-existing local Docker test failures and unverified clean-release/demo/site work."
     },
     {
       "id": "US-003",
@@ -50,8 +50,8 @@
         "Typecheck passes."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Advisor accepted source-backed docs, manual link review, isolated first-task specimen, STE, targeted tests, typecheck/build and current-content CI. See evidence.md for pre-existing local Docker test failures and unverified clean-release/demo/site work."
     }
   ]
 }

@@ -1,0 +1,111 @@
+[
+  {
+    "id": "W1",
+    "title": "Rewrite coupled onboarding documents",
+    "description": "Implement US-001/US-002 in named docs and changelog; draft affected fresh-machine knowledge in tmp",
+    "dependsOn": [],
+    "complexity": "medium-high: coupled prose and command truth; no runtime changes",
+    "selectionReason": "Inherited model with high reasoning for cross-file correctness",
+    "requested": {
+      "model": "inherit",
+      "thinking": "high"
+    },
+    "observed": {
+      "model": "unknown",
+      "thinking": "unknown",
+      "provenance": "Native Agent exposes model/thinking; effective settings unobserved"
+    },
+    "readScope": "PRD, council report, full owned docs, runtime sources and relevant probes",
+    "limits": "40 turns; report <=700 words",
+    "ownedWritePaths": [
+      "README.md",
+      "docs/README.md",
+      "docs/quickstart.md",
+      "docs/installation.md",
+      "docs/intro.md",
+      "docs/open-core.md",
+      "docs/lifecycle-commands.md",
+      "CHANGELOG.md",
+      "/tmp/oh-wiki-drafts/fresh-machine-setup.md",
+      "docs/integrations/herdr.md",
+      ".agro/scripts/__tests__/herdr-default.test.ts",
+      "docs/security-considerations.md",
+      "docs/integrations/slack.md",
+      "docs/connecting.md",
+      "docs/harnesses/claude-code.md"
+    ],
+    "exclusions": "No task-state edits, runtime code, skills, tests/probes, direct knowledge edits, commits, pushes, remote mutations, nested agents",
+    "executionDirectory": "/home/sandbox/harness/.worktrees/task/1036-readme-mission-onboarding",
+    "isolation": "Dedicated worktree; only writer",
+    "workerType": "general-purpose",
+    "continuation": "native resume",
+    "deliverable": "Uncommitted docs diff; tmp knowledge draft",
+    "verification": "Advisor reads diff and runs checks; independent score and simplicity review",
+    "stoppingCondition": "Scope implemented and checks run or blocker reported at budget",
+    "evidenceDestination": ".worktrees/task/1036-readme-mission-onboarding/.agro/tasks/readme-mission-onboarding/",
+    "coveredDoD": [
+      "US-001",
+      "US-002"
+    ],
+    "acceptanceOwner": "active advisor",
+    "failureRoute": "resume W1 for exact repairs",
+    "nativeWorkerId": "be7b75ed-cead-47a",
+    "status": "completed",
+    "artifacts": [
+      "4de95a2c",
+      "31e4c909",
+      "/tmp/oh-wiki-drafts/fresh-machine-setup.md",
+      "c8b80942"
+    ],
+    "usage": "unknown",
+    "wave": 1,
+    "summary": "Advisor inspected diff and full primary docs; targeted tests and STE pass. Scope additions repaired directly linked Herdr guide and demonstrated stale/missing-anchor assertions."
+  },
+  {
+    "id": "R1",
+    "title": "Independent correctness and simplicity review",
+    "description": "Read complete changed docs and test; manually review links, independently score base/revision and execute bounded scratch specimen",
+    "dependsOn": [
+      "W1"
+    ],
+    "complexity": "medium-high: coupled prose and command truth; no runtime changes",
+    "selectionReason": "Inherited model with high reasoning for cross-file correctness",
+    "requested": {
+      "model": "inherit",
+      "thinking": "high"
+    },
+    "observed": {
+      "model": "unknown",
+      "thinking": "unknown",
+      "provenance": "Native Agent exposes model/thinking; effective settings unobserved"
+    },
+    "readScope": "PRD and full changed files at 31e4c909 plus base README and necessary source excerpts",
+    "limits": "18 turns; <=1000 words output",
+    "ownedWritePaths": [
+      "unique scratch first-task directory only"
+    ],
+    "exclusions": "No tracked edits, network auth/install, nested agents, automated link-check retries, task-state or remote writes",
+    "executionDirectory": "/home/sandbox/harness/.worktrees/task/1036-readme-mission-onboarding",
+    "isolation": "Dedicated worktree; only writer",
+    "workerType": "general-purpose",
+    "continuation": "native resume",
+    "deliverable": "Uncommitted docs diff; tmp knowledge draft",
+    "verification": "Advisor reads diff and runs checks; independent score and simplicity review",
+    "stoppingCondition": "Scope implemented and checks run or blocker reported at budget",
+    "evidenceDestination": ".worktrees/task/1036-readme-mission-onboarding/.agro/tasks/readme-mission-onboarding/",
+    "coveredDoD": [
+      "US-003"
+    ],
+    "acceptanceOwner": "active advisor",
+    "failureRoute": "resume W1 for exact repairs",
+    "nativeWorkerId": "87f884da-c419-43d",
+    "status": "completed",
+    "artifacts": [
+      "5215a23249e1738d3d0b73f05634c279ca935ec4",
+      "/home/sandbox/agro-first-task.yuWMTS/hello.mjs"
+    ],
+    "usage": "unknown",
+    "wave": 2,
+    "summary": "PASS on re-review: all five findings repaired; before51.5/after84.5, manual README links valid, exact 17-byte scratch stdout. Not a clean-release/auth trial."
+  }
+]

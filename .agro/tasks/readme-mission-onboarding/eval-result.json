@@ -1,0 +1,15 @@
+{
+  "commit": "5215a23249e1738d3d0b73f05634c279ca935ec4",
+  "runnerExit": 0,
+  "ranAt": "2026-09-10T03:32:13.146Z",
+  "newRegressions": [],
+  "preExistingReds": [
+    "skills-vendored"
+  ],
+  "counts": {
+    "PASS": 141,
+    "REGRESSION": 1,
+    "SKIPPED": 4
+  },
+  "environment": "Cached uv Python added to command PATH; no host Docker socket"
+}
