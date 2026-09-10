@@ -46,14 +46,24 @@ Use `npx @mifune/agro` in place of `agro` in later commands.
 ```bash
 # Install AGRO to ~/.local/bin; offers Node.js setup if needed
 curl -fsSL https://agro.mifune.dev/get-agro.sh | bash
-
-# Add AGRO to this shell's PATH
-export PATH="$HOME/.local/bin:$PATH"
 ```
 
 For a download-and-review alternative, see [Installation](docs/installation.md).
 
-`agro update` upgrades it later. `oh` remains the compatibility alias for the
+Check the installed version, update AGRO, or see available commands:
+
+```bash
+# Check the installed version
+agro --version
+
+# Update AGRO
+agro update
+
+# Show available commands
+agro --help
+```
+
+`oh` remains the compatibility alias for the
 same executable — `npm install -g @mifune/openharness` or the `get-oh.sh`
 bootstrap — and every `agro` verb below also works as `oh <verb>`; see
 [AGRO compatibility](docs/agro-compatibility.md) and
