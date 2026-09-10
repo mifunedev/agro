@@ -267,3 +267,26 @@ A retained executable URL must not return HTML or select the wrong installation.
 Do not infer migration needs from synthetic legacy fixtures. Never expose secret values in evidence.
 A current consumer requiring a newly published legacy npm version must return to the operator for policy review.
 Source rollback uses reviewed revert commits; retain the previous working release identity until the operator accepts release and migration evidence.
+
+## Knowledge Context
+
+- **Base commit**: `75b593eabc376b6a0b55575086fa91d55344ddf9`
+- **Queries**: `cli release sandbox evals docs git` (entity and `--patterns`)
+- **Knowledge used**: `[[agro-web-pipeline]]`, `[[oh-cli-portable-lifecycle]]`, `[[audit-architecture]]`
+- **Grounded against**: `.agro/cli/src/cli.ts`, `.agro/cli/src/commands/lifecycle.ts`, `.devcontainer/docker-compose.image-only.yml`, `.agro/cli/src/__tests__/self-upgrade.test.ts`, `docs/installation.md`, `docs/quickstart.md`, `README.md`, `.github/workflows/publish-cli.yml`, `.github/workflows/release.yml`, `.agro/scripts/__tests__/get-agro.test.ts`, issue #939 S1–S6, PR #1031 plan/prd, agro-web `docs/installation.md` at `956bb1d723100b5779b02d617620fb9cf7193090`
+- **Conflicts discovered**: knowledge pages remain orientation. Live code still uses `ghcr.io/mifunedev/openharness:latest` as the image fallback and top-level help still describes `update` as vendoring for every product. `origin/development` moved to `8ec63d2d` (Herdr fanout skill only). Agro-web local `main` is behind; `origin/main` matches the recorded SHA.
+
+## Expected Knowledge Impact
+
+- **Impact**: REQUIRED
+- **Expected entries**: `oh-cli-portable-lifecycle`, `agro-web-pipeline`, `release-versioning` if present
+- **Affected source paths**: `.agro/cli/src/cli.ts`, `.agro/cli/src/commands/lifecycle.ts`, `.devcontainer/docker-compose.image-only.yml`, `.github/workflows/publish-cli.yml`, `.github/workflows/release.yml`, `.agro/skills/git/SKILL.md`, `.agro/skills/release/SKILL.md`, `.agro/evals/probes/version-parity.sh`, `.agro/evals/probes/agro-legacy-shim.sh`, agro-web `scripts/*.mjs`, onboarding docs
+- **Reason**: The build changes executable-aware help, fresh image defaults, canonical-only npm publication, exact-commit docs provenance, and candidate install evidence. Those are harness CLI, release, and docs-pipeline contracts.
+
+## Plan Reconciliation
+
+- **Source plan**: `.agro/plans/cli-first-release/plan.md` (PR #1031 head `3fbde75e58ea980bc307f00293398a903e773b40`)
+- **Intent preserved**: YES
+- **Material deviations**: none
+- **Constraints discovered during grounding**: catch up `8ec63d2d` before implementation; no Docker socket in this sandbox so candidate runtime uses existing disposable Docker CI; preserve paused `.worktrees/task/installer-dual-layout` and drafts agro #1029 / agro-web #53; do not import draft-only requirements; local agro-web `main` is not the implementation checkout.
+- **Orchestration preserved**: YES

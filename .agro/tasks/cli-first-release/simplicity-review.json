@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "commit": "f7b72f386d943afea81ccd54d69ba92f7698dd47",
+  "reviewer": "e6a02540-28ab-4e8",
+  "reviewedAt": "2026-09-10T00:06:00Z",
+  "findings": [
+    {
+      "file": ".agro/scripts/cli-first-install-smoke.sh",
+      "line": 355,
+      "simplerAlternative": "In recreate_one, apply access.dockerSocket once then run a single stop/rm/install cycle (canaries before the only recreate). Drop the first wait_health/verify_systemd/verify_seed/assert_socket pair.",
+      "removesLines": 28,
+      "blocking": false,
+      "status": "open",
+      "resolvedIn": null
+    },
+    {
+      "file": ".agro/scripts/cli-first-install-smoke.sh",
+      "line": 1,
+      "simplerAlternative": "Delete the 16-line header that restates usage(); keep usage() as the contract.",
+      "removesLines": 16,
+      "blocking": false,
+      "status": "open",
+      "resolvedIn": null
+    },
+    {
+      "file": ".agro/scripts/cli-first-install-smoke.sh",
+      "line": 227,
+      "simplerAlternative": "Fold prefix|home into the dir case (same workdir-scoped rm -rf).",
+      "removesLines": 7,
+      "blocking": false,
+      "status": "open",
+      "resolvedIn": null
+    },
+    {
+      "file": ".agro/scripts/__tests__/cli-first-install-smoke.test.ts",
+      "line": 176,
+      "simplerAlternative": "Replace the source.contains laundry list with bash -n plus one behavioral assertion; drop grep of NAME_PREFIX, profile, tarball names, remove_container_keep_volume, down -v.",
+      "removesLines": 14,
+      "blocking": false,
+      "status": "open",
+      "resolvedIn": null
+    },
+    {
+      "file": ".agro/scripts/__tests__/cli-first-install-smoke.test.ts",
+      "line": 249,
+      "simplerAlternative": "Drop the workflow-string test; CI wiring belongs in the workflow or one contract test, not a restatement of sandbox-boot-guard.yml.",
+      "removesLines": 13,
+      "blocking": false,
+      "status": "open",
+      "resolvedIn": null
+    },
+    {
+      "file": ".agro/cli/src/__tests__/cli-first-help.test.ts",
+      "line": 129,
+      "simplerAlternative": "Keep either the printOhHelp/parseUpdateArgs unit tests or the skipIf esbuild agro.js/oh.js runs, not both copies of the same strings.",
+      "removesLines": 40,
+      "blocking": false,
+      "status": "open",
+      "resolvedIn": null
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "commit": "c078c91e80647bc0c60cebb7ad1f11d929159d33",
+  "runnerExit": 0,
+  "ranAt": "2026-09-09T23:57:00Z",
+  "newRegressions": [],
+  "preExistingReds": ["skills-vendored"],
+  "notes": "Exact-head CI Eval Probe Regression Gate PASS on c078c91e (run 34418906977). Local worktree /eval rewrote RESULTS.md with oh-config-surfaces REGRESSION because python3 is absent; agro.json parses with node and jq. That local row was discarded and RESULTS.md restored to HEAD. skills-vendored is REGRESSION on origin/development as well."
+}

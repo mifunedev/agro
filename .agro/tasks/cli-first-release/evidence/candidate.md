@@ -1,73 +1,68 @@
-# US-010 / US-011 / US-012 note — candidate install and recreation smoke
+# Candidate evidence — US-010 / US-011 / US-012
 
-Worktree: `/home/sandbox/harness/.worktrees/task/939-cli-first-release`
-Branch: `task/939-cli-first-release`
+Exact head: `c078c91e80647bc0c60cebb7ad1f11d929159d33`
+Core PR: https://github.com/mifunedev/agro/pull/1031
+CI: Sandbox Boot Guard run 34418907048 SUCCESS (job 102689819356)
+Artifact: `cli-first-install-smoke-log-34418907048/cli-first-install-smoke.log`
+Image: `openharness-sandbox-boot-guard:a7560348b8d1f4065118aea323df2f11725eb6fe` (locally built candidate, not released latest)
 
-This host has no Docker socket. Live container evidence is not collected here. US-012 remains incomplete until exact-head Docker CI runs.
+## Node-missing bootstrap (debian:bookworm-slim)
 
-## Script contract
+Observed in job log:
 
-```bash
-bash -n .agro/scripts/cli-first-install-smoke.sh
-# SYNTAX_EXIT=0
-
-bash .agro/scripts/cli-first-install-smoke.sh --help
+```
+node_before=ABSENT
+bootstrap_version=0.9.0
+node_after=/tmp/cli-first-fa8uNz/bootstrap-home/.nvm/versions/node/v22.23.2/bin/node version=v22.23.2
+cli-first-install-smoke: phase bootstrap complete
 ```
 
-Phases: `pack` | `bootstrap` | `seed` | `recreate` | `all`.
+Real `get-agro.sh` against built `agro.js`. nvm provisioned Node 22.23.2. New-shell agro 0.9.0.
 
-`--image` is required for seed/recreate/all. Released `:latest` tags are refused.
+## Pack + seed + recreation (`--phase all`, pipefail)
 
-`--cleanup-only` removes only resources recorded in `--workdir/manifest`. Missing manifest and `CLI_FIRST_CLEANUP_SCOPE=unscoped` are refused.
+```
+tarball=/tmp/cli-first-zIGAIz/mifune-agro-0.9.0.tgz
+packed_agro=/tmp/cli-first-zIGAIz/prefix/bin/agro
+packed_version=0.9.0
+packed_identity=agro — AGRO CLI (v0.9.0)
+bootstrap_agro=/tmp/cli-first-zIGAIz/bootstrap-home/.local/bin/agro
+bootstrap_version=0.9.0
+seed_sandbox=agro-cli-first-seed-16141
+seed_container=2eac65f1fabb
+seed_image=openharness-sandbox-boot-guard:a7560348b8d1f4065118aea323df2f11725eb6fe
+seed_storage=agro-cli-first-seed-16141_workspace
+```
 
-## What the script asserts (not yet live)
+Recreate `access.dockerSocket=false`:
 
-Pack:
+```
+before_container=a229912b90fa
+before_storage=agro-cli-first-sock-false-16141_workspace
+before_dockerSocket=false
+before_cred=f5f8eeae987b3e68b4592b2c02ba1dd277eba1fbfa716c3c829c7dbb513a2773 600 1000 1000
+before_canary=2fbe9d670673ff50f35f36f9352b881781521f0c10c148457bf7e62071470f72 755 1000 1000
+before_edit=4a5ff66de11469e43ab47873977a54c04f821be8edd8a52b586ce340c0e93415
+before_marker=7fe84431b2b041fb42d4907538d3e3c5cb585f861e89f13a4aa1e26cd618f731
+after_container=632cbe559293
+after_storage=agro-cli-first-sock-false-16141_workspace
+after_dockerSocket=false
+```
 
-- `npm pack` of `.agro/cli`
-- install the tarball into an isolated prefix
-- invoke that prefix's `agro --version` and record tarball/bundle identity
+Recreate `access.dockerSocket=true`:
 
-Bootstrap:
+```
+before_container=8989eb84e410
+before_storage=agro-cli-first-sock-true-16141_workspace
+before_dockerSocket=true
+before_cred=f5f8eeae987b3e68b4592b2c02ba1dd277eba1fbfa716c3c829c7dbb513a2773 600 1000 1000
+before_canary=2fbe9d670673ff50f35f36f9352b881781521f0c10c148457bf7e62071470f72 755 1000 1000
+after_container=b533b3cd63c7
+after_storage=agro-cli-first-sock-true-16141_workspace
+after_dockerSocket=true
+cli-first-install-smoke: phase all complete
+```
 
-- real `get-agro.sh` against the built `agro.js` via `AGRO_JS_URL=file://…`
-- isolated HOME / profile / bin
-- installed bytes equal the candidate bundle
-- version in a new shell
-- `--bootstrap-without-node` fails when `node` is present; records `node_before=ABSENT` when it is not
+Container IDs changed. Storage names unchanged. Credential mode 600 uid/gid 1000. Canary mode 755 uid/gid 1000. Seed edit and marker hashes recorded before recreation; the job exited 0 so those assertions passed.
 
-Seed:
-
-- `agro sandbox install docker --name … --yes --image=<locally built candidate>`
-- isolated `AGRO_HOME`
-- no `--repo`
-- empty persistent workspace
-- `.agro/` present, `.agro/.image-seeded` present, `.oh/` absent
-- PID 1 is systemd; `openharness-bootstrap.service` and `openharness-cron.service` active via the existing healthcheck command
-
-Recreate (socket `false` then `true`):
-
-- `agro config set --sandbox <name> access.dockerSocket <value>`
-- supported recreation: `agro stop` then `agro sandbox install docker --name … --yes --image=…`
-- before/after: container ID changes, storage identity stays, saved settings stay, synthetic `0600` credential and `0755` canary survive with UID/GID, seeded edit and seed-marker hash survive
-- socket disabled: no `docker.sock` mount/file and no Docker API as sandbox user with `DOCKER_HOST` cleared
-- socket enabled: mount present and `docker info` as sandbox user with `DOCKER_HOST` cleared
-- runner `DOCKER_HOST` is ignored
-
-Cleanup affects only recorded fixture resources.
-
-## Fixture tests (this host)
-
-Focused vitest for `cli-first-install-smoke.test.ts` and the real-bundle case in `get-agro.test.ts` passed (see `evidence/release-contract.md`). Stubs do not establish live runtime acceptance.
-
-## CI wiring (for US-012)
-
-`.github/workflows/sandbox-boot-guard.yml` (non-publishing Docker CI):
-
-1. Builds the sandbox image as `openharness-sandbox-boot-guard:${{ github.sha }}` (not released `latest`).
-2. Builds the candidate CLI.
-3. Runs bootstrap without Node inside `debian:bookworm-slim`.
-4. Runs `cli-first-install-smoke.sh --phase all --image "$CANDIDATE_IMAGE" --require-docker`.
-5. Uploads `cli-first-install-smoke.log`.
-
-Live container evidence waits on that exact-head job. Do not treat this file as US-012 pass.
+False pass on 5e1096f2 is not evidence. Pipefail on this head failed closed when pack/recreate were broken, then passed when they were not.

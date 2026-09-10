@@ -1,0 +1,17 @@
+# progress
+
+2026-09-09T23:11:35Z plan-phase: operator handed /spec https://github.com/mifunedev/agro/pull/1031 at head 3fbde75e58ea980bc307f00293398a903e773b40. BASE_COMMIT at planning 75b593eabc376b6a0b55575086fa91d55344ddf9. Wiki queries: cli release sandbox evals docs git. Knowledge read: [[agro-web-pipeline]] [[oh-cli-portable-lifecycle]] [[audit-architecture]]. Patterns (planner only): pattern-evals-tracked-only-scan-misses-uncommitted, pattern-evals-product-name-literal-pinning, pattern-wiki-frontmatter-edit-without-reindex, pattern-scripts-sibling-dependency-standalone-copies, pattern-cli-bundled-asset-relative-import.
+
+2026-09-09T23:11:35Z ownership: this session (Pi / xai grok-4.6, PI_SESSION_ID=01a0884f-353d-734c-ba38-36fb7486d652) is the sole /spec implementation owner for mifunedev/agro PR #1031. Originating session stopped writes and worker dispatch. Ownership acknowledged before any worker dispatch. Execution worktree: /home/sandbox/harness/.worktrees/task/939-cli-first-release. Do not implement in the root checkout /home/sandbox/harness.
+
+2026-09-09T23:16:00Z T1 accepted. Dispositions in evidence/scope.md. Wave 2 dispatch: T2 core worker in existing worktree; T4 agro-web worker in /home/sandbox/harness/projects/mifunedev/openharness-web/.worktrees/task/939-cli-first-release at 956bb1d. Requested inherit/high. Paused installer-dual-layout and drafts 1029/53 untouched.
+
+2026-09-09T23:26:00Z T2 accepted at 9a153947. Advisor re-ran typecheck=0 build=0 vitest help/lifecycle/config-render=88 pass. agro vs oh help observed. US-002/US-003/US-004 passes true. Residual: whole-file STE still 1 on pre-existing findings. Additional T3 write path approved: .agro/scripts/__tests__/release-reservation.test.ts (pins the legacy publish steps T3 must remove). CHANGELOG owned by T3 including T2 user-visible help/image default.
+
+2026-09-09T23:42:00Z T3 source landed 893838e7. Advisor re-ran version-parity=0 agro-legacy-shim=0 bash -n=0 vitest 63=0. T3 not accepted: exact-head CI failed. Repair routed to same core worker. Extra path approved: .agro/evals/probes/oh-sandbox-image-mode.sh (still pins openharness default). Linked web PR https://github.com/mifunedev/agro-web/pull/54 draft, Build docs SUCCESS, deploy SKIPPED.
+
+2026-09-09T23:45:00Z T3 repair 5e1096f2 pushed. Local oh-sandbox-image-mode=0. Waiting exact-head CI. T4 tests 28 pass independently. US-007/US-008 accepted. US-009 browser blocked: agent-browser 0.8.5 Chromium missing libglib-2.0.so.0; sudo apt not permitted. Rendered docs HTTP 200 at 127.0.0.1:3000/docs/installation and /docs/quickstart; CLI-first commands present; clone/install.sh labeled not required.
+
+2026-09-09T23:52:00Z CI on 5e1096f2 is green but US-012 is NOT proven. Artifact cli-first-install-smoke.log ends with pack failure: npm pack wrote openharness-0.9.0.tgz (root private package) and prefix/bin/agro missing. Workflow `tee` without pipefail hid exit 1. Seed/recreate never ran. Bootstrap-without-node DID pass: node_before=ABSENT, Node v22.23.2, agro 0.9.0. Repair routed to same core worker.
+
+2026-09-10T00:05:00Z Exact-head c078c91e Boot Guard SUCCESS with real pack/seed/recreate evidence. US-005/006/010/011/012 accepted. US-009 browser still blocked (libglib). US-013 open. /eval running. Knowledge UPDATED pages dispatched. PRs remain draft. No merge.
