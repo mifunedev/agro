@@ -102,8 +102,8 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Guard at config.ts:74-90, reusing destroyConfirmationPhrase() + namedVolumes() exactly as lifecycle.ts:349 composes <project>_<volume>. --force per D-1, parsed at cli.ts:494-505. Fails OPEN when docker is missing or the daemon is unreachable, so the guard cannot become a new failure mode. R3 added a no-op skip so the message never claims a hazard that does not exist. Advisor verified fail-open, no-op, and --force end to end against the built CLI on a host with no Docker daemon. The true-positive refusal is proven only against a stubbed runner. Commits d4d390e0, 270b2dbd."
     },
     {
       "id": "US-007",
@@ -119,8 +119,8 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Commits 0994ff6c and 7a588c25. Advisor reconciled the prose against the landed implementation: the documented --home-mount semantics (absolute resolution, directory creation, non-empty accepted) match prepareHomeMount(); the documented config-set refusal and --force match the landed guard; docs/configuration.md:142-143 cover D-3 and the corrected build condition. STE: zero new findings against a 96-finding pre-existing baseline in prose this story does not own."
     },
     {
       "id": "US-008",
@@ -136,8 +136,8 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "/eval runner exit 0, 146 probes, no green->red delta. oh-devcontainer-restructure, oh-home-mount, oh-image-only-deploy all PASS and byte-identical to the pre-work sha256 baseline; registry.test.ts byte-identical and 22/22 passing. entryRepo() proven: with two entries registered, an unrelated cwd yields the ambiguity error while either bound directory resolves the entry and reaches Docker. git diff origin/development...HEAD -- .devcontainer/ is empty. 1393 passing (up 13); the 2 migrate-rehearsal failures are pre-existing and were reproduced by the advisor on the clean development checkout."
     }
   ]
 }

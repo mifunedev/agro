@@ -93,3 +93,38 @@ and the materialized compose base:
 R1 and R2 both confirmed fixed. US-001..US-005 flipped to passes: true.
 US-007 stays open pending reconciliation with the landed behavior; the docs do
 not yet mention D-3, and the config-set guard they describe is not built yet.
+
+## 2026-09-10 — worker C follow-up (D-3 docs), commit 7a588c25
+docs/configuration.md rows 142 and 143 now describe the D-3 image.ref write and
+the corrected build condition. Advisor verified both rows and re-checked the
+protected paths: byte-identical.
+The worker flagged the `image.mode` Default cell, which still reads `build`.
+The advisor checked and left it: `defaultOhConfig` at
+.agro/cli/src/lib/oh-config.ts:133 does set `mode: "build"`, so the cell is an
+honest schema default. `seedConfig` writes an explicit mode on every install,
+both before and after this change, so the raw default is not observable from a
+fresh entry and this branch introduces no regression there. Correct call to
+flag it and not change it.
+US-007 remains open only on reconciling the documented config-set guard against
+worker B's implementation.
+
+## 2026-09-10 — worker B result (US-006), commits d4d390e0 + 270b2dbd
+Guard reuses destroyConfirmationPhrase() + namedVolumes(), fails open when
+docker is absent, and R3 added a no-op skip so the refusal never asserts a
+hazard that does not exist. Advisor verified fail-open, no-op, and --force end
+to end against the built CLI. 8/8 config-home-path tests pass.
+
+## 2026-09-10 — knowledge impact resolved, commit 4188c21e
+oh-cli-portable-lifecycle UPDATED, fresh-machine-setup UPDATED,
+compose-env-boundary NOT-AFFECTED: its declared sources config-render.ts and
+registry.ts are unchanged, and every env-key spelling it documents is preserved.
+Index probe PASS. The worker disclosed that verified_at is page-level while its
+re-read was claim-level. The advisor accepted the advance and recorded the
+unre-read sections in evidence.md rather than let the field imply more than was
+done.
+
+## 2026-09-10 — US-008 and acceptance
+/eval: runner exit 0, 146 probes, no green->red delta. Three compose-string
+probes PASS and byte-identical; registry.test.ts byte-identical, 22/22.
+entryRepo() proven from both bound directories against two registered entries.
+.devcontainer/ diff empty. All eight stories passes: true.

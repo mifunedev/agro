@@ -192,6 +192,16 @@ acceptance criterion was changed.
   outside this task's scope.
 - **Two pre-existing red tests and three persistent red probes are carried
   forward**, listed above with their causes. None is a green→red transition.
+- **`verified_at` on both knowledge pages is broader than what was re-read.**
+  The field is page-level, but the worker re-read only the code behind the
+  claims it changed. Advancing both pages to `270b2dbd` therefore blesses
+  sections not re-verified at this pin: on `oh-cli-portable-lifecycle` the
+  bundled-assets / `build.mjs` paragraph, `resolveProduct`, the `oh update` /
+  `agro update` / `agro migrate` paragraphs, remote-fetch, troubleshooting, and
+  the verb-routing table; on `fresh-machine-setup` everything outside lines
+  82-95. None of that material appears in this diff, so nothing suggests it went
+  stale, but it carries its previous evidence rather than fresh evidence. A true
+  page-level re-verification is a separate pass.
 - **Spec-tail gates not run:** `/audit implementation` with its gate-5 simplicity
   review, `/spec retro`, `/wiki compile`, and `/benchmark`. The advisor ran
   `/eval`, the knowledge-impact gate, and the PR promotable classification
