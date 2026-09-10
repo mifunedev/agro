@@ -166,16 +166,24 @@ With your coding harness and GitHub CLI configured, ask the agent to create a
 repository for your harness changes. We recommend **private visibility by
 default**, with `origin` pointing to your repository:
 
-> Create a private GitHub repository to track my harness changes and configure it as `origin`.
-> Verify my GitHub account and inspect existing history and remotes first. Ask before replacing an existing remote.
-> Exclude credentials, runtime state, and unrelated projects. Confirm the repository name and proposed files with me before creating it or pushing.
-> Work inside this sandbox and preserve my existing files.
+```text
+Create a private GitHub repo for my harness changes and set it as origin.
+Verify my account, exclude secrets and runtime files, and preserve existing work.
+Confirm the repo name, files, and any remote replacement before creating or pushing.
+```
 
-To contribute back, ask the agent to configure
-[`mifunedev/agro`](https://github.com/mifunedev/agro) as `upstream`, keeping your
-private `origin`. If the histories differ, use a separate checkout inside the
-sandbox and transfer only the changes you intend to contribute. See the
-[contributing guide](docs/contributing.md) for the branch and pull-request workflow.
+<details>
+<summary>Contribute back to AGRO (optional)</summary>
+
+```text
+Configure https://github.com/mifunedev/agro.git as upstream, preserving my origin.
+Check shared history; if unrelated, use a separate checkout inside the sandbox.
+Include only my selected changes, exclude private data, and confirm before pushing or opening a PR.
+```
+
+See the [contributing guide](docs/contributing.md) for the full workflow.
+
+</details>
 
 ### 6. Slack and scheduled work (optional)
 
