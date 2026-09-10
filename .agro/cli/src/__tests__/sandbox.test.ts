@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runSandboxInstall, runSandboxList, type SandboxIO } from "../commands/sandbox.js";
+import { entryRoot, resolveSandboxRoot } from "../lib/registry.js";
 import type { LifecycleRunner, RunResult } from "../lib/execution/runner.js";
 
 const cleanups: string[] = [];
@@ -132,7 +133,7 @@ describe("oh sandbox install — the entry it writes", () => {
       git: { userName: "Ada Lovelace", userEmail: "Ada Lovelace" },
       image: { mode: "image" },
     });
-    expect(config.repo).toBeUndefined();
+    expect(config.checkout).toBeUndefined();
   });
 
   it("materialises the entry and runs the wrapper from inside it, with --no-build", async () => {
@@ -158,7 +159,7 @@ describe("oh sandbox install — the entry it writes", () => {
     expect(wrapper?.args).not.toContain("--build");
   });
 
-  it("--repo renders AGRO_REPO_DIR into the compose env and selects the build base", async () => {
+  it("--checkout renders AGRO_REPO_DIR into the compose env and selects the build base", async () => {
     const registryPath = registry();
     const checkout = harnessCheckout();
 
@@ -172,14 +173,14 @@ describe("oh sandbox install — the entry it writes", () => {
 
     expect(
       await runSandboxInstall(
-        { runtime: "docker", name: "box", repo: checkout, yes: true, run },
+        { runtime: "docker", name: "box", checkout: checkout, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
 
     const root = join(registryPath, "box");
     expect(readJson(join(root, "agro.json"))).toMatchObject({
-      repo: checkout,
+      checkout: checkout,
       image: { mode: "build" },
     });
     expect(rendered.join("")).toContain(`AGRO_REPO_DIR=${checkout}`);
@@ -207,7 +208,7 @@ describe("oh sandbox install — the entry it writes", () => {
 
     expect(
       await runSandboxInstall(
-        { runtime: "docker", repo: checkout, yes: true, run },
+        { runtime: "docker", checkout: checkout, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -219,7 +220,7 @@ describe("oh sandbox install — the entry it writes", () => {
       storage: { homePath: "/srv/oh-home" },
       access: { ssh: true, sshPort: 2345, dockerSocket: true },
       image: { ref: "ghcr.io/x/y:pinned", mode: "image" },
-      repo: checkout,
+      checkout: checkout,
     });
   });
 
@@ -324,14 +325,14 @@ describe("oh sandbox install — re-installing an existing name", () => {
     expect(rendered.join("")).toContain("TZ=Europe/Berlin");
   });
 
-  it("preserves the ssh port, home path, repo and every other config-set field", async () => {
+  it("preserves the ssh port, home path, checkout and every other config-set field", async () => {
     const registryPath = registry();
     const checkout = harnessCheckout();
     const { run } = makeRunner();
 
     expect(
       await runSandboxInstall(
-        { runtime: "docker", name: "box", repo: checkout, yes: true, run },
+        { runtime: "docker", name: "box", checkout: checkout, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -357,7 +358,7 @@ describe("oh sandbox install — re-installing an existing name", () => {
       await runSandboxInstall({ runtime: "docker", name: "box", yes: true, run }, makeIo().io),
     ).toBe(0);
     expect(readJson(entry)).toMatchObject({
-      repo: checkout,
+      checkout: checkout,
       access: { ssh: true, sshPort: 2345, sshPasswordAuth: true, dockerSocket: true },
       storage: { homePath: "/srv/oh-home" },
       hermesDashboard: { enabled: true, port: 9200 },
@@ -435,7 +436,7 @@ describe("oh sandbox install — re-installing an existing name", () => {
     });
   });
 
-  it("lets a --repo seed override the existing entry", async () => {
+  it("lets a --checkout seed override the existing entry", async () => {
     const registryPath = registry();
     const checkout = mkdtempSync(join(tmpdir(), "oh-sandbox-repo-"));
     cleanups.push(checkout);
@@ -450,7 +451,7 @@ describe("oh sandbox install — re-installing an existing name", () => {
 
     expect(
       await runSandboxInstall(
-        { runtime: "docker", name: "box", repo: checkout, yes: true, run },
+        { runtime: "docker", name: "box", checkout: checkout, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -564,7 +565,7 @@ describe("oh sandbox install — the wizard", () => {
 });
 
 describe("oh sandbox install — build mode inference and the home mount", () => {
-  it("keeps image mode for a --repo directory without .devcontainer/Dockerfile", async () => {
+  it("keeps image mode for a --checkout directory without .devcontainer/Dockerfile", async () => {
     const registryPath = registry();
     const plain = tempDir("oh-sandbox-plain-");
     const rendered: string[] = [];
@@ -577,18 +578,18 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
 
     expect(
       await runSandboxInstall(
-        { runtime: "docker", name: "box", repo: plain, yes: true, run },
+        { runtime: "docker", name: "box", checkout: plain, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
     expect(readJson(join(registryPath, "box", "agro.json"))).toMatchObject({
-      repo: plain,
+      checkout: plain,
       image: { mode: "image" },
     });
     expect(rendered.join("")).toContain(`AGRO_REPO_DIR=${plain}`);
   });
 
-  it("pins the published image for a --repo directory that is not a checkout", async () => {
+  it("pins the published image for a --checkout directory that is not a checkout", async () => {
     const registryPath = registry();
     const plain = tempDir("oh-sandbox-plain-");
     const rendered: string[] = [];
@@ -601,12 +602,12 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
 
     expect(
       await runSandboxInstall(
-        { runtime: "docker", name: "box", repo: plain, yes: true, run },
+        { runtime: "docker", name: "box", checkout: plain, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
     expect(readJson(join(registryPath, "box", "agro.json"))).toMatchObject({
-      repo: plain,
+      checkout: plain,
       image: { mode: "image", ref: "ghcr.io/mifunedev/agro:latest" },
     });
     const env = rendered.join("");
@@ -625,7 +626,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
 
     expect(
       await runSandboxInstall(
-        { runtime: "docker", name: "box", repo: plain, yes: true, run },
+        { runtime: "docker", name: "box", checkout: plain, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -634,14 +635,14 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
     });
   });
 
-  it("writes no image.ref for a checkout --repo that builds locally", async () => {
+  it("writes no image.ref for a --checkout checkout that builds locally", async () => {
     const registryPath = registry();
     const checkout = harnessCheckout();
     const { run } = makeRunner();
 
     expect(
       await runSandboxInstall(
-        { runtime: "docker", name: "box", repo: checkout, yes: true, run },
+        { runtime: "docker", name: "box", checkout: checkout, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -650,7 +651,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
     expect((config.image as Record<string, unknown>).ref).toBeUndefined();
   });
 
-  it("leaves the no-repo image-only path without an image.ref", async () => {
+  it("leaves the no-checkout image-only path without an image.ref", async () => {
     const registryPath = registry();
     const { run } = makeRunner();
 
@@ -662,14 +663,14 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
     expect((config.image as Record<string, unknown>).ref).toBeUndefined();
   });
 
-  it("--print-argv shows no --build for a --repo directory that is not a checkout", async () => {
+  it("--print-argv shows no --build for a --checkout directory that is not a checkout", async () => {
     registry();
     const plain = tempDir("oh-sandbox-plain-");
     const { calls, run } = makeRunner();
 
     expect(
       await runSandboxInstall(
-        { runtime: "docker", name: "box", repo: plain, yes: true, printArgv: true, run },
+        { runtime: "docker", name: "box", checkout: plain, yes: true, printArgv: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -689,7 +690,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
 
     expect(
       await runSandboxInstall(
-        { runtime: "docker", name: "box", repo: checkout, yes: true, run },
+        { runtime: "docker", name: "box", checkout: checkout, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -709,12 +710,12 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
     const { asked, err, io } = makeIo(["never-read"]);
 
     expect(
-      await runSandboxInstall({ runtime: "docker", name: "box", repo: plain, run }, io),
+      await runSandboxInstall({ runtime: "docker", name: "box", checkout: plain, run }, io),
     ).not.toBe(0);
     expect(asked).toEqual([]);
     const message = err.join("");
     expect(message).toContain("oh sandbox install:");
-    expect(message).toContain("--repo");
+    expect(message).toContain("--checkout");
     expect(message).toContain(join(plain, ".devcontainer", "Dockerfile"));
   });
 
@@ -728,7 +729,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
     const { calls, run } = makeRunner();
 
     expect(
-      await runSandboxInstall({ runtime: "docker", repo: plain, yes: true, run }, makeIo().io),
+      await runSandboxInstall({ runtime: "docker", checkout: plain, yes: true, run }, makeIo().io),
     ).not.toBe(0);
     expect(existsSync(registryPath)).toBe(false);
     expect(calls.some((c) => c.cmd === "bash")).toBe(false);
@@ -746,7 +747,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
 
     expect(
       await runSandboxInstall(
-        { runtime: "docker", name: "box", repo: plain, homeMount: home, yes: true, run },
+        { runtime: "docker", name: "box", checkout: plain, homeMount: home, yes: true, run },
         makeIo().io,
       ),
     ).not.toBe(0);
@@ -781,7 +782,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
     expect(base).not.toContain(":/home/sandbox/harness");
   });
 
-  it("--home-mount with a checkout --repo renders both keys and selects the build base", async () => {
+  it("--home-mount with a --checkout checkout renders both keys and selects the build base", async () => {
     const registryPath = registry();
     const home = tempDir("oh-sandbox-home-");
     const checkout = harnessCheckout();
@@ -795,14 +796,14 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
 
     expect(
       await runSandboxInstall(
-        { runtime: "docker", name: "box", repo: checkout, homeMount: home, yes: true, run },
+        { runtime: "docker", name: "box", checkout: checkout, homeMount: home, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
     const root = join(registryPath, "box");
     expect(readJson(join(root, "agro.json"))).toMatchObject({
       storage: { homePath: home },
-      repo: checkout,
+      checkout: checkout,
       image: { mode: "build" },
     });
     const env = rendered.join("");
@@ -934,5 +935,116 @@ describe("oh sandbox list", () => {
     const { out, io } = makeIo();
     expect(await runSandboxList({ run: makeRunner().run }, io)).toBe(0);
     expect(out.join("")).toContain("`oh sandbox install docker`");
+  });
+});
+
+describe("the checkout field — one concept, two spellings", () => {
+  function seedEntry(name: string, config: Record<string, unknown>): string {
+    const root = entryRoot(name);
+    mkdirSync(root, { recursive: true });
+    writeFileSync(
+      join(root, "agro.json"),
+      `${JSON.stringify({ version: 1, name, runtime: "docker", ...config })}\n`,
+    );
+    return root;
+  }
+
+  it("writes the checkout field and renders the frozen env key from it", async () => {
+    const registryPath = registry();
+    const plain = tempDir("oh-sandbox-plain-");
+    const rendered: string[] = [];
+    const run: LifecycleRunner = (cmd, args) => {
+      if (cmd === "git") return { status: 0, stdout: "" };
+      const i = args.indexOf("--extra-env-file");
+      if (i !== -1) rendered.push(readFileSync(args[i + 1], "utf8"));
+      return { status: 0 };
+    };
+
+    expect(
+      await runSandboxInstall(
+        { runtime: "docker", name: "box", checkout: plain, yes: true, run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    const config = readJson(join(registryPath, "box", "agro.json"));
+    expect(config.checkout).toBe(plain);
+    expect(config.repo).toBeUndefined();
+    expect(rendered.join("")).toContain(`AGRO_REPO_DIR=${plain}`);
+  });
+
+  it("pins the published image for an entry that still spells the field repo", async () => {
+    const registryPath = registry();
+    const plain = tempDir("oh-sandbox-plain-");
+    seedEntry("box", { repo: plain });
+    const rendered: string[] = [];
+    const run: LifecycleRunner = (cmd, args) => {
+      if (cmd === "git") return { status: 0, stdout: "" };
+      const i = args.indexOf("--extra-env-file");
+      if (i !== -1) rendered.push(readFileSync(args[i + 1], "utf8"));
+      return { status: 0 };
+    };
+
+    expect(
+      await runSandboxInstall({ runtime: "docker", name: "box", yes: true, run }, makeIo().io),
+    ).toBe(0);
+    const config = readJson(join(registryPath, "box", "agro.json"));
+    expect(config).toMatchObject({
+      repo: plain,
+      image: { mode: "image", ref: "ghcr.io/mifunedev/agro:latest" },
+    });
+    const env = rendered.join("");
+    expect(env).toContain(`AGRO_REPO_DIR=${plain}`);
+    const base = readFileSync(
+      join(registryPath, "box", ".devcontainer", "docker-compose.yml"),
+      "utf8",
+    );
+    expect(base).toContain("${AGRO_REPO_DIR:-${OH_REPO_DIR:-..}}:/home/sandbox/harness");
+  });
+
+  it("lets an explicit image ref outrank the published-image pin", async () => {
+    const registryPath = registry();
+    const plain = tempDir("oh-sandbox-plain-");
+    const { run } = makeRunner();
+
+    expect(
+      await runSandboxInstall(
+        {
+          runtime: "docker",
+          name: "box",
+          checkout: plain,
+          imageRef: "ghcr.io/x/y:pinned",
+          yes: true,
+          run,
+        },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    expect(readJson(join(registryPath, "box", "agro.json"))).toMatchObject({
+      image: { mode: "image", ref: "ghcr.io/x/y:pinned" },
+    });
+  });
+
+  it("resolves the sandbox from a cwd inside a checkout-spelled entry", () => {
+    registry();
+    const checkout = tempDir("oh-sandbox-checkout-");
+    seedEntry("elsewhere", { checkout: "/nowhere" });
+    const root = seedEntry("mine", { checkout });
+    expect(resolveSandboxRoot({ cwd: join(checkout, "packages", "app") })).toBe(root);
+  });
+
+  it("lets checkout outrank repo when an entry holds both", () => {
+    registry();
+    const checkout = tempDir("oh-sandbox-checkout-");
+    const legacy = tempDir("oh-sandbox-legacy-");
+    seedEntry("other", { repo: legacy });
+    const root = seedEntry("mine", { repo: "/nowhere", checkout });
+    expect(resolveSandboxRoot({ cwd: checkout })).toBe(root);
+  });
+
+  it("still reports the ambiguity error for an unrelated cwd", () => {
+    registry();
+    seedEntry("alpha", { checkout: tempDir("oh-sandbox-checkout-") });
+    seedEntry("beta", { repo: tempDir("oh-sandbox-legacy-") });
+    expect(() => resolveSandboxRoot({ cwd: tmpdir() })).toThrow(/alpha, beta/);
   });
 });

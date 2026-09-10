@@ -256,7 +256,7 @@ export function printSandboxHelp(bin: string = LEGACY_PRODUCT.bin): void {
   process.stdout.write(`${bin} sandbox — Create and list sandboxes
 
 Usage:
-  ${bin} sandbox install <runtime> [--name <name>] [--repo <dir>]
+  ${bin} sandbox install <runtime> [--name <name>] [--checkout <dir>]
                                [--home-mount <dir>] [--yes]
                                [--image[=<ref>]] [--no-build] [--print-argv]
   ${bin} sandbox list [--json]
@@ -264,20 +264,22 @@ Usage:
 \`install\` writes a sandbox entry under \${${stateNames(bin).envPrefix}HOME:-~/${stateNames(bin).userStateDir}}/sandboxes/<name>/,
 materialises the compose files and the compose wrapper into it, then starts the
 container. It needs no project checkout and runs from any directory. Without
---repo the sandbox runs the prebuilt image; with --repo <dir> that checkout is
-bound at /home/sandbox/harness; the sandbox builds locally only when that
-directory holds .devcontainer/Dockerfile.
+--checkout the sandbox runs the prebuilt image; with --checkout <dir> that
+checkout is bound at /home/sandbox/harness; the sandbox builds locally only
+when that directory holds .devcontainer/Dockerfile.
 
 On a terminal without --yes it asks for the sandbox name, the timezone, the git
 identity, SSH (with its host port), the host Docker socket, and the host path
-for /home/sandbox. With --repo it seeds those answers from that checkout's ${stateNames(bin).configFile}.
+for /home/sandbox. With --checkout it seeds those answers from that
+checkout's ${stateNames(bin).configFile}.
 
 Flags:
   --name <name>    Registry entry name (default: the lowest free ${DEFAULT_NAME_PREFIX}<n>)
-  --repo <dir>     Bind this checkout into the sandbox and seed the defaults
+  --checkout <dir> Bind this checkout into the sandbox and seed the defaults
                    from its ${stateNames(bin).configFile}. The sandbox builds
                    locally only when that directory holds
                    .devcontainer/Dockerfile
+  --repo <dir>     Deprecated alias for --checkout
   --home-mount <dir>
                    Bind this host directory at /home/sandbox instead of the
                    Docker-managed volume. Relative paths resolve against the
@@ -738,7 +740,7 @@ export interface SandboxArgs {
   subcommand?: "install" | "list";
   runtime?: string;
   name?: string;
-  repo?: string;
+  checkout?: string;
   homeMount?: string;
   yes: boolean;
   image: boolean;
@@ -748,9 +750,10 @@ export interface SandboxArgs {
   json: boolean;
 }
 
-const SANDBOX_VALUE_FLAGS: Record<string, "name" | "repo" | "homeMount"> = {
+const SANDBOX_VALUE_FLAGS: Record<string, "name" | "checkout" | "homeMount"> = {
   "--name": "name",
-  "--repo": "repo",
+  "--checkout": "checkout",
+  "--repo": "checkout",
   "--home-mount": "homeMount",
 };
 
@@ -779,6 +782,7 @@ export function parseSandboxArgs(rest: string[], bin: string = LEGACY_PRODUCT.bi
   if (isHelpFlag(tail[0])) return { ok: true, args: { ...args, help: true } };
 
   const positionals: string[] = [];
+  const checkoutSpellings = new Set<string>();
   for (let i = 0; i < tail.length; i++) {
     const token = tail[i];
     const valueFlag = SANDBOX_VALUE_FLAGS[token];
@@ -787,6 +791,7 @@ export function parseSandboxArgs(rest: string[], bin: string = LEGACY_PRODUCT.bi
       if (value === undefined) {
         return { ok: false, error: `${bin} sandbox ${head}: ${token} requires a value` };
       }
+      if (valueFlag === "checkout") checkoutSpellings.add(token);
       args[valueFlag] = value;
       i++;
     } else if (token === "--yes") {
@@ -811,6 +816,13 @@ export function parseSandboxArgs(rest: string[], bin: string = LEGACY_PRODUCT.bi
     } else {
       positionals.push(token);
     }
+  }
+
+  if (checkoutSpellings.has("--checkout") && checkoutSpellings.has("--repo")) {
+    return {
+      ok: false,
+      error: `${bin} sandbox ${head}: --checkout conflicts with --repo — pass exactly one, and prefer --checkout`,
+    };
   }
 
   if (head === "list") {
@@ -1186,7 +1198,7 @@ async function main(argv: string[]): Promise<number> {
       {
         runtime: a.runtime as string,
         ...(a.name !== undefined ? { name: a.name } : {}),
-        ...(a.repo !== undefined ? { repo: a.repo } : {}),
+        ...(a.checkout !== undefined ? { checkout: a.checkout } : {}),
         ...(a.homeMount !== undefined ? { homeMount: a.homeMount } : {}),
         yes: a.yes,
         image: a.image,

@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { resolveExecutionTarget } from "../lib/execution/index.js";
 import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import {
+  configCheckout,
   defaultOhConfig,
   getOhConfigValue,
   OH_CONFIG_FIELDS,
@@ -31,7 +32,7 @@ export interface SandboxIO extends LifecycleIO {
 export interface SandboxInstallOptions {
   runtime: string;
   name?: string;
-  repo?: string;
+  checkout?: string;
   homeMount?: string;
   yes?: boolean;
   image?: boolean;
@@ -124,14 +125,14 @@ function nonEmpty(value: string | undefined): string | undefined {
 
 function seedConfig(
   name: string,
-  repo: string | undefined,
+  checkout: string | undefined,
   seed: OhConfig | undefined,
   run: LifecycleRunner,
 ): OhConfig {
   const config = overlaySettings(defaultOhConfig(name), seed);
   config.name = name;
   config.runtime = "docker";
-  if (repo !== undefined) config.repo = repo;
+  if (checkout !== undefined) config.checkout = checkout;
   config.timezone = nonEmpty(seed?.timezone) ?? hostTimezone();
   config.git = {
     userName: nonEmpty(seed?.git?.userName) ?? gitIdentity(run, "user.name"),
@@ -139,7 +140,7 @@ function seedConfig(
   };
   config.image = {
     ...config.image,
-    mode: seed?.image?.mode ?? (isBuildCapable(config.repo) ? "build" : "image"),
+    mode: seed?.image?.mode ?? (isBuildCapable(configCheckout(config)) ? "build" : "image"),
   };
   return config;
 }
@@ -218,13 +219,13 @@ export async function runSandboxInstall(
     return 1;
   }
 
-  const repo = opts.repo === undefined ? undefined : resolve(opts.repo);
-  if (repo !== undefined && !existsSync(repo)) {
-    io.stderr(`oh sandbox install: --repo directory does not exist: ${repo}\n`);
+  const checkout = opts.checkout === undefined ? undefined : resolve(opts.checkout);
+  if (checkout !== undefined && !existsSync(checkout)) {
+    io.stderr(`oh sandbox install: --checkout directory does not exist: ${checkout}\n`);
     return 1;
   }
 
-  const repoSeed = readSeedConfig(repo);
+  const repoSeed = readSeedConfig(checkout);
   const name = opts.name ?? repoSeed?.name ?? nextDefaultName(run);
   try {
     assertSandboxName(name);
@@ -233,18 +234,18 @@ export async function runSandboxInstall(
     return 1;
   }
 
-  const config = seedConfig(name, repo, mergeSettings(readEntryConfig(name), repoSeed), run);
+  const config = seedConfig(name, checkout, mergeSettings(readEntryConfig(name), repoSeed), run);
 
   const buildRequested =
     config.image?.mode === "build" &&
     opts.noBuild !== true &&
     opts.image !== true &&
     opts.imageRef === undefined;
-  if (buildRequested && !isBuildCapable(config.repo)) {
-    const target = config.repo ?? resolve(opts.repo ?? ".");
+  if (buildRequested && !isBuildCapable(configCheckout(config))) {
+    const target = configCheckout(config) ?? resolve(opts.checkout ?? ".");
     io.stderr(
       `oh sandbox install: image.mode is "build" but ${join(target, ".devcontainer", "Dockerfile")} ` +
-        "does not exist — point --repo <dir> at a harness checkout that has .devcontainer/Dockerfile, " +
+        "does not exist — point --checkout <dir> at a harness checkout that has .devcontainer/Dockerfile, " +
         'or set image.mode to "image" to run the prebuilt image\n',
     );
     return 1;
@@ -283,7 +284,7 @@ export async function runSandboxInstall(
   }
 
   if (
-    config.repo !== undefined &&
+    configCheckout(config) !== undefined &&
     config.image?.mode === "image" &&
     nonEmpty(config.image?.ref) === undefined
   ) {
@@ -291,7 +292,7 @@ export async function runSandboxInstall(
   }
 
   const useNoBuild =
-    opts.noBuild === true || !(config.repo !== undefined && config.image?.mode === "build");
+    opts.noBuild === true || !(configCheckout(config) !== undefined && config.image?.mode === "build");
   const sandboxOpts = {
     run,
     ...(opts.image === true ? { image: true } : {}),
@@ -303,7 +304,7 @@ export async function runSandboxInstall(
     const preview = mkdtempSync(join(tmpdir(), "oh-sandbox-preview-"));
     try {
       writeOhConfig(preview, config);
-      materialize(preview, { ...(config.repo !== undefined ? { repo: config.repo } : {}) });
+      materialize(preview, { ...(configCheckout(config) !== undefined ? { checkout: configCheckout(config) } : {}) });
       return await runSandbox({ ...sandboxOpts, cwd: preview, printArgv: true }, io);
     } finally {
       rmSync(preview, { recursive: true, force: true });
@@ -313,7 +314,7 @@ export async function runSandboxInstall(
   const root = entryRoot(config.name as string);
   mkdirSync(root, { recursive: true });
   writeOhConfig(root, config);
-  materialize(root, { ...(config.repo !== undefined ? { repo: config.repo } : {}) });
+  materialize(root, { ...(configCheckout(config) !== undefined ? { checkout: configCheckout(config) } : {}) });
 
   const code = await runSandbox({ ...sandboxOpts, cwd: root }, io);
   if (code === 0) io.stdout(`next: oh shell ${config.name}\n`);
@@ -345,7 +346,7 @@ export async function runSandboxList(opts: SandboxListOptions, io: SandboxIO): P
     rows.push({
       name,
       runtime: config.runtime ?? "docker",
-      repo: config.repo ?? "-",
+      repo: configCheckout(config) ?? "-",
       status: await entryStatus(root, name, run),
     });
   }

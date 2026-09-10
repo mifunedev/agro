@@ -1,4 +1,4 @@
-import type { OhConfig } from "./oh-config.js";
+import { configCheckout, type OhConfig } from "./oh-config.js";
 import { isSecretKey } from "./secrets.js";
 
 const RETIRED_KEYS = [
@@ -38,7 +38,7 @@ export function renderComposeVars(config: OhConfig): RenderedVar[] {
   put("SANDBOX_NAME", config.name);
   put("TZ", config.timezone);
   put("AGRO_HOME_MOUNT", config.storage?.homePath);
-  put("AGRO_REPO_DIR", config.repo);
+  put("AGRO_REPO_DIR", configCheckout(config));
 
   put("GIT_USER_NAME", config.git?.userName);
   put("GIT_USER_EMAIL", config.git?.userEmail);

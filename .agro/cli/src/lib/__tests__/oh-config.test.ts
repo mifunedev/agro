@@ -3,10 +3,12 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, wri
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  configCheckout,
   defaultOhConfig,
   OH_CONFIG_FIELDS,
   ohConfigPath,
   readOhConfig,
+  setOhConfigValue,
   validateOhConfig,
   writeOhConfig,
   type OhConfig,
@@ -107,6 +109,7 @@ describe("validateOhConfig", () => {
     ["name", { name: 1 }, /^oh\.json: name must be a string$/],
     ["runtime", { runtime: "podman" }, /^oh\.json: runtime must be one of docker$/],
     ["repo", { repo: 7 }, /^oh\.json: repo must be a string$/],
+    ["checkout", { checkout: 7 }, /^oh\.json: checkout must be a string$/],
     ["timezone", { timezone: true }, /^oh\.json: timezone must be a string$/],
     [
       "storage.homePath",
@@ -210,6 +213,16 @@ describe("validateOhConfig", () => {
       path: "repo",
       type: "string",
     });
+    expect(OH_CONFIG_FIELDS.find((f) => f.path === "checkout")).toEqual({
+      path: "checkout",
+      type: "string",
+    });
+  });
+
+  it("writes the checkout field through `oh config set checkout <dir>`", () => {
+    const next = setOhConfigValue(defaultOhConfig("demo"), "checkout", "/srv/checkout");
+    expect(next.checkout).toBe("/srv/checkout");
+    expect(next.repo).toBeUndefined();
   });
 
   it("declares no install field in the template or the settable field list", () => {
@@ -263,5 +276,30 @@ describe("ohConfigPath — dual-generation config files", () => {
     writeFileSync(join(root, "oh.json"), JSON.stringify({ version: 1, name: "one" }));
     writeFileSync(join(root, "agro.json"), JSON.stringify({ version: 1, name: "two" }));
     expect(() => ohConfigPath(root)).toThrow(/both exist and differ/);
+  });
+});
+
+describe("configCheckout", () => {
+  it("reads a config that spells the field repo", () => {
+    expect(configCheckout({ version: 1, repo: "/srv/checkout" })).toBe("/srv/checkout");
+  });
+
+  it("reads a config that spells the field checkout", () => {
+    expect(configCheckout({ version: 1, checkout: "/srv/checkout" })).toBe("/srv/checkout");
+  });
+
+  it("lets checkout outrank repo when a file holds both", () => {
+    expect(configCheckout({ version: 1, repo: "/srv/old", checkout: "/srv/new" })).toBe("/srv/new");
+  });
+
+  it("treats an empty string and a missing field alike", () => {
+    expect(configCheckout({ version: 1 })).toBeUndefined();
+    expect(configCheckout({ version: 1, checkout: "" })).toBeUndefined();
+    expect(configCheckout({ version: 1, repo: "" })).toBeUndefined();
+  });
+
+  it("round-trips a checkout field through validateOhConfig", () => {
+    const validated = validateOhConfig({ version: 1, checkout: "/srv/checkout" });
+    expect(configCheckout(validated)).toBe("/srv/checkout");
   });
 });

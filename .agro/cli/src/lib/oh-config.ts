@@ -96,6 +96,7 @@ export interface OhConfig {
   name?: string;
   runtime?: SandboxRuntime;
   repo?: string;
+  checkout?: string;
   timezone?: string;
   git?: GitIdentity;
   storage?: StorageSettings;
@@ -108,6 +109,11 @@ export interface OhConfig {
   langfuse?: LangfuseSettings;
   composeOverrides?: string[];
   [key: string]: unknown;
+}
+
+export function configCheckout(config: OhConfig): string | undefined {
+  const value = config.checkout ?? config.repo;
+  return typeof value === "string" && value !== "" ? value : undefined;
 }
 
 export function ohConfigPath(root: string): string {
@@ -187,6 +193,7 @@ export function validateOhConfig(value: unknown): OhConfig {
   expectString(record, "name");
   expectEnum(record, "runtime", "", SANDBOX_RUNTIMES);
   expectString(record, "repo");
+  expectString(record, "checkout");
   expectString(record, "timezone");
 
   const storage = expectSection(record, "storage");
@@ -332,6 +339,7 @@ export const OH_CONFIG_FIELDS: readonly OhConfigField[] = [
   { path: "name", type: "string" },
   { path: "runtime", type: "enum", values: SANDBOX_RUNTIMES },
   { path: "repo", type: "string" },
+  { path: "checkout", type: "string" },
   { path: "timezone", type: "string" },
   { path: "git.userName", type: "string" },
   { path: "git.userEmail", type: "string" },
