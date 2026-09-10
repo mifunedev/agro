@@ -230,8 +230,8 @@ Payload source precedence: --from <dir> > --from-remote > the CLI's own bundled
 ${stateNames(bin).controlDir}/ payload > a remote fetch announced on one line.
 
 Flags:
-  --from <dir>    A built OpenHarness checkout to vendor from.
-  --from-remote   Fetch the source checkout from the public OpenHarness repo
+  --from <dir>    A built AGRO checkout to vendor from.
+  --from-remote   Fetch the source checkout from the public AGRO repo
                   instead (shallow git clone into a temp dir, removed after
                   the run). Conflicts with --from.
   --ref <ref>     Branch or tag for --from-remote (default: the clone's

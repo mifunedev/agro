@@ -11,7 +11,7 @@ The sandbox is a Docker container running on your host (or a remote server). Get
 | Option | Command / action | Port forwarding to laptop |
 |--------|-----------------|--------------------------|
 | **A — Terminal** | `oh shell` from the host | None — plain shell only |
-| **B — VSCode Attach (local)** | Dev Containers extension → "Attach to Running Container" → `openharness` | Automatic while attached |
+| **B — VSCode Attach (local)** | Dev Containers extension → "Attach to Running Container" → your sandbox name from `agro sandbox list` | Automatic while attached |
 | **C — VSCode Remote-SSH + Attach (remote host)** | SSH into your host in VSCode, then Attach to Container | Automatic while attached |
 | **D — Direct SSH (opt-in)** | `ssh -p 2222 sandbox@localhost` after enabling the sshd overlay | None — SSH shell only (tunnel/proxy separately) |
 
@@ -35,7 +35,7 @@ You land inside the container as the `sandbox` user. A fresh sandbox has no `her
 
 1. Install the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension.
 2. Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) → **Dev Containers: Attach to Running Container**.
-3. Select **openharness**.
+3. Select your sandbox name from `agro sandbox list`.
 
 VSCode opens a remote window connected to the container and **automatically forwards container ports to `localhost`** on your laptop for the duration of the session.
 
@@ -44,7 +44,7 @@ VSCode opens a remote window connected to the container and **automatically forw
 If the sandbox runs on a remote server:
 
 1. Connect to the server via **Remote-SSH** in VSCode.
-2. From that SSH window, follow Option B to attach to the `openharness` container.
+2. From that SSH window, follow Option B to attach to your sandbox container.
 
 Port forwarding works identically — VSCode tunnels the container ports through the SSH connection to your laptop `localhost`. No manual `ssh -L` required.
 
@@ -288,7 +288,7 @@ For the full convention see [`.agro/skills/t3/references/sandbox-processes.md`](
 
 ## End-to-end recipe
 
-This recipe assumes the sandbox is already running (`oh ps` confirms the `openharness` container is up). Steps run inside the sandbox unless noted.
+This recipe assumes the sandbox is already running (`agro ps <name>` confirms your sandbox container is up). Steps run inside the sandbox unless noted.
 
 ### Step 1 — Attach via VSCode
 

@@ -64,7 +64,7 @@ export async function runUpdate(opts: UpdateOptions, io: UpdateIO): Promise<numb
         source.agroPath +
         ' or ' +
         source.legacyPath +
-        '. Pass --from <built-OpenHarness-checkout> or --from-remote [--ref <ref>].\n',
+        '. Pass --from <built-AGRO-checkout> or --from-remote [--ref <ref>].\n',
     );
     return 1;
   }

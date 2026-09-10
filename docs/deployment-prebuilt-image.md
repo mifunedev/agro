@@ -14,11 +14,13 @@ earlier release stays at `${OH_HOME:-~/.oh}/sandboxes/<name>/` and still
 resolves; `agro migrate --home` moves it.
 
 **Running the published image is the default.** Each tagged release publishes the
-sandbox image, already built and smoke-tested, to GHCR:
+sandbox image, already built and smoke-tested, to GHCR.
+The canonical default is `ghcr.io/mifunedev/agro:latest`.
+The legacy image alias remains available. Explicit image refs in the examples below use this alias:
 
 ```
-ghcr.io/mifunedev/openharness:latest      # newest release
-ghcr.io/mifunedev/openharness:<version>   # e.g. 0.1.0 — pin for reproducibility
+ghcr.io/mifunedev/openharness:latest      # legacy alias for the newest release
+ghcr.io/mifunedev/openharness:<version>   # legacy alias, e.g. 0.1.0 — pin for reproducibility
 ```
 
 With no `--repo` there is **no checkout on the host at all**: the workspace and
@@ -53,7 +55,7 @@ run a different CPU arch, prefer a local build (`--repo` with `image.mode` set t
 ## Pinning an image ref
 
 ```bash
-agro sandbox install docker --image              # pull ghcr.io/mifunedev/openharness:latest
+agro sandbox install docker --image              # pull ghcr.io/mifunedev/agro:latest
 agro sandbox install docker --image=ghcr.io/mifunedev/openharness:2026.7.5   # pin a release
 agro shell <name>                                # zsh in the running container, as usual
 ```
@@ -70,7 +72,7 @@ the entry's `agro.json`) without pinning one — an advanced escape hatch.
 ### Which image ref wins (last wins)
 
 ```
-ghcr.io/mifunedev/openharness:latest      (built-in default)
+ghcr.io/mifunedev/agro:latest             (built-in default)
   └─ agro.json  image.ref=<ref>               (the entry's default — see docs/configuration.md)
        └─ agro sandbox install docker --image=<ref> (per-invocation override)
 ```

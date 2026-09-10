@@ -55,7 +55,7 @@ oh shell <agent-name>
 claude
 ```
 
-The positional argument to `oh shell` is the **container name** (defaults to `openharness`, or `name` in `agro.json`). `oh shell` always connects as the `sandbox` user; use `docker exec -it -u <user> <container> zsh` when you need another one.
+The positional argument to `oh shell` is your **sandbox name** from `agro sandbox list`. Omit it when exactly one sandbox is registered or your current checkout identifies the sandbox. `oh shell` always connects as the `sandbox` user; use `docker exec -it -u <user> <container> zsh` when you need another one.
 
 ### 3. Verify
 

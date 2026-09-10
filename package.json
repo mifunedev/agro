@@ -1,8 +1,8 @@
 {
-  "name": "openharness",
+  "name": "agro",
   "version": "0.9.0",
   "private": true,
-  "description": "Open Harness — AI Agent Sandbox Orchestrator",
+  "description": "AGRO — Agent Governance Runtime Orchestrator",
   "license": "Apache-2.0",
   "type": "module",
   "packageManager": "pnpm@10.33.0",

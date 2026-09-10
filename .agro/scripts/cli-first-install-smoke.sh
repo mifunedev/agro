@@ -195,9 +195,9 @@ phase_pack() {
   )
   tarball="$WORKDIR/${packed##*/}"
   [ -f "$tarball" ] || die "npm pack did not write $tarball"
-  case "$tarball" in
-    *openharness-*.tgz)
-      die "npm pack produced the root openharness package ($tarball) — pack must run in .agro/cli"
+  case "${packed##*/}" in
+    agro-*.tgz)
+      die "npm pack produced the root agro package ($tarball) — pack must run in .agro/cli"
       ;;
   esac
   case "${packed##*/}" in

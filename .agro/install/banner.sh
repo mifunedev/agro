@@ -153,7 +153,7 @@ fi
 
 
 printf '\n'
-printf '━━━ openharness: %s ━━━\n' "$sandbox_name"
+printf '━━━ agro: %s ━━━\n' "$sandbox_name"
 printf '  Project:   %s\n' "$project_dir"
 printf '  Timezone:  %s\n' "$timezone"
 printf '  Overlays:  %s\n' "$overlays"
