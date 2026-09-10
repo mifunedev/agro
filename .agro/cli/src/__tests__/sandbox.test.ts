@@ -62,6 +62,19 @@ function makeIo(answers?: string[]): {
 const readJson = (path: string): Record<string, unknown> =>
   JSON.parse(readFileSync(path, "utf8"));
 
+function tempDir(prefix = "oh-sandbox-repo-"): string {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  cleanups.push(dir);
+  return dir;
+}
+
+function harnessCheckout(): string {
+  const dir = tempDir();
+  mkdirSync(join(dir, ".devcontainer"), { recursive: true });
+  writeFileSync(join(dir, ".devcontainer", "Dockerfile"), "FROM scratch\n");
+  return dir;
+}
+
 describe("oh sandbox install — runtime selection", () => {
   it("refuses microsandbox with the RFC pointer and the tool verb", async () => {
     registry();
@@ -147,8 +160,7 @@ describe("oh sandbox install — the entry it writes", () => {
 
   it("--repo renders AGRO_REPO_DIR into the compose env and selects the build base", async () => {
     const registryPath = registry();
-    const checkout = mkdtempSync(join(tmpdir(), "oh-sandbox-repo-"));
-    cleanups.push(checkout);
+    const checkout = harnessCheckout();
 
     const rendered: string[] = [];
     const run: LifecycleRunner = (cmd, args) => {
@@ -314,8 +326,7 @@ describe("oh sandbox install — re-installing an existing name", () => {
 
   it("preserves the ssh port, home path, repo and every other config-set field", async () => {
     const registryPath = registry();
-    const checkout = mkdtempSync(join(tmpdir(), "oh-sandbox-repo-"));
-    cleanups.push(checkout);
+    const checkout = harnessCheckout();
     const { run } = makeRunner();
 
     expect(
@@ -506,19 +517,20 @@ describe("oh sandbox install — re-installing an existing name", () => {
 });
 
 describe("oh sandbox install — the wizard", () => {
-  it("asks exactly six questions in order and writes the answers", async () => {
+  it("asks exactly seven questions in order and writes the answers", async () => {
     const registryPath = registry();
     const { run } = makeRunner();
     const { asked, io } = makeIo(["box", "Europe/Berlin", "Ada", "ada@example.com", "n", "y"]);
 
     expect(await runSandboxInstall({ runtime: "docker", run }, io)).toBe(0);
-    expect(asked).toHaveLength(6);
+    expect(asked).toHaveLength(7);
     expect(asked[0]).toContain("Sandbox name");
     expect(asked[1]).toContain("Timezone");
     expect(asked[2]).toContain("Git user name");
     expect(asked[3]).toContain("Git user email");
     expect(asked[4]).toContain("sshd");
     expect(asked[5]).toContain("Docker socket");
+    expect(asked[6]).toContain("Host path for /home/sandbox");
 
     expect(readJson(join(registryPath, "box", "agro.json"))).toMatchObject({
       name: "box",
@@ -534,7 +546,7 @@ describe("oh sandbox install — the wizard", () => {
     const { asked, io } = makeIo(["box", "", "", "", "y", "2345", "n"]);
 
     expect(await runSandboxInstall({ runtime: "docker", run }, io)).toBe(0);
-    expect(asked).toHaveLength(7);
+    expect(asked).toHaveLength(8);
     expect(asked[5]).toContain("SSH host port");
     expect(readJson(join(registryPath, "box", "agro.json"))).toMatchObject({
       access: { ssh: true, sshPort: 2345, dockerSocket: false },
@@ -548,6 +560,234 @@ describe("oh sandbox install — the wizard", () => {
 
     expect(await runSandboxInstall({ runtime: "docker", yes: true, run }, io)).toBe(0);
     expect(asked).toEqual([]);
+  });
+});
+
+describe("oh sandbox install — build mode inference and the home mount", () => {
+  it("keeps image mode for a --repo directory without .devcontainer/Dockerfile", async () => {
+    const registryPath = registry();
+    const plain = tempDir("oh-sandbox-plain-");
+    const rendered: string[] = [];
+    const run: LifecycleRunner = (cmd, args) => {
+      if (cmd === "git") return { status: 0, stdout: "" };
+      const i = args.indexOf("--extra-env-file");
+      if (i !== -1) rendered.push(readFileSync(args[i + 1], "utf8"));
+      return { status: 0 };
+    };
+
+    expect(
+      await runSandboxInstall(
+        { runtime: "docker", name: "box", repo: plain, yes: true, run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    expect(readJson(join(registryPath, "box", "agro.json"))).toMatchObject({
+      repo: plain,
+      image: { mode: "image" },
+    });
+    expect(rendered.join("")).toContain(`AGRO_REPO_DIR=${plain}`);
+  });
+
+  it("--print-argv shows no --build for a --repo directory that is not a checkout", async () => {
+    registry();
+    const plain = tempDir("oh-sandbox-plain-");
+    const { calls, run } = makeRunner();
+
+    expect(
+      await runSandboxInstall(
+        { runtime: "docker", name: "box", repo: plain, yes: true, printArgv: true, run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    const wrapper = calls.find((c) => c.cmd === "bash");
+    expect(wrapper?.args).not.toContain("--build");
+    expect(wrapper?.args).toContain("--no-build");
+  });
+
+  it("lets an explicit image.mode in the seed outrank the inference", async () => {
+    const registryPath = registry();
+    const checkout = harnessCheckout();
+    writeFileSync(
+      join(checkout, "agro.json"),
+      `${JSON.stringify({ version: 1, image: { mode: "image" } })}\n`,
+    );
+    const { run } = makeRunner();
+
+    expect(
+      await runSandboxInstall(
+        { runtime: "docker", name: "box", repo: checkout, yes: true, run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    expect(readJson(join(registryPath, "box", "agro.json"))).toMatchObject({
+      image: { mode: "image" },
+    });
+  });
+
+  it("fails before the wizard when image.mode is build and no Dockerfile exists", async () => {
+    registry();
+    const plain = tempDir("oh-sandbox-plain-");
+    writeFileSync(
+      join(plain, "agro.json"),
+      `${JSON.stringify({ version: 1, image: { mode: "build" } })}\n`,
+    );
+    const { run } = makeRunner();
+    const { asked, err, io } = makeIo(["never-read"]);
+
+    expect(
+      await runSandboxInstall({ runtime: "docker", name: "box", repo: plain, run }, io),
+    ).not.toBe(0);
+    expect(asked).toEqual([]);
+    const message = err.join("");
+    expect(message).toContain("oh sandbox install:");
+    expect(message).toContain("--repo");
+    expect(message).toContain(join(plain, ".devcontainer", "Dockerfile"));
+  });
+
+  it("writes no registry entry when the build preflight fails", async () => {
+    const registryPath = registry();
+    const plain = tempDir("oh-sandbox-plain-");
+    writeFileSync(
+      join(plain, "agro.json"),
+      `${JSON.stringify({ version: 1, name: "box", image: { mode: "build" } })}\n`,
+    );
+    const { calls, run } = makeRunner();
+
+    expect(
+      await runSandboxInstall({ runtime: "docker", repo: plain, yes: true, run }, makeIo().io),
+    ).not.toBe(0);
+    expect(existsSync(registryPath)).toBe(false);
+    expect(calls.some((c) => c.cmd === "bash")).toBe(false);
+  });
+
+  it("--home-mount alone renders AGRO_HOME_MOUNT and keeps the image-only base", async () => {
+    const registryPath = registry();
+    const home = tempDir("oh-sandbox-home-");
+    const rendered: string[] = [];
+    const run: LifecycleRunner = (cmd, args) => {
+      if (cmd === "git") return { status: 0, stdout: "" };
+      const i = args.indexOf("--extra-env-file");
+      if (i !== -1) rendered.push(readFileSync(args[i + 1], "utf8"));
+      return { status: 0 };
+    };
+
+    expect(
+      await runSandboxInstall(
+        { runtime: "docker", name: "box", homeMount: home, yes: true, run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    const root = join(registryPath, "box");
+    expect(readJson(join(root, "agro.json"))).toMatchObject({
+      storage: { homePath: home },
+      image: { mode: "image" },
+    });
+    expect(rendered.join("")).toContain(`AGRO_HOME_MOUNT=${home}`);
+    const base = readFileSync(join(root, ".devcontainer", "docker-compose.yml"), "utf8");
+    expect(base).not.toContain(":/home/sandbox/harness");
+  });
+
+  it("--home-mount with a checkout --repo renders both keys and selects the build base", async () => {
+    const registryPath = registry();
+    const home = tempDir("oh-sandbox-home-");
+    const checkout = harnessCheckout();
+    const rendered: string[] = [];
+    const run: LifecycleRunner = (cmd, args) => {
+      if (cmd === "git") return { status: 0, stdout: "" };
+      const i = args.indexOf("--extra-env-file");
+      if (i !== -1) rendered.push(readFileSync(args[i + 1], "utf8"));
+      return { status: 0 };
+    };
+
+    expect(
+      await runSandboxInstall(
+        { runtime: "docker", name: "box", repo: checkout, homeMount: home, yes: true, run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    const root = join(registryPath, "box");
+    expect(readJson(join(root, "agro.json"))).toMatchObject({
+      storage: { homePath: home },
+      repo: checkout,
+      image: { mode: "build" },
+    });
+    const env = rendered.join("");
+    expect(env).toContain(`AGRO_HOME_MOUNT=${home}`);
+    expect(env).toContain(`AGRO_REPO_DIR=${checkout}`);
+    const base = readFileSync(join(root, ".devcontainer", "docker-compose.yml"), "utf8");
+    expect(base).toContain("${AGRO_REPO_DIR:-${OH_REPO_DIR:-..}}:/home/sandbox/harness");
+  });
+
+  it("resolves a relative --home-mount and creates the directory", async () => {
+    const registryPath = registry();
+    const parent = tempDir("oh-sandbox-home-");
+    const cwd = process.cwd();
+    process.chdir(parent);
+    try {
+      const { run } = makeRunner();
+      expect(
+        await runSandboxInstall(
+          { runtime: "docker", name: "box", homeMount: join("state", "home"), yes: true, run },
+          makeIo().io,
+        ),
+      ).toBe(0);
+      const saved = readJson(join(registryPath, "box", "agro.json"));
+      const homePath = (saved.storage as Record<string, unknown>).homePath as string;
+      expect(homePath.startsWith("/")).toBe(true);
+      expect(homePath.endsWith(join("state", "home"))).toBe(true);
+      expect(existsSync(homePath)).toBe(true);
+    } finally {
+      process.chdir(cwd);
+    }
+  });
+
+  it("accepts a non-empty --home-mount directory and refuses a file", async () => {
+    const registryPath = registry();
+    const home = tempDir("oh-sandbox-home-");
+    writeFileSync(join(home, "already-here"), "x\n");
+    const { run } = makeRunner();
+
+    expect(
+      await runSandboxInstall(
+        { runtime: "docker", name: "box", homeMount: home, yes: true, run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    expect(readJson(join(registryPath, "box", "agro.json"))).toMatchObject({
+      storage: { homePath: home },
+    });
+
+    const { err, io } = makeIo();
+    expect(
+      await runSandboxInstall(
+        { runtime: "docker", name: "other", homeMount: join(home, "already-here"), yes: true, run },
+        io,
+      ),
+    ).not.toBe(0);
+    expect(err.join("")).toContain("--home-mount path exists and is not a directory");
+  });
+
+  it("writes no storage.homePath when the wizard default is accepted", async () => {
+    const registryPath = registry();
+    const { run } = makeRunner();
+    const { io } = makeIo(["box", "", "", "", "n", "n", ""]);
+
+    expect(await runSandboxInstall({ runtime: "docker", run }, io)).toBe(0);
+    const saved = readJson(join(registryPath, "box", "agro.json"));
+    expect((saved.storage as Record<string, unknown> | undefined)?.homePath).toBeUndefined();
+  });
+
+  it("offers an explicit --home-mount as the wizard default", async () => {
+    const registryPath = registry();
+    const home = tempDir("oh-sandbox-home-");
+    const { run } = makeRunner();
+    const { asked, io } = makeIo(["box", "", "", "", "n", "n", ""]);
+
+    expect(await runSandboxInstall({ runtime: "docker", homeMount: home, run }, io)).toBe(0);
+    expect(asked[6]).toContain(`[${home}]`);
+    expect(readJson(join(registryPath, "box", "agro.json"))).toMatchObject({
+      storage: { homePath: home },
+    });
   });
 });
 
