@@ -94,11 +94,15 @@ agro sandbox install docker
 
 The wizard asks for the sandbox name, timezone, git identity, SSH (and its host port), and the host Docker socket, then writes `~/.agro/sandboxes/<name>/agro.json`. `--yes` keeps every default and asks nothing. Edit one field later with `agro config set --sandbox <name> <field> <value>`, and set a secret with `agro secret set --sandbox <name> <KEY>`. See [Configuration](./configuration.md) for the field reference, and the comments in `.example.env` for every allow-listed secret.
 
-Bind an existing checkout with `--repo` when you want the sandbox to work on your own project:
+`--repo <dir>` takes a host path. The CLI binds that directory at `/home/sandbox/harness`. Bind an existing checkout when you want the sandbox to work on your own project:
 
 ```bash
 agro sandbox install docker --repo "$PWD" --name <your-project>
 ```
+
+The CLI selects build mode only when `<dir>/.devcontainer/Dockerfile` exists. A `--repo` path without that file binds the directory and runs the published image.
+
+`--repo` does not control where the sandbox persists. To persist `/home/sandbox` at a host path, pass `--home-mount <dir>` at create time. See [Persistent storage](#persistent-storage).
 
 A registry entry written by an earlier release stays at `~/.oh/sandboxes/<name>/oh.json` and keeps working under both `agro` and `oh`. Move it when you choose:
 
@@ -111,7 +115,7 @@ agro migrate --home           # ~/.oh/sandboxes -> ~/.agro/sandboxes
 
 `agro sandbox install docker` materialises the compose files and the wrapper into the entry, then runs `.agro/scripts/docker-compose.sh up -d`, which resolves the compose overlays your `agro.json` selects. Running `docker compose -f .devcontainer/docker-compose.yml up -d --build` by hand skips that resolution and applies **no** overlays.
 
-With `--repo` and `image.mode` set to `build`, a cold Docker cache takes around ten minutes; subsequent starts are a few seconds. The default is to pull the published release image instead — see [`agro sandbox install docker`](deployment-prebuilt-image.md) for the image-mode recipe and the `--image` / `--no-build` flags.
+The CLI sets `image.mode` to `build` only when the `--repo` path holds `.devcontainer/Dockerfile`. In build mode a cold Docker cache takes around ten minutes; subsequent starts are a few seconds. The default is to pull the published release image instead — see [`agro sandbox install docker`](deployment-prebuilt-image.md) for the image-mode recipe and the `--image` / `--no-build` flags.
 
 Check the sandbox health before attaching:
 
@@ -301,6 +305,12 @@ it between machines:
 ```bash
 agro config set --sandbox <name> storage.homePath /srv/openharness-home
 ```
+
+Set the same path at create time with
+`agro sandbox install docker --home-mount <dir>`. After the named volume
+`<name>_workspace` exists, `agro config set storage.homePath` refuses the
+change. The next start would swap the mount source and orphan every file in
+that volume. Pass `--force` to override the refusal.
 
 Leave `storage.homePath` unset to keep the Docker-managed volume. Use a
 **dedicated, empty** directory — the sandbox takes ownership of everything in

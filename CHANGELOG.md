@@ -8,6 +8,18 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Add `agro sandbox install docker --home-mount <dir>` to persist `/home/sandbox` at a host path when you create the sandbox. ([#1042](https://github.com/mifunedev/agro/issues/1042))
+
+### Changed
+
+- Refuse `agro config set storage.homePath` when the sandbox's named volume already exists, unless you pass `--force`. ([#1042](https://github.com/mifunedev/agro/issues/1042))
+
+### Fixed
+
+- Select build mode from `--repo <dir>` only when that directory holds `.devcontainer/Dockerfile`, so a path without one binds the directory and runs the published image. ([#1042](https://github.com/mifunedev/agro/issues/1042))
+
 ## [0.10.0] - 2026-09-10
 
 ### Upgrade notes

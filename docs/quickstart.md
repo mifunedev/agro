@@ -87,7 +87,9 @@ it when you choose.
 
 Without `--repo` the sandbox runs the published image
 (`ghcr.io/mifunedev/agro:latest`) and seeds its workspace from the
-image's `/opt/agro-seed`, so there is no build and no clone.
+image's `/opt/agro-seed`, so there is no build and no clone. To persist
+`/home/sandbox` at a host path instead of the Docker-managed volume, pass
+`--home-mount <dir>`.
 
 Finish by attaching:
 
@@ -108,9 +110,11 @@ agro sandbox install docker --repo "$PWD" --name <your-project>
 `oh update` writes `.agro/` and `crons/` and **nothing else** — no `agro.json`, no
 `.env`, no `AGENTS.md`, no provider configuration, and no `.gitignore` line
 beyond the `.env` line `agro secret set` adds inside a git checkout. Those files
-are yours to author. With `--repo` and `image.mode` set to `build`, the sandbox
-builds from that checkout's `.devcontainer/Dockerfile` instead of pulling
-(~10 min cold, ~30s warm).
+are yours to author. `--repo` takes a host path. The CLI selects build mode only
+when that path holds `.devcontainer/Dockerfile`. In build mode the sandbox builds
+from that file instead of pulling (~10 min cold, ~30s warm). A `--repo` path
+without `.devcontainer/Dockerfile` binds the directory and runs the published
+image.
 
 ## Enter the sandbox
 
