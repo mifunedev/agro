@@ -41,7 +41,7 @@ Browser verification passes. See `../ui-evidence.json` and `docs-ref.md`.
 | D4 | PASS | `release-contract.md` |
 | D5 | PASS | `docs-ref.md`, web PR 54 |
 | D6 | PASS | `candidate.md`, Boot Guard run `34418907048` |
-| D7 | PASS | Audit `audit-20260910T002751Z-894377`; ready-for-review actions follow the final task-record CI run |
+| D7 | PASS | Audits `audit-20260910T003250Z-898932`, `audit-20260910T003250Z-898937`, and `audit-20260910T003250Z-898946` |
 
 ## Complete criterion map
 
@@ -61,7 +61,7 @@ The current `prd.json` contains 104 acceptance entries. Each entry appears in on
 | US-010 C1-C12 | PASS | `candidate.md`; Boot Guard run `34418907048` |
 | US-011 C1-C14 | PASS | `candidate.md`; Boot Guard run `34418907048` |
 | US-012 C1-C8 | PASS | `candidate.md`; exact-head core and web CI |
-| US-013 C1-C9 | PASS | This closeout; audit `audit-20260910T002751Z-894377`; final PR audits |
+| US-013 C1-C9 | PASS | This closeout; implementation and both PR audits at `dc3d3786` |
 
 ## Excluded operations
 
@@ -71,6 +71,6 @@ No merge, release, npm publication, GHCR publication, live migration, live backu
 
 The first implementation audit failed at 11 of 13 stories. That failure was correct. US-009 then passed through agent-browser and independent UI review.
 
-Final implementation audit: `audit-20260910T002751Z-894377`, `AUDIT-PASS`.
-Final core PR audit: run after the final task-record CI.
-Final web PR audit: run after the final task-record CI.
+Final implementation audit: `audit-20260910T003250Z-898932`, `AUDIT-PASS`.
+Final core PR audit: `audit-20260910T003250Z-898937`, `PR-AUDIT-PROMOTABLE`.
+Final web PR audit: `audit-20260910T003250Z-898946`, `PR-AUDIT-PROMOTABLE`.

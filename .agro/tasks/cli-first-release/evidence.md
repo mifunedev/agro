@@ -5,9 +5,9 @@ Core PR: https://github.com/mifunedev/agro/pull/1031 (draft)
 Web PR: https://github.com/mifunedev/agro-web/pull/54 (draft)
 Exact core head at candidate CI: `c078c91e80647bc0c60cebb7ad1f11d929159d33`
 Initial implementation audit: `audit-20260910T000714Z-867806` — `AUDIT-FAIL` (Gate 1: 11/13 stories pass)
-Final implementation audit: `audit-20260910T002751Z-894377` — `AUDIT-PASS` (13/13; all five gates pass)
-Initial core PR audit: `audit-20260910T000731Z-868073` — `PR-AUDIT-UNKNOWN` (CI was pending)
-Initial web PR audit: `audit-20260910T000731Z-868077` — `PR-AUDIT-PROMOTABLE`
+Final implementation audit: `audit-20260910T003250Z-898932` — `AUDIT-PASS` (13/13; all five gates pass)
+Final core PR audit: `audit-20260910T003250Z-898937` — `PR-AUDIT-PROMOTABLE`
+Final web PR audit: `audit-20260910T003250Z-898946` — `PR-AUDIT-PROMOTABLE`
 
 ## 0. Why this is better than not doing it
 

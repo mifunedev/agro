@@ -19,3 +19,5 @@
 2026-09-10T00:07:31Z T5 fail-closed closeout: knowledge commit f7b72f38, wiki index PASS. Implementation audit audit-20260910T000714Z-867806 AUDIT-FAIL at 11/13. Core PR audit UNKNOWN while CI pending. Web PR audit PROMOTABLE but remains draft as linked build is incomplete. No merge.
 
 2026-09-10T00:27:52Z Browser preflight PASS with temporary user-space Chromium libraries. Web correction 34485f68: canonical image fallback and independent shim wording; tests/typecheck/STE/drift/build PASS; exact-head web CI PASS. Desktop+mobile agent-browser and read-only UI review PASS. Final implementation audit audit-20260910T002751Z-894377 AUDIT-PASS, 13/13, all gates. Final task-record commit and exact-head CI still required before undraft.
+
+2026-09-10T00:32:51Z Exact-head dc3d3786 core CI PASS. Implementation audit audit-20260910T003250Z-898932 AUDIT-PASS. Core PR audit audit-20260910T003250Z-898937 PROMOTABLE. Web PR audit audit-20260910T003250Z-898946 PROMOTABLE. Record these results, run task-record head CI/audit, then undraft. No merge.
