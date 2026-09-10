@@ -271,7 +271,9 @@ Explore the [searchable docs](https://agro.mifune.dev) or [full docs index](docs
 
 ## 🤝 Contributing & community
 
-Open Harness is maintained under the [`mifunedev`](https://github.com/mifunedev) org — the canonical repo is [github.com/mifunedev/agro](https://github.com/mifunedev/agro). Contribute from a running sandbox: complete the GitHub-login prerequisite above, then use the contribution prompt or the workflow in [Contributing](docs/contributing.md). Issues and PRs welcome; if Open Harness is useful to you, please [give us a star](https://github.com/mifunedev/agro/stargazers).
+Contributions, bug reports, and feedback are welcome.
+
+[Contributing guide](docs/contributing.md) · [GitHub issues](https://github.com/mifunedev/agro/issues) · [Join our Slack](https://join.slack.com/t/mifunedev/shared_invite/zt-3l2lnevo6-hOe5ZeoAz~xj7CFAJk2bzg)
 
 ## 📄 License
 
