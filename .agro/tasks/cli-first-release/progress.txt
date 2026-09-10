@@ -15,3 +15,5 @@
 2026-09-09T23:52:00Z CI on 5e1096f2 is green but US-012 is NOT proven. Artifact cli-first-install-smoke.log ends with pack failure: npm pack wrote openharness-0.9.0.tgz (root private package) and prefix/bin/agro missing. Workflow `tee` without pipefail hid exit 1. Seed/recreate never ran. Bootstrap-without-node DID pass: node_before=ABSENT, Node v22.23.2, agro 0.9.0. Repair routed to same core worker.
 
 2026-09-10T00:05:00Z Exact-head c078c91e Boot Guard SUCCESS with real pack/seed/recreate evidence. US-005/006/010/011/012 accepted. US-009 browser still blocked (libglib). US-013 open. /eval running. Knowledge UPDATED pages dispatched. PRs remain draft. No merge.
+
+2026-09-10T00:07:31Z T5 fail-closed closeout: knowledge commit f7b72f38, wiki index PASS. Implementation audit audit-20260910T000714Z-867806 AUDIT-FAIL at 11/13. Core PR audit UNKNOWN while CI pending. Web PR audit PROMOTABLE but remains draft as linked build is incomplete. No merge.

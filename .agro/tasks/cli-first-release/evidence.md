@@ -4,7 +4,9 @@ Task: `.agro/tasks/cli-first-release/`
 Core PR: https://github.com/mifunedev/agro/pull/1031 (draft)
 Web PR: https://github.com/mifunedev/agro-web/pull/54 (draft)
 Exact core head at candidate CI: `c078c91e80647bc0c60cebb7ad1f11d929159d33`
-AUDIT_RUN_ID: pending `/audit implementation` (US-009 still open)
+Implementation audit: `audit-20260910T000714Z-867806` — `AUDIT-FAIL` (Gate 1: 11/13 stories pass; US-009 and US-013 open)
+Core PR audit: `audit-20260910T000731Z-868073` — `PR-AUDIT-UNKNOWN` (exact-head CI pending)
+Web PR audit: `audit-20260910T000731Z-868077` — `PR-AUDIT-PROMOTABLE` (kept draft because linked build is incomplete)
 
 ## 0. Why this is better than not doing it
 
@@ -47,7 +49,7 @@ Exact-head core CI on `c078c91e`: Lint/typecheck/test PASS, Eval probes PASS, Bo
 
 - **US-009 browser:** `agent-browser` 0.8.5 failed to launch Chromium: missing `libglib-2.0.so.0`. `sudo apt-get` requires a password. Rendered docs were HTTP 200 at `http://127.0.0.1:3000/docs/installation` and `/docs/quickstart` with CLI-first command strings present. That is not agent-browser evidence.
 - **US-013:** cannot pass while US-009 is open. PRs stay draft.
-- `/audit implementation` Gate 1 will FAIL while any story has `passes != true`.
+- `/audit implementation` Gate 1 failed as required: `task-graph: 11/13 stories pass`; `AUDIT-EVIDENCE: AUDIT-FAIL`.
 - STE still red on whole-file pre-existing findings in edited Markdown/skills.
 - Live S1–S6 inventory, backup, migration, version selection, publication remain out of scope.
 
