@@ -15,23 +15,13 @@
   <img src=".github/assets/mifune-banner.jpg" alt="AGRO" width="100%">
 </p>
 
-**AGRO provides the sandbox; you choose the harness.** It's a Docker-based workspace, agent-tended over time: one `agro sandbox install docker` boots a long-lived container where the coding agent of your choice — Claude Code, Codex, Pi, Hermes, Grok, and more, each installed with one `agro harness install` command — works on its own branch and identity. Because it's just Docker, it runs **identically on your laptop or a remote VM** — and remote is the default: deployed on a VM, AGRO becomes a **lights-out software factory**, where the agent works unattended, on a schedule and reachable over Slack, fanning out across isolated **git worktrees** — parallel branches, delegated sub-agents, even other cloned repos — while you're away and your laptop stays clean.
+**AGRO gives AI coding agents a workspace you control.** It packages a Docker sandbox and shared agent procedures around the coding harness you choose—Claude Code, Codex, Pi, or another.
 
-- **One project, one sandbox.** A single container scoped to a single repo. The agent owns its branch and its workspace; you keep your laptop clean.
-- **Parallel by design.** The worktrees skill fans one sandbox into isolated git worktrees — parallel branches, delegated sub-agents, even other cloned repos.
-- **Remote-first, lights-out.** Runs the same on your laptop or a cloud VM; on a VM it's an unattended software factory — agents build on a schedule, reachable over Slack.
-- **Agents that work while you sleep.** A tiny croner runtime reads `crons/*.md` markdown and wakes the agent on a schedule.
-- **Host dependencies: Docker, Git, and Node.js ≥ 20.** No Python, no pnpm, no agent CLIs, no toolchain rot on your laptop — Node runs the `agro` CLI and nothing else. (`get-agro.sh` installs Node for you if you don't have it — see [Prerequisites](docs/installation.md#prerequisites).) The same `agro` verbs work on the host and inside the sandbox — see [lifecycle commands](docs/lifecycle-commands.md).
-- **Composable infra.** Cherry-pick Cloudflare tunnels, SSH, Caddy gateway, or pack-supplied services via Compose overlays.
-- **Slack-ready.** The `pi-messenger-bridge` package bridges Slack (and other messengers) to a Pi agent — see [docs/integrations/slack.md](docs/integrations/slack.md).
-- **Herdr-first interactive work.** Nothing installs at boot: every harness and tool arrives through `agro harness install <id>` or `agro tool install <id>`. After entering the sandbox, install and run [Herdr](docs/integrations/herdr.md) first; keep setup, agents, tests, and servers organized in its persistent panes. Headless Slack and cron infrastructure remain independent.
+Develop on your laptop or a remote VM. Install tools and harnesses on demand, organize parallel changes in separate git worktrees, and use shared skills and evidence checks to guide the work.
 
----
+Start with the quickstart below. See the [docs](https://agro.mifune.dev) and [Start Here hub](docs/README.md) for more guidance.
 
-> 📖 **Read the docs → https://agro.mifune.dev**
-> Rendered, searchable docs, guides, and blog. New here? Start with the [Start Here hub](docs/README.md).
-
-## 📦 Install
+## 📦 Quickstart
 
 AGRO runs one project in one Docker sandbox, and **`agro` is the only
 front door**. Host prerequisites: Docker (with the Compose plugin), Git, and
