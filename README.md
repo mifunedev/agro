@@ -251,6 +251,33 @@ Message the bot and complete the trust challenge shown in the bridge. See the
 [Pi Slack setup guide](docs/integrations/slack.md) for token locations and access
 configuration.
 
+### 7. Open the sandbox in VS Code (optional)
+
+For a sandbox running on your local machine:
+
+1. Install VS Code's [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
+2. Check that your sandbox is running with `agro sandbox list` on the host.
+3. Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`), choose **Dev Containers: Attach to Running Container**, and select your sandbox.
+4. Choose **File → Open Folder** and open `/home/sandbox/harness` — the sandbox user's `~/harness` folder.
+
+Use **Attach to Running Container**, not **Reopen in Container**.
+
+<details>
+<summary>Remote sandbox: connect over SSH, then attach</summary>
+
+Complete the sandbox setup on your remote host first. Then, from VS Code on
+your local machine:
+
+1. Install the [Remote - SSH extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) alongside Dev Containers.
+2. Run **Remote-SSH: Connect to Host** and connect to your Docker host using `user@host`.
+3. In the SSH-connected window, run **Dev Containers: Attach to Running Container** and select the sandbox on that host.
+4. Choose **File → Open Folder** and open `/home/sandbox/harness` (`~/harness` for the sandbox user).
+
+Connect over SSH to the host, not directly to the container. See the
+[connection guide](docs/connecting.md) for more options.
+
+</details>
+
 ## 📚 Table of Contents
 
 Browse the [documentation](docs/README.md) or jump to a topic below.
