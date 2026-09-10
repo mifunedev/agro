@@ -73,13 +73,8 @@ agro sandbox install docker   # wizard: name, timezone, git identity, SSH, Docke
 agro shell <name>             # attach as the sandbox user
 ```
 
-The wizard's answers land in a registry entry at
-`~/.agro/sandboxes/<name>/agro.json`, beside the compose files and the wrapper
-script the CLI regenerates on every lifecycle call. The default name is
-`agro-sbx-<n>`; `--yes` keeps every default and asks nothing. Without `--repo`
-the sandbox runs the published image and seeds its workspace from it. A sandbox
-created by an earlier release keeps its `~/.oh/sandboxes/<name>/oh.json` entry
-and keeps working; `agro migrate --home` moves the registry when you choose.
+The wizard creates a sandbox from the published image. Replace `<name>` with
+your sandbox name. To use an existing project, mount its checkout below.
 
 **Mount a project instead.** Point the sandbox at a checkout and it is
 bind-mounted at `/home/sandbox/harness`:
