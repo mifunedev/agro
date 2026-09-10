@@ -18,7 +18,7 @@ identity, running identically on your laptop or an unattended, lights-out remote
 
 1. `oh sandbox install docker` — write the registry entry and boot the container.
 2. VS Code → Command Palette (Ctrl/Cmd+Shift+P) → "Dev Containers: Attach to Running
-   Container" → select `openharness`. Ports auto-forward while attached.
+   Container" → select your sandbox name from `agro sandbox list`. Ports auto-forward while attached.
 3. Open a terminal and run `oh tool install herdr`, then `herdr`. Nothing installs at boot, so install each agent the same way — `oh harness install claude-code`, `codex`, `pi`, or `hermes` — then launch it from a Herdr pane.
 
 Full terminal, VS Code, and Remote-SSH options: see [Connecting to the sandbox](connecting.md).

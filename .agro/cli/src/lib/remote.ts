@@ -40,7 +40,7 @@ const spawnRunner: RemoteRunner = (cmd, args, opts) => {
 };
 
 function fallbackHint(): string {
-  return "use --from <dir> to point at a local OpenHarness checkout instead";
+  return "use --from <dir> to point at a local AGRO checkout instead";
 }
 
 export function fetchRemoteSource(opts: FetchRemoteSourceOptions): string {

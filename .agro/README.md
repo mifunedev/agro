@@ -1,15 +1,12 @@
 # .agro/
 
-**OpenHarness's own machinery, grouped as one addressable unit.** The `oh` CLI,
-the installer/lifecycle scripts, the container-install inputs, and the
-compose config now live together here so a future version (and the `oh` CLI
-itself) can address the harness's machinery as a single namespace instead of
-hunting it across the repo root.
+**AGRO's control plane, grouped as one addressable unit.** The `agro` CLI,
+installer/lifecycle scripts, and container-install inputs live here.
+The `.devcontainer/` directory owns the sandbox definition and Compose files.
+`oh` remains a compatibility entry point; `oh update` vendors the control plane.
 
-This rescopes the removed `.openharness/` deploy-override directory under the
-short name that already matches the `oh` CLI (so `.openharness/` nested inside the
-`openharness` repo is no longer redundant), and extends it from "just deploy
-config" to "the machinery."
+The `.agro/` namespace matches the `agro` CLI. It includes the deploy-override
+machinery formerly under `.openharness/`.
 
 ## Governing principle: a dotdir namespace is earned by FUNCTION-CLASS
 
@@ -18,10 +15,10 @@ This **supersedes** the earlier "earned by EXPORT only" rule *and* the later
 `.agro/`, so there is now **one** machinery namespace (the former `.mifune` submodule
 is obsolete):
 
-- **`.agro/`** — *OpenHarness's own machinery* as one unit, including the
+- **`.agro/`** — *AGRO's own machinery* as one unit, including the
   provider-portable *primitives* — `skills/`, `hooks/` (+ `skills.lock`)
   — exported through the standard skill surface (`.agents/skills`) and provider
-  symlinks (`.claude/`, `.codex/`, `.hermes/`): the `oh` CLI (`cli/`), installer + lifecycle scripts
+  symlinks (`.claude/`, `.codex/`, `.hermes/`): the `agro` CLI (`cli/`), installer + lifecycle scripts
   (`scripts/`), container-install inputs (`install/`), the
   regression/capability eval suite (`evals/`), the durable repository-knowledge
   surface (`knowledge/`), user-local deploy
@@ -113,7 +110,7 @@ The shared skills and hooks are vendored directly under `.agro/` (`.agro/skills`
 | File / dir | Purpose |
 |------|---------|
 | `README.md` | This file — the namespace anchor (keeps `.agro/` in a fresh clone) and the surface's documentation. |
-| `cli/` | The in-tree `oh` CLI (standalone npm package; built into the image as `/opt/oh`). Old path: `packages/oh/` (no symlink — repointed). |
+| `cli/` | The in-tree `agro` CLI (`oh` is the compatibility entry point; built into the image as `/opt/oh`). Old path: `packages/oh/` (no symlink — repointed). |
 | `install/` | Container-install inputs (`.zshrc`, `.tmux.conf`, `banner.sh`, `install.sh` prerequisites) consumed by the Dockerfile + entrypoint. Old path: `install/` (no symlink — repointed). |
 | `scripts/` | Installer, lifecycle, cron-runtime, and eval-support scripts (`docker-compose.sh`, `cron-runtime.ts`, `locked-append.sh`, `harness-config.sh`, …). Old path: `scripts/` (no symlink — repointed). |
 | `evals/` | The fitness-function suite — regression probes (`probes/`), capability benchmark (`capability/`), trajectory datasets (`datasets/`), and the `RESULTS.md` scoreboard. Old path: `evals/` (no symlink — repointed). |
@@ -125,7 +122,7 @@ The shared skills and hooks are vendored directly under `.agro/` (`.agro/skills`
 
 | Belongs in `.agro/` | Stays at root |
 |------|------|
-| OpenHarness's own machinery addressed as a unit: the `oh` CLI, installer/lifecycle scripts, container-install inputs, compose config, the fitness-function eval suite (`.agro/evals/`), the durable repository-knowledge surface (`.agro/knowledge/`), and the Ralph/spec task workdirs (`.agro/tasks/`) | Human-facing Markdown docs (`docs/`) plus the scheduled-agent cron definitions (`crons/`), and surfaces **forced to root by external tooling** (`.devcontainer/`, `package.json`, `pnpm-*.yaml`, `.github/`, `.husky/`) |
+| AGRO's own machinery addressed as a unit: the `agro` CLI, installer/lifecycle scripts, container-install inputs, compose config, the fitness-function eval suite (`.agro/evals/`), the durable repository-knowledge surface (`.agro/knowledge/`), and the Ralph/spec task workdirs (`.agro/tasks/`) | Human-facing Markdown docs (`docs/`) plus the scheduled-agent cron definitions (`crons/`), and surfaces **forced to root by external tooling** (`.devcontainer/`, `package.json`, `pnpm-*.yaml`, `.github/`, `.husky/`) |
 
 ### Why these specifically stay at root
 

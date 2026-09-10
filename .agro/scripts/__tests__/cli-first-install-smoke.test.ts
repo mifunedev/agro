@@ -155,7 +155,7 @@ describe("cli-first-install-smoke.sh", () => {
     expect(source).toContain('NAME_PREFIX="agro-cli-first"');
     expect(source).toContain('if [ ! -f "$home/.profile" ]; then');
     expect(source).toContain('cd "$cli_dir"');
-    expect(source).toContain("*openharness-*.tgz");
+    expect(source).toContain("    agro-*.tgz)");
     expect(source).toContain("mifune-agro-*.tgz");
     expect(source).toContain('echo "node_after=$(command -v node) version=$(node --version)"');
     expect(source).toContain("remove_container_keep_volume");
@@ -274,7 +274,10 @@ describe("cli-first-install-smoke.sh", () => {
     expect(workflow).not.toMatch(/cli-first-install-smoke[\s\S]*continue-on-error/);
   });
 
-  it("rejects npm pack of the root openharness package", () => {
+  it.each([
+    { tarball: "agro-0.9.0.tgz", accepted: false },
+    { tarball: "mifune-agro-0.9.0.tgz", accepted: true },
+  ])("checks npm pack output $tarball (accepted=$accepted)", ({ tarball, accepted }) => {
     const dir = mkdtempSync(join(tmpdir(), "cli-first-pack-"));
     cleanups.push(dir);
     const bin = join(dir, "bin");
@@ -287,7 +290,7 @@ describe("cli-first-install-smoke.sh", () => {
       [
         "#!/usr/bin/env bash",
         "set -euo pipefail",
-        'if [[ "$*" == *pack* ]]; then',
+        'if [ "$1" = "pack" ]; then',
         "  dest=",
         "  prev=",
         '  for a in "$@"; do',
@@ -295,9 +298,13 @@ describe("cli-first-install-smoke.sh", () => {
         '    prev="$a"',
         "  done",
         '  [ -n "$dest" ] || dest="."',
-        '  : > "$dest/openharness-0.9.0.tgz"',
-        "  echo openharness-0.9.0.tgz",
+        `  : > "$dest/${tarball}"`,
+        `  echo ${tarball}`,
         "  exit 0",
+        "fi",
+        'if [ "$1" = "install" ]; then',
+        '  mkdir -p "$4/bin"',
+        `  cp ${JSON.stringify(bundle)} "$4/bin/agro"`,
         "fi",
         "exit 0",
         "",
@@ -312,8 +319,13 @@ describe("cli-first-install-smoke.sh", () => {
       {},
       { path: `${bin}:${process.env.PATH ?? ""}` },
     );
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain("openharness");
-    expect(result.stderr).toContain(".agro/cli");
+    if (accepted) {
+      expect(result.status, result.stderr + result.stdout).toBe(0);
+      expect(result.stdout).toContain("packed_version=9.9.9");
+    } else {
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("root agro package");
+      expect(result.stderr).toContain(".agro/cli");
+    }
   });
 });

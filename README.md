@@ -1,4 +1,4 @@
-<h1 align="center">🏗️ Open Harness</h1>
+<h1 align="center">🏗️ AGRO</h1>
 
 <p align="center">
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache--2.0-D4AF37?style=plastic&labelColor=0B1220"></a>
@@ -10,10 +10,10 @@
 </p>
 
 <p align="center">
-  <img src=".github/assets/mifune-banner.jpg" alt="Open Harness" width="100%">
+  <img src=".github/assets/mifune-banner.jpg" alt="AGRO" width="100%">
 </p>
 
-**Open Harness provides the sandbox; you choose the harness.** It's a Docker-based workspace, agent-tended over time: one `agro sandbox install docker` boots a long-lived container where the coding agent of your choice — Claude Code, Codex, Pi, Hermes, Grok, and more, each installed with one `agro harness install` command — works on its own branch and identity. Because it's just Docker, it runs **identically on your laptop or a remote VM** — and remote is the default: deployed on a VM, Open Harness becomes a **lights-out software factory**, where the agent works unattended, on a schedule and reachable over Slack, fanning out across isolated **git worktrees** — parallel branches, delegated sub-agents, even other cloned repos — while you're away and your laptop stays clean.
+**AGRO provides the sandbox; you choose the harness.** It's a Docker-based workspace, agent-tended over time: one `agro sandbox install docker` boots a long-lived container where the coding agent of your choice — Claude Code, Codex, Pi, Hermes, Grok, and more, each installed with one `agro harness install` command — works on its own branch and identity. Because it's just Docker, it runs **identically on your laptop or a remote VM** — and remote is the default: deployed on a VM, AGRO becomes a **lights-out software factory**, where the agent works unattended, on a schedule and reachable over Slack, fanning out across isolated **git worktrees** — parallel branches, delegated sub-agents, even other cloned repos — while you're away and your laptop stays clean.
 
 - **One project, one sandbox.** A single container scoped to a single repo. The agent owns its branch and its workspace; you keep your laptop clean.
 - **Parallel by design.** The worktrees skill fans one sandbox into isolated git worktrees — parallel branches, delegated sub-agents, even other cloned repos.
@@ -31,7 +31,7 @@
 
 ## 📦 Install
 
-Open Harness runs one project in one Docker sandbox, and **`agro` is the only
+AGRO runs one project in one Docker sandbox, and **`agro` is the only
 front door**. Host prerequisites: Docker (with the Compose plugin), Git, and
 Node.js ≥ 20.
 
@@ -237,7 +237,7 @@ agro --help         # every verb
 
 - Property-based testing convention: [docs/property-testing.md](docs/property-testing.md)
 
-Prefer VS Code or remote SSH? Use the Dev Containers extension's "Attach to Running Container" against `openharness` — not "Reopen in Container", which applies no overlays (see [VS Code (secondary path)](#vs-code-secondary-path)) — or SSH into your host first and then attach.
+Prefer VS Code or remote SSH? Use the Dev Containers extension's "Attach to Running Container" against your sandbox name from `agro sandbox list` — not "Reopen in Container", which applies no overlays (see [VS Code (secondary path)](#vs-code-secondary-path)) — or SSH into your host first and then attach.
 
 ## ⚙️ Configure (optional)
 
