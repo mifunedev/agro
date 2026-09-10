@@ -3,7 +3,7 @@
 # source: get-oh.sh bootstrap — the Node-bootstrapping host-side path to the standalone `oh` CLI (also on npm as @mifune/openharness; see oh-npm-package.sh)
 # desc: STATIC guard — `.agro/scripts/get-oh.sh` exists, is executable, uses the overridable repo form,
 #       installs a PREBUILT `oh` to a bin dir WITHOUT cloning the repo, offers to install Node,
-#       and is documented in the README. Also guards link-providers.sh's non-git fallback.
+#       and is documented in the linked installation guide. Also guards link-providers.sh's non-git fallback.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -29,7 +29,8 @@ grep -q 'nvm' "$SCRIPT" || { echo 'REGRESSION get-oh.sh no longer offers to inst
 
 grep -q '_OH_SOURCED' "$SCRIPT" || { echo 'REGRESSION get-oh.sh lost sourced-vs-executed detection (same-shell PATH activation)' >&2; exit 1; }
 
-grep -q 'get-oh.sh' "$ROOT/README.md" || { echo 'REGRESSION README no longer documents get-oh.sh' >&2; exit 1; }
+grep -Fq 'docs/installation.md' "$ROOT/README.md" || { echo 'REGRESSION README no longer links the installation guide' >&2; exit 1; }
+grep -Fq 'get-oh.sh' "$ROOT/docs/installation.md" || { echo 'REGRESSION installation guide no longer documents get-oh.sh' >&2; exit 1; }
 
 LP="$ROOT/.agro/scripts/link-providers.sh"
 if [ -f "$LP" ]; then
