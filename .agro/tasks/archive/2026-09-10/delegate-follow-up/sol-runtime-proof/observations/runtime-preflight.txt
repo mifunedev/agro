@@ -1,0 +1,9 @@
+requested-provider-command: claude
+claude-version: 2.1.260 (Claude Code)
+requested-session-model: opus
+requested-session-effort: high
+observed-worker-model-before-dispatch: unknown
+per-worker-effort-control: not assumed; inspect Session A Task schema/result
+commit: c6704966c023ffc719797f54e232178eb914a318
+worktree: /home/sandbox/harness/.worktrees/bug/1004-sol-repair
+experiment-root: /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1

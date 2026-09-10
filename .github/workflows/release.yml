@@ -27,7 +27,7 @@ jobs:
           submodules: recursive
 
       - name: Ensure Mifune submodule
-        run: bash .oh/scripts/link-providers.sh --init
+        run: bash .agro/scripts/link-providers.sh --init
 
       - name: Setup Node 22.x
         uses: actions/setup-node@v7
@@ -67,7 +67,7 @@ jobs:
         run: pnpm test:scripts
 
       - name: Check pnpm pin drift
-        run: bash .oh/scripts/check-pnpm-pin.sh
+        run: bash .agro/scripts/check-pnpm-pin.sh
 
   boot-lint:
     name: Boot Path Lint (shellcheck + hadolint)
@@ -83,13 +83,13 @@ jobs:
           submodules: recursive
 
       - name: Ensure Mifune submodule
-        run: bash .oh/scripts/link-providers.sh --init
+        run: bash .agro/scripts/link-providers.sh --init
 
       - name: Shellcheck boot scripts
         run: |
           command -v shellcheck >/dev/null 2>&1 || { sudo apt-get update && sudo apt-get install -y shellcheck; }
           shellcheck --version
-          shellcheck -S warning .devcontainer/*.sh .oh/install/*.sh .oh/scripts/*.sh .oh/skills/audit/scripts/*.sh .claude/hooks/*.sh .claude/skills/retro/scripts/*.sh
+          shellcheck -S warning .devcontainer/*.sh .agro/install/*.sh .agro/scripts/*.sh .agro/skills/audit/scripts/*.sh .claude/hooks/*.sh .claude/skills/retro/scripts/*.sh
 
       - name: Hadolint Dockerfile
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
@@ -112,10 +112,10 @@ jobs:
           submodules: recursive
 
       - name: Link provider skills
-        run: bash .oh/scripts/link-providers.sh --init
+        run: bash .agro/scripts/link-providers.sh --init
 
       - name: Run eval probe suite
-        run: bash .oh/skills/eval/run.sh
+        run: bash .agro/skills/eval/run.sh
 
   reserve:
     name: Reserve SemVer draft
@@ -151,7 +151,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_SHA: ${{ github.sha }}
           RELEASE_VERSION: ${{ steps.release_version.outputs.version }}
-        run: node .oh/scripts/reserve-github-release.mjs
+        run: node .agro/scripts/reserve-github-release.mjs
 
   publish-image:
     name: Build, smoke, and publish GHCR image
@@ -175,7 +175,7 @@ jobs:
           submodules: recursive
 
       - name: Ensure Mifune submodule
-        run: bash .oh/scripts/link-providers.sh --init
+        run: bash .agro/scripts/link-providers.sh --init
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -191,7 +191,7 @@ jobs:
         env:
           RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
           RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
-          SANDBOX_NAME: openharness-release-smoke-${{ github.run_id }}
+          SANDBOX_NAME: agro-release-smoke-${{ github.run_id }}
         run: |
           VERSION_IMAGE="ghcr.io/mifunedev/openharness:${RELEASE_VERSION}"
           SHA_IMAGE="ghcr.io/mifunedev/openharness:sha-${RELEASE_SHA}"
@@ -206,15 +206,15 @@ jobs:
       # the exact image object that carries all four immutable GHCR tags.
       - name: Smoke-test Docker image before publish
         env:
-          SANDBOX_NAME: openharness-release-smoke-${{ github.run_id }}
+          SANDBOX_NAME: agro-release-smoke-${{ github.run_id }}
           BOOT_SMOKE_TIMEOUT_SECONDS: "900"
           BOOT_SMOKE_INTERVAL_SECONDS: "10"
           BOOT_SMOKE_UP_ARGS: "up -d --no-build"
-        run: bash .oh/scripts/sandbox-boot-smoke.sh
+        run: bash .agro/scripts/sandbox-boot-smoke.sh
 
       - name: Smoke-test agro as a first-class entry point
         env:
-          SANDBOX_NAME: openharness-release-smoke-${{ github.run_id }}
+          SANDBOX_NAME: agro-release-smoke-${{ github.run_id }}
           RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
         run: |
           SMOKE_IMAGE="sandbox-${SANDBOX_NAME}"
@@ -245,7 +245,7 @@ jobs:
         env:
           RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
         run: |
-          .oh/scripts/verify-release-aliases.sh check \
+          .agro/scripts/verify-release-aliases.sh check \
             "ghcr.io/mifunedev/openharness:${RELEASE_VERSION}" \
             "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
 
@@ -254,7 +254,7 @@ jobs:
           RELEASE_BRANCH: ${{ github.ref_name }}
           RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
           RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
-        run: .oh/scripts/promote-release-latest.sh promote
+        run: .agro/scripts/promote-release-latest.sh promote
 
   publish-cli:
     name: Publish CLI for the released commit
@@ -290,8 +290,8 @@ jobs:
 
       - name: Build the CLI bundles at the released commit
         run: |
-          npm --prefix .oh/cli ci --ignore-scripts
-          npm --prefix .oh/cli run build
+          npm --prefix .agro/cli ci --ignore-scripts
+          npm --prefix .agro/cli run build
 
       - name: Upload the CLI bundles and installers as release assets
         env:
@@ -299,10 +299,10 @@ jobs:
           RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
         run: |
           gh release upload "v${RELEASE_VERSION}" --clobber \
-            .oh/cli/dist/agro.js \
-            .oh/cli/dist/oh.js \
-            .oh/scripts/get-agro.sh \
-            .oh/scripts/get-oh.sh
+            .agro/cli/dist/agro.js \
+            .agro/cli/dist/oh.js \
+            .agro/scripts/get-agro.sh \
+            .agro/scripts/get-oh.sh
 
       - name: Extract release notes from CHANGELOG
         env:
@@ -340,7 +340,7 @@ jobs:
         env:
           RELEASE_BRANCH: ${{ github.ref_name }}
           RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
-        run: .oh/scripts/promote-release-latest.sh check
+        run: .agro/scripts/promote-release-latest.sh check
 
       - name: Publish the draft after image and CLI publication
         uses: actions/github-script@v7
@@ -373,5 +373,32 @@ jobs:
               draft: false,
               make_latest: process.env.MAKE_LATEST,
             });
+
+  notify-docs:
+    name: Notify the docs site
+    needs: [reserve, finalize]
+    if: ${{ needs.reserve.outputs.publishedNoop != 'true' && needs.finalize.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Send the agro-release repository_dispatch
+        env:
+          AGRO_WEB_DISPATCH_TOKEN: ${{ secrets.AGRO_WEB_DISPATCH_TOKEN }}
+          AGRO_WEB_REPO: ${{ vars.AGRO_WEB_REPO || 'mifunedev/openharness-web' }}
+          RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
+        run: |
+          if [ -z "$AGRO_WEB_DISPATCH_TOKEN" ]; then
+            echo "::notice::Secret AGRO_WEB_DISPATCH_TOKEN is not set; skipping the agro-release dispatch to $AGRO_WEB_REPO"
+            exit 0
+          fi
+          GH_TOKEN="$AGRO_WEB_DISPATCH_TOKEN" gh api --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/${AGRO_WEB_REPO}/dispatches" \
+            -f event_type=agro-release \
+            -f "client_payload[ref]=${RELEASE_SHA}"
+          echo "Dispatched agro-release for $RELEASE_SHA to $AGRO_WEB_REPO"
 
   # publish-cli.yml also remains independently dispatchable with an explicit ref.

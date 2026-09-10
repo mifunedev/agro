@@ -1,0 +1,65 @@
+# Session A observation: after worker end / after Session B window
+recorded_utc=2026-09-07T23:29:00Z
+
+## final task artifact hashes
+3b3b6bfde565cbab26006ebe7353dd77e08a9ccb12ce7f6873afa9f5492cbffb  /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/worker-started.txt
+51e566507654d196c4483e194debd07e32ed8f50674a39fb6bb137ad99198c14  /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/output.txt
+
+## frozen baseline artifact-before.sha256
+8fdbe63ba9bcd49ef3b11aa8840b33440027497389d38410cfc770e3df93b212  /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/output.txt
+
+## final worker-started.txt content
+worker-started
+utc_start=2026-09-07T23:24:39Z
+shell_pid=3952829
+
+## final output.txt content
+worker-output
+utc_end=2026-09-07T23:28:39Z
+fifo_result=returned-data
+exit_code=0
+line_read=release
+
+## delta vs a-before-b.txt hashes
+worker-started.txt before: 3b3b6bfde565cbab26006ebe7353dd77e08a9ccb12ce7f6873afa9f5492cbffb
+output.txt        before: 8fdbe63ba9bcd49ef3b11aa8840b33440027497389d38410cfc770e3df93b212 (== frozen baseline)
+
+## control dir listing
+total 12
+drwxr-xr-x  2 sandbox sandbox 4096 Sep  7 17:25 .
+drwxr-xr-x 11 sandbox sandbox 4096 Sep  7 17:19 ..
+prw-r--r--  1 sandbox sandbox    0 Sep  7 17:23 a-ready-signal.fifo
+-rw-r--r--  1 sandbox sandbox  868 Sep  7 17:25 a-ready.json
+prw-r--r--  1 sandbox sandbox    0 Sep  7 17:19 worker-release.fifo
+
+## full experiment tree
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/commands/run-session-a.sh
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/commands/run-session-b.sh
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/control/a-ready.json
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/ledger/delegate-graph.json
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/ledger/delegate-log.txt
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/observations/a-after-b.txt
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/observations/a-before-b.txt
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/observations/a-listagents-ended.txt
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/observations/a-listagents-running.txt
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/observations/artifact-before.sha256
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/observations/frozen-procedure.sha256
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/observations/frozen-skill.sha256
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/observations/orchestrator-during-b.txt
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/observations/orchestrator-process-tree.txt
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/observations/prompt-command.sha256
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/observations/runtime-preflight.txt
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/procedure/delegate-SKILL.c6704966.md
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/procedure/recovery-procedure.md
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/prompts/session-a.txt
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/prompts/session-b.txt
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/raw/orchestrator-commands.log
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/raw/session-a.stderr.log
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/raw/session-a.stream.jsonl
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/raw/session-b.exit
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/raw/session-b.stderr.log
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/raw/session-b.stream.jsonl
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/raw/worker-release.log
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/reports/session-b-report.md
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/output.txt
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/worker-started.txt

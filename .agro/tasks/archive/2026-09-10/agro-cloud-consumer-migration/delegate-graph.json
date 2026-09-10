@@ -1,0 +1,541 @@
+{
+  "schemaVersion": 2,
+  "slug": "agro-cloud-consumer-migration",
+  "issue": 944,
+  "owner": {
+    "role": "advisor",
+    "session": "https://claude.ai/code/session_018Gh4FRUfcQYD6CcNNH1xRU",
+    "model": "claude-opus-5[1m]",
+    "owns": [
+      "prd.json",
+      "progress.txt",
+      "delegate-graph.json",
+      "delegate-log.txt",
+      "evidence.md",
+      "every acceptance decision"
+    ]
+  },
+  "contract": {
+    "workersNeverCommit": true,
+    "workersNeverTouchGitHubState": true,
+    "ownerAcceptsEveryResult": true,
+    "statusIsAdvisorDecisionNotWorkerClaim": true,
+    "isolatedWorktreePerParallelWriter": true,
+    "provenanceNote": "The Agent tool reports no observed model or effort back to the dispatcher. `modelRequested` records what this session asked for; `modelObserved` stays \"unreported\" rather than being inferred, and effort is not an exposed dispatch parameter for this worker type."
+  },
+  "workers": [
+    {
+      "id": "W1",
+      "nativeWorkerId": "aa588cf40102fb5f1",
+      "subagentType": "general-purpose",
+      "modelRequested": "inherit (no override passed)",
+      "modelObserved": "unreported",
+      "effortRequested": "not an exposed parameter for this worker type",
+      "dispatchedAt": "2026-09-08",
+      "wave": 1,
+      "stories": [
+        "US-001",
+        "US-008"
+      ],
+      "repo": "mifunedev/agro",
+      "worktree": "/home/sandbox/harness/.worktrees/feat/944-agro-cloud-consumer-migration",
+      "branch": "feat/944-agro-cloud-consumer-migration",
+      "baseCommit": "b10ecac3",
+      "ownedWritePaths": [
+        ".agro/tasks/agro-cloud-consumer-migration/consumer-inventory.md",
+        ".agro/tasks/agro-cloud-consumer-migration/migrate-check.md"
+      ],
+      "forbiddenPaths": [
+        "everything else in the worktree",
+        "projects/mifunedev/openharness-cloud (read-only)"
+      ],
+      "evidenceDestination": ".agro/tasks/agro-cloud-consumer-migration/consumer-inventory.md, migrate-check.md",
+      "acceptanceCommands": [
+        "test -s consumer-inventory.md && test -s migrate-check.md",
+        "advisor spot-checks >= 3 classifications against the real repo content",
+        "advisor confirms every non-archived org repo appears with a scanned SHA or an explicit not-scannable reason",
+        "advisor confirms `agro migrate --check` was run with --check only and never against projects/mifunedev/openharness-cloud"
+      ],
+      "repairRoute": "same worker via SendMessage; a classification dispute is decided by the advisor against #944's five categories",
+      "status": "ACCEPTED",
+      "corrections": [
+        "2026-09-08 path correction: task folder moved into the record worktree"
+      ],
+      "acceptanceEvidence": [
+        "all 32 non-archived and archived org repos appear in the inventory table; set-compared against gh repo list, zero missing",
+        "35 forty-character scan SHAs recorded",
+        "spot-check 1 PASS: website src/config/offerings.ts:3 openSource points at github.com/mifunedev/openharness \u2014 live constant, category 1 confirmed",
+        "spot-check 2 PASS: orchestra decks/slides/onepager.html:242 'Powered by Orchestra + OpenHarness' sits in a present-tense platform panel above live contact routes \u2014 category 1 confirmed",
+        "spot-check 3 PASS on re-examination: the skills repo's make destroy and openharness strings are illustrative prose inside the ste technical-writing skill (rules.md:322-323 is a Wrong:/Right: sentence lesson; examples.md hits are before/after writing samples), not operational guidance \u2014 the historical verdict stands. The advisor initially suspected under-classification and checked rather than accepting or overriding.",
+        "no residue of the superseded Phase-5 framing remains in either deliverable"
+      ]
+    },
+    {
+      "id": "W2",
+      "nativeWorkerId": "ae551523e1c3b9519",
+      "subagentType": "general-purpose",
+      "modelRequested": "inherit (no override passed)",
+      "modelObserved": "unreported",
+      "effortRequested": "not an exposed parameter for this worker type",
+      "dispatchedAt": "2026-09-08",
+      "wave": 1,
+      "stories": [
+        "US-003",
+        "US-004",
+        "US-005"
+      ],
+      "repo": "mifunedev/openharness-cloud",
+      "worktree": "/home/sandbox/harness/projects/mifunedev/openharness-cloud/.worktrees/944-bootstrap",
+      "branch": "feat/944-agro-runtime-bootstrap",
+      "baseCommit": "0aa8f99",
+      "ownedWritePaths": [
+        "packages/shared/src/workspace-bootstrap-assets.ts",
+        "packages/shared/src/index.ts",
+        "packages/shared/src/**/*.test.ts",
+        "infra/cloud-init/cloud-config.yaml",
+        "apps/web/lib/create-node-bootstrap.ts",
+        "apps/web/lib/create-node-bootstrap.test.ts"
+      ],
+      "forbiddenPaths": [
+        "apps/provisioner/src/provision.ts (W3 owns it)",
+        "apps/provisioner/src/provision.test.ts (W3 owns it)",
+        "the record worktree",
+        "OH_IMAGE_TAG / OH_ENV_FILE / ghcr.io/mifunedev/openharness-cloud/* / @openharness-cloud/* / any persistence identifier"
+      ],
+      "evidenceDestination": "worker report -> advisor -> evidence.md; generated userData for a default node and a hermes+deepagents+agent-browser node pasted verbatim",
+      "acceptanceCommands": [
+        "grep -c 'make sandbox' on generated userData == 0",
+        "grep -E 'INSTALL_(OPENCODE|GROK_BUILD|DEEPAGENTS|HERMES|AGENT_BROWSER)' on generated userData == empty",
+        "no git clone of a runtime source repo in generated userData",
+        "no managed source checkout created, neither ~/.openharness nor a renamed equivalent",
+        "repo typecheck/lint/test for root and each affected workspace, exit 0",
+        "advisor re-runs the suite independently on the accepted tree",
+        "the browser editor workspace root and /home/sandbox/oh.code-workspace resolve to a path that exists after the new bootstrap and holds durable user state (attach surface 2 of #944)"
+      ],
+      "repairRoute": "same worker via SendMessage (coupled stories stay with one continuing worker)",
+      "status": "ACCEPTED",
+      "corrections": [
+        "2026-09-08 path correction: prd.md moved into the record worktree",
+        "2026-09-08 design constraint: removing ~/.openharness removes the browser editor's default workspace root (README.md:356); repoint it and fix the false header comment at packages/shared/src/index.ts:785-790"
+      ],
+      "knownExternalDependency": "fresh-provisioning end-to-end success is gated on the #1019 patched AGRO image; v0.9.0 is the only published image and is known broken"
+    },
+    {
+      "id": "W3",
+      "nativeWorkerId": "ab16f3c765ba00e63",
+      "subagentType": "general-purpose",
+      "modelRequested": "inherit (no override passed)",
+      "modelObserved": "unreported",
+      "effortRequested": "not an exposed parameter for this worker type",
+      "dispatchedAt": "2026-09-08",
+      "wave": 1,
+      "stories": [
+        "US-006"
+      ],
+      "repo": "mifunedev/openharness-cloud",
+      "worktree": "/home/sandbox/harness/projects/mifunedev/openharness-cloud/.worktrees/944-rebuild",
+      "branch": "feat/944-node-rebuild-ssh",
+      "baseCommit": "0aa8f99",
+      "ownedWritePaths": [
+        "apps/provisioner/src/provision.ts",
+        "apps/provisioner/src/provision.test.ts"
+      ],
+      "forbiddenPaths": [
+        "packages/shared/src/workspace-bootstrap-assets.ts (W2 owns it)",
+        "infra/cloud-init/cloud-config.yaml (W2 owns it)",
+        "packages/shared/src/index.ts (W2 owns it)",
+        "apps/web/lib/create-node-bootstrap.ts (W2 owns it)",
+        "handleProvision / handleDestroy / handleRestart / reconcileNode beyond compile necessity"
+      ],
+      "evidenceDestination": "worker report -> advisor -> evidence.md; the chosen node-side command sequence and its justification from runtime source",
+      "acceptanceCommands": [
+        "the TODO naming `git -C ~/.openharness pull && make sandbox` is absent from the tree, not reworded",
+        "no volume-destroying verb (agro destroy / down -v) appears in the rebuild path",
+        "a node-side failure does not reach NODE_STATUS.RUNNING, proven by test",
+        "apps/provisioner typecheck/lint/test, exit 0",
+        "advisor re-runs the suite independently on the accepted tree"
+      ],
+      "repairRoute": "same worker via SendMessage; scope creep beyond the D11 prerequisite is rejected by the advisor, not negotiated",
+      "status": "ACCEPTED",
+      "corrections": [
+        "2026-09-08 informational: do not pin the broken v0.9.0 image"
+      ],
+      "acceptanceEvidence": [
+        "readiness oracle is the project's own: sandbox-healthcheck.sh:72 require_unit openharness-bootstrap.service",
+        "Type=oneshot + RemainAfterExit=yes makes active a completion proof and failed a failure proof",
+        "budget literals generated from SANDBOX_REBUILD_BUDGET_SECONDS; outer = node budget + headroom; 960 removed; inversion now structurally impossible",
+        "regression test stubs running-container + failed-unit and asserts state=failed step=ready at exit 65, one probe only",
+        "TODO naming ~/.openharness pull and make sandbox absent from apps/provisioner/src",
+        "advisor re-ran pnpm type-check && pnpm test independently: exit 0"
+      ],
+      "securityBoundaryDecision": "Readiness probe adds `docker exec <name> systemctl is-active <unit>` to the root forced-command endpoint. Accepted: container name is regex-allowlisted and re-checked against the exact canonical SSH_ORIGINAL_COMMAND, unit name is a compile-time constant, probe is read-only, output is matched against a closed vocabulary and discarded rather than relayed. The endpoint already ran agro sandbox install, so a read-only exec is not a meaningful escalation. Pinned SSH surface, principal, key, option set and 0600 known-hosts pin unchanged. Disclosed by the worker, not discovered in review."
+    },
+    {
+      "id": "W4",
+      "nativeWorkerId": "ab4aa8ebb14cb9fb1",
+      "subagentType": "general-purpose",
+      "modelRequested": "inherit (no override passed)",
+      "modelObserved": null,
+      "wave": 2,
+      "stories": [
+        "US-002",
+        "US-009"
+      ],
+      "repo": "mifunedev/openharness-cloud",
+      "worktree": "/home/sandbox/harness/projects/mifunedev/openharness-cloud/.worktrees/944-docs",
+      "branch": "feat/944-cloud-classification-docs (to be cut from the accepted W2+W3 integration)",
+      "baseCommit": "pending W2/W3 acceptance",
+      "ownedWritePaths": [
+        "docs/agro-runtime-name-classification.md (new)",
+        "README.md",
+        "docs/quickstart.md",
+        "docs/browser-gateway-threat-model.md",
+        "docs/browser-gateway-runbook.md",
+        "docs/deploy-provisioner.md",
+        "deploy/README.md",
+        "infra/cloud-init/README.md",
+        "infra/control-plane/README.md",
+        "apps/web/components/node-setup-guide.tsx",
+        "apps/gateway/README.md",
+        "apps/provisioner/README.md",
+        "apps/web/README.md"
+      ],
+      "forbiddenPaths": [
+        "every source file owned by W2 and W3",
+        "docs/design/console-mvp.md (category 5 historical design record \u2014 retained as written)",
+        "docs/runtime-settings-promotion-evidence.md (category 5 historical evidence)",
+        "docs/cost.md issue links (category 5 historical)"
+      ],
+      "evidenceDestination": "docs/agro-runtime-name-classification.md in the Cloud repo",
+      "acceptanceCommands": [
+        "no retained instruction references make sandbox, a runtime source clone, or a retired INSTALL_* flag",
+        "every category 3 and 4 retention carries a written justification",
+        "setup prose matches the userData W2 actually generates, verified by the advisor against the accepted diff",
+        "repo docs/lint checks, exit 0"
+      ],
+      "repairRoute": "same worker via SendMessage",
+      "status": "ACCEPTED",
+      "blockedBy": [
+        "W2 acceptance",
+        "W3 acceptance"
+      ]
+    },
+    {
+      "id": "W5",
+      "nativeWorkerId": null,
+      "subagentType": "general-purpose",
+      "modelRequested": "inherit (no override passed)",
+      "modelObserved": null,
+      "wave": 3,
+      "stories": [
+        "US-007a"
+      ],
+      "repo": "mifunedev/openharness-cloud",
+      "worktree": "/home/sandbox/harness/projects/mifunedev/openharness-cloud/.worktrees/944-bootstrap (read-only reuse) plus a disposable local Linux host",
+      "branch": "n/a \u2014 evidence only, no tracked source edits expected",
+      "baseCommit": "pending W2/W3 acceptance",
+      "ownedWritePaths": [
+        "/home/sandbox/harness/.worktrees/feat/944-agro-cloud-consumer-migration/.agro/tasks/agro-cloud-consumer-migration/local-lifecycle-evidence.md",
+        "/home/sandbox/harness/.worktrees/feat/944-agro-cloud-consumer-migration/.agro/tasks/agro-cloud-consumer-migration/local-lifecycle-transcript.log"
+      ],
+      "forbiddenPaths": [
+        "every tracked source file in both repositories",
+        "any live or paid infrastructure",
+        "the operator's real Cloud control plane"
+      ],
+      "evidenceDestination": "local-lifecycle-evidence.md and local-lifecycle-transcript.log in the record worktree",
+      "acceptanceCommands": [
+        "the generated bootstrap ran on a real disposable Linux host, with the host identified",
+        "every assertion cites observed filesystem or container state, never a mock or a status transition",
+        "a representative legacy ~/.openharness workspace is shown recoverable",
+        "attach surface 1 (ssh + tmux attach -t docker-build-oh-sandbox) exercised and observed",
+        "attach surface 2 (real loopback code-server reached over a pinned SSH forward, workspace root holding durable state) exercised and observed",
+        "attach surface 3 (re-attach to the running sandbox container) exercised and observed",
+        "all three attach surfaces re-exercised after a restart and after a rebuild, each observing state written beforehand",
+        "advisor independently re-runs at least one assertion"
+      ],
+      "repairRoute": "same worker via SendMessage",
+      "status": "PENDING",
+      "blockedBy": [
+        "W2 acceptance",
+        "W3 acceptance",
+        "confirmation that the local host can host Docker-in-Docker faithfully"
+      ]
+    },
+    {
+      "id": "W6",
+      "nativeWorkerId": "a215de2cbdb589bf6",
+      "subagentType": "general-purpose",
+      "modelRequested": "inherit (no override passed)",
+      "modelObserved": null,
+      "wave": 2,
+      "stories": [
+        "US-010"
+      ],
+      "repo": "mifunedev/website",
+      "worktree": "to be cloned into projects/mifunedev/website with its own worktree",
+      "branch": "feat/944-agro-runtime-references",
+      "baseCommit": "pending clone",
+      "ownedWritePaths": [
+        "posts/openharness-getting-started.md",
+        "src/**/offerings.ts",
+        "src/**/AgentPickerSection.tsx",
+        "src/**/github.ts",
+        "src/**/faqs.ts",
+        "scripts/generate-llm-txt.mjs",
+        "public/llm.txt"
+      ],
+      "forbiddenPaths": [
+        "schema.ts",
+        "cloud-pricing.ts",
+        "tasks/**",
+        "any historical post other than the one publishing dead commands"
+      ],
+      "evidenceDestination": "worker report -> advisor -> evidence.md",
+      "acceptanceCommands": [
+        "no make sandbox / make shell / make harness-config / harness.yaml in published guidance",
+        "replacement commands verified against agro@main, not development",
+        "github.ts target and AgentPickerSection.tsx match key changed together and still match",
+        "public/llm.txt regenerated by its generator, not hand-edited",
+        "site build, exit 0"
+      ],
+      "repairRoute": "same worker via SendMessage",
+      "status": "ACCEPTED",
+      "blockedBy": [
+        "advisor clone of mifunedev/website"
+      ]
+    },
+    {
+      "id": "W7",
+      "nativeWorkerId": null,
+      "subagentType": "general-purpose",
+      "modelRequested": "inherit (no override passed)",
+      "modelObserved": null,
+      "wave": 2,
+      "stories": [
+        "US-011"
+      ],
+      "repo": "mifunedev/agro-web",
+      "worktree": "projects/mifunedev/openharness-web (existing clone) with its own worktree",
+      "branch": "feat/944-docs-drift",
+      "baseCommit": "pending fetch",
+      "ownedWritePaths": [
+        "docs/**"
+      ],
+      "forbiddenPaths": [
+        "check-docs-drift.mjs deliberate exceptions at :41",
+        "static/CNAME",
+        "docusaurus.config.ts identity fields",
+        "scripts/oh-source.mjs",
+        ".oh/tasks/**"
+      ],
+      "evidenceDestination": "worker report -> advisor -> evidence.md",
+      "acceptanceCommands": [
+        "docs/lifecycle-commands.md no longer presents oh as the only front door",
+        "prose mirrored from agro@main; no unreleased .agro namespace prose introduced",
+        "the 14 missing pages are mirrored or their absence justified",
+        "check-docs-drift.mjs passes, exit 0",
+        "a manual Pages build is NOT cited as evidence the drift is fixed"
+      ],
+      "repairRoute": "same worker via SendMessage",
+      "status": "ACCEPTED",
+      "blockedBy": [
+        "W1 corrected inventory accepted"
+      ]
+    },
+    {
+      "id": "W8",
+      "nativeWorkerId": "a1a9a4ca502958aa1",
+      "subagentType": "general-purpose",
+      "modelRequested": "inherit (no override passed)",
+      "modelObserved": "unreported",
+      "effortRequested": "not an exposed parameter for this worker type",
+      "dispatchedAt": "2026-09-08",
+      "wave": 2,
+      "stories": [
+        "US-012 (prerequisite fix)"
+      ],
+      "repo": "mifunedev/agro",
+      "worktree": "/home/sandbox/harness/.worktrees/bug/944-sandbox-install-idempotent",
+      "branch": "bug/944-sandbox-install-preserve-config",
+      "baseCommit": "b10ecac3",
+      "ownedWritePaths": [
+        ".agro/cli/src/commands/sandbox.ts",
+        ".agro/cli/src/__tests__/sandbox.test.ts"
+      ],
+      "forbiddenPaths": [
+        ".agro/tasks/**",
+        "release workflows",
+        "package.json version fields",
+        "the registry, wizard, compose renderer and config schema beyond the fix"
+      ],
+      "evidenceDestination": "worker report -> advisor -> evidence.md",
+      "acceptanceCommands": [
+        "re-installing an existing name preserves timezone, access.dockerSocket and git identity",
+        "the preserved values reach the compose env the recreated container receives, not only agro.json",
+        "a first install with no existing entry is unchanged",
+        "an explicit flag still overrides the preserved value",
+        "a stale entry carrying a retired or secret key does not resurrect it",
+        "advisor re-runs typecheck, test and build independently"
+      ],
+      "repairRoute": "same worker via SendMessage",
+      "status": "ACCEPTED",
+      "dispatchLedgerNote": "Registered retroactively. The dispatch preceded its ledger entry, which is the hygiene gap previously flagged; recorded rather than backdated.",
+      "acceptanceEvidence": [
+        "OH_CONFIG_FIELDS confirmed authoritative; completeness is structural, not hand-enumerated",
+        "worker demonstrated its tests are load-bearing: reverting sandbox.ts alone leaves 7 of 9 failing, with 2 declared controls",
+        "advisor re-ran typecheck + test + build independently: 74 files, 1257 tests, 205.1kb bundle, exit 0",
+        "no new flags; --repo, --image, --no-build, --yes, the wizard and nextDefaultName unchanged"
+      ]
+    },
+    {
+      "id": "W9",
+      "nativeWorkerId": "afeb96646cba27a88",
+      "subagentType": "general-purpose",
+      "modelRequested": "inherit (no override passed)",
+      "modelObserved": "unreported",
+      "effortRequested": "not an exposed parameter for this worker type",
+      "dispatchedAt": "2026-09-08",
+      "wave": 2,
+      "stories": [
+        "#1019 Part A"
+      ],
+      "repo": "mifunedev/agro",
+      "worktree": "/home/sandbox/harness/.worktrees/bug/1019-boot-recovery",
+      "branch": "bug/1019-boot-recovery",
+      "baseCommit": "b10ecac3",
+      "ownedWritePaths": [
+        ".agro/evals/probes/** (new or extended recovery and guardrail probes)",
+        ".agro/tasks/1019-boot-recovery/** (its own task folder)",
+        "docs/** for the recovery procedure"
+      ],
+      "forbiddenPaths": [
+        ".agro/tasks/agro-cloud-consumer-migration/**",
+        "any release workflow",
+        "sandbox-boot-guard.yml LEGACY_IMAGE pin",
+        "package.json version fields"
+      ],
+      "evidenceDestination": ".agro/tasks/1019-boot-recovery/ plus the Part B operator requirements document",
+      "acceptanceCommands": [
+        "the container-stays-up hypothesis is TESTED and reported either way, not assumed",
+        "population B reproduced from the real published image with representative user state seeded first",
+        "recovery restores a boot without deleting or recreating the volume",
+        "each preserved item verified by before/after observation: checkout with uncommitted changes, ~/.config/gh, .agro/tasks, .env at mode 0600",
+        "candidate image cold boot proven by the bootstrap unit reaching active, not by container liveness",
+        "lifecycle-hook audit covers preinstall, postinstall, prepare, pnpm:devPreinstall, pnpm:devPrepare across root and boot-participating workspace manifests",
+        "probe changes demonstrated by fault injection, not asserted",
+        "advisor re-runs the probe and at least one recovery assertion"
+      ],
+      "repairRoute": "same worker via SendMessage",
+      "status": "ACCEPTED",
+      "hardBoundary": "PART A ONLY. No publishing, tagging, releasing, CI pin changes, yanking, or user notification. Part B is written as operator requirements, never performed. Must never claim a local candidate repairs published artifacts.",
+      "dispatchLedgerNote": "Registered retroactively, same gap as W8."
+    },
+    {
+      "id": "W10",
+      "nativeWorkerId": "a29e0355c83c5e384",
+      "subagentType": "general-purpose",
+      "modelRequested": "inherit (no override passed)",
+      "modelObserved": "unreported",
+      "wave": 3,
+      "stories": [
+        "US-008"
+      ],
+      "repo": "mifunedev/agro (record) + scratch clones",
+      "worktree": "scratchpad clones only; one owned file in the record worktree",
+      "ownedWritePaths": [
+        ".agro/tasks/agro-cloud-consumer-migration/migration-evidence.md"
+      ],
+      "forbiddenPaths": [
+        "every other file in the record worktree",
+        "projects/mifunedev/openharness-cloud and projects/mifunedev/openharness-web (live clones with worktrees attached)",
+        "mifunedev/agro itself",
+        ".oh/tasks/** content by hand"
+      ],
+      "acceptanceCommands": [
+        "migration APPLIED without --check, exit code recorded per repo",
+        "before/after manifest compares path, mode, type, sha256 and size",
+        "tasks/** byte-identity stated explicitly",
+        "git status --short rename evidence reported, including whether detection fired",
+        "advisor independently confirms the rename-versus-rewrite distinction in migrate.ts"
+      ],
+      "repairRoute": "same worker via SendMessage",
+      "status": "ACCEPTED",
+      "dispatchLedgerNote": "Registered at acceptance time."
+    },
+    {
+      "id": "W11",
+      "nativeWorkerId": "ae493cb0a966bd2a6",
+      "subagentType": "general-purpose",
+      "modelRequested": "inherit (no override passed)",
+      "modelObserved": "unreported",
+      "wave": 4,
+      "stories": [
+        "US-008 delivery, Cloud half"
+      ],
+      "repo": "mifunedev/openharness-cloud",
+      "worktree": "projects/mifunedev/openharness-cloud/.worktrees/944-integrate2",
+      "ownedWritePaths": [
+        "the .oh -> .agro migration",
+        "docs/browser-gateway-runbook.md path repointing",
+        ".dockerignore",
+        ".gitignore"
+      ],
+      "forbiddenPaths": [
+        "the parent clone",
+        "sibling worktrees",
+        "agro migrate --home",
+        "any commit/push/PR/merge/deploy",
+        ".agro/tasks/** content by hand"
+      ],
+      "acceptanceCommands": [
+        "preflight names only the worktree root or ABORT",
+        "131/131 sha256 and modes identical",
+        ".oh/tasks/** byte-identical",
+        "both git views reported",
+        "runbook paths repointed",
+        "type-check and test exit 0 with baseline counts"
+      ],
+      "status": "ACCEPTED"
+    },
+    {
+      "id": "W12",
+      "nativeWorkerId": "a4aa4d7b47120d4d2",
+      "subagentType": "general-purpose",
+      "modelRequested": "inherit (no override passed)",
+      "modelObserved": "unreported",
+      "wave": 4,
+      "stories": [
+        "US-008 delivery, agro-web half"
+      ],
+      "repo": "mifunedev/agro-web",
+      "worktree": "projects/mifunedev/openharness-web/.worktrees/944-docs",
+      "status": "ACCEPTED"
+    }
+  ],
+  "blockedStories": [
+    {
+      "story": "US-007b",
+      "gate": "Q3 \u2014 explicit operator authorization to provision paid OVH infrastructure",
+      "note": "No live infrastructure is touched without it. Not waivable by the advisor."
+    }
+  ],
+  "crossRepoOrder": [
+    "1. mifunedev/openharness-cloud \u2014 US-002..US-006, US-009. Independent of the others.",
+    "2. mifunedev/website \u2014 US-010. Independent; grounded on agro@main. Highest user-visible urgency: its published instructions cannot work.",
+    "3. mifunedev/agro-web \u2014 US-011. Grounded on agro@main. Must NOT pre-empt unreleased namespace prose.",
+    "4. mifunedev/agro \u2014 US-001, US-008 record PR plus evidence. Lands last so it can cite the other three."
+  ],
+  "integration": {
+    "worktree": "projects/mifunedev/openharness-cloud/.worktrees/944-integrate2",
+    "base": "0aa8f99",
+    "files": 19,
+    "conflicts": 0,
+    "sharedFiles": [
+      "packages/shared/src/host-management-assets.ts",
+      "packages/shared/src/host-management-assets.test.ts"
+    ],
+    "result": "pnpm install --frozen-lockfile && pnpm type-check && pnpm test -> exit 0",
+    "counts": "shared 113, db 189, gateway 37, web 2898/126 files, provisioner 84; 0 failures"
+  }
+}

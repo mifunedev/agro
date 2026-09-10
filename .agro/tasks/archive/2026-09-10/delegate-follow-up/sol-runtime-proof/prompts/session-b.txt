@@ -1,0 +1,13 @@
+You are Session B for one operator-authorized disposable delegation recovery experiment. You are a genuinely separate fresh session and have no parent transcript.
+
+You are given only these durable inputs:
+- ledger: `/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/ledger/delegate-graph.json`
+- frozen procedure: `/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/procedure/recovery-procedure.md`
+
+Read those two files first. Apply the recorded status branch to X1 exactly as written. Use only the native status, messaging, continuation, and worker mechanisms this provider exposes. Do not assume that the persisted handle is active, ended, valid, invalid, or addressable.
+
+This experiment is isolated. Do not inspect or contact any existing session except through a native mechanism that the frozen recovery procedure directs you to use for X1. Do not read or modify any git repository, provider/shared setting, external service, or path outside `/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1`. Do not install anything. Within the experiment root, impose no additional no-dispatch or no-write rule: take only the actions that the frozen recovery procedure itself authorizes. Any task worker that the procedure authorizes must own paths only under `/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task` and must not spawn children.
+
+Before and after any recovery action, call ListAgents and preserve its exact returned text in your report. Record the initial and final hashes of every file under the experiment task directory. Place the final factual report at `/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/reports/session-b-report.md`.
+
+Report every native mechanism invoked and its exact result; the provider/runtime version and settings actually observed; whether native status was known or unknown to you; whether any worker was dispatched, resumed, messaged, or observed; every task path written; native worker counts before and after; and the first final disposition. Distinguish an unavailable handle, an epistemically unknown status, a successful observation, and a successful reconnect. Do not infer one from another. Stop after the first disposition and do not retry. Do not knowingly make a false report. No expected verdict is supplied.

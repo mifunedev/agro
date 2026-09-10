@@ -20,7 +20,7 @@ Key capabilities:
 
 ## How it works
 
-The harness uses Docker Compose to build a sandbox image from `.devcontainer/`. Bring it up with `oh sandbox install docker`, attach with `oh shell <name>` (or VS Code), then run `oh tool install herdr` and `herdr` first — nothing installs at boot. Authenticate GitHub and your chosen provider and launch agents from Herdr panes. `oh stop` preserves state; `oh destroy` is the destructive teardown, and it asks before it wipes the volumes. Every one of those verbs runs `.oh/scripts/docker-compose.sh` — see [lifecycle commands](/docs/lifecycle-commands).
+The harness uses Docker Compose to build a sandbox image from `.devcontainer/`. Bring it up with `oh sandbox install docker`, attach with `oh shell <name>` (or VS Code), then run `oh tool install herdr` and `herdr` first — nothing installs at boot. Authenticate GitHub and your chosen provider and launch agents from Herdr panes. `oh stop` preserves state; `oh destroy` is the destructive teardown, and it asks before it wipes the volumes. Every one of those verbs runs `.agro/scripts/docker-compose.sh` — see [lifecycle commands](/docs/lifecycle-commands).
 
 The primary agent pane at the project root inside Herdr is your **orchestrator** — git, sandbox lifecycle, and most file edits all flow through that organized workspace. When the optional Docker socket is enabled (off by default — see [security-considerations.md](security-considerations.md#3-sandbox-isolation--the-docker-socket-caveat--enforced-with-a-caveat)), the orchestrator can also drive other containers and edit files inside them over that socket, so day-to-day work rarely needs anything else. Drop back to the host shell only when something can't be done from inside the container — typically adding a new bind-mounted volume, which requires a `.devcontainer/docker-compose.yml` change and restart.
 
@@ -66,8 +66,8 @@ If you already have a sandbox running, jump directly to the page you need.
 
 ## Where to get help
 
-- Source code and issues: [github.com/mifunedev/openharness](https://github.com/mifunedev/openharness)
+- Source code and issues: [github.com/mifunedev/agro](https://github.com/mifunedev/agro)
 - Learning material: [Resources](/docs/resources)
-- Philosophy: [How Open Harness embodies compound engineering](https://github.com/mifunedev/openharness-web/tree/main/blog) — why each unit of work here should make the next one easier.
+- Philosophy: [How Open Harness embodies compound engineering](https://github.com/mifunedev/agro-web/tree/main/blog) — why each unit of work here should make the next one easier.
 
 [Connecting to the Sandbox](/docs/connecting)

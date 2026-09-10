@@ -34,7 +34,7 @@ This cron is **opt-in and cap-gated**:
   **Before flipping `enabled: true`, restore a cap gate** that counts open PRs
   labeled `prompt-miner` on `mifunedev/openharness` and wire it back as
   `preflight:`; recover the previous implementation from git history
-  (`git log -- .oh/skills/autopilot/autopilot-caps.sh`).
+  (`git log -- .agro/skills/autopilot/autopilot-caps.sh`).
 
 ## Steps
 
@@ -116,7 +116,7 @@ if set, else map the current checkout back to its shared root.
 ROOT="${CRON_LOG_ROOT:-$(git worktree list --porcelain 2>/dev/null | awk 'NR==1 && $1 == "worktree" { sub(/^worktree /,""); print; exit }' || true)}"
 ROOT="${ROOT:-$(git rev-parse --show-toplevel)}"
 printf '[%s]\tprompt-miner\t%s\t%s\n' "$(date -Iseconds)" "<STATUS>" "<msg>" \
-  | "$ROOT/.oh/scripts/locked-append.sh" "$ROOT/crons/.cron.log"
+  | "$ROOT/.agro/scripts/locked-append.sh" "$ROOT/crons/.cron.log"
 ```
 
 ## Guarantees

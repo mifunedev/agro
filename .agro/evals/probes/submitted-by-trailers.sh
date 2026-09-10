@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# tier: A
+# source: conversation 2026-06-12 (commit attribution trailers); the single-owner
+#         /spec implementation prompt is the only task-side handoff
+# desc: the scaffold path (/spec execute) and the task prompt both require a Submitted-by
+#       trailer naming the ACTIVE submitter, and neither hard-codes a specific model as co-author
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+SPEC="$ROOT/.claude/skills/spec/references/execute.md"
+PROMPT="$ROOT/.agro/skills/spec/templates/task-prompt.md"
+
+for file in "$SPEC" "$PROMPT"; do
+  if [[ ! -f "$file" ]]; then
+    echo "SKIPPED: required file absent: $file" >&2
+    exit 2
+  fi
+done
+
+missing=()
+grep -q 'Submitted-by:' "$SPEC" || missing+=("/spec execute scaffold commit trailer")
+grep -q 'Submitted-by:' "$PROMPT" || missing+=("task prompt commit trailer")
+
+grep -qi 'active submitter\|active harness\|model/agent that actually' "$SPEC" \
+  || missing+=("/spec execute does not tie the trailer to the active submitter")
+grep -qi 'active submitter\|active harness\|model/agent that actually' "$PROMPT" \
+  || missing+=("the session prompt does not tie the trailer to the active submitter")
+
+grep -qi 'mandatory' "$PROMPT" || missing+=("the session prompt does not mark the Submitted-by trailer mandatory")
+
+if grep -q 'Co-Authored-By: Claude Opus' "$SPEC"; then
+  echo "REGRESSION: /spec execute still hard-codes a Claude Opus co-author trailer" >&2
+  exit 1
+fi
+
+if (( ${#missing[@]} > 0 )); then
+  echo "REGRESSION: Submitted-by trailer guarantee missing: ${missing[*]}" >&2
+  exit 1
+fi
+
+echo "PASS: /spec execute and the task prompt both require a mandatory Submitted-by trailer tied to the active submitter" >&2
+exit 0

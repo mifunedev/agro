@@ -70,7 +70,7 @@ Start from the Open Harness checkout:
 
 ```bash
 cd /path/to/openharness
-PROJECTS_ROOT="$(bash .oh/scripts/oh-path projects --no-create 2>/dev/null || printf '%s' projects)"
+PROJECTS_ROOT="$(bash .agro/scripts/oh-path projects --no-create 2>/dev/null || printf '%s' projects)"
 mkdir -p "$PROJECTS_ROOT/langfuse"
 git clone https://github.com/langfuse/langfuse.git \
   "$PROJECTS_ROOT/langfuse/langfuse"
@@ -83,7 +83,7 @@ Git worktree. Its own worktrees, if any, live at
 
 ```bash
 cd /path/to/openharness
-PROJECTS_ROOT="$(bash .oh/scripts/oh-path projects --no-create 2>/dev/null || printf '%s' projects)"
+PROJECTS_ROOT="$(bash .agro/scripts/oh-path projects --no-create 2>/dev/null || printf '%s' projects)"
 cd "$PROJECTS_ROOT/langfuse/langfuse"
 git pull --ff-only
 ```
@@ -245,7 +245,7 @@ pi
 `LANGFUSE_HOST` is supported as a fallback name. For an environment-only
 configuration, `LANGFUSE_BASE_URL` wins over `LANGFUSE_HOST`.
 
-`langfuse.baseUrl` and `langfuse.privacyPreset` in `oh.json` record the intended
+`langfuse.baseUrl` and `langfuse.privacyPreset` in `agro.json` record the intended
 values in one tracked place, but the harness does **not** project them into the
 container — Pi reads them from its own process environment, so export them in the
 shell that launches Pi (see the block above):

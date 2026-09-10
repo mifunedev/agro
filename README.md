@@ -1,37 +1,28 @@
-<h1 align="center">🏗️ Open Harness</h1>
+<h1 align="center">🏗️ AGRO</h1>
+
+<p align="center"><strong>Agent Governance Runtime Orchestrator</strong></p>
 
 <p align="center">
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache--2.0-D4AF37?style=plastic&labelColor=0B1220"></a>
-  <a href="https://github.com/mifunedev/openharness/actions/workflows/ci-harness.yml"><img alt="CI: Harness" src="https://img.shields.io/github/actions/workflow/status/mifunedev/openharness/ci-harness.yml?branch=main&style=plastic&label=CI&labelColor=0B1220&color=D4AF37"></a>
-  <a href="https://github.com/mifunedev/openharness/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/mifunedev/openharness?style=plastic&logo=github&logoColor=white&labelColor=0B1220&color=D4AF37"></a>
-  <a href="https://github.com/mifunedev/openharness/issues"><img alt="Issues" src="https://img.shields.io/github/issues/mifunedev/openharness?style=plastic&labelColor=0B1220&color=D4AF37"></a>
+  <a href="https://github.com/mifunedev/agro/actions/workflows/ci-harness.yml"><img alt="CI: Harness" src="https://img.shields.io/github/actions/workflow/status/mifunedev/agro/ci-harness.yml?branch=main&style=plastic&label=CI&labelColor=0B1220&color=D4AF37"></a>
+  <a href="https://github.com/mifunedev/agro/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/mifunedev/agro?style=plastic&logo=github&logoColor=white&labelColor=0B1220&color=D4AF37"></a>
+  <a href="https://github.com/mifunedev/agro/issues"><img alt="Issues" src="https://img.shields.io/github/issues/mifunedev/agro?style=plastic&labelColor=0B1220&color=D4AF37"></a>
   <img alt="Docker required" src="https://img.shields.io/badge/Docker-required-D4AF37?style=plastic&logo=docker&logoColor=white&labelColor=0B1220">
-  <a href="https://deepwiki.com/mifunedev/openharness"><img alt="Ask DeepWiki" src="https://img.shields.io/badge/DeepWiki-ask-D4AF37?style=plastic&labelColor=0B1220"></a>
 </p>
 
 <p align="center">
-  <img src=".github/assets/mifune-banner.jpg" alt="Open Harness" width="100%">
+  <img src=".github/assets/mifune-banner.jpg" alt="AGRO" width="100%">
 </p>
 
-**Open Harness provides the sandbox; you choose the harness.** It's a Docker-based workspace, agent-tended over time: one `agro sandbox install docker` boots a long-lived container where the coding agent of your choice — Claude Code, Codex, Pi, Hermes, Grok, and more, each installed with one `agro harness install` command — works on its own branch and identity. Because it's just Docker, it runs **identically on your laptop or a remote VM** — and remote is the default: deployed on a VM, Open Harness becomes a **lights-out software factory**, where the agent works unattended, on a schedule and reachable over Slack, fanning out across isolated **git worktrees** — parallel branches, delegated sub-agents, even other cloned repos — while you're away and your laptop stays clean.
+**AGRO gives AI coding agents a workspace you control.** It packages a Docker sandbox and shared agent procedures around the coding harness you choose—Claude Code, Codex, Pi, or another.
 
-- **One project, one sandbox.** A single container scoped to a single repo. The agent owns its branch and its workspace; you keep your laptop clean.
-- **Parallel by design.** The worktrees skill fans one sandbox into isolated git worktrees — parallel branches, delegated sub-agents, even other cloned repos.
-- **Remote-first, lights-out.** Runs the same on your laptop or a cloud VM; on a VM it's an unattended software factory — agents build on a schedule, reachable over Slack.
-- **Agents that work while you sleep.** A tiny croner runtime reads `crons/*.md` markdown and wakes the agent on a schedule.
-- **Host dependencies: Docker, Git, and Node.js ≥ 20.** No Python, no pnpm, no agent CLIs, no toolchain rot on your laptop — Node runs the `agro` CLI and nothing else. (`get-agro.sh` installs Node for you if you don't have it — see [Prerequisites](docs/installation.md#prerequisites).) The same `agro` verbs work on the host and inside the sandbox — see [lifecycle commands](docs/lifecycle-commands.md).
-- **Composable infra.** Cherry-pick Cloudflare tunnels, SSH, Caddy gateway, or pack-supplied services via Compose overlays.
-- **Slack-ready.** The `pi-messenger-bridge` package bridges Slack (and other messengers) to a Pi agent — see [docs/integrations/slack.md](docs/integrations/slack.md).
-- **Herdr-first interactive work.** Nothing installs at boot: every harness and tool arrives through `agro harness install <id>` or `agro tool install <id>`. After entering the sandbox, install and run [Herdr](docs/integrations/herdr.md) first; keep setup, agents, tests, and servers organized in its persistent panes. Headless Slack and cron infrastructure remain independent.
+Develop on your laptop or a remote VM. Install tools and harnesses on demand, organize parallel changes in separate git worktrees, and use shared skills and evidence checks to guide the work.
 
----
+Start with the quickstart below. See the [documentation](docs/README.md) for more guidance.
 
-> 📖 **Read the docs → https://oh.mifune.dev**
-> Rendered, searchable docs, guides, and blog. New here? Start with the [Start Here hub](docs/README.md).
+## 📦 Quickstart
 
-## 📦 Install
-
-Open Harness runs one project in one Docker sandbox, and **`agro` is the only
+AGRO runs one project in one Docker sandbox, and **`agro` is the only
 front door**. Host prerequisites: Docker (with the Compose plugin), Git, and
 Node.js ≥ 20.
 
@@ -40,225 +31,317 @@ Node.js ≥ 20.
 **npm** — you already have Node ≥ 20:
 
 ```bash
-npm install -g @mifune/agro   # puts `agro` on your PATH
+# Install globally
+npm install -g @mifune/agro
+
+# Or run without a global install
+npx @mifune/agro --help
 ```
 
-**curl** — no Node yet; the bootstrap downloads the prebuilt `agro` artifact from
-the latest GitHub release (nothing is cloned or built on your host) and offers to
-install nvm + Node 22 for you:
+Use `npx @mifune/agro` in place of `agro` in later commands.
+
+**curl**
 
 ```bash
-curl -fsSL https://github.com/mifunedev/openharness/releases/latest/download/get-agro.sh | bash
+# Install AGRO to ~/.local/bin; offers Node.js setup if needed
+curl -fsSL https://agro.mifune.dev/get-agro.sh | bash
 ```
 
-Review-first (download, read, then run — no extra dependency):
+For a download-and-review alternative, see [Installation](docs/installation.md).
+
+Check the installed version, update AGRO, or see available commands:
 
 ```bash
-curl -fsSL -o get-agro.sh https://github.com/mifunedev/openharness/releases/latest/download/get-agro.sh
-# Review get-agro.sh in your editor or pager before running it.
-bash get-agro.sh
-```
+# Check the installed version
+agro --version
 
-It installs to `~/.local/bin/agro`; `AGRO_BIN_DIR` overrides the location, and
-`export PATH="$HOME/.local/bin:$PATH"` puts it on an already-open shell's PATH.
-`agro update` upgrades it later. `oh` remains the compatibility alias for the
-same executable — `npm install -g @mifune/openharness` or the `get-oh.sh`
-bootstrap — and every `agro` verb below also works as `oh <verb>`; see
-[AGRO compatibility](docs/agro-compatibility.md) and
-[Installation](docs/installation.md#compatibility-entry-point-oh).
+# Update AGRO
+agro update
+
+# Show available commands
+agro --help
+```
 
 ### 2. Create the sandbox
 
 `agro sandbox install docker` runs from **any** directory — it needs no project
 checkout:
 
-```bash
-agro sandbox install docker   # wizard: name, timezone, git identity, SSH, Docker socket
-agro shell <name>             # attach as the sandbox user
-```
-
-The wizard's answers land in a registry entry at
-`~/.oh/sandboxes/<name>/oh.json`, beside the compose files and the wrapper
-script the CLI regenerates on every lifecycle call. The default name is
-`oh-sbx-<n>`; `--yes` keeps every default and asks nothing. Without `--repo` the
-sandbox runs the published image and seeds its workspace from it.
-
-**Mount a project instead.** Point the sandbox at a checkout and it is
-bind-mounted at `/home/sandbox/harness`:
+Choose either setup option, then enter the sandbox:
 
 ```bash
+# Create a sandbox with the setup wizard
+agro sandbox install docker
+
+# Or mount an existing project at /home/sandbox/harness
 agro sandbox install docker --repo ~/my-project --name my-project
+
+# Enter the sandbox; replace <name> with your sandbox name
+agro shell <name>
 ```
 
-Equip that checkout with the control plane first — `cd ~/my-project && oh
-update` writes `.oh/` and `crons/` and **nothing else**: no `AGENTS.md`, no
-provider configuration, no `.gitignore` line beyond the `.env` line
-`agro secret set` adds. Those files stay yours.
+### 3. Install tools
 
-Then, inside the sandbox, install and open the persistent interactive workspace
-first — a fresh sandbox has no `herdr`, because nothing installs at boot:
+Inside the sandbox, start with [Herdr](docs/integrations/herdr.md), the terminal
+workspace for your agents and development tools:
 
 ```bash
+# Install and open Herdr
 agro tool install herdr
 herdr
 ```
 
-Run the remaining setup, authentication, agents, tests, and servers from its
-panes. That is already a working sandbox. To make it **yours** (private `origin`
-+ `upstream`) and authenticate the agents, continue with the optional full
-setup.
+Run the remaining commands in a Herdr pane. Install only the tools you need:
 
-> **One-line install of this harness.** `curl -fsSL https://oh.mifune.dev/install.sh | bash`
-> does steps 1 and 2 in one shot for a clone of *this* repo at `~/.openharness`
-> (review-first: download it, read it, then `bash openharness-install.sh`). Set
-> `OH_GITHUB_REPO=<your-org>/<your-fork>` to install a fork instead. All
-> environment overrides: [Installation](docs/installation.md).
-
-### 3. Full setup (optional) — private repo, remotes, agent auth
-
-Run these **inside the initial Herdr pane** (`agro shell <name>`, then `agro tool install herdr`, then `herdr`). Per-step depth + troubleshooting:
-[quickstart → End-to-end setup walkthrough](docs/quickstart.md#end-to-end-setup-walkthrough).
+| Tool | Purpose | Availability |
+| --- | --- | --- |
+| `herdr` | Interactive terminal workspace | Install on demand |
+| `agent-browser` | Browser automation | Install on demand |
+| `cloudflared` | Public tunnels for local apps | Install on demand |
+| `microsandbox` | MicroVM runtime CLI | Install on demand |
+| `tailscale` | Private network connectivity | Install on demand |
+| `gh` | GitHub CLI | Included |
+| `docker-cli` | Docker client and Compose | Included |
 
 ```bash
-# GitHub auth over SSH — pick SSH, generate a key, paste a token
-# (SSH remotes use the key directly, so `gh auth setup-git` isn't needed):
+# List tools and check availability
+agro tool list
+
+# Install an optional tool
+agro tool install <id>
+```
+
+**GitHub (optional):** authenticate before repository work that uses GitHub.
+Confirm that the status output shows your intended account.
+
+```bash
+# Sign in and configure Git credentials
 gh auth login
+gh auth setup-git
 
-# Create your own PRIVATE repo and point origin at it. `agro config repo` runs the
-# four commands below for you (it asks first, and defaults to no):
-agro config repo
+# Verify your account
+gh auth status
+```
 
-# The manual equivalent, if `gh` is not installed — `agro config repo` keeps the
-# upstream you cloned from as the `openharness` remote instead of `upstream`:
-gh repo create <your-user>/openharness --private
-git remote set-url origin git@github.com:<your-user>/openharness.git
-git remote add upstream git@github.com:mifunedev/openharness.git
-git push -u origin HEAD
+See [GitHub authentication](docs/integrations/github.md) for help.
 
-# Authenticate the agents you'll use. Simplest cross-provider path: launch the agent,
-# run /login, and pick DEVICE MODE (a code + URL that works headless/remote). The
-# one-liners below are equivalents where a provider exposes them:
-# Each CLI arrives only through `agro harness install <id>` — nothing installs at boot.
-agro harness install claude-code && claude auth login   # Claude Code (or /login in-session)
-agro harness install codex && codex login --device-auth # Codex (device mode; or /login in-session)
-agro harness install pi && pi                           # Pi (first run walks provider auth)
-agro harness install hermes && hermes setup             # Hermes
+### 4. Install a coding harness
 
-# Configure Slack, then run + verify the gateways (sandbox-only):
-#   config: docs/integrations/slack.md  ·  docs/harnesses/hermes.md
-gateway pi && gateway hermes
+Choose one harness to start. In a Herdr pane, install and authenticate it:
+
+```bash
+# List available harnesses
+agro harness list
+
+# Install Claude Code
+agro harness install claude-code
+
+# Sign in and verify authentication
+claude auth login
+claude auth status
+
+# Start Claude Code
+claude
+```
+
+| Harness | ID | Availability |
+| --- | --- | --- |
+| [Claude Code](docs/harnesses/claude-code.md) | `claude-code` | Install on demand |
+| [Codex](docs/harnesses/codex.md) | `codex` | Install on demand |
+| [Pi](docs/harnesses/pi.md) | `pi` | Install on demand |
+| [OpenCode](docs/harnesses/opencode.md) | `opencode` | Install on demand |
+| [Grok Build](docs/harnesses/grok-build.md) | `grok-build` | Install on demand |
+| [Hermes](docs/harnesses/hermes.md) | `hermes` | Install on demand |
+| [Muse Code](docs/harnesses/muse-code.md) | `muse-code` | Install on demand |
+| [T3 Code](docs/harnesses/t3code.md) | `t3code` | Run on demand via `npx` |
+
+Use `agro harness install <id>` for other installable harnesses. Follow the linked
+guides for authentication and launch commands. T3 Code requires an authenticated
+Claude Code, Codex, or OpenCode provider.
+
+### 5. Track your harness changes (optional)
+
+With your coding harness and GitHub CLI configured, ask the agent to create a
+repository for your harness changes. We recommend **private visibility by
+default**, with `origin` pointing to your repository:
+
+```text
+Create a private GitHub repo for my harness changes and set it as origin.
+Verify my account, exclude secrets and runtime files, and preserve existing work.
+Confirm the repo name, files, and any remote replacement before creating or pushing.
+```
+
+<details>
+<summary>Contribute back to AGRO (optional)</summary>
+
+```text
+Configure https://github.com/mifunedev/agro.git as upstream, preserving my origin.
+Check shared history; if unrelated, use a separate checkout inside the sandbox.
+Include only my selected changes, exclude private data, and confirm before pushing or opening a PR.
+```
+
+See the [contributing guide](docs/contributing.md) for the full workflow.
+
+</details>
+
+### 6. Configure messaging (optional)
+
+Run setup inside the sandbox from a Herdr pane. Use a separate Slack app and
+configuration for each gateway. We recommend opening another Herdr pane to
+attach to its tmux session; detach with `Ctrl-b d` to leave the gateway running.
+
+#### Hermes
+
+```bash
+# Install Hermes and configure its provider
+agro harness install hermes
+hermes setup
+
+# Generate the Slack app manifest and print its location
+hermes slack manifest --agent-view --write
+```
+
+Open [Slack Apps](https://api.slack.com/apps), choose **Create New App → From an
+app manifest**, and paste the generated JSON. Review its permissions, then
+install the app to your workspace. Collect the bot token (`xoxb-`) and an
+app-level token (`xapp-`) with `connections:write` scope.
+
+```bash
+# Enter the Slack tokens and configure access rules
+hermes gateway setup
+
+# Start the Hermes gateway and check its status
+gateway hermes
 gateway status
-tmux attach -r -t client-slack-pi   # read-only view; detach with Ctrl-b d
+
+# Attach read-only from a Herdr pane; detach with Ctrl-b d
+tmux attach -r -t client-slack-hermes
 ```
 
-### VS Code (secondary path)
+Send the bot a message and confirm a reply. See the
+[Hermes Slack setup guide](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/messaging/slack.md)
+and [gateway documentation](docs/harnesses/hermes.md#model-and-gateway).
 
-Provision with `agro sandbox install docker`, then attach with **Dev Containers:
-Attach to Running Container** against your sandbox. That is the supported editor
-path.
+#### Pi
 
-**Do not provision with "Reopen in Container".** That path reads
-`.devcontainer/devcontainer.json`, which lists `docker-compose.yml` alone, so it
-bypasses `.oh/scripts/docker-compose.sh` and **no overlay applies** — no SSH
-(`access.ssh`), no host Docker socket (`access.dockerSocket`), no Hermes
-dashboard (`hermesDashboard.enabled`), and nothing from `composeOverrides[]`.
-Secrets still load, because compose auto-loads the `.devcontainer/.env` symlink
-beside the compose file; non-secret `oh.json` settings fall back to the compose
-defaults. Details: [lifecycle commands](docs/lifecycle-commands.md#vs-code-reopen-in-container-applies-no-overlays).
-
-> **Optional — DebugMCP.** Once attached from VS Code, you can install the
-> `microsoft/DebugMCP` extension to expose a debugging MCP server that **any
-> MCP-capable harness** (Claude Code, Codex, …) can drive. It's optional and not
-> tied to any single agent — see the
-> [DebugMCP runbook](docs/integrations/debugmcp.md#confirmed-setup-runbook).
-
-## 🧩 How the primitive pack ships
-
-Open Harness vendors the shared skills/hooks primitive pack directly into the `.oh/` control plane: `.oh/skills/`, `.oh/hooks/`, and `.oh/skills.lock` are tracked as ordinary files in this repo. Skills are the reusable-behavior primitive; the harness ships no repository-authored agent definitions, and provider-native sub-agents remain available as a bounded execution primitive through `/delegate`. `oh update` lays them down, so a fresh checkout has the skills immediately — no submodule, no recursive clone, no network step.
-
-Provider surfaces are symlinks into `.oh/`: `.pi/skills`, `.claude/skills`, and `.codex/skills` point at `.oh/skills`; `.claude/hooks` → `.oh/hooks`. `.pi/` itself remains the Pi provider surface in v1.
-
-## 🚀 Use it
+In [Slack Apps](https://api.slack.com/apps), create an app **From an app
+manifest** using [Pi's manifest](.pi/install/slack-manifest.json). It configures
+Socket Mode, events, and admin commands. Review permissions, install the app,
+and collect its own `xapp-` (`connections:write`) and `xoxb-` tokens.
 
 ```bash
-agro sandbox list       # every sandbox: name, runtime, status, repo
-agro shell <name>       # enter the isolated sandbox
-agro tool install herdr # nothing installs at boot; install the workspace first
-herdr                 # open the primary interactive workspace
-# install an agent CLI the same way, then launch it from a Herdr pane:
-#   agro harness install claude-code  → claude    # Claude Code
-#   agro harness install codex        → codex     # OpenAI Codex CLI
-#   agro harness install pi           → pi        # Pi Coding Agent
-#   agro harness install opencode     → opencode  # OpenCode
-#   agro harness install hermes       → hermes    # Nous Research Hermes
-#   agro harness install grok-build   → grok      # xAI Grok Build
-agro stop <name>    # stop the sandbox, keeping volumes
-agro destroy <name> # stop the sandbox, wipe its volumes, drop the registry entry
-agro --help         # every verb
+# Install Pi, then use /login in Pi and exit back to the shell
+agro harness install pi
+pi
+
+# Save Pi's Slack tokens using hidden input prompts
+cd /home/sandbox/harness
+agro secret set PI_SLACK_APP_TOKEN
+agro secret set PI_SLACK_BOT_TOKEN
+
+# Start the Pi bridge and check its status
+gateway pi
+gateway status
+
+# Attach read-only from a Herdr pane; detach with Ctrl-b d
+tmux attach -r -t client-slack-pi
 ```
 
-## 🧪 Testing
+Message the bot and complete the trust challenge shown in the bridge. See the
+[Pi Slack setup guide](docs/integrations/slack.md) for token locations and access
+configuration.
 
-- Property-based testing convention: [docs/property-testing.md](docs/property-testing.md)
+### 7. Open the sandbox in VS Code (optional)
 
-Prefer VS Code or remote SSH? Use the Dev Containers extension's "Attach to Running Container" against `openharness` — not "Reopen in Container", which applies no overlays (see [VS Code (secondary path)](#vs-code-secondary-path)) — or SSH into your host first and then attach.
+For a sandbox running on your local machine:
 
-## ⚙️ Configure (optional)
+1. Install VS Code's [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
+2. Check that your sandbox is running with `agro sandbox list` on the host.
+3. Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`), choose **Dev Containers: Attach to Running Container**, and select your sandbox.
+4. Choose **File → Open Folder** and open `/home/sandbox/harness` — the sandbox user's `~/harness` folder.
 
-Configuration is split by kind across two files. `oh.json` holds every
-non-secret setting — sandbox identity, git identity, the SSH and Docker-socket
-toggles. It holds no install field: `agro harness install <id>` and `agro tool
-install <id>` are the only door. A gitignored, mode-`0600` `.env` holds nothing
-but secrets (`GH_TOKEN`, `SANDBOX_PASSWORD`, `PI_SLACK_APP_TOKEN`,
-`PI_SLACK_BOT_TOKEN`, …); the tracked `.example.env` documents every
-allow-listed key. A sandbox keeps its pair inside its registry entry —
-`agro config set --sandbox <name> <field> <value>` and `agro secret set --sandbox
-<name> <KEY>` write there; without the flag both write the project root. Apply a
-change with `agro stop <name> && agro sandbox install docker --name <name>`.
-Full field reference: [Configuration](docs/configuration.md).
+Use **Attach to Running Container**, not **Reopen in Container**.
 
-Secrets are read on **every** path, including VS Code "Reopen in Container" —
-that path loads `.devcontainer/docker-compose.yml` directly and compose
-auto-loads the dotenv beside it, which is a symlink to the root one. Compose
-*overlays* are the exception: that path applies none, which is why
-`agro sandbox install docker` provisions and VS Code only attaches. A
-`harness.yaml` layer used to sit in front of these files and was invisible on
-exactly that path; it was removed in 0.4.0, and a leftover one is migrated
-automatically on the next lifecycle command. Compose overlay *paths* live in
-`composeOverrides[]` in `oh.json`. See
-[the `agro sandbox install docker` guide](docs/deployment-prebuilt-image.md) for
-the image-mode recipe.
+<details>
+<summary>Remote sandbox: connect over SSH, then attach</summary>
 
-## ✨ What you get
+Complete the sandbox setup on your remote host first. Then, from VS Code on
+your local machine:
 
-| | |
-|---|---|
-| **Core agents** | Defaults: Claude Code, Codex, Pi. Optional: OpenCode, Hermes, Grok Build |
-| **Runtimes** | Node 22, pnpm, Bun, uv (Python) |
-| **DevOps** | Herdr, Docker CLI + Compose, GitHub CLI, cloudflared, tmux, croner |
-| **Browser** | agent-browser + Chromium (headless) |
-| **One project, one sandbox** | A single container scoped to a single repo and branch |
-| **Worktrees** | One sandbox → many isolated git worktrees: parallel branches, delegated sub-agents, satellite project clones under `projects/` |
-| **Crons** | Markdown-defined schedules in `crons/*.md` driven by the in-container croner runtime |
-| **Multi-agent** | Claude, Codex, Pi, Hermes, Grok — each via `agro harness install <id>`; Slack bridging via [pi-messenger-bridge](docs/integrations/slack.md) |
+1. Install the [Remote - SSH extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) alongside Dev Containers.
+2. Run **Remote-SSH: Connect to Host** and connect to your Docker host using `user@host`.
+3. In the SSH-connected window, run **Dev Containers: Attach to Running Container** and select the sandbox on that host.
+4. Choose **File → Open Folder** and open `/home/sandbox/harness` (`~/harness` for the sandbox user).
 
-## 📚 Where to go next
+Connect over SSH to the host, not directly to the container. See the
+[connection guide](docs/connecting.md) for more options.
 
-- **[Read the docs → oh.mifune.dev](https://oh.mifune.dev)** — the rendered, searchable documentation site (start here)
-- [Docs index](docs/README.md) — GitHub-readable docs kept with the core repo
-- [Quickstart](docs/quickstart.md) — full step-by-step
-- [DeepWiki](https://deepwiki.com/mifunedev/openharness) — generated codebase map
-- [Docs site source](https://github.com/mifunedev/openharness-web) — Docusaurus source repo that builds oh.mifune.dev (contribute doc edits here)
+</details>
 
-## 🧹 Cleanup
+### 8. Ask your agent to clone a project
 
-```bash
-agro destroy <name>
+From your agent session in `~/harness`, ask:
+
+```text
+Clone <owner>/<repo> into projects.
 ```
+
+Example agent response after a successful clone:
+
+> Cloned `<owner>/<repo>` to `~/harness/projects/<owner>/<repo>`.
+> This is a separate repository with its own history and remote.
+
+Then ask for an isolated workspace:
+
+```text
+Create a worktree in <owner>/<repo> for issue #123.
+```
+
+Example agent response:
+
+> Created branch `task/123-my-change` and a worktree at
+> `~/harness/projects/<owner>/<repo>/.worktrees/task/123-my-change`.
+
+Worktrees share the project's Git history but keep separate checked-out files.
+Each parallel agent gets its own branch and worktree, so agents do not overwrite
+each other's work. The agent manages these folders; you do not need to configure
+them manually.
+
+When the work is merged, ask:
+
+```text
+Clean up the merged worktree for issue #123 in <owner>/<repo>.
+Keep any uncommitted work.
+```
+
+## 📚 Table of Contents
+
+Browse the [documentation](docs/README.md) or jump to a topic below.
+
+| Topic | Documentation |
+| --- | --- |
+| Getting started | [Quickstart](docs/quickstart.md) · [Installation](docs/installation.md) |
+| Sandbox setup | [Create a sandbox](docs/deployment-prebuilt-image.md) · [VS Code and SSH](docs/connecting.md) |
+| Daily operation | [Lifecycle commands, stopping, and cleanup](docs/lifecycle-commands.md) |
+| Terminal workspace | [Herdr](docs/integrations/herdr.md) |
+| Coding harnesses | [Harness overview and setup guides](docs/harnesses/overview.md) |
+| Configuration | [Settings and secrets](docs/configuration.md) |
+| Agent procedures | [Shared skills and hooks](docs/README.md#how-the-primitive-pack-ships) · [Directory layout](docs/oh-directory-layout.md) |
+| Integrations | [GitHub](docs/integrations/github.md) · [Slack](docs/integrations/slack.md) · [Langfuse](docs/integrations/langfuse.md) |
+| Debugging and testing | [DebugMCP](docs/integrations/debugmcp.md) · [Property testing](docs/property-testing.md) |
+| Security | [Permissions and trust boundaries](docs/security-considerations.md) |
+| Contributing | [Contribution workflow](docs/contributing.md) · [Docs site source](https://github.com/mifunedev/agro-web) |
 
 ## 🤝 Contributing & community
 
-Open Harness is maintained under the [`mifunedev`](https://github.com/mifunedev) org — the canonical repo is [github.com/mifunedev/openharness](https://github.com/mifunedev/openharness). To run your own, use the clone-and-own setup above (or fork it — see **Other install methods**) and open PRs back upstream. Issues and PRs welcome; if Open Harness is useful to you, please [give us a star](https://github.com/mifunedev/openharness/stargazers).
+Contributions, bug reports, and feedback are welcome.
+
+[Contributing guide](docs/contributing.md) · [GitHub issues](https://github.com/mifunedev/agro/issues)
+
+[![Slack](https://img.shields.io/badge/-Join_our_Slack-4A154B?style=flat-square&logo=slack&logoColor=white)](https://join.slack.com/t/mifunedev/shared_invite/zt-3l2lnevo6-hOe5ZeoAz~xj7CFAJk2bzg)
+[![X: mifunedev](https://img.shields.io/badge/-mifunedev-000000?style=flat-square&logo=x&logoColor=white)](https://x.com/mifunedev)
+[![Instagram: mifune.dev](https://img.shields.io/badge/-mifune.dev-E4405F?style=flat-square&logo=instagram&logoColor=white)](https://www.instagram.com/mifune.dev)
+[![LinkedIn: Mifune Dev](https://img.shields.io/badge/-Mifune_Dev-0077B5?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/company/mifune-dev)
 
 ## 📄 License
 
@@ -272,4 +355,4 @@ Apache-2.0 §6 grants no permission to use the Mifune or Open Harness names, log
 
 ---
 
-[Read the docs](https://oh.mifune.dev) · [Docs index](docs/README.md) · [Docs site source](https://github.com/mifunedev/openharness-web)
+[Documentation](docs/README.md) · [Docs website](https://agro.mifune.dev) · [Docs site source](https://github.com/mifunedev/agro-web)

@@ -48,10 +48,10 @@ SHELL ["/bin/bash", "-c"]
 
 RUN npm install -g cc-safety-net@1.0.6
 
-COPY .devcontainer/docker-compose.yml .devcontainer/docker-compose.image-only.yml .devcontainer/docker-compose.ssh.yml .devcontainer/docker-compose.docker-sock.yml /opt/oh-assets/.devcontainer/
-COPY .oh/scripts/docker-compose.sh .oh/scripts/check-host-port.sh .oh/scripts/compat.sh /opt/oh-assets/.oh/scripts/
-COPY .oh/cli/ /opt/oh/
-RUN cd /opt/oh && OH_ASSET_ROOT=/opt/oh-assets npm install --no-audit --no-fund && OH_ASSET_ROOT=/opt/oh-assets npm run build \
+COPY .devcontainer/docker-compose.yml .devcontainer/docker-compose.image-only.yml .devcontainer/docker-compose.ssh.yml .devcontainer/docker-compose.docker-sock.yml /opt/agro-assets/.devcontainer/
+COPY .agro/scripts/docker-compose.sh .agro/scripts/check-host-port.sh .agro/scripts/compat.sh /opt/agro-assets/.agro/scripts/
+COPY .agro/cli/ /opt/oh/
+RUN cd /opt/oh && OH_ASSET_ROOT=/opt/agro-assets npm install --no-audit --no-fund && OH_ASSET_ROOT=/opt/agro-assets npm run build \
  && chmod +x /opt/oh/dist/oh.js \
  && ln -sf /opt/oh/dist/oh.js /usr/local/bin/oh \
  && ln -sf /opt/oh/dist/agro.js /usr/local/bin/agro
@@ -86,9 +86,9 @@ RUN su - sandbox -c "RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c \"\$(curl -fsSL http
  && su - sandbox -c "git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting     /home/sandbox/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting" \
  && su - sandbox -c "git clone --depth 1 https://github.com/zsh-users/zsh-history-substring-search /home/sandbox/.oh-my-zsh/custom/plugins/zsh-history-substring-search"
 
-COPY --chown=sandbox:sandbox .oh/install/.tmux.conf /home/sandbox/.tmux.conf
+COPY --chown=sandbox:sandbox .agro/install/.tmux.conf /home/sandbox/.tmux.conf
 
-COPY --chown=sandbox:sandbox .oh/install/.zshrc /home/sandbox/.zshrc
+COPY --chown=sandbox:sandbox .agro/install/.zshrc /home/sandbox/.zshrc
 
 RUN printf '%s\n' \
       'export NPM_USER_PREFIX="${NPM_USER_PREFIX:-/home/sandbox/.local}"' \
@@ -105,15 +105,15 @@ RUN su - sandbox -c "git config --global --add safe.directory ${OH_PROJECT_ROOT}
 
 RUN echo "cd ${OH_PROJECT_ROOT} 2>/dev/null" >> /home/sandbox/.bashrc
 
-COPY --chown=sandbox:sandbox .oh/install/ /home/sandbox/install/
+COPY --chown=sandbox:sandbox .agro/install/ /home/sandbox/install/
 RUN chmod +x /home/sandbox/install/*.sh
 
-COPY --chown=sandbox:sandbox . /opt/oh-seed/
+COPY --chown=sandbox:sandbox . /opt/agro-seed/
 
 ARG INSTALL_PYTHON_KERNEL=true
 ARG OH_PYTHON_VERSION=3.11
 RUN if [ "${INSTALL_PYTHON_KERNEL}" = "true" ]; then \
-      su - sandbox -c "OH_PYTHON_VERSION='${OH_PYTHON_VERSION}' bash /opt/oh-seed/.oh/scripts/provision-python.sh"; \
+      su - sandbox -c "OH_PYTHON_VERSION='${OH_PYTHON_VERSION}' bash /opt/agro-seed/.agro/scripts/provision-python.sh"; \
     else \
       echo "Skipping Python kernel provisioning (INSTALL_PYTHON_KERNEL=false)"; \
     fi \
@@ -124,11 +124,11 @@ RUN mkdir -p /.devcontainer && echo '{"workspaceFolder":"/home/sandbox/harness",
 
 LABEL devcontainer.metadata='[{"remoteUser":"sandbox","workspaceFolder":"/home/sandbox/harness"}]'
 LABEL org.opencontainers.image.licenses="Apache-2.0"
-LABEL org.opencontainers.image.source="https://github.com/mifunedev/openharness"
+LABEL org.opencontainers.image.source="https://github.com/mifunedev/agro"
 LABEL org.opencontainers.image.title="agro"
 LABEL org.opencontainers.image.description="AGRO sandbox image (compatibility alias: openharness)"
 
-COPY --chown=sandbox:sandbox . /opt/oh-seed/
+COPY --chown=sandbox:sandbox . /opt/agro-seed/
 
 COPY .devcontainer/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh

@@ -1,0 +1,453 @@
+# Phase 4 (#944) — agro-cloud-consumer-migration
+
+STATE: PLANNED (awaiting operator answers to Q1/Q2/Q3 before dependent edits)
+
+## Role
+Advisor owns decisions, integration, acceptance, prd.json and this file.
+All tracked implementation edits go to bounded /delegate workers in isolated
+worktrees, per the standing operator instruction. No direct owner implementation
+edit without a recorded exception.
+
+## Grounding performed (advisor, read-only)
+- mifunedev/agro @ b10ecac3 (development, post-#1015)
+- mifunedev/openharness-cloud @ 0aa8f99 (development), fetched this session
+- 345 files in the Cloud repo match legacy identifiers; live-code subset scoped
+  by excluding .oh/tasks history.
+- 32 org repositories enumerated; 1 archived.
+
+## Findings that changed the shape of the work
+F1 Makefile deleted from the runtime repo by #893 (0b292bf8, 2026-08-29), present
+   in tags v0.5.1..v0.9.0. Cloud cloud-init runs `make sandbox` after cloning the
+   default branch. Fresh Cloud provisioning therefore fails today, before and
+   independent of any rename. Verified by git ls-tree against origin/main.
+F2 INSTALL_OPENCODE / INSTALL_GROK_BUILD / INSTALL_DEEPAGENTS / INSTALL_HERMES /
+   INSTALL_AGENT_BROWSER are RETIRED_KEYS in .agro/cli/src/lib/config-render.ts
+   and the renderer throws on them. Cloud writes exactly these into
+   .devcontainer/.env for every user harness selection, so the create-node harness
+   multi-select is a silent no-op. deepagents has no AGRO id at all.
+   grok_build (Cloud) vs grok-build (AGRO) is an id mismatch.
+F3 apps/provisioner/src/provision.ts handleRebuild advances the status machine to
+   running with no node-side effect; its only implementation is a TODO naming both
+   retired contracts. `running` does not prove workspace readiness, which blocks
+   D11 evidence. management-ssh.ts already provides the SSH capability, so the
+   prerequisite fix is bounded, as the plan anticipated.
+F4 Only two org repositories carry .oh/: agro-web (.oh/tasks) and
+   openharness-cloud (.oh/skills, .oh/tasks). Neither is a fully equipped control
+   plane. gh search code omits private repos, so the recorded audit must scan by
+   clone or API.
+
+## Decisions taken
+- Cloud product, repository, images (ghcr.io/mifunedev/openharness-cloud/*), and
+  npm scope (@openharness-cloud/*) are retained. Category 3.
+- Durable persistence identifiers are not touched. Category 4.
+- The old ~/.openharness clone is removed, not renamed to a new managed checkout,
+  per the plan's explicit instruction.
+- Two coordinated PRs, one per repository, both referencing #944.
+
+## Open questions raised to the operator
+Q1 OH_IMAGE_TAG / OH_ENV_FILE retention (recommend retain, category 4).
+Q2 bootstrap marker paths and tmux session name (recommend retain paths, adjust
+   only user-facing prose).
+Q3 live disposable Cloud nodes and credentials for the D11 matrix (US-007), and
+   whether a representative legacy node exists or must be created.
+
+## Authorization boundary held
+No release, promotion, credential creation, or Cloudflare mutation. No PR merge:
+the prior merge authorization covered #1015 only. #939 is not closed by this task.
+#945 remains blocked on Phase 4 plus 90 days plus three releases; anchor v0.9.0
+2026-09-06, earliest date 2026-12-05, one release observed.
+
+## Follow-up retained, not resolved here
+#1019 recovery triage and the patched-release plan remain open. Merged #1015
+changes do not repair immutable 0.9.0 artifacts or already-seeded manifests.
+
+## 2026-09-08 — verified cross-dependency: #1019 blocks Phase 4 fresh-provisioning acceptance
+
+Checked the published AGRO container package directly. It has exactly two versions,
+pushed eleven seconds apart on 2026-09-06:
+
+  latest                              2026-09-06T19:54:30Z
+  sha-823aabbd...,0.9.0               2026-09-06T19:54:19Z
+
+As of 2026-09-08, `latest` and `0.9.0` resolved to the same build and there was no third
+image. `latest` is a MOVING tag and will resolve elsewhere after the next release; only the
+version tags and the digest are stable references. Pulled
+ghcr.io/mifunedev/agro:latest and inspected its seeded workspace manifest:
+
+  /opt/oh-seed/package.json:19  "pnpm:devPreinstall": "pnpm run security:audit"
+  /opt/oh-seed/package.json:20  "security:audit": "pnpm audit --audit-level low --ignore-registry-errors"
+
+That is the #1019 defect, present in the only image a Cloud node could pull today.
+
+Consequence for this phase, stated plainly: US-003's criterion "new Cloud nodes
+install/invoke agro" can be implemented and unit-proven now, but a fresh Cloud node
+provisioning from a published image cannot boot successfully until the #1019 patched
+release ships. #1019 is therefore on Phase 4's critical path for the end-to-end
+acceptance criterion, not a parallel follow-up. The merged #1015 source change does not
+repair this image; only a new release can.
+
+Also observed: the published image still seeds from /opt/oh-seed, a legacy-named
+internal path. Category 4 internal identifier; noted, not actioned here.
+
+Local-execution feasibility for US-007a (asked before requesting paid infrastructure):
+Docker 29.7.2 is available with 16 GB, so a disposable privileged Linux container can
+host a real dockerd and run the generated bootstrap for real. That covers the bootstrap
+script, artifact installation of the agro executable, marker-file semantics, legacy
+~/.openharness workspace recovery, and rebuild-over-SSH state preservation, all against
+observed filesystem and container state. It does NOT cover cloud-init's own YAML
+processing under systemd on an OVH image, nor provider create/destroy/suspend/resume —
+those remain US-007b behind Q3. The fresh-provisioning leg additionally needs either the
+#1019 patched image or a locally built image from the fixed tree, pointed at via the
+sandbox image reference; if the latter is used it proves the Cloud bootstrap logic only,
+and that limit must be stated in evidence rather than glossed.
+
+
+## 2026-09-08 — correction to my own wording: moving tag versus immutable digest
+
+I wrote, more than once, that `ghcr.io/mifunedev/agro:latest` is an immutable broken build.
+That is wrong in a way that will actively mislead later. The DIGEST is immutable; the TAG is
+not. `latest` moves on the next publish, at which point every sentence of that shape becomes
+false, including in the #1019 release-decision material where it could misdirect the choice.
+
+The accurate statements are:
+
+- The affected artifacts are the version tag `0.9.0` and the tag `sha-823aabbd...`, plus the
+  digest they currently share.
+- As of 2026-09-08, `latest` resolved to that same build. That is a dated observation, not a
+  property of the tag.
+- A new published release fixes new cold boots by moving `latest` and adding a new version
+  tag. It does not alter the affected digest, and it does not repair an already-seeded
+  workspace manifest, which is why the #1019 recovery procedure exists for population B.
+
+Applied to this file; the same correction was routed to the #1019 worker for its runbook and
+its Part B requirements document.
+
+
+## 2026-09-09 — HARD BLOCKER: account spend cap, work suspended not abandoned
+
+Both remaining bounded workers terminated mid-task on the Anthropic monthly spend
+limit (HTTP 429), within seconds of each other. Session limit resets 01:20
+America/Denver. No workers were restarted: the cap is monthly, so retrying now would
+be exactly the repeated-429 behaviour that is out of bounds. No provider switch and no
+limit raise.
+
+Verified partial state, by inspection rather than assumption:
+- The readiness-ordering repair did NOT land. workspace-bootstrap-assets.ts has zero
+  occurrences of the readiness oracle; the worker died before writing.
+- The ohproxy-no-shell negative test did NOT run; the NOT VERIFIED declaration stands.
+- The UID/GID contract write-up did NOT land.
+- What DID land and is accepted: the exit-144 determination and the surface-4a product
+  finding, sections 14.1 and 14.2 of local-lifecycle-evidence.md.
+- The Cloud PR worktree is intact and green, carrying the accepted migration as staged
+  R100 renames, the docs work and the comment cleanup.
+
+Nothing is lost. Every outstanding item has a recorded resume order and the evidence to
+resume from. Ten of twelve stories pass; US-007a fails on measured defects, not on the
+cap; US-007b remains behind the unauthorized paid-infrastructure gate.
+
+
+## 2026-09-09 — operator narrowed scope; PRs opened; website publication withheld
+
+**Scope change, mid-turn, by the operator.** Immediate priority narrowed to
+`mifunedev/agro` and `mifunedev/agro-web`. Cloud, orchestra and website are DEFERRED —
+their existing work is preserved on its own draft PRs at operator instruction, not
+proposed for merge. A follow-up authorization then explicitly permitted scoped
+commits/pushes/draft-PR creation for those secondary repositories as a preservation
+measure only. Nothing was reverted. No new implementation was performed on them.
+
+**Story state is unchanged at 10 of 12.** US-007a still FAILS on measured product
+defects; US-007b is still behind the unauthorized paid-OVH gate. #944 and #939 remain
+OPEN, and no PR carries a closing trailer for either. #945's gate is untouched.
+
+### Re-grounding, before anything was committed
+
+Every branch was checked against its actual current target head. All six were already
+exactly at their target — no rebase was needed:
+
+| Repo | Base recorded | origin target at check time | Match |
+|---|---|---|---|
+| openharness-cloud | 0aa8f99 | origin/development 0aa8f99 | yes |
+| agro-web | 409ef10 | origin/main 409ef10 | yes |
+| website | fd60500 | origin/development fd60500 | yes |
+| orchestra | 2c7ccd28 | origin/development 2c7ccd28 | yes |
+| agro (x3) | b10ecac3 | origin/development b10ecac3 | yes |
+
+### PRs opened
+
+| Repo | Issue | PR | Head | Status |
+|---|---|---|---|---|
+| openharness-cloud | #144 | #145 | 4b4124c7caff31a84b2367b75472c7b8ef26ce2f | DRAFT — parked, deferred |
+| orchestra | #982 | #983 | 1acc415bf347991ed2dbd3b0d0ac937b9006faa0 | DRAFT — parked, deferred |
+| agro-web | #48 | #49 | 0b0a6d28da979d6eb4a92e5a798cef8c95f3e1c4 | READY |
+| agro | #1021 | #1022 | 909b3ec3e294a2dcfad15bd3036730a094c07610 | READY |
+| agro | #1019 (not closed) | #1023 | f8b72d7f5845d797039b8cfd8f87d7c23d9165c5 | READY |
+| website | #65 (not filed) | NONE — withheld | 5e5f34cc45ed8ab174f1354b3cd2e97f62b1c3a9 | branch pushed, PR withheld |
+
+### Website: the precise gate, and why no PR was opened
+
+The operator flagged an unresolved Netlify credit/domain issue and forbade knowingly
+triggering a deployment or paid action. Measured rather than assumed:
+
+- **Opening a PR on mifunedev/website triggers a Netlify Deploy Preview build.** Verified
+  against three existing PRs (#64, #62, #60): each carries a
+  `netlify/promptengineers/deploy-preview` check plus header/redirect/pages-changed
+  checks, ~1m build each, on the `promptengineers` Netlify project.
+- **A branch push does not.** After pushing `docs/65-agro-runtime-references`, the head
+  carried 0 commit statuses and 0 check-runs.
+
+So the work is preserved on the remote branch and the PR is deliberately not opened.
+Opening it is the operator's call once the credit issue is resolved. The scoped website
+issue was also not filed, since an issue without its PR serves nothing here.
+
+Caveat on the branch-push evidence: the three no-PR branches used as controls
+(feat/21-matrix-vibes, feat/614-add-fastmcp-support, master) all predate the Netlify
+integration, so they are weak controls. The direct observation on the actual pushed head
+— 0 statuses, 0 check-runs — is the load-bearing evidence.
+
+### Verification performed at each exact head
+
+- **Cloud** — `pnpm type-check` exit 0; shared 119, db 189, gateway 37, provisioner 84,
+  web 2898 across 126 files. Matches the pre-change baseline on every count. The six
+  readiness-gate tests were confirmed to actually EXECUTE (subtests 34-39), not merely
+  to exist.
+- **agro-web** — check:docs-drift PASS (44 files), typecheck exit 0, docusaurus build
+  SUCCESS, theme-order PASS. Installer assets the new quickstart tells readers to curl
+  were fetched live: get-agro.sh 200/8527B, agro.js 200/187989B, get-oh.sh 200/9493B,
+  oh.js 200/187989B.
+- **website** — next lint 0 warnings, next build succeeded, and the llm.txt generator
+  was re-run to confirm its output matches the committed file (no drift).
+- **agro CLI fix** — typecheck exit 0; sandbox.test.ts 26 passed; full suite 1255 passed,
+  2 failed.
+- **agro #1019** — pnpm-audit-ci-gate PASS; recovery probe SKIPPED (exit 2, non-live);
+  full suite 1246 passed, 2 failed.
+
+### The 2 agro suite failures are pre-existing, and this was proved rather than assumed
+
+Both are in `.agro/cli/src/commands/__tests__/migrate-rehearsal.test.ts`, untouched by
+either branch. A clean detached worktree at the base commit b10ecac3, with none of the
+branch changes, reproduces the IDENTICAL 2 failures. Cause: `dockerComposeAvailable()`
+runs `docker compose version`, which probes the Compose plugin binary (present) rather
+than daemon reachability (absent). It therefore takes the "available" branch and asserts
+exit 0 from a command that cannot succeed without a daemon.
+
+### NEW FINDING — every CI path filter in agro is dead. Filed as #1020.
+
+`git ls-files .oh` returns **0**; `git ls-files .agro` returns **760**. No workflow in
+`.github/workflows/` references `.agro/` at all. Every path filter still names `.oh/**`,
+which now matches nothing, so a change confined to the control plane triggers NO CI.
+
+This is not cosmetic. The probe added by PR #1023 lives under `.agro/evals/` and is
+therefore unreachable by any CI path — the exact failure shape of #981, now instantiated
+repository-wide by the Phase 3 rename. `oh.json` and `.env.example` in those filters are
+stale too; the harness ships `agro.json` and `.example.env`.
+
+A coverage regression that reports green because nothing runs.
+
+### Other issues filed
+
+- **agro #1021** — `agro sandbox install` is not idempotent; a re-run discards an
+  existing sandbox's configuration, silently unpinning `storage.homePath` on a node.
+  Fixed by PR #1022.
+- **openharness-cloud #144**, **orchestra #982**, **agro-web #48** — scoped consumer
+  issues, each referencing #944/#939 without closing either.
+
+### Corrections to earlier records
+
+- CHECKPOINT.md said the agro-web docs branch needed the three deliberate divergences
+  called out; they were verified in the tree before the PR body claimed them — the
+  site-served get-agro.sh URL, `example.com` with RFC 5737 addresses instead of a real
+  name and email, and the corrected sshd commands.
+- The website post's `ghcr.io/mifunedev/openharness:0.9.0` reference was checked rather
+  than "corrected" on assumption: `ghcr.io/mifunedev/agro:0.9.0` and
+  `ghcr.io/mifunedev/openharness:0.9.0` resolve to the SAME digest,
+  sha256:5ecfe69bbc0654ca733535d710c0c61fd5f7913945bef7d1beec97506f03e60c. The reference
+  is accurate, merely legacy-named. Left as-is; not an advisor edit.
+- The agro-web drift-rule inversion was verified against the harness tree rather than
+  taken from the worker's report: agro ships `.example.env`, and `.env.example` does not
+  exist. The old rule flagged the real filename and recommended a nonexistent one.
+
+### Advisor errors this turn
+
+- **Committed a `node_modules` symlink.** I had symlinked node_modules into the
+  bug/1019-boot-recovery worktree to run its tests, then used `git add -A`. The symlink
+  landed in the commit as mode 120000. Caught on reading my own commit stat, removed
+  from the index and disk, amended before pushing. The pushed head f8b72d7f contains no
+  node_modules path; the other four commits were audited and are clean too. `git add -A`
+  after introducing untracked scaffolding is the hazard.
+- **Left a build artifact in the website worktree.** Running `npm run build` there to
+  verify the branch rewrote the TRACKED file `public/sw.js` (a minified service worker
+  whose content is build-hash churn). It was deliberately NOT staged, so it is not in
+  the commit, and NOT reverted, per the operator's instruction not to revert. It remains
+  as an uncommitted modification in that worktree.
+
+### Deferred, explicitly, and NOT counted as complete
+
+Cloud (US-002, US-003, US-004, US-005, US-006, US-009, and the Cloud half of US-008),
+orchestra, and website (US-010) are preserved and parked. Their PRs carry a stated
+parked/deferred status. The EPIC's definition of done is NOT redefined by this narrowing:
+those items remain part of #944, and #944 remains part of #939. #945's gate — Phase 4
+complete AND 90 days AND three releases since the first public AGRO release (anchor
+v0.9.0 2026-09-06; earliest date 2026-12-05; one release observed) — is unchanged.
+
+
+## 2026-09-09 (later) — RETRACTION of #1020, website draft opened, all heads green
+
+### RETRACTION — issue #1020 was FALSE and is closed as invalid
+
+I filed mifunedev/agro#1020 claiming that every workflow path filter still named
+`.oh/**`, which has no tracked files, and therefore that control-plane changes trigger
+no CI — including the assertion that the probe added by PR #1023 was unreachable by any
+CI path.
+
+**All of that is wrong.** I ran `grep -rn '\.agro/' .github/workflows/` against the ROOT
+CHECKOUT'S WORKING TREE and read the result as repository state. All six workflow files
+are locally modified there, reverted to the pre-AGRO generation — the same silent
+working-tree divergence already recorded in this file as HAZARD 1 for `.devcontainer/`.
+I had documented that exact hazard and then walked into it again for a different
+directory.
+
+`origin/development` was correct all along: ci-harness.yml names `.agro/**`,
+`.agro/skills/**`, `.agro/hooks/**`, `.agro/evals/**`, `.agro/knowledge/**`,
+`agro.json` and `.example.env`; sandbox-boot-guard.yml names `.agro/**` and
+`.agro/scripts/*`. Both `.agro/**` and `.oh/**` are listed, which is correct during the
+alias SLA.
+
+Disproof from real runs: PR #1022 (changes confined to `.agro/cli/src/**`) and PR #1023
+(adds a probe under `.agro/evals/`) each ran 5 checks, all success, including the Eval
+Probe Regression Gate. The probe I claimed was unreachable was gated green on its own PR.
+
+#1020 is closed as not-planned with that correction written into it, and the three PR
+bodies that cited it (#1022, #1023, #1024) were edited to remove the false claim and
+carry the actual check results.
+
+**Rule for the next session: grep the ref, not the worktree.** `git show
+origin/<branch>:<path>` — never the working copy at /home/sandbox/harness.
+
+### Website: draft PR opened without triggering a deploy
+
+The operator asked whether Netlify documents a native skip directive for PR-opening
+Deploy Previews. It does, and it is title-scoped:
+
+- Netlify docs: "To avoid generating a Deploy Preview for a pull/merge request, add
+  `[skip ci]` or `[skip netlify]` to **the title of the pull/merge request**."
+- The commit-message form covers only branch and production deploys. That distinction is
+  the documented cause of the "it was ignored" support reports; Netlify staff confirmed
+  the PR title is the working mechanism and the docs were updated to say so.
+
+So website PR #66 was opened as a DRAFT titled
+`[skip netlify] FROM docs/65-agro-runtime-references TO development`. Metadata on the PR
+only — no site configuration, billing or DNS was touched, and the Netlify credit issue
+itself was not investigated.
+
+**Verified no deploy launched:** 90+ seconds after opening, the head
+5e5f34cc45ed8ab174f1354b3cd2e97f62b1c3a9 carries 0 commit statuses and 0 check-runs.
+Existing PRs (#64, #62, #60) register their `netlify/promptengineers/deploy-preview`
+check within about a minute, so a launched build would have appeared by then.
+
+**`[skip netlify]` must stay in that title** until the credit issue is resolved.
+Removing it and pushing a commit is what resumes previews.
+
+### NEW FINDING — agro-web docs build hard-fails on a rate-limit 403. Filed as agro-web#50.
+
+PR #49's first run failed with `ref mifunedev/agro@main does not resolve (... -> HTTP
+403)`. Re-running the IDENTICAL commit with no change succeeded, so the message names
+the wrong cause. Two compounding defects:
+
+1. `.github/workflows/pages.yml`'s `Build site` step sets no `env:`, so
+   `oh-source.mjs`'s `authHeaders()` finds neither GITHUB_TOKEN nor GH_TOKEN and the
+   API call goes out unauthenticated — 60 requests/hour per IP, on shared runner IPs.
+2. `isTransientStatus()` covers 408/429/5xx but NOT 403, which is what GitHub returns on
+   primary rate-limit exhaustion. Exhaustion therefore falls through to
+   "the mirror would publish something wrong" and hard-fails the deploy.
+
+`mifunedev/agro` is public and the same URL returns 200 unauthenticated from a
+non-exhausted address, so this is not a permissions problem. Not fixed here — filed,
+with the token fix and the `x-ratelimit-remaining: 0` discriminator proposed.
+
+### Final CI state — every PR verified at its exact head
+
+| PR | Head | Checks |
+|---|---|---|
+| cloud #145 (draft) | 4b4124c7caff31a84b2367b75472c7b8ef26ce2f | 4/4 success |
+| orchestra #983 (draft) | 1acc415bf347991ed2dbd3b0d0ac937b9006faa0 | 0 — `decks/**` is in test.yml's paths-ignore, and slides.yml only fires on a push to development. Absence of jobs is NOT green, and is reported as absence. |
+| agro-web #49 (ready) | 0b0a6d28da979d6eb4a92e5a798cef8c95f3e1c4 | Build docs site success; Deploy to GitHub Pages skipped |
+| agro #1022 (ready) | 909b3ec3e294a2dcfad15bd3036730a094c07610 | 5/5 success |
+| agro #1023 (ready) | f8b72d7f5845d797039b8cfd8f87d7c23d9165c5 | 5/5 success |
+| agro #1024 (ready) | 53f24aa207ceac8a608bf6f79a8f826ac3620868 | 5/5 success |
+| website #66 (draft) | 5e5f34cc45ed8ab174f1354b3cd2e97f62b1c3a9 | 0 by design — `[skip netlify]` |
+
+The accidentally committed node_modules symlink is confirmed ABSENT from every pushed
+tree: `git ls-tree -r` over bug/1021-sandbox-install-idempotent and bug/1019-boot-recovery
+returns 0 node_modules paths. #1022's head is 909b3ec3e294a2dcfad15bd3036730a094c07610 and
+was never affected — the symlink was committed on the 1019 branch and amended away before
+that branch was pushed.
+
+### Story state is STILL 10 of 12
+
+Nothing above changes it. US-007a still FAILS and its re-run is still blocked on the
+absent Docker socket. US-007b is still behind the paid-OVH gate. #944 and #939 remain
+OPEN, no PR carries a closing trailer for either, and #945's time-and-release gate is
+untouched. Host cleanup remains UNVERIFIED — nobody has checked.
+
+
+## 2026-09-09 (final) — agro-web#50 fixed and verified; website#66 body corrected
+
+### agro-web#50 IMPLEMENTED — PR #51, head 55d4cfc5adec6fb77c1dfa0026aca6c1f55239f7
+
+Bounded fix, on a fresh worktree off origin/main (409ef10) so it does not mix with the
+docs PR:
+
+1. `.github/workflows/pages.yml` — the `Build site` step now receives the job's own
+   `secrets.GITHUB_TOKEN`. No new credential; it is the token the workflow already has.
+   Unauthenticated the mirror call ran against 60 requests/hour per shared runner IP.
+2. `scripts/oh-source.mjs` — `isTransientStatus(status)` becomes
+   `isTransientResponse(res)`, reading the response rather than the status alone. A 403
+   is transient ONLY with `x-ratelimit-remaining: 0`. Without that header a 403 stays
+   FATAL, so a genuine auth failure or a bad ref still fails the deploy — treating every
+   403 as transient would have been the dangerous fix. raw.githubusercontent.com sends no
+   such header, so a 403 there stays fatal, which is correct since it is not
+   quota-limited. Both call sites migrated, so there is one rule, not two. A
+   rate-limited failure now reports "GitHub rate limit exhausted" instead of blaming the
+   ref.
+3. Tests — the repository had NO test runner. Added `pnpm test` (`node --test`, no new
+   dependency) and `scripts/oh-source.test.mjs`, 9 tests: the exhausted-quota 403; the
+   bare 403 and remaining=1/4999; 401 and a 403 carrying only retry-after; the UNCHANGED
+   408/429/5xx behaviour; 400/404/409/410/422 still fatal; the header believed only on a
+   403; a header-less response; and case-insensitive header matching. Wired as a GATING
+   CI step on every event, unlike the advisory drift check, because this rule decides
+   whether a bad mirror ships.
+
+**Verified at the exact head, on the FIRST run — not a rerun.** Local: 9/9 tests,
+typecheck exit 0, build SUCCESS, theme-order PASS, docs-drift PASS (39 files), and the
+build exercised the real mirror path end to end (resolved agro@main at 823aabbd, wrote
+get-agro.sh, get-oh.sh, agro.js, oh.js). CI run 34386051054: `Build docs site` success,
+`Deploy to GitHub Pages` skipped. The CI LOG was read rather than trusting the green —
+the new step executed (`# tests 9 / # pass 9 / # fail 0`) and `GITHUB_TOKEN: ***`
+appears in the Build site step's env, so the token is genuinely in effect.
+
+### website#66 body corrected — metadata only, no source change
+
+Two corrections at the operator's direction:
+
+1. **Removed the claim that a new cold boot is "not locally repairable."** A volume
+   seeded during a FAILED fresh boot is repairable in place too, exactly like a
+   previously-seeded one. What a local repair does not change is the published image
+   DIGEST, so the next cold boot from that digest fails identically until a new image is
+   published. Repairability and the image fix are separate questions; the earlier wording
+   conflated them.
+2. **Reframed the deploy claim as evidence, not guarantee.** The body now says GitHub
+   reports 0 check-runs and 0 commit statuses on the head — *no deployment evidence
+   observed on the GitHub side* — and states explicitly that this is not a guarantee from
+   Netlify's backend and says nothing about billing, neither of which was queried and for
+   neither of which a credential exists here.
+
+`[skip netlify]` remains in the title and the PR remains a draft. The same conflation
+survives in `posts/openharness-getting-started.md` itself; correcting published copy is a
+content change and was explicitly out of scope, so it is flagged in the PR body rather
+than silently edited.
+
+### Story state STILL 10 of 12
+
+Unchanged. US-007a still FAILS with its re-run blocked on the absent Docker socket;
+US-007b still behind the paid-OVH gate. #944 and #939 OPEN, no closing trailer anywhere.
+#945's gate untouched. Host cleanup still UNVERIFIED.

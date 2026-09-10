@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "commit": "5003697f3cb4c7eeeee337eb549bbd4398e6e7b3",
+  "verifiedAt": "2026-09-10T00:20:00Z",
+  "preflight": {
+    "runId": "audit-20260910T001500Z-ui",
+    "exit": 0
+  },
+  "reviewer": "Explore read-only UI reviewer",
+  "criteria": [
+    {
+      "story": "US-009",
+      "criterion": "CLI-first installation and update distinction",
+      "result": "PASS",
+      "screenshotSha256": "85ac9dd5590b1fb5a9e1e415bc4a7cf26e5721b2cabdd9ea98624b2cf6fa4e7b",
+      "note": "Installation and quickstart render npm @mifune/agro/get-agro.sh followed by agro sandbox install docker; agro update upgrades the CLI and oh update vendors project files."
+    },
+    {
+      "story": "US-009",
+      "criterion": "Required path excludes retired source workflows",
+      "result": "PASS",
+      "screenshotSha256": "85ac9dd5590b1fb5a9e1e415bc4a7cf26e5721b2cabdd9ea98624b2cf6fa4e7b",
+      "note": "Required path has no clone, fork, install.sh, or config repo; retained source workflows are grouped and labeled optional or historical."
+    },
+    {
+      "story": "US-009",
+      "criterion": "Canonical fallback and independent shim wording",
+      "result": "PASS",
+      "screenshotSha256": "cea58a0c82caf00e82564e4490df66bdf0458e3a45e89e1b0bfc8ef28c3e1829",
+      "note": "Rendered fallback is ghcr.io/mifunedev/agro:latest. Retained legacy npm wording says its own manifest pins an exact dependency without claiming release-version parity."
+    },
+    {
+      "story": "US-009",
+      "criterion": "Desktop installation and mobile quickstart visual quality",
+      "result": "PASS",
+      "screenshotSha256": "cea58a0c82caf00e82564e4490df66bdf0458e3a45e89e1b0bfc8ef28c3e1829",
+      "note": "Read-only reviewer observed readable headings, body text, navigation, links, and code styling with no visible error state at 1280x720 and 414x896."
+    }
+  ]
+}

@@ -1,20 +1,20 @@
-name: ${SANDBOX_NAME:-openharness}
+name: ${SANDBOX_NAME:-agro}
 
 services:
   sandbox:
-    image: ${OH_SANDBOX_IMAGE:-sandbox-${SANDBOX_NAME:-openharness}}
-    pull_policy: ${OH_PULL_POLICY:-missing}
-    container_name: ${SANDBOX_NAME:-openharness}
+    image: ${AGRO_SANDBOX_IMAGE:-${OH_SANDBOX_IMAGE:-sandbox-${SANDBOX_NAME:-agro}}}
+    pull_policy: ${AGRO_PULL_POLICY:-${OH_PULL_POLICY:-missing}}
+    container_name: ${SANDBOX_NAME:-agro}
     build:
-      context: ${OH_REPO_DIR:-..}
+      context: ${AGRO_REPO_DIR:-${OH_REPO_DIR:-..}}
       dockerfile: .devcontainer/Dockerfile
     volumes:
-      - ${OH_HOME_MOUNT:-workspace}:/home/sandbox
-      - ${OH_REPO_DIR:-..}:/home/sandbox/harness
+      - ${AGRO_HOME_MOUNT:-${OH_HOME_MOUNT:-workspace}}:/home/sandbox
+      - ${AGRO_REPO_DIR:-${OH_REPO_DIR:-..}}:/home/sandbox/harness
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - SANDBOX_NAME=${SANDBOX_NAME:-openharness}
+      - SANDBOX_NAME=${SANDBOX_NAME:-agro}
       - SANDBOX_PASSWORD=${SANDBOX_PASSWORD:-test1234}
       - TZ=${TZ:-America/Los_Angeles}
       - CLAUDE_DANGEROUSLY_SKIP_PERMISSIONS=true
@@ -35,7 +35,7 @@ services:
       - /run/lock
       - /sys/fs
     healthcheck:
-      test: ["CMD", "bash", "/home/sandbox/harness/.oh/scripts/sandbox-healthcheck.sh"]
+      test: ["CMD", "bash", "-c", "if [ -d /home/sandbox/harness/.agro ]; then exec bash /home/sandbox/harness/.agro/scripts/sandbox-healthcheck.sh; fi; exec bash /home/sandbox/harness/.oh/scripts/sandbox-healthcheck.sh"]
       interval: 30s
       timeout: 10s
       retries: 3

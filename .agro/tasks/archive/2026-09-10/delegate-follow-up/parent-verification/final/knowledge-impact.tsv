@@ -1,0 +1,37 @@
+FRESH	audit-architecture	.oh/knowledge/source/audit-architecture.md	no declared source is in the changed set
+FRESH	compose-env-boundary	.oh/knowledge/source/compose-env-boundary.md	no declared source is in the changed set
+NOT-APPLICABLE	crabbox-remote-exec-control-plane	.oh/knowledge/source/crabbox-remote-exec-control-plane.md	kind: external — provenance is immutable, freshness does not apply
+FRESH	document-ingestion	.oh/knowledge/source/document-ingestion.md	no declared source is in the changed set
+FRESH	fresh-machine-setup	.oh/knowledge/source/fresh-machine-setup.md	no declared source is in the changed set
+FRESH	managed-agents	.oh/knowledge/source/managed-agents.md	no declared source is in the changed set
+NOT-APPLICABLE	molt-agentic-reinforcement-learning	.oh/knowledge/source/molt-agentic-reinforcement-learning.md	kind: external — provenance is immutable, freshness does not apply
+FRESH	oh-cli-portable-lifecycle	.oh/knowledge/source/oh-cli-portable-lifecycle.md	no declared source is in the changed set
+FRESH	plan-vs-built-reconciliation	.oh/knowledge/source/plan-vs-built-reconciliation.md	no declared source is in the changed set
+NOT-APPLICABLE	recursive-language-models	.oh/knowledge/source/recursive-language-models.md	kind: external — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	recursive-self-improvement-survey	.oh/knowledge/source/recursive-self-improvement-survey.md	kind: external — provenance is immutable, freshness does not apply
+FRESH	release-versioning	.oh/knowledge/source/release-versioning.md	no declared source is in the changed set
+NOT-APPLICABLE	runtime-isolation-landscape	.oh/knowledge/source/runtime-isolation-landscape.md	kind: external — provenance is immutable, freshness does not apply
+FRESH	sandbox-dependency-installs	.oh/knowledge/source/sandbox-dependency-installs.md	no declared source is in the changed set
+NOT-APPLICABLE	wikiskill-experience-compilation	.oh/knowledge/source/wikiskill-experience-compilation.md	kind: external — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-audit-driver-tool-allowlist	.oh/knowledge/patterns/pattern-audit-driver-tool-allowlist.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-audit-remote-head-verdict	.oh/knowledge/patterns/pattern-audit-remote-head-verdict.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-cli-bundled-asset-relative-import	.oh/knowledge/patterns/pattern-cli-bundled-asset-relative-import.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-delegate-builtin-type-carries-own-model	.oh/knowledge/patterns/pattern-delegate-builtin-type-carries-own-model.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-delegate-ledger-stale-at-acceptance	.oh/knowledge/patterns/pattern-delegate-ledger-stale-at-acceptance.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-delegate-worker-terminated-before-report	.oh/knowledge/patterns/pattern-delegate-worker-terminated-before-report.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-docs-prohibition-by-example	.oh/knowledge/patterns/pattern-docs-prohibition-by-example.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-evals-environment-parity-false-delta	.oh/knowledge/patterns/pattern-evals-environment-parity-false-delta.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-evals-negation-must-govern-token	.oh/knowledge/patterns/pattern-evals-negation-must-govern-token.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-evals-pipefail-early-exit	.oh/knowledge/patterns/pattern-evals-pipefail-early-exit.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-evals-probe-brief-under-enumeration	.oh/knowledge/patterns/pattern-evals-probe-brief-under-enumeration.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-evals-probe-failure-path-untested	.oh/knowledge/patterns/pattern-evals-probe-failure-path-untested.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-evals-product-name-literal-pinning	.oh/knowledge/patterns/pattern-evals-product-name-literal-pinning.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-evals-prose-literal-pinning	.oh/knowledge/patterns/pattern-evals-prose-literal-pinning.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-evals-tracked-only-scan-misses-uncommitted	.oh/knowledge/patterns/pattern-evals-tracked-only-scan-misses-uncommitted.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-evals-unexercised-oracle	.oh/knowledge/patterns/pattern-evals-unexercised-oracle.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-scripts-sibling-dependency-standalone-copies	.oh/knowledge/patterns/pattern-scripts-sibling-dependency-standalone-copies.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-spec-self-staling-reuse-record	.oh/knowledge/patterns/pattern-spec-self-staling-reuse-record.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-spec-simplify-round-seeded-non-reducing	.oh/knowledge/patterns/pattern-spec-simplify-round-seeded-non-reducing.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-spec-stubbed-runner-state-gap	.oh/knowledge/patterns/pattern-spec-stubbed-runner-state-gap.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-wiki-external-model-over-mapping	.oh/knowledge/patterns/pattern-wiki-external-model-over-mapping.md	kind: pattern — provenance is immutable, freshness does not apply
+NOT-APPLICABLE	pattern-wiki-ungated-check-drift	.oh/knowledge/patterns/pattern-wiki-ungated-check-drift.md	kind: pattern — provenance is immutable, freshness does not apply

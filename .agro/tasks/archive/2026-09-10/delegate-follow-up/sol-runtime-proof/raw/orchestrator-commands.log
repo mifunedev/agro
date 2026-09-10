@@ -1,0 +1,16 @@
+$ claude --version
+2.1.260 (Claude Code)
+EXIT=0
+$ tmux -V
+tmux 3.5a
+EXIT=0
+$ freeze procedure from c6704966c023ffc719797f54e232178eb914a318
+EXIT=0
+$ bash -n commands/run-session-a.sh
+EXIT=0
+$ bash -n commands/run-session-b.sh
+EXIT=0
+$ tmux new-session -d -s sol-runtime-a-01a07e0e ...
+EXIT=0
+requested session model=opus
+requested session effort=high

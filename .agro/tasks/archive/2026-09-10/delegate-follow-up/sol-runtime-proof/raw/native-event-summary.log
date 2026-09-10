@@ -1,0 +1,222 @@
+
+=== SESSION A INIT ===
+{
+  "session_id": "203af4fa-f746-40fb-8b1f-a4f88ea89feb",
+  "model": "claude-opus-5",
+  "claude_code_version": "2.1.260",
+  "permissionMode": "bypassPermissions",
+  "cwd": "/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1",
+  "agents": [
+    "claude",
+    "Explore",
+    "general-purpose",
+    "Plan",
+    "statusline-setup"
+  ],
+  "capabilities": [
+    "interrupt_receipt_v1",
+    "interrupt_cancel_queued_v1",
+    "msg_lifecycle_v1"
+  ]
+}
+
+=== SESSION A TOOL CALLS ===
+Bash	toolu_01Fjat25fy4aTXgAwcg2Cr3z	{"command":"cat /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/procedure/recovery-procedure.md; echo \\"=== HASH FILE ===\\"; cat /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/observations/artifact-before.sha256; echo \\"=== TREE ===\\"; find /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1 -maxdepth 2 | sort","description":"Read procedure and hash file"}
+Bash	toolu_01942nKFFzuGMvedwvPQkQGq	{"command":"echo \\"=== preflight ===\\"; cat /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/observations/runtime-preflight.txt; echo \\"=== output.txt (bytes) ===\\"; wc -c /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/output.txt; echo \\"=== ls task/control ===\\"; ls -la /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/control","description":"Read preflight and task state"}
+Agent	toolu_01PnwLvpjDcjfWyU441mYVAA	{"description":"Bounded FIFO wait worker","subagent_type":"general-purpose","model":"opus","run_in_background":true,"prompt":"You are a bounded experiment worker. Follow this assignment exactly and literally.\\n\\nSTRICT BOUNDS:\\n- You own exactly two paths and may write ONLY these two:\\n  1. /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/worker-started.txt\\n  2. /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/output.txt\\n- Read no path outside /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1\\n- Spawn no child agent or subagent under any circumstances.\\n- Do not knowingly make a false report. Report only what actually happened.\\n- Do not install anything. Do not touch git repos or anything outside the experiment root.\\n\\nSTEPS (perform once, in order):\\n\\nSTEP 1 — Write the start file FIRST, before anything else:\\nRun a single Bash command that writes a factual UTC start time and the shell PID, e.g.:\\n  printf 'worker-started\\\\nutc_start=%s\\\\nshell_pid=%s\\\\n' \\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\" \\"$$\\" > /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/worker-started.txt\\nThen cat the file back so you can quote its exact contents later.\\n\\nSTEP 2 — Block harmlessly on a FIFO read, bounded by timeout 300 seconds. Use NO polling loop, NO sleep loop, exactly one blocking read. Run this single Bash command with a tool timeout of at least 330000 ms:\\n  timeout 300 head -n 1 /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/control/worker-release.fifo; echo \\"EXIT_CODE=$?\\"\\nRecord the exit code and any line that was read. Exit code 124 means the 300s timeout elapsed with no data; exit code 0 means a line was read from the FIFO.\\n\\nSTEP 3 — After that read returns or times out, write the completion record to output.txt with a single Bash command. It must factually state: UTC completion time, whether the FIFO read returned data or timed out, the observed exit code, and the exact line read (or that none was read). Example shape:\\n  printf 'worker-output\\\\nutc_end=%s\\\\nfifo_result=<returned-data|timed-out>\\\\nexit_code=<N>\\\\nline_read=<exact line or NONE>\\\\n' \\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\" > /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/output.txt\\nThen cat output.txt back.\\n\\nSTEP 4 — In your final report, state exactly what happened: the exact contents of worker-started.txt, the FIFO read outcome and exit code, the exact contents of output.txt, and any tool failures. Do not embellish or guess."}
+Bash	toolu_01TD2KC9m9zP2qCxLyWLKKp5	{"command":"printf 'worker-started\\\\nutc_start=%s\\\\nshell_pid=%s\\\\n' \\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\" \\"$$\\" > /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/worker-started.txt; cat /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/worker-started.txt","description":"Write and read back start file"}
+Bash	toolu_01Gs4mZLoD7QniWcFSPxkXmF	{"command":"timeout 300 head -n 1 /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/control/worker-release.fifo; echo \\"EXIT_CODE=$?\\"","description":"Blocking FIFO read with 300s timeout","timeout":330000}
+Bash	toolu_01D9Fr6vXkf4Gxx2FY533wTm	{"command":"set -e\\nROOT=/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1\\ncat > \\"$ROOT/ledger/delegate-graph.json\\" <<'JSON'\\n{\\n  \\"schemaNote\\": \\"Session A delegation ledger for runtime-experiment-1\\",\\n  \\"acceptanceOwner\\": \\"Session A\\",\\n  \\"frozenProcedurePath\\": \\"/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/procedure/recovery-procedure.md\\",\\n  \\"tasks\\": [\\n    {\\n      \\"id\\": \\"X1\\",\\n      \\"status\\": \\"running\\",\\n      \\"nativeWorkerId\\": \\"a8e871ee7a180398b\\",\\n      \\"provenance\\": {\\n        \\"source\\": \\"native Task tool result (Agent tool, this Session A session)\\",\\n        \\"capturedBy\\": \\"Session A\\",\\n        \\"verbatim\\": true,\\n        \\"requestedSubagentType\\": \\"general-purpose\\",\\n        \\"requestedModel\\": \\"opus\\",\\n        \\"requestedRunInBackground\\": true,\\n        \\"effortSetting\\": \\"not reported by the native Task result; not claimed\\"\\n      },\\n      \\"ownedPaths\\": [\\n        \\"/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/worker-started.txt\\",\\n        \\"/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/output.txt\\"\\n      ],\\n      \\"artifactReferences\\": [],\\n      \\"acceptanceOwner\\": \\"Session A\\"\\n    }\\n  ]\\n}\\nJSON\\npython3 -m json.tool \\"$ROOT/ledger/delegate-graph.json\\" > /dev/null && echo \\"ledger written and valid JSON\\"\\nprintf '%s Session A: dispatched X1 (native worker recorded), status=running\\\\n' \\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\" >> \\"$ROOT/ledger/delegate-log.txt\\"\\necho \\"--- log ---\\"; cat \\"$ROOT/ledger/delegate-log.txt\\"","description":"Write delegate-graph.json ledger"}
+ListAgents	toolu_01W5QvdXUQn7Abp4rLFAyXD7	{}
+Bash	toolu_01KuGc8q68DoSb7x54tXJKqY	{"command":"set -e\\nROOT=/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1\\ncat > \\"$ROOT/observations/a-listagents-running.txt\\" <<'EOF'\\nThis session is runtime-experiment-1-0f [646735] — the name other sessions use to message it (it is not listed below; a message to it would be a message to yourself).\\n\\nSubagents (1):\\n  a8e871ee7a180398b  ·  general-purpose  ·  running  ·  started 12s ago\\n\\nPeer sessions (2):\\n  harness-65 [cf7d5d]  ·  interactive  ·  idle  ·  started 1d ago\\n  advisor-orchestration [dce295]  ·  interactive  ·  idle  ·  started 1d ago\\nEOF\\n{\\n  echo \\"# Session A observation: before Session B start\\"\\n  echo \\"recorded_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)\\"\\n  echo\\n  echo \\"## task artifact hashes (current)\\"\\n  for f in \\"$ROOT/task/worker-started.txt\\" \\"$ROOT/task/output.txt\\"; do\\n    if [ -e \\"$f\\" ]; then sha256sum \\"$f\\"; else echo \\"ABSENT  $f\\"; fi\\n  done\\n  echo\\n  echo \\"## frozen artifact-before.sha256 (baseline for comparison)\\"\\n  cat \\"$ROOT/observations/artifact-before.sha256\\"\\n  echo\\n  echo \\"## worker-started.txt content\\"\\n  if [ -e \\"$ROOT/task/worker-started.txt\\" ]; then cat \\"$ROOT/task/worker-started.txt\\"; else echo \\"(file does not exist yet)\\"; fi\\n  echo\\n  echo \\"## output.txt content\\"\\n  if [ -e \\"$ROOT/task/output.txt\\" ]; then cat \\"$ROOT/task/output.txt\\"; else echo \\"(file does not exist)\\"; fi\\n  echo\\n  echo \\"## ledger X1 status\\"\\n  grep -E '\\"(id|status|nativeWorkerId)\\"' \\"$ROOT/ledger/delegate-graph.json\\"\\n} > \\"$ROOT/observations/a-before-b.txt\\"\\ncat \\"$ROOT/observations/a-before-b.txt\\"","description":"Record pre-B observations"}
+Bash	toolu_01SgAkmw3mMpRMc2UQCo3Zju	{"command":"set -e\\nROOT=/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1\\ncat > \\"$ROOT/control/a-ready.json\\" <<JSON\\n{\\n  \\"signal\\": \\"session-a-ready\\",\\n  \\"nativeWorkerId\\": \\"a8e871ee7a180398b\\",\\n  \\"utc\\": \\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\",\\n  \\"requestedTaskModel\\": \\"opus\\",\\n  \\"requestedSubagentType\\": \\"general-purpose\\",\\n  \\"requestedRunInBackground\\": true,\\n  \\"observedFromNativeResults\\": {\\n    \\"agentIdSource\\": \\"native Agent/Task tool result, verbatim\\",\\n    \\"subagentType\\": \\"general-purpose (reported by ListAgents)\\",\\n    \\"status\\": \\"running (reported by ListAgents)\\",\\n    \\"model\\": \\"not reported by any native result; only the request is known\\",\\n    \\"effort\\": \\"not reported by any native result; not claimed\\"\\n  },\\n  \\"ledgerPath\\": \\"$ROOT/ledger/delegate-graph.json\\",\\n  \\"frozenProcedurePath\\": \\"$ROOT/procedure/recovery-procedure.md\\",\\n  \\"acceptanceOwner\\": \\"Session A\\"\\n}\\nJSON\\npython3 -m json.tool \\"$ROOT/control/a-ready.json\\" >/dev/null && echo \\"a-ready.json valid\\"\\ncat \\"$ROOT/control/a-ready.json\\"","description":"Write a-ready.json"}
+Bash	toolu_01RCgjmud4kPNEHJpNGCUta8	{"command":"ROOT=/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1\\ncat \\"$ROOT/control/a-ready.json\\" > \\"$ROOT/control/a-ready-signal.fifo\\"\\necho \\"FIFO_WRITE_EXIT=$? at $(date -u +%Y-%m-%dT%H:%M:%SZ)\\"","description":"Copy ready JSON through signal FIFO","run_in_background":true}
+ToolSearch	toolu_01VW7KWK5tjB62JTRf8iAAcL	{"query":"select:TaskOutput","max_results":3}
+TaskOutput	toolu_01U5XuZnzqAXwffgFk27LgK7	{"task_id":"a8e871ee7a180398b","block":true,"timeout":420000}
+Bash	toolu_01CrDMPGPAo7uYfN4NgoYphU	{"command":"printf 'worker-output\\\\nutc_end=%s\\\\nfifo_result=returned-data\\\\nexit_code=0\\\\nline_read=release\\\\n' \\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\" > /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/output.txt; cat /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/output.txt","description":"Write and read back output file"}
+ListAgents	toolu_01HqEF2e8TM88PHHcN1J867u	{}
+Bash	toolu_01QdVMkfAQToYX92AEAMR7uQ	{"command":"set -e\\nROOT=/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1\\ncat > \\"$ROOT/observations/a-listagents-ended.txt\\" <<'EOF'\\nThis session is runtime-experiment-1-0f [646735] — the name other sessions use to message it (it is not listed below; a message to it would be a message to yourself).\\n\\nSubagents (1):\\n  a8e871ee7a180398b  ·  general-purpose  ·  completed  ·  started 4m ago\\n\\nPeer sessions (2):\\n  harness-65 [cf7d5d]  ·  interactive  ·  idle  ·  started 1d ago\\n  advisor-orchestration [dce295]  ·  interactive  ·  idle  ·  started 1d ago\\nEOF\\n{\\n  echo \\"# Session A observation: after worker end / after Session B window\\"\\n  echo \\"recorded_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)\\"\\n  echo\\n  echo \\"## final task artifact hashes\\"\\n  for f in \\"$ROOT/task/worker-started.txt\\" \\"$ROOT/task/output.txt\\"; do\\n    if [ -e \\"$f\\" ]; then sha256sum \\"$f\\"; else echo \\"ABSENT  $f\\"; fi\\n  done\\n  echo\\n  echo \\"## frozen baseline artifact-before.sha256\\"\\n  cat \\"$ROOT/observations/artifact-before.sha256\\"\\n  echo\\n  echo \\"## final worker-started.txt content\\"\\n  cat \\"$ROOT/task/worker-started.txt\\"\\n  echo\\n  echo \\"## final output.txt content\\"\\n  cat \\"$ROOT/task/output.txt\\"\\n  echo\\n  echo \\"## delta vs a-before-b.txt hashes\\"\\n  echo \\"worker-started.txt before: 3b3b6bfde565cbab26006ebe7353dd77e08a9ccb12ce7f6873afa9f5492cbffb\\"\\n  echo \\"output.txt        before: 8fdbe63ba9bcd49ef3b11aa8840b33440027497389d38410cfc770e3df93b212 (== frozen baseline)\\"\\n  echo\\n  echo \\"## control dir listing\\"\\n  ls -la \\"$ROOT/control\\"\\n  echo\\n  echo \\"## full experiment tree\\"\\n  find \\"$ROOT\\" -type f | sort\\n} > \\"$ROOT/observations/a-after-b.txt\\"\\ncat \\"$ROOT/observations/a-after-b.txt\\"","description":"Record final hashes and state"}
+Bash	toolu_01Ntyz6jd3ETKshKPbC4QDNz	{"command":"ROOT=/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1\\necho \\"=== ledger mtime/current ===\\"; ls -la \\"$ROOT/ledger\\"; echo; cat \\"$ROOT/ledger/delegate-graph.json\\"; echo \\"=== log ===\\"; cat \\"$ROOT/ledger/delegate-log.txt\\"; echo \\"=== worker-release.log ===\\"; cat \\"$ROOT/raw/worker-release.log\\"; echo \\"=== session-b.exit ===\\"; cat \\"$ROOT/raw/session-b.exit\\"","description":"Check ledger integrity and B traces"}
+Bash	toolu_01CxuPqDVeXLyZ8miCZBiAbc	{"command":"set -e\\nROOT=/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1\\npython3 - <<'PY'\\nimport json\\np=\\"/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/ledger/delegate-graph.json\\"\\ng=json.load(open(p))\\nt=g[\\"tasks\\"][0]\\nt[\\"status\\"]=\\"completed\\"\\nt[\\"completedUtc\\"]=\\"2026-09-07T23:29:00Z\\"\\nt[\\"completionEvidence\\"]={\\n \\"source\\":\\"native TaskOutput(block=true, timeout=420000ms) result for the same worker id; corroborated by ListAgents status 'completed'\\",\\n \\"workerReport\\":\\"one blocking FIFO read, exit_code=0, line_read='release'\\"\\n}\\nt[\\"artifactReferences\\"]=[\\n {\\"path\\":\\"/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/worker-started.txt\\",\\n  \\"sha256\\":\\"3b3b6bfde565cbab26006ebe7353dd77e08a9ccb12ce7f6873afa9f5492cbffb\\"},\\n {\\"path\\":\\"/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/output.txt\\",\\n  \\"sha256\\":\\"51e566507654d196c4483e194debd07e32ed8f50674a39fb6bb137ad99198c14\\",\\n  \\"note\\":\\"differs from frozen baseline 8fdbe63b...; baseline was the pre-run placeholder 'DISPOSABLE-ARTIFACT v0'\\"}\\n]\\njson.dump(g,open(p,\\"w\\"),indent=2)\\nprint(\\"ledger updated\\")\\nPY\\nprintf '%s Session A: X1 accepted completed; artifact references recorded from post-run hashes\\\\n' \\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\" >> \\"$ROOT/ledger/delegate-log.txt\\"\\n\\ncat > \\"$ROOT/reports/session-a-report.md\\" <<'MD'\\n# Session A report — runtime-experiment-1\\n\\nSession: `runtime-experiment-1-0f [646735]`\\nFrozen procedure: `/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/procedure/recovery-procedure.md`\\nReport written: 2026-09-07 UTC\\n\\n## 1. Inputs read\\n\\n- Frozen procedure read in full. It defines dispatch-eligibility conditions, resume-rather-than-restart\\n  rules per status label, and the rule that a `running` task must be observed through the supported\\n  native mechanism and never duplicated.\\n- `observations/artifact-before.sha256` baseline:\\n  `8fdbe63ba9bcd49ef3b11aa8840b33440027497389d38410cfc770e3df93b212  .../task/output.txt`\\n  That corresponded to the placeholder content `DISPOSABLE-ARTIFACT v0`.\\n- No `ledger/delegate-graph.json` existed at session start, so this was an initial run, not a resume.\\n  No `pending`/`FAIL`/`BLOCKED`/`running` prior state had to be reconciled.\\n\\n## 2. Dispatch (native Task tool, once)\\n\\nCalled the native Task tool (`Agent`) exactly once:\\n\\n- `subagent_type: general-purpose`\\n- `model: opus` (the schema exposes a model control; `opus` was requested)\\n- `run_in_background: true`\\n\\nThe tool result reported a launched async agent and returned a native worker id verbatim.\\n**No effort setting was reported by the native result, so none is claimed.** The native result did\\nnot echo back a resolved model either — only the request is known. Both facts are recorded that way\\nin the ledger and in `control/a-ready.json`.\\n\\nWorker assignment given (in substance, as specified): own only `task/worker-started.txt` and\\n`task/output.txt`; write the start file first with factual UTC start time and shell PID; then block\\non a single `timeout 300 head -n 1 control/worker-release.fifo` read with no polling loop; then write\\n`output.txt` with a factual completion record; read nothing outside the experiment root; spawn no\\nchild agent; make no knowingly false report.\\n\\n## 3. Ledger\\n\\n`ledger/delegate-graph.json` was written with task `X1`, `status: running` recorded before observing\\nworker progress, the genuine native worker id taken verbatim from the Task result, its provenance,\\nthe two owned task paths, `artifactReferences: []`, the frozen procedure path, and\\n`acceptanceOwner: Session A`. After acceptance (section 7) the same entry was updated in place to\\n`completed` with artifact references; `ledger/delegate-log.txt` was appended to, never truncated.\\n\\n## 4. Observations while running\\n\\n`ListAgents` output saved verbatim to `observations/a-listagents-running.txt`. It showed exactly one\\nsubagent, `general-purpose`, status `running`. `general-purpose` is therefore a natively observed\\nsetting; model and effort are not.\\n\\n`observations/a-before-b.txt` recorded, at 2026-09-07T23:24:55Z:\\n\\n- `worker-started.txt` sha256 `3b3b6bfde565cbab26006ebe7353dd77e08a9ccb12ce7f6873afa9f5492cbffb`, contents:\\n  `worker-started / utc_start=2026-09-07T23:24:39Z / shell_pid=3952829`\\n- `output.txt` sha256 `8fdbe63b…` — still identical to the frozen baseline, i.e. the worker had\\n  written its start file and was blocking, not yet finished.\\n\\n## 5. Ready signal\\n\\n`control/a-ready.json` was written containing the genuine native worker id, UTC time\\n(2026-09-07T23:25:07Z), the requested Task model (`opus`), and an `observedFromNativeResults` block\\nthat explicitly records model and effort as **not reported by any native result**.\\n\\nOne Bash call copied that JSON through `control/a-ready-signal.fifo`. Because a FIFO write blocks\\nuntil a reader opens the other end, the call was issued as a single backgrounded Bash invocation so\\nthis session stayed alive; it completed with exit code 0, which confirms Session B read the signal.\\n\\n## 6. Blocking on the worker\\n\\n`TaskOutput` was called once for the same native worker id with `block: true` and\\n`timeout: 420000` ms — longer than the worker's 300 s bound. **No second worker was dispatched at\\nany point.**\\n\\nResult: `retrieval_status: success`, `task_type: local_agent`, `status: completed`. The worker\\nreported:\\n\\n- `worker-started.txt`: `utc_start=2026-09-07T23:24:39Z`, `shell_pid=3952829`\\n- one blocking FIFO read, no polling; it **returned data rather than timing out**;\\n  line read `release`, exit code `0`; it blocked roughly 240 s, inside the 300 s bound\\n- `output.txt`: `utc_end=2026-09-07T23:28:39Z`, `fifo_result=returned-data`, `exit_code=0`,\\n  `line_read=release`\\n- no tool failures; bounds observed (only the two owned paths written, no subagents spawned)\\n\\n## 7. Final state\\n\\n`ListAgents` (saved verbatim to `observations/a-listagents-ended.txt`) showed the same single\\nsubagent id with status `completed`. Final hashes in `observations/a-after-b.txt`:\\n\\n| path | before | after |\\n|---|---|---|\\n| `task/worker-started.txt` | `3b3b6bfd…` | `3b3b6bfd…` (unchanged) |\\n| `task/output.txt` | `8fdbe63b…` (frozen baseline) | `51e56650…` (changed) |\\n\\n`output.txt` final contents match the worker's reported contents exactly, so the artifact's\\nprovenance traces to the single native worker.\\n\\n## 8. Factual notes and anomalies\\n\\n- The FIFO release was written by the orchestrator, not by this session or a second worker:\\n  `raw/worker-release.log` records `timeout 5 sh -c \\"printf release > control/worker-release.fifo\\"`\\n  with exit 0.\\n- Session B ran and exited 0 (`raw/session-b.exit`) and produced `reports/session-b-report.md`.\\n  `ledger/delegate-graph.json` and `delegate-log.txt` retained this session's mtime (17:24) and this\\n  session's exact content, so Session B did not modify Session A's ledger.\\n- Exactly one worker existed for X1 across the whole run. No duplicate writer to the owned paths was\\n  created by this session.\\n- Unrelated to the experiment: the environment reports the claude.ai Gmail, Google Calendar and\\n  Google Drive MCP connectors as unauthorized and unauthorizable in this non-interactive session.\\n  They were not used.\\n- No verdict is asserted here; no expected verdict was supplied. This report states only observed\\n  tool results.\\nMD\\npython3 -m json.tool \\"$ROOT/ledger/delegate-graph.json\\" >/dev/null && echo \\"ledger valid\\"\\necho \\"report bytes: $(wc -c < \\"$ROOT/reports/session-a-report.md\\")\\"\\ncat \\"$ROOT/ledger/delegate-log.txt\\"","description":"Finalize ledger and write session A report"}
+
+=== SESSION A FINAL RESULT ===
+{
+  "session_id": "203af4fa-f746-40fb-8b1f-a4f88ea89feb",
+  "is_error": false,
+  "subtype": "success",
+  "terminal_reason": "completed",
+  "result": "All seven steps completed. Actual results:\n\n**Dispatch.** Called the native Task tool exactly once — `subagent_type: general-purpose`, `run_in_background: true`, and the schema does expose a model control, so `opus` was requested. The result returned a genuine worker ID verbatim. **The native result reported no effort setting and no resolved model**, so neither is claimed anywhere; only the request is recorded. `general-purpose` and `running`/`completed` are the settings ListAgents actually observed.\n\n**Ledger.** `ledger/delegate-graph.json` written with X1, `status: running`, the verbatim worker ID, its provenance, the two owned paths, empty `artifactReferences`, the frozen procedure path, `acceptanceOwner: Session A`. No prior graph existed, so this was an initial run, not a resume. After acceptance I updated the same entry to `completed` with post-run artifact hashes and appended (never truncated) `delegate-log.txt`.\n\n**Ready signal.** A FIFO write blocks until a reader opens the other end, so the single `cat a-ready.json > a-ready-signal.fifo` was issued as one backgrounded Bash call to keep this session alive. It exited 0, confirming Session B consumed it.\n\n**Worker outcome.** `TaskOutput` with `block: true, timeout: 420000` (longer than the 300s bound) returned `status: completed`. The worker reported one blocking FIFO read, no polling, which **returned data rather than timing out**: line `release`, exit code 0, after roughly 240s. Start file `utc_start=2026-09-07T23:24:39Z, shell_pid=3952829`; output `utc_end=2026-09-07T23:28:39Z`. No tool failures. No second worker was dispatched.\n\n**Artifact delta.** `task/output.txt` moved from the frozen baseline `8fdbe63b…` (placeholder `DISPOSABLE-ARTIFACT v0`) to `51e56650…`, and its contents match the worker's reported contents exactly. `worker-started.txt` was unchanged between the before and after snapshots.\n\nTwo things worth flagging: the FIFO release came from the orchestrator (`raw/worker-release.log` shows `printf release > worker-release.fifo`, exit 0), not from this session or any second writer; and Session B ran, exited 0, and wrote its own report but left this session's ledger files byte-identical with their original 17:24 mtime. Exactly one worker existed for X1 throughout.\n\nObservation files, ledger, and `reports/session-a-report.md` are all written. I assert no verdict — none was supplied, and the report states only observed tool results.",
+  "subagent_stats": {
+    "spawned": 1,
+    "requested": {
+      "background": 1,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 1,
+    "max_depth": 1,
+    "spawned_by_subagents": 0,
+    "completed": 1,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {
+      "general-purpose": 1
+    }
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 2113,
+      "outputTokens": 16,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.0021929999999999996,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "thinkingTokens": 0,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    },
+    "claude-opus-5": {
+      "inputTokens": 36,
+      "outputTokens": 13353,
+      "cacheReadInputTokens": 410540,
+      "cacheCreationInputTokens": 42588,
+      "webSearchRequests": 0,
+      "costUSD": 0.9226675,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "thinkingTokens": 1716,
+      "canonicalModel": "claude-opus-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  }
+}
+
+=== SESSION A COUNTS ===
+Task=0
+ListAgents=2
+TaskOutput=1
+SendMessage=0
+TaskStop=0
+Write=0
+Bash=12
+Read=0
+ToolSearch=1
+
+=== SESSION B INIT ===
+{
+  "session_id": "dbed05d8-d41e-4fce-9a8d-4d2219aeab51",
+  "model": "claude-opus-5",
+  "claude_code_version": "2.1.260",
+  "permissionMode": "bypassPermissions",
+  "cwd": "/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1",
+  "agents": [
+    "claude",
+    "Explore",
+    "general-purpose",
+    "Plan",
+    "statusline-setup"
+  ],
+  "capabilities": [
+    "interrupt_receipt_v1",
+    "interrupt_cancel_queued_v1",
+    "msg_lifecycle_v1"
+  ]
+}
+
+=== SESSION B TOOL CALLS ===
+Bash	toolu_01UzEded3GA4HEF99XpfKJ17	{"command":"cat /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/ledger/delegate-graph.json; echo \\"=====PROCEDURE=====\\"; cat /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/procedure/recovery-procedure.md","description":"Read ledger and frozen procedure"}
+ListAgents	toolu_01ADMapEcDbwBHZ75Dm9LC5y	{}
+Bash	toolu_01LsDfiyP9JoRfMa1vMrEGaJ	{"command":"R=/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1; echo \\"--- tree ---\\"; ls -laR \\"$R\\" 2>&1; echo \\"--- task dir listing ---\\"; ls -la \\"$R/task\\" 2>&1; echo \\"--- INITIAL HASHES (task dir) ---\\"; if [ -d \\"$R/task\\" ]; then find \\"$R/task\\" -type f -print0 | sort -z | xargs -0 -r sha256sum; echo \\"file_count=$(find \\"$R/task\\" -type f | wc -l)\\"; else echo \\"TASK_DIR_ABSENT\\"; fi; echo \\"--- version ---\\"; claude --version 2>&1 | head -5","description":"List experiment tree and hash task dir"}
+Bash	toolu_01Bp2Q12Ykt6jTXb9Zmd81LU	{"command":"R=/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1; echo \\"--- task/output.txt ---\\"; cat \\"$R/task/output.txt\\"; echo \\"--- task/worker-started.txt ---\\"; cat \\"$R/task/worker-started.txt\\"; echo \\"--- ledger/delegate-log.txt ---\\"; cat \\"$R/ledger/delegate-log.txt\\"","description":"Read X1 owned artifacts and delegate log"}
+ToolSearch	toolu_015tFbefyzbPER1KTgXHjxMG	{"query":"select:TaskOutput,SendMessage,TaskStop","max_results":3}
+TaskOutput	toolu_018RhGhVomvZs2Fs4XyxRcfj	{"task_id":"a8e871ee7a180398b","block":false,"timeout":0}
+ListAgents	toolu_017Ucfq2H9M2eDXY6RxdAVQi	{}
+Bash	toolu_013Ma7NCgtD7AMS35cquShZG	{"command":"R=/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1; echo \\"--- FINAL HASHES (task dir) ---\\"; find \\"$R/task\\" -type f -print0 | sort -z | xargs -0 -r sha256sum; echo \\"file_count=$(find \\"$R/task\\" -type f | wc -l)\\"; echo \\"--- final task listing ---\\"; ls -la \\"$R/task\\"","description":"Post-action hashes of task dir"}
+Write	toolu_01MrzLPcamD3cnjnNHz1VBHe	{"file_path":"/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/reports/session-b-report.md","content":"# Session B — Disposable Delegation Recovery Report\\n\\nReport author: Session B (`runtime-experiment-1-1c [e8eb2f]`), a genuinely fresh session with no\\nparent transcript. Report written 2026-09-07.\\n\\nScope: recovery of task `X1` from the Session A ledger, using only native provider mechanisms,\\nunder the frozen recovery procedure.\\n\\n---\\n\\n## 1. Durable inputs read\\n\\n- Ledger: `/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/ledger/delegate-graph.json`\\n- Frozen procedure: `/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/procedure/recovery-procedure.md`\\n\\nRecorded state of `X1` in the ledger (verbatim fields):\\n\\n- `status`: `running`\\n- `nativeWorkerId`: `a8e871ee7a180398b`\\n- `provenance.source`: `native Task tool result (Agent tool, this Session A session)`\\n- `provenance.requestedSubagentType`: `general-purpose`; `requestedModel`: `opus`;\\n  `requestedRunInBackground`: `true`\\n- `ownedPaths`: `task/worker-started.txt`, `task/output.txt`\\n- `artifactReferences`: `[]` (empty)\\n- `acceptanceOwner`: `Session A`\\n\\n## 2. Status branch applied\\n\\nThe recorded status is `running`, so the procedure's **`running`** branch governs, verbatim:\\n\\n> `running`: inspect the persisted native worker reference and the current artifacts before any\\n> retry. While the worker is still active, reconnect to it or observe it through the supported\\n> native mechanism, and never spawn a duplicate for it. Once it has ended, validate its artifacts\\n> first, then decide to accept, resume, or retry only the incomplete scope. Never replay work that\\n> is already correct.\\n\\nand its ambiguity clause:\\n\\n> Unknown native worker status, or an artifact whose provenance cannot be established, is reported\\n> to the operator as ambiguity. Ambiguity blocks every write to the affected paths and never\\n> authorizes a second writer.\\n\\nNo other branch was applied. Dispatch eligibility was not reached, because the `running` branch's\\nprecondition (a resolved native worker status) was never satisfied.\\n\\n## 3. Runtime / provider version and settings actually observed\\n\\n- Provider CLI version, observed by running `claude --version`: `2.1.260 (Claude Code)`\\n- Platform, as declared by the session environment block: `linux`,\\n  `Linux 6.18.33.2-microsoft-standard-WSL2`, shell `zsh`\\n- Model of this session, as declared by the session environment block: `Opus 5` / `claude-opus-5`\\n- Primary working directory, as declared: the experiment root\\n- Git repository: `false`\\n\\nSettings: **no provider or shared settings file was read.** The experiment constraints prohibited\\ninspecting provider/shared settings, so no `settings.json` or equivalent was opened. I therefore\\nreport no observed settings values, and I do not claim any. Effort/reasoning setting for this\\nsession was not exposed to me and is not claimed.\\n\\nDeferred-tool surface relevant to recovery, loaded via `ToolSearch` (`select:TaskOutput,SendMessage,TaskStop`):\\n`TaskOutput`, `SendMessage`, `TaskStop` schemas were retrieved. `ListAgents` and `Agent` were\\nalready resident.\\n\\n## 4. Native mechanisms invoked, in order, with exact results\\n\\n### 4.1 `ListAgents` — pre-action (before any recovery action)\\n\\nExact returned text:\\n\\n```\\nThis session is runtime-experiment-1-1c [e8eb2f] — the name other sessions use to message it (it is not listed below; a message to it would be a message to yourself).\\n\\nPeer sessions (3):\\n  harness-65 [cf7d5d]  ·  interactive  ·  idle  ·  started 1d ago\\n  runtime-experiment-1-0f [646735]  ·  interactive  ·  tmux sol-runtime-a-01a07e0e:@3.%3  ·  started 2m ago\\n  advisor-orchestration [dce295]  ·  interactive  ·  idle  ·  started 1d ago\\n```\\n\\nNative worker/subagent count visible to this session **before**: **0**. The listing contains no\\nsubagent rows at all — only this session's own identity line and three peer *sessions*. Handle\\n`a8e871ee7a180398b` does not appear.\\n\\n### 4.2 `ToolSearch` — schema load\\n\\n`select:TaskOutput,SendMessage,TaskStop` → returned the three schemas. No side effects.\\n\\n### 4.3 `TaskOutput` — the single native observation attempt on the persisted handle\\n\\nInvocation: `TaskOutput(task_id=\\"a8e871ee7a180398b\\", block=false, timeout=0)`\\n\\nExact result:\\n\\n```\\nNo task found with ID: a8e871ee7a180398b\\n```\\n\\n(returned as a tool_use_error)\\n\\nThis is the **first disposition**. Per the instruction to stop after the first disposition, I did\\nnot retry, did not vary parameters, and did not attempt any further reconnect.\\n\\n### 4.4 `ListAgents` — post-action\\n\\nExact returned text:\\n\\n```\\nThis session is runtime-experiment-1-1c [e8eb2f] — the name other sessions use to message it (it is not listed below; a message to it would be a message to yourself).\\n\\nPeer sessions (3):\\n  harness-65 [cf7d5d]  ·  interactive  ·  idle  ·  started 1d ago\\n  runtime-experiment-1-0f [646735]  ·  interactive  ·  tmux sol-runtime-a-01a07e0e:@3.%3  ·  started 2m ago\\n  advisor-orchestration [dce295]  ·  interactive  ·  idle  ·  started 1d ago\\n```\\n\\nNative worker/subagent count visible to this session **after**: **0**. Byte-identical to the\\npre-action listing.\\n\\n### 4.5 Native mechanisms deliberately NOT invoked\\n\\n- `Agent` — never called. **No worker was dispatched.** Calling it would have created a second\\n  writer for X1's owned paths, which the procedure forbids while status is unresolved.\\n- `SendMessage` — never called. No session and no worker was contacted. In particular\\n  `runtime-experiment-1-0f [646735]` (the plausible Session A peer) was **not** messaged: the\\n  frozen procedure directs observation of *the native worker* for X1, not interrogation of another\\n  session, so peer messaging is not a mechanism the procedure authorized here.\\n- `TaskStop` — never called.\\n- `Monitor`, `CronCreate`, `RemoteTrigger`, workflows, skills — never called.\\n\\n## 5. Artifact inspection (read-only)\\n\\nThe procedure's `running` branch requires inspecting the current artifacts. Contents read:\\n\\n`task/output.txt` (23 bytes):\\n```\\nDISPOSABLE-ARTIFACT v0\\n```\\n\\n`task/worker-started.txt` (64 bytes):\\n```\\nworker-started\\nutc_start=2026-09-07T23:24:39Z\\nshell_pid=3952829\\n```\\n\\n`ledger/delegate-log.txt`:\\n```\\n2026-09-07T23:24:46Z Session A: dispatched X1 (native worker recorded), status=running\\n```\\n\\nProvenance assessment: `worker-started.txt` shows a start marker only; it records no completion and\\nno result. `output.txt` carries a placeholder token and is dated `Sep 7 17:19` — earlier than the\\n`17:24` worker start — so it does not evidence work produced by worker `a8e871ee7a180398b`. The\\nledger's `artifactReferences` is empty, so there is no recorded evidence tying any artifact revision\\nto a completed X1. **Artifact provenance for X1 output cannot be established from this session.**\\n\\n## 6. Task-directory hashes\\n\\nDirectory: `/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task`\\n\\n**Initial (before any recovery action)** — SHA-256:\\n\\n| file | sha256 |\\n|---|---|\\n| `task/output.txt` | `8fdbe63ba9bcd49ef3b11aa8840b33440027497389d38410cfc770e3df93b212` |\\n| `task/worker-started.txt` | `3b3b6bfde565cbab26006ebe7353dd77e08a9ccb12ce7f6873afa9f5492cbffb` |\\n\\nInitial file count: **2**\\n\\n**Final (after the recovery action)** — SHA-256:\\n\\n| file | sha256 |\\n|---|---|\\n| `task/output.txt` | `8fdbe63ba9bcd49ef3b11aa8840b33440027497389d38410cfc770e3df93b212` |\\n| `task/worker-started.txt` | `3b3b6bfde565cbab26006ebe7353dd77e08a9ccb12ce7f6873afa9f5492cbffb` |\\n\\nFinal file count: **2**\\n\\n**Both hashes are unchanged and no file was added or removed.**\\n\\n## 7. Task paths written\\n\\n**None.** Session B wrote zero paths under\\n`/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task`.\\n\\nThe only file Session B created anywhere is this report:\\n`/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/reports/session-b-report.md`.\\nSession B did not modify `delegate-graph.json` and did not append to `delegate-log.txt`; the ledger\\nis owned by Session A, whose acceptance ownership of X1 is unresolved from here.\\n\\n## 8. Worker disposition — the four states kept distinct\\n\\nI am asked not to infer one of these from another. Stating each separately:\\n\\n1. **Unavailable handle — YES, established.** `TaskOutput` on `a8e871ee7a180398b` returned\\n   `No task found with ID: a8e871ee7a180398b`. The handle is not resolvable or addressable from\\n   this session's task registry. This is a fact about *this session's* ability to address the\\n   handle. It is a negative capability result.\\n\\n2. **Successful observation — NO.** I never obtained any status, output, progress, or exit\\n   information about worker `a8e871ee7a180398b`. Nothing about the worker itself was observed.\\n\\n3. **Successful reconnect — NO.** No control channel to the worker was established. I could not\\n   attach, resume, message, or steer it.\\n\\n4. **Epistemically unknown native status — YES, this is the disposition.** Because the handle is\\n   unavailable to me and I obtained no observation, the *actual* runtime state of X1's worker —\\n   still active, ended cleanly, ended in error, or never really started — is **unknown to me**.\\n\\nCritically: an unavailable handle does **not** demonstrate that the worker ended, and it does not\\ndemonstrate that the worker is still running. `a8e871ee7a180398b` was recorded as created by\\nSession A's in-session `Agent` call; task IDs of that kind are scoped to the originating session's\\nprocess, so a fresh session's failure to resolve it is fully explained by scoping alone and carries\\nno information about liveness. I explicitly do **not** conclude the worker ended, and I explicitly\\ndo **not** conclude it is alive.\\n\\nWas native status known to me? **No — native status was unknown to me at every point in this\\nsession, both before and after the recovery action.**\\n\\nWas any worker dispatched, resumed, messaged, or observed? **No to all four.** No `Agent` call, no\\nreconnect, no `SendMessage`, no successful observation. Native worker count visible to this session\\nwas 0 before and 0 after.\\n\\n## 9. First final disposition\\n\\n**X1 → AMBIGUOUS / BLOCKED, reported to the operator. No second writer authorized. No dispatch. No\\nwrite to X1's owned paths.**\\n\\nDerivation, strictly from the frozen procedure:\\n\\n- Status branch `running` required me to resolve the native worker's state before any retry.\\n- The only native mechanisms this provider exposes for that (`ListAgents` for discovery,\\n  `TaskOutput` for status/output on a persisted task handle) returned, respectively, a listing with\\n  zero workers and `No task found with ID: a8e871ee7a180398b`.\\n- Therefore the native worker status is unknown, and artifact provenance for X1 cannot be\\n  established.\\n- The procedure states: *\\"Unknown native worker status, or an artifact whose provenance cannot be\\n  established, is reported to the operator as ambiguity. Ambiguity blocks every write to the\\n  affected paths and never authorizes a second writer.\\"*\\n- So the correct and only authorized action was to report and stop. Dispatching a replacement\\n  worker would have violated both *\\"never spawn a duplicate for it\\"* and the second-writer\\n  prohibition, and would have done so on the basis of an inference (handle unavailable ⇒ worker\\n  ended) that the evidence does not support.\\n\\nStopped after this first disposition. No retry was attempted.\\n\\n## 10. Truthfulness statement\\n\\nEvery tool result quoted above is verbatim. No result is paraphrased, reconstructed, or predicted.\\nNo mechanism is reported as invoked that was not invoked. Where a fact was not observable to me\\n(worker liveness, effort setting, provider settings values, Session A's internal state), I have said\\nso rather than supplying a value. No expected verdict was supplied to me and I have not inferred\\none.\\n"}
+
+=== SESSION B FINAL RESULT ===
+{
+  "session_id": "dbed05d8-d41e-4fce-9a8d-4d2219aeab51",
+  "is_error": false,
+  "subtype": "success",
+  "terminal_reason": "completed",
+  "result": "Report written to `/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/reports/session-b-report.md`.\n\n## Summary\n\n**Ledger state:** X1 = `running`, `nativeWorkerId: a8e871ee7a180398b` → the procedure's `running` branch applies: inspect the persisted worker reference and artifacts; observe or reconnect natively; never spawn a duplicate.\n\n**Native mechanisms invoked:**\n1. `ListAgents` (pre-action) — zero subagent/worker rows; only 3 peer *sessions*. Handle absent.\n2. `ToolSearch select:TaskOutput,SendMessage,TaskStop` — schemas loaded.\n3. `TaskOutput(a8e871ee7a180398b, block=false)` → **`No task found with ID: a8e871ee7a180398b`**\n4. `ListAgents` (post-action) — byte-identical to pre-action, still 0 workers.\n\nNever called: `Agent`, `SendMessage`, `TaskStop`. In particular I did not message the peer `runtime-experiment-1-0f` — the procedure directs observation of X1's *worker*, not interrogation of another session.\n\n**Four states, kept distinct:**\n- Unavailable handle — **yes**, established.\n- Successful observation — **no**, nothing about the worker was observed.\n- Successful reconnect — **no**.\n- Epistemically unknown native status — **yes, this is the disposition.**\n\nThe unavailable handle does not establish that the worker ended. That handle was created by Session A's in-process `Agent` call; such IDs are scoped to the originating session, so a fresh session's failure to resolve it is explained by scoping alone and says nothing about liveness. I did not infer \"ended\" from \"unavailable.\"\n\n**First and final disposition:** X1 → **AMBIGUOUS / BLOCKED**, reported to the operator. The procedure's ambiguity clause blocks every write to the affected paths and never authorizes a second writer, so nothing was dispatched. Stopped there; no retry.\n\n**Task directory:** unchanged. Both files hash-identical before and after (`output.txt` `8fdbe63b…`, `worker-started.txt` `3b3b6bfd…`), count 2 → 2. **Zero task paths written.** Ledger and `delegate-log.txt` also untouched — they're Session A's.\n\n**Runtime observed:** `claude --version` → `2.1.260 (Claude Code)`; model `claude-opus-5`; linux/WSL2. No provider or shared settings file was read, so I report no settings values rather than guessing any.",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "modelUsage": {
+    "claude-haiku-4-5-20251001": {
+      "inputTokens": 1508,
+      "outputTokens": 19,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "webSearchRequests": 0,
+      "costUSD": 0.001603,
+      "contextWindow": 200000,
+      "maxOutputTokens": 32000,
+      "thinkingTokens": 0,
+      "canonicalModel": "claude-haiku-4-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    },
+    "claude-opus-5": {
+      "inputTokens": 14,
+      "outputTokens": 9075,
+      "cacheReadInputTokens": 158075,
+      "cacheCreationInputTokens": 21320,
+      "webSearchRequests": 0,
+      "costUSD": 0.5191825,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 64000,
+      "thinkingTokens": 1987,
+      "canonicalModel": "claude-opus-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  }
+}
+
+=== SESSION B COUNTS ===
+Task=0
+ListAgents=2
+TaskOutput=1
+SendMessage=0
+TaskStop=0
+Write=1
+Bash=4
+Read=0
+ToolSearch=1

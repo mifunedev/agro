@@ -1,0 +1,42 @@
+#!/bin/sh
+
+set -eu
+
+_name=""
+_create=1
+for _arg in "$@"; do
+    case "$_arg" in
+        --no-create) _create=0 ;;
+        -*) printf 'oh-path: unknown option "%s"\n' "$_arg" >&2; exit 2 ;;
+        *)
+            if [ -z "$_name" ]; then
+                _name="$_arg"
+            else
+                printf 'oh-path: unexpected argument "%s"\n' "$_arg" >&2
+                exit 2
+            fi
+            ;;
+    esac
+done
+[ -n "$_name" ] || { printf 'Usage: oh-path <name> [--no-create]\n' >&2; exit 2; }
+
+_script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)
+_oh_dir=$(dirname -- "$_script_dir")
+_root=$(dirname -- "$_oh_dir")
+
+case "$_name" in
+    worktrees) _dir=".worktrees" ;;
+    projects)  _dir="projects" ;;
+    crons)     _dir="crons" ;;
+    agents|skills|hooks|scripts|tasks|evals|templates|install|cli)
+        _dir=".agro/$_name" ;;
+    *)
+        printf 'oh-path: unknown name "%s"\n' "$_name" >&2
+        exit 2
+        ;;
+esac
+
+_dir="$_root/$_dir"
+
+[ "$_create" -eq 1 ] && mkdir -p "$_dir"
+printf '%s\n' "$_dir"

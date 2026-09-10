@@ -1,0 +1,8 @@
+case directory unexpectedly exists: /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/focused-mermaid-cases/01-delete_dependency_edge
+case directory unexpectedly exists: /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/focused-mermaid-cases/02-delete_false_ledger_edge
+case directory unexpectedly exists: /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/focused-mermaid-cases/03-delete_dry_run_node_shape
+case directory unexpectedly exists: /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/focused-mermaid-cases/04-delete_run_ledger_node_shape
+case directory unexpectedly exists: /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/focused-mermaid-cases/05-legal_edge_reflow
+
+TOTAL_CASES=5
+TOTAL_FAILURES=5

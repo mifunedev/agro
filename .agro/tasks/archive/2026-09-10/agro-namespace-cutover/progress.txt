@@ -1,0 +1,16 @@
+# progress
+
+2026-09-06T20:24:54Z plan: base 9d2fb009; queries "sandbox registry seed compose migration onboarding docs"; two read-only inventory workers; seven stories; blocked on operator coordination for the physical rename (12 live worktrees, 1 stash).
+- 2026-09-06T20:33:43Z execute: operator chose 'start now'; scaffold 2a438810 pushed; draft PR #996; state RUNNING implementation; T1 (US-001 rename) delegated
+- 2026-09-06T20:53:20Z US-001 done: .oh->.agro, oh.json->agro.json (620 files); pnpm test 71/1172 pass, typechecks, link-providers --check, eval runner (no new regressions; oh-update-bootstrap red until US-002, /opt/oh-seed destination left to US-004), git diff --check all 0
+- 2026-09-06T22:21:43Z US-002 done (compat defaults agro, AGRO_* compose interpolation, agro-sbx- prefix, oh-update-bootstrap probe green); US-003 done (agro migrate + relink, cli dispatch, manual check/apply/noop smoke)
+- 2026-09-07T04:09:38Z US-004 done: image seeds /opt/agro-seed only; entrypoint, healthcheck, cron unit resolve the control dir at run time; legacy workspace recognised, divergent refused
+- 2026-09-07T04:11:27Z US-005 done: sandbox-upgrade-smoke.sh PASS locally (legacy 0.9.0 volume -> freshly built image, auth+canary sha unchanged, .oh intact, no .agro seeded, units active, healthy); migrate rehearsal 6 tests green
+- 2026-09-07T04:32:01Z US-006 done: sandbox-first onboarding with the GitHub-login prerequisite and both optional prompts; AGENTS.md, configuration, layout, lifecycle (agro migrate), compatibility, inventory notes, changelog, .example.env
+- 2026-09-07T04:32:01Z owner: narrowed sandbox-boot-guard-ci to permit one pinned read-only legacy image while still banning push/login/packages:write/secrets, and made it govern the upgrade job; five fault injections fail, restored passes
+- 2026-09-07T05:01:47Z US-007 done: nine knowledge pages updated and repinned; corrections found beyond the rename (materialize seven->six, CLI pin 0.8.0->0.9.0, three SKIP_PNPM_INSTALL claims retired, managed-agents line ranges past EOF, a trace-RFC path claim that was never renamed)
+- 2026-09-07T05:06:40Z retro: two patterns compiled (rename sweep re-indenting a YAML block scalar; an inherited environment label on a red probe). Knowledge index regenerated, 37 entries, wiki probes PASS.
+- 2026-09-07T05:06:40Z CI on 388940c0: all seven checks green earlier at 4bd16f74 including the new sandbox-upgrade-guard job; re-running after the pattern commit.
+- 2026-09-07T05:07:22Z benchmark: floor held (145 probes, one pre-existing red, two red->green); ceiling not re-scored, no scored task's behaviour changed
+- 2026-09-07T05:11:12Z PR-AUDIT-PROMOTABLE at 73df2dc0 (CI PASS, MERGEABLE, CLEAN, evidenceComplete); PR #996 marked ready for review; state READY
+- 2026-09-08T00:37:00Z merge: development (56ab2bab: #997 ADR 989 accepted, #1000 task/999 root-change tracking, #1001 pi banner) merged with rename detection, no conflicts; .gitignore gained **/.agro/plans/ beside the inherited **/.oh/plans/ (owner merge-resolution edit); pi tests 44/44; eval 142 pass, 1 persistent red (skills-vendored, unchanged), knowledge-impact 0 stale

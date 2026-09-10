@@ -1,0 +1,17 @@
+task-graph: 7/7 stories pass
+gate1: PASS
+gate2: eval-result commit 23e409e6ab9193f9c1cac5fb0977c0e07215c623 is the content head; only task records changed since
+gate2: reused eval-result.json for HEAD a89f07c8c34df7b4b21a02f89d3846368ae40e4a (runnerExit=0)
+gate2: PASS
+{"ageDays":0,"ageSeconds":211,"ci":"PASS","draftLimbo":false,"draftStatus":"promotable","evidenceComplete":true,"flags":["size-convention"],"isDraft":true,"issueReferences":[988,991,1003],"mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","number":1004,"primaryState":"draft","promotable":true,"readyForReview":true,"readyToMerge":false,"repo":"mifunedev/openharness","reviewDecision":"","schemaVersion":1,"updatedAt":"2026-09-08T00:09:20Z"}
+gate3: PASS
+gate4: not applicable
+gate5: metrics {"netAdded":6317,"netRemoved":41,"shBranchPoints":94,"ccnMax":10,"tsOverCcn":[],"tool":"lizard n/a (no analysable files changed)"}
+gate5: review commit 23e409e6ab9193f9c1cac5fb0977c0e07215c623 is the content head; only task records changed since
+gate5: open .oh/evals/probes/advisor-execution-contract.sh:119 — Delete the three superseded-wording guards. Nonblocking: this loses coverage for contradictory old wording alongside new positive assertions.
+gate5: open .oh/evals/probes/advisor-execution-contract.sh:167 — Widen whole-file Memory Protocol guard to MEM_|Memory Protocol and delete diagram guard. Nonblocking: this changes rejection scope outside the diagram.
+gate5: open .oh/evals/probes/advisor-execution-contract.sh:134 — Delete the frontmatter-key loop. Nonblocking: US-004 explicitly preserves these keys and replacement coverage is not established.
+gate5: open .oh/skills/delegate/SKILL.md:347 — Remove repeated acceptance-ownership sentences and relocate required fragment into Status row. Nonblocking: coordinated contract relocation is additional work.
+gate5: PASS (review 7c3b8668-b6b9-485 at a89f07c8c34df7b4b21a02f89d3846368ae40e4a, 6 finding(s), none blocking open)
+AUDIT-EVIDENCE: AUDIT-PASS
+audit -- run-id=audit-20260908T001250Z-4036385 target=implementation state=complete verdict=AUDIT-PASS exit=0 started=2026-09-08T00:12:50Z finished=2026-09-08T00:12:51Z

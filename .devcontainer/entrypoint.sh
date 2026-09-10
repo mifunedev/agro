@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-# shellcheck source=../.oh/scripts/compat.sh
-. "${OH_COMPAT_SH:-/opt/oh-assets/.oh/scripts/compat.sh}"
+# shellcheck source=../.agro/scripts/compat.sh
+. "${OH_COMPAT_SH:-/opt/agro-assets/.agro/scripts/compat.sh}"
 
 uid_reconcile_step() {
   local description="$1"
@@ -94,7 +94,7 @@ seed_home() {
 # >>> seed_workspace_volume >>>
 seed_workspace_volume() {
   local dest="$1"
-  local src control marker
+  local src control kind marker
   src="$(compat_seed_src)"
   OH_IMAGE_SEEDED_THIS_BOOT=0
   if [ -n "$src" ] && [ -d "$src/.claude" ]; then
@@ -110,15 +110,16 @@ seed_workspace_volume() {
     echo "[entrypoint] WARNING: $dest holds both .oh/ and .agro/ with different content — not seeding; resolve the conflict" >&2
     return 0
   fi
+  kind="${control%%	*}"
   control="${control#*	}"
-  if [ -n "$control" ] && [ -f "$control/.image-seeded" ]; then
+  if [ "$kind" != absent ] && [ -f "$control/.image-seeded" ]; then
     return 0
   fi
-  if [ -n "$src" ] && [ -d "$src" ] && [ -z "$control" ]; then
+  if [ -n "$src" ] && [ -d "$src" ] && [ "$kind" = absent ]; then
     cp -a "$src/." "$dest/" 2>/dev/null || true
     control="$(compat_selected_path compat_control_dir "$dest" 2>/dev/null)" || control=""
   fi
-  if [ -n "$control" ]; then
+  if [ -d "$control" ]; then
     marker="$control/.image-seeded"
     : > "$marker" 2>/dev/null || true
     OH_IMAGE_SEEDED_THIS_BOOT=1
@@ -129,11 +130,13 @@ seed_workspace_volume() {
 
 # >>> oh_config >>>
 OH_CONFIG_JSON=""
+CLI_BIN="$(compat_env_value BIN)"
+[ -n "$CLI_BIN" ] || CLI_BIN=agro
 oh_config() {
   local filter="$1" fallback="${2-}" out
   command -v jq >/dev/null 2>&1 || { printf '%s' "$fallback"; return 0; }
   if [ -z "$OH_CONFIG_JSON" ]; then
-    OH_CONFIG_JSON="$(cd "$HARNESS" 2>/dev/null && gosu sandbox "${OH_BIN:-oh}" config show 2>/dev/null)" || OH_CONFIG_JSON=""
+    OH_CONFIG_JSON="$(cd "$HARNESS" 2>/dev/null && gosu sandbox "$CLI_BIN" config show 2>/dev/null)" || OH_CONFIG_JSON=""
     [ -n "$OH_CONFIG_JSON" ] || OH_CONFIG_JSON="{}"
   fi
   out="$(printf '%s' "$OH_CONFIG_JSON" | jq -r "$filter" 2>/dev/null)" || out=""
@@ -154,8 +157,15 @@ HARNESS="${HARNESS:-$OH_PROJECT_ROOT}"
 seed_home /home/sandbox || echo "[entrypoint] WARNING: home seed incomplete; some baked dotfiles may be missing" >&2
 
 HARNESS_DIR="$OH_PROJECT_ROOT"
-if mountpoint -q "$HARNESS_DIR" 2>/dev/null && [ -d "$HARNESS_DIR/.oh" ]; then
-  echo "[entrypoint] checkout bind detected at $HARNESS_DIR — syncing host UID/GID"
+CHECKOUT_CONTROL_DIR=""
+if mountpoint -q "$HARNESS_DIR" 2>/dev/null; then
+  if ! CHECKOUT_CONTROL_DIR="$(compat_selected_path compat_control_dir "$HARNESS_DIR")"; then
+    echo "[entrypoint] $HARNESS_DIR holds both .oh/ and .agro/ with different content — refusing to boot; resolve the conflict" >&2
+    exit 1
+  fi
+fi
+if [ -d "$CHECKOUT_CONTROL_DIR" ]; then
+  echo "[entrypoint] checkout bind detected at $HARNESS_DIR ($CHECKOUT_CONTROL_DIR) — syncing host UID/GID"
   HOST_UID=$(stat -c '%u' "$HARNESS_DIR")
   HOST_GID=$(stat -c '%g' "$HARNESS_DIR")
   SANDBOX_UID=$(id -u sandbox)
@@ -198,18 +208,19 @@ repair_home_mount_ownership
 reconcile_shell_env_exports
 
 HARNESS="${HARNESS:-$OH_PROJECT_ROOT}"
+CONTROL_DIR="$(compat_selected_path compat_control_dir "$HARNESS" 2>/dev/null)" || CONTROL_DIR="$HARNESS/$COMPAT_AGRO_CONTROL_DIR"
 
-if [ -x "$HARNESS/.oh/scripts/link-providers.sh" ]; then
-  if ! gosu sandbox bash "$HARNESS/.oh/scripts/link-providers.sh" --init; then
-    echo "[entrypoint] failed to link provider skills; run: bash .oh/scripts/link-providers.sh --init"
+if [ -x "$CONTROL_DIR/scripts/link-providers.sh" ]; then
+  if ! gosu sandbox bash "$CONTROL_DIR/scripts/link-providers.sh" --init; then
+    echo "[entrypoint] failed to link provider skills; run: bash $CONTROL_DIR/scripts/link-providers.sh --init"
     exit 1
   fi
 fi
 
 if [ "${OH_PROVISION_PYTHON:-true}" = "true" ] \
-   && [ -x "$HARNESS/.oh/scripts/provision-python.sh" ]; then
-  if ! bash "$HARNESS/.oh/scripts/provision-python.sh"; then
-    echo "[entrypoint] WARNING: Python provisioning did not complete; run: bash .oh/scripts/provision-python.sh" >&2
+   && [ -x "$CONTROL_DIR/scripts/provision-python.sh" ]; then
+  if ! bash "$CONTROL_DIR/scripts/provision-python.sh"; then
+    echo "[entrypoint] WARNING: Python provisioning did not complete; run: bash $CONTROL_DIR/scripts/provision-python.sh" >&2
   fi
 fi
 
@@ -302,8 +313,9 @@ EOF
 fi
 
 BASHRC="/home/sandbox/.bashrc"
-if [ -f "$BASHRC" ] && ! grep -q 'source.*\.oh/install/banner.sh' "$BASHRC"; then
-  gosu sandbox bash -c "echo 'source ${OH_PROJECT_ROOT}/.oh/install/banner.sh 2>/dev/null' >> ~/.bashrc"
+BANNER_SOURCE_LINE="source ${CONTROL_DIR}/install/banner.sh 2>/dev/null"
+if [ -f "$BASHRC" ] && ! grep -qF "$BANNER_SOURCE_LINE" "$BASHRC"; then
+  gosu sandbox bash -c 'printf "%s\n" "$1" >> ~/.bashrc' _ "$BANNER_SOURCE_LINE"
   echo "[entrypoint] attach banner wired into .bashrc"
 fi
 
@@ -509,14 +521,14 @@ WORKTREES_PATH="$HARNESS/.worktrees"
 PROJECTS_PATH="$HARNESS/projects"
 CRONS_PATH="$HARNESS/crons"
 mkdir -p "$WORKTREES_PATH" "$PROJECTS_PATH" "$CRONS_PATH"
-ln -sf "$HARNESS/.oh/scripts/gateway.sh" /usr/local/bin/gateway 2>/dev/null || true
+ln -sf "$CONTROL_DIR/scripts/gateway.sh" /usr/local/bin/gateway 2>/dev/null || true
 SLACK_ENV="$HARNESS/.devcontainer/.env"
 if [ -f "$SLACK_ENV" ] \
    && grep -qE '^PI_SLACK_APP_TOKEN=.' "$SLACK_ENV" \
    && grep -qE '^PI_SLACK_BOT_TOKEN=.' "$SLACK_ENV" \
    && command -v tmux &>/dev/null \
    && gosu sandbox bash -lc 'command -v pi' &>/dev/null; then
-  if gosu sandbox bash -lc "exec bash \"$HARNESS\"/.oh/scripts/gateway.sh pi"; then
+  if gosu sandbox bash -lc "exec bash \"$CONTROL_DIR\"/scripts/gateway.sh pi"; then
     echo "[entrypoint] client-slack-pi started via gateway.sh"
   else
     echo "[entrypoint] client-slack-pi failed to start via gateway.sh"

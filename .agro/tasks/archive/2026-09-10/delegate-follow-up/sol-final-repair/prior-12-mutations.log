@@ -1,0 +1,133 @@
+
+=== CASE 01 blocked_still_blocked ===
+CLASS=NEGATIVE_MUTATION
+PROBE=advisor-execution-contract EXPECTED_EXIT=1
+OLD=It remains `BLOCKED` while any condition is unmet and becomes
+NEW=It may be dispatched while a blocking condition is unmet and becomes
+MUTATION_EXIT=0
+REGRESSION: advisor-first execution contract is broken; issues:
+  - delegate/SKILL.md lacks 'It remains `BLOCKED` while any condition is unmet'
+ACTUAL_EXIT=1
+CASE_RESULT=EXPECTED
+
+=== CASE 02 partial_dependency_acceptance ===
+CLASS=NEGATIVE_MUTATION
+PROBE=delegate-worker-boundary EXPECTED_EXIT=1
+OLD=alone or from only some accepted dependencies.
+NEW=alone or from any one accepted dependency.
+MUTATION_EXIT=0
+REGRESSION: dispatch eligibility omits: partial dependency acceptance is insufficient
+ACTUAL_EXIT=1
+CASE_RESULT=EXPECTED
+
+=== CASE 03 all_conditions_required ===
+CLASS=NEGATIVE_MUTATION
+PROBE=advisor-execution-contract EXPECTED_EXIT=1
+OLD=eligible only after every condition holds.
+NEW=eligible after any one condition holds.
+MUTATION_EXIT=0
+REGRESSION: advisor-first execution contract is broken; issues:
+  - delegate/SKILL.md lacks 'becomes eligible only after every condition holds'
+ACTUAL_EXIT=1
+CASE_RESULT=EXPECTED
+
+=== CASE 04 unresolved_capability_no_dispatch ===
+CLASS=NEGATIVE_MUTATION
+PROBE=delegate-worker-boundary EXPECTED_EXIT=1
+OLD=every required model, control, and capability is available; and
+NEW=a required model, control, or capability may remain unavailable; and
+MUTATION_EXIT=0
+REGRESSION: dispatch eligibility omits: required controls
+ACTUAL_EXIT=1
+CASE_RESULT=EXPECTED
+
+=== CASE 05 unresolved_provenance_no_dispatch ===
+CLASS=NEGATIVE_MUTATION
+PROBE=delegate-worker-boundary EXPECTED_EXIT=1
+OLD=no unresolved native worker status, artifact provenance, or owned-path ambiguity
+NEW=unresolved native worker status, artifact provenance, or owned-path ambiguity may
+MUTATION_EXIT=0
+REGRESSION: dispatch eligibility omits: unresolved status and provenance must be absent
+ACTUAL_EXIT=1
+CASE_RESULT=EXPECTED
+
+=== CASE 06 unmet_condition_dispatches ===
+CLASS=NEGATIVE_MUTATION
+PROBE=delegate-worker-boundary EXPECTED_EXIT=1
+OLD=log each unmet condition, and dispatch nothing.
+NEW=log each unmet condition, and dispatch the task anyway.
+MUTATION_EXIT=0
+REGRESSION: dispatch eligibility omits: no dispatch while blocked
+ACTUAL_EXIT=1
+CASE_RESULT=EXPECTED
+
+=== CASE 07 stale_completed_no_release ===
+CLASS=NEGATIVE_MUTATION
+PROBE=advisor-execution-contract EXPECTED_EXIT=1
+OLD=to `running` for reconciliation and its dependents wait.
+NEW=to `completed` and its dependents proceed.
+MUTATION_EXIT=0
+REGRESSION: advisor-first execution contract is broken; issues:
+  - delegate/SKILL.md lacks 'returns to `running` for reconciliation'
+  - delegate/SKILL.md lacks 'its dependents wait'
+ACTUAL_EXIT=1
+CASE_RESULT=EXPECTED
+
+=== CASE 08 known_unconditional_resume ===
+CLASS=NEGATIVE_MUTATION
+PROBE=delegate-worker-boundary EXPECTED_EXIT=1
+OLD=- `pending`: apply the dispatch-eligibility conditions.
+NEW=- `pending`, `BLOCKED`: re-run the task under its dispatch record.
+- `pending`: apply the dispatch-eligibility conditions.
+MUTATION_EXIT=0
+REGRESSION: /delegate still re-runs pending and blocked tasks without re-evaluating eligibility: 279:- `pending`, `BLOCKED`: re-run the task under its dispatch record.
+ACTUAL_EXIT=1
+CASE_RESULT=EXPECTED
+
+=== CASE 09 controls_positive_reword ===
+CLASS=POSITIVE_WORDING
+PROBE=delegate-worker-boundary EXPECTED_EXIT=0
+OLD=every required model, control, and capability is available; and
+NEW=all required model, control, and capability settings must be available; and
+MUTATION_EXIT=0
+PASS: /delegate keeps judgment in the active session, sends tracked edits to bounded isolated workers, sizes tasks usefully, checks initial and resumed dispatch eligibility, keeps its concurrency and recursion caps, and names no project agents (prose check only; runtime behavior unverified)
+ACTUAL_EXIT=0
+CASE_RESULT=EXPECTED
+
+=== CASE 10 blocked_positive_reflow ===
+CLASS=POSITIVE_WORDING
+PROBE=advisor-execution-contract EXPECTED_EXIT=0
+OLD=It remains `BLOCKED` while any condition is unmet and becomes
+NEW=It remains `BLOCKED` while any condition is unmet
+  and becomes
+MUTATION_EXIT=0
+PASS: /spec keeps one advisor deciding and accepting, workers implementing first, same-session execution by default, operator-only transfer, no fixed advisor identity, no launched agent, and the human merge gate; /delegate releases only tasks whose full eligibility and accepted-evidence checks hold, reconciles interrupted work, resolves every procedure reference, and keeps --dry-run read-only (prose check only; runtime behavior unverified)
+ACTUAL_EXIT=0
+CASE_RESULT=EXPECTED
+
+=== CASE 11 partial_dependencies_positive_reorder ===
+CLASS=POSITIVE_WORDING
+PROBE=delegate-worker-boundary EXPECTED_EXIT=0
+OLD=Never infer eligibility from `pending`
+alone or from only some accepted dependencies.
+NEW=Never infer eligibility from only some accepted dependencies
+or from `pending` alone.
+MUTATION_EXIT=0
+PASS: /delegate keeps judgment in the active session, sends tracked edits to bounded isolated workers, sizes tasks usefully, checks initial and resumed dispatch eligibility, keeps its concurrency and recursion caps, and names no project agents (prose check only; runtime behavior unverified)
+ACTUAL_EXIT=0
+CASE_RESULT=EXPECTED
+
+=== CASE 12 stale_positive_reflow ===
+CLASS=POSITIVE_WORDING
+PROBE=advisor-execution-contract EXPECTED_EXIT=0
+OLD=Re-read the artifact references against the current
+  tree.
+NEW=Re-read the artifact references against
+  the current tree.
+MUTATION_EXIT=0
+PASS: /spec keeps one advisor deciding and accepting, workers implementing first, same-session execution by default, operator-only transfer, no fixed advisor identity, no launched agent, and the human merge gate; /delegate releases only tasks whose full eligibility and accepted-evidence checks hold, reconciles interrupted work, resolves every procedure reference, and keeps --dry-run read-only (prose check only; runtime behavior unverified)
+ACTUAL_EXIT=0
+CASE_RESULT=EXPECTED
+
+TOTAL_CASES=12
+TOTAL_FAILURES=0

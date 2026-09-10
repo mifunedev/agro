@@ -1,0 +1,8 @@
+{
+  "commit": "48113599965fd4aa0cf3779428585d44624a54a4",
+  "runnerExit": 0,
+  "ranAt": "2026-09-06T22:29:53Z",
+  "newRegressions": [],
+  "preExistingReds": ["oh-config-surfaces", "skills-vendored", "curl-bash-safe-alternatives"],
+  "note": "Suite on 48113599 (final repair-round content head after simplify round 2): no green->red delta. All three reds reproduce on base in this environment."
+}

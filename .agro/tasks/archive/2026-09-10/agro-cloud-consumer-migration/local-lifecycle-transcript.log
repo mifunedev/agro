@@ -1,0 +1,1572 @@
+US-007a — observed local lifecycle matrix — raw command transcript
+Worker: bounded worker W13 (mifunedev/agro#944)
+Executed from inside sandbox container oh-sbx-local (host Docker socket available).
+All artifacts under test are LOCAL CANDIDATES, not published releases.
+
+=== [2026-09-09T05:51:12Z] harness tree identity (candidate image source)
+$ bash -c cd /home/sandbox/harness && git rev-parse --abbrev-ref HEAD && git rev-parse HEAD && grep -n "\"vitest\"" package.json
+development
+b10ecac3d17d21c7abb45a2e814617e6b9b5ae50
+28:    "vitest": "^4.1.11"
+-- exit=0
+
+=== [2026-09-09T05:51:12Z] candidate CLI source tree identity
+$ bash -c cd /home/sandbox/harness/.worktrees/bug/944-sandbox-install-idempotent && git rev-parse --abbrev-ref HEAD && git rev-parse HEAD && git status --short
+bug/944-sandbox-install-preserve-config
+b10ecac3d17d21c7abb45a2e814617e6b9b5ae50
+ M .agro/cli/src/__tests__/sandbox.test.ts
+ M .agro/cli/src/commands/sandbox.ts
+-- exit=0
+
+=== [2026-09-09T05:51:12Z] candidate image built
+$ docker images --format {{.Repository}}:{{.Tag}} {{.ID}} {{.CreatedSince}} agro-candidate:us007a
+agro-candidate:us007a d963de3d2b25 55 seconds ago
+-- exit=0
+
+=== [2026-09-09T05:51:12Z] PATH CLI version (published-lineage, pre-existing)
+$ bash -c command -v oh; oh --version; command -v agro || echo "agro NOT on PATH"
+/usr/local/bin/oh
+0.7.0
+agro NOT on PATH
+-- exit=0
+
+=== [2026-09-09T05:51:12Z] candidate CLI version
+$ bash -c node /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/agro-candidate.js --version
+0.9.0
+-- exit=0
+
+=== [2026-09-09T05:53:32Z] LEG-0 start disposable node host (systemd PID1, own dockerd)
+$ docker run -d --name us007a-node --hostname us007a-node --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw --tmpfs /run --tmpfs /run/lock -v us007a-node-docker:/var/lib/docker --network oh-sbx-local_default --stop-signal SIGRTMIN+3 oh-node-host:us007a
+20ce76d77c70789f42909b9693a19aa7f59ac1472010052953b0e40648d910d5
+-- exit=0
+
+=== [2026-09-09T05:53:44Z] node systemd state
+$ docker exec us007a-node systemctl is-system-running
+running
+-- exit=0
+
+=== [2026-09-09T05:53:44Z] node dockerd
+$ docker exec us007a-node docker info --format {{.ServerVersion}} storage={{.Driver}}
+29.8.0 storage=overlayfs
+-- exit=0
+
+=== [2026-09-09T05:54:12Z] LEG-0 replay cloud-config users/write_files/runcmd on the node
+$ docker exec us007a-node bash /opt/us007a/node-provision.sh
++ userdel -r ubuntu
++ groupadd -f docker
++ useradd -m -u 1000 -s /bin/bash -G sudo,docker sandbox
++ printf 'sandbox ALL=(ALL) NOPASSWD:ALL\n'
++ chmod 0440 /etc/sudoers.d/90-sandbox
++ install -d -o sandbox -g sandbox -m 0700 /home/sandbox/.ssh
++ cp /opt/us007a/sandbox-authorized-key /home/sandbox/.ssh/authorized_keys
++ chown sandbox:sandbox /home/sandbox/.ssh/authorized_keys
++ chmod 0600 /home/sandbox/.ssh/authorized_keys
++ printf 'PasswordAuthentication no\nPermitRootLogin no\n'
++ install -o root -g root -m 0755 /opt/us007a/bootstrap-workspace /usr/local/libexec/openharness-bootstrap-workspace
+install: cannot create regular file '/usr/local/libexec/openharness-bootstrap-workspace': No such file or directory
+-- exit=1
+
+=== [2026-09-09T05:54:16Z] LEG-0 replay cloud-config users/write_files/runcmd on the node (retry)
+$ docker exec us007a-node bash /opt/us007a/node-provision.sh
++ userdel -r ubuntu
++ true
++ groupadd -f docker
++ useradd -m -u 1000 -s /bin/bash -G sudo,docker sandbox
+useradd: user 'sandbox' already exists
+-- exit=9
+
+=== [2026-09-09T05:54:21Z] LEG-0 replay cloud-config users/write_files/runcmd on the node (retry 2)
+$ docker exec us007a-node bash /opt/us007a/node-provision.sh
++ userdel -r ubuntu
++ true
++ groupadd -f docker
++ id -u sandbox
++ printf 'sandbox ALL=(ALL) NOPASSWD:ALL\n'
++ chmod 0440 /etc/sudoers.d/90-sandbox
++ install -d -o sandbox -g sandbox -m 0700 /home/sandbox/.ssh
++ cp /opt/us007a/sandbox-authorized-key /home/sandbox/.ssh/authorized_keys
++ chown sandbox:sandbox /home/sandbox/.ssh/authorized_keys
++ chmod 0600 /home/sandbox/.ssh/authorized_keys
++ printf 'PasswordAuthentication no\nPermitRootLogin no\n'
++ install -o root -g root -m 0755 /opt/us007a/bootstrap-workspace /usr/local/libexec/openharness-bootstrap-workspace
++ cat
++ chown sandbox:sandbox /home/sandbox/oh.code-workspace
++ chmod 0644 /home/sandbox/oh.code-workspace
++ install -d -o root -g root -m 0755 /etc/openharness
++ printf 'AGRO_CODE_SERVER_ENABLED=true\n'
++ chmod 0600 /etc/openharness/runtime-settings.env
++ cat
++ chmod 0644 /etc/openharness/code-server.yaml
++ cat
++ chmod 0755 /usr/local/libexec/openharness-code-server-enabled
++ cat
++ systemctl enable --now docker
+Synchronizing state of docker.service with SysV service script with /usr/lib/systemd/systemd-sysv-install.
+Executing: /usr/lib/systemd/systemd-sysv-install enable docker
++ usermod -aG docker sandbox
++ systemctl restart ssh
++ install -d -o root -g root -m 0755 /etc/ssh/authorized_keys
++ install -d -o root -g root -m 0700 /var/lib/openharness
++ install -o root -g root -m 0600 /dev/null /var/lib/openharness/runtime-settings-apply.lock
++ id -u ohmanage
++ useradd --create-home --shell /bin/sh ohmanage
++ passwd -l ohmanage
+passwd: password changed.
++ install -d -o sandbox -g sandbox -m 0755 /home/sandbox/.local
++ install -d -o sandbox -g sandbox -m 0755 /home/sandbox/.local/share
++ install -d -o sandbox -g sandbox -m 0750 /home/sandbox/.local/share/code-server
++ install -d -o sandbox -g sandbox -m 0755 /home/sandbox/workspace
++ systemctl daemon-reload
++ /usr/local/libexec/openharness-code-server-enabled
++ systemctl enable --now openharness-code-server.service
+Created symlink /etc/systemd/system/multi-user.target.wants/openharness-code-server.service → /etc/systemd/system/openharness-code-server.service.
+US007A-NODE-PROVISION-OK
++ echo US007A-NODE-PROVISION-OK
+-- exit=0
+
+=== [2026-09-09T05:54:28Z] LEG-0 install ohmanage + ohproxy principals (Cloud builders' output)
+$ docker exec us007a-node bash /opt/us007a/node-provision-ssh.sh
++ install -o root -g root -m 0644 /opt/us007a/assets/ohmanage.authorized_keys /etc/ssh/authorized_keys/ohmanage
++ install -o root -g root -m 0644 /opt/us007a/assets/30-openharness-management.conf /etc/ssh/sshd_config.d/30-openharness-management.conf
++ install -o root -g root -m 0440 /opt/us007a/assets/openharness-ohmanage.sudoers /etc/sudoers.d/openharness-ohmanage
++ install -o root -g root -m 0755 /opt/us007a/assets/openharness-code-server-apply /usr/local/libexec/openharness-code-server-apply
++ id -u ohproxy
++ useradd --create-home --shell /usr/sbin/nologin ohproxy
++ passwd -l ohproxy
+passwd: password changed.
++ install -o root -g root -m 0644 /opt/us007a/assets/ohproxy.authorized_keys /etc/ssh/authorized_keys/ohproxy
++ install -o root -g root -m 0644 /opt/us007a/assets/40-openharness-proxy.conf /etc/ssh/sshd_config.d/40-openharness-proxy.conf
++ visudo -cf /etc/sudoers.d/openharness-ohmanage
+/etc/sudoers.d/openharness-ohmanage: parsed OK
++ sshd -t
++ systemctl restart ssh
+US007A-SSH-PRINCIPALS-OK
++ echo US007A-SSH-PRINCIPALS-OK
+-- exit=0
+
+=== [2026-09-09T05:54:28Z] LEG-4c code-server unit state on node (host-native, loopback)
+$ docker exec us007a-node bash -c systemctl is-active openharness-code-server.service; ss -H -ltn "sport = :8080"; curl -fsS -o /dev/null -w "http=%{http_code}\n" --max-time 5 http://127.0.0.1:8080/
+active
+LISTEN 0      511    127.0.0.1:8080 0.0.0.0:*
+http=302
+-- exit=0
+
+=== [2026-09-09T05:54:43Z] LEG-5 node-host sandbox uid/gid (before any container)
+$ docker exec us007a-node bash -c id sandbox; stat -c "%n uid=%u gid=%g mode=%a" /home/sandbox /home/sandbox/workspace /home/sandbox/oh.code-workspace
+uid=1000(sandbox) gid=1000(sandbox) groups=1000(sandbox),27(sudo),997(docker)
+/home/sandbox uid=1000 gid=1000 mode=750
+/home/sandbox/workspace uid=1000 gid=1000 mode=755
+/home/sandbox/oh.code-workspace uid=1000 gid=1000 mode=644
+-- exit=0
+
+=== [2026-09-09T05:56:20Z] candidate image seeded into node dockerd (overlay2) and layer-usable
+$ docker exec us007a-node bash -c docker images --format "{{.Repository}}:{{.Tag}} {{.ID}}"; docker run --rm agro-candidate:us007a id sandbox
+agro-candidate:us007a d963de3d2b25
+uid=1000(sandbox) gid=1000(sandbox) groups=1000(sandbox),1001(docker)
+-- exit=0
+
+=== [2026-09-09T05:56:21Z] LEG-1 FRESH: launch bootstrap exactly as cloud-init runcmd does
+$ docker exec us007a-node bash -c sudo -u sandbox -i tmux new-session -d -s docker-build-oh-sandbox /usr/local/libexec/openharness-bootstrap-workspace; sleep 2; sudo -u sandbox -i tmux ls
+no server running on /tmp/tmux-1000/default
+-- exit=1
+
+=== [2026-09-09T05:56:26Z] LEG-1 bootstrap status + log
+$ docker exec us007a-node bash -c cat /home/sandbox/.openharness-bootstrap-status 2>&1; echo "--- log ---"; cat /home/sandbox/.openharness-bootstrap.log 2>&1
+ok
+--- log ---
+image mode: agro-candidate:us007a (skipping local build)
+ Network oh-a_default Creating 
+ Network oh-a_default Creating 
+ Network oh-a_default Created 
+ Network oh-a_default Created 
+ Container oh-a Creating 
+ Container oh-a Created 
+ Container oh-a Starting 
+ Container oh-a Started 
+next: oh shell oh-a
+oh.json: set storage.homePath=/home/sandbox/workspace (added)
+-- exit=0
+
+=== [2026-09-09T05:56:35Z] LEG-1 node state right after bootstrap reported ok
+$ docker exec us007a-node bash -c ls -l /run/openharness-ready; docker ps --format "{{.Names}} {{.Status}}"; docker exec oh-a systemctl is-active openharness-bootstrap.service; echo "unit-exit=$?"
+-rw-r--r-- 1 root root 0 Sep  9 05:56 /run/openharness-ready
+oh-a Up 14 seconds (healthy)
+active
+unit-exit=0
+-- exit=0
+
+=== [2026-09-09T05:56:45Z] LEG-1 bootstrap unit detail (completion proof)
+$ docker exec us007a-node docker exec oh-a systemctl show openharness-bootstrap.service -p Type -p RemainAfterExit -p ActiveState -p SubState -p Result -p ExecMainStatus -p ExecMainStartTimestamp -p ExecMainExitTimestamp
+Type=oneshot
+RemainAfterExit=yes
+Result=success
+ExecMainStartTimestamp=Wed 2026-09-09 05:56:22 UTC
+ExecMainExitTimestamp=Wed 2026-09-09 05:56:26 UTC
+ExecMainStatus=0
+ActiveState=active
+SubState=exited
+-- exit=0
+
+=== [2026-09-09T05:56:45Z] LEG-1 seeded workspace contents inside sandbox
+$ docker exec us007a-node docker exec oh-a bash -c ls /home/sandbox/harness | head -20; echo "--- node_modules:"; ls -d /home/sandbox/harness/node_modules 2>&1 | head -2; echo "--- marker:"; ls -la /home/sandbox/harness/.image-seeded 2>&1 | head -2
+AGENTS.md
+CHANGELOG.md
+CLAUDE.md
+CONTRIBUTING.md
+LICENSE
+NOTICE
+README.md
+SECURITY.md
+agro.json
+crons
+docs
+node_modules
+package.json
+pnpm-lock.yaml
+pnpm-workspace.yaml
+projects
+vitest.config.ts
+--- node_modules:
+/home/sandbox/harness/node_modules
+--- marker:
+ls: cannot access '/home/sandbox/harness/.image-seeded': No such file or directory
+-- exit=0
+
+=== [2026-09-09T05:56:54Z] LEG-1 bootstrap journal (full cold-boot log)
+$ docker exec us007a-node docker exec oh-a journalctl -u openharness-bootstrap.service --no-pager -o cat
+Starting openharness-bootstrap.service - Open Harness sandbox bootstrap...
+[entrypoint] no checkout bind at /home/sandbox/harness — seeding from /opt/agro-seed
+[entrypoint] seeded control plane into /home/sandbox/harness from /opt/agro-seed
+pam_unix(chpasswd:chauthtok): password changed for sandbox
+[entrypoint] repairing sandbox home mount ownership as 1000:1000
+Providers OK: .agents/.pi/.claude/.codex skills -> .agro/skills (vendored pack present)
+[provision-python] ensuring managed Python 3.11 in /home/sandbox/.local/share/uv/python
+Python 3.11 is already installed
+[provision-python] installing kernel packages: ipykernel
+Using Python 3.11.16 environment at: /home/sandbox/.local/share/oh/kernel
+Checked 1 package in 34ms
+[provision-python] OK  python=/home/sandbox/.local/share/uv/python/cpython-3.11-linux-x86_64-gnu/bin/python3.11
+[provision-python] OK  kernel=/home/sandbox/.local/share/oh/kernel/bin/python (ipykernel present)
+[entrypoint] attach banner wired into .bashrc
+[entrypoint] node_modules missing — running pnpm install at /home/sandbox/harness
+[entrypoint] pnpm install completed (log: /tmp/pnpm-install.log)
+[entrypoint] Slack not configured (or pi missing) — skipping client-slack-pi
+  ┌─────────────────────────────────────────────────┐
+  │  First boot detected.                           │
+  │  Optional Slack bridge setup:                   │
+  │    see docs/integrations/slack.md           │
+  │  First command after attaching:                 │
+  │    oh tool install herdr   # then run herdr     │
+  └─────────────────────────────────────────────────┘
+Finished openharness-bootstrap.service - Open Harness sandbox bootstrap.
+-- exit=0
+
+=== [2026-09-09T05:57:49Z] LEG-2 seed representative user state + OpenHarness-era legacy content
+$ docker exec -u sandbox us007a-node bash /opt/us007a/seed-user-state.sh
++ W=/home/sandbox/workspace
++ mkdir -p /home/sandbox/workspace/harness/projects/us007a-demo
++ cd /home/sandbox/workspace/harness/projects/us007a-demo
++ '[' '!' -d .git ']'
++ git init -q
++ git config user.name openharness
++ git config user.email agent@openharness.cloud
++ printf 'committed line\n'
++ git add tracked.txt
++ git commit -qm 'us007a: baseline commit'
++ printf 'UNCOMMITTED EDIT do-not-lose\n'
++ printf 'untracked scratch\n'
++ mkdir -p /home/sandbox/workspace/harness/.agro/tasks/us007a-user-task
++ printf 'user task notes that must survive restart and rebuild\n'
++ printf 'US007A_SECRET=do-not-lose\n'
++ chmod 0600 /home/sandbox/workspace/harness/.env
++ mkdir -p /home/sandbox/workspace/.config/gh
++ printf 'github.com:\n    oauth_token: us007a-stand-in-token\n    user: openharness\n'
++ chmod 0600 /home/sandbox/workspace/.config/gh/hosts.yml
++ mkdir -p /home/sandbox/workspace/.openharness/scripts
++ printf 'openharness-era checkout content\n'
++ printf '#!/bin/sh\necho legacy\n'
++ mkdir -p /home/sandbox/workspace/harness/projects/us007a-legacy-project/.oh/scripts
++ printf 'legacy project control plane\n'
++ printf '{\n  "version": 1,\n  "name": "us007a-legacy"\n}\n'
++ echo US007A-SEED-OK
+US007A-SEED-OK
+-- exit=0
+
+=== [2026-09-09T05:57:50Z] LEG-2 BEFORE observation (durable state oracle)
+$ docker exec us007a-node bash /opt/us007a/observe-state.sh
+### mount identity (docker inspect oh-a)
+type=bind name= src=/home/sandbox/workspace dst=/home/sandbox rw=true
+
+### device+inode of the durable root
+path=/home/sandbox/workspace dev=bc inode=1486974 uid=1000 gid=1000 mode=755
+### per-path sha256 / owner / mode
+/home/sandbox/workspace/harness/projects/us007a-demo/tracked.txt sha256=f6ef6719a2a51ef5dddc5095a16fd68ae989932416e860c10567033459a838e7 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/projects/us007a-demo/untracked.txt sha256=ecf290b2fa879dc84fd5b1f3ffb37b3ac9bdd6795a82e9f74d5ca3f49ab7b9dc uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/.agro/tasks/us007a-user-task/notes.md sha256=2408e4ae8f6a4eae664411ec5ab596bcc1cbb370f2e3f9babf23692370dfeabf uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/.env sha256=24f472dcb4dba237a00169fa9c97534183bfb76546409dc38b03c6347ed33d3a uid=1000 gid=1000 mode=600
+/home/sandbox/workspace/.config/gh/hosts.yml sha256=ac438dc1d98ed7c7611adb381b9a917b087c2b40d9784551228491b90792aebc uid=1000 gid=1000 mode=600
+/home/sandbox/workspace/.openharness/README.md sha256=6d94361ea14087cae70915f5f2cac79204aa4909b208092b4efd30aeea281706 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/.openharness/scripts/legacy.sh sha256=5b1ae9cb23230c17e3bcd99a908f79b3e3a2e301765d7b208a2e07a06a553640 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/projects/us007a-legacy-project/.oh/README.md sha256=cec1415f3dc0650dd3126de5d3c8a6bafe81eef681dbc8416f00e793e0ef5a94 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/projects/us007a-legacy-project/oh.json sha256=f1049d5b66ca21494aecbf71b895aa706048a4a2a63ebf75b1b9d01d5c90621a uid=1000 gid=1000 mode=644
+### git working-tree status of the seeded checkout
+fatal: detected dubious ownership in repository at '/home/sandbox/workspace/harness/projects/us007a-demo'
+To add an exception for this directory, call:
+
+	git config --global --add safe.directory /home/sandbox/workspace/harness/projects/us007a-demo
+fatal: detected dubious ownership in repository at '/home/sandbox/workspace/harness/projects/us007a-demo'
+To add an exception for this directory, call:
+
+	git config --global --add safe.directory /home/sandbox/workspace/harness/projects/us007a-demo
+### attach-marker files (written from inside the container)
+/home/sandbox/workspace/us007a-attach-marker.txt MISSING
+/home/sandbox/workspace/us007a-preattach.txt MISSING
+-- exit=0
+
+=== [2026-09-09T05:57:57Z] LEG-2 BEFORE observation (as node sandbox user)
+$ docker exec -u sandbox us007a-node bash /opt/us007a/observe-state.sh
+### mount identity (docker inspect oh-a)
+type=bind name= src=/home/sandbox/workspace dst=/home/sandbox rw=true
+
+### device+inode of the durable root
+path=/home/sandbox/workspace dev=bc inode=1486974 uid=1000 gid=1000 mode=755
+### per-path sha256 / owner / mode
+/home/sandbox/workspace/harness/projects/us007a-demo/tracked.txt sha256=f6ef6719a2a51ef5dddc5095a16fd68ae989932416e860c10567033459a838e7 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/projects/us007a-demo/untracked.txt sha256=ecf290b2fa879dc84fd5b1f3ffb37b3ac9bdd6795a82e9f74d5ca3f49ab7b9dc uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/.agro/tasks/us007a-user-task/notes.md sha256=2408e4ae8f6a4eae664411ec5ab596bcc1cbb370f2e3f9babf23692370dfeabf uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/.env sha256=24f472dcb4dba237a00169fa9c97534183bfb76546409dc38b03c6347ed33d3a uid=1000 gid=1000 mode=600
+/home/sandbox/workspace/.config/gh/hosts.yml sha256=ac438dc1d98ed7c7611adb381b9a917b087c2b40d9784551228491b90792aebc uid=1000 gid=1000 mode=600
+/home/sandbox/workspace/.openharness/README.md sha256=6d94361ea14087cae70915f5f2cac79204aa4909b208092b4efd30aeea281706 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/.openharness/scripts/legacy.sh sha256=5b1ae9cb23230c17e3bcd99a908f79b3e3a2e301765d7b208a2e07a06a553640 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/projects/us007a-legacy-project/.oh/README.md sha256=cec1415f3dc0650dd3126de5d3c8a6bafe81eef681dbc8416f00e793e0ef5a94 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/projects/us007a-legacy-project/oh.json sha256=f1049d5b66ca21494aecbf71b895aa706048a4a2a63ebf75b1b9d01d5c90621a uid=1000 gid=1000 mode=644
+### git working-tree status of the seeded checkout
+ M tracked.txt
+?? untracked.txt
+86f48d1 us007a: baseline commit
+### attach-marker files (written from inside the container)
+/home/sandbox/workspace/us007a-attach-marker.txt MISSING
+/home/sandbox/workspace/us007a-preattach.txt MISSING
+-- exit=0
+
+=== [2026-09-09T05:58:16Z] LEG-4b write state from INSIDE the sandbox before restart
+$ docker exec us007a-node docker exec -u sandbox oh-a bash -c date -u +%Y-%m-%dT%H:%M:%SZ > /home/sandbox/us007a-preattach.txt; cat /home/sandbox/us007a-preattach.txt; echo "container view of legacy checkout dir:"; ls /home/sandbox/.openharness; echo "container view of seeded task:"; ls /home/sandbox/harness/.agro/tasks/us007a-user-task
+2026-09-09T05:58:16Z
+container view of legacy checkout dir:
+README.md
+scripts
+container view of seeded task:
+notes.md
+-- exit=0
+
+=== [2026-09-09T05:58:16Z] LEG-2 AGRO operates existing legacy project state (migrate --check)
+$ docker exec -u sandbox us007a-node bash -lc export PATH=$HOME/.local/bin:$PATH; cd /home/sandbox/workspace/harness/projects/us007a-legacy-project && agro migrate --check; echo "exit=$?"
+agro migrate: plan for /home/sandbox/workspace/harness/projects/us007a-legacy-project
+  rename  /home/sandbox/workspace/harness/projects/us007a-legacy-project/.oh -> /home/sandbox/workspace/harness/projects/us007a-legacy-project/.agro
+  rename  /home/sandbox/workspace/harness/projects/us007a-legacy-project/oh.json -> /home/sandbox/workspace/harness/projects/us007a-legacy-project/agro.json
+  noop    /home/sandbox/workspace/harness/projects/us007a-legacy-project/.claude/skills (link absent)
+  noop    /home/sandbox/workspace/harness/projects/us007a-legacy-project/.claude/hooks (link absent)
+  noop    /home/sandbox/workspace/harness/projects/us007a-legacy-project/.codex/skills (link absent)
+  noop    /home/sandbox/workspace/harness/projects/us007a-legacy-project/.agents/skills (link absent)
+  noop    /home/sandbox/workspace/harness/projects/us007a-legacy-project/.pi/skills (link absent)
+status: ready
+exit=0
+-- exit=0
+
+=== [2026-09-09T05:58:30Z] LEG-4a ssh to node as sandbox, then tmux attach -t docker-build-oh-sandbox
+$ ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/known_hosts -i /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/keys/sandbox_key sandbox@172.18.0.4 tmux ls; echo "tmux-ls-exit=$?"; tmux attach -t docker-build-oh-sandbox; echo "attach-exit=$?"
+Warning: Permanently added '172.18.0.4' (ED25519) to the list of known hosts.
+no server running on /tmp/tmux-1000/default
+tmux-ls-exit=1
+no sessions
+attach-exit=1
+-- exit=0
+
+=== [2026-09-09T05:58:44Z] LEG-2/4 RESTART the sandbox via the candidate CLI
+$ docker exec -u sandbox us007a-node bash -lc export PATH=$HOME/.local/bin:$PATH; export AGRO_HOME=$HOME/.agro; cd $AGRO_HOME/sandboxes/oh-a && agro restart oh-a; echo "restart-exit=$?"
+ Container oh-a Restarting 
+ Container oh-a Started 
+restart-exit=0
+-- exit=0
+
+=== [2026-09-09T05:58:50Z] LEG-2/4 post-restart readiness by the bootstrap unit oracle
+$ docker exec us007a-node bash -c docker ps --format "{{.Names}} {{.Status}}"; for i in $(seq 1 40); do s=$(docker exec oh-a systemctl is-active openharness-bootstrap.service 2>/dev/null); echo "attempt $i: $s"; case $s in active) break;; failed) break;; esac; sleep 5; done; docker exec oh-a systemctl show openharness-bootstrap.service -p ActiveState -p SubState -p Result -p ExecMainStatus
+oh-a Up 5 seconds (healthy)
+attempt 1: active
+Result=success
+ExecMainStatus=0
+ActiveState=active
+SubState=exited
+-- exit=0
+
+=== [2026-09-09T05:58:56Z] LEG-2/4 post-restart: unit ran again on the new boot (timestamps)
+$ docker exec us007a-node bash -c docker inspect oh-a --format "container StartedAt={{.State.StartedAt}} restartCount={{.RestartCount}}"; docker exec oh-a systemctl show openharness-bootstrap.service -p ExecMainStartTimestamp -p ExecMainExitTimestamp -p NRestarts; docker exec oh-a journalctl -u openharness-bootstrap.service --no-pager -o cat -b | tail -12
+container StartedAt=2026-09-09T05:58:45.274110966Z restartCount=0
+NRestarts=0
+ExecMainStartTimestamp=Wed 2026-09-09 05:58:45 UTC
+ExecMainExitTimestamp=Wed 2026-09-09 05:58:46 UTC
+[provision-python] OK  python=/home/sandbox/.local/share/uv/python/cpython-3.11-linux-x86_64-gnu/bin/python3.11
+[provision-python] OK  kernel=/home/sandbox/.local/share/oh/kernel/bin/python (ipykernel present)
+[entrypoint] dependencies current
+[entrypoint] Slack not configured (or pi missing) — skipping client-slack-pi
+  ┌─────────────────────────────────────────────────┐
+  │  First boot detected.                           │
+  │  Optional Slack bridge setup:                   │
+  │    see docs/integrations/slack.md           │
+  │  First command after attaching:                 │
+  │    oh tool install herdr   # then run herdr     │
+  └─────────────────────────────────────────────────┘
+Finished openharness-bootstrap.service - Open Harness sandbox bootstrap.
+-- exit=0
+
+=== [2026-09-09T05:59:02Z] LEG-2/3 AFTER-RESTART observation
+$ cat /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/state-after-restart.txt
+### mount identity (docker inspect oh-a)
+type=bind name= src=/home/sandbox/workspace dst=/home/sandbox rw=true
+
+### device+inode of the durable root
+path=/home/sandbox/workspace dev=bc inode=1486974 uid=1000 gid=1000 mode=755
+### per-path sha256 / owner / mode
+/home/sandbox/workspace/harness/projects/us007a-demo/tracked.txt sha256=f6ef6719a2a51ef5dddc5095a16fd68ae989932416e860c10567033459a838e7 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/projects/us007a-demo/untracked.txt sha256=ecf290b2fa879dc84fd5b1f3ffb37b3ac9bdd6795a82e9f74d5ca3f49ab7b9dc uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/.agro/tasks/us007a-user-task/notes.md sha256=2408e4ae8f6a4eae664411ec5ab596bcc1cbb370f2e3f9babf23692370dfeabf uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/.env sha256=24f472dcb4dba237a00169fa9c97534183bfb76546409dc38b03c6347ed33d3a uid=1000 gid=1000 mode=600
+/home/sandbox/workspace/.config/gh/hosts.yml sha256=fe64ca26c1acdaa7578456cd7e6e89d2eac6f59e3c2a72646b01f14541a014f7 uid=1000 gid=1000 mode=600
+/home/sandbox/workspace/.openharness/README.md sha256=6d94361ea14087cae70915f5f2cac79204aa4909b208092b4efd30aeea281706 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/.openharness/scripts/legacy.sh sha256=5b1ae9cb23230c17e3bcd99a908f79b3e3a2e301765d7b208a2e07a06a553640 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/projects/us007a-legacy-project/.oh/README.md sha256=cec1415f3dc0650dd3126de5d3c8a6bafe81eef681dbc8416f00e793e0ef5a94 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/projects/us007a-legacy-project/oh.json sha256=f1049d5b66ca21494aecbf71b895aa706048a4a2a63ebf75b1b9d01d5c90621a uid=1000 gid=1000 mode=644
+### git working-tree status of the seeded checkout
+ M tracked.txt
+?? untracked.txt
+86f48d1 us007a: baseline commit
+### attach-marker files (written from inside the container)
+/home/sandbox/workspace/us007a-attach-marker.txt MISSING
+/home/sandbox/workspace/us007a-preattach.txt = 2026-09-09T05:58:16Z
+-- exit=0
+
+=== [2026-09-09T05:59:02Z] LEG-2/3 diff BEFORE vs AFTER-RESTART (empty == byte/mode/mount identical)
+$ diff /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/state-before.txt /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/state-after-restart.txt
+11c11
+< /home/sandbox/workspace/.config/gh/hosts.yml sha256=ac438dc1d98ed7c7611adb381b9a917b087c2b40d9784551228491b90792aebc uid=1000 gid=1000 mode=600
+---
+> /home/sandbox/workspace/.config/gh/hosts.yml sha256=fe64ca26c1acdaa7578456cd7e6e89d2eac6f59e3c2a72646b01f14541a014f7 uid=1000 gid=1000 mode=600
+22c22
+< /home/sandbox/workspace/us007a-preattach.txt MISSING
+---
+> /home/sandbox/workspace/us007a-preattach.txt = 2026-09-09T05:58:16Z
+-- exit=1
+
+=== [2026-09-09T05:59:27Z] LEG-2 gh-credential stand-in: what the sandbox entrypoint changed
+$ docker exec us007a-node bash /opt/us007a/inspect-ghcred.sh
+### size / mode
+path=/home/sandbox/workspace/.config/gh/hosts.yml bytes=152 uid=1000 gid=1000 mode=600
+### content, secret values redacted
+github.com:
+    oauth_token: <redacted>
+    user: openharness
+    users:
+        openharness:
+            oauth_token: <redacted>
+### entrypoint journal lines mentioning gh
+-- exit=0
+
+=== [2026-09-09T05:59:39Z] LEG-2 credential VALUE preservation check (hash comparison, value never printed)
+$ docker exec us007a-node bash /opt/us007a/check-token.sh
+expected-seeded-value-sha256=da5358c5b27ed2a07927bd6305ca380fa7c112721470435f19e40ee2b0908eae
+found-token-value-sha256=da5358c5b27ed2a07927bd6305ca380fa7c112721470435f19e40ee2b0908eae match=YES
+found-token-value-sha256=da5358c5b27ed2a07927bd6305ca380fa7c112721470435f19e40ee2b0908eae match=YES
+-- exit=0
+
+=== [2026-09-09T05:59:52Z] LEG-4a AFTER-RESTART: ssh + tmux attach -t docker-build-oh-sandbox
+$ ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/known_hosts -i /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/keys/sandbox_key sandbox@172.18.0.4 tmux ls 2>&1; tmux attach -t docker-build-oh-sandbox 2>&1; echo "attach-exit=$?"
+/tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/run.sh: line 9: ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/known_hosts -i /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/keys/sandbox_key sandbox@172.18.0.4: No such file or directory
+-- exit=127
+
+=== [2026-09-09T05:59:52Z] LEG-4b AFTER-RESTART: re-attach via agro shell (pty) reading state written before the restart
+$ ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/known_hosts -i /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/keys/sandbox_key sandbox@172.18.0.4 -tt export PATH=$HOME/.local/bin:$PATH; export AGRO_HOME=$HOME/.agro; cd $AGRO_HOME/sandboxes/oh-a; printf "cat /home/sandbox/us007a-preattach.txt; date -u +%%Y-%%m-%%dT%%H:%%M:%%SZ > /home/sandbox/us007a-attach-marker.txt; git -C /home/sandbox/harness/projects/us007a-demo status --porcelain; exit\n" | agro shell oh-a 2>&1 | tr -d "\r" | tail -20
+/tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/run.sh: line 9: ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/known_hosts -i /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/keys/sandbox_key sandbox@172.18.0.4: No such file or directory
+-- exit=127
+
+=== [2026-09-09T05:59:58Z] LEG-4a AFTER-RESTART: ssh + tmux attach -t docker-build-oh-sandbox
+$ ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/known_hosts -i /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/keys/sandbox_key sandbox@172.18.0.4 tmux ls 2>&1; tmux attach -t docker-build-oh-sandbox 2>&1; echo "attach-exit=$?"
+no server running on /tmp/tmux-1000/default
+no sessions
+attach-exit=1
+-- exit=0
+
+=== [2026-09-09T05:59:59Z] LEG-4b AFTER-RESTART: re-attach via agro shell (pty) reading state written before the restart
+$ ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/known_hosts -i /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/keys/sandbox_key -tt sandbox@172.18.0.4 export PATH=$HOME/.local/bin:$PATH; export AGRO_HOME=$HOME/.agro; cd $AGRO_HOME/sandboxes/oh-a; printf "cat /home/sandbox/us007a-preattach.txt\ndate -u +%%Y-%%m-%%dT%%H:%%M:%%SZ > /home/sandbox/us007a-attach-marker.txt\ngit -C /home/sandbox/harness/projects/us007a-demo status --porcelain\nexit\n" | agro shell oh-a 2>&1 | tr -d "\r" | tail -20
+cannot attach stdin to a TTY-enabled container because stdin is not a terminal
+container `oh-a` not running? start it with `oh sandbox install docker`
+Connection to 172.18.0.4 closed.
+-- exit=0
+
+=== [2026-09-09T06:00:14Z] LEG-4b AFTER-RESTART: agro shell on a real pty (tmux), reading pre-restart state
+$ ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/known_hosts -i /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/keys/sandbox_key sandbox@172.18.0.4 bash /opt/us007a/attach-shell.sh
+### tmux pane capture of the agro shell session
+
+━━━ openharness: oh-a ━━━
+  Project:   /home/sandbox/harness
+  Timezone:  UTC
+  Overlays:  (none)
+
+  Onboarding:
+    [✗]  gh          not authenticated — run: gh auth login
+    [✗]  claude      not authenticated — run: claude
+    [✗]  codex       not authenticated — run: codex
+    [✗]  opencode    not installed — run: oh harness install opencode
+    [✗]  grok        not installed — run: oh harness install grok-build
+    [✗]  pi          not authenticated — run: pi
+    [✗]  hermes      not installed — run: oh harness install hermes
+    [✓]  oh          0.9.0
+
+  Recovery commands: claude · codex · systemctl status openharness-cron.service
+
+  Next: run `oh tool install herdr`, then `herdr`, to open your persistent Open Harness workspace.
+  Complete setup, authentication, agents, tests, and servers inside Herdr.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+sandbox@6b749b6673ee:~/harness$ echo MARKER-READ=$(cat /home/sandbox/us007a-preattach.txt)                                                                                                      [oh-a]
+MARKER-READ=2026-09-09T05:58:16Z
+sandbox@6b749b6673ee:~/harness$ date -u +%Y-%m-%dT%H:%M:%SZ > /home/sandbox/us007a-attach-marker.txt; echo WROTE=$(cat /home/sandbox/us007a-attach-marker.txt)                                  [oh-a]
+WROTE=2026-09-09T06:00:24Z
+sandbox@6b749b6673ee:~/harness$ echo WHOAMI=$(whoami) HOST=$(hostname) UID=$(id -u)                                                                                                             [oh-a]
+WHOAMI=sandbox HOST=6b749b6673ee UID=1000
+sandbox@6b749b6673ee:~/harness$ git -C /home/sandbox/harness/projects/us007a-demo status --porcelain; echo GIT-DONE                                                                             [oh-a]
+ M tracked.txt
+?? untracked.txt
+GIT-DONE
+sandbox@6b749b6673ee:~/harness$                                                                                                                                                                 [oh-a]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### session closed
+-- exit=0
+
+=== [2026-09-09T06:00:53Z] LEG-4c AFTER-RESTART: code-server over the pinned ohproxy SSH forward
+$ bash -c curl -sS -o /dev/null -w "root http=%{http_code} redirect=%{redirect_url}\n" --max-time 10 http://127.0.0.1:18080/; curl -sS --max-time 10 -o /dev/null -w "healthz http=%{http_code}\n" http://127.0.0.1:18080/healthz; curl -sS --max-time 10 http://127.0.0.1:18080/healthz
+root http=302 redirect=http://127.0.0.1:18080/?workspace=/home/sandbox/oh.code-workspace
+healthz http=200
+{"status":"alive","lastHeartbeat":1788933653231}-- exit=0
+
+=== [2026-09-09T06:00:53Z] LEG-4c workspace root the editor actually opens
+$ docker exec us007a-node bash -c cat /home/sandbox/oh.code-workspace; echo "--- durable root identity:"; stat -c "path=%n dev=%D inode=%i" /home/sandbox/workspace; echo "--- the sandbox container bind source:"; docker inspect oh-a --format "{{range .Mounts}}{{.Source}} -> {{.Destination}}{{println}}{{end}}"
+{
+  "folders": [
+    { "name": "sandbox", "path": "/home/sandbox/workspace" }
+  ],
+  "settings": {
+    "workbench.colorTheme": "Default Dark+"
+  }
+}
+--- durable root identity:
+path=/home/sandbox/workspace dev=bc inode=1486974
+--- the sandbox container bind source:
+/home/sandbox/workspace -> /home/sandbox
+
+-- exit=0
+
+=== [2026-09-09T06:01:07Z] LEG-4c read durable state THROUGH the code-server HTTP surface
+$ bash -c echo "marker via editor resource API:"; curl -sS --max-time 10 "http://127.0.0.1:18080/vscode-remote-resource?path=%2Fhome%2Fsandbox%2Fworkspace%2Fus007a-attach-marker.txt" ; echo; echo "task notes via editor resource API:"; curl -sS --max-time 10 "http://127.0.0.1:18080/vscode-remote-resource?path=%2Fhome%2Fsandbox%2Fworkspace%2Fharness%2F.agro%2Ftasks%2Fus007a-user-task%2Fnotes.md"
+marker via editor resource API:
+2026-09-09T06:00:24Z
+
+task notes via editor resource API:
+user task notes that must survive restart and rebuild
+-- exit=0
+
+=== [2026-09-09T06:01:07Z] LEG-4c ohproxy pin is real: a non-permitopen forward is refused
+$ bash -c ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/known_hosts -o ExitOnForwardFailure=yes -i /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/keys/proxy_key -N -L 18099:127.0.0.1:22 ohproxy@172.18.0.4 -o ConnectTimeout=10 & sleep 4; curl -sS --max-time 5 -o /dev/null -w "forward-to-22 http=%{http_code}\n" http://127.0.0.1:18099/ || echo "forward-to-22 refused (expected)"; wait
+channel 2: open failed: administratively prohibited: open failed
+curl: (56) Recv failure: Connection reset by peer
+forward-to-22 http=000
+forward-to-22 refused (expected)
+
+=== [2026-09-09T06:01:07Z] LEG-4c read durable state THROUGH the code-server HTTP surface
+$ bash -c echo "marker via editor resource API:"; curl -sS --max-time 10 "http://127.0.0.1:18080/vscode-remote-resource?path=%2Fhome%2Fsandbox%2Fworkspace%2Fus007a-attach-marker.txt" ; echo; echo "task notes via editor resource API:"; curl -sS --max-time 10 "http://127.0.0.1:18080/vscode-remote-resource?path=%2Fhome%2Fsandbox%2Fworkspace%2Fharness%2F.agro%2Ftasks%2Fus007a-user-task%2Fnotes.md"
+marker via editor resource API:
+2026-09-09T06:00:24Z
+
+task notes via editor resource API:
+user task notes that must survive restart and rebuild
+-- exit=0
+
+=== [2026-09-09T06:01:07Z] LEG-4c ohproxy pin is real: a non-permitopen forward is refused
+$ bash -c ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/known_hosts -o ExitOnForwardFailure=yes -i /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/keys/proxy_key -N -L 18099:127.0.0.1:22 ohproxy@172.18.0.4 -o ConnectTimeout=10 & sleep 4; curl -sS --max-time 5 -o /dev/null -w "forward-to-22 http=%{http_code}\n" http://127.0.0.1:18099/ || echo "forward-to-22 refused (expected)"; wait
+channel 2: open failed: administratively prohibited: open failed
+curl: (56) Recv failure: Connection reset by peer
+forward-to-22 http=000
+forward-to-22 refused (expected)
+
+[exited with code 144]
+
+-- note: the 18099 probe left an ssh -N in background; killed below
+
+=== [2026-09-09T06:04:46Z] pre-rebuild: registry layout + login PATH the helper's runuser -l will see
+$ docker exec us007a-node bash -c find /home/sandbox/.agro -maxdepth 3 | head -20; echo "--- login PATH:"; runuser -l sandbox -c "echo PATH=\$PATH; command -v agro || echo AGRO-NOT-ON-LOGIN-PATH"
+/home/sandbox/.agro
+/home/sandbox/.agro/sandboxes
+/home/sandbox/.agro/sandboxes/oh-a
+/home/sandbox/.agro/sandboxes/oh-a/.agro
+/home/sandbox/.agro/sandboxes/oh-a/agro.json
+/home/sandbox/.agro/sandboxes/oh-a/.devcontainer
+--- login PATH:
+PATH=/home/sandbox/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games
+/home/sandbox/.local/bin/agro
+-- exit=0
+
+=== [2026-09-09T06:04:47Z] pre-rebuild: what the accepted helper will run
+$ grep -n sandbox_as_user\|agro stop\|agro sandbox install\|agro ps\|is-active /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/assets/openharness-code-server-apply
+40:sandbox_as_user() {
+55:  sandbox_as_user "timeout $sandbox_stop_timeout agro stop $name" || sandbox_fail "$name" stop
+56:  sandbox_as_user "AGRO_PULL_POLICY=always timeout $sandbox_install_timeout agro sandbox install docker --name $name --yes --image" || sandbox_fail "$name" install
+57:  running=$(/usr/sbin/runuser -l "$sandbox_user" -c "timeout $sandbox_verify_timeout agro ps $name -- --quiet --status running" 2>/dev/null) || sandbox_fail "$name" verify
+61:    unit_state=$(/usr/sbin/runuser -l "$sandbox_user" -c "timeout $sandbox_ready_probe_timeout docker exec $name systemctl is-active $sandbox_ready_unit" 2>/dev/null)
+117:  /usr/bin/systemctl is-active --quiet "$unit" >/dev/null 2>&1 && unit_state=active
+-- exit=0
+
+=== [2026-09-09T06:05:18Z] LEG-3 rebuild attempt 1 — accepted helper verbatim, image ref is a LOCAL-ONLY tag
+$ ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/known_hosts -i /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/keys/mgmt_key ohmanage@172.18.0.4 sandbox rebuild --name oh-a
+version=1 mode=sandbox action=rebuild name=oh-a state=failed step=install
+-- exit=65
+
+=== [2026-09-09T06:05:19Z] LEG-3 attempt 1 aftermath: container + unit state
+$ docker exec us007a-node bash -c docker ps -a --format "{{.Names}} {{.Status}}"; docker exec oh-a systemctl is-active openharness-bootstrap.service 2>&1
+oh-a Exited (0) 1 second ago
+Error response from daemon: container 6b749b6673ee93a053fb6bed5ad2bf96649239ef4cf0d32a307499eaec8edcc4 is not running
+-- exit=1
+
+=== [2026-09-09T06:05:28Z] LEG-3 make the candidate image genuinely pullable (local registry on the node)
+$ docker exec us007a-node bash -c docker run -d --restart=always --name us007a-registry -p 127.0.0.1:5000:5000 registry:2 >/dev/null && sleep 3 && docker tag agro-candidate:us007a 127.0.0.1:5000/agro-candidate:us007a && docker push 127.0.0.1:5000/agro-candidate:us007a | tail -3
+Unable to find image 'registry:2' locally
+2: Pulling from library/registry
+44cf07d57ee4: Pulling fs layer
+bbbdd6c6894b: Pulling fs layer
+8e82f80af0de: Pulling fs layer
+3493bf46cdec: Pulling fs layer
+6d464ea18732: Pulling fs layer
+3493bf46cdec: Waiting
+6d464ea18732: Waiting
+bbbdd6c6894b: Verifying Checksum
+bbbdd6c6894b: Download complete
+3493bf46cdec: Verifying Checksum
+3493bf46cdec: Download complete
+44cf07d57ee4: Download complete
+8e82f80af0de: Verifying Checksum
+8e82f80af0de: Download complete
+6d464ea18732: Download complete
+44cf07d57ee4: Pull complete
+bbbdd6c6894b: Pull complete
+8e82f80af0de: Pull complete
+3493bf46cdec: Pull complete
+6d464ea18732: Pull complete
+Digest: sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373
+Status: Downloaded newer image for registry:2
+719ff9a705e2: Pushed
+df2c54ede14a: Pushed
+us007a: digest: sha256:fbe38fec227ffe16303193adf19a313bf41134cf5af5d2b5db955274d019d3d5 size: 5979
+-- exit=0
+
+=== [2026-09-09T06:05:53Z] LEG-3 repoint the sandbox at the pullable ref (config only)
+$ docker exec -u sandbox us007a-node bash -lc export PATH=$HOME/.local/bin:$PATH; export AGRO_HOME=$HOME/.agro; agro config set image.ref 127.0.0.1:5000/agro-candidate:us007a --sandbox oh-a; cat $AGRO_HOME/sandboxes/oh-a/agro.json
+oh.json: set image.ref=127.0.0.1:5000/agro-candidate:us007a (updated)
+{
+  "version": 1,
+  "name": "oh-a",
+  "timezone": "UTC",
+  "git": {
+    "userName": "openharness",
+    "userEmail": "agent@openharness.cloud"
+  },
+  "storage": {
+    "homePath": "/home/sandbox/workspace"
+  },
+  "access": {
+    "ssh": false,
+    "sshPort": 2222,
+    "sshPasswordAuth": false,
+    "dockerSocket": false
+  },
+  "hermesDashboard": {
+    "enabled": false,
+    "port": 9119
+  },
+  "cron": {
+    "agentBin": "claude"
+  },
+  "build": {
+    "skipPnpmInstall": false
+  },
+  "image": {
+    "mode": "image",
+    "pullPolicy": "missing",
+    "ref": "127.0.0.1:5000/agro-candidate:us007a"
+  },
+  "cloud": {},
+  "langfuse": {},
+  "composeOverrides": [],
+  "runtime": "docker"
+}
+-- exit=0
+
+=== [2026-09-09T06:06:04Z] LEG-3 PRE-REBUILD observation (state + container identity)
+$ bash -c cat /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/state-before-rebuild.txt; echo '### container identity'; cat /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/container-before-rebuild.txt
+### mount identity (docker inspect oh-a)
+type=bind name= src=/home/sandbox/workspace dst=/home/sandbox rw=true
+
+### device+inode of the durable root
+path=/home/sandbox/workspace dev=bc inode=1486974 uid=1000 gid=1000 mode=755
+### per-path sha256 / owner / mode
+/home/sandbox/workspace/harness/projects/us007a-demo/tracked.txt sha256=f6ef6719a2a51ef5dddc5095a16fd68ae989932416e860c10567033459a838e7 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/projects/us007a-demo/untracked.txt sha256=ecf290b2fa879dc84fd5b1f3ffb37b3ac9bdd6795a82e9f74d5ca3f49ab7b9dc uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/.agro/tasks/us007a-user-task/notes.md sha256=2408e4ae8f6a4eae664411ec5ab596bcc1cbb370f2e3f9babf23692370dfeabf uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/.env sha256=24f472dcb4dba237a00169fa9c97534183bfb76546409dc38b03c6347ed33d3a uid=1000 gid=1000 mode=600
+/home/sandbox/workspace/.config/gh/hosts.yml sha256=fe64ca26c1acdaa7578456cd7e6e89d2eac6f59e3c2a72646b01f14541a014f7 uid=1000 gid=1000 mode=600
+/home/sandbox/workspace/.openharness/README.md sha256=6d94361ea14087cae70915f5f2cac79204aa4909b208092b4efd30aeea281706 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/.openharness/scripts/legacy.sh sha256=5b1ae9cb23230c17e3bcd99a908f79b3e3a2e301765d7b208a2e07a06a553640 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/projects/us007a-legacy-project/.oh/README.md sha256=cec1415f3dc0650dd3126de5d3c8a6bafe81eef681dbc8416f00e793e0ef5a94 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/projects/us007a-legacy-project/oh.json sha256=f1049d5b66ca21494aecbf71b895aa706048a4a2a63ebf75b1b9d01d5c90621a uid=1000 gid=1000 mode=644
+### git working-tree status of the seeded checkout
+ M tracked.txt
+?? untracked.txt
+86f48d1 us007a: baseline commit
+### attach-marker files (written from inside the container)
+/home/sandbox/workspace/us007a-attach-marker.txt = 2026-09-09T06:00:24Z
+/home/sandbox/workspace/us007a-preattach.txt = 2026-09-09T05:58:16Z
+### container identity
+id=6b749b6673ee93a053fb6bed5ad2bf96649239ef4cf0d32a307499eaec8edcc4 created=2026-09-09T05:56:21.51602876Z
+-- exit=0
+
+=== [2026-09-09T06:06:04Z] LEG-3 REBUILD via the accepted ohmanage forced command
+$ ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/known_hosts -i /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/keys/mgmt_key ohmanage@172.18.0.4 sandbox rebuild --name oh-a
+version=1 mode=sandbox action=rebuild name=oh-a state=complete step=ready
+-- exit=0
+
+=== [2026-09-09T06:06:19Z] LEG-3 POST-REBUILD observation
+$ cat /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/state-after-rebuild.txt
+### mount identity (docker inspect oh-a)
+type=bind name= src=/home/sandbox/workspace dst=/home/sandbox rw=true
+
+### device+inode of the durable root
+path=/home/sandbox/workspace dev=bc inode=1486974 uid=1000 gid=1000 mode=755
+### per-path sha256 / owner / mode
+/home/sandbox/workspace/harness/projects/us007a-demo/tracked.txt sha256=f6ef6719a2a51ef5dddc5095a16fd68ae989932416e860c10567033459a838e7 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/projects/us007a-demo/untracked.txt sha256=ecf290b2fa879dc84fd5b1f3ffb37b3ac9bdd6795a82e9f74d5ca3f49ab7b9dc uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/.agro/tasks/us007a-user-task/notes.md sha256=2408e4ae8f6a4eae664411ec5ab596bcc1cbb370f2e3f9babf23692370dfeabf uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/.env sha256=24f472dcb4dba237a00169fa9c97534183bfb76546409dc38b03c6347ed33d3a uid=1000 gid=1000 mode=600
+/home/sandbox/workspace/.config/gh/hosts.yml sha256=fe64ca26c1acdaa7578456cd7e6e89d2eac6f59e3c2a72646b01f14541a014f7 uid=1000 gid=1000 mode=600
+/home/sandbox/workspace/.openharness/README.md sha256=6d94361ea14087cae70915f5f2cac79204aa4909b208092b4efd30aeea281706 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/.openharness/scripts/legacy.sh sha256=5b1ae9cb23230c17e3bcd99a908f79b3e3a2e301765d7b208a2e07a06a553640 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/projects/us007a-legacy-project/.oh/README.md sha256=cec1415f3dc0650dd3126de5d3c8a6bafe81eef681dbc8416f00e793e0ef5a94 uid=1000 gid=1000 mode=644
+/home/sandbox/workspace/harness/projects/us007a-legacy-project/oh.json sha256=f1049d5b66ca21494aecbf71b895aa706048a4a2a63ebf75b1b9d01d5c90621a uid=1000 gid=1000 mode=644
+### git working-tree status of the seeded checkout
+ M tracked.txt
+?? untracked.txt
+86f48d1 us007a: baseline commit
+### attach-marker files (written from inside the container)
+/home/sandbox/workspace/us007a-attach-marker.txt = 2026-09-09T06:00:24Z
+/home/sandbox/workspace/us007a-preattach.txt = 2026-09-09T05:58:16Z
+-- exit=0
+
+=== [2026-09-09T06:06:19Z] LEG-3 diff PRE-REBUILD vs POST-REBUILD (empty == identical)
+$ diff /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/state-before-rebuild.txt /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/state-after-rebuild.txt
+-- exit=0
+
+=== [2026-09-09T06:06:19Z] LEG-3 container identity changed (a real recycle, not a restart)
+$ docker exec us007a-node bash -c docker inspect oh-a --format "id={{.Id}} created={{.Created}} image={{.Config.Image}}"; docker exec oh-a systemctl show openharness-bootstrap.service -p ActiveState -p SubState -p Result -p ExecMainStatus -p ExecMainStartTimestamp
+id=6a82719b33c4e05c0ddada61f774cfa249c31a754d99eb09564277da6e5b38d3 created=2026-09-09T06:06:05.027405103Z image=127.0.0.1:5000/agro-candidate:us007a
+Result=success
+ExecMainStartTimestamp=Wed 2026-09-09 06:06:05 UTC
+ExecMainStatus=0
+ActiveState=active
+SubState=exited
+-- exit=0
+
+=== [2026-09-09T06:06:19Z] LEG-3 config survived the rebuild (idempotency fix in the candidate CLI)
+$ docker exec -u sandbox us007a-node bash -lc cat $HOME/.agro/sandboxes/oh-a/agro.json | tr -d "\n" | sed "s/  */ /g"
+{ "version": 1, "name": "oh-a", "timezone": "UTC", "git": { "userName": "openharness", "userEmail": "agent@openharness.cloud" }, "storage": { "homePath": "/home/sandbox/workspace" }, "access": { "ssh": false, "sshPort": 2222, "sshPasswordAuth": false, "dockerSocket": false }, "hermesDashboard": { "enabled": false, "port": 9119 }, "cron": { "agentBin": "claude" }, "build": { "skipPnpmInstall": false }, "image": { "mode": "image", "pullPolicy": "missing", "ref": "127.0.0.1:5000/agro-candidate:us007a" }, "cloud": {}, "langfuse": {}, "composeOverrides": [], "runtime": "docker"}-- exit=0
+
+=== [2026-09-09T06:06:31Z] LEG-4a AFTER-REBUILD: ssh + tmux attach -t docker-build-oh-sandbox
+$ ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/known_hosts -i /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/keys/sandbox_key sandbox@172.18.0.4 tmux ls 2>&1; tmux attach -t docker-build-oh-sandbox 2>&1; echo "attach-exit=$?"
+no server running on /tmp/tmux-1000/default
+no sessions
+attach-exit=1
+-- exit=0
+
+=== [2026-09-09T06:06:31Z] LEG-4b AFTER-REBUILD: agro shell re-attach lands on preserved state
+$ ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/known_hosts -i /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/keys/sandbox_key sandbox@172.18.0.4 bash /opt/us007a/attach-shell.sh
+### tmux pane capture of the agro shell session
+
+━━━ openharness: oh-a ━━━
+  Project:   /home/sandbox/harness
+  Timezone:  UTC
+  Overlays:  (none)
+
+  Onboarding:
+    [✗]  gh          not authenticated — run: gh auth login
+    [✗]  claude      not authenticated — run: claude
+    [✗]  codex       not authenticated — run: codex
+    [✗]  opencode    not installed — run: oh harness install opencode
+    [✗]  grok        not installed — run: oh harness install grok-build
+    [✗]  pi          not authenticated — run: pi
+    [✗]  hermes      not installed — run: oh harness install hermes
+    [✓]  oh          0.9.0
+
+  Recovery commands: claude · codex · systemctl status openharness-cron.service
+
+  Next: run `oh tool install herdr`, then `herdr`, to open your persistent Open Harness workspace.
+  Complete setup, authentication, agents, tests, and servers inside Herdr.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+sandbox@6a82719b33c4:~/harness$ echo MARKER-READ=$(cat /home/sandbox/us007a-preattach.txt)                                                                                                      [oh-a]
+MARKER-READ=2026-09-09T05:58:16Z
+sandbox@6a82719b33c4:~/harness$ date -u +%Y-%m-%dT%H:%M:%SZ > /home/sandbox/us007a-attach-marker.txt; echo WROTE=$(cat /home/sandbox/us007a-attach-marker.txt)                                  [oh-a]
+WROTE=2026-09-09T06:06:42Z
+sandbox@6a82719b33c4:~/harness$ echo WHOAMI=$(whoami) HOST=$(hostname) UID=$(id -u)                                                                                                             [oh-a]
+WHOAMI=sandbox HOST=6a82719b33c4 UID=1000
+sandbox@6a82719b33c4:~/harness$ git -C /home/sandbox/harness/projects/us007a-demo status --porcelain; echo GIT-DONE                                                                             [oh-a]
+ M tracked.txt
+?? untracked.txt
+GIT-DONE
+sandbox@6a82719b33c4:~/harness$                                                                                                                                                                 [oh-a]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### session closed
+-- exit=0
+
+=== [2026-09-09T06:06:51Z] LEG-4b AFTER-REBUILD: docker exec re-attach observing pre-rebuild state
+$ docker exec us007a-node docker exec -u sandbox oh-a bash -c echo PRE=$(cat /home/sandbox/us007a-preattach.txt); echo ATTACH=$(cat /home/sandbox/us007a-attach-marker.txt); git -C /home/sandbox/harness/projects/us007a-demo status --porcelain; hostname
+PRE=2026-09-09T05:58:16Z
+ATTACH=2026-09-09T06:06:42Z
+ M tracked.txt
+?? untracked.txt
+6a82719b33c4
+-- exit=0
+
+=== [2026-09-09T06:07:03Z] LEG-4c AFTER-REBUILD: same pinned SSH forward still serves code-server, and the editor reads state written inside the NEW container
+$ bash -c curl -sS -o /dev/null -w "root http=%{http_code} redirect=%{redirect_url}\n" --max-time 10 http://127.0.0.1:18080/; echo "marker written inside the post-rebuild container, read via the editor surface:"; curl -sS --max-time 10 "http://127.0.0.1:18080/vscode-remote-resource?path=%2Fhome%2Fsandbox%2Fworkspace%2Fus007a-attach-marker.txt"; echo; echo "seeded uncommitted file, read via the editor surface:"; curl -sS --max-time 10 "http://127.0.0.1:18080/vscode-remote-resource?path=%2Fhome%2Fsandbox%2Fworkspace%2Fharness%2Fprojects%2Fus007a-demo%2Ftracked.txt"
+root http=302 redirect=http://127.0.0.1:18080/?workspace=/home/sandbox/oh.code-workspace
+marker written inside the post-rebuild container, read via the editor surface:
+2026-09-09T06:06:42Z
+
+seeded uncommitted file, read via the editor surface:
+committed line
+UNCOMMITTED EDIT do-not-lose
+-- exit=0
+
+=== [2026-09-09T06:07:04Z] LEG-4c code-server unit was untouched by the container rebuild
+$ docker exec us007a-node bash -c systemctl show openharness-code-server.service -p ActiveState -p SubState -p ExecMainStartTimestamp -p NRestarts
+NRestarts=0
+ExecMainStartTimestamp=Wed 2026-09-09 05:54:22 UTC
+ActiveState=active
+SubState=running
+-- exit=0
+
+=== [2026-09-09T06:07:04Z] LEG-5 UID ALIGNMENT: node-host sandbox uid vs container sandbox uid
+$ bash -c echo -n "node-host:  "; docker exec us007a-node id -u sandbox; echo -n "container:  "; docker exec us007a-node docker exec oh-a id -u sandbox; echo -n "node-host gid: "; docker exec us007a-node id -g sandbox; echo -n "container gid: "; docker exec us007a-node docker exec oh-a id -g sandbox
+node-host:  1000
+container:  1000
+node-host gid: 1000
+container gid: 1000
+-- exit=0
+
+=== [2026-09-09T06:07:29Z] HARNESS-PARAM config A: what a no-default-harness node actually has installed
+$ docker exec -u sandbox us007a-node bash -lc export AGRO_HOME=$HOME/.agro; cd $AGRO_HOME/sandboxes/oh-a && agro harness list 2>&1
+HARNESS      KIND         INSTALLED
+claude-code  installable  no
+codex        installable  no
+pi           installable  no
+opencode     installable  no
+grok-build   installable  no
+hermes       installable  no
+muse-code    installable  no
+t3code       on-demand    no
+-- exit=0
+
+=== [2026-09-09T06:07:36Z] HARNESS-PARAM: the wrong id is rejected (pi-coding-agent is not a catalog id)
+$ docker exec -u sandbox us007a-node bash -lc export AGRO_HOME=$HOME/.agro; cd $AGRO_HOME/sandboxes/oh-a && agro harness install pi-coding-agent 2>&1; echo "exit=$?"
+oh harness: unknown harness "pi-coding-agent"
+
+Known harnesses:
+  claude-code
+  codex
+  pi
+  opencode
+  grok-build
+  hermes
+  muse-code
+  t3code
+exit=1
+-- exit=0
+
+=== [2026-09-09T06:07:36Z] HARNESS-PARAM config B: explicit agro harness install pi
+$ docker exec -u sandbox us007a-node bash -lc export AGRO_HOME=$HOME/.agro; cd $AGRO_HOME/sandboxes/oh-a && agro harness install pi 2>&1 | tail -25; echo "exit=${PIPESTATUS[0]}"
+installing Pi into the sandbox…
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+added 132 packages in 6s
+
+15 packages are looking for funding
+  run `npm fund` for details
+pi: installed — see https://github.com/mifunedev/agro/blob/main/docs/harnesses/pi.md for authentication
+exit=0
+-- exit=0
+
+=== [2026-09-09T06:07:50Z] HARNESS-PARAM config B: agro harness install opencode (the id the Cloud generator emits)
+$ docker exec -u sandbox us007a-node bash -lc export AGRO_HOME=$HOME/.agro; cd $AGRO_HOME/sandboxes/oh-a && agro harness install opencode 2>&1 | tail -12; echo "exit=${PIPESTATUS[0]}"
+installing OpenCode into the sandbox…
+
+added 3 packages in 8s
+opencode: installed — see https://github.com/mifunedev/agro/blob/main/docs/harnesses/opencode.md for authentication
+exit=0
+-- exit=0
+
+=== [2026-09-09T06:07:58Z] HARNESS-PARAM config B: observed installed state
+$ docker exec -u sandbox us007a-node bash -lc export AGRO_HOME=$HOME/.agro; cd $AGRO_HOME/sandboxes/oh-a && agro harness list 2>&1
+HARNESS      KIND         INSTALLED
+claude-code  installable  no
+codex        installable  no
+pi           installable  yes
+opencode     installable  yes
+grok-build   installable  no
+hermes       installable  no
+muse-code    installable  no
+t3code       on-demand    no
+-- exit=0
+
+=== [2026-09-09T06:08:00Z] HARNESS-PARAM where the harness binaries landed (durable mount?)
+$ docker exec us007a-node docker exec -u sandbox oh-a bash -lc command -v pi opencode; ls -l $(command -v pi) 2>&1
+/home/sandbox/.local/bin/pi
+/home/sandbox/.local/bin/opencode
+lrwxrwxrwx 1 sandbox sandbox 70 Sep  9 06:07 /home/sandbox/.local/bin/pi -> ../lib/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js
+-- exit=0
+
+=== [2026-09-09T06:08:11Z] HARNESS-PARAM: second REBUILD via ohmanage, with harnesses installed
+$ ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/known_hosts -i /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/keys/mgmt_key ohmanage@172.18.0.4 sandbox rebuild --name oh-a
+version=1 mode=sandbox action=rebuild name=oh-a state=complete step=ready
+-- exit=0
+
+=== [2026-09-09T06:08:17Z] HARNESS-PARAM: harnesses survived the rebuild
+$ docker exec -u sandbox us007a-node bash -lc export AGRO_HOME=$HOME/.agro; cd $AGRO_HOME/sandboxes/oh-a && agro harness list 2>&1; docker inspect oh-a --format "container-id={{.Id}}"
+HARNESS      KIND         INSTALLED
+claude-code  installable  no
+codex        installable  no
+pi           installable  yes
+opencode     installable  yes
+grok-build   installable  no
+hermes       installable  no
+muse-code    installable  no
+t3code       on-demand    no
+container-id=6a82719b33c4e05c0ddada61f774cfa249c31a754d99eb09564277da6e5b38d3
+-- exit=0
+
+=== [2026-09-09T06:08:19Z] HARNESS-PARAM: user state after second rebuild (diff vs first post-rebuild)
+$ diff /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/state-after-rebuild.txt /tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13/state-after-rebuild2.txt
+21c21
+< /home/sandbox/workspace/us007a-attach-marker.txt = 2026-09-09T06:00:24Z
+---
+> /home/sandbox/workspace/us007a-attach-marker.txt = 2026-09-09T06:06:42Z
+-- exit=1
+
+=== [2026-09-09T06:08:31Z] REBUILD SEMANTICS: rebuild #2 kept the same container id — stop/start, not recreate
+$ docker exec us007a-node bash -c docker inspect oh-a --format "id={{.Id}}
+created={{.Created}}
+startedAt={{.State.StartedAt}}
+image={{.Config.Image}}"; echo "--- bootstrap unit on the current boot:"; docker exec oh-a systemctl show openharness-bootstrap.service -p ActiveState -p Result -p ExecMainStartTimestamp
+id=6a82719b33c4e05c0ddada61f774cfa249c31a754d99eb09564277da6e5b38d3
+created=2026-09-09T06:06:05.027405103Z
+startedAt=2026-09-09T06:08:12.299907168Z
+image=127.0.0.1:5000/agro-candidate:us007a
+--- bootstrap unit on the current boot:
+Result=success
+ExecMainStartTimestamp=Wed 2026-09-09 06:08:12 UTC
+ActiveState=active
+-- exit=0
+
+=== [2026-09-09T06:08:54Z] LEG-5 UID DIVERGENCE experiment (node uid 1001 vs container uid 1000)
+$ docker exec us007a-node bash /opt/us007a/uid-divergence.sh
+useradd: UID 1001 is not unique
+install: invalid user 'sandbox2'
+/opt/us007a/uid-divergence.sh: line 10: /home/sandbox2/ws/host-owned.txt: No such file or directory
+chown: cannot access '/home/sandbox2/ws/host-owned.txt': No such file or directory
+chown: invalid user: 'sandbox2:sandbox2'
+### BEFORE: ownership as the node host sees it
+stat: cannot statx '/home/sandbox2/ws': No such file or directory
+stat: cannot statx '/home/sandbox2/ws/host-owned.txt': No such file or directory
+### install a sandbox whose home mount is the uid-1001 directory
+runuser: user sandbox2 does not exist or the user entry does not contain all the required fields
+### wait for the readiness oracle
+attempt 1: 
+attempt 2: 
+attempt 3: 
+attempt 4: 
+attempt 5: 
+attempt 6: 
+attempt 7: 
+attempt 8: 
+attempt 9: 
+attempt 10: 
+attempt 11: 
+attempt 12: 
+attempt 13: 
+attempt 14: 
+attempt 15: 
+attempt 16: 
+attempt 17: 
+attempt 18: 
+attempt 19: 
+attempt 20: 
+attempt 21: 
+attempt 22: 
+attempt 23: 
+attempt 24: 
+attempt 25: 
+attempt 26: 
+attempt 27: 
+attempt 28: 
+attempt 29: 
+attempt 30: 
+attempt 31: 
+attempt 32: 
+attempt 33: 
+attempt 34: 
+attempt 35: 
+attempt 36: 
+attempt 37: 
+attempt 38: 
+attempt 39: 
+attempt 40: 
+### AFTER: ownership as the node host sees it
+stat: cannot statx '/home/sandbox2/ws': No such file or directory
+stat: cannot statx '/home/sandbox2/ws/host-owned.txt': No such file or directory
+### can the node-host uid-1001 user still write into its own directory?
+runuser: user sandbox2 does not exist or the user entry does not contain all the required fields
+HOST-WRITE=DENIED
+runuser: user sandbox2 does not exist or the user entry does not contain all the required fields
+HOST-CREATE=DENIED
+### container uid
+Error response from daemon: No such container: oh-uidtest
+### entrypoint ownership lines
+Error response from daemon: No such container: oh-uidtest
+-- exit=1
+
+=== [2026-09-09T06:12:22Z] LEG-5 UID DIVERGENCE experiment (node uid 1500 vs container uid 1000)
+$ docker exec us007a-node bash /opt/us007a/uid-divergence.sh
+useradd: warning: the home directory /home/sandbox2 already exists.
+useradd: Not copying any file from skel directory into it.
+### BEFORE: ownership as the node host sees it
+path=/home/sandbox2/ws uid=1500 gid=1500 mode=755
+path=/home/sandbox2/ws/host-owned.txt uid=1500 gid=1500 mode=644
+### install a sandbox whose home mount is the uid-1001 directory
+agro: EACCES: permission denied, mkdir '/home/sandbox2/.agro/sandboxes/oh-uidtest'
+### wait for the readiness oracle
+attempt 1: 
+attempt 2: 
+attempt 3: 
+attempt 4: 
+attempt 5: 
+attempt 6: 
+attempt 7: 
+attempt 8: 
+attempt 9: 
+attempt 10: 
+attempt 11: 
+attempt 12: 
+attempt 13: 
+attempt 14: 
+attempt 15: 
+attempt 16: 
+attempt 17: 
+attempt 18: 
+attempt 19: 
+attempt 20: 
+attempt 21: 
+attempt 22: 
+attempt 23: 
+attempt 24: 
+attempt 25: 
+attempt 26: 
+attempt 27: 
+attempt 28: 
+attempt 29: 
+attempt 30: 
+attempt 31: 
+attempt 32: 
+attempt 33: 
+attempt 34: 
+attempt 35: 
+attempt 36: 
+attempt 37: 
+attempt 38: 
+attempt 39: 
+attempt 40: 
+### AFTER: ownership as the node host sees it
+path=/home/sandbox2/ws uid=1500 gid=1500 mode=755
+path=/home/sandbox2/ws/host-owned.txt uid=1500 gid=1500 mode=644
+### can the node-host uid-1001 user still write into its own directory?
+HOST-WRITE=OK
+HOST-CREATE=OK
+### container uid
+Error response from daemon: No such container: oh-uidtest
+### entrypoint ownership lines
+Error response from daemon: No such container: oh-uidtest
+-- exit=1
+
+=== [2026-09-09T06:15:52Z] LEG-5 UID DIVERGENCE experiment (node uid 1500 vs container uid 1000), retry
+$ docker exec us007a-node bash /opt/us007a/uid-divergence.sh
+### BEFORE: ownership as the node host sees it
+path=/home/sandbox2/ws uid=1500 gid=1500 mode=755
+path=/home/sandbox2/ws/host-owned.txt uid=1500 gid=1500 mode=644
+### install a sandbox whose home mount is the uid-1001 directory
+ Network oh-uidtest_default Creating 
+ Network oh-uidtest_default Created 
+ Network oh-uidtest_default Created 
+ Container oh-uidtest Creating 
+ Container oh-uidtest Created 
+ Container oh-uidtest Starting 
+ Container oh-uidtest Started 
+next: oh shell oh-uidtest
+### wait for the readiness oracle
+attempt 1: 
+attempt 2: activating
+attempt 3: active
+### AFTER: ownership as the node host sees it
+path=/home/sandbox2/ws uid=1000 gid=1000 mode=755
+path=/home/sandbox2/ws/host-owned.txt uid=1000 gid=1000 mode=644
+### can the node-host uid-1001 user still write into its own directory?
+-bash: line 1: /home/sandbox2/ws/host-owned.txt: Permission denied
+HOST-WRITE=DENIED
+touch: cannot touch '/home/sandbox2/ws/new-host-file.txt': Permission denied
+HOST-CREATE=DENIED
+### container uid
+1000
+### entrypoint ownership lines
+[entrypoint] repairing sandbox home mount ownership as 1000:1000
+-- exit=0
+
+=== [2026-09-09T06:16:37Z] cleanup: remove the uid-divergence sandbox
+$ docker exec us007a-node bash -c runuser -l sandbox2 -c "export PATH=\$HOME/.local/bin:\$PATH; export AGRO_HOME=\$HOME/.agro; agro destroy oh-uidtest --yes" 2>&1 | tail -3; docker rm -f oh-uidtest 2>/dev/null; docker ps -a --format "{{.Names}}"
+ Network oh-uidtest_default Removing 
+ Network oh-uidtest_default Removed 
+removed the sandbox entry /home/sandbox2/.agro/sandboxes/oh-uidtest
+oh-a
+us007a-registry
+-- exit=0
+
+=== [2026-09-09T06:16:38Z] HARNESS-PARAM config B: FRESH bootstrap end to end with one default harness
+$ docker exec us007a-node bash /opt/us007a/bootstrap-b-run.sh
+### tear down the config-A sandbox and set the workspace aside
+ Container oh-a Removing 
+ Container oh-a Removed 
+ Network oh-a_default Removing 
+ Network oh-a_default Removed 
+removed the sandbox entry /home/sandbox/.agro/sandboxes/oh-a
+### install the config-B bootstrap script
+53:run_step agro harness install opencode
+### launch exactly as the cloud-init runcmd line does
+### poll the tmux session while the bootstrap is in flight
+t=1 status=<no status yet> tmux: docker-build-oh-sandbox: 1 windows (created Wed Sep  9 06:16:39 2026) 
+t=2 status=failed:243 tmux: no server running on /tmp/tmux-1000/default 
+### final status + log
+failed:243
+image mode: agro-candidate:us007a (skipping local build)
+ Network oh-a_default Creating 
+ Network oh-a_default Creating 
+ Network oh-a_default Created 
+ Network oh-a_default Created 
+ Container oh-a Creating 
+ Container oh-a Created 
+ Container oh-a Starting 
+ Container oh-a Started 
+next: oh shell oh-a
+oh.json: set storage.homePath=/home/sandbox/workspace (added)
+installing OpenCode into the sandbox…
+npm error code EACCES
+npm error syscall mkdir
+npm error path /home/sandbox/.local/lib
+npm error errno -13
+npm error Error: EACCES: permission denied, mkdir '/home/sandbox/.local/lib'
+npm error     at async mkdir (node:internal/fs/promises:858:10)
+npm error     at async Arborist.reify (/usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/reify.js:128:7)
+npm error     at async Install.exec (/usr/local/lib/node_modules/npm/lib/commands/install.js:150:5)
+npm error     at async Npm.exec (/usr/local/lib/node_modules/npm/lib/npm.js:207:9)
+npm error     at async module.exports (/usr/local/lib/node_modules/npm/lib/cli/entry.js:74:5) {
+npm error   errno: -13,
+npm error   code: 'EACCES',
+npm error   syscall: 'mkdir',
+npm error   path: '/home/sandbox/.local/lib'
+npm error }
+npm error
+npm error The operation was rejected by your operating system.
+npm error It is likely you do not have the permissions to access this file as the current user
+npm error
+npm error If you believe this might be a permissions issue, please double-check the
+npm error permissions of the file and its containing directories, or try running
+npm error the command again as root/Administrator.
+npm error A complete log of this run can be found in: /home/sandbox/.npm/_logs/2026-09-09T06_16_40_063Z-debug-0.log
+oh harness: installing opencode failed (exit 243).
+### readiness by the bootstrap unit oracle
+attempt 1: activating
+attempt 2: active
+Result=success
+ExecMainStatus=0
+ActiveState=active
+SubState=exited
+### tmux session after the bootstrap finished
+no server running on /tmp/tmux-1000/default
+no sessions
+### harness state after a config-B bootstrap
+HARNESS      KIND         INSTALLED
+claude-code  installable  no
+codex        installable  no
+pi           installable  no
+opencode     installable  no
+grok-build   installable  no
+hermes       installable  no
+muse-code    installable  no
+t3code       on-demand    no
+-- exit=0
+
+=== [2026-09-09T06:17:10Z] config-B failure is a RACE: the same install succeeds once the unit is active
+$ docker exec us007a-node bash -c docker exec oh-a systemctl is-active openharness-bootstrap.service; stat -c "%n uid=%u gid=%g mode=%a" /home/sandbox/workspace/.local 2>&1; runuser -l sandbox -c "export PATH=\$HOME/.local/bin:\$PATH; export AGRO_HOME=\$HOME/.agro; cd \$AGRO_HOME/sandboxes/oh-a && agro harness install opencode" 2>&1 | tail -6
+active
+/home/sandbox/workspace/.local uid=1000 gid=1000 mode=755
+installing OpenCode into the sandbox…
+
+added 3 packages in 10s
+opencode: installed — see https://github.com/mifunedev/agro/blob/main/docs/harnesses/opencode.md for authentication
+-- exit=0
+
+=== [2026-09-09T06:17:21Z] config-B ownership timeline: what the entrypoint had NOT yet done at install time
+$ docker exec us007a-node docker exec oh-a bash -c journalctl -u openharness-bootstrap.service --no-pager -o short-iso -b | grep -i "ownership\|seed\|Starting\|Finished" | head -10
+2026-09-09T06:16:40+00:00 25de19c63c63 systemd[1]: Starting openharness-bootstrap.service - Open Harness sandbox bootstrap...
+2026-09-09T06:16:40+00:00 25de19c63c63 entrypoint.sh[71]: [entrypoint] no checkout bind at /home/sandbox/harness — seeding from /opt/agro-seed
+2026-09-09T06:16:40+00:00 25de19c63c63 entrypoint.sh[71]: [entrypoint] seeded control plane into /home/sandbox/harness from /opt/agro-seed
+2026-09-09T06:16:40+00:00 25de19c63c63 entrypoint.sh[71]: [entrypoint] repairing sandbox home mount ownership as 1000:1000
+2026-09-09T06:16:44+00:00 25de19c63c63 systemd[1]: Finished openharness-bootstrap.service - Open Harness sandbox bootstrap.
+-- exit=0
+
+=== [2026-09-09T06:17:44Z] config-B reproducibility: second FRESH run of the identical bootstrap
+$ docker exec us007a-node bash /opt/us007a/repro-b.sh
+t=1 status=<none>
+t=2 status=failed:243
+--- tail of the bootstrap log
+npm error permissions of the file and its containing directories, or try running
+npm error the command again as root/Administrator.
+npm error A complete log of this run can be found in: /home/sandbox/.npm/_logs/2026-09-09T06_17_47_366Z-debug-0.log
+oh harness: installing opencode failed (exit 243).
+--- readiness marker the control plane waits for
+ls: cannot access '/run/openharness-ready': No such file or directory
+--- the sandbox unit, despite the failed bootstrap
+attempt 1: activating
+attempt 2: active
+-- exit=0
+
+=== [2026-09-09T06:18:15Z] CONTROL: identical FRESH bootstrap with NO default harness (config A)
+$ docker exec us007a-node bash /opt/us007a/repro-a.sh
+--- the config-A script has no harness step:
+0
+t=1 status=<none>
+t=2 status=ok
+--- readiness marker
+-rw-r--r-- 1 root root 0 Sep  9 06:18 /run/openharness-ready
+--- the sandbox unit
+attempt 1: activating
+attempt 2: active
+Result=success
+ExecMainStatus=0
+ActiveState=active
+-- exit=0
+
+=== [2026-09-09T06:19:11Z] CONTRAST: the PUBLISHED image the Cloud bootstrap names by default
+$ docker exec us007a-node bash /opt/us007a/published-contrast.sh
+### image identity
+ref=ghcr.io/mifunedev/agro:latest id=sha256:bbfdaf6bb8ca1aa8244aba4b81539f740e5d4b5eee4e6484a95bdac7ef599a82 created=2026-09-06T19:52:35.075858251Z
+ref=agro-candidate:us007a id=sha256:d963de3d2b25421b82ca6312a41a3f1b87a2ca0857182b8a2e2cb936cb1ed964 created=2026-09-09T05:50:17.048436155Z
+ Network oh-pub_default Created 
+ Container oh-pub Creating 
+ Container oh-pub Created 
+ Container oh-pub Starting 
+ Container oh-pub Started 
+next: oh shell oh-pub
+### readiness oracle on the published image
+attempt 1: 
+attempt 2: failed
+Result=exit-code
+ExecMainStatus=1
+ActiveState=failed
+SubState=failed
+### container liveness (proves nothing on its own)
+oh-pub Up 5 seconds (health: starting)
+### failure tail
+Starting openharness-bootstrap.service - Open Harness sandbox bootstrap...
+[entrypoint] no checkout bind at /home/sandbox/harness — seeding from /opt/oh-seed
+[entrypoint] seeded control plane into /home/sandbox/harness from /opt/oh-seed
+pam_unix(chpasswd:chauthtok): password changed for sandbox
+[entrypoint] repairing sandbox home mount ownership as 1000:1000
+Providers OK: .agents/.pi/.claude/.codex skills -> .oh/skills (vendored pack present)
+[provision-python] ensuring managed Python 3.11 in /home/sandbox/.local/share/uv/python
+Python 3.11 is already installed
+[provision-python] installing kernel packages: ipykernel
+Using Python 3.11.16 environment at: /home/sandbox/.local/share/oh/kernel
+Checked 1 package in 34ms
+[provision-python] OK  python=/home/sandbox/.local/share/uv/python/cpython-3.11-linux-x86_64-gnu/bin/python3.11
+[provision-python] OK  kernel=/home/sandbox/.local/share/oh/kernel/bin/python (ipykernel present)
+[entrypoint] attach banner wired into .bashrc
+[entrypoint] node_modules missing — running pnpm install at /home/sandbox/harness
+[entrypoint] pnpm install failed — see /tmp/pnpm-install.log; aborting sandbox boot
+openharness-bootstrap.service: Main process exited, code=exited, status=1/FAILURE
+openharness-bootstrap.service: Failed with result 'exit-code'.
+Failed to start openharness-bootstrap.service - Open Harness sandbox bootstrap.
+openharness-bootstrap.service: Consumed 3.478s CPU time, 517.6M memory peak.
+-- exit=0
+
+=== [2026-09-09T06:19:34Z] CLEANUP: node-internal docker state before node teardown
+$ docker exec us007a-node bash -c docker ps -a --format "{{.Names}} {{.Status}}"; docker volume ls; docker images --format "{{.Repository}}:{{.Tag}}"
+oh-pub Up 22 seconds (health: starting)
+oh-a Up About a minute (healthy)
+us007a-registry Up 14 minutes
+DRIVER    VOLUME NAME
+local     034b2adc5f7a4352bf59d66c6ca3c04ac9463d8aff8f4231d6bd5c3a6c16c0fd
+127.0.0.1:5000/agro-candidate:us007a
+agro-candidate:us007a
+ghcr.io/mifunedev/agro:latest
+registry:2
+-- exit=0
+
+=== [2026-09-09T06:19:34Z] CLEANUP: stop and remove the disposable node host
+$ bash -c docker rm -f us007a-node; docker volume rm us007a-node-docker
+us007a-node
+us007a-node-docker
+-- exit=0
+
+=== [2026-09-09T06:19:37Z] CLEANUP: remove the two images this run built
+$ bash -c docker rmi -f agro-candidate:us007a oh-node-host:us007a
+Untagged: agro-candidate:us007a
+Deleted: sha256:d963de3d2b25421b82ca6312a41a3f1b87a2ca0857182b8a2e2cb936cb1ed964
+Deleted: sha256:a23008a654d91ad13c4627c39ffcdb0b5a0064bb24794104d6f247d3f09ff32e
+Deleted: sha256:b5419b6d27b338fe5cb5f0103f4feeae4af7aa5866eb6734ba9119e19f6c6eb7
+Deleted: sha256:dd6e57605cbbff632efb11e05458f26cd49c81b140a82bbe6d9555ec5eb72543
+Deleted: sha256:335dfb44576f1fc99be20e62c6f0e4b935056d61589a03b2acf906fd20f5a081
+Deleted: sha256:2b7e682b8da677ddc3546b3fa205c3cdd844d8590d390f7891b388ef07e1d5a2
+Deleted: sha256:4905756db31376598348a6026ba045265977f9b134b4ce9cf7dd25f6d0442cd7
+Deleted: sha256:93119c90a9dbe35254a4b08e7f057d101733b9eab3dbdf88348310d80500b9d9
+Deleted: sha256:61a0d0d5d6bcb8ca315b80c812e8c9737f93286f9ba9138010cc109c471a4338
+Deleted: sha256:8f641bf19a3ac09e9ff9e09595646b08ffea57218d9f0a9ff51a91961cad236d
+Deleted: sha256:d12e895fee55bc01a22d3163a86311b068d6eafcfe028b2ee93e9ed268acc0c2
+Deleted: sha256:fc3bb30e6020d32cc7663c0ff09b672ab78d83b4a8412e93a771618f79f27f27
+Deleted: sha256:637f9ec77d0bf834a4e3513dfe12d4453dbcb17cdfb70bda34a1791eda848111
+Deleted: sha256:778a4a86bd9b7e0ecc189c43261dca93d0ab9d7e99ce4c555d0247d69b73fbbe
+Deleted: sha256:12d588aa74646edd7cc7770c76fe98f863b12a133442a543cf49c06686949c3a
+Deleted: sha256:dc7a49346f662eebedf558cf93970e49624dd0729cb596d8da9e56dd5ca183fc
+Deleted: sha256:4955f4327154ed7c1900c87bb0edbacda7c686fca474144f44bea56b01062bfd
+Deleted: sha256:a868031054c675f3798d752db9a0073c21b5e31e373cd8b3426c0e86baa90286
+Deleted: sha256:afbf71be63a0e4b7b46713096d516e5ebdd1aedc9d9def0938567302a38073e0
+Deleted: sha256:0d08b99a5b1e7c176d2bf7981c2b5b4c31d4b30749d7ded38a26a39e8af1a9df
+Deleted: sha256:a2d9ae1f2807f0ca7db1591f7d3b8ae6e52126996e42a2f74edb03d934f40d1d
+Deleted: sha256:d30b0a6c36b88a21748be3a5bd5af307196f03ee3caa130ae99b3e06a23bcf35
+Deleted: sha256:4da868b108836eb014c35aacc7c6bc244b160ec347a38500ef7f40736b0731e9
+Deleted: sha256:5c2d6796a17809f768180525e909c8df02edaadd861400142b6c7b50e4c8d76f
+Deleted: sha256:69a0776554a767b5896c7e08d2c3a2013e36bf46d481687aea61f6e4c9b57ef9
+Deleted: sha256:78eab997fcc752d549406f919dd91c51ff4f6639024814efffd5245129ad0af4
+Deleted: sha256:56040e5c805759861a96a14bd3f36b09750a51fa1c62a098a32634b9c6656783
+Deleted: sha256:102fb60a6b83d07e95227d1b77fd12d86e34ff5047bdac3140552a84da8eadaf
+Untagged: oh-node-host:us007a
+Deleted: sha256:d5c76e7fb64bc400e6aa5730bd9135953571d8acadc54a911a4cf730693f5ada
+Deleted: sha256:7a4d6db365389560944d43dc3525da68dc79f0d05111f123a147178947985abf
+Deleted: sha256:d0362dd7a882ae0955e1453635cf71f7f2b36603cfebc9c5ba93eef89f8b75ed
+Deleted: sha256:71b230c11f13a9c5736eec8c6b752ec32eebc88d5c712d2091a170a192379c11
+Deleted: sha256:06dcfea71f131f9a5ae18e3c4d0bee97e38dc3d74ec160ae734262fa4761803c
+Deleted: sha256:0e7a47ed6a1a9cf00d9f4017d4b72b058aa397fd8775638dcae9febfe2eb93d0
+Deleted: sha256:858c642c01d8b57caca3e70c057cf87775a56fc116f06b42b88c2822c29a55d6
+Deleted: sha256:fe673ffb2fe5adb4e6840c6bcfbcc8d5e7118e2f6370fd44d6d419b648a0161b
+Deleted: sha256:15f8313756b2e05fda92d82c9fc13f9a58774e9698be550d74b3ad810a97f32d
+Deleted: sha256:82bfd7df21f802a825ee99ff0c28a54ab056ef3d8c6c8734979bc493ee193540
+Deleted: sha256:b7fc156e3dc184b5bcc25ab0ad33aaae45d57e337fddcbbeb8baec5c52aadeff
+Deleted: sha256:39f07a6131eb3a9b76a51e2b565b2d7d0a7ccd33c56673e6f0e6b19ae92b459e
+Deleted: sha256:ad4c89e10fb06b6ecef091f049a875a16e5f6e893586436ca538494c76997116
+Deleted: sha256:cc09d1e1414219f1b1109cc95c07f55ee39b2b1908347b44e84dc52804e048b8
+-- exit=0
+
+=== [2026-09-09T06:19:44Z] CLEANUP VERIFICATION: containers
+$ docker ps -a
+CONTAINER ID   IMAGE                                  COMMAND                  CREATED       STATUS                  PORTS                                     NAMES
+e73e5123a864   ghcr.io/mifunedev/openharness:latest   "/usr/local/bin/entr…"   5 days ago    Up 3 days (unhealthy)   127.0.0.1:2222->22/tcp                    oh-sbx-local
+1ce557882c6e   dpage/pgadmin4:latest                  "/entrypoint.sh"         4 weeks ago   Up 3 days               0.0.0.0:5050->80/tcp, [::]:5050->80/tcp   pgadmin
+-- exit=0
+
+=== [2026-09-09T06:19:44Z] CLEANUP VERIFICATION: volumes
+$ docker volume ls
+DRIVER    VOLUME NAME
+local     oh-sbx-local_workspace
+local     pgadmin-data
+-- exit=0
+
+=== [2026-09-09T06:19:44Z] CLEANUP VERIFICATION: images
+$ docker images
+IMAGE                                                                          ID             DISK USAGE   CONTENT SIZE   EXTRA
+busybox:latest                                                                 c6348fa86ba0       4.45MB             0B        
+dpage/pgadmin4:latest                                                          78bcd13ffb0a        529MB             0B   U    
+ghcr.io/mifunedev/agro:latest                                                  bbfdaf6bb8ca       1.24GB             0B        
+ghcr.io/mifunedev/openharness:0.9.0                                            bbfdaf6bb8ca       1.24GB             0B        
+ghcr.io/mifunedev/openharness:latest                                           093f5ec72ea4       1.25GB             0B   U    
+ghcr.io/nvidia/openshell/supervisor:5541398ccbda05fd951e08e5741b9ca090717f3a   30519c706eed       31.4MB             0B        
+hello-world:latest                                                             e2ac70e7319a       10.1kB             0B        
+node:22-slim                                                                   6e6261159fd3        227MB             0B        
+node:22-trixie-slim                                                            37d261af2f28        231MB             0B        
+ubuntu:24.04                                                                   a6f81fb630d5       78.2MB             0B        
+-- exit=0
+
+=== [2026-09-09T06:19:44Z] CLEANUP VERIFICATION: no stray ssh forwards from this run
+$ bash -c ps -eo pid,args | grep -c "[1]8080:127.0.0.1:8080"; echo "(0 == none left)"
+0
+(0 == none left)
+-- exit=0
+
+=== [2026-09-09T06:19:54Z] CLEANUP: remove the ubuntu:24.04 base this run pulled (was not present before)
+$ bash -c docker rmi ubuntu:24.04; docker images --format "{{.Repository}}:{{.Tag}}"
+Untagged: ubuntu:24.04
+Untagged: ubuntu@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517
+Deleted: sha256:a6f81fb630d51837271b89f8193810a5fc493fa4f30a55d7ebcdb3a66f3cc63a
+Deleted: sha256:b9a65b3c65ab22d490085bd0bf5490e2409da8748b406870f2463bdc41cd6795
+ghcr.io/mifunedev/agro:latest
+ghcr.io/mifunedev/openharness:0.9.0
+ghcr.io/mifunedev/openharness:latest
+node:22-trixie-slim
+node:22-slim
+ghcr.io/nvidia/openshell/supervisor:5541398ccbda05fd951e08e5741b9ca090717f3a
+dpage/pgadmin4:latest
+busybox:latest
+hello-world:latest
+-- exit=0
+
+=== [2026-09-09T06:19:54Z] CLEANUP VERIFICATION: docker system df after cleanup
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          23        2         7.323GB   3.163GB (43%)
+Containers      2         2         2.641GB   0B (0%)
+Local Volumes   2         2         9.831GB   0B (0%)
+Build Cache     0         0         0B        0B
+-- exit=0
+
+=== [2026-09-09T06:20:07Z] CLEANUP: dangling images, newest first (checking for leftovers from this run)
+$ docker images -f dangling=true --format {{.ID}} {{.CreatedAt}} {{.Size}}
+df5b78d94942 2026-09-08 23:49:57 -0600 MDT 1.24GB
+5af39bde2037 2026-09-08 23:09:52 -0600 MDT 1.24GB
+c15970d3066c 2026-09-08 21:34:22 -0600 MDT 1.24GB
+c00d4e7e39a4 2026-09-08 21:31:15 -0600 MDT 1.24GB
+bc060bcc9e0e 2026-09-08 21:27:51 -0600 MDT 1.24GB
+bc2acefe5937 2026-09-06 22:10:45 -0600 MDT 1.27GB
+dc7475a56cfe 2026-09-06 16:31:12 -0600 MDT 1.27GB
+dc5d8e098ca9 2026-09-06 16:30:21 -0600 MDT 1.27GB
+88b86ea9f839 2026-09-06 16:29:13 -0600 MDT 1.27GB
+a17eaa57ab94 2026-09-04 22:04:03 -0600 MDT 1.24GB
+eeae1344ea53 2026-09-04 00:09:09 -0600 MDT 1.24GB
+1528c25f8567 2026-09-03 23:11:13 -0600 MDT 1.24GB
+75b958487fe0 2026-09-03 23:10:49 -0600 MDT 1.24GB
+a269cff5b4e7 2026-09-03 23:10:31 -0600 MDT 1.24GB
+602c0e9de932 2026-09-03 21:52:08 -0600 MDT 1.24GB
+-- exit=0
+
+=== [2026-09-09T06:20:17Z] CLEANUP: remove the intermediate 'home' stage left by this run's build (05:49:57Z, inside this run's build window 05:49:04-05:50:17Z)
+$ bash -c docker rmi df5b78d94942 2>&1 | tail -3; echo "--- dangling now:"; docker images -f dangling=true --format "{{.ID}} {{.CreatedAt}}" | head -3; echo "--- system df:"; docker system df | head -3
+Deleted: sha256:fe1b7d6ad4f40897f36c0e27f79d4a3fbc6d37a8187945067b889b90563e388f
+Deleted: sha256:d2c231b12ec55733d80397fd6536dfc956c1322fa6fd19615c75700f07e80ae4
+Deleted: sha256:ae86d485f3eb751813d1fafe1b9b68c523ca810826511bd2e8e84d5099d97d82
+--- dangling now:
+5af39bde2037 2026-09-08 23:09:52 -0600 MDT
+c15970d3066c 2026-09-08 21:34:22 -0600 MDT
+c00d4e7e39a4 2026-09-08 21:31:15 -0600 MDT
+--- system df:
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          22        2         7.18GB    3.028GB (42%)
+Containers      2         2         2.641GB   0B (0%)
+-- exit=0
+
+=== [2026-09-09T06:28:47Z] ADDENDUM: identifying the exit-144 step
+$ kill -l TERM   -> 15   (so 128+SIGTERM = 143, not 144)
+$ kill -l 16     -> STKFLT
+control: 'kill -s TERM $$' at top level  -> harness reports: Exit code 144, trailing echo NOT reached
+repro:   self-matching 'pkill -f <marker>' -> harness reports: Exit code 144, trailing echo NOT reached
+conclusion: 144 == this harness's report for a tool shell terminated by SIGTERM.
+cause: my own 'pkill -f "ssh .*18099"' matched the command lines of its own shell
+       and of background task bcde3wn97 (both contained the literal 18099).
+       The task was still alive only because I had called 'wait' on a
+       non-terminating 'ssh -N' I had backgrounded inside the step.
+       Sub-checks 1 and 2 had already completed with exit=0 before the kill;
+       sub-check 3 (ohproxy cannot obtain a shell) never ran and is NOT VERIFIED.
+
+=== [2026-09-09T06:28:47Z] ADDENDUM: post-run cleanup re-verified
+oh-sbx-local Up 3 days (unhealthy)
+pgadmin Up 3 days
+DRIVER    VOLUME NAME
+local     oh-sbx-local_workspace
+local     pgadmin-data
+ghcr.io/mifunedev/agro:latest
+ghcr.io/mifunedev/openharness:0.9.0
+ghcr.io/mifunedev/openharness:latest
+node:22-trixie-slim
+node:22-slim
+ghcr.io/nvidia/openshell/supervisor:5541398ccbda05fd951e08e5741b9ca090717f3a
+dpage/pgadmin4:latest
+busybox:latest
+hello-world:latest
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          22        2         7.18GB    3.028GB (42%)
+Containers      2         2         2.641GB   0B (0%)
+Local Volumes   2         2         9.832GB   0B (0%)
+
+=== [2026-09-09T17:09:28Z] RESUMED INVOCATION — environment changed, Docker unreachable
+$ hostname
+395299dff1d9
+  (previous run executed in container e73e5123a864; this is a different container)
+$ echo $DOCKER_HOST
+DOCKER_HOST=[unset]
+$ command -v docker
+/usr/bin/docker
+$ docker info
+
+Server:
+failed to connect to the docker API at unix:///var/run/docker.sock; check if the path is correct and if the daemon is running: dial unix /var/run/docker.sock: connect: no such file or directory
+$ ls -la /var/run/docker.sock /run/docker.sock /run/user/1000/docker.sock
+ls: cannot access '/var/run/docker.sock': No such file or directory
+ls: cannot access '/run/docker.sock': No such file or directory
+ls: cannot access '/run/user/1000/docker.sock': No such file or directory
+$ find / -maxdepth 5 -name docker.sock
+(no results)
+$ getent group docker
+docker:x:1001:sandbox
+$ curl http://host.docker.internal:2375/_ping
+curl: (7) Failed to connect to host.docker.internal port 2375 after 1 ms: Could not connect to server
+$ ls /tmp/claude-1000/.../scratchpad/w13  (prior run's keys, generated assets, payload)
+ls: cannot access '/tmp/claude-1000/-home-sandbox-harness/8b200f3c-07b0-487b-9533-aae682bf912f/scratchpad/w13': No such file or directory

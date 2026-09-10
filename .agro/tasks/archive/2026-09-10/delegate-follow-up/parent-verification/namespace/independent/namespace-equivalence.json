@@ -1,0 +1,55 @@
+{
+  "accepted": "e81a5aad703a0f7081104a97d2eea980b72bca2e",
+  "base": "a227bbf3f3166a0e1a8a1951fc88694cfa0151ee",
+  "repaired": "e139bc363d95b5ee1acf4a22ca3c1a2a7c37c1c4",
+  "allEquivalent": true,
+  "checks": [
+    {
+      "surface": ".agro/skills/delegate/SKILL.md",
+      "rule": "active .oh/ -> .agro/",
+      "equal": true
+    },
+    {
+      "surface": ".agro/evals/probes/advisor-execution-contract.sh",
+      "rule": "active .oh/ -> .agro/",
+      "equal": true
+    },
+    {
+      "surface": ".agro/evals/probes/delegate-worker-boundary.sh",
+      "rule": "active .oh/ -> .agro/",
+      "equal": true
+    },
+    {
+      "surface": ".agro/knowledge/README.md",
+      "rule": "preserve a227 index and retain accepted PR rows",
+      "equal": true,
+      "removedBaseLines": [],
+      "addedLines": [
+        "| pattern-evals-probe-failure-path-untested | A probe's failure branch is unexecuted code until something injects the fault | [evals, probes, fault-injection, false-pass, exit-code, anchors] | 2026-09-07 |",
+        "| pattern-delegate-ledger-stale-at-acceptance | A run ledger written at dispatch and not updated at acceptance is itself the duplicate-worker hazard | [delegate, resume, ledger, duplicate-worker, acceptance, evidence] | 2026-09-07 |"
+      ],
+      "acceptedRowsEqual": true
+    },
+    {
+      "surface": ".agro/knowledge/patterns/pattern-delegate-ledger-stale-at-acceptance.md",
+      "rule": "frontmatter exact; active body .oh/path@commit -> .agro/path",
+      "equal": true,
+      "frontmatterExact": true,
+      "bodyNormalizedEqual": true
+    },
+    {
+      "surface": ".agro/knowledge/patterns/pattern-evals-probe-failure-path-untested.md",
+      "rule": "frontmatter exact; active body .oh/path@commit -> .agro/path",
+      "equal": true,
+      "frontmatterExact": true,
+      "bodyNormalizedEqual": true
+    },
+    {
+      "surface": "CHANGELOG.md",
+      "rule": "accepted changelog ordered subsequence plus target additions",
+      "equal": true,
+      "acceptedIsOrderedSubsequence": true,
+      "prEntryCount": 1
+    }
+  ]
+}

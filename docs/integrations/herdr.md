@@ -63,6 +63,6 @@ herdr server stop              # end a broken Herdr server
 herdr --no-session             # run Herdr without its server/client session
 ```
 
-Herdr is pinned in the tool catalog (`.oh/cli/src/lib/tools/catalog.ts`) and provisioned into `~/.local/bin/herdr` at boot from a checksum-verified binary. Upgrade it by bumping that pin and running `oh tool install herdr`, not by self-updating the binary in place.
+Herdr is pinned in the tool catalog (`.agro/cli/src/lib/tools/catalog.ts`) and provisioned into `~/.local/bin/herdr` at boot from a checksum-verified binary. Upgrade it by bumping that pin and running `oh tool install herdr`, not by self-updating the binary in place.
 
 See the upstream [quick start](https://herdr.dev/docs/quick-start/), [agents guide](https://herdr.dev/docs/agents/), and [configuration reference](https://herdr.dev/docs/configuration/).

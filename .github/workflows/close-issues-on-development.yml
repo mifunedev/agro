@@ -40,7 +40,7 @@ jobs:
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
 
     steps:
-      # Only `.oh/scripts/closing-keywords.mjs` is needed, and it is never executed
+      # Only `.agro/scripts/closing-keywords.mjs` is needed, and it is never executed
       # as a build step — it is imported and called with the title and the body.
       - name: Checkout the base branch
         uses: actions/checkout@v7
@@ -60,7 +60,7 @@ jobs:
             const { pathToFileURL } = require("url");
             const parserPath = path.join(
               process.env.GITHUB_WORKSPACE,
-              ".oh",
+              ".agro",
               "scripts",
               "closing-keywords.mjs",
             );

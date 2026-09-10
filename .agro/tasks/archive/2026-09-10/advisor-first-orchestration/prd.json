@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "project": "openharness",
+  "branchName": "feat/988-advisor-first-orchestration",
+  "description": "Advisor-first orchestration: the active session advises, decomposes, dispatches bounded workers, inspects evidence, and accepts; workers own tracked implementation edits; one accountable owner; same-session by default; provider-specific model preferences honored only after native capability checks.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Root and canonical skills state one advisor-first execution model",
+      "description": "As the operator, I want AGENTS.md, /spec, /delegate, the task prompt, and /plan to agree that the active session advises and accepts while bounded workers implement, so that a handoff is never needed to obtain worker-first execution.",
+      "acceptanceCriteria": [
+        "AGENTS.md states advisor-first accountability declaratively with links to .oh/skills/spec/SKILL.md and .oh/skills/delegate/SKILL.md; no model names, thinking controls, worker limits, retry rules, evidence formats, workflow or skills section, or slash-skill mention; <= 9500 bytes; CLAUDE.md stays a symlink",
+        "agents-identity-contract.sh and context-tier-size-budget.sh exit 0",
+        "spec/SKILL.md, references/execute.md (steps 3-4 and PR template), templates/task-prompt.md route tracked implementation edits through bounded /delegate workers before owner acceptance; direct parent implementation needs a recorded operator exception; single owner, human merge gate, no second supervisor remain",
+        "references/plan.md carries an orchestration-transfer check for briefs, model constraints, evidence gates, and exceptions",
+        "delegate/SKILL.md keeps judgment in the advisor, coupled work in one continuing worker, honors explicit operator selections/exclusions after native capability checks, records requested vs observed separately, blocks on unsupported required controls, keeps concurrency/recursion limits, separates provider-specific preferences",
+        "plan/SKILL.md added from local baseline and requires bounded-assignment fields, complete DoD coverage, repair routes, same-session default with optional handoff text",
+        "roles-are-skills.sh passes; link-providers.sh --check exits 0",
+        "git diff --check exits 0; STE check passes on changed Markdown",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "T1 commits 50515549 + 17a510de (worker-authored, advisor-verified): AGENTS.md 9478 B; agents-identity-contract 0, context-tier-size-budget 0, roles-are-skills 0, delegate-worker-boundary 0, spec-single-owner 0, link-providers --check 0, git diff --check 0, typecheck 0; STE 0 findings on changed lines (150 pre-existing findings on untouched lines); delegate-model-effort-policy red by design until T2"
+    },
+    {
+      "id": "US-002",
+      "title": "Probes enforce the advisor-first contract with demonstrated failure branches",
+      "description": "As a maintainer, I want the six named probes plus two new instruction probes to reject omitted delegation, invalid routing claims, stale evidence, and incomplete briefs, so that the contract cannot silently regress.",
+      "acceptanceCriteria": [
+        "delegate-model-effort-policy.sh asserts the approved contract: explicit selections honored after capability checks, requested/observed recorded separately, unsupported required controls block, Sonnet exclusion, no max thinking, attribution checks preserved",
+        "delegate-worker-boundary.sh, spec-single-owner.sh, roles-are-skills.sh enforce the new ownership wording without weakening isolation or read-only-worker protection",
+        "advisor-execution-contract.sh checks execute.md, task prompt, spec/SKILL.md for worker-first implementation, recorded exception for direct edits, same-session default, optional transfer, no fixed advisor identity",
+        "plan-orchestration-contract.sh checks plan/SKILL.md and spec/references/plan.md for required assignment fields, DoD coverage, repair routes, validity without a handoff prompt",
+        "Each changed or new probe shows REGRESSION under injected defect in a disposable committed checkout and PASS after restoration, covering the nine named fault cases",
+        "Runtime model checks stay distinct from prose checks",
+        "eval run exits 0 with no new green->red regression; eval-result.json written",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "T2 (inherit Fable; interrupted by provider 429 once, resumed same worker) commit ef81cf73, cherry-picked as 758457f2; six probes exit 0 on the integrated head (advisor re-ran); 33 fault cases REGRESSION->PASS in disposable clone (scratchpad/t2-fault-injection.log); suite: no new green->red, pre-existing reds oh-config-surfaces, skills-vendored, curl-bash ERROR (python3 absent) all present on base"
+    },
+    {
+      "id": "US-003",
+      "title": "Documentation and architecture records describe the changed default",
+      "description": "As a reader, I want the task guide, glossary, RFC index, and changelog to describe advisor-first ownership and link ADR #989, so that the recorded architecture matches the skills.",
+      "acceptanceCriteria": [
+        "docs/rfcs/README.md indexes #989 as superseding #929's direct-implementation default while preserving its other decisions; #929's row is not rewritten",
+        "docs/glossary.md defines advisor as behavior of the active session and keeps the wording roles-are-skills.sh pins",
+        ".oh/tasks/README.md names the advisor as accountable owner and bounded workers as writers of tracked edits",
+        "CHANGELOG.md Unreleased references #988 and #989",
+        "No duplicated routing tables outside delegate/SKILL.md; STE and git diff --check pass",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "T3 (model: opus, observed claude-opus-5[1m]) commits e7a75a69 + 28223d75, cherry-picked as aa001fa8 + 7ed847d3; advisor read full diff; roles-are-skills 0, agents-identity 0, diff --check 0; STE 0 findings on changed lines; typecheck 0 on 17a510de (no TS touched since)"
+    },
+    {
+      "id": "US-004",
+      "title": "Native routing preflight records requested and observed worker settings",
+      "description": "As the advisor, I want a requested/observed capability matrix from real native calls before dispatch, so that model preferences are honored only where the provider supports them.",
+      "acceptanceCriteria": [
+        "delegate-graph.json records per worker: complexity, requested model/reasoning, selection reason, observed settings with provenance, native worker ID, status, artifact references; unknowns stay unknown",
+        "Agent tool schema inspected and documented; Sonnet never passed; max never passed",
+        "Unconfirmed required control blocks the affected assignment; gap and operator alternative recorded before dispatch",
+        "Luna/Max and Astra/high recorded as capability gap or verified surface; no invented parameter passed",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "delegate-graph.json preflight block: Agent tool exposes model {sonnet,opus,haiku,fable}, no thinking/effort control (schema + docs); opus thinking-off UNSUPPORTED -> T3/T4 blocked until operator authorized opus with reasoning unobserved (2026-09-06); Luna/Max Astra/high: no native surface, recorded as gap; Sonnet and max never passed; observed settings recorded as unknown where unobserved"
+    },
+    {
+      "id": "US-005",
+      "title": "Checks, fault injection, and same-session and transfer trials produce commit-specific evidence",
+      "description": "As the advisor, I want fixed checks and trials run against the integrated commit, so that acceptance rests on observed outputs rather than worker summaries.",
+      "acceptanceCriteria": [
+        "Plan verification commands run against the integrated commit with real exit codes",
+        "Fault-injection recipes run only in a disposable committed checkout outside the integration worktree and root; restored PASS after each case",
+        "Defective worker patch seeded in a disposable checkout is rejected; repair and fresh checks precede acceptance",
+        "Same-session dispatch exercised without a handoff prompt; requested-transfer kickoff validated to point to the plan without duplicating briefs; duplicate ownership rejected",
+        "Rollback rehearsal on a scratch branch restores policy and probes together",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "T4 (opus, observed claude-opus-5[1m]) in disposable clone @14127d7c: 12 fixed checks exit 0 (suite runner 0, 143 probes); 11 fault cases REGRESSION->restored PASS; C1 defective patch rejected by jq+probe gate; real instance: T3 changelog entry 303 chars caught by changelog-entry-length, repaired 14127d7c; D1 transfer prompt 3 lines, names plan path, no brief text; D2 plan valid without handoff section; E1 revert of 7 commits clean, six probes PASS on rollback branch and on base 9261d512; transcript scratchpad/t4-checks.log; same-session dispatch exercised by this run (no handoff prompt used)"
+    },
+    {
+      "id": "US-006",
+      "title": "Efficiency claims are measured or explicitly absent",
+      "description": "As the operator, I want any efficiency statement backed by a matched comparison or marked unmeasured, so that the PR does not claim savings it cannot show.",
+      "acceptanceCriteria": [
+        "With an approved budget, a matched baseline-vs-candidate comparison runs from one revision with fixed criteria and records parent, worker, reviewer, retry, repair usage or explicit gaps",
+        "Without an approved budget, evidence.md states no efficiency claim is made and records the operator disposition",
+        "No token, cost, or time saving asserted without complete observed totals",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "operator declined a paid comparison on 2026-09-06; evidence.md section 0 and 3 state no efficiency claim (claimed, unmeasured) and record the disposition; no token/cost/time saving asserted anywhere in the PR"
+    },
+    {
+      "id": "US-007",
+      "title": "Independent review, knowledge impact, evidence, and PR gates complete",
+      "description": "As the reviewer, I want a fresh read-only review keyed to D1-D12, resolved knowledge pages, and a committed evidence document, so that the PR is promotable on its actual head.",
+      "acceptanceCriteria": [
+        "Read-only reviewer reports findings keyed to D1-D12 on the integrated head; blocking findings repaired by original writer and re-reviewed",
+        "knowledge-impact.sh --changed runs; every page in the union ends UPDATED, REVERIFIED, or NOT-AFFECTED with reason; wiki-readme-index.sh passes",
+        "evidence.md answers the five questions, includes the requested/observed matrix and D1-D12 disposition, committed with git add -f",
+        "/audit implementation AUDIT-PASS; /audit pr promotable on the pushed head; PR marked ready, not merged",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "T5 first pass 5 blocking -> repaired (ae296157, 8cd488e5) -> fresh pass on e67e5481 (fable): none blocking; knowledge union resolved (plan-vs-built-reconciliation UPDATED, index green); evidence.md committed with git add -f; audit implementation and audit pr verdicts are appended to evidence.md Audit correlation by the gate itself — if either fails this story returns to false"
+    }
+  ]
+}

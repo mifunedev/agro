@@ -1,44 +1,40 @@
-# Open Harness docs
+# AGRO documentation
 
-📖 **Full rendered docs & search → https://oh.mifune.dev**
-
-GitHub-readable documentation for the core Open Harness repo. Prefer this index
-for repo-local docs and [DeepWiki](https://deepwiki.com/mifunedev/openharness)
-for generated codebase navigation. The rendered Docusaurus site and blog archive
-live in [`mifunedev/openharness-web`](https://github.com/mifunedev/openharness-web).
+Start with the guides below for documentation maintained alongside AGRO.
+The [docs website](https://agro.mifune.dev) is a separate presentation, with its
+source in [`mifunedev/agro-web`](https://github.com/mifunedev/agro-web).
 
 ## Start here
 
-Open Harness provides the sandbox; you choose the harness — a Docker workspace you
-clone-and-own, where `oh sandbox install docker` boots one long-lived container and the coding agent
-of your choice (Claude Code, Codex, Pi, Hermes, and more) works on its own branch and
-identity, running identically on your laptop or an unattended, lights-out remote VM.
+AGRO gives AI coding agents a workspace you control: a Docker sandbox and shared
+agent procedures around your chosen coding harness, locally or on a remote VM.
 
-**Attach in 3 steps (VS Code):**
+Start with the [README quickstart](../README.md#-quickstart): install AGRO, create
+a sandbox, open Herdr, and configure your tools and coding harness. GitHub and
+messaging setup are optional.
 
-1. `oh sandbox install docker` — write the registry entry and boot the container.
-2. VS Code → Command Palette (Ctrl/Cmd+Shift+P) → "Dev Containers: Attach to Running
-   Container" → select `openharness`. Ports auto-forward while attached.
-3. Open a terminal and run `oh tool install herdr`, then `herdr`. Nothing installs at boot, so install each agent the same way — `oh harness install claude-code`, `codex`, `pi`, or `hermes` — then launch it from a Herdr pane.
-
-Full terminal, VS Code, and Remote-SSH options: see [Connecting to the sandbox](connecting.md).
-
-[Hermes](harnesses/hermes.md) — Nous Research's self-improving agent CLI — installs
-like every other harness: run `oh harness install hermes`, then `hermes setup`.
+- [Installation](installation.md) — prerequisites and installation details.
+- [Herdr](integrations/herdr.md) — the terminal workspace for interactive development.
+- [Harnesses](harnesses/overview.md) — choose and authenticate a coding harness.
+- [Connecting](connecting.md) — VS Code and remote access options.
 
 ## How the primitive pack ships
 
-Open Harness vendors the shared skills/hooks primitive pack directly into the `.oh/` control plane (`.oh/skills/`, `.oh/hooks/`, `.oh/skills.lock`), tracked as ordinary files — `oh update` lays them down, so a fresh checkout has them with no submodule or network step. Provider paths such as `.pi/skills`, `.claude/skills`, and `.codex/skills` are symlinks into `.oh/skills`; `.pi/` remains a provider surface for v1.
+AGRO keeps shared skills and hooks in `.agro/skills/` and `.agro/hooks/`.
+Codex and Pi access shared skills through `.agents/skills`; Claude Code uses
+`.claude/skills`. Provider-specific configuration stays separate. See the
+[directory layout](oh-directory-layout.md) for details.
 
 ## Setup & first steps
 
 - [Introduction](intro.md)
 - [Quickstart](quickstart.md)
 - [Installation](installation.md)
-- [Creating a sandbox: `oh sandbox install docker`](deployment-prebuilt-image.md)
+- [Creating a sandbox: `agro sandbox install docker`](deployment-prebuilt-image.md)
 - [Connecting to the sandbox](connecting.md)
 - [Contributing](contributing.md)
 - [AGRO compatibility contract](agro-compatibility.md)
+- [AGRO cutover runbook](agro-cutover-runbook.md)
 
 ## Harnesses
 
@@ -49,6 +45,7 @@ Open Harness vendors the shared skills/hooks primitive pack directly into the `.
 - [OpenCode](harnesses/opencode.md)
 - [Hermes](harnesses/hermes.md)
 - [Grok Build](harnesses/grok-build.md)
+- [Muse Code](harnesses/muse-code.md)
 - [T3 Code](harnesses/t3code.md)
 
 ## Integrations
@@ -63,15 +60,16 @@ Open Harness vendors the shared skills/hooks primitive pack directly into the `.
 
 ## Reference
 
-- [Lifecycle commands — the `agro` verb reference (`oh` is the alias)](lifecycle-commands.md)
-- [Configuration — `oh.json` fields and the secrets split](configuration.md)
+- [Lifecycle commands — the `agro` command reference](lifecycle-commands.md)
+- [Configuration — `agro.json` fields and the secrets split](configuration.md)
 - [Security considerations](security-considerations.md)
 - [Open-core boundary](open-core.md)
 - [Repair-operator registry](repair-operator-registry.md)
+- [Repair a sandbox boot blocked by a security advisory](repair-sandbox-boot-advisory.md)
 - [Artifact-contract schema](artifact-contract-schema.md)
-- [Registry portability contract and exception list](../.oh/scripts/registry-portability.md)
-- [`.oh/` directory layout](oh-directory-layout.md)
-- [Descriptive `.oh/harness.yml` example](harness-manifest.md)
+- [Registry portability contract and exception list](../.agro/scripts/registry-portability.md)
+- [`.agro/` directory layout](oh-directory-layout.md)
+- [Descriptive `.agro/harness.yml` example](harness-manifest.md)
 - [Glossary](glossary.md)
 - [RFC / ADR index](rfcs/README.md)
 - [ADR-0001: #532 standards scope](rfcs/adr-0001-standards-scope.md)

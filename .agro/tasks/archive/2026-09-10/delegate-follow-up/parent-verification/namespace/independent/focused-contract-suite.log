@@ -1,0 +1,26 @@
+
+=== advisor-execution-contract ===
+PASS: /spec keeps one advisor deciding and accepting, workers implementing first, same-session execution by default, operator-only transfer, no fixed advisor identity, no launched agent, and the human merge gate; /delegate releases only tasks whose full eligibility and accepted-evidence checks hold, reconciles interrupted work, resolves every procedure reference, and keeps --dry-run read-only (prose check only; runtime behavior unverified)
+EXIT=0
+
+=== delegate-worker-boundary ===
+PASS: /delegate keeps judgment in the active session, sends tracked edits to bounded isolated workers, sizes tasks usefully, checks initial and resumed dispatch eligibility, keeps its concurrency and recursion caps, and names no project agents (prose check only; runtime behavior unverified)
+EXIT=0
+
+=== delegate-model-effort-policy ===
+PASS: /delegate binds operator selections, checks native capability before dispatch, keeps requested/observed evidence separate, blocks unsupported required controls, names Opus with advisor-judged effort, excludes Sonnet across skills, and never passes max (prose check only)
+EXIT=0
+
+=== spec-single-owner ===
+PASS: the agent running /spec execute owns decisions and gates, bounded workers implement before acceptance, and no second owner or retired runner remains; the negative sentence scans live in advisor-execution-contract (prose check only)
+EXIT=0
+
+=== plan-orchestration-contract ===
+PASS: /plan requires complete bounded assignments with full DoD coverage, forbids read-only edit owners and forced handoffs, and /spec plan preserves the orchestration strategy (prose check only)
+EXIT=0
+
+=== roles-are-skills ===
+PASS: durable roles are skills; no active surface defines or cites a project-agent identity or a fixed advisor model (prose check only)
+EXIT=0
+TOTAL=6
+FAILURES=0

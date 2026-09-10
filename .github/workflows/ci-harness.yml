@@ -8,9 +8,11 @@ on:
       - main
     paths:
       - "packages/**"
+      - ".agro/**"
       - ".oh/**"
       - "docs/**"
       - ".pi/**"
+      - "agro.json"
       - "oh.json"
       - ".example.env"
       - "package.json"
@@ -18,22 +20,24 @@ on:
       - "pnpm-workspace.yaml"
       - "vitest.config.ts"
       - ".github/workflows/ci-harness.yml"
-      - ".oh/skills/**"
+      - ".agro/skills/**"
       - ".claude/hooks/**"
       - ".claude/protected-paths.txt"
-      - ".oh/hooks/**"
+      - ".agro/hooks/**"
       - "crons/**"
       - ".devcontainer/**"
-      - ".oh/evals/**"
-      - ".oh/knowledge/**"
+      - ".agro/evals/**"
+      - ".agro/knowledge/**"
       - "AGENTS.md"
       - "CLAUDE.md"
   pull_request:
     paths:
       - "packages/**"
+      - ".agro/**"
       - ".oh/**"
       - "docs/**"
       - ".pi/**"
+      - "agro.json"
       - "oh.json"
       - ".example.env"
       - "package.json"
@@ -41,14 +45,14 @@ on:
       - "pnpm-workspace.yaml"
       - "vitest.config.ts"
       - ".github/workflows/ci-harness.yml"
-      - ".oh/skills/**"
+      - ".agro/skills/**"
       - ".claude/hooks/**"
       - ".claude/protected-paths.txt"
-      - ".oh/hooks/**"
+      - ".agro/hooks/**"
       - "crons/**"
       - ".devcontainer/**"
-      - ".oh/evals/**"
-      - ".oh/knowledge/**"
+      - ".agro/evals/**"
+      - ".agro/knowledge/**"
       - "AGENTS.md"
       - "CLAUDE.md"
 
@@ -71,7 +75,7 @@ jobs:
           submodules: recursive
 
       - name: Ensure Mifune submodule
-        run: bash .oh/scripts/link-providers.sh --init
+        run: bash .agro/scripts/link-providers.sh --init
 
       - name: Setup Node 22.x
         uses: actions/setup-node@v7
@@ -121,13 +125,13 @@ jobs:
           submodules: recursive
 
       - name: Ensure Mifune submodule
-        run: bash .oh/scripts/link-providers.sh --init
+        run: bash .agro/scripts/link-providers.sh --init
 
       - name: Shellcheck boot scripts
         run: |
           command -v shellcheck >/dev/null 2>&1 || { sudo apt-get update && sudo apt-get install -y shellcheck; }
           shellcheck --version
-          shellcheck -S warning .devcontainer/*.sh .oh/install/*.sh .oh/scripts/*.sh .oh/skills/audit/scripts/*.sh .oh/skills/escalate/scripts/*.sh .claude/hooks/*.sh .claude/skills/retro/scripts/*.sh
+          shellcheck -S warning .devcontainer/*.sh .agro/install/*.sh .agro/scripts/*.sh .agro/skills/audit/scripts/*.sh .agro/skills/escalate/scripts/*.sh .claude/hooks/*.sh .claude/skills/retro/scripts/*.sh
 
       - name: Hadolint Dockerfile
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
@@ -137,7 +141,7 @@ jobs:
           failure-threshold: warning
 
       - name: Check pnpm pin drift
-        run: bash .oh/scripts/check-pnpm-pin.sh
+        run: bash .agro/scripts/check-pnpm-pin.sh
 
   eval-probes:
     name: "Eval Probe Regression Gate"
@@ -150,7 +154,7 @@ jobs:
           submodules: recursive
 
       - name: Link provider skills
-        run: bash .oh/scripts/link-providers.sh --init
+        run: bash .agro/scripts/link-providers.sh --init
 
       # Provision Node explicitly so the suite is runner-agnostic: GitHub-hosted
       # ships Node preinstalled, the self-hosted runner does not.
@@ -160,4 +164,4 @@ jobs:
           node-version: "22"
 
       - name: Run eval probe suite
-        run: bash .oh/skills/eval/run.sh
+        run: bash .agro/skills/eval/run.sh

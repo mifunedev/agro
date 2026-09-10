@@ -8,5 +8,5 @@ if jq -e '
   | any(test("(^|/)settings\\.local\\.json$"; "i"))
 ' >/dev/null <<<"$input"; then
   root=$(git rev-parse --show-toplevel)
-  exec bash "$root/.oh/hooks/deny-secret-paths.sh" <<<"$input"
+  exec bash "$root/.agro/hooks/deny-secret-paths.sh" <<<"$input"
 fi

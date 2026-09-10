@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "commit": "026dd1f357924e7aecca29e6721968b2392e6d18",
+  "reviewer": "68882e73-1798-4db",
+  "reviewedAt": "2026-09-10T02:29:16.062Z",
+  "findings": [
+    {
+      "file": ".agro/scripts/__tests__/standard-skills-link.test.ts",
+      "line": 207,
+      "simplerAlternative": "Parameterize existing Pi-specific tests instead of retaining them alongside the shared Pi/Codex matrix.",
+      "removesLines": 80,
+      "blocking": false,
+      "status": "open",
+      "resolvedIn": null
+    }
+  ]
+}

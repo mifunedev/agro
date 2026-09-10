@@ -56,7 +56,7 @@ latest release, so the version you get is whatever upstream publishes.
 The install lands in `~/.local`, inside the persistent home mount, so it
 survives a container recreate and `oh destroy <name>` removes it. It needs
 network access, rebuilds no image, restarts no sandbox, and writes no
-`oh.json` field.
+`agro.json` field.
 
 **`msb self doctor` is yours to run.** The harness runs no doctor and makes no
 readiness verdict: `oh tool install microsandbox` verifies only that `msb` is on
@@ -71,8 +71,8 @@ msb run alpine --exec 'echo ok'  # expect "ok"
 
 `msb` runs microVMs, and a microVM needs a kernel boundary the container cannot
 fabricate. Two requirements were **measured**
-([#805](https://github.com/mifunedev/openharness/issues/805), from the P0 spike
-in [#803](https://github.com/mifunedev/openharness/pull/803)):
+([#805](https://github.com/mifunedev/agro/issues/805), from the P0 spike
+in [#803](https://github.com/mifunedev/agro/pull/803)):
 
 | Requirement | This devcontainer | Why |
 |---|---|---|
@@ -81,9 +81,9 @@ in [#803](https://github.com/mifunedev/openharness/pull/803)):
 
 The glibc floor was a base-image decision and the base upgrade to
 `debian:trixie-slim`
-([#807](https://github.com/mifunedev/openharness/issues/807)) cleared it.
+([#807](https://github.com/mifunedev/agro/issues/807)) cleared it.
 Passing `/dev/kvm` into the sandbox is a compose change, tracked in
-[#805](https://github.com/mifunedev/openharness/issues/805).
+[#805](https://github.com/mifunedev/agro/issues/805).
 
 So the binary installs cleanly here, and **running** a microVM from inside this
 sandbox still fails for want of KVM. That is why the install is a tool verb with
@@ -100,7 +100,7 @@ that is the only side the CLI's `ExecutionTarget` can reach. Whether that is the
 devcontainer (now Trixie, above the 2.39 floor) and does not say which is the
 intended target. A microVM tier that replaces the container would plausibly be
 installed on the host. If
-[#731](https://github.com/mifunedev/openharness/issues/731) settles it the other
+[#731](https://github.com/mifunedev/agro/issues/731) settles it the other
 way, the tool's target changes — and that is a reason it writes no config
 today. The axes taxonomy behind the decision is in
 [the runtime-support RFC](../rfcs/rfc-runtime-support.md).
@@ -185,7 +185,7 @@ mkdir -p ~/.openharness-msb/{workspace,claude,config,herdr,ssh}
 
 **`workspace/` must be empty.** The entrypoint seeds the control plane from the
 image's baked `/opt/oh-seed` on first boot, guarded by `[ ! -d "$dest/.oh" ]`.
-Point it at a directory that already contains a `.oh/` and the seed is skipped
+Point it at a directory that already contains a `.agro/` and the seed is skipped
 **with no error message** — every step in that path is `|| true` — leaving a
 harness with no control plane. Confirm it before you boot:
 
@@ -219,7 +219,7 @@ Container paths are the same on both sides.
 | `cgroup: private` | *(no confirmed equivalent)* | pins the private cgroup namespace the isolation depends on |
 | `restart: unless-stopped` | *(no confirmed equivalent)* | no auto-recovery after a host reboot; confirm msb's restart policy before relying on this for anything long-lived |
 | `extra_hosts: host.docker.internal` | *(no equivalent)* | only self-hosted Langfuse uses it |
-| `healthcheck:` | *(no equivalent)* | run `.oh/scripts/sandbox-healthcheck.sh` manually |
+| `healthcheck:` | *(no equivalent)* | run `.agro/scripts/sandbox-healthcheck.sh` manually |
 
 #### `sandbox.yaml`
 
@@ -289,7 +289,7 @@ This is the step that catches a silent half-boot:
 ```bash
 msb exec openharness -- bash -lc '
   ls /home/sandbox/harness/.oh >/dev/null \
-  && bash /home/sandbox/harness/.oh/scripts/link-providers.sh --check \
+  && bash /home/sandbox/harness/.agro/scripts/link-providers.sh --check \
   && echo SEED_OK'
 ```
 
@@ -305,8 +305,8 @@ rm -rf ~/.openharness-msb/workspace/*
 
 **What this check cannot tell you.** It confirms a control plane is present and
 providers are linked. It cannot distinguish a fresh seed from a workspace that
-already had a `.oh/` and was never seeded at all — the entrypoint's
-`.oh/.image-seeded` marker is written whenever `.oh` exists after the guard, so
+already had a `.agro/` and was never seeded at all — the entrypoint's
+`.agro/.image-seeded` marker is written whenever `.oh` exists after the guard, so
 it is no stronger a signal. That is why Step 2 requires an empty directory.
 
 ### Step 6 — Attach and work (host → inside)
@@ -339,7 +339,7 @@ msb run --conf sandbox.yaml --name openharness   # second boot skips the seed
 
 | What goes away | Consequence |
 |---|---|
-| **The host Docker socket** | **Gone, and this is the headline.** A microVM has no host `dockerd` to reach. Nested-Docker work stops: `/health-check`'s inventory, container work from inside the sandbox, and — most importantly — **the entire lifecycle verb family run *inside* an msb-hosted harness has no daemon**: `oh sandbox install docker`, `oh shell`, `oh stop`, `oh restart`, `oh logs`, `oh ps`, and `oh destroy`. All of them go through `.oh/scripts/docker-compose.sh`. You cannot manage a harness from in there. |
+| **The host Docker socket** | **Gone, and this is the headline.** A microVM has no host `dockerd` to reach. Nested-Docker work stops: `/health-check`'s inventory, container work from inside the sandbox, and — most importantly — **the entire lifecycle verb family run *inside* an msb-hosted harness has no daemon**: `oh sandbox install docker`, `oh shell`, `oh stop`, `oh restart`, `oh logs`, `oh ps`, and `oh destroy`. All of them go through `.agro/scripts/docker-compose.sh`. You cannot manage a harness from in there. |
 | **VS Code "Attach to Running Container"** | Gone — this is not a container. Options B and C in [Connecting](../connecting.md) do not apply; `msb exec` is the only door. For an editor, use Remote-SSH to the host and drive the sandbox from a terminal, or enable the SSH overlay inside the sandbox and connect to that. |
 | `host.docker.internal` | No equivalent. Affects self-hosted Langfuse only. |
 | The compose healthcheck | No equivalent. `max_duration` / `idle_timeout` are different semantics — confirm whether msb reaps idle sandboxes by default and, if so, which key disables it. Open Harness is meant to run for weeks. |
@@ -375,5 +375,5 @@ user-selection flag is shown above because none is confirmed.
 
 - [Runtimes overview](overview.md) — the catalog, and why the CLI selects no substrate key
 - [Runtime support RFC](../rfcs/rfc-runtime-support.md) — the axes taxonomy and the open selector decision
-- [#805](https://github.com/mifunedev/openharness/issues/805) — the two measured requirements
-- [#803](https://github.com/mifunedev/openharness/pull/803) — the P0 measurement record
+- [#805](https://github.com/mifunedev/agro/issues/805) — the two measured requirements
+- [#803](https://github.com/mifunedev/agro/pull/803) — the P0 measurement record

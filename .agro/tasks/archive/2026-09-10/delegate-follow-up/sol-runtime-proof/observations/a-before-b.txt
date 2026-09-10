@@ -1,0 +1,22 @@
+# Session A observation: before Session B start
+recorded_utc=2026-09-07T23:24:55Z
+
+## task artifact hashes (current)
+3b3b6bfde565cbab26006ebe7353dd77e08a9ccb12ce7f6873afa9f5492cbffb  /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/worker-started.txt
+8fdbe63ba9bcd49ef3b11aa8840b33440027497389d38410cfc770e3df93b212  /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/output.txt
+
+## frozen artifact-before.sha256 (baseline for comparison)
+8fdbe63ba9bcd49ef3b11aa8840b33440027497389d38410cfc770e3df93b212  /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/output.txt
+
+## worker-started.txt content
+worker-started
+utc_start=2026-09-07T23:24:39Z
+shell_pid=3952829
+
+## output.txt content
+DISPOSABLE-ARTIFACT v0
+
+## ledger X1 status
+      "id": "X1",
+      "status": "running",
+      "nativeWorkerId": "a8e871ee7a180398b",

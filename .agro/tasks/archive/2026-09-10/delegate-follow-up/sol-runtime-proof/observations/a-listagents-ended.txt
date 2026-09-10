@@ -1,0 +1,8 @@
+This session is runtime-experiment-1-0f [646735] — the name other sessions use to message it (it is not listed below; a message to it would be a message to yourself).
+
+Subagents (1):
+  a8e871ee7a180398b  ·  general-purpose  ·  completed  ·  started 4m ago
+
+Peer sessions (2):
+  harness-65 [cf7d5d]  ·  interactive  ·  idle  ·  started 1d ago
+  advisor-orchestration [dce295]  ·  interactive  ·  idle  ·  started 1d ago

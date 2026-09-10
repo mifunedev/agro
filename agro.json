@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "timezone": "America/Los_Angeles",
+  "git": {},
+  "storage": {},
+  "install": {
+    "opencode": false,
+    "grokBuild": false,
+    "hermes": false,
+    "agentBrowser": false,
+    "tailscale": false
+  },
+  "access": {
+    "ssh": false,
+    "sshPort": 2222,
+    "sshPasswordAuth": false,
+    "dockerSocket": false
+  },
+  "hermesDashboard": { "enabled": false, "port": 9119 },
+  "cron": { "agentBin": "claude" },
+  "build": { "skipPnpmInstall": false },
+  "image": { "mode": "build", "pullPolicy": "missing" },
+  "cloud": {},
+  "langfuse": {},
+  "composeOverrides": []
+}

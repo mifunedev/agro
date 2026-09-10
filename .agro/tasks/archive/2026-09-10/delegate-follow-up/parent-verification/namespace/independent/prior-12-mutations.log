@@ -1,0 +1,15 @@
+case directory unexpectedly exists: /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/prior-12-cases/01-blocked_still_blocked
+case directory unexpectedly exists: /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/prior-12-cases/02-partial_dependency_acceptance
+case directory unexpectedly exists: /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/prior-12-cases/03-all_conditions_required
+case directory unexpectedly exists: /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/prior-12-cases/04-unresolved_capability_no_dispatch
+case directory unexpectedly exists: /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/prior-12-cases/05-unresolved_provenance_no_dispatch
+case directory unexpectedly exists: /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/prior-12-cases/06-unmet_condition_dispatches
+case directory unexpectedly exists: /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/prior-12-cases/07-stale_completed_no_release
+case directory unexpectedly exists: /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/prior-12-cases/08-known_unconditional_resume
+case directory unexpectedly exists: /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/prior-12-cases/09-controls_positive_reword
+case directory unexpectedly exists: /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/prior-12-cases/10-blocked_positive_reflow
+case directory unexpectedly exists: /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/prior-12-cases/11-partial_dependencies_positive_reorder
+case directory unexpectedly exists: /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/prior-12-cases/12-stale_positive_reflow
+
+TOTAL_CASES=12
+TOTAL_FAILURES=12

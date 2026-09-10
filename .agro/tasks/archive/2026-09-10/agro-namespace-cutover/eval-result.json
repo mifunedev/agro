@@ -1,0 +1,8 @@
+{
+  "commit": "cfc1ab045c07a09d8c74a3a4f105af7e95a5d004",
+  "ranAt": "2026-09-07T05:02:16Z",
+  "probes": 145,
+  "regressions": ["skills-vendored"],
+  "regressionsNew": [],
+  "note": "skills-vendored is red on development as well: the probe's clean-clone simulation runs link-providers.sh with PATH=<fake>:/usr/bin:/bin, which omits /usr/local/bin where cc-safety-net is installed, so its pin check fails. Not caused by this branch."
+}

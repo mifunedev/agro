@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "project": "AGRO",
+  "branchName": "task/1034-retire-codex-skills",
+  "description": "Retire .codex/skills in favor of .agents/skills",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Retire the Codex discovery mirror safely",
+      "description": "Reuse existing provider retirement machinery and update tests and current docs.",
+      "acceptanceCriteria": [
+        "Fresh checkout uses .agents/skills without .codex/skills",
+        "Both migration doors preserve user content and surviving discovery",
+        "Targeted tests pass and documentation matches"
+      ],
+      "priority": 1,
+      "passes": true
+    }
+  ]
+}

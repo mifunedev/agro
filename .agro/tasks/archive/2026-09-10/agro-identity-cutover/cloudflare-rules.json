@@ -1,0 +1,46 @@
+{
+  "rules": [
+    {
+      "description": "agro-install-sh",
+      "expression": "http.request.uri.path eq \"/install.sh\" and http.host eq \"oh.mifune.dev\"",
+      "action": "redirect",
+      "action_parameters": {
+        "from_value": {
+          "status_code": 302,
+          "target_url": {
+            "value": "https://raw.githubusercontent.com/mifunedev/openharness/refs/heads/main/.oh/scripts/install.sh"
+          },
+          "preserve_query_string": false
+        }
+      }
+    },
+    {
+      "description": "agro-legacy-artifacts",
+      "expression": "http.host eq \"oh.mifune.dev\" and http.request.uri.path in {\"/get-oh.sh\" \"/oh.js\" \"/get-agro.sh\" \"/agro.js\"}",
+      "action": "redirect",
+      "action_parameters": {
+        "from_value": {
+          "status_code": 302,
+          "target_url": {
+            "expression": "concat(\"https://agro.mifune.dev\", http.request.uri.path)"
+          },
+          "preserve_query_string": true
+        }
+      }
+    },
+    {
+      "description": "agro-docs-catch-all",
+      "expression": "http.host eq \"oh.mifune.dev\" and not http.request.uri.path in {\"/install.sh\" \"/get-oh.sh\" \"/oh.js\" \"/get-agro.sh\" \"/agro.js\"}",
+      "action": "redirect",
+      "action_parameters": {
+        "from_value": {
+          "status_code": 301,
+          "target_url": {
+            "expression": "concat(\"https://agro.mifune.dev\", http.request.uri.path)"
+          },
+          "preserve_query_string": true
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+{"ageDays":0,"ageSeconds":211,"ci":"PASS","draftLimbo":false,"draftStatus":"promotable","evidenceComplete":true,"flags":["size-convention"],"isDraft":true,"issueReferences":[988,991,1003],"mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","number":1004,"primaryState":"draft","promotable":true,"readyForReview":true,"readyToMerge":false,"repo":"mifunedev/openharness","reviewDecision":"","schemaVersion":1,"updatedAt":"2026-09-08T00:09:20Z"}
+AUDIT-EVIDENCE: PR-AUDIT-PROMOTABLE
+audit -- run-id=audit-20260908T001251Z-4036476 target=pr state=complete verdict=PR-AUDIT-PROMOTABLE exit=0 started=2026-09-08T00:12:51Z finished=2026-09-08T00:12:52Z

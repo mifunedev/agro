@@ -1,0 +1,16 @@
+OBSERVED_SIMPLIFICATION_COMMIT_COMMAND_EXIT=0
+SIMPLIFICATION_COMMIT=c09e2ba84fff90151412121cfea6cf09002ade90
+COMMIT=c09e2ba84fff90151412121cfea6cf09002ade90
+PARENTS=ea3ba9bb572e6f68c5af9b417d00b077f915bf64
+SUBJECT=fix: simplify delegation contract probes
+SHOW_METADATA_EXIT=0
+DIFF_CHECK_EXIT=0
+.oh/evals/probes/advisor-execution-contract.sh
+.oh/evals/probes/delegate-worker-boundary.sh
+PATH_LIST_EXIT=0
+c09e2ba8 fix: simplify delegation contract probes
+ .oh/evals/probes/advisor-execution-contract.sh | 17 ++++-------------
+ .oh/evals/probes/delegate-worker-boundary.sh   |  3 ---
+ 2 files changed, 4 insertions(+), 16 deletions(-)
+SHOW_STAT_EXIT=0
+STATUS_EXIT=0

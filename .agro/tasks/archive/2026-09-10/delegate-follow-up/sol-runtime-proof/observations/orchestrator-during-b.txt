@@ -1,0 +1,11 @@
+$ ps -o pid,etime,stat,cmd -p 3952829
+    PID     ELAPSED STAT CMD
+EXIT=1
+$ sha256sum task files during Session B
+3b3b6bfde565cbab26006ebe7353dd77e08a9ccb12ce7f6873afa9f5492cbffb  /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/worker-started.txt
+8fdbe63ba9bcd49ef3b11aa8840b33440027497389d38410cfc770e3df93b212  /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/output.txt
+EXIT=0
+$ tmux list sessions for new experiment sessions
+sol-runtime-a-01a07e0e 0
+sol-runtime-b-01a07e0e 0
+EXIT=0

@@ -1,0 +1,42 @@
+{
+  "schemaNote": "Session A delegation ledger for runtime-experiment-1",
+  "acceptanceOwner": "Session A",
+  "frozenProcedurePath": "/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/procedure/recovery-procedure.md",
+  "tasks": [
+    {
+      "id": "X1",
+      "status": "completed",
+      "nativeWorkerId": "a8e871ee7a180398b",
+      "provenance": {
+        "source": "native Task tool result (Agent tool, this Session A session)",
+        "capturedBy": "Session A",
+        "verbatim": true,
+        "requestedSubagentType": "general-purpose",
+        "requestedModel": "opus",
+        "requestedRunInBackground": true,
+        "effortSetting": "not reported by the native Task result; not claimed"
+      },
+      "ownedPaths": [
+        "/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/worker-started.txt",
+        "/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/output.txt"
+      ],
+      "artifactReferences": [
+        {
+          "path": "/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/worker-started.txt",
+          "sha256": "3b3b6bfde565cbab26006ebe7353dd77e08a9ccb12ce7f6873afa9f5492cbffb"
+        },
+        {
+          "path": "/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/output.txt",
+          "sha256": "51e566507654d196c4483e194debd07e32ed8f50674a39fb6bb137ad99198c14",
+          "note": "differs from frozen baseline 8fdbe63b...; baseline was the pre-run placeholder 'DISPOSABLE-ARTIFACT v0'"
+        }
+      ],
+      "acceptanceOwner": "Session A",
+      "completedUtc": "2026-09-07T23:29:00Z",
+      "completionEvidence": {
+        "source": "native TaskOutput(block=true, timeout=420000ms) result for the same worker id; corroborated by ListAgents status 'completed'",
+        "workerReport": "one blocking FIFO read, exit_code=0, line_read='release'"
+      }
+    }
+  ]
+}

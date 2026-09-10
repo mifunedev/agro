@@ -1,22 +1,21 @@
 {
-  "name": "openharness",
-  "version": "0.9.0",
+  "name": "agro",
+  "version": "0.10.0",
   "private": true,
-  "description": "Open Harness — AI Agent Sandbox Orchestrator",
+  "description": "AGRO — Agent Governance Runtime Orchestrator",
   "license": "Apache-2.0",
   "type": "module",
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "setup": "pnpm install && pnpm run build",
     "build": "pnpm run build:harness",
-    "build:harness": "(test -d .oh/cli/node_modules || npm --prefix .oh/cli ci --ignore-scripts) && npm --prefix .oh/cli run build",
+    "build:harness": "(test -d .agro/cli/node_modules || npm --prefix .agro/cli ci --ignore-scripts) && npm --prefix .agro/cli run build",
     "test": "vitest run",
     "test:scripts": "vitest run",
     "lint": "echo \"No root lint configured\"",
     "format:check": "echo \"No root format check configured\"",
-    "typecheck": "(test -d .oh/cli/node_modules || npm --prefix .oh/cli ci --ignore-scripts) && npm --prefix .oh/cli run typecheck",
+    "typecheck": "(test -d .agro/cli/node_modules || npm --prefix .agro/cli ci --ignore-scripts) && npm --prefix .agro/cli run typecheck",
     "format": "echo \"No root formatter configured\"",
-    "pnpm:devPreinstall": "pnpm run security:audit",
     "security:audit": "pnpm audit --audit-level low --ignore-registry-errors"
   },
   "dependencies": {
@@ -26,7 +25,7 @@
     "@sinclair/typebox": "^0.34.0",
     "diff": "^8.0.2",
     "fast-check": "^4.8.0",
-    "vitest": "^3.2.6"
+    "vitest": "^4.1.11"
   },
   "engines": {
     "node": ">=20.0.0"

@@ -1,0 +1,6 @@
+STE_CHECK_EXIT=0
+=== REPORT HASH ===
+f498d5f4accdb3ddf5582f60bc7a0e96dd2085a2955c5be74a8f55ca2e9562b2  /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/reports/runtime-report.md
+REPORT_HASH_EXIT=0
+SOL_RUNTIME_REPORT_COMPLETE
+REPORT_TERMINATOR_EXIT=0

@@ -23,7 +23,7 @@ alongside the container's main process, so the cron runtime, healthcheck, and
 
 ## 2. Enable the overlay
 
-Turn sshd on in the tracked `oh.json`:
+Turn sshd on in the tracked `agro.json`:
 
 ```bash
 oh config set access.ssh true
@@ -35,7 +35,7 @@ the `docker-compose.ssh.yml` overlay and publish `127.0.0.1:<port>:22`, both of
 which Docker must make before the container exists. Everything else about sshd is
 read inside the container: `entrypoint.sh` calls `oh config show` on boot.
 
-Public-key material is not a secret, so it lives in `oh.json` too:
+Public-key material is not a secret, so it lives in `agro.json` too:
 
 ```bash
 oh config set access.sshAuthorizedKeys "ssh-ed25519 AAAA...yourkey... you@laptop"
@@ -55,7 +55,7 @@ silently clobbers a port another tenant is using. Bypass with
 yourself:
 
 ```bash
-bash .oh/scripts/check-host-port.sh 2222   # → "free" or "<port> in use by <owner>; next free: <m>"
+bash .agro/scripts/check-host-port.sh 2222   # → "free" or "<port> in use by <owner>; next free: <m>"
 ```
 
 ## 3. Add your public key
@@ -142,7 +142,7 @@ Each tenant's `.devcontainer/.env` sets a unique loopback port, e.g. tenant-1 �
 `ssh.port: 12201`, tenant-2 → `ssh.port: 12202`. Pick a free port per tenant:
 
 ```bash
-bash .oh/scripts/check-host-port.sh 12201   # ensure it's free before creating the sandbox
+bash .agro/scripts/check-host-port.sh 12201   # ensure it's free before creating the sandbox
 ```
 
 ### (a) Subdomain + port per tenant — simple, no TLS

@@ -1,0 +1,50 @@
+[
+  {
+    "probe": "next-dev-prod",
+    "exit": 2,
+    "stdout": "",
+    "stderr": "SKIPPED: no mifunedev/website process or app-website tmux session found \u2014 cannot verify\n"
+  },
+  {
+    "probe": "oh-compose-env-wiring",
+    "exit": 2,
+    "stdout": "",
+    "stderr": "SKIPPED: .agro/cli/dist/oh.js is not built \u2014 cannot exercise `oh sandbox install docker --print-argv` end to end\n"
+  },
+  {
+    "probe": "oh-destroy-guard",
+    "exit": 2,
+    "stdout": "",
+    "stderr": "SKIPPED: .agro/cli/dist/oh.js is not built \u2014 run `cd .agro/cli && npm install && npm run build`\n"
+  },
+  {
+    "probe": "oh-update-bootstrap",
+    "exit": 2,
+    "stdout": "",
+    "stderr": "SKIPPED: /home/sandbox/harness/.worktrees/task/1004-parent-namespace-head/.agro/cli/dist/oh.js not built \u2014 run 'npm --prefix .agro/cli run build'\n"
+  },
+  {
+    "probe": "registry-portability",
+    "exit": 2,
+    "stdout": "",
+    "stderr": "SKIPPED: no registry checkout supplied \u2014 set OH_REGISTRY_CHECKOUT to a clone of the published skills registry to arm this probe\n"
+  },
+  {
+    "probe": "sandbox-registry",
+    "exit": 2,
+    "stdout": "",
+    "stderr": "SKIPPED: /home/sandbox/harness/.worktrees/task/1004-parent-namespace-head/.agro/cli/dist/oh.js not built and could not be built \u2014 run 'npm --prefix .agro/cli run build'\n"
+  },
+  {
+    "probe": "skills-vendored",
+    "exit": 1,
+    "stdout": "",
+    "stderr": "ERROR: cc-safety-net binary not found on PATH (expected @1.0.6); install via .devcontainer/Dockerfile, or set CC_SAFETY_NET_OFF=1 to bypass\nVendored skill pack: .agro/skills (expected to exist as tracked files)\nProvider surfaces:   .agents/skills .pi/skills .claude/skills .codex/skills -> ../.agro/skills\nRemediation: bash .agro/scripts/link-providers.sh --init\n"
+  },
+  {
+    "probe": "wiki-pattern-persistence",
+    "exit": 2,
+    "stdout": "",
+    "stderr": "SKIPPED: no kind: pattern entries tracked at the merge-base \u2014 nothing to protect yet\n"
+  }
+]

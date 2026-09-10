@@ -8,12 +8,76 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-10
+
+### Upgrade notes
+
+This release supersedes `0.9.0`; its immutable tags remain available for legacy
+upgrade tests. Keep the `0.9.0` test fixture to preserve `.oh`-to-`.agro` migration
+coverage.
+
+If your existing sandbox boot fails on the dependency security advisory, follow
+the [state-preserving recovery guide](https://github.com/mifunedev/agro/blob/v0.10.0/docs/repair-sandbox-boot-advisory.md).
+A failed boot does not destroy the workspace; the container remains accessible
+through `docker exec`. Do not run `agro destroy` or delete the workspace volume.
+Pulling this image does not repair an existing volume's manifest: run the recovery
+procedure once for each affected volume. Fresh sandboxes created from this release
+do not need that recovery.
+
+### Added
+
+- Show agent prompts and example responses for cloning projects and managing isolated worktrees in Quickstart step 8. ([#1040](https://github.com/mifunedev/agro/issues/1040))
+
+### Changed
+
+- Refresh the README quickstart, messaging setup, and docs index; replace repeated reference sections with documentation navigation. ([#1038](https://github.com/mifunedev/agro/issues/1038))
+- Align package and display names with AGRO, correct sandbox setup guidance, and remove the stale root sandbox name. ([#1032](https://github.com/mifunedev/agro/issues/1032))
+- Publish only `@mifune/agro` on the automatic release path; keep the `@mifune/openharness` shim source and already-published versions without a new shim publish, wait, or deprecate step. ([#939](https://github.com/mifunedev/agro/issues/939))
+
+### Fixed
+
+- Make top-level `agro` help describe `agro update` as CLI self-upgrade, keep `oh update` as project vendoring, and default an unselected sandbox image to `ghcr.io/mifunedev/agro:latest`. ([#939](https://github.com/mifunedev/agro/issues/939))
+
+### Removed
+
+- Retire `.codex/skills` in favor of `.agents/skills` while preserving legacy links and other Codex configuration ([#1034](https://github.com/mifunedev/agro/issues/1034)).
+- Retire the `.pi/skills` surface only when `.agents/skills` is a direct, independent link that survives the migration, and preserve it otherwise so Pi keeps a skill discovery root. ([#1025](https://github.com/mifunedev/agro/issues/1025))
+
+### Changed
+
+- Fresh installs now create `.agro/`, `agro.json`, `~/.agro/sandboxes`, and `/opt/agro-seed`; legacy `.oh/` state keeps working, and `agro migrate` moves a project or registry. ([#942](https://github.com/mifunedev/openharness/issues/942))
+- Make `mifunedev/agro` and `agro.mifune.dev` the canonical repository and docs domain, send `agro-release` to the docs site on release, and keep legacy names as compatibility endpoints. ([#943](https://github.com/mifunedev/openharness/issues/943))
+
+### Fixed
+
+- Document a state-preserving recovery for a workspace volume whose boot aborts on a security advisory; it preserves the manifest's mode and refuses when the hook carries operator logic. ([#1019](https://github.com/mifunedev/agro/issues/1019))
+- Move the dependency security audit to CI-only so a new advisory can no longer block a sandbox boot. ([#943](https://github.com/mifunedev/openharness/issues/943))
+- Require verified dependency acceptance and safe resume eligibility before dispatching delegated work. ([#1004](https://github.com/mifunedev/openharness/pull/1004))
+- Point the pi banner at the Mifune GitHub organization. ([#1001](https://github.com/mifunedev/openharness/issues/1001))
+- Wait for npm registry propagation with an uncached `npm view` during CLI publication. ([#994](https://github.com/mifunedev/openharness/issues/994))
+- Preserve an existing sandbox's configuration when `agro sandbox install` runs again, so a reinstall no longer discards settings such as a pinned `storage.homePath`. ([#1021](https://github.com/mifunedev/agro/issues/1021))
+
+### Added
+
+- Add the `sandbox-boot-advisory-recovery` probe and extend `pnpm-audit-ci-gate` to forbid every lifecycle hook in the boot install. ([#1019](https://github.com/mifunedev/agro/issues/1019))
+- Add the `advisor-execution-contract` and `plan-orchestration-contract` probes. ([#988](https://github.com/mifunedev/openharness/issues/988))
+- Add the /plan skill to the tracked tree (.oh/skills/plan/SKILL.md) with required bounded-assignment fields. ([#988](https://github.com/mifunedev/openharness/issues/988))
+
+### Changed
+
+- Replace the nested-agent `/audit` route driver with a scripted driver that runs the deterministic gates itself and publishes correlated evidence; no `claude -p` is launched. ([#993](https://github.com/mifunedev/openharness/issues/993))
+- Fail the scripted audit driver closed on gates 4 and 5 unless a current-head, owner-written browser-evidence or simplicity-review record exists; a fresh reviewer and the owner judge. ([#993](https://github.com/mifunedev/openharness/issues/993))
+- Make advisor-first execution the default: the active session advises, assigns tracked edits to bounded workers, and accepts. ([#988](https://github.com/mifunedev/openharness/issues/988), [#989](https://github.com/mifunedev/openharness/issues/989))
+- Honor an explicit operator model selection after a native capability check, and block on an unsupported required control instead of substituting one. ([#988](https://github.com/mifunedev/openharness/issues/988))
+
 ## [0.9.0] - 2026-09-06
 
 ### Added
 
 - Resolve `.agro/`, `agro.json`, `AGRO_*`, and `~/.agro` beside their legacy names through one fail-closed compatibility contract with a migration engine; defaults are unchanged. ([#940](https://github.com/mifunedev/openharness/issues/940))
 - Add the `agro` CLI as `@mifune/agro` with `agro update` self-upgrade, the artifact-only `get-agro.sh` installer, and `ghcr.io/mifunedev/agro` images; `oh` stays the compatibility alias. ([#941](https://github.com/mifunedev/openharness/issues/941))
+
+### Changed
 
 ## [0.8.0] - 2026-09-06
 
@@ -266,7 +330,6 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 - `oh init`'s wizard writes **one** file. It used to split non-secret answers to `harness.yaml` and secrets to `.env`; both now land in `.env` in a single write, through the same line editor, so the operator's answers appear as uncommented lines inside the documented template.
 - CI path filters and their probes move from `harness.yaml.example` to `.devcontainer/.example.env` (`ci-harness.yml`, `sandbox-boot-guard.yml`, `harness-ci-core-paths.sh`, `sandbox-boot-guard-ci.sh`). `oh-init-headless-config.sh` retargets to the `.example.env` template and additionally asserts `--yes` writes no `.env` at all.
 - `.gitignore` keeps `/harness.yaml` and `.devcontainer/.harness.yaml.env` for one more release so a stale local artifact from a pre-0.4.0 checkout is never committed, and adds `/harness.yaml.migrated`.
-
 
 ## [0.3.0] - 2026-08-25
 

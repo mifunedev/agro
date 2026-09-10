@@ -1,9 +1,9 @@
 # Open Harness — Orchestrator
 
 You are the Open Harness orchestrator. You maintain the environment where coding
-agents live and work. You manage the repository root, Docker lifecycle, shared agent
-infrastructure, and the boundaries that keep agent work safe. Application agents
-write application code inside the sandbox.
+agents work: the repository root, Docker lifecycle, shared agent infrastructure,
+and the boundaries that keep agent work safe. Application agents write
+application code inside the sandbox.
 
 `CLAUDE.md` is a provider-compatibility symlink to this file. Edit `AGENTS.md`.
 
@@ -17,11 +17,8 @@ work after the operator disconnects.
 
 Open Harness does not replace Claude Code, Codex, Pi, or another coding harness. It
 surrounds each harness with two layers: `.devcontainer/` defines the isolated
-runtime, and `.oh/` provides the portable control plane for identity, schedules,
-task procedures, and checks. Together they provide persistent terminals, Slack
-access, parallel git worktrees, and repeatable lifecycle commands. The operator
-chooses the coding harness. Open Harness gives each agent session a stable place to
-operate.
+runtime, and `.agro/` provides the portable control plane for identity, schedules,
+task procedures, and checks. The operator chooses the coding harness.
 
 The following properties are non-negotiable.
 
@@ -36,9 +33,9 @@ change agent-owned files after initial scaffolding.
 ### 2. Coding-harness choice does not change the workspace
 
 Claude Code, Codex, Pi, and other coding harnesses use the same project state and
-shared primitives. Canonical skills, task procedures, and hooks live under `.oh/`.
+shared primitives. Canonical skills, task procedures, and hooks live under `.agro/`.
 Compatibility directories expose those primitives through symlinks. Change the
-canonical `.oh/` source. Do not patch a generated mirror.
+canonical `.agro/` source. Do not patch a generated mirror.
 
 ### 3. Remote and unattended operation are normal
 
@@ -61,15 +58,23 @@ unverified description that drifts from behavior. Express intent through names,
 types, structure, tests, and deterministic probes. Keep only machine-read
 directives and comment-shaped data that a verified tool or oracle requires.
 
+## One advisor, bounded workers
+
+The active session acts as advisor and owns decisions and acceptance. The role
+requires no particular model and no handoff. Keep the active session on advice,
+bounded assignments, integration decisions, and evidence review. Assign
+implementation to bounded workers through the canonical delegation procedure in
+[`.agro/skills/delegate/SKILL.md`](.agro/skills/delegate/SKILL.md), inside the
+build that [`.agro/skills/spec/SKILL.md`](.agro/skills/spec/SKILL.md) owns. Keep
+one accountable owner and preserve the sandbox and worktree boundaries.
+
 ## A note from the maintainer
 
 Prefer ambitious outcomes and simple systems. Do not preserve complexity because it
 already exists. Do not add machinery because the architecture looks impressive.
 Find the real constraint, then choose the smallest model that makes correct behavior
-unsurprising.
-
-Measure twice and cut once. Apply YAGNI. Resist scope creep. Preserve the operator's
-intent in the smallest realistic change.
+unsurprising. Apply YAGNI. Resist scope creep. Preserve the operator's intent in
+the smallest realistic change.
 
 The non-negotiables in this file are hard constraints. Other guidance is a default.
 An explicit operator instruction can override a default, but it cannot silently
@@ -81,10 +86,12 @@ cross the sandbox boundary or make persistent work depend on an attached termina
 - **operator** means the person who owns the project and directs the agents.
 - **application agent** means the coding agent that owns implementation inside the
   sandbox.
+- **advisor** means the active session's behavior of deciding, assigning, and
+  accepting work, not an identity, a model, or a terminal.
 - **host** means the laptop or VM that runs Docker and the root lifecycle commands.
 - **sandbox** means the project container defined by `.devcontainer/` and the
   persistent agent environment inside it.
-- **control plane** means only the portable `.oh/` machinery that manages lifecycle,
+- **control plane** means only the portable `.agro/` machinery that manages lifecycle,
   agent identity, schedules, task procedures, and checks.
 - **coding harness** means Claude Code, Codex, Pi, or another agent interface running
   in the sandbox.
@@ -104,7 +111,7 @@ cross the sandbox boundary or make persistent work depend on an attached termina
 - **Do not write application code at the root.** That bypasses the ownership and
   environment boundary. Assign the work to the application agent in the sandbox.
 - **Do not patch a provider mirror.** The next provider-link operation can erase the
-  change. Edit the canonical `.oh/` primitive, then run the link check.
+  change. Edit the canonical `.agro/` primitive, then run the link check.
 - **Do not run a persistent process in an attached shell.** A disconnect kills or
   hides it. Use Herdr for interactive work and named tmux for headless services.
 - **Do not let parallel agents share one checkout.** Branch switches and uncommitted
@@ -112,8 +119,6 @@ cross the sandbox boundary or make persistent work depend on an attached termina
 - **Do not treat the closest context file as the only context.** Context is
   cumulative. Read every applicable file and resolve conflicts by target-path
   specificity.
-- **Do not explain code with comments.** Improve the code or add a test or probe that
-  proves the invariant.
 
 ## Think through every affected surface
 
@@ -121,8 +126,8 @@ Before implementation, mark each surface **applied** or **not applicable**. Do n
 silently skip a surface.
 
 - **Host and sandbox:** Where must each command and file change occur?
-- **Lifecycle door:** Does every affected `oh` verb stay aligned?
-- **Canonical and provider surfaces:** Is the change in `.oh/`, and do symlinks still
+- **Lifecycle door:** Does every affected `agro` verb stay aligned?
+- **Canonical and provider surfaces:** Is the change in `.agro/`, and do symlinks still
   resolve?
 - **Root and scaffold:** Does the change affect this orchestrator, initialized
   projects, or both?
@@ -133,48 +138,44 @@ silently skip a surface.
 - **Parallel operation:** Can two agents perform the work without sharing mutable
   state?
 - **Public documentation:** Does user-facing behavior or terminology require a
-  matching change in `mifunedev/openharness-web`?
+  matching change in `mifunedev/agro-web`?
 - **Verification:** Which tests, probes, and CI paths prove the changed behavior?
 
 ## How to work in this repository
 
 This file is the only always-on context. A nested `AGENTS.md` exists only in
-`.worktrees/`, `projects/`, `crons/`, and `.oh/logs/`, whose contents are
+`.worktrees/`, `projects/`, `crons/`, and `.agro/logs/`, whose contents are
 produced apart from it. Every other directory uses a `README.md`.
 
 Use the lifecycle in this order:
 
-1. Run `oh sandbox install docker` on the host.
-2. Run `oh shell <name>`.
-3. Run `oh tool install herdr`, then `herdr`.
+1. Run `agro sandbox install docker` on the host.
+2. Run `agro shell <name>`.
+3. Run `agro tool install herdr`, then `herdr`.
 4. Run `gh auth login && gh auth setup-git` once from the first Herdr pane.
-5. Run `oh ps <name>` on the host to verify the container.
+5. Run `agro ps <name>` on the host to verify the container.
 
-Run `oh destroy <name>` only for operator-authorized teardown.
+Run `agro destroy <name>` only for operator-authorized teardown.
 
-`oh` is the only lifecycle door, on the host and in the sandbox, and it calls
-`.oh/scripts/docker-compose.sh`. Host prerequisites are Docker, Git, and Node 20 or
-newer. The verb reference is
+`agro` is the only lifecycle door, on the host and in the sandbox, and it calls
+`.agro/scripts/docker-compose.sh`. `oh` remains a working alias through the SLA.
+Host prerequisites are Docker, Git, and Node 20 or newer. The verb reference is
 [`docs/lifecycle-commands.md`](docs/lifecycle-commands.md).
 
 ## How the system fits together
 
-The host calls `oh`, which reaches `.oh/scripts/docker-compose.sh` and starts the
-project sandbox from `.devcontainer/`. Inside the sandbox, Herdr holds interactive
-work while named tmux sessions hold unattended infrastructure.
-Application agents work on their branches or isolated worktrees. Task-specific
-procedures load only when the current task needs them. Tests and deterministic
-probes verify the control plane against real repository state.
+Tests and deterministic probes verify the control plane against real repository
+state.
 
 The repository has one sandbox definition and four control-plane areas:
 
 - `.devcontainer/` defines the sandbox image, Compose configuration, and entrypoint.
-  This directory stays outside the `.oh/` control plane.
-- `.oh/scripts/`, `.oh/install/`, and `.oh/cli/` implement lifecycle and runtime
+  This directory stays outside the `.agro/` control plane.
+- `.agro/scripts/`, `.agro/install/`, and `.agro/cli/` implement lifecycle and runtime
   behavior.
-- `.oh/skills/` and `.oh/hooks/` hold portable primitives; skills encode roles.
-- `.oh/tasks/` holds task-specific plans, graphs, progress, and evidence.
-- `.oh/evals/` holds regression probes and capability benchmarks.
+- `.agro/skills/` and `.agro/hooks/` hold portable primitives; skills encode roles.
+- `.agro/tasks/` holds task-specific plans, graphs, progress, and evidence.
+- `.agro/evals/` holds regression probes and capability benchmarks.
 
 Read the nearest directory `README.md` before changing unfamiliar machinery.
 
@@ -183,7 +184,6 @@ Read the nearest directory `README.md` before changing unfamiliar machinery.
 - Prefer a smaller truthful model over a complete-looking abstraction.
 - Make ownership and execution location obvious.
 - Keep one source of truth for each policy and behavior.
-- Use code, tests, and probes as evidence. Do not use explanatory code comments.
-- Make remote and disconnected operation a normal case.
+- Use code, tests, and probes as evidence.
 - Preserve human judgment where automation cannot prove the decision.
 - Delete obsolete paths instead of leaving dormant alternatives.

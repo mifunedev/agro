@@ -1,0 +1,40 @@
+# Approved continuation: PR1004 namespace reconciliation
+
+The operator has APPROVED resolving the diagnosed conflicts, rerunning review/verification, then merging PR1004 and safely cleaning up. Continue in Luna pane w4:pE at existing openai-codex/gpt-5.6-luna max settings. This replaces the read-only restriction and old expected-head-only merge permission. All unrelated exclusions remain.
+
+The parent keeps acceptance and task-completion ownership. You implement the repair; pause for parent review before merge. The parent already restored PR1004 to draft for this new unverified integration. Do not undraft or merge until the parent accepts the repaired head and explicitly releases that stage. You do not need another operator approval within this bounded repair.
+
+Read /tmp/luna-pr1004-conflict-diagnosis.md, /tmp/luna-pr1004-merge-handoff.md, applicable AGENTS.md and current canonical git/worktrees/spec execute/ci-status procedures. Canonical source is now .agro on development, not a provider mirror. This is the approved existing delegate-follow-up task repair, not a new feature plan or issue1014 execution.
+
+## Known sources and ownership
+
+Accepted PR head: e81a5aad703a0f7081104a97d2eea980b72bca2e.
+True development ref last verified: a227bbf3f3166a0e1a8a1951fc88694cfa0151ee, PR996 namespace cutover. PR.baseRefOid56ab2bab was stale: query actual remote refs, not just the PR base SHA.
+Implementation worktree: /home/sandbox/harness/.worktrees/skill/1003-delegate-follow-up, branch skill/1003-delegate-follow-up. Verify HEAD/status/ownership before use. No other writer is assigned this branch by the parent; do not assume unrelated processes are absent. Root /home/sandbox/harness is concurrently owned; NEVER modify its branch, files, index, or local development ref. Preserve Sol's associated worktree until the later safe cleanup phase.
+
+Reconcile development into this PR branch using the repository's history-preserving catch-up convention. Do not force-push or rewrite old accepted evidence. If remote development advances again, identify the delta and report any scope change; do not silently absorb unrelated conflicts.
+
+## Exact repair scope and intended result
+
+1. .agro/skills/delegate/SKILL.md: keep ALL accepted PR1004 behavioral safeguards from e81, while using current .agro canonical paths. In the known Mermaid conflict, keep PR1004's dry-run BEFORE persistence: D -> F, F Yes -> report-and-stop, F No -> E ledger, E -> G dispatch. The new ledger destination is .agro/tasks/, not .oh/tasks/. Do not take the target's obsolete pre-dry-run ledger or Memory Protocol edges. Preserve accepted-dependency gating, provenance/ownership fail-closed logic, unknown worker status restraint, sizing, native settings policy, and planning-only rules.
+2. .agro/knowledge/README.md: preserve target canonical namespace and incorporate PR1004's two pattern entries without duplicate/stale current links.
+3. Relocate PR1004's added pattern-delegate-ledger-stale-at-acceptance.md and pattern-evals-probe-failure-path-untested.md into .agro/knowledge/patterns/. Reconcile active source/dependency references with their actual migrated paths. Preserve the actual lessons and historical statements.
+4. .oh/evals/RESULTS.md versus .agro/evals/RESULTS.md: do not resurrect a competing .oh scoreboard. Retain historical PR eval evidence in its task archive. Fresh full eval output belongs to canonical .agro/evals/RESULTS.md. Do not overwrite current results with old green claims.
+5. Inspect the two PR probes under .agro/evals/probes/{advisor-execution-contract,delegate-worker-boundary}.sh, including automatic merge results. Keep the accepted rejection/positive coverage and simplifications; update active namespace references as needed. An automatic merge is not evidence of semantic correctness.
+6. Important parent finding beyond Git's five conflict labels: the synthetic merge leaves ALL104 PR1004 task/evidence files at .oh/tasks/delegate-follow-up/, despite target .agro/tasks/. Relocate that task tree to .agro/tasks/delegate-follow-up/ so the current task is discoverable by canonical tooling. Preserve bytes of historical/raw evidence, frozen procedures, manifests, historical audit receipts, and native runtime logs. Do not blanket replace .oh strings inside historical evidence or recompute manifests to conceal changes. Retain their old paths/revisions as history. Relocation is permitted; editing parent-owned prd/evidence/simplicity/eval/ledger completion claims is NOT. Report which current owner records need namespace/acceptance reconciliation so the parent can update them after review. Do not claim old e81 acceptance covers your new head.
+7. Preserve CHANGELOG.md additions from both sides. No other source work. Scope is the PR1004 delta, these migration-only integrations, and proper relocation of its evidence. Do not repair unrelated migration documentation, other skills, issue1014, or audit-driver internals. If required checks expose an unrelated base defect, reproduce and report separately instead of fixing it.
+
+## Verification and deliverables
+
+- Inspect the complete resulting PR1004 source delta against actual new target a227, not only conflict markers. Check namespace-aware equivalence against accepted e81 where behavior should remain unchanged.
+- Run git diff --check, shell syntax for both affected probes, both focused probes, and the relevant adjacent contract probes. Validate provider links with current canonical link script.
+- Run the preserved accepted mutation coverage against repaired current probes, with disposable namespace-adapted runners. Preserve the original archived runners and manifests untouched. Report exact negative/positive case counts and results; do not call text probes native runtime evidence.
+- Run the full canonical eval in the isolated repair worktree and record actual head, start/end, exit, results, and baseline deltas. Carrying an old SKIP or regression does not prove the current target has it. Verify inherited failures against the true base before declaring no new regression. No environment install or bypass to manufacture green.
+- You may commit and push the reviewed repair scope to PR1004 normally; no force push. Record exact content SHA. Ensure PR remains DRAFT. Monitor final-head CI via /ci-status/native background monitoring. Do not rerun paid runtime experiments; the namespace repair should preserve frozen runtime provenance and accepted behavior.
+- Write /tmp/luna-pr1004-repair-report.md with commits, full changed-path scope, exact commands/exits, mutation results, namespace equivalence, manifest verification, CI links/results, current task-record reconciliation needs, and any blockers. Keep new generated fixtures only under disposable scratch, not tracked task evidence. Original e81 task blobs must remain reproducible.
+- The parent will inspect actual changes, arrange fresh independent review, reconcile owner acceptance records, run final actual audits, and accept a clean matching remote head before releasing your merge/cleanup stage. Your worker report is not acceptance.
+
+No recursive delegation or new inference CLI. Continue with the same worker for coupled repair. No shared settings/auth changes, release, tags, main/master pushes, infrastructure teardown, unrelated worktree cleanup, or issue1014 changes.
+Budget reporting: no operator numerical spend cap was supplied; usage remains unknown unless the native provider reports it. Do not invent a cap or zero usage. Give a progress checkpoint at20 minutes and stop for a parent decision after two failed repair cycles on the same unresolved cause; do not retry indefinitely. Waiting for CI is not permission to bypass checks.
+
+When repair, pushed-head CI, and your report are ready for parent review, output a final marker by concatenating LUNA_, PR1004_, REPAIR_READY (no spaces). On a blocker, concatenate LUNA_, PR1004_, REPAIR_BLOCKED. Do not print either full marker in intermediate commands. Then pause; do not merge or clean up yet.

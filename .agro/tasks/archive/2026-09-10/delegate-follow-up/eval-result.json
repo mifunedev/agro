@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "commit": "e139bc363d95b5ee1acf4a22ca3c1a2a7c37c1c4",
+  "ranAt": "2026-09-08T01:53:05Z",
+  "completedAt": "2026-09-08T01:53:24Z",
+  "runnerExit": 0,
+  "counts": {"PASS": 137, "REGRESSION": 1, "SKIPPED": 7},
+  "log": ".agro/tasks/delegate-follow-up/parent-verification/namespace/final/eval.log",
+  "baseCommit": "a227bbf3f3166a0e1a8a1951fc88694cfa0151ee",
+  "baseLog": ".agro/tasks/delegate-follow-up/parent-verification/namespace/base/eval.log",
+  "baseRunnerExit": 0,
+  "baseCounts": {"PASS": 137, "REGRESSION": 1, "SKIPPED": 7},
+  "rowStatusDelta": [],
+  "nonPassing": "Six environment skips; inherited wiki-pattern-persistence skip because the migrated probe still searches .oh at the new base; inherited skills-vendored regression because cc-safety-net is absent. Every non-PASS probe was reproduced separately on actual base and repaired head. All 145 row statuses match. Parent separately verified all 22 existing current-namespace pattern files remain byte-identical; two intended patterns were added.",
+  "nonPassingReceipts": ".agro/tasks/delegate-follow-up/parent-verification/namespace/final/nonpassing-probes.json",
+  "supplementalPatternVerification": ".agro/tasks/delegate-follow-up/parent-verification/namespace/pattern-provenance.json",
+  "historicalRecord": "e139bc363d95b5ee1acf4a22ca3c1a2a7c37c1c4:.agro/tasks/delegate-follow-up/eval-result.json preserves the original pre-namespace record. Its raw logs remain under parent-verification/final/.",
+  "reuseLimit": "Only the production driver's content-head rule may reuse this run for records-only descendants. Any source change requires fresh verification."
+}

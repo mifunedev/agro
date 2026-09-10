@@ -1,0 +1,101 @@
+{
+  "base": "a227bbf3f3166a0e1a8a1951fc88694cfa0151ee",
+  "head": "e139bc363d95b5ee1acf4a22ca3c1a2a7c37c1c4",
+  "method": "Compare exact blob bytes for every pre-existing .agro/knowledge/patterns file; new files listed separately. This does not repair the inherited .oh-only persistence probe.",
+  "basePatternFileCount": 22,
+  "allExistingByteIdentical": true,
+  "newPatternFiles": [
+    ".agro/knowledge/patterns/pattern-delegate-ledger-stale-at-acceptance.md",
+    ".agro/knowledge/patterns/pattern-evals-probe-failure-path-untested.md"
+  ],
+  "checks": [
+    {
+      "path": ".agro/knowledge/patterns/pattern-audit-driver-tool-allowlist.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-audit-remote-head-verdict.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-cli-bundled-asset-relative-import.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-delegate-builtin-type-carries-own-model.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-delegate-worker-terminated-before-report.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-docs-prohibition-by-example.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-evals-environment-parity-false-delta.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-evals-inherited-environment-diagnosis.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-evals-negation-must-govern-token.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-evals-pipefail-early-exit.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-evals-probe-brief-under-enumeration.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-evals-product-name-literal-pinning.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-evals-prose-literal-pinning.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-evals-tracked-only-scan-misses-uncommitted.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-evals-unexercised-oracle.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-rename-sweep-collapses-block-scalar-indent.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-scripts-sibling-dependency-standalone-copies.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-spec-self-staling-reuse-record.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-spec-simplify-round-seeded-non-reducing.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-spec-stubbed-runner-state-gap.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-wiki-external-model-over-mapping.md",
+      "byteIdentical": true
+    },
+    {
+      "path": ".agro/knowledge/patterns/pattern-wiki-ungated-check-drift.md",
+      "byteIdentical": true
+    }
+  ]
+}

@@ -86,7 +86,7 @@ description: |
 
 ---
 
-> **Git workflow**: see the [/git skill](../../.oh/skills/git/SKILL.md)
+> **Git workflow**: see the [/git skill](../../.agro/skills/git/SKILL.md)
 
 ---
 

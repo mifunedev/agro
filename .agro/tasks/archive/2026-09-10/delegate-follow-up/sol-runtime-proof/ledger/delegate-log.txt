@@ -1,0 +1,2 @@
+2026-09-07T23:24:46Z Session A: dispatched X1 (native worker recorded), status=running
+2026-09-07T23:29:52Z Session A: X1 accepted completed; artifact references recorded from post-run hashes

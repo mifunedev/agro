@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 interface PiSettings {
   packages?: string[];
+  skills?: string[];
 }
 
 function readPiSettings(): PiSettings {
@@ -25,5 +26,6 @@ describe("project Pi settings", () => {
       "npm:cc-safety-net@1.0.6",
       "git:github.com/Michaelliv/pi-dynamic-workflows@dbc6800d1f725f7439e51705e2664c59484afcd1",
     ]);
+    expect(settings.skills).toBeUndefined();
   });
 });

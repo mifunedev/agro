@@ -11,15 +11,14 @@ The sandbox is a Docker container running on your host (or a remote server). Get
 | Option | Command / action | Port forwarding to laptop |
 |--------|-----------------|--------------------------|
 | **A — Terminal** | `oh shell` from the host | None — plain shell only |
-| **B — VSCode Attach (local)** | Dev Containers extension → "Attach to Running Container" → `openharness` | Automatic while attached |
+| **B — VSCode Attach (local)** | Dev Containers extension → "Attach to Running Container" → your sandbox name from `agro sandbox list` | Automatic while attached |
 | **C — VSCode Remote-SSH + Attach (remote host)** | SSH into your host in VSCode, then Attach to Container | Automatic while attached |
 | **D — Direct SSH (opt-in)** | `ssh -p 2222 sandbox@localhost` after enabling the sshd overlay | None — SSH shell only (tunnel/proxy separately) |
 
 ### Option A — Terminal
 
 ```bash
-cd ~/.openharness
-oh shell
+agro shell <name>
 ```
 Pass an optional container name to attach to a different running container, e.g. `oh shell portfolio-advisor`. `oh shell` always attaches as the `sandbox` user; if the target container has no such user, use `docker exec -it -u <user> <container> zsh` instead.
 
@@ -27,7 +26,7 @@ You land inside the container as the `sandbox` user. A fresh sandbox has no `her
 
 > **Attach, do not "Reopen in Container".** *Dev Containers: Reopen in Container*
 > reads `.devcontainer/devcontainer.json`, which names `docker-compose.yml` alone,
-> so it bypasses `.oh/scripts/docker-compose.sh` and applies **no compose overlays** —
+> so it bypasses `.agro/scripts/docker-compose.sh` and applies **no compose overlays** —
 > no SSH, no host Docker socket, no Hermes dashboard, nothing from
 > `composeOverrides[]`. Provision with `oh sandbox install docker`, then attach. Details:
 > [lifecycle commands](lifecycle-commands.md#vs-code-reopen-in-container-applies-no-overlays).
@@ -36,7 +35,7 @@ You land inside the container as the `sandbox` user. A fresh sandbox has no `her
 
 1. Install the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension.
 2. Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) → **Dev Containers: Attach to Running Container**.
-3. Select **openharness**.
+3. Select your sandbox name from `agro sandbox list`.
 
 VSCode opens a remote window connected to the container and **automatically forwards container ports to `localhost`** on your laptop for the duration of the session.
 
@@ -45,7 +44,7 @@ VSCode opens a remote window connected to the container and **automatically forw
 If the sandbox runs on a remote server:
 
 1. Connect to the server via **Remote-SSH** in VSCode.
-2. From that SSH window, follow Option B to attach to the `openharness` container.
+2. From that SSH window, follow Option B to attach to your sandbox container.
 
 Port forwarding works identically — VSCode tunnels the container ports through the SSH connection to your laptop `localhost`. No manual `ssh -L` required.
 
@@ -86,7 +85,7 @@ If you need a port reachable beyond your laptop — for example, to share a prev
 
 **1. Compose overlay binding `0.0.0.0`**
 
-Add a custom compose file that binds the port on all interfaces and merge it in via `composeOverrides[]` in `.oh/config.json` (gitignored):
+Add a custom compose file that binds the port on all interfaces and merge it in via `composeOverrides[]` in `.agro/config.json` (gitignored):
 
 ```yaml
 # docker-compose.my-expose.yml
@@ -285,11 +284,11 @@ All long-running processes inside the sandbox run in named tmux sessions. The na
 | `agent-` | `agent-watcher`, `agent-batch`, `agent-t3code`, `agent-tailscaled` | Headless / long-running agent processes (interactive CLIs are foreground, not tmux) |
 | `app-` | `app-api` | Dev servers |
 
-For the full convention see [`.oh/skills/t3/references/sandbox-processes.md`](https://github.com/mifunedev/openharness/blob/development/.oh/skills/t3/references/sandbox-processes.md).
+For the full convention see [`.agro/skills/t3/references/sandbox-processes.md`](https://github.com/mifunedev/agro/blob/development/.agro/skills/t3/references/sandbox-processes.md).
 
 ## End-to-end recipe
 
-This recipe assumes the sandbox is already running (`oh ps` confirms the `openharness` container is up). Steps run inside the sandbox unless noted.
+This recipe assumes the sandbox is already running (`agro ps <name>` confirms your sandbox container is up). Steps run inside the sandbox unless noted.
 
 ### Step 1 — Attach via VSCode
 

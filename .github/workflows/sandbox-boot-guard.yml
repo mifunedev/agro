@@ -8,28 +8,36 @@ on:
       - main
     paths:
       - ".devcontainer/**"
+      - ".agro/**"
       - ".oh/**"
       - "packages/oh/**"
-      - ".oh/scripts/docker-compose.sh"
-      - ".oh/scripts/sandbox-boot-smoke.sh"
-      - ".oh/scripts/harness-config.sh"
+      - ".agro/scripts/docker-compose.sh"
+      - ".agro/scripts/sandbox-boot-smoke.sh"
+      - ".agro/scripts/sandbox-upgrade-smoke.sh"
+      - ".agro/scripts/cli-first-install-smoke.sh"
+      - ".agro/scripts/harness-config.sh"
+      - "agro.json"
       - "oh.json"
       - ".example.env"
       - ".dockerignore"
-      - ".oh/scripts/verify-sandbox-image.sh"
+      - ".agro/scripts/verify-sandbox-image.sh"
       - ".github/workflows/sandbox-boot-guard.yml"
   pull_request:
     paths:
       - ".devcontainer/**"
+      - ".agro/**"
       - ".oh/**"
       - "packages/oh/**"
-      - ".oh/scripts/docker-compose.sh"
-      - ".oh/scripts/sandbox-boot-smoke.sh"
-      - ".oh/scripts/harness-config.sh"
+      - ".agro/scripts/docker-compose.sh"
+      - ".agro/scripts/sandbox-boot-smoke.sh"
+      - ".agro/scripts/sandbox-upgrade-smoke.sh"
+      - ".agro/scripts/cli-first-install-smoke.sh"
+      - ".agro/scripts/harness-config.sh"
+      - "agro.json"
       - "oh.json"
       - ".example.env"
       - ".dockerignore"
-      - ".oh/scripts/verify-sandbox-image.sh"
+      - ".agro/scripts/verify-sandbox-image.sh"
       - ".github/workflows/sandbox-boot-guard.yml"
 
 concurrency:
@@ -55,7 +63,7 @@ jobs:
           submodules: recursive
 
       - name: Ensure Mifune submodule
-        run: bash .oh/scripts/link-providers.sh --init
+        run: bash .agro/scripts/link-providers.sh --init
 
       - name: Docker diagnostics
         run: |
@@ -65,13 +73,13 @@ jobs:
       # Sandbox boot guard only: validate the local devcontainer substrate.
       # This job never logs in, pushes an image, or publishes release artifacts.
       - name: Validate base compose configuration
-        run: bash .oh/scripts/docker-compose.sh config --quiet
+        run: bash .agro/scripts/docker-compose.sh config --quiet
 
       - name: Validate sshd compose overlay
         env:
           SANDBOX_SSH: "true"
           SANDBOX_SSH_PORT_CHECK: "off"
-        run: bash .oh/scripts/docker-compose.sh config --quiet
+        run: bash .agro/scripts/docker-compose.sh config --quiet
 
       - name: Build sandbox image locally
         env:
@@ -87,7 +95,7 @@ jobs:
       # sandbox UID/GID contract, the Node/pnpm pins, the architecture-specific
       # Herdr checksum, and version output from every required default tool.
       - name: Verify sandbox image contract
-        run: bash .oh/scripts/verify-sandbox-image.sh openharness-sandbox-boot-guard:${{ github.sha }}
+        run: bash .agro/scripts/verify-sandbox-image.sh openharness-sandbox-boot-guard:${{ github.sha }}
 
       # ── Option C: pre-seed node_modules on the runner, BEFORE boot ──────────
       # The devcontainer bind-mounts the checkout (..:/home/sandbox/harness) and
@@ -96,7 +104,7 @@ jobs:
       # overrun the healthcheck's ~690s unhealthy deadline and fail the boot with
       # "systemd unit not active: openharness-cron.service". Seeding node_modules here
       # moves that slow/variable install OUT of the healthcheck-timed window; the
-      # step below also sets build.skipPnpmInstall in oh.json so the pre-seeded CI
+      # step below also sets build.skipPnpmInstall in agro.json so the pre-seeded CI
       # path remains an explicit boot-window escape hatch even before a marker
       # exists. The runner workspace is a named volume shared at the same path
       # with the dind daemon, so the node_modules written here is exactly what the
@@ -116,6 +124,49 @@ jobs:
           # pre-seeded tree matches what the container runs — spec §9 parity.
           node-version: 22
           cache: pnpm
+
+      - name: Build candidate CLI
+        run: |
+          npm --prefix .agro/cli ci --ignore-scripts
+          npm --prefix .agro/cli run build
+
+      - name: Candidate bootstrap without Node
+        run: |
+          docker run --rm \
+            -e AGRO_ASSUME_YES=1 \
+            -v "${{ github.workspace }}:/src:ro" \
+            debian:bookworm-slim \
+            bash -lc '
+              set -euo pipefail
+              apt-get update
+              apt-get install -y --no-install-recommends curl ca-certificates bash
+              if command -v node >/dev/null 2>&1; then echo "node unexpectedly present"; exit 1; fi
+              echo "node_before=ABSENT"
+              bash /src/.agro/scripts/cli-first-install-smoke.sh \
+                --phase bootstrap \
+                --bootstrap-without-node \
+                --bundle /src/.agro/cli/dist/agro.js \
+                --keep
+            '
+
+      - name: Candidate CLI-first install and recreation smoke
+        env:
+          CANDIDATE_IMAGE: openharness-sandbox-boot-guard:${{ github.sha }}
+        run: |
+          set -o pipefail
+          bash .agro/scripts/cli-first-install-smoke.sh \
+            --phase all \
+            --image "$CANDIDATE_IMAGE" \
+            --require-docker \
+            2>&1 | tee cli-first-install-smoke.log
+
+      - name: Upload the CLI-first smoke log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-first-install-smoke-log-${{ github.run_id }}
+          path: cli-first-install-smoke.log
+          if-no-files-found: warn
 
       - name: Pre-seed node_modules in the checkout (out of the boot window)
         run: pnpm install --frozen-lockfile
@@ -137,12 +188,12 @@ jobs:
       # the in-container install out of the healthcheck-timed window. This is the
       # Option C contract: pnpm slowness can no longer trip the ~690s unhealthy
       # deadline. entrypoint.sh reads this through `oh config show`, so it is set
-      # in oh.json rather than passed as an environment knob.
+      # in agro.json rather than passed as an environment knob.
       - name: Skip the in-container pnpm install
         run: |
           tmp=$(mktemp)
-          jq '.build.skipPnpmInstall = true' oh.json > "$tmp"
-          mv "$tmp" oh.json
+          jq '.build.skipPnpmInstall = true' agro.json > "$tmp"
+          mv "$tmp" agro.json
 
       # This step is the ONLY place a full boot on a fresh home volume runs end to
       # end (the smoke tears down with `down -v`), and the smoke asserts that the
@@ -155,4 +206,41 @@ jobs:
           # 300s one.
           BOOT_SMOKE_TIMEOUT_SECONDS: "1200"
           BOOT_SMOKE_INTERVAL_SECONDS: "10"
-        run: bash .oh/scripts/sandbox-boot-smoke.sh
+        run: bash .agro/scripts/sandbox-boot-smoke.sh
+
+  sandbox-upgrade-guard:
+    name: Boot a legacy volume against the fresh image
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Ensure Mifune submodule
+        run: bash .agro/scripts/link-providers.sh --init
+
+      - name: Docker diagnostics
+        run: |
+          docker --version
+          docker compose version
+
+      - name: Upgrade a legacy workspace volume to the freshly built image
+        env:
+          LEGACY_IMAGE: ghcr.io/mifunedev/openharness:0.9.0
+          UPGRADE_SMOKE_PROJECT: agro-upgrade-${{ github.run_id }}
+          UPGRADE_SMOKE_TIMEOUT_SECONDS: "1200"
+          UPGRADE_SMOKE_INTERVAL_SECONDS: "10"
+        run: |
+          set -o pipefail
+          bash .agro/scripts/sandbox-upgrade-smoke.sh 2>&1 | tee sandbox-upgrade-smoke.log
+
+      - name: Upload the upgrade smoke log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandbox-upgrade-smoke-log-${{ github.run_id }}
+          path: sandbox-upgrade-smoke.log
+          if-no-files-found: warn

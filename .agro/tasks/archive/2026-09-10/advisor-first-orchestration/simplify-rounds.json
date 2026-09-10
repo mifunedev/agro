@@ -1,0 +1,1 @@
+{ "rounds": 2, "netAdded": 2411, "lastCommit": "48113599965fd4aa0cf3779428585d44624a54a4", "nonReducing": false, "note": "round 1: 11 blocking on 1514036f (netAdded 2470) -> 2404 on 4c069f65, all resolved; round 2: 1 blocking on ac616544 (2413) -> 48113599 (2411), resolved; pass 4 found nothing new" }

@@ -1,0 +1,737 @@
+{
+  "schemaVersion": 1,
+  "slug": "delegate-follow-up",
+  "issue": 1003,
+  "pr": 1004,
+  "branch": "skill/1003-delegate-follow-up",
+  "baseCommit": "56ab2bab894e43073bf79edc43f70fe3ddd6d6de",
+  "advisor": {
+    "role": "active session; owns scope, prd.json, progress.txt, acceptance, evidence.md, and the PR",
+    "dispatchesNestedWorkers": false,
+    "nativePreflight": {
+      "workerTool": "Agent",
+      "modelArgument": "present; enum sonnet | opus | haiku | fable",
+      "effortArgument": "absent on the per-call Agent tool",
+      "perWorkerEffortControl": "subagent definition frontmatter (effort:) \u2014 no agents directory exists in this repository and none is created, so no per-worker effort control is available at dispatch time",
+      "consequence": "requested effort is an advisor judgment recorded before dispatch; observed effort stays 'inherited session level, unobserved'. Per the merged policy a missing effort control never blocks a worker and never justifies a model substitution."
+    }
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Implement the four residual delegate corrections and extend the two contract probes",
+      "description": "Revise .oh/skills/delegate/SKILL.md so dependents are released only on advisor acceptance, sizing guidance names the factors that decide a boundary instead of maximizing parallelism, resume reconciles interrupted `running` tasks, and the undefined Memory Protocol and after-planning execution trigger are removed with the read-only --dry-run contract preserved. Extend .oh/evals/probes/delegate-worker-boundary.sh and .oh/evals/probes/advisor-execution-contract.sh to pin those contracts, fault-injection testing every added check.",
+      "dependsOn": [],
+      "complexity": "medium \u2014 acceptance ordering and resume share the task graph's semantics, the edits are coupled, and the probe work needs negative cases; deciding factors: subtle contract semantics, cross-file coupling, low reversibility risk (text only), decisive checks available",
+      "selectionReason": "Hardest supported non-Sonnet model per the canonical policy; effort raised above the mechanical floor because the edits change contract semantics rather than applying a known transformation, and each probe check must be fault-injection tested. Never Sonnet, never max.",
+      "requestedModelReasoning": "opus / effort high (advisor judgment, recorded before dispatch)",
+      "observedSettingsProvenance": "requested opus / effort high. Observed model: unknown \u2014 the worker did not self-report and no native surface displayed it. Observed effort: inherited session level, unobserved (no per-worker effort control at dispatch time).",
+      "readScope": ".oh/skills/delegate/SKILL.md, .oh/evals/probes/*.sh, .oh/skills/spec/references/execute.md, .oh/skills/spec/templates/task-prompt.md, .oh/skills/spec/SKILL.md, .oh/tasks/delegate-follow-up/prd.md, .oh/tasks/delegate-follow-up/prd.json, .oh/tasks/README.md",
+      "ownedWritePaths": [
+        ".oh/skills/delegate/SKILL.md",
+        ".oh/evals/probes/delegate-worker-boundary.sh",
+        ".oh/evals/probes/advisor-execution-contract.sh"
+      ],
+      "exclusions": [
+        ".oh/skills/audit/** (the deferred gate-3 and gate-5 repairs are not in scope)",
+        ".oh/evals/probes/audit-run-root-contract.sh (read-only)",
+        ".oh/evals/probes/delegate-model-effort-policy.sh, spec-single-owner.sh, plan-orchestration-contract.sh, roles-are-skills.sh (read-only)",
+        "AGENTS.md / CLAUDE.md and all root instructions",
+        ".oh/skills/spec/** (read-only)",
+        "any provider mirror under .claude/, .codex/, .pi/",
+        "docs/, CHANGELOG.md, and any public documentation",
+        ".oh/tasks/advisor-first-orchestration/** and every other predecessor task record",
+        ".oh/tasks/delegate-follow-up/prd.json and progress.txt (advisor-owned)",
+        "git push, gh, PR finalization, nested Agent dispatch"
+      ],
+      "executionDirectory": "/home/sandbox/harness/.worktrees/skill/1003-delegate-follow-up",
+      "worktreeIsolation": "isolated worktree on branch skill/1003-delegate-follow-up; T1 is the only writer, so shared-file work is serialized by construction",
+      "workerType": "general-purpose (provider built-in, write-capable)",
+      "continuationMethod": "native continuation via SendMessage to the same worker; otherwise checkpoint the diff and rebrief only the incomplete scope",
+      "deliverable": "the patch to the three owned files, the exact diff, the tested revision, and every verification command with its real exit code",
+      "verification": "bash .oh/evals/probes/delegate-worker-boundary.sh; bash .oh/evals/probes/advisor-execution-contract.sh; bash .oh/evals/probes/delegate-model-effort-policy.sh; bash .oh/evals/probes/spec-single-owner.sh; bash .oh/evals/probes/plan-orchestration-contract.sh; bash .oh/evals/probes/roles-are-skills.sh; bash .oh/scripts/link-providers.sh --check; per-check fault injection in a disposable copy under the scratchpad",
+      "evidenceDestinations": "worker report to the advisor; the advisor records accepted evidence in .oh/tasks/delegate-follow-up/evidence.md and the narrative in progress.txt",
+      "coveredDoDIds": [
+        "D2",
+        "D3",
+        "D4",
+        "D5",
+        "D6"
+      ],
+      "acceptanceOwner": "active advisor; a worker never accepts its own result",
+      "failureRepairRoute": "failed checks return to T1; the advisor rechecks the repair before fresh independent review",
+      "maxDepth": 1,
+      "nativeWorkerId": "general-purpose worker, session-scoped native reference held by the advisor; the provider surface exposes no durable id to persist, recorded as such rather than as unknown",
+      "status": "completed",
+      "artifactReferences": [
+        "3ddb06b15bc20148bdf08dd1caf1a7b8a56a8103",
+        "c879ad800c76353f66a020af27ce161aea87aa40",
+        "d390ebe387199d123c0c2ba44bf65039d6f81a38"
+      ],
+      "usage": "480k subagent tokens, 81 tool uses across three rounds (provider-reported)",
+      "summary": "Three rounds, one continuing worker throughout, every round routed by native continuation with no duplicate ever dispatched. R1 3ddb06b1 (the four corrections plus the first probe checks), R2 c879ad80 (five review repairs), R3 d390ebe3 (widened negation window plus the must-pass injection class). Each round ACCEPTED only after the advisor re-ran the full check list itself. Total +205 / -40 across exactly the three owned paths."
+    },
+    {
+      "id": "T2",
+      "title": "Independent read-only review of the integrated residual diff",
+      "description": "Read the complete diff against the approved base and assess D1-D7 independently. Confirm the three merged pre-merge repairs remain intact, every retained follow-up carries an explicit disposition, and no deferred surface was touched.",
+      "dependsOn": [
+        "T1"
+      ],
+      "complexity": "medium \u2014 independent cross-file and runtime-evidence review with no duplicate implementation",
+      "selectionReason": "Adversarial review of subtle contract semantics; hardest supported non-Sonnet model, effort raised for adversarial reading. Never Sonnet, never max.",
+      "requestedModelReasoning": "opus / effort high (advisor judgment, recorded before dispatch)",
+      "observedSettingsProvenance": "requested opus / effort high. Observed model: unknown \u2014 not self-reported. Observed effort: inherited session level, unobserved.",
+      "readScope": "the complete diff, all verification-matrix sources, .oh/tasks/delegate-follow-up/evidence.md, .oh/plans/delegate-follow-up/plan.md",
+      "ownedWritePaths": [],
+      "exclusions": [
+        "all writes",
+        "dispatch",
+        "implementation",
+        "session steering"
+      ],
+      "executionDirectory": "/home/sandbox/harness/.worktrees/skill/1003-delegate-follow-up",
+      "worktreeIsolation": "same worktree, read-only brief",
+      "workerType": "general-purpose (read-only brief)",
+      "continuationMethod": "checkpoint-and-rebrief for a repair review",
+      "deliverable": "blocking findings per criterion against the tested revision, plus verification gaps",
+      "verification": "advisor reads each finding against the source and either routes it to T1 or records why it is not blocking",
+      "evidenceDestinations": ".oh/tasks/delegate-follow-up/evidence.md",
+      "coveredDoDIds": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "D5",
+        "D6",
+        "D7"
+      ],
+      "acceptanceOwner": "active advisor",
+      "failureRepairRoute": "T1 repairs; T2 re-reviews",
+      "maxDepth": 1,
+      "nativeWorkerId": "general-purpose read-only reviewer, session-scoped native reference held by the advisor",
+      "status": "completed",
+      "artifactReferences": [
+        "round 1: 4 blocking / 22 non-blocking + 3 simplicity findings",
+        "round 2: 1 blocking (B-1 stale ledger) / 7 non-blocking + 5 simplicity findings at 263b9d52",
+        "round 3: no new blocking finding; B-1 confirmed closed; gate-5 record keyed to d390ebe3 with 5 non-blocking findings"
+      ],
+      "usage": "588k subagent tokens, 86 tool uses across three rounds (provider-reported)",
+      "summary": "Three review rounds, all ACCEPTED. Round 1: 4 blocking / 22 non-blocking. Round 2 (re-review of the repair): 1 blocking (B-1, the stale ledger recurrence) / 7 non-blocking. Round 3: no new blocking finding, B-1 confirmed closed by re-running the pattern page's own recipe, and the gate-5 record keyed to the last implementation commit."
+    },
+    {
+      "id": "T3",
+      "title": "Fresh independent pre-merge review of the whole PR (no prior context)",
+      "description": "Operator-authorized pre-merge repair round. Review the stale evidence claim, the D4 case labelling, and the prd reconciliation against the approved plan, with no prior context on this work. Later produced the gate-5 simplicity review that simplicity-review.json records.",
+      "dependsOn": [
+        "T1",
+        "T2"
+      ],
+      "complexity": "medium-high - adversarial review of a document this session had already corrected once",
+      "selectionReason": "Fresh adversarial reader with no stake in the work passing; hardest supported non-Sonnet model. Never Sonnet, never max.",
+      "requestedModelReasoning": "opus / effort inherited (advisor judgment, recorded before dispatch)",
+      "observedSettingsProvenance": "requested opus. Observed model: unknown - not self-reported. Observed effort: inherited session level, unobserved.",
+      "readScope": "the complete diff, the approved plan, prd.md, prd.json, evidence.md, progress.txt, the delegation records, git and gh read-only",
+      "ownedWritePaths": [],
+      "exclusions": [
+        "all writes",
+        "dispatch",
+        "implementation",
+        "session steering"
+      ],
+      "executionDirectory": "/home/sandbox/harness/.worktrees/skill/1003-delegate-follow-up",
+      "worktreeIsolation": "same worktree, read-only brief",
+      "workerType": "general-purpose (read-only brief), fresh, no prior context on this work",
+      "continuationMethod": "checkpoint-and-rebrief",
+      "deliverable": "blocking findings per criterion against the tested revision, plus the gate-5 simplicity review",
+      "verification": "advisor re-reads each finding against the source and routes it or records why it is not blocking",
+      "evidenceDestinations": "evidence.md, progress.txt, simplicity-review.json",
+      "coveredDoDIds": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "D5",
+        "D6",
+        "D7"
+      ],
+      "acceptanceOwner": "active advisor",
+      "failureRepairRoute": "T1 or T4 repairs; T3 re-reviews",
+      "maxDepth": 1,
+      "nativeWorkerId": null,
+      "nativeWorkerIdProvenance": "NOT RECORDED AT DISPATCH. The advisor failed to persist this worker's native reference, which is itself an instance of the ledger defect this task documents. Recorded as null rather than invented. Consequence, stated plainly: a resume could not have reached this worker even within this session, and would have had to treat it as unknown provenance.",
+      "status": "completed",
+      "artifactReferences": [
+        "round 1 at b61dad88: 4 blocking (B-1 superseded run id and zero repo hits, B-2 false untouched-since claim, B-3 three-vs-five findings, B-4 D4 case (a) mislabelled) / non-blocking",
+        "final pass: no remaining blocking finding",
+        ".oh/tasks/delegate-follow-up/simplicity-review.json keyed to 6324e09f, 5 findings, none blocking"
+      ],
+      "usage": "not separately recorded at the time; provider totals were not captured for this worker",
+      "summary": "Fresh reviewer for the operator-authorized pre-merge repair round. Four blocking findings, all accepted and none argued with, including that the PR did not carry its own audit coverage and that D4 case (a) had been mislabelled as a live active-worker reconnect when it was continuation of an ended worker. Also authored the gate-5 simplicity review that simplicity-review.json records. ADDED TO THIS LEDGER RETROACTIVELY after review R4 finding B-1 observed that a dispatched worker whose output is gate-consumed appeared in no delegation record at all."
+    },
+    {
+      "id": "T4",
+      "title": "Record the cross-session recovery experiment and make the audit runs independently verifiable",
+      "description": "Copy the six terminal audit evidence documents and the full cross-session experiment artifact set into the task record, write both directory READMEs from the raw files, and update evidence.md: rewrite the D4 section on the experiment rather than on inference, add the R1 evidence table, record the audit-artifact durability limit, and map R1-R4 to evidence.",
+      "dependsOn": [],
+      "complexity": "medium \u2014 factual recording under a strict no-overstatement rule; the hazard is prose that reads as a reconnection claim, not implementation difficulty",
+      "selectionReason": "Hardest supported non-Sonnet model; the task is contract-sensitive prose where a single overstated sentence is the defect. Never Sonnet, never max.",
+      "requestedModelReasoning": "opus / effort inherited (advisor judgment, recorded before dispatch)",
+      "observedSettingsProvenance": "requested opus. Observed model: unknown \u2014 not self-reported. Observed effort: inherited session level, unobserved.",
+      "readScope": ".oh/tasks/delegate-follow-up/**, .oh/skills/audit/scripts/audit-run.sh, the staged scratch artifacts named in the brief",
+      "ownedWritePaths": [
+        ".oh/tasks/delegate-follow-up/evidence.md",
+        ".oh/tasks/delegate-follow-up/audit-runs/",
+        ".oh/tasks/delegate-follow-up/xsession-experiment/"
+      ],
+      "exclusions": [
+        ".oh/tasks/delegate-follow-up/prd.json, progress.txt, delegate-graph.json, delegate-log.txt (advisor-owned)",
+        ".oh/skills/**, .oh/evals/**, .oh/knowledge/**, docs/, root instructions, every provider mirror",
+        "git commit, git push, gh, any PR operation",
+        "nested Agent dispatch"
+      ],
+      "executionDirectory": "/home/sandbox/harness/.worktrees/skill/1003-delegate-follow-up",
+      "worktreeIsolation": "same worktree; T4 is the only writer while it runs",
+      "workerType": "general-purpose (provider built-in, write-capable)",
+      "continuationMethod": "native continuation via SendMessage to the same worker",
+      "searchOutputLimits": "read only the named task-record files and the staged artifacts; copy byte-for-byte rather than retyping",
+      "stoppingCondition": "the three owned paths carry the recorded evidence and the report names every created file; no commit, no push",
+      "deliverable": "the copied artifacts, both READMEs, the evidence.md edit, and a report naming every file with the six run ids read off the JSON",
+      "verification": "advisor re-reads every claim against the raw artifacts and re-runs the probe and link checks before acceptance",
+      "evidenceDestinations": ".oh/tasks/delegate-follow-up/evidence.md and the two new record directories",
+      "coveredDoDIds": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "acceptanceOwner": "active advisor; a worker never accepts its own result",
+      "failureRepairRoute": "failed checks return to T4; the advisor rechecks before independent review",
+      "maxDepth": 1,
+      "nativeWorkerId": "a592c15acf774c966",
+      "status": "completed",
+      "artifactReferences": [
+        ".oh/tasks/delegate-follow-up/audit-runs/ (9 evidence JSON + README)",
+        ".oh/tasks/delegate-follow-up/xsession-experiment/ (6 copied artifacts + transcribed worker report + README)",
+        ".oh/tasks/delegate-follow-up/evidence.md",
+        ".oh/tasks/delegate-follow-up/eval-result.json ranAt correction",
+        ".oh/tasks/delegate-follow-up/simplicity-review.json reviewedAt correction",
+        ".oh/tasks/delegate-follow-up/prd.md amendment note (SA-1)"
+      ],
+      "usage": "242k subagent tokens, 99 tool uses across seven rounds (provider-reported)",
+      "summary": "Seven rounds, one continuing worker throughout, every round routed by native continuation with no duplicate ever dispatched. R1 recorded the experiment and the six audit documents and rewrote the D4 section on the measurement. R2 fixed two defects it raised against its own brief. R3 disclosed the fabricated id separately from the real-but-untracked one, corrected the mechanism description that had flattered the artifacts, and added three further runs. R4 recorded the R4 reviewer's findings, corrected two provenance stamps that postdated their own commit, and disclosed the SKILL.md resume/5d contradiction without fixing it. R5 corrected the third-recurrence wording after the advisor's own account of it proved imprecise. R6 recorded operator scope amendment SA-1 in evidence.md and prd.md, took the boundary from prd.json rather than from the advisor's message so the prose matches the authoritative file, and independently re-ran the C7 prefix proof and the case-(d) citation before writing them. The worker raised five corrections against the advisor's briefs across those rounds and every one was right: the unsourced quote, the stale bullet, the gitignored artifacts that a plain git add would have silently dropped, the plus-one-second figure that was plus-zero for two runs, and the label-keyed account of the third recurrence. It also found nine citation-drift errors where the advisor had flagged one. In R6 it caught four statements elsewhere in evidence.md that still asserted the pre-amendment state and would have contradicted the new section, an R4 verdict cell that contradicted the new overall-state line, and a C6 citation the advisor gave as a mid-sentence line number rather than the whole bullet. It also identified the single prd.md criterion SA-1 makes inaccurate and annotated it inline rather than editing the approved plan's text. R7 withdrew the two overstated claims the amendment reviewer defeated, corrected the experiment README where it denied a boundary its own artifacts show the session citing, and widened the provenance-stamp disclosure to the ledger. It found three further places carrying the same conflation and a leftover self-contradiction in the R4 cell, all outside the briefed list."
+    },
+    {
+      "ownedWritePaths": [],
+      "exclusions": [
+        "all writes",
+        "dispatch",
+        "implementation",
+        "session steering",
+        "the deferred register"
+      ],
+      "executionDirectory": "/home/sandbox/harness/.worktrees/skill/1003-delegate-follow-up",
+      "worktreeIsolation": "same worktree, read-only brief",
+      "workerType": "general-purpose (read-only brief), fresh, no prior context on this work",
+      "continuationMethod": "checkpoint-and-rebrief",
+      "requestedModelReasoning": "opus / effort inherited (advisor judgment, recorded before dispatch)",
+      "observedSettingsProvenance": "requested opus. Observed model: unknown - not self-reported. Observed effort: inherited session level, unobserved.",
+      "acceptanceOwner": "active advisor",
+      "failureRepairRoute": "findings route to T4",
+      "maxDepth": 1,
+      "id": "T5",
+      "title": "Fresh independent audit-provenance review (R3)",
+      "description": "Attempt to break the claim that every cited audit run id names a run that executed and that the verdict and tested revision attributed to it match what the run actually did. Check for a run from the wrong PR filed under this task and for any reintroduction of the fabricated-id defect.",
+      "dependsOn": [
+        "T4"
+      ],
+      "complexity": "medium - adversarial provenance verification against artifacts, git records and host state; no implementation",
+      "selectionReason": "Adversarial reading of an evidence claim this session has already got wrong twice; hardest supported non-Sonnet model. Never Sonnet, never max.",
+      "readScope": "evidence.md, audit-runs/, the audit scripts, git metadata, gh read-only",
+      "searchOutputLimits": "the task record, the two audit scripts, and whatever git or host state it needs to corroborate a claim",
+      "stoppingCondition": "a verdict on the coverage claim with findings separated blocking from non-blocking",
+      "deliverable": "verdict, findings by severity, and what it checked and could not fault",
+      "verification": "advisor re-checks each finding against the source before routing it",
+      "evidenceDestinations": "evidence.md and progress.txt",
+      "coveredDoDIds": [
+        "R3"
+      ],
+      "nativeWorkerId": "a23724d34d9d90fc6",
+      "status": "completed",
+      "artifactReferences": [
+        "1 blocking (B-1 undisclosed fabricated-id incident), 4 non-blocking; coverage claim upheld with all six heads corroborated"
+      ],
+      "usage": "133k subagent tokens, 36 tool uses (provider-reported)",
+      "summary": "Verdict: the coverage claim holds. All six ids corroborated two independent ways - commit-time interleaving and monotonic PID continuity - rather than accepted as plausible. Wrong-PR check clean. The AUDIT-FAIL is present and accurate and its cause was reproduced from first principles. B-1 BLOCKING and accepted: evidence.md asserted a fabricated-id disclosure the document did not carry, and the surviving prose reframed that failure as the artifact-durability limit, which explains a different one. Four non-blocking findings all accepted, including that route-driver.sh never reads AUDIT_EVIDENCE_PATH and that a direct route-driver invocation leaves the run id caller-chosen with no exit status captured. It also declined to report a mid-review push race as a finding after verifying the remote files byte-identical."
+    },
+    {
+      "ownedWritePaths": [],
+      "exclusions": [
+        "all writes",
+        "dispatch",
+        "implementation",
+        "session steering",
+        "the deferred register"
+      ],
+      "executionDirectory": "/home/sandbox/harness/.worktrees/skill/1003-delegate-follow-up",
+      "worktreeIsolation": "same worktree, read-only brief",
+      "workerType": "general-purpose (read-only brief), fresh, no prior context on this work",
+      "continuationMethod": "checkpoint-and-rebrief",
+      "requestedModelReasoning": "opus / effort inherited (advisor judgment, recorded before dispatch)",
+      "observedSettingsProvenance": "requested opus. Observed model: unknown - not self-reported. Observed effort: inherited session level, unobserved.",
+      "acceptanceOwner": "active advisor",
+      "failureRepairRoute": "findings route to T4",
+      "maxDepth": 1,
+      "id": "T6",
+      "title": "Fresh independent final-content and state review (R4)",
+      "description": "Review the final content including probe and knowledge edits, reconcile the delegation records against actual worker state by running the pattern page reproduction recipe, map D1-D7 and R1-R4 to evidence, verify the content-head handling is not excusing code or knowledge content, verify pushed-head CI and classification, and give a reading of the plan-line tension between the D4 row and the affected-surface table.",
+      "dependsOn": [
+        "T4",
+        "T5"
+      ],
+      "complexity": "medium-high - full-diff review plus records reconciliation plus a judgment call the advisor deliberately did not make alone",
+      "selectionReason": "Adversarial full-content review and an interpretive question the advisor has an interest in; hardest supported non-Sonnet model. Never Sonnet, never max.",
+      "readScope": "the complete diff, the approved plan, prd.md, prd.json, all task records, xsession-experiment/, the audit driver, gh read-only",
+      "searchOutputLimits": "the diff against the approved base, the plan, and the task records",
+      "stoppingCondition": "a verdict, a D1-D7 and R1-R4 mapping, and an explicit reading of the plan-line tension",
+      "deliverable": "verdict, findings by severity, criterion mapping, and the tension reading",
+      "verification": "advisor re-checks each finding against the source before routing it",
+      "evidenceDestinations": "evidence.md and progress.txt",
+      "coveredDoDIds": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "D5",
+        "D6",
+        "D7",
+        "R1",
+        "R2",
+        "R4"
+      ],
+      "nativeWorkerId": "a27951dbf246c8b94",
+      "status": "completed",
+      "artifactReferences": [
+        "4 blocking (B-1 third stale-ledger recurrence, B-2 false reconciliation claims, B-3 prd.json passes=true over a blocked criterion, B-4 stale head named by the commit that made it stale), 5 non-blocking",
+        "explicit reading of the plan-line tension: 'explicit gaps' governs the FORM of the record, not the verdict; the plan's two verdict rules block a missing prerequisite"
+      ],
+      "usage": "198k subagent tokens, 52 tool uses (provider-reported)",
+      "summary": "Verdict DRAFT-BLOCKED, all four blocking findings in the record layer rather than the code; the implementation itself it could not fault. It ran the pattern page's own reproduction recipe against the COMMITTED tree and got two hits, not zero: T5 accepted with no ACCEPT line and no graph entry, and T3 absent from every delegation record despite authoring the gate-5 input. It built its own injection harness in scratch and independently confirmed the probe pins are real, reproduced all three disclosed paraphrase blind spots verbatim, and verified the content-head rule holds strictly at the true current head. On the interpretive question the advisor declined to settle alone, it read the plan against the advisor's interest and still reached BLOCKED."
+    },
+    {
+      "executionDirectory": "/home/sandbox/harness/.worktrees/skill/1003-delegate-follow-up",
+      "requestedModelReasoning": "opus / effort inherited (advisor judgment, recorded before dispatch)",
+      "observedSettingsProvenance": "requested opus. Observed model: unknown - not self-reported. Observed effort: inherited session level, unobserved.",
+      "acceptanceOwner": "active advisor; a worker never accepts its own result",
+      "maxDepth": 1,
+      "id": "T8",
+      "title": "Fresh independent review of the SA-1 amendment and the US-003 flip",
+      "description": "Treat US-003 passes=true as the weak point and try to prove it was flipped too easily. Check the amendment is applied strictly to its stated boundary, re-verify every remaining criterion independently, confirm nothing was rewritten as a prior pass, reconcile the ledger at the committed revision keyed on worker ids, and read the implementation rather than the prose about it.",
+      "dependsOn": [
+        "T4"
+      ],
+      "complexity": "medium-high - adversarial review of a gate flip the advisor has an interest in",
+      "selectionReason": "The advisor benefits from this flip standing, so the check belongs to a fresh reader with no stake; hardest supported non-Sonnet model. Never Sonnet, never max.",
+      "readScope": "the complete diff, the approved plan, prd.md, prd.json, all task records, xsession-experiment/, audit-runs/, the audit driver, git and gh read-only",
+      "ownedWritePaths": [],
+      "exclusions": [
+        "all writes to the worktree",
+        "dispatch",
+        "implementation",
+        "session steering",
+        "the deferred register"
+      ],
+      "worktreeIsolation": "same worktree, read-only brief; scratch copies permitted for injection testing",
+      "workerType": "general-purpose (read-only brief), fresh, no prior context on this work",
+      "continuationMethod": "checkpoint-and-rebrief",
+      "searchOutputLimits": "the diff against the approved base, the plan, the task records, and scratch copies for injection tests",
+      "stoppingCondition": "a verdict on whether US-003 passes=true is honest under SA-1, with findings separated blocking from non-blocking",
+      "deliverable": "verdict, findings by severity, per-criterion verification, and what it checked and could not fault",
+      "verification": "advisor re-checks each finding against the source before routing it",
+      "evidenceDestinations": "evidence.md, prd.json, progress.txt",
+      "coveredDoDIds": [
+        "D4",
+        "D6",
+        "R2",
+        "R4",
+        "SA-1"
+      ],
+      "failureRepairRoute": "record findings to T4, implementation findings to T7",
+      "nativeWorkerId": "ac8632ed54cd27ed7",
+      "status": "completed",
+      "artifactReferences": [
+        "3 blocking (B1 case-(d) conflation, B2 README contradicts its own artifacts, B3 stale-completed contract shipped unpinned), 5 non-blocking",
+        "verdict: the flip is defensible and correctly bounded; two claims added in the flip commit do not survive"
+      ],
+      "usage": "197k subagent tokens, 49 tool uses (provider-reported)",
+      "summary": "Confirmed the advisor's own stated suspicion. B1: the claimed live observation for case (d) was the deferred unavailable-handle condition relabelled as the unknown-status condition, and its fail-closed half was confounded because the experiment's brief independently forbade dispatch and writes - drawing a strengthened pass out of the very measurement that justifies the deferral. B2: the experiment README denied that the brief imposed a boundary its own artifacts show the session citing. B3: deleting the shipped stale-completed contract left both probes green, so US-005's guarantee was false as shipped. It verified the amendment diff touches only US-003 and scopeAmendments, found no fourth ledger recurrence keyed on worker ids at the committed revision, confirmed the content-head rule holds, verified all eleven audit artifacts, and injection-tested the probes itself."
+    },
+    {
+      "executionDirectory": "/home/sandbox/harness/.worktrees/skill/1003-delegate-follow-up",
+      "requestedModelReasoning": "opus / effort inherited (advisor judgment, recorded before dispatch)",
+      "observedSettingsProvenance": "requested opus. Observed model: unknown - not self-reported. Observed effort: inherited session level, unobserved.",
+      "acceptanceOwner": "active advisor; a worker never accepts its own result",
+      "maxDepth": 1,
+      "id": "T7",
+      "title": "Pin the stale-completed resume contract that shipped unpinned",
+      "description": "Reproduce the gap independently, then add the minimum probe check that closes it, fault-injection tested in both directions.",
+      "dependsOn": [
+        "T8"
+      ],
+      "complexity": "small-medium - one file, one assertion list, but the both-direction injection matrix is the substance",
+      "selectionReason": "A contract-semantics choice about which literal to pin; hardest supported non-Sonnet model. Never Sonnet, never max.",
+      "readScope": ".oh/evals/probes/advisor-execution-contract.sh, .oh/skills/delegate/SKILL.md (read-only), the approved plan's gap 3",
+      "ownedWritePaths": [
+        ".oh/evals/probes/advisor-execution-contract.sh"
+      ],
+      "exclusions": [
+        ".oh/skills/** including SKILL.md - the contract text is not to be edited, only the probe that pins it",
+        ".oh/evals/probes/delegate-worker-boundary.sh",
+        ".oh/tasks/**, .oh/knowledge/**, root instructions, every provider mirror",
+        "git commit, git push, gh, nested Agent dispatch"
+      ],
+      "worktreeIsolation": "same worktree for the fix; all injections in a scratch copy so the worktree is never left mutated",
+      "workerType": "general-purpose (provider built-in, write-capable)",
+      "continuationMethod": "native continuation via SendMessage to the same worker",
+      "searchOutputLimits": "the one probe file, the bullet it must pin, and a scratch copy of the tree for injections",
+      "stoppingCondition": "the gap reproduces, the added check closes it, both-direction injection passes, and the full local check list exits 0",
+      "deliverable": "the diff, the chosen literals with reasoning, the full injection matrix with real exit codes, and the check list",
+      "verification": "advisor re-runs the check list and the reproduction before acceptance",
+      "evidenceDestinations": "evidence.md, prd.json US-005 notes, progress.txt",
+      "coveredDoDIds": [
+        "D4",
+        "D6"
+      ],
+      "failureRepairRoute": "failed checks return to T7",
+      "nativeWorkerId": "a8e3020b5f489db59",
+      "status": "completed",
+      "artifactReferences": [
+        ".oh/evals/probes/advisor-execution-contract.sh +2"
+      ],
+      "usage": "70k subagent tokens, 14 tool uses (provider-reported)",
+      "summary": "Reproduced the gap before fixing it, as briefed: deleting the whole bullet left both probes at exit 0. Added TWO literals rather than one - the required action and the required consequence - because a variant with a token re-read sentence and no demotion passes the first and is caught only by the second. Injection matrix run in both directions: four must-fail variants exit 1 naming the missing literal, two full rewordings and the unmodified tree exit 0. It also corrected the advisor's brief: the need-list is fed a whitespace-flattened document, so a literal spanning a line break matches fine and the check is more rewrap-stable than the advisor assumed. Noted that the probe's own desc header already claimed to check stale completion evidence, describing a check that did not exist until this repair."
+    },
+    {
+      "id": "SOL-PATCH",
+      "nativeWorkerId": "herdr:w4:pH",
+      "status": "completed",
+      "artifactReferences": [
+        "c6704966c023ffc719797f54e232178eb914a318",
+        "1fd401cc"
+      ],
+      "summary": "Parent accepted exact three-file patch after own diff inspection and independent reviewer 3e4aed67-cd93-4fd reran checks and twelve mutation fixtures. Sol did not push or undraft.",
+      "ownedWritePaths": [
+        ".oh/skills/delegate/SKILL.md",
+        ".oh/evals/probes/delegate-worker-boundary.sh",
+        ".oh/evals/probes/advisor-execution-contract.sh"
+      ],
+      "acceptanceOwner": "parent Pi session",
+      "observedSettingsProvenance": "Herdr Sol pane showed openai-codex/gpt-5.6-sol high; requested unchanged existing session. No inference about other workers."
+    },
+    {
+      "id": "SOL-PATCH-REVIEW",
+      "nativeWorkerId": "3e4aed67-cd93-4fd",
+      "status": "completed",
+      "artifactReferences": [
+        "c6704966c023ffc719797f54e232178eb914a318"
+      ],
+      "summary": "Read-only reviewer found no patch blocker; independently reran focused checks and eight negative/four positive mutations. Whole-task gaps retained.",
+      "ownedWritePaths": [],
+      "acceptanceOwner": "parent Pi session"
+    },
+    {
+      "id": "SOL-RUNTIME",
+      "nativeWorkerId": "herdr:w4:pH",
+      "status": "completed",
+      "artifactReferences": [
+        ".oh/tasks/delegate-follow-up/sol-runtime-proof/",
+        ".oh/tasks/delegate-follow-up/parent-verification/runtime-acceptance.json"
+      ],
+      "summary": "Parent accepted one unconfounded Claude Code 2.1.260 unknown-status/fail-closed observation after independent reviewer c67fc8a2-0100-4f7 verified native events, source identity, task hashes, zero spawns and all 37 manifest entries. No reconnect or universal limitation claim.",
+      "ownedWritePaths": [],
+      "acceptanceOwner": "parent Pi session"
+    },
+    {
+      "id": "SOL-RUNTIME-REVIEW",
+      "nativeWorkerId": "c67fc8a2-0100-4f7",
+      "status": "completed",
+      "artifactReferences": [
+        ".oh/tasks/delegate-follow-up/sol-runtime-proof/",
+        ".oh/tasks/delegate-follow-up/parent-verification/runtime-acceptance.json"
+      ],
+      "summary": "Parent accepted one unconfounded Claude Code 2.1.260 unknown-status/fail-closed observation after independent reviewer c67fc8a2-0100-4f7 verified native events, source identity, task hashes, zero spawns and all 37 manifest entries. No reconnect or universal limitation claim.",
+      "ownedWritePaths": [],
+      "acceptanceOwner": "parent Pi session"
+    },
+    {
+      "id": "PARENT-FINAL-CONTENT-REVIEW",
+      "nativeWorkerId": "bf04e00c-ba8f-4fa",
+      "status": "completed",
+      "artifactReferences": [
+        ".oh/tasks/delegate-follow-up/simplicity-review.json"
+      ],
+      "ownedWritePaths": [],
+      "acceptanceOwner": "parent Pi session",
+      "summary": "Parent accepted reviewer findings, not whole-task readiness: no correctness blocker; two blocking simplifications returned to Sol. Reviewed head 1fd401cc."
+    },
+    {
+      "id": "SOL-CHANGELOG",
+      "nativeWorkerId": "herdr:w4:pH",
+      "status": "completed",
+      "artifactReferences": [
+        "ea3ba9bb572e6f68c5af9b417d00b077f915bf64",
+        "c09e2ba84fff90151412121cfea6cf09002ade90"
+      ],
+      "ownedWritePaths": [
+        "CHANGELOG.md"
+      ],
+      "acceptanceOwner": "parent Pi session",
+      "summary": "Parent inspected scoped returned diff and clean worker tree, verified all 11 manifest entries (after correcting own manifest-check cwd); integrated as 31111831 and 23e409e6. Independent repair review follows."
+    },
+    {
+      "id": "SOL-SIMPLIFY",
+      "nativeWorkerId": "herdr:w4:pH",
+      "status": "completed",
+      "ownedWritePaths": [
+        ".oh/evals/probes/advisor-execution-contract.sh",
+        ".oh/evals/probes/delegate-worker-boundary.sh"
+      ],
+      "artifactReferences": [
+        "ea3ba9bb572e6f68c5af9b417d00b077f915bf64",
+        "c09e2ba84fff90151412121cfea6cf09002ade90"
+      ],
+      "acceptanceOwner": "parent Pi session",
+      "summary": "Parent inspected scoped returned diff and clean worker tree, verified all 11 manifest entries (after correcting own manifest-check cwd); integrated as 31111831 and 23e409e6. Independent repair review follows."
+    },
+    {
+      "id": "PARENT-REPAIR-REVIEW",
+      "nativeWorkerId": "7c3b8668-b6b9-485",
+      "status": "completed",
+      "ownedWritePaths": [],
+      "artifactReferences": [
+        ".oh/tasks/delegate-follow-up/simplicity-review.json"
+      ],
+      "acceptanceOwner": "parent Pi session",
+      "summary": "Parent accepted independent review at 23e409e6: both blocking simplifications resolved; 17 mutation outcomes corroborated. Reviewer found stale current PRD assertions; parent corrects them before final audit."
+    }
+  ],
+  "waves": [
+    {
+      "wave": 1,
+      "tasks": [
+        "T1"
+      ],
+      "parallelism": 1,
+      "reason": "coupled implementation stays with one continuing worker"
+    },
+    {
+      "wave": 2,
+      "tasks": [
+        "T2"
+      ],
+      "parallelism": 1,
+      "reason": "review depends on the integrated T1 result and the advisor's own checks"
+    },
+    {
+      "wave": "2b",
+      "tasks": [
+        "T3"
+      ],
+      "parallelism": 1,
+      "reason": "operator-authorized pre-merge review round; recorded retroactively after R4 found it missing from the ledger"
+    },
+    {
+      "wave": 3,
+      "tasks": [
+        "T4"
+      ],
+      "parallelism": 1,
+      "reason": "recording depends on the completed experiment"
+    },
+    {
+      "wave": 4,
+      "tasks": [
+        "T5",
+        "T6"
+      ],
+      "parallelism": 1,
+      "reason": "provenance review first, then final content review over the corrected record"
+    },
+    {
+      "wave": 5,
+      "tasks": [
+        "T8",
+        "T7"
+      ],
+      "parallelism": 1,
+      "reason": "amendment review first; the probe repair is a finding from it and depends on it"
+    }
+  ],
+  "reconciliation": {
+    "at": "2026-09-07",
+    "trigger": "independent review finding A-1/A-8: the persisted ledger recorded T1 as pending with no artifacts after it had been dispatched, returned, and been accepted",
+    "whatARessumeWouldHaveDone": "read status pending and re-run T1 under its dispatch record, dispatching a SECOND writer onto .oh/skills/delegate/SKILL.md over already-accepted work",
+    "action": "the advisor re-read the persisted graph against real state and reconciled it; this is the end-to-end resume the review recorded as never exercised",
+    "secondOccurrence": {
+      "at": "2026-09-07",
+      "finding": "B-1 \u2014 the same defect recurred one round later: progress.txt recorded the repair round as accepted while the graph still said running and the log had no round-2 acceptance line",
+      "foundBy": "the independent reviewer, by running the reproduction recipe from pattern-delegate-ledger-stale-at-acceptance.md, which this run itself wrote",
+      "severityDifference": "milder than the first occurrence: nativeWorkerId is non-null, so a resume reaches the ambiguity branch and blocks writes rather than dispatching a duplicate",
+      "action": "acceptance written back to both the graph and the log; the page's own recipe is now run before each commit that follows an acceptance"
+    }
+  },
+  "historicalPreNamespaceParentAcceptance": {
+    "owner": "requesting Pi session; operator retained acceptance here; Sol is a bounded worker",
+    "recordedAt": "2026-09-08T00:14:46.470984+00:00",
+    "recordTiming": "Retrospective durable reconciliation of actual dispatch/acceptance in parent conversation, not a claim this ledger preceded dispatch.",
+    "sourceHead": "6fddd9d6a3fd053c613a71fcc0f0b1b8b3ba78c4",
+    "acceptedPatch": "c6704966c023ffc719797f54e232178eb914a318",
+    "integratedCommit": "1fd401cc",
+    "scopeAmendment": "SA-1 only; cross-session reconnect success remains deferred",
+    "runtimeAcceptedAt": "2026-09-07T23:49:08.641668+00:00",
+    "state": "CONTENT_ACCEPTED",
+    "finalization": "All content criteria and preliminary audits accepted; final record commit must pass CI and repeated actual audits at matching clean local/remote head before undraft. No merge authorized.",
+    "auditRuns": [
+      "audit-20260908T001250Z-4036385",
+      "audit-20260908T001251Z-4036476"
+    ]
+  },
+  "parentAcceptance": {
+    "recordedAt": "2026-09-08T02:16:33.129596+00:00",
+    "state": "CONTENT_ACCEPTED",
+    "contentHead": "e139bc363d95b5ee1acf4a22ca3c1a2a7c37c1c4",
+    "baseCommit": "a227bbf3f3166a0e1a8a1951fc88694cfa0151ee",
+    "owner": "requesting parent Pi session",
+    "reviewer": "c4a2d9ce-92aa-411",
+    "scopeAmendment": "SA-1 unchanged, reconnect-only",
+    "operatorAuthorization": "Namespace conflict repair, fresh review and verification, then merge and safe PR-specific cleanup",
+    "finalization": "All content criteria accepted with five actual content-head CI successes. A records-only descendant must pass fresh head-matched CI and actual implementation/PR audits on a clean matching local/remote head before parent undraft and release of the expected-head merge to Luna. No release or unrelated cleanup authorized.",
+    "finalAudits": "Not run yet for this namespace epoch; no reused historical audit IDs.",
+    "modelProvenance": "Luna native footer/env self-report gpt-5.6-luna max. Independent reviewer self-reports requested gpt-5.6-sol high; no further runtime instrumentation."
+  },
+  "namespaceContinuation": {
+    "task": "PR1004 approved namespace reconciliation, merge, cleanup",
+    "acceptanceOwner": "requesting parent session",
+    "operatorApproval": "Approved. Have Luna proceed and monitor its progress to completion.",
+    "workers": [
+      {
+        "id": "T1",
+        "title": "Reconcile accepted PR1004 with namespace cutover",
+        "description": "Preserve accepted delegation behavior while integrating current development namespace; relocate PR1004 task evidence without modifying historical raw bytes. Report verified repair for parent acceptance before merge and cleanup.",
+        "dependsOn": [],
+        "complexity": "cross-boundary integration; five conflicts plus unconflicted historical task relocation; known intended semantics, evidence provenance risk",
+        "selectionReason": "Operator explicitly selected existing Luna; continue the same worker with accumulated diagnosis context and unchanged settings.",
+        "requestedModel": "openai-codex/gpt-5.6-luna",
+        "requestedReasoning": "max (retain existing setting)",
+        "observedModel": "openai-codex/gpt-5.6-luna",
+        "observedReasoning": "max",
+        "settingsProvenance": "Herdr footer and worker's prior PI_PROVIDER/PI_MODEL/PI_REASONING_LEVEL report; not independently inferred from alias",
+        "readScope": [
+          "/tmp/luna-pr1004-repair-handoff.md",
+          "/tmp/luna-pr1004-conflict-diagnosis.md",
+          "accepted e81a5aad PR source/evidence",
+          "current development a227bbf3 namespace delta",
+          "applicable AGENTS and canonical spec/git/worktrees/ci-status procedures"
+        ],
+        "ownedWritePaths": [
+          "PR worktree .agro/skills/delegate/SKILL.md",
+          "PR worktree .agro/knowledge/README.md",
+          "PR worktree .agro/knowledge/patterns/pattern-delegate-ledger-stale-at-acceptance.md",
+          "PR worktree .agro/knowledge/patterns/pattern-evals-probe-failure-path-untested.md",
+          "PR worktree .agro/evals/probes/advisor-execution-contract.sh",
+          "PR worktree .agro/evals/probes/delegate-worker-boundary.sh",
+          "PR worktree .agro/evals/RESULTS.md",
+          "PR worktree CHANGELOG.md integration only",
+          "PR worktree .oh/tasks/delegate-follow-up -> .agro/tasks/delegate-follow-up relocation only",
+          "/tmp/luna-pr1004-repair-report.md",
+          "disposable repair verification scratch"
+        ],
+        "exclusions": [
+          "root checkout and development ref writes",
+          "parent acceptance and task-completion record content",
+          "historical raw evidence content",
+          "unrelated source, branches, worktrees, settings, sessions",
+          "issue1014",
+          "release",
+          "force-push",
+          "merge/undraft/cleanup before parent release",
+          "recursive workers",
+          "new inference CLI or paid experiment"
+        ],
+        "executionDirectory": "/home/sandbox/harness/.worktrees/skill/1003-delegate-follow-up",
+        "worktreeIsolation": "Existing PR worktree; single bounded implementation writer; parent and later reviewer read frozen reported head while worker pauses.",
+        "workerType": "existing Herdr Pi session, not an Agent builtin subagent",
+        "continuationMethod": "Herdr agent send w4:pE plus Enter",
+        "deliverable": "Pushed draft repair head with report and verification receipts; pause for parent review",
+        "verification": "Full source delta review, namespace equivalence, git diff check, syntax/focused/adjacent probes, provider links, negative/positive mutations, preserved evidence hashes, full eval and true-base delta, head-matched CI; parent independent review/audits before merge",
+        "evidenceDestinations": [
+          "/tmp/luna-pr1004-repair-report.md",
+          "worker reported scratch paths",
+          ".agro/tasks/pr1004-namespace-reconciliation/delegate-graph.json"
+        ],
+        "coveredDoD": [
+          "R1 preserve accepted behavior and canonical namespace",
+          "R2 preserve historical provenance",
+          "R3 passing fresh verification and review",
+          "R4 parent-approved matching head merge",
+          "R5 safe PR-specific cleanup and merged-head CI"
+        ],
+        "acceptanceOwner": "requesting parent session",
+        "failureRepairRoute": "Same Luna repairs scoped failures after parent feedback; scope expansion escalates; stop after two failed cycles on same cause",
+        "nativeWorkerId": "Herdr w4:pE, tab w4:tC, workspace w4 harness",
+        "status": "completed",
+        "nativeAcknowledgment": "Parent observed Luna processing the repair handoff, inspecting current namespace scope, and creating native task2 Repair and verify PR1004; Herdr footer remains gpt-5.6-luna max.",
+        "completionMonitor": 15,
+        "progressLoop": 14,
+        "artifactReferences": [
+          "/tmp/luna-pr1004-merge-report.md",
+          "/tmp/luna-pr1004-conflict-diagnosis.md",
+          "021d07e75036fea02ef4ed093ba4e4d1dc4a2632",
+          "e139bc363d95b5ee1acf4a22ca3c1a2a7c37c1c4",
+          "/tmp/luna-pr1004-repair-report.md"
+        ],
+        "budget": {
+          "operatorSpendCap": null,
+          "usage": "unknown for this continuation",
+          "checkpointMinutes": 20,
+          "sameCauseFailedRepairCycleLimit": 2
+        },
+        "usage": "unknown",
+        "workerReported": "Repair complete; paused awaiting parent acceptance, not accepted yet",
+        "verificationObserved": "Five head-matched CI checks successful; parent full evals at a227/e139 both137PASS7SKIP1RED with identical rows; independent reviewer running",
+        "acceptedContentHead": "e139bc363d95b5ee1acf4a22ca3c1a2a7c37c1c4",
+        "summary": "Parent accepted namespace repair after independent review and actual base/head verification. Merge/cleanup are a separate unreleased stage; worker remains paused."
+      }
+    ],
+    "review": {
+      "nativeWorkerId": "c4a2d9ce-92aa-411",
+      "status": "completed",
+      "requestedModel": "openai-codex/gpt-5.6-sol",
+      "requestedReasoning": "high",
+      "observedSettings": "Reviewer self-report: requested gpt-5.6-sol high; no independent native instrumentation",
+      "readOnly": true,
+      "ownedWritePaths": [
+        "independent disposable scratch only"
+      ],
+      "isolation": "native isolated worktree; immutable e139 review",
+      "acceptanceOwner": "parent",
+      "dispatchedBeforeAcceptance": true,
+      "report": "parent-verification/namespace/independent/report.md",
+      "providerReportedUsage": {
+        "totalTokens": 381000,
+        "toolUses": 155,
+        "durationMs": 1414422,
+        "billingCost": "unknown"
+      }
+    },
+    "recordTiming": "Pre-dispatch parent ledger persisted separately; copied into the PR task after repair. This copy is retrospective, not a claim that the committed PR ledger preceded dispatch.",
+    "mergeCleanup": {
+      "status": "BLOCKED",
+      "dependsOn": [
+        "parent final-head CI and actual implementation/PR audits"
+      ],
+      "nativeWorkerId": "herdr:w4:pE",
+      "acceptanceOwner": "parent",
+      "summary": "Not released; no merge or cleanup yet."
+    }
+  }
+}

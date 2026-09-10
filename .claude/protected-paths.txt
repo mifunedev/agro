@@ -12,7 +12,7 @@
 #
 # Last reviewed: 2026-08-13 (issue #753)
 #
-# Every entry is checked by .oh/evals/probes/protected-paths-resolve.sh.
+# Every entry is checked by .agro/evals/probes/protected-paths-resolve.sh.
 # An entry that resolves to nothing protects nothing, and reads identical
 # to one that passes — so a rename silently disarms the guard.
 
@@ -32,29 +32,29 @@ eval
 health-check
 retro
 t3
-# --- Orchestrator scripts (.oh/scripts/) ---
-.oh/skills/wiki/scripts/knowledge-impact.sh
-.oh/scripts/cron-runtime.ts
-.oh/scripts/sandbox-healthcheck.sh
-.oh/scripts/link-providers.sh
+# --- Orchestrator scripts (.agro/scripts/) ---
+.agro/skills/wiki/scripts/knowledge-impact.sh
+.agro/scripts/cron-runtime.ts
+.agro/scripts/sandbox-healthcheck.sh
+.agro/scripts/link-providers.sh
 
 # --- Install / runtime scripts wired into the Dockerfile or sourced at boot ---
-.oh/install/banner.sh
-.oh/skills/cloudflared/scripts/run.sh
+.agro/install/banner.sh
+.agro/skills/cloudflared/scripts/run.sh
 .devcontainer/entrypoint.sh
 .devcontainer/Dockerfile
 
-# --- Crons (referenced by .oh/scripts/cron-runtime.ts) ---
+# --- Crons (referenced by .agro/scripts/cron-runtime.ts) ---
 crons/heartbeat.md
 crons/cleanup-tasks.md
-.oh/evals/probes/cleanup-tasks-worktree-grooming.sh
-.oh/evals/probes/markitdown-wiki-ingest.sh
+.agro/evals/probes/cleanup-tasks-worktree-grooming.sh
+.agro/evals/probes/markitdown-wiki-ingest.sh
 crons/eval-weekly.md
 
 # --- Norms folded into skills (B-state M3+M4) ---
-.oh/skills/git/SKILL.md
-.oh/skills/t3/references/sandbox-processes.md
-.oh/skills/spec/references/plan.md
-.oh/skills/spec/references/execute.md
-.oh/skills/spec/references/retro.md
+.agro/skills/git/SKILL.md
+.agro/skills/t3/references/sandbox-processes.md
+.agro/skills/spec/references/plan.md
+.agro/skills/spec/references/execute.md
+.agro/skills/spec/references/retro.md
 
