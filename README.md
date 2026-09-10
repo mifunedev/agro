@@ -8,7 +8,6 @@
   <a href="https://github.com/mifunedev/agro/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/mifunedev/agro?style=plastic&logo=github&logoColor=white&labelColor=0B1220&color=D4AF37"></a>
   <a href="https://github.com/mifunedev/agro/issues"><img alt="Issues" src="https://img.shields.io/github/issues/mifunedev/agro?style=plastic&labelColor=0B1220&color=D4AF37"></a>
   <img alt="Docker required" src="https://img.shields.io/badge/Docker-required-D4AF37?style=plastic&logo=docker&logoColor=white&labelColor=0B1220">
-  <a href="https://deepwiki.com/mifunedev/agro"><img alt="Ask DeepWiki" src="https://img.shields.io/badge/DeepWiki-ask-D4AF37?style=plastic&labelColor=0B1220"></a>
 </p>
 
 <p align="center">
@@ -214,7 +213,6 @@ Explore the [searchable docs](https://agro.mifune.dev) or [full docs index](docs
 | Debugging and testing | [DebugMCP](docs/integrations/debugmcp.md) · [Property testing](docs/property-testing.md) |
 | Security | [Permissions and trust boundaries](docs/security-considerations.md) |
 | Contributing | [Contribution workflow](docs/contributing.md) · [Docs site source](https://github.com/mifunedev/agro-web) |
-| Codebase navigation | [DeepWiki](https://deepwiki.com/mifunedev/agro) |
 
 ## 🤝 Contributing & community
 
