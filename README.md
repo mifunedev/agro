@@ -126,24 +126,39 @@ gh auth status
 
 See [GitHub authentication](docs/integrations/github.md) for help.
 
-### 4. Authenticate one coding harness
+### 4. Install a coding harness
 
-Install and authenticate one harness from a Herdr pane. That is a complete first
-session — no fork, no clone, no private repository, no Slack, and no upstream
-contribution:
+Choose one harness to start. In a Herdr pane, install and authenticate it:
 
 ```bash
-agro harness install claude-code && claude auth login
-# ...or pick another one — you need exactly one to start:
-#   agro harness install codex && codex login --device-auth
-#   agro harness install pi && pi           # first run walks provider auth
-#   agro harness install hermes && hermes setup
+# List available harnesses
+agro harness list
+
+# Install Claude Code
+agro harness install claude-code
+
+# Sign in and verify authentication
+claude auth login
+claude auth status
+
+# Start Claude Code
+claude
 ```
 
-Every CLI arrives only through `agro harness install <id>` — nothing installs at
-boot. The simplest cross-provider login is `/login` inside the agent, then
-**device mode**, which works on a headless or remote sandbox. Per-harness detail:
-[harnesses overview](docs/harnesses/overview.md).
+| Harness | ID | Availability |
+| --- | --- | --- |
+| [Claude Code](docs/harnesses/claude-code.md) | `claude-code` | Install on demand |
+| [Codex](docs/harnesses/codex.md) | `codex` | Install on demand |
+| [Pi](docs/harnesses/pi.md) | `pi` | Install on demand |
+| [OpenCode](docs/harnesses/opencode.md) | `opencode` | Install on demand |
+| [Grok Build](docs/harnesses/grok-build.md) | `grok-build` | Install on demand |
+| [Hermes](docs/harnesses/hermes.md) | `hermes` | Install on demand |
+| [Muse Code](docs/harnesses/muse-code.md) | `muse-code` | Install on demand |
+| [T3 Code](docs/harnesses/t3code.md) | `t3code` | Run on demand via `npx` |
+
+Use `agro harness install <id>` for other installable harnesses. Follow the linked
+guides for authentication and launch commands. T3 Code requires an authenticated
+Claude Code, Codex, or OpenCode provider.
 
 ### 5. Repository workflows (optional)
 
