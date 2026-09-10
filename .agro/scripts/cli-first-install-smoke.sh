@@ -54,7 +54,7 @@ Options:
 Phases:
   pack        npm pack @mifune/agro, install the tarball into an isolated prefix, run agro
   bootstrap   run get-agro.sh against the real built agro.js in an isolated HOME
-  seed        agro sandbox install docker with empty storage, no --repo, explicit --image
+  seed        agro sandbox install docker with empty storage, no --checkout, explicit --image
   recreate    saved access.dockerSocket false and true; agro stop then agro sandbox install
   all         pack, bootstrap, seed, recreate
 
