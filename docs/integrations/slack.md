@@ -316,18 +316,10 @@ For headless setups, pre-seed `auth.trustedUsers` and `auth.channels` in
 
 ## 7. Smoke Test
 
-Run these checks in order. The first runs in the shell where you sourced the
-env (before attaching to tmux).
+Verify Socket Mode connectivity from inside the sandbox, then test a message
+round trip in Slack. Never print token values.
 
-1. **Vars present in the current shell:**
-   ```bash
-   env | grep PI_SLACK
-   ```
-   Expected: `PI_SLACK_APP_TOKEN` and `PI_SLACK_BOT_TOKEN` are both listed. If
-   either is missing, `set -a` did not run in this shell — repeat the launch
-   from the beginning.
-
-2. **Socket Mode connected** (the real connectivity check):
+1. **Socket Mode connected** (the real connectivity check):
    ```bash
    tmux capture-pane -t client-slack-pi -p | grep -F '[Slack] Bot user ID:'
    ```
@@ -338,7 +330,7 @@ env (before attaching to tmux).
    `PI_SLACK_APP_TOKEN` can pass `auth.test` and still fail to open a Socket
    Mode connection. Use the tmux log check above as the authoritative test.
 
-3. **Round-trip test:**
+2. **Round-trip test:**
    DM the bot plain text such as `hello` or `@mention` it in a channel. If
    you've never talked to it before, complete the 6-digit challenge (§ 5) first.
    After trust succeeds, test one manifest-backed admin command such as

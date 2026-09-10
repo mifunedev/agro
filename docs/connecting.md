@@ -27,8 +27,9 @@ You land inside the container as the `sandbox` user. A fresh sandbox has no `her
 > **Attach, do not "Reopen in Container".** *Dev Containers: Reopen in Container*
 > reads `.devcontainer/devcontainer.json`, which names `docker-compose.yml` alone,
 > so it bypasses `.agro/scripts/docker-compose.sh` and applies **no compose overlays** —
-> no SSH, no host Docker socket, no Hermes dashboard, nothing from
-> `composeOverrides[]`. Provision with `oh sandbox install docker`, then attach. Details:
+> no SSH, no host Docker socket, nothing from `composeOverrides[]`.
+> The entrypoint reads Hermes dashboard configuration independently of overlays.
+> Provision with `oh sandbox install docker`, then attach. Details:
 > [lifecycle commands](lifecycle-commands.md#vs-code-reopen-in-container-applies-no-overlays).
 
 ### Option B — VSCode Attach to Running Container (local host)

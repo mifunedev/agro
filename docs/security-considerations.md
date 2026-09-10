@@ -127,12 +127,12 @@ Agents run inside a container, not on the host.
 - **Caveat 1 — the Docker socket (OFF by default; opt-in).** `/var/run/docker.sock` is **no longer mounted by default** — it is an explicit opt-in via the [`docker-compose.docker-sock.yml`](../.devcontainer/docker-compose.docker-sock.yml) overlay, applied only when `DOCKER_SOCKET=true` in `.devcontainer/.env`. Both interactive installers prompt for it and **default to off**. Review the downloaded installer before you run it with `bash install.sh`: `install.sh` (the `curl | bash` path) and `oh sandbox install docker` (the `oh` CLI / `get-oh.sh` path). Enabling it is a deliberate capability trade-off: **socket access is effectively host root** (an agent can start a privileged container that mounts the host FS), so the container becomes *isolation for convenience and blast-radius reduction, not a hard security boundary* against a hostile agent. Leave it off unless the agent genuinely must drive Docker; if it must and you still need a hard boundary, run a rootless/proxied Docker. **VS Code "Reopen in Container"** reads `docker-compose.yml` directly and bypasses the wrapper, so it never mounts the socket; to enable it there, add `docker-compose.docker-sock.yml` to `dockerComposeFile` in [`devcontainer.json`](../.devcontainer/devcontainer.json). When the socket is mounted, the entrypoint aligns the `sandbox` user with the socket's **numeric** GID at boot: it renumbers the `docker` group when that GID is free, and otherwise adds `sandbox` to whichever group already holds it. Access is decided by the numeric GID, never the group name, so on Debian images — where `systemd-journal` owns GID 999, the most common host Docker GID — `sandbox` joins `systemd-journal` and incidentally gains that group's other rights, such as journal read. That incidental grant is inherent to any correct alignment and is minor next to the socket's own host-root equivalence, but it is real and it shows up in `id sandbox`.
 - **Caveat 2 — permissions bypassed inside.** `CLAUDE_DANGEROUSLY_SKIP_PERMISSIONS=true` (`docker-compose.yml:48`) turns off the interactive permission engine inside the sandbox. This is the *reason* the §2 guards are implemented as hooks (which still fire) rather than relying on deny-list prompts (which are skipped).
 
-**Bottom line:** the sandbox reliably keeps agent work off the host
-filesystem and out of host user state — a real, enforced boundary. With the
-Docker socket left at its default (off) that boundary holds; opting the
-socket in trades it away for Docker access and makes the sandbox no longer
-an escape-proof jail. Run the harness on hosts and repos you are willing to
-expose to whichever trust level you choose.
+**Bottom line:** agents can modify host files explicitly mounted into the sandbox
+when mount and filesystem permissions allow writes. Leaving the Docker socket
+disabled does not protect those mounted files. Enabling the socket additionally
+grants host-root-equivalent authority. Neither configuration guarantees protection
+against a hostile agent; the privilege caveats below still apply. Grant only
+mounts and credentials that match your chosen trust level.
 
 - **Caveat 3 — `cap_add: SYS_ADMIN` for systemd as PID 1 (REVIEWED trade-off).** systemd is
   PID 1 in the sandbox ([`Dockerfile`](../.devcontainer/Dockerfile) `CMD ["/sbin/init"]`), and

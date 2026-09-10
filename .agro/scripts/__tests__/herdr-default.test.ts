@@ -7,8 +7,6 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../
 const readRepoFile = (file: string): string => readFileSync(path.join(repoRoot, file), "utf8");
 
 describe("default Herdr integration", () => {
-  // #906: the pin moved out of the Dockerfile and into the tool catalog, which
-  // provisions Herdr into the home mount at boot. The image no longer carries it.
   it("pins and verifies Herdr for both supported architectures", () => {
     const catalog = readRepoFile(".agro/cli/src/lib/tools/catalog.ts");
 

@@ -70,12 +70,9 @@ claude -p "Explain the structure of the packages/ directory"
 claude --cwd /home/sandbox/harness
 ```
 
-Run inside a dedicated tmux session to keep the agent alive across disconnects:
-
-```bash
-tmux new-session -d -s agent-claude 'claude'
-tmux attach -t agent-claude
-```
+Launch interactive Claude Code sessions from [Herdr](../integrations/herdr.md)
+panes inside the sandbox. Reattach while the host and container remain running;
+a container stop ends the agent process.
 
 ## Tips
 
