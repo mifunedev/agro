@@ -8,6 +8,26 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-10
+
+### Upgrade notes
+
+This release supersedes `0.9.0`; its immutable tags remain available for legacy
+upgrade tests. Keep the `0.9.0` test fixture to preserve `.oh`-to-`.agro` migration
+coverage.
+
+If your existing sandbox boot fails on the dependency security advisory, follow
+the [state-preserving recovery guide](https://github.com/mifunedev/agro/blob/v0.10.0/docs/repair-sandbox-boot-advisory.md).
+A failed boot does not destroy the workspace; the container remains accessible
+through `docker exec`. Do not run `agro destroy` or delete the workspace volume.
+Pulling this image does not repair an existing volume's manifest: run the recovery
+procedure once for each affected volume. Fresh sandboxes created from this release
+do not need that recovery.
+
+### Added
+
+- Show agent prompts and example responses for cloning projects and managing isolated worktrees in Quickstart step 8. ([#1040](https://github.com/mifunedev/agro/issues/1040))
+
 ### Changed
 
 - Refresh the README quickstart, messaging setup, and docs index; replace repeated reference sections with documentation navigation. ([#1038](https://github.com/mifunedev/agro/issues/1038))
@@ -34,7 +54,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 - Move the dependency security audit to CI-only so a new advisory can no longer block a sandbox boot. ([#943](https://github.com/mifunedev/openharness/issues/943))
 - Require verified dependency acceptance and safe resume eligibility before dispatching delegated work. ([#1004](https://github.com/mifunedev/openharness/pull/1004))
 - Point the pi banner at the Mifune GitHub organization. ([#1001](https://github.com/mifunedev/openharness/issues/1001))
-- Release publishing waits for npm registry propagation with an uncached `npm view` before publishing the `@mifune/openharness` shim and fails when its deprecation notice is not applied. ([#994](https://github.com/mifunedev/openharness/issues/994))
+- Wait for npm registry propagation with an uncached `npm view` during CLI publication. ([#994](https://github.com/mifunedev/openharness/issues/994))
 - Preserve an existing sandbox's configuration when `agro sandbox install` runs again, so a reinstall no longer discards settings such as a pinned `storage.homePath`. ([#1021](https://github.com/mifunedev/agro/issues/1021))
 
 ### Added

@@ -1,6 +1,6 @@
 {
   "name": "agro",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "private": true,
   "description": "AGRO — Agent Governance Runtime Orchestrator",
   "license": "Apache-2.0",

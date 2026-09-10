@@ -278,6 +278,42 @@ Connect over SSH to the host, not directly to the container. See the
 
 </details>
 
+### 8. Ask your agent to clone a project
+
+From your agent session in `~/harness`, ask:
+
+```text
+Clone <owner>/<repo> into projects.
+```
+
+Example agent response after a successful clone:
+
+> Cloned `<owner>/<repo>` to `~/harness/projects/<owner>/<repo>`.
+> This is a separate repository with its own history and remote.
+
+Then ask for an isolated workspace:
+
+```text
+Create a worktree in <owner>/<repo> for issue #123.
+```
+
+Example agent response:
+
+> Created branch `task/123-my-change` and a worktree at
+> `~/harness/projects/<owner>/<repo>/.worktrees/task/123-my-change`.
+
+Worktrees share the project's Git history but keep separate checked-out files.
+Each parallel agent gets its own branch and worktree, so agents do not overwrite
+each other's work. The agent manages these folders; you do not need to configure
+them manually.
+
+When the work is merged, ask:
+
+```text
+Clean up the merged worktree for issue #123 in <owner>/<repo>.
+Keep any uncommitted work.
+```
+
 ## 📚 Table of Contents
 
 Browse the [documentation](docs/README.md) or jump to a topic below.
