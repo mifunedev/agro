@@ -183,4 +183,20 @@ describe("renderComposeEnv", () => {
     config.git = { userName: "Ada\nMalicious" };
     expect(() => renderComposeEnv(config)).toThrow(/must not contain a newline/);
   });
+
+  it("image-only compose falls back to ghcr.io/mifunedev/agro:latest", () => {
+    const text = readFileSync(join(DEVCONTAINER, "docker-compose.image-only.yml"), "utf8");
+    expect(text).toContain(
+      "image: ${AGRO_SANDBOX_IMAGE:-${OH_SANDBOX_IMAGE:-ghcr.io/mifunedev/agro:latest}}",
+    );
+    expect(text).not.toContain("ghcr.io/mifunedev/openharness:latest");
+  });
+
+  it("renders a stored legacy image.ref without rewriting it", () => {
+    const config = defaultOhConfig("demo");
+    config.image = { ref: "ghcr.io/mifunedev/openharness:latest" };
+    expect(renderComposeEnv(config)).toContain(
+      "AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/openharness:latest",
+    );
+  });
 });

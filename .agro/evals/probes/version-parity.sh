@@ -3,15 +3,14 @@
 # source: conversation 2026-08-29 — the oh CLI became the only lifecycle door, so its
 #         npm version is the only version a user can see, and it had drifted two minors
 #         behind the harness while release.yml no-opped silently on the stale tag
-# desc: the root package.json version, the .agro/cli package.json version, the
-#       .agro/cli/legacy package.json version and its exact @mifune/agro pin, and a dated
-#       CHANGELOG heading for that version all agree, so a release publishes the CLI
-#       the harness ships, the @mifune/openharness shim delegates to the bundle cut with
-#       it, and reserve-github-release.mjs cannot classify the push as already-released
-#       and skip the image, the npm publish, and the GitHub release.
+# desc: the root package.json version and the .agro/cli package.json version agree, a
+#       dated CHANGELOG heading exists for that canonical version, and the retained
+#       @mifune/openharness shim keeps its own version with an exact @mifune/agro pin
+#       equal to that shim version. The shim version does not have to match a later
+#       canonical CLI version.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+ROOT="${AGRO_PROBE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
 cd "$ROOT"
 
 ROOT_PKG="package.json"
@@ -51,17 +50,19 @@ if [[ "$root_version" != "$cli_version" ]]; then
   exit 1
 fi
 
-if [[ "$legacy_version" != "$cli_version" ]]; then
-  echo "REGRESSION: version drift — $CLI_PKG is $cli_version but $LEGACY_PKG is $legacy_version" >&2
-  echo "  publish-cli.yml publishes both packages from one cut; a shim version that lags" >&2
-  echo "  is skipped as already-published and keeps delegating to an older bundle." >&2
+if [[ -z "$legacy_pin" ]]; then
+  echo "REGRESSION: $LEGACY_PKG has no @mifune/agro dependency — missing shim target" >&2
   exit 1
 fi
 
-if [[ "$legacy_pin" != "$cli_version" ]]; then
-  echo "REGRESSION: $LEGACY_PKG pins @mifune/agro '$legacy_pin' but the bundle version is $cli_version" >&2
-  echo "  the shim must pin the exact bundle cut with it (no range), so oh and agro from" >&2
-  echo "  one release cannot resolve to different bundles." >&2
+if [[ "$legacy_pin" == ^* || "$legacy_pin" == ~* || "$legacy_pin" == *'*'* ]]; then
+  echo "REGRESSION: $LEGACY_PKG pins @mifune/agro '$legacy_pin' — must be an exact version, no range" >&2
+  exit 1
+fi
+
+if [[ "$legacy_pin" != "$legacy_version" ]]; then
+  echo "REGRESSION: $LEGACY_PKG version $legacy_version pins @mifune/agro '$legacy_pin' — the pin must equal the shim version" >&2
+  echo "  the retained shim stays internally coherent without matching a later canonical CLI version." >&2
   exit 1
 fi
 
@@ -72,5 +73,5 @@ if ! grep -qE "^## \[${root_version//./\\.}\] - [0-9]{4}-[0-9]{2}-[0-9]{2}$" "$C
   exit 1
 fi
 
-echo "PASS: version $root_version is consistent across $ROOT_PKG, $CLI_PKG, $LEGACY_PKG (+ its @mifune/agro pin), and $CHANGELOG" >&2
+echo "PASS: canonical version $root_version agrees across $ROOT_PKG, $CLI_PKG, and $CHANGELOG; retained shim v$legacy_version pins @mifune/agro@$legacy_pin" >&2
 exit 0

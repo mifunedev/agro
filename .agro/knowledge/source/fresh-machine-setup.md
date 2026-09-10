@@ -4,7 +4,7 @@ slug: fresh-machine-setup
 kind: repo
 tags: [setup, onboarding, installation, agro, registry, gateway, ssh, github, slack]
 created: 2026-07-02
-updated: 2026-09-07
+updated: 2026-09-09
 sources:
   - README.md
   - docs/quickstart.md
@@ -22,7 +22,7 @@ sources:
   - .agro/scripts/hermes-install-smoke.sh
   - .agro/scripts/gateway.sh
   - .agro/scripts/get-agro.sh
-verified_at: 4db24429bbf08c521b62ad6386fd1370445ac203
+verified_at: c078c91e80647bc0c60cebb7ad1f11d929159d33
 related: [sandbox-dependency-installs, oh-cli-portable-lifecycle]
 confidence: provisional
 ---
@@ -87,8 +87,10 @@ lowest unused number. The answers land in a registry entry at
 regenerates on every lifecycle call — the operator edits only `agro.json`. A registry
 written by an earlier release stays at `~/.oh/sandboxes/<name>/oh.json` and keeps
 working under both names; `agro migrate --home` moves it when the operator chooses.
-Without `--repo` the sandbox runs `ghcr.io/mifunedev/openharness:latest` and seeds its
-workspace from the image's `/opt/agro-seed`, so nothing is cloned and nothing is built.
+Without `--repo` the unselected fallback is `ghcr.io/mifunedev/agro:latest`
+(`DEFAULT_SANDBOX_IMAGE`, `lifecycle.ts:104`) and the sandbox seeds its workspace from
+the image's `/opt/agro-seed`, so nothing is cloned and nothing is built. An explicit
+`image.ref` and `AGRO_SANDBOX_IMAGE` over `OH_SANDBOX_IMAGE` are unchanged.
 Non-secret configuration is edited with `agro config set --sandbox <name>`; secrets go
 through `agro secret set --sandbox <name>` into the entry's gitignored dotenv. The CLI
 writes no `AGENTS.md`, provider config, or scaffold; the operator owns those files.

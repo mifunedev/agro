@@ -8,6 +8,14 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Changed
+
+- Publish only `@mifune/agro` on the automatic release path; keep the `@mifune/openharness` shim source and already-published versions without a new shim publish, wait, or deprecate step. ([#939](https://github.com/mifunedev/agro/issues/939))
+
+### Fixed
+
+- Make top-level `agro` help describe `agro update` as CLI self-upgrade, keep `oh update` as project vendoring, and default an unselected sandbox image to `ghcr.io/mifunedev/agro:latest`. ([#939](https://github.com/mifunedev/agro/issues/939))
+
 ### Removed
 
 - Retire the `.pi/skills` surface only when `.agents/skills` is a direct, independent link that survives the migration, and preserve it otherwise so Pi keeps a skill discovery root. ([#1025](https://github.com/mifunedev/agro/issues/1025))

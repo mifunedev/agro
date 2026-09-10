@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 # tier: A
-# source: issue #941 (AGRO Phase 1) — @mifune/openharness becomes a delegation shim over the exact @mifune/agro version, with disjoint bins so both packages coexist
-# desc: .agro/cli/legacy/package.json is @mifune/openharness at the .agro/cli version, pins @mifune/agro to exactly that version, exposes only bin.oh -> ./bin/oh.js, ships no dist/ of its own, and bin/oh.js is one import of @mifune/agro/dist/agro.js and nothing else
+# source: issue #941 (AGRO Phase 1) — @mifune/openharness is a retained delegation shim
+# desc: .agro/cli/legacy/package.json is @mifune/openharness, pins @mifune/agro to exactly
+#       its own version (no range), exposes only bin.oh -> ./bin/oh.js, ships no dist/
+#       of its own, and bin/oh.js is one import of @mifune/agro/dist/agro.js and nothing
+#       else. The shim version does not have to match a later canonical CLI version.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-CLI_PKG="$ROOT/.agro/cli/package.json"
+ROOT="${AGRO_PROBE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
 LEGACY_DIR="$ROOT/.agro/cli/legacy"
 LEGACY_PKG="$LEGACY_DIR/package.json"
 SHIM="$LEGACY_DIR/bin/oh.js"
 
-if [ ! -f "$CLI_PKG" ]; then
+if [ ! -f "$ROOT/.agro/cli/package.json" ]; then
   echo 'SKIPPED .agro/cli/package.json not present' >&2
   exit 2
 fi
@@ -25,16 +27,18 @@ fail() { echo "REGRESSION $1" >&2; exit 1; }
 [ -f "$SHIM" ] || fail ".agro/cli/legacy/bin/oh.js is missing — the shim has no oh executable"
 jq -e . "$LEGACY_PKG" >/dev/null 2>&1 || fail ".agro/cli/legacy/package.json is not valid JSON"
 
-cli_version="$(jq -r '.version' "$CLI_PKG")"
 legacy_version="$(jq -r '.version' "$LEGACY_PKG")"
 pin="$(jq -r '.dependencies["@mifune/agro"] // ""' "$LEGACY_PKG")"
 
 jq -e '.name == "@mifune/openharness"' "$LEGACY_PKG" >/dev/null \
   || fail ".agro/cli/legacy/package.json name is not @mifune/openharness"
-[ "$legacy_version" = "$cli_version" ] \
-  || fail ".agro/cli/legacy/package.json version $legacy_version differs from .agro/cli/package.json $cli_version"
-[ "$pin" = "$cli_version" ] \
-  || fail ".agro/cli/legacy/package.json pins @mifune/agro '$pin' — must be exactly $cli_version (no range)"
+[ -n "$pin" ] \
+  || fail ".agro/cli/legacy/package.json has no @mifune/agro dependency — missing shim target"
+if [[ "$pin" == ^* || "$pin" == ~* || "$pin" == *'*'* ]]; then
+  fail ".agro/cli/legacy/package.json pins @mifune/agro '$pin' — must be an exact version, no range"
+fi
+[ "$pin" = "$legacy_version" ] \
+  || fail ".agro/cli/legacy/package.json version $legacy_version pins @mifune/agro '$pin' — the pin must equal the shim version"
 jq -e '.bin == {"oh": "./bin/oh.js"}' "$LEGACY_PKG" >/dev/null \
   || fail ".agro/cli/legacy/package.json bin must be exactly {oh: ./bin/oh.js} — disjoint from the agro bin"
 jq -e '.files | index("bin")' "$LEGACY_PKG" >/dev/null \

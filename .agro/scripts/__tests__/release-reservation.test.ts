@@ -465,43 +465,28 @@ describe("CLI publication workflow contract", () => {
     expect(source).toContain("npm publish --access public --provenance");
   });
 
-  it("publishes @mifune/agro, then the guarded @mifune/openharness shim, then deprecates the shim", () => {
+  it("publishes only @mifune/agro and performs no legacy npm publish, wait, or deprecate", () => {
     const agroGuard = source.indexOf('npm view "@mifune/agro@$V" version');
     const agroPublish = source.indexOf("Publish @mifune/agro to npm");
-    const legacyGuard = source.indexOf('npm view "@mifune/openharness@$V" version');
-    const waitForAgro = source.indexOf("Wait for @mifune/agro to resolve on the registry");
-    const legacyPublish = source.indexOf("Publish @mifune/openharness to npm");
-    const deprecate = source.indexOf('npm deprecate "@mifune/openharness@$V"');
 
     expect(agroGuard).toBeGreaterThan(0);
     expect(agroPublish).toBeGreaterThan(agroGuard);
-    expect(legacyGuard).toBeGreaterThan(agroPublish);
-    expect(waitForAgro).toBeGreaterThan(legacyGuard);
-    expect(legacyPublish).toBeGreaterThan(waitForAgro);
-    expect(deprecate).toBeGreaterThan(legacyPublish);
-    expect(source.match(/npm publish --access public --provenance/g)?.length).toBe(2);
-    expect(source).toMatch(/working-directory: \.agro\/cli\n[\s\S]*?working-directory: \.agro\/cli\/legacy\n/);
-    expect(source).toContain(
-      'npm deprecate "@mifune/openharness@$V" "@mifune/openharness is the compatibility entry point for AGRO; install @mifune/agro (agro) — oh keeps working through the compatibility window"',
-    );
-    expect(source).toMatch(/Deprecate @mifune\/openharness[\s\S]*?if: steps\.legacy_guard\.outputs\.skip == 'false'/);
-    expect(source).toMatch(
-      /Wait for @mifune\/agro to resolve on the registry\n\s+if: steps\.legacy_guard\.outputs\.skip == 'false'\n\s+env:\n\s+V: \$\{\{ steps\.guard\.outputs\.version \}\}\n\s+run: \.agro\/scripts\/npm-wait-version\.sh "@mifune\/agro" "\$V"\n/,
-    );
-    expect(source).toMatch(
-      /run: \|\n\s+\.agro\/scripts\/npm-wait-version\.sh "@mifune\/openharness" "\$V"\n\s+npm deprecate "@mifune\/openharness@\$V" "@mifune\/openharness is the compatibility entry point for AGRO; install @mifune\/agro \(agro\) — oh keeps working through the compatibility window"\n\s+DEPRECATED=\$\(npm view "@mifune\/openharness@\$V" deprecated --prefer-online --cache "\$\(mktemp -d\)"\)\n\s+if \[ -z "\$DEPRECATED" \]; then\n[\s\S]*?exit 1\n\s+fi\n/,
-    );
-    expect(source.match(/\.agro\/scripts\/npm-wait-version\.sh/g)?.length).toBe(2);
-    expect(source.indexOf('.agro/scripts/npm-wait-version.sh "@mifune/openharness" "$V"')).toBeGreaterThan(legacyPublish);
-    expect(source.indexOf('.agro/scripts/npm-wait-version.sh "@mifune/openharness" "$V"')).toBeLessThan(deprecate);
+    expect(source.match(/npm publish --access public --provenance/g)?.length).toBe(1);
+    expect(source).toContain("working-directory: .agro/cli");
+    expect(source).not.toContain("working-directory: .agro/cli/legacy");
+    expect(source).not.toContain("legacy_guard");
+    expect(source).not.toContain("Publish @mifune/openharness");
+    expect(source).not.toContain("Deprecate @mifune/openharness");
+    expect(source).not.toContain("Wait for @mifune/agro to resolve on the registry");
+    expect(source).not.toContain("npm deprecate");
+    expect(source).not.toContain(".agro/scripts/npm-wait-version.sh");
+    expect(source).not.toContain('npm view "@mifune/openharness@$V"');
     expect(source).toContain('npm view "@mifune/agro@$V" version --prefer-online >/dev/null');
-    expect(source).toContain('npm view "@mifune/openharness@$V" version --prefer-online >/dev/null');
-    expect(source).not.toContain("seq 1 10");
-    expect(source).not.toContain("sleep 15");
-    expect(source).not.toMatch(/Deprecate @mifune\/openharness[\s\S]*?working-directory:/);
     expect(source).toContain("id-token: write");
-    expect(source.match(/NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_TOKEN \}\}/g)?.length).toBe(3);
+    expect(source.match(/NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_TOKEN \}\}/g)?.length).toBe(1);
     expect(source.match(/npm ci/g)?.length).toBe(1);
     expect(source.indexOf("npm ci --ignore-scripts")).toBeLessThan(agroPublish);
+    expect(source).toContain("already-published shim versions remain");
+    expect(source).not.toContain("continue-on-error");
   });
 });

@@ -171,7 +171,7 @@ agro migrate --check   # print the plan, change nothing
 agro migrate           # .oh/ -> .agro/, oh.json -> agro.json, provider links re-pointed
 ```
 
-A checkout bound with `--repo` mounts at `/home/sandbox/harness`. Without `--repo` the sandbox runs `ghcr.io/mifunedev/openharness:latest` and seeds its workspace from the image — see [`agro sandbox install docker`](deployment-prebuilt-image.md) for that recipe and the `--image` / `--no-build` flags.
+A checkout bound with `--repo` mounts at `/home/sandbox/harness`. Without `--repo` the sandbox runs `ghcr.io/mifunedev/agro:latest` and seeds its workspace from the image — see [`agro sandbox install docker`](deployment-prebuilt-image.md) for that recipe and the `--image` / `--no-build` flags.
 
 ## Next step
 

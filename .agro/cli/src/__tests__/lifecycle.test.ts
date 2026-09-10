@@ -490,6 +490,45 @@ describe("runSandbox", () => {
     expect(calls[0].opts.env?.OH_SANDBOX_IMAGE).toBe("ghcr.io/x/y:ambient");
   });
 
+  it("unselected --image fallback is ghcr.io/mifunedev/agro:latest", () => {
+    expect(DEFAULT_SANDBOX_IMAGE).toBe("ghcr.io/mifunedev/agro:latest");
+  });
+
+  it("AGRO_SANDBOX_IMAGE takes precedence over OH_SANDBOX_IMAGE", async () => {
+    vi.stubEnv("AGRO_SANDBOX_IMAGE", "ghcr.io/mifunedev/agro:canonical");
+    vi.stubEnv("OH_SANDBOX_IMAGE", "ghcr.io/mifunedev/openharness:legacy");
+    const root = makeRepo();
+    addScript(root, "docker-compose.sh");
+    mkdirSync(join(root, ".devcontainer"), { recursive: true });
+    writeOhJson(root, { access: { dockerSocket: false }, image: { ref: "ghcr.io/x/y:from-json" } });
+    const { calls, run } = makeRunner([{ status: 0 }]);
+
+    expect(await runSandbox({ cwd: root, run, image: true }, makeIo().io)).toBe(0);
+    expect(calls[0].opts.env?.AGRO_SANDBOX_IMAGE).toBe("ghcr.io/mifunedev/agro:canonical");
+    expect(calls[0].opts.env?.OH_SANDBOX_IMAGE).toBe("ghcr.io/mifunedev/agro:canonical");
+  });
+
+  it.each([
+    ["canonical", "ghcr.io/mifunedev/agro:latest"],
+    ["legacy", "ghcr.io/mifunedev/openharness:latest"],
+    ["custom", "ghcr.io/example/custom:tag"],
+    [
+      "digest",
+      "ghcr.io/mifunedev/agro@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    ],
+  ])("preserves an explicit %s image.ref without rewriting it", async (_label, ref) => {
+    const root = makeRepo();
+    addScript(root, "docker-compose.sh");
+    mkdirSync(join(root, ".devcontainer"), { recursive: true });
+    writeOhJson(root, { access: { dockerSocket: false }, image: { ref } });
+    const { calls, run } = makeRunner([{ status: 0 }]);
+
+    expect(await runSandbox({ cwd: root, run, image: true }, makeIo().io)).toBe(0);
+    expect(calls[0].opts.env?.AGRO_SANDBOX_IMAGE).toBe(ref);
+    expect(calls[0].opts.env?.OH_SANDBOX_IMAGE).toBe(ref);
+    expect(JSON.parse(readFileSync(ohConfigPath(root), "utf8"))).toMatchObject({ image: { ref } });
+  });
+
   it("--no-build alone → up -d --no-build with NO OH_SANDBOX_IMAGE pinned", async () => {
     const root = makeRepo();
     const script = addScript(root, "docker-compose.sh");
@@ -824,6 +863,8 @@ describe("help surfaces", () => {
     expect(sandbox).toContain("oh sandbox install <runtime>");
     expect(sandbox).toContain("oh sandbox list");
     expect(sandbox).toContain("Next: oh shell <name>");
+    expect(sandbox).toContain(DEFAULT_SANDBOX_IMAGE);
+    expect(sandbox).not.toContain("ghcr.io/mifunedev/openharness:latest");
 
     const shell = captureStdout(printShellHelp);
     expect(shell).toContain("oh shell [name]");
