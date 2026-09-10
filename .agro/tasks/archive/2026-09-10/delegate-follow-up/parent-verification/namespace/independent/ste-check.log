@@ -1,0 +1,1 @@
+ste-check: no findings in 1 file(s). Two defects escape every detector: a condition that trails the action it guards (question 4), and a sentence that opens with a pronoun naming no antecedent (question 7). Run the 10-question check in /tmp/pi-agent-c4a2d9ce-92aa-411-242edd8a/.agro/skills/ste/SKILL.md.

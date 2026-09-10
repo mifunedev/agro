@@ -1,0 +1,23 @@
+=== pnpm install exit=1
+. pnpm:devPreinstall: ├─────────────────────┼────────────────────────────────────────────────────────┤
+. pnpm:devPreinstall: │ More info           │ https://github.com/advisories/GHSA-82fw-gwwq-j7x9      │
+. pnpm:devPreinstall: └─────────────────────┴────────────────────────────────────────────────────────┘
+. pnpm:devPreinstall: ┌─────────────────────┬────────────────────────────────────────────────────────┐
+. pnpm:devPreinstall: │ moderate            │ Vitest: Path Traversal / Arbitrary File Read via       │
+. pnpm:devPreinstall: │                     │ @vitest/mocker Redirect Mock                           │
+. pnpm:devPreinstall: ├─────────────────────┼────────────────────────────────────────────────────────┤
+. pnpm:devPreinstall: │ Package             │ @vitest/mocker                                         │
+. pnpm:devPreinstall: ├─────────────────────┼────────────────────────────────────────────────────────┤
+. pnpm:devPreinstall: │ Vulnerable versions │ >=2.1.0 <4.1.11                                        │
+. pnpm:devPreinstall: ├─────────────────────┼────────────────────────────────────────────────────────┤
+. pnpm:devPreinstall: │ Patched versions    │ >=4.1.11                                               │
+. pnpm:devPreinstall: ├─────────────────────┼────────────────────────────────────────────────────────┤
+. pnpm:devPreinstall: │ Paths               │ .>vitest>@vitest/mocker                                │
+. pnpm:devPreinstall: ├─────────────────────┼────────────────────────────────────────────────────────┤
+. pnpm:devPreinstall: │ More info           │ https://github.com/advisories/GHSA-82fw-gwwq-j7x9      │
+. pnpm:devPreinstall: └─────────────────────┴────────────────────────────────────────────────────────┘
+. pnpm:devPreinstall: 2 vulnerabilities found
+. pnpm:devPreinstall: Severity: 2 moderate
+. pnpm:devPreinstall:  ELIFECYCLE  Command failed with exit code 1.
+. pnpm:devPreinstall: Failed
+ ELIFECYCLE  Command failed with exit code 1.

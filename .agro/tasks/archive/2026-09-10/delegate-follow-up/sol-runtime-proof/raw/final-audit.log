@@ -1,0 +1,65 @@
+FINAL_AUDIT_UTC=2026-09-07T23:36:16Z
+=== JSONL validation ===
+SESSION_A_JSONL_EXIT=0
+SESSION_B_JSONL_EXIT=0
+LEDGER_JSON_EXIT=0
+=== Native dispatch and continuation counts ===
+SESSION_a_Agent_COUNT=1
+SESSION_a_ListAgents_COUNT=2
+SESSION_a_TaskOutput_COUNT=1
+SESSION_a_SendMessage_COUNT=0
+SESSION_a_TaskStop_COUNT=0
+SESSION_RESULT is_error=false subtype=success terminal_reason=completed spawned=1 spawned_by_subagents=0 completed=1 failed=0
+SESSION_b_Agent_COUNT=0
+SESSION_b_ListAgents_COUNT=2
+SESSION_b_TaskOutput_COUNT=1
+SESSION_b_SendMessage_COUNT=0
+SESSION_b_TaskStop_COUNT=0
+SESSION_RESULT is_error=false subtype=success terminal_reason=completed spawned=0 spawned_by_subagents=0 completed=0 failed=0
+=== TaskOutput B result ===
+is_error=true content=<tool_use_error>No task found with ID: a8e871ee7a180398b</tool_use_error>
+=== Task hashes ===
+3b3b6bfde565cbab26006ebe7353dd77e08a9ccb12ce7f6873afa9f5492cbffb  /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/worker-started.txt
+51e566507654d196c4483e194debd07e32ed8f50674a39fb6bb137ad99198c14  /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/output.txt
+TASK_HASH_EXIT=0
+8fdbe63ba9bcd49ef3b11aa8840b33440027497389d38410cfc770e3df93b212  /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/output.txt
+=== Stream/session/report exits ===
+SESSION_A_EXIT=0
+READ_SESSION_A_EXIT_FILE=0
+SESSION_B_EXIT=0
+READ_SESSION_B_EXIT_FILE=0
+SESSION_A_STDERR_EMPTY_EXIT=0
+SESSION_B_STDERR_EMPTY_EXIT=0
+=== tmux termination ===
+TMUX_A_HAS_SESSION_EXIT=1
+TMUX_B_HAS_SESSION_EXIT=1
+=== matching live processes (empty is expected) ===
+PROCESS_FILTER_PIPELINE_EXIT=0 0
+=== Evidence timestamps ===
+2026-09-07 17:24:55.296418079 -0600 /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/observations/a-listagents-running.txt
+2026-09-07 17:25:07.794553009 -0600 /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/control/a-ready.json
+2026-09-07 17:26:29.893345350 -0600 /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/observations/orchestrator-process-tree.txt
+2026-09-07 17:27:49.379351301 -0600 /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/raw/session-b.stream.jsonl
+2026-09-07 17:27:38.170652011 -0600 /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/reports/session-b-report.md
+2026-09-07 17:28:36.099888833 -0600 /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/raw/worker-release.log
+2026-09-07 17:28:39.325411302 -0600 /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/task/output.txt
+2026-09-07 17:30:04.791783765 -0600 /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/raw/session-a.stream.jsonl
+2026-09-07 17:29:52.913442624 -0600 /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/reports/session-a-report.md
+STAT_EXIT=0
+=== Frozen input hashes ===
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/procedure/delegate-SKILL.c6704966.md: OK
+FROZEN_SKILL_CHECK_EXIT=0
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/procedure/recovery-procedure.md: OK
+FROZEN_PROCEDURE_CHECK_EXIT=0
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/prompts/session-a.txt: OK
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/prompts/session-b.txt: OK
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/commands/run-session-a.sh: OK
+/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/commands/run-session-b.sh: OK
+PROMPT_COMMAND_CHECK_EXIT=0
+=== Git tracked-state verification ===
+REPAIR_HEAD=c6704966c023ffc719797f54e232178eb914a318
+REPAIR_STATUS_EXIT=0
+REPAIR_TRACKED_DIFF_QUIET_EXIT=0
+PRIOR_HEAD=6fddd9d6a3fd053c613a71fcc0f0b1b8b3ba78c4
+PRIOR_STATUS_EXIT=0
+PRIOR_TRACKED_DIFF_QUIET_EXIT=0

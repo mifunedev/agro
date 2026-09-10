@@ -13,7 +13,7 @@ These names describe separate layers, not interchangeable jobs:
 
 - **Model** — The LLM selected by a provider; it proposes text and tool calls, while the surrounding agent, harness, and policy decide where those requests run and what is allowed. See the **model** glossary entry.
 - **Agent / CLI** — The process that wraps a model with tools, instructions, and session state, such as Claude Code, Codex, or Pi. It is the runtime: the active session owns the work. See the **agent** glossary entry.
-- **Harness** — The repo, Docker sandbox, and `.oh/` control plane that give agents a reproducible workspace and lifecycle. See the **harness** glossary entry.
+- **Harness** — The repo, Docker sandbox, and `.agro/` control plane that give agents a reproducible workspace and lifecycle. See the **harness** glossary entry.
 - **Loop** — A repeated workflow that the harness drives until a terminal state, such as the `/spec execute` implementation cycle ending after every story passes. See the **loop** and **terminal state** glossary entries.
 - **Policy** — The provider-portable rules, skills, and hooks that constrain agent behavior and tool use. See the **policy** and **tool** glossary entries.
 - **Trace** — Recorded session evidence consumed later by analysis, not the live execution layer itself. See the **trace** glossary entry.
@@ -24,7 +24,7 @@ These names describe separate layers, not interchangeable jobs:
   work, verifying the result, and accepting it. The advisor is a behavior, not an
   identity, a model, or a terminal, and it stays with the active session unless
   the operator requests a transfer. Source: [`AGENTS.md`](../AGENTS.md) and
-  [`.oh/skills/delegate/SKILL.md`](../.oh/skills/delegate/SKILL.md).
+  [`.agro/skills/delegate/SKILL.md`](../.agro/skills/delegate/SKILL.md).
 
 - **agent / coding agent** — The running model-plus-tools process that reads the
   workspace and drives the task: Claude Code, Codex, Pi, or another coding harness
@@ -35,27 +35,27 @@ These names describe separate layers, not interchangeable jobs:
   **skill** the active session adopts. Source: [`AGENTS.md`](../AGENTS.md).
 
 - **artifact** — Any inspectable file a workflow stage produces and a later stage
-  or a human then consumes. The canonical example is the `.oh/tasks/<slug>/` task
+  or a human then consumes. The canonical example is the `.agro/tasks/<slug>/` task
   folder and its three-file contract (`prd.md`, `prd.json`,
   `progress.txt`), which the `/spec` pipeline reads and writes as
-  they progress. Source: [`.oh/tasks/`](../.oh/tasks/).
+  they progress. Source: [`.agro/tasks/`](../.agro/tasks/).
 
 - **capability** — What the harness can actually do end-to-end, measured by the
   capability benchmark rather than by how much machinery it accumulates. The
-  `.oh/evals/capability/` suite grades concrete deliverables (a shipped PR, a
+  `.agro/evals/capability/` suite grades concrete deliverables (a shipped PR, a
   passing eval, a clean retro), so a rising score is evidence the loop got
-  better. Source: [`.oh/evals/capability/`](../.oh/evals/capability/).
+  better. Source: [`.agro/evals/capability/`](../.agro/evals/capability/).
 
 - **checkpoint** — An intermediate, observable stage output that is explicitly
   *not* the terminal state. For example, `/spec execute` opens a draft PR early as
   an observability checkpoint while implementation is still pending, then marks
   it ready once the gates pass.
-  Source: [`.oh/skills/spec/references/execute.md`](../.oh/skills/spec/references/execute.md).
+  Source: [`.agro/skills/spec/references/execute.md`](../.agro/skills/spec/references/execute.md).
 
 - **evaluator / eval** — A deterministic, exit-code-scored probe that checks
   harness state against a recorded lesson; the probe corpus and the `/eval`
   skill that runs it form the harness's fitness function, reporting PASS /
-  REGRESSION / SKIPPED per probe. Source: [`.oh/evals/`](../.oh/evals/).
+  REGRESSION / SKIPPED per probe. Source: [`.agro/evals/`](../.agro/evals/).
 
 - **harness** — The whole portable setup: one git repo that boots one Docker
   sandbox, wraps your project inside it, and versions the agent's identity,
@@ -63,17 +63,17 @@ These names describe separate layers, not interchangeable jobs:
   single repo-per-sandbox instance of it.
   Source: [`intro.md`](intro.md).
 
-- **knowledge** — Durable repository knowledge kept under `.oh/knowledge/`: a
+- **knowledge** — Durable repository knowledge kept under `.agro/knowledge/`: a
   derived cache of understanding that the repository itself always outranks.
   `source/` and `patterns/` entity pages are tracked and queryable; `local/` is
   ignored per-machine scratch that nothing reads.
-  Source: [`.oh/knowledge/`](../.oh/knowledge/).
+  Source: [`.agro/knowledge/`](../.agro/knowledge/).
 
 - **loop** — A repeated implement → commit → check cycle driven until the task
   graph is satisfied. `/spec execute` owns the implementation cycle; completion
   is structured state in `prd.json` — every entry in `userStories` carrying
   `"passes": true` — not a marker in prose.
-  Source: [`.oh/skills/spec/references/execute.md`](../.oh/skills/spec/references/execute.md).
+  Source: [`.agro/skills/spec/references/execute.md`](../.agro/skills/spec/references/execute.md).
 
 - **model** — The LLM an agent or CLI uses to produce reasoning, text, and
   tool-call requests. The model is only one part of an agent session; the
@@ -90,13 +90,13 @@ These names describe separate layers, not interchangeable jobs:
   follows — for example the git workflow (branch names, commit format, PR
   targets, changelog discipline) codified in the `/git` skill, alongside the
   hook-enforced security rules.
-  Source: [`.oh/skills/git/SKILL.md`](../.oh/skills/git/SKILL.md).
+  Source: [`.agro/skills/git/SKILL.md`](../.agro/skills/git/SKILL.md).
 
 - **primitive** — A reusable unit from the shared pack — skills and hooks —
-  vendored directly into the `.oh/` control plane and exposed to each provider
-  (`.claude/`, `.codex/`, `.pi/`) via symlinks into `.oh/`.
-  Source: [`README.md`](README.md) (the primitive pack under `.oh/skills/`,
-  `.oh/hooks/`).
+  vendored directly into the `.agro/` control plane and exposed through the
+  standard `.agents/skills` surface plus `.claude/` and `.codex/` symlinks into `.agro/`.
+  Source: [`README.md`](README.md) (the primitive pack under `.agro/skills/`,
+  `.agro/hooks/`).
 
 - **rfc / adr** — A durable architecture decision, recorded as a GitHub issue
   titled `RFC:` or `ADR:` and indexed on the RFC/ADR page. Three states —
@@ -113,7 +113,7 @@ These names describe separate layers, not interchangeable jobs:
 - **runtime** — The always-on machinery that wakes the agent on a schedule: a
   tiny croner that reads scheduled-agent definitions from `crons/` and fires
   them inside the sandbox.
-  Source: [`.oh/scripts/cron-runtime.ts`](../.oh/scripts/cron-runtime.ts).
+  Source: [`.agro/scripts/cron-runtime.ts`](../.agro/scripts/cron-runtime.ts).
 
 - **sandbox** — The isolated Docker container the agent runs inside, built from
   `.devcontainer/`, so the agent works against your code without touching the
@@ -126,30 +126,30 @@ These names describe separate layers, not interchangeable jobs:
   validation, evidence, and PR finalization with the single agent that invoked it, whatever
   backend that agent happens to be running in. That agent advises and accepts while bounded
   workers perform the tracked edits, and it launches no session of its own.
-  Source: [`.oh/skills/spec/references/execute.md`](../.oh/skills/spec/references/execute.md) and
-  [`sandbox-processes.md`](../.oh/skills/t3/references/sandbox-processes.md).
+  Source: [`.agro/skills/spec/references/execute.md`](../.agro/skills/spec/references/execute.md) and
+  [`sandbox-processes.md`](../.agro/skills/t3/references/sandbox-processes.md).
 
 - **skill** — A packaged, invocable workflow (a `SKILL.md` plus optional
   references and scripts) that an agent runs via the Skill tool or a `/name`
-  slash command; the shared set lives under `.oh/skills/`. **Skills are the
+  slash command; the shared set lives under `.agro/skills/`. **Skills are the
   canonical primitive for a reusable role, procedure, checklist, constraint set,
   or body of domain judgment** — `/architect`, `/spec`, `/audit`, `/retro`, and
   `/delegate` are roles encoded this way, loaded into the active session rather
-  than spawned as separate identities. Source: [`.oh/skills/`](../.oh/skills/).
+  than spawned as separate identities. Source: [`.agro/skills/`](../.agro/skills/).
 
 - **terminal state** — The end state that closes a workflow cycle. `/spec execute`
   completes implementation only after every story passes; the operative path
   then ends at the human `merge` followed by the runner's `reset | clean`.
-  Source: [the `/spec` workflow contract](../.oh/skills/spec/SKILL.md#workflow-contract).
+  Source: [the `/spec` workflow contract](../.agro/skills/spec/SKILL.md#workflow-contract).
 
 - **tool** — A discrete action an agent can invoke — read a file, run a command,
-  call an MCP server. Hooks under `.oh/hooks/` intercept tool calls to enforce
-  policy before they run. Source: [`.oh/hooks/`](../.oh/hooks/).
+  call an MCP server. Hooks under `.agro/hooks/` intercept tool calls to enforce
+  policy before they run. Source: [`.agro/hooks/`](../.agro/hooks/).
 
 - **trace** — The recorded log of a past agent session (prompts, tool calls,
   results) that later analysis mines. `/prompt-miner` runs `mine-traces.mjs`
   over Claude and Pi session traces to score prompts by outcome.
-  Source: [`mine-traces.mjs`](../.oh/skills/prompt-miner/scripts/mine-traces.mjs).
+  Source: [`mine-traces.mjs`](../.agro/skills/prompt-miner/scripts/mine-traces.mjs).
 
 - **worker / subagent** — An optional bounded, isolated execution context the
   active agent spawns for one self-contained job — parallelism, context
@@ -157,9 +157,9 @@ These names describe separate layers, not interchangeable jobs:
   an execution primitive, not a project role: workers are provider built-ins
   with no repository definition file, and `/delegate` owns when one is
   justified. Source:
-  [`.oh/skills/delegate/SKILL.md`](../.oh/skills/delegate/SKILL.md).
+  [`.agro/skills/delegate/SKILL.md`](../.agro/skills/delegate/SKILL.md).
 
 - **worktree** — A separate git working directory under `.worktrees/` that
   isolates a branch so parallel work doesn't collide; the `/worktrees` skill
   manages their lifecycle and `/spec execute` builds each task in one.
-  Source: [`.oh/skills/worktrees/SKILL.md`](../.oh/skills/worktrees/SKILL.md).
+  Source: [`.agro/skills/worktrees/SKILL.md`](../.agro/skills/worktrees/SKILL.md).

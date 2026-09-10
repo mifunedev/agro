@@ -1,6 +1,6 @@
 [Unit]
 Description=Open Harness sandbox bootstrap
-Documentation=https://github.com/mifunedev/openharness
+Documentation=https://github.com/mifunedev/agro
 After=network-online.target
 Wants=network-online.target
 Before=openharness-cron.service

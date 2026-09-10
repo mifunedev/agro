@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "runId": "audit-20260907T222832Z-3893813",
+  "target": "pr",
+  "targetArgs": [
+    "1004",
+    "--repo",
+    "mifunedev/openharness",
+    "--base",
+    "development"
+  ],
+  "state": "complete",
+  "verdict": "PR-AUDIT-PROMOTABLE",
+  "finishedAt": "2026-09-07T22:28:33Z"
+}

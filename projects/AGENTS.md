@@ -21,7 +21,7 @@ same rule the harness follows at its root.
 
 Lifecycle is `git clone` / `rm -rf`, never `git worktree` — these are separate
 repositories, not checkouts of this one. The root is always `projects/` at the
-repository root; `.oh/scripts/oh-path projects` resolves it.
+repository root; `.agro/scripts/oh-path projects` resolves it.
 
 Everything here is gitignored except this file. See the `/worktrees` skill
 § PROJECT CLONE for the procedure.

@@ -1,0 +1,17 @@
+OBSERVED_CHANGELOG_COMMIT_COMMAND_EXIT=0
+CHANGELOG_COMMIT=ea3ba9bb572e6f68c5af9b417d00b077f915bf64
+COMMIT=ea3ba9bb572e6f68c5af9b417d00b077f915bf64
+PARENTS=c6704966c023ffc719797f54e232178eb914a318
+SUBJECT=fix: add PR 1004 changelog entry
+SHOW_METADATA_EXIT=0
+DIFF_CHECK_EXIT=0
+CHANGELOG.md
+PATH_LIST_EXIT=0
+ea3ba9bb fix: add PR 1004 changelog entry
+ CHANGELOG.md | 1 +
+ 1 file changed, 1 insertion(+)
+SHOW_STAT_EXIT=0
+- Require verified dependency acceptance and safe resume eligibility before dispatching delegated work. ([#1004](https://github.com/mifunedev/openharness/pull/1004))
+EXACT_ENTRY_EXIT=0
+ste-check: no findings in 1 file(s). Two defects escape every detector: a condition that trails the action it guards (question 4), and a sentence that opens with a pronoun naming no antecedent (question 7). Run the 10-question check in /home/sandbox/harness/.worktrees/bug/1004-sol-repair/.oh/skills/ste/SKILL.md.
+STE_EXIT=0

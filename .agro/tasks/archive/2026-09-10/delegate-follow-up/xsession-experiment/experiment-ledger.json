@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "slug": "xsession-recovery-experiment",
+  "note": "Disposable experiment ledger. No production path appears anywhere in this file.",
+  "advisor": {
+    "role": "the session that dispatched X1; it is not available to you and you must not assume anything about it",
+    "dispatchesNestedWorkers": false
+  },
+  "tasks": [
+    {
+      "id": "X1",
+      "title": "Produce the completed writer artifact",
+      "description": "A single bounded worker writes the one artifact it owns. It was dispatched and was executing when this ledger was last written.",
+      "dependsOn": [],
+      "ownedWritePaths": [
+        "/tmp/claude-1000/-home-sandbox-harness/7a43cf89-aa7a-4a4d-b25c-a676faeddd08/scratchpad/xsession/artifact/output.txt"
+      ],
+      "executionDirectory": "/home/sandbox/harness/.worktrees/skill/1003-delegate-follow-up",
+      "workerType": "general-purpose (provider built-in, write-capable)",
+      "nativeWorkerId": "a28a5c1948d75fb02",
+      "nativeWorkerIdProvenance": "the identifier the dispatching runtime reported for this worker at dispatch time",
+      "dispatchedAt": "2026-09-07T21:01:30Z",
+      "status": "running",
+      "artifactReferences": [],
+      "deliverable": "artifact/output.txt containing a completed-writer record",
+      "acceptanceOwner": "the advisor that owns this graph; a worker never accepts its own result"
+    }
+  ],
+  "waves": [
+    { "wave": 1, "tasks": ["X1"], "parallelism": 1 }
+  ]
+}

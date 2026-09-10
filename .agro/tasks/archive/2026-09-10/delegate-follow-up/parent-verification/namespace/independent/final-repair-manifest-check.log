@@ -1,0 +1,11 @@
+./changelog-entry.md: OK
+./changelog-verification.log: OK
+./final-checks.log: OK
+./focused-mermaid-mutations.log: OK
+./precommit-checks.log: OK
+./prior-12-mutations.log: OK
+./report-verification.log: OK
+./report.md: OK
+./run-focused-mermaid.sh: OK
+./run-prior-12.sh: OK
+./simplification-commit-verification.log: OK

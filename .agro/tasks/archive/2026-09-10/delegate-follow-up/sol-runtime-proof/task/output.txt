@@ -1,0 +1,5 @@
+worker-output
+utc_end=2026-09-07T23:28:39Z
+fifo_result=returned-data
+exit_code=0
+line_read=release

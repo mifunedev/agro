@@ -1,0 +1,536 @@
+{
+  "slug": "agro-identity-cutover",
+  "owner": "advisor session (Claude Fable 5.1, /spec execute)",
+  "branch": "feat/943-agro-identity-cutover",
+  "pr": "https://github.com/mifunedev/openharness/pull/1015",
+  "waves": [
+    {
+      "wave": 1,
+      "tasks": [
+        "T1",
+        "T2",
+        "T3"
+      ],
+      "parallelism": 3,
+      "complexity": "M + L + M"
+    },
+    {
+      "wave": 2,
+      "tasks": [
+        "T4",
+        "T5"
+      ],
+      "parallelism": 2,
+      "complexity": "M + M"
+    },
+    {
+      "wave": 3,
+      "tasks": [
+        "T6"
+      ],
+      "parallelism": 0,
+      "complexity": "operator gate"
+    },
+    {
+      "wave": 4,
+      "tasks": [
+        "T7"
+      ],
+      "parallelism": 1,
+      "complexity": "M"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Web pipeline accepts the AGRO source layout (US-001)",
+      "description": "In mifunedev/openharness-web make scripts/oh-source.mjs resolve AGRO_GITHUB_REPO/AGRO_SCRIPTS_REF before OH_*, build-oh-cli.mjs build from .agro/cli with .oh/cli fallback into static/agro.js and static/oh.js, sync-external-scripts.mjs mirror get-agro.sh and get-oh.sh from .agro/scripts with .oh/scripts fallback, and pages.yml accept both dispatch types and both repository names. Build against development and main.",
+      "dependsOn": [],
+      "complexity": "M: four scripts plus a workflow, network-backed build verification against two refs",
+      "selectionReason": "Owned-path edits with two live build runs; default model and reasoning suffice",
+      "requestedModel": "inherit",
+      "observedSettings": "general-purpose subagent, model inherit (session default), provenance: Agent tool defaults",
+      "readScope": [
+        "/home/sandbox/harness/projects/mifunedev/openharness-web/.worktrees/feat-943-agro-source-layout (whole clone)",
+        "/home/sandbox/harness/.worktrees/feat/943-agro-identity-cutover/.agro/tasks/agro-identity-cutover/prd.md (US-001, Technical Considerations)",
+        "/home/sandbox/harness/.worktrees/feat/943-agro-identity-cutover/.agro/scripts/{get-agro.sh,get-oh.sh}",
+        "/home/sandbox/harness/.worktrees/feat/943-agro-identity-cutover/.agro/cli/package.json"
+      ],
+      "searchOutputLimits": "grep -l before grep -n; cap any command output at 200 lines; build logs tail -40",
+      "ownedWritePaths": [
+        "scripts/oh-source.mjs",
+        "scripts/build-oh-cli.mjs",
+        "scripts/sync-external-scripts.mjs",
+        "scripts/check-docs-drift.mjs (only if the drift check must learn the new artifacts)",
+        ".github/workflows/pages.yml",
+        "package.json scripts block (only if a script name must change)",
+        ".gitignore (only for new static artifacts)"
+      ],
+      "exclusions": [
+        "docusaurus.config.ts",
+        "static/CNAME",
+        "docs/",
+        "blog/",
+        "any default repository value (stays mifunedev/openharness)",
+        "git commit/push",
+        "prd.json",
+        "progress.txt",
+        "delegate-*"
+      ],
+      "executionDirectory": "/home/sandbox/harness/projects/mifunedev/openharness-web/.worktrees/feat-943-agro-source-layout",
+      "worktreeIsolation": "dedicated worktree on branch feat/943-agro-source-layout from origin/main of the web repo",
+      "workerType": "general-purpose",
+      "continuationMethod": "native continuation via SendMessage",
+      "deliverable": "uncommitted working-tree changes in the web worktree plus a report listing files, build results for both refs, and the artifact list",
+      "verification": "pnpm install --frozen-lockfile; OH_SCRIPTS_REF=development pnpm run build; ls static/agro.js static/oh.js static/get-agro.sh static/get-oh.sh; OH_SCRIPTS_REF=main pnpm run build; pnpm run check:docs-drift; node -e 'import(\"./scripts/oh-source.mjs\")' with AGRO_GITHUB_REPO set; head -1 of the four artifacts starts with #!; grep -n agro-release .github/workflows/pages.yml",
+      "stoppingCondition": "both builds pass and the drift check passes, or a build fails for a reason outside the owned paths (report BLOCKED with the failing command and output tail)",
+      "evidenceDestinations": [
+        "worker report",
+        "/home/sandbox/harness/.worktrees/feat/943-agro-identity-cutover/.agro/tasks/agro-identity-cutover/worker-reports/T1.md (written by the owner from the report)"
+      ],
+      "coveredDoD": [
+        "US-001 AC1-AC5"
+      ],
+      "acceptanceOwner": "advisor",
+      "failureRepairRoute": "T1 worker repairs; the owner commits, pushes, and opens the web PR (US-001 AC6)",
+      "nativeWorkerId": "a274cc1dfa787f8d1",
+      "status": "completed",
+      "summary": "Worker: 6 files (+95/-43), all five criteria met, builds green against development and main. Owner re-ran resolver checks, drift check, and the main build (exit 0, four artifacts #!, agro.js==oh.js), committed 05e81c7, pushed, opened web PR #46.",
+      "artifactReferences": [
+        "mifunedev/openharness-web feat/943-agro-source-layout@05e81c7",
+        "https://github.com/mifunedev/openharness-web/pull/46"
+      ],
+      "usage": "83913 tokens, 24 tool uses, 290 s"
+    },
+    {
+      "id": "T2",
+      "title": "Core metadata, installers, links, docs, skills, and probes name AGRO (US-002)",
+      "description": "Sweep the core repository so current-facing metadata, installers, README, docs, sync topology, and skill instructions name github.com/mifunedev/agro and agro.mifune.dev, leaving historical files untouched, write reference-classification.md, and repin the eight named probes with fault injection.",
+      "dependsOn": [],
+      "complexity": "L: many files across README, docs, package manifests, Dockerfile, eight probes with fault injection, plus a full classified sweep",
+      "selectionReason": "Broad but mechanical sweep with judgment on historical vs current; default model with careful verification",
+      "requestedModel": "inherit",
+      "observedSettings": "general-purpose subagent, model inherit (session default), provenance: Agent tool defaults",
+      "readScope": [
+        "/home/sandbox/harness/.worktrees/feat/943-agro-identity-cutover (whole worktree)",
+        "prd.md US-002, Technical Considerations, Non-Goals"
+      ],
+      "searchOutputLimits": "rg -l first, then targeted rg -n per file; cap output at 200 lines; test output tail -30",
+      "ownedWritePaths": [
+        ".agro/cli/package.json",
+        ".agro/cli/legacy/package.json",
+        ".devcontainer/Dockerfile",
+        "README.md",
+        ".agro/scripts/get-agro.sh",
+        ".agro/scripts/get-oh.sh",
+        ".agro/scripts/README.md (rename mentions only)",
+        "docs/ (current docs only; not docs/rfcs/)",
+        ".agro/skills/sync/references/topology.md",
+        ".agro/skills/git/",
+        ".agro/skills/strategic-proposal/",
+        ".agro/evals/probes/{get-oh-bootstrap,get-agro-bootstrap,oh-shipped-repo-overridable,oh-sandbox-image-mode,sync-skill-contract,docs-build-fast-path,agents-identity-contract,docs-20260901-followup-artifact-cited}.sh",
+        ".agro/tasks/agro-identity-cutover/reference-classification.md",
+        ".agro/tasks/agro-identity-cutover/probe-fault-injection.md",
+        "other current-facing files a classified hit requires, listed in the report"
+      ],
+      "exclusions": [
+        ".github/workflows/release.yml",
+        ".agro/scripts/reserve-github-release.mjs",
+        ".agro/scripts/__tests__/release-reservation.test.ts",
+        ".agro/skills/release/",
+        "CHANGELOG.md",
+        "docs/rfcs/",
+        ".agro/knowledge/",
+        "dated task folders under .agro/tasks/ other than agro-identity-cutover",
+        "crons/",
+        ".github/workflows/sandbox-boot-guard.yml LEGACY_IMAGE",
+        "docs/agro-cutover-runbook.md (T5)",
+        "git commit/push",
+        "prd.json",
+        "progress.txt",
+        "delegate-*",
+        "explanatory comments in tracked code"
+      ],
+      "executionDirectory": "/home/sandbox/harness/.worktrees/feat/943-agro-identity-cutover",
+      "worktreeIsolation": "the task branch worktree; T3 runs in a sibling worktree on a temporary branch, so no shared file is edited concurrently",
+      "workerType": "general-purpose",
+      "continuationMethod": "native continuation via SendMessage",
+      "deliverable": "uncommitted working-tree changes on feat/943-agro-identity-cutover plus reference-classification.md, probe-fault-injection.md, and a report",
+      "verification": "pnpm test; pnpm --dir .agro/cli typecheck (or the repository's two typecheck commands); bash .agro/scripts/link-providers.sh --check; each changed probe run green then fault-injected red then restored; rg -n 'mifunedev/openharness|oh\\.mifune\\.dev' listing reconciled against reference-classification.md",
+      "stoppingCondition": "all verification commands exit 0 and every remaining old-name hit is classified, or a check fails outside owned paths (report BLOCKED)",
+      "evidenceDestinations": [
+        ".agro/tasks/agro-identity-cutover/reference-classification.md",
+        ".agro/tasks/agro-identity-cutover/probe-fault-injection.md",
+        "worker report"
+      ],
+      "coveredDoD": [
+        "US-002 AC1-AC9"
+      ],
+      "acceptanceOwner": "advisor",
+      "failureRepairRoute": "T2 worker repairs; owner commits",
+      "nativeWorkerId": "aae802958fd288d50",
+      "status": "completed",
+      "summary": "41 files: manifests, Dockerfile label, README, installers, 18 docs pages, compat doc Phase 3 section + endpoint table, 9 skill files, 4 probes repinned with fault injection, classification (115 files/781 hits, 0 unclassified). Owner re-ran pnpm test (first run 3 transient failures, clean rerun 1246 passed), both typechecks, link check, 8 probes; whole-diff whitespace scan reviewed; committed 03c3d69b.",
+      "artifactReferences": [
+        "feat/943-agro-identity-cutover@03c3d69b",
+        ".agro/tasks/agro-identity-cutover/reference-classification.md",
+        ".agro/tasks/agro-identity-cutover/probe-fault-injection.md"
+      ],
+      "usage": "162076 tokens, 38 tool uses, 727 s"
+    },
+    {
+      "id": "T3",
+      "title": "Release infrastructure uses AGRO names and notifies the docs site (US-003)",
+      "description": "Rename smoke sandbox names and IMAGE_REPOSITORIES order in .github/workflows/release.yml, add a notify-docs job that sends repository_dispatch agro-release after finalize, rename the reservation user agent and its test fixtures, and document the dispatch in .agro/scripts/README.md and .agro/skills/release/SKILL.md.",
+      "dependsOn": [],
+      "complexity": "M: one workflow job with secret-guarded conditional, one script string, one test fixture, two docs",
+      "selectionReason": "Small, precise YAML and docs work; default model",
+      "requestedModel": "inherit",
+      "observedSettings": "general-purpose subagent, model inherit (session default), provenance: Agent tool defaults",
+      "readScope": [
+        "/home/sandbox/harness/.worktrees/feat/943-release-infra (whole worktree)",
+        "prd.md US-003",
+        ".github/workflows/release.yml",
+        ".agro/scripts/reserve-github-release.mjs",
+        ".agro/scripts/__tests__/release-reservation.test.ts",
+        ".agro/scripts/README.md",
+        ".agro/skills/release/SKILL.md",
+        "projects/mifunedev/openharness-web/.github/workflows/pages.yml (read-only, for the dispatch contract)"
+      ],
+      "searchOutputLimits": "targeted rg -n; cap output at 150 lines; test output tail -30",
+      "ownedWritePaths": [
+        ".github/workflows/release.yml",
+        ".agro/scripts/reserve-github-release.mjs",
+        ".agro/scripts/__tests__/release-reservation.test.ts",
+        ".agro/scripts/README.md (release section only)",
+        ".agro/skills/release/SKILL.md",
+        "docs/ release-related page if one documents the release pipeline (name it in the report)"
+      ],
+      "exclusions": [
+        "every other file",
+        "printing or echoing any secret value",
+        "git commit/push",
+        "prd.json",
+        "progress.txt",
+        "delegate-*",
+        "explanatory comments in tracked code"
+      ],
+      "executionDirectory": "/home/sandbox/harness/.worktrees/feat/943-release-infra",
+      "worktreeIsolation": "sibling worktree on temporary branch feat/943-release-infra from the task branch HEAD; the owner integrates the diff into feat/943-agro-identity-cutover",
+      "workerType": "general-purpose",
+      "continuationMethod": "native continuation via SendMessage",
+      "deliverable": "uncommitted working-tree changes in the release worktree plus a report",
+      "verification": "node -e 'require(\"js-yaml\").load(require(\"fs\").readFileSync(\".github/workflows/release.yml\",\"utf8\"))' or python3 -c yaml.safe_load; pnpm vitest run .agro/scripts/__tests__/release-reservation.test.ts; git diff | grep -nE '^\\+ +' paired-indent scan reports zero suspicious pairs; rg -n 'agro-release-smoke|agro openharness|agro-release-reservation|notify-docs|AGRO_WEB_DISPATCH_TOKEN' on changed files",
+      "stoppingCondition": "YAML validates, the test passes, and the whitespace scan is clean; otherwise BLOCKED with the failing output",
+      "evidenceDestinations": [
+        "worker report"
+      ],
+      "coveredDoD": [
+        "US-003 AC1-AC5"
+      ],
+      "acceptanceOwner": "advisor",
+      "failureRepairRoute": "T3 worker repairs; owner integrates and commits",
+      "nativeWorkerId": "adf547d4172276fa0",
+      "status": "completed",
+      "summary": "Round 1: names, user agent, notify-docs job, docs, tests; not accepted (default order via workflow override). Round 2: script default flipped at promote-release-latest.sh:89 with test, override removed. Owner re-ran both test files (39 passed), YAML safe_load ok, whitespace scan 31 changed lines all reviewed (3 identical-indent rename pairs), committed 4d80868b on the temp branch and cherry-picked into the task branch.",
+      "artifactReferences": [
+        "feat/943-agro-identity-cutover@4d80868b"
+      ],
+      "usage": "98971 tokens, 35 tool uses, 402 s (both rounds)"
+    },
+    {
+      "id": "T4",
+      "title": "Docs site identity, domain, and SEO become AGRO (US-004)",
+      "description": "On a web branch stacked on T1, rebrand docusaurus.config.ts, CNAME, robots, package name, blog banner renderer, current docs pages, and the drift check; build and verify canonical URLs.",
+      "dependsOn": [
+        "T1"
+      ],
+      "complexity": "M: config plus a docs sweep and regenerated banner assets",
+      "selectionReason": "Continuation of the T1 worker keeps the web-repo context",
+      "requestedModel": "inherit",
+      "observedSettings": "general-purpose subagent (T1 continuation), model inherit",
+      "readScope": [
+        "web worktree for T4 (branch feat/943-agro-web-identity stacked on feat/943-agro-source-layout)",
+        "prd.md US-004"
+      ],
+      "searchOutputLimits": "rg -l first; cap output at 200 lines; build log tail -40",
+      "ownedWritePaths": [
+        "docusaurus.config.ts",
+        "static/CNAME",
+        "static/robots.txt",
+        "package.json name",
+        "scripts/render-blog-banner.mjs",
+        "scripts/check-docs-drift.mjs",
+        "docs/",
+        "src/ landing page",
+        "regenerated banner assets under static/"
+      ],
+      "exclusions": [
+        "blog/ posts",
+        "promos/",
+        "scripts/oh-source.mjs default repository (stays until US-006)",
+        "git commit/push",
+        "prd.json",
+        "progress.txt",
+        "delegate-*"
+      ],
+      "executionDirectory": "/home/sandbox/harness/projects/mifunedev/openharness-web/.worktrees/feat-943-agro-web-identity",
+      "worktreeIsolation": "second dedicated web worktree",
+      "workerType": "general-purpose",
+      "continuationMethod": "native continuation via SendMessage to the T1 worker",
+      "deliverable": "uncommitted working-tree changes plus a report",
+      "verification": "pnpm run build; grep canonical/sitemap URLs in build/; pnpm run check:docs-drift",
+      "stoppingCondition": "build and drift check pass; otherwise BLOCKED",
+      "evidenceDestinations": [
+        "worker report"
+      ],
+      "coveredDoD": [
+        "US-004 AC1-AC5"
+      ],
+      "acceptanceOwner": "advisor",
+      "failureRepairRoute": "T4 worker repairs; owner commits and opens the web PR (US-004 AC6)",
+      "nativeWorkerId": null,
+      "status": "completed",
+      "summary": "25 files (+187/-128): docusaurus config, CNAME, robots, package name, banner literals, drift rule LEGACY_IDENTITY, 18 docs pages, landing page, intro note. Round 2 fixed homepage prose and the installation.md default claim. Owner re-ran build (exit 0) and drift (PASS), checked CNAME, sitemap 66 agro / 0 oh, title AGRO, canonical links; committed 73a06e7, pushed, opened draft web PR #47 stacked on #46.",
+      "artifactReferences": [
+        "mifunedev/openharness-web feat/943-agro-web-identity@73a06e7",
+        "https://github.com/mifunedev/openharness-web/pull/47"
+      ],
+      "usage": "166055 tokens cumulative, 34 tool uses, 550 s (T4 both rounds)"
+    },
+    {
+      "id": "T5",
+      "title": "Cutover runbook with rollback (US-005)",
+      "description": "Write docs/agro-cutover-runbook.md with preconditions, ordered operator actions with exact commands, the verification matrix, and rollback; link it from docs/agro-compatibility.md; pass ste-check.",
+      "dependsOn": [
+        "T1",
+        "T2",
+        "T3"
+      ],
+      "complexity": "M: one document with precise commands grounded in T1-T3 results",
+      "selectionReason": "Continuation of the T2 worker keeps the core-docs context",
+      "requestedModel": "inherit",
+      "observedSettings": "general-purpose subagent (T2 continuation), model inherit",
+      "readScope": [
+        "task worktree",
+        "prd.md US-005, Technical Considerations, Open Questions",
+        "T1 and T3 accepted summaries"
+      ],
+      "searchOutputLimits": "cap output at 150 lines",
+      "ownedWritePaths": [
+        "docs/agro-cutover-runbook.md",
+        "docs/agro-compatibility.md (link line only)"
+      ],
+      "exclusions": [
+        "everything else",
+        "git commit/push",
+        "prd.json",
+        "progress.txt",
+        "delegate-*"
+      ],
+      "executionDirectory": "/home/sandbox/harness/.worktrees/feat/943-agro-identity-cutover",
+      "worktreeIsolation": "serialized after T2 in the same worktree",
+      "workerType": "general-purpose",
+      "continuationMethod": "native continuation via SendMessage to the T2 worker",
+      "deliverable": "uncommitted runbook plus a report",
+      "verification": "bash .agro/skills/ste/scripts/ste-check.sh docs/agro-cutover-runbook.md; grep -n agro-cutover-runbook docs/agro-compatibility.md",
+      "stoppingCondition": "ste-check exits 0; otherwise BLOCKED",
+      "evidenceDestinations": [
+        "worker report"
+      ],
+      "coveredDoD": [
+        "US-005 AC1-AC5"
+      ],
+      "acceptanceOwner": "advisor",
+      "failureRepairRoute": "T5 worker repairs; owner commits",
+      "nativeWorkerId": null,
+      "status": "completed",
+      "summary": "docs/agro-cutover-runbook.md (288 lines: preconditions, 8 ordered actions with commands, 10-pair verification matrix, rollback) plus links from agro-compatibility.md and docs/README.md. Owner re-ran ste-check (exit 0), link greps, curl-bash probe (exit 0), and read the Cloudflare section against the rulesets API shape.",
+      "artifactReferences": [
+        "docs/agro-cutover-runbook.md"
+      ],
+      "usage": "188379 tokens cumulative, 11 tool uses, 179 s (T5)"
+    },
+    {
+      "id": "T6",
+      "title": "Operator cutover and canonical defaults (US-006)",
+      "description": "Operator performs runbook steps 1-8; the owner records cutover-record.md and then dispatches the default flips (web default source, README/installer live re-verification, release smoke).",
+      "dependsOn": [
+        "T4",
+        "T5",
+        "operator report"
+      ],
+      "complexity": "operator gate; the follow-up flips are S",
+      "selectionReason": "n/a until the operator reports",
+      "requestedModel": "inherit",
+      "observedSettings": "unknown",
+      "readScope": [
+        "cutover-record.md"
+      ],
+      "searchOutputLimits": "n/a",
+      "ownedWritePaths": [
+        "decided at dispatch"
+      ],
+      "exclusions": [
+        "decided at dispatch"
+      ],
+      "executionDirectory": "decided at dispatch",
+      "worktreeIsolation": "decided at dispatch",
+      "workerType": "general-purpose",
+      "continuationMethod": "rebrief",
+      "deliverable": "cutover-record.md plus default flips",
+      "verification": "clean node:22-slim container one-liners; gh run view of the dispatched pages.yml run",
+      "stoppingCondition": "operator report received and recorded",
+      "evidenceDestinations": [
+        ".agro/tasks/agro-identity-cutover/cutover-record.md"
+      ],
+      "coveredDoD": [
+        "US-006 AC1-AC5"
+      ],
+      "acceptanceOwner": "advisor",
+      "failureRepairRoute": "rebrief",
+      "nativeWorkerId": null,
+      "status": "running",
+      "summary": "Operator authorized the gh steps; advisor performed steps 1,2,3,4,7b,8 and merged #46 (recorded in cutover-record.md). Steps 5, 6, 7a stay with the operator. Dispatching the default flips: T6a core CLI defaults (remote.ts, self-upgrade.ts, docs.ts, service Documentation=, lifecycle-commands.md) and T6b web oh-source.mjs default on the #47 branch. Steps 5, 6, 7a remain with the operator; story cannot pass.",
+      "artifactReferences": [],
+      "usage": "unknown"
+    },
+    {
+      "id": "T7",
+      "title": "Knowledge impact, classification, changelog, evidence (US-007)",
+      "description": "Update release-versioning and fresh-machine-setup, reverify oh-cli-portable-lifecycle, add the agro-web-pipeline repo page, regenerate the index, add the CHANGELOG entry.",
+      "dependsOn": [
+        "T2",
+        "T3",
+        "T6"
+      ],
+      "complexity": "M: three page updates, one new page, index, changelog",
+      "selectionReason": "Bounded knowledge edits with pinned sources",
+      "requestedModel": "inherit",
+      "observedSettings": "general-purpose subagent, model inherit",
+      "readScope": [
+        "task worktree .agro/knowledge/",
+        "web worktree",
+        "prd.md US-007",
+        "accepted summaries T1-T6"
+      ],
+      "searchOutputLimits": "cap output at 150 lines",
+      "ownedWritePaths": [
+        ".agro/knowledge/source/{release-versioning,fresh-machine-setup,oh-cli-portable-lifecycle,agro-web-pipeline}.md",
+        ".agro/knowledge/README.md (regenerated)",
+        "CHANGELOG.md Unreleased"
+      ],
+      "exclusions": [
+        "patterns/",
+        "git commit/push",
+        "prd.json",
+        "progress.txt",
+        "delegate-*"
+      ],
+      "executionDirectory": "/home/sandbox/harness/.worktrees/feat/943-agro-identity-cutover",
+      "worktreeIsolation": "serialized in the task worktree",
+      "workerType": "general-purpose",
+      "continuationMethod": "rebrief",
+      "deliverable": "uncommitted knowledge and changelog edits plus a report",
+      "verification": "bash .agro/skills/wiki/scripts/knowledge-impact.sh --verified; bash .agro/evals/probes/wiki-readme-index.sh; wiki probes",
+      "stoppingCondition": "no NEEDS-REVIEW and index probe passes; otherwise BLOCKED",
+      "evidenceDestinations": [
+        "worker report"
+      ],
+      "coveredDoD": [
+        "US-007 AC1-AC4"
+      ],
+      "acceptanceOwner": "advisor",
+      "failureRepairRoute": "T7 worker repairs; owner commits and writes evidence.md (US-007 AC5)",
+      "nativeWorkerId": "a03947e3ac3cca274",
+      "status": "completed",
+      "summary": "Knowledge portion accepted: release-versioning, fresh-machine-setup, oh-cli-portable-lifecycle UPDATED; compose-env-boundary, managed-agents, plan-vs-built-reconciliation REVERIFIED; new agro-web-pipeline page; index regenerated; CHANGELOG entry (248 chars after one repair). Remaining for T7: post-cutover REVERIFY pass and evidence.md (blocked on T6). Step 9 compile: pattern-evals-tracked-only-scan-misses-uncommitted gained this run occurrence; new pattern-wiki-frontmatter-edit-without-reindex; index 41 entries; all wiki probes 0.",
+      "artifactReferences": [
+        ".agro/knowledge/source/agro-web-pipeline.md",
+        "CHANGELOG.md"
+      ],
+      "usage": "148844 tokens, 29 tool uses, 431 s"
+    },
+    {
+      "id": "T6a",
+      "title": "Core CLI defaults name mifunedev/agro (US-006)",
+      "dependsOn": [
+        "T6"
+      ],
+      "status": "completed",
+      "nativeWorkerId": "ae99bf85d391ab68e",
+      "workerType": "general-purpose",
+      "executionDirectory": "/home/sandbox/harness/.worktrees/feat/943-agro-identity-cutover",
+      "ownedWritePaths": [
+        ".agro/cli/src/lib/remote.ts",
+        ".agro/cli/src/commands/self-upgrade.ts",
+        ".agro/cli/src/lib/docs.ts",
+        ".devcontainer/openharness-cron.service",
+        ".devcontainer/openharness-bootstrap.service",
+        "docs/lifecycle-commands.md",
+        "tests pinning those defaults",
+        "reference-classification.md rows",
+        "oh-cli-portable-lifecycle.md sentence"
+      ],
+      "verification": "pnpm test, typechecks, six probes",
+      "acceptanceOwner": "advisor",
+      "summary": "remote.ts, self-upgrade.ts, docs.ts, two systemd units, lifecycle-commands.md, five test files, OH_SCRIPTS_REF inventory entry, classification rows, oh-cli-portable-lifecycle page. Owner re-ran pnpm test (1246), typechecks, 7 probes; committed 0b58c0a7 + b63cf41e. Worker used a bare stash against instructions; state verified intact; stash@{0} 279b74a2 left for the operator to drop.",
+      "artifactReferences": [
+        "feat/943-agro-identity-cutover@0b58c0a7",
+        "feat/943-agro-identity-cutover@b63cf41e"
+      ]
+    },
+    {
+      "id": "T6b",
+      "title": "Web default source becomes mifunedev/agro (US-006)",
+      "dependsOn": [
+        "T6"
+      ],
+      "status": "completed",
+      "nativeWorkerId": "a153b245e07756a76",
+      "workerType": "general-purpose",
+      "executionDirectory": "/home/sandbox/harness/projects/mifunedev/openharness-web/.worktrees/feat-943-agro-web-identity",
+      "ownedWritePaths": [
+        "scripts/oh-source.mjs",
+        "README.md",
+        "script headers"
+      ],
+      "verification": "resolver prints mifunedev/agro main; pnpm run build; drift check",
+      "acceptanceOwner": "advisor",
+      "summary": ""
+    },
+    {
+      "id": "W1",
+      "title": "Make security:audit CI-only with regression coverage",
+      "dependsOn": [],
+      "status": "completed",
+      "nativeWorkerId": "a155d1bf1d84aedc7",
+      "workerType": "general-purpose",
+      "executionDirectory": "/home/sandbox/harness/.worktrees/feat/943-agro-identity-cutover",
+      "ownedWritePaths": [
+        "package.json",
+        "new probe security-audit-ci-only.sh",
+        "probe-fault-injection.md",
+        "CHANGELOG.md"
+      ],
+      "acceptanceOwner": "advisor",
+      "summary": "Removed pnpm:devPreinstall from the root package.json; .agro/cli manifests had no equivalent hook. Both CI and release workflows already run pnpm run security:audit explicitly before install, using the lockfile rather than node_modules, so the gate ordering still protects the build. New probe security-audit-ci-only.sh asserts both halves. Owner re-verified and independently fault-injected the probe."
+    },
+    {
+      "id": "W2",
+      "title": "Repair the legacy boot fixture preserving .oh-layout coverage",
+      "dependsOn": [],
+      "status": "completed",
+      "nativeWorkerId": "a67cebb1b4f04f38d",
+      "workerType": "general-purpose",
+      "executionDirectory": "/home/sandbox/harness/.worktrees/fix/943-legacy-fixture",
+      "ownedWritePaths": [
+        ".agro/scripts/sandbox-upgrade-smoke.sh",
+        ".agro/scripts/__tests__/sandbox-upgrade-smoke.test.ts",
+        ".github/workflows/sandbox-boot-guard.yml"
+      ],
+      "acceptanceOwner": "advisor",
+      "summary": "Fixture no longer boots the broken published image; extracts the real /opt/oh-seed payload into a fresh volume as genuine .oh content and boots only the freshly built image. Owner re-ran the smoke end to end: PASS, exit 0."
+    }
+  ]
+}

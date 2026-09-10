@@ -36,7 +36,7 @@ const WORDMARK_LINES: string[] = [
   "╚═╝     ╚═╝╚═╝╚═╝      ╚═════╝ ╚═╝  ╚═══╝╚══════╝",
 ];
 const TAGLINE = "  agent harness · https://x.com/mifunedev";
-const SOURCE  = "  https://github.com/ryaneggz/mifune";
+const SOURCE  = "  https://github.com/mifunedev";
 
 export function buildHeader(theme: Theme): string[] {
   return [

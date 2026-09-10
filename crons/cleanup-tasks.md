@@ -11,22 +11,22 @@ description: Weekly `/spec execute` task sweep — archive completed tasks
 
 # Weekly Task Cleanup
 
-Sweep `.oh/tasks/` once per week and archive anything that has finished.
+Sweep `.agro/tasks/` once per week and archive anything that has finished.
 Per SPEC v0.7 §"Weekly cleanup cron": completed tasks move into the
-dated archive under `.oh/tasks/`; incomplete tasks are left alone with a
+dated archive under `.agro/tasks/`; incomplete tasks are left alone with a
 note. The same weekly pass also grooms stale `.worktrees/` branch
 checkouts, but it never touches the durable `.worktrees/agent/`
 namespace, and never looks at the `projects/` clone root at all. `crons/.cron.log` carries liveness
-only — never a `.oh/tasks/` subfolder.
+only — never a `.agro/tasks/` subfolder.
 
 ## Tasks
 
 1. Compute `TODAY=$(date -u +%Y-%m-%d)`. The dated destination
-   `.oh/tasks/archive/$TODAY/` is created inside the worktree (step 4); all
+   `.agro/tasks/archive/$TODAY/` is created inside the worktree (step 4); all
    archive moves now run there, not in the shared checkout.
-2. **Pre-flight (scoped to `.oh/tasks/`):** check only the surface this job
-   mutates — run `git status --porcelain -- .oh/tasks/ ':!.oh/tasks/archive/'`.
-   Only a mid-write task under `.oh/tasks/` (the `.oh/tasks/archive/`
+2. **Pre-flight (scoped to `.agro/tasks/`):** check only the surface this job
+   mutates — run `git status --porcelain -- .agro/tasks/ ':!.agro/tasks/archive/'`.
+   Only a mid-write task under `.agro/tasks/` (the `.agro/tasks/archive/`
    destination is excluded so an in-progress archive write never
    self-flags the sweep) blocks the run; foreign WIP elsewhere in the
    shared checkout — an in-flight feature branch, a concurrent session's
@@ -35,13 +35,13 @@ only — never a `.oh/tasks/` subfolder.
    scoped status is non-empty, abort: append a note to
    the reply, emit the distinct liveness token to
    `crons/.cron.log`
-   (`printf '[%s] cleanup-tasks: %s\n' "$(date -Iseconds)" "BLOCKED-TASKS-WIP" | .oh/scripts/locked-append.sh crons/.cron.log`),
+   (`printf '[%s] cleanup-tasks: %s\n' "$(date -Iseconds)" "BLOCKED-TASKS-WIP" | .agro/scripts/locked-append.sh crons/.cron.log`),
    and stop here — do NOT fall through to step 7's `OK` line. This
    `BLOCKED-TASKS-WIP` token is intentionally distinct from the
    `OK (archived N, skipped M)` success token and the `HEARTBEAT_OK`
    nothing-to-do reply. Do not contaminate the archive branch with
    unrelated changes.
-3. Resolve `$BASE` = default target branch per `/git` (`.oh/skills/git/SKILL.md`)
+3. Resolve `$BASE` = default target branch per `/git` (`.agro/skills/git/SKILL.md`)
    (`development` → `main` → `master`, whichever exists). Fetch it
    (`git fetch origin "$BASE"`), then provision a dedicated, crash-safe
    worktree for the archive work — never branch or commit against the
@@ -51,8 +51,8 @@ only — never a `.oh/tasks/` subfolder.
      and recreate — never reuse a possibly-dirty worktree left by a prior
      failed run):
      ```bash
-     bash .oh/scripts/git-maintenance.sh worktree-remove .worktrees/archive/$TODAY 2>/dev/null || true
-     bash .oh/scripts/git-maintenance.sh branch-delete "archive/$TODAY" 2>/dev/null || true   # drop a stale branch from a partial run
+     bash .agro/scripts/git-maintenance.sh worktree-remove .worktrees/archive/$TODAY 2>/dev/null || true
+     bash .agro/scripts/git-maintenance.sh branch-delete "archive/$TODAY" 2>/dev/null || true   # drop a stale branch from a partial run
      git worktree prune
      ```
    - **Create** the worktree off `origin/$BASE` (paths resolve from the
@@ -63,27 +63,27 @@ only — never a `.oh/tasks/` subfolder.
    - **Arm crash-safe teardown** so a failed push/PR step (or any error
      exit) never strands the worktree for next week's run to collide with:
      ```bash
-     trap 'bash .oh/scripts/git-maintenance.sh worktree-remove .worktrees/archive/$TODAY 2>/dev/null || true; git worktree prune' EXIT
+     trap 'bash .agro/scripts/git-maintenance.sh worktree-remove .worktrees/archive/$TODAY 2>/dev/null || true; git worktree prune' EXIT
      ```
    Every `git` command for the archive from here on runs inside the
    worktree via `git -C .worktrees/archive/$TODAY <cmd>`.
 4. Inside the worktree, create the dated destination
-   (`mkdir -p .worktrees/archive/$TODAY/.oh/tasks/archive/$TODAY`), then scan
+   (`mkdir -p .worktrees/archive/$TODAY/.agro/tasks/archive/$TODAY`), then scan
    the worktree's `origin/$BASE` checkout — committed state only, so
    uncommitted task dirs in the shared checkout are never archived. For
-   each `.worktrees/archive/$TODAY/.oh/tasks/<taskdesc>/` (skipping
-   `.oh/tasks/archive/`):
-   - If every user story in `.oh/tasks/<taskdesc>/prd.json` passes —
-     `jq -e 'all(.userStories[]; .passes == true)' .oh/tasks/<taskdesc>/prd.json`
+   each `.worktrees/archive/$TODAY/.agro/tasks/<taskdesc>/` (skipping
+   `.agro/tasks/archive/`):
+   - If every user story in `.agro/tasks/<taskdesc>/prd.json` passes —
+     `jq -e 'all(.userStories[]; .passes == true)' .agro/tasks/<taskdesc>/prd.json`
      exits 0 — the task is complete:
      - Move the folder inside the worktree:
-       `git -C .worktrees/archive/$TODAY mv .oh/tasks/<taskdesc> .oh/tasks/archive/$TODAY/<taskdesc>`
+       `git -C .worktrees/archive/$TODAY mv .agro/tasks/<taskdesc> .agro/tasks/archive/$TODAY/<taskdesc>`
        (falls back to `mv` + `git -C .worktrees/archive/$TODAY add` if
        `git mv` rejects an untracked path).
    - Otherwise, leave the folder in place and append a one-line note to
      the reply recording that `<taskdesc>` is still active, how many user
      stories remain unpassed
-     (`jq '[.userStories[] | select(.passes != true)] | length' .oh/tasks/<taskdesc>/prd.json`),
+     (`jq '[.userStories[] | select(.passes != true)] | length' .agro/tasks/<taskdesc>/prd.json`),
      and the last `progress.txt` modification time.
    - Task state is read from the task folder alone and is **never** tied to a
      tied to a terminal session, tab, or pane: the sweep does not look for,
@@ -120,7 +120,7 @@ only — never a `.oh/tasks/` subfolder.
          or `git -C "$path" rev-parse --abbrev-ref --symbolic-full-name @{u}` fails;
        - unpushed commits: `git -C "$path" log --oneline @{u}..HEAD`
          returns any commit.
-     - Otherwise remove it with `bash .oh/scripts/git-maintenance.sh worktree-remove "$path"`,
+     - Otherwise remove it with `bash .agro/scripts/git-maintenance.sh worktree-remove "$path"`,
        append the path to `GROOMED_WORKTREES`, and increment `W`.
    - Then prune corrupt/orphan folders that are not registered git
      worktrees: scan `.worktrees/` directories excluding `.worktrees/agent/`,
@@ -138,11 +138,11 @@ only — never a `.oh/tasks/` subfolder.
      time when available.
 6. If anything was archived this run (`N > 0`) — every git step runs
    inside the worktree via `git -C .worktrees/archive/$TODAY`:
-   - Stage the moves: `git -C .worktrees/archive/$TODAY add .oh/tasks/`.
+   - Stage the moves: `git -C .worktrees/archive/$TODAY add .agro/tasks/`.
    - Commit: `git -C .worktrees/archive/$TODAY commit -m "archive: weekly cleanup $TODAY (N tasks)"`.
    - Push: `git -C .worktrees/archive/$TODAY push -u origin "archive/$TODAY"`.
    - Open a PR (or update an existing one for the same branch) per
-     `.oh/skills/git/SKILL.md` conventions:
+     `.agro/skills/git/SKILL.md` conventions:
      `gh pr create --base "$BASE" --head "archive/$TODAY" \
         --title "FROM archive/$TODAY TO $BASE" \
         --body "Weekly task sweep — archived N completed tasks, skipped M still-active, groomed W stale worktrees.\n\nArchived: <list>\nSkipped: <list>\nGroomed worktrees: <list>"`.
@@ -154,10 +154,10 @@ only — never a `.oh/tasks/` subfolder.
    - **Tear down the worktree** — covers normal completion, the
      nothing-to-archive case (`N = 0`), and partial runs; complements the
      step-3 `trap`, which also fires on any error/abort exit:
-     `bash .oh/scripts/git-maintenance.sh worktree-remove .worktrees/archive/$TODAY 2>/dev/null || true; git worktree prune`.
+     `bash .agro/scripts/git-maintenance.sh worktree-remove .worktrees/archive/$TODAY 2>/dev/null || true; git worktree prune`.
    - **Liveness line:** append one liveness line to `crons/.cron.log` through
-     `.oh/scripts/locked-append.sh`:
-     `printf '[%s] cleanup-tasks: %s\n' "$(date -Iseconds)" "OK (archived N, skipped M, groomed W worktrees)" | .oh/scripts/locked-append.sh crons/.cron.log`.
+     `.agro/scripts/locked-append.sh`:
+     `printf '[%s] cleanup-tasks: %s\n' "$(date -Iseconds)" "OK (archived N, skipped M, groomed W worktrees)" | .agro/scripts/locked-append.sh crons/.cron.log`.
      Create the file if it does not exist.
 
 ## Reporting

@@ -1,0 +1,4 @@
+ERROR: cc-safety-net binary not found on PATH (expected @1.0.6); install via .devcontainer/Dockerfile, or set CC_SAFETY_NET_OFF=1 to bypass
+Vendored skill pack: .oh/skills (expected to exist as tracked files)
+Provider surfaces:   .agents/skills .pi/skills .claude/skills .codex/skills -> ../.oh/skills
+Remediation: bash .oh/scripts/link-providers.sh --init

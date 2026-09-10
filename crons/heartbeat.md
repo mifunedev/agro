@@ -16,7 +16,7 @@ that catches anything time-sensitive without doing real work.
 
 ## Tasks
 
-1. Check active `/spec execute` tasks: for each `.oh/tasks/*/progress.txt`, note
+1. Check active `/spec execute` tasks: for each `.agro/tasks/*/progress.txt`, note
    any whose last update is older than 2 hours. Surface those in the reply.
 2.5. Read the `## Active items` section below. For each item, decide
     whether resolution can be confirmed using ONLY the validation

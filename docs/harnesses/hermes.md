@@ -82,7 +82,7 @@ hermes doctor           # health check
 
 The image sets `HERMES_HOME=/home/sandbox/harness/.hermes` for config, memory,
 runtime skills, and sessions. The managed installer sets that home before running
-upstream code. Installation reconciles `.hermes/skills/openharness` with `.oh/skills`
+upstream code. Installation reconciles `.hermes/skills/openharness` with `.agro/skills`
 immediately, without a restart. Repeated installation repairs missing integration
 without reinstalling an existing executable. Boot uses the same provider linker.
 
@@ -155,7 +155,7 @@ hermes model            # pick LLM provider
 hermes gateway setup    # configure the messaging gateway (Slack app, trust) — optional
 ```
 
-The **same** harness lifecycle script, `.oh/scripts/gateway.sh`, manages both
+The **same** harness lifecycle script, `.agro/scripts/gateway.sh`, manages both
 Hermes' Slack/messaging gateway and Pi's bridge in separate tmux sessions. Pi and Hermes each hold their
 **own** Slack app and config, so the two never compete for one socket: Pi's `client-slack-pi`
 runs the pi-messenger-bridge, while Hermes' `client-slack-hermes` runs Hermes' native
@@ -195,7 +195,7 @@ Open Harness **disables the dashboard by default**. Enable the dashboard explici
 
 ### Enabling
 
-Set the fields in the tracked `oh.json`:
+Set the fields in the tracked `agro.json`:
 
 ```bash
 oh config set hermesDashboard.enabled true

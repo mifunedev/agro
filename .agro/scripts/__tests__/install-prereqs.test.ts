@@ -1,0 +1,69 @@
+import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
+const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
+
+function readRepoFile(...segments: string[]): string {
+  return readFileSync(path.join(REPO_ROOT, ...segments), "utf8");
+}
+
+const onboardingDocs = [
+  ["README", "README.md"],
+  ["docs intro", "docs/intro.md"],
+  ["quickstart", "docs/quickstart.md"],
+  ["installation", "docs/installation.md"],
+] as const;
+
+describe("installer host prerequisite docs", () => {
+  it.each(onboardingDocs)("%s documents Docker and Git as host prerequisites", (_name, file) => {
+    const text = readRepoFile(file);
+
+    expect(text).toMatch(/Docker/i);
+    expect(text).toMatch(/Git/i);
+    expect(text).not.toMatch(/Only host dependency:\s*Docker/i);
+    expect(text).not.toMatch(/only host dependency is \[?Docker/i);
+    expect(text).not.toMatch(/Docker remains the only required host dependency/i);
+  });
+
+  it("installer help and missing-git diagnostic explain the Git prerequisite", () => {
+    const install = readRepoFile(".agro", "scripts", "install.sh");
+
+    expect(install).toContain("Docker with the Compose plugin");
+    expect(install).toContain("git (used to clone or update Open Harness)");
+    expect(install).toContain("git is required to clone or update Open Harness");
+  });
+
+  it("installer requires Node >= 20 and reuses get-oh.sh's ensure_node", () => {
+    const install = readRepoFile(".agro", "scripts", "install.sh");
+
+    expect(install).toContain("Node.js >= 20");
+    expect(install).toContain('. "$REPO_DIR/.agro/scripts/get-oh.sh"');
+    expect(install).toContain("command -v oh >/dev/null 2>&1 || die");
+    expect(install).not.toMatch(/command -v make/);
+    expect(install).not.toContain("make not found");
+    expect(install).not.toContain("ensure_node() {");
+  });
+
+  it("refuses to overwrite a sandbox that already exists under the same name", () => {
+    const install = readRepoFile(".agro", "scripts", "install.sh");
+
+    expect(install).toContain("docker ps -a --format");
+    expect(install).toContain('die "A sandbox named');
+    expect(install).toContain("already exists");
+    expect(install).toContain("OH_REPLACE");
+  });
+
+  it("installs nothing itself and closes with the harness and tool install verbs", () => {
+    const install = readRepoFile(".agro", "scripts", "install.sh");
+
+    for (const id of ["claude-code", "codex", "pi"]) {
+      expect(install).toContain(`oh harness install ${id}`);
+    }
+    for (const id of ["herdr", "cloudflared"]) {
+      expect(install).toContain(`oh tool install ${id}`);
+    }
+    expect(install).not.toContain('prompt_yn "Install ');
+    expect(install).not.toMatch(/INSTALL_(HERMES|OPENCODE|GROK_BUILD|AGENT_BROWSER|TAILSCALE)/);
+  });
+});

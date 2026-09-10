@@ -1,0 +1,17 @@
+{
+  "base": "a227bbf3f3166a0e1a8a1951fc88694cfa0151ee",
+  "head": "e139bc363d95b5ee1acf4a22ca3c1a2a7c37c1c4",
+  "changedCount": 112,
+  "taskCount": 104,
+  "nonTaskCount": 8,
+  "nonTaskPaths": [
+    ".agro/evals/RESULTS.md",
+    ".agro/evals/probes/advisor-execution-contract.sh",
+    ".agro/evals/probes/delegate-worker-boundary.sh",
+    ".agro/knowledge/README.md",
+    ".agro/knowledge/patterns/pattern-delegate-ledger-stale-at-acceptance.md",
+    ".agro/knowledge/patterns/pattern-evals-probe-failure-path-untested.md",
+    ".agro/skills/delegate/SKILL.md",
+    "CHANGELOG.md"
+  ]
+}

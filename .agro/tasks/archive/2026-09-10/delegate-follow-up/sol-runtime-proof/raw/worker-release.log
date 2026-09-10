@@ -1,0 +1,2 @@
+$ timeout 5 sh -c "printf release > control/worker-release.fifo"
+WORKER_RELEASE_EXIT=0

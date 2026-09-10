@@ -144,7 +144,7 @@ auth.
 ### 4.3 The `client-slack-pi` session (managed by `gateway`)
 
 On container boot, `.devcontainer/entrypoint.sh` hands off to
-`.oh/scripts/gateway.sh pi`, which npm-installs the bridge into a gitignored
+`.agro/scripts/gateway.sh pi`, which npm-installs the bridge into a gitignored
 `.pi/bridge/` directory and starts the dedicated `client-slack-pi` tmux session
 loading it via `--extension`. You can also manage it by hand at any time with
 the bare `gateway` command (a boot-installed symlink to that script; equivalently
@@ -211,7 +211,7 @@ retry chains fresh and succeeds. It does not patch the npm package.
 
 Run and check the gateway **from inside the sandbox** — both `gateway <pi|hermes>` and
 `oh gateway <pi|hermes>` require `pi`/`hermes` on `PATH`, so they only work in the
-container (`.oh/scripts/gateway.sh` errors "run inside the sandbox" otherwise).
+container (`.agro/scripts/gateway.sh` errors "run inside the sandbox" otherwise).
 
 ```bash
 gateway pi                 # start the client-slack-pi session (idempotent)
@@ -254,11 +254,11 @@ gateway pi --attach       # start it (if needed) and attach to watch the log
 gateway status            # show client-slack-pi + client-slack-hermes
 ```
 
-`gateway` is a boot-installed symlink to `.oh/scripts/gateway.sh` (equivalently
+`gateway` is a boot-installed symlink to `.agro/scripts/gateway.sh` (equivalently
 `oh gateway pi`). The same command brings up the sibling Hermes gateway
 client: `gateway hermes`. Detach an attached session with `Ctrl-b d`. The
 session name `client-slack-pi` follows the `client-` prefix convention in
-[`.oh/skills/t3/references/sandbox-processes.md`](https://github.com/mifunedev/openharness/blob/development/.oh/skills/t3/references/sandbox-processes.md).
+[`.agro/skills/t3/references/sandbox-processes.md`](https://github.com/mifunedev/agro/blob/development/.agro/skills/t3/references/sandbox-processes.md).
 
 ## 5. Access Control — challenge-based auth
 
@@ -374,6 +374,6 @@ pins the entrypoint's `npm install` line to a fork branch
 
 For upstream lineage, the version-pin model, the quarterly review cadence, and
 the removal of the old in-tree Slack extension, see
-[`.pi/UPSTREAM.md`](https://github.com/mifunedev/openharness/blob/development/.pi/UPSTREAM.md).
+[`.pi/UPSTREAM.md`](https://github.com/mifunedev/agro/blob/development/.pi/UPSTREAM.md).
 
 [Connecting to the Sandbox](/docs/connecting)

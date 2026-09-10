@@ -1,0 +1,9 @@
+advisor
+PASS: /spec keeps one advisor deciding and accepting, workers implementing first, same-session execution by default, operator-only transfer, no fixed advisor identity, no launched agent, and the human merge gate; /delegate releases only tasks whose full eligibility and accepted-evidence checks hold, reconciles interrupted work, resolves every procedure reference, and keeps --dry-run read-only (prose check only; runtime behavior unverified)
+advisor_exit=0
+worker
+PASS: /delegate keeps judgment in the active session, sends tracked edits to bounded isolated workers, sizes tasks usefully, checks initial and resumed dispatch eligibility, keeps its concurrency and recursion caps, and names no project agents (prose check only; runtime behavior unverified)
+worker_exit=0
+bash-n
+bash_n_exit=0
+shellcheck=absent

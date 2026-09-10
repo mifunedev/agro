@@ -1,0 +1,32 @@
+{
+  "name": "@mifune/openharness",
+  "version": "0.9.0",
+  "description": "Compatibility entry point for the AGRO CLI: installs `oh` as an alias of `agro`. Deprecated — install @mifune/agro.",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/mifunedev/agro#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mifunedev/agro.git",
+    "directory": ".agro/cli/legacy"
+  },
+  "bugs": {
+    "url": "https://github.com/mifunedev/agro/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "type": "module",
+  "bin": {
+    "oh": "./bin/oh.js"
+  },
+  "files": [
+    "bin",
+    "NOTICE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@mifune/agro": "0.9.0"
+  }
+}

@@ -17,7 +17,7 @@ assignees: ""
 ## Proposed Implementation
 
 <!-- Describe the approach. Consider:
-  - Which area of the harness does this affect? (.devcontainer/, .oh/install/, docs/, .oh/scripts/, crons/)
+  - Which area of the harness does this affect? (.devcontainer/, .agro/install/, docs/, .agro/scripts/, crons/)
   - New skill, rule, or heartbeat needed?
   - Compose overlay change? Dockerfile change?
   - Any new commands or CLI surface?
@@ -29,7 +29,7 @@ assignees: ""
 
 ---
 
-> **Git workflow**: see the [/git skill](../../.oh/skills/git/SKILL.md)
+> **Git workflow**: see the [/git skill](../../.agro/skills/git/SKILL.md)
 
 ---
 

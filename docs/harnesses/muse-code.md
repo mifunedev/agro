@@ -68,18 +68,18 @@ Run `muse logout` to remove stored Muse credentials. Logout preserves a key stor
 ## Context and skills
 
 Muse reads the existing repository `AGENTS.md`. Do not run `muse init` over an Open Harness checkout.
-Open Harness owns project instructions and the canonical `.oh/skills` pack.
+Open Harness owns project instructions and the canonical `.agro/skills` pack.
 The standard provider surface is:
 
 ```text
-.agents/skills -> ../.oh/skills
+.agents/skills -> ../.agro/skills
 ```
 
 Sandbox bootstrap creates and repairs this link through the canonical linker. To equip another checkout, run `oh update`, then:
 
 ```bash
-bash .oh/scripts/link-providers.sh --init
-bash .oh/scripts/link-providers.sh --check
+bash .agro/scripts/link-providers.sh --init
+bash .agro/scripts/link-providers.sh --check
 ```
 
 The linker preserves real directories at provider paths and reports a collision. Move existing skills aside before retrying.

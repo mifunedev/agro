@@ -1,0 +1,22 @@
+{
+  "acceptedAt": "2026-09-07T23:49:08.641668+00:00",
+  "acceptanceOwner": "parent Pi session",
+  "reviewer": "c67fc8a2-0100-4f7",
+  "verdict": "ACCEPT observation only",
+  "source": "sol-runtime-proof/",
+  "verified": [
+    "prompt permits procedure-authorized task writes and dispatch",
+    "frozen source matches c6704966 byte-for-byte",
+    "raw A and B init events contain distinct session IDs",
+    "native Agent result issued a8e871ee7a180398b; ListAgents running; later same worker completed after release",
+    "B native TaskOutput cannot resolve exact handle; B applies ambiguity clause",
+    "B zero Agent calls and native spawned=0; task hashes/count unchanged; only report written",
+    "all 37 manifest entries verified by independent reviewer"
+  ],
+  "limitations": [
+    "one Claude Code 2.1.260 run on recorded surfaces",
+    "no proof of reconnect success or universal handle scoping",
+    "no claim of observed worker effort or whole-task readiness"
+  ],
+  "scopeAmendment": "SA-1 defers cross-session reconnect only"
+}

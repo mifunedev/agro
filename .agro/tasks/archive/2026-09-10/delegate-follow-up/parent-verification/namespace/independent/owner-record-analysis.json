@@ -1,0 +1,49 @@
+{
+  "head": "e139bc363d95b5ee1acf4a22ca3c1a2a7c37c1c4",
+  "routeDriverRule": "record commit must equal HEAD, or be an ancestor with changes only in .agro/tasks/delegate-follow-up and .agro/evals/RESULTS.md",
+  "evalResult": {
+    "recordCommit": "23e409e6ab9193f9c1cac5fb0977c0e07215c623",
+    "equalsHead": false,
+    "isAncestor": true,
+    "changedOutsideAllowedEvidenceSurfacesCount": 686,
+    "reusableByCurrentRouteDriver": false,
+    "sampleDisallowedChanges": [
+      ".agents/skills",
+      ".agro/README.md",
+      ".agro/cli/.gitignore",
+      ".agro/cli/LICENSE",
+      ".agro/cli/NOTICE",
+      ".agro/cli/README.md",
+      ".agro/cli/build.mjs",
+      ".agro/cli/legacy/.gitignore",
+      ".agro/cli/legacy/NOTICE",
+      ".agro/cli/legacy/README.md",
+      ".agro/cli/legacy/bin/oh.js",
+      ".agro/cli/legacy/package.json"
+    ]
+  },
+  "simplicityReview": {
+    "recordCommit": "23e409e6ab9193f9c1cac5fb0977c0e07215c623",
+    "equalsHead": false,
+    "isAncestor": true,
+    "changedOutsideAllowedEvidenceSurfacesCount": 686,
+    "reusableByCurrentRouteDriver": false,
+    "sampleDisallowedChanges": [
+      ".agents/skills",
+      ".agro/README.md",
+      ".agro/cli/.gitignore",
+      ".agro/cli/LICENSE",
+      ".agro/cli/NOTICE",
+      ".agro/cli/README.md",
+      ".agro/cli/build.mjs",
+      ".agro/cli/legacy/.gitignore",
+      ".agro/cli/legacy/NOTICE",
+      ".agro/cli/legacy/README.md",
+      ".agro/cli/legacy/bin/oh.js",
+      ".agro/cli/legacy/package.json"
+    ]
+  },
+  "latestHistoricalImplementationAudit": ".agro/tasks/delegate-follow-up/audit-runs/audit-20260907T223520Z-3901127.implementation.json",
+  "latestHistoricalPrAudit": ".agro/tasks/delegate-follow-up/audit-runs/audit-20260907T223521Z-3901127b.pr.json",
+  "required": "Parent-owned superseding eval-result.json and simplicity-review.json at the repaired content head (or an evidence-only descendant), followed by fresh implementation and PR audit records. Do not rewrite historical audit runs."
+}

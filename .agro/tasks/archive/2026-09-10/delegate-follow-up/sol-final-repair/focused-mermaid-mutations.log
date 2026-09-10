@@ -1,0 +1,59 @@
+
+=== CASE 01 delete_dependency_edge ===
+EXPECTED_EXIT=1
+OLD=    D --> F{--dry-run?}
+
+NEW=
+MUTATION_EXIT=0
+REGRESSION: advisor-first execution contract is broken; issues:
+  - the Decision Flow diagram is missing the dependency-graph edge to --dry-run
+ACTUAL_EXIT=1
+CASE_RESULT=EXPECTED
+
+=== CASE 02 delete_false_ledger_edge ===
+EXPECTED_EXIT=1
+OLD=    F -->|No| E["Step 4: Write run ledger to .oh/tasks/"]
+
+NEW=
+MUTATION_EXIT=0
+REGRESSION: advisor-first execution contract is broken; issues:
+  - the Decision Flow diagram is missing the --dry-run false edge to the run-ledger write
+ACTUAL_EXIT=1
+CASE_RESULT=EXPECTED
+
+=== CASE 03 delete_dry_run_node_shape ===
+EXPECTED_EXIT=1
+OLD=F{--dry-run?}
+NEW=F
+MUTATION_EXIT=0
+REGRESSION: advisor-first execution contract is broken; issues:
+  - the Decision Flow diagram is missing the dependency-graph edge to --dry-run
+ACTUAL_EXIT=1
+CASE_RESULT=EXPECTED
+
+=== CASE 04 delete_run_ledger_node_shape ===
+EXPECTED_EXIT=1
+OLD=E["Step 4: Write run ledger to .oh/tasks/"]
+NEW=E
+MUTATION_EXIT=0
+REGRESSION: advisor-first execution contract is broken; issues:
+  - the Decision Flow diagram is missing the --dry-run false edge to the run-ledger write
+ACTUAL_EXIT=1
+CASE_RESULT=EXPECTED
+
+=== CASE 05 legal_edge_reflow ===
+EXPECTED_EXIT=0
+OLD=    D --> F{--dry-run?}
+    F -->|Yes| DRY["Step 7: report the task graph and wave plan, then stop: no file written, no worker dispatched, no execution state"]
+
+    F -->|No| E["Step 4: Write run ledger to .oh/tasks/"]
+NEW=    F -->|No| E["Step 4: Write run ledger to .oh/tasks/"]
+    D --> F{--dry-run?}
+    F -->|Yes| DRY["Step 7: report the task graph and wave plan, then stop: no file written, no worker dispatched, no execution state"]
+MUTATION_EXIT=0
+PASS: /spec keeps one advisor deciding and accepting, workers implementing first, same-session execution by default, operator-only transfer, no fixed advisor identity, no launched agent, and the human merge gate; /delegate releases only tasks whose full eligibility and accepted-evidence checks hold, reconciles interrupted work, resolves every procedure reference, and keeps --dry-run read-only (prose check only; runtime behavior unverified)
+ACTUAL_EXIT=0
+CASE_RESULT=EXPECTED
+
+TOTAL_CASES=5
+TOTAL_FAILURES=0

@@ -1,0 +1,53 @@
+{
+  "base": "a227bbf3f3166a0e1a8a1951fc88694cfa0151ee",
+  "head": "e139bc363d95b5ee1acf4a22ca3c1a2a7c37c1c4",
+  "baseCount": 22,
+  "headCount": 24,
+  "commonCount": 22,
+  "allExistingByteIdentical": true,
+  "removed": [],
+  "added": [
+    ".agro/knowledge/patterns/pattern-delegate-ledger-stale-at-acceptance.md",
+    ".agro/knowledge/patterns/pattern-evals-probe-failure-path-untested.md"
+  ],
+  "mismatched": [],
+  "historicalSourcePins": [
+    {
+      "pattern": ".agro/knowledge/patterns/pattern-delegate-ledger-stale-at-acceptance.md",
+      "source": ".oh/skills/delegate/SKILL.md@c879ad80",
+      "resolvedCommit": "c879ad800c76353f66a020af27ce161aea87aa40",
+      "exists": true
+    },
+    {
+      "pattern": ".agro/knowledge/patterns/pattern-delegate-ledger-stale-at-acceptance.md",
+      "source": ".oh/tasks/delegate-follow-up/delegate-graph.json@8ba02851",
+      "resolvedCommit": "8ba028518716f28fb7c8d84fd730002528dcadcd",
+      "exists": true
+    },
+    {
+      "pattern": ".agro/knowledge/patterns/pattern-delegate-ledger-stale-at-acceptance.md",
+      "source": ".oh/tasks/delegate-follow-up/evidence.md@58a538da",
+      "resolvedCommit": "58a538da2508c15d082a2080d802417a778e2d6f",
+      "exists": true
+    },
+    {
+      "pattern": ".agro/knowledge/patterns/pattern-evals-probe-failure-path-untested.md",
+      "source": ".oh/evals/probes/advisor-execution-contract.sh@d390ebe3",
+      "resolvedCommit": "d390ebe387199d123c0c2ba44bf65039d6f81a38",
+      "exists": true
+    },
+    {
+      "pattern": ".agro/knowledge/patterns/pattern-evals-probe-failure-path-untested.md",
+      "source": ".oh/evals/probes/delegate-worker-boundary.sh@c879ad80",
+      "resolvedCommit": "c879ad800c76353f66a020af27ce161aea87aa40",
+      "exists": true
+    },
+    {
+      "pattern": ".agro/knowledge/patterns/pattern-evals-probe-failure-path-untested.md",
+      "source": ".oh/tasks/delegate-follow-up/evidence.md@58a538da",
+      "resolvedCommit": "58a538da2508c15d082a2080d802417a778e2d6f",
+      "exists": true
+    }
+  ],
+  "allHistoricalSourcePinsResolve": true
+}

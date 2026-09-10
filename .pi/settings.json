@@ -1,13 +1,7 @@
 {
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-6-astra",
-  "defaultThinkingLevel": "high",
-  "enabledModels": [
-    "openai-codex/gpt-6-astra",
-    "openai-codex/gpt-5.6-sol",
-    "openai-codex/gpt-5.6-terra",
-    "openai-codex/gpt-5.6-luna"
-  ],
+  "defaultThinkingLevel": "medium",
   "theme": "dark",
   "retry": {
     "enabled": true,
@@ -17,7 +11,6 @@
   "steeringMode": "one-at-a-time",
   "followUpMode": "one-at-a-time",
   "extensions": ["./extensions"],
-  "skills": ["./skills"],
   "prompts": ["./prompts"],
   "themes": ["./themes"],
   "enableSkillCommands": true,

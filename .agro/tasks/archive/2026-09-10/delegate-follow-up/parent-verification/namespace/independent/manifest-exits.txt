@@ -1,0 +1,2 @@
+final_repair_manifest_exit=0
+runtime_manifest_exit=0

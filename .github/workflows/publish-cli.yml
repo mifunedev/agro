@@ -1,13 +1,14 @@
 name: Publish CLI to npm
 
-# Publishes the standalone CLI (`.oh/cli`) to npm as @mifune/agro, then the
-# @mifune/openharness compatibility shim (`.oh/cli/legacy`) that depends on the
-# exact @mifune/agro version, and deprecates the shim toward @mifune/agro.
+# Publishes the standalone CLI (`.agro/cli`) to npm as @mifune/agro.
+# The @mifune/openharness shim source remains at `.agro/cli/legacy/` and
+# already-published shim versions remain on the registry. This workflow does
+# not publish, wait for, or deprecate the shim.
 #
-# The CLI's version is independent of the harness release tags. This
+# The CLI's version is independent of a newly published shim version. This
 # reusable workflow is called by release.yml after image publication, and can
 # also be dispatched for a CLI-only change. Both callers must identify the exact
-# commit to publish; each version guard makes an existing version a successful
+# commit to publish; the version guard makes an existing version a successful
 # no-op.
 on:
   workflow_call:
@@ -49,7 +50,7 @@ jobs:
       - name: Skip @mifune/agro if the version is already published
         id: guard
         run: |
-          V=$(node -p "require('./.oh/cli/package.json').version")
+          V=$(node -p "require('./.agro/cli/package.json').version")
           echo "version=$V" >> "$GITHUB_OUTPUT"
           if npm view "@mifune/agro@$V" version --prefer-online >/dev/null 2>&1; then
             echo "@mifune/agro@$V already published — skipping"
@@ -61,68 +62,20 @@ jobs:
 
       - name: Install CLI dev dependencies
         if: steps.guard.outputs.skip == 'false'
-        working-directory: .oh/cli
+        working-directory: .agro/cli
         run: npm ci --ignore-scripts
 
       - name: Build CLI bundle
         if: steps.guard.outputs.skip == 'false'
-        working-directory: .oh/cli
+        working-directory: .agro/cli
         run: npm run build
 
       - name: Publish @mifune/agro to npm
         if: steps.guard.outputs.skip == 'false'
-        working-directory: .oh/cli
+        working-directory: .agro/cli
         # `npm publish` packs the working directory and ignores `--prefix` for
         # package selection — running from repo root would pack the private
-        # root package (EPRIVATE). Must run inside .oh/cli.
+        # root package (EPRIVATE). Must run inside .agro/cli.
         run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Skip @mifune/openharness if the version is already published
-        id: legacy_guard
-        env:
-          V: ${{ steps.guard.outputs.version }}
-        run: |
-          LEGACY_V=$(node -p "require('./.oh/cli/legacy/package.json').version")
-          PIN=$(node -p "require('./.oh/cli/legacy/package.json').dependencies['@mifune/agro']")
-          if [ "$LEGACY_V" != "$V" ] || [ "$PIN" != "$V" ]; then
-            echo "@mifune/openharness@$LEGACY_V pins @mifune/agro@$PIN — both must equal @mifune/agro@$V" >&2
-            exit 1
-          fi
-          if npm view "@mifune/openharness@$V" version --prefer-online >/dev/null 2>&1; then
-            echo "@mifune/openharness@$V already published — skipping"
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "@mifune/openharness@$V not yet published — will publish"
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Wait for @mifune/agro to resolve on the registry
-        if: steps.legacy_guard.outputs.skip == 'false'
-        env:
-          V: ${{ steps.guard.outputs.version }}
-        run: .oh/scripts/npm-wait-version.sh "@mifune/agro" "$V"
-
-      - name: Publish @mifune/openharness to npm
-        if: steps.legacy_guard.outputs.skip == 'false'
-        working-directory: .oh/cli/legacy
-        # Same EPRIVATE rule as above: the shim must be packed from its own directory.
-        run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Deprecate @mifune/openharness toward @mifune/agro
-        if: steps.legacy_guard.outputs.skip == 'false'
-        env:
-          V: ${{ steps.guard.outputs.version }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          .oh/scripts/npm-wait-version.sh "@mifune/openharness" "$V"
-          npm deprecate "@mifune/openharness@$V" "@mifune/openharness is the compatibility entry point for AGRO; install @mifune/agro (agro) — oh keeps working through the compatibility window"
-          DEPRECATED=$(npm view "@mifune/openharness@$V" deprecated --prefer-online --cache "$(mktemp -d)")
-          if [ -z "$DEPRECATED" ]; then
-            echo "@mifune/openharness@$V carries no deprecation notice after npm deprecate" >&2
-            exit 1
-          fi
-          echo "@mifune/openharness@$V is deprecated: $DEPRECATED"

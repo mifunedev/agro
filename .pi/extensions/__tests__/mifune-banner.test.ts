@@ -49,13 +49,13 @@ describe("mifune-banner extension", () => {
   });
 
   describe("buildHeader", () => {
-    it("includes the ASCII wordmark, social URL, and repo URL", () => {
+    it("includes the ASCII wordmark, social URL, and organization URL", () => {
       const lines = buildHeader(fakeTheme);
       const joined = lines.join("\n");
       expect(lines[0]).toContain("███╗");
       expect(joined).toContain("agent harness");
       expect(joined).toContain("https://x.com/mifunedev");
-      expect(joined).toContain("github.com/ryaneggz/mifune");
+      expect(joined).toContain("https://github.com/mifunedev");
     });
 
     it("uses an ASCII wordmark without emoji or a text divider", () => {
@@ -63,7 +63,7 @@ describe("mifune-banner extension", () => {
       expect(lines).toHaveLength(8);
       expect(lines[0]).toBe("███╗   ███╗██╗███████╗██╗   ██╗███╗   ██╗███████╗");
       expect(lines[6]).toBe("  agent harness · https://x.com/mifunedev");
-      expect(lines[7]).toBe("  https://github.com/ryaneggz/mifune");
+      expect(lines[7]).toBe("  https://github.com/mifunedev");
       expect(lines.join("\n")).not.toContain("-------------------------------");
       expect(lines.join("\n")).not.toContain("⚔");
       expect(lines.join("\n")).not.toContain("🎬");
@@ -81,7 +81,7 @@ describe("mifune-banner extension", () => {
       const wordmarkCalls = calls.slice(0, 6);
       expect(wordmarkCalls).toHaveLength(6);
       expect(wordmarkCalls.every(([role]) => role === "accent")).toBe(true);
-      const linkCalls = calls.filter(([, t]) => t.includes("mifunedev") || t.includes("ryaneggz/mifune"));
+      const linkCalls = calls.filter(([, t]) => t.includes("mifunedev"));
       expect(linkCalls).toHaveLength(2);
       expect(linkCalls.every(([role]) => role === "muted")).toBe(true);
     });

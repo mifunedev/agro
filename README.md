@@ -2,11 +2,11 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache--2.0-D4AF37?style=plastic&labelColor=0B1220"></a>
-  <a href="https://github.com/mifunedev/openharness/actions/workflows/ci-harness.yml"><img alt="CI: Harness" src="https://img.shields.io/github/actions/workflow/status/mifunedev/openharness/ci-harness.yml?branch=main&style=plastic&label=CI&labelColor=0B1220&color=D4AF37"></a>
-  <a href="https://github.com/mifunedev/openharness/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/mifunedev/openharness?style=plastic&logo=github&logoColor=white&labelColor=0B1220&color=D4AF37"></a>
-  <a href="https://github.com/mifunedev/openharness/issues"><img alt="Issues" src="https://img.shields.io/github/issues/mifunedev/openharness?style=plastic&labelColor=0B1220&color=D4AF37"></a>
+  <a href="https://github.com/mifunedev/agro/actions/workflows/ci-harness.yml"><img alt="CI: Harness" src="https://img.shields.io/github/actions/workflow/status/mifunedev/agro/ci-harness.yml?branch=main&style=plastic&label=CI&labelColor=0B1220&color=D4AF37"></a>
+  <a href="https://github.com/mifunedev/agro/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/mifunedev/agro?style=plastic&logo=github&logoColor=white&labelColor=0B1220&color=D4AF37"></a>
+  <a href="https://github.com/mifunedev/agro/issues"><img alt="Issues" src="https://img.shields.io/github/issues/mifunedev/agro?style=plastic&labelColor=0B1220&color=D4AF37"></a>
   <img alt="Docker required" src="https://img.shields.io/badge/Docker-required-D4AF37?style=plastic&logo=docker&logoColor=white&labelColor=0B1220">
-  <a href="https://deepwiki.com/mifunedev/openharness"><img alt="Ask DeepWiki" src="https://img.shields.io/badge/DeepWiki-ask-D4AF37?style=plastic&labelColor=0B1220"></a>
+  <a href="https://deepwiki.com/mifunedev/agro"><img alt="Ask DeepWiki" src="https://img.shields.io/badge/DeepWiki-ask-D4AF37?style=plastic&labelColor=0B1220"></a>
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
 
 ---
 
-> 📖 **Read the docs → https://oh.mifune.dev**
+> 📖 **Read the docs → https://agro.mifune.dev**
 > Rendered, searchable docs, guides, and blog. New here? Start with the [Start Here hub](docs/README.md).
 
 ## 📦 Install
@@ -48,13 +48,13 @@ the latest GitHub release (nothing is cloned or built on your host) and offers t
 install nvm + Node 22 for you:
 
 ```bash
-curl -fsSL https://github.com/mifunedev/openharness/releases/latest/download/get-agro.sh | bash
+curl -fsSL https://agro.mifune.dev/get-agro.sh | bash
 ```
 
 Review-first (download, read, then run — no extra dependency):
 
 ```bash
-curl -fsSL -o get-agro.sh https://github.com/mifunedev/openharness/releases/latest/download/get-agro.sh
+curl -fsSL -o get-agro.sh https://agro.mifune.dev/get-agro.sh
 # Review get-agro.sh in your editor or pager before running it.
 bash get-agro.sh
 ```
@@ -78,10 +78,12 @@ agro shell <name>             # attach as the sandbox user
 ```
 
 The wizard's answers land in a registry entry at
-`~/.oh/sandboxes/<name>/oh.json`, beside the compose files and the wrapper
+`~/.agro/sandboxes/<name>/agro.json`, beside the compose files and the wrapper
 script the CLI regenerates on every lifecycle call. The default name is
-`oh-sbx-<n>`; `--yes` keeps every default and asks nothing. Without `--repo` the
-sandbox runs the published image and seeds its workspace from it.
+`agro-sbx-<n>`; `--yes` keeps every default and asks nothing. Without `--repo`
+the sandbox runs the published image and seeds its workspace from it. A sandbox
+created by an earlier release keeps its `~/.oh/sandboxes/<name>/oh.json` entry
+and keeps working; `agro migrate --home` moves the registry when you choose.
 
 **Mount a project instead.** Point the sandbox at a checkout and it is
 bind-mounted at `/home/sandbox/harness`:
@@ -91,7 +93,7 @@ agro sandbox install docker --repo ~/my-project --name my-project
 ```
 
 Equip that checkout with the control plane first — `cd ~/my-project && oh
-update` writes `.oh/` and `crons/` and **nothing else**: no `AGENTS.md`, no
+update` writes `.agro/` and `crons/` and **nothing else**: no `AGENTS.md`, no
 provider configuration, no `.gitignore` line beyond the `.env` line
 `agro secret set` adds. Those files stay yours.
 
@@ -104,48 +106,82 @@ herdr
 ```
 
 Run the remaining setup, authentication, agents, tests, and servers from its
-panes. That is already a working sandbox. To make it **yours** (private `origin`
-+ `upstream`) and authenticate the agents, continue with the optional full
-setup.
+panes.
 
-> **One-line install of this harness.** `curl -fsSL https://oh.mifune.dev/install.sh | bash`
-> does steps 1 and 2 in one shot for a clone of *this* repo at `~/.openharness`
-> (review-first: download it, read it, then `bash openharness-install.sh`). Set
-> `OH_GITHUB_REPO=<your-org>/<your-fork>` to install a fork instead. All
-> environment overrides: [Installation](docs/installation.md).
+### 3. Authenticate one coding harness
 
-### 3. Full setup (optional) — private repo, remotes, agent auth
-
-Run these **inside the initial Herdr pane** (`agro shell <name>`, then `agro tool install herdr`, then `herdr`). Per-step depth + troubleshooting:
-[quickstart → End-to-end setup walkthrough](docs/quickstart.md#end-to-end-setup-walkthrough).
+Install and authenticate one harness from a Herdr pane. That is a complete first
+session — no fork, no clone, no private repository, no Slack, and no upstream
+contribution:
 
 ```bash
-# GitHub auth over SSH — pick SSH, generate a key, paste a token
-# (SSH remotes use the key directly, so `gh auth setup-git` isn't needed):
-gh auth login
+agro harness install claude-code && claude auth login
+# ...or pick another one — you need exactly one to start:
+#   agro harness install codex && codex login --device-auth
+#   agro harness install pi && pi           # first run walks provider auth
+#   agro harness install hermes && hermes setup
+```
 
-# Create your own PRIVATE repo and point origin at it. `agro config repo` runs the
-# four commands below for you (it asks first, and defaults to no):
-agro config repo
+Every CLI arrives only through `agro harness install <id>` — nothing installs at
+boot. The simplest cross-provider login is `/login` inside the agent, then
+**device mode**, which works on a headless or remote sandbox. Per-harness detail:
+[harnesses overview](docs/harnesses/overview.md).
 
-# The manual equivalent, if `gh` is not installed — `agro config repo` keeps the
-# upstream you cloned from as the `openharness` remote instead of `upstream`:
-gh repo create <your-user>/openharness --private
-git remote set-url origin git@github.com:<your-user>/openharness.git
-git remote add upstream git@github.com:mifunedev/openharness.git
-git push -u origin HEAD
+### 4. Authenticate GitHub before any repository work (optional)
 
-# Authenticate the agents you'll use. Simplest cross-provider path: launch the agent,
-# run /login, and pick DEVICE MODE (a code + URL that works headless/remote). The
-# one-liners below are equivalents where a provider exposes them:
-# Each CLI arrives only through `agro harness install <id>` — nothing installs at boot.
-agro harness install claude-code && claude auth login   # Claude Code (or /login in-session)
-agro harness install codex && codex login --device-auth # Codex (device mode; or /login in-session)
-agro harness install pi && pi                           # Pi (first run walks provider auth)
-agro harness install hermes && hermes setup             # Hermes
+Local sandbox use stays available without a GitHub account. Work that reaches
+GitHub — pushing, creating a repository, opening a pull request — does not.
+Provider authentication authenticates the model, not GitHub, and grants no
+repository access.
 
-# Configure Slack, then run + verify the gateways (sandbox-only):
-#   config: docs/integrations/slack.md  ·  docs/harnesses/hermes.md
+Run these five steps in this order, inside a Herdr pane:
+
+1. Authenticate the intended GitHub account with `gh auth login`.
+2. Run `gh auth setup-git` to configure Git's credential helper.
+3. Run `gh auth status`.
+4. Confirm the status output identifies the intended account with authenticated
+   access.
+5. Only after those checks pass, send either optional prompt below to the
+   authenticated coding agent.
+
+The initial login is never delegated to the prompts. Both prompts assume it is
+already complete and recheck it before acting. Command-level detail and recovery:
+[GitHub auth](docs/integrations/github.md).
+
+**Optional — version-control this sandbox in your own private repository.**
+
+> I have completed `gh auth login` and verified the intended GitHub account inside this sandbox.
+> Help me version-control this sandbox workspace in my own private GitHub repository.
+> Recheck GitHub authentication before acting, then inspect existing Git history and remotes.
+> Preserve my files and existing repository configuration.
+> Review ignore rules and the proposed tracked files for credentials, runtime state, logs, and unrelated projects.
+> Ask me to confirm the account, repository name, and private visibility before creating the repository.
+> Show me the proposed commit contents and ask before pushing.
+> Do all work inside this sandbox; do not create a host-side source checkout.
+
+**Optional — prepare a contribution to AGRO.**
+
+> I have completed `gh auth login` and verified the intended GitHub account inside this sandbox.
+> Help me prepare an AGRO contribution from this sandbox.
+> Recheck GitHub authentication before acting.
+> Inspect existing remotes and check whether this checkout shares history with the canonical AGRO repository.
+> If the histories share ancestry, help me configure an upstream remote and a contribution branch without changing my private origin.
+> Otherwise, use a separate ordinary upstream checkout inside this sandbox and transfer only the changes I select.
+> Keep private configuration, credentials, and unrelated files out of the contribution.
+> Confirm the fork, target branch, and diff with me before pushing or opening a pull request.
+> Do not replace the live workspace or create a host-side source checkout.
+
+`agro config repo` (and `oh config repo`) remains a compatibility helper for the
+retired clone-and-own recipe and stays supported through the SLA. It is not the
+canonical onboarding path.
+
+### 5. Slack and scheduled work (optional)
+
+Configure Slack ([docs/integrations/slack.md](docs/integrations/slack.md),
+[docs/harnesses/hermes.md](docs/harnesses/hermes.md)), then run and verify the
+gateways from inside the sandbox:
+
+```bash
 gateway pi && gateway hermes
 gateway status
 tmux attach -r -t client-slack-pi   # read-only view; detach with Ctrl-b d
@@ -159,11 +195,11 @@ path.
 
 **Do not provision with "Reopen in Container".** That path reads
 `.devcontainer/devcontainer.json`, which lists `docker-compose.yml` alone, so it
-bypasses `.oh/scripts/docker-compose.sh` and **no overlay applies** — no SSH
+bypasses `.agro/scripts/docker-compose.sh` and **no overlay applies** — no SSH
 (`access.ssh`), no host Docker socket (`access.dockerSocket`), no Hermes
 dashboard (`hermesDashboard.enabled`), and nothing from `composeOverrides[]`.
 Secrets still load, because compose auto-loads the `.devcontainer/.env` symlink
-beside the compose file; non-secret `oh.json` settings fall back to the compose
+beside the compose file; non-secret `agro.json` settings fall back to the compose
 defaults. Details: [lifecycle commands](docs/lifecycle-commands.md#vs-code-reopen-in-container-applies-no-overlays).
 
 > **Optional — DebugMCP.** Once attached from VS Code, you can install the
@@ -174,9 +210,9 @@ defaults. Details: [lifecycle commands](docs/lifecycle-commands.md#vs-code-reope
 
 ## 🧩 How the primitive pack ships
 
-Open Harness vendors the shared skills/hooks primitive pack directly into the `.oh/` control plane: `.oh/skills/`, `.oh/hooks/`, and `.oh/skills.lock` are tracked as ordinary files in this repo. Skills are the reusable-behavior primitive; the harness ships no repository-authored agent definitions, and provider-native sub-agents remain available as a bounded execution primitive through `/delegate`. `oh update` lays them down, so a fresh checkout has the skills immediately — no submodule, no recursive clone, no network step.
+Open Harness vendors the shared skills/hooks primitive pack directly into the `.agro/` control plane: `.agro/skills/`, `.agro/hooks/`, and `.agro/skills.lock` are tracked as ordinary files in this repo. Skills are the reusable-behavior primitive; the harness ships no repository-authored agent definitions, and provider-native sub-agents remain available as a bounded execution primitive through `/delegate`. `oh update` lays them down, so a fresh checkout has the skills immediately — no submodule, no recursive clone, no network step.
 
-Provider surfaces are symlinks into `.oh/`: `.pi/skills`, `.claude/skills`, and `.codex/skills` point at `.oh/skills`; `.claude/hooks` → `.oh/hooks`. `.pi/` itself remains the Pi provider surface in v1.
+The standard project skill surface is `.agents/skills -> ../.agro/skills`; `.claude/skills` and `.codex/skills` expose the same pack, and `.claude/hooks` → `.agro/hooks`. `.pi/` remains the Pi provider surface for Pi-specific configuration and extensions.
 
 ## 🚀 Use it
 
@@ -205,7 +241,7 @@ Prefer VS Code or remote SSH? Use the Dev Containers extension's "Attach to Runn
 
 ## ⚙️ Configure (optional)
 
-Configuration is split by kind across two files. `oh.json` holds every
+Configuration is split by kind across two files. `agro.json` holds every
 non-secret setting — sandbox identity, git identity, the SSH and Docker-socket
 toggles. It holds no install field: `agro harness install <id>` and `agro tool
 install <id>` are the only door. A gitignored, mode-`0600` `.env` holds nothing
@@ -225,7 +261,7 @@ auto-loads the dotenv beside it, which is a symlink to the root one. Compose
 `harness.yaml` layer used to sit in front of these files and was invisible on
 exactly that path; it was removed in 0.4.0, and a leftover one is migrated
 automatically on the next lifecycle command. Compose overlay *paths* live in
-`composeOverrides[]` in `oh.json`. See
+`composeOverrides[]` in `agro.json`. See
 [the `agro sandbox install docker` guide](docs/deployment-prebuilt-image.md) for
 the image-mode recipe.
 
@@ -244,11 +280,11 @@ the image-mode recipe.
 
 ## 📚 Where to go next
 
-- **[Read the docs → oh.mifune.dev](https://oh.mifune.dev)** — the rendered, searchable documentation site (start here)
+- **[Read the docs → agro.mifune.dev](https://agro.mifune.dev)** — the rendered, searchable documentation site (start here)
 - [Docs index](docs/README.md) — GitHub-readable docs kept with the core repo
 - [Quickstart](docs/quickstart.md) — full step-by-step
-- [DeepWiki](https://deepwiki.com/mifunedev/openharness) — generated codebase map
-- [Docs site source](https://github.com/mifunedev/openharness-web) — Docusaurus source repo that builds oh.mifune.dev (contribute doc edits here)
+- [DeepWiki](https://deepwiki.com/mifunedev/agro) — generated codebase map
+- [Docs site source](https://github.com/mifunedev/agro-web) — Docusaurus source repo that builds agro.mifune.dev (contribute doc edits here)
 
 ## 🧹 Cleanup
 
@@ -258,7 +294,7 @@ agro destroy <name>
 
 ## 🤝 Contributing & community
 
-Open Harness is maintained under the [`mifunedev`](https://github.com/mifunedev) org — the canonical repo is [github.com/mifunedev/openharness](https://github.com/mifunedev/openharness). To run your own, use the clone-and-own setup above (or fork it — see **Other install methods**) and open PRs back upstream. Issues and PRs welcome; if Open Harness is useful to you, please [give us a star](https://github.com/mifunedev/openharness/stargazers).
+Open Harness is maintained under the [`mifunedev`](https://github.com/mifunedev) org — the canonical repo is [github.com/mifunedev/agro](https://github.com/mifunedev/agro). Contribute from a running sandbox: complete the GitHub-login prerequisite above, then use the contribution prompt or the workflow in [Contributing](docs/contributing.md). Issues and PRs welcome; if Open Harness is useful to you, please [give us a star](https://github.com/mifunedev/agro/stargazers).
 
 ## 📄 License
 
@@ -272,4 +308,4 @@ Apache-2.0 §6 grants no permission to use the Mifune or Open Harness names, log
 
 ---
 
-[Read the docs](https://oh.mifune.dev) · [Docs index](docs/README.md) · [Docs site source](https://github.com/mifunedev/openharness-web)
+[Read the docs](https://agro.mifune.dev) · [Docs index](docs/README.md) · [Docs site source](https://github.com/mifunedev/agro-web)

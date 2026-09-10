@@ -1,0 +1,18 @@
+
+=== wiki-readme-index ===
+PASS: .agro/knowledge/README.md Index matches the tracked source/ and patterns/ frontmatter
+EXIT=0
+
+=== knowledge-source-freshness ===
+PASS: knowledge freshness is source-change aware, every resolvable declared source resolves (27 pin(s) unverifiable in this clone depth), and both the needs-review and the not-affected branches were exercised against a scratch repository
+EXIT=0
+
+=== wiki-related-slugs ===
+PASS: every related: slug and every [[slug]] body link in the tracked knowledge base resolves to an existing entry
+EXIT=0
+
+=== wiki-kind-schema-contract ===
+PASS: the knowledge schema declares repo/external/pattern kinds with verified_at freshness, and every tracked entry obeys the kind, directory, filename, and section rules
+EXIT=0
+TOTAL=4
+FAILURES=0

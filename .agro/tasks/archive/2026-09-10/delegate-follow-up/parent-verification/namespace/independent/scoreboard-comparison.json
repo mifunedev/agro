@@ -1,0 +1,71 @@
+{
+  "counts": {
+    "accepted_e81_reported": {
+      "PASS": 138,
+      "REGRESSION": 1,
+      "SKIPPED": 6
+    },
+    "base_a227_reported": {
+      "PASS": 142,
+      "REGRESSION": 1,
+      "SKIPPED": 2
+    },
+    "base_a227_actual": {
+      "PASS": 137,
+      "REGRESSION": 1,
+      "SKIPPED": 7
+    },
+    "final_e139_committed": {
+      "PASS": 137,
+      "REGRESSION": 1,
+      "SKIPPED": 7
+    },
+    "final_e139_actual": {
+      "PASS": 137,
+      "REGRESSION": 1,
+      "SKIPPED": 7
+    }
+  },
+  "actualBaseVsActualFinal": {},
+  "actualFinalVsCommittedFinal": {},
+  "acceptedReportedVsActualFinal": {
+    "wiki-pattern-persistence": [
+      "PASS",
+      "SKIPPED"
+    ]
+  },
+  "baseReportedVsActualBase": {
+    "oh-compose-env-wiring": [
+      "PASS",
+      "SKIPPED"
+    ],
+    "oh-destroy-guard": [
+      "PASS",
+      "SKIPPED"
+    ],
+    "oh-update-bootstrap": [
+      "PASS",
+      "SKIPPED"
+    ],
+    "sandbox-registry": [
+      "PASS",
+      "SKIPPED"
+    ],
+    "wiki-pattern-persistence": [
+      "PASS",
+      "SKIPPED"
+    ]
+  },
+  "actualNonPass": {
+    "next-dev-prod": "SKIPPED",
+    "oh-compose-env-wiring": "SKIPPED",
+    "oh-destroy-guard": "SKIPPED",
+    "oh-update-bootstrap": "SKIPPED",
+    "registry-portability": "SKIPPED",
+    "sandbox-registry": "SKIPPED",
+    "skills-vendored": "REGRESSION",
+    "wiki-pattern-persistence": "SKIPPED"
+  },
+  "actualRowsEqual": true,
+  "probeCount": 145
+}

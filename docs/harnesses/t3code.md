@@ -70,7 +70,7 @@ Treat pairing URLs and tokens as secrets. Do not paste them into issues, pull re
 
 ## Run in tmux
 
-Per [`.oh/skills/t3/references/sandbox-processes.md`](https://github.com/mifunedev/openharness/blob/development/.oh/skills/t3/references/sandbox-processes.md), long-running processes inside the sandbox go in named tmux sessions. T3 Code stays bound to **container loopback** (`127.0.0.1:3773`); the harness publishes no host port for it. Reach it through VSCode port forwarding, an SSH tunnel, or Tailscale Serve — see [Connecting to the Sandbox](/docs/connecting).
+Per [`.agro/skills/t3/references/sandbox-processes.md`](https://github.com/mifunedev/agro/blob/development/.agro/skills/t3/references/sandbox-processes.md), long-running processes inside the sandbox go in named tmux sessions. T3 Code stays bound to **container loopback** (`127.0.0.1:3773`); the harness publishes no host port for it. Reach it through VSCode port forwarding, an SSH tunnel, or Tailscale Serve — see [Connecting to the Sandbox](/docs/connecting).
 
 Prefer the `/t3` skill when an agent is available:
 

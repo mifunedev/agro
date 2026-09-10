@@ -15,9 +15,9 @@ page instead of re-deriving the boundary.
 
 > **The safe tier is guarded by a path set, not a hook.** There is no
 > `owned-surface-guard` *hook* on disk, and since 0.3.0 there is no enforcing
-> script either: the `OWNED_PATHS` array lived in `.oh/skills/autopilot/SKILL.md`
+> script either: the `OWNED_PATHS` array lived in `.agro/skills/autopilot/SKILL.md`
 > and was removed with that loop, along with the
-> `.oh/evals/probes/owned-surface-guard.sh` probe that tested it. **This page is
+> `.agro/evals/probes/owned-surface-guard.sh` probe that tested it. **This page is
 > now the source of truth for the tier-1 path set** — it is doctrine a reviewer
 > applies, not a check a runtime performs.
 
@@ -30,7 +30,7 @@ standard build ⇄ audit loop and the human merge.
 **Source of truth — the tier-1 path set, defined here since 0.3.0:**
 
 ```bash
-OWNED_PATHS=(.claude/ docs/ scripts/ crons/ .oh/skills/wiki/ .oh/evals/ .oh/tasks/ CHANGELOG.md)
+OWNED_PATHS=(.claude/ docs/ scripts/ crons/ .agro/skills/wiki/ .agro/evals/ .agro/tasks/ CHANGELOG.md)
 ```
 
 The tier-1 surface is exactly those ten tokens, verbatim:
@@ -40,9 +40,9 @@ The tier-1 surface is exactly those ten tokens, verbatim:
 docs/
 scripts/
 crons/
-.oh/skills/wiki/
-.oh/evals/
-.oh/tasks/
+.agro/skills/wiki/
+.agro/evals/
+.agro/tasks/
 CHANGELOG.md
 ```
 
@@ -85,7 +85,7 @@ is a human, applied at a review gate; no automation merges these.
   the unattended loop entirely. Root `AGENTS.md` § "Agent work stays inside the
   sandbox" states the scope boundary. `security-considerations.md §5` mirrors it.
 - Any change to the trunk itself: no agent merges its own work. The canonical
-  path in `.oh/skills/spec/SKILL.md` ends `… → merge (human) → reset|clean`,
+  path in `.agro/skills/spec/SKILL.md` ends `… → merge (human) → reset|clean`,
   and the loop is rate-capped and never auto-merges. See
   `security-considerations.md §4` (human merge gate / no auto-merge).
 - The ultimate hard gate for this tier is server-side branch protection on the
@@ -97,7 +97,7 @@ is a human, applied at a review gate; no automation merges these.
 |------|--------------|----------|
 | 1 | safe-by-default | the tier-1 self-edit surface — this page § Tier 1` |
 | 2 | stronger-gate | `deny-env-dump.sh` · `deny-secret-paths.sh` · `warn-devtcp.sh` + `security-considerations.md §2` |
-| 3 | human-approval-required | `AGENTS.md` § "Agent work stays inside the sandbox" · `.oh/skills/spec/SKILL.md` § Workflow contract · `security-considerations.md §4`/`§5` |
+| 3 | human-approval-required | `AGENTS.md` § "Agent work stays inside the sandbox" · `.agro/skills/spec/SKILL.md` § Workflow contract · `security-considerations.md §4`/`§5` |
 
 Each token in the Tier 1 surface belongs to Tier 1 only; Tiers 2 and 3 name
 *mechanisms and prose boundaries*, never a Tier 1 path, so no surface is

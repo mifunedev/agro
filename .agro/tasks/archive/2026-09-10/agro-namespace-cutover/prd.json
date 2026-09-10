@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "project": "Open Harness",
+  "branchName": "feat/942-agro-namespace-cutover",
+  "description": "Phase 2 (#942): .oh→.agro control-plane rename, AGRO fresh-state defaults, agro migrate, /opt/agro-seed boot, legacy-volume upgrade evidence, sandbox-first onboarding.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Control-plane tree rename in this repository",
+      "description": "As the canonical source, the repository's control plane lives at `.agro/` so the image seed, vendored payloads, and skills are self-consistent.",
+      "acceptanceCriteria": [
+        "`git mv .oh .agro` and `git mv oh.json agro.json`; every tracked reference to `.oh/…`, `oh.json`, `/opt/oh-seed`, `/opt/oh-assets`, `~/.local/share/oh/`, `.oh/.image-seeded` in code, scripts, workflows, compose files, systemd units, provider link map, manifest, `.gitignore`, `.dockerignore`, probes, tests, skills, hooks, crons, `AGENTS.md`, and current docs is updated to the AGRO name, except: compat fallbacks (`compat.ts`, `compat.sh`, `migrate.ts` sources, `compat-inventory.json` legacy keys), legacy test fixtures, `oh-my-zsh`, historical CHANGELOG/RFC/dated entries, and prose that deliberately documents the legacy name.",
+        "`.gitignore` carries the `.agro/` analogues of every `.oh/` rule plus `.agro-migrate.lock` and `*.migrated`; `.oh/…` rules stay for migrated checkouts.",
+        "Provider links `.claude/skills`, `.claude/hooks`, `.codex/skills`, `.agents/skills`, `.pi/skills` target `../.agro/…`; `link-providers.sh --check` passes; `CLAUDE.md` symlink unchanged.",
+        "CI path filters in the three workflows include `agro.json` and `.agro/**` (and keep `oh.json`/`.oh/**` for the SLA); shellcheck globs cover `.agro/scripts/*.sh`.",
+        "`pnpm test`, both typechecks, `link-providers.sh --check`, `/eval` runner, and `git diff --check` pass from the renamed tree; `compat-inventory.test.ts` and `agro-compat-inventory.sh` stay green (Phase 2 entries' notes updated; nothing reclassified without reason)."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Fresh-state resolution defaults and compose interpolation",
+      "description": "As a new operator, fresh state is AGRO without any migration step.",
+      "acceptanceCriteria": [
+        "`compat.ts`/`compat.sh`: an absent pair resolves to the AGRO generation (`generation: \"agro\"`, AGRO path) for control dir, config file, user-state home (`~/.agro`), and seed source (`/opt/agro-seed`); legacy-only, agro-only, equivalent, divergent cases are unchanged; shared vectors extended and both implementations agree.",
+        "`ohConfigPath` writes `agro.json` when no config exists; `registry.ts` default name prefix `agro-sbx-`, `materialize()` writes `.agro/scripts/{docker-compose.sh,compat.sh,check-host-port.sh}`; `runner.ts`, `harness.ts`, `update.ts`, `cli.ts` payload-version path resolve the control dir through compat instead of literals.",
+        "`config-render.ts` emits `AGRO_HOME_MOUNT`, `AGRO_REPO_DIR`, `AGRO_SANDBOX_IMAGE`, `AGRO_PULL_POLICY`; the compose files interpolate `${AGRO_X:-${OH_X:-<default>}}` so a legacy registry entry rendered by an older CLI still works; `OH_PROJECT_ROOT`/`AGRO_PROJECT_ROOT` both in `RETIRED_KEYS`.",
+        "Compose fallback identity `${SANDBOX_NAME:-agro}` and image tag `sandbox-${SANDBOX_NAME:-agro}`; the tracked `agro.json` keeps `\"name\": \"openharness\"` so this repository's own sandbox identity and volumes are unchanged; registry entries always set the name.",
+        "Help/error copy names AGRO state (`~/.agro/sandboxes`, `agro.json`) while `oh` invocations keep byte-identical legacy text apart from state names that follow the resolved generation. Tests: compat vectors, `oh-config`, `registry`, `sandbox`, `config-render`, `compose-args`, `lifecycle` updated with explicit fresh-vs-legacy cases."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "`agro migrate`",
+      "description": "As an existing operator, I want one command that moves my project or registry to AGRO names safely.",
+      "acceptanceCriteria": [
+        "`agro migrate [--check] [--home] [--json]` in `.agro/cli/src/commands/migrate.ts` over `planMigration`/`applyMigration`: project mode uses `projectMigrationSpec(cwd root)` plus a relink step (`link-providers.sh --init` equivalent for the five provider links, only when they point at `../.oh/…`); `--home` uses `userStateMigrationSpec(home)`; `--check` prints the plan and mutates nothing; exit 0 applied/noop, 2 conflict, 1 failure.",
+        "Summary lists each step (rename/retire/rewrite/relink/noop) with paths, conflicts with reasons and differences, and after apply the per-step outcome; `--json` emits the plan/result objects.",
+        "Preserves unknown files, modes, symlinks; refuses divergent `.oh`/`.agro` and `oh.json`/`agro.json`; repeated run is a noop; lock refusal message names `.agro-migrate.lock`; never touches `~/.openharness`, `.env`, git history, or unrelated config.",
+        "`oh migrate` (legacy product) is dispatched to the same command (there is no legacy migrate to preserve). Tests: `migrate-command.test.ts` covering check/apply/idempotent/conflict/lock/relink/`--home`/unknown-file preservation/mode preservation with byte manifests before and after."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Image seed, boot, and legacy-workspace recognition",
+      "description": "",
+      "acceptanceCriteria": [
+        "Dockerfile seeds `/opt/agro-seed` (and no `/opt/oh-seed`), stages assets at `/opt/agro-assets`, keeps `/opt/oh` and `/usr/local/bin/{oh,agro}`; `entrypoint.sh` sources the adapter from `/opt/agro-assets`, uses `compat_control_dir`/`compat_seed_src` for flavor detection, link init, python provisioning, banner, gateway, and healthcheck paths; the compose healthcheck resolves the control dir at run time; the cron systemd unit path follows the resolved control dir.",
+        "`seed_workspace_volume`: fresh → `.agro/` + `.agro/.image-seeded` once; legacy workspace (`.oh/` present, with or without marker) → nothing copied, marker classified, no `.agro/` created; divergent → refuse; `entrypoint-seed.test.ts` and `oh-image-only-deploy.sh` updated; `verify-sandbox-image.sh` uses `/opt/agro-seed`.",
+        "`OH_BIN`/`AGRO_BIN` resolved through `compat_env` with default `agro`."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Real Docker upgrade and migration evidence",
+      "description": "",
+      "acceptanceCriteria": [
+        "`.agro/scripts/sandbox-upgrade-smoke.sh`: creates a named volume by booting the last legacy image (`ghcr.io/mifunedev/openharness:0.9.0`), writes recognisable auth/state files (`~/.config/gh/hosts.yml` synthetic, a workspace file), stops without `-v`, boots the freshly built image against the same volume and compose identity, asserts the files are byte-identical, `.oh/` still owns the workspace, no `.agro/` was seeded, both systemd services active, then tears down. Runs in `sandbox-boot-guard.yml` and locally; its log is cited in evidence.",
+        "A migration rehearsal (test or script) on a checkout-backed fixture: `agro migrate --check`, `agro migrate`, provider links resolve, `agro ps` and `oh ps` succeed against the migrated checkout, second run noop."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Docs, onboarding, inventory, changelog",
+      "description": "",
+      "acceptanceCriteria": [
+        "README, `docs/quickstart.md`, `docs/installation.md`: sandbox-first onboarding; the remote-configuration, fork, clone-and-own, and `~/.openharness` clone recipes are replaced by the GitHub-login prerequisite (`gh auth login`, `gh auth setup-git`, `gh auth status` inside a Herdr pane; provider auth does not count) followed by the two optional agent prompts from the plan (private versioning; upstream contribution with merge-base verification); `agro config repo` documented as an SLA compatibility helper, not canonical onboarding; command-level recovery detail moved to `docs/integrations/github.md` and `docs/contributing.md`.",
+        "`AGENTS.md` lifecycle list and control-plane paths use `agro`/`.agro/`; `docs/configuration.md`, `docs/oh-directory-layout.md`, `docs/deployment-prebuilt-image.md`, `docs/lifecycle-commands.md` (add `agro migrate`), `docs/agro-compatibility.md` (Phase 2 section; `oh config repo` classification; trimmed later-phase list) describe fresh AGRO state and the legacy fallback.",
+        "`.agro/compat-inventory.json`: Phase 2 entries' notes record delivery; new AGRO paths documented; `CHANGELOG.md` Unreleased entry ≤250 chars linking #942; `.example.env` prose updated. No doc renames the GitHub repo, domain, or image name (Phase 3)."
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Knowledge impact and evidence",
+      "description": "",
+      "acceptanceCriteria": [
+        "`knowledge-impact.sh` on the final diff; affected pages updated or reverified; index regenerated; `wiki-readme-index.sh` PASS; `evidence.md` with commands, exit codes, Docker rehearsal logs, and unverified items."
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

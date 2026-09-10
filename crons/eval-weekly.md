@@ -24,7 +24,7 @@ sent.
 
 1. Run the eval suite and capture full output to a temp file:
    ```bash
-   bash .oh/skills/eval/run.sh > /tmp/eval-weekly-out.txt 2>&1 || true
+   bash .agro/skills/eval/run.sh > /tmp/eval-weekly-out.txt 2>&1 || true
    ```
 2. Check for regressions:
    ```bash
@@ -33,12 +33,12 @@ sent.
 3. If any lines matching `^  - ` were found (these are the regression
    entries produced by `run.sh`), name each regressed probe and its source
    field in the reply. `run.sh` has already written the durable record to
-   `.oh/evals/RESULTS.md`; this cron adds no second copy.
+   `.agro/evals/RESULTS.md`; this cron adds no second copy.
 
 4. **Liveness:** append one liveness line to `crons/.cron.log` through
-   `.oh/scripts/locked-append.sh`:
+   `.agro/scripts/locked-append.sh`:
    ```bash
-   printf '[%s] eval-weekly: %s\n' "$(date -Iseconds)" "<OK|REGRESSION(N)>" | .oh/scripts/locked-append.sh crons/.cron.log
+   printf '[%s] eval-weekly: %s\n' "$(date -Iseconds)" "<OK|REGRESSION(N)>" | .agro/scripts/locked-append.sh crons/.cron.log
    ```
    where the status token is `OK` when no regressions were found, or
    `REGRESSION(N)` (e.g. `REGRESSION(2)`) when N probes regressed.

@@ -1,0 +1,10 @@
+2026-09-06T20:33:43Z wave1 start: T1 pending -> running (worker spawned; owner verifies and commits)
+2026-09-06T20:53:20Z T1 completed (owner verified: tests, typecheck, link check, diff --check, symlinks); wave1 end
+2026-09-06T20:53:33Z wave2 start: T2, T3 pending -> running
+2026-09-06T21:01:21Z T3 completed (owner verified 42 tests, typecheck); cli.ts dispatch deferred until T2 releases cli.ts
+2026-09-06T22:21:43Z T2 completed after spend-limit termination + resume (owner verified: 1220 tests, typecheck, build, migrate smoke, diff --check); wave2 end
+2026-09-06T22:21:45Z wave3 start: T4, T5 pending -> running
+2026-09-07T04:09:38Z T4 completed (owner verified: 1241 tests, compose config, shellcheck, docker build by worker); T5 terminated by spend limit with script+tests+workflow written, owner verifies
+2026-09-07T04:11:27Z T5 completed (terminated by spend limit after writing script/tests/workflow; owner ran shellcheck, 12 tests, and the real upgrade smoke: PASS); wave3 end
+2026-09-07T04:32:01Z T6 completed (owner verified: prompts verbatim in README+quickstart, AGENTS.md 9401/9500 B, 1241 tests, 143 probes, only the two environment REGRESSIONs)
+2026-09-07T05:01:47Z T7 completed (owner verified: 9 pages pinned to real HEAD, --verified 0 NEEDS-REVIEW, index + schema probes PASS, materialize six-file claim confirmed in source)

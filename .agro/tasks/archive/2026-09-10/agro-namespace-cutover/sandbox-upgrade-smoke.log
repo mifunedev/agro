@@ -1,0 +1,318 @@
+2026-09-07T04:10:19Z upgrade-smoke: compose project agro-upgrade-2509127, compose file .devcontainer/docker-compose.image-only.yml, workspace volume agro-upgrade-2509127_workspace
+2026-09-07T04:10:19Z upgrade-smoke: step 1/7: boot legacy image ghcr.io/mifunedev/openharness:0.9.0
+ Network agro-upgrade-2509127_default Creating 
+ Network agro-upgrade-2509127_default Creating 
+ Volume agro-upgrade-2509127_workspace Creating 
+ Volume agro-upgrade-2509127_workspace Creating 
+ Volume agro-upgrade-2509127_workspace Created 
+ Volume agro-upgrade-2509127_workspace Created 
+ Network agro-upgrade-2509127_default Created 
+ Network agro-upgrade-2509127_default Created 
+ Container agro-upgrade-2509127 Creating 
+ Container agro-upgrade-2509127 Created 
+ Container agro-upgrade-2509127 Starting 
+ Container agro-upgrade-2509127 Started 
+2026-09-07T04:10:20Z upgrade-smoke: waiting up to 900s for legacy boot: systemd units openharness-bootstrap.service and openharness-cron.service
+2026-09-07T04:10:31Z upgrade-smoke: legacy boot ready: container cefc859bfaa398aff48ad0ff54b35334e57afc69e60db5bac5b877ec9d699eb2, bootstrap oneshot succeeded, cron runtime active
+2026-09-07T04:10:31Z upgrade-smoke: step 2/7: write synthetic state inside the volume as the sandbox user
+2026-09-07T04:10:31Z upgrade-smoke: legacy snapshot:
+    hosts_sha=080440b7f7ca91616cb97164be551c6e4d49afb68708740b92f55b57b745e45a
+    canary_sha=79b5a8b713faa252a1886227efb32a83ee705e20de46bb9fde49df6f0022b315
+    oh_dir=present
+    agro_dir=absent
+    oh_marker=present
+    oh_scripts_sha=b771d3971fb49fbb84398001cdeb300a86af9d1018356fd00540c43a36cc6dda
+    oh_entries=.image-seeded,README.md,cli,compat-inventory.json,evals,hooks,install,knowledge,logs,manifest.json,scripts,skills,skills.lock,tasks,
+2026-09-07T04:10:31Z upgrade-smoke: legacy: ls -la /home/sandbox/harness/.oh | head
+    total 88
+    drwxr-xr-x 11 sandbox sandbox  4096 Sep  6 22:10 .
+    drwxr-xr-x 16 sandbox sandbox  4096 Sep  6 22:10 ..
+    -rw-r--r--  1 sandbox sandbox     0 Sep  6 22:10 .image-seeded
+    -rw-r--r--  1 sandbox sandbox 16314 Sep  6 13:51 README.md
+    drwxr-xr-x  4 sandbox sandbox  4096 Sep  6 13:51 cli
+    -rw-r--r--  1 sandbox sandbox 12868 Sep  6 13:51 compat-inventory.json
+    drwxr-xr-x  6 sandbox sandbox  4096 Sep  6 13:51 evals
+    drwxr-xr-x  2 sandbox sandbox  4096 Sep  6 13:51 hooks
+    drwxr-xr-x  2 sandbox sandbox  4096 Sep  6 13:51 install
+2026-09-07T04:10:31Z upgrade-smoke: step 3/7: docker compose stop (the workspace volume stays)
+ Container agro-upgrade-2509127 Stopping 
+ Container agro-upgrade-2509127 Stopped 
+2026-09-07T04:10:32Z upgrade-smoke: step 4/7: docker build -f .devcontainer/Dockerfile -t agro-upgrade-smoke:2509127 /home/sandbox/harness/.worktrees/feat/942-agro-namespace-cutover
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Sending build context to Docker daemon  43.59MB
+Step 1/61 : FROM node:22-trixie-slim AS base
+ ---> 37d261af2f28
+Step 2/61 : ENV OH_PROJECT_ROOT=/home/sandbox/harness
+ ---> Using cache
+ ---> 9c4f84d60600
+Step 3/61 : ENV HERMES_HOME=/home/sandbox/harness/.hermes
+ ---> Using cache
+ ---> ee96066b4156
+Step 4/61 : ENV TZ=America/Denver
+ ---> Using cache
+ ---> a3af5e0a07ee
+Step 5/61 : ENV container=docker
+ ---> Using cache
+ ---> 159576b68d38
+Step 6/61 : RUN apt-get update && apt-get install -y --no-install-recommends     openssh-client openssh-server build-essential ca-certificates curl wget sudo gosu git jq gnupg     lsb-release nano ripgrep tmux unzip bash-completion procps less     iproute2 zsh cron lsof htop inetutils-telnet     systemd systemd-sysv dbus  && command -v lsof >/dev/null  && command -v htop >/dev/null  && command -v telnet >/dev/null  && rm -rf /var/lib/apt/lists/*
+ ---> Using cache
+ ---> 855b8e15e721
+Step 7/61 : RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg       -o /usr/share/keyrings/githubcli-archive-keyring.gpg  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main"       > /etc/apt/sources.list.d/github-cli.list  && apt-get update && apt-get install -y --no-install-recommends gh  && rm -rf /var/lib/apt/lists/*
+ ---> Using cache
+ ---> 89e052c5023c
+Step 8/61 : RUN install -m 0755 -d /etc/apt/keyrings  && curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc  && chmod a+r /etc/apt/keyrings/docker.asc  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian trixie stable"       > /etc/apt/sources.list.d/docker.list  && apt-get update && apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin  && rm -rf /var/lib/apt/lists/*
+ ---> Using cache
+ ---> ada337c584e3
+Step 9/61 : RUN BUN_INSTALL=/usr/local curl -fsSL https://bun.sh/install | bash
+ ---> Using cache
+ ---> 35505cbe8d0e
+Step 10/61 : RUN curl -LsSf https://astral.sh/uv/install.sh | env INSTALLER_NO_MODIFY_PATH=1 sh  && cp /root/.local/bin/uv /usr/local/bin/uv  && cp /root/.local/bin/uvx /usr/local/bin/uvx
+ ---> Using cache
+ ---> fa1af9b2a56f
+Step 11/61 : ENV PNPM_HOME="/home/sandbox/.local/share/pnpm"
+ ---> Using cache
+ ---> 2f420f8e2a32
+Step 12/61 : ENV NPM_USER_PREFIX="/home/sandbox/.local"
+ ---> Using cache
+ ---> 30c763c47802
+Step 13/61 : ENV PATH="$NPM_USER_PREFIX/bin:$PNPM_HOME:$PATH"
+ ---> Using cache
+ ---> f212f10e4751
+Step 14/61 : ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+ ---> Using cache
+ ---> 6477506c1bcb
+Step 15/61 : RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+ ---> Using cache
+ ---> dcc060200436
+Step 16/61 : SHELL ["/bin/bash", "-c"]
+ ---> Using cache
+ ---> 3697d67d4df1
+Step 17/61 : RUN npm install -g cc-safety-net@1.0.6
+ ---> Using cache
+ ---> b20cd690465d
+Step 18/61 : COPY .devcontainer/docker-compose.yml .devcontainer/docker-compose.image-only.yml .devcontainer/docker-compose.ssh.yml .devcontainer/docker-compose.docker-sock.yml /opt/agro-assets/.devcontainer/
+ ---> Using cache
+ ---> 53b2601f7821
+Step 19/61 : COPY .agro/scripts/docker-compose.sh .agro/scripts/check-host-port.sh .agro/scripts/compat.sh /opt/agro-assets/.agro/scripts/
+ ---> Using cache
+ ---> c3aaf3e9f8a9
+Step 20/61 : COPY .agro/cli/ /opt/oh/
+ ---> Using cache
+ ---> f24dc63a76ac
+Step 21/61 : RUN cd /opt/oh && OH_ASSET_ROOT=/opt/agro-assets npm install --no-audit --no-fund && OH_ASSET_ROOT=/opt/agro-assets npm run build  && chmod +x /opt/oh/dist/oh.js  && ln -sf /opt/oh/dist/oh.js /usr/local/bin/oh  && ln -sf /opt/oh/dist/agro.js /usr/local/bin/agro
+ ---> Using cache
+ ---> 80c436130a7d
+Step 22/61 : RUN userdel -r node 2>/dev/null || true  && useradd -m -u 1000 -s /bin/zsh sandbox  && echo "sandbox ALL=(ALL) ALL" > /etc/sudoers.d/sandbox  && chmod 0440 /etc/sudoers.d/sandbox  && groupadd -f docker && usermod -aG docker sandbox
+ ---> Using cache
+ ---> 0567cbbad92c
+Step 23/61 : ENV UV_TOOL_DIR=/home/sandbox/.local/share/uv/tools
+ ---> Using cache
+ ---> 7a0da2965258
+Step 24/61 : ENV UV_TOOL_BIN_DIR=/home/sandbox/.local/bin
+ ---> Using cache
+ ---> ca33cd50d65a
+Step 25/61 : ENV UV_PYTHON_INSTALL_DIR=/home/sandbox/.local/share/uv/python
+ ---> Using cache
+ ---> 12788a4470c9
+Step 26/61 : ENV UV_CACHE_DIR=/home/sandbox/.cache/uv
+ ---> Using cache
+ ---> f9fc2d1addb6
+Step 27/61 : FROM base AS home
+ ---> f9fc2d1addb6
+Step 28/61 : RUN install -d -o sandbox -g sandbox -m 0700 /home/sandbox/.ssh  && install -d -o sandbox -g sandbox       /home/sandbox/.local       /home/sandbox/.local/share       /home/sandbox/.local/share/uv       /home/sandbox/.cache       /home/sandbox/.config       /home/sandbox/.herdr       "$UV_TOOL_DIR" "$UV_TOOL_BIN_DIR" "$UV_PYTHON_INSTALL_DIR" "$UV_CACHE_DIR"
+ ---> Using cache
+ ---> 94c8276fb201
+Step 29/61 : RUN install -d -o sandbox -g sandbox "$NPM_USER_PREFIX" "$PNPM_HOME"  && rm -rf /home/sandbox/.npm
+ ---> Using cache
+ ---> c004ece8901e
+Step 30/61 : RUN su - sandbox -c "RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c \"\$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\" --unattended"  && su - sandbox -c "git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions         /home/sandbox/.oh-my-zsh/custom/plugins/zsh-autosuggestions"  && su - sandbox -c "git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting     /home/sandbox/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"  && su - sandbox -c "git clone --depth 1 https://github.com/zsh-users/zsh-history-substring-search /home/sandbox/.oh-my-zsh/custom/plugins/zsh-history-substring-search"
+ ---> Using cache
+ ---> e9c039cb5a08
+Step 31/61 : COPY --chown=sandbox:sandbox .agro/install/.tmux.conf /home/sandbox/.tmux.conf
+ ---> Using cache
+ ---> 970db6c58352
+Step 32/61 : COPY --chown=sandbox:sandbox .agro/install/.zshrc /home/sandbox/.zshrc
+ ---> Using cache
+ ---> de021364272a
+Step 33/61 : RUN printf '%s\n'       'export NPM_USER_PREFIX="${NPM_USER_PREFIX:-/home/sandbox/.local}"'       'export PNPM_HOME="${PNPM_HOME:-/home/sandbox/.local/share/pnpm}"'       'export PATH="$NPM_USER_PREFIX/bin:$PNPM_HOME:$PATH"'       '[ -r "$HOME/.local/share/oh/python-env.sh" ] && . "$HOME/.local/share/oh/python-env.sh"'       | tee -a /home/sandbox/.profile /home/sandbox/.zprofile  && chown sandbox:sandbox /home/sandbox/.profile /home/sandbox/.zprofile
+ ---> Using cache
+ ---> 1adcdb0ac911
+Step 34/61 : RUN echo "alias claude='claude --dangerously-skip-permissions'" >> /home/sandbox/.bashrc  && echo "alias codex='codex --dangerously-bypass-approvals-and-sandbox'" >> /home/sandbox/.bashrc
+ ---> Using cache
+ ---> d414f9326246
+Step 35/61 : RUN su - sandbox -c "git config --global --add safe.directory ${OH_PROJECT_ROOT}"
+ ---> Using cache
+ ---> b935ecc03b0c
+Step 36/61 : RUN echo "cd ${OH_PROJECT_ROOT} 2>/dev/null" >> /home/sandbox/.bashrc
+ ---> Using cache
+ ---> df16a115886e
+Step 37/61 : COPY --chown=sandbox:sandbox .agro/install/ /home/sandbox/install/
+ ---> Using cache
+ ---> 844e52be7fcc
+Step 38/61 : RUN chmod +x /home/sandbox/install/*.sh
+ ---> Using cache
+ ---> 253b3fe72cbb
+Step 39/61 : COPY --chown=sandbox:sandbox . /opt/agro-seed/
+ ---> 2fc2476f1a61
+Step 40/61 : ARG INSTALL_PYTHON_KERNEL=true
+ ---> Running in 000c37a7ba10
+ ---> Removed intermediate container 000c37a7ba10
+ ---> 99072c858997
+Step 41/61 : ARG OH_PYTHON_VERSION=3.11
+ ---> Running in c3f95ff086bf
+ ---> Removed intermediate container c3f95ff086bf
+ ---> 300acc9b7fe7
+Step 42/61 : RUN if [ "${INSTALL_PYTHON_KERNEL}" = "true" ]; then       su - sandbox -c "OH_PYTHON_VERSION='${OH_PYTHON_VERSION}' bash /opt/agro-seed/.agro/scripts/provision-python.sh";     else       echo "Skipping Python kernel provisioning (INSTALL_PYTHON_KERNEL=false)";     fi  && rm -rf /home/sandbox/.cache/uv
+ ---> Running in 73b5bc7b559a
+[provision-python] ensuring managed Python 3.11 in /home/sandbox/.local/share/uv/python
+[91mDownloading cpython-3.11.16-linux-x86_64-gnu (download) (29.4MiB)
+[0m[91m Downloaded cpython-3.11.16-linux-x86_64-gnu (download)
+[0m[91mInstalled Python 3.11.16 in 2.55s
+ + cpython-3.11.16-linux-x86_64-gnu (python3.11)
+[0m[provision-python] creating kernel venv at /home/sandbox/.local/share/oh/kernel
+[91mUsing CPython 3.11.16 interpreter at: .local/share/uv/python/cpython-3.11-linux-x86_64-gnu/bin/python3.11
+Creating virtual environment at: .local/share/oh/kernel
+[0m[91mActivate with: source .local/share/oh/kernel/bin/activate
+[0m[provision-python] installing kernel packages: ipykernel
+[91mUsing Python 3.11.16 environment at: .local/share/oh/kernel
+[0m[91mResolved 29 packages in 989ms
+[0m[91mDownloading pygments (1.2MiB)
+[0m[91mDownloading jedi (4.7MiB)
+[0m[91mDownloading debugpy (2.9MiB)
+[0m[91m Downloaded pygments
+[0m[91m Downloaded debugpy
+[0m[91m Downloaded jedi
+[0m[91mPrepared 29 packages in 1.16s
+[0m[91mInstalled 29 packages in 144ms
+ + asttokens==3.0.2
+ + comm==0.2.3
+ + debugpy==1.8.21
+ + executing==2.2.1
+ + ipykernel==7.3.0
+ + ipython==9.17.1
+ + ipython-pygments-lexers==1.1.1
+ + jedi==0.20.0
+ + jupyter-client==8.10.0
+ + jupyter-core==5.9.1
+ + matplotlib-inline==0.2.2
+ + nest-asyncio2==1.7.2
+ + packaging==26.3
+ + parso==0.8.7
+ + pexpect==4.9.0
+ + platformdirs==4.11.7
+ + prompt-toolkit==3.0.53
+ + psutil==7.2.2
+ + ptyprocess==0.7.0
+ + pure-eval==0.2.3
+ + pygments==2[0m[91m.21.0
+ + python-dateutil==2.9.0.post0
+ + pyzmq==27.2.0
+ + six==1.17.0
+ + stack-data==0.6.3
+ + tornado[0m[91m==6.5.8
+ + traitlets==5.16.1
+ [0m[91m+ typing-extensions==[0m[91m4.[0m[91m16.0
+ +[0m[91m [0m[91mwcwidth==[0m[91m0.8.3
+[0m[provision-python] OK  python=/home/sandbox/.local/share/uv/python/cpython-3.11-linux-x86_64-gnu/bin/python3.11
+[provision-python] OK  kernel=/home/sandbox/.local/share/oh/kernel/bin/python (ipykernel present)
+ ---> Removed intermediate container 73b5bc7b559a
+ ---> bc2acefe5937
+Step 43/61 : FROM base AS final
+ ---> f9fc2d1addb6
+Step 44/61 : RUN mkdir -p /.devcontainer && echo '{"workspaceFolder":"/home/sandbox/harness","remoteUser":"sandbox"}' > /.devcontainer/devcontainer.json
+ ---> Using cache
+ ---> 5d7b5fa4bd99
+Step 45/61 : LABEL devcontainer.metadata='[{"remoteUser":"sandbox","workspaceFolder":"/home/sandbox/harness"}]'
+ ---> Using cache
+ ---> 96f90f3b716b
+Step 46/61 : LABEL org.opencontainers.image.licenses="Apache-2.0"
+ ---> Using cache
+ ---> 445a6576b92a
+Step 47/61 : LABEL org.opencontainers.image.source="https://github.com/mifunedev/openharness"
+ ---> Using cache
+ ---> 0b852199216d
+Step 48/61 : LABEL org.opencontainers.image.title="agro"
+ ---> Using cache
+ ---> 76346c8c6365
+Step 49/61 : LABEL org.opencontainers.image.description="AGRO sandbox image (compatibility alias: openharness)"
+ ---> Using cache
+ ---> 8d9f865bc4ea
+Step 50/61 : COPY --chown=sandbox:sandbox . /opt/agro-seed/
+ ---> 024361be9ab4
+Step 51/61 : COPY .devcontainer/entrypoint.sh /usr/local/bin/entrypoint.sh
+ ---> fff7abc5c3cf
+Step 52/61 : RUN chmod +x /usr/local/bin/entrypoint.sh
+ ---> Running in 65163163c59e
+ ---> Removed intermediate container 65163163c59e
+ ---> 49a48a8c389e
+Step 53/61 : COPY .devcontainer/openharness-bootstrap.service .devcontainer/openharness-cron.service /usr/lib/systemd/system/
+ ---> a5c010a979a9
+Step 54/61 : COPY .devcontainer/openharness-env-generator.sh /usr/lib/systemd/system-environment-generators/10-openharness
+ ---> a900407477ea
+Step 55/61 : RUN chmod 0755 /usr/lib/systemd/system-environment-generators/10-openharness  && systemctl enable openharness-bootstrap.service openharness-cron.service  && systemctl mask cron.service ssh.service ssh.socket
+ ---> Running in ec1f2f9f89b2
+[91mCreated symlink '/etc/systemd/system/multi-user.target.wants/openharness-bootstrap.service' → '/usr/lib/systemd/system/openharness-bootstrap.service'.
+Created symlink '/etc/systemd/system/multi-user.target.wants/openharness-cron.service' → '/usr/lib/systemd/system/openharness-cron.service'.
+[0m[91mCreated symlink '/etc/systemd/system/cron.service' → '/dev/null'.
+Created symlink '/etc/systemd/system/ssh.service' → '/dev/null'.
+Created symlink '/etc/systemd/system/ssh.socket' → '/dev/null'.
+[0m ---> Removed intermediate container ec1f2f9f89b2
+ ---> 8fd01b6b34e2
+Step 56/61 : COPY --from=home --chown=sandbox:sandbox /home/sandbox /opt/home-seed
+ ---> 310348a418e1
+Step 57/61 : RUN rm -rf /opt/home-seed/harness /home/sandbox  && chmod 0700 /opt/home-seed  && install -d -o sandbox -g sandbox -m 0755 /home/sandbox
+ ---> Running in afce7d05c297
+ ---> Removed intermediate container afce7d05c297
+ ---> 9e36c6090b83
+Step 58/61 : WORKDIR ${OH_PROJECT_ROOT}
+ ---> Running in 8c3210f0c1f5
+ ---> Removed intermediate container 8c3210f0c1f5
+ ---> c294a65e65ef
+Step 59/61 : STOPSIGNAL SIGRTMIN+3
+ ---> Running in 322e9de853d9
+ ---> Removed intermediate container 322e9de853d9
+ ---> 36eacb78689a
+Step 60/61 : ENTRYPOINT []
+ ---> Running in f96c3be58bc6
+ ---> Removed intermediate container f96c3be58bc6
+ ---> 32cd980a0d33
+Step 61/61 : CMD ["/sbin/init"]
+ ---> Running in f10b85c9bc3f
+ ---> Removed intermediate container f10b85c9bc3f
+ ---> ef5252949f6e
+Successfully built ef5252949f6e
+Successfully tagged agro-upgrade-smoke:2509127
+2026-09-07T04:11:01Z upgrade-smoke: step 5/7: boot agro-upgrade-smoke:2509127 against the same project and volume
+ Container agro-upgrade-2509127 Recreate 
+ Container agro-upgrade-2509127 Recreated 
+ Container agro-upgrade-2509127 Starting 
+ Container agro-upgrade-2509127 Started 
+2026-09-07T04:11:02Z upgrade-smoke: waiting up to 900s for upgraded boot: systemd units openharness-bootstrap.service and openharness-cron.service
+2026-09-07T04:11:07Z upgrade-smoke: upgraded boot ready: container b68291dc60a5e3b88c57a3689e98c66ef4bd854831a4c4aaa63c90d5316c9491, bootstrap oneshot succeeded, cron runtime active
+2026-09-07T04:11:07Z upgrade-smoke: step 6/7: assert state survived
+2026-09-07T04:11:08Z upgrade-smoke: upgraded snapshot:
+    hosts_sha=080440b7f7ca91616cb97164be551c6e4d49afb68708740b92f55b57b745e45a
+    canary_sha=79b5a8b713faa252a1886227efb32a83ee705e20de46bb9fde49df6f0022b315
+    oh_dir=present
+    agro_dir=absent
+    oh_marker=present
+    oh_scripts_sha=b771d3971fb49fbb84398001cdeb300a86af9d1018356fd00540c43a36cc6dda
+    oh_entries=.image-seeded,README.md,cli,compat-inventory.json,evals,hooks,install,knowledge,logs,manifest.json,scripts,skills,skills.lock,tasks,
+2026-09-07T04:11:08Z upgrade-smoke: upgraded: ls -la /home/sandbox/harness/.oh | head
+    total 88
+    drwxr-xr-x 11 sandbox sandbox  4096 Sep  6 22:10 .
+    drwxr-xr-x 16 sandbox sandbox  4096 Sep  6 22:10 ..
+    -rw-r--r--  1 sandbox sandbox     0 Sep  6 22:10 .image-seeded
+    -rw-r--r--  1 sandbox sandbox 16314 Sep  6 13:51 README.md
+    drwxr-xr-x  4 sandbox sandbox  4096 Sep  6 13:51 cli
+    -rw-r--r--  1 sandbox sandbox 12868 Sep  6 13:51 compat-inventory.json
+    drwxr-xr-x  6 sandbox sandbox  4096 Sep  6 13:51 evals
+    drwxr-xr-x  2 sandbox sandbox  4096 Sep  6 13:51 hooks
+    drwxr-xr-x  2 sandbox sandbox  4096 Sep  6 13:51 install
+2026-09-07T04:11:08Z upgrade-smoke: compose health after upgrade: healthy
+2026-09-07T04:11:08Z upgrade-smoke: step 7/7: all assertions held
+2026-09-07T04:11:08Z upgrade-smoke: tearing down compose project agro-upgrade-2509127 (down -v)
+2026-09-07T04:11:09Z upgrade-smoke: PASS: legacy volume from ghcr.io/mifunedev/openharness:0.9.0 survived the upgrade to agro-upgrade-smoke:2509127

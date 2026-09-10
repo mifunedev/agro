@@ -1,16 +1,16 @@
 # Open Harness docs
 
-📖 **Full rendered docs & search → https://oh.mifune.dev**
+📖 **Full rendered docs & search → https://agro.mifune.dev**
 
 GitHub-readable documentation for the core Open Harness repo. Prefer this index
-for repo-local docs and [DeepWiki](https://deepwiki.com/mifunedev/openharness)
+for repo-local docs and [DeepWiki](https://deepwiki.com/mifunedev/agro)
 for generated codebase navigation. The rendered Docusaurus site and blog archive
-live in [`mifunedev/openharness-web`](https://github.com/mifunedev/openharness-web).
+live in [`mifunedev/agro-web`](https://github.com/mifunedev/agro-web).
 
 ## Start here
 
 Open Harness provides the sandbox; you choose the harness — a Docker workspace you
-clone-and-own, where `oh sandbox install docker` boots one long-lived container and the coding agent
+own, where `agro sandbox install docker` boots one long-lived container and the coding agent
 of your choice (Claude Code, Codex, Pi, Hermes, and more) works on its own branch and
 identity, running identically on your laptop or an unattended, lights-out remote VM.
 
@@ -28,7 +28,7 @@ like every other harness: run `oh harness install hermes`, then `hermes setup`.
 
 ## How the primitive pack ships
 
-Open Harness vendors the shared skills/hooks primitive pack directly into the `.oh/` control plane (`.oh/skills/`, `.oh/hooks/`, `.oh/skills.lock`), tracked as ordinary files — `oh update` lays them down, so a fresh checkout has them with no submodule or network step. Provider paths such as `.pi/skills`, `.claude/skills`, and `.codex/skills` are symlinks into `.oh/skills`; `.pi/` remains a provider surface for v1.
+Open Harness vendors the shared skills/hooks primitive pack directly into the `.agro/` control plane (`.agro/skills/`, `.agro/hooks/`, `.agro/skills.lock`), tracked as ordinary files — `oh update` lays them down, so a fresh checkout has them with no submodule or network step. The standard project skill surface is `.agents/skills`; `.claude/skills` and `.codex/skills` are symlinks into `.agro/skills`. `.pi/` remains a provider surface for Pi-specific configuration and extensions.
 
 ## Setup & first steps
 
@@ -39,6 +39,7 @@ Open Harness vendors the shared skills/hooks primitive pack directly into the `.
 - [Connecting to the sandbox](connecting.md)
 - [Contributing](contributing.md)
 - [AGRO compatibility contract](agro-compatibility.md)
+- [AGRO cutover runbook](agro-cutover-runbook.md)
 
 ## Harnesses
 
@@ -64,14 +65,15 @@ Open Harness vendors the shared skills/hooks primitive pack directly into the `.
 ## Reference
 
 - [Lifecycle commands — the `agro` verb reference (`oh` is the alias)](lifecycle-commands.md)
-- [Configuration — `oh.json` fields and the secrets split](configuration.md)
+- [Configuration — `agro.json` fields and the secrets split](configuration.md)
 - [Security considerations](security-considerations.md)
 - [Open-core boundary](open-core.md)
 - [Repair-operator registry](repair-operator-registry.md)
+- [Repair a sandbox boot blocked by a security advisory](repair-sandbox-boot-advisory.md)
 - [Artifact-contract schema](artifact-contract-schema.md)
-- [Registry portability contract and exception list](../.oh/scripts/registry-portability.md)
-- [`.oh/` directory layout](oh-directory-layout.md)
-- [Descriptive `.oh/harness.yml` example](harness-manifest.md)
+- [Registry portability contract and exception list](../.agro/scripts/registry-portability.md)
+- [`.agro/` directory layout](oh-directory-layout.md)
+- [Descriptive `.agro/harness.yml` example](harness-manifest.md)
 - [Glossary](glossary.md)
 - [RFC / ADR index](rfcs/README.md)
 - [ADR-0001: #532 standards scope](rfcs/adr-0001-standards-scope.md)

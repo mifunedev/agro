@@ -1,0 +1,163 @@
+{
+  "slug": "agro-namespace-cutover",
+  "pr": 996,
+  "base": "9d2fb00957fdfb9bd918660a6c01474504ad6c7d",
+  "tasks": [
+    {
+      "id": "T1",
+      "story": "US-001",
+      "title": "Rename .oh tree to .agro and oh.json to agro.json; update every current reference",
+      "dependsOn": [],
+      "wave": 1,
+      "complexity": "standard",
+      "thinking": "medium",
+      "model": "inherit",
+      "files": [
+        ".oh/** -> .agro/**",
+        "oh.json -> agro.json",
+        ".gitignore",
+        ".dockerignore",
+        ".github/workflows/*",
+        ".devcontainer/*",
+        "docs/*",
+        "README.md",
+        "AGENTS.md",
+        "crons/*",
+        "package.json",
+        "vitest.config.ts",
+        "provider links"
+      ],
+      "acceptance": "pnpm test, both typechecks, link-providers.sh --check, eval runner, git diff --check all pass from the renamed tree; compat-inventory tests green",
+      "status": "completed"
+    },
+    {
+      "id": "T2",
+      "story": "US-002",
+      "title": "Fresh-state defaults in compat.ts/compat.sh and AGRO_* compose interpolation",
+      "dependsOn": [
+        "T1"
+      ],
+      "wave": 2,
+      "complexity": "standard",
+      "thinking": "medium",
+      "model": "inherit",
+      "files": [
+        ".agro/cli/src/lib/{compat,registry,oh-config,config-render,env}.ts",
+        ".agro/cli/src/lib/execution/runner.ts",
+        ".agro/cli/src/commands/{sandbox,update,harness}.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/scripts/compat.sh",
+        ".devcontainer/docker-compose*.yml",
+        ".agro/cli/src/lib/__tests__/fixtures/compat-vectors.json",
+        "tests"
+      ],
+      "acceptance": "absent pair resolves to agro generation in both implementations; registry prefix agro-sbx-; compose ${AGRO_X:-${OH_X:-default}}; tests cover fresh vs legacy",
+      "status": "completed"
+    },
+    {
+      "id": "T3",
+      "story": "US-003",
+      "title": "agro migrate command over planMigration/applyMigration with relink step",
+      "dependsOn": [
+        "T1"
+      ],
+      "wave": 2,
+      "complexity": "standard",
+      "thinking": "medium",
+      "model": "inherit",
+      "files": [
+        ".agro/cli/src/commands/migrate.ts",
+        ".agro/cli/src/lib/migrate.ts",
+        ".agro/cli/src/commands/__tests__/migrate-command.test.ts"
+      ],
+      "acceptance": "check/apply/idempotent/conflict/lock/relink/--home/unknown-file/mode tests pass; cli.ts dispatch left to owner",
+      "status": "completed"
+    },
+    {
+      "id": "T4",
+      "story": "US-004",
+      "title": "Image seed /opt/agro-seed, entrypoint compat resolution, legacy-workspace recognition",
+      "dependsOn": [
+        "T2"
+      ],
+      "wave": 3,
+      "complexity": "standard",
+      "thinking": "medium",
+      "model": "inherit",
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".devcontainer/entrypoint.sh",
+        ".devcontainer/openharness-cron.service",
+        ".agro/scripts/verify-sandbox-image.sh",
+        ".agro/scripts/__tests__/entrypoint*.test.ts",
+        ".agro/evals/probes/oh-image-only-deploy.sh"
+      ],
+      "acceptance": "fresh seeds .agro once; legacy workspace untouched; divergent refuses; tests and probe pass",
+      "status": "completed"
+    },
+    {
+      "id": "T5",
+      "story": "US-005",
+      "title": "sandbox-upgrade-smoke.sh old-volume/new-image evidence and migration rehearsal",
+      "dependsOn": [
+        "T2",
+        "T3"
+      ],
+      "wave": 3,
+      "complexity": "standard",
+      "thinking": "medium",
+      "model": "inherit",
+      "files": [
+        ".agro/scripts/sandbox-upgrade-smoke.sh",
+        ".github/workflows/sandbox-boot-guard.yml",
+        "migration rehearsal test"
+      ],
+      "acceptance": "script runs locally against ghcr.io/mifunedev/openharness:0.9.0 volume + fresh image; rehearsal test passes",
+      "status": "completed"
+    },
+    {
+      "id": "T6",
+      "story": "US-006",
+      "title": "Docs, onboarding Q4, AGENTS.md, inventory notes, changelog",
+      "dependsOn": [
+        "T2",
+        "T3",
+        "T4"
+      ],
+      "wave": 4,
+      "complexity": "standard",
+      "thinking": "medium",
+      "model": "inherit",
+      "files": [
+        "README.md",
+        "docs/*",
+        "AGENTS.md",
+        ".agro/compat-inventory.json",
+        "CHANGELOG.md",
+        ".example.env"
+      ],
+      "acceptance": "docs describe AGRO fresh state and legacy fallback; inventory tests green; changelog entry <=250 chars",
+      "status": "completed"
+    },
+    {
+      "id": "T7",
+      "story": "US-007",
+      "title": "Knowledge impact, evidence (owner-executed)",
+      "dependsOn": [
+        "T4",
+        "T5",
+        "T6"
+      ],
+      "wave": 5,
+      "complexity": "standard",
+      "thinking": "medium",
+      "model": "inherit",
+      "files": [
+        ".agro/knowledge/**",
+        ".agro/tasks/agro-namespace-cutover/evidence.md"
+      ],
+      "acceptance": "knowledge-impact.sh resolved; wiki-readme-index PASS; evidence.md complete",
+      "status": "completed"
+    }
+  ]
+}

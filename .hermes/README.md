@@ -13,7 +13,7 @@ symlink auth to another volume.
 Installation and boot use the canonical provider linker for one additive link:
 
 ```text
-.hermes/skills/openharness -> ../../.oh/skills
+.hermes/skills/openharness -> ../../.agro/skills
 ```
 
 Hermes-native and user skills remain beside that link. Repeated installation repairs

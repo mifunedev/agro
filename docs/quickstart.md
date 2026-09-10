@@ -27,13 +27,13 @@ the latest GitHub release — nothing is cloned or built on your host — and of
 to install nvm + Node 22 when Node is missing:
 
 ```bash
-curl -fsSL https://github.com/mifunedev/openharness/releases/latest/download/get-agro.sh | bash
+curl -fsSL https://agro.mifune.dev/get-agro.sh | bash
 ```
 
 Review-first, without adding a host dependency:
 
 ```bash
-curl -fsSL -o get-agro.sh https://github.com/mifunedev/openharness/releases/latest/download/get-agro.sh
+curl -fsSL -o get-agro.sh https://agro.mifune.dev/get-agro.sh
 # Review get-agro.sh in your editor or pager before running it.
 bash get-agro.sh
 ```
@@ -57,7 +57,7 @@ replace. Details: [Installation → Package and PATH rules](./installation.md#pa
 `oh` keeps working for the whole compatibility window and runs the same bundle.
 From npm it is the deprecated shim `@mifune/openharness`
 (`npm install -g @mifune/openharness`, or `npx @mifune/openharness --help`);
-`oh update` remains the command that vendors `.oh/` + `crons/` into a checkout.
+`oh update` remains the command that vendors `.agro/` + `crons/` into a checkout.
 The curl bootstrap is `get-oh.sh`:
 
 ```bash
@@ -75,17 +75,19 @@ installs *and* puts `oh` on the current shell's PATH.
 agro sandbox install docker   # wizard: name, timezone, git identity, SSH, Docker socket
 ```
 
-It asks for the sandbox name (default `oh-sbx-<n>`, the lowest unused number),
+It asks for the sandbox name (default `agro-sbx-<n>`, the lowest unused number),
 the timezone, your git identity, whether to run sshd and on which host port, and
 whether to mount the host Docker socket. `--yes` keeps every default and asks
 nothing. The answers land in a registry entry at
-`~/.oh/sandboxes/<name>/oh.json`, together with the compose files and the
+`~/.agro/sandboxes/<name>/agro.json`, together with the compose files and the
 wrapper script the CLI regenerates on every lifecycle call — edit only
-`oh.json` there.
+`agro.json` there. A registry written by an earlier release stays at
+`~/.oh/sandboxes/<name>/oh.json` and keeps working; `agro migrate --home` moves
+it when you choose.
 
 Without `--repo` the sandbox runs the published image
-(`ghcr.io/mifunedev/openharness:latest`) and seeds its workspace from the
-image's `/opt/oh-seed`, so there is no build and no clone.
+(`ghcr.io/mifunedev/agro:latest`) and seeds its workspace from the
+image's `/opt/agro-seed`, so there is no build and no clone.
 
 Finish by attaching:
 
@@ -99,33 +101,16 @@ is bind-mounted at `/home/sandbox/harness`:
 
 ```bash
 cd <your-project>
-oh update                                     # vendor .oh/ + crons/ into this checkout
+oh update                                     # vendor .agro/ + crons/ into this checkout
 agro sandbox install docker --repo "$PWD" --name <your-project>
 ```
 
-`oh update` writes `.oh/` and `crons/` and **nothing else** — no `oh.json`, no
+`oh update` writes `.agro/` and `crons/` and **nothing else** — no `agro.json`, no
 `.env`, no `AGENTS.md`, no provider configuration, and no `.gitignore` line
 beyond the `.env` line `agro secret set` adds inside a git checkout. Those files
 are yours to author. With `--repo` and `image.mode` set to `build`, the sandbox
 builds from that checkout's `.devcontainer/Dockerfile` instead of pulling
 (~10 min cold, ~30s warm).
-
-<details><summary>One-line harness installer and forks</summary>
-
-**One-line installer for this harness.** Gets `oh`, clones this repo to
-`~/.openharness`, configures it, and provisions — in one shot:
-
-```bash
-curl -fsSL https://oh.mifune.dev/install.sh | bash
-```
-
-Review-first: `curl -fsSL -o openharness-install.sh https://oh.mifune.dev/install.sh`,
-read it, then `bash openharness-install.sh`. Run `bash .oh/scripts/install.sh`
-from inside an existing clone and it detects the local repo. Set
-`OH_GITHUB_REPO=<your-org>/<your-fork>` to install a fork — every override is in
-[Installation](./installation.md).
-
-</details>
 
 ## Enter the sandbox
 
@@ -212,28 +197,91 @@ per-harness setup.
 
 [Connecting to the Sandbox](/docs/connecting)
 
-If `GH_TOKEN` was set during install, the entrypoint already ran
-`gh auth login` and `gh auth setup-git` for you. Otherwise run them once
-inside a Herdr pane:
+An installed and authenticated harness inside Herdr is already a working
+sandbox. Everything below is optional.
+
+## Authenticate GitHub before any repository work
+
+Local sandbox use stays available without a GitHub account. Work that reaches
+GitHub — pushing, creating a repository, opening a pull request — does not.
+Provider authentication authenticates the model, not GitHub, and grants no
+repository access.
+
+Run these five steps in this order, inside a Herdr pane:
+
+1. Authenticate the intended GitHub account with `gh auth login`.
+2. Run `gh auth setup-git` to configure Git's credential helper.
+3. Run `gh auth status`.
+4. Confirm the status output identifies the intended account with authenticated
+   access.
+5. Only after those checks pass, send either optional prompt below to the
+   authenticated coding agent.
 
 ```bash
-gh auth login && gh auth setup-git
+gh auth login
+gh auth setup-git
+gh auth status
 ```
+
+The initial login is never delegated to the prompts. Both prompts assume it is
+already complete and recheck it before acting. Protocol choice, SSH-key upload,
+`GH_TOKEN` at boot, and recovery after a `down -v` are in
+[GitHub auth](./integrations/github.md).
+
+### Optional prompt — version-control this sandbox privately
+
+Send this to the authenticated coding agent:
+
+> I have completed `gh auth login` and verified the intended GitHub account inside this sandbox.
+> Help me version-control this sandbox workspace in my own private GitHub repository.
+> Recheck GitHub authentication before acting, then inspect existing Git history and remotes.
+> Preserve my files and existing repository configuration.
+> Review ignore rules and the proposed tracked files for credentials, runtime state, logs, and unrelated projects.
+> Ask me to confirm the account, repository name, and private visibility before creating the repository.
+> Show me the proposed commit contents and ask before pushing.
+> Do all work inside this sandbox; do not create a host-side source checkout.
+
+### Optional prompt — prepare an AGRO contribution
+
+Send this instead:
+
+> I have completed `gh auth login` and verified the intended GitHub account inside this sandbox.
+> Help me prepare an AGRO contribution from this sandbox.
+> Recheck GitHub authentication before acting.
+> Inspect existing remotes and check whether this checkout shares history with the canonical AGRO repository.
+> If the histories share ancestry, help me configure an upstream remote and a contribution branch without changing my private origin.
+> Otherwise, use a separate ordinary upstream checkout inside this sandbox and transfer only the changes I select.
+> Keep private configuration, credentials, and unrelated files out of the contribution.
+> Confirm the fork, target branch, and diff with me before pushing or opening a pull request.
+> Do not replace the live workspace or create a host-side source checkout.
+
+Branch, commit, changelog, and pull-request conventions for the second prompt
+live in [Contributing](./contributing.md).
+
+### `agro config repo` is a compatibility helper
+
+`agro config repo` (and `oh config repo`) creates a repository and re-points
+`origin` for the retired clone-and-own recipe. It stays supported through the
+[AGRO compatibility](./agro-compatibility.md) window and is **not** the
+canonical onboarding path. Prefer the prompts above, which inspect the workspace
+before they change anything.
 
 ## Configuration
 
-Configuration lives in **two** files, split by kind. `oh.json` holds every
+Configuration lives in **two** files, split by kind. `agro.json` holds every
 non-secret setting. A gitignored, mode-`0600` `.env` holds nothing but secrets;
 the tracked `.example.env` documents every allow-listed secret key, commented
 out, so a fresh copy changes nothing.
 
 Each sandbox keeps its own pair inside its registry entry at
-`~/.oh/sandboxes/<name>/`. Write them with `agro config set --sandbox <name>
-<field> <value>` and `agro secret set --sandbox <name> <KEY>`; without
-`--sandbox` both act on the project root instead. In an equipped checkout,
-`.devcontainer/.env` is a symlink to that root `.env`.
+`~/.agro/sandboxes/<name>/` (a registry from an earlier release stays at
+`~/.oh/sandboxes/<name>/` until `agro migrate --home` runs). Write them with
+`agro config set --sandbox <name> <field> <value>` and `agro secret set
+--sandbox <name> <KEY>`; without `--sandbox` both act on the project root
+instead. In an equipped checkout, `.devcontainer/.env` is a symlink to that root
+`.env`.
 
-Both work on **every** path. `oh ...` renders `oh.json` and passes it plus the
+Both work on **every** path. `agro ...` renders `agro.json` and passes it plus the
 secrets file to compose with `--env-file`; the VS Code "Reopen in Container"
 path loads `.devcontainer/docker-compose.yml` directly, and compose auto-loads
 the `.devcontainer/.env` symlink sitting beside it — so secrets arrive, every
@@ -246,7 +294,7 @@ removed; any leftover `harness.yaml` is migrated automatically on the next
 lifecycle command.)
 
 ```json
-// oh.json — non-secret settings (example)
+// agro.json — non-secret settings (example)
 {
   "name": "openharness",
   "timezone": "UTC",
@@ -254,7 +302,7 @@ lifecycle command.)
 }
 ```
 
-`oh.json` also carries `repo` and `runtime` for a registry entry, plus the SSH,
+`agro.json` also carries `repo` and `runtime` for a registry entry, plus the SSH,
 Docker-socket, Hermes-dashboard, cron, build, and image settings. See
 [Configuration](./configuration.md) for the full field reference, and
 `agro config set <field> <value>` to edit one field.
@@ -270,7 +318,7 @@ entry:
 | `PI_SLACK_APP_TOKEN` | Slack Socket Mode app token (`xapp-`) |
 | `PI_SLACK_BOT_TOKEN` | Slack bot token (`xoxb-`) |
 
-**Non-secret settings** — `oh.json` fields:
+**Non-secret settings** — `agro.json` fields:
 
 | Field | Purpose |
 |-----|---------|
@@ -279,7 +327,7 @@ entry:
 | `git.userName` | Commit author name (spaces OK) |
 | `git.userEmail` | Commit author email |
 
-`oh.json` carries no install field. Install a harness or a tool with
+`agro.json` carries no install field. Install a harness or a tool with
 `agro harness install <id>` or `agro tool install <id>` instead.
 
 Set one field with `agro config set <field> <value>` and one secret with
@@ -287,100 +335,72 @@ Set one field with `agro config set <field> <value>` and one secret with
 `agro stop <name> && agro sandbox install docker --name <name>`.
 
 For additional services (databases, tunnels, reverse proxies), add overlay
-paths to `composeOverrides[]` in `oh.json` (last wins).
+paths to `composeOverrides[]` in `agro.json` (last wins).
 
 ## End-to-end setup walkthrough
 
-The full path from a bare Linux host to an authenticated multi-agent sandbox. Each step
-inlines the command to run; follow the link for depth/troubleshooting. Steps 5–14 run
-**inside the sandbox** (`agro shell <name>`); step 5 enters Herdr before setup. For agent-auth steps (9–12), the simplest
-cross-provider method is `/login` → **device mode** inside each agent's interactive session
-(see [Set up agents inside Herdr](#set-up-agents-inside-herdr)); the explicit commands shown are equivalents.
+The full path from a bare host to a working sandbox. Steps 1–5 are the whole
+required path; everything after them is optional and can wait. Steps 4 onward run
+**inside the sandbox** (`agro shell <name>`).
 
 1. **Install host prerequisites** — Docker (+ Compose), Git, and Node.js ≥ 20
    ([details](./installation.md#prerequisites)):
    ```bash
-   curl -fsSL -o get-agro.sh https://github.com/mifunedev/openharness/releases/latest/download/get-agro.sh   # review it first
+   curl -fsSL -o get-agro.sh https://agro.mifune.dev/get-agro.sh   # review it first
    bash get-agro.sh                                          # installs `agro`, and Node if missing
    ```
 
-   To skip the review step: `curl -fsSL https://github.com/mifunedev/openharness/releases/latest/download/get-agro.sh | bash`. `npm install -g @mifune/agro` is the npm equivalent when Node is already present.
-2. **Clone the repo** to `~/.openharness`:
+   To skip the review step: `curl -fsSL https://agro.mifune.dev/get-agro.sh | bash`. `npm install -g @mifune/agro` is the npm equivalent when Node is already present.
+2. **Create the sandbox** — the wizard asks for the name, timezone, git identity,
+   SSH, and the Docker socket, then writes `~/.agro/sandboxes/<name>/`:
    ```bash
-   git clone --recurse-submodules https://github.com/mifunedev/openharness.git ~/.openharness
-   cd ~/.openharness
+   agro sandbox install docker
    ```
-3. **Create the sandbox against that checkout** — the wizard asks for the name,
-   timezone, git identity, SSH, and the Docker socket, then writes
-   `~/.oh/sandboxes/<name>/`:
+   Add `--repo "$PWD" --name <your-project>` to bind an existing checkout at
+   `/home/sandbox/harness` instead of running the published image.
+3. **Enter the sandbox**:
    ```bash
-   agro sandbox install docker --repo "$PWD" --name openharness
+   agro shell <name>   # attach as the sandbox user
    ```
-4. **Enter the sandbox**:
-   ```bash
-   agro shell openharness   # attach as the sandbox user
-   ```
-5. **Install and start Herdr** — a fresh sandbox has none; all remaining setup runs in its panes:
+4. **Install and start Herdr** — a fresh sandbox has none; all remaining setup runs in its panes:
    ```bash
    agro tool install herdr
    herdr
    ```
-6. **Authenticate GitHub over SSH** — choose SSH, generate a key, paste a token
-   ([GitHub auth](./integrations/github.md)):
-   ```bash
-   gh auth login && gh auth setup-git
-   ```
-7. **Create your own private repo and point the remotes at it** — one command,
-   which asks first and defaults to no:
-   ```bash
-   agro config repo
-   ```
-   It prompts for owner, repository name, and visibility (default private), then runs
-   `gh repo create`, renames the existing `origin` to `openharness`, adds your repo as
-   `origin`, and pushes. Nothing is created unless you answer yes in that run —
-   a piped (non-TTY) run skips the step entirely.
-8. **Or do it by hand** — the same result without `gh`, keeping upstream as `upstream`
-   ([clone-and-own](./installation.md#clone-and-own-private-origin-and-upstream-recommended)):
-   ```bash
-   gh repo create <your-user>/openharness --private
-   git remote set-url origin git@github.com:<your-user>/openharness.git
-   git remote add upstream git@github.com:mifunedev/openharness.git
-   git push -u origin HEAD
-   ```
-9. **Install and authenticate Claude Code** ([Claude Code](./harnesses/claude-code.md)):
+5. **Install and authenticate one harness** — Claude Code is the documented
+   default ([Claude Code](./harnesses/claude-code.md)):
    ```bash
    agro harness install claude-code
    claude auth login && claude auth status
    ```
-10. **Install and authenticate Codex** ([Codex](./harnesses/codex.md)):
-   ```bash
-   agro harness install codex
-   codex login --device-auth
-   ```
+   That is a working sandbox. Stop here until you need more.
+
+Optional, in any order:
+
+6. **Authenticate GitHub** before any repository work — the five checks in
+   [Authenticate GitHub before any repository work](#authenticate-github-before-any-repository-work),
+   then either optional prompt.
+7. **Add more harnesses** — `agro harness install codex`
+   ([Codex](./harnesses/codex.md)), `agro harness install pi` ([Pi](./harnesses/pi.md)),
+   `agro harness install hermes && hermes setup` ([Hermes](./harnesses/hermes.md)).
+   The simplest cross-provider method is `/login` → **device mode** inside each
+   agent's interactive session (see [Set up agents inside Herdr](#set-up-agents-inside-herdr));
+   the explicit commands are equivalents.
    > Optional: DebugMCP (cross-harness debugging over MCP) is available if you attached via
-   > VS Code — see [Enter the sandbox](#enter-the-sandbox) above, not this step.
-11. **Install and authenticate Pi** — configure provider keys / OAuth ([Pi](./harnesses/pi.md)):
-    ```bash
-    agro harness install pi
-    pi        # first run walks provider auth
-    ```
-12. **Install and authenticate Hermes** ([Hermes](./harnesses/hermes.md)):
-    ```bash
-    agro harness install hermes
-    hermes setup
-    ```
-13. **Configure Slack** for Pi (and Hermes) — create the Slack app, add tokens, set trust
-    ([Slack](./integrations/slack.md); Hermes uses `hermes gateway setup`).
-14. **Run and verify the gateways** (sandbox-only; watch read-only so you can't kill them —
-    [Slack § Run and verify](./integrations/slack.md), [Hermes § Run and verify](./harnesses/hermes.md#run-and-verify-read-only)):
-    ```bash
-    gateway pi && gateway hermes        # start the client-slack-* sessions
-    gateway status                      # both sessions + state
-    tmux attach -r -t client-slack-pi   # read-only view; detach with Ctrl-b d
-    ```
+   > VS Code — see [Enter the sandbox](#enter-the-sandbox) above.
+8. **Configure Slack** for Pi (and Hermes) — create the Slack app, add tokens, set trust
+   ([Slack](./integrations/slack.md); Hermes uses `hermes gateway setup`).
+9. **Run and verify the gateways** (sandbox-only; watch read-only so you can't kill them —
+   [Slack § Run and verify](./integrations/slack.md), [Hermes § Run and verify](./harnesses/hermes.md#run-and-verify-read-only)):
+   ```bash
+   gateway pi && gateway hermes        # start the client-slack-* sessions
+   gateway status                      # both sessions + state
+   tmux attach -r -t client-slack-pi   # read-only view; detach with Ctrl-b d
+   ```
 
 > Shortcut: if `GH_TOKEN` was set at install, the entrypoint already ran `gh auth login`
-> + `gh auth setup-git` and generated/uploaded an SSH key for you (steps 5 partly done).
+> + `gh auth setup-git` and generated/uploaded an SSH key for you. Verify with
+> `gh auth status` before you rely on it.
 
 ## Tear down
 

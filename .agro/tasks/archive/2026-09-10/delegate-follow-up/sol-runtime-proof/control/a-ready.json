@@ -1,0 +1,18 @@
+{
+  "signal": "session-a-ready",
+  "nativeWorkerId": "a8e871ee7a180398b",
+  "utc": "2026-09-07T23:25:07Z",
+  "requestedTaskModel": "opus",
+  "requestedSubagentType": "general-purpose",
+  "requestedRunInBackground": true,
+  "observedFromNativeResults": {
+    "agentIdSource": "native Agent/Task tool result, verbatim",
+    "subagentType": "general-purpose (reported by ListAgents)",
+    "status": "running (reported by ListAgents)",
+    "model": "not reported by any native result; only the request is known",
+    "effort": "not reported by any native result; not claimed"
+  },
+  "ledgerPath": "/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/ledger/delegate-graph.json",
+  "frozenProcedurePath": "/tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1/procedure/recovery-procedure.md",
+  "acceptanceOwner": "Session A"
+}

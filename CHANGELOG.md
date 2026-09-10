@@ -8,12 +8,35 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Changed
+
+- Publish only `@mifune/agro` on the automatic release path; keep the `@mifune/openharness` shim source and already-published versions without a new shim publish, wait, or deprecate step. ([#939](https://github.com/mifunedev/agro/issues/939))
+
 ### Fixed
 
+- Make top-level `agro` help describe `agro update` as CLI self-upgrade, keep `oh update` as project vendoring, and default an unselected sandbox image to `ghcr.io/mifunedev/agro:latest`. ([#939](https://github.com/mifunedev/agro/issues/939))
+
+### Removed
+
+- Retire the `.pi/skills` surface only when `.agents/skills` is a direct, independent link that survives the migration, and preserve it otherwise so Pi keeps a skill discovery root. ([#1025](https://github.com/mifunedev/agro/issues/1025))
+
+### Changed
+
+- Fresh installs now create `.agro/`, `agro.json`, `~/.agro/sandboxes`, and `/opt/agro-seed`; legacy `.oh/` state keeps working, and `agro migrate` moves a project or registry. ([#942](https://github.com/mifunedev/openharness/issues/942))
+- Make `mifunedev/agro` and `agro.mifune.dev` the canonical repository and docs domain, send `agro-release` to the docs site on release, and keep legacy names as compatibility endpoints. ([#943](https://github.com/mifunedev/openharness/issues/943))
+
+### Fixed
+
+- Document a state-preserving recovery for a workspace volume whose boot aborts on a security advisory; it preserves the manifest's mode and refuses when the hook carries operator logic. ([#1019](https://github.com/mifunedev/agro/issues/1019))
+- Move the dependency security audit to CI-only so a new advisory can no longer block a sandbox boot. ([#943](https://github.com/mifunedev/openharness/issues/943))
+- Require verified dependency acceptance and safe resume eligibility before dispatching delegated work. ([#1004](https://github.com/mifunedev/openharness/pull/1004))
+- Point the pi banner at the Mifune GitHub organization. ([#1001](https://github.com/mifunedev/openharness/issues/1001))
 - Release publishing waits for npm registry propagation with an uncached `npm view` before publishing the `@mifune/openharness` shim and fails when its deprecation notice is not applied. ([#994](https://github.com/mifunedev/openharness/issues/994))
+- Preserve an existing sandbox's configuration when `agro sandbox install` runs again, so a reinstall no longer discards settings such as a pinned `storage.homePath`. ([#1021](https://github.com/mifunedev/agro/issues/1021))
 
 ### Added
 
+- Add the `sandbox-boot-advisory-recovery` probe and extend `pnpm-audit-ci-gate` to forbid every lifecycle hook in the boot install. ([#1019](https://github.com/mifunedev/agro/issues/1019))
 - Add the `advisor-execution-contract` and `plan-orchestration-contract` probes. ([#988](https://github.com/mifunedev/openharness/issues/988))
 - Add the /plan skill to the tracked tree (.oh/skills/plan/SKILL.md) with required bounded-assignment fields. ([#988](https://github.com/mifunedev/openharness/issues/988))
 

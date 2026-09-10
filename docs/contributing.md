@@ -10,66 +10,74 @@ For the inbound license terms and the Developer Certificate of Origin (DCO), see
 
 ## Setup
 
-Clone the repository:
-
-```bash
-git clone --recurse-submodules https://github.com/mifunedev/openharness.git
-cd openharness
-```
-
-Open Harness has no host-side build step. The orchestrator runs at the project root, and all application work happens inside the sandbox container. You only need:
-
-- Docker (with `docker compose`)
-- Node.js ≥ 20, to run the `oh` CLI. To install both:
-
-  ```bash
-  curl -fsSL -o get-oh.sh https://oh.mifune.dev/get-oh.sh   # review it first
-  bash get-oh.sh
-  ```
-
-  Or, if you would rather not review it, `curl -fsSL https://oh.mifune.dev/get-oh.sh | bash`.
-- `git` and the GitHub CLI (`gh`)
+Contributions are prepared **inside a sandbox**, not from a host-side source checkout.
+Host requirements are the same as any other install: Docker (with `docker compose`),
+`git`, and Node.js ≥ 20 to run the `agro` CLI. See
+[Installation → Get the CLI](./installation.md#get-the-cli-agro).
 
 ### Provision the sandbox
 
-The lifecycle is driven entirely by `oh`:
+The lifecycle is driven entirely by `agro`; every verb also works as `oh <verb>`:
 
 ```bash
-oh sandbox    # provision and start the sandbox (docker compose up -d --build)
-oh shell      # enter the sandbox as the `sandbox` user
-oh ps         # show service status
-oh logs       # tail compose logs
-oh stop       # stop the sandbox, preserving volumes
-oh destroy    # stop and remove the sandbox (volumes wiped)
-oh restart    # restart the service
-oh --help     # list every verb
+agro sandbox install docker   # write the registry entry and start the sandbox
+agro shell <name>             # enter the sandbox as the `sandbox` user
+agro ps <name>                # show service status
+agro logs <name>              # tail compose logs
+agro stop <name>              # stop the sandbox, preserving volumes
+agro destroy <name>           # stop and remove the sandbox (volumes wiped)
+agro restart <name>           # restart the service
+agro --help                   # list every verb
 ```
-
-A first-run helper is available at `.oh/scripts/install.sh` — it prompts for the non-secret values written to `oh.json` and the secrets written to the gitignored root `.env` (GitHub token autodetect, idempotent re-runs) before it calls `oh sandbox install docker`.
 
 ### Onboard inside the sandbox
 
-After `oh shell`, install and start Herdr before any other inside-sandbox setup.
+After `agro shell`, install and start Herdr before any other inside-sandbox setup.
 A fresh sandbox has none, because nothing installs at boot:
 
 ```bash
-oh tool install herdr
+agro tool install herdr
 herdr
 ```
 
-From the initial Herdr pane, complete one-time GitHub auth so `git push` and `gh` work from within the container:
+From the initial Herdr pane, complete GitHub authentication so `git push` and `gh` work
+from within the container. Run the checks in order and confirm the account before you
+continue — details in [GitHub auth](./integrations/github.md):
 
 ```bash
-gh auth login && gh auth setup-git
+gh auth login
+gh auth setup-git
+gh auth status
 ```
 
-Then start agents from Herdr panes. The default is the `pi` CLI; `claude` and `codex` are also installed:
+Then install and start agents from Herdr panes — nothing is baked into the image:
 
 ```bash
-pi          # default agent CLI
-claude      # Claude Code
-codex       # OpenAI Codex CLI
+agro harness install claude-code   # claude
+agro harness install codex         # codex
+agro harness install pi            # pi
 ```
+
+### Get the source into the sandbox
+
+Clone the repository inside the sandbox, in a Herdr pane:
+
+```bash
+git clone --recurse-submodules https://github.com/mifunedev/agro.git
+cd agro
+```
+
+If this sandbox already holds your own workspace, do not replace it. Check whether the
+workspace shares history with the canonical repository (`git merge-base --is-ancestor`
+against a fetched upstream ref). When it does, add an `upstream` remote and branch from
+it without touching your private `origin`. When it does not, use a separate ordinary
+clone inside the sandbox, as above, and move only the changes you select into it. Keep
+private configuration, credentials, and unrelated files out of the contribution. The
+[contribution prompt](./quickstart.md#optional-prompt--prepare-an-agro-contribution) walks
+an authenticated agent through the same decision.
+
+A checkout equipped before the AGRO cutover carries `.oh/` and `oh.json`. Both still
+resolve; run `agro migrate --check` and then `agro migrate` to move it.
 
 ### Local validation
 
@@ -78,17 +86,17 @@ Use the fast harness build for routine development:
 ```bash
 pnpm run build          # fast non-docs build
 pnpm run test:scripts   # root script + .pi extension tests
-bash .claude/skills/eval/run.sh
+bash .agro/skills/eval/run.sh
 ```
 
-The rendered docs site is maintained in [`mifunedev/openharness-web`](https://github.com/mifunedev/openharness-web). In this core repo, validate docs by checking the Markdown links and the GitHub-readable index at `docs/README.md`; no Docusaurus build runs here.
+The rendered docs site is maintained in [`mifunedev/agro-web`](https://github.com/mifunedev/agro-web). In this core repo, validate docs by checking the Markdown links and the GitHub-readable index at `docs/README.md`; no Docusaurus build runs here.
 
 ### Multi-agent messaging (Slack)
 
 Slack (and other messengers) bridge to a Pi agent via the
 [`pi-messenger-bridge`](https://github.com/tintinweb/pi-messenger-bridge) npm package. The
 harness installs it into a gitignored `.pi/bridge/` directory and loads it via `--extension`
-only in the dedicated `client-slack-pi` tmux session (managed by `.oh/scripts/gateway.sh`) —
+only in the dedicated `client-slack-pi` tmux session (managed by `.agro/scripts/gateway.sh`) —
 you don't run `pi install` yourself. Full setup (tokens, trust, the sibling Hermes gateway)
 lives in [Slack integration](./integrations/slack.md).
 
@@ -136,7 +144,7 @@ Example:
 
 ```markdown
 ### Added
-- Slack thread replies in multi-channel mode ([#42](https://github.com/mifunedev/openharness/pull/42)).
+- Slack thread replies in multi-channel mode ([#42](https://github.com/mifunedev/agro/pull/42)).
 ```
 
 Skip CHANGELOG entries only for pure chores with no runtime or workflow effect (refactors, test fixes, typos). When in doubt, add an entry.
@@ -209,10 +217,10 @@ Run the release skill from inside the orchestrator sandbox:
 /release
 ```
 
-For details on the full workflow, see `/git` (`.claude/skills/git/SKILL.md`) in
-the repo.
+For details on the full workflow, see the `git` skill
+(`.agro/skills/git/SKILL.md`) in the repo.
 
 ---
 
-Need to dive deeper? See `/git` (`.claude/skills/git/SKILL.md`)
+Need to dive deeper? See the `git` skill (`.agro/skills/git/SKILL.md`)
 in the repo for the canonical workflow.

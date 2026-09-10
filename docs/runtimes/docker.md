@@ -22,7 +22,7 @@ in [`oh sandbox install docker`](../deployment-prebuilt-image.md).
 The Docker daemon lives on the machine holding the `oh` binary, not inside the
 sandbox. `oh sandbox install` is therefore host-only and refuses with a
 host-only error when run inside a sandbox — see
-[Lifecycle commands](../lifecycle-commands.md#where-you-are-standing-when-you-type-oh).
+[Lifecycle commands](../lifecycle-commands.md#where-you-are-standing-when-you-type-agro).
 
 If the daemon is not answering, `oh sandbox install docker` fails at the compose
 call. Install Docker Engine and start it — see
@@ -42,7 +42,7 @@ Two harness-specific notes:
 
 - **The host Docker socket is off by default.** Mounting
   `/var/run/docker.sock` into the sandbox is effectively host root, so it is
-  opt-in: the wizard asks, and `access.dockerSocket` in the entry's `oh.json`
+  opt-in: the wizard asks, and `access.dockerSocket` in the entry's `agro.json`
   records the answer. See
   [security considerations](../security-considerations.md).
 - **The container is the unit of disposal.** `oh destroy <name>` removes the

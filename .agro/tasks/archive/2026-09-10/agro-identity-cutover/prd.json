@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "project": "AGRO",
+  "branchName": "feat/943-agro-identity-cutover",
+  "description": "Phase 3 of #939: AGRO becomes the canonical external identity — in-place rename to mifunedev/agro and mifunedev/agro-web, the docs pipeline adopts the .agro/ source contract, agro.mifune.dev is canonical, release metadata and dispatch use AGRO names, and every oh.mifune.dev entry URL stays shell-safe.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Web pipeline accepts the AGRO source layout before any rename",
+      "description": "As the docs site, I build and mirror from .agro/ so the next core release cannot break oh.mifune.dev/oh.js, /get-oh.sh, and the site build.",
+      "acceptanceCriteria": [
+        "In mifunedev/openharness-web, scripts/oh-source.mjs resolves AGRO_GITHUB_REPO then OH_GITHUB_REPO (default stays mifunedev/openharness until US-006) and AGRO_SCRIPTS_REF then OH_SCRIPTS_REF; it warns when both are set and differ and never prints values.",
+        "The CLI build script builds from .agro/cli when present and falls back to .oh/cli; it writes static/agro.js and static/oh.js from one build; both start with #!.",
+        "scripts/sync-external-scripts.mjs mirrors .agro/scripts/get-agro.sh -> static/get-agro.sh and .agro/scripts/get-oh.sh -> static/get-oh.sh with a .oh/scripts/ fallback; a missing canonical file at the pinned ref fails the build naming the path.",
+        ".github/workflows/pages.yml triggers on repository_dispatch types [agro-release, openharness-release], reads client_payload.ref for both, and its repository assertions accept mifunedev/agro-web and mifunedev/openharness-web.",
+        "pnpm run build succeeds against mifunedev/openharness@development (post-rename) and @main (pre-rename); the four static artifacts exist after each; pnpm run check:docs-drift passes.",
+        "Opened as a PR in mifunedev/openharness-web from a dedicated worktree; its URL is recorded in progress.txt and evidence.md; it is safe to merge before the rename."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "web PR https://github.com/mifunedev/openharness-web/pull/46 (feat/943-agro-source-layout@05e81c7); merge before the rename"
+    },
+    {
+      "id": "US-002",
+      "title": "Core repository metadata, installers, and links name AGRO",
+      "description": "As a reader of the repository, npm, or the image, I see the AGRO repository as the source, and old names only where they document compatibility or history.",
+      "acceptanceCriteria": [
+        ".agro/cli/package.json and .agro/cli/legacy/package.json homepage, repository.url, and bugs.url point at github.com/mifunedev/agro.",
+        ".devcontainer/Dockerfile org.opencontainers.image.source is https://github.com/mifunedev/agro.",
+        "README.md badges, DeepWiki link, docs-site links, canonical-repo sentence, and installer one-liners use mifunedev/agro and agro.mifune.dev; the docs-site source link names mifunedev/agro-web.",
+        ".agro/scripts/get-agro.sh default AGRO_GITHUB_REPO is mifunedev/agro; get-oh.sh keeps oh.mifune.dev/get-oh.sh and /oh.js as documented endpoints and its OH_GITHUB_REPO default becomes mifunedev/agro.",
+        "Current docs use the AGRO repository and site; docs/agro-compatibility.md moves the Phase 3 items out of 'left for later phases' and lists each retained oh.mifune.dev endpoint with its SLA classification.",
+        ".agro/skills/sync/references/topology.md names github.com/mifunedev/agro as upstream; git, release, and strategic-proposal skill instructions use the new name.",
+        "Historical files untouched (CHANGELOG entries, docs/rfcs, dated task folders, crons/prompt-miner.md history); .agro/tasks/agro-identity-cutover/reference-classification.md classifies every remaining mifunedev/openharness and oh.mifune.dev hit as historical, compatibility, test-fixture, or generic.",
+        "Probes pinning the old name (get-oh-bootstrap, get-agro-bootstrap, oh-shipped-repo-overridable, oh-sandbox-image-mode, sync-skill-contract, docs-build-fast-path, agents-identity-contract, docs-20260901-followup-artifact-cited) pin the canonical name where intent is 'canonical product documented' and accept the legacy name only where they guard compatibility; each changed probe is fault-injected with the injection recorded.",
+        "pnpm test, both typechecks, link-providers.sh --check, and /eval are green."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "commit 03c3d69b; CLI defaults (self-upgrade agro.js URL, docs.ts, remote.ts, image ref, service Documentation= URLs) classified compatibility and deferred to the US-006 canonical-defaults flip"
+    },
+    {
+      "id": "US-003",
+      "title": "Release infrastructure uses AGRO names and notifies the docs site",
+      "description": "As the release operator, I get AGRO-named release machinery that still publishes the legacy aliases, and the docs mirror refreshes on every release.",
+      "acceptanceCriteria": [
+        ".github/workflows/release.yml smoke sandbox names are agro-release-smoke-<run>; IMAGE_REPOSITORIES default order is 'agro openharness'; the four image tags and the alias digest check are unchanged.",
+        ".agro/scripts/reserve-github-release.mjs user agent is agro-release-reservation; release-reservation.test.ts fixtures follow.",
+        "A notify-docs job runs after finalize on a real release (publishedNoop == 'false'), sends repository_dispatch agro-release with client_payload.ref = released sha to ${{ vars.AGRO_WEB_REPO || 'mifunedev/openharness-web' }} using secret AGRO_WEB_DISPATCH_TOKEN, is skipped with a visible notice when the secret is absent, and never prints the token.",
+        "The release documentation and .agro/skills/release/SKILL.md describe the dispatch, the token scope, gh secret set, and the GHCR package mifunedev/agro prerequisite.",
+        "Workflow YAML validates; the whole-diff leading-whitespace pair scan reports zero pairs."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "commit 4d80868b; released sha source needs.reserve.outputs.releaseSha; token scope contents: write on the docs repo"
+    },
+    {
+      "id": "US-004",
+      "title": "Docs site identity, domain, and SEO become AGRO",
+      "description": "As a visitor, I reach agro.mifune.dev, see AGRO branding, and every edit, source, and navigation link points at the AGRO repositories.",
+      "acceptanceCriteria": [
+        "docusaurus.config.ts: title AGRO, tagline updated, url https://agro.mifune.dev, organizationName mifunedev, projectName agro-web, docs and blog editUrl under mifunedev/agro-web, navbar/footer GitHub and LICENSE links under mifunedev/agro-web and mifunedev/agro, blog feed title updated.",
+        "static/CNAME is agro.mifune.dev; static/robots.txt sitemap URL updated; package.json name is agro-web.",
+        "scripts/render-blog-banner.mjs product title and terminal branding read AGRO; regenerated banner assets committed; historical blog posts and promos unchanged; a short 'OpenHarness is now AGRO' note is on the docs landing page.",
+        "Current docs pages use agro.mifune.dev, mifunedev/agro, get-agro.sh, and agro.js, and present get-oh.sh / oh.js only under a compatibility heading; check-docs-drift.mjs flags legacy host and repo names outside blog/, promos/, and compatibility sections.",
+        "pnpm run build passes; built sitemap.xml, feeds, and canonical links use https://agro.mifune.dev.",
+        "Delivered on a web-repo PR that is not merged before the operator activates the domain in US-006."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "draft web PR https://github.com/mifunedev/openharness-web/pull/47 (feat/943-agro-web-identity@73a06e7, stacked on #46); no banner asset regenerated because no current-default recipe exists; merge only after the Pages domain is active (US-006)"
+    },
+    {
+      "id": "US-005",
+      "title": "Cutover runbook with rollback",
+      "description": "As the operator, I have one ordered, copy-pasteable procedure for the external actions, the checks that prove each one, and the way back.",
+      "acceptanceCriteria": [
+        "docs/agro-cutover-runbook.md exists, is linked from docs/agro-compatibility.md, and passes bash .agro/skills/ste/scripts/ste-check.sh.",
+        "Preconditions: US-001 web PR merged; core PR green; operator admin on both repositories and the Cloudflare zone; agro.mifune.dev DNS present; GHCR package mifunedev/agro public; dispatch token issued.",
+        "Ordered actions with exact commands: record IDs and endpoint statuses; gh repo rename agro and agro-web; update description/homepage/topics; Pages custom domain agro.mifune.dev and merge the US-004 PR; Cloudflare 301 rule oh.mifune.dev/* -> agro.mifune.dev/$1 excluding the five executable paths, plus per-path rules that keep returning a script body; gh secret set AGRO_WEB_DISPATCH_TOKEN; origin update only when the normalized URL equals the old canonical repo.",
+        "Verification matrix: curl -fsSL of all ten endpoint/host pairs returns a #! body; gh repo view of the old name resolves to mifunedev/agro; git ls-remote of the old URL works; ghcr.io/mifunedev/agro:latest and the openharness alias share a digest; the dispatched pages.yml run is green.",
+        "Rollback: Pages domain back, Cloudflare rules disabled, dispatch skipped by removing the secret; repository renames are not reverted; migrated filesystem state is never reverted."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "docs/agro-cutover-runbook.md; Cloudflare rules stated as Redirect Rules with dashboard fields and the rulesets API payload; existing /install.sh mechanism is a placeholder the operator identifies"
+    },
+    {
+      "id": "US-006",
+      "title": "Operator cutover and canonical defaults",
+      "description": "As the operator, I perform the external actions from the runbook, and the build then flips the last defaults that could not point at mifunedev/agro before it existed.",
+      "acceptanceCriteria": [
+        "The operator has run runbook steps 1-8 and the recorded outputs (repository IDs before/after, gh repo view names, endpoint matrix, Pages status) are in .agro/tasks/agro-identity-cutover/cutover-record.md; skipped steps are listed with reasons. This story blocks until the operator reports completion.",
+        "Web repo default source becomes mifunedev/agro; static/install.sh is not added; the US-004 PR is merged.",
+        "Core README, get-agro.sh, and get-oh.sh one-liners are re-verified live from a clean node:22-slim container via agro.mifune.dev/get-agro.sh and oh.mifune.dev/get-oh.sh.",
+        "sandbox-boot-guard.yml LEGACY_IMAGE still references the legacy GHCR name on purpose and sandbox-boot-guard-ci passes.",
+        "Release smoke: the next release from main publishes both image names with equal digests and the notify-docs dispatch triggers a green pages.yml run, with run URLs recorded; a workflow_dispatch of pages.yml with ref=main stands in when no release is due and is labelled as such."
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Runbook steps 1-6, 7b and 8 performed and recorded in cutover-record.md; step 7a (AGRO_WEB_DISPATCH_TOKEN) deferred and listed with its reason, which AC1 permits. All ten endpoint pairs verified; clean-container installs pass from both hosts; release dispatch covered by the workflow_dispatch stand-in that AC5 permits."
+    },
+    {
+      "id": "US-007",
+      "title": "Knowledge impact, classification, changelog, evidence",
+      "description": "As the next planner, I read knowledge that names the AGRO repositories and domain, and the evidence shows what was verified live.",
+      "acceptanceCriteria": [
+        "release-versioning and fresh-machine-setup are updated (dispatch job, repository names, agro.mifune.dev, installer endpoints) with verified_at advanced to a full SHA whose tree was re-read; oh-cli-portable-lifecycle reverified if its claims name the download host.",
+        "A new kind: repo page agro-web-pipeline documents the docs-site source contract (resolver, mirror, dispatch, Pages assertions, CDN-owned /install.sh) with sources pinned to web repository paths and commit.",
+        ".agro/knowledge/README.md regenerated; wiki probes pass; knowledge-impact.sh --verified reports no NEEDS-REVIEW.",
+        "CHANGELOG.md Unreleased entry references #943 and states the rename, the canonical domain, and the retained compatibility endpoints.",
+        "evidence.md links the web PR(s), the cutover record, the endpoint matrix before and after, the dispatch run, the release smoke, the probe fault injections, and the classified reference list; eval-result.json is written at the final commit."
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Knowledge pages updated and pinned, agro-web-pipeline corrected to the observed edge configuration, index regenerated, CHANGELOG entry, evidence.md keyed to the final commit. Release smoke covered by the stand-in the criterion permits; the dispatch token is deferred and disclosed."
+    }
+  ]
+}

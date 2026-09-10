@@ -1,6 +1,6 @@
 [Unit]
 Description=Open Harness cron runtime
-Documentation=https://github.com/mifunedev/openharness
+Documentation=https://github.com/mifunedev/agro
 Requires=openharness-bootstrap.service
 After=openharness-bootstrap.service
 StartLimitIntervalSec=60
@@ -11,7 +11,7 @@ Type=simple
 User=sandbox
 WorkingDirectory=/home/sandbox/harness
 Environment=HOME=/home/sandbox
-ExecStart=/usr/local/bin/node --experimental-strip-types /home/sandbox/harness/.oh/scripts/cron-runtime.ts
+ExecStart=/bin/bash -c 'if [ -d /home/sandbox/harness/.agro ]; then exec /usr/local/bin/node --experimental-strip-types /home/sandbox/harness/.agro/scripts/cron-runtime.ts; fi; exec /usr/local/bin/node --experimental-strip-types /home/sandbox/harness/.oh/scripts/cron-runtime.ts'
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
 RestartSec=5

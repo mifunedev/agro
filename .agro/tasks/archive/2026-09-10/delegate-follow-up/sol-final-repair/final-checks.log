@@ -1,0 +1,77 @@
+
+$ git status --short
+EXIT=0
+
+$ git rev-parse HEAD
+c09e2ba84fff90151412121cfea6cf09002ade90
+EXIT=0
+
+$ bash -n .oh/evals/probes/advisor-execution-contract.sh
+EXIT=0
+
+$ bash -n .oh/evals/probes/delegate-worker-boundary.sh
+EXIT=0
+
+$ bash .oh/evals/probes/advisor-execution-contract.sh
+PASS: /spec keeps one advisor deciding and accepting, workers implementing first, same-session execution by default, operator-only transfer, no fixed advisor identity, no launched agent, and the human merge gate; /delegate releases only tasks whose full eligibility and accepted-evidence checks hold, reconciles interrupted work, resolves every procedure reference, and keeps --dry-run read-only (prose check only; runtime behavior unverified)
+EXIT=0
+
+$ bash .oh/evals/probes/delegate-worker-boundary.sh
+PASS: /delegate keeps judgment in the active session, sends tracked edits to bounded isolated workers, sizes tasks usefully, checks initial and resumed dispatch eligibility, keeps its concurrency and recursion caps, and names no project agents (prose check only; runtime behavior unverified)
+EXIT=0
+
+$ bash .oh/evals/probes/delegate-model-effort-policy.sh
+PASS: /delegate binds operator selections, checks native capability before dispatch, keeps requested/observed evidence separate, blocks unsupported required controls, names Opus with advisor-judged effort, excludes Sonnet across skills, and never passes max (prose check only)
+EXIT=0
+
+$ bash .oh/evals/probes/spec-single-owner.sh
+PASS: the agent running /spec execute owns decisions and gates, bounded workers implement before acceptance, and no second owner or retired runner remains; the negative sentence scans live in advisor-execution-contract (prose check only)
+EXIT=0
+
+$ bash .oh/evals/probes/plan-orchestration-contract.sh
+PASS: /plan requires complete bounded assignments with full DoD coverage, forbids read-only edit owners and forced handoffs, and /spec plan preserves the orchestration strategy (prose check only)
+EXIT=0
+
+$ bash .oh/evals/probes/roles-are-skills.sh
+PASS: durable roles are skills; no active surface defines or cites a project-agent identity or a fixed advisor model (prose check only)
+EXIT=0
+
+$ bash .oh/scripts/link-providers.sh --check
+Providers OK: .agents/.pi/.claude/.codex skills -> .oh/skills (vendored pack present)
+EXIT=0
+
+$ git diff --check ea3ba9bb572e6f68c5af9b417d00b077f915bf64..c09e2ba84fff90151412121cfea6cf09002ade90
+EXIT=0
+
+$ simplification commit path set
+.oh/evals/probes/advisor-execution-contract.sh
+.oh/evals/probes/delegate-worker-boundary.sh
+EXIT=0
+
+$ changelog commit path set
+CHANGELOG.md
+EXIT=0
+
+$ grep -Fx -- - Require verified dependency acceptance and safe resume eligibility before dispatching delegated work. ([#1004](https://github.com/mifunedev/openharness/pull/1004)) CHANGELOG.md
+- Require verified dependency acceptance and safe resume eligibility before dispatching delegated work. ([#1004](https://github.com/mifunedev/openharness/pull/1004))
+EXIT=0
+
+$ cmp /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/mutation-base/.oh/evals/probes/advisor-execution-contract.sh .oh/evals/probes/advisor-execution-contract.sh
+EXIT=0
+
+$ cmp /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/final-repair/mutation-base/.oh/evals/probes/delegate-worker-boundary.sh .oh/evals/probes/delegate-worker-boundary.sh
+EXIT=0
+
+$ git diff --quiet ea3ba9bb572e6f68c5af9b417d00b077f915bf64..c09e2ba84fff90151412121cfea6cf09002ade90 -- .oh/skills/delegate/SKILL.md
+EXIT=0
+
+$ bash -c cd /tmp/sol-advisor-01a07e0e-c12b-71f4-afdb-0f4bc9d5b673/runtime-experiment-1 && sha256sum -c observations/final-artifact-manifest.sha256 >/dev/null
+EXIT=0
+
+$ git log --oneline -3
+c09e2ba8 fix: simplify delegation contract probes
+ea3ba9bb fix: add PR 1004 changelog entry
+c6704966 fix: gate delegate dispatch eligibility
+EXIT=0
+
+TOTAL_FAILURES=0
