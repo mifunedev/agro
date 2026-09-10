@@ -197,110 +197,24 @@ gateway status
 tmux attach -r -t client-slack-pi   # read-only view; detach with Ctrl-b d
 ```
 
-### VS Code (secondary path)
+## 📚 Table of Contents
 
-Provision with `agro sandbox install docker`, then attach with **Dev Containers:
-Attach to Running Container** against your sandbox. That is the supported editor
-path.
+Explore the [searchable docs](https://agro.mifune.dev) or [full docs index](docs/README.md).
 
-**Do not provision with "Reopen in Container".** That path reads
-`.devcontainer/devcontainer.json`, which lists `docker-compose.yml` alone, so it
-bypasses `.agro/scripts/docker-compose.sh` and **no overlay applies** — no SSH
-(`access.ssh`), no host Docker socket (`access.dockerSocket`), no Hermes
-dashboard (`hermesDashboard.enabled`), and nothing from `composeOverrides[]`.
-Secrets still load, because compose auto-loads the `.devcontainer/.env` symlink
-beside the compose file; non-secret `agro.json` settings fall back to the compose
-defaults. Details: [lifecycle commands](docs/lifecycle-commands.md#vs-code-reopen-in-container-applies-no-overlays).
-
-> **Optional — DebugMCP.** Once attached from VS Code, you can install the
-> `microsoft/DebugMCP` extension to expose a debugging MCP server that **any
-> MCP-capable harness** (Claude Code, Codex, …) can drive. It's optional and not
-> tied to any single agent — see the
-> [DebugMCP runbook](docs/integrations/debugmcp.md#confirmed-setup-runbook).
-
-## 🧩 How the primitive pack ships
-
-Open Harness vendors the shared skills/hooks primitive pack directly into the `.agro/` control plane: `.agro/skills/`, `.agro/hooks/`, and `.agro/skills.lock` are tracked as ordinary files in this repo. Skills are the reusable-behavior primitive; the harness ships no repository-authored agent definitions, and provider-native sub-agents remain available as a bounded execution primitive through `/delegate`. `oh update` lays them down, so a fresh checkout has the skills immediately — no submodule, no recursive clone, no network step.
-
-Codex and Pi discover shared skills through `.agents/skills -> ../.agro/skills`. Claude uses `.claude/skills` for the same pack and `.claude/hooks` for `.agro/hooks`. The retired `.codex/skills` and `.pi/skills` links are absent from fresh clones. `.codex/` and `.pi/` retain their provider-specific configuration.
-
-## 🚀 Use it
-
-```bash
-agro sandbox list       # every sandbox: name, runtime, status, repo
-agro shell <name>       # enter the isolated sandbox
-agro tool install herdr # nothing installs at boot; install the workspace first
-herdr                 # open the primary interactive workspace
-# install an agent CLI the same way, then launch it from a Herdr pane:
-#   agro harness install claude-code  → claude    # Claude Code
-#   agro harness install codex        → codex     # OpenAI Codex CLI
-#   agro harness install pi           → pi        # Pi Coding Agent
-#   agro harness install opencode     → opencode  # OpenCode
-#   agro harness install hermes       → hermes    # Nous Research Hermes
-#   agro harness install grok-build   → grok      # xAI Grok Build
-agro stop <name>    # stop the sandbox, keeping volumes
-agro destroy <name> # stop the sandbox, wipe its volumes, drop the registry entry
-agro --help         # every verb
-```
-
-## 🧪 Testing
-
-- Property-based testing convention: [docs/property-testing.md](docs/property-testing.md)
-
-Prefer VS Code or remote SSH? Use the Dev Containers extension's "Attach to Running Container" against your sandbox name from `agro sandbox list` — not "Reopen in Container", which applies no overlays (see [VS Code (secondary path)](#vs-code-secondary-path)) — or SSH into your host first and then attach.
-
-## ⚙️ Configure (optional)
-
-Configuration is split by kind across two files. `agro.json` holds every
-non-secret setting — sandbox identity, git identity, the SSH and Docker-socket
-toggles. It holds no install field: `agro harness install <id>` and `agro tool
-install <id>` are the only door. A gitignored, mode-`0600` `.env` holds nothing
-but secrets (`GH_TOKEN`, `SANDBOX_PASSWORD`, `PI_SLACK_APP_TOKEN`,
-`PI_SLACK_BOT_TOKEN`, …); the tracked `.example.env` documents every
-allow-listed key. A sandbox keeps its pair inside its registry entry —
-`agro config set --sandbox <name> <field> <value>` and `agro secret set --sandbox
-<name> <KEY>` write there; without the flag both write the project root. Apply a
-change with `agro stop <name> && agro sandbox install docker --name <name>`.
-Full field reference: [Configuration](docs/configuration.md).
-
-Secrets are read on **every** path, including VS Code "Reopen in Container" —
-that path loads `.devcontainer/docker-compose.yml` directly and compose
-auto-loads the dotenv beside it, which is a symlink to the root one. Compose
-*overlays* are the exception: that path applies none, which is why
-`agro sandbox install docker` provisions and VS Code only attaches. A
-`harness.yaml` layer used to sit in front of these files and was invisible on
-exactly that path; it was removed in 0.4.0, and a leftover one is migrated
-automatically on the next lifecycle command. Compose overlay *paths* live in
-`composeOverrides[]` in `agro.json`. See
-[the `agro sandbox install docker` guide](docs/deployment-prebuilt-image.md) for
-the image-mode recipe.
-
-## ✨ What you get
-
-| | |
-|---|---|
-| **Core agents** | Defaults: Claude Code, Codex, Pi. Optional: OpenCode, Hermes, Grok Build |
-| **Runtimes** | Node 22, pnpm, Bun, uv (Python) |
-| **DevOps** | Herdr, Docker CLI + Compose, GitHub CLI, cloudflared, tmux, croner |
-| **Browser** | agent-browser + Chromium (headless) |
-| **One project, one sandbox** | A single container scoped to a single repo and branch |
-| **Worktrees** | One sandbox → many isolated git worktrees: parallel branches, delegated sub-agents, satellite project clones under `projects/` |
-| **Crons** | Markdown-defined schedules in `crons/*.md` driven by the in-container croner runtime |
-| **Multi-agent** | Claude, Codex, Pi, Hermes, Grok — each via `agro harness install <id>`; Slack bridging via [pi-messenger-bridge](docs/integrations/slack.md) |
-
-## 📚 Where to go next
-
-- **[Read the docs → agro.mifune.dev](https://agro.mifune.dev)** — the rendered, searchable documentation site (start here)
-- [Docs index](docs/README.md) — GitHub-readable docs kept with the core repo
-- [Quickstart](docs/quickstart.md) — full step-by-step
-- [DeepWiki](https://deepwiki.com/mifunedev/agro) — generated codebase map
-- [Docs site source](https://github.com/mifunedev/agro-web) — Docusaurus source repo that builds agro.mifune.dev (contribute doc edits here)
-
-## 🧹 Cleanup
-
-```bash
-agro destroy <name>
-```
+| Topic | Documentation |
+| --- | --- |
+| Getting started | [Quickstart](docs/quickstart.md) · [Installation](docs/installation.md) |
+| Sandbox setup | [Create a sandbox](docs/deployment-prebuilt-image.md) · [VS Code and SSH](docs/connecting.md) |
+| Daily operation | [Lifecycle commands, stopping, and cleanup](docs/lifecycle-commands.md) |
+| Terminal workspace | [Herdr](docs/integrations/herdr.md) |
+| Coding harnesses | [Harness overview and setup guides](docs/harnesses/overview.md) |
+| Configuration | [Settings and secrets](docs/configuration.md) |
+| Agent procedures | [Shared skills and hooks](docs/README.md#how-the-primitive-pack-ships) · [Directory layout](docs/oh-directory-layout.md) |
+| Integrations | [GitHub](docs/integrations/github.md) · [Slack](docs/integrations/slack.md) · [Langfuse](docs/integrations/langfuse.md) |
+| Debugging and testing | [DebugMCP](docs/integrations/debugmcp.md) · [Property testing](docs/property-testing.md) |
+| Security | [Permissions and trust boundaries](docs/security-considerations.md) |
+| Contributing | [Contribution workflow](docs/contributing.md) · [Docs site source](https://github.com/mifunedev/agro-web) |
+| Codebase navigation | [DeepWiki](https://deepwiki.com/mifunedev/agro) |
 
 ## 🤝 Contributing & community
 
