@@ -85,7 +85,7 @@ wrapper script the CLI regenerates on every lifecycle call — edit only
 `~/.oh/sandboxes/<name>/oh.json` and keeps working; `agro migrate --home` moves
 it when you choose.
 
-Without `--repo` the sandbox runs the published image
+Without `--checkout` the sandbox runs the published image
 (`ghcr.io/mifunedev/agro:latest`) and seeds its workspace from the
 image's `/opt/agro-seed`, so there is no build and no clone. To persist
 `/home/sandbox` at a host path instead of the Docker-managed volume, pass
@@ -104,17 +104,18 @@ is bind-mounted at `/home/sandbox/harness`:
 ```bash
 cd <your-project>
 oh update                                     # vendor .agro/ + crons/ into this checkout
-agro sandbox install docker --repo "$PWD" --name <your-project>
+agro sandbox install docker --checkout "$PWD" --name <your-project>
 ```
 
 `oh update` writes `.agro/` and `crons/` and **nothing else** — no `agro.json`, no
 `.env`, no `AGENTS.md`, no provider configuration, and no `.gitignore` line
 beyond the `.env` line `agro secret set` adds inside a git checkout. Those files
-are yours to author. `--repo` takes a host path. The CLI selects build mode only
-when that path holds `.devcontainer/Dockerfile`. In build mode the sandbox builds
-from that file instead of pulling (~10 min cold, ~30s warm). A `--repo` path
-without `.devcontainer/Dockerfile` binds the directory and runs the published
-image.
+are yours to author. `--checkout` takes a host path. The CLI selects build mode
+only when that path holds `.devcontainer/Dockerfile`. In build mode the sandbox
+builds from that file instead of pulling (~10 min cold, ~30s warm). A
+`--checkout` path without `.devcontainer/Dockerfile` binds the directory and runs
+the published image. The flag `--repo` and the `agro.json` field `repo` remain
+supported aliases for `--checkout` and `checkout`.
 
 ## Enter the sandbox
 
@@ -306,7 +307,7 @@ lifecycle command.)
 }
 ```
 
-`agro.json` also carries `repo` and `runtime` for a registry entry, plus the SSH,
+`agro.json` also carries `checkout` and `runtime` for a registry entry, plus the SSH,
 Docker-socket, Hermes-dashboard, cron, build, and image settings. See
 [Configuration](./configuration.md) for the full field reference, and
 `agro config set <field> <value>` to edit one field.
@@ -360,7 +361,7 @@ required path; everything after them is optional and can wait. Steps 4 onward ru
    ```bash
    agro sandbox install docker
    ```
-   Add `--repo "$PWD" --name <your-project>` to bind an existing checkout at
+   Add `--checkout "$PWD" --name <your-project>` to bind an existing checkout at
    `/home/sandbox/harness` instead of running the published image.
 3. **Enter the sandbox**:
    ```bash

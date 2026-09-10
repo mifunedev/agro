@@ -35,7 +35,7 @@ sandbox.
 
 | Verb | Runs |
 |---|---|
-| `agro sandbox install <runtime> [--name <name>] [--repo <dir>] [--yes] [--image[=<ref>]] [--no-build]` | write the registry entry, then `docker-compose.sh up -d` inside it |
+| `agro sandbox install <runtime> [--name <name>] [--checkout <dir>] [--yes] [--image[=<ref>]] [--no-build]` | write the registry entry, then `docker-compose.sh up -d` inside it |
 | `agro sandbox list [--json]` | every registry entry: name, runtime, status, repo |
 | `agro shell [name]` | an interactive `zsh` in the sandbox container |
 | `agro stop [name]` | `docker-compose.sh stop` — containers down, volumes kept |
@@ -73,9 +73,10 @@ agro shell <name>                # attach as the sandbox user
   re-materialises on every lifecycle call. Edit `agro.json`; the rest is generated.
 - The default name is `agro-sbx-<n>`, the lowest unused number. `--yes` prompts
   zero times and keeps every default.
-- Without `--repo` the sandbox runs the prebuilt image and the image's
-  `/opt/agro-seed` seeds the workspace volume. With `--repo <dir>` that checkout
-  is bind-mounted at `/home/sandbox/harness` and can be built locally. Recipes:
+- Without `--checkout` the sandbox runs the prebuilt image and the image's
+  `/opt/agro-seed` seeds the workspace volume. With `--checkout <dir>` that
+  checkout is bind-mounted at `/home/sandbox/harness` and can be built locally.
+  `--repo <dir>` remains a supported alias. Recipes:
   [`agro sandbox install docker`](deployment-prebuilt-image.md).
 - `docker` is the only provisionable runtime today. `agro sandbox install
   microsandbox` refuses and points at
@@ -90,7 +91,8 @@ agro shell <name>                # attach as the sandbox user
 
 1. the `name` you passed;
 2. the single registered entry, when exactly one exists;
-3. the entry whose `repo` contains the current directory;
+3. the entry whose `checkout` contains the current directory, under either that
+   field or the alias `repo`;
 4. otherwise an error listing every registered name.
 
 `agro sandbox list` prints that list, with the container status of each.

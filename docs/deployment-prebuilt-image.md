@@ -23,13 +23,13 @@ ghcr.io/mifunedev/openharness:latest      # legacy alias for the newest release
 ghcr.io/mifunedev/openharness:<version>   # legacy alias, e.g. 0.1.0 — pin for reproducibility
 ```
 
-With no `--repo` there is **no checkout on the host at all**: the workspace and
+With no `--checkout` there is **no checkout on the host at all**: the workspace and
 the `.agro/` control plane live in the sandbox's home volume, seeded once from the
 image's baked `/opt/agro-seed`. Nothing is cloned and nothing is built. A volume
 seeded by an earlier image keeps its `.oh/` control plane and is never
 re-seeded.
 
-Pass `--repo <dir>` and that checkout is bind-mounted at
+Pass `--checkout <dir>` and that checkout is bind-mounted at
 `/home/sandbox/harness` instead. The image then supplies only the **toolchain** —
 your live, git-versioned `.agro/` control plane (and the rest of your repo)
 shadows the copy baked into the image. That is the key property: **the image
@@ -45,11 +45,11 @@ Docker CLI, bun, uv, pnpm — happens only in that case, and only when
 |---|---|
 | Docker (with Compose plugin) | pulling + running the image |
 | Node.js ≥ 20 | running the `agro` CLI |
-| A checkout equipped with `oh update` | only for `--repo`: the bind-mounted `.agro/` control plane |
+| A checkout equipped with `oh update` | only for `--checkout`: the bind-mounted `.agro/` control plane |
 
 The image is public — no `docker login ghcr.io` is required to pull it. The
 release currently publishes for the architecture the CI runner builds on; if you
-run a different CPU arch, prefer a local build (`--repo` with `image.mode` set to
+run a different CPU arch, prefer a local build (`--checkout` with `image.mode` set to
 `build`) until multi-arch images land.
 
 ## Pinning an image ref
@@ -99,20 +99,21 @@ which is the same as writing this into `~/.agro/sandboxes/<name>/agro.json`:
 With `image.ref` set, a bare `agro sandbox install docker --image` uses it; set
 `image.pullPolicy` to `"always"` to always re-pull `latest`.
 
-## `--repo`: bind a checkout into the sandbox
+## `--checkout`: bind a checkout into the sandbox
 
 ```bash
 cd <your-project>
 oh update                                     # vendor .agro/ + crons/ into this checkout
-agro sandbox install docker --repo "$PWD" --name <your-project>
+agro sandbox install docker --checkout "$PWD" --name <your-project>
 ```
 
-`repo` is stored in the entry's `agro.json` and rendered into the compose
+`checkout` is stored in the entry's `agro.json` and rendered into the compose
 environment as `AGRO_REPO_DIR`, which the base compose file reads as
 `${AGRO_REPO_DIR:-${OH_REPO_DIR:-..}}` for both the bind mount and the build
 context — so an entry rendered by an older CLI still resolves. It also lets a
 lifecycle verb resolve this sandbox whenever you stand inside that checkout, so
-`agro shell` needs no name there.
+`agro shell` needs no name there. The flag `--repo` and the `agro.json` field
+`repo` remain supported aliases for `--checkout` and `checkout`.
 
 ## What still happens at boot
 
@@ -174,7 +175,7 @@ container:
 
 ## Under the hood: the image-only compose file
 
-Without `--repo`, the CLI materialises
+Without `--checkout`, the CLI materialises
 [`.devcontainer/docker-compose.image-only.yml`](../.devcontainer/docker-compose.image-only.yml)
 into the entry as the compose base. Everything below describes that path, and it
 is what `agro sandbox install docker` runs for you. Tracked in
@@ -201,7 +202,7 @@ Nothing declares the mode. `entrypoint.sh` asks whether
 `/home/sandbox/harness` is a bind mount **and** already holds a `.agro/` directory,
 and reads the answer from the kernel and the filesystem:
 
-- **checkout bind present** (`--repo`) — sync the sandbox UID/GID to the host
+- **checkout bind present** (`--checkout`) — sync the sandbox UID/GID to the host
   directory's owner, and never seed.
 - **anything else** (the image-only default, and a runtime that mounts a fresh empty host
   directory at the project root) — skip the UID/GID sync, since there is no host
@@ -330,7 +331,7 @@ Untested end to end; the risks are listed there.
 ### Single-arch caveat
 
 Same caveat as above: the published image targets the CI runner's architecture.
-If you run a different CPU arch, prefer `--repo` with `image.mode` set to
+If you run a different CPU arch, prefer `--checkout` with `image.mode` set to
 `build`, so the image is built on the machine that runs it, until multi-arch
 images land.
 
