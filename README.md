@@ -276,9 +276,9 @@ Contributions, bug reports, and feedback are welcome.
 [Contributing guide](docs/contributing.md) · [GitHub issues](https://github.com/mifunedev/agro/issues)
 
 [![Slack](https://img.shields.io/badge/-Join_our_Slack-4A154B?style=flat-square&logo=slack&logoColor=white)](https://join.slack.com/t/mifunedev/shared_invite/zt-3l2lnevo6-hOe5ZeoAz~xj7CFAJk2bzg)
-[![X: JohnEggz](https://img.shields.io/badge/-JohnEggz-000000?style=flat-square&logo=x&logoColor=white)](https://x.com/JohnEggz)
+[![X: mifunedev](https://img.shields.io/badge/-mifunedev-000000?style=flat-square&logo=x&logoColor=white)](https://x.com/mifunedev)
 [![Instagram: mifune.dev](https://img.shields.io/badge/-mifune.dev-E4405F?style=flat-square&logo=instagram&logoColor=white)](https://www.instagram.com/mifune.dev)
-[![LinkedIn: Ryan Eggleston](https://img.shields.io/badge/-Ryan_Eggleston-0077B5?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/ryan-eggleston)
+[![LinkedIn: Mifune Dev](https://img.shields.io/badge/-Mifune_Dev-0077B5?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/company/mifune-dev)
 
 ## 📄 License
 
