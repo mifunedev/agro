@@ -63,12 +63,6 @@ agro update
 agro --help
 ```
 
-`oh` remains the compatibility alias for the
-same executable — `npm install -g @mifune/openharness` or the `get-oh.sh`
-bootstrap — and every `agro` verb below also works as `oh <verb>`; see
-[AGRO compatibility](docs/agro-compatibility.md) and
-[Installation](docs/installation.md#compatibility-entry-point-oh).
-
 ### 2. Create the sandbox
 
 `agro sandbox install docker` runs from **any** directory — it needs no project
