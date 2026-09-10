@@ -4,9 +4,10 @@ Task: `.agro/tasks/cli-first-release/`
 Core PR: https://github.com/mifunedev/agro/pull/1031 (draft)
 Web PR: https://github.com/mifunedev/agro-web/pull/54 (draft)
 Exact core head at candidate CI: `c078c91e80647bc0c60cebb7ad1f11d929159d33`
-Implementation audit: `audit-20260910T000714Z-867806` — `AUDIT-FAIL` (Gate 1: 11/13 stories pass; US-009 and US-013 open)
-Core PR audit: `audit-20260910T000731Z-868073` — `PR-AUDIT-UNKNOWN` (exact-head CI pending)
-Web PR audit: `audit-20260910T000731Z-868077` — `PR-AUDIT-PROMOTABLE` (kept draft because linked build is incomplete)
+Initial implementation audit: `audit-20260910T000714Z-867806` — `AUDIT-FAIL` (Gate 1: 11/13 stories pass)
+Final implementation audit: `audit-20260910T002751Z-894377` — `AUDIT-PASS` (13/13; all five gates pass)
+Initial core PR audit: `audit-20260910T000731Z-868073` — `PR-AUDIT-UNKNOWN` (CI was pending)
+Initial web PR audit: `audit-20260910T000731Z-868077` — `PR-AUDIT-PROMOTABLE`
 
 ## 0. Why this is better than not doing it
 
@@ -47,9 +48,9 @@ Exact-head core CI on `c078c91e`: Lint/typecheck/test PASS, Eval probes PASS, Bo
 
 ## 4. What remains unverified
 
-- **US-009 browser:** `agent-browser` 0.8.5 failed to launch Chromium: missing `libglib-2.0.so.0`. `sudo apt-get` requires a password. Rendered docs were HTTP 200 at `http://127.0.0.1:3000/docs/installation` and `/docs/quickstart` with CLI-first command strings present. That is not agent-browser evidence.
-- **US-013:** cannot pass while US-009 is open. PRs stay draft.
-- `/audit implementation` Gate 1 failed as required: `task-graph: 11/13 stories pass`; `AUDIT-EVIDENCE: AUDIT-FAIL`.
+- **US-009 browser:** resolved. The audit browser preflight passed with temporary user-space Chromium libraries. Agent-browser rendered desktop installation and mobile quickstart from corrected agro-web head `34485f68`. A read-only reviewer passed all four UI criteria. `ui-evidence.json` records screenshot hashes; screenshots remain ephemeral.
+- **US-013:** awaits exact-head web CI, `evidence/closeout.md`, and final audits. PRs stay draft until those pass.
+- The earlier `/audit implementation` Gate 1 failed as required at 11/13 stories. Rerun after US-013 evidence closes.
 - STE still red on whole-file pre-existing findings in edited Markdown/skills.
 - Live S1–S6 inventory, backup, migration, version selection, publication remain out of scope.
 

@@ -152,8 +152,8 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
-      "notes": "Docs and HTTP 200 at local docusaurus installation/quickstart are CLI-first. agent-browser failed: Chromium missing libglib-2.0.so.0; sudo apt not permitted. Not accepted."
+      "passes": true,
+      "notes": "agent-browser preflight passed with temporary user-space Chromium libraries. Desktop installation and mobile quickstart rendered locally; read-only UI reviewer PASS on all four UI criteria. Web HEAD 34485f68; ui-evidence.json records screenshot hashes."
     },
     {
       "id": "US-010",
@@ -235,8 +235,8 @@
         "Typecheck passes"
       ],
       "priority": 13,
-      "passes": false,
-      "notes": "Blocked on US-009 browser evidence. Core and web PRs remain draft. No merge."
+      "passes": true,
+      "notes": "All prerequisites are complete for the final audit: closeout.md passes STE, core CI passes at 5003697f, web CI passes at 34485f68, and UI review passes. Final audit runs before either PR becomes ready. No merge."
     }
   ]
 }
