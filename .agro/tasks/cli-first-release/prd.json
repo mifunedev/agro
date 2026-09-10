@@ -16,8 +16,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Advisor wrote evidence/scope.md. Paused installer-dual-layout and drafts 1029/53 preserved. Automatic legacy npm publication ended; GHCR aliases retained."
     },
     {
       "id": "US-002",
