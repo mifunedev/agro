@@ -30,7 +30,7 @@ sources:
   - docs/integrations/herdr.md
   - docs/security-considerations.md
   - docs/repair-sandbox-boot-advisory.md
-verified_at: 4de95a2c39f606486d7a53d6410248aa11380f15
+verified_at: c8b80942deebb5b762cc8c71e44f348771721079
 related: [sandbox-dependency-installs, oh-cli-portable-lifecycle]
 confidence: provisional
 ---
