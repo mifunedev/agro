@@ -1,0 +1,3 @@
+# progress
+
+2026-09-10 Plan: operator authorized implementation of council recommendations. Base 42e85ec4. Queried onboarding/docs/sandbox entities (3 of 10) and patterns (5 of 7); sources and live EPIC requirements re-grounded. Scope is core README and directly linked documentation; no release, merge, or clean-host acceptance claim.

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "project": "AGRO",
+  "branchName": "task/1036-readme-mission-onboarding",
+  "description": "README mission and first-task onboarding",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Explain AGRO and reach a first result",
+      "description": "As a newcomer, I can understand AGRO and follow one documented path through a harmless first task.",
+      "acceptanceCriteria": [
+        "README leads with durable workspace, shared control plane, harness choice, and operator ownership.",
+        "README contains one recommended setup path with separate host and sandbox steps, one provider, and a harmless task with exact expected output.",
+        "README avoids absolute platform/security promises and distinguishes checkout isolation from container security.",
+        "README explains Docker socket risk, permissions, persistence conditions, and destructive cleanup before the related action.",
+        "Optional GitHub prompts, Slack, alternatives, configuration, and migration details move to linked guides rather than duplicate the main path.",
+        "Target 900–1,200 README words or fewer when all required information remains clear.",
+        "Typecheck passes."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Reconcile directly linked onboarding sources",
+      "description": "As a reader, I encounter consistent advice in the linked core guides.",
+      "acceptanceCriteria": [
+        "Quickstart, Installation, docs index, Introduction, open-core, and lifecycle reference agree with the README on the changed claims.",
+        "Distinguish installable harnesses/tools from bootstrap dependency installation. Explain the agro/oh update exception without an unverified support-window promise.",
+        "Preserve authentication and recovery guidance, existing demo links where relevant, and accurate legal boundaries.",
+        "Resolve actual knowledge impact, including fresh-machine-setup. Do not advance freshness without reading the claims and sources.",
+        "Add a concise Unreleased changelog entry linked to #1036.",
+        "Typecheck passes."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Verify and score the documentation change",
+      "description": "As a reviewer, I can distinguish documentation improvements from untested release behavior.",
+      "acceptanceCriteria": [
+        "Record before/after word counts and independent scores for mission 25%, onboarding 25%, truth 20%, readability 20%, safety 10%.",
+        "Review every changed document and verify the first-task specimen in isolated scratch without modifying the live workspace.",
+        "Run STE on README and verify links plus relevant regression checks. Do not weaken probes to accept stale facts.",
+        "Record eval deltas, independent simplicity review, knowledge decisions, and remaining release/demo/site gaps in committed evidence.",
+        "Fresh PR audit confirms local/remote head parity, green CI, and promotability before undrafting. Human owns merge.",
+        "Typecheck passes."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
