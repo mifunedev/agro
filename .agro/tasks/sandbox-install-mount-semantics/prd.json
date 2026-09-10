@@ -19,8 +19,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "isBuildCapable() at sandbox.ts:66, applied at :142. Advisor verified against the real CLI: a checkout --repo writes image.mode build and the build-capable base; a non-checkout --repo writes image.mode image, still writes repo, and pins image.ref (D-3). Commits 051c65ac, 04c85fe1."
     },
     {
       "id": "US-002",
@@ -35,8 +35,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Preflight at sandbox.ts:238-251, above runWizard and above entryRoot/mkdirSync. Message names --repo, the resolved path, and the missing .devcontainer/Dockerfile. Skips under --no-build/--image/--image=<ref>, where no build runs; the PRD does not name that case and the advisor accepted it."
     },
     {
       "id": "US-003",
@@ -50,8 +50,8 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Preflight ordering pinned by test. R2 moved the preflight above prepareHomeMount so a failed install also creates no --home-mount directory. Verified: no registry root and no home directory after a failed preflight."
     },
     {
       "id": "US-004",
@@ -68,8 +68,8 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Flag parsed at cli.ts:735/744-748, threaded at :1180, help at :255-282. prepareHomeMount() at sandbox.ts:70 resolves absolute, creates when absent, accepts non-empty, rejects a non-directory (D-2). Advisor verified --home-mount alone keeps the image-only base and writes storage.homePath."
     },
     {
       "id": "US-005",
@@ -85,8 +85,8 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Wizard prompt at sandbox.ts:196-201, last question. Empty answer writes no storage.homePath key. An explicit --home-mount is shown as the default. --yes skips via the existing interactive guard."
     },
     {
       "id": "US-006",

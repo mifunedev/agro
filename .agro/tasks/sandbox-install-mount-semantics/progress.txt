@@ -19,3 +19,77 @@ acceptance:
   664447701d78 .agro/evals/probes/oh-home-mount.sh
   826fef45e2e6 .agro/evals/probes/oh-image-only-deploy.sh
   ac25e4b410d1 .agro/cli/src/lib/__tests__/registry.test.ts
+
+## 2026-09-10 — dispatch record: wave 1, worker A (US-001..US-005)
+Scope: build-mode inference, build preflight, preflight registry cleanliness,
+--home-mount flag, wizard prompt.
+Files owned: .agro/cli/src/commands/sandbox.ts, .agro/cli/src/cli.ts (install
+parsing and help only), .agro/cli/src/__tests__/sandbox.test.ts.
+Coupled by design: all five stories rewrite the same region of
+runSandboxInstall and seedConfig, so they go to ONE continuing worker rather
+than five parallel writers on one function.
+Requested model: Opus. Requested effort: high (cross-cutting CLI behavior
+change with an ordering constraint and four protected paths).
+Observed effort: inherited session level, unobserved — the per-call Agent tool
+on Claude Code exposes `model` and no effort argument.
+cli.ts is the one file wave 1 and wave 2 share, so the waves are serialized on
+it. No worker performs a branch operation.
+
+## 2026-09-10 — worker C result (US-007), commit 0994ff6c
+Files: docs/installation.md, docs/quickstart.md, docs/configuration.md,
+CHANGELOG.md. Four files only; no .agro/cli/ path touched.
+Advisor verification:
+- `### Persistent storage` exists at docs/installation.md:294, so the new
+  `#persistent-storage` link resolves.
+- Three CHANGELOG entries under `## [Unreleased]` (Added / Changed / Fixed),
+  each one imperative sentence linking #1042, each under the 250-character cap.
+- Protected paths re-checked by sha256 after the commit: byte-identical.
+STE: the four files carry 96 pre-existing findings at HEAD in prose outside
+US-007. Whole-file exit 0 is not reachable without rewriting documents this
+story does not own. The worker measured a per-finding delta of baseline versus
+working tree and added zero new findings. The advisor accepts zero-delta as the
+US-007 standard and records the 96 pre-existing findings as a disclosed gap.
+US-007 stays `passes: false` until the advisor reconciles the documented flag
+semantics against worker A's landed implementation. The worker documented from
+the PRD, not from the in-flight code.
+
+## 2026-09-10 — worker A result (US-001..US-005), commit 051c65ac
+Files: .agro/cli/src/commands/sandbox.ts, .agro/cli/src/cli.ts,
+.agro/cli/src/__tests__/sandbox.test.ts. Committed its three files only and
+left progress.txt to the advisor, as briefed.
+Advisor verification:
+- Protected paths re-checked by sha256: byte-identical.
+- Preflight ordering confirmed by reading the diff: the build check precedes
+  runWizard and precedes entryRoot/mkdirSync.
+- The 2 red tests in migrate-rehearsal.test.ts are pre-existing. The advisor
+  reproduced them on the clean development checkout at f94c1ad5, independently
+  of the worker's claim. They assert `ps.status` when `dockerComposeAvailable()`
+  is true; this environment has no reachable Docker daemon. Not caused by this
+  branch. Disclosed, non-gating.
+Advisor findings routed back to worker A as a repair round:
+- R1 (defect, blocks US-001): the new repo-set + image-mode combination renders
+  the build-capable compose base, whose image default is the local build-target
+  name `sandbox-<name>`, and nothing pins AGRO_SANDBOX_IMAGE. `--repo <empty
+  dir>` would fail on a missing image instead of succeeding on the published
+  one, which is the PRD's headline success metric. Recorded as decision D-3.
+- R2 (US-003 intent): prepareHomeMount() creates the host directory before the
+  build preflight can fail, so a failed install can leave a directory behind.
+  The story's intent is that a retry starts clean. Reorder the preflight above
+  the home-mount handling.
+Accepted worker A's judgment call that the preflight skips under --no-build,
+--image, and --image=<ref>: no build runs on those paths, so a Dockerfile is not
+required. Recorded here because the PRD does not name the case.
+
+## 2026-09-10 — advisor acceptance of US-001..US-005, commit 04c85fe1
+The advisor validated the repairs against the built CLI, not against the
+worker's report. Four install paths, each read back from the written agro.json
+and the materialized compose base:
+- `--repo <checkout>`      -> image.mode build, no image.ref, build base
+- `--repo <non-checkout>`  -> image.mode image, image.ref
+                              ghcr.io/mifunedev/agro:latest, repo still written
+- no `--repo`              -> image.mode image, no ref, image-only base
+- `--home-mount <dir>` alone -> image-only base, storage.homePath written,
+                              directory created
+R1 and R2 both confirmed fixed. US-001..US-005 flipped to passes: true.
+US-007 stays open pending reconciliation with the landed behavior; the docs do
+not yet mention D-3, and the config-set guard they describe is not built yet.

@@ -276,3 +276,34 @@ The flag resolves its argument to an absolute path. It creates the directory whe
 the directory is absent. It fails only when the path exists and is not a
 directory. `.agro/cli/src/lib/oh-config.ts:194-203` validates absoluteness
 downstream.
+
+### D-3: The image-mode checkout path pins the published image
+
+US-001 creates a combination that did not exist before: `repo` is set and
+`image.mode` is `image`. `materialize()` selects the build-capable compose base
+from `repo` alone (`.agro/cli/src/lib/registry.ts:95`), and that base defaults
+its image to the local build-target name
+(`.devcontainer/docker-compose.yml:5`, `sandbox-${SANDBOX_NAME}`) with
+`pull_policy: missing`. Nothing pins `AGRO_SANDBOX_IMAGE` on this path:
+`.agro/cli/src/lib/config-render.ts:50` renders it only from `image.ref`, which
+`defaultOhConfig` leaves unset, and `.agro/cli/src/commands/lifecycle.ts:163-169`
+resolves `DEFAULT_SANDBOX_IMAGE` only when the operator passes `--image`.
+
+Without a pin, `agro sandbox install docker --repo <empty dir>` runs
+`up -d --no-build` against an image that was never built. The command trades a
+buildx error for a pull error. The PRD's `## Success Metrics` requires this
+command to succeed using the published image.
+
+The install writes `image.ref` when `repo` is set, the effective `image.mode` is
+`image`, and no `image.ref` is configured. The value is `DEFAULT_SANDBOX_IMAGE`
+(`.agro/cli/src/commands/lifecycle.ts:104`). A configured `image.ref` from a seed
+still wins. The install persists the value in `agro.json`, so a later `agro up`
+resolves the same image.
+
+The change stays narrow. It applies only when `repo` is set. The image-only path
+keeps its own compose default (`.devcontainer/docker-compose.image-only.yml:5`)
+and is not touched.
+
+The PRD states this outcome and does not state the mechanism. The advisor chose
+the mechanism. The PRD's intent, goals, non-goals, and functional requirements
+are unchanged.
