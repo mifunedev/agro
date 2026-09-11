@@ -25,7 +25,7 @@ human act.
 ## One-time setup
 
 ```bash
-oh tool install tailscale
+agro tool install tailscale
 
 tmux new-session -d -s agent-tailscaled \
   'tailscaled --tun=userspace-networking \
@@ -83,7 +83,7 @@ Delete the node in the Tailscale admin console to revoke it from the other side.
 
 | Symptom | Fix |
 | --- | --- |
-| `tailscale not found in PATH` | `oh tool install tailscale` — the install persists in the home volume |
+| `tailscale not found in PATH` | `agro tool install tailscale` — the install persists in the home volume |
 | `tailscaled is not running` | start the `agent-tailscaled` session above; check `/tmp/agent-tailscaled.log` |
 | backend state is `NeedsLogin` / `Stopped` | run `tailscale up` interactively and finish the browser login |
 | Node does not satisfy the range | the T3 server needs `^22.16 \|\| ^23.11 \|\| >=24.10`; raise the Node pin in `.devcontainer/Dockerfile` and rebuild |

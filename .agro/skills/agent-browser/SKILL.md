@@ -49,7 +49,7 @@ version, fixes the binary's mode, and runs `agent-browser install --with-deps`
 for you:
 
 ```bash
-oh tool install agent-browser --yes
+agro tool install agent-browser --yes
 ```
 
 `--yes` is required whenever stdin is not a TTY: the entry declares a
@@ -67,7 +67,7 @@ Notes:
   skill targets 0.8.5's flags. The catalog owns the pin.
 - **Do not reach for `sudo npm install -g`.** It lands under
   `/usr/lib/node_modules`, which no running sandbox can upgrade in place.
-  Use `oh tool install agent-browser`: the catalog installs into `$PNPM_HOME`
+  Use `agro tool install agent-browser`: the catalog installs into `$PNPM_HOME`
   under the sandbox user's own home.
 - If `agent-browser install --with-deps` ever ends with
   `sh: 1: playwright: not found`, the playwright CLI is missing:
