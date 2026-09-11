@@ -4,7 +4,7 @@ title: SSH
 
 # SSH
 
-By default you reach the sandbox with `oh shell` or VS Code Attach (see
+By default you reach the sandbox with `agro shell` or VS Code Attach (see
 [Connecting to the Sandbox](../connecting.md)) — the base container publishes
 **no ports**. This integration adds an **opt-in `sshd` overlay** so you can
 `ssh` straight into the container, and documents how to front several tenants'
@@ -13,11 +13,11 @@ containers with a single host-side `nginx` reverse proxy on one VM.
 The daemon is **off by default**, binds **loopback-only**, and authenticates by
 **public key** unless you opt into password auth. It runs as a background daemon
 alongside the container's main process, so the cron runtime, healthcheck, and
-`oh shell` are unaffected.
+`agro shell` are unaffected.
 
 ## 1. Prerequisites
 
-- Sandbox is provisioned (`oh ps` shows your container).
+- Sandbox is provisioned (`agro ps` shows your container).
 - A local SSH keypair (`ssh-keygen -t ed25519` if you don't have one). The
   daemon defaults to key auth; you supply the **public** key.
 
@@ -26,32 +26,32 @@ alongside the container's main process, so the cron runtime, healthcheck, and
 Turn sshd on in the tracked `agro.json`:
 
 ```bash
-oh config set access.ssh true
-oh config set access.sshPort 2222
+agro config set access.ssh true
+agro config set access.sshPort 2222
 ```
 
 `access.ssh` and `access.sshPort` are the two host-side decisions — they select
 the `docker-compose.ssh.yml` overlay and publish `127.0.0.1:<port>:22`, both of
 which Docker must make before the container exists. Everything else about sshd is
-read inside the container: `entrypoint.sh` calls `oh config show` on boot.
+read inside the container: `entrypoint.sh` calls `agro config show` on boot.
 
 Public-key material is not a secret, so it lives in `agro.json` too:
 
 ```bash
-oh config set access.sshAuthorizedKeys "ssh-ed25519 AAAA...yourkey... you@laptop"
+agro config set access.sshAuthorizedKeys "ssh-ed25519 AAAA...yourkey... you@laptop"
 ```
 
 You can paste multiple keys separated by literal `\n`. Apply the change with:
 
 ```bash
-oh stop && oh sandbox
+agro stop && agro sandbox
 ```
 
-`oh sandbox install docker` runs a **port-collision preflight**: if `SANDBOX_SSH_PORT` is
+`agro sandbox install docker` runs a **port-collision preflight**: if `SANDBOX_SSH_PORT` is
 already bound by another container or host process, it aborts *before* creating
 the container and prints the conflict plus the next free port — it never
 silently clobbers a port another tenant is using. Bypass with
-`SANDBOX_SSH_PORT_CHECK=off oh sandbox` if you know better. Check any port
+`SANDBOX_SSH_PORT_CHECK=off agro sandbox` if you know better. Check any port
 yourself:
 
 ```bash
@@ -104,13 +104,13 @@ Key auth is strongly preferred. If you must allow password login (uses the
 `sandbox` user's `SANDBOX_PASSWORD`), set:
 
 ```bash
-oh config set access.sshPasswordAuth true
+agro config set access.sshPasswordAuth true
 ```
 
 > **Security.** The default `SANDBOX_PASSWORD` (`test1234`) is weak and public.
 > Never enable password auth on a `0.0.0.0` / internet-facing bind without first
-> setting a strong `SANDBOX_PASSWORD` with `oh secret set SANDBOX_PASSWORD`. See
-> [Security considerations](../security-considerations.md).
+> setting a strong `SANDBOX_PASSWORD` with `agro secret set SANDBOX_PASSWORD`.
+> See [Security considerations](../security-considerations.md).
 
 ## Security posture
 
@@ -233,5 +233,5 @@ wildcard certificate. Most operators are well served by variant (a); reach for
 
 ## See also
 
-- [Connecting to the Sandbox](../connecting.md) — `oh shell`, VS Code Attach, ports
+- [Connecting to the Sandbox](../connecting.md) — `agro shell`, VS Code Attach, ports
 - [Security considerations](../security-considerations.md) — exposure posture
