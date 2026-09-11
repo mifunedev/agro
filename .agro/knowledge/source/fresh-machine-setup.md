@@ -22,7 +22,7 @@ sources:
   - .agro/scripts/hermes-install-smoke.sh
   - .agro/scripts/gateway.sh
   - .agro/scripts/get-agro.sh
-verified_at: 270b2dbd2d9f081622f6edf6eaf00fb1ae69ec5f
+verified_at: c99286e5c35f281432808ce8bc9f256a85df3f20
 related: [sandbox-dependency-installs, oh-cli-portable-lifecycle]
 confidence: provisional
 ---
@@ -31,10 +31,10 @@ confidence: provisional
 
 ## Relevant Source Files
 - `docs/quickstart.md` — the **canonical human walkthrough**: get `agro`, create the sandbox, enter it, install Herdr, install and authenticate one harness, then the GitHub-login prerequisite and the two optional agent prompts. This entry is a synthesis and doc-handoff map only.
-- `README.md` — the same path in five numbered steps, and the shortest statement of what onboarding now is.
+- `README.md` — the same path in eight numbered steps, three of them marked optional, and the shortest statement of what onboarding now is.
 - `docs/installation.md` — host prerequisites, the `agro` install paths, the `oh` compatibility entry point, the package/PATH rules, and the second shape: equipping an existing project repo with `oh update`.
 - `.agro/scripts/get-agro.sh` — artifact-only installer: the `agro.js` release asset, `AGRO_<NAME>` with `OH_<NAME>` fallback, no clone and no build.
-- `docs/deployment-prebuilt-image.md` — the `agro sandbox install docker` page: image-only by default, `--repo` to bind a checkout.
+- `docs/deployment-prebuilt-image.md` — the `agro sandbox install docker` page: image-only by default, `--checkout` to bind a checkout.
 - `docs/integrations/github.md` — the command-level GitHub reference: protocol choice, SSH-key upload (interactive + entrypoint auto-keygen), the recovery table, and `agro config repo` as a compatibility helper.
 - `docs/contributing.md` — branch, commit, changelog and pull-request conventions for the contribution prompt.
 - `docs/integrations/debugmcp.md` — DebugMCP extension runbook.
@@ -89,12 +89,15 @@ lowest unused number. The answers land in a registry entry at
 regenerates on every lifecycle call — the operator edits only `agro.json`. A registry
 written by an earlier release stays at `~/.oh/sandboxes/<name>/oh.json` and keeps
 working under both names; `agro migrate --home` moves it when the operator chooses.
-Without `--repo` the unselected fallback is `ghcr.io/mifunedev/agro:latest`
+Without `--checkout` the unselected fallback is `ghcr.io/mifunedev/agro:latest`
 (`DEFAULT_SANDBOX_IMAGE`, `lifecycle.ts:104`) and the sandbox seeds its workspace from
 the image's `/opt/agro-seed`, so nothing is cloned and nothing is built. Since #1042 a
-`--repo <dir>` that is not itself a harness checkout reaches the same outcome: build
+`--checkout <dir>` that is not itself a harness checkout reaches the same outcome: build
 mode follows `<dir>/.devcontainer/Dockerfile`, so such a path binds and builds nothing,
-and the install pins `image.ref` to the same published image. An explicit
+and the install pins `image.ref` to the same published image. The flag `--repo` and the
+`agro.json` field `repo` remain supported aliases for `--checkout` and `checkout`
+(`docs/installation.md:103`, `docs/quickstart.md:117-118`,
+`docs/deployment-prebuilt-image.md:115-116`). An explicit
 `image.ref` and `AGRO_SANDBOX_IMAGE` over `OH_SANDBOX_IMAGE` are unchanged.
 Non-secret configuration is edited with `agro config set --sandbox <name>`; secrets go
 through `agro secret set --sandbox <name>` into the entry's gitignored dotenv. The CLI
@@ -152,7 +155,7 @@ Contribution conventions live in `docs/contributing.md`.
 
 Optionally, a project checkout can be bound instead: `oh update` inside it vendors the
 control plane and `crons/` and nothing else, then
-`agro sandbox install docker --repo "$PWD" --name <project>` bind-mounts it at
+`agro sandbox install docker --checkout "$PWD" --name <project>` bind-mounts it at
 `/home/sandbox/harness`. A checkout equipped by an earlier release carries `.oh/` and
 `oh.json`; both keep resolving, and `agro migrate` renames them when the operator asks.
 
@@ -205,7 +208,7 @@ flowchart TD
     G3 --> G4{"is this the intended account?"}
     G4 -->|no| G1
     G4 -->|yes| P["optional agent prompt:<br/>private versioning | AGRO contribution"]
-    WORKING --> R["optional: oh update + --repo to bind a checkout"]
+    WORKING --> R["optional: oh update + --checkout to bind a checkout"]
     WORKING --> SL["optional: Slack + gateway run/verify"]
   end
   H1 -.-> D1["installation.md prerequisites + get-agro.sh"]

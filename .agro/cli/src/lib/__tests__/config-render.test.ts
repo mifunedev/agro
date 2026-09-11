@@ -200,3 +200,29 @@ describe("renderComposeEnv", () => {
     );
   });
 });
+
+describe("AGRO_REPO_DIR — repo and checkout are one field", () => {
+  const dirOf = (config: OhConfig): string | undefined =>
+    renderComposeVars(config).find((v) => v.key === "AGRO_REPO_DIR")?.value;
+
+  it("renders an identical value for either spelling", () => {
+    const withRepo = defaultOhConfig("demo");
+    withRepo.repo = "/srv/checkout";
+    const withCheckout = defaultOhConfig("demo");
+    withCheckout.checkout = "/srv/checkout";
+
+    expect(renderComposeVars(withRepo)).toEqual(renderComposeVars(withCheckout));
+    expect(dirOf(withCheckout)).toBe("/srv/checkout");
+  });
+
+  it("lets checkout outrank repo when a file holds both", () => {
+    const config = defaultOhConfig("demo");
+    config.repo = "/srv/old";
+    config.checkout = "/srv/new";
+    expect(dirOf(config)).toBe("/srv/new");
+  });
+
+  it("emits no AGRO_REPO_DIR when neither field is set", () => {
+    expect(dirOf(defaultOhConfig("demo"))).toBeUndefined();
+  });
+});

@@ -763,7 +763,7 @@ describe("parseSandboxArgs", () => {
         subcommand: "install",
         runtime: "docker",
         name: "box",
-        repo: "/src/app",
+        checkout: "/src/app",
         yes: true,
         image: true,
         imageRef: "ghcr.io/x/y:1",
@@ -771,6 +771,32 @@ describe("parseSandboxArgs", () => {
         printArgv: true,
       },
     });
+  });
+
+  it("accepts --checkout and reads --repo as its deprecated alias", () => {
+    const withCheckout = parseSandboxArgs(["install", "docker", "--checkout", "/src/app"]);
+    const withRepo = parseSandboxArgs(["install", "docker", "--repo", "/src/app"]);
+    expect(withCheckout).toEqual(withRepo);
+    expect(withCheckout).toEqual({
+      ok: true,
+      args: { ...base, subcommand: "install", runtime: "docker", checkout: "/src/app" },
+    });
+  });
+
+  it("rejects --checkout and --repo together, naming both spellings", () => {
+    const both = parseSandboxArgs([
+      "install",
+      "docker",
+      "--checkout",
+      "/src/app",
+      "--repo",
+      "/src/app",
+    ]);
+    expect(both.ok).toBe(false);
+    if (!both.ok) {
+      expect(both.error).toContain("--checkout");
+      expect(both.error).toContain("--repo");
+    }
   });
 
   it("parses `list --json`", () => {

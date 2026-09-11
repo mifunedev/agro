@@ -1,0 +1,158 @@
+# progress
+
+
+## 2026-09-10 — plan phase
+Scope approved by the operator from issue #1043. Branch task/1043-repo-flag-checkout-rename
+cut from origin/development at e65e7a50 (the #1042 merge), so the planning base and the
+execution base are the same commit. No re-grounding drift.
+
+Advisor decisions on the PRD's two open questions:
+- Q1 legacy-field normalisation on write: NO. Reads are aliased; a write never rewrites a
+  field the operator did not touch. checkout outranks repo when a file holds both.
+- Q2 deprecation notice on --repo: NO, silent. No removal date exists. The deprecation
+  signal lives in --help and the docs.
+
+Implementation contract fixed by the advisor before dispatch:
+- oh-config.ts gains configCheckout(config) returning config.checkout ?? config.repo,
+  empty-string-safe. Every read site routes through it.
+- OhConfig.checkout added; repo retained. Both validated and both in OH_CONFIG_FIELDS.
+- seedConfig writes checkout.
+- MaterializeOptions gains checkout and keeps repo. registry.test.ts calls
+  materialize(root, { repo }) and addEntry(name, { repo }) directly and is byte-frozen.
+- entryRepo keeps its exported name. AGRO_REPO_DIR keeps its spelling.
+- `agro config repo` (the GitHub-remote verb) is a different concept and is untouched.
+
+Protected-file sha256 baseline recorded before any work:
+  0bc2686007e137d090f9a9b543a08fefd92376a9eeccd7752eade97b147f373c  .agro/evals/probes/oh-devcontainer-restructure.sh
+  664447701d78612ea1ebb4029aa91c8b0919400237cd9e508d6fe2be46e555ec  .agro/evals/probes/oh-home-mount.sh
+  826fef45e2e665b3ef11c88647f165510142108f355b0b41ec4853af49fbd974  .agro/evals/probes/oh-image-only-deploy.sh
+  ac25e4b410d1a344defada4719184ce8e988ad232ac883ca208c0c36f668a513  .agro/cli/src/lib/__tests__/registry.test.ts
+  28106a310cfee535ff64a22f27e5970377a2ffcacea106dd8b3256718b6bee0c  .devcontainer/docker-compose.yml
+  9da95d66aa419da0f1eb458a813d69e70aa2cf54a6b5814344d568ddb1a2938f  .devcontainer/docker-compose.image-only.yml
+  fc15dcc07bef1badaec51991d453a7f55ac420507ca41ecb6deb7d142602d3e6  .devcontainer/entrypoint.sh
+Re-checked by the owner after every worker commit, never taken from a worker report.
+
+## 2026-09-10 — wave 1: T1 (CLI) and T2 (docs), dispatched in parallel
+
+Both workers ran in this worktree with disjoint owned write paths and no git
+permission. The git index was the only shared mutable state between them, so the
+owner removed it from both scopes and performed every commit.
+
+### US-001, US-002, US-003, US-004 — commit df56d824
+Files: .agro/cli/src/lib/oh-config.ts, lib/registry.ts, lib/config-render.ts,
+cli.ts, commands/sandbox.ts, plus assertions in __tests__/lifecycle.test.ts,
+__tests__/sandbox.test.ts, lib/__tests__/oh-config.test.ts,
+lib/__tests__/config-render.test.ts.
+
+The owner accepted these only after black-box verification against the built CLI,
+not from the worker report and not from the worker's own unit tests:
+
+- US-001: `sandbox install --checkout <dir>` and `--repo <dir>`, run against two
+  separate registry homes, wrote byte-identical agro.json. `diff` reported no
+  difference. This is the PRD's first success metric, observed directly.
+  Passing both flags printed:
+    agro sandbox install: --checkout conflicts with --repo — pass exactly one, and prefer --checkout
+- US-002: a registry holding a `repo`-spelled entry, a `checkout`-spelled entry,
+  and one holding both resolved to /old, /new, and /new respectively, so
+  `checkout` outranks `repo`. `config show` on the legacy entry printed the value
+  under `repo` and left the file byte-identical on disk, which is the observed
+  form of the advisor's Q1 decision.
+- US-003: with two entries registered, a lifecycle verb resolved the correct
+  sandbox from a cwd of /old, /old/sub, /new, and /new/sub — both field spellings
+  and both the exact-match and the startsWith+sep path. An unrelated cwd still
+  produced `several sandboxes are registered ... name one: legacy, modern`.
+  This is the identity anchor the PRD called most likely to break silently.
+- US-004: installing with a path that holds no .devcontainer/Dockerfile produced
+  image.mode "image" with image.ref ghcr.io/mifunedev/agro:latest, so the #1042
+  D-3 pin still fires under the renamed field. The materialised compose base was
+  the build-capable one, which confirms the materialize() conflation the PRD put
+  out of scope is preserved unchanged and is still why the pin is needed.
+
+### US-005 — commit 4bdd930d
+Files: docs/installation.md, docs/quickstart.md, docs/configuration.md,
+docs/deployment-prebuilt-image.md, docs/lifecycle-commands.md,
+docs/oh-directory-layout.md, CHANGELOG.md.
+
+Deviation from the approved plan, deliberate: US-005 enumerated three docs. T2
+flagged three more that carry the flag or the field, and the owner accepted them
+into scope. docs/deployment-prebuilt-image.md carried a section titled
+"## --repo: bind a checkout into the sandbox" and is the primary operator page
+for this flag; leaving it would have the docs teach the deprecated alias as the
+primary spelling, which defeats the rename. Same mechanical rename, no behaviour
+change, no frozen file touched.
+
+Owner-verified, not taken from the report: --repo-dir survives at
+deployment-prebuilt-image.md:134 (a docker-compose.sh flag, a different surface);
+AGRO_REPO_DIR and OH_REPO_DIR unrenamed and not marked legacy; no
+AGRO_CHECKOUT_DIR invented anywhere; the changelog entry sits under Unreleased →
+Changed in house style with the #1043 link.
+
+### US-006 — the regression floor
+- Frozen sha256: 7/7 OK after each of the two commits, checked against the
+  baseline recorded before any work began.
+- `git diff origin/development...HEAD -- .devcontainer/` is empty.
+- /eval on the branch: runnerExit 0, 146 probes, zero status changes against a
+  baseline captured on development@e65e7a50 before any work.
+  oh-devcontainer-restructure, oh-home-mount, and oh-image-only-deploy all PASS
+  and are byte-identical. The frozen registry.test.ts passes on the alias.
+  Three persistent reds carry forward, all pre-existing and all delta=unchanged:
+  curl-bash-safe-alternatives (python3 absent), skills-vendored (cc-safety-net
+  absent), oh-config-surfaces. The owner compared oh-config-surfaces
+  specifically, because it is a config-surface probe and this task renames a
+  config field; its detail line is byte-identical to the base run, so it did not
+  worsen.
+- Test suite: 1411 passing, 2 failing, both in
+  commands/__tests__/migrate-rehearsal.test.ts. The owner reproduced both
+  failures identically on clean development with none of this branch's changes;
+  they are the absent Docker daemon socket, not the rename. Test delta is zero.
+- Typecheck clean.
+
+### Advisor decisions recorded during the build
+- SandboxRow.repo in commands/sandbox.ts is NOT renamed. It is emitted as a JSON
+  key by `agro sandbox list --json`, which makes it a machine-readable consumer
+  contract with no aliasing story, and the PRD lists behaviour changes as a
+  non-goal. Disclosed as a residual inconsistency; worth a separate issue. No
+  probe asserts it.
+- materialize() base selection is untouched, per the PRD Technical
+  Considerations. The live install confirms the coupling is intact.
+
+## 2026-09-10 — reopened before merge: the README surfaces
+
+The operator reviewed the ready PR and found the docs sweep had been scoped to
+docs/, missing README.md and .agro/cli/README.md. AGENTS.md treats a directory
+README.md as first-class documentation. PR returned to draft; gap closed in
+c99286e5.
+
+Root cause is method, not judgement. The first sweep took a path list, so it
+could only find surfaces it already expected. The second sweep is git grep over
+all tracked files with every hit classified renamed / deliberately-frozen /
+unrelated-gh-flag. A path-scoped sweep cannot find the surface you forgot.
+
+Renamed: README.md:77 (flag plus the caption, which was close to the wording
+that caused #1042), .agro/cli/README.md:65,70,99, and
+.agro/scripts/cli-first-install-smoke.sh:57 — the third found by the sweep and
+not named in the operator report.
+
+Also closed: --home-mount was absent from BOTH READMEs although #1042 added it,
+so the front door never mentioned the persistence flag. Both now document it,
+and README.md records that the two mount flags bind different paths and compose
+in one command. The worker first wrote a lead-in implying the flags were
+mutually exclusive; the owner rejected that and had it reworded.
+
+Knowledge: fresh-machine-setup declares README.md as a source, so it was
+re-read at the new HEAD. State REVERIFIED, verified_at advanced to c99286e5.
+The worker found the page claimed README.md has five numbered steps when it has
+eight, and refused to stamp verified_at over a claim it had disproved — correct
+judgement. Its replacement claim was itself wrong (it asserted step 8 is marked
+optional; only 5, 6 and 7 are), the owner caught that against the headings and
+had it corrected to "eight numbered steps, three of them marked optional".
+compose-env-boundary and oh-cli-portable-lifecycle are FRESH: no declared
+source of theirs moved after their verified_at.
+
+Disclosed, not fixed: pre-existing stale line citations on fresh-machine-setup
+(already wrong at the base commit; this branch moved the true targets to
+README.md:341,366), and the stale pre-#942 ${OH_HOME:-~/.oh} paths at
+.agro/cli/README.md:57,60,101. Both want their own issue.
+
+Frozen sha256 re-checked 7/7 OK after the commit. /eval re-run: exit 0, 146
+probes, zero status changes against the base, oh-config-surfaces byte-identical.

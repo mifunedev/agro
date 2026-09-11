@@ -8,7 +8,7 @@ import composeWrapper from "oh-asset:.agro/scripts/docker-compose.sh";
 import compatShell from "oh-asset:.agro/scripts/compat.sh";
 import checkHostPort from "oh-asset:.agro/scripts/check-host-port.sh";
 import { spawnRunner, type LifecycleRunner } from "./execution/runner.js";
-import { ohConfigPath, readOhConfig } from "./oh-config.js";
+import { configCheckout, ohConfigPath, readOhConfig } from "./oh-config.js";
 import { resolveProjectLayout, resolveUserStateHome } from "./compat.js";
 
 export const SANDBOX_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
@@ -53,8 +53,8 @@ export function listEntries(): string[] {
 
 export function entryRepo(name: string): string | undefined {
   const config = readOhConfig(ohConfigPath(entryRoot(name)));
-  const repo = config.repo;
-  return typeof repo === "string" && repo !== "" ? resolve(repo) : undefined;
+  const checkout = configCheckout(config);
+  return checkout === undefined ? undefined : resolve(checkout);
 }
 
 function runningContainerNames(run: LifecycleRunner): Set<string> {
@@ -84,6 +84,7 @@ export function nextDefaultName(run: LifecycleRunner = spawnRunner): string {
 
 export interface MaterializeOptions {
   repo?: string;
+  checkout?: string;
 }
 
 export function materialize(root: string, opts: MaterializeOptions = {}): void {
@@ -92,7 +93,7 @@ export function materialize(root: string, opts: MaterializeOptions = {}): void {
   const files = [
     {
       dest: join(entry, ".devcontainer", "docker-compose.yml"),
-      body: opts.repo === undefined ? composeImageOnly : composeRepo,
+      body: (opts.checkout ?? opts.repo) === undefined ? composeImageOnly : composeRepo,
       mode: 0o644,
     },
     { dest: join(entry, ".devcontainer", "docker-compose.ssh.yml"), body: composeSsh, mode: 0o644 },

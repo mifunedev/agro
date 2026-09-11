@@ -15,6 +15,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Changed
 
 - Refuse `agro config set storage.homePath` when the sandbox's named volume already exists, unless you pass `--force`. ([#1042](https://github.com/mifunedev/agro/issues/1042))
+- Rename the `agro sandbox install` flag `--repo <dir>` to `--checkout <dir>` and the `agro.json` field `repo` to `checkout`; both old spellings keep working. ([#1043](https://github.com/mifunedev/agro/issues/1043))
 
 ### Fixed
 

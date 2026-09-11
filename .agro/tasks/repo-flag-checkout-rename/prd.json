@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "project": "Open Harness",
+  "branchName": "task/1043-repo-flag-checkout-rename",
+  "description": "Rename the install flag --repo to --checkout and the config field repo to checkout, keeping both old spellings as working aliases. Freeze AGRO_REPO_DIR and the compose files. Behavior-neutral. Addresses issue #1043 and follows #1042 (merged as e65e7a50).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Rename the install flag",
+      "description": "As an operator, I want --checkout <dir> to name what the directory is, so that the flag does not imply a git requirement.",
+      "acceptanceCriteria": [
+        "--checkout <dir> is accepted by agro sandbox install per .agro/cli/src/cli.ts:735-745",
+        "--repo <dir> still works and produces an identical rendered config",
+        "Passing both flags is an error that names both spellings",
+        "agro sandbox install --help documents --checkout and marks --repo as the deprecated alias per .agro/cli/src/cli.ts:255-271",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Rename the config field",
+      "description": "As an operator reading agro.json, I want the field to match the flag, so that one concept has one name.",
+      "acceptanceCriteria": [
+        "checkout is a valid config field per .agro/cli/src/lib/oh-config.ts:98,189,334",
+        "A config file holding repo still resolves, and its value is used",
+        "checkout outranks repo when a file holds both, and the precedence is documented",
+        "agro config set checkout <dir> writes the new field",
+        "agro config show reports the value under the field the file uses",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Preserve cwd-based sandbox resolution",
+      "description": "As an operator, I want lifecycle verbs run from inside a bound checkout to keep resolving the right sandbox, so that the rename changes no behavior.",
+      "acceptanceCriteria": [
+        "entryRepo() resolves under both field spellings per .agro/cli/src/lib/registry.ts:56,136-137",
+        "A lifecycle verb run from inside a bound checkout resolves the correct sandbox for an entry written with repo",
+        "The same holds for an entry written with checkout",
+        "An unrelated cwd still produces the ambiguity error",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Keep the D-3 image pin correct under the new name",
+      "description": "As an operator, I want the published-image pin from #1042 to keep firing, so that a non-checkout path does not regress to a missing image.",
+      "acceptanceCriteria": [
+        "The image.ref fill at .agro/cli/src/commands/sandbox.ts:285-291 reads the renamed field",
+        "--checkout <non-checkout dir> resolves to image.mode 'image' with image.ref set to DEFAULT_SANDBOX_IMAGE",
+        "--repo <non-checkout dir> behaves identically",
+        "A seed or an explicit --image <ref> still outranks the fill",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Update the documentation and changelog",
+      "description": "As an operator reading the docs, I want one name per concept, so that I am not choosing between two spellings.",
+      "acceptanceCriteria": [
+        "docs/installation.md, docs/quickstart.md, and docs/configuration.md use --checkout and the checkout field",
+        "Each states that --repo and repo remain supported aliases",
+        "docs/configuration.md keeps AGRO_REPO_DIR as the env key, unrenamed",
+        "Prose passes the /ste checker",
+        "A CHANGELOG entry exists per .agro/skills/git/SKILL.md",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Confirm the regression floor",
+      "description": "As the advisor, I want the probe suite green and unedited, so that the rename is provably behavior-neutral.",
+      "acceptanceCriteria": [
+        "/eval reports no regression",
+        ".agro/evals/probes/oh-devcontainer-restructure.sh, oh-home-mount.sh, and oh-image-only-deploy.sh are byte-identical and pass",
+        ".agro/cli/src/lib/__tests__/registry.test.ts:192 is byte-identical and passes",
+        "git diff development...HEAD -- .devcontainer/ is empty",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

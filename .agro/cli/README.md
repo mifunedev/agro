@@ -62,13 +62,15 @@ agro sandbox list             # name, runtime, status, repo
 agro shell <name>             # open a zsh shell in the running container
 ```
 
-To bind one of your own checkouts into the sandbox, equip it and pass `--repo`:
+To bind one of your own checkouts into the sandbox, equip it and pass `--checkout`:
 
 ```bash
 cd your-project
 oh update                                       # vendor .agro/ + crons/ — and nothing else (compatibility window)
-agro sandbox install docker --repo "$PWD" --name your-project
+agro sandbox install docker --checkout "$PWD" --name your-project
 ```
+
+`--repo` remains a supported alias for `--checkout`.
 
 Add an agent harness or a tool at any point — this needs no rebuild. The verb is
 the only door; nothing installs at boot:
@@ -96,7 +98,7 @@ with `OH_EXECUTION_TARGET=local` or `OH_EXECUTION_TARGET=docker-compose`.
 
 | Command | What it does |
 |---|---|
-| `agro sandbox install <runtime>` | Create a sandbox: run the wizard, write the registry entry under `${OH_HOME:-~/.oh}/sandboxes/<name>/`, materialise the compose files and wrapper into it, and boot the container. Flags: `--name`, `--repo <dir>`, `--yes`, `--image[=<ref>]`, `--no-build`, `--print-argv`. `docker` is provisionable; `microsandbox` is planned and refuses with a pointer at the runtime RFC. |
+| `agro sandbox install <runtime>` | Create a sandbox: run the wizard, write the registry entry under `${OH_HOME:-~/.oh}/sandboxes/<name>/`, materialise the compose files and wrapper into it, and boot the container. Flags: `--name`, `--checkout <dir>` (alias `--repo <dir>`), `--home-mount <dir>`, `--yes`, `--image[=<ref>]`, `--no-build`, `--print-argv`. `docker` is provisionable; `microsandbox` is planned and refuses with a pointer at the runtime RFC. |
 | `agro sandbox list [--json]` | List the registry entries with name, runtime, container status, and bound repo. |
 | `agro shell [name]` | Open a `zsh` shell in the running sandbox container. |
 | `agro stop [name]` | Stop the sandbox, preserving volumes. |

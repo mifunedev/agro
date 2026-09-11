@@ -4,7 +4,7 @@ title: "Installation"
 
 # Installation
 
-Open Harness is a portable harness that boots an isolated Docker sandbox. The `agro` CLI is the only front door: it creates a sandbox (`agro sandbox install docker`) and drives the rest of the lifecycle; `oh update` equips a checkout with the control plane during the compatibility window. Two shapes exist — a sandbox on its own, running the published image, or a sandbox with a checkout bind-mounted into it (`--repo`) — and both use the same commands. See [lifecycle commands](lifecycle-commands.md) for the verb reference.
+Open Harness is a portable harness that boots an isolated Docker sandbox. The `agro` CLI is the only front door: it creates a sandbox (`agro sandbox install docker`) and drives the rest of the lifecycle; `oh update` equips a checkout with the control plane during the compatibility window. Two shapes exist — a sandbox on its own, running the published image, or a sandbox with a checkout bind-mounted into it (`--checkout`) — and both use the same commands. See [lifecycle commands](lifecycle-commands.md) for the verb reference.
 
 Installing this harness never means cloning it onto your host. There is no fork step, no host-side source checkout, and no managed clone directory. You install the CLI, create a sandbox, and work inside it.
 
@@ -94,15 +94,15 @@ agro sandbox install docker
 
 The wizard asks for the sandbox name, timezone, git identity, SSH (and its host port), and the host Docker socket, then writes `~/.agro/sandboxes/<name>/agro.json`. `--yes` keeps every default and asks nothing. Edit one field later with `agro config set --sandbox <name> <field> <value>`, and set a secret with `agro secret set --sandbox <name> <KEY>`. See [Configuration](./configuration.md) for the field reference, and the comments in `.example.env` for every allow-listed secret.
 
-`--repo <dir>` takes a host path. The CLI binds that directory at `/home/sandbox/harness`. Bind an existing checkout when you want the sandbox to work on your own project:
+`--checkout <dir>` takes a host path. The CLI binds that directory at `/home/sandbox/harness`. Bind an existing checkout when you want the sandbox to work on your own project:
 
 ```bash
-agro sandbox install docker --repo "$PWD" --name <your-project>
+agro sandbox install docker --checkout "$PWD" --name <your-project>
 ```
 
-The CLI selects build mode only when `<dir>/.devcontainer/Dockerfile` exists. A `--repo` path without that file binds the directory and runs the published image.
+The CLI selects build mode only when `<dir>/.devcontainer/Dockerfile` exists. A `--checkout` path without that file binds the directory and runs the published image. The flag `--repo` and the `agro.json` field `repo` remain supported aliases for `--checkout` and `checkout`.
 
-`--repo` does not control where the sandbox persists. To persist `/home/sandbox` at a host path, pass `--home-mount <dir>` at create time. See [Persistent storage](#persistent-storage).
+`--checkout` does not control where the sandbox persists. To persist `/home/sandbox` at a host path, pass `--home-mount <dir>` at create time. See [Persistent storage](#persistent-storage).
 
 A registry entry written by an earlier release stays at `~/.oh/sandboxes/<name>/oh.json` and keeps working under both `agro` and `oh`. Move it when you choose:
 
@@ -115,7 +115,7 @@ agro migrate --home           # ~/.oh/sandboxes -> ~/.agro/sandboxes
 
 `agro sandbox install docker` materialises the compose files and the wrapper into the entry, then runs `.agro/scripts/docker-compose.sh up -d`, which resolves the compose overlays your `agro.json` selects. Running `docker compose -f .devcontainer/docker-compose.yml up -d --build` by hand skips that resolution and applies **no** overlays.
 
-The CLI sets `image.mode` to `build` only when the `--repo` path holds `.devcontainer/Dockerfile`. In build mode a cold Docker cache takes around ten minutes; subsequent starts are a few seconds. The default is to pull the published release image instead — see [`agro sandbox install docker`](deployment-prebuilt-image.md) for the image-mode recipe and the `--image` / `--no-build` flags.
+The CLI sets `image.mode` to `build` only when the `--checkout` path holds `.devcontainer/Dockerfile`. In build mode a cold Docker cache takes around ten minutes; subsequent starts are a few seconds. The default is to pull the published release image instead — see [`agro sandbox install docker`](deployment-prebuilt-image.md) for the image-mode recipe and the `--image` / `--no-build` flags.
 
 Check the sandbox health before attaching:
 
@@ -147,12 +147,12 @@ A sandbox created above runs the published image and needs no repository of your
 Then, in any project:
 
 ```bash
-agro sandbox install docker              # create a sandbox from the published image
-agro sandbox install docker --repo <dir> # ...or bind a checkout at /home/sandbox/harness
-agro sandbox list                        # name, runtime, status, repo
-agro shell <name>                        # zsh in the running container
-agro tool install herdr                  # install the terminal workspace — nothing installs at boot
-agro harness install pi                  # install an agent CLI the same way
+agro sandbox install docker                  # create a sandbox from the published image
+agro sandbox install docker --checkout <dir> # ...or bind a checkout at /home/sandbox/harness
+agro sandbox list                            # name, runtime, status, repo
+agro shell <name>                            # zsh in the running container
+agro tool install herdr                      # install the terminal workspace — nothing installs at boot
+agro harness install pi                      # install an agent CLI the same way
 agro gateway status                      # manage messaging client sessions (pi|hermes)
 ```
 
@@ -175,7 +175,7 @@ agro migrate --check   # print the plan, change nothing
 agro migrate           # .oh/ -> .agro/, oh.json -> agro.json, provider links re-pointed
 ```
 
-A checkout bound with `--repo` mounts at `/home/sandbox/harness`. Without `--repo` the sandbox runs `ghcr.io/mifunedev/agro:latest` and seeds its workspace from the image — see [`agro sandbox install docker`](deployment-prebuilt-image.md) for that recipe and the `--image` / `--no-build` flags.
+A checkout bound with `--checkout` mounts at `/home/sandbox/harness`. Without `--checkout` the sandbox runs `ghcr.io/mifunedev/agro:latest` and seeds its workspace from the image — see [`agro sandbox install docker`](deployment-prebuilt-image.md) for that recipe and the `--image` / `--no-build` flags.
 
 ## Next step
 
