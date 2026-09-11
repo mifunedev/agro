@@ -267,3 +267,64 @@ check set as a pass.
   already recorded it. It is corrected under US-004.
   `.agro/cli/README.md:52` is left as written: it describes the `oh`/`agro`
   alias relationship, which is back-compatibility prose.
+
+## US-009: Rename instructional `oh` commands in `docs/` to `agro`
+
+**Description:** As a reader of the documentation, I want every command I am told
+to run today to name `agro`, so that the docs never teach me the deprecated
+binary — while every passage that explains legacy compatibility keeps saying
+`oh`, because that is what it is about.
+
+Added at the operator's direction after the initial eight stories landed, folding
+the previously held-back `docs/` sweep into this PR.
+
+**Acceptance Criteria:**
+
+- [ ] Every instructional-current occurrence of `oh <lifecycle-verb>` under
+      `docs/` names `agro` instead
+- [ ] Every legacy-explanatory occurrence is **unchanged, byte for byte**
+- [ ] `oh update` is **never** renamed: `agro update` self-upgrades the installed
+      CLI (`cli.ts:1169-1181`) while `oh update` vendors the project payload, and
+      `--from`, `--from-remote`, `--ref` and `--force` are refused under `agro`
+      (`cli.ts:683-689`). They are different commands.
+- [ ] `docs/agro-compatibility.md`, `docs/oh-directory-layout.md` and
+      `docs/rfcs/**` are unchanged
+- [ ] A passage that deliberately names both spellings is unchanged, including
+      `docs/integrations/github.md:91`
+- [ ] Paths, filenames and variables (`/opt/oh`, `~/.oh`, `.oh/`, `oh.json`,
+      `OH_*`) are unchanged
+- [ ] Every hit is classified instructional-current or legacy-explanatory, and
+      the split is reported; a genuinely ambiguous hit is left and named
+- [ ] `.agro/skills/t3/scripts/t3-code.sh:135` and
+      `.agro/skills/escalate/scripts/escalate.sh:7` remain out of scope
+- [ ] The four frozen files stay byte-identical to the recorded baseline
+- [ ] Prose adds zero new `/ste` findings
+- [ ] `/eval` reports no regression
+- [ ] CI is green on the exact head
+
+## US-010: Thread the invoked binary through the sandbox onboarding banner
+
+**Description:** As an operator opening a sandbox shell, I want the onboarding
+banner to name the binary I invoked, so that the most-read surface in the
+product does not teach me the deprecated one.
+
+Found while grounding US-009: `.agro/install/banner.sh` hardcodes `oh` at six
+operator-facing sites and has no bin awareness. `banner.sh:187` prints
+``Next: run `oh tool install herdr` `` — the direct analogue of the
+`next: oh shell <name>` line this issue was filed about. Added at the operator's
+direction.
+
+**Acceptance Criteria:**
+
+- [ ] `.agro/install/banner.sh` resolves the binary the way
+      `.devcontainer/entrypoint.sh:133-134` already does, and never hardcodes it
+- [ ] All six sites read the resolved value: `:84`, `:96`, `:111`, `:141`,
+      `:181`, `:187`
+- [ ] The resolved value defaults to `agro` and yields `oh` when the legacy
+      binary is in use
+- [ ] `.devcontainer/entrypoint.sh` is **not** edited
+- [ ] `docs/harnesses/hermes.md:276` is updated to match what the banner now
+      prints, and remains a true transcript
+- [ ] The four frozen files stay byte-identical
+- [ ] `/eval` reports no regression
+- [ ] CI is green on the exact head

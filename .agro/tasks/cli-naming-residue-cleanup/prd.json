@@ -133,6 +133,46 @@
       "priority": 8,
       "passes": true,
       "notes": "MET. /eval: 149 probes, exit 0, NO green->red regression. Three persistent reds all delta=unchanged and pre-existing (two environmental: python3 and cc-safety-net absent). `git diff origin/development...HEAD -- .devcontainer/` is EMPTY. entrypoint.sh and docker-compose.yml match their pre-work digests byte for byte, as do all three #1042 compose-string probes. registry.test.ts changed ONCE under an explicit operator-authorized exception, scoped to two hunks (one assertion plus its required import); before/after digests and the full diff are in evidence.md. Typecheck clean. Tests 2 failed | 1441 passed, the 2 being a pre-existing environmental docker-daemon pair reproduced by the advisor on a pristine de4cbe8b worktree. CHANGELOG entry added."
+    },
+    {
+      "id": "US-009",
+      "title": "Rename instructional oh commands in docs/ to agro",
+      "description": "As a reader of the documentation, I want every command I am told to run today to name agro, so that the docs never teach me the deprecated binary — while every passage explaining legacy compatibility keeps saying oh, because that is what it is about.",
+      "acceptanceCriteria": [
+        "Every instructional-current occurrence of oh <lifecycle-verb> under docs/ names agro instead",
+        "Every legacy-explanatory occurrence is unchanged, byte for byte",
+        "oh update is NEVER renamed: agro update self-upgrades the installed CLI (cli.ts:1169-1181) while oh update vendors the project payload, and --from/--from-remote/--ref/--force are refused under agro (cli.ts:683-689)",
+        "docs/agro-compatibility.md, docs/oh-directory-layout.md and docs/rfcs/** are unchanged",
+        "A passage deliberately naming both spellings is unchanged, including docs/integrations/github.md:91",
+        "Paths, filenames and variables (/opt/oh, ~/.oh, .oh/, oh.json, OH_*) are unchanged",
+        "Every hit is classified instructional-current or legacy-explanatory and the split reported; a genuinely ambiguous hit is left and named",
+        ".agro/skills/t3/scripts/t3-code.sh:135 and .agro/skills/escalate/scripts/escalate.sh:7 remain out of scope",
+        "The four frozen files stay byte-identical to the recorded baseline",
+        "Prose adds zero new /ste findings",
+        "/eval reports no regression",
+        "CI is green on the exact head"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "MET. Advisor re-derived the sweep rather than trusting either prior figure: 135 occurrences of `oh <lifecycle-verb>` under docs/ across 28 files; 31 inside fenced blocks across 13 files (reproducing the operator's page count exactly once counted by occurrence — sshd.md:47 is `oh stop && oh sandbox`, one line carrying two); 67 more in prose on those same pages. Scoped by the CHARACTER of each hit rather than by markdown fences, because a fence reading `agro harness install` beneath a sentence reading `oh harness install` is the half-renamed-page defect this task already cleaned up once in docs/runtimes/. FINAL SPLIT: 96 instructional-current renamed / 39 legacy-explanatory left verbatim. THE DECISIVE FINDING: `oh update` is never renamed — cli.ts:1169-1181 routes agro to runSelfUpgrade while oh vendors the project payload, and cli.ts:683-689 makes agro update REFUSE --from/--from-remote/--ref/--force; renaming docs/installation.md:163-165 would have produced commands that hard-error. 28 oh update occurrences preserved and verified post-merge. The advisor's own first classifier had exactly 3 false positives, all the both-spelling construction `agro config repo` (and `oh config repo`) at github.md:91, installation.md:141 and quickstart.md:268; caught before dispatch and flagged to workers as a known trap. Post-merge residue is 9 hits across 7 files, every one accounted for. docs/security-considerations.md:127 was reported ambiguous by its worker and classified legacy-explanatory by the advisor: it names the legacy bootstrap route by name ('the `oh` CLI / `get-oh.sh` path'), and get-oh.sh is a real filename retained through the SLA."
+    },
+    {
+      "id": "US-010",
+      "title": "Thread the invoked binary through the sandbox onboarding banner",
+      "description": "As an operator opening a sandbox shell, I want the onboarding banner to name the binary I invoked, so that the most-read surface in the product does not teach me the deprecated one.",
+      "acceptanceCriteria": [
+        ".agro/install/banner.sh resolves the binary the way .devcontainer/entrypoint.sh:133-134 already does, and never hardcodes it",
+        "All six sites read the resolved value: :84, :96, :111, :141, :181, :187",
+        "The resolved value defaults to agro and yields oh when the legacy binary is in use",
+        ".devcontainer/entrypoint.sh is NOT edited",
+        "docs/harnesses/hermes.md:276 is updated to match what the banner now prints, and remains a true transcript",
+        "The four frozen files stay byte-identical",
+        "/eval reports no regression",
+        "CI is green on the exact head"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "MET. .agro/install/banner.sh threaded at all six operator-facing sites; the banner an operator sees on essentially every shell no longer teaches `oh`. Found by grounding, not sweeping: the US-009 worker checked docs/harnesses/hermes.md:276 against its source before converting it, found banner.sh:111 hardcoded, and correctly left the doc as a TRUE transcript — which is what surfaced the defect. Worker deviated from the advisor's suggested mechanism with a better reason: banner.sh is SOURCED into interactive zsh (.agro/install/.zshrc:35) and compat.sh is bash-only (compat_env at compat.sh:124-125 uses ${!agro_key:-} indirect expansion, unsupported in zsh), so it uses an inline cli_bin=\"${AGRO_BIN:-${OH_BIN:-agro}}\" instead of sourcing. Advisor verified the bash-ism directly. Advisor EXECUTED the banner rather than accepting the worker's table — and caught its own first attempt as invalid (bash -i without --norc sourced the main checkout's unthreaded copy). Clean re-run: default -> agro, OH_BIN=oh -> oh, AGRO_BIN=agro+OH_BIN=oh -> agro, AGRO_BIN=oh -> oh; precedence cross-checked against `compat_env_value BIN` and identical. entrypoint.sh NOT edited. boot-banner.test.ts 3/3. docs/harnesses/hermes.md:276 updated to stay a true transcript."
     }
   ]
 }
