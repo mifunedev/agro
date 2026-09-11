@@ -173,6 +173,41 @@
       "priority": 10,
       "passes": true,
       "notes": "MET. .agro/install/banner.sh threaded at all six operator-facing sites; the banner an operator sees on essentially every shell no longer teaches `oh`. Found by grounding, not sweeping: the US-009 worker checked docs/harnesses/hermes.md:276 against its source before converting it, found banner.sh:111 hardcoded, and correctly left the doc as a TRUE transcript — which is what surfaced the defect. Worker deviated from the advisor's suggested mechanism with a better reason: banner.sh is SOURCED into interactive zsh (.agro/install/.zshrc:35) and compat.sh is bash-only (compat_env at compat.sh:124-125 uses ${!agro_key:-} indirect expansion, unsupported in zsh), so it uses an inline cli_bin=\"${AGRO_BIN:-${OH_BIN:-agro}}\" instead of sourcing. Advisor verified the bash-ism directly. Advisor EXECUTED the banner rather than accepting the worker's table — and caught its own first attempt as invalid (bash -i without --norc sourced the main checkout's unthreaded copy). Clean re-run: default -> agro, OH_BIN=oh -> oh, AGRO_BIN=agro+OH_BIN=oh -> agro, AGRO_BIN=oh -> oh; precedence cross-checked against `compat_env_value BIN` and identical. entrypoint.sh NOT edited. boot-banner.test.ts 3/3. docs/harnesses/hermes.md:276 updated to stay a true transcript."
+    },
+    {
+      "id": "US-011",
+      "title": "Stop naming oh as the canonical CLI in present-tense prose",
+      "description": "As a reader, I want documentation that names the CLI without a verb to name agro, so that the project front door does not present the deprecated binary as the current one.",
+      "acceptanceCriteria": [
+        "The candidate set is re-derived with a verb-free pattern across all tracked docs and READMEs, not from a hand-written list",
+        "Every hit is classified canonical-present-tense, legacy-explanatory or compatibility-contract, and the split is reported",
+        "Canonical-present-tense sites name agro",
+        "Legacy-explanatory and compatibility-contract passages are unchanged byte for byte",
+        "docs/agro-compatibility.md, docs/rfcs/**, .agro/cli/legacy/README.md and the knowledge pages' historical records are unchanged",
+        "Both-spelling constructions are unchanged",
+        "Paths, filenames and variables are unchanged",
+        "Prose adds zero new /ste findings",
+        "The frozen baseline holds"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "MET. Candidate set re-derived verb-free, not from the operator's five-line list. The worker's method was better than the advisor's two patterns: it histogrammed the token following every bare `oh` across all tracked *.md (714 lines) and read the entire residual population, which is what proves nothing escaped. 61 candidates across 19 files. SPLIT: 9 canonical-present-tense fixed / 12 legacy-explanatory / 34 compatibility-contract / 6 out-of-class. The operator's list of 5 was incomplete and the advisor's calibration of 7 was also incomplete: docs/installation.md:373 ('only `oh` applies it') was a plain miss, and docs/security-considerations.md:127 had been ACTIVELY MIS-CLASSIFIED by the advisor as legacy-explanatory in an earlier round — the worker corrected the advisor, not merely supplemented. Also fixed: 2 mermaid labels in compose-env-boundary.md (leaving `oh_config`, a real entrypoint.sh function, and the `OH` node id) and 8 .github/ISSUE_TEMPLATE/ invocations, a directory four sweeps had missed. Advisor tested `agro sandbox` directly: it prints help and does NOT start the container, so the worker's upgrade of the template's bare `oh sandbox` to `agro sandbox install docker` is a correctness fix, accepted. Advisor OVERRODE the worker on the knowledge-page frontmatter: schema.md:105 defines `updated` as the date of the most recent write and :290 disclaims it as a validity test, so it was bumped and the index reindexed, matching how fresh-machine-setup.md was handled earlier in the same PR. verified_at correctly not advanced. .github/workflows/ left alone — and the advisor corrected its OWN wrong rationale for that mid-flight: sandbox-compatibility.yml is Debian-base compatibility CI (#807), not deliberate legacy coverage; it is skipped because a CI test invocation is not operator-facing instructional text."
+    },
+    {
+      "id": "US-012",
+      "title": "Widen the surface-sweep probe to tracked docs",
+      "description": "As the harness, I want the surface-sweep probe to catch a doc that names a deprecated binary as the canonical CLI, not just a README that presents a deprecated flag spelling as canonical.",
+      "acceptanceCriteria": [
+        "docs-20260911.sh fails when a tracked doc names a deprecated binary as the canonical CLI in present tense",
+        "It still passes the oh update blocks and the compatibility-contract prose",
+        "The distinction is encoded in the oracle, not in a path exclusion list",
+        "Its existing flag-spelling assertion still works",
+        "It fails on the pre-fix tree and passes on the fixed tree, demonstrated",
+        "Every REGRESSION and SKIPPED branch is driven by fault injection"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "MET. docs-20260911.sh widened from a three-README flag check to also fail when a tracked doc names a docs-declared deprecated BINARY as the canonical CLI. The binary pair is DERIVED from docs prose ('`agro <verb>` is also available as `oh <verb>`'), not hardcoded, exactly as the flag pair already was. Discrimination is structural first: it matches only the BARE backticked token, so `oh update`, `get-oh.sh`, `/opt/oh`, `oh.json`, `OH_*`, `~/.oh`, `packages/oh` and `@mifune/openharness` are out of scope by construction rather than by name — then marker-based over a bounded character window, per pattern-evals-negation-must-govern-token. Only two structural exclusions, both by KIND not identity: CHANGELOG.md (append-only history) and symlinks (provider mirrors). No per-file allowlist. ADVISOR VERIFICATION, independent: on the pristine de4cbe8b tree it produces 12 REGRESSIONs including both sites the operator named, and ZERO fire on any `oh update` block or on agro-compatibility.md — a false-positive control on real data carrying ~30 oh update occurrences and the full pre-rename docs. The advisor separately confirmed the original flag assertion still fires by injecting an unmarked `--repo` into a scratch README. THE DECISIVE CROSS-CHECK: the probe and the US-011 fix were written by two workers who could not see each other, and on the merged tree the probe flags exactly the 8 sites US-011 fixes, then goes PASS the moment US-011 merges. Two independent derivations agreeing is stronger evidence than either alone. 14 fault-injection rows including four false-positive controls; runtime ~290ms over 56 docs."
     }
   ]
 }

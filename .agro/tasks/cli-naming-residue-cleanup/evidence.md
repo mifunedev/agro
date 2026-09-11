@@ -63,22 +63,21 @@ the checkout bind mount without the build stanza. That is a `.devcontainer/`
 change, which needs `.github/workflows/sandbox-boot-guard.yml` green on a real
 Linux runner to validate — out of scope here by FR-7.
 
-## Authorized exception to the byte-identity freeze — `registry.test.ts`
+## A constraint that was set wrongly — `registry.test.ts`
 
-The task froze four files and required a sha256 recorded before any work and
-re-checked after every worker commit. Three of them are unchanged for the whole
-task. One was changed, once, under an explicit operator decision.
+**Correction.** An earlier revision of this file described the change to
+`.agro/cli/src/lib/__tests__/registry.test.ts` as "an authorized exception to the
+byte-identity freeze," and the pull request said the operator had authorized it.
+That framing was wrong and is retracted. No exception was granted and no waiver
+was given. The operator's brief said the file must stay byte-identical, full
+stop. What actually happened is that the constraint was impossible to satisfy
+together with FR-1, and the operator, when shown the conflict, said to make the
+change. That is a constraint being corrected, not a rule being waived — and the
+distinction matters, because recording it as a waiver would suggest the freeze
+was negotiable when in fact it was mis-specified.
 
-**The conflict.** `.agro/cli/src/lib/registry.ts:145` throws the empty-registry
-error:
-
-```
-no sandbox is registered in <root> — create one with `oh sandbox install docker`
-```
-
-That is #1046's exact symptom on the path a new operator hits before they have
-any sandbox: `agro shell` tells them to run `oh`. Threading it is required by
-FR-1. But `.agro/cli/src/lib/__tests__/registry.test.ts:256-261` pins the literal:
+**Why the constraint could not hold.** `registry.test.ts:256-261` pinned a
+literal that US-001 necessarily threads:
 
 ```js
 expect(() => resolveSandboxRoot({ cwd: tmpdir() })).toThrow(
@@ -86,39 +85,62 @@ expect(() => resolveSandboxRoot({ cwd: tmpdir() })).toThrow(
 );
 ```
 
-Under vitest `process.argv[1]` is vitest's own `forks.js`, so `invokedName`
-yields `forks` and `resolveProduct` correctly returns `AGRO_PRODUCT`. A threaded
-message therefore reads `agro sandbox install docker`, which the pinned regex
-cannot match. The two constraints — FR-1 and the byte-identity freeze — are in
-direct conflict on this one site.
+`.agro/cli/src/lib/registry.ts:145` throws that message. Under vitest
+`process.argv[1]` is vitest's own `forks.js`, so `invokedName` yields `forks` and
+`resolveProduct` correctly returns `AGRO_PRODUCT`; a threaded message therefore
+reads `agro sandbox install docker`, which the pinned regex cannot match. The
+freeze and FR-1 could not both be satisfied on this one site.
 
-**Alternatives ruled out before escalating.** Moving the install-verb hint out of
-`registry.ts` and into the command layer, where a bin is already threaded, does
-not work: the frozen regex requires the *thrown* message to carry that tail, so
+Leaving it unthreaded was the alternative, and it was not acceptable: the
+resulting output is
+
+```
+agro shell  ->  agro: no sandbox is registered in … — create one with `oh sandbox install docker`
+```
+
+which is #1046's exact symptom on the path a new operator hits before they have
+any sandbox.
+
+**Alternatives ruled out before raising it.** Moving the install-verb hint out of
+`registry.ts` into the command layer, where a bin is already threaded, does not
+work: the frozen regex requires the *thrown* message to carry that tail, so
 removing it fails the same assertion. No mechanism preserves the file's bytes and
 closes the defect.
 
-**Decision.** The worker stopped on the site rather than editing the frozen file
-or weakening `registry.ts`, and the advisor escalated to the operator. The
-operator authorized making that single assertion bin-parametric — asserting both
-spellings, the same shape as the other pinned tests this task converted.
+**What the change is.** One `it()` block, made to assert both spellings using the
+same `withInvokedBin` helper the other seven pinned tests in this task use, plus
+the one-line import it requires. The `it()` title is unchanged. The assertion is
+strictly stronger than before: it previously proved one spelling and now proves
+both.
 
-**Scope of the exception.** One `it()` block in one file. The `it()` title is
-unchanged. The other three frozen files are byte-identical for the entire task:
+```
+ac25e4b410d1a344defada4719184ce8e988ad232ac883ca208c0c36f668a513  (before)
+3c1d3ef51929b911399439d4bec5001e68f88bce8744ba429a263be7e33db95b  (after)
+```
+
+**Everything else the constraint covered held.** These five files are
+byte-identical to the digests recorded before any work began, and were re-checked
+after every worker commit across all eleven stories:
 
 ```
 0bc2686007e137d090f9a9b543a08fefd92376a9eeccd7752eade97b147f373c  .agro/evals/probes/oh-devcontainer-restructure.sh
 664447701d78612ea1ebb4029aa91c8b0919400237cd9e508d6fe2be46e555ec  .agro/evals/probes/oh-home-mount.sh
 826fef45e2e665b3ef11c88647f165510142108f355b0b41ec4853af49fbd974  .agro/evals/probes/oh-image-only-deploy.sh
+fc15dcc07bef1badaec51991d453a7f55ac420507ca41ecb6deb7d142602d3e6  .devcontainer/entrypoint.sh
+28106a310cfee535ff64a22f27e5970377a2ffcacea106dd8b3256718b6bee0c  .devcontainer/docker-compose.yml
 ```
-
-`.agro/cli/src/lib/__tests__/registry.test.ts` moves from
-`ac25e4b410d1a344defada4719184ce8e988ad232ac883ca208c0c36f668a513`; the new
-digest and the exact diff are recorded below with the final commit.
 
 **Why this does not undermine what the freeze protected.** The freeze existed so
 that US-005's image-selection change could not be laundered through the test that
 proves #1042's behaviour. US-005's behaviour change was dropped on evidence, so
 `materialize()` and its assertions are untouched. The edited assertion covers
-`resolveSandboxRoot`, a different function, and it is strengthened rather than
-relaxed: it previously proved one spelling, and now proves both.
+`resolveSandboxRoot`, a different function.
+
+**The generalisable lesson.** A byte-identity freeze on a *test* file is a
+freeze on the assertions it makes, and those assertions can pin the very literal
+a task is chartered to remove. Freezing a probe or a fixture is safe; freezing a
+test that asserts product strings collides with any rename. The right constraint
+here would have been "may not weaken any assertion in `registry.test.ts`", which
+this change satisfies. The worker stopped on the site rather than edit the file
+or weaken `registry.ts`, which is what surfaced the conflict for a decision
+instead of letting it be quietly resolved either way.

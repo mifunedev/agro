@@ -419,3 +419,151 @@ REGRESSION CAUGHT AT THE INTEGRATION GATE — and it was NOT a flake.
   Repair routed to a bounded worker with an explicit instruction NOT to edit the
   docs to make the test pass — the docs are correct, the pin is stale — and not
   to weaken the assertion (no regex, no case-insensitivity, no deletion).
+
+2026-09-11 US-011 / US-012 — the class that survived three sweeps
+
+CORRECTION TO evidence.md, made at the operator's instruction.
+  An earlier revision of evidence.md called the registry.test.ts change "an
+  authorized exception to the byte-identity freeze", and PR #1047 said the
+  operator had authorized it. That framing was WRONG and has been retracted and
+  rewritten as "## A constraint that was set wrongly".
+  No exception was granted and no waiver was given. The operator's brief said
+  byte-identical, full stop. What happened is that the constraint could not be
+  satisfied together with FR-1 — registry.test.ts:256-261 pinned a literal that
+  US-001 necessarily threads — and the operator, shown the conflict, said to make
+  the change. That is a constraint being corrected, not a rule being waived.
+  The distinction matters: recording it as a waiver would suggest the freeze was
+  negotiable, when in fact it was mis-specified.
+  The generalisable lesson is now recorded in evidence.md: a byte-identity freeze
+  on a TEST file is a freeze on the assertions it makes, and those assertions can
+  pin the very literal a task is chartered to remove. Freezing a probe or a
+  fixture is safe; freezing a test that asserts product strings collides with any
+  rename. The right constraint would have been "may not WEAKEN any assertion in
+  registry.test.ts", which the change satisfies — it went from proving one
+  spelling to proving both.
+
+THE SWEEP GAP -- why this class survived US-001, US-004 and US-009.
+  Every sweep on this task, the advisor's included, matched
+  `oh <lifecycle-verb>`. A sentence saying "the `oh` CLI" with NO VERB after it
+  was never in any candidate set. The operator identified this; it is upstream of
+  the workers and upstream of the advisor's own classifier.
+  docs/intro.md is the project front door and states it three times, in the same
+  paragraph that correctly says `agro sandbox install docker`. That is #1046's
+  headline defect restated in prose, shipped past three passes.
+  LESSON: a rename sweep must be derived from at least two orthogonal patterns —
+  one anchored on the verb that follows the binary, one anchored on the binary
+  alone. A single regex shape defines a blind spot the size of everything it does
+  not match, and no amount of careful classification inside that set can see out
+  of it.
+
+ADVISOR SWEEP, verb-free, across all tracked *.md excluding CHANGELOG.md,
+.agro/evals/RESULTS.md and .agro/tasks/:
+  59 candidates across 17 files (55 backticked bare `oh`, 4 non-backticked
+  "oh CLI"/"oh binary" forms).
+  SPLIT: 7 canonical-present-tense (fix) / 52 keep.
+  The 52 divide into compatibility-contract (the alias relationship is the
+  SUBJECT of the sentence: docs/agro-compatibility.md in full, the "Compatibility
+  entry point (`oh`)" sections of installation.md and quickstart.md, AGENTS.md:161,
+  .agro/cli/README.md:43-51, .agro/cli/legacy/README.md, lifecycle-commands.md:11)
+  and legacy-explanatory (historical records: the packages/oh/ -> cli/ move at
+  .agro/README.md:28,81,113; docs/rfcs/**; the knowledge patterns' retro lesson
+  records), plus both-spelling constructions and path/filename/variable forms.
+
+THE OPERATOR'S FIVE-SITE LIST WAS INCOMPLETE — two more found:
+  README.md:358 "Apache-2.0 covers the runtime, the `oh` CLI, container
+    definitions, and the harness spec" — a present-tense licence-scope statement
+    naming `oh` as THE CLI, in the repo's own front-door README.
+  .agro/README.md:175 "The `oh` CLI bundles these compose files as text and
+    re-materialises them into a sandbox's registry entry" — US-004 already fixed
+    the PATH on that exact line and left the CLI name, because US-004's brief was
+    about ~/.oh paths. A verb-free sweep catches what a path sweep and a verb
+    sweep both walked past.
+  This is the third time on this task that re-deriving a hand-written list found
+  sites the list omitted (US-001's 33-site table missed secret.ts, cloud.ts and
+  the whole lib/ layer; US-004's list missed .agro/cli/README.md:60 and the
+  docs/runtimes pages; now this). The operator's instruction to re-derive rather
+  than trust the list is carrying its weight every single time.
+
+NOT RENAMED, deliberately, and worth recording:
+  .agro/knowledge/source/oh-cli-portable-lifecycle.md — its slug, frontmatter
+  title and `# oh CLI Portable Lifecycle` heading are the page's own IDENTITY.
+  Renaming them breaks every [[oh-cli-portable-lifecycle]] wikilink and the
+  generated index in .agro/knowledge/README.md, which wiki-readme-index.sh
+  guards. A page name is not a claim about which CLI is canonical.
+
+US-012 widens docs-20260911.sh, which as minted checked three READMEs for
+deprecated FLAG spellings and would not have caught a single US-011 site. The
+new assertion must discriminate in the ORACLE, not via a path exclusion list —
+a per-file allowlist is precisely the staleness this probe exists to prevent.
+
+2026-09-11 US-011 / US-012 acceptance
+
+THE CROSS-CHECK WORTH RECORDING.
+  US-011 (fix the canonical-CLI prose) and US-012 (widen the probe to catch it)
+  were dispatched to two workers in isolated worktrees who could not see each
+  other's branches. On the merged tree the probe flags EXACTLY the 8 sites
+  US-011 fixes, and goes PASS the moment US-011 merges. Two independent
+  derivations agreeing is stronger evidence than either alone, and it is the
+  only structural defence available against the failure mode that produced this
+  story: a sweep and its guard written from the same blind spot.
+  US-012 also independently reached the advisor's conclusion on
+  docs/security-considerations.md:127 — which the advisor had earlier
+  MIS-CLASSIFIED as legacy-explanatory — without being told.
+
+ADVISOR ERRORS THIS ROUND, recorded because they are the useful part.
+  1. docs/security-considerations.md:127. In the US-009 round the advisor
+     classified this as legacy-explanatory ("it names the legacy bootstrap route
+     by name") and closed it as a decided call, overriding a worker who had
+     honestly flagged it as ambiguous. That was wrong. The clause reads
+     "`oh sandbox install docker` (the `oh` CLI / `get-oh.sh` path)" on a page
+     that says `agro sandbox install docker` at :115 and :203. get-agro.sh EXISTS
+     (.agro/scripts/get-agro.sh, compat-inventory.json:70 records it as the
+     Phase-1 installer), so all three tokens could move together and the sentence
+     becomes true. Now fixed. The lesson: "this is the legacy route" is a
+     conclusion that needs the same grounding as any other, and the worker's
+     instinct to flag rather than resolve was better than the advisor's
+     confidence.
+  2. The advisor told the US-011 worker that .github/workflows/
+     sandbox-compatibility.yml deliberately exercises the legacy `oh` path.
+     FALSE — its header says it is Dockerfile-scoped compatibility CI for the
+     sandbox base (#807), comparing Node and pnpm across Debian bases.
+     "Compatibility" there is about Debian, not about oh-vs-agro. The advisor
+     caught this itself, verified that Dockerfile:56-57 links BOTH
+     /usr/local/bin/oh and /usr/local/bin/agro so the rename would in fact work,
+     and sent a correction before the worker could record the wrong rationale.
+     The instruction (leave it) was right; the reason was invented. Corrected
+     reason: a CI test invocation is not operator-facing instructional text —
+     nobody reads a workflow step and learns a command from it — and editing live
+     CI for a cosmetic rename trades pipeline risk for no user-visible benefit.
+     NOTE .github/workflows/release.yml:222-226 IS genuine dual-name coverage: it
+     asserts `agro --version` and `oh --version` report the same version. That
+     one must never be renamed.
+
+ADVISOR OVERRODE A WORKER, on the schema.
+  The worker declined to bump `updated:` on compose-env-boundary.md, reasoning
+  that a bump reorders the generated index and the edit was only terminology.
+  Overridden: schema.md:105 defines `updated` as "UTC date of most recent write",
+  and :290 explicitly disclaims it as a validity test, so bumping asserts nothing
+  about re-verification. Consistency settles it independently — fresh-machine-
+  setup.md was bumped and reindexed earlier in this same PR, and two knowledge
+  pages edited in one PR under two different rules is the drift that makes an
+  index untrustworthy. The repo already carries a pattern page for exactly this:
+  pattern-wiki-frontmatter-edit-without-reindex. verified_at correctly NOT
+  advanced — terminology was corrected, claims were not re-verified.
+
+WHAT THE WORKER DID BETTER THAN THE ADVISOR.
+  The advisor handed over two grep patterns. The worker built a COMPLETENESS NET
+  instead: histogram the token following every bare `oh` across all tracked *.md
+  (714 lines), then read the entire residual population. That is what proves a
+  sweep is complete; two patterns only prove two patterns. It found
+  docs/installation.md:373 and .github/ISSUE_TEMPLATE/ (an entire directory four
+  sweeps had missed) that neither the operator's list nor the advisor's
+  calibration contained. Adopt the histogram method for any future rename sweep.
+
+FINAL STATE
+  12 stories, all passes=true. /eval green, no green->red regression.
+  Tests 2 failed | 1441 passed — the pre-existing docker-daemon pair only,
+  reproduced on a pristine de4cbe8b worktree.
+  Five frozen files byte-identical to the pre-work baseline across all twelve
+  stories; registry.test.ts changed once, recorded in evidence.md as a constraint
+  that was set wrongly rather than as a waiver that was granted.

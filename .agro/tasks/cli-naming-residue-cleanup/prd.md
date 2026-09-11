@@ -328,3 +328,51 @@ direction.
 - [ ] The four frozen files stay byte-identical
 - [ ] `/eval` reports no regression
 - [ ] CI is green on the exact head
+
+## US-011: Stop naming `oh` as the canonical CLI in present-tense prose
+
+**Description:** As a reader, I want documentation that names the CLI without a
+verb to name `agro`, so that the project front door does not present the
+deprecated binary as the current one.
+
+Every prior sweep on this task matched `oh <lifecycle-verb>`. A site that says
+"the `oh` CLI" with no verb was never in the candidate set, so this class
+survived three passes. `docs/intro.md` is the project front door and states it
+three times.
+
+**Acceptance Criteria:**
+
+- [ ] The candidate set is re-derived with a **verb-free** pattern across all
+      tracked docs and READMEs, not from a hand-written list
+- [ ] Every hit is classified canonical-present-tense, legacy-explanatory, or
+      compatibility-contract, and the split is reported
+- [ ] Canonical-present-tense sites name `agro`
+- [ ] Legacy-explanatory and compatibility-contract passages are unchanged,
+      byte for byte
+- [ ] `docs/agro-compatibility.md`, `docs/rfcs/**`, `.agro/cli/legacy/README.md`
+      and the knowledge pages' historical records are unchanged
+- [ ] Both-spelling constructions are unchanged, including
+      `.agro/cli/README.md:131` and `.agro/knowledge/source/release-versioning.md:99`
+- [ ] Paths, filenames and variables (`get-oh.sh`, `/opt/oh`, `oh.json`, `OH_*`,
+      `~/.local/share/oh/`, `packages/oh/`) are unchanged
+- [ ] Prose adds zero new `/ste` findings
+- [ ] The frozen baseline holds
+
+## US-012: Widen the surface-sweep probe to tracked docs
+
+**Description:** As the harness, I want the surface-sweep probe to catch a doc
+that names a deprecated binary as the canonical CLI, not just a README that
+presents a deprecated flag spelling as canonical.
+
+`docs-20260911.sh` as minted checks three READMEs for deprecated **flag**
+spellings. It would not have caught any US-011 site.
+
+**Acceptance Criteria:**
+
+- [ ] `.agro/evals/probes/docs-20260911.sh` fails when a tracked doc names a
+      deprecated binary as the canonical CLI in present tense
+- [ ] It still passes the `oh update` blocks and the compatibility-contract prose
+- [ ] The distinction is encoded in the **oracle**, not in a path exclusion list
+- [ ] Its existing flag-spelling assertion still works
+- [ ] It fails on the pre-fix tree and passes on the fixed tree, demonstrated
+- [ ] Every REGRESSION and SKIPPED branch is driven by fault injection
