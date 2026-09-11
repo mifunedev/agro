@@ -1,0 +1,90 @@
+# progress
+
+2026-09-11 — plan phase (advisor, session 01eecd5b)
+Validated issue #935 independently before planning. Both directions reproduced by
+execution in hermetic scratchpad fixtures, not accepted from the briefing:
+  - Direction 2 (vacuous PASS) reproduced at the real repository root: the wrapper
+    emits zero --env-file arguments, so the literal comparison branch never runs.
+  - Direction 1 (false REGRESSION) reproduced under the canonical post-#887 layout
+    (root env file + .devcontainer/.env -> ../.env, one inode).
+  - install.sh:322-343 unconditionally creates the root env file and force-heals the
+    symlink, so the red state is the normal installed state, not an edge case.
+  - Behavioural half (lines 43-78) exercised with docker compose v5.5.1 present and
+    confirmed sound, including the cp -R symlink-carry case. Out of scope.
+Method matrix over four layouts established that the fix proposed in the issue body
+(stat -c %d:%i) is itself broken: GNU stat defaults to lstat, so it compares the
+symlink's own inode (747923) against the target's (747922) and fails the canonical
+layout. Resolved method is the dereferencing form, behind a GNU->BSD shim.
+Findings posted to the issue: https://github.com/mifunedev/agro/issues/935#issuecomment-5628996672
+Wrote prd.md (/prd) and prd.json (/ralph), 5 stories.
+
+Guard limitation, recorded honestly: the repository secret-exposure guard blocks
+commands naming env-file paths. It blocked a listing of the real repository root, a
+grep for the devcontainer env path, and a direct stat of the fixtures. No repro claim
+depends on a blocked command, and no bypass was engineered. The wrapper's own
+--print-argv output and directory-level `ls -lai` supplied the same facts including
+the inode numbers.
+
+2026-09-11 — execute phase, step 0 (owner, session 01eecd5b)
+Operator exception recorded BEFORE any direct edit, per .agro/skills/spec/references/execute.md
+step 4: the operator instructed this session to run /spec execute directly in this
+turn. This task is a single-file probe change plus one test; the owner performs the
+tracked implementation edits itself rather than dispatching a /delegate worker.
+
+Contract gap-fill: /prd and /ralph do not emit the Knowledge Context, Expected
+Knowledge Impact, or Plan Reconciliation sections that execute.md's precondition
+requires, and no progress.txt existed. Added all four here rather than refusing and
+re-running /spec plan, because the plan's intent is unchanged and its base commit is
+identical to the execution base (ed9ac894). Plan Reconciliation records
+"Intent preserved: YES".
+
+Re-grounding: planning base == execution base == ed9ac89450103cfe71ff4c7c7fec7ea1009d5713.
+git diff over that range is empty, so no source the plan grounded on has moved.
+Knowledge page compose-env-boundary re-read; it describes the registry
+--extra-env-file route and does not constrain the in-checkout ENV_FILE preference
+this task touches.
+
+Worktree: .worktrees/bug/935-compose-env-path-parity on branch
+bug/935-compose-env-path-parity off origin/development.
+
+2026-09-11 — execute phase, steps 4-7 (owner, session 01eecd5b)
+US-001..US-004 implemented and validated; US-005 gates run.
+Files: .agro/evals/probes/compose-config-path-parity.sh (+29/-6),
+       .agro/scripts/__tests__/compose-config-path-parity.test.ts (new),
+       CHANGELOG.md, .agro/evals/RESULTS.md.
+Commit: ed75334c. .agro/scripts/docker-compose.sh untouched (verified by
+git diff --name-only). Count check and harness-config.sh check unchanged.
+
+Oracle check, not just a green suite: the previous probe was restored from
+origin/development and the new vitest suite re-run against it — 4/4 FAIL — then
+restored — 4/4 PASS. The test discriminates.
+
+/eval: runner exit 0, 149 probes, compose-config-path-parity PASS, no green->red
+delta. Three persistent reds (curl-bash-safe-alternatives ERROR python3 missing,
+oh-config-surfaces, skills-vendored) all delta=unchanged and pre-existing.
+
+Full vitest: 1432 passed, 1 failed, 14 skipped. The failure is
+migrate-rehearsal.test.ts, proven pre-existing by running that file against
+origin/development in a detached baseline worktree — same two tests, same names.
+
+Knowledge impact: knowledge-impact.sh over the 7 changed paths returns 0
+NEEDS-REVIEW (10 FRESH, 31 NOT-APPLICABLE). Union with Expected (which named no
+page) is empty, so Actual Knowledge Impact is NOT-APPLICABLE. compose-env-boundary
+recorded NOT-AFFECTED with reason: it declares the sibling probe
+compose-env-boundary.sh, not this one, and documents the registry
+--extra-env-file route rather than the in-checkout ENV_FILE preference.
+wiki-readme-index.sh PASS, exit 0.
+
+evidence.md written, answering all five questions. Divergences recorded: the
+three-file contract was gap-filled rather than re-planned; the owner edited
+directly under the operator exception above; shellcheck is not installed here and
+is carried as unverified. The BSD stat -Lf fallback is reasoned, never executed on
+this GNU-only host — also carried as unverified.
+
+2026-09-11 — execute phase, /eval gate (owner, session 01eecd5b)
+The eval floor caught a regression this task introduced. The first CHANGELOG entry
+was 279 chars; changelog-entry-length (cap 250) went PASS->REGRESSION, runner exit 1.
+Shortened to 222 chars, probe PASS, suite re-run clean: runner exit 0, 149 probes,
+no green->red delta. Recorded in evidence.md because the green result is the second
+run — the earlier exit-0 run predated the CHANGELOG entry and did not cover it.
+eval-result.json written, keyed to commit 62aaae31 (the head the suite ran against).

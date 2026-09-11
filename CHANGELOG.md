@@ -22,6 +22,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Fixed
 
+- Compare the compose wrapper's `--env-file` to `.devcontainer/.env` by file identity, not path string, so `compose-config-path-parity` stops failing on installed machines. ([#935](https://github.com/mifunedev/agro/issues/935))
 - Select build mode from `--repo <dir>` only when that directory holds `.devcontainer/Dockerfile`, so a path without one binds the directory and runs the published image. ([#1042](https://github.com/mifunedev/agro/issues/1042))
 - Name the invoked binary in every operator-facing CLI message, so `agro sandbox install docker` now ends with `next: agro shell <name>` instead of the deprecated `oh` spelling. ([#1046](https://github.com/mifunedev/agro/issues/1046))
 - Correct the docs that named `${OH_HOME:-~/.oh}/sandboxes/<name>/` as the current registry path and `/opt/oh-seed` as the image seed source. ([#1046](https://github.com/mifunedev/agro/issues/1046))
