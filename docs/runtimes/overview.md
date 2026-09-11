@@ -36,8 +36,8 @@ Runtimes:
 `agro sandbox install microsandbox` refuses:
 
 ```
-oh sandbox install: microsandbox is not a provisionable runtime yet; see
-docs/rfcs/rfc-runtime-support.md. Inside a sandbox run `oh tool install microsandbox`.
+agro sandbox install: microsandbox is not a provisionable runtime yet; see
+docs/rfcs/rfc-runtime-support.md. Inside a sandbox run `agro tool install microsandbox`.
 ```
 
 `agro sandbox install` is host-scoped. Run from inside the sandbox it refuses
