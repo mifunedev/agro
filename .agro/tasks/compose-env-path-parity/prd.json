@@ -1,0 +1,102 @@
+{
+    "schemaVersion": 1,
+    "project": "Open Harness",
+    "branchName": "bug/935-compose-env-path-parity",
+    "description": "Fix the stale literal --env-file assertion in .agro/evals/probes/compose-config-path-parity.sh. The probe compares the wrapper's emitted --env-file to the literal string $ROOT/.devcontainer/.env, which raises a false REGRESSION on every machine that has run `agro sandbox install` (root env file plus a .devcontainer/.env symlink to ../.env), and reports a vacuous PASS in CI where no environment file exists. Replace the string comparison with a portable device-and-inode identity check, and stop emitting a PASS line that claims an assertion the run did not make. The wrapper .agro/scripts/docker-compose.sh must not be modified.",
+    "userStories": [
+        {
+            "id": "US-001",
+            "title": "Replace the literal comparison with a portable identity comparison",
+            "description": "As a harness maintainer, I want the probe to compare file identity instead of a path string, so a correctly installed machine stops reporting a false REGRESSION.",
+            "acceptanceCriteria": [
+                "In .agro/evals/probes/compose-config-path-parity.sh, the comparison at line ~26 no longer tests $named against $ROOT/.devcontainer/.env as a literal string",
+                "A helper function resolves a path to a device:inode identity, trying `stat -Lc '%d:%i'` first and `stat -Lf '%d:%i'` second, and printing nothing when neither succeeds",
+                "Identity resolution dereferences symlinks (the -L flag is present in both forms)",
+                "When both identities resolve and are equal, no entry is appended to the fails array",
+                "When both identities resolve and differ, one entry is appended to fails naming both the wrapper path and $ROOT/.devcontainer/.env",
+                "When either identity fails to resolve, no entry is appended to fails and the assertion is recorded as not made",
+                "Every stat invocation is guarded so that a failure under `set -euo pipefail` does not abort the probe",
+                "Scenario A (root env file plus .devcontainer/.env symlink to ../.env) exits 0",
+                "Scenario C (root env file plus a drifted regular-file .devcontainer/.env) exits 1 and names the mismatch",
+                "Scenario D (root env file plus a .devcontainer/.env hardlink) exits 0",
+                ".agro/scripts/docker-compose.sh is unmodified",
+                "The existing --env-file count check (lines 22-23) and harness-config.sh check (lines 30-31) are unchanged in behaviour",
+                "shellcheck on the probe reports no new finding",
+                "Typecheck passes"
+            ],
+            "priority": 1,
+            "passes": false,
+            "notes": ""
+        },
+        {
+            "id": "US-002",
+            "title": "Stop reporting a PASS that asserts nothing",
+            "description": "As a harness maintainer, I want the probe's output to state exactly which assertions ran, so a green run in CI cannot be read as proof of path parity it never established.",
+            "acceptanceCriteria": [
+                "The probe tracks, in a single variable, whether the environment-file identity assertion was made",
+                "When env_file_count equals 0, the probe records that the wrapper emitted no --env-file and that the assertion was not made, appends nothing to fails, and continues to the behavioural half",
+                "The final PASS line does not claim both paths read the same .devcontainer/.env unless the identity assertion actually ran",
+                "When the assertion ran, the PASS line still states that both paths resolved to the same environment file",
+                "When the assertion did not run, the PASS line names the behavioural half as the sole basis for the pass and names the unasserted condition",
+                "Running the probe at the real repository root with no environment file present exits 0 and prints the unasserted condition",
+                "Typecheck passes"
+            ],
+            "priority": 2,
+            "passes": false,
+            "notes": ""
+        },
+        {
+            "id": "US-003",
+            "title": "Exit SKIPPED only when nothing at all was asserted",
+            "description": "As a harness maintainer, I want an exit code of 2 to mean the probe learned nothing, so the eval report distinguishes a real pass from an empty run.",
+            "acceptanceCriteria": [
+                "When the identity assertion was not made and `docker compose` is unavailable, the probe exits 2 with a message stating that neither half ran",
+                "When the identity assertion was not made and `docker compose config` produced no output, the probe exits 2 with the same class of message",
+                "When the identity assertion was made and the behavioural half cannot run, the probe exits 2 with the existing 'structural half passed' message",
+                "A non-empty fails array still causes exit 1 in every branch, evaluated before any exit 2",
+                "The behavioural half at lines 43-78 is unchanged in behaviour",
+                "Typecheck passes"
+            ],
+            "priority": 3,
+            "passes": false,
+            "notes": ""
+        },
+        {
+            "id": "US-004",
+            "title": "Lock the behaviour with a scenario-matrix regression test",
+            "description": "As a harness maintainer, I want the four environment-file layouts covered by an automated test, so a future edit cannot quietly reintroduce a string comparison.",
+            "acceptanceCriteria": [
+                "A new test file under .agro/scripts/__tests__/ builds four fixture workspaces in a temporary directory: symlink, absent, drifted regular copy, hardlink",
+                "Each fixture contains a copy of .devcontainer/, .agro/scripts/{docker-compose.sh,compat.sh}, and the probe under .agro/evals/probes/",
+                "The test asserts the probe exit codes are 0, 0, 1, 0 for the four scenarios in that order",
+                "The test asserts the absent-file run's output names the unasserted condition",
+                "The test never reads, writes, or depends on the real repository environment file",
+                "The test is skipped, not failed, when `docker compose` is unavailable",
+                "The test does not duplicate the install-time symlink assertion already at .agro/scripts/__tests__/compose-args.test.ts:474",
+                "The test runs under the repository's existing test command",
+                "Tests pass",
+                "Typecheck passes"
+            ],
+            "priority": 4,
+            "passes": false,
+            "notes": ""
+        },
+        {
+            "id": "US-005",
+            "title": "Confirm the eval floor and the CI path",
+            "description": "As the advisor, I want proof the change holds the regression floor before the PR is opened.",
+            "acceptanceCriteria": [
+                "`/eval` runs green on branch bug/935-compose-env-path-parity",
+                ".agro/evals/RESULTS.md shows no probe moving from PASS to REGRESSION",
+                "The compose-config-path-parity row in .agro/evals/RESULTS.md is PASS",
+                "The CI eval-probes job is green on the pushed branch",
+                "A CHANGELOG entry is added per .agro/skills/git/SKILL.md",
+                "Tests pass",
+                "Typecheck passes"
+            ],
+            "priority": 5,
+            "passes": false,
+            "notes": ""
+        }
+    ]
+}

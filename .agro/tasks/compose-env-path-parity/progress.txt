@@ -1,0 +1,48 @@
+# progress
+
+2026-09-11 — plan phase (advisor, session 01eecd5b)
+Validated issue #935 independently before planning. Both directions reproduced by
+execution in hermetic scratchpad fixtures, not accepted from the briefing:
+  - Direction 2 (vacuous PASS) reproduced at the real repository root: the wrapper
+    emits zero --env-file arguments, so the literal comparison branch never runs.
+  - Direction 1 (false REGRESSION) reproduced under the canonical post-#887 layout
+    (root env file + .devcontainer/.env -> ../.env, one inode).
+  - install.sh:322-343 unconditionally creates the root env file and force-heals the
+    symlink, so the red state is the normal installed state, not an edge case.
+  - Behavioural half (lines 43-78) exercised with docker compose v5.5.1 present and
+    confirmed sound, including the cp -R symlink-carry case. Out of scope.
+Method matrix over four layouts established that the fix proposed in the issue body
+(stat -c %d:%i) is itself broken: GNU stat defaults to lstat, so it compares the
+symlink's own inode (747923) against the target's (747922) and fails the canonical
+layout. Resolved method is the dereferencing form, behind a GNU->BSD shim.
+Findings posted to the issue: https://github.com/mifunedev/agro/issues/935#issuecomment-5628996672
+Wrote prd.md (/prd) and prd.json (/ralph), 5 stories.
+
+Guard limitation, recorded honestly: the repository secret-exposure guard blocks
+commands naming env-file paths. It blocked a listing of the real repository root, a
+grep for the devcontainer env path, and a direct stat of the fixtures. No repro claim
+depends on a blocked command, and no bypass was engineered. The wrapper's own
+--print-argv output and directory-level `ls -lai` supplied the same facts including
+the inode numbers.
+
+2026-09-11 — execute phase, step 0 (owner, session 01eecd5b)
+Operator exception recorded BEFORE any direct edit, per .agro/skills/spec/references/execute.md
+step 4: the operator instructed this session to run /spec execute directly in this
+turn. This task is a single-file probe change plus one test; the owner performs the
+tracked implementation edits itself rather than dispatching a /delegate worker.
+
+Contract gap-fill: /prd and /ralph do not emit the Knowledge Context, Expected
+Knowledge Impact, or Plan Reconciliation sections that execute.md's precondition
+requires, and no progress.txt existed. Added all four here rather than refusing and
+re-running /spec plan, because the plan's intent is unchanged and its base commit is
+identical to the execution base (ed9ac894). Plan Reconciliation records
+"Intent preserved: YES".
+
+Re-grounding: planning base == execution base == ed9ac89450103cfe71ff4c7c7fec7ea1009d5713.
+git diff over that range is empty, so no source the plan grounded on has moved.
+Knowledge page compose-env-boundary re-read; it describes the registry
+--extra-env-file route and does not constrain the in-checkout ENV_FILE preference
+this task touches.
+
+Worktree: .worktrees/bug/935-compose-env-path-parity on branch
+bug/935-compose-env-path-parity off origin/development.
