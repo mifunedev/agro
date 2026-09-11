@@ -119,22 +119,32 @@ describe("the env-key bridge", () => {
 describe("setEnvValue", () => {
   it("routes a compose variable to its oh.json field", () => {
     const root = makeRepo();
-    expect(setEnvValue(root, "DOCKER_SOCKET", "true")).toBe("updated");
+    expect(setEnvValue(root, "DOCKER_SOCKET", "true", "agro")).toBe("updated");
     expect(readConfig(root)).toMatchObject({ access: { dockerSocket: true } });
     expectNoDotenv(root);
   });
 
-  it("refuses a retired INSTALL_* key rather than resurrecting an install field", () => {
-    const root = makeRepo();
-    expect(() => setEnvValue(root, "INSTALL_TAILSCALE", "true")).toThrow(/oh config set/);
-    expectNoDotenv(root);
-  });
+  it.each(["agro", "oh"])(
+    "refuses a retired INSTALL_* key for %s rather than resurrecting an install field",
+    (bin) => {
+      const root = makeRepo();
+      expect(() => setEnvValue(root, "INSTALL_TAILSCALE", "true", bin)).toThrow(
+        `\`${bin} config set\``,
+      );
+      expectNoDotenv(root);
+    },
+  );
 
-  it("refuses a key that has no oh.json field rather than falling back to a dotenv", () => {
-    const root = makeRepo();
-    expect(() => setEnvValue(root, "GH_TOKEN", "ghp_example")).toThrow(/oh secret set/);
-    expectNoDotenv(root);
-  });
+  it.each(["agro", "oh"])(
+    "refuses a key that has no oh.json field for %s rather than falling back to a dotenv",
+    (bin) => {
+      const root = makeRepo();
+      expect(() => setEnvValue(root, "GH_TOKEN", "ghp_example", bin)).toThrow(
+        `\`${bin} secret set\``,
+      );
+      expectNoDotenv(root);
+    },
+  );
 });
 
 describe("setConfigField", () => {

@@ -608,16 +608,21 @@ describe("runSelfUpgrade — standalone", () => {
 });
 
 describe("runSelfUpgrade — refusals shared by every kind", () => {
-  it("refuses an image-managed executable with the image procedure", async () => {
-    const world = fakeWorld();
-    world.deps.realpath = () => "/opt/oh/dist/agro.js";
-    world.deps.stat = () => ({ mode: 0o755, isFile: () => true, isDirectory: () => false });
-    expect(await runSelfUpgrade({ dryRun: false, argv1: "/usr/local/bin/agro" }, world.deps, world.io)).toBe(1);
-    expect(world.err()).toBe(
-      "agro update: image installation at /opt/oh/dist/agro.js — the sandbox image ships this CLI; pull a newer image on the host (oh/agro stop, then agro sandbox install docker --name <name>)\n",
-    );
-    expect(world.out()).toBe("");
-  });
+  it.each(["agro", "oh"])(
+    "refuses an image-managed executable with the %s image procedure",
+    async (bin) => {
+      const world = fakeWorld();
+      world.deps.realpath = () => "/opt/oh/dist/agro.js";
+      world.deps.stat = () => ({ mode: 0o755, isFile: () => true, isDirectory: () => false });
+      expect(
+        await runSelfUpgrade({ dryRun: false, argv1: `/usr/local/bin/${bin}` }, world.deps, world.io),
+      ).toBe(1);
+      expect(world.err()).toBe(
+        `agro update: image installation at /opt/oh/dist/agro.js — the sandbox image ships this CLI; pull a newer image on the host (${bin} stop, then ${bin} sandbox install docker --name <name>)\n`,
+      );
+      expect(world.out()).toBe("");
+    },
+  );
 
   it("refuses a source checkout with the rebuild procedure", async () => {
     const cli = join(mkTmp(), "checkout", ".oh", "cli");

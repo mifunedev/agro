@@ -128,7 +128,7 @@ function dockerSocketConfigured(root: string): boolean {
   return configuredField(root, "access.dockerSocket") !== undefined;
 }
 
-async function maybePromptDockerSocket(root: string, io: LifecycleIO): Promise<void> {
+async function maybePromptDockerSocket(root: string, io: LifecycleIO, bin: string): Promise<void> {
   if (dockerSocketConfigured(root)) return;
   const interactive = process.stdin.isTTY === true || io.ask !== undefined;
   if (!interactive) return;
@@ -143,7 +143,7 @@ async function maybePromptDockerSocket(root: string, io: LifecycleIO): Promise<v
     .trim()
     .toLowerCase();
   const enabled = answer === "y" || answer === "yes";
-  setEnvValue(root, "DOCKER_SOCKET", enabled ? "true" : "false");
+  setEnvValue(root, "DOCKER_SOCKET", enabled ? "true" : "false", bin);
   io.stdout(
     enabled
       ? "DOCKER_SOCKET=true — host Docker socket will be mounted\n"
@@ -195,7 +195,7 @@ export async function runSandbox(opts: SandboxOptions, io: LifecycleIO): Promise
     io.stderr(`${new HostOnlyError(`\`${opts.bin} sandbox\``).message}\n`);
     return 1;
   }
-  await maybePromptDockerSocket(root, io);
+  await maybePromptDockerSocket(root, io, opts.bin);
   requireLifecycleScript(root, "docker-compose.sh");
 
   if (imageRef !== undefined) {

@@ -77,15 +77,18 @@ function harnessCheckout(): string {
 }
 
 describe("oh sandbox install — runtime selection", () => {
-  it("refuses microsandbox with the RFC pointer and the tool verb", async () => {
-    registry();
-    const { err, io } = makeIo();
-    expect(await runSandboxInstall({ bin: "oh", runtime: "microsandbox", yes: true }, io)).toBe(1);
-    expect(err.join("")).toContain(
-      "microsandbox is not a provisionable runtime yet; see docs/rfcs/rfc-runtime-support.md. " +
-        "Inside a sandbox run `oh tool install microsandbox`.",
-    );
-  });
+  it.each(["agro", "oh"])(
+    "refuses microsandbox with the RFC pointer and the %s tool verb",
+    async (bin) => {
+      registry();
+      const { err, io } = makeIo();
+      expect(await runSandboxInstall({ bin, runtime: "microsandbox", yes: true }, io)).toBe(1);
+      expect(err.join("")).toContain(
+        "microsandbox is not a provisionable runtime yet; see docs/rfcs/rfc-runtime-support.md. " +
+          `Inside a sandbox run \`${bin} tool install microsandbox\`.`,
+      );
+    },
+  );
 
   it("refuses an unknown runtime and lists the catalog", async () => {
     registry();
@@ -699,25 +702,28 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
     });
   });
 
-  it("fails before the wizard when image.mode is build and no Dockerfile exists", async () => {
-    registry();
-    const plain = tempDir("oh-sandbox-plain-");
-    writeFileSync(
-      join(plain, "agro.json"),
-      `${JSON.stringify({ version: 1, image: { mode: "build" } })}\n`,
-    );
-    const { run } = makeRunner();
-    const { asked, err, io } = makeIo(["never-read"]);
+  it.each(["agro", "oh"])(
+    "fails before the wizard under %s when image.mode is build and no Dockerfile exists",
+    async (bin) => {
+      registry();
+      const plain = tempDir("oh-sandbox-plain-");
+      writeFileSync(
+        join(plain, "agro.json"),
+        `${JSON.stringify({ version: 1, image: { mode: "build" } })}\n`,
+      );
+      const { run } = makeRunner();
+      const { asked, err, io } = makeIo(["never-read"]);
 
-    expect(
-      await runSandboxInstall({ bin: "oh", runtime: "docker", name: "box", checkout: plain, run }, io),
-    ).not.toBe(0);
-    expect(asked).toEqual([]);
-    const message = err.join("");
-    expect(message).toContain("oh sandbox install:");
-    expect(message).toContain("--checkout");
-    expect(message).toContain(join(plain, ".devcontainer", "Dockerfile"));
-  });
+      expect(
+        await runSandboxInstall({ bin, runtime: "docker", name: "box", checkout: plain, run }, io),
+      ).not.toBe(0);
+      expect(asked).toEqual([]);
+      const message = err.join("");
+      expect(message).toContain(`${bin} sandbox install:`);
+      expect(message).toContain("--checkout");
+      expect(message).toContain(join(plain, ".devcontainer", "Dockerfile"));
+    },
+  );
 
   it("writes no registry entry when the build preflight fails", async () => {
     const registryPath = registry();

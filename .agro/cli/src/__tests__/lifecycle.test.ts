@@ -27,6 +27,7 @@ import {
   type RunResult,
 } from "../commands/lifecycle.js";
 import { ohConfigPath } from "../lib/oh-config.js";
+import { withInvokedBinAsync } from "./invoked-bin.js";
 
 const readOhJson = (root: string): Record<string, never> =>
   JSON.parse(readFileSync(ohConfigPath(root), "utf8"));
@@ -256,12 +257,14 @@ describe("runSandbox", () => {
     expect(calls[0].args).toEqual([script, "--repo-dir", root, "up", "-d", "--build"]);
   });
 
-  it("errors when not inside an equipped repo", async () => {
+  it.each(["agro", "oh"])("errors under %s when not inside an equipped repo", async (bin) => {
     const bare = mkdtempSync(join(tmpdir(), "oh-lifecycle-bare-"));
     cleanups.push(bare);
-    await expect(runSandbox({ bin: "oh", cwd: bare, run: makeRunner().run }, makeIo().io)).rejects.toThrow(
-      "not an OpenHarness-equipped repo — run `oh update` first",
-    );
+    await withInvokedBinAsync(bin, async () => {
+      await expect(
+        runSandbox({ bin, cwd: bare, run: makeRunner().run }, makeIo().io),
+      ).rejects.toThrow(`not an OpenHarness-equipped repo — run \`${bin} update\` first`);
+    });
   });
 
   it("prompts and records access.dockerSocket=true in oh.json on yes", async () => {

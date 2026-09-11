@@ -28,12 +28,17 @@ export const CONFIG_FIELD_BY_ENV_KEY: Record<string, string> = {
 
 export type ConfigFieldOutcome = "already-set" | "updated" | "added";
 
-export function setEnvValue(root: string, key: string, value: string): ConfigFieldOutcome {
+export function setEnvValue(
+  root: string,
+  key: string,
+  value: string,
+  bin: string,
+): ConfigFieldOutcome {
   const path = CONFIG_FIELD_BY_ENV_KEY[key];
   if (path === undefined) {
     throw new Error(
-      `${key} is not a settable oh.json field — run \`oh config set\` for a non-secret, ` +
-        "`oh secret set` for a credential",
+      `${key} is not a settable oh.json field — run \`${bin} config set\` for a non-secret, ` +
+        `\`${bin} secret set\` for a credential`,
     );
   }
   return setConfigField(root, path, value);

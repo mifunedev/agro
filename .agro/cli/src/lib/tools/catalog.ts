@@ -11,7 +11,7 @@ export interface ToolEntry {
   readonly installArgv?: readonly string[];
   readonly installUser?: "root" | "sandbox";
   readonly downloadSize?: string;
-  readonly notInstallableReason?: string;
+  readonly notInstallableReason?: (bin: string) => string;
   readonly docsPath: string;
 }
 
@@ -128,8 +128,8 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
     binary: "docker",
     verifyArgv: Object.freeze(["bash", "-lc", "command -v docker >/dev/null"]),
     versionArgv: Object.freeze(["docker", "--version"]),
-    notInstallableReason:
-      "The Docker CLI is installed in the base image. Note that the CLI being present says nothing about whether a daemon is reachable — `oh ps <name>` answers that.",
+    notInstallableReason: (bin: string): string =>
+      `The Docker CLI is installed in the base image. Note that the CLI being present says nothing about whether a daemon is reachable — \`${bin} ps <name>\` answers that.`,
     docsPath: TOOLS_DOC,
   }),
   Object.freeze({
@@ -139,7 +139,7 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
     binary: "gh",
     verifyArgv: Object.freeze(["bash", "-lc", "command -v gh >/dev/null"]),
     versionArgv: Object.freeze(["gh", "--version"]),
-    notInstallableReason:
+    notInstallableReason: (): string =>
       "The GitHub CLI is installed in the base image. Run `gh auth login` inside the sandbox to authenticate it.",
     docsPath: TOOLS_DOC,
   }),

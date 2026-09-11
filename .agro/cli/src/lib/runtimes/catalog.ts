@@ -8,7 +8,7 @@ export interface RuntimeEntry {
   readonly tier: RuntimeTier;
   readonly state: RuntimeState;
   readonly provisionable: boolean;
-  readonly notProvisionableReason?: string;
+  readonly notProvisionableReason?: (bin: string) => string;
   readonly docsPath: string;
 }
 
@@ -27,8 +27,8 @@ export const RUNTIME_CATALOG: readonly RuntimeEntry[] = Object.freeze([
     tier: "microvm",
     state: "planned",
     provisionable: false,
-    notProvisionableReason:
-      "microsandbox is not a provisionable runtime yet; see docs/rfcs/rfc-runtime-support.md. Inside a sandbox run `oh tool install microsandbox`.",
+    notProvisionableReason: (bin: string): string =>
+      `microsandbox is not a provisionable runtime yet; see docs/rfcs/rfc-runtime-support.md. Inside a sandbox run \`${bin} tool install microsandbox\`.`,
     docsPath: "docs/runtimes/microsandbox.md",
   }),
 ]);

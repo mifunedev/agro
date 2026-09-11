@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { createCloudApiClient, runCloud, type CloudIO } from "../commands/cloud.js";
 import { readOhConfig, ohConfigPath } from "../lib/oh-config.js";
 import { readSecret } from "../lib/secrets.js";
+import { withInvokedBinAsync } from "./invoked-bin.js";
 
 const cleanups: string[] = [];
 
@@ -117,15 +118,20 @@ describe("cloud config", () => {
     expect(second.out.join("")).not.toContain("Migrated");
   });
 
-  it("names the flag escape hatch when it runs outside an equipped repo", async () => {
-    const fixture = tempConfig();
-    const console = io({ env: fixture.env, cwd: fixture.home });
-    expect(await runCloud(["nodes", "list"], console)).toBe(1);
-    expect(console.err.join("")).toBe(
-      "oh cloud: not an OpenHarness-equipped repo — run `oh update` first; " +
-        "pass --api-url and --provision-key to run `oh cloud` outside a repo\n",
-    );
-  });
+  it.each(["agro", "oh"])(
+    "names the %s flag escape hatch when it runs outside an equipped repo",
+    async (bin) => {
+      const fixture = tempConfig();
+      const console = io({ bin, env: fixture.env, cwd: fixture.home });
+      await withInvokedBinAsync(bin, async () => {
+        expect(await runCloud(["nodes", "list"], console)).toBe(1);
+      });
+      expect(console.err.join("")).toBe(
+        `${bin} cloud: not an OpenHarness-equipped repo — run \`${bin} update\` first; ` +
+          `pass --api-url and --provision-key to run \`${bin} cloud\` outside a repo\n`,
+      );
+    },
+  );
 
   it("runs outside an equipped repo when both flags are supplied", async () => {
     const fixture = tempConfig();

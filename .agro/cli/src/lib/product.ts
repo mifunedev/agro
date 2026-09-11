@@ -38,6 +38,10 @@ export function resolveProduct(argv1: string | undefined): Product {
   return invokedName(argv1) === LEGACY_PRODUCT.bin ? LEGACY_PRODUCT : AGRO_PRODUCT;
 }
 
+export function activeBin(): string {
+  return resolveProduct(process.argv[1]).bin;
+}
+
 export function productFor(bin: string): Product {
   return bin === LEGACY_PRODUCT.bin ? LEGACY_PRODUCT : AGRO_PRODUCT;
 }

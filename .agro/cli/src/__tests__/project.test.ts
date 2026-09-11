@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { resolveProjectRoot } from "../lib/project.js";
+import { withInvokedBin } from "./invoked-bin.js";
 
 
 const cleanups: string[] = [];
@@ -54,15 +55,20 @@ describe("resolveProjectRoot", () => {
     expect(resolveProjectRoot(child)).toBe(root);
   });
 
-  it("errors clearly (no oh: prefix) when no ancestor contains .oh/", () => {
-    const bare = mkTmp();
-    const nested = join(bare, "a", "b");
-    mkdirSync(nested, { recursive: true });
-    expect(() => resolveProjectRoot(nested)).toThrow(
-      "not an OpenHarness-equipped repo — run `oh update` first",
-    );
-    expect(() => resolveProjectRoot(nested)).not.toThrow(/^oh:/);
-  });
+  it.each(["agro", "oh"])(
+    "errors clearly (no %s: prefix) when no ancestor contains a control directory",
+    (bin) => {
+      const bare = mkTmp();
+      const nested = join(bare, "a", "b");
+      mkdirSync(nested, { recursive: true });
+      withInvokedBin(bin, () => {
+        expect(() => resolveProjectRoot(nested)).toThrow(
+          `not an OpenHarness-equipped repo — run \`${bin} update\` first`,
+        );
+        expect(() => resolveProjectRoot(nested)).not.toThrow(new RegExp(`^${bin}:`));
+      });
+    },
+  );
 });
 
 describe("resolveProjectRoot — dual-generation control directories", () => {

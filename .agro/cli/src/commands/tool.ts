@@ -233,7 +233,7 @@ export async function runToolInstall(
 
   if (entry.installArgv === undefined) {
     io.stderr(`${opts.bin} tool: ${entry.id} cannot be installed by this command.\n\n`);
-    io.stderr(`${entry.notInstallableReason ?? ""}\n\n`);
+    io.stderr(`${entry.notInstallableReason?.(opts.bin) ?? ""}\n\n`);
     io.stderr(`Installable tools:\n${installableToolIds().map((t) => `  ${t}`).join("\n")}\n`);
     return 1;
   }

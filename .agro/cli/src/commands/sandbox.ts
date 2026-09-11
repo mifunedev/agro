@@ -217,7 +217,7 @@ export async function runSandboxInstall(
     return 1;
   }
   if (!runtime.provisionable) {
-    io.stderr(`${opts.bin} sandbox install: ${runtime.notProvisionableReason}\n`);
+    io.stderr(`${opts.bin} sandbox install: ${runtime.notProvisionableReason?.(opts.bin) ?? ""}\n`);
     return 1;
   }
 

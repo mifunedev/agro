@@ -10,6 +10,7 @@ import {
   secretsFilePath,
   setSecret,
 } from "../secrets.js";
+import { withInvokedBin } from "../../__tests__/invoked-bin.js";
 
 const cleanups: string[] = [];
 afterEach(() => {
@@ -54,10 +55,12 @@ describe("setSecret", () => {
     expect(statSync(secretsFilePath(root)).mode & 0o777).toBe(0o600);
   });
 
-  it("points a non-allow-listed key at `oh config set`", () => {
+  it.each(["agro", "oh"])("points a non-allow-listed key at `%s config set`", (bin) => {
     const root = makeRoot();
-    expect(() => setSecret(root, "SANDBOX_NAME", "demo")).toThrow(/oh config set/);
-    expect(() => setSecret(root, "SANDBOX_NAME", "demo")).toThrow(/is not a secret/);
+    withInvokedBin(bin, () => {
+      expect(() => setSecret(root, "SANDBOX_NAME", "demo")).toThrow(`\`${bin} config set\``);
+      expect(() => setSecret(root, "SANDBOX_NAME", "demo")).toThrow(/is not a secret/);
+    });
   });
 
   it("rewrites an existing key in place instead of duplicating it", () => {
@@ -95,9 +98,11 @@ describe("readSecret", () => {
     expect(readSecret(root, "XAI_API_KEY")).toBeUndefined();
   });
 
-  it("refuses to read a key that is not a secret", () => {
+  it.each(["agro", "oh"])("refuses to read a key that is not a secret under %s", (bin) => {
     const root = makeRoot();
-    expect(() => readSecret(root, "TZ")).toThrow(/oh config set/);
+    withInvokedBin(bin, () => {
+      expect(() => readSecret(root, "TZ")).toThrow(`\`${bin} config set\``);
+    });
   });
 });
 

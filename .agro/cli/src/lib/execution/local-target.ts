@@ -1,4 +1,5 @@
 import { userInfo } from "node:os";
+import { activeBin } from "../product.js";
 import {
   assertSpawned,
   spawnRunner,
@@ -53,11 +54,11 @@ export class LocalExecutionTarget implements ExecutionTarget {
   }
 
   async provision(): Promise<void> {
-    throw new HostOnlyError("`oh sandbox`");
+    throw new HostOnlyError(`\`${activeBin()} sandbox\``);
   }
 
   async destroy(): Promise<void> {
-    throw new HostOnlyError("`oh destroy`");
+    throw new HostOnlyError(`\`${activeBin()} destroy\``);
   }
 
   async status(): Promise<ExecutionStatus> {

@@ -9,6 +9,7 @@ import {
   type ComposeVerb,
 } from "../commands/lifecycle.js";
 import type { LifecycleRunner, RunResult } from "../lib/execution/runner.js";
+import { withInvokedBin } from "./invoked-bin.js";
 
 vi.mock("../cli.js", async (importOriginal) => {
   const original = process.exit;
@@ -120,14 +121,21 @@ describe("runComposeVerb", () => {
     expect(runComposeVerb("logs", { bin: "oh", ...entry, run })).toBe(1);
   });
 
-  it("fails with the re-vendor hint when the entry carries no script", () => {
-    const home = mkdtempSync(join(tmpdir(), "oh-compose-bare-"));
-    cleanups.push(home);
-    vi.stubEnv("OH_HOME", home);
-    mkdirSync(join(home, "sandboxes", "bare", ".oh", "scripts"), { recursive: true });
-    const { run } = makeRunner();
-    expect(() => runComposeVerb("ps", { bin: "oh", name: "bare", run })).toThrow(/oh update/);
-  });
+  it.each(["agro", "oh"])(
+    "fails with the %s re-vendor hint when the entry carries no script",
+    (bin) => {
+      const home = mkdtempSync(join(tmpdir(), "oh-compose-bare-"));
+      cleanups.push(home);
+      vi.stubEnv("OH_HOME", home);
+      mkdirSync(join(home, "sandboxes", "bare", ".oh", "scripts"), { recursive: true });
+      const { run } = makeRunner();
+      withInvokedBin(bin, () => {
+        expect(() => runComposeVerb("ps", { bin, name: "bare", run })).toThrow(
+          `\`${bin} update\``,
+        );
+      });
+    },
+  );
 });
 
 describe("help", () => {
