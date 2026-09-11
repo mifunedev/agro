@@ -4,7 +4,7 @@ slug: compose-env-boundary
 kind: repo
 tags: [compose, devcontainer, oh-json, cli, entrypoint, boundary, installs, sandbox, registry]
 created: 2026-08-31
-updated: 2026-09-10
+updated: 2026-09-11
 sources:
   - .devcontainer/docker-compose.yml
   - .devcontainer/docker-compose.image-only.yml
