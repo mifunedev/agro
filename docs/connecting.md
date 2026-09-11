@@ -10,7 +10,7 @@ The sandbox is a Docker container running on your host (or a remote server). Get
 
 | Option | Command / action | Port forwarding to laptop |
 |--------|-----------------|--------------------------|
-| **A — Terminal** | `oh shell` from the host | None — plain shell only |
+| **A — Terminal** | `agro shell` from the host | None — plain shell only |
 | **B — VSCode Attach (local)** | Dev Containers extension → "Attach to Running Container" → your sandbox name from `agro sandbox list` | Automatic while attached |
 | **C — VSCode Remote-SSH + Attach (remote host)** | SSH into your host in VSCode, then Attach to Container | Automatic while attached |
 | **D — Direct SSH (opt-in)** | `ssh -p 2222 sandbox@localhost` after enabling the sshd overlay | None — SSH shell only (tunnel/proxy separately) |
@@ -20,15 +20,15 @@ The sandbox is a Docker container running on your host (or a remote server). Get
 ```bash
 agro shell <name>
 ```
-Pass an optional container name to attach to a different running container, e.g. `oh shell portfolio-advisor`. `oh shell` always attaches as the `sandbox` user; if the target container has no such user, use `docker exec -it -u <user> <container> zsh` instead.
+Pass an optional container name to attach to a different running container, e.g. `agro shell portfolio-advisor`. `agro shell` always attaches as the `sandbox` user; if the target container has no such user, use `docker exec -it -u <user> <container> zsh` instead.
 
-You land inside the container as the `sandbox` user. A fresh sandbox has no `herdr`: run `oh tool install herdr`, then `herdr`, then launch CLI agents and complete interactive setup from its panes. Container ports are **not** forwarded to your laptop — you cannot open `localhost:3000` in your browser via this method alone.
+You land inside the container as the `sandbox` user. A fresh sandbox has no `herdr`: run `agro tool install herdr`, then `herdr`, then launch CLI agents and complete interactive setup from its panes. Container ports are **not** forwarded to your laptop — you cannot open `localhost:3000` in your browser via this method alone.
 
 > **Attach, do not "Reopen in Container".** *Dev Containers: Reopen in Container*
 > reads `.devcontainer/devcontainer.json`, which names `docker-compose.yml` alone,
 > so it bypasses `.agro/scripts/docker-compose.sh` and applies **no compose overlays** —
 > no SSH, no host Docker socket, no Hermes dashboard, nothing from
-> `composeOverrides[]`. Provision with `oh sandbox install docker`, then attach. Details:
+> `composeOverrides[]`. Provision with `agro sandbox install docker`, then attach. Details:
 > [lifecycle commands](lifecycle-commands.md#vs-code-reopen-in-container-applies-no-overlays).
 
 ### Option B — VSCode Attach to Running Container (local host)
@@ -67,7 +67,7 @@ preflight, and the nginx multi-tenant recipe — is in
 
 Attaching via VSCode is the easiest way to reach container UIs on your laptop browser. The auto-forwarding is session-scoped: ports appear under the **Ports** panel while attached and disappear when you close or detach from the VSCode window.
 
-If you only need a terminal (no browser UI), Option A is fine. Whichever attach path you choose, make `oh tool install herdr` and then `herdr` the first commands in the sandbox.
+If you only need a terminal (no browser UI), Option A is fine. Whichever attach path you choose, make `agro tool install herdr` and then `herdr` the first commands in the sandbox.
 
 ## What happens when you close VSCode
 
@@ -117,7 +117,7 @@ This is the supported path for reaching T3 Code from a phone, and the supported 
 
 - No `NET_ADMIN`, no `/dev/net/tun`, no `privileged: true`, no host socket mount. Userspace networking needs none of them, and Tailscale Serve is fully supported in that mode.
 - **No host port is published.** T3 Code stays on container loopback `127.0.0.1:3773`. Tailscale Serve inside the container proxies tailnet HTTPS to that loopback address. A device outside the tailnet has nothing to reach.
-- **There is no compose change at all.** `oh tool install tailscale` is the only door, and nothing installs Tailscale at boot. Node identity and daemon state live in `/home/sandbox/.tailscale`, inside the single `/home/sandbox` mount, so the node does not re-authenticate on every container recreate without any per-tool volume.
+- **There is no compose change at all.** `agro tool install tailscale` is the only door, and nothing installs Tailscale at boot. Node identity and daemon state live in `/home/sandbox/.tailscale`, inside the single `/home/sandbox` mount, so the node does not re-authenticate on every container recreate without any per-tool volume.
 - Because the container is the node, the MagicDNS name your phone saved does not change when you move the workspace to another VM.
 
 Installing the binary does **not** join a tailnet. Nothing runs `tailscaled` or `tailscale up` for you. Joining is an explicit human act.
@@ -126,7 +126,7 @@ Installing the binary does **not** join a tailnet. Nothing runs `tailscaled` or 
 
 On the remote host:
 
-- The sandbox is running (`oh ps`).
+- The sandbox is running (`agro ps`).
 - Node in the sandbox satisfies T3 Code's range `^22.16 || ^23.11 || >=24.10` (`node -v`).
 - A provider is authenticated in the sandbox (`claude`, `codex login`, or `opencode auth login`).
 - A Tailscale account and a tailnet you control.
@@ -141,17 +141,17 @@ The phone and the sandbox must share one tailnet. There is no other reachability
 ### Step 1 — Install Tailscale in the sandbox
 
 ```bash
-oh tool install tailscale
+agro tool install tailscale
 ```
 
 This installs the binary into the running sandbox, from the tool catalog, which is the sole owner of the pinned version and its checksums. It is idempotent, and it needs no image rebuild. The install lands in `~/.local/bin` inside the persistent home volume, so it survives a container recreate.
 
-The command needs a running sandbox. If the sandbox is not running, start it with `oh sandbox install docker --name <name>`, then re-run the command. Nothing about networking activates until you start the daemon in the next step.
+The command needs a running sandbox. If the sandbox is not running, start it with `agro sandbox install docker --name <name>`, then re-run the command. Nothing about networking activates until you start the daemon in the next step.
 
 Check the state at any time:
 
 ```bash
-oh tool status tailscale
+agro tool status tailscale
 ```
 
 ### Step 2 — Start the daemon
@@ -241,7 +241,7 @@ Then delete the device in the Tailscale admin console. Revoking a phone's own ta
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `/t3 start --tailscale` reports Tailscale missing | binary not installed | `oh tool install tailscale`, then `oh sandbox install docker --name <name>` if the sandbox was down |
+| `/t3 start --tailscale` reports Tailscale missing | binary not installed | `agro tool install tailscale`, then `agro sandbox install docker --name <name>` if the sandbox was down |
 | `tailscale status` fails to reach the daemon | `tailscaled` not running | repeat step 2; check `tmux ls` for `agent-tailscaled` |
 | Backend state is not `Running` / "logged out" | node never joined, or was logged out | `tailscale up` and complete the browser login |
 | No `ts.net` URL in the T3 output | Serve was not configured | confirm `tailscale status` is `Running`, then restart with `/t3 start --tailscale` |
@@ -258,7 +258,7 @@ Then delete the device in the Tailscale admin console. Revoking a phone's own ta
 If your host policy forbids a daemon inside the container, you can instead run `tailscaled` on the remote host and route the sandbox port through it. This is **not** the supported path and the harness does not manage it:
 
 - It requires publishing `3773` from the container to the host, which widens exposure on any multi-tenant or internet-facing VM.
-- `oh tool install tailscale` installs and versions the binary *inside* the sandbox, so `oh tool status tailscale` would not describe the host daemon.
+- `agro tool install tailscale` installs and versions the binary *inside* the sandbox, so `agro tool status tailscale` would not describe the host daemon.
 - The tailnet node becomes the host, so the MagicDNS name changes when you move the workspace to another machine.
 
 You own the configuration and the exposure in that layout.

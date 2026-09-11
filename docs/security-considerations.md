@@ -39,7 +39,7 @@ templates are committed.
   - `.devcontainer/.harness.yaml.env` (`.gitignore:7`) — a derived env artifact from before 0.4.0. Nothing generates it any more; the ignore line stays one release so a stale local copy is never committed.
   - `/.agro/config.json` (`.gitignore:8`) — host-local harness config.
   - `**/auth.json` and `**/.credentials.json` (`.gitignore:63-64`) — provider auth blobs.
-- **Template allowlist:** the *tracked* files are templates that hold no real secrets — e.g. [`.example.env`](../.example.env) and `.claude/.example.env.claude`. The operator copies `.example.env` to the real (gitignored, mode-`0600`) root `.env`; `install.sh` seeds it and `oh secret set <KEY>` edits one key. `.devcontainer/.env` is a symlink to that file, so VS Code "Reopen in Container" reads the same one. The `.example.env` header spells this out, including the warning that the compose default for `SANDBOX_PASSWORD` (`test1234`) is weak and public and must be overridden on any network-reachable deployment.
+- **Template allowlist:** the *tracked* files are templates that hold no real secrets — e.g. [`.example.env`](../.example.env) and `.claude/.example.env.claude`. The operator copies `.example.env` to the real (gitignored, mode-`0600`) root `.env`; `install.sh` seeds it and `agro secret set <KEY>` edits one key. `.devcontainer/.env` is a symlink to that file, so VS Code "Reopen in Container" reads the same one. The `.example.env` header spells this out, including the warning that the compose default for `SANDBOX_PASSWORD` (`test1234`) is weak and public and must be overridden on any network-reachable deployment.
 - **Split by kind:** non-secret settings live in the *tracked* [`agro.json`](../agro.json), never in `.env`. The split is enforced in code — `.agro/cli/src/lib/secrets.ts` owns the secret allow-list and `.agro/cli/src/lib/config-render.ts` refuses to render an allow-listed secret into the compose environment. See [Configuration](configuration.md).
 - **In the sandbox:** auth/state persists in the single `/home/sandbox` mount — the named volume `<sandbox-name>_workspace`, or a host path when `storage.homePath` is set — not in the repo. See [`.devcontainer/docker-compose.yml`](../.devcontainer/docker-compose.yml).
 
@@ -112,7 +112,7 @@ event.
   2. **Route the operation through the script:** `bash .agro/scripts/git-maintenance.sh <subcommand>` (`reset-hard <ref>` · `clean` · `branch-delete <branch>` · `worktree-remove <path>` · `push-force <remote> <branch>`). Script-file invocation is not analyzed by the guard, so a legitimate destructive-git op runs while the inline equivalent stays denied. This is how the harness's own automation (the `reset|clean` runner, `/watchdog`, worktree/branch grooming, the `cleanup-tasks` cron) keeps working.
 - **THE PI EXCEPTION.** `CC_SAFETY_NET_OFF=1` does **not** affect pi — pi's guard is a *package extension*, not a command wrapper, so it never reads the env flag. To disable on pi: remove `"npm:cc-safety-net@1.0.6"` from `packages` in [`.pi/settings.json`](../.pi/settings.json) and **restart the pi session**.
 - **Rollout / restart step (required).** The guard binds at process spawn, so long-lived sessions started **before** the guard landed stay unguarded until restarted — without this step they defeat the purpose indefinitely. After the merge and image rebuild:
-  - **Simplest — recreate the container** (restarts every session with the new image + env): `docker compose -f .devcontainer/docker-compose.yml up -d --build` (or `oh sandbox install docker`).
+  - **Simplest — recreate the container** (restarts every session with the new image + env): `docker compose -f .devcontainer/docker-compose.yml up -d --build` (or `agro sandbox install docker`).
   - **Or restart the long-lived sessions in place:**
     - cron runtime: `systemctl restart openharness-cron.service` — systemd owns the scheduler ([`openharness-cron.service`](../.devcontainer/openharness-cron.service)).
     - `client-slack-pi` (Slack bridge): `gateway pi --restart` (see [Integrations → Slack](integrations/slack.md)).
@@ -157,7 +157,7 @@ expose to whichever trust level you choose.
   Linux runner with AppArmor. On a host running `container-selinux` (Fedora, RHEL, CentOS
   Stream) systemd's mounts may be denied by SELinux instead, which `apparmor=unconfined`
   does not affect. The failure is loud rather than silent — PID 1 exits and the container
-  restart-loops — so an affected operator sees it immediately in `oh logs`. Tracked as
+  restart-loops — so an affected operator sees it immediately in `agro logs`. Tracked as
   [#960](https://github.com/mifunedev/agro/issues/960); the supported host baseline
   remains Debian/Ubuntu per
   [Runtimes → Docker](runtimes/docker.md).
@@ -200,14 +200,14 @@ expose to whichever trust level you choose.
   `PermitRootLogin no`, and password auth **off**. Two operator choices weaken that
   and are your responsibility: switching the bind to `0.0.0.0` (public interface),
   and enabling password auth while `SANDBOX_PASSWORD` is still the weak default
-  (`test1234`). An `oh sandbox install docker` **port-collision preflight**
+  (`test1234`). An `agro sandbox install docker` **port-collision preflight**
   ([`.agro/scripts/check-host-port.sh`](../.agro/scripts/check-host-port.sh)) refuses
   to create a container on a port already in use, so enabling SSH or adding a tenant
   can't silently clobber another tenant's port. Setup + the nginx multi-tenant recipe:
   [Integrations → SSH](integrations/sshd.md).
 
 - **Caveat 5 — the Tailscale tool (install-on-request, private-by-default).** Installing
-  `tailscale` with `oh tool install tailscale` adds **no container capability**: `tailscaled` runs inside the
+  `tailscale` with `agro tool install tailscale` adds **no container capability**: `tailscaled` runs inside the
   sandbox in **userspace-networking** mode as the unprivileged `sandbox` user, so
   there is no `NET_ADMIN`, no `/dev/net/tun`, no `privileged: true`, and no host
   socket mount. There is no compose addition at all — the verb is the only door,
