@@ -19,8 +19,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "MET. ~90 operator-facing sites threaded across commands/{sandbox,lifecycle,tool,harness,update,config,secret,cloud,self-upgrade}.ts and lib/{registry,project,secrets,env-file,vendor}.ts, lib/execution/{runner,local-target}.ts, lib/{runtimes,tools}/catalog.ts. Scope widened past the issue's 33-site table on evidence: secret.ts and cloud.ts were missing from it, and the whole lib/ layer carried the same defect (proven live by a both-bin smoke test showing `agro secret list` printing 'run `oh update` first'). bin is a REQUIRED option field, so a missed call site is a typecheck error, not a silent legacy fallback. Two mechanisms: a threaded bin where one reaches the consumer (catalog string fields became (bin) => string); activeBin() = resolveProduct(process.argv[1]).bin where the function is deep and no bin can reach it. No literal 'agro' was substituted for a literal 'oh'. Verified by advisor: typecheck clean; both-bin smoke test on a rebuilt dist; and the US-002 probe PASSES on this tree while REGRESSING with 78 hits on a pristine de4cbe8b tree. registry.ts:145 required an operator-authorized scoped edit to the frozen registry.test.ts; see evidence.md."
     },
     {
       "id": "US-002",
@@ -35,8 +35,8 @@
         "Tests pass"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "MET. .agro/evals/probes/continual-learning-20260911.sh, tier A. Structural regex oracle, not an allowlist. Advisor-verified independently: 78 hits on the pre-fix tree (exit 1), PASS on the fixed tree, cwd-independent, and a 11-form decoy module (oh.json, ~/.oh, OH_HOME, .oh/, /opt/oh/, --repo-dir, gh --repo, ${opts.bin}, LEGACY_PRODUCT.bin, agro-web, oh-compose-env-) produces zero false positives while one real invocation is caught. The worker was told not to exempt the live self-upgrade.ts:191 hit and did not; that site was fixed under US-001 and the probe then went green."
     },
     {
       "id": "US-003",
@@ -51,8 +51,8 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "MET. SandboxRow gained a checkout key; repo retained as a deprecated alias, both fed from one configCheckout(config) const so they cannot drift. Additive, not a rename. Human table byte-identical (advisor-verified: the renderer emits no header row, and the table now reads row.checkout which is the same value). docs/lifecycle-commands.md records the deprecation and names checkout as the supported key; column labels corrected in docs/quickstart.md, docs/installation.md, docs/runtimes/{overview,docker}.md and .agro/cli/README.md. Open question decided: no runtime deprecation marker in the JSON, matching #1043's treatment of --repo."
     },
     {
       "id": "US-004",
@@ -67,8 +67,8 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "MET, with one criterion qualified. The three ~/.oh-as-current sites were corrected and every correctly-legacy passage named in the story was left verbatim; a full sweep classification is in progress.txt. Widened on evidence to docs/runtimes/{docker,overview,microsandbox}.md, two skills, and a live doc bug: the page named /opt/oh-seed and a '[ ! -d $dest/.oh ]' guard, both false, and contradicted the frozen #1042 probe oh-image-only-deploy.sh which asserts a /opt/oh-seed reference is a FAILURE. fresh-machine-setup citation rot corrected (4 citations, each re-grounded; verified_at NOT advanced) and the knowledge index reindexed. QUALIFIED: 'prose passes the /ste checker' is met as 'adds zero new findings', not as exit 0 — every edited file already failed ste-check at the pre-fix tree (advisor-confirmed baselines 35/20/13/44/4/2/20) and reaching zero would mean rewriting ~68 untouched sentences."
     },
     {
       "id": "US-005",
@@ -84,8 +84,8 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "REDUCED SCOPE — the behaviour change was DROPPED ON EVIDENCE, which is the path acceptance criterion 4 prescribes and the operator pre-authorized. NOT MET: criterion 1 (materialize() selecting the base from effective image mode) and criterion 3 (removing the D-3 pin). The premise does not hold: the two compose bases differ in the build stanza AND the checkout bind mount (and image/pull_policy defaults), and docker-compose.yml is the only source of ${AGRO_REPO_DIR}:/home/sandbox/harness, so selecting the image-only base for a checkout-set sandbox would boot without the operator's checkout mounted and fail its own healthcheck. FR-7 freezes the compose files, so no third base is possible here. MET: criterion 2 (a unit test asserting the base for all four combinations of checkout x image.mode), criterion 4 (kept the pin, disclosed in evidence.md, marked not met rather than guessing), criterion 5 (registry.test.ts byte-identical for THIS story; its later change was a separate operator-authorized exception under US-001), 6 and 7. Advisor ran an independent inversion of registry.ts:96 -> 5 of 6 tests fail, tree restored green."
     },
     {
       "id": "US-006",
@@ -99,8 +99,8 @@
         "Tests pass"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "MET. .agro/evals/probes/docs-20260911.sh, tier A. The oracle DERIVES the canonical/deprecated pair from docs/ rather than hardcoding it, and is hard-wrap tolerant — the advisor's own naive single-line grep for the declaration missed all three real sources, which is exactly the trap pattern-evals-prose-literal-pinning records. Advisor-verified in both directions: an unmarked deprecated spelling added to .agro/README.md yields exit 1 naming the line; the same line marked as a deprecated alias yields exit 0. Two worker-declared limits accepted and recorded rather than papered over: --repo is also a gh flag, and derivation is pinned to one phrase shape (which SKIPs loudly rather than passing silently)."
     },
     {
       "id": "US-007",
@@ -114,8 +114,8 @@
         "Tests pass"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "MET. .agro/evals/probes/continual-learning-20260911b.sh, tier A. The core of the oracle is a behavioural drive of the real tracked pr-classify.sh with an empty statusCheckRollup, not a text pin. Advisor-verified by independent fault injection: deleting the (.statusCheckRollup|length)==0 branch makes the real classifier return ci=PASS promotable=true for zero checks and the probe catches it (exit 1); forcing every rollup into that branch trips the green-rollup control (exit 1), so the oracle cannot be satisfied by a classifier that calls everything NONE. Control restored -> exit 0."
     },
     {
       "id": "US-008",
@@ -131,8 +131,8 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "MET. /eval: 149 probes, exit 0, NO green->red regression. Three persistent reds all delta=unchanged and pre-existing (two environmental: python3 and cc-safety-net absent). `git diff origin/development...HEAD -- .devcontainer/` is EMPTY. entrypoint.sh and docker-compose.yml match their pre-work digests byte for byte, as do all three #1042 compose-string probes. registry.test.ts changed ONCE under an explicit operator-authorized exception, scoped to two hunks (one assertion plus its required import); before/after digests and the full diff are in evidence.md. Typecheck clean. Tests 2 failed | 1441 passed, the 2 being a pre-existing environmental docker-daemon pair reproduced by the advisor on a pristine de4cbe8b worktree. CHANGELOG entry added."
     }
   ]
 }
