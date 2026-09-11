@@ -6,8 +6,8 @@ title: "Runtimes Overview"
 
 A **runtime** is the isolation boundary the sandbox runs *on*. A **harness** is
 an agent CLI that runs *inside* it. They are different things with different
-lifecycles, which is why the runtime catalog lives under `oh sandbox` and
-[`oh harness`](../harnesses/overview.md) is its own command over its own
+lifecycles, which is why the runtime catalog lives under `agro sandbox` and
+[`agro harness`](../harnesses/overview.md) is its own command over its own
 catalog.
 
 Open Harness runs on a **Docker container** today. Nothing on this page changes
@@ -16,48 +16,48 @@ that.
 ## The commands
 
 ```bash
-oh sandbox install docker    # create a sandbox on the only provisionable runtime
-oh sandbox list              # every sandbox: name, runtime, status, repo
-oh sandbox --help            # the catalog: which runtimes exist, and their state
+agro sandbox install docker    # create a sandbox on the only provisionable runtime
+agro sandbox list              # every sandbox: name, runtime, status, checkout
+agro sandbox --help            # the catalog: which runtimes exist, and their state
 ```
 
 ```
-$ oh sandbox --help
+$ agro sandbox --help
 ...
 Runtimes:
   docker        provisionable
   microsandbox  planned
 ```
 
-`oh sandbox install docker` writes a registry entry under
-`${OH_HOME:-~/.oh}/sandboxes/<name>/` and boots the container — see
-[`oh sandbox install docker`](../deployment-prebuilt-image.md).
+`agro sandbox install docker` writes a registry entry under
+`${AGRO_HOME:-~/.agro}/sandboxes/<name>/` and boots the container — see
+[`agro sandbox install docker`](../deployment-prebuilt-image.md).
 
-`oh sandbox install microsandbox` refuses:
+`agro sandbox install microsandbox` refuses:
 
 ```
-oh sandbox install: microsandbox is not a provisionable runtime yet; see
-docs/rfcs/rfc-runtime-support.md. Inside a sandbox run `oh tool install microsandbox`.
+agro sandbox install: microsandbox is not a provisionable runtime yet; see
+docs/rfcs/rfc-runtime-support.md. Inside a sandbox run `agro tool install microsandbox`.
 ```
 
-`oh sandbox install` is host-scoped. Run from inside the sandbox it refuses with
-a host-only error, because it changes the sandbox's own Docker configuration.
-See
-[Lifecycle commands → Where you are standing when you type `oh`](../lifecycle-commands.md#where-you-are-standing-when-you-type-agro).
+`agro sandbox install` is host-scoped. Run from inside the sandbox it refuses
+with a host-only error, because it changes the sandbox's own Docker
+configuration. See
+[Lifecycle commands → Where you are standing when you type `agro`](../lifecycle-commands.md#where-you-are-standing-when-you-type-agro).
 
 ## What is in the catalog
 
 | Runtime | Tier | State | How you reach it |
 |---|---|---|---|
-| [Docker container](docker.md) | shared host kernel, namespaces + cgroups | **provisionable** | `oh sandbox install docker` |
-| [MicroSandbox](microsandbox.md) | microVM — one real kernel per sandbox, KVM-backed | planned | `oh tool install microsandbox` installs the `msb` binary inside a sandbox; running Open Harness *on* msb is a manual host recipe |
+| [Docker container](docker.md) | shared host kernel, namespaces + cgroups | **provisionable** | `agro sandbox install docker` |
+| [MicroSandbox](microsandbox.md) | microVM — one real kernel per sandbox, KVM-backed | planned | `agro tool install microsandbox` installs the `msb` binary inside a sandbox; running Open Harness *on* msb is a manual host recipe |
 
 Two entries rather than one is deliberate. A single-entry catalog would encode a
 false singleton and need a schema change the moment a second runtime lands.
 
 ### The two are reached differently
 
-Docker is what the compose stack already drives, so `oh sandbox install docker`
+Docker is what the compose stack already drives, so `agro sandbox install docker`
 provisions it end to end. MicroSandbox is **not** a Docker runtime — it is its
 own VM manager, so it cannot plug into the boot path and instead
 [replaces it, running the published image directly](microsandbox.md#running-open-harness-on-microsandbox).
@@ -80,7 +80,7 @@ So the entry records only what it was actually provisioned on: `runtime:
 - It does not change how the sandbox boots. Only `docker` is provisionable.
 - It adds no Dockerfile build arg. A build arg would bake a guaranteed-failing
   install into every image (see [MicroSandbox](microsandbox.md)).
-- `oh tool install microsandbox` installs a binary and nothing else: it rebuilds
+- `agro tool install microsandbox` installs a binary and nothing else: it rebuilds
   no image, restarts no sandbox, and writes no configuration.
 
 None of that stops you running Open Harness **on** a different runtime yourself —

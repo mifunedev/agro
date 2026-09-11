@@ -11,7 +11,7 @@ import {
 } from "node:fs";
 import { basename, delimiter, dirname, extname, join } from "node:path";
 import { aliasedEnvValue } from "../lib/compat.js";
-import { AGRO_PRODUCT } from "../lib/product.js";
+import { AGRO_PRODUCT, resolveProduct } from "../lib/product.js";
 
 export type InstallKind = "npm" | "standalone" | "image" | "source" | "legacy-package" | "unknown";
 
@@ -182,13 +182,13 @@ function versionOf(result: RunResult): string {
   return result.status === 0 ? result.stdout.trim() : "";
 }
 
-function refuseUnsupported(installation: Installation): Error {
+function refuseUnsupported(installation: Installation, bin: string): Error {
   const { kind, target, reason } = installation;
   const at = `${kind} installation at ${target}`;
   switch (kind) {
     case "image":
       return new Error(
-        `${at} — the sandbox image ships this CLI; pull a newer image on the host (oh/agro stop, then agro sandbox install docker --name <name>)`,
+        `${at} — the sandbox image ships this CLI; pull a newer image on the host (${bin} stop, then ${bin} sandbox install docker --name <name>)`,
       );
     case "source":
       return new Error(`${at} — rebuild from the checkout: npm --prefix .agro/cli run build`);
@@ -387,7 +387,7 @@ export async function runSelfUpgrade(
   try {
     const installation = classifyInstallation(opts.argv1, deps);
     if (installation.kind !== "npm" && installation.kind !== "standalone") {
-      throw refuseUnsupported(installation);
+      throw refuseUnsupported(installation, resolveProduct(opts.argv1).bin);
     }
     io.stdout(`${PREFIX}: ${installation.kind} installation at ${installation.target}\n`);
     assertOnlyAgroOnPath(installation, deps);

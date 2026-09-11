@@ -3,6 +3,7 @@ import { runUpdate, assertDestInTarget } from "../commands/update.js";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { withInvokedBin } from "./invoked-bin.js";
 
 
 let tmpdirs: string[] = [];
@@ -104,7 +105,7 @@ describe("runUpdate", () => {
     });
 
     const { io } = mkIo();
-    const rc = await runUpdate({ targetDir: target, fromDir: from }, io);
+    const rc = await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io);
 
     expect(rc).toBe(0);
     expect(readFile(target, ".oh/scripts/foo.sh")).toBe(
@@ -145,7 +146,7 @@ describe("runUpdate", () => {
     const baseBefore = fs.readdirSync(base).sort();
 
     const { io } = mkIo();
-    const rc = await runUpdate({ targetDir: target, fromDir: from }, io);
+    const rc = await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io);
     expect(rc).toBe(0);
 
     expect(readFile(target, ".devcontainer/.env")).toBe(envBefore);
@@ -174,7 +175,7 @@ describe("runUpdate", () => {
     ).mtimeMs;
 
     const { out, io } = mkIo();
-    const rc = await runUpdate({ targetDir: target, fromDir: from }, io);
+    const rc = await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io);
 
     expect(rc).toBe(0);
     expect(out.join("")).toContain("already up to date");
@@ -199,7 +200,7 @@ describe("runUpdate", () => {
 
     const opts = { targetDir: target, fromDir: from };
     const { io } = mkIo();
-    const rc = await runUpdate({ ...opts, force: true }, io);
+    const rc = await runUpdate({ bin: "oh", ...opts, force: true }, io);
 
     expect(rc).toBe(0);
     expect(readFile(target, ".oh/scripts/foo.sh")).toBe("#!/bin/sh\necho SOURCE\n");
@@ -213,7 +214,7 @@ describe("runUpdate", () => {
       buildEquippedRepo(target, { version: "0.2.0" });
 
       const { err, io } = mkIo();
-      const rc = await runUpdate({ targetDir: target, fromDir: from }, io);
+      const rc = await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io);
       expect(rc).toBe(1);
       expect(err.join("")).toContain("downgrade");
     }
@@ -226,7 +227,7 @@ describe("runUpdate", () => {
 
       const { io } = mkIo();
       const rc = await runUpdate(
-        { targetDir: target, fromDir: from, force: true },
+        { bin: "oh", targetDir: target, fromDir: from, force: true },
         io,
       );
       expect(rc).toBe(0);
@@ -239,7 +240,7 @@ describe("runUpdate", () => {
       buildEquippedRepo(target, { version: "0.1.0-dev" });
 
       const { out, io } = mkIo();
-      const rc = await runUpdate({ targetDir: target, fromDir: from }, io);
+      const rc = await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io);
       expect(rc).toBe(0);
       expect(out.join("")).toContain("already up to date");
     }
@@ -265,7 +266,7 @@ describe("runUpdate", () => {
 
       const { out, io } = mkIo();
       const rc = await runUpdate(
-        { targetDir: target, fromDir: from, dryRun: true },
+        { bin: "oh", targetDir: target, fromDir: from, dryRun: true },
         io,
       );
 
@@ -295,7 +296,7 @@ describe("runUpdate", () => {
 
       const { io } = mkIo();
       const rc = await runUpdate(
-        { targetDir: target, fromDir: from, force: true, dryRun: true },
+        { bin: "oh", targetDir: target, fromDir: from, force: true, dryRun: true },
         io,
       );
 
@@ -319,7 +320,7 @@ describe("runUpdate", () => {
     buildEquippedRepo(target, { version: "0.1.0" });
 
     const { io } = mkIo();
-    const rc = await runUpdate({ targetDir: target, fromDir: from }, io);
+    const rc = await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io);
     expect(rc).toBe(0);
 
     expect(
@@ -338,7 +339,7 @@ describe("runUpdate — preconditions", () => {
     buildEquippedRepo(target, { version: "0.1.0" });
 
     const { err, io } = mkIo();
-    const rc = await runUpdate({ targetDir: target, fromDir: from }, io);
+    const rc = await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io);
     expect(rc).toBe(1);
     expect(err.join("")).toContain("update source not found");
   });
@@ -350,7 +351,7 @@ describe("runUpdate — preconditions", () => {
     fs.writeFileSync(path.join(from, "AGENTS.md"), "# not payload\n");
 
     const { out, err, io } = mkIo();
-    const rc = await runUpdate({ targetDir: target, fromDir: from }, io);
+    const rc = await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io);
 
     expect(rc).toBe(0);
     expect(err.join("")).toBe("");
@@ -364,11 +365,11 @@ describe("runUpdate — preconditions", () => {
     const target = mkTmp();
     buildEquippedRepo(from, { version: "0.6.0" });
 
-    expect(await runUpdate({ targetDir: target, fromDir: from }, mkIo().io)).toBe(0);
+    expect(await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, mkIo().io)).toBe(0);
     const before = fs.readFileSync(path.join(target, ".oh/scripts/foo.sh"), "utf8");
 
     const second = mkIo();
-    expect(await runUpdate({ targetDir: target, fromDir: from }, second.io)).toBe(0);
+    expect(await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, second.io)).toBe(0);
     expect(second.out.join("")).toContain("already up to date (v0.6.0)");
     expect(second.out.join("")).not.toContain("create ");
     expect(fs.readFileSync(path.join(target, ".oh/scripts/foo.sh"), "utf8")).toBe(before);
@@ -379,7 +380,7 @@ describe("runUpdate — preconditions", () => {
     buildEquippedRepo(root, { version: "0.1.0" });
 
     const { err, io } = mkIo();
-    const rc = await runUpdate({ targetDir: root, fromDir: root }, io);
+    const rc = await runUpdate({ bin: "oh", targetDir: root, fromDir: root }, io);
     expect(rc).toBe(1);
     expect(err.join("")).toContain("same .oh");
   });
@@ -391,13 +392,13 @@ describe("assertDestInTarget", () => {
     const someTarget = mkTmp();
     const targetOh = path.resolve(someTarget, ".oh");
 
-    expect(() =>
-      assertDestInTarget(
-        path.resolve(targetOh, "../outside.ts"),
-        targetOh,
-        path.sep,
-      ),
-    ).toThrow("refusing to write outside target .oh");
+    for (const bin of ["agro", "oh"]) {
+      withInvokedBin(bin, () => {
+        expect(() =>
+          assertDestInTarget(path.resolve(targetOh, "../outside.ts"), targetOh, path.sep),
+        ).toThrow(`${bin}: refusing to write outside target .oh`);
+      });
+    }
 
     expect(() =>
       assertDestInTarget(path.join(targetOh, "cli/x.ts"), targetOh, path.sep),
@@ -422,7 +423,7 @@ describe("runUpdate — dual-generation control dirs", () => {
     buildAgroRepo(from, "0.9.0", { ".agro/scripts/foo.sh": "#!/bin/sh\necho agro\n" });
 
     const { out, err, io } = mkIo();
-    expect(await runUpdate({ targetDir: target, fromDir: from }, io)).toBe(0);
+    expect(await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io)).toBe(0);
     expect(err.join("")).toBe("");
     expect(out.join("")).toContain("updating .agro: 0.0.0 -> 0.9.0");
     expect(readFile(target, ".agro/scripts/foo.sh")).toBe("#!/bin/sh\necho agro\n");
@@ -436,7 +437,7 @@ describe("runUpdate — dual-generation control dirs", () => {
     buildEquippedRepo(target, { version: "0.1.0" });
 
     const { out, io } = mkIo();
-    expect(await runUpdate({ targetDir: target, fromDir: from }, io)).toBe(0);
+    expect(await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io)).toBe(0);
     expect(out.join("")).toContain("updating .oh: 0.1.0 -> 0.9.0");
     expect(readFile(target, ".oh/scripts/foo.sh")).toBe("#!/bin/sh\necho agro\n");
     expect(fs.existsSync(path.join(target, ".agro"))).toBe(false);
@@ -446,7 +447,7 @@ describe("runUpdate — dual-generation control dirs", () => {
     const from = mkTmp();
     const target = mkTmp();
     const { err, io } = mkIo();
-    expect(await runUpdate({ targetDir: target, fromDir: from }, io)).toBe(1);
+    expect(await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io)).toBe(1);
     expect(err.join("")).toContain("update source not found at");
     expect(err.join("")).toContain(path.join(from, ".agro"));
     expect(err.join("")).toContain(path.join(from, ".oh"));
@@ -456,7 +457,7 @@ describe("runUpdate — dual-generation control dirs", () => {
     const root = mkTmp();
     buildAgroRepo(root, "0.9.0", { ".agro/scripts/foo.sh": "#!/bin/sh\n" });
     const { err, io } = mkIo();
-    expect(await runUpdate({ targetDir: root, fromDir: root }, io)).toBe(1);
+    expect(await runUpdate({ bin: "oh", targetDir: root, fromDir: root }, io)).toBe(1);
     expect(err.join("")).toContain("same .agro");
   });
 });

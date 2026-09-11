@@ -15,7 +15,7 @@ Claude Code is the general-purpose agent most Open Harness operators install fir
 Claude Code enters the sandbox only through the door:
 
 ```bash
-oh harness install claude-code
+agro harness install claude-code
 ```
 
 The verb installs the `@anthropic-ai/claude-code` package into the persistent home volume as the `sandbox` user:

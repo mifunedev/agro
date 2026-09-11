@@ -36,7 +36,7 @@ sandbox.
 | Verb | Runs |
 |---|---|
 | `agro sandbox install <runtime> [--name <name>] [--checkout <dir>] [--yes] [--image[=<ref>]] [--no-build]` | write the registry entry, then `docker-compose.sh up -d` inside it |
-| `agro sandbox list [--json]` | every registry entry: name, runtime, status, repo |
+| `agro sandbox list [--json]` | every registry entry: name, runtime, status, checkout |
 | `agro shell [name]` | an interactive `zsh` in the sandbox container |
 | `agro stop [name]` | `docker-compose.sh stop` — containers down, volumes kept |
 | `agro restart [name]` | `docker-compose.sh restart` |
@@ -96,6 +96,11 @@ agro shell <name>                # attach as the sandbox user
 4. otherwise an error listing every registered name.
 
 `agro sandbox list` prints that list, with the container status of each.
+
+`agro sandbox list --json` prints the same entries as JSON. Each entry carries the
+bound directory under the key `checkout`. The key `repo` is deprecated in the JSON
+output. It holds the identical value and stays present for existing consumers. Read
+`checkout`.
 
 ## Upgrading the CLI: `agro update`
 
@@ -254,8 +259,8 @@ lists `docker-compose.yml` and nothing else. It never runs
 
 Secrets still reach that container: compose auto-loads the `.devcontainer/.env`
 beside the compose file, and that file is a symlink to the root `.env`.
-Non-secret `agro.json` settings only reach compose when `oh` renders them, so on
-this path each variable falls back to its default in
+Non-secret `agro.json` settings only reach compose when `agro` renders them, so
+on this path each variable falls back to its default in
 `.devcontainer/docker-compose.yml`.
 
 :::danger `storage.homePath` is ignored on this path

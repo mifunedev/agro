@@ -54,9 +54,9 @@ Schema, frontmatter spec, provenance kinds, and every authoring rule:
 
 | Slug | Title | Tags | Updated |
 | --- | --- | --- | --- |
+| fresh-machine-setup | Fresh-Machine Setup Flow | [setup, onboarding, installation, agro, registry, gateway, ssh, github, slack] | 2026-09-11 |
+| compose-env-boundary | Compose Environment Boundary | [compose, devcontainer, oh-json, cli, entrypoint, boundary, installs, sandbox, registry] | 2026-09-11 |
 | oh-cli-portable-lifecycle | oh CLI Portable Lifecycle | [cli, oh, agro, lifecycle, standalone, registry, sandbox, remote-fetch, execution-target, update, self-upgrade, npm] | 2026-09-10 |
-| fresh-machine-setup | Fresh-Machine Setup Flow | [setup, onboarding, installation, agro, registry, gateway, ssh, github, slack] | 2026-09-10 |
-| compose-env-boundary | Compose Environment Boundary | [compose, devcontainer, oh-json, cli, entrypoint, boundary, installs, sandbox, registry] | 2026-09-10 |
 | release-versioning | Release Versioning | [release, versioning, semver, calver, github-actions, ghcr, tags, workflow, package-json, agro, npm, repository-dispatch, docs-site] | 2026-09-09 |
 | pattern-wiki-frontmatter-edit-without-reindex | A frontmatter edit without a reindex leaves the generated index stale while the freshness probe stays green | [wiki, knowledge, evals, probes, index, ci] | 2026-09-08 |
 | pattern-evals-tracked-only-scan-misses-uncommitted | A repository scan over git ls-files passes on uncommitted files and fails once they are committed | [evals, testing, git, inventory, ci, false-pass] | 2026-09-08 |

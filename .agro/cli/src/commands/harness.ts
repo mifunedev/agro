@@ -23,6 +23,7 @@ export interface HarnessIO {
 }
 
 export interface HarnessOptions {
+  bin: string;
   cwd?: string;
   run?: LifecycleRunner;
   json?: boolean;
@@ -113,7 +114,7 @@ function cell(value: boolean | null, absent: string): string {
   return value ? "yes" : "no";
 }
 
-function renderTable(states: HarnessState[], io: HarnessIO): void {
+function renderTable(states: HarnessState[], io: HarnessIO, bin: string): void {
   const header = ["HARNESS", "KIND", "INSTALLED"];
   const rows = states.map((s) => [s.id, s.kind, cell(s.installed, "?")]);
   const widths = header.map((h, i) =>
@@ -124,7 +125,7 @@ function renderTable(states: HarnessState[], io: HarnessIO): void {
   io.stdout(line(header));
   for (const row of rows) io.stdout(line(row));
   if (states.some((s) => s.installed === null)) {
-    io.stdout("\nINSTALLED is `?` — the sandbox is not running. Start it with `oh sandbox`.\n");
+    io.stdout(`\nINSTALLED is \`?\` — the sandbox is not running. Start it with \`${bin} sandbox\`.\n`);
   }
 }
 
@@ -135,13 +136,13 @@ export async function runHarnessList(opts: HarnessOptions, io: HarnessIO): Promi
   if (opts.json) {
     io.stdout(`${JSON.stringify(states, null, 2)}\n`);
   } else {
-    renderTable(states, io);
+    renderTable(states, io, opts.bin);
   }
   return 0;
 }
 
-function unknownHarness(name: string, io: HarnessIO): number {
-  io.stderr(`oh harness: unknown harness "${name}"\n\n`);
+function unknownHarness(name: string, io: HarnessIO, bin: string): number {
+  io.stderr(`${bin} harness: unknown harness "${name}"\n\n`);
   io.stderr(`Known harnesses:\n${harnessIds().map((h) => `  ${h}`).join("\n")}\n`);
   return 1;
 }
@@ -157,14 +158,14 @@ export async function runHarnessStatus(
   let only: HarnessEntry | undefined;
   if (name !== undefined) {
     only = findHarness(name);
-    if (!only) return unknownHarness(name, io);
+    if (!only) return unknownHarness(name, io, opts.bin);
   }
 
   const states = await collectStates(root, run, opts.env, only ? [only] : undefined);
   if (opts.json) {
     io.stdout(`${JSON.stringify(only ? states[0] : states, null, 2)}\n`);
   } else {
-    renderTable(states, io);
+    renderTable(states, io, opts.bin);
   }
   return 0;
 }
@@ -173,7 +174,7 @@ function hermesTargetRoot(target: ExecutionTarget): string {
   return target.kind === "docker-compose" ? "/home/sandbox/harness" : target.workspace.targetRoot;
 }
 
-async function reconcileHermes(target: ExecutionTarget, io: HarnessIO): Promise<number> {
+async function reconcileHermes(target: ExecutionTarget, io: HarnessIO, bin: string): Promise<number> {
   const root = hermesTargetRoot(target);
   const result = await target.exec({
     argv: remoteControlDirScript(root, "scripts/link-providers.sh", ["--init", "--hermes-only"]),
@@ -182,7 +183,7 @@ async function reconcileHermes(target: ExecutionTarget, io: HarnessIO): Promise<
     stdio: "inherit",
   });
   if (result.exitCode !== 0) {
-    io.stderr(`oh harness: Hermes integration failed (exit ${result.exitCode}); no installation success reported.\n`);
+    io.stderr(`${bin} harness: Hermes integration failed (exit ${result.exitCode}); no installation success reported.\n`);
   }
   return result.exitCode;
 }
@@ -202,7 +203,7 @@ export async function runHarnessInstall(
   );
 
   const entry = findHarness(name);
-  if (!entry) return unknownHarness(name, io);
+  if (!entry) return unknownHarness(name, io, opts.bin);
 
   const target = targetFor(root, run, opts.env);
   let status: string;
@@ -218,8 +219,8 @@ export async function runHarnessInstall(
 
   if (!isReachable(status)) {
     io.stderr(
-      `oh harness: the sandbox is not running (${status}).\n` +
-        "Start it with `oh sandbox`, then re-run this command.\n",
+      `${opts.bin} harness: the sandbox is not running (${status}).\n` +
+        `Start it with \`${opts.bin} sandbox\`, then re-run this command.\n`,
     );
     return 1;
   }
@@ -230,7 +231,7 @@ export async function runHarnessInstall(
     HERMES_HOME: `${hermesTargetRoot(target)}/.hermes`,
   } : undefined;
   if (hermes) {
-    const code = await reconcileHermes(target, io);
+    const code = await reconcileHermes(target, io, opts.bin);
     if (code !== 0) return code;
   }
 
@@ -252,16 +253,16 @@ export async function runHarnessInstall(
     ...(installEnv ? { env: installEnv } : {}),
   });
   if (r.exitCode !== 0) {
-    io.stderr(`oh harness: installing ${entry.id} failed (exit ${r.exitCode}).\n`);
+    io.stderr(`${opts.bin} harness: installing ${entry.id} failed (exit ${r.exitCode}).\n`);
     return r.exitCode;
   }
 
   if (hermes) {
     if (await probeInstalled(target, entry, installEnv) !== true) {
-      io.stderr("oh harness: Hermes installation finished but executable verification failed.\n");
+      io.stderr(`${opts.bin} harness: Hermes installation finished but executable verification failed.\n`);
       return 1;
     }
-    const code = await reconcileHermes(target, io);
+    const code = await reconcileHermes(target, io, opts.bin);
     if (code !== 0) return code;
   }
 

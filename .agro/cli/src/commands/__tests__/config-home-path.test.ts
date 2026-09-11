@@ -65,7 +65,7 @@ describe("config set storage.homePath guard", () => {
     const { run } = runnerReturning(VOLUME_PRESENT);
     const { io, err } = makeIo();
 
-    const code = await runConfigSet("storage.homePath", "/srv/demo-home", { cwd: root, run }, io);
+    const code = await runConfigSet("storage.homePath", "/srv/demo-home", { bin: "oh", cwd: root, run }, io);
 
     expect(code).toBe(1);
     expect(err.join("")).toContain("demo_workspace");
@@ -81,7 +81,7 @@ describe("config set storage.homePath guard", () => {
     const code = await runConfigSet(
       "storage.homePath",
       "/srv/demo-home",
-      { cwd: root, run, force: true },
+      { bin: "oh", cwd: root, run, force: true },
       io,
     );
 
@@ -94,7 +94,7 @@ describe("config set storage.homePath guard", () => {
     const { run, calls } = runnerReturning(VOLUME_ABSENT);
     const { io } = makeIo();
 
-    const code = await runConfigSet("storage.homePath", "/srv/demo-home", { cwd: root, run }, io);
+    const code = await runConfigSet("storage.homePath", "/srv/demo-home", { bin: "oh", cwd: root, run }, io);
 
     expect(code).toBe(0);
     expect(calls).toEqual([["docker", "volume", "inspect", "demo_workspace"]]);
@@ -110,7 +110,7 @@ describe("config set storage.homePath guard", () => {
       const { run } = runnerReturning(result);
       const { io } = makeIo();
 
-      const code = await runConfigSet("storage.homePath", "/srv/demo-home", { cwd: root, run }, io);
+      const code = await runConfigSet("storage.homePath", "/srv/demo-home", { bin: "oh", cwd: root, run }, io);
 
       expect(code).toBe(0);
       expect(readConfig(root).storage?.homePath).toBe("/srv/demo-home");
@@ -126,12 +126,12 @@ describe("config set storage.homePath guard", () => {
       await runConfigSet(
         "storage.homePath",
         "/srv/demo-home",
-        { cwd: root, run, force: true },
+        { bin: "oh", cwd: root, run, force: true },
         io,
       ),
     ).toBe(0);
 
-    const code = await runConfigSet("storage.homePath", "/srv/demo-home", { cwd: root, run }, io);
+    const code = await runConfigSet("storage.homePath", "/srv/demo-home", { bin: "oh", cwd: root, run }, io);
 
     expect(code).toBe(0);
     expect(calls).toEqual([]);
@@ -144,7 +144,7 @@ describe("config set storage.homePath guard", () => {
     const { run, calls } = runnerReturning(VOLUME_PRESENT);
     const { io } = makeIo();
 
-    const code = await runConfigSet("access.sshPort", "2222", { cwd: root, run }, io);
+    const code = await runConfigSet("access.sshPort", "2222", { bin: "oh", cwd: root, run }, io);
 
     expect(code).toBe(0);
     expect(calls).toEqual([]);
@@ -167,7 +167,7 @@ describe("config set storage.homePath guard", () => {
     const code = await runConfigSet(
       "storage.homePath",
       "/srv/other-home",
-      { sandbox: "other", run },
+      { bin: "oh", sandbox: "other", run },
       io,
     );
 

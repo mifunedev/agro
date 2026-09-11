@@ -94,7 +94,7 @@ image's `/opt/agro-seed`, so there is no build and no clone. To persist
 Finish by attaching:
 
 ```bash
-agro sandbox list  # name, runtime, status, repo
+agro sandbox list  # name, runtime, status, checkout
 agro shell <name>  # zsh in the container, as the sandbox user
 ```
 

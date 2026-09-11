@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { basename, join } from "node:path";
 import { resolveProjectLayout } from "../compat.js";
+import { activeBin } from "../product.js";
 
 export interface RunResult {
   status: number | null;
@@ -71,7 +72,7 @@ export function requireLifecycleScript(root: string, rel: string): string {
   const script = join(controlDir, "scripts", rel);
   if (!existsSync(script)) {
     throw new Error(
-      `missing lifecycle script ${script} — the vendored ${basename(controlDir)}/ payload looks incomplete; run \`oh update\` to re-vendor it`,
+      `missing lifecycle script ${script} — the vendored ${basename(controlDir)}/ payload looks incomplete; run \`${activeBin()} update\` to re-vendor it`,
     );
   }
   return script;

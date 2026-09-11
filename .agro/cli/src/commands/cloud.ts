@@ -11,21 +11,22 @@ const DEFAULT_TERMINAL_STATUSES = ["running", "failed", "destroyed"];
 
 export const PROVISION_KEY_SECRET = "OH_CLOUD_PROVISION_KEY";
 
-export const CLOUD_HELP = `oh cloud — Manage OpenHarness Cloud nodes
+export function cloudHelpText(bin: string): string {
+  return `${bin} cloud — Manage OpenHarness Cloud nodes
 
 Usage:
-  oh cloud config [--api-url <url>] [--provision-key <key>]
-  oh cloud config show
-  oh cloud [global options] nodes list
-  oh cloud [global options] nodes get <node-id>
-  oh cloud [global options] nodes create --ssh-key-id <id> [--name <name>]
-  oh cloud [global options] nodes events <node-id>
-  oh cloud [global options] nodes watch <node-id> [--interval <seconds>] [--until <statuses>]
-  oh cloud [global options] nodes destroy <node-id>
-  oh cloud [global options] nodes restart <node-id>
-  oh cloud [global options] nodes rebuild <node-id>
-  oh cloud [global options] ssh-keys list
-  oh cloud [global options] ssh-keys create --name <name> (--public-key <key> | --public-key-file <path>)
+  ${bin} cloud config [--api-url <url>] [--provision-key <key>]
+  ${bin} cloud config show
+  ${bin} cloud [global options] nodes list
+  ${bin} cloud [global options] nodes get <node-id>
+  ${bin} cloud [global options] nodes create --ssh-key-id <id> [--name <name>]
+  ${bin} cloud [global options] nodes events <node-id>
+  ${bin} cloud [global options] nodes watch <node-id> [--interval <seconds>] [--until <statuses>]
+  ${bin} cloud [global options] nodes destroy <node-id>
+  ${bin} cloud [global options] nodes restart <node-id>
+  ${bin} cloud [global options] nodes rebuild <node-id>
+  ${bin} cloud [global options] ssh-keys list
+  ${bin} cloud [global options] ssh-keys create --name <name> (--public-key <key> | --public-key-file <path>)
 
 Global options:
   --api-url <url>          API base URL (default: OH_CLOUD_API_URL, OH_API_URL,
@@ -36,12 +37,12 @@ Global options:
   -h, --help               Show this help
 
 Configuration:
-  oh cloud config writes cloud.apiUrl to the repository oh.json and securely
+  ${bin} cloud config writes cloud.apiUrl to the repository oh.json and securely
   prompts for the current provisioner key, which it stores as
   ${PROVISION_KEY_SECRET} in the gitignored root .env. This is the temporary
   credential model until OpenHarness Cloud issues user API tokens.
 
-  Both settings are repository-local, so oh cloud runs inside an
+  Both settings are repository-local, so ${bin} cloud runs inside an
   OpenHarness-equipped repo. Outside one, pass --api-url and --provision-key.
 
 Environment:
@@ -50,13 +51,15 @@ Environment:
                            PROVISION_KEY are also accepted)
 
 Examples:
-  oh cloud config
-  oh cloud ssh-keys create --name laptop --public-key-file ~/.ssh/openharness_node.pub
-  oh cloud nodes create --name smoke-1 --ssh-key-id <ssh-key-id>
-  oh cloud nodes watch <node-id>
+  ${bin} cloud config
+  ${bin} cloud ssh-keys create --name laptop --public-key-file ~/.ssh/openharness_node.pub
+  ${bin} cloud nodes create --name smoke-1 --ssh-key-id <ssh-key-id>
+  ${bin} cloud nodes watch <node-id>
 `;
+}
 
 export interface CloudIO {
+  bin: string;
   stdout: (text: string) => void;
   stderr: (text: string) => void;
   env?: NodeJS.ProcessEnv;
@@ -258,6 +261,7 @@ async function readPublicKey(
 }
 
 interface DispatchOptions {
+  bin: string;
   request: CloudRequest;
   readFile: (path: string, encoding: BufferEncoding) => Promise<string>;
   sleep: (milliseconds: number) => Promise<void>;
@@ -269,7 +273,9 @@ async function dispatch(args: string[], options: DispatchOptions): Promise<unkno
   const action = args.shift();
 
   if (!resource || !action) {
-    throw new CloudCliError("a resource and action are required. Run `oh cloud --help` for usage.");
+    throw new CloudCliError(
+      `a resource and action are required. Run \`${options.bin} cloud --help\` for usage.`,
+    );
   }
 
   if (resource === "ssh-keys") {
@@ -369,15 +375,16 @@ interface CloudSettings {
   provisionKey?: string;
 }
 
-const OUTSIDE_REPO_HINT =
-  "; pass --api-url and --provision-key to run `oh cloud` outside a repo";
+function outsideRepoHint(bin: string): string {
+  return `; pass --api-url and --provision-key to run \`${bin} cloud\` outside a repo`;
+}
 
 function requireRoot(io: CloudIO): string {
   try {
     return resolveProjectRoot(io.cwd);
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    throw new CloudCliError(`${detail}${OUTSIDE_REPO_HINT}`);
+    throw new CloudCliError(`${detail}${outsideRepoHint(io.bin)}`);
   }
 }
 
@@ -488,7 +495,7 @@ async function executeCloud(argv: string[], io: CloudIO): Promise<void> {
   const env = io.env ?? process.env;
 
   if (args.includes("--help") || args.includes("-h") || args[0] === "help") {
-    io.stdout(CLOUD_HELP);
+    io.stdout(cloudHelpText(io.bin));
     return;
   }
   if (args[0] === "config") {
@@ -508,7 +515,7 @@ async function executeCloud(argv: string[], io: CloudIO): Promise<void> {
   const provisionKey = flagProvisionKey ?? envProvisionKey(env) ?? stored.provisionKey;
   if (!provisionKey) {
     throw new CloudCliError(
-      `no provision credential found. Run \`oh cloud config\`, set ${PROVISION_KEY_SECRET}, or pass --api-url and --provision-key.`,
+      `no provision credential found. Run \`${io.bin} cloud config\`, set ${PROVISION_KEY_SECRET}, or pass --api-url and --provision-key.`,
     );
   }
 
@@ -520,6 +527,7 @@ async function executeCloud(argv: string[], io: CloudIO): Promise<void> {
   });
   const write = (value: unknown): void => io.stdout(formatJson(value));
   const result = await dispatch(args, {
+    bin: io.bin,
     request,
     readFile: io.readFile ?? readFile,
     sleep:
@@ -546,7 +554,7 @@ export async function runCloud(argv: string[], io: CloudIO): Promise<number> {
     return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    io.stderr(`oh cloud: ${message}\n`);
+    io.stderr(`${io.bin} cloud: ${message}\n`);
     return 1;
   }
 }

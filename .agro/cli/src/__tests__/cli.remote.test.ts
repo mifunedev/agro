@@ -200,7 +200,7 @@ describe("runWithRemoteSource", () => {
       { repoUrl, stdout: (s) => cliOut.push(s) },
       (checkoutDir) => {
         seenCheckout = checkoutDir;
-        return runUpdate({ targetDir: target, fromDir: checkoutDir }, io);
+        return runUpdate({ bin: "oh", targetDir: target, fromDir: checkoutDir }, io);
       },
     );
 

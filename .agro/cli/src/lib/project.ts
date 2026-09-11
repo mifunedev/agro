@@ -1,5 +1,6 @@
 import { dirname, resolve } from "node:path";
 import { resolveControlDir } from "./compat.js";
+import { activeBin } from "./product.js";
 
 
 export function resolveProjectRoot(startDir: string = process.cwd()): string {
@@ -8,7 +9,7 @@ export function resolveProjectRoot(startDir: string = process.cwd()): string {
     if (resolveControlDir(dir).kind !== "absent") return dir;
     const parent = dirname(dir);
     if (parent === dir) {
-      throw new Error("not an OpenHarness-equipped repo — run `oh update` first");
+      throw new Error(`not an OpenHarness-equipped repo — run \`${activeBin()} update\` first`);
     }
     dir = parent;
   }

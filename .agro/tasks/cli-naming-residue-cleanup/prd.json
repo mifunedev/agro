@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "project": "Open Harness",
+  "branchName": "bug/1046-cli-naming-residue-cleanup",
+  "description": "Close issue #1046 and every follow-up left by #1042 (e65e7a50) and #1043 (de4cbe8b) in one PR: thread the resolved binary name through the command layer, retire the last repo/checkout disagreement, correct two docs that present ~/.oh as current, select the compose base from effective image mode, and mint the three probes the 2026-09-11 retrospective nominated.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Thread the resolved binary name through the command layer",
+      "description": "As an operator, I want every message to name the binary I invoked, so that the CLI never teaches me a deprecated command.",
+      "acceptanceCriteria": [
+        "The active Product or its bin reaches sandbox.ts, lifecycle.ts, tool.ts, harness.ts, update.ts and config.ts",
+        "All 33 hardcoded 'oh' literals identified in #1046 read the threaded value",
+        "Invoked as agro, a successful install ends with 'next: agro shell <name>'",
+        "Invoked as oh, the same install ends with 'next: oh shell <name>'",
+        "Error-recovery hints follow the same rule, including sandbox.ts:223,246, lifecycle.ts:248, tool.ts:148,254, harness.ts:127,221",
+        "No literal 'oh ' is substituted with a literal 'agro ' — resolution is always dynamic per .agro/cli/src/lib/product.ts:38",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "MET. ~90 operator-facing sites threaded across commands/{sandbox,lifecycle,tool,harness,update,config,secret,cloud,self-upgrade}.ts and lib/{registry,project,secrets,env-file,vendor}.ts, lib/execution/{runner,local-target}.ts, lib/{runtimes,tools}/catalog.ts. Scope widened past the issue's 33-site table on evidence: secret.ts and cloud.ts were missing from it, and the whole lib/ layer carried the same defect (proven live by a both-bin smoke test showing `agro secret list` printing 'run `oh update` first'). bin is a REQUIRED option field, so a missed call site is a typecheck error, not a silent legacy fallback. Two mechanisms: a threaded bin where one reaches the consumer (catalog string fields became (bin) => string); activeBin() = resolveProduct(process.argv[1]).bin where the function is deep and no bin can reach it. No literal 'agro' was substituted for a literal 'oh'. Verified by advisor: typecheck clean; both-bin smoke test on a rebuilt dist; and the US-002 probe PASSES on this tree while REGRESSING with 78 hits on a pristine de4cbe8b tree. registry.ts:145 required an operator-authorized scoped edit to the frozen registry.test.ts; see evidence.md."
+    },
+    {
+      "id": "US-002",
+      "title": "Probe the binary-name guardrail",
+      "description": "As the harness, I want a probe that fails when an operator-facing binary name is hardcoded, so that #1046 cannot recur.",
+      "acceptanceCriteria": [
+        ".agro/evals/probes/continual-learning-20260911.sh exists, tier A",
+        "It fails when a tracked file under .agro/cli/src/commands/ prints a hardcoded operator-facing 'oh ' or 'agro ' literal",
+        "It does not flag --repo-dir, gh CLI flags, or legitimate uses of LEGACY_PRODUCT.bin",
+        "It exits 2 with SKIPPED when .agro/cli/src is absent",
+        "It passes on the tree produced by US-001 and fails on the tree before it",
+        "Tests pass"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "MET. .agro/evals/probes/continual-learning-20260911.sh, tier A. Structural regex oracle, not an allowlist. Advisor-verified independently: 78 hits on the pre-fix tree (exit 1), PASS on the fixed tree, cwd-independent, and a 11-form decoy module (oh.json, ~/.oh, OH_HOME, .oh/, /opt/oh/, --repo-dir, gh --repo, ${opts.bin}, LEGACY_PRODUCT.bin, agro-web, oh-compose-env-) produces zero false positives while one real invocation is caught. The worker was told not to exempt the live self-upgrade.ts:191 hit and did not; that site was fixed under US-001 and the probe then went green."
+    },
+    {
+      "id": "US-003",
+      "title": "Retire the last repo/checkout disagreement",
+      "description": "As a consumer of agro sandbox list --json, I want the key to match the rest of the CLI without my parser breaking.",
+      "acceptanceCriteria": [
+        "SandboxRow carries a checkout key holding the value configCheckout(config) returns per .agro/cli/src/commands/sandbox.ts:349",
+        "The repo key remains present with the identical value as a deprecated alias — additive, not a rename",
+        "docs/ records that repo is deprecated in the JSON output and names checkout as the supported key",
+        "The human-readable table is unchanged",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "MET. SandboxRow gained a checkout key; repo retained as a deprecated alias, both fed from one configCheckout(config) const so they cannot drift. Additive, not a rename. Human table byte-identical (advisor-verified: the renderer emits no header row, and the table now reads row.checkout which is the same value). docs/lifecycle-commands.md records the deprecation and names checkout as the supported key; column labels corrected in docs/quickstart.md, docs/installation.md, docs/runtimes/{overview,docker}.md and .agro/cli/README.md. Open question decided: no runtime deprecation marker in the JSON, matching #1043's treatment of --repo."
+    },
+    {
+      "id": "US-004",
+      "title": "Correct only the docs that present ~/.oh as current",
+      "description": "As a reader, I want the legacy registry path described as legacy, without losing the passages that correctly explain back-compatibility.",
+      "acceptanceCriteria": [
+        ".agro/README.md:176 and .agro/cli/README.md:101 name ${AGRO_HOME:-~/.agro}/sandboxes/<name>/ as the current path",
+        "Passages that deliberately describe the legacy path as still resolving are UNCHANGED, including docs/configuration.md:27, docs/deployment-prebuilt-image.md:13, docs/lifecycle-commands.md:25 and docs/oh-directory-layout.md:44",
+        "CHANGELOG.md history is unchanged",
+        "The fresh-machine-setup knowledge page citation rot recorded at .agro/tasks/repo-flag-checkout-rename/evidence.md:284 is corrected",
+        "Prose passes the /ste checker",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "MET, with one criterion qualified. The three ~/.oh-as-current sites were corrected and every correctly-legacy passage named in the story was left verbatim; a full sweep classification is in progress.txt. Widened on evidence to docs/runtimes/{docker,overview,microsandbox}.md, two skills, and a live doc bug: the page named /opt/oh-seed and a '[ ! -d $dest/.oh ]' guard, both false, and contradicted the frozen #1042 probe oh-image-only-deploy.sh which asserts a /opt/oh-seed reference is a FAILURE. fresh-machine-setup citation rot corrected (4 citations, each re-grounded; verified_at NOT advanced) and the knowledge index reindexed. QUALIFIED: 'prose passes the /ste checker' is met as 'adds zero new findings', not as exit 0 — every edited file already failed ste-check at the pre-fix tree (advisor-confirmed baselines 35/20/13/44/4/2/20) and reaching zero would mean rewriting ~68 untouched sentences."
+    },
+    {
+      "id": "US-005",
+      "title": "Select the compose base from the effective image mode",
+      "description": "As a maintainer, I want materialize() to choose the compose base from what the sandbox will actually do, so that the #1042 D-3 pin is no longer needed to compensate.",
+      "acceptanceCriteria": [
+        "materialize() selects the build-capable base only when the sandbox will build, rather than whenever checkout is set, per .agro/cli/src/lib/registry.ts:93-99",
+        "A unit test asserts which base is written for each combination of (checkout set or unset) x (image.mode build or image)",
+        "The D-3 image.ref fill at .agro/cli/src/commands/sandbox.ts:286-292 is removed ONLY if US-005 makes it unreachable, with a test proving a non-checkout path still resolves a runnable image",
+        "If the pin cannot be removed safely without a Docker daemon, keep it, say so in evidence.md, and mark this criterion not met rather than guessing",
+        "The three compose-string probes and registry.test.ts stay byte-identical",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "REDUCED SCOPE — the behaviour change was DROPPED ON EVIDENCE, which is the path acceptance criterion 4 prescribes and the operator pre-authorized. NOT MET: criterion 1 (materialize() selecting the base from effective image mode) and criterion 3 (removing the D-3 pin). The premise does not hold: the two compose bases differ in the build stanza AND the checkout bind mount (and image/pull_policy defaults), and docker-compose.yml is the only source of ${AGRO_REPO_DIR}:/home/sandbox/harness, so selecting the image-only base for a checkout-set sandbox would boot without the operator's checkout mounted and fail its own healthcheck. FR-7 freezes the compose files, so no third base is possible here. MET: criterion 2 (a unit test asserting the base for all four combinations of checkout x image.mode), criterion 4 (kept the pin, disclosed in evidence.md, marked not met rather than guessing), criterion 5 (registry.test.ts byte-identical for THIS story; its later change was a separate operator-authorized exception under US-001), 6 and 7. Advisor ran an independent inversion of registry.ts:96 -> 5 of 6 tests fail, tree restored green."
+    },
+    {
+      "id": "US-006",
+      "title": "Probe the surface-sweep guardrail",
+      "description": "As the harness, I want a probe that keeps rename tasks honest about their affected surfaces.",
+      "acceptanceCriteria": [
+        ".agro/evals/probes/docs-20260911.sh exists, tier A",
+        "It fails when a flag or field documented as canonical in docs/ is still presented as canonical under its deprecated spelling in any tracked README.md",
+        "It covers repo-root README.md, .agro/README.md and .agro/cli/README.md",
+        "It passes on the current tree",
+        "Tests pass"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "MET. .agro/evals/probes/docs-20260911.sh, tier A. The oracle DERIVES the canonical/deprecated pair from docs/ rather than hardcoding it, and is hard-wrap tolerant — the advisor's own naive single-line grep for the declaration missed all three real sources, which is exactly the trap pattern-evals-prose-literal-pinning records. Advisor-verified in both directions: an unmarked deprecated spelling added to .agro/README.md yields exit 1 naming the line; the same line marked as a deprecated alias yields exit 0. Two worker-declared limits accepted and recorded rather than papered over: --repo is also a gh flag, and derivation is pinned to one phrase shape (which SKIPs loudly rather than passing silently)."
+    },
+    {
+      "id": "US-007",
+      "title": "Probe the CI-evidence guardrail",
+      "description": "As the harness, I want a probe that rejects treating an empty check set as a pass.",
+      "acceptanceCriteria": [
+        ".agro/evals/probes/continual-learning-20260911b.sh exists, tier A",
+        "It fails when a tracked script or skill treats an empty CI check list as a settled or successful state",
+        "It covers .agro/skills/ci-status/, .agro/skills/audit/scripts/ and .agro/skills/spec/references/",
+        "It passes on the current tree, or names the exact offending site if it does not",
+        "Tests pass"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "MET. .agro/evals/probes/continual-learning-20260911b.sh, tier A. The core of the oracle is a behavioural drive of the real tracked pr-classify.sh with an empty statusCheckRollup, not a text pin. Advisor-verified by independent fault injection: deleting the (.statusCheckRollup|length)==0 branch makes the real classifier return ci=PASS promotable=true for zero checks and the probe catches it (exit 1); forcing every rollup into that branch trips the green-rollup control (exit 1), so the oracle cannot be satisfied by a classifier that calls everything NONE. Control restored -> exit 0."
+    },
+    {
+      "id": "US-008",
+      "title": "Confirm the regression floor",
+      "description": "As the advisor, I want proof this change is contained.",
+      "acceptanceCriteria": [
+        "/eval reports no regression",
+        "oh-devcontainer-restructure.sh, oh-home-mount.sh, oh-image-only-deploy.sh and .agro/cli/src/lib/__tests__/registry.test.ts are byte-identical",
+        "git diff development...HEAD -- .devcontainer/ is empty",
+        ".devcontainer/entrypoint.sh is unchanged",
+        "A CHANGELOG entry exists per .agro/skills/git/SKILL.md",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "MET. /eval: 149 probes, exit 0, NO green->red regression. Three persistent reds all delta=unchanged and pre-existing (two environmental: python3 and cc-safety-net absent). `git diff origin/development...HEAD -- .devcontainer/` is EMPTY. entrypoint.sh and docker-compose.yml match their pre-work digests byte for byte, as do all three #1042 compose-string probes. registry.test.ts changed ONCE under an explicit operator-authorized exception, scoped to two hunks (one assertion plus its required import); before/after digests and the full diff are in evidence.md. Typecheck clean. Tests 2 failed | 1441 passed, the 2 being a pre-existing environmental docker-daemon pair reproduced by the advisor on a pristine de4cbe8b worktree. CHANGELOG entry added."
+    },
+    {
+      "id": "US-009",
+      "title": "Rename instructional oh commands in docs/ to agro",
+      "description": "As a reader of the documentation, I want every command I am told to run today to name agro, so that the docs never teach me the deprecated binary — while every passage explaining legacy compatibility keeps saying oh, because that is what it is about.",
+      "acceptanceCriteria": [
+        "Every instructional-current occurrence of oh <lifecycle-verb> under docs/ names agro instead",
+        "Every legacy-explanatory occurrence is unchanged, byte for byte",
+        "oh update is NEVER renamed: agro update self-upgrades the installed CLI (cli.ts:1169-1181) while oh update vendors the project payload, and --from/--from-remote/--ref/--force are refused under agro (cli.ts:683-689)",
+        "docs/agro-compatibility.md, docs/oh-directory-layout.md and docs/rfcs/** are unchanged",
+        "A passage deliberately naming both spellings is unchanged, including docs/integrations/github.md:91",
+        "Paths, filenames and variables (/opt/oh, ~/.oh, .oh/, oh.json, OH_*) are unchanged",
+        "Every hit is classified instructional-current or legacy-explanatory and the split reported; a genuinely ambiguous hit is left and named",
+        ".agro/skills/t3/scripts/t3-code.sh:135 and .agro/skills/escalate/scripts/escalate.sh:7 remain out of scope",
+        "The four frozen files stay byte-identical to the recorded baseline",
+        "Prose adds zero new /ste findings",
+        "/eval reports no regression",
+        "CI is green on the exact head"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "MET. Advisor re-derived the sweep rather than trusting either prior figure: 135 occurrences of `oh <lifecycle-verb>` under docs/ across 28 files; 31 inside fenced blocks across 13 files (reproducing the operator's page count exactly once counted by occurrence — sshd.md:47 is `oh stop && oh sandbox`, one line carrying two); 67 more in prose on those same pages. Scoped by the CHARACTER of each hit rather than by markdown fences, because a fence reading `agro harness install` beneath a sentence reading `oh harness install` is the half-renamed-page defect this task already cleaned up once in docs/runtimes/. FINAL SPLIT: 96 instructional-current renamed / 39 legacy-explanatory left verbatim. THE DECISIVE FINDING: `oh update` is never renamed — cli.ts:1169-1181 routes agro to runSelfUpgrade while oh vendors the project payload, and cli.ts:683-689 makes agro update REFUSE --from/--from-remote/--ref/--force; renaming docs/installation.md:163-165 would have produced commands that hard-error. 28 oh update occurrences preserved and verified post-merge. The advisor's own first classifier had exactly 3 false positives, all the both-spelling construction `agro config repo` (and `oh config repo`) at github.md:91, installation.md:141 and quickstart.md:268; caught before dispatch and flagged to workers as a known trap. Post-merge residue is 9 hits across 7 files, every one accounted for. docs/security-considerations.md:127 was reported ambiguous by its worker and classified legacy-explanatory by the advisor: it names the legacy bootstrap route by name ('the `oh` CLI / `get-oh.sh` path'), and get-oh.sh is a real filename retained through the SLA."
+    },
+    {
+      "id": "US-010",
+      "title": "Thread the invoked binary through the sandbox onboarding banner",
+      "description": "As an operator opening a sandbox shell, I want the onboarding banner to name the binary I invoked, so that the most-read surface in the product does not teach me the deprecated one.",
+      "acceptanceCriteria": [
+        ".agro/install/banner.sh resolves the binary the way .devcontainer/entrypoint.sh:133-134 already does, and never hardcodes it",
+        "All six sites read the resolved value: :84, :96, :111, :141, :181, :187",
+        "The resolved value defaults to agro and yields oh when the legacy binary is in use",
+        ".devcontainer/entrypoint.sh is NOT edited",
+        "docs/harnesses/hermes.md:276 is updated to match what the banner now prints, and remains a true transcript",
+        "The four frozen files stay byte-identical",
+        "/eval reports no regression",
+        "CI is green on the exact head"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "MET. .agro/install/banner.sh threaded at all six operator-facing sites; the banner an operator sees on essentially every shell no longer teaches `oh`. Found by grounding, not sweeping: the US-009 worker checked docs/harnesses/hermes.md:276 against its source before converting it, found banner.sh:111 hardcoded, and correctly left the doc as a TRUE transcript — which is what surfaced the defect. Worker deviated from the advisor's suggested mechanism with a better reason: banner.sh is SOURCED into interactive zsh (.agro/install/.zshrc:35) and compat.sh is bash-only (compat_env at compat.sh:124-125 uses ${!agro_key:-} indirect expansion, unsupported in zsh), so it uses an inline cli_bin=\"${AGRO_BIN:-${OH_BIN:-agro}}\" instead of sourcing. Advisor verified the bash-ism directly. Advisor EXECUTED the banner rather than accepting the worker's table — and caught its own first attempt as invalid (bash -i without --norc sourced the main checkout's unthreaded copy). Clean re-run: default -> agro, OH_BIN=oh -> oh, AGRO_BIN=agro+OH_BIN=oh -> agro, AGRO_BIN=oh -> oh; precedence cross-checked against `compat_env_value BIN` and identical. entrypoint.sh NOT edited. boot-banner.test.ts 3/3. docs/harnesses/hermes.md:276 updated to stay a true transcript."
+    },
+    {
+      "id": "US-011",
+      "title": "Stop naming oh as the canonical CLI in present-tense prose",
+      "description": "As a reader, I want documentation that names the CLI without a verb to name agro, so that the project front door does not present the deprecated binary as the current one.",
+      "acceptanceCriteria": [
+        "The candidate set is re-derived with a verb-free pattern across all tracked docs and READMEs, not from a hand-written list",
+        "Every hit is classified canonical-present-tense, legacy-explanatory or compatibility-contract, and the split is reported",
+        "Canonical-present-tense sites name agro",
+        "Legacy-explanatory and compatibility-contract passages are unchanged byte for byte",
+        "docs/agro-compatibility.md, docs/rfcs/**, .agro/cli/legacy/README.md and the knowledge pages' historical records are unchanged",
+        "Both-spelling constructions are unchanged",
+        "Paths, filenames and variables are unchanged",
+        "Prose adds zero new /ste findings",
+        "The frozen baseline holds"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "MET. Candidate set re-derived verb-free, not from the operator's five-line list. The worker's method was better than the advisor's two patterns: it histogrammed the token following every bare `oh` across all tracked *.md (714 lines) and read the entire residual population, which is what proves nothing escaped. 61 candidates across 19 files. SPLIT: 9 canonical-present-tense fixed / 12 legacy-explanatory / 34 compatibility-contract / 6 out-of-class. The operator's list of 5 was incomplete and the advisor's calibration of 7 was also incomplete: docs/installation.md:373 ('only `oh` applies it') was a plain miss, and docs/security-considerations.md:127 had been ACTIVELY MIS-CLASSIFIED by the advisor as legacy-explanatory in an earlier round — the worker corrected the advisor, not merely supplemented. Also fixed: 2 mermaid labels in compose-env-boundary.md (leaving `oh_config`, a real entrypoint.sh function, and the `OH` node id) and 8 .github/ISSUE_TEMPLATE/ invocations, a directory four sweeps had missed. Advisor tested `agro sandbox` directly: it prints help and does NOT start the container, so the worker's upgrade of the template's bare `oh sandbox` to `agro sandbox install docker` is a correctness fix, accepted. Advisor OVERRODE the worker on the knowledge-page frontmatter: schema.md:105 defines `updated` as the date of the most recent write and :290 disclaims it as a validity test, so it was bumped and the index reindexed, matching how fresh-machine-setup.md was handled earlier in the same PR. verified_at correctly not advanced. .github/workflows/ left alone — and the advisor corrected its OWN wrong rationale for that mid-flight: sandbox-compatibility.yml is Debian-base compatibility CI (#807), not deliberate legacy coverage; it is skipped because a CI test invocation is not operator-facing instructional text."
+    },
+    {
+      "id": "US-012",
+      "title": "Widen the surface-sweep probe to tracked docs",
+      "description": "As the harness, I want the surface-sweep probe to catch a doc that names a deprecated binary as the canonical CLI, not just a README that presents a deprecated flag spelling as canonical.",
+      "acceptanceCriteria": [
+        "docs-20260911.sh fails when a tracked doc names a deprecated binary as the canonical CLI in present tense",
+        "It still passes the oh update blocks and the compatibility-contract prose",
+        "The distinction is encoded in the oracle, not in a path exclusion list",
+        "Its existing flag-spelling assertion still works",
+        "It fails on the pre-fix tree and passes on the fixed tree, demonstrated",
+        "Every REGRESSION and SKIPPED branch is driven by fault injection"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "MET. docs-20260911.sh widened from a three-README flag check to also fail when a tracked doc names a docs-declared deprecated BINARY as the canonical CLI. The binary pair is DERIVED from docs prose ('`agro <verb>` is also available as `oh <verb>`'), not hardcoded, exactly as the flag pair already was. Discrimination is structural first: it matches only the BARE backticked token, so `oh update`, `get-oh.sh`, `/opt/oh`, `oh.json`, `OH_*`, `~/.oh`, `packages/oh` and `@mifune/openharness` are out of scope by construction rather than by name — then marker-based over a bounded character window, per pattern-evals-negation-must-govern-token. Only two structural exclusions, both by KIND not identity: CHANGELOG.md (append-only history) and symlinks (provider mirrors). No per-file allowlist. ADVISOR VERIFICATION, independent: on the pristine de4cbe8b tree it produces 12 REGRESSIONs including both sites the operator named, and ZERO fire on any `oh update` block or on agro-compatibility.md — a false-positive control on real data carrying ~30 oh update occurrences and the full pre-rename docs. The advisor separately confirmed the original flag assertion still fires by injecting an unmarked `--repo` into a scratch README. THE DECISIVE CROSS-CHECK: the probe and the US-011 fix were written by two workers who could not see each other, and on the merged tree the probe flags exactly the 8 sites US-011 fixes, then goes PASS the moment US-011 merges. Two independent derivations agreeing is stronger evidence than either alone. 14 fault-injection rows including four false-positive controls; runtime ~290ms over 56 docs."
+    }
+  ]
+}

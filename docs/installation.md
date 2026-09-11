@@ -149,7 +149,7 @@ Then, in any project:
 ```bash
 agro sandbox install docker                  # create a sandbox from the published image
 agro sandbox install docker --checkout <dir> # ...or bind a checkout at /home/sandbox/harness
-agro sandbox list                            # name, runtime, status, repo
+agro sandbox list                            # name, runtime, status, checkout
 agro shell <name>                            # zsh in the running container
 agro tool install herdr                      # install the terminal workspace — nothing installs at boot
 agro harness install pi                      # install an agent CLI the same way
@@ -370,4 +370,4 @@ docker run --rm -v <sandbox-name>_workspace:/to -v /srv/openharness-home:/from \
 Skipping this loses every agent login and the SSH keys; nothing else breaks, and
 you simply sign in again.
 
-Downstream harness packs and Pi extensions can introduce additional volumes or bind-mount overlays by adding paths to `composeOverrides[]` in the tracked `agro.json`. That list is the one place overlay paths live, and only `oh` applies it: VS Code "Reopen in Container" reads `.devcontainer/docker-compose.yml` alone and applies [no overlays at all](lifecycle-commands.md#vs-code-reopen-in-container-applies-no-overlays).
+Downstream harness packs and Pi extensions can introduce additional volumes or bind-mount overlays by adding paths to `composeOverrides[]` in the tracked `agro.json`. That list is the one place overlay paths live, and only `agro` applies it: VS Code "Reopen in Container" reads `.devcontainer/docker-compose.yml` alone and applies [no overlays at all](lifecycle-commands.md#vs-code-reopen-in-container-applies-no-overlays).

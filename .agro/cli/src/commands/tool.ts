@@ -24,6 +24,7 @@ export interface ToolIO {
 }
 
 export interface ToolOptions {
+  bin: string;
   cwd?: string;
   run?: LifecycleRunner;
   json?: boolean;
@@ -134,7 +135,7 @@ function cell(value: boolean | null, absent: string): string {
   return value ? "yes" : "no";
 }
 
-function renderTable(rows: ToolRow[], io: ToolIO): void {
+function renderTable(rows: ToolRow[], io: ToolIO, bin: string): void {
   const header = ["TOOL", "KIND", "INSTALLED"];
   const body = rows.map((r) => [r.id, r.kind, cell(r.installed, "?")]);
   const widths = header.map((h, i) =>
@@ -145,12 +146,12 @@ function renderTable(rows: ToolRow[], io: ToolIO): void {
   io.stdout(line(header));
   for (const row of body) io.stdout(line(row));
   if (rows.some((r) => r.installed === null)) {
-    io.stdout("\nINSTALLED is `?` — the sandbox is not running. Start it with `oh sandbox`.\n");
+    io.stdout(`\nINSTALLED is \`?\` — the sandbox is not running. Start it with \`${bin} sandbox\`.\n`);
   }
 }
 
-function renderDetail(rows: ToolRow[], io: ToolIO): void {
-  renderTable(rows, io);
+function renderDetail(rows: ToolRow[], io: ToolIO, bin: string): void {
+  renderTable(rows, io, bin);
   for (const r of rows) {
     io.stdout(`\n${r.id} — ${r.title}\n`);
     io.stdout(`  version:    ${r.version ?? "—"}\n`);
@@ -166,13 +167,13 @@ export async function runToolList(opts: ToolOptions, io: ToolIO): Promise<number
   if (opts.json) {
     io.stdout(`${JSON.stringify(rows, null, 2)}\n`);
   } else {
-    renderTable(rows, io);
+    renderTable(rows, io, opts.bin);
   }
   return 0;
 }
 
-function unknownTool(name: string, io: ToolIO): number {
-  io.stderr(`oh tool: unknown tool "${name}"\n\n`);
+function unknownTool(name: string, io: ToolIO, bin: string): number {
+  io.stderr(`${bin} tool: unknown tool "${name}"\n\n`);
   io.stderr(`Known tools:\n${toolIds().map((t) => `  ${t}`).join("\n")}\n`);
   return 1;
 }
@@ -188,14 +189,14 @@ export async function runToolStatus(
   let only: ToolEntry | undefined;
   if (name !== undefined) {
     only = findTool(name);
-    if (!only) return unknownTool(name, io);
+    if (!only) return unknownTool(name, io, opts.bin);
   }
 
   const rows = await collectRows(root, run, opts.env, only ? [only] : undefined);
   if (opts.json) {
     io.stdout(`${JSON.stringify(only ? rows[0] : rows, null, 2)}\n`);
   } else {
-    renderDetail(rows, io);
+    renderDetail(rows, io, opts.bin);
   }
   return 0;
 }
@@ -228,11 +229,11 @@ export async function runToolInstall(
   const root = resolveProjectRoot(opts.cwd);
 
   const entry = findTool(name);
-  if (!entry) return unknownTool(name, io);
+  if (!entry) return unknownTool(name, io, opts.bin);
 
   if (entry.installArgv === undefined) {
-    io.stderr(`oh tool: ${entry.id} cannot be installed by this command.\n\n`);
-    io.stderr(`${entry.notInstallableReason ?? ""}\n\n`);
+    io.stderr(`${opts.bin} tool: ${entry.id} cannot be installed by this command.\n\n`);
+    io.stderr(`${entry.notInstallableReason?.(opts.bin) ?? ""}\n\n`);
     io.stderr(`Installable tools:\n${installableToolIds().map((t) => `  ${t}`).join("\n")}\n`);
     return 1;
   }
@@ -251,8 +252,8 @@ export async function runToolInstall(
 
   if (!isReachable(status)) {
     io.stderr(
-      `oh tool: the sandbox is not running (${status}).\n` +
-        "Start it with `oh sandbox`, then re-run this command.\n",
+      `${opts.bin} tool: the sandbox is not running (${status}).\n` +
+        `Start it with \`${opts.bin} sandbox\`, then re-run this command.\n`,
     );
     return 1;
   }
@@ -276,7 +277,7 @@ export async function runToolInstall(
     stdio: "inherit",
   });
   if (r.exitCode !== 0) {
-    io.stderr(`oh tool: installing ${entry.id} failed (exit ${r.exitCode}).\n`);
+    io.stderr(`${opts.bin} tool: installing ${entry.id} failed (exit ${r.exitCode}).\n`);
     return r.exitCode;
   }
 

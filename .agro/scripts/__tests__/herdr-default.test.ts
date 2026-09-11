@@ -59,8 +59,8 @@ describe("default Herdr integration", () => {
     expect(quickstart.indexOf("## Start Herdr first")).toBeLessThan(quickstart.indexOf("gh auth login"));
     expect(agents.indexOf("Start the primary interactive workspace")).toBeLessThan(agents.indexOf("gh auth login"));
     expect(contributing.indexOf("\nherdr\n")).toBeLessThan(contributing.indexOf("gh auth login"));
-    expect(intro).toContain("run `oh tool install herdr` and `herdr` first");
-    expect(harnessOverview).toContain("run `oh tool install herdr`, then run `herdr`");
+    expect(intro).toContain("run `agro tool install herdr` and `herdr` first");
+    expect(harnessOverview).toContain("run `agro tool install herdr`, then run `herdr`");
     expect(zshrc).toContain(".agro/install/banner.sh");
   });
 

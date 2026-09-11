@@ -34,7 +34,7 @@ worktree_path: ".worktrees/agent/<agent-name>"
 ### 1. Provision the agent
 
 ```bash
-oh sandbox
+agro sandbox install docker
 ```
 
 This will:
@@ -42,7 +42,7 @@ This will:
 - Build the Docker image and start the sandbox container (`docker compose up -d --build`)
 - Mount the workspace and run the setup script
 
-`oh sandbox` does **not** create the per-agent branch or worktree. The `branch` (`agent/<agent-name>`) and `worktree_path` (`.worktrees/agent/<agent-name>`) fields from the Metadata block above are real conventions you create manually with `git worktree add` per the `/git` skill (`.agro/skills/git/SKILL.md`) §Worktrees:
+`agro sandbox install docker` does **not** create the per-agent branch or worktree. The `branch` (`agent/<agent-name>`) and `worktree_path` (`.worktrees/agent/<agent-name>`) fields from the Metadata block above are real conventions you create manually with `git worktree add` per the `/git` skill (`.agro/skills/git/SKILL.md`) §Worktrees:
 
 ```bash
 git worktree add -b agent/<agent-name> .worktrees/agent/<agent-name> development
@@ -51,19 +51,19 @@ git worktree add -b agent/<agent-name> .worktrees/agent/<agent-name> development
 ### 2. Enter the sandbox
 
 ```bash
-oh shell <agent-name>
+agro shell <agent-name>
 claude
 ```
 
-The positional argument to `oh shell` is your **sandbox name** from `agro sandbox list`. Omit it when exactly one sandbox is registered or your current checkout identifies the sandbox. `oh shell` always connects as the `sandbox` user; use `docker exec -it -u <user> <container> zsh` when you need another one.
+The positional argument to `agro shell` is your **sandbox name** from `agro sandbox list`. Omit it when exactly one sandbox is registered or your current checkout identifies the sandbox. `agro shell` always connects as the `sandbox` user; use `docker exec -it -u <user> <container> zsh` when you need another one.
 
 ### 3. Verify
 
 Run from the **host** (orchestrator side):
 
-- [ ] Container is running (`oh ps`)
+- [ ] Container is running (`agro ps`)
 
-Run **inside the sandbox** (after `oh shell <agent-name>`):
+Run **inside the sandbox** (after `agro shell <agent-name>`):
 
 - [ ] Project root is accessible (`ls ~/harness`)
 - [ ] Harness identity lives at the repo root: `AGENTS.md` is present

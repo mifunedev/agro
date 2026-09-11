@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { assertInRoot, setKeyInEnv } from "./env-file.js";
 import { loadEnvInto, writeEnvFile } from "./env.js";
+import { activeBin } from "./product.js";
 
 const SECRETS_FILE = ".env";
 
@@ -32,7 +33,7 @@ export function isSecretKey(key: string): key is SecretKey {
 export function assertSecretKey(key: string): asserts key is SecretKey {
   if (ALLOWED.has(key)) return;
   throw new Error(
-    `${key} is not a secret — non-secret settings live in oh.json; use \`oh config set\` instead`,
+    `${key} is not a secret — non-secret settings live in oh.json; use \`${activeBin()} config set\` instead`,
   );
 }
 

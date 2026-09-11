@@ -13,6 +13,7 @@ import {
   resolveSandboxRoot,
 } from "../registry.js";
 import type { LifecycleRunner, RunResult } from "../execution/runner.js";
+import { withInvokedBin } from "../../__tests__/invoked-bin.js";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", "..");
 
@@ -255,9 +256,13 @@ describe("resolveSandboxRoot", () => {
 
   it("errors pointing at the install verb when the registry is empty", () => {
     registry();
-    expect(() => resolveSandboxRoot({ cwd: tmpdir() })).toThrow(
-      /no sandbox is registered .* `oh sandbox install docker`/,
-    );
+    for (const bin of ["agro", "oh"]) {
+      withInvokedBin(bin, () => {
+        expect(() => resolveSandboxRoot({ cwd: tmpdir() })).toThrow(
+          new RegExp(`no sandbox is registered .* \`${bin} sandbox install docker\``),
+        );
+      });
+    }
   });
 });
 

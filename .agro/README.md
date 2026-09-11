@@ -172,8 +172,8 @@ honor a symlinked directory), so it is the one harness surface that intentionall
 stays outside the `.agro/` control plane. The consolidated layout is guarded by the
 `oh-devcontainer-restructure` eval probe.
 
-The `oh` CLI bundles these compose files as text and re-materialises them into a
-sandbox's registry entry (`${OH_HOME:-~/.oh}/sandboxes/<name>/`) on every
+The `agro` CLI bundles these compose files as text and re-materialises them into
+a sandbox's registry entry (`${AGRO_HOME:-~/.agro}/sandboxes/<name>/`) on every
 lifecycle call, so an installed binary needs no checkout to boot a sandbox. The
 copies in an entry are generated; this directory is their source of truth.
 

@@ -28,7 +28,7 @@ function setup({ installed = false, installExit = 0, linkExit = 0, verify = true
     return { status, stdout: "", stderr: "" };
   };
   const out: string[] = [], err: string[] = [];
-  return { root, calls, out, err, invoke: () => runHarnessInstall("hermes", {
+  return { root, calls, out, err, invoke: () => runHarnessInstall("hermes", { bin: "oh",
     cwd: tmpdir(), run,
     env: { OH_EXECUTION_TARGET: "local", OH_PROJECT_ROOT: root },
   }, { stdout: s => out.push(s), stderr: s => err.push(s) }) };
@@ -42,7 +42,7 @@ describe("Hermes installation postconditions", () => {
       calls.push([cmd, ...args]);
       return { status: 0, stdout: args[0] === "inspect" ? "running\n" : "", stderr: "" };
     };
-    expect(await runHarnessInstall("hermes", {
+    expect(await runHarnessInstall("hermes", { bin: "oh",
       cwd: t.root, run, env: { OH_EXECUTION_TARGET: "docker-compose" },
     }, { stdout: () => {}, stderr: () => {} })).toBe(0);
     const link = calls.find(args => args.includes("--hermes-only"))!;

@@ -12,6 +12,7 @@ export interface UpdateIO {
 }
 
 export interface UpdateOptions {
+  bin: string;
   targetDir: string;
   fromDir: string;
   force?: boolean;
@@ -54,13 +55,13 @@ function readCliVersion(ohDir: string): string {
 }
 
 export async function runUpdate(opts: UpdateOptions, io: UpdateIO): Promise<number> {
-  const { targetDir, fromDir, force, dryRun } = opts;
+  const { bin, targetDir, fromDir, force, dryRun } = opts;
   const dryPrefix = dryRun ? '[dry-run] ' : '';
 
   const source = resolveControlDir(fromDir);
   if (source.kind === 'absent') {
     io.stderr(
-      'oh update: update source not found at ' +
+      bin + ' update: update source not found at ' +
         source.agroPath +
         ' or ' +
         source.legacyPath +
@@ -76,7 +77,7 @@ export async function runUpdate(opts: UpdateOptions, io: UpdateIO): Promise<numb
   const targetName = path.basename(targetOh);
 
   if (fromOh === targetOh) {
-    io.stderr('oh update: source and target are the same ' + targetName + '; nothing to update.\n');
+    io.stderr(bin + ' update: source and target are the same ' + targetName + '; nothing to update.\n');
     return 1;
   }
 
@@ -88,14 +89,14 @@ export async function runUpdate(opts: UpdateOptions, io: UpdateIO): Promise<numb
     io.stdout(dryPrefix + 'updating ' + targetName + ': ' + current + ' -> ' + available + '\n');
   } else if (cmp === 0) {
     if (!force) {
-      io.stdout(dryPrefix + 'oh update: already up to date (v' + current + ')\n');
+      io.stdout(dryPrefix + bin + ' update: already up to date (v' + current + ')\n');
       return 0;
     }
-    io.stdout(dryPrefix + 'oh update: re-overlay (v' + current + ', --force)\n');
+    io.stdout(dryPrefix + bin + ' update: re-overlay (v' + current + ', --force)\n');
   } else {
     if (!force) {
       io.stderr(
-        'oh update: refusing downgrade (current v' +
+        bin + ' update: refusing downgrade (current v' +
           current +
           ' > source v' +
           available +
@@ -104,7 +105,7 @@ export async function runUpdate(opts: UpdateOptions, io: UpdateIO): Promise<numb
       return 1;
     }
     io.stdout(
-      dryPrefix + 'oh update: downgrading ' + targetName + ': ' + current + ' -> ' + available + ' (--force)\n',
+      dryPrefix + bin + ' update: downgrading ' + targetName + ': ' + current + ' -> ' + available + ' (--force)\n',
     );
   }
 
@@ -112,7 +113,7 @@ export async function runUpdate(opts: UpdateOptions, io: UpdateIO): Promise<numb
   if (manifest === null) {
     io.stdout(
       dryPrefix +
-        'oh update: no ' + controlName + '/manifest.json in source; overlaying all of ' + controlName + '/ (legacy mode)\n',
+        bin + ' update: no ' + controlName + '/manifest.json in source; overlaying all of ' + controlName + '/ (legacy mode)\n',
     );
   }
 
@@ -156,7 +157,7 @@ export async function runUpdate(opts: UpdateOptions, io: UpdateIO): Promise<numb
     if (existsSync(stranded)) {
       io.stdout(
         dryPrefix +
-          'oh update: ' +
+          bin + ' update: ' +
           path.join(targetName, dir) +
           ' still exists from a pre-move install and is no longer read; move any local edits into ' +
           dir +
@@ -167,7 +168,7 @@ export async function runUpdate(opts: UpdateOptions, io: UpdateIO): Promise<numb
 
   io.stdout(
     dryPrefix +
-      'oh update: ' +
+      bin + ' update: ' +
       created +
       ' created, ' +
       overwritten +

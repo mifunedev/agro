@@ -1087,11 +1087,12 @@ async function main(argv: string[]): Promise<number> {
         stderr: (s) => process.stderr.write(s),
       };
       const scope = {
+        bin,
         ...(a.sandbox === undefined ? {} : { sandbox: a.sandbox }),
         ...(a.force === true ? { force: true } : {}),
       };
       if (a.verb === "show") return await runConfigShow(scope, io);
-      if (a.verb === "repo") return await runConfigRepo({}, io);
+      if (a.verb === "repo") return await runConfigRepo({ bin }, io);
       return await runConfigSet(a.key as string, a.value as string, scope, io);
     }
 
@@ -1125,7 +1126,7 @@ async function main(argv: string[]): Promise<number> {
       stdout: (s) => process.stdout.write(s),
       stderr: (s) => process.stderr.write(s),
     };
-    const scope = a.sandbox === undefined ? {} : { sandbox: a.sandbox };
+    const scope = a.sandbox === undefined ? { bin } : { bin, sandbox: a.sandbox };
     if (a.verb === "list") return await runSecretList(scope, io);
     return await runSecretSet(a.key as string, scope, io);
   }
@@ -1172,11 +1173,11 @@ async function main(argv: string[]): Promise<number> {
     const source = resolveUpdateSource(parsed.args, { sourceOhDir: DEFAULT_SOURCE_OH_DIR }, bin);
 
     if (source.kind === "local") {
-      return await runUpdate({ targetDir, fromDir: source.fromDir, force, dryRun }, io);
+      return await runUpdate({ bin, targetDir, fromDir: source.fromDir, force, dryRun }, io);
     }
     if (source.notice) process.stdout.write(source.notice);
     return await runWithRemoteSource({ ref: source.ref }, (checkoutDir) =>
-      runUpdate({ targetDir, fromDir: checkoutDir, force, dryRun }, io),
+      runUpdate({ bin, targetDir, fromDir: checkoutDir, force, dryRun }, io),
     );
   }
 
@@ -1193,9 +1194,10 @@ async function main(argv: string[]): Promise<number> {
       return a.subcommand === undefined ? 1 : 0;
     }
     const io: SandboxIO = lifecycleIo();
-    if (a.subcommand === "list") return await runSandboxList({ json: a.json }, io);
+    if (a.subcommand === "list") return await runSandboxList({ bin, json: a.json }, io);
     return await runSandboxInstall(
       {
+        bin,
         runtime: a.runtime as string,
         ...(a.name !== undefined ? { name: a.name } : {}),
         ...(a.checkout !== undefined ? { checkout: a.checkout } : {}),
@@ -1221,7 +1223,7 @@ async function main(argv: string[]): Promise<number> {
       return 0;
     }
     return runShell(
-      parsed.args.name === undefined ? {} : { name: parsed.args.name },
+      parsed.args.name === undefined ? { bin } : { bin, name: parsed.args.name },
       lifecycleIo(),
     );
   }
@@ -1238,6 +1240,7 @@ async function main(argv: string[]): Promise<number> {
     }
     return await runDestroy(
       {
+        bin,
         yes: parsed.args.yes,
         ...(parsed.args.name !== undefined ? { name: parsed.args.name } : {}),
       },
@@ -1256,7 +1259,7 @@ async function main(argv: string[]): Promise<number> {
       printComposeHelp(bin);
       return 0;
     }
-    return runComposeConfig({}, parsed.args.passthrough);
+    return runComposeConfig({ bin }, parsed.args.passthrough);
   }
 
   if ((composeVerbs() as string[]).includes(first)) {
@@ -1279,7 +1282,7 @@ async function main(argv: string[]): Promise<number> {
       );
       return 1;
     }
-    return runComposeVerb(verb, head.length === 0 ? {} : { name: head[0] }, extra);
+    return runComposeVerb(verb, head.length === 0 ? { bin } : { bin, name: head[0] }, extra);
   }
 
   if (first === "harness") {
@@ -1299,12 +1302,12 @@ async function main(argv: string[]): Promise<number> {
       stderr: (s) => process.stderr.write(s),
     };
     if (a.subcommand === "list") {
-      return await runHarnessList({ json: a.json }, io);
+      return await runHarnessList({ bin, json: a.json }, io);
     }
     if (a.subcommand === "status") {
-      return await runHarnessStatus(a.name, { json: a.json }, io);
+      return await runHarnessStatus(a.name, { bin, json: a.json }, io);
     }
-    return await runHarnessInstall(a.name as string, {}, io);
+    return await runHarnessInstall(a.name as string, { bin }, io);
   }
 
   if (first === "tool") {
@@ -1324,16 +1327,17 @@ async function main(argv: string[]): Promise<number> {
       stderr: (s) => process.stderr.write(s),
     };
     if (a.subcommand === "list") {
-      return await runToolList({ json: a.json }, io);
+      return await runToolList({ bin, json: a.json }, io);
     }
     if (a.subcommand === "status") {
-      return await runToolStatus(a.name, { json: a.json }, io);
+      return await runToolStatus(a.name, { bin, json: a.json }, io);
     }
-    return await runToolInstall(a.name as string, { yes: a.yes }, io);
+    return await runToolInstall(a.name as string, { bin, yes: a.yes }, io);
   }
 
   if (first === "cloud") {
     return await runCloud(argv.slice(1), {
+      bin,
       stdout: (s) => process.stdout.write(s),
       stderr: (s) => process.stderr.write(s),
     });
@@ -1349,7 +1353,7 @@ async function main(argv: string[]): Promise<number> {
       printGatewayHelp(bin);
       return 0;
     }
-    return runGateway(parsed.args.passthrough, {});
+    return runGateway(parsed.args.passthrough, { bin });
   }
 
   process.stderr.write(`${bin}: unknown command "${first}"\n\n`);

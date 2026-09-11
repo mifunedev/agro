@@ -9,6 +9,7 @@ import compatShell from "oh-asset:.agro/scripts/compat.sh";
 import checkHostPort from "oh-asset:.agro/scripts/check-host-port.sh";
 import { spawnRunner, type LifecycleRunner } from "./execution/runner.js";
 import { configCheckout, ohConfigPath, readOhConfig } from "./oh-config.js";
+import { activeBin } from "./product.js";
 import { resolveProjectLayout, resolveUserStateHome } from "./compat.js";
 
 export const SANDBOX_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
@@ -123,7 +124,7 @@ export function resolveSandboxRoot(opts: ResolveSandboxOptions = {}): string {
     if (!isDirectory(root)) {
       throw new Error(
         `no sandbox named \`${opts.name}\` in ${registryRoot()} — ` +
-          `create one with \`oh sandbox install docker --name ${opts.name}\``,
+          `create one with \`${activeBin()} sandbox install docker --name ${opts.name}\``,
       );
     }
     return root;
@@ -142,7 +143,7 @@ export function resolveSandboxRoot(opts: ResolveSandboxOptions = {}): string {
 
   if (names.length === 0) {
     throw new Error(
-      `no sandbox is registered in ${registryRoot()} — create one with \`oh sandbox install docker\``,
+      `no sandbox is registered in ${registryRoot()} — create one with \`${activeBin()} sandbox install docker\``,
     );
   }
   throw new Error(

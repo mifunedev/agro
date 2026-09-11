@@ -11,6 +11,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Added
 
 - Add `agro sandbox install docker --home-mount <dir>` to persist `/home/sandbox` at a host path when you create the sandbox. ([#1042](https://github.com/mifunedev/agro/issues/1042))
+- Add a `checkout` key to `agro sandbox list --json`, and keep `repo` as a deprecated alias that carries the same value. ([#1046](https://github.com/mifunedev/agro/issues/1046))
+- Add three probes that fail a hardcoded operator-facing binary literal, a README that presents a deprecated flag spelling as canonical, and an empty CI check set counted as a pass. ([#1046](https://github.com/mifunedev/agro/issues/1046))
+- Widen the docs surface-sweep probe to also fail a tracked doc that names a deprecated binary as the canonical CLI, while `oh update` blocks and compatibility-contract prose stay green. ([#1046](https://github.com/mifunedev/agro/issues/1046))
 
 ### Changed
 
@@ -20,6 +23,11 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Fixed
 
 - Select build mode from `--repo <dir>` only when that directory holds `.devcontainer/Dockerfile`, so a path without one binds the directory and runs the published image. ([#1042](https://github.com/mifunedev/agro/issues/1042))
+- Name the invoked binary in every operator-facing CLI message, so `agro sandbox install docker` now ends with `next: agro shell <name>` instead of the deprecated `oh` spelling. ([#1046](https://github.com/mifunedev/agro/issues/1046))
+- Correct the docs that named `${OH_HOME:-~/.oh}/sandboxes/<name>/` as the current registry path and `/opt/oh-seed` as the image seed source. ([#1046](https://github.com/mifunedev/agro/issues/1046))
+- Name `agro` in the instructional `docs/` commands, but leave legacy-explanatory prose and `oh update` alone, because `agro update` self-upgrades the CLI and `oh update` vendors the payload. ([#1046](https://github.com/mifunedev/agro/issues/1046))
+- Name the invoked binary in the sandbox onboarding banner, so the shell banner an operator reads on every login no longer teaches the deprecated `oh` spelling. ([#1046](https://github.com/mifunedev/agro/issues/1046))
+- Name `agro` as the canonical CLI in prose, diagram labels, and issue templates, so `docs/intro.md` no longer introduces the lifecycle as the `oh` CLI; compatibility prose stays verbatim. ([#1046](https://github.com/mifunedev/agro/issues/1046))
 
 ## [0.10.0] - 2026-09-10
 
