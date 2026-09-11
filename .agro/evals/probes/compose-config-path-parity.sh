@@ -15,16 +15,33 @@ if [[ ! -f "$WRAPPER" || ! -f "$COMPOSE_FILE" ]]; then
 fi
 
 fails=()
+env_asserted=0
+env_unasserted_reason=""
+
+file_identity() {
+  stat -Lc '%d:%i' "$1" 2>/dev/null && return 0
+  stat -Lf '%d:%i' "$1" 2>/dev/null && return 0
+  return 0
+}
 
 argv="$(bash "$WRAPPER" --repo-dir "$ROOT" --print-argv config 2>/dev/null || true)"
 env_file_count="$(grep -cx -- '--env-file' <<<"$argv" || true)"
 
 if (( env_file_count > 1 )); then
-  fails+=("the wrapper passes $env_file_count --env-file arguments; only .devcontainer/.env may be one, or path B cannot see the rest")
+  fails+=("the wrapper passes $env_file_count --env-file arguments; only one may name the file .devcontainer/.env resolves to, or path B cannot see the rest")
 elif (( env_file_count == 1 )); then
   named="$(grep -A1 -x -- '--env-file' <<<"$argv" | tail -1)"
-  [[ "$named" == "$ROOT/.devcontainer/.env" ]] \
-    || fails+=("the wrapper's --env-file is '$named', not .devcontainer/.env — path B auto-loads only the latter")
+  named_id="$(file_identity "$named")"
+  devcontainer_id="$(file_identity "$ROOT/.devcontainer/.env")"
+  if [[ -n "$named_id" && -n "$devcontainer_id" ]]; then
+    env_asserted=1
+    [[ "$named_id" == "$devcontainer_id" ]] \
+      || fails+=("the wrapper's --env-file '$named' ($named_id) and .devcontainer/.env ($devcontainer_id) are different files — path B auto-loads only the latter")
+  else
+    env_unasserted_reason="no usable stat on this host, so file identity was not determinable"
+  fi
+else
+  env_unasserted_reason="the wrapper emitted no --env-file, so no environment file exists to compare"
 fi
 
 grep -q 'harness-config.sh' <<<"$argv" \
@@ -36,7 +53,11 @@ if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>
     printf '  - %s\n' "${fails[@]}" >&2
     exit 1
   fi
-  echo "SKIPPED: docker compose unavailable — structural half passed, behavioural half not run" >&2
+  if (( env_asserted )); then
+    echo "SKIPPED: docker compose unavailable — structural half passed, behavioural half not run" >&2
+  else
+    echo "SKIPPED: docker compose unavailable and $env_unasserted_reason — neither half asserted anything" >&2
+  fi
   exit 2
 fi
 
@@ -68,7 +89,11 @@ if [[ -z "$via_wrapper" || -z "$via_vscode" ]]; then
     printf '  - %s\n' "${fails[@]}" >&2
     exit 1
   fi
-  echo "SKIPPED: docker compose config produced no output on this host — structural half passed" >&2
+  if (( env_asserted )); then
+    echo "SKIPPED: docker compose config produced no output on this host — structural half passed" >&2
+  else
+    echo "SKIPPED: docker compose config produced no output on this host and $env_unasserted_reason — neither half asserted anything" >&2
+  fi
   exit 2
 fi
 
@@ -83,5 +108,9 @@ if (( ${#fails[@]} > 0 )); then
   exit 1
 fi
 
-echo "PASS: compose config path parity — the wrapper and the direct VS Code path read the same .devcontainer/.env and resolve the same service" >&2
+if (( env_asserted )); then
+  echo "PASS: compose config path parity — the wrapper's --env-file and .devcontainer/.env are the same file, and both paths resolve the same service" >&2
+else
+  echo "PASS: compose config path parity — both paths resolve the same service from the same environment file (behavioural half); the env-file identity assertion was not made: $env_unasserted_reason" >&2
+fi
 exit 0
