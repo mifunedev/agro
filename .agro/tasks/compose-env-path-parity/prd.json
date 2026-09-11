@@ -25,8 +25,8 @@
                 "Typecheck passes"
             ],
             "priority": 1,
-            "passes": false,
-            "notes": ""
+            "passes": true,
+            "notes": "Implemented in .agro/evals/probes/compose-config-path-parity.sh:21-45. file_identity() tries stat -Lc then stat -Lf and prints nothing when neither works; the comparison is device:inode, dereferenced. Verified by the four-scenario vitest suite (A/B/C/D -> 0/0/1/0). docker-compose.sh untouched; count check and harness-config.sh check unchanged. shellcheck not installed in this sandbox — recorded as unverified."
         },
         {
             "id": "US-002",
@@ -42,8 +42,8 @@
                 "Typecheck passes"
             ],
             "priority": 2,
-            "passes": false,
-            "notes": ""
+            "passes": true,
+            "notes": "env_asserted + env_unasserted_reason track whether the assertion ran. Verified at the real repository root: probe exits 0 and prints \"the env-file identity assertion was not made: the wrapper emitted no --env-file\". Covered by the absent-file test case."
         },
         {
             "id": "US-003",
@@ -58,8 +58,8 @@
                 "Typecheck passes"
             ],
             "priority": 3,
-            "passes": false,
-            "notes": ""
+            "passes": true,
+            "notes": "Both exit-2 branches (lines 50-62, 86-98) now branch on env_asserted and say \"neither half asserted anything\" when nothing ran. The fails check still precedes every exit 2 in both branches."
         },
         {
             "id": "US-004",
@@ -78,8 +78,8 @@
                 "Typecheck passes"
             ],
             "priority": 4,
-            "passes": false,
-            "notes": ""
+            "passes": true,
+            "notes": ".agro/scripts/__tests__/compose-config-path-parity.test.ts, 4 cases, vitest. Confirmed a genuine oracle: 4/4 FAIL against the previous probe (git show origin/development), 4/4 PASS against the new one. Skips via it.skipIf when docker compose is absent. Uses its own tmp fixtures; never touches the real repository environment file."
         },
         {
             "id": "US-005",
@@ -95,8 +95,8 @@
                 "Typecheck passes"
             ],
             "priority": 5,
-            "passes": false,
-            "notes": ""
+            "passes": true,
+            "notes": "/eval runner exit 0; compose-config-path-parity row is PASS; no green->red delta. Three persistent reds pre-existing on development (curl-bash-safe-alternatives, oh-config-surfaces, skills-vendored), all delta=unchanged, disclosed in the PR body and evidence.md. CHANGELOG entry added under Unreleased/Fixed. CI status recorded after push."
         }
     ]
 }

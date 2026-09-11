@@ -46,3 +46,37 @@ this task touches.
 
 Worktree: .worktrees/bug/935-compose-env-path-parity on branch
 bug/935-compose-env-path-parity off origin/development.
+
+2026-09-11 — execute phase, steps 4-7 (owner, session 01eecd5b)
+US-001..US-004 implemented and validated; US-005 gates run.
+Files: .agro/evals/probes/compose-config-path-parity.sh (+29/-6),
+       .agro/scripts/__tests__/compose-config-path-parity.test.ts (new),
+       CHANGELOG.md, .agro/evals/RESULTS.md.
+Commit: ed75334c. .agro/scripts/docker-compose.sh untouched (verified by
+git diff --name-only). Count check and harness-config.sh check unchanged.
+
+Oracle check, not just a green suite: the previous probe was restored from
+origin/development and the new vitest suite re-run against it — 4/4 FAIL — then
+restored — 4/4 PASS. The test discriminates.
+
+/eval: runner exit 0, 149 probes, compose-config-path-parity PASS, no green->red
+delta. Three persistent reds (curl-bash-safe-alternatives ERROR python3 missing,
+oh-config-surfaces, skills-vendored) all delta=unchanged and pre-existing.
+
+Full vitest: 1432 passed, 1 failed, 14 skipped. The failure is
+migrate-rehearsal.test.ts, proven pre-existing by running that file against
+origin/development in a detached baseline worktree — same two tests, same names.
+
+Knowledge impact: knowledge-impact.sh over the 7 changed paths returns 0
+NEEDS-REVIEW (10 FRESH, 31 NOT-APPLICABLE). Union with Expected (which named no
+page) is empty, so Actual Knowledge Impact is NOT-APPLICABLE. compose-env-boundary
+recorded NOT-AFFECTED with reason: it declares the sibling probe
+compose-env-boundary.sh, not this one, and documents the registry
+--extra-env-file route rather than the in-checkout ENV_FILE preference.
+wiki-readme-index.sh PASS, exit 0.
+
+evidence.md written, answering all five questions. Divergences recorded: the
+three-file contract was gap-filled rather than re-planned; the owner edited
+directly under the operator exception above; shellcheck is not installed here and
+is carried as unverified. The BSD stat -Lf fallback is reasoned, never executed on
+this GNU-only host — also carried as unverified.
