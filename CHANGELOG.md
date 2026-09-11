@@ -11,6 +11,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Added
 
 - Add `agro sandbox install docker --home-mount <dir>` to persist `/home/sandbox` at a host path when you create the sandbox. ([#1042](https://github.com/mifunedev/agro/issues/1042))
+- Add a `checkout` key to `agro sandbox list --json`, and keep `repo` as a deprecated alias that carries the same value. ([#1046](https://github.com/mifunedev/agro/issues/1046))
+- Add three probes that fail a hardcoded operator-facing binary literal, a README that presents a deprecated flag spelling as canonical, and an empty CI check set counted as a pass. ([#1046](https://github.com/mifunedev/agro/issues/1046))
 
 ### Changed
 
@@ -20,6 +22,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Fixed
 
 - Select build mode from `--repo <dir>` only when that directory holds `.devcontainer/Dockerfile`, so a path without one binds the directory and runs the published image. ([#1042](https://github.com/mifunedev/agro/issues/1042))
+- Name the invoked binary in every operator-facing CLI message, so `agro sandbox install docker` now ends with `next: agro shell <name>` instead of the deprecated `oh` spelling. ([#1046](https://github.com/mifunedev/agro/issues/1046))
+- Correct the docs that named `${OH_HOME:-~/.oh}/sandboxes/<name>/` as the current registry path and `/opt/oh-seed` as the image seed source. ([#1046](https://github.com/mifunedev/agro/issues/1046))
 
 ## [0.10.0] - 2026-09-10
 
