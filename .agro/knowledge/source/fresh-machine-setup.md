@@ -4,7 +4,7 @@ slug: fresh-machine-setup
 kind: repo
 tags: [setup, onboarding, installation, agro, registry, gateway, ssh, github, slack]
 created: 2026-07-02
-updated: 2026-09-10
+updated: 2026-09-11
 sources:
   - README.md
   - docs/quickstart.md
@@ -70,10 +70,10 @@ never clones or builds — no ref override exists because nothing is checked out
 (`agro_env`). `get-oh.sh` stays the compatibility bootstrap for `oh`, and
 `@mifune/openharness` installs the delegating `oh` shim. `agro update` upgrades the
 executable later ([[oh-cli-portable-lifecycle]]). The documented entry points are
-`https://agro.mifune.dev/get-agro.sh` (canonical; `README.md:51`,
+`https://agro.mifune.dev/get-agro.sh` (canonical; `README.md:47`,
 `docs/installation.md:38`) and `https://oh.mifune.dev/get-oh.sh` (compatibility;
 `docs/installation.md:74`), and README and the docs link `mifunedev/agro`,
-`mifunedev/agro-web`, and `agro.mifune.dev` (#943; `README.md:29,287`). The GitHub
+`mifunedev/agro-web`, and `agro.mifune.dev` (#943; `README.md:341,366`). The GitHub
 repository rename is an operator step in `docs/agro-cutover-runbook.md`, pending at
 this pin, so `mifunedev/openharness` still resolves directly and the `mifunedev/agro`
 default takes effect once the rename lands. [[agro-web-pipeline]] describes the site
@@ -177,10 +177,10 @@ Hermes onboarding separates the program home from runtime state. The program rem
 `~/.local/lib/hermes-agent`; the image defaults runtime state to `~/harness/.hermes`
 (`.devcontainer/Dockerfile:4`). The installer reconciles shared skills immediately and
 checks the executable before reporting success (`.agro/cli/src/commands/harness.ts:176`,
-`.agro/cli/src/commands/harness.ts:228`); the reconcile call now reaches the linker
+`.agro/cli/src/commands/harness.ts:259-262`); the reconcile call now reaches the linker
 through `remoteControlDirScript`, so it works against a `.agro/` or a `.oh/` sandbox.
 Native skills remain beside the additive shared link. Conflicting, unset, or relative
-managed homes fail before installation (`.agro/scripts/link-providers.sh:111`).
+managed homes fail before installation (`.agro/scripts/link-providers.sh:197-210`).
 
 An old container needs image recreation, not only a CLI update, to acquire the image
 environment. The installer does not migrate populated legacy homes. Image-only state

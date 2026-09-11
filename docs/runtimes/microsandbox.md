@@ -6,18 +6,18 @@ title: "MicroSandbox"
 
 [MicroSandbox](https://github.com/microsandbox/microsandbox) is a microVM tier:
 one real kernel per sandbox, KVM-backed. It is **planned**, not provisionable —
-`oh sandbox install microsandbox` refuses:
+`agro sandbox install microsandbox` refuses:
 
 ```
-oh sandbox install: microsandbox is not a provisionable runtime yet; see
-docs/rfcs/rfc-runtime-support.md. Inside a sandbox run `oh tool install microsandbox`.
+agro sandbox install: microsandbox is not a provisionable runtime yet; see
+docs/rfcs/rfc-runtime-support.md. Inside a sandbox run `agro tool install microsandbox`.
 ```
 
 What *is* shipped is the `msb` binary, as an ordinary installable tool:
 
 ```bash
-oh tool install microsandbox   # inside a sandbox; installs msb as the sandbox user
-oh tool status microsandbox    # installed state and version
+agro tool install microsandbox   # inside a sandbox; installs msb as the sandbox user
+agro tool status microsandbox    # installed state and version
 ```
 
 ## Which question are you asking?
@@ -27,18 +27,18 @@ actually asking.
 
 | Question | Short answer |
 |---|---|
-| **How do I get the `msb` binary?** | `oh tool install microsandbox` — see [Installing `msb`](#installing-msb). |
+| **How do I get the `msb` binary?** | `agro tool install microsandbox` — see [Installing `msb`](#installing-msb). |
 | **Can I run Open Harness *on* MicroSandbox, from my own host?** | **Possibly yes, today** — see [Running Open Harness on MicroSandbox](#running-open-harness-on-microsandbox). Nothing on this page measures your host. |
 
 The distinction matters because the two use different commands on different
-machines. `oh tool install microsandbox` installs `msb` **inside the sandbox**
+machines. `agro tool install microsandbox` installs `msb` **inside the sandbox**
 (`installUser: "sandbox"`). If you want msb as the **runner** for Open Harness,
 you install msb on your **host**, from upstream — the tool verb is not that
 command and wires nothing up.
 
 ## Installing `msb`
 
-`oh tool install microsandbox` runs the pinned upstream installer as the
+`agro tool install microsandbox` runs the pinned upstream installer as the
 `sandbox` user. It downloads the script to a temp file, checks it against a
 pinned `sha256`, and runs it with
 `MSB_HOME="${NPM_USER_PREFIX:-$HOME/.local}/microsandbox"`. Observed result:
@@ -54,13 +54,13 @@ Only the installer *script* is pinned. Upstream's script always fetches the
 latest release, so the version you get is whatever upstream publishes.
 
 The install lands in `~/.local`, inside the persistent home mount, so it
-survives a container recreate and `oh destroy <name>` removes it. It needs
+survives a container recreate and `agro destroy <name>` removes it. It needs
 network access, rebuilds no image, restarts no sandbox, and writes no
 `agro.json` field.
 
 **`msb self doctor` is yours to run.** The harness runs no doctor and makes no
-readiness verdict: `oh tool install microsandbox` verifies only that `msb` is on
-PATH (`command -v msb`). Check the host yourself:
+readiness verdict: `agro tool install microsandbox` verifies only that `msb` is
+on PATH (`command -v msb`). Check the host yourself:
 
 ```bash
 msb self doctor                  # expect exit 0
@@ -92,7 +92,7 @@ different claims, and only you can measure the second one on your host.
 
 ## Which side msb belongs on is not settled
 
-`oh tool install microsandbox` installs `msb` **inside the sandbox**, because
+`agro tool install microsandbox` installs `msb` **inside the sandbox**, because
 that is the only side the CLI's `ExecutionTarget` can reach. Whether that is the
 *right* side is open.
 
@@ -107,7 +107,7 @@ today. The axes taxonomy behind the decision is in
 
 ## Running Open Harness on MicroSandbox
 
-This does not go through the `oh` CLI at all.
+This does not go through the `agro` CLI at all.
 
 **MicroSandbox is not a Docker runtime.** You cannot point `docker compose` at it
 the way you can point it at a Docker-level runtime. It is its own VM manager
@@ -122,7 +122,7 @@ ghcr.io/mifunedev/openharness:latest
 msb runs standard OCI images from any registry, so no new image is needed. The
 invocation to translate is **not** the compose stack — it is the plain
 `docker run` recipe in
-[`oh sandbox install docker`](../deployment-prebuilt-image.md), which already
+[`agro sandbox install docker`](../deployment-prebuilt-image.md), which already
 boots the harness with no compose, no CLI, and no build.
 
 :::caution UNTESTED
@@ -137,8 +137,8 @@ find.
 
 ### Step 1 — Install `msb` on your host
 
-This is the step `oh tool install microsandbox` does *not* do for you: that verb
-installs `msb` inside the sandbox, which is the wrong side for this.
+This is the step `agro tool install microsandbox` does *not* do for you: that
+verb installs `msb` inside the sandbox, which is the wrong side for this.
 
 Check the floor first — `msb` needs both, and neither is Open Harness's
 requirement:
@@ -184,10 +184,14 @@ mkdir -p ~/.openharness-msb/{workspace,claude,config,herdr,ssh}
 ```
 
 **`workspace/` must be empty.** The entrypoint seeds the control plane from the
-image's baked `/opt/oh-seed` on first boot, guarded by `[ ! -d "$dest/.oh" ]`.
-Point it at a directory that already contains a `.agro/` and the seed is skipped
-**with no error message** — every step in that path is `|| true` — leaving a
-harness with no control plane. Confirm it before you boot:
+image's baked `/opt/agro-seed` on first boot, and seeds only when the workspace
+holds no control directory. The entrypoint then writes an `.image-seeded` marker
+inside the directory it seeded, which makes the seed once-only. A workspace from
+an earlier release that holds `.oh/` counts as that control directory and keeps
+resolving, so the entrypoint never re-seeds it. Point it at a directory that
+already contains a `.agro/` and the seed is skipped **with no error message** —
+every step in that path is `|| true` — leaving a harness with no control plane.
+Confirm it before you boot:
 
 ```bash
 # Must print nothing. Anything here means the seed will be skipped.
@@ -224,7 +228,7 @@ Container paths are the same on both sides.
 #### `sandbox.yaml`
 
 Derived from the verified `docker run` recipe in
-[`oh sandbox install docker`](../deployment-prebuilt-image.md), reconciled
+[`agro sandbox install docker`](../deployment-prebuilt-image.md), reconciled
 against `docker-compose.image-only.yml`. Two deliberate differences from that
 recipe: the compose mount set (all of `~/.config`, plus `.herdr`) replaces the
 recipe's `.config/gh` and `.pi`, and `SANDBOX_NAME` is dropped because the
@@ -288,14 +292,14 @@ This is the step that catches a silent half-boot:
 
 ```bash
 msb exec openharness -- bash -lc '
-  ls /home/sandbox/harness/.oh >/dev/null \
+  ls /home/sandbox/harness/.agro >/dev/null \
   && bash /home/sandbox/harness/.agro/scripts/link-providers.sh --check \
   && echo SEED_OK'
 ```
 
-A healthy boot prints `Providers OK: …` and `SEED_OK`. If `.oh` is missing, the
-seed was skipped — stop the sandbox, empty the workspace directory, and start
-again:
+A healthy boot prints `Providers OK: …` and `SEED_OK`. If `.agro/` is missing,
+the seed was skipped — stop the sandbox, empty the workspace directory, and
+start again:
 
 ```bash
 msb stop openharness
@@ -306,8 +310,9 @@ rm -rf ~/.openharness-msb/workspace/*
 **What this check cannot tell you.** It confirms a control plane is present and
 providers are linked. It cannot distinguish a fresh seed from a workspace that
 already had a `.agro/` and was never seeded at all — the entrypoint's
-`.agro/.image-seeded` marker is written whenever `.oh` exists after the guard, so
-it is no stronger a signal. That is why Step 2 requires an empty directory.
+`.image-seeded` marker is written whenever a control directory exists after the
+guard, so it is no stronger a signal. That is why Step 2 requires an empty
+directory.
 
 ### Step 6 — Attach and work (host → inside)
 
@@ -318,10 +323,10 @@ msb exec openharness -- zsh
 Then, inside — exactly as in any Open Harness sandbox:
 
 ```bash
-oh tool install herdr           # nothing installs at boot
+agro tool install herdr           # nothing installs at boot
 herdr                           # start the terminal workspace
 gh auth login && gh auth setup-git
-oh harness install claude-code  # or codex, pi, opencode, hermes, grok-build
+agro harness install claude-code  # or codex, pi, opencode, hermes, grok-build
 claude
 ```
 
@@ -339,7 +344,7 @@ msb run --conf sandbox.yaml --name openharness   # second boot skips the seed
 
 | What goes away | Consequence |
 |---|---|
-| **The host Docker socket** | **Gone, and this is the headline.** A microVM has no host `dockerd` to reach. Nested-Docker work stops: `/health-check`'s inventory, container work from inside the sandbox, and — most importantly — **the entire lifecycle verb family run *inside* an msb-hosted harness has no daemon**: `oh sandbox install docker`, `oh shell`, `oh stop`, `oh restart`, `oh logs`, `oh ps`, and `oh destroy`. All of them go through `.agro/scripts/docker-compose.sh`. You cannot manage a harness from in there. |
+| **The host Docker socket** | **Gone, and this is the headline.** A microVM has no host `dockerd` to reach. Nested-Docker work stops: `/health-check`'s inventory, container work from inside the sandbox, and — most importantly — **the entire lifecycle verb family run *inside* an msb-hosted harness has no daemon**: `agro sandbox install docker`, `agro shell`, `agro stop`, `agro restart`, `agro logs`, `agro ps`, and `agro destroy`. All of them go through `.agro/scripts/docker-compose.sh`. You cannot manage a harness from in there. |
 | **VS Code "Attach to Running Container"** | Gone — this is not a container. Options B and C in [Connecting](../connecting.md) do not apply; `msb exec` is the only door. For an editor, use Remote-SSH to the host and drive the sandbox from a terminal, or enable the SSH overlay inside the sandbox and connect to that. |
 | `host.docker.internal` | No equivalent. Affects self-hosted Langfuse only. |
 | The compose healthcheck | No equivalent. `max_duration` / `idle_timeout` are different semantics — confirm whether msb reaps idle sandboxes by default and, if so, which key disables it. Open Harness is meant to run for weeks. |
