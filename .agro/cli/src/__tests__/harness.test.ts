@@ -192,7 +192,7 @@ describe("runHarnessInstall never touches oh.json", () => {
       const before = readFileSync(ohConfigPath(root), "utf8");
       const { out, io } = makeIo();
 
-      expect(await runHarnessInstall(id, { cwd: root, run: live().run }, io)).toBe(0);
+      expect(await runHarnessInstall(id, { bin: "oh", cwd: root, run: live().run }, io)).toBe(0);
       expect(readFileSync(ohConfigPath(root), "utf8")).toBe(before);
       expect(text(out)).not.toMatch(/oh\.json/);
     },
@@ -203,7 +203,7 @@ describe("runHarnessInstall never touches oh.json", () => {
     rmSync(ohConfigPath(root));
     const { out, io } = makeIo();
 
-    expect(await runHarnessInstall("hermes", { cwd: root, run: live().run }, io)).toBe(0);
+    expect(await runHarnessInstall("hermes", { bin: "oh", cwd: root, run: live().run }, io)).toBe(0);
     expect(existsSync(ohConfigPath(root))).toBe(false);
     expect(text(out)).toContain("installed");
   });
@@ -217,7 +217,7 @@ describe.each(["opencode", "muse-code"])("runHarnessInstall %s against the conta
     const { calls, run } = makeRunner((c, a) => (isInspect(c, a) ? exited : undefined));
     const { err, io } = makeIo();
 
-    expect(await runHarnessInstall(harness, { cwd: root, run }, io)).toBe(1);
+    expect(await runHarnessInstall(harness, { bin: "oh", cwd: root, run }, io)).toBe(1);
     expect(readFileSync(ohConfigPath(root), "utf8")).toBe(before);
     expect(text(err)).toContain("oh sandbox");
     expect(text(err)).not.toMatch(/next|later|picks it up/);
@@ -231,7 +231,7 @@ describe.each(["opencode", "muse-code"])("runHarnessInstall %s against the conta
     );
     const { err, io } = makeIo();
 
-    expect(await runHarnessInstall("hermes", { cwd: root, run }, io)).toBe(1);
+    expect(await runHarnessInstall("hermes", { bin: "oh", cwd: root, run }, io)).toBe(1);
     expect(text(err)).toContain("oh sandbox");
     expect(execCalls(calls)).toEqual([]);
   });
@@ -246,7 +246,7 @@ describe.each(["opencode", "muse-code"])("runHarnessInstall %s against the conta
     const { out, io } = makeIo();
 
     const before = readFileSync(ohConfigPath(root), "utf8");
-    expect(await runHarnessInstall(harness, { cwd: root, run }, io)).toBe(0);
+    expect(await runHarnessInstall(harness, { bin: "oh", cwd: root, run }, io)).toBe(0);
     expect(readFileSync(ohConfigPath(root), "utf8")).toBe(before);
 
     const entry = HARNESS_CATALOG.find((h) => h.id === harness)!;
@@ -268,7 +268,7 @@ describe.each(["opencode", "muse-code"])("runHarnessInstall %s against the conta
     const { calls, run } = makeRunner((c, a) => (isInspect(c, a) ? running : undefined));
     const { out, io } = makeIo();
 
-    expect(await runHarnessInstall(harness, { cwd: root, run }, io)).toBe(0);
+    expect(await runHarnessInstall(harness, { bin: "oh", cwd: root, run }, io)).toBe(0);
     expect(execCalls(calls)).toHaveLength(1);
     expect(execCalls(calls)[0].args.slice(-2)).toEqual(HARNESS_CATALOG.find((h) => h.id === harness)!.verifyArgv);
     expect(text(out)).toContain("already installed");
@@ -284,7 +284,7 @@ describe.each(["opencode", "muse-code"])("runHarnessInstall %s against the conta
     });
     const { err, io } = makeIo();
 
-    expect(await runHarnessInstall(harness, { cwd: root, run }, io)).toBe(7);
+    expect(await runHarnessInstall(harness, { bin: "oh", cwd: root, run }, io)).toBe(7);
     expect(readFileSync(ohConfigPath(root), "utf8")).toBe(before);
     expect(text(err)).toContain("failed (exit 7)");
     expect(text(err)).not.toMatch(/oh\.json|will install it|will retry it/);
@@ -298,7 +298,7 @@ describe.each(["opencode", "muse-code"])("runHarnessInstall %s against the conta
     });
     const { err, io } = makeIo();
 
-    expect(await runHarnessInstall("hermes", { cwd: root, run }, io)).toBe(1);
+    expect(await runHarnessInstall("hermes", { bin: "oh", cwd: root, run }, io)).toBe(1);
     expect(text(err)).toMatch(/docker is required/);
   });
 
@@ -308,7 +308,7 @@ describe.each(["opencode", "muse-code"])("runHarnessInstall %s against the conta
     const { calls, run } = makeRunner();
     const { err, io } = makeIo();
 
-    expect(await runHarnessInstall("emacs", { cwd: root, run }, io)).toBe(1);
+    expect(await runHarnessInstall("emacs", { bin: "oh", cwd: root, run }, io)).toBe(1);
     expect(text(err)).toContain('unknown harness "emacs"');
     expect(text(err)).toContain("opencode");
     expect(readFileSync(ohConfigPath(root), "utf8")).toBe(before);
@@ -318,11 +318,11 @@ describe.each(["opencode", "muse-code"])("runHarnessInstall %s against the conta
   it("is idempotent — a second identical run changes nothing", async () => {
     const root = makeRepo();
     const { run } = makeRunner((c, a) => (isInspect(c, a) ? running : undefined));
-    await runHarnessInstall("hermes", { cwd: root, run }, makeIo().io);
+    await runHarnessInstall("hermes", { bin: "oh", cwd: root, run }, makeIo().io);
     const once = readFileSync(ohConfigPath(root), "utf8");
 
     const { out, io } = makeIo();
-    expect(await runHarnessInstall("hermes", { cwd: root, run }, io)).toBe(0);
+    expect(await runHarnessInstall("hermes", { bin: "oh", cwd: root, run }, io)).toBe(0);
     expect(readFileSync(ohConfigPath(root), "utf8")).toBe(once);
     expect(text(out)).toContain("already");
   });
@@ -335,7 +335,7 @@ describe("runHarnessList", () => {
     const { run } = makeRunner((c, a) => (isInspect(c, a) ? exited : undefined));
     const { out, io } = makeIo();
 
-    expect(await runHarnessList({ cwd: root, run }, io)).toBe(0);
+    expect(await runHarnessList({ bin: "oh", cwd: root, run }, io)).toBe(0);
     const rendered = text(out);
     expect(rendered).toMatch(/^HARNESS\s+KIND\s+INSTALLED$/m);
     expect(rendered).not.toMatch(/ENABLED/);
@@ -349,7 +349,7 @@ describe("runHarnessList", () => {
     const { calls, run } = makeRunner((c, a) => (isInspect(c, a) ? exited : undefined));
     const { out, io } = makeIo();
 
-    await runHarnessList({ cwd: root, run }, io);
+    await runHarnessList({ bin: "oh", cwd: root, run }, io);
     expect(text(out)).toContain("not running");
     expect(execCalls(calls)).toEqual([]);
   });
@@ -363,7 +363,7 @@ describe("runHarnessList", () => {
     const { run } = makeRunner((c, a) => (isInspect(c, a) ? exited : undefined));
     const { out, io } = makeIo();
 
-    await runHarnessList({ cwd: root, run, json: true }, io);
+    await runHarnessList({ bin: "oh", cwd: root, run, json: true }, io);
     const parsed = JSON.parse(text(out)) as Record<string, unknown>[];
     expect(parsed).toHaveLength(HARNESS_CATALOG.length);
     for (const row of parsed) {
@@ -388,7 +388,7 @@ describe("runHarnessList", () => {
     });
     const { out, io } = makeIo();
 
-    await runHarnessList({ cwd: root, run, json: true }, io);
+    await runHarnessList({ bin: "oh", cwd: root, run, json: true }, io);
     const parsed = JSON.parse(text(out));
     expect(parsed.find((h: { id: string }) => h.id === "claude-code").installed).toBe(true);
     expect(parsed.find((h: { id: string }) => h.id === "hermes").installed).toBe(false);
@@ -401,7 +401,7 @@ describe("runHarnessList — a hung verify probe cannot stall the boot path", ()
   it("bounds every probe spawn with a timeout", async () => {
     const root = makeRepo();
     const { calls, run } = makeRunner();
-    await runHarnessList({ cwd: root, run, env: INSIDE_SANDBOX, json: true }, makeIo().io);
+    await runHarnessList({ bin: "oh", cwd: root, run, env: INSIDE_SANDBOX, json: true }, makeIo().io);
     expect(calls.length).toBeGreaterThan(0);
     for (const call of calls) expect(call.timeoutMs).toBe(PROBE_TIMEOUT_MS);
   });
@@ -414,7 +414,7 @@ describe("runHarnessList — a hung verify probe cannot stall the boot path", ()
         : undefined,
     );
     const { out, io } = makeIo();
-    expect(await runHarnessList({ cwd: root, run, env: INSIDE_SANDBOX, json: true }, io)).toBe(0);
+    expect(await runHarnessList({ bin: "oh", cwd: root, run, env: INSIDE_SANDBOX, json: true }, io)).toBe(0);
     const parsed = JSON.parse(text(out));
     expect(parsed.find((h: { id: string }) => h.id === "t3code").installed).toBeNull();
     expect(parsed.find((h: { id: string }) => h.id === "claude-code").installed).toBe(true);
@@ -427,7 +427,7 @@ describe("runHarnessStatus", () => {
     const { run } = makeRunner((c, a) => (isInspect(c, a) ? exited : undefined));
     const { out, io } = makeIo();
 
-    expect(await runHarnessStatus(undefined, { cwd: root, run, json: true }, io)).toBe(0);
+    expect(await runHarnessStatus(undefined, { bin: "oh", cwd: root, run, json: true }, io)).toBe(0);
     expect(JSON.parse(text(out))).toHaveLength(HARNESS_CATALOG.length);
   });
 
@@ -436,7 +436,7 @@ describe("runHarnessStatus", () => {
     const { run } = makeRunner((c, a) => (isInspect(c, a) ? exited : undefined));
     const { out, io } = makeIo();
 
-    expect(await runHarnessStatus("hermes", { cwd: root, run, json: true }, io)).toBe(0);
+    expect(await runHarnessStatus("hermes", { bin: "oh", cwd: root, run, json: true }, io)).toBe(0);
     const parsed = JSON.parse(text(out));
     expect(parsed.id).toBe("hermes");
     expect(parsed.docs).toBe(
@@ -449,7 +449,7 @@ describe("runHarnessStatus", () => {
     const { run } = makeRunner();
     const { err, io } = makeIo();
 
-    expect(await runHarnessStatus("emacs", { cwd: root, run }, io)).toBe(1);
+    expect(await runHarnessStatus("emacs", { bin: "oh", cwd: root, run }, io)).toBe(1);
     expect(text(err)).toContain('unknown harness "emacs"');
   });
 });
@@ -463,7 +463,7 @@ describe("oh harness — inside the sandbox", () => {
       cmd === "opencode" ? { status: 1, stdout: "", stderr: "" } : undefined,
     );
     const { io, out } = makeIo();
-    expect(await runHarnessInstall("opencode", { cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(await runHarnessInstall("opencode", { bin: "oh", cwd: root, run, env: INSIDE }, io)).toBe(0);
     expect(text(out)).toContain("installed");
     // #908: this previously asserted `cmd === "sudo"`, codifying the very defect
     // that made `oh harness install opencode` hang inside the sandbox —
@@ -476,7 +476,7 @@ describe("oh harness — inside the sandbox", () => {
     const root = makeRepo();
     const { calls, run } = makeRunner();
     const { io } = makeIo();
-    expect(await runHarnessList({ cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(await runHarnessList({ bin: "oh", cwd: root, run, env: INSIDE }, io)).toBe(0);
     expect(calls.some((c) => c.cmd === "sudo")).toBe(false);
     expect(calls.some((c) => c.cmd === "claude" && c.args.includes("--version"))).toBe(true);
   });
@@ -485,7 +485,7 @@ describe("oh harness — inside the sandbox", () => {
     const root = makeRepo();
     const { calls, run } = makeRunner();
     const { io, out } = makeIo();
-    expect(await runHarnessStatus("claude-code", { cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(await runHarnessStatus("claude-code", { bin: "oh", cwd: root, run, env: INSIDE }, io)).toBe(0);
     expect(calls.some((c) => isInspect(c.cmd, c.args))).toBe(false);
     expect(text(out)).not.toContain("INSTALLED is `?`");
   });

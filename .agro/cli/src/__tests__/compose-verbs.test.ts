@@ -83,7 +83,7 @@ describe("runComposeVerb", () => {
     (verb, expected) => {
       const root = makeRepo();
       const { calls, run } = makeRunner();
-      expect(runComposeVerb(verb, { ...entry, run })).toBe(0);
+      expect(runComposeVerb(verb, { bin: "oh", ...entry, run })).toBe(0);
       expect(calls).toHaveLength(1);
       expect(calls[0].cmd).toBe("bash");
       expect(calls[0].args[0]).toBe(join(root, ".oh", "scripts", "docker-compose.sh"));
@@ -94,7 +94,7 @@ describe("runComposeVerb", () => {
   it("never names docker — the script owns the engine argv", () => {
     const root = makeRepo();
     const { calls, run } = makeRunner();
-    for (const verb of composeVerbs()) runComposeVerb(verb, { ...entry, run });
+    for (const verb of composeVerbs()) runComposeVerb(verb, { bin: "oh", ...entry, run });
     for (const c of calls) {
       expect(c.cmd).not.toBe("docker");
       expect(c.args.join(" ")).not.toContain("docker compose");
@@ -104,20 +104,20 @@ describe("runComposeVerb", () => {
   it("forwards extra arguments after the verb", () => {
     const root = makeRepo();
     const { calls, run } = makeRunner();
-    runComposeVerb("logs", { ...entry, run }, ["--tail", "50"]);
+    runComposeVerb("logs", { bin: "oh", ...entry, run }, ["--tail", "50"]);
     expect(calls[0].args.slice(1)).toEqual(["logs", "-f", "--tail", "50"]);
   });
 
   it("propagates the child's exit code", () => {
     const root = makeRepo();
     const { run } = makeRunner({ status: 3 });
-    expect(runComposeVerb("ps", { ...entry, run })).toBe(3);
+    expect(runComposeVerb("ps", { bin: "oh", ...entry, run })).toBe(3);
   });
 
   it("reports a signal-killed child as failure, not success", () => {
     const root = makeRepo();
     const { run } = makeRunner({ status: null } as RunResult);
-    expect(runComposeVerb("logs", { ...entry, run })).toBe(1);
+    expect(runComposeVerb("logs", { bin: "oh", ...entry, run })).toBe(1);
   });
 
   it("fails with the re-vendor hint when the entry carries no script", () => {
@@ -126,7 +126,7 @@ describe("runComposeVerb", () => {
     vi.stubEnv("OH_HOME", home);
     mkdirSync(join(home, "sandboxes", "bare", ".oh", "scripts"), { recursive: true });
     const { run } = makeRunner();
-    expect(() => runComposeVerb("ps", { name: "bare", run })).toThrow(/oh update/);
+    expect(() => runComposeVerb("ps", { bin: "oh", name: "bare", run })).toThrow(/oh update/);
   });
 });
 

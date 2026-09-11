@@ -69,7 +69,7 @@ describe("oh config repo — opt-in gate", () => {
     const { calls, run } = recorder();
     const { io, out } = scriptedIO([""]);
 
-    const code = await runConfigRepo({ cwd: t, run }, io);
+    const code = await runConfigRepo({ bin: "oh", cwd: t, run }, io);
 
     expect(code).toBe(0);
     expect(calls).toEqual([]);
@@ -84,7 +84,7 @@ describe("oh config repo — opt-in gate", () => {
     const { calls, run } = recorder();
     const { io } = scriptedIO(["n"]);
 
-    expect(await runConfigRepo({ cwd: t, run }, io)).toBe(0);
+    expect(await runConfigRepo({ bin: "oh", cwd: t, run }, io)).toBe(0);
     expect(calls).toEqual([]);
   });
 
@@ -96,7 +96,7 @@ describe("oh config repo — opt-in gate", () => {
     let asked = 0;
 
     const code = await runConfigRepo(
-      { cwd: t, run },
+      { bin: "oh", cwd: t, run },
       {
         stdout: (s) => out.push(s),
         stderr: (s) => err.push(s),
@@ -121,7 +121,7 @@ describe("oh config repo — argument validation", () => {
     const { calls, run } = recorder();
     const { io, err } = scriptedIO(["y", "--upload-pack=evil", "openharness", "1"]);
 
-    expect(await runConfigRepo({ cwd: t, run }, io)).toBe(1);
+    expect(await runConfigRepo({ bin: "oh", cwd: t, run }, io)).toBe(1);
     expect(calls).toEqual([]);
     expect(err.join("")).toContain('must not start with "-"');
   });
@@ -131,7 +131,7 @@ describe("oh config repo — argument validation", () => {
     const { calls, run } = recorder();
     const { io, err } = scriptedIO(["y", "ada", "-oops", "1"]);
 
-    expect(await runConfigRepo({ cwd: t, run }, io)).toBe(1);
+    expect(await runConfigRepo({ bin: "oh", cwd: t, run }, io)).toBe(1);
     expect(calls).toEqual([]);
     expect(err.join("")).toContain('must not start with "-"');
   });
@@ -143,7 +143,7 @@ describe("oh config repo — preflight fallbacks", () => {
     const { calls, run } = recorder(() => ({ status: null, error: { code: "ENOENT" } }));
     const { io, out } = scriptedIO(["y", "ada", "", "1"]);
 
-    expect(await runConfigRepo({ cwd: t, run }, io)).toBe(0);
+    expect(await runConfigRepo({ bin: "oh", cwd: t, run }, io)).toBe(0);
     expect(calls).toEqual([["gh", "auth", "status"]]);
     const joined = out.join("");
     expect(joined).toContain("gh is not on PATH");
@@ -156,7 +156,7 @@ describe("oh config repo — preflight fallbacks", () => {
     const { calls, run } = recorder(() => ({ status: 1 }));
     const { io, out } = scriptedIO(["y", "ada", "harness", "2"]);
 
-    expect(await runConfigRepo({ cwd: t, run }, io)).toBe(0);
+    expect(await runConfigRepo({ bin: "oh", cwd: t, run }, io)).toBe(0);
     expect(calls).toEqual([["gh", "auth", "status"]]);
     const joined = out.join("");
     expect(joined).toContain("gh is not authenticated");
@@ -170,7 +170,7 @@ describe("oh config repo — command sequence", () => {
     const { calls, run } = recorder(OK_PROBES);
     const { io, out } = scriptedIO(["y", "ada", "", ""]);
 
-    expect(await runConfigRepo({ cwd: t, run }, io)).toBe(0);
+    expect(await runConfigRepo({ bin: "oh", cwd: t, run }, io)).toBe(0);
     expect(calls).toEqual([
       ["gh", "auth", "status"],
       ["git", "remote"],
@@ -194,7 +194,7 @@ describe("oh config repo — command sequence", () => {
     });
     const { io, out, err } = scriptedIO(["y", "ada", "", "1"]);
 
-    expect(await runConfigRepo({ cwd: t, run }, io)).toBe(1);
+    expect(await runConfigRepo({ bin: "oh", cwd: t, run }, io)).toBe(1);
     expect(calls.some((c) => c[0] === "git" && c[1] === "push")).toBe(false);
     expect(err.join("")).toContain("git remote add origin git@github.com:ada/openharness.git failed");
     const joined = out.join("");
@@ -210,7 +210,7 @@ describe("oh config repo — command sequence", () => {
     });
     const { io, out } = scriptedIO(["y", "ada", "", "1"]);
 
-    expect(await runConfigRepo({ cwd: t, run }, io)).toBe(0);
+    expect(await runConfigRepo({ bin: "oh", cwd: t, run }, io)).toBe(0);
     expect(calls.some((c) => c[1] === "create")).toBe(false);
     expect(out.join("")).toContain("already exists — skipping creation");
   });
@@ -225,7 +225,7 @@ describe("oh config repo — command sequence", () => {
     });
     const { io, out } = scriptedIO(["y", "ada", "", "1"]);
 
-    expect(await runConfigRepo({ cwd: t, run }, io)).toBe(0);
+    expect(await runConfigRepo({ bin: "oh", cwd: t, run }, io)).toBe(0);
     expect(calls.some((c) => c[1] === "remote" && c[2] === "rename")).toBe(false);
     expect(calls.some((c) => c[1] === "remote" && c[2] === "add")).toBe(false);
     expect(calls.some((c) => c[0] === "git" && c[1] === "push")).toBe(true);
@@ -245,7 +245,7 @@ describe("oh config repo — command sequence", () => {
     });
     const { io, err } = scriptedIO(["y", "ada", "", "1"]);
 
-    expect(await runConfigRepo({ cwd: t, run }, io)).toBe(1);
+    expect(await runConfigRepo({ bin: "oh", cwd: t, run }, io)).toBe(1);
     expect(calls.map((c) => c.join(" "))).toEqual([
       "gh auth status",
       "git remote",

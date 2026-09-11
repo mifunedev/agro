@@ -18,6 +18,7 @@ export interface ConfigIO {
 }
 
 export interface ConfigOptions {
+  bin: string;
   cwd?: string;
   sandbox?: string;
   force?: boolean;
@@ -66,14 +67,14 @@ export async function runConfigSet(
 ): Promise<number> {
   if (isSecretKey(key) || isSecretKey(key.toUpperCase())) {
     io.stderr(
-      `oh config set: ${key.toUpperCase()} is a secret — oh.json is tracked by git.\n` +
-        `Set it with \`oh secret set ${key.toUpperCase()}\` instead.\n`,
+      `${opts.bin} config set: ${key.toUpperCase()} is a secret — oh.json is tracked by git.\n` +
+        `Set it with \`${opts.bin} secret set ${key.toUpperCase()}\` instead.\n`,
     );
     return 1;
   }
 
   if (!findOhConfigField(key)) {
-    io.stderr(`oh config set: unknown field "${key}"\n\nFields:\n${configFieldList()}\n`);
+    io.stderr(`${opts.bin} config set: unknown field "${key}"\n\nFields:\n${configFieldList()}\n`);
     return 1;
   }
 
@@ -83,7 +84,7 @@ export async function runConfigSet(
     const volume = existingNamedVolume(root, opts.run ?? spawnRunner);
     if (volume !== undefined) {
       io.stderr(
-        `oh config set: ${HOME_PATH_FIELD} refused — the named volume ${volume} already exists.\n` +
+        `${opts.bin} config set: ${HOME_PATH_FIELD} refused — the named volume ${volume} already exists.\n` +
           `The next start would mount ${value} at /home/sandbox instead, and every file already ` +
           `in ${volume} would be orphaned there, invisible to the sandbox.\n` +
           "Pass --force to change it anyway.\n",
@@ -96,7 +97,7 @@ export async function runConfigSet(
   try {
     outcome = setConfigField(root, key, value);
   } catch (error) {
-    io.stderr(`oh config set: ${error instanceof Error ? error.message : String(error)}\n`);
+    io.stderr(`${opts.bin} config set: ${error instanceof Error ? error.message : String(error)}\n`);
     return 1;
   }
 
@@ -181,7 +182,7 @@ export async function runConfigRepo(opts: RepoOptions, io: RepoIO): Promise<numb
 
   if (!isTTY) {
     io.stderr(
-      "oh config repo: creating a repo on your GitHub account needs an interactive terminal; " +
+      `${opts.bin} config repo: creating a repo on your GitHub account needs an interactive terminal; ` +
         "re-run it from a TTY.\n",
     );
     return 1;
@@ -198,7 +199,7 @@ export async function runConfigRepo(opts: RepoOptions, io: RepoIO): Promise<numb
       io,
       manualSteps("<your-user>", "<repo>", "private"),
       "Skipped — nothing was created and no remote was touched. To do it later, run " +
-        "`oh config repo`, or by hand:",
+        `\`${opts.bin} config repo\`, or by hand:`,
     );
     return 0;
   }
@@ -206,7 +207,7 @@ export async function runConfigRepo(opts: RepoOptions, io: RepoIO): Promise<numb
   const owner = await askOn(io, "GitHub owner (user or org):");
   const ownerError = validateSegment("GitHub owner", owner);
   if (ownerError) {
-    io.stderr(`oh config repo: ${ownerError}\n`);
+    io.stderr(`${opts.bin} config repo: ${ownerError}\n`);
     return 1;
   }
 
@@ -214,7 +215,7 @@ export async function runConfigRepo(opts: RepoOptions, io: RepoIO): Promise<numb
   const repoName = name === "" ? "openharness" : name;
   const nameError = validateSegment("repository name", repoName);
   if (nameError) {
-    io.stderr(`oh config repo: ${nameError}\n`);
+    io.stderr(`${opts.bin} config repo: ${nameError}\n`);
     return 1;
   }
 
@@ -226,7 +227,7 @@ export async function runConfigRepo(opts: RepoOptions, io: RepoIO): Promise<numb
   try {
     root = resolveProjectRoot(opts.cwd);
   } catch (error) {
-    io.stderr(`oh config repo: ${error instanceof Error ? error.message : String(error)}\n`);
+    io.stderr(`${opts.bin} config repo: ${error instanceof Error ? error.message : String(error)}\n`);
     printManual(io, manual, "Nothing was changed. Finish this by hand from your checkout:");
     return 1;
   }
@@ -268,7 +269,7 @@ export async function runConfigRepo(opts: RepoOptions, io: RepoIO): Promise<numb
   const originIsTarget = originUrl !== "" && sameRemote(originUrl, owner, repoName);
   if (!originIsTarget && remotes.includes("origin") && remotes.includes(UPSTREAM_REMOTE)) {
     io.stderr(
-      `oh config repo: origin already points at ${originUrl} and a "${UPSTREAM_REMOTE}" remote ` +
+      `${opts.bin} config repo: origin already points at ${originUrl} and a "${UPSTREAM_REMOTE}" remote ` +
         `already exists — nothing was changed. Sort the remotes out by hand:\n`,
     );
     printManual(io, manual.slice(2), "Remaining steps:");
@@ -298,7 +299,7 @@ export async function runConfigRepo(opts: RepoOptions, io: RepoIO): Promise<numb
     const result = run(step.cmd, step.args, { stdio: "inherit", cwd: root });
     if (result.error || result.status !== 0) {
       const detail = result.error?.message ?? `exit ${result.status}`;
-      io.stderr(`oh config repo: ${shellLine(step)} failed (${detail}) — stopping here.\n`);
+      io.stderr(`${opts.bin} config repo: ${shellLine(step)} failed (${detail}) — stopping here.\n`);
       const remaining = steps.slice(i + 1);
       if (remaining.length > 0) {
         printManual(io, remaining, "Not run. Finish by hand once the failure is fixed:");

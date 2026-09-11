@@ -181,7 +181,7 @@ describe("oh tool list / status", () => {
   it("lists every tool with its kind", async () => {
     const root = makeRepo();
     const { io, out } = makeIo();
-    expect(await runToolList({ cwd: root, run: liveHost().run }, io)).toBe(0);
+    expect(await runToolList({ bin: "oh", cwd: root, run: liveHost().run }, io)).toBe(0);
     const text = out.join("");
     for (const id of ["agent-browser", "herdr", "cloudflared", "docker-cli", "gh", "tailscale"]) {
       expect(text, id).toContain(id);
@@ -200,7 +200,7 @@ describe("oh tool list / status", () => {
         : undefined,
     );
     const { io, out } = makeIo();
-    await runToolStatus("gh", { cwd: root, run, json: true }, io);
+    await runToolStatus("gh", { bin: "oh", cwd: root, run, json: true }, io);
     const status = JSON.parse(out.join(""));
     expect(status.version).toContain("2.63.2");
     expect(status.docs).toBe(
@@ -211,7 +211,7 @@ describe("oh tool list / status", () => {
   it("reports null, not a guess, for a tool with no version probe", async () => {
     const root = makeRepo();
     const { io, out } = makeIo();
-    await runToolStatus("herdr", { cwd: root, run: liveHost().run, json: true }, io);
+    await runToolStatus("herdr", { bin: "oh", cwd: root, run: liveHost().run, json: true }, io);
     expect(JSON.parse(out.join("")).version).toBeNull();
   });
 
@@ -221,7 +221,7 @@ describe("oh tool list / status", () => {
       isExecOf(cmd, args, "command -v gh") ? { status: 1, stdout: "", stderr: "" } : undefined,
     );
     const { io } = makeIo();
-    await runToolStatus("gh", { cwd: root, run }, io);
+    await runToolStatus("gh", { bin: "oh", cwd: root, run }, io);
     expect(calls.some((c) => isExecOf(c.cmd, c.args, "gh --version"))).toBe(false);
   });
 
@@ -229,7 +229,7 @@ describe("oh tool list / status", () => {
     const root = makeRepo();
     const { calls, run } = makeRunner((cmd, args) => (isInspect(cmd, args) ? exited : undefined));
     const { io, out } = makeIo();
-    expect(await runToolList({ cwd: root, run }, io)).toBe(0);
+    expect(await runToolList({ bin: "oh", cwd: root, run }, io)).toBe(0);
     expect(calls.some((c) => c.args[0] === "exec")).toBe(false);
     expect(out.join("")).toContain("oh sandbox");
   });
@@ -237,7 +237,7 @@ describe("oh tool list / status", () => {
   it("rejects an unknown tool with the known list", async () => {
     const root = makeRepo();
     const { io, err } = makeIo();
-    expect(await runToolStatus("chromium", { cwd: root, run: liveHost().run }, io)).toBe(1);
+    expect(await runToolStatus("chromium", { bin: "oh", cwd: root, run: liveHost().run }, io)).toBe(1);
     expect(err.join("")).toContain("agent-browser");
   });
 });
@@ -247,7 +247,7 @@ describe("oh tool install — the ~1 GB download gate", () => {
     const root = makeRepo();
     const { calls, run } = liveHost();
     const { io, err } = makeIo();
-    expect(await runToolInstall("agent-browser", { cwd: root, run }, io)).toBe(1);
+    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run }, io)).toBe(1);
     expect(calls.some(isInstallCall)).toBe(false);
     const text = err.join("");
     expect(text).toContain("~1 GB");
@@ -259,7 +259,7 @@ describe("oh tool install — the ~1 GB download gate", () => {
     const before = configText(root);
     const { calls, run } = liveHost();
     const { io, out } = makeIo(false);
-    expect(await runToolInstall("agent-browser", { cwd: root, run }, io)).toBe(1);
+    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run }, io)).toBe(1);
     expect(calls.some(isInstallCall)).toBe(false);
     expect(configText(root)).toBe(before);
     expect(out.join("")).not.toMatch(/oh\.json|next container start/);
@@ -268,7 +268,7 @@ describe("oh tool install — the ~1 GB download gate", () => {
   it("asks before downloading, naming the size", async () => {
     const root = makeRepo();
     const { io, asked } = makeIo(true);
-    await runToolInstall("agent-browser", { cwd: root, run: liveHost().run }, io);
+    await runToolInstall("agent-browser", { bin: "oh", cwd: root, run: liveHost().run }, io);
     expect(asked.join("")).toContain("~1 GB");
   });
 
@@ -276,7 +276,7 @@ describe("oh tool install — the ~1 GB download gate", () => {
     const root = makeRepo();
     const { calls, run } = liveHost();
     const { io, out } = makeIo(true);
-    expect(await runToolInstall("agent-browser", { cwd: root, run }, io)).toBe(0);
+    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run }, io)).toBe(0);
     expect(calls.some(isInstallCall)).toBe(true);
     expect(out.join("")).toContain(
       "https://github.com/mifunedev/agro/blob/main/docs/installation.md",
@@ -287,7 +287,7 @@ describe("oh tool install — the ~1 GB download gate", () => {
     const root = makeRepo();
     const { calls, run } = liveHost();
     const { io, asked } = makeIo(false);
-    expect(await runToolInstall("agent-browser", { cwd: root, run, yes: true }, io)).toBe(0);
+    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run, yes: true }, io)).toBe(0);
     expect(asked).toEqual([]);
     expect(calls.some(isInstallCall)).toBe(true);
   });
@@ -300,7 +300,7 @@ describe("oh tool install — the ~1 GB download gate", () => {
         : undefined,
     );
     const { io, asked, out } = makeIo(true);
-    expect(await runToolInstall("agent-browser", { cwd: root, run }, io)).toBe(0);
+    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run }, io)).toBe(0);
     expect(asked).toEqual([]);
     expect(calls.some(isInstallCall)).toBe(false);
     expect(out.join("")).toContain("already installed");
@@ -312,7 +312,7 @@ describe("oh tool install — the other exits", () => {
     const root = makeRepo();
     const { calls, run } = liveHost();
     const { io, err } = makeIo(true);
-    expect(await runToolInstall("gh", { cwd: root, run }, io)).toBe(1);
+    expect(await runToolInstall("gh", { bin: "oh", cwd: root, run }, io)).toBe(1);
     const text = err.join("");
     expect(text).toContain("base image");
     expect(text).toContain("agent-browser");
@@ -324,7 +324,7 @@ describe("oh tool install — the other exits", () => {
     const before = configText(root);
     const { calls, run } = makeRunner((cmd, args) => (isInspect(cmd, args) ? exited : undefined));
     const { io, err } = makeIo(true);
-    expect(await runToolInstall("agent-browser", { cwd: root, run }, io)).toBe(1);
+    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run }, io)).toBe(1);
     expect(calls.some((c) => c.args[0] === "exec")).toBe(false);
     expect(configText(root)).toBe(before);
     expect(err.join("")).toContain("oh sandbox");
@@ -335,7 +335,7 @@ describe("oh tool install — the other exits", () => {
     const root = makeRepo();
     const before = configText(root);
     const { io, out } = makeIo(true);
-    expect(await runToolInstall("agent-browser", { cwd: root, run: liveHost().run }, io)).toBe(0);
+    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run: liveHost().run }, io)).toBe(0);
     expect(configText(root)).toBe(before);
     expect(out.join("")).not.toMatch(/oh\.json/);
   });
@@ -347,7 +347,7 @@ describe("oh tool install — the other exits", () => {
       isExecOf(cmd, args, "--with-deps") ? { status: 7, stdout: "", stderr: "" } : undefined,
     );
     const { io, err } = makeIo(true);
-    expect(await runToolInstall("agent-browser", { cwd: root, run }, io)).toBe(7);
+    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run }, io)).toBe(7);
     expect(configText(root)).toBe(before);
     expect(err.join("")).toContain("failed (exit 7)");
     expect(err.join("")).not.toMatch(/oh\.json|will install it|will retry it/);
@@ -357,7 +357,7 @@ describe("oh tool install — the other exits", () => {
     const root = makeRepo();
     const { calls, run } = liveHost();
     const { io } = makeIo(true);
-    expect(await runToolInstall("chromium", { cwd: root, run }, io)).toBe(1);
+    expect(await runToolInstall("chromium", { bin: "oh", cwd: root, run }, io)).toBe(1);
     expect(calls.length).toBe(0);
   });
 });
@@ -367,7 +367,7 @@ describe("oh tool install tailscale", () => {
     const root = makeRepo();
     const { calls, run } = liveHost(absentTailscale);
     const { io, asked, out } = makeIo(true);
-    expect(await runToolInstall("tailscale", { cwd: root, run }, io)).toBe(0);
+    expect(await runToolInstall("tailscale", { bin: "oh", cwd: root, run }, io)).toBe(0);
     expect(asked).toEqual([]);
     const install = calls.find(isTailscaleInstallCall);
     expect(install).toBeDefined();
@@ -386,7 +386,7 @@ describe("oh tool install tailscale", () => {
         : undefined,
     );
     const { io, out } = makeIo(true);
-    expect(await runToolInstall("tailscale", { cwd: root, run }, io)).toBe(0);
+    expect(await runToolInstall("tailscale", { bin: "oh", cwd: root, run }, io)).toBe(0);
     expect(calls.some(isTailscaleInstallCall)).toBe(false);
     expect(out.join("")).toContain("already installed");
   });
@@ -399,7 +399,7 @@ describe("oh tool install tailscale", () => {
       return absentTailscale(cmd, args);
     });
     const { io, err } = makeIo(true);
-    expect(await runToolInstall("tailscale", { cwd: root, run }, io)).toBe(9);
+    expect(await runToolInstall("tailscale", { bin: "oh", cwd: root, run }, io)).toBe(9);
     expect(configText(root)).toBe(before);
     expect(err.join("")).toContain("failed (exit 9)");
     expect(err.join("")).not.toMatch(/oh\.json/);
@@ -416,7 +416,7 @@ describe("oh tool status tailscale", () => {
     );
 
     const { io, out } = makeIo();
-    expect(await runToolStatus("tailscale", { cwd: root, run, json: true }, io)).toBe(0);
+    expect(await runToolStatus("tailscale", { bin: "oh", cwd: root, run, json: true }, io)).toBe(0);
     const status = JSON.parse(out.join("")) as Record<string, unknown>;
     expect(status.id).toBe("tailscale");
     expect(status.kind).toBe("installable");
@@ -430,7 +430,7 @@ describe("oh tool status tailscale", () => {
     const root = makeRepo();
     const { calls, run } = liveHost(absentTailscale);
     const { io, out } = makeIo();
-    await runToolStatus("tailscale", { cwd: root, run, json: true }, io);
+    await runToolStatus("tailscale", { bin: "oh", cwd: root, run, json: true }, io);
     const status = JSON.parse(out.join("")) as Record<string, unknown>;
     expect(Object.keys(status)).not.toContain("enabled");
     expect(status.installed).toBe(false);
@@ -456,7 +456,7 @@ describe("oh tool — inside the sandbox", () => {
     const root = makeRepo();
     const { calls, run } = inBox();
     const { io, out } = makeIo();
-    expect(await runToolList({ cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(await runToolList({ bin: "oh", cwd: root, run, env: INSIDE }, io)).toBe(0);
     expect(calls.some((c) => isInspect(c.cmd, c.args))).toBe(false);
     const text = out.join("");
     expect(text).not.toContain("INSTALLED is `?`");
@@ -467,7 +467,7 @@ describe("oh tool — inside the sandbox", () => {
     const root = makeRepo();
     const { calls, run } = inBox();
     const { io, out } = makeIo(true);
-    expect(await runToolInstall("agent-browser", { cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run, env: INSIDE }, io)).toBe(0);
     expect(out.join("")).toContain("installed");
     expect(
       calls.some((c) => c.cmd === "bash" && c.args.some((a) => a.includes("--with-deps"))),
@@ -482,7 +482,7 @@ describe("oh tool — inside the sandbox", () => {
         : undefined,
     );
     const { io, out } = makeIo(true);
-    expect(await runToolInstall("agent-browser", { cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run, env: INSIDE }, io)).toBe(0);
     expect(out.join("")).toContain("already installed");
     expect(calls.some((c) => c.args.some((a) => a.includes("--with-deps")))).toBe(false);
   });
@@ -491,7 +491,7 @@ describe("oh tool — inside the sandbox", () => {
     const root = makeRepo();
     const { calls, run } = inBox();
     const { io } = makeIo();
-    await runToolStatus("gh", { cwd: root, run, env: INSIDE }, io);
+    await runToolStatus("gh", { bin: "oh", cwd: root, run, env: INSIDE }, io);
     expect(calls.some((c) => c.cmd === "sudo")).toBe(false);
   });
 });

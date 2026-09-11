@@ -30,6 +30,7 @@ export interface SandboxIO extends LifecycleIO {
 }
 
 export interface SandboxInstallOptions {
+  bin: string;
   runtime: string;
   name?: string;
   checkout?: string;
@@ -44,6 +45,7 @@ export interface SandboxInstallOptions {
 }
 
 export interface SandboxListOptions {
+  bin: string;
   json?: boolean;
   run?: LifecycleRunner;
 }
@@ -210,18 +212,18 @@ export async function runSandboxInstall(
   const runtime = findRuntime(opts.runtime);
   if (runtime === undefined) {
     io.stderr(
-      `oh sandbox install: unknown runtime "${opts.runtime}" — known runtimes: ${runtimeIds().join(", ")}\n`,
+      `${opts.bin} sandbox install: unknown runtime "${opts.runtime}" — known runtimes: ${runtimeIds().join(", ")}\n`,
     );
     return 1;
   }
   if (!runtime.provisionable) {
-    io.stderr(`oh sandbox install: ${runtime.notProvisionableReason}\n`);
+    io.stderr(`${opts.bin} sandbox install: ${runtime.notProvisionableReason}\n`);
     return 1;
   }
 
   const checkout = opts.checkout === undefined ? undefined : resolve(opts.checkout);
   if (checkout !== undefined && !existsSync(checkout)) {
-    io.stderr(`oh sandbox install: --checkout directory does not exist: ${checkout}\n`);
+    io.stderr(`${opts.bin} sandbox install: --checkout directory does not exist: ${checkout}\n`);
     return 1;
   }
 
@@ -230,7 +232,7 @@ export async function runSandboxInstall(
   try {
     assertSandboxName(name);
   } catch (error) {
-    io.stderr(`oh sandbox install: ${error instanceof Error ? error.message : String(error)}\n`);
+    io.stderr(`${opts.bin} sandbox install: ${error instanceof Error ? error.message : String(error)}\n`);
     return 1;
   }
 
@@ -244,7 +246,7 @@ export async function runSandboxInstall(
   if (buildRequested && !isBuildCapable(configCheckout(config))) {
     const target = configCheckout(config) ?? resolve(opts.checkout ?? ".");
     io.stderr(
-      `oh sandbox install: image.mode is "build" but ${join(target, ".devcontainer", "Dockerfile")} ` +
+      `${opts.bin} sandbox install: image.mode is "build" but ${join(target, ".devcontainer", "Dockerfile")} ` +
         "does not exist — point --checkout <dir> at a harness checkout that has .devcontainer/Dockerfile, " +
         'or set image.mode to "image" to run the prebuilt image\n',
     );
@@ -255,7 +257,7 @@ export async function runSandboxInstall(
     try {
       config.storage = { ...config.storage, homePath: prepareHomeMount(opts.homeMount) };
     } catch (error) {
-      io.stderr(`oh sandbox install: ${error instanceof Error ? error.message : String(error)}\n`);
+      io.stderr(`${opts.bin} sandbox install: ${error instanceof Error ? error.message : String(error)}\n`);
       return 1;
     }
   }
@@ -272,7 +274,7 @@ export async function runSandboxInstall(
         config.storage = { ...config.storage, homePath: prepareHomeMount(chosen) };
       } catch (error) {
         io.stderr(
-          `oh sandbox install: ${error instanceof Error ? error.message : String(error)}\n`,
+          `${opts.bin} sandbox install: ${error instanceof Error ? error.message : String(error)}\n`,
         );
         return 1;
       }
@@ -294,6 +296,7 @@ export async function runSandboxInstall(
   const useNoBuild =
     opts.noBuild === true || !(configCheckout(config) !== undefined && config.image?.mode === "build");
   const sandboxOpts = {
+    bin: opts.bin,
     run,
     ...(opts.image === true ? { image: true } : {}),
     ...(opts.imageRef !== undefined ? { imageRef: opts.imageRef } : {}),
@@ -317,7 +320,7 @@ export async function runSandboxInstall(
   materialize(root, { ...(configCheckout(config) !== undefined ? { checkout: configCheckout(config) } : {}) });
 
   const code = await runSandbox({ ...sandboxOpts, cwd: root }, io);
-  if (code === 0) io.stdout(`next: oh shell ${config.name}\n`);
+  if (code === 0) io.stdout(`next: ${opts.bin} shell ${config.name}\n`);
   return code;
 }
 
@@ -357,7 +360,7 @@ export async function runSandboxList(opts: SandboxListOptions, io: SandboxIO): P
   }
   if (rows.length === 0) {
     io.stdout(
-      `no sandbox is registered in ${registryRoot()} — create one with \`oh sandbox install docker\`\n`,
+      `no sandbox is registered in ${registryRoot()} — create one with \`${opts.bin} sandbox install docker\`\n`,
     );
     return 0;
   }

@@ -33,6 +33,7 @@ export interface LifecycleIO {
 export type { LifecycleRunner, RunResult };
 
 export interface LifecycleOptions {
+  bin: string;
   cwd?: string;
   run?: LifecycleRunner;
 }
@@ -191,7 +192,7 @@ export async function runSandbox(opts: SandboxOptions, io: LifecycleIO): Promise
   }
 
   if (runningInsideSandbox()) {
-    io.stderr(`${new HostOnlyError("`oh sandbox`").message}\n`);
+    io.stderr(`${new HostOnlyError(`\`${opts.bin} sandbox\``).message}\n`);
     return 1;
   }
   await maybePromptDockerSocket(root, io);
@@ -239,13 +240,13 @@ export function runShell(opts: SandboxTargetOptions, io: LifecycleIO): number {
     code = target.attach({ argv: ["zsh"], user: "sandbox" });
   } catch (err) {
     if (err instanceof ExecutionSpawnError && err.code === "ENOENT") {
-      throw new Error("docker is required for `oh shell` but was not found on PATH");
+      throw new Error(`docker is required for \`${opts.bin} shell\` but was not found on PATH`);
     }
     throw err;
   }
   if (code !== 0) {
     io.stderr(
-      `container \`${name}\` not running? start it with \`oh sandbox install docker\`\n`,
+      `container \`${name}\` not running? start it with \`${opts.bin} sandbox install docker\`\n`,
     );
   }
   return code;
@@ -328,14 +329,14 @@ export async function runDestroy(opts: DestroyOptions, io: LifecycleIO): Promise
     const interactive = process.stdin.isTTY === true || io.ask !== undefined;
     if (!interactive) {
       io.stderr(
-        `oh destroy: refusing to destroy \`${name}\` without a terminal — ` +
+        `${opts.bin} destroy: refusing to destroy \`${name}\` without a terminal — ` +
           "re-run with --yes to confirm non-interactively\n",
       );
       return 1;
     }
 
     const homePath = readOhConfig(ohConfigPath(root)).storage?.homePath;
-    io.stdout(`\n${prompt.bold(`oh destroy — ${name}`)}\n\n`);
+    io.stdout(`\n${prompt.bold(`${opts.bin} destroy — ${name}`)}\n\n`);
 
     if (homePath !== undefined && homePath !== "") {
       io.stdout("`docker compose down -v` removes the containers.\n");
@@ -361,7 +362,7 @@ export async function runDestroy(opts: DestroyOptions, io: LifecycleIO): Promise
     const askFn = io.ask ?? prompt.ask;
     const answer = (await askFn(`Type the sandbox name \`${name}\` to destroy it:`)).trim();
     if (answer !== name) {
-      io.stderr("oh destroy: aborted — nothing was removed\n");
+      io.stderr(`${opts.bin} destroy: aborted — nothing was removed\n`);
       return 1;
     }
   }

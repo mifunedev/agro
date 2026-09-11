@@ -136,7 +136,7 @@ describe("oh.json -> compose env wiring (issue #880)", () => {
       return { status: 0 };
     };
 
-    expect(await runSandbox({ cwd: root, run }, makeIo().io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run }, makeIo().io)).toBe(0);
     expect(seen).toHaveLength(1);
     expect(seen[0].mode).toBe(0o600);
     expect(seen[0].body).toContain("SANDBOX_NAME=wired");
@@ -155,7 +155,7 @@ describe("oh.json -> compose env wiring (issue #880)", () => {
       throw new Error("boom");
     };
 
-    await expect(runSandbox({ cwd: root, run }, makeIo().io)).rejects.toThrow("boom");
+    await expect(runSandbox({ bin: "oh", cwd: root, run }, makeIo().io)).rejects.toThrow("boom");
     expect(rendered).not.toBe("");
     expect(existsSync(rendered)).toBe(false);
     expect(existsSync(dirname(rendered))).toBe(false);
@@ -167,7 +167,7 @@ describe("oh.json -> compose env wiring (issue #880)", () => {
     ohJson(root);
     const { calls, run } = makeRunner();
 
-    expect(await runSandbox({ cwd: root, run }, makeIo().io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run }, makeIo().io)).toBe(0);
     const args = calls[0].args;
     expect(args.slice(0, 4)).toEqual([script, "--repo-dir", root, "--extra-env-file"]);
     expect(args.slice(5)).toEqual(["up", "-d", "--build"]);
@@ -179,7 +179,7 @@ describe("oh.json -> compose env wiring (issue #880)", () => {
     const script = addScript(root, "docker-compose.sh");
     const { calls, run } = makeRunner();
 
-    expect(await runSandbox({ cwd: root, run }, makeIo().io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run }, makeIo().io)).toBe(0);
     expect(calls[0].args).toEqual([script, "--repo-dir", root, "up", "-d", "--build"]);
   });
 
@@ -189,7 +189,7 @@ describe("oh.json -> compose env wiring (issue #880)", () => {
     ohJson(root);
     const { calls, run } = makeRunner();
 
-    expect(runComposeVerb("ps", { ...entry, run })).toBe(0);
+    expect(runComposeVerb("ps", { bin: "oh", ...entry, run })).toBe(0);
     expect(calls[0].args.slice(0, 2)).toEqual([script, "--extra-env-file"]);
     expect(calls[0].args.slice(3)).toEqual(["ps"]);
     expect(existsSync(calls[0].args[2])).toBe(false);
@@ -201,7 +201,7 @@ describe("oh.json -> compose env wiring (issue #880)", () => {
     ohJson(root);
     const { calls, run } = makeRunner();
 
-    expect(await runSandbox({ cwd: root, run, printArgv: true }, makeIo().io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run, printArgv: true }, makeIo().io)).toBe(0);
     expect(calls).toHaveLength(1);
     expect(calls[0].args.slice(0, 4)).toEqual([script, "--repo-dir", root, "--extra-env-file"]);
     expect(calls[0].args.slice(5)).toEqual(["--print-argv", "up", "-d", "--build"]);
@@ -217,7 +217,7 @@ describe("runSandbox", () => {
     const { calls, run } = makeRunner([{ status: 0 }]);
     const { out, io } = makeIo();
 
-    expect(await runSandbox({ cwd: root, run }, io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run }, io)).toBe(0);
     expect(calls).toEqual([
       {
         cmd: "bash",
@@ -232,7 +232,7 @@ describe("runSandbox", () => {
     const root = makeRepo();
     addScript(root, "docker-compose.sh");
     const { run } = makeRunner([{ status: 17 }]);
-    expect(await runSandbox({ cwd: root, run }, makeIo().io)).toBe(17);
+    expect(await runSandbox({ bin: "oh", cwd: root, run }, makeIo().io)).toBe(17);
   });
 
   it("errors naming the missing docker-compose.sh path (no oh: prefix) without spawning", async () => {
@@ -240,8 +240,8 @@ describe("runSandbox", () => {
     const { calls, run } = makeRunner();
     const expected = join(root, ".oh", "scripts", "docker-compose.sh");
 
-    await expect(runSandbox({ cwd: root, run }, makeIo().io)).rejects.toThrow(expected);
-    await expect(runSandbox({ cwd: root, run }, makeIo().io)).rejects.not.toThrow(/oh:/);
+    await expect(runSandbox({ bin: "oh", cwd: root, run }, makeIo().io)).rejects.toThrow(expected);
+    await expect(runSandbox({ bin: "oh", cwd: root, run }, makeIo().io)).rejects.not.toThrow(/oh:/);
     expect(calls).toEqual([]);
   });
 
@@ -252,14 +252,14 @@ describe("runSandbox", () => {
     mkdirSync(nested, { recursive: true });
     const { calls, run } = makeRunner();
 
-    expect(await runSandbox({ cwd: nested, run }, makeIo().io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: nested, run }, makeIo().io)).toBe(0);
     expect(calls[0].args).toEqual([script, "--repo-dir", root, "up", "-d", "--build"]);
   });
 
   it("errors when not inside an equipped repo", async () => {
     const bare = mkdtempSync(join(tmpdir(), "oh-lifecycle-bare-"));
     cleanups.push(bare);
-    await expect(runSandbox({ cwd: bare, run: makeRunner().run }, makeIo().io)).rejects.toThrow(
+    await expect(runSandbox({ bin: "oh", cwd: bare, run: makeRunner().run }, makeIo().io)).rejects.toThrow(
       "not an OpenHarness-equipped repo — run `oh update` first",
     );
   });
@@ -279,7 +279,7 @@ describe("runSandbox", () => {
       },
     };
 
-    expect(await runSandbox({ cwd: root, run }, io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run }, io)).toBe(0);
     expect(asked).toHaveLength(1);
     expect(readOhJson(root)).toMatchObject({ access: { dockerSocket: true } });
     expect(existsSync(join(root, ".devcontainer", ".env"))).toBe(false);
@@ -292,7 +292,7 @@ describe("runSandbox", () => {
     const { run } = makeRunner();
     const io: LifecycleIO = { stdout: () => {}, stderr: () => {}, ask: async () => "n" };
 
-    expect(await runSandbox({ cwd: root, run }, io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run }, io)).toBe(0);
     expect(readOhJson(root)).toMatchObject({ access: { dockerSocket: false } });
     expect(existsSync(join(root, ".devcontainer", ".env"))).toBe(false);
   });
@@ -313,7 +313,7 @@ describe("runSandbox", () => {
       },
     };
 
-    expect(await runSandbox({ cwd: root, run }, io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run }, io)).toBe(0);
     expect(asked).toBe(0);
     expect(readOhJson(root)).toMatchObject({ access: { dockerSocket: true } });
   });
@@ -334,7 +334,7 @@ describe("runSandbox", () => {
       },
     };
 
-    expect(await runSandbox({ cwd: root, run }, io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run }, io)).toBe(0);
     expect(asked).toBe(0);
     expect(readOhJson(root)).toMatchObject({ access: { dockerSocket: false } });
   });
@@ -353,11 +353,11 @@ describe("runSandbox", () => {
       },
     };
 
-    expect(await runSandbox({ cwd: root, run: makeRunner().run }, io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run: makeRunner().run }, io)).toBe(0);
     expect(asked).toBe(1);
     expect(readOhJson(root)).toMatchObject({ access: { dockerSocket: false } });
 
-    expect(await runSandbox({ cwd: root, run: makeRunner().run }, io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run: makeRunner().run }, io)).toBe(0);
     expect(asked).toBe(1);
   });
 
@@ -377,7 +377,7 @@ describe("runSandbox", () => {
       },
     };
 
-    expect(await runSandbox({ cwd: root, run }, io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run }, io)).toBe(0);
     expect(asked).toBe(1);
     expect(readOhJson(root)).toMatchObject({ access: { dockerSocket: true } });
   });
@@ -398,7 +398,7 @@ describe("runSandbox", () => {
       },
     };
 
-    expect(await runSandbox({ cwd: root, run }, io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run }, io)).toBe(0);
     expect(asked).toBe(1);
     expect(readFileSync(join(root, ".devcontainer", ".env"), "utf8")).toBe("DOCKER_SOCKET=false\n");
     expect(readOhJson(root)).toMatchObject({ access: { dockerSocket: false } });
@@ -424,7 +424,7 @@ describe("runSandbox", () => {
       },
     };
 
-    expect(await runSandbox({ cwd: root, run }, io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run }, io)).toBe(0);
     expect(asked).toBe(0);
     expect(calls).toHaveLength(1);
     expect(calls[0].args.slice(0, 4)).toEqual([composeScript, "--repo-dir", root, "--extra-env-file"]);
@@ -437,7 +437,7 @@ describe("runSandbox", () => {
     const { calls, run } = makeRunner([{ status: 0 }]);
     const { out, io } = makeIo();
 
-    expect(await runSandbox({ cwd: root, run, image: true }, io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run, image: true }, io)).toBe(0);
     expect(calls).toHaveLength(1);
     expect(calls[0].cmd).toBe("bash");
     expect(calls[0].args).toEqual([script, "--repo-dir", root, "up", "-d", "--no-build"]);
@@ -454,7 +454,7 @@ describe("runSandbox", () => {
     const { calls, run } = makeRunner([{ status: 0 }]);
     const ref = "ghcr.io/mifunedev/openharness:2026.7.5";
 
-    expect(await runSandbox({ cwd: root, run, image: true, imageRef: ref }, makeIo().io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run, image: true, imageRef: ref }, makeIo().io)).toBe(0);
     expect(calls).toHaveLength(1);
     expect(calls[0].args.slice(0, 4)).toEqual([composeScript, "--repo-dir", root, "--extra-env-file"]);
     expect(calls[0].args.slice(5)).toEqual(["up", "-d", "--no-build"]);
@@ -471,7 +471,7 @@ describe("runSandbox", () => {
     });
     const { calls, run } = makeRunner([{ status: 0 }]);
 
-    expect(await runSandbox({ cwd: root, run, image: true }, makeIo().io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run, image: true }, makeIo().io)).toBe(0);
     expect(calls).toHaveLength(1);
     expect(calls[0].args.slice(0, 4)).toEqual([composeScript, "--repo-dir", root, "--extra-env-file"]);
     expect(calls[0].args.slice(5)).toEqual(["up", "-d", "--no-build"]);
@@ -486,7 +486,7 @@ describe("runSandbox", () => {
     writeOhJson(root, { access: { dockerSocket: false }, image: { ref: "ghcr.io/x/y:from-json" } });
     const { calls, run } = makeRunner([{ status: 0 }]);
 
-    expect(await runSandbox({ cwd: root, run, image: true }, makeIo().io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run, image: true }, makeIo().io)).toBe(0);
     expect(calls[0].opts.env?.OH_SANDBOX_IMAGE).toBe("ghcr.io/x/y:ambient");
   });
 
@@ -503,7 +503,7 @@ describe("runSandbox", () => {
     writeOhJson(root, { access: { dockerSocket: false }, image: { ref: "ghcr.io/x/y:from-json" } });
     const { calls, run } = makeRunner([{ status: 0 }]);
 
-    expect(await runSandbox({ cwd: root, run, image: true }, makeIo().io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run, image: true }, makeIo().io)).toBe(0);
     expect(calls[0].opts.env?.AGRO_SANDBOX_IMAGE).toBe("ghcr.io/mifunedev/agro:canonical");
     expect(calls[0].opts.env?.OH_SANDBOX_IMAGE).toBe("ghcr.io/mifunedev/agro:canonical");
   });
@@ -523,7 +523,7 @@ describe("runSandbox", () => {
     writeOhJson(root, { access: { dockerSocket: false }, image: { ref } });
     const { calls, run } = makeRunner([{ status: 0 }]);
 
-    expect(await runSandbox({ cwd: root, run, image: true }, makeIo().io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run, image: true }, makeIo().io)).toBe(0);
     expect(calls[0].opts.env?.AGRO_SANDBOX_IMAGE).toBe(ref);
     expect(calls[0].opts.env?.OH_SANDBOX_IMAGE).toBe(ref);
     expect(JSON.parse(readFileSync(ohConfigPath(root), "utf8"))).toMatchObject({ image: { ref } });
@@ -535,7 +535,7 @@ describe("runSandbox", () => {
     const { calls, run } = makeRunner([{ status: 0 }]);
     const { out, io } = makeIo();
 
-    expect(await runSandbox({ cwd: root, run, noBuild: true }, io)).toBe(0);
+    expect(await runSandbox({ bin: "oh", cwd: root, run, noBuild: true }, io)).toBe(0);
     expect(calls[0].args).toEqual([script, "--repo-dir", root, "up", "-d", "--no-build"]);
     expect(calls[0].opts.env).toBeUndefined();
     expect(out.join("")).toContain("no-build mode");
@@ -550,7 +550,7 @@ describe("runShell", () => {
     writeOhJson(root, { name: "configured" });
     const { calls, run } = makeRunner([{ status: 0 }]);
 
-    expect(runShell({ ...entry, run }, makeIo().io)).toBe(0);
+    expect(runShell({ bin: "oh", ...entry, run }, makeIo().io)).toBe(0);
     expect(calls).toEqual([
       {
         cmd: "docker",
@@ -566,7 +566,7 @@ describe("runShell", () => {
     writeOhJson(root, { name: "my-sandbox" });
     const { calls, run } = makeRunner([{ status: 0 }]);
 
-    expect(runShell({ run }, makeIo().io)).toBe(0);
+    expect(runShell({ bin: "oh", run }, makeIo().io)).toBe(0);
     expect(calls).toHaveLength(1);
     expect(calls[0].cmd).toBe("docker");
     expect(calls[0].args).toEqual(["exec", "-it", "-u", "sandbox", "my-sandbox", "zsh"]);
@@ -585,7 +585,7 @@ describe("runShell", () => {
     );
     const { calls, run } = makeRunner([{ status: 0 }]);
 
-    expect(runShell({ cwd: join(checkout, "src"), run }, makeIo().io)).toBe(0);
+    expect(runShell({ bin: "oh", cwd: join(checkout, "src"), run }, makeIo().io)).toBe(0);
     expect(calls[0].args[4]).toBe("repo-box");
   });
 
@@ -595,7 +595,7 @@ describe("runShell", () => {
     writeOhJson(root, { git: { userName: "someone" } });
     const { calls, run } = makeRunner([{ status: 0 }]);
 
-    expect(runShell({ ...entry, run }, makeIo().io)).toBe(0);
+    expect(runShell({ bin: "oh", ...entry, run }, makeIo().io)).toBe(0);
     expect(calls[0].args[4]).toBe(DEFAULT_CONTAINER_NAME);
   });
 
@@ -605,7 +605,7 @@ describe("runShell", () => {
     writeOhJson(root, { name: "from-json" });
     const { calls, run } = makeRunner([{ status: 0 }]);
 
-    expect(runShell({ ...entry, run }, makeIo().io)).toBe(0);
+    expect(runShell({ bin: "oh", ...entry, run }, makeIo().io)).toBe(0);
     expect(calls[0].args[4]).toBe("from-env");
   });
 
@@ -614,7 +614,7 @@ describe("runShell", () => {
     const root = makeRepo();
     const { calls, run } = makeRunner([{ status: 0 }]);
 
-    expect(runShell({ ...entry, run }, makeIo().io)).toBe(0);
+    expect(runShell({ bin: "oh", ...entry, run }, makeIo().io)).toBe(0);
     expect(calls).toHaveLength(1);
     expect(calls[0].cmd).toBe("docker");
     expect(calls[0].args[4]).toBe(DEFAULT_CONTAINER_NAME);
@@ -626,7 +626,7 @@ describe("runShell", () => {
     const { run } = makeRunner([{ status: 126 }]);
     const { err, io } = makeIo();
 
-    expect(runShell({ ...entry, run }, io)).toBe(126);
+    expect(runShell({ bin: "oh", ...entry, run }, io)).toBe(126);
     expect(err).toEqual([
       `container \`${DEFAULT_CONTAINER_NAME}\` not running? start it with \`oh sandbox install docker\`\n`,
     ]);
@@ -635,14 +635,14 @@ describe("runShell", () => {
   it("no hint on a clean exit", () => {
     makeRepo();
     const { err, io } = makeIo();
-    expect(runShell({ ...entry, run: makeRunner([{ status: 0 }]).run }, io)).toBe(0);
+    expect(runShell({ bin: "oh", ...entry, run: makeRunner([{ status: 0 }]).run }, io)).toBe(0);
     expect(err).toEqual([]);
   });
 
   it("throws a clean error when docker is not on PATH (ENOENT)", () => {
     makeRepo();
     const { run } = makeRunner([{ status: null, error: { code: "ENOENT" } }]);
-    expect(() => runShell({ ...entry, run }, makeIo().io)).toThrow(
+    expect(() => runShell({ bin: "oh", ...entry, run }, makeIo().io)).toThrow(
       "docker is required for `oh shell` but was not found on PATH",
     );
   });
@@ -658,14 +658,14 @@ describe("runShell", () => {
     const bare = mkdtempSync(join(tmpdir(), "oh-lifecycle-bare-"));
     cleanups.push(bare);
 
-    expect(() => runShell({ cwd: bare, run: makeRunner().run }, makeIo().io)).toThrow(
+    expect(() => runShell({ bin: "oh", cwd: bare, run: makeRunner().run }, makeIo().io)).toThrow(
       /several sandboxes are registered .*oh-lifecycle-box, oh-lifecycle-two/,
     );
   });
 
   it("errors naming the missing sandbox when a name does not resolve", () => {
     makeRepo();
-    expect(() => runShell({ name: "absent", run: makeRunner().run }, makeIo().io)).toThrow(
+    expect(() => runShell({ bin: "oh", name: "absent", run: makeRunner().run }, makeIo().io)).toThrow(
       "no sandbox named `absent`",
     );
   });
@@ -678,7 +678,7 @@ describe("runGateway", () => {
     const script = addScript(root, "gateway.sh");
     const { calls, run } = makeRunner([{ status: 0 }]);
 
-    expect(runGateway(["pi", "--attach"], { cwd: root, run })).toBe(0);
+    expect(runGateway(["pi", "--attach"], { bin: "oh", cwd: root, run })).toBe(0);
     expect(calls).toHaveLength(1);
     expect(calls[0].cmd).toBe("bash");
     expect(calls[0].args).toEqual([script, "pi", "--attach"]);
@@ -695,7 +695,7 @@ describe("runGateway", () => {
     expect(parsed.ok).toBe(true);
     if (parsed.ok) {
       expect(parsed.args.help).toBe(false);
-      expect(runGateway(parsed.args.passthrough, { cwd: root, run })).toBe(0);
+      expect(runGateway(parsed.args.passthrough, { bin: "oh", cwd: root, run })).toBe(0);
     }
     expect(calls[0].args).toEqual([script, "pi", "--help"]);
   });
@@ -703,13 +703,13 @@ describe("runGateway", () => {
   it("propagates the script's exit code", () => {
     const root = makeRepo();
     addScript(root, "gateway.sh");
-    expect(runGateway(["status"], { cwd: root, run: makeRunner([{ status: 3 }]).run })).toBe(3);
+    expect(runGateway(["status"], { bin: "oh", cwd: root, run: makeRunner([{ status: 3 }]).run })).toBe(3);
   });
 
   it("errors naming the missing gateway.sh path without spawning", () => {
     const root = makeRepo();
     const { calls, run } = makeRunner();
-    expect(() => runGateway(["pi"], { cwd: root, run })).toThrow(
+    expect(() => runGateway(["pi"], { bin: "oh", cwd: root, run })).toThrow(
       join(root, ".oh", "scripts", "gateway.sh"),
     );
     expect(calls).toEqual([]);
@@ -718,7 +718,7 @@ describe("runGateway", () => {
   it("errors when not inside an equipped repo", () => {
     const bare = mkdtempSync(join(tmpdir(), "oh-lifecycle-bare-"));
     cleanups.push(bare);
-    expect(() => runGateway(["pi"], { cwd: bare, run: makeRunner().run })).toThrow(
+    expect(() => runGateway(["pi"], { bin: "oh", cwd: bare, run: makeRunner().run })).toThrow(
       "not an OpenHarness-equipped repo",
     );
   });
@@ -911,7 +911,7 @@ describe("lifecycle inside the sandbox", () => {
     addScript(root, "docker-compose.sh");
     const { calls, run } = makeRunner();
     const { io, err } = makeIo();
-    expect(await runSandbox({ cwd: root, run }, io)).toBe(1);
+    expect(await runSandbox({ bin: "oh", cwd: root, run }, io)).toBe(1);
     expect(err.join("")).toContain("already inside the sandbox");
     expect(calls.length).toBe(0);
   });
@@ -920,7 +920,7 @@ describe("lifecycle inside the sandbox", () => {
     vi.stubEnv("OH_EXECUTION_TARGET", "local");
     const root = makeRepo();
     const { calls, run } = makeRunner();
-    expect(runShell({ ...entry, run }, makeIo().io)).toBe(0);
+    expect(runShell({ bin: "oh", ...entry, run }, makeIo().io)).toBe(0);
     expect(calls[0].cmd).toBe("zsh");
   });
 });

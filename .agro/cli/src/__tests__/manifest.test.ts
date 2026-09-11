@@ -220,7 +220,7 @@ describe("runUpdate — manifest payload filtering", () => {
     const docsBefore = fs.readFileSync(path.join(tgt, "docs/site.md"), "utf8");
 
     const { out, io } = mkIo();
-    const rc = await runUpdate({ targetDir: tgt, fromDir: src }, io);
+    const rc = await runUpdate({ bin: "oh", targetDir: tgt, fromDir: src }, io);
 
     expect(rc).toBe(0);
 
@@ -268,7 +268,7 @@ describe("runUpdate — manifest payload filtering", () => {
     writeFile(tgt, ".devcontainer/.env", "SANDBOX_NAME=my-harness\n");
 
     const { out, io } = mkIo();
-    const rc = await runUpdate({ targetDir: tgt, fromDir: src }, io);
+    const rc = await runUpdate({ bin: "oh", targetDir: tgt, fromDir: src }, io);
 
     expect(rc).toBe(0);
     expect(fs.existsSync(path.join(tgt, ".oh", "docs", "site.md"))).toBe(true);

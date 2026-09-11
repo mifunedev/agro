@@ -19,6 +19,7 @@ export interface SecretIO {
 }
 
 export interface SecretOptions {
+  bin: string;
   cwd?: string;
   sandbox?: string;
 }
@@ -45,8 +46,8 @@ export async function runSecretSet(
 ): Promise<number> {
   if (!isSecretKey(key)) {
     io.stderr(
-      `oh secret set: ${key} is not a secret — non-secret settings live in oh.json.\n` +
-        `Set it with \`oh config set ${key}\` instead.\n\nKeys:\n${secretKeyList()}\n`,
+      `${opts.bin} secret set: ${key} is not a secret — non-secret settings live in oh.json.\n` +
+        `Set it with \`${opts.bin} config set ${key}\` instead.\n\nKeys:\n${secretKeyList()}\n`,
     );
     return 1;
   }
@@ -55,7 +56,7 @@ export async function runSecretSet(
   const askSecret = io.askSecret ?? prompt.askSecret;
   const value = (await askSecret(`Value for ${prompt.bold(key)} (input hidden):`)).trim();
   if (value === "") {
-    io.stderr(`oh secret set: no value entered — ${key} unchanged\n`);
+    io.stderr(`${opts.bin} secret set: no value entered — ${key} unchanged\n`);
     return 1;
   }
 
@@ -63,7 +64,7 @@ export async function runSecretSet(
     setSecret(root, key, value);
     ignoreSecretsFile(root);
   } catch (error) {
-    io.stderr(`oh secret set: ${error instanceof Error ? error.message : String(error)}\n`);
+    io.stderr(`${opts.bin} secret set: ${error instanceof Error ? error.message : String(error)}\n`);
     return 1;
   }
 
@@ -75,7 +76,7 @@ export async function runSecretList(opts: SecretOptions, io: SecretIO): Promise<
   const root = secretsRoot(opts);
   const keys = listSecretKeys(root);
   if (keys.length === 0) {
-    io.stdout("no secrets set — write one with `oh secret set <KEY>`\n");
+    io.stdout(`no secrets set — write one with \`${opts.bin} secret set <KEY>\`\n`);
     return 0;
   }
 

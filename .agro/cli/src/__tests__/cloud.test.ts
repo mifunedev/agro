@@ -55,6 +55,7 @@ function io(overrides: Partial<CloudIO> = {}): CloudIO & { out: string[]; err: s
   const out: string[] = [];
   const err: string[] = [];
   return {
+    bin: "oh",
     stdout: (text) => out.push(text),
     stderr: (text) => err.push(text),
     out,
