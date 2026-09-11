@@ -259,8 +259,8 @@ lists `docker-compose.yml` and nothing else. It never runs
 
 Secrets still reach that container: compose auto-loads the `.devcontainer/.env`
 beside the compose file, and that file is a symlink to the root `.env`.
-Non-secret `agro.json` settings only reach compose when `oh` renders them, so on
-this path each variable falls back to its default in
+Non-secret `agro.json` settings only reach compose when `agro` renders them, so
+on this path each variable falls back to its default in
 `.devcontainer/docker-compose.yml`.
 
 :::danger `storage.homePath` is ignored on this path

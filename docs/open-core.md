@@ -13,7 +13,7 @@ an evaluator does not have to infer it from the code.
 | Apache-2.0 | Proprietary |
 |---|---|
 | The runtime | The Mifune Console |
-| The `oh` CLI and public SDKs | Provisioning and fleet-management control plane |
+| The `agro` CLI and public SDKs | Provisioning and fleet-management control plane |
 | Container definitions and public deployment integrations | Billing, enterprise policy, RBAC, hosted operations |
 | The harness spec and interop formats | — |
 

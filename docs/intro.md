@@ -8,13 +8,13 @@ Open Harness is your **portable harness** — one repo per sandbox — that wrap
 
 ## What is Open Harness?
 
-Open Harness is a single repo that *is* your harness: it boots one Docker container — the sandbox — and wraps your project inside it. You bring the sandbox up with `agro sandbox install docker`, attach to it from your terminal or VS Code, and let your chosen agent work the project over time. Because the harness is a git repo, its whole setup is tracked and versioned — reproducible and portable. There is no per-agent fan-out: one host CLI, `oh`, drives the whole lifecycle, and the croner runtime that ships in the image wakes the agent on a schedule.
+Open Harness is a single repo that *is* your harness: it boots one Docker container — the sandbox — and wraps your project inside it. You bring the sandbox up with `agro sandbox install docker`, attach to it from your terminal or VS Code, and let your chosen agent work the project over time. Because the harness is a git repo, its whole setup is tracked and versioned — reproducible and portable. There is no per-agent fan-out: one host CLI, `agro`, drives the whole lifecycle, and the croner runtime that ships in the image wakes the agent on a schedule.
 
 Key capabilities:
 
 - **One repo, one sandbox.** Your portable harness is one repo; it boots one container. The agent owns its workspace; your machine stays clean — you're not running agents straight on your host.
 - **Markdown-defined crons.** `crons/*.md` files declare schedules; an in-container croner runtime fires the bodies as agent prompts so the agent can work autonomously while you focus on other things.
-- **Host dependencies: Docker, Git, and Node.js ≥ 20.** No Python, no pnpm, no agent CLIs, and no toolchain maintenance on your laptop — Node runs the `oh` CLI and nothing else, and `get-oh.sh` installs it for you when it is missing. (See [Prerequisites](/docs/installation#prerequisites).)
+- **Host dependencies: Docker, Git, and Node.js ≥ 20.** No Python, no pnpm, no agent CLIs, and no toolchain maintenance on your laptop — Node runs the `agro` CLI and nothing else, and `get-oh.sh` installs it for you when it is missing. (See [Prerequisites](/docs/installation#prerequisites).)
 - **Cloudflared previews.** Share sandbox app ports through Cloudflared tunnels; SSH and pack-supplied services remain opt-in Docker Compose overlays.
 - **Multi-agent messaging.** Bridge Slack (and other messengers) to a Pi agent with the [`pi-messenger-bridge`](/docs/integrations/slack) npm package; SSH and pack-supplied services remain opt-in Docker Compose overlays.
 
@@ -59,7 +59,7 @@ flowchart TB
 
 If you are new, follow this order:
 
-1. [Installation](/docs/installation) — install Docker, Git, and the `oh` CLI.
+1. [Installation](/docs/installation) — install Docker, Git, and the `agro` CLI.
 2. [Quickstart](/docs/quickstart) — go from zero to a running sandbox in under five minutes.
 
 If you already have a sandbox running, jump directly to the page you need.
