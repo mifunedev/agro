@@ -184,10 +184,14 @@ mkdir -p ~/.openharness-msb/{workspace,claude,config,herdr,ssh}
 ```
 
 **`workspace/` must be empty.** The entrypoint seeds the control plane from the
-image's baked `/opt/oh-seed` on first boot, guarded by `[ ! -d "$dest/.oh" ]`.
-Point it at a directory that already contains a `.agro/` and the seed is skipped
-**with no error message** — every step in that path is `|| true` — leaving a
-harness with no control plane. Confirm it before you boot:
+image's baked `/opt/agro-seed` on first boot, and seeds only when the workspace
+holds no control directory. The entrypoint then writes an `.image-seeded` marker
+inside the directory it seeded, which makes the seed once-only. A workspace from
+an earlier release that holds `.oh/` counts as that control directory and keeps
+resolving, so the entrypoint never re-seeds it. Point it at a directory that
+already contains a `.agro/` and the seed is skipped **with no error message** —
+every step in that path is `|| true` — leaving a harness with no control plane.
+Confirm it before you boot:
 
 ```bash
 # Must print nothing. Anything here means the seed will be skipped.
@@ -288,14 +292,14 @@ This is the step that catches a silent half-boot:
 
 ```bash
 msb exec openharness -- bash -lc '
-  ls /home/sandbox/harness/.oh >/dev/null \
+  ls /home/sandbox/harness/.agro >/dev/null \
   && bash /home/sandbox/harness/.agro/scripts/link-providers.sh --check \
   && echo SEED_OK'
 ```
 
-A healthy boot prints `Providers OK: …` and `SEED_OK`. If `.oh` is missing, the
-seed was skipped — stop the sandbox, empty the workspace directory, and start
-again:
+A healthy boot prints `Providers OK: …` and `SEED_OK`. If `.agro/` is missing,
+the seed was skipped — stop the sandbox, empty the workspace directory, and
+start again:
 
 ```bash
 msb stop openharness
@@ -306,8 +310,9 @@ rm -rf ~/.openharness-msb/workspace/*
 **What this check cannot tell you.** It confirms a control plane is present and
 providers are linked. It cannot distinguish a fresh seed from a workspace that
 already had a `.agro/` and was never seeded at all — the entrypoint's
-`.agro/.image-seeded` marker is written whenever `.oh` exists after the guard, so
-it is no stronger a signal. That is why Step 2 requires an empty directory.
+`.image-seeded` marker is written whenever a control directory exists after the
+guard, so it is no stronger a signal. That is why Step 2 requires an empty
+directory.
 
 ### Step 6 — Attach and work (host → inside)
 
