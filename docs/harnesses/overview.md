@@ -4,29 +4,29 @@ title: "Harnesses Overview"
 
 # Harnesses Overview
 
-Open Harness installs no agent CLI at boot. A harness enters the sandbox only when you run `oh harness install <id>`. **Claude Code**, **Codex**, **Pi**, **OpenCode**, **Hermes**, and **Grok Build** install this way. The install lands in `~/.local` inside the persistent home volume, so it survives a container recreate. No harness is baked into the image. **T3 Code** is on demand: the `/t3` skill (or `npx t3`) fetches it and serves a browser UI on port 3773. Inside the sandbox, run `oh tool install herdr`, then run `herdr`, then launch whichever agent you prefer from its panes and switch between them at any time. Reserve tmux for Open Harness's managed/headless gateway, tunnel, and detached cron-fire infrastructure; systemd supervises the cron runtime itself.
+Open Harness installs no agent CLI at boot. A harness enters the sandbox only when you run `agro harness install <id>`. **Claude Code**, **Codex**, **Pi**, **OpenCode**, **Hermes**, and **Grok Build** install this way. The install lands in `~/.local` inside the persistent home volume, so it survives a container recreate. No harness is baked into the image. **T3 Code** is on demand: the `/t3` skill (or `npx t3`) fetches it and serves a browser UI on port 3773. Inside the sandbox, run `agro tool install herdr`, then run `herdr`, then launch whichever agent you prefer from its panes and switch between them at any time. Reserve tmux for Open Harness's managed/headless gateway, tunnel, and detached cron-fire infrastructure; systemd supervises the cron runtime itself.
 
 Open Harness is the harness; the **agent** is your call. To go beyond the catalog, install via `npm` / `pip` / `cargo` inside the sandbox or edit the Dockerfile. For Pi+Slack specifically, the recommended path is the `pi-messenger-bridge` npm package — see [Slack integration](../integrations/slack.md). The product surface is one developer, one project, one agent — not racing or stacking multiple CLIs against each other.
 
 ## Installing a harness
 
-`oh harness install <id>` is the only door. It probes the running sandbox,
+`agro harness install <id>` is the only door. It probes the running sandbox,
 installs the CLI into `~/.local` in the persistent home volume, and reports. It
 reads and writes no `agro.json` field. It never rebuilds or restarts the sandbox.
 
 ```bash
-oh harness list                 # what exists, and what is installed
-oh harness install opencode     # install into the running sandbox
-oh harness status hermes        # one harness
+agro harness list                 # what exists, and what is installed
+agro harness install opencode     # install into the running sandbox
+agro harness status hermes        # one harness
 ```
 
 The command needs a running sandbox. If the sandbox is not running, it says so
-and exits non-zero. Start the sandbox with `oh sandbox install docker`, then re-run it.
+and exits non-zero. Start the sandbox with `agro sandbox install docker`, then re-run it.
 
-`oh harness` works from inside the sandbox too. There it installs into the
+`agro harness` works from inside the sandbox too. There it installs into the
 environment you are already in, and `list`/`status` report the CLIs actually
 present rather than `?`. See
-[Lifecycle commands → Where you are standing when you type `oh`](../lifecycle-commands.md#where-you-are-standing-when-you-type-agro).
+[Lifecycle commands → Where you are standing when you type `agro`](../lifecycle-commands.md#where-you-are-standing-when-you-type-agro).
 
 Flags:
 
@@ -39,26 +39,26 @@ verb. `on-demand` harnesses (T3 Code) are fetched by `npx` at each run and are
 never installed. There is no other install path, and no configuration key
 selects one.
 
-An install persists because the home volume persists. `oh destroy` removes that
+An install persists because the home volume persists. `agro destroy` removes that
 volume, and the install with it.
 
 ## Supported agents
 
 | Agent | Role | Start command | Source |
 |---|---|---|---|
-| [Claude Code](./claude-code.md) | Anthropic's terminal coding agent | `claude` | `oh harness install claude-code` |
-| [Codex](./codex.md) | OpenAI's CLI coding agent | `codex` | `oh harness install codex` |
-| [OpenCode](./opencode.md) | Terminal coding agent with OpenAI OAuth support | `opencode` | `oh harness install opencode` |
-| [Pi](./pi.md) | Lightweight, customizable agent | `pi` | `oh harness install pi` |
-| [Hermes](./hermes.md) | Nous Research's self-improving terminal agent | `hermes` | `oh harness install hermes` |
-| [Grok Build](./grok-build.md) | xAI's proprietary Grok Build terminal agent | `grok` | `oh harness install grok-build` |
-| [Muse Code](./muse-code.md) | Meta's terminal coding agent | `muse` | `oh harness install muse-code` |
+| [Claude Code](./claude-code.md) | Anthropic's terminal coding agent | `claude` | `agro harness install claude-code` |
+| [Codex](./codex.md) | OpenAI's CLI coding agent | `codex` | `agro harness install codex` |
+| [OpenCode](./opencode.md) | Terminal coding agent with OpenAI OAuth support | `opencode` | `agro harness install opencode` |
+| [Pi](./pi.md) | Lightweight, customizable agent | `pi` | `agro harness install pi` |
+| [Hermes](./hermes.md) | Nous Research's self-improving terminal agent | `hermes` | `agro harness install hermes` |
+| [Grok Build](./grok-build.md) | xAI's proprietary Grok Build terminal agent | `grok` | `agro harness install grok-build` |
+| [Muse Code](./muse-code.md) | Meta's terminal coding agent | `muse` | `agro harness install muse-code` |
 | [T3 Code](./t3code.md) | Browser UI over Claude/Codex/OpenCode (port 3773) | `/t3` or `npx t3` | on demand, no install |
 
 ## Verifying installation
 
 ```bash
-# Each CLI is present only after `oh harness install <id>`:
+# Each CLI is present only after `agro harness install <id>`:
 claude --version
 codex --version
 pi --version
@@ -72,7 +72,7 @@ npx t3 --version        # T3 Code — on demand, fetched by npx
 
 ## Authentication
 
-Install a harness with `oh harness install <id>`, then authenticate it. Authenticate at least one harness before use:
+Install a harness with `agro harness install <id>`, then authenticate it. Authenticate at least one harness before use:
 
 - **Claude Code**: run `claude` and follow the OAuth prompt (see [Claude Code](./claude-code.md)).
 - **Codex**: run `codex login` (see [Codex](./codex.md)).

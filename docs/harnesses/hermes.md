@@ -10,7 +10,7 @@ skills from experience, scheduled task automation, sub-agent delegation,
 container sandboxing across multiple backends, and bridges to chat
 platforms (Telegram, Discord, Slack, WhatsApp, Signal, Email).
 
-Install Hermes with `oh harness install hermes`. It then sits alongside `claude`, `codex`,
+Install Hermes with `agro harness install hermes`. It then sits alongside `claude`, `codex`,
 `pi`, and `opencode` as a sandbox CLI primitive. See the
 upstream documentation below for canonical facts about Hermes.
 
@@ -29,11 +29,11 @@ upstream documentation below for canonical facts about Hermes.
 
 ## Install
 
-`oh harness install <id>` is the only door. It installs Hermes into the
+`agro harness install <id>` is the only door. It installs Hermes into the
 already-running sandbox without a rebuild:
 
 ```bash
-oh harness install hermes
+agro harness install hermes
 ```
 
 Nothing installs Hermes at boot, and no configuration key selects it. See
@@ -67,7 +67,7 @@ less hermes-install.sh
 
 If you already use [`vet`](https://github.com/vet-run/vet), `vet https://hermes-agent.nousresearch.com/install.sh --skip-setup --skip-browser` gives the installer a fetch, review, and approve gate. `vet` is optional and is not required by Open Harness.
 
-That keeps `oh sandbox install docker` non-interactive. User setup remains explicit
+That keeps `agro sandbox install docker` non-interactive. User setup remains explicit
 inside the running sandbox.
 
 ## Authentication
@@ -116,13 +116,13 @@ With a checkout bind, the same path resides in the checkout. State survives rest
 and container recreation only while its backing storage remains. Git ignores runtime
 contents; never commit credentials.
 
-`oh destroy` removes the home volume, including image-only Hermes state. The command
+`agro destroy` removes the home volume, including image-only Hermes state. The command
 does not delete a host checkout's `.hermes/` directory. Teardown requires explicit
 confirmation.
 
-`oh harness install hermes` installs the binary into the home volume, at
+`agro harness install hermes` installs the binary into the home volume, at
 `~/.local/lib/hermes-agent` with a `~/.local/bin/hermes` launcher. Nothing about
-it lives in the image, and nothing reinstalls it at boot. `oh destroy` removes
+it lives in the image, and nothing reinstalls it at boot. `agro destroy` removes
 the home volume and the binary with it. Only checkout-backed state remains outside
 that volume.
 
@@ -144,7 +144,7 @@ home explicitly. This correction does not migrate credentials or sessions.
 hermes
 ```
 
-Run long-lived interactive sessions in Herdr. Install Herdr with `oh tool install herdr`,
+Run long-lived interactive sessions in Herdr. Install Herdr with `agro tool install herdr`,
 run `herdr`, and start `hermes` in a pane. Named tmux sessions remain the convention
 for headless gateways and dashboards.
 
@@ -166,7 +166,7 @@ separate (`hermes gateway setup` for Hermes, the in-session `/msg-bridge` for Pi
 #### Run and verify (read-only)
 
 Run the Hermes gateway **from inside the sandbox** — both `gateway hermes` and
-`oh gateway hermes` require `hermes` on `PATH`, so they only work in the container
+`agro gateway hermes` require `hermes` on `PATH`, so they only work in the container
 (`gateway.sh` errors otherwise). The launcher pins `HERMES_HOME` to
 `~/harness/.hermes`, persists Hermes `terminal.cwd` to `~/harness` (override with
 `HERMES_GATEWAY_HOME` / `HERMES_GATEWAY_CWD`), and self-installs Teams webhook deps
@@ -198,14 +198,14 @@ Open Harness **disables the dashboard by default**. Enable the dashboard explici
 Set the fields in the tracked `agro.json`:
 
 ```bash
-oh config set hermesDashboard.enabled true
-oh config set hermesDashboard.port 9119   # optional; 9119 is the default
+agro config set hermesDashboard.enabled true
+agro config set hermesDashboard.port 9119   # optional; 9119 is the default
 ```
 
 Then restart:
 
 ```bash
-oh restart <name>
+agro restart <name>
 ```
 
 The dashboard needs the `hermes` binary; without it there is nothing to serve and
@@ -251,7 +251,7 @@ Do **not** change the bind to `0.0.0.0`. Network clients could then access dashb
 
 To reach the dashboard from another machine, use `/cloudflared 9119` to
 start a Cloudflared tunnel for the loopback bind, or reach it over the tailnet
-with `oh tool install tailscale`. The tunnel handles TLS; the dashboard itself
+with `agro tool install tailscale`. The tunnel handles TLS; the dashboard itself
 stays on loopback.
 
 For sensitive dashboards, add Cloudflare Access or another authentication

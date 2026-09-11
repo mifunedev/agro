@@ -11,9 +11,9 @@ Muse Code is Meta's terminal coding agent. Open Harness installs the native `mus
 Run the install command in an equipped checkout inside a running sandbox:
 
 ```bash
-oh harness install muse-code
+agro harness install muse-code
 muse --version
-oh harness status muse-code
+agro harness status muse-code
 ```
 
 The same install command works from a host checkout that targets a running sandbox.
@@ -48,8 +48,8 @@ For automation, inject `META_API_KEY` into the environment of the process that l
 Open Harness accepts this key through its existing hidden secret prompt:
 
 ```bash
-oh secret set META_API_KEY
-oh secret list
+agro secret set META_API_KEY
+agro secret list
 ```
 
 This stores the key in the checkout's gitignored `.env` with mode `0600`.
@@ -63,7 +63,7 @@ node --env-file=.env -e 'const {spawnSync}=require("node:child_process"); const 
 Run the Node command inside the sandbox, from the checkout where you stored the key.
 An existing process environment takes precedence over the `.env` file. `META_API_KEY` takes precedence over stored Muse credentials.
 Muse also supports `muse auth set --api-key-stdin` for credential storage through standard input.
-Run `muse logout` to remove stored Muse credentials. Logout preserves a key stored by `oh secret set`.
+Run `muse logout` to remove stored Muse credentials. Logout preserves a key stored by `agro secret set`.
 
 ## Context and skills
 
@@ -102,11 +102,11 @@ Default user settings and credentials live under `~/.config/muse`, including `se
 Keep overrides inside the persistent home if their state must survive recreation.
 Project instructions and skills remain in the project checkout.
 
-No configuration key enables Muse, and nothing installs it at boot. A fresh home requires `oh harness install muse-code` again.
-To stop using Muse, stop its session. There is no disable flag or `oh harness uninstall` command.
+No configuration key enables Muse, and nothing installs it at boot. A fresh home requires `agro harness install muse-code` again.
+To stop using Muse, stop its session. There is no disable flag or `agro harness uninstall` command.
 To uninstall manually, stop Muse and remove `~/.local/bin/muse`, its `muse-bin-*` binaries, and Muse metadata such as `.muse-version`.
 Remove only Muse-owned files from the shared bin directory. Preserve `~/.config/muse` if you want to retain user state.
-`oh destroy` removes the entire sandbox home volume, including installed harnesses and home-local credentials.
+`agro destroy` removes the entire sandbox home volume, including installed harnesses and home-local credentials.
 
 ## Verified upstream and limitations
 

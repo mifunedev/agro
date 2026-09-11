@@ -15,7 +15,7 @@ Codex is designed for autonomous operation. Give it a task and it works through 
 Codex enters the sandbox only through the door:
 
 ```bash
-oh harness install codex
+agro harness install codex
 ```
 
 The verb installs the `@openai/codex` package into the persistent home volume as the `sandbox` user:

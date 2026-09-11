@@ -10,11 +10,11 @@ Grok Build is never baked into the sandbox image. Install it only when you want 
 
 ## Install
 
-`oh harness install <id>` is the only door. It installs Grok Build into the
+`agro harness install <id>` is the only door. It installs Grok Build into the
 already-running sandbox without a rebuild:
 
 ```bash
-oh harness install grok-build
+agro harness install grok-build
 ```
 
 Nothing installs Grok Build at boot, and no configuration key selects it. See
@@ -45,7 +45,7 @@ Verify the install inside the sandbox:
 grok --version
 ```
 
-If `grok` is not found, run `oh harness install grok-build`. It installs into `~/.local/bin` in the persistent home volume. A fresh home volume has no `grok` until you run the verb again.
+If `grok` is not found, run `agro harness install grok-build`. It installs into `~/.local/bin` in the persistent home volume. A fresh home volume has no `grok` until you run the verb again.
 
 ## Authentication
 
@@ -101,7 +101,7 @@ Open Harness persists `~/.grok` in the single `/home/sandbox` mount, alongside e
 - logs
 
 :::warning Volume removal deletes Grok state
-`oh destroy` and `docker compose down -v` delete the sandbox home volume, `~/.grok` included. Use `oh stop` when you want Grok Build state under `~/.grok` to survive.
+`agro destroy` and `docker compose down -v` delete the sandbox home volume, `~/.grok` included. Use `agro stop` when you want Grok Build state under `~/.grok` to survive.
 :::
 
 ## Dangerous flags

@@ -4,7 +4,7 @@ title: "Pi"
 
 # Pi
 
-Pi is a lightweight, customizable harness — a hackable agent framework you can shape to your project. Install it with `oh harness install pi`.
+Pi is a lightweight, customizable harness — a hackable agent framework you can shape to your project. Install it with `agro harness install pi`.
 
 ## Verify installation
 
