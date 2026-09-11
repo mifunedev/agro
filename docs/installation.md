@@ -149,7 +149,7 @@ Then, in any project:
 ```bash
 agro sandbox install docker                  # create a sandbox from the published image
 agro sandbox install docker --checkout <dir> # ...or bind a checkout at /home/sandbox/harness
-agro sandbox list                            # name, runtime, status, repo
+agro sandbox list                            # name, runtime, status, checkout
 agro shell <name>                            # zsh in the running container
 agro tool install herdr                      # install the terminal workspace — nothing installs at boot
 agro harness install pi                      # install an agent CLI the same way

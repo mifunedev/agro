@@ -327,6 +327,7 @@ export async function runSandboxInstall(
 interface SandboxRow {
   name: string;
   runtime: string;
+  checkout: string;
   repo: string;
   status: string;
 }
@@ -346,10 +347,12 @@ export async function runSandboxList(opts: SandboxListOptions, io: SandboxIO): P
   for (const name of listEntries()) {
     const root = entryRoot(name);
     const config = readOhConfig(ohConfigPath(root));
+    const checkout = configCheckout(config) ?? "-";
     rows.push({
       name,
       runtime: config.runtime ?? "docker",
-      repo: configCheckout(config) ?? "-",
+      checkout,
+      repo: checkout,
       status: await entryStatus(root, name, run),
     });
   }
@@ -373,7 +376,7 @@ export async function runSandboxList(opts: SandboxListOptions, io: SandboxIO): P
   for (const row of rows) {
     io.stdout(
       `${row.name.padEnd(nameWidth)}  ${row.runtime.padEnd(runtimeWidth)}  ` +
-        `${row.status.padEnd(statusWidth)}  ${row.repo}\n`,
+        `${row.status.padEnd(statusWidth)}  ${row.checkout}\n`,
     );
   }
   return 0;

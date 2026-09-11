@@ -932,8 +932,60 @@ describe("oh sandbox list", () => {
 
     expect(await runSandboxList({ bin: "oh", json: true, run }, io)).toBe(0);
     expect(JSON.parse(out.join(""))).toEqual([
-      { name: "alpha", runtime: "docker", repo: "/srv/checkout", status: "absent" },
+      {
+        name: "alpha",
+        runtime: "docker",
+        checkout: "/srv/checkout",
+        repo: "/srv/checkout",
+        status: "absent",
+      },
     ]);
+  });
+
+  it("--json carries checkout and the deprecated repo alias with one identical value", async () => {
+    registry();
+    seed("alpha", { checkout: "/srv/checkout" });
+    seed("beta", { repo: "/srv/legacy" });
+    seed("gamma");
+    const run: LifecycleRunner = () => ({ status: 1 });
+    const { out, io } = makeIo();
+
+    expect(await runSandboxList({ bin: "oh", json: true, run }, io)).toBe(0);
+    const rows = JSON.parse(out.join("")) as { name: string; checkout: string; repo: string }[];
+    expect(rows.map((row) => row.checkout)).toEqual(["/srv/checkout", "/srv/legacy", "-"]);
+    for (const row of rows) expect(row.repo).toBe(row.checkout);
+  });
+
+  it("--json orders the keys name, runtime, checkout, repo, status", async () => {
+    registry();
+    seed("alpha", { checkout: "/srv/checkout" });
+    const run: LifecycleRunner = () => ({ status: 1 });
+    const { out, io } = makeIo();
+
+    expect(await runSandboxList({ bin: "oh", json: true, run }, io)).toBe(0);
+    const [row] = JSON.parse(out.join("")) as Record<string, string>[];
+    expect(Object.keys(row)).toEqual(["name", "runtime", "checkout", "repo", "status"]);
+  });
+
+  it("keeps the human table free of the alias — one checkout column, unchanged", async () => {
+    registry();
+    seed("alpha");
+    seed("beta-longer-name", { repo: "/srv/checkout" });
+    seed("gamma", { checkout: "/very/long/path/to/a/checkout" });
+    const run: LifecycleRunner = (cmd, args) => {
+      if (cmd === "docker" && args[0] === "inspect") {
+        return { status: 0, stdout: args.includes("alpha") ? "running\n" : "exited\n" };
+      }
+      return { status: 0 };
+    };
+    const { out, io } = makeIo();
+
+    expect(await runSandboxList({ bin: "oh", run }, io)).toBe(0);
+    expect(out.join("")).toBe(
+      "alpha             docker  ready    -\n" +
+        "beta-longer-name  docker  stopped  /srv/checkout\n" +
+        "gamma             docker  stopped  /very/long/path/to/a/checkout\n",
+    );
   });
 
   it("points at the install verb when the registry is empty", async () => {

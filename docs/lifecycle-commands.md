@@ -36,7 +36,7 @@ sandbox.
 | Verb | Runs |
 |---|---|
 | `agro sandbox install <runtime> [--name <name>] [--checkout <dir>] [--yes] [--image[=<ref>]] [--no-build]` | write the registry entry, then `docker-compose.sh up -d` inside it |
-| `agro sandbox list [--json]` | every registry entry: name, runtime, status, repo |
+| `agro sandbox list [--json]` | every registry entry: name, runtime, status, checkout |
 | `agro shell [name]` | an interactive `zsh` in the sandbox container |
 | `agro stop [name]` | `docker-compose.sh stop` — containers down, volumes kept |
 | `agro restart [name]` | `docker-compose.sh restart` |
@@ -96,6 +96,11 @@ agro shell <name>                # attach as the sandbox user
 4. otherwise an error listing every registered name.
 
 `agro sandbox list` prints that list, with the container status of each.
+
+`agro sandbox list --json` prints the same entries as JSON. Each entry carries the
+bound directory under the key `checkout`. The key `repo` is deprecated in the JSON
+output. It holds the identical value and stays present for existing consumers. Read
+`checkout`.
 
 ## Upgrading the CLI: `agro update`
 
