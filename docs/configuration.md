@@ -143,12 +143,6 @@ Recipe: [`agro sandbox install docker`](deployment-prebuilt-image.md).
 | `image.mode` | `"build"` \| `"image"` | `build` | — | Whether the lifecycle builds locally or runs `image.ref`. A build happens only when the entry carries `checkout` and that directory holds `.devcontainer/Dockerfile`. Pairs with `agro sandbox install docker --image`. |
 | `image.pullPolicy` | `"missing"` \| `"always"` \| `"never"` | `missing` | `AGRO_PULL_POLICY` (legacy alias `OH_PULL_POLICY`) | Compose pull policy for `image.ref`. |
 
-### Cloud
-
-| Field | Type | Default | Compose variable | What it does |
-| --- | --- | --- | --- | --- |
-| `cloud.apiUrl` | string | unset | — | OpenHarness Cloud API base URL used by `agro cloud`. The provisioner key is a secret (`OH_CLOUD_PROVISION_KEY`) and lives in `.env`, never here. |
-
 ### Langfuse
 
 Tracing settings the Pi harness reads from its own process environment. They are
@@ -175,23 +169,12 @@ root `.env` may hold. Each is documented, commented out, in the tracked
 `.example.env`:
 
 `GH_TOKEN`, `SANDBOX_PASSWORD`, `XAI_API_KEY`, `META_API_KEY`, `PI_SLACK_APP_TOKEN`,
-`PI_SLACK_BOT_TOKEN`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`,
-`OH_CLOUD_PROVISION_KEY`.
+`PI_SLACK_BOT_TOKEN`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`.
 
 Any other key is rejected by `agro secret set`.
 
 For Muse Code, `agro secret set META_API_KEY` stores the key but does not export it into a running shell.
 See [Muse authentication](harnesses/muse-code.md#authentication) for process injection and credential precedence.
-
-## Settings that are neither
-
-A few variables are read directly from the environment of one process and are
-not harness configuration at all, so they appear in neither surface:
-
-- `OH_CLOUD_API_URL` and `OH_CLOUD_PROVISION_KEY` — non-persistent `agro cloud`
-  overrides for the persisted `cloud.apiUrl` field and the
-  `OH_CLOUD_PROVISION_KEY` secret. `OH_PROVISION_KEY` and `PROVISION_KEY` are
-  accepted as legacy spellings. See `.agro/cli/README.md`.
 
 ## Retired keys
 

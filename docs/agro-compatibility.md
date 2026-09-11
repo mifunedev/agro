@@ -249,8 +249,7 @@ agent prompts in
 
 The CLI install root `/opt/oh`, the default image reference
 `ghcr.io/mifunedev/openharness:latest`, the `oh.mifune.dev` domain, the GitHub
-repository name, the Cloud variables, and the Python kernel home
-`~/.local/share/oh/` are unchanged. Every `OH_*` variable, `oh`, `oh.json`
+repository name, and the Python kernel home `~/.local/share/oh/` are unchanged. Every `OH_*` variable, `oh`, `oh.json`
 reading, `~/.oh`, and the legacy images stay valid through the SLA.
 
 ## Phase 3 — AGRO is the canonical external identity
@@ -313,17 +312,20 @@ does not exist on `main` yet, and an early change breaks the endpoint.
 The unselected image fallback is `ghcr.io/mifunedev/agro:latest`. An explicit
 `image.ref`, `AGRO_SANDBOX_IMAGE`, or `OH_SANDBOX_IMAGE` value stays as stored,
 including `ghcr.io/mifunedev/openharness:latest`. Both image names publish from
-one digest. The CLI install root `/opt/oh`, the Cloud variables, the
-Python kernel home `~/.local/share/oh/`, `oh`, `@mifune/openharness`, `get-oh.sh`,
+one digest. The CLI install root `/opt/oh`, the Python kernel home
+`~/.local/share/oh/`, `oh`, `@mifune/openharness`, `get-oh.sh`,
 `oh.js`, every `OH_*` variable, `~/.oh`, and the legacy GHCR tags stay valid
 through the SLA. This repository keeps `"name": "openharness"` in `agro.json`.
 
 ## Legacy references intentionally left for later phases
 
-- Phase 4: the Cloud CLI variables (`OH_CLOUD_*`, `OH_API_URL`,
-  `OH_PROVISION_KEY`).
 - Phase 5: retirement of `oh`, `@mifune/openharness`, `get-oh.sh`, and the
   legacy GHCR tags after the SLA.
+
+Phase 4 holds no rename obligation. Issue
+[#1050](https://github.com/mifunedev/agro/issues/1050) deleted the `agro cloud`
+command, so the Cloud CLI variables (`OH_CLOUD_*`, `OH_API_URL`,
+`OH_PROVISION_KEY`) are classified `obsolete` in `.agro/compat-inventory.json`.
 
 ## Verification
 

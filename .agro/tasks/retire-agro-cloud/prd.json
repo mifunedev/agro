@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "project": "AGRO",
+  "branchName": "task/1050-retire-agro-cloud",
+  "description": "Retire the stale agro cloud command and every surface it owns",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Remove the cloud verb from the CLI",
+      "description": "As an operator, I want agro cloud to stop dispatching so that the CLI stops advertising a command against a service this repository does not run.",
+      "acceptanceCriteria": [
+        "Delete .agro/cli/src/commands/cloud.ts",
+        "Delete .agro/cli/src/__tests__/cloud.test.ts",
+        "Remove the runCloud import, the cloud help line, and the first === \\\"cloud\\\" dispatch from .agro/cli/src/cli.ts",
+        "Remove the cloud assertion from .agro/cli/src/__tests__/lifecycle.test.ts help surface test",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Remove cloud from the config schema and secrets",
+      "description": "As an operator, I want cloud config keys gone from the schema so that agro.json carries no field for a retired command.",
+      "acceptanceCriteria": [
+        "Remove CloudSettings, the cloud field, the cloud default, the cloud validation, and the cloud.apiUrl OH_CONFIG_FIELDS entry from .agro/cli/src/lib/oh-config.ts",
+        "Remove OH_CLOUD_PROVISION_KEY from SECRET_KEYS in .agro/cli/src/lib/secrets.ts",
+        "Remove the cloud section from agro.json",
+        "Remove OH_CLOUD_PROVISION_KEY from the fallback secret-key list in .agro/scripts/migrate-harness-yaml.sh",
+        "Update the cloud rows in .agro/cli/src/lib/__tests__/oh-config.test.ts and .agro/cli/src/__tests__/sandbox.test.ts to use a surviving config field",
+        "Typecheck passes and unit tests pass"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Retire the compat-inventory rows in place",
+      "description": "As a maintainer, I want the cloud compatibility rows marked retired rather than deleted so that the deferred phase-4 obligation stays on the record.",
+      "acceptanceCriteria": [
+        "Mark the cloud rows in .agro/compat-inventory.json retired, referencing issue 1050, instead of deleting them",
+        "Keep the ~/.config/openharness/cloud.json path row so .agro/cli/src/lib/__tests__/compat-inventory.test.ts:98 still passes, updating its status only",
+        "Do not delete .agro/evals/probes/oh-config-surfaces.sh",
+        "compat-inventory tests pass"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Update the lifecycle surface probe",
+      "description": "As a maintainer, I want the tier-A verb probe to match the shipped verb set so that the suite stays green and honest.",
+      "acceptanceCriteria": [
+        "Remove cloud from CLI_VERBS in .agro/evals/probes/oh-lifecycle-surface.sh",
+        "Remove the agro cloud row from docs/lifecycle-commands.md",
+        "The probe passes against the edited cli.ts"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Align documentation and changelog",
+      "description": "As an operator, I want the docs to stop describing a removed command so that no page teaches a surface that does not exist.",
+      "acceptanceCriteria": [
+        "Remove the cloud table row and the OpenHarness Cloud section from .agro/cli/README.md",
+        "Remove the Cloud section and the cloud env-override entries from docs/configuration.md",
+        "Remove the OpenHarness Cloud provisioning block from .example.env",
+        "Reconcile the cloud references in docs/agro-compatibility.md with the retirement",
+        "Update the package description in .agro/cli/package.json if it names OpenHarness Cloud",
+        "Add a Removed entry to CHANGELOG.md under Unreleased citing issue 1050, at most 250 characters",
+        "No tracked file outside CHANGELOG history and archived task evidence references agro cloud or oh cloud"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

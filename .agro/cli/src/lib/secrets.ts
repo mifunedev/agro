@@ -15,7 +15,6 @@ export const SECRET_KEYS = [
   "PI_SLACK_BOT_TOKEN",
   "LANGFUSE_PUBLIC_KEY",
   "LANGFUSE_SECRET_KEY",
-  "OH_CLOUD_PROVISION_KEY",
 ] as const;
 
 export type SecretKey = (typeof SECRET_KEYS)[number];

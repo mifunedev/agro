@@ -1,7 +1,7 @@
 {
   "name": "@mifune/agro",
   "version": "0.10.0",
-  "description": "AGRO CLI — create sandboxes for coding agents and manage OpenHarness Cloud nodes.",
+  "description": "AGRO CLI — create and manage sandboxes for coding agents.",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mifunedev/agro#readme",
   "repository": {

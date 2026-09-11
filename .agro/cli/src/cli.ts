@@ -5,7 +5,6 @@ import { tmpdir } from "node:os";
 import { runUpdate } from "./commands/update.js";
 import { DEFAULT_ARTIFACT_URL, defaultDeps, runSelfUpgrade } from "./commands/self-upgrade.js";
 import { parseMigrateArgs, printMigrateHelp, runMigrate } from "./commands/migrate.js";
-import { runCloud } from "./commands/cloud.js";
 import {
   configFieldList,
   runConfigRepo,
@@ -122,7 +121,6 @@ Usage:
   ${bin} harness <args...>      Install and inspect agent CLI harnesses
   ${bin} tool <args...>         Install and inspect sandbox tooling
   ${bin} gateway <args...>      Manage a messaging client session (pi|hermes)
-  ${bin} cloud <args...>        Manage OpenHarness Cloud nodes
   ${bin} --version              Print version
   ${bin} --help                 Show this help
 
@@ -1333,14 +1331,6 @@ async function main(argv: string[]): Promise<number> {
       return await runToolStatus(a.name, { bin, json: a.json }, io);
     }
     return await runToolInstall(a.name as string, { bin, yes: a.yes }, io);
-  }
-
-  if (first === "cloud") {
-    return await runCloud(argv.slice(1), {
-      bin,
-      stdout: (s) => process.stdout.write(s),
-      stderr: (s) => process.stderr.write(s),
-    });
   }
 
   if (first === "gateway") {

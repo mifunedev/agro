@@ -65,10 +65,6 @@ export interface StorageSettings {
   homePath?: string;
 }
 
-export interface CloudSettings {
-  apiUrl?: string;
-}
-
 export type LangfusePrivacyPreset =
   | "metadata-only"
   | "prompts-only"
@@ -105,7 +101,6 @@ export interface OhConfig {
   cron?: CronSettings;
   build?: BuildSettings;
   image?: ImageSettings;
-  cloud?: CloudSettings;
   langfuse?: LangfuseSettings;
   composeOverrides?: string[];
   [key: string]: unknown;
@@ -137,7 +132,6 @@ export function defaultOhConfig(name: string): OhConfig {
     cron: { agentBin: "claude" },
     build: { skipPnpmInstall: false },
     image: { mode: "build", pullPolicy: "missing" },
-    cloud: {},
     langfuse: {},
     composeOverrides: [],
   };
@@ -248,9 +242,6 @@ export function validateOhConfig(value: unknown): OhConfig {
     expectEnum(image, "pullPolicy", "image.", ["missing", "always", "never"]);
   }
 
-  const cloud = expectSection(record, "cloud");
-  if (cloud) expectString(cloud, "apiUrl", "cloud.");
-
   const langfuse = expectSection(record, "langfuse");
   if (langfuse) {
     expectString(langfuse, "baseUrl", "langfuse.");
@@ -356,7 +347,6 @@ export const OH_CONFIG_FIELDS: readonly OhConfigField[] = [
   { path: "image.mode", type: "enum", values: ["build", "image"] },
   { path: "image.pullPolicy", type: "enum", values: ["missing", "always", "never"] },
   { path: "storage.homePath", type: "string" },
-  { path: "cloud.apiUrl", type: "string" },
   { path: "langfuse.baseUrl", type: "string" },
   { path: "langfuse.privacyPreset", type: "enum", values: LANGFUSE_PRIVACY_PRESETS },
   { path: "composeOverrides", type: "list" },

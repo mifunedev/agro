@@ -20,7 +20,6 @@
   "cron": { "agentBin": "claude" },
   "build": { "skipPnpmInstall": false },
   "image": { "mode": "build", "pullPolicy": "missing" },
-  "cloud": {},
   "langfuse": {},
   "composeOverrides": []
 }
