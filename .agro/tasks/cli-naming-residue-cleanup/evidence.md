@@ -1,0 +1,124 @@
+# Evidence — cli-naming-residue-cleanup (#1046)
+
+## Frozen-file baseline
+
+Recorded before any work, at `de4cbe8b`, and re-checked after every worker commit:
+
+```
+0bc2686007e137d090f9a9b543a08fefd92376a9eeccd7752eade97b147f373c  .agro/evals/probes/oh-devcontainer-restructure.sh
+664447701d78612ea1ebb4029aa91c8b0919400237cd9e508d6fe2be46e555ec  .agro/evals/probes/oh-home-mount.sh
+826fef45e2e665b3ef11c88647f165510142108f355b0b41ec4853af49fbd974  .agro/evals/probes/oh-image-only-deploy.sh
+ac25e4b410d1a344defada4719184ce8e988ad232ac883ca208c0c36f668a513  .agro/cli/src/lib/__tests__/registry.test.ts
+fc15dcc07bef1badaec51991d453a7f55ac420507ca41ecb6deb7d142602d3e6  .devcontainer/entrypoint.sh
+28106a310cfee535ff64a22f27e5970377a2ffcacea106dd8b3256718b6bee0c  .devcontainer/docker-compose.yml
+```
+
+## US-005 — the behaviour change is NOT MET, on evidence
+
+US-005 asked `materialize()` to select the build-capable compose base from the
+effective image mode rather than from `checkout` presence, so that the #1042 D-3
+image pin at `.agro/cli/src/commands/sandbox.ts:286-292` would become
+unreachable.
+
+**The premise does not hold.** The two bases differ in two ways, not one:
+
+```
+--- .devcontainer/docker-compose.image-only.yml
++++ .devcontainer/docker-compose.yml
++    build:
++      context: ${AGRO_REPO_DIR:-${OH_REPO_DIR:-..}}
++      dockerfile: .devcontainer/Dockerfile
+     volumes:
+       - ${AGRO_HOME_MOUNT:-${OH_HOME_MOUNT:-workspace}}:/home/sandbox
++      - ${AGRO_REPO_DIR:-${OH_REPO_DIR:-..}}:/home/sandbox/harness
+```
+
+`docker-compose.yml` is the only source of the checkout bind mount
+`${AGRO_REPO_DIR}:/home/sandbox/harness`. Verified: neither
+`.devcontainer/docker-compose.ssh.yml` nor
+`.devcontainer/docker-compose.docker-sock.yml` supplies it, and `materialize()`
+writes no other fragment.
+
+So for a sandbox with `checkout` set and `image.mode: image`, selecting the
+image-only base would boot the container from a prebuilt image **without the
+operator's checkout mounted**. That is a worse defect than the pin it removes.
+FR-7 freezes both compose files, so a third base that carries the bind mount
+without the build stanza cannot be introduced under this task.
+
+**Decision: the D-3 pin stays.** The criterion
+"`materialize()` selects the build-capable base only when the sandbox will build"
+is marked NOT MET. This is the outcome US-005's fourth acceptance criterion and
+`prd.md` § Technical Considerations pre-authorized: keep the pin, say so here,
+rather than guess. No Docker daemon is available in this environment, so the
+alternative could not have been proven at any level above unit.
+
+**What did land:** the characterization test US-005 asked for — asserting which
+compose base is written for each combination of (checkout set or unset) x
+(`image.mode` build or image). It pins the current coupling so the next author
+sees it rather than rediscovering it. It is a new test file;
+`.agro/cli/src/lib/__tests__/registry.test.ts` stays byte-identical.
+
+**Follow-up this leaves:** removing the D-3 pin needs a compose base that carries
+the checkout bind mount without the build stanza. That is a `.devcontainer/`
+change, which needs `.github/workflows/sandbox-boot-guard.yml` green on a real
+Linux runner to validate — out of scope here by FR-7.
+
+## Authorized exception to the byte-identity freeze — `registry.test.ts`
+
+The task froze four files and required a sha256 recorded before any work and
+re-checked after every worker commit. Three of them are unchanged for the whole
+task. One was changed, once, under an explicit operator decision.
+
+**The conflict.** `.agro/cli/src/lib/registry.ts:145` throws the empty-registry
+error:
+
+```
+no sandbox is registered in <root> — create one with `oh sandbox install docker`
+```
+
+That is #1046's exact symptom on the path a new operator hits before they have
+any sandbox: `agro shell` tells them to run `oh`. Threading it is required by
+FR-1. But `.agro/cli/src/lib/__tests__/registry.test.ts:256-261` pins the literal:
+
+```js
+expect(() => resolveSandboxRoot({ cwd: tmpdir() })).toThrow(
+  /no sandbox is registered .* `oh sandbox install docker`/,
+);
+```
+
+Under vitest `process.argv[1]` is vitest's own `forks.js`, so `invokedName`
+yields `forks` and `resolveProduct` correctly returns `AGRO_PRODUCT`. A threaded
+message therefore reads `agro sandbox install docker`, which the pinned regex
+cannot match. The two constraints — FR-1 and the byte-identity freeze — are in
+direct conflict on this one site.
+
+**Alternatives ruled out before escalating.** Moving the install-verb hint out of
+`registry.ts` and into the command layer, where a bin is already threaded, does
+not work: the frozen regex requires the *thrown* message to carry that tail, so
+removing it fails the same assertion. No mechanism preserves the file's bytes and
+closes the defect.
+
+**Decision.** The worker stopped on the site rather than editing the frozen file
+or weakening `registry.ts`, and the advisor escalated to the operator. The
+operator authorized making that single assertion bin-parametric — asserting both
+spellings, the same shape as the other pinned tests this task converted.
+
+**Scope of the exception.** One `it()` block in one file. The `it()` title is
+unchanged. The other three frozen files are byte-identical for the entire task:
+
+```
+0bc2686007e137d090f9a9b543a08fefd92376a9eeccd7752eade97b147f373c  .agro/evals/probes/oh-devcontainer-restructure.sh
+664447701d78612ea1ebb4029aa91c8b0919400237cd9e508d6fe2be46e555ec  .agro/evals/probes/oh-home-mount.sh
+826fef45e2e665b3ef11c88647f165510142108f355b0b41ec4853af49fbd974  .agro/evals/probes/oh-image-only-deploy.sh
+```
+
+`.agro/cli/src/lib/__tests__/registry.test.ts` moves from
+`ac25e4b410d1a344defada4719184ce8e988ad232ac883ca208c0c36f668a513`; the new
+digest and the exact diff are recorded below with the final commit.
+
+**Why this does not undermine what the freeze protected.** The freeze existed so
+that US-005's image-selection change could not be laundered through the test that
+proves #1042's behaviour. US-005's behaviour change was dropped on evidence, so
+`materialize()` and its assertions are untouched. The edited assertion covers
+`resolveSandboxRoot`, a different function, and it is strengthened rather than
+relaxed: it previously proved one spelling, and now proves both.
