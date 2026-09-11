@@ -6,6 +6,7 @@ case $- in *i*) ;; *) return 0 ;; esac
 export OH_BANNER_SHOWN=1
 
 
+cli_bin="${AGRO_BIN:-${OH_BIN:-agro}}"
 sandbox_name="${SANDBOX_NAME:-$(hostname)}"
 timezone="${TZ:-$(date +%Z 2>/dev/null)}"
 project_dir="${HOME}/harness"
@@ -81,7 +82,7 @@ if [ -s "${HOME}/.pi/agent/auth.json" ]; then
 fi
 
 opencode_status="$status_x"
-opencode_detail="not installed — run: oh harness install opencode"
+opencode_detail="not installed — run: ${cli_bin} harness install opencode"
 if command -v opencode >/dev/null 2>&1; then
   if [ -s "${HOME}/.local/share/opencode/auth.json" ]; then
     opencode_status="$status_ok"
@@ -93,7 +94,7 @@ if command -v opencode >/dev/null 2>&1; then
 fi
 
 grok_status="$status_x"
-grok_detail="not installed — run: oh harness install grok-build"
+grok_detail="not installed — run: ${cli_bin} harness install grok-build"
 if command -v grok >/dev/null 2>&1; then
   if [ -s "${HOME}/.grok/auth.json" ]; then
     grok_status="$status_ok"
@@ -108,7 +109,7 @@ if command -v grok >/dev/null 2>&1; then
 fi
 
 hermes_status="$status_x"
-hermes_detail="not installed — run: oh harness install hermes"
+hermes_detail="not installed — run: ${cli_bin} harness install hermes"
 if command -v hermes >/dev/null 2>&1; then
   if [ -s "${HERMES_HOME:-${OH_PROJECT_ROOT:-/home/sandbox/harness}/.hermes}/auth.json" ]; then
     hermes_status="$status_ok"
@@ -138,7 +139,7 @@ if command -v hermes >/dev/null 2>&1; then
     fi
   else
     dashboard_status="$status_empty"
-    dashboard_detail="dashboard — disabled (oh config set hermesDashboard.enabled true)"
+    dashboard_detail="dashboard — disabled (${cli_bin} config set hermesDashboard.enabled true)"
   fi
 fi
 
@@ -178,13 +179,13 @@ if [ -n "$shortcuts" ]; then
   printf '  Recovery commands: %s · systemctl status openharness-cron.service\n' "$shortcuts"
 else
   printf '  Recovery commands: systemctl status openharness-cron.service\n'
-  printf '  No harness or tool is installed. Add one with `oh harness install <id>` or `oh tool install <id>`.\n'
+  printf '  No harness or tool is installed. Add one with `%s harness install <id>` or `%s tool install <id>`.\n' "$cli_bin" "$cli_bin"
 fi
 printf '\n'
 if command -v herdr >/dev/null 2>&1; then
   printf '  Next: run `herdr` to open your persistent Open Harness workspace.\n'
 else
-  printf '  Next: run `oh tool install herdr`, then `herdr`, to open your persistent Open Harness workspace.\n'
+  printf '  Next: run `%s tool install herdr`, then `herdr`, to open your persistent Open Harness workspace.\n' "$cli_bin"
 fi
 printf '  Complete setup, authentication, agents, tests, and servers inside Herdr.\n'
 printf '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'

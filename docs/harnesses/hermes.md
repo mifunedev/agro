@@ -273,7 +273,7 @@ vars — see upstream Hermes documentation for the full list.
 
 The sandbox onboarding banner reports Hermes as:
 
-- `❌ not installed` — run `oh harness install hermes` — when the binary is absent from PATH.
+- `❌ not installed` — run `agro harness install hermes` — when the binary is absent from PATH.
 - `✅ installed — run: hermes setup` — when the binary is on PATH but
   `~/harness/.hermes/auth.json` is absent or empty.
 - `✅ authenticated` — when `~/harness/.hermes/auth.json` exists and is
