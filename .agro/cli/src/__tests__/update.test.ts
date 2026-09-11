@@ -3,6 +3,7 @@ import { runUpdate, assertDestInTarget } from "../commands/update.js";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { withInvokedBin } from "./invoked-bin.js";
 
 
 let tmpdirs: string[] = [];
@@ -391,13 +392,13 @@ describe("assertDestInTarget", () => {
     const someTarget = mkTmp();
     const targetOh = path.resolve(someTarget, ".oh");
 
-    expect(() =>
-      assertDestInTarget(
-        path.resolve(targetOh, "../outside.ts"),
-        targetOh,
-        path.sep,
-      ),
-    ).toThrow("refusing to write outside target .oh");
+    for (const bin of ["agro", "oh"]) {
+      withInvokedBin(bin, () => {
+        expect(() =>
+          assertDestInTarget(path.resolve(targetOh, "../outside.ts"), targetOh, path.sep),
+        ).toThrow(`${bin}: refusing to write outside target .oh`);
+      });
+    }
 
     expect(() =>
       assertDestInTarget(path.join(targetOh, "cli/x.ts"), targetOh, path.sep),

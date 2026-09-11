@@ -7,19 +7,20 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { rootPayloadDirs, shouldShip, shouldShipFromRoot, type Manifest } from "./manifest.js";
+import { activeBin } from "./product.js";
 
 export function assertDestInTarget(dest: string, targetOh: string, sep: string): void {
   if (dest === targetOh || dest.startsWith(targetOh + sep)) {
     return;
   }
-  throw new Error("oh: refusing to write outside target .oh: " + dest);
+  throw new Error(`${activeBin()}: refusing to write outside target .oh: ` + dest);
 }
 
 export function assertDestInRoot(dest: string, targetRoot: string, sep: string): void {
   if (dest === targetRoot || dest.startsWith(targetRoot + sep)) {
     return;
   }
-  throw new Error("oh: refusing to write outside target root: " + dest);
+  throw new Error(`${activeBin()}: refusing to write outside target root: ` + dest);
 }
 
 function walkFiles(root: string, dir: string, acc: string[]): void {

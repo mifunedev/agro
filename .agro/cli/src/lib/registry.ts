@@ -143,7 +143,7 @@ export function resolveSandboxRoot(opts: ResolveSandboxOptions = {}): string {
 
   if (names.length === 0) {
     throw new Error(
-      `no sandbox is registered in ${registryRoot()} — create one with \`oh sandbox install docker\``,
+      `no sandbox is registered in ${registryRoot()} — create one with \`${activeBin()} sandbox install docker\``,
     );
   }
   throw new Error(
