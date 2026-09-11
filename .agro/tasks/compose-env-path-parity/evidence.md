@@ -129,8 +129,22 @@ ran 149 probe(s)
 RUNNER_EXIT=0
 ```
 
-`.agro/evals/RESULTS.md:38` — `| compose-config-path-parity | A | ... | PASS |`.
+`.agro/evals/RESULTS.md` — `| compose-config-path-parity | A | ... | PASS |`.
 No green→red delta on any probe.
+
+**The gate caught a regression this change introduced, and it was fixed rather than
+waived.** The first CHANGELOG entry written for this task was 279 characters, and
+`changelog-entry-length` (cap 250) went `PASS → REGRESSION` with runner exit `1`:
+
+```
+REGRESSION: 1 changelog entry/entries exceed 250 characters:
+  [Unreleased] | - Compare the compose wrapper's `--env-file` to `.devcontain… | 279 chars
+```
+
+The entry was shortened to 222 characters, the probe returned `PASS`, and the suite
+re-run clean at `runnerExit: 0`. Recorded here because the green result above is the
+*second* run, not the first — an earlier `/eval` in this session reported exit 0 only
+because it ran before the CHANGELOG entry existed.
 
 Full vitest suite: `1432 passed | 1 failed | 14 skipped`. The single failure is
 `migrate-rehearsal.test.ts` (`agro ps` / `oh ps` resolve the migrated entry), confirmed

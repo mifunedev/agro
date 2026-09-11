@@ -80,3 +80,11 @@ three-file contract was gap-filled rather than re-planned; the owner edited
 directly under the operator exception above; shellcheck is not installed here and
 is carried as unverified. The BSD stat -Lf fallback is reasoned, never executed on
 this GNU-only host — also carried as unverified.
+
+2026-09-11 — execute phase, /eval gate (owner, session 01eecd5b)
+The eval floor caught a regression this task introduced. The first CHANGELOG entry
+was 279 chars; changelog-entry-length (cap 250) went PASS->REGRESSION, runner exit 1.
+Shortened to 222 chars, probe PASS, suite re-run clean: runner exit 0, 149 probes,
+no green->red delta. Recorded in evidence.md because the green result is the second
+run — the earlier exit-0 run predated the CHANGELOG entry and did not cover it.
+eval-result.json written, keyed to commit 62aaae31 (the head the suite ran against).

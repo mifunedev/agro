@@ -1,0 +1,7 @@
+{
+  "commit": "62aaae3119f9205d93bd3033410afde943579802",
+  "runnerExit": 0,
+  "ranAt": "2026-09-11T03:33:06Z",
+  "newRegressions": [],
+  "preExistingReds": ["curl-bash-safe-alternatives", "oh-config-surfaces", "skills-vendored"]
+}
