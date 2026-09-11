@@ -117,7 +117,6 @@ with `OH_EXECUTION_TARGET=local` or `OH_EXECUTION_TARGET=docker-compose`.
 | `agro harness <list\|install\|status>` | Install and inspect agent CLI harnesses. `install` is the only door: it probes the running sandbox, installs into the persistent home volume, and reports. It reads and writes no `agro.json` field, and needs no rebuild. |
 | `agro tool <list\|install\|status>` | Install and inspect sandbox tooling that is not an agent CLI. `herdr`, `cloudflared`, `agent-browser`, `microsandbox`, and `tailscale` are `installable`; `gh` and the Docker CLI are `baked-in` and cannot be installed. Nothing installs at boot. A large download is confirmed first, and `--yes` accepts it. |
 | `agro gateway <args…>` | Manage a messaging client session (Slack bridge for `pi`/`hermes`). |
-| `agro cloud <args…>` | Configure credentials and manage OpenHarness Cloud SSH keys and nodes. |
 | `agro --version` | Print the CLI version. |
 | `agro --help` | Show help; every subcommand also accepts `--help`. |
 
@@ -145,33 +144,6 @@ documentation instead of a path inside the equipped project.
 
 The CLI writes no scaffold. It creates no `AGENTS.md`, no provider configuration, and no
 `.gitignore` line beyond the `.env` line `agro secret set` adds inside a git checkout.
-
-## OpenHarness Cloud
-
-`agro cloud` is an Apache-2.0 licensed client that talks to a proprietary hosted service.
-Configure the Cloud API once, then use `agro cloud` instead of hand-writing authenticated HTTP
-requests:
-
-```bash
-agro cloud config  # securely prompts for the current provisioner key
-agro cloud ssh-keys create --name laptop --public-key-file ~/.ssh/openharness_node.pub
-agro cloud nodes create --name demo --ssh-key-id <ssh-key-id>
-agro cloud nodes watch <node-id>
-```
-
-Both settings are repository-local. `agro cloud config` writes the API base URL to `cloud.apiUrl`
-in the tracked `agro.json` and, until OpenHarness Cloud issues user API tokens, stores the
-user-provided provisioner key as `OH_CLOUD_PROVISION_KEY` in the gitignored root `.env`
-(mode `0600`). The key is never printed; `agro cloud config show` redacts it. Nothing is written
-under `$HOME`.
-
-`OH_CLOUD_API_URL` and `OH_CLOUD_PROVISION_KEY` (`OH_PROVISION_KEY` and `PROVISION_KEY` are
-still accepted) provide non-persistent overrides for automation. Because the settings live in
-the repository, `agro cloud` runs inside an OpenHarness-equipped repo; outside one, pass
-`--api-url` and `--provision-key`. On the first `agro cloud` run in a repo, a legacy
-`~/.config/openharness/cloud.json` is migrated into these two homes and then reported as no
-longer read — it is left on disk for you to delete. Run `agro cloud --help` for the complete
-SSH-key and node lifecycle command set.
 
 ## Documentation
 

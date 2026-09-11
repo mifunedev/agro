@@ -30,6 +30,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 - Name the invoked binary in the sandbox onboarding banner, so the shell banner an operator reads on every login no longer teaches the deprecated `oh` spelling. ([#1046](https://github.com/mifunedev/agro/issues/1046))
 - Name `agro` as the canonical CLI in prose, diagram labels, and issue templates, so `docs/intro.md` no longer introduces the lifecycle as the `oh` CLI; compatibility prose stays verbatim. ([#1046](https://github.com/mifunedev/agro/issues/1046))
 
+### Removed
+
+- Remove the `agro cloud` command and every surface it owned: the verb, the `cloud.apiUrl` field, the `OH_CLOUD_PROVISION_KEY` secret key, and the Cloud docs. ([#1050](https://github.com/mifunedev/agro/issues/1050))
+
 ## [0.10.0] - 2026-09-10
 
 ### Upgrade notes

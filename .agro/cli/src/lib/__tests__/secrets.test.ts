@@ -36,7 +36,6 @@ describe("allow-list", () => {
       "PI_SLACK_BOT_TOKEN",
       "LANGFUSE_PUBLIC_KEY",
       "LANGFUSE_SECRET_KEY",
-      "OH_CLOUD_PROVISION_KEY",
     ]);
   });
 
@@ -87,8 +86,8 @@ describe("setSecret", () => {
 describe("readSecret", () => {
   it("round-trips a value", () => {
     const root = makeRoot();
-    setSecret(root, "OH_CLOUD_PROVISION_KEY", "pk-123");
-    expect(readSecret(root, "OH_CLOUD_PROVISION_KEY")).toBe("pk-123");
+    setSecret(root, "LANGFUSE_SECRET_KEY", "pk-123");
+    expect(readSecret(root, "LANGFUSE_SECRET_KEY")).toBe("pk-123");
   });
 
   it("returns undefined when the file or the key is absent", () => {

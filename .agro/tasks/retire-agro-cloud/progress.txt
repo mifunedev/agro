@@ -1,1 +1,2 @@
 task: retire agro cloud — scaffolded issue #1050, branch task/1050-retire-agro-cloud
+task: retire agro cloud — implemented, verified, PR pending
