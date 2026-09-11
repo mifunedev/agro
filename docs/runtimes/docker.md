@@ -9,7 +9,7 @@ Linux container: a **shared host kernel**, isolated by namespaces and cgroups.
 
 ```bash
 agro sandbox install docker   # create a sandbox on this runtime, from any directory
-agro sandbox list             # name, runtime, status, repo
+agro sandbox list             # name, runtime, status, checkout
 ```
 
 There is nothing to install for the runtime itself — Docker is a host

@@ -17,7 +17,7 @@ that.
 
 ```bash
 agro sandbox install docker    # create a sandbox on the only provisionable runtime
-agro sandbox list              # every sandbox: name, runtime, status, repo
+agro sandbox list              # every sandbox: name, runtime, status, checkout
 agro sandbox --help            # the catalog: which runtimes exist, and their state
 ```
 
