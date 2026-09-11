@@ -173,7 +173,7 @@ stays outside the `.agro/` control plane. The consolidated layout is guarded by 
 `oh-devcontainer-restructure` eval probe.
 
 The `oh` CLI bundles these compose files as text and re-materialises them into a
-sandbox's registry entry (`${OH_HOME:-~/.oh}/sandboxes/<name>/`) on every
+sandbox's registry entry (`${AGRO_HOME:-~/.agro}/sandboxes/<name>/`) on every
 lifecycle call, so an installed binary needs no checkout to boot a sandbox. The
 copies in an entry are generated; this directory is their source of truth.
 
