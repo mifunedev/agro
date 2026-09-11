@@ -72,9 +72,9 @@ flowchart LR
   REPO["checkout, alias repo / AGRO_REPO_DIR, OH_REPO_DIR fallback"] -. bind .-> COMPOSE
   DC --> COMPOSE[compose environment:]
   COMPOSE --> EP1[entrypoint.sh - compat.sh, pre-control-plane]
-  OH -->|everything else| CLI[oh CLI in the container]
+  OH -->|everything else| CLI[agro CLI in the container]
   CLI --> EP2[entrypoint.sh oh_config]
-  OP[operator] -->|oh harness install / oh tool install| CLI
+  OP[operator] -->|agro harness install / agro tool install| CLI
   CLI --> CAT[harness + tool catalogs]
   CAT --> HOME[/home/sandbox/.local in the home volume/]
   PROBE[compose-env-boundary.sh] -.enforces.-> COMPOSE
