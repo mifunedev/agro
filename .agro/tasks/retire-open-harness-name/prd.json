@@ -103,8 +103,8 @@
         "Evidence captured in evidence.md under D-US-006"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "PR #1060. CHANGELOG entry 220 characters under [Unreleased]. Follow-up issue #1061 tracks the external and deferred classes and names each file. Title FROM task/1058-retire-open-harness-name TO development. Body carries Closes #1058. All seven CI checks pass on c0240ccc, including the vitest job, so the locally observed flake did not reproduce."
     }
   ]
 }

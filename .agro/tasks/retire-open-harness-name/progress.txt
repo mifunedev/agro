@@ -36,3 +36,11 @@ this task.
 
 US-001 through US-005 pass. US-006 open: push, CI, undraft.
 
+## 2026-09-12 — gates closed
+
+CI on c0240ccc: seven checks pass, including Lint, Typecheck, Build & Test.
+The vitest flake observed locally did not reproduce in CI.
+
+Follow-up #1061 tracks the external and deferred classes.
+Every story passes. Undrafting.
+
