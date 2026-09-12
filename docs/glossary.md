@@ -1,6 +1,6 @@
 # Glossary
 
-A canonical, **descriptive** glossary of Open Harness's core vocabulary — each
+A canonical, **descriptive** glossary of AGRO's core vocabulary — each
 term defined as this repo actually uses it today, with a pointer to a canonical
 source file or skill. This is a plain reference page, not a standards document:
 there are no normative requirements here, only working definitions.
@@ -59,8 +59,9 @@ These names describe separate layers, not interchangeable jobs:
 
 - **harness** — The whole portable setup: one git repo that boots one Docker
   sandbox, wraps your project inside it, and versions the agent's identity,
-  skills, crons, and memory. "Open Harness" names both this project and any
-  single repo-per-sandbox instance of it.
+  skills, crons, and memory. "AGRO" names both this project and any
+  single repo-per-sandbox instance of it. "Open Harness" is the former name of
+  this project and names nothing current.
   Source: [`intro.md`](intro.md).
 
 - **knowledge** — Durable repository knowledge kept under `.agro/knowledge/`: a

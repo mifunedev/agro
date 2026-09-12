@@ -2,7 +2,7 @@
 
 This page shows the smallest useful shape a human-readable `.agro/harness.yml`
 file could take if a project wants a local manifest. It is **descriptive, not
-normative**: Open Harness does not require this file, does not validate this
+normative**: AGRO does not require this file, does not validate this
 shape, and does not treat it as a registry-backed schema or conformance target.
 
 The real runtime configuration surfaces today are the tracked
@@ -16,7 +16,7 @@ control-plane surfaces described in the [`.agro/` directory layout](oh-directory
 ## Minimal example
 
 ```yaml
-# .agro/harness.yml — example only; not required or read by Open Harness.
+# .agro/harness.yml — example only; not required or read by AGRO.
 name: openharness
 version: 1
 

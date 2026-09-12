@@ -5,7 +5,7 @@ title: Langfuse
 # Langfuse
 
 [Langfuse](https://langfuse.com) is optional, external observability for **Pi**
-and **Claude Code** sessions. Open Harness does not bundle or operate Langfuse:
+and **Claude Code** sessions. AGRO does not bundle or operate Langfuse:
 deploy it separately (Langfuse Cloud or your own installation) and follow the
 [official Docker Compose deployment guide](https://langfuse.com/self-hosting/deployment/docker-compose)
 if you self-host. Secure that external service with appropriate access controls
@@ -19,7 +19,7 @@ privacy sections for the CLI you use before enabling either integration.
 ## Pi
 
 [`pi-langfuse` v1.5.9](https://www.npmjs.com/package/pi-langfuse/v/1.5.9) is a
-Pi package. While the upstream shutdown fix is under review, Open Harness uses
+Pi package. While the upstream shutdown fix is under review, AGRO uses
 the maintained fork at commit
 [`51a59c854859bbb08a43baad98f0b9eb4a94588c`](https://github.com/ryaneggz/pi-langfuse/commit/51a59c854859bbb08a43baad98f0b9eb4a94588c),
 which is the source for upstream PR
@@ -49,14 +49,14 @@ This fork pin is temporary and intentionally immutable. If upstream merges and
 publishes #14, migrate the installer to that reviewed upstream release in a
 separate change; do not follow a moving branch automatically.
 
-This is deliberately **not** an Open Harness default package. It instruments Pi
+This is deliberately **not** an AGRO default package. It instruments Pi
 sessions only; it does not instrument standalone Claude Code, Codex CLI, or
 Gemini CLI sessions.
 
 ### Local self-hosted setup walkthrough
 
 The following procedure mirrors a working local installation: clone Langfuse as
-an independent project under Open Harness's `projects/` namespace,
+an independent project under AGRO's `projects/` namespace,
 start its Compose stack, attach the existing sandbox to Langfuse's Docker
 network, and configure Pi against the service hostname. The same service can be
 used by Claude Code after completing steps 1–5; see [Claude Code](#claude-code)
@@ -66,7 +66,7 @@ Commands run from the normal host terminal unless marked **SANDBOX** or **PI**.
 
 #### 1. Clone Langfuse under `projects/`
 
-Start from the Open Harness checkout:
+Start from the AGRO checkout:
 
 ```bash
 cd /path/to/openharness
@@ -187,7 +187,7 @@ Langfuse URL: http://langfuse-web:3000
 
 Do not use `localhost` here: inside the sandbox it refers to the sandbox, not
 the Langfuse container. The saved configuration lives at
-`~/.pi/agent/pi-langfuse/config.json` on Open Harness's persistent `pi-auth`
+`~/.pi/agent/pi-langfuse/config.json` on AGRO's persistent `pi-auth`
 volume.
 
 #### 7. Verify Pi tracing and permissions
@@ -377,12 +377,12 @@ your self-hosted URL. Other optional fields are `LANGFUSE_USER_ID`,
 `CC_LANGFUSE_DEBUG` (default `false`), `CC_LANGFUSE_MAX_CHARS` (default
 `20000`), `CC_LANGFUSE_SKILL_TAGS` (default `true`), and
 `CC_LANGFUSE_CAPTURE_SKILL_CONTENT` (default `false`). The plugin needs `uv`
-(already installed in Open Harness), or its Python 3.10+ fallback with
+(already installed in AGRO), or its Python 3.10+ fallback with
 `langfuse>=4.0,<5`. Do not add a separate `pip install` when `uv` is available.
 
 The plugin installs and is enabled at **user scope**. Configuration is stored by
 Claude's plugin configuration and OS-keychain mechanisms according to upstream.
-Open Harness persists `~/.claude` in the `/home/sandbox` mount, but OS-keychain
+AGRO persists `~/.claude` in the `/home/sandbox` mount, but OS-keychain
 availability and persistence are platform-dependent; verify the plugin remains
 configured after a sandbox rebuild. You can enter the same Langfuse key pair in
 Pi and Claude Code, but their saved configurations are independent. Do not put
@@ -402,7 +402,7 @@ Set `LANGFUSE_BASE_URL` according to where the Claude Code process runs:
 
 `localhost` from the sandbox is the sandbox itself. The host-gateway mapping
 makes `host.docker.internal` the host route. The `langfuse-web` name works only
-after explicit shared-network attachment; Open Harness does not modify Compose
+after explicit shared-network attachment; AGRO does not modify Compose
 or create that connection automatically. For a remote or Cloud endpoint, verify
 DNS, TLS, routing, and firewall access from the process running Claude Code.
 

@@ -1,6 +1,6 @@
 # Security considerations
 
-Open Harness is a **public** repo that runs coding agents with broad
+AGRO is a **public** repo that runs coding agents with broad
 autonomy. This page documents the security boundaries the harness
 **already enforces today**, each tied to the real file/mechanism in the
 tree, so operators can trust and audit them rather than take them on

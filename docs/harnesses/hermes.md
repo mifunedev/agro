@@ -23,7 +23,7 @@ upstream documentation below for canonical facts about Hermes.
   Docker, SSH, Singularity, Modal).
 - Messaging gateway for bridging the same in-sandbox agent into
   Telegram, Discord, Slack, WhatsApp, Signal, Email, and other
-  surfaces — though Open Harness recommends running Hermes in CLI mode
+  surfaces — though AGRO recommends running Hermes in CLI mode
   unless you have a specific reason to enable a bridge.
 - MIT-licensed. Run `hermes --version` to identify the installed upstream revision.
 
@@ -49,7 +49,7 @@ hermes --version
 
 ### What the door runs
 
-Open Harness runs the official installer as the `sandbox` user with setup and
+AGRO runs the official installer as the `sandbox` user with setup and
 browser installation disabled, directing it into the home mount:
 
 ```bash
@@ -65,7 +65,7 @@ curl -fsSL -o hermes-install.sh https://hermes-agent.nousresearch.com/install.sh
 less hermes-install.sh
 ```
 
-If you already use [`vet`](https://github.com/vet-run/vet), `vet https://hermes-agent.nousresearch.com/install.sh --skip-setup --skip-browser` gives the installer a fetch, review, and approve gate. `vet` is optional and is not required by Open Harness.
+If you already use [`vet`](https://github.com/vet-run/vet), `vet https://hermes-agent.nousresearch.com/install.sh --skip-setup --skip-browser` gives the installer a fetch, review, and approve gate. `vet` is optional and is not required by AGRO.
 
 That keeps `agro sandbox install docker` non-interactive. User setup remains explicit
 inside the running sandbox.
@@ -191,7 +191,7 @@ tail -f /tmp/client-slack-hermes.log     # or just tail the log (no attach neede
 
 Hermes ships a local web UI (`hermes dashboard`) that provides config and
 `.env` editing, session browsing, cron job management, and an embedded TUI.
-Open Harness **disables the dashboard by default**. Enable the dashboard explicitly per sandbox.
+AGRO **disables the dashboard by default**. Enable the dashboard explicitly per sandbox.
 
 ### Enabling
 
@@ -239,7 +239,7 @@ tmux new-session -d -s app-hermes-dashboard \
 ### Security
 
 The dashboard reads and writes `.env` secrets and `config.yaml`. The listener binds
-to **container loopback** only. Open Harness publishes no host port. Use an explicit
+to **container loopback** only. AGRO publishes no host port. Use an explicit
 tunnel for remote access; a host browser cannot connect directly.
 
 The default loopback mode requires no additional authentication. Treat the dashboard

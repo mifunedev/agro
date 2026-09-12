@@ -4,7 +4,7 @@ title: "GitHub"
 
 # GitHub
 
-Open Harness uses the GitHub CLI (`gh`) for authentication inside the sandbox. This page
+AGRO uses the GitHub CLI (`gh`) for authentication inside the sandbox. This page
 is the command-level reference: protocol choice, SSH-key upload, verification, recovery,
 and pull-request commands. The onboarding order itself — the five checks and the two
 optional agent prompts — lives in

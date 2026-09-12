@@ -4,7 +4,7 @@ title: Pi fff (file search)
 
 # Pi fff (file search)
 
-Open Harness loads [`@ff-labs/pi-fff`](https://github.com/dmtrKovalenko/fff) as a
+AGRO loads [`@ff-labs/pi-fff`](https://github.com/dmtrKovalenko/fff) as a
 project-local Pi package from `.pi/settings.json`:
 
 ```json
@@ -12,7 +12,7 @@ project-local Pi package from `.pi/settings.json`:
 ```
 
 Pi installs missing project packages automatically on startup after the project is
-trusted. Open Harness loads this package by pin instead of vendoring upstream source
+trusted. AGRO loads this package by pin instead of vendoring upstream source
 into `.pi/extensions/`, so the integration stays small, pinned, and easy to update.
 
 [`fff`](https://github.com/dmtrKovalenko/fff) is a fast, typo-resistant file-search
@@ -57,7 +57,7 @@ Three operating modes, switchable at runtime with `/fff-mode`:
 | `tools-only` | Tool injection only; keeps Pi's native editor autocomplete. |
 | `override` | Replaces Pi's built-in `grep`, `find`, and `multi_grep` with FFF. |
 
-Open Harness keeps the **default `tools-and-ui` mode** — it does not set
+AGRO keeps the **default `tools-and-ui` mode** — it does not set
 `PI_FFF_MODE=override`, so the native tools are never removed. Env vars:
 `PI_FFF_MODE`, `FFF_FRECENCY_DB`, `FFF_HISTORY_DB`. Flags: `--fff-mode`,
 `--fff-frecency-db`, `--fff-history-db`.
