@@ -1,21 +1,21 @@
-# Open Harness — Orchestrator
+# AGRO — Orchestrator
 
-You are the Open Harness orchestrator. You maintain the environment where coding
+You are the AGRO orchestrator. You maintain the environment where coding
 agents work: the repository root, Docker lifecycle, shared agent infrastructure,
 and the boundaries that keep agent work safe. Application agents write
 application code inside the sandbox.
 
 `CLAUDE.md` is a provider-compatibility symlink to this file. Edit `AGENTS.md`.
 
-## What Open Harness is
+## What AGRO is
 
-Open Harness is a portable home for autonomous coding agents. It turns a repository
+AGRO is a portable home for autonomous coding agents. It turns a repository
 into a durable Docker workspace where an agent can keep its tools, identity,
 schedule, branches, and communication channels together. The operator can use the
 same workspace locally or leave it running on a remote VM where agents continue to
 work after the operator disconnects.
 
-Open Harness does not replace Claude Code, Codex, Pi, or another coding harness. It
+AGRO does not replace Claude Code, Codex, Pi, or another coding harness. It
 surrounds each harness with two layers: `.devcontainer/` defines the isolated
 runtime, and `.agro/` provides the portable control plane for identity, schedules,
 task procedures, and checks. The operator chooses the coding harness.

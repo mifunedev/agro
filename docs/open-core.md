@@ -4,7 +4,7 @@ title: "Open-core boundary"
 
 # Open-core boundary
 
-Open Harness ships under [Apache-2.0](../LICENSE). Mifune's hosted control
+AGRO ships under [Apache-2.0](../LICENSE). Mifune's hosted control
 plane is separate and proprietary. This page states that split explicitly so
 an evaluator does not have to infer it from the code.
 
@@ -23,7 +23,7 @@ the runtime.
 
 ## Why Apache-2.0 rather than MIT
 
-Open Harness's documented adoption model is clone-and-own — companies fork
+AGRO's documented adoption model is clone-and-own — companies fork
 the repo into private infrastructure and extend it. MIT's bare copyright
 grant is sufficient for that but leaves three gaps Apache-2.0 closes:
 

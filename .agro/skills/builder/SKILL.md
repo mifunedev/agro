@@ -57,10 +57,10 @@ steps.
 - Find and read applicable `AGENTS.md` and `CLAUDE.md` files from repository root
   through the target directory. More local instructions win; in one directory,
   `AGENTS.md` is canonical.
-- Identify the source-of-truth artifact directory. In Open Harness and equipped
+- Identify the source-of-truth artifact directory. In AGRO and equipped
   projects, edit `.agro/skills/`; provider directories such as `.claude/`,
   `.codex/`, and `.pi/` are generated or symlinked exposure surfaces.
-- Outside an Open Harness layout, follow the target project's documented canonical
+- Outside an AGRO layout, follow the target project's documented canonical
   path rather than creating `.agro/` speculatively.
 - Inspect two or three nearby artifacts of the same type. Reuse their naming,
   frontmatter, structure, tone, and validation conventions.

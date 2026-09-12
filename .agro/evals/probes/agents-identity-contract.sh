@@ -10,7 +10,7 @@ AGENTS="$ROOT/AGENTS.md"
 [[ -f "$AGENTS" ]] || { echo "REGRESSION: missing AGENTS.md" >&2; exit 1; }
 
 missing=()
-grep -qF '## What Open Harness is' "$AGENTS" || missing+=("product identity section")
+grep -qF '## What AGRO is' "$AGENTS" || missing+=("product identity section")
 grep -qF '## A small glossary' "$AGENTS" || missing+=("glossary section")
 grep -qF '**coding harness** means' "$AGENTS" || missing+=("coding harness term")
 grep -qF '**agent session** means' "$AGENTS" || missing+=("agent session term")

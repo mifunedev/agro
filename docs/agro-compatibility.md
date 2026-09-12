@@ -1,7 +1,8 @@
 # AGRO compatibility contract
 
-Open Harness is migrating to AGRO (Agent Governance Runtime Orchestrator) under
-epic [#939](https://github.com/mifunedev/agro/issues/939). This page is the
+This project is migrating from the former Open Harness name to AGRO (Agent
+Governance Runtime Orchestrator) under epic
+[#939](https://github.com/mifunedev/agro/issues/939). This page is the
 compatibility contract: the Phase 0 resolver
 ([#940](https://github.com/mifunedev/agro/issues/940)) that lets the
 runtime understand both naming generations, the Phase 1 entry points and

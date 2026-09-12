@@ -33,17 +33,17 @@ This is Pi-specific. The Codex CLI has its own headless path (`codex login --dev
 
 ## Default packages
 
-Open Harness loads these project-local Pi packages from `.pi/settings.json`:
+AGRO loads these project-local Pi packages from `.pi/settings.json`:
 
 - [`@tintinweb/pi-subagents`](https://pi.dev/packages/@tintinweb/pi-subagents) — Claude Code-style sub-agent commands for Pi, including FleetView (enabled by default). With an empty prompt, press `↓` (or `←`) to focus the agent list, then `↑`/`↓` to select and `Enter` to open an agent; toggle it via `/agents` → Settings → Fleet view.
 - [`@tintinweb/pi-tasks`](https://github.com/tintinweb/pi-tasks) — task tracking for Pi with `TaskCreate`, `TaskList`, `TaskGet`, `TaskUpdate`, `TaskOutput`, `TaskStop`, and `TaskExecute` tools; a `/tasks` menu; and a persistent task widget. `TaskExecute` integrates with `@tintinweb/pi-subagents` so tracked tasks can run through configured subagents.
 - [`@narumitw/pi-goal`](https://pi.dev/packages/@narumitw/pi-goal?name=goal) — `/goal <task>` mode that keeps Pi working until it verifies completion and calls the `goal_complete` tool. Use `/goal pause`, `/goal resume`, or `/goal clear` to manage the active goal.
-- [`@narumitw/pi-codex-usage`](https://github.com/narumiruna/pi-extensions/tree/main/extensions/pi-codex-usage) — `/codex-status` plus a compact `openai-codex` statusline for 5-hour session usage and weekly usage. Open Harness pins `0.6.2`, which includes the upstream stale-`ExtensionContext` statusline timer fix that prevents crashes after Pi replaces an extension context.
+- [`@narumitw/pi-codex-usage`](https://github.com/narumiruna/pi-extensions/tree/main/extensions/pi-codex-usage) — `/codex-status` plus a compact `openai-codex` statusline for 5-hour session usage and weekly usage. AGRO pins `0.6.2`, which includes the upstream stale-`ExtensionContext` statusline timer fix that prevents crashes after Pi replaces an extension context.
 - [`@tifan/pi-recap`](https://github.com/tifandotme/pi-extensions/tree/master/packages/pi-recap) — one-line session recaps for re-entry. Use `/recap` for a fresh goal-first recap, `/recap status` to inspect freshness/model state, and `/recap config` to choose the recap model. The package also generates one idle recap after five minutes and refreshes stale/missing recaps on resume.
 - [`@trevonistrevon/pi-loop`](https://pi.dev/packages/@trevonistrevon/pi-loop?name=monitor) — Monitor and loop tools for background command monitoring and scheduled re-wakes. Use `MonitorCreate`, `MonitorList`, and `MonitorStop` for long-running commands; use `/loop` or `LoopCreate` for cron/event-triggered follow-up prompts.
 - [`@guwidoe/pi-prompt-suggester`](https://github.com/guwidoe/pi-prompt-suggester) — intent-aware next-prompt suggestions after assistant completions. Suggestions can appear as ghost text in the editor, with `/suggesterSettings` for interactive configuration and `/suggester status` / `/suggester reseed` for inspection and manual reseeding.
 
-Pi installs missing project packages automatically on startup after the project is trusted. Open Harness also auto-loads project-local extensions from `.pi/extensions/`.
+Pi installs missing project packages automatically on startup after the project is trusted. AGRO also auto-loads project-local extensions from `.pi/extensions/`.
 
 ## Optional Langfuse observability
 
@@ -54,13 +54,13 @@ and configure its external Langfuse deployment before installing it.
 
 ### Codex stale-response recovery
 
-The installed `@earendil-works/pi-ai` Codex Responses provider can reuse WebSocket cached continuation state by sending `previous_response_id`. If the upstream Codex backend forgets that response id, it returns `previous_response_not_found`; Pi clears the stale continuation but the failed user turn would otherwise be lost. Open Harness keeps a small auto-loaded `.pi/extensions/codex-stale-response-retry.ts` extension that re-injects non-Slack failed turns once via `sendUserMessage(..., { deliverAs: "followUp" })`, causing the next request to start from fresh/full context. Slack-prefixed turns remain owned by the dedicated `.pi/bridge-recovery/` extension that is co-loaded with `pi-messenger-bridge`.
+The installed `@earendil-works/pi-ai` Codex Responses provider can reuse WebSocket cached continuation state by sending `previous_response_id`. If the upstream Codex backend forgets that response id, it returns `previous_response_not_found`; Pi clears the stale continuation but the failed user turn would otherwise be lost. AGRO keeps a small auto-loaded `.pi/extensions/codex-stale-response-retry.ts` extension that re-injects non-Slack failed turns once via `sendUserMessage(..., { deliverAs: "followUp" })`, causing the next request to start from fresh/full context. Slack-prefixed turns remain owned by the dedicated `.pi/bridge-recovery/` extension that is co-loaded with `pi-messenger-bridge`.
 
 Outside this project, try the packages manually with `pi -e npm:@narumitw/pi-goal`, `pi -e npm:@narumitw/pi-codex-usage@0.6.2`, `pi -e npm:@tifan/pi-recap`, `pi -e npm:@trevonistrevon/pi-loop`, or `pi -e npm:@guwidoe/pi-prompt-suggester@0.3.10`.
 
 ## Prompt suggestions
 
-Open Harness enables `@guwidoe/pi-prompt-suggester` by default for interactive Pi sessions. The package watches completed turns, builds a lightweight project intent seed, and proposes the next likely user prompt.
+AGRO enables `@guwidoe/pi-prompt-suggester` by default for interactive Pi sessions. The package watches completed turns, builds a lightweight project intent seed, and proposes the next likely user prompt.
 
 ```text
 /suggesterSettings
@@ -94,7 +94,7 @@ LoopList
 LoopDelete id="1"
 ```
 
-The package keeps a compact status line when loops, monitors, or native fallback tasks are active. Open Harness leaves `PI_LOOP_SCOPE` unset, which means `session` scope: loop state is stored under `.pi/loops/loops-<sessionId>.json` and stays isolated across concurrent sessions and worktree agents. `.pi/loops/` is gitignored. Set `PI_LOOP_SCOPE=memory` for disposable no-disk state, `PI_LOOP_SCOPE=project` only when intentionally sharing loops across sessions, or `PI_LOOP=off` to disable the package store.
+The package keeps a compact status line when loops, monitors, or native fallback tasks are active. AGRO leaves `PI_LOOP_SCOPE` unset, which means `session` scope: loop state is stored under `.pi/loops/loops-<sessionId>.json` and stays isolated across concurrent sessions and worktree agents. `.pi/loops/` is gitignored. Set `PI_LOOP_SCOPE=memory` for disposable no-disk state, `PI_LOOP_SCOPE=project` only when intentionally sharing loops across sessions, or `PI_LOOP=off` to disable the package store.
 
 ## Recap
 
@@ -113,7 +113,7 @@ Recap model selection is user-level state, not repository state. `/recap config`
 
 ## Codex usage status
 
-Use `/codex-status` to show ChatGPT Codex subscription usage without leaving Pi. Open Harness enables `@narumitw/pi-codex-usage@0.6.2` by default; this fixed pin includes the upstream stale-`ExtensionContext` statusline timer cleanup, preventing timer callbacks from crashing after Pi replaces the extension context:
+Use `/codex-status` to show ChatGPT Codex subscription usage without leaving Pi. AGRO enables `@narumitw/pi-codex-usage@0.6.2` by default; this fixed pin includes the upstream stale-`ExtensionContext` statusline timer cleanup, preventing timer callbacks from crashing after Pi replaces the extension context:
 
 ```text
 /codex-status
@@ -131,11 +131,11 @@ Auth is layered: the extension uses Pi's own `openai-codex` provider auth first,
 
 The default task runtime state lives under `.pi/tasks/`, which is gitignored. Leave the default for per-checkout task state; set `PI_TASKS=off` to disable task tracking; set `PI_TASKS=<named-list>` to select a named task list; or pass an explicit task-list path when you intentionally want a shared list outside the gitignored default.
 
-`pi-loop` detects `@tintinweb/pi-tasks` over Pi's event bus. Because Open Harness loads `pi-tasks` by default, `pi-loop` delegates task management to that package; its native fallback `TaskCreate`/`TaskList`/`TaskUpdate`/`TaskDelete` tools and `/tasks` command only register in projects where `pi-tasks` is absent.
+`pi-loop` detects `@tintinweb/pi-tasks` over Pi's event bus. Because AGRO loads `pi-tasks` by default, `pi-loop` delegates task management to that package; its native fallback `TaskCreate`/`TaskList`/`TaskUpdate`/`TaskDelete` tools and `/tasks` command only register in projects where `pi-tasks` is absent.
 
 ## Dynamic workflow retirement
 
-Open Harness no longer pins a dynamic workflow package, so a new Pi session registers no `workflow` tool. Use `/delegate` for bounded delegation over the Pi `Agent` tools.
+AGRO no longer pins a dynamic workflow package, so a new Pi session registers no `workflow` tool. Use `/delegate` for bounded delegation over the Pi `Agent` tools.
 
 A Pi session that is already running keeps the tool until you reload or restart it. A global installation or an explicit `pi -e` argument also registers the tool, so removing the project pin does not remove every registration source.
 

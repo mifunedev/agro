@@ -4,7 +4,7 @@ title: "Muse Code"
 
 # Muse Code
 
-Muse Code is Meta's terminal coding agent. Open Harness installs the native `muse` CLI through Meta's official installer.
+Muse Code is Meta's terminal coding agent. AGRO installs the native `muse` CLI through Meta's official installer.
 
 ## Install and verify
 
@@ -27,7 +27,7 @@ set -o pipefail
 curl -fsSL https://dev.meta.ai/install.sh | MUSE_INSTALL_DIR="$HOME/.local/bin" MUSE_NO_MODIFY_PATH=1 MUSE_LOGIN=0 bash
 ```
 
-`MUSE_NO_MODIFY_PATH=1` prevents upstream shell-profile edits. Open Harness already includes `~/.local/bin` on `PATH`.
+`MUSE_NO_MODIFY_PATH=1` prevents upstream shell-profile edits. AGRO already includes `~/.local/bin` on `PATH`.
 `MUSE_LOGIN=0` prevents interactive authentication during the download. Authentication for model use is a separate step.
 The installer downloads a launcher and a versioned native binary beside it. Keep both files and the launcher's metadata together.
 Upstream selects the current stable release and checks the binary's size and SHA-256. The launcher checks for updates during later use.
@@ -45,7 +45,7 @@ The verified CLI opens a browser code flow for a Meta account. Starting `muse` a
 Use `/login` inside Muse to reopen authentication choices. Account eligibility and usage billing follow Meta's current service rules.
 
 For automation, inject `META_API_KEY` into the environment of the process that launches Muse.
-Open Harness accepts this key through its existing hidden secret prompt:
+AGRO accepts this key through its existing hidden secret prompt:
 
 ```bash
 agro secret set META_API_KEY
@@ -67,8 +67,8 @@ Run `muse logout` to remove stored Muse credentials. Logout preserves a key stor
 
 ## Context and skills
 
-Muse reads the existing repository `AGENTS.md`. Do not run `muse init` over an Open Harness checkout.
-Open Harness owns project instructions and the canonical `.agro/skills` pack.
+Muse reads the existing repository `AGENTS.md`. Do not run `muse init` over an AGRO checkout.
+AGRO owns project instructions and the canonical `.agro/skills` pack.
 The standard provider surface is:
 
 ```text
@@ -111,8 +111,8 @@ Remove only Muse-owned files from the shared bin directory. Preserve `~/.config/
 ## Verified upstream and limitations
 
 Verification on 2026-09-04 installed `Muse Code 1.0.3 (1.0.3-R2198.1)` on Linux x86_64.
-The Bash launcher supports Linux and macOS on x86_64 and arm64. Open Harness uses the Linux sandbox path.
-Upstream authentication, skill support, and service availability can change independently of Open Harness.
+The Bash launcher supports Linux and macOS on x86_64 and arm64. AGRO uses the Linux sandbox path.
+Upstream authentication, skill support, and service availability can change independently of AGRO.
 Version checks and skill inspection do not prove access to a paid model or an authenticated session.
 
 - [Official installer](https://dev.meta.ai/install.sh)

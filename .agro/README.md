@@ -60,7 +60,7 @@ the bare root paths anymore.
 
 The cron definitions went the other way. They briefly lived at `.agro/crons/` and
 moved back **out** to the repo root as `crons/`, because a schedule authored per
-deployment is operator content, not machinery Open Harness ships. The runtime
+deployment is operator content, not machinery AGRO ships. The runtime
 always reads `crons/`, and `oh update` delivers them through the manifest's
 `rootInclude` list rather than the `.agro/` payload.
 

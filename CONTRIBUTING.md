@@ -1,4 +1,4 @@
-# Contributing to Open Harness
+# Contributing to AGRO
 
 This file states the legal terms for contributing. For the day-to-day
 workflow — branch naming, commit format, CHANGELOG entries, PR titles, and

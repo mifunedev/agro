@@ -292,7 +292,7 @@ if oh_config_truthy '.access.ssh' && [ -x /usr/sbin/sshd ]; then
 
     mkdir -p /etc/ssh/sshd_config.d
     cat > /etc/ssh/sshd_config.d/openharness.conf <<EOF
-# Managed by Open Harness entrypoint — regenerated every boot.
+# Managed by AGRO entrypoint — regenerated every boot.
 PermitRootLogin no
 PubkeyAuthentication yes
 PasswordAuthentication ${_pw_auth}

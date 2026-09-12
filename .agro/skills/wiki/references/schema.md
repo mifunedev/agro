@@ -1,6 +1,6 @@
 # Knowledge — Schema and Authoring Rules
 
-The Open Harness knowledge base lives at `.agro/knowledge/`: a personal-scale,
+The AGRO knowledge base lives at `.agro/knowledge/`: a personal-scale,
 LLM-readable cache of what this repository has been understood to be. Pages hold
 **facts and synthesis** about recurring topics and are loaded whole into context on
 demand (`/wiki query`) rather than retrieved through vector search. The target

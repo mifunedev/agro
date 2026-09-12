@@ -1,7 +1,7 @@
 # `projects/`
 
 Durable clones of repositories that are **not** harnesses — collateral projects,
-extracted packages, app repos, and anything whose layout is not the Open Harness
+extracted packages, app repos, and anything whose layout is not the AGRO
 shape. They live next to the harness for convenience; they are not part of it.
 
 Each clone is its own git boundary, with its own remote, branches, CI, and history.

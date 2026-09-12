@@ -1,6 +1,6 @@
 # Herdr
 
-[Herdr](https://herdr.dev/) is Open Harness's primary interactive workspace. It is not in the image. It enters the sandbox only through `agro tool install herdr`.
+[Herdr](https://herdr.dev/) is AGRO's primary interactive workspace. It is not in the image. It enters the sandbox only through `agro tool install herdr`.
 
 ## Start here
 
@@ -39,7 +39,7 @@ herdr integration status
 
 - Use Herdr workspaces, tabs, and panes for interactive setup, agents, tests, servers, and reviews.
 - Detach with `Ctrl-b q`; run `herdr` again to reattach while the container keeps running.
-- Open Harness automation worktrees stay under `.worktrees`; open those paths in Herdr. Herdr-created worktrees default to `~/.herdr/worktrees`.
+- AGRO automation worktrees stay under `.worktrees`; open those paths in Herdr. Herdr-created worktrees default to `~/.herdr/worktrees`.
 - The Slack gateway, tunnels, and detached cron fires remain in their existing tmux sessions; the cron runtime itself is the systemd service `openharness-cron.service`. Do not run Herdr inside those managed sessions.
 - A raw shell or direct agent command remains a recovery path if Herdr is unavailable.
 

@@ -7,8 +7,8 @@ agents, background workers, heartbeats — MUST run inside a named tmux
 session. This is the single mechanism for inspection, attach/detach,
 restart, and log capture across all internal apps.
 
-The one boundary: **systemd owns OS/container process supervision, Open
-Harness owns scheduling semantics.** systemd is PID 1 in the sandbox and
+The one boundary: **systemd owns OS/container process supervision, AGRO
+owns scheduling semantics.** systemd is PID 1 in the sandbox and
 supervises `openharness-bootstrap.service` and `openharness-cron.service`.
 Those two are not tmux sessions and must not be wrapped in one. Everything
 above the container-init layer stays under the tmux rule.

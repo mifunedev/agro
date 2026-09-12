@@ -28,7 +28,7 @@ reader (`jq '.artifact_contract'`) finds the whole contract in one place:
 ```jsonc
 {
   "schemaVersion": 1,
-  "project": "Open Harness",
+  "project": "AGRO",
   "branchName": "task/<slug>",
   "artifact_contract": { /* the block documented below */ },
   "userStories": [ /* ... */ ]
