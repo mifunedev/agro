@@ -359,7 +359,7 @@ Apache-2.0 covers the runtime, the `agro` CLI, container definitions, and the ha
 
 ## Trademarks
 
-Apache-2.0 §6 grants no permission to use the Mifune or Open Harness names, logos, or trade dress (reasonable, customary use in describing the origin of the work is fine). Fork it, modify it, sell it — just don't present your fork as Mifune.
+Apache-2.0 §6 grants no permission to use the Mifune or AGRO names, logos, or trade dress (reasonable, customary use in describing the origin of the work is fine). Fork it, modify it, sell it — just don't present your fork as Mifune.
 
 ---
 
