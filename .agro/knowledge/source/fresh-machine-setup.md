@@ -22,7 +22,7 @@ sources:
   - .agro/scripts/hermes-install-smoke.sh
   - .agro/scripts/gateway.sh
   - .agro/scripts/get-agro.sh
-verified_at: c99286e5c35f281432808ce8bc9f256a85df3f20
+verified_at: 5d48b5f601c28748a37fb3d14a475bbf4b08f81e
 related: [sandbox-dependency-installs, oh-cli-portable-lifecycle]
 confidence: provisional
 ---

@@ -27,3 +27,61 @@ the applicable AGENTS.md, and the canonical /spec, /git, and /delegate
 procedures, and acknowledges sole accountable ownership of the build through D6.
 Decisions, task state, integration, publication, and acceptance stay with this
 session. No second advisor is created. The retiring workflow tool is not used.
+
+2026-09-11 execute — Re-grounded: the planning base and the execution base are the
+same commit d341ebc3, so nothing moved between plan and build. Issue #1054 located,
+worktree .worktrees/task/1054-retire-pi-dynamic-workflows created off
+origin/development, scaffold commit 05e7da8e pushed, draft PR #1055 opened.
+Remote and base selected explicitly under /git: this checkout has exactly one
+remote, origin -> mifunedev/agro, and development exists as the preferred target.
+
+2026-09-11 US-001..US-004 — Dispatched T1, one continuing bounded writer, for the
+coupled patch. Accepted after advisor-run verification, not on the worker's claim:
+settings test exit 0, .pi suite exit 0 (7 files, 52 tests), diff confined to the
+owned paths, reference sweep leaving three classified matches, and an independent
+recomputation of the runtime inventories from the raw JSON (28 tools -> 27, removed
+exactly workflow). Committed 000ac92f and pushed.
+
+2026-09-11 review — Dispatched T2, independent read-only reviewer, for D1-D5 and the
+gate-5 simplicity findings. Returned four findings. F1 (D1): the negative assertion
+missed a trailing .git suffix and case variants. A guard that does not catch
+reintroduction is the one failure that assertion exists to prevent, so this was
+routed back to T1 rather than disclosed. F2 and F3 (D3) accepted as met-differently
+and as a disclosed methodology caveat. F4 (D5) BLOCKING: the documentation site still
+advertises the package in six current locations. Zero simplicity findings.
+
+2026-09-11 US-001 repair — T1 round 1 hardened packageIdentity to strip a trailing
+.git and compare lowercase, and removed one unreachable replace. Advisor then
+exercised the helper over 13 reintroduction shapes and the 9 retained entries: all
+caught, no false positive, exit 0. Committed 4a2e4b30.
+
+2026-09-11 eval gate — bash .agro/skills/eval/run.sh exit 0 over 149 probes, no
+green-to-red transition. Four persistent reds carried forward, none caused by this
+change; next-dev-prod fires on an unrelated next dev process belonging to another
+agent's service, which was deliberately left running. Benchmark refresh and
+eval-result.json committed 5d48b5f6.
+
+2026-09-11 US-005 — Advisor resolved the D5 disposition. Distribution traced to
+source: whole-tree image seed, first-boot-only copy, so a new sandbox gets the new
+default and an existing one is never re-seeded. For the website, the advisor used
+the plan's own escape hatch and defined a separate bounded assignment, T4, before
+dispatch, with named paths, exclusions, execution directory, and checks. T4 produced
+the companion patch in an isolated worktree of mifunedev/agro-web. The advisor
+opened issue #55, committed f243702, and published PR #56. T2 was never granted
+write authority. Both PRs remain unmerged.
+
+2026-09-11 knowledge impact — The planner predicted NOT-APPLICABLE and the diff
+overruled it. knowledge-impact.sh over the 24 changed paths flagged fresh-machine-setup
+NEEDS-REVIEW, because docs/installation.md is a declared source. The owner decided
+REVERIFIED rather than UPDATED: the page cites that file for install paths and PATH
+rules, and this diff touched only the Pi defaults sentence the page never describes.
+T1 round 2 re-read every cited claim, confirmed each still holds, advanced verified_at
+to the branch HEAD, and left updated: alone. wiki-readme-index.sh exit 0. The wrong
+prediction is left in prd.md as the planner's record and the correction is recorded in
+evidence.md rather than quietly fixed.
+
+2026-09-11 acceptance — US-001 through US-005 validated and flipped to passes: true.
+US-006 stays open until the PR is non-draft with green required CI at the final head
+SHA and a passing PR audit. Worker settings recorded as requested and observed
+separately throughout; both workers self-reported claude-opus-5[1m], and effort is
+recorded unobserved because this surface exposes no per-worker control.

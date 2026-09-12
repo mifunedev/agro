@@ -17,8 +17,8 @@
         "Evidence captured in evidence/settings.txt and evidence/diff.txt"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "DoD D1. Owner T1."
+      "passes": true,
+      "notes": "Advisor-validated. Config diff is one entry removed, nine retained in order, every other key byte-identical. The first negative assertion had a real gap (trailing .git, case variants); routed to T1 round 1 and repaired in 4a2e4b30. Advisor then exercised the helper over 13 reintroduction shapes and the 9 retained entries: all caught, no false positive. settings test exit 0 under three independent runners."
     },
     {
       "id": "US-002",
@@ -36,8 +36,8 @@
         "Evidence captured in evidence/references.txt and evidence/docs-review.md"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "DoD D2. Owner T1, reviewed by T2."
+      "passes": true,
+      "notes": "Advisor-validated. Page deleted, four surfaces cleaned, migration note bounded and non-overclaiming. Reference sweep leaves three matches, all classified: CHANGELOG.md:682 history and two in the negative test. No link or anchor points at the deleted page. CHANGELOG entry 192 chars, links #1054, history untouched."
     },
     {
       "id": "US-003",
@@ -54,8 +54,8 @@
         "An unavailable prerequisite is recorded BLOCKED with the failure and never reported as passing"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "DoD D3. Owner T1, reviewed by T2. BLOCKED is an allowed honest outcome; it is not a pass."
+      "passes": true,
+      "notes": "Advisor-validated against the raw artifacts, not the worker's prose: 28 tools -> 27, removed exactly workflow, added none; prompt 12275 -> 9283 chars; reload reproduces the 27-tool set. Safety-guard criterion satisfied DIFFERENTLY — cc-safety-net is hook-shaped and registers no LLM-callable tool, confirmed from the installed package source. Residual disclosed in evidence.md: getAllTools() does not positively prove the tool_call handler registered."
     },
     {
       "id": "US-004",
@@ -69,8 +69,8 @@
         "evidence/boundary-review.md records the independent boundary review"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "DoD D4. Owner T1, reviewed by T2."
+      "passes": true,
+      "notes": "Advisor-validated. .pi suite exit 0 under three independent runners. Changed set confined to the Pi configuration surface, the named docs, CHANGELOG.md, .agro/evals/RESULTS.md, and this task folder. Root checkout, agro-web clone, and worktree all clean; globals predate this work; no service reloaded or restarted."
     },
     {
       "id": "US-005",
@@ -84,8 +84,8 @@
         "D5 stays incomplete until the advisor accepts that disposition"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "DoD D5. T2 researches; advisor resolves and accepts. T2 has no write authority."
+      "passes": true,
+      "notes": "Advisor-resolved and accepted. Distribution traced to source: whole-tree image seed, first-boot-only copy, so new sandboxes get the new default and existing ones are never re-seeded. Public docs advertisement was real and blocking on the harness patch alone; resolved through the plan's second D5 branch as an accepted, owned companion change — agro-web#55, commit f243702, PR agro-web#56 — defined as a separate bounded assignment before dispatch. Both PRs remain unmerged, which the evidence states plainly."
     },
     {
       "id": "US-006",
@@ -102,7 +102,7 @@
       ],
       "priority": 6,
       "passes": false,
-      "notes": "DoD D6. Advisor-owned (T3). Implementation defects route back to T1."
+      "notes": "DoD D6, advisor-owned. Open until the PR is non-draft with green required CI at the final head SHA and a passing PR audit recorded in evidence/pr-completion.md."
     }
   ]
 }
