@@ -48,3 +48,33 @@ $ git diff --stat HEAD
  docs/integrations/pi-fff.md               |  3 +-
  8 files changed, 33 insertions(+), 102 deletions(-)
 exit=0
+
+# Repair round 1 — packageIdentity() hardening
+
+$ pnpm exec vitest run .pi/extensions/__tests__/settings.test.ts
+
+ RUN  v4.1.11 /home/sandbox/harness/.worktrees/task/1054-retire-pi-dynamic-workflows
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  23:27:26
+   Duration  95ms (transform 16ms, setup 0ms, import 23ms, tests 3ms, environment 0ms)
+
+exit=0
+
+$ pnpm exec vitest run .pi
+
+ RUN  v4.1.11 /home/sandbox/harness/.worktrees/task/1054-retire-pi-dynamic-workflows
+
+
+ Test Files  7 passed (7)
+      Tests  52 passed (52)
+   Start at  23:27:26
+   Duration  155ms (transform 339ms, setup 0ms, import 417ms, tests 41ms, environment 0ms)
+
+exit=0
+
+$ git status --short
+ M .agro/tasks/retire-pi-dynamic-workflows/evidence/pi-tests.txt
+ M .pi/extensions/__tests__/settings.test.ts

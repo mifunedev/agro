@@ -13,9 +13,10 @@ function readPiSettings(): PiSettings {
 }
 
 function packageIdentity(spec: string): string {
-  const withoutSource = spec.replace(/^(npm|git|https?|ssh):/, "").replace(/^\/\//, "");
+  const withoutSource = spec.replace(/^(npm|git|https?|ssh):/, "");
   const withoutRef = withoutSource.replace(/@[^@/]*$/, "");
-  return withoutRef.split("/").filter(Boolean).pop() ?? withoutRef;
+  const name = withoutRef.split("/").filter(Boolean).pop() ?? withoutRef;
+  return name.replace(/\.git$/, "").toLowerCase();
 }
 
 describe("project Pi settings", () => {
@@ -44,7 +45,12 @@ describe("project Pi settings", () => {
     expect(packageIdentity(`git:github.com/Michaelliv/${RETIRED_PACKAGE_NAME}@dbc6800`)).toBe(
       RETIRED_PACKAGE_NAME,
     );
+    expect(packageIdentity(`git:github.com/Michaelliv/${RETIRED_PACKAGE_NAME}.git@dbc6800`)).toBe(
+      RETIRED_PACKAGE_NAME,
+    );
+    expect(packageIdentity("npm:Pi-Dynamic-Workflows@1.0.1")).toBe(RETIRED_PACKAGE_NAME);
     expect(packageIdentity("npm:@tintinweb/pi-subagents@0.12.0")).toBe("pi-subagents");
+    expect(packageIdentity("npm:cc-safety-net@1.0.6")).toBe("cc-safety-net");
   });
 
   it("excludes the retired dynamic workflow package from every source", () => {
