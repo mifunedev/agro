@@ -30,8 +30,8 @@ describe("installer host prerequisite docs", () => {
     const install = readRepoFile(".agro", "scripts", "install.sh");
 
     expect(install).toContain("Docker with the Compose plugin");
-    expect(install).toContain("git (used to clone or update Open Harness)");
-    expect(install).toContain("git is required to clone or update Open Harness");
+    expect(install).toContain("git (used to clone or update AGRO)");
+    expect(install).toContain("git is required to clone or update AGRO");
   });
 
   it("installer requires Node >= 20 and reuses get-oh.sh's ensure_node", () => {
