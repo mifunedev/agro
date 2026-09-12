@@ -1,0 +1,29 @@
+# progress
+
+2026-09-11 plan — Scaffolded from the operator-approved plan at
+/home/sandbox/harness/.agro/plans/retire-pi-dynamic-workflows/plan.md.
+Base commit d341ebc38e28b1d5433844052bd1edb17df51cf7 on development.
+Queries run: "pi packages delegate workflow docs" over .agro/knowledge/source/;
+"delegate spec evals docs --patterns" over .agro/knowledge/patterns/.
+Slugs read: pattern-delegate-builtin-type-carries-own-model,
+pattern-delegate-ledger-stale-at-acceptance,
+pattern-delegate-worker-terminated-before-report,
+pattern-docs-prohibition-by-example, pattern-evals-prose-literal-pinning.
+Grounded against .pi/settings.json, .pi/extensions/__tests__/settings.test.ts,
+docs/{README.md,installation.md,harnesses/pi.md,integrations/pi-fff.md,
+integrations/pi-dynamic-workflows.md}, CHANGELOG.md,
+.agro/evals/probes/audit-stale-references.sh, .agro/skills/git/SKILL.md,
+.worktrees/AGENTS.md, projects/mifunedev/agro-web/docs/.
+Architecture pass: the approved plan already carries an Architecture Brief
+(classification ARCHITECTURAL, option 3 recommended); no second /architect run.
+Issue #1054 opened in mifunedev/agro. Remote origin -> mifunedev/agro selected
+explicitly; base development; this checkout has exactly one remote.
+Intent preserved: YES. Orchestration preserved: YES.
+
+2026-09-11 ownership — Ownership transferred to this Herdr advisor session at
+operator request. The originating advisor dispatched no implementation workers
+and has stopped dispatching for this task. This session read the approved plan,
+the applicable AGENTS.md, and the canonical /spec, /git, and /delegate
+procedures, and acknowledges sole accountable ownership of the build through D6.
+Decisions, task state, integration, publication, and acceptance stay with this
+session. No second advisor is created. The retiring workflow tool is not used.

@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "project": "Open Harness",
+  "branchName": "task/1054-retire-pi-dynamic-workflows",
+  "description": "Retire pi-dynamic-workflows from the Open Harness default Pi package list and current documentation, keeping /delegate as the one bounded delegation procedure.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Remove the default package pin and pin the negative contract",
+      "description": "As an operator, I want the dynamic workflow package absent from the harness default Pi package list so that a fresh project does not register a second workflow runtime.",
+      "acceptanceCriteria": [
+        ".pi/settings.json packages contains the nine retained entries in their existing order and omits the dynamic workflow entry",
+        "Every other key in .pi/settings.json is byte-identical to the previous revision",
+        ".pi/extensions/__tests__/settings.test.ts asserts the new exact nine-entry list",
+        "The same test adds a negative assertion keyed on package identity so any pi-dynamic-workflows entry fails regardless of source prefix, owner, or pin",
+        "pnpm exec vitest run .pi/extensions/__tests__/settings.test.ts exits 0",
+        "Evidence captured in evidence/settings.txt and evidence/diff.txt"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "DoD D1. Owner T1."
+    },
+    {
+      "id": "US-002",
+      "title": "Stop advertising the retired tool in current documentation",
+      "description": "As a reader of the harness documentation, I want no current page to present the dynamic workflow tool as available so that the docs match the shipped defaults.",
+      "acceptanceCriteria": [
+        "docs/integrations/pi-dynamic-workflows.md is deleted",
+        "docs/README.md no longer links the deleted page",
+        "docs/harnesses/pi.md drops the default-package bullet, the -e load example, and the dedicated dynamic workflows section",
+        "docs/harnesses/pi.md gains one concise migration note naming /delegate, the reload-or-restart boundary for running sessions, and the global-or-explicit-e override boundary",
+        "docs/installation.md:188 and docs/integrations/pi-fff.md:16 no longer present the package as a current default",
+        "CHANGELOG.md:681 is unchanged and a new Unreleased Removed entry of one imperative sentence at most 250 characters links issue #1054",
+        "A tracked search for pi-dynamic-workflows, Michaelliv, and the retired pin classifies every remaining match as history, retirement guidance, or a negative test",
+        "Every local Markdown link that pointed at the deleted page resolves or is removed",
+        "Evidence captured in evidence/references.txt and evidence/docs-review.md"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "DoD D2. Owner T1, reviewed by T2."
+    },
+    {
+      "id": "US-003",
+      "title": "Prove the runtime tool inventory changed as intended",
+      "description": "As an operator, I want observed evidence that a fresh Pi session loses the workflow tool and keeps every retained tool so that retirement is verified rather than assumed.",
+      "acceptanceCriteria": [
+        "The Pi version and the test checkout revision are recorded",
+        "A disposable Pi agent directory without global packages captures the baseline registry into evidence/runtime-before.json",
+        "The same controlled settings capture the changed-configuration registry into evidence/runtime-after.json using a temporary inspection extension outside tracked source",
+        "workflow is absent after the change and the Agent/subagent, task, goal, Monitor/Loop, file-search, and safety-guard tools remain present",
+        "Startup errors and the effective prompt are inspected with no package-load error and no dynamic-workflow prompt guidance remaining",
+        "Resource reload in the disposable session yields the same tool inventory",
+        "evidence/runtime.txt records commands, real exit codes, and the operator reload-or-restart boundary note",
+        "An unavailable prerequisite is recorded BLOCKED with the failure and never reported as passing"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "DoD D3. Owner T1, reviewed by T2. BLOCKED is an allowed honest outcome; it is not a pass."
+    },
+    {
+      "id": "US-004",
+      "title": "Keep Pi regressions green and ownership boundaries intact",
+      "description": "As the build owner, I want the full Pi test surface green and the change confined to owned paths so that retirement does not disturb unrelated state.",
+      "acceptanceCriteria": [
+        "pnpm exec vitest run .pi exits 0, captured in evidence/pi-tests.txt",
+        "The branch diff touches only .pi/settings.json, .pi/extensions/__tests__/settings.test.ts, the named documentation files, CHANGELOG.md, and .agro/tasks/retire-pi-dynamic-workflows/",
+        "No global settings file, package cache, session history, gateway state, application-owned project file, or provider mirror is modified",
+        "No gateway, Herdr session, cron service, or other agent session is reloaded or restarted",
+        "evidence/boundary-review.md records the independent boundary review"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "DoD D4. Owner T1, reviewed by T2."
+    },
+    {
+      "id": "US-005",
+      "title": "Record an evidence-backed distribution and public-documentation disposition",
+      "description": "As the operator, I want to know exactly where the retired default still reaches users so that the retirement claim is bounded by observed source rather than assumption.",
+      "acceptanceCriteria": [
+        "The path by which .pi/settings.json reaches initialized and updated projects is traced through current .agro/cli and .agro/scripts source and cited by path:line",
+        "evidence/distribution-review.md states whether an initialized or updated project inherits the harness package list, with source citations rather than assumption",
+        "mifunedev/agro-web is inspected for current dynamic-workflow advertising and evidence/public-docs-review.md lists the exact affected paths or records a source-backed no-change finding",
+        "The advisor records a disposition for each surviving surface: fixed in this PR, an accepted owned companion change, or an escalation the operator must decide",
+        "D5 stays incomplete until the advisor accepts that disposition"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "DoD D5. T2 researches; advisor resolves and accepts. T2 has no write authority."
+    },
+    {
+      "id": "US-006",
+      "title": "Complete a review-ready pull request",
+      "description": "As a reviewer, I want a non-draft PR whose head carries green required CI and a passing PR audit so that the change is ready to judge.",
+      "acceptanceCriteria": [
+        "The accepted patch is committed on task/1054-retire-pi-dynamic-workflows and pushed to origin",
+        "A non-draft PR targets development in mifunedev/agro with the literal title FROM task/1054-retire-pi-dynamic-workflows TO development and a Closes #1054 trailer",
+        "The PR body carries the D1-D5 evidence summary, the divergence section, and the unverified section",
+        "/ci-status runs after every push and required CI is green at the final head SHA",
+        "/audit pr on the final revision returns a promotable verdict with no unresolved blocking findings and no merge conflict",
+        "evidence/pr-completion.md records the PR URL, the final head SHA, the CI run URLs, and the audit verdict",
+        "The PR is not merged and no release is published"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "DoD D6. Advisor-owned (T3). Implementation defects route back to T1."
+    }
+  ]
+}
