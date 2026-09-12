@@ -183,9 +183,9 @@ else
 fi
 printf '\n'
 if command -v herdr >/dev/null 2>&1; then
-  printf '  Next: run `herdr` to open your persistent Open Harness workspace.\n'
+  printf '  Next: run `herdr` to open your persistent AGRO workspace.\n'
 else
-  printf '  Next: run `%s tool install herdr`, then `herdr`, to open your persistent Open Harness workspace.\n' "$cli_bin"
+  printf '  Next: run `%s tool install herdr`, then `herdr`, to open your persistent AGRO workspace.\n' "$cli_bin"
 fi
 printf '  Complete setup, authentication, agents, tests, and servers inside Herdr.\n'
 printf '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'

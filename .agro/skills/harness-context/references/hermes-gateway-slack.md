@@ -1,4 +1,4 @@
-# Hermes gateway Slack adapter in Open Harness
+# Hermes gateway Slack adapter in AGRO
 
 ## Symptom
 
@@ -13,13 +13,13 @@ Gateway will continue for cron job execution.
 
 ## Meaning
 
-Slack is enabled in Hermes' gateway configuration, but the Hermes install in the sandbox does not include the optional Slack adapter dependency (`slack-bolt`). This affects Hermes' own messaging gateway only. It is separate from the Open Harness Slack bridge (the `pi-messenger-bridge` package).
+Slack is enabled in Hermes' gateway configuration, but the Hermes install in the sandbox does not include the optional Slack adapter dependency (`slack-bolt`). This affects Hermes' own messaging gateway only. It is separate from the AGRO Slack bridge (the `pi-messenger-bridge` package).
 
 The gateway continuing for cron execution is expected: Hermes cron jobs can still run even when no messaging platform adapter is available.
 
 ## Fixes to document for users
 
-- If they want Hermes Slack bridging, run from the project root (`/home/sandbox/harness`, not `.hermes/`) and install the Hermes Slack extra into the venv that owns the `hermes` executable. In Open Harness, `/usr/local/bin/hermes` execs `/usr/local/lib/hermes-agent/venv/bin/hermes`, so use `uv pip` against that venv:
+- If they want Hermes Slack bridging, run from the project root (`/home/sandbox/harness`, not `.hermes/`) and install the Hermes Slack extra into the venv that owns the `hermes` executable. In AGRO, `/usr/local/bin/hermes` execs `/usr/local/lib/hermes-agent/venv/bin/hermes`, so use `uv pip` against that venv:
 
   ```bash
   cd /home/sandbox/harness
@@ -54,7 +54,7 @@ The gateway continuing for cron execution is expected: Hermes cron jobs can stil
 
 ## Documentation pitfall
 
-When a user-facing optional runtime warning is confusing enough to troubleshoot interactively, reflect the clarification in the user-facing runtime docs/README, not only in the chat answer. For Hermes project-local runtime state and gateway notes in Open Harness, prefer `.hermes/README.md`; keep the top-level `README.md` for broad install/use copy unless the warning affects first-run project setup generally. Link to upstream Hermes docs when documenting gateway fixes:
+When a user-facing optional runtime warning is confusing enough to troubleshoot interactively, reflect the clarification in the user-facing runtime docs/README, not only in the chat answer. For Hermes project-local runtime state and gateway notes in AGRO, prefer `.hermes/README.md`; keep the top-level `README.md` for broad install/use copy unless the warning affects first-run project setup generally. Link to upstream Hermes docs when documenting gateway fixes:
 
 - Slack gateway setup: <https://hermes-agent.nousresearch.com/docs/user-guide/messaging/slack>
 - Messaging gateway overview: <https://hermes-agent.nousresearch.com/docs/user-guide/messaging/>

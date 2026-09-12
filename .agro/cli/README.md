@@ -1,9 +1,9 @@
 # @mifune/agro
 
-The **AGRO CLI** (`agro`) — create an [Open Harness](https://agro.mifune.dev)
+The **AGRO CLI** (`agro`) — create an [AGRO](https://agro.mifune.dev)
 Docker sandbox for coding agents and drive its lifecycle from the command line.
 
-Open Harness is a portable harness for running coding agents (Claude Code, Codex, Pi,
+AGRO is a portable harness for running coding agents (Claude Code, Codex, Pi,
 and others) in an isolated Docker sandbox, with the agent's identity, skills, and crons
 versioned in git. This package is the standalone `agro` CLI that creates sandboxes and
 manages their lifecycle.
@@ -139,7 +139,7 @@ writes nothing else and never prompts. `agro update` rejects those flags and poi
 `oh update`. `oh update` prefers the payload bundled into the CLI itself; with `--from-remote`
 (or no payload at all) it shallow-clones the public OpenHarness repo into a temp dir and
 removes it after the run (`--ref <ref>` pins it). Root `docs/` remains project-owned and is
-not part of that payload. Catalog and help output therefore links to the Open Harness source
+not part of that payload. Catalog and help output therefore links to the AGRO source
 documentation instead of a path inside the equipped project.
 
 The CLI writes no scaffold. It creates no `AGENTS.md`, no provider configuration, and no

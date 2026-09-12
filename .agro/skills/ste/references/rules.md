@@ -1,6 +1,6 @@
 # STE Rules
 
-This file holds the writing rules for the `/ste` controlled-language standard, which governs technical prose in the Open Harness repo. The rules follow the published shape of ASD-STE100: a numbered rule set plus a controlled dictionary of approved words. Every rule statement below carries original wording, quotes no published text, and claims no compliance or certification. The linter `scripts/ste-check.sh` enforces the mechanical subset of these rules, and `SKILL.md` holds the entry procedure.
+This file holds the writing rules for the `/ste` controlled-language standard, which governs technical prose in the AGRO repo. The rules follow the published shape of ASD-STE100: a numbered rule set plus a controlled dictionary of approved words. Every rule statement below carries original wording, quotes no published text, and claims no compliance or certification. The linter `scripts/ste-check.sh` enforces the mechanical subset of these rules, and `SKILL.md` holds the entry procedure.
 
 Source: https://www.asd-ste100.org/
 

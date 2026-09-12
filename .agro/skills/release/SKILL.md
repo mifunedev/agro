@@ -1,7 +1,7 @@
 ---
 name: release
 description: |
-  Release a validated Open Harness commit by pushing it to main or master, then
+  Release a validated AGRO commit by pushing it to main or master, then
   monitor the automatic SemVer/GHCR/GitHub Release workflow. TRIGGER when:
   asked to release, version, ship, cut a release, or verify release artifacts.
 argument-hint: "[--dry-run]"

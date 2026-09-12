@@ -73,7 +73,7 @@ if [ -z "$repo_root" ]; then
   repo_root="${OH_PROJECT_ROOT:-$PWD}"
 fi
 if [ ! -d "$repo_root/.agro/skills" ]; then
-  echo "ERROR: not an Open Harness tree (no .agro/skills at $repo_root)" >&2
+  echo "ERROR: not an AGRO tree (no .agro/skills at $repo_root)" >&2
   exit 1
 fi
 cd "$repo_root"
@@ -185,7 +185,7 @@ check_retired_links() {
       fail "$path still carries skill discovery because $replacement is not an independent link to .agro/skills; repair $replacement, then run --init again"
       continue
     fi
-    fail "$path is retired; run --init to remove the old Open Harness link"
+    fail "$path is retired; run --init to remove the old AGRO link"
   done
 }
 

@@ -1,7 +1,7 @@
 # Reference Skill Builder
 
-Author a domain or guidance skill that Claude loads inline when relevant. In Open
-Harness, write `.agro/skills/<name>/SKILL.md`. Codex and Pi use `.agents/skills`;
+Author a domain or guidance skill that Claude loads inline when relevant. In AGRO,
+write `.agro/skills/<name>/SKILL.md`. Codex and Pi use `.agents/skills`;
 Claude uses `.claude/skills`. These exposure surfaces link to the canonical pack.
 
 ## Contents
@@ -132,7 +132,7 @@ must not require another chain of references to become usable.
 
 ## Validate
 
-- [ ] Canonical file exists at `.agro/skills/<name>/SKILL.md` in Open Harness.
+- [ ] Canonical file exists at `.agro/skills/<name>/SKILL.md` in AGRO.
 - [ ] `name` matches the directory and uses lowercase kebab-case.
 - [ ] Frontmatter delimiters and YAML structure are valid.
 - [ ] Description front-loads triggers and stays within the listing limit.

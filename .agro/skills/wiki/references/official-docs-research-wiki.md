@@ -8,7 +8,7 @@ Use this pattern when a user asks to "add to wiki" but the source is a seed URL 
    - If a social/link post is only a pointer, do not let it define the implementation scope.
    - Start from the official/source-of-truth documentation when the user names it or when the seed topic is a tool/platform feature.
 2. Create a plan-only checkpoint if the user asks to inspect before implementation.
-   - In Open Harness, save plans under `.claude/plans/`.
+   - In AGRO, save plans under `.claude/plans/`.
    - Open a draft PR containing only the plan and any branch-convention/doc housekeeping the user approved.
    - Stop for confirmation before writing the wiki implementation.
 3. Use subagents for research and audit, not direct tracked wiki writes.

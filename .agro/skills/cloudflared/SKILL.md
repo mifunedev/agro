@@ -2,7 +2,7 @@
 name: cloudflared
 description: |
   Start or explain a Cloudflared tunnel for a sandbox app port. Cloudflared is
-  the default public sharing method for Open Harness previews; this skill
+  the default public sharing method for AGRO previews; this skill
   replaces generic sharing guidance with a portable pointer to the installed
   cloudflared CLI and tmux process convention.
   TRIGGER when: asked to share a local app publicly, expose a sandbox port,

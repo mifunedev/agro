@@ -1,6 +1,6 @@
 # Herdr command map
 
-Full subcommand catalog for `herdr` 0.7.4 as shipped in the Open Harness image,
+Full subcommand catalog for `herdr` 0.7.4 as shipped in the AGRO image,
 transcribed from `herdr --help` and each `herdr <group> --help`. Read the group
 you need; `herdr <group> --help` remains ground truth if the pinned version
 changes.
@@ -84,7 +84,7 @@ herdr worktree remove --workspace ID [--force] [--json]
 ```
 
 `list` reports `branch`, `path`, `is_linked_worktree`, `is_prunable`, and the
-`open_workspace_id` when the worktree is already open. In Open Harness, create
+`open_workspace_id` when the worktree is already open. In AGRO, create
 worktrees through `/worktrees` under `.worktrees/` and use `worktree open`
 here; `worktree create` defaults elsewhere (`~/.herdr/worktrees`).
 
