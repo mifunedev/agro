@@ -1,0 +1,64 @@
+# progress
+
+## 2026-09-12 — plan
+
+Scaffolded by /spec plan against base c158648f.
+Three-file contract complete: prd.md (13 stories, three knowledge sections),
+prd.json (schemaVersion 1, branchName skill/1057-supervisor-skill), progress.txt.
+Intent preserved: YES. Four constraints recorded, none material.
+
+## 2026-09-12 — wave 1, T1 accepted
+
+Worker T1 (opus, isolated worktree skill/1057-supervisor-t1) authored
+.agro/skills/supervisor/SKILL.md, 313 lines. Merged at 577cd49e.
+
+Owner validation, run independently of the worker report:
+- ste-check exit 0
+- link-providers.sh --check exit 0; .claude/skills/supervisor/SKILL.md resolves
+- git diff --check clean
+- grep for OH_, .oh, and "Open Harness": no match
+- frontmatter: name supervisor, description 990 chars, three do-not-trigger
+  cases, allowed-tools Bash/Read/Grep, no declared argument
+- every cited skill path resolves
+
+US-001 through US-010 flipped to passes: true.
+Open: US-011 probe decision, US-013 escalate destination (T2 running), US-012.
+
+## 2026-09-12 — wave 1 complete, gates run
+
+T2 (opus, isolated worktree skill/1057-supervisor-t2) implemented US-013.
+Merged at 0855852a. Owner validated by live delivery into a real pane and by
+the no-op path; both independently re-run, not taken from the worker report.
+
+T2 corrected the dispatch brief: .agro/evals/probes/escalate-contract.sh:10
+calls escalate.sh. The brief claimed no caller outside the skill directory.
+That probe still passes; it reads only preserved keys.
+
+US-011 decided: a behavioral oracle exists, a prose oracle does not.
+Added .agro/evals/probes/escalate-destination-fan-out.sh and proved the oracle
+with three fault injections, each caught and reverted.
+
+Full suite: 150 probes, no regression, three pre-existing persistent red.
+
+roles-are-skills regressed on the first run and was repaired at the source:
+ADR #929 and ADR #989 hold that a role is a behavior, not an identity or a
+terminal. The actor table used a capitalized Advisor and the description
+defined the advisor as a session in a pane. Both rewritten. Probe returns PASS.
+
+US-001 through US-011 and US-013 pass. US-012 open: push, CI, audit, undraft.
+
+## 2026-09-12 — gates closed
+
+CI on ae0bf0a3: five checks pass.
+  Boot Path Lint (shellcheck + hadolint)      pass
+  Boot a legacy volume against the fresh image pass
+  Eval Probe Regression Gate                   pass
+  Lint, Typecheck, Build & Test                pass
+  Validate sandbox compose and image build     pass
+
+Boot Path Lint runs shellcheck, which is absent from this sandbox. It covers
+the new probe and the rewritten escalate.sh.
+
+PR #1059: mergeable MERGEABLE, state CLEAN, 14 files, +2098/-277.
+Every story passes. Undrafting.
+

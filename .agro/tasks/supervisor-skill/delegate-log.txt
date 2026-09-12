@@ -1,0 +1,1 @@
+2026-09-12T22:06:21Z wave 1 open: T1, T2 dispatched in parallel, disjoint owned write paths, isolated worktrees
