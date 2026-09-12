@@ -101,8 +101,8 @@
         "The PR is not merged and no release is published"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "DoD D6, advisor-owned. Open until the PR is non-draft with green required CI at the final head SHA and a passing PR audit recorded in evidence/pr-completion.md."
+      "passes": true,
+      "notes": "DoD D6. Flipped on the OBSERVED outcome, not in anticipation of it: gh pr ready ran at head a2cc41d5 only after all five required checks were green at that same head and /audit pr returned PR-AUDIT-PROMOTABLE (promotable true, flags empty, MERGEABLE/CLEAN), and the non-draft state was then read back from GitHub as isDraft:false. PR https://github.com/mifunedev/agro/pull/1055. Not merged and no release published; both remain the operator's gate. Committing evidence/pr-completion.md moves the head past a2cc41d5 and re-opens the promotable gate, which is re-entered and recorded in that file."
     }
   ]
 }

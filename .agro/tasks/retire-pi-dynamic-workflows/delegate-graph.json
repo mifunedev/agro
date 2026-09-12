@@ -259,9 +259,16 @@
       "failureRepairRoute": "Implementation or CI defects return to T1. Publication permission problems escalate to the operator.",
       "recursion": "not applicable",
       "nativeWorkerId": null,
-      "status": "pending",
-      "artifactReferences": [],
-      "usage": "not applicable"
+      "status": "completed",
+      "artifactReferences": [
+        "https://github.com/mifunedev/agro/pull/1055 (non-draft)",
+        "final head a2cc41d5ed80472517e374753c6490eeae0b5ca4",
+        "audit run audit-20260912T053635Z-1460073 -> PR-AUDIT-PROMOTABLE",
+        "evidence/pr-completion.md",
+        "companion https://github.com/mifunedev/agro-web/pull/56 (non-draft, head f243702a, Build docs site pass)"
+      ],
+      "usage": "not applicable",
+      "summary": "Advisor-executed publication. Five required checks green at the final head, PR audit promotable with no flags, PR undrafted and the non-draft state observed. Neither PR merged and no release published."
     },
     {
       "id": "T4",
