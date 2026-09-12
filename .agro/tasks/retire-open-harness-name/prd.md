@@ -77,8 +77,10 @@ to name one product.
 - [ ] No file under `.devcontainer/` with a `.service` extension is edited.
 - [ ] No `NOTICE` file is edited.
 - [ ] Every changed file keeps its current behavior; only prose changes.
-- [ ] `bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on each changed
-      Markdown file.
+- [ ] No changed Markdown file gains a new `ste-check.sh` finding. `README.md`,
+      `CONTRIBUTING.md`, `SECURITY.md`, `projects/AGENTS.md`, and
+      `.worktrees/AGENTS.md` carry pre-existing findings in legal and marketing
+      prose that a rename must not rewrite.
 
 ### US-003: Rewrite the documentation surface
 
@@ -92,7 +94,11 @@ retired product.
 - [ ] `docs/glossary.md` defines AGRO and names the retired product only as a
       former name.
 - [ ] `docs/agro-compatibility.md` keeps every retained surface name unchanged.
-- [ ] `bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on each changed file.
+- [ ] No changed file gains a new `ste-check.sh` finding. Every page under
+      `docs/` carried findings before this change.
+- [ ] `docs/repair-sandbox-boot-advisory.md` stays unchanged; its line is
+      verbatim `systemctl` output carrying a live unit description.
+- [ ] Every inbound anchor to a renamed heading resolves.
 
 ### US-004: Rewrite the skill and script surfaces
 

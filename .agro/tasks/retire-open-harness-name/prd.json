@@ -18,8 +18,8 @@
         "Evidence captured in evidence.md under D-US-001"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Owner-validated at aa3ddda7. agents-identity-contract.sh PASS with the heading pinned to ## What AGRO is. ste-check AGENTS.md exit 0. CLAUDE.md still a symlink to AGENTS.md. No hit of the retired phrase remains in any owned path."
     },
     {
       "id": "US-002",
@@ -31,12 +31,12 @@
         "No file under .devcontainer/ with a .service extension is edited",
         "No NOTICE file is edited",
         "Only prose changes; every changed file keeps its current behavior",
-        "ste-check.sh exits 0 on each changed Markdown file",
+        "No changed Markdown file gains a new ste-check.sh finding; README.md, CONTRIBUTING.md, SECURITY.md, projects/AGENTS.md, and .worktrees/AGENTS.md carry pre-existing findings in legal and marketing prose that a rename must not rewrite",
         "Evidence captured in evidence.md under D-US-002"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Owner-validated at aa3ddda7. Criterion amended by the owner: the original wording demanded ste-check exit 0 on files that were already non-compliant. Verified finding counts identical before and after on all five files (12/12, 8/8, 3/3, 5/5, 4/4), so the rename introduced none."
     },
     {
       "id": "US-003",
@@ -47,12 +47,14 @@
         "No file under docs/rfcs/ is edited",
         "docs/glossary.md defines AGRO and names the retired product only as a former name",
         "docs/agro-compatibility.md keeps every retained surface name unchanged",
-        "ste-check.sh exits 0 on each changed file",
-        "Evidence captured in evidence.md under D-US-003"
+        "No changed file gains a new ste-check.sh finding; every page under docs/ carried findings before this change",
+        "Evidence captured in evidence.md under D-US-003",
+        "docs/repair-sandbox-boot-advisory.md stays unchanged; its line is verbatim systemctl output carrying a live unit description",
+        "Every inbound anchor to a renamed heading resolves"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Owner-validated. 28 files, all under docs/, rfcs untouched, no artifact-name line touched. MicroSandbox heading renamed with all four inbound anchors updated and verified; no stale anchor remains. Spot-checked finding counts base vs now: 45/45, 39/39, 34/34, 25/24, 13/13 — zero new findings. Same criterion amendment as US-002. open-core.md judged current-boundary from its present-tense framing and its live LICENSE links; OQ-1 closed."
     },
     {
       "id": "US-004",
@@ -69,8 +71,8 @@
         "Evidence captured in evidence.md under D-US-004"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Owner-validated at 08b91000 and 0ab50172. 31 files. link-providers --check exit 0; bash -n clean on four scripts; frontmatter parses on all 8 touched SKILL.md with every TRIGGER clause byte-identical; no artifact-name line touched. Worker found two wrapped occurrences the line-based classification missed and one wrong class assignment; both corrected."
     },
     {
       "id": "US-005",
@@ -85,8 +87,8 @@
         "Evidence captured in evidence.md under D-US-005"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Owner-validated. 289 hits/131 files -> 136/67. Every remaining hit is a retained class. Eval suite: 150 probes, no gating regression. Full vitest: 1436 passed on four of five runs; one run failed without naming a test, recorded as an observed flake. classification.md carries the result table and both method corrections."
     },
     {
       "id": "US-006",

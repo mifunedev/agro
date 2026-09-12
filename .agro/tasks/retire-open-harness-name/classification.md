@@ -5,6 +5,9 @@ Command: `git grep -c "Open Harness"`. Base commit `e66b9627`.
 
 Files: 131. Hits: 289.
 
+Issue [#1061](https://github.com/mifunedev/agro/issues/1061) tracks the
+`external` and `deferred` classes.
+
 ## Classes
 
 | Class | Hits | Files | Rule |
@@ -183,3 +186,61 @@ Files: 131. Hits: 289.
 | 1 | `docs/rfcs/rfc-runtime-support.md` |
 | 1 | `docs/rfcs/rfc-selfimprove-roadmap.md` |
 
+
+## Result
+
+| Measure | Before | After |
+|---|---|---|
+| Hits | 289 | 136 |
+| Files | 131 | 67 |
+
+Every remaining hit belongs to a retained class. This change touched no file
+outside the `stale` and `pinned` classes, except for the two corrections below.
+
+## Two corrections to this classification
+
+This classification came from `git grep -c "Open Harness"`. Implementation
+exposed two defects in that method. This section records both.
+
+### 1. A line-based grep never matches a wrapped phrase
+
+`git grep` matches within one line. The phrase splits across a newline in
+hard-wrapped prose, so the first count missed every wrapped occurrence.
+
+A wrap-aware scan over every tracked file finds five:
+
+| File | Disposition |
+|---|---|
+| `.agro/skills/builder/references/skill.md` | Swept. It sat inside an owned file. |
+| `.agro/skills/herdr/SKILL.md` | Swept. It sat inside a `description:` block scalar. |
+| `.agro/skills/t3/references/sandbox-processes.md` | Swept. The first classification carried no row for this file. |
+| `.agro/tasks/retire-open-harness-name/prd.md` | Retained. This document records the task. |
+| `docs/rfcs/README.md` | Retained. Historical. |
+
+Use this pattern to re-run the scan:
+
+```bash
+grep -Pzo 'Open[ \t]*\n[ \t#*>|-]*Harness' <file>
+```
+
+### 2. A test that asserts prose is not a test fixture
+
+This classification first placed
+`.agro/scripts/__tests__/install-prereqs.test.ts` in the `test-fixture` class,
+which retains a file. Two of its assertions pin prose in
+`.agro/scripts/install.sh` rather than a retained default:
+
+```js
+expect(install).toContain("git (used to clone or update Open Harness)");
+```
+
+A retained default earns retention. Prose does not. One commit renamed both
+sides. The rest of that file keeps its `test-fixture` class.
+
+### A note on the probe failure messages
+
+`builder-skill-consolidation.sh`, `cron-systemd-service.sh`, and
+`entrypoint-pnpm-manifest-fingerprint.sh` name the retired product inside
+failure-message prose. Those three probes stay in `test-fixture`. A probe couples its text to its own
+oracle, so this change edits no oracle without cause. A later change can sweep
+the three messages.
