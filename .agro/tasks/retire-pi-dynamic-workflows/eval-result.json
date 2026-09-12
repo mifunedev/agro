@@ -1,0 +1,14 @@
+{
+  "commit": "7cf268029c1d0ddc50899a5da8bfaa9afd83c5ab",
+  "runnerExit": 0,
+  "ranAt": "2026-09-12T05:31:13Z",
+  "probeCount": 149,
+  "newRegressions": [],
+  "preExistingReds": [
+    "curl-bash-safe-alternatives",
+    "next-dev-prod",
+    "oh-config-surfaces",
+    "skills-vendored"
+  ],
+  "notes": "Runner exit 0 over 149 probes. No green->red transition. Four persistent reds carried forward, none caused by this change: curl-bash-safe-alternatives ERRORs because python3 is absent in this sandbox; next-dev-prod moved SKIPPED->REGRESSION because an unrelated `next dev` process (pid 1177336, the cloud web app) is running in this sandbox, which is another agent's service and was deliberately not touched; oh-config-surfaces and skills-vendored are unchanged pre-existing reds. The gate keys on a new green->red delta and the runner exit code, and neither is present."
+}

@@ -1,0 +1,200 @@
+{
+  "reason": "startup",
+  "toolCount": 27,
+  "tools": [
+    {
+      "name": "read",
+      "source": "builtin",
+      "path": "<builtin:read>",
+      "scope": "temporary",
+      "origin": "top-level"
+    },
+    {
+      "name": "bash",
+      "source": "builtin",
+      "path": "<builtin:bash>",
+      "scope": "temporary",
+      "origin": "top-level"
+    },
+    {
+      "name": "powershell",
+      "source": "builtin",
+      "path": "<builtin:powershell>",
+      "scope": "temporary",
+      "origin": "top-level"
+    },
+    {
+      "name": "edit",
+      "source": "builtin",
+      "path": "<builtin:edit>",
+      "scope": "temporary",
+      "origin": "top-level"
+    },
+    {
+      "name": "write",
+      "source": "builtin",
+      "path": "<builtin:write>",
+      "scope": "temporary",
+      "origin": "top-level"
+    },
+    {
+      "name": "grep",
+      "source": "builtin",
+      "path": "<builtin:grep>",
+      "scope": "temporary",
+      "origin": "top-level"
+    },
+    {
+      "name": "find",
+      "source": "builtin",
+      "path": "<builtin:find>",
+      "scope": "temporary",
+      "origin": "top-level"
+    },
+    {
+      "name": "ls",
+      "source": "builtin",
+      "path": "<builtin:ls>",
+      "scope": "temporary",
+      "origin": "top-level"
+    },
+    {
+      "name": "Agent",
+      "source": "npm:@tintinweb/pi-subagents@0.12.0",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@tintinweb/pi-subagents/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "get_subagent_result",
+      "source": "npm:@tintinweb/pi-subagents@0.12.0",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@tintinweb/pi-subagents/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "steer_subagent",
+      "source": "npm:@tintinweb/pi-subagents@0.12.0",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@tintinweb/pi-subagents/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "TaskCreate",
+      "source": "npm:@tintinweb/pi-tasks@0.7.0",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@tintinweb/pi-tasks/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "TaskList",
+      "source": "npm:@tintinweb/pi-tasks@0.7.0",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@tintinweb/pi-tasks/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "TaskGet",
+      "source": "npm:@tintinweb/pi-tasks@0.7.0",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@tintinweb/pi-tasks/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "TaskUpdate",
+      "source": "npm:@tintinweb/pi-tasks@0.7.0",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@tintinweb/pi-tasks/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "TaskOutput",
+      "source": "npm:@tintinweb/pi-tasks@0.7.0",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@tintinweb/pi-tasks/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "TaskStop",
+      "source": "npm:@tintinweb/pi-tasks@0.7.0",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@tintinweb/pi-tasks/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "TaskExecute",
+      "source": "npm:@tintinweb/pi-tasks@0.7.0",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@tintinweb/pi-tasks/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "goal_complete",
+      "source": "npm:@narumitw/pi-goal@0.4.2",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@narumitw/pi-goal/src/goal.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "LoopCreate",
+      "source": "npm:@trevonistrevon/pi-loop@0.5.5",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@trevonistrevon/pi-loop/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "LoopList",
+      "source": "npm:@trevonistrevon/pi-loop@0.5.5",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@trevonistrevon/pi-loop/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "LoopDelete",
+      "source": "npm:@trevonistrevon/pi-loop@0.5.5",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@trevonistrevon/pi-loop/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "MonitorCreate",
+      "source": "npm:@trevonistrevon/pi-loop@0.5.5",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@trevonistrevon/pi-loop/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "MonitorList",
+      "source": "npm:@trevonistrevon/pi-loop@0.5.5",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@trevonistrevon/pi-loop/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "MonitorStop",
+      "source": "npm:@trevonistrevon/pi-loop@0.5.5",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@trevonistrevon/pi-loop/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "ffgrep",
+      "source": "npm:@ff-labs/pi-fff@0.9.5",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@ff-labs/pi-fff/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "fffind",
+      "source": "npm:@ff-labs/pi-fff@0.9.5",
+      "path": "/tmp/piprobe/co-after/.pi/npm/node_modules/@ff-labs/pi-fff/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    }
+  ],
+  "getAllToolsError": null,
+  "promptWorkflowLines": [
+    "- ## Task-driven workflows"
+  ],
+  "promptLength": 9283
+}

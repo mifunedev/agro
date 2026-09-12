@@ -1,0 +1,84 @@
+# Runtime verification (D3) — observed
+
+Pi version: 0.85.1
+Worktree: /home/sandbox/harness/.worktrees/task/1054-retire-pi-dynamic-workflows
+Branch: task/1054-retire-pi-dynamic-workflows
+Revision at baseline capture: 05e7da8e602379925a0285437aceca7c3f708100
+
+## Controlled environment
+
+Two disposable checkouts under /tmp, each holding a copy of `.pi/` only:
+- /tmp/piprobe/co-before  — the original ten-entry package list.
+- /tmp/piprobe/co-after   — the nine-entry package list produced by this patch.
+
+Each run used a private, empty Pi agent directory, so no global package was loaded:
+- PI_CODING_AGENT_DIR=/tmp/piprobe/home-before
+- PI_CODING_AGENT_DIR=/tmp/piprobe/home-after
+
+A temporary inspection extension at /tmp/piprobe/probe.ts (copied into each disposable
+checkout as `.pi/extensions/zz-probe.ts`) captured `pi.getAllTools()` with `sourceInfo`
+provenance and `ctx.getSystemPrompt()` on `session_start`. The extension lives outside
+tracked source. No inventory is inferred from prose.
+
+## Commands and real exit codes
+
+1. BEFORE inventory (ten-entry list)
+   cd /tmp/piprobe/co-before
+   PI_CODING_AGENT_DIR=/tmp/piprobe/home-before PROBE_OUT=/tmp/piprobe/out/before2 \
+     pi --approve --no-session -p "noop" </dev/null
+   exit code: 0
+   stdout+stderr bytes: 0 (no package-load error, no startup error)
+   tools: 28, `workflow` PRESENT
+
+2. AFTER inventory (nine-entry list)
+   cd /tmp/piprobe/co-after
+   PI_CODING_AGENT_DIR=/tmp/piprobe/home-after PROBE_OUT=/tmp/piprobe/out/after \
+     pi --approve --no-session -p "noop" </dev/null
+   exit code: 0
+   stdout+stderr bytes: 0 (no package-load error, no startup error)
+   tools: 27, `workflow` ABSENT
+
+3. Resource reload in the disposable AFTER session
+   cd /tmp/piprobe/co-after
+   PI_CODING_AGENT_DIR=/tmp/piprobe/home-after PROBE_OUT=/tmp/piprobe/out/reload3 \
+     PROBE_RELOAD=drive /tmp/piprobe/reload.sh
+   (the script drives an interactive pty and types `/reload`)
+   exit code: 0
+   session_start reason=startup -> 27 tools, `workflow` absent
+   session_start reason=reload  -> 27 tools, `workflow` absent
+   The startup and reload tool-name sets are identical, and both equal the AFTER set.
+
+## Inventory comparison
+
+Removed by the change: ["workflow"]
+Added by the change:   []
+
+Retained and still registered after the change:
+  Agent, get_subagent_result, steer_subagent (npm:@tintinweb/pi-subagents@0.12.0)
+  TaskCreate, TaskList, TaskGet, TaskUpdate, TaskOutput, TaskStop, TaskExecute (npm:@tintinweb/pi-tasks@0.7.0)
+  goal_complete (npm:@narumitw/pi-goal@0.4.2)
+  LoopCreate, LoopList, LoopDelete, MonitorCreate, MonitorList, MonitorStop (npm:@trevonistrevon/pi-loop@0.5.5)
+  ffgrep, fffind (npm:@ff-labs/pi-fff@0.9.5)
+  read, bash, powershell, edit, write, grep, find, ls (builtin)
+
+Safety guard: `npm:cc-safety-net@1.0.6` registers no LLM-callable tool in either run.
+It is a tool-call guard extension. Its presence is unchanged by this patch, and both
+runs loaded it with no extension error.
+
+## Effective prompt
+
+BEFORE: 16 prompt lines named the retired tool, including its `Available tools` entry
+and 15 tool-specific guideline bullets. Prompt length 12275 characters.
+AFTER: 1 remaining line matches /workflow/i — the unrelated `## Task-driven workflows`
+heading contributed by the task package. No dynamic-workflow guidance survives.
+Prompt length 9283 characters.
+
+## Boundary note
+
+This evidence describes fresh, disposable sessions only. An operator session that is
+already running keeps the tool until it is reloaded or restarted. A global installation
+or an explicit `pi -e` argument still registers the tool. Removing the project pin does
+not remove every registration source. No running gateway, Herdr session, cron service,
+or agent session was reloaded or restarted for this verification.
+
+No credential was read into or copied into this evidence.

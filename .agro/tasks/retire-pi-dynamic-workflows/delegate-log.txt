@@ -1,0 +1,51 @@
+# delegate run log — retire-pi-dynamic-workflows
+
+2026-09-11 capability-check — Provider Claude Code. Worker tool `Agent` exposes a
+per-call `model` enum (sonnet | opus | haiku | fable) and no effort argument. The
+documented per-worker effort control is subagent-definition frontmatter, and this
+repository defines no agent definition files, so effort is not settable per worker
+here. Effort is an advisor judgment and a missing effort control never blocks a
+worker, so no task is BLOCKED on it. Every worker runs at the inherited session
+effort, recorded unobserved.
+
+2026-09-11 model-resolution — The approved plan records `inherit` for T1 and T2
+because the operator selected no implementation model. Delegate policy rule 2
+requires the advisor to resolve an unspecified setting per task; rule 1 makes the
+standing non-Sonnet exclusion binding; pattern-delegate-builtin-type-carries-own-model
+shows an omitted `model` does not reliably inherit the dispatching session's model.
+The advisor therefore requests `opus` explicitly for T1 and T2. Recorded as an
+advisor resolution of the plan's placeholder, not a change of plan intent.
+
+2026-09-11 wave 1 planned — T1 dispatch-eligibility re-evaluated: no blocking
+prerequisites outstanding (gh authed, remote origin -> mifunedev/agro selected,
+base development, Node 22.23.2, pnpm 10.33.0, Pi 0.85.1, worktree created, deps
+installed); no dependencies; required model control available; no unresolved
+native worker status or owned-path ambiguity. Eligible. Dispatching T1.
+
+2026-09-11 wave 1 dispatched — T1 dispatched as provider built-in `general-purpose`
+with model `opus` requested explicitly, Max depth 1, 30-turn and 1000-word budget,
+owned write paths and exclusions as recorded in the graph. Native worker reference
+persisted. Observed model/effort remain `pending` until the worker reports; the
+request is NOT copied into the observed field.
+
+2026-09-11 T1 acceptance — Advisor inspected the named artifacts and re-ran the
+task's verification commands itself. Real exit statuses, advisor-run:
+  pnpm exec vitest run .pi/extensions/__tests__/settings.test.ts  exit 0, 3 tests
+  pnpm exec vitest run .pi                                        exit 0, 7 files, 52 tests
+  git diff HEAD --stat                                            8 owned paths only
+  grep sweep for the retired identifiers                          3 matches, all
+    classified: CHANGELOG.md:682 history, and two in the negative test, which is
+    the one place that must hold the literal in order to test it.
+  node comparison of evidence/runtime-before.json and runtime-after.json:
+    28 tools to 27 tools, removed workflow, added nothing. Computed by the advisor
+    from the worker's raw artifacts, not read from the worker's prose.
+Observed worker model recorded from the worker's own self-report; effort recorded
+unobserved. Status set to completed. Wave 2 released.
+One open gap carried to T2: cc-safety-net registers no LLM-callable tool, so the
+"safety-guard tool present" criterion cannot be proven by tool name. T2 confirms
+whether that guard is a hook-shaped extension rather than a tool.
+
+2026-09-11 wave 2 planned — T2 dispatch-eligibility re-evaluated: dependency T1 is
+completed, its accepted evidence describes the current working tree revision, and
+its provenance is established. Required model control available. No owned-path
+ambiguity, because T2 owns no write path. Eligible.

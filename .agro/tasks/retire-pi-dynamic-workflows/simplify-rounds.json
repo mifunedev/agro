@@ -1,0 +1,8 @@
+{
+  "rounds": 1,
+  "netAdded": 1457,
+  "netRemoved": 102,
+  "lastCommit": "7cf268029c1d0ddc50899a5da8bfaa9afd83c5ab",
+  "nonReducing": false,
+  "note": "Round 1. The reviewer returned zero simplicity findings, so no reduction round was owed. netAdded is dominated by this build's own records under .agro/tasks/retire-pi-dynamic-workflows/ (prd.md, the evidence files, the delegate ledger), which are staged with git add -f so the PR carries them as evidence. The production change is 4 changed lines in .pi/settings.json plus a four-line test helper and its assertions; the documentation change removes far more than it adds."
+}

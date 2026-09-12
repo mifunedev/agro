@@ -55,7 +55,6 @@ Codex and Pi access shared skills through `.agents/skills`; Claude Code uses
 - [Slack](integrations/slack.md)
 - [Langfuse](integrations/langfuse.md)
 - [DebugMCP](integrations/debugmcp.md)
-- [Pi dynamic workflows](integrations/pi-dynamic-workflows.md)
 - [Pi fff file search](integrations/pi-fff.md)
 
 ## Reference

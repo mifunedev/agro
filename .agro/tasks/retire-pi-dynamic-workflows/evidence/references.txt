@@ -1,0 +1,26 @@
+# Tracked reference search after the change
+
+Command: git grep -n -e pi-dynamic-workflows -e Michaelliv -e dbc6800d1f725f7439e51705e2664c59484afcd1 -- . ':!.agro/tasks/retire-pi-dynamic-workflows/'
+
+.pi/extensions/__tests__/settings.test.ts:9:const RETIRED_PACKAGE_NAME = "pi-dynamic-workflows";
+.pi/extensions/__tests__/settings.test.ts:44:    expect(packageIdentity(`git:github.com/Michaelliv/${RETIRED_PACKAGE_NAME}@dbc6800`)).toBe(
+CHANGELOG.md:682:- Ship `pi-dynamic-workflows` as a default project-local Pi package pinned to upstream `v1.0.1`, with docs for the `workflow` tool's fan-out model and package-pin tests ([#451](https://github.com/mifunedev/openharness/issues/451)).
+exit=0
+
+## Classification of every remaining match
+
+| Match | Class |
+|---|---|
+| `.pi/extensions/__tests__/settings.test.ts:9` | Negative test. The identifier is the subject under test. |
+| `.pi/extensions/__tests__/settings.test.ts:44` | Negative test. The spec proves identity extraction from the retired source form. |
+| `CHANGELOG.md:682` | History. The released entry that records the original addition stays unchanged. |
+
+No match presents the package as a current default.
+
+## Local Markdown link check
+
+Command: node link scan over `docs/**/*.md`, `README.md`, `CHANGELOG.md`
+Result: 0 broken links point at the deleted page.
+Pre-existing unrelated broken links (present before this change, not owned by this task):
+- `docs/rfcs/rfc-rsi-survey-mapping.md -> ../../.oh/skills/spec/SKILL.md`
+- `CHANGELOG.md -> .oh/docs/glossary.md`

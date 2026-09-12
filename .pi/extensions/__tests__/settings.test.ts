@@ -6,8 +6,17 @@ interface PiSettings {
   skills?: string[];
 }
 
+const RETIRED_PACKAGE_NAME = "pi-dynamic-workflows";
+
 function readPiSettings(): PiSettings {
   return JSON.parse(readFileSync(".pi/settings.json", "utf8")) as PiSettings;
+}
+
+function packageIdentity(spec: string): string {
+  const withoutSource = spec.replace(/^(npm|git|https?|ssh):/, "");
+  const withoutRef = withoutSource.replace(/@[^@/]*$/, "");
+  const name = withoutRef.split("/").filter(Boolean).pop() ?? withoutRef;
+  return name.replace(/\.git$/, "").toLowerCase();
 }
 
 describe("project Pi settings", () => {
@@ -24,8 +33,29 @@ describe("project Pi settings", () => {
       "npm:@guwidoe/pi-prompt-suggester@0.3.10",
       "npm:@ff-labs/pi-fff@0.9.5",
       "npm:cc-safety-net@1.0.6",
-      "git:github.com/Michaelliv/pi-dynamic-workflows@dbc6800d1f725f7439e51705e2664c59484afcd1",
     ]);
     expect(settings.skills).toBeUndefined();
+  });
+
+  it("resolves a package identity from any supported source spec", () => {
+    expect(packageIdentity(`npm:${RETIRED_PACKAGE_NAME}@1.0.1`)).toBe(RETIRED_PACKAGE_NAME);
+    expect(packageIdentity(`git:github.com/SomeoneElse/${RETIRED_PACKAGE_NAME}@0000000`)).toBe(
+      RETIRED_PACKAGE_NAME,
+    );
+    expect(packageIdentity(`git:github.com/Michaelliv/${RETIRED_PACKAGE_NAME}@dbc6800`)).toBe(
+      RETIRED_PACKAGE_NAME,
+    );
+    expect(packageIdentity(`git:github.com/Michaelliv/${RETIRED_PACKAGE_NAME}.git@dbc6800`)).toBe(
+      RETIRED_PACKAGE_NAME,
+    );
+    expect(packageIdentity("npm:Pi-Dynamic-Workflows@1.0.1")).toBe(RETIRED_PACKAGE_NAME);
+    expect(packageIdentity("npm:@tintinweb/pi-subagents@0.12.0")).toBe("pi-subagents");
+    expect(packageIdentity("npm:cc-safety-net@1.0.6")).toBe("cc-safety-net");
+  });
+
+  it("excludes the retired dynamic workflow package from every source", () => {
+    const settings = readPiSettings();
+
+    expect((settings.packages ?? []).map(packageIdentity)).not.toContain(RETIRED_PACKAGE_NAME);
   });
 });

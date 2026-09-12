@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "commit": "7cf268029c1d0ddc50899a5da8bfaa9afd83c5ab",
+  "reviewer": "T2 — bounded read-only worker (general-purpose, claude-opus-5[1m]), did not write the code under review",
+  "reviewedAt": "2026-09-12T05:40:00Z",
+  "findings": [],
+  "note": "Second read. The first read was at 000ac92f; commit 4a2e4b30 then moved the code under review, so that record was rewritten for this head rather than reused. The reviewer confirmed packageIdentity() is four reachable statements, each stripping one dimension the criterion's 'alternate package sources' actually varies, with two call sites and no exported surface. The one sub-finding-grade observation from the first read, an unreachable replace, is gone at this head and was not restated."
+}
