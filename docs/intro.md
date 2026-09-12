@@ -2,13 +2,13 @@
 title: "Introduction"
 ---
 
-# Open Harness
+# AGRO
 
-Open Harness is your **portable harness** — one repo per sandbox — that wraps your project in an isolated Docker container and versions its state. The repo tracks the agent's identity, skills, crons, and memory in git; the sandbox keeps the agent (Claude Code, Codex, Pi, or another of your choice) off your host machine. The agent owns its workspace, runs against your code, and wakes itself on a schedule via a tiny croner runtime.
+AGRO is your **portable harness** — one repo per sandbox — that wraps your project in an isolated Docker container and versions its state. The repo tracks the agent's identity, skills, crons, and memory in git; the sandbox keeps the agent (Claude Code, Codex, Pi, or another of your choice) off your host machine. The agent owns its workspace, runs against your code, and wakes itself on a schedule via a tiny croner runtime.
 
-## What is Open Harness?
+## What is AGRO?
 
-Open Harness is a single repo that *is* your harness: it boots one Docker container — the sandbox — and wraps your project inside it. You bring the sandbox up with `agro sandbox install docker`, attach to it from your terminal or VS Code, and let your chosen agent work the project over time. Because the harness is a git repo, its whole setup is tracked and versioned — reproducible and portable. There is no per-agent fan-out: one host CLI, `agro`, drives the whole lifecycle, and the croner runtime that ships in the image wakes the agent on a schedule.
+AGRO is a single repo that *is* your harness: it boots one Docker container — the sandbox — and wraps your project inside it. You bring the sandbox up with `agro sandbox install docker`, attach to it from your terminal or VS Code, and let your chosen agent work the project over time. Because the harness is a git repo, its whole setup is tracked and versioned — reproducible and portable. There is no per-agent fan-out: one host CLI, `agro`, drives the whole lifecycle, and the croner runtime that ships in the image wakes the agent on a schedule.
 
 Key capabilities:
 
@@ -68,6 +68,6 @@ If you already have a sandbox running, jump directly to the page you need.
 
 - Source code and issues: [github.com/mifunedev/agro](https://github.com/mifunedev/agro)
 - Learning material: [Resources](/docs/resources)
-- Philosophy: [How Open Harness embodies compound engineering](https://github.com/mifunedev/agro-web/tree/main/blog) — why each unit of work here should make the next one easier.
+- Philosophy: [How AGRO embodies compound engineering](https://github.com/mifunedev/agro-web/tree/main/blog) — why each unit of work here should make the next one easier.
 
 [Connecting to the Sandbox](/docs/connecting)

@@ -28,11 +28,11 @@ actually asking.
 | Question | Short answer |
 |---|---|
 | **How do I get the `msb` binary?** | `agro tool install microsandbox` — see [Installing `msb`](#installing-msb). |
-| **Can I run Open Harness *on* MicroSandbox, from my own host?** | **Possibly yes, today** — see [Running Open Harness on MicroSandbox](#running-open-harness-on-microsandbox). Nothing on this page measures your host. |
+| **Can I run AGRO *on* MicroSandbox, from my own host?** | **Possibly yes, today** — see [Running AGRO on MicroSandbox](#running-agro-on-microsandbox). Nothing on this page measures your host. |
 
 The distinction matters because the two use different commands on different
 machines. `agro tool install microsandbox` installs `msb` **inside the sandbox**
-(`installUser: "sandbox"`). If you want msb as the **runner** for Open Harness,
+(`installUser: "sandbox"`). If you want msb as the **runner** for AGRO,
 you install msb on your **host**, from upstream — the tool verb is not that
 command and wires nothing up.
 
@@ -105,14 +105,14 @@ way, the tool's target changes — and that is a reason it writes no config
 today. The axes taxonomy behind the decision is in
 [the runtime-support RFC](../rfcs/rfc-runtime-support.md).
 
-## Running Open Harness on MicroSandbox
+## Running AGRO on MicroSandbox
 
 This does not go through the `agro` CLI at all.
 
 **MicroSandbox is not a Docker runtime.** You cannot point `docker compose` at it
 the way you can point it at a Docker-level runtime. It is its own VM manager
 with its own CLI. So it does not plug into the boot path — **it replaces it.**
-msb becomes the runner, and the thing it runs is the image Open Harness already
+msb becomes the runner, and the thing it runs is the image AGRO already
 publishes:
 
 ```
@@ -140,7 +140,7 @@ find.
 This is the step `agro tool install microsandbox` does *not* do for you: that
 verb installs `msb` inside the sandbox, which is the wrong side for this.
 
-Check the floor first — `msb` needs both, and neither is Open Harness's
+Check the floor first — `msb` needs both, and neither is AGRO's
 requirement:
 
 ```bash
@@ -171,7 +171,7 @@ bash get-microsandbox.sh
 
 **The second command is the gate.** `msb self doctor` alone proves nothing. If
 `msb run alpine` does not print `ok`, the problem is msb on your host and no
-amount of Open Harness configuration will fix it.
+amount of AGRO configuration will fix it.
 
 ### Step 2 — Create the directories the sandbox will bind (host)
 
@@ -320,7 +320,7 @@ directory.
 msb exec openharness -- zsh
 ```
 
-Then, inside — exactly as in any Open Harness sandbox:
+Then, inside — exactly as in any AGRO sandbox:
 
 ```bash
 agro tool install herdr           # nothing installs at boot
@@ -347,7 +347,7 @@ msb run --conf sandbox.yaml --name openharness   # second boot skips the seed
 | **The host Docker socket** | **Gone, and this is the headline.** A microVM has no host `dockerd` to reach. Nested-Docker work stops: `/health-check`'s inventory, container work from inside the sandbox, and — most importantly — **the entire lifecycle verb family run *inside* an msb-hosted harness has no daemon**: `agro sandbox install docker`, `agro shell`, `agro stop`, `agro restart`, `agro logs`, `agro ps`, and `agro destroy`. All of them go through `.agro/scripts/docker-compose.sh`. You cannot manage a harness from in there. |
 | **VS Code "Attach to Running Container"** | Gone — this is not a container. Options B and C in [Connecting](../connecting.md) do not apply; `msb exec` is the only door. For an editor, use Remote-SSH to the host and drive the sandbox from a terminal, or enable the SSH overlay inside the sandbox and connect to that. |
 | `host.docker.internal` | No equivalent. Affects self-hosted Langfuse only. |
-| The compose healthcheck | No equivalent. `max_duration` / `idle_timeout` are different semantics — confirm whether msb reaps idle sandboxes by default and, if so, which key disables it. Open Harness is meant to run for weeks. |
+| The compose healthcheck | No equivalent. `max_duration` / `idle_timeout` are different semantics — confirm whether msb reaps idle sandboxes by default and, if so, which key disables it. AGRO is meant to run for weeks. |
 
 ### The five untested inferences
 
@@ -363,7 +363,7 @@ Ranked by what they cost if wrong:
    `gosu sandbox`. If msb starts it non-root, **the boot half-fails silently** —
    those calls are `|| true`.
 3. **Reaping.** msb's `idle_timeout` / `max_duration` defaults are unknown, and
-   Open Harness is explicitly one long-lived sandbox running agents on cron.
+   AGRO is explicitly one long-lived sandbox running agents on cron.
 4. **Bind UID mapping** through the microVM's filesystem transport — whether
    `chown -R 1000` means the same thing on both sides.
 5. **systemd as PID 1.** Compose grants `cap_add: [SYS_ADMIN]`, `tmpfs: [/sys/fs]`,

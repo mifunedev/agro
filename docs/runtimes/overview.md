@@ -10,7 +10,7 @@ lifecycles, which is why the runtime catalog lives under `agro sandbox` and
 [`agro harness`](../harnesses/overview.md) is its own command over its own
 catalog.
 
-Open Harness runs on a **Docker container** today. Nothing on this page changes
+AGRO runs on a **Docker container** today. Nothing on this page changes
 that.
 
 ## The commands
@@ -50,7 +50,7 @@ configuration. See
 | Runtime | Tier | State | How you reach it |
 |---|---|---|---|
 | [Docker container](docker.md) | shared host kernel, namespaces + cgroups | **provisionable** | `agro sandbox install docker` |
-| [MicroSandbox](microsandbox.md) | microVM — one real kernel per sandbox, KVM-backed | planned | `agro tool install microsandbox` installs the `msb` binary inside a sandbox; running Open Harness *on* msb is a manual host recipe |
+| [MicroSandbox](microsandbox.md) | microVM — one real kernel per sandbox, KVM-backed | planned | `agro tool install microsandbox` installs the `msb` binary inside a sandbox; running AGRO *on* msb is a manual host recipe |
 
 Two entries rather than one is deliberate. A single-entry catalog would encode a
 false singleton and need a schema change the moment a second runtime lands.
@@ -60,7 +60,7 @@ false singleton and need a schema change the moment a second runtime lands.
 Docker is what the compose stack already drives, so `agro sandbox install docker`
 provisions it end to end. MicroSandbox is **not** a Docker runtime — it is its
 own VM manager, so it cannot plug into the boot path and instead
-[replaces it, running the published image directly](microsandbox.md#running-open-harness-on-microsandbox).
+[replaces it, running the published image directly](microsandbox.md#running-agro-on-microsandbox).
 That asymmetry is why the two need different framing.
 
 ## Why the CLI selects no substrate key
@@ -83,6 +83,6 @@ So the entry records only what it was actually provisioned on: `runtime:
 - `agro tool install microsandbox` installs a binary and nothing else: it rebuilds
   no image, restarts no sandbox, and writes no configuration.
 
-None of that stops you running Open Harness **on** a different runtime yourself —
+None of that stops you running AGRO **on** a different runtime yourself —
 it just means the CLI is not how you do it. See
-[Running Open Harness on MicroSandbox](microsandbox.md#running-open-harness-on-microsandbox).
+[Running AGRO on MicroSandbox](microsandbox.md#running-agro-on-microsandbox).

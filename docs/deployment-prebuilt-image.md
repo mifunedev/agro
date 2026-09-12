@@ -325,7 +325,7 @@ the wait loop works as written — or use `agro ps <name>` and `agro shell <name
 `msb` runs standard OCI images, so this image is also what you point MicroSandbox
 at if you want a microVM rather than a container. The `docker run` recipe above
 is the invocation to translate — see
-[Running Open Harness on MicroSandbox](runtimes/microsandbox.md#running-open-harness-on-microsandbox).
+[Running AGRO on MicroSandbox](runtimes/microsandbox.md#running-agro-on-microsandbox).
 Untested end to end; the risks are listed there.
 
 ### Single-arch caveat

@@ -4,7 +4,7 @@ title: "Installation"
 
 # Installation
 
-Open Harness is a portable harness that boots an isolated Docker sandbox. The `agro` CLI is the only front door: it creates a sandbox (`agro sandbox install docker`) and drives the rest of the lifecycle; `oh update` equips a checkout with the control plane during the compatibility window. Two shapes exist — a sandbox on its own, running the published image, or a sandbox with a checkout bind-mounted into it (`--checkout`) — and both use the same commands. See [lifecycle commands](lifecycle-commands.md) for the verb reference.
+AGRO is a portable harness that boots an isolated Docker sandbox. The `agro` CLI is the only front door: it creates a sandbox (`agro sandbox install docker`) and drives the rest of the lifecycle; `oh update` equips a checkout with the control plane during the compatibility window. Two shapes exist — a sandbox on its own, running the published image, or a sandbox with a checkout bind-mounted into it (`--checkout`) — and both use the same commands. See [lifecycle commands](lifecycle-commands.md) for the verb reference.
 
 Installing this harness never means cloning it onto your host. There is no fork step, no host-side source checkout, and no managed clone directory. You install the CLI, create a sandbox, and work inside it.
 

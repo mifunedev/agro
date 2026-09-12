@@ -4,7 +4,7 @@ title: "Docker container"
 
 # Docker container
 
-The runtime Open Harness runs on today, and the only **provisionable** one. A
+The runtime AGRO runs on today, and the only **provisionable** one. A
 Linux container: a **shared host kernel**, isolated by namespaces and cgroups.
 
 ```bash

@@ -145,7 +145,7 @@ names. It renames `.oh/` to `.agro/` and `oh.json` to `agro.json` wholesale,
 and re-points three active provider links from `../.oh/…` to `../.agro/…`:
 `.claude/skills`, `.claude/hooks`, and `.agents/skills`.
 The retired links are `.pi/skills` and `.codex/skills`.
-If a retired link resolves to the Open Harness pack and `.agents/skills` independently links to that pack, migration moves the retired link to `<path>.migrated`.
+If a retired link resolves to the AGRO pack and `.agents/skills` independently links to that pack, migration moves the retired link to `<path>.migrated`.
 Otherwise, migration preserves the retired path. Migration re-points a preserved
 `../.oh/skills` link to `../.agro/skills` so discovery survives the pack rename.
 Custom directories and foreign links remain unchanged. An existing retirement

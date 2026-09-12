@@ -1,6 +1,6 @@
 # Configuration
 
-Open Harness has two authored configuration surfaces, split by kind:
+AGRO has two authored configuration surfaces, split by kind:
 
 | File | Tracked | Holds |
 | --- | --- | --- |

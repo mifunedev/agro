@@ -105,7 +105,7 @@ as Pi TUI commands. This mirrors the root package: `pi-messenger-bridge`'s
 README lists `/msg-bridge ...` under `## Commands`, then lists `/trusted`,
 `/channels`, `/enable`, `/disable`, `/revoke`, `/toggletools`, and `/help` in a
 separate "Admin commands (in DM with the bot)" section. The package source also
-registers only `msg-bridge` as a Pi command. Open Harness additionally declares
+registers only `msg-bridge` as a Pi command. AGRO additionally declares
 those admin commands in `.pi/install/slack-manifest.json` and pins the bridge
 fork branch that handles Slack slash-command payloads by forwarding them to the
 same `handleAdminCommand` path as trusted DM text (§ 6). Auth/channel changes

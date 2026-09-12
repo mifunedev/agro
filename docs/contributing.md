@@ -2,9 +2,9 @@
 title: "Contributing"
 ---
 
-# Contributing to Open Harness
+# Contributing to AGRO
 
-This guide covers the workflow for contributing to Open Harness: creating branches, writing commits, updating the changelog, and shipping releases.
+This guide covers the workflow for contributing to AGRO: creating branches, writing commits, updating the changelog, and shipping releases.
 
 For the inbound license terms and the Developer Certificate of Origin (DCO), see the root [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
@@ -185,7 +185,7 @@ gh pr create --base development \
 
 ## Releases
 
-Open Harness uses SemVer versioning: `MAJOR.MINOR.PATCH`, tagged
+AGRO uses SemVer versioning: `MAJOR.MINOR.PATCH`, tagged
 `vMAJOR.MINOR.PATCH`. Root `package.json` holds the version. No other file
 records it.
 

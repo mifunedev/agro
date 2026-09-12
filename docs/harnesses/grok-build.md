@@ -4,7 +4,7 @@ title: "Grok Build"
 
 # Grok Build
 
-Grok Build is xAI's proprietary terminal coding agent, shipped as the `grok` CLI. Open Harness installs it with xAI's official installer from `https://x.ai/cli/install.sh`.
+Grok Build is xAI's proprietary terminal coding agent, shipped as the `grok` CLI. AGRO installs it with xAI's official installer from `https://x.ai/cli/install.sh`.
 
 Grok Build is never baked into the sandbox image. Install it only when you want the xAI Grok Build CLI available in the sandbox.
 
@@ -23,7 +23,7 @@ and what happens when the sandbox is not running.
 
 ### What the door runs
 
-Open Harness uses the upstream installer as the `sandbox` user, pinned to the version verified when this support was added, with the binary directed into the home mount:
+AGRO uses the upstream installer as the `sandbox` user, pinned to the version verified when this support was added, with the binary directed into the home mount:
 
 ```bash
 curl -fsSL https://x.ai/cli/install.sh | GROK_BIN_DIR="$HOME/.local/bin" bash -s 0.2.39
@@ -37,7 +37,7 @@ curl -fsSL -o grok-install.sh https://x.ai/cli/install.sh
 bash grok-install.sh 0.2.39
 ```
 
-If you already use [`vet`](https://github.com/vet-run/vet), `vet https://x.ai/cli/install.sh 0.2.39` gives the same third-party installer a fetch, review, and approve gate. `vet` is optional and is not required by Open Harness.
+If you already use [`vet`](https://github.com/vet-run/vet), `vet https://x.ai/cli/install.sh 0.2.39` gives the same third-party installer a fetch, review, and approve gate. `vet` is optional and is not required by AGRO.
 
 Verify the install inside the sandbox:
 
@@ -91,7 +91,7 @@ tmux attach -t agent-grok
 
 ## State persistence
 
-Open Harness persists `~/.grok` in the single `/home/sandbox` mount, alongside every other agent's state. That keeps **Grok user state written under `~/.grok`** across container rebuilds, such as:
+AGRO persists `~/.grok` in the single `/home/sandbox` mount, alongside every other agent's state. That keeps **Grok user state written under `~/.grok`** across container rebuilds, such as:
 
 - auth and cached sessions (`auth.json`)
 - config
@@ -109,7 +109,7 @@ Open Harness persists `~/.grok` in the single `/home/sandbox` mount, alongside e
 Grok Build exposes flags that can bypass approval or permission prompts, including `--always-approve`, `--yolo`, and `--permission-mode bypassPermissions`.
 
 :::warning Use only for trusted tasks
-These flags can allow broad tool use inside the sandbox. Only use them when you understand and accept the risk for the specific task and repository. Open Harness documents these flags as warning-only; it does not normalize or recommend yolo-mode examples.
+These flags can allow broad tool use inside the sandbox. Only use them when you understand and accept the risk for the specific task and repository. AGRO documents these flags as warning-only; it does not normalize or recommend yolo-mode examples.
 :::
 
 ## Upstream documentation

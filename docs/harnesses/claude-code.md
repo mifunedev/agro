@@ -8,7 +8,7 @@ Claude Code is Anthropic's terminal-based AI coding agent. It reads your codebas
 
 ## Purpose
 
-Claude Code is the general-purpose agent most Open Harness operators install first. It handles everything from one-off file edits to multi-file refactors, test generation, and debugging. It works best for tasks that benefit from a persistent conversational loop where you can steer the agent mid-task.
+Claude Code is the general-purpose agent most AGRO operators install first. It handles everything from one-off file edits to multi-file refactors, test generation, and debugging. It works best for tasks that benefit from a persistent conversational loop where you can steer the agent mid-task.
 
 ## Install
 

@@ -21,7 +21,7 @@ and what happens when the sandbox is not running.
 
 ### What the door runs
 
-Open Harness installs the upstream npm package into the home mount as the `sandbox` user:
+AGRO installs the upstream npm package into the home mount as the `sandbox` user:
 
 ```bash
 npm --prefix /home/sandbox/.local install -g opencode-ai
