@@ -1,0 +1,50 @@
+# Pi regression evidence
+
+$ pnpm exec vitest run .pi/extensions/__tests__/settings.test.ts
+
+ RUN  v4.1.11 /home/sandbox/harness/.worktrees/task/1054-retire-pi-dynamic-workflows
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  23:24:35
+   Duration  109ms (transform 17ms, setup 0ms, import 25ms, tests 3ms, environment 0ms)
+
+exit=0
+
+$ pnpm exec vitest run .pi
+
+ RUN  v4.1.11 /home/sandbox/harness/.worktrees/task/1054-retire-pi-dynamic-workflows
+
+
+ Test Files  7 passed (7)
+      Tests  52 passed (52)
+   Start at  23:24:35
+   Duration  171ms (transform 347ms, setup 0ms, import 442ms, tests 44ms, environment 1ms)
+
+exit=0
+
+## Changed set
+
+$ git status --short
+ M .pi/extensions/__tests__/settings.test.ts
+ M .pi/settings.json
+ M CHANGELOG.md
+ M docs/README.md
+ M docs/harnesses/pi.md
+ M docs/installation.md
+D  docs/integrations/pi-dynamic-workflows.md
+ M docs/integrations/pi-fff.md
+exit=0
+
+$ git diff --stat HEAD
+ .pi/extensions/__tests__/settings.test.ts | 26 ++++++++-
+ .pi/settings.json                         |  3 +-
+ CHANGELOG.md                              |  1 +
+ docs/README.md                            |  1 -
+ docs/harnesses/pi.md                      |  9 ++--
+ docs/installation.md                      |  2 +-
+ docs/integrations/pi-dynamic-workflows.md | 90 -------------------------------
+ docs/integrations/pi-fff.md               |  3 +-
+ 8 files changed, 33 insertions(+), 102 deletions(-)
+exit=0

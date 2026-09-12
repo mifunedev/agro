@@ -1,0 +1,222 @@
+{
+  "reason": "startup",
+  "toolCount": 28,
+  "tools": [
+    {
+      "name": "read",
+      "source": "builtin",
+      "path": "<builtin:read>",
+      "scope": "temporary",
+      "origin": "top-level"
+    },
+    {
+      "name": "bash",
+      "source": "builtin",
+      "path": "<builtin:bash>",
+      "scope": "temporary",
+      "origin": "top-level"
+    },
+    {
+      "name": "powershell",
+      "source": "builtin",
+      "path": "<builtin:powershell>",
+      "scope": "temporary",
+      "origin": "top-level"
+    },
+    {
+      "name": "edit",
+      "source": "builtin",
+      "path": "<builtin:edit>",
+      "scope": "temporary",
+      "origin": "top-level"
+    },
+    {
+      "name": "write",
+      "source": "builtin",
+      "path": "<builtin:write>",
+      "scope": "temporary",
+      "origin": "top-level"
+    },
+    {
+      "name": "grep",
+      "source": "builtin",
+      "path": "<builtin:grep>",
+      "scope": "temporary",
+      "origin": "top-level"
+    },
+    {
+      "name": "find",
+      "source": "builtin",
+      "path": "<builtin:find>",
+      "scope": "temporary",
+      "origin": "top-level"
+    },
+    {
+      "name": "ls",
+      "source": "builtin",
+      "path": "<builtin:ls>",
+      "scope": "temporary",
+      "origin": "top-level"
+    },
+    {
+      "name": "Agent",
+      "source": "npm:@tintinweb/pi-subagents@0.12.0",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@tintinweb/pi-subagents/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "get_subagent_result",
+      "source": "npm:@tintinweb/pi-subagents@0.12.0",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@tintinweb/pi-subagents/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "steer_subagent",
+      "source": "npm:@tintinweb/pi-subagents@0.12.0",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@tintinweb/pi-subagents/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "TaskCreate",
+      "source": "npm:@tintinweb/pi-tasks@0.7.0",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@tintinweb/pi-tasks/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "TaskList",
+      "source": "npm:@tintinweb/pi-tasks@0.7.0",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@tintinweb/pi-tasks/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "TaskGet",
+      "source": "npm:@tintinweb/pi-tasks@0.7.0",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@tintinweb/pi-tasks/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "TaskUpdate",
+      "source": "npm:@tintinweb/pi-tasks@0.7.0",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@tintinweb/pi-tasks/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "TaskOutput",
+      "source": "npm:@tintinweb/pi-tasks@0.7.0",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@tintinweb/pi-tasks/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "TaskStop",
+      "source": "npm:@tintinweb/pi-tasks@0.7.0",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@tintinweb/pi-tasks/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "TaskExecute",
+      "source": "npm:@tintinweb/pi-tasks@0.7.0",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@tintinweb/pi-tasks/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "goal_complete",
+      "source": "npm:@narumitw/pi-goal@0.4.2",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@narumitw/pi-goal/src/goal.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "LoopCreate",
+      "source": "npm:@trevonistrevon/pi-loop@0.5.5",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@trevonistrevon/pi-loop/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "LoopList",
+      "source": "npm:@trevonistrevon/pi-loop@0.5.5",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@trevonistrevon/pi-loop/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "LoopDelete",
+      "source": "npm:@trevonistrevon/pi-loop@0.5.5",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@trevonistrevon/pi-loop/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "MonitorCreate",
+      "source": "npm:@trevonistrevon/pi-loop@0.5.5",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@trevonistrevon/pi-loop/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "MonitorList",
+      "source": "npm:@trevonistrevon/pi-loop@0.5.5",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@trevonistrevon/pi-loop/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "MonitorStop",
+      "source": "npm:@trevonistrevon/pi-loop@0.5.5",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@trevonistrevon/pi-loop/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "ffgrep",
+      "source": "npm:@ff-labs/pi-fff@0.9.5",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@ff-labs/pi-fff/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "fffind",
+      "source": "npm:@ff-labs/pi-fff@0.9.5",
+      "path": "/tmp/piprobe/co-before/.pi/npm/node_modules/@ff-labs/pi-fff/src/index.ts",
+      "scope": "project",
+      "origin": "package"
+    },
+    {
+      "name": "workflow",
+      "source": "git:github.com/Michaelliv/pi-dynamic-workflows@dbc6800d1f725f7439e51705e2664c59484afcd1",
+      "path": "/tmp/piprobe/co-before/.pi/git/github.com/Michaelliv/pi-dynamic-workflows/extensions/workflow.ts",
+      "scope": "project",
+      "origin": "package"
+    }
+  ],
+  "getAllToolsError": null,
+  "promptWorkflowLines": [
+    "- workflow: Run a deterministic JavaScript workflow. Required script header: export const meta = { name: 'short_snake_case', description: 'non-empty description' }. Use phase(title) at runtime to create progress groups.",
+    "- ## Task-driven workflows",
+    "- Use workflow only when the user explicitly asks for a workflow, workflows, fan-out, or multi-agent orchestration.",
+    "- For workflow, always pass one raw JavaScript string in the required script parameter; do not include Markdown fences or prose around the script.",
+    "- For workflow, the script's first statement must be `export const meta = { name: 'short_snake_case', description: 'non-empty human description' }`; meta.name and meta.description are required non-empty strings, and meta.phases is optional metadata for a stable upfront outline.",
+    "- For workflow, write plain JavaScript after the meta export. Do not use TypeScript syntax, imports, require(), fs, Date.now(), Math.random(), or new Date().",
+    "- For workflow, available globals are agent(prompt, opts), parallel(thunks), pipeline(items, ...stages), phase(title), log(message), args, cwd, process.cwd(), and budget. Every workflow must call agent() at least once; do not use workflow only to declare phases or return a static object.",
+    "- For workflow, call phase(title) when a new group of work starts. Phase names may be conditional or built in a loop; do not predeclare speculative phases just in case.",
+    "- For workflow, prefer it for decomposable work: repository inspection, independent research/checks, multi-perspective review, or fan-out/fan-in synthesis. Do not use it for a single quick file read/edit or when ordinary tools are enough.",
+    "- For workflow, parallel() takes functions, not promises: use `await parallel(items.map(item => () => agent('...', { label: '...' })))`, never `await parallel(items.map(item => agent(...)))`. Results are returned in input order.",
+    "- For workflow, pipeline(items, ...stages) runs each item through stages sequentially, while different items may run concurrently. Each stage receives (previousValue, originalItem, index).",
+    "- For workflow, every agent() call should include a unique short label option, 2-5 words, such as { label: 'repo inventory' } or { label: 'source modules' }; unique labels make live status and error reporting readable.",
+    "- For workflow, failed agent(), parallel(), or pipeline() branches return null and log the failure unless the workflow is aborted. Check for nulls before synthesizing conclusions.",
+    "- For workflow, include a final synthesis/assertion agent when combining multiple subagent results; return a compact JSON-serializable value with ok/verdict plus the important outputs.",
+    "- For workflow, if agent() needs machine-readable output, pass a plain JSON Schema via opts.schema; agent() will return the validated object. Use JSON Schema syntax, not TypeScript or TypeBox constructors.",
+    "- For workflow, do not assume the parent assistant has repository code context inside subagents; include enough task context and relevant paths in each agent prompt."
+  ],
+  "promptLength": 12275
+}

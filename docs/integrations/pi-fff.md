@@ -12,8 +12,7 @@ project-local Pi package from `.pi/settings.json`:
 ```
 
 Pi installs missing project packages automatically on startup after the project is
-trusted. Open Harness uses this package path — the same one used for
-`pi-dynamic-workflows` — instead of vendoring upstream source
+trusted. Open Harness loads this package by pin instead of vendoring upstream source
 into `.pi/extensions/`, so the integration stays small, pinned, and easy to update.
 
 [`fff`](https://github.com/dmtrKovalenko/fff) is a fast, typo-resistant file-search

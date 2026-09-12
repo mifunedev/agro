@@ -33,6 +33,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Removed
 
 - Remove the `agro cloud` command and every surface it owned: the verb, the `cloud.apiUrl` field, the `OH_CLOUD_PROVISION_KEY` secret key, and the Cloud docs. ([#1050](https://github.com/mifunedev/agro/issues/1050))
+- Remove the dynamic workflow package from the default project-local Pi package list, so a new Pi session registers no `workflow` tool ([#1054](https://github.com/mifunedev/agro/issues/1054)).
 
 ## [0.10.0] - 2026-09-10
 

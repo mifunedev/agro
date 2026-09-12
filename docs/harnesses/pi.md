@@ -42,7 +42,6 @@ Open Harness loads these project-local Pi packages from `.pi/settings.json`:
 - [`@tifan/pi-recap`](https://github.com/tifandotme/pi-extensions/tree/master/packages/pi-recap) — one-line session recaps for re-entry. Use `/recap` for a fresh goal-first recap, `/recap status` to inspect freshness/model state, and `/recap config` to choose the recap model. The package also generates one idle recap after five minutes and refreshes stale/missing recaps on resume.
 - [`@trevonistrevon/pi-loop`](https://pi.dev/packages/@trevonistrevon/pi-loop?name=monitor) — Monitor and loop tools for background command monitoring and scheduled re-wakes. Use `MonitorCreate`, `MonitorList`, and `MonitorStop` for long-running commands; use `/loop` or `LoopCreate` for cron/event-triggered follow-up prompts.
 - [`@guwidoe/pi-prompt-suggester`](https://github.com/guwidoe/pi-prompt-suggester) — intent-aware next-prompt suggestions after assistant completions. Suggestions can appear as ghost text in the editor, with `/suggesterSettings` for interactive configuration and `/suggester status` / `/suggester reseed` for inspection and manual reseeding.
-- [`pi-dynamic-workflows`](../integrations/pi-dynamic-workflows.md) — Claude-Code-style dynamic workflow orchestration for Pi, pinned to the upstream `v1.0.1` commit. It registers a `workflow` tool that lets the model write deterministic JavaScript workflows, fan out to isolated in-memory subagents, and synthesize the results.
 
 Pi installs missing project packages automatically on startup after the project is trusted. Open Harness also auto-loads project-local extensions from `.pi/extensions/`.
 
@@ -57,7 +56,7 @@ and configure its external Langfuse deployment before installing it.
 
 The installed `@earendil-works/pi-ai` Codex Responses provider can reuse WebSocket cached continuation state by sending `previous_response_id`. If the upstream Codex backend forgets that response id, it returns `previous_response_not_found`; Pi clears the stale continuation but the failed user turn would otherwise be lost. Open Harness keeps a small auto-loaded `.pi/extensions/codex-stale-response-retry.ts` extension that re-injects non-Slack failed turns once via `sendUserMessage(..., { deliverAs: "followUp" })`, causing the next request to start from fresh/full context. Slack-prefixed turns remain owned by the dedicated `.pi/bridge-recovery/` extension that is co-loaded with `pi-messenger-bridge`.
 
-Outside this project, try the packages manually with `pi -e npm:@narumitw/pi-goal`, `pi -e npm:@narumitw/pi-codex-usage@0.6.2`, `pi -e npm:@tifan/pi-recap`, `pi -e npm:@trevonistrevon/pi-loop`, `pi -e npm:@guwidoe/pi-prompt-suggester@0.3.10`, or `pi -e git:github.com/Michaelliv/pi-dynamic-workflows@dbc6800d1f725f7439e51705e2664c59484afcd1`.
+Outside this project, try the packages manually with `pi -e npm:@narumitw/pi-goal`, `pi -e npm:@narumitw/pi-codex-usage@0.6.2`, `pi -e npm:@tifan/pi-recap`, `pi -e npm:@trevonistrevon/pi-loop`, or `pi -e npm:@guwidoe/pi-prompt-suggester@0.3.10`.
 
 ## Prompt suggestions
 
@@ -134,11 +133,11 @@ The default task runtime state lives under `.pi/tasks/`, which is gitignored. Le
 
 `pi-loop` detects `@tintinweb/pi-tasks` over Pi's event bus. Because Open Harness loads `pi-tasks` by default, `pi-loop` delegates task management to that package; its native fallback `TaskCreate`/`TaskList`/`TaskUpdate`/`TaskDelete` tools and `/tasks` command only register in projects where `pi-tasks` is absent.
 
-## Dynamic workflows
+## Dynamic workflow retirement
 
-Use the `workflow` tool when a Pi task benefits from deliberate fan-out: multi-perspective code review, repository audits, research sweeps, or analysis pipelines. The parent model writes a constrained JavaScript workflow that calls `agent()`, `parallel()`, `pipeline()`, and `phase()`; the extension runs it in a deterministic VM sandbox and reports live phase/subagent progress inline.
+Open Harness no longer pins a dynamic workflow package, so a new Pi session registers no `workflow` tool. Use `/delegate` for bounded delegation over the Pi `Agent` tools.
 
-See [Pi dynamic workflows](../integrations/pi-dynamic-workflows.md) for the workflow script shape, available globals, and safety constraints.
+A Pi session that is already running keeps the tool until you reload or restart it. A global installation or an explicit `pi -e` argument also registers the tool, so removing the project pin does not remove every registration source.
 
 ## Slack integration
 

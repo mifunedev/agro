@@ -1,0 +1,244 @@
+{
+  "slug": "retire-pi-dynamic-workflows",
+  "plan": "/home/sandbox/harness/.agro/plans/retire-pi-dynamic-workflows/plan.md",
+  "advisor": "Herdr advisor session (Claude Opus 5, 1M context) — sole accountable build owner",
+  "nativeCapabilityCheck": {
+    "checkedAt": "2026-09-11",
+    "provider": "Claude Code",
+    "workerTool": "Agent",
+    "modelControl": "per-call `model` enum: sonnet | opus | haiku | fable",
+    "reasoningControl": "none on the per-call Agent tool; per-worker effort exists only in subagent definition frontmatter, and this repository defines no agent definition files (.agro/skills/delegate/SKILL.md:467-471)",
+    "consequence": "Effort is not settable per worker here. Effort is an advisor judgment and a missing effort control never blocks a worker, so no task is BLOCKED on it. Every worker runs at the inherited session effort and that is recorded unobserved."
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Remove the dynamic workflow default and its current documentation",
+      "description": "In the isolated worktree, remove the pi-dynamic-workflows pin from .pi/settings.json, update the exact-list expectation in .pi/extensions/__tests__/settings.test.ts and add a source-agnostic negative package-identity assertion, delete docs/integrations/pi-dynamic-workflows.md, remove current advertising from docs/harnesses/pi.md, docs/README.md, docs/installation.md, and docs/integrations/pi-fff.md, add one concise migration note plus a CHANGELOG Unreleased Removed entry, and produce the D1-D4 evidence files including the disposable-session runtime tool inventories.",
+      "dependsOn": "none",
+      "wave": 1,
+      "complexity": "Medium. The package removal itself is mechanical with a decisive test, but the runtime inventory capture, the negative-assertion design, and the migration-note boundaries are coupled judgment across configuration, tests, and prose, and the blast radius reaches the shipped default configuration.",
+      "selectionReason": "The approved plan records `inherit` because the operator selected no implementation model. Delegate policy rule 2 requires the advisor to resolve an unspecified setting per task, and rule 1 makes the operator's standing non-Sonnet exclusion binding. pattern-delegate-builtin-type-carries-own-model shows an omitted `model` does not reliably inherit the dispatching session's model, so an omitted value cannot guarantee the exclusion. The advisor therefore requests `opus` explicitly: it is a supported non-Sonnet model that fits medium-complexity coupled implementation. This resolves the plan's `inherit` placeholder; it does not change the plan's intent.",
+      "requestedModel": "opus",
+      "requestedReasoning": "medium (plan-requested; not settable per worker on this surface)",
+      "observedSettings": "model claude-opus-5[1m] (Claude Opus 5, 1M context); reasoning effort unobserved",
+      "observedProvenance": "Model: worker self-report in its final message, matching the explicit model:opus request. Effort: no per-worker control exists on this surface and the runtime reported none to the worker, so it ran at the inherited session effort, unobserved. The requested value was NOT copied into this field.",
+      "readScope": [
+        "/home/sandbox/harness/.agro/plans/retire-pi-dynamic-workflows/plan.md",
+        ".agro/tasks/retire-pi-dynamic-workflows/prd.md",
+        ".agro/tasks/retire-pi-dynamic-workflows/prd.json",
+        ".pi/settings.json",
+        ".pi/extensions/**",
+        "docs/**",
+        "CHANGELOG.md",
+        "package.json",
+        "vitest.config.ts",
+        ".agro/skills/git/SKILL.md",
+        ".agro/skills/delegate/SKILL.md",
+        "installed Pi docs for packages and extensions"
+      ],
+      "searchOutputLimits": "30 turns; final report at most 1000 words; verbose logs go to evidence files, never into the report body",
+      "ownedWritePaths": [
+        ".pi/settings.json",
+        ".pi/extensions/__tests__/settings.test.ts",
+        "docs/integrations/pi-dynamic-workflows.md (delete only)",
+        "docs/harnesses/pi.md",
+        "docs/README.md",
+        "docs/installation.md",
+        "docs/integrations/pi-fff.md",
+        "CHANGELOG.md (the [Unreleased] section only)",
+        ".agro/tasks/retire-pi-dynamic-workflows/evidence/**"
+      ],
+      "exclusions": [
+        "prd.md, prd.json, progress.txt, delegate-graph.json, delegate-log.txt — advisor-owned task state",
+        "CHANGELOG.md line 681 and every other historical or versioned section",
+        ".pi/APPEND_SYSTEM.md",
+        "Any global Pi settings, ~/.pi/**, package caches, session histories, gateway state",
+        "Any file under projects/, .worktrees/ outside this worktree, or the root checkout",
+        "Provider mirrors and generated symlink surfaces",
+        "Any git push, PR, issue, merge, release, or branch operation",
+        "Calling the retiring `workflow` tool, dispatching child agents, and reloading or restarting any gateway, Herdr session, cron service, or other agent session"
+      ],
+      "executionDirectory": "/home/sandbox/harness/.worktrees/task/1054-retire-pi-dynamic-workflows",
+      "worktreeIsolation": "Sole writer in the isolated worktree .worktrees/task/1054-retire-pi-dynamic-workflows on branch task/1054-retire-pi-dynamic-workflows. The root checkout at /home/sandbox/harness stays untouched. Coupled files stay with this one continuing worker rather than being split across parallel writers.",
+      "workerType": "general-purpose",
+      "continuationMethod": "Native continuation via SendMessage to the same worker for every repair round; never a fresh writer for the same files.",
+      "deliverable": "One coupled patch in the worktree working tree (uncommitted; the advisor commits), plus evidence/settings.txt, evidence/diff.txt, evidence/references.txt, evidence/docs-review.md, evidence/runtime-before.json, evidence/runtime-after.json, evidence/runtime.txt, evidence/pi-tests.txt.",
+      "verification": [
+        "pnpm exec vitest run .pi/extensions/__tests__/settings.test.ts — expect exit 0",
+        "pnpm exec vitest run .pi — expect exit 0",
+        "git diff --stat — expect only the owned paths",
+        "grep for pi-dynamic-workflows, Michaelliv, and the retired pin across tracked files — every remaining match classified",
+        "Disposable-session tool inventory comparison — `workflow` absent, retained tools present"
+      ],
+      "stoppingCondition": "Stop and report when every D1-D4 check has a real exit code recorded, or immediately when scope would expand beyond the owned paths, a prerequisite fails, or a required harness capability turns out to depend on the retired runtime. A failed runtime prerequisite is reported BLOCKED with its failure, never as a pass.",
+      "evidenceDestinations": ".agro/tasks/retire-pi-dynamic-workflows/evidence/",
+      "coveredDoD": [
+        "D1",
+        "D2",
+        "D3",
+        "D4"
+      ],
+      "acceptanceOwner": "advisor",
+      "failureRepairRoute": "Advisor returns the defect to this same continuing worker (T1) via native continuation. The advisor never performs the implementation repair itself.",
+      "recursion": "Max depth: 1 — flat. No child dispatch authorized.",
+      "nativeWorkerId": "a4a48162b2bc6e8a2 (Claude Code Agent tool, async)",
+      "status": "completed",
+      "artifactReferences": [
+        ".pi/settings.json",
+        ".pi/extensions/__tests__/settings.test.ts",
+        "CHANGELOG.md",
+        "docs/README.md",
+        "docs/harnesses/pi.md",
+        "docs/installation.md",
+        "docs/integrations/pi-fff.md",
+        "docs/integrations/pi-dynamic-workflows.md (deleted)",
+        "evidence/settings.txt",
+        "evidence/diff.txt",
+        "evidence/references.txt",
+        "evidence/docs-review.md",
+        "evidence/runtime-before.json",
+        "evidence/runtime-after.json",
+        "evidence/runtime-reload.jsonl",
+        "evidence/runtime.txt",
+        "evidence/pi-tests.txt"
+      ],
+      "usage": "124292 subagent tokens, 57 tool uses, 341s (provider-reported)",
+      "summary": "Worker reported D1-D4 met with observed runtime evidence and flagged one gap: cc-safety-net registers no LLM-callable tool, so the safety-guard criterion cannot be proven by tool name."
+    },
+    {
+      "id": "T2",
+      "title": "Independent read-only review of the patch, the evidence, distribution, and public docs",
+      "description": "Review T1's patch and evidence independently against D1-D5 without making any tracked edit. Verify the retained Pi capabilities survive, trace how repository Pi settings reach initialized and updated projects through current .agro/cli and .agro/scripts source with path:line citations, inspect projects/mifunedev/agro-web for surviving dynamic-workflow advertising, re-run the focused settings test, and return findings grouped by DoD identifier.",
+      "dependsOn": "T1",
+      "wave": 2,
+      "complexity": "Medium. Independent review spans configuration, runtime evidence provenance, lifecycle distribution source, and a second repository's documentation, and it must separate observed results from the implementer's claims.",
+      "selectionReason": "Same reasoning as T1: the plan's `inherit` placeholder is resolved by the advisor under rule 2, with the binding non-Sonnet exclusion enforced by an explicit model. Review work benefits from a strong non-Sonnet model; `opus` is selected. A read-only brief on `general-purpose` is what the approved plan specifies, rather than a read-only built-in, because the task must reason over a patch rather than locate code.",
+      "requestedModel": "opus",
+      "requestedReasoning": "medium (plan-requested; not settable per worker on this surface)",
+      "observedSettings": "pending",
+      "observedProvenance": "pending",
+      "readScope": [
+        "The T1 patch and every file it touched",
+        ".agro/tasks/retire-pi-dynamic-workflows/evidence/**",
+        ".agro/tasks/retire-pi-dynamic-workflows/prd.md",
+        ".agro/cli/**",
+        ".agro/scripts/**",
+        ".agro/install/**",
+        "/home/sandbox/harness/projects/mifunedev/agro-web/** (read-only)",
+        "/home/sandbox/harness/.agro/plans/retire-pi-dynamic-workflows/plan.md"
+      ],
+      "searchOutputLimits": "30 turns; final report at most 1000 words; long transcripts summarized, not pasted",
+      "ownedWritePaths": [],
+      "exclusions": [
+        "Every tracked file — this worker makes no edit of any kind, including to evidence files",
+        "Any git write operation: add, commit, push, branch, PR, issue, merge, release",
+        "Any service action: no gateway, Herdr, cron, or session reload or restart",
+        "Any write inside projects/mifunedev/agro-web",
+        "Calling the retiring `workflow` tool and dispatching child agents"
+      ],
+      "executionDirectory": "/home/sandbox/harness/.worktrees/task/1054-retire-pi-dynamic-workflows",
+      "worktreeIsolation": "Shares T1's worktree read-only. Serialized after T1, so no concurrent writer exists. It owns no write path, so no isolation conflict is possible.",
+      "workerType": "general-purpose",
+      "continuationMethod": "Native continuation via SendMessage for follow-up questions after a T1 repair round.",
+      "deliverable": "A criterion-by-criterion findings report grouped by DoD identifier, each finding marked blocking or non-blocking, plus a distribution disposition and a public-documentation disposition with exact path:line citations. Returned to the advisor for storage; the worker writes no file.",
+      "verification": [
+        "Independently re-run pnpm exec vitest run .pi/extensions/__tests__/settings.test.ts and report its real exit code",
+        "Confirm the negative assertion actually fails on a reintroduced entry from a different source prefix",
+        "Cite path:line for every distribution and website claim rather than asserting propagation"
+      ],
+      "stoppingCondition": "Stop and report when every D1-D5 criterion has a verdict, or immediately if a write would be required to proceed.",
+      "evidenceDestinations": "Returned in the report; the advisor writes evidence/boundary-review.md, evidence/distribution-review.md, and evidence/public-docs-review.md from it.",
+      "coveredDoD": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "D5"
+      ],
+      "acceptanceOwner": "advisor",
+      "failureRepairRoute": "T1 repairs local implementation defects via native continuation. The advisor resolves scope questions and owns the D5 disposition. T2 is never granted write authority.",
+      "recursion": "Max depth: 1 — flat. No child dispatch authorized.",
+      "nativeWorkerId": null,
+      "status": "pending",
+      "artifactReferences": [],
+      "usage": "unknown"
+    },
+    {
+      "id": "T3",
+      "title": "Publication and PR completion",
+      "description": "Advisor-owned publication work: commit the accepted patch, push the branch, complete the non-draft PR with the D1-D5 evidence summary, run /ci-status after every push and /audit pr on the final revision, resolve blocking findings through T1, and record the PR URL, final head SHA, CI run URLs, and audit verdict in evidence/pr-completion.md.",
+      "dependsOn": "T1, T2",
+      "wave": 3,
+      "complexity": "Not applicable — this is not a worker task.",
+      "selectionReason": "Not applicable. The active advisor executes T3 directly; no worker is dispatched for it.",
+      "requestedModel": "not applicable",
+      "requestedReasoning": "not applicable",
+      "observedSettings": "not applicable",
+      "observedProvenance": "not applicable",
+      "readScope": [
+        "the accepted patch",
+        "the build evidence",
+        "/git",
+        "/ci-status",
+        "/audit pr"
+      ],
+      "searchOutputLimits": "not applicable",
+      "ownedWritePaths": [
+        "the GitHub issue and PR metadata",
+        ".agro/tasks/retire-pi-dynamic-workflows/evidence/pr-completion.md"
+      ],
+      "exclusions": [
+        "No tracked implementation edit belongs to T3",
+        "No merge",
+        "No release"
+      ],
+      "executionDirectory": "/home/sandbox/harness/.worktrees/task/1054-retire-pi-dynamic-workflows",
+      "worktreeIsolation": "The same isolated worktree.",
+      "workerType": "none — advisor-executed",
+      "continuationMethod": "not applicable",
+      "deliverable": "The completed non-draft PR and the final-head evidence D6 requires.",
+      "verification": [
+        "The PR completion gate in the approved plan, inspected directly against GitHub state"
+      ],
+      "stoppingCondition": "Stop at a ready, non-draft PR with green required CI at the final head SHA and a passing PR audit. Never merge and never release.",
+      "evidenceDestinations": ".agro/tasks/retire-pi-dynamic-workflows/evidence/pr-completion.md",
+      "coveredDoD": [
+        "D6"
+      ],
+      "acceptanceOwner": "advisor",
+      "failureRepairRoute": "Implementation or CI defects return to T1. Publication permission problems escalate to the operator.",
+      "recursion": "not applicable",
+      "nativeWorkerId": null,
+      "status": "pending",
+      "artifactReferences": [],
+      "usage": "not applicable"
+    }
+  ],
+  "waves": [
+    {
+      "wave": 1,
+      "tasks": [
+        "T1"
+      ],
+      "parallelism": 1,
+      "note": "Coupled implementation stays with one continuing writer."
+    },
+    {
+      "wave": 2,
+      "tasks": [
+        "T2"
+      ],
+      "parallelism": 1,
+      "note": "Independent read-only review, serialized after the patch exists."
+    },
+    {
+      "wave": 3,
+      "tasks": [
+        "T3"
+      ],
+      "parallelism": 0,
+      "note": "Advisor-executed publication; no worker dispatched."
+    }
+  ]
+}
