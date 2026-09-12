@@ -98,7 +98,7 @@ project repo instead (see docs/installation.md).
 
 Prerequisites:
   Docker with the Compose plugin
-  git (used to clone or update Open Harness)
+  git (used to clone or update AGRO)
   Node.js >= 20 — required to run 'oh', the only lifecycle door. When it is
                   missing this installer offers to install nvm + Node 22,
                   through the same ensure_node that get-oh.sh uses.
@@ -180,7 +180,7 @@ ok "Docker Compose $(docker compose version --short) — OK"
 
 banner "Checking git"
 if ! command -v git >/dev/null 2>&1; then
-  die "git is required to clone or update Open Harness. Install git from: https://git-scm.com"
+  die "git is required to clone or update AGRO. Install git from: https://git-scm.com"
 fi
 ok "git $(git --version | awk '{print $3}') — OK"
 
