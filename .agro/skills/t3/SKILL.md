@@ -1,7 +1,7 @@
 ---
 name: t3
 description: |
-  Start, inspect, pair, or stop T3 Code in the Open Harness sandbox, locally or
+  Start, inspect, pair, or stop T3 Code in the AGRO sandbox, locally or
   over a private Tailscale tailnet for phone access. Use this for the headless
   `t3 serve` harness on port 3773, including tmux launch, preflight diagnosis,
   pairing URL discovery, minting a pairing URL for a second device, logs,

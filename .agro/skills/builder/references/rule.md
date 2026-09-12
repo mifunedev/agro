@@ -1,6 +1,6 @@
 # Path-Scoped Rule Builder
 
-Author concise guidance that activates for a reliable file scope. Open Harness has
+Author concise guidance that activates for a reliable file scope. AGRO has
 collapsed its former always-loaded rule tier into provider-portable skills: prefer
 `.agro/skills/<name>/SKILL.md` with `paths:`. The only remaining rule surface is
 `.claude/rules/`. Create a `.claude/rules/<name>.md` file only when the user
@@ -21,7 +21,7 @@ instructions allow it.
 
 Apply this decision order:
 
-1. **Open Harness or equipped project**: create or update a reference skill under
+1. **AGRO or equipped project**: create or update a reference skill under
    `.agro/skills/<name>/SKILL.md` and use `paths:` for automatic loading.
 2. **Existing policy already owned by a skill**: update that skill instead of
    adding another path-scoped artifact.
@@ -36,7 +36,7 @@ Apply this decision order:
 6. **Multi-step workflow**: use `/builder command`; rules describe behavior, not a
    procedure with side effects.
 
-Do not recreate the removed Open Harness always-on rules tier.
+Do not recreate the removed AGRO always-on rules tier.
 
 ## Discover the scope
 
@@ -122,7 +122,7 @@ that own the same rule.
 ## Validate
 
 - [ ] Artifact choice follows the decision order and local instructions.
-- [ ] Open Harness guidance lives in `.agro/skills/<name>/SKILL.md` with `paths:`.
+- [ ] AGRO guidance lives in `.agro/skills/<name>/SKILL.md` with `paths:`.
 - [ ] `.claude/rules/` is used only for an explicit Claude-specific downstream
       request.
 - [ ] Globs match representative intended files and exclude unrelated ones.

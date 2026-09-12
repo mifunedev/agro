@@ -6,7 +6,7 @@ Run 4 parallel audit perspectives (PM, Implementer, Critic, Explorer), synthesiz
 
 ## External proposal implementation audits
 
-When the user asks whether an external article, repo, or social post should be implemented into Open Harness, use this skill as a decision audit rather than a generic repo-health audit. If the request also says “Add to Wiki,” ingest the source first (or in parallel) and cite the resulting wiki entry/snapshot in the GitHub issue. Convene at least three perspectives — product/alignment, implementer/feasibility, and critic/security/reliability — then synthesize a recommendation with non-goals, acceptance criteria, and gating criteria before any larger implementation.
+When the user asks whether an external article, repo, or social post should be implemented into AGRO, use this skill as a decision audit rather than a generic repo-health audit. If the request also says “Add to Wiki,” ingest the source first (or in parallel) and cite the resulting wiki entry/snapshot in the GitHub issue. Convene at least three perspectives — product/alignment, implementer/feasibility, and critic/security/reliability — then synthesize a recommendation with non-goals, acceptance criteria, and gating criteria before any larger implementation.
 
 When `--external <url|path>` is present, load the private supporting reference
 `$AUDIT_ROOT/.agro/skills/audit/references/external-proposal-audit.md`; this is the
@@ -113,7 +113,7 @@ Launch 4 Agent tool calls **in a single message**. Each receives the Context Sna
 
 #### PM Auditor
 
-> You are a Product Manager auditing the Open Harness project. Read the Context Snapshot provided. Then inspect the source checkout listed as `AUDIT_ROOT` for evidence supporting or refuting each check below. Use Read, Glob, and Grep tools freely. Return findings in the Ultra-compressed format defined at the end.
+> You are a Product Manager auditing the AGRO project. Read the Context Snapshot provided. Then inspect the source checkout listed as `AUDIT_ROOT` for evidence supporting or refuting each check below. Use Read, Glob, and Grep tools freely. Return findings in the Ultra-compressed format defined at the end.
 >
 > **Audit areas:**
 >
@@ -139,7 +139,7 @@ Launch 4 Agent tool calls **in a single message**. Each receives the Context Sna
 
 #### Implementer Auditor
 
-> You are a senior engineer auditing the Open Harness project. Read the Context Snapshot provided. Then inspect the source checkout listed as `AUDIT_ROOT`. Use Read, Glob, Grep, and Bash tools freely. Return findings in the Ultra-compressed format defined at the end.
+> You are a senior engineer auditing the AGRO project. Read the Context Snapshot provided. Then inspect the source checkout listed as `AUDIT_ROOT`. Use Read, Glob, Grep, and Bash tools freely. Return findings in the Ultra-compressed format defined at the end.
 >
 > **Audit areas:**
 >
@@ -167,7 +167,7 @@ Launch 4 Agent tool calls **in a single message**. Each receives the Context Sna
 
 #### Critic Auditor
 
-> You are an adversarial security and reliability critic auditing the Open Harness project. Assume everything is broken until proven otherwise. Read the Context Snapshot. Inspect the source checkout listed as `AUDIT_ROOT`. Use Read, Glob, Grep, and Bash tools. Return findings in the Ultra-compressed format defined at the end.
+> You are an adversarial security and reliability critic auditing the AGRO project. Assume everything is broken until proven otherwise. Read the Context Snapshot. Inspect the source checkout listed as `AUDIT_ROOT`. Use Read, Glob, Grep, and Bash tools. Return findings in the Ultra-compressed format defined at the end.
 >
 > **Audit areas:**
 >
@@ -193,7 +193,7 @@ Launch 4 Agent tool calls **in a single message**. Each receives the Context Sna
 
 #### Explorer Auditor
 
-> You are a system archaeologist auditing the Open Harness project. Your job is to discover what is actually happening vs. what the documentation claims. Read the Context Snapshot. Inspect the source checkout listed as `AUDIT_ROOT`. Use Read, Glob, Grep, and Bash tools. Return findings in the Ultra-compressed format defined at the end.
+> You are a system archaeologist auditing the AGRO project. Your job is to discover what is actually happening vs. what the documentation claims. Read the Context Snapshot. Inspect the source checkout listed as `AUDIT_ROOT`. Use Read, Glob, Grep, and Bash tools. Return findings in the Ultra-compressed format defined at the end.
 >
 > **Audit areas:**
 >

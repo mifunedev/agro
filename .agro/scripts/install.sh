@@ -82,7 +82,7 @@ prompt_yn() {
 
 print_help() {
   cat <<HELPEOF
-Open Harness — Installer
+AGRO — Installer
 
 Usage:
   curl -fsSL https://agro.mifune.dev/install.sh | bash [-s -- <flags>]
@@ -165,7 +165,7 @@ done
 [ "$ASSUME_YES" = true ] && [ "$ASSUME_NO" = true ] && die "--yes and --no are mutually exclusive."
 
 printf "\n${CYAN}╔══════════════════════════════════════╗${NC}\n"
-printf "${CYAN}║   Open Harness — Installer           ║${NC}\n"
+printf "${CYAN}║   AGRO — Installer                   ║${NC}\n"
 printf "${CYAN}╚══════════════════════════════════════╝${NC}\n\n"
 
 banner "Checking Docker"

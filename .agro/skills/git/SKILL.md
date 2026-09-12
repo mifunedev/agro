@@ -1,7 +1,7 @@
 ---
 name: git
 description: |
-  Open Harness git workflow: issues, branches, commits, PR titles/bodies,
+  AGRO git workflow: issues, branches, commits, PR titles/bodies,
   changelog discipline, worktrees, branch catch-up, stacked PRs, releases,
   and post-push CI checks.
   TRIGGER when: any chat mentions git, GitHub, branches, commits, pushes,

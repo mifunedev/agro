@@ -1,4 +1,4 @@
-# Hermes runtime and auth in Open Harness
+# Hermes runtime and auth in AGRO
 
 Hermes keeps configuration, sessions, skills, memory, and `auth.json` in one home.
 

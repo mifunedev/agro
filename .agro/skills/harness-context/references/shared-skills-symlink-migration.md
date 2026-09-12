@@ -1,6 +1,6 @@
 # Shared skills symlink migration pattern
 
-Use this when changing how Open Harness skills are shared across agent runtimes.
+Use this when changing how AGRO skills are shared across agent runtimes.
 
 ## Durable pattern
 
@@ -30,7 +30,7 @@ Skill support scripts may be executed through `.agro/skills/...`, `.agents/skill
 
 - `find -L <agent-skill-path> -name SKILL.md | wc -l` returns the same count for `.agro/skills`, `.agents/skills`, `.claude/skills`, and Hermes' linked path.
 - `find .agents .claude .codex .hermes/skills -xtype l -print` is empty.
-- Hermes reload/list shows Open Harness skills under the shared linked source.
+- Hermes reload/list shows AGRO skills under the shared linked source.
 - `bash -n` passes for touched shell scripts.
 - `git diff --check` passes.
 - Full eval suite passes after path-sensitive probes are updated.

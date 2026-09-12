@@ -1,8 +1,8 @@
 ---
 name: herdr
 description: |
-  Drive the Herdr terminal workspace manager from the CLI inside the Open
-  Harness sandbox — inspect and control workspaces, tabs, panes, agents,
+  Drive the Herdr terminal workspace manager from the CLI inside the AGRO
+  sandbox — inspect and control workspaces, tabs, panes, agents,
   and git worktrees over the Herdr socket API, and read or steer other
   running agents headlessly.
   TRIGGER when: asked to run a `herdr` command, list/read/send to another
@@ -18,7 +18,7 @@ allowed-tools: Bash, Read
 
 # Herdr CLI
 
-Herdr (`herdr`, v0.7.4 in this image) is Open Harness's primary interactive
+Herdr (`herdr`, v0.7.4 in this image) is AGRO's primary interactive
 workspace: a server process plus attached clients, with workspaces → tabs →
 panes, and agent-state detection per pane. This skill covers driving it from a
 non-interactive agent run. Operator-facing setup, persistence volumes, and the
@@ -35,7 +35,7 @@ prints a usage block for every group.
   They take over the terminal and hijack the operator's client. Use
   `herdr agent read` / `herdr pane read` to observe instead.
 - **Do not run `herdr update` or `herdr channel set`.** Herdr is pinned in the
-  Open Harness image; upgrade by rebuilding against a reviewed release.
+  AGRO image; upgrade by rebuilding against a reviewed release.
 - **Do not run `herdr server stop`.** It kills every attached client. Only the
   operator decides that.
 - **Do not read or write `~/.config/herdr/`** (config.toml, logs, `herdr.sock`).
@@ -122,7 +122,7 @@ does not.
 herdr agent start reviewer --cwd /home/sandbox/harness --split right -- claude
 ```
 
-**Open a worktree as a workspace.** Open Harness automation worktrees live under
+**Open a worktree as a workspace.** AGRO automation worktrees live under
 `.worktrees/`; Herdr-created ones default to `~/.herdr/worktrees`. Prefer
 opening an existing harness worktree over letting Herdr create one, so
 `/worktrees` conventions keep owning the layout:

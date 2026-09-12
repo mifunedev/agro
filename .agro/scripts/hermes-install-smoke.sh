@@ -29,7 +29,7 @@ link = home / 'skills/openharness'
 assert link.is_symlink() and link.resolve() == pack.resolve(), str(link)
 shared_name = 'oh-layout-smoke-shared'
 native_name = 'oh-layout-smoke-native'
-content = lambda name: f'---\nname: {name}\ndescription: Disposable Open Harness integration fixture\n---\nTest fixture for {name}.\n'
+content = lambda name: f'---\nname: {name}\ndescription: Disposable AGRO integration fixture\n---\nTest fixture for {name}.\n'
 shared = pack / shared_name
 assert not shared.is_symlink(), 'occupied shared fixture link'
 shared.mkdir(exist_ok=True)

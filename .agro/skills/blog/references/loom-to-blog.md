@@ -103,7 +103,7 @@ Do not forward delegate output verbatim into the post. Synthesize it.
 
 ## Step 4 — Fact-check before writing
 
-Fact-check all product/process claims against current docs or source files in the target/current repo. For Open Harness demo posts, always check:
+Fact-check all product/process claims against current docs or source files in the target/current repo. For AGRO demo posts, always check:
 
 - default agent CLIs vs optional image-level installs;
 - `.agro/` casing and `.worktrees/` path;
@@ -250,7 +250,7 @@ Return the `/blog` output contract from `SKILL.md`, including the `Promo:` path 
 
 If the run surfaced a procedural lesson, update this playbook.
 
-## Example: Open Harness Loom demo
+## Example: AGRO Loom demo
 
 Scenario:
 

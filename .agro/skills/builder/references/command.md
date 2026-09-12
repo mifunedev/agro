@@ -2,7 +2,7 @@
 
 Author a deliberate, user-invoked workflow as a skill. The public type remains
 `command` because users experience it as `/<name>`, but the artifact is always
-`.agro/skills/<name>/SKILL.md` in Open Harness. Never create
+`.agro/skills/<name>/SKILL.md` in AGRO. Never create
 `.claude/commands/<name>.md` or another legacy command file.
 
 ## Contents

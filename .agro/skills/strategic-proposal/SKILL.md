@@ -85,7 +85,7 @@ Assemble a structured markdown briefing to pass to ALL 5 experts:
 ## Current State Briefing
 
 ### Product Vision
-1. Document Open Harness — the parent framework for AI agent sandboxes
+1. Document AGRO — the parent framework for AI agent sandboxes
 2. Let users promote their forks — fork registry/showcase
 3. End goal: curate Docker registries with monthly licensing — SaaS marketplace
 
@@ -111,7 +111,7 @@ Assemble a structured markdown briefing to pass to ALL 5 experts:
 2. Fork registry data model (CRITICAL)
 3. Docker registry integration (HIGH)
 4. Subscription/licensing model (HIGH)
-5. Open Harness documentation (HIGH)
+5. AGRO documentation (HIGH)
 6. Testing (MEDIUM — 2 tests total)
 7. Observability (MEDIUM — no health endpoint)
 8. Agent autonomy gap (MEDIUM — plans but no implementation)

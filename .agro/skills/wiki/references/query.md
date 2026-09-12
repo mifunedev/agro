@@ -9,7 +9,7 @@
 
 Search the knowledge base by topic keyword(s) and load the top matching entries
 directly into context. This is Karpathy's "Query + Enhance" operation adapted for
-Open Harness: grep frontmatter, rank, read into context.
+AGRO: grep frontmatter, rank, read into context.
 
 Query scope is **frontmatter-only** (`title`, `slug`, `tags`). Body text is
 deliberately excluded — the frontmatter fields capture the entry's identity
