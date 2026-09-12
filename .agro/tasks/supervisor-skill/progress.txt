@@ -47,3 +47,18 @@ defined the advisor as a session in a pane. Both rewritten. Probe returns PASS.
 
 US-001 through US-011 and US-013 pass. US-012 open: push, CI, audit, undraft.
 
+## 2026-09-12 — gates closed
+
+CI on ae0bf0a3: five checks pass.
+  Boot Path Lint (shellcheck + hadolint)      pass
+  Boot a legacy volume against the fresh image pass
+  Eval Probe Regression Gate                   pass
+  Lint, Typecheck, Build & Test                pass
+  Validate sandbox compose and image build     pass
+
+Boot Path Lint runs shellcheck, which is absent from this sandbox. It covers
+the new probe and the rewritten escalate.sh.
+
+PR #1059: mergeable MERGEABLE, state CLEAN, 14 files, +2098/-277.
+Every story passes. Undrafting.
+

@@ -245,8 +245,8 @@
         "Evidence captured in evidence.md under D-US-012"
       ],
       "priority": 13,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "PR #1059. Two CHANGELOG entries under [Unreleased], 229 and 236 characters. SI-0008 and SI-0009 appended; append-only probe PASS. Title FROM skill/1057-supervisor-skill TO development. Body carries Closes #1057. All five CI checks pass; mergeable=MERGEABLE, state=CLEAN."
     }
   ]
 }
