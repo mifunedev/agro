@@ -1,4 +1,4 @@
-# Project-local Codex CLI defaults for Open Harness.
+# Project-local Codex CLI defaults for AGRO.
 # Docker is the isolation boundary, so Codex runs without prompts or its own
 # workspace sandbox. Keep permission-profile changes validated against `codex`;
 # the old glob-based shape makes Codex 0.118+ abort at startup.

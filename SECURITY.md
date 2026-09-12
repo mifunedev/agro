@@ -1,12 +1,12 @@
 # Security Policy
 
-Open Harness is an AI-agent sandbox orchestrator. Its security posture spans
+AGRO is an AI-agent sandbox orchestrator. Its security posture spans
 two surfaces: the **orchestrator/harness** code and tooling in this
 repository, and the **sandboxed agent environment** it provisions.
 
 ## Supported Versions
 
-Open Harness ships on a rolling [SemVer](https://semver.org/) line
+AGRO ships on a rolling [SemVer](https://semver.org/) line
 (`MAJOR.MINOR.PATCH`, tagged `vMAJOR.MINOR.PATCH`). Only the **most recent
 release** receives security updates — there are no long-term support branches.
 
