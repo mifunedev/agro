@@ -10,6 +10,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
+- Add the `/supervisor` skill: a session that starts, briefs, and monitors advisor sessions in other Herdr panes, owns their context budget, and escalates to the operator. ([#1059](https://github.com/mifunedev/agro/pull/1059))
+- Add a supervisor destination to `/escalate`: an advisor escalation reaches its supervisor pane before the Slack channel, resolved from `--supervisor` or `AGRO_SUPERVISOR_PANE`. ([#1059](https://github.com/mifunedev/agro/pull/1059))
 - Add `agro sandbox install docker --home-mount <dir>` to persist `/home/sandbox` at a host path when you create the sandbox. ([#1042](https://github.com/mifunedev/agro/issues/1042))
 - Add a `checkout` key to `agro sandbox list --json`, and keep `repo` as a deprecated alias that carries the same value. ([#1046](https://github.com/mifunedev/agro/issues/1046))
 - Add three probes that fail a hardcoded operator-facing binary literal, a README that presents a deprecated flag spelling as canonical, and an empty CI check set counted as a pass. ([#1046](https://github.com/mifunedev/agro/issues/1046))

@@ -19,8 +19,8 @@
         "Evidence captured in evidence.md under D-US-001"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Owner-validated against the merged file at 3b4c49cc. ste-check exit 0, link-providers --check exit 0, git diff --check clean, 313 lines, no OH_/.oh/Open Harness spelling. Advisor cap set to three with the monitoring-cost reason."
     },
     {
       "id": "US-002",
@@ -36,8 +36,8 @@
         "Evidence captured in evidence.md under D-US-002"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Owner-validated against the merged file at 3b4c49cc. ste-check exit 0, link-providers --check exit 0, git diff --check clean, 313 lines, no OH_/.oh/Open Harness spelling. Advisor cap set to three with the monitoring-cost reason."
     },
     {
       "id": "US-003",
@@ -54,8 +54,8 @@
         "Evidence captured in evidence.md under D-US-003"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Owner-validated against the merged file at 3b4c49cc. ste-check exit 0, link-providers --check exit 0, git diff --check clean, 313 lines, no OH_/.oh/Open Harness spelling. Advisor cap set to three with the monitoring-cost reason."
     },
     {
       "id": "US-004",
@@ -76,8 +76,8 @@
         "Evidence captured in evidence.md under D-US-004"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Owner-validated against the merged file at 3b4c49cc. ste-check exit 0, link-providers --check exit 0, git diff --check clean, 313 lines, no OH_/.oh/Open Harness spelling. Advisor cap set to three with the monitoring-cost reason."
     },
     {
       "id": "US-005",
@@ -95,8 +95,8 @@
         "Evidence captured in evidence.md under D-US-005"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Owner-validated against the merged file at 3b4c49cc. ste-check exit 0, link-providers --check exit 0, git diff --check clean, 313 lines, no OH_/.oh/Open Harness spelling. Advisor cap set to three with the monitoring-cost reason."
     },
     {
       "id": "US-006",
@@ -113,8 +113,8 @@
         "Evidence captured in evidence.md under D-US-006"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Owner-validated against the merged file at 3b4c49cc. ste-check exit 0, link-providers --check exit 0, git diff --check clean, 313 lines, no OH_/.oh/Open Harness spelling. Advisor cap set to three with the monitoring-cost reason."
     },
     {
       "id": "US-007",
@@ -132,8 +132,8 @@
         "Evidence captured in evidence.md under D-US-007"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Owner-validated against the merged file at 3b4c49cc. ste-check exit 0, link-providers --check exit 0, git diff --check clean, 313 lines, no OH_/.oh/Open Harness spelling. Advisor cap set to three with the monitoring-cost reason."
     },
     {
       "id": "US-008",
@@ -149,8 +149,8 @@
         "Evidence captured in evidence.md under D-US-008"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Owner-validated against the merged file at 3b4c49cc. ste-check exit 0, link-providers --check exit 0, git diff --check clean, 313 lines, no OH_/.oh/Open Harness spelling. Advisor cap set to three with the monitoring-cost reason."
     },
     {
       "id": "US-009",
@@ -165,8 +165,8 @@
         "Evidence captured in evidence.md under D-US-009"
       ],
       "priority": 9,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Owner-validated against the merged file at 3b4c49cc. ste-check exit 0, link-providers --check exit 0, git diff --check clean, 313 lines, no OH_/.oh/Open Harness spelling. Advisor cap set to three with the monitoring-cost reason."
     },
     {
       "id": "US-010",
@@ -183,8 +183,8 @@
         "Evidence captured in evidence.md under D-US-010"
       ],
       "priority": 10,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Owner-validated against the merged file at 3b4c49cc. ste-check exit 0, link-providers --check exit 0, git diff --check clean, 313 lines, no OH_/.oh/Open Harness spelling. Advisor cap set to three with the monitoring-cost reason."
     },
     {
       "id": "US-011",
@@ -199,8 +199,8 @@
         "Evidence captured in evidence.md under D-US-011"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Probe added: .agro/evals/probes/escalate-destination-fan-out.sh. Prose-grep oracle rejected per pattern-evals-prose-literal-pinning. Oracle proven by three fault injections, each caught, each reverted, per pattern-evals-unexercised-oracle. Suite: 150 probes, no regression."
     },
     {
       "id": "US-013",
@@ -229,8 +229,8 @@
         "Evidence captured in evidence.md under D-US-013"
       ],
       "priority": 12,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Owner-validated at 0855852a. Live delivery into pane w6:p7 returned ok=true with per-destination detail; unresolvable target returned exit 0, ok=false, named reason. escalate-contract.sh PASS. ste-check exit 0. Quiet window moved ahead of delivery, accepted. Worker corrected the brief: escalate-contract.sh:10 is a caller."
     },
     {
       "id": "US-012",

@@ -1,10 +1,11 @@
 ---
 name: supervisor
 description: |
-  Own an advisor session that runs in another Herdr pane, without writing code
-  and without reviewing code. Start the advisor at the harness root, brief the
-  advisor with a pointer to the contract, monitor progress from artifacts, own
-  the advisor's context budget, and carry a blocker to the operator.
+  Own a build session from outside it, without writing code and without
+  reviewing code. The owned session carries the advisor behavior and occupies
+  its own Herdr pane. Start that session at the harness root, brief it with a
+  pointer to the contract, monitor progress from artifacts, own its context
+  budget, and carry a blocker to the operator.
   TRIGGER when: asked to supervise, babysit, watch, or drive an agent in
   another pane; asked to "run this build in a second pane and keep it on
   track"; asked to own a long build to its Definition of Done from outside the
@@ -34,13 +35,14 @@ Read the role boundary before any procedure.
 - The supervisor stays accountable for the advisor reaching its Definition of
   Done.
 
-Three actors carry three jobs. Keep the three apart.
+Three behaviors carry three jobs. Keep the three apart. Each name below is a
+behavior, not an identity, a model, or a terminal.
 
-| Actor | Owns | Never does |
+| Behavior | Owns | Never does |
 |---|---|---|
-| Supervisor | The brief, the monitoring loop, the context budget, the escalation | Implementation, code review |
-| Advisor | One contract, judgment, verification, acceptance | Silent scope change |
-| Worker | One bounded implementation assignment from its advisor | Judgment, acceptance |
+| supervisor | The brief, the monitoring loop, the context budget, the escalation | Implementation, code review |
+| advisor | One contract, judgment, verification, acceptance | Silent scope change |
+| worker | One bounded implementation assignment from its advisor | Judgment, acceptance |
 
 `/delegate` owns the worker boundary and the fan-out policy. Read `/delegate`
 for worker limits and model policy. Restate neither here.
