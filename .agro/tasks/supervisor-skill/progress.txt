@@ -1,0 +1,9 @@
+# progress
+
+## 2026-09-12 — plan
+
+Scaffolded by /spec plan against base c158648f.
+Three-file contract complete: prd.md (13 stories, three knowledge sections),
+prd.json (schemaVersion 1, branchName skill/1057-supervisor-skill), progress.txt.
+Intent preserved: YES. Four constraints recorded, none material.
+
