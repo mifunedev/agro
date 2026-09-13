@@ -1065,3 +1065,193 @@ index 00000000..53ffc90f
 - **motivating patterns**: `[[pattern-scripts-sibling-dependency-standalone-copies]]`
 - **proposer**: /spec execute for #1057, operator request in the active session
 - **diff**: see `.agro/skills/escalate/` in PR #1059 (211 lines of SKILL.md, 206 of escalate.sh); the full hunk set exceeds the ledger inline budget
+
+
+## SI-0010 · 2026-09-13 · builder · PROPOSED
+
+- **proposal**: Keep `/supervisor` metadata within the provider description limit and rewrite its changed prose in Simplified Technical English, so the skill loads without a conflict and passes the prose gate.
+- **target**: `.agro/skills/supervisor/SKILL.md`
+- **motivating patterns**: `none (direct request)`
+- **proposer**: /builder skill supervisor for #1062, with `/ste`
+- **diff**:
+
+````markdown
+```diff
+diff --git a/.agro/skills/supervisor/SKILL.md b/.agro/skills/supervisor/SKILL.md
+index 402d5708..9bfdb89a 100644
+--- a/.agro/skills/supervisor/SKILL.md
++++ b/.agro/skills/supervisor/SKILL.md
+@@ -4,15 +4,3 @@ description: |
+-  Own a build session from outside it, without writing code and without
+-  reviewing code. The owned session carries the advisor behavior and occupies
+-  its own Herdr pane. Start that session at the harness root, brief it with a
+-  pointer to the contract, monitor progress from artifacts, own its context
+-  budget, and carry a blocker to the operator.
+-  TRIGGER when: asked to supervise, babysit, watch, or drive an agent in
+-  another pane; asked to "run this build in a second pane and keep it on
+-  track"; asked to own a long build to its Definition of Done from outside the
+-  implementing session; an advisor session needs a brief, a compaction
+-  decision, or an escalation route; asked "what is the advisor doing" or "is
+-  the advisor still on the contract".
+-  Do NOT trigger when the active session implements the work itself, when the
+-  request asks for a code review, when the request asks to dispatch bounded
+-  workers inside one session (use /delegate), or when the request asks to run
+-  a single `herdr` command (use /herdr).
++  Supervise advisor sessions from outside them. Do not write or review code. Start each advisor in a new Herdr tab at the harness root with bypass permissions. Brief each advisor with a contract pointer. Monitor artifacts, own context budgets, and carry blockers to the operator.
++  TRIGGER when: asked to supervise, babysit, watch, or drive an agent in another pane; asked to "run this build in a second pane and keep it on track"; asked to own a long build to its Definition of Done from outside the implementing session; an advisor needs a brief, a compaction decision, or an escalation route; asked "what is the advisor doing" or "is the advisor still on the contract".
++  Do NOT trigger when the active session implements the work; when the request asks for a code review; when the request asks to dispatch bounded workers inside one session (use /delegate); or when the request asks to run a single `herdr` command (use /herdr).
+@@ -56,3 +44,2 @@ owns the operator channel. `/ste` owns the prose of every artifact.
+-Start the advisor at the harness root. A tab that opens in a project clone puts
+-the advisor below the sandbox boundary, where the advisor edits application
+-code outside its worktree.
++Start the advisor in a new tab in the supervisor's own workspace, at the harness
++root, in bypass permissions mode. Three conditions hold together.
+@@ -60 +47,11 @@ code outside its worktree.
+-Read the supervisor's own pane id first.
++- **A new tab, never a split pane.** A split divides the supervisor's own tab
++  and shrinks both. `herdr agent start` splits by default, so create the tab
++  first and launch the harness inside it.
++- **The harness root.** A tab that opens in a project clone puts the advisor
++  below the sandbox boundary, where the advisor edits application code outside
++  its worktree.
++- **Bypass permissions.** An advisor runs unattended. A manual permission prompt
++  blocks the advisor on a person who is not watching, and the run stalls with no
++  signal to the supervisor.
++
++Read the supervisor's own pane id and workspace first.
+@@ -63 +60 @@ Read the supervisor's own pane id first.
+-herdr pane current | jq -r '.result.pane.pane_id'
++herdr pane current | jq -r '.result.pane.pane_id, .result.pane.workspace_id'
+@@ -66,2 +63 @@ herdr pane current | jq -r '.result.pane.pane_id'
+-Start the advisor with the harness root and the supervisor pane in its
+-environment.
++Create the tab in that workspace.
+@@ -70,4 +66,2 @@ environment.
+-herdr agent start advisor-1 \
+-  --cwd /home/sandbox/harness \
+-  --env AGRO_SUPERVISOR_PANE=w6:p5 \
+-  --no-focus -- claude
++herdr tab create --workspace w7 --cwd /home/sandbox/harness \
++  --env AGRO_SUPERVISOR_PANE=w7:p1 --label advisor-1 --no-focus
+@@ -79 +73 @@ variable, so the advisor resolves its supervisor without a flag.
+-A tab carries the same two options when the advisor needs its own tab.
++Confirm the resolved working directory before you launch the harness.
+@@ -82,2 +76 @@ A tab carries the same two options when the advisor needs its own tab.
+-herdr tab create --cwd /home/sandbox/harness \
+-  --env AGRO_SUPERVISOR_PANE=w6:p5 --label advisor-1 --no-focus
++herdr pane get w7:p4 | jq -r '.result.pane.cwd, .result.pane.foreground_cwd'
+@@ -86 +79,5 @@ herdr tab create --cwd /home/sandbox/harness \
+-Confirm the resolved working directory after creation.
++The creation payload reports the requested `--cwd`. The creation payload proves
++no resolved working directory. Only `herdr pane get <pane>` reports the pane
++state the shell resolved.
++
++Launch the coding harness in bypass permissions mode.
+@@ -89 +86 @@ Confirm the resolved working directory after creation.
+-herdr pane get w6:p7 | jq -r '.result.pane.cwd, .result.pane.foreground_cwd'
++herdr pane run w7:p4 "claude --dangerously-skip-permissions"
+@@ -92,3 +89,23 @@ herdr pane get w6:p7 | jq -r '.result.pane.cwd, .result.pane.foreground_cwd'
+-The creation payload reports the requested `--cwd`. The creation payload proves
+-no resolved working directory. Only `herdr pane get <pane>` reports the pane
+-state the shell resolved. Read `/herdr` for every other pane command.
++Wait for the harness, then read the mode from the status line before you brief.
++
++```bash
++herdr agent wait w7:p4 --status idle --timeout 90000
++herdr pane read w7:p4 --source recent --lines 5
++```
++
++The status line reports the mode in this shape:
++
++```text
++bypass permissions on (shift+tab to cycle)
++```
++
++A status line that reports no bypass mode means the advisor runs in manual mode.
++Close the tab and start again. Never brief an advisor in manual mode.
++
++Name the agent last, so `herdr agent list` reports the advisor by its role.
++
++```bash
++herdr agent rename w7:p4 advisor-1
++```
++
++Read `/herdr` for every other pane command.
+@@ -146,0 +164,22 @@ advisor's next turn.
++### Confirm the prompt targets the advisor before every send
++
++An advisor that dispatches workers can leave its own prompt addressed to a
++worker. The prompt then reads `Message @general-purpose…` instead of the
++default placeholder, and `herdr agent send` delivers into the worker channel.
++The worker receives supervisor text its dispatcher never sent, acts on it, and
++reports work the advisor cannot account for.
++
++Check the prompt before every send, not only the first.
++
++```bash
++herdr pane read <pane> --source visible | grep -c 'Message @'
++```
++
++A count of `0` means the prompt targets the advisor. Any other count means the
++prompt targets a worker. Press `Left` to leave the agent selector, confirm the
++count returns to `0`, then send.
++
++Never send to an advisor pane without this check. A misrouted brief is
++indistinguishable, from the advisor's side, from a worker that invented its own
++instructions.
++
+@@ -263 +302 @@ A supervisor supervises no supervisor. The chain ends at the operator.
+-Five failures came out of the first supervised run. Each entry names the
++Eight failures came out of the supervised runs so far. Each entry names the
+@@ -294,0 +334,25 @@ writes literal text. Correction: send the text, then send
++**6. An advisor in manual permission mode blocks with no signal.**
++Symptom: the advisor sat at a permission prompt and reported `idle`, so the
++supervisor read the status as progress. Cause: the harness launched without
++bypass permissions. Correction: launch with
++`claude --dangerously-skip-permissions`, and read `bypass permissions on` from
++the status line before the brief.
++
++**7. `herdr agent start` splits the supervisor's own tab.**
++Symptom: the advisor landed as a pane inside the supervisor's tab and halved
++the supervisor's own view. Cause: `herdr agent start` splits by default.
++Correction: create the tab with `herdr tab create --workspace <id>`, then launch
++the harness in it with `herdr pane run`.
++
++**8. A send to an advisor pane reaches the advisor's worker.**
++Symptom: the advisor escalated that a bounded worker had edited a tracked file
++on instructions its dispatcher never sent, and suspected the worker of
++confabulating an operator reply. Cause: the supervisor ran `herdr agent send`
++while the advisor's prompt targeted `@general-purpose`, so Herdr delivered the
++supervisor's escalation reply into the worker channel. The worker acted
++faithfully on real instructions that reached it through no legitimate route.
++Correction: grep the visible pane for `Message @` before every send, and clear
++the agent selector with `Left` until the count is `0`. Tell the advisor when the
++provenance surfaces. If the advisor cannot source an instruction, the advisor
++must revert the work and stop.
++
+```
+````
+
+## SI-0011 · 2026-09-13 · builder · PROPOSED
+
+- **proposal**: Require supervisor-created tabs to use `agent-*` names for agent tabs and `dev-*` names for development environment tabs, so tab purpose stays visible in Herdr.
+- **target**: `.agro/skills/supervisor/SKILL.md`
+- **motivating patterns**: `none (direct request)`
+- **proposer**: /builder skill supervisor for #1062, with `/ste`
+- **diff**:
+
+````markdown
+```diff
+diff --git a/.agro/skills/supervisor/SKILL.md b/.agro/skills/supervisor/SKILL.md
+index 9bfdb89a..6bf5abdc 100644
+--- a/.agro/skills/supervisor/SKILL.md
++++ b/.agro/skills/supervisor/SKILL.md
+@@ -55,0 +56,3 @@ root, in bypass permissions mode. Three conditions hold together.
++- **Tab names.** Prefix every created tab with its purpose. Use an `agent-*` name
++  for an agent tab. Use a `dev-*` name for a development environment tab. Put
++  the prefix in the tab name or label.
+@@ -67 +70 @@ herdr tab create --workspace w7 --cwd /home/sandbox/harness \
+-  --env AGRO_SUPERVISOR_PANE=w7:p1 --label advisor-1 --no-focus
++  --env AGRO_SUPERVISOR_PANE=w7:p1 --label agent-advisor-1 --no-focus
+```
+````
