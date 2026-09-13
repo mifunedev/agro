@@ -53,6 +53,9 @@ root, in bypass permissions mode. Three conditions hold together.
 - **Bypass permissions.** An advisor runs unattended. A manual permission prompt
   blocks the advisor on a person who is not watching, and the run stalls with no
   signal to the supervisor.
+- **Tab names.** Prefix every created tab with its purpose. Use an `agent-*` name
+  for an agent tab. Use a `dev-*` name for a development environment tab. Put
+  the prefix in the tab name or label.
 
 Read the supervisor's own pane id and workspace first.
 
@@ -64,7 +67,7 @@ Create the tab in that workspace.
 
 ```bash
 herdr tab create --workspace w7 --cwd /home/sandbox/harness \
-  --env AGRO_SUPERVISOR_PANE=w7:p1 --label advisor-1 --no-focus
+  --env AGRO_SUPERVISOR_PANE=w7:p1 --label agent-advisor-1 --no-focus
 ```
 
 `AGRO_SUPERVISOR_PANE` names the supervisor's own pane. `/escalate` reads that

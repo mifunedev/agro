@@ -1231,3 +1231,27 @@ index 402d5708..9bfdb89a 100644
 +
 ```
 ````
+
+## SI-0011 · 2026-09-13 · builder · PROPOSED
+
+- **proposal**: Require supervisor-created tabs to use `agent-*` names for agent tabs and `dev-*` names for development environment tabs, so tab purpose stays visible in Herdr.
+- **target**: `.agro/skills/supervisor/SKILL.md`
+- **motivating patterns**: `none (direct request)`
+- **proposer**: /builder skill supervisor for #1062, with `/ste`
+- **diff**:
+
+````markdown
+```diff
+diff --git a/.agro/skills/supervisor/SKILL.md b/.agro/skills/supervisor/SKILL.md
+index 9bfdb89a..6bf5abdc 100644
+--- a/.agro/skills/supervisor/SKILL.md
++++ b/.agro/skills/supervisor/SKILL.md
+@@ -55,0 +56,3 @@ root, in bypass permissions mode. Three conditions hold together.
++- **Tab names.** Prefix every created tab with its purpose. Use an `agent-*` name
++  for an agent tab. Use a `dev-*` name for a development environment tab. Put
++  the prefix in the tab name or label.
+@@ -67 +70 @@ herdr tab create --workspace w7 --cwd /home/sandbox/harness \
+-  --env AGRO_SUPERVISOR_PANE=w7:p1 --label advisor-1 --no-focus
++  --env AGRO_SUPERVISOR_PANE=w7:p1 --label agent-advisor-1 --no-focus
+```
+````

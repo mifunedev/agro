@@ -25,7 +25,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Fixed
 
-- Keep `/supervisor` guidance aligned with Herdr's tab, bypass, and prompt-routing behavior, so its description stays within the provider metadata limit and loads without a conflict. ([#1062](https://github.com/mifunedev/agro/issues/1062))
+- Keep `/supervisor` guidance aligned with Herdr's prefixed tab names, bypass permissions, and prompt routing, so its description stays within the metadata limit. ([#1062](https://github.com/mifunedev/agro/issues/1062))
 - Compare the compose wrapper's `--env-file` to `.devcontainer/.env` by file identity, not path string, so `compose-config-path-parity` stops failing on installed machines. ([#935](https://github.com/mifunedev/agro/issues/935))
 - Select build mode from `--repo <dir>` only when that directory holds `.devcontainer/Dockerfile`, so a path without one binds the directory and runs the published image. ([#1042](https://github.com/mifunedev/agro/issues/1042))
 - Name the invoked binary in every operator-facing CLI message, so `agro sandbox install docker` now ends with `next: agro shell <name>` instead of the deprecated `oh` spelling. ([#1046](https://github.com/mifunedev/agro/issues/1046))
