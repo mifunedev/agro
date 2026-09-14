@@ -25,6 +25,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Fixed
 
+- Require `MonitorCreate` for supervisor observation and prevent advisor replies through Herdr ([#1064](https://github.com/mifunedev/agro/issues/1064)).
 - Keep `/supervisor` guidance aligned with Herdr's prefixed tab names, bypass permissions, and prompt routing, so its description stays within the metadata limit. ([#1062](https://github.com/mifunedev/agro/issues/1062))
 - Compare the compose wrapper's `--env-file` to `.devcontainer/.env` by file identity, not path string, so `compose-config-path-parity` stops failing on installed machines. ([#935](https://github.com/mifunedev/agro/issues/935))
 - Select build mode from `--repo <dir>` only when that directory holds `.devcontainer/Dockerfile`, so a path without one binds the directory and runs the published image. ([#1042](https://github.com/mifunedev/agro/issues/1042))

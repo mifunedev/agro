@@ -1,10 +1,10 @@
 ---
 name: supervisor
 description: |
-  Supervise advisor sessions from outside them. Do not write or review code. Start each advisor in a new Herdr tab at the harness root with bypass permissions. Brief each advisor with a contract pointer. Monitor artifacts, own context budgets, and carry blockers to the operator.
+  Supervise advisor sessions from outside them. Require MonitorCreate with onDone for all advisor observation and readiness waits, status checks, and output reads. Require MonitorList and MonitorStop for handle control. Never use LoopCreate or polling. Use inline Herdr commands for launch and guarded downward steering only. Block reverse Herdr messages from advisors and workers. Do not write or review code. Own context budgets and operator escalation.
   TRIGGER when: asked to supervise, babysit, watch, or drive an agent in another pane; asked to "run this build in a second pane and keep it on track"; asked to own a long build to its Definition of Done from outside the implementing session; an advisor needs a brief, a compaction decision, or an escalation route; asked "what is the advisor doing" or "is the advisor still on the contract".
   Do NOT trigger when the active session implements the work; when the request asks for a code review; when the request asks to dispatch bounded workers inside one session (use /delegate); or when the request asks to run a single `herdr` command (use /herdr).
-allowed-tools: Bash, Read, Grep
+allowed-tools: Bash, Read, Grep, MonitorCreate, MonitorList, MonitorStop
 ---
 
 # Supervisor
@@ -22,13 +22,29 @@ Read the role boundary before any procedure.
 - The supervisor changes no file the advisor owns.
 - The supervisor stays accountable for the advisor reaching its Definition of
   Done.
+- Require `MonitorCreate`, `MonitorList`, and `MonitorStop` before launching or
+  claiming supervision. If any tool is unavailable, stop and report the blocker.
+- Use `MonitorCreate` with `onDone` for all advisor observation, readiness waits,
+  status checks, output reads, and progress or evidence reads.
+- Never call `LoopCreate`, including event variants. Never use a recurring
+  scheduler, shell polling, sleep loops, or a blocking Bash wait fallback.
+- Use inline Herdr commands only for launch and guarded downward steering.
+  Short launch, working-directory, and send-target checks can use Bash as action
+  prerequisites. These checks are not a monitoring fallback.
+  Run all Herdr observation commands through `MonitorCreate`.
+- Advisors and workers must not send Herdr messages back to the supervisor.
+  This ban includes direct sends, `/escalate --supervisor`, inherited destinations,
+  and relays. Workers report to the advisor through native worker output only.
+  Advisors report through normal output and own existing progress/evidence files.
+- The supervisor owns operator escalation. Advisors and workers must not bypass
+  the supervisor through Slack or invoke `/escalate` to notify the supervisor.
 
 Three behaviors carry three jobs. Keep the three apart. Each name below is a
 behavior, not an identity, a model, or a terminal.
 
 | Behavior | Owns | Never does |
 |---|---|---|
-| supervisor | The brief, the monitoring loop, the context budget, the escalation | Implementation, code review |
+| supervisor | The brief, bounded monitors, the context budget, the escalation | Implementation, code review |
 | advisor | One contract, judgment, verification, acceptance | Silent scope change |
 | worker | One bounded implementation assignment from its advisor | Judgment, acceptance |
 
@@ -67,11 +83,10 @@ Create the tab in that workspace.
 
 ```bash
 herdr tab create --workspace w7 --cwd /home/sandbox/harness \
-  --env AGRO_SUPERVISOR_PANE=w7:p1 --label agent-advisor-1 --no-focus
+  --env AGRO_SUPERVISOR_PANE= --label agent-advisor-1 --no-focus
 ```
 
-`AGRO_SUPERVISOR_PANE` names the supervisor's own pane. `/escalate` reads that
-variable, so the advisor resolves its supervisor without a flag.
+Clear the inherited supervisor destination in the tab environment.
 
 Confirm the resolved working directory before you launch the harness.
 
@@ -83,17 +98,23 @@ The creation payload reports the requested `--cwd`. The creation payload proves
 no resolved working directory. Only `herdr pane get <pane>` reports the pane
 state the shell resolved.
 
-Launch the coding harness in bypass permissions mode.
+Launch the coding harness in bypass permissions mode. Use the same sanitized
+command on every restart.
 
 ```bash
-herdr pane run w7:p4 "claude --dangerously-skip-permissions"
+herdr pane run w7:p4 "env -u AGRO_SUPERVISOR_PANE claude --dangerously-skip-permissions"
 ```
 
-Wait for the harness, then read the mode from the status line before you brief.
+Submit this finite readiness command through `MonitorCreate`, not inline Bash.
+Record its handle as Duty 3 requires. Inspect the mode before briefing.
 
-```bash
-herdr agent wait w7:p4 --status idle --timeout 90000
-herdr pane read w7:p4 --source recent --lines 5
+```json
+{
+  "command": "bash -c 'set +e; herdr agent wait w7:p4 --status idle --timeout 90000; wait_rc=$?; herdr agent list; herdr pane read w7:p4 --source recent --lines 5; exit \"$wait_rc\"'",
+  "description": "advisor-1 readiness at w7:p4",
+  "timeout": 120000,
+  "onDone": "Reconcile this monitor ID with advisor-1 at w7:p4. Review the wait result and fresh status/output. Verify root and bypass mode before the first brief. Startup idle is not brief completion. Apply Duty 3 failure rules; do not retry or relaunch automatically."
+}
 ```
 
 The status line reports the mode in this shape:
@@ -102,8 +123,9 @@ The status line reports the mode in this shape:
 bypass permissions on (shift+tab to cycle)
 ```
 
-A status line that reports no bypass mode means the advisor runs in manual mode.
-Close the tab and start again. Never brief an advisor in manual mode.
+If fresh output does not confirm bypass mode, do not brief the advisor.
+If the output confirms manual mode, close the owned tab and start again with
+the sanitized launch command. Apply Duty 3 to observation failures.
 
 Name the agent last, so `herdr agent list` reports the advisor by its role.
 
@@ -133,6 +155,8 @@ protect.
    URI the sandbox needs differs from the default line in `.env.example`.
 7. Name the role: the advisor assigns tracked edits to bounded workers, and the
    advisor keeps judgment and acceptance.
+8. Include the communication boundary below. Require the advisor to pass this
+   boundary to every worker.
 
 ### The verb selects the role
 
@@ -144,6 +168,15 @@ every file itself through two stories. Write step 7 in these words instead:
 You are the advisor. Assign every tracked edit to a bounded worker through
 /delegate. Keep goal interpretation, verification, and acceptance. Run each
 gate command yourself.
+
+You and your workers must not send Herdr messages back to the supervisor.
+Do not use direct sends, /escalate --supervisor, AGRO_SUPERVISOR_PANE,
+other inherited destinations, or relays. Do not invoke /escalate to notify
+this supervisor. Do not bypass the supervisor through Slack.
+Workers report to you through native worker output only. You own the existing
+progress/evidence files and report progress, blockers, and decisions there
+and in your normal output. Required decisions remain blocked until supervisor
+direction. The supervisor owns operator escalation.
 ```
 
 `/delegate` owns the worker count, the wave policy, and the model policy. Name
@@ -188,22 +221,54 @@ instructions.
 
 ## Duty 3 — monitor
 
-Read the pane. Never attach. `herdr agent attach` takes over the operator's
-client.
+Never attach. `herdr agent attach` takes over the operator's client.
+Submit observation commands through `MonitorCreate`; never run observation inline.
+Keep one active monitor per advisor, including readiness and artifact reads.
+Record the monitor ID, advisor pane ID, contract path, and expected wait state
+in the supervisor's run record.
 
-```bash
-herdr agent list | jq -r '.result.agents[] | "\(.pane_id)\t\(.agent_status)"'
-herdr pane read w6:p7 --source recent --lines 120
-herdr agent wait w6:p7 --status idle --timeout 900000
+For a working advisor, submit this `MonitorCreate` call. Substitute the owned
+pane and contract before submission.
+
+```json
+{
+  "command": "bash -c 'set +e; herdr agent wait w6:p7 --status idle --timeout 900000; wait_rc=$?; herdr agent list; herdr pane read w6:p7 --source recent --lines 120; exit \"$wait_rc\"'",
+  "description": "advisor at w6:p7: bounded idle wait",
+  "timeout": 930000,
+  "onDone": "Reconcile this monitor ID, pane w6:p7, and the recorded contract. Review the real wait exit, status list, pane snapshot, and fresh artifacts. Judge completion, context, and blockers. Apply Duty 3 state and failure rules. Re-arm only after judgment if unfinished and unblocked; otherwise stop. Never infer Definition of Done from idle or the wait exit."
+}
 ```
 
-`herdr pane read` returns plain text. Every other group returns one JSON line.
+The Herdr wait blocks server-side for at most 900000 milliseconds. The monitor
+allows 30000 additional milliseconds for snapshots. The command attempts both
+snapshots even after a nonzero wait exit and preserves the real wait exit.
+Inspect snapshot errors separately; the final exit reports only the wait.
+`herdr pane read` returns plain text. `herdr agent list` returns JSON.
+`onDone` can internally schedule a completion wake. Never add a separate
+`LoopCreate` call or claim monitor persistence beyond the `MonitorCreate` contract.
 
-Read three signals in one look:
+### Choose the next observation
 
-1. `agent_status` from `herdr agent list`.
-2. The context percentage in the status line.
-3. The last screen from `herdr pane read`.
+1. After the brief or another downward send, first wait for `working` through
+   a bounded monitor. Startup `idle` does not mean the brief completed.
+2. If the advisor is working, use the bounded `idle` wait above.
+3. If the advisor is already idle, inspect output and artifacts once. Decide
+   whether to accept, stop, or steer. After steering, wait for `working` first.
+   Never repeatedly arm an `idle` wait against an idle advisor.
+4. Treat a timeout as an inspection checkpoint. Read fresh output and artifacts
+   through a finite monitor. A fast transition can finish before detection;
+   never resend the brief automatically because detection missed a transition.
+5. On connection errors, malformed output, unknown state, or a missing pane,
+   stop the retry chain and report a blocker. Do not relaunch automatically.
+6. Re-arm only after judging fresh evidence and finding unfinished, unblocked
+   work. Stop monitoring after acceptance, cancellation, or an operator blocker.
+
+An idle state, a successful wait, or a timeout proves no Definition of Done.
+Review three signals from monitor output together:
+
+- `agent_status` from `herdr agent list`;
+- the context percentage in the status line;
+- the last screen from `herdr pane read`.
 
 The status line carries the percentage in this shape:
 
@@ -211,12 +276,26 @@ The status line carries the percentage in this shape:
 [<model>] 15% context | <branch>
 ```
 
-Judge role fidelity from artifacts, not from the pane's claims. Read three
-artifacts:
+Read existing artifacts through finite monitors, not inline observation tools.
+Use read-only commands such as `git log`, `jq`, and `cat` against the advisor's
+worktree and recorded contract paths. Inspect the commit log for edit ownership,
+`prd.json` for `passes` flags, and `progress.txt` for the advisor's narrative.
+Read the contract's existing evidence artifact for criterion results. Judge role
+fidelity and completion from these artifacts, not from pane claims. Review no code.
 
-- the commit log, which shows who wrote each tracked edit;
-- the `passes` flags in `prd.json`, which record criterion completion;
-- `progress.txt`, which records the advisor's own narrative.
+### Reconcile handles and resume
+
+Use `MonitorList` before creating or replacing a monitor. Match each handle to
+its recorded pane and contract. Use `MonitorStop` to stop duplicate or obsolete
+handles before creating a replacement. Stop remaining handles at terminal states.
+
+On a late callback, compare its monitor ID with the current record. Ignore stale
+callbacks for steering and re-arming. After a supervisor restart, reconcile
+`MonitorList` with the record. Keep a matching active monitor and review its
+output when it completes. Then inspect fresh artifacts through a finite monitor.
+If no matching monitor exists, inspect the pane and artifacts through one finite
+monitor before deciding the next wait. Never duplicate a launch because a monitor
+handle is missing. Herdr session persistence does not prove monitor persistence.
 
 An announcement interrupt costs more than the announcement delivers. A file on
 disk needs no message. Point at the file at the next seam.
@@ -240,13 +319,18 @@ A clean seam holds four conditions at once:
 4. No worker still runs.
 
 Direct the compaction with an explicit carry-forward. The carry-forward names
-five items:
+six items:
 
 - the contract path;
 - the current story and its criteria;
 - the invariants;
 - the decisions since the last compaction;
-- the open deviations.
+- the open deviations;
+- the communication boundary: workers report to advisors through native worker
+  output only. Advisors own progress/evidence files and report there and in normal
+  output. Both roles must not use reverse Herdr sends, `/escalate --supervisor`,
+  inherited destinations, relays, or a Slack bypass. Required decisions remain
+  blocked until supervisor direction. The supervisor owns operator escalation.
 
 The compaction drops tool output and file dumps. Re-anchor the advisor
 afterward by pointing at the files. A file read costs less than a file dump
@@ -267,16 +351,27 @@ Quote the pane output the escalation rests on. Never report an agent state
 without the `herdr agent list` output or the `herdr pane read` output behind
 the claim.
 
-An advisor escalation arrives at the supervisor first. The supervisor holds the
-contract and the run history, so the supervisor answers most advisor questions
-without a person. When the operator reads the supervisor's own session, ask the
-operator there and skip the channel.
+The supervisor reads blockers in advisor output and existing artifacts through
+monitors. Prohibit reverse Herdr notifications. Answer within the contract
+through guarded downward steering. If the decision needs the operator, keep the
+advisor blocked. Ask in the supervisor's own session when the operator reads it.
+Otherwise, the supervisor uses the sanitized Slack-only escalation command:
 
-`/escalate` delivers to the supervisor pane first and sends the Slack
-notification second. The Slack notification no-ops when no channel exists. On a
-no-op the operator returns to the session to decide, so record the blocker in
-`evidence.md`. Read `/escalate` for the flags, the exit codes, and the
-destination contract. Repeat no gateway detail here.
+```bash
+env -u AGRO_SUPERVISOR_PANE bash .agro/skills/escalate/scripts/escalate.sh \
+  --summary "<blocker>" --needs "<operator decision>" \
+  --tried "<attempts and results>" --key "<stable-blocker-key>"
+```
+
+Do not pass `--supervisor`. Advisors and workers must not send this escalation
+or use Slack as a bypass. This restriction belongs to the supervisor workflow;
+other callers retain the general `/escalate` contract.
+
+Check actual Slack delivery in `.destinations.slack.ok` and read the reason.
+Exit 0 alone proves no delivery. On a no-op or failure, preserve the blocker and
+delivery evidence in the supervisor's run record and surface it to the operator.
+Keep the advisor blocked until direction arrives. Read `/escalate` for flags,
+exit codes, deduplication, and delivery evidence.
 
 ## Supervise more than one advisor
 
@@ -284,26 +379,20 @@ Each advisor owns one branch and one worktree. Two advisors never share one
 checkout, because a branch switch in a shared checkout destroys the other
 advisor's uncommitted work. `/worktrees` owns the worktree layout.
 
-Cap one supervisor at **three advisors**. One poll cycle costs the supervisor a
-120-line pane read plus three artifact reads per advisor. At four advisors the
-supervisor fills its own context before the slowest advisor reaches its first
-seam, and a supervisor that compacts mid-run loses the run history the
-escalations rest on.
-
-Poll in this order, and stop at the first advisor that ranks:
+Cap one supervisor at **three advisors**. Keep one active monitor per advisor.
+If multiple monitors complete, review their results in this priority order:
 
 1. Any advisor with `agent_status` of `blocked`.
 2. Any advisor above 85% context.
 3. Any advisor idle at a story boundary.
 4. Any advisor above 70% context.
-5. The advisor with the oldest last read.
+5. The advisor whose evidence has waited longest for review.
 
 A supervisor supervises no supervisor. The chain ends at the operator.
 
 ## Failure modes
 
-Eight failures came out of the supervised runs so far. Each entry names the
-symptom, the cause, and the correction.
+Each entry names a symptom, a cause, and a correction.
 
 **1. A brief that says "implement" produces an implementer.**
 Symptom: the advisor wrote every tracked file itself through two stories.
@@ -338,8 +427,8 @@ writes literal text. Correction: send the text, then send
 Symptom: the advisor sat at a permission prompt and reported `idle`, so the
 supervisor read the status as progress. Cause: the harness launched without
 bypass permissions. Correction: launch with
-`claude --dangerously-skip-permissions`, and read `bypass permissions on` from
-the status line before the brief.
+`env -u AGRO_SUPERVISOR_PANE claude --dangerously-skip-permissions`, and read
+`bypass permissions on` through the readiness monitor before the brief.
 
 **7. `herdr agent start` splits the supervisor's own tab.**
 Symptom: the advisor landed as a pane inside the supervisor's tab and halved
@@ -358,6 +447,12 @@ Correction: grep the visible pane for `Message @` before every send, and clear
 the agent selector with `Left` until the count is `0`. Tell the advisor when the
 provenance surfaces. If the advisor cannot source an instruction, the advisor
 must revert the work and stop.
+
+**9. A reverse message can remain in the supervisor's input.**
+Symptom: the supervisor sees no actionable completion notice. Cause: reverse
+Herdr text enters an input buffer instead of a monitor completion callback.
+Correction: prohibit advisor and worker reverse sends. Read their output and
+artifacts through monitors; keep operator escalation with the supervisor.
 
 ## What the first run got right
 
