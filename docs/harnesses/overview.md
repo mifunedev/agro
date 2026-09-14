@@ -53,6 +53,7 @@ volume, and the install with it.
 | [Hermes](./hermes.md) | Nous Research's self-improving terminal agent | `hermes` | `agro harness install hermes` |
 | [Grok Build](./grok-build.md) | xAI's proprietary Grok Build terminal agent | `grok` | `agro harness install grok-build` |
 | [Muse Code](./muse-code.md) | Meta's terminal coding agent | `muse` | `agro harness install muse-code` |
+| [Antigravity CLI](./antigravity-cli.md) | Google's terminal coding agent | `agy` | `agro harness install antigravity-cli` |
 | [T3 Code](./t3code.md) | Browser UI over Claude/Codex/OpenCode (port 3773) | `/t3` or `npx t3` | on demand, no install |
 
 ## Verifying installation
@@ -66,6 +67,7 @@ opencode --version
 hermes --version
 grok --version
 muse --version
+agy --version
 
 npx t3 --version        # T3 Code — on demand, fetched by npx
 ```
@@ -81,6 +83,7 @@ Install a harness with `agro harness install <id>`, then authenticate it. Authen
 - **Hermes**: run `hermes setup` (see [Hermes](./hermes.md)).
 - **Muse Code**: run `muse login` inside the sandbox, or provide `META_API_KEY` to the launching process (see [Muse Code](./muse-code.md)).
 - **Grok Build**: run `grok login --device-auth` for headless/remote auth, `grok login` for interactive OAuth, or set `XAI_API_KEY` as a fallback (see [Grok Build](./grok-build.md)). Cached `~/.grok/auth.json` takes precedence over `XAI_API_KEY`.
+- **Antigravity CLI**: run `agy` and complete Google Sign-In; a remote sandbox prints an authorization URL and accepts a pasted code (see [Antigravity CLI](./antigravity-cli.md)). AGRO has not yet validated login inside the sandbox.
 - **T3 Code**: authenticate one of Claude / Codex / OpenCode first, then run `/t3` (or `npx t3`) and open the printed pairing URL (see [T3 Code](./t3code.md)).
 
 ## Default surfaces

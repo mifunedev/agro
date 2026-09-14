@@ -62,6 +62,7 @@ describe("harness catalog", () => {
 
     it("covers every harness the verb can install", () => {
       expect(installable.map((h) => h.id).sort()).toEqual([
+        "antigravity-cli",
         "claude-code",
         "codex",
         "grok-build",
