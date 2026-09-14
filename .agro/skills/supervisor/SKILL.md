@@ -110,10 +110,10 @@ Record its handle as Duty 3 requires. Inspect the mode before briefing.
 
 ```json
 {
-  "command": "bash -c 'set +e; herdr agent wait w7:p4 --status idle --timeout 90000; wait_rc=$?; herdr agent list; herdr pane read w7:p4 --source recent --lines 5; exit \"$wait_rc\"'",
+  "command": "bash -c 'set +e; herdr agent wait w7:p4 --status idle --timeout 90000; wait_rc=$?; herdr agent list; list_rc=$?; herdr pane read w7:p4 --source recent --lines 5; read_rc=$?; printf \"\\nwait_rc=%s\\nlist_rc=%s\\nread_rc=%s\\n\" \"$wait_rc\" \"$list_rc\" \"$read_rc\"; exit \"$wait_rc\"'",
   "description": "advisor-1 readiness at w7:p4",
   "timeout": 120000,
-  "onDone": "Reconcile this monitor ID with advisor-1 at w7:p4. Review the wait result and fresh status/output. Verify root and bypass mode before the first brief. Startup idle is not brief completion. Apply Duty 3 failure rules; do not retry or relaunch automatically."
+  "onDone": "Reconcile this monitor ID with advisor-1 at w7:p4. Check wait_rc, list_rc, read_rc, and required status/output under Duty 3. On any snapshot failure or missing required output, do not brief, steer, or re-arm; report a blocker. A timeout remains an inspection checkpoint. Verify root and bypass mode before the first brief. Startup idle is not brief completion. Do not retry or relaunch automatically."
 }
 ```
 
@@ -208,12 +208,20 @@ reports work the advisor cannot account for.
 Check the prompt before every send, not only the first.
 
 ```bash
-herdr pane read <pane> --source visible | grep -c 'Message @'
+if visible=$(herdr pane read <pane> --source visible) && [[ -n ${visible//[[:space:]]/} ]]; then
+  printf '%s\n' "$visible" | grep -c 'Message @'
+else
+  printf '%s\n' 'Visible-pane read failed or empty; do not send.' >&2
+  false
+fi
 ```
 
-A count of `0` means the prompt targets the advisor. Any other count means the
-prompt targets a worker. Press `Left` to leave the agent selector, confirm the
-count returns to `0`, then send.
+Require a successful visible-pane read with the current prompt present.
+A failed read, empty output, or missing prompt forbids sending, even if partial
+output looks valid. Only then interpret the count: `0` targets the advisor;
+a positive count targets a worker. `grep -c` exits `1` for a zero count;
+that exit does not prove the read succeeded. For a positive count, press `Left`
+to leave the agent selector. Repeat the guarded check before sending.
 
 Never send to an advisor pane without this check. A misrouted brief is
 indistinguishable, from the advisor's side, from a worker that invented its own
@@ -232,17 +240,23 @@ pane and contract before submission.
 
 ```json
 {
-  "command": "bash -c 'set +e; herdr agent wait w6:p7 --status idle --timeout 900000; wait_rc=$?; herdr agent list; herdr pane read w6:p7 --source recent --lines 120; exit \"$wait_rc\"'",
+  "command": "bash -c 'set +e; herdr agent wait w6:p7 --status idle --timeout 900000; wait_rc=$?; herdr agent list; list_rc=$?; herdr pane read w6:p7 --source recent --lines 120; read_rc=$?; printf \"\\nwait_rc=%s\\nlist_rc=%s\\nread_rc=%s\\n\" \"$wait_rc\" \"$list_rc\" \"$read_rc\"; exit \"$wait_rc\"'",
   "description": "advisor at w6:p7: bounded idle wait",
   "timeout": 930000,
-  "onDone": "Reconcile this monitor ID, pane w6:p7, and the recorded contract. Review the real wait exit, status list, pane snapshot, and fresh artifacts. Judge completion, context, and blockers. Apply Duty 3 state and failure rules. Re-arm only after judgment if unfinished and unblocked; otherwise stop. Never infer Definition of Done from idle or the wait exit."
+  "onDone": "Reconcile this monitor ID, pane w6:p7, and the recorded contract. Check wait_rc, list_rc, read_rc, and required status/output under Duty 3. On any snapshot failure or missing required output, do not brief, steer, or re-arm; report a blocker. A timeout remains an inspection checkpoint. Review fresh artifacts. Judge completion, context, and blockers. Re-arm only after judgment if unfinished and unblocked; otherwise stop. Never infer Definition of Done from idle or the wait exit."
 }
 ```
 
 The Herdr wait blocks server-side for at most 900000 milliseconds. The monitor
 allows 30000 additional milliseconds for snapshots. The command attempts both
 snapshots even after a nonzero wait exit and preserves the real wait exit.
-Inspect snapshot errors separately; the final exit reports only the wait.
+Both readiness and working commands print `wait_rc`, `list_rc`, and `read_rc`
+after all three commands return. The final exit always equals `wait_rc`, even
+when a snapshot exits nonzero. Check all three labels, not just the final exit.
+If either snapshot exits nonzero, do not brief, steer, or re-arm. Report a blocker
+even if partial output looks valid. Missing labels or required status/output
+also block these actions. A monitor timeout can interrupt the command before
+labels appear; never treat absent labels as zero.
 `herdr pane read` returns plain text. `herdr agent list` returns JSON.
 `onDone` can internally schedule a completion wake. Never add a separate
 `LoopCreate` call or claim monitor persistence beyond the `MonitorCreate` contract.
@@ -258,8 +272,9 @@ Inspect snapshot errors separately; the final exit reports only the wait.
 4. Treat a timeout as an inspection checkpoint. Read fresh output and artifacts
    through a finite monitor. A fast transition can finish before detection;
    never resend the brief automatically because detection missed a transition.
-5. On connection errors, malformed output, unknown state, or a missing pane,
-   stop the retry chain and report a blocker. Do not relaunch automatically.
+5. On snapshot failure, missing required output, connection errors, malformed
+   output, unknown state, or a missing pane, report a blocker.
+   Do not brief, steer, or re-arm. Do not relaunch automatically.
 6. Re-arm only after judging fresh evidence and finding unfinished, unblocked
    work. Stop monitoring after acceptance, cancellation, or an operator blocker.
 
@@ -443,9 +458,10 @@ confabulating an operator reply. Cause: the supervisor ran `herdr agent send`
 while the advisor's prompt targeted `@general-purpose`, so Herdr delivered the
 supervisor's escalation reply into the worker channel. The worker acted
 faithfully on real instructions that reached it through no legitimate route.
-Correction: grep the visible pane for `Message @` before every send, and clear
-the agent selector with `Left` until the count is `0`. Tell the advisor when the
-provenance surfaces. If the advisor cannot source an instruction, the advisor
+Correction: require a successful visible-pane read with the current prompt
+before interpreting the `Message @` count. Failed or missing reads forbid sends.
+Clear the agent selector with `Left` and repeat the guarded check before sending.
+Tell the advisor when the provenance surfaces. If the advisor cannot source an instruction, the advisor
 must revert the work and stop.
 
 **9. A reverse message can remain in the supervisor's input.**
