@@ -1681,3 +1681,16 @@ index de965d74..5e7cbc7d 100644
 +Clear the agent selector with `Left` and repeat the guarded check before sending.
 +Tell the advisor when the provenance surfaces. If the advisor cannot source an instruction, the advisor
 ````
+
+## SI-0014 · 2026-09-14 · builder · PROPOSED
+
+- **proposal**: Shorten `/supervisor` frontmatter metadata while preserving its supervision triggers, exclusions, and role boundary so Pi parses the description within 1024 characters.
+- **target**: `.agro/skills/supervisor/SKILL.md`
+- **motivating patterns**: none (direct request)
+- **proposer**: /builder skill, issue #1068
+- **diff**:
+
+```diff
+-  <previous supervisor description>
++  <shortened supervisor description, preserving trigger inventory and role boundary>
+```
