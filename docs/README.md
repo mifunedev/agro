@@ -46,6 +46,7 @@ Codex and Pi access shared skills through `.agents/skills`; Claude Code uses
 - [Hermes](harnesses/hermes.md)
 - [Grok Build](harnesses/grok-build.md)
 - [Muse Code](harnesses/muse-code.md)
+- [Antigravity CLI](harnesses/antigravity-cli.md)
 - [T3 Code](harnesses/t3code.md)
 
 ## Integrations

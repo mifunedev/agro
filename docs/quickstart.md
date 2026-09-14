@@ -168,7 +168,7 @@ No agent CLI and no tool is baked into the image, and nothing installs one at
 boot. Install what you need through the one door:
 
 ```bash
-agro harness install claude-code   # or codex, pi, opencode, hermes, grok-build, muse-code
+agro harness install claude-code   # or codex, pi, opencode, hermes, grok-build, muse-code, antigravity-cli
 agro tool install cloudflared      # or herdr, agent-browser, tailscale
 ```
 
@@ -194,6 +194,7 @@ harness before use.
 - **[Hermes](./harnesses/hermes.md)**: `agro harness install hermes`, then run `hermes setup`
 - **[Muse Code](./harnesses/muse-code.md)**: `agro harness install muse-code`, verify `muse --version`, then run `muse login`
 - **[Grok Build](./harnesses/grok-build.md)**: `agro harness install grok-build`, verify `grok --version`, then run `grok login --device-auth` (headless/remote) or `grok login`
+- **[Antigravity CLI](./harnesses/antigravity-cli.md)**: `agro harness install antigravity-cli`, then run `agy` and complete Google Sign-In — a remote sandbox prints an authorization URL and accepts a pasted code (install and login are not yet validated in AGRO)
 - **[T3 Code](./harnesses/t3code.md)**: authenticate one of Claude / Codex / OpenCode, then `/t3` or `npx t3` (browser UI on port 3773)
 
 Claude Code remains the documented default. See
