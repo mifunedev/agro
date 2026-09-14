@@ -125,6 +125,20 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     kind: "installable",
   },
   {
+    id: "antigravity-cli",
+    title: "Antigravity CLI",
+    binary: "agy",
+    installArgv: [
+      "bash",
+      "-lc",
+      "set -o pipefail; curl -fsSL https://antigravity.google/cli/install.sh | bash -s -- --dir \"$HOME/.local/bin\"",
+    ],
+    installUser: "sandbox",
+    verifyArgv: ["agy", "--version"],
+    docsPath: "docs/harnesses/antigravity-cli.md",
+    kind: "installable",
+  },
+  {
     id: "t3code",
     title: "T3 Code",
     binary: "t3",

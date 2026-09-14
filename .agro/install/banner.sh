@@ -108,6 +108,13 @@ if command -v grok >/dev/null 2>&1; then
   fi
 fi
 
+antigravity_status="$status_x"
+antigravity_detail="not installed — run: ${cli_bin} harness install antigravity-cli"
+if command -v agy >/dev/null 2>&1; then
+  antigravity_status="$status_ok"
+  antigravity_detail="installed — run: agy"
+fi
+
 hermes_status="$status_x"
 hermes_detail="not installed — run: ${cli_bin} harness install hermes"
 if command -v hermes >/dev/null 2>&1; then
@@ -167,11 +174,12 @@ printf '    %-6s %-11s %s\n' "$opencode_status"   "opencode"    "$opencode_detai
 printf '    %-6s %-11s %s\n' "$grok_status"       "grok"        "$grok_detail"
 printf '    %-6s %-11s %s\n' "$pi_status"         "pi"          "$pi_detail"
 printf '    %-6s %-11s %s\n' "$hermes_status"     "hermes"      "$hermes_detail"
+printf '    %-6s %-11s %s\n' "$antigravity_status" "agy"        "$antigravity_detail"
 [ -n "$dashboard_status" ] && printf '    %-6s %-11s %s\n' "$dashboard_status" "dashboard" "$dashboard_detail"
 printf '    %-6s %-11s %s\n' "$oh_status"         "oh"          "$oh_detail"
 printf '\n'
 shortcuts=""
-for _oh_binary in claude codex pi opencode grok hermes herdr cloudflared tailscale agent-browser; do
+for _oh_binary in claude codex pi opencode grok agy hermes herdr cloudflared tailscale agent-browser; do
   command -v "$_oh_binary" >/dev/null 2>&1 || continue
   if [ -z "$shortcuts" ]; then shortcuts="$_oh_binary"; else shortcuts="$shortcuts · $_oh_binary"; fi
 done
