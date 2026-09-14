@@ -10,6 +10,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
+- Add Google's Antigravity CLI (`agy`) to the harness catalog: install with `agro harness install antigravity-cli`; install, login, and skill discovery are not yet validated in a sandbox. ([#PENDING](https://github.com/mifunedev/agro/pull/PENDING))
 - Add the `/supervisor` skill: a session that starts, briefs, and monitors advisor sessions in other Herdr panes, owns their context budget, and escalates to the operator. ([#1059](https://github.com/mifunedev/agro/pull/1059))
 - Add a supervisor destination to `/escalate`: an advisor escalation reaches its supervisor pane before the Slack channel, resolved from `--supervisor` or `AGRO_SUPERVISOR_PANE`. ([#1059](https://github.com/mifunedev/agro/pull/1059))
 - Add `agro sandbox install docker --home-mount <dir>` to persist `/home/sandbox` at a host path when you create the sandbox. ([#1042](https://github.com/mifunedev/agro/issues/1042))
