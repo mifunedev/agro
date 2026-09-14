@@ -1681,3 +1681,57 @@ index de965d74..5e7cbc7d 100644
 +Clear the agent selector with `Left` and repeat the guarded check before sending.
 +Tell the advisor when the provenance surfaces. If the advisor cannot source an instruction, the advisor
 ````
+
+## SI-0014 · 2026-09-14 · builder · PROPOSED
+
+- **proposal**: Shorten `/supervisor` frontmatter metadata while preserving its supervision triggers, exclusions, and role boundary so Pi parses the description within 1024 characters.
+- **target**: `.agro/skills/supervisor/SKILL.md`
+- **motivating patterns**: none (direct request)
+- **proposer**: /builder skill, issue #1068
+- **diff**:
+
+```diff
+diff --git a/.agro/skills/supervisor/SKILL.md b/.agro/skills/supervisor/SKILL.md
+index 5e7cbc7d..f87ab88e 100644
+--- a/.agro/skills/supervisor/SKILL.md
++++ b/.agro/skills/supervisor/SKILL.md
+@@ -1,9 +1,7 @@
+ ---
+ name: supervisor
+ description: |
+-  Supervise advisor sessions from outside them. Require MonitorCreate with onDone for all advisor observation and readiness waits, status checks, and output reads. Require MonitorList and MonitorStop for handle control. Never use LoopCreate or polling. Use inline Herdr commands for launch and guarded downward steering only. Block reverse Herdr messages from advisors and workers. Do not write or review code. Own context budgets and operator escalation.
+-  TRIGGER when: asked to supervise, babysit, watch, or drive an agent in another pane; asked to "run this build in a second pane and keep it on track"; asked to own a long build to its Definition of Done from outside the implementing session; an advisor needs a brief, a compaction decision, or an escalation route; asked "what is the advisor doing" or "is the advisor still on the contract".
+-  Do NOT trigger when the active session implements the work; when the request asks for a code review; when the request asks to dispatch bounded workers inside one session (use /delegate); or when the request asks to run a single `herdr` command (use /herdr).
++  Supervise, babysit, watch, or drive advisor sessions from outside them. Run or drive an agent in another pane, including a second-pane build, and own a long build through its Definition of Done. Handle advisor briefs, compaction decisions, escalation routes, and status questions. Require MonitorCreate with onDone for observation and waits; use MonitorList and MonitorStop for handles. Never poll or use LoopCreate. Use Herdr only for launch and guarded downward steering. Block reverse Herdr messages. Do not write or review code. Own context budgets and operator escalation. Do NOT trigger for active-session implementation, code review, bounded worker dispatch via /delegate, or one-off `herdr` commands (use /herdr).
+ allowed-tools: Bash, Read, Grep, MonitorCreate, MonitorList, MonitorStop
+ ---
+
+@@ -470,6 +468,27 @@ Herdr text enters an input buffer instead of a monitor completion callback.
+ Correction: prohibit advisor and worker reverse sends. Read their output and
+ artifacts through monitors; keep operator escalation with the supervisor.
+
++**10. A green status field is a claim, not evidence.**
++Symptom: the supervisor reported a pull request as reviewed and its gates as
++passing. The reviewer had never read it, and one committed probe could not fail
++under any repository state. Cause: the supervisor verified each gate by its
++status bucket rather than by what the gate did. A third-party reviewer returned
++`SUCCESS` when it skipped a draft, and returned `SUCCESS` again when it declined
++on a rate limit. A probe that shipped with a shell quoting defect swallowed its
++own predicate and printed `PASS`. Correction: read the body, not the bucket. For
++a review gate, confirm from the API that a review or a substantive comment
++landed, with a timestamp after the event that would have caused a skip. For a
++check the contract adds, require it to be seen failing against a deliberate
++break before it counts as a gate — a guard that has never failed is not known to
++work. Treat a pass with zero elapsed time as suspect on principle. Carry the
++same rule into the monitor: render draft state and skipped or neutral
++sub-states, or the monitor will launder an unearned green into a report.
++
++The general form is worth more than the three instances. A claim without a check
++rots; a check without a test of the check is itself an unverified claim; and a
++gate's status field is a claim too, green for reasons unrelated to what it
++checks. Each level is assumed sound while auditing the level below it.
++
+ ## What the first run got right
+
+ - The advisor repaired a worker's gaps with the same worker, not a fresh one.
+```
