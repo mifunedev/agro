@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-14
+
 ### Added
 
 - Add Google's Antigravity CLI (`agy`) to the harness catalog: install with `agro harness install antigravity-cli`; install, login, and skill discovery are not yet validated in a sandbox. ([#1066](https://github.com/mifunedev/agro/pull/1066))
