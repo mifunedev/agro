@@ -200,8 +200,9 @@ legacy `OH_EXECUTION_TARGET` spelling still applies when the AGRO one is unset.
 | Verb | On the host | Inside the sandbox |
 |---|---|---|
 | `agro harness install` | installs into the running container over Docker Compose; offers a host install when the container is not reachable | installs live, in place |
+| `agro harness uninstall` | removes from the running container over Docker Compose; removes the recorded host install when the container is not reachable | removes live, in place |
 | `agro tool install` | installs into the running container over Docker Compose | installs live, in place |
-| `agro harness list/status` | probes the host harness root when the container is not reachable and that root holds a workspace; reports `?` otherwise | reports the real state of this environment |
+| `agro harness list/status` | probes the host install prefix `~/.local` when the container is not reachable; reports `?` when neither a harness root nor that prefix exists | reports the real state of this environment |
 | `agro tool list/status` | reports `?` when the container is not reachable | reports the real state of this environment |
 | `agro sandbox install` | provisions the sandbox | refuses with a host-only error |
 | `agro shell` | `docker exec` into the container | opens a local `zsh` |
@@ -215,10 +216,11 @@ no `herdr` until you run `agro tool install herdr`. Each install lands in
 `~/.local` in the persistent home volume; `agro destroy` removes it.
 
 `agro harness install <id>` also installs on the host. When the sandbox is not
-running it offers a host installation under `<harness root>/.local`, where the
-harness root is `--path <dir>`, then `harnessRoot` in the host `agro.json`, then
-`~/.agro`. A non-interactive run needs `--host` or `--path`; without either it
-keeps the refusal. See
+running it clones the AGRO workspace into the harness root — `--path <dir>`, then
+`harnessRoot` in the host `agro.json`, then `~/.agro` — and installs the harness
+into `~/.local` for the invoking user. The install prefix is never derived from
+the harness root, so the clone stays clean. A non-interactive run needs `--host`
+or `--path`; without either it keeps the refusal. See
 [Harnesses Overview](harnesses/overview.md#installing-a-harness).
 
 ## `agro destroy` and its confirmation policy

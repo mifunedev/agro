@@ -39,6 +39,7 @@ import {
   runHarnessInstall,
   runHarnessList,
   runHarnessStatus,
+  runHarnessUninstall,
   type HarnessIO,
 } from "./commands/harness.js";
 import { harnessIds } from "./lib/harnesses/catalog.js";
@@ -318,33 +319,25 @@ export function printHarnessHelp(bin: string = LEGACY_PRODUCT.bin): void {
 Usage:
   ${bin} harness list                     List known harnesses and their state
   ${bin} harness install <name>           Install a harness into the sandbox or the host
+  ${bin} harness uninstall <name>         Remove a harness the same way it was installed
   ${bin} harness status [name]            Show installed state
 
-\`install\` is the only door: it probes the running sandbox, installs the harness
-into the persistent home volume, and reports. It never rebuilds or restarts the
-sandbox.
+\`install\` and \`uninstall\` act on the running sandbox. When no sandbox is
+reachable they act on the host. A host install clones the AGRO workspace into the
+harness root, then installs the harness into \`~/.local\`. \`--path <dir>\` chooses
+the harness root; a successful install records it as \`harnessRoot\` in the host
+\`${stateNames(bin).configFile}\`. The default is \`~/.agro\`, and the install prefix is
+always \`~/.local\`.
 
-When the sandbox is not running, \`install\` offers a host installation. An
-interactive run asks for confirmation and for the harness root. A non-interactive
-run needs \`--host\` or \`--path\`; without either it refuses and points at
-\`${bin} sandbox\`. The host path clones the AGRO repository into the harness root
-when the root holds no checkout, installs under \`<root>/.local\`, and records the
-root as \`harnessRoot\` in the host \`${stateNames(bin).configFile}\`.
-
-The first host install is the one moment you choose the location. Every later
-host install reuses the recorded \`harnessRoot\` without asking. Pass
-\`--path <dir>\` to move the harness root.
-
-\`list\` and \`status\` probe the host harness root when the sandbox is not running
-and that root already holds a workspace. They never clone.
-
-Harness root precedence: \`--path <dir>\`, then \`harnessRoot\` in the host
-\`${stateNames(bin).configFile}\`, then \`~/.agro\`.
+On the host, \`uninstall\` removes only the harness \`install\` recorded, from the
+prefix in that record. Without a record it refuses, and \`--force\` overrides. In
+the sandbox it needs no record. See \`docs/harnesses/overview.md\`.
 
 Flags:
   --json           Machine-readable output (list/status)
   --host           Install on the host when the sandbox is not running (install)
-  --path <dir>     Harness root on the host; implies --host (install)
+  --path <dir>     Harness root for the workspace clone; implies --host (install)
+  --force          Remove without a recorded host install (uninstall)
 
 Harnesses:
 ${harnessIds().map((h) => `  ${h}`).join("\n")}
@@ -884,11 +877,12 @@ export function parseShellArgs(rest: string[], bin: string = LEGACY_PRODUCT.bin)
 
 export interface HarnessArgs {
   help: boolean;
-  subcommand?: "list" | "install" | "status";
+  subcommand?: "list" | "install" | "status" | "uninstall";
   name?: string;
   json: boolean;
   host: boolean;
   path?: string;
+  force: boolean;
 }
 
 export function parseHarnessArgs(rest: string[], bin: string = LEGACY_PRODUCT.bin): ParseResult<HarnessArgs> {
@@ -896,6 +890,7 @@ export function parseHarnessArgs(rest: string[], bin: string = LEGACY_PRODUCT.bi
     help: false,
     json: false,
     host: false,
+    force: false,
   };
   if (rest.length === 0 || isHelpFlag(rest[0])) {
     return { ok: true, args: { ...args, help: true } };
@@ -912,6 +907,8 @@ export function parseHarnessArgs(rest: string[], bin: string = LEGACY_PRODUCT.bi
       args.json = true;
     } else if (token === "--host") {
       args.host = true;
+    } else if (token === "--force") {
+      args.force = true;
     } else if (token === "--path") {
       expectPath = true;
     } else if (token.startsWith("--path=")) {
@@ -928,24 +925,27 @@ export function parseHarnessArgs(rest: string[], bin: string = LEGACY_PRODUCT.bi
   }
 
   const [sub, name, ...extra] = positionals;
-  if (sub !== "list" && sub !== "install" && sub !== "status") {
+  if (sub !== "list" && sub !== "install" && sub !== "status" && sub !== "uninstall") {
     return {
       ok: false,
-      error: `${bin} harness: unknown subcommand "${sub}" — expected list, install, or status`,
+      error: `${bin} harness: unknown subcommand "${sub}" — expected list, install, uninstall, or status`,
       showHelp: true,
     };
   }
   if (extra.length > 0) {
     return { ok: false, error: `${bin} harness: unexpected argument "${extra[0]}"` };
   }
-  if (sub === "install" && name === undefined) {
-    return { ok: false, error: `${bin} harness install: a harness name is required`, showHelp: true };
+  if ((sub === "install" || sub === "uninstall") && name === undefined) {
+    return { ok: false, error: `${bin} harness ${sub}: a harness name is required`, showHelp: true };
   }
   if (sub === "list" && name !== undefined) {
     return { ok: false, error: `${bin} harness list: unexpected argument "${name}"` };
   }
   if (sub !== "install" && args.host) {
     return { ok: false, error: `${bin} harness ${sub}: --host and --path apply to install only` };
+  }
+  if (sub !== "uninstall" && args.force) {
+    return { ok: false, error: `${bin} harness ${sub}: --force applies to uninstall only` };
   }
   args.subcommand = sub;
   if (name !== undefined) args.name = name;
@@ -1343,6 +1343,9 @@ async function main(argv: string[]): Promise<number> {
     }
     if (a.subcommand === "status") {
       return await runHarnessStatus(a.name, { bin, json: a.json }, io);
+    }
+    if (a.subcommand === "uninstall") {
+      return await runHarnessUninstall(a.name as string, { bin, force: a.force }, io);
     }
     return await runHarnessInstall(
       a.name as string,

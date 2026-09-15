@@ -8,6 +8,7 @@ export interface HarnessEntry {
   readonly installArgv: readonly string[];
   readonly installUser: "root" | "sandbox";
   readonly verifyArgv: readonly string[];
+  readonly uninstallArgv: readonly string[] | null;
   readonly docsPath: string;
   readonly kind: HarnessKind;
 }
@@ -31,6 +32,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     ],
     installUser: "sandbox",
     verifyArgv: ["claude", "--version"],
+    uninstallArgv: ["npm", "--prefix", HARNESS_PREFIX_TOKEN, "uninstall", "-g", "@anthropic-ai/claude-code"],
     docsPath: "docs/harnesses/claude-code.md",
     kind: "installable",
   },
@@ -48,6 +50,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     ],
     installUser: "sandbox",
     verifyArgv: ["codex", "--version"],
+    uninstallArgv: ["npm", "--prefix", HARNESS_PREFIX_TOKEN, "uninstall", "-g", "@openai/codex"],
     docsPath: "docs/harnesses/codex.md",
     kind: "installable",
   },
@@ -66,6 +69,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     ],
     installUser: "sandbox",
     verifyArgv: ["pi", "--version"],
+    uninstallArgv: ["npm", "--prefix", HARNESS_PREFIX_TOKEN, "uninstall", "-g", "@earendil-works/pi-coding-agent"],
     docsPath: "docs/harnesses/pi.md",
     kind: "installable",
   },
@@ -83,6 +87,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     ],
     installUser: "sandbox",
     verifyArgv: ["opencode", "--version"],
+    uninstallArgv: ["npm", "--prefix", HARNESS_PREFIX_TOKEN, "uninstall", "-g", "opencode-ai"],
     docsPath: "docs/harnesses/opencode.md",
     kind: "installable",
   },
@@ -97,6 +102,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     ],
     installUser: "sandbox",
     verifyArgv: ["grok", "--version"],
+    uninstallArgv: ["rm", "-rf", `${HARNESS_PREFIX_TOKEN}/bin/grok`],
     docsPath: "docs/harnesses/grok-build.md",
     kind: "installable",
   },
@@ -111,6 +117,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     ],
     installUser: "sandbox",
     verifyArgv: ["hermes", "--version"],
+    uninstallArgv: ["rm", "-rf", `${HARNESS_PREFIX_TOKEN}/bin/hermes`, `${HARNESS_PREFIX_TOKEN}/lib/hermes-agent`],
     docsPath: "docs/harnesses/hermes.md",
     kind: "installable",
   },
@@ -125,6 +132,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     ],
     installUser: "sandbox",
     verifyArgv: ["muse", "--version"],
+    uninstallArgv: ["rm", "-rf", `${HARNESS_PREFIX_TOKEN}/bin/muse`],
     docsPath: "docs/harnesses/muse-code.md",
     kind: "installable",
   },
@@ -139,6 +147,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     ],
     installUser: "sandbox",
     verifyArgv: ["agy", "--version"],
+    uninstallArgv: ["rm", "-rf", `${HARNESS_PREFIX_TOKEN}/bin/agy`],
     docsPath: "docs/harnesses/antigravity-cli.md",
     kind: "installable",
   },
@@ -149,6 +158,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     installArgv: ["npx", "--yes", "t3", "--version"],
     installUser: "sandbox",
     verifyArgv: ["npx", "--no-install", "t3", "--version"],
+    uninstallArgv: null,
     docsPath: "docs/harnesses/t3code.md",
     kind: "on-demand",
   },
@@ -172,6 +182,13 @@ export function resolveInstallArgv(entry: HarnessEntry, prefix: string): string[
 
 export function resolveVerifyArgv(entry: HarnessEntry, prefix: string): string[] {
   return substitute(entry.verifyArgv, prefix);
+}
+
+export function resolveUninstallArgv(
+  entry: HarnessEntry,
+  prefix: string,
+): string[] | null {
+  return entry.uninstallArgv === null ? null : substitute(entry.uninstallArgv, prefix);
 }
 
 export function harnessBinPath(prefix: string): string {

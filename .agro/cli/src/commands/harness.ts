@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { homedir } from "node:os";
 import { delimiter, join, resolve } from "node:path";
 import {
   ExecutionSpawnError,
@@ -10,7 +11,12 @@ import { runningInsideSandbox } from "../lib/execution/detect.js";
 import { LocalExecutionTarget } from "../lib/execution/local-target.js";
 import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import type { ExecutionTarget } from "../lib/execution/target.js";
-import { readHostConfig, resolveHarnessRoot, writeHostConfig } from "../lib/host-config.js";
+import {
+  readHostConfig,
+  resolveHarnessRoot,
+  writeHostConfig,
+  type HostHarnessReceipt,
+} from "../lib/host-config.js";
 import { AGRO_REPO_URL, ensureHostWorkspace } from "../lib/host-workspace.js";
 import { ask as promptAsk } from "../lib/prompt.js";
 import { resolveProjectRoot } from "../lib/project.js";
@@ -20,6 +26,7 @@ import {
   harnessIds,
   HARNESS_CATALOG,
   resolveInstallArgv,
+  resolveUninstallArgv,
   resolveVerifyArgv,
   SANDBOX_HARNESS_PREFIX,
   type HarnessEntry,
@@ -42,6 +49,8 @@ export interface HarnessOptions {
   host?: boolean;
   path?: string;
   interactive?: boolean;
+  homedir?: () => string;
+  force?: boolean;
 }
 
 export type HarnessLocation = "sandbox" | "host" | "unknown";
@@ -58,7 +67,7 @@ interface HarnessState {
 
 interface CollectedStates {
   states: HarnessState[];
-  hostRoot?: string;
+  hostPrefix?: string;
 }
 
 type InstallUser = "root" | "sandbox" | undefined;
@@ -83,22 +92,25 @@ function targetFor(
   });
 }
 
-function hostPrefix(root: string): string {
-  return join(root, ".local");
+function hostPrefix(home: string): string {
+  return join(home, ".local");
 }
 
-function hostWorkspaceExists(root: string): boolean {
-  return existsSync(join(root, ".git")) || existsSync(hostPrefix(root));
+function pathEntries(env: NodeJS.ProcessEnv): string[] {
+  return (env.PATH ?? "").split(delimiter).filter((part) => part !== "");
+}
+
+function onPath(prefix: string, env: NodeJS.ProcessEnv): boolean {
+  return pathEntries(env).includes(harnessBinPath(prefix));
 }
 
 function hostTargetFor(
   root: string,
+  prefix: string,
   run: LifecycleRunner,
   env: NodeJS.ProcessEnv,
 ): ExecutionTarget {
-  const path = [harnessBinPath(hostPrefix(root)), env.PATH ?? ""]
-    .filter((part) => part !== "")
-    .join(delimiter);
+  const path = [harnessBinPath(prefix), ...pathEntries(env)].join(delimiter);
   return new LocalExecutionTarget({
     projectRoot: root,
     run,
@@ -148,19 +160,27 @@ function stateOf(
   };
 }
 
-function probeableHostRoot(env: NodeJS.ProcessEnv): string | undefined {
+interface HostProbe {
+  root: string;
+  prefix: string;
+}
+
+function probeableHost(env: NodeJS.ProcessEnv, home: string): HostProbe | undefined {
   let root: string;
   try {
     root = resolveHarnessRoot(undefined, env);
   } catch {
     return undefined;
   }
-  return hostWorkspaceExists(root) ? root : undefined;
+  const prefix = hostPrefix(home);
+  if (!existsSync(join(root, ".git")) && !existsSync(prefix)) return undefined;
+  return { root, prefix };
 }
 
 async function collectStates(
   root: string,
   run: LifecycleRunner,
+  home: string,
   env?: NodeJS.ProcessEnv,
   only?: readonly HarnessEntry[],
 ): Promise<CollectedStates> {
@@ -183,19 +203,18 @@ async function collectStates(
     return { states };
   }
 
-  const hostRoot = probeableHostRoot(env ?? process.env);
-  if (hostRoot === undefined) {
+  const host = probeableHost(env ?? process.env, home);
+  if (host === undefined) {
     return { states: entries.map((entry) => stateOf(entry, null, "unknown")) };
   }
 
-  const hostTarget = hostTargetFor(hostRoot, run, env ?? process.env);
-  const prefix = hostPrefix(hostRoot);
+  const hostTarget = hostTargetFor(host.root, host.prefix, run, env ?? process.env);
   const states: HarnessState[] = [];
   for (const entry of entries) {
-    const installed = await probeInstalled(hostTarget, entry, prefix, undefined);
+    const installed = await probeInstalled(hostTarget, entry, host.prefix, undefined);
     states.push(stateOf(entry, installed, installed === null ? "unknown" : "host"));
   }
-  return { states, hostRoot };
+  return { states, hostPrefix: host.prefix };
 }
 
 function cell(value: boolean | null, absent: string): string {
@@ -216,7 +235,7 @@ function renderTable(collected: CollectedStates, io: HarnessIO, bin: string): vo
   for (const row of rows) io.stdout(line(row));
   if (states.some((s) => s.location === "host")) {
     io.stdout(
-      `\nINSTALLED reports the host workspace at ${collected.hostRoot} — the sandbox is not running.\n`,
+      `\nINSTALLED reports the host prefix ${collected.hostPrefix} — the sandbox is not running.\n`,
     );
     return;
   }
@@ -228,7 +247,7 @@ function renderTable(collected: CollectedStates, io: HarnessIO, bin: string): vo
 export async function runHarnessList(opts: HarnessOptions, io: HarnessIO): Promise<number> {
   const run = opts.run ?? spawnRunner;
   const root = resolveProjectRoot(opts.cwd);
-  const collected = await collectStates(root, run, opts.env);
+  const collected = await collectStates(root, run, homeOf(opts), opts.env);
   if (opts.json) {
     io.stdout(`${JSON.stringify(collected.states, null, 2)}\n`);
   } else {
@@ -257,7 +276,7 @@ export async function runHarnessStatus(
     if (!only) return unknownHarness(name, io, opts.bin);
   }
 
-  const collected = await collectStates(root, run, opts.env, only ? [only] : undefined);
+  const collected = await collectStates(root, run, homeOf(opts), opts.env, only ? [only] : undefined);
   if (opts.json) {
     io.stdout(`${JSON.stringify(only ? collected.states[0] : collected.states, null, 2)}\n`);
   } else {
@@ -294,6 +313,10 @@ function sandboxRefusal(bin: string, status: string): string {
     `${bin} harness: the sandbox is not running (${status}).\n` +
     `Start it with \`${bin} sandbox\`, then re-run this command.\n`
   );
+}
+
+function homeOf(opts: HarnessOptions): string {
+  return (opts.homedir ?? homedir)();
 }
 
 function isInteractive(opts: HarnessOptions): boolean {
@@ -365,8 +388,8 @@ async function installOnHost(
     return 1;
   }
 
-  const prefix = hostPrefix(root);
-  const target = hostTargetFor(root, run, env);
+  const prefix = hostPrefix(homeOf(opts));
+  const target = hostTargetFor(root, prefix, run, env);
   const hermes = entry.id === "hermes";
   const installEnv = hermes ? {
     ...aliasedEnvPair("PROJECT_ROOT", root),
@@ -402,16 +425,161 @@ async function installOnHost(
     if (code !== 0) return code;
   }
 
+  const receipt: HostHarnessReceipt = {
+    prefix,
+    binary: entry.binary,
+    binPath: harnessBinPath(prefix),
+    installedAt: new Date().toISOString(),
+    workspaceRoot: root,
+  };
   try {
-    writeHostConfig({ ...readHostConfig(env), harnessRoot: root }, env);
+    const config = readHostConfig(env);
+    writeHostConfig(
+      {
+        ...config,
+        harnessRoot: root,
+        hostHarnesses: { ...(config.hostHarnesses ?? {}), [entry.id]: receipt },
+      },
+      env,
+    );
   } catch (err) {
-    io.stderr(`${bin} harness: could not record the harness root: ${messageOf(err)}\n`);
+    io.stderr(`${bin} harness: could not record the install: ${messageOf(err)}\n`);
     return 1;
   }
 
   io.stdout(`${entry.id}: installed at ${prefix} — see ${sourceDocsUrl(entry.docsPath)} for authentication\n`);
-  io.stdout(`Add this line to your shell profile: export PATH="${harnessBinPath(prefix)}:$PATH"\n`);
+  if (!onPath(prefix, env)) {
+    io.stdout(`Add this line to your shell profile: export PATH="${harnessBinPath(prefix)}:$PATH"\n`);
+  }
   return 0;
+}
+
+interface RemovalOutcome {
+  code: number;
+  dropReceipt: boolean;
+}
+
+async function removeHarness(
+  entry: HarnessEntry,
+  target: ExecutionTarget,
+  prefix: string,
+  user: InstallUser,
+  opts: HarnessOptions,
+  io: HarnessIO,
+): Promise<RemovalOutcome> {
+  const argv = resolveUninstallArgv(entry, prefix);
+  if (argv === null) {
+    io.stdout(`${entry.id}: nothing to remove — npx fetches it at each run\n`);
+    return { code: 0, dropReceipt: false };
+  }
+
+  if (await probeInstalled(target, entry, prefix, user) !== true) {
+    io.stdout(`${entry.id}: not installed (${entry.binary})\n`);
+    return { code: 0, dropReceipt: true };
+  }
+
+  if (isInteractive(opts)) {
+    const ask = io.ask ?? promptAsk;
+    const answer = (await ask(`Remove ${entry.title} from ${prefix}? [y/N]`)).trim().toLowerCase();
+    if (!/^y/.test(answer)) {
+      io.stderr(`${opts.bin} harness: removed nothing.\n`);
+      return { code: 1, dropReceipt: false };
+    }
+  }
+
+  io.stdout(`removing ${entry.title} from ${prefix}…\n`);
+  const r = await target.exec({
+    argv,
+    ...(user ? { user } : {}),
+    stdio: "inherit",
+  });
+  if (r.exitCode !== 0) {
+    io.stderr(`${opts.bin} harness: removing ${entry.id} failed (exit ${r.exitCode}).\n`);
+    return { code: r.exitCode, dropReceipt: false };
+  }
+  io.stdout(`${entry.id}: removed from ${prefix}\n`);
+  return { code: 0, dropReceipt: true };
+}
+
+async function uninstallOnHost(
+  entry: HarnessEntry,
+  opts: HarnessOptions,
+  io: HarnessIO,
+  run: LifecycleRunner,
+): Promise<number> {
+  const bin = opts.bin;
+  const env = opts.env ?? process.env;
+  const computed = hostPrefix(homeOf(opts));
+
+  if (resolveUninstallArgv(entry, computed) === null) {
+    io.stdout(`${entry.id}: nothing to remove — npx fetches it at each run\n`);
+    return 0;
+  }
+
+  let config;
+  let workspace: string;
+  try {
+    config = readHostConfig(env);
+    workspace = resolveHarnessRoot(undefined, env);
+  } catch (err) {
+    io.stderr(`${bin} harness: ${messageOf(err)}\n`);
+    return 1;
+  }
+
+  const receipt = config.hostHarnesses?.[entry.id];
+  if (receipt === undefined && opts.force !== true) {
+    io.stderr(
+      `${bin} harness: no record of installing ${entry.id} on this host.\n` +
+        `Removing it could delete a harness you installed yourself. ` +
+        `Re-run with \`--force\` to remove it from ${computed}.\n`,
+    );
+    return 1;
+  }
+
+  const prefix = receipt?.prefix ?? computed;
+  const target = hostTargetFor(receipt?.workspaceRoot ?? workspace, prefix, run, env);
+  const outcome = await removeHarness(entry, target, prefix, undefined, opts, io);
+
+  if (outcome.dropReceipt && receipt !== undefined) {
+    const remaining = { ...(config.hostHarnesses ?? {}) };
+    delete remaining[entry.id];
+    try {
+      writeHostConfig({ ...config, hostHarnesses: remaining }, env);
+    } catch (err) {
+      io.stderr(`${bin} harness: could not clear the install record: ${messageOf(err)}\n`);
+      return 1;
+    }
+    io.stdout(`${entry.id}: cleared the host install record\n`);
+  }
+  return outcome.code;
+}
+
+export async function runHarnessUninstall(
+  name: string,
+  opts: HarnessOptions,
+  io: HarnessIO,
+): Promise<number> {
+  const run = opts.run ?? spawnRunner;
+  const root = resolveProjectRoot(opts.cwd);
+
+  const entry = findHarness(name);
+  if (!entry) return unknownHarness(name, io, opts.bin);
+
+  const target = targetFor(root, run, opts.env);
+  let status: string;
+  try {
+    status = await target.status();
+  } catch (err) {
+    if (err instanceof ExecutionSpawnError && err.code === "ENOENT") {
+      io.stderr("docker is required to remove from the running sandbox but was not found on PATH\n");
+      return 1;
+    }
+    throw err;
+  }
+
+  if (!isReachable(status)) return await uninstallOnHost(entry, opts, io, run);
+
+  return (await removeHarness(entry, target, SANDBOX_HARNESS_PREFIX, "sandbox", opts, io)).code;
 }
 
 export async function runHarnessInstall(

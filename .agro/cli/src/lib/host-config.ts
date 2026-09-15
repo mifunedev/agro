@@ -4,9 +4,18 @@ import { GENERATIONS, resolveUserStateHome } from "./compat.js";
 
 const HOST_CONFIG_MODE = 0o644;
 
+export interface HostHarnessReceipt {
+  prefix: string;
+  binary: string;
+  binPath: string;
+  installedAt: string;
+  workspaceRoot?: string;
+}
+
 export interface HostConfig {
   version: 1;
   harnessRoot?: string;
+  hostHarnesses?: Record<string, HostHarnessReceipt>;
   [key: string]: unknown;
 }
 
@@ -45,7 +54,43 @@ export function validateHostConfig(value: unknown): HostConfig {
     }
   }
 
+  const hostHarnesses = record.hostHarnesses;
+  if (hostHarnesses !== undefined) validateReceipts(hostHarnesses);
+
   return { ...(record as HostConfig), version: 1 };
+}
+
+function absoluteField(value: unknown, path: string): string {
+  if (typeof value !== "string" || value === "") {
+    throw fieldError(path, "must be a non-empty string");
+  }
+  if (!isAbsolute(value)) throw fieldError(path, "must be an absolute path");
+  return value;
+}
+
+function validateReceipts(value: unknown): void {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw fieldError("hostHarnesses", "must be a JSON object keyed by harness id");
+  }
+  for (const [id, receipt] of Object.entries(value as Record<string, unknown>)) {
+    if (id === "") throw fieldError("hostHarnesses", "must use a non-empty harness id as each key");
+    const at = `hostHarnesses.${id}`;
+    if (!receipt || typeof receipt !== "object" || Array.isArray(receipt)) {
+      throw fieldError(at, "must be a JSON object");
+    }
+    const entry = receipt as Record<string, unknown>;
+    absoluteField(entry.prefix, `${at}.prefix`);
+    absoluteField(entry.binPath, `${at}.binPath`);
+    if (typeof entry.binary !== "string" || entry.binary === "") {
+      throw fieldError(`${at}.binary`, "must be a non-empty string");
+    }
+    if (typeof entry.installedAt !== "string" || entry.installedAt === "") {
+      throw fieldError(`${at}.installedAt`, "must be a non-empty string");
+    }
+    if (entry.workspaceRoot !== undefined) {
+      absoluteField(entry.workspaceRoot, `${at}.workspaceRoot`);
+    }
+  }
 }
 
 export function readHostConfig(env: NodeJS.ProcessEnv = process.env): HostConfig {

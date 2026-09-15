@@ -96,6 +96,62 @@ describe("validateHostConfig", () => {
   it("rejects an unknown version", () => {
     expect(() => validateHostConfig({ version: 2 })).toThrow(/version must be 1/);
   });
+
+  const receipt = {
+    prefix: "/home/dev/.local",
+    binary: "claude",
+    binPath: "/home/dev/.local/bin",
+    installedAt: "2026-09-15T00:00:00.000Z",
+  };
+
+  it("accepts a hostHarnesses receipt", () => {
+    const config = validateHostConfig({ hostHarnesses: { "claude-code": receipt } });
+    expect(config.hostHarnesses?.["claude-code"]).toEqual(receipt);
+  });
+
+  it("accepts a receipt that names its workspace root", () => {
+    const withRoot = { ...receipt, workspaceRoot: "/srv/agro" };
+    const config = validateHostConfig({ hostHarnesses: { "claude-code": withRoot } });
+    expect(config.hostHarnesses?.["claude-code"].workspaceRoot).toBe("/srv/agro");
+  });
+
+  it("rejects a hostHarnesses map that is not an object", () => {
+    expect(() => validateHostConfig({ hostHarnesses: [] })).toThrow(
+      /hostHarnesses must be a JSON object keyed by harness id/,
+    );
+  });
+
+  it("rejects a receipt that is not an object", () => {
+    expect(() => validateHostConfig({ hostHarnesses: { "claude-code": "yes" } })).toThrow(
+      /hostHarnesses\.claude-code must be a JSON object/,
+    );
+  });
+
+  it("rejects a relative prefix, binPath or workspaceRoot", () => {
+    for (const field of ["prefix", "binPath", "workspaceRoot"]) {
+      expect(() =>
+        validateHostConfig({
+          hostHarnesses: { "claude-code": { ...receipt, [field]: "relative/path" } },
+        }),
+        field,
+      ).toThrow(new RegExp(`hostHarnesses\\.claude-code\\.${field} must be an absolute path`));
+    }
+  });
+
+  it("rejects a receipt with no binary or no install time", () => {
+    for (const field of ["binary", "installedAt"]) {
+      expect(() =>
+        validateHostConfig({ hostHarnesses: { "claude-code": { ...receipt, [field]: "" } } }),
+        field,
+      ).toThrow(new RegExp(`hostHarnesses\\.claude-code\\.${field} must be a non-empty string`));
+    }
+  });
+
+  it("round-trips a receipt through the config file", () => {
+    const env = stateHome(".agro");
+    writeHostConfig({ version: 1, hostHarnesses: { codex: { ...receipt, binary: "codex" } } }, env);
+    expect(readHostConfig(env).hostHarnesses?.codex.binary).toBe("codex");
+  });
 });
 
 describe("resolveHarnessRoot", () => {

@@ -10,6 +10,7 @@ import {
   HARNESS_CATALOG,
   HARNESS_PREFIX_TOKEN,
   resolveInstallArgv,
+  resolveUninstallArgv,
   resolveVerifyArgv,
   SANDBOX_HARNESS_PREFIX,
   type HarnessEntry,
@@ -95,6 +96,7 @@ describe("harness catalog", () => {
           "installUser",
           "kind",
           "title",
+          "uninstallArgv",
           "verifyArgv",
         ]);
       }
@@ -259,6 +261,9 @@ describe("prefix token and resolvers", () => {
       for (const spelling of PREFIX_SPELLINGS) {
         expect(h.installArgv.join("\n"), `${h.id} installArgv`).not.toContain(spelling);
         expect(h.verifyArgv.join("\n"), `${h.id} verifyArgv`).not.toContain(spelling);
+        expect((h.uninstallArgv ?? []).join("\n"), `${h.id} uninstallArgv`).not.toContain(
+          spelling,
+        );
       }
     }
   });
@@ -311,4 +316,65 @@ describe("prefix token and resolvers", () => {
     expect(harnessBinPath(SANDBOX_HARNESS_PREFIX)).toBe("/home/sandbox/.local/bin");
     expect(harnessBinPath(HOST_PREFIX)).toBe("/home/me/.agro/.local/bin");
   });
+});
+
+// An uninstall verb with a path bug deletes the operator's files, so removal is
+// stated per entry and every resolved path is proven to stay under the prefix.
+describe("uninstall knowledge", () => {
+  const HOST_PREFIX = "/home/me/.agro/.local";
+
+  it("declares removal for every installable entry and none for an on-demand one", () => {
+    for (const h of HARNESS_CATALOG) {
+      if (h.kind === "installable") {
+        expect(h.uninstallArgv, h.id).not.toBeNull();
+        expect(h.uninstallArgv!.length, h.id).toBeGreaterThan(0);
+        expect(resolveUninstallArgv(h, HOST_PREFIX), h.id).not.toBeNull();
+      } else {
+        expect(h.uninstallArgv, h.id).toBeNull();
+        expect(resolveUninstallArgv(h, HOST_PREFIX), h.id).toBeNull();
+      }
+    }
+  });
+
+  it("removes an npm harness by its stated package name", () => {
+    expect(resolveUninstallArgv(findHarness("opencode")!, HOST_PREFIX)).toEqual([
+      "npm", "--prefix", HOST_PREFIX, "uninstall", "-g", "opencode-ai",
+    ]);
+    expect(resolveUninstallArgv(findHarness("claude-code")!, SANDBOX_HARNESS_PREFIX)).toEqual([
+      "npm", "--prefix", SANDBOX_HARNESS_PREFIX, "uninstall", "-g", "@anthropic-ai/claude-code",
+    ]);
+  });
+
+  it("removes a script harness by its exact installed paths", () => {
+    expect(resolveUninstallArgv(findHarness("hermes")!, HOST_PREFIX)).toEqual([
+      "rm", "-rf", `${HOST_PREFIX}/bin/hermes`, `${HOST_PREFIX}/lib/hermes-agent`,
+    ]);
+  });
+
+  it("deletes idempotently, so removing a half-installed harness cannot fail", () => {
+    for (const h of HARNESS_CATALOG) {
+      const argv = resolveUninstallArgv(h, HOST_PREFIX);
+      if (argv === null || argv[0] !== "rm") continue;
+      expect(argv[1], h.id).toBe("-rf");
+      expect(argv.length, h.id).toBeGreaterThan(2);
+    }
+  });
+
+  it.each(HARNESS_CATALOG.map((h) => [h.id, h] as const))(
+    "%s: removal never reaches outside the resolved prefix",
+    (id, h) => {
+      const argv = resolveUninstallArgv(h, HOST_PREFIX);
+      if (argv === null) return;
+      expect(argv.join("\n"), id).not.toContain(HARNESS_PREFIX_TOKEN);
+      for (const arg of argv) {
+        expect(arg, `${id}: bare root argument`).not.toBe("/");
+        expect(arg.split("/"), `${id}: ${arg} carries a parent segment`).not.toContain("..");
+        if (!arg.startsWith("/")) continue;
+        expect(
+          arg === HOST_PREFIX || arg.startsWith(`${HOST_PREFIX}/`),
+          `${id}: ${arg} escapes ${HOST_PREFIX}`,
+        ).toBe(true);
+      }
+    },
+  );
 });
