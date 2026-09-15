@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -29,15 +29,105 @@ function stateHome(name: string): NodeJS.ProcessEnv {
   return { AGRO_HOME: home };
 }
 
+function userHome(legacy: "legacy-registry" | "clean"): string {
+  const home = makeTemp("host-config-home-");
+  if (legacy === "legacy-registry") mkdirSync(join(home, ".oh", "sandboxes"), { recursive: true });
+  return home;
+}
+
+function legacyConfigFile(home: string, config: unknown): string {
+  const dir = join(home, ".oh");
+  mkdirSync(dir, { recursive: true });
+  const path = join(dir, "oh.json");
+  writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`);
+  return path;
+}
+
 describe("hostConfigPath", () => {
   it("resolves agro.json under an agro state home", () => {
     const env = stateHome(".agro");
     expect(hostConfigPath(env)).toBe(join(env.AGRO_HOME!, "agro.json"));
   });
 
-  it("resolves oh.json under a legacy state home", () => {
+  it("resolves agro.json even when the state home an override names is legacy", () => {
     const env = stateHome(".oh");
-    expect(hostConfigPath(env)).toBe(join(env.AGRO_HOME!, "oh.json"));
+    expect(hostConfigPath(env)).toBe(join(env.AGRO_HOME!, "agro.json"));
+  });
+
+  it("resolves <home>/.agro/agro.json when a legacy registry exists", () => {
+    const home = userHome("legacy-registry");
+    expect(hostConfigPath({}, home)).toBe(join(home, ".agro", "agro.json"));
+  });
+});
+
+describe("defaultHarnessRoot", () => {
+  it("stays on the agro generation when the home carries a legacy registry", () => {
+    const home = userHome("legacy-registry");
+    expect(defaultHarnessRoot({}, home)).toBe(join(home, ".agro"));
+  });
+
+  it("resolves the agro state home in a clean home", () => {
+    const home = userHome("clean");
+    expect(defaultHarnessRoot({}, home)).toBe(join(home, ".agro"));
+  });
+
+  it("uses an explicit AGRO_HOME or OH_HOME verbatim", () => {
+    const home = userHome("legacy-registry");
+    const override = makeTemp("host-config-override-");
+    expect(defaultHarnessRoot({ AGRO_HOME: override }, home)).toBe(override);
+    expect(defaultHarnessRoot({ OH_HOME: override }, home)).toBe(override);
+  });
+});
+
+describe("legacy host config compatibility", () => {
+  const receipt = {
+    prefix: "/home/dev/.local",
+    binary: "claude",
+    binPath: "/home/dev/.local/bin",
+    installedAt: "2026-09-15T00:00:00.000Z",
+  };
+
+  it("reads a legacy config when no agro config exists", () => {
+    const home = userHome("legacy-registry");
+    legacyConfigFile(home, {
+      version: 1,
+      harnessRoot: "/srv/recorded",
+      hostHarnesses: { "claude-code": receipt },
+      hostTools: { herdr: { ...receipt, binary: "herdr" } },
+    });
+    const config = readHostConfig({}, home);
+    expect(config.harnessRoot).toBe("/srv/recorded");
+    expect(config.hostHarnesses?.["claude-code"]).toEqual(receipt);
+    expect(config.hostTools?.herdr.binary).toBe("herdr");
+    expect(resolveHarnessRoot(undefined, {}, home)).toBe("/srv/recorded");
+  });
+
+  it("prefers the agro config when both exist", () => {
+    const home = userHome("legacy-registry");
+    legacyConfigFile(home, { version: 1, harnessRoot: "/srv/legacy" });
+    mkdirSync(join(home, ".agro"), { recursive: true });
+    writeFileSync(
+      join(home, ".agro", "agro.json"),
+      `${JSON.stringify({ version: 1, harnessRoot: "/srv/agro" }, null, 2)}\n`,
+    );
+    expect(readHostConfig({}, home).harnessRoot).toBe("/srv/agro");
+  });
+
+  it("writes to the agro location and retires the legacy file", () => {
+    const home = userHome("legacy-registry");
+    const legacy = legacyConfigFile(home, { version: 1, harnessRoot: "/srv/recorded" });
+    const config = readHostConfig({}, home);
+
+    writeHostConfig({ ...config, hostHarnesses: { "claude-code": receipt } }, {}, home);
+
+    const agroFile = join(home, ".agro", "agro.json");
+    expect(existsSync(agroFile)).toBe(true);
+    expect(existsSync(legacy)).toBe(false);
+    expect(readHostConfig({}, home)).toEqual({
+      version: 1,
+      harnessRoot: "/srv/recorded",
+      hostHarnesses: { "claude-code": receipt },
+    });
   });
 });
 

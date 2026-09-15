@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
-import { GENERATIONS, resolveUserStateHome } from "./compat.js";
+import { GENERATIONS, resolveAgroUserStateHome, resolveLegacyUserStateHome } from "./compat.js";
 
 const HOST_CONFIG_MODE = 0o644;
 
@@ -20,19 +20,32 @@ export interface HostConfig {
   [key: string]: unknown;
 }
 
-function hostConfigFileName(stateHome: string): string {
-  return basename(stateHome) === GENERATIONS.legacy.userStateDir
-    ? GENERATIONS.legacy.configFile
-    : GENERATIONS.agro.configFile;
+export function hostConfigPath(
+  env: NodeJS.ProcessEnv = process.env,
+  home?: string,
+): string {
+  return join(resolveAgroUserStateHome(env, home), GENERATIONS.agro.configFile);
 }
 
-export function hostConfigPath(env: NodeJS.ProcessEnv = process.env): string {
-  const stateHome = resolveUserStateHome(env);
-  return join(stateHome, hostConfigFileName(stateHome));
+export function legacyHostConfigPath(
+  env: NodeJS.ProcessEnv = process.env,
+  home?: string,
+): string {
+  return join(resolveLegacyUserStateHome(env, home), GENERATIONS.legacy.configFile);
 }
 
-export function defaultHarnessRoot(env: NodeJS.ProcessEnv = process.env): string {
-  return resolveUserStateHome(env);
+function readableHostConfigPath(env: NodeJS.ProcessEnv, home: string | undefined): string {
+  const path = hostConfigPath(env, home);
+  if (existsSync(path)) return path;
+  const legacy = legacyHostConfigPath(env, home);
+  return existsSync(legacy) ? legacy : path;
+}
+
+export function defaultHarnessRoot(
+  env: NodeJS.ProcessEnv = process.env,
+  home?: string,
+): string {
+  return resolveAgroUserStateHome(env, home);
 }
 
 export function validateHostConfig(value: unknown): HostConfig {
@@ -97,8 +110,11 @@ function validateReceipts(value: unknown, field: string, noun: string): void {
   }
 }
 
-export function readHostConfig(env: NodeJS.ProcessEnv = process.env): HostConfig {
-  const path = hostConfigPath(env);
+export function readHostConfig(
+  env: NodeJS.ProcessEnv = process.env,
+  home?: string,
+): HostConfig {
+  const path = readableHostConfigPath(env, home);
   if (!existsSync(path)) return { version: 1 };
 
   let raw: string;
@@ -118,8 +134,12 @@ export function readHostConfig(env: NodeJS.ProcessEnv = process.env): HostConfig
   return validateHostConfig(parsed);
 }
 
-export function writeHostConfig(config: HostConfig, env: NodeJS.ProcessEnv = process.env): void {
-  const path = hostConfigPath(env);
+export function writeHostConfig(
+  config: HostConfig,
+  env: NodeJS.ProcessEnv = process.env,
+  home?: string,
+): void {
+  const path = hostConfigPath(env, home);
   const validated = validateHostConfig({ ...config, version: 1 });
   const body = `${JSON.stringify(validated, null, 2)}\n`;
   const tmp = `${path}.tmp.${process.pid}`;
@@ -127,6 +147,7 @@ export function writeHostConfig(config: HostConfig, env: NodeJS.ProcessEnv = pro
   try {
     writeFileSync(tmp, body, { mode: HOST_CONFIG_MODE, encoding: "utf8" });
     renameSync(tmp, path);
+    retireLegacyHostConfig(env, home, path);
   } catch (error) {
     try {
       unlinkSync(tmp);
@@ -140,11 +161,18 @@ export function writeHostConfig(config: HostConfig, env: NodeJS.ProcessEnv = pro
 export function resolveHarnessRoot(
   explicit: string | undefined,
   env: NodeJS.ProcessEnv = process.env,
+  home?: string,
 ): string {
   if (typeof explicit === "string" && explicit !== "") return resolve(explicit);
-  const configured = readHostConfig(env).harnessRoot;
+  const configured = readHostConfig(env, home).harnessRoot;
   if (typeof configured === "string" && configured !== "") return resolve(configured);
-  return defaultHarnessRoot(env);
+  return defaultHarnessRoot(env, home);
+}
+
+function retireLegacyHostConfig(env: NodeJS.ProcessEnv, home: string | undefined, written: string): void {
+  const legacy = legacyHostConfigPath(env, home);
+  if (legacy === written || !existsSync(legacy)) return;
+  unlinkSync(legacy);
 }
 
 function fieldError(path: string, requirement: string): Error {
