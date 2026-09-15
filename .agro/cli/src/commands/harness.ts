@@ -451,6 +451,7 @@ async function installOnHost(
   if (!onPath(prefix, env)) {
     io.stdout(`Add this line to your shell profile: export PATH="${harnessBinPath(prefix)}:$PATH"\n`);
   }
+  io.stdout(`Run ${entry.binary} from the AGRO workspace: cd ${root}\n`);
   return 0;
 }
 

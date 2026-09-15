@@ -48,6 +48,11 @@ agro harness install claude-code --host             # clone in ~/.agro, binary i
 agro harness install claude-code --path /srv/agro   # clone in /srv/agro, binary in ~/.local
 ```
 
+Work from the harness root. A harness started outside an AGRO checkout finds no
+`AGENTS.md`, no `.agro/skills/`, no hooks and no task state, so `cd` into the
+harness root before you start the harness. The command prints that path as its
+last line.
+
 A successful install records two things in the host `agro.json`: `harnessRoot`,
 the clone location, and a `hostHarnesses` entry for the harness carrying the
 prefix and the binary it created. Neither is recorded when the install fails.

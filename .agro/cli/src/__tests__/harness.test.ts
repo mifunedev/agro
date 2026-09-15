@@ -633,6 +633,38 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
     expect(rendered).toContain("cloning https://github.com/mifunedev/agro.git into");
     expect(rendered).toContain("host workspace cloned into");
     expect(rendered).toContain(`claude-code: installed at ${user.prefix}`);
+    expect(rendered).toContain(`Run claude from the AGRO workspace: cd ${home.dir}`);
+    expect(rendered.trimEnd().endsWith(`cd ${home.dir}`)).toBe(true);
+  });
+
+  it("points at the reused workspace, naming the resolved harness root", async () => {
+    const root = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    const elsewhere = mkdtempSync(join(tmpdir(), "oh-harness-elsewhere-"));
+    cleanups.push(elsewhere);
+    mkdirSync(join(elsewhere, ".git"), { recursive: true });
+    const { run } = hostRunner(missingBinary("claude"));
+    const { out, io } = makeIo();
+
+    expect(
+      await runHarnessInstall(
+        "claude-code",
+        {
+          bin: "oh",
+          cwd: root,
+          run,
+          env: home.env,
+          homedir: user.homedir,
+          interactive: false,
+          path: elsewhere,
+        },
+        io,
+      ),
+    ).toBe(0);
+    expect(text(out)).toContain("host workspace reused at");
+    expect(text(out)).toContain(`Run claude from the AGRO workspace: cd ${elsewhere}`);
+    expect(text(out)).not.toContain(`cd ${home.dir}`);
   });
 
   it("writes nothing into the cloned workspace", async () => {
@@ -690,7 +722,7 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
       if (cmd === "npm") return { status: 7, stdout: "", stderr: "network unreachable" };
       return undefined;
     });
-    const { err, io } = makeIo();
+    const { err, out, io } = makeIo();
 
     expect(
       await runHarnessInstall(
@@ -700,6 +732,7 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
       ),
     ).toBe(7);
     expect(text(err)).toContain("oh harness: installing claude-code failed (exit 7).");
+    expect(text(out)).not.toContain("from the AGRO workspace");
     expect(existsSync(hostConfigFile(home.dir))).toBe(false);
   });
 
@@ -971,6 +1004,7 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
     ).toBe(0);
     expect(text(out)).toContain("claude-code: already installed (claude)");
     expect(text(out)).toContain("host workspace reused at");
+    expect(text(out)).not.toContain("from the AGRO workspace");
     expect(gitCalls(calls)).toEqual([]);
     expect(npmCalls(calls)).toEqual([]);
   });
@@ -990,6 +1024,7 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
       ),
     ).toBe(0);
     expect(text(out)).toContain("t3code: no installation is needed");
+    expect(text(out)).not.toContain("from the AGRO workspace");
     expect(gitCalls(calls)).toEqual([]);
     expect(existsSync(hostConfigFile(home.dir))).toBe(false);
   });
@@ -1029,6 +1064,7 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
       "@anthropic-ai/claude-code",
     ]);
     expect(text(out)).toContain("into the sandbox");
+    expect(text(out)).not.toContain("from the AGRO workspace");
     expect(existsSync(hostConfigFile(home.dir))).toBe(false);
   });
 });
