@@ -6,8 +6,11 @@
 # desc: neither catalog declares kind:"default", harnessKey or toolKey; no boot
 #       provisioner, install.* config key, OH_PROVISION_DEFAULTS gate or
 #       provision-failed marker remains under .devcontainer/, .agro/scripts/ or
-#       .github/; and every installable entry installs as the sandbox user into
-#       NPM_USER_PREFIX, checksums what it downloads, and is absent from the image.
+#       .github/; catalog.ts declares SANDBOX_HARNESS_PREFIX and it equals the
+#       Dockerfile's NPM_USER_PREFIX, which is what lets HARNESS_PREFIX_TOKEN
+#       count as that prefix; and every installable entry installs as the sandbox
+#       user into NPM_USER_PREFIX, checksums what it downloads, and is absent
+#       from the image.
 set -euo pipefail
 
 ROOT="${HARNESS_ONE_DOOR_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
@@ -30,6 +33,19 @@ if [[ -z $PREFIX ]]; then
 fi
 
 missing=()
+
+SANDBOX_PREFIX=$(sed -n 's/^export const SANDBOX_HARNESS_PREFIX = "\([^"]*\)".*/\1/p' "$HARNESSES" | head -1)
+PREFIX_TOKEN=$(sed -n 's/^export const HARNESS_PREFIX_TOKEN = "\([^"]*\)".*/\1/p' "$HARNESSES" | head -1)
+token_resolves=0
+if [[ -z $SANDBOX_PREFIX ]]; then
+  missing+=("harnesses/catalog.ts: declares no SANDBOX_HARNESS_PREFIX — nothing ties the install prefix back to the Dockerfile's NPM_USER_PREFIX ('$PREFIX'), so a prefix token could resolve anywhere")
+elif [[ $SANDBOX_PREFIX != "$PREFIX" ]]; then
+  missing+=("harnesses/catalog.ts: SANDBOX_HARNESS_PREFIX is '$SANDBOX_PREFIX' but the Dockerfile's NPM_USER_PREFIX is '$PREFIX' — the install prefix must be the sandbox home prefix, not a system path")
+elif [[ -z $PREFIX_TOKEN ]]; then
+  missing+=("harnesses/catalog.ts: declares no HARNESS_PREFIX_TOKEN — the per-entry prefix check accepts the token only when the catalog defines it")
+else
+  token_resolves=1
+fi
 
 for catalog in "$HARNESSES" "$TOOLS"; do
   name=${catalog#"$ROOT/"}
@@ -91,7 +107,13 @@ check_entry() {
   if [[ $entry != *'installUser: "sandbox"'* ]]; then
     missing+=("$name: \"$id\" does not install as the sandbox user — commands install with stdio:\"inherit\", so a root install becomes an interactive \`sudo\` and /etc/sudoers.d/sandbox has no NOPASSWD")
   fi
-  if [[ $entry != *"$PREFIX"* && $entry != *'$HOME/.local'* && $entry != *'NPM_USER_PREFIX'* && $entry != *'PNPM_HOME'* ]]; then
+  local prefixed=0
+  if [[ $entry == *"$PREFIX"* || $entry == *'$HOME/.local'* || $entry == *'NPM_USER_PREFIX'* || $entry == *'PNPM_HOME'* ]]; then
+    prefixed=1
+  elif ((token_resolves)) && [[ $entry == *"$PREFIX_TOKEN"* || $entry == *HARNESS_PREFIX_TOKEN* ]]; then
+    prefixed=1
+  fi
+  if ((prefixed == 0)); then
     missing+=("$name: \"$id\" does not install into $PREFIX — a system-path install cannot be upgraded by a running sandbox and does not persist in the home mount")
   fi
   if [[ $entry == *'curl'*' -o '* ]]; then
@@ -109,7 +131,7 @@ check_entry() {
   done < <(grep -oE '[A-Za-z0-9@._/-]+@[0-9]+\.[0-9]+\.[0-9]+' <<<"$entry" | sort -u)
   if [[ $entry =~ installArgv:\ \[[[:space:]]*\"npm\" ]]; then
     argv=${entry#*installArgv: [}
-    token=$(grep -oE '"[^" ]+"' <<<"${argv%%]*}" | tr -d '"' | grep -vE "^-|^npm$|^install$|^$PREFIX" | tail -1)
+    token=$(grep -oE '"[^" ]+"' <<<"${argv%%]*}" | tr -d '"' | grep -vE "^-|^npm$|^install$|^$PREFIX" | grep -vxF "${PREFIX_TOKEN:-}" | tail -1)
     [[ -n $token ]] && fingerprints+=("$token")
   fi
 
@@ -158,4 +180,4 @@ if ((${#missing[@]})); then
   exit 1
 fi
 
-echo "PASS: no default set, install key, provisioner or boot-time off-ramp remains, and all $installable installable entries install as the sandbox user into $PREFIX, checksum their $checksummed downloads, and stay out of the image" >&2
+echo "PASS: no default set, install key, provisioner or boot-time off-ramp remains, SANDBOX_HARNESS_PREFIX resolves $PREFIX_TOKEN to $PREFIX, and all $installable installable entries install as the sandbox user into $PREFIX, checksum their $checksummed downloads, and stay out of the image" >&2
