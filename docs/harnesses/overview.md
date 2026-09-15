@@ -12,7 +12,7 @@ AGRO is the harness; the **agent** is your call. To go beyond the catalog, insta
 
 `agro harness install <id>` is the only door. It probes the running sandbox,
 installs the CLI into `~/.local` in the persistent home volume, and reports. It
-reads and writes no `agro.json` field. It never rebuilds or restarts the sandbox.
+writes no project `agro.json` field. It never rebuilds or restarts the sandbox.
 
 ```bash
 agro harness list                 # what exists, and what is installed
@@ -20,8 +20,40 @@ agro harness install opencode     # install into the running sandbox
 agro harness status hermes        # one harness
 ```
 
-The command needs a running sandbox. If the sandbox is not running, it says so
-and exits non-zero. Start the sandbox with `agro sandbox install docker`, then re-run it.
+### Installing on the host
+
+When the sandbox is not running, `install` offers a host installation.
+
+An interactive run asks for confirmation and then for the harness root. Answer
+`n` to install nothing; the command then exits non-zero and points at
+`agro sandbox`. A non-interactive run needs `--host` or `--path`. Without
+either flag it keeps the refusal, so scripts see the same exit code as before.
+
+The host path resolves the harness root, clones
+`https://github.com/mifunedev/agro.git` into that root when the root holds no
+git checkout, installs the harness under `<root>/.local`, and records the root
+as `harnessRoot` in the host `agro.json`. It records the root only after the
+install succeeds. Add the printed `export PATH` line to your shell profile to
+reach the new binary.
+
+```bash
+agro harness install claude-code --host             # into ~/.agro/.local
+agro harness install claude-code --path /srv/agro   # into /srv/agro/.local
+```
+
+The first host install is the one moment you choose the location. After it, the
+recorded `harnessRoot` is sticky: every later host install reports the recorded
+root and installs there without asking for a path. Pass `--path <dir>` to move
+the harness root; a successful install records the new value.
+
+Harness root precedence:
+
+1. `--path <dir>`
+2. `harnessRoot` in the host `agro.json`
+3. `~/.agro`
+
+An `on-demand` harness installs nothing on the host. The command says so and
+exits 0.
 
 `agro harness` works from inside the sandbox too. There it installs into the
 environment you are already in, and `list`/`status` report the CLIs actually
@@ -33,6 +65,13 @@ Flags:
 | Flag | Effect |
 |---|---|
 | `--json` | `list` and `status` only: machine-readable output |
+| `--host` | `install` only: install on the host when the sandbox is not running |
+| `--path <dir>` | `install` only: harness root on the host; implies `--host` |
+
+`list` and `status` reject `--host` and `--path`. When the sandbox is not
+running they probe the resolved harness root, but only when that root already
+holds a workspace. They never clone. Each row carries a `location` of
+`sandbox`, `host`, or `unknown`, and the table names the probed path.
 
 Each catalog entry has a `kind`. `installable` harnesses install through the
 verb. `on-demand` harnesses (T3 Code) are fetched by `npx` at each run and are

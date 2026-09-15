@@ -12,6 +12,10 @@ export interface HarnessEntry {
   readonly kind: HarnessKind;
 }
 
+export const SANDBOX_HARNESS_PREFIX = "/home/sandbox/.local";
+
+export const HARNESS_PREFIX_TOKEN = "{{prefix}}";
+
 export const HARNESS_CATALOG: readonly HarnessEntry[] = [
   {
     id: "claude-code",
@@ -20,7 +24,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     installArgv: [
       "npm",
       "--prefix",
-      "/home/sandbox/.local",
+      HARNESS_PREFIX_TOKEN,
       "install",
       "-g",
       "@anthropic-ai/claude-code",
@@ -37,7 +41,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     installArgv: [
       "npm",
       "--prefix",
-      "/home/sandbox/.local",
+      HARNESS_PREFIX_TOKEN,
       "install",
       "-g",
       "@openai/codex",
@@ -54,7 +58,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     installArgv: [
       "npm",
       "--prefix",
-      "/home/sandbox/.local",
+      HARNESS_PREFIX_TOKEN,
       "install",
       "-g",
       "--ignore-scripts",
@@ -72,7 +76,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     installArgv: [
       "npm",
       "--prefix",
-      "/home/sandbox/.local",
+      HARNESS_PREFIX_TOKEN,
       "install",
       "-g",
       "opencode-ai",
@@ -89,7 +93,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     installArgv: [
       "bash",
       "-lc",
-      "curl -fsSL https://x.ai/cli/install.sh | GROK_BIN_DIR=\"$HOME/.local/bin\" bash -s 0.2.39 && rm -f \"$HOME/.local/bin/agent\"",
+      `curl -fsSL https://x.ai/cli/install.sh | GROK_BIN_DIR="${HARNESS_PREFIX_TOKEN}/bin" bash -s 0.2.39 && rm -f "${HARNESS_PREFIX_TOKEN}/bin/agent"`,
     ],
     installUser: "sandbox",
     verifyArgv: ["grok", "--version"],
@@ -103,7 +107,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     installArgv: [
       "bash",
       "-lc",
-      "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | HERMES_INSTALL_DIR=\"$HOME/.local/lib/hermes-agent\" bash -s -- --skip-setup --skip-browser && uv pip install --python \"$HOME/.local/lib/hermes-agent/venv/bin/python\" 'hermes-agent[slack,teams,web,pty]'",
+      `curl -fsSL https://hermes-agent.nousresearch.com/install.sh | HERMES_INSTALL_DIR="${HARNESS_PREFIX_TOKEN}/lib/hermes-agent" bash -s -- --skip-setup --skip-browser && uv pip install --python "${HARNESS_PREFIX_TOKEN}/lib/hermes-agent/venv/bin/python" 'hermes-agent[slack,teams,web,pty]'`,
     ],
     installUser: "sandbox",
     verifyArgv: ["hermes", "--version"],
@@ -117,7 +121,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     installArgv: [
       "bash",
       "-lc",
-      "set -o pipefail; curl -fsSL https://dev.meta.ai/install.sh | MUSE_INSTALL_DIR=\"$HOME/.local/bin\" MUSE_NO_MODIFY_PATH=1 MUSE_LOGIN=0 bash",
+      `set -o pipefail; curl -fsSL https://dev.meta.ai/install.sh | MUSE_INSTALL_DIR="${HARNESS_PREFIX_TOKEN}/bin" MUSE_NO_MODIFY_PATH=1 MUSE_LOGIN=0 bash`,
     ],
     installUser: "sandbox",
     verifyArgv: ["muse", "--version"],
@@ -131,7 +135,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     installArgv: [
       "bash",
       "-lc",
-      "set -o pipefail; curl -fsSL https://antigravity.google/cli/install.sh | bash -s -- --dir \"$HOME/.local/bin\"",
+      `set -o pipefail; curl -fsSL https://antigravity.google/cli/install.sh | bash -s -- --dir "${HARNESS_PREFIX_TOKEN}/bin"`,
     ],
     installUser: "sandbox",
     verifyArgv: ["agy", "--version"],
@@ -156,4 +160,20 @@ export function findHarness(id: string): HarnessEntry | undefined {
 
 export function harnessIds(): string[] {
   return HARNESS_CATALOG.map((h) => h.id);
+}
+
+function substitute(argv: readonly string[], prefix: string): string[] {
+  return argv.map((part) => part.split(HARNESS_PREFIX_TOKEN).join(prefix));
+}
+
+export function resolveInstallArgv(entry: HarnessEntry, prefix: string): string[] {
+  return substitute(entry.installArgv, prefix);
+}
+
+export function resolveVerifyArgv(entry: HarnessEntry, prefix: string): string[] {
+  return substitute(entry.verifyArgv, prefix);
+}
+
+export function harnessBinPath(prefix: string): string {
+  return `${prefix}/bin`;
 }

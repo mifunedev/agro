@@ -199,8 +199,10 @@ legacy `OH_EXECUTION_TARGET` spelling still applies when the AGRO one is unset.
 
 | Verb | On the host | Inside the sandbox |
 |---|---|---|
-| `agro harness install` · `agro tool install` | installs into the running container over Docker Compose | installs live, in place |
-| `agro harness list/status` · `agro tool list/status` | reports `?` when the container is not reachable | reports the real state of this environment |
+| `agro harness install` | installs into the running container over Docker Compose; offers a host install when the container is not reachable | installs live, in place |
+| `agro tool install` | installs into the running container over Docker Compose | installs live, in place |
+| `agro harness list/status` | probes the host harness root when the container is not reachable and that root holds a workspace; reports `?` otherwise | reports the real state of this environment |
+| `agro tool list/status` | reports `?` when the container is not reachable | reports the real state of this environment |
 | `agro sandbox install` | provisions the sandbox | refuses with a host-only error |
 | `agro shell` | `docker exec` into the container | opens a local `zsh` |
 
@@ -210,7 +212,13 @@ host-only rather than failing halfway.
 `agro harness install <id>` and `agro tool install <id>` are the only way a harness
 or a tool enters the sandbox. Nothing installs at boot, so a fresh sandbox has
 no `herdr` until you run `agro tool install herdr`. Each install lands in
-`~/.local` in the persistent home volume; `agro destroy` removes it. See
+`~/.local` in the persistent home volume; `agro destroy` removes it.
+
+`agro harness install <id>` also installs on the host. When the sandbox is not
+running it offers a host installation under `<harness root>/.local`, where the
+harness root is `--path <dir>`, then `harnessRoot` in the host `agro.json`, then
+`~/.agro`. A non-interactive run needs `--host` or `--path`; without either it
+keeps the refusal. See
 [Harnesses Overview](harnesses/overview.md#installing-a-harness).
 
 ## `agro destroy` and its confirmation policy
