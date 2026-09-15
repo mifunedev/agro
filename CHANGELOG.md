@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-09-15
+
 ### Added
 
 - Add a host installation path to `agro harness install`: with the sandbox down, `--host` or `--path <dir>` clones the workspace to the harness root and installs into `~/.local`; `list` and `status` probe that prefix and report the location.
