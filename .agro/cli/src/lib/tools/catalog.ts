@@ -1,3 +1,4 @@
+import { HARNESS_PREFIX_TOKEN } from "../harnesses/catalog.js";
 
 export type ToolKind = "baked-in" | "installable";
 
@@ -12,10 +13,15 @@ export interface ToolEntry {
   readonly installUser?: "root" | "sandbox";
   readonly downloadSize?: string;
   readonly notInstallableReason?: (bin: string) => string;
+  readonly hostCapable: boolean;
+  readonly notHostCapableReason?: (bin: string) => string;
+  readonly uninstallArgv: readonly string[] | null;
   readonly docsPath: string;
 }
 
 const TOOLS_DOC = "docs/installation.md";
+
+export const TOOL_HOST_PLATFORM = "linux";
 
 export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
   Object.freeze({
@@ -31,6 +37,10 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
     ]),
     installUser: "sandbox",
     downloadSize: "~1 GB",
+    hostCapable: false,
+    notHostCapableReason: (): string =>
+      "agent-browser runs `agent-browser install --with-deps`, which installs system packages with the operating system package manager. AGRO installs it into the sandbox only, where that stays contained.",
+    uninstallArgv: Object.freeze(["bash", "-lc", "pnpm remove -g agent-browser"]),
     docsPath: TOOLS_DOC,
   }),
   Object.freeze({
@@ -62,6 +72,8 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
       ].join("\n"),
     ]),
     installUser: "sandbox",
+    hostCapable: true,
+    uninstallArgv: Object.freeze(["rm", "-rf", `${HARNESS_PREFIX_TOKEN}/bin/herdr`]),
     docsPath: TOOLS_DOC,
   }),
   Object.freeze({
@@ -94,6 +106,8 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
       ].join("\n"),
     ]),
     installUser: "sandbox",
+    hostCapable: true,
+    uninstallArgv: Object.freeze(["rm", "-rf", `${HARNESS_PREFIX_TOKEN}/bin/cloudflared`]),
     docsPath: TOOLS_DOC,
   }),
   Object.freeze({
@@ -119,6 +133,13 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
       ].join("\n"),
     ]),
     installUser: "sandbox",
+    hostCapable: true,
+    uninstallArgv: Object.freeze([
+      "rm",
+      "-rf",
+      `${HARNESS_PREFIX_TOKEN}/bin/msb`,
+      `${HARNESS_PREFIX_TOKEN}/microsandbox`,
+    ]),
     docsPath: "docs/runtimes/microsandbox.md",
   }),
   Object.freeze({
@@ -130,6 +151,8 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
     versionArgv: Object.freeze(["docker", "--version"]),
     notInstallableReason: (bin: string): string =>
       `The Docker CLI is installed in the base image. Note that the CLI being present says nothing about whether a daemon is reachable — \`${bin} ps <name>\` answers that.`,
+    hostCapable: false,
+    uninstallArgv: null,
     docsPath: TOOLS_DOC,
   }),
   Object.freeze({
@@ -141,6 +164,8 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
     versionArgv: Object.freeze(["gh", "--version"]),
     notInstallableReason: (): string =>
       "The GitHub CLI is installed in the base image. Run `gh auth login` inside the sandbox to authenticate it.",
+    hostCapable: false,
+    uninstallArgv: null,
     docsPath: TOOLS_DOC,
   }),
   Object.freeze({
@@ -156,6 +181,13 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
       "set -e\narch=\"$(dpkg --print-architecture)\"\ncase \"$arch\" in\n  amd64) tarball=tailscale_1.102.3_amd64.tgz; sha=36ddd9b51be57ffc2990cf76323cfa13643bfbb1b8a969f6183fa164741cdef5 ;;\n  arm64) tarball=tailscale_1.102.3_arm64.tgz; sha=a0fa1b154af8c61f862a2259f559f7396d96c0225f4a863eae2333e1546bbe25 ;;\n  *) echo \"no pinned Tailscale build for $arch\" >&2; exit 1 ;;\nesac\nprefix=\"${NPM_USER_PREFIX:-$HOME/.local}\"\ntmp=\"$(mktemp -d)\"\ntrap 'rm -rf \"$tmp\"' EXIT\ncurl -fsSL \"https://pkgs.tailscale.com/stable/$tarball\" -o \"$tmp/$tarball\"\necho \"$sha  $tmp/$tarball\" | sha256sum -c -\ntar -xzf \"$tmp/$tarball\" -C \"$tmp\"\ninstall -d \"$prefix/bin\"\ninstall -m 0755 \"$tmp/tailscale_1.102.3_$arch/tailscale\" \"$prefix/bin/tailscale\"\ninstall -m 0755 \"$tmp/tailscale_1.102.3_$arch/tailscaled\" \"$prefix/bin/tailscaled\"\ninstall -d -m 0700 \"$HOME/.tailscale\"",
     ]),
     installUser: "sandbox",
+    hostCapable: true,
+    uninstallArgv: Object.freeze([
+      "rm",
+      "-rf",
+      `${HARNESS_PREFIX_TOKEN}/bin/tailscale`,
+      `${HARNESS_PREFIX_TOKEN}/bin/tailscaled`,
+    ]),
     docsPath: TOOLS_DOC,
   }),
 ]);
@@ -170,4 +202,17 @@ export function toolIds(): string[] {
 
 export function installableToolIds(): string[] {
   return TOOL_CATALOG.filter((t) => t.installArgv !== undefined).map((t) => t.id);
+}
+
+export function hostCapableToolIds(): string[] {
+  return TOOL_CATALOG.filter((t) => t.hostCapable).map((t) => t.id);
+}
+
+export function resolveToolUninstallArgv(
+  entry: ToolEntry,
+  prefix: string,
+): string[] | null {
+  return entry.uninstallArgv === null
+    ? null
+    : entry.uninstallArgv.map((part) => part.split(HARNESS_PREFIX_TOKEN).join(prefix));
 }

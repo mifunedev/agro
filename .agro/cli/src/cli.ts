@@ -48,9 +48,10 @@ import {
   runToolInstall,
   runToolList,
   runToolStatus,
+  runToolUninstall,
   type ToolIO,
 } from "./commands/tool.js";
-import { installableToolIds, toolIds } from "./lib/tools/catalog.js";
+import { hostCapableToolIds, installableToolIds, toolIds } from "./lib/tools/catalog.js";
 import { sourceDocsUrl } from "./lib/docs.js";
 import { AGRO_PRODUCT, LEGACY_PRODUCT, resolveProduct, stateNames, type Product } from "./lib/product.js";
 import { resolveControlDir } from "./lib/compat.js";
@@ -383,19 +384,34 @@ tunnel client, the GitHub CLI, an isolation runtime's own binary.
 Usage:
   ${bin} tool list                      List known tools and their state
   ${bin} tool status [name]             Show installed state and version
-  ${bin} tool install <name>            Install a tool into the sandbox
+  ${bin} tool install <name>            Install a tool into the sandbox or the host
+  ${bin} tool uninstall <name>          Remove a tool the same way it was installed
 
 Most tools are baked into the image and are report-only; \`install\` works on:
 ${installableToolIds().map((t) => `  ${t}`).join("\n")}
 
 \`install\` is the only door: it probes the running sandbox, installs the tool
-into the persistent home volume, and reports. It reads and writes no \`${stateNames(bin).configFile}\`
-field, and it never rebuilds or restarts the sandbox. A large download is
-confirmed first, and a non-interactive run without --yes installs nothing.
+into the persistent home volume, and reports. It never rebuilds or restarts the
+sandbox. A large download is confirmed first, and a non-interactive run without
+--yes installs nothing.
+
+When no sandbox is reachable, \`install\` and \`uninstall\` act on the host. A host
+install needs Linux, because every installer is Debian-specific, and it works
+only on these tools:
+${hostCapableToolIds().map((t) => `  ${t}`).join("\n")}
+
+A host install clones the AGRO workspace into the harness root — \`--path <dir>\`,
+then \`harnessRoot\` in the host \`${stateNames(bin).configFile}\`, then \`~/.agro\` — and installs into
+\`~/.local\`. It records the install as \`hostTools\` in that same file. On the host,
+\`uninstall\` removes only what \`install\` recorded, from the prefix in that record.
+Without a record it refuses, and \`--force\` overrides.
 
 Flags:
   --yes            Accept a large download without prompting
   --json           Machine-readable output (list/status)
+  --host           Install on the host when the sandbox is not running (install)
+  --path <dir>     Harness root for the workspace clone; implies --host (install)
+  --force          Remove without a recorded host install (uninstall)
 
 Tools:
 ${toolIds().map((t) => `  ${t}`).join("\n")}
@@ -956,41 +972,64 @@ interface ToolArgs {
   help: boolean;
   yes: boolean;
   json: boolean;
-  subcommand?: "list" | "install" | "status";
+  host: boolean;
+  force: boolean;
+  path?: string;
+  subcommand?: "list" | "install" | "status" | "uninstall";
   name?: string;
 }
 
 export function parseToolArgs(rest: string[], bin: string = LEGACY_PRODUCT.bin): ParseResult<ToolArgs> {
-  const args: ToolArgs = { help: false, yes: false, json: false };
+  const args: ToolArgs = { help: false, yes: false, json: false, host: false, force: false };
   if (rest.length === 0 || isHelpFlag(rest[0])) {
     return { ok: true, args: { ...args, help: true } };
   }
 
   const positionals: string[] = [];
+  let expectPath = false;
   for (const token of rest) {
-    if (token === "--yes" || token === "-y") args.yes = true;
+    if (expectPath) {
+      expectPath = false;
+      args.path = token;
+      args.host = true;
+    } else if (token === "--yes" || token === "-y") args.yes = true;
     else if (token === "--json") args.json = true;
-    else if (token.startsWith("-")) {
+    else if (token === "--host") args.host = true;
+    else if (token === "--force") args.force = true;
+    else if (token === "--path") expectPath = true;
+    else if (token.startsWith("--path=")) {
+      args.path = token.slice("--path=".length);
+      args.host = true;
+    } else if (token.startsWith("-")) {
       return { ok: false, error: `${bin} tool: unknown flag "${token}"` };
     } else positionals.push(token);
   }
+  if (expectPath || args.path === "") {
+    return { ok: false, error: `${bin} tool: --path requires a directory` };
+  }
 
   const [sub, name, ...extra] = positionals;
-  if (sub !== "list" && sub !== "install" && sub !== "status") {
+  if (sub !== "list" && sub !== "install" && sub !== "status" && sub !== "uninstall") {
     return {
       ok: false,
-      error: `${bin} tool: unknown subcommand "${sub}" — expected list, install, or status`,
+      error: `${bin} tool: unknown subcommand "${sub}" — expected list, install, uninstall, or status`,
       showHelp: true,
     };
   }
   if (extra.length > 0) {
     return { ok: false, error: `${bin} tool: unexpected argument "${extra[0]}"` };
   }
-  if (sub === "install" && name === undefined) {
-    return { ok: false, error: `${bin} tool install: a tool name is required`, showHelp: true };
+  if ((sub === "install" || sub === "uninstall") && name === undefined) {
+    return { ok: false, error: `${bin} tool ${sub}: a tool name is required`, showHelp: true };
   }
   if (sub === "list" && name !== undefined) {
     return { ok: false, error: `${bin} tool list: unexpected argument "${name}"` };
+  }
+  if (sub !== "install" && args.host) {
+    return { ok: false, error: `${bin} tool ${sub}: --host and --path apply to install only` };
+  }
+  if (sub !== "uninstall" && args.force) {
+    return { ok: false, error: `${bin} tool ${sub}: --force applies to uninstall only` };
   }
   args.subcommand = sub;
   if (name !== undefined) args.name = name;
@@ -1376,7 +1415,14 @@ async function main(argv: string[]): Promise<number> {
     if (a.subcommand === "status") {
       return await runToolStatus(a.name, { bin, json: a.json }, io);
     }
-    return await runToolInstall(a.name as string, { bin, yes: a.yes }, io);
+    if (a.subcommand === "uninstall") {
+      return await runToolUninstall(a.name as string, { bin, force: a.force }, io);
+    }
+    return await runToolInstall(
+      a.name as string,
+      { bin, yes: a.yes, host: a.host, ...(a.path !== undefined ? { path: a.path } : {}) },
+      io,
+    );
   }
 
   if (first === "gateway") {

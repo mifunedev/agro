@@ -233,6 +233,19 @@ idempotent, and none needs an image rebuild. `agro tool install agent-browser`
 downloads about 1 GB, so it asks for confirmation first; `--yes` accepts that
 download in a non-interactive run and changes nothing else.
 
+When no sandbox is reachable, `agro tool install` and `agro tool uninstall` act on
+the host, with two limits. First, each tool declares whether it installs on the
+host. `herdr`, `cloudflared`, `microsandbox` and `tailscale` do. `agent-browser`
+does not, because `agent-browser install --with-deps` adds system packages to the
+machine. `gh` and the Docker CLI do not, because the image provides them. Second,
+a host install needs Linux, because every tool installer is Debian-specific; on
+any other platform the command refuses and names the platform. A host install
+clones the AGRO workspace into the harness root — `--path <dir>`, then
+`harnessRoot` in the host `agro.json`, then `~/.agro` — installs into `~/.local`,
+and records the tool under `hostTools` in that same file. `agro tool uninstall`
+removes only what that record names; `--force` removes from `~/.local` without a
+record.
+
 Installing `tailscale` places the `tailscale` and `tailscaled` binaries in
 `~/.local/bin` and nothing more. It starts no daemon and joins no tailnet.
 Networking activates only when a human starts `tailscaled` in

@@ -12,10 +12,15 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 - Add a host installation path to `agro harness install`: with the sandbox down, `--host` or `--path <dir>` clones the workspace to the harness root and installs into `~/.local`; `list` and `status` probe that prefix and report the location.
 - Add `agro harness uninstall <name>`: it removes from the sandbox when one is reachable, and otherwise removes the recorded host install from the prefix that install wrote, or from `~/.local` with `--force`.
+- Add a host installation path to `agro tool install`: with the sandbox down, `--host` or `--path <dir>` installs into `~/.local` and records the tool as `hostTools`. `list` and `status` probe that prefix and report the location.
+- Add `agro tool uninstall <name>`: it removes from the sandbox when one is reachable, and otherwise removes the recorded host install, or from `~/.local` with `--force`.
+- Gate a host tool install per entry: only `herdr`, `cloudflared`, `microsandbox` and `tailscale` install on the host. `agent-browser` refuses, because its installer adds system packages; `gh` and Docker refuse, because the image provides them.
+- Refuse a host tool install on any platform but Linux, naming the platform, because every tool installer is Debian-specific.
 
 ### Fixed
 
 - Treat an unspawnable container runtime as an unreachable sandbox in `agro harness install` and `agro harness uninstall`, so a host with no Docker reaches the host path instead of an error.
+- Treat an unspawnable container runtime as an unreachable sandbox in `agro tool` too, so `list`, `status` and `install` report one state instead of disagreeing.
 
 ## [0.11.0] - 2026-09-14
 

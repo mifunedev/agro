@@ -16,6 +16,7 @@ export interface HostConfig {
   version: 1;
   harnessRoot?: string;
   hostHarnesses?: Record<string, HostHarnessReceipt>;
+  hostTools?: Record<string, HostHarnessReceipt>;
   [key: string]: unknown;
 }
 
@@ -55,7 +56,10 @@ export function validateHostConfig(value: unknown): HostConfig {
   }
 
   const hostHarnesses = record.hostHarnesses;
-  if (hostHarnesses !== undefined) validateReceipts(hostHarnesses);
+  if (hostHarnesses !== undefined) validateReceipts(hostHarnesses, "hostHarnesses", "harness");
+
+  const hostTools = record.hostTools;
+  if (hostTools !== undefined) validateReceipts(hostTools, "hostTools", "tool");
 
   return { ...(record as HostConfig), version: 1 };
 }
@@ -68,13 +72,13 @@ function absoluteField(value: unknown, path: string): string {
   return value;
 }
 
-function validateReceipts(value: unknown): void {
+function validateReceipts(value: unknown, field: string, noun: string): void {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw fieldError("hostHarnesses", "must be a JSON object keyed by harness id");
+    throw fieldError(field, `must be a JSON object keyed by ${noun} id`);
   }
   for (const [id, receipt] of Object.entries(value as Record<string, unknown>)) {
-    if (id === "") throw fieldError("hostHarnesses", "must use a non-empty harness id as each key");
-    const at = `hostHarnesses.${id}`;
+    if (id === "") throw fieldError(field, `must use a non-empty ${noun} id as each key`);
+    const at = `${field}.${id}`;
     if (!receipt || typeof receipt !== "object" || Array.isArray(receipt)) {
       throw fieldError(at, "must be a JSON object");
     }
