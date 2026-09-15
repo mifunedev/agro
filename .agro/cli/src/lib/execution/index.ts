@@ -42,6 +42,11 @@ export {
   type LifecycleRunner,
   type RunResult,
 } from "./runner.js";
+export {
+  RUNTIME_ABSENT_STATUS,
+  resolveTargetStatus,
+  runtimeIsAbsent,
+} from "./status.js";
 export type {
   ExecRequest,
   ExecResult,

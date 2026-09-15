@@ -324,7 +324,7 @@ describe.each(["opencode", "muse-code"])("runHarnessInstall %s against the conta
     expect(text(err)).not.toMatch(/oh\.json|will install it|will retry it/);
   });
 
-  it("reports a missing docker binary", async () => {
+  it("refuses without advice to start a sandbox when no runtime is on PATH", async () => {
     const root = makeRepo();
     const run: LifecycleRunner = () => ({
       status: null,
@@ -332,8 +332,12 @@ describe.each(["opencode", "muse-code"])("runHarnessInstall %s against the conta
     });
     const { err, io } = makeIo();
 
-    expect(await runHarnessInstall("hermes", { bin: "oh", cwd: root, run }, io)).toBe(1);
-    expect(text(err)).toMatch(/docker is required/);
+    expect(
+      await runHarnessInstall("hermes", { bin: "oh", cwd: root, run, interactive: false }, io),
+    ).toBe(1);
+    expect(text(err)).toContain("oh harness: no container runtime is on PATH.");
+    expect(text(err)).toContain("Or install on the host with `oh harness install hermes --host`.");
+    expect(text(err)).not.toMatch(/Start it with|docker is required/);
   });
 
   it("rejects an unknown harness with the valid ids and writes nothing", async () => {
@@ -1467,5 +1471,200 @@ describe("parseHarnessArgs uninstall", () => {
     expect(help).toContain("oh harness uninstall <name>");
     expect(help).toContain("--force");
     expect(help).toContain("harnessRoot");
+  });
+});
+
+
+describe("a host with no container runtime", () => {
+  const spawnFailure: LifecycleRunner = () => ({
+    status: null,
+    error: Object.assign(new Error("spawn docker ENOENT"), { code: "ENOENT" }),
+  });
+
+  function noRuntime(
+    reply: (cmd: string, args: string[]) => RunResult | undefined = () => undefined,
+  ): { calls: RecordedCall[]; run: LifecycleRunner } {
+    const calls: RecordedCall[] = [];
+    const run: LifecycleRunner = (cmd, args, opts) => {
+      calls.push({
+        cmd,
+        args: [...args],
+        ...(opts.timeoutMs !== undefined ? { timeoutMs: opts.timeoutMs } : {}),
+      });
+      if (cmd === "docker") return spawnFailure(cmd, args, opts);
+      if (cmd === "git" && args[0] === "clone") {
+        mkdirSync(join(args[2], ".git"), { recursive: true });
+        writeFileSync(join(args[2], "README.md"), "agro\n");
+        return { status: 0, stdout: "", stderr: "" };
+      }
+      return reply(cmd, args) ?? { status: 0, stdout: "", stderr: "" };
+    };
+    return { calls, run };
+  }
+
+  const missing = (binary: string) => (cmd: string): RunResult | undefined =>
+    cmd === binary ? { status: 1, stdout: "", stderr: "not found" } : undefined;
+
+  const receiptsIn = (dir: string): Record<string, unknown> => {
+    const config = JSON.parse(readFileSync(hostConfigFile(dir), "utf8")) as Record<string, unknown>;
+    return (config.hostHarnesses ?? {}) as Record<string, unknown>;
+  };
+
+  it("installs on the host with --host", async () => {
+    const root = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    const { calls, run } = noRuntime(missing("claude"));
+    const { out, io } = makeIo();
+
+    expect(
+      await runHarnessInstall(
+        "claude-code",
+        { bin: "oh", cwd: root, run, env: home.env, homedir: user.homedir, interactive: false, host: true },
+        io,
+      ),
+    ).toBe(0);
+    expect(calls.filter((c) => c.cmd === "git")).toHaveLength(1);
+    expect(calls.filter((c) => c.cmd === "npm")[0].args).toContain(user.prefix);
+    expect(text(out)).toContain(`claude-code: installed at ${user.prefix}`);
+  });
+
+  it("refuses non-interactively with no --host, naming the runtime and the flag", async () => {
+    const root = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    const { calls, run } = noRuntime();
+    const { err, io } = makeIo();
+
+    expect(
+      await runHarnessInstall(
+        "claude-code",
+        { bin: "oh", cwd: root, run, env: home.env, homedir: user.homedir, interactive: false },
+        io,
+      ),
+    ).toBe(1);
+    expect(text(err)).toBe(
+      "oh harness: no container runtime is on PATH.\n" +
+        "Or install on the host with \`oh harness install claude-code --host\`.\n",
+    );
+    expect(calls.every((c) => c.cmd === "docker")).toBe(true);
+  });
+
+  it("asks without claiming the sandbox is stopped, then installs on yes", async () => {
+    const root = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    const { calls, run } = noRuntime(missing("claude"));
+    const { io } = makeIo();
+    const asked: string[] = [];
+
+    expect(
+      await runHarnessInstall(
+        "claude-code",
+        { bin: "oh", cwd: root, run, env: home.env, homedir: user.homedir, interactive: true },
+        {
+          ...io,
+          ask: async (q) => {
+            asked.push(q);
+            return asked.length === 1 ? "y" : "";
+          },
+        },
+      ),
+    ).toBe(0);
+    expect(asked[0]).toBe("No container runtime is on PATH. Install Claude Code on the host? [y/N]");
+    expect(asked[0]).not.toContain("not running");
+    expect(calls.filter((c) => c.cmd === "npm")[0].args).toContain(user.prefix);
+  });
+
+  it("uninstalls on the host from the receipt's prefix", async () => {
+    const root = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    writeFileSync(
+      hostConfigFile(home.dir),
+      `${JSON.stringify(
+        {
+          version: 1,
+          harnessRoot: home.dir,
+          hostHarnesses: {
+            "claude-code": {
+              prefix: user.prefix,
+              binary: "claude",
+              binPath: join(user.prefix, "bin"),
+              installedAt: "2026-09-15T00:00:00.000Z",
+              workspaceRoot: home.dir,
+            },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    const { calls, run } = noRuntime();
+    const { out, io } = makeIo();
+
+    expect(
+      await runHarnessUninstall(
+        "claude-code",
+        { bin: "oh", cwd: root, run, env: home.env, homedir: user.homedir, interactive: false },
+        io,
+      ),
+    ).toBe(0);
+    expect(calls.filter((c) => c.cmd === "npm")[0].args).toEqual([
+      "--prefix",
+      user.prefix,
+      "uninstall",
+      "-g",
+      "@anthropic-ai/claude-code",
+    ]);
+    expect(text(out)).toContain(`claude-code: removed from ${user.prefix}`);
+    expect(receiptsIn(home.dir)).toEqual({});
+  });
+
+  it("refuses an unrecorded uninstall with the receipt message, not a docker error", async () => {
+    const root = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    const { run } = noRuntime();
+    const { err, io } = makeIo();
+
+    expect(
+      await runHarnessUninstall(
+        "claude-code",
+        { bin: "oh", cwd: root, run, env: home.env, homedir: user.homedir, interactive: false },
+        io,
+      ),
+    ).toBe(1);
+    expect(text(err)).toContain("oh harness: no record of installing claude-code on this host.");
+    expect(text(err)).not.toMatch(/docker/);
+  });
+
+  it("leaves list and status probing the host exactly as before", async () => {
+    const root = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    mkdirSync(join(home.dir, ".git"), { recursive: true });
+    const { run } = noRuntime();
+    const { out, io } = makeIo();
+
+    expect(
+      await runHarnessList(
+        { bin: "oh", cwd: root, run, env: home.env, homedir: user.homedir, json: true },
+        io,
+      ),
+    ).toBe(0);
+    for (const row of JSON.parse(text(out))) expect(row.location).toBe("host");
+  });
+
+  it("propagates a failure that is not an ExecutionSpawnError from both verbs", async () => {
+    const root = makeRepo();
+    const home = emptyStateHome();
+    const boom: LifecycleRunner = () => {
+      throw new Error("kernel panic");
+    };
+    const opts = { bin: "oh", cwd: root, run: boom, env: home.env, interactive: false };
+
+    await expect(runHarnessInstall("claude-code", opts, makeIo().io)).rejects.toThrow(/kernel panic/);
+    await expect(runHarnessUninstall("claude-code", opts, makeIo().io)).rejects.toThrow(/kernel panic/);
   });
 });

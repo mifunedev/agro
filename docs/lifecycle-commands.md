@@ -207,6 +207,10 @@ legacy `OH_EXECUTION_TARGET` spelling still applies when the AGRO one is unset.
 | `agro sandbox install` | provisions the sandbox | refuses with a host-only error |
 | `agro shell` | `docker exec` into the container | opens a local `zsh` |
 
+`agro harness` treats an unspawnable container runtime as an unreachable sandbox.
+On a host with no Docker, `install`, `uninstall`, `list` and `status` all use the
+host path instead of failing.
+
 `agro sandbox install` changes the sandbox's own Docker configuration, so it stays
 host-only rather than failing halfway.
 

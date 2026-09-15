@@ -23,7 +23,10 @@ agro harness status hermes        # one harness
 
 ### Installing on the host
 
-When the sandbox is not running, `install` offers a host installation.
+When the sandbox is not running, `install` offers a host installation. A host
+with no container runtime takes the same path: `agro` treats an unspawnable
+runtime as an unreachable sandbox and installs on the host. The host path needs
+no Docker.
 
 An interactive run asks for confirmation and then for the harness root. Answer
 `n` to install nothing; the command then exits non-zero and points at

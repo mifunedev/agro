@@ -4,6 +4,8 @@ import { delimiter, join, resolve } from "node:path";
 import {
   ExecutionSpawnError,
   resolveExecutionTarget,
+  resolveTargetStatus,
+  runtimeIsAbsent,
 } from "../lib/execution/index.js";
 import { aliasedEnvPair, aliasedEnvValue, remoteControlDirScript } from "../lib/compat.js";
 import { sourceDocsUrl } from "../lib/docs.js";
@@ -187,12 +189,7 @@ async function collectStates(
   const entries = only ? [...only] : [...HARNESS_CATALOG];
   const target = targetFor(root, run, env);
 
-  let reachable = false;
-  try {
-    reachable = isReachable(await target.status());
-  } catch (err) {
-    if (!(err instanceof ExecutionSpawnError)) throw err;
-  }
+  const reachable = isReachable(await resolveTargetStatus(target));
 
   if (reachable) {
     const states: HarnessState[] = [];
@@ -308,7 +305,16 @@ async function reconcileHermes(
   return result.exitCode;
 }
 
+function unreachableReason(status: string): string {
+  return runtimeIsAbsent(status)
+    ? "No container runtime is on PATH."
+    : `The sandbox is not running (${status}).`;
+}
+
 function sandboxRefusal(bin: string, status: string): string {
+  if (runtimeIsAbsent(status)) {
+    return `${bin} harness: no container runtime is on PATH.\n`;
+  }
   return (
     `${bin} harness: the sandbox is not running (${status}).\n` +
     `Start it with \`${bin} sandbox\`, then re-run this command.\n`
@@ -361,7 +367,7 @@ async function installOnHost(
   if (!flagged) {
     const ask = io.ask ?? promptAsk;
     const answer = (await ask(
-      `The sandbox is not running (${status}). Install ${entry.title} on the host? [y/N]`,
+      `${unreachableReason(status)} Install ${entry.title} on the host? [y/N]`,
     )).trim().toLowerCase();
     if (!/^y/.test(answer)) {
       io.stderr(sandboxRefusal(bin, status));
@@ -567,18 +573,9 @@ export async function runHarnessUninstall(
   if (!entry) return unknownHarness(name, io, opts.bin);
 
   const target = targetFor(root, run, opts.env);
-  let status: string;
-  try {
-    status = await target.status();
-  } catch (err) {
-    if (err instanceof ExecutionSpawnError && err.code === "ENOENT") {
-      io.stderr("docker is required to remove from the running sandbox but was not found on PATH\n");
-      return 1;
-    }
-    throw err;
+  if (!isReachable(await resolveTargetStatus(target))) {
+    return await uninstallOnHost(entry, opts, io, run);
   }
-
-  if (!isReachable(status)) return await uninstallOnHost(entry, opts, io, run);
 
   return (await removeHarness(entry, target, SANDBOX_HARNESS_PREFIX, "sandbox", opts, io)).code;
 }
@@ -601,16 +598,7 @@ export async function runHarnessInstall(
   if (!entry) return unknownHarness(name, io, opts.bin);
 
   const target = targetFor(root, run, opts.env);
-  let status: string;
-  try {
-    status = await target.status();
-  } catch (err) {
-    if (err instanceof ExecutionSpawnError && err.code === "ENOENT") {
-      io.stderr("docker is required to install into the running sandbox but was not found on PATH\n");
-      return 1;
-    }
-    throw err;
-  }
+  const status = await resolveTargetStatus(target);
 
   if (!isReachable(status)) {
     return await installOnHost(entry, opts, io, run, status);
