@@ -8,6 +8,12 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-09-15
+
+### Fixed
+
+- Default the harness root to `~/.agro` and write `~/.agro/agro.json`, even where a legacy `~/.oh` registry exists; an existing `~/.oh/oh.json` is still read, then retired on the next write.
+
 ## [0.12.0] - 2026-09-15
 
 ### Added

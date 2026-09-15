@@ -330,6 +330,33 @@ export function resolveRegistryHome(
   return { path: home, configured: false };
 }
 
+function generationUserStateHome(
+  generation: Generation,
+  env: Record<string, string | undefined>,
+  home: string,
+  warn?: (message: string) => void,
+): string {
+  const configured = aliasedEnvValue(env, "HOME", warn);
+  if (configured !== undefined) return resolve(configured);
+  return join(home, GENERATIONS[generation].userStateDir);
+}
+
+export function resolveAgroUserStateHome(
+  env: Record<string, string | undefined> = process.env,
+  home: string = homedir(),
+  warn?: (message: string) => void,
+): string {
+  return generationUserStateHome("agro", env, home, warn);
+}
+
+export function resolveLegacyUserStateHome(
+  env: Record<string, string | undefined> = process.env,
+  home: string = homedir(),
+  warn?: (message: string) => void,
+): string {
+  return generationUserStateHome("legacy", env, home, warn);
+}
+
 export function resolveUserStateHome(
   env: Record<string, string | undefined> = process.env,
   home: string = homedir(),
