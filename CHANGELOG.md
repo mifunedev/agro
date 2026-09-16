@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Add `/council` for bounded independent perspectives, advisor synthesis, and explicit advice limits ([#1076](https://github.com/mifunedev/agro/issues/1076)).
+
 ## [0.12.2] - 2026-09-15
 
 ### Fixed

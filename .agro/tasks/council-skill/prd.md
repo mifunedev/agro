@@ -44,14 +44,14 @@ As a reviewer, I want evidence that the new skill has distinct, bounded behavior
 
 1. Accept a decision question or an explicitly supplied brief.
 2. Compare independent perspectives before advisor synthesis.
-3. Challenge the synthesis once and address each challenge.
+3. Require one critic for this build. Future councils require one critique only when material conflict, safety risk, or reversal cost justifies it.
 4. Return a recommendation, dissent, evidence limits, and the next authorized step.
 5. Reuse existing skill owners rather than copying their mechanics.
 
 ## Non-goals
 
 Do not add a persistent agent, scheduler, trace collector, provider adapter, or automatic publication.
-Do not migrate the roadmap workflow without a demonstrated conflict.
+Do not migrate or edit existing skills in this PR.
 Do not assert universal superiority from a small trace sample.
 
 ## Advisor orchestration strategy
@@ -59,7 +59,8 @@ Do not assert universal superiority from a small trace sample.
 The active session owns architecture, task state, synthesis, and acceptance.
 Three read-only workers inspect separate evidence surfaces in parallel.
 A fresh critic reviews the advisor draft after those results arrive.
-One continuing worker authors the skill, scenario reference, changelog, and proposal ledger in this isolated worktree.
+One continuing worker authors the skill, scenario reference, and changelog in this isolated worktree.
+The advisor appends the builder proposal ledger as a decision record.
 The worker cannot edit task state, provider mirrors, existing skills, runtime settings, or GitHub state.
 A fresh read-only reviewer checks simplicity and behavioral cases.
 The advisor runs all acceptance checks and finalizes the PR.
