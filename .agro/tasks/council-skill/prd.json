@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "project": "AGRO",
+  "branchName": "skill/1076-council-skill",
+  "description": "Bounded evidence-based council deliberation",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Define and author bounded deliberation",
+      "description": "As an operator, I want independent perspectives without creating another build owner.",
+      "acceptanceCriteria": [
+        "Accept the council design after one adversarial critique.",
+        "Create `.agro/skills/council/SKILL.md` with clear positive and negative triggers.",
+        "Keep synthesis in the active advisor and dispatch mechanics in `/delegate`.",
+        "Distinguish `/architect`, `/audit`, `/strategic-proposal`, `/spec`, `/supervisor`, `/builder`, `/ste`, and `/wiki`.",
+        "State terminal outcomes, source trust, evidence limits, and authorization boundaries.",
+        "Add a changelog entry and one append-only skill proposal record.",
+        "Typecheck passes."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Verify the contract and record evidence",
+      "description": "As a reviewer, I want evidence that the new skill has distinct, bounded behavior.",
+      "acceptanceCriteria": [
+        "Inspect Claude and Pi trace samples and record sanitized findings with limitations.",
+        "Exercise normal input, missing input, missing workers, disagreement, injection, and unauthorized side effects.",
+        "Run builder validation, STE, provider-link checks, and regression checks.",
+        "Resolve every knowledge-impact finding with a stated reason or verified update.",
+        "Obtain an independent simplicity review.",
+        "Commit reviewer evidence and verify current-head CI before undrafting.",
+        "Typecheck passes."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    }
+  ],
+  "artifact_contract": {
+    "required_artifacts": [
+      ".agro/skills/council/SKILL.md",
+      ".agro/tasks/council-skill/evidence.md"
+    ]
+  }
+}
