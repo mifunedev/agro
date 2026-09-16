@@ -325,10 +325,11 @@ Usage:
 
 \`install\` and \`uninstall\` act on the running sandbox. When no sandbox is
 reachable they act on the host. A host install clones the AGRO workspace into the
-harness root, then installs the harness into \`~/.local\`. \`--path <dir>\` chooses
-the harness root; a successful install records it as \`harnessRoot\` in the host
-\`${stateNames(bin).configFile}\`. The default is \`~/.agro\`, and the install prefix is
-always \`~/.local\`.
+harness root, then installs the harness into \`~/.local\`. The default root is the
+workspace registry entry \`~/.agro/workspaces/default\`; an interactive run asks for
+the workspace name. \`--workspace <name>\` chooses that entry and \`--path <dir>\` a
+directory outside the registry. A successful install records the root as
+\`harnessRoot\` in \`~/.agro/config.json\`. The install prefix is always \`~/.local\`.
 
 On the host, \`uninstall\` removes only the harness \`install\` recorded, from the
 prefix in that record. Without a record it refuses, and \`--force\` overrides. In
@@ -337,7 +338,8 @@ the sandbox it needs no record. See \`docs/harnesses/overview.md\`.
 Flags:
   --json           Machine-readable output (list/status)
   --host           Install on the host when the sandbox is not running (install)
-  --path <dir>     Harness root for the workspace clone; implies --host (install)
+  --workspace <name>  Workspace registry entry to clone into; implies --host (install)
+  --path <dir>     Harness root outside the registry; implies --host (install)
   --force          Remove without a recorded host install (uninstall)
 
 Harnesses:
@@ -401,8 +403,8 @@ only on these tools:
 ${hostCapableToolIds().map((t) => `  ${t}`).join("\n")}
 
 A host install clones the AGRO workspace into the harness root — \`--path <dir>\`,
-then \`harnessRoot\` in the host \`${stateNames(bin).configFile}\`, then \`~/.agro\` — and installs into
-\`~/.local\`. It records the install as \`hostTools\` in that same file. On the host,
+then \`harnessRoot\` in \`~/.agro/config.json\`, then \`~/.agro/workspaces/default\` — and
+installs into \`~/.local\`. It records the install as \`hostTools\` in that same file. On the host,
 \`uninstall\` removes only what \`install\` recorded, from the prefix in that record.
 Without a record it refuses, and \`--force\` overrides.
 
@@ -898,6 +900,7 @@ export interface HarnessArgs {
   json: boolean;
   host: boolean;
   path?: string;
+  workspace?: string;
   force: boolean;
 }
 
@@ -914,10 +917,15 @@ export function parseHarnessArgs(rest: string[], bin: string = LEGACY_PRODUCT.bi
 
   const positionals: string[] = [];
   let expectPath = false;
+  let expectWorkspace = false;
   for (const token of rest) {
     if (expectPath) {
       expectPath = false;
       args.path = token;
+      args.host = true;
+    } else if (expectWorkspace) {
+      expectWorkspace = false;
+      args.workspace = token;
       args.host = true;
     } else if (token === "--json") {
       args.json = true;
@@ -930,6 +938,11 @@ export function parseHarnessArgs(rest: string[], bin: string = LEGACY_PRODUCT.bi
     } else if (token.startsWith("--path=")) {
       args.path = token.slice("--path=".length);
       args.host = true;
+    } else if (token === "--workspace") {
+      expectWorkspace = true;
+    } else if (token.startsWith("--workspace=")) {
+      args.workspace = token.slice("--workspace=".length);
+      args.host = true;
     } else if (token.startsWith("-")) {
       return { ok: false, error: `${bin} harness: unknown flag "${token}"` };
     } else {
@@ -938,6 +951,15 @@ export function parseHarnessArgs(rest: string[], bin: string = LEGACY_PRODUCT.bi
   }
   if (expectPath || args.path === "") {
     return { ok: false, error: `${bin} harness: --path requires a directory` };
+  }
+  if (expectWorkspace || args.workspace === "") {
+    return { ok: false, error: `${bin} harness: --workspace requires a name` };
+  }
+  if (args.path !== undefined && args.workspace !== undefined) {
+    return {
+      ok: false,
+      error: `${bin} harness: --workspace names a registry entry and --path names a directory — pass one, not both`,
+    };
   }
 
   const [sub, name, ...extra] = positionals;
@@ -958,7 +980,10 @@ export function parseHarnessArgs(rest: string[], bin: string = LEGACY_PRODUCT.bi
     return { ok: false, error: `${bin} harness list: unexpected argument "${name}"` };
   }
   if (sub !== "install" && args.host) {
-    return { ok: false, error: `${bin} harness ${sub}: --host and --path apply to install only` };
+    return {
+      ok: false,
+      error: `${bin} harness ${sub}: --host, --workspace and --path apply to install only`,
+    };
   }
   if (sub !== "uninstall" && args.force) {
     return { ok: false, error: `${bin} harness ${sub}: --force applies to uninstall only` };
@@ -1388,7 +1413,12 @@ async function main(argv: string[]): Promise<number> {
     }
     return await runHarnessInstall(
       a.name as string,
-      { bin, host: a.host, ...(a.path !== undefined ? { path: a.path } : {}) },
+      {
+        bin,
+        host: a.host,
+        ...(a.path !== undefined ? { path: a.path } : {}),
+        ...(a.workspace !== undefined ? { workspace: a.workspace } : {}),
+      },
       io,
     );
   }

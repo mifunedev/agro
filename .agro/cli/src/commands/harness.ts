@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { delimiter, join, resolve } from "node:path";
+import { delimiter, join } from "node:path";
 import {
   ExecutionSpawnError,
   resolveExecutionTarget,
@@ -14,18 +14,26 @@ import { LocalExecutionTarget } from "../lib/execution/local-target.js";
 import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import type { ExecutionTarget } from "../lib/execution/target.js";
 import {
+  DEFAULT_WORKSPACE_NAME,
   readHostConfig,
   resolveHarnessRoot,
+  workspaceRoot,
   writeHostConfig,
   type HostHarnessReceipt,
 } from "../lib/host-config.js";
-import { AGRO_REPO_URL, ensureHostWorkspace } from "../lib/host-workspace.js";
+import {
+  AGRO_REPO_URL,
+  ensureHostWorkspace,
+  stateHomeRefusal,
+  stateHomeRootRefusal,
+} from "../lib/host-workspace.js";
 import { ask as promptAsk } from "../lib/prompt.js";
 import { resolveProjectRoot } from "../lib/project.js";
 import {
   findHarness,
   harnessBinPath,
   harnessIds,
+  harnessLaunchCommand,
   HARNESS_CATALOG,
   resolveInstallArgv,
   resolveUninstallArgv,
@@ -53,6 +61,7 @@ export interface HarnessOptions {
   interactive?: boolean;
   homedir?: () => string;
   force?: boolean;
+  workspace?: string;
 }
 
 export type HarnessLocation = "sandbox" | "host" | "unknown";
@@ -170,7 +179,7 @@ interface HostProbe {
 function probeableHost(env: NodeJS.ProcessEnv, home: string): HostProbe | undefined {
   let root: string;
   try {
-    root = resolveHarnessRoot(undefined, env);
+    root = resolveHarnessRoot(undefined, env, home);
   } catch {
     return undefined;
   }
@@ -338,7 +347,14 @@ async function installOnHost(
 ): Promise<number> {
   const bin = opts.bin;
   const env = opts.env ?? process.env;
-  const flagged = opts.host === true || opts.path !== undefined;
+  const home = homeOf(opts);
+  const flagged = opts.host === true || opts.path !== undefined || opts.workspace !== undefined;
+
+  const generation = stateHomeRefusal(bin, home);
+  if (generation !== undefined) {
+    io.stderr(generation);
+    return 1;
+  }
 
   if (!flagged && !isInteractive(opts)) {
     io.stderr(
@@ -355,14 +371,17 @@ async function installOnHost(
 
   let root: string;
   let recorded: string | undefined;
+  let explicit: string | undefined;
   try {
-    recorded = readHostConfig(env).harnessRoot;
-    root = resolveHarnessRoot(opts.path, env);
+    explicit =
+      opts.workspace !== undefined ? workspaceRoot(opts.workspace, env, home) : opts.path;
+    recorded = readHostConfig(env, home).harnessRoot;
+    root = resolveHarnessRoot(explicit, env, home);
   } catch (err) {
     io.stderr(`${bin} harness: ${messageOf(err)}\n`);
     return 1;
   }
-  const sticky = opts.path === undefined && recorded !== undefined && recorded !== "";
+  const sticky = explicit === undefined && recorded !== undefined && recorded !== "";
 
   if (!flagged) {
     const ask = io.ask ?? promptAsk;
@@ -374,11 +393,22 @@ async function installOnHost(
       return 1;
     }
     if (!sticky) {
-      const chosen = (await ask(`Harness root [${root}]:`)).trim();
-      if (chosen !== "") root = resolve(chosen);
+      const chosen = (await ask(`Workspace name [${DEFAULT_WORKSPACE_NAME}]:`)).trim();
+      try {
+        root = workspaceRoot(chosen === "" ? DEFAULT_WORKSPACE_NAME : chosen, env, home);
+      } catch (err) {
+        io.stderr(`${bin} harness: ${messageOf(err)}\n`);
+        return 1;
+      }
     }
   }
   if (sticky) io.stdout(`using the recorded harness root ${root}\n`);
+
+  const nested = stateHomeRootRefusal(bin, root, home);
+  if (nested !== undefined) {
+    io.stderr(nested);
+    return 1;
+  }
 
   try {
     if (!existsSync(join(root, ".git"))) io.stdout(`cloning ${AGRO_REPO_URL} into ${root}…\n`);
@@ -394,8 +424,22 @@ async function installOnHost(
     return 1;
   }
 
-  const prefix = hostPrefix(homeOf(opts));
+  const prefix = hostPrefix(home);
   const target = hostTargetFor(root, prefix, run, env);
+
+  const linked = await target.exec({
+    argv: remoteControlDirScript(root, "scripts/link-providers.sh", ["--init"]),
+    env: aliasedEnvPair("PROJECT_ROOT", root),
+    stdio: "inherit",
+  });
+  if (linked.exitCode !== 0) {
+    io.stderr(
+      `${bin} harness: could not link provider skills in ${root} (exit ${linked.exitCode}); nothing was installed.\n` +
+        `Run: bash ${root}/.agro/scripts/link-providers.sh --init\n`,
+    );
+    return 1;
+  }
+
   const hermes = entry.id === "hermes";
   const installEnv = hermes ? {
     ...aliasedEnvPair("PROJECT_ROOT", root),
@@ -439,7 +483,7 @@ async function installOnHost(
     workspaceRoot: root,
   };
   try {
-    const config = readHostConfig(env);
+    const config = readHostConfig(env, home);
     writeHostConfig(
       {
         ...config,
@@ -447,6 +491,7 @@ async function installOnHost(
         hostHarnesses: { ...(config.hostHarnesses ?? {}), [entry.id]: receipt },
       },
       env,
+      home,
     );
   } catch (err) {
     io.stderr(`${bin} harness: could not record the install: ${messageOf(err)}\n`);
@@ -457,7 +502,7 @@ async function installOnHost(
   if (!onPath(prefix, env)) {
     io.stdout(`Add this line to your shell profile: export PATH="${harnessBinPath(prefix)}:$PATH"\n`);
   }
-  io.stdout(`Run ${entry.binary} from the AGRO workspace: cd ${root}\n`);
+  io.stdout(`Run ${entry.title} in the AGRO workspace: cd ${root} && ${harnessLaunchCommand(entry)}\n`);
   return 0;
 }
 
@@ -516,7 +561,14 @@ async function uninstallOnHost(
 ): Promise<number> {
   const bin = opts.bin;
   const env = opts.env ?? process.env;
-  const computed = hostPrefix(homeOf(opts));
+  const home = homeOf(opts);
+  const computed = hostPrefix(home);
+
+  const generation = stateHomeRefusal(bin, home);
+  if (generation !== undefined) {
+    io.stderr(generation);
+    return 1;
+  }
 
   if (resolveUninstallArgv(entry, computed) === null) {
     io.stdout(`${entry.id}: nothing to remove — npx fetches it at each run\n`);
@@ -526,10 +578,16 @@ async function uninstallOnHost(
   let config;
   let workspace: string;
   try {
-    config = readHostConfig(env);
-    workspace = resolveHarnessRoot(undefined, env);
+    config = readHostConfig(env, home);
+    workspace = resolveHarnessRoot(undefined, env, home);
   } catch (err) {
     io.stderr(`${bin} harness: ${messageOf(err)}\n`);
+    return 1;
+  }
+
+  const nested = stateHomeRootRefusal(bin, workspace, home);
+  if (nested !== undefined) {
+    io.stderr(nested);
     return 1;
   }
 
@@ -551,7 +609,7 @@ async function uninstallOnHost(
     const remaining = { ...(config.hostHarnesses ?? {}) };
     delete remaining[entry.id];
     try {
-      writeHostConfig({ ...config, hostHarnesses: remaining }, env);
+      writeHostConfig({ ...config, hostHarnesses: remaining }, env, home);
     } catch (err) {
       io.stderr(`${bin} harness: could not clear the install record: ${messageOf(err)}\n`);
       return 1;

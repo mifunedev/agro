@@ -14,6 +14,48 @@ const IGNORABLE_ENTRIES: readonly string[] = [
 
 export type HostWorkspaceAction = "reused" | "cloned";
 
+const STATE_HOME_DIRS: readonly string[] = [
+  GENERATIONS.legacy.userStateDir,
+  GENERATIONS.agro.userStateDir,
+];
+
+function isDirectory(path: string): boolean {
+  return statSync(path, { throwIfNoEntry: false })?.isDirectory() === true;
+}
+
+function stateHomes(home: string): string[] {
+  return STATE_HOME_DIRS.map((name) => join(home, name));
+}
+
+export function stateHomeRefusal(bin: string, home: string): string | undefined {
+  const [legacy, agro] = stateHomes(home);
+  if (isDirectory(legacy) && isDirectory(agro)) {
+    return (
+      `${bin} harness: the host state home is split — ${legacy} and ${agro} both exist.\n` +
+      `Merge them with \`${bin} migrate --home\`, then re-run this command.\n`
+    );
+  }
+  if (isDirectory(legacy)) {
+    return (
+      `${bin} harness: the host state home is the legacy ${legacy}, and host state now lives in ${agro}.\n` +
+      `Creating ${agro} beside it would split the two.\n` +
+      `Migrate first with \`${bin} migrate --home\`, then re-run this command.\n`
+    );
+  }
+  return undefined;
+}
+
+export function stateHomeRootRefusal(bin: string, root: string, home: string): string | undefined {
+  const target = resolve(root);
+  const enclosing = stateHomes(home).find((state) => target === state);
+  if (enclosing === undefined) return undefined;
+  return (
+    `${bin} harness: the harness root ${target} is the state home ${enclosing} itself.\n` +
+    `A workspace there collides with AGRO state and blocks every command run from ${home}.\n` +
+    `Move it out — for example \`mv ${enclosing} ${join(home, "agro")}\` — then re-run this command.\n`
+  );
+}
+
 export interface HostWorkspaceResult {
   root: string;
   action: HostWorkspaceAction;

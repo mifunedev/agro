@@ -211,7 +211,7 @@ interface HostProbe {
 function probeableHost(env: NodeJS.ProcessEnv, home: string): HostProbe | undefined {
   let root: string;
   try {
-    root = resolveHarnessRoot(undefined, env);
+    root = resolveHarnessRoot(undefined, env, home);
   } catch {
     return undefined;
   }
@@ -382,6 +382,7 @@ async function installOnHost(
 ): Promise<number> {
   const bin = opts.bin;
   const env = opts.env ?? process.env;
+  const home = homeOf(opts);
   const flagged = opts.host === true || opts.path !== undefined;
 
   if (!entry.hostCapable) {
@@ -413,8 +414,8 @@ async function installOnHost(
   let root: string;
   let recorded: string | undefined;
   try {
-    recorded = readHostConfig(env).harnessRoot;
-    root = resolveHarnessRoot(opts.path, env);
+    recorded = readHostConfig(env, home).harnessRoot;
+    root = resolveHarnessRoot(opts.path, env, home);
   } catch (err) {
     io.stderr(`${bin} tool: ${messageOf(err)}\n`);
     return 1;
@@ -451,7 +452,7 @@ async function installOnHost(
     return 1;
   }
 
-  const prefix = hostPrefix(homeOf(opts));
+  const prefix = hostPrefix(home);
   const installEnv: Record<string, string> = { NPM_USER_PREFIX: prefix };
   const target = hostTargetFor(root, prefix, run, env);
 
@@ -481,7 +482,7 @@ async function installOnHost(
     workspaceRoot: root,
   };
   try {
-    const config = readHostConfig(env);
+    const config = readHostConfig(env, home);
     writeHostConfig(
       {
         ...config,
@@ -489,6 +490,7 @@ async function installOnHost(
         hostTools: { ...(config.hostTools ?? {}), [entry.id]: receipt },
       },
       env,
+      home,
     );
   } catch (err) {
     io.stderr(`${bin} tool: could not record the install: ${messageOf(err)}\n`);
@@ -606,13 +608,14 @@ async function uninstallOnHost(
 ): Promise<number> {
   const bin = opts.bin;
   const env = opts.env ?? process.env;
-  const computed = hostPrefix(homeOf(opts));
+  const home = homeOf(opts);
+  const computed = hostPrefix(home);
 
   let config;
   let workspace: string;
   try {
-    config = readHostConfig(env);
-    workspace = resolveHarnessRoot(undefined, env);
+    config = readHostConfig(env, home);
+    workspace = resolveHarnessRoot(undefined, env, home);
   } catch (err) {
     io.stderr(`${bin} tool: ${messageOf(err)}\n`);
     return 1;
@@ -636,7 +639,7 @@ async function uninstallOnHost(
     const remaining = { ...(config.hostTools ?? {}) };
     delete remaining[entry.id];
     try {
-      writeHostConfig({ ...config, hostTools: remaining }, env);
+      writeHostConfig({ ...config, hostTools: remaining }, env, home);
     } catch (err) {
       io.stderr(`${bin} tool: could not clear the install record: ${messageOf(err)}\n`);
       return 1;

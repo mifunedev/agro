@@ -11,6 +11,7 @@ export interface HarnessEntry {
   readonly uninstallArgv: readonly string[] | null;
   readonly docsPath: string;
   readonly kind: HarnessKind;
+  readonly bypassPermissionsFlag?: string;
 }
 
 export const SANDBOX_HARNESS_PREFIX = "/home/sandbox/.local";
@@ -35,6 +36,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     uninstallArgv: ["npm", "--prefix", HARNESS_PREFIX_TOKEN, "uninstall", "-g", "@anthropic-ai/claude-code"],
     docsPath: "docs/harnesses/claude-code.md",
     kind: "installable",
+    bypassPermissionsFlag: "--permission-mode bypassPermissions",
   },
   {
     id: "codex",
@@ -189,6 +191,12 @@ export function resolveUninstallArgv(
   prefix: string,
 ): string[] | null {
   return entry.uninstallArgv === null ? null : substitute(entry.uninstallArgv, prefix);
+}
+
+export function harnessLaunchCommand(entry: HarnessEntry): string {
+  return entry.bypassPermissionsFlag === undefined
+    ? entry.binary
+    : `${entry.binary} ${entry.bypassPermissionsFlag}`;
 }
 
 export function harnessBinPath(prefix: string): string {
