@@ -241,7 +241,7 @@ machine. `gh` and the Docker CLI do not, because the image provides them. Second
 a host install needs Linux, because every tool installer is Debian-specific; on
 any other platform the command refuses and names the platform. A host install
 clones the AGRO workspace into the harness root — `--path <dir>`, then
-`harnessRoot` in the host `agro.json`, then `~/.agro` — installs into `~/.local`,
+`harnessRoot` in the host `agro.json`, then `~/agro` — installs into `~/.local`,
 and records the tool under `hostTools` in that same file. `agro tool uninstall`
 removes only what that record names; `--force` removes from `~/.local` without a
 record.

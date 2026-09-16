@@ -37,7 +37,7 @@ The host path uses two distinct locations.
 
 | Location | What it holds | How you choose it |
 |---|---|---|
-| Harness root | The AGRO workspace clone, which carries the control plane | `--path <dir>`, else the recorded `harnessRoot`, else `~/.agro` |
+| Harness root | The AGRO workspace clone, which carries the control plane | `--path <dir>`, else the recorded `harnessRoot`, else `~/agro` |
 | Install prefix | The harness binaries, at `<prefix>/bin` | Always `~/.local` for the invoking user |
 
 The command clones `https://github.com/mifunedev/agro.git` into the harness root
@@ -47,14 +47,16 @@ lands in the same normal per-user prefix. If `~/.local/bin` is not on your
 `PATH`, the command prints the `export PATH` line to add.
 
 ```bash
-agro harness install claude-code --host             # clone in ~/.agro, binary in ~/.local
+agro harness install claude-code --host             # clone in ~/agro, binary in ~/.local
 agro harness install claude-code --path /srv/agro   # clone in /srv/agro, binary in ~/.local
 ```
 
 Work from the harness root. A harness started outside an AGRO checkout finds no
 `AGENTS.md`, no `.agro/skills/`, no hooks and no task state, so `cd` into the
-harness root before you start the harness. The command prints that path as its
-last line.
+harness root before you start the harness. The command prints the launch line as
+its last line, in the form `cd <root> && <binary>`. For a harness that declares a
+bypass-permissions flag, the line carries that flag, because a first-run
+folder-trust prompt can ignore the project `defaultMode`.
 
 A successful install records two things in the host `agro.json`: `harnessRoot`,
 the clone location, and a `hostHarnesses` entry for the harness carrying the
@@ -69,7 +71,21 @@ Harness root precedence:
 
 1. `--path <dir>`
 2. `harnessRoot` in the host `agro.json`
-3. `~/.agro`
+3. `~/agro`
+
+The default root carries no leading dot. `~/.agro` and `~/.oh` are state homes,
+and a checkout in either one makes `~` resolve as a project root with two
+generations, which blocks every `agro` command run from `~`.
+
+The host path refuses in two cases. It refuses when `~/.oh` and `~/.agro` both
+exist, names both paths, and tells you to run `agro migrate --home`. It refuses
+when the resolved harness root lies inside either state home, and tells you to
+move that directory out, for example `mv ~/.agro ~/agro`. It moves nothing by
+itself.
+
+Before it installs, the command runs `link-providers.sh --init` in the harness
+root, exactly as the sandbox entrypoint does on every boot. A failure fails the
+install and names the command to run.
 
 An `on-demand` harness installs nothing on the host. The command says so and
 exits 0.

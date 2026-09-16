@@ -8,6 +8,7 @@ import {
   harnessIds,
   harnessBinPath,
   HARNESS_CATALOG,
+  harnessLaunchCommand,
   HARNESS_PREFIX_TOKEN,
   resolveInstallArgv,
   resolveUninstallArgv,
@@ -87,19 +88,31 @@ describe("harness catalog", () => {
     });
 
     it("carries no oh.json key on any entry — the verb is the only door", () => {
+      const required = [
+        "binary",
+        "docsPath",
+        "id",
+        "installArgv",
+        "installUser",
+        "kind",
+        "title",
+        "uninstallArgv",
+        "verifyArgv",
+      ];
       for (const h of HARNESS_CATALOG) {
-        expect(Object.keys(h).sort(), h.id).toEqual([
-          "binary",
-          "docsPath",
-          "id",
-          "installArgv",
-          "installUser",
-          "kind",
-          "title",
-          "uninstallArgv",
-          "verifyArgv",
-        ]);
+        const keys = Object.keys(h).sort();
+        expect(keys.filter((k) => k !== "bypassPermissionsFlag"), h.id).toEqual(required);
       }
+    });
+
+    it("names a bypass-permissions flag for claude-code and leaves it off elsewhere", () => {
+      const byId = new Map(HARNESS_CATALOG.map((h) => [h.id, h]));
+      expect(byId.get("claude-code")!.bypassPermissionsFlag).toBe("--dangerously-skip-permissions");
+      expect(byId.get("codex")!.bypassPermissionsFlag).toBeUndefined();
+      expect(harnessLaunchCommand(byId.get("claude-code")!)).toBe(
+        "claude --dangerously-skip-permissions",
+      );
+      expect(harnessLaunchCommand(byId.get("codex")!)).toBe("codex");
     });
   });
 
