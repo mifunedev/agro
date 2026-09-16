@@ -3,17 +3,19 @@
 - PR: https://github.com/mifunedev/agro/pull/1077
 - Issue: https://github.com/mifunedev/agro/issues/1076
 - Branch: `skill/1076-council-skill`, base `development`.
-- Content head: `4bb5766a` (amended scope).
-- Audit run: pending. The advisor will record the real verdict before finalization.
+- Content head: `c7264e9958fc8e7f3ece0b7e98429687a771ddd2` (amended scope).
+- Audit run: `audit-20260916T190350Z-1564454`.
+- Content-head verdict: `AUDIT-PASS` (exit 0). The final record head still requires fresh CI and PR classification before undraft.
 
 ## Why this is better
 
 The repository had roadmap councils but no bounded generic deliberation contract.
 The new 165-line skill defines independent proposals, evidence acceptance, scope limits, dissent, incomplete outcomes, and explicit weighted selection.
-One 114-line reference covers decision scenarios. No runtime or score engine accompanies the skill.
+One 99-line reference covers decision scenarios. No runtime or score engine accompanies the skill.
 The roadmap skill shrinks from 220 to 107 lines by reusing council deliberation.
 The amendment deletes the retired 46-line V2MOM reference.
-The initial independent review passed 15 semantic cases. An amended-scope review follows the operator's consolidation request.
+The initial independent review passed 15 semantic cases. The amended review covers roadmap publication, required critique, weighted selection, and retirement.
+The final independent simplicity review reports `findings: []`.
 Improved decision quality and lower operating cost remain claimed, unmeasured benefits.
 The historical sample does not prove that councils outperform a single competent advisor.
 
@@ -76,7 +78,8 @@ No public website contract or lifecycle command changed.
 
 These eval and CI observations describe the initial content head `6cfe2842`, not the amended deletion.
 The amended eval detected the missing committed deletion justification. This evidence commit supplies that required justification.
-The advisor must restore the original green baseline and re-run the amended suite before acceptance.
+The advisor restored the original green baseline and verified the targeted deletion probe at exit 0.
+The final suite passed at content head `c7264e99`, as recorded below.
 
 ```text
 $ node /tmp/council-artifact-check.mjs
@@ -110,7 +113,8 @@ Validate sandbox compose and image build pass 2m51s
 The local eval and typecheck use the existing uv-managed Python directory on `PATH` where required.
 No runtime configuration or probe changed.
 Initial-scope CI at `6cfe2842`: [Harness](https://github.com/mifunedev/agro/actions/runs/35135520650) and [sandbox](https://github.com/mifunedev/agro/actions/runs/35135520601).
-The amended-scope CI and implementation audit remain pending.
+The amended content head `c7264e99` has five successful CI checks and a complete implementation audit.
+Final task-record changes require another current-head CI and PR classification before undraft.
 
 ## Acceptance mapping
 
@@ -123,5 +127,37 @@ The amended-scope CI and implementation audit remain pending.
 | Failure, dissent, privacy, and authority behavior | `scenario-review.md`, 15 passing tabletop cases. |
 | Regression and type safety | Runner exit 0 with no new regression; `tsc --noEmit` exit 0. |
 | Knowledge impact | No affected declared sources; index probe PASS. |
-| Simplicity | The amended review supersedes the initial one-line finding, which the amendment removes. |
-| Ready PR | Final current-head audit and undraft remain the last gates. |
+| Simplicity | Fresh review at `c7264e99` reports no findings after the worker removed the duplicate line and 15 blank lines. |
+| Ready PR | Content-head implementation audit passed. Final record-head CI, PR classification, and undraft are the last gates. |
+
+## Final content-head verification
+
+```text
+$ AUDIT_ROOT="$PWD" bash .agro/skills/audit/scripts/audit-run.sh implementation council-skill --pr 1077 --repo mifunedev/agro --base development --branch skill/1076-council-skill -- "$PWD/.agro/skills/audit/scripts/route-driver.sh"
+task-graph: 3/3 stories pass
+gate1: PASS
+gate2: eval-result commit c7264e9958fc8e7f3ece0b7e98429687a771ddd2 equals HEAD
+gate2: reused eval-result.json for HEAD c7264e9958fc8e7f3ece0b7e98429687a771ddd2 (runnerExit=0)
+gate2: PASS
+{"ageDays":0,"ageSeconds":236,"ci":"PASS","draftLimbo":false,"draftStatus":"promotable","evidenceComplete":true,"flags":[],"isDraft":true,"issueReferences":[1076],"mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","number":1077,"primaryState":"draft","promotable":true,"readyForReview":true,"readyToMerge":false,"repo":"mifunedev/agro","reviewDecision":"","schemaVersion":1,"updatedAt":"2026-09-16T18:59:55Z"}
+gate3: PASS
+gate4: not applicable
+gate5: metrics {"netAdded":1416,"netRemoved":235,"shBranchPoints":0,"ccnMax":10,"tsOverCcn":[],"tool":"lizard n/a (no analysable files changed)"}
+gate5: review commit c7264e9958fc8e7f3ece0b7e98429687a771ddd2 equals HEAD
+gate5: PASS (review 769265ca-bb5f-409 at c7264e9958fc8e7f3ece0b7e98429687a771ddd2, 0 finding(s), none blocking open)
+AUDIT-EVIDENCE: AUDIT-PASS
+audit -- run-id=audit-20260916T190350Z-1564454 target=implementation state=complete verdict=AUDIT-PASS exit=0 started=2026-09-16T19:03:50Z finished=2026-09-16T19:03:51Z
+```
+
+```text
+$ bash .agro/skills/eval/run.sh
+PERSISTENT RED (1) — not gating, no green->red delta:
+ran 151 probe(s); wrote /home/sandbox/harness/.worktrees/skill/1076-council-skill/.agro/evals/RESULTS.md
+exit: 0
+
+$ bash .agro/evals/probes/protected-path-deletion.sh
+PASS: 1 protected path(s) deleted, each justified in a tracked evidence.md: strategic-proposal -> .agro/skills/strategic-proposal/references/open-harness-v2mom-council.md;
+```
+
+The task tail adds no new knowledge pattern or probe. Existing probes already cover the observed deletion-evidence failure.
+The capability scoreboard has no comparable current baseline for this change. The advisor claims no measured ceiling improvement.

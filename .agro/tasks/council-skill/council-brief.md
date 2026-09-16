@@ -1,4 +1,6 @@
-# Council Brief: Create a council skill
+# Initial Council Brief: Create a council skill
+
+The later operator amendment in `overlap-decision.md` supersedes the no-migration scope and retires V2MOM.
 
 ## Question and constraints
 

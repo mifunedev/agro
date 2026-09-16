@@ -1,4 +1,6 @@
-# Critic disposition
+# Initial critic disposition
+
+The operator's later consolidation and V2MOM retirement amendment appears in `overlap-decision.md`.
 
 The advisor accepts T4's eight objections with the following corrections.
 

@@ -35,8 +35,8 @@
         "Typecheck passes."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "Fifteen tabletop cases accepted; typecheck, STE, links, knowledge index and regression delta pass. Reviewer evidence prepared for this atomic record commit. Content-head CI verified green; final record-head audit gates undraft."
+      "passes": true,
+      "notes": "Amended scenarios and fresh simplicity review accepted at c7264e99; committed deletion justification verified; eval exit0 with no new regression; current content-head CI has five successful checks. Final record-head PR audit remains the undraft gate."
     },
     {
       "id": "US-003",
@@ -51,8 +51,8 @@
         "Typecheck passes."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Roadmap-only composition and V2MOM deletion verified; weigh unchanged; required-critique/publication/weighting scenarios accepted; STE/provider/link checks pass. Final CI and undraft are US-002 gates."
     }
   ],
   "artifact_contract": {
