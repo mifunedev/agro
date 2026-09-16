@@ -1,8 +1,15 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
-import { GENERATIONS, resolveUserStateHome } from "./compat.js";
+import { resolveAgroUserStateHome } from "./compat.js";
+import { SANDBOX_NAME_PATTERN } from "./registry.js";
 
 const HOST_CONFIG_MODE = 0o644;
+
+export const HOST_CONFIG_FILE = "config.json";
+
+export const WORKSPACES_SUBDIR = "workspaces";
+
+export const DEFAULT_WORKSPACE_NAME = "default";
 
 export interface HostHarnessReceipt {
   prefix: string;
@@ -20,24 +27,38 @@ export interface HostConfig {
   [key: string]: unknown;
 }
 
-function hostConfigFileName(stateHome: string): string {
-  return basename(stateHome) === GENERATIONS.legacy.userStateDir
-    ? GENERATIONS.legacy.configFile
-    : GENERATIONS.agro.configFile;
+export function hostStateHome(env: NodeJS.ProcessEnv, home: string): string {
+  return resolveAgroUserStateHome(env, home);
 }
 
 export function hostConfigPath(env: NodeJS.ProcessEnv, home: string): string {
-  const stateHome = resolveUserStateHome(env, home);
-  return join(stateHome, hostConfigFileName(stateHome));
+  return join(hostStateHome(env, home), HOST_CONFIG_FILE);
 }
 
-export function defaultHarnessRoot(home: string): string {
-  return join(home, "agro");
+export function assertWorkspaceName(name: string): void {
+  if (!SANDBOX_NAME_PATTERN.test(name)) {
+    throw new Error(
+      `invalid workspace name "${name}" — use lowercase letters, digits and dashes, starting with a letter or digit`,
+    );
+  }
+}
+
+export function workspacesRoot(env: NodeJS.ProcessEnv, home: string): string {
+  return join(hostStateHome(env, home), WORKSPACES_SUBDIR);
+}
+
+export function workspaceRoot(name: string, env: NodeJS.ProcessEnv, home: string): string {
+  assertWorkspaceName(name);
+  return join(workspacesRoot(env, home), name);
+}
+
+export function defaultHarnessRoot(env: NodeJS.ProcessEnv, home: string): string {
+  return join(workspacesRoot(env, home), DEFAULT_WORKSPACE_NAME);
 }
 
 export function validateHostConfig(value: unknown): HostConfig {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`${GENERATIONS.agro.configFile}: must contain a JSON object`);
+    throw new Error(`${HOST_CONFIG_FILE}: must contain a JSON object`);
   }
   const record = value as Record<string, unknown>;
 
@@ -145,9 +166,9 @@ export function resolveHarnessRoot(
   if (typeof explicit === "string" && explicit !== "") return resolve(explicit);
   const configured = readHostConfig(env, home).harnessRoot;
   if (typeof configured === "string" && configured !== "") return resolve(configured);
-  return defaultHarnessRoot(home);
+  return defaultHarnessRoot(env, home);
 }
 
 function fieldError(path: string, requirement: string): Error {
-  return new Error(`${GENERATIONS.agro.configFile}: ${path} ${requirement}`);
+  return new Error(`${HOST_CONFIG_FILE}: ${path} ${requirement}`);
 }

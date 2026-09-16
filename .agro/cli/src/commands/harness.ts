@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { delimiter, join, resolve } from "node:path";
+import { delimiter, join } from "node:path";
 import {
   ExecutionSpawnError,
   resolveExecutionTarget,
@@ -14,15 +14,17 @@ import { LocalExecutionTarget } from "../lib/execution/local-target.js";
 import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import type { ExecutionTarget } from "../lib/execution/target.js";
 import {
+  DEFAULT_WORKSPACE_NAME,
   readHostConfig,
   resolveHarnessRoot,
+  workspaceRoot,
   writeHostConfig,
   type HostHarnessReceipt,
 } from "../lib/host-config.js";
 import {
   AGRO_REPO_URL,
   ensureHostWorkspace,
-  splitStateHomeRefusal,
+  stateHomeRefusal,
   stateHomeRootRefusal,
 } from "../lib/host-workspace.js";
 import { ask as promptAsk } from "../lib/prompt.js";
@@ -59,6 +61,7 @@ export interface HarnessOptions {
   interactive?: boolean;
   homedir?: () => string;
   force?: boolean;
+  workspace?: string;
 }
 
 export type HarnessLocation = "sandbox" | "host" | "unknown";
@@ -345,11 +348,11 @@ async function installOnHost(
   const bin = opts.bin;
   const env = opts.env ?? process.env;
   const home = homeOf(opts);
-  const flagged = opts.host === true || opts.path !== undefined;
+  const flagged = opts.host === true || opts.path !== undefined || opts.workspace !== undefined;
 
-  const split = splitStateHomeRefusal(bin, home);
-  if (split !== undefined) {
-    io.stderr(split);
+  const generation = stateHomeRefusal(bin, home);
+  if (generation !== undefined) {
+    io.stderr(generation);
     return 1;
   }
 
@@ -368,14 +371,17 @@ async function installOnHost(
 
   let root: string;
   let recorded: string | undefined;
+  let explicit: string | undefined;
   try {
+    explicit =
+      opts.workspace !== undefined ? workspaceRoot(opts.workspace, env, home) : opts.path;
     recorded = readHostConfig(env, home).harnessRoot;
-    root = resolveHarnessRoot(opts.path, env, home);
+    root = resolveHarnessRoot(explicit, env, home);
   } catch (err) {
     io.stderr(`${bin} harness: ${messageOf(err)}\n`);
     return 1;
   }
-  const sticky = opts.path === undefined && recorded !== undefined && recorded !== "";
+  const sticky = explicit === undefined && recorded !== undefined && recorded !== "";
 
   if (!flagged) {
     const ask = io.ask ?? promptAsk;
@@ -387,8 +393,13 @@ async function installOnHost(
       return 1;
     }
     if (!sticky) {
-      const chosen = (await ask(`Harness root [${root}]:`)).trim();
-      if (chosen !== "") root = resolve(chosen);
+      const chosen = (await ask(`Workspace name [${DEFAULT_WORKSPACE_NAME}]:`)).trim();
+      try {
+        root = workspaceRoot(chosen === "" ? DEFAULT_WORKSPACE_NAME : chosen, env, home);
+      } catch (err) {
+        io.stderr(`${bin} harness: ${messageOf(err)}\n`);
+        return 1;
+      }
     }
   }
   if (sticky) io.stdout(`using the recorded harness root ${root}\n`);
@@ -553,9 +564,9 @@ async function uninstallOnHost(
   const home = homeOf(opts);
   const computed = hostPrefix(home);
 
-  const split = splitStateHomeRefusal(bin, home);
-  if (split !== undefined) {
-    io.stderr(split);
+  const generation = stateHomeRefusal(bin, home);
+  if (generation !== undefined) {
+    io.stderr(generation);
     return 1;
   }
 

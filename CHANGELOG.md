@@ -12,12 +12,13 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Fixed
 
-- Default the host harness root to `~/agro`, outside the control-directory and state-home namespace, so a cloned workspace no longer turns `~` into a project root with two generations. `--path` and a recorded `harnessRoot` still win.
-- Resolve the host config path through the compatibility resolver again, so it follows the generation a home already has instead of creating `~/.agro` beside a legacy `~/.oh` and tripping the pair guard.
-- Refuse a host harness install or uninstall when `~/.oh` and `~/.agro` both exist, naming both paths and `agro migrate --home`, instead of adding state to the conflict.
-- Refuse a host harness install or uninstall when the resolved harness root lies inside either state home, and name the move that fixes it.
+- Clone the host workspace into the named registry entry `~/.agro/workspaces/<name>`, beside `~/.agro/sandboxes/`, instead of over the state home itself, which turned `~` into a project root with two generations.
+- Ask for the workspace name once on the first host install, defaulting to `default`, and validate it exactly as a sandbox name, so a name like `../../.ssh` is refused.
+- Add `agro harness install --workspace <name>` for that registry entry. It skips the prompt, implies `--host`, and is rejected together with `--path`.
+- Write host config to `~/.agro/config.json`, a fixed name that cannot collide with the tracked `agro.json` of a cloned checkout. The project `agro.json` is unchanged.
+- Refuse a host harness install or uninstall on a legacy-only `~/.oh` home, on a split `~/.oh` and `~/.agro` home, and on a harness root that is a state home itself. Each refusal names the remedy.
 - Run `link-providers.sh --init` in the host workspace before installing a harness, on both the cloned and reused paths, and fail the install when it does not succeed.
-- Print the host launch line as `cd <root> && <binary> [flag]`, with `--dangerously-skip-permissions` for `claude-code`, because a first-run trust prompt can ignore `defaultMode`.
+- Print the host launch line as `cd <root> && <binary> [flag]`, with `--permission-mode bypassPermissions` for `claude-code`, because a first-run trust prompt can ignore `defaultMode`.
 
 ## [0.12.1] - 2026-09-15
 

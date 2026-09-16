@@ -330,6 +330,16 @@ export function resolveRegistryHome(
   return { path: home, configured: false };
 }
 
+export function resolveAgroUserStateHome(
+  env: Record<string, string | undefined> = process.env,
+  home: string = homedir(),
+  warn?: (message: string) => void,
+): string {
+  const configured = aliasedEnvValue(env, "HOME", warn);
+  if (configured !== undefined) return resolve(configured);
+  return join(home, GENERATIONS.agro.userStateDir);
+}
+
 export function resolveUserStateHome(
   env: Record<string, string | undefined> = process.env,
   home: string = homedir(),

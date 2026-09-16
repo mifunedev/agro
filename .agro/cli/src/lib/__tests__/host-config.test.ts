@@ -3,13 +3,17 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  assertWorkspaceName,
   defaultHarnessRoot,
   hostConfigPath,
   readHostConfig,
   resolveHarnessRoot,
   validateHostConfig,
+  workspaceRoot,
+  workspacesRoot,
   writeHostConfig,
 } from "../host-config.js";
+import { SANDBOX_NAME_PATTERN } from "../registry.js";
 
 const cleanups: string[] = [];
 afterEach(() => {
@@ -42,72 +46,89 @@ function userHome(shape: "legacy-registry" | "agro-registry" | "split" | "clean"
   return home;
 }
 
-function legacyConfigFile(home: string, config: unknown): string {
-  const dir = join(home, ".oh");
-  mkdirSync(dir, { recursive: true });
-  const path = join(dir, "oh.json");
-  writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`);
-  return path;
-}
-
 describe("hostConfigPath", () => {
-  it("resolves agro.json under an agro state home", () => {
+  it("names config.json under the state home an override chooses", () => {
     const env = stateHome(".agro");
-    expect(hostConfigPath(env, OVERRIDDEN_HOME)).toBe(join(env.AGRO_HOME!, "agro.json"));
+    expect(hostConfigPath(env, OVERRIDDEN_HOME)).toBe(join(env.AGRO_HOME!, "config.json"));
   });
 
-  it("resolves oh.json when the state home an override names is legacy", () => {
-    const env = stateHome(".oh");
-    expect(hostConfigPath(env, OVERRIDDEN_HOME)).toBe(join(env.AGRO_HOME!, "oh.json"));
-  });
-
-  it("follows a legacy registry to <home>/.oh/oh.json and creates no agro state home", () => {
-    const home = userHome("legacy-registry");
-    expect(hostConfigPath({}, home)).toBe(join(home, ".oh", "oh.json"));
-    writeHostConfig({ version: 1, harnessRoot: "/srv/agro" }, {}, home);
-    expect(existsSync(join(home, ".agro"))).toBe(false);
-  });
-
-  it("follows an agro registry to <home>/.agro/agro.json", () => {
-    const home = userHome("agro-registry");
-    expect(hostConfigPath({}, home)).toBe(join(home, ".agro", "agro.json"));
-  });
-
-  it("names <home>/.agro/agro.json in a clean home", () => {
+  it("names <home>/.agro/config.json in a clean home", () => {
     const home = userHome("clean");
-    expect(hostConfigPath({}, home)).toBe(join(home, ".agro", "agro.json"));
+    expect(hostConfigPath({}, home)).toBe(join(home, ".agro", "config.json"));
   });
 
-  it("round-trips a config through the legacy generation", () => {
+  it("names config.json on a home that carries a legacy registry, never a project config file", () => {
     const home = userHome("legacy-registry");
+    const path = hostConfigPath({}, home);
+    expect(path).toBe(join(home, ".agro", "config.json"));
+    expect(path.endsWith("agro.json")).toBe(false);
+    expect(path.endsWith("oh.json")).toBe(false);
+  });
+
+  it("round-trips a config through <home>/.agro/config.json", () => {
+    const home = userHome("clean");
     writeHostConfig({ version: 1, harnessRoot: "/srv/recorded" }, {}, home);
-    expect(existsSync(join(home, ".oh", "oh.json"))).toBe(true);
+    expect(existsSync(join(home, ".agro", "config.json"))).toBe(true);
     expect(readHostConfig({}, home).harnessRoot).toBe("/srv/recorded");
     expect(resolveHarnessRoot(undefined, {}, home)).toBe("/srv/recorded");
   });
 });
 
-describe("defaultHarnessRoot", () => {
-  it("names <home>/agro in a clean home", () => {
+describe("workspace roots", () => {
+  it("names <home>/.agro/workspaces/<name>", () => {
     const home = userHome("clean");
-    expect(defaultHarnessRoot(home)).toBe(join(home, "agro"));
+    expect(workspaceRoot("acme", {}, home)).toBe(join(home, ".agro", "workspaces", "acme"));
+    expect(workspacesRoot({}, home)).toBe(join(home, ".agro", "workspaces"));
   });
 
-  it("names <home>/agro on a home that carries a legacy registry", () => {
+  it("sits beside the sandbox registry, never at the state home root", () => {
+    const home = userHome("clean");
+    const root = defaultHarnessRoot({}, home);
+    expect(root).toBe(join(home, ".agro", "workspaces", "default"));
+    expect(root).not.toBe(join(home, ".agro"));
+    expect(root.startsWith(join(home, ".agro", "sandboxes"))).toBe(false);
+  });
+
+  it("validates a workspace name exactly as a sandbox name", () => {
+    const home = userHome("clean");
+    for (const bad of ["../../.ssh", "/etc", "Acme", "-lead", "a b", ""]) {
+      expect(() => workspaceRoot(bad, {}, home), bad).toThrow(/invalid workspace name/);
+      expect(() => assertWorkspaceName(bad), bad).toThrow(
+        /use lowercase letters, digits and dashes, starting with a letter or digit/,
+      );
+      expect(SANDBOX_NAME_PATTERN.test(bad), bad).toBe(false);
+    }
+    for (const good of ["default", "acme", "a1-b2"]) {
+      expect(() => assertWorkspaceName(good), good).not.toThrow();
+    }
+  });
+
+  it("follows an explicit state home override", () => {
+    const env = stateHome(".agro");
+    expect(defaultHarnessRoot(env, OVERRIDDEN_HOME)).toBe(
+      join(env.AGRO_HOME!, "workspaces", "default"),
+    );
+  });
+});
+
+describe("defaultHarnessRoot", () => {
+  it("names <home>/.agro/workspaces/default in a clean home", () => {
+    const home = userHome("clean");
+    expect(defaultHarnessRoot({}, home)).toBe(join(home, ".agro", "workspaces", "default"));
+  });
+
+  it("stays on the agro generation when the home carries a legacy registry", () => {
     const home = userHome("legacy-registry");
-    expect(defaultHarnessRoot(home)).toBe(join(home, "agro"));
+    expect(defaultHarnessRoot({}, home)).toBe(join(home, ".agro", "workspaces", "default"));
   });
 
-  it("names <home>/agro on a home that carries both state homes", () => {
-    const home = userHome("split");
-    expect(defaultHarnessRoot(home)).toBe(join(home, "agro"));
-  });
-
-  it("stays outside both state home directories", () => {
-    const home = userHome("split");
-    const root = defaultHarnessRoot(home);
-    expect(root.startsWith(join(home, ".agro"))).toBe(false);
-    expect(root.startsWith(join(home, ".oh"))).toBe(false);
+  it("is never the state home root itself", () => {
+    for (const shape of ["clean", "legacy-registry", "agro-registry", "split"] as const) {
+      const home = userHome(shape);
+      const root = defaultHarnessRoot({}, home);
+      expect(root, shape).not.toBe(join(home, ".agro"));
+      expect(root, shape).not.toBe(join(home, ".oh"));
+    }
   });
 });
 
@@ -120,7 +141,7 @@ describe("readHostConfig", () => {
   it("rejects a file that is not valid JSON", () => {
     const env = stateHome(".agro");
     writeFileSync(hostConfigPath(env, OVERRIDDEN_HOME), "{nope");
-    expect(() => readHostConfig(env, OVERRIDDEN_HOME)).toThrow(/agro\.json is not valid JSON/);
+    expect(() => readHostConfig(env, OVERRIDDEN_HOME)).toThrow(/config\.json is not valid JSON/);
   });
 });
 
@@ -239,7 +260,9 @@ describe("resolveHarnessRoot", () => {
 
   it("falls back to <home>/agro when no config exists", () => {
     const home = userHome("legacy-registry");
-    expect(resolveHarnessRoot(undefined, {}, home)).toBe(defaultHarnessRoot(home));
-    expect(resolveHarnessRoot(undefined, {}, home)).toBe(join(home, "agro"));
+    expect(resolveHarnessRoot(undefined, {}, home)).toBe(defaultHarnessRoot({}, home));
+    expect(resolveHarnessRoot(undefined, {}, home)).toBe(
+      join(home, ".agro", "workspaces", "default"),
+    );
   });
 });

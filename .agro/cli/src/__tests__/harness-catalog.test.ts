@@ -107,10 +107,10 @@ describe("harness catalog", () => {
 
     it("names a bypass-permissions flag for claude-code and leaves it off elsewhere", () => {
       const byId = new Map(HARNESS_CATALOG.map((h) => [h.id, h]));
-      expect(byId.get("claude-code")!.bypassPermissionsFlag).toBe("--dangerously-skip-permissions");
+      expect(byId.get("claude-code")!.bypassPermissionsFlag).toBe("--permission-mode bypassPermissions");
       expect(byId.get("codex")!.bypassPermissionsFlag).toBeUndefined();
       expect(harnessLaunchCommand(byId.get("claude-code")!)).toBe(
-        "claude --dangerously-skip-permissions",
+        "claude --permission-mode bypassPermissions",
       );
       expect(harnessLaunchCommand(byId.get("codex")!)).toBe("codex");
     });

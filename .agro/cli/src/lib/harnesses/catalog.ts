@@ -36,7 +36,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     uninstallArgv: ["npm", "--prefix", HARNESS_PREFIX_TOKEN, "uninstall", "-g", "@anthropic-ai/claude-code"],
     docsPath: "docs/harnesses/claude-code.md",
     kind: "installable",
-    bypassPermissionsFlag: "--dangerously-skip-permissions",
+    bypassPermissionsFlag: "--permission-mode bypassPermissions",
   },
   {
     id: "codex",

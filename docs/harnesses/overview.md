@@ -28,7 +28,7 @@ with no container runtime takes the same path: `agro` treats an unspawnable
 runtime as an unreachable sandbox and installs on the host. The host path needs
 no Docker.
 
-An interactive run asks for confirmation and then for the harness root. Answer
+An interactive run asks for confirmation and then for the workspace name. Answer
 `n` to install nothing; the command then exits non-zero and points at
 `agro sandbox`. A non-interactive run needs `--host` or `--path`. Without
 either flag it keeps the refusal, so scripts see the same exit code as before.
@@ -37,7 +37,7 @@ The host path uses two distinct locations.
 
 | Location | What it holds | How you choose it |
 |---|---|---|
-| Harness root | The AGRO workspace clone, which carries the control plane | `--path <dir>`, else the recorded `harnessRoot`, else `~/agro` |
+| Harness root | The AGRO workspace clone, which carries the control plane | `--workspace <name>` or `--path <dir>`, else the recorded `harnessRoot`, else `~/.agro/workspaces/default` |
 | Install prefix | The harness binaries, at `<prefix>/bin` | Always `~/.local` for the invoking user |
 
 The command clones `https://github.com/mifunedev/agro.git` into the harness root
@@ -47,8 +47,9 @@ lands in the same normal per-user prefix. If `~/.local/bin` is not on your
 `PATH`, the command prints the `export PATH` line to add.
 
 ```bash
-agro harness install claude-code --host             # clone in ~/agro, binary in ~/.local
-agro harness install claude-code --path /srv/agro   # clone in /srv/agro, binary in ~/.local
+agro harness install claude-code --host                  # clone in ~/.agro/workspaces/default
+agro harness install claude-code --workspace acme       # clone in ~/.agro/workspaces/acme
+agro harness install claude-code --path /srv/agro       # clone in /srv/agro, outside the registry
 ```
 
 Work from the harness root. A harness started outside an AGRO checkout finds no
@@ -58,30 +59,46 @@ its last line, in the form `cd <root> && <binary>`. For a harness that declares 
 bypass-permissions flag, the line carries that flag, because a first-run
 folder-trust prompt can ignore the project `defaultMode`.
 
-A successful install records two things in the host `agro.json`: `harnessRoot`,
+A successful install records two things in `~/.agro/config.json`: `harnessRoot`,
 the clone location, and a `hostHarnesses` entry for the harness carrying the
 prefix and the binary it created. Neither is recorded when the install fails.
 
-The first host install is the one moment you choose the harness root. After it,
-the recorded `harnessRoot` is sticky: every later host install reports the
-recorded root and clones nothing new, without asking for a path. Pass
-`--path <dir>` to move the clone; a successful install records the new value.
+The first host install is the one moment you choose the workspace. After it, the
+recorded `harnessRoot` is sticky: every later host install reports the recorded
+root and clones nothing new, without asking for a name. Pass `--workspace <name>`
+or `--path <dir>` to move the clone; a successful install records the new value.
 
 Harness root precedence:
 
-1. `--path <dir>`
-2. `harnessRoot` in the host `agro.json`
-3. `~/agro`
+1. `--workspace <name>` or `--path <dir>` — pass one, not both
+2. `harnessRoot` in `~/.agro/config.json`
+3. `~/.agro/workspaces/default`
 
-The default root carries no leading dot. `~/.agro` and `~/.oh` are state homes,
-and a checkout in either one makes `~` resolve as a project root with two
-generations, which blocks every `agro` command run from `~`.
+A host workspace is a named registry entry, exactly like a sandbox:
 
-The host path refuses in two cases. It refuses when `~/.oh` and `~/.agro` both
-exist, names both paths, and tells you to run `agro migrate --home`. It refuses
-when the resolved harness root lies inside either state home, and tells you to
-move that directory out, for example `mv ~/.agro ~/agro`. It moves nothing by
-itself.
+```
+~/.agro/
+├── config.json           host config
+├── sandboxes/  <name>/   sandbox registry
+└── workspaces/ <name>/   host workspace registry
+```
+
+The first interactive host install asks `Workspace name [default]:`. The name
+becomes a path segment, so it must match the sandbox name rule: lowercase
+letters, digits and dashes, starting with a letter or digit. Any other name is
+refused and nothing is created.
+
+The state home itself is never the harness root. A checkout at `~/.agro` or
+`~/.oh` makes `~` resolve as a project root with two generations, which blocks
+every `agro` command run from `~`.
+
+The host path refuses in three cases, and it moves nothing by itself.
+
+| Case | What it says |
+|---|---|
+| `~/.oh` exists and `~/.agro` does not | host state now lives in `~/.agro`; migrate first with `agro migrate --home` |
+| `~/.oh` and `~/.agro` both exist | the state home is split; merge it with `agro migrate --home` |
+| The resolved harness root is `~/.oh` or `~/.agro` itself | move that directory out, for example `mv ~/.agro ~/agro` |
 
 Before it installs, the command runs `link-providers.sh --init` in the harness
 root, exactly as the sandbox entrypoint does on every boot. A failure fails the
@@ -101,7 +118,8 @@ Flags:
 |---|---|
 | `--json` | `list` and `status` only: machine-readable output |
 | `--host` | `install` only: install on the host when the sandbox is not running |
-| `--path <dir>` | `install` only: harness root on the host; implies `--host` |
+| `--workspace <name>` | `install` only: host workspace registry entry; implies `--host` |
+| `--path <dir>` | `install` only: harness root outside the registry; implies `--host` |
 | `--force` | `uninstall` only: remove on the host with no recorded install |
 
 `list` and `status` reject `--host` and `--path`. When the sandbox is not
