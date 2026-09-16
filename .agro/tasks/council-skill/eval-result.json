@@ -1,0 +1,10 @@
+{
+  "commit": "c7264e9958fc8e7f3ece0b7e98429687a771ddd2",
+  "runnerExit": 0,
+  "ranAt": "2026-09-16T19:02:25.513Z",
+  "newRegressions": [],
+  "preExistingReds": [
+    "skills-vendored"
+  ],
+  "evidence": "151 probes; /tmp/council-complete-eval.log; protected-path-deletion passes with committed operator authorization"
+}
