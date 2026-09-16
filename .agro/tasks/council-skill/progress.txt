@@ -2,3 +2,4 @@
 
 2026-09-16 plan: Operator requested end-to-end completion. Base 1317f352. Queried council/delegate/skills entity and pattern knowledge. Three independent read-only council workers dispatched; active session owns decisions and acceptance.
 2026-09-16 design: Accepted three independent research reports after original-record checks, then accepted T4 critique. Chose narrow council with conditional critic, frozen authority, explicit partial/blocked states, no scoring or existing-skill migration.
+2026-09-16 amendment: Operator requested overlap analysis with weigh and strategic-proposal, then removed V2MOM from the stack. Preserve roadmap domain owner, replace duplicate deliberation with council, delete V2MOM reference, and clarify explicit weighted selection. Reopen verification; prior AUDIT-PASS applies only to 6cfe2842.

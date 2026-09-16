@@ -46,7 +46,6 @@ Use sanitized evidence descriptions without weakening the evidence limits.
 Independence is procedural, not statistical. Separate contexts do not prove independent errors or superior advice.
 A council requires at least two distinct, useful independent member scopes.
 If fewer than two exist, stop before dispatch with `BLOCKED` and explain why council deliberation does not apply.
-Offer separately authorized single-advisor analysis instead.
 If independent contexts are unavailable, report `BLOCKED` before dispatch.
 Do not simulate a council with inline personas.
 Offer a single-advisor analysis only as a separate, clearly labeled alternative for the user to authorize.
@@ -84,7 +83,8 @@ Label unmeasured quality and cost claims as unmeasured.
 4. Draft the advisor's synthesis with tradeoffs and dissent. Keep the agreed scope fixed.
 5. Apply the critic conditions below.
 
-If material evidence conflicts, safety or reversal risk is high, or a proposal expands scope, require one fresh read-only critic.
+If the caller explicitly requires critique, require one fresh read-only critic.
+If material evidence conflicts, safety or reversal risk is high, or a proposal expands scope, also require that critic.
 Otherwise, omit the critic and state why.
 Use `/delegate` for this bounded critique under the same source and budget limits.
 Give the critic the neutral brief, accepted evidence, and advisor draft.
@@ -138,12 +138,26 @@ Existing skills keep their contracts; this skill does not migrate their workflow
 | [`/delegate`](../delegate/SKILL.md) | Worker execution mechanics and acceptance records. |
 | [`/architect`](../architect/SKILL.md) | Architecture decisions and the Architecture Brief. |
 | [`/audit`](../audit/SKILL.md) | Audit verdicts. |
-| [`/strategic-proposal`](../strategic-proposal/SKILL.md) | Roadmap, V2MOM, and their publication rules. |
+| [`/strategic-proposal`](../strategic-proposal/SKILL.md) | Roadmap priorities and their publication rules. |
+| [`/weigh`](../weigh/SKILL.md) | Deterministic candidate selection from supplied signals. |
 | [`/spec`](../spec/SKILL.md) | Plans, builds, and ready PRs. |
 | [`/supervisor`](../supervisor/SKILL.md) | External session supervision. |
 | [`/builder`](../builder/SKILL.md) | Skill authoring. |
 | [`/ste`](../ste/SKILL.md) | Artifact prose. |
 | [`/wiki`](../wiki/SKILL.md) | Knowledge promotion. |
+
+### Explicit weighting
+
+Council deliberates and retains dissent. `/weigh` selects candidates from supplied signals.
+A council request does not authorize automatic weighting or another sampling panel.
+If the operator explicitly requests weighting, pass accepted candidate outputs through `/weigh --cohort <path>`.
+Use the canonical [schema](../weigh/scripts/score-trajectories.mjs) and [scoring contract](../weigh/references/scoring.md); do not duplicate their formulas.
+Keep unknown signals unknown. Neutral scorer contributions are not `PASS` evidence.
+Disclose model-assigned signals as judgments, not factual measurements.
+Proposal token cost is not adoption cost.
+Preserve the scorer's actual selection, floor failures, and `NO-SELECTION` result.
+Never handpick rejected candidates or change weights or `--soft` to favor an answer.
+Selection grants no council completion, build, or publication authority.
 
 ## Validation examples
 

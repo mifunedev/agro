@@ -18,8 +18,8 @@
         "Typecheck passes."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Accepted skill and scenarios at 6cfe2842f68789739c04bcb5af1857b6805fe295; original trace verification and critique complete; STE/frontmatter/references/provider checks and typecheck exit 0; SI-0015."
     },
     {
       "id": "US-002",
@@ -35,6 +35,22 @@
         "Typecheck passes."
       ],
       "priority": 2,
+      "passes": false,
+      "notes": "Fifteen tabletop cases accepted; typecheck, STE, links, knowledge index and regression delta pass. Reviewer evidence prepared for this atomic record commit. Content-head CI verified green; final record-head audit gates undraft."
+    },
+    {
+      "id": "US-003",
+      "title": "Consolidate roadmap deliberation and retire V2MOM",
+      "description": "As an operator, I want one deliberation owner and distinct weighted selection without the retired V2MOM framework.",
+      "acceptanceCriteria": [
+        "Keep strategic-proposal as roadmap-only composition over council; remove duplicated expert/draft/critic/final-worker mechanics.",
+        "Remove the V2MOM variant and its bundled reference from active skills.",
+        "Distinguish council advice from explicitly requested weigh --cohort selection and preserve NO-SELECTION.",
+        "Require explicit publication authority and a verified roadmap target.",
+        "Scenario review, STE, provider checks, regression delta, and current-head CI pass.",
+        "Typecheck passes."
+      ],
+      "priority": 3,
       "passes": false,
       "notes": ""
     }

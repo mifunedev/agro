@@ -12,6 +12,14 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 - Add `/council` for bounded independent perspectives, advisor synthesis, and explicit advice limits ([#1076](https://github.com/mifunedev/agro/issues/1076)).
 
+### Changed
+
+- Route `/strategic-proposal` roadmap deliberation through `/council` with required critique and explicit publication permission ([#1076](https://github.com/mifunedev/agro/issues/1076)).
+
+### Removed
+
+- Remove V2MOM and its bundled reference from the strategy workflow ([#1076](https://github.com/mifunedev/agro/issues/1076)).
+
 ## [0.12.2] - 2026-09-15
 
 ### Fixed

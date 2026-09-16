@@ -51,7 +51,9 @@ As a reviewer, I want evidence that the new skill has distinct, bounded behavior
 ## Non-goals
 
 Do not add a persistent agent, scheduler, trace collector, provider adapter, or automatic publication.
-Do not migrate or edit existing skills in this PR.
+The operator amended the scope to consolidate `/strategic-proposal` and distinguish `/weigh`.
+Remove V2MOM from active skills and delete its bundled reference.
+Do not change the weigh scorer or unrelated skills.
 Do not assert universal superiority from a small trace sample.
 
 ## Advisor orchestration strategy
@@ -61,7 +63,8 @@ Three read-only workers inspect separate evidence surfaces in parallel.
 A fresh critic reviews the advisor draft after those results arrive.
 One continuing worker authors the skill, scenario reference, and changelog in this isolated worktree.
 The advisor appends the builder proposal ledger as a decision record.
-The worker cannot edit task state, provider mirrors, existing skills, runtime settings, or GitHub state.
+The worker cannot edit task state, provider mirrors, runtime settings, or GitHub state.
+The amended assignment may edit `/strategic-proposal` and delete its retired V2MOM reference.
 A fresh read-only reviewer checks simplicity and behavioral cases.
 The advisor runs all acceptance checks and finalizes the PR.
 Worker settings and stopping conditions live in `delegate-graph.json`.
@@ -77,22 +80,37 @@ No direct implementation exception applies.
 
 The query also returned release-versioning, agro-web-pipeline, audit-architecture, pattern-wiki-frontmatter-edit-without-reindex, and pattern-evals-inherited-environment-diagnosis.
 The advisor read those pages. Their unrelated claims do not determine the council design.
-No prior council proposal or rejected council record exists in the skill-impact ledger.
+No prior council proposal or rejected council record existed before this build.
+The amendment query `council strategic-proposal weigh` returned `[[recursive-language-models]]` and no patterns.
+The advisor checked its weighting claims against the scorer. Deterministic arithmetic does not make model-supplied clusters factual measurements.
 
 ## Expected Knowledge Impact
 
 - **Impact**: REQUIRED
 - **Expected entries**: none
-- **Affected source paths**: `.agro/skills/council/`, `CHANGELOG.md`, `.agro/evals/decisions/skill-impact.md`
+- **Affected source paths**: `.agro/skills/council/`, `.agro/skills/strategic-proposal/`, `CHANGELOG.md`, `.agro/evals/decisions/skill-impact.md`
 - **Reason**: The skill adds reusable behavior. Derive affected pages from the final diff and resolve each result.
 
 ## Plan Reconciliation
 
 - **Source plan**: The operator's current end-to-end request.
 - **Intent preserved**: YES
-- **Material deviations**: none
+- **Material deviations**: The operator authorized strategy consolidation and removed V2MOM during execution.
 - **Constraints discovered during grounding**: Preserve accepted decisions #929 and #989. Keep raw traces private. Historical evidence does not prove optimality.
 - **Orchestration preserved**: YES
+
+## Operator amendment: US-003
+
+As an operator, I want one deliberation procedure and no retired strategy framework in the active stack.
+
+- Keep `/strategic-proposal` as a roadmap-only domain workflow over `/council`.
+- Remove duplicate expert, draft, critic, and final-worker mechanics.
+- Remove the V2MOM variant and bundled reference.
+- Distinguish council deliberation from explicit `/weigh` selection.
+- Reuse accepted candidates through `--cohort` only when the user requests weighting.
+- Preserve `NO-SELECTION`, unknown-signal limits, and publication authority.
+- Re-run scenario review, STE, provider checks, regression checks, and current-head CI.
+- Typecheck passes.
 
 ## Success Metrics
 

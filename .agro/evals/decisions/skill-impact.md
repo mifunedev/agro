@@ -1903,3 +1903,347 @@ index 00000000..8c49f642
 +Use [the decision scenarios](references/scenarios.md) for read-only contract review.
 +Check the expected outcome and forbidden side effects without dispatching workers.
 ```
+
+## SI-0016 · 2026-09-16 · builder · PROPOSED
+
+- **proposal**: Distinguish council deliberation from explicit weighted selection and support caller-required critique.
+- **target**: `.agro/skills/council/SKILL.md`
+- **motivating patterns**: none (direct request)
+- **proposer**: /builder command, operator amendment to issue #1076
+- **diff**:
+
+```diff
+diff --git a/.agro/skills/council/SKILL.md b/.agro/skills/council/SKILL.md
+index 8c49f642..17cac942 100644
+--- a/.agro/skills/council/SKILL.md
++++ b/.agro/skills/council/SKILL.md
+@@ -49 +48,0 @@ If fewer than two exist, stop before dispatch with `BLOCKED` and explain why cou
+-Offer separately authorized single-advisor analysis instead.
+@@ -87 +86,2 @@ Label unmeasured quality and cost claims as unmeasured.
+-If material evidence conflicts, safety or reversal risk is high, or a proposal expands scope, require one fresh read-only critic.
++If the caller explicitly requires critique, require one fresh read-only critic.
++If material evidence conflicts, safety or reversal risk is high, or a proposal expands scope, also require that critic.
+@@ -141 +141,2 @@ Existing skills keep their contracts; this skill does not migrate their workflow
+-| [`/strategic-proposal`](../strategic-proposal/SKILL.md) | Roadmap, V2MOM, and their publication rules. |
++| [`/strategic-proposal`](../strategic-proposal/SKILL.md) | Roadmap priorities and their publication rules. |
++| [`/weigh`](../weigh/SKILL.md) | Deterministic candidate selection from supplied signals. |
+@@ -147,0 +149,13 @@ Existing skills keep their contracts; this skill does not migrate their workflow
++### Explicit weighting
++
++Council deliberates and retains dissent. `/weigh` selects candidates from supplied signals.
++A council request does not authorize automatic weighting or another sampling panel.
++If the operator explicitly requests weighting, pass accepted candidate outputs through `/weigh --cohort <path>`.
++Use the canonical [schema](../weigh/scripts/score-trajectories.mjs) and [scoring contract](../weigh/references/scoring.md); do not duplicate their formulas.
++Keep unknown signals unknown. Neutral scorer contributions are not `PASS` evidence.
++Disclose model-assigned signals as judgments, not factual measurements.
++Proposal token cost is not adoption cost.
++Preserve the scorer's actual selection, floor failures, and `NO-SELECTION` result.
++Never handpick rejected candidates or change weights or `--soft` to favor an answer.
++Selection grants no council completion, build, or publication authority.
++
+```
+
+## SI-0017 · 2026-09-16 · builder · PROPOSED
+
+- **proposal**: Keep roadmap ownership, reuse council deliberation, and remove the retired V2MOM workflow and reference.
+- **target**: `.agro/skills/strategic-proposal/SKILL.md`
+- **motivating patterns**: none (direct request)
+- **proposer**: /builder command, operator amendment to issue #1076
+- **diff**:
+
+```diff
+diff --git a/.agro/skills/strategic-proposal/SKILL.md b/.agro/skills/strategic-proposal/SKILL.md
+index 8df7cd96..a17558f3 100644
+--- a/.agro/skills/strategic-proposal/SKILL.md
++++ b/.agro/skills/strategic-proposal/SKILL.md
+@@ -4,3 +4,2 @@ description: |
+-  Spawn 5 domain experts to propose roadmap items, then an AI council drafts a
+-  roadmap, a Strategic Critic challenges it, and the council finalizes with
+-  revisions. Updates the pinned roadmap issue.
++  Prioritize a repository-grounded roadmap through /council and one required
++  strategic critic. Report advice by default; publish only on explicit request.
+@@ -8,0 +8,2 @@ description: |
++argument-hint: "<roadmap-question-or-brief>"
++disable-model-invocation: true
+@@ -13 +14,2 @@ description: |
+-Spawn 5 specialized expert sub-agents in parallel, each proposing roadmap items from their domain. An Expert AI Council drafts the roadmap, a Strategic Critic challenges it with adversarial backpressure, and the Council finalizes with revisions. The result is published as a pinned GitHub issue.
++Own roadmap scope, evidence, phases, and authorized publication. Keep synthesis in the active advisor.
++Arguments received: `$ARGUMENTS`
+@@ -15,19 +17 @@ Spawn 5 specialized expert sub-agents in parallel, each proposing roadmap items
+-**Core principle: SIGNAL OVER FEATURES.** Items require evidence of user demand before entering "Build Now" phase. Infrastructure prerequisites are exempt. The Critic ensures the council isn't inflating signal or sandbagging complexity.
+-
+-## Variant: V2MOM / strategic operating model → wiki plan
+-
+-Use this variant when the user asks for a council to define a V2MOM, operating model, strategic principles, or a plan to add strategic synthesis to the wiki. Do **not** force the full roadmap/GitHub-issue publishing flow unless the user explicitly asks for a roadmap update.
+-
+-1. Gather current product truth from README/docs/context/wiki plus live external signal if available.
+-2. Spawn a small lens-diverse council (e.g. Product/Founder, Systems/Ops, Market/Docs) rather than the roadmap-specific five expert roles.
+-3. Run one adversarial Strategy Critic after the council draft. The critic must challenge overreach, weak measures, contradictions, and wiki-scope mistakes.
+-4. Final synthesis should separate:
+-   - **Council decision**: Vision, Values, Methods, Obstacles, Measures.
+-   - **Wiki plan**: exact target entry, draft frontmatter/body, verification, and rejected scope.
+-5. Prefer one bounded provisional wiki entry first. Extra positioning/docs-IA entries are premature unless they hold distinct durable facts.
+-6. Keep wiki output as synthesis, not council minutes. Raw/source material belongs under `.agro/knowledge/raw/`; the tracked entry stays within the wiki word cap and starts `confidence: provisional`.
+-7. Add explicit approval gates for contested strategic wording (e.g. tagline, key nouns, whether a constraint is too narrow) before implementing file changes.
+-
+-Session example and final V2MOM synthesis: `references/open-harness-v2mom-council.md`.
+-
+-## Decision Flow
++## 1. Resolve scope and evidence
+@@ -35,10 +19,7 @@ Session example and final V2MOM synthesis: `references/open-harness-v2mom-counci
+-```mermaid
+-flowchart TD
+-    A["Guard: gh auth status"] --> B{Authenticated?}
+-    B -->|No| SKIP["Log: SKIP — gh not authenticated"]
+-    SKIP --> MEM_SKIP[Memory Protocol]
+-    MEM_SKIP --> Z_SKIP[HEARTBEAT_OK]
+-
+-    B -->|Yes| C["Gather context: IDENTITY, schema, routes, issues"]
+-    C --> D["Compose Current State Briefing"]
+-    D --> E["Spawn 5 experts IN ONE MESSAGE (parallel)"]
++1. Resolve the question, criteria, constraints, exclusions, source bounds, budget, and target repository from the request or supplied brief.
++2. Resolve whether the operator explicitly requests publication. Ranking priorities alone authorizes no GitHub mutation.
++3. If the question is empty, print `Usage: /strategic-proposal <roadmap-question-or-brief>` and request clarification. Stop without dispatch.
++4. If material inputs remain unresolved, report `BLOCKED` and ask for the missing inputs.
++5. Read the target's actual current `AGENTS.md`, `README.md`, and relevant docs before forming claims.
++6. Read relevant issues and community evidence within authorized sources. Cite sources and distinguish observations from assumptions.
++7. Keep missing or inaccessible data explicit. Do not invent product state, counts, routes, or gaps.
+@@ -46,14 +27,4 @@ flowchart TD
+-    E --> E1["Expert: Product"]
+-    E --> E2["Expert: Docs"]
+-    E --> E3["Expert: Security"]
+-    E --> E4["Expert: Registry"]
+-    E --> E5["Expert: Agent Systems"]
+-
+-    E1 & E2 & E3 & E4 & E5 --> F["Strategic Council DRAFT (opus)"]
+-    F --> CRITIC["Strategic Critic<br>Challenge signal, feasibility,<br>phase assignments, dependencies"]
+-    CRITIC --> F2["Strategic Council FINAL (opus)<br>Incorporate critique, revise or defend"]
+-    F2 --> G["Find/create pinned issue (label: roadmap)"]
+-    G --> H["Update pinned issue body"]
+-    H --> MEM_OP[Memory Protocol]
+-    MEM_OP --> Z_OP["Report: roadmap updated"]
+-```
++Local advice requires no GitHub authentication. Disclose unavailable remote evidence instead of treating missing data as success.
++Require cited demand evidence for each `Build Now` item.
++Exempt only concrete infrastructure prerequisites tied to a cited dependent outcome; name that dependency and explain why the prerequisite blocks it.
++Without demand evidence or that exemption, keep the item outside `Build Now` and name the missing evidence.
+@@ -61 +32 @@ flowchart TD
+-## Instructions
++## 2. Deliberate through council
+@@ -63 +34,6 @@ flowchart TD
+-### 1. Guard: gh CLI authentication
++1. Use [`/council`](../council/SKILL.md) as the sole independent deliberation and critique procedure.
++2. Supply a neutral brief with the resolved inputs, evidence, demand rule, and required roadmap table.
++3. Explicitly require one strategic critic to challenge phase assignments, evidence claims, complexity estimates, and dependencies, even for low-risk choices.
++4. Follow council's bounded proposal round, verification, critique, and advisor response. Keep dissent and evidence limits visible.
++5. If council returns `PARTIAL` or `BLOCKED`, return accepted observations only. Give no final roadmap and do not publish.
++6. For `COMPLETE`, report the roadmap below with rationale, dissent, unknowns, and the next authorized step.
+@@ -65,3 +41,5 @@ flowchart TD
+-```bash
+-gh auth status 2>&1
+-```
++Council owns independent deliberation; `/delegate` stays behind council. Do not add dispatch, a fixed panel, synthesis workers, or a separate ledger.
++If the operator explicitly requests weighting, follow council's [explicit weighting boundary](../council/SKILL.md#explicit-weighting).
++Reuse accepted candidates through `/weigh --cohort`; do not sample another panel.
++Weighting does not replace required critique, establish demand evidence, or authorize publication.
++If weighting returns `NO-SELECTION`, report that result and withhold any selection-dependent roadmap or publication.
+@@ -69 +47,3 @@ gh auth status 2>&1
+-If this fails, log `[strategic-proposal] SKIP: gh CLI not authenticated` → Memory Protocol → `HEARTBEAT_OK`. Stop.
++| Phase | Problem/outcome | Evidence | Dependencies | Smallest next step | Measure/risk |
++| --- | --- | --- | --- | --- | --- |
++| `<Build Now / Next / Later>` | `<user problem and outcome>` | `<citation or explicit gap>` | `<prerequisite or none>` | `<bounded action>` | `<outcome measure and risk>` |
+@@ -71 +51 @@ If this fails, log `[strategic-proposal] SKIP: gh CLI not authenticated` → Mem
+-### 2. Gather context
++## 3. Publish only on explicit request
+@@ -73,6 +53,2 @@ If this fails, log `[strategic-proposal] SKIP: gh CLI not authenticated` → Mem
+-Read the following to build the briefing:
+-- `AGENTS.md` — stack, mission, URLs
+-- `.agro/cli/`, `scripts/`, `install/` — orchestrator entrypoints and provisioning surface
+-- `docs/` — GitHub-readable core docs; rendered docs site source lives in `mifunedev/agro-web`
+-- Open issues: `gh api "repos/mifunedev/agro/issues?state=open&per_page=50"`
+-- Repo stats: `gh api repos/mifunedev/agro --jq '{stars: .stargazers_count, forks: .forks_count}'`
++Without explicit publication intent, stop with report-only advice. Do not edit, create, label, or pin an issue.
++Run publication commands inside the sandbox with bounded timeouts.
+@@ -80 +56,3 @@ Read the following to build the briefing:
+-### 3. Compose the Current State Briefing
++1. Verify the operator's repository with `gh repo view "$repo" --json nameWithOwner,url`.
++2. Check `gh auth status`. Missing authentication or repository access means `BLOCKED`, not `HEARTBEAT_OK`.
++3. Locate `Product Roadmap` issues with label `roadmap`; search all pages and states to avoid duplicates:
+@@ -82 +60,5 @@ Read the following to build the briefing:
+-Assemble a structured markdown briefing to pass to ALL 5 experts:
++   ```bash
++   gh api --method GET "repos/$repo/issues" --paginate \
++     -f state=all -f labels=roadmap -f per_page=100 \
++     --jq '.[] | select(.pull_request == null and .title == "Product Roadmap") | {number,title,state,html_url}'
++   ```
+@@ -84,2 +66,8 @@ Assemble a structured markdown briefing to pass to ALL 5 experts:
+-```markdown
+-## Current State Briefing
++4. Verify any operator-specified issue against that repository and purpose. Multiple matches require target clarification; never select the first match.
++5. If only a closed match exists, request target clarification. Do not create a replacement automatically.
++6. If no match exists, require explicit creation intent and the existing `roadmap` label. Otherwise report `BLOCKED`.
++7. Before mutation, record the target's pin state with the query in step 14; derive `$owner` and `$name` from the verified `$repo`.
++8. For an existing target, re-read `gh issue view "$number" --repo "$repo" --json number,title,body,labels,url` immediately before editing.
++9. For an existing target, save the prior body and title in authorized local scratch. Preserve all content outside the approved scope.
++10. Apply [`/ste`](../ste/SKILL.md) to the proposed complete body. Set `$body_file` to the approved body in authorized scratch, not raw shell-interpolated prose.
++11. For an existing target whose body differs, edit only that issue. If the body matches, skip the edit:
+@@ -87,4 +75,3 @@ Assemble a structured markdown briefing to pass to ALL 5 experts:
+-### Product Vision
+-1. Document AGRO — the parent framework for AI agent sandboxes
+-2. Let users promote their forks — fork registry/showcase
+-3. End goal: curate Docker registries with monthly licensing — SaaS marketplace
++    ```bash
++    gh issue edit "$number" --repo "$repo" --body-file "$body_file"
++    ```
+@@ -92,5 +79 @@ Assemble a structured markdown briefing to pass to ALL 5 experts:
+-### App State
+-- Routes: [list from step 2]
+-- Prisma models: [list or "none"]
+-- Auth: none
+-- API routes: none
++12. For explicitly authorized creation, create once and resolve `$number` from the returned URL:
+@@ -98,5 +81,3 @@ Assemble a structured markdown briefing to pass to ALL 5 experts:
+-### Infrastructure
+-- Docker Compose + opt-in PostgreSQL 16 overlay
+-- CI/CD: GitHub Actions (lint, format, type-check, build, test, E2E)
+-- Release: SemVer → GHCR Docker image
+-- Agent: 8 skills, 7 sub-agents, 4 heartbeats
++    ```bash
++    gh issue create --repo "$repo" --title "Product Roadmap" --label roadmap --body-file "$body_file"
++    ```
+@@ -104,4 +85,2 @@ Assemble a structured markdown briefing to pass to ALL 5 experts:
+-### Community Signal
+-- Stars: [N], Forks: [N], Watchers: [N]
+-- Open issues: [N] (list titles + reaction counts)
+-- Recent fork activity: [list]
++13. Only with explicit pin intent, run `gh issue pin "$number" --repo "$repo"` if the issue is not already pinned.
++14. Verify pin state through the repository's `pinnedIssues` query:
+@@ -109,10 +88,4 @@ Assemble a structured markdown briefing to pass to ALL 5 experts:
+-### Gaps
+-1. User accounts + auth (CRITICAL)
+-2. Fork registry data model (CRITICAL)
+-3. Docker registry integration (HIGH)
+-4. Subscription/licensing model (HIGH)
+-5. AGRO documentation (HIGH)
+-6. Testing (MEDIUM — 2 tests total)
+-7. Observability (MEDIUM — no health endpoint)
+-8. Agent autonomy gap (MEDIUM — plans but no implementation)
+-```
++    ```bash
++    gh api graphql -f owner="$owner" -f name="$name" \
++      -f query='query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { pinnedIssues(first: 10) { nodes { issue { number title } } } } }'
++    ```
+@@ -120,3 +93 @@ Assemble a structured markdown briefing to pass to ALL 5 experts:
+-### 4. Spawn 5 expert sub-agents in ONE message (parallel)
+-
+-Launch 5 Agent tool calls **in a single message** for parallel execution:
++15. Re-read the issue body and title with step 8. Compare them against the intended body and preserved or approved title.
+@@ -124,7 +95,3 @@ Launch 5 Agent tool calls **in a single message** for parallel execution:
+-| Expert | Perspective |
+-|--------|-------------|
+-| **Product** | Data models, APIs, features |
+-| **Docs** | Documentation, fork showcase UX |
+-| **Security** | Auth, headers, access control |
+-| **Registry** | Docker registry, licensing |
+-| **Agent Systems** | Agent autonomy, Ralph loop |
++Preserve the prior pin state unless pinning was explicit.
++On a write or verification failure, report `BLOCKED` with the observed state. Do not claim publication success or automatically retry creation.
++Reconcile the issue before retrying. Propose restoration from the saved body and title; require authorization before restoring or undoing publication.
+@@ -132,2 +99 @@ Launch 5 Agent tool calls **in a single message** for parallel execution:
+-Worker model and effort follow `.agro/skills/delegate/SKILL.md`: operator selections and
+-exclusions bind, and the advisor selects and records unspecified settings per task.
++## 4. Report and stop
+@@ -135,5 +101,4 @@ exclusions bind, and the advisor selects and records unspecified settings per ta
+-Each expert is a **prompt for a bounded provider-native worker**, not a repository
+-agent definition. Use `subagent_type: general-purpose` (or a read-only built-in when
+-the expert only reads) and put the perspective, the Current State Briefing, and the
+-required output format in the prompt itself. There is no `.claude/agents/` file to
+-read — this repository authors no project agents.
++Report `ADVICE` for a complete report-only roadmap, or council's `PARTIAL`/`BLOCKED` with observations and missing requirements.
++Report `PUBLISHED` with the verified URL only after the body, title, and pin checks pass.
++If the approved body, title, and pin state already match, report `NO-CHANGE` with the verified URL.
++Do not update the wiki, implement items, start a build, or merge work.
+@@ -141,80 +106,2 @@ read — this repository authors no project agents.
+-Experts operate **independently** — they do NOT see each other's proposals.
+-
+-### 5. Strategic Council DRAFT
+-
+-Launch a single Agent tool call for the council worker — a provider-native worker whose prompt carries the council role:
+-
+-Pass the council:
+-- All 5 expert proposals
+-- The Current State Briefing
+-- Instruction to query actual signal data (repo stats, issue reactions, fork activity)
+-- Instruction to produce a **DRAFT** roadmap (the council's first pass — not final)
+-
+-Save the council's draft output for the next step.
+-
+-### 6. Strategic Critic review
+-
+-Launch a single Agent tool call for the strategic critic — a provider-native worker whose prompt carries the adversarial role:
+-
+-Pass the critic:
+-- The council's DRAFT roadmap
+-- The Current State Briefing
+-- Instruction to query actual signal data independently (verify, don't trust the council)
+-- Instruction to challenge every "Now" phase assignment, every signal claim, and every complexity estimate
+-
+-The critic provides **adversarial backpressure** — its job is to find what's weak in the draft and force revision.
+-
+-### 7. Strategic Council FINAL
+-
+-Launch a second Agent tool call for the council worker, reusing the same council role prompt:
+-
+-Pass the council:
+-- Its own DRAFT roadmap from step 5
+-- The critic's review from step 6
+-- Instruction: **incorporate valid criticisms and revise, or explicitly defend against each challenge**
+-- Every challenge from the critic MUST be addressed — either the item moves phase, the score changes, or the council explains why the critic is wrong
+-- The output is the **FINAL** roadmap — this is what gets published
+-
+-The council's final output becomes the pinned issue body.
+-
+-### 8. Find or create the pinned roadmap issue
+-
+-Search for existing:
+-```bash
+-gh api "repos/mifunedev/agro/issues?state=open&labels=roadmap&per_page=10" \
+-  --jq '[.[] | select(.title == "Product Roadmap")] | first'
+-```
+-
+-If none exists:
+-```bash
+-gh label create roadmap --repo mifunedev/agro \
+-  --description "Product roadmap tracking" --color "0075ca" 2>/dev/null || true
+-
+-gh issue create --repo mifunedev/agro \
+-  --title "Product Roadmap" --label roadmap \
+-  --body "<council output>"
+-```
+-
+-Then pin it: `gh issue pin <NUMBER> --repo mifunedev/agro`
+-
+-If it already exists, update:
+-```bash
+-gh issue edit <NUMBER> --repo mifunedev/agro --body "<council output>"
+-```
+-
+-### 9. Report
+-
+-- `HEARTBEAT_OK` (if skipped)
+-- Full report: pinned issue # + top 3 "Now" items + signal summary
+-
+-## Reference
+-
+-### Key Resources
+-
+-| Resource | Where it lives |
+-|----------|----------------|
+-| Expert roles (Product, Docs, Security, Registry, Agent Systems) | Prompts written inline in step 4 of this skill |
+-| Strategic Council role | Prompt written inline in steps 5 and 7 of this skill |
+-| Strategic Critic role | Prompt written inline in step 6 of this skill |
+-| Worker type for every role above | A provider built-in (`general-purpose`, or a read-only built-in) — no repository agent file backs any of them |
+-| Worker boundary policy | `/delegate` — **When a worker is justified** |
++Examples: `/strategic-proposal Rank onboarding priorities; report only` returns advice after required critique.
++`/strategic-proposal` requests input without dispatch. After an auth blocker, resume only the authorized publication against the verified target.
+```
