@@ -327,7 +327,7 @@ Usage:
 reachable they act on the host. A host install clones the AGRO workspace into the
 harness root, then installs the harness into \`~/.local\`. \`--path <dir>\` chooses
 the harness root; a successful install records it as \`harnessRoot\` in the host
-\`${stateNames(bin).configFile}\`. The default is \`~/.agro\`, and the install prefix is
+\`${stateNames(bin).configFile}\`. The default is \`~/agro\`, and the install prefix is
 always \`~/.local\`.
 
 On the host, \`uninstall\` removes only the harness \`install\` recorded, from the

@@ -222,7 +222,7 @@ no `herdr` until you run `agro tool install herdr`. Each install lands in
 
 `agro harness install <id>` also installs on the host. When the sandbox is not
 running it clones the AGRO workspace into the harness root — `--path <dir>`, then
-`harnessRoot` in the host `agro.json`, then `~/.agro` — and installs the harness
+`harnessRoot` in the host `agro.json`, then `~/agro` — and installs the harness
 into `~/.local` for the invoking user. The install prefix is never derived from
 the harness root, so the clone stays clean. A non-interactive run needs `--host`
 or `--path`; without either it keeps the refusal. See

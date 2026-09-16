@@ -8,6 +8,17 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.12.2] - 2026-09-15
+
+### Fixed
+
+- Default the host harness root to `~/agro`, outside the control-directory and state-home namespace, so a cloned workspace no longer turns `~` into a project root with two generations. `--path` and a recorded `harnessRoot` still win.
+- Resolve the host config path through the compatibility resolver again, so it follows the generation a home already has instead of creating `~/.agro` beside a legacy `~/.oh` and tripping the pair guard.
+- Refuse a host harness install or uninstall when `~/.oh` and `~/.agro` both exist, naming both paths and `agro migrate --home`, instead of adding state to the conflict.
+- Refuse a host harness install or uninstall when the resolved harness root lies inside either state home, and name the move that fixes it.
+- Run `link-providers.sh --init` in the host workspace before installing a harness, on both the cloned and reused paths, and fail the install when it does not succeed.
+- Print the host launch line as `cd <root> && <binary> [flag]`, with `--dangerously-skip-permissions` for `claude-code`, because a first-run trust prompt can ignore `defaultMode`.
+
 ## [0.12.1] - 2026-09-15
 
 ### Fixed

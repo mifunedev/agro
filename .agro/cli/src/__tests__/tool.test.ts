@@ -63,6 +63,10 @@ function hostConfigFile(dir: string): string {
   return join(dir, "agro.json");
 }
 
+function defaultRoot(user: { dir: string }): string {
+  return join(user.dir, "agro");
+}
+
 interface RecordedCall {
   cmd: string;
   args: string[];
@@ -684,7 +688,7 @@ describe("oh tool install on the host", () => {
       const rendered = hostText(out);
       expect(rendered).toContain(`${id}: installed at ${user.prefix}`);
       expect(rendered).toContain("Add this line to your shell profile:");
-      expect(rendered.trimEnd().endsWith(`cd ${home.dir}`)).toBe(true);
+      expect(rendered.trimEnd().endsWith(`cd ${defaultRoot(user)}`)).toBe(true);
     },
   );
 
@@ -712,13 +716,13 @@ describe("oh tool install on the host", () => {
     ).toBe(0);
 
     const config = readConfig(home.dir);
-    expect(config.harnessRoot).toBe(home.dir);
+    expect(config.harnessRoot).toBe(defaultRoot(user));
     expect(config.hostHarnesses).toBeUndefined();
     const receipt = (config.hostTools as Record<string, Record<string, unknown>>).herdr;
     expect(receipt.prefix).toBe(user.prefix);
     expect(receipt.binary).toBe("herdr");
     expect(receipt.binPath).toBe(join(user.prefix, "bin"));
-    expect(receipt.workspaceRoot).toBe(home.dir);
+    expect(receipt.workspaceRoot).toBe(defaultRoot(user));
     expect(typeof receipt.installedAt).toBe("string");
   });
 
@@ -1298,7 +1302,7 @@ describe("tool location reporting", () => {
     const repo = makeRepo();
     const home = emptyStateHome();
     const user = fakeHome();
-    mkdirSync(join(home.dir, ".git"), { recursive: true });
+    mkdirSync(join(defaultRoot(user), ".git"), { recursive: true });
     const { calls, run } = hostRunner();
     const { io, out } = makeIo();
 
