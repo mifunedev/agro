@@ -525,6 +525,7 @@ describe("oh tool — inside the sandbox", () => {
 });
 
 const HOST_INSTALLERS: ReadonlyArray<readonly [string, string]> = [
+  ["agent-browser", "agent-browser-linux-"],
   ["herdr", "herdr-linux-"],
   ["cloudflared", "cloudflared-linux-"],
   ["microsandbox", "install-msb.sh"],
@@ -532,7 +533,6 @@ const HOST_INSTALLERS: ReadonlyArray<readonly [string, string]> = [
 ];
 
 const NOT_HOST_CAPABLE: ReadonlyArray<readonly [string, string]> = [
-  ["agent-browser", "installs system packages"],
   ["docker-cli", "The Docker CLI is installed in the base image."],
   ["gh", "The GitHub CLI is installed in the base image."],
 ];
@@ -936,28 +936,20 @@ describe("oh tool install — the per-entry host gate", () => {
     expect(existsSync(hostConfigFile(home.dir))).toBe(false);
   });
 
-  it("names the host-capable tools when it refuses agent-browser", async () => {
-    const repo = makeRepo();
-    const { io, err } = makeIo();
-    await runToolInstall(
-      "agent-browser",
-      {
-        bin: "oh",
-        cwd: repo,
-        run: hostRunner().run,
-        env: emptyStateHome().env,
-        homedir: fakeHome().homedir,
-        interactive: false,
-        host: true,
-        platform: LINUX,
-      },
-      io,
-    );
-    const text = hostText(err);
-    expect(text).toContain("agent-browser cannot be installed on the host.");
-    for (const [id] of HOST_INSTALLERS) {
-      expect(text, id).toContain(`oh tool install ${id} --host`);
-    }
+  it("agent-browser never reaches the host package manager", () => {
+    const entry = findTool("agent-browser")!;
+    expect(entry.hostCapable).toBe(true);
+    const host = entry.hostInstallArgv!.join(" ");
+    expect(host).not.toContain("--with-deps");
+    expect(host).not.toMatch(/\bapt(-get)?\b/);
+    expect(host).not.toContain("sudo");
+    expect(host).toContain("AGENT_BROWSER_EXECUTABLE_PATH");
+  });
+
+  it("leaves the ~1 GB gate on the sandbox path, which is the one that pulls Chrome", () => {
+    const entry = findTool("agent-browser")!;
+    expect(entry.downloadSize).toBe("~1 GB");
+    expect(entry.hostDownloadSize).toBeUndefined();
   });
 });
 

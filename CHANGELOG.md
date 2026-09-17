@@ -11,10 +11,12 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Added
 
 - Add `/council` for bounded independent perspectives, advisor synthesis, and explicit advice limits ([#1076](https://github.com/mifunedev/agro/issues/1076)).
+- Install `agent-browser` on the host from a pinned release binary, without the operating system package manager; it drives an existing Chromium-family browser and refuses when none is found ([#1078](https://github.com/mifunedev/agro/issues/1078)).
 
 ### Changed
 
 - Route `/strategic-proposal` roadmap deliberation through `/council` with required critique and explicit publication permission ([#1076](https://github.com/mifunedev/agro/issues/1076)).
+- Pin `agent-browser` to 0.38.1, up from 0.8.5 ([#1078](https://github.com/mifunedev/agro/issues/1078)).
 
 ### Removed
 

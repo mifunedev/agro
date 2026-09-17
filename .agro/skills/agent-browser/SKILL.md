@@ -55,6 +55,13 @@ agro tool install agent-browser --yes
 `--yes` is required whenever stdin is not a TTY: the entry declares a
 `~1 GB` download, and the confirmation gate refuses rather than prompting.
 
+That path applies in the sandbox. When no sandbox is reachable, the same
+command installs a pinned release binary into `~/.local/bin` on the host,
+downloads no browser, and needs no `--yes`. It then requires a
+Chromium-family browser already on the host, or
+`AGENT_BROWSER_EXECUTABLE_PATH` pointing at one. Firefox is not a supported
+target.
+
 Verify:
 
 ```bash

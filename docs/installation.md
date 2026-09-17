@@ -235,9 +235,8 @@ download in a non-interactive run and changes nothing else.
 
 When no sandbox is reachable, `agro tool install` and `agro tool uninstall` act on
 the host, with two limits. First, each tool declares whether it installs on the
-host. `herdr`, `cloudflared`, `microsandbox` and `tailscale` do. `agent-browser`
-does not, because `agent-browser install --with-deps` adds system packages to the
-machine. `gh` and the Docker CLI do not, because the image provides them. Second,
+host. `agent-browser`, `herdr`, `cloudflared`, `microsandbox` and `tailscale` do.
+`gh` and the Docker CLI do not, because the image provides them. Second,
 a host install needs Linux, because every tool installer is Debian-specific; on
 any other platform the command refuses and names the platform. A host install
 clones the AGRO workspace into the harness root — `--path <dir>`, then
@@ -245,6 +244,23 @@ clones the AGRO workspace into the harness root — `--path <dir>`, then
 and records the tool under `hostTools` in that same file. `agro tool uninstall`
 removes only what that record names; `--force` removes from `~/.local` without a
 record.
+
+On the host, `agent-browser` installs a pinned release binary into `~/.local/bin`
+and never calls the operating system package manager. It does not download a
+browser. After the binary lands, the installer looks for an existing
+Chromium-family browser in this order: `AGENT_BROWSER_EXECUTABLE_PATH`,
+`google-chrome`, `google-chrome-stable`, `chromium`, `chromium-browser`,
+`brave-browser`, `microsoft-edge`. When none is present the install exits
+nonzero and names the remedy. Set the browser explicitly with:
+
+```bash
+export AGENT_BROWSER_EXECUTABLE_PATH=/path/to/chrome
+```
+
+agent-browser drives Chromium over CDP and Safari over WebDriver. Firefox is not
+a supported target. In the sandbox the behavior is unchanged: `agro tool install
+agent-browser` downloads Chrome for Testing and the browser libraries it needs,
+which is why that path asks to confirm about 1 GB first.
 
 Installing `tailscale` places the `tailscale` and `tailscaled` binaries in
 `~/.local/bin` and nothing more. It starts no daemon and joins no tailnet.
