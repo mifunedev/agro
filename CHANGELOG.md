@@ -24,7 +24,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Fixed
 
-- Route the `missing lifecycle script` error to the recovery that works: a host image refresh when the sandbox image ships the CLI, and `oh update` for every other installation. The old message pointed at `agro update`, which upgrades the CLI and refuses on an image installation ([#1080](https://github.com/mifunedev/agro/issues/1080)).
+- Route the `missing lifecycle script` error to a recovery that works for the reader's installation: a host image refresh for an image-shipped CLI, and `oh update` elsewhere ([#1080](https://github.com/mifunedev/agro/issues/1080)).
 
 ## [0.12.2] - 2026-09-15
 
