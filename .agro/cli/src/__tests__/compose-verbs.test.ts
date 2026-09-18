@@ -131,9 +131,8 @@ describe("runComposeVerb", () => {
       const { run } = makeRunner();
       withInvokedBin(bin, () => {
         expect(() => runComposeVerb("ps", { bin, name: "bare", run })).toThrow(
-          "missing lifecycle script",
+          /missing lifecycle script[\s\S]*incomplete/,
         );
-        expect(() => runComposeVerb("ps", { bin, name: "bare", run })).toThrow("incomplete");
       });
     },
   );
