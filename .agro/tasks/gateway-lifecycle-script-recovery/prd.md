@@ -51,8 +51,6 @@ cannot help.
 
 - G1. Make the missing-lifecycle-script diagnostic installation-aware, so the
   recovery it names is a command that can actually succeed for the reader.
-- G2. Name the generation mismatch when the *other* generation's control dir is
-  the one present on disk, so version skew is diagnosed rather than guessed at.
 - G3. Regression coverage that fails against the current diagnostic and passes
   against the corrected one.
 - G4. Operator-facing recovery documentation for a sandbox already in this state.
@@ -131,7 +129,7 @@ cannot help.
 
 - **Source plan**: `/tmp/gateway-pr-contract.md`
 - **Intent preserved**: YES
-- **Material deviations**: `none`
+- **Material deviations**: **G2 / US-003 (generation-skew diagnosis) was dropped during execution.** Advisor verification found the branch unreachable for a real workspace: `resolveControlDir` (`.agro/cli/src/lib/compat.ts:179-186`) selects a control dir with `isDirectoryAt`, so an existing `.oh/` directory becomes the resolved control dir and the `!existsSync(controlDir)` guard never holds. Its test passed only because it created `.oh` as a regular file. It also could not reach the reported operator at all, because the error in that scenario is printed by the stale image-installed v0.9.0 bundle, whose text current source cannot change. Removed rather than repaired, per D2 (smallest supported correction). The story was deleted from `prd.json` rather than marked passing, so the completion oracle stays honest.
 - **Constraints discovered during grounding**: The installed bundle is v0.9.0
   against v0.12.2 source, so the reported path failure cannot be reproduced from
   current source. The contract anticipates this (D3: "If code is already fixed, a
