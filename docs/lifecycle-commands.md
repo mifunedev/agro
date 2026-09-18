@@ -178,6 +178,11 @@ A lower version in `/opt/oh/package.json` confirms the skew. The prefix
 **Refresh the image from the host.** Run both commands on the host. `agro
 sandbox install docker` is host-only and refuses inside the sandbox.
 
+This recovery costs downtime. The two commands stop the container and create it
+again, so every agent, server, and job inside it stops. Only the sandbox home
+volume survives the recreation. You pick the moment, and nothing runs these
+commands for you.
+
 ```bash
 agro stop <name>
 agro sandbox install docker --name <name>
