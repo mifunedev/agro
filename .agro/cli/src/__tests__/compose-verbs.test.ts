@@ -122,7 +122,7 @@ describe("runComposeVerb", () => {
   });
 
   it.each(["agro", "oh"])(
-    "fails with the %s re-vendor hint when the entry carries no script",
+    "fails with the %s payload diagnosis when the entry carries no script",
     (bin) => {
       const home = mkdtempSync(join(tmpdir(), "oh-compose-bare-"));
       cleanups.push(home);
@@ -131,8 +131,9 @@ describe("runComposeVerb", () => {
       const { run } = makeRunner();
       withInvokedBin(bin, () => {
         expect(() => runComposeVerb("ps", { bin, name: "bare", run })).toThrow(
-          `\`${bin} update\``,
+          "missing lifecycle script",
         );
+        expect(() => runComposeVerb("ps", { bin, name: "bare", run })).toThrow("incomplete");
       });
     },
   );

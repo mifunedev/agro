@@ -9,6 +9,7 @@ import {
   type LifecycleRunner,
   type RunResult,
 } from "../lib/execution/index.js";
+import { requireLifecycleScript } from "../lib/execution/runner.js";
 
 
 const cleanups: string[] = [];
@@ -294,5 +295,92 @@ describe("DockerComposeExecutionTarget.status", () => {
     const target = resolveExecutionTarget({ projectRoot: root, container: "my-box", run });
 
     expect(await target.status()).toBe("absent");
+  });
+});
+
+function withArgv1<T>(path: string, fn: () => T): T {
+  const previous = process.argv[1];
+  process.argv[1] = path;
+  try {
+    return fn();
+  } finally {
+    process.argv[1] = previous;
+  }
+}
+
+function bareRoot(): string {
+  const d = mkdtempSync(join(tmpdir(), "oh-lifecycle-script-"));
+  cleanups.push(d);
+  return d;
+}
+
+describe("requireLifecycleScript diagnostics", () => {
+  it("routes an image installation to the host image refresh, not to a self-upgrade verb", () => {
+    const root = makeRepo();
+
+    const message = withArgv1("/opt/oh/dist/agro.js", () => {
+      try {
+        requireLifecycleScript(root, "gateway.sh");
+        return "";
+      } catch (err) {
+        return (err as Error).message;
+      }
+    });
+
+    expect(message).toContain("missing lifecycle script");
+    expect(message).toContain("sandbox install docker");
+    expect(message).not.toContain("agro update");
+    expect(message).not.toContain("oh update");
+  });
+
+  it("routes a non-image installation to the payload vendoring verb", () => {
+    const root = makeRepo();
+
+    const message = withArgv1("/usr/lib/node_modules/@mifune/agro/dist/agro.js", () => {
+      try {
+        requireLifecycleScript(root, "gateway.sh");
+        return "";
+      } catch (err) {
+        return (err as Error).message;
+      }
+    });
+
+    expect(message).toContain("`oh update`");
+    expect(message).not.toContain("sandbox install docker");
+  });
+
+  it("names the generation mismatch when the other generation's control dir is on disk", () => {
+    const root = bareRoot();
+    writeFileSync(join(root, ".oh"), "");
+
+    const message = withArgv1("/usr/lib/node_modules/@mifune/agro/dist/agro.js", () => {
+      try {
+        requireLifecycleScript(root, "gateway.sh");
+        return "";
+      } catch (err) {
+        return (err as Error).message;
+      }
+    });
+
+    expect(message).toContain("generation skew");
+    expect(message).toContain(".agro/");
+    expect(message).toContain(".oh/");
+    expect(message).not.toContain("incomplete");
+  });
+
+  it("keeps the incomplete-payload diagnosis when neither control dir is present", () => {
+    const root = bareRoot();
+
+    const message = withArgv1("/usr/lib/node_modules/@mifune/agro/dist/agro.js", () => {
+      try {
+        requireLifecycleScript(root, "gateway.sh");
+        return "";
+      } catch (err) {
+        return (err as Error).message;
+      }
+    });
+
+    expect(message).toContain("incomplete");
+    expect(message).not.toContain("generation skew");
   });
 });
