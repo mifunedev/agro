@@ -298,11 +298,14 @@ describe("DockerComposeExecutionTarget.status", () => {
   });
 });
 
-function withArgv1<T>(path: string, fn: () => T): T {
+function diagnose(argv1: string, root: string): string {
   const previous = process.argv[1];
-  process.argv[1] = path;
+  process.argv[1] = argv1;
   try {
-    return fn();
+    requireLifecycleScript(root, "gateway.sh");
+    return "";
+  } catch (err) {
+    return (err as Error).message;
   } finally {
     process.argv[1] = previous;
   }
@@ -316,16 +319,7 @@ function bareRoot(): string {
 
 describe("requireLifecycleScript diagnostics", () => {
   it("routes an image installation to the host image refresh, not to a self-upgrade verb", () => {
-    const root = makeRepo();
-
-    const message = withArgv1("/opt/oh/dist/agro.js", () => {
-      try {
-        requireLifecycleScript(root, "gateway.sh");
-        return "";
-      } catch (err) {
-        return (err as Error).message;
-      }
-    });
+    const message = diagnose("/opt/oh/dist/agro.js", makeRepo());
 
     expect(message).toContain("missing lifecycle script");
     expect(message).toContain("sandbox install docker");
@@ -334,32 +328,14 @@ describe("requireLifecycleScript diagnostics", () => {
   });
 
   it("routes a non-image installation to the payload vendoring verb", () => {
-    const root = makeRepo();
-
-    const message = withArgv1("/usr/lib/node_modules/@mifune/agro/dist/agro.js", () => {
-      try {
-        requireLifecycleScript(root, "gateway.sh");
-        return "";
-      } catch (err) {
-        return (err as Error).message;
-      }
-    });
+    const message = diagnose("/usr/lib/node_modules/@mifune/agro/dist/agro.js", makeRepo());
 
     expect(message).toContain("`oh update`");
     expect(message).not.toContain("sandbox install docker");
   });
 
   it("keeps the incomplete-payload diagnosis when neither control dir is present", () => {
-    const root = bareRoot();
-
-    const message = withArgv1("/usr/lib/node_modules/@mifune/agro/dist/agro.js", () => {
-      try {
-        requireLifecycleScript(root, "gateway.sh");
-        return "";
-      } catch (err) {
-        return (err as Error).message;
-      }
-    });
+    const message = diagnose("/usr/lib/node_modules/@mifune/agro/dist/agro.js", bareRoot());
 
     expect(message).toContain("incomplete");
   });
