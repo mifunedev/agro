@@ -349,25 +349,6 @@ describe("requireLifecycleScript diagnostics", () => {
     expect(message).not.toContain("sandbox install docker");
   });
 
-  it("names the generation mismatch when the other generation's control dir is on disk", () => {
-    const root = bareRoot();
-    writeFileSync(join(root, ".oh"), "");
-
-    const message = withArgv1("/usr/lib/node_modules/@mifune/agro/dist/agro.js", () => {
-      try {
-        requireLifecycleScript(root, "gateway.sh");
-        return "";
-      } catch (err) {
-        return (err as Error).message;
-      }
-    });
-
-    expect(message).toContain("generation skew");
-    expect(message).toContain(".agro/");
-    expect(message).toContain(".oh/");
-    expect(message).not.toContain("incomplete");
-  });
-
   it("keeps the incomplete-payload diagnosis when neither control dir is present", () => {
     const root = bareRoot();
 
@@ -381,6 +362,5 @@ describe("requireLifecycleScript diagnostics", () => {
     });
 
     expect(message).toContain("incomplete");
-    expect(message).not.toContain("generation skew");
   });
 });

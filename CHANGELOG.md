@@ -22,6 +22,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 - Remove V2MOM and its bundled reference from the strategy workflow ([#1076](https://github.com/mifunedev/agro/issues/1076)).
 
+### Fixed
+
+- Route the `missing lifecycle script` error to the recovery that works: a host image refresh when the sandbox image ships the CLI, and `oh update` for every other installation. The old message pointed at `agro update`, which upgrades the CLI and refuses on an image installation ([#1080](https://github.com/mifunedev/agro/issues/1080)).
+
 ## [0.12.2] - 2026-09-15
 
 ### Fixed

@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { basename, join } from "node:path";
-import { controlDirCandidates, resolveProjectLayout } from "../compat.js";
+import { resolveProjectLayout } from "../compat.js";
 import { invokedFromImage } from "../install-kind.js";
 import { activeBin, LEGACY_PRODUCT } from "../product.js";
 
@@ -76,24 +76,12 @@ function recoveryRoute(): string {
   return `run \`${LEGACY_PRODUCT.bin} update\` to re-vendor the control-plane payload`;
 }
 
-function diagnoseControlDir(root: string, controlDir: string): string {
-  if (!existsSync(controlDir)) {
-    const other = controlDirCandidates()
-      .map((name) => join(root, name))
-      .find((path) => path !== controlDir && existsSync(path));
-    if (other !== undefined) {
-      return `generation skew: this CLI resolved ${basename(controlDir)}/ but the workspace carries ${basename(other)}/`;
-    }
-  }
-  return `the vendored ${basename(controlDir)}/ payload looks incomplete`;
-}
-
 export function requireLifecycleScript(root: string, rel: string): string {
-  const { root: dir, controlDir } = resolveProjectLayout(root);
+  const { controlDir } = resolveProjectLayout(root);
   const script = join(controlDir, "scripts", rel);
   if (!existsSync(script)) {
     throw new Error(
-      `missing lifecycle script ${script} — ${diagnoseControlDir(dir, controlDir)}; ${recoveryRoute()}`,
+      `missing lifecycle script ${script} — the vendored ${basename(controlDir)}/ payload looks incomplete; ${recoveryRoute()}`,
     );
   }
   return script;
