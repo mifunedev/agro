@@ -1,0 +1,12 @@
+{
+  "commit": "9332375f0cdc93af45e784ed7c8f883bd352240c",
+  "runnerExit": 0,
+  "ranAt": "2026-09-17T19:20:00Z",
+  "newRegressions": [],
+  "preExistingReds": [
+    "curl-bash-safe-alternatives",
+    "oh-config-surfaces",
+    "skills-vendored"
+  ],
+  "note": "152 probes. No green->red delta from this change. changelog-entry-length went green->red on an earlier head of this branch (a 337-character entry against the 250 cap), was fixed to 231 characters, and is green here. The three reds above carry delta=unchanged and were each confirmed red on the untouched base checkout at f14840b9: curl-bash-safe-alternatives ERRORs because python3 is absent in this sandbox, oh-config-surfaces reports agro.json is not valid JSON in this environment, and skills-vendored was already disclosed by the runner as persistent and non-gating. Disclosed, not silently carried as green; no install or environment change was made to turn any of them green."
+}
