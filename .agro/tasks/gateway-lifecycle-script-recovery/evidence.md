@@ -201,6 +201,12 @@ Removing it does **not** weaken D5. Publication remains gated by a fresh `/audit
 - The dispatch record prescribed `npm --prefix .agro/cli test`. No such script exists; the runner is `npx vitest run` from the repository root.
 - The dispatch record omitted the 250-character CHANGELOG cap, so the first entry (337 chars) tripped `changelog-entry-length`.
 
+**CI caught a real defect that every local gate missed: the verified tree was not the shipped tree.** The CHANGELOG rewrite from 337 to 231 characters was made by a worker, verified by the advisor, and **never committed**. It sat as an unstaged modification while six subsequent commits went past it. Every local `changelog-entry-length` run read the working tree and printed `PASS`; the pushed commit still carried the 337-character entry, and CI's `Eval Probe Regression Gate` failed on it — correctly.
+
+The first push therefore produced `FAILURE` / `mergeStateStatus: UNSTABLE`, and the PR was **not** undrafted. The fix was to commit the change that had already been verified, then re-run every gate against the committed tree.
+
+The lesson is not "remember to `git add`". It is that **a working-tree check is not evidence about a pull request.** Local probes, the local suite, and the advisor's own re-runs all read the tree on disk; the reviewer and CI read the commit. Those diverge silently the moment a verified edit is left unstaged, and nothing in the local gate chain can detect it. This also explains why `git status` discipline belongs in the gate sequence: the audit's own content-head rule assumes the record describes committed content.
+
 **A verification near-miss worth recording.** The first decisiveness check used `python3`, which is absent in this sandbox. The command failed, no revert occurred, and the all-green result **proved nothing**. It was discarded rather than recorded as evidence, and the check was redone with node. A verification that silently no-ops and returns green is the failure mode most likely to launder an unchecked claim into evidence.
 
 ---
