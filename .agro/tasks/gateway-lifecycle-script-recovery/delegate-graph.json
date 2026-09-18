@@ -1,0 +1,196 @@
+{
+  "slug": "gateway-lifecycle-script-recovery",
+  "advisor": "active session (Claude Opus 5), owns judgment, verification, acceptance",
+  "nativeCapabilityCheck": {
+    "provider": "Claude Code",
+    "workerTool": "Agent",
+    "modelControl": "exposed as the per-call `model` argument (sonnet|opus|haiku|fable)",
+    "effortControl": "NOT exposed per call; no subagent definition files in this repository, so no per-worker effort control is available at dispatch time",
+    "consequence": "every worker runs at the inherited session effort; observed effort recorded as 'inherited session level, unobserved'. Effort is an advisor judgment, so its absence blocks nothing.",
+    "sonnetExclusion": "binding; no worker is routed to Sonnet"
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Installation-aware lifecycle-script diagnostic, generation-skew detection, and regression tests",
+      "description": "In .agro/cli, make requireLifecycleScript's error name a recovery route that can succeed for the reader's installation kind, and name the generation skew when the other generation's control dir is the one on disk. Add regression tests that fail against the current message. Coupled work across runner.ts, a small lib helper, self-upgrade.ts, and the test files, so it stays with ONE continuing worker.",
+      "dependsOn": "none",
+      "wave": 1,
+      "complexity": "medium — small blast radius and a decisive test oracle, but it crosses a module-layering boundary (lib must not import from commands) and the diagnostic is shared by every lifecycle verb",
+      "selectionReason": "Opus is the hardest supported non-Sonnet model available to the Agent tool; the layering constraint and the failing-then-passing test requirement need real judgment, not a mechanical edit",
+      "requestedModel": "opus",
+      "requestedReasoning": "inherit (no per-call effort control exists)",
+      "observedSettings": {
+        "model": "opus (requested and accepted by the Agent tool; not independently confirmed from a runtime display)",
+        "effort": "inherited session level, unobserved"
+      },
+      "readScope": [
+        ".agro/cli/src/**",
+        ".agro/tasks/gateway-lifecycle-script-recovery/prd.md"
+      ],
+      "searchOutputLimits": "read only within .agro/cli; do not sweep the whole repository; return a summary, not file dumps",
+      "ownedWritePaths": [
+        ".agro/cli/src/lib/execution/runner.ts",
+        ".agro/cli/src/lib/install-kind.ts",
+        ".agro/cli/src/commands/self-upgrade.ts",
+        ".agro/cli/src/__tests__/lifecycle.test.ts",
+        ".agro/cli/src/__tests__/execution-target.test.ts",
+        ".agro/cli/src/__tests__/compose-verbs.test.ts"
+      ],
+      "exclusions": [
+        "no git commit, no git push, no branch or PR operation",
+        "no edit to .agro/tasks/**",
+        "no change to resolveProjectLayout / resolveControlDir semantics in compat.ts",
+        "no .oh symlink anywhere",
+        "no boot-time install or refresh of /opt/oh",
+        "no mutation of /opt/oh, no global package install, no service restart",
+        "no Slack, gateway, or credential change",
+        "no Herdr message, no /escalate, no message to any supervisor"
+      ],
+      "executionDirectory": "/home/sandbox/harness/.worktrees/bug/1080-gateway-lifecycle-script-recovery",
+      "worktreeIsolation": "the task's own isolated worktree; T1 is the only writer in wave 1",
+      "workerType": "general-purpose",
+      "continuationMethod": "native continuation via SendMessage to the same worker; coupled scope never splits across workers",
+      "deliverable": "edited working tree (uncommitted) plus a report naming each changed file and the verbatim failing and passing test output",
+      "verification": "corrected by advisor: npx vitest run from the repository root (.agro/cli declares no test script)",
+      "stoppingCondition": "the suite passes and both failing-then-passing runs are captured; or a blocked state is reported to the advisor with the exact obstacle",
+      "evidenceDestinations": [
+        "worker native output only"
+      ],
+      "coveredDoD": [
+        "D2",
+        "D3"
+      ],
+      "coveredStories": [
+        "US-002",
+        "US-003",
+        "US-004"
+      ],
+      "acceptanceOwner": "advisor",
+      "failureRepairRoute": "back to T1's continuing worker via SendMessage; the advisor never argues with a failed check",
+      "nativeWorkerId": null,
+      "status": "completed",
+      "artifactReferences": [
+        "commit 88d370ac"
+      ],
+      "usage": "88601 + 92645 subagent tokens across two dispatches (provider-reported)"
+    },
+    {
+      "id": "T2",
+      "title": "Operator recovery documentation and CHANGELOG entry",
+      "description": "Document safe recovery for a sandbox whose image-installed CLI predates the checkout's control-plane generation, and add a user-visible CHANGELOG entry. Quotes the diagnostic T1 actually produces, so it runs after T1.",
+      "dependsOn": "T1",
+      "wave": 2,
+      "complexity": "low — prose with a decisive style checker and a fixed file format, no logic",
+      "selectionReason": "Opus; the Sonnet exclusion is binding and haiku is below the bar for operator-facing recovery prose that must not recommend an unsafe step",
+      "requestedModel": "opus",
+      "requestedReasoning": "inherit (no per-call effort control exists)",
+      "observedSettings": {
+        "model": "opus (requested and accepted by the Agent tool; not independently confirmed from a runtime display)",
+        "effort": "inherited session level, unobserved"
+      },
+      "readScope": [
+        "docs/**",
+        "CHANGELOG.md",
+        ".agro/cli/src/lib/execution/runner.ts",
+        ".agro/cli/src/commands/self-upgrade.ts",
+        ".agro/cli/README.md"
+      ],
+      "searchOutputLimits": "read the named files and the docs tree only; return a summary",
+      "ownedWritePaths": [
+        "docs/lifecycle-commands.md",
+        "CHANGELOG.md"
+      ],
+      "exclusions": [
+        "no git commit, no git push, no branch or PR operation",
+        "no edit to .agro/cli/src/** (T1 owns it)",
+        "no edit to .agro/tasks/**",
+        "no documented step that mutates /opt/oh, installs globally, restarts infrastructure, or runs a vendoring update against the operator's checkout",
+        "no Herdr message, no /escalate, no message to any supervisor"
+      ],
+      "executionDirectory": "/home/sandbox/harness/.worktrees/bug/1080-gateway-lifecycle-script-recovery",
+      "worktreeIsolation": "shares the task worktree; owned write paths are disjoint from every other worker and it runs after T1",
+      "workerType": "general-purpose",
+      "continuationMethod": "native continuation via SendMessage",
+      "deliverable": "edited working tree (uncommitted) plus a report naming each changed file",
+      "verification": "bash .agro/skills/ste/scripts/ste-check.sh on the changed prose if present; CHANGELOG entry matches the file's existing unreleased-section format",
+      "stoppingCondition": "both files written and self-checked, or a blocked state reported with the exact obstacle",
+      "evidenceDestinations": [
+        "worker native output only"
+      ],
+      "coveredDoD": [
+        "D6",
+        "D3 (changelog)"
+      ],
+      "coveredStories": [
+        "US-005"
+      ],
+      "acceptanceOwner": "advisor",
+      "failureRepairRoute": "back to T2's continuing worker via SendMessage",
+      "nativeWorkerId": null,
+      "status": "running",
+      "artifactReferences": [],
+      "usage": "unknown"
+    },
+    {
+      "id": "T3",
+      "title": "Knowledge page update for oh-cli-portable-lifecycle",
+      "description": "Update the oh-cli-portable-lifecycle knowledge page to record the corrected lifecycle diagnostic and its installation-aware recovery route, advance updated: and verified_at:, and regenerate the knowledge index. Depends on the landed diff.",
+      "dependsOn": "T1, T2",
+      "wave": 3,
+      "complexity": "low — a bounded source-backed page edit against a schema with a deterministic index probe",
+      "selectionReason": "Opus; Sonnet is excluded and the page must stay source-backed rather than paraphrased",
+      "requestedModel": "opus",
+      "requestedReasoning": "inherit (no per-call effort control exists)",
+      "observedSettings": {
+        "model": "opus (requested and accepted by the Agent tool; not independently confirmed from a runtime display)",
+        "effort": "inherited session level, unobserved"
+      },
+      "readScope": [
+        ".agro/knowledge/**",
+        ".agro/skills/wiki/references/schema.md",
+        ".agro/cli/src/lib/execution/runner.ts",
+        ".agro/cli/src/commands/self-upgrade.ts"
+      ],
+      "searchOutputLimits": "read the named page, the schema, and the two source files; return a summary",
+      "ownedWritePaths": [
+        ".agro/knowledge/source/oh-cli-portable-lifecycle.md",
+        ".agro/knowledge/README.md"
+      ],
+      "exclusions": [
+        "no git commit, no git push, no branch or PR operation",
+        "no edit to .agro/cli/src/**, docs/**, or CHANGELOG.md",
+        "no edit to .agro/tasks/**",
+        "no new pattern page (that is the retro's job)",
+        "no Herdr message, no /escalate, no message to any supervisor"
+      ],
+      "executionDirectory": "/home/sandbox/harness/.worktrees/bug/1080-gateway-lifecycle-script-recovery",
+      "worktreeIsolation": "shares the task worktree; disjoint owned paths and runs last",
+      "workerType": "general-purpose",
+      "continuationMethod": "native continuation via SendMessage",
+      "deliverable": "edited working tree (uncommitted) plus a report",
+      "verification": "bash .agro/evals/probes/wiki-readme-index.sh exits 0",
+      "stoppingCondition": "the page is updated and the index probe passes, or a blocked state is reported",
+      "evidenceDestinations": [
+        "worker native output only"
+      ],
+      "coveredDoD": [
+        "D4 (knowledge gate)"
+      ],
+      "coveredStories": [
+        "US-008"
+      ],
+      "acceptanceOwner": "advisor",
+      "failureRepairRoute": "back to T3's continuing worker via SendMessage",
+      "nativeWorkerId": null,
+      "status": "pending",
+      "artifactReferences": [],
+      "usage": "unknown"
+    }
+  ],
+  "advisorRetainedStories": {
+    "US-001": "D1 reproduction evidence — advisor captured it read-only; no worker",
+    "US-006": "D4 gate commands — advisor runs Vitest, /eval, /audit implementation personally",
+    "US-007": "D5 PR publication — advisor only; never merged"
+  }
+}

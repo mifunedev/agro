@@ -138,6 +138,73 @@ It writes **nothing else** — no `agro.json`, no `.env`, no `AGENTS.md`, no
 are yours. It never prompts. It does not upgrade the CLI itself; that is
 `agro update`.
 
+## Recovering from `missing lifecycle script`
+
+A sandbox image can ship an `agro` CLI older than the checkout it runs against.
+The old CLI looks for the legacy control directory `.oh/`. An AGRO checkout
+carries `.agro/`. Every verb that runs a lifecycle script then fails:
+
+```
+$ agro gateway pi
+missing lifecycle script /home/sandbox/harness/.oh/scripts/gateway.sh — the vendored .oh/ payload looks incomplete; run `oh update` to re-vendor it
+```
+
+The cause is the version skew between the installed CLI and the checkout, not
+the missing payload that the message reports. The checkout is complete. The CLI
+is too old to look in the right place.
+
+**Ignore the advice in that message.** `oh update` vendors the control plane
+into the current directory. The control plane is already there, under `.agro/`,
+so a re-vendor changes nothing that matters here. `agro update` does not help
+either: it upgrades the installed executable, and it refuses on an executable
+that the sandbox image shipped.
+
+```
+image installation at /opt/oh/dist/agro.js — the sandbox image ships this CLI; pull a newer image on the host (agro stop, then agro sandbox install docker --name <name>)
+```
+
+**Confirm the skew.** Run both commands in the sandbox. Each one reads a file
+and changes nothing.
+
+```bash
+grep '"version"' /opt/oh/package.json     # the CLI the image installed
+grep '"version"' .agro/cli/package.json   # the CLI the checkout expects
+```
+
+A lower version in `/opt/oh/package.json` confirms the skew. The prefix
+`/opt/oh` marks an **image** installation: the image built that CLI in, and
+`/usr/local/bin/agro` resolves to `/opt/oh/dist/agro.js`.
+
+**Refresh the image from the host.** Run both commands on the host. `agro
+sandbox install docker` is host-only and refuses inside the sandbox.
+
+This recovery costs downtime. The two commands stop the container and create it
+again, so every agent, server, and job inside it stops. Only the sandbox home
+volume survives the recreation. You pick the moment, and nothing runs these
+commands for you.
+
+```bash
+agro stop <name>
+agro sandbox install docker --name <name>
+```
+
+The second command writes the registry entry again and starts the container from
+the current image, which carries a current CLI. That command keeps the sandbox
+home volume. Only `agro destroy` removes that volume.
+
+Keep the two `update` verbs apart:
+
+| Command | Upgrades | Writes |
+|---|---|---|
+| `agro update` | the installed `agro` executable | nothing in the project |
+| `oh update` | the vendored control plane | `.agro/` and `crons/` in the current directory |
+
+Details: [`agro update`](#upgrading-the-cli-agro-update) and
+[`oh update`](#equipping-a-checkout-oh-update).
+
+A current CLI names the recovery route for your own installation kind whenever a
+lifecycle script is truly absent.
+
 ## Migrating to the AGRO names: `agro migrate`
 
 `agro migrate` moves an installation created under the legacy names to the AGRO

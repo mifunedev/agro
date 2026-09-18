@@ -9,6 +9,7 @@ import {
   type LifecycleRunner,
   type RunResult,
 } from "../lib/execution/index.js";
+import { requireLifecycleScript } from "../lib/execution/runner.js";
 
 
 const cleanups: string[] = [];
@@ -294,5 +295,48 @@ describe("DockerComposeExecutionTarget.status", () => {
     const target = resolveExecutionTarget({ projectRoot: root, container: "my-box", run });
 
     expect(await target.status()).toBe("absent");
+  });
+});
+
+function diagnose(argv1: string, root: string): string {
+  const previous = process.argv[1];
+  process.argv[1] = argv1;
+  try {
+    requireLifecycleScript(root, "gateway.sh");
+    return "";
+  } catch (err) {
+    return (err as Error).message;
+  } finally {
+    process.argv[1] = previous;
+  }
+}
+
+function bareRoot(): string {
+  const d = mkdtempSync(join(tmpdir(), "oh-lifecycle-script-"));
+  cleanups.push(d);
+  return d;
+}
+
+describe("requireLifecycleScript diagnostics", () => {
+  it("routes an image installation to the host image refresh, not to a self-upgrade verb", () => {
+    const message = diagnose("/opt/oh/dist/agro.js", makeRepo());
+
+    expect(message).toContain("missing lifecycle script");
+    expect(message).toContain("sandbox install docker");
+    expect(message).not.toContain("agro update");
+    expect(message).not.toContain("oh update");
+  });
+
+  it("routes a non-image installation to the payload vendoring verb", () => {
+    const message = diagnose("/usr/lib/node_modules/@mifune/agro/dist/agro.js", makeRepo());
+
+    expect(message).toContain("`oh update`");
+    expect(message).not.toContain("sandbox install docker");
+  });
+
+  it("keeps the incomplete-payload diagnosis when neither control dir is present", () => {
+    const message = diagnose("/usr/lib/node_modules/@mifune/agro/dist/agro.js", bareRoot());
+
+    expect(message).toContain("incomplete");
   });
 });

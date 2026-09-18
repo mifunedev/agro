@@ -11,6 +11,7 @@ import {
 } from "node:fs";
 import { basename, delimiter, dirname, extname, join } from "node:path";
 import { aliasedEnvValue } from "../lib/compat.js";
+import { IMAGE_ROOT, toPosix } from "../lib/install-kind.js";
 import { AGRO_PRODUCT, resolveProduct } from "../lib/product.js";
 
 export type InstallKind = "npm" | "standalone" | "image" | "source" | "legacy-package" | "unknown";
@@ -67,12 +68,7 @@ export const DEFAULT_ARTIFACT_URL =
 
 const PREFIX = `${AGRO_PRODUCT.bin} update`;
 const PACKAGE = AGRO_PRODUCT.packageName;
-const IMAGE_ROOT = "/opt/oh/";
 const SEMVER = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
-
-function toPosix(path: string): string {
-  return path.replace(/\\/g, "/");
-}
 
 function statOrUndefined(deps: SelfUpgradeDeps, path: string): FileStats | undefined {
   try {
