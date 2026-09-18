@@ -1,0 +1,16 @@
+# progress
+
+2026-09-17 plan: base commit f14840b982532e46459cfe7b620958dcb49326de on development, clean.
+  Queries: "cli lifecycle", "sandbox install", "evals probe", "compat generation".
+  Knowledge read: oh-cli-portable-lifecycle, sandbox-dependency-installs,
+  pattern-evals-prose-literal-pinning.
+  Architecture significance: NOT significant. Diagnostic text, tests, docs. No
+  boundary, ownership, lifecycle, or compatibility-contract change. /architect
+  not invoked.
+  Deviation from plan-node purity, recorded per contract: issue #1080 was created
+  during the plan node because /ralph hard-fails without --issue and DoD D5
+  requires a linked issue. The operator authorized this bounded fix through a PR,
+  so the issue is in scope. No branch, PR, or code change was created by the plan
+  node.
+  Three-file contract written: prd.md (144 lines), prd.json (8 stories),
+  progress.txt.

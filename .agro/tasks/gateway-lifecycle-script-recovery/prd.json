@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "project": "Gateway lifecycle-script diagnostic and recovery",
+  "branchName": "bug/1080-gateway-lifecycle-script-recovery",
+  "description": "Correct the missing-lifecycle-script diagnostic so its recovery instruction is installation-aware and names the generation skew, add regression coverage, and document safe recovery for a sandbox whose image-installed CLI predates the .agro generation.",
+  "notes": "Governed by mifunedev/agro#1080. Base development at f14840b982532e46459cfe7b620958dcb49326de. Operator authorized a bounded fix through a ready-for-review PR; the advisor never merges. Every tracked edit is assigned to a bounded /delegate worker in an isolated worktree; the advisor runs each gate command and owns acceptance. No Herdr message to the supervisor, no /escalate, no Slack bypass.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "D1 - Reproduce and document the cause, separating bundle from source",
+      "description": "Read-only triage recorded in evidence.md.",
+      "acceptanceCriteria": [
+        "evidence.md records the installed bundle version (/opt/oh/package.json) and the current source version (.agro/cli/package.json) as measured values",
+        "evidence.md shows the hardcoded .oh/scripts literals present in /opt/oh/dist/agro.js and their absence from current source",
+        "evidence.md shows current source resolving the control dir through resolveProjectLayout, with file:line citations",
+        "No gateway process was started or stopped and no token or credential value appears in any artifact",
+        "The remaining current-source defect is stated as the diagnostic's recovery advice, not as an invented path bug"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "D2 - Installation-aware missing-lifecycle-script diagnostic",
+      "description": "Smallest supported correction in .agro/cli/src/lib/execution/runner.ts.",
+      "acceptanceCriteria": [
+        "requireLifecycleScript names a recovery route that can succeed for the reader's actual installation kind, reusing the existing classifyInstallation surface rather than duplicating its logic",
+        "An image installation is told to refresh the sandbox image on the host, never to run a verb that refuses",
+        "A non-image installation is told the verb that actually vendors the control-plane payload",
+        "No .oh symlink, no boot-time install or refresh, no ownership change, no change to resolveProjectLayout semantics",
+        "Affected surfaces from AGENTS.md are each marked applied or not applicable in evidence.md"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "D2 - Generation-skew diagnosis in the same error",
+      "description": "Name the mismatch when the other generation's control dir is the one on disk.",
+      "acceptanceCriteria": [
+        "When the resolved control dir is absent but the other generation's control dir exists, the error names that mismatch explicitly",
+        "When neither control dir exists, the message remains the incomplete-payload diagnosis",
+        "Detection reuses controlDirCandidates or resolveProjectLayout from compat.ts rather than hardcoding directory names"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "D3 - Decisive regression coverage, failing then passing",
+      "description": "Tests under .agro/cli/src/__tests__/.",
+      "acceptanceCriteria": [
+        "A test asserts the image-install recovery route and fails against the pre-change diagnostic",
+        "A test asserts the generation-skew message and fails against the pre-change diagnostic",
+        "The failing run against the defect and the passing run after the fix are both captured verbatim in evidence.md",
+        "Assertions pin short tokens and identifiers, not whole reflowable sentences",
+        "The full .agro/cli Vitest suite passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "D6 - Operator recovery documentation and changelog",
+      "description": "Docs plus a user-visible CHANGELOG entry.",
+      "acceptanceCriteria": [
+        "Documentation gives safe recovery steps for a sandbox whose image-installed CLI predates the checkout's control-plane generation",
+        "The documented steps do not mutate /opt/oh, install packages globally, restart infrastructure, or run a vendoring update against the operator's checkout",
+        "The docs state plainly that agro update refuses for image installations and why",
+        "CHANGELOG.md carries a user-visible entry under the unreleased section, in the file's existing format",
+        "Any warranted mifunedev/agro-web change is either made or recorded as an explicit gap in evidence.md"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "D4 - Gates run by the advisor with real outputs preserved",
+      "description": "Verification owned by the advisor, not by a worker.",
+      "acceptanceCriteria": [
+        "The advisor personally ran the .agro/cli Vitest suite and recorded the real output",
+        "The advisor personally ran /eval and recorded the probe-suite result, including any REGRESSION or SKIPPED probes",
+        "The advisor personally ran /audit implementation and recorded the verdict",
+        "Every gap, skip, and unverified claim is stated in evidence.md rather than omitted",
+        "Operator intent preserved is recorded in prd.md and unchanged"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "D5 - Ready-for-review PR, never merged",
+      "description": "Publication gate.",
+      "acceptanceCriteria": [
+        "A pull request targets mifunedev/agro base development and links issue #1080",
+        "CI is verified green against the PR head SHA specifically, not against a branch name",
+        "GitHub reports the PR mergeable, and it is left ready for review and unmerged",
+        "If any gate blocks, the PR stays a draft and the exact gate and required decision are reported instead of a readiness claim"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Knowledge impact on oh-cli-portable-lifecycle",
+      "description": "Expected Knowledge Impact is REQUIRED.",
+      "acceptanceCriteria": [
+        "oh-cli-portable-lifecycle records the corrected lifecycle diagnostic and its installation-aware recovery route, aligned with this PRD's goals and non-goals",
+        "The page body stays source-backed per .agro/skills/wiki/references/schema.md section 3",
+        "verified_at advances for the page, whose claims were re-read",
+        ".agro/knowledge/README.md is regenerated and bash .agro/evals/probes/wiki-readme-index.sh passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
