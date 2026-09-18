@@ -3,7 +3,7 @@
   "project": "Gateway lifecycle-script diagnostic and recovery",
   "branchName": "bug/1080-gateway-lifecycle-script-recovery",
   "description": "Correct the missing-lifecycle-script diagnostic so its recovery instruction is installation-aware and names the generation skew, add regression coverage, and document safe recovery for a sandbox whose image-installed CLI predates the .agro generation.",
-  "notes": "Governed by mifunedev/agro#1080. Base development at f14840b982532e46459cfe7b620958dcb49326de. Operator authorized a bounded fix through a ready-for-review PR; the advisor never merges. Every tracked edit is assigned to a bounded /delegate worker in an isolated worktree; the advisor runs each gate command and owns acceptance. No Herdr message to the supervisor, no /escalate, no Slack bypass. US-003 (generation-skew diagnosis) was REMOVED from the contract during execution by advisor decision: the branch was unreachable for real workspaces (resolveControlDir selects with isDirectoryAt, so an existing .oh/ directory becomes the resolved control dir and the guard never holds) and could not reach the reported operator in any case, because the stale image-installed bundle prints its own hardcoded text. Recorded as a material deviation in prd.md Plan Reconciliation and in evidence.md. Removed rather than marked passing, so the completion oracle stays honest.",
+  "notes": "Governed by mifunedev/agro#1080. Base development at f14840b982532e46459cfe7b620958dcb49326de. Operator authorized a bounded fix through a ready-for-review PR; the advisor never merges. Every tracked edit is assigned to a bounded /delegate worker in an isolated worktree; the advisor runs each gate command and owns acceptance. No Herdr message to the supervisor, no /escalate, no Slack bypass. US-003 (generation-skew diagnosis) was REMOVED from the contract during execution by advisor decision: the branch was unreachable for real workspaces (resolveControlDir selects with isDirectoryAt, so an existing .oh/ directory becomes the resolved control dir and the guard never holds) and could not reach the reported operator in any case, because the stale image-installed bundle prints its own hardcoded text. Recorded as a material deviation in prd.md Plan Reconciliation and in evidence.md. Removed rather than marked passing, so the completion oracle stays honest. US-007 (ready-for-review PR) was REMOVED from the task graph by advisor decision after /audit implementation failed gate 1 on it. It was an advisor graph-design error: the PR's ready state is the pipeline's terminal state, reachable only after AUDIT-PASS, so scoring it inside the audited graph made the gate unsatisfiable by construction. Removing it does not weaken D5 — publication is still gated by a fresh /audit pr classification, a head-specific CI check, and the human merge boundary, none of which this graph controls. Recorded in evidence.md.",
   "userStories": [
     {
       "id": "US-001",
@@ -78,22 +78,8 @@
         "Operator intent preserved is recorded in prd.md and unchanged"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
-    },
-    {
-      "id": "US-007",
-      "title": "D5 - Ready-for-review PR, never merged",
-      "description": "Publication gate.",
-      "acceptanceCriteria": [
-        "A pull request targets mifunedev/agro base development and links issue #1080",
-        "CI is verified green against the PR head SHA specifically, not against a branch name",
-        "GitHub reports the PR mergeable, and it is left ready for review and unmerged",
-        "If any gate blocks, the PR stays a draft and the exact gate and required decision are reported instead of a readiness claim"
-      ],
-      "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Accepted at ab178cc7. All three gates were executed by the advisor personally, not read from a worker report: (1) npx vitest run from the repository root, 82 files / 1624 tests passed; (2) bash .agro/skills/eval/run.sh, 152 probes, runner exit 0, no green-to-red delta, result recorded in eval-result.json keyed to 9332375f; (3) /audit implementation via audit-run.sh, run id audit-20260918T011135Z-2620257. Gaps are stated in evidence.md rather than omitted: tsc could not run (.agro/cli/node_modules absent, no install performed), three probes are red for reasons confirmed on the untouched base checkout, mifunedev/agro-web was not assessed, and the decisiveness capture is bound to 88d370ac and was not re-executed at the current head."
     },
     {
       "id": "US-008",

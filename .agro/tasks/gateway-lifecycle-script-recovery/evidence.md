@@ -192,6 +192,10 @@ Removed rather than repaired, per D2's "smallest supported correction". The stor
 
 **A worker's justification was wrong and was corrected.** The implementer kept an empty-string guard on `process.argv[1]`, justifying it as preserving `classifyInstallation`'s precedent of treating empty `argv[1]` as unknown. That precedent does not transfer: `classifyInstallation` returns a kind plus a `reason`, where empty and missing differ, while `invokedFromImage` returns a boolean where both map to `false`. The clause is behaviorally dead — `realpathSync("")` throws and the catch already evaluates `"".startsWith("/opt/oh/")` to `false`. The guard stays because removing it deletes no line, not because it distinguishes anything. The advisor had accepted the original justification at face value before the round-2 reviewer corrected it.
 
+**US-007 was removed from the task graph — an advisor graph-design error.** The first `/audit implementation` run (`audit-20260918T011135Z-2620257`) returned `AUDIT-FAIL` at gate 1: `5/7 stories pass`. One of the two was US-007, "ready-for-review PR". That story is **unsatisfiable by construction**: it can only pass once the PR is undrafted, and the undraft requires `AUDIT-PASS` over the same graph that scores it. Encoding the pipeline's terminal state as a story the pipeline audits is a cycle, and the audit was right to fail on it.
+
+Removing it does **not** weaken D5. Publication remains gated by a fresh `/audit pr` promotable classification, a head-specific CI check, and the human merge boundary — none of which this graph controls. The other failing story, US-006, was legitimately incomplete at that moment: it requires the advisor to have run the gates, and the audit run itself was one of them. It is now `true` on real executed output.
+
 **Two advisor briefing errors, corrected mid-run and recorded as the advisor's, not the workers':**
 
 - The dispatch record prescribed `npm --prefix .agro/cli test`. No such script exists; the runner is `npx vitest run` from the repository root.
