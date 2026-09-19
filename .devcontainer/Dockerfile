@@ -36,7 +36,8 @@ RUN BUN_INSTALL=/usr/local curl -fsSL https://bun.sh/install | bash
 
 RUN curl -LsSf https://astral.sh/uv/install.sh | env INSTALLER_NO_MODIFY_PATH=1 sh \
  && cp /root/.local/bin/uv /usr/local/bin/uv \
- && cp /root/.local/bin/uvx /usr/local/bin/uvx
+ && cp /root/.local/bin/uvx /usr/local/bin/uvx \
+ && rm -rf /root/.local
 
 ENV PNPM_HOME="/home/sandbox/.local/share/pnpm"
 ENV NPM_USER_PREFIX="/home/sandbox/.local"
@@ -46,7 +47,9 @@ RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 SHELL ["/bin/bash", "-c"]
 
-RUN npm install -g cc-safety-net@1.0.6
+RUN npm install -g cc-safety-net@1.0.6 \
+ && npm cache clean --force \
+ && rm -rf /tmp/*
 
 COPY .devcontainer/docker-compose.yml .devcontainer/docker-compose.image-only.yml .devcontainer/docker-compose.ssh.yml .devcontainer/docker-compose.docker-sock.yml /opt/agro-assets/.devcontainer/
 COPY .agro/scripts/docker-compose.sh .agro/scripts/check-host-port.sh .agro/scripts/compat.sh /opt/agro-assets/.agro/scripts/
@@ -54,7 +57,9 @@ COPY .agro/cli/ /opt/oh/
 RUN cd /opt/oh && OH_ASSET_ROOT=/opt/agro-assets npm install --no-audit --no-fund && OH_ASSET_ROOT=/opt/agro-assets npm run build \
  && chmod +x /opt/oh/dist/oh.js \
  && ln -sf /opt/oh/dist/oh.js /usr/local/bin/oh \
- && ln -sf /opt/oh/dist/agro.js /usr/local/bin/agro
+ && ln -sf /opt/oh/dist/agro.js /usr/local/bin/agro \
+ && npm cache clean --force \
+ && rm -rf /tmp/*
 
 RUN userdel -r node 2>/dev/null || true \
  && useradd -m -u 1000 -s /bin/zsh sandbox \
@@ -113,16 +118,15 @@ RUN echo "cd ${OH_PROJECT_ROOT} 2>/dev/null" >> /home/sandbox/.bashrc
 COPY --chown=sandbox:sandbox .agro/install/ /home/sandbox/install/
 RUN chmod +x /home/sandbox/install/*.sh
 
-COPY --chown=sandbox:sandbox . /opt/agro-seed/
-
+COPY --chown=sandbox:sandbox .agro/scripts/provision-python.sh /tmp/provision-python.sh
 ARG INSTALL_PYTHON_KERNEL=true
 ARG OH_PYTHON_VERSION=3.11
 RUN if [ "${INSTALL_PYTHON_KERNEL}" = "true" ]; then \
-      su - sandbox -c "OH_PYTHON_VERSION='${OH_PYTHON_VERSION}' bash /opt/agro-seed/.agro/scripts/provision-python.sh"; \
+      su - sandbox -c "OH_PYTHON_VERSION='${OH_PYTHON_VERSION}' bash /tmp/provision-python.sh"; \
     else \
       echo "Skipping Python kernel provisioning (INSTALL_PYTHON_KERNEL=false)"; \
     fi \
- && rm -rf /home/sandbox/.cache/uv
+ && rm -rf /home/sandbox/.cache/uv /tmp/provision-python.sh
 
 FROM base AS final
 RUN mkdir -p /.devcontainer && echo '{"workspaceFolder":"/home/sandbox/harness","remoteUser":"sandbox"}' > /.devcontainer/devcontainer.json
