@@ -1,0 +1,3 @@
+# progress
+
+2026-09-19 plan: base commit cf35b316; issue #1088; evidence base is three pattern pages compiled from the #1086 retro and landing in #1087 (pattern-spec-procedure-executed-from-summary, pattern-evals-document-conformance-proxy-oracle, pattern-audit-gate-unrunnable-reads-as-defect); architecture-significant by the trigger list but /architect NOT run because the operator made the structural decision explicitly in session; Intent preserved YES; Orchestration preserved NOT-APPLICABLE (no source plan); scaffolded prd.md, prd.json (7 stories), progress.txt
