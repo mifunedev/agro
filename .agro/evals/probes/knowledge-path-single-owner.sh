@@ -46,13 +46,17 @@ done
 grep -qF '"knowledge/**"' .agro/manifest.json \
   || failures+=(".agro/manifest.json does not ship knowledge/** — consumer repos would lose the surface")
 
-# CI must react to knowledge changes on both event types.
+# CI must react to knowledge changes on both event types. `.agro/**` already
+# covers `.agro/knowledge/**`; an extra glob is not required.
+covers_knowledge() {
+  grep -qF '.agro/knowledge/**' <<<"$1" || grep -qF '.agro/**' <<<"$1"
+}
 push_paths="$(awk '/^  push:/{p=1} /^  pull_request:/{p=0} p' .github/workflows/ci-harness.yml)"
 pr_paths="$(awk '/^  pull_request:/{p=1} /^concurrency:/{p=0} p' .github/workflows/ci-harness.yml)"
-grep -qF '.agro/knowledge/**' <<<"$push_paths" \
-  || failures+=("ci-harness.yml push paths do not include .agro/knowledge/**")
-grep -qF '.agro/knowledge/**' <<<"$pr_paths" \
-  || failures+=("ci-harness.yml pull_request paths do not include .agro/knowledge/**")
+covers_knowledge "$push_paths" \
+  || failures+=("ci-harness.yml push paths do not cover .agro/knowledge/ via .agro/** or .agro/knowledge/**")
+covers_knowledge "$pr_paths" \
+  || failures+=("ci-harness.yml pull_request paths do not cover .agro/knowledge/ via .agro/** or .agro/knowledge/**")
 
 if ((${#failures[@]})); then
   printf 'REGRESSION: %s\n' "${failures[@]}" >&2

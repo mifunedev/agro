@@ -17,15 +17,10 @@ on:
       - ".devcontainer/entrypoint.sh"
       - ".dockerignore"
       - ".agro/scripts/verify-sandbox-image.sh"
-      - ".oh/scripts/verify-sandbox-image.sh"
       - ".agro/scripts/node-pnpm-parity.sh"
-      - ".oh/scripts/node-pnpm-parity.sh"
       - ".agro/scripts/hermes-install-smoke.sh"
-      - ".oh/scripts/hermes-install-smoke.sh"
       - ".agro/scripts/link-providers.sh"
-      - ".oh/scripts/link-providers.sh"
       - ".agro/cli/src/commands/harness.ts"
-      - ".oh/cli/src/commands/harness.ts"
       - ".github/workflows/sandbox-compatibility.yml"
   pull_request:
     paths:
@@ -33,15 +28,10 @@ on:
       - ".devcontainer/entrypoint.sh"
       - ".dockerignore"
       - ".agro/scripts/verify-sandbox-image.sh"
-      - ".oh/scripts/verify-sandbox-image.sh"
       - ".agro/scripts/node-pnpm-parity.sh"
-      - ".oh/scripts/node-pnpm-parity.sh"
       - ".agro/scripts/hermes-install-smoke.sh"
-      - ".oh/scripts/hermes-install-smoke.sh"
       - ".agro/scripts/link-providers.sh"
-      - ".oh/scripts/link-providers.sh"
       - ".agro/cli/src/commands/harness.ts"
-      - ".oh/cli/src/commands/harness.ts"
       - ".github/workflows/sandbox-compatibility.yml"
 
 concurrency:

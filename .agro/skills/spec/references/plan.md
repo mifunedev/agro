@@ -2,7 +2,7 @@
 
 > Detail doc for the **`plan`** subcommand of the `/spec` skill
 > (`.agro/skills/spec/SKILL.md`). Argument form:
-> `plan <topic> [--plan <path>] [--issue <N>] [--slug <slug>] [--prefix feat|bug|task|audit|skill|agent] [--repo <owner/name>] [--base <branch>]`.
+> `plan <topic> [--plan <path>] [--issue <N>] [--slug <slug>] [--prefix feat|bug|task|audit|skill] [--repo <owner/name>] [--base <branch>]`.
 > The dispatcher passes the argument string after `plan` to this procedure as
 > `$ARGUMENTS`. Authority: `.agro/skills/spec/SKILL.md`.
 
