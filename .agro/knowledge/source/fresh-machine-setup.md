@@ -26,7 +26,7 @@ sources:
   - .agro/scripts/hermes-install-smoke.sh
   - .agro/scripts/gateway.sh
   - .agro/scripts/get-agro.sh
-verified_at: 4ef3b1796de7237802b4045abcb6970b1fc2717a
+verified_at: d4466d81d77127fae62634e364da488a62d77077
 related: [sandbox-dependency-installs, oh-cli-portable-lifecycle]
 confidence: provisional
 ---
@@ -95,7 +95,7 @@ regenerates on every lifecycle call — the operator edits only `agro.json`. A r
 written by an earlier release stays at `~/.oh/sandboxes/<name>/oh.json` and keeps
 working under both names; `agro migrate --home` moves it when the operator chooses.
 Without `--checkout` the unselected fallback is `ghcr.io/mifunedev/agro:latest`
-(`DEFAULT_SANDBOX_IMAGE`, `lifecycle.ts:104`) and the sandbox seeds its workspace from
+(`DEFAULT_SANDBOX_IMAGE`, `lifecycle.ts:105`) and the sandbox seeds its workspace from
 the image's `/opt/agro-seed`, so nothing is cloned and nothing is built. Since #1042 a
 `--checkout <dir>` that is not itself a harness checkout reaches the same outcome: build
 mode follows `<dir>/.devcontainer/Dockerfile`, so such a path binds and builds nothing,
@@ -126,7 +126,7 @@ remains the documented default. **DebugMCP** is a separate, optional cross-harne
 debugging capability, enabled by the VS Code attach-to-container route; any MCP-capable
 harness can drive it.
 
-**The host path is the off-sandbox alternative, and since #1086 it creates nothing.** When no sandbox is reachable, `agro harness install <id> --host` and `agro tool install <id> --host` install into the host's own `~/.local` and run from an AGRO checkout called a **host workspace**. That checkout is no longer a side effect of the install: the wizard that asked `Workspace name [default]:` is gone, and the operator now runs `agro workspace create [<name>]` first, which clones into `~/.agro/workspaces/<name>` (`.agro/cli/src/commands/workspace.ts`). A host install with no such checkout exits 1, lists every workspace that exists, and names `agro workspace create` (`resolveExistingWorkspace`, `.agro/cli/src/lib/host-workspace.ts:145-173`). A successful host install still records the root as `harnessRoot` (`.agro/cli/src/commands/harness.ts:473`), so later host installs reuse it. Commands and precedence live in `docs/harnesses/overview.md` and `docs/lifecycle-commands.md`; cite them, do not restate them ([[oh-cli-portable-lifecycle]]).
+**The host path is the off-sandbox alternative, and since #1086 it creates nothing.** When no sandbox is reachable, `agro harness install <id> --host` and `agro tool install <id> --host` install into the host's own `~/.local` and run from an AGRO checkout called a **host workspace**. That checkout is no longer a side effect of the install: the wizard that asked `Workspace name [default]:` is gone, and the operator now runs `agro workspace create [<name>]` first, which clones into `~/.agro/workspaces/<name>` (`.agro/cli/src/commands/workspace.ts`). A host install with no such checkout exits 1, lists every workspace that exists, and names `agro workspace create` (`resolveExistingWorkspace`, `.agro/cli/src/lib/host-workspace.ts:145-172`). A successful host install still records the root as `harnessRoot`, through the shared `recordHarnessRoot` on the already-installed path (`.agro/cli/src/lib/host-config.ts:172`) and inline beside the install receipt otherwise (`.agro/cli/src/commands/harness.ts:480`), so later host installs reuse it. Commands and precedence live in `docs/harnesses/overview.md` and `docs/lifecycle-commands.md`; cite them, do not restate them ([[oh-cli-portable-lifecycle]]).
 
 **GitHub is a prerequisite, not a step in the middle.** Local sandbox use stays
 available with no GitHub account; pushing, creating a repository, and opening a pull
@@ -183,8 +183,8 @@ Commands themselves live in `quickstart.md`, not here.
 Hermes onboarding separates the program home from runtime state. The program remains in
 `~/.local/lib/hermes-agent`; the image defaults runtime state to `~/harness/.hermes`
 (`.devcontainer/Dockerfile:4`). The installer reconciles shared skills immediately and
-checks the executable before reporting success (`.agro/cli/src/commands/harness.ts:176`,
-`.agro/cli/src/commands/harness.ts:259-262`); the reconcile call now reaches the linker
+checks the executable before reporting success (`.agro/cli/src/commands/harness.ts:661`,
+`.agro/cli/src/commands/harness.ts:687-692`); the reconcile call now reaches the linker
 through `remoteControlDirScript`, so it works against a `.agro/` or a `.oh/` sandbox.
 Native skills remain beside the additive shared link. Conflicting, unset, or relative
 managed homes fail before installation (`.agro/scripts/link-providers.sh:197-210`).

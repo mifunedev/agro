@@ -411,3 +411,153 @@ This round did NOT strictly reduce netAdded by that metric and will not: it rais
 13 while raising netRemoved by 26. The branch is 13 source lines smaller and carries 11
 fewer duplicated lines. If the intent is a monotonically falling number, `netAdded` is
 the wrong instrument for a deduplication round.
+
+## T2 final knowledge pass — code-final d4466d81  2026-09-19T17:06:13Z
+
+Citations re-read against the working tree at d4466d81:
+  UNCHANGED  host-workspace.ts:103-128  ensureHostWorkspace
+  UNCHANGED  host-config.ts:50-51       workspaceRoot -> assertWorkspaceName
+  UNCHANGED  registry.ts:44-53          listEntries (shape comparison)
+  CORRECTED  host-workspace.ts:130-140 -> 130-139   listHostWorkspaces (was off by one; 140 is blank)
+  CORRECTED  host-workspace.ts:145-173 -> 145-172   resolveExistingWorkspace (was off by one; 173 is blank)
+  CORRECTED  harness.ts:473 -> harness.ts:480 + host-config.ts:172 + harness.ts:440
+  CORRECTED  tool.ts:482    -> tool.ts:489    + host-config.ts:172 + tool.ts:456
+  CORRECTED  harness.ts:176     -> harness.ts:661       (pre-existing rot in fresh-machine-setup)
+  CORRECTED  harness.ts:259-262 -> harness.ts:687-692   (pre-existing rot in fresh-machine-setup)
+
+CORRECTION to the coordinator's brief: recordHarnessRoot does NOT cover both write paths.
+  It is called only from the already-installed early return (harness.ts:440, tool.ts:456).
+  The post-install path still writes harnessRoot inline inside the same writeHostConfig call
+  that writes the hostHarnesses/hostTools receipt (harness.ts:480, tool.ts:489).
+  Both pages now state the two routes rather than the single-helper claim.
+
+$ grep -n "recordHarnessRoot\|harnessRoot: root" .agro/cli/src/commands/harness.ts .agro/cli/src/commands/tool.ts
+.agro/cli/src/commands/tool.ts:17:  recordHarnessRoot,
+.agro/cli/src/commands/tool.ts:456:      recordHarnessRoot(root, env, home);
+.agro/cli/src/commands/tool.ts:489:        harnessRoot: root,
+.agro/cli/src/commands/harness.ts:18:  recordHarnessRoot,
+.agro/cli/src/commands/harness.ts:440:      recordHarnessRoot(root, env, home);
+.agro/cli/src/commands/harness.ts:480:        harnessRoot: root,
+
+$ bash .agro/evals/probes/wiki-readme-index.sh; echo "wiki_exit=$?"
+PASS: .agro/knowledge/README.md Index matches the tracked source/ and patterns/ frontmatter
+wiki_exit=0
+
+$ git diff --stat
+ .agro/knowledge/source/fresh-machine-setup.md      |  8 +++---
+ .../knowledge/source/oh-cli-portable-lifecycle.md  |  6 ++--
+ .agro/tasks/agro-workspace-verb/progress.txt       | 33 ++++++++++++++++++++++
+ 3 files changed, 40 insertions(+), 7 deletions(-)
+
+States:  oh-cli-portable-lifecycle UPDATED (verified_at d4466d81)
+         fresh-machine-setup       UPDATED (verified_at d4466d81)
+
+OPEN ITEM, out of this pass's write scope: compose-env-boundary.md cites harness.ts:671 and :702
+for the sandbox reconcileHermes pair. Correct at its pin 1e3e040e; the d4466d81 dedup shortened
+harness.ts and moved them to :661 and :692. Fix = 671->661, 702->692, verified_at -> d4466d81.
+
+## T2 close-out — compose-env-boundary + citation audit  2026-09-19T17:06:55Z
+
+Re-read at the working tree (d4466d81) before writing:
+  harness.ts:661  const code = await reconcileHermes(target, io, opts.bin, "sandbox");   # before install
+  harness.ts:692  const code = await reconcileHermes(target, io, opts.bin, "sandbox");   # after verification
+
+compose-env-boundary.md: 671->661, 702->692, verified_at 1e3e040e -> d4466d81.
+managed-agents.md: untouched, pin left at 4db24429 per the coordinator.
+
+Citation audit across all four pages. Two further rotted citations found and corrected,
+both on pages whose pin this build advances:
+  compose-env-boundary  oh-config.ts:114-117 -> 109-112  (x2; :114 is ohConfigPath, configCheckout is 109-112)
+  fresh-machine-setup   lifecycle.ts:104 -> 105          (:104 is blank; DEFAULT_SANDBOX_IMAGE is :105)
+
+Spot-checked and CORRECT as written: registry.ts:15, registry.ts:17, config-render.ts:41,
+install-kind.ts:3, self-upgrade.ts:14, self-upgrade.ts:66, remote.ts:4, sandbox.ts:207,
+oh-config.ts:109-112, lifecycle.ts:105.
+
+NOT re-read: oh-cli-portable-lifecycle carries ~40 further pre-existing .agro/cli/ citations
+that predate this build and were not re-read at d4466d81. Its pin overstates by that much.
+See the report for the enumerated list.
+
+$ bash .agro/evals/probes/wiki-readme-index.sh; echo "wiki_exit=$?"
+PASS: .agro/knowledge/README.md Index matches the tracked source/ and patterns/ frontmatter
+wiki_exit=0
+$ grep -n "harness.ts:6" .agro/knowledge/source/compose-env-boundary.md
+58:(`.agro/cli/src/commands/harness.ts:661`, `.agro/cli/src/commands/harness.ts:692`).
+$ grep -m1 "^verified_at:" .agro/knowledge/source/compose-env-boundary.md
+verified_at: d4466d81d77127fae62634e364da488a62d77077
+$ git diff --stat
+ .agro/knowledge/source/compose-env-boundary.md     |  8 +--
+ .agro/knowledge/source/fresh-machine-setup.md      | 10 +--
+ .../knowledge/source/oh-cli-portable-lifecycle.md  |  6 +-
+ .agro/tasks/agro-workspace-verb/progress.txt       | 75 ++++++++++++++++++++++
+ 4 files changed, 87 insertions(+), 12 deletions(-)
+
+States: compose-env-boundary UPDATED (d4466d81); oh-cli-portable-lifecycle UPDATED (d4466d81);
+        fresh-machine-setup UPDATED (d4466d81); managed-agents REVERIFIED (4db24429, unchanged).
+
+## T2 full citation pass at d4466d81  2026-09-19T17:08:16Z
+
+Every file:line citation on the three pinned pages read against the working tree.
+60 citations read. 50 correct, 9 line-number corrections, 1 claim-wrong (reported, not rewritten).
+
+CORRECTED (oh-cli-portable-lifecycle):
+  install-kind.ts:14-21        -> 9-17       invokedFromImage (x2 occurrences)
+  self-upgrade.ts:117          -> 113        IMAGE_ROOT use in kindOfTarget (x2; :117 was blank)
+  self-upgrade.ts:189-191      -> 185-188    refuseUnsupported image case
+  cli.ts:104-115               -> 110-121    printOhHelp updateSummary + update usage line
+  cli.ts:848-852               -> 878-882    --checkout/--repo conflict refusal
+  execution-target.test.ts:317-361 -> 320-342  the describe block
+  docs/lifecycle-commands.md:141 -> 146      Recovering from missing lifecycle script heading
+CORRECTED (compose-env-boundary):
+  link-providers.sh:110        -> 197-210    hermes_paths_safe (the refusal the claim describes)
+  link-providers.sh:189        -> 192-195    hermes_managed_here
+
+CLAIM-WRONG, left alone per instruction:
+  oh-cli-portable-lifecycle Relevant Source Files: "isImageInstall (install-kind.ts:9-12)"
+  isImageInstall does not exist in .agro/cli/src at d4466d81, and does not exist at
+  origin/development either. install-kind.ts exports only IMAGE_ROOT, toPosix, invokedFromImage.
+  This is a named symbol that is not there, not a moved line. Advisor decision required.
+
+Pins after this pass:
+  oh-cli-portable-lifecycle    verified_at: d4466d81d77127fae62634e364da488a62d77077
+  fresh-machine-setup          verified_at: d4466d81d77127fae62634e364da488a62d77077
+  compose-env-boundary         verified_at: d4466d81d77127fae62634e364da488a62d77077
+  managed-agents               verified_at: 1e3e040e163cf6f1fc7e14fa7296a4b6b7e43f74
+  (managed-agents stands at 1e3e040e, not 4db24429 as an earlier note in this file said;
+   its only citation docs/harnesses/overview.md:7-9 is untouched since that commit.)
+
+$ bash .agro/evals/probes/wiki-readme-index.sh; echo "wiki_exit=$?"
+PASS: .agro/knowledge/README.md Index matches the tracked source/ and patterns/ frontmatter
+wiki_exit=0
+$ git diff --stat
+ .agro/knowledge/source/compose-env-boundary.md     |  12 +--
+ .agro/knowledge/source/fresh-machine-setup.md      |  10 +-
+ .../knowledge/source/oh-cli-portable-lifecycle.md  |  16 +--
+ .agro/tasks/agro-workspace-verb/progress.txt       | 119 +++++++++++++++++++++
+ 4 files changed, 138 insertions(+), 19 deletions(-)
+
+## T2 final edit — isImageInstall clause deleted  2026-09-19T17:08:50Z
+
+Advisor-authorized removal of the fabricated symbol from the Relevant Source Files bullet.
+Deleted exactly: "`isImageInstall` (`install-kind.ts:9-12`), " — one occurrence, no other prose touched.
+Resulting line 61:
+- `.agro/cli/src/lib/install-kind.ts` — the single owner of the image root: `IMAGE_ROOT` = `/opt/oh/` (`install-kind.ts:3`), `invokedFromImage` (`install-kind.ts:9-17`).
+
+$ grep -n "isImageInstall" .agro/knowledge/source/oh-cli-portable-lifecycle.md; echo "hits=$?"
+hits=1
+$ bash .agro/evals/probes/wiki-readme-index.sh; echo "wiki_exit=$?"
+PASS: .agro/knowledge/README.md Index matches the tracked source/ and patterns/ frontmatter
+wiki_exit=0
+$ git diff --stat
+ .agro/knowledge/source/compose-env-boundary.md     |  12 +-
+ .agro/knowledge/source/fresh-machine-setup.md      |  10 +-
+ .../knowledge/source/oh-cli-portable-lifecycle.md  |  16 +--
+ .agro/tasks/agro-workspace-verb/progress.txt       | 138 +++++++++++++++++++++
+ 4 files changed, 157 insertions(+), 19 deletions(-)
+
+Final states, all four knowledge pages:
+  oh-cli-portable-lifecycle  UPDATED     verified_at d4466d81
+  fresh-machine-setup        UPDATED     verified_at d4466d81
+  compose-env-boundary       UPDATED     verified_at d4466d81
+  managed-agents             REVERIFIED  verified_at 1e3e040e (unchanged, honest at that pin)
+No claim-wrong items remain open. T2 complete.
