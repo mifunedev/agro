@@ -1,0 +1,8 @@
+{
+  "commit": "a5db25262b1f2ff218f125a1fb07ffa0bef0424f",
+  "runnerExit": 0,
+  "ranAt": "2026-09-19T17:10:45Z",
+  "newRegressions": [],
+  "preExistingReds": [],
+  "evidence": "155 probes, runner exit 0, no PASS->REGRESSION transition against base cf35b316. New probe host-workspace-door PASS. Unit suite separately: 6 failed | 1646 passed, all six pre-existing file-mode/exec-bit assertions reproduced on clean development. Gate-5 complexity signal SKIPPED: slop-metrics reported tool=unavailable, so tsOverCcn is absent, not clean."
+}

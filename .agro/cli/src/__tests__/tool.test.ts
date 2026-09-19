@@ -67,6 +67,11 @@ function defaultRoot(home: { dir: string }): string {
   return join(home.dir, "workspaces", "default");
 }
 
+function seedWorkspace(path: string): string {
+  mkdirSync(join(path, ".git"), { recursive: true });
+  return path;
+}
+
 interface RecordedCall {
   cmd: string;
   args: string[];
@@ -654,11 +659,12 @@ describe("oh tool install — the sandbox argv is unchanged", () => {
 
 describe("oh tool install on the host", () => {
   it.each(HOST_INSTALLERS)(
-    "%s: clones the workspace and installs into the user's ~/.local",
+    "%s: uses the existing workspace and installs into the user's ~/.local",
     async (id, fingerprint) => {
       const repo = makeRepo();
       const home = emptyStateHome();
       const user = fakeHome();
+      seedWorkspace(defaultRoot(home));
       const { calls, run } = hostRunner(absentOnHost(findTool(id)!.binary));
       const { io, out } = makeIo();
 
@@ -679,7 +685,7 @@ describe("oh tool install on the host", () => {
         ),
       ).toBe(0);
 
-      expect(calls.filter((c) => c.cmd === "git")).toHaveLength(1);
+      expect(calls.filter((c) => c.cmd === "git")).toHaveLength(0);
       const install = installerCalls(calls).find((c) => c.args.join(" ").includes(fingerprint));
       expect(install, `${id} installer`).toBeDefined();
       expect(install!.env?.NPM_USER_PREFIX).toBe(user.prefix);
@@ -696,6 +702,7 @@ describe("oh tool install on the host", () => {
     const repo = makeRepo();
     const home = emptyStateHome();
     const user = fakeHome();
+    seedWorkspace(defaultRoot(home));
     const { run } = hostRunner(absentOnHost("herdr"));
 
     expect(
@@ -730,6 +737,7 @@ describe("oh tool install on the host", () => {
     const repo = makeRepo();
     const home = emptyStateHome();
     const user = fakeHome();
+    seedWorkspace(defaultRoot(home));
     const { run } = hostRunner((cmd, args) => {
       if (cmd === "bash" && args.join(" ").includes("NPM_USER_PREFIX")) {
         return { status: 7, stdout: "", stderr: "network unreachable" };
@@ -790,16 +798,49 @@ describe("oh tool install on the host", () => {
     expect(existsSync(hostConfigFile(home.dir))).toBe(false);
   });
 
-  it("asks for consent, then installs on yes", async () => {
+  it("refuses a host install when no workspace exists, naming the create door", async () => {
     const repo = makeRepo();
     const home = emptyStateHome();
     const user = fakeHome();
+    seedWorkspace(join(home.dir, "workspaces", "alpha"));
+    const { calls, run } = hostRunner(absentOnHost("herdr"));
+    const { io, err } = makeIo();
+
+    expect(
+      await runToolInstall(
+        "herdr",
+        {
+          bin: "oh",
+          cwd: repo,
+          run,
+          env: home.env,
+          homedir: user.homedir,
+          interactive: false,
+          host: true,
+          platform: LINUX,
+        },
+        io,
+      ),
+    ).toBe(1);
+    expect(hostText(err)).toContain(`oh tool: no AGRO workspace at ${defaultRoot(home)}`);
+    expect(hostText(err)).toContain("Workspaces that exist: alpha");
+    expect(hostText(err)).toContain("`oh workspace create <name>`");
+    expect(calls.filter((c) => c.cmd === "git")).toHaveLength(0);
+    expect(installerCalls(calls)).toEqual([]);
+    expect(existsSync(hostConfigFile(home.dir))).toBe(false);
+  });
+
+  it("asks for consent only, then installs on yes", async () => {
+    const repo = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    seedWorkspace(defaultRoot(home));
     const { calls, run } = hostRunner(absentOnHost("herdr"));
     const asked: string[] = [];
     const { io } = makeIo();
     io.ask = async (q) => {
       asked.push(q);
-      return q.startsWith("Harness root") ? "" : "y";
+      return "y";
     };
 
     expect(
@@ -817,7 +858,9 @@ describe("oh tool install on the host", () => {
         io,
       ),
     ).toBe(0);
+    expect(asked).toHaveLength(1);
     expect(asked[0]).toContain("Install Herdr on the host?");
+    expect(asked.some((q) => q.startsWith("Harness root"))).toBe(false);
     expect(installerCalls(calls)).toHaveLength(1);
   });
 
@@ -873,7 +916,7 @@ describe("oh tool install on the host", () => {
         io,
       ),
     ).toBe(0);
-    expect(hostText(out)).toContain("host workspace reused at");
+    expect(hostText(out)).toContain(`host workspace ${elsewhere}`);
     expect(readConfig(home.dir).harnessRoot).toBe(elsewhere);
   });
 
@@ -881,6 +924,7 @@ describe("oh tool install on the host", () => {
     const repo = makeRepo();
     const home = emptyStateHome();
     const user = fakeHome();
+    seedWorkspace(defaultRoot(home));
     const { calls, run } = hostRunner();
     const { io, out } = makeIo();
 
@@ -902,6 +946,75 @@ describe("oh tool install on the host", () => {
     ).toBe(0);
     expect(hostText(out)).toContain("herdr: already installed (herdr)");
     expect(installerCalls(calls)).toEqual([]);
+  });
+});
+
+describe("oh tool install on the host — an already-installed tool still records the root", () => {
+  it("records harnessRoot but no receipt", async () => {
+    const repo = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    const elsewhere = mkdtempSync(join(tmpdir(), "oh-tool-recorded-"));
+    cleanups.push(elsewhere);
+    seedWorkspace(elsewhere);
+    const { calls, run } = hostRunner();
+    const { io, out } = makeIo();
+
+    expect(
+      await runToolInstall(
+        "herdr",
+        {
+          bin: "oh",
+          cwd: repo,
+          run,
+          env: home.env,
+          homedir: user.homedir,
+          interactive: false,
+          path: elsewhere,
+          platform: LINUX,
+        },
+        io,
+      ),
+    ).toBe(0);
+    expect(hostText(out)).toContain("herdr: already installed (herdr)");
+    const config = readConfig(home.dir) as Record<string, unknown>;
+    expect(config.harnessRoot).toBe(elsewhere);
+    expect(config.hostTools).toBeUndefined();
+    expect(installerCalls(calls)).toEqual([]);
+  });
+
+  it("rewrites nothing when the selection is unchanged", async () => {
+    const repo = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    const elsewhere = mkdtempSync(join(tmpdir(), "oh-tool-recorded-"));
+    cleanups.push(elsewhere);
+    seedWorkspace(elsewhere);
+    writeFileSync(
+      hostConfigFile(home.dir),
+      `${JSON.stringify({ version: 1, harnessRoot: elsewhere }, null, 2)}\n`,
+    );
+    const before = readFileSync(hostConfigFile(home.dir), "utf8");
+    const { run } = hostRunner();
+    const { io } = makeIo();
+
+    expect(
+      await runToolInstall(
+        "herdr",
+        {
+          bin: "oh",
+          cwd: repo,
+          run,
+          env: home.env,
+          homedir: user.homedir,
+          interactive: false,
+          path: elsewhere,
+          platform: LINUX,
+        },
+        io,
+      ),
+    ).toBe(0);
+    expect(readFileSync(hostConfigFile(home.dir), "utf8")).toBe(before);
   });
 });
 
@@ -1181,6 +1294,7 @@ describe("a host with no container runtime", () => {
     const repo = makeRepo();
     const home = emptyStateHome();
     const user = fakeHome();
+    seedWorkspace(defaultRoot(home));
     const { calls, run } = absentRunner(absentOnHost("herdr"));
     const { io, out } = makeIo();
 
@@ -1200,7 +1314,7 @@ describe("a host with no container runtime", () => {
         io,
       ),
     ).toBe(0);
-    expect(calls.filter((c) => c.cmd === "git")).toHaveLength(1);
+    expect(calls.filter((c) => c.cmd === "git")).toHaveLength(0);
     expect(hostText(out)).toContain(`herdr: installed at ${user.prefix}`);
   });
 
