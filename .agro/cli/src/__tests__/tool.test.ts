@@ -949,6 +949,75 @@ describe("oh tool install on the host", () => {
   });
 });
 
+describe("oh tool install on the host — an already-installed tool still records the root", () => {
+  it("records harnessRoot but no receipt", async () => {
+    const repo = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    const elsewhere = mkdtempSync(join(tmpdir(), "oh-tool-recorded-"));
+    cleanups.push(elsewhere);
+    seedWorkspace(elsewhere);
+    const { calls, run } = hostRunner();
+    const { io, out } = makeIo();
+
+    expect(
+      await runToolInstall(
+        "herdr",
+        {
+          bin: "oh",
+          cwd: repo,
+          run,
+          env: home.env,
+          homedir: user.homedir,
+          interactive: false,
+          path: elsewhere,
+          platform: LINUX,
+        },
+        io,
+      ),
+    ).toBe(0);
+    expect(hostText(out)).toContain("herdr: already installed (herdr)");
+    const config = readConfig(home.dir) as Record<string, unknown>;
+    expect(config.harnessRoot).toBe(elsewhere);
+    expect(config.hostTools).toBeUndefined();
+    expect(installerCalls(calls)).toEqual([]);
+  });
+
+  it("rewrites nothing when the selection is unchanged", async () => {
+    const repo = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    const elsewhere = mkdtempSync(join(tmpdir(), "oh-tool-recorded-"));
+    cleanups.push(elsewhere);
+    seedWorkspace(elsewhere);
+    writeFileSync(
+      hostConfigFile(home.dir),
+      `${JSON.stringify({ version: 1, harnessRoot: elsewhere }, null, 2)}\n`,
+    );
+    const before = readFileSync(hostConfigFile(home.dir), "utf8");
+    const { run } = hostRunner();
+    const { io } = makeIo();
+
+    expect(
+      await runToolInstall(
+        "herdr",
+        {
+          bin: "oh",
+          cwd: repo,
+          run,
+          env: home.env,
+          homedir: user.homedir,
+          interactive: false,
+          path: elsewhere,
+          platform: LINUX,
+        },
+        io,
+      ),
+    ).toBe(0);
+    expect(readFileSync(hostConfigFile(home.dir), "utf8")).toBe(before);
+  });
+});
+
 describe("oh tool install — the per-entry host gate", () => {
   it.each(NOT_HOST_CAPABLE)("%s: refuses the host with its own reason", async (id, reason) => {
     const repo = makeRepo();

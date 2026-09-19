@@ -228,3 +228,85 @@ $ git diff --stat
   cited the pre-wave-1 positions 490 and 492. The knowledge page cites the correct current lines.
 
 2026-09-19 T2 ACCEPTED. US-007 (as amended) and US-008 pass. Both knowledge pages: UPDATED.
+
+=== T1 repair: record harnessRoot on the already-installed host path — 2026-09-19 ===
+
+Fix: both `installOnHost` functions now call a new local `recordWorkspaceSelection(root,
+env, home)` on the already-installed early return, before `return 0`. It writes only
+`harnessRoot`; `hostHarnesses` and `hostTools` are untouched on that path, because
+nothing was installed. It is a no-op when `resolve(config.harnessRoot) === root`, so a
+repeated invocation does not rewrite the file. A write failure prints
+`${bin} <verb>: could not record the harness root: …` and returns 1. No restructuring
+was needed — 10 added lines per file plus a `resolve` import.
+
+$ pnpm typecheck
+> @mifune/agro@0.12.2 typecheck
+> tsc --noEmit
+exit=0
+
+$ pnpm test 2>&1 | tail -5
+      Tests  6 failed | 1646 passed | 4 skipped (1656)
+   Start at  16:11:17
+   Duration  34.86s (transform 5.47s, setup 0ms, import 12.70s, tests 84.35s, environment 18ms)
+ ELIFECYCLE  Command failed with exit code 1.
+exit=1
+
+The six are the pre-existing environment-bound failures and nothing else:
+ FAIL  .agro/cli/src/__tests__/self-upgrade.test.ts > … from an empty directory …
+ FAIL  .agro/cli/src/__tests__/self-upgrade.test.ts > … inside an equipped checkout …
+ FAIL  .agro/cli/src/lib/__tests__/host-config.test.ts > writeHostConfig > writes the file with mode 0644
+ FAIL  .agro/cli/src/lib/__tests__/migrate.test.ts > applyMigration > … preserves the file mode
+ FAIL  .agro/cli/src/lib/__tests__/oh-config.test.ts > round trip > writes oh.json world-readable …
+ FAIL  .agro/scripts/__tests__/get-agro.test.ts > get-agro.sh static contract > is executable and shebanged
+The T1 docs-sync assertion is now green: T2's docs landed at 5525121b.
+
+$ bash .agro/evals/probes/host-workspace-door.sh; echo "exit=$?"
+PASS: the workspace verb is in the CLI help and the lifecycle reference, neither host
+install path creates a workspace, both route their refusal through
+resolveExistingWorkspace, and that refusal names the workspace create door (text check
+only; runtime behavior unverified)
+exit=0
+
+New cases (5):
+  harness.test.ts  records harnessRoot but no receipt when the harness is already installed
+  harness.test.ts  rewrites nothing when the already-installed selection is unchanged
+  tool.test.ts     records harnessRoot but no receipt
+  tool.test.ts     rewrites nothing when the selection is unchanged
+  workspace.test.ts  marks the workspace an already-installed host install selected
+                     (drives runHarnessInstall, then asserts `list` reports beta default)
+
+Host repro against a throwaway AGRO_HOME with two real clones as workspaces:
+  $ agro harness install codex --host --workspace beta
+  host workspace /tmp/tmp.UssDP9IDCJ/workspaces/beta
+  Providers OK: .agents/.claude skills -> .agro/skills (vendored pack present)
+  codex: already installed (codex)
+  $ cat $AGRO_HOME/config.json
+  { "version": 1, "harnessRoot": "/tmp/tmp.UssDP9IDCJ/workspaces/beta" }
+  $ agro workspace list
+  WORKSPACE  DEFAULT  PATH
+  alpha      no       /tmp/tmp.UssDP9IDCJ/workspaces/alpha
+  beta       yes      /tmp/tmp.UssDP9IDCJ/workspaces/beta
+  $ # rerun the same command
+  config byte-identical on rerun; mtime unchanged (2026-09-19 16:12:04.866848241)
+  $ agro harness install codex --host      # no --workspace
+  codex: already installed (codex)
+  exit=0
+
+2026-09-19 advisor acceptance of the T1 repair (independent re-verification):
+  - write scope: harness.ts, tool.ts, and the three test files; plus .agro/evals/RESULTS.md, which
+    the ADVISOR dirtied by running /eval, not the worker. The worker correctly flagged it as not
+    its own and left it alone.
+  - pnpm typecheck: exit 0
+  - pnpm test: 6 failed | 1646 passed | 4 skipped. Same six pre-existing file-mode / exec-bit
+    failures; +5 passing from the repair's new cases.
+  - host-workspace-door.sh: PASS, exit 0
+  - host re-run of the exact failing scenario, AGRO_HOME=/tmp/agro-e2e-1086:
+      harness install codex --host --workspace beta -> "codex: already installed (codex)"
+      config.json now { version 1, harnessRoot .../workspaces/beta } and NO hostHarnesses key,
+        so no install receipt was fabricated for a binary we did not install
+      workspace list -> beta marked DEFAULT yes
+      rerunning the same command left the file mtime unchanged (true no-op)
+      a bare `harness install codex --host` now resolves through the recorded root, exit 0,
+        instead of refusing
+  - VERDICT: repair ACCEPTED. The documented model - the two install paths are the only writers
+    of harnessRoot - is now true on every path, including the already-installed one.

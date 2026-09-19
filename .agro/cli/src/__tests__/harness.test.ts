@@ -1314,6 +1314,67 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
     expect(npmCalls(calls)).toEqual([]);
   });
 
+  it("records harnessRoot but no receipt when the harness is already installed", async () => {
+    const root = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    seedWorkspace(workspace(home, "beta"));
+    const { calls, run } = hostRunner();
+    const { out, io } = makeIo();
+
+    expect(
+      await runHarnessInstall(
+        "claude-code",
+        {
+          bin: "oh",
+          cwd: root,
+          run,
+          env: home.env,
+          homedir: user.homedir,
+          interactive: false,
+          workspace: "beta",
+        },
+        io,
+      ),
+    ).toBe(0);
+    expect(text(out)).toContain("claude-code: already installed (claude)");
+    const config = readConfig(home.dir) as Record<string, unknown>;
+    expect(config.harnessRoot).toBe(workspace(home, "beta"));
+    expect(config.hostHarnesses).toBeUndefined();
+    expect(npmCalls(calls)).toEqual([]);
+  });
+
+  it("rewrites nothing when the already-installed selection is unchanged", async () => {
+    const root = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    const beta = seedWorkspace(workspace(home, "beta"));
+    writeFileSync(
+      hostConfigFile(home.dir),
+      `${JSON.stringify({ version: 1, harnessRoot: beta }, null, 2)}\n`,
+    );
+    const before = readFileSync(hostConfigFile(home.dir), "utf8");
+    const { run } = hostRunner();
+    const { io } = makeIo();
+
+    expect(
+      await runHarnessInstall(
+        "claude-code",
+        {
+          bin: "oh",
+          cwd: root,
+          run,
+          env: home.env,
+          homedir: user.homedir,
+          interactive: false,
+          workspace: "beta",
+        },
+        io,
+      ),
+    ).toBe(0);
+    expect(readFileSync(hostConfigFile(home.dir), "utf8")).toBe(before);
+  });
+
   it("installs an on-demand harness nowhere", async () => {
     const root = makeRepo();
     const home = emptyStateHome();

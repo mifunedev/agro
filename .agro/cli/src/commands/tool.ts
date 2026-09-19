@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { delimiter, join } from "node:path";
+import { delimiter, join, resolve } from "node:path";
 import {
   ExecutionSpawnError,
   resolveExecutionTarget,
@@ -376,6 +376,17 @@ function hostCapableList(bin: string): string {
   return `Tools that install on the host:\n${hostCapableToolIds().map((t) => `  ${bin} tool install ${t} --host`).join("\n")}\n`;
 }
 
+function recordWorkspaceSelection(
+  root: string,
+  env: NodeJS.ProcessEnv,
+  home: string,
+): void {
+  const config = readHostConfig(env, home);
+  const recorded = config.harnessRoot;
+  if (typeof recorded === "string" && recorded !== "" && resolve(recorded) === root) return;
+  writeHostConfig({ ...config, harnessRoot: root }, env, home);
+}
+
 async function installOnHost(
   entry: ToolEntry,
   opts: ToolInstallOptions,
@@ -451,6 +462,12 @@ async function installOnHost(
 
   if (await probeInstalled(target, entry, undefined, installEnv) === true) {
     io.stdout(`${entry.id}: already installed (${entry.binary})\n`);
+    try {
+      recordWorkspaceSelection(root, env, home);
+    } catch (err) {
+      io.stderr(`${bin} tool: could not record the harness root: ${messageOf(err)}\n`);
+      return 1;
+    }
     return 0;
   }
 

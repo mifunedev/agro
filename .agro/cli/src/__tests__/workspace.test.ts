@@ -9,6 +9,8 @@ import {
   type WorkspaceIO,
 } from "../commands/workspace.js";
 import type { LifecycleRunner, RunResult } from "../lib/execution/runner.js";
+import { runHarnessInstall } from "../commands/harness.js";
+import { defaultOhConfig, ohConfigPath } from "../lib/oh-config.js";
 
 vi.mock("../cli.js", async (importOriginal) => {
   const original = process.exit;
@@ -345,6 +347,52 @@ describe("runWorkspaceCreate", () => {
       root: workspacePath(home, "alpha"),
       action: "cloned",
     });
+  });
+});
+
+describe("runWorkspaceList after a host install", () => {
+  it("marks the workspace an already-installed host install selected", async () => {
+    const home = emptyStateHome();
+    const user = fakeHome();
+    seedWorkspace(workspacePath(home, "alpha"));
+    seedWorkspace(workspacePath(home, "beta"));
+
+    const repo = mkdtempSync(join(tmpdir(), "agro-workspace-repo-"));
+    cleanups.push(repo);
+    mkdirSync(join(repo, ".oh", "scripts"), { recursive: true });
+    mkdirSync(join(repo, ".devcontainer"), { recursive: true });
+    writeFileSync(ohConfigPath(repo), `${JSON.stringify(defaultOhConfig("probe"), null, 2)}\n`);
+
+    const run: LifecycleRunner = (cmd, args): RunResult => {
+      if (cmd === "docker" && args[0] === "inspect") return { status: 0, stdout: "exited\n", stderr: "" };
+      return { status: 0, stdout: "", stderr: "" };
+    };
+
+    expect(
+      await runHarnessInstall(
+        "claude-code",
+        {
+          bin: "oh",
+          cwd: repo,
+          run,
+          env: home.env,
+          homedir: user.homedir,
+          interactive: false,
+          workspace: "beta",
+        },
+        { stdout: () => {}, stderr: () => {} },
+      ),
+    ).toBe(0);
+
+    const { out, io } = makeIo();
+    expect(
+      await runWorkspaceList({ bin: "oh", json: true, env: home.env, homedir: user.homedir }, io),
+    ).toBe(0);
+    const rows = JSON.parse(text(out)) as { name: string; default: boolean }[];
+    expect(rows).toEqual([
+      { name: "alpha", root: workspacePath(home, "alpha"), default: false },
+      { name: "beta", root: workspacePath(home, "beta"), default: true },
+    ]);
   });
 });
 
