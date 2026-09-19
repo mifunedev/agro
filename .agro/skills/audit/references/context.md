@@ -6,7 +6,7 @@ Score every file in the default-loaded context set on 4 deterministic dimensions
 
 | Layer | Files | Loaded how |
 |-------|-------|-----------|
-| Bootloader | `AGENTS.md` (`CLAUDE.md` is a symlink to it) | always |
+| Bootloader | `AGENTS.md` | always |
 | Skill metadata | frontmatter of all `**/SKILL.md` | always injected |
 
 ## Instructions

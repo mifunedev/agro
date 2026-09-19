@@ -29,7 +29,6 @@ on:
       - ".agro/evals/**"
       - ".agro/knowledge/**"
       - "AGENTS.md"
-      - "CLAUDE.md"
   pull_request:
     paths:
       - "packages/**"
@@ -54,7 +53,6 @@ on:
       - ".agro/evals/**"
       - ".agro/knowledge/**"
       - "AGENTS.md"
-      - "CLAUDE.md"
 
 concurrency:
   group: ci-harness-${{ github.ref }}

@@ -17,7 +17,7 @@ If either source or target cannot be inferred, ask one concise question listing 
 
 ## Step 1 — Read local context and target conventions
 
-1. Check applicable `AGENTS.md`/`CLAUDE.md` files for the target path and follow the most specific instructions.
+1. Check applicable agent instruction files for the target path and follow the most specific instructions.
 2. In the target repo, read:
    - `README.md`
    - package/config files that reveal framework and validation commands (`package.json`, Docusaurus config, etc.)

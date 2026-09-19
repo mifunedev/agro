@@ -57,7 +57,7 @@ The GHCR package `mifunedev/agro` must be public before consumers can pull the
 - TypeScript scripts are run via `tsx` from the root `package.json`
   scripts; tests run via `pnpm test`.
 - Scripts here are **orchestrator-scope only**. Anything an in-sandbox
-  agent needs lives under `.agro/install/`. Per `CLAUDE.md`, application code does
+  agent needs lives under `.agro/install/`. Per `AGENTS.md`, application code does
   not belong in `scripts/`.
 
 ## Adding a script

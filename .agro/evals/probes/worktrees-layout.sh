@@ -3,8 +3,7 @@
 # source: issue #872
 # desc: a repository keeps its worktrees at its own root in .worktrees/, and
 #       non-harness clones live at projects/<owner>/<repo>/. Both roots are
-#       gitignored except a tracked AGENTS.md guide and its CLAUDE.md
-#       provider-compatibility symlink, the retired
+#       gitignored except a tracked AGENTS.md guide, the retired
 #       .agro/worktrees/ root is gone, and the layout is a fixed convention:
 #       WORKTREES_DIR / PROJECTS_DIR / CRONS_DIR are retired and cannot move
 #       any of these roots.
@@ -30,20 +29,16 @@ for guide in ".worktrees/AGENTS.md" "projects/AGENTS.md"; do
 done
 
 tracked="$(git ls-files .worktrees projects)"
-expected=$'.worktrees/AGENTS.md\n.worktrees/CLAUDE.md\nprojects/AGENTS.md\nprojects/CLAUDE.md'
+expected=$'.worktrees/AGENTS.md\nprojects/AGENTS.md'
 if [[ "$tracked" != "$expected" ]]; then
-  echo "REGRESSION: .worktrees/ and projects/ must track exactly their AGENTS.md + CLAUDE.md alias; got:" >&2
+  echo "REGRESSION: .worktrees/ and projects/ must track exactly their AGENTS.md guide; got:" >&2
   printf '%s\n' "$tracked" >&2
   exit 1
 fi
 
 for alias in ".worktrees/CLAUDE.md" "projects/CLAUDE.md"; do
-  if [[ ! -L "$alias" ]]; then
-    echo "REGRESSION: $alias must be a symlink, not a copy" >&2
-    exit 1
-  fi
-  if [[ "$(readlink "$alias")" != "AGENTS.md" ]]; then
-    echo "REGRESSION: $alias must point at the sibling AGENTS.md, got: $(readlink "$alias")" >&2
+  if [[ -e "$alias" ]]; then
+    echo "REGRESSION: $alias is back — it suppresses the AGENTS.md fallback" >&2
     exit 1
   fi
 done

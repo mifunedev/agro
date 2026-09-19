@@ -15,10 +15,10 @@ fail() { echo "REGRESSION: $*" >&2; exit 1; }
 [[ -f $S && -x $S ]] || fail 'escalate script missing or not executable'
 [[ -f $SKILL ]] || fail 'escalate SKILL.md missing'
 [[ -f $ROOT/.agro/logs/AGENTS.md ]] || fail '.agro/logs/AGENTS.md missing — the log directory has no contract'
-[[ -L $ROOT/.agro/logs/CLAUDE.md && $(readlink "$ROOT/.agro/logs/CLAUDE.md") == AGENTS.md ]] \
-  || fail '.agro/logs/CLAUDE.md must be a symlink to the sibling AGENTS.md'
+[[ ! -e $ROOT/.agro/logs/CLAUDE.md ]] \
+  || fail '.agro/logs/CLAUDE.md is back — it suppresses the AGENTS.md fallback'
 grep -Fq '.agro/logs/*' "$ROOT/.gitignore" || fail '.agro/logs contents are not gitignored'
-for keep in '!.agro/logs/AGENTS.md' '!.agro/logs/CLAUDE.md'; do
+for keep in '!.agro/logs/AGENTS.md'; do
   grep -Fq "$keep" "$ROOT/.gitignore" || fail "$keep is not exempted from the ignore"
 done
 

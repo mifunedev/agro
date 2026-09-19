@@ -31,6 +31,10 @@ Host prerequisites: **Docker** (with the Compose plugin), **Git**, and
 when it is missing. Everything else — pnpm, Python, the agent CLIs — lives inside the
 sandbox.
 
+Project instructions live in `AGENTS.md`. Codex and Pi read that name natively.
+Claude Code reads it from **2.1.277**; an older release, and a session on
+Amazon Bedrock, Vertex or Foundry, reads no project instructions at all.
+
 ## The verbs
 
 | Verb | Runs |

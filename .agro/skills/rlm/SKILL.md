@@ -62,7 +62,7 @@ candidate answers a chunk yields. This skill never re-implements selection — i
 - **You need to *select* among candidates, not decompose an artifact.** That is
   `/weigh` directly.
 - **Sandbox application code.** `/rlm` is harness-infra substrate; it does not write
-  product code (the orchestrator boundary in `CLAUDE.md`).
+  product code (the orchestrator boundary in `AGENTS.md`).
 
 ## Result tag
 
