@@ -24,7 +24,9 @@ Canonical skills own reusable procedures. Documentation under `docs/` explains A
 | `projects/` | Independent repository clones; each keeps its own `.worktrees/`. |
 | `agro.json`, `.example.env` | Tracked non-secret settings and the secret-variable template. |
 
-Git ignores root `.env`; `.devcontainer/.env` links to it.
+Git ignores root `.env`.
+The checkout installer creates `.devcontainer/.env -> ../.env` for VS Code.
+Fresh clones do not contain that link.
 See [configuration](configuration.md) for configuration precedence and secrets.
 User-local `.agro/config.json` does not exist in a fresh clone.
 The compatibility resolver also supports older configuration paths.
