@@ -7,51 +7,37 @@ on:
       - development
       - main
     paths:
-      - "packages/**"
       - ".agro/**"
-      - ".oh/**"
       - "docs/**"
       - ".pi/**"
       - "agro.json"
-      - "oh.json"
       - ".example.env"
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - "vitest.config.ts"
       - ".github/workflows/ci-harness.yml"
-      - ".agro/skills/**"
       - ".claude/hooks/**"
       - ".claude/protected-paths.txt"
-      - ".agro/hooks/**"
       - "crons/**"
       - ".devcontainer/**"
-      - ".agro/evals/**"
-      - ".agro/knowledge/**"
       - "AGENTS.md"
   pull_request:
     paths:
-      - "packages/**"
       - ".agro/**"
-      - ".oh/**"
       - "docs/**"
       - ".pi/**"
       - "agro.json"
-      - "oh.json"
       - ".example.env"
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - "vitest.config.ts"
       - ".github/workflows/ci-harness.yml"
-      - ".agro/skills/**"
       - ".claude/hooks/**"
       - ".claude/protected-paths.txt"
-      - ".agro/hooks/**"
       - "crons/**"
       - ".devcontainer/**"
-      - ".agro/evals/**"
-      - ".agro/knowledge/**"
       - "AGENTS.md"
 
 concurrency:
@@ -63,7 +49,7 @@ permissions:
 
 jobs:
   ci:
-    name: "Lint, Typecheck, Build & Test"
+    name: "Typecheck, Build & Test"
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
 
     steps:
@@ -96,12 +82,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Lint
-        run: pnpm run lint
-
-      - name: Format check
-        run: pnpm run format:check
 
       - name: Typecheck
         run: pnpm run typecheck

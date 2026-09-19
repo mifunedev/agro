@@ -27,12 +27,19 @@ has_regex '^[[:space:]]*contents:[[:space:]]*read[[:space:]]*$' "read-only conte
 has_regex '^[[:space:]]*pull_request:[[:space:]]*$' "pull_request trigger"
 has_regex '^[[:space:]]*workflow_dispatch:[[:space:]]*$' "manual trigger"
 has '".devcontainer/**"' "devcontainer path filter"
-has '".agro/**"' "oh path filter"
-has '"packages/oh/**"' "oh package path filter"
-has '".agro/scripts/docker-compose.sh"' "compose wrapper path filter"
-has '".agro/scripts/sandbox-boot-smoke.sh"' "boot smoke helper path filter"
-has '".agro/scripts/harness-config.sh"' "harness config helper path filter"
+has '".agro/cli/**"' "baked CLI path filter"
+has '".agro/scripts/**"' "boot-script path filter"
+has '".agro/install/**"' "home-seed install path filter"
 has '"agro.json"' "agro.json path filter"
+if grep -Eq '^[[:space:]]*-[[:space:]]*"\.agro/\*\*"[[:space:]]*$' <<<"$text"; then
+  missing+=("boot guard uses the broad .agro/** filter — image rebuilds would run for every control-plane edit")
+fi
+if grep -Fq -- '"packages/oh/**"' <<<"$text"; then
+  missing+=("boot guard still names the deleted packages/oh/** tree")
+fi
+if grep -Fq -- '".oh/**"' <<<"$text" || grep -Fq -- '"oh.json"' <<<"$text"; then
+  missing+=("boot guard still names a retired .oh/ or oh.json path")
+fi
 has '".example.env"' "secrets template path filter"
 if grep -Fq -- '".devcontainer/.example.env"' <<<"$text"; then
   missing+=("path filter still names the retired .devcontainer/.example.env")
