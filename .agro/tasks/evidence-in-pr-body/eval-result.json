@@ -1,0 +1,8 @@
+{
+  "commit": "32d03ac9804ba23fffc0885db09cf93636ef0977",
+  "runnerExit": 0,
+  "ranAt": "2026-09-19T18:30:26Z",
+  "newRegressions": [],
+  "preExistingReds": [],
+  "evidence": "156 probes, runner exit 0, no PASS->REGRESSION. Two probes improved (oh-config-surfaces, skills-vendored: REGRESSION->PASS). Three environment SKIPPED against the committed baseline (cc-safety-net-wiring, compose-config-path-parity, debugmcp-availability) - sandbox lacks those subjects. Two new probes new-pass: spec-task-artifact-contract, audit-tooling-blocked-signal. Unit suite: 6 failed | 1614 passed, exactly the sandbox file-mode baseline."
+}

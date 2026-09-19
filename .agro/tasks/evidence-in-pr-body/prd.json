@@ -16,7 +16,7 @@
         "`grep -c 'evidence\\.md' .agro/skills/spec/references/execute.md` returns 0"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "Covers D1"
     },
     {
@@ -29,7 +29,7 @@
         "`grep -rln 'evidence\\.md' .agro/skills/` returns only past-tense descriptions of the retirement"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Covers D2"
     },
     {
@@ -42,7 +42,7 @@
         "No probe was weakened to pass"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Covers D3"
     },
     {
@@ -56,7 +56,7 @@
         "The injected fault is diff-confirmed before the red result is trusted"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Covers D4"
     },
     {
@@ -70,7 +70,7 @@
         "Probe exits 0, and exits 1 under diff-confirmed injection"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Covers D5"
     },
     {
@@ -83,7 +83,7 @@
         "changelog-entry-length.sh prints PASS"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Covers D7"
     },
     {
@@ -98,7 +98,7 @@
         "The PR is not merged"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Covers D6, D8"
     }
   ]
