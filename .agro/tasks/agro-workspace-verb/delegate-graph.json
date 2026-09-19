@@ -81,7 +81,7 @@
           "dependsOn": [
             "T1"
           ],
-          "status": "pending",
+          "status": "completed",
           "coveredDoD": [
             "D5",
             "D9"
@@ -90,7 +90,9 @@
             "W3"
           ],
           "workerType": "general-purpose",
-          "continuationMethod": "SendMessage"
+          "continuationMethod": "SendMessage",
+          "acceptance": "ACCEPTED 2026-09-19; advisor re-ran probe, changelog probe, wiki index probe, suite, and an ste baseline at 4ef3b179",
+          "usage": "114536 subagent tokens, 35 tool uses, 275s"
         },
         {
           "id": "A1",
@@ -98,7 +100,7 @@
           "dependsOn": [
             "T2"
           ],
-          "status": "pending",
+          "status": "running",
           "coveredDoD": [
             "D4",
             "D6",

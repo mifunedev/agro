@@ -2,9 +2,9 @@
 title: "Fresh-Machine Setup Flow"
 slug: fresh-machine-setup
 kind: repo
-tags: [setup, onboarding, installation, agro, registry, gateway, ssh, github, slack]
+tags: [setup, onboarding, installation, agro, registry, workspace, host-install, gateway, ssh, github, slack]
 created: 2026-07-02
-updated: 2026-09-11
+updated: 2026-09-19
 sources:
   - README.md
   - docs/quickstart.md
@@ -18,11 +18,15 @@ sources:
   - .devcontainer/entrypoint.sh
   - .devcontainer/Dockerfile
   - .agro/cli/src/commands/harness.ts
+  - .agro/cli/src/commands/tool.ts
+  - .agro/cli/src/commands/workspace.ts
+  - .agro/cli/src/lib/host-workspace.ts
+  - docs/harnesses/overview.md
   - .agro/scripts/link-providers.sh
   - .agro/scripts/hermes-install-smoke.sh
   - .agro/scripts/gateway.sh
   - .agro/scripts/get-agro.sh
-verified_at: 5d48b5f601c28748a37fb3d14a475bbf4b08f81e
+verified_at: 4ef3b1796de7237802b4045abcb6970b1fc2717a
 related: [sandbox-dependency-installs, oh-cli-portable-lifecycle]
 confidence: provisional
 ---
@@ -41,6 +45,7 @@ confidence: provisional
 - `docs/integrations/slack.md`, `docs/harnesses/hermes.md` — Slack config + gateway run/verify.
 - `.devcontainer/entrypoint.sh` — auto SSH keygen + pubkey upload when `GH_TOKEN` carries `admin:public_key`.
 - `.devcontainer/Dockerfile`, `.agro/cli/src/commands/harness.ts`, `.agro/scripts/link-providers.sh` — Hermes runtime home and immediate shared-skill integration.
+- `.agro/cli/src/commands/workspace.ts`, `.agro/cli/src/lib/host-workspace.ts`, `docs/harnesses/overview.md` — the **host** alternative to the sandbox path: the workspace door and the install refusal that points at it.
 - `.agro/scripts/gateway.sh` — sandbox-only lifecycle for the sibling `client-slack-pi` / `client-slack-hermes` sessions.
 
 ## Summary
@@ -120,6 +125,8 @@ host, where browser-redirect OAuth typically fails; explicit `--device-auth` fla
 remains the documented default. **DebugMCP** is a separate, optional cross-harness MCP
 debugging capability, enabled by the VS Code attach-to-container route; any MCP-capable
 harness can drive it.
+
+**The host path is the off-sandbox alternative, and since #1086 it creates nothing.** When no sandbox is reachable, `agro harness install <id> --host` and `agro tool install <id> --host` install into the host's own `~/.local` and run from an AGRO checkout called a **host workspace**. That checkout is no longer a side effect of the install: the wizard that asked `Workspace name [default]:` is gone, and the operator now runs `agro workspace create [<name>]` first, which clones into `~/.agro/workspaces/<name>` (`.agro/cli/src/commands/workspace.ts`). A host install with no such checkout exits 1, lists every workspace that exists, and names `agro workspace create` (`resolveExistingWorkspace`, `.agro/cli/src/lib/host-workspace.ts:145-173`). A successful host install still records the root as `harnessRoot` (`.agro/cli/src/commands/harness.ts:473`), so later host installs reuse it. Commands and precedence live in `docs/harnesses/overview.md` and `docs/lifecycle-commands.md`; cite them, do not restate them ([[oh-cli-portable-lifecycle]]).
 
 **GitHub is a prerequisite, not a step in the middle.** Local sandbox use stays
 available with no GitHub account; pushing, creating a repository, and opening a pull

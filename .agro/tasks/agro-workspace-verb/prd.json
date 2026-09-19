@@ -112,12 +112,12 @@
         "Rewrite the three passages in `docs/harnesses/overview.md` that describe the removed wizard: `:36-44`, `:77-86`, and `:118-124`",
         "Leave `README.md` unchanged, because it states nothing about host workspace creation",
         "Add one `### Added` entry and one `### Changed` entry under `## [Unreleased]` in `CHANGELOG.md`, each one imperative sentence of 250 characters or fewer linking issue #1086",
-        "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md docs/harnesses/overview.md` reports 0 findings",
-        "`bash .agro/evals/probes/changelog-entry-length.sh` prints PASS"
+        "`bash .agro/evals/probes/changelog-entry-length.sh` prints PASS",
+        "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md docs/harnesses/overview.md` reports no finding introduced by this build, and the total does not rise above the 47 measured at commit 4ef3b179"
       ],
       "priority": 7,
       "passes": false,
-      "notes": "Covers D5."
+      "notes": "Covers D5. The original criterion demanded 0 ste-check findings across both whole documents; the advisor amended it on 2026-09-19 after measuring a 47-finding pre-existing baseline unrelated to #1086. See progress.txt."
     },
     {
       "id": "US-008",
