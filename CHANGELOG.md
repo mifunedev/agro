@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.12.3] - 2026-09-19
+
 ### Added
 
 - Add `agro workspace create [<name>]` and `agro workspace list`, so an operator creates and inspects a host AGRO workspace under `~/.agro/workspaces/` without installing a harness ([#1086](https://github.com/mifunedev/agro/issues/1086)).
