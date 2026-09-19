@@ -1,3 +1,95 @@
 # progress
 
 2026-09-19 plan: base commit cf35b316acccc03092d8f8da97fe2a50d9b12a1f; queries "cli lifecycle host workspace registry" and "cli evals probes docs --patterns"; read [[oh-cli-portable-lifecycle]], [[fresh-machine-setup]], [[pattern-evals-product-name-literal-pinning]], [[pattern-evals-unexercised-oracle]], [[pattern-evals-probe-failure-path-untested]], [[pattern-evals-negation-must-govern-token]]; architecture-significance judged NOT significant (RFC #1070 plus a recorded council round already performed the structural deliberation); source plan .agro/plans/agro-workspace-verb/plan.md; Intent preserved YES; Orchestration preserved YES; three grounding constraints recorded from recalled patterns; scaffolded prd.md, prd.json (9 stories), progress.txt
+
+=== T1 verification (worker report; not acceptance) — 2026-09-19 ===
+
+$ pnpm typecheck
+> agro@0.12.2 typecheck /home/reggz/.agro/workspaces/agro/.worktrees/feat/1086-agro-workspace-verb
+> (test -d .agro/cli/node_modules || npm --prefix .agro/cli ci --ignore-scripts) && npm --prefix .agro/cli run typecheck
+> @mifune/agro@0.12.2 typecheck
+> tsc --noEmit
+exit=0
+
+$ pnpm test
+      Tests  7 failed | 1640 passed | 4 skipped (1651)
+ Test Files  6 failed | 76 passed | 1 skipped (83)
+ FAIL  .agro/cli/src/__tests__/self-upgrade.test.ts > runSelfUpgrade — standalone > upgrades older → newer from an empty directory without touching project or registry state
+ FAIL  .agro/cli/src/__tests__/self-upgrade.test.ts > runSelfUpgrade — standalone > upgrades older → newer inside an equipped checkout without touching project or registry state
+ FAIL  .agro/cli/src/__tests__/workspace.test.ts > help > documents the verb in the lifecycle reference
+ FAIL  .agro/cli/src/lib/__tests__/host-config.test.ts > writeHostConfig > writes the file with mode 0644
+ FAIL  .agro/cli/src/lib/__tests__/migrate.test.ts > applyMigration > applies caller-supplied literal rewrites deterministically and preserves the file mode
+ FAIL  .agro/cli/src/lib/__tests__/oh-config.test.ts > round trip > writes oh.json world-readable — it is a tracked, non-secret file
+ FAIL  .agro/scripts/__tests__/get-agro.test.ts > get-agro.sh static contract > is executable and shebanged
+exit=1
+
+Baseline on the same tree with T1 stashed: 6 failed | 1614 passed | 4 skipped.
+The six are pre-existing and environment-bound (file-mode and exec-bit assertions).
+The one T1 failure is `workspace.test.ts > help > documents the verb in the lifecycle
+reference` — the docs-sync assertion required by US-005. `docs/lifecycle-commands.md`
+is T2's write path, so this assertion stays red until T2 lands the docs. It was not
+weakened.
+
+$ ! grep -q 'ensureHostWorkspace(' .agro/cli/src/commands/harness.ts .agro/cli/src/commands/tool.ts; echo "absent=$?"
+absent=0
+
+$ bash .agro/evals/probes/host-workspace-door.sh; echo "exit=$?"
+REGRESSION: the host workspace door is broken; issues:
+  - docs/lifecycle-commands.md documents no `workspace create` or `workspace list` verb
+exit=1
+
+Same cause: assertion (b) of the probe waits on T2's docs. Every other oracle is green.
+A scratch copy of the five inspected files with one docs table row added reaches a full
+PASS:
+PASS: the workspace verb is in the CLI help and the lifecycle reference, neither host
+install path creates a workspace, both route their refusal through
+resolveExistingWorkspace, and that refusal names the workspace create door (text check
+only; runtime behavior unverified)
+exit=0
+
+Fault injection (each injection confirmed with diff before the probe ran):
+  - restore `ensureHostWorkspace(` in commands/harness.ts (in-tree, git diff confirmed):
+      REGRESSION: ... commands/harness.ts calls `ensureHostWorkspace(` — a host install
+      must create no workspace
+      exit=1
+  - restore `ensureHostWorkspace(` in commands/tool.ts (scratch tree): exit=1, named
+  - delete the `workspace` line from printOhHelp (scratch tree): exit=1, named
+  - strip `workspace create` from the shared refusal (scratch tree): exit=1, named
+  - drop `resolveExistingWorkspace(` from commands/harness.ts (scratch tree): exit=1, named
+Every failure branch printed its message and exited 1, never 127.
+
+Hazard hit and recovered: `git checkout -- .agro/cli/src/commands/harness.ts` after the
+in-tree injection reverted the file to HEAD, discarding the uncommitted decoupling as
+well as the fault. The decoupled file was restored from a copy taken before the
+injection, and the probe plus the suite were re-run against the restored file. Commit
+before the next in-tree fault injection.
+
+2026-09-19 advisor acceptance of T1 (independent re-verification, not the worker's report):
+  - write scope: git status shows exactly the nine owned paths plus progress.txt; no out-of-scope write
+  - pnpm typecheck: exit 0
+  - ! grep -q 'ensureHostWorkspace(' harness.ts tool.ts: absent=0
+  - probe host-workspace-door.sh: exit 1, ONE issue, the docs/lifecycle-commands.md check (T2 write path); the other four checks pass
+  - pnpm test WITH T1:      7 failed | 1640 passed | 4 skipped
+  - pnpm test baseline on clean development (measured by the advisor, main clone, 0 dirty files):
+                            7 failed | 1613 passed | 4 skipped
+  - failure-set diff: 6 failures common to both, all file-mode / exec-bit assertions bound to this
+    sandbox's umask (host-config 0644, oh-config 0644, migrate 0755, get-agro exec bit,
+    self-upgrade x2). Baseline additionally fails cli-first-install-smoke
+    "refuses --bootstrap-without-node when node is present", which does NOT fail with T1 applied -
+    that test is flaky between runs in this environment. T1 introduces exactly ONE new failure:
+    workspace.test.ts > help > documents the verb in the lifecycle reference, which is the
+    deliberate known-red awaiting T2's docs edit. +27 newly passing tests.
+  - NOTE: the worker reported its baseline as 6 failed | 1614 passed; the advisor measured
+    7 failed | 1613 passed. The difference is the flaky cli-first-install-smoke case. The verdict
+    is unchanged: one new failure, known and scheduled.
+  - NOTE: the husky pre-commit hook (pnpm run lint && pnpm run test) is NOT active in this worktree;
+    pnpm install ran with build scripts ignored, so husky never installed and core.hooksPath is
+    unset. The hook could not pass in this sandbox regardless, because clean development already
+    fails 7 tests here on file-mode assertions. CI is the real gate for this branch.
+  - code review: probe carries the machine-read tier/source/desc header, resolves ROOT from
+    BASH_SOURCE, guards SKIPPED on five files, pins the product set on every source and prose
+    check, escapes backticks in every problems+=() message, and states in its own desc that it is
+    a text check with runtime behavior unverified. commands/workspace.ts carries no explanatory
+    comments. Non-header comments in the probe match house style (advisor-execution-contract.sh).
+  - VERDICT: T1 ACCEPTED. US-001..US-006 pass except the single docs-dependent assertion carried
+    into wave 2.

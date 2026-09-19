@@ -1,0 +1,3 @@
+2026-09-19 wave 1 open: T1 implementation+tests+probe; worktree .worktrees/feat/1086-agro-workspace-verb; general-purpose; Opus/high; deps installed (pnpm install, npm ci in .agro/cli)
+2026-09-19 T1 reported complete; advisor independently re-verified typecheck, write scope, probe, and both suites
+2026-09-19 T1 ACCEPTED; wave 1 closed; one known-red docs assertion carried to wave 2
