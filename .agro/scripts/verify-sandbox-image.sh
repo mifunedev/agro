@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-# Verify a built sandbox image: base distribution, apt suites, the sandbox
-# UID/GID contract, the Node/pnpm pins, and version output from every baked-in
-# tool; that no catalog entry the CLI can install is baked into it; and that
-# every kind:"baked-in" tool actually is.
-# Usage: verify-sandbox-image.sh <image-ref>
 
 set -euo pipefail
 
@@ -83,9 +78,6 @@ else
   fail "agro --version ('$agro_version') and oh --version ('$oh_version') must be the same non-empty version"
 fi
 
-# Under emulation `docker run` prefixes its output with a platform-mismatch
-# warning on stderr. Drop it so the reported line is the tool's own version,
-# not the runner's complaint about the architecture.
 first_real_line() {
   grep -vE "^WARNING: The requested image's platform" | grep -m1 -E '[^[:space:]]' || true
 }
@@ -108,13 +100,24 @@ for tool in "gh --version" "docker --version" "docker compose version" \
   fi
 done
 
-# The image must ship no entry that carries an installArgv: every harness, and
-# every kind:"installable" tool. Each one is installed into /home/sandbox/.local
-# through `oh harness install` / `oh tool install`, and a copy baked into a
-# system path shadows that install with one no running sandbox can upgrade. The
-# catalogs inside the image are the source of truth, so this cannot drift from
-# the TypeScript. Tools that are kind:"baked-in" carry no installArgv and are
-# checked by the inverse below instead.
+if python_out=$(docker run --rm --network none --entrypoint /bin/bash "$IMAGE" -c '
+  set -euo pipefail
+  cp -a /opt/home-seed/. /home/sandbox/
+  exec gosu sandbox env -i HOME=/home/sandbox USER=sandbox UV_OFFLINE=1 \
+    PATH=/home/sandbox/.local/bin:/usr/local/bin:/usr/bin:/bin \
+    bash --noprofile --norc -c '\''
+      set -euo pipefail
+      bash /opt/agro-seed/.agro/scripts/provision-python.sh --verify
+      python -c "import sys; assert sys.version_info[:2] == (3, 13)"
+      python3 -c "import sys; assert sys.version_info[:2] == (3, 13)"
+      /home/sandbox/.local/share/oh/kernel/bin/python -c "import sys, ipykernel; assert sys.version_info[:2] == (3, 13)"
+    '\''
+' 2>&1); then
+  ok "seeded sandbox defaults and kernel use Python 3.13 (ipykernel present)"
+else
+  fail "seeded sandbox Python verification failed: $python_out"
+fi
+
 check_nothing_baked() {
   local noun="$1" cmd="$2" filter="$3" json ids baked
 
@@ -144,8 +147,6 @@ else
   fail "jq is required to read the image's harness and tool catalogs"
 fi
 
-# The inverse for tools: a kind:"baked-in" tool must actually be present, or the
-# check above is passing because the image is simply missing everything.
 if command -v jq >/dev/null 2>&1; then
   if baked_json=$(run "cd /opt/agro-seed && OH_EXECUTION_TARGET=local oh tool list --json" 2>/dev/null); then
     absent=$(jq -r '.[] | select(.kind == "baked-in" and .installed != true) | .id' <<<"$baked_json")
