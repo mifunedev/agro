@@ -146,7 +146,7 @@ protect.
 2. Name the route file and its story range. Example: `prd.md`, US-001 through
    US-016.
 3. Define done: the named command ran, the expected result appeared, and the
-   output landed in `evidence.md` under its D-ID.
+   output landed in the PR body under its D-ID.
 4. Name the escalation triggers from Duty 5.
 5. List every criterion the run already meets.
 6. State every fact the advisor cannot read from a file. Example: the database
@@ -349,8 +349,8 @@ The compaction drops tool output and file dumps. Re-anchor the advisor
 afterward by pointing at the files. A file read costs less than a file dump
 that survived the compaction.
 
-Durable state belongs in files. An advisor that appends `progress.txt` and
-`evidence.md` once per story loses little to a compaction.
+Durable state belongs outside the session. An advisor that appends `progress.txt`
+once per story and keeps the PR body current loses little to a compaction.
 
 ## Duty 5 — escalate
 

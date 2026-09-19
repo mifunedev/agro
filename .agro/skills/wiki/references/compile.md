@@ -51,7 +51,7 @@ that gap without touching `/retro`, whose report-only contract is guarded by
 |----------|---------|
 | *(none)* | Consume the `/retro` report already present in the current session's context. This is the normal path — `/retro` writes no file, so its report exists only as terminal output. |
 | `--from <path>` | Read the report from a file: an operator-saved copy, or a sub-agent draft at `$TMPDIR/oh-wiki-drafts/<slug>.md`. |
-| `--task <slug>` | Scope to `.agro/tasks/<slug>/`. Used to derive pinned-evidence `sources:` paths and to read `prd.md`, `progress.txt`, and `evidence.md` as corroborating evidence. |
+| `--task <slug>` | Scope to `.agro/tasks/<slug>/`. Used to derive pinned-evidence `sources:` paths and to read `prd.md` and `progress.txt` as corroborating evidence. The run's reviewer evidence lives in the PR body, not in the task folder. |
 | `--dry-run` | Print the proposed create-or-patch for each target page. Write nothing. |
 
 The interface is locked; adding a flag requires editing this reference and

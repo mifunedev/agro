@@ -1,3 +1,100 @@
 # progress
 
 2026-09-19 plan: base commit cf35b316; issue #1088; evidence base is three pattern pages compiled from the #1086 retro and landing in #1087 (pattern-spec-procedure-executed-from-summary, pattern-evals-document-conformance-proxy-oracle, pattern-audit-gate-unrunnable-reads-as-defect); architecture-significant by the trigger list but /architect NOT run because the operator made the structural decision explicitly in session; Intent preserved YES; Orchestration preserved NOT-APPLICABLE (no source plan); scaffolded prd.md, prd.json (7 stories), progress.txt
+
+## T1 — steps 1-6 (worker, 2026-09-19)
+
+US-001/US-002 — evidence retired into the PR body.
+- execute.md step 7 renamed "Write the evidence into the PR body"; step 10 now
+  renders the body first (adding "Why this is better", "Proof by gate",
+  "Observed output") and then reads it back with `gh pr view --json body`,
+  checking each of the five sections for CONTENT, not just a heading. Missing
+  sections -> the same DRAFT-BLOCKED(evidence) record and the same refusal.
+- Deleted `git ls-files --error-unmatch` and the `git add -f` of the artifact.
+  The remaining `git add -f` calls belong to other artifacts (task folder,
+  simplify-rounds.json, ui-evidence.json, eval-result.json).
+- Swept 11 files; `reviewer-evidence-doc.md` is now the PR-body contract.
+- `grep -c 'evidence\.md' .agro/skills/spec/references/execute.md` -> 0
+- `grep -rln 'evidence\.md' .agro/skills/` -> reviewer-evidence-doc.md only
+  (it describes the retirement).
+
+US-003 — the four pinned probes updated and green.
+
+US-004 — .agro/evals/probes/spec-task-artifact-contract.sh (tier A).
+  Scope: task folders this branch touches against its merge base ("governed"),
+  so no folder written under the older contract is retro-fitted.
+  Completed: prd.json with >=1 story and every story passes == true.
+  Required: prd.md, prd.json, progress.txt, eval-result.json,
+  simplicity-review.json. Conditional: ui-evidence.json iff prd.json declares
+  browser verification; simplify-rounds.json iff the simplicity review leaves a
+  blocking finding open. Forbidden: evidence.md.
+  Overrides for injection: SPEC_ARTIFACT_SCOPE, SPEC_ARTIFACT_TASKS_DIR.
+  Injected red (diff-confirmed): rm gateway-lifecycle-script-recovery/
+  simplicity-review.json -> exit 1 "missing the required artifact
+  simplicity-review.json"; restored with git checkout of that path only.
+
+US-005 — .agro/skills/audit/scripts/pr-acquire.sh exits 69 with a
+  TOOLING-BLOCKED: line naming closingIssuesReferences and gh >= 2.101.0 when
+  gh rejects an unknown JSON field; route-driver.sh maps that to
+  AUDIT-TOOLING-BLOCKED (gate 3) and PR-AUDIT-TOOLING-BLOCKED (pr route)
+  instead of AUDIT-FAIL. Neither verdict is a pass. Ordinary gh errors still
+  fail ordinarily. Probe: audit-tooling-blocked-signal.sh, driven end to end
+  through audit-run.sh with a stub gh. Injected red (diff-confirmed) twice:
+  removing the field detection -> "exited 1 ... must exit 69"; removing the
+  driver's tooling_blocked call -> "gate 3 still reports an unrunnable
+  classification as a gate FAILURE".
+
+US-006 — CHANGELOG.md: one ### Changed, one ### Added, each <= 250 chars,
+  both linking #1088. changelog-entry-length.sh PASS.
+
+Verification: pnpm typecheck exit 0; pnpm test 6 pre-existing file-mode
+failures only (get-agro exec bit, self-upgrade x2, host-config, migrate,
+oh-config); .agro/skills/eval/run.sh exit 0 over 156 probes with no
+PASS->REGRESSION (RESULTS.md restored, it is not an owned path).
+
+Open item for the advisor: the new verdict tokens are documented in
+.agro/skills/audit/references/{pr,implementation}.md but the verdict tables in
+.agro/skills/audit/SKILL.md:31 and .agro/skills/audit/scripts/audit-run.sh:15-16
+are outside this worker's write set and still list three/two tokens.
+
+## T1 follow-up — verdict tables closed (advisor-widened scope, 2026-09-19)
+
+Write scope widened by the advisor to `.agro/skills/audit/SKILL.md` and
+`.agro/skills/audit/scripts/audit-run.sh` for this change only.
+
+- Both verdict tables now list the new tokens:
+  implementation -> `AUDIT-PASS` / `AUDIT-FAIL` / `AUDIT-TOOLING-BLOCKED`
+  pr -> `PR-AUDIT-PROMOTABLE` / `PR-AUDIT-BLOCKED` / `PR-AUDIT-UNKNOWN` /
+        `PR-AUDIT-TOOLING-BLOCKED`
+  (SKILL.md:30-31 and audit-run.sh:15-16; the usage text renders correctly.)
+- `audit-dispatcher-contract.sh` extended, not forked: it derives the verdict
+  tokens the scripted driver can publish from route-driver.sh (7 today) and
+  requires each to be listed in BOTH the dispatcher table and the usage text.
+  The scan fails when it finds fewer than 5 tokens, so a broken scan cannot
+  pass silently.
+- Boundary bug caught by fault injection: the first version used `grep -F`, and
+  `AUDIT-TOOLING-BLOCKED` is a substring of `PR-AUDIT-TOOLING-BLOCKED`, so
+  removing it from the implementation row still matched the pr row and the
+  probe stayed green. Replaced with a token-boundary regex.
+- Injected red twice after the fix, restoring by rewrite rather than
+  `git checkout` (the trap hit earlier in this task):
+  drop the token from SKILL.md:30 -> "route driver publishes
+  AUDIT-TOOLING-BLOCKED but the dispatcher table does not list it";
+  drop it from audit-run.sh:16 -> "... but the /audit usage text does not list
+  it". Both exit 1; restored green.
+- Full suite re-run: `.agro/skills/eval/run.sh` exit 0 over 156 probes, no
+  PASS->REGRESSION. RESULTS.md restored (not an owned path).
+
+2026-09-19 advisor acceptance of T1 (independent re-verification):
+  - write scope held: 20 owned paths + 2 new probes; the 2 added by scope widening are the
+    verdict tables the worker itself flagged
+  - pnpm typecheck exit 0; pnpm test 6 failed | 1614 passed, exactly the sandbox baseline
+  - all four re-pinned probes exit 0; both new probes exit 0
+  - grep -c 'evidence.md' execute.md = 0; one remaining reference describes the retirement
+  - advisor re-injected the substring case the worker found: deleting AUDIT-TOOLING-BLOCKED
+    from SKILL.md:30 while PR-AUDIT-TOOLING-BLOCKED still contains it as a substring now
+    yields REGRESSION. The token-boundary fix holds.
+  - worker's grep -F bug is the session's best find: the first dispatcher probe was GREEN on an
+    injected fault because one verdict token is a substring of another. Absence of a boundary
+    is the same class as absence of an oracle.
+  - VERDICT: T1 ACCEPTED, including the widened-scope verdict tables and the probe extension.

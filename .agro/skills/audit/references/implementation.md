@@ -141,6 +141,15 @@ The scripted driver runs the `classify-pr` helper when the caller passes `--pr`.
 for `HEAD` has status `completed` and conclusion `success`; no run for `HEAD` fails with
 `gate3: FAIL (no green CI run for HEAD)`.
 
+**A gate that could not run is not a gate that failed.** When the installed `gh` does not
+support a field the acquisition requires — `closingIssuesReferences` needs `gh >= 2.101.0`
+— `pr-acquire.sh` exits `69` with a `TOOLING-BLOCKED:` line and the driver reports
+`TOOLING-BLOCKED: gate3: <reason>` and publishes `AUDIT-TOOLING-BLOCKED` instead of
+`AUDIT-FAIL`. The run still fails closed: the verdict is not a pass, no gate is credited,
+and nothing may be promoted on it. The distinction matters because
+`gate3: FAIL (classification exited 1)` reads as a defect in the reviewed change, sending
+the owner to debug a pull request whose only problem is the auditor's toolchain.
+
 ### Gate 4 — UI verification (conditional)
 
 Gate 4 applies when a story in the task graph declares browser verification:
@@ -294,7 +303,7 @@ order and fails closed:
    `gate5: PASS (review <reviewer> at <commit>, <n> finding(s), none blocking open)`.
 
 This route **reads** both records. It never writes or increments them — the
-orchestrating caller owns those files, exactly as it owns `evidence.md`. The driver
+orchestrating caller owns those files, exactly as it owns the PR body. The driver
 enforces the contract; the reviewer supplies the findings and the owner judges the
 route for each one.
 
@@ -329,9 +338,9 @@ a `PASS` that hides residual slop is the one thing this gate exists to prevent.
   reviewer produce it.
 - **Apply the simplification.** Gate 5 names the smaller alternative; removing the
   code is the `implement` node's job, like every other `AUDIT-FAIL`.
-- **Write the reviewer evidence doc.** The per-gate observations above are what
-  `.agro/tasks/<slug>/evidence.md` is built from, but the orchestrating caller writes and
-  commits it — see [`reviewer-evidence-doc.md`](reviewer-evidence-doc.md).
+- **Write the reviewer evidence.** The per-gate observations above are what the
+  **PR body**'s evidence sections are built from, but the orchestrating caller writes
+  them — see [`reviewer-evidence-doc.md`](reviewer-evidence-doc.md).
 
 ---
 

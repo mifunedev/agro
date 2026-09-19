@@ -55,7 +55,7 @@ operator intent
                      ↓
                 update / reverify affected pages
                      ↓
-                evidence.md → retro → /wiki compile
+                PR-body evidence → retro → /wiki compile
     ↓
 future /spec plan reads what this run learned
 ```
@@ -100,7 +100,6 @@ The `.agro/tasks/<slug>/` folder is the interface between the subcommands:
 ├── prd.md            the approved plan, with its knowledge sections
 ├── prd.json          the ordered task graph — and the authoritative completion state
 ├── progress.txt      the execution narrative and resume evidence
-├── evidence.md       written after implementation; gates the undraft
 └── eval-result.json  the commit-keyed probe-suite result, when applicable
 ```
 
@@ -220,7 +219,7 @@ esac
   itself is vetted by the operator who approves it, and re-approved if grounding
   materially changes it.
 - **Distil before you compress** — high-resolution execution evidence is turned
-  into `evidence.md`, a retro, and durable patterns *before* any context
+  into the PR body, a retro, and durable patterns *before* any context
   compression. Compaction is a runtime optimization, non-gating, and never a
   semantic stage of the build.
 - **Honest terminal reports** — each subcommand reports what it actually

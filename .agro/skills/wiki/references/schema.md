@@ -212,7 +212,7 @@ journal, which this knowledge base is not.
 **`sources:` for a pattern.** A pattern entry MUST carry at least one `sources:`
 entry, each a pinned repository-evidence path of the form
 `<repo-relative-path>@<short-sha>` — for example
-`.agro/tasks/<slug>/evidence.md@a1b2c3d`, `.agro/evals/RESULTS.md@a1b2c3d`. The
+`.agro/tasks/<slug>/progress.txt@a1b2c3d`, `.agro/evals/RESULTS.md@a1b2c3d`. The
 `@<short-sha>` suffix is required: it buys for a mutable tracked file the same
 reproducibility that immutability buys for a `raw/` snapshot. A pattern grounded
 in an ingested external source may additionally cite that `raw/` snapshot.
@@ -258,7 +258,7 @@ least one of them; a page that declares no live dependency has nothing to be
 verified against and `/wiki lint` reports it as such.
 
 A path that has left the working tree but is real at a known commit becomes a
-pin rather than a broken source: `.agro/tasks/<slug>/evidence.md@0fd2efcb`. **A pin
+pin rather than a broken source: `.agro/tasks/<slug>/progress.txt@0fd2efcb`. **A pin
 survives a rename**: the sha names a revision of the file's *content*, so a
 resolver that cannot find `<sha>:<path>` looks the basename up in that commit's
 tree rather than declaring the provenance broken.
