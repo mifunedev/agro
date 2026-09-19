@@ -1,155 +1,92 @@
 # Evidence — `agro-workspace-verb` (#1086)
 
-Branch `feat/1086-agro-workspace-verb`. PR
-[#1087](https://github.com/mifunedev/agro/pull/1087). Base `development` at
-`cf35b316`. Commits: `dd23d51e` scaffold, `4ef3b179` implementation,
-`5525121b` docs and knowledge, `027bdda1` repair.
+PR [#1087](https://github.com/mifunedev/agro/pull/1087). Base `development` at
+`cf35b316`. Audit run `audit-20260919T172553Z-1416459` → **`AUDIT-PASS`**.
 
-## 0. Why the repository is better
+## 0. Why this is better
 
-An operator can now create a host AGRO workspace without installing a harness.
-Before this change the only door was a wizard buried inside
-`agro harness install`, which prompted `Workspace name [default]:` and cloned
-the repository as a side effect of installing something else. A second, divergent
-copy of that wizard lived in `agro tool install` and prompted for a free-form
-path, so a tool install could record a `harnessRoot` outside
-`~/.agro/workspaces/` entirely.
-
-The repository now has one door for host workspace lifecycle and one shared
-refusal for the two install paths. It also has one fewer duplicated wizard, a
-tier-A probe that fails if the wizard grows back, and two knowledge pages that
-describe the host workspace registry for the first time.
+An operator can create a host workspace without installing a harness. Before,
+the only door was a wizard inside `agro harness install`, duplicated in
+`agro tool install` with a different prompt — so a tool install could record a
+`harnessRoot` outside `~/.agro/workspaces/` entirely. Two wizards became one
+verb and one shared refusal. Cost: +367 production lines, −26 duplicated.
 
 ## 1. What the plan asked for
 
-`.agro/plans/agro-workspace-verb/plan.md`, approved by the operator after a
-council round, asked for:
-
-- `agro workspace create [<name>]` and `agro workspace list`, and nothing else.
-- `harness install --host` and `tool install --host` to resolve a workspace and
-  refuse when none exists, naming the create door.
-- `create` to write no `harnessRoot`, so the flag `--default` and its
-  conditional-record rule could both be deleted.
-- One shared resolve-or-refuse helper.
-- A directory scan for `list`, with no new registry file.
-- A tier-A probe, docs, a CHANGELOG entry, and the two dependent knowledge pages.
-
-Explicitly excluded: `workspace status`, `workspace use`, `workspace remove`,
-`--default`, `--workspace` on `tool install`, and a merge.
+`agro workspace create` and `list`; both install paths resolve a workspace and
+refuse when none exists; `create` writes no `harnessRoot`; a directory scan
+rather than a registry file; a probe, docs, CHANGELOG, knowledge pages.
+Excluded: `status`, `use`, `remove`, `--default`, `--workspace` on `tool install`.
 
 ## 2. What was built
 
-| Surface | Result |
+Every acceptance criterion in `prd.json` passes. Observed on the host with a
+throwaway `AGRO_HOME`:
+
+| Behavior | Observed |
 |---|---|
-| `lib/host-workspace.ts` | `listHostWorkspaces` scans `workspacesRoot()`, filters on `SANDBOX_NAME_PATTERN`, and requires a `.git` marker per child, mirroring `registry.ts:44-53`. `resolveExistingWorkspace` returns the root or a refusal. `stateHomeRefusal` and `stateHomeRootRefusal` gained an optional `verb` parameter, defaulted so every existing caller is byte-identical. |
-| `commands/workspace.ts` (new, 163 lines) | `runWorkspaceCreate` and `runWorkspaceList`. `create` writes no host config at all. |
-| `cli.ts` | Usage line, `printWorkspaceHelp`, `parseWorkspaceArgs`, dispatch above the compose-verb branch. The now-false wizard prose in `printHarnessHelp` and `printToolHelp` was corrected in the same file. |
-| `commands/harness.ts`, `commands/tool.ts` | Both prompts and both `ensureHostWorkspace` calls deleted. Both refuse through the shared helper. Both still record `harnessRoot` on success — including, after `027bdda1`, on the already-installed path. |
-| `evals/probes/host-workspace-door.sh` (new) | Five oracles, each proved red by diff-confirmed fault injection. |
-| Tests | `workspace.test.ts` (new, 31 cases) plus updates to `harness.test.ts` and `tool.test.ts`. |
-| Docs | `docs/lifecycle-commands.md` verb row and per-verb section; three rewritten passages in `docs/harnesses/overview.md`; two CHANGELOG entries. |
-| Knowledge | `oh-cli-portable-lifecycle` and `fresh-machine-setup` both UPDATED, `verified_at` advanced, index regenerated. |
+| `workspace create alpha` | cloned; **no config file written** |
+| `workspace create alpha` again | `host workspace reused` |
+| `workspace create "Bad Name"` / `create alpha --path /tmp/x` | exit 1, specific message each |
+| `workspace list` / `--json` | both workspaces, default marked |
+| `harness install codex --host` | exit 1, names the resolved root, `alpha, beta`, the create door, and `--workspace`/`--path` |
+| `tool install herdr --host` | same shape without `--workspace` (correctly out of scope) |
+| `harness install codex --host --workspace beta` | records `harnessRoot`, no `hostHarnesses` key; rerun leaves mtime unchanged |
+| real `~/.agro/config.json` | byte-identical after |
 
-**Verification results.**
+Gates: `pnpm typecheck` 0 · `pnpm test` 6 failed / 1646 passed · `/eval` exit 0,
+155 probes, 0 regressions · new probe `host-workspace-door` PASS and red under
+five diff-confirmed injected faults.
 
-| Check | Result |
+The six unit failures are file-mode/exec-bit assertions bound to this sandbox's
+umask, reproduced on clean `development` before this work. CI's
+`Lint, Typecheck, Build & Test` passes.
+
+**Knowledge impact** (union of `knowledge-impact.sh` and the prediction):
+
+| Page | State |
 |---|---|
-| `pnpm typecheck` | exit 0 |
-| `pnpm test` | 6 failed, 1646 passed, 4 skipped |
-| Same suite on clean `development` at `cf35b316` | 7 failed, 1613 passed |
-| `bash .agro/skills/eval/run.sh` | exit 0; 155 probes; 148 PASS, 7 SKIPPED, 0 REGRESSION, 0 TIMEOUT |
-| `host-workspace-door.sh` | PASS, exit 0; exits 1 with `REGRESSION:` under each of five injected faults |
-| `changelog-entry-length.sh` | PASS |
-| `wiki-readme-index.sh` | PASS |
-| `! grep -q 'ensureHostWorkspace(' harness.ts tool.ts` | `absent=0` |
+| `oh-cli-portable-lifecycle` | UPDATED, `verified_at: d4466d81` |
+| `fresh-machine-setup` | UPDATED, `verified_at: d4466d81` |
+| `compose-env-boundary` | UPDATED, `verified_at: d4466d81` |
+| `managed-agents` | REVERIFIED, pin unchanged — its only citation is untouched |
 
-The six remaining unit failures are file-mode and exec-bit assertions bound to
-this sandbox's umask (`host-config` 0644, `oh-config` 0644, `migrate` 0755,
-`get-agro` exec bit, `self-upgrade` ×2). The advisor reproduced all six on clean
-`development` before any of this work existed. This build introduces no failure
-and adds 33 passing tests.
+## 3. Where it diverged
 
-**End-to-end on the host**, `AGRO_HOME=/tmp/agro-e2e-1086`, two real clones:
-
-- `workspace create alpha` cloned and wrote no config file.
-- `workspace create alpha` again reported `host workspace reused`.
-- `workspace create "Bad Name"` and `workspace create alpha --path /tmp/x` each
-  exited 1 with a specific message.
-- `workspace list` and `--json` reported both workspaces.
-- `harness install codex --host` exited 1: `no AGRO workspace at
-  …/workspaces/default`, `Workspaces that exist: alpha, beta`, and both the
-  create door and `--workspace` / `--path`. `tool install herdr --host` gave the
-  same shape without `--workspace`, which is correct because that flag stayed
-  out of scope.
-- `harness install codex --host --workspace beta` recorded
-  `harnessRoot = …/workspaces/beta` with **no** `hostHarnesses` key, `list`
-  marked `beta` as default, a rerun left the file mtime unchanged, and a bare
-  `harness install codex --host` then resolved and exited 0.
-- The operator's real `~/.agro/config.json` was byte-identical afterwards.
-
-## 3. Where the build diverged from the plan
-
-**One scope cut, before execution.** The approved plan shipped `create`, `list`,
-and `status`. The advisor cut `status` after judging it against the operator's
-stated need: the install refusal already prints the resolved root, the
-workspaces that exist, and the next command, so a separate status surface
-reported nothing new at the moment an operator needs a root. The DoD went from
-12 criteria to 8. The operator approved the cut before `/spec` ran.
-
-**One DoD criterion amended, during execution.** D5 originally required
-`ste-check` to report 0 findings on `docs/lifecycle-commands.md` and
-`docs/harnesses/overview.md`. It reports 44. The advisor measured the same two
-files at `4ef3b179`, before the docs worker touched them, and got 47: this build
-introduced zero findings and cleared three. The remaining 44 are pre-existing
-sentences in unrelated sections — Hermes authentication, `agro destroy`, the
-`oh update` recovery table, the Slack and T3 sections. Meeting the criterion
-literally means rewriting two whole documents inside a PR scoped to one verb.
-The advisor amended the criterion to "introduces no new finding and does not
-raise the total" and recorded the reasoning in `progress.txt`. The operator can
-reject the amendment and ask for the full cleanup as its own PR. CI does not run
-`ste-check` (`.github/workflows/ci-harness.yml:165` runs the eval suite), so
-this gated nothing.
-
-**One defect found and fixed, beyond the plan.** The end-to-end host run — not
-the unit tests — found that `harness install --host --workspace <name>` recorded
-nothing when the binary was already present, because the already-installed early
-return preceded the `harnessRoot` write. The advisor verified the same ordering
-at `cf35b316`, so the defect predates this build. It was repaired anyway
-(`027bdda1`) because this build's design rests on the claim that the two install
-paths are the only writers of `harnessRoot`, and the shipped help text states
-it. The fix records the selection only and fabricates no install receipt.
-
-**Three constraints adopted from recalled knowledge.** `/spec plan` recall
-surfaced `pattern-evals-product-name-literal-pinning`, which records this
-repository breaking three probes at once by pinning `oh <verb>` after help
-strings became `${bin}`. The draft probe had exactly that defect. Two further
-pages contributed the backtick-escaping rule and the stale-injection-anchor
-warning. All three are in the shipped probe.
+- **`workspace status` cut** after a council round. The install refusal already
+  prints the resolved root, the workspaces that exist, and the next command.
+  DoD went 12 criteria → 8. Operator approved before the build.
+- **A pre-existing defect fixed** (`027bdda1`). The already-installed early
+  return preceded the `harnessRoot` write, so `--workspace` recorded nothing
+  when the binary was already on PATH. Identical at `cf35b316`, so it predates
+  this work; fixed because the design rests on the install paths being the only
+  writers of that key.
+- **One DoD criterion amended.** D5 required `ste-check` 0 findings on two whole
+  documents; 47 of the findings predate this build in unrelated sections.
+  Amended to "introduces none, does not raise the total" — measured 47 → 44.
+- **Knowledge verification exceeded the plan.** Advancing `verified_at` claims
+  every claim was re-read, so all 60 citations on the three re-pinned pages were
+  read: 9 rotted line numbers corrected and one symbol removed that never
+  existed (`isImageInstall`; `install-kind.ts` exports three things, not four).
 
 ## 4. What remains unverified
 
-- **CI.** Reported separately below once the run completes. Local runs are not
-  CI, and this sandbox's umask makes six unit assertions fail here that should
-  pass in CI.
-- **The probe is a text check.** `host-workspace-door.sh` inspects source and
-  prose. It does not execute the CLI, and its own `desc` says so. Runtime
-  behavior is covered by the unit suite and the host sequence, not by the probe.
+- **Gate-5 complexity signal SKIPPED.** `slop-metrics` reported
+  `tool: unavailable`; `tsOverCcn: []` is the absence of a measurement, and
+  `ccnMax: 10` is the threshold, not an observed maximum.
+- **Three non-blocking simplicity findings open** (`SIMPLICITY-RESIDUAL`, loop
+  terminated on a non-reducing round): the `WorkspaceResolution` union, the
+  unexercised `--path`+`<name>` guard in `runWorkspaceCreate`, and a third copy
+  of the width-computing table renderer.
+- **The `--path`+`<name>` guard has no test.** The reviewer verified no test
+  passes both arguments. Kept as deliberate defense in depth on an exported
+  function; if it drifts from the parser's message, nothing fails.
 - **Six unit assertions never ran green here.** They fail on clean
-  `development` in this sandbox, so this build never observed them passing. CI
-  is the only place that verdict exists.
-- **`workspace create --path <dir>` was exercised only by unit tests.** The host
-  sequence used registry names. The refusal path for a `--path` root outside the
-  registry was not driven on the host.
-- **No multi-machine check.** `listHostWorkspaces` was verified against a
-  throwaway `AGRO_HOME` and against this machine's real
-  `~/.agro/workspaces/`, which is itself a git repository holding `agro/` and
-  `ovh-vps/`. No other host layout was tried.
-- **Two knowledge pages exceed the word cap.** `oh-cli-portable-lifecycle` is
-  3456 words and `fresh-machine-setup` is 2005, against a 900-word architecture
-  cap. Both already exceeded it before this build (3176 and 1849). No probe
-  enforces the cap. Splitting either page is unrelated to #1086 and was not
-  attempted.
-- **The pre-commit hook never ran.** `pnpm install` ran with build scripts
-  ignored, so husky never installed and `core.hooksPath` is unset. The hook runs
-  `pnpm run lint && pnpm run test`, which cannot pass in this sandbox anyway
-  given the six pre-existing failures.
+  `development` in this sandbox; CI is the only place that verdict exists.
+- **`workspace create --path <dir>` exercised only by unit tests**, not on the host.
+- **Both updated knowledge pages exceed the 900-word cap** and did before this
+  build (now 3456 and 2005). No probe enforces it.
+- **The pre-commit hook never ran** — `pnpm install` ran with scripts ignored,
+  so husky never installed.
+- **`gh` had to be upgraded to 2.101.0** for gate 3 and `/audit pr` to run at
+  all; no earlier release carries `closingIssuesReferences`.
