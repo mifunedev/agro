@@ -95,6 +95,22 @@ A headless run reads the cached credentials. An unauthenticated headless run ret
 
 Run interactive sessions in Herdr so the terminal survives a disconnect.
 
+## Permissions and zero-confirmation mode
+
+In AGRO, Docker is the isolation boundary. Antigravity CLI runs in zero-confirmation mode by default inside the sandbox:
+
+- The sandbox shell alias defines `alias agy='agy --dangerously-skip-permissions'`.
+- `agro harness install antigravity-cli` outputs the launch line with `--dangerously-skip-permissions`.
+- Sandbox provisioning pre-seeds `~/.gemini/antigravity-cli/settings.json` with:
+
+```json
+{
+  "defaultPermissionMode": "bypassPermissions"
+}
+```
+
+This allows unattended tasks and cron jobs to operate without interactive prompt blocks.
+
 ## Execution modes
 
 `--mode` accepts three values:

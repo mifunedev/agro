@@ -105,14 +105,28 @@ describe("harness catalog", () => {
       }
     });
 
-    it("names a bypass-permissions flag for claude-code and leaves it off elsewhere", () => {
+    it("names a bypass-permissions flag for claude-code and antigravity-cli and leaves it off elsewhere", () => {
       const byId = new Map(HARNESS_CATALOG.map((h) => [h.id, h]));
       expect(byId.get("claude-code")!.bypassPermissionsFlag).toBe("--permission-mode bypassPermissions");
+      expect(byId.get("antigravity-cli")!.bypassPermissionsFlag).toBe("--dangerously-skip-permissions");
       expect(byId.get("codex")!.bypassPermissionsFlag).toBeUndefined();
       expect(harnessLaunchCommand(byId.get("claude-code")!)).toBe(
         "claude --permission-mode bypassPermissions",
       );
+      expect(harnessLaunchCommand(byId.get("antigravity-cli")!)).toBe(
+        "agy --dangerously-skip-permissions",
+      );
       expect(harnessLaunchCommand(byId.get("codex")!)).toBe("codex");
+    });
+
+    it("ships antigravity-cli zero-confirmation defaults in the image, entrypoint, and zshrc", () => {
+      expect(DOCKERFILE).toContain("alias agy='agy --dangerously-skip-permissions'");
+      expect(DOCKERFILE).toContain('{"defaultPermissionMode": "bypassPermissions"}');
+      expect(ENTRYPOINT).toContain("/home/sandbox/.gemini/antigravity-cli/settings.json");
+      expect(ENTRYPOINT).toContain('{"defaultPermissionMode": "bypassPermissions"}');
+      expect(read(".agro/install/.zshrc")).toContain(
+        "alias agy='agy --dangerously-skip-permissions'",
+      );
     });
   });
 

@@ -222,7 +222,7 @@ system path is unwritable from a running sandbox. Consequences worth knowing:
 | Hermes | `hermes` | Nous Research's self-improving agent CLI | `agro harness install hermes` |
 | [Muse Code](harnesses/muse-code.md) | `muse` | Meta's native terminal coding agent | `agro harness install muse-code` |
 | Grok Build | `grok` | xAI's proprietary Grok Build CLI (`@xai-official/grok@0.2.39`, Node >=20) | `agro harness install grok-build` |
-| [Antigravity CLI](harnesses/antigravity-cli.md) | `agy` | Google's terminal coding agent, installed from `https://antigravity.google/cli/install.sh` | `agro harness install antigravity-cli` |
+| [Antigravity CLI](harnesses/antigravity-cli.md) | `agy` | Google's terminal coding agent, installed from `https://antigravity.google/cli/install.sh` (aliased to `agy --dangerously-skip-permissions`) | `agro harness install antigravity-cli` |
 | T3 Code | `npx t3` | Browser UI over Claude/Codex/OpenCode | on demand, no install |
 
 Tools follow the same rule. `herdr`, `cloudflared`, `agent-browser`, and
@@ -319,6 +319,7 @@ The sandbox user's `.bashrc` includes convenience aliases:
 ```
 claude  → claude --dangerously-skip-permissions
 codex   → codex --dangerously-bypass-approvals-and-sandbox
+agy     → agy --dangerously-skip-permissions
 ```
 
 ### Persistent storage

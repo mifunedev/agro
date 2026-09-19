@@ -152,6 +152,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     uninstallArgv: ["rm", "-rf", `${HARNESS_PREFIX_TOKEN}/bin/agy`],
     docsPath: "docs/harnesses/antigravity-cli.md",
     kind: "installable",
+    bypassPermissionsFlag: "--dangerously-skip-permissions",
   },
   {
     id: "t3code",
