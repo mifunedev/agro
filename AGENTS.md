@@ -143,9 +143,9 @@ silently skip a surface.
 
 ## How to work in this repository
 
-This file is the only always-on context. A nested `AGENTS.md` exists only in
-`.worktrees/`, `projects/`, `crons/`, and `.agro/logs/`, whose contents are
-produced apart from it. Every other directory uses a `README.md`.
+This file is the only always-on context. A directory whose contents are
+produced apart from this file carries its own `AGENTS.md`, which a session
+reads when it works there. Every other directory uses a `README.md`.
 
 Use the lifecycle in this order:
 
