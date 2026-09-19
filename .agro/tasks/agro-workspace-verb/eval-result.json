@@ -1,0 +1,8 @@
+{
+  "commit": "027bdda188a0609107838d539e6f0693521d3414",
+  "runnerExit": 0,
+  "ranAt": "2026-09-19T16:15:26.458740Z",
+  "newRegressions": [],
+  "preExistingReds": [],
+  "evidence": "155 probes; /tmp/eval-1086-final.log; 148 PASS, 7 SKIPPED, 0 REGRESSION, 0 TIMEOUT. New probe host-workspace-door PASS. Unit suite separately: 6 failed | 1646 passed, all six failures pre-existing file-mode/exec-bit assertions bound to this sandbox's umask and reproduced on clean development at cf35b316."
+}

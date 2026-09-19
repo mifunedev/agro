@@ -16,7 +16,7 @@
         "Tests pass"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "Covers D2, D3. Mirrors `registry.ts:44-53`."
     },
     {
@@ -33,7 +33,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Covers D1, D2."
     },
     {
@@ -48,7 +48,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Covers D1, D2, D5."
     },
     {
@@ -65,7 +65,7 @@
         "Now-unused imports are deleted and typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Covers D3. Behavior change; CHANGELOG `### Changed` entry required in US-007."
     },
     {
@@ -82,7 +82,7 @@
         "`pnpm test` reports 0 failures"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Covers D1, D2, D3, D5."
     },
     {
@@ -100,7 +100,7 @@
         "The injected fault is confirmed to change the file before the red result is trusted"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Covers D4. Applies pattern-evals-product-name-literal-pinning and pattern-evals-probe-failure-path-untested."
     },
     {
@@ -116,7 +116,7 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md docs/harnesses/overview.md` reports no finding introduced by this build, and the total does not rise above the 47 measured at commit 4ef3b179"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Covers D5. The original criterion demanded 0 ste-check findings across both whole documents; the advisor amended it on 2026-09-19 after measuring a 47-finding pre-existing baseline unrelated to #1086. See progress.txt."
     },
     {
@@ -133,7 +133,7 @@
         "Each affected page ends UPDATED, REVERIFIED, or NOT-AFFECTED with a reason"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "Covers D9. Required because Expected Knowledge Impact is REQUIRED."
     },
     {
@@ -150,7 +150,7 @@
         "The PR is not merged"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Covers D4, D6, D7, D8. Advisor-owned; not delegated."
     }
   ]
