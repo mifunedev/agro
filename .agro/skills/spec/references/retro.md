@@ -50,8 +50,8 @@ and fall back to a plain `/retro` on the session.
 ## Pipeline position
 
 Within the workflow owned by `.agro/skills/spec/SKILL.md`, this runs inside the
-`spec-execute` tail, after the implementation audit passes and `evidence.md` is
-written, and before `/wiki compile` turns the supported lessons into durable
+`spec-execute` tail, after the implementation audit passes and the PR body's
+evidence sections are written, and before `/wiki compile` turns the supported lessons into durable
 pattern pages. It writes no file of its own, and it always completes, so the
 execute tail always continues.
 

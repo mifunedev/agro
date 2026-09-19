@@ -88,7 +88,7 @@ herdr agent start <name> --cwd <harness root> --env AGRO_SUPERVISOR_PANE=<pane>
    one destination delivered. `.ok` is false when no destination delivered, and
    the operator was **not** reached. Read `.destinations` to learn which
    destination delivered and which one failed. After a false `.ok`, surface the
-   escalation where a human will look — a PR comment, `evidence.md`. The script
+   escalation where a human will look — a PR comment, the PR body. The script
    already wrote the record (see below). The script made nobody read the record.
 4. **One escalation per blocker.** Do not narrate a session in Slack.
 5. **Read the reply channel honestly.** The escalate skill is one-way. The

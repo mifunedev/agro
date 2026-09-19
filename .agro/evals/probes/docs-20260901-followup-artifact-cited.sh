@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # tier: A
-# source: retro lesson 2026-09-01 (issue #926) — evidence.md recorded an acceptance criterion
-#         as satisfied by an openharness-web follow-up that had not been filed; every internal
-#         gate passed and external verification caught it
-# desc: the reviewer evidence contract requires a follow-up to be CITED, not named, and every
-#       tracked evidence.md that leans on a follow-up carries a resolvable issue/PR URL in the
-#       same bullet. No gate inside this repository can see an artifact in another one, so the
+# source: retro lesson 2026-09-01 (issue #926) — the reviewer evidence recorded an acceptance
+#         criterion as satisfied by an openharness-web follow-up that had not been filed; every
+#         internal gate passed and external verification caught it. Evidence moved from
+#         .agro/tasks/<slug>/evidence.md into the PR body in issue #1088.
+# desc: the reviewer evidence contract requires a follow-up to be CITED, not named. Assert the
+#       rule still stands in the contract an author reads, and that every legacy tracked
+#       evidence.md leaning on a follow-up carries a resolvable issue/PR URL in the same
+#       bullet. No gate inside this repository can see an artifact in another one, so the
 #       citation is the only thing separating "deferred" from "done".
 set -euo pipefail
 
@@ -22,7 +24,12 @@ grep -qF 'Follow-ups are cited, not named' "$CONTRACT" \
 grep -qF 'Naming a follow-up in prose is a plan' "$CONTRACT" \
   || failures+=("reviewer-evidence-doc.md no longer says why naming a follow-up is not satisfying it")
 
-# --- every tracked evidence.md that leans on a follow-up cites one --------
+grep -qF 'PR body' "$CONTRACT" \
+  || failures+=("reviewer-evidence-doc.md no longer names the PR body as the evidence surface")
+
+# --- every LEGACY tracked evidence.md that leans on a follow-up cites one --
+# Docs written before #1088 stay in git; the forward contract is the PR body, which
+# this probe cannot read, so their absence is not a failure of this check.
 # Trigger only on a bullet that ties a follow-up to a criterion being satisfied;
 # "filed as a follow-up" prose elsewhere in a doc is not a claim of completion.
 url='https://github\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+/(issues|pull)/[0-9]+'
@@ -47,16 +54,11 @@ while IFS= read -r rel; do
   ' "$abs")
 done < <(git -C "$ROOT" ls-files -- '.agro/tasks/*/evidence.md')
 
-if (( checked == 0 )); then
-  echo "SKIPPED: no tracked evidence.md to check" >&2
-  exit 2
-fi
-
 if ((${#failures[@]})); then
   printf 'REGRESSION: a follow-up is named without being cited:\n' >&2
   printf '  - %s\n' "${failures[@]}" >&2
   exit 1
 fi
 
-echo "PASS: the evidence contract requires follow-ups to be cited, and every tracked evidence.md that leans on one carries its URL" >&2
+printf 'PASS: the evidence contract names the PR body and requires follow-ups to be cited; %d legacy tracked evidence.md doc(s) checked, each follow-up claim carrying its URL\n' "$checked" >&2
 exit 0

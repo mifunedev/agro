@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # tier: A
-# source: issue #134; spec-simplification issue #816; workflow authority issue #854
-# desc: /spec execute treats draft PRs as checkpoints and ready-for-review as success.
+# source: issue #134; spec-simplification issue #816; workflow authority issue #854;
+#         evidence retired into the PR body by issue #1088
+# desc: /spec execute treats draft PRs as checkpoints and ready-for-review as success, and its
+#       evidence gate refuses the undraft on the PR BODY's five sections rather than on a
+#       task-folder evidence.md (retired by issue #1088).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -43,24 +46,46 @@ if ! grep -qF 'Never `gh pr merge`' <<<"$final_section"; then
   exit 1
 fi
 
-if ! grep -qF 'evidence.md' <<<"$final_section"; then
-  echo "REGRESSION: /spec execute's merge gate no longer requires .agro/tasks/<slug>/evidence.md" >&2
+# The evidence is the PR body, not a task-folder file. The retired artifact lived
+# under gitignored .agro/tasks/, so it reached a reviewer only through `git add -f`
+# and silently missed the diff without it. Its return is a regression.
+if grep -qF 'evidence.md' "$EXEC"; then
+  echo "REGRESSION: /spec execute reintroduced the retired .agro/tasks/<slug>/evidence.md artifact" >&2
+  grep -nF 'evidence.md' "$EXEC" >&2
   exit 1
 fi
-if ! grep -qE 'Refuse the undraft|left draft[^|]*evidence\.md is missing' <<<"$final_section"; then
-  echo "REGRESSION: /spec execute mentions evidence.md but no longer REFUSES the undraft without it" >&2
+if grep -qF 'git ls-files --error-unmatch' "$EXEC"; then
+  echo "REGRESSION: /spec execute still tracks a gitignored evidence artifact instead of using the PR body" >&2
   exit 1
 fi
-if ! grep -qF 'git ls-files --error-unmatch' <<<"$final_section"; then
-  echo "REGRESSION: /spec execute's evidence gate no longer verifies evidence.md is TRACKED (gitignored path)" >&2
+if ! grep -qF 'The evidence gate' <<<"$final_section"; then
+  echo "REGRESSION: /spec execute's merge gate no longer carries an evidence gate" >&2
   exit 1
 fi
-for section in 'diverged' 'unverified'; do
-  if ! grep -qi "$section" <<<"$final_section"; then
+if ! grep -qF -e '--json body' <<<"$final_section"; then
+  echo "REGRESSION: /spec execute's evidence gate no longer reads the PR body back from GitHub" >&2
+  exit 1
+fi
+if ! grep -qE 'Refuse the undraft' <<<"$final_section"; then
+  echo "REGRESSION: /spec execute no longer REFUSES the undraft when the PR body carries no evidence" >&2
+  exit 1
+fi
+if ! grep -qF 'DRAFT-BLOCKED(evidence)' <<<"$final_section"; then
+  echo "REGRESSION: /spec execute no longer records DRAFT-BLOCKED(evidence) for a body with no evidence" >&2
+  exit 1
+fi
+for section in 'Why this is better' 'What the plan asked for' 'What was built' \
+               'Where it diverged from the plan, and why' 'What remains unverified'; do
+  if ! grep -qF "$section" <<<"$final_section"; then
     echo "REGRESSION: /spec execute's PR body no longer carries the '$section' section" >&2
     exit 1
   fi
 done
+# An empty divergence/unverified section is spelled out, never dropped.
+if ! grep -qF 'None' <<<"$final_section" || ! grep -qF 'Nothing' <<<"$final_section"; then
+  echo "REGRESSION: /spec execute no longer requires an empty diverged/unverified section to be written as None / Nothing" >&2
+  exit 1
+fi
 
 # A promotable verdict describes ONE head. Undrafting at a commit and then pushing
 # past it leaves a ready PR standing on a classification that no longer describes
@@ -95,5 +120,5 @@ if ! grep -qE 'ready PR|ready-for-review' <<<"$execute_line"; then
   exit 1
 fi
 
-echo "PASS: /spec execute treats the draft PR as a checkpoint, refuses the undraft without a tracked evidence.md, surfaces divergence + unverified in the PR body, gates ready-for-review on the promotable classification, and re-opens that gate when the head moves past it" >&2
+echo "PASS: /spec execute treats the draft PR as a checkpoint, refuses the undraft unless the PR body answers the five evidence questions, names no retired task-folder evidence file, gates ready-for-review on the promotable classification, and re-opens that gate when the head moves past it" >&2
 exit 0

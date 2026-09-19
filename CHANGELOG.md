@@ -11,6 +11,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Added
 
 - Add `agro workspace create [<name>]` and `agro workspace list`, so an operator creates and inspects a host AGRO workspace under `~/.agro/workspaces/` without installing a harness ([#1086](https://github.com/mifunedev/agro/issues/1086)).
+- Add two probes: `spec-task-artifact-contract` fails when a completed task folder lacks a required artifact, and `audit-tooling-blocked-signal` fails when an unrunnable gate reads as failed ([#1088](https://github.com/mifunedev/agro/issues/1088)).
 - Add the `.agro/memories/` tier: `SOUL.md`, `USER.md` and `MEMORY.md` for durable operator context and cross-session lessons, each shipping working defaults ([#1084](https://github.com/mifunedev/agro/issues/1084)).
 - Add the `memories-tier-defaults` probe. It fails when a memory file carries a real identity or a dated entry, and when the root `AGENTS.md` names the tier ([#1084](https://github.com/mifunedev/agro/issues/1084)).
 - Add the `agents-md-fallback` probe. It fails when a tracked `CLAUDE.md` returns or a directory guide stops being a real `AGENTS.md` ([#1082](https://github.com/mifunedev/agro/issues/1082)).
@@ -20,6 +21,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Changed
 
 - Stop `agro harness install --host` and `agro tool install --host` from creating a workspace; each now exits 1 when none exists and names `agro workspace create` ([#1086](https://github.com/mifunedev/agro/issues/1086)).
+- Retire `.agro/tasks/<slug>/evidence.md`. The reviewer evidence now lives in the pull request body, which `/spec execute` reads back and checks before it undrafts ([#1088](https://github.com/mifunedev/agro/issues/1088)).
 - Read project instructions from `AGENTS.md` on every harness. Claude Code needs 2.1.277 or later ([#1082](https://github.com/mifunedev/agro/issues/1082)).
 - Route `/strategic-proposal` roadmap deliberation through `/council` with required critique and explicit publication permission ([#1076](https://github.com/mifunedev/agro/issues/1076)).
 - Pin `agent-browser` to 0.38.1, up from 0.8.5 ([#1078](https://github.com/mifunedev/agro/issues/1078)).
