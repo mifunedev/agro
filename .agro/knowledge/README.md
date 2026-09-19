@@ -54,6 +54,10 @@ Schema, frontmatter spec, provenance kinds, and every authoring rule:
 
 | Slug | Title | Tags | Updated |
 | --- | --- | --- | --- |
+| pattern-wiki-verified-at-advanced-over-unread-citations | Advancing verified_at after re-reading only the citations you added launders staleness into freshness | [wiki, knowledge, verified-at, citation-rot, freshness, line-numbers, provenance] | 2026-09-19 |
+| pattern-spec-procedure-executed-from-summary | A procedure executed from a subagent's summary loses every gate the summary compressed away | [spec, execute, subagents, orientation, gates, context-budget, delegate] | 2026-09-19 |
+| pattern-evals-document-conformance-proxy-oracle | A probe that greps the rule text cannot detect an executor disobeying the rule | [evals, probes, oracle-design, proxy-measure, behavior, recurrence, spec] | 2026-09-19 |
+| pattern-audit-gate-unrunnable-reads-as-defect | A gate that cannot run in the operator's environment is indistinguishable from a gate that failed | [audit, gh, version-skew, fail-closed, diagnosis, verification-environment] | 2026-09-19 |
 | oh-cli-portable-lifecycle | oh CLI Portable Lifecycle | [cli, oh, agro, lifecycle, standalone, registry, sandbox, workspace, host-install, remote-fetch, execution-target, update, self-upgrade, npm, install-kind, recovery] | 2026-09-19 |
 | fresh-machine-setup | Fresh-Machine Setup Flow | [setup, onboarding, installation, agro, registry, workspace, host-install, gateway, ssh, github, slack] | 2026-09-19 |
 | compose-env-boundary | Compose Environment Boundary | [compose, devcontainer, oh-json, cli, entrypoint, boundary, installs, sandbox, registry] | 2026-09-19 |

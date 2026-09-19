@@ -561,3 +561,33 @@ Final states, all four knowledge pages:
   compose-env-boundary       UPDATED     verified_at d4466d81
   managed-agents             REVERIFIED  verified_at 1e3e040e (unchanged, honest at that pin)
 No claim-wrong items remain open. T2 complete.
+
+[2026-09-19] /wiki compile --task agro-workspace-verb
+Compiled the retro's four supported/high hypotheses into four kind: pattern pages.
+Slugs-Created:        pattern-spec-procedure-executed-from-summary
+                      pattern-evals-document-conformance-proxy-oracle
+                      pattern-audit-gate-unrunnable-reads-as-defect
+                      pattern-wiki-verified-at-advanced-over-unread-citations
+Slugs-Patched:        (none)
+Hypotheses-Compiled:  4 of 4
+Skipped:              (none)
+Fan-out rationale:    H1 and H2 share the mechanism "a rule stated but unenforced"
+                      and were kept separate because their workarounds point at
+                      different owners and different artifacts: H1 changes executor
+                      discipline (read the step's own lines before executing it);
+                      H2 changes oracle design (mint the probe over run evidence,
+                      not over the rule text). Merging them would have produced one
+                      page with two root causes and two unrelated fixes, which
+                      schema.md 11a forbids. They are cross-linked instead.
+Near-duplicate check: pattern-evals-unexercised-oracle and
+                      pattern-evals-probe-failure-path-untested were read before
+                      writing H2. Both are about an oracle whose failure branch is
+                      never driven; H2's oracle can be driven red, by the wrong
+                      input. Distinct root cause -> new page, cross-linked to both.
+                      pattern-audit-driver-tool-allowlist (deprecated, retired
+                      driver) was read before writing H3; same signal collapse,
+                      different cause and a live mechanism -> new page.
+Index:                .agro/knowledge/README.md regenerated (45 entries).
+Verification:         wiki-readme-index.sh PASS, wiki-kind-schema-contract.sh PASS,
+                      wiki-related-slugs.sh PASS.
+Result:               OP
