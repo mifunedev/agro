@@ -4,7 +4,7 @@ slug: compose-env-boundary
 kind: repo
 tags: [compose, devcontainer, oh-json, cli, entrypoint, boundary, installs, sandbox, registry]
 created: 2026-08-31
-updated: 2026-09-11
+updated: 2026-09-19
 sources:
   - .devcontainer/docker-compose.yml
   - .devcontainer/docker-compose.image-only.yml
@@ -19,7 +19,7 @@ sources:
   - .agro/evals/probes/compose-env-boundary.sh
   - .agro/evals/probes/harness-one-door.sh
   - .agro/evals/probes/sandbox-registry.sh
-verified_at: 4bdd930dcf3652336662874c2711eda1b28d1552
+verified_at: 1e3e040e163cf6f1fc7e14fa7296a4b6b7e43f74
 related: [sandbox-dependency-installs, oh-cli-portable-lifecycle]
 confidence: confirmed
 ---
@@ -43,7 +43,7 @@ A value reaches the sandbox through Compose only if a process **outside** the sa
 ## Detail
 Two routes carry configuration into the sandbox. The host-side route renders a fixed set — `SANDBOX_NAME`, `TZ`, `AGRO_HOME_MOUNT`, `AGRO_REPO_DIR`, `GIT_USER_NAME`, `GIT_USER_EMAIL`, `DOCKER_SOCKET`, `SANDBOX_SSH`, `SANDBOX_SSH_PORT`, `AGRO_SANDBOX_IMAGE`, `AGRO_PULL_POLICY` (`.agro/cli/src/lib/config-render.ts:38-51`) — because each selects an overlay, names the project, publishes a port, binds a path, or is needed before `agro.json` is reachable. Only the four prefixed keys were respelled in #942; `SANDBOX_NAME`, `TZ`, the two git identities and the three access keys carry no product prefix and never changed. The set is rendered into a temporary `compose.env` passed to the wrapper as `--extra-env-file`; nothing writes a `.devcontainer/.env`. Both compose files read every prefixed key through one two-step fallback, `${AGRO_<KEY>:-${OH_<KEY>:-<default>}}`, so a registry entry whose `compose.env` an older CLI rendered still resolves and either spelling works. `AGRO_REPO_DIR` is the one entry that is a path rather than a setting: it is the absolute checkout a registry sandbox binds at `/home/sandbox/harness`, rendered only when the config carries that checkout path — `put("AGRO_REPO_DIR", configCheckout(config))` (`.agro/cli/src/lib/config-render.ts:41`), where `configCheckout` returns `config.checkout ?? config.repo` and reads an empty string as absent (`.agro/cli/src/lib/oh-config.ts:114-117`), so the `checkout` field and its alias `repo` render the same variable and `checkout` wins when a file holds both. The key itself keeps the `AGRO_REPO_DIR` spelling; only the source of its value moved. The compose file's `${AGRO_REPO_DIR:-${OH_REPO_DIR:-..}}` default keeps an in-checkout or CI run identical to before #950. The unnamed fallback identity is now `agro`: the compose `name:`, `container_name:`, and the build flavour's default image read `${SANDBOX_NAME:-agro}` and `sandbox-${SANDBOX_NAME:-agro}`. This repository's own `agro.json` still declares `"name": "openharness"`, so its project name, container name and volumes are unchanged by the rename. A registry entry under `<registry home>/sandboxes/<name>/` is itself a root, and the home resolves through `resolveUserStateHome` — `AGRO_HOME`, then `OH_HOME`, then `~/.agro` unless a legacy `~/.oh/sandboxes` is the only registry present. The CLI materialises the compose base, the overlays and the scripts into the entry on every lifecycle call (`.agro/cli/src/lib/registry.ts`), so the wrapper's `--repo-dir` is the entry and the checkout, when there is one, arrives only through `AGRO_REPO_DIR`. The in-container route reads everything else at the moment it is needed: `oh_config` shells `<CLI_BIN> config show` once — `CLI_BIN` is `compat_env_value BIN` with the default `agro` (`.devcontainer/entrypoint.sh:133-134`) — and answers `jq` filters from the cached JSON, degrading to a caller-supplied default when the CLI is missing or old; `config show` rather than a narrower verb, because a baked CLI can predate a new one on the boot path.
 
-Installs take neither route. Boot provisioning, the `install.*` keys, the persist flags, the boot-time environment off-ramp and the healthcheck failure marker were retired in #948. `oh harness install <id>` and `oh tool install <id>` probe the running sandbox, install as the sandbox user into `NPM_USER_PREFIX` (`/home/sandbox/.local`) inside the home volume, verify with the catalog's `verifyArgv`, and report; they touch no `agro.json` field. Kinds are `installable` / `on-demand` for harnesses and `baked-in` / `installable` for tools; the catalogs own every pin and checksum, and `entrypoint.sh` holds none. A fresh home volume boots with no harness and no `herdr`, and the healthcheck passes anyway.
+Installs take neither route. Boot provisioning, the `install.*` keys, the persist flags, the boot-time environment off-ramp and the healthcheck failure marker were retired in #948. `oh harness install <id>` and `oh tool install <id>` probe the running sandbox, install as the sandbox user into `NPM_USER_PREFIX` (`/home/sandbox/.local`) inside the home volume, verify with the catalog's `verifyArgv`, and report; they touch no `agro.json` field. The host install path that #1086 reshaped carries neither key either: `harness install --host` and `tool install --host` resolve an existing workspace under `~/.agro/workspaces/`, create none, and record only `harnessRoot` in the host `~/.agro/config.json`. Kinds are `installable` / `on-demand` for harnesses and `baked-in` / `installable` for tools; the catalogs own every pin and checksum, and `entrypoint.sh` holds none. A fresh home volume boots with no harness and no `herdr`, and the healthcheck passes anyway.
 
 Four compose `environment:` literals survive that no config read can supply: `SANDBOX_PASSWORD` (consumed by the entrypoint's own user setup), `CLAUDE_DANGEROUSLY_SKIP_PERMISSIONS`, `CC_SAFETY_NET_STRICT` and `CC_SAFETY_NET_WORKTREE` (read by third-party binaries that know nothing of `agro.json`), plus the `GH_TOKEN` secret, which `config-render.ts` refuses to render.
 
@@ -55,7 +55,7 @@ Hermes adds a sandbox-internal default, not a Compose setting. The image sets
 `HERMES_HOME=/home/sandbox/harness/.hermes` (`.devcontainer/Dockerfile:4`). Managed
 installation validates the launch home and reconciles additive shared skills before
 installation, verifies the executable, and reconciles again afterward
-(`.agro/cli/src/commands/harness.ts:175`, `.agro/cli/src/commands/harness.ts:226`).
+(`.agro/cli/src/commands/harness.ts:671`, `.agro/cli/src/commands/harness.ts:702`).
 The canonical linker refuses unset or relative managed launch homes and conflicting
 occupied paths (`.agro/scripts/link-providers.sh:110`). Ordinary provider linking in another
 worktree does not redirect the image-global Hermes runtime

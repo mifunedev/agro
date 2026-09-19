@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { delimiter, join, resolve } from "node:path";
+import { delimiter, join } from "node:path";
 import {
   ExecutionSpawnError,
   resolveExecutionTarget,
@@ -15,6 +15,7 @@ import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import type { ExecutionTarget } from "../lib/execution/target.js";
 import {
   readHostConfig,
+  recordHarnessRoot,
   resolveHarnessRoot,
   workspaceRoot,
   writeHostConfig,
@@ -336,17 +337,6 @@ function isInteractive(opts: HarnessOptions): boolean {
   return opts.interactive ?? (process.stdin.isTTY === true && process.stdout.isTTY === true);
 }
 
-function recordWorkspaceSelection(
-  root: string,
-  env: NodeJS.ProcessEnv,
-  home: string,
-): void {
-  const config = readHostConfig(env, home);
-  const recorded = config.harnessRoot;
-  if (typeof recorded === "string" && recorded !== "" && resolve(recorded) === root) return;
-  writeHostConfig({ ...config, harnessRoot: root }, env, home);
-}
-
 async function installOnHost(
   entry: HarnessEntry,
   opts: HarnessOptions,
@@ -447,7 +437,7 @@ async function installOnHost(
   if (await probeInstalled(target, entry, prefix, undefined, installEnv) === true) {
     io.stdout(`${entry.id}: already installed (${entry.binary})\n`);
     try {
-      recordWorkspaceSelection(root, env, home);
+      recordHarnessRoot(root, env, home);
     } catch (err) {
       io.stderr(`${bin} harness: could not record the harness root: ${messageOf(err)}\n`);
       return 1;

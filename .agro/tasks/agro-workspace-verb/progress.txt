@@ -310,3 +310,104 @@ Host repro against a throwaway AGRO_HOME with two real clones as workspaces:
         instead of refusing
   - VERDICT: repair ACCEPTED. The documented model - the two install paths are the only writers
     of harnessRoot - is now true on every path, including the already-installed one.
+
+## T2 follow-up — compose-env-boundary + managed-agents  2026-09-19T17:03:12Z
+
+Source re-reads performed before applying the owner's state decisions:
+  $ git show origin/development:.agro/cli/src/commands/harness.ts | sed -n "174p;226p"
+interface HostProbe {
+function cell(value: boolean | null, absent: string): string {
+  $ grep -n "reconcileHermes" .agro/cli/src/commands/harness.ts   # current HEAD
+296:async function reconcileHermes(
+443:    const code = await reconcileHermes(target, io, bin, undefined, root);
+474:    const code = await reconcileHermes(target, io, bin, undefined, root);
+671:    const code = await reconcileHermes(target, io, opts.bin, "sandbox");
+702:    const code = await reconcileHermes(target, io, opts.bin, "sandbox");
+  $ git diff origin/development...HEAD -- docs/harnesses/overview.md | grep -E "^@@"
+@@ -28,28 +28,34 @@ with no container runtime takes the same path: `agro` treats an unspawnable
+@@ -60,13 +66,14 @@ bypass-permissions flag, the line carries that flag, because a first-run
+@@ -74,6 +81,8 @@ Harness root precedence:
+@@ -83,10 +92,11 @@ A host workspace is a named registry entry, exactly like a sandbox:
+@@ -118,8 +128,8 @@ Flags:
+  $ sed -n "9p" docs/harnesses/overview.md | grep -o "one developer, one project, one agent"
+one developer, one project, one agent
+
+$ bash .agro/evals/probes/wiki-readme-index.sh; echo "wiki_exit=$?"
+PASS: .agro/knowledge/README.md Index matches the tracked source/ and patterns/ frontmatter
+wiki_exit=0
+
+$ bash .agro/skills/wiki/scripts/knowledge-impact.sh --changed $(git diff --name-only origin/development...HEAD | tr "\n" " ") 2>&1 | grep -E "NEEDS-REVIEW|compose-env-boundary|managed-agents"
+NEEDS-REVIEW	compose-env-boundary	.agro/knowledge/source/compose-env-boundary.md	declared sources are in the changed set: .agro/cli/src/commands/harness.ts .agro/cli/src/commands/tool.ts
+NEEDS-REVIEW	fresh-machine-setup	.agro/knowledge/source/fresh-machine-setup.md	declared sources are in the changed set: .agro/cli/src/commands/harness.ts .agro/cli/src/commands/tool.ts .agro/cli/src/commands/workspace.ts .agro/cli/src/lib/host-workspace.ts docs/harnesses/overview.md
+NEEDS-REVIEW	managed-agents	.agro/knowledge/source/managed-agents.md	declared sources are in the changed set: docs/harnesses/overview.md
+NEEDS-REVIEW	oh-cli-portable-lifecycle	.agro/knowledge/source/oh-cli-portable-lifecycle.md	declared sources are in the changed set: .agro/cli/src/cli.ts .agro/cli/src/commands/workspace.ts .agro/cli/src/commands/harness.ts .agro/cli/src/commands/tool.ts .agro/cli/src/lib/host-workspace.ts .agro/evals/probes/host-workspace-door.sh docs/lifecycle-commands.md
+
+Verdicts:
+  compose-env-boundary  UPDATED
+  managed-agents        REVERIFIED
+  oh-cli-portable-lifecycle  UPDATED (earlier T2 pass)
+  fresh-machine-setup        UPDATED (earlier T2 pass)
+
+Flag for the advisor: .agro/knowledge/source/oh-cli-portable-lifecycle.md cites `harness.ts:473` and
+`tool.ts:482` for the harnessRoot writes. Those were correct at its pin 4ef3b179. Commit 027bdda1 moved
+them to harness.ts:490 and tool.ts:499. The page is outside this follow-up's write scope, so T2 left it.
+
+=== T1 gate-5 repair: one exported recordHarnessRoot — 2026-09-19 ===
+
+Fix: `.agro/cli/src/lib/host-config.ts` now exports `recordHarnessRoot(root, env, home)`
+with the suggested shape. Both local `recordWorkspaceSelection` copies are deleted from
+`commands/harness.ts` and `commands/tool.ts`; each call site now calls the shared
+function inside its existing try/catch, so the `could not record the harness root`
+handling and the no-op-when-unchanged behavior are byte-for-byte the same. The `resolve`
+import was dropped from both command files — nothing else used it. `grep -rn
+recordWorkspaceSelection .agro/cli/src` returns 0 hits. No test named the local helper,
+so no test file changed. The `HostConfig` interface is untouched.
+
+$ pnpm typecheck
+> @mifune/agro@0.12.2 typecheck
+> tsc --noEmit
+exit=0
+
+$ pnpm test 2>&1 | tail -5
+      Tests  6 failed | 1646 passed | 4 skipped (1656)
+   Start at  17:03:27
+   Duration  35.59s (transform 5.47s, setup 0ms, import 12.59s, tests 85.58s, environment 18ms)
+ ELIFECYCLE  Test failed. See above for more details.
+
+The six are the pre-existing environment-bound failures and nothing else:
+ FAIL  .agro/cli/src/__tests__/self-upgrade.test.ts > … from an empty directory …
+ FAIL  .agro/cli/src/__tests__/self-upgrade.test.ts > … inside an equipped checkout …
+ FAIL  .agro/cli/src/lib/__tests__/host-config.test.ts > writeHostConfig > writes the file with mode 0644
+ FAIL  .agro/cli/src/lib/__tests__/migrate.test.ts > applyMigration > … preserves the file mode
+ FAIL  .agro/cli/src/lib/__tests__/oh-config.test.ts > round trip > writes oh.json world-readable …
+ FAIL  .agro/scripts/__tests__/get-agro.test.ts > get-agro.sh static contract > is executable and shebanged
+
+$ bash .agro/evals/probes/host-workspace-door.sh; echo "exit=$?"
+PASS: the workspace verb is in the CLI help and the lifecycle reference, neither host
+install path creates a workspace, both route their refusal through
+resolveExistingWorkspace, and that refusal names the workspace create door (text check
+only; runtime behavior unverified)
+exit=0
+
+$ AUDIT_ROOT="$PWD" bash .agro/skills/audit/scripts/implementation-gates.sh slop-metrics origin/development
+{
+  "netAdded": 2366,
+  "netRemoved": 131,
+  "shBranchPoints": 9,
+  "ccnMax": 10,
+  "tsOverCcn": [],
+  "tool": "unavailable"
+}
+
+Read that number with care. The gate diffs `$base...HEAD` (script line 106), so it does
+not see this uncommitted round at all — 2366 is the unchanged HEAD figure, not a result.
+The round's own delta is:
+  3 added / 13 removed  .agro/cli/src/commands/harness.ts
+  3 added / 13 removed  .agro/cli/src/commands/tool.ts
+  7 added /  0 removed  .agro/cli/src/lib/host-config.ts
+Once committed the gate will print netAdded 2379 and netRemoved 157. `netAdded` counts
+added lines only, never net-of-removals, so any refactor that touches a line raises it.
+This round did NOT strictly reduce netAdded by that metric and will not: it raises it by
+13 while raising netRemoved by 26. The branch is 13 source lines smaller and carries 11
+fewer duplicated lines. If the intent is a monotonically falling number, `netAdded` is
+the wrong instrument for a deduplication round.
