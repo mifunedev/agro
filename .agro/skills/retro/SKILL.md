@@ -182,7 +182,7 @@ The test: if you would scope it to "this session" or "this codebase right now," 
 
 ### 5a. Triage tag — route each promotable lesson to its correction surface
 
-For every lesson that survived to the promotion list (verdict `supported`, confidence `medium` or higher, generalizes across sessions), assign exactly one triage tag before proposing it. Route to the **cheapest reliable surface** per `.agro/evals/README.md § Correction-surface triage`:
+For every lesson that survived to the promotion list (verdict `supported`, confidence `medium` or higher, generalizes across sessions), assign exactly one triage tag before proposing it. Route to the **cheapest reliable surface** per the [correction-surface reference](https://github.com/mifunedev/agro/blob/main/docs/evals.md#correction-surface-triage):
 
 | Tag | Use when | Proposed artifact |
 |-----|----------|-------------------|

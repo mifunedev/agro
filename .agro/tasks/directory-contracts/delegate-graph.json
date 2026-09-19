@@ -44,7 +44,7 @@
       ],
       "acceptanceOwner": "active advisor",
       "failureRepairRoute": "resume T1 with named defects",
-      "nativeWorkerId": null,
+      "nativeWorkerId": "2ce3374c-f869-402",
       "status": "running",
       "artifactReferences": [],
       "usage": "unknown",

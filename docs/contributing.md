@@ -186,8 +186,8 @@ gh pr create --base development \
 ## Releases
 
 AGRO uses SemVer versioning: `MAJOR.MINOR.PATCH`, tagged
-`vMAJOR.MINOR.PATCH`. Root `package.json` holds the version. No other file
-records it.
+`vMAJOR.MINOR.PATCH`. Root `package.json` holds the release version.
+The canonical CLI package and its lockfile must match that version.
 
 A release is a deliberate bump, not a side effect of a push. Every push to
 `main` or `master` runs `.github/workflows/release.yml`, which validates the
@@ -203,7 +203,8 @@ commit, then publishes the version `package.json` names:
 7. Publish the CLI
 8. Publish the GitHub Release
 
-To cut a release, bump the version in `package.json` and add the matching
+To cut a release, update root `package.json`, `.agro/cli/package.json`, and its lockfile to the same version.
+Add the matching
 `## [<version>]` section to `CHANGELOG.md` in the same PR, then promote
 `development` to `main`. If you push to `main` without bumping the version, the
 run is a clean, **green** no-op: the reserve step reports the version as already
@@ -217,8 +218,40 @@ Run the release skill from inside the orchestrator sandbox:
 /release
 ```
 
-For details on the full workflow, see the `git` skill
-(`.agro/skills/git/SKILL.md`) in the repo.
+For the full workflow, see the `git` and `release` skills in `.agro/skills/`.
+
+### Release helpers
+
+`.github/workflows/release.yml` drives the release scripts in `.agro/scripts/`.
+`reserve-github-release.mjs` uses the GitHub API user agent `agro-release-reservation`.
+The smoke sandbox name is `agro-release-smoke-<run id>`.
+`promote-release-latest.sh` defaults `IMAGE_REPOSITORIES` to
+`ghcr.io/mifunedev/agro ghcr.io/mifunedev/openharness`.
+The `agro` digest is the reference that the legacy image alias must match.
+The GHCR package `mifunedev/agro` must be public before consumers can pull its tags.
+
+### Documentation notification
+
+After a real release's `finalize` succeeds, `notify-docs` sends `repository_dispatch`:
+
+| Field | Value |
+| --- | --- |
+| Repository | `AGRO_WEB_REPO`, default `mifunedev/openharness-web`. |
+| Event type | `agro-release`. |
+| Payload | `{ "ref": "<released sha>" }`, from `needs.reserve.outputs.releaseSha`. |
+| Credential | `AGRO_WEB_DISPATCH_TOKEN`, passed as `GH_TOKEN`. |
+
+The token needs Contents read/write access on the docs repository.
+A classic token needs the `repo` scope.
+If the secret is absent, the job prints a notice and exits 0 without dispatching.
+Set the destination and upload the token from a file:
+
+```bash
+gh secret set AGRO_WEB_DISPATCH_TOKEN --repo mifunedev/agro < token-file
+gh variable set AGRO_WEB_REPO --repo mifunedev/agro --body mifunedev/agro-web
+```
+
+Do not place the token value in shell history or logs.
 
 ---
 

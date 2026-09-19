@@ -1,27 +1,8 @@
-# `.agro/knowledge/local/` — per-machine scratch, never an input
+# Local knowledge scratch
 
-Gitignored working space for knowledge that is not ready to be shared: a draft
-page, a half-verified note, an experiment. Everything here is invisible to every
-other machine and to CI.
+This gitignored directory holds per-machine drafts, notes, and experiments.
+The [parent contract](../AGENTS.md) owns the tracked/local boundary and promotion restrictions.
 
-**Nothing reads this directory.** `/wiki query` enumerates `../source/` and
-`../patterns/`. Every `/spec` flow consumes tracked knowledge only. There is no
-flag that folds a local page into a normal result set, and that is the point: a
-plan grounded in a page one machine can see is a plan nobody else can reproduce.
-
-## Promotion
-
-Promotion is explicit and goes through the one authorized write path:
-
-```bash
-/wiki ingest --from-draft <slug>          # a draft at $TMPDIR/oh-wiki-drafts/<slug>.md
-/wiki ingest .agro/knowledge/local/<slug>.md --slug <slug>
-```
-
-Either lands a schema-valid, tracked page under `.agro/knowledge/source/`. Moving
-the file by hand is not promotion — it skips the schema, the provenance, and the
-index.
-
-## Canonical docs
-
-[`.agro/skills/wiki/references/schema.md`](../../skills/wiki/references/schema.md).
+Use `/wiki ingest` to promote a draft into tracked knowledge.
+See the [canonical schema](../../skills/wiki/references/schema.md) and
+[ingest procedure](../../skills/wiki/references/ingest.md).

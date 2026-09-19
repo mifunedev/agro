@@ -143,9 +143,10 @@ silently skip a surface.
 
 ## How to work in this repository
 
-This file is the only always-on context. A directory whose contents are
-produced apart from this file carries its own `AGENTS.md`, which a session
-reads when it works there. Every other directory uses a `README.md`.
+This file is the root context. Read each applicable scoped `AGENTS.md` before
+producing files in its directory. Local contracts hold mandatory obligations;
+READMEs provide orientation, package information, or indexes. Keep detailed
+explanations in `docs/` and reusable procedures in canonical skills.
 
 Use the lifecycle in this order:
 

@@ -9,7 +9,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$ROOT"
 
 CRON="crons/cleanup-tasks.md"
-TASKS_README=".agro/tasks/README.md"
+TASKS_README=".agro/tasks/AGENTS.md"
 EXECUTE=".agro/skills/spec/references/execute.md"
 SPEC=".agro/skills/spec/SKILL.md"
 PROMPT=".agro/skills/spec/templates/task-prompt.md"
@@ -55,7 +55,7 @@ JQ_CHECK="all(.userStories[]; .passes == true)"
 grep -qF -- "$JQ_CHECK" "$CRON" \
   || failures+=("the cleanup cron does not derive completion from prd.json story state")
 grep -qF -- "$JQ_CHECK" "$TASKS_README" \
-  || failures+=(".agro/tasks/README.md does not document the structured completion check")
+  || failures+=(".agro/tasks/AGENTS.md does not document the structured completion check")
 grep -qF -- "$JQ_CHECK" "$EXECUTE" \
   || failures+=("execute.md does not derive completion from prd.json story state")
 grep -qF -- "$JQ_CHECK" "$PROMPT" \

@@ -107,7 +107,8 @@ by `updated:` date, then slug). The probe will verify correctness.
 
 **.agro/evals/RESULTS.md** (expected conflict):
 - If the squash adds a NEW probe → hand-insert only the new row; `git checkout
-  --ours .agro/evals/RESULTS.md` then add the row per `.agro/evals/README.md` format.
+  --ours .agro/evals/RESULTS.md` then add the row using the
+  [scoreboard schema](https://github.com/mifunedev/agro/blob/main/docs/evals.md#scoreboard-schema).
 - If the squash adds NO new probe → `git checkout --theirs .agro/evals/RESULTS.md`
   (upstream's scoreboard, zero timestamp churn).
 

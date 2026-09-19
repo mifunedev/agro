@@ -296,6 +296,5 @@ ALLOW | OH-PATH | skills/ste/references/rules.md | 0a19004bd4ad | example prose 
 ALLOW | OH-PATH | skills/ste/SKILL.md | 1a27405c7e92 | inside the [ -x ] existence guard; the whole block is a no-op outside a harness checkout
 ALLOW | OH-PATH | skills/ste/SKILL.md | dc032d4b6850 | inside the [ -x ] existence guard; the whole block is a no-op outside a harness checkout
 ALLOW | OH-PATH | skills/ste/SKILL.md | e6bc73aa7bbf | inside the [ -x ] existence guard; the whole block is a no-op outside a harness checkout
-ALLOW | DANGLING-REF | skills/harness-context/SKILL.md | 0c9d156752cb | enumerates the harness repository per-directory READMEs; not a file this skill folder ships
 ALLOW | HARNESS-SKILL | skills/reflect/SKILL.md | 7d0773a55384 | names a Claude Code built-in command, which an installer on that client already has
 ```

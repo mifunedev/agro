@@ -109,7 +109,7 @@ done
 while IFS= read -r rel; do
   [[ -n "$rel" ]] || continue
   case "$rel" in
-    "$KNOWLEDGE_REL"/README.md) ;;
+    "$KNOWLEDGE_REL"/README.md|"$KNOWLEDGE_REL"/AGENTS.md) ;;
     "$KNOWLEDGE_REL"/source/*.md|"$KNOWLEDGE_REL"/patterns/*.md) ;;
     "$KNOWLEDGE_REL"/raw/*|"$KNOWLEDGE_REL"/local/README.md) ;;
     *) failures+=("$rel: unexpected tracked path under the knowledge surface") ;;

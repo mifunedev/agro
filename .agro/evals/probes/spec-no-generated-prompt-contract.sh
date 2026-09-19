@@ -12,7 +12,7 @@ PLAN=".agro/skills/spec/references/plan.md"
 EXECUTE=".agro/skills/spec/references/execute.md"
 SPEC=".agro/skills/spec/SKILL.md"
 TEMPLATE=".agro/skills/spec/templates/task-prompt.md"
-TASKS_README=".agro/tasks/README.md"
+TASKS_README=".agro/tasks/AGENTS.md"
 
 for f in "$PLAN" "$EXECUTE" "$SPEC" "$TEMPLATE" "$TASKS_README"; do
   [[ -f "$f" ]] || { echo "SKIPPED: required file absent: $f" >&2; exit 2; }
