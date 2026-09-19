@@ -33,7 +33,7 @@ explicitly. Do not assume `origin` is the public target.
 
 Format: `<prefix>(<issue#>): <shortdesc>`
 
-`<prefix>` ∈ `feat` · `bug` · `task` · `audit` · `skill` · `agent`
+`<prefix>` ∈ `feat` · `bug` · `task` · `audit` · `skill`
 (matches `.github/ISSUE_TEMPLATE/<prefix>.md`)
 
 Example: `feat(#42): slack thread replies`

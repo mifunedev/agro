@@ -17,7 +17,7 @@ Required arguments:
 
 - Folder path (positional, e.g. `.agro/tasks/install-prereq-detection/`). The folder name is `<short-desc>`.
 - `--issue <N>` — GitHub issue number this PRD addresses. Required. The branch name embeds this.
-- `--prefix <type>` — branch prefix per `.claude/skills/git/SKILL.md`. One of `feat | bug | task | audit | skill | agent`. Default: `feat`.
+- `--prefix <type>` — branch prefix per `.claude/skills/git/SKILL.md`. One of `feat | bug | task | audit | skill`. Default: `feat`.
 
 `branchName` in the produced JSON follows `.claude/skills/git/SKILL.md`:
 
