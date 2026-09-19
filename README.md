@@ -67,17 +67,11 @@ agro --help
 `agro sandbox install docker` runs from **any** directory — it needs no project
 checkout:
 
-Set up the sandbox, then enter it:
+Set up the sandbox, then enter it. For checkout and persistent home options, see [Create the sandbox](docs/installation.md#create-the-sandbox).
 
 ```bash
 # Create a sandbox with the setup wizard
 agro sandbox install docker
-
-# Or bind a directory you already have at /home/sandbox/harness
-agro sandbox install docker --checkout ~/my-project --name my-project
-
-# Or persist /home/sandbox on a host directory instead of the Docker volume
-agro sandbox install docker --home-mount ~/agro-home --name my-project
 
 # Enter the sandbox; replace <name> with your sandbox name
 agro shell <name>
