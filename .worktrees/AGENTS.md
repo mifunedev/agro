@@ -4,7 +4,7 @@ Ignored scratch space for git worktrees of this repository. Every repository kee
 its worktrees at its own root, so a project clone under `projects/` has a
 `.worktrees/` of its own that follows the same rules as this one.
 
-Every coding harness reads this file directly. This repository ships no `CLAUDE.md`.
+Every coding harness reads this file directly.
 
 | Subfolder | What lives here |
 | --------- | --------------- |

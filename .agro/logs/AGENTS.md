@@ -1,6 +1,6 @@
 # `.agro/logs/`
 
-Every coding harness reads this file directly. This repository ships no `CLAUDE.md`.
+Every coding harness reads this file directly.
 
 Durable operational records written by unattended sessions. Everything here is
 gitignored except this file: a log is evidence for the next session and for the

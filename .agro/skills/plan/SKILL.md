@@ -37,7 +37,7 @@ Arguments received: `$ARGUMENTS`
 3. If neither source identifies a task, print `Usage: /plan <request | existing-plan-path>` and stop without writing.
 4. If the input names an existing file, read the complete file before drafting.
 5. Confirm the target repository from the request and current directory. Ask when the target is ambiguous.
-6. Read applicable `AGENTS.md`, `CLAUDE.md`, and directory `README.md` files for the affected paths.
+6. Read applicable `AGENTS.md` and directory `README.md` files for the affected paths.
 7. Derive a descriptive lowercase kebab-case slug from the topic. Use at most five words; reject path separators and traversal components.
 
 If the operator requests a revision, reuse the selected `.agro/plans/<slug>/plan.md` file.

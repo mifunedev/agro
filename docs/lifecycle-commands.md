@@ -32,15 +32,8 @@ when it is missing. Everything else — pnpm, Python, the agent CLIs — lives i
 sandbox.
 
 Project instructions live in `AGENTS.md`. Codex and Pi read that name natively.
-Claude Code reads it from **2.1.277**, and only when no `CLAUDE.md` sits in the
-working directory or above it. This repository therefore ships no `CLAUDE.md`.
-
-Two cases cannot read `AGENTS.md`: a Claude Code older than 2.1.277, and a
-session on Amazon Bedrock, Vertex or Foundry. To restore project instructions
-there, add an untracked `CLAUDE.md` next to each `AGENTS.md` you need, holding
-the single line `@AGENTS.md`. A `CLAUDE.md` disables the `AGENTS.md` path for
-its own directory and every directory below it, so add one per guide rather
-than one at the root.
+Claude Code reads it from **2.1.277**; an older release, and a session on
+Amazon Bedrock, Vertex or Foundry, reads no project instructions at all.
 
 ## The verbs
 

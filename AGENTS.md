@@ -5,7 +5,7 @@ agents work: the repository root, Docker lifecycle, shared agent infrastructure,
 and the boundaries that keep agent work safe. Application agents write
 application code inside the sandbox.
 
-Every coding harness reads this file directly. This repository ships no `CLAUDE.md`.
+Every coding harness reads this file directly.
 
 ## What AGRO is
 

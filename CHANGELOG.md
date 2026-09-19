@@ -19,7 +19,6 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Changed
 
 - Read project instructions from `AGENTS.md` on every harness. Claude Code needs 2.1.277 or later ([#1082](https://github.com/mifunedev/agro/issues/1082)).
-- Ignore `CLAUDE.md` so an operator can add one locally on Bedrock, Vertex, Foundry, or an older Claude Code ([#1082](https://github.com/mifunedev/agro/issues/1082)).
 - Route `/strategic-proposal` roadmap deliberation through `/council` with required critique and explicit publication permission ([#1076](https://github.com/mifunedev/agro/issues/1076)).
 - Pin `agent-browser` to 0.38.1, up from 0.8.5 ([#1078](https://github.com/mifunedev/agro/issues/1078)).
 

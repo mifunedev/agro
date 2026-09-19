@@ -8,7 +8,7 @@ Each clone is its own git boundary, with its own remote, branches, CI, and histo
 Never commit into one from the harness root, and never resolve a change here by
 resetting the harness checkout — the two repositories are independent.
 
-Every coding harness reads this file directly. This repository ships no `CLAUDE.md`.
+Every coding harness reads this file directly.
 
 Folder shape mirrors the remote:
 
