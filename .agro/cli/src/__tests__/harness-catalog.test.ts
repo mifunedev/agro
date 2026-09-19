@@ -118,6 +118,16 @@ describe("harness catalog", () => {
       );
       expect(harnessLaunchCommand(byId.get("codex")!)).toBe("codex");
     });
+
+    it("ships antigravity-cli zero-confirmation defaults in the image, entrypoint, and zshrc", () => {
+      expect(DOCKERFILE).toContain("alias agy='agy --dangerously-skip-permissions'");
+      expect(DOCKERFILE).toContain('{"defaultPermissionMode": "bypassPermissions"}');
+      expect(ENTRYPOINT).toContain("/home/sandbox/.gemini/antigravity-cli/settings.json");
+      expect(ENTRYPOINT).toContain('{"defaultPermissionMode": "bypassPermissions"}');
+      expect(read(".agro/install/.zshrc")).toContain(
+        "alias agy='agy --dangerously-skip-permissions'",
+      );
+    });
   });
 
   // #908: the INSTALL_* build args are gone. The catalog no longer mirrors the
