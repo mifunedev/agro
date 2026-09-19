@@ -21,6 +21,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 
+- Copy only `provision-python.sh` into the image home stage before the Python kernel, and clean npm and uv installer leftovers in the same layer ([#1093](https://github.com/mifunedev/agro/issues/1093)).
 - Stop `agro harness install --host` and `agro tool install --host` from creating a workspace; each now exits 1 when none exists and names `agro workspace create` ([#1086](https://github.com/mifunedev/agro/issues/1086)).
 - Retire `.agro/tasks/<slug>/evidence.md`. The reviewer evidence now lives in the pull request body, which `/spec execute` reads back and checks before it undrafts ([#1088](https://github.com/mifunedev/agro/issues/1088)).
 - Read project instructions from `AGENTS.md` on every harness. Claude Code needs 2.1.277 or later ([#1082](https://github.com/mifunedev/agro/issues/1082)).
