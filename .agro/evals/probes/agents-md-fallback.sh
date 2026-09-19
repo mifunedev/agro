@@ -17,7 +17,8 @@ if [[ -n "$found" ]]; then
   exit 1
 fi
 
-for guide in AGENTS.md .worktrees/AGENTS.md projects/AGENTS.md crons/AGENTS.md .agro/logs/AGENTS.md; do
+for guide in AGENTS.md .worktrees/AGENTS.md projects/AGENTS.md crons/AGENTS.md \
+  .agro/logs/AGENTS.md .agro/memories/AGENTS.md; do
   if [[ ! -f "$guide" || -L "$guide" ]]; then
     echo "REGRESSION: $guide must be a real file that a harness reads directly" >&2
     exit 1
