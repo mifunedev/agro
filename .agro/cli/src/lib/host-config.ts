@@ -169,6 +169,13 @@ export function resolveHarnessRoot(
   return defaultHarnessRoot(env, home);
 }
 
+export function recordHarnessRoot(root: string, env: NodeJS.ProcessEnv, home: string): void {
+  const config = readHostConfig(env, home);
+  const recorded = config.harnessRoot;
+  if (typeof recorded === "string" && recorded !== "" && resolve(recorded) === root) return;
+  writeHostConfig({ ...config, harnessRoot: root }, env, home);
+}
+
 function fieldError(path: string, requirement: string): Error {
   return new Error(`${HOST_CONFIG_FILE}: ${path} ${requirement}`);
 }

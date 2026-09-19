@@ -14,16 +14,15 @@ import { LocalExecutionTarget } from "../lib/execution/local-target.js";
 import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import type { ExecutionTarget } from "../lib/execution/target.js";
 import {
-  DEFAULT_WORKSPACE_NAME,
   readHostConfig,
+  recordHarnessRoot,
   resolveHarnessRoot,
   workspaceRoot,
   writeHostConfig,
   type HostHarnessReceipt,
 } from "../lib/host-config.js";
 import {
-  AGRO_REPO_URL,
-  ensureHostWorkspace,
+  resolveExistingWorkspace,
   stateHomeRefusal,
   stateHomeRootRefusal,
 } from "../lib/host-workspace.js";
@@ -392,15 +391,6 @@ async function installOnHost(
       io.stderr(sandboxRefusal(bin, status));
       return 1;
     }
-    if (!sticky) {
-      const chosen = (await ask(`Workspace name [${DEFAULT_WORKSPACE_NAME}]:`)).trim();
-      try {
-        root = workspaceRoot(chosen === "" ? DEFAULT_WORKSPACE_NAME : chosen, env, home);
-      } catch (err) {
-        io.stderr(`${bin} harness: ${messageOf(err)}\n`);
-        return 1;
-      }
-    }
   }
   if (sticky) io.stdout(`using the recorded harness root ${root}\n`);
 
@@ -410,19 +400,13 @@ async function installOnHost(
     return 1;
   }
 
-  try {
-    if (!existsSync(join(root, ".git"))) io.stdout(`cloning ${AGRO_REPO_URL} into ${root}…\n`);
-    const workspace = ensureHostWorkspace(root, run);
-    root = workspace.root;
-    io.stdout(
-      workspace.action === "cloned"
-        ? `host workspace cloned into ${root}\n`
-        : `host workspace reused at ${root}\n`,
-    );
-  } catch (err) {
-    io.stderr(`${bin} harness: ${messageOf(err)}\n`);
+  const resolved = resolveExistingWorkspace(bin, "harness", root, env, home);
+  if (!resolved.ok) {
+    io.stderr(resolved.refusal);
     return 1;
   }
+  root = resolved.root;
+  io.stdout(`host workspace ${root}\n`);
 
   const prefix = hostPrefix(home);
   const target = hostTargetFor(root, prefix, run, env);
@@ -452,6 +436,12 @@ async function installOnHost(
 
   if (await probeInstalled(target, entry, prefix, undefined, installEnv) === true) {
     io.stdout(`${entry.id}: already installed (${entry.binary})\n`);
+    try {
+      recordHarnessRoot(root, env, home);
+    } catch (err) {
+      io.stderr(`${bin} harness: could not record the harness root: ${messageOf(err)}\n`);
+      return 1;
+    }
     return 0;
   }
 

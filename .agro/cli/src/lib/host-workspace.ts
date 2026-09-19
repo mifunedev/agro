@@ -2,6 +2,8 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, renameSync, rmSync, st
 import { dirname, join, resolve } from "node:path";
 import { GENERATIONS, REGISTRY_SUBDIR } from "./compat.js";
 import { spawnRunner, type LifecycleRunner, type RunResult } from "./execution/runner.js";
+import { workspacesRoot } from "./host-config.js";
+import { SANDBOX_NAME_PATTERN } from "./registry.js";
 
 export const AGRO_REPO_URL = "https://github.com/mifunedev/agro.git";
 
@@ -27,17 +29,17 @@ function stateHomes(home: string): string[] {
   return STATE_HOME_DIRS.map((name) => join(home, name));
 }
 
-export function stateHomeRefusal(bin: string, home: string): string | undefined {
+export function stateHomeRefusal(bin: string, home: string, verb = "harness"): string | undefined {
   const [legacy, agro] = stateHomes(home);
   if (isDirectory(legacy) && isDirectory(agro)) {
     return (
-      `${bin} harness: the host state home is split — ${legacy} and ${agro} both exist.\n` +
+      `${bin} ${verb}: the host state home is split — ${legacy} and ${agro} both exist.\n` +
       `Merge them with \`${bin} migrate --home\`, then re-run this command.\n`
     );
   }
   if (isDirectory(legacy)) {
     return (
-      `${bin} harness: the host state home is the legacy ${legacy}, and host state now lives in ${agro}.\n` +
+      `${bin} ${verb}: the host state home is the legacy ${legacy}, and host state now lives in ${agro}.\n` +
       `Creating ${agro} beside it would split the two.\n` +
       `Migrate first with \`${bin} migrate --home\`, then re-run this command.\n`
     );
@@ -45,12 +47,17 @@ export function stateHomeRefusal(bin: string, home: string): string | undefined 
   return undefined;
 }
 
-export function stateHomeRootRefusal(bin: string, root: string, home: string): string | undefined {
+export function stateHomeRootRefusal(
+  bin: string,
+  root: string,
+  home: string,
+  verb = "harness",
+): string | undefined {
   const target = resolve(root);
   const enclosing = stateHomes(home).find((state) => target === state);
   if (enclosing === undefined) return undefined;
   return (
-    `${bin} harness: the harness root ${target} is the state home ${enclosing} itself.\n` +
+    `${bin} ${verb}: the ${verb} root ${target} is the state home ${enclosing} itself.\n` +
     `A workspace there collides with AGRO state and blocks every command run from ${home}.\n` +
     `Move it out — for example \`mv ${enclosing} ${join(home, "agro")}\` — then re-run this command.\n`
   );
@@ -118,4 +125,48 @@ export function ensureHostWorkspace(path: string, run: LifecycleRunner = spawnRu
 
   cloneThroughStaging(root, run);
   return { root, action: "cloned" };
+}
+
+export function listHostWorkspaces(env: NodeJS.ProcessEnv, home: string): string[] {
+  const root = workspacesRoot(env, home);
+  if (!isDirectory(root)) return [];
+  return readdirSync(root, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .filter((name) => SANDBOX_NAME_PATTERN.test(name))
+    .filter((name) => existsSync(join(root, name, ".git")))
+    .sort();
+}
+
+export type WorkspaceResolution =
+  | { ok: true; root: string }
+  | { ok: false; refusal: string };
+
+export function resolveExistingWorkspace(
+  bin: string,
+  verb: string,
+  path: string,
+  env: NodeJS.ProcessEnv,
+  home: string,
+): WorkspaceResolution {
+  const root = resolve(path);
+  if (existsSync(join(root, ".git"))) return { ok: true, root };
+
+  const existing = listHostWorkspaces(env, home);
+  const inventory =
+    existing.length === 0
+      ? "No host workspace exists yet.\n"
+      : `Workspaces that exist: ${existing.join(", ")}\n`;
+  const chooser =
+    verb === "harness"
+      ? `Choose another root with \`--workspace <name>\` or \`--path <dir>\`.\n`
+      : `Choose another root with \`--path <dir>\`.\n`;
+  return {
+    ok: false,
+    refusal:
+      `${bin} ${verb}: no AGRO workspace at ${root}.\n` +
+      inventory +
+      `Create one with \`${bin} workspace create <name>\`, then re-run this command.\n` +
+      chooser,
+  };
 }
