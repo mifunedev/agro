@@ -70,6 +70,7 @@ RUN userdel -r node 2>/dev/null || true \
 ENV UV_TOOL_DIR=/home/sandbox/.local/share/uv/tools
 ENV UV_TOOL_BIN_DIR=/home/sandbox/.local/bin
 ENV UV_PYTHON_INSTALL_DIR=/home/sandbox/.local/share/uv/python
+ENV UV_PYTHON_BIN_DIR=/home/sandbox/.local/bin
 ENV UV_CACHE_DIR=/home/sandbox/.cache/uv
 
 FROM base AS home
@@ -115,7 +116,7 @@ RUN cat /tmp/path-env.sh >> /home/sandbox/.profile \
 
 COPY --chown=sandbox:sandbox .agro/scripts/provision-python.sh /tmp/provision-python.sh
 ARG INSTALL_PYTHON_KERNEL=true
-ARG OH_PYTHON_VERSION=3.11
+ARG OH_PYTHON_VERSION=3.13
 RUN if [ "${INSTALL_PYTHON_KERNEL}" = "true" ]; then \
       su - sandbox -c "OH_PYTHON_VERSION='${OH_PYTHON_VERSION}' bash /tmp/provision-python.sh"; \
     else \

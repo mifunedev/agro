@@ -37,6 +37,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Fixed
 
+- Expose `python` and `python3` as Python 3.13 and migrate existing kernels to Python 3.13 ([#1110](https://github.com/mifunedev/agro/issues/1110)).
 - Route the `missing lifecycle script` error to a recovery that works for the reader's installation: a host image refresh for an image-shipped CLI, and `oh update` elsewhere ([#1080](https://github.com/mifunedev/agro/issues/1080)).
 
 ## [0.12.2] - 2026-09-15
