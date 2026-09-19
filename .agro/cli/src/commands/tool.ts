@@ -18,7 +18,7 @@ import {
   writeHostConfig,
   type HostHarnessReceipt,
 } from "../lib/host-config.js";
-import { AGRO_REPO_URL, ensureHostWorkspace } from "../lib/host-workspace.js";
+import { resolveExistingWorkspace } from "../lib/host-workspace.js";
 import { resolveProjectRoot } from "../lib/project.js";
 import { ask as promptAsk, confirm } from "../lib/prompt.js";
 import {
@@ -376,6 +376,17 @@ function hostCapableList(bin: string): string {
   return `Tools that install on the host:\n${hostCapableToolIds().map((t) => `  ${bin} tool install ${t} --host`).join("\n")}\n`;
 }
 
+function recordWorkspaceSelection(
+  root: string,
+  env: NodeJS.ProcessEnv,
+  home: string,
+): void {
+  const config = readHostConfig(env, home);
+  const recorded = config.harnessRoot;
+  if (typeof recorded === "string" && recorded !== "" && resolve(recorded) === root) return;
+  writeHostConfig({ ...config, harnessRoot: root }, env, home);
+}
+
 async function installOnHost(
   entry: ToolEntry,
   opts: ToolInstallOptions,
@@ -434,26 +445,16 @@ async function installOnHost(
       io.stderr(sandboxRefusal(bin, status));
       return 1;
     }
-    if (!sticky) {
-      const chosen = (await ask(`Harness root [${root}]:`)).trim();
-      if (chosen !== "") root = resolve(chosen);
-    }
   }
   if (sticky) io.stdout(`using the recorded harness root ${root}\n`);
 
-  try {
-    if (!existsSync(join(root, ".git"))) io.stdout(`cloning ${AGRO_REPO_URL} into ${root}…\n`);
-    const workspace = ensureHostWorkspace(root, run);
-    root = workspace.root;
-    io.stdout(
-      workspace.action === "cloned"
-        ? `host workspace cloned into ${root}\n`
-        : `host workspace reused at ${root}\n`,
-    );
-  } catch (err) {
-    io.stderr(`${bin} tool: ${messageOf(err)}\n`);
+  const resolved = resolveExistingWorkspace(bin, "tool", root, env, home);
+  if (!resolved.ok) {
+    io.stderr(resolved.refusal);
     return 1;
   }
+  root = resolved.root;
+  io.stdout(`host workspace ${root}\n`);
 
   const prefix = hostPrefix(home);
   const installEnv: Record<string, string> = { NPM_USER_PREFIX: prefix };
@@ -461,6 +462,12 @@ async function installOnHost(
 
   if (await probeInstalled(target, entry, undefined, installEnv) === true) {
     io.stdout(`${entry.id}: already installed (${entry.binary})\n`);
+    try {
+      recordWorkspaceSelection(root, env, home);
+    } catch (err) {
+      io.stderr(`${bin} tool: could not record the harness root: ${messageOf(err)}\n`);
+      return 1;
+    }
     return 0;
   }
 

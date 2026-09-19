@@ -42,6 +42,12 @@ import {
   runHarnessUninstall,
   type HarnessIO,
 } from "./commands/harness.js";
+import {
+  runWorkspaceCreate,
+  runWorkspaceList,
+  type WorkspaceIO,
+} from "./commands/workspace.js";
+import { AGRO_REPO_URL } from "./lib/host-workspace.js";
 import { harnessIds } from "./lib/harnesses/catalog.js";
 import { RUNTIME_CATALOG } from "./lib/runtimes/catalog.js";
 import {
@@ -120,6 +126,7 @@ Usage:
   ${bin} ps [name]              Show sandbox service status
   ${bin} destroy [name]         Remove the sandbox and wipe its named volumes
   ${bin} compose config         Print the resolved docker compose configuration
+  ${bin} workspace <args...>    Create and list host AGRO workspaces (create|list)
   ${bin} harness <args...>      Install and inspect agent CLI harnesses
   ${bin} tool <args...>         Install and inspect sandbox tooling
   ${bin} gateway <args...>      Manage a messaging client session (pi|hermes)
@@ -324,12 +331,12 @@ Usage:
   ${bin} harness status [name]            Show installed state
 
 \`install\` and \`uninstall\` act on the running sandbox. When no sandbox is
-reachable they act on the host. A host install clones the AGRO workspace into the
-harness root, then installs the harness into \`~/.local\`. The default root is the
-workspace registry entry \`~/.agro/workspaces/default\`; an interactive run asks for
-the workspace name. \`--workspace <name>\` chooses that entry and \`--path <dir>\` a
-directory outside the registry. A successful install records the root as
-\`harnessRoot\` in \`~/.agro/config.json\`. The install prefix is always \`~/.local\`.
+reachable they act on the host. A host install needs an existing AGRO workspace
+and creates none — run \`${bin} workspace create <name>\` first. The default root is
+the workspace registry entry \`~/.agro/workspaces/default\`. \`--workspace <name>\`
+chooses another entry and \`--path <dir>\` a directory outside the registry. A
+successful install records the root as \`harnessRoot\` in \`~/.agro/config.json\`. The
+install prefix is always \`~/.local\`.
 
 On the host, \`uninstall\` removes only the harness \`install\` recorded, from the
 prefix in that record. Without a record it refuses, and \`--force\` overrides. In
@@ -344,6 +351,28 @@ Flags:
 
 Harnesses:
 ${harnessIds().map((h) => `  ${h}`).join("\n")}
+`);
+}
+
+export function printWorkspaceHelp(bin: string = LEGACY_PRODUCT.bin): void {
+  process.stdout.write(`${bin} workspace — Create and list host AGRO workspaces
+
+Usage:
+  ${bin} workspace create [<name>]   Clone the AGRO repository into a registry entry
+  ${bin} workspace list              List every host workspace
+
+A host workspace is an AGRO checkout under \`~/.agro/workspaces/<name>\`. \`create\`
+clones ${AGRO_REPO_URL} into that entry, and reuses an existing checkout. The
+default name is \`default\`. \`--path <dir>\` creates the workspace outside the
+registry instead.
+
+\`create\` records no default. A host install selects its root with
+\`${bin} harness install <harness> --workspace <name>\`, and that install records the
+root as \`harnessRoot\`. \`list\` marks the recorded root.
+
+Flags:
+  --json           Machine-readable output
+  --path <dir>     Create the workspace at a directory outside the registry
 `);
 }
 
@@ -402,9 +431,10 @@ install needs Linux, because every installer is Debian-specific, and it works
 only on these tools:
 ${hostCapableToolIds().map((t) => `  ${t}`).join("\n")}
 
-A host install clones the AGRO workspace into the harness root — \`--path <dir>\`,
-then \`harnessRoot\` in \`~/.agro/config.json\`, then \`~/.agro/workspaces/default\` — and
-installs into \`~/.local\`. It records the install as \`hostTools\` in that same file. On the host,
+A host install needs an existing AGRO workspace — \`--path <dir>\`, then
+\`harnessRoot\` in \`~/.agro/config.json\`, then \`~/.agro/workspaces/default\`. It creates
+no workspace: run \`${bin} workspace create <name>\` first. It installs into
+\`~/.local\` and records the install as \`hostTools\` in that same file. On the host,
 \`uninstall\` removes only what \`install\` recorded, from the prefix in that record.
 Without a record it refuses, and \`--force\` overrides.
 
@@ -412,7 +442,7 @@ Flags:
   --yes            Accept a large download without prompting
   --json           Machine-readable output (list/status)
   --host           Install on the host when the sandbox is not running (install)
-  --path <dir>     Harness root for the workspace clone; implies --host (install)
+  --path <dir>     Harness root outside the registry; implies --host (install)
   --force          Remove without a recorded host install (uninstall)
 
 Tools:
@@ -893,6 +923,73 @@ export function parseShellArgs(rest: string[], bin: string = LEGACY_PRODUCT.bin)
   return { ok: true, args };
 }
 
+export interface WorkspaceArgs {
+  help: boolean;
+  subcommand?: "create" | "list";
+  name?: string;
+  json: boolean;
+  path?: string;
+}
+
+export function parseWorkspaceArgs(
+  rest: string[],
+  bin: string = LEGACY_PRODUCT.bin,
+): ParseResult<WorkspaceArgs> {
+  const args: WorkspaceArgs = { help: false, json: false };
+  if (rest.length === 0 || isHelpFlag(rest[0])) {
+    return { ok: true, args: { ...args, help: true } };
+  }
+
+  const positionals: string[] = [];
+  let expectPath = false;
+  for (const token of rest) {
+    if (expectPath) {
+      expectPath = false;
+      args.path = token;
+    } else if (token === "--json") {
+      args.json = true;
+    } else if (token === "--path") {
+      expectPath = true;
+    } else if (token.startsWith("--path=")) {
+      args.path = token.slice("--path=".length);
+    } else if (token.startsWith("-")) {
+      return { ok: false, error: `${bin} workspace: unknown flag "${token}"` };
+    } else {
+      positionals.push(token);
+    }
+  }
+  if (expectPath || args.path === "") {
+    return { ok: false, error: `${bin} workspace: --path requires a directory` };
+  }
+
+  const [sub, name, ...extra] = positionals;
+  if (sub !== "create" && sub !== "list") {
+    return {
+      ok: false,
+      error: `${bin} workspace: unknown subcommand "${sub}" — expected create or list`,
+      showHelp: true,
+    };
+  }
+  if (extra.length > 0) {
+    return { ok: false, error: `${bin} workspace: unexpected argument "${extra[0]}"` };
+  }
+  if (sub === "list" && name !== undefined) {
+    return { ok: false, error: `${bin} workspace list: unexpected argument "${name}"` };
+  }
+  if (sub === "list" && args.path !== undefined) {
+    return { ok: false, error: `${bin} workspace list: --path applies to create only` };
+  }
+  if (args.path !== undefined && name !== undefined) {
+    return {
+      ok: false,
+      error: `${bin} workspace: --path names a directory and <name> names a registry entry — pass one, not both`,
+    };
+  }
+  args.subcommand = sub;
+  if (name !== undefined) args.name = name;
+  return { ok: true, args };
+}
+
 export interface HarnessArgs {
   help: boolean;
   subcommand?: "list" | "install" | "status" | "uninstall";
@@ -1361,6 +1458,32 @@ async function main(argv: string[]): Promise<number> {
       return 0;
     }
     return runComposeConfig({ bin }, parsed.args.passthrough);
+  }
+
+  if (first === "workspace") {
+    const parsed = parseWorkspaceArgs(argv.slice(1), bin);
+    if (!parsed.ok) {
+      process.stderr.write(`${parsed.error}\n`);
+      if (parsed.showHelp) printWorkspaceHelp(bin);
+      return 1;
+    }
+    if (parsed.args.help) {
+      printWorkspaceHelp(bin);
+      return 0;
+    }
+    const a = parsed.args;
+    const io: WorkspaceIO = {
+      stdout: (s) => process.stdout.write(s),
+      stderr: (s) => process.stderr.write(s),
+    };
+    if (a.subcommand === "list") {
+      return await runWorkspaceList({ bin, json: a.json }, io);
+    }
+    return await runWorkspaceCreate(
+      a.name,
+      { bin, json: a.json, ...(a.path !== undefined ? { path: a.path } : {}) },
+      io,
+    );
   }
 
   if ((composeVerbs() as string[]).includes(first)) {

@@ -2,12 +2,18 @@
 title: "oh CLI Portable Lifecycle"
 slug: oh-cli-portable-lifecycle
 kind: repo
-tags: [cli, oh, agro, lifecycle, standalone, registry, sandbox, remote-fetch, execution-target, update, self-upgrade, npm, install-kind, recovery]
+tags: [cli, oh, agro, lifecycle, standalone, registry, sandbox, workspace, host-install, remote-fetch, execution-target, update, self-upgrade, npm, install-kind, recovery]
 created: 2026-07-03
-updated: 2026-09-17
+updated: 2026-09-19
 sources:
   - .agro/cli/src/cli.ts
   - .agro/cli/src/commands/sandbox.ts
+  - .agro/cli/src/commands/workspace.ts
+  - .agro/cli/src/commands/harness.ts
+  - .agro/cli/src/commands/tool.ts
+  - .agro/cli/src/lib/host-workspace.ts
+  - .agro/cli/src/lib/host-config.ts
+  - .agro/evals/probes/host-workspace-door.sh
   - .agro/cli/src/commands/config.ts
   - .agro/cli/src/commands/lifecycle.ts
   - .agro/cli/src/commands/update.ts
@@ -37,7 +43,7 @@ sources:
   - docs/lifecycle-commands.md
   - docs/oh-directory-layout.md
   - docs/rfcs/rfc-brain-hands-boundary.md
-verified_at: ebd89a74adeb77e8d6f4d31742a7d8a8d863b8eb
+verified_at: 4ef3b1796de7237802b4045abcb6970b1fc2717a
 related: [fresh-machine-setup, compose-env-boundary]
 confidence: provisional
 ---
@@ -55,6 +61,10 @@ confidence: provisional
 - `.agro/cli/src/lib/install-kind.ts` — the single owner of the image root: `IMAGE_ROOT` = `/opt/oh/` (`install-kind.ts:3`), `isImageInstall` (`install-kind.ts:9-12`), `invokedFromImage` (`install-kind.ts:14-21`).
 - `.agro/cli/package.json` (`@mifune/agro`, bin `agro`); `.agro/cli/legacy/package.json` (`@mifune/openharness`, bin `oh`, exact pin). Since #943 `homepage`, `repository.url`, and `bugs.url` in both name `mifunedev/agro`.
 - `.agro/cli/src/commands/sandbox.ts` — `oh sandbox install <runtime>` (wizard, entry write, materialise, provision) and `oh sandbox list`.
+- `.agro/cli/src/commands/workspace.ts` — `runWorkspaceCreate` and `runWorkspaceList`: the host **workspace registry** door, `~/.agro/workspaces/<name>/`.
+- `.agro/cli/src/lib/host-workspace.ts` — `ensureHostWorkspace` (clone or reuse), `listHostWorkspaces` (`host-workspace.ts:130-140`), `resolveExistingWorkspace` (`host-workspace.ts:145-173`), `stateHomeRefusal`, `stateHomeRootRefusal`, `AGRO_REPO_URL`.
+- `.agro/cli/src/commands/harness.ts`, `.agro/cli/src/commands/tool.ts` — the host install paths; since #1086 both resolve a workspace and create none.
+- `.agro/evals/probes/host-workspace-door.sh` — the tier-A probe pinning that one door.
 - `.agro/cli/src/commands/lifecycle.ts` — `oh shell|stop|restart|logs|ps|destroy [name]`; thin wrappers over the `ExecutionTarget` contract and the materialised wrapper script.
 - `.agro/cli/src/lib/execution/target.ts`, `docker-compose-target.ts` — the provider-neutral contract and its one adapter, which owns the engine argv.
 - `.agro/cli/src/cli.ts` — `main` threads the product `bin` into help and errors and dispatches `update` by product; `parseUpdateArgs`, `resolveUpdateSource`, `runWithRemoteSource`, `--sandbox` on `config` / `secret`.
@@ -86,8 +96,11 @@ Issue #950 moved sandbox configuration out of the project checkout. `agro sandbo
 | `agro sandbox install docker` | hands | wizard → entry `agro.json` → `materialize()` → `provision()` | `bash <entry>/<control dir>/scripts/docker-compose.sh --repo-dir <entry> up -d --build\|--no-build` |
 | `agro shell [name]` | hands | `attach({argv:["zsh"], user:"sandbox"})` | the adapter's engine argv (`docker-compose-target.ts`) |
 | `agro stop\|restart\|logs\|ps\|destroy [name]` | hands | `resolveSandboxRoot()` → `materialize()` → wrapper | `bash <entry>/<control dir>/scripts/docker-compose.sh <compose verb>` |
+| `agro workspace create [<name>]\|list` | hands | `assertWorkspaceName` → both state-home guards → `ensureHostWorkspace()`, or a `workspacesRoot()` scan | `git clone <AGRO_REPO_URL> <root>` — no container, no config write |
 | `agro migrate [--check\|--home\|--json]` | hands | `planMigration()` → `applyMigration()` under `.agro-migrate.lock` | nothing — it renames, retires and relinks in place |
 | `agro gateway <args…>` | brain | none — deliberately not routed | `bash <control dir>/scripts/gateway.sh` with both `AGRO_PROJECT_ROOT` and `OH_PROJECT_ROOT` set to `<root>` (`aliasedEnvPair`, `lifecycle.ts:384`) |
+
+**The host workspace registry is a second registry, and `agro workspace` is its door.** `~/.agro/workspaces/<name>/` holds a full AGRO checkout, beside `~/.agro/sandboxes/<name>/`; `workspacesRoot()` in `host-config.ts` resolves it through the same `resolveUserStateHome` pair. `agro workspace create [<name>]` runs `stateHomeRefusal`, then `workspaceRoot(name)` — which runs `assertWorkspaceName` (`host-config.ts:50-51`) — then `stateHomeRootRefusal`, then `ensureHostWorkspace`, which clones `AGRO_REPO_URL` = `https://github.com/mifunedev/agro.git` or reuses a target that already holds `.git` (`host-workspace.ts:103-128`); the default name is `default`, and `--path <dir>` creates outside the registry and skips the name check. Passing both `--path` and a name refuses. `create` writes **no** host config: `harnessRoot` stays whatever a host install last recorded. `agro workspace list [--json]` scans `workspacesRoot()`, keeps every child matching `SANDBOX_NAME_PATTERN` that holds a `.git` marker (`host-workspace.ts:130-140`) — the same shape as `registry.ts:44-53` — and marks the child equal to the recorded `harnessRoot`. No metadata file exists; the directory is the registry. Since #1086 `harness install --host` and `tool install --host` create nothing: each calls `resolveExistingWorkspace`, which returns the root or a refusal naming every workspace that exists plus `` `${bin} workspace create <name>` `` (`host-workspace.ts:145-173`), and each still writes `harnessRoot` on success (`harness.ts:473`, `tool.ts:482`). `workspace remove`, `workspace use`, and `workspace status` do not exist.
 
 **`oh update` is the payload bootstrap.** `resolveUpdateSource` (`cli.ts`, `resolveUpdateSource`) picks `--from <dir>` > `--from-remote [--ref]` > the CLI's own bundled payload (manifest marker) > a remote fetch with a one-line notice. Both ends resolve through compat: `resolveControlDir(fromDir)` picks the source control plane and refuses when it is absent in both spellings (`update.ts:61-71`), and `resolveControlDir(targetDir)` picks the target's — when the target has neither, the payload lands in a directory named after the **source's** basename (`update.ts:75-77`), so bootstrapping from an AGRO checkout creates `.agro/` and bootstrapping from a legacy one still creates `.oh/`. A target with no control plane reads as version `0.0.0` (`update.ts:45-55`) and receives the full payload; a second run prints `already up to date (v…)` (`update.ts:92`). It writes only what `.agro/manifest.json` ships — the control-plane include list plus `crons/**` — and never the config file, `.env`, `AGENTS.md`, `.gitignore`, `.devcontainer/`, or provider directories; the operator owns those. `templates/**` left the manifest with the scaffold. `copyOhPayload()` still walks only the resolved source control dir and writes only below the resolved target one (`vendor.ts`), so root `docs/` stays project-owned. It does not upgrade the CLI (`printUpdateHelp`).
 
