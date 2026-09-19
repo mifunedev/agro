@@ -10,6 +10,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
+- Configure Antigravity CLI (`agy`) with zero-confirmation mode by default: add convenience alias in shell rc files, declare `bypassPermissionsFlag` in the harness catalog, and seed `~/.gemini/antigravity-cli/settings.json` ([#1090](https://github.com/mifunedev/agro/issues/1090)).
 - Add `agro workspace create [<name>]` and `agro workspace list`, so an operator creates and inspects a host AGRO workspace under `~/.agro/workspaces/` without installing a harness ([#1086](https://github.com/mifunedev/agro/issues/1086)).
 - Add two probes: `spec-task-artifact-contract` fails when a completed task folder lacks a required artifact, and `audit-tooling-blocked-signal` fails when an unrunnable gate reads as failed ([#1088](https://github.com/mifunedev/agro/issues/1088)).
 - Add the `.agro/memories/` tier: `SOUL.md`, `USER.md` and `MEMORY.md` for durable operator context and cross-session lessons, each shipping working defaults ([#1084](https://github.com/mifunedev/agro/issues/1084)).

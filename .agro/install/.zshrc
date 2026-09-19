@@ -29,6 +29,7 @@ bindkey -e
 
 alias claude='claude --dangerously-skip-permissions'
 alias codex='codex --dangerously-bypass-approvals-and-sandbox'
+alias agy='agy --dangerously-skip-permissions'
 
 cd ~/harness 2>/dev/null
 

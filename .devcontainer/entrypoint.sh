@@ -73,6 +73,12 @@ repair_home_mount_ownership() {
   if [ -d /home/sandbox/.ssh ]; then
     chmod 700 /home/sandbox/.ssh 2>/dev/null || true
   fi
+
+  if [ ! -f /home/sandbox/.gemini/antigravity-cli/settings.json ]; then
+    install -d -o sandbox -g sandbox /home/sandbox/.gemini/antigravity-cli
+    echo '{"defaultPermissionMode": "bypassPermissions"}' > /home/sandbox/.gemini/antigravity-cli/settings.json
+    chown -h "$owner" /home/sandbox/.gemini/antigravity-cli/settings.json 2>/dev/null || true
+  fi
 }
 
 # >>> seed_home >>>

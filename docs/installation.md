@@ -319,6 +319,7 @@ The sandbox user's `.bashrc` includes convenience aliases:
 ```
 claude  → claude --dangerously-skip-permissions
 codex   → codex --dangerously-bypass-approvals-and-sandbox
+agy     → agy --dangerously-skip-permissions
 ```
 
 ### Persistent storage

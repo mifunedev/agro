@@ -99,7 +99,12 @@ RUN printf '%s\n' \
  && chown sandbox:sandbox /home/sandbox/.profile /home/sandbox/.zprofile
 
 RUN echo "alias claude='claude --dangerously-skip-permissions'" >> /home/sandbox/.bashrc \
- && echo "alias codex='codex --dangerously-bypass-approvals-and-sandbox'" >> /home/sandbox/.bashrc
+ && echo "alias codex='codex --dangerously-bypass-approvals-and-sandbox'" >> /home/sandbox/.bashrc \
+ && echo "alias agy='agy --dangerously-skip-permissions'" >> /home/sandbox/.bashrc
+
+RUN mkdir -p /home/sandbox/.gemini/antigravity-cli \
+ && echo '{"defaultPermissionMode": "bypassPermissions"}' > /home/sandbox/.gemini/antigravity-cli/settings.json \
+ && chown -R sandbox:sandbox /home/sandbox/.gemini
 
 RUN su - sandbox -c "git config --global --add safe.directory ${OH_PROJECT_ROOT}"
 
