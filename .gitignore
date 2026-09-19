@@ -16,22 +16,23 @@
 /.agro/config.json
 .worktrees/*
 !.worktrees/AGENTS.md
-!.worktrees/CLAUDE.md
 projects/*
 !projects/AGENTS.md
-!projects/CLAUDE.md
 .claude/worktrees/
+
+# Project instructions live in AGENTS.md. A CLAUDE.md is the operator-local
+# escape hatch for Claude Code < 2.1.277 and for Bedrock, Vertex and Foundry;
+# it must never be tracked, because it disables the AGENTS.md path for everyone.
+CLAUDE.md
 # Task artifacts are local runtime state; keep only the directory guide tracked.
 .oh/tasks/*
 !.oh/tasks/README.md
 .oh/logs/*
 !.oh/logs/AGENTS.md
-!.oh/logs/CLAUDE.md
 .agro/tasks/*
 !.agro/tasks/README.md
 .agro/logs/*
 !.agro/logs/AGENTS.md
-!.agro/logs/CLAUDE.md
 
 # Build artifacts
 **/.venv/

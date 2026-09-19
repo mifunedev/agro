@@ -6,7 +6,7 @@ job; the runtime scans this directory at boot, schedules every enabled
 job via [Croner](https://github.com/Hexagon/croner), and re-fires the
 file's body as the next prompt to the active agent.
 
-`CLAUDE.md` is a provider-compatibility symlink to this file. Edit `AGENTS.md`.
+Every coding harness reads this file directly. This repository ships no `CLAUDE.md`.
 
 These files are **agent instructions, not documentation**. A cron body is a
 prompt an agent executes unattended, on a schedule, with no operator in the

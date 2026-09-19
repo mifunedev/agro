@@ -21,13 +21,8 @@ if [[ -f "$ROOT/crons/README.md" ]]; then
   exit 1
 fi
 
-ALIAS="$ROOT/crons/CLAUDE.md"
-if [[ ! -L "$ALIAS" ]]; then
-  echo "REGRESSION: crons/CLAUDE.md must be a provider-compatibility symlink, not a copy" >&2
-  exit 1
-fi
-if [[ "$(readlink "$ALIAS")" != "AGENTS.md" ]]; then
-  echo "REGRESSION: crons/CLAUDE.md must point at the sibling AGENTS.md, got: $(readlink "$ALIAS")" >&2
+if [[ -e "$ROOT/crons/CLAUDE.md" ]]; then
+  echo "REGRESSION: crons/CLAUDE.md is back — it suppresses the AGENTS.md fallback" >&2
   exit 1
 fi
 
@@ -48,5 +43,5 @@ if ! grep -Fq '`.agro/scripts/cron-runtime.ts`' "$GUIDE"; then
   exit 1
 fi
 
-echo "PASS: crons/AGENTS.md is the single cron operating contract, carries its CLAUDE.md symlink, documents the reload rules, and is inert to the scheduler" >&2
+echo "PASS: crons/AGENTS.md is the single cron operating contract, documents the reload rules, and is inert to the scheduler" >&2
 exit 0

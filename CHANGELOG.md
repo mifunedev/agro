@@ -12,16 +12,20 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 - Add the `.agro/memories/` tier: `SOUL.md`, `USER.md` and `MEMORY.md` for durable operator context and cross-session lessons, each shipping working defaults ([#1084](https://github.com/mifunedev/agro/issues/1084)).
 - Add the `memories-tier-defaults` probe. It fails when a memory file carries a real identity or a dated entry, and when the root `AGENTS.md` names the tier ([#1084](https://github.com/mifunedev/agro/issues/1084)).
+- Add the `agents-md-fallback` probe. It fails when a tracked `CLAUDE.md` returns or a directory guide stops being a real `AGENTS.md` ([#1082](https://github.com/mifunedev/agro/issues/1082)).
 - Add `/council` for bounded independent perspectives, advisor synthesis, and explicit advice limits ([#1076](https://github.com/mifunedev/agro/issues/1076)).
 - Install `agent-browser` on the host from a pinned release binary, without the operating system package manager; it drives an existing Chromium-family browser and refuses when none is found ([#1078](https://github.com/mifunedev/agro/issues/1078)).
 
 ### Changed
 
+- Read project instructions from `AGENTS.md` on every harness. Claude Code needs 2.1.277 or later ([#1082](https://github.com/mifunedev/agro/issues/1082)).
+- Ignore `CLAUDE.md` so an operator can add one locally on Bedrock, Vertex, Foundry, or an older Claude Code ([#1082](https://github.com/mifunedev/agro/issues/1082)).
 - Route `/strategic-proposal` roadmap deliberation through `/council` with required critique and explicit publication permission ([#1076](https://github.com/mifunedev/agro/issues/1076)).
 - Pin `agent-browser` to 0.38.1, up from 0.8.5 ([#1078](https://github.com/mifunedev/agro/issues/1078)).
 
 ### Removed
 
+- Remove the five `CLAUDE.md` symlinks. A present `CLAUDE.md` suppresses the `AGENTS.md` that Claude Code now reads directly ([#1082](https://github.com/mifunedev/agro/issues/1082)).
 - Remove V2MOM and its bundled reference from the strategy workflow ([#1076](https://github.com/mifunedev/agro/issues/1076)).
 
 ### Fixed

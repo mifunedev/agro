@@ -16,7 +16,7 @@ conventions, git workflow, or where files live.
 
 ## Steps
 
-1. Read `CLAUDE.md` for the orchestrator contract — what the root-level
+1. Read `AGENTS.md` for the orchestrator contract — what the root-level
    agent does and does not do.
 2. For layout questions, read the per-directory `README.md` files (e.g.
    `.agro/README.md`, `.agro/tasks/README.md`,
@@ -41,5 +41,5 @@ conventions, git workflow, or where files live.
 
 - Short factual answer first, then file references.
 - Lifecycle questions (setup / validate / teardown): cite the relevant
-  section of `CLAUDE.md`.
+  section of `AGENTS.md`.
 - Convention questions: cite the owning skill (`.agro/skills/<name>/SKILL.md`).

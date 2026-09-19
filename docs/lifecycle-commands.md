@@ -31,6 +31,17 @@ Host prerequisites: **Docker** (with the Compose plugin), **Git**, and
 when it is missing. Everything else — pnpm, Python, the agent CLIs — lives inside the
 sandbox.
 
+Project instructions live in `AGENTS.md`. Codex and Pi read that name natively.
+Claude Code reads it from **2.1.277**, and only when no `CLAUDE.md` sits in the
+working directory or above it. This repository therefore ships no `CLAUDE.md`.
+
+Two cases cannot read `AGENTS.md`: a Claude Code older than 2.1.277, and a
+session on Amazon Bedrock, Vertex or Foundry. To restore project instructions
+there, add an untracked `CLAUDE.md` next to each `AGENTS.md` you need, holding
+the single line `@AGENTS.md`. A `CLAUDE.md` disables the `AGENTS.md` path for
+its own directory and every directory below it, so add one per guide rather
+than one at the root.
+
 ## The verbs
 
 | Verb | Runs |
