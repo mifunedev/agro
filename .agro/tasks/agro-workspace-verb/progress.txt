@@ -1,0 +1,3 @@
+# progress
+
+2026-09-19 plan: base commit cf35b316acccc03092d8f8da97fe2a50d9b12a1f; queries "cli lifecycle host workspace registry" and "cli evals probes docs --patterns"; read [[oh-cli-portable-lifecycle]], [[fresh-machine-setup]], [[pattern-evals-product-name-literal-pinning]], [[pattern-evals-unexercised-oracle]], [[pattern-evals-probe-failure-path-untested]], [[pattern-evals-negation-must-govern-token]]; architecture-significance judged NOT significant (RFC #1070 plus a recorded council round already performed the structural deliberation); source plan .agro/plans/agro-workspace-verb/plan.md; Intent preserved YES; Orchestration preserved YES; three grounding constraints recorded from recalled patterns; scaffolded prd.md, prd.json (9 stories), progress.txt
