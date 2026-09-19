@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "project": "AGRO",
+  "branchName": "task/1112-directory-contracts",
+  "description": "Separate directory contracts from documentation",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create scoped contracts and consolidate documentation",
+      "description": "Create scoped contracts and consolidate documentation",
+      "acceptanceCriteria": [
+        "D1",
+        "D2",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Retire untrusted guidance and repair live consumers",
+      "description": "Retire untrusted guidance and repair live consumers",
+      "acceptanceCriteria": [
+        "D3",
+        "D4",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Verify documentation boundaries and knowledge impact",
+      "description": "Verify documentation boundaries and knowledge impact",
+      "acceptanceCriteria": [
+        "D5",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

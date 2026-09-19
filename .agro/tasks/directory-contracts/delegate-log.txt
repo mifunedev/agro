@@ -1,0 +1,1 @@
+Capability check: native general-purpose Agent supports model and thinking. Requested inherit/high; effective settings unknown. Wave 1 T1 running; single writer, dedicated worktree.

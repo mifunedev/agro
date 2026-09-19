@@ -1,0 +1,54 @@
+{
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Implement directory contracts and retirement",
+      "description": "Implement D1-D4 and targeted verification; exact scope in prd.md and dispatch briefing.",
+      "dependsOn": [],
+      "complexity": "Moderate cross-document migration with probe and packaging dependencies",
+      "selectionReason": "Coupled ownership and cross-reference migration merit high reasoning; no operator model selection",
+      "requestedModel": "inherit",
+      "requestedReasoning": "high",
+      "observedSettings": {
+        "model": "unknown",
+        "reasoning": "unknown",
+        "provenance": "Agent schema exposes model and thinking; no effective runtime confirmation yet"
+      },
+      "readScope": [
+        "AGENTS.md",
+        ".agro/",
+        "docs/",
+        ".gitignore",
+        ".hermes/README.md",
+        ".pi/install/README.md"
+      ],
+      "searchOutputLimits": "Exclude third parties, archives and raw captures; report under 1000 words",
+      "ownedWritePaths": "15 classified READMEs and replacement AGENTS/docs; direct consumers in skills/probes/registry; .gitignore; skills.lock; CHANGELOG.md; needed narrow tests",
+      "exclusions": "No runtime behavior changes, task state, publication, merges, historical records, provider mirrors, or recursion",
+      "executionDirectory": "/home/sandbox/harness/.worktrees/task/1112-directory-contracts",
+      "worktreeIsolation": "Dedicated build worktree, single serialized writer; advisor only writes task state",
+      "workerType": "general-purpose",
+      "continuationMethod": "Agent resume",
+      "deliverable": "Uncommitted patch and validation evidence",
+      "verification": "git diff --check; provider link check; affected probes; STE; link check; index probe",
+      "stoppingCondition": "Patch and evidence complete, or blocking ambiguity/budget",
+      "evidenceDestinations": [
+        "/tmp/directory-contracts-worker-report.txt"
+      ],
+      "coveredDoD": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "D5"
+      ],
+      "acceptanceOwner": "active advisor",
+      "failureRepairRoute": "resume T1 with named defects",
+      "nativeWorkerId": null,
+      "status": "running",
+      "artifactReferences": [],
+      "usage": "unknown",
+      "wave": 1
+    }
+  ]
+}
