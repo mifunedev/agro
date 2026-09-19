@@ -95,28 +95,23 @@ COPY --chown=sandbox:sandbox .agro/install/.tmux.conf /home/sandbox/.tmux.conf
 
 COPY --chown=sandbox:sandbox .agro/install/.zshrc /home/sandbox/.zshrc
 
-RUN printf '%s\n' \
-      'export NPM_USER_PREFIX="${NPM_USER_PREFIX:-/home/sandbox/.local}"' \
-      'export PNPM_HOME="${PNPM_HOME:-/home/sandbox/.local/share/pnpm}"' \
-      'export PATH="$NPM_USER_PREFIX/bin:$PNPM_HOME:$PATH"' \
-      '[ -r "$HOME/.local/share/oh/python-env.sh" ] && . "$HOME/.local/share/oh/python-env.sh"' \
-      | tee -a /home/sandbox/.profile /home/sandbox/.zprofile \
- && chown sandbox:sandbox /home/sandbox/.profile /home/sandbox/.zprofile
-
-RUN echo "alias claude='claude --dangerously-skip-permissions'" >> /home/sandbox/.bashrc \
- && echo "alias codex='codex --dangerously-bypass-approvals-and-sandbox'" >> /home/sandbox/.bashrc \
- && echo "alias agy='agy --dangerously-skip-permissions'" >> /home/sandbox/.bashrc
-
-RUN mkdir -p /home/sandbox/.gemini/antigravity-cli \
- && echo '{"defaultPermissionMode": "bypassPermissions"}' > /home/sandbox/.gemini/antigravity-cli/settings.json \
- && chown -R sandbox:sandbox /home/sandbox/.gemini
-
-RUN su - sandbox -c "git config --global --add safe.directory ${OH_PROJECT_ROOT}"
-
-RUN echo "cd ${OH_PROJECT_ROOT} 2>/dev/null" >> /home/sandbox/.bashrc
+COPY --chown=sandbox:sandbox .agro/install/path-env.sh /tmp/path-env.sh
 
 COPY --chown=sandbox:sandbox .agro/install/ /home/sandbox/install/
-RUN chmod +x /home/sandbox/install/*.sh
+
+RUN cat /tmp/path-env.sh >> /home/sandbox/.profile \
+ && cat /tmp/path-env.sh >> /home/sandbox/.zprofile \
+ && rm -f /tmp/path-env.sh \
+ && chown sandbox:sandbox /home/sandbox/.profile /home/sandbox/.zprofile \
+ && echo "alias claude='claude --dangerously-skip-permissions'" >> /home/sandbox/.bashrc \
+ && echo "alias codex='codex --dangerously-bypass-approvals-and-sandbox'" >> /home/sandbox/.bashrc \
+ && echo "alias agy='agy --dangerously-skip-permissions'" >> /home/sandbox/.bashrc \
+ && mkdir -p /home/sandbox/.gemini/antigravity-cli \
+ && echo '{"defaultPermissionMode": "bypassPermissions"}' > /home/sandbox/.gemini/antigravity-cli/settings.json \
+ && chown -R sandbox:sandbox /home/sandbox/.gemini \
+ && su - sandbox -c "git config --global --add safe.directory ${OH_PROJECT_ROOT}" \
+ && echo "cd ${OH_PROJECT_ROOT} 2>/dev/null" >> /home/sandbox/.bashrc \
+ && chmod +x /home/sandbox/install/*.sh
 
 COPY --chown=sandbox:sandbox .agro/scripts/provision-python.sh /tmp/provision-python.sh
 ARG INSTALL_PYTHON_KERNEL=true

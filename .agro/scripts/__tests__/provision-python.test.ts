@@ -105,7 +105,9 @@ describe("Dockerfile uv ownership", () => {
   });
 
   it("sources the generated python env from login shells", () => {
-    expect(dockerfile()).toContain('$HOME/.local/share/oh/python-env.sh');
+    const snippet = readFileSync(join(ROOT, ".agro/install/path-env.sh"), "utf8");
+    expect(snippet).toContain('$HOME/.local/share/oh/python-env.sh');
+    expect(dockerfile()).toContain(".agro/install/path-env.sh");
   });
 });
 
