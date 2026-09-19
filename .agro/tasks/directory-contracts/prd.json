@@ -14,8 +14,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Accepted by advisor at content head 8edbc7a6e924fe9b029ad581fc962d4ee426d464. Verification evidence in PR body; final-head readiness is the separate promotion gate."
     },
     {
       "id": "US-002",
@@ -27,8 +27,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Accepted by advisor at content head 8edbc7a6e924fe9b029ad581fc962d4ee426d464. Verification evidence in PR body; final-head readiness is the separate promotion gate."
     },
     {
       "id": "US-003",
@@ -39,8 +39,8 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Accepted by advisor at content head 8edbc7a6e924fe9b029ad581fc962d4ee426d464. Verification evidence in PR body; final-head readiness is the separate promotion gate."
     }
   ]
 }

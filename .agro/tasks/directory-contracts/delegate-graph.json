@@ -10,9 +10,9 @@
       "requestedModel": "inherit",
       "requestedReasoning": "high",
       "observedSettings": {
-        "model": "unknown",
-        "reasoning": "unknown",
-        "provenance": "Agent schema exposes model and thinking; no effective runtime confirmation yet"
+        "model": "gpt-6-astra",
+        "reasoning": "high",
+        "provenance": "worker PI_MODEL/PI_REASONING_LEVEL report"
       },
       "readScope": [
         "AGENTS.md",
@@ -45,10 +45,70 @@
       "acceptanceOwner": "active advisor",
       "failureRepairRoute": "resume T1 with named defects",
       "nativeWorkerId": "2ce3374c-f869-402",
-      "status": "running",
-      "artifactReferences": [],
+      "status": "completed",
+      "artifactReferences": [
+        "d44f60a2",
+        "d7273ae0",
+        "8edbc7a6",
+        "/tmp/directory-contracts-worker-report.txt",
+        "/tmp/directory-contracts-acceptance.log"
+      ],
       "usage": "unknown",
-      "wave": 1
+      "wave": 1,
+      "summary": "Advisor accepted approved migration and citation repairs after preservation checks, direct file/diff review, provider/index verification, typecheck/build, and 83 test files / 1681 tests passing. Initial local eval environment red independently reproduced on unchanged base; remote CI passed d7273ae0. Final-head promotion remains separate."
+    },
+    {
+      "id": "T2",
+      "title": "Review integrated documentation migration",
+      "description": "Read-only correctness and simplicity review at d44f60a2 versus a83e2dca",
+      "dependsOn": [],
+      "complexity": "Moderate documentation ownership and integration review",
+      "selectionReason": "Independent source-grounded review; high reasoning for contradictions and moved references",
+      "requestedModel": "inherit",
+      "requestedReasoning": "high",
+      "observedSettings": {
+        "model": "gpt-6-astra",
+        "reasoning": "high",
+        "provenance": "worker PI_MODEL/PI_REASONING_LEVEL report"
+      },
+      "readScope": [
+        "AGENTS.md",
+        ".agro/",
+        "docs/",
+        ".gitignore",
+        ".hermes/README.md",
+        ".pi/install/README.md"
+      ],
+      "searchOutputLimits": "Exclude third parties, archives and raw captures; report under 1000 words",
+      "ownedWritePaths": [],
+      "exclusions": "No file edits, commands that mutate repository, publication, or recursion",
+      "executionDirectory": "/home/sandbox/harness/.worktrees/task/1112-directory-contracts",
+      "worktreeIsolation": "Dedicated build worktree, single serialized writer; advisor only writes task state",
+      "workerType": "general-purpose",
+      "continuationMethod": "Agent resume",
+      "deliverable": "Concrete findings with file:line and simpler alternative/removesLines/blocking where applicable",
+      "verification": "Read complete changed live files and compare contracts against authoritative code/procedures; inspect probes without weakening",
+      "stoppingCondition": "Report after bounded review; name missing evidence",
+      "evidenceDestinations": [
+        "agent result"
+      ],
+      "coveredDoD": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "D5"
+      ],
+      "acceptanceOwner": "active advisor",
+      "failureRepairRoute": "resume T1 with named defects",
+      "nativeWorkerId": "6c3a4261-5bfb-4cc",
+      "status": "completed",
+      "artifactReferences": [
+        "8edbc7a6e924fe9b029ad581fc962d4ee426d464"
+      ],
+      "usage": "unknown",
+      "wave": 2,
+      "summary": "Independent reviewer read complete changed live files, checked159 links/anchors, found two corrections now resolved, verified final citation dependency delta, and reported no final correctness/simplicity findings."
     }
   ]
 }

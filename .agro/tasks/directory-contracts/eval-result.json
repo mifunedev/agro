@@ -1,0 +1,12 @@
+{
+  "commit": "8edbc7a6e924fe9b029ad581fc962d4ee426d464",
+  "runnerExit": 0,
+  "ranAt": "2026-09-19T22:53:04.007894+00:00",
+  "newRegressions": [],
+  "preExistingReds": [
+    "skills-vendored"
+  ],
+  "environment": "sandbox; inherited strict guard and clean-clone restricted PATH",
+  "initialRunExit": 1,
+  "baselineEvidence": "Same skills-vendored exit 1 reproduced at a83e2dca; no guard disabled. GitHub CI passed at d7273ae0."
+}
