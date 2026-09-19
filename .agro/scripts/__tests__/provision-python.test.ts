@@ -101,11 +101,13 @@ describe("Dockerfile uv ownership", () => {
     const text = dockerfile();
     expect(text).toContain("ARG INSTALL_PYTHON_KERNEL=true");
     expect(text).toContain('su - sandbox -c "OH_PYTHON_VERSION=');
-    expect(text).toContain("/opt/agro-seed/.agro/scripts/provision-python.sh");
+    expect(text).toContain("/tmp/provision-python.sh");
   });
 
   it("sources the generated python env from login shells", () => {
-    expect(dockerfile()).toContain('$HOME/.local/share/oh/python-env.sh');
+    const snippet = readFileSync(join(ROOT, ".agro/install/path-env.sh"), "utf8");
+    expect(snippet).toContain('$HOME/.local/share/oh/python-env.sh');
+    expect(dockerfile()).toContain(".agro/install/path-env.sh");
   });
 });
 
