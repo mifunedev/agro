@@ -6,7 +6,7 @@ tags: [evals, probes, distribution, manifest, verification-method]
 created: 2026-09-20
 updated: 2026-09-20
 sources:
-  - .agro/tasks/retire-memories-tier/evidence.md@fb9567b5
+  - .agro/tasks/retire-memories-tier/progress.txt@fb9567b5
   - .agro/evals/probes/memories-tier-defaults.sh@5e27b16d
   - .agro/manifest.json@77b18024
 related: [pattern-evals-probe-run-outside-its-tree, pattern-evals-document-conformance-proxy-oracle]
@@ -18,7 +18,7 @@ confidence: provisional
 ## Relevant Source Files
 - `.agro/manifest.json@77b18024` — the `include` allowlist a shape fixture copies from.
 - `.agro/evals/probes/memories-tier-defaults.sh@5e27b16d` — the version whose mode detection the fixture could not distinguish.
-- `.agro/tasks/retire-memories-tier/evidence.md@fb9567b5` — both fixtures, their results, and what only the real path revealed.
+- `.agro/tasks/retire-memories-tier/progress.txt@fb9567b5` — the run record for both fixtures and what only the real path revealed; the full command evidence lives in the PR body, which issue #1088 made the reviewer-evidence surface.
 
 ## Summary
 Materializing a manifest's `include` globs into a directory reproduces the

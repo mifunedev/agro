@@ -12,7 +12,7 @@ sources:
   - .oh/tasks/advisor-first-orchestration/evidence.md@144d9d8b
   - .agro/evals/probes/memories-tier-defaults.sh@5e27b16d
   - .agro/evals/probes/memories-tier-defaults.sh@77b18024
-  - .agro/tasks/retire-memories-tier/evidence.md@fb9567b5
+  - .agro/tasks/retire-memories-tier/progress.txt@fb9567b5
 related: [pattern-evals-prose-literal-pinning, pattern-evals-unexercised-oracle]
 confidence: provisional
 ---
