@@ -1,9 +1,10 @@
 {
-  "commit": "a1304db3f23f64bd10ac06c548f9fd21d0ae1676",
+  "commit": "d1ac804fbca84cfde2369e3f623b890818fb30e7",
   "runnerExit": 0,
-  "ranAt": "2026-09-20T19:13:37.773428+00:00",
+  "ranAt": "2026-09-20T19:26:56.440066+00:00",
   "newRegressions": [],
   "preExistingReds": [
+    "next-dev-prod",
     "skills-vendored"
   ],
   "skipped": [
@@ -11,8 +12,12 @@
     "sandbox-boot-advisory-recovery",
     "wiki-pattern-persistence"
   ],
-  "scoreboardSha256": "373a0a407d3a692a32adf6edba57960d47bc80264ce3af882087508b43b9b856",
+  "scoreboardSha256": "67303dca6c996a7c0490882da6ed1dc374c37ed1e1467fe9d564ac4a2b3422f5",
+  "originalBaseStatuses": {
+    "next-dev-prod": "SKIPPED",
+    "skills-vendored": "REGRESSION"
+  },
   "nonGatingTransitions": {
-    "next-dev-prod": "SKIPPED->REGRESSION; runner treats as non-gating, not a baseline red"
+    "next-dev-prod": "First cycle SKIPPED->REGRESSION; final cycle REGRESSION->REGRESSION; no green-to-red."
   }
 }
