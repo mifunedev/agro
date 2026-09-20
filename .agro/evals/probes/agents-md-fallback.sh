@@ -23,15 +23,13 @@ fi
 while IFS= read -r -d '' guide; do
   [[ -f "$guide" && ! -L "$guide" ]] \
     || fail "$guide must be a real file that a harness reads directly"
-done < <(git ls-files -z -- '*AGENTS.md' 'AGENTS.md')
+done < <(git ls-files -z -- '*AGENTS.md')
 
 if git ls-files --error-unmatch docs/lifecycle-commands.md >/dev/null 2>&1; then
   for guide in AGENTS.md .worktrees/AGENTS.md projects/AGENTS.md crons/AGENTS.md \
     .agro/logs/AGENTS.md; do
     git ls-files --error-unmatch "$guide" >/dev/null 2>&1 \
       || fail "$guide is not tracked"
-    [[ -f "$guide" && ! -L "$guide" ]] \
-      || fail "$guide must be a real file that a harness reads directly"
   done
 
   grep -Fq '2.1.277' docs/lifecycle-commands.md \
