@@ -13,8 +13,6 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 - Default Antigravity CLI (`agy`) to zero-confirmation mode with a sandbox alias, catalog launch flag, and seeded settings.json ([#1090](https://github.com/mifunedev/agro/issues/1090)).
 - Add `agro workspace create [<name>]` and `agro workspace list`, so an operator creates and inspects a host AGRO workspace under `~/.agro/workspaces/` without installing a harness ([#1086](https://github.com/mifunedev/agro/issues/1086)).
 - Add two probes: `spec-task-artifact-contract` fails when a completed task folder lacks a required artifact, and `audit-tooling-blocked-signal` fails when an unrunnable gate reads as failed ([#1088](https://github.com/mifunedev/agro/issues/1088)).
-- Add the `.agro/memories/` tier: `SOUL.md`, `USER.md` and `MEMORY.md` for durable operator context and cross-session lessons, each shipping working defaults ([#1084](https://github.com/mifunedev/agro/issues/1084)).
-- Add the `memories-tier-defaults` probe. It fails when a memory file carries a real identity or a dated entry, and when the root `AGENTS.md` names the tier ([#1084](https://github.com/mifunedev/agro/issues/1084)).
 - Add the `agents-md-fallback` probe. It fails when a tracked `CLAUDE.md` returns or a directory guide stops being a real `AGENTS.md` ([#1082](https://github.com/mifunedev/agro/issues/1082)).
 - Add `/council` for bounded independent perspectives, advisor synthesis, and explicit advice limits ([#1076](https://github.com/mifunedev/agro/issues/1076)).
 - Install `agent-browser` on the host from a pinned release binary, without the operating system package manager; it drives an existing Chromium-family browser and refuses when none is found ([#1078](https://github.com/mifunedev/agro/issues/1078)).
@@ -32,6 +30,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Removed
 
+- Remove the `.agro/memories/` tier and its `memories-tier-defaults` probe; a checkout no longer ships `SOUL.md`, `USER.md`, or `MEMORY.md` ([#1116](https://github.com/mifunedev/agro/issues/1116)).
 - Remove the Agent GitHub issue template and the `agent` issue/branch prefix ([#1092](https://github.com/mifunedev/agro/issues/1092)).
 - Remove the five `CLAUDE.md` symlinks. A present `CLAUDE.md` suppresses the `AGENTS.md` that Claude Code now reads directly ([#1082](https://github.com/mifunedev/agro/issues/1082)).
 - Remove V2MOM and its bundled reference from the strategy workflow ([#1076](https://github.com/mifunedev/agro/issues/1076)).

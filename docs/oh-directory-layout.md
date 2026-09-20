@@ -15,7 +15,7 @@ Canonical skills own reusable procedures. Documentation under `docs/` explains A
 | `.agro/evals/` | Regression probes, capability benchmark, datasets, and decision records. |
 | `.agro/knowledge/` | Tracked source pages, patterns, external captures, and a generated index; ignored `local/` scratch. |
 | `.agro/tasks/` | Local spec task plans, graphs, progress, and gate records. |
-| `.agro/logs/`, `.agro/memories/` | Local logs and operator context, each with a scoped contract. |
+| `.agro/logs/` | Local logs with a scoped contract. |
 | `.agro/manifest.json` | The declared control-plane and root payload. |
 | `.devcontainer/` | Dockerfile, Compose configuration, entrypoint, and sandbox bootstrap assets. |
 | `docs/` | Human-facing source documentation. The rendered site lives in `mifunedev/agro-web`. |
@@ -91,7 +91,7 @@ An equal version is a no-op without `--force`; a downgrade requires `--force`.
 
 The current payload includes `cli`, `scripts`, `install`, `evals`, `knowledge`, `skills`, and `hooks`.
 It also includes `skills.lock`, `README.md`, and the manifest itself.
-The payload omits `tasks`, `logs`, `memories`, dependency patches, and root `docs/`.
+The payload omits `tasks`, `logs`, dependency patches, and root `docs/`.
 The omissions describe the current manifest, not every file present in the repository.
 
 The updater overwrites shipped files in place without backups and creates no root scaffold.

@@ -11,7 +11,7 @@ AGRO keeps its portable machinery here. The sandbox definition stays in
 | `evals/` | Regression probes, capability tasks, datasets, and scoreboards. |
 | `knowledge/` | Tracked synthesis, external snapshots, and a generated index. |
 | `tasks/` | Local task plans, structured state, and execution records. |
-| `logs/`, `memories/` | Local logs and operator-context files with scoped contracts. |
+| `logs/` | Local logs with a scoped contract. |
 | `manifest.json` | The payload allowlist for `oh update`. |
 
 Read each applicable `AGENTS.md` before changing that directory's contents.
