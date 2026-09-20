@@ -1,0 +1,18 @@
+{
+  "commit": "a1304db3f23f64bd10ac06c548f9fd21d0ae1676",
+  "runnerExit": 0,
+  "ranAt": "2026-09-20T19:13:37.773428+00:00",
+  "newRegressions": [],
+  "preExistingReds": [
+    "skills-vendored"
+  ],
+  "skipped": [
+    "registry-portability",
+    "sandbox-boot-advisory-recovery",
+    "wiki-pattern-persistence"
+  ],
+  "scoreboardSha256": "373a0a407d3a692a32adf6edba57960d47bc80264ce3af882087508b43b9b856",
+  "nonGatingTransitions": {
+    "next-dev-prod": "SKIPPED->REGRESSION; runner treats as non-gating, not a baseline red"
+  }
+}

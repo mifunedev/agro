@@ -17,8 +17,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Advisor accepted fallback implementation at a1304db3: repaired-commands.json, repaired-cost-verification.json, independent-rereview.md, local-build-checks.json and final-knowledge-impact.json. C2 baseline limitation retained; composition not shipped. Readiness gates remain separate."
     },
     {
       "id": "US-002",
@@ -33,8 +33,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Advisor accepted fallback implementation at a1304db3: repaired-commands.json, repaired-cost-verification.json, independent-rereview.md, local-build-checks.json and final-knowledge-impact.json. C2 baseline limitation retained; composition not shipped. Readiness gates remain separate."
     },
     {
       "id": "US-003",
@@ -48,8 +48,8 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Advisor accepted fallback implementation at a1304db3: repaired-commands.json, repaired-cost-verification.json, independent-rereview.md, local-build-checks.json and final-knowledge-impact.json. C2 baseline limitation retained; composition not shipped. Readiness gates remain separate."
     }
   ]
 }

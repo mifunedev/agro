@@ -3532,3 +3532,33 @@ index 00000000..cd4725bf
 +Separate source-contract review, deterministic command evidence, and actual agent behavior.
 +Do not claim independent review or advisor acceptance from this document. Do not turn the rejected composition's D2 or D7 into a pass.
 `````
+
+## SI-0024-V · 2026-09-20 · benchmark · ACCEPTED
+
+- **for**: SI-0024
+- **floor**: /eval rc=0 at `a1304db3f23f64bd10ac06c548f9fd21d0ae1676`; zero new green-to-red regressions. Existing `skills-vendored` red and `next-dev-prod` skip-to-red remain disclosed.
+- **ceiling**: Documented suite score 1.44 → 1.44; historical scoreboard unchanged, with no new task-axis score.
+- **verdict**: BENEFICIAL — ACCEPTED as a justified evidence-instrument hold, not a measured model-quality improvement.
+- **credit**: CB-005 credits pattern-informed builder proposals and validated skill-change records. The current change consumes those existing lessons and preserves that capability.
+- **evidence**: Independent C10–C16 source review and executable dirty-state/failure-path checks validate the stated correction. The two procedures remove 1985 words.
+- **limits**: No full CB-005 rerun, autonomous audit-quality experiment, or instrument-grooming campaign ran. Fixture, ledger, and task-record costs remain separate from runtime-context counts.
+
+## SI-0025-V · 2026-09-20 · benchmark · ACCEPTED
+
+- **for**: SI-0025
+- **floor**: /eval rc=0 at `a1304db3f23f64bd10ac06c548f9fd21d0ae1676`; zero new green-to-red regressions. Existing `skills-vendored` red and `next-dev-prod` skip-to-red remain disclosed.
+- **ceiling**: Documented suite score 1.44 → 1.44; historical scoreboard unchanged, with no new task-axis score.
+- **verdict**: BENEFICIAL — ACCEPTED as a justified evidence-instrument hold, not a measured model-quality improvement.
+- **credit**: CB-005 credits pattern-informed builder proposals and validated skill-change records. The current change consumes those existing lessons and preserves that capability.
+- **evidence**: Independent C10–C16 source review and executable dirty-state/failure-path checks validate the stated correction. The two procedures remove 1985 words.
+- **limits**: No full CB-005 rerun, autonomous audit-quality experiment, or instrument-grooming campaign ran. Fixture, ledger, and task-record costs remain separate from runtime-context counts.
+
+## SI-0026-V · 2026-09-20 · benchmark · ACCEPTED
+
+- **for**: SI-0026
+- **floor**: /eval rc=0 at `a1304db3f23f64bd10ac06c548f9fd21d0ae1676`; zero new green-to-red regressions. Existing `skills-vendored` red and `next-dev-prod` skip-to-red remain disclosed.
+- **ceiling**: Documented suite score 1.44 → 1.44; historical scoreboard unchanged, with no new task-axis score.
+- **verdict**: BENEFICIAL — ACCEPTED as a justified evidence-instrument hold, not a measured model-quality improvement.
+- **credit**: CB-005 credits pattern-informed builder proposals and validated skill-change records. The current change consumes those existing lessons and preserves that capability.
+- **evidence**: Independent C10–C16 source review and executable dirty-state/failure-path checks validate the stated correction. The two procedures remove 1985 words.
+- **limits**: No full CB-005 rerun, autonomous audit-quality experiment, or instrument-grooming campaign ran. Fixture, ledger, and task-record costs remain separate from runtime-context counts.

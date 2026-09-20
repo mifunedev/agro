@@ -8,7 +8,8 @@ The current advisor owns verification and acceptance at Astra low effort.
 Target: `mifunedev/agro`, remote `origin`, base `development`, issue #1114.
 Task slug: `audit-responsibility-simplification`.
 Worktree: `/home/sandbox/harness/.worktrees/skill/1114-audit-responsibility-simplification`.
-No implementation criterion has passed.
+The advisor accepted all three fallback implementation stories at `a1304db3` after repaired-candidate review and verification.
+Readiness gates remain separate from story completion.
 Do not merge or send reverse supervisor messages, escalation, Slack messages, or relays.
 Workers report through native output only.
 
