@@ -1,9 +1,12 @@
 {
-  "commit": "1183563f249f5eca8b1ac52c871b615745779642",
+  "commit": "6c4587d1e290cf8c79ed2861335ecec2ad3fea10",
   "runnerExit": 0,
-  "ranAt": "2026-09-20T20:05:00Z",
+  "ranAt": "2026-09-20T20:30:00Z",
   "scope": "repair",
   "newRegressions": [],
-  "preExistingReds": ["next-dev-prod", "skills-vendored"],
-  "note": "157 probes. memories-tier-defaults is restored and green as a templates-and-contract probe; agents-md-fallback green. Both reds are pre-existing and unrelated to this diff: next-dev-prod fires on a 'next dev' process running elsewhere in this sandbox, and skills-vendored reports another provider runtime home. Neither was suppressed or weakened. One transient red was caused and fixed within this build: knowledge-source-freshness went red because .agro/tasks/* is gitignored, so a plain `git add -A` silently skipped the new evidence.md and a pattern page pinned a source that did not resolve; fixed by force-adding the evidence and repinning to the commit that carries it. The prior record at commit 0b3f82ad is RETIREMENT evidence for a superseded scope, retained at eval-result-retirement.json; it is not a repair gate."
+  "preExistingReds": [
+    "next-dev-prod",
+    "skills-vendored"
+  ],
+  "note": "157 probes. memories-tier-defaults is restored and green as a templates-and-contract probe; agents-md-fallback green. Both reds are pre-existing and unrelated to this diff: next-dev-prod fires on a 'next dev' process running elsewhere in this sandbox, and skills-vendored reports another provider runtime home. Neither was suppressed or weakened. One transient red was caused and fixed within this build: knowledge-source-freshness went red because .agro/tasks/* is gitignored, so a plain `git add -A` silently skipped the new evidence.md and a pattern page pinned a source that did not resolve; fixed by force-adding the evidence and repinning to the commit that carries it. The prior record at commit 0b3f82ad is RETIREMENT evidence for a superseded scope, retained at eval-result-retirement.json; it is not a repair gate. Re-run at the audited head for /benchmark Signal 1, because the record commit no longer matched HEAD. That re-run caught a REAL new regression this build introduced: spec-task-artifact-contract went PASS->REGRESSION because .agro/tasks/<slug>/evidence.md is retired by issue #1088 and the reviewer evidence belongs in the PR body. The file was removed, its content moved to the PR body, and the pattern pages repinned to progress.txt; the floor is green again at this commit."
 }
