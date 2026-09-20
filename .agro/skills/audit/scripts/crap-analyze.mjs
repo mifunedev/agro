@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
 import { readFileSync, existsSync, statSync, writeFileSync } from "node:fs";
-import { relative, resolve } from "node:path";
+import { basename, relative, resolve } from "node:path";
 
 export const SUPPORTED_EXTENSIONS = [".ts", ".tsx", ".js", ".mjs", ".cjs", ".jsx"];
 
@@ -652,7 +652,7 @@ export function main(argv) {
   return 0;
 }
 
-if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
+if (basename(process.argv[1] || "") === "crap-analyze.mjs") {
   try {
     process.exit(main(process.argv.slice(2)));
   } catch (error) {

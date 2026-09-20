@@ -1,5 +1,13 @@
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, statSync } from "node:fs";
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  symlinkSync,
+  writeFileSync,
+  statSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -746,5 +754,43 @@ describe("parseArgs and main", () => {
     } finally {
       process.stdout.write = original;
     }
+  });
+});
+
+describe("CLI entrypoint guard", () => {
+  it("runs the CLI when invoked through a symlinked skills directory", () => {
+    const dir = workspace();
+    const link = join(dir, "skills");
+    symlinkSync(join(repoRoot, ".agro/skills"), link, "dir");
+    const result = spawnSync(
+      process.execPath,
+      [join(link, "audit/scripts/crap-analyze.mjs"), "--help"],
+      { encoding: "utf8" },
+    );
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("crap-analyze.mjs");
+  });
+
+  it("does not run the CLI when the argv[1] basename is unrelated", () => {
+    const dir = workspace();
+    const alias = join(dir, "unrelated-entry.mjs");
+    symlinkSync(analyzerPath, alias, "file");
+    const result = spawnSync(process.execPath, [alias, "--help"], { encoding: "utf8" });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe("");
+  });
+
+  it("does not run the CLI when the module is imported by another file", () => {
+    const dir = workspace();
+    const importer = join(dir, "importer.mjs");
+    writeFileSync(
+      importer,
+      `const mod = await import(${JSON.stringify(analyzerPath)});\n` +
+        `if (typeof mod.crapScore !== "function") process.exit(9);\n`,
+    );
+    const result = spawnSync(process.execPath, [importer, "--help"], { encoding: "utf8" });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toBe("");
   });
 });
