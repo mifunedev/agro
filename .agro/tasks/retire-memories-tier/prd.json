@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "project": "AGRO",
+  "branchName": "task/1116-retire-memories-tier",
+  "description": "Retire the shipped .agro/memories/ tier and reconcile its two affected probes and documentation",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Remove the memories tier",
+      "description": "As an operator, I want .agro/memories/ gone so that the workspace stops advertising a session-start contract that nothing performs.",
+      "acceptanceCriteria": [
+        "Re-check for customization immediately before deletion: git status --porcelain -uall --ignored .agro/memories/ is empty and git diff ab86a8c3 -- .agro/memories/ is empty; stop and report a conflict if either is not",
+        "git rm .agro/memories/AGENTS.md .agro/memories/MEMORY.md .agro/memories/SOUL.md .agro/memories/USER.md",
+        "git ls-files .agro/memories returns nothing and the directory is absent",
+        "No other tracked path under .agro/ is touched by this story"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "D1"
+    },
+    {
+      "id": "US-002",
+      "title": "Reconcile the two affected probes",
+      "description": "As a maintainer, I want both affected probes to match the retirement so that the suite stays green and honest in a source checkout and in an installed project.",
+      "acceptanceCriteria": [
+        "Delete .agro/evals/probes/memories-tier-defaults.sh; every assertion in it is scoped to the retired directory",
+        "Rewrite .agro/evals/probes/agents-md-fallback.sh with two universal checks: no tracked CLAUDE.md anywhere, and every tracked AGENTS.md derived from git ls-files is a real file and not a symlink",
+        "Keep the root AGENTS.md tracked check, the enumerated directory guides, and the docs/lifecycle-commands.md 2.1.277 floor as source-checkout-only checks, gated on git ls-files --error-unmatch docs/lifecycle-commands.md",
+        "The probe prints which mode it ran in and exits 0 in both modes on a correct tree; it does not exit 2 and adds no blanket absent-subject SKIP",
+        "Do not name .agro/memories/ anywhere in the probe; the retired guide leaves the set because the set is derived from git, not because a line was deleted",
+        "Keep the probe header tier and source lines accurate and keep the CLAUDE.md lesson stated",
+        "bash .agro/evals/probes/agents-md-fallback.sh exits 0 in this checkout"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "D2"
+    },
+    {
+      "id": "US-003",
+      "title": "Correct layout documentation and the changelog",
+      "description": "As a reader, I want the layout map and the release notes to match the tree so that no document advertises a directory that does not exist.",
+      "acceptanceCriteria": [
+        "Update .agro/README.md:14 so the row names logs/ alone",
+        "Update docs/oh-directory-layout.md:18 so the row names .agro/logs/ alone, and update the payload sentence at :94 so it no longer names memories as an omitted tree",
+        "Remove the two .agro/memories/ ### Added bullets under ## [Unreleased] in CHANGELOG.md; they describe a tier and a probe that no release will contain",
+        "Add one ### Removed bullet under ## [Unreleased]: one sentence, imperative, at most 250 characters, linking issue 1116",
+        "grep -rIn memories across tracked files returns only historical CHANGELOG lines that describe past releases"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "D3"
+    },
+    {
+      "id": "US-004",
+      "title": "Verify in both deployments with negative tests",
+      "description": "As the advisor, I want proof in a source checkout and a fresh manifest-installed project so that the reconciled probe is known to fail on a real violation rather than merely to pass.",
+      "acceptanceCriteria": [
+        "Build a fresh manifest-installed project through the real distribution path; record the command used, and justify the fixture explicitly if the real path is unavailable",
+        "Run agents-md-fallback.sh in the source checkout and in the installed project; record both actual exit codes and the printed mode",
+        "Negative test N1: add a tracked CLAUDE.md; the probe exits 1 in both modes",
+        "Negative test N2: replace a tracked AGENTS.md with a symlink; the probe exits 1 in both modes",
+        "Negative test N3: remove the 2.1.277 string from docs/lifecycle-commands.md; the probe exits 1 in the source checkout",
+        "Positive control: the installed project, which legitimately has no root docs and no .agro/logs/AGENTS.md, exits 0",
+        "Every injection is reverted and the tree is proven clean afterwards with git status --porcelain",
+        "Record the full-suite baseline before and after and name any failure that predates this change"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "D4"
+    },
+    {
+      "id": "US-005",
+      "title": "Complete the gates and deliver the PR",
+      "description": "As the operator, I want the audit and eval gates recorded under D-IDs so that acceptance rests on evidence rather than assertion.",
+      "acceptanceCriteria": [
+        "/audit implementation returns a promotable classification",
+        "/eval runs once against the final commit and its result is recorded",
+        "Knowledge impact derived from the actual diff, not from the prediction",
+        "PR body records D1 through D7 evidence, states the upgrade behavior for a fork that customized its copies, and publishes no private content",
+        "PR is open with isDraft=false against development on mifunedev/agro, and CI is green for the exact final head SHA verified after the final push and undraft",
+        "Skipped and neutral checks reported accurately"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "D5 D6 D7"
+    }
+  ]
+}

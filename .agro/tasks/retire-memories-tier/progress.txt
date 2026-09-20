@@ -1,0 +1,17 @@
+# progress
+
+2026-09-20 plan — base commit 4fc0cd7eb9adcba71653d797373b814184d5eb67 on development.
+  Queries: "evals probes memories docs manifest". Knowledge read:
+  pattern-evals-probe-failure-path-untested, pattern-evals-document-conformance-proxy-oracle,
+  pattern-evals-tracked-only-scan-misses-uncommitted, pattern-evals-negation-must-govern-token.
+  Prior research read as research only: .agro/tasks/council-openclaw-workspace/findings.md.
+  Its O4 recommendation is not approved and is not built.
+  Inspected current state first: no retire-memories-tier task folder, branch, or PR existed.
+  Concurrent unrelated work left untouched: worktree skill/1114-audit-responsibility-simplification.
+  D1 precondition proven before planning: no customized memory anywhere. Both worktrees are
+  byte-identical to introducing commit ab86a8c3, carry no untracked or ignored extras, and all
+  eight md5sum values match pairwise.
+  Corrected a false claim in the prior findings: a grep for "memories" outside evals/probes
+  returns .agro/README.md:14, docs/oh-directory-layout.md:18 and :94, and CHANGELOG.md.
+  Issue opened: https://github.com/mifunedev/agro/issues/1116
+  Three-file contract written. 5 stories. State: PLANNED.
