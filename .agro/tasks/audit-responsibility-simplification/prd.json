@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "project": "AGRO",
+  "branchName": "skill/1114-audit-responsibility-simplification",
+  "description": "Approved audit responsibility simplification",
+  "repo": "mifunedev/agro",
+  "base": "development",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Preserve responsibilities and compose council",
+      "description": "As an operator, I want preserve responsibilities and compose council.",
+      "acceptanceCriteria": [
+        "Preserve R1\u2013R15 and mandatory lenses.",
+        "Verify C1\u2013C9 and C19 against complete sources.",
+        "Accept the composition checkpoint before evidence-rule edits.",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Correct evidence judgments and align contracts",
+      "description": "As an operator, I want correct evidence judgments and align contracts.",
+      "acceptanceCriteria": [
+        "Verify C10\u2013C18 and all seven eval-quality questions.",
+        "Run D6 commands and fault injection for changed probes.",
+        "Report D7 full transitive context cost; block increased context without operator approval.",
+        "Align changelog and append-only proposal records.",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Accept independent evidence and knowledge impact",
+      "description": "As an operator, I want accept independent evidence and knowledge impact.",
+      "acceptanceCriteria": [
+        "Review D1\u2013D8 and C1\u2013C19 independently on a fixed revision.",
+        "Resolve actual knowledge impact with source-backed dispositions and verify the index.",
+        "Record commands, tested revisions, exits, findings, and dispositions.",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Deliver ready-for-review PR",
+      "description": "As an operator, I want deliver ready-for-review pr.",
+      "acceptanceCriteria": [
+        "Pass implementation audit, eval, benchmark, and evidence gates.",
+        "Verify latest-head green CI and fresh promotable PR audit.",
+        "Verify isDraft=false and PR URL; do not merge.",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
