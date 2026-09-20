@@ -88,6 +88,6 @@
     }
   ],
   "residual": "SIMPLICITY-RESIDUAL: two non-blocking findings accepted open (entrypoint find pipeline; contract/template prose overlap). No blocking finding remains open.",
-  "coverageGap": "No probe asserts the seeding behavior itself. The 'never overwrite, including an empty file' claim rests on advisor integration tests recorded in evidence.md, not on a suite probe. Disclosed, not closed.",
-  "rekeyNote": "Re-keyed to the audited head. Gate 5 failed a third time on this build because knowledge and eval records changed after the review was keyed, so the content-head rule no longer held. Recorded rather than quietly re-keyed: the first two failures were a stale key and a schema mismatch, and I read the gate driver only after the second."
+  "coverageGap": "No probe asserts the seeding behavior itself. The 'never overwrite, including an empty file' claim rests on advisor integration tests recorded in the PR body (the reviewer-evidence surface per issue #1088), not on a suite probe. Disclosed, not closed.",
+  "rekeyNote": "Re-keyed to the audited head. Gate 5 failed a third time on this build because knowledge and eval records changed after the review was keyed, so the content-head rule no longer held. Recorded rather than quietly re-keyed: the first two failures were a stale key and a schema mismatch, and I read the gate driver only after the second. A FOURTH failure followed immediately: my shell-quoted rewrite of simplify-rounds.json produced malformed JSON. Rewritten with a file write instead of a quoted printf."
 }

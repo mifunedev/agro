@@ -1,1 +1,8 @@
-{ \"rounds\": 1, \"netAdded\": 1648, \"lastCommit\": \"e06712e7a13951cf5b75253599302e446ab78d50\", \"nonReducing\": false, \"scope\": \"repair\", \"note\": \"Repair-scope count. The retirement-scope record (rounds 2, lastCommit 0b3f82ad) belonged to a superseded scope and is not a repair gate; one simplicity round ran against the repair diff and reduced the probe from 171 to 127 lines.\" }
+{
+  "rounds": 1,
+  "netAdded": 1649,
+  "lastCommit": "e06712e7a13951cf5b75253599302e446ab78d50",
+  "nonReducing": false,
+  "scope": "repair",
+  "note": "Repair-scope count. The retirement-scope record (rounds 2, lastCommit 0b3f82ad) belonged to a superseded scope and is not a repair gate. One simplicity round ran against the repair diff and reduced memories-tier-defaults.sh from 171 to 127 lines."
+}
