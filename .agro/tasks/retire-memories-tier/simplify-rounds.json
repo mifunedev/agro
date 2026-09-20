@@ -1,1 +1,1 @@
-{ "rounds": 2, "netAdded": 306, "lastCommit": "0b3f82ad04a2036443858bec3a72c1a6bddea838", "nonReducing": false }
+{ "rounds": 1, "netAdded": 1709, "lastCommit": "0f13ecf06a8a8af12ad2293eca602a7e588db4d6", "nonReducing": false, "scope": "repair", "note": "Repair-scope count. The retirement-scope record (rounds 2, lastCommit 0b3f82ad) belonged to a superseded scope and is not a repair gate; one simplicity round ran against the repair diff and reduced the probe from 171 to 127 lines." }
