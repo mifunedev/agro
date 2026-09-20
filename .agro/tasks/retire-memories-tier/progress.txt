@@ -118,3 +118,34 @@
   Outstanding deviations carried forward: /spec retro and /wiki compile were wrongly exempted and
   are now R-006 criteria; disclosed baseline reds remain disclosure, not permission to suppress;
   PR #1117 has no human review and stays draft until advisor acceptance; no merge.
+
+2026-09-20 GATES — repair scope. Old eval-result and simplicity-review are RETIREMENT evidence for a
+  superseded scope; both are retained under *-retirement.json and neither is counted as a repair gate.
+  /eval: ran once at the final commit. 157 probes, 0 new regressions. Two disclosed pre-existing reds
+    (next-dev-prod, skills-vendored), delta=unchanged, neither suppressed nor attributed to this work.
+  Knowledge impact: derived from the ACTUAL 22-path diff, not the prediction. 0 pages NEEDS-REVIEW.
+  /spec retro: 7 hypotheses, 5 supported, 1 refuted, 3 probe candidates.
+  /wiki compile: patched pattern-evals-negation-must-govern-token (this build reproduced a fault that
+    page already described — recorded as a recurrence, with the honest note that the page existed and
+    did not prevent it); created pattern-delegate-shared-worktree-parallel-writers,
+    pattern-evals-probe-run-outside-its-tree, pattern-evals-shape-fixture-substituted-for-real-path.
+    Index regenerated; wiki-readme-index green.
+  These are the two gates the retirement build wrongly reported as "not DoD items". Now run, not exempted.
+2026-09-20 SELF-INFLICTED RED, caught by the suite and fixed, recorded rather than hidden:
+  knowledge-source-freshness went PASS->REGRESSION because .agro/tasks/* is gitignored, so `git add -A`
+  silently skipped the new evidence.md and a pattern page pinned a source that did not resolve at that
+  commit. Fixed with an explicit `git add -f` and by repinning to the commit that carries the evidence.
+  The probe did exactly its job; my staging command was wrong.
+2026-09-20 SIMPLICITY REVIEW (repair scope), read-only reviewer, advisor-verified before acting:
+  - REFUTED by my own testing: the claim that the mandate scan is defeated by the tier's filenames.
+    Injected mandates with one, three, and zero filenames all exit 1. Not acted on — acting on it would
+    have removed working coverage.
+  - CONFIRMED and fixed: the bare \bno\b/\bnot\b negation whitelist. 'Read all three at session start,
+    no exceptions.' exited 0. The worker then found a second instance of the same class.
+  - CONFIRMED and fixed: inline explanatory comments and a 30-line desc essay, against the root standard.
+  - DECLINED with a reason I accepted: the template listing is not subsumed, because the equality check
+    is source-checkout-only and that count is the only fourth-file assertion in both installed modes.
+  - SIMPLICITY-RESIDUAL, accepted open and disclosed: the entrypoint find pipeline for a closed
+    three-name set; prose overlap between the contract and the templates.
+  - COVERAGE GAP, disclosed not closed: no probe asserts the seeding behavior itself. That claim rests
+    on advisor integration tests in evidence.md, not on a suite probe.

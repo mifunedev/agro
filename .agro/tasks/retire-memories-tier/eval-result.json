@@ -1,9 +1,9 @@
 {
-  "commit": "5e27b16dca6d774898e755d2b9d3e22191dc469b",
+  "commit": "1183563f249f5eca8b1ac52c871b615745779642",
   "runnerExit": 0,
-  "ranAt": "2026-09-20T19:38:00Z",
+  "ranAt": "2026-09-20T20:05:00Z",
   "scope": "repair",
   "newRegressions": [],
   "preExistingReds": ["next-dev-prod", "skills-vendored"],
-  "note": "157 probes. memories-tier-defaults is restored and green as a templates-and-contract probe; agents-md-fallback green. Both reds are pre-existing and unrelated to this diff: next-dev-prod fires on a 'next dev' process running elsewhere in this sandbox, and skills-vendored reports another provider runtime home. Neither was suppressed or weakened. The prior record at commit 0b3f82ad is RETIREMENT evidence for a superseded scope and is retained at eval-result-retirement.json; it is not a repair gate."
+  "note": "157 probes. memories-tier-defaults is restored and green as a templates-and-contract probe; agents-md-fallback green. Both reds are pre-existing and unrelated to this diff: next-dev-prod fires on a 'next dev' process running elsewhere in this sandbox, and skills-vendored reports another provider runtime home. Neither was suppressed or weakened. One transient red was caused and fixed within this build: knowledge-source-freshness went red because .agro/tasks/* is gitignored, so a plain `git add -A` silently skipped the new evidence.md and a pattern page pinned a source that did not resolve; fixed by force-adding the evidence and repinning to the commit that carries it. The prior record at commit 0b3f82ad is RETIREMENT evidence for a superseded scope, retained at eval-result-retirement.json; it is not a repair gate."
 }
