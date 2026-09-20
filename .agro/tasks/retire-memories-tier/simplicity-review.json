@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "commit": "77b18024",
+  "commit": "5bcabb44c95bf234115e3f50bfc653c6f00243de",
   "scope": "repair",
   "reviewer": "bounded read-only worker (Explore), advisor-verified",
   "reviewedAt": "2026-09-20T19:55:00Z",
@@ -22,7 +22,7 @@
       "blocking": true,
       "advisorVerdict": "CONFIRMED and reproduced: 'Read all three at session start, no exceptions.' exited 0. The worker then found a second instance of the same class: 'Read these files on boot, not later.' also exited 0.",
       "status": "resolved",
-      "resolvedIn": "77b18024 — MECHANISM_DENIAL_RE binds the denial to a reading mechanism; seven variants verified by the advisor"
+      "resolvedIn": "77b18024 \u2014 MECHANISM_DENIAL_RE binds the denial to a reading mechanism; seven variants verified by the advisor"
     },
     {
       "file": ".agro/evals/probes/memories-tier-defaults.sh",
