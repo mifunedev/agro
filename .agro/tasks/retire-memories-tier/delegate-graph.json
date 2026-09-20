@@ -177,5 +177,47 @@
     ],
     "ambiguityResolved": "Yes, on a stated basis rather than an assumption: the four owned path sets are pairwise disjoint; every artifact in commit 0a0b1dfd was read and verified by the advisor directly, not accepted on worker report; no path was written by two workers.",
     "goingForward": "No further parallel writers. Remaining tracked implementation edits go to ONE continuing writer at a time. If parallelism is ever needed again, each writer gets its own isolated worktree."
+  },
+  "nativeWorkerEvidence": {
+    "recordedOn": "2026-09-20",
+    "howEndedStateWasEstablished": "Every dispatch and every resume returned a native task-completion notification to the advisor session, and ListAgents at reconciliation listed no in-process agent for this session (only two unrelated peer sessions). Both signals are native; neither is a worker self-report.",
+    "dispatchLedger": [
+      {
+        "task": "T1",
+        "label": "T1 templates contract manifest",
+        "dispatches": 1,
+        "completionNotifications": 1,
+        "finalNativeStatus": "ended"
+      },
+      {
+        "task": "T2",
+        "label": "T2 entrypoint seed",
+        "dispatches": 1,
+        "resumes": 1,
+        "resumeReason": "advisor rejected the install -d chown of the tracked directory",
+        "completionNotifications": 2,
+        "finalNativeStatus": "ended"
+      },
+      {
+        "task": "T3",
+        "label": "T3 probe repair",
+        "dispatches": 1,
+        "resumes": 2,
+        "resumeReason": "probe source-header attribution; then the real-install mode-detection gap",
+        "completionNotifications": 3,
+        "finalNativeStatus": "ended"
+      },
+      {
+        "task": "T4",
+        "label": "T4 docs and changelog",
+        "dispatches": 1,
+        "resumes": 1,
+        "resumeReason": "README table row compressed to its table register",
+        "completionNotifications": 2,
+        "finalNativeStatus": "ended"
+      }
+    ],
+    "rawReferenceLocation": "The raw native agent identifiers and per-worker transcript paths are session-internal. They live in this session transcript at /home/sandbox/.claude/projects/-home-sandbox-harness/5cd2c6b9-d1a1-4399-a3a2-496d628ed4e5.jsonl and in the harness task directory for this session. They are deliberately NOT copied into this tracked file, which is published on the pull request.",
+    "noDuplication": "No worker was ever re-dispatched as a new agent for work an existing agent still owned. Every follow-up used native continuation against the same agent."
   }
 }
