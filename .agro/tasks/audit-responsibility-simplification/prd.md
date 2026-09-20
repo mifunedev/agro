@@ -26,22 +26,22 @@ The gate scripts preserve tooling-blocked verdicts and reject no-op completion.
 
 ## Expected Knowledge Impact
 
-- **Impact**: REQUIRED
-- **Expected entries**: `audit-architecture`
-- **Affected source paths**: `.agro/skills/audit/`, `.agro/skills/council/`
-- **Reason**: Audit composition and evidence interpretation change. Derive final impact from the actual diff and declared sources.
+- **Original prediction**: REQUIRED for the proposed composition.
+- **Expected entries**: `audit-architecture` remains in the actual-impact review union.
+- **Actual fallback disposition**: NOT-AFFECTED. The four selected paths match no declared source. The page does not describe the revised scoring semantics.
+- **Reason**: The fallback retains every composition dependency. The page's persistent-log wording predates this change and remains unresolved. No knowledge edit follows.
 
 ## Plan Reconciliation
 
 - **Source plan**: `/home/sandbox/harness/.agro/plans/audit-responsibility-simplification/plan.md`
 - **Intent preserved**: YES
-- **Material deviations**: none
-- **Constraints discovered during grounding**: The target development branch equals the planning revision. The root scoreboard edit remains outside this worktree.
+- **Material deviations**: Select the source plan’s explicit evidence-only fallback after failed composition cost checks. The advisor approves this authorized reduced scope; no cost waiver applies.
+- **Constraints discovered during grounding**: Composition failed D7. The bounded repair assessment found no credible in-scope repair. Retain existing panel procedures. The root scoreboard edit remains outside this worktree.
 - **Orchestration preserved**: YES
 
 ## User Stories
 
-1. Preserve responsibilities and compose council. Verify D1, D2, D3, D5, D7 before evidence-rule edits.
+1. Retain original panels under the approved fallback. Verify preserved responsibilities and record council composition as not shipped.
 2. Correct evidence judgments and align scenarios, probes, and change records. Verify D4, D6, D8 and C1–C19.
 3. Review independent evidence and resolve knowledge impact. Accept D1–D8 only with substantive findings and actual commands.
 4. Pass implementation, eval, benefit, evidence, and latest-head readiness gates. Return a non-draft PR without merging.
@@ -62,7 +62,7 @@ The operator has not yet approved implementation.
 
 The plan has two separable changes:
 
-1. Replace duplicated harness-audit deliberation mechanics with explicit council composition.
+1. Replace duplicated harness audit deliberation mechanics with explicit council composition.
 2. Replace unsupported skill-health and eval-quality conclusions with evidence-backed findings.
 
 Keep every existing skill and all nine public audit targets.
@@ -500,3 +500,38 @@ Use `/spec .agro/plans/audit-responsibility-simplification/plan.md` only when th
 
 The plan passes only after the saved-file, DoD coverage, STE, and ignore checks complete.
 Implementation and behavioral verification remain future work.
+
+## Advisor-approved fallback reconciliation
+
+The source plan explicitly permits retaining the existing panel procedure when the adapter cannot satisfy D1–D7.
+The source plan permits the separate evidence-rule correction with advisor approval.
+The advisor approves that fallback after the recorded D7 failure and bounded no-repair assessment.
+The fallback decision selects approved intent. The decision grants no D7 waiver or broader redesign authority.
+
+### Exact scope
+
+Retain baseline bytes for audit dispatcher, harness, external proposal, full campaign, council, and council scenarios.
+Retain every runtime script, existing probe, implementation gate, eval runner, and benchmark contract.
+T1 removes only its five hash-verified uncommitted composition edits; no committed revert occurs.
+T1 changes only skills.md, eval-quality.md, responsibility-scenarios.md, and CHANGELOG.md.
+The advisor retains task state, acceptance records, and append-only builder ledger ownership.
+Generated eval output follows the existing isolated-worktree eval procedure.
+No knowledge write follows from the earlier candidate; recompute actual impact from selected paths.
+
+### Criterion applicability
+
+D1: Preserve all R1–R15 owners and responsibilities, with evidence-rule changes limited to R12–R13.
+D2: Council composition does not ship. Verify unchanged panel and standalone council contracts and the applicable C1–C6/C19 cases.
+D3: Verify unchanged external authorization and C7–C9; grant no new permission.
+D4: Implement and verify evidence-backed health judgments and C10–C15.
+D5: Verify canonical discovery, C16 dirty-content detection, and unchanged C17–C18 provenance and wrapper behavior.
+D6: Run every listed command. No changed probe means no new-probe fault injection; exercise the read-only comparison with a dirty-file mutation.
+D7: Preserve the failed composition verdict. Accept no consolidation. Measure unchanged panel routes and reduced evidence-rule context without claiming runtime token savings.
+D8: Align change records and documentation assessment with the evidence-only fallback.
+
+Keep every original C1–C19 case visible, with retained, changed, or composition-not-shipped applicability and a source citation.
+A fallback disposition never becomes a fabricated implementation pass.
+C2 retains a baseline limitation: auditor focus exists, but the snapshot still expands beyond that focus.
+The fallback does not satisfy C2's stronger source-expansion expectation. Do not report that expectation as PASS.
+The three implementation stories exclude lifecycle readiness from their completion state to avoid a circular implementation-audit gate.
+The owner still owes all implementation, eval, knowledge, benefit, evidence, CI, and non-draft readiness gates under /spec.

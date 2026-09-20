@@ -2430,3 +2430,1105 @@ index 2b911bd0..dc039294 100644
  Signal: count probes now vs. an earlier git revision, compared against the
  capability `RESULTS.md` suite-score delta over the same span. Growing floor
 ````
+
+## SI-0024 · 2026-09-20 · builder · PROPOSED
+
+- **proposal**: Preserve five skill investigations while replacing unsupported scores with evidence-backed advice and explicit unknown usage.
+- **target**: `.agro/skills/audit/references/skills.md`
+- **motivating patterns**: [[pattern-evals-document-conformance-proxy-oracle]], [[pattern-audit-gate-unrunnable-reads-as-defect]]
+- **proposer**: /builder skill, advisor for issue #1114
+- **diff**:
+
+`````diff
+diff --git a/.agro/skills/audit/references/skills.md b/.agro/skills/audit/references/skills.md
+index 632e90f7..c9b1a35b 100644
+--- a/.agro/skills/audit/references/skills.md
++++ b/.agro/skills/audit/references/skills.md
+@@ -3 +3,3 @@
+-Score every skill across two scopes on 5 deterministic dimensions and produce a CURRENT / STALE / BROKEN / DELETE verdict for each. No LLM judgment — scores come from file stats, grep counts, and path existence checks only.
++Inspect skill freshness, use, integrity, format, and dependencies. Report evidence-backed `CURRENT`, `STALE`, `BROKEN`, or advisory `DELETE` judgments.
++Separate observations from interpretation. Do not add scores or infer usefulness from age, mentions, or passing mechanical checks.
++This route reads and reports only. Never repair, delete, publish, or schedule a skill automatically.
+@@ -5 +7 @@ Score every skill across two scopes on 5 deterministic dimensions and produce a
+-## Instructions
++## Contents
+@@ -7 +9,6 @@ Score every skill across two scopes on 5 deterministic dimensions and produce a
+-### 1. Parse target
++1. [Select and discover](#1-select-and-discover)
++2. [Inspect five dimensions](#2-inspect-five-dimensions)
++3. [Judge from evidence](#3-judge-from-evidence)
++4. [Report and return](#4-report-and-return)
++
++## 1. Select and discover
+@@ -12,4 +19,3 @@ Arguments received: `$ARGUMENTS`
+-|----------|-------|
+-| `all` (default, or empty) | Root scope |
+-| `root` | canonical `$AUDIT_ROOT/.agro/skills/` only |
+-| `<skill-name>` | Single skill, auto-detect scope |
++|---|---|
++| Empty, `all`, or `root` | Canonical `$AUDIT_ROOT/.agro/skills/` |
++| `<skill-name>` | That skill under the same canonical root |
+@@ -17 +23,4 @@ Arguments received: `$ARGUMENTS`
+-### 2. Discover skills
++Enumerate `SKILL.md` files under the canonical root, including uncommitted files. Record each skill's name, scope, directory, and file.
++Do not discover through provider mirrors such as `.agents/skills` or `.claude/skills`.
++If the selected skill or required evidence is missing, report the gap. Do not treat missing evidence as a completed assessment.
++Apply all five questions to single-skill requests too.
+@@ -19,3 +28 @@ Arguments received: `$ARGUMENTS`
+-```bash
+-# Root scope
+-ROOT_SKILLS=$(find "$AUDIT_ROOT/.agro/skills" -maxdepth 3 -name "SKILL.md" 2>/dev/null)
++## 2. Inspect five dimensions
+@@ -23,2 +30 @@ ROOT_SKILLS=$(find "$AUDIT_ROOT/.agro/skills" -maxdepth 3 -name "SKILL.md" 2>/de
+-# Workspace scope (when a sandbox owns a canonical pack)
+-```
++### A. Freshness
+@@ -26 +32,4 @@ ROOT_SKILLS=$(find "$AUDIT_ROOT/.agro/skills" -maxdepth 3 -name "SKILL.md" 2>/de
+-Build a list of `(skill-name, scope-label, skill-dir, skill-file)` tuples. Scope label is `root` or `ws`.
++Record file timestamps and relevant revision history as observations.
++Compare the procedure with its current referenced dependencies and declared contract.
++A verified mismatch supports `STALE`; cite both the instruction and the current source it contradicts.
++File age alone proves neither drift nor lack of usefulness. Checkout timestamps do not establish when the procedure last worked.
+@@ -28 +37 @@ Build a list of `(skill-name, scope-label, skill-dir, skill-file)` tuples. Scope
+-### 3. Score each skill on 5 dimensions
++### B. Use
+@@ -30 +39,3 @@ Build a list of `(skill-name, scope-label, skill-dir, skill-file)` tuples. Scope
+-For every skill file, compute dimensions **independently** using only shell commands and file checks.
++Inspect in-repository references from crons, workflows, and other skills.
++Only with explicit source authorization, inspect bounded invocation evidence, including `crons/.cron.log` when available.
++Do not inspect private session traces or invent a usage collector. Keep private content and identifiers out of reports.
+@@ -32 +43,4 @@ For every skill file, compute dimensions **independently** using only shell comm
+----
++Distinguish references, mentions, and observed invocations. Repeated mentions in one file are not independent executions or proof of usefulness.
++For actual invocation evidence, cite the event source, time range, and environment. Do not extrapolate beyond that coverage.
++Without authorized invocation evidence, report usage as unknown, not never triggered.
++Note absent cron coverage as an investigation question, never as a deletion or scheduling instruction.
+@@ -34 +48 @@ For every skill file, compute dimensions **independently** using only shell comm
+-#### Dimension A — Freshness (0-2)
++### C. Integrity
+@@ -36,6 +50,4 @@ For every skill file, compute dimensions **independently** using only shell comm
+-```bash
+-# Get modification time as Unix timestamp
+-MTIME=$(stat -c %Y "<skill-file>")
+-NOW=$(date +%s)
+-AGE_DAYS=$(( (NOW - MTIME) / 86400 ))
+-```
++Resolve referenced files, resources, commands, and skill dependencies against the actual repository and invocation context.
++Check canonical skill paths, not provider discovery roots.
++Treat extracted strings as candidates: distinguish real dependencies from examples, placeholders, optional resources, and standard Unix paths.
++Do not flag `/bin`, `/usr`, or `$AUDIT_ROOT` merely because a textual extractor found them.
+@@ -43,5 +55,2 @@ AGE_DAYS=$(( (NOW - MTIME) / 86400 ))
+-| Age | Score |
+-|-----|-------|
+-| <= 7 days | 2 |
+-| 8 – 30 days | 1 |
+-| 31+ days | 0 |
++A missing required dependency is a concrete failure. Cite the reference and the failed resolution.
++If a tool or authorization gap prevents checking a dependency, record incomplete verification instead of declaring the dependency absent.
+@@ -49 +58 @@ AGE_DAYS=$(( (NOW - MTIME) / 86400 ))
+----
++### D. Format
+@@ -51 +60,5 @@ AGE_DAYS=$(( (NOW - MTIME) / 86400 ))
+-#### Dimension B — Usage (0-2)
++Read the skill's actual frontmatter and artifact contract before checking required fields and structure.
++In this canonical pack, check the opening/closing YAML delimiters, valid YAML, and required `name` and `description` fields.
++Check additional fields, argument forms, sections, and resource links only when the applicable contract requires them.
++A missing required field or malformed frontmatter supports `BROKEN`; cite the requirement and observed defect.
++Do not require a memory protocol or a generic guidelines section in every skill.
+@@ -53,5 +66 @@ AGE_DAYS=$(( (NOW - MTIME) / 86400 ))
+-```bash
+-# Count daily memory logs that mention this skill name (case-insensitive)
+-SKILL_NAME="<skill-name>"
+-MENTION_COUNT=$(grep -rli "$SKILL_NAME" "$AUDIT_ROOT/crons/.cron.log" 2>/dev/null | wc -l)
+-```
++### E. Dependencies
+@@ -59,5 +68,5 @@ MENTION_COUNT=$(grep -rli "$SKILL_NAME" "$AUDIT_ROOT/crons/.cron.log" 2>/dev/nul
+-| Mentions | Score |
+-|----------|-------|
+-| >= 2 log files | 2 |
+-| 1 log file | 1 |
+-| 0 log files | 0 |
++List required skill invocations and resource dependencies from the inspected procedure.
++Verify existence and compatibility with current dependency contracts. Cite both sides of a mismatch.
++A missing required dependency supports `BROKEN`; a verified procedure/dependency mismatch supports `STALE` unless it also proves a contract failure.
++Do not inherit another skill's verdict, estimate health from its age, or recursively compute dependency scores.
++If no dependencies apply, record that fact. If verification is incomplete, name the unchecked dependency.
+@@ -65 +74 @@ MENTION_COUNT=$(grep -rli "$SKILL_NAME" "$AUDIT_ROOT/crons/.cron.log" 2>/dev/nul
+----
++## 3. Judge from evidence
+@@ -67 +76 @@ MENTION_COUNT=$(grep -rli "$SKILL_NAME" "$AUDIT_ROOT/crons/.cron.log" 2>/dev/nul
+-#### Dimension C — Integrity (0-2)
++Use these native labels without a total score or threshold:
+@@ -69,9 +78,6 @@ MENTION_COUNT=$(grep -rli "$SKILL_NAME" "$AUDIT_ROOT/crons/.cron.log" 2>/dev/nul
+-Scan the SKILL.md body for references to paths and skill invocations, then verify existence.
+-
+-```bash
+-# Extract all bare absolute paths (e.g. $AUDIT_ROOT/...)
+-PATH_REFS=$(grep -oP '`[^`]*`|"[^"]*"' "<skill-file>" | grep -oP '/[a-zA-Z0-9_./-]+' | sort -u)
+-
+-# Extract skill invocations (e.g. /release, /ci-status, /agent-browser)
+-SKILL_REFS=$(grep -oP '/[a-z][a-z0-9-]+' "<skill-file>" | grep -v '^/home' | sort -u)
+-```
++| Label | Required evidence and limit |
++|---|---|
++| `BROKEN` | A verified contract failure, such as missing required frontmatter or a missing required dependency. Name the violated requirement. |
++| `STALE` | A verified mismatch with the current source or dependency contract. Cite both locations; age alone is insufficient. |
++| `CURRENT` | All applicable mechanical checks passed. This label proves neither usefulness nor behavioral correctness; usage can remain unknown. |
++| `DELETE` | Proven redundancy, an identified retained replacement, and a named owner for every responsibility. The label gives advice, never deletion authority. |
+@@ -79,2 +85,4 @@ SKILL_REFS=$(grep -oP '/[a-z][a-z0-9-]+' "<skill-file>" | grep -v '^/home' | sor
+-For each extracted path reference: check `[ -e "<path>" ]`.
+-For each skill reference like `/foo-bar`: check whether `<root>/.agro/skills/foo-bar/SKILL.md` or `<ws>/.agro/skills/foo-bar/SKILL.md` exists. Provider symlinks (`.agents/skills`, `.claude/skills`) are never discovery roots for this audit. Codex and Pi use `.agents/skills` at runtime.
++Keep concrete failures visible even when another label or replacement recommendation also applies.
++Do not use an unavailable required check to infer `CURRENT`, `STALE`, `BROKEN`, or `DELETE`.
++Record assessment completeness separately: complete for checked applicable requirements, incomplete for named missing evidence.
++Withhold any judgment that depends on missing evidence. An unknown usage history need not invalidate independently completed mechanical checks.
+@@ -82 +90 @@ For each skill reference like `/foo-bar`: check whether `<root>/.agro/skills/foo
+-Count total broken references (`BROKEN_COUNT`).
++## 4. Report and return
+@@ -84,51 +92,2 @@ Count total broken references (`BROKEN_COUNT`).
+-| Broken refs | Score |
+-|-------------|-------|
+-| 0 | 2 |
+-| 1 – 2 | 1 |
+-| 3+ | 0 |
+-
+----
+-
+-#### Dimension D — Format (0-2)
+-
+-```bash
+-# Check for YAML frontmatter (opening --- block)
+-HAS_FM=$(grep -c '^---$' "<skill-file>" | awk '{print ($1 >= 2) ? "yes" : "no"}')
+-
+-# Check for memory protocol section
+-HAS_MEM=$(grep -c '## Memory Protocol\|## \[.*\] — HH:MM UTC\|Memory Improvement Protocol' "<skill-file>")
+-
+-# Check for guidelines section
+-HAS_GL=$(grep -c '^## Guidelines\|^## Important Notes\|^## Reference' "<skill-file>")
+-```
+-
+-| Conditions | Score |
+-|------------|-------|
+-| Has frontmatter AND memory protocol AND at least one of guidelines/reference | 2 |
+-| Has frontmatter, missing memory protocol | 1 |
+-| Missing frontmatter (`---` block absent) | 0 |
+-
+----
+-
+-#### Dimension E — Dependencies (0-2)
+-
+-Dependencies are skill references found in step C (`SKILL_REFS`). For each referenced skill:
+-
+-1. If the skill exists, look up its **total score** (computed in this run, or estimate from freshness if not yet scored)
+-2. Classify the referenced skill's score using the verdict thresholds (see step 4)
+-
+-| Dep state | Score |
+-|-----------|-------|
+-| No dependencies, OR all deps score >= 6 (CURRENT/STALE but functional) | 2 |
+-| 1+ deps score 3-5 (STALE/warning) | 1 |
+-| 1+ deps deleted OR score <= 2 (BROKEN/DELETE) | 0 |
+-
+-If a skill has no cross-skill references, assign score **2**.
+-
+----
+-
+-### 4. Compute total and verdict
+-
+-```
+-TOTAL = A + B + C + D + E   (max 10)
+-```
++Print `Skill Lint — YYYY-MM-DD` and the selected scope.
++Report counts for skills examined, each native label, and incomplete assessments. Do not count withheld judgments as a native verdict.
+@@ -136,6 +95,4 @@ TOTAL = A + B + C + D + E   (max 10)
+-| Total | Verdict |
+-|-------|---------|
+-| 8 – 10 | **CURRENT** |
+-| 5 – 7 | **STALE** |
+-| 3 – 4 | **BROKEN** |
+-| 0 – 2 | **DELETE** |
++Use a table with skill, scope, freshness evidence, use evidence, integrity, format, dependencies, verdict, and completeness.
++Each finding includes a cited observation, interpretation, evidence limit, and concrete next investigation or repair recommendation.
++Put verified failures first, then drift and redundancy recommendations; omit routine `CURRENT` recommendations.
++Keep timestamp and mention counts descriptive. Do not rank by an additive score.
+@@ -143,42 +100 @@ TOTAL = A + B + C + D + E   (max 10)
+-### 5. Generate recommendations
+-
+-For each skill that is not CURRENT, produce one concrete recommendation line. Use this decision table:
+-
+-| Primary signal | Recommendation template |
+-|----------------|------------------------|
+-| Format score = 0 | `Missing frontmatter — add YAML block with name/description` |
+-| Integrity score = 0 | `Fix broken references — N paths/skills no longer exist` |
+-| Freshness = 0, Usage = 0 | `Never triggered and not updated in 30+ days — remove or redesign` |
+-| Usage = 0, Freshness >= 1 | `Never triggered — confirm still needed or add to a heartbeat` |
+-| Deps score = 0 | `Depends on deleted or dead skills — update or remove cross-skill calls` |
+-| Freshness = 0, Format < 2 | `Pattern drift — rewrite to current conventions` |
+-
+-If multiple signals apply, pick the highest-impact one (integrity > format > deps > freshness > usage).
+-
+-### 6. Emit report
+-
+-Print today's date as `YYYY-MM-DD` (use `date +%F`).
+-
+-```
+-## Skill Lint — YYYY-MM-DD
+-
+-### Summary
+-N skills scanned | M CURRENT | S STALE | B BROKEN | D DELETE
+-
+-### Scores
+-| Skill | Scope | Fresh | Usage | Integ | Fmt | Deps | Total | Verdict |
+-|-------|-------|-------|-------|-------|-----|------|-------|---------|
+-| <name> | root | A | B | C | D | E | T | VERDICT |
+-...
+-
+-### Recommendations
+-- **DELETE**: <skill> — <reason>
+-- **BROKEN**: <skill> — <reason>
+-- **STALE**: <skill> — <reason>
+-```
+-
+-Sort the Scores table by Total ascending (worst first). Omit CURRENT skills from the Recommendations section — they need no action.
+-
+-### 7. Memory Protocol
+-
+-Return this structured observation to the outer dispatcher and suppress target logging/retro:
++Return the structured observation to the outer dispatcher; suppress this child's terminal record and memory/retro append:
+@@ -189 +105 @@ Return this structured observation to the outer dispatcher and suppress target l
+-- **Action**: scored N skills
++- **Action**: inspected N skills; U assessments incomplete
+@@ -191 +107 @@ Return this structured observation to the outer dispatcher and suppress target l
+-- **Observation**: [one sentence — top finding]
++- **Observation**: [top verified finding or missing-evidence limit]
+@@ -193,38 +108,0 @@ Return this structured observation to the outer dispatcher and suppress target l
+-
+-
+-## Guidelines
+-
+-- Scoring is fully deterministic — run the same commands twice and get the same scores. Do not adjust scores based on content quality or subjective judgment.
+-- Run Dimension E (Dependencies) last, after all other dimensions are scored, so referenced-skill scores are available without a second pass.
+-- When checking integrity references, skip references to standard Unix paths (`/bin`, `/usr`, `$AUDIT_ROOT` itself as a directory) — only flag references to specific files or skills that do not exist.
+-- A skill that is the target of `argument-hint: "all | root | <skill-name>"` style hints should not be penalized for referencing those placeholder tokens.
+-- For the single-skill target mode (`$ARGUMENTS` = a skill name), run all 5 dimensions and emit the same table for just that skill, plus its recommendation.
+-- Usage evidence comes from in-repo references and `crons/.cron.log`; source and cron integrity checks stay under `AUDIT_ROOT`.
+-- Heartbeat/cron coverage is a bonus signal, not a scored dimension — note it in the Recommendation line if a skill has 0 usage and no cron reference in `crons/`.
+-
+-## Reference
+-
+-### Scope paths
+-
+-| Scope | Skills root |
+-|-------|-------------|
+-| root | `$AUDIT_ROOT/.agro/skills/` |
+-
+-### Score thresholds
+-
+-| Dimension | 2 (healthy) | 1 (warning) | 0 (stale) |
+-|-----------|------------|-------------|-----------|
+-| Freshness | <= 7 days | 8-30 days | 31+ days |
+-| Usage | 2+ log mentions | 1 log mention | 0 mentions |
+-| Integrity | 0 broken refs | 1-2 broken refs | 3+ broken refs |
+-| Format | FM + memory protocol + guidelines/ref | FM only | No FM |
+-| Dependencies | All deps score >= 6 or none | Deps score 3-5 | Deps deleted or score <= 2 |
+-
+-### Verdict thresholds
+-
+-| Score | Verdict | Action |
+-|-------|---------|--------|
+-| 8-10 | CURRENT | No action needed |
+-| 5-7 | STALE | Review and update — may have drifted from current patterns |
+-| 3-4 | BROKEN | Fix broken references or rewrite — will fail if triggered |
+-| 0-2 | DELETE | Dead weight — remove or completely redesign |
+`````
+
+## SI-0025 · 2026-09-20 · builder · PROPOSED
+
+- **proposal**: Preserve seven eval-quality questions while removing flag-count verdicts and comparing dirty content before and after read-only review.
+- **target**: `.agro/skills/audit/references/eval-quality.md`
+- **motivating patterns**: [[pattern-evals-document-conformance-proxy-oracle]], [[pattern-audit-gate-unrunnable-reads-as-defect]]
+- **proposer**: /builder skill, advisor for issue #1114
+- **diff**:
+
+`````diff
+diff --git a/.agro/skills/audit/references/eval-quality.md b/.agro/skills/audit/references/eval-quality.md
+index dc039294..9bb4a2c4 100644
+--- a/.agro/skills/audit/references/eval-quality.md
++++ b/.agro/skills/audit/references/eval-quality.md
+@@ -3,4 +3,3 @@
+-Score every eval **probe** and **capability benchmark task** across seven
+-deterministic anti-Goodhart failure modes and produce a **KEEP / GROOM / CUT**
+-verdict for each. No LLM judgment — verdicts come from file stats, grep counts,
+-git history, and the last `/eval` scoreboard only.
++Inspect probes and capability tasks against seven evidence questions. Recommend `KEEP`, `GROOM`, or `CUT` with reasons, not flag counts.
++This route reads and reports only. Never edit, move, delete, or rewrite an eval artifact during the audit.
++Do not add a scoring engine, history collector, or probe for this grooming procedure.
+@@ -8,5 +7 @@ git history, and the last `/eval` scoreboard only.
+-The probe suite is now ~75 probes. Once the harness can improve itself it can
+-also *overfit its own probes* — so the probes and capability tasks need the same
+-cheap, high-value grooming pass that `/audit skills` gives skills. `/audit eval-quality` is
+-that pass. It is a **skill/report, not a probe**: it must not add machinery to
+-the very suite it grooms.
++## Contents
+@@ -14,5 +9,5 @@ the very suite it grooms.
+-**Read-only by default.** This skill only reads and prints. It never edits,
+-deletes, or rewrites a probe or capability file. After any run,
+-`git status --porcelain .agro/evals/` MUST be empty. Grooming and cutting are
+-follow-up edits a human (or a separate task) applies deliberately — never a side
+-effect of the lint.
++1. [Select targets and preserve state](#1-select-targets-and-preserve-state)
++2. [Inspect seven questions](#2-inspect-seven-questions)
++3. [Triage observed failures](#3-triage-observed-failures)
++4. [Recommend and report](#4-recommend-and-report)
++5. [Compare before and after](#5-compare-before-and-after)
+@@ -20,3 +15 @@ effect of the lint.
+-## Instructions
+-
+-### 1. Parse target
++## 1. Select targets and preserve state
+@@ -26,65 +19,6 @@ Arguments received: `$ARGUMENTS`
+-| Argument | Scope |
+-|----------|-------|
+-| `all` (default, or empty) | All probes **and** all capability tasks |
+-| `probes` | `.agro/evals/probes/*.sh` only |
+-| `capability` | `.agro/evals/capability/tasks/CB-*.md` only |
+-| `<probe-or-task-id>` | A single probe id (e.g. `skill-paths`) or task id (e.g. `CB-001`) |
+-
+-### 2. Discover targets
+-
+-Two target classes, discovered from the neutral `.agro/evals/` source tree:
+-
+-- **Probes** — every `.agro/evals/probes/*.sh`. Id = basename without `.sh`.
+-- **Capability tasks** — every `.agro/evals/capability/tasks/CB-*.md`. Id = the
+-  `CB-NNN` prefix.
+-
+-> Concrete copy-pasteable discovery + scoring driver blocks and a sample matrix
+-> live in **§ Scoring procedure** below.
+-
+-### 3. Score each target against the seven failure modes
+-
+-Each target is checked against seven named failure modes. Every check emits a
+-**flag** (raised or clear); three checks are **fatal** (a single hit is enough to
+-CUT). All signals are deterministic — same inputs, same flags.
+-
+----
+-
+-#### Check 1 — stale
+-
+-*The probe/task guards a lesson, issue, or path that no longer exists, or has
+-rotted while what it guards moved on.*
+-
+-Signal: read the probe's `# source:` header (and any bare path in the body) and
+-verify each cited file/path still resolves (`[ -e "$path" ]`); a capability
+-task's `datasets:` refs and "most-recent real instance" pointer must resolve
+-too. Secondary signal: file mtime age via `stat -c %Y` — a very old probe whose
+-guarded target changed *more recently* is drifting.
+-
+-Groomable (refresh the source pointer / re-anchor the assertion), not fatal.
+-
+-#### Check 2 — duplicate
+-
+-*Two targets assert the same invariant — redundant machinery.*
+-
+-Signal: a normalized-body hash collision (strip shebang, comments, and
+-whitespace, then hash), an identical `# source:` issue reference shared by two
+-probes, or an identical set of asserted paths/strings. An **exact** normalized
+-duplicate is **fatal** (one of the pair is dead weight); a near-duplicate is
+-groomable (merge or differentiate).
+-
+-#### Check 3 — always-SKIP-in-CI
+-
+-*The probe reports `SKIPPED` (exit 2) every run — it never actually asserts
+-anything in CI, so it guards nothing.*
+-
+-Oracle: **cross-reference `.agro/evals/RESULTS.md`** — the per-probe status column
+-from the last `/eval` — **not a guess** from `grep 'exit 2'`. A probe whose
+-RESULTS.md status is `SKIPPED` (and which has no environment path to ever run)
+-is **fatal**: a permanently-skipped probe is a green light that can never turn
+-red.
+-
+-#### Check 4 — asserts-implementation-detail-not-user-outcome
+-
+-*The probe pins a brittle internal implementation detail (an exact private
+-variable name, an internal line, a hardcoded impl string) instead of a
+-user-visible contract or behavior.*
++| Argument | Scope under `AUDIT_ROOT` |
++|---|---|
++| Empty or `all` | All probes and capability tasks |
++| `probes` | `.agro/evals/probes/*.sh` |
++| `capability` | `.agro/evals/capability/tasks/CB-*.md` |
++| `<probe-or-task-id>` | The named probe basename or `CB-NNN` task |
+@@ -92,3 +26,4 @@ user-visible contract or behavior.*
+-Signal: the probe greps into implementation files for narrow literal strings or
+-line-number references rather than asserting a documented contract/output. Such
+-a probe breaks on harmless refactors and passes on real regressions.
++Discover actual files, including uncommitted files. Apply all seven questions to each selected target; question 7 remains a suite-level advisory.
++Missing targets or inaccessible evidence make coverage incomplete, not clean.
++Use authorized repository evidence and existing authorized CI history only. Do not inspect private session traces.
++If permission prevents a required read, record the gap and withhold the dependent judgment.
+@@ -96 +31,3 @@ a probe breaks on harmless refactors and passes on real regressions.
+-Groomable — rewrite to assert the user outcome, not the mechanism.
++Before investigation, capture the eval tree with the function in section 5.
++Keep the capture outside the repository and include pre-existing dirty files.
++Do not run `/eval` here: its scoreboard write belongs to a separate operation, not this read-only audit.
+@@ -98 +35 @@ Groomable — rewrite to assert the user outcome, not the mechanism.
+-#### Check 5 — no-longer-held-out
++## 2. Inspect seven questions
+@@ -100,2 +37 @@ Groomable — rewrite to assert the user outcome, not the mechanism.
+-*A capability benchmark task (or its fixtures) has been tuned-to / special-cased,
+-violating the held-out discipline in `.agro/evals/capability/AGENTS.md`.*
++For each question, record the observation, source location, interpretation, and missing evidence separately.
+@@ -103,6 +39 @@ violating the held-out discipline in `.agro/evals/capability/AGENTS.md`.*
+-Signal: the task's guarded assertion is now baked into the very file it inspects,
+-or the benchmark manifest (a task's fixtures) is
+-referenced by non-eval harness code — evidence the harness was special-cased *to*
+-the benchmark. Per the capability contract, special-casing the harness to ace a
+-task corrupts the instrument. **Fatal** — a no-longer-held-out task measures
+-nothing.
++### 1. Stale
+@@ -110 +41,5 @@ nothing.
+-#### Check 6 — too-easy/too-narrow/special-cased
++Read each probe's `# source:` header, cited paths, and guarded assertion.
++For capability tasks, check `datasets:` references and the most-recent real-instance pointer.
++Determine whether the lesson, source, and intended contract still apply. Cite current and prior sources for a drift claim.
++Timestamps describe file history; age alone does not prove staleness.
++A moved citation can require grooming without invalidating the assertion.
+@@ -112,2 +47 @@ nothing.
+-*A probe that trivially passes (a tautology), tests a single hardcoded literal,
+-or is special-cased so it can never meaningfully fail.*
++### 2. Duplicate
+@@ -115,3 +49,5 @@ or is special-cased so it can never meaningfully fail.*
+-Signal: an unconditional `exit 0`, a single assertion over one hardcoded path, a
+-suspiciously tiny body, or a guard that special-cases the exact path it checks.
+-A probe that cannot fail is indistinguishable from no probe.
++Use normalized hashes, shared source issues, and overlapping asserted strings only to locate candidates.
++Compare their actual assertions, invariants, input domains, environment guards, and intended scope.
++A duplicate finding requires the same invariant and scope plus an identified retained replacement.
++Shared issue numbers, matching fragments, or normalization collisions alone do not prove redundancy.
++Preserve distinct responsibilities when recommending consolidation.
+@@ -119 +55 @@ A probe that cannot fail is indistinguishable from no probe.
+-Groomable — broaden the case or add the assertion it is missing.
++### 3. Always-SKIP-in-CI
+@@ -121 +57,6 @@ Groomable — broaden the case or add the assertion it is missing.
+-#### Check 7 — machinery-growth-without-capability-movement
++Read the target's latest `.agro/evals/RESULTS.md` row with its run context.
++One `SKIPPED` row establishes one observed skip, not permanent ineffectiveness. An `exit 2` occurrence proves no execution history.
++Analyze source paths, guards, dependencies, and intended environments before claiming the assertion is unreachable across its intended scope.
++A permanent-skip claim requires that source-path proof; a runnable intended-environment path refutes the claim.
++Existing authorized CI history can support a bounded historical claim. State its time range, environments, and missing runs.
++Do not invent a persistence threshold or history collector. Without decisive evidence, withhold removal advice.
+@@ -123,2 +64 @@ Groomable — broaden the case or add the assertion it is missing.
+-*The meta check: the probe count keeps growing while the capability suite score
+-stays flat — the "redirect" signal in `.agro/evals/capability/AGENTS.md`.*
++### 4. Implementation detail rather than user outcome
+@@ -126,5 +66,4 @@ stays flat — the "redirect" signal in `.agro/evals/capability/AGENTS.md`.*
+-Signal: count probes now vs. an earlier git revision, compared against the
+-capability `RESULTS.md` suite-score delta over the same span. Growing floor
+-machinery with a flat ceiling means the harness is busy but not *better*. This
+-is a **suite-level advisory** annotated in the report footer, not a per-row
+-flag.
++Inspect literal and line-number assertions against the intended public contract.
++Identify whether a harmless refactor would fail the assertion or a real regression could pass it.
++A narrow string can enforce a real interface; its presence alone does not prove a weak instrument.
++Recommend grooming only with the brittle assertion and the intended replacement outcome identified.
+@@ -132 +71 @@ flag.
+----
++### 5. No longer held out
+@@ -134 +73,5 @@ flag.
+-### 3a. Triage a red target before you judge it
++Apply `.agro/evals/capability/AGENTS.md` to capability tasks and fixtures.
++Trace suspected special-casing from benchmark material into non-eval harness behavior.
++Distinguish ordinary documentation, provenance, and scorer references from tuning the implementation to the holdout.
++Proven contamination can justify advisory `CUT` or redesign. Cite the contaminated assertion and implementation path.
++Never delete a difficult capability task to inflate the suite score.
+@@ -136,2 +79 @@ flag.
+-A red target is not evidence until both questions below are answered. Each is one
+-command. Skipping either has produced a wrong verdict in this repo.
++### 6. Too easy, narrow, or special-cased
+@@ -139 +81,5 @@ command. Skipping either has produced a wrong verdict in this repo.
+-**Is the behavior actually a defect, or is it policy?**
++Inspect the assertion and reachable pass/fail paths, not just file length or assertion count.
++A short decisive probe can be valid; a shared issue can support different assertions.
++Check unconditional success, tautologies, and guards that exempt the exact condition the probe claims to test.
++A proven tautology can justify advisory `CUT`; a missing but repairable assertion can justify `GROOM`.
++Name the failing condition the instrument should detect. Do not create a fixture-only scoring oracle that repeats expected verdicts.
+@@ -141,3 +87 @@ command. Skipping either has produced a wrong verdict in this repo.
+-Grep the probe suite for the path **and** for the words that describe the
+-behavior. Both, because a probe may guard a behavior by asserting on the document
+-that specifies it rather than on the code that implements it:
++### 7. Machinery growth without capability movement
+@@ -145,32 +89,4 @@ that specifies it rather than on the code that implements it:
+-```bash
+-grep -rl '<file-under-test>' .agro/evals/probes/
+-grep -rl '<behavior-in-words>' .agro/evals/probes/
+-```
+-
+-Read what the matching probes assert. If a probe asserts the behavior you were
+-about to call a bug, it is a deliberate contract — changing it turns that probe
+-red. This repo carries no code comments, so **intent lives in the probe suite**;
+-the probe is the comment.
+-
+-Catches: proposing a "fix" to `.agro/skills/eval/run.sh`'s `prior = PASS` gate,
+-which is deliberate policy enforced by `eval-gate.sh`.
+-
+-The path grep alone does **not** catch that one, and the reason is the trap worth
+-remembering: `eval-gate.sh` asserts against `.agro/skills/spec/references/execute.md`,
+-the spec prose, and never mentions `run.sh` at all. `grep -rl 'eval/run.sh'`
+-returns five probes, none of them the one that matters. `grep -rl 'delta'` and
+-`grep -rl 'green->red'` both return it. When the path grep comes back empty or
+-irrelevant, that is not an all-clear — it means the guard is phrased in terms of
+-the behavior, so search for the behavior.
+-
+-**Is it red where it gates, or only here?**
+-
+-```bash
+-gh run view <run-id> --log | grep '<probe-id>'
+-```
+-
+-A probe red locally and green on CI is reporting the environment, not the repo.
+-Cause and impact are different questions and a verdict needs both. Catches:
+-recommending removal or a deep rewrite for `audit-run-root-contract`, which was
+-`PASS` on every CI run while red in the sandbox, because the sandbox's PID 1 does
+-not reap zombies and `kill -0` succeeds on a zombie.
++Compare probe count and capability results over the same revision span and comparable task sets.
++Disclose changed coverage, missing results, and differences in environment or rubric.
++Growth with a flat ceiling is a suite-level redirect signal, not a per-target removal rule.
++Report the comparison in the footer; do not infer benefit or ineffectiveness from probe count alone.
+@@ -178,3 +94 @@ not reap zombies and `kill -0` succeeds on a zombie.
+-When a hedge appears in your own reasoning — "I'd want to verify", "assuming",
+-"worth checking" — that clause is a required check, not a caveat. Do not issue a
+-verdict that depends on it until it is answered.
++## 3. Triage observed failures
+@@ -182 +96 @@ verdict that depends on it until it is answered.
+----
++Before recommending a change, resolve both questions:
+@@ -184 +98,4 @@ verdict that depends on it until it is answered.
+-### 4. Compute the verdict — KEEP / GROOM / CUT
++1. **Defect or intended policy?** Search probes for both the source path and words describing the behavior.
++   Read matching assertions and the governing contract. A path-only search can miss a behavior guarded through procedure text.
++2. **Local failure or intended-environment failure?** Inspect existing authorized CI evidence for the same target and revision.
++   Record environment and dependency differences. Local red with CI green requires diagnosis, not automatic removal or a declaration that the source is sound.
+@@ -186,3 +103,2 @@ verdict that depends on it until it is answered.
+-Tally each target's raised flags from checks 1–6 (check 7 is a suite-level
+-footer note, not a per-row flag). `fatal` checks are **3 (always-SKIP)**,
+-**2 (exact duplicate)**, and **5 (no-longer-held-out)**.
++An unavailable tool or CI record is an evidence gap, not a defect in the audited target.
++If either answer remains material and unknown, withhold the dependent verdict.
+@@ -190,5 +106 @@ footer note, not a per-row flag). `fatal` checks are **3 (always-SKIP)**,
+-| Condition | Verdict |
+-|-----------|---------|
+-| 0 flags | **KEEP** |
+-| 1–2 non-fatal flags | **GROOM** |
+-| Any fatal flag, **or** 3+ flags | **CUT** |
++## 4. Recommend and report
+@@ -196,8 +108,5 @@ footer note, not a per-row flag). `fatal` checks are **3 (always-SKIP)**,
+-- **KEEP** — the target guards a real, still-held invariant/capability and earns
+-  its place. No action.
+-- **GROOM** — fixable in place: refresh a stale source pointer, rewrite an
+-  implementation-detail assertion into a user-outcome one, merge/differentiate a
+-  near-duplicate, or broaden a too-narrow case. Keep after grooming.
+-- **CUT** — remove or fully redesign: a probe that only ever SKIPs, an exact
+-  duplicate, or a benchmark task the harness has been tuned to. **CUT is a
+-  recommendation only** — this skill never deletes anything.
++| Label | Evidence-backed interpretation |
++|---|---|
++| `KEEP` | The checked assertion still guards its intended invariant within the inspected scope. State limits; the label does not establish universal validity. |
++| `GROOM` | A cited, repairable defect needs a concrete change: repair provenance, broaden a case, differentiate overlap, or assert the intended outcome. |
++| `CUT` | Evidence supports retirement or redesign, such as proven duplication, unreachable assertion, tautology, or holdout contamination. Preserve responsibility ownership and name any retained replacement. |
+@@ -205 +114,2 @@ footer note, not a per-row flag). `fatal` checks are **3 (always-SKIP)**,
+-### 5. Emit report
++No flag total, fatal-marker shortcut, size threshold, timestamp, or single skip determines these judgments.
++`CUT` is advice only. If required evidence is missing, leave the verdict withheld and record incomplete assessment separately from native labels.
+@@ -207,5 +117,4 @@ footer note, not a per-row flag). `fatal` checks are **3 (always-SKIP)**,
+-Print today's date as `YYYY-MM-DD` (`date +%F`), then a summary line, the
+-KEEP/GROOM/CUT matrix (one row per target, worst verdict first), and the
+-per-target recommendations. The concrete emit block and a sample matrix are in
+-**§ Scoring procedure**. Close with the check-7 suite-level machinery-growth
+-footnote.
++Print `Eval Lint — YYYY-MM-DD`, scope, target counts, verdict counts, and incomplete/withheld counts.
++Use one row per target with class, seven-question evidence, cited reasons, native verdict or withheld judgment, and completeness.
++Order actionable findings first. Include per-target recommendations and the question-7 suite advisory.
++Report the section-5 state comparison separately; a mismatch does not itself prove which process changed the files.
+@@ -213,4 +122 @@ footnote.
+-### 6. Return to the dispatcher
+-
+-When `AUDIT_RUN_ID` is inherited, return this structured observation instead of
+-reporting a run record of your own; the outer dispatcher prints the single record:
++Return the structured observation to the outer dispatcher and suppress a child terminal record:
+@@ -221 +127 @@ reporting a run record of your own; the outer dispatcher prints the single recor
+-- **Action**: scored N probes + M capability tasks
++- **Action**: inspected N probes + M capability tasks; U assessments incomplete
+@@ -223 +129 @@ reporting a run record of your own; the outer dispatcher prints the single recor
+-- **Observation**: [one sentence — top finding]
++- **Observation**: [top finding, evidence gap, or state-comparison failure]
+@@ -226 +132 @@ reporting a run record of your own; the outer dispatcher prints the single recor
+-## Scoring procedure
++## 5. Compare before and after
+@@ -228,6 +134,4 @@ reporting a run record of your own; the outer dispatcher prints the single recor
+-One self-contained, copy-pasteable driver (the established deterministic lint idiom). It discovers every
+-probe + capability task, cross-references the `.agro/evals/RESULTS.md` SKIPPED
+-oracle, computes the deterministic checks from § 3, emits the KEEP/GROOM/CUT
+-matrix (worst verdict first) with the check-7 suite footer, and closes with the
+-`git status --porcelain .agro/evals/` read-only proof. It reads and prints only —
+-nothing under `.agro/evals/` is ever written.
++Use this capture function before investigation and after reporting.
++Require Python 3.11 or newer and Git. Missing tools, unreadable files, unauthorized scope, or capture errors block the read-only claim.
++The capture records status, staged content, file hashes, types, symlink targets, and modes, including ignored and untracked eval files.
++Do not follow symlinks or print raw file contents. Concurrent writers require an isolated rerun; never restore their changes.
+@@ -236,16 +140,39 @@ nothing under `.agro/evals/` is ever written.
+-set -uo pipefail   # NOT -e: grep returning 1 (no match) is normal control flow
+-
+-ROOT="$(git rev-parse --show-toplevel)"
+-EVALS="$ROOT/.agro/evals"
+-RESULTS="$EVALS/RESULTS.md"
+-
+-# ── Discover targets ────────────────────────────────────────────────────────
+-mapfile -t PROBES < <(ls "$EVALS"/probes/*.sh 2>/dev/null | sort)
+-mapfile -t CAPS   < <(ls "$EVALS"/capability/tasks/CB-*.md 2>/dev/null | sort)
+-
+-# ── Oracle: persistently-SKIPPED probe ids from the last /eval (RESULTS.md) ──
+-# The "always-SKIP" verdict is REAL DATA — the status column, never grep 'exit 2'.
+-skip_status() {  # $1 = probe id → prints the RESULTS.md status column, trimmed
+-  awk -F'|' -v id="$1" '
+-    { gsub(/^ +| +$/,"",$2); gsub(/^ +| +$/,"",$5) }
+-    $2==id { print $5; exit }' "$RESULTS"
++capture_eval_state() {
++  : "${AUDIT_ROOT:?outer audit dispatcher did not export AUDIT_ROOT}"
++  python3 - "$AUDIT_ROOT" "$1" <<'PY'
++import hashlib
++import json
++import os
++import stat
++import subprocess
++import sys
++from pathlib import Path
++
++root = Path(sys.argv[1]).resolve()
++tree = root / ".agro/evals"
++if tree.resolve() != tree or not tree.is_dir():
++    raise SystemExit("eval tree must be a canonical real directory")
++def fail(error):
++    raise error
++paths = [tree]
++for directory, directories, files in os.walk(tree, followlinks=False, onerror=fail):
++    paths.extend(Path(directory) / name for name in directories + files)
++entries = []
++for path in sorted(paths):
++    mode = path.lstat().st_mode
++    if stat.S_ISLNK(mode):
++        value = os.readlink(path)
++    elif stat.S_ISREG(mode):
++        with path.open("rb") as source:
++            value = hashlib.file_digest(source, "sha256").hexdigest()
++    elif stat.S_ISDIR(mode):
++        value = None
++    else:
++        raise SystemExit("unsupported eval file type")
++    entries.append([str(path.relative_to(root)), mode, value])
++def git(*args):
++    return subprocess.check_output(["git", "--no-optional-locks", "-C", str(root), *args]).hex()
++snapshot = {
++    "entries": entries,
++    "status": git("status", "--porcelain=v1", "-z", "--untracked-files=all", "--", ".agro/evals/"),
++    "index": git("ls-files", "--stage", "-z", "--", ".agro/evals/"),
+@@ -253,15 +180,2 @@ skip_status() {  # $1 = probe id → prints the RESULTS.md status column, trimme
+-
+-# ── Duplicate oracle: normalized-body hash → colliding probe ids ─────────────
+-# Strip shebang/comments/blank/whitespace, then hash. A shared hash = exact twin.
+-declare -A HASH2IDS
+-for f in "${PROBES[@]}"; do
+-  id=$(basename "$f" .sh)
+-  h=$(grep -vE '^[[:space:]]*#|^[[:space:]]*$' "$f" | tr -d '[:space:]' | sha256sum | cut -c1-16)
+-  HASH2IDS[$h]+=" $id"
+-done
+-
+-verdict() {  # $1 = fatal(≥1) · $2 = non-fatal flag count → KEEP/GROOM/CUT
+-  if   [ "$1" -ge 1 ]; then echo CUT
+-  elif [ "$2" -ge 3 ]; then echo CUT
+-  elif [ "$2" -ge 1 ]; then echo GROOM
+-  else echo KEEP; fi
++Path(sys.argv[2]).write_text(json.dumps(snapshot, sort_keys=True) + "\n")
++PY
+@@ -269,90 +183,3 @@ verdict() {  # $1 = fatal(≥1) · $2 = non-fatal flag count → KEEP/GROOM/CUT
+-
+-ROWS=""; KEEP=0; GROOM=0; CUT=0
+-
+-# ── Score probes (checks 1,2,3,4,6) ─────────────────────────────────────────
+-for f in "${PROBES[@]}"; do
+-  id=$(basename "$f" .sh); fatal=0; nf=0; flags=""
+-
+-  # Check 3 — always-SKIP-in-CI (FATAL, RESULTS.md oracle)
+-  [ "$(skip_status "$id")" = "SKIPPED" ] && { fatal=1; flags+="3 "; }
+-
+-  # Check 2 — exact duplicate (FATAL if a normalized twin exists)
+-  h=$(grep -vE '^[[:space:]]*#|^[[:space:]]*$' "$f" | tr -d '[:space:]' | sha256sum | cut -c1-16)
+-  peers=(${HASH2IDS[$h]}); [ "${#peers[@]}" -ge 2 ] && { fatal=1; flags+="2 "; }
+-
+-  # Check 1 — stale (GROOM): no `# source:` provenance header to anchor the lesson
+-  grep -qE '^#[[:space:]]*source:' "$f" || { nf=$((nf+1)); flags+="1 "; }
+-
+-  # Check 4 — asserts-implementation-detail (GROOM): a line-number pin into files
+-  grep -qE "sed -n '[0-9]+p'|head -n?[0-9]+ .*tail" "$f" && { nf=$((nf+1)); flags+="4 "; }
+-
+-  # Check 6 — too-easy/too-narrow (GROOM): tiny body (< 8 non-comment lines)
+-  sloc=$(grep -vcE '^[[:space:]]*#|^[[:space:]]*$' "$f")
+-  [ "$sloc" -lt 8 ] && { nf=$((nf+1)); flags+="6 "; }
+-
+-  v=$(verdict "$fatal" "$nf")
+-  case "$v" in KEEP) KEEP=$((KEEP+1));; GROOM) GROOM=$((GROOM+1));; CUT) CUT=$((CUT+1));; esac
+-  ROWS+="$v|probe|$id|${flags:-—}"$'\n'
+-done
+-
+-# ── Score capability tasks (checks 1,5,6) ────────────────────────────────────
+-for f in "${CAPS[@]}"; do
+-  id=$(grep -m1 '^id:' "$f" | awk '{print $2}')
+-  fatal=0; nf=0; flags=""
+-
+-  slug=$(grep -m1 '^slug:' "$f" | awk '{print $2}')
+-  # Check 5 — no-longer-held-out (FATAL): executable harness LOGIC (NOT the eval
+-  # scorer, NOT docs) hardcodes the task's slug ⇒ the harness was special-cased.
+-  if git -C "$ROOT" grep -lF "$slug" -- '.agro/scripts/' '.agro/hooks/' 2>/dev/null \
+-       | grep -qviE 'benchmark-score|README'; then fatal=1; flags+="5 "; fi
+-  # Check 1 — stale (GROOM): a declared datasets: DS-NNN ref that no longer
+-  # resolves under datasets/**/ (datasets are nested dirs, not bare files).
+-  for ds in $(grep -m1 '^datasets:' "$f" | grep -oE 'DS-[0-9]+'); do
+-    find "$EVALS/datasets" -maxdepth 2 -name "${ds}*" 2>/dev/null | grep -q . \
+-      || { nf=$((nf+1)); flags+="1 "; break; }
+-  done
+-  # Check 6 — too-narrow (GROOM): missing a scoring rubric / success signal
+-  grep -qE '^## Rubric|^## Success signal' "$f" || { nf=$((nf+1)); flags+="6 "; }
+-
+-  v=$(verdict "$fatal" "$nf")
+-  case "$v" in KEEP) KEEP=$((KEEP+1));; GROOM) GROOM=$((GROOM+1));; CUT) CUT=$((CUT+1));; esac
+-  ROWS+="$v|task|$id|${flags:-—}"$'\n'
+-done
+-
+-# ── Emit matrix (worst verdict first) ────────────────────────────────────────
+-echo "## Eval Lint — $(date +%F)"
+-echo
+-echo "### Summary"
+-echo "${#PROBES[@]} probes + ${#CAPS[@]} capability tasks scored | KEEP $KEEP | GROOM $GROOM | CUT $CUT"
+-echo
+-echo "| Target | Class | Flags | Verdict |"
+-echo "|--------|-------|-------|---------|"
+-printf '%s' "$ROWS" | awk -F'|' '
+-  BEGIN{ord["CUT"]=0; ord["GROOM"]=1; ord["KEEP"]=2}
+-  { print ord[$1]"\t"$0 }' | sort -k1,1n | cut -f2- | while IFS='|' read -r v cls id fl; do
+-    printf '| %-42s | %-5s | %-6s | %-5s |\n' "$id" "$cls" "$fl" "$v"
+-  done
+-
+-# ── Check 7 — machinery-growth footer (suite-level advisory, not a per-row flag)
+-SUITE=$(grep -oE 'suite score = [^·]*' "$EVALS/capability/RESULTS.md" | head -1)
+-echo
+-echo "_Check 7 (suite advisory): ${#PROBES[@]} probes now; capability ${SUITE:-score n/a}."
+-echo "Growing probe count against a flat ceiling ⇒ machinery-without-capability; compare"
+-echo "\`git -C \"\$ROOT\" grep -c '' -- .agro/evals/probes | wc -l\` at an earlier revision._"
+-
+-# ── Read-only proof (this skill only reads + prints) ─────────────────────────
+-echo
+-if [ -z "$(git -C "$ROOT" status --porcelain .agro/evals/)" ]; then
+-  echo "read-only proof: git status --porcelain .agro/evals/ is EMPTY ✓"
+-else
+-  echo "read-only proof: FAILED — the lint mutated .agro/evals/ (bug); investigate:"
+-  git -C "$ROOT" status --porcelain .agro/evals/
+-fi
+-```
+-
+-### Sample matrix
+-
+-Real output against the current tree (77 targets: 75 probes + 2 `CB-*` tasks).
+-Only the two probes RESULTS.md records as persistently
+-`SKIPPED` fire the fatal check-3 CUT; every other target is a clean KEEP:
+-
++umask 077
++state=$(mktemp -d /tmp/eval-audit-state.XXXXXX) || exit "$?"
++capture_eval_state "$state/before.json" || exit "$?"
+@@ -360,4 +186,0 @@ Only the two probes RESULTS.md records as persistently
+-## Eval Lint — 2026-07-03
+-
+-### Summary
+-75 probes + 2 capability tasks scored | KEEP 75 | GROOM 0 | CUT 2
+@@ -365,8 +188,2 @@ Only the two probes RESULTS.md records as persistently
+-| Target | Class | Flags | Verdict |
+-|--------|-------|-------|---------|
+-| autopilot-preflight-gate                   | probe | 3      | CUT   |
+-| next-dev-prod                              | probe | 3      | CUT   |
+-| spec-single-owner                          | probe | —      | KEEP  |
+-| … (73 more probes) …                       | probe | —      | KEEP  |
+-| CB-001                                     | task  | —      | KEEP  |
+-| CB-002                                     | task  | —      | KEEP  |
++If the first capture fails, stop before investigation. Otherwise retain `$state` and the function in the same shell context.
++After the read-only investigation, run:
+@@ -374,3 +191,3 @@ Only the two probes RESULTS.md records as persistently
+-_Check 7 (suite advisory): 75 probes now; capability suite score = mean of task scores…_
+-
+-read-only proof: git status --porcelain .agro/evals/ is EMPTY ✓
++```bash
++capture_eval_state "$state/after.json" || exit "$?"
++cmp -- "$state/before.json" "$state/after.json" || exit "$?"
+@@ -379,68 +196,5 @@ read-only proof: git status --porcelain .agro/evals/ is EMPTY ✓
+-Both `SKIPPED` rows are the check-3 oracle finding — `autopilot-preflight-gate`
+-and `next-dev-prod` are the only probes whose `.agro/evals/RESULTS.md` status is
+-`SKIPPED`, so they are the only fatal CUTs. Re-running the driver twice yields
+-byte-identical verdicts (deterministic), and `.agro/evals/` stays unmodified.
+-
+-## Guidelines
+-
+-- Scoring is fully deterministic — run the same commands twice and get the same
+-  verdicts. Do not adjust a verdict on content quality or subjective judgment.
+-- The always-SKIP oracle is **real data**: read the `status` column of
+-  `.agro/evals/RESULTS.md` (written by the last `/eval`), never a guess from
+-  `grep 'exit 2'`. A probe can legitimately `exit 2` in *this* environment yet
+-  assert normally elsewhere; only a probe RESULTS.md records as persistently
+-  `SKIPPED` is a true always-SKIP finding.
+-- **Read-only, always.** Never edit, move, or delete a probe or capability file.
+-  If a run leaves `git status --porcelain .agro/evals/` non-empty, the run is a
+-  bug — it mutated state it was only allowed to read.
+-- **CUT is advisory.** A `CUT` verdict is a recommendation for a human/follow-up
+-  task, mirroring `/audit skills`'s `DELETE`. Deleting a hard capability task to
+-  inflate the suite score is the cardinal sin the capability README forbids —
+-  this skill flags, it does not act.
+-- Do not Goodhart the linter itself: `/audit eval-quality` is markdown-driven and ships
+-  no probe of its own. It must **not** be registered under `.agro/evals/probes/`
+-  or `link-providers.sh` — adding a probe for it grows the machinery it exists
+-  to groom.
+-- For the single-target mode (`$ARGUMENTS` = a probe or task id), run all seven
+-  checks and emit the same matrix for just that target, plus its recommendation.
+-
+-## Reference
+-
+-### Target classes
+-
+-| Class | Root | Id |
+-|-------|------|----|
+-| Probe | `.agro/evals/probes/*.sh` | basename without `.sh` |
+-| Capability task | `.agro/evals/capability/tasks/CB-*.md` | `CB-NNN` prefix |
+-
+-### The seven failure modes
+-
+-| # | Failure mode | Fatal? | Fix |
+-|---|--------------|--------|-----|
+-| 1 | stale | no | refresh source pointer / re-anchor assertion |
+-| 2 | duplicate | exact dup → yes | merge or differentiate |
+-| 3 | always-SKIP-in-CI | yes | run it or remove it |
+-| 4 | asserts-implementation-detail-not-user-outcome | no | assert the user outcome |
+-| 5 | no-longer-held-out | yes | restore held-out discipline or retire |
+-| 6 | too-easy/too-narrow/special-cased | no | broaden the case |
+-| 7 | machinery-growth-without-capability-movement | suite footer | redirect, don't add machinery |
+-
+-### Probe status oracle (from `.agro/evals/RESULTS.md`)
+-
+-Exit-code semantics written by `/eval`: `0=PASS`, `1=REGRESSION`, `2=SKIPPED`,
+-`124=TIMEOUT`, other=`ERROR`. `SKIPPED` does not count toward pass-rate — and a
+-*persistently* `SKIPPED` probe is a check-3 CUT candidate.
+-
+-### Verdict thresholds
+-
+-| Flags | Verdict | Action |
+-|-------|---------|--------|
+-| 0 | KEEP | Earns its place — no action |
+-| 1–2 non-fatal | GROOM | Fixable in place — refresh/rewrite/broaden/merge |
+-| Any fatal, or 3+ | CUT | Remove or redesign (advisory — never auto-applied) |
+-
+-### Related skills
+-
+-- `/audit skills` — the sibling grooming pass this skill mirrors (skills ↔ evals).
+-- `/eval` — writes the `.agro/evals/RESULTS.md` status oracle check 3 reads.
+-- `/benchmark` — consumes the capability ceiling check 7 watches for movement.
++Require both captures and `cmp` to exit 0 before claiming unchanged state.
++A pre-existing dirty file passes when its content and status stay unchanged.
++A mutation to that same file fails even if its porcelain status remains identical.
++On mismatch or error, report the gap and retain the captures for diagnosis. Do not blame or overwrite operator changes.
++After reporting a successful comparison, remove only this invocation's temporary captures.
+`````
+
+## SI-0026 · 2026-09-20 · builder · PROPOSED
+
+- **proposal**: Keep C1–C19 visible with source citations and explicit fallback applicability without claiming runtime evidence.
+- **target**: `.agro/skills/audit/fixtures/responsibility-scenarios.md`
+- **motivating patterns**: none (direct request)
+- **proposer**: /builder skill, advisor for issue #1114
+- **diff**:
+
+`````diff
+diff --git a/.agro/skills/audit/fixtures/responsibility-scenarios.md b/.agro/skills/audit/fixtures/responsibility-scenarios.md
+new file mode 100644
+index 00000000..cd4725bf
+--- /dev/null
++++ b/.agro/skills/audit/fixtures/responsibility-scenarios.md
+@@ -0,0 +1,175 @@
++# Audit responsibility scenarios
++
++These cases support read-only contract review. They are not an executable scoring oracle, a runtime dependency, or evidence that an agent followed the procedure.
++Use the retained panel sources and the revised evidence procedures. Do not dispatch workers, read private traces, publish, delete, or run evals for this review.
++
++Council composition is **NOT SHIPPED**. The panel, dispatcher, external permissions, full campaign, runtime scripts, and standalone council retain their existing contracts.
++C10–C16 concern the changed evidence procedures. Keep every original case visible; do not reinterpret a fallback as a composition pass.
++Source citations below are relative to `.agro/skills/` unless they start with `.agro/evals/`.
++
++## Contents
++
++1. [Retained panel and council cases](#retained-panel-and-council-cases)
++2. [Retained external permissions](#retained-external-permissions)
++3. [Changed evidence judgments](#changed-evidence-judgments)
++4. [Retained campaign and wrapper boundaries](#retained-campaign-and-wrapper-boundaries)
++5. [Review record](#review-record)
++
++## Retained panel and council cases
++
++### C1 — Complete survey
++
++Supply four non-empty reports with `PM_FINDINGS`, `IMP_FINDINGS`, `CRITIC_FINDINGS`, and `EXP_FINDINGS`, each with closing `END`.
++The existing panel covers every domain check, validates outputs, then deduplicates and emits its native tiers, positive findings, and next three actions.
++Source: `audit/references/harness.md`, sections 3 through 5 and Reference.
++Applicability: retained panel. Routing this survey through council is **NOT SHIPPED**.
++
++### C2 — Focus constraint
++
++Supply a bounded `--focus` value. Every auditor receives the constraint.
++Source: `audit/references/harness.md`, sections 1 and 2, including the snapshot's Focus constraint field.
++Applicability: retained panel. The baseline still gathers its listed snapshot; this change adds no source-inspection restriction or council lens enforcement.
++Do not claim that the baseline proves the original scenario's stronger no-unrelated-source-expansion outcome.
++
++### C3 — Missing mandatory report
++
++Omit each survey report in turn. The retained validator requires `FAIL-AUDITOR-OUTPUT`, the named defect, no deduplication or ranking, no recommended actions, and a non-zero invocation result.
++Source: `audit/references/harness.md`, section 3.5.
++Applicability: retained panel failure contract; no new critic or replacement behavior.
++
++### C4 — Invalid mandatory report
++
++Repeat with whitespace-only content, a wrong start sentinel, and missing `END`.
++The retained validator has the same failure behavior as C3 and names the actual defect.
++Source: `audit/references/harness.md`, section 3.5.
++Applicability: retained panel. Review each defect separately; a happy-path report does not exercise these failures.
++
++### C5 — Failed critic or conflicting evidence
++
++For standalone council, require critique, then make that critique fail; also inspect a case with material evidence conflict.
++Council withholds a dependent recommendation when required critique fails and forbids retry-until-consensus.
++Source: `council/SKILL.md`, sections 4 and 5; retain `council/references/scenarios.md`.
++Applicability: standalone council retained. An added council critic in an audit panel is **NOT SHIPPED**; the panel's mandatory Critic Auditor is not that conditional critic.
++
++### C6 — Independence or budget unavailable
++
++For standalone council, deny independent contexts or exhaust the agreed budget.
++Council blocks without inline personas; delegate owns budget-stop and worker failure mechanics. Council launches no automatic replacements.
++Source: `council/SKILL.md`, sections 2 and 3; `delegate/SKILL.md`, budget and failure rules.
++Applicability: standalone council retained. Audit-to-council blocker propagation is **NOT SHIPPED**. The baseline panel references delegate for its worker policy, not a new council outcome mapping.
++
++## Retained external permissions
++
++### C7 — Source and wiki opt-in
++
++Compare an external source alone with the same source plus `--wiki-ingest`.
++Both remain report-only for issue operations. Only explicit wiki permission authorizes ingestion; it grants no issue permission.
++Source: `audit/references/external-proposal-audit.md`, default mode; `audit/references/harness.md`, External proposal implementation audits.
++Applicability: retained three-perspective decision audit, not council composition.
++
++### C8 — Missing confirmation and dry-run
++
++Use `--apply issue` without confirmation, then repeat with `--confirm --dry-run`.
++The first stops after the exact preview. Dry-run prints the identical plan and writes nothing.
++Source: `audit/references/external-proposal-audit.md`, issue operations; `audit/scripts/audit-run.sh`, argument validation.
++Applicability: retained authorization. Do not claim the fallback adds the rejected adapter's explicit no-council-dispatch rule.
++
++### C9 — Confirmed action and invalid arguments
++
++Compare a valid confirmed external issue action with conflicting `--focus`, an unknown option, and a missing option value.
++Only valid authorized action can proceed through the retained preview and fresh duplicate-check contract. Invalid arguments stop before lifecycle creation.
++Source: `audit/references/external-proposal-audit.md`; `audit/SKILL.md`, Canonical usage and lifecycle boundary; `audit/scripts/audit-run.sh`.
++Applicability: retained rules. No external mutation is necessary for this contract review. The fallback adds no post-confirmation recheck procedure beyond baseline.
++
++## Changed evidence judgments
++
++### C10 — Old valid skill with unknown use
++
++Consider a skill last modified 90 days ago, with valid required frontmatter and resolvable required dependencies, but no authorized invocation evidence.
++Age alone establishes neither drift nor uselessness. Usage remains unknown. `CURRENT` can describe complete mechanical checks, not usefulness or behavioral correctness.
++Source: `audit/references/skills.md`, A, B, and Judge from evidence.
++Applicability: changed. No freshness/usage total or automatic `STALE`/`DELETE` survives.
++
++### C11 — Repeated mentions in one log
++
++Consider one authorized log file with 20 mentions of a skill name and no verified invocation event.
++Report mentions only. Do not infer 20 invocations, independent executions, or usefulness. Without event evidence, use remains unknown.
++Source: `audit/references/skills.md`, B and Report and return.
++Applicability: changed. The case supplies a hypothetical input, not permission to read a real private log.
++
++### C12 — Concrete broken dependency or frontmatter
++
++Consider one missing required local skill dependency. Repeat with absent required `description` and malformed YAML.
++Keep each concrete failure visible as `BROKEN` with the governing requirement and observed defect. Other favorable signals cannot cancel it.
++Repeat with an optional resource and absent memory protocol: do not treat them as universal failures.
++If dependency inspection is unavailable rather than definitively absent, mark verification incomplete instead of inventing a broken dependency.
++Source: `audit/references/skills.md`, C, D, E, and Judge from evidence.
++Applicability: changed. Dependency scores do not recurse.
++
++### C13 — Observed skip with a runnable intended path
++
++Consider one latest `SKIPPED` row from a socket-less environment. Its source guard allows assertion execution in the intended environment with the dependency present.
++Report the single observation and runnable path. Do not claim permanent skipping or recommend removal from that row alone.
++If environment evidence is unavailable, report that limit rather than invent a persistence threshold.
++Source: `audit/references/eval-quality.md`, question 3 and Triage observed failures.
++Applicability: changed. Source-path analysis and evidence coverage determine the conclusion, not a scoreboard shortcut.
++
++### C14 — Short probe or common issue
++
++Consider a four-line probe with a reachable, decisive assertion. Also consider two probes citing one issue but checking different invariants or environments.
++Neither length nor the shared citation proves duplication or justifies removal.
++Compare assertion, invariant, input domain, environment, and retained responsibility before a duplicate finding.
++Source: `audit/references/eval-quality.md`, questions 2, 4, and 6.
++Applicability: changed. No line-count threshold or shared-issue verdict remains.
++
++### C15 — Evidence supports action
++
++Review four separate inputs:
++
++1. Proven duplication with the same invariant and scope and a named retained replacement.
++2. An assertion unreachable in every intended environment.
++3. A proven tautology.
++4. Implementation tuning that contaminates a holdout.
++Each can support advisory `CUT` or redesign with cited evidence. Preserve responsibility ownership; identify the retained replacement for redundancy.
++For skills, `DELETE` requires proven redundancy and a named retained owner for every responsibility.
++No native label authorizes automatic deletion, and no flag total substitutes for the evidence.
++Source: `audit/references/eval-quality.md`, questions 2, 3, 5, 6, and Recommend and report; `audit/references/skills.md`, Judge from evidence.
++Applicability: changed. Unsupported removal is not the only possible conclusion; proven defects remain actionable.
++
++### C16 — Already-dirty content
++
++On a disposable copy, place a file in the index. Modify the file before the audit capture.
++Run the section-5 capture and comparison without changing the file: expect equality despite dirty status.
++Change that same file again, keeping its porcelain status identical: expect inequality from its content hash.
++Source: `audit/references/eval-quality.md`, Compare before and after.
++Applicability: changed. Run the actual published capture, not a separate mock oracle. Record commands, exit codes, and status/content evidence.
++Do not run `/eval` during this read-only comparison or mutate the real eval tree for the experiment.
++
++## Retained campaign and wrapper boundaries
++
++### C17 — Nested fan-out unavailable
++
++Consider a full campaign whose nested harness slice cannot dispatch workers.
++Preserve inherited roots and identity, mark the slice deferred with its exact top-level rerun, retain provenance, and emit a partial campaign.
++Source: `audit/references/full.md`; `audit/SKILL.md`, child identity and observation rules.
++Applicability: retained. Do not retrofit the rejected composition's stronger incomplete-ranking wording into baseline claims.
++
++### C18 — Unsupported scripted route or no-op callback
++
++The shipped driver returns exit 64 for a report-only route. A zero-exit no-op supplies no target-correlated evidence and cannot certify completion.
++The unchanged runtime owns immutable roots and one outer stderr record.
++Source: `audit/scripts/route-driver.sh`; `audit/scripts/audit-run.sh`; `audit/SKILL.md`, transport-success distinction.
++Applicability: retained runtime. Baseline dispatcher prose still contains historical persistent-log wording; the fallback does not repair it.
++
++### C19 — Survey dry-run
++
++Repeat `--dry-run` with and without `--focus`.
++The retained procedure prints the briefing and auditor prompts, then stops without spawning workers. It adds no council ledger or source mutation.
++Source: `audit/references/harness.md`, section 1; `audit/SKILL.md`, inherited child and report-only rules.
++Applicability: retained panel dry-run. Council-composed dry-run is **NOT SHIPPED**.
++
++## Review record
++
++For each case, identify the inspected revision, relevant source, applicability, observed evidence, and limits.
++Separate source-contract review, deterministic command evidence, and actual agent behavior.
++Do not claim independent review or advisor acceptance from this document. Do not turn the rejected composition's D2 or D7 into a pass.
+`````

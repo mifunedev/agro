@@ -2,18 +2,18 @@
   "schemaVersion": 1,
   "project": "AGRO",
   "branchName": "skill/1114-audit-responsibility-simplification",
-  "description": "Approved audit responsibility simplification",
+  "description": "Approved fallback: retain original panels and correct evidence judgments",
   "repo": "mifunedev/agro",
   "base": "development",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Preserve responsibilities and compose council",
-      "description": "As an operator, I want preserve responsibilities and compose council.",
+      "title": "Retain original panels under the approved fallback",
+      "description": "As an operator, I want the existing panel contract retained when composition fails its cost gate.",
       "acceptanceCriteria": [
-        "Preserve R1\u2013R15 and mandatory lenses.",
-        "Verify C1\u2013C9 and C19 against complete sources.",
-        "Accept the composition checkpoint before evidence-rule edits.",
+        "Verify baseline equality for harness, external, council, dispatcher, full, runtime scripts, and gate owners.",
+        "Preserve R1\u2013R11 and R14\u2013R15; review C1\u2013C9 and C17\u2013C19 against retained procedures.",
+        "Record rejected composition and advisor-approved fallback without claiming D2 composition shipped.",
         "Typecheck passes"
       ],
       "priority": 1,
@@ -22,13 +22,14 @@
     },
     {
       "id": "US-002",
-      "title": "Correct evidence judgments and align contracts",
-      "description": "As an operator, I want correct evidence judgments and align contracts.",
+      "title": "Correct skill and eval-quality evidence judgments",
+      "description": "As an operator, I want health advice based on evidence rather than unsupported scores.",
       "acceptanceCriteria": [
-        "Verify C10\u2013C18 and all seven eval-quality questions.",
-        "Run D6 commands and fault injection for changed probes.",
-        "Report D7 full transitive context cost; block increased context without operator approval.",
-        "Align changelog and append-only proposal records.",
+        "Preserve all five skill investigations and seven eval-quality checks; verify R12\u2013R13 and C10\u2013C15.",
+        "Replace empty-status read-only proof with before/after status and content comparison that detects changes to already dirty files; verify C16.",
+        "Preserve native labels and advisory authority; no automatic mutation or deletion.",
+        "Run all D6 commands and STE on every changed Markdown file.",
+        "Measure full applicable procedure sets and disclose no council consolidation benefit.",
         "Typecheck passes"
       ],
       "priority": 2,
@@ -37,29 +38,16 @@
     },
     {
       "id": "US-003",
-      "title": "Accept independent evidence and knowledge impact",
-      "description": "As an operator, I want accept independent evidence and knowledge impact.",
+      "title": "Accept independent evidence and resolve knowledge impact",
+      "description": "As an operator, I want substantive independent review and source-backed knowledge dispositions.",
       "acceptanceCriteria": [
-        "Review D1\u2013D8 and C1\u2013C19 independently on a fixed revision.",
-        "Resolve actual knowledge impact with source-backed dispositions and verify the index.",
-        "Record commands, tested revisions, exits, findings, and dispositions.",
+        "Review every R1\u2013R15 and C1\u2013C19 disposition independently at a fixed candidate.",
+        "Record D1\u2013D8 evidence with fallback applicability, exact commands, tested revision, exit status, findings, and disposition.",
+        "Resolve actual knowledge impact from final changed paths and declared dependencies; verify wiki index.",
+        "Verify changelog, append-only proposal records, and public-documentation assessment.",
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
-    },
-    {
-      "id": "US-004",
-      "title": "Deliver ready-for-review PR",
-      "description": "As an operator, I want deliver ready-for-review pr.",
-      "acceptanceCriteria": [
-        "Pass implementation audit, eval, benchmark, and evidence gates.",
-        "Verify latest-head green CI and fresh promotable PR audit.",
-        "Verify isDraft=false and PR URL; do not merge.",
-        "Typecheck passes"
-      ],
-      "priority": 4,
       "passes": false,
       "notes": ""
     }
