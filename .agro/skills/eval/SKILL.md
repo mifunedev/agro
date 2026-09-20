@@ -16,8 +16,9 @@ The runner for the harness **fitness function**. It discovers `.agro/evals/probe
 runs each against *real state*, and writes the `.agro/evals/RESULTS.md` scoreboard. A
 rectification is provably "done" when its probe is green; a recurrence shows up as
 a **REGRESSION** (was-PASS, now-fail) naming the `# source:` lesson. The full
-contract — 3-state exit oracle, header convention, correction-surface triage — is
-in [`.agro/evals/README.md`](../../../.agro/evals/README.md).
+author contract is in [evals/AGENTS.md](../../evals/AGENTS.md).
+The [source eval reference](https://github.com/mifunedev/agro/blob/main/docs/evals.md)
+explains the oracle, metadata, runner, and correction-surface triage.
 
 ## Usage
 

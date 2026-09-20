@@ -2247,3 +2247,186 @@ index 8df7cd96..a17558f3 100644
 +Examples: `/strategic-proposal Rank onboarding priorities; report only` returns advice after required critique.
 +`/strategic-proposal` requests input without dispatch. After an auth blocker, resume only the authorized publication against the verified target.
 ```
+
+## SI-0018 · 2026-09-19 · builder · PROPOSED
+
+- **proposal**: Point the existing procedure at the relocated directory contract or source reference without adding a procedure layer.
+- **target**: `.agro/skills/delegate/SKILL.md`
+- **motivating patterns**: none (direct request)
+- **proposer**: /builder rule, operator-approved directory contracts, issue #1112
+- **diff**:
+
+````diff
+diff --git a/.agro/skills/delegate/SKILL.md b/.agro/skills/delegate/SKILL.md
+index cc36ba45..37cfcfd5 100644
+--- a/.agro/skills/delegate/SKILL.md
++++ b/.agro/skills/delegate/SKILL.md
+@@ -248,7 +248,8 @@ can pick up the worktree. Write the graph to disk before spawning any worker.
+ | `delegate-log.txt` | Append-only run log; one line per wave boundary, per status change, per capability check, and per blocked control |
+
+ Never write `prd.json` or `progress.txt`. Those belong to the implementation owner
+-(`.agro/tasks/README.md`), and `progress.txt` in particular must not be edited by hand.
++(see the [task contract](https://github.com/mifunedev/agro/blob/main/.agro/tasks/AGENTS.md)).
++Only the implementation owner appends to `progress.txt`.
+ This skill's two files sit beside them without collision.
+
+ Both live under `.agro/tasks/`, which is gitignored — that is correct for run state.
+````
+
+## SI-0019 · 2026-09-19 · builder · PROPOSED
+
+- **proposal**: Point the existing procedure at the relocated directory contract or source reference without adding a procedure layer.
+- **target**: `.agro/skills/eval/SKILL.md`
+- **motivating patterns**: none (direct request)
+- **proposer**: /builder rule, operator-approved directory contracts, issue #1112
+- **diff**:
+
+````diff
+diff --git a/.agro/skills/eval/SKILL.md b/.agro/skills/eval/SKILL.md
+index 1d5ed457..d2194a3a 100644
+--- a/.agro/skills/eval/SKILL.md
++++ b/.agro/skills/eval/SKILL.md
+@@ -16,8 +16,9 @@ The runner for the harness **fitness function**. It discovers `.agro/evals/probe
+ runs each against *real state*, and writes the `.agro/evals/RESULTS.md` scoreboard. A
+ rectification is provably "done" when its probe is green; a recurrence shows up as
+ a **REGRESSION** (was-PASS, now-fail) naming the `# source:` lesson. The full
+-contract — 3-state exit oracle, header convention, correction-surface triage — is
+-in [`.agro/evals/README.md`](../../../.agro/evals/README.md).
++author contract is in [evals/AGENTS.md](../../evals/AGENTS.md).
++The [source eval reference](https://github.com/mifunedev/agro/blob/main/docs/evals.md)
++explains the oracle, metadata, runner, and correction-surface triage.
+
+ ## Usage
+
+````
+
+## SI-0020 · 2026-09-19 · builder · PROPOSED
+
+- **proposal**: Point the existing procedure at the relocated directory contract or source reference without adding a procedure layer.
+- **target**: `.agro/skills/retro/SKILL.md`
+- **motivating patterns**: none (direct request)
+- **proposer**: /builder rule, operator-approved directory contracts, issue #1112
+- **diff**:
+
+````diff
+diff --git a/.agro/skills/retro/SKILL.md b/.agro/skills/retro/SKILL.md
+index 070242ba..504a5d98 100644
+--- a/.agro/skills/retro/SKILL.md
++++ b/.agro/skills/retro/SKILL.md
+@@ -182,7 +182,7 @@ The test: if you would scope it to "this session" or "this codebase right now,"
+
+ ### 5a. Triage tag — route each promotable lesson to its correction surface
+
+-For every lesson that survived to the promotion list (verdict `supported`, confidence `medium` or higher, generalizes across sessions), assign exactly one triage tag before proposing it. Route to the **cheapest reliable surface** per `.agro/evals/README.md § Correction-surface triage`:
++For every lesson that survived to the promotion list (verdict `supported`, confidence `medium` or higher, generalizes across sessions), assign exactly one triage tag before proposing it. Route to the **cheapest reliable surface** per the [correction-surface reference](https://github.com/mifunedev/agro/blob/main/docs/evals.md#correction-surface-triage):
+
+ | Tag | Use when | Proposed artifact |
+ |-----|----------|-------------------|
+````
+
+## SI-0021 · 2026-09-19 · builder · PROPOSED
+
+- **proposal**: Point the existing procedure at the relocated directory contract or source reference without adding a procedure layer.
+- **target**: `.agro/skills/sync/references/catchup.md`
+- **motivating patterns**: none (direct request)
+- **proposer**: /builder rule, operator-approved directory contracts, issue #1112
+- **diff**:
+
+````diff
+diff --git a/.agro/skills/sync/references/catchup.md b/.agro/skills/sync/references/catchup.md
+index c01d9298..190cd17a 100644
+--- a/.agro/skills/sync/references/catchup.md
++++ b/.agro/skills/sync/references/catchup.md
+@@ -107,7 +107,8 @@ by `updated:` date, then slug). The probe will verify correctness.
+
+ **.agro/evals/RESULTS.md** (expected conflict):
+ - If the squash adds a NEW probe → hand-insert only the new row; `git checkout
+-  --ours .agro/evals/RESULTS.md` then add the row per `.agro/evals/README.md` format.
++  --ours .agro/evals/RESULTS.md` then add the row using the
++  [scoreboard schema](https://github.com/mifunedev/agro/blob/main/docs/evals.md#scoreboard-schema).
+ - If the squash adds NO new probe → `git checkout --theirs .agro/evals/RESULTS.md`
+   (upstream's scoreboard, zero timestamp churn).
+
+````
+
+## SI-0022 · 2026-09-19 · builder · PROPOSED
+
+- **proposal**: Point the existing procedure at the relocated directory contract or source reference without adding a procedure layer.
+- **target**: `.agro/skills/benchmark/SKILL.md`
+- **motivating patterns**: none (direct request)
+- **proposer**: /builder rule, operator-approved directory contracts, issue #1112
+- **diff**:
+
+````diff
+diff --git a/.agro/skills/benchmark/SKILL.md b/.agro/skills/benchmark/SKILL.md
+index 2bb96470..30488a8d 100644
+--- a/.agro/skills/benchmark/SKILL.md
++++ b/.agro/skills/benchmark/SKILL.md
+@@ -35,7 +35,7 @@ that grows the harness but does not move the capability benchmark is
+ > **Not `/audit implementation`.** `/audit implementation` is the per-unit *floor* gate (does this one impl
+ > satisfy its task graph and is it promotable?). `/benchmark` is the *ceiling*
+ > gate (did the harness get **better**?). Distinct instruments, distinct
+-> question — see `.agro/evals/capability/README.md` § *Ceiling vs. floor*. `/benchmark`
++> question — see the [instrument reference](https://github.com/mifunedev/agro/blob/main/docs/capability-benchmark.md). `/benchmark`
+ > *consults* `/eval`; it does not replace or fork it.
+
+ ---
+@@ -95,8 +95,9 @@ git show "${BASE:-development}":.agro/evals/capability/RESULTS.md \
+   | grep -oE 'suite score = [0-9.]+' | head -1                              # counterfactual
+ ```
+
+-Decide on the delta (v1 is rubric inspection — the instrument has no auto-runner
+-yet, see `.agro/evals/capability/README.md` § *Non-scope*):
++Decide on the delta using hand-scored judgment axes.
++The runner computes arithmetic, not judgment; see the
++[instrument limits](https://github.com/mifunedev/agro/blob/main/docs/capability-benchmark.md#evidence-and-limitations):
+
+ | Ceiling delta vs. counterfactual | Verdict |
+ |---|---|
+@@ -172,5 +173,5 @@ REDIRECT-FLAG: capability suite score flat at <X.XX>/2.00 for <N> cycles while N
+ - **Fork `/eval` or the instrument.** It composes both; it never reimplements the
+   probe runner or re-authors the capability tasks.
+ - **Tune the harness to the benchmark.** The task set is held-out
+-  (`.agro/evals/capability/README.md` § *Held-out discipline*); special-casing to ace a
++  ([capability contract](../../evals/capability/AGENTS.md)); special-casing to ace a
+   task corrupts the instrument.
+````
+
+## SI-0023 · 2026-09-19 · builder · PROPOSED
+
+- **proposal**: Point the existing procedure at the relocated directory contract or source reference without adding a procedure layer.
+- **target**: `.agro/skills/audit/references/eval-quality.md`
+- **motivating patterns**: none (direct request)
+- **proposer**: /builder rule, operator-approved directory contracts, issue #1112
+- **diff**:
+
+````diff
+diff --git a/.agro/skills/audit/references/eval-quality.md b/.agro/skills/audit/references/eval-quality.md
+index 2b911bd0..dc039294 100644
+--- a/.agro/skills/audit/references/eval-quality.md
++++ b/.agro/skills/audit/references/eval-quality.md
+@@ -98,12 +98,12 @@ Groomable — rewrite to assert the user outcome, not the mechanism.
+ #### Check 5 — no-longer-held-out
+
+ *A capability benchmark task (or its fixtures) has been tuned-to / special-cased,
+-violating the held-out discipline in `.agro/evals/capability/README.md`.*
++violating the held-out discipline in `.agro/evals/capability/AGENTS.md`.*
+
+ Signal: the task's guarded assertion is now baked into the very file it inspects,
+ or the benchmark manifest (a task's fixtures) is
+ referenced by non-eval harness code — evidence the harness was special-cased *to*
+-the benchmark. Per the capability README, special-casing the harness to ace a
++the benchmark. Per the capability contract, special-casing the harness to ace a
+ task corrupts the instrument. **Fatal** — a no-longer-held-out task measures
+ nothing.
+
+@@ -121,7 +121,7 @@ Groomable — broaden the case or add the assertion it is missing.
+ #### Check 7 — machinery-growth-without-capability-movement
+
+ *The meta check: the probe count keeps growing while the capability suite score
+-stays flat — the "redirect" signal in `.agro/evals/capability/README.md`.*
++stays flat — the "redirect" signal in `.agro/evals/capability/AGENTS.md`.*
+
+ Signal: count probes now vs. an earlier git revision, compared against the
+ capability `RESULTS.md` suite-score delta over the same span. Growing floor
+````

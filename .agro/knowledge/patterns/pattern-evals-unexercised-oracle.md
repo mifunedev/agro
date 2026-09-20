@@ -22,7 +22,7 @@ confidence: provisional
 - `.agro/skills/eval/run.sh` — the runner that assigns PASS, REGRESSION, and SKIPPED and decides which of them fails the suite.
 - `.oh/evals/probes/wiki-skill-impact-append-only.sh@bfe22487` — a probe that reported PASS while three parser defects made its comparison meaningless.
 - `.oh/evals/probes/wiki-skill-impact-append-only.sh@af1c14ec` — the same probe after fault injection, carrying an override that makes the failing branch reachable.
-- `.agro/evals/README.md` — the standing note that a degraded probe does not fail the gate.
+- `docs/evals.md:51-55,79-82` — the standing note that a degraded probe does not fail the gate.
 - `.oh/scripts/hermes-install-smoke.sh@7610c7c4` — the real-consumer smoke with a retained runtime-home assertion.
 - `.oh/tasks/hermes-child-container-layout/evidence.md@465075d6` — the observed bad-home rejection and corrected-home success.
 
@@ -49,7 +49,7 @@ unexercised.
 
 **Root cause.** The three-state oracle is designed so that only a `PASS →
 REGRESSION|TIMEOUT|ERROR` transition fails the gate, which is what keeps the suite
-hermetic across cold runners; `.agro/evals/README.md:143-152` states the consequence
+hermetic across cold runners; `docs/evals.md:51-55,79-82` states the consequence
 plainly and assigns the residual risk to the operator rather than to a mechanism.
 The result is that "not red" is the default state of every path the suite has never
 driven, and probe authors read it as confirmation. The Hermes experiment supplies

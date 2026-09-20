@@ -5,20 +5,20 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-README="$ROOT/.agro/evals/README.md"
+README="$ROOT/.agro/evals/AGENTS.md"
 
 if [[ ! -f "$README" ]]; then
-  echo "SKIPPED: evals README absent: .agro/evals/README.md" >&2
+  echo "SKIPPED: evals contract absent: .agro/evals/AGENTS.md" >&2
   exit 2
 fi
 
 failures=()
-need() { grep -qF -- "$1" "$README" || failures+=("evals/README.md missing contract text: $1"); }
+need() { grep -qF -- "$1" "$README" || failures+=("evals/AGENTS.md missing contract text: $1"); }
 
 need '### Fault injection'
 need 'drive its REGRESSION branch'
 need 'expose the'
-need 'is unexercised, not healthy'
+need 'unverified, not healthy'
 
 # The documented overrides must still exist, or the guidance names a dead handle.
 declare -A OVERRIDES=(

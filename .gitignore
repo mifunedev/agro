@@ -26,7 +26,7 @@ projects/*
 .oh/logs/*
 !.oh/logs/AGENTS.md
 .agro/tasks/*
-!.agro/tasks/README.md
+!.agro/tasks/AGENTS.md
 .agro/logs/*
 !.agro/logs/AGENTS.md
 

@@ -10,7 +10,7 @@ SPEC="$ROOT/.agro/skills/spec"
 EXEC="$SPEC/references/execute.md"
 SKILL="$SPEC/SKILL.md"
 PLAN="$SPEC/references/plan.md"
-TASKS="$ROOT/.agro/tasks/README.md"
+TASKS="$ROOT/.agro/tasks/AGENTS.md"
 GLOSSARY="$ROOT/docs/glossary.md"
 
 for file in "$EXEC" "$SKILL" "$PLAN" "$TASKS" "$GLOSSARY"; do
@@ -38,7 +38,7 @@ grep -qiF 'never the existence of a named process, session, tab, or pane' "$EXEC
 grep -qiF 'it never names a terminal session, tab, or pane' "$PLAN" \
   || missing+=("plan.md no longer decouples the slug from a terminal session name")
 grep -qiF 'never depend on a session, tab, or pane' "$TASKS" \
-  || missing+=(".agro/tasks/README.md no longer decouples task identity from a session/tab/pane id")
+  || missing+=(".agro/tasks/AGENTS.md no longer decouples task identity from a session/tab/pane id")
 grep -qiF 'implementation owner' "$GLOSSARY" \
   || missing+=("docs/glossary.md no longer distinguishes the implementation owner from the terminal backend")
 

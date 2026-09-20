@@ -8,7 +8,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 CLEANUP="$ROOT/crons/cleanup-tasks.md"
-TASKS="$ROOT/.agro/tasks/README.md"
+TASKS="$ROOT/.agro/tasks/AGENTS.md"
 
 for file in "$CLEANUP" "$TASKS"; do
   [[ -f "$file" ]] || { echo "SKIPPED: required file absent: $file" >&2; exit 2; }

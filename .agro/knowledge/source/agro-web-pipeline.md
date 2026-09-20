@@ -12,7 +12,7 @@ sources:
   - docs/agro-cutover-runbook.md
   - .agro/scripts/get-agro.sh
   - .agro/scripts/get-oh.sh
-  - .agro/README.md
+  - docs/oh-directory-layout.md
 verified_at: c078c91e80647bc0c60cebb7ad1f11d929159d33
 related: [release-versioning, fresh-machine-setup]
 confidence: provisional

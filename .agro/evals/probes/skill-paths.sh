@@ -12,8 +12,7 @@ if [[ ! -d "$SKILLS" ]]; then
   exit 2
 fi
 
-hits=$(grep -rnE 'docs/wiki/|workspace/heartbeats/' "$SKILLS" \
-         | grep -v 'harness-context/SKILL.md' || true)
+hits=$(grep -rnE 'docs/wiki/|workspace/heartbeats/' "$SKILLS" || true)
 
 if [[ -n "$hits" ]]; then
   echo "REGRESSION: retired path token(s) reappeared in .claude/skills/ (docs/wiki/ -> wiki/, workspace/heartbeats/ -> crons/):" >&2
@@ -37,5 +36,5 @@ if [[ -n "$advisor_hits" ]]; then
   exit 1
 fi
 
-echo "PASS: no retired docs/wiki/, workspace/heartbeats/, apps/->packages/ rename, or .agro/agents/advisor.md token in .claude/skills/ (excl harness-context prose)" >&2
+echo "PASS: no retired docs/wiki/, workspace/heartbeats/, apps/->packages/ rename, or .agro/agents/advisor.md token in .claude/skills/" >&2
 exit 0
