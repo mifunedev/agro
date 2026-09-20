@@ -42,3 +42,11 @@
   N3 and N4 runs. The index was repaired and N3 re-run clean. Advisor test-harness error, not a
   worker defect; recorded rather than hidden.
   US-001..US-004 accepted. US-005 (gates and PR) open.
+
+2026-09-20 gates — /eval at 152ced6b: runner exit 0, 156 probes, 0 new regressions, 2 pre-existing
+  reds disclosed (next-dev-prod, skills-vendored). Simplify: 2 rounds, 2 blocking findings applied
+  in 0b3f82ad, second review on the new head found none blocking; 2 non-blocking left as
+  SIMPLICITY-RESIDUAL. Knowledge impact derived from the actual diff: both NEEDS-REVIEW pages
+  resolved NOT-AFFECTED with reasons; no page rewritten and no verified_at advanced.
+  wiki-readme-index exit 0. CI on 152ced6b: 3 checks, all pass, none skipped or neutral.
+  US-005 flipped after the PR body, the gates and the CI result were all in hand.

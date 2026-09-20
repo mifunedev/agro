@@ -81,7 +81,7 @@
         "Skipped and neutral checks reported accurately"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "D5 D6 D7"
     }
   ]
