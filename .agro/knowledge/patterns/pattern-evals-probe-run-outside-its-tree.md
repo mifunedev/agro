@@ -6,7 +6,7 @@ tags: [evals, probes, verification-method, provenance]
 created: 2026-09-20
 updated: 2026-09-20
 sources:
-  - .agro/tasks/retire-memories-tier/evidence.md@77b18024
+  - .agro/tasks/retire-memories-tier/evidence.md@fb9567b5
   - .agro/evals/probes/agents-md-fallback.sh@77b18024
 related: [pattern-evals-environment-parity-false-delta, pattern-evals-probe-failure-path-untested]
 confidence: provisional
@@ -16,7 +16,7 @@ confidence: provisional
 
 ## Relevant Source Files
 - `.agro/evals/probes/agents-md-fallback.sh@77b18024:11-12` — the `ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"; cd "$ROOT"` idiom, used by essentially every probe in the suite.
-- `.agro/tasks/retire-memories-tier/evidence.md@77b18024` — the method correction, stated before the results it invalidated.
+- `.agro/tasks/retire-memories-tier/evidence.md@fb9567b5` — the method correction, stated before the results it invalidated.
 
 ## Summary
 Every probe resolves its own repository root from `BASH_SOURCE`. Copy one to
