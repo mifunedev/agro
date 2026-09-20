@@ -15,3 +15,30 @@
   returns .agro/README.md:14, docs/oh-directory-layout.md:18 and :94, and CHANGELOG.md.
   Issue opened: https://github.com/mifunedev/agro/issues/1116
   Three-file contract written. 5 stories. State: PLANNED.
+
+2026-09-20 execute — RUNNING. Issue #1116, branch task/1116-retire-memories-tier,
+  worktree /home/sandbox/harness/.worktrees/task/1116-retire-memories-tier, draft PR #1117.
+  Re-grounded: origin/development == plan base 4fc0cd7e, so no drift to reconcile.
+  T1 (bounded worker, general-purpose, model opus, effort inherited and unobserved) implemented
+  US-001, US-002 and US-003 in commit 6c1e1706. 9 files, +31 -263.
+  Advisor acceptance: every verification re-run by the advisor, not inherited from the worker.
+  D1 — .agro/memories/ gone; customization re-checked clean immediately before deletion.
+  D2 — memories-tier-defaults.sh deleted with its subject; agents-md-fallback.sh rewritten with
+       two universal checks derived from git plus a source-checkout gate on one named subject.
+       Negative tests fired in both modes: N1 CLAUDE.md exit 1, N2 symlinked guide exit 1,
+       N3 version floor exit 1, N5 untracked guide exit 1. Positives exit 0 in both modes.
+       Counterfactual on a real installed project: BOTH old probes exit 1 there; the reconciled
+       probe exits 0 and still catches N1 and N2.
+  D3 — .agro/README.md, docs/oh-directory-layout.md (two rows) and CHANGELOG.md corrected.
+       Public docs: NOT APPLICABLE. A fresh clone of mifunedev/agro-web has zero "memories"
+       matches across all 103 tracked files; a control grep on the same clone proves the search
+       works. Its docs/oh-directory-layout.md is a divergent older copy that never carried the
+       row. One pre-existing generic SOUL.md tip in docs/harnesses/claude-code.md is unrelated
+       to the retired tier and is left untouched as out of scope.
+  D4 — installed project built through the real distribution path: oh update --from <worktree>
+       into an empty git repository; 536 created, 0 overwritten, 396 skipped. It carries no root
+       docs/, no root AGENTS.md and no .agro/logs/, which is why the old probe failed there.
+  Advisor-side note: the first N2 revert left a staged typechange, which invalidated the first
+  N3 and N4 runs. The index was repaired and N3 re-run clean. Advisor test-harness error, not a
+  worker defect; recorded rather than hidden.
+  US-001..US-004 accepted. US-005 (gates and PR) open.

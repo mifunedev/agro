@@ -15,7 +15,7 @@
         "No other tracked path under .agro/ is touched by this story"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "D1"
     },
     {
@@ -32,7 +32,7 @@
         "bash .agro/evals/probes/agents-md-fallback.sh exits 0 in this checkout"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "D2"
     },
     {
@@ -47,7 +47,7 @@
         "grep -rIn memories across tracked files returns only historical CHANGELOG lines that describe past releases"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "D3"
     },
     {
@@ -65,7 +65,7 @@
         "Record the full-suite baseline before and after and name any failure that predates this change"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "D4"
     },
     {

@@ -1,0 +1,139 @@
+{
+  "slug": "retire-memories-tier",
+  "nativeCapabilityCheck": {
+    "checkedAt": "2026-09-20",
+    "provider": "Claude Code",
+    "workerTool": "Agent",
+    "modelControl": "exposed (model: sonnet|opus|haiku|fable)",
+    "effortControl": "not exposed per call; no subagent definition file exists at any scope in this repository",
+    "consequence": "model requested and honored; effort inherits the session level and is unobserved. Effort is an advisor judgment, so this blocks nothing."
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Retire the memories tier, reconcile both probes, correct docs and changelog",
+      "description": "Implement US-001, US-002 and US-003 of .agro/tasks/retire-memories-tier/prd.json in the worktree /home/sandbox/harness/.worktrees/task/1116-retire-memories-tier. Delete .agro/memories/ after re-checking for customization, delete .agro/evals/probes/memories-tier-defaults.sh, rewrite .agro/evals/probes/agents-md-fallback.sh per decision D-b in prd.md, and correct .agro/README.md, docs/oh-directory-layout.md and CHANGELOG.md per D-c.",
+      "dependsOn": "none",
+      "complexity": "standard (known transformations and decisive checks, but the probe rewrite is an oracle-design change with a real false-pass risk, and the changelog call is editorial)",
+      "selectionReason": "Coupled work over a shared set of files with one shared context: the probe rewrite depends on the deletion and the docs depend on both. One continuing worker, never three parallel writers on overlapping paths. Opus is the hardest available non-Sonnet model and the operator preference for a bounded worker.",
+      "requestedModelReasoning": "opus / effort: inherit (no per-worker control exists; advisor judges this task as standard)",
+      "observedSettings": "model opus, confirmed by dispatch argument; effort inherited session level, unobserved (no per-worker control)",
+      "readScope": [
+        ".agro/tasks/retire-memories-tier/prd.md",
+        ".agro/tasks/retire-memories-tier/prd.json",
+        ".agro/evals/probes/",
+        ".agro/manifest.json",
+        ".agro/README.md",
+        "docs/oh-directory-layout.md",
+        "CHANGELOG.md",
+        ".agro/memories/"
+      ],
+      "searchOutputLimits": "Stay inside the worktree. No repository-wide sweeps beyond the grep checks named in the acceptance criteria. Report at most 60 lines.",
+      "ownedWritePaths": [
+        ".agro/memories/",
+        ".agro/evals/probes/memories-tier-defaults.sh",
+        ".agro/evals/probes/agents-md-fallback.sh",
+        ".agro/README.md",
+        "docs/oh-directory-layout.md",
+        "CHANGELOG.md"
+      ],
+      "exclusions": [
+        ".agro/tasks/** (advisor-owned: prd.json, progress.txt, delegate-graph.json, delegate-log.txt)",
+        ".agro/manifest.json",
+        "every other probe under .agro/evals/probes/",
+        ".agro/evals/RESULTS.md",
+        "any path in the root checkout or in .worktrees/skill/1114-audit-responsibility-simplification",
+        "git push, gh, branch, PR and issue operations",
+        "O4 machinery: no home instance, no seeding, no loader"
+      ],
+      "executionDirectory": "/home/sandbox/harness/.worktrees/task/1116-retire-memories-tier",
+      "worktreeIsolation": "Sole writer in this worktree; no parallel writer exists, so no second worktree is created.",
+      "workerType": "general-purpose",
+      "continuationMethod": "native continuation via SendMessage to the same worker for every repair round",
+      "deliverable": "One commit on task/1116-retire-memories-tier with a Submitted-by trailer, plus a report of the files changed and the verification exit codes observed.",
+      "verification": "bash .agro/evals/probes/agents-md-fallback.sh exits 0; git ls-files .agro/memories is empty; .agro/evals/probes/memories-tier-defaults.sh is absent; grep -rIn 'memories' over tracked files returns only historical CHANGELOG lines; the probe source contains no '.agro/memories' literal",
+      "stoppingCondition": "Stop and report when every acceptance criterion of US-001, US-002 and US-003 is met and committed. Stop and report BLOCKED without deleting anything if any file under .agro/memories/ differs from commit ab86a8c3 or if an untracked or ignored file is present there.",
+      "evidenceDestinations": [
+        "worker native output only",
+        "the commit on task/1116-retire-memories-tier"
+      ],
+      "coveredDoDIds": [
+        "D1",
+        "D2",
+        "D3"
+      ],
+      "acceptanceOwner": "advisor",
+      "failureRepairRoute": "The advisor routes every unmet criterion back to T1 through native continuation; the advisor performs no tracked edit itself.",
+      "nativeWorkerId": "aff1fc9306eff9b06",
+      "status": "completed",
+      "artifactReferences": [
+        "commit 6c1e1706884144939ad878140590c5772948c0ff",
+        "9 files changed, 31 insertions, 263 deletions",
+        "repair round 1: commit 0b3f82ad04a2036443858bec3a72c1a6bddea838"
+      ],
+      "usage": "58707 subagent tokens, 11 tool uses",
+      "summary": "Worker reported: tier deleted after a clean customization re-check, memories-tier-defaults deleted, agents-md-fallback rewritten with two universal checks and a source-checkout gate, three doc surfaces corrected.",
+      "acceptance": {
+        "acceptedBy": "advisor",
+        "commandsRerunByAdvisor": [
+          "git status --porcelain -> empty (clean tree at 6c1e1706)",
+          "git ls-files .agro/memories -> 0 lines; directory absent",
+          "ls .agro/evals/probes/memories-tier-defaults.sh -> absent",
+          "bash .agro/evals/probes/agents-md-fallback.sh -> exit 0, source-checkout mode",
+          "N1 tracked CLAUDE.md -> exit 1",
+          "N2 symlinked crons/AGENTS.md -> exit 1",
+          "N3 version floor removed -> exit 1",
+          "N5 .agro/logs/AGENTS.md untracked -> exit 1",
+          "installed project via oh update --from -> probe exit 0, installed-project mode",
+          "installed project N1 -> exit 1; N2 -> exit 1",
+          "counterfactual old agents-md-fallback in installed project -> exit 1",
+          "counterfactual old memories-tier-defaults in installed project -> exit 1"
+        ],
+        "note": "The advisor re-ran every negative test itself rather than accepting the worker report. One advisor-side revert (N2) initially left a staged typechange, which invalidated the first N3 and N4 runs; the index was repaired and N3 re-run clean. That was an advisor test-harness error, not a worker defect."
+      }
+    },
+    {
+      "id": "T2",
+      "title": "Simplicity review round 1 (read-only)",
+      "dependsOn": "T1",
+      "complexity": "read-only review",
+      "workerType": "Explore",
+      "requestedModelReasoning": "opus / effort inherit",
+      "observedSettings": "model opus confirmed by dispatch argument; effort inherited, unobserved",
+      "ownedWritePaths": [],
+      "nativeWorkerId": "ac6908217270fc383",
+      "status": "completed",
+      "summary": "2 blocking findings in the rewritten probe, both verified by the advisor and routed to T1",
+      "usage": "31539 tokens",
+      "coveredDoDIds": [
+        "D5"
+      ]
+    },
+    {
+      "id": "T3",
+      "title": "Simplicity review round 2 (read-only, fresh head)",
+      "dependsOn": "T1",
+      "complexity": "read-only review",
+      "workerType": "Explore",
+      "requestedModelReasoning": "opus / effort inherit",
+      "observedSettings": "model opus confirmed by dispatch argument; effort inherited, unobserved",
+      "ownedWritePaths": [],
+      "nativeWorkerId": "a9b063edf0179e5b4",
+      "status": "completed",
+      "summary": "No blocking findings at 0b3f82ad; 2 non-blocking disclosed as SIMPLICITY-RESIDUAL",
+      "usage": "31775 tokens",
+      "coveredDoDIds": [
+        "D5"
+      ]
+    }
+  ],
+  "waves": [
+    {
+      "wave": 1,
+      "tasks": [
+        "T1"
+      ],
+      "parallelism": 1
+    }
+  ]
+}

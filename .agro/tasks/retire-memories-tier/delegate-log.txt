@@ -1,0 +1,7 @@
+2026-09-20 ledger written. Native capability check: Agent exposes model; no per-worker effort control at any scope; effort inherits and is unobserved; nothing blocked.
+2026-09-20 wave 1 start: T1 dispatch-eligible (no dependencies, model control available, owned paths unambiguous, sole writer in this worktree).
+2026-09-20 T1 accepted at 6c1e1706 after advisor re-ran every verification.
+2026-09-20 T2 (read-only, round 1): 2 blocking findings, advisor-verified, routed to T1 via native continuation.
+2026-09-20 T1 repair round 1 accepted at 0b3f82ad; advisor re-ran all four negative tests in both modes.
+2026-09-20 T3 (read-only, round 2) on the new head: no blocking findings; 2 non-blocking recorded as residual.
+2026-09-20 wave complete. No task BLOCKED. No worker sent any message outside native output.
