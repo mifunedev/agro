@@ -23,6 +23,25 @@ typed answers and probabilities rather
 than generating text or reasoning explanations. Code owns the workflow; the model
 supplies programmable common sense where ordinary code needs semantic understanding.
 
+## Before you build
+
+Run the preflight first and surface its output to the operator verbatim:
+
+```bash
+bash .agro/skills/typesafe-ai/scripts/preflight.sh          # is the key set?
+bash .agro/skills/typesafe-ai/scripts/preflight.sh --live   # does the key work?
+```
+
+It always exits 0. An unconfigured sandbox is an operator fact, not a failure:
+report exactly what it prints, then continue with work that does not need TypeSafe.
+Without this you discover the problem at the first API call, as an opaque 401.
+
+**Two consumers, two right answers.** In application code inside the sandbox, use
+the SDK (`npm install @typesafe-ai/sdk`) as the docs below describe. AGRO's own
+control plane instead calls the HTTP API through the zero-dependency adapter at
+`.agro/scripts/typesafe.mjs`, because `.agro/cli` ships zero runtime dependencies
+and skill scripts must stay portable. Do not add the SDK to the control plane.
+
 ## Read the live docs
 
 **The live TypeSafe docs are the source of truth. Read them as part of the task.**

@@ -1,6 +1,6 @@
 ---
 name: prompt-miner
-argument-hint: "[--harness all|claude|pi] [--hours <N>] [--since <YYYY-MM-DD>] [--until <YYYY-MM-DD>] [--last-n <N>] [--min-turns <N>] [--top <N>] [--attribution first|all] [--include-prompt-text] [--no-git] [--weights <json>] [--out <dir>] [--report-only] [--dry-run]"
+argument-hint: "[--harness all|claude|pi] [--hours <N>] [--since <YYYY-MM-DD>] [--until <YYYY-MM-DD>] [--last-n <N>] [--min-turns <N>] [--top <N>] [--attribution first|all] [--include-prompt-text] [--no-git] [--weights <json>] [--out <dir>] [--report-only] [--dry-run] [--judge]"
 disable-model-invocation: true
 allowed-tools: Read, Grep, Bash, Edit
 description: |
@@ -102,6 +102,10 @@ dataset to stdout and writes nothing). The flag surface (defaults in parens):
 - `--include-prompt-text` (off — see Privacy contract), `--no-git` (stub
   ground-truth bonus to 0), `--weights '<json>'`, `--out <dir>`,
   `--report-only`, `--dry-run`, `--max-file-mb N` (50).
+- `--judge` (off) scores `correctionDensity` with a TypeSafe Noul instead of the
+  negation lexicon. Uncalibrated — see `references/scoring.md`. Without
+  `TYPESAFE_API_KEY` it prints what to configure, falls back to the lexicon, and
+  marks every row `correctionSource: "lexicon"`.
 
 If `manifest.sessionsScanned == 0`: announce `RESULT: NO-SESSIONS` and stop. If
 `--dry-run` was passed: read the printed dataset, optionally summarize the

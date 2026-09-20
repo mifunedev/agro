@@ -169,12 +169,38 @@ root `.env` may hold. Each is documented, commented out, in the tracked
 `.example.env`:
 
 `GH_TOKEN`, `SANDBOX_PASSWORD`, `XAI_API_KEY`, `META_API_KEY`, `PI_SLACK_APP_TOKEN`,
-`PI_SLACK_BOT_TOKEN`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`.
+`PI_SLACK_BOT_TOKEN`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`,
+`TYPESAFE_API_KEY`.
 
 Any other key is rejected by `agro secret set`.
 
 For Muse Code, `agro secret set META_API_KEY` stores the key but does not export it into a running shell.
 See [Muse authentication](harnesses/muse-code.md#authentication) for process injection and credential precedence.
+
+### TypeSafe
+
+`TYPESAFE_API_KEY` authenticates the System One judgment adapter at
+`.agro/scripts/typesafe.mjs`. Set it with `agro secret set TYPESAFE_API_KEY`, or add it
+to `.env` and load it with `set -a; source .env; set +a`.
+
+It is deliberately absent from every compose `environment:` block. A value reaches the
+sandbox through Compose only if a process outside the sandbox — or the entrypoint before
+the control plane is readable — must act on it, and nothing outside the sandbox acts on
+this key. `.agro/evals/probes/typesafe-key-boundary.sh` fails if it ever appears there.
+
+**Unconfigured fails loudly, then continues.** Without the key, every consumer prints a
+diagnostic naming the variable and the command that sets it, then falls back to its
+deterministic path and completes. Nothing silently degrades and nothing crashes. The
+same applies to an invalid key, a timeout, or an unreachable host, each reported as a
+distinct cause. Check the current state with:
+
+```bash
+node .agro/scripts/typesafe.mjs           # is the key set?
+node .agro/scripts/typesafe.mjs --live    # does the key work?
+```
+
+Consumers are opt-in. `prompt-miner --judge` is the only one today; without the flag the
+engine never consults TypeSafe.
 
 ## Retired keys
 
