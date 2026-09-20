@@ -30,6 +30,12 @@ projects/*
 .agro/logs/*
 !.agro/logs/AGENTS.md
 
+# Live memory instances are operator-owned local state; keep only the directory
+# contract and the canonical templates tracked.
+.agro/memories/SOUL.md
+.agro/memories/USER.md
+.agro/memories/MEMORY.md
+
 # Build artifacts
 **/.venv/
 **/node_modules/

@@ -16,6 +16,7 @@ Canonical skills own reusable procedures. Documentation under `docs/` explains A
 | `.agro/knowledge/` | Tracked source pages, patterns, external captures, and a generated index; ignored `local/` scratch. |
 | `.agro/tasks/` | Local spec task plans, graphs, progress, and gate records. |
 | `.agro/logs/` | Local logs with a scoped contract. |
+| `.agro/memories/` | The scoped operator-context contract and its tracked `templates/`; ignored live `SOUL.md`, `USER.md`, and `MEMORY.md`, seeded on first boot and never overwritten. |
 | `.agro/manifest.json` | The declared control-plane and root payload. |
 | `.devcontainer/` | Dockerfile, Compose configuration, entrypoint, and sandbox bootstrap assets. |
 | `docs/` | Human-facing source documentation. The rendered site lives in `mifunedev/agro-web`. |
@@ -90,8 +91,8 @@ An equal version is a no-op without `--force`; a downgrade requires `--force`.
 - Symlinks, `node_modules`, and `dist` directories do not enter the file walk.
 
 The current payload includes `cli`, `scripts`, `install`, `evals`, `knowledge`, `skills`, and `hooks`.
-It also includes `skills.lock`, `README.md`, and the manifest itself.
-The payload omits `tasks`, `logs`, dependency patches, and root `docs/`.
+It also includes `skills.lock`, `README.md`, the manifest itself, and the `memories/AGENTS.md` contract with `memories/templates/**`.
+The payload omits `tasks`, `logs`, the live `memories/` instances, dependency patches, and root `docs/`.
 The omissions describe the current manifest, not every file present in the repository.
 
 The updater overwrites shipped files in place without backups and creates no root scaffold.

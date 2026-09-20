@@ -12,6 +12,7 @@ AGRO keeps its portable machinery here. The sandbox definition stays in
 | `knowledge/` | Tracked synthesis, external snapshots, and a generated index. |
 | `tasks/` | Local task plans, structured state, and execution records. |
 | `logs/` | Local logs with a scoped contract. |
+| `memories/` | A scoped contract and tracked templates; the live operator files stay untracked. |
 | `manifest.json` | The payload allowlist for `oh update`. |
 
 Read each applicable `AGENTS.md` before changing that directory's contents.

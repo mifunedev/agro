@@ -12,6 +12,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 - Default Antigravity CLI (`agy`) to zero-confirmation mode with a sandbox alias, catalog launch flag, and seeded settings.json ([#1090](https://github.com/mifunedev/agro/issues/1090)).
 - Add `agro workspace create [<name>]` and `agro workspace list`, so an operator creates and inspects a host AGRO workspace under `~/.agro/workspaces/` without installing a harness ([#1086](https://github.com/mifunedev/agro/issues/1086)).
+- Add `.agro/memories/templates/`: role-neutral `SOUL.md`, `USER.md`, and `MEMORY.md` defaults that seed the live operator files, beside the tracked `.agro/memories/AGENTS.md` contract ([#1116](https://github.com/mifunedev/agro/issues/1116)).
+- Seed a missing live memory file from its template on sandbox boot; the entrypoint never overwrites an existing file, including an empty one ([#1116](https://github.com/mifunedev/agro/issues/1116)).
 - Add two probes: `spec-task-artifact-contract` fails when a completed task folder lacks a required artifact, and `audit-tooling-blocked-signal` fails when an unrunnable gate reads as failed ([#1088](https://github.com/mifunedev/agro/issues/1088)).
 - Add the `agents-md-fallback` probe. It fails when a tracked `CLAUDE.md` returns or a directory guide stops being a real `AGENTS.md` ([#1082](https://github.com/mifunedev/agro/issues/1082)).
 - Add `/council` for bounded independent perspectives, advisor synthesis, and explicit advice limits ([#1076](https://github.com/mifunedev/agro/issues/1076)).
@@ -19,6 +21,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 
+- Exclude the live `.agro/memories/SOUL.md`, `USER.md`, and `MEMORY.md` from Git and from the Docker build context, so no operator identity ships in a checkout or an image ([#1116](https://github.com/mifunedev/agro/issues/1116)).
+- Read `.agro/memories/` on demand instead of at session start, and drop the universal read mandate; no loader hook was added ([#1116](https://github.com/mifunedev/agro/issues/1116)).
+- Assert `memories-tier-defaults` against the templates and the contract, never a live instance, and stop `agents-md-fallback` exiting 128 in an installed project with no git index ([#1116](https://github.com/mifunedev/agro/issues/1116)).
 - Separate scoped directory contracts from reference documentation and retire the `harness-context` skill ([#1112](https://github.com/mifunedev/agro/issues/1112)).
 - Drop no-op lint and format CI steps, delete path filters that name missing trees, and rebuild the sandbox image only when boot or image inputs change ([#1092](https://github.com/mifunedev/agro/issues/1092)).
 - Copy only `provision-python.sh` into the image home stage before the Python kernel, and clean npm and uv installer leftovers in the same layer ([#1093](https://github.com/mifunedev/agro/issues/1093)).
@@ -30,7 +35,6 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Removed
 
-- Remove the `.agro/memories/` tier and its `memories-tier-defaults` probe; a checkout no longer ships `SOUL.md`, `USER.md`, or `MEMORY.md` ([#1116](https://github.com/mifunedev/agro/issues/1116)).
 - Remove the Agent GitHub issue template and the `agent` issue/branch prefix ([#1092](https://github.com/mifunedev/agro/issues/1092)).
 - Remove the five `CLAUDE.md` symlinks. A present `CLAUDE.md` suppresses the `AGENTS.md` that Claude Code now reads directly ([#1082](https://github.com/mifunedev/agro/issues/1082)).
 - Remove V2MOM and its bundled reference from the strategy workflow ([#1076](https://github.com/mifunedev/agro/issues/1076)).

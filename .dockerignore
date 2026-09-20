@@ -12,3 +12,7 @@ node_modules/
 .pnpm-store/
 .pi/bridge/
 .pi/npm/
+
+.agro/memories/SOUL.md
+.agro/memories/USER.md
+.agro/memories/MEMORY.md

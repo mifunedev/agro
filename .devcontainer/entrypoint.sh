@@ -97,6 +97,22 @@ seed_home() {
 }
 # <<< seed_home <<<
 
+# >>> seed_memories >>>
+seed_memories() {
+  local root="$1"
+  local src="$root/.agro/memories/templates"
+  local dest="$root/.agro/memories"
+  [ -d "$src" ] || return 0
+  local name
+  while IFS= read -r -d '' name; do
+    if [ -e "$dest/$name" ] || [ -L "$dest/$name" ]; then
+      continue
+    fi
+    install -o sandbox -g sandbox -m 0644 "$src/$name" "$dest/$name" || return 1
+  done < <(cd "$src" && find . -mindepth 1 -maxdepth 1 -type f -printf '%P\0')
+}
+# <<< seed_memories <<<
+
 # >>> seed_workspace_volume >>>
 seed_workspace_volume() {
   local dest="$1"
@@ -527,6 +543,7 @@ WORKTREES_PATH="$HARNESS/.worktrees"
 PROJECTS_PATH="$HARNESS/projects"
 CRONS_PATH="$HARNESS/crons"
 mkdir -p "$WORKTREES_PATH" "$PROJECTS_PATH" "$CRONS_PATH"
+seed_memories "$HARNESS" || echo "[entrypoint] WARNING: memory seed incomplete" >&2
 ln -sf "$CONTROL_DIR/scripts/gateway.sh" /usr/local/bin/gateway 2>/dev/null || true
 SLACK_ENV="$HARNESS/.devcontainer/.env"
 if [ -f "$SLACK_ENV" ] \
