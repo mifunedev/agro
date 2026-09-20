@@ -61,3 +61,34 @@
   Not done, and out of the approved scope rather than skipped silently: /spec retro and
   /wiki compile. They are not Definition of Done items for this contract.
   Task state: all five stories pass. Human merge gate remains; nothing was merged.
+
+2026-09-20 RATIONALE REOPENED — not a completion entry.
+  Operator clarification: ".agro/memories/AGENTS.md:11 'Read all three at session start' was a
+  stale reference to a previous oh implementation before the agro implementation replaced it."
+  The missing loader is therefore NOT an unmet AGRO requirement.
+  My error, recorded rather than edited away: I treated that stale line as a live contract. It
+  was load-bearing in the PRD Problem section, in US-001's description, and in the PR body
+  ("It is retired because it has no loader and duplicates a deleted design").
+  Counterfactual assessment written as the ADDENDUM in prd.md. Result:
+    - Independently sufficient retirement reasons remaining: NONE.
+    - Collapsed: R1 (stale prose, not an unmet requirement); R2 (the #868 precedent is R1
+      restated - CHANGELOG.md:340 gives its reason as "No SessionStart hook ever loaded it");
+      R4 (the rejected O4 layering argument, and the tier was always defaults not an instance);
+      R5 (unused; already disclaimed).
+    - Survives as a REPAIR target, not a retirement reason: R3, the distribution/probe defect.
+      A probe asserting on a subject the manifest does not ship is a broken probe.
+    - New finding that is a repair target, not a retirement reason: the guide says "Edit them in
+      place" and MEMORY.md tells a session to add a dated entry, while
+      memories-tier-defaults.sh:31-41 failed the repository for exactly that. The canonical repo
+      shipped a tier its own agents could not use as instructed.
+  Verdict: the approved retirement needs a RENEWED DECISION. I am not treating the earlier
+  approval as covering a decision whose premise changed, and I am not inferring a loader or any
+  replacement design from the clarification.
+  PR #1117 returned to draft (isDraft=true, head 4018167c). No merge. Implementation left intact.
+  Second correction: "no customized memory anywhere" overstated the check. Inspected locations
+  were exactly /home/sandbox/harness and .worktrees/skill/1114-audit-responsibility-simplification.
+  No claim is made about forks, other clones, other machines, the /home/sandbox volume, or backups.
+  Third correction: /spec retro and /wiki compile are mandated by execute.md steps 8-9 on
+  AUDIT-PASS. Reporting them as "not DoD items" exempted a mandated gate because my authored DoD
+  omitted it. They are outstanding, not out of scope.
+  Stopped for operator direction. US-005 reopened; no story flipped to hide the reopening.

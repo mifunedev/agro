@@ -170,3 +170,106 @@ No Herdr messages to the supervisor. No `/escalate`, no `AGRO_SUPERVISOR_PANE`,
 no Slack, no relay. Workers report through native worker output only. This
 boundary is restated in every worker assignment. Escalation happens in the
 advisor's normal output.
+
+---
+
+# ADDENDUM — 2026-09-20: rationale reconciliation after an operator clarification
+
+**Status: the retirement decision is REOPENED. The PR is back in draft. No merge.**
+
+## The correction
+
+The operator states that `.agro/memories/AGENTS.md:11`, "Read all three at session
+start", was a stale reference to a previous `oh` implementation that the `agro`
+implementation replaced. It was never a live AGRO requirement.
+
+**This premise was load-bearing in my own rationale, and it was wrong.** The
+Problem section above opens on it; US-001's description repeats it; the PR body
+said "It is retired because it has no loader and duplicates a deleted design" and
+"shipped an always-on contract". The clarification therefore did change the
+rationale. It is recorded here rather than edited away.
+
+I also over-claimed preservation scope. "No customized memory anywhere" is
+wrong. I inspected exactly two locations: the root checkout
+`/home/sandbox/harness` and the sibling worktree
+`.worktrees/skill/1114-audit-responsibility-simplification`. I did not inspect
+forks, other clones, other machines, the persistent `/home/sandbox` volume, or
+any backup. The correct claim is narrower and is restated in D1 below.
+
+## (1) Retirement reasons that remain independently sufficient
+
+**None.**
+
+Every reason that survives the correction supports a *repair*, not a deletion.
+
+## (2) Reasons that collapse
+
+| Reason | Why it collapses |
+| --- | --- |
+| R1 — the tier advertises a session-start read that nothing performs | The advertisement was stale `oh`-era prose, not an AGRO requirement. The defect is one sentence, not the directory. Nothing in AGRO asked for the load, so nothing in AGRO is unmet. |
+| R2 — the tier repeats the root `context/` tier adopted in #220 and deleted in #868 | `CHANGELOG.md:340` records #868's reason as "No `SessionStart` hook ever loaded it — prose in `AGENTS.md` asked for it." That is R1 restated as precedent, so it collapses with R1. The precedent now argues only that prose must not promise an unimplemented load. |
+| R3 — an installed project receives `memories-tier-defaults.sh` without its subject and the probe exits 1 | Verified true, and independently repaired in this branch. It is a distribution and probe-scoping defect. A probe that asserts on an unshipped subject is a broken probe; that says nothing about whether the subject should exist. |
+| R4 — the tier is tracked in a public checkout, so it cannot hold real content, and it is shared mutable state across worktrees | This is the O4 layering argument the operator already rejected. It also mistakes the tier's purpose: the probe enforced "ships nobody's actual memories", so the tracked files were always defaults, never an instance. |
+| R5 — the tier is unused | Already disclaimed in this PRD. It landed this same release; absence of demonstrated benefit is not evidence of absence of benefit. |
+
+## (3) Retirement versus the smallest preserve-tier correction
+
+The smallest correction that preserves the tier and fixes every defect that
+survives the clarification:
+
+| # | Correction | Defect it closes | Evidence |
+| --- | --- | --- | --- |
+| C1 | Rewrite `.agro/memories/AGENTS.md:11` so it states when a session reads these files under AGRO, without asserting an automatic session-start load | R1, the stale `oh`-era line | `.agro/memories/AGENTS.md:11` |
+| C2 | Resolve the defaults-versus-instance confusion in the same guide | Real internal contradiction, see below | `.agro/memories/AGENTS.md:15-17` against `memories-tier-defaults.sh:31-41` |
+| C3 | Make the two probes deployment-correct | R3 | already built in this branch for `agents-md-fallback.sh` |
+
+**C2 is a genuine, independently verifiable defect and is not a retirement
+reason.** The guide says the three files ship "filled with working defaults, not
+placeholders. Edit them in place." `MEMORY.md:12-16` tells a session to add a
+dated entry. `memories-tier-defaults.sh:31-41` failed the repository when
+`MEMORY.md` carried a dated entry or `USER.md` carried a populated owner field.
+So the canonical repository shipped a tier its own agents could never use as
+instructed: following the guide turned the probe red. That is one document and
+one probe scope to correct, not a directory to delete.
+
+**Cost comparison.** Retirement removes 263 lines and closes C1, C2 and C3 by
+removing their subject. The preserve-tier correction closes the same three
+defects while keeping the capability, and its probe half is already written and
+proven in this branch.
+
+## (4) Does the approved retirement still meet the requested considerations?
+
+**No — it needs a renewed decision.**
+
+The operator approved retirement after an independent critique, and that critique
+rested substantially on R1 and R2. With the stale-prose premise removed, the
+approval rests on reasons that no longer stand on their own. I am not treating
+the earlier approval as covering a decision whose premise has changed, and I am
+not inferring from the clarification that the operator now wants a loader, an
+on-demand contract, or any replacement design. The clarification corrects a fact;
+it does not state a new requirement.
+
+## What I am NOT doing
+
+- Not implementing a different option. The branch is left exactly as built.
+- Not deleting or reverting the probe repair before a decision, because it is
+  independently correct either way — but see the note in (3) on what it would
+  need if the tier is preserved.
+- Not inferring a desired loader, an on-demand read contract, or a per-agent
+  instance design from the clarification.
+
+## D1 — corrected preservation claim
+
+Inspected locations only: `/home/sandbox/harness` and
+`/home/sandbox/harness/.worktrees/skill/1114-audit-responsibility-simplification`.
+In both, the four files were byte-identical to the introducing commit `ab86a8c3`,
+with no untracked or ignored extras. No claim is made about any other checkout,
+fork, machine, volume, or backup.
+
+## Gate conflict I owe rather than skipped
+
+`.claude/skills/spec/references/execute.md` steps 8 and 9 mandate `/spec retro`
+and `/wiki compile` on `AUDIT-PASS`. I reported them as "not Definition of Done
+items", which exempted a mandated build gate because the authored DoD omitted it.
+That was wrong. They are outstanding, and they are correctly deferred now only
+because the rationale they would compile lessons from is itself unresolved.

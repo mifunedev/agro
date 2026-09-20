@@ -16,7 +16,7 @@
       ],
       "priority": 1,
       "passes": true,
-      "notes": "D1"
+      "notes": "D1 \u2014 RATIONALE REOPENED. The implementation is intact and unchanged; its justification is under review. Preservation claim corrected: only two locations were inspected, not \"anywhere\"."
     },
     {
       "id": "US-002",
@@ -81,8 +81,9 @@
         "Skipped and neutral checks reported accurately"
       ],
       "priority": 5,
-      "passes": true,
-      "notes": "D5 D6 D7"
+      "passes": false,
+      "notes": "D5 D6 D7 \u2014 REOPENED 2026-09-20: the retirement rationale rests on a premise the operator corrected. PR returned to draft. Also outstanding: /spec retro and /wiki compile, mandated by execute.md steps 8-9, which I wrongly reported as out of scope."
     }
-  ]
+  ],
+  "rationaleStatus": "REOPENED 2026-09-20 \u2014 see the ADDENDUM in prd.md"
 }
