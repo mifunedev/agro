@@ -41,22 +41,38 @@ Formula:
 
 Coverage semantics:
   cov(m) is per-function STATEMENT coverage as a fraction in [0,1]: covered
-  statements divided by total statements whose start line falls inside the
-  function body range reported by the coverage data. It is real instrumented
-  coverage produced by the run in step 2, never an estimate.
+  statements divided by total statements that belong to the function's OWN
+  body. A statement belongs to the own body when its start position (line AND
+  column) falls inside the function range and outside every nested function
+  range. Nested functions are scored separately and are never charged to the
+  parent. It is real instrumented coverage produced by the run in step 2,
+  never an estimate.
 
 Complexity counting rule:
-  comp(m) = 1 + the number of these tokens in the function's own source, after
-  string literals and comments are removed:
+  comp(m) = 1 + the number of these tokens in the function's own body, after
+  nested functions, comments, string literals, template text and regular
+  expression literals are removed:
     if, for, while, do, case, catch, ternary ?, &&, ||, ??
   else-if is counted through its if. Optional chaining ?. is not counted.
+  A do/while pair counts once. Template literal \${...} interpolations are
+  scanned. A keyword used as a property name is not counted. A ? immediately
+  followed by :, a comma, ) or ; is read as a TypeScript optional marker.
+
+Known complexity limitations (heuristic lexer, no parser dependency):
+  An optional method signature (foo?(): void) and a conditional type
+  (T extends U ? A : B) are still counted as ternaries. A / after an
+  identifier, ), ] or } is always read as division. JSX and labelled
+  statements are not modelled. These limitations affect complexity only. Run
+  crap-analyze.mjs --help for the full list.
 
 Unknown preservation:
   Markdown, shell scripts, a source with no coverage record, a source whose
-  coverage is stale, and a function the coverage data cannot be mapped to are
-  all reported as unknown with a reason. They never receive a CRAP score, are
+  coverage is stale, a function the coverage data cannot be mapped to, and a
+  coverage record with no usable or non-numeric statement counters are all
+  reported as unknown with a reason. They never receive a CRAP score, are
   never reported as 0% coverage, and are never silently dropped. Markdown is
-  never given execution coverage.
+  never given execution coverage. A function whose own statements are all
+  present with counter 0 is still scored at 0% coverage.
 
 Interpretation limits:
   CRAP is a heuristic. A high-complexity, well-covered function scores near its

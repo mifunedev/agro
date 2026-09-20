@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtempSync, mkdirSync, writeFileSync, statSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,6 +15,8 @@ const {
   CrapInputError,
   UNKNOWN_REASONS,
   renderMarkdown,
+  parseArgs,
+  main,
 } = (await import(analyzerPath)) as any;
 
 function sha256(text: string): string {
@@ -121,6 +123,18 @@ describe("cyclomaticComplexity counting rule", () => {
       "  return c ? 1 : 0;",
       "}",
     ].join("\n");
+    const base = cyclomaticComplexity("function f(a, b) {\n  return 1;\n}");
+    expect(base).toBe(1);
+    expect(cyclomaticComplexity("function f(a) {\n  if (a) return 1;\n  return 0;\n}")).toBe(
+      base + 1,
+    );
+    expect(
+      cyclomaticComplexity("function f(a, b) {\n  if (a) return 1;\n  else if (b) return 2;\n  return 0;\n}"),
+    ).toBe(base + 2);
+    expect(cyclomaticComplexity("function f(a, b) {\n  return a && b;\n}")).toBe(base + 1);
+    expect(cyclomaticComplexity("function f(a, b) {\n  return a || b;\n}")).toBe(base + 1);
+    expect(cyclomaticComplexity("function f(a, b) {\n  return a ?? b;\n}")).toBe(base + 1);
+    expect(cyclomaticComplexity("function f(c) {\n  return c ? 1 : 0;\n}")).toBe(base + 1);
     expect(cyclomaticComplexity(source)).toBe(7);
   });
 
@@ -370,5 +384,367 @@ describe("where the CRAP metric is uninformative", () => {
 
   it("ranks a moderately complex half-covered function above a very complex fully covered one", () => {
     expect(crapScore(10, 0.5)).toBeGreaterThan(crapScore(20, 1));
+  });
+});
+
+type Position = { line: number; column: number };
+type FnFixture = { name: string; start: Position; end: Position };
+type StmtFixture = { start: Position; end?: Position; count: unknown };
+
+function coverageRecordMulti(
+  relPath: string,
+  fns: FnFixture[],
+  statements: StmtFixture[],
+  options: { statementCounters?: unknown } = {},
+) {
+  const statementMap: Record<string, unknown> = {};
+  const s: Record<string, unknown> = {};
+  statements.forEach((stmt, index) => {
+    statementMap[String(index)] = {
+      start: stmt.start,
+      end: stmt.end ?? { line: stmt.start.line, column: stmt.start.column + 5 },
+    };
+    s[String(index)] = stmt.count;
+  });
+  const fnMap: Record<string, unknown> = {};
+  const f: Record<string, number> = {};
+  fns.forEach((fn, index) => {
+    fnMap[String(index)] = {
+      name: fn.name,
+      decl: { start: fn.start, end: fn.start },
+      loc: { start: fn.start, end: fn.end },
+    };
+    f[String(index)] = 1;
+  });
+  const record: Record<string, unknown> = {
+    path: relPath,
+    statementMap,
+    fnMap,
+    f,
+    branchMap: {},
+    b: {},
+  };
+  if (!("statementCounters" in options)) record.s = s;
+  else if (options.statementCounters !== undefined) record.s = options.statementCounters;
+  return { [relPath]: record };
+}
+
+const NESTED_SOURCE = [
+  "function outer(xs) {",
+  "  const helper = (x) => {",
+  "    if (x) return 1;",
+  "    try { return 2; } catch (e) { return 3; }",
+  "  };",
+  "  return helper(xs);",
+  "}",
+  "",
+].join("\n");
+
+const NESTED_FNS: FnFixture[] = [
+  { name: "outer", start: { line: 1, column: 0 }, end: { line: 7, column: 1 } },
+  { name: "helper", start: { line: 2, column: 17 }, end: { line: 5, column: 3 } },
+];
+
+const NESTED_STATEMENTS: StmtFixture[] = [
+  { start: { line: 2, column: 2 }, count: 1 },
+  { start: { line: 6, column: 2 }, count: 1 },
+  { start: { line: 3, column: 4 }, count: 1 },
+  { start: { line: 4, column: 10 }, count: 0 },
+  { start: { line: 4, column: 30 }, count: 0 },
+];
+
+function nestedWorkspace(coverageOverrides?: { statementCounters?: unknown }) {
+  const root = workspace();
+  writeSource(root, "src/nested.ts", NESTED_SOURCE);
+  const coveragePath = writeJson(
+    root,
+    "cov.json",
+    coverageRecordMulti("src/nested.ts", NESTED_FNS, NESTED_STATEMENTS, coverageOverrides ?? {}),
+  );
+  const manifestPath = writeJson(
+    root,
+    "manifest.json",
+    manifestFor(root, { "src/nested.ts": NESTED_SOURCE }),
+  );
+  return { root, coveragePath, manifestPath };
+}
+
+describe("analyze statement-counter integrity (F1)", () => {
+  it("reports a coverage record with no statement-counter map as unknown, not as 0% coverage", () => {
+    const { root, coveragePath, manifestPath } = nestedWorkspace({ statementCounters: undefined });
+    const report = analyze({ coveragePath, manifestPath, root });
+    expect(report.functions).toHaveLength(0);
+    expect(report.unknown.count).toBe(2);
+    expect(report.unknown.reasonCounts[UNKNOWN_REASONS.noStatementCounters]).toBe(2);
+    const markdown = renderMarkdown(report);
+    expect(markdown).not.toContain("0.0%");
+  });
+
+  it("reports a non-object statement-counter map as unknown", () => {
+    for (const junk of ["not-an-object", 7, [1, 2, 3], null]) {
+      const { root, coveragePath, manifestPath } = nestedWorkspace({ statementCounters: junk });
+      const report = analyze({ coveragePath, manifestPath, root });
+      expect(report.functions).toHaveLength(0);
+      expect(report.unknown.reasonCounts[UNKNOWN_REASONS.noStatementCounters]).toBe(2);
+    }
+  });
+
+  it("reports a non-numeric statement counter as unknown, naming the statement", () => {
+    const root = workspace();
+    writeSource(root, "src/nested.ts", NESTED_SOURCE);
+    const statements = NESTED_STATEMENTS.map((stmt, index) =>
+      index === 0 ? { ...stmt, count: "1" } : stmt,
+    );
+    const coveragePath = writeJson(
+      root,
+      "cov.json",
+      coverageRecordMulti("src/nested.ts", NESTED_FNS, statements),
+    );
+    const manifestPath = writeJson(
+      root,
+      "manifest.json",
+      manifestFor(root, { "src/nested.ts": NESTED_SOURCE }),
+    );
+    const report = analyze({ coveragePath, manifestPath, root });
+    const names = report.functions.map((fn: { function: string }) => fn.function);
+    expect(names).toEqual(["helper"]);
+    const outerUnknown = report.unknown.entries.find(
+      (entry: { function: string }) => entry.function === "outer",
+    );
+    expect(outerUnknown.reason).toBe(UNKNOWN_REASONS.nonNumericStatementCounter);
+    expect(outerUnknown.detail).toContain("statement 0");
+  });
+
+  it("still scores a genuinely uncovered function at 0% rather than calling it unknown", () => {
+    const root = workspace();
+    const source = "function f(a) {\n  if (a) return 1;\n  return 0;\n}\n";
+    writeSource(root, "src/zero.ts", source);
+    const coveragePath = writeJson(
+      root,
+      "cov.json",
+      coverageRecordMulti(
+        "src/zero.ts",
+        [{ name: "f", start: { line: 1, column: 0 }, end: { line: 4, column: 1 } }],
+        [
+          { start: { line: 2, column: 2 }, count: 0 },
+          { start: { line: 3, column: 2 }, count: 0 },
+        ],
+      ),
+    );
+    const manifestPath = writeJson(root, "manifest.json", manifestFor(root, { "src/zero.ts": source }));
+    const report = analyze({ coveragePath, manifestPath, root });
+    expect(report.unknown.count).toBe(0);
+    expect(report.functions).toHaveLength(1);
+    expect(report.functions[0].coverage).toBe(0);
+    expect(report.functions[0].coveredStatements).toBe(0);
+    expect(report.functions[0].statements).toBe(2);
+    expect(report.functions[0].complexity).toBe(2);
+    expect(report.functions[0].crap).toBe(crapScore(2, 0));
+  });
+});
+
+describe("analyze nested-function attribution (F2)", () => {
+  it("charges a nested function's statements and decision points to the child only", () => {
+    const { root, coveragePath, manifestPath } = nestedWorkspace();
+    const report = analyze({ coveragePath, manifestPath, root });
+    const byName = Object.fromEntries(
+      report.functions.map((fn: { function: string }) => [fn.function, fn]),
+    );
+    expect(byName.outer.statements).toBe(2);
+    expect(byName.outer.coveredStatements).toBe(2);
+    expect(byName.outer.coverage).toBe(1);
+    expect(byName.outer.complexity).toBe(1);
+    expect(byName.outer.nestedFunctions).toBe(1);
+    expect(byName.helper.statements).toBe(3);
+    expect(byName.helper.coveredStatements).toBe(1);
+    expect(byName.helper.complexity).toBe(3);
+    expect(byName.helper.nestedFunctions).toBe(0);
+  });
+
+  it("keeps every statement of the file attributed to exactly one function", () => {
+    const { root, coveragePath, manifestPath } = nestedWorkspace();
+    const report = analyze({ coveragePath, manifestPath, root });
+    const total = report.functions.reduce(
+      (sum: number, fn: { statements: number }) => sum + fn.statements,
+      0,
+    );
+    expect(total).toBe(NESTED_STATEMENTS.length);
+  });
+});
+
+describe("analyze statement containment uses line and column (F3)", () => {
+  it("does not attribute a column-0 statement to a function that starts later on the same line", () => {
+    const root = workspace();
+    writeSource(root, "src/nested.ts", NESTED_SOURCE);
+    const coveragePath = writeJson(
+      root,
+      "cov.json",
+      coverageRecordMulti(
+        "src/nested.ts",
+        [NESTED_FNS[1]],
+        [
+          { start: { line: 2, column: 0 }, count: 0 },
+          { start: { line: 3, column: 4 }, count: 1 },
+        ],
+      ),
+    );
+    const manifestPath = writeJson(
+      root,
+      "manifest.json",
+      manifestFor(root, { "src/nested.ts": NESTED_SOURCE }),
+    );
+    const report = analyze({ coveragePath, manifestPath, root });
+    expect(report.functions).toHaveLength(1);
+    expect(report.functions[0].statements).toBe(1);
+    expect(report.functions[0].coverage).toBe(1);
+  });
+
+  it("does not attribute a statement past the closing column of the last line", () => {
+    const root = workspace();
+    writeSource(root, "src/nested.ts", NESTED_SOURCE);
+    const coveragePath = writeJson(
+      root,
+      "cov.json",
+      coverageRecordMulti(
+        "src/nested.ts",
+        [NESTED_FNS[1]],
+        [
+          { start: { line: 3, column: 4 }, count: 1 },
+          { start: { line: 5, column: 40 }, count: 0 },
+        ],
+      ),
+    );
+    const manifestPath = writeJson(
+      root,
+      "manifest.json",
+      manifestFor(root, { "src/nested.ts": NESTED_SOURCE }),
+    );
+    const report = analyze({ coveragePath, manifestPath, root });
+    expect(report.functions[0].statements).toBe(1);
+    expect(report.functions[0].coverage).toBe(1);
+  });
+});
+
+describe("cyclomaticComplexity lexer defects (F4)", () => {
+  it("counts operators inside template literal interpolations", () => {
+    expect(cyclomaticComplexity("function f(a,b){ return `${a?1:0}${a&&b}`; }")).toBe(3);
+    expect(cyclomaticComplexity("function f(a){ return `plain if for while && ||`; }")).toBe(1);
+    expect(cyclomaticComplexity("function f(a,b){ return `${`${a??b}`}`; }")).toBe(2);
+  });
+
+  it("does not count a TypeScript optional parameter or optional member as a ternary", () => {
+    expect(cyclomaticComplexity("function f(a?: string){ return a; }")).toBe(1);
+    expect(cyclomaticComplexity("interface X { a?: string; b?: number }")).toBe(1);
+    expect(cyclomaticComplexity("function f(a, b?) { return b; }")).toBe(1);
+  });
+
+  it("does not count a ? inside a regular expression literal", () => {
+    expect(cyclomaticComplexity("function f(x){ const r = /ab?c/; return r.test(x); }")).toBe(1);
+    expect(cyclomaticComplexity("function f(x){ return /a&&b\\|\\|c/.test(x); }")).toBe(1);
+  });
+
+  it("does not treat a // inside a regular expression as a line comment", () => {
+    expect(cyclomaticComplexity("function f(x){ const r = /a[/][/]b/; if (x) return 1; return 0; }")).toBe(2);
+  });
+
+  it("counts a do/while pair once", () => {
+    expect(cyclomaticComplexity("function f(x){ do { x--; } while (x); return x; }")).toBe(2);
+    expect(cyclomaticComplexity("function f(x){ while (x) { x--; } return x; }")).toBe(2);
+    expect(
+      cyclomaticComplexity("function f(x){ do { while (x) { x--; } } while (x); return x; }"),
+    ).toBe(3);
+  });
+
+  it("does not count a keyword used as a property name or object key", () => {
+    expect(cyclomaticComplexity("function f(o){ return o.do + o.case + o.if; }")).toBe(1);
+    expect(cyclomaticComplexity("function f(o){ return o?.while + o?.catch; }")).toBe(1);
+    expect(cyclomaticComplexity("function f(){ return { if: 1, do: 2, case: 3 }; }")).toBe(1);
+  });
+
+  it("counts each operator class separately", () => {
+    expect(cyclomaticComplexity("function f(a,b){ return a && b; }")).toBe(2);
+    expect(cyclomaticComplexity("function f(a,b){ return a || b; }")).toBe(2);
+    expect(cyclomaticComplexity("function f(a,b){ return a ?? b; }")).toBe(2);
+    expect(cyclomaticComplexity("function f(a,b){ return a ? 1 : 0; }")).toBe(2);
+    expect(cyclomaticComplexity("function f(a){ if (a) return 1; return 0; }")).toBe(2);
+    expect(cyclomaticComplexity("function f(a){ if (a) return 1; else if (a) return 2; return 0; }")).toBe(3);
+    expect(cyclomaticComplexity("function f(a){ try { return 1; } catch (e) { return 0; } }")).toBe(2);
+    expect(cyclomaticComplexity("function f(xs){ for (const x of xs) { return x; } return 0; }")).toBe(2);
+    expect(
+      cyclomaticComplexity("function f(x){ switch (x) { case 1: return 1; case 2: return 2; } return 0; }"),
+    ).toBe(3);
+  });
+});
+
+describe("parseArgs and main", () => {
+  it("parses every supported flag", () => {
+    const options = parseArgs([
+      "--coverage",
+      "cov.json",
+      "--manifest",
+      "man.json",
+      "--root",
+      "/tmp",
+      "--input",
+      "a.ts",
+      "--input",
+      "b.ts",
+      "--json",
+      "out.json",
+      "--markdown",
+      "out.md",
+    ]);
+    expect(options.coveragePath).toBe("cov.json");
+    expect(options.manifestPath).toBe("man.json");
+    expect(options.root).toBe(resolve("/tmp"));
+    expect(options.inputs).toEqual(["a.ts", "b.ts"]);
+    expect(options.jsonOut).toBe("out.json");
+    expect(options.markdownOut).toBe("out.md");
+  });
+
+  it("returns a help request and rejects unknown or valueless flags", () => {
+    expect(parseArgs(["--help"]).help).toBe(true);
+    expect(parseArgs(["-h"]).help).toBe(true);
+    expect(() => parseArgs(["--nope"])).toThrow(CrapInputError);
+    expect(() => parseArgs(["--coverage"])).toThrow(/--coverage requires a value/);
+  });
+
+  it("requires both inputs and writes both report files", () => {
+    const written: string[] = [];
+    const original = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string) => {
+      written.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      expect(main(["--help"])).toBe(0);
+      expect(written.join("")).toContain("CRAP score analyzer");
+      expect(written.join("")).toContain("Known complexity limitations");
+      expect(() => main([])).toThrow(/--coverage is required/);
+      expect(() => main(["--coverage", "c.json"])).toThrow(/--manifest is required/);
+
+      const { root, coveragePath, manifestPath } = nestedWorkspace();
+      const jsonOut = join(root, "report.json");
+      const markdownOut = join(root, "report.md");
+      expect(
+        main([
+          "--coverage",
+          coveragePath,
+          "--manifest",
+          manifestPath,
+          "--root",
+          root,
+          "--json",
+          jsonOut,
+          "--markdown",
+          markdownOut,
+        ]),
+      ).toBe(0);
+      const report = JSON.parse(readFileSync(jsonOut, "utf8"));
+      expect(report.functions).toHaveLength(2);
+      expect(readFileSync(markdownOut, "utf8")).toContain("# CRAP pilot report");
+    } finally {
+      process.stdout.write = original;
+    }
   });
 });

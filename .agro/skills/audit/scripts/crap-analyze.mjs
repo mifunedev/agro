@@ -13,6 +13,8 @@ export const UNKNOWN_REASONS = {
   staleCoverage: "stale-coverage",
   unmappableFunction: "unmappable-function",
   noStatements: "no-statements-in-function",
+  noStatementCounters: "no-statement-counters",
+  nonNumericStatementCounter: "non-numeric-statement-counter",
 };
 
 export class CrapInputError extends Error {}
@@ -28,13 +30,68 @@ export function crapScore(complexity, coverage) {
   return complexity * complexity * uncovered * uncovered * uncovered + complexity;
 }
 
-export function stripLiteralsAndComments(source) {
-  let out = "";
+const PUNCTUATORS = ["?.", "??", "&&", "||"];
+
+const REGEX_PRECEDING_WORDS = new Set([
+  "return",
+  "typeof",
+  "instanceof",
+  "in",
+  "of",
+  "new",
+  "delete",
+  "void",
+  "throw",
+  "case",
+  "do",
+  "else",
+  "yield",
+  "await",
+]);
+
+const REGEX_BLOCKING_PUNCT = new Set([")", "]", "}", "++", "--"]);
+
+function regexAllowedAfter(previous) {
+  if (previous === undefined) return true;
+  if (previous.type === "word") return REGEX_PRECEDING_WORDS.has(previous.value);
+  if (previous.type === "punct") return !REGEX_BLOCKING_PUNCT.has(previous.value);
+  return false;
+}
+
+export function tokenizeCode(source) {
+  const tokens = [];
+  const templateStack = [];
+  let mode = "code";
+  let braceDepth = 0;
   let i = 0;
   const n = source.length;
+  const push = (type, value) => tokens.push({ type, value, depth: braceDepth });
+
   while (i < n) {
+    if (mode === "template") {
+      if (source[i] === "\\") {
+        i += 2;
+        continue;
+      }
+      if (source[i] === "`") {
+        i += 1;
+        push("template", "``");
+        mode = "code";
+        continue;
+      }
+      if (source[i] === "$" && source[i + 1] === "{") {
+        templateStack.push(braceDepth);
+        i += 2;
+        mode = "code";
+        continue;
+      }
+      i += 1;
+      continue;
+    }
+
     const ch = source[i];
     const next = source[i + 1];
+
     if (ch === "/" && next === "/") {
       while (i < n && source[i] !== "\n") i += 1;
       continue;
@@ -45,7 +102,7 @@ export function stripLiteralsAndComments(source) {
       i += 2;
       continue;
     }
-    if (ch === '"' || ch === "'" || ch === "`") {
+    if (ch === '"' || ch === "'") {
       const quote = ch;
       i += 1;
       while (i < n) {
@@ -53,44 +110,139 @@ export function stripLiteralsAndComments(source) {
           i += 2;
           continue;
         }
-        if (source[i] === quote) {
+        if (source[i] === quote || source[i] === "\n") {
           i += 1;
           break;
         }
-        if (source[i] === "\n") out += "\n";
         i += 1;
       }
-      out += '""';
+      push("string", '""');
       continue;
     }
-    out += ch;
+    if (ch === "`") {
+      i += 1;
+      mode = "template";
+      continue;
+    }
+    if (ch === "/" && regexAllowedAfter(tokens[tokens.length - 1])) {
+      let j = i + 1;
+      let inClass = false;
+      let closed = false;
+      while (j < n) {
+        const c = source[j];
+        if (c === "\\") {
+          j += 2;
+          continue;
+        }
+        if (c === "\n") break;
+        if (c === "[") inClass = true;
+        else if (c === "]") inClass = false;
+        else if (c === "/" && !inClass) {
+          closed = true;
+          j += 1;
+          break;
+        }
+        j += 1;
+      }
+      if (closed) {
+        while (j < n && /[a-z]/.test(source[j])) j += 1;
+        i = j;
+        push("regex", "//");
+        continue;
+      }
+    }
+    if (/[A-Za-z_$]/.test(ch)) {
+      let j = i;
+      while (j < n && /[A-Za-z0-9_$]/.test(source[j])) j += 1;
+      push("word", source.slice(i, j));
+      i = j;
+      continue;
+    }
+    if (/[0-9]/.test(ch)) {
+      let j = i;
+      while (j < n && /[0-9a-fA-FxXoObBn._]/.test(source[j])) j += 1;
+      push("number", source.slice(i, j));
+      i = j;
+      continue;
+    }
+    if (/\s/.test(ch)) {
+      i += 1;
+      continue;
+    }
+    if (ch === "{") {
+      braceDepth += 1;
+      push("punct", "{");
+      i += 1;
+      continue;
+    }
+    if (ch === "}") {
+      if (templateStack.length > 0 && templateStack[templateStack.length - 1] === braceDepth) {
+        templateStack.pop();
+        i += 1;
+        mode = "template";
+        continue;
+      }
+      braceDepth -= 1;
+      push("punct", "}");
+      i += 1;
+      continue;
+    }
+    const two = source.slice(i, i + 2);
+    if (PUNCTUATORS.includes(two)) {
+      push("punct", two);
+      i += 2;
+      continue;
+    }
+    const twoRepeat = two === "++" || two === "--";
+    if (twoRepeat) {
+      push("punct", two);
+      i += 2;
+      continue;
+    }
+    push("punct", ch);
     i += 1;
   }
-  return out;
+  return tokens;
 }
 
-const KEYWORD_PATTERNS = [
-  /\bif\b/g,
-  /\bfor\b/g,
-  /\bwhile\b/g,
-  /\bdo\b/g,
-  /\bcase\b/g,
-  /\bcatch\b/g,
-];
+const DECISION_WORDS = new Set(["if", "for", "case", "catch"]);
+const OPTIONAL_MARKER_FOLLOW = new Set([":", ",", ")", ";"]);
 
 export function cyclomaticComplexity(functionSource) {
-  const code = stripLiteralsAndComments(functionSource);
+  const tokens = tokenizeCode(functionSource);
   let count = 1;
-  for (const pattern of KEYWORD_PATTERNS) {
-    count += (code.match(pattern) ?? []).length;
+  const pendingDo = [];
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    const previous = tokens[index - 1];
+    const next = tokens[index + 1];
+    if (token.type === "punct") {
+      if (token.value === "&&" || token.value === "||" || token.value === "??") count += 1;
+      else if (token.value === "?") {
+        const optional =
+          next !== undefined && next.type === "punct" && OPTIONAL_MARKER_FOLLOW.has(next.value);
+        if (!optional) count += 1;
+      }
+      continue;
+    }
+    if (token.type !== "word") continue;
+    if (previous?.type === "punct" && (previous.value === "." || previous.value === "?.")) continue;
+    if (next?.type === "punct" && next.value === ":") continue;
+    if (token.value === "do") {
+      count += 1;
+      pendingDo.push(token.depth);
+      continue;
+    }
+    if (token.value === "while") {
+      if (pendingDo.length > 0 && pendingDo[pendingDo.length - 1] === token.depth) {
+        pendingDo.pop();
+        continue;
+      }
+      count += 1;
+      continue;
+    }
+    if (DECISION_WORDS.has(token.value)) count += 1;
   }
-  count += (code.match(/&&/g) ?? []).length;
-  count += (code.match(/\|\|/g) ?? []).length;
-  const nullish = (code.match(/\?\?/g) ?? []).length;
-  count += nullish;
-  const allQuestionMarks = (code.match(/\?/g) ?? []).length;
-  const optionalChains = (code.match(/\?\./g) ?? []).length;
-  count += allQuestionMarks - optionalChains - nullish * 2;
   return count;
 }
 
@@ -102,6 +254,95 @@ function sliceLines(source, startLine, endLine) {
   const lines = source.split("\n");
   if (startLine < 1 || endLine > lines.length || endLine < startLine) return null;
   return lines.slice(startLine - 1, endLine).join("\n");
+}
+
+function lineStarts(source) {
+  const starts = [0];
+  for (let i = 0; i < source.length; i += 1) {
+    if (source[i] === "\n") starts.push(i + 1);
+  }
+  return starts;
+}
+
+function offsetAt(source, starts, line, column) {
+  if (line < 1 || line > starts.length) return null;
+  const base = starts[line - 1];
+  const lineEnd = line < starts.length ? starts[line] - 1 : source.length;
+  return Math.min(base + Math.max(0, column), lineEnd);
+}
+
+function comparePositions(a, b) {
+  if (a.line !== b.line) return a.line - b.line;
+  return a.column - b.column;
+}
+
+function normalizeRange(loc) {
+  const start = loc?.start;
+  const end = loc?.end;
+  if (typeof start?.line !== "number" || typeof end?.line !== "number") return null;
+  return {
+    start: { line: start.line, column: typeof start.column === "number" ? start.column : 0 },
+    end: {
+      line: end.line,
+      column: typeof end.column === "number" ? end.column : Number.MAX_SAFE_INTEGER,
+    },
+  };
+}
+
+function rangeContains(range, position) {
+  return (
+    comparePositions(range.start, position) <= 0 && comparePositions(position, range.end) <= 0
+  );
+}
+
+function isNestedRange(outer, inner) {
+  if (comparePositions(outer.start, inner.start) > 0) return false;
+  if (comparePositions(inner.end, outer.end) > 0) return false;
+  return comparePositions(outer.start, inner.start) !== 0 || comparePositions(outer.end, inner.end) !== 0;
+}
+
+function ownBodySource(source, starts, range, childRanges) {
+  const from = offsetAt(source, starts, range.start.line, range.start.column);
+  const to = offsetAt(source, starts, range.end.line, range.end.column);
+  if (from === null || to === null || to < from) return null;
+  const chars = source.slice(from, to + 1).split("");
+  for (const child of childRanges) {
+    const childFrom = offsetAt(source, starts, child.start.line, child.start.column);
+    const childTo = offsetAt(source, starts, child.end.line, child.end.column);
+    if (childFrom === null || childTo === null) continue;
+    for (let i = Math.max(childFrom, from); i <= Math.min(childTo, to); i += 1) {
+      const index = i - from;
+      if (chars[index] !== "\n") chars[index] = " ";
+    }
+  }
+  return chars.join("");
+}
+
+function functionCoverage(record, range, childRanges) {
+  const statementMap = record.statementMap ?? {};
+  const counts = record.s;
+  if (counts === null || typeof counts !== "object" || Array.isArray(counts)) {
+    return { error: UNKNOWN_REASONS.noStatementCounters, detail: "coverage record has no usable \"s\" statement-counter map" };
+  }
+  let total = 0;
+  let covered = 0;
+  for (const [id, loc] of Object.entries(statementMap)) {
+    const start = loc?.start;
+    if (typeof start?.line !== "number") continue;
+    const position = { line: start.line, column: typeof start.column === "number" ? start.column : 0 };
+    if (!rangeContains(range, position)) continue;
+    if (childRanges.some((child) => rangeContains(child, position))) continue;
+    const count = counts[id];
+    if (typeof count !== "number" || !Number.isFinite(count)) {
+      return {
+        error: UNKNOWN_REASONS.nonNumericStatementCounter,
+        detail: `statement ${id} has counter ${JSON.stringify(count) ?? "undefined"}`,
+      };
+    }
+    total += 1;
+    if (count > 0) covered += 1;
+  }
+  return { total, covered };
 }
 
 function readJson(path, label) {
@@ -126,21 +367,6 @@ function readJson(path, label) {
 
 function isSupported(path) {
   return SUPPORTED_EXTENSIONS.some((ext) => path.endsWith(ext));
-}
-
-function functionCoverage(record, fn) {
-  const statementMap = record.statementMap ?? {};
-  const counts = record.s ?? {};
-  let total = 0;
-  let covered = 0;
-  for (const [id, loc] of Object.entries(statementMap)) {
-    const line = loc?.start?.line;
-    if (typeof line !== "number") continue;
-    if (line < fn.loc.start.line || line > fn.loc.end.line) continue;
-    total += 1;
-    if ((counts[id] ?? 0) > 0) covered += 1;
-  }
-  return { total, covered };
 }
 
 export function analyze({ coveragePath, manifestPath, root, inputs = [] }) {
@@ -192,7 +418,14 @@ export function analyze({ coveragePath, manifestPath, root, inputs = [] }) {
       continue;
     }
 
+    const starts = lineStarts(source);
     const fnMap = record.fnMap ?? {};
+    const ranges = new Map();
+    for (const [id, fn] of Object.entries(fnMap)) {
+      const range = normalizeRange(fn?.loc);
+      if (range !== null) ranges.set(id, range);
+    }
+
     for (const [id, fn] of Object.entries(fnMap)) {
       const start = fn?.loc?.start?.line;
       const end = fn?.loc?.end?.line;
@@ -201,8 +434,8 @@ export function analyze({ coveragePath, manifestPath, root, inputs = [] }) {
         addUnknown({ file: key, function: name, reason: UNKNOWN_REASONS.unmappableFunction });
         continue;
       }
-      const body = sliceLines(source, start, end);
-      if (body === null) {
+      const lineBody = sliceLines(source, start, end);
+      if (lineBody === null) {
         addUnknown({
           file: key,
           function: name,
@@ -211,7 +444,18 @@ export function analyze({ coveragePath, manifestPath, root, inputs = [] }) {
         });
         continue;
       }
-      const { total, covered } = functionCoverage(record, fn);
+      const range = ranges.get(id);
+      const childRanges = [];
+      for (const [otherId, otherRange] of ranges) {
+        if (otherId === id) continue;
+        if (isNestedRange(range, otherRange)) childRanges.push(otherRange);
+      }
+      const result = functionCoverage(record, range, childRanges);
+      if (result.error !== undefined) {
+        addUnknown({ file: key, function: name, reason: result.error, detail: result.detail });
+        continue;
+      }
+      const { total, covered } = result;
       if (total === 0) {
         addUnknown({
           file: key,
@@ -221,7 +465,8 @@ export function analyze({ coveragePath, manifestPath, root, inputs = [] }) {
         });
         continue;
       }
-      const complexity = cyclomaticComplexity(body);
+      const ownSource = ownBodySource(source, starts, range, childRanges) ?? lineBody;
+      const complexity = cyclomaticComplexity(ownSource);
       const coverageFraction = covered / total;
       functions.push({
         id: `${key}::${name}::${start}`,
@@ -233,6 +478,7 @@ export function analyze({ coveragePath, manifestPath, root, inputs = [] }) {
         statements: total,
         coveredStatements: covered,
         coverage: coverageFraction,
+        nestedFunctions: childRanges.length,
         calls: record.f?.[id] ?? null,
         crap: crapScore(complexity, coverageFraction),
       });
@@ -275,17 +521,20 @@ export function renderMarkdown(report) {
   lines.push("");
   lines.push(`Formula: \`${report.formula}\``);
   lines.push("");
-  lines.push("Coverage is per-function statement coverage: covered statements divided by");
-  lines.push("total statements whose start line falls inside the function body range.");
+  lines.push("Coverage is per-function statement coverage of the function's OWN body:");
+  lines.push("covered statements divided by total statements whose start position falls");
+  lines.push("inside the function range and outside every nested function range.");
+  lines.push("The analyzer counts complexity over the same own-body text.");
   lines.push("");
   lines.push("## Scored functions");
   lines.push("");
-  lines.push("| CRAP | complexity | coverage | statements | function | file:line |");
-  lines.push("| ---: | ---: | ---: | ---: | --- | --- |");
+  lines.push("| CRAP | complexity | coverage | statements | nested | function | file:line |");
+  lines.push("| ---: | ---: | ---: | ---: | ---: | --- | --- |");
   for (const fn of report.functions) {
     lines.push(
       `| ${fn.crap.toFixed(2)} | ${fn.complexity} | ${(fn.coverage * 100).toFixed(1)}% | ` +
-        `${fn.coveredStatements}/${fn.statements} | \`${fn.function}\` | ${fn.file}:${fn.startLine} |`,
+        `${fn.coveredStatements}/${fn.statements} | ${fn.nestedFunctions} | ` +
+        `\`${fn.function}\` | ${fn.file}:${fn.startLine} |`,
     );
   }
   lines.push("");
@@ -322,19 +571,42 @@ Formula:
 
 Coverage semantics:
   cov(m) is per-function STATEMENT coverage as a fraction in [0,1]: covered
-  statements divided by total statements whose start line falls inside the
-  function body range reported by the coverage data.
+  statements divided by total statements that belong to the function's OWN body.
+  A statement belongs to the own body when its start position (line AND column)
+  falls inside the function range and outside every nested function range.
+  Nested functions are scored separately and are never charged to the parent.
 
 Complexity counting rule:
-  comp(m) = 1 + the number of these tokens in the function's own source, after
-  string literals and comments are removed:
+  comp(m) = 1 + the number of these tokens in the function's own body, after
+  nested functions, comments, string literals, template text and regular
+  expression literals are removed:
     if, for, while, do, case, catch, ternary ?, &&, ||, ??
   else-if is counted through its if. Optional chaining ?. is not counted.
+  A do/while pair counts once, through its do.
+  Template literal \${...} interpolations ARE scanned, so operators inside an
+  interpolation are counted.
+  A keyword used as a property name (o.do, o.case, { if: 1 }) is not counted.
+  A ? immediately followed by :, a comma, ) or ; is read as a TypeScript
+  optional marker and is not counted.
+
+Known complexity limitations (heuristic lexer, no parser dependency):
+  - An optional method signature such as foo?(): void is counted as a ternary,
+    because its ? is followed by ( exactly as a parenthesised ternary branch is.
+  - Conditional types (T extends U ? A : B) are counted as ternaries.
+  - Regular expression detection uses the preceding token, so a / after an
+    identifier, ), ] or } is always read as division.
+  - JSX and labelled statements are not modelled.
+  These limitations affect complexity only. They never affect coverage and never
+  turn an unknown into a score.
 
 Unknown preservation:
   Any input that is not supported executable code with mappable coverage is
   reported as unknown. It never receives a CRAP score and is never reported as
-  0% coverage. Reasons: ${Object.values(UNKNOWN_REASONS).join(", ")}.
+  0% coverage. A coverage record with no usable "s" statement-counter map, or a
+  statement whose counter is not a finite number, is unknown rather than 0%
+  covered. A function whose own statements are all present with counter 0 is
+  still scored at 0% coverage.
+  Reasons: ${Object.values(UNKNOWN_REASONS).join(", ")}.
 
 Staleness:
   --manifest records sha256 and mtimeMs per source at coverage time. A file
@@ -342,7 +614,7 @@ Staleness:
   never scored.
 `;
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const options = { inputs: [], root: process.cwd() };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
