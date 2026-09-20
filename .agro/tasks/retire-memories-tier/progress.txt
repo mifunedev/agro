@@ -92,3 +92,29 @@
   AUDIT-PASS. Reporting them as "not DoD items" exempted a mandated gate because my authored DoD
   omitted it. They are outstanding, not out of scope.
   Stopped for operator direction. US-005 reopened; no story flipped to hide the reopening.
+
+2026-09-20 RATIONALE RESOLVED — retirement SUPERSEDED by operator-approved PRESERVE/REPAIR.
+  The operator explicitly approved preserving and repairing the .agro/memories/ tier and lifted
+  the wait. Retirement is no longer an approved outcome and no artifact may claim it is.
+  Contract reconciled in place, history retained: prd.md gained a RECONCILIATION section below the
+  ADDENDUM; nothing above it was edited away. prd.json now carries repair stories R-001..R-006 and
+  keeps US-001..US-005 under supersededStories with passes:false and a SUPERSEDED note. Their
+  earlier passes:true recorded acceptance of the RETIREMENT scope and is not acceptance of repair.
+  Design decisions fixed BEFORE any worker dispatch, from sources:
+    - Ownership: tracked .agro/memories/AGENTS.md + templates/{SOUL,USER,MEMORY}.md; the live
+      SOUL/USER/MEMORY instances are Git- and Docker-excluded and never overwritten.
+    - Initialization attachment point: the EXISTING workspace-directory init block in
+      .devcontainer/entrypoint.sh (WORKTREES_PATH/PROJECTS_PATH/CRONS_PATH, ~line 526), which
+      already runs mkdir -p per boot against the bound checkout. No new daemon, verb, second
+      lifecycle door, or global home layer.
+    - Loading: scoped and documented; the universal session-start mandate is removed and NO
+      automatic loader is invented.
+    - Isolation: per-checkout and per-worktree ignored instances; no shared mutable home instance.
+    - Role neutrality: the shipped SOUL/USER defaults told every reader to own decisions and
+      acceptance. Templates must not assign the advisor role to a bounded worker.
+  Limits restated so they are not lost: no claim that a loader never existed in any era, and no
+  global preservation claim — inspected locations were exactly /home/sandbox/harness and
+  .worktrees/skill/1114-audit-responsibility-simplification.
+  Outstanding deviations carried forward: /spec retro and /wiki compile were wrongly exempted and
+  are now R-006 criteria; disclosed baseline reds remain disclosure, not permission to suppress;
+  PR #1117 has no human review and stays draft until advisor acceptance; no merge.

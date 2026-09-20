@@ -2,8 +2,113 @@
   "schemaVersion": 1,
   "project": "AGRO",
   "branchName": "task/1116-retire-memories-tier",
-  "description": "Retire the shipped .agro/memories/ tier and reconcile its two affected probes and documentation",
+  "description": "Preserve and repair the .agro/memories/ tier: tracked templates and a scoped contract, Git- and Docker-excluded live instances, non-overwriting initialization through the existing entrypoint path, scoped loading with no automatic loader, worktree isolation, truthful distribution and probes, role-neutral defaults",
   "userStories": [
+    {
+      "id": "R-001",
+      "title": "Restore the tier as tracked templates plus a scoped contract",
+      "description": "As an operator, I want .agro/memories/ to ship canonical templates and a scoped directory contract so that the repository distributes defaults without tracking anyone's live instance.",
+      "acceptanceCriteria": [
+        "Restore .agro/memories/AGENTS.md as a tracked scoped contract that names the three live files, the templates that seed them, and the initialization behavior",
+        "The contract removes the universal 'Read all three at session start' mandate and states scoped, on-demand reading; it invents no automatic loader, hook, or root AGENTS.md mandate",
+        "Add tracked .agro/memories/templates/{SOUL,USER,MEMORY}.md derived from the ab86a8c3 originals",
+        "Templates are role-neutral: no default directs its reader to own decisions, assignment, or acceptance, and none assigns the advisor role to a bounded worker",
+        "Templates carry no operator identity: no name, GitHub handle, git identity, or email address",
+        "MEMORY.md template starts empty of dated entries and documents the dated-entry format",
+        "git ls-files .agro/memories lists exactly AGENTS.md and the three templates; no live SOUL.md/USER.md/MEMORY.md is tracked"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "C1 C3 C4 \u2014 ownership, scoped loading, role neutrality",
+      "evidence": "Advisor-verified: git ls-files .agro/memories = AGENTS.md + 3 templates; no live instance tracked; contract states scoped on-demand reading and \"installs no loader\"; templates role-neutral and identity-free."
+    },
+    {
+      "id": "R-002",
+      "title": "Exclude live instances from Git and the Docker build context",
+      "description": "As an operator, I want my live memory files excluded from version control and from the image build inputs so that private context is never committed, published, or baked into an image.",
+      "acceptanceCriteria": [
+        "Add .gitignore rules ignoring .agro/memories/SOUL.md, USER.md, MEMORY.md while keeping AGENTS.md and templates/ tracked; place them beside the existing .agro/tasks and .agro/logs task-artifact rules",
+        "Add the matching .dockerignore rules so the live files are not build inputs",
+        "A live file created in the checkout does not appear in git status --porcelain -uall",
+        "Existing operator content at those paths is preserved byte-for-byte by every step of this story; nothing is overwritten, recursively cleaned, published, or silently discarded"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "C1 \u2014 exclusion and preservation",
+      "evidence": "Advisor-verified with synthetic private fixtures: git check-ignore names .gitignore:35-37; real docker build over this checkout listed only AGENTS.md + templates in the context while synthetic SOUL.md/USER.md sat on disk (tracked files are the positive control)."
+    },
+    {
+      "id": "R-003",
+      "title": "Seed missing live files non-destructively at the existing entrypoint path",
+      "description": "As an operator, I want a fresh sandbox to have working memory files without a new lifecycle surface, so that initialization reuses the path that already prepares the workspace on boot.",
+      "acceptanceCriteria": [
+        "Seed from .agro/memories/templates/ into .agro/memories/ inside the existing workspace-directory initialization block in .devcontainer/entrypoint.sh (the WORKTREES_PATH/PROJECTS_PATH/CRONS_PATH block near line 526)",
+        "A missing live file is created; an existing live file is left byte-for-byte unchanged, including an empty one",
+        "Ownership matches the sandbox user, consistent with the surrounding block",
+        "No new daemon, service unit, lifecycle verb, agro subcommand, second lifecycle door, or global home-layer abstraction is added",
+        "Seeding touches only $HARNESS/.agro/memories; it never writes into /home/sandbox, another worktree, or a shared instance",
+        "shellcheck -S warning passes on .devcontainer/entrypoint.sh, which CI already lints"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "C2 C4 \u2014 existing attachment point, no new machinery, isolation",
+      "evidence": "Advisor integration test against the real templates: first run seeds all three; repeat run preserves an operator-modified USER.md byte-for-byte and leaves an empty MEMORY.md empty. install -d removal proven to change no case."
+    },
+    {
+      "id": "R-004",
+      "title": "Ship templates, contract, and probe together in the manifest",
+      "description": "As an installed project, I want the memory templates and their contract to arrive with the probe that asserts on them so that no probe asserts on a subject the payload omits.",
+      "acceptanceCriteria": [
+        "Add the memories templates and contract to .agro/manifest.json include so an installed project receives them",
+        "The live instance paths are never part of the payload",
+        "oh update --from <built-checkout> into a fresh target creates the templates and the contract, and the counts are recorded",
+        "A repeat run of the same install overwrites no operator-modified file"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "C5 \u2014 real distribution",
+      "evidence": "REAL `oh update --from` into a fresh non-git target AND a fresh git-init target: 541 created / 0 overwritten / 399 skipped each; payload carries the contract and templates and never a live instance; --force repeat install preserved synthetic private content."
+    },
+    {
+      "id": "R-005",
+      "title": "Repair both probes to assert the preserved contract truthfully",
+      "description": "As a maintainer, I want both probes to test what the repository actually ships in each deployment so that the suite is honest rather than merely green.",
+      "acceptanceCriteria": [
+        "Rewrite .agro/evals/probes/memories-tier-defaults.sh to assert on the TEMPLATES and the contract, never on a live instance; the guide's 'edit in place' instruction must no longer be able to turn the suite red",
+        "It asserts: templates and contract tracked; no live SOUL/USER/MEMORY tracked; no email address or filled operator identity in the templates; no dated entry in the MEMORY template; the SOUL template carries its documented sections; the contract states no universal session-start mandate",
+        "Keep the independently valid .agro/evals/probes/agents-md-fallback.sh repair and reconcile it with the preserved contract, including the restored .agro/memories/AGENTS.md",
+        "Both probes exit 0 in a source checkout and in a manifest-installed project; neither exits 2, and no blanket absent-subject SKIP is added",
+        "Negative guard tests prove the failure branch of every new assertion: a tracked live instance, an email address in a template, a dated entry in the MEMORY template, a reintroduced session-start mandate, a tracked CLAUDE.md, and a symlinked AGENTS.md each exit 1",
+        "Every injection is reverted with git checkout HEAD -- <path> so the index is reset, and git status --porcelain is proven empty afterwards",
+        "Full-suite baseline recorded before and after; any failure predating this change is named, and no check is weakened to green"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "C5 \u2014 probes and fault injection. The staged-typechange failure from the retirement build must not recur.",
+      "evidence": "Both probes exit 0 in all three deployments with distinct, truthful mode messages. Real-install testing found and closed a coverage gap (live-instance guard now runs wherever an index exists); pre-fix probe exit 0 vs current exit 1 on the same injection. No check weakened; 2 pre-existing reds disclosed."
+    },
+    {
+      "id": "R-006",
+      "title": "Reconcile the record and deliver the PR through every required gate",
+      "description": "As the operator, I want documentation, changelog, issue, PR, and task state to describe the repair, with the correction history preserved, and every mandated gate actually run.",
+      "acceptanceCriteria": [
+        "Revert the retirement edits to .agro/README.md, docs/oh-directory-layout.md, and CHANGELOG.md, and replace them with entries describing the repair",
+        "Assess mifunedev/agro-web applicability explicitly and mark it applied or not applicable",
+        "Issue #1116 and PR #1117 are re-scoped from retirement to repair; the dated correction record is preserved rather than deleted, and no text claims retirement remains approved",
+        "/audit implementation returns a promotable classification",
+        "/eval runs once against the final commit and its result is recorded",
+        "/spec retro and /wiki compile are run \u2014 the gates execute.md steps 8-9 mandate and that the retirement build wrongly reported as out of scope",
+        "Knowledge impact derived from the actual diff, not the prediction",
+        "PR #1117 is open against development, isDraft=false only after advisor acceptance, with CI green for the exact final head SHA verified after the final push and undraft; no merge",
+        "Skipped and neutral checks reported accurately"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "C6 C7 \u2014 record, gates, delivery. Undraft only after acceptance; verify CI on the true final head, not a pre-push head."
+    }
+  ],
+  "rationaleStatus": "RESOLVED 2026-09-20 \u2014 retirement SUPERSEDED by operator-approved PRESERVE/REPAIR. See the RECONCILIATION section in prd.md. No claim that retirement remains approved.",
+  "supersededStories": [
     {
       "id": "US-001",
       "title": "Remove the memories tier",
@@ -15,8 +120,9 @@
         "No other tracked path under .agro/ is touched by this story"
       ],
       "priority": 1,
-      "passes": true,
-      "notes": "D1 \u2014 RATIONALE REOPENED. The implementation is intact and unchanged; its justification is under review. Preservation claim corrected: only two locations were inspected, not \"anywhere\"."
+      "passes": false,
+      "notes": "D1 \u2014 RATIONALE REOPENED. The implementation is intact and unchanged; its justification is under review. Preservation claim corrected: only two locations were inspected, not \"anywhere\". | SUPERSEDED 2026-09-20: retirement replaced by PRESERVE/REPAIR. The earlier passes:true recorded acceptance of the retirement scope and is not acceptance of the repair scope.",
+      "supersededOn": "2026-09-20"
     },
     {
       "id": "US-002",
@@ -32,8 +138,9 @@
         "bash .agro/evals/probes/agents-md-fallback.sh exits 0 in this checkout"
       ],
       "priority": 2,
-      "passes": true,
-      "notes": "D2"
+      "passes": false,
+      "notes": "D2 | SUPERSEDED 2026-09-20: retirement replaced by PRESERVE/REPAIR. The earlier passes:true recorded acceptance of the retirement scope and is not acceptance of the repair scope.",
+      "supersededOn": "2026-09-20"
     },
     {
       "id": "US-003",
@@ -47,8 +154,9 @@
         "grep -rIn memories across tracked files returns only historical CHANGELOG lines that describe past releases"
       ],
       "priority": 3,
-      "passes": true,
-      "notes": "D3"
+      "passes": false,
+      "notes": "D3 | SUPERSEDED 2026-09-20: retirement replaced by PRESERVE/REPAIR. The earlier passes:true recorded acceptance of the retirement scope and is not acceptance of the repair scope.",
+      "supersededOn": "2026-09-20"
     },
     {
       "id": "US-004",
@@ -65,8 +173,9 @@
         "Record the full-suite baseline before and after and name any failure that predates this change"
       ],
       "priority": 4,
-      "passes": true,
-      "notes": "D4"
+      "passes": false,
+      "notes": "D4 | SUPERSEDED 2026-09-20: retirement replaced by PRESERVE/REPAIR. The earlier passes:true recorded acceptance of the retirement scope and is not acceptance of the repair scope.",
+      "supersededOn": "2026-09-20"
     },
     {
       "id": "US-005",
@@ -82,8 +191,9 @@
       ],
       "priority": 5,
       "passes": false,
-      "notes": "D5 D6 D7 \u2014 REOPENED 2026-09-20: the retirement rationale rests on a premise the operator corrected. PR returned to draft. Also outstanding: /spec retro and /wiki compile, mandated by execute.md steps 8-9, which I wrongly reported as out of scope."
+      "notes": "D5 D6 D7 \u2014 REOPENED 2026-09-20: the retirement rationale rests on a premise the operator corrected. PR returned to draft. Also outstanding: /spec retro and /wiki compile, mandated by execute.md steps 8-9, which I wrongly reported as out of scope. | SUPERSEDED 2026-09-20: retirement replaced by PRESERVE/REPAIR. The earlier passes:true recorded acceptance of the retirement scope and is not acceptance of the repair scope.",
+      "supersededOn": "2026-09-20"
     }
   ],
-  "rationaleStatus": "REOPENED 2026-09-20 \u2014 see the ADDENDUM in prd.md"
+  "evidenceFile": ".agro/tasks/retire-memories-tier/evidence.md"
 }

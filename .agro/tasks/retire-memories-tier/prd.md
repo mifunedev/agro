@@ -273,3 +273,86 @@ and `/wiki compile` on `AUDIT-PASS`. I reported them as "not Definition of Done
 items", which exempted a mandated build gate because the authored DoD omitted it.
 That was wrong. They are outstanding, and they are correctly deferred now only
 because the rationale they would compile lessons from is itself unresolved.
+
+---
+
+# RECONCILIATION — 2026-09-20 — retirement superseded by PRESERVE/REPAIR
+
+The operator explicitly approved **preserving and repairing** the
+`.agro/memories/` tier. Retirement is superseded. Everything above this line is
+retained as the historical record of a decision that was made, reopened, and
+then replaced; none of it is edited away, and no claim that retirement remains
+approved survives it.
+
+The retirement stories US-001 through US-005 are **superseded**, not completed.
+Their earlier `passes: true` values recorded acceptance of the retirement scope
+and are not acceptance of this repair scope. `prd.json` now carries the repair
+stories R-001 through R-006 and keeps the retirement stories under
+`supersededStories`.
+
+## Why repair rather than retirement
+
+The retirement rationale collapsed under verification, recorded in the ADDENDUM
+above and in `.agro/tasks/retire-memories-tier/provenance-verification.md`:
+
+- R1, the missing loader, was a **stale `oh`-era sentence**, not an unmet AGRO
+  requirement. The operator stated this and the introducing commit corroborates
+  it: the same commit set the root rule to "a session reads when it works there".
+- R2 restated R1 through the #868 precedent.
+- R4 was contradicted by the introducing commit's own message, which chose
+  tracked files that "edit in place".
+- R3, the distribution and probe defect, **survives as a repair target**, not as
+  a retirement reason. A probe that asserts on a subject the manifest does not
+  ship is a broken probe, not a broken subject.
+
+Two limits on the record above, stated because earlier drafts overstated them:
+no claim is made that a loader never existed in any era — a `SessionStart`
+search cannot establish that — and no global preservation claim is made. The
+inspected locations were exactly `/home/sandbox/harness` and
+`.worktrees/skill/1114-audit-responsibility-simplification`.
+
+## The live defect the repair must fix
+
+The shipped tier was unusable as instructed. `.agro/memories/AGENTS.md` said
+"Edit them in place" and `MEMORY.md` told a session to add a dated entry, while
+`memories-tier-defaults.sh:31-41` failed the repository for exactly that. The
+canonical repository shipped a tier its own agents could not follow without
+turning the suite red. Tracking the live instance is the defect; tracking a
+template is the fix.
+
+## Design decisions, fixed here before any worker starts
+
+**Ownership.** `.agro/memories/AGENTS.md` is a tracked scoped contract.
+`.agro/memories/templates/{SOUL,USER,MEMORY}.md` are tracked canonical
+templates. `.agro/memories/{SOUL,USER,MEMORY}.md` are **live operator instances**
+— excluded from Git and from the Docker build context, never overwritten, never
+recursively cleaned, never published.
+
+**Initialization attachment point**, decided from sources, not invented: the
+existing workspace-directory initialization in `.devcontainer/entrypoint.sh`
+(the `WORKTREES_PATH` / `PROJECTS_PATH` / `CRONS_PATH` block near line 526, which
+already runs `mkdir -p` on every boot against the bound checkout). The repair
+adds a non-overwriting seed beside it. It adds **no** new daemon, no second
+lifecycle door, no new `agro` verb, and no global home-layer abstraction. A file
+that already exists is left exactly as the operator left it.
+
+**Loading.** Explicitly scoped and documented: a session reads these files when
+it works on operator context or needs durable cross-session context, through the
+directory contract. The universal session-start mandate is removed. **No
+automatic loader is invented** — not a hook, not a `SessionStart` entry, not a
+root `AGENTS.md` mandate.
+
+**Isolation.** Each checkout and each worktree holds its own ignored live files.
+No shared mutable home instance, no provider-specific silo, no persistent
+agent-ID system.
+
+**Role neutrality.** The shipped `SOUL.md` and `USER.md` defaults direct their
+reader to "own the decision, the assignment, and the acceptance" — they tell
+every reader to be the advisor. The templates must state durable character and
+standing preferences without assigning the advisor role to a bounded worker.
+
+## Explicitly out of scope
+
+Wholesale workspace-map migration, O4 global home instances, automatic context
+loaders, metadata budgeting, `skills-ref` conformance, probe or website cleanup
+unrelated to this tier, and any merge, release, `destroy`, or restart.

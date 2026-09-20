@@ -5,3 +5,46 @@
 2026-09-20 T1 repair round 1 accepted at 0b3f82ad; advisor re-ran all four negative tests in both modes.
 2026-09-20 T3 (read-only, round 2) on the new head: no blocking findings; 2 non-blocking recorded as residual.
 2026-09-20 wave complete. No task BLOCKED. No worker sent any message outside native output.
+2026-09-20 GRAPH REPLACED — retirement graph superseded by the repair graph (T1..T4, 3 waves).
+2026-09-20 capability check — Agent tool exposes `model`; no per-call effort argument. Effort is inherited and unobserved for every worker; recorded as such, not as confirmed. No model substitution made.
+2026-09-20 wave 1 dispatch — T1, T2 marked running (disjoint owned paths in the shared task worktree).
+2026-09-20 T1 completed — advisor verified independently: manifest include gained memories/AGENTS.md and memories/templates/**; gitignore rules at :33-37 with git check-ignore -v confirming each; dockerignore matching; git ls-files .agro/memories = AGENTS.md + 3 templates with no live instance tracked; no universal session-start mandate and no email address in the tier. Role-neutrality repair confirmed in SOUL 'How I work' and USER Preferences. R-004's `oh update --from` install verification is correctly NOT claimed by T1; it belongs to advisor verification.
+2026-09-20 T2 repair routed and completed — advisor rejected the first result: `install -d -o sandbox -g sandbox "$dest"` re-applied ownership to the TRACKED .agro/memories directory on every boot, a side effect outside R-003 and redundant because the `[ -d "$src" ]` guard already proves the parent exists. Worker removed it and proved zero behavioral change across cases (a)-(f), including containing-dir metadata unchanged.
+2026-09-20 T2 accepted — advisor ran its own integration test against the REAL T1 templates (scratchpad/seedcheck.sh), not the worker's fixture: first run created SOUL/USER/MEMORY matching the templates, left AGENTS.md and templates/ intact and unflattened; second run preserved an operator-modified USER.md byte-for-byte and left an empty MEMORY.md empty. bash -n clean; `npx shellcheck -S warning` exit 0 (shellcheck is NOT installed in this container — the npx path is recorded as such, not as an installed-binary run).
+2026-09-20 wave 2 dispatch — T3 (probe repair with fault injection) marked running.
+2026-09-20 T3 accepted — advisor re-verified independently rather than on report:
+  - both probes exit 0 in this source checkout; tree carries no injection residue (git status --porcelain -uall shows only intended paths, no `T` typechange).
+  - installed-project mode proven by materializing the manifest include list into a non-git directory (scratchpad/installcheck.sh): 532 files, memories payload = AGENTS.md + 3 templates and NO live instance; `git rev-parse --git-dir` fatal; both probes exit 0 in installed mode.
+  - the worker's exit-128 claim independently confirmed: `git show HEAD:.agro/evals/probes/agents-md-fallback.sh` run in that installed tree exits 128, because `git ls-files` aborts under `set -euo pipefail` with no index. The retirement build's probe was therefore NOT green in a real installed project; the has_index fallback is load-bearing, not gold-plating. This corrects the retirement build's own D4 claim of installed-mode green.
+  - BUG-FIX CONTROL (the point of R-005): an operator following the guide — live files seeded, a real dated entry in MEMORY.md, a real name and a real email in USER.md — leaves both probes at exit 0 and leaves git blind to the live files. The defect that failed the repository for obeying its own instructions is fixed.
+  - Worker deviation reviewed and ACCEPTED: it did not use bare `git checkout HEAD -- <path>` for staged ADDITIONS, which do not exist in HEAD and would have deleted wave 1's work; it snapshotted and restored each index entry instead, with a porcelain diff against the pre-injection baseline after all twelve reverts. Equivalent for HEAD-resident paths. The staged-typechange failure did not recur.
+  - Baseline reds unchanged and disclosed, not suppressed: next-dev-prod (a stray `next dev` process in this container) and skills-vendored (Hermes uses another runtime home). 156 probes / 2 REGRESSION before, 157 / same 2 after, with memories-tier-defaults new-pass.
+2026-09-20 wave 3 dispatch — T4 (docs, changelog, public-docs applicability) marked running.
+2026-09-20 CHECKPOINT RECONCILIATION — parallel-boundary deviation recorded in delegate-graph.json
+  (parallelBoundaryDeviation). Advisor error, two instances, ownership ambiguity resolvable; see that record.
+2026-09-20 R-004 verified on the REAL distribution path, not the copied fixture:
+  `oh update --from <this checkout>` into a fresh NON-GIT target and a fresh GIT-INITIALISED target.
+  Both: 541 created, 0 overwritten, 399 skipped. Memories payload = AGENTS.md + 3 templates in both;
+  no live instance is ever delivered. Repeat install with --force: 0 created / 541 overwritten / 399
+  skipped, and the synthetic private SOUL.md and USER.md were preserved byte-for-byte while an empty
+  MEMORY.md stayed empty. Both probes exit 0 with that private content present.
+  The copied-manifest fixture is retained as additional coverage; it is NOT the proof for R-004.
+2026-09-20 REAL-INSTALL FINDING and probe fix (T3, serialized as the only writer):
+  mode detection ANDed `git rev-parse --git-dir` with the docs/lifecycle-commands.md sentinel, so a
+  git-initialised installed project printed "no git index" (false) AND skipped the core live-instance
+  guard — precisely where an operator seeds live files and runs `git add -A`. Split into two
+  independent facts (has_index, source_checkout); the live-instance guard moved to has_index; the
+  tracked-set EQUALITY assertion stays source-checkout-only because an installed payload may
+  legitimately be tracked, untracked, or partly staged. Nothing weakened.
+  Gap evidenced, not asserted: pre-fix probe exit 0 / current probe exit 1 on the same injection in
+  the same real git install.
+2026-09-20 ADVISOR METHOD ERROR, corrected: my first re-verification ran historical probes from
+  /tmp. Each probe derives ROOT from its own BASH_SOURCE, so those runs measured `/`, not the target,
+  and their exit codes were meaningless. Re-run with each historical probe placed INSIDE the target's
+  .agro/evals/probes/. Both results below come from the corrected method.
+2026-09-20 CORRECTION to my own earlier claim about the retirement build's D4 evidence:
+  I said the retirement build's agents-md-fallback "exited 128 in an installed project", implying its
+  installed-mode green claim was simply wrong. Too strong. Placed correctly in REAL installs it exits
+  128 in a NON-GIT installed project and 0 in a GIT-INITIALISED one. The defect is real but narrower
+  than I stated, and the retirement build's own result was plausibly green for the case it tested.
+  The has_index fallback remains load-bearing for non-git installs.

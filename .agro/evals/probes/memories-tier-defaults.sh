@@ -19,11 +19,19 @@
 #       startup / on boot) and carries no negation. It also requires the positive
 #       on-demand scoping to survive, so deleting the scope is a regression too.
 #
-#       Deployment modes: the contract and the templates are in the manifest payload,
-#       so every content assertion is universal. Tracking assertions need a git index,
-#       which an installed project does not have; they run under a source-checkout
-#       guard keyed on the same sentinel .agro/evals/probes/agents-md-fallback.sh uses.
-#       Absence of the subject is a REGRESSION, never a SKIP.
+#       Deployment modes rest on two INDEPENDENT facts, never conflated:
+#         has_index      — `git rev-parse --git-dir`. Gates every `git ls-files` claim.
+#         source_checkout — `git ls-files --error-unmatch docs/lifecycle-commands.md`,
+#                          the sentinel .agro/evals/probes/agents-md-fallback.sh uses.
+#                          Gates only claims about repository-only files.
+#       An installed project that an operator has `git init`-ed has an index but no
+#       sentinel, and it is the MOST likely place for a tracked live instance in the
+#       wild: the operator seeds the live files, then runs `git add -A`. So the
+#       live-instance guard is a has_index assertion and runs there. The tracked-set
+#       EQUALITY check is source-checkout only, because an installed payload may
+#       legitimately be tracked, untracked, or partly staged.
+#       Content assertions are universal — the contract and templates are in the
+#       manifest payload. Absence of the subject is a REGRESSION, never a SKIP.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -36,10 +44,11 @@ TEMPLATES_DIR="$MEM/templates"
 failures=()
 fail() { failures+=("$*"); }
 
+has_index=0
 source_checkout=0
-if git rev-parse --git-dir >/dev/null 2>&1 \
-  && git ls-files --error-unmatch docs/lifecycle-commands.md >/dev/null 2>&1; then
-  source_checkout=1
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  has_index=1
+  git ls-files --error-unmatch docs/lifecycle-commands.md >/dev/null 2>&1 && source_checkout=1
 fi
 
 # --- universal: the subject must be present as real files -------------------
@@ -49,17 +58,24 @@ for path in "$CONTRACT" "$TEMPLATES_DIR/SOUL.md" "$TEMPLATES_DIR/USER.md" \
     || fail "$path must be a real file: the manifest ships the contract and the templates"
 done
 
-# --- source checkout: what git tracks, derived from the index ---------------
-if ((source_checkout)); then
+# --- wherever a git index exists: the core regression guard -----------------
+# This holds in a source checkout AND in an operator's git-tracked installed
+# project, which is where a seeded live file is most likely to be committed.
+if ((has_index)); then
   tracked="$(git ls-files -- "$MEM")"
-  expected=$'.agro/memories/AGENTS.md\n.agro/memories/templates/MEMORY.md\n.agro/memories/templates/SOUL.md\n.agro/memories/templates/USER.md'
-  if [[ "$tracked" != "$expected" ]]; then
-    fail "$MEM must track exactly the contract and the three templates; got: $(tr '\n' ' ' <<<"$tracked")"
-  fi
-  # The core regression guard, asserted on its own so its failure is unambiguous.
   live_tracked="$(grep -E '^\.agro/memories/(SOUL|USER|MEMORY)\.md$' <<<"$tracked" || true)"
   if [[ -n "$live_tracked" ]]; then
     fail "a live memory instance is tracked — it publishes operator state and makes the guide's 'edit a live file in place' instruction fail this suite: $(tr '\n' ' ' <<<"$live_tracked")"
+  fi
+fi
+
+# --- source checkout only: the exact tracked set ----------------------------
+# Equality cannot hold in an installed project: the payload may be tracked,
+# untracked, or partly staged depending on what the operator committed.
+if ((source_checkout)); then
+  expected=$'.agro/memories/AGENTS.md\n.agro/memories/templates/MEMORY.md\n.agro/memories/templates/SOUL.md\n.agro/memories/templates/USER.md'
+  if [[ "$tracked" != "$expected" ]]; then
+    fail "$MEM must track exactly the contract and the three templates; got: $(tr '\n' ' ' <<<"$tracked")"
   fi
 fi
 
@@ -146,8 +162,10 @@ if ((${#failures[@]})); then
 fi
 
 if ((source_checkout)); then
-  echo "PASS: source-checkout mode — $MEM tracks only the contract and the three templates, no live instance is tracked, the templates carry no identity and no dated entry, and the contract keeps reading on demand" >&2
+  echo "PASS: source-checkout mode (git index + repository sentinel) — $MEM tracks exactly the contract and the three templates, no live instance is tracked, the templates carry no identity and no dated entry, and the contract keeps reading on demand" >&2
+elif ((has_index)); then
+  echo "PASS: installed-project mode, git index present (no repository sentinel) — no live memory instance is tracked; the shipped contract and templates carry no identity, no dated entry, the SOUL sections, and no session-start mandate" >&2
 else
-  echo "PASS: installed-project mode — no git index; the shipped contract and templates carry no identity, no dated entry, the SOUL sections, and no session-start mandate" >&2
+  echo "PASS: installed-project mode, no git index — tracking assertions are not applicable; the shipped contract and templates carry no identity, no dated entry, the SOUL sections, and no session-start mandate" >&2
 fi
 exit 0
