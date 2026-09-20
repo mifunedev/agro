@@ -11,11 +11,14 @@ its [schema](../skills/wiki/references/schema.md) owns entry formats.
 | `patterns/` | Tracked failure modes and observed strategies; queried with `--patterns`. |
 | `raw/` | Tracked immutable external captures. |
 | `local/` | Ignored per-machine scratch, outside normal query results. |
-
 ## Index
 
 | Slug | Title | Tags | Updated |
 | --- | --- | --- | --- |
+| pattern-evals-shape-fixture-substituted-for-real-path | A fixture reproducing a payload's shape passes where the real install path fails | [evals, probes, distribution, manifest, verification-method] | 2026-09-20 |
+| pattern-evals-probe-run-outside-its-tree | A probe run from outside its tree measures the wrong tree and answers anyway | [evals, probes, verification-method, provenance] | 2026-09-20 |
+| pattern-evals-negation-must-govern-token | A sentence-wide negation filter lets a forbidden routing target through | [evals, probes, negation, oracle-design] | 2026-09-20 |
+| pattern-delegate-shared-worktree-parallel-writers | Disjoint file ownership is used to excuse parallel writers in one worktree | [delegate, worktrees, isolation, parallelism] | 2026-09-20 |
 | pattern-wiki-verified-at-advanced-over-unread-citations | Advancing verified_at after re-reading only the citations you added launders staleness into freshness | [wiki, knowledge, verified-at, citation-rot, freshness, line-numbers, provenance] | 2026-09-19 |
 | pattern-spec-procedure-executed-from-summary | A procedure executed from a subagent's summary loses every gate the summary compressed away | [spec, execute, subagents, orientation, gates, context-budget, delegate] | 2026-09-19 |
 | pattern-evals-document-conformance-proxy-oracle | A probe that greps the rule text cannot detect an executor disobeying the rule | [evals, probes, oracle-design, proxy-measure, behavior, recurrence, spec] | 2026-09-19 |
@@ -38,7 +41,6 @@ its [schema](../skills/wiki/references/schema.md) owns entry formats.
 | audit-architecture | Audit Architecture | [audit, pr, workflow, safety, observability] | 2026-09-07 |
 | pattern-scripts-sibling-dependency-standalone-copies | A script that gains a sourced sibling breaks every test and probe that copies it alone | [scripts, compose, testing, probes, bundling, registry, boot] | 2026-09-06 |
 | pattern-evals-product-name-literal-pinning | Probes and tests that pin the product name beside a verb break when the executable is renamed or templated | [evals, probes, cli, docs, rename, false-failure] | 2026-09-06 |
-| pattern-evals-negation-must-govern-token | A sentence-wide negation filter lets a forbidden routing target through | [evals, probes, negation, oracle-design] | 2026-09-06 |
 | pattern-evals-environment-parity-false-delta | An eval run from a shell with a different PATH reports environment gaps as probe regressions | [evals, probes, environment, path, python, false-regression, worktree] | 2026-09-06 |
 | pattern-delegate-worker-terminated-before-report | A delegated worker that dies after implementing but before verifying leaves complete files with no evidence | [delegate, spec, workers, rate-limit, verification, evidence] | 2026-09-06 |
 | pattern-delegate-builtin-type-carries-own-model | A provider built-in worker type carries its own model; omitting `model` does not inherit | [delegate, model-policy, observation, subagents] | 2026-09-06 |

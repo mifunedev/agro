@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "commit": "0b3f82ad04a2036443858bec3a72c1a6bddea838",
+  "reviewer": "bounded read-only worker T3 (round 2)",
+  "reviewedAt": "2026-09-20T18:06:10Z",
+  "findings": [
+    {"file": ".agro/evals/probes/agents-md-fallback.sh", "line": 16, "simplerAlternative": "Express the CLAUDE.md check through the fail() helper instead of an inline echo/printf/exit block, for consistency with every other check.", "removesLines": 3, "blocking": false, "status": "open", "resolvedIn": null},
+    {"file": ".agro/evals/probes/agents-md-fallback.sh", "line": 16, "simplerAlternative": "Drop the redundant 'CLAUDE.md' pathspec beside '*CLAUDE.md'; the glob already matches a root CLAUDE.md. This token is unchanged context carried over from the pre-existing probe.", "removesLines": 0, "blocking": false, "status": "open", "resolvedIn": null}
+  ]
+}

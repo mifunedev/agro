@@ -1,0 +1,8 @@
+{
+  "commit": "0b3f82ad04a2036443858bec3a72c1a6bddea838",
+  "runnerExit": 0,
+  "ranAt": "2026-09-20T18:06:10Z",
+  "newRegressions": [],
+  "preExistingReds": ["next-dev-prod", "skills-vendored"],
+  "note": "156 probes (157 before this change; memories-tier-defaults was deleted with its subject). Both reds are pre-existing and unrelated to this diff: next-dev-prod fires on a 'next dev' process running elsewhere in this sandbox, and skills-vendored reports another provider runtime home. The suite also ran once at 6c1e1706 before the simplify round; that earlier record is superseded because the simplify commit changed a non-record file."
+}

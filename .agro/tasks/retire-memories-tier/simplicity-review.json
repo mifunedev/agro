@@ -1,10 +1,84 @@
 {
   "schemaVersion": 1,
-  "commit": "0b3f82ad04a2036443858bec3a72c1a6bddea838",
-  "reviewer": "bounded read-only worker T3 (round 2)",
-  "reviewedAt": "2026-09-20T18:06:10Z",
+  "commit": "77b18024",
+  "scope": "repair",
+  "reviewer": "bounded read-only worker (Explore), advisor-verified",
+  "reviewedAt": "2026-09-20T19:55:00Z",
+  "note": "The retirement-scope review at commit 0b3f82ad is retained at simplicity-review-retirement.json and is NOT a repair gate.",
   "findings": [
-    {"file": ".agro/evals/probes/agents-md-fallback.sh", "line": 16, "simplerAlternative": "Express the CLAUDE.md check through the fail() helper instead of an inline echo/printf/exit block, for consistency with every other check.", "removesLines": 3, "blocking": false, "status": "open", "resolvedIn": null},
-    {"file": ".agro/evals/probes/agents-md-fallback.sh", "line": 16, "simplerAlternative": "Drop the redundant 'CLAUDE.md' pathspec beside '*CLAUDE.md'; the glob already matches a root CLAUDE.md. This token is unchanged context carried over from the pre-existing probe.", "removesLines": 0, "blocking": false, "status": "open", "resolvedIn": null}
-  ]
+    {
+      "file": ".agro/evals/probes/memories-tier-defaults.sh",
+      "line": 131,
+      "claim": "The sentence splitter is defeated by the tier's own filenames, because SOUL.md contains a period before a space.",
+      "blocking": true,
+      "advisorVerdict": "REFUTED by advisor testing. Injected mandates containing one, three, or zero filenames all exit 1. Not acted on; acting on it would have removed working coverage.",
+      "status": "closed-refuted",
+      "resolvedIn": null
+    },
+    {
+      "file": ".agro/evals/probes/memories-tier-defaults.sh",
+      "line": 134,
+      "claim": "NEGATION_RE matches a bare \\bno\\b or \\bnot\\b, so a mandate containing an incidental negation is whitelisted.",
+      "blocking": true,
+      "advisorVerdict": "CONFIRMED and reproduced: 'Read all three at session start, no exceptions.' exited 0. The worker then found a second instance of the same class: 'Read these files on boot, not later.' also exited 0.",
+      "status": "resolved",
+      "resolvedIn": "77b18024 — MECHANISM_DENIAL_RE binds the denial to a reading mechanism; seven variants verified by the advisor"
+    },
+    {
+      "file": ".agro/evals/probes/memories-tier-defaults.sh",
+      "line": 62,
+      "claim": "Inline explanatory comments in tracked probe code violate the root AGENTS.md standard.",
+      "blocking": true,
+      "advisorVerdict": "CONFIRMED. Removed, including one surviving comment the advisor sent back for consistency; the regex was renamed MECHANISM_DENIAL_RE so intent lives in the name.",
+      "status": "resolved",
+      "resolvedIn": "77b18024"
+    },
+    {
+      "file": ".agro/evals/probes/memories-tier-defaults.sh",
+      "line": 3,
+      "claim": "The # desc: header is a ~30-line essay narrating the implementation.",
+      "blocking": true,
+      "advisorVerdict": "CONFIRMED. Cut to the invariant plus the #1116 repair reason; the # source: line kept because the runner's hdr() renders it into RESULTS.md.",
+      "status": "resolved",
+      "resolvedIn": "77b18024"
+    },
+    {
+      "file": ".agro/evals/probes/memories-tier-defaults.sh",
+      "line": 82,
+      "claim": "The dual-mode template listing is subsumed by the equality check.",
+      "blocking": false,
+      "advisorVerdict": "Worker declined with a reason the advisor accepted: the equality check is source-checkout-only, so in both installed deployments this count is the only assertion that a fourth file has not appeared under templates/.",
+      "status": "closed-declined",
+      "resolvedIn": null
+    },
+    {
+      "file": ".agro/evals/probes/memories-tier-defaults.sh",
+      "line": 101,
+      "claim": "Per-block [[ -f ]] guards are subsumed by the existence loop.",
+      "blocking": false,
+      "advisorVerdict": "CONFIRMED and removed; proved rather than assumed with a new negative (deleting a template still exits 1 with clean output).",
+      "status": "resolved",
+      "resolvedIn": "77b18024"
+    },
+    {
+      "file": ".devcontainer/entrypoint.sh",
+      "line": 112,
+      "claim": "The find pipeline is generic-filename machinery for a closed three-name set.",
+      "blocking": false,
+      "advisorVerdict": "Accepted as taste, deliberately not actioned. The function is verified correct across six behavioral cases; churning a boot-path file for three lines is not worth the risk this late in the build. Disclosed rather than silently dropped.",
+      "status": "open-accepted",
+      "resolvedIn": null
+    },
+    {
+      "file": ".agro/memories/AGENTS.md",
+      "line": 19,
+      "claim": "The contract and the templates restate the same routing facts in several places.",
+      "blocking": false,
+      "advisorVerdict": "Partly by design and the reviewer said so: a template becomes the live file an operator reads without the contract open. Not actioned.",
+      "status": "open-accepted",
+      "resolvedIn": null
+    }
+  ],
+  "residual": "SIMPLICITY-RESIDUAL: two non-blocking items accepted open (entrypoint find pipeline; contract/template prose overlap). No blocking finding remains.",
+  "coverageGap": "No probe asserts the seeding behavior itself. The 'never overwrite, including an empty file' claim rests on advisor integration tests recorded in evidence.md, not on a suite probe. Disclosed, not closed."
 }
