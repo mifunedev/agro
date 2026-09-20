@@ -50,3 +50,14 @@
   resolved NOT-AFFECTED with reasons; no page rewritten and no verified_at advanced.
   wiki-readme-index exit 0. CI on 152ced6b: 3 checks, all pass, none skipped or neutral.
   US-005 flipped after the PR body, the gates and the CI result were all in hand.
+
+2026-09-20 READY — PR https://github.com/mifunedev/agro/pull/1117, isDraft=false, head
+  fb9200ce75bc8454a7522006f7f96389830ed1be. /audit implementation verdict AUDIT-PASS
+  (run audit-20260920T180642Z-1116): gate1 5/5 stories, gate2 reused eval-result via the
+  content-head rule (runnerExit 0), gate3 promotable CLEAN/MERGEABLE, gate4 not applicable,
+  gate5 PASS with 2 non-blocking findings open. CI verified for that exact head AFTER the final
+  push and the undraft: 3 checks, all SUCCESS, none skipped or neutral. reviewDecision is empty:
+  no required human review has run, and CI green is not evidence that one did.
+  Not done, and out of the approved scope rather than skipped silently: /spec retro and
+  /wiki compile. They are not Definition of Done items for this contract.
+  Task state: all five stories pass. Human merge gate remains; nothing was merged.
