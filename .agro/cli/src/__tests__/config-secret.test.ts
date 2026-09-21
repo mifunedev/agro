@@ -251,24 +251,6 @@ describe("oh config set", () => {
     expect(err.join("")).toMatch(/between 1 and 65535/);
     expect(existsSync(ohConfigPath(root))).toBe(false);
   });
-
-  it("sets the langfuse fields the old dotenv had no home for", async () => {
-    const root = makeRepo();
-    const { io } = makeIo();
-    expect(await runConfigSet("langfuse.baseUrl", "http://langfuse-web:3000", { bin: "oh", cwd: root }, io))
-      .toBe(0);
-    expect(await runConfigSet("langfuse.privacyPreset", "metadata-only", { bin: "oh", cwd: root }, io)).toBe(0);
-    expect(readConfig(root)).toMatchObject({
-      langfuse: { baseUrl: "http://langfuse-web:3000", privacyPreset: "metadata-only" },
-    });
-  });
-
-  it("refuses a privacy preset outside the documented set", async () => {
-    const root = makeRepo();
-    const { io, err } = makeIo();
-    expect(await runConfigSet("langfuse.privacyPreset", "everything", { bin: "oh", cwd: root }, io)).toBe(1);
-    expect(err.join("")).toMatch(/must be one of metadata-only/);
-  });
 });
 
 describe("oh secret set", () => {

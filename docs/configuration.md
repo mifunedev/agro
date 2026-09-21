@@ -143,19 +143,6 @@ Recipe: [`agro sandbox install docker`](deployment-prebuilt-image.md).
 | `image.mode` | `"build"` \| `"image"` | `build` | — | Whether the lifecycle builds locally or runs `image.ref`. A build happens only when the entry carries `checkout` and that directory holds `.devcontainer/Dockerfile`. Pairs with `agro sandbox install docker --image`. |
 | `image.pullPolicy` | `"missing"` \| `"always"` \| `"never"` | `missing` | `AGRO_PULL_POLICY` (legacy alias `OH_PULL_POLICY`) | Compose pull policy for `image.ref`. |
 
-### Langfuse
-
-Tracing settings the Pi harness reads from its own process environment. They are
-not secrets — the Langfuse key pair is, and lives in `.env`. The harness does not
-project these into the container: export them in the shell that launches Pi.
-They remain settable here so a deployment can record its intended values in one
-tracked place.
-
-| Field | Type | Default | Compose variable | What it does |
-| --- | --- | --- | --- | --- |
-| `langfuse.baseUrl` | string | unset | — | Langfuse host Pi sends traces to, for example `http://langfuse-web:3000`. Takes precedence over `LANGFUSE_HOST`. |
-| `langfuse.privacyPreset` | `"metadata-only"` \| `"prompts-only"` \| `"conversations"` \| `"full-debug"` | unset (compose default `metadata-only`) | — | How much of each trace Pi captures. Prefer `metadata-only` unless a broader capture policy is approved. |
-
 ### Compose overlays
 
 | Field | Type | Default | Compose variable | What it does |

@@ -160,11 +160,6 @@ describe("validateOhConfig", () => {
       /^oh\.json: image\.pullPolicy must be one of missing, always, never$/,
     ],
     [
-      "langfuse.baseUrl",
-      { langfuse: { baseUrl: 1 } },
-      /^oh\.json: langfuse\.baseUrl must be a string$/,
-    ],
-    [
       "composeOverrides",
       { composeOverrides: "a.yml" },
       /^oh\.json: composeOverrides must be an array of strings$/,
