@@ -76,6 +76,13 @@ tmux new-session -d -s agent-codex 'codex --dangerously-bypass-approvals-and-san
 tmux attach -t agent-codex
 ```
 
+## Optional Langfuse observability
+
+[Langfuse](../integrations/langfuse.md#3-codex) traces Codex turns, tool calls,
+and cost through the official `codex-observability-plugin`. The plugin stays off
+until you enable tracing and sets no trace tag of its own. Approve its hook once
+in an interactive session before the plugin sends a trace.
+
 ## Tips
 
 - Codex works best with a clearly scoped task description passed as the first argument.
