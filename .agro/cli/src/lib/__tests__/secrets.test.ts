@@ -36,6 +36,7 @@ describe("allow-list", () => {
       "PI_SLACK_BOT_TOKEN",
       "LANGFUSE_PUBLIC_KEY",
       "LANGFUSE_SECRET_KEY",
+      "TYPESAFE_API_KEY",
     ]);
   });
 

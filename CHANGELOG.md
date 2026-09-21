@@ -10,6 +10,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
+- Add `.agro/scripts/typesafe.mjs`, a zero-dependency TypeSafe System One adapter. Unconfigured, it names the variable and the command that sets it, then returns null so the caller continues ([#1121](https://github.com/mifunedev/agro/issues/1121)).
+- Add `prompt-miner --judge`, scoring `correctionDensity` with a typed judgment instead of the 12-word negation lexicon. Off by default and uncalibrated ([#1121](https://github.com/mifunedev/agro/issues/1121)).
+- Add `TYPESAFE_API_KEY` to the secret allow-list and a `typesafe-ai` skill preflight that reports an unconfigured sandbox before the first API call ([#1121](https://github.com/mifunedev/agro/issues/1121)).
+- Add six probes pinning the TypeSafe degradation contract: null without a key, one cause per failure, one diagnostic source, preflight exit 0, key absent from compose, judge off by default ([#1121](https://github.com/mifunedev/agro/issues/1121)).
 - Default Antigravity CLI (`agy`) to zero-confirmation mode with a sandbox alias, catalog launch flag, and seeded settings.json ([#1090](https://github.com/mifunedev/agro/issues/1090)).
 - Add `agro workspace create [<name>]` and `agro workspace list`, so an operator creates and inspects a host AGRO workspace under `~/.agro/workspaces/` without installing a harness ([#1086](https://github.com/mifunedev/agro/issues/1086)).
 - Add two probes: `spec-task-artifact-contract` fails when a completed task folder lacks a required artifact, and `audit-tooling-blocked-signal` fails when an unrunnable gate reads as failed ([#1088](https://github.com/mifunedev/agro/issues/1088)).
