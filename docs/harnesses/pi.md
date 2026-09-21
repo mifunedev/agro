@@ -47,10 +47,10 @@ Pi installs missing project packages automatically on startup after the project 
 
 ## Optional Langfuse observability
 
-[Langfuse](../integrations/langfuse.md) is an opt-in Pi-only tracing package, not
-a default `.pi/settings.json` package. It can capture prompts, outputs, tool I/O,
-the system prompt, and cwd; review the package, choose a narrow privacy preset,
-and configure its external Langfuse deployment before installing it.
+[Langfuse](../integrations/langfuse.md#2-pi) is an opt-in extension, not a default
+`.pi/settings.json` package. Install `@langfuse/pi-observability-plugin` in user
+scope. It captures prompts, outputs, tool calls, and cost, and tags each trace
+`pi`. Configure its external Langfuse deployment before installing it.
 
 ### Codex stale-response recovery
 

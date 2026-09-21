@@ -49,11 +49,11 @@ Credentials are stored in `~/.claude/.credentials.json` inside the sandbox (pers
 ## Optional Langfuse observability
 
 For optional Claude Code end-to-end traces, use Langfuse's official marketplace
-plugin and configure it at the Claude prompt; it is not a native OTEL or
-`.env` setup. The plugin is user-scoped and captures conversation and tool data,
-so disable it before sensitive sessions. See [Langfuse](../integrations/langfuse.md#claude-code)
-for the exact install/configure commands, endpoint choices, privacy boundary,
-and disable/uninstall steps.
+plugin; it is not a native OTEL or `.env` setup. The plugin is user-scoped and
+captures conversation and tool data, so disable it before sensitive sessions.
+Each trace is tagged `claude-code`. See
+[Langfuse](../integrations/langfuse.md#1-claude-code) for install commands,
+endpoint choices, and the disable steps.
 
 ## Common usage
 
