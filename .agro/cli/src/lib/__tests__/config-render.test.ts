@@ -69,7 +69,6 @@ function fullConfig(): OhConfig {
     dockerSocket: true,
   };
   config.image = { ref: "ghcr.io/mifunedev/openharness:latest", mode: "image", pullPolicy: "always" };
-  config.langfuse = { baseUrl: "http://langfuse-web:3000", privacyPreset: "metadata-only" };
   return config;
 }
 

@@ -352,7 +352,6 @@ describe("oh sandbox install — re-installing an existing name", () => {
         cron: { agentBin: "codex" },
         build: { skipPnpmInstall: true },
         git: { userName: "Round Trip", userEmail: "round@example.test" },
-        langfuse: { baseUrl: "https://lf.example.test", privacyPreset: "prompts-only" },
         composeOverrides: ["docker-compose.extra.yml"],
       })}\n`,
     );
@@ -368,7 +367,6 @@ describe("oh sandbox install — re-installing an existing name", () => {
       cron: { agentBin: "codex" },
       build: { skipPnpmInstall: true },
       git: { userName: "Round Trip", userEmail: "round@example.test" },
-      langfuse: { baseUrl: "https://lf.example.test", privacyPreset: "prompts-only" },
       composeOverrides: ["docker-compose.extra.yml"],
       image: { mode: "build" },
     });

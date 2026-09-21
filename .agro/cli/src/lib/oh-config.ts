@@ -65,24 +65,6 @@ export interface StorageSettings {
   homePath?: string;
 }
 
-export type LangfusePrivacyPreset =
-  | "metadata-only"
-  | "prompts-only"
-  | "conversations"
-  | "full-debug";
-
-export const LANGFUSE_PRIVACY_PRESETS: readonly LangfusePrivacyPreset[] = [
-  "metadata-only",
-  "prompts-only",
-  "conversations",
-  "full-debug",
-];
-
-export interface LangfuseSettings {
-  baseUrl?: string;
-  privacyPreset?: LangfusePrivacyPreset;
-}
-
 export type SandboxRuntime = "docker";
 
 export const SANDBOX_RUNTIMES: readonly SandboxRuntime[] = ["docker"];
@@ -101,7 +83,6 @@ export interface OhConfig {
   cron?: CronSettings;
   build?: BuildSettings;
   image?: ImageSettings;
-  langfuse?: LangfuseSettings;
   composeOverrides?: string[];
   [key: string]: unknown;
 }
@@ -132,7 +113,6 @@ export function defaultOhConfig(name: string): OhConfig {
     cron: { agentBin: "claude" },
     build: { skipPnpmInstall: false },
     image: { mode: "build", pullPolicy: "missing" },
-    langfuse: {},
     composeOverrides: [],
   };
 }
@@ -242,12 +222,6 @@ export function validateOhConfig(value: unknown): OhConfig {
     expectEnum(image, "pullPolicy", "image.", ["missing", "always", "never"]);
   }
 
-  const langfuse = expectSection(record, "langfuse");
-  if (langfuse) {
-    expectString(langfuse, "baseUrl", "langfuse.");
-    expectEnum(langfuse, "privacyPreset", "langfuse.", LANGFUSE_PRIVACY_PRESETS);
-  }
-
   if (record.composeOverrides !== undefined) {
     const list = record.composeOverrides;
     if (!Array.isArray(list)) throw fieldError("composeOverrides", "must be an array of strings");
@@ -347,8 +321,6 @@ export const OH_CONFIG_FIELDS: readonly OhConfigField[] = [
   { path: "image.mode", type: "enum", values: ["build", "image"] },
   { path: "image.pullPolicy", type: "enum", values: ["missing", "always", "never"] },
   { path: "storage.homePath", type: "string" },
-  { path: "langfuse.baseUrl", type: "string" },
-  { path: "langfuse.privacyPreset", type: "enum", values: LANGFUSE_PRIVACY_PRESETS },
   { path: "composeOverrides", type: "list" },
 ];
 
