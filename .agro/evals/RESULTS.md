@@ -107,6 +107,7 @@ probe id; git history is the time series.** Schema and exit-code semantics are i
 | memories-tier-defaults | A | 2026-09-22 08:47 | PASS | issue #1084 |
 | next-dev-prod | A | 2026-09-22 08:47 | REGRESSION | retro lesson 2026-06-04 |
 | no-project-agent-catalog | A | 2026-09-22 08:47 | PASS | ADR #929 — .agro/agents/ is retired; provider-link and update logic must not recreate it |
+| npm-global-prefix-home | A | 2026-09-22 23:07 | PASS | #1138 — a harness self-update ran a bare `npm install -g` and hit |
 | operator-config-guard | A | 2026-09-22 08:47 | PASS | operator directives 2026-08-06 (.config/ and settings.local.json are operator-only) |
 | plan-orchestration-contract | A | 2026-09-22 08:47 | PASS | issue #988 / ADR #989 |
 | pnpm-audit-ci-gate | A | 2026-09-22 08:47 | PASS | issue #171 — pnpm security audits must run in CI; #943 — GHSA-82fw-gwwq-j7x9 turned a live `pnpm:devPreinstall` advisory query into a sandbox boot failure; #1019 — the same class of failure must not recur through a different hook |

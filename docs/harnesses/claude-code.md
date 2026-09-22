@@ -30,6 +30,17 @@ Verify the install:
 claude --version
 ```
 
+## Update
+
+```bash
+claude update                        # the harness updates itself
+agro harness install claude-code     # or re-run the door
+```
+
+Both write to `/home/sandbox/.local`, because the sandbox exports
+`NPM_CONFIG_PREFIX` as that prefix. Do not use `sudo`: `claude` is not on sudo's
+`secure_path`, and a root-owned install would leave the home volume.
+
 ## Authentication
 
 Sign in explicitly with the `auth` subcommand (verified against Claude Code v2.1.198) and
