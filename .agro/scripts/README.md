@@ -11,6 +11,7 @@ Use `agro` for lifecycle operations; each script's callers determine its executi
 | `cron-runtime.ts`, `gateway.sh` | Scheduled jobs and named messaging sessions. |
 | `provision-python.sh` | Sandbox Python defaults and kernel environment. |
 | `sandbox-healthcheck.sh`, `sandbox-boot-smoke.sh`, `sandbox-upgrade-smoke.sh` | Runtime health, boot, and upgrade checks. |
+| `compose-config-path-parity.sh` | Wrapper and "Reopen in Container" resolve the same service and environment file. |
 | `verify-sandbox-image.sh`, `node-pnpm-parity.sh`, `check-pnpm-pin.sh` | Image and dependency parity checks. |
 | `release-reservation.mjs`, `reserve-github-release.mjs`, `promote-release-latest.sh` | Release reservation and image promotion. |
 | `verify-release-aliases.sh`, `npm-wait-version.sh` | Release artifact checks. |

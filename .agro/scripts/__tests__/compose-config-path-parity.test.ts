@@ -18,8 +18,7 @@ const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const PROBE = path.join(
   REPO_ROOT,
   ".agro",
-  "evals",
-  "probes",
+  "scripts",
   "compose-config-path-parity.sh",
 );
 const SCRIPTS = path.join(REPO_ROOT, ".agro", "scripts");
@@ -53,7 +52,6 @@ let tmp: string;
 function scaffold(): string {
   const root = mkdtempSync(path.join(tmp, "parity-"));
   mkdirSync(path.join(root, ".agro", "scripts"), { recursive: true });
-  mkdirSync(path.join(root, ".agro", "evals", "probes"), { recursive: true });
 
   cpSync(path.join(REPO_ROOT, ".devcontainer"), path.join(root, ".devcontainer"), {
     recursive: true,
@@ -69,7 +67,7 @@ function scaffold(): string {
   }
   copyFileSync(
     PROBE,
-    path.join(root, ".agro", "evals", "probes", "compose-config-path-parity.sh"),
+    path.join(root, ".agro", "scripts", "compose-config-path-parity.sh"),
   );
   return root;
 }
@@ -81,7 +79,7 @@ function rootEnv(root: string, contents = CANONICAL_VALUES): void {
 function runProbe(root: string): { status: number; stderr: string } {
   const result = spawnSync(
     "bash",
-    [path.join(root, ".agro", "evals", "probes", "compose-config-path-parity.sh")],
+    [path.join(root, ".agro", "scripts", "compose-config-path-parity.sh")],
     { encoding: "utf8" },
   );
   return { status: result.status ?? -1, stderr: result.stderr ?? "" };
