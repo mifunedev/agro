@@ -10,6 +10,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
+- Add `agro config langfuse` and `agro langfuse apply|status|disable`. Settings live in `agro.json` and `.env`, render to a `0600` fragment and the harness files, and re-apply at boot ([#1131](https://github.com/mifunedev/agro/issues/1131)).
 - Add `.agro/scripts/typesafe.mjs`, a zero-dependency TypeSafe System One adapter. Unconfigured, it names the variable and the command that sets it, then returns null so the caller continues ([#1121](https://github.com/mifunedev/agro/issues/1121)).
 - Add `prompt-miner --judge`, scoring `correctionDensity` with a typed judgment instead of the 12-word negation lexicon. Off by default and uncalibrated ([#1121](https://github.com/mifunedev/agro/issues/1121)).
 - Add `TYPESAFE_API_KEY` to the secret allow-list and a `typesafe-ai` skill preflight that reports an unconfigured sandbox before the first API call ([#1121](https://github.com/mifunedev/agro/issues/1121)).

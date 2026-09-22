@@ -132,6 +132,20 @@ at boot. The install lands in `~/.local` inside the persistent home volume, and
 | --- | --- | --- | --- | --- |
 | `build.skipPnpmInstall` | boolean | `false` | — | `true` skips the entrypoint's root `pnpm install`. Use it when the dependency tree is managed outside the sandbox. |
 
+### Langfuse tracing
+
+`agro config langfuse` writes these four fields. The two Langfuse keys are
+secrets and live in `.env`, not here. `agro langfuse apply` reads both surfaces
+and renders them into the credential fragment `~/.config/agro/langfuse.env` and
+into one tracing file per harness. See [Langfuse](integrations/langfuse.md).
+
+| Field | Type | Default | Compose variable | What it does |
+| --- | --- | --- | --- | --- |
+| `langfuse.enabled` | boolean | `false` | — | Turns tracing on. `agro langfuse apply` writes the credential fragment only when this field is `true`. `agro langfuse disable` sets it to `false` and deletes the fragment. |
+| `langfuse.baseUrl` | string | `https://cloud.langfuse.com` | — | Endpoint each harness sends traces to. Pick the URL from where the harness runs, not from where you browse. |
+| `langfuse.environment` | string | the `name` field, else `sandbox` | — | Trace environment. Langfuse stores it at write time, so choose the name before you collect traces. |
+| `langfuse.userId` | string | unset | — | User id for Pi traces. It reaches `~/.pi/agent/langfuse.json` only. |
+
 ### Prebuilt image
 
 Run a published image instead of building from `.devcontainer/Dockerfile`.

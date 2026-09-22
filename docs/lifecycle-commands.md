@@ -54,6 +54,8 @@ Amazon Bedrock, Vertex or Foundry, reads no project instructions at all.
 | `agro config show [--sandbox <name>]` · `agro config set <field> <value> [--sandbox <name>]` | read and write `agro.json` |
 | `agro config repo` · `agro config <integration>` | GitHub-remote and integration wizards |
 | `agro secret set <KEY> [--sandbox <name>]` · `agro secret list [--sandbox <name>]` | read and write the gitignored `.env` |
+| `agro config langfuse` | the interactive Langfuse tracing wizard — see below |
+| `agro langfuse apply` · `agro langfuse status` · `agro langfuse disable` | render, check, or remove the Langfuse tracing files — see below |
 | `agro gateway <pi\|hermes>` · `agro gateway status` | `.agro/scripts/gateway.sh` |
 | `agro harness` · `agro tool` | install and inspect harnesses and tooling |
 | `agro workspace create [<name>] [--path <dir>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
@@ -350,6 +352,53 @@ agro workspace list --json                # the same rows as JSON
 Each verb resolves an existing workspace and exits 1 when none resolves. The
 refusal lists every workspace that exists and names `agro workspace create`. See
 [Harnesses Overview](harnesses/overview.md#installing-on-the-host).
+
+## Langfuse tracing: `agro config langfuse` and `agro langfuse`
+
+`agro config langfuse` is the interactive wizard, and the first integration in
+the registry. `agro config --help` lists it. The wizard takes no flags and runs
+five steps: enable, base URL, API keys, segmentation, and a health check before
+the write.
+
+Step 1 depends on the current state. With `langfuse.enabled` unset or `false`
+the wizard asks *Enable Langfuse tracing?*, and a decline writes nothing. With
+`langfuse.enabled` set to `true` the wizard asks *Keep it enabled?*, and a
+decline runs the disable path. The wizard needs an interactive terminal.
+Without a TTY the wizard asks nothing and runs `agro langfuse apply`.
+
+The wizard writes the non-secret fields to the `langfuse` section of `agro.json`
+and both keys to the gitignored `.env`. It then offers to install each missing
+harness plugin and applies the configuration.
+
+Three non-interactive verbs carry the rest:
+
+| Verb | Runs |
+|---|---|
+| `agro langfuse apply` | render `~/.config/agro/langfuse.env` at mode `0600`, and one tracing file per harness |
+| `agro langfuse status` | print the resolved settings, the state of every generated file, and the plugin state of each harness |
+| `agro langfuse disable` | set `langfuse.enabled=false`, delete the credential fragment, and rewrite the harness files with tracing off |
+
+These three verbs sit outside the integration registry on purpose. An
+`Integration` is `{ description, runner: () => Promise<number> }`, and
+`agro config <integration>` accepts no flags and no subcommand.
+
+Four behaviours matter in a script:
+
+- `status` exits non-zero when a generated file is missing or differs from a
+  fresh render, so a check job can call it directly.
+- `status` also exits `1` when `langfuse.enabled` is `false` and the credential
+  fragment survives. The fragment is the off switch, and a stale fragment is the
+  unsafe state. The message names `agro langfuse disable`.
+- `disable` keeps the other `langfuse.*` settings and both `.env` keys, so
+  re-enabling needs no re-prompt. `disable` then warns that a running harness
+  keeps the credentials it loaded, and names the restart.
+- The generated files live in the sandbox home. On the host, the wizard and
+  `disable` save the settings, refuse the file work, name the sandbox command,
+  and exit `1`. On the host, `status` prints the settings and exits `0`.
+
+`.devcontainer/entrypoint.sh` runs `agro langfuse apply` at every start, so the
+configuration survives `agro destroy` and a recreate. Full reference:
+[Langfuse](integrations/langfuse.md).
 
 ## `agro destroy` and its confirmation policy
 
