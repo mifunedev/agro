@@ -17,13 +17,13 @@ its [schema](../skills/wiki/references/schema.md) owns entry formats.
 | Slug | Title | Tags | Updated |
 | --- | --- | --- | --- |
 | recursive-language-models | Recursive Language Models | [rlm, context-as-environment, weighted-trajectories, agent-harness, llm-agents, self-consistency, retired-experiment] | 2026-09-21 |
+| compose-env-boundary | Compose Environment Boundary | [compose, devcontainer, oh-json, cli, entrypoint, boundary, installs, sandbox, registry, tracing, langfuse, secrets] | 2026-09-21 |
 | pattern-wiki-verified-at-advanced-over-unread-citations | Advancing verified_at after re-reading only the citations you added launders staleness into freshness | [wiki, knowledge, verified-at, citation-rot, freshness, line-numbers, provenance] | 2026-09-19 |
 | pattern-spec-procedure-executed-from-summary | A procedure executed from a subagent's summary loses every gate the summary compressed away | [spec, execute, subagents, orientation, gates, context-budget, delegate] | 2026-09-19 |
 | pattern-evals-document-conformance-proxy-oracle | A probe that greps the rule text cannot detect an executor disobeying the rule | [evals, probes, oracle-design, proxy-measure, behavior, recurrence, spec] | 2026-09-19 |
 | pattern-audit-gate-unrunnable-reads-as-defect | A gate that cannot run in the operator's environment is indistinguishable from a gate that failed | [audit, gh, version-skew, fail-closed, diagnosis, verification-environment] | 2026-09-19 |
 | oh-cli-portable-lifecycle | oh CLI Portable Lifecycle | [cli, oh, agro, lifecycle, standalone, registry, sandbox, workspace, host-install, remote-fetch, execution-target, update, self-upgrade, npm, install-kind, recovery] | 2026-09-19 |
 | fresh-machine-setup | Fresh-Machine Setup Flow | [setup, onboarding, installation, agro, registry, workspace, host-install, gateway, ssh, github, slack] | 2026-09-19 |
-| compose-env-boundary | Compose Environment Boundary | [compose, devcontainer, oh-json, cli, entrypoint, boundary, installs, sandbox, registry] | 2026-09-19 |
 | release-versioning | Release Versioning | [release, versioning, semver, calver, github-actions, ghcr, tags, workflow, package-json, agro, npm, repository-dispatch, docs-site] | 2026-09-09 |
 | pattern-wiki-frontmatter-edit-without-reindex | A frontmatter edit without a reindex leaves the generated index stale while the freshness probe stays green | [wiki, knowledge, evals, probes, index, ci] | 2026-09-08 |
 | pattern-evals-tracked-only-scan-misses-uncommitted | A repository scan over git ls-files passes on uncommitted files and fails once they are committed | [evals, testing, git, inventory, ci, false-pass] | 2026-09-08 |
