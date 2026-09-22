@@ -125,8 +125,11 @@ that every harness can read them and exactly one file needs guarding.
 - [ ] Keys are read from `.env` via the existing `readSecret` in `lib/secrets.ts`
 - [ ] Rendering is idempotent: a second run with unchanged input produces a byte-identical file
 - [ ] Refuses to render and returns a clear error if either key is missing
-- [ ] `Read(file_path=**/.config/agro/langfuse.env)` added to `permissions.deny` in
-      `.claude/settings.json`
+- [ ] **No new deny rule is added.** Verified during execution: `.claude/settings.json`
+      already denies `Read(file_path=**/.config/**)`, `Edit(file_path=**/.config/**)`, and
+      `Bash(command=*/.config/*)`, so the fragment path is covered for read, edit, and any
+      shell command naming it. A narrower duplicate glob would be noise. A test asserts the
+      fragment path falls under an existing deny rule rather than adding one
 - [ ] A value containing a newline or a single quote is rejected or safely quoted, with a test
 
 ### US-004: Wire the fragment into every shell
@@ -241,7 +244,14 @@ wizard "takes no flags", so `apply`, `status`, and `disable` stay under `agro la
 - [ ] `agro config langfuse --help` renders through the existing `printIntegrationHelp`
 - [ ] The `Integration` interface is **not** changed — no argv parameter, no flags
 - [ ] Five steps rendered with `prompt.step(n, 5, label)` — its first caller
-- [ ] Step 1 — enable: `askYesNo`. Declining writes nothing and exits `0`
+- [ ] Step 1 — enable: `askYesNo`, and **the question depends on current state**, because
+      "no" is ambiguous otherwise. When tracing is currently disabled or unset, ask
+      "Enable Langfuse tracing?" and a decline writes nothing and exits `0`. When tracing is
+      currently **enabled**, ask whether to keep it enabled, and a decline runs the US-010
+      disable path. Resolved during execution: US-008 and US-010 contradicted each other on
+      what "no" means, and the safe-looking reading is the dangerous one — an operator
+      turning tracing off before a sensitive session would answer "no", see no error, and
+      still be traced
 - [ ] Step 2 — base URL: a **menu**, not free text, with Langfuse Cloud /
       `http://host.docker.internal:3000` / Compose service name / custom, mirroring the table
       in `docs/integrations/langfuse.md`
@@ -293,8 +303,9 @@ matters, because `~/.pi/agent/langfuse.json` has no documented `enabled` field.
 
 **Acceptance Criteria:**
 
-- [ ] `agro langfuse disable` (and `setup` answering "no" at step 1) sets
-      `langfuse.enabled: false` in `agro.json`
+- [ ] `agro langfuse disable` sets `langfuse.enabled: false` in `agro.json`. The wizard
+      reaches this same path when tracing is currently enabled and the operator declines at
+      step 1 — see US-008 step 1 for why the question is state-dependent
 - [ ] Deletes `~/.config/agro/langfuse.env`
 - [ ] Rewrites the harness files reflecting the disabled state; non-secret segmentation
       settings are **retained** in `agro.json`
@@ -412,7 +423,10 @@ nothing. This is the single most likely first-run failure.
   cron service starts.
 - **FR-14:** Disabling must delete the credential fragment and retain non-secret settings.
 - **FR-15:** No command may print a credential; all display goes through `prompt.redact`.
-- **FR-16:** `.claude/settings.json` `permissions.deny` must include the fragment path.
+- **FR-16:** The fragment path must be covered by `.claude/settings.json` `permissions.deny`.
+  This is already true via the existing `**/.config/**` rules, so the requirement is a
+  verification, not an edit. Choosing `~/.config/agro/` over another location is what
+  satisfies it.
 - **FR-17:** Provider logic must live under `lib/tracing/providers/`, keeping the command
   surface singular while leaving the seam provider-shaped.
 - **FR-25:** The wizard must register in the existing `INTEGRATIONS` registry as

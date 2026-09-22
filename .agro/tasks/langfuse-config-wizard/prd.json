@@ -19,8 +19,8 @@
         "Typecheck, lint, and unit tests pass"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Schema at 5e9e07e8; the dotted-path secret redirect closed at fb3fac0f via secretKeyForConfigPath(). Advisor verified: `config set langfuse.publicKey` now prints the secret redirect at exit 1, while langfuse.baseUrl still sets normally."
     },
     {
       "id": "US-002",
@@ -35,8 +35,8 @@
         "Typecheck, lint, and unit tests pass"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Met at 5e9e07e8 + 97551c0f. Runtime-throw criterion satisfied by source scan: the RETIRED_KEYS branch is unreachable from config data, so the guard protects against a future put() edit, and three source-level tests catch that edit earlier than the throw. The prototype-swap test that gave runtime coverage was removed as a parallel-worker hazard."
     },
     {
       "id": "US-003",
@@ -51,13 +51,12 @@
         "Keys are read from `.env` via the existing `readSecret` in `lib/secrets.ts`",
         "Rendering is idempotent: a second run with unchanged input produces a byte-identical file",
         "Refuses to render and returns a clear error if either key is missing",
-        "`Read(file_path=**/.config/agro/langfuse.env)` added to `permissions.deny` in `.claude/settings.json`",
-        "A value containing a newline or a single quote is rejected or safely quoted, with a test",
-        "Typecheck, lint, and unit tests pass"
+        "**No new deny rule is added.** Verified during execution: `.claude/settings.json` already denies `Read(file_path=**/.config/**)`, `Edit(file_path=**/.config/**)`, and `Bash(command=*/.config/*)`, so the fragment path is covered for read, edit, and any shell command naming it. A narrower duplicate glob would be noise. A test asserts the fragment path falls under an existing deny rule rather than adding one",
+        "A value containing a newline or a single quote is rejected or safely quoted, with a test"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Met at d348374c. The 'add a deny glob' criterion was corrected during execution to a verification: the fragment path is already covered by the existing config-path rules. That verification is now a real oracle \u2014 it failed correctly under advisor injection after 4ee6bea2 fixed a probe that had been passing via an unrelated verb-specific rule."
     },
     {
       "id": "US-004",
@@ -78,8 +77,8 @@
         "Typecheck, lint, and unit tests pass"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Met at da141cb9. Two of three residuals closed downstream: the systemd-parse half of the two-consumer test by T3, and the seed_home ~/.zshenv warning by T4's status command. ONE REMAINS OPEN and must be disclosed in the PR body: a tmux:false cron entry producing a real trace. That needs an image rebuild plus a live cron fire; the container runs the image-baked entrypoint, so it cannot be shown from this worktree."
     },
     {
       "id": "US-005",
@@ -96,8 +95,8 @@
         "Typecheck, lint, and unit tests pass"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Met at d348374c. No-credential property enforced structurally, not only by test: HarnessTracingSettings carries no credential field and the writers never import readSecret."
     },
     {
       "id": "US-012",
@@ -115,8 +114,8 @@
         "Typecheck, lint, and unit tests pass"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Met at d348374c. Acceptance evidence obtained: adding the third writer required NO change to the seam, which is what the story existed to prove. The status 'untrusted' reporting and the manual hook-trust message belong to the command surface (T4/T5)."
     },
     {
       "id": "US-006",
@@ -132,7 +131,7 @@
         "Typecheck, lint, and unit tests pass"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -148,8 +147,8 @@
         "Typecheck, lint, and unit tests pass"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Met at 5c6dbcb3 on every criterion EXCEPT the final end-to-end one: 'configure, agro destroy, recreate, confirm the files are present with correct modes'. That is NOT verifiable from inside the sandbox being destroyed, and would not even test this change if attempted: the container runs the image-baked /usr/local/bin/entrypoint.sh, not the worktree file, so a service restart would exercise the OLD entrypoint. It needs an image rebuild plus a destroy/recreate by the operator. DISCLOSE under 'What remains unverified' in the PR body. The mechanism itself was executed directly in all five degraded cases and the happy path; what is unproven is only that systemd invokes it at a real boot."
     },
     {
       "id": "US-008",
@@ -160,7 +159,7 @@
         "`agro config langfuse --help` renders through the existing `printIntegrationHelp`",
         "The `Integration` interface is **not** changed \u2014 no argv parameter, no flags",
         "Five steps rendered with `prompt.step(n, 5, label)` \u2014 its first caller",
-        "Step 1 \u2014 enable: `askYesNo`. Declining writes nothing and exits `0`",
+        "Step 1 \u2014 enable: `askYesNo`, and **the question depends on current state**, because \"no\" is ambiguous otherwise. When tracing is currently disabled or unset, ask \"Enable Langfuse tracing?\" and a decline writes nothing and exits `0`. When tracing is currently **enabled**, ask whether to keep it enabled, and a decline runs the US-010 disable path. Resolved during execution: US-008 and US-010 contradicted each other on what \"no\" means, and the safe-looking reading is the dangerous one \u2014 an operator turning tracing off before a sensitive session would answer \"no\", see no error, and still be traced",
         "Step 2 \u2014 base URL: a **menu**, not free text, with Langfuse Cloud / `http://host.docker.internal:3000` / Compose service name / custom, mirroring the table in `docs/integrations/langfuse.md`",
         "Step 3 \u2014 keys: `prompt.askSecret` twice, stored via the existing `setSecret`; already-set keys show a `prompt.redact` line and offer to keep the current value",
         "Step 4 \u2014 segmentation: `environment` defaulted to the sandbox name, optional `userId`",
@@ -173,7 +172,7 @@
         "Tests inject `io.ask` / `io.askSecret` following the `SecretIO` pattern; no test needs a real TTY"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -193,7 +192,7 @@
         "Typecheck, lint, and unit tests pass"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -211,26 +210,25 @@
         "Typecheck, lint, and unit tests pass"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Met at fb3fac0f. Worker judgment call accepted: disabled WITH a leftover fragment exits 1 and suggests `disable`, because the fragment is the off switch and a stale one is exactly the unsafe state. Drift detection reuses the writers' own TracingWriteResult via two scratch homes rather than duplicating the Claude merge logic \u2014 one comparison path, and an operator's extra settings.json keys correctly read as current."
     },
     {
       "id": "US-010",
       "title": "Disable path",
       "description": "As an operator, I want one command to stop tracing before a sensitive session, with a result I can trust.",
       "acceptanceCriteria": [
-        "`agro langfuse disable` (and `setup` answering \"no\" at step 1) sets `langfuse.enabled: false` in `agro.json`",
+        "`agro langfuse disable` sets `langfuse.enabled: false` in `agro.json`. The wizard reaches this same path when tracing is currently enabled and the operator declines at step 1 \u2014 see US-008 step 1 for why the question is state-dependent",
         "Deletes `~/.config/agro/langfuse.env`",
         "Rewrites the harness files reflecting the disabled state; non-secret segmentation settings are **retained** in `agro.json`",
         "Keys are **not** removed from `.env`, so re-enabling needs no re-prompt",
         "`agro langfuse setup` on an already-configured, disabled setup offers to re-enable using stored values without re-entering keys",
         "Prints an explicit warning that harnesses already running keep their loaded credentials and must be restarted",
-        "`agro langfuse status` reports `disabled` and confirms the fragment is absent",
-        "Typecheck, lint, and unit tests pass"
+        "`agro langfuse status` reports `disabled` and confirms the fragment is absent"
       ],
       "priority": 12,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Met at fb3fac0f, completed by f8c343fe. The wizard reaches the same disable path when tracing is on and the operator declines at step 1 \u2014 verified under a real pty. Resolves the US-008/US-010 contradiction by making the QUESTION state-dependent rather than overloading the answer."
     },
     {
       "id": "US-011",
@@ -249,8 +247,8 @@
         "Typecheck, lint, and unit tests pass"
       ],
       "priority": 13,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Met at 79c88050 + dff374bb. Beyond scope, it corrected four pre-existing doc falsehoods (destroy/reconfigure claim, Codex tag ownership, the .env half of the claude-code OTel line, and the .example.env 'shell export not harness config' claim). These were NOT regressions this build introduced \u2014 say so in the PR body or the diff misreads."
     },
     {
       "id": "US-014",
@@ -267,8 +265,8 @@
         "Typecheck, lint, and unit tests pass"
       ],
       "priority": 14,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Met at 68358b05. ADR #1133 opened by the owner and indexed. The story's fault-injection criterion applies to probes added by OTHER tasks (T2, T5) and both were injected and recorded; T8 added no probe. Carry-forward for a follow-up: the knowledge page is ~1794 words against a <=900 cap, overwhelmingly pre-existing, and schema.md says the fix is a split rather than compression. No probe enforces the cap."
     }
   ]
 }
