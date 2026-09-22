@@ -30,6 +30,17 @@ Verify the install:
 codex --version
 ```
 
+## Update
+
+```bash
+codex update                   # the harness updates itself
+agro harness install codex     # or re-run the door
+```
+
+Both write to `/home/sandbox/.local`, because the sandbox exports
+`NPM_CONFIG_PREFIX` as that prefix. Do not use `sudo`: `codex` is not on sudo's
+`secure_path`, and a root-owned install would leave the home volume.
+
 ## Authentication
 
 Run `codex login` once and follow the prompts:
