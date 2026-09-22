@@ -1,0 +1,10 @@
+# progress
+
+2026-09-21 plan — base commit ece037594252c3bc7e57328aadf73aaec55a581a.
+  Queries: "compose env boundary", "cli config render", "evals probes", "sandbox entrypoint".
+  Knowledge read: [[compose-env-boundary]], [[pattern-cli-bundled-asset-relative-import]],
+  [[pattern-evals-probe-failure-path-untested]], [[pattern-evals-unexercised-oracle]].
+  Conflicts: none — compose-env-boundary matched current sources on every claim relied on.
+  Architecture decided inline via /architect earlier this session; prd.md carries it.
+  Issue #1131 opened. Worktree .worktrees/feat/1131-langfuse-config-wizard from origin/development.
+  prd.json: 14 stories (13 from prd.md + US-014 knowledge/ADR, required by Expected Knowledge Impact).
