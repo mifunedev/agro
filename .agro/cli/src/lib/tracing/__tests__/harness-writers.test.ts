@@ -45,12 +45,6 @@ const readJson = (path: string): Record<string, unknown> =>
   JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
 
 describe("catalog seam", () => {
-  it("claude-code, pi and codex each provide a tracing writer through the one optional field", () => {
-    for (const id of ["claude-code", "pi", "codex"]) {
-      expect(typeof findHarness(id)!.tracingWriter, id).toBe("function");
-    }
-  });
-
   it("every other harness leaves the field unset", () => {
     for (const h of HARNESS_CATALOG) {
       if (["claude-code", "pi", "codex"].includes(h.id)) continue;

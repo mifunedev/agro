@@ -8,8 +8,6 @@ import {
   type TracingWriter,
 } from "./writer.js";
 
-export const CLAUDE_CODE_TRACING_ENV_KEYS = ["LANGFUSE_BASE_URL", "LANGFUSE_TRACING_ENVIRONMENT"] as const;
-
 export const CODEX_TRACING_TAGS = ["codex"] as const;
 
 export function claudeCodeSettingsPath(home: string): string {

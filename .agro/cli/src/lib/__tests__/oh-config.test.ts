@@ -327,28 +327,14 @@ describe("langfuse settings", () => {
     });
   });
 
-  it("rejects a non-boolean enabled", () => {
-    expect(() => validateOhConfig({ version: 1, langfuse: { enabled: "yes" } })).toThrow(
-      /langfuse\.enabled must be a boolean/,
-    );
-  });
-
-  it("rejects a non-string baseUrl, environment, or userId", () => {
-    expect(() => validateOhConfig({ version: 1, langfuse: { baseUrl: 3 } })).toThrow(
-      /langfuse\.baseUrl must be a string/,
-    );
-    expect(() => validateOhConfig({ version: 1, langfuse: { environment: [] } })).toThrow(
-      /langfuse\.environment must be a string/,
-    );
-    expect(() => validateOhConfig({ version: 1, langfuse: { userId: {} } })).toThrow(
-      /langfuse\.userId must be a string/,
-    );
-  });
-
-  it("rejects a langfuse section that is not an object", () => {
-    expect(() => validateOhConfig({ version: 1, langfuse: "on" })).toThrow(
-      /langfuse must be an object/,
-    );
+  it.each([
+    [{ enabled: "yes" }, /langfuse\.enabled must be a boolean/],
+    [{ baseUrl: 3 }, /langfuse\.baseUrl must be a string/],
+    [{ environment: [] }, /langfuse\.environment must be a string/],
+    [{ userId: {} }, /langfuse\.userId must be a string/],
+    ["on", /langfuse must be an object/],
+  ] as [unknown, RegExp][])("rejects langfuse %j", (langfuse, message) => {
+    expect(() => validateOhConfig({ version: 1, langfuse })).toThrow(message);
   });
 
   it("registers all four paths in OH_CONFIG_FIELDS", () => {

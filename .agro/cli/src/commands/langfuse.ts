@@ -274,16 +274,24 @@ function renderAll(
   return failed ? 1 : 0;
 }
 
-export async function runLangfuseApply(opts: LangfuseOptions, io: LangfuseIO): Promise<number> {
-  let ctx: Context;
-  let resolved: ResolvedLangfuse;
+function resolveOrReport(
+  opts: LangfuseOptions,
+  io: LangfuseIO,
+  label: string,
+): { ctx: Context; resolved: ResolvedLangfuse } | undefined {
   try {
-    ctx = context(opts);
-    resolved = resolveLangfuse(ctx.root);
+    const ctx = context(opts);
+    return { ctx, resolved: resolveLangfuse(ctx.root) };
   } catch (error) {
-    io.stderr(`${opts.bin} langfuse apply: ${errorText(error)}\n`);
-    return 1;
+    io.stderr(`${opts.bin} ${label}: ${errorText(error)}\n`);
+    return undefined;
   }
+}
+
+export async function runLangfuseApply(opts: LangfuseOptions, io: LangfuseIO): Promise<number> {
+  const state = resolveOrReport(opts, io, "langfuse apply");
+  if (state === undefined) return 1;
+  const { ctx, resolved } = state;
 
   if (!resolved.enabled) {
     io.stdout(`langfuse: not configured (langfuse.enabled is not true in agro.json) — nothing written\n`);
@@ -319,15 +327,9 @@ function printResolved(resolved: ResolvedLangfuse, root: string, io: LangfuseIO)
 }
 
 export async function runLangfuseStatus(opts: LangfuseOptions, io: LangfuseIO): Promise<number> {
-  let ctx: Context;
-  let resolved: ResolvedLangfuse;
-  try {
-    ctx = context(opts);
-    resolved = resolveLangfuse(ctx.root);
-  } catch (error) {
-    io.stderr(`${opts.bin} langfuse status: ${errorText(error)}\n`);
-    return 1;
-  }
+  const state = resolveOrReport(opts, io, "langfuse status");
+  if (state === undefined) return 1;
+  const { ctx, resolved } = state;
   printResolved(resolved, ctx.root, io);
 
   if (!ctx.insideSandbox) {
@@ -523,15 +525,9 @@ export async function runLangfuseSetup(opts: LangfuseSetupOptions, io: LangfuseI
     return runLangfuseApply(opts, io);
   }
 
-  let ctx: Context;
-  let resolved: ResolvedLangfuse;
-  try {
-    ctx = context(opts);
-    resolved = resolveLangfuse(ctx.root);
-  } catch (error) {
-    io.stderr(`${bin} config langfuse: ${errorText(error)}\n`);
-    return 1;
-  }
+  const state = resolveOrReport(opts, io, "config langfuse");
+  if (state === undefined) return 1;
+  const { ctx, resolved } = state;
   const ask = io.ask ?? prompt.ask;
   const askSecret = io.askSecret ?? prompt.askSecret;
   const run = opts.run ?? spawnRunner;
