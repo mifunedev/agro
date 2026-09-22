@@ -203,6 +203,30 @@ describe("harness catalog", () => {
       expect(DOCKERFILE).toContain(`ENV NPM_USER_PREFIX="${NPM_USER_PREFIX}"`);
     });
 
+    it("points npm's global prefix at NPM_USER_PREFIX so a harness can update itself", () => {
+      expect(DOCKERFILE).toContain('ENV NPM_CONFIG_PREFIX="$NPM_USER_PREFIX"');
+    });
+
+    it("sets NPM_CONFIG_PREFIX after the last image-layer global install", () => {
+      const lines = DOCKERFILE.split("\n");
+      const configAt = lines.findIndex((l) => l.startsWith("ENV NPM_CONFIG_PREFIX="));
+      const lastGlobalInstallAt = lines.reduce(
+        (found, line, i) => (line.includes("npm install -g") ? i : found),
+        -1,
+      );
+      expect(configAt).toBeGreaterThan(lastGlobalInstallAt);
+    });
+
+    it("exports the same prefix from the shell profile fragment", () => {
+      expect(read(".agro/install/path-env.sh")).toContain(
+        'export NPM_CONFIG_PREFIX="${NPM_CONFIG_PREFIX:-$NPM_USER_PREFIX}"',
+      );
+    });
+
+    it("adds the export to a home mount seeded before the prefix existed", () => {
+      expect(ENTRYPOINT).toContain("NPM_CONFIG_PREFIX");
+    });
+
     it.each(npmHarnesses.map((h) => [h.id, h] as const))(
       "%s: installs as the sandbox user into NPM_USER_PREFIX",
       (_id, h) => {
