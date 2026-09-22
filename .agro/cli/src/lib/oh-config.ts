@@ -65,6 +65,13 @@ export interface StorageSettings {
   homePath?: string;
 }
 
+export interface LangfuseSettings {
+  enabled?: boolean;
+  baseUrl?: string;
+  environment?: string;
+  userId?: string;
+}
+
 export type SandboxRuntime = "docker";
 
 export const SANDBOX_RUNTIMES: readonly SandboxRuntime[] = ["docker"];
@@ -83,6 +90,7 @@ export interface OhConfig {
   cron?: CronSettings;
   build?: BuildSettings;
   image?: ImageSettings;
+  langfuse?: LangfuseSettings;
   composeOverrides?: string[];
   [key: string]: unknown;
 }
@@ -113,6 +121,7 @@ export function defaultOhConfig(name: string): OhConfig {
     cron: { agentBin: "claude" },
     build: { skipPnpmInstall: false },
     image: { mode: "build", pullPolicy: "missing" },
+    langfuse: {},
     composeOverrides: [],
   };
 }
@@ -222,6 +231,14 @@ export function validateOhConfig(value: unknown): OhConfig {
     expectEnum(image, "pullPolicy", "image.", ["missing", "always", "never"]);
   }
 
+  const langfuse = expectSection(record, "langfuse");
+  if (langfuse) {
+    expectBoolean(langfuse, "enabled", "langfuse.");
+    expectString(langfuse, "baseUrl", "langfuse.");
+    expectString(langfuse, "environment", "langfuse.");
+    expectString(langfuse, "userId", "langfuse.");
+  }
+
   if (record.composeOverrides !== undefined) {
     const list = record.composeOverrides;
     if (!Array.isArray(list)) throw fieldError("composeOverrides", "must be an array of strings");
@@ -321,6 +338,10 @@ export const OH_CONFIG_FIELDS: readonly OhConfigField[] = [
   { path: "image.mode", type: "enum", values: ["build", "image"] },
   { path: "image.pullPolicy", type: "enum", values: ["missing", "always", "never"] },
   { path: "storage.homePath", type: "string" },
+  { path: "langfuse.enabled", type: "boolean" },
+  { path: "langfuse.baseUrl", type: "string" },
+  { path: "langfuse.environment", type: "string" },
+  { path: "langfuse.userId", type: "string" },
   { path: "composeOverrides", type: "list" },
 ];
 

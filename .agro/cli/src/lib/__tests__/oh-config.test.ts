@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   configCheckout,
   defaultOhConfig,
@@ -300,5 +301,117 @@ describe("configCheckout", () => {
   it("round-trips a checkout field through validateOhConfig", () => {
     const validated = validateOhConfig({ version: 1, checkout: "/srv/checkout" });
     expect(configCheckout(validated)).toBe("/srv/checkout");
+  });
+});
+
+describe("langfuse settings", () => {
+  it("defaults to an empty section", () => {
+    expect(defaultOhConfig("demo").langfuse).toEqual({});
+  });
+
+  it("accepts all four non-secret fields", () => {
+    const validated = validateOhConfig({
+      version: 1,
+      langfuse: {
+        enabled: true,
+        baseUrl: "https://cloud.langfuse.com",
+        environment: "demo",
+        userId: "ada",
+      },
+    });
+    expect(validated.langfuse).toEqual({
+      enabled: true,
+      baseUrl: "https://cloud.langfuse.com",
+      environment: "demo",
+      userId: "ada",
+    });
+  });
+
+  it("rejects a non-boolean enabled", () => {
+    expect(() => validateOhConfig({ version: 1, langfuse: { enabled: "yes" } })).toThrow(
+      /langfuse\.enabled must be a boolean/,
+    );
+  });
+
+  it("rejects a non-string baseUrl, environment, or userId", () => {
+    expect(() => validateOhConfig({ version: 1, langfuse: { baseUrl: 3 } })).toThrow(
+      /langfuse\.baseUrl must be a string/,
+    );
+    expect(() => validateOhConfig({ version: 1, langfuse: { environment: [] } })).toThrow(
+      /langfuse\.environment must be a string/,
+    );
+    expect(() => validateOhConfig({ version: 1, langfuse: { userId: {} } })).toThrow(
+      /langfuse\.userId must be a string/,
+    );
+  });
+
+  it("rejects a langfuse section that is not an object", () => {
+    expect(() => validateOhConfig({ version: 1, langfuse: "on" })).toThrow(
+      /langfuse must be an object/,
+    );
+  });
+
+  it("registers all four paths in OH_CONFIG_FIELDS", () => {
+    const paths = OH_CONFIG_FIELDS.map((field) => field.path);
+    expect(paths).toContain("langfuse.enabled");
+    expect(paths).toContain("langfuse.baseUrl");
+    expect(paths).toContain("langfuse.environment");
+    expect(paths).toContain("langfuse.userId");
+    expect(OH_CONFIG_FIELDS.find((field) => field.path === "langfuse.enabled")?.type).toBe(
+      "boolean",
+    );
+  });
+
+  it("sets langfuse.baseUrl through setOhConfigValue", () => {
+    const next = setOhConfigValue(
+      defaultOhConfig("demo"),
+      "langfuse.baseUrl",
+      "http://host.docker.internal:3000",
+    );
+    expect(next.langfuse?.baseUrl).toBe("http://host.docker.internal:3000");
+  });
+
+  it("registers no credential path", () => {
+    const paths = OH_CONFIG_FIELDS.map((field) => field.path);
+    expect(paths).not.toContain("langfuse.publicKey");
+    expect(paths).not.toContain("langfuse.secretKey");
+    expect(() => setOhConfigValue(defaultOhConfig("demo"), "langfuse.publicKey", "pk")).toThrow(
+      /unknown oh\.json field "langfuse\.publicKey"/,
+    );
+  });
+
+  it("keeps the privacy preset retired", () => {
+    expect(OH_CONFIG_FIELDS.map((field) => field.path)).not.toContain("langfuse.privacyPreset");
+  });
+
+  it("loads an existing config with no langfuse section and leaves the feature inert", () => {
+    const root = makeRoot();
+    writeFileSync(
+      ohConfigPath(root),
+      `${JSON.stringify({ version: 1, name: "demo", timezone: "UTC" }, null, 2)}\n`,
+    );
+    const config = readOhConfig(ohConfigPath(root));
+    expect(config.langfuse).toBeUndefined();
+    expect(config.langfuse?.enabled ?? false).toBe(false);
+  });
+
+  it("round-trips the section through writeOhConfig", () => {
+    const root = makeRoot();
+    const config = defaultOhConfig("demo");
+    config.langfuse = { enabled: true, environment: "demo" };
+    writeOhConfig(root, config);
+    expect(readOhConfig(ohConfigPath(root)).langfuse).toEqual({
+      enabled: true,
+      environment: "demo",
+    });
+  });
+});
+
+describe("the tracked agro.json", () => {
+  it("carries a langfuse section that validates and holds no credential", () => {
+    const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", "..");
+    const config = readOhConfig(join(repoRoot, "agro.json"));
+    expect(config.langfuse).toBeDefined();
+    expect(JSON.stringify(config.langfuse ?? {})).not.toMatch(/pk-lf|sk-lf|publicKey|secretKey/);
   });
 });

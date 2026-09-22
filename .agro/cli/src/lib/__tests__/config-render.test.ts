@@ -72,6 +72,17 @@ function fullConfig(): OhConfig {
   return config;
 }
 
+function langfuseConfig(): OhConfig {
+  const config = fullConfig();
+  config.langfuse = {
+    enabled: true,
+    baseUrl: "https://cloud.langfuse.com",
+    environment: "demo",
+    userId: "ada",
+  };
+  return config;
+}
+
 const keysOf = (config: OhConfig): string[] => renderComposeVars(config).map((v) => v.key);
 
 describe("renderComposeEnv", () => {
@@ -147,6 +158,57 @@ describe("renderComposeEnv", () => {
       source.indexOf("] as const;"),
     );
     for (const key of RETIRED) expect(block, key).toContain(`"${key}"`);
+  });
+
+  it("throws when a rendered var carries LANGFUSE_BASE_URL", () => {
+    const config = langfuseConfig();
+    const nativePush = Array.prototype.push;
+    let injected = false;
+    Object.defineProperty(Array.prototype, "push", {
+      configurable: true,
+      writable: true,
+      value: function (this: unknown[], ...items: unknown[]): number {
+        const length = nativePush.apply(this, items) as number;
+        if (injected) return length;
+        injected = true;
+        return nativePush.call(this, {
+          key: "LANGFUSE_BASE_URL",
+          value: config.langfuse?.baseUrl,
+        }) as number;
+      },
+    });
+
+    let thrown: unknown;
+    try {
+      renderComposeVars(config);
+    } catch (error) {
+      thrown = error;
+    } finally {
+      Object.defineProperty(Array.prototype, "push", {
+        configurable: true,
+        writable: true,
+        value: nativePush,
+      });
+    }
+
+    expect(thrown).toBeInstanceOf(Error);
+    expect((thrown as Error).message).toBe("refusing to render retired variable LANGFUSE_BASE_URL");
+  });
+
+  it("renders no LANGFUSE_ variable for a fully configured langfuse section", () => {
+    expect(keysOf(langfuseConfig()).filter((key) => key.startsWith("LANGFUSE_"))).toEqual([]);
+    expect(renderComposeEnv(langfuseConfig())).not.toContain("LANGFUSE_");
+  });
+
+  it("adds no LANGFUSE_ put() to config-render.ts", () => {
+    const source = readFileSync(join(REPO_ROOT, ".agro/cli/src/lib/config-render.ts"), "utf8");
+    expect(source).not.toMatch(/put\("LANGFUSE_/);
+  });
+
+  it("adds no LANGFUSE_ key to any compose file", () => {
+    for (const name of readdirSync(DEVCONTAINER).filter((n) => /^docker-compose.*\.ya?ml$/.test(n))) {
+      expect(readFileSync(join(DEVCONTAINER, name), "utf8"), name).not.toContain("LANGFUSE_");
+    }
   });
 
   it("omits a key whose oh.json field is unset", () => {
