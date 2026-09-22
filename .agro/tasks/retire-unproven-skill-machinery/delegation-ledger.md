@@ -134,7 +134,17 @@ touch `.agro/evals/RESULTS.md`. Shared-file work serializes by contract.
   `wiki-compile-contract.sh` and `roles-are-skills.sh` PASS; `.agro/evals/run.sh` exit 0
 - **Covered DoD IDs**: 1, 4, 5, 6, 8
 - **Acceptance owner**: the advisor
-- **Status**: pending
+- **Status**: completed. Advisor verified independently rather than accepting the
+  worker's table: injected `Double-writing` -> `Double-nominating` into SKILL.md,
+  observed exit 1 with `dw-1 SKILL.md dropped the double-writing anti-pattern` and
+  no crash, then restored and observed PASS. Confirmed the ceremony is gone
+  (STATUS line, evidence-against column, five-subsystem lens, falsifiability gate,
+  `--focus` flag, and the whole `references/` directory all absent) and the three
+  invariants survive. The promotion line is byte-identical in SKILL.md and
+  compile.md, which the probe pins on both sides with `grep -qxF`.
+- **Artifact references**: commits `dc1259bc` (probe) and `c13ed5b1` (skill);
+  SKILL.md 275 -> 178 lines
+- **Usage**: 121,268 subagent tokens, 27 tool uses, 482s
 
 ## T4 — Knowledge impact and campaign measurement
 

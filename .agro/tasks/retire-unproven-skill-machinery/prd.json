@@ -44,7 +44,7 @@
         "The probe passes on a tree where /retro is still unmodified"
       ],
       "priority": 3,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-004",
@@ -59,7 +59,7 @@
         "link-providers.sh runs clean and the vendored validate-retro-report.sh symlink resolves"
       ],
       "priority": 4,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-005",
