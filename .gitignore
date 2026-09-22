@@ -1,17 +1,7 @@
-.agro/skills.lock.lck
-.agro/skills.lock.lck
 **/.env*
 # agro.json holds every non-secret setting and is tracked; the root dotenv holds
 # secrets only. The tracked template is named .example.env so that **/.env*
 # needs no exception.
-# harness.yaml was removed in 0.4.0. These stay ONE more release so a stale
-# local artifact from a pre-0.4.0 checkout is never accidentally committed;
-# .agro/scripts/migrate-harness-yaml.sh renames the file to .migrated.
-/harness.yaml
-/harness.yml
-/harness.yaml.migrated
-# Derived env artifact the deleted Makefile target generated (not matched by **/.env*)
-.devcontainer/.harness.yaml.env
 /.agro/config.json
 /.agro/config.json
 .worktrees/*

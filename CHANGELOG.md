@@ -4,12 +4,23 @@ All notable changes to this project are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions use [SemVer](https://semver.org/) (`MAJOR.MINOR.PATCH`), read from root `package.json`, and ship as `v`-prefixed git tags.
 
-Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.md) § Changelog.
+Update policy and release automation live in [`AGENTS.md`](AGENTS.md) § Git conventions.
 
 ## [Unreleased]
 
+### Removed
+
+- Retire the `harness.yaml` compatibility generation: delete `migrate-harness-yaml.sh`, its two lifecycle guards, and the stale `agro migrate` and `~/.oh` references in docs ([#1134](https://github.com/mifunedev/agro/issues/1134)).
+- Strip the control plane to its core on the minimal-core experiment branch: remove `.agro/evals/`, `.agro/skills/`, `.agro/knowledge/`, `.agro/tasks/`, `.agro/plans/`, `.agro/memories/`, and the provider skill links ([#1134](https://github.com/mifunedev/agro/issues/1134)).
+
+### Changed
+
+- Point the Codex `deny-env-dump` adapter at the canonical `.agro/hooks/` source instead of the generated `.claude/hooks/` mirror, so Codex policy no longer depends on another provider's surface ([#1134](https://github.com/mifunedev/agro/issues/1134)).
+- Reduce `link-providers.sh` to the `.claude/hooks` link and retire stale skill-pack links; promote `version-parity.sh`, `agro-legacy-shim.sh`, and the sandbox privilege-boundary guard out of the probe suite into `.agro/scripts/` and CI ([#1134](https://github.com/mifunedev/agro/issues/1134)).
+
 ### Added
 
+- Add `VISION.md`: the operator audience, five floor primitives, four scope tests, security posture, and the known gaps against them ([#1134](https://github.com/mifunedev/agro/issues/1134)).
 - Add `agro config langfuse` and `agro langfuse apply|status|disable`. Settings live in `agro.json` and `.env`, render to a `0600` fragment and the harness files, and re-apply at boot ([#1131](https://github.com/mifunedev/agro/issues/1131)).
 - Add `.agro/scripts/typesafe.mjs`, a zero-dependency TypeSafe System One adapter. Unconfigured, it names the variable and the command that sets it, then returns null so the caller continues ([#1121](https://github.com/mifunedev/agro/issues/1121)).
 - Add `prompt-miner --judge`, scoring `correctionDensity` with a typed judgment instead of the 12-word negation lexicon. Off by default and uncalibrated ([#1121](https://github.com/mifunedev/agro/issues/1121)).

@@ -1,7 +1,0 @@
-2026-09-06T18:16:17Z wave1 start: T1 T2 running (single worktree, disjoint files, workers do not commit)
-2026-09-06T18:21:49Z T2 completed: get-agro.sh + 20 tests + probe (owner re-ran: tests 20/20, probe PASS, shellcheck clean)
-2026-09-06T18:26:46Z wave1 complete T1 T2; wave2 start T3 T4
-2026-09-06T18:34:44Z T4 completed: release.yml/publish-cli.yml dual publish, verify-release-aliases.sh, promote IMAGE_REPOSITORIES, assets, deprecate; owner re-ran 42 tests + yaml ok
-2026-09-06T18:41:55Z T3 completed (owner-verified after worker rate-limit); wave3 start T5
-2026-09-06T18:50:22Z T5 completed; wave4 start T6 (knowledge pages delegated, gates owner-run)
-2026-09-06T19:07:46Z T6 completed (owner); all waves done

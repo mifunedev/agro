@@ -5,19 +5,19 @@ Use `agro` for lifecycle operations; each script's callers determine its executi
 
 | Scripts | Purpose |
 | --- | --- |
-| `get-agro.sh`, `get-agro.sh`, `install.sh` | CLI bootstrap and checkout installation. |
-| `docker-compose.sh`, `paths.sh`, `check-host-port.sh`, `agro-path` | Lifecycle execution, compatibility, and path resolution. |
-| `link-providers.sh` | Create or check canonical provider links. |
+| `get-agro.sh`, `install.sh` | CLI bootstrap and checkout installation. |
+| `docker-compose.sh`, `paths.sh`, `check-host-port.sh`, `agro-path` | Lifecycle execution and path resolution. |
+| `link-providers.sh` | Create or check canonical provider hook links. |
 | `cron-runtime.ts`, `gateway.sh` | Scheduled jobs and named messaging sessions. |
 | `provision-python.sh` | Sandbox Python defaults and kernel environment. |
 | `sandbox-healthcheck.sh`, `sandbox-boot-smoke.sh`, `sandbox-upgrade-smoke.sh` | Runtime health, boot, and upgrade checks. |
+| `compose-config-path-parity.sh` | Wrapper and "Reopen in Container" resolve the same service and environment file. |
 | `verify-sandbox-image.sh`, `node-pnpm-parity.sh`, `check-pnpm-pin.sh` | Image and dependency parity checks. |
 | `release-reservation.mjs`, `reserve-github-release.mjs`, `promote-release-latest.sh` | Release reservation and image promotion. |
 | `verify-release-aliases.sh`, `npm-wait-version.sh` | Release artifact checks. |
+| `version-parity.sh` | Release version parity gate. |
 | `git-maintenance.sh`, `locked-append.sh`, `closing-keywords.mjs` | Git maintenance, serialized appends, and issue-closing parsing. |
-| `registry-portability.sh`, `registry-portability.md` | Portable-skill lint and its exception list. |
-| `cli-first-install-smoke.sh`, `hermes-install-smoke.sh` | Installer smoke checks. |
-| `migrate-harness-yaml.sh` | Legacy configuration migration. |
+| `cli-first-install-smoke.sh` | Installer smoke checks. |
 | `__tests__/` | Script tests. |
 
 Source references:

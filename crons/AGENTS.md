@@ -62,8 +62,7 @@ Body becomes the agent prompt at fire time.
 - Filename = `<id>.md`, kebab-case.
 - systemd supervises the runtime as `agro-cron.service`; only detached
   job fires get tmux sessions, named `cron-<id>-<MMDD>-<HHMM>` under the
-  `cron-` category prefix (see
-  `.agro/skills/t3/references/sandbox-processes.md`).
+  `cron-` category prefix.
 - Disable a job by setting `enabled: false` — do not delete the file
   (preserves history).
 - Runtime artefacts in this directory (`.cron.log`, `.pid`) are
@@ -118,9 +117,6 @@ returns before generating a shell wrapper or spawning an agent.
 | File | Schedule | Description |
 |------|----------|-------------|
 | `heartbeat.md` | `0 * * * *` (hourly) — currently `enabled: false` | Hourly pulse — review memory, surface anything urgent |
-| `cleanup-tasks.md` | `0 23 * * 0` (Sun 23:00 MT) | Weekly `/spec execute` task sweep — archive completed tasks |
-| `eval-weekly.md` | `0 6 * * 0` (Sun 06:00 MT) | Weekly eval suite — run probes, log any regressions to memory |
-| `prompt-miner.md` | `0 5 * * *` (daily 05:00 MT) | Daily prompt-miner — mine 24h of session traces for prompt-quality markers; ship a top finding to the origin fork via `/spec` (opt-in `enabled: false`, cap-gated by `preflight: .agro/skills/prompt-miner/prompt-miner-caps.sh`) |
 
 ## Runtime supervision
 

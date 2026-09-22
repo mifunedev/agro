@@ -107,8 +107,7 @@ Require all of the following before a release push:
 - The source commit is pushed to the canonical remote.
 - CI for the source commit is green.
 - Root `package.json` names the version to publish, `.agro/cli/package.json`
-  matches it (`bash .agro/evals/probes/version-parity.sh`), the retained shim
-  stays internally coherent (`bash .agro/evals/probes/`), and
+  matches it (`bash .agro/scripts/version-parity.sh`), and
   no `v<version>` tag exists yet. An unbumped push is a green no-op that publishes
   nothing. A newly published `@mifune/agro` version is not required.
 - `CHANGELOG.md` has a `## [<version>]` section matching that version (the

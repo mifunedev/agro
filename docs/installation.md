@@ -149,14 +149,6 @@ agro vendor --from <local-checkout>    # ...or vendor from a built checkout, off
 
 `agro vendor` equips an empty directory and upgrades an equipped one with the same command; a second run reports it is already up to date. It writes only `.agro/` and `crons/` — never `agro.json`, `.env`, `AGENTS.md`, `.gitignore`, `.devcontainer/`, or a provider directory. It never prompts. Payload precedence is `--from` > `--from-remote` > the CLI's bundled payload > a remote fetch announced on one line. `--from-remote` fetches over public HTTPS only — private or credential-prompting remotes fail fast (`GIT_TERMINAL_PROMPT=0`).
 
-A checkout equipped by an earlier release carries `.agro/` and `agro.json`, and both keep resolving. Move that checkout to the AGRO names when you choose:
-
-```bash
-cd <your-project>
-agro migrate --check   # print the plan, change nothing
-agro migrate           # .agro/ -> .agro/, agro.json -> agro.json, provider links re-pointed
-```
-
 A checkout bound with `--checkout` mounts at `/home/sandbox/harness`. Without `--checkout` the sandbox runs `ghcr.io/mifunedev/agro:latest` and seeds its workspace from the image — see [`agro sandbox install docker`](deployment-prebuilt-image.md) for that recipe and the `--image` / `--no-build` flags.
 
 ## Next step
@@ -342,9 +334,9 @@ per-tool volumes did before.
 
 Hermes is split: when the `hermes` binary is present (after
 `agro harness install hermes`), `HERMES_HOME` is the project-local
-bind-mounted `~/harness/.hermes/` directory. The entrypoint links `.hermes/skills/agro` to the tracked
-shared skill directory (`.agro/skills/`) so Hermes sees the same harness skills as
-Claude, Codex, and Pi without copying them into runtime state. Project-local
+bind-mounted `~/harness/.hermes/` directory. It carries no skill link of its
+own; the other provider surfaces share `.agro/skills/` and `.agro/hooks/`.
+Project-local
 runtime contents are gitignored except `.hermes/README.md`.
 
 `agro destroy` and `docker compose down -v` delete the named volume and everything

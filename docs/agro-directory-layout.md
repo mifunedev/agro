@@ -11,11 +11,9 @@ Canonical skills own reusable procedures. Documentation under `docs/` explains A
 | --- | --- |
 | `.agro/cli/` | The `agro` CLI package. |
 | `.agro/scripts/`, `.agro/install/` | Lifecycle scripts, runtime helpers, and image installation inputs. |
-| `.agro/skills/`, `.agro/hooks/`, `.agro/skills.lock` | Vendored shared procedures, hooks, and pack metadata. |
-| `.agro/evals/` | Regression probes, capability benchmark, datasets, and decision records. |
-| `.agro/knowledge/` | Tracked source pages, patterns, external captures, and a generated index; ignored `local/` scratch. |
-| `.agro/tasks/` | Local spec task plans, graphs, progress, and gate records. |
-| `.agro/logs/`, `.agro/memories/` | Local logs and operator context, each with a scoped contract. |
+| `.agro/skills/` | The retained skill pack: `/agent-browser`, `/escalate`, `/git`, `/herdr`, `/prd`, `/ralph`, `/release`, `/ste` and `/worktrees`. |
+| `.agro/hooks/` | Vendored security hooks, mirrored onto each provider surface. |
+| `.agro/logs/` | Local logs with a scoped contract. |
 | `.agro/manifest.json` | The declared control-plane and root payload. |
 | `.devcontainer/` | Dockerfile, Compose configuration, entrypoint, and sandbox bootstrap assets. |
 | `docs/` | Human-facing source documentation. The rendered site lives in `mifunedev/agro-web`. |
@@ -34,7 +32,7 @@ Do not infer current files from historical directory names.
 
 ## Provider exposure
 
-Git tracks shared skills and hooks directly in `.agro/`. The pack needs no submodule fetch.
+Git tracks the skill pack and shared hooks directly in `.agro/`. The pack needs no submodule fetch.
 The [provider linker](../.agro/scripts/link-providers.sh) creates these links:
 
 | Surface | Target |
@@ -42,11 +40,10 @@ The [provider linker](../.agro/scripts/link-providers.sh) creates these links:
 | `.agents/skills` | `../.agro/skills` |
 | `.claude/skills` | `../.agro/skills` |
 | `.claude/hooks` | `../.agro/hooks` |
-| `.hermes/skills/agro` | `../../.agro/skills`, when Hermes integration applies. |
 
-Codex and Pi use the standard `.agents/skills` surface.
 Pi-specific settings and extensions stay in `.pi/`.
-The linker retires eligible old `.pi/skills` and `.codex/skills` aliases without replacing foreign paths.
+The linker removes the retired `.pi/skills` and `.codex/skills` aliases without
+replacing foreign paths.
 Run `bash .agro/scripts/link-providers.sh --check` to verify the pack and links.
 See [Hermes](harnesses/hermes.md) for its additive link and runtime-home safety checks.
 
@@ -89,9 +86,9 @@ An equal version is a no-op without `--force`; a downgrade requires `--force`.
 - `exclude` applies to both lists and wins over an include match.
 - Symlinks, `node_modules`, and `dist` directories do not enter the file walk.
 
-The current payload includes `cli`, `scripts`, `install`, `evals`, `knowledge`, `skills`, and `hooks`.
-It also includes `skills.lock`, `README.md`, and the manifest itself.
-The payload omits `tasks`, `logs`, `memories`, dependency patches, and root `docs/`.
+The current payload includes `cli`, `scripts`, `install`, `skills`, and `hooks`.
+It also includes `README.md` and the manifest itself.
+The payload omits `logs`, dependency patches, and root `docs/`.
 The omissions describe the current manifest, not every file present in the repository.
 
 The updater overwrites shipped files in place without backups and creates no root scaffold.
@@ -105,13 +102,10 @@ The legacy fallback has no `rootInclude` payload.
 Check the source manifest before updating local control-plane customizations.
 
 Because root `docs/` does not ship, distributed contracts link to source documentation on GitHub.
-The task contract stays repository-local; changing that contract does not expand the payload.
 
 ## Related references
 
 - [Lifecycle commands](lifecycle-commands.md)
 - [Configuration](configuration.md)
-- [Regression evals](evals.md)
-- [Capability benchmark](capability-benchmark.md)
 - [Sandbox Python](sandbox-python.md)
 - [Descriptive harness manifest](harness-manifest.md)

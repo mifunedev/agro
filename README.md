@@ -16,7 +16,7 @@
 
 **AGRO gives AI coding agents a workspace you control.** It packages a Docker sandbox and shared agent procedures around the coding harness you choose—Claude Code, Codex, Pi, or another.
 
-Develop on your laptop or a remote VM. Install tools and harnesses on demand, organize parallel changes in separate git worktrees, and use shared skills and evidence checks to guide the work.
+Develop on your laptop or a remote VM. Install tools and harnesses on demand, and organize parallel changes in separate git worktrees.
 
 Start with the quickstart below. See the [documentation](docs/README.md) for more guidance.
 

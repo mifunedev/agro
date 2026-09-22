@@ -75,7 +75,6 @@ function runWithFakeDocker(args: string[]): string[] {
 
 describe("scripts/docker-compose.sh", () => {
   it("passes .devcontainer/.env as the ONE --env-file, and derives nothing", () => {
-    const derived = path.join(tmp, ".devcontainer", ".harness.yaml.env");
     writeFileSync(path.join(tmp, ".devcontainer", ".env"), "SANDBOX_NAME=example\n");
 
     const argv = printArgv();
@@ -88,7 +87,6 @@ describe("scripts/docker-compose.sh", () => {
       path.join(tmp, ".devcontainer", "docker-compose.yml"),
       "config",
     ]);
-    expect(existsSync(derived)).toBe(false);
   });
 
   it("omits --env-file entirely when there is no .devcontainer/.env", () => {
@@ -170,7 +168,6 @@ describe("scripts/docker-compose.sh", () => {
       "up",
       "-d",
     ]);
-    expect(existsSync(path.join(tmp, ".devcontainer", ".harness.yaml.env"))).toBe(false);
   });
 
   it("preserves repo-root-relative resolution for absolute and relative overrides", () => {
@@ -185,55 +182,6 @@ describe("scripts/docker-compose.sh", () => {
     expect(argv).toContain(absolute);
   });
 
-  it("migrates a leftover harness.yaml into agro.json on first run, then never again", () => {
-    writeFileSync(
-      path.join(tmp, "harness.yaml"),
-      "sandbox:\n  name: from-yaml\nssh:\n  port: 2345\n",
-    );
-
-    const first = spawnSync("bash", [SCRIPT, "--repo-dir", tmp, "--print-argv", "config"], {
-      encoding: "utf8",
-    });
-    expect(first.status).toBe(0);
-    expect(first.stderr).toContain("agro.json name = from-yaml");
-    expect(existsSync(path.join(tmp, "harness.yaml"))).toBe(false);
-    expect(existsSync(path.join(tmp, "harness.yaml.migrated"))).toBe(true);
-    expect(JSON.parse(readFileSync(path.join(tmp, "agro.json"), "utf8"))).toEqual({
-      version: 1,
-      name: "from-yaml",
-      access: { sshPort: 2345 },
-    });
-    expect(existsSync(path.join(tmp, ".devcontainer", ".env"))).toBe(false);
-    expect(first.stdout.trimEnd().split("\n")).toEqual([
-      "docker",
-      "compose",
-      "-f",
-      path.join(tmp, ".devcontainer", "docker-compose.yml"),
-      "config",
-    ]);
-
-    const second = spawnSync("bash", [SCRIPT, "--repo-dir", tmp, "--print-argv", "config"], {
-      encoding: "utf8",
-    });
-    expect(second.status).toBe(0);
-    expect(second.stdout).toBe(first.stdout);
-  });
-
-  it("puts an allow-listed secret from harness.yaml in the root dotenv, never agro.json", () => {
-    mkdirSync(path.join(tmp, ".agro", "cli", "src", "lib"), { recursive: true });
-    writeFileSync(
-      path.join(tmp, ".agro", "cli", "src", "lib", "secrets.ts"),
-      'export const SECRET_KEYS = [\n  "GH_TOKEN",\n  "SANDBOX_NAME",\n] as const;\n',
-    );
-    writeFileSync(path.join(tmp, "harness.yaml"), "sandbox:\n  name: secretish\n");
-
-    const result = spawnSync("bash", [SCRIPT, "--repo-dir", tmp, "--print-argv", "config"], {
-      encoding: "utf8",
-    });
-    expect(result.status).toBe(0);
-    expect(readFileSync(path.join(tmp, ".env"), "utf8")).toContain("SANDBOX_NAME=secretish");
-    expect(existsSync(path.join(tmp, "agro.json"))).toBe(false);
-  });
 });
 
 describe("scripts/docker-compose.sh --extra-env-file (issue #880)", () => {
@@ -479,8 +427,6 @@ describe("compose helper wiring", () => {
     );
 
     expect(text).toContain("Existing .env preserved — updating keys in place");
-
-    expect(text).toContain("migrate-harness-yaml.sh");
 
     expect(text).toContain("GH_TOKEN=");
   });

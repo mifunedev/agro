@@ -1,1 +1,0 @@
-{ "rounds": 1, "netAdded": 3788, "lastCommit": "07e7399fe3b5a762d4f52b2fa985784791b9b085", "note": "round 1 split classifyInstallation and compareSemver (CCN 12/14) into helpers; no diff-introduced function is above CCN 10; netAdded is dominated by self-upgrade.ts, its 47 tests, get-agro.sh, and the release pipeline tests" }

@@ -21,8 +21,8 @@ is the mechanism.
 A sandbox is a **registry entry** under `${AGRO_HOME:-~/.agro}/sandboxes/<name>/`.
 `agro sandbox install docker` writes it, and every later verb finds it by name
 from any directory — no project checkout required. A registry created by an
-earlier release stays at `${AGRO_HOME:-~/.oh}/sandboxes/<name>/` and still
-resolves; `agro migrate --home` moves it. Details:
+earlier release stays at `${AGRO_HOME:-~/.agro}/sandboxes/<name>/` and still
+resolves. Details:
 [Configuration → the two `agro.json` files](configuration.md#the-two-agrojson-files).
 
 Host prerequisites: **Docker** (with the Compose plugin), **Git**, and
@@ -48,8 +48,7 @@ Amazon Bedrock, Vertex or Foundry, reads no project instructions at all.
 | `agro destroy [name] [--yes]` | `docker-compose.sh down -v`, then remove the registry entry — see below |
 | `agro compose config` | `docker-compose.sh config` — the resolved compose file |
 | `agro update [--dry-run]` | upgrade the installed `agro` executable through the mechanism that installed it — see below |
-| `agro migrate [--check] [--home] [--json]` | move a legacy `.agro/` project or `~/.oh` registry to the AGRO names — see below |
-| `agro vendor [--from <dir> \| --from-remote [--ref <ref>]] [--dry-run] [--force]` | equip an empty checkout with `.agro/` + `crons/`, and upgrade an equipped one (compatibility window) |
+| `agro vendor [--from <dir> \| --from-remote [--ref <ref>]] [--dry-run] [--force]` | equip an empty checkout with `.agro/` + `crons/`, and upgrade an equipped one |
 | `agro config show [--sandbox <name>]` · `agro config set <field> <value> [--sandbox <name>]` | read and write `agro.json` |
 | `agro config repo` · `agro config <integration>` | GitHub-remote and integration wizards |
 | `agro secret set <KEY> [--sandbox <name>]` · `agro secret list [--sandbox <name>]` | read and write the gitignored `.env` |
@@ -211,53 +210,6 @@ Details: [`agro self-upgrade`](#upgrading-the-cli-agro-self-upgrade) and
 A current CLI names the recovery route for your own installation kind whenever a
 lifecycle script is truly absent.
 
-## Migrating to the AGRO names: `agro migrate`
-
-`agro migrate` moves an installation created under the legacy names to the AGRO
-names. It renames `.agro/` to `.agro/` and `agro.json` to `agro.json` wholesale,
-and re-points three active provider links from `../.agro/…` to `../.agro/…`:
-`.claude/skills`, `.claude/hooks`, and `.agents/skills`.
-The retired links are `.pi/skills` and `.codex/skills`.
-If a retired link resolves to the AGRO pack and `.agents/skills` independently links to that pack, migration moves the retired link to `<path>.migrated`.
-Otherwise, migration preserves the retired path. Migration re-points a preserved
-`../.agro/skills` link to `../.agro/skills` so discovery survives the pack rename.
-Custom directories and foreign links remain unchanged. An existing retirement
-marker blocks retirement without overwriting the marker.
-Byte-identical legacy copies move to `<name>.migrated` instead of deletion.
-`agro migrate` dispatches to the same command.
-
-`bash .agro/scripts/link-providers.sh --init` repairs active links before retirement.
-Unlike CLI migration, this script refuses custom retired paths and unresolved collisions.
-Its `--check` mode reports retired links without changing files.
-Fresh clones omit both retired links; `.codex/` and `.pi/` retain provider configuration.
-
-Project mode is the default: it starts at the current directory and walks up to
-the nearest ancestor holding `.agro/`, `.agro/`, `agro.json`, or `agro.json`.
-
-| Flag | Effect |
-|---|---|
-| `--check` | print the plan and change nothing |
-| `--home` | migrate the sandbox registry `~/.agro/sandboxes` → `~/.agro/sandboxes` instead of a project |
-| `--json` | emit the plan (`--check`) or `{plan, result}` as JSON on stdout |
-
-```bash
-agro migrate --check   # plan the project in this directory
-agro migrate           # apply it
-agro migrate --home    # move the registry instead
-```
-
-| Exit code | Meaning |
-|---|---|
-| `0` | applied, or nothing to do |
-| `2` | refused: a conflict, or the `.agro-migrate.lock` is held |
-| `1` | failure |
-
-It is idempotent: a second run is a no-op. It never merges and has no force
-option — divergent `.agro/` and `.agro/` (or `agro.json` and `agro.json`) copies are
-refused with the differing entries named, and you keep exactly one copy or make
-them identical. It preserves unknown files, permission bits, and symlink targets,
-and it never touches `~/.agro`, `.env`, or git history.
-
 ## Where you are standing when you type `agro`
 
 `agro` runs on the host **and** inside the sandbox, and it resolves a different
@@ -317,7 +269,7 @@ record.
 
 A **host workspace** is an AGRO checkout under
 `${AGRO_HOME:-~/.agro}/workspaces/<name>/`. It carries the control plane that a
-harness on the host reads: `AGENTS.md`, `.agro/skills/`, the hooks, and task
+harness on the host reads: `AGENTS.md`, the hooks, and task
 state. `agro workspace` is the only verb that creates one.
 
 ```bash
@@ -342,10 +294,8 @@ agro workspace list --json                # the same rows as JSON
   the name rule and holds a `.git` marker. The `DEFAULT` column marks the
   workspace that `harnessRoot` names. An empty registry prints one hint that
   names `agro workspace create`.
-- `create` refuses two host states. A state home split across `~/.oh` and
-  `~/.agro` refuses, and `agro migrate --home` repairs that split. A target
-  directory equal to the state home refuses, and the message names the move to
-  run.
+- `create` refuses a target directory equal to the state home, and the message
+  names the move to run.
 
 `agro harness install --host` and `agro tool install --host` create no workspace.
 Each verb resolves an existing workspace and exits 1 when none resolves. The

@@ -1,2 +1,0 @@
-Capability check: native general-purpose Agent supports model and thinking. Requested inherit/high; effective settings unknown. Wave 1 T1 running; single writer, dedicated worktree.
-2026-09-19T22:53:12.117593+00:00 T1 accepted after advisor checks: preservation0, provider0, index0, typecheck0, build0, tests0 (1681). Initial eval1 skills-vendored reproduced on base1; follow-up eval0 persistent red disclosed. T2 accepted: two repaired findings, final8edbc7a6 no findings. No guards bypassed.

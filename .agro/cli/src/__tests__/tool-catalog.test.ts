@@ -309,10 +309,7 @@ describe("baked-in tools", () => {
     }
   });
 
-  // #948: herdr and cloudflared enter only through `agro tool install`. The
-  // inverse of the check above — an installable tool must NOT be in the
-  // Dockerfile — lives in .agro/evals/probes/harness-one-door.sh, which matches
-  // on the pinned project URL rather than the bare binary name.
+  // #948: herdr and cloudflared enter only through `agro tool install`.
   it("no longer claims herdr or cloudflared", () => {
     for (const id of ["herdr", "cloudflared"]) {
       expect(findTool(id)!.kind, id).toBe("installable");

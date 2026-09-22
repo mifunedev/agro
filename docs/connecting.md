@@ -284,7 +284,7 @@ All long-running processes inside the sandbox run in named tmux sessions. The na
 | `agent-` | `agent-watcher`, `agent-batch`, `agent-t3code`, `agent-tailscaled` | Headless / long-running agent processes (interactive CLIs are foreground, not tmux) |
 | `app-` | `app-api` | Dev servers |
 
-For the full convention see [`.agro/skills/t3/references/sandbox-processes.md`](https://github.com/mifunedev/agro/blob/development/.agro/skills/t3/references/sandbox-processes.md).
+For the full convention see [`docs/sandbox-processes.md`](https://github.com/mifunedev/agro/blob/development/docs/sandbox-processes.md).
 
 ## End-to-end recipe
 

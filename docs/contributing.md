@@ -76,9 +76,6 @@ private configuration, credentials, and unrelated files out of the contribution.
 [contribution prompt](./quickstart.md#optional-prompt--prepare-an-agro-contribution) walks
 an authenticated agent through the same decision.
 
-A checkout equipped before the AGRO cutover carries `.agro/` and `agro.json`. Both still
-resolve; run `agro migrate --check` and then `agro migrate` to move it.
-
 ### Local validation
 
 Use the fast harness build for routine development:
@@ -86,7 +83,7 @@ Use the fast harness build for routine development:
 ```bash
 pnpm run build          # fast non-docs build
 pnpm run test:scripts   # root script + .pi extension tests
-bash .agro/skills/eval/run.sh
+pnpm test
 ```
 
 The rendered docs site is maintained in [`mifunedev/agro-web`](https://github.com/mifunedev/agro-web). In this core repo, validate docs by checking the Markdown links and the GitHub-readable index at `docs/README.md`; no Docusaurus build runs here.
@@ -218,7 +215,7 @@ Run the release skill from inside the orchestrator sandbox:
 /release
 ```
 
-For the full workflow, see the `git` and `release` skills in `.agro/skills/`.
+For the full workflow, see the git conventions in the root `AGENTS.md`.
 
 ### Release helpers
 
@@ -255,5 +252,5 @@ Do not place the token value in shell history or logs.
 
 ---
 
-Need to dive deeper? See the `git` skill (`.agro/skills/git/SKILL.md`)
+Need to dive deeper? See the git conventions in [`AGENTS.md`](../AGENTS.md)
 in the repo for the canonical workflow.

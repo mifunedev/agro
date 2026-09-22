@@ -1,2 +1,0 @@
-focused_exit=0
-prior12_exit=0

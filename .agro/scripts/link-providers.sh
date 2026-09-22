@@ -6,21 +6,23 @@ PROTECTED_PATHS_FILE=".claude/protected-paths.txt"
 CC_SAFETY_NET_PIN="1.0.6"
 
 required_files=(
+  ".agro/skills/agent-browser/SKILL.md"
+  ".agro/skills/escalate/SKILL.md"
   ".agro/skills/git/SKILL.md"
-  ".agro/skills/t3/references/sandbox-processes.md"
-  ".agro/skills/wiki/references/schema.md"
-  ".agro/skills/eval/run.sh"
+  ".agro/skills/herdr/SKILL.md"
+  ".agro/skills/prd/SKILL.md"
+  ".agro/skills/ralph/SKILL.md"
+  ".agro/skills/release/SKILL.md"
+  ".agro/skills/ste/SKILL.md"
+  ".agro/skills/worktrees/SKILL.md"
 )
 
 required_execs=(
   ".agro/hooks/deny-env-dump.sh"
   ".agro/hooks/deny-secret-paths.sh"
   ".agro/hooks/warn-devtcp.sh"
-  ".agro/skills/cloudflared/scripts/run.sh"
-  ".agro/skills/health-check/scripts/scope-preflight.sh"
-  ".agro/skills/eval/run.sh"
-  ".agro/skills/retro/scripts/validate-retro-report.sh"
-  ".agro/skills/t3/scripts/t3-code.sh"
+  ".agro/skills/escalate/scripts/escalate.sh"
+  ".agro/skills/ste/scripts/ste-check.sh"
 )
 
 provider_links=(
@@ -30,20 +32,16 @@ provider_links=(
 )
 
 retired_links=(
-  ".pi/skills|.agents/skills"
-  ".codex/skills|.agents/skills"
+  ".pi/skills"
+  ".codex/skills"
 )
-
-HERMES_LINK=".hermes/skills/agro"
-HERMES_TARGET="../../.agro/skills"
 
 usage() {
   cat <<'EOF'
-usage: bash .agro/scripts/link-providers.sh [--init|--check] [--hermes-only]
+usage: bash .agro/scripts/link-providers.sh [--init|--check]
 
---init         create/repair the provider symlinks into .agro/, then verify
---check        verify the provider symlinks + vendored .agro/ pack without mutating
---hermes-only  require Hermes integration only; use AGRO_PROJECT_ROOT when set
+--init   create/repair the provider symlinks into .agro/, then verify
+--check  verify the provider symlinks without mutating
 EOF
 }
 
@@ -53,36 +51,26 @@ case "$mode" in
   -h|--help) usage; exit 0 ;;
   *) usage >&2; exit 64 ;;
 esac
+[ "$#" -le 1 ] || { usage >&2; exit 64; }
 
-hermes_only=false
-case "${2:-}" in
-  --hermes-only) hermes_only=true ;;
-  "") ;;
-  *) usage >&2; exit 64 ;;
-esac
-[ "$#" -le 2 ] || { usage >&2; exit 64; }
-
-repo_root=""
-if [ "$hermes_only" = true ]; then
-  repo_root="${AGRO_PROJECT_ROOT:-}"
-fi
+repo_root="${AGRO_PROJECT_ROOT:-}"
 if [ -z "$repo_root" ]; then
   repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 fi
-if [ -z "$repo_root" ]; then
-  repo_root="${AGRO_PROJECT_ROOT:-}"
+if [ -z "$repo_root" ] && [ -d "$PWD/.agro/hooks" ]; then
+  repo_root="$PWD"
 fi
 if [ -z "$repo_root" ]; then
   script_dir="$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
   candidate="$(dirname -- "$(dirname -- "$script_dir")")"
-  if [ -d "$candidate/.agro/skills" ]; then
+  if [ -d "$candidate/.agro/hooks" ]; then
     repo_root="$candidate"
   else
     repo_root="$PWD"
   fi
 fi
-if [ ! -d "$repo_root/.agro/skills" ]; then
-  echo "ERROR: not an AGRO tree (no .agro/skills at $repo_root)" >&2
+if [ ! -d "$repo_root/.agro/hooks" ]; then
+  echo "ERROR: not an AGRO tree (no .agro/hooks at $repo_root)" >&2
   exit 1
 fi
 cd "$repo_root"
@@ -96,9 +84,7 @@ fail() {
 
 print_state() {
   cat >&2 <<EOF
-Vendored skill pack: .agro/skills (expected to exist as tracked files)
-Provider surfaces:   .agents/skills .claude/skills -> ../.agro/skills
-Retired surfaces:    .pi/skills .codex/skills (moved to <path>.migrated only when each resolves to .agro/skills and .agents/skills independently links to it)
+Provider surfaces: .agents/skills and .claude/skills -> ../.agro/skills; .claude/hooks -> ../.agro/hooks
 Remediation: bash .agro/scripts/link-providers.sh --init
 EOF
 }
@@ -129,175 +115,28 @@ link_provider() {
   ln -s "$target" "$path"
 }
 
-resolves_to_pack() {
-  local resolved pack
-  resolved="$(realpath "$1" 2>/dev/null || true)"
-  pack="$(realpath .agro/skills 2>/dev/null || true)"
-  [ -n "$pack" ] && [ "$resolved" = "$pack" ]
-}
-
-replacement_survives() {
-  local path="$1"
-  [ -L "$path" ] || return 1
-  case "$(readlink "$path")" in
-    ../.agro/skills) ;;
-    *) return 1 ;;
-  esac
-  resolves_to_pack "$path"
-}
-
 retire_link() {
-  local spec="$1" path replacement retired
-  path="${spec%%|*}"
-  replacement="${spec#*|}"
-  provider_parent_safe "$(dirname "$path")" || return 1
-  if [ ! -e "$path" ] && [ ! -L "$path" ]; then
+  local path="$1"
+  if [ ! -L "$path" ]; then
+    if [ -e "$path" ]; then
+      fail "$path is a retired skill surface but is not a symlink; preserve it and move it aside"
+      return 1
+    fi
     return 0
   fi
-  if [ ! -L "$path" ]; then
-    fail "$path is a retired provider surface but is not a symlink; preserve it and move it aside"
-    return 1
-  fi
-  if ! resolves_to_pack "$path"; then
-    fail "$path does not resolve to the vendored .agro/skills pack; preserve it and resolve the retired provider collision"
-    return 1
-  fi
-  if ! replacement_survives "$replacement"; then
-    fail "$path still carries skill discovery because $replacement is not an independent link to .agro/skills; repair $replacement, then run --init again"
-    return 1
-  fi
-  retired="${path}.migrated"
-  if [ -e "$retired" ] || [ -L "$retired" ]; then
-    fail "$retired already exists; preserve it and resolve the retired provider collision"
-    return 1
-  fi
-  mv "$path" "$retired"
+  case "$(readlink "$path")" in
+    ../.oh/skills|../.agro/skills|.agents/skills|../../.agro/skills) rm -f "$path" ;;
+    *) fail "$path is a foreign symlink; preserve it and resolve the conflict by hand" ; return 1 ;;
+  esac
 }
 
 check_retired_links() {
-  local spec path replacement
-  for spec in "${retired_links[@]}"; do
-    path="${spec%%|*}"
-    replacement="${spec#*|}"
-    if [ ! -e "$path" ] && [ ! -L "$path" ]; then
-      continue
-    fi
-    if [ ! -L "$path" ]; then
-      fail "$path is a retired provider surface but is not a symlink"
-      continue
-    fi
-    if ! resolves_to_pack "$path"; then
-      fail "$path does not resolve to the vendored .agro/skills pack; preserve it and resolve the retired provider collision"
-      continue
-    fi
-    if ! replacement_survives "$replacement"; then
-      fail "$path still carries skill discovery because $replacement is not an independent link to .agro/skills; repair $replacement, then run --init again"
-      continue
-    fi
-    fail "$path is retired; run --init to remove the old AGRO link"
-  done
-}
-
-hermes_managed_here() {
-  case "${HERMES_HOME:-}" in ""|/*) ;; *) return 1 ;; esac
-  [ -z "${HERMES_HOME:-}" ] || [ "$(realpath -m "$HERMES_HOME")" = "$(realpath -m "$repo_root/.hermes")" ]
-}
-
-hermes_paths_safe() {
-  local expected="$repo_root/.hermes" parent
-  if [ "$hermes_only" = true ] && [ -z "${HERMES_HOME:-}" ]; then
-    fail "HERMES_HOME is unset; recreate from the corrected image or export HERMES_HOME=$expected in the launch environment before installing"
-    return 1
-  fi
-  case "${HERMES_HOME:-}" in
-    ""|/*) ;;
-    *) fail "HERMES_HOME must be absolute so launches do not depend on cwd"; return 1 ;;
-  esac
-  if [ -n "${HERMES_HOME:-}" ] && [ "$(realpath -m "$HERMES_HOME")" != "$(realpath -m "$expected")" ]; then
-    fail "HERMES_HOME conflicts with $expected; preserve that home and select the intended project before installing"
-    return 1
-  fi
-  for parent in .hermes .hermes/skills; do
-    if [ -L "$parent" ]; then
-      fail "$parent is a symlink; preserve it and resolve the runtime-home conflict before linking"
-      return 1
-    fi
-    if [ -e "$parent" ] && [ ! -d "$parent" ]; then
-      fail "$parent is not a directory; preserve it and resolve the conflict before linking"
-      return 1
+  local path
+  for path in "${retired_links[@]}"; do
+    if [ -L "$path" ] || [ -e "$path" ]; then
+      fail "$path is retired; run --init to remove the stale skill-pack link"
     fi
   done
-}
-
-init_hermes_link() {
-  hermes_paths_safe || return 1
-  if [ -L "$HERMES_LINK" ]; then
-    [ "$(readlink "$HERMES_LINK")" = "$HERMES_TARGET" ] && return 0
-    if [ "$(realpath -m "$HERMES_LINK")" != "$(realpath -m .agro/skills)" ]; then
-      fail "$HERMES_LINK is a foreign symlink; preserve it and resolve the conflict before linking"
-      return 1
-    fi
-  elif [ -e "$HERMES_LINK" ]; then
-    fail "$HERMES_LINK exists and is not a symlink; preserve it and resolve the conflict before linking"
-    return 1
-  fi
-  link_provider "$HERMES_LINK" "$HERMES_TARGET"
-}
-
-init_links() {
-  if [ ! -d .agro/skills ]; then
-    fail ".agro/skills is missing — the vendored skill pack is not present"
-    return 1
-  fi
-
-  local link path target
-  for link in "${provider_links[@]}"; do
-    path="${link%%|*}"
-    target="${link#*|}"
-    link_provider "$path" "$target" || true
-  done
-  for link in "${retired_links[@]}"; do
-    retire_link "$link" || true
-  done
-
-  local f
-  for f in "${required_execs[@]}"; do
-    [ -f "$f" ] && chmod +x "$f"
-  done
-
-  if command -v hermes >/dev/null 2>&1 && hermes_managed_here; then
-    init_hermes_link || true
-  fi
-}
-
-check_symlink() {
-  local path="$1" expected_target="$2" target
-  if [ ! -L "$path" ]; then
-    fail "$path is not a symlink"
-    return
-  fi
-  target="$(readlink "$path")"
-  if [ "$target" != "$expected_target" ]; then
-    fail "$path points to $target, expected $expected_target"
-  fi
-  if [ ! -e "$path" ]; then
-    fail "$path target is missing; the vendored .agro/ pack is incomplete"
-  fi
-}
-
-check_hermes_link() {
-  if [ "$hermes_only" = false ] && ! hermes_managed_here; then
-    echo "note: Hermes uses another runtime home; checking only this checkout's other providers" >&2
-    return 0
-  fi
-  if [ ! -e "$HERMES_LINK" ] && [ ! -L "$HERMES_LINK" ] && [ "$hermes_only" = false ] && ! command -v hermes >/dev/null 2>&1; then
-    return 0
-  fi
-  hermes_paths_safe || return 1
-  check_symlink "$HERMES_LINK" "$HERMES_TARGET"
-  if [ ! -f "$HERMES_LINK/git/SKILL.md" ]; then
-    fail "$HERMES_LINK/git/SKILL.md is missing"
-  fi
 }
 
 check_protected_paths() {
@@ -310,11 +149,7 @@ check_protected_paths() {
     entry="${entry%%#*}"
     entry="$(printf '%s' "$entry" | xargs)"
     [ -n "$entry" ] || continue
-    case "$entry" in
-      .agro/skills/*|.agro/hooks/*)
-        [ -e "$entry" ] || fail "protected pack path missing: $entry"
-        ;;
-    esac
+    [ -e "$entry" ] || fail "protected path missing: $entry"
   done < "$PROTECTED_PATHS_FILE"
 }
 
@@ -341,17 +176,43 @@ check_cc_safety_net() {
   esac
 }
 
-check_links() {
-  if [ ! -d .agro/skills ]; then
-    fail ".agro/skills is missing — the vendored skill pack is not present"
+check_symlink() {
+  local path="$1" expected_target="$2" target
+  if [ ! -L "$path" ]; then
+    fail "$path is not a symlink"
+    return
   fi
+  target="$(readlink "$path")"
+  if [ "$target" != "$expected_target" ]; then
+    fail "$path points to $target, expected $expected_target"
+  fi
+  if [ ! -e "$path" ]; then
+    fail "$path target is missing; the vendored .agro/ pack is incomplete"
+  fi
+}
 
-  local f
+init_links() {
+  local link path target f
+  for link in "${provider_links[@]}"; do
+    path="${link%%|*}"
+    target="${link#*|}"
+    link_provider "$path" "$target" || true
+  done
+  for path in "${retired_links[@]}"; do
+    retire_link "$path" || true
+  done
+  for f in "${required_execs[@]}"; do
+    [ -f "$f" ] && chmod +x "$f"
+  done
+}
+
+check_links() {
+  local f link path expected_target
   for f in "${required_files[@]}"; do
     [ -f "$f" ] || fail "required pack file missing: $f"
   done
   for f in "${required_execs[@]}"; do
-    [ -x "$f" ] || fail "required pack executable missing or not executable: $f"
+    [ -x "$f" ] || fail "required hook missing or not executable: $f"
   done
 
   if [ "${CC_SAFETY_NET_STRICT:-}" = "1" ]; then
@@ -361,7 +222,6 @@ check_links() {
       echo "note: cc-safety-net not on PATH (enforced only where CC_SAFETY_NET_STRICT=1, i.e. inside the sandbox)" >&2
   fi
 
-  local link path expected_target
   for link in "${provider_links[@]}"; do
     path="${link%%|*}"
     expected_target="${link#*|}"
@@ -369,29 +229,17 @@ check_links() {
   done
 
   check_retired_links
-  check_hermes_link
   check_protected_paths
 }
 
-if [ "$hermes_only" = true ]; then
-  if [ "$mode" = "--init" ]; then
-    init_hermes_link || true
-  fi
-  check_hermes_link || true
-else
-  if [ "$mode" = "--init" ]; then
-    init_links
-  fi
-  check_links
+if [ "$mode" = "--init" ]; then
+  init_links
 fi
+check_links
 
 if [ "$failures" -ne 0 ]; then
   print_state
   exit 1
 fi
 
-if [ "$hermes_only" = true ]; then
-  printf 'Hermes OK: .hermes/skills/agro -> .agro/skills\n'
-else
-  printf 'Providers OK: .agents/.claude skills -> .agro/skills (vendored pack present)\n'
-fi
+printf 'Providers OK: .agents/.claude skills -> .agro/skills; .claude/hooks -> .agro/hooks\n'

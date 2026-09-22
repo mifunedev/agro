@@ -7,11 +7,9 @@ AGRO keeps its portable machinery here. The sandbox definition stays in
 | --- | --- |
 | `cli/` | The `agro` package. |
 | `scripts/`, `install/` | Lifecycle scripts, runtime helpers, and image inputs. |
-| `skills/`, `hooks/`, `skills.lock` | Shared procedures, hooks, and pack metadata. |
-| `evals/` | Regression probes, capability tasks, datasets, and scoreboards. |
-| `knowledge/` | Tracked synthesis, external snapshots, and a generated index. |
-| `tasks/` | Local task plans, structured state, and execution records. |
-| `logs/`, `memories/` | Local logs and operator-context files with scoped contracts. |
+| `skills/` | The retained skill pack: `/agent-browser`, `/escalate`, `/git`, `/herdr`, `/prd`, `/ralph`, `/release`, `/ste` and `/worktrees`. |
+| `hooks/` | Security hooks mirrored onto each provider surface. |
+| `logs/` | Local logs with a scoped contract. |
 | `manifest.json` | The payload allowlist for `agro vendor`. |
 
 Read each applicable `AGENTS.md` before changing that directory's contents.

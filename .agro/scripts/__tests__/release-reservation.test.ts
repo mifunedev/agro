@@ -318,7 +318,7 @@ describe("release workflow contract", () => {
   });
 
   it("reads the release version from package.json rather than a clock", () => {
-    expect(source).toMatch(/reserve:\n[\s\S]*?needs: \[validate, boot-lint, eval-probes\]/);
+    expect(source).toMatch(/reserve:\n[\s\S]*?needs: \[validate, boot-lint\]/);
     expect(source).toContain(`node -p "require('./package.json').version"`);
     expect(source).toContain("RELEASE_VERSION: ${{ steps.release_version.outputs.version }}");
     expect(source).not.toContain("RELEASE_TIMESTAMP");

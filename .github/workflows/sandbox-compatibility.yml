@@ -18,7 +18,6 @@ on:
       - ".dockerignore"
       - ".agro/scripts/verify-sandbox-image.sh"
       - ".agro/scripts/node-pnpm-parity.sh"
-      - ".agro/scripts/hermes-install-smoke.sh"
       - ".agro/scripts/link-providers.sh"
       - ".agro/cli/src/commands/harness.ts"
       - ".github/workflows/sandbox-compatibility.yml"
@@ -29,7 +28,6 @@ on:
       - ".dockerignore"
       - ".agro/scripts/verify-sandbox-image.sh"
       - ".agro/scripts/node-pnpm-parity.sh"
-      - ".agro/scripts/hermes-install-smoke.sh"
       - ".agro/scripts/link-providers.sh"
       - ".agro/cli/src/commands/harness.ts"
       - ".github/workflows/sandbox-compatibility.yml"
@@ -130,16 +128,10 @@ jobs:
             done
           done
 
-          docker exec -u sandbox -w /tmp -e AGRO_HERMES_SMOKE=1 "$cid" \
-            bash /home/sandbox/harness/.agro/scripts/hermes-install-smoke.sh
           docker exec -u sandbox -w /home/sandbox/harness "$cid" agro harness install hermes
-          docker exec -u sandbox -w /tmp -e AGRO_HERMES_SMOKE=1 "$cid" \
-            bash /home/sandbox/harness/.agro/scripts/hermes-install-smoke.sh
 
           "${compose[@]}" restart sandbox
           "${compose[@]}" up -d --wait --wait-timeout 600
-          docker exec -u sandbox -w /tmp -e AGRO_HERMES_SMOKE=1 "$cid" zsh -lic \
-            'bash /home/sandbox/harness/.agro/scripts/hermes-install-smoke.sh'
 
           for id in $ids; do
             binary=$(docker exec -u sandbox "$cid" bash -lc \

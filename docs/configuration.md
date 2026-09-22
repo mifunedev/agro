@@ -23,11 +23,7 @@ The same schema has two homes, and the flag you pass picks one:
 | **Registry entry** | `${AGRO_HOME:-~/.agro}/sandboxes/<name>/agro.json` | `agro sandbox install docker`, then `agro config set --sandbox <name>` | the sandbox: `name`, `runtime`, `checkout`, `timezone`, `git.*`, `access.*`, `image.*`, `storage.homePath`, `composeOverrides` |
 | **Project** | `<repo>/agro.json` | you, and `agro config set` with no flag | the settings a checkout wants to carry in git |
 
-A registry entry created by an earlier release stays at
-`${AGRO_HOME:-~/.oh}/sandboxes/<name>/agro.json`, and a checkout equipped by one
-keeps `.agro/` and `agro.json`. Both keep resolving under either executable name;
-`agro migrate` and `agro migrate --home` move them when you choose. Every verb
-below uses the `agro` CLI.
+Every verb below uses the `agro` CLI.
 
 `agro sandbox install docker` writes the registry entry and, beside it, the
 compose files and the compose wrapper. Those are **generated**: the CLI
@@ -187,7 +183,7 @@ to `.env` and load it with `set -a; source .env; set +a`.
 It is deliberately absent from every compose `environment:` block. A value reaches the
 sandbox through Compose only if a process outside the sandbox — or the entrypoint before
 the control plane is readable — must act on it, and nothing outside the sandbox acts on
-this key. `.agro/evals/probes/typesafe-key-boundary.sh` fails if it ever appears there.
+this key.
 
 **Unconfigured fails loudly, then continues.** Without the key, every consumer prints a
 diagnostic naming the variable and the command that sets it, then falls back to its

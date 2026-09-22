@@ -117,9 +117,7 @@ Displaced detail has a destination — put it there, not in the entry:
 | Detail | Destination |
 |--------|-------------|
 | Rationale, rejected alternatives | The PR body — the `([#N])` link is the pointer |
-| Task/spec decisions | `.agro/tasks/<slug>/prd.md` |
 | Architecture decisions | `docs/rfcs/` |
-| Durable, generalized lessons | A minted probe under `.agro/evals/probes/` |
 
 BAD (real entry, 3,579 chars — a design doc wearing a bullet):
 
@@ -133,7 +131,7 @@ GOOD (233 chars — same fact, rationale left to the PR):
 - Add `agro harness <list|install|status>` to install optional harnesses into a running sandbox without a rebuild, persisting the choice to `install.<key>` for the next build ([#821](https://github.com/mifunedev/agro/pull/821)).
 ```
 
-Enforced by `.agro/evals/probes/changelog-entry-length.sh` (report-only) over `## [Unreleased]`.
+Keep each `## [Unreleased]` entry at or under 250 characters.
 
 Automatic branch-push releases use the matching `## [<VERSION>] - YYYY-MM-DD` section when one already exists; otherwise they publish the current `[Unreleased]` body. Do **not** hand-edit a versioned section after its tag ships, except for a repo-wide reformat that changes no facts.
 

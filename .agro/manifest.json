@@ -3,11 +3,8 @@
     "cli/**",
     "scripts/**",
     "install/**",
-    "evals/**",
-    "knowledge/**",
     "skills/**",
     "hooks/**",
-    "skills.lock",
     "README.md",
     "manifest.json"
   ],

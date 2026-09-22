@@ -34,7 +34,7 @@ assignees: ""
 
 ---
 
-> **Git workflow**: see the [/git skill](../../.agro/skills/git/SKILL.md)
+> **Git workflow**: see the git conventions in [`AGENTS.md`](../../AGENTS.md)
 
 ---
 
