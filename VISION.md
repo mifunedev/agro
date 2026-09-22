@@ -179,9 +179,11 @@ A claim in this file that the code does not meet belongs here, not in the
 section that asserts it.
 
 - **P5 covers two harnesses, not nine.** The harness catalog ships nine. Only
-  Claude Code and Codex have any hook surface, and the Codex adapters read
-  policy through a generated mirror rather than the canonical source. Until that
-  closes, "harness choice does not change behavior" is a goal, not a fact.
+  Claude Code and Codex have a hook surface; the other seven run with no policy
+  enforcement. Until that closes, "harness choice does not change behavior" is
+  a goal, not a fact. Every surface that exists now reads the canonical
+  `.agro/hooks/` source directly, so what is missing is coverage, not
+  correctness.
 - **The boot path is not clean, and the escape hatch is not a seam.** A large
   share of the entrypoint is stack- or vendor-specific work that runs inline.
   The `*-entrypoint-hook.sh` loop exists, ships no hooks, has no documented

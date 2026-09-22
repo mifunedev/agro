@@ -15,6 +15,7 @@ Update policy and release automation live in [`AGENTS.md`](AGENTS.md) § Git con
 
 ### Changed
 
+- Point the Codex `deny-env-dump` adapter at the canonical `.agro/hooks/` source instead of the generated `.claude/hooks/` mirror, so Codex policy no longer depends on another provider's surface ([#1134](https://github.com/mifunedev/agro/issues/1134)).
 - Reduce `link-providers.sh` to the `.claude/hooks` link and retire stale skill-pack links; promote `version-parity.sh`, `agro-legacy-shim.sh`, and the sandbox privilege-boundary guard out of the probe suite into `.agro/scripts/` and CI ([#1134](https://github.com/mifunedev/agro/issues/1134)).
 
 ### Added

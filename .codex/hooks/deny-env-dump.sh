@@ -3,7 +3,7 @@ set -euo pipefail
 
 root=$(git rev-parse --show-toplevel)
 input=$(cat)
-output=$(bash "$root/.claude/hooks/deny-env-dump.sh" <<<"$input")
+output=$(bash "$root/.agro/hooks/deny-env-dump.sh" <<<"$input")
 
 [ -z "$output" ] && exit 0
 
