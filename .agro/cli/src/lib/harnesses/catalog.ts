@@ -1,4 +1,11 @@
 
+import {
+  claudeCodeTracingWriter,
+  codexTracingWriter,
+  piTracingWriter,
+} from "../tracing/harness-writers.js";
+import type { TracingWriter } from "../tracing/writer.js";
+
 export type HarnessKind = "installable" | "on-demand";
 
 export interface HarnessEntry {
@@ -12,6 +19,7 @@ export interface HarnessEntry {
   readonly docsPath: string;
   readonly kind: HarnessKind;
   readonly bypassPermissionsFlag?: string;
+  readonly tracingWriter?: TracingWriter;
 }
 
 export const SANDBOX_HARNESS_PREFIX = "/home/sandbox/.local";
@@ -37,6 +45,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     docsPath: "docs/harnesses/claude-code.md",
     kind: "installable",
     bypassPermissionsFlag: "--permission-mode bypassPermissions",
+    tracingWriter: claudeCodeTracingWriter,
   },
   {
     id: "codex",
@@ -55,6 +64,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     uninstallArgv: ["npm", "--prefix", HARNESS_PREFIX_TOKEN, "uninstall", "-g", "@openai/codex"],
     docsPath: "docs/harnesses/codex.md",
     kind: "installable",
+    tracingWriter: codexTracingWriter,
   },
   {
     id: "pi",
@@ -74,6 +84,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     uninstallArgv: ["npm", "--prefix", HARNESS_PREFIX_TOKEN, "uninstall", "-g", "@earendil-works/pi-coding-agent"],
     docsPath: "docs/harnesses/pi.md",
     kind: "installable",
+    tracingWriter: piTracingWriter,
   },
   {
     id: "opencode",
