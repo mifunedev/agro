@@ -96,6 +96,8 @@ COPY --chown=sandbox:sandbox .agro/install/.tmux.conf /home/sandbox/.tmux.conf
 
 COPY --chown=sandbox:sandbox .agro/install/.zshrc /home/sandbox/.zshrc
 
+COPY --chown=sandbox:sandbox .agro/install/.zshenv /home/sandbox/.zshenv
+
 COPY --chown=sandbox:sandbox .agro/install/path-env.sh /tmp/path-env.sh
 
 COPY --chown=sandbox:sandbox .agro/install/ /home/sandbox/install/

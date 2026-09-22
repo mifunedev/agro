@@ -80,8 +80,16 @@ tmux attach -t agent-codex
 
 [Langfuse](../integrations/langfuse.md#3-codex) traces Codex turns, tool calls,
 and cost through the official `codex-observability-plugin`. The plugin stays off
-until you enable tracing and sets no trace tag of its own. Approve its hook once
-in an interactive session before the plugin sends a trace.
+until you enable tracing, and the plugin sets no trace tag of its own.
+
+Run `agro config langfuse` to configure the plugin. The wizard offers to install
+the plugin and writes `~/.codex/langfuse.json` with `enabled`, the `codex` tag,
+and the trace environment, at mode `0600`. That file holds no credential, and
+the wizard never edits `~/.codex/config.toml`.
+
+One step stays manual. Start `codex` once interactively and approve the
+**Uploading Codex trace to Langfuse** hook. Codex prompts for hook trust only in
+interactive mode, and an untrusted hook never runs.
 
 ## Tips
 

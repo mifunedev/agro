@@ -337,7 +337,7 @@ describe("`oh config <integration>` is not overloaded", () => {
     const cli = readFileSync(join(HERE, "..", "cli.ts"), "utf8");
     expect(cli).toContain('if (first === "compose") {');
     expect(cli).toContain('if (first === "config") {');
-    expect(cli).toContain("const INTEGRATIONS: Record<string, Integration> = {};");
+    expect(cli).toContain("const INTEGRATIONS: Record<string, Integration> = {");
   });
 });
 

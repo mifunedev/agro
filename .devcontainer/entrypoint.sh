@@ -157,6 +157,31 @@ oh_config_truthy() {
 }
 # <<< oh_config <<<
 
+# >>> langfuse_apply >>>
+langfuse_apply() {
+  local out
+  if ! gosu sandbox env HOME=/home/sandbox bash -lc 'command -v "$1" >/dev/null 2>&1' _ "$CLI_BIN"; then
+    echo "[entrypoint] $CLI_BIN not on the sandbox PATH — skipping langfuse apply"
+    return 0
+  fi
+  if ! gosu sandbox env HOME=/home/sandbox bash -lc 'exec "$1" langfuse --help' _ "$CLI_BIN" >/dev/null 2>&1; then
+    echo "[entrypoint] $CLI_BIN has no langfuse command — skipping langfuse apply"
+    return 0
+  fi
+  if out="$(gosu sandbox env HOME=/home/sandbox bash -lc 'cd "$1" || exit 1; exec "$2" langfuse apply' _ "$HARNESS" "$CLI_BIN" 2>&1)"; then
+    if [ -n "$out" ]; then
+      printf '%s\n' "$out" | sed 's/^/[entrypoint] /'
+    fi
+    return 0
+  fi
+  echo "[entrypoint] WARNING: $CLI_BIN langfuse apply failed — tracing may be unconfigured; continuing boot" >&2
+  if [ -n "$out" ]; then
+    printf '%s\n' "$out" | sed 's/^/[entrypoint] /' >&2
+  fi
+  return 0
+}
+# <<< langfuse_apply <<<
+
 OH_PROJECT_ROOT="${OH_PROJECT_ROOT:-/home/sandbox/harness}"
 HARNESS="${HARNESS:-$OH_PROJECT_ROOT}"
 
@@ -229,6 +254,8 @@ if [ "${OH_PROVISION_PYTHON:-true}" = "true" ] \
     echo "[entrypoint] WARNING: Python provisioning did not complete; run: bash $CONTROL_DIR/scripts/provision-python.sh" >&2
   fi
 fi
+
+langfuse_apply
 
 if command -v hermes >/dev/null 2>&1; then
   HERMES_RUNTIME="$HARNESS/.hermes"

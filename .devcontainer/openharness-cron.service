@@ -11,6 +11,7 @@ Type=simple
 User=sandbox
 WorkingDirectory=/home/sandbox/harness
 Environment=HOME=/home/sandbox
+EnvironmentFile=-/home/sandbox/.config/agro/langfuse.env
 ExecStart=/bin/bash -c 'if [ -d /home/sandbox/harness/.agro ]; then exec /usr/local/bin/node --experimental-strip-types /home/sandbox/harness/.agro/scripts/cron-runtime.ts; fi; exec /usr/local/bin/node --experimental-strip-types /home/sandbox/harness/.oh/scripts/cron-runtime.ts'
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure

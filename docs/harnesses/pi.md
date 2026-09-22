@@ -48,9 +48,14 @@ Pi installs missing project packages automatically on startup after the project 
 ## Optional Langfuse observability
 
 [Langfuse](../integrations/langfuse.md#2-pi) is an opt-in extension, not a default
-`.pi/settings.json` package. Install `@langfuse/pi-observability-plugin` in user
-scope. It captures prompts, outputs, tool calls, and cost, and tags each trace
-`pi`. Configure its external Langfuse deployment before installing it.
+`.pi/settings.json` package. The plugin captures prompts, outputs, tool calls,
+and cost, and tags each trace `pi`.
+
+Run `agro config langfuse` to configure the plugin. The wizard offers to install
+`@langfuse/pi-observability-plugin` in user scope, writes `environment` and
+`userId` to `~/.pi/agent/langfuse.json`, and renders the endpoint and both keys
+into the credential fragment `~/.config/agro/langfuse.env`. The Pi config file
+holds no `baseUrl` field, so Pi reads the endpoint from the environment.
 
 ### Codex stale-response recovery
 

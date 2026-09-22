@@ -49,11 +49,15 @@ Credentials are stored in `~/.claude/.credentials.json` inside the sandbox (pers
 ## Optional Langfuse observability
 
 For optional Claude Code end-to-end traces, use Langfuse's official marketplace
-plugin; it is not a native OTEL or `.env` setup. The plugin is user-scoped and
-captures conversation and tool data, so disable it before sensitive sessions.
-Each trace is tagged `claude-code`. See
-[Langfuse](../integrations/langfuse.md#1-claude-code) for install commands,
-endpoint choices, and the disable steps.
+plugin. The plugin is not a native OTEL setup. Native OpenTelemetry export
+emits runtime spans, not prompts or cost. The plugin is user-scoped and
+captures conversation and tool data. Each trace carries the tag `claude-code`.
+
+Run `agro config langfuse` to configure the plugin. The wizard offers to install
+the plugin, writes the base URL and the trace environment into the `env` block
+of `~/.claude/settings.json`, and keeps both keys in one `0600` fragment. Run
+`agro langfuse disable` before a sensitive session. See
+[Langfuse](../integrations/langfuse.md#1-claude-code).
 
 ## Common usage
 

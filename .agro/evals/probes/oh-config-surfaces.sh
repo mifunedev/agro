@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # tier: A
 # source: PR #887 (config split across two authored surfaces — a tracked agro.json and a secrets-only root dotenv — with nothing left under $HOME)
-# desc: the two authored config surfaces stay honest — tracked agro.json holds no allow-listed secret, the root dotenv is gitignored/0600 and holds nothing but allow-listed secrets, .devcontainer/.env is a symlink to ../.env, no live file still depends on the retired .devcontainer/.example.env, and no CLI source but the sandbox registry and its compat resolver (which own ${AGRO_HOME:-${OH_HOME:-~/.oh}}) resolves config out of $HOME
+# source: issue #1131 (the langfuse wizard writes derived harness files under $HOME while reading every authored setting from the repository root — the $HOME rule now checks what a source reads, not whether it mentions homedir(), and user-state owner status is earned by the OH_HOME/AGRO_HOME alias contract rather than granted by a path list)
+# desc: the two authored config surfaces stay honest — tracked agro.json holds no allow-listed secret, the root dotenv is gitignored/0600 and holds nothing but allow-listed secrets, .devcontainer/.env is a symlink to ../.env, no live file still depends on the retired .devcontainer/.example.env, no CLI source outside the user-state owners locates config through XDG_CONFIG_HOME/OH_CONFIG_DIR/OH_CLOUD_CONFIG, every listed user-state owner resolves its home through the OH_HOME/AGRO_HOME alias, and every other CLI source that references $HOME resolves the project root through resolveProjectRoot(), passes only root-derived paths into readOhConfig/ohConfigPath/readSecret/loadEnvInto, and never joins a $HOME-derived path with agro.json or the root dotenv
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -87,27 +88,58 @@ done < <(git -C "$ROOT" grep -lF 'devcontainer/.example.env' -- . 2>/dev/null ||
 (( ${#stale[@]} == 0 )) \
   || fails+=("tracked files still reference the retired .devcontainer/.example.env: ${stale[*]}")
 
-home_config=()
+USER_STATE_OWNERS=(.agro/cli/src/lib/registry.ts .agro/cli/src/lib/compat.ts)
+USER_STATE_CONTRACT='aliasedEnvValue\([A-Za-z_.]+, "HOME"|resolveUserStateHome\(process\.env\)'
+LOCATION_VARS='XDG_CONFIG_HOME|OH_CONFIG_DIR|OH_CLOUD_CONFIG'
+HOME_REFS='homedir\(\)|process\.env\.HOME\b|[^A-Za-z_.]env\.HOME\b'
+HOME_TOKENS='\bhome\b|homedir\(|HOME\b|tmpdir\('
+AUTHORED_READERS='readOhConfig|ohConfigPath|readSecret|loadEnvInto'
+AUTHORED_FILES='agro\.json|["'"'"'/]\.env\b'
+
+is_owner() {
+  local owner
+  for owner in "${USER_STATE_OWNERS[@]}"; do
+    [[ "$1" == "$owner" ]] && return 0
+  done
+  return 1
+}
+
+for owner in "${USER_STATE_OWNERS[@]}"; do
+  if [[ ! -f "$ROOT/$owner" ]]; then
+    fails+=("$owner is listed as a user-state owner but does not exist")
+  elif ! grep -qE "$USER_STATE_CONTRACT" "$ROOT/$owner"; then
+    fails+=("$owner is listed as a user-state owner but never resolves the user-state home through the OH_HOME/AGRO_HOME alias (aliasedEnvValue(env, \"HOME\") or resolveUserStateHome(process.env)) — owner status is earned by that contract, not by the listing")
+  fi
+done
+
+location_hits=()
 while read -r hit; do
   [[ -n "$hit" ]] || continue
-  home_config+=("$hit")
-done < <(grep -rlE 'XDG_CONFIG_HOME|OH_CONFIG_DIR|OH_CLOUD_CONFIG|homedir\(\)' "$CLI_SRC" 2>/dev/null \
-  | sed "s#^$ROOT/##" | grep -vx -e '.agro/cli/src/lib/registry.ts' -e '.agro/cli/src/lib/compat.ts' | sort || true)
-(( ${#home_config[@]} == 0 )) \
-  || fails+=("CLI sources still resolve config out of \$HOME (XDG_CONFIG_HOME/OH_CONFIG_DIR/OH_CLOUD_CONFIG/homedir()) — every authored setting lives at the repository root or in the sandbox registry: ${home_config[*]}")
+  is_owner "$hit" && continue
+  location_hits+=("$hit")
+done < <(grep -rlE "$LOCATION_VARS" "$CLI_SRC" 2>/dev/null | sed "s#^$ROOT/##" | sort || true)
+(( ${#location_hits[@]} == 0 )) \
+  || fails+=("CLI sources still locate config through \$HOME-relative variables ($LOCATION_VARS) — every authored setting lives at the repository root or in the sandbox registry: ${location_hits[*]}")
 
-REGISTRY_SRC="$CLI_SRC/lib/registry.ts"
-COMPAT_SRC="$CLI_SRC/lib/compat.ts"
-if [[ -f "$REGISTRY_SRC" ]]; then
-  if grep -Fq 'process.env.OH_HOME' "$REGISTRY_SRC"; then
-    :
-  elif [[ -f "$COMPAT_SRC" ]] && grep -Fq 'resolveUserStateHome(process.env)' "$REGISTRY_SRC" \
-       && grep -Fq 'aliasedEnvValue(env, "HOME"' "$COMPAT_SRC"; then
-    :
-  else
-    fails+=("lib/registry.ts reads \$HOME without honouring OH_HOME (directly or through compat.ts's HOME alias) — the one user-level surface must stay relocatable")
+while read -r hit; do
+  [[ -n "$hit" ]] || continue
+  is_owner "$hit" && continue
+  file="$ROOT/$hit"
+  if grep -qE "\b($AUTHORED_READERS)\(" "$file" && ! grep -qE '\bresolveProjectRoot\(' "$file"; then
+    fails+=("$hit references \$HOME and reads authored config, but never resolves the project root through resolveProjectRoot() — a \$HOME-aware source must take every authored setting from the repository root")
   fi
-fi
+  while read -r call; do
+    [[ -n "$call" ]] || continue
+    args="${call#*(}"
+    if ! grep -qE '(^|[^A-Za-z0-9_])root\b' <<<"$args" || grep -qE "$HOME_TOKENS" <<<"$args"; then
+      fails+=("$hit passes a path that is not root-derived into an authored-config reader: $call) — authored config is read from the repository root, never from \$HOME")
+    fi
+  done < <(tr '\n' ' ' < "$file" | grep -oE "\b($AUTHORED_READERS)\([^)]*" || true)
+  while read -r line; do
+    [[ -n "$line" ]] || continue
+    fails+=("$hit joins a \$HOME-derived path with an authored config file: $line — agro.json and the root dotenv are read from the repository root only")
+  done < <(grep -nE "$AUTHORED_FILES" "$file" | grep -E "$HOME_TOKENS" || true)
+done < <(grep -rlE "$HOME_REFS" "$CLI_SRC" 2>/dev/null | sed "s#^$ROOT/##" | sort || true)
 
 if (( ${#fails[@]} > 0 )); then
   echo "REGRESSION: the agro.json/root-dotenv config surfaces are not honest:" >&2
@@ -115,5 +147,5 @@ if (( ${#fails[@]} > 0 )); then
   exit 1
 fi
 
-echo "PASS: config surfaces — tracked agro.json is secret-free, the root dotenv is gitignored/0600 and allow-listed-only, .devcontainer/.env symlinks to ../.env, nothing live references .devcontainer/.example.env, and only the OH_HOME-relocatable sandbox registry resolves config out of \$HOME" >&2
+echo "PASS: config surfaces — tracked agro.json is secret-free, the root dotenv is gitignored/0600 and allow-listed-only, .devcontainer/.env symlinks to ../.env, nothing live references .devcontainer/.example.env, only the OH_HOME/AGRO_HOME-relocatable user-state owners locate config under \$HOME, and every other \$HOME-aware CLI source reads authored config from the repository root only" >&2
 exit 0

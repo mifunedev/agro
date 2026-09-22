@@ -99,9 +99,10 @@ describe("harness catalog", () => {
         "uninstallArgv",
         "verifyArgv",
       ];
+      const optional = ["bypassPermissionsFlag", "tracingWriter"];
       for (const h of HARNESS_CATALOG) {
         const keys = Object.keys(h).sort();
-        expect(keys.filter((k) => k !== "bypassPermissionsFlag"), h.id).toEqual(required);
+        expect(keys.filter((k) => !optional.includes(k)), h.id).toEqual(required);
       }
     });
 
