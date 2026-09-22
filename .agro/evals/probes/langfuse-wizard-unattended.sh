@@ -43,35 +43,67 @@ fi
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
-PROJECT="$WORK/project"
-HOME_DIR="$WORK/home"
-mkdir -p "$PROJECT/.agro/scripts" "$HOME_DIR"
-printf '{\n  "name": "probe",\n  "langfuse": {}\n}\n' > "$PROJECT/agro.json"
+
+run_unattended() {
+  local project="$1" home="$2" out="$3" err="$4"
+  (
+    cd "$project"
+    env -u LANGFUSE_PUBLIC_KEY -u LANGFUSE_SECRET_KEY -u LANGFUSE_BASE_URL \
+      HOME="$home" \
+      timeout 20 node "$ROOT/$CLI" config langfuse </dev/null >"$out" 2>"$err"
+  )
+}
+
+UNSET="$WORK/unset"
+UNSET_HOME="$WORK/unset-home"
+mkdir -p "$UNSET/.agro/scripts" "$UNSET_HOME"
+printf '{\n  "name": "probe",\n  "langfuse": {}\n}\n' > "$UNSET/agro.json"
 
 set +e
-(
-  cd "$PROJECT"
-  env -u LANGFUSE_PUBLIC_KEY -u LANGFUSE_SECRET_KEY -u LANGFUSE_BASE_URL \
-    HOME="$HOME_DIR" \
-    timeout 20 node "$ROOT/$CLI" config langfuse </dev/null >"$WORK/out" 2>"$WORK/err"
-  echo $? > "$WORK/code"
-)
+run_unattended "$UNSET" "$UNSET_HOME" "$WORK/unset.out" "$WORK/unset.err"
+code=$?
 set -e
-code="$(cat "$WORK/code")"
 
 if [ "$code" = "124" ]; then
-  missing+=("agro config langfuse blocked for 20s with stdin not a TTY — the wizard prompted an unattended session")
+  missing+=("langfuse unset: agro config langfuse blocked for 20s with stdin not a TTY — the wizard prompted an unattended session")
 elif [ "$code" != "0" ]; then
-  missing+=("agro config langfuse exited $code with stdin not a TTY (expected 0): $(head -c 400 "$WORK/err" | tr '\n' ' ')")
+  missing+=("langfuse unset: agro config langfuse exited $code with stdin not a TTY (expected 0): $(head -c 400 "$WORK/unset.err" | tr '\n' ' ')")
 fi
-if ! grep -qF "$NOTICE" "$WORK/out"; then
-  missing+=("stdout lacks the skip notice \"$NOTICE\" — an operator cannot tell the wizard was bypassed")
+if ! grep -qF "$NOTICE" "$WORK/unset.out"; then
+  missing+=("langfuse unset: stdout lacks the skip notice \"$NOTICE\" — an operator cannot tell the wizard was bypassed")
 fi
-if grep -qF "$STEP_MARK" "$WORK/out" "$WORK/err"; then
-  missing+=("a wizard step marker \"$STEP_MARK\" was rendered with stdin not a TTY — the wizard ran unattended")
+if grep -qF "$STEP_MARK" "$WORK/unset.out" "$WORK/unset.err"; then
+  missing+=("langfuse unset: a wizard step marker \"$STEP_MARK\" was rendered with stdin not a TTY — the wizard ran unattended")
 fi
-if [ -e "$HOME_DIR/.config/agro/langfuse.env" ]; then
-  missing+=("the skipped wizard wrote the credential fragment for a project with langfuse unset")
+if [ -e "$UNSET_HOME/.config/agro/langfuse.env" ]; then
+  missing+=("langfuse unset: the skipped wizard wrote the credential fragment")
+fi
+
+ENABLED="$WORK/enabled"
+ENABLED_HOME="$WORK/enabled-home"
+mkdir -p "$ENABLED/.agro/scripts" "$ENABLED_HOME"
+printf '{\n  "name": "probe",\n  "langfuse": {\n    "enabled": true,\n    "baseUrl": "http://127.0.0.1:9"\n  }\n}\n' > "$ENABLED/agro.json"
+printf 'LANGFUSE_PUBLIC_KEY=pk-lf-probe0000000000\nLANGFUSE_SECRET_KEY=sk-lf-probe0000000000\n' > "$ENABLED/.env"
+
+set +e
+run_unattended "$ENABLED" "$ENABLED_HOME" "$WORK/enabled.out" "$WORK/enabled.err"
+code=$?
+set -e
+
+if [ "$code" = "124" ]; then
+  missing+=("langfuse enabled: agro config langfuse blocked for 20s with stdin not a TTY — the wizard prompted an unattended session")
+fi
+if ! grep -qF "$NOTICE" "$WORK/enabled.out"; then
+  missing+=("langfuse enabled: stdout lacks the skip notice \"$NOTICE\"")
+fi
+if grep -qF "$STEP_MARK" "$WORK/enabled.out" "$WORK/enabled.err"; then
+  missing+=("langfuse enabled: a wizard step marker \"$STEP_MARK\" was rendered with stdin not a TTY — the wizard ran unattended")
+fi
+if ! grep -qE '"enabled": *true' "$ENABLED/agro.json"; then
+  missing+=("langfuse enabled: an unattended run flipped langfuse.enabled off — the wizard took the disable branch without an operator")
+fi
+if grep -qF "sk-lf-probe0000000000" "$WORK/enabled.out" "$WORK/enabled.err"; then
+  missing+=("langfuse enabled: the secret key was echoed")
 fi
 
 if ((${#missing[@]})); then
@@ -79,4 +111,4 @@ if ((${#missing[@]})); then
   exit 1
 fi
 
-echo "PASS: agro config langfuse skips the wizard without a TTY (exit 0, notice printed, no step rendered) and carries the shared interactivity gate" >&2
+echo "PASS: agro config langfuse skips the wizard without a TTY for an unset and an enabled project (notice printed, no step rendered, enabled never flipped) and carries the shared interactivity gate" >&2

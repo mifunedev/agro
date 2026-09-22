@@ -484,12 +484,47 @@ describe("agro config langfuse wizard", () => {
     for (const path of generatedPaths(f.home)) expect(existsSync(path)).toBe(false);
   });
 
-  it("declining step 1 while enabled leaves the config alone and points at disable", async () => {
+  it("declining step 1 with tracing disabled writes nothing and exits 0", async () => {
+    const f = makeFixture({ enabled: false, baseUrl: "https://langfuse.example.com" });
+    silenceTerminal();
+    const { io, asked, out } = wizardIo(["n"]);
+    expect(await runLangfuseSetup(sandboxOpts(f), io)).toBe(0);
+    expect(asked).toEqual(["Enable Langfuse tracing? [y/N]"]);
+    expect(out.join("")).toContain("nothing written");
+    expect(langfuseSection(f.root)).toEqual({ enabled: false, baseUrl: "https://langfuse.example.com" });
+    expect(existsSync(langfuseFragmentPath(f.home))).toBe(false);
+  });
+
+  it("asks whether to keep tracing enabled when it is on, and declining runs the disable path", async () => {
+    const f = makeFixture(ENABLED);
+    const { io: applyIo } = makeIo();
+    expect(await runLangfuseApply(sandboxOpts(f), applyIo)).toBe(0);
+    expect(existsSync(langfuseFragmentPath(f.home))).toBe(true);
+    silenceTerminal();
+    const step = vi.spyOn(prompt, "step").mockImplementation(() => {});
+    const { run, calls } = healthOnly();
+    const { io, asked, all } = wizardIo(["n"]);
+    expect(await runLangfuseSetup(sandboxOpts(f, true, run), io)).toBe(0);
+    expect(asked).toEqual(["Langfuse tracing is enabled. Keep it enabled? [Y/n]"]);
+    expect(step).toHaveBeenCalledTimes(1);
+    expect(calls).toEqual([]);
+    expect(existsSync(langfuseFragmentPath(f.home))).toBe(false);
+    expect(langfuseSection(f.root)).toEqual({ ...ENABLED, enabled: false });
+    expect(listSecretKeys(f.root).sort()).toEqual(["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY"]);
+    const codex = JSON.parse(readFileSync(codexTracingConfigPath(f.home), "utf8"));
+    expect(codex.enabled).toBe(false);
+    expect(all()).toContain("restart every running harness session to stop tracing");
+    expect(all()).not.toContain(PUBLIC_KEY);
+    expect(all()).not.toContain(SECRET_KEY);
+  });
+
+  it("accepting step 1 while enabled keeps the existing values as defaults", async () => {
     const f = makeFixture(ENABLED);
     silenceTerminal();
-    const { io, out } = wizardIo(["n"]);
-    expect(await runLangfuseSetup(sandboxOpts(f), io)).toBe(0);
-    expect(out.join("")).toContain("run `agro langfuse disable`");
+    const { run } = healthOnly();
+    const { io, asked } = wizardIo(["", "", "", "", "", "", ""]);
+    expect(await runLangfuseSetup(sandboxOpts(f, true, run), io)).toBe(0);
+    expect(asked[0]).toBe("Langfuse tracing is enabled. Keep it enabled? [Y/n]");
     expect(langfuseSection(f.root)).toEqual(ENABLED);
   });
 

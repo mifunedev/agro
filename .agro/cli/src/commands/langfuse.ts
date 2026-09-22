@@ -539,12 +539,13 @@ export async function runLangfuseSetup(opts: LangfuseSetupOptions, io: LangfuseI
   prompt.header("Configure Langfuse tracing  (press Enter to accept the shown default)");
 
   prompt.step(1, WIZARD_STEPS, "Enable");
-  if (!(await prompt.askYesNo(ask, "Enable Langfuse tracing?", resolved.enabled))) {
-    io.stdout(
-      resolved.enabled
-        ? `langfuse: left enabled — nothing written; run \`${bin} langfuse disable\` to turn tracing off\n`
-        : "langfuse: not enabled — nothing written\n",
-    );
+  if (resolved.enabled) {
+    if (!(await prompt.askYesNo(ask, "Langfuse tracing is enabled. Keep it enabled?", true))) {
+      io.stdout("langfuse: disabling tracing\n");
+      return runLangfuseDisable(opts, io);
+    }
+  } else if (!(await prompt.askYesNo(ask, "Enable Langfuse tracing?", false))) {
+    io.stdout("langfuse: not enabled — nothing written\n");
     return 0;
   }
 
