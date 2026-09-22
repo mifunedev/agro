@@ -176,7 +176,7 @@ and stop (no identity proposals).
 
 Only run this step when reportable markers exist and `--report-only` / `--dry-run`
 were **not** passed. Translate each reportable marker into a candidate lesson,
-then gate it exactly like `/retro` (`.claude/skills/retro/SKILL.md` § 6):
+then gate it exactly like `/retro` (`.agro/skills/retro/SKILL.md` §§ 3–4):
 
 1. **Qualify filter.** Drop any candidate that is a secret, raw command output, a
    step-by-step plan, or anything re-derivable in under a minute.

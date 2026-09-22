@@ -46,22 +46,15 @@ if [[ ! -x "$VALIDATOR" ]]; then
 else
   good=$(mktemp)
   cat > "$good" <<'REPORT'
-## Session signals
+## Signals
 - signal
 
-## Hypotheses
-| ID | Subsystem | Hypothesis | Evidence for | Evidence against | Verdict | Confidence | Promotion |
-|----|-----------|------------|--------------|------------------|---------|------------|-----------|
-| H1 | evals | Retro helpers can be validated. | helper scripts exist | none found in-session | supported | medium | probe |
+## Lessons
+- Retro helpers can be validated. [supported · medium] — for: helper scripts exist; against: none found in-session
 
 ## Promotion candidates
 Probe candidates:
 - Always validate retro helpers before promoting a lesson. [evals · medium · proceduralize] — probe: evals-20260921 | basis: helper scripts exist
-
-## Summary
-- **Result**: OP
-
-STATUS: RETRO-DONE
 REPORT
   "$VALIDATOR" "$good" >/dev/null 2>&1 || failures+=('va-1 validator rejected a well-formed report')
 
@@ -75,7 +68,12 @@ REPORT
   cmp -s "$good" "$bad_tag" && failures+=('va-3 fixture anchor stale: the untagged mutation changed nothing')
   "$VALIDATOR" "$bad_tag" >/dev/null 2>&1 && failures+=('va-3 validator accepted a probe candidate with no triage tag or probe id')
 
-  rm -f "$good" "$bad_tier" "$bad_tag"
+  bad_verdict=$(mktemp)
+  sed 's/\[supported · medium\]/[plausible · medium]/' "$good" > "$bad_verdict"
+  cmp -s "$good" "$bad_verdict" && failures+=('va-4 fixture anchor stale: the verdict mutation changed nothing')
+  "$VALIDATOR" "$bad_verdict" >/dev/null 2>&1 && failures+=('va-4 validator accepted a lesson with an unknown verdict')
+
+  rm -f "$good" "$bad_tier" "$bad_tag" "$bad_verdict"
 fi
 
 if ((${#failures[@]})); then
