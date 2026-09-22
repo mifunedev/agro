@@ -96,7 +96,16 @@ touch `.agro/evals/RESULTS.md`. Shared-file work serializes by contract.
 - **Covered DoD IDs**: 1, 2, 3, 9
 - **Acceptance owner**: the advisor
 - **Failure / repair route**: back to T2's worker via native continuation
-- **Status**: pending
+- **Status**: completed. Advisor verified independently: 159 probes exit 0, the five
+  directories absent, `roles-are-skills.sh` PASS, `.agro/skills.lock` free of all ten
+  retired names. Reviewed the `/council` edits specifically because they removed whole
+  sections rather than single lines: every removed block was entirely `/weigh`- or
+  `/strategic-proposal`-specific, and one of them linked the now-deleted
+  `../weigh/scripts/score-trajectories.mjs`. Not over-reach.
+- **Artifact references**: commit `356fcc731e0f18541157b5f1ae5ca72c5a50504e`
+  (3,361 deletions, 166 insertions; 159 of those insertions are
+  `.agro/evals/RESULTS.md` regeneration, not new prose)
+- **Usage**: 73,417 subagent tokens, 27 tool uses, 122s
 
 ## T3 — Wave 3: rewrite the retro guard probe, then loosen /retro
 

@@ -30,7 +30,7 @@
         "bash .agro/skills/eval/run.sh exits 0 with no REGRESSION"
       ],
       "priority": 2,
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-003",
