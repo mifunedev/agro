@@ -16,6 +16,7 @@ its [schema](../skills/wiki/references/schema.md) owns entry formats.
 
 | Slug | Title | Tags | Updated |
 | --- | --- | --- | --- |
+| recursive-language-models | Recursive Language Models | [rlm, context-as-environment, weighted-trajectories, agent-harness, llm-agents, self-consistency, retired-experiment] | 2026-09-21 |
 | pattern-wiki-verified-at-advanced-over-unread-citations | Advancing verified_at after re-reading only the citations you added launders staleness into freshness | [wiki, knowledge, verified-at, citation-rot, freshness, line-numbers, provenance] | 2026-09-19 |
 | pattern-spec-procedure-executed-from-summary | A procedure executed from a subagent's summary loses every gate the summary compressed away | [spec, execute, subagents, orientation, gates, context-budget, delegate] | 2026-09-19 |
 | pattern-evals-document-conformance-proxy-oracle | A probe that greps the rule text cannot detect an executor disobeying the rule | [evals, probes, oracle-design, proxy-measure, behavior, recurrence, spec] | 2026-09-19 |
@@ -57,7 +58,6 @@ its [schema](../skills/wiki/references/schema.md) owns entry formats.
 | pattern-evals-pipefail-early-exit | A short-circuiting reader turns a successful match into a failed pipeline | [evals, probes, bash, pipefail, sigpipe, false-failure, shell] | 2026-09-01 |
 | pattern-docs-prohibition-by-example | Documenting a forbidden literal by quoting it violates the rule | [docs, evals, probes, vocabulary, guards, self-reference] | 2026-09-01 |
 | recursive-self-improvement-survey | Recursive Self-Improvement in AI (survey, arXiv 2607.07663) | [rsi, self-improvement, verification-hierarchy, skill-libraries, harness-evolution, self-evaluation, model-collapse, capability-benchmark] | 2026-08-31 |
-| recursive-language-models | Recursive Language Models | [rlm, context-as-environment, weighted-trajectories, agent-harness, llm-agents, self-consistency] | 2026-08-31 |
 | runtime-isolation-landscape | Runtime Isolation Landscape (2026) | [runtime, isolation, sandbox, gvisor, firecracker, kata, microvm, cloudflare, e2b, daytona, fly, modal] | 2026-08-27 |
 | molt-agentic-reinforcement-learning | Molt: A Scalable PyTorch-Native Training Framework for Agentic Reinforcement Learning | [agentic-rl, training, readability, observability, trajectories, async, correctness, agent-harness, nvidia] | 2026-08-27 |
 | crabbox-remote-exec-control-plane | Crabbox — Remote-Exec Control Plane | [runtime, sandbox, remote-execution, fan-out, control-plane, crabbox, cloudflare-workers, ssh, rsync] | 2026-08-27 |

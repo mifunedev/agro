@@ -69,8 +69,8 @@ Sessions add and remove lines; the cron only reads. Format:
 
 Entry: a session appends a line when (a) something needs deferred
 follow-up, (b) a prior heartbeat pulse surfaced something worth
-tracking, or (c) a skill (/audit harness, /audit skills,
-/strategic-proposal) suggested it.
+tracking, or (c) a skill (/audit harness, /audit skills)
+suggested it.
 
 Exit: remove the line when resolved, or replace with `see #<issue>`
 when promoted to a GitHub issue. Items 30+ days old surface as STALE

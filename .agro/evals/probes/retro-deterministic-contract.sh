@@ -1,137 +1,86 @@
 #!/usr/bin/env bash
 # tier: A
-# source: issue #443 — /retro deterministic output and self-contained helper contract
-# desc: /retro requires schema-backed hypothesis output, a report-only contract, and a self-contained validator in the canonical skill.
+# source: issue #443 — /retro report-only contract; retro lesson #1124 — the node is proven, the ceremony is not
+# desc: /retro stays report-only with the deleted memory and context tiers absent, never double-writes against an existing probe, and emits the promotion line that /wiki compile parses.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-SKILL_DIR="$ROOT/.agro/skills/retro"
+SKILL="$ROOT/.agro/skills/retro/SKILL.md"
+COMPILE="$ROOT/.agro/skills/wiki/references/compile.md"
+VALIDATOR="$ROOT/.agro/skills/retro/scripts/validate-retro-report.sh"
+PROMOTION_LINE='- <principle> [<subsystem> · <confidence> · harden|proceduralize|eval] — probe: <id> | basis: <one clause>'
 
-for path in "$SKILL_DIR/SKILL.md" "$SKILL_DIR/references/report-schema.md"; do
-  [[ -f "$path" ]] || { echo "REGRESSION: missing $path" >&2; exit 1; }
+[[ -f "$SKILL" ]] || { echo "REGRESSION: missing $SKILL" >&2; exit 1; }
+[[ -f "$COMPILE" ]] || { echo "REGRESSION: missing $COMPILE" >&2; exit 1; }
+
+failures=()
+need()      { grep -qF  -- "$2" "$1" || failures+=("$3"); }
+need_line() { grep -qxF -- "$2" "$1" || failures+=("$3"); }
+forbid()    { grep -qF  -- "$2" "$1" && failures+=("$3"); return 0; }
+
+need   "$SKILL" 'report-only'                          'ro-1 SKILL.md dropped the report-only contract'
+need   "$SKILL" 'writes no file'                       'ro-2 SKILL.md dropped the writes-no-file contract'
+forbid "$SKILL" '.agro/memory'                         'ro-a SKILL.md references the deleted .agro/memory tier'
+for token in 'MEMORY.md' 'MEMORY_DIR' 'locked-append.sh' 'render-log-entry.sh'; do
+  forbid "$SKILL" "$token"                             "ro-b SKILL.md reintroduced a removed memory-tier surface: $token"
 done
-[[ -x "$SKILL_DIR/scripts/validate-retro-report.sh" ]] \
-  || { echo "REGRESSION: missing executable $SKILL_DIR/scripts/validate-retro-report.sh" >&2; exit 1; }
+need   "$SKILL" 'Inventing a file to save a lesson in' 'ro-c SKILL.md dropped the no-new-ledger anti-pattern'
+forbid "$SKILL" '.agro/context/'                       'ro-d SKILL.md references the deleted always-on context tier'
 
-missing=()
-for literal in \
-  'allowed-tools: Read, Grep, Bash, Edit' \
-  '${CLAUDE_SKILL_DIR}/references/report-schema.md' \
-  '${CLAUDE_SKILL_DIR}/scripts/validate-retro-report.sh' \
-  '| ID | Subsystem | Hypothesis | Evidence for | Evidence against | Verdict | Confidence | Promotion |' \
-  '[<subsystem> · <confidence> · harden|proceduralize|eval] — probe: <id> | basis:' \
-  'Bypassing the schema/scripts' \
-  'argument-hint: "[--task <slug>] [--dry-run] [--focus <subsystem>] [auto-approve]"' \
-  'STATUS: RETRO-DONE'
-do
-  if ! grep -Fq "$literal" "$SKILL_DIR/SKILL.md"; then
-    missing+=("$literal")
-  fi
+need   "$SKILL" 'Double-writing'                       'dw-1 SKILL.md dropped the double-writing anti-pattern'
+need   "$SKILL" 'cite the probe id'                    'dw-2 SKILL.md no longer cites the existing probe id on a duplicate'
+need   "$SKILL" 'never double-write'                   'dw-3 SKILL.md dropped the never-double-write rule'
+
+need_line "$SKILL"   "$PROMOTION_LINE"                 'pl-1 SKILL.md dropped the promotion-line format'
+need_line "$COMPILE" "$PROMOTION_LINE"                 'pl-2 compile.md no longer parses the promotion-line format /retro emits'
+need   "$SKILL" '`- none`'                             'pl-3 SKILL.md dropped the empty-promotion sentinel'
+for token in 'supported' 'refuted' 'inconclusive'; do
+  need "$SKILL" "\`$token\`"                           "pl-4 SKILL.md dropped verdict token: $token"
 done
-if (( ${#missing[@]} > 0 )); then
-  echo "REGRESSION: retro deterministic contract missing literals:" >&2
-  printf '  - %s\n' "${missing[@]}" >&2
-  exit 1
-fi
-
-if grep -nF -- '.agro/memory' "$SKILL_DIR/SKILL.md" >/dev/null 2>&1; then
-  echo "REGRESSION: ro-a SKILL.md references the deleted .agro/memory tier:" >&2
-  grep -nF -- '.agro/memory' "$SKILL_DIR/SKILL.md" >&2
-  exit 1
-fi
-for literal in 'MEMORY.md' 'MEMORY_DIR' 'locked-append.sh' 'render-log-entry.sh'; do
-  if grep -nF -- "$literal" "$SKILL_DIR/SKILL.md" >/dev/null 2>&1; then
-    echo "REGRESSION: ro-b SKILL.md reintroduced a removed memory-tier surface: $literal" >&2
-    exit 1
-  fi
+for token in 'low' 'medium' 'high'; do
+  need "$SKILL" "\`$token\`"                           "pl-5 SKILL.md dropped confidence token: $token"
 done
-grep -Fq 'Inventing a file to save a lesson in.' "$SKILL_DIR/SKILL.md" \
-  || { echo "REGRESSION: ro-c SKILL.md dropped the no-new-ledger anti-pattern" >&2; exit 1; }
-if grep -nF -- '.agro/context/' "$SKILL_DIR/SKILL.md" >/dev/null 2>&1; then
-  echo "REGRESSION: ro-d SKILL.md references the deleted always-on context tier:" >&2
-  grep -nF -- '.agro/context/' "$SKILL_DIR/SKILL.md" >&2
-  exit 1
-fi
-grep -Fq 'It emits its report to the terminal and writes no file at all.' "$SKILL_DIR/SKILL.md" \
-  || { echo "REGRESSION: ro-d2 SKILL.md dropped the writes-no-file contract" >&2; exit 1; }
 
-report=$(mktemp)
-cat > "$report" <<'REPORT'
-## Session signals
+if [[ ! -x "$VALIDATOR" ]]; then
+  failures+=('va-0 validate-retro-report.sh is missing or not executable')
+else
+  good=$(mktemp)
+  cat > "$good" <<'REPORT'
+## Signals
 - signal
 
-## Hypotheses
-| ID | Subsystem | Hypothesis | Evidence for | Evidence against | Verdict | Confidence | Promotion |
-|----|-----------|------------|--------------|------------------|---------|------------|-----------|
-| H1 | continual learning | Retro deterministic helpers can be validated. | helper scripts exist | none found in-session | supported | medium | probe |
+## Lessons
+- Retro helpers can be validated. [supported · medium] — for: helper scripts exist; against: none found in-session
 
 ## Promotion candidates
 Probe candidates:
-- Always validate retro helpers before promoting a lesson. [continual learning · medium · proceduralize] — probe: continual-learning-20260618 | basis: helper scripts exist
-
-## Summary
-- **Result**: OP
-- **Subsystems**: continual learning
-- **Hypotheses**: 1 (supported 1 / refuted 0 / inconclusive 0)
-- **Probe candidates**: 1
-- **Observation**: helpers are checkable
-
-STATUS: RETRO-DONE
+- Always validate retro helpers before promoting a lesson. [evals · medium · proceduralize] — probe: evals-20260921 | basis: helper scripts exist
 REPORT
-"$SKILL_DIR/scripts/validate-retro-report.sh" "$report" >/dev/null
-rm -f "$report"
+  "$VALIDATOR" "$good" >/dev/null 2>&1 || failures+=('va-1 validator rejected a well-formed report')
 
-bad=$(mktemp)
-sed 's/| supported | medium | probe |/| supported | medium | ledger |/' > "$bad" <<'REPORT'
-## Session signals
-- signal
+  bad_tier=$(mktemp)
+  sed 's/· proceduralize\]/· ledger]/' "$good" > "$bad_tier"
+  cmp -s "$good" "$bad_tier" && failures+=('va-2 fixture anchor stale: the ledger mutation changed nothing')
+  "$VALIDATOR" "$bad_tier" >/dev/null 2>&1 && failures+=('va-2 validator accepted an unknown promotion tier')
 
-## Hypotheses
-| ID | Subsystem | Hypothesis | Evidence for | Evidence against | Verdict | Confidence | Promotion |
-|----|-----------|------------|--------------|------------------|---------|------------|-----------|
-| H1 | continual learning | Retro deterministic helpers can be validated. | helper scripts exist | none found in-session | supported | medium | probe |
+  bad_tag=$(mktemp)
+  sed 's/ \[evals · medium · proceduralize\] — probe: evals-20260921 | basis: helper scripts exist$//' "$good" > "$bad_tag"
+  cmp -s "$good" "$bad_tag" && failures+=('va-3 fixture anchor stale: the untagged mutation changed nothing')
+  "$VALIDATOR" "$bad_tag" >/dev/null 2>&1 && failures+=('va-3 validator accepted a probe candidate with no triage tag or probe id')
 
-## Promotion candidates
-Probe candidates:
-- none
+  bad_verdict=$(mktemp)
+  sed 's/\[supported · medium\]/[plausible · medium]/' "$good" > "$bad_verdict"
+  cmp -s "$good" "$bad_verdict" && failures+=('va-4 fixture anchor stale: the verdict mutation changed nothing')
+  "$VALIDATOR" "$bad_verdict" >/dev/null 2>&1 && failures+=('va-4 validator accepted a lesson with an unknown verdict')
 
-## Summary
-- **Result**: OP
+  rm -f "$good" "$bad_tier" "$bad_tag" "$bad_verdict"
+fi
 
-STATUS: RETRO-DONE
-REPORT
-if "$SKILL_DIR/scripts/validate-retro-report.sh" "$bad" >/dev/null 2>&1; then
-  echo "REGRESSION: ro-e validator accepted an unknown promotion tier" >&2
-  rm -f "$bad"
+if ((${#failures[@]})); then
+  echo 'REGRESSION: /retro contract broken:' >&2
+  printf '  - %s\n' "${failures[@]}" >&2
   exit 1
 fi
-rm -f "$bad"
 
-bad=$(mktemp)
-cat > "$bad" <<'REPORT'
-## Session signals
-- signal
-
-## Hypotheses
-| ID | Subsystem | Hypothesis | Evidence for | Evidence against | Verdict | Confidence | Promotion |
-|----|-----------|------------|--------------|------------------|---------|------------|-----------|
-| H1 | continual learning | Retro deterministic helpers can be validated. | helper scripts exist | none found in-session | supported | medium | probe |
-
-## Promotion candidates
-Probe candidates:
-- Always validate retro helpers before promoting a lesson.
-
-## Summary
-- **Result**: OP
-
-STATUS: RETRO-DONE
-REPORT
-if "$SKILL_DIR/scripts/validate-retro-report.sh" "$bad" >/dev/null 2>&1; then
-  echo "REGRESSION: ro-f validator accepted a probe candidate with no triage tag or probe id" >&2
-  rm -f "$bad"
-  exit 1
-fi
-rm -f "$bad"
-
-echo "PASS: retro deterministic schema, report-only contract, and self-contained helpers are present" >&2
+echo 'PASS: /retro is report-only, never double-writes, and emits the promotion line /wiki compile parses' >&2
 exit 0
