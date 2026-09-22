@@ -70,7 +70,16 @@ if [ -z "$repo_root" ]; then
   repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 fi
 if [ -z "$repo_root" ]; then
-  repo_root="${AGRO_PROJECT_ROOT:-$PWD}"
+  repo_root="${AGRO_PROJECT_ROOT:-}"
+fi
+if [ -z "$repo_root" ]; then
+  script_dir="$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+  candidate="$(dirname -- "$(dirname -- "$script_dir")")"
+  if [ -d "$candidate/.agro/skills" ]; then
+    repo_root="$candidate"
+  else
+    repo_root="$PWD"
+  fi
 fi
 if [ ! -d "$repo_root/.agro/skills" ]; then
   echo "ERROR: not an AGRO tree (no .agro/skills at $repo_root)" >&2

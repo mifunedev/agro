@@ -177,6 +177,7 @@ langfuse_apply() {
 # <<< langfuse_apply <<<
 
 AGRO_PROJECT_ROOT="${AGRO_PROJECT_ROOT:-/home/sandbox/harness}"
+export AGRO_PROJECT_ROOT
 HARNESS="${HARNESS:-$AGRO_PROJECT_ROOT}"
 
 seed_home /home/sandbox || echo "[entrypoint] WARNING: home seed incomplete; some baked dotfiles may be missing" >&2
