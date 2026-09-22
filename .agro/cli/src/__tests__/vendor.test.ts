@@ -49,7 +49,7 @@ describe("copyControlPayload — manifest filtering", () => {
     );
     write(from, "cli/src/cli.ts", "x");
     write(from, "cli/node_modules/pkg/index.js", "y");
-    write(from, "cli/dist/oh.js", "z");
+    write(from, "cli/dist/agro.js", "z");
     write(from, "docs/readme.md", "d");
     write(from, "docs/rfcs/rfc-brain-hands-boundary.md", "rfc");
     write(from, "patches/p.diff", "patch");
@@ -63,7 +63,7 @@ describe("copyControlPayload — manifest filtering", () => {
     expect(fs.existsSync(path.join(targetOh, "cli/src/cli.ts"))).toBe(true);
     expect(fs.existsSync(path.join(targetOh, "manifest.json"))).toBe(true);
     expect(fs.existsSync(path.join(targetOh, "cli/node_modules/pkg/index.js"))).toBe(false);
-    expect(fs.existsSync(path.join(targetOh, "cli/dist/oh.js"))).toBe(false);
+    expect(fs.existsSync(path.join(targetOh, "cli/dist/agro.js"))).toBe(false);
     expect(fs.existsSync(path.join(targetOh, "docs/readme.md"))).toBe(true);
     expect(
       fs.existsSync(
@@ -78,7 +78,7 @@ describe("copyControlPayload — manifest filtering", () => {
     const from = mkTmp();
     write(from, "scripts/foo.sh", "x");
     write(from, "cli/node_modules/p/i.js", "y");
-    write(from, "cli/dist/oh.js", "z");
+    write(from, "cli/dist/agro.js", "z");
 
     const target = mkTmp();
     const targetOh = path.join(target, ".agro");
@@ -86,7 +86,7 @@ describe("copyControlPayload — manifest filtering", () => {
 
     expect(fs.existsSync(path.join(targetOh, "scripts/foo.sh"))).toBe(true);
     expect(fs.existsSync(path.join(targetOh, "cli/node_modules/p/i.js"))).toBe(false);
-    expect(fs.existsSync(path.join(targetOh, "cli/dist/oh.js"))).toBe(false);
+    expect(fs.existsSync(path.join(targetOh, "cli/dist/agro.js"))).toBe(false);
   });
 });
 

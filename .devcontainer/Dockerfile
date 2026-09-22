@@ -55,8 +55,7 @@ COPY .devcontainer/docker-compose.yml .devcontainer/docker-compose.image-only.ym
 COPY .agro/scripts/docker-compose.sh .agro/scripts/check-host-port.sh .agro/scripts/paths.sh /opt/agro-assets/.agro/scripts/
 COPY .agro/cli/ /opt/agro/
 RUN cd /opt/agro && AGRO_ASSET_ROOT=/opt/agro-assets npm install --no-audit --no-fund && AGRO_ASSET_ROOT=/opt/agro-assets npm run build \
- && chmod +x /opt/agro/dist/oh.js \
- && ln -sf /opt/agro/dist/oh.js /usr/local/bin/oh \
+ && chmod +x /opt/agro/dist/agro.js \
  && ln -sf /opt/agro/dist/agro.js /usr/local/bin/agro \
  && npm cache clean --force \
  && rm -rf /tmp/*

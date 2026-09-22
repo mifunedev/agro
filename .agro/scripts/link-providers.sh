@@ -131,7 +131,7 @@ replacement_survives() {
   local path="$1"
   [ -L "$path" ] || return 1
   case "$(readlink "$path")" in
-    ../.agro/skills|../.agro/skills) ;;
+    ../.agro/skills) ;;
     *) return 1 ;;
   esac
   resolves_to_pack "$path"

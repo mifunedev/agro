@@ -44,7 +44,7 @@ fi
 if grep -Fq '[ -d "$HARNESS_DIR/.oh" ]' "$ENTRYPOINT" || grep -Fq '[ -d "$HARNESS_DIR/.agro" ]' "$ENTRYPOINT"; then
   fails+=("entrypoint.sh hard-codes one control-dir spelling in flavor detection — resolve it through agro_control_dir so a legacy .agro/ checkout and an .agro/ checkout are both recognized")
 fi
-for marker in '.agro/.image-seeded' '.agro/.image-seeded'; do
+for marker in '.agro/.image-seeded'; do
   grep -Fq "$marker" "$ROOT/.gitignore" \
     || fails+=(".gitignore must ignore $marker — a misdetection must never write an untracked marker into a real checkout")
 done
@@ -81,13 +81,12 @@ else
     mkdir -p "$fixture/.agro"
     echo "fixture-sentinel-$$" > "$fixture/.agro/SENTINEL_FIXTURE"
     export AGRO_IMAGE_SEED_SRC="$fixture"
-    unset AGRO_IMAGE_SEED_SRC
 
     dest_a="$(mktemp -d "$tmp/dest-a.XXXXXX")"
     if seed_workspace_volume "$dest_a"; then :; fi
     if [[ ! -d "$dest_a/.agro" ]] || [[ ! -f "$dest_a/.agro/.image-seeded" ]] \
        || [[ -e "$dest_a/.oh" ]] || [[ "${AGRO_IMAGE_SEEDED_THIS_BOOT:-}" != "1" ]]; then
-      fails+=("seed sim (a): fresh empty dest must seed .agro/ (never .agro/), write .agro/.image-seeded, and set AGRO_IMAGE_SEEDED_THIS_BOOT=1")
+      fails+=("seed sim (a): fresh empty dest must seed .agro/ (never .oh/), write .agro/.image-seeded, and set AGRO_IMAGE_SEEDED_THIS_BOOT=1")
     fi
 
     if seed_workspace_volume "$dest_a"; then :; fi

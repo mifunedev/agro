@@ -88,7 +88,6 @@ packages/*/node_modules/
 # is no checkout bind. It must never land in a real checkout, so it is ignored on
 # every branch.
 .agro/.image-seeded
-.agro/.image-seeded
 .agro/crons/
 .agro/crons/
 

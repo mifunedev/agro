@@ -314,7 +314,7 @@ describe("runUpdate", () => {
       controlPlane: {
         ".agro/scripts/foo.sh": "#!/bin/sh\necho from\n",
         ".agro/cli/node_modules/pkg/index.js": "module.exports = {};\n",
-        ".agro/cli/dist/oh.js": "console.log('built');\n",
+        ".agro/cli/dist/agro.js": "console.log('built');\n",
       },
     });
     buildEquippedRepo(target, { version: "0.1.0" });
@@ -326,7 +326,7 @@ describe("runUpdate", () => {
     expect(
       fs.existsSync(path.join(target, ".agro/cli/node_modules/pkg/index.js")),
     ).toBe(false);
-    expect(fs.existsSync(path.join(target, ".agro/cli/dist/oh.js"))).toBe(false);
+    expect(fs.existsSync(path.join(target, ".agro/cli/dist/agro.js"))).toBe(false);
     expect(fs.existsSync(path.join(target, ".agro/scripts/foo.sh"))).toBe(true);
   });
 });

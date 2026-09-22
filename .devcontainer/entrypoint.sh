@@ -100,7 +100,7 @@ seed_home() {
 # >>> seed_workspace_volume >>>
 seed_workspace_volume() {
   local dest="$1"
-  local src control kind marker
+  local src control marker
   src="$(agro_seed_src)"
   AGRO_IMAGE_SEEDED_THIS_BOOT=0
   if [ -n "$src" ] && [ -d "$src/.claude" ]; then

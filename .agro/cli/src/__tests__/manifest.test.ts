@@ -86,7 +86,7 @@ describe("globToRegExp", () => {
 describe("shouldShip", () => {
   it("5. exclude wins over include; non-included paths are dropped", () => {
     expect(
-      shouldShip("cli/dist/oh.js", {
+      shouldShip("cli/dist/agro.js", {
         include: ["cli/**"],
         exclude: ["**/dist/**"],
       }),
@@ -200,7 +200,7 @@ describe("runUpdate — manifest payload filtering", () => {
       }),
     );
     writeFile(src, ".agro/cli/cli.ts", "export const x = 1;\n");
-    writeFile(src, ".agro/cli/dist/oh.js", "console.log('built');\n");
+    writeFile(src, ".agro/cli/dist/agro.js", "console.log('built');\n");
     writeFile(src, ".agro/README.md", "# control plane\n");
     writeFile(src, "docs/site.md", "# source docs must not be vendored\n");
     writeFile(src, ".agro/patches/p.diff", "--- a\n+++ b\n");
@@ -232,7 +232,7 @@ describe("runUpdate — manifest payload filtering", () => {
       docsBefore,
     );
     expect(fs.existsSync(path.join(tgt, ".agro/patches/p.diff"))).toBe(false);
-    expect(fs.existsSync(path.join(tgt, ".agro/cli/dist/oh.js"))).toBe(false);
+    expect(fs.existsSync(path.join(tgt, ".agro/cli/dist/agro.js"))).toBe(false);
 
     expect(fs.readFileSync(path.join(tgt, ".devcontainer/.env"), "utf8")).toBe(
       envBefore,
