@@ -21,6 +21,7 @@ import {
 import {
   runLangfuseApply,
   runLangfuseDisable,
+  runLangfuseSetup,
   runLangfuseStatus,
   type LangfuseIO,
 } from "./commands/langfuse.js";
@@ -87,7 +88,16 @@ interface Integration {
   runner: () => Promise<number>;
 }
 
-const INTEGRATIONS: Record<string, Integration> = {};
+const INTEGRATIONS: Record<string, Integration> = {
+  langfuse: {
+    description: "Configure Langfuse tracing: enable, base URL, keys, segmentation, verify",
+    runner: () =>
+      runLangfuseSetup(
+        { bin: resolveProduct(process.argv[1]).bin },
+        { stdout: (s) => process.stdout.write(s), stderr: (s) => process.stderr.write(s) },
+      ),
+  },
+};
 
 export function isHelpFlag(arg: string | undefined): boolean {
   return arg === "--help" || arg === "-h" || arg === "help";
@@ -200,6 +210,7 @@ Usage:
   ${bin} langfuse status    Show the resolved settings and whether each generated file is current
   ${bin} langfuse disable   Set langfuse.enabled=false, delete the credential fragment, rewrite the files
 
+\`${bin} config langfuse\` is the interactive wizard that writes these settings.
 \`apply\` never prompts and never installs anything; bootstrap, systemd, and cron run it.
 It reads langfuse.* from ${stateNames(bin).configFile} and the keys from the gitignored .env,
 and writes nothing when langfuse.enabled is not true. The generated files live in the

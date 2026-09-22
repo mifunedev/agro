@@ -147,27 +147,9 @@ function seedConfig(
   return config;
 }
 
-async function askDefaulted(
-  ask: (q: string) => Promise<string>,
-  question: string,
-  current: string,
-): Promise<string> {
-  const answer = (await ask(`${question} [${current === "" ? "blank" : current}]:`)).trim();
-  return answer === "" ? current : answer;
-}
-
-async function askYesNo(
-  ask: (q: string) => Promise<string>,
-  question: string,
-  current: boolean,
-): Promise<boolean> {
-  const answer = (await ask(`${question} ${current ? "[Y/n]" : "[y/N]"}`)).trim().toLowerCase();
-  if (answer === "") return current;
-  return /^y/.test(answer);
-}
-
 async function runWizard(config: OhConfig, io: SandboxIO): Promise<void> {
   const ask = io.ask ?? prompt.ask;
+  const { askDefaulted, askYesNo } = prompt;
 
   config.name = await askDefaulted(ask, "Sandbox name", config.name ?? "");
   assertSandboxName(config.name);

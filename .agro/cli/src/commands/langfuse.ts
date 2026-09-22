@@ -3,11 +3,12 @@ import { homedir, tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { setConfigField } from "../lib/env-file.js";
 import { runningInsideSandbox } from "../lib/execution/detect.js";
+import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import { HARNESS_CATALOG, type HarnessEntry } from "../lib/harnesses/catalog.js";
-import { ohConfigPath, readOhConfig, type LangfuseSettings } from "../lib/oh-config.js";
+import { ohConfigPath, readOhConfig, writeOhConfig, type LangfuseSettings } from "../lib/oh-config.js";
 import { resolveProjectRoot } from "../lib/project.js";
 import * as prompt from "../lib/prompt.js";
-import { readSecret } from "../lib/secrets.js";
+import { readSecret, setSecret } from "../lib/secrets.js";
 import {
   LANGFUSE_FRAGMENT_KEYS,
   langfuseFragmentPath,
@@ -19,6 +20,8 @@ import type { HarnessTracingSettings, TracingWriteResult } from "../lib/tracing/
 export interface LangfuseIO {
   stdout: (s: string) => void;
   stderr: (s: string) => void;
+  ask?: prompt.Asker;
+  askSecret?: prompt.Asker;
 }
 
 export interface LangfuseOptions {
@@ -26,13 +29,123 @@ export interface LangfuseOptions {
   cwd?: string;
   home?: string;
   insideSandbox?: boolean;
+  run?: LifecycleRunner;
+}
+
+export interface LangfuseSetupOptions extends LangfuseOptions {
+  yes?: boolean;
 }
 
 export const DEFAULT_LANGFUSE_BASE_URL = "https://cloud.langfuse.com";
 
 export const LANGFUSE_FRAGMENT_LABEL = "~/.config/agro/langfuse.env";
 
+export const LANGFUSE_HEALTH_PATH = "/api/public/health";
+
 const CREDENTIAL_KEYS = ["LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY"] as const;
+
+const WIZARD_STEPS = 5;
+
+const COMMAND_TIMEOUT_MS = 15_000;
+
+export const BASE_URL_CHOICES: readonly { readonly label: string; readonly url: string }[] = [
+  { label: "Langfuse Cloud or another remote HTTPS deployment", url: DEFAULT_LANGFUSE_BASE_URL },
+  { label: "Langfuse on the Docker host", url: "http://host.docker.internal:3000" },
+  { label: "Langfuse as a Compose service on a shared Docker network", url: "http://langfuse-web:3000" },
+];
+
+export type PluginState = "installed" | "missing" | "unknown";
+
+export interface PluginProbe {
+  readonly harnessId: string;
+  readonly plugin: string;
+  readonly listArgv: readonly string[];
+  readonly installedWhen: (stdout: string) => boolean;
+  readonly installArgvs: readonly (readonly string[])[];
+}
+
+export const PLUGIN_PROBES: readonly PluginProbe[] = [
+  {
+    harnessId: "claude-code",
+    plugin: "langfuse-observability@langfuse-observability",
+    listArgv: ["claude", "plugin", "list"],
+    installedWhen: (stdout) => stdout.includes("langfuse-observability@langfuse-observability"),
+    installArgvs: [
+      ["claude", "plugin", "marketplace", "add", "langfuse/Claude-Observability-Plugin"],
+      ["claude", "plugin", "install", "langfuse-observability@langfuse-observability"],
+    ],
+  },
+  {
+    harnessId: "pi",
+    plugin: "@langfuse/pi-observability-plugin",
+    listArgv: ["pi", "list"],
+    installedWhen: (stdout) => stdout.includes("npm:@langfuse/pi-observability-plugin"),
+    installArgvs: [["pi", "install", "npm:@langfuse/pi-observability-plugin"]],
+  },
+  {
+    harnessId: "codex",
+    plugin: "tracing@codex-observability-plugin",
+    listArgv: ["codex", "plugin", "list"],
+    installedWhen: (stdout) => /^tracing@codex-observability-plugin\s+installed/m.test(stdout),
+    installArgvs: [
+      ["codex", "plugin", "marketplace", "add", "langfuse/codex-observability-plugin"],
+      ["codex", "plugin", "add", "tracing@codex-observability-plugin"],
+    ],
+  },
+];
+
+export interface PluginReport {
+  readonly harness: HarnessEntry;
+  readonly probe: PluginProbe;
+  readonly state: PluginState;
+}
+
+function shellWords(argv: readonly string[]): string {
+  return argv.join(" ");
+}
+
+export function probePlugins(run: LifecycleRunner): PluginReport[] {
+  const reports: PluginReport[] = [];
+  for (const harness of tracingHarnesses()) {
+    const probe = PLUGIN_PROBES.find((candidate) => candidate.harnessId === harness.id);
+    if (probe === undefined) continue;
+    let result;
+    try {
+      result = run(probe.listArgv[0], [...probe.listArgv.slice(1)], { stdio: "capture", timeoutMs: COMMAND_TIMEOUT_MS });
+    } catch {
+      reports.push({ harness, probe, state: "unknown" });
+      continue;
+    }
+    if (result.error?.code === "ENOENT") continue;
+    if (result.error !== undefined || result.status !== 0 || result.stdout === undefined) {
+      reports.push({ harness, probe, state: "unknown" });
+      continue;
+    }
+    reports.push({ harness, probe, state: probe.installedWhen(result.stdout) ? "installed" : "missing" });
+  }
+  return reports;
+}
+
+function printPlugins(reports: PluginReport[], io: LangfuseIO): void {
+  if (reports.length === 0) return;
+  io.stdout("plugins:\n");
+  for (const report of reports) {
+    io.stdout(`  ${report.state.padEnd(9)} ${report.harness.title} (${report.probe.plugin})\n`);
+    if (report.state === "missing") {
+      for (const argv of report.probe.installArgvs) io.stdout(`             ${shellWords(argv)}\n`);
+    }
+  }
+}
+
+function healthy(run: LifecycleRunner, baseUrl: string): boolean {
+  const url = `${baseUrl.replace(/\/+$/, "")}${LANGFUSE_HEALTH_PATH}`;
+  try {
+    const result = run("curl", ["-fsS", "--max-time", "10", url], { stdio: "capture", timeoutMs: COMMAND_TIMEOUT_MS });
+    return result.error === undefined && result.status === 0;
+  } catch {
+    return false;
+  }
+}
 
 export type GeneratedFileState = "current" | "drifted" | "missing";
 
@@ -265,6 +378,7 @@ export async function runLangfuseStatus(opts: LangfuseOptions, io: LangfuseIO): 
     io.stdout(`  ${report.state.padEnd(8)} ${displayPath(ctx.home, report.path)}\n`);
   }
   for (const failure of failures) io.stderr(`${opts.bin} langfuse status: ${failure}\n`);
+  printPlugins(probePlugins(opts.run ?? spawnRunner), io);
 
   const warning = zshenvWarning(ctx.home);
   if (warning !== undefined) io.stderr(`${opts.bin} langfuse status: warning: ${warning}`);
@@ -312,4 +426,173 @@ export async function runLangfuseDisable(opts: LangfuseOptions, io: LangfuseIO):
       "values they loaded — restart every running harness session to stop tracing\n",
   );
   return code;
+}
+
+function isWizardInteractive(opts: LangfuseSetupOptions, io: LangfuseIO): boolean {
+  return opts.yes !== true && (process.stdin.isTTY === true || io.ask !== undefined);
+}
+
+async function askBaseUrl(ask: prompt.Asker, io: LangfuseIO, current: string): Promise<string> {
+  const customIndex = BASE_URL_CHOICES.length;
+  const matched = BASE_URL_CHOICES.findIndex((choice) => choice.url === current);
+  const preset = matched === -1 ? customIndex : matched;
+  io.stdout("  Where does the harness reach Langfuse? (pick from where the harness runs, not where you browse)\n");
+  BASE_URL_CHOICES.forEach((choice, index) => {
+    io.stdout(`    ${index + 1}) ${choice.label} — ${choice.url}\n`);
+  });
+  io.stdout(`    ${customIndex + 1}) Custom URL\n`);
+  let chosen = preset;
+  for (;;) {
+    const answer = (await ask(`Choose [1-${customIndex + 1}] [${preset + 1}]:`)).trim();
+    if (answer === "") break;
+    const index = Number.parseInt(answer, 10) - 1;
+    if (Number.isInteger(index) && index >= 0 && index <= customIndex) {
+      chosen = index;
+      break;
+    }
+    io.stdout(`  Invalid choice. Pick 1-${customIndex + 1}.\n`);
+  }
+  if (chosen < customIndex) return BASE_URL_CHOICES[chosen].url;
+  for (;;) {
+    const url = await prompt.askDefaulted(ask, "Langfuse base URL", matched === -1 ? current : "");
+    if (/^https?:\/\/\S+$/.test(url)) return url.replace(/\/+$/, "");
+    io.stdout("  Enter an http:// or https:// URL.\n");
+  }
+}
+
+async function askKeys(
+  ask: prompt.Asker,
+  askSecret: prompt.Asker,
+  io: LangfuseIO,
+  root: string,
+  bin: string,
+): Promise<Map<string, string>> {
+  const pending = new Map<string, string>();
+  for (const key of CREDENTIAL_KEYS) {
+    const existing = readSecret(root, key);
+    if (existing !== undefined) {
+      io.stdout(`  ${key}: currently ${prompt.redact(existing)}\n`);
+      if (await prompt.askYesNo(ask, `Keep the current ${key}?`, true)) continue;
+    }
+    const value = (await askSecret(`Value for ${prompt.bold(key)} (input hidden):`)).trim();
+    if (value === "") {
+      io.stdout(
+        `  ${key}: ${existing === undefined ? `left unset — set it later with \`${bin} secret set ${key}\`` : "unchanged"}\n`,
+      );
+      continue;
+    }
+    pending.set(key, value);
+  }
+  return pending;
+}
+
+async function offerPluginInstalls(
+  ask: prompt.Asker,
+  run: LifecycleRunner,
+  io: LangfuseIO,
+  bin: string,
+): Promise<void> {
+  const reports = probePlugins(run);
+  printPlugins(reports, io);
+  for (const report of reports) {
+    if (report.state !== "missing") continue;
+    const commands = report.probe.installArgvs.map(shellWords).join(" && ");
+    if (!(await prompt.askYesNo(ask, `Install the ${report.harness.title} plugin now? (${commands})`, false))) {
+      io.stdout(`  ${report.harness.title}: plugin not installed — run the commands above later\n`);
+      continue;
+    }
+    for (const argv of report.probe.installArgvs) {
+      io.stdout(`  running: ${shellWords(argv)}\n`);
+      const result = run(argv[0], [...argv.slice(1)], { stdio: "inherit" });
+      if (result.error !== undefined || result.status !== 0) {
+        io.stderr(
+          `${bin} config langfuse: \`${shellWords(argv)}\` failed` +
+            `${result.error?.message !== undefined ? ` — ${result.error.message}` : result.status === null ? "" : ` (exit ${result.status})`}` +
+            "; the saved configuration is intact, install the plugin by hand and re-run\n",
+        );
+        break;
+      }
+    }
+  }
+}
+
+export async function runLangfuseSetup(opts: LangfuseSetupOptions, io: LangfuseIO): Promise<number> {
+  const bin = opts.bin;
+  if (!isWizardInteractive(opts, io)) {
+    io.stdout(`${bin} config langfuse: no interactive terminal — skipping the wizard and running \`${bin} langfuse apply\`\n`);
+    return runLangfuseApply(opts, io);
+  }
+
+  let ctx: Context;
+  let resolved: ResolvedLangfuse;
+  try {
+    ctx = context(opts);
+    resolved = resolveLangfuse(ctx.root);
+  } catch (error) {
+    io.stderr(`${bin} config langfuse: ${errorText(error)}\n`);
+    return 1;
+  }
+  const ask = io.ask ?? prompt.ask;
+  const askSecret = io.askSecret ?? prompt.askSecret;
+  const run = opts.run ?? spawnRunner;
+
+  prompt.header("Configure Langfuse tracing  (press Enter to accept the shown default)");
+
+  prompt.step(1, WIZARD_STEPS, "Enable");
+  if (!(await prompt.askYesNo(ask, "Enable Langfuse tracing?", resolved.enabled))) {
+    io.stdout(
+      resolved.enabled
+        ? `langfuse: left enabled — nothing written; run \`${bin} langfuse disable\` to turn tracing off\n`
+        : "langfuse: not enabled — nothing written\n",
+    );
+    return 0;
+  }
+
+  prompt.step(2, WIZARD_STEPS, "Base URL");
+  const baseUrl = await askBaseUrl(ask, io, resolved.tracing.baseUrl);
+
+  prompt.step(3, WIZARD_STEPS, "API keys");
+  const pendingKeys = await askKeys(ask, askSecret, io, ctx.root, bin);
+
+  prompt.step(4, WIZARD_STEPS, "Segmentation");
+  const environment = await prompt.askDefaulted(ask, "Trace environment", resolved.tracing.environment);
+  const userId = await prompt.askDefaulted(ask, "User id (blank for none)", resolved.tracing.userId ?? "");
+
+  prompt.step(5, WIZARD_STEPS, "Verify and write");
+  const healthUrl = `${baseUrl}${LANGFUSE_HEALTH_PATH}`;
+  if (healthy(run, baseUrl)) {
+    io.stdout(`  reachable  ${healthUrl}\n`);
+  } else {
+    io.stderr(
+      `${bin} config langfuse: warning: GET ${healthUrl} failed — ` +
+        "the URL may resolve only from inside the sandbox, or the deployment may be down\n",
+    );
+    if (!(await prompt.askYesNo(ask, "Save the configuration anyway?", true))) {
+      io.stdout("langfuse: not saved — nothing written\n");
+      return 0;
+    }
+  }
+
+  try {
+    const config = readOhConfig(ohConfigPath(ctx.root));
+    config.langfuse = {
+      enabled: true,
+      baseUrl,
+      environment,
+      ...(userId === "" ? {} : { userId }),
+    };
+    writeOhConfig(ctx.root, config);
+    io.stdout(`agro.json: set langfuse.enabled=true baseUrl=${baseUrl} environment=${environment} userId=${userId === "" ? "(unset)" : userId}\n`);
+    for (const [key, value] of pendingKeys) {
+      setSecret(ctx.root, key, value);
+      io.stdout(`.env: set ${key}=${prompt.redact(value)}\n`);
+    }
+  } catch (error) {
+    io.stderr(`${bin} config langfuse: ${errorText(error)}\n`);
+    return 1;
+  }
+
+  await offerPluginInstalls(ask, run, io, bin);
+
+  return runLangfuseApply(opts, io);
 }

@@ -172,3 +172,16 @@ export async function confirm(question: string, defaultYes = true): Promise<bool
   if (answer === "") return defaultYes;
   return /^y/.test(answer);
 }
+
+export type Asker = (question: string) => Promise<string>;
+
+export async function askDefaulted(ask: Asker, question: string, current: string): Promise<string> {
+  const answer = (await ask(`${question} [${current === "" ? "blank" : current}]:`)).trim();
+  return answer === "" ? current : answer;
+}
+
+export async function askYesNo(ask: Asker, question: string, current: boolean): Promise<boolean> {
+  const answer = (await ask(`${question} ${current ? "[Y/n]" : "[y/N]"}`)).trim().toLowerCase();
+  if (answer === "") return current;
+  return /^y/.test(answer);
+}
