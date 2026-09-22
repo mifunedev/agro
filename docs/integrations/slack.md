@@ -26,7 +26,7 @@ Slack.
 
 ## 1. Prerequisites
 
-- Sandbox is running (`agro ps` shows the `openharness` container).
+- Sandbox is running (`agro ps` shows the `agro` container).
 - `pi --version` works inside the sandbox (`agro shell` to verify).
 - A Slack workspace where you can create apps (workspace admin or equivalent).
   If you are on a company Slack that restricts app creation, create a free
@@ -355,7 +355,7 @@ env (before attaching to tmux).
 | `invalid_auth` / `not_authed` in the log | `xapp-` and `xoxb-` tokens are swapped | `PI_SLACK_APP_TOKEN` must be the `xapp-` token; `PI_SLACK_BOT_TOKEN` must be the `xoxb-` token — correct `.devcontainer/.env` and relaunch |
 | Bridge won't start after an unclean exit | Stale lock file `~/.pi/msg-bridge.lock` left behind | `rm ~/.pi/msg-bridge.lock`, then relaunch the `client-slack-pi` session |
 | Bot connected (`[Slack] Bot user ID:` logged) but never replies | `autoConnect` not set in `.pi/msg-bridge.json` — the bridge stays idle | Set `"autoConnect": true` (§ 4.2) and relaunch |
-| Bot is trusted but channel messages ignored | Bot is not a member of the channel | In Slack, type `/invite @OpenHarness` in the target channel |
+| Bot is trusted but channel messages ignored | Bot is not a member of the channel | In Slack, type `/invite @AGRO` in the target channel |
 
 ## 9. Architecture Pointer
 

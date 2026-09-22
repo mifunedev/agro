@@ -158,7 +158,7 @@ Use the lifecycle in this order:
 Run `agro destroy <name>` only for operator-authorized teardown.
 
 `agro` is the only lifecycle door, on the host and in the sandbox, and it calls
-`.agro/scripts/docker-compose.sh`. `oh` remains a working alias through the SLA.
+`.agro/scripts/docker-compose.sh`. The legacy `oh` alias is retired.
 Host prerequisites are Docker, Git, and Node 20 or newer. The verb reference is
 [`docs/lifecycle-commands.md`](docs/lifecycle-commands.md).
 

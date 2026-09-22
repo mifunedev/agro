@@ -11,13 +11,13 @@ setting, and the gitignored root `.env`, which holds only secrets and is
 documented by the tracked [`.example.env`](../.example.env). Both are read by
 [`docker-compose.sh`](../.agro/scripts/docker-compose.sh); the field reference is
 [Configuration](configuration.md). The example below is only a pointer map over the existing `.agro/`
-control-plane surfaces described in the [`.agro/` directory layout](oh-directory-layout.md).
+control-plane surfaces described in the [`.agro/` directory layout](agro-directory-layout.md).
 
 ## Minimal example
 
 ```yaml
 # .agro/harness.yml — example only; not required or read by AGRO.
-name: openharness
+name: agro
 version: 1
 
 primitives:

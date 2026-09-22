@@ -10,7 +10,7 @@
 /harness.yaml.migrated
 # Derived env artifact the deleted Makefile target generated (not matched by **/.env*)
 .devcontainer/.harness.yaml.env
-/.oh/config.json
+/.agro/config.json
 /.agro/config.json
 .worktrees/*
 !.worktrees/AGENTS.md
@@ -19,10 +19,10 @@ projects/*
 .claude/worktrees/
 
 # Task artifacts are local runtime state; keep only the directory guide tracked.
-.oh/tasks/*
-!.oh/tasks/README.md
-.oh/logs/*
-!.oh/logs/AGENTS.md
+.agro/tasks/*
+!.agro/tasks/README.md
+.agro/logs/*
+!.agro/logs/AGENTS.md
 .agro/tasks/*
 !.agro/tasks/AGENTS.md
 .agro/logs/*
@@ -53,7 +53,7 @@ crons/*.log
 **/.pnpm-store
 **/.claude/plans
 **/.agro/plans/
-**/.oh/plans/
+**/.agro/plans/
 **/.claude/specs/*
 **/.claude/settings.local.json
 **/auth.json
@@ -77,23 +77,22 @@ packages/*/node_modules/
 # those pages cite. Only local/ is ignored — per-machine scratch that /wiki query
 # and every /spec flow refuse to read, so a page on one machine can never
 # silently inform a plan another machine cannot reproduce.
-.oh/knowledge/local/*
-!.oh/knowledge/local/README.md
+.agro/knowledge/local/*
+!.agro/knowledge/local/README.md
 .agro/knowledge/local/*
 !.agro/knowledge/local/README.md
 
 # Cron runtime state written by entrypoint.sh's seed_workspace_volume when there
 # is no checkout bind. It must never land in a real checkout, so it is ignored on
 # every branch.
-.oh/.image-seeded
 .agro/.image-seeded
-.oh/crons/
+.agro/crons/
 .agro/crons/
 
-# RETIRED COMPATIBILITY TOMBSTONE — .oh/memory/ and .agro/memory/ were deleted as a concept; nothing
+# RETIRED COMPATIBILITY TOMBSTONE — .agro/memory/ and .agro/memory/ were deleted as a concept; nothing
 # writes or reads it. This rule exists only so a stale directory left by a
 # pre-0.4.0 checkout can never be committed. Remove it in 0.7.0.
-.oh/memory/
+.agro/memory/
 .agro/memory/
 
 .agro-migrate.lock

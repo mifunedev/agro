@@ -22,8 +22,8 @@ vi.mock("../cli.js", async (importOriginal) => {
 });
 
 const {
-  parseUpdateArgs,
-  resolveUpdateSource,
+  parseVendorArgs,
+  resolveVendorSource,
   bundledPayloadExists,
   runWithRemoteSource,
 } = await import("../cli.js");
@@ -62,28 +62,28 @@ function writeFile(root: string, rel: string, content: string): void {
 function makePayloadRepo(version = "9.9.9"): string {
   const repo = mkTmp("oh-cli-remote-fixture-");
   git(repo, ["-c", "init.defaultBranch=main", "init"]);
-  writeFile(repo, ".oh/cli/package.json", `${JSON.stringify({ name: "oh", version })}\n`);
-  writeFile(repo, ".oh/README.md", "# payload\n");
-  writeFile(repo, ".oh/manifest.json", `${JSON.stringify({ include: ["**"], exclude: [] })}\n`);
-  writeFile(repo, ".oh/scripts/docker-compose.sh", "remote-payload-script\n");
+  writeFile(repo, ".agro/cli/package.json", `${JSON.stringify({ name: "agro", version })}\n`);
+  writeFile(repo, ".agro/README.md", "# payload\n");
+  writeFile(repo, ".agro/manifest.json", `${JSON.stringify({ include: ["**"], exclude: [] })}\n`);
+  writeFile(repo, ".agro/scripts/docker-compose.sh", "remote-payload-script\n");
   git(repo, ["add", "-A"]);
   git(repo, ["commit", "-m", "payload"]);
   return repo;
 }
 
-const BUNDLED = { sourceOhDir: "/bundled/.oh" };
+const BUNDLED = { sourceControlDir: "/bundled/.agro" };
 
 
-describe("parseUpdateArgs", () => {
+describe("parseVendorArgs", () => {
   it("parses --from-remote [--ref] and keeps --from/--dry-run/--force behavior", () => {
-    const remote = parseUpdateArgs(["--from-remote", "--ref", "main", "--dry-run"]);
+    const remote = parseVendorArgs(["--from-remote", "--ref", "main", "--dry-run"]);
     expect(remote.ok).toBe(true);
     if (remote.ok) {
       expect(remote.args.fromRemote).toBe(true);
       expect(remote.args.ref).toBe("main");
       expect(remote.args.dryRun).toBe(true);
     }
-    const local = parseUpdateArgs(["--from", "/x", "--force"]);
+    const local = parseVendorArgs(["--from", "/x", "--force"]);
     expect(local.ok).toBe(true);
     if (local.ok) {
       expect(local.args.fromDir).toBe("/x");
@@ -93,7 +93,7 @@ describe("parseUpdateArgs", () => {
   });
 
   it("rejects --from-remote with --from, naming both flags", () => {
-    const r = parseUpdateArgs(["--from", "/x", "--from-remote"]);
+    const r = parseVendorArgs(["--from", "/x", "--from-remote"]);
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(r.error).toContain("--from-remote");
@@ -102,7 +102,7 @@ describe("parseUpdateArgs", () => {
   });
 
   it("rejects --ref without --from-remote", () => {
-    const r = parseUpdateArgs(["--from", "/x", "--ref", "main"]);
+    const r = parseVendorArgs(["--from", "/x", "--ref", "main"]);
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(r.error).toContain("--ref");
@@ -111,7 +111,7 @@ describe("parseUpdateArgs", () => {
   });
 
   it("no source flags: accepted — the CLI's own bundled payload is the default source", () => {
-    const r = parseUpdateArgs([]);
+    const r = parseVendorArgs([]);
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.args.fromDir).toBeUndefined();
@@ -120,11 +120,11 @@ describe("parseUpdateArgs", () => {
   });
 
   it("help flag short-circuits; unexpected argument errors with showHelp", () => {
-    const help = parseUpdateArgs(["--help"]);
+    const help = parseVendorArgs(["--help"]);
     expect(help.ok).toBe(true);
     if (help.ok) expect(help.args.help).toBe(true);
 
-    const bad = parseUpdateArgs(["bogus"]);
+    const bad = parseVendorArgs(["bogus"]);
     expect(bad.ok).toBe(false);
     if (!bad.ok) {
       expect(bad.error).toContain('unexpected argument "bogus"');
@@ -134,9 +134,9 @@ describe("parseUpdateArgs", () => {
 });
 
 
-describe("resolveUpdateSource", () => {
+describe("resolveVendorSource", () => {
   it("--from wins over --from-remote and over the bundled payload", () => {
-    const s = resolveUpdateSource(
+    const s = resolveVendorSource(
       { fromRemote: true, fromDir: "/somewhere/checkout" },
       { ...BUNDLED, exists: () => true },
     );
@@ -144,7 +144,7 @@ describe("resolveUpdateSource", () => {
   });
 
   it("--from-remote wins over the bundled payload and carries no notice", () => {
-    const s = resolveUpdateSource(
+    const s = resolveVendorSource(
       { fromRemote: true, ref: "v1" },
       { ...BUNDLED, exists: () => true },
     );
@@ -156,12 +156,12 @@ describe("resolveUpdateSource", () => {
   });
 
   it("no flags + bundled payload present → the CLI's own checkout, no notice", () => {
-    const s = resolveUpdateSource({ fromRemote: false }, { ...BUNDLED, exists: () => true });
-    expect(s).toEqual({ kind: "local", fromDir: resolve(BUNDLED.sourceOhDir, "..") });
+    const s = resolveVendorSource({ fromRemote: false }, { ...BUNDLED, exists: () => true });
+    expect(s).toEqual({ kind: "local", fromDir: resolve(BUNDLED.sourceControlDir, "..") });
   });
 
   it("auto-fallback: no flags + bundled payload absent → remote with a one-line notice naming URL and ref", () => {
-    const s = resolveUpdateSource({ fromRemote: false }, { ...BUNDLED, exists: () => false });
+    const s = resolveVendorSource({ fromRemote: false }, { ...BUNDLED, exists: () => false });
     expect(s.kind).toBe("remote");
     if (s.kind === "remote") {
       expect(s.notice).toContain(DEFAULT_REPO_URL);
@@ -173,14 +173,14 @@ describe("resolveUpdateSource", () => {
 });
 
 describe("bundledPayloadExists", () => {
-  it("requires the manifest marker beside the bundled .oh/", () => {
+  it("requires the manifest marker beside the bundled .agro/", () => {
     const probed: string[] = [];
     const allThere = (p: string): boolean => {
       probed.push(p);
       return true;
     };
     expect(bundledPayloadExists(BUNDLED, allThere)).toBe(true);
-    expect(probed).toContain(join(BUNDLED.sourceOhDir, "manifest.json"));
+    expect(probed).toContain(join(BUNDLED.sourceControlDir, "manifest.json"));
 
     expect(bundledPayloadExists(BUNDLED, () => false)).toBe(false);
     expect(bundledPayloadExists(BUNDLED, (p) => !p.endsWith("manifest.json"))).toBe(false);
@@ -200,15 +200,15 @@ describe("runWithRemoteSource", () => {
       { repoUrl, stdout: (s) => cliOut.push(s) },
       (checkoutDir) => {
         seenCheckout = checkoutDir;
-        return runUpdate({ bin: "oh", targetDir: target, fromDir: checkoutDir }, io);
+        return runUpdate({ bin: "agro", targetDir: target, fromDir: checkoutDir }, io);
       },
     );
 
     expect(code).toBe(0);
-    expect(readFileSync(join(target, ".oh/scripts/docker-compose.sh"), "utf8")).toBe(
+    expect(readFileSync(join(target, ".agro/scripts/docker-compose.sh"), "utf8")).toBe(
       "remote-payload-script\n",
     );
-    expect(readFileSync(join(target, ".oh/README.md"), "utf8")).toBe("# payload\n");
+    expect(readFileSync(join(target, ".agro/README.md"), "utf8")).toBe("# payload\n");
     expect(cliOut.join("")).toContain("fetched payload v9.9.9 (installed CLI v");
     expect(seenCheckout).not.toBe("");
     expect(existsSync(seenCheckout)).toBe(false);
@@ -220,7 +220,7 @@ describe("runWithRemoteSource", () => {
     await expect(
       runWithRemoteSource({ repoUrl, stdout: () => {} }, (dir) => {
         checkout = dir;
-        expect(existsSync(join(dir, ".oh", "README.md"))).toBe(true);
+        expect(existsSync(join(dir, ".agro", "README.md"))).toBe(true);
         throw new Error("downstream write exploded");
       }),
     ).rejects.toThrow("downstream write exploded");

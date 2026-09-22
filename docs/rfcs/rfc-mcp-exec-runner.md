@@ -1,8 +1,8 @@
-# RFC: MCP exec-runner — the openharness sandbox as an A3 runner target
+# RFC: MCP exec-runner — the agro sandbox as an A3 runner target
 
-Status: Draft — companion to [#592](https://github.com/mifunedev/openharness/issues/592) (runtime taxonomy) and its implementation epic [#591](https://github.com/mifunedev/openharness/issues/591). Scoped as an **A3 (fan-out) runner candidate**, not a new taxonomy.
+Status: Draft — companion to [#592](https://github.com/mifunedev/agro/issues/592) (runtime taxonomy) and its implementation epic [#591](https://github.com/mifunedev/agro/issues/591). Scoped as an **A3 (fan-out) runner candidate**, not a new taxonomy.
 
-This RFC proposes making the openharness sandbox a **remotely-drivable MCP runner** by vendoring *only* the `exec-server` MCP proxy from [`mifunedev/sandboxes/ubuntu`](https://github.com/mifunedev/sandboxes/tree/master/ubuntu). It is a candidate under the [runtime-support contract](rfc-runtime-support.md) — it implements one concrete mechanism for the "harness *becomes* a runner target" option that `rfc-runtime-support.md` §6 raises but defers. Wiki mechanics: [[mcp-exec-runner]].
+This RFC proposes making the agro sandbox a **remotely-drivable MCP runner** by vendoring *only* the `exec-server` MCP proxy from [`mifunedev/sandboxes/ubuntu`](https://github.com/mifunedev/sandboxes/tree/master/ubuntu). It is a candidate under the [runtime-support contract](rfc-runtime-support.md) — it implements one concrete mechanism for the "harness *becomes* a runner target" option that `rfc-runtime-support.md` §6 raises but defers. Wiki mechanics: [[mcp-exec-runner]].
 
 ## 1. What the proxy is
 
@@ -29,9 +29,9 @@ Per the requester's scope: **only the proxy** (`index.js` + `package.json`) is i
 Mapped to `rfc-runtime-support.md` §2:
 
 1. **Documented** — `docs/integrations/mcp-exec-runner.md` (mirror `debugmcp.md`: registration + Maintainer Decision Gate) + a runtimes-overview row.
-2. **One-toggle** — `harness.yaml` `install.mcp_exec_runner` → build-arg/env via `.oh/scripts/harness-config.sh` (mirrors `INSTALL_HERMES`). Never multi-step.
+2. **One-toggle** — `harness.yaml` `install.mcp_exec_runner` → build-arg/env via `.agro/scripts/harness-config.sh` (mirrors `INSTALL_HERMES`). Never multi-step.
 3. **Validated** — boots inside the sandbox, `GET :3005/health` ok, MCP `initialize` handshake returns a session id, `exec_command` runs; boot-lint + probe floor stay green.
-4. **Guarded** — `.oh/evals/probes/mcp-exec-runner-availability.sh` (handshake + health), mirroring `debugmcp-availability.sh`.
+4. **Guarded** — `.agro/evals/probes/mcp-exec-runner-availability.sh` (handshake + health), mirroring `debugmcp-availability.sh`.
 
 **Friction principle (§3):** default install ships *nothing* new — the trusted single-operator container stays the zero-config default; the runner is opt-in and off by default.
 
@@ -39,9 +39,9 @@ Mapped to `rfc-runtime-support.md` §2:
 
 `exec_command` is arbitrary RCE. The sandbox bind-mounts `/var/run/docker.sock` (`.devcontainer/docker-compose.yml`). RCE reaches the Docker daemon → host. This fact matches the "root-on-host boundary / weakest link once untrusted code runs unattended" `rfc-runtime-support.md` §Purpose.
 
-The posture is non-negotiable. The external proposal decision audit defines this posture (`.oh/skills/audit/references/external-proposal-audit.md`):
+The posture is non-negotiable. The external proposal decision audit defines this posture (`.agro/skills/audit/references/external-proposal-audit.md`):
 
-- **Off by default**, opt-in single toggle; default installs unchanged (`.oh/templates/full/`, `init.test.ts` stay green).
+- **Off by default**, opt-in single toggle; default installs unchanged (`.agro/templates/full/`, `init.test.ts` stay green).
 - **Loopback-bound by default**; external reach only via a deliberate `cloudflared` tunnel or explicit `forwardPorts`. **Never `0.0.0.0` by default.**
 - **`API_KEY` required whenever enabled** (fail-closed) — do not inherit the upstream keyless default.
 - Vendored + **pinned** `@modelcontextprotocol/sdk`; minimal reviewed config; no auto-granted permissions.
@@ -57,7 +57,7 @@ The posture is non-negotiable. The external proposal decision audit defines this
 Rather than edit the in-flight #592 draft here, two additive changes are proposed:
 
 - **§4 fit matrix — new row:**
-  `| openharness-as-MCP-runner (exec-server, mifunedev/sandboxes) | A3 | MCP-HTTP runner endpoint | Sandbox hosts one exec_command tool over Streamable HTTP; RCE + docker.sock → opt-in/loopback/API_KEY. Inverse of DebugMCP. |`
+  `| agro-as-MCP-runner (exec-server, mifunedev/sandboxes) | A3 | MCP-HTTP runner endpoint | Sandbox hosts one exec_command tool over Streamable HTTP; RCE + docker.sock → opt-in/loopback/API_KEY. Inverse of DebugMCP. |`
 - **§6 / §9 — new open decision:** add `provider: mcp-http` as a fourth A3 option beside Crabbox *be / embed / integrate*: expose the sandbox as an MCP runner vs. an SSH runner vs. a Crabbox offload.
 
 ## 7. Next steps (non-executable — for after the decision)
@@ -68,7 +68,7 @@ gh issue create \
   --title "RFC: MCP exec-runner — sandbox as A3 MCP runner target (child of #591)" \
   --label autopilot \
   --body "Decision-gate: A3 runner endpoint via the mifunedev/sandboxes exec-server.
-Vendor only index.js+package.json into .oh/mcp/exec-runner/ (repoint /workspace->/home/sandbox/harness, executor->low-priv user, pin SDK).
+Vendor only index.js+package.json into .agro/mcp/exec-runner/ (repoint /workspace->/home/sandbox/harness, executor->low-priv user, pin SDK).
 Opt-in install.mcp_exec_runner toggle; loopback + required API_KEY; docs/integrations/mcp-exec-runner.md + eval probe.
 Gate: must satisfy rfc-runtime-support.md §2 contract and §4 security floor. No Dockerfile/compose change until accepted."
 ```

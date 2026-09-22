@@ -10,7 +10,7 @@ AGRO has two authored configuration surfaces, split by kind:
 A secret must never reach `agro.json`, because `agro.json` is tracked. A non-secret
 must never reach `.env`. The split is enforced in code:
 `.agro/cli/src/lib/secrets.ts` owns the secret allow-list,
-`.agro/cli/src/lib/oh-config.ts` owns the `agro.json` schema and validator, and
+`.agro/cli/src/lib/agro-config.ts` owns the `agro.json` schema and validator, and
 `.agro/cli/src/lib/config-render.ts` refuses to render an allow-listed secret into
 the compose environment.
 
@@ -24,10 +24,10 @@ The same schema has two homes, and the flag you pass picks one:
 | **Project** | `<repo>/agro.json` | you, and `agro config set` with no flag | the settings a checkout wants to carry in git |
 
 A registry entry created by an earlier release stays at
-`${OH_HOME:-~/.oh}/sandboxes/<name>/oh.json`, and a checkout equipped by one
-keeps `.oh/` and `oh.json`. Both keep resolving under either executable name;
+`${AGRO_HOME:-~/.oh}/sandboxes/<name>/agro.json`, and a checkout equipped by one
+keeps `.agro/` and `agro.json`. Both keep resolving under either executable name;
 `agro migrate` and `agro migrate --home` move them when you choose. Every verb
-below is also available as `oh <verb>`.
+below uses the `agro` CLI.
 
 `agro sandbox install docker` writes the registry entry and, beside it, the
 compose files and the compose wrapper. Those are **generated**: the CLI
@@ -83,9 +83,9 @@ or consumed by the CLI itself.
 | `version` | number | `1` | — | Schema version. Must be `1`. |
 | `name` | string | directory name | `SANDBOX_NAME` | Container and Compose project name. |
 | `runtime` | `"docker"` | unset | — | The runtime the entry was provisioned on. `agro sandbox install docker` writes it; `docker` is the only value today. |
-| `checkout` | string | unset | `AGRO_REPO_DIR` (legacy alias `OH_REPO_DIR`) | Absolute **host** path of a checkout to bind-mount at `/home/sandbox/harness`, set by `agro sandbox install docker --checkout <dir>`. The CLI selects the build-capable compose base only when that path holds `.devcontainer/Dockerfile`. This field also lets a lifecycle verb resolve this sandbox from inside that directory. Unset means image-only: the workspace volume is seeded from the image's `/opt/agro-seed`. The field `repo` and the flag `--repo` remain supported aliases. A file that holds both fields uses `checkout`. Either field renders to the Compose variable `AGRO_REPO_DIR`. A file that holds `repo` keeps that field. The CLI does not rewrite it. |
+| `checkout` | string | unset | `AGRO_REPO_DIR` (legacy alias `AGRO_REPO_DIR`) | Absolute **host** path of a checkout to bind-mount at `/home/sandbox/harness`, set by `agro sandbox install docker --checkout <dir>`. The CLI selects the build-capable compose base only when that path holds `.devcontainer/Dockerfile`. This field also lets a lifecycle verb resolve this sandbox from inside that directory. Unset means image-only: the workspace volume is seeded from the image's `/opt/agro-seed`. The field `repo` and the flag `--repo` remain supported aliases. A file that holds both fields uses `checkout`. Either field renders to the Compose variable `AGRO_REPO_DIR`. A file that holds `repo` keeps that field. The CLI does not rewrite it. |
 | `timezone` | string | `America/Los_Angeles` | `TZ` | Timezone for cron schedules and log timestamps. |
-| `storage.homePath` | string | unset | `AGRO_HOME_MOUNT` (legacy alias `OH_HOME_MOUNT`) | Absolute **host** path for the single `/home/sandbox` mount. Leave unset and Docker manages it as the named volume `<name>_workspace`. Must start with `/`; use a dedicated empty directory, since the sandbox takes ownership of every file in that directory. Set this field at create time with `agro sandbox install docker --home-mount <dir>`. The flag resolves the argument to an absolute path. The flag creates the directory when the directory is absent. The flag accepts a non-empty directory. `agro config set storage.homePath <dir>` refuses the change when the named volume `<name>_workspace` already exists. The next start would swap the mount source and orphan every file in that volume. Pass `--force` to override the refusal. A stale `AGRO_HOME_MOUNT` (or legacy `OH_HOME_MOUNT`) in `.devcontainer/.env` outranks this value, because the wrapper passes the dotenv last. |
+| `storage.homePath` | string | unset | `AGRO_HOME_MOUNT` (legacy alias `AGRO_HOME_MOUNT`) | Absolute **host** path for the single `/home/sandbox` mount. Leave unset and Docker manages it as the named volume `<name>_workspace`. Must start with `/`; use a dedicated empty directory, since the sandbox takes ownership of every file in that directory. Set this field at create time with `agro sandbox install docker --home-mount <dir>`. The flag resolves the argument to an absolute path. The flag creates the directory when the directory is absent. The flag accepts a non-empty directory. `agro config set storage.homePath <dir>` refuses the change when the named volume `<name>_workspace` already exists. The next start would swap the mount source and orphan every file in that volume. Pass `--force` to override the refusal. A stale `AGRO_HOME_MOUNT` (or legacy `AGRO_HOME_MOUNT`) in `.devcontainer/.env` outranks this value, because the wrapper passes the dotenv last. |
 
 ### Git identity inside the sandbox
 
@@ -153,9 +153,9 @@ Recipe: [`agro sandbox install docker`](deployment-prebuilt-image.md).
 
 | Field | Type | Default | Compose variable | What it does |
 | --- | --- | --- | --- | --- |
-| `image.ref` | string | `ghcr.io/mifunedev/agro:latest` | `AGRO_SANDBOX_IMAGE` (legacy alias `OH_SANDBOX_IMAGE`) | Published image reference. Set it per sandbox with `agro config set --sandbox <name> image.ref <ref>`. `agro sandbox install docker` writes this field when it binds a `--checkout` directory that holds no `.devcontainer/Dockerfile`. The sandbox then runs the published image instead of a local build target. A configured value wins, and the install preserves that value. |
+| `image.ref` | string | `ghcr.io/mifunedev/agro:latest` | `AGRO_SANDBOX_IMAGE` (legacy alias `AGRO_SANDBOX_IMAGE`) | Published image reference. Set it per sandbox with `agro config set --sandbox <name> image.ref <ref>`. `agro sandbox install docker` writes this field when it binds a `--checkout` directory that holds no `.devcontainer/Dockerfile`. The sandbox then runs the published image instead of a local build target. A configured value wins, and the install preserves that value. |
 | `image.mode` | `"build"` \| `"image"` | `build` | — | Whether the lifecycle builds locally or runs `image.ref`. A build happens only when the entry carries `checkout` and that directory holds `.devcontainer/Dockerfile`. Pairs with `agro sandbox install docker --image`. |
-| `image.pullPolicy` | `"missing"` \| `"always"` \| `"never"` | `missing` | `AGRO_PULL_POLICY` (legacy alias `OH_PULL_POLICY`) | Compose pull policy for `image.ref`. |
+| `image.pullPolicy` | `"missing"` \| `"always"` \| `"never"` | `missing` | `AGRO_PULL_POLICY` (legacy alias `AGRO_PULL_POLICY`) | Compose pull policy for `image.ref`. |
 
 ### Compose overlays
 
@@ -208,4 +208,4 @@ engine never consults TypeSafe.
 The directory layout is fixed convention and is no longer configurable.
 `WORKTREES_DIR`, `PROJECTS_DIR`, and `CRONS_DIR` were removed;
 `config-render.ts` refuses to render them. See
-[`.agro/` directory layout](oh-directory-layout.md).
+[`.agro/` directory layout](agro-directory-layout.md).

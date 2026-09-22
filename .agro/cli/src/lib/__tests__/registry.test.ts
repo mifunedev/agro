@@ -27,14 +27,14 @@ afterEach(() => {
 function registry(): string {
   const home = mkdtempSync(join(tmpdir(), "oh-registry-"));
   cleanups.push(home);
-  vi.stubEnv("OH_HOME", home);
+  vi.stubEnv("AGRO_HOME", home);
   return join(home, "sandboxes");
 }
 
 function addEntry(name: string, config: Record<string, unknown> = {}): string {
   const root = entryRoot(name);
   mkdirSync(root, { recursive: true });
-  writeFileSync(join(root, "oh.json"), `${JSON.stringify({ version: 1, name, ...config })}\n`);
+  writeFileSync(join(root, "agro.json"), `${JSON.stringify({ version: 1, name, ...config })}\n`);
   return root;
 }
 
@@ -57,7 +57,7 @@ function walk(base: string, dir: string = base): string[] {
 }
 
 describe("registryRoot", () => {
-  it("is ${OH_HOME}/sandboxes", () => {
+  it("is ${AGRO_HOME}/sandboxes", () => {
     const root = registry();
     expect(registryRoot()).toBe(root);
   });
@@ -101,7 +101,7 @@ describe("nextDefaultName", () => {
 });
 
 describe("listEntries", () => {
-  it("lists only directories that carry an oh.json, sorted", () => {
+  it("lists only directories that carry an agro.json, sorted", () => {
     const root = registry();
     addEntry("beta");
     addEntry("alpha");
@@ -123,46 +123,46 @@ function addFreshEntry(name: string): string {
 }
 
 describe("materialize", () => {
-  it("writes the scripts under .agro/ for a fresh entry and under .oh/ for a legacy entry", () => {
+  it("writes the scripts under .agro/ for every entry", () => {
     registry();
     const fresh = addFreshEntry("fresh");
     materialize(fresh);
     expect(walk(fresh)).toEqual([
       ".agro/scripts/check-host-port.sh",
-      ".agro/scripts/compat.sh",
       ".agro/scripts/docker-compose.sh",
+      ".agro/scripts/paths.sh",
       ".devcontainer/docker-compose.docker-sock.yml",
       ".devcontainer/docker-compose.ssh.yml",
       ".devcontainer/docker-compose.yml",
       "agro.json",
     ]);
 
-    const legacy = addEntry("legacy");
-    materialize(legacy);
-    expect(walk(legacy).filter((rel) => rel.endsWith(".sh"))).toEqual([
-      ".oh/scripts/check-host-port.sh",
-      ".oh/scripts/compat.sh",
-      ".oh/scripts/docker-compose.sh",
+    const another = addEntry("another");
+    materialize(another);
+    expect(walk(another).filter((rel) => rel.endsWith(".sh"))).toEqual([
+      ".agro/scripts/check-host-port.sh",
+      ".agro/scripts/docker-compose.sh",
+      ".agro/scripts/paths.sh",
     ]);
-    expect(existsSync(join(legacy, ".agro"))).toBe(false);
+    expect(existsSync(join(another, ".oh"))).toBe(false);
   });
 
-  it("writes exactly the six bundled files, executable where they are scripts", () => {
+  it("writes exactly the bundled files, executable where they are scripts", () => {
     registry();
     const root = addEntry("box");
     materialize(root);
 
     expect(walk(root)).toEqual([
+      ".agro/scripts/check-host-port.sh",
+      ".agro/scripts/docker-compose.sh",
+      ".agro/scripts/paths.sh",
       ".devcontainer/docker-compose.docker-sock.yml",
       ".devcontainer/docker-compose.ssh.yml",
       ".devcontainer/docker-compose.yml",
-      ".oh/scripts/check-host-port.sh",
-      ".oh/scripts/compat.sh",
-      ".oh/scripts/docker-compose.sh",
-      "oh.json",
+      "agro.json",
     ]);
     for (const script of ["docker-compose.sh", "check-host-port.sh"]) {
-      expect(statSync(join(root, ".oh", "scripts", script)).mode & 0o111, script).not.toBe(0);
+      expect(statSync(join(root, ".agro", "scripts", script)).mode & 0o111, script).not.toBe(0);
     }
   });
 
@@ -175,7 +175,7 @@ describe("materialize", () => {
     expect(readFileSync(join(root, ".devcontainer", "docker-compose.ssh.yml"), "utf8")).toBe(
       tracked(".devcontainer/docker-compose.ssh.yml"),
     );
-    expect(readFileSync(join(root, ".oh", "scripts", "docker-compose.sh"), "utf8")).toBe(
+    expect(readFileSync(join(root, ".agro", "scripts", "docker-compose.sh"), "utf8")).toBe(
       tracked(".agro/scripts/docker-compose.sh"),
     );
   });
@@ -190,18 +190,18 @@ describe("materialize", () => {
 
     materialize(root, { repo: "/srv/checkout" });
     const withRepo = readFileSync(join(root, ".devcontainer", "docker-compose.yml"), "utf8");
-    expect(withRepo).toContain("context: ${AGRO_REPO_DIR:-${OH_REPO_DIR:-..}}");
-    expect(withRepo).toContain("${AGRO_REPO_DIR:-${OH_REPO_DIR:-..}}:/home/sandbox/harness");
+    expect(withRepo).toContain("context: ${AGRO_REPO_DIR:-..}");
+    expect(withRepo).toContain("${AGRO_REPO_DIR:-..}:/home/sandbox/harness");
   });
 
   it("overwrites a drifted file so the entry always matches the CLI", () => {
     registry();
     const root = addEntry("box");
     materialize(root);
-    writeFileSync(join(root, ".oh", "scripts", "docker-compose.sh"), "drifted\n");
+    writeFileSync(join(root, ".agro", "scripts", "docker-compose.sh"), "drifted\n");
 
     materialize(root);
-    expect(readFileSync(join(root, ".oh", "scripts", "docker-compose.sh"), "utf8")).toBe(
+    expect(readFileSync(join(root, ".agro", "scripts", "docker-compose.sh"), "utf8")).toBe(
       readFileSync(join(REPO_ROOT, ".agro/scripts/docker-compose.sh"), "utf8"),
     );
   });
@@ -256,7 +256,7 @@ describe("resolveSandboxRoot", () => {
 
   it("errors pointing at the install verb when the registry is empty", () => {
     registry();
-    for (const bin of ["agro", "oh"]) {
+    for (const bin of ["agro", "agro"]) {
       withInvokedBin(bin, () => {
         expect(() => resolveSandboxRoot({ cwd: tmpdir() })).toThrow(
           new RegExp(`no sandbox is registered .* \`${bin} sandbox install docker\``),
@@ -266,21 +266,19 @@ describe("resolveSandboxRoot", () => {
   });
 });
 
-describe("ohHome — dual-generation registry home", () => {
-  it("prefers AGRO_HOME over OH_HOME", () => {
-    const agro = mkdtempSync(join(tmpdir(), "oh-registry-agro-"));
-    const legacy = mkdtempSync(join(tmpdir(), "oh-registry-legacy-"));
-    cleanups.push(agro, legacy);
-    vi.stubEnv("AGRO_HOME", agro);
-    vi.stubEnv("OH_HOME", legacy);
-    expect(registryRoot()).toBe(join(agro, "sandboxes"));
+describe("agroHome — registry home", () => {
+  it("honors AGRO_HOME", () => {
+    const home = mkdtempSync(join(tmpdir(), "agro-registry-home-"));
+    cleanups.push(home);
+    vi.stubEnv("AGRO_HOME", home);
+    expect(registryRoot()).toBe(join(home, "sandboxes"));
   });
 
-  it("still honors OH_HOME alone", () => {
-    const legacy = mkdtempSync(join(tmpdir(), "oh-registry-legacy-"));
+  it("ignores the retired OH_HOME spelling", () => {
+    const legacy = mkdtempSync(join(tmpdir(), "agro-registry-legacy-"));
     cleanups.push(legacy);
     vi.stubEnv("AGRO_HOME", "");
     vi.stubEnv("OH_HOME", legacy);
-    expect(registryRoot()).toBe(join(legacy, "sandboxes"));
+    expect(registryRoot()).not.toBe(join(legacy, "sandboxes"));
   });
 });

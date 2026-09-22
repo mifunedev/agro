@@ -38,7 +38,7 @@ function stateHome(name: string): NodeJS.ProcessEnv {
 function userHome(shape: "legacy-registry" | "agro-registry" | "split" | "clean"): string {
   const home = makeTemp("host-config-home-");
   if (shape === "legacy-registry" || shape === "split") {
-    mkdirSync(join(home, ".oh", "sandboxes"), { recursive: true });
+    mkdirSync(join(home, ".agro", "sandboxes"), { recursive: true });
   }
   if (shape === "agro-registry" || shape === "split") {
     mkdirSync(join(home, ".agro", "sandboxes"), { recursive: true });
@@ -62,7 +62,7 @@ describe("hostConfigPath", () => {
     const path = hostConfigPath({}, home);
     expect(path).toBe(join(home, ".agro", "config.json"));
     expect(path.endsWith("agro.json")).toBe(false);
-    expect(path.endsWith("oh.json")).toBe(false);
+    expect(path.endsWith("agro.json")).toBe(false);
   });
 
   it("round-trips a config through <home>/.agro/config.json", () => {
@@ -127,7 +127,7 @@ describe("defaultHarnessRoot", () => {
       const home = userHome(shape);
       const root = defaultHarnessRoot({}, home);
       expect(root, shape).not.toBe(join(home, ".agro"));
-      expect(root, shape).not.toBe(join(home, ".oh"));
+      expect(root, shape).not.toBe(join(home, ".agro"));
     }
   });
 });

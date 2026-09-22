@@ -2,7 +2,7 @@
 
 set -u
 
-HARNESS="${HARNESS:-${OH_PROJECT_ROOT:-/home/sandbox/harness}}"
+HARNESS="${HARNESS:-${AGRO_PROJECT_ROOT:-/home/sandbox/harness}}"
 TMUX_BIN="${TMUX_BIN:-tmux}"
 SYSTEMCTL_BIN="${SYSTEMCTL_BIN:-systemctl}"
 HERMES_BIN="${HERMES_BIN:-hermes}"
@@ -69,10 +69,10 @@ has_value() {
 if ! command_exists "$SYSTEMCTL_BIN"; then
   record_failure "systemctl binary not found: $SYSTEMCTL_BIN"
 else
-  require_unit openharness-bootstrap.service
+  require_unit agro-bootstrap.service
 
   if [ -f "$HARNESS/.agro/scripts/cron-runtime.ts" ]; then
-    require_unit openharness-cron.service
+    require_unit agro-cron.service
   fi
 fi
 

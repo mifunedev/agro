@@ -1,27 +1,27 @@
 import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
-import composeRepo from "oh-asset:.devcontainer/docker-compose.yml";
-import composeImageOnly from "oh-asset:.devcontainer/docker-compose.image-only.yml";
-import composeSsh from "oh-asset:.devcontainer/docker-compose.ssh.yml";
-import composeDockerSock from "oh-asset:.devcontainer/docker-compose.docker-sock.yml";
-import composeWrapper from "oh-asset:.agro/scripts/docker-compose.sh";
-import compatShell from "oh-asset:.agro/scripts/compat.sh";
-import checkHostPort from "oh-asset:.agro/scripts/check-host-port.sh";
+import composeRepo from "agro-asset:.devcontainer/docker-compose.yml";
+import composeImageOnly from "agro-asset:.devcontainer/docker-compose.image-only.yml";
+import composeSsh from "agro-asset:.devcontainer/docker-compose.ssh.yml";
+import composeDockerSock from "agro-asset:.devcontainer/docker-compose.docker-sock.yml";
+import composeWrapper from "agro-asset:.agro/scripts/docker-compose.sh";
+import pathsShell from "agro-asset:.agro/scripts/paths.sh";
+import checkHostPort from "agro-asset:.agro/scripts/check-host-port.sh";
 import { spawnRunner, type LifecycleRunner } from "./execution/runner.js";
-import { configCheckout, ohConfigPath, readOhConfig } from "./oh-config.js";
+import { configCheckout, agroConfigPath, readAgroConfig } from "./agro-config.js";
 import { activeBin } from "./product.js";
-import { resolveProjectLayout, resolveUserStateHome } from "./compat.js";
+import { resolveProjectLayout, resolveUserStateHome } from "./layout.js";
 
 export const SANDBOX_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
 
 export const DEFAULT_NAME_PREFIX = "agro-sbx-";
 
-export function ohHome(): string {
+export function agroHome(): string {
   return resolveUserStateHome(process.env);
 }
 
 export function registryRoot(): string {
-  return join(ohHome(), "sandboxes");
+  return join(agroHome(), "sandboxes");
 }
 
 export function assertSandboxName(name: string): void {
@@ -48,12 +48,12 @@ export function listEntries(): string[] {
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .filter((name) => SANDBOX_NAME_PATTERN.test(name))
-    .filter((name) => existsSync(ohConfigPath(join(root, name))))
+    .filter((name) => existsSync(agroConfigPath(join(root, name))))
     .sort();
 }
 
 export function entryRepo(name: string): string | undefined {
-  const config = readOhConfig(ohConfigPath(entryRoot(name)));
+  const config = readAgroConfig(agroConfigPath(entryRoot(name)));
   const checkout = configCheckout(config);
   return checkout === undefined ? undefined : resolve(checkout);
 }
@@ -100,7 +100,7 @@ export function materialize(root: string, opts: MaterializeOptions = {}): void {
     { dest: join(entry, ".devcontainer", "docker-compose.ssh.yml"), body: composeSsh, mode: 0o644 },
     { dest: join(entry, ".devcontainer", "docker-compose.docker-sock.yml"), body: composeDockerSock, mode: 0o644 },
     { dest: join(scripts, "docker-compose.sh"), body: composeWrapper, mode: 0o755 },
-    { dest: join(scripts, "compat.sh"), body: compatShell, mode: 0o644 },
+    { dest: join(scripts, "paths.sh"), body: pathsShell, mode: 0o644 },
     { dest: join(scripts, "check-host-port.sh"), body: checkHostPort, mode: 0o755 },
   ];
   for (const file of files) {

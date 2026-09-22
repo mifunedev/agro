@@ -67,7 +67,7 @@ restart. Alternatively, bind-mount a host `authorized_keys` file — add a
 
 The entrypoint writes the key material to `/home/sandbox/.ssh/authorized_keys`
 (mode `600`, owned by the `sandbox` user) and hardens `sshd` with a drop-in at
-`/etc/ssh/sshd_config.d/openharness.conf`:
+`/etc/ssh/sshd_config.d/agro.conf`:
 
 ```
 PermitRootLogin no

@@ -9,8 +9,8 @@ agro sandbox install docker   # wizard: name, timezone, git identity, SSH, Docke
 agro shell <name>             # attach as the sandbox user
 ```
 
-Every verb below is also available as `oh <verb>`. A registry created by an
-earlier release stays at `${OH_HOME:-~/.oh}/sandboxes/<name>/` and still
+A registry created by an
+earlier release stays at `${AGRO_HOME:-~/.oh}/sandboxes/<name>/` and still
 resolves; `agro migrate --home` moves it.
 
 **Running the published image is the default.** Each tagged release publishes the
@@ -19,14 +19,14 @@ The canonical default is `ghcr.io/mifunedev/agro:latest`.
 The legacy image alias remains available. Explicit image refs in the examples below use this alias:
 
 ```
-ghcr.io/mifunedev/openharness:latest      # legacy alias for the newest release
-ghcr.io/mifunedev/openharness:<version>   # legacy alias, e.g. 0.1.0 — pin for reproducibility
+ghcr.io/mifunedev/agro:latest      # legacy alias for the newest release
+ghcr.io/mifunedev/agro:<version>   # legacy alias, e.g. 0.1.0 — pin for reproducibility
 ```
 
 With no `--checkout` there is **no checkout on the host at all**: the workspace and
 the `.agro/` control plane live in the sandbox's home volume, seeded once from the
 image's baked `/opt/agro-seed`. Nothing is cloned and nothing is built. A volume
-seeded by an earlier image keeps its `.oh/` control plane and is never
+seeded by an earlier image keeps its `.agro/` control plane and is never
 re-seeded.
 
 Pass `--checkout <dir>` and that checkout is bind-mounted at
@@ -45,7 +45,7 @@ Docker CLI, bun, uv, pnpm — happens only in that case, and only when
 |---|---|
 | Docker (with Compose plugin) | pulling + running the image |
 | Node.js ≥ 20 | running the `agro` CLI |
-| A checkout equipped with `oh update` | only for `--checkout`: the bind-mounted `.agro/` control plane |
+| A checkout equipped with `agro vendor` | only for `--checkout`: the bind-mounted `.agro/` control plane |
 
 The image is public — no `docker login ghcr.io` is required to pull it. The
 release currently publishes for the architecture the CI runner builds on; if you
@@ -56,13 +56,13 @@ run a different CPU arch, prefer a local build (`--checkout` with `image.mode` s
 
 ```bash
 agro sandbox install docker --image              # pull ghcr.io/mifunedev/agro:latest
-agro sandbox install docker --image=ghcr.io/mifunedev/openharness:2026.7.5   # pin a release
+agro sandbox install docker --image=ghcr.io/mifunedev/agro:2026.7.5   # pin a release
 agro shell <name>                                # zsh in the running container, as usual
 ```
 
 `--image` implies `--no-build`: it swaps the wrapper's `up -d --build` for
 `up -d --no-build` and threads the resolved image ref through
-`AGRO_SANDBOX_IMAGE` (with the legacy `OH_SANDBOX_IMAGE` spelling beside it),
+`AGRO_SANDBOX_IMAGE` (with the legacy `AGRO_SANDBOX_IMAGE` spelling beside it),
 which the compose file interpolates at `image:`.
 
 `--no-build` on its own suppresses the build and reuses whatever image compose
@@ -80,7 +80,7 @@ ghcr.io/mifunedev/agro:latest             (built-in default)
 Set a durable default on the entry:
 
 ```bash
-agro config set --sandbox <name> image.ref ghcr.io/mifunedev/openharness:latest
+agro config set --sandbox <name> image.ref ghcr.io/mifunedev/agro:latest
 agro config set --sandbox <name> image.pullPolicy always
 ```
 
@@ -89,7 +89,7 @@ which is the same as writing this into `~/.agro/sandboxes/<name>/agro.json`:
 ```json
 {
   "image": {
-    "ref": "ghcr.io/mifunedev/openharness:latest",
+    "ref": "ghcr.io/mifunedev/agro:latest",
     "mode": "image",
     "pullPolicy": "missing"
   }
@@ -103,13 +103,13 @@ With `image.ref` set, a bare `agro sandbox install docker --image` uses it; set
 
 ```bash
 cd <your-project>
-oh update                                     # vendor .agro/ + crons/ into this checkout
+agro vendor                                     # vendor .agro/ + crons/ into this checkout
 agro sandbox install docker --checkout "$PWD" --name <your-project>
 ```
 
 `checkout` is stored in the entry's `agro.json` and rendered into the compose
 environment as `AGRO_REPO_DIR`, which the base compose file reads as
-`${AGRO_REPO_DIR:-${OH_REPO_DIR:-..}}` for both the bind mount and the build
+`${AGRO_REPO_DIR:-${AGRO_REPO_DIR:-..}}` for both the bind mount and the build
 context — so an entry rendered by an older CLI still resolves. It also lets a
 lifecycle verb resolve this sandbox whenever you stand inside that checkout, so
 `agro shell` needs no name there. The flag `--repo` and the `agro.json` field
@@ -117,10 +117,10 @@ lifecycle verb resolve this sandbox whenever you stand inside that checkout, so
 
 ## What still happens at boot
 
-systemd is PID 1 and runs `entrypoint.sh` once as `openharness-bootstrap.service`,
+systemd is PID 1 and runs `entrypoint.sh` once as `agro-bootstrap.service`,
 the same either way: host UID/GID sync when a checkout is bound, provider symlink
 repair, and the **fingerprint-gated `pnpm install`** at the repo root. The cron
-runtime then starts as `openharness-cron.service`. That install covers the
+runtime then starts as `agro-cron.service`. That install covers the
 repo's root dependencies only (not the image toolchain), so it stays fast and
 does not defeat the point of skipping the build.
 
@@ -130,13 +130,13 @@ The CLI is a thin wrapper over the compose files it materialises into the entry;
 you can drive compose directly from an equipped checkout:
 
 ```bash
-AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/openharness:latest \
+AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/agro:latest \
   bash .agro/scripts/docker-compose.sh --repo-dir "$PWD" up -d --no-build
 ```
 
 `AGRO_SANDBOX_IMAGE` in the process environment takes precedence over the
 `.env` `--env-file`, so it overrides an `AGRO_SANDBOX_IMAGE` pin — the
-same last-wins ordering as the CLI. The legacy `OH_SANDBOX_IMAGE` spelling
+same last-wins ordering as the CLI. The legacy `AGRO_SANDBOX_IMAGE` spelling
 applies when the AGRO one is unset.
 
 ## VS Code "Reopen in Container"
@@ -147,7 +147,7 @@ The VS Code Dev Containers path reads
 `pull_policy`. Set both in `.devcontainer/.env` (compose auto-loads it):
 
 ```dotenv
-AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/openharness:latest
+AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/agro:latest
 AGRO_PULL_POLICY=always
 ```
 
@@ -166,8 +166,8 @@ container:
 
 ```jsonc
 {
-  "name": "openharness-image",
-  "image": "ghcr.io/mifunedev/openharness:latest",
+  "name": "agro-image",
+  "image": "ghcr.io/mifunedev/agro:latest",
   "workspaceFolder": "/home/sandbox/harness",
   "remoteUser": "sandbox"
 }
@@ -193,7 +193,7 @@ This pulls and runs the published image with **no clone and no build**.
 Everything the sandbox persists — the workspace and control plane at
 `/home/sandbox/harness` included — lives in the single `/home/sandbox` mount
 declared in that file: the named volume `<sandbox-name>_workspace` by default,
-or an absolute host path when `AGRO_HOME_MOUNT` (legacy `OH_HOME_MOUNT`) is
+or an absolute host path when `AGRO_HOME_MOUNT` (legacy `AGRO_HOME_MOUNT`) is
 set.
 
 ### How the mode is detected
@@ -220,7 +220,7 @@ The detected mode is logged on both paths, so a wrong detection is visible in
 
 Three independent guards keep a misdetection from seeding over a real checkout:
 `mountpoint -q` is a kernel fact rather than a heuristic, `seed_workspace_volume`
-refuses when `.agro/` or a legacy `.oh/` already exists, and
+refuses when `.agro/` or a legacy `.agro/` already exists, and
 `.agro/.image-seeded` is gitignored.
 
 ### Seed-to-volume persistence
@@ -235,9 +235,9 @@ boots see the marker and skip re-seeding, so a populated volume is never
 clobbered.
 
 > ⚠️ **The image-only path requires an image built after two changes:** (1) the seed-bake
-> that stages `/opt/oh-seed`, and (2) the `.claude` seed-config fix
+> that stages `/opt/agro-seed`, and (2) the `.claude` seed-config fix
 > ([#617](https://github.com/mifunedev/agro/pull/617)) that stops
-> `.dockerignore` from starving `/opt/oh-seed` of `.claude/protected-paths.txt`.
+> `.dockerignore` from starving `/opt/agro-seed` of `.claude/protected-paths.txt`.
 > An image missing (2) crash-loops on boot with
 > `ERROR: .claude/protected-paths.txt is missing`. Pin a tag published **after
 > #617 merges** (or a local build of that branch — see below) before relying on
@@ -250,18 +250,18 @@ The [compose file](../.devcontainer/docker-compose.image-only.yml) is the
 canonical one-liner (`docker compose -f … up -d`). If you drive Docker directly
 instead, this is the equivalent teardown → fresh run → verify sequence. It
 mirrors the compose file's env and volume set — note it reads `GIT_USER_NAME` /
-`GIT_USER_EMAIL` (the entrypoint ignores any `OH_GIT_*` variants).
+`GIT_USER_EMAIL` (the entrypoint ignores any `AGRO_GIT_*` variants).
 
 ```bash
 # ── 0. Config ──────────────────────────────────────────────────────
-IMAGE=ghcr.io/mifunedev/openharness:latest   # a tag published after #617
-NAME=openharness
+IMAGE=ghcr.io/mifunedev/agro:latest   # a tag published after #617
+NAME=agro
 
 # To test BEFORE #617 is published, build the fix branch locally and point
 # IMAGE at it (this is the "run it now" path):
 #   git fetch origin && git checkout feat/image-seed-claude-config
-#   docker build -t openharness:seedfix -f .devcontainer/Dockerfile .
-#   IMAGE=openharness:seedfix
+#   docker build -t agro:seedfix -f .devcontainer/Dockerfile .
+#   IMAGE=agro:seedfix
 
 # ── 1. Clear previous state ── DESTRUCTIVE: wipes the seeded workspace ──
 docker rm -f "$NAME" 2>/dev/null || true
@@ -342,7 +342,7 @@ shape, doc content) deterministically, without a Docker host. It cannot cover
 an actual live boot. Before relying on the image-only path in production, run
 this checklist by hand on a real host:
 
-- [ ] `docker pull ghcr.io/mifunedev/openharness:<tag built after the /opt/agro-seed change>`
+- [ ] `docker pull ghcr.io/mifunedev/agro:<tag built after the /opt/agro-seed change>`
 - [ ] `docker compose -f .devcontainer/docker-compose.image-only.yml up -d`
 - [ ] confirm **no build step ran** — the compose/Docker output shows a pull, not a build
 - [ ] confirm `.agro/` was seeded into the volume:
@@ -359,4 +359,4 @@ pinned tag through the CLI.
 
 - [Installation](installation.md) — all install paths
 - [Security considerations](security-considerations.md) — the Docker-socket opt-in
-- [`.agro/` directory layout](oh-directory-layout.md)
+- [`.agro/` directory layout](agro-directory-layout.md)

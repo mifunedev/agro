@@ -1,7 +1,7 @@
 name: Publish CLI to npm
 
 # Publishes the standalone CLI (`.agro/cli`) to npm as @mifune/agro.
-# The @mifune/openharness shim source remains at `.agro/cli/legacy/` and
+# The @mifune/agro shim source remains at `.agro/cli/legacy/` and
 # already-published shim versions remain on the registry. This workflow does
 # not publish, wait for, or deprecate the shim.
 #

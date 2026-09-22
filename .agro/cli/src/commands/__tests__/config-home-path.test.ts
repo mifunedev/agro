@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runConfigSet, type ConfigIO } from "../config.js";
 import type { LifecycleRunner, RunResult } from "../../lib/execution/runner.js";
-import { ohConfigPath } from "../../lib/oh-config.js";
+import { agroConfigPath } from "../../lib/agro-config.js";
 
 vi.mock("../../cli.js", async (importOriginal) => {
   const original = process.exit;
@@ -33,7 +33,7 @@ function makeRoot(name: string): string {
   mkdirSync(join(dir, ".agro", "scripts"), { recursive: true });
   mkdirSync(join(dir, ".devcontainer"), { recursive: true });
   writeFileSync(join(dir, ".devcontainer", "docker-compose.yml"), COMPOSE, "utf8");
-  writeFileSync(ohConfigPath(dir), `${JSON.stringify({ name }, null, 2)}\n`, "utf8");
+  writeFileSync(agroConfigPath(dir), `${JSON.stringify({ name }, null, 2)}\n`, "utf8");
   vi.stubEnv("SANDBOX_NAME", "");
   return dir;
 }
@@ -57,7 +57,7 @@ const VOLUME_PRESENT: RunResult = { status: 0, stdout: "[]" };
 const VOLUME_ABSENT: RunResult = { status: 1, stderr: "Error: No such volume: demo_workspace" };
 
 const readConfig = (root: string): { storage?: { homePath?: string } } =>
-  JSON.parse(readFileSync(ohConfigPath(root), "utf8"));
+  JSON.parse(readFileSync(agroConfigPath(root), "utf8"));
 
 describe("config set storage.homePath guard", () => {
   it("refuses when the sandbox's named volume already exists and names it", async () => {
@@ -65,7 +65,7 @@ describe("config set storage.homePath guard", () => {
     const { run } = runnerReturning(VOLUME_PRESENT);
     const { io, err } = makeIo();
 
-    const code = await runConfigSet("storage.homePath", "/srv/demo-home", { bin: "oh", cwd: root, run }, io);
+    const code = await runConfigSet("storage.homePath", "/srv/demo-home", { bin: "agro", cwd: root, run }, io);
 
     expect(code).toBe(1);
     expect(err.join("")).toContain("demo_workspace");
@@ -81,7 +81,7 @@ describe("config set storage.homePath guard", () => {
     const code = await runConfigSet(
       "storage.homePath",
       "/srv/demo-home",
-      { bin: "oh", cwd: root, run, force: true },
+      { bin: "agro", cwd: root, run, force: true },
       io,
     );
 
@@ -94,7 +94,7 @@ describe("config set storage.homePath guard", () => {
     const { run, calls } = runnerReturning(VOLUME_ABSENT);
     const { io } = makeIo();
 
-    const code = await runConfigSet("storage.homePath", "/srv/demo-home", { bin: "oh", cwd: root, run }, io);
+    const code = await runConfigSet("storage.homePath", "/srv/demo-home", { bin: "agro", cwd: root, run }, io);
 
     expect(code).toBe(0);
     expect(calls).toEqual([["docker", "volume", "inspect", "demo_workspace"]]);
@@ -110,7 +110,7 @@ describe("config set storage.homePath guard", () => {
       const { run } = runnerReturning(result);
       const { io } = makeIo();
 
-      const code = await runConfigSet("storage.homePath", "/srv/demo-home", { bin: "oh", cwd: root, run }, io);
+      const code = await runConfigSet("storage.homePath", "/srv/demo-home", { bin: "agro", cwd: root, run }, io);
 
       expect(code).toBe(0);
       expect(readConfig(root).storage?.homePath).toBe("/srv/demo-home");
@@ -126,12 +126,12 @@ describe("config set storage.homePath guard", () => {
       await runConfigSet(
         "storage.homePath",
         "/srv/demo-home",
-        { bin: "oh", cwd: root, run, force: true },
+        { bin: "agro", cwd: root, run, force: true },
         io,
       ),
     ).toBe(0);
 
-    const code = await runConfigSet("storage.homePath", "/srv/demo-home", { bin: "oh", cwd: root, run }, io);
+    const code = await runConfigSet("storage.homePath", "/srv/demo-home", { bin: "agro", cwd: root, run }, io);
 
     expect(code).toBe(0);
     expect(calls).toEqual([]);
@@ -144,7 +144,7 @@ describe("config set storage.homePath guard", () => {
     const { run, calls } = runnerReturning(VOLUME_PRESENT);
     const { io } = makeIo();
 
-    const code = await runConfigSet("access.sshPort", "2222", { bin: "oh", cwd: root, run }, io);
+    const code = await runConfigSet("access.sshPort", "2222", { bin: "agro", cwd: root, run }, io);
 
     expect(code).toBe(0);
     expect(calls).toEqual([]);
@@ -157,7 +157,7 @@ describe("config set storage.homePath guard", () => {
     mkdirSync(join(entry, ".agro", "scripts"), { recursive: true });
     mkdirSync(join(entry, ".devcontainer"), { recursive: true });
     writeFileSync(join(entry, ".devcontainer", "docker-compose.yml"), COMPOSE, "utf8");
-    writeFileSync(ohConfigPath(entry), `${JSON.stringify({ name: "other" }, null, 2)}\n`, "utf8");
+    writeFileSync(agroConfigPath(entry), `${JSON.stringify({ name: "other" }, null, 2)}\n`, "utf8");
     vi.stubEnv("SANDBOX_NAME", "");
     vi.stubEnv("AGRO_HOME", home);
 
@@ -167,14 +167,14 @@ describe("config set storage.homePath guard", () => {
     const code = await runConfigSet(
       "storage.homePath",
       "/srv/other-home",
-      { bin: "oh", sandbox: "other", run },
+      { bin: "agro", sandbox: "other", run },
       io,
     );
 
     expect(code).toBe(1);
     expect(calls).toEqual([["docker", "volume", "inspect", "other_workspace"]]);
     expect(err.join("")).toContain("other_workspace");
-    expect(existsSync(ohConfigPath(entry))).toBe(true);
+    expect(existsSync(agroConfigPath(entry))).toBe(true);
     expect(readConfig(entry).storage?.homePath).toBeUndefined();
   });
 });

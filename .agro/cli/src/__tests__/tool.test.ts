@@ -17,7 +17,7 @@ import {
 } from "../commands/tool.js";
 import type { LifecycleRunner, RunResult } from "../lib/execution/runner.js";
 import { TOOL_CATALOG, findTool, resolveToolUninstallArgv } from "../lib/tools/catalog.js";
-import { defaultOhConfig, ohConfigPath } from "../lib/oh-config.js";
+import { defaultAgroConfig, agroConfigPath } from "../lib/agro-config.js";
 
 vi.mock("../cli.js", async (importOriginal) => {
   const original = process.exit;
@@ -28,7 +28,7 @@ vi.mock("../cli.js", async (importOriginal) => {
   return mod;
 });
 
-const { parseToolArgs, printToolHelp, printOhHelp } = await import("../cli.js");
+const { parseToolArgs, printToolHelp, printAgroHelp } = await import("../cli.js");
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 
@@ -41,16 +41,16 @@ afterEach(() => {
 function makeRepo(): string {
   const d = mkdtempSync(join(tmpdir(), "oh-tool-"));
   cleanups.push(d);
-  mkdirSync(join(d, ".oh", "scripts"), { recursive: true });
+  mkdirSync(join(d, ".agro", "scripts"), { recursive: true });
   mkdirSync(join(d, ".devcontainer"), { recursive: true });
-  writeFileSync(ohConfigPath(d), `${JSON.stringify(defaultOhConfig("probe"), null, 2)}\n`);
+  writeFileSync(agroConfigPath(d), `${JSON.stringify(defaultAgroConfig("probe"), null, 2)}\n`);
   return d;
 }
 
 function emptyStateHome(): { dir: string; env: NodeJS.ProcessEnv } {
   const dir = mkdtempSync(join(tmpdir(), "oh-tool-home-"));
   cleanups.push(dir);
-  return { dir, env: { ...process.env, AGRO_HOME: dir, OH_HOME: dir } };
+  return { dir, env: { ...process.env, AGRO_HOME: dir } };
 }
 
 function fakeHome(): { dir: string; homedir: () => string; prefix: string } {
@@ -131,7 +131,7 @@ function liveHost(extra: (cmd: string, args: string[]) => RunResult | undefined 
 const isInstallCall = (c: RecordedCall): boolean =>
   c.cmd === "docker" && c.args[0] === "exec" && c.args.some((a) => a.includes("--with-deps"));
 
-const configText = (root: string): string => readFileSync(ohConfigPath(root), "utf8");
+const configText = (root: string): string => readFileSync(agroConfigPath(root), "utf8");
 
 const absentTailscale = (cmd: string, args: string[]): RunResult | undefined =>
   isExecOf(cmd, args, "command -v tailscale") ? { status: 1, stdout: "", stderr: "" } : undefined;
@@ -142,7 +142,7 @@ const isTailscaleVersionExec = (cmd: string, args: string[]): boolean =>
 const isTailscaleInstallCall = (c: RecordedCall): boolean =>
   c.cmd === "docker" && c.args[0] === "exec" && c.args.some((a) => a.includes("sha256sum -c -"));
 
-describe("oh tool — argument parsing", () => {
+describe("agro tool — argument parsing", () => {
   it("shows help with no args", () => {
     const r = parseToolArgs([]);
     expect(r.ok).toBe(true);
@@ -178,18 +178,18 @@ describe("oh tool — argument parsing", () => {
   });
 });
 
-describe("oh tool — help", () => {
+describe("agro tool — help", () => {
   it("is listed in the top-level usage block", () => {
     const w = vi.spyOn(process.stdout, "write").mockReturnValue(true);
-    printOhHelp();
-    expect(w.mock.calls.map((c) => String(c[0])).join("")).toContain("oh tool");
+    printAgroHelp();
+    expect(w.mock.calls.map((c) => String(c[0])).join("")).toContain("agro tool");
   });
 
   it("names the sibling commands so the category is unambiguous", () => {
     const w = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     printToolHelp();
     const text = w.mock.calls.map((c) => String(c[0])).join("");
-    expect(text).toContain("oh harness");
+    expect(text).toContain("agro harness");
     expect(text).toContain("isolation runtime");
     expect(text).toContain("agent-browser");
     expect(text).toContain("gh");
@@ -205,11 +205,11 @@ describe("oh tool — help", () => {
   });
 });
 
-describe("oh tool list / status", () => {
+describe("agro tool list / status", () => {
   it("lists every tool with its kind", async () => {
     const root = makeRepo();
     const { io, out } = makeIo();
-    expect(await runToolList({ bin: "oh", cwd: root, run: liveHost().run }, io)).toBe(0);
+    expect(await runToolList({ bin: "agro", cwd: root, run: liveHost().run }, io)).toBe(0);
     const text = out.join("");
     for (const id of ["agent-browser", "herdr", "cloudflared", "docker-cli", "gh", "tailscale"]) {
       expect(text, id).toContain(id);
@@ -228,7 +228,7 @@ describe("oh tool list / status", () => {
         : undefined,
     );
     const { io, out } = makeIo();
-    await runToolStatus("gh", { bin: "oh", cwd: root, run, json: true }, io);
+    await runToolStatus("gh", { bin: "agro", cwd: root, run, json: true }, io);
     const status = JSON.parse(out.join(""));
     expect(status.version).toContain("2.63.2");
     expect(status.docs).toBe(
@@ -239,7 +239,7 @@ describe("oh tool list / status", () => {
   it("reports null, not a guess, for a tool with no version probe", async () => {
     const root = makeRepo();
     const { io, out } = makeIo();
-    await runToolStatus("herdr", { bin: "oh", cwd: root, run: liveHost().run, json: true }, io);
+    await runToolStatus("herdr", { bin: "agro", cwd: root, run: liveHost().run, json: true }, io);
     expect(JSON.parse(out.join("")).version).toBeNull();
   });
 
@@ -249,7 +249,7 @@ describe("oh tool list / status", () => {
       isExecOf(cmd, args, "command -v gh") ? { status: 1, stdout: "", stderr: "" } : undefined,
     );
     const { io } = makeIo();
-    await runToolStatus("gh", { bin: "oh", cwd: root, run }, io);
+    await runToolStatus("gh", { bin: "agro", cwd: root, run }, io);
     expect(calls.some((c) => isExecOf(c.cmd, c.args, "gh --version"))).toBe(false);
   });
 
@@ -259,28 +259,28 @@ describe("oh tool list / status", () => {
     const { io, out } = makeIo();
     expect(
       await runToolList(
-        { bin: "oh", cwd: root, run, env: emptyStateHome().env, homedir: fakeHome().homedir },
+        { bin: "agro", cwd: root, run, env: emptyStateHome().env, homedir: fakeHome().homedir },
         io,
       ),
     ).toBe(0);
     expect(calls.some((c) => c.args[0] === "exec")).toBe(false);
-    expect(out.join("")).toContain("oh sandbox");
+    expect(out.join("")).toContain("agro sandbox");
   });
 
   it("rejects an unknown tool with the known list", async () => {
     const root = makeRepo();
     const { io, err } = makeIo();
-    expect(await runToolStatus("chromium", { bin: "oh", cwd: root, run: liveHost().run }, io)).toBe(1);
+    expect(await runToolStatus("chromium", { bin: "agro", cwd: root, run: liveHost().run }, io)).toBe(1);
     expect(err.join("")).toContain("agent-browser");
   });
 });
 
-describe("oh tool install — the ~1 GB download gate", () => {
+describe("agro tool install — the ~1 GB download gate", () => {
   it("fails closed when non-interactive without --yes", async () => {
     const root = makeRepo();
     const { calls, run } = liveHost();
     const { io, err } = makeIo();
-    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run }, io)).toBe(1);
+    expect(await runToolInstall("agent-browser", { bin: "agro", cwd: root, run }, io)).toBe(1);
     expect(calls.some(isInstallCall)).toBe(false);
     const text = err.join("");
     expect(text).toContain("~1 GB");
@@ -292,16 +292,16 @@ describe("oh tool install — the ~1 GB download gate", () => {
     const before = configText(root);
     const { calls, run } = liveHost();
     const { io, out } = makeIo(false);
-    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run }, io)).toBe(1);
+    expect(await runToolInstall("agent-browser", { bin: "agro", cwd: root, run }, io)).toBe(1);
     expect(calls.some(isInstallCall)).toBe(false);
     expect(configText(root)).toBe(before);
-    expect(out.join("")).not.toMatch(/oh\.json|next container start/);
+    expect(out.join("")).not.toMatch(/agro\.json|next container start/);
   });
 
   it("asks before downloading, naming the size", async () => {
     const root = makeRepo();
     const { io, asked } = makeIo(true);
-    await runToolInstall("agent-browser", { bin: "oh", cwd: root, run: liveHost().run }, io);
+    await runToolInstall("agent-browser", { bin: "agro", cwd: root, run: liveHost().run }, io);
     expect(asked.join("")).toContain("~1 GB");
   });
 
@@ -309,7 +309,7 @@ describe("oh tool install — the ~1 GB download gate", () => {
     const root = makeRepo();
     const { calls, run } = liveHost();
     const { io, out } = makeIo(true);
-    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run }, io)).toBe(0);
+    expect(await runToolInstall("agent-browser", { bin: "agro", cwd: root, run }, io)).toBe(0);
     expect(calls.some(isInstallCall)).toBe(true);
     expect(out.join("")).toContain(
       "https://github.com/mifunedev/agro/blob/main/docs/installation.md",
@@ -320,7 +320,7 @@ describe("oh tool install — the ~1 GB download gate", () => {
     const root = makeRepo();
     const { calls, run } = liveHost();
     const { io, asked } = makeIo(false);
-    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run, yes: true }, io)).toBe(0);
+    expect(await runToolInstall("agent-browser", { bin: "agro", cwd: root, run, yes: true }, io)).toBe(0);
     expect(asked).toEqual([]);
     expect(calls.some(isInstallCall)).toBe(true);
   });
@@ -333,19 +333,19 @@ describe("oh tool install — the ~1 GB download gate", () => {
         : undefined,
     );
     const { io, asked, out } = makeIo(true);
-    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run }, io)).toBe(0);
+    expect(await runToolInstall("agent-browser", { bin: "agro", cwd: root, run }, io)).toBe(0);
     expect(asked).toEqual([]);
     expect(calls.some(isInstallCall)).toBe(false);
     expect(out.join("")).toContain("already installed");
   });
 });
 
-describe("oh tool install — the other exits", () => {
+describe("agro tool install — the other exits", () => {
   it("refuses a baked-in tool and points at the installable ones", async () => {
     const root = makeRepo();
     const { calls, run } = liveHost();
     const { io, err } = makeIo(true);
-    expect(await runToolInstall("gh", { bin: "oh", cwd: root, run }, io)).toBe(1);
+    expect(await runToolInstall("gh", { bin: "agro", cwd: root, run }, io)).toBe(1);
     const text = err.join("");
     expect(text).toContain("base image");
     expect(text).toContain("agent-browser");
@@ -357,20 +357,20 @@ describe("oh tool install — the other exits", () => {
     const before = configText(root);
     const { calls, run } = makeRunner((cmd, args) => (isInspect(cmd, args) ? exited : undefined));
     const { io, err } = makeIo(true);
-    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run }, io)).toBe(1);
+    expect(await runToolInstall("agent-browser", { bin: "agro", cwd: root, run }, io)).toBe(1);
     expect(calls.some((c) => c.args[0] === "exec")).toBe(false);
     expect(configText(root)).toBe(before);
-    expect(err.join("")).toContain("oh sandbox");
+    expect(err.join("")).toContain("agro sandbox");
     expect(err.join("")).not.toMatch(/next|picks it up/);
   });
 
-  it("never writes oh.json on a successful install", async () => {
+  it("never writes agro.json on a successful install", async () => {
     const root = makeRepo();
     const before = configText(root);
     const { io, out } = makeIo(true);
-    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run: liveHost().run }, io)).toBe(0);
+    expect(await runToolInstall("agent-browser", { bin: "agro", cwd: root, run: liveHost().run }, io)).toBe(0);
     expect(configText(root)).toBe(before);
-    expect(out.join("")).not.toMatch(/oh\.json/);
+    expect(out.join("")).not.toMatch(/agro\.json/);
   });
 
   it("surfaces the installer's exit code and promises no retry", async () => {
@@ -380,27 +380,27 @@ describe("oh tool install — the other exits", () => {
       isExecOf(cmd, args, "--with-deps") ? { status: 7, stdout: "", stderr: "" } : undefined,
     );
     const { io, err } = makeIo(true);
-    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run }, io)).toBe(7);
+    expect(await runToolInstall("agent-browser", { bin: "agro", cwd: root, run }, io)).toBe(7);
     expect(configText(root)).toBe(before);
     expect(err.join("")).toContain("failed (exit 7)");
-    expect(err.join("")).not.toMatch(/oh\.json|will install it|will retry it/);
+    expect(err.join("")).not.toMatch(/agro\.json|will install it|will retry it/);
   });
 
   it("rejects an unknown tool", async () => {
     const root = makeRepo();
     const { calls, run } = liveHost();
     const { io } = makeIo(true);
-    expect(await runToolInstall("chromium", { bin: "oh", cwd: root, run }, io)).toBe(1);
+    expect(await runToolInstall("chromium", { bin: "agro", cwd: root, run }, io)).toBe(1);
     expect(calls.length).toBe(0);
   });
 });
 
-describe("oh tool install tailscale", () => {
+describe("agro tool install tailscale", () => {
   it("execs the pinned install argv as the sandbox user, with no download prompt", async () => {
     const root = makeRepo();
     const { calls, run } = liveHost(absentTailscale);
     const { io, asked, out } = makeIo(true);
-    expect(await runToolInstall("tailscale", { bin: "oh", cwd: root, run }, io)).toBe(0);
+    expect(await runToolInstall("tailscale", { bin: "agro", cwd: root, run }, io)).toBe(0);
     expect(asked).toEqual([]);
     const install = calls.find(isTailscaleInstallCall);
     expect(install).toBeDefined();
@@ -419,12 +419,12 @@ describe("oh tool install tailscale", () => {
         : undefined,
     );
     const { io, out } = makeIo(true);
-    expect(await runToolInstall("tailscale", { bin: "oh", cwd: root, run }, io)).toBe(0);
+    expect(await runToolInstall("tailscale", { bin: "agro", cwd: root, run }, io)).toBe(0);
     expect(calls.some(isTailscaleInstallCall)).toBe(false);
     expect(out.join("")).toContain("already installed");
   });
 
-  it("surfaces the installer's exit code and writes no oh.json", async () => {
+  it("surfaces the installer's exit code and writes no agro.json", async () => {
     const root = makeRepo();
     const before = configText(root);
     const { run } = liveHost((cmd, args) => {
@@ -432,14 +432,14 @@ describe("oh tool install tailscale", () => {
       return absentTailscale(cmd, args);
     });
     const { io, err } = makeIo(true);
-    expect(await runToolInstall("tailscale", { bin: "oh", cwd: root, run }, io)).toBe(9);
+    expect(await runToolInstall("tailscale", { bin: "agro", cwd: root, run }, io)).toBe(9);
     expect(configText(root)).toBe(before);
     expect(err.join("")).toContain("failed (exit 9)");
-    expect(err.join("")).not.toMatch(/oh\.json/);
+    expect(err.join("")).not.toMatch(/agro\.json/);
   });
 });
 
-describe("oh tool status tailscale", () => {
+describe("agro tool status tailscale", () => {
   it("reports kind, installed and version as JSON, with no enabled field", async () => {
     const root = makeRepo();
     const { run } = liveHost((cmd, args) =>
@@ -449,7 +449,7 @@ describe("oh tool status tailscale", () => {
     );
 
     const { io, out } = makeIo();
-    expect(await runToolStatus("tailscale", { bin: "oh", cwd: root, run, json: true }, io)).toBe(0);
+    expect(await runToolStatus("tailscale", { bin: "agro", cwd: root, run, json: true }, io)).toBe(0);
     const status = JSON.parse(out.join("")) as Record<string, unknown>;
     expect(status.id).toBe("tailscale");
     expect(status.kind).toBe("installable");
@@ -463,7 +463,7 @@ describe("oh tool status tailscale", () => {
     const root = makeRepo();
     const { calls, run } = liveHost(absentTailscale);
     const { io, out } = makeIo();
-    await runToolStatus("tailscale", { bin: "oh", cwd: root, run, json: true }, io);
+    await runToolStatus("tailscale", { bin: "agro", cwd: root, run, json: true }, io);
     const status = JSON.parse(out.join("")) as Record<string, unknown>;
     expect(Object.keys(status)).not.toContain("enabled");
     expect(status.installed).toBe(false);
@@ -472,8 +472,8 @@ describe("oh tool status tailscale", () => {
   });
 });
 
-describe("oh tool — inside the sandbox", () => {
-  const INSIDE: NodeJS.ProcessEnv = { OH_EXECUTION_TARGET: "local" };
+describe("agro tool — inside the sandbox", () => {
+  const INSIDE: NodeJS.ProcessEnv = { AGRO_EXECUTION_TARGET: "local" };
 
   const inBox = (extra: (cmd: string, args: string[]) => RunResult | undefined = () => undefined) =>
     makeRunner((cmd, args) => {
@@ -489,18 +489,18 @@ describe("oh tool — inside the sandbox", () => {
     const root = makeRepo();
     const { calls, run } = inBox();
     const { io, out } = makeIo();
-    expect(await runToolList({ bin: "oh", cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(await runToolList({ bin: "agro", cwd: root, run, env: INSIDE }, io)).toBe(0);
     expect(calls.some((c) => isInspect(c.cmd, c.args))).toBe(false);
     const text = out.join("");
     expect(text).not.toContain("INSTALLED is `?`");
-    expect(text).not.toContain("oh sandbox");
+    expect(text).not.toContain("agro sandbox");
   });
 
   it("installs live instead of skipping the install", async () => {
     const root = makeRepo();
     const { calls, run } = inBox();
     const { io, out } = makeIo(true);
-    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(await runToolInstall("agent-browser", { bin: "agro", cwd: root, run, env: INSIDE }, io)).toBe(0);
     expect(out.join("")).toContain("installed");
     expect(
       calls.some((c) => c.cmd === "bash" && c.args.some((a) => a.includes("--with-deps"))),
@@ -515,7 +515,7 @@ describe("oh tool — inside the sandbox", () => {
         : undefined,
     );
     const { io, out } = makeIo(true);
-    expect(await runToolInstall("agent-browser", { bin: "oh", cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(await runToolInstall("agent-browser", { bin: "agro", cwd: root, run, env: INSIDE }, io)).toBe(0);
     expect(out.join("")).toContain("already installed");
     expect(calls.some((c) => c.args.some((a) => a.includes("--with-deps")))).toBe(false);
   });
@@ -524,7 +524,7 @@ describe("oh tool — inside the sandbox", () => {
     const root = makeRepo();
     const { calls, run } = inBox();
     const { io } = makeIo();
-    await runToolStatus("gh", { bin: "oh", cwd: root, run, env: INSIDE }, io);
+    await runToolStatus("gh", { bin: "agro", cwd: root, run, env: INSIDE }, io);
     expect(calls.some((c) => c.cmd === "sudo")).toBe(false);
   });
 });
@@ -623,7 +623,7 @@ function writeReceipt(dir: string, id: string, prefix: string, binary: string): 
 
 const LINUX: NodeJS.Platform = "linux";
 
-describe("oh tool install — the sandbox argv is unchanged", () => {
+describe("agro tool install — the sandbox argv is unchanged", () => {
   it.each(["herdr", "cloudflared", "microsandbox", "tailscale", "agent-browser"])(
     "%s: execs the catalog argv verbatim as the sandbox user",
     async (id) => {
@@ -641,7 +641,7 @@ describe("oh tool install — the sandbox argv is unchanged", () => {
       expect(
         await runToolInstall(
           id,
-          { bin: "oh", cwd: root, run, env: emptyStateHome().env, homedir: fakeHome().homedir },
+          { bin: "agro", cwd: root, run, env: emptyStateHome().env, homedir: fakeHome().homedir },
           io,
         ),
       ).toBe(0);
@@ -657,7 +657,7 @@ describe("oh tool install — the sandbox argv is unchanged", () => {
   );
 });
 
-describe("oh tool install on the host", () => {
+describe("agro tool install on the host", () => {
   it.each(HOST_INSTALLERS)(
     "%s: uses the existing workspace and installs into the user's ~/.local",
     async (id, fingerprint) => {
@@ -672,7 +672,7 @@ describe("oh tool install on the host", () => {
         await runToolInstall(
           id,
           {
-            bin: "oh",
+            bin: "agro",
             cwd: repo,
             run,
             env: { ...home.env, PATH: "/usr/bin" },
@@ -709,7 +709,7 @@ describe("oh tool install on the host", () => {
       await runToolInstall(
         "herdr",
         {
-          bin: "oh",
+          bin: "agro",
           cwd: repo,
           run,
           env: home.env,
@@ -750,7 +750,7 @@ describe("oh tool install on the host", () => {
       await runToolInstall(
         "herdr",
         {
-          bin: "oh",
+          bin: "agro",
           cwd: repo,
           run,
           env: home.env,
@@ -762,7 +762,7 @@ describe("oh tool install on the host", () => {
         io,
       ),
     ).toBe(7);
-    expect(hostText(err)).toContain("oh tool: installing herdr failed (exit 7).");
+    expect(hostText(err)).toContain("agro tool: installing herdr failed (exit 7).");
     expect(hostText(out)).not.toContain("from the AGRO workspace");
     expect(existsSync(hostConfigFile(home.dir))).toBe(false);
   });
@@ -778,7 +778,7 @@ describe("oh tool install on the host", () => {
       await runToolInstall(
         "herdr",
         {
-          bin: "oh",
+          bin: "agro",
           cwd: repo,
           run,
           env: home.env,
@@ -790,9 +790,9 @@ describe("oh tool install on the host", () => {
       ),
     ).toBe(1);
     expect(hostText(err)).toBe(
-      "oh tool: the sandbox is not running (stopped).\n" +
-        "Start it with `oh sandbox`, then re-run this command.\n" +
-        "Or install on the host with `oh tool install herdr --host`.\n",
+      "agro tool: the sandbox is not running (stopped).\n" +
+        "Start it with `agro sandbox`, then re-run this command.\n" +
+        "Or install on the host with `agro tool install herdr --host`.\n",
     );
     expect(calls.every((c) => c.cmd === "docker")).toBe(true);
     expect(existsSync(hostConfigFile(home.dir))).toBe(false);
@@ -810,7 +810,7 @@ describe("oh tool install on the host", () => {
       await runToolInstall(
         "herdr",
         {
-          bin: "oh",
+          bin: "agro",
           cwd: repo,
           run,
           env: home.env,
@@ -822,9 +822,9 @@ describe("oh tool install on the host", () => {
         io,
       ),
     ).toBe(1);
-    expect(hostText(err)).toContain(`oh tool: no AGRO workspace at ${defaultRoot(home)}`);
+    expect(hostText(err)).toContain(`agro tool: no AGRO workspace at ${defaultRoot(home)}`);
     expect(hostText(err)).toContain("Workspaces that exist: alpha");
-    expect(hostText(err)).toContain("`oh workspace create <name>`");
+    expect(hostText(err)).toContain("`agro workspace create <name>`");
     expect(calls.filter((c) => c.cmd === "git")).toHaveLength(0);
     expect(installerCalls(calls)).toEqual([]);
     expect(existsSync(hostConfigFile(home.dir))).toBe(false);
@@ -847,7 +847,7 @@ describe("oh tool install on the host", () => {
       await runToolInstall(
         "herdr",
         {
-          bin: "oh",
+          bin: "agro",
           cwd: repo,
           run,
           env: home.env,
@@ -876,7 +876,7 @@ describe("oh tool install on the host", () => {
       await runToolInstall(
         "herdr",
         {
-          bin: "oh",
+          bin: "agro",
           cwd: repo,
           run,
           env: home.env,
@@ -904,7 +904,7 @@ describe("oh tool install on the host", () => {
       await runToolInstall(
         "herdr",
         {
-          bin: "oh",
+          bin: "agro",
           cwd: repo,
           run,
           env: home.env,
@@ -932,7 +932,7 @@ describe("oh tool install on the host", () => {
       await runToolInstall(
         "herdr",
         {
-          bin: "oh",
+          bin: "agro",
           cwd: repo,
           run,
           env: home.env,
@@ -949,7 +949,7 @@ describe("oh tool install on the host", () => {
   });
 });
 
-describe("oh tool install on the host — an already-installed tool still records the root", () => {
+describe("agro tool install on the host — an already-installed tool still records the root", () => {
   it("records harnessRoot but no receipt", async () => {
     const repo = makeRepo();
     const home = emptyStateHome();
@@ -964,7 +964,7 @@ describe("oh tool install on the host — an already-installed tool still record
       await runToolInstall(
         "herdr",
         {
-          bin: "oh",
+          bin: "agro",
           cwd: repo,
           run,
           env: home.env,
@@ -1002,7 +1002,7 @@ describe("oh tool install on the host — an already-installed tool still record
       await runToolInstall(
         "herdr",
         {
-          bin: "oh",
+          bin: "agro",
           cwd: repo,
           run,
           env: home.env,
@@ -1018,7 +1018,7 @@ describe("oh tool install on the host — an already-installed tool still record
   });
 });
 
-describe("oh tool install — the per-entry host gate", () => {
+describe("agro tool install — the per-entry host gate", () => {
   it.each(NOT_HOST_CAPABLE)("%s: refuses the host with its own reason", async (id, reason) => {
     const repo = makeRepo();
     const home = emptyStateHome();
@@ -1030,7 +1030,7 @@ describe("oh tool install — the per-entry host gate", () => {
       await runToolInstall(
         id,
         {
-          bin: "oh",
+          bin: "agro",
           cwd: repo,
           run,
           env: home.env,
@@ -1066,7 +1066,7 @@ describe("oh tool install — the per-entry host gate", () => {
   });
 });
 
-describe("oh tool install — the platform gate", () => {
+describe("agro tool install — the platform gate", () => {
   it.each(["darwin", "win32"] as const)("%s: refuses and spawns no installer", async (platform) => {
     const repo = makeRepo();
     const home = emptyStateHome();
@@ -1078,7 +1078,7 @@ describe("oh tool install — the platform gate", () => {
       await runToolInstall(
         "herdr",
         {
-          bin: "oh",
+          bin: "agro",
           cwd: repo,
           run,
           env: home.env,
@@ -1098,7 +1098,7 @@ describe("oh tool install — the platform gate", () => {
   });
 });
 
-describe("oh tool uninstall", () => {
+describe("agro tool uninstall", () => {
   it("removes from the sandbox prefix as the sandbox user, reading no receipt", async () => {
     const repo = makeRepo();
     const home = emptyStateHome();
@@ -1109,7 +1109,7 @@ describe("oh tool uninstall", () => {
     expect(
       await runToolUninstall(
         "herdr",
-        { bin: "oh", cwd: repo, run, env: home.env, homedir: user.homedir, interactive: false },
+        { bin: "agro", cwd: repo, run, env: home.env, homedir: user.homedir, interactive: false },
         io,
       ),
     ).toBe(0);
@@ -1131,7 +1131,7 @@ describe("oh tool uninstall", () => {
     expect(
       await runToolUninstall(
         "herdr",
-        { bin: "oh", cwd: repo, run, env: home.env, homedir: user.homedir, interactive: false },
+        { bin: "agro", cwd: repo, run, env: home.env, homedir: user.homedir, interactive: false },
         io,
       ),
     ).toBe(0);
@@ -1155,7 +1155,7 @@ describe("oh tool uninstall", () => {
     expect(
       await runToolUninstall(
         "herdr",
-        { bin: "oh", cwd: repo, run, env: home.env, homedir: user.homedir, interactive: false },
+        { bin: "agro", cwd: repo, run, env: home.env, homedir: user.homedir, interactive: false },
         makeIo().io,
       ),
     ).toBe(0);
@@ -1174,11 +1174,11 @@ describe("oh tool uninstall", () => {
     expect(
       await runToolUninstall(
         "herdr",
-        { bin: "oh", cwd: repo, run, env: home.env, homedir: user.homedir, interactive: false },
+        { bin: "agro", cwd: repo, run, env: home.env, homedir: user.homedir, interactive: false },
         io,
       ),
     ).toBe(1);
-    expect(hostText(err)).toContain("oh tool: no record of installing herdr on this host.");
+    expect(hostText(err)).toContain("agro tool: no record of installing herdr on this host.");
     expect(hostText(err)).toContain("Removing it could delete a tool you installed yourself.");
     expect(hostText(err)).toContain(`Re-run with \`--force\` to remove it from ${user.prefix}.`);
     expect(calls.every((c) => c.cmd === "docker")).toBe(true);
@@ -1195,7 +1195,7 @@ describe("oh tool uninstall", () => {
       await runToolUninstall(
         "herdr",
         {
-          bin: "oh",
+          bin: "agro",
           cwd: repo,
           run,
           env: home.env,
@@ -1223,11 +1223,11 @@ describe("oh tool uninstall", () => {
     expect(
       await runToolUninstall(
         "herdr",
-        { bin: "oh", cwd: repo, run, env: home.env, homedir: user.homedir, interactive: false },
+        { bin: "agro", cwd: repo, run, env: home.env, homedir: user.homedir, interactive: false },
         io,
       ),
     ).toBe(9);
-    expect(hostText(err)).toContain("oh tool: removing herdr failed (exit 9).");
+    expect(hostText(err)).toContain("agro tool: removing herdr failed (exit 9).");
     expect(Object.keys(receiptsIn(home.dir))).toEqual(["herdr"]);
   });
 
@@ -1242,7 +1242,7 @@ describe("oh tool uninstall", () => {
     expect(
       await runToolUninstall(
         "herdr",
-        { bin: "oh", cwd: repo, run, env: home.env, homedir: user.homedir, interactive: false },
+        { bin: "agro", cwd: repo, run, env: home.env, homedir: user.homedir, interactive: false },
         io,
       ),
     ).toBe(0);
@@ -1262,7 +1262,7 @@ describe("oh tool uninstall", () => {
           await runToolUninstall(
             id,
             {
-              bin: "oh",
+              bin: "agro",
               cwd: repo,
               run,
               env: emptyStateHome().env,
@@ -1272,7 +1272,7 @@ describe("oh tool uninstall", () => {
             io,
           ),
         ).toBe(1);
-        expect(hostText(err)).toContain(`oh tool: ${id} cannot be removed by this command.`);
+        expect(hostText(err)).toContain(`agro tool: ${id} cannot be removed by this command.`);
         expect(hostText(err)).toContain("base image");
         expect(calls).toEqual([]);
       }
@@ -1283,7 +1283,7 @@ describe("oh tool uninstall", () => {
     const repo = makeRepo();
     const { calls, run } = hostRunner();
     const { io, err } = makeIo();
-    expect(await runToolUninstall("chromium", { bin: "oh", cwd: repo, run }, io)).toBe(1);
+    expect(await runToolUninstall("chromium", { bin: "agro", cwd: repo, run }, io)).toBe(1);
     expect(hostText(err)).toContain("agent-browser");
     expect(calls).toEqual([]);
   });
@@ -1302,7 +1302,7 @@ describe("a host with no container runtime", () => {
       await runToolInstall(
         "herdr",
         {
-          bin: "oh",
+          bin: "agro",
           cwd: repo,
           run,
           env: home.env,
@@ -1327,7 +1327,7 @@ describe("a host with no container runtime", () => {
       await runToolInstall(
         "herdr",
         {
-          bin: "oh",
+          bin: "agro",
           cwd: repo,
           run,
           env: emptyStateHome().env,
@@ -1339,8 +1339,8 @@ describe("a host with no container runtime", () => {
       ),
     ).toBe(1);
     expect(hostText(err)).toBe(
-      "oh tool: no container runtime is on PATH.\n" +
-        "Or install on the host with `oh tool install herdr --host`.\n",
+      "agro tool: no container runtime is on PATH.\n" +
+        "Or install on the host with `agro tool install herdr --host`.\n",
     );
     expect(calls.every((c) => c.cmd === "docker")).toBe(true);
   });
@@ -1356,7 +1356,7 @@ describe("a host with no container runtime", () => {
     expect(
       await runToolUninstall(
         "herdr",
-        { bin: "oh", cwd: repo, run, env: home.env, homedir: user.homedir, interactive: false },
+        { bin: "agro", cwd: repo, run, env: home.env, homedir: user.homedir, interactive: false },
         io,
       ),
     ).toBe(0);
@@ -1371,7 +1371,7 @@ describe("tool location reporting", () => {
     const { io, out } = makeIo();
     await runToolList(
       {
-        bin: "oh",
+        bin: "agro",
         cwd: repo,
         run: liveHost().run,
         json: true,
@@ -1389,7 +1389,7 @@ describe("tool location reporting", () => {
     const { io, out } = makeIo();
     await runToolList(
       {
-        bin: "oh",
+        bin: "agro",
         cwd: repo,
         run,
         json: true,
@@ -1412,7 +1412,7 @@ describe("tool location reporting", () => {
     const { calls, run } = hostRunner();
     const { io, out } = makeIo();
 
-    const opts = { bin: "oh", cwd: repo, run, env: home.env, homedir: user.homedir };
+    const opts = { bin: "agro", cwd: repo, run, env: home.env, homedir: user.homedir };
     await runToolStatus("herdr", opts, io);
     expect(hostText(out)).toContain(`INSTALLED reports the host prefix ${user.prefix}`);
     expect(calls.some((c) => c.cmd === "git")).toBe(false);
@@ -1430,7 +1430,7 @@ describe("tool location reporting", () => {
     const { io, out } = makeIo();
     await runToolList(
       {
-        bin: "oh",
+        bin: "agro",
         cwd: repo,
         run: liveHost().run,
         json: true,
@@ -1446,7 +1446,7 @@ describe("tool location reporting", () => {
   });
 });
 
-describe("oh tool — host flags and help", () => {
+describe("agro tool — host flags and help", () => {
   it("parses --host, both --path spellings, --force and uninstall", () => {
     const host = parseToolArgs(["install", "herdr", "--host"]);
     expect(host.ok && host.args.host).toBe(true);
@@ -1481,7 +1481,7 @@ describe("oh tool — host flags and help", () => {
     const w = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     printToolHelp();
     const help = w.mock.calls.map((c) => String(c[0])).join("");
-    expect(help).toContain("oh tool uninstall");
+    expect(help).toContain("agro tool uninstall");
     expect(help).toContain("--host");
     expect(help).toContain("--path <dir>");
     expect(help).toContain("--force");

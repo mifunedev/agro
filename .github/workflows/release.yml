@@ -63,10 +63,8 @@ jobs:
       - name: Check pnpm pin drift
         run: bash .agro/scripts/check-pnpm-pin.sh
 
-      - name: Check version parity and the retained shim
-        run: |
-          bash .agro/scripts/version-parity.sh
-          bash .agro/scripts/agro-legacy-shim.sh
+      - name: Check version parity
+        run: bash .agro/scripts/version-parity.sh
 
   boot-lint:
     name: Boot Path Lint (shellcheck + hadolint)
@@ -173,8 +171,8 @@ jobs:
           RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
           SANDBOX_NAME: agro-release-smoke-${{ github.run_id }}
         run: |
-          VERSION_IMAGE="ghcr.io/mifunedev/openharness:${RELEASE_VERSION}"
-          SHA_IMAGE="ghcr.io/mifunedev/openharness:sha-${RELEASE_SHA}"
+          VERSION_IMAGE="ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
+          SHA_IMAGE="ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"
           AGRO_VERSION_IMAGE="ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
           AGRO_SHA_IMAGE="ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"
           SMOKE_IMAGE="sandbox-${SANDBOX_NAME}"
@@ -199,11 +197,11 @@ jobs:
         run: |
           SMOKE_IMAGE="sandbox-${SANDBOX_NAME}"
           agro_version=$(docker run --rm --entrypoint /bin/bash "$SMOKE_IMAGE" -lc 'agro --version')
-          oh_version=$(docker run --rm --entrypoint /bin/bash "$SMOKE_IMAGE" -lc 'oh --version')
+          oh_version=$(docker run --rm --entrypoint /bin/bash "$SMOKE_IMAGE" -lc 'agro --version')
           echo "agro --version: $agro_version"
-          echo "oh --version: $oh_version"
+          echo "agro --version: $oh_version"
           if [ -z "$agro_version" ] || [ "$agro_version" != "$oh_version" ]; then
-            echo "agro --version ('$agro_version') and oh --version ('$oh_version') must be the same non-empty version" >&2
+            echo "agro --version ('$agro_version') and agro --version ('$oh_version') must be the same non-empty version" >&2
             exit 1
           fi
           if [ "$agro_version" != "$RELEASE_VERSION" ]; then
@@ -216,17 +214,17 @@ jobs:
           RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
           RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
         run: |
-          docker push "ghcr.io/mifunedev/openharness:${RELEASE_VERSION}"
-          docker push "ghcr.io/mifunedev/openharness:sha-${RELEASE_SHA}"
+          docker push "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
+          docker push "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"
           docker push "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
           docker push "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"
 
-      - name: Verify the agro and openharness version tags share one digest
+      - name: Verify the agro and agro version tags share one digest
         env:
           RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
         run: |
           .agro/scripts/verify-release-aliases.sh check \
-            "ghcr.io/mifunedev/openharness:${RELEASE_VERSION}" \
+            "ghcr.io/mifunedev/agro:${RELEASE_VERSION}" \
             "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
 
       - name: Promote latest from the canonical branch by digest
@@ -280,9 +278,7 @@ jobs:
         run: |
           gh release upload "v${RELEASE_VERSION}" --clobber \
             .agro/cli/dist/agro.js \
-            .agro/cli/dist/oh.js \
-            .agro/scripts/get-agro.sh \
-            .agro/scripts/get-oh.sh
+            .agro/scripts/get-agro.sh
 
       - name: Extract release notes from CHANGELOG
         env:
@@ -366,7 +362,7 @@ jobs:
       - name: Send the agro-release repository_dispatch
         env:
           AGRO_WEB_DISPATCH_TOKEN: ${{ secrets.AGRO_WEB_DISPATCH_TOKEN }}
-          AGRO_WEB_REPO: ${{ vars.AGRO_WEB_REPO || 'mifunedev/openharness-web' }}
+          AGRO_WEB_REPO: ${{ vars.AGRO_WEB_REPO || 'mifunedev/agro-web' }}
           RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
         run: |
           if [ -z "$AGRO_WEB_DISPATCH_TOKEN" ]; then

@@ -20,7 +20,7 @@ import path from "node:path";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const SCRIPT = path.join(REPO_ROOT, ".agro", "scripts", "docker-compose.sh");
-const COMPAT = path.join(REPO_ROOT, ".agro", "scripts", "compat.sh");
+const COMPAT = path.join(REPO_ROOT, ".agro", "scripts", "paths.sh");
 const INSTALL = path.join(REPO_ROOT, ".agro", "scripts", "install.sh");
 
 let tmp: string;
@@ -138,7 +138,7 @@ describe("scripts/docker-compose.sh", () => {
   });
 
   it("reads .agro/config.json as the canonical location, taking precedence over legacy root config.json", () => {
-    const canonicalOverride = "oh config/canonical.yml";
+    const canonicalOverride = "agro config/canonical.yml";
     const legacyOverride = "legacy config/should-not-be-read.yml";
 
     mkdirSync(path.join(tmp, ".agro"), { recursive: true });
@@ -309,7 +309,7 @@ describe("scripts/docker-compose.sh --extra-env-file (issue #880)", () => {
     expect(result.stderr).toContain("does not exist");
   });
 
-  it("run directly with an agro.json present, notes that non-secret config comes from oh via agro.json", () => {
+  it("run directly with an agro.json present, notes that non-secret config comes from agro via agro.json", () => {
     writeFileSync(path.join(tmp, "agro.json"), '{ "version": 1 }\n');
 
     const result = spawnSync("bash", [SCRIPT, "--repo-dir", tmp, "--print-argv", "config"], {
@@ -321,7 +321,7 @@ describe("scripts/docker-compose.sh --extra-env-file (issue #880)", () => {
     expect(result.stdout).not.toContain("--env-file");
   });
 
-  it("says nothing when oh is driving it", () => {
+  it("says nothing when agro is driving it", () => {
     writeFileSync(path.join(tmp, "agro.json"), '{ "version": 1 }\n');
     const file = rendered();
 
@@ -387,10 +387,10 @@ const TODAYS_SANDBOX_COMPOSE_ARGS = ["up", "-d", "--build"];
 
 describe("execution target argv equivalence (issue #733)", () => {
   it("provision() expands to argv identical to today's, via --print-argv as the non-executing oracle", async () => {
-    mkdirSync(path.join(tmp, ".oh", "scripts"), { recursive: true });
-    const vendored = path.join(tmp, ".oh", "scripts", "docker-compose.sh");
+    mkdirSync(path.join(tmp, ".agro", "scripts"), { recursive: true });
+    const vendored = path.join(tmp, ".agro", "scripts", "docker-compose.sh");
     copyFileSync(SCRIPT, vendored);
-    copyFileSync(COMPAT, path.join(tmp, ".oh", "scripts", "compat.sh"));
+    copyFileSync(COMPAT, path.join(tmp, ".agro", "scripts", "paths.sh"));
     writeFileSync(path.join(tmp, ".devcontainer", ".env"), "SANDBOX_NAME=from-env\n");
 
     const calls: { cmd: string; args: string[] }[] = [];
@@ -441,17 +441,17 @@ describe("compose helper wiring", () => {
     expect(existsSync(path.join(REPO_ROOT, "Makefile"))).toBe(false);
   });
 
-  it("installer provisions through `oh sandbox`, never through raw compose args", () => {
+  it("installer provisions through `agro sandbox`, never through raw compose args", () => {
     const text = readFileSync(INSTALL, "utf8");
-    expect(text).toMatch(/\(\n\s+cd "\$REPO_DIR"\n\s+oh sandbox\n\)/);
+    expect(text).toMatch(/\(\n\s+cd "\$REPO_DIR"\n\s+agro sandbox\n\)/);
     expect(text).not.toContain('"$REPO_DIR/.agro/scripts/docker-compose.sh" up -d --build');
     expect(text).not.toContain("docker compose $COMPOSE_FILES");
     expect(text).not.toContain("COMPOSE_FILES=\"-f .devcontainer/docker-compose.yml\"");
   });
 
-  it("installer requires Node through get-oh.sh's ensure_node rather than a second copy", () => {
+  it("installer requires Node through get-agro.sh's ensure_node rather than a second copy", () => {
     const text = readFileSync(INSTALL, "utf8");
-    expect(text).toContain('. "$REPO_DIR/.agro/scripts/get-oh.sh"');
+    expect(text).toContain('. "$REPO_DIR/.agro/scripts/get-agro.sh"');
     expect(text).not.toContain("ensure_node() {");
     expect(text).not.toContain("install_node_via_nvm() {");
     expect(text).not.toMatch(/command -v make/);
@@ -465,7 +465,7 @@ describe("compose helper wiring", () => {
     expect(text).toContain("_config_set git.userName");
     expect(text).toContain("_config_set git.userEmail");
     expect(text).toContain("_config_set access.dockerSocket");
-    expect(text).toContain("oh config set");
+    expect(text).toContain("agro config set");
     expect(text).not.toContain("_yaml_set");
     expect(text).not.toContain("_cfg_set");
 
@@ -485,18 +485,18 @@ describe("compose helper wiring", () => {
     expect(text).toContain("GH_TOKEN=");
   });
 
-  it("installer's next steps name only `oh` verbs", () => {
+  it("installer's next steps name only `agro` verbs", () => {
     const text = readFileSync(INSTALL, "utf8");
     const epilogue = text.slice(text.indexOf("Installation complete!"));
     expect(epilogue).not.toMatch(/\bmake [a-z]/);
-    expect(epilogue).toContain("oh shell");
-    expect(epilogue).toContain("oh destroy");
-    expect(epilogue).toContain("oh gateway");
-    expect(epilogue).toContain("oh --help");
+    expect(epilogue).toContain("agro shell");
+    expect(epilogue).toContain("agro destroy");
+    expect(epilogue).toContain("agro gateway");
+    expect(epilogue).toContain("agro --help");
   });
 });
 
-describe("scripts/docker-compose.sh — dual-generation config discovery", () => {
+describe("scripts/docker-compose.sh — config discovery", () => {
   const baseArgv = (): string[] => [
     "docker",
     "compose",
@@ -527,36 +527,11 @@ describe("scripts/docker-compose.sh — dual-generation config discovery", () =>
     ]);
   });
 
-  it("keeps oh.json behavior unchanged when only oh.json exists (legacy default)", () => {
-    writeFileSync(
-      path.join(tmp, "oh.json"),
-      JSON.stringify({ version: 1, composeOverrides: ["from-oh.yml"] }),
-    );
-    const result = printArgvRaw(["config"]);
-    expect(result.status).toBe(0);
-    expect(result.stderr).toContain("non-secret config comes from oh.json");
-    expect(result.stdout.trimEnd().split("\n")).toEqual([
-      ...baseArgv(),
-      "-f",
-      path.join(tmp, "from-oh.yml"),
-      "config",
-    ]);
-  });
-
-  it("fails closed when oh.json and agro.json both exist and differ", () => {
-    writeFileSync(path.join(tmp, "oh.json"), JSON.stringify({ version: 1, name: "one" }));
-    writeFileSync(path.join(tmp, "agro.json"), JSON.stringify({ version: 1, name: "two" }));
-    const result = printArgvRaw(["config"]);
-    expect(result.status).toBe(2);
-    expect(result.stdout).toBe("");
-    expect(result.stderr).toContain("both exist and differ");
-  });
-
-  it("refuses to run without its compat.sh sibling instead of guessing a generation", () => {
-    mkdirSync(path.join(tmp, "solo", ".oh", "scripts"), { recursive: true });
+  it("refuses to run without its paths.sh sibling", () => {
+    mkdirSync(path.join(tmp, "solo", ".agro", "scripts"), { recursive: true });
     mkdirSync(path.join(tmp, "solo", ".devcontainer"), { recursive: true });
     writeFileSync(path.join(tmp, "solo", ".devcontainer", "docker-compose.yml"), "services: {}\n");
-    const solo = path.join(tmp, "solo", ".oh", "scripts", "docker-compose.sh");
+    const solo = path.join(tmp, "solo", ".agro", "scripts", "docker-compose.sh");
     copyFileSync(SCRIPT, solo);
     const result = spawnSync(
       "bash",
@@ -564,6 +539,6 @@ describe("scripts/docker-compose.sh — dual-generation config discovery", () =>
       { encoding: "utf8" },
     );
     expect(result.status).toBe(2);
-    expect(result.stderr).toContain("compat.sh is missing");
+    expect(result.stderr).toContain("paths.sh is missing");
   });
 });

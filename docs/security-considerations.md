@@ -114,7 +114,7 @@ event.
 - **Rollout / restart step (required).** The guard binds at process spawn, so long-lived sessions started **before** the guard landed stay unguarded until restarted — without this step they defeat the purpose indefinitely. After the merge and image rebuild:
   - **Simplest — recreate the container** (restarts every session with the new image + env): `docker compose -f .devcontainer/docker-compose.yml up -d --build` (or `agro sandbox install docker`).
   - **Or restart the long-lived sessions in place:**
-    - cron runtime: `systemctl restart openharness-cron.service` — systemd owns the scheduler ([`openharness-cron.service`](../.devcontainer/openharness-cron.service)).
+    - cron runtime: `systemctl restart agro-cron.service` — systemd owns the scheduler ([`agro-cron.service`](../.devcontainer/agro-cron.service)).
     - `client-slack-pi` (Slack bridge): `gateway pi --restart` (see [Integrations → Slack](integrations/slack.md)).
 - **Audit trail.** Every block logs to `~/.cc-safety-net/logs/<session_id>.jsonl` with secrets redacted. The `~/.cc-safety-net` directory is a Docker **named volume** (`docker-compose.yml:57,109`), so the log survives rebuilds.
 - **Honesty note — the script-file gap cuts both ways.** The same script-file route the harness uses for its own destructive git is also the model's evasion route: an agent that writes its own `.sh` and runs it bypasses this layer entirely. That is **accepted**. cc-safety-net (per its own README) is a footgun net, not a security control — **Docker is the security boundary** (§4). This layer catches accidents, not a determined adversary who controls the model.

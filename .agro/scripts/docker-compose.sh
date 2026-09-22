@@ -15,7 +15,7 @@ Usage: scripts/docker-compose.sh [--repo-dir DIR] [--extra-env-file FILE]
 Builds the harness docker compose argv from the repository dotenv and the
 composeOverrides[] list in agro.json, then executes `docker compose ...` with the
 provided args.
---extra-env-file adds a lower-precedence --env-file ahead of the dotenv; `oh`
+--extra-env-file adds a lower-precedence --env-file ahead of the dotenv; `agro`
 renders the non-secret settings of agro.json into that file.
 --print-argv prints one argv entry per line instead of executing; useful for
 safe diagnostics and tests.
@@ -54,13 +54,13 @@ done
 
 [ "$#" -gt 0 ] || { usage; exit 2; }
 
-COMPAT="$SCRIPT_DIR/compat.sh"
-if [ ! -f "$COMPAT" ]; then
-  printf 'error: %s is missing — the vendored .agro/scripts payload is incomplete; run `oh update`\n' "$COMPAT" >&2
+PATHS_SH="$SCRIPT_DIR/paths.sh"
+if [ ! -f "$PATHS_SH" ]; then
+  printf 'error: %s is missing — the vendored .agro/scripts payload is incomplete; run `agro vendor`\n' "$PATHS_SH" >&2
   exit 2
 fi
-# shellcheck source=compat.sh
-. "$COMPAT"
+# shellcheck source=paths.sh
+. "$PATHS_SH"
 
 MIGRATOR="$SCRIPT_DIR/migrate-harness-yaml.sh"
 if [ -f "$REPO_DIR/harness.yaml" ] && [ -f "$MIGRATOR" ]; then
@@ -118,10 +118,10 @@ if [ -n "$EXTRA_ENV_FILE" ] && [ ! -f "$EXTRA_ENV_FILE" ]; then
   exit 2
 fi
 
-CONFIG_JSON="$(compat_selected_path compat_config_file "$REPO_DIR")" || exit 2
+CONFIG_JSON="$(agro_config_file "$REPO_DIR")" || exit 2
 
 if [ -z "$EXTRA_ENV_FILE" ] && [ -f "$CONFIG_JSON" ]; then
-  printf 'note: non-secret config comes from %s via `oh`; this direct run uses only %s and the compose-file defaults\n' \
+  printf 'note: non-secret config comes from %s via `agro`; this direct run uses only %s and the compose-file defaults\n' \
     "${CONFIG_JSON#"$REPO_DIR"/}" "${ENV_FILE#"$REPO_DIR"/}" >&2
 fi
 
@@ -153,7 +153,7 @@ if truthy "$ssh_value"; then
     port_check="$SCRIPT_DIR/check-host-port.sh"
     if [ -x "$port_check" ] || [ -f "$port_check" ]; then
       sandbox_name=${SANDBOX_NAME:-$(read_env_value SANDBOX_NAME)}
-      sandbox_name="$(compat_sandbox_name "$sandbox_name")"
+      sandbox_name="$(agro_sandbox_name "$sandbox_name")"
       own_port=0
       if command -v docker >/dev/null 2>&1; then
         docker ps --format '{{.Names}}\t{{.Ports}}' 2>/dev/null \

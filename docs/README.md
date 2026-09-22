@@ -22,7 +22,7 @@ messaging setup are optional.
 
 AGRO keeps shared security hooks in `.agro/hooks/` and links each provider
 surface at them. Provider-specific configuration stays separate. See the
-[directory layout](oh-directory-layout.md) for details.
+[directory layout](agro-directory-layout.md) for details.
 
 ## Setup & first steps
 
@@ -65,7 +65,7 @@ surface at them. Provider-specific configuration stays separate. See the
 - [Open-core boundary](open-core.md)
 - [Repair-operator registry](repair-operator-registry.md)
 - [Repair a sandbox boot blocked by a security advisory](repair-sandbox-boot-advisory.md)
-- [`.agro/` directory layout](oh-directory-layout.md)
+- [`.agro/` directory layout](agro-directory-layout.md)
 - [In-sandbox process lifecycle](sandbox-processes.md)
 - [Sandbox Python](sandbox-python.md)
 - [Descriptive `.agro/harness.yml` example](harness-manifest.md)

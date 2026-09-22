@@ -39,9 +39,21 @@ case "$mode" in
 esac
 [ "$#" -le 1 ] || { usage >&2; exit 64; }
 
-repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+repo_root="${AGRO_PROJECT_ROOT:-}"
 if [ -z "$repo_root" ]; then
-  repo_root="${OH_PROJECT_ROOT:-$PWD}"
+  repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+fi
+if [ -z "$repo_root" ] && [ -d "$PWD/.agro/hooks" ]; then
+  repo_root="$PWD"
+fi
+if [ -z "$repo_root" ]; then
+  script_dir="$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+  candidate="$(dirname -- "$(dirname -- "$script_dir")")"
+  if [ -d "$candidate/.agro/hooks" ]; then
+    repo_root="$candidate"
+  else
+    repo_root="$PWD"
+  fi
 fi
 if [ ! -d "$repo_root/.agro/hooks" ]; then
   echo "ERROR: not an AGRO tree (no .agro/hooks at $repo_root)" >&2

@@ -12,7 +12,6 @@ import {
   AGRO_REPO_URL,
   ensureHostWorkspace,
   listHostWorkspaces,
-  stateHomeRefusal,
   stateHomeRootRefusal,
 } from "../lib/host-workspace.js";
 
@@ -68,12 +67,6 @@ export async function runWorkspaceCreate(
   const env = opts.env ?? process.env;
   const home = homeOf(opts);
   const run = opts.run ?? spawnRunner;
-
-  const generation = stateHomeRefusal(bin, home, "workspace");
-  if (generation !== undefined) {
-    io.stderr(generation);
-    return 1;
-  }
 
   if (opts.path !== undefined && name !== undefined) {
     io.stderr(

@@ -179,7 +179,7 @@ describe("agent-browser is installed from the catalog, not the boot path", () =>
   const ab = findTool("agent-browser")!;
   const ENTRYPOINT = read(".devcontainer/entrypoint.sh");
 
-  it("declares neither a build arg, an entrypoint guard, nor an oh.json key", () => {
+  it("declares neither a build arg, an entrypoint guard, nor an agro.json key", () => {
     expect(Object.keys(ab)).not.toContain("buildArg");
     expect(Object.keys(ab)).not.toContain("entrypointGuard");
     expect(ab.kind).toBe("installable");
@@ -217,7 +217,7 @@ describe("agent-browser is installed from the catalog, not the boot path", () =>
     expect(read(".agro/cli/src/commands/tool.ts")).toContain("downloads ${size}");
   });
 
-  it("is reachable only through `oh tool install` — never through compose", () => {
+  it("is reachable only through `agro tool install` — never through compose", () => {
     expect(read(".devcontainer/docker-compose.yml")).not.toContain("INSTALL_AGENT_BROWSER");
     expect(read(".agro/cli/src/lib/config-render.ts")).toContain('"INSTALL_AGENT_BROWSER"');
   });
@@ -230,7 +230,7 @@ describe("tailscale is installed from the catalog, not the boot path", () => {
   const SHA_AMD64 = "36ddd9b51be57ffc2990cf76323cfa13643bfbb1b8a969f6183fa164741cdef5";
   const SHA_ARM64 = "a0fa1b154af8c61f862a2259f559f7396d96c0225f4a863eae2333e1546bbe25";
 
-  it("declares neither a build arg, an entrypoint guard, nor an oh.json key", () => {
+  it("declares neither a build arg, an entrypoint guard, nor an agro.json key", () => {
     expect(Object.keys(ts)).not.toContain("buildArg");
     expect(Object.keys(ts)).not.toContain("entrypointGuard");
     expect(ts.kind).toBe("installable");
@@ -285,7 +285,7 @@ describe("tailscale is installed from the catalog, not the boot path", () => {
     expect(ts.downloadSize).toBeUndefined();
   });
 
-  it("is reachable only through `oh tool install` — never through compose", () => {
+  it("is reachable only through `agro tool install` — never through compose", () => {
     expect(read(".devcontainer/docker-compose.yml")).not.toContain("INSTALL_TAILSCALE");
     expect(read(".agro/cli/src/lib/config-render.ts")).toContain('"INSTALL_TAILSCALE"');
   });
@@ -309,7 +309,7 @@ describe("baked-in tools", () => {
     }
   });
 
-  // #948: herdr and cloudflared enter only through `oh tool install`.
+  // #948: herdr and cloudflared enter only through `agro tool install`.
   it("no longer claims herdr or cloudflared", () => {
     for (const id of ["herdr", "cloudflared"]) {
       expect(findTool(id)!.kind, id).toBe("installable");

@@ -33,7 +33,7 @@ export function isSecretKey(key: string): key is SecretKey {
 export function assertSecretKey(key: string): asserts key is SecretKey {
   if (ALLOWED.has(key)) return;
   throw new Error(
-    `${key} is not a secret — non-secret settings live in oh.json; use \`${activeBin()} config set\` instead`,
+    `${key} is not a secret — non-secret settings live in agro.json; use \`${activeBin()} config set\` instead`,
   );
 }
 

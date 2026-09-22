@@ -1,6 +1,6 @@
 FROM node:22-trixie-slim AS base
 
-ENV OH_PROJECT_ROOT=/home/sandbox/harness
+ENV AGRO_PROJECT_ROOT=/home/sandbox/harness
 ENV HERMES_HOME=/home/sandbox/harness/.hermes
 
 ENV TZ=America/Denver
@@ -52,12 +52,11 @@ RUN npm install -g cc-safety-net@1.0.6 \
  && rm -rf /tmp/*
 
 COPY .devcontainer/docker-compose.yml .devcontainer/docker-compose.image-only.yml .devcontainer/docker-compose.ssh.yml .devcontainer/docker-compose.docker-sock.yml /opt/agro-assets/.devcontainer/
-COPY .agro/scripts/docker-compose.sh .agro/scripts/check-host-port.sh .agro/scripts/compat.sh /opt/agro-assets/.agro/scripts/
-COPY .agro/cli/ /opt/oh/
-RUN cd /opt/oh && OH_ASSET_ROOT=/opt/agro-assets npm install --no-audit --no-fund && OH_ASSET_ROOT=/opt/agro-assets npm run build \
- && chmod +x /opt/oh/dist/oh.js \
- && ln -sf /opt/oh/dist/oh.js /usr/local/bin/oh \
- && ln -sf /opt/oh/dist/agro.js /usr/local/bin/agro \
+COPY .agro/scripts/docker-compose.sh .agro/scripts/check-host-port.sh .agro/scripts/paths.sh /opt/agro-assets/.agro/scripts/
+COPY .agro/cli/ /opt/agro/
+RUN cd /opt/agro && AGRO_ASSET_ROOT=/opt/agro-assets npm install --no-audit --no-fund && AGRO_ASSET_ROOT=/opt/agro-assets npm run build \
+ && chmod +x /opt/agro/dist/agro.js \
+ && ln -sf /opt/agro/dist/agro.js /usr/local/bin/agro \
  && npm cache clean --force \
  && rm -rf /tmp/*
 
@@ -112,15 +111,15 @@ RUN cat /tmp/path-env.sh >> /home/sandbox/.profile \
  && mkdir -p /home/sandbox/.gemini/antigravity-cli \
  && echo '{"defaultPermissionMode": "bypassPermissions"}' > /home/sandbox/.gemini/antigravity-cli/settings.json \
  && chown -R sandbox:sandbox /home/sandbox/.gemini \
- && su - sandbox -c "git config --global --add safe.directory ${OH_PROJECT_ROOT}" \
- && echo "cd ${OH_PROJECT_ROOT} 2>/dev/null" >> /home/sandbox/.bashrc \
+ && su - sandbox -c "git config --global --add safe.directory ${AGRO_PROJECT_ROOT}" \
+ && echo "cd ${AGRO_PROJECT_ROOT} 2>/dev/null" >> /home/sandbox/.bashrc \
  && chmod +x /home/sandbox/install/*.sh
 
 COPY --chown=sandbox:sandbox .agro/scripts/provision-python.sh /tmp/provision-python.sh
 ARG INSTALL_PYTHON_KERNEL=true
-ARG OH_PYTHON_VERSION=3.13
+ARG AGRO_PYTHON_VERSION=3.13
 RUN if [ "${INSTALL_PYTHON_KERNEL}" = "true" ]; then \
-      su - sandbox -c "OH_PYTHON_VERSION='${OH_PYTHON_VERSION}' bash /tmp/provision-python.sh"; \
+      su - sandbox -c "AGRO_PYTHON_VERSION='${AGRO_PYTHON_VERSION}' bash /tmp/provision-python.sh"; \
     else \
       echo "Skipping Python kernel provisioning (INSTALL_PYTHON_KERNEL=false)"; \
     fi \
@@ -133,17 +132,17 @@ LABEL devcontainer.metadata='[{"remoteUser":"sandbox","workspaceFolder":"/home/s
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 LABEL org.opencontainers.image.source="https://github.com/mifunedev/agro"
 LABEL org.opencontainers.image.title="agro"
-LABEL org.opencontainers.image.description="AGRO sandbox image (compatibility alias: openharness)"
+LABEL org.opencontainers.image.description="AGRO sandbox image"
 
 COPY --chown=sandbox:sandbox . /opt/agro-seed/
 
 COPY .devcontainer/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-COPY .devcontainer/openharness-bootstrap.service .devcontainer/openharness-cron.service /usr/lib/systemd/system/
-COPY .devcontainer/openharness-env-generator.sh /usr/lib/systemd/system-environment-generators/10-openharness
-RUN chmod 0755 /usr/lib/systemd/system-environment-generators/10-openharness \
- && systemctl enable openharness-bootstrap.service openharness-cron.service \
+COPY .devcontainer/agro-bootstrap.service .devcontainer/agro-cron.service /usr/lib/systemd/system/
+COPY .devcontainer/agro-env-generator.sh /usr/lib/systemd/system-environment-generators/10-agro
+RUN chmod 0755 /usr/lib/systemd/system-environment-generators/10-agro \
+ && systemctl enable agro-bootstrap.service agro-cron.service \
  && systemctl mask cron.service ssh.service ssh.socket
 
 COPY --from=home --chown=sandbox:sandbox /home/sandbox /opt/home-seed
@@ -151,7 +150,7 @@ RUN rm -rf /opt/home-seed/harness /home/sandbox \
  && chmod 0700 /opt/home-seed \
  && install -d -o sandbox -g sandbox -m 0755 /home/sandbox
 
-WORKDIR ${OH_PROJECT_ROOT}
+WORKDIR ${AGRO_PROJECT_ROOT}
 
 STOPSIGNAL SIGRTMIN+3
 ENTRYPOINT []

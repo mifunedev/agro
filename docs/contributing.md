@@ -17,7 +17,7 @@ Host requirements are the same as any other install: Docker (with `docker compos
 
 ### Provision the sandbox
 
-The lifecycle is driven entirely by `agro`; every verb also works as `oh <verb>`:
+The lifecycle is driven entirely by `agro`:
 
 ```bash
 agro sandbox install docker   # write the registry entry and start the sandbox
@@ -76,7 +76,7 @@ private configuration, credentials, and unrelated files out of the contribution.
 [contribution prompt](./quickstart.md#optional-prompt--prepare-an-agro-contribution) walks
 an authenticated agent through the same decision.
 
-A checkout equipped before the AGRO cutover carries `.oh/` and `oh.json`. Both still
+A checkout equipped before the AGRO cutover carries `.agro/` and `agro.json`. Both still
 resolve; run `agro migrate --check` and then `agro migrate` to move it.
 
 ### Local validation
@@ -226,7 +226,7 @@ For the full workflow, see the git conventions in the root `AGENTS.md`.
 `reserve-github-release.mjs` uses the GitHub API user agent `agro-release-reservation`.
 The smoke sandbox name is `agro-release-smoke-<run id>`.
 `promote-release-latest.sh` defaults `IMAGE_REPOSITORIES` to
-`ghcr.io/mifunedev/agro ghcr.io/mifunedev/openharness`.
+`ghcr.io/mifunedev/agro ghcr.io/mifunedev/agro`.
 The `agro` digest is the reference that the legacy image alias must match.
 The GHCR package `mifunedev/agro` must be public before consumers can pull its tags.
 
@@ -236,7 +236,7 @@ After a real release's `finalize` succeeds, `notify-docs` sends `repository_disp
 
 | Field | Value |
 | --- | --- |
-| Repository | `AGRO_WEB_REPO`, default `mifunedev/openharness-web`. |
+| Repository | `AGRO_WEB_REPO`, default `mifunedev/agro-web`. |
 | Event type | `agro-release`. |
 | Payload | `{ "ref": "<released sha>" }`, from `needs.reserve.outputs.releaseSha`. |
 | Credential | `AGRO_WEB_DISPATCH_TOKEN`, passed as `GH_TOKEN`. |

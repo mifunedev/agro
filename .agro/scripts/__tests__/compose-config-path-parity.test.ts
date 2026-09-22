@@ -59,7 +59,7 @@ function scaffold(): string {
   });
   rmSync(path.join(root, ".devcontainer", ENV_BASENAME), { force: true });
 
-  for (const script of ["docker-compose.sh", "compat.sh", "check-host-port.sh"]) {
+  for (const script of ["docker-compose.sh", "paths.sh", "check-host-port.sh"]) {
     const from = path.join(SCRIPTS, script);
     if (existsSync(from)) {
       copyFileSync(from, path.join(root, ".agro", "scripts", script));

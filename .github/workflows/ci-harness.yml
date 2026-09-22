@@ -121,7 +121,5 @@ jobs:
       - name: Check pnpm pin drift
         run: bash .agro/scripts/check-pnpm-pin.sh
 
-      - name: Check version parity and the retained shim
-        run: |
-          bash .agro/scripts/version-parity.sh
-          bash .agro/scripts/agro-legacy-shim.sh
+      - name: Check version parity
+        run: bash .agro/scripts/version-parity.sh

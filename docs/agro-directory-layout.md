@@ -9,7 +9,7 @@ Canonical skills own reusable procedures. Documentation under `docs/` explains A
 
 | Path | Responsibility |
 | --- | --- |
-| `.agro/cli/` | The `agro` CLI and legacy `oh` package. |
+| `.agro/cli/` | The `agro` CLI package. |
 | `.agro/scripts/`, `.agro/install/` | Lifecycle scripts, runtime helpers, and image installation inputs. |
 | `.agro/hooks/` | Vendored security hooks, mirrored onto each provider surface. |
 | `.agro/logs/` | Local logs with a scoped contract. |
@@ -58,17 +58,17 @@ Registry materialization writes generated copies under `${AGRO_HOME:-~/.agro}/sa
 | `.agro/scripts/` | Generated lifecycle wrapper and its helpers. |
 
 The registry is user-level state, not the repository's `.agro/` directory.
-Legacy `${OH_HOME:-~/.oh}` state follows the [compatibility contract](agro-compatibility.md).
-The image uses `/home/sandbox/harness` as `OH_PROJECT_ROOT`, inside the persistent sandbox home.
+Legacy `${AGRO_HOME:-~/.oh}` state follows the [compatibility contract](agro-compatibility.md).
+The image uses `/home/sandbox/harness` as `AGRO_PROJECT_ROOT`, inside the persistent sandbox home.
 Repository scripts still read the environment variable; do not confuse the image default with a universal host path.
 
 ## Control-plane distribution
 
 `agro update` upgrades the installed executable.
-During the compatibility window, `oh update` vendors the project payload instead:
+During the compatibility window, `agro vendor` vendors the project payload instead:
 
 ```bash
-oh update [--from <dir> | --from-remote [--ref <ref>]] [--dry-run] [--force]
+agro vendor [--from <dir> | --from-remote [--ref <ref>]] [--dry-run] [--force]
 ```
 
 The payload source order is explicit `--from`, explicit remote, bundled payload, then an announced remote fallback.

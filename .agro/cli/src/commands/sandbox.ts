@@ -5,14 +5,14 @@ import { resolveExecutionTarget } from "../lib/execution/index.js";
 import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import {
   configCheckout,
-  defaultOhConfig,
-  getOhConfigValue,
-  OH_CONFIG_FIELDS,
-  ohConfigPath,
-  readOhConfig,
-  writeOhConfig,
-  type OhConfig,
-} from "../lib/oh-config.js";
+  defaultAgroConfig,
+  getAgroConfigValue,
+  AGRO_CONFIG_FIELDS,
+  agroConfigPath,
+  readAgroConfig,
+  writeAgroConfig,
+  type AgroConfig,
+} from "../lib/agro-config.js";
 import * as prompt from "../lib/prompt.js";
 import {
   assertSandboxName,
@@ -82,18 +82,18 @@ function prepareHomeMount(value: string): string {
   return path;
 }
 
-function readSeedConfig(repo: string | undefined): OhConfig | undefined {
+function readSeedConfig(repo: string | undefined): AgroConfig | undefined {
   if (repo === undefined) return undefined;
-  const file = ohConfigPath(repo);
-  return existsSync(file) ? readOhConfig(file) : undefined;
+  const file = agroConfigPath(repo);
+  return existsSync(file) ? readAgroConfig(file) : undefined;
 }
 
-function readEntryConfig(name: string): OhConfig | undefined {
-  const file = ohConfigPath(entryRoot(name));
-  return existsSync(file) ? readOhConfig(file) : undefined;
+function readEntryConfig(name: string): AgroConfig | undefined {
+  const file = agroConfigPath(entryRoot(name));
+  return existsSync(file) ? readAgroConfig(file) : undefined;
 }
 
-function assignSetting(target: OhConfig, path: string, value: unknown): void {
+function assignSetting(target: AgroConfig, path: string, value: unknown): void {
   const segments = path.split(".");
   let cursor = target as unknown as Record<string, unknown>;
   for (const segment of segments.slice(0, -1)) {
@@ -104,19 +104,19 @@ function assignSetting(target: OhConfig, path: string, value: unknown): void {
   cursor[segments[segments.length - 1]] = value;
 }
 
-function overlaySettings(target: OhConfig, source: OhConfig | undefined): OhConfig {
+function overlaySettings(target: AgroConfig, source: AgroConfig | undefined): AgroConfig {
   if (source === undefined) return target;
-  for (const field of OH_CONFIG_FIELDS) {
-    const value = getOhConfigValue(source, field.path);
+  for (const field of AGRO_CONFIG_FIELDS) {
+    const value = getAgroConfigValue(source, field.path);
     if (value !== undefined) assignSetting(target, field.path, value);
   }
   return target;
 }
 
-function mergeSettings(...sources: (OhConfig | undefined)[]): OhConfig | undefined {
-  const present = sources.filter((source): source is OhConfig => source !== undefined);
+function mergeSettings(...sources: (AgroConfig | undefined)[]): AgroConfig | undefined {
+  const present = sources.filter((source): source is AgroConfig => source !== undefined);
   if (present.length === 0) return undefined;
-  const merged: OhConfig = { version: 1 };
+  const merged: AgroConfig = { version: 1 };
   for (const source of present) overlaySettings(merged, source);
   return merged;
 }
@@ -128,10 +128,10 @@ function nonEmpty(value: string | undefined): string | undefined {
 function seedConfig(
   name: string,
   checkout: string | undefined,
-  seed: OhConfig | undefined,
+  seed: AgroConfig | undefined,
   run: LifecycleRunner,
-): OhConfig {
-  const config = overlaySettings(defaultOhConfig(name), seed);
+): AgroConfig {
+  const config = overlaySettings(defaultAgroConfig(name), seed);
   config.name = name;
   config.runtime = "docker";
   if (checkout !== undefined) config.checkout = checkout;
@@ -147,7 +147,7 @@ function seedConfig(
   return config;
 }
 
-async function runWizard(config: OhConfig, io: SandboxIO): Promise<void> {
+async function runWizard(config: AgroConfig, io: SandboxIO): Promise<void> {
   const ask = io.ask ?? prompt.ask;
   const { askDefaulted, askYesNo } = prompt;
 
@@ -288,7 +288,7 @@ export async function runSandboxInstall(
   if (opts.printArgv === true) {
     const preview = mkdtempSync(join(tmpdir(), "oh-sandbox-preview-"));
     try {
-      writeOhConfig(preview, config);
+      writeAgroConfig(preview, config);
       materialize(preview, { ...(configCheckout(config) !== undefined ? { checkout: configCheckout(config) } : {}) });
       return await runSandbox({ ...sandboxOpts, cwd: preview, printArgv: true }, io);
     } finally {
@@ -298,7 +298,7 @@ export async function runSandboxInstall(
 
   const root = entryRoot(config.name as string);
   mkdirSync(root, { recursive: true });
-  writeOhConfig(root, config);
+  writeAgroConfig(root, config);
   materialize(root, { ...(configCheckout(config) !== undefined ? { checkout: configCheckout(config) } : {}) });
 
   const code = await runSandbox({ ...sandboxOpts, cwd: root }, io);
@@ -328,7 +328,7 @@ export async function runSandboxList(opts: SandboxListOptions, io: SandboxIO): P
   const rows: SandboxRow[] = [];
   for (const name of listEntries()) {
     const root = entryRoot(name);
-    const config = readOhConfig(ohConfigPath(root));
+    const config = readAgroConfig(agroConfigPath(root));
     const checkout = configCheckout(config) ?? "-";
     rows.push({
       name,

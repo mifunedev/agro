@@ -10,7 +10,7 @@ import {
 } from "../commands/workspace.js";
 import type { LifecycleRunner, RunResult } from "../lib/execution/runner.js";
 import { runHarnessInstall } from "../commands/harness.js";
-import { defaultOhConfig, ohConfigPath } from "../lib/oh-config.js";
+import { defaultAgroConfig, agroConfigPath } from "../lib/agro-config.js";
 
 vi.mock("../cli.js", async (importOriginal) => {
   const original = process.exit;
@@ -21,7 +21,7 @@ vi.mock("../cli.js", async (importOriginal) => {
   return mod;
 });
 
-const { parseWorkspaceArgs, printOhHelp, printWorkspaceHelp } = await import("../cli.js");
+const { parseWorkspaceArgs, printAgroHelp, printWorkspaceHelp } = await import("../cli.js");
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 
@@ -34,7 +34,7 @@ afterEach(() => {
 function emptyStateHome(): { dir: string; env: NodeJS.ProcessEnv } {
   const dir = mkdtempSync(join(tmpdir(), "agro-workspace-home-"));
   cleanups.push(dir);
-  return { dir, env: { ...process.env, AGRO_HOME: dir, OH_HOME: dir } };
+  return { dir, env: { ...process.env, AGRO_HOME: dir } };
 }
 
 function fakeHome(): { dir: string; homedir: () => string } {
@@ -96,7 +96,7 @@ function captureStdout(fn: () => void): string {
 }
 
 describe("parseWorkspaceArgs", () => {
-  it("treats a bare `oh workspace` and a help flag as help", () => {
+  it("treats a bare `agro workspace` and a help flag as help", () => {
     for (const argv of [[], ["--help"], ["-h"], ["help"]]) {
       const p = parseWorkspaceArgs(argv);
       expect(p.ok && p.args.help).toBe(true);
@@ -138,13 +138,13 @@ describe("parseWorkspaceArgs", () => {
 });
 
 describe("help", () => {
-  it("lists `oh workspace` in the top-level Usage block", () => {
-    expect(captureStdout(printOhHelp)).toMatch(/^ {2}oh workspace /m);
+  it("lists `agro workspace` in the top-level Usage block", () => {
+    expect(captureStdout(printAgroHelp)).toMatch(/^ {2}agro workspace /m);
   });
 
   it("documents both subcommands", () => {
     const help = captureStdout(() => printWorkspaceHelp());
-    for (const s of ["oh workspace create", "oh workspace list", "--json", "--path"]) {
+    for (const s of ["agro workspace create", "agro workspace list", "--json", "--path"]) {
       expect(help).toContain(s);
     }
   });
@@ -164,7 +164,7 @@ describe("runWorkspaceCreate", () => {
     const { out, io } = makeIo();
 
     expect(
-      await runWorkspaceCreate("alpha", { bin: "oh", run, env: home.env, homedir: user.homedir }, io),
+      await runWorkspaceCreate("alpha", { bin: "agro", run, env: home.env, homedir: user.homedir }, io),
     ).toBe(0);
     const clone = gitCalls(calls)[0];
     expect(clone.args[0]).toBe("clone");
@@ -180,7 +180,7 @@ describe("runWorkspaceCreate", () => {
     const { io } = makeIo();
 
     expect(
-      await runWorkspaceCreate(undefined, { bin: "oh", run, env: home.env, homedir: user.homedir }, io),
+      await runWorkspaceCreate(undefined, { bin: "agro", run, env: home.env, homedir: user.homedir }, io),
     ).toBe(0);
     expect(gitCalls(calls)[0].args[2]).toBe(workspacePath(home, "default"));
   });
@@ -193,7 +193,7 @@ describe("runWorkspaceCreate", () => {
     const { out, io } = makeIo();
 
     expect(
-      await runWorkspaceCreate("alpha", { bin: "oh", run, env: home.env, homedir: user.homedir }, io),
+      await runWorkspaceCreate("alpha", { bin: "agro", run, env: home.env, homedir: user.homedir }, io),
     ).toBe(0);
     expect(gitCalls(calls)).toEqual([]);
     expect(text(out)).toContain(`host workspace reused at ${workspacePath(home, "alpha")}`);
@@ -210,7 +210,7 @@ describe("runWorkspaceCreate", () => {
     expect(
       await runWorkspaceCreate(
         undefined,
-        { bin: "oh", run, env: home.env, homedir: user.homedir, path: elsewhere },
+        { bin: "agro", run, env: home.env, homedir: user.homedir, path: elsewhere },
         io,
       ),
     ).toBe(0);
@@ -227,46 +227,18 @@ describe("runWorkspaceCreate", () => {
       const { err, io } = makeIo();
 
       expect(
-        await runWorkspaceCreate(bad, { bin: "oh", run, env: home.env, homedir: user.homedir }, io),
+        await runWorkspaceCreate(bad, { bin: "agro", run, env: home.env, homedir: user.homedir }, io),
       ).toBe(1);
-      expect(text(err)).toContain(`oh workspace: invalid workspace name "${bad}"`);
+      expect(text(err)).toContain(`agro workspace: invalid workspace name "${bad}"`);
       expect(gitCalls(calls)).toEqual([]);
       expect(existsSync(join(home.dir, "workspaces"))).toBe(false);
     }
   });
 
-  it("refuses a split state home", async () => {
-    const home = emptyStateHome();
-    const user = fakeHome();
-    mkdirSync(join(user.dir, ".oh"), { recursive: true });
-    mkdirSync(join(user.dir, ".agro"), { recursive: true });
-    const { calls, run } = cloneRunner();
-    const { err, io } = makeIo();
 
-    expect(
-      await runWorkspaceCreate("alpha", { bin: "oh", run, env: home.env, homedir: user.homedir }, io),
-    ).toBe(1);
-    expect(text(err)).toContain("oh workspace: the host state home is split");
-    expect(text(err)).toContain("migrate --home");
-    expect(gitCalls(calls)).toEqual([]);
-  });
-
-  it("refuses a legacy-only state home", async () => {
-    const home = emptyStateHome();
-    const user = fakeHome();
-    mkdirSync(join(user.dir, ".oh"), { recursive: true });
-    const { calls, run } = cloneRunner();
-    const { err, io } = makeIo();
-
-    expect(
-      await runWorkspaceCreate("alpha", { bin: "oh", run, env: home.env, homedir: user.homedir }, io),
-    ).toBe(1);
-    expect(text(err)).toContain(`oh workspace: the host state home is the legacy ${join(user.dir, ".oh")}`);
-    expect(gitCalls(calls)).toEqual([]);
-  });
 
   it("refuses a root that is the state home itself", async () => {
-    for (const state of [".oh", ".agro"]) {
+    for (const state of [".agro", ".agro"]) {
       const home = emptyStateHome();
       const user = fakeHome();
       const inside = join(user.dir, state);
@@ -276,7 +248,7 @@ describe("runWorkspaceCreate", () => {
       expect(
         await runWorkspaceCreate(
           undefined,
-          { bin: "oh", run, env: home.env, homedir: user.homedir, path: inside },
+          { bin: "agro", run, env: home.env, homedir: user.homedir, path: inside },
           io,
         ),
       ).toBe(1);
@@ -292,7 +264,7 @@ describe("runWorkspaceCreate", () => {
     const { io } = makeIo();
 
     expect(
-      await runWorkspaceCreate("alpha", { bin: "oh", run, env: home.env, homedir: user.homedir }, io),
+      await runWorkspaceCreate("alpha", { bin: "agro", run, env: home.env, homedir: user.homedir }, io),
     ).toBe(0);
     expect(existsSync(hostConfigFile(home.dir))).toBe(false);
   });
@@ -310,7 +282,7 @@ describe("runWorkspaceCreate", () => {
     const { io } = makeIo();
 
     expect(
-      await runWorkspaceCreate("alpha", { bin: "oh", run, env: home.env, homedir: user.homedir }, io),
+      await runWorkspaceCreate("alpha", { bin: "agro", run, env: home.env, homedir: user.homedir }, io),
     ).toBe(0);
     expect(readConfig(home.dir).harnessRoot).toBe(recorded);
     expect(readFileSync(hostConfigFile(home.dir), "utf8")).toBe(before);
@@ -323,9 +295,9 @@ describe("runWorkspaceCreate", () => {
     const { err, io } = makeIo();
 
     expect(
-      await runWorkspaceCreate("alpha", { bin: "oh", run, env: home.env, homedir: user.homedir }, io),
+      await runWorkspaceCreate("alpha", { bin: "agro", run, env: home.env, homedir: user.homedir }, io),
     ).toBe(1);
-    expect(text(err)).toContain("oh workspace: could not clone");
+    expect(text(err)).toContain("agro workspace: could not clone");
   });
 
   it("--json reports the name, the root and the action", async () => {
@@ -337,7 +309,7 @@ describe("runWorkspaceCreate", () => {
     expect(
       await runWorkspaceCreate(
         "alpha",
-        { bin: "oh", run, json: true, env: home.env, homedir: user.homedir },
+        { bin: "agro", run, json: true, env: home.env, homedir: user.homedir },
         io,
       ),
     ).toBe(0);
@@ -359,9 +331,9 @@ describe("runWorkspaceList after a host install", () => {
 
     const repo = mkdtempSync(join(tmpdir(), "agro-workspace-repo-"));
     cleanups.push(repo);
-    mkdirSync(join(repo, ".oh", "scripts"), { recursive: true });
+    mkdirSync(join(repo, ".agro", "scripts"), { recursive: true });
     mkdirSync(join(repo, ".devcontainer"), { recursive: true });
-    writeFileSync(ohConfigPath(repo), `${JSON.stringify(defaultOhConfig("probe"), null, 2)}\n`);
+    writeFileSync(agroConfigPath(repo), `${JSON.stringify(defaultAgroConfig("probe"), null, 2)}\n`);
 
     const run: LifecycleRunner = (cmd, args): RunResult => {
       if (cmd === "docker" && args[0] === "inspect") return { status: 0, stdout: "exited\n", stderr: "" };
@@ -372,7 +344,7 @@ describe("runWorkspaceList after a host install", () => {
       await runHarnessInstall(
         "claude-code",
         {
-          bin: "oh",
+          bin: "agro",
           cwd: repo,
           run,
           env: home.env,
@@ -386,7 +358,7 @@ describe("runWorkspaceList after a host install", () => {
 
     const { out, io } = makeIo();
     expect(
-      await runWorkspaceList({ bin: "oh", json: true, env: home.env, homedir: user.homedir }, io),
+      await runWorkspaceList({ bin: "agro", json: true, env: home.env, homedir: user.homedir }, io),
     ).toBe(0);
     const rows = JSON.parse(text(out)) as { name: string; default: boolean }[];
     expect(rows).toEqual([
@@ -404,7 +376,7 @@ describe("runWorkspaceList", () => {
     seedWorkspace(workspacePath(home, "alpha"));
     const { out, io } = makeIo();
 
-    expect(await runWorkspaceList({ bin: "oh", env: home.env, homedir: user.homedir }, io)).toBe(0);
+    expect(await runWorkspaceList({ bin: "agro", env: home.env, homedir: user.homedir }, io)).toBe(0);
     const rendered = text(out);
     expect(rendered).toMatch(/^WORKSPACE\s+DEFAULT\s+PATH$/m);
     expect(rendered).toMatch(/^alpha\s+no\s+/m);
@@ -420,7 +392,7 @@ describe("runWorkspaceList", () => {
     const { out, io } = makeIo();
 
     expect(
-      await runWorkspaceList({ bin: "oh", json: true, env: home.env, homedir: user.homedir }, io),
+      await runWorkspaceList({ bin: "agro", json: true, env: home.env, homedir: user.homedir }, io),
     ).toBe(0);
     expect((JSON.parse(text(out)) as { name: string }[]).map((r) => r.name)).toEqual(["alpha"]);
   });
@@ -433,7 +405,7 @@ describe("runWorkspaceList", () => {
     const { out, io } = makeIo();
 
     expect(
-      await runWorkspaceList({ bin: "oh", json: true, env: home.env, homedir: user.homedir }, io),
+      await runWorkspaceList({ bin: "agro", json: true, env: home.env, homedir: user.homedir }, io),
     ).toBe(0);
     expect((JSON.parse(text(out)) as { name: string }[]).map((r) => r.name)).toEqual(["alpha"]);
   });
@@ -450,7 +422,7 @@ describe("runWorkspaceList", () => {
     const { out, io } = makeIo();
 
     expect(
-      await runWorkspaceList({ bin: "oh", json: true, env: home.env, homedir: user.homedir }, io),
+      await runWorkspaceList({ bin: "agro", json: true, env: home.env, homedir: user.homedir }, io),
     ).toBe(0);
     const rows = JSON.parse(text(out)) as { name: string; root: string; default: boolean }[];
     expect(rows).toEqual([
@@ -464,9 +436,9 @@ describe("runWorkspaceList", () => {
     const user = fakeHome();
     const { out, io } = makeIo();
 
-    expect(await runWorkspaceList({ bin: "oh", env: home.env, homedir: user.homedir }, io)).toBe(0);
+    expect(await runWorkspaceList({ bin: "agro", env: home.env, homedir: user.homedir }, io)).toBe(0);
     expect(text(out)).toContain("No host workspace exists.");
-    expect(text(out)).toContain("`oh workspace create <name>`");
+    expect(text(out)).toContain("`agro workspace create <name>`");
   });
 
   it("--json prints an empty array for an empty registry", async () => {
@@ -475,7 +447,7 @@ describe("runWorkspaceList", () => {
     const { out, io } = makeIo();
 
     expect(
-      await runWorkspaceList({ bin: "oh", json: true, env: home.env, homedir: user.homedir }, io),
+      await runWorkspaceList({ bin: "agro", json: true, env: home.env, homedir: user.homedir }, io),
     ).toBe(0);
     expect(JSON.parse(text(out))).toEqual([]);
   });

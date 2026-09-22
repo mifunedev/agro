@@ -13,7 +13,7 @@ Every coding harness reads this file directly.
 | `archive/` | `archive/<YYYY-MM-DD>` — weekly cleanup-tasks archive sweeps. |
 
 Lifecycle is `git worktree add` / `git worktree remove`. The root is always
-`.worktrees/` at the repository root; `.agro/scripts/oh-path worktrees` resolves it.
+`.worktrees/` at the repository root; `.agro/scripts/agro-path worktrees` resolves it.
 
 Clones of repositories that are **not** harnesses do not belong here — they go in
 `projects/`, which is a plain `git clone` namespace rather than a worktree root.

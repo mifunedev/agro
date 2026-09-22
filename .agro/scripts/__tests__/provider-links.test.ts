@@ -21,7 +21,7 @@ function fixture(): string {
 function link(dir: string, mode: string) {
   return spawnSync("bash", [join(root, ".agro/scripts/link-providers.sh"), mode], {
     cwd: dir, encoding: "utf8",
-    env: { PATH: "/usr/bin:/bin", HOME: dir, OH_PROJECT_ROOT: dir },
+    env: { PATH: "/usr/bin:/bin", HOME: dir, AGRO_PROJECT_ROOT: dir },
   });
 }
 

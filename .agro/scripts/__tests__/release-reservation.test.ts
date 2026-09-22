@@ -342,7 +342,7 @@ describe("release workflow contract", () => {
 
   it("names the smoke sandbox after agro", () => {
     expect(source.match(/SANDBOX_NAME: agro-release-smoke-\$\{\{ github\.run_id \}\}/g)?.length).toBe(3);
-    expect(source).not.toContain("openharness-release-smoke");
+    expect(source).not.toContain("oh-release-smoke");
   });
 
   it("notifies the docs site only after a real release is finalized", () => {
@@ -353,7 +353,7 @@ describe("release workflow contract", () => {
     expect(job).toMatch(/needs: \[reserve, finalize\]/);
     expect(job).toContain("needs.finalize.result == 'success'");
     expect(job).toContain("AGRO_WEB_DISPATCH_TOKEN: ${{ secrets.AGRO_WEB_DISPATCH_TOKEN }}");
-    expect(job).toContain("AGRO_WEB_REPO: ${{ vars.AGRO_WEB_REPO || 'mifunedev/openharness-web' }}");
+    expect(job).toContain("AGRO_WEB_REPO: ${{ vars.AGRO_WEB_REPO || 'mifunedev/agro-web' }}");
     expect(job).toContain("RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}");
     expect(job).toMatch(/if \[ -z "\$AGRO_WEB_DISPATCH_TOKEN" \]; then\n\s+echo "::notice::Secret AGRO_WEB_DISPATCH_TOKEN[^"]*"\n\s+exit 0\n\s+fi/);
     expect(job).toMatch(/GH_TOKEN="\$AGRO_WEB_DISPATCH_TOKEN" gh api --method POST/);
@@ -374,10 +374,10 @@ describe("release workflow contract", () => {
     const publishDraft = source.indexOf("Publish the draft after image and CLI publication");
 
     expect(source).toContain("docker buildx build --load");
-    expect(source).toContain('docker push "ghcr.io/mifunedev/openharness:${RELEASE_VERSION}"');
-    expect(source).toContain('docker push "ghcr.io/mifunedev/openharness:sha-${RELEASE_SHA}"');
-    expect(source).not.toContain("openharness:v$");
-    expect(source).not.toContain('openharness:${RELEASE_SHA}"');
+    expect(source).toContain('docker push "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"');
+    expect(source).toContain('docker push "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"');
+    expect(source).not.toContain("agro:v$");
+    expect(source).not.toContain('agro:${RELEASE_SHA}"');
     expect(source).toContain(".agro/scripts/promote-release-latest.sh promote");
     expect(source).not.toContain("latest_guard");
     expect(immutablePush).toBeGreaterThan(0);
@@ -388,12 +388,12 @@ describe("release workflow contract", () => {
     expect(publishDraft).toBeGreaterThan(freshGithubCheck);
   });
 
-  it("builds the agro and openharness tags once, pushes all four, and verifies one digest", () => {
+  it("builds the agro and agro tags once, pushes all four, and verifies one digest", () => {
     const build = source.indexOf("Build immutable Docker image tags");
     const bootSmoke = source.indexOf("Smoke-test Docker image before publish");
     const agroSmoke = source.indexOf("Smoke-test agro as a first-class entry point");
     const immutablePush = source.indexOf("Push immutable SemVer and sha-full-SHA tags");
-    const aliasVerify = source.indexOf("Verify the agro and openharness version tags share one digest");
+    const aliasVerify = source.indexOf("Verify the agro and agro version tags share one digest");
     const latestPromote = source.indexOf("Promote latest from the canonical branch by digest");
 
     expect(source.match(/docker buildx build --load/g)?.length).toBe(1);
@@ -402,16 +402,16 @@ describe("release workflow contract", () => {
     expect(source).toMatch(
       /-t "\$VERSION_IMAGE" -t "\$SHA_IMAGE" \\\n\s+-t "\$AGRO_VERSION_IMAGE" -t "\$AGRO_SHA_IMAGE" -t "\$SMOKE_IMAGE" \./,
     );
-    expect(source).toContain('docker push "ghcr.io/mifunedev/openharness:${RELEASE_VERSION}"');
-    expect(source).toContain('docker push "ghcr.io/mifunedev/openharness:sha-${RELEASE_SHA}"');
+    expect(source).toContain('docker push "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"');
+    expect(source).toContain('docker push "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"');
     expect(source).toContain('docker push "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"');
     expect(source).toContain('docker push "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"');
     expect(source.match(/docker push "/g)?.length).toBe(4);
     expect(source).toMatch(
-      /\.agro\/scripts\/verify-release-aliases\.sh check \\\n\s+"ghcr\.io\/mifunedev\/openharness:\$\{RELEASE_VERSION\}" \\\n\s+"ghcr\.io\/mifunedev\/agro:\$\{RELEASE_VERSION\}"/,
+      /\.agro\/scripts\/verify-release-aliases\.sh check \\\n\s+"ghcr\.io\/mifunedev\/agro:\$\{RELEASE_VERSION\}" \\\n\s+"ghcr\.io\/mifunedev\/agro:\$\{RELEASE_VERSION\}"/,
     );
     expect(source).toContain("-lc 'agro --version'");
-    expect(source).toContain("-lc 'oh --version'");
+    expect(source).toContain("-lc 'agro --version'");
     expect(source).toContain('[ "$agro_version" != "$oh_version" ]');
     expect(source).toContain('[ "$agro_version" != "$RELEASE_VERSION" ]');
     expect(build).toBeGreaterThan(0);
@@ -430,7 +430,7 @@ describe("release workflow contract", () => {
     expect(source).toContain("npm --prefix .agro/cli ci --ignore-scripts");
     expect(source).toContain("npm --prefix .agro/cli run build");
     expect(source).toMatch(
-      /gh release upload "v\$\{RELEASE_VERSION\}" --clobber \\\n\s+\.agro\/cli\/dist\/agro\.js \\\n\s+\.agro\/cli\/dist\/oh\.js \\\n\s+\.agro\/scripts\/get-agro\.sh \\\n\s+\.agro\/scripts\/get-oh\.sh/,
+      /gh release upload "v\$\{RELEASE_VERSION\}" --clobber \\\n\s+\.agro\/cli\/dist\/agro\.js \\\n\s+\.agro\/scripts\/get-agro\.sh/,
     );
     expect(source).toMatch(/finalize:\n[\s\S]*?GH_TOKEN: \$\{\{ secrets\.GITHUB_TOKEN \}\}/);
     expect(build).toBeGreaterThan(source.indexOf("  finalize:\n"));
@@ -477,7 +477,7 @@ describe("CLI publication workflow contract", () => {
     expect(source).not.toContain("legacy_guard");
     expect(source).not.toContain("Publish @mifune/openharness");
     expect(source).not.toContain("Deprecate @mifune/openharness");
-    expect(source).not.toContain("Wait for @mifune/agro to resolve on the registry");
+    expect(source).not.toContain("Wait for @mifune/openharness to resolve on the registry");
     expect(source).not.toContain("npm deprecate");
     expect(source).not.toContain(".agro/scripts/npm-wait-version.sh");
     expect(source).not.toContain('npm view "@mifune/openharness@$V"');

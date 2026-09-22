@@ -8,12 +8,11 @@ title: "Lifecycle commands"
 source of truth for the verbs; every other document links here rather than
 restating them.
 
-Every `agro <verb>` is also available as `oh <verb>`. `oh` is the compatibility
-alias: the same executable, invoked under its legacy name, for the window the
-[AGRO compatibility contract](agro-compatibility.md) defines. The one verb whose
-meaning depends on the name is `update` — see
-[`agro update`](#upgrading-the-cli-agro-update) and
-[`oh update`](#equipping-a-checkout-oh-update) below.
+`agro` is the only executable; the legacy `oh` alias is retired (see the
+[AGRO naming cutover](agro-compatibility.md)). Two verbs are easy to confuse:
+[`agro self-upgrade`](#upgrading-the-cli-agro-self-upgrade) upgrades the
+installed CLI, and [`agro vendor`](#equipping-a-checkout-agro-vendor) writes the
+`.agro/` control plane into a checkout.
 
 Every compose verb runs `.agro/scripts/docker-compose.sh`, which owns overlay
 resolution, project naming, and env plumbing. `agro` is the surface; the script
@@ -22,8 +21,8 @@ is the mechanism.
 A sandbox is a **registry entry** under `${AGRO_HOME:-~/.agro}/sandboxes/<name>/`.
 `agro sandbox install docker` writes it, and every later verb finds it by name
 from any directory — no project checkout required. A registry created by an
-earlier release stays at `${OH_HOME:-~/.oh}/sandboxes/<name>/` and still
-resolves; `agro migrate --home` moves it. Details:
+earlier release stays at `${AGRO_HOME:-~/.agro}/sandboxes/<name>/` and still
+resolves. Details:
 [Configuration → the two `agro.json` files](configuration.md#the-two-agrojson-files).
 
 Host prerequisites: **Docker** (with the Compose plugin), **Git**, and
@@ -49,8 +48,7 @@ Amazon Bedrock, Vertex or Foundry, reads no project instructions at all.
 | `agro destroy [name] [--yes]` | `docker-compose.sh down -v`, then remove the registry entry — see below |
 | `agro compose config` | `docker-compose.sh config` — the resolved compose file |
 | `agro update [--dry-run]` | upgrade the installed `agro` executable through the mechanism that installed it — see below |
-| `agro migrate [--check] [--home] [--json]` | move a legacy `.oh/` project or `~/.oh` registry to the AGRO names — see below |
-| `oh update [--from <dir> \| --from-remote [--ref <ref>]] [--dry-run] [--force]` | equip an empty checkout with `.agro/` + `crons/`, and upgrade an equipped one (compatibility window) |
+| `agro vendor [--from <dir> \| --from-remote [--ref <ref>]] [--dry-run] [--force]` | equip an empty checkout with `.agro/` + `crons/`, and upgrade an equipped one |
 | `agro config show [--sandbox <name>]` · `agro config set <field> <value> [--sandbox <name>]` | read and write `agro.json` |
 | `agro config repo` · `agro config <integration>` | GitHub-remote and integration wizards |
 | `agro secret set <KEY> [--sandbox <name>]` · `agro secret list [--sandbox <name>]` | read and write the gitignored `.env` |
@@ -108,32 +106,32 @@ bound directory under the key `checkout`. The key `repo` is deprecated in the JS
 output. It holds the identical value and stays present for existing consumers. Read
 `checkout`.
 
-## Upgrading the CLI: `agro update`
+## Upgrading the CLI: `agro self-upgrade`
 
-`agro update` upgrades exactly one thing: the `agro` executable that is running.
+`agro self-upgrade` (alias: `agro update`) upgrades exactly one thing: the `agro` executable that is running.
 It writes no project file — no `.agro/`, no `agro.json`, no `.env` — and it never
 asks for `sudo`. The upgrade follows whichever mechanism installed the
 executable:
 
-| Installation | Detected as | What `agro update` does |
+| Installation | Detected as | What `agro self-upgrade` does |
 |---|---|---|
 | `npm install -g @mifune/agro` | realpath under `node_modules/@mifune/agro/` | reads the registry version with `npm view`, then runs `npm install -g --prefix <owning prefix> @mifune/agro@<version>` |
-| `get-agro.sh` | a plain file | downloads `AGRO_JS_URL` (falls back to `OH_JS_URL`; default `https://github.com/mifunedev/agro/releases/latest/download/agro.js`) into the same directory, checks its shebang and `--version`, renames it over the executable, and keeps `<path>.prev` until the new file verifies |
+| `get-agro.sh` | a plain file | downloads `AGRO_JS_URL` (default `https://github.com/mifunedev/agro/releases/latest/download/agro.js`) into the same directory, checks its shebang and `--version`, renames it over the executable, and keeps `<path>.prev` until the new file verifies |
 
 It refuses, and prints the supported procedure, when the executable is shipped
-by the sandbox image (`/opt/oh`), is a source checkout's `dist/`, belongs to the
-legacy `@mifune/openharness` package, cannot be resolved, sits in a read-only
+by the sandbox image (`/opt/agro`), is a source checkout's `dist/`, cannot be
+resolved, sits in a read-only
 directory, is shadowed by another `agro` earlier on PATH, or does not report the
 running version. Downgrades are refused. When the installed version is already
 current it changes nothing. `--dry-run` reports the installation kind, target,
 and versions without changing anything.
 
-`agro update` rejects the payload flags `--from`, `--from-remote`, `--ref`, and
-`--force` and points at `oh update`.
+`agro self-upgrade` rejects the payload flags `--from`, `--from-remote`, `--ref`,
+and `--force` and points at `agro vendor`.
 
-## Equipping a checkout: `oh update`
+## Equipping a checkout: `agro vendor`
 
-During the compatibility window, `oh update` is the command that vendors the
+`agro vendor` is the command that vendors the
 `.agro/` control plane and `crons/` into the current directory. An empty directory
 is equipped from scratch; an equipped one is upgraded. Payload precedence:
 `--from <dir>`, then `--from-remote [--ref <ref>]`, then the CLI's own bundled
@@ -148,39 +146,39 @@ are yours. It never prompts. It does not upgrade the CLI itself; that is
 ## Recovering from `missing lifecycle script`
 
 A sandbox image can ship an `agro` CLI older than the checkout it runs against.
-The old CLI looks for the legacy control directory `.oh/`. An AGRO checkout
+The old CLI looks for the legacy control directory `.agro/`. An AGRO checkout
 carries `.agro/`. Every verb that runs a lifecycle script then fails:
 
 ```
 $ agro gateway pi
-missing lifecycle script /home/sandbox/harness/.oh/scripts/gateway.sh — the vendored .oh/ payload looks incomplete; run `oh update` to re-vendor it
+missing lifecycle script /home/sandbox/harness/.agro/scripts/gateway.sh — the vendored .agro/ payload looks incomplete; run `agro vendor` to re-vendor it
 ```
 
 The cause is the version skew between the installed CLI and the checkout, not
 the missing payload that the message reports. The checkout is complete. The CLI
 is too old to look in the right place.
 
-**Ignore the advice in that message.** `oh update` vendors the control plane
+**Ignore the advice in that message.** `agro vendor` vendors the control plane
 into the current directory. The control plane is already there, under `.agro/`,
 so a re-vendor changes nothing that matters here. `agro update` does not help
 either: it upgrades the installed executable, and it refuses on an executable
 that the sandbox image shipped.
 
 ```
-image installation at /opt/oh/dist/agro.js — the sandbox image ships this CLI; pull a newer image on the host (agro stop, then agro sandbox install docker --name <name>)
+image installation at /opt/agro/dist/agro.js — the sandbox image ships this CLI; pull a newer image on the host (agro stop, then agro sandbox install docker --name <name>)
 ```
 
 **Confirm the skew.** Run both commands in the sandbox. Each one reads a file
 and changes nothing.
 
 ```bash
-grep '"version"' /opt/oh/package.json     # the CLI the image installed
+grep '"version"' /opt/agro/package.json     # the CLI the image installed
 grep '"version"' .agro/cli/package.json   # the CLI the checkout expects
 ```
 
-A lower version in `/opt/oh/package.json` confirms the skew. The prefix
-`/opt/oh` marks an **image** installation: the image built that CLI in, and
-`/usr/local/bin/agro` resolves to `/opt/oh/dist/agro.js`.
+A lower version in `/opt/agro/package.json` confirms the skew. The prefix
+`/opt/agro` marks an **image** installation: the image built that CLI in, and
+`/usr/local/bin/agro` resolves to `/opt/agro/dist/agro.js`.
 
 **Refresh the image from the host.** Run both commands on the host. `agro
 sandbox install docker` is host-only and refuses inside the sandbox.
@@ -204,60 +202,13 @@ Keep the two `update` verbs apart:
 | Command | Upgrades | Writes |
 |---|---|---|
 | `agro update` | the installed `agro` executable | nothing in the project |
-| `oh update` | the vendored control plane | `.agro/` and `crons/` in the current directory |
+| `agro vendor` | the vendored control plane | `.agro/` and `crons/` in the current directory |
 
-Details: [`agro update`](#upgrading-the-cli-agro-update) and
-[`oh update`](#equipping-a-checkout-oh-update).
+Details: [`agro self-upgrade`](#upgrading-the-cli-agro-self-upgrade) and
+[`agro vendor`](#equipping-a-checkout-agro-vendor).
 
 A current CLI names the recovery route for your own installation kind whenever a
 lifecycle script is truly absent.
-
-## Migrating to the AGRO names: `agro migrate`
-
-`agro migrate` moves an installation created under the legacy names to the AGRO
-names. It renames `.oh/` to `.agro/` and `oh.json` to `agro.json` wholesale,
-and re-points three active provider links from `../.oh/…` to `../.agro/…`:
-`.claude/hooks`.
-The retired links are `.pi/skills` and `.codex/skills`.
-A retired skill-pack link that still resolves to the AGRO tree is moved to `<path>.migrated`.
-Otherwise, migration preserves the retired path. Migration re-points a preserved
-`../.oh/skills` link to `../.agro/skills` so discovery survives the pack rename.
-Custom directories and foreign links remain unchanged. An existing retirement
-marker blocks retirement without overwriting the marker.
-Byte-identical legacy copies move to `<name>.migrated` instead of deletion.
-`oh migrate` dispatches to the same command.
-
-`bash .agro/scripts/link-providers.sh --init` repairs active links before retirement.
-Unlike CLI migration, this script refuses custom retired paths and unresolved collisions.
-Its `--check` mode reports retired links without changing files.
-Fresh clones omit both retired links; `.codex/` and `.pi/` retain provider configuration.
-
-Project mode is the default: it starts at the current directory and walks up to
-the nearest ancestor holding `.oh/`, `.agro/`, `oh.json`, or `agro.json`.
-
-| Flag | Effect |
-|---|---|
-| `--check` | print the plan and change nothing |
-| `--home` | migrate the sandbox registry `~/.oh/sandboxes` → `~/.agro/sandboxes` instead of a project |
-| `--json` | emit the plan (`--check`) or `{plan, result}` as JSON on stdout |
-
-```bash
-agro migrate --check   # plan the project in this directory
-agro migrate           # apply it
-agro migrate --home    # move the registry instead
-```
-
-| Exit code | Meaning |
-|---|---|
-| `0` | applied, or nothing to do |
-| `2` | refused: a conflict, or the `.agro-migrate.lock` is held |
-| `1` | failure |
-
-It is idempotent: a second run is a no-op. It never merges and has no force
-option — divergent `.oh/` and `.agro/` (or `oh.json` and `agro.json`) copies are
-refused with the differing entries named, and you keep exactly one copy or make
-them identical. It preserves unknown files, permission bits, and symlink targets,
-and it never touches `~/.openharness`, `.env`, or git history.
 
 ## Where you are standing when you type `agro`
 
@@ -269,7 +220,7 @@ the environment those commands target.
 Detection is automatic: `agro` treats itself as in-sandbox when `/.dockerenv`
 exists **and** `SANDBOX_NAME` is set. Override it with
 `AGRO_EXECUTION_TARGET=local` or `AGRO_EXECUTION_TARGET=docker-compose`; the
-legacy `OH_EXECUTION_TARGET` spelling still applies when the AGRO one is unset.
+legacy `AGRO_EXECUTION_TARGET` spelling still applies when the AGRO one is unset.
 
 | Verb | On the host | Inside the sandbox |
 |---|---|---|
@@ -343,10 +294,8 @@ agro workspace list --json                # the same rows as JSON
   the name rule and holds a `.git` marker. The `DEFAULT` column marks the
   workspace that `harnessRoot` names. An empty registry prints one hint that
   names `agro workspace create`.
-- `create` refuses two host states. A state home split across `~/.oh` and
-  `~/.agro` refuses, and `agro migrate --home` repairs that split. A target
-  directory equal to the state home refuses, and the message names the move to
-  run.
+- `create` refuses a target directory equal to the state home, and the message
+  names the move to run.
 
 `agro harness install --host` and `agro tool install --host` create no workspace.
 Each verb resolves an existing workspace and exits 1 when none resolves. The
