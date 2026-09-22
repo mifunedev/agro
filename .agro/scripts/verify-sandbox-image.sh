@@ -71,11 +71,14 @@ else
 fi
 
 agro_version=$(run 'agro --version' 2>/dev/null || true)
-oh_version=$(run 'oh --version' 2>/dev/null || true)
-if [ -n "$agro_version" ] && [ "$agro_version" = "$oh_version" ]; then
-  ok "agro and oh report the same CLI version ($agro_version)"
+if [ -n "$agro_version" ]; then
+  ok "agro reports CLI version $agro_version"
 else
-  fail "agro --version ('$agro_version') and oh --version ('$oh_version') must be the same non-empty version"
+  fail "agro --version reported nothing"
+fi
+
+if run 'command -v oh' >/dev/null 2>&1; then
+  fail "the retired 'oh' entry point is present in the image"
 fi
 
 first_real_line() {
@@ -110,7 +113,7 @@ if python_out=$(docker run --rm --network none --entrypoint /bin/bash "$IMAGE" -
       bash /opt/agro-seed/.agro/scripts/provision-python.sh --verify
       python -c "import sys; assert sys.version_info[:2] == (3, 13)"
       python3 -c "import sys; assert sys.version_info[:2] == (3, 13)"
-      /home/sandbox/.local/share/oh/kernel/bin/python -c "import sys, ipykernel; assert sys.version_info[:2] == (3, 13)"
+      /home/sandbox/.local/share/agro/kernel/bin/python -c "import sys, ipykernel; assert sys.version_info[:2] == (3, 13)"
     '\''
 ' 2>&1); then
   ok "seeded sandbox defaults and kernel use Python 3.13 (ipykernel present)"
@@ -121,7 +124,7 @@ fi
 check_nothing_baked() {
   local noun="$1" cmd="$2" filter="$3" json ids baked
 
-  if ! json=$(run "cd /opt/agro-seed && OH_EXECUTION_TARGET=local oh $cmd list --json" 2>/tmp/verify-sandbox-defaults.err); then
+  if ! json=$(run "cd /opt/agro-seed && AGRO_EXECUTION_TARGET=local agro $cmd list --json" 2>/tmp/verify-sandbox-defaults.err); then
     fail "could not read the $noun catalog from the image: $(head -3 /tmp/verify-sandbox-defaults.err 2>/dev/null)"
     return
   fi
@@ -148,7 +151,7 @@ else
 fi
 
 if command -v jq >/dev/null 2>&1; then
-  if baked_json=$(run "cd /opt/agro-seed && OH_EXECUTION_TARGET=local oh tool list --json" 2>/dev/null); then
+  if baked_json=$(run "cd /opt/agro-seed && AGRO_EXECUTION_TARGET=local agro tool list --json" 2>/dev/null); then
     absent=$(jq -r '.[] | select(.kind == "baked-in" and .installed != true) | .id' <<<"$baked_json")
     present=$(jq -r '.[] | select(.kind == "baked-in") | .id' <<<"$baked_json")
     if [ -z "$present" ]; then

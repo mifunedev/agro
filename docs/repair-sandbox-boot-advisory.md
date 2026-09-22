@@ -8,7 +8,7 @@ sandbox normally.
 
 Applies to any workspace volume whose `package.json` still carries
 `"pnpm:devPreinstall": "pnpm run security:audit"`. Every volume seeded from
-`ghcr.io/mifunedev/openharness:0.9.0` or `ghcr.io/mifunedev/agro:0.9.0` carries
+`ghcr.io/mifunedev/agro:0.9.0` or `ghcr.io/mifunedev/agro:0.9.0` carries
 it. As of 2026-09-08, `ghcr.io/mifunedev/agro:latest` resolved to the same image
 id as `0.9.0` (`bbfdaf6bb8ca`, digest tag `sha-823aabbd…`), so volumes seeded
 from `latest` on or before that date carry it too. `latest` is a moving tag: a
@@ -20,8 +20,8 @@ standing property.
 `agro shell <name>` gives you a container with nothing set up. Inside it:
 
 ```
-systemctl status openharness-bootstrap.service
-× openharness-bootstrap.service - Open Harness sandbox bootstrap
+systemctl status agro-bootstrap.service
+× agro-bootstrap.service - AGRO sandbox bootstrap
      Active: failed (Result: exit-code)
     Process: 53 ExecStart=/usr/local/bin/entrypoint.sh (code=exited, status=1/FAILURE)
 ```
@@ -32,7 +32,7 @@ The boot log ends with this exact line:
 [entrypoint] pnpm install failed — see /tmp/pnpm-install.log; aborting sandbox boot
 ```
 
-`openharness-cron.service` reports `Dependency failed`. `/tmp/pnpm-install.log`
+`agro-cron.service` reports `Dependency failed`. `/tmp/pnpm-install.log`
 ends with a `pnpm:devPreinstall` audit table naming an advisory, then:
 
 ```
@@ -54,7 +54,7 @@ failing for as long as the advisory stands.
 
 ## Your data is safe and reachable
 
-systemd is PID 1 in the sandbox. `openharness-bootstrap.service` is
+systemd is PID 1 in the sandbox. `agro-bootstrap.service` is
 `Type=oneshot`. A failed oneshot does not stop PID 1, so the container stays
 `running` and `docker exec` still reaches a shell as the `sandbox` user.
 
@@ -76,7 +76,7 @@ Run every command on the host. Replace `<name>` with the container name.
 
 ```bash
 docker inspect --format '{{.State.Status}}' <name>            # expect: running
-docker exec <name> systemctl is-failed openharness-bootstrap.service   # expect: failed
+docker exec <name> systemctl is-failed agro-bootstrap.service   # expect: failed
 docker exec <name> tail -3 /tmp/pnpm-install.log
 ```
 
@@ -126,8 +126,8 @@ docker restart <name>
 **4. Verify the boot.**
 
 ```bash
-docker exec <name> systemctl is-active openharness-bootstrap.service   # expect: active
-docker exec <name> systemctl is-active openharness-cron.service        # expect: active
+docker exec <name> systemctl is-active agro-bootstrap.service   # expect: active
+docker exec <name> systemctl is-active agro-cron.service        # expect: active
 ```
 
 `agro shell <name>` now works.
@@ -185,7 +185,7 @@ dependency. Update the checkout to a source revision that pins vitest
 
 This runbook repairs an existing seeded volume only. It does not repair a
 published image. The `0.9.0` build — image id `bbfdaf6bb8ca`, also tagged
-`sha-823aabbd…` — carries the hook in `/opt/oh-seed/package.json`, and that
+`sha-823aabbd…` — carries the hook in `/opt/agro-seed/package.json`, and that
 build cannot be edited. A cold boot that seeds a fresh volume from it fails on
 first boot and needs this same procedure, or an image from a later release.
 

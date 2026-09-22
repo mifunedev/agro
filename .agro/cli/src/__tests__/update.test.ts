@@ -9,7 +9,7 @@ import { withInvokedBin } from "./invoked-bin.js";
 let tmpdirs: string[] = [];
 
 function mkTmp(): string {
-  const d = fs.mkdtempSync(path.join(os.tmpdir(), "oh-update-"));
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "agro-update-"));
   tmpdirs.push(d);
   return d;
 }
@@ -50,13 +50,13 @@ function buildEquippedRepo(
 ): void {
   writeFile(
     root,
-    ".oh/cli/package.json",
-    JSON.stringify({ name: "oh", version: opts.version }, null, 2),
+    ".agro/cli/package.json",
+    JSON.stringify({ name: "agro", version: opts.version }, null, 2),
   );
 
   const control = opts.controlPlane ?? {
-    ".oh/scripts/foo.sh": "#!/bin/sh\necho foo\n",
-    ".oh/cli/src/cli.ts": "export const x = 1;\n",
+    ".agro/scripts/foo.sh": "#!/bin/sh\necho foo\n",
+    ".agro/cli/src/cli.ts": "export const x = 1;\n",
   };
   for (const [rel, content] of Object.entries(control)) {
     writeFile(root, rel, content);
@@ -91,35 +91,35 @@ describe("runUpdate", () => {
     buildEquippedRepo(from, {
       version: "0.2.0",
       controlPlane: {
-        ".oh/scripts/foo.sh": "#!/bin/sh\necho foo-NEW\n",
-        ".oh/cli/src/cli.ts": "export const x = 1;\n",
-        ".oh/scripts/brand-new.sh": "#!/bin/sh\necho brand-new\n",
+        ".agro/scripts/foo.sh": "#!/bin/sh\necho foo-NEW\n",
+        ".agro/cli/src/cli.ts": "export const x = 1;\n",
+        ".agro/scripts/brand-new.sh": "#!/bin/sh\necho brand-new\n",
       },
     });
     buildEquippedRepo(target, {
       version: "0.1.0",
       controlPlane: {
-        ".oh/scripts/foo.sh": "#!/bin/sh\necho foo-OLD\n",
-        ".oh/cli/src/cli.ts": "export const x = 1;\n",
+        ".agro/scripts/foo.sh": "#!/bin/sh\necho foo-OLD\n",
+        ".agro/cli/src/cli.ts": "export const x = 1;\n",
       },
     });
 
     const { io } = mkIo();
-    const rc = await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io);
+    const rc = await runUpdate({ bin: "agro", targetDir: target, fromDir: from }, io);
 
     expect(rc).toBe(0);
-    expect(readFile(target, ".oh/scripts/foo.sh")).toBe(
+    expect(readFile(target, ".agro/scripts/foo.sh")).toBe(
       "#!/bin/sh\necho foo-NEW\n",
     );
-    expect(fs.existsSync(path.join(target, ".oh/scripts/brand-new.sh"))).toBe(
+    expect(fs.existsSync(path.join(target, ".agro/scripts/brand-new.sh"))).toBe(
       true,
     );
-    expect(readFile(target, ".oh/scripts/brand-new.sh")).toBe(
+    expect(readFile(target, ".agro/scripts/brand-new.sh")).toBe(
       "#!/bin/sh\necho brand-new\n",
     );
   });
 
-  it("2. PROJECT UNTOUCHED: nothing outside <target>/.oh/ is mutated or created", async () => {
+  it("2. PROJECT UNTOUCHED: nothing outside <target>/.agro/ is mutated or created", async () => {
     const base = mkTmp();
     const from = path.join(base, "from");
     const target = path.join(base, "target");
@@ -129,14 +129,14 @@ describe("runUpdate", () => {
     buildEquippedRepo(from, {
       version: "0.2.0",
       controlPlane: {
-        ".oh/scripts/foo.sh": "#!/bin/sh\necho foo-NEW\n",
-        ".oh/scripts/brand-new.sh": "#!/bin/sh\necho brand-new\n",
+        ".agro/scripts/foo.sh": "#!/bin/sh\necho foo-NEW\n",
+        ".agro/scripts/brand-new.sh": "#!/bin/sh\necho brand-new\n",
       },
     });
     buildEquippedRepo(target, {
       version: "0.1.0",
       controlPlane: {
-        ".oh/scripts/foo.sh": "#!/bin/sh\necho foo-OLD\n",
+        ".agro/scripts/foo.sh": "#!/bin/sh\necho foo-OLD\n",
       },
     });
 
@@ -146,7 +146,7 @@ describe("runUpdate", () => {
     const baseBefore = fs.readdirSync(base).sort();
 
     const { io } = mkIo();
-    const rc = await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io);
+    const rc = await runUpdate({ bin: "agro", targetDir: target, fromDir: from }, io);
     expect(rc).toBe(0);
 
     expect(readFile(target, ".devcontainer/.env")).toBe(envBefore);
@@ -162,25 +162,25 @@ describe("runUpdate", () => {
 
     buildEquippedRepo(from, {
       version: "0.1.0",
-      controlPlane: { ".oh/scripts/foo.sh": "#!/bin/sh\necho from\n" },
+      controlPlane: { ".agro/scripts/foo.sh": "#!/bin/sh\necho from\n" },
     });
     buildEquippedRepo(target, {
       version: "0.1.0",
-      controlPlane: { ".oh/scripts/foo.sh": "#!/bin/sh\necho target\n" },
+      controlPlane: { ".agro/scripts/foo.sh": "#!/bin/sh\necho target\n" },
     });
 
-    const ctlBefore = readFile(target, ".oh/scripts/foo.sh");
+    const ctlBefore = readFile(target, ".agro/scripts/foo.sh");
     const mtimeBefore = fs.statSync(
-      path.join(target, ".oh/scripts/foo.sh"),
+      path.join(target, ".agro/scripts/foo.sh"),
     ).mtimeMs;
 
     const { out, io } = mkIo();
-    const rc = await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io);
+    const rc = await runUpdate({ bin: "agro", targetDir: target, fromDir: from }, io);
 
     expect(rc).toBe(0);
     expect(out.join("")).toContain("already up to date");
-    expect(readFile(target, ".oh/scripts/foo.sh")).toBe(ctlBefore);
-    expect(fs.statSync(path.join(target, ".oh/scripts/foo.sh")).mtimeMs).toBe(
+    expect(readFile(target, ".agro/scripts/foo.sh")).toBe(ctlBefore);
+    expect(fs.statSync(path.join(target, ".agro/scripts/foo.sh")).mtimeMs).toBe(
       mtimeBefore,
     );
   });
@@ -191,19 +191,19 @@ describe("runUpdate", () => {
 
     buildEquippedRepo(from, {
       version: "0.1.0",
-      controlPlane: { ".oh/scripts/foo.sh": "#!/bin/sh\necho SOURCE\n" },
+      controlPlane: { ".agro/scripts/foo.sh": "#!/bin/sh\necho SOURCE\n" },
     });
     buildEquippedRepo(target, {
       version: "0.1.0",
-      controlPlane: { ".oh/scripts/foo.sh": "#!/bin/sh\necho LOCAL-EDIT\n" },
+      controlPlane: { ".agro/scripts/foo.sh": "#!/bin/sh\necho LOCAL-EDIT\n" },
     });
 
     const opts = { targetDir: target, fromDir: from };
     const { io } = mkIo();
-    const rc = await runUpdate({ bin: "oh", ...opts, force: true }, io);
+    const rc = await runUpdate({ bin: "agro", ...opts, force: true }, io);
 
     expect(rc).toBe(0);
-    expect(readFile(target, ".oh/scripts/foo.sh")).toBe("#!/bin/sh\necho SOURCE\n");
+    expect(readFile(target, ".agro/scripts/foo.sh")).toBe("#!/bin/sh\necho SOURCE\n");
   });
 
   it("5. DOWNGRADE REFUSE: older source refused (rc 1, 'downgrade'); --force overrides; pre-release suffix treated equal", async () => {
@@ -214,7 +214,7 @@ describe("runUpdate", () => {
       buildEquippedRepo(target, { version: "0.2.0" });
 
       const { err, io } = mkIo();
-      const rc = await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io);
+      const rc = await runUpdate({ bin: "agro", targetDir: target, fromDir: from }, io);
       expect(rc).toBe(1);
       expect(err.join("")).toContain("downgrade");
     }
@@ -227,7 +227,7 @@ describe("runUpdate", () => {
 
       const { io } = mkIo();
       const rc = await runUpdate(
-        { bin: "oh", targetDir: target, fromDir: from, force: true },
+        { bin: "agro", targetDir: target, fromDir: from, force: true },
         io,
       );
       expect(rc).toBe(0);
@@ -240,7 +240,7 @@ describe("runUpdate", () => {
       buildEquippedRepo(target, { version: "0.1.0-dev" });
 
       const { out, io } = mkIo();
-      const rc = await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io);
+      const rc = await runUpdate({ bin: "agro", targetDir: target, fromDir: from }, io);
       expect(rc).toBe(0);
       expect(out.join("")).toContain("already up to date");
     }
@@ -253,20 +253,20 @@ describe("runUpdate", () => {
       buildEquippedRepo(from, {
         version: "0.2.0",
         controlPlane: {
-          ".oh/scripts/foo.sh": "#!/bin/sh\necho from\n",
-          ".oh/scripts/brand-new.sh": "#!/bin/sh\necho brand-new\n",
+          ".agro/scripts/foo.sh": "#!/bin/sh\necho from\n",
+          ".agro/scripts/brand-new.sh": "#!/bin/sh\necho brand-new\n",
         },
       });
       buildEquippedRepo(target, {
         version: "0.1.0",
-        controlPlane: { ".oh/scripts/foo.sh": "#!/bin/sh\necho target\n" },
+        controlPlane: { ".agro/scripts/foo.sh": "#!/bin/sh\necho target\n" },
       });
 
-      const overwriteBefore = readFile(target, ".oh/scripts/foo.sh");
+      const overwriteBefore = readFile(target, ".agro/scripts/foo.sh");
 
       const { out, io } = mkIo();
       const rc = await runUpdate(
-        { bin: "oh", targetDir: target, fromDir: from, dryRun: true },
+        { bin: "agro", targetDir: target, fromDir: from, dryRun: true },
         io,
       );
 
@@ -274,8 +274,8 @@ describe("runUpdate", () => {
       expect(out.length).toBeGreaterThan(0);
       expect(out.every((l) => l.startsWith("[dry-run] "))).toBe(true);
 
-      expect(readFile(target, ".oh/scripts/foo.sh")).toBe(overwriteBefore);
-      expect(fs.existsSync(path.join(target, ".oh/scripts/brand-new.sh"))).toBe(
+      expect(readFile(target, ".agro/scripts/foo.sh")).toBe(overwriteBefore);
+      expect(fs.existsSync(path.join(target, ".agro/scripts/brand-new.sh"))).toBe(
         false,
       );
     }
@@ -285,23 +285,23 @@ describe("runUpdate", () => {
       const target = mkTmp();
       buildEquippedRepo(from, {
         version: "0.1.0",
-        controlPlane: { ".oh/scripts/foo.sh": "#!/bin/sh\necho from\n" },
+        controlPlane: { ".agro/scripts/foo.sh": "#!/bin/sh\necho from\n" },
       });
       buildEquippedRepo(target, {
         version: "0.2.0",
-        controlPlane: { ".oh/scripts/foo.sh": "#!/bin/sh\necho target\n" },
+        controlPlane: { ".agro/scripts/foo.sh": "#!/bin/sh\necho target\n" },
       });
 
-      const before = readFile(target, ".oh/scripts/foo.sh");
+      const before = readFile(target, ".agro/scripts/foo.sh");
 
       const { io } = mkIo();
       const rc = await runUpdate(
-        { bin: "oh", targetDir: target, fromDir: from, force: true, dryRun: true },
+        { bin: "agro", targetDir: target, fromDir: from, force: true, dryRun: true },
         io,
       );
 
       expect(rc).toBe(0);
-      expect(readFile(target, ".oh/scripts/foo.sh")).toBe(before);
+      expect(readFile(target, ".agro/scripts/foo.sh")).toBe(before);
     }
   });
 
@@ -312,34 +312,34 @@ describe("runUpdate", () => {
     buildEquippedRepo(from, {
       version: "0.2.0",
       controlPlane: {
-        ".oh/scripts/foo.sh": "#!/bin/sh\necho from\n",
-        ".oh/cli/node_modules/pkg/index.js": "module.exports = {};\n",
-        ".oh/cli/dist/oh.js": "console.log('built');\n",
+        ".agro/scripts/foo.sh": "#!/bin/sh\necho from\n",
+        ".agro/cli/node_modules/pkg/index.js": "module.exports = {};\n",
+        ".agro/cli/dist/oh.js": "console.log('built');\n",
       },
     });
     buildEquippedRepo(target, { version: "0.1.0" });
 
     const { io } = mkIo();
-    const rc = await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io);
+    const rc = await runUpdate({ bin: "agro", targetDir: target, fromDir: from }, io);
     expect(rc).toBe(0);
 
     expect(
-      fs.existsSync(path.join(target, ".oh/cli/node_modules/pkg/index.js")),
+      fs.existsSync(path.join(target, ".agro/cli/node_modules/pkg/index.js")),
     ).toBe(false);
-    expect(fs.existsSync(path.join(target, ".oh/cli/dist/oh.js"))).toBe(false);
-    expect(fs.existsSync(path.join(target, ".oh/scripts/foo.sh"))).toBe(true);
+    expect(fs.existsSync(path.join(target, ".agro/cli/dist/oh.js"))).toBe(false);
+    expect(fs.existsSync(path.join(target, ".agro/scripts/foo.sh"))).toBe(true);
   });
 });
 
 
 describe("runUpdate — preconditions", () => {
-  it("8a. missing source .oh/ → rc 1, 'update source not found'", async () => {
+  it("8a. missing source .agro/ → rc 1, 'update source not found'", async () => {
     const from = mkTmp();
     const target = mkTmp();
     buildEquippedRepo(target, { version: "0.1.0" });
 
     const { err, io } = mkIo();
-    const rc = await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io);
+    const rc = await runUpdate({ bin: "agro", targetDir: target, fromDir: from }, io);
     expect(rc).toBe(1);
     expect(err.join("")).toContain("update source not found");
   });
@@ -351,13 +351,13 @@ describe("runUpdate — preconditions", () => {
     fs.writeFileSync(path.join(from, "AGENTS.md"), "# not payload\n");
 
     const { out, err, io } = mkIo();
-    const rc = await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io);
+    const rc = await runUpdate({ bin: "agro", targetDir: target, fromDir: from }, io);
 
     expect(rc).toBe(0);
     expect(err.join("")).toBe("");
-    expect(out.join("")).toContain("updating .oh: 0.0.0 -> 0.6.0");
-    expect(readFile(target, ".oh/scripts/foo.sh")).toBe("#!/bin/sh\necho foo\n");
-    expect(fs.readdirSync(target).sort()).toEqual([".oh"]);
+    expect(out.join("")).toContain("updating .agro: 0.0.0 -> 0.6.0");
+    expect(readFile(target, ".agro/scripts/foo.sh")).toBe("#!/bin/sh\necho foo\n");
+    expect(fs.readdirSync(target).sort()).toEqual([".agro"]);
   });
 
   it("8b2. BOOTSTRAP is idempotent: the second run reports up to date and writes nothing", async () => {
@@ -365,38 +365,38 @@ describe("runUpdate — preconditions", () => {
     const target = mkTmp();
     buildEquippedRepo(from, { version: "0.6.0" });
 
-    expect(await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, mkIo().io)).toBe(0);
-    const before = fs.readFileSync(path.join(target, ".oh/scripts/foo.sh"), "utf8");
+    expect(await runUpdate({ bin: "agro", targetDir: target, fromDir: from }, mkIo().io)).toBe(0);
+    const before = fs.readFileSync(path.join(target, ".agro/scripts/foo.sh"), "utf8");
 
     const second = mkIo();
-    expect(await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, second.io)).toBe(0);
+    expect(await runUpdate({ bin: "agro", targetDir: target, fromDir: from }, second.io)).toBe(0);
     expect(second.out.join("")).toContain("already up to date (v0.6.0)");
     expect(second.out.join("")).not.toContain("create ");
-    expect(fs.readFileSync(path.join(target, ".oh/scripts/foo.sh"), "utf8")).toBe(before);
+    expect(fs.readFileSync(path.join(target, ".agro/scripts/foo.sh"), "utf8")).toBe(before);
   });
 
-  it("8c. source and target are the same .oh → rc 1, 'same .oh'", async () => {
+  it("8c. source and target are the same .agro → rc 1, 'same .agro'", async () => {
     const root = mkTmp();
     buildEquippedRepo(root, { version: "0.1.0" });
 
     const { err, io } = mkIo();
-    const rc = await runUpdate({ bin: "oh", targetDir: root, fromDir: root }, io);
+    const rc = await runUpdate({ bin: "agro", targetDir: root, fromDir: root }, io);
     expect(rc).toBe(1);
-    expect(err.join("")).toContain("same .oh");
+    expect(err.join("")).toContain("same .agro");
   });
 });
 
 
 describe("assertDestInTarget", () => {
-  it("7. throws on escape outside target .oh, allows paths inside", () => {
+  it("7. throws on escape outside target .agro, allows paths inside", () => {
     const someTarget = mkTmp();
-    const targetOh = path.resolve(someTarget, ".oh");
+    const targetOh = path.resolve(someTarget, ".agro");
 
-    for (const bin of ["agro", "oh"]) {
+    for (const bin of ["agro", "agro"]) {
       withInvokedBin(bin, () => {
         expect(() =>
           assertDestInTarget(path.resolve(targetOh, "../outside.ts"), targetOh, path.sep),
-        ).toThrow(`${bin}: refusing to write outside target .oh`);
+        ).toThrow(`${bin}: refusing to write outside target .agro`);
       });
     }
 
@@ -411,7 +411,7 @@ describe("assertDestInTarget", () => {
 });
 
 
-describe("runUpdate — dual-generation control dirs", () => {
+describe("runUpdate — control dir", () => {
   function buildAgroRepo(root: string, version: string, files: Record<string, string>): void {
     writeFile(root, ".agro/cli/package.json", JSON.stringify({ name: "agro", version }, null, 2));
     for (const [rel, content] of Object.entries(files)) writeFile(root, rel, content);
@@ -423,41 +423,40 @@ describe("runUpdate — dual-generation control dirs", () => {
     buildAgroRepo(from, "0.9.0", { ".agro/scripts/foo.sh": "#!/bin/sh\necho agro\n" });
 
     const { out, err, io } = mkIo();
-    expect(await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io)).toBe(0);
+    expect(await runUpdate({ bin: "agro", targetDir: target, fromDir: from }, io)).toBe(0);
     expect(err.join("")).toBe("");
     expect(out.join("")).toContain("updating .agro: 0.0.0 -> 0.9.0");
     expect(readFile(target, ".agro/scripts/foo.sh")).toBe("#!/bin/sh\necho agro\n");
     expect(fs.readdirSync(target).sort()).toEqual([".agro"]);
   });
 
-  it("keeps a legacy .oh/ target on .oh/ when the source is .agro/", async () => {
+  it("upgrades an equipped .agro/ target in place", async () => {
     const from = mkTmp();
     const target = mkTmp();
     buildAgroRepo(from, "0.9.0", { ".agro/scripts/foo.sh": "#!/bin/sh\necho agro\n" });
     buildEquippedRepo(target, { version: "0.1.0" });
 
     const { out, io } = mkIo();
-    expect(await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io)).toBe(0);
-    expect(out.join("")).toContain("updating .oh: 0.1.0 -> 0.9.0");
-    expect(readFile(target, ".oh/scripts/foo.sh")).toBe("#!/bin/sh\necho agro\n");
-    expect(fs.existsSync(path.join(target, ".agro"))).toBe(false);
+    expect(await runUpdate({ bin: "agro", targetDir: target, fromDir: from }, io)).toBe(0);
+    expect(out.join("")).toContain("updating .agro: 0.1.0 -> 0.9.0");
+    expect(readFile(target, ".agro/scripts/foo.sh")).toBe("#!/bin/sh\necho agro\n");
+    expect(fs.existsSync(path.join(target, ".oh"))).toBe(false);
   });
 
-  it("names both candidate dirs when the source has neither", async () => {
+  it("names the control dir when the source has none", async () => {
     const from = mkTmp();
     const target = mkTmp();
     const { err, io } = mkIo();
-    expect(await runUpdate({ bin: "oh", targetDir: target, fromDir: from }, io)).toBe(1);
+    expect(await runUpdate({ bin: "agro", targetDir: target, fromDir: from }, io)).toBe(1);
     expect(err.join("")).toContain("update source not found at");
     expect(err.join("")).toContain(path.join(from, ".agro"));
-    expect(err.join("")).toContain(path.join(from, ".oh"));
   });
 
   it("refuses when source and target are the same .agro", async () => {
     const root = mkTmp();
     buildAgroRepo(root, "0.9.0", { ".agro/scripts/foo.sh": "#!/bin/sh\n" });
     const { err, io } = mkIo();
-    expect(await runUpdate({ bin: "oh", targetDir: root, fromDir: root }, io)).toBe(1);
+    expect(await runUpdate({ bin: "agro", targetDir: root, fromDir: root }, io)).toBe(1);
     expect(err.join("")).toContain("same .agro");
   });
 });

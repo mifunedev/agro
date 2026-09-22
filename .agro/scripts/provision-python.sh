@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-SANDBOX_USER="${OH_SANDBOX_USER:-sandbox}"
-PY_VERSION="${OH_PYTHON_VERSION:-3.13}"
+SANDBOX_USER="${AGRO_SANDBOX_USER:-sandbox}"
+PY_VERSION="${AGRO_PYTHON_VERSION:-3.13}"
 
 MODE="provision"
 case "${1:-}" in
@@ -26,7 +26,7 @@ die() {
 if [ "$(id -u)" = "0" ]; then
   if ! id "$SANDBOX_USER" >/dev/null 2>&1; then
     die "user '$SANDBOX_USER' does not exist" \
-        "set OH_SANDBOX_USER to the in-container agent user."
+        "set AGRO_SANDBOX_USER to the in-container agent user."
   fi
   USER_HOME=$(getent passwd "$SANDBOX_USER" | cut -d: -f6)
   [ -n "$USER_HOME" ] || die "cannot resolve home directory for '$SANDBOX_USER'"
@@ -62,9 +62,9 @@ export UV_TOOL_DIR="${UV_TOOL_DIR:-$HOME/.local/share/uv/tools}"
 export UV_TOOL_BIN_DIR="${UV_TOOL_BIN_DIR:-$HOME/.local/bin}"
 export UV_PYTHON_BIN_DIR="${UV_PYTHON_BIN_DIR:-$HOME/.local/bin}"
 
-KERNEL_HOME="${OH_PYTHON_KERNEL_HOME:-$HOME/.local/share/oh/kernel}"
+KERNEL_HOME="${AGRO_PYTHON_KERNEL_HOME:-$HOME/.local/share/agro/kernel}"
 KERNEL_PYTHON="$KERNEL_HOME/bin/python"
-KERNEL_PACKAGES="${OH_PYTHON_KERNEL_PACKAGES:-ipykernel}"
+KERNEL_PACKAGES="${AGRO_PYTHON_KERNEL_PACKAGES:-ipykernel}"
 ENV_FILE="$HOME/.local/share/oh/python-env.sh"
 
 if [ "$MODE" = "print-env" ]; then
@@ -77,7 +77,7 @@ fi
 command -v uv >/dev/null 2>&1 || die \
   "uv is not on PATH" \
   "the image installs it to /usr/local/bin/uv; rebuild the sandbox image:" \
-  "  oh sandbox"
+  "  agro sandbox"
 
 check_writable() {
   local dir="$1"
@@ -206,7 +206,7 @@ if [ "$MODE" = "provision" ]; then
   uv pip install --python "$KERNEL_PYTHON" $KERNEL_PACKAGES \
     || die "failed to install kernel packages into $KERNEL_HOME" \
            "packages requested: $KERNEL_PACKAGES" \
-           "override the list with OH_PYTHON_KERNEL_PACKAGES if a spec is unavailable."
+           "override the list with AGRO_PYTHON_KERNEL_PACKAGES if a spec is unavailable."
 fi
 
 kernel_matches || die "kernel interpreter is stale or missing at $KERNEL_PYTHON; expected $PY_PATH"

@@ -17,9 +17,9 @@ confidence: provisional
 # Documenting a forbidden literal by quoting it violates the rule
 
 ## Relevant Source Files
-- `.oh/evals/probes/audit-stale-references.sh@ce7b7db2` — the guard that greps every tracked file for retired names, and the model for how a guard exempts its own definition.
-- `.oh/skills/wiki/references/schema.md@c841e567` — an authoring constraint that points at the guard instead of copying its list.
-- `.oh/skills/wiki/references/compile.md@c841e567` — the matching anti-pattern bullet, written the same way.
+- `.agro/evals/probes/audit-stale-references.sh@ce7b7db2` — the guard that greps every tracked file for retired names, and the model for how a guard exempts its own definition.
+- `.agro/skills/wiki/references/schema.md@c841e567` — an authoring constraint that points at the guard instead of copying its list.
+- `.agro/skills/wiki/references/compile.md@c841e567` — the matching anti-pattern bullet, written the same way.
 
 ## Summary
 A guard that forbids a set of literals across all tracked files also scans the prose

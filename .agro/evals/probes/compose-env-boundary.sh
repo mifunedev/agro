@@ -8,7 +8,7 @@
 # desc: a value belongs in a compose environment: block only if a process OUTSIDE the
 #       sandbox — or the entrypoint BEFORE the control plane is readable — must act on
 #       it. Across every .devcontainer/docker-compose*.yml including overlays: no
-#       INSTALL_* key, no OH_IMAGE_ONLY, and every environment: key is either rendered
+#       INSTALL_* key, no AGRO_IMAGE_ONLY, and every environment: key is either rendered
 #       by config-render.ts or one of the documented literals. ports: and volumes: are
 #       unrestricted — that payload is the part only Docker can act on.
 set -euo pipefail
@@ -73,13 +73,13 @@ for f in "${COMPOSE[@]}"; do
         missing+=("$f: $key — installs come from the catalogs via agro.json, never from compose")
         continue
         ;;
-      OH_IMAGE_ONLY)
-        missing+=("$f: OH_IMAGE_ONLY — the flavor is observable inside the container; compose must not narrate it")
+      AGRO_IMAGE_ONLY)
+        missing+=("$f: AGRO_IMAGE_ONLY — the flavor is observable inside the container; compose must not narrate it")
         continue
         ;;
     esac
     allowed "$key" \
-      || missing+=("$f: $key is neither rendered by $RENDER nor a documented literal — settings belong in agro.json, read through the oh CLI")
+      || missing+=("$f: $key is neither rendered by $RENDER nor a documented literal — settings belong in agro.json, read through the agro CLI")
   done
 done
 

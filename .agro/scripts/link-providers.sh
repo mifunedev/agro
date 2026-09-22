@@ -34,7 +34,7 @@ retired_links=(
   ".codex/skills|.agents/skills"
 )
 
-HERMES_LINK=".hermes/skills/openharness"
+HERMES_LINK=".hermes/skills/agro"
 HERMES_TARGET="../../.agro/skills"
 
 usage() {
@@ -43,7 +43,7 @@ usage: bash .agro/scripts/link-providers.sh [--init|--check] [--hermes-only]
 
 --init         create/repair the provider symlinks into .agro/, then verify
 --check        verify the provider symlinks + vendored .agro/ pack without mutating
---hermes-only  require Hermes integration only; use OH_PROJECT_ROOT when set
+--hermes-only  require Hermes integration only; use AGRO_PROJECT_ROOT when set
 EOF
 }
 
@@ -64,13 +64,13 @@ esac
 
 repo_root=""
 if [ "$hermes_only" = true ]; then
-  repo_root="${OH_PROJECT_ROOT:-}"
+  repo_root="${AGRO_PROJECT_ROOT:-}"
 fi
 if [ -z "$repo_root" ]; then
   repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 fi
 if [ -z "$repo_root" ]; then
-  repo_root="${OH_PROJECT_ROOT:-$PWD}"
+  repo_root="${AGRO_PROJECT_ROOT:-$PWD}"
 fi
 if [ ! -d "$repo_root/.agro/skills" ]; then
   echo "ERROR: not an AGRO tree (no .agro/skills at $repo_root)" >&2
@@ -131,7 +131,7 @@ replacement_survives() {
   local path="$1"
   [ -L "$path" ] || return 1
   case "$(readlink "$path")" in
-    ../.oh/skills|../.agro/skills) ;;
+    ../.agro/skills|../.agro/skills) ;;
     *) return 1 ;;
   esac
   resolves_to_pack "$path"
@@ -382,7 +382,7 @@ if [ "$failures" -ne 0 ]; then
 fi
 
 if [ "$hermes_only" = true ]; then
-  printf 'Hermes OK: .hermes/skills/openharness -> .agro/skills\n'
+  printf 'Hermes OK: .hermes/skills/agro -> .agro/skills\n'
 else
   printf 'Providers OK: .agents/.claude skills -> .agro/skills (vendored pack present)\n'
 fi

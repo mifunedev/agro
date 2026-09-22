@@ -20,8 +20,8 @@ BEGIN {
     envmap["sandbox.name"]          = "SANDBOX_NAME"
     envmap["sandbox.timezone"]      = "TZ"
     envmap["sandbox.docker_socket"] = "DOCKER_SOCKET"
-    envmap["sandbox.image"]         = "OH_SANDBOX_IMAGE"
-    envmap["sandbox.pull_policy"]   = "OH_PULL_POLICY"
+    envmap["sandbox.image"]         = "AGRO_SANDBOX_IMAGE"
+    envmap["sandbox.pull_policy"]   = "AGRO_PULL_POLICY"
     envmap["git.user_name"]         = "GIT_USER_NAME"
     envmap["git.user_email"]        = "GIT_USER_EMAIL"
     envmap["hermes.dashboard"]      = "HERMES_DASHBOARD"
@@ -129,8 +129,8 @@ _field_for() {
         SANDBOX_NAME)               printf 'name string\n' ;;
         TZ)                         printf 'timezone string\n' ;;
         DOCKER_SOCKET)              printf 'access.dockerSocket boolean\n' ;;
-        OH_SANDBOX_IMAGE)           printf 'image.ref string\n' ;;
-        OH_PULL_POLICY)             printf 'image.pullPolicy string\n' ;;
+        AGRO_SANDBOX_IMAGE)           printf 'image.ref string\n' ;;
+        AGRO_PULL_POLICY)             printf 'image.pullPolicy string\n' ;;
         GIT_USER_NAME)              printf 'git.userName string\n' ;;
         GIT_USER_EMAIL)             printf 'git.userEmail string\n' ;;
         HERMES_DASHBOARD)           printf 'hermesDashboard.enabled boolean\n' ;;
@@ -211,7 +211,7 @@ fi
 
 if [ "$_have_jq" -eq 0 ] && [ -n "$_pairs$_overrides" ]; then
     printf '  WARNING jq not found — nothing was written to agro.json. Install jq and\n'
-    printf '          re-run, or set these by hand with `oh config set`:\n'
+    printf '          re-run, or set these by hand with `agro config set`:\n'
 fi
 
 _count=0

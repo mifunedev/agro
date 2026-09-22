@@ -1,7 +1,7 @@
 {
   "display_information": {
-    "name": "Open Harness",
-    "description": "AI coding agent interface for Open Harness sandboxes",
+    "name": "AGRO",
+    "description": "AI coding agent interface for AGRO sandboxes",
     "background_color": "#1a1a2e"
   },
   "features": {
@@ -11,46 +11,46 @@
       "messages_tab_read_only_enabled": false
     },
     "bot_user": {
-      "display_name": "OpenHarness",
+      "display_name": "AGRO",
       "always_online": true
     },
     "slash_commands": [
       {
         "command": "/help",
-        "description": "DM only: Open Harness bridge admin help",
+        "description": "DM only: AGRO bridge admin help",
         "should_escape": false
       },
       {
         "command": "/trusted",
-        "description": "DM only: List trusted Open Harness bridge users",
+        "description": "DM only: List trusted AGRO bridge users",
         "should_escape": false
       },
       {
         "command": "/revoke",
-        "description": "DM only: Revoke trust for an Open Harness bridge user",
+        "description": "DM only: Revoke trust for an AGRO bridge user",
         "usage_hint": "<userId>",
         "should_escape": false
       },
       {
         "command": "/channels",
-        "description": "DM only: List Open Harness bridge-enabled chats",
+        "description": "DM only: List AGRO bridge-enabled chats",
         "should_escape": false
       },
       {
         "command": "/enable",
-        "description": "DM only: Enable the Open Harness bridge in a chat",
+        "description": "DM only: Enable the AGRO bridge in a chat",
         "usage_hint": "<chatId> <all|mentions|trusted-only>",
         "should_escape": false
       },
       {
         "command": "/disable",
-        "description": "DM only: Disable the Open Harness bridge in a chat",
+        "description": "DM only: Disable the AGRO bridge in a chat",
         "usage_hint": "<chatId>",
         "should_escape": false
       },
       {
         "command": "/toggletools",
-        "description": "DM only: Toggle Open Harness bridge tool-call visibility",
+        "description": "DM only: Toggle AGRO bridge tool-call visibility",
         "should_escape": false
       }
     ]

@@ -12,7 +12,7 @@ if [ ! -f "$ROOT/.agro/scripts/install.sh" ]; then
 fi
 
 #   !=          → a test/comparison
-hits=$(grep -rn 'mifunedev/openharness\|ryaneggz/openharness' "$ROOT/.oh" --include='*.sh' --exclude-dir=evals 2>/dev/null || true)
+hits=$(grep -rn 'mifunedev/agro\|ryaneggz/agro' "$ROOT/.oh" --include='*.sh' --exclude-dir=evals 2>/dev/null || true)
 bad=$(printf '%s\n' "$hits" | grep -v ':-' | grep -vE ':[0-9]+:[[:space:]]*#' | grep -v '!=' | grep -v 'default:' || true)
 if [ -n "$bad" ]; then
   echo "REGRESSION non-overridable upstream-repo reference in shipped .oh script: $bad" >&2
@@ -20,6 +20,6 @@ if [ -n "$bad" ]; then
 fi
 
 # shellcheck disable=SC2016  # the ${...:-} literal is grepped, not expanded
-grep -q '${OH_GITHUB_REPO:-' "$ROOT/.agro/scripts/install.sh" || { echo 'REGRESSION install.sh lost the OH_GITHUB_REPO override' >&2; exit 1; }
+grep -q '${AGRO_GITHUB_REPO:-' "$ROOT/.agro/scripts/install.sh" || { echo 'REGRESSION install.sh lost the AGRO_GITHUB_REPO override' >&2; exit 1; }
 
 exit 0

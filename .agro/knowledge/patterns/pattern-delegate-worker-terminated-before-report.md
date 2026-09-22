@@ -15,9 +15,9 @@ confidence: provisional
 # A delegated worker that dies after implementing but before verifying leaves complete files with no evidence
 
 ## Relevant Source Files
-- `.oh/tasks/agro-cli-entry/delegate-log.txt@89e4a8ac` — the T3 row: worker terminated by a provider rate limit after its implementation step, mid-verification.
-- `.oh/tasks/agro-cli-entry/progress.txt@89e4a8ac` — the owner's entry recording that it completed the worker's verification itself.
-- `.oh/cli/src/commands/self-upgrade.ts@e5736830` — the worker's output as committed after owner verification.
+- `.agro/tasks/agro-cli-entry/delegate-log.txt@89e4a8ac` — the T3 row: worker terminated by a provider rate limit after its implementation step, mid-verification.
+- `.agro/tasks/agro-cli-entry/progress.txt@89e4a8ac` — the owner's entry recording that it completed the worker's verification itself.
+- `.agro/cli/src/commands/self-upgrade.ts@e5736830` — the worker's output as committed after owner verification.
 
 ## Summary
 A bounded worker can be killed by something outside the task — here a monthly

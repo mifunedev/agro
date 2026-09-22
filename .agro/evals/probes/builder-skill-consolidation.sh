@@ -53,7 +53,7 @@ if grep -qF '.agro/memory' "$SKILL"; then fail "builder references the deleted .
 if grep -qF 'MEMORY_DIR' "$SKILL"; then fail "builder reintroduced the MEMORY_DIR override"; fi
 
 SKILL_REF="$REFS/skill.md"
-grep -qF '.agro/skills/<name>/SKILL.md' "$SKILL_REF" || fail "skill type omits canonical Open Harness placement"
+grep -qF '.agro/skills/<name>/SKILL.md' "$SKILL_REF" || fail "skill type omits canonical AGRO placement"
 grep -qiF 'progressive disclosure' "$SKILL_REF" || fail "skill type omits progressive disclosure"
 grep -q '^## Frontmatter$' "$SKILL_REF" || fail "skill type omits frontmatter guidance"
 grep -qF 'below 500 lines' "$SKILL_REF" || fail "skill type omits size validation"
@@ -83,7 +83,7 @@ for path in "$REFS"/*.md; do
   fi
 done
 
-if grep -qF 'skill-builder' "$ROOT/docs/oh-directory-layout.md"; then
+if grep -qF 'skill-builder' "$ROOT/docs/agro-directory-layout.md"; then
   fail "current directory-layout docs still advertise skill-builder as an agent"
 fi
 

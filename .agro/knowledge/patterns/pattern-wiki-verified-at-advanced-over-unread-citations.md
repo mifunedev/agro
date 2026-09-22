@@ -6,8 +6,8 @@ tags: [wiki, knowledge, verified-at, citation-rot, freshness, line-numbers, prov
 created: 2026-09-19
 updated: 2026-09-19
 sources:
-  - .agro/knowledge/source/oh-cli-portable-lifecycle.md@4ef3b179
-  - .agro/knowledge/source/oh-cli-portable-lifecycle.md@a5db2526
+  - .agro/knowledge/source/agro-cli-portable-lifecycle.md@4ef3b179
+  - .agro/knowledge/source/agro-cli-portable-lifecycle.md@a5db2526
   - .agro/skills/wiki/references/schema.md@cf35b316
   - .agro/skills/wiki/scripts/knowledge-impact.sh@cf35b316
   - .agro/cli/src/lib/install-kind.ts@a5db2526
@@ -19,7 +19,7 @@ confidence: provisional
 ## Relevant Source Files
 - `.agro/skills/wiki/references/schema.md:107` — `verified_at` is "the commit the page's claims were last checked against", a claim about the whole page.
 - `.agro/skills/wiki/references/schema.md:443` — the merge rule: "the write re-checked the claims, so the pin moves with them".
-- `.agro/knowledge/source/oh-cli-portable-lifecycle.md@4ef3b179` — the page whose pin was advanced over ~33 unread citations.
+- `.agro/knowledge/source/agro-cli-portable-lifecycle.md@4ef3b179` — the page whose pin was advanced over ~33 unread citations.
 - `.agro/skills/wiki/scripts/knowledge-impact.sh@cf35b316` — compares `sources:` paths against a changed set; it never opens a citation.
 - `.agro/cli/src/lib/install-kind.ts@a5db2526` — 17 lines exporting `IMAGE_ROOT`, `toPosix`, `invokedFromImage`; the cited `isImageInstall` has never existed in the tree.
 
@@ -30,7 +30,7 @@ freshly checked. Nothing in the toolchain can contradict it, because freshness i
 computed from paths, never from what the page says about them.
 
 ## Detail
-**Symptom.** A worker added citations to `oh-cli-portable-lifecycle` and advanced its
+**Symptom.** A worker added citations to `agro-cli-portable-lifecycle` and advanced its
 `verified_at`, having verified only the lines it wrote. Reading the remaining ~33
 citations found 9 rotted line numbers and one invented symbol: the page cites
 `isImageInstall`, which exists nowhere in the tree — `install-kind.ts` is 17 lines
@@ -63,4 +63,4 @@ resolve every other citation on the page by hand.
 ## See Also
 - [[pattern-wiki-frontmatter-edit-without-reindex]] — the other way a knowledge-page edit satisfies one check and breaks another.
 - [[pattern-wiki-ungated-check-drift]] — a finding no oracle can produce is a finding nobody will see.
-- [[oh-cli-portable-lifecycle]]
+- [[agro-cli-portable-lifecycle]]

@@ -14,7 +14,7 @@ sources:
   - .agro/skills/audit/references/full.md
   - .agro/skills/audit/scripts/route-driver.sh
 verified_at: a0d0437ec9819ce6ecf879cabeaefef9980cdcec
-related: [oh-cli-portable-lifecycle]
+related: [agro-cli-portable-lifecycle]
 confidence: confirmed
 ---
 
@@ -58,4 +58,4 @@ flowchart LR
 ```
 
 ## See Also
-- [[oh-cli-portable-lifecycle]]
+- [[agro-cli-portable-lifecycle]]

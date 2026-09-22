@@ -17,7 +17,7 @@ related: [pattern-evals-document-conformance-proxy-oracle, pattern-evals-unexerc
 
 ## Relevant Source Files
 - `.agro/evals/probes/oh-config-surfaces.sh@f3d3a1a6` — the before-state: one grep over four tokens, exempting two files by exact path with `grep -vx -e '<path>' -e '<path>'`.
-- `.agro/evals/probes/oh-config-surfaces.sh@bed2d90c` — the after-state: owner status must be earned by matching the `OH_HOME`/`AGRO_HOME` relocation contract, and non-owner files must satisfy three positive properties.
+- `.agro/evals/probes/oh-config-surfaces.sh@bed2d90c` — the after-state: owner status must be earned by matching the `AGRO_HOME`/`AGRO_HOME` relocation contract, and non-owner files must satisfy three positive properties.
 - `.agro/tasks/langfuse-config-wizard/progress.txt@388cdecc` — the run that hit it, including the three-part injection that proved the rewrite.
 
 ## Summary

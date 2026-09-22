@@ -1,6 +1,6 @@
 # RFC: Self-improving harness roadmap curation
 
-Status: Draft curation for [#525](https://github.com/mifunedev/openharness/issues/525).
+Status: Draft curation for [#525](https://github.com/mifunedev/agro/issues/525).
 
 This document turns #525's broad roadmap epic into proposed child issues a
 maintainer can file. It is intentionally a planning artifact: this loop does not
@@ -15,7 +15,7 @@ behavior.
   clear validation surface, not another open-ended research epic.
 - Preserve human control. Anything that expands authority, touches secrets, or
   publishes externally remains explicitly human-gated.
-- Keep comparison rigs optional. Core Open Harness stays one project / one
+- Keep comparison rigs optional. Core AGRO stays one project / one
   sandbox; multi-agent comparisons can become a separate pack if they prove
   useful.
 

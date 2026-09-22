@@ -60,7 +60,7 @@ These names describe separate layers, not interchangeable jobs:
 - **harness** — The whole portable setup: one git repo that boots one Docker
   sandbox, wraps your project inside it, and versions the agent's identity,
   skills, crons, and memory. "AGRO" names both this project and any
-  single repo-per-sandbox instance of it. "Open Harness" is the former name of
+  single repo-per-sandbox instance of it. "AGRO" is the former name of
   this project and names nothing current.
   Source: [`intro.md`](intro.md).
 

@@ -18,8 +18,8 @@ Every observation below is dated. Tags move; digests do not. Read a claim about
 - As of 2026-09-08, `ghcr.io/mifunedev/agro` held exactly two versions, pushed
   11 seconds apart on 2026-09-06: one tagged `latest`, one tagged `0.9.0` and
   `sha-823aabbd…`. Both resolved to image id `bbfdaf6bb8ca`, and
-  `ghcr.io/mifunedev/openharness:0.9.0` resolved to it too.
-- That build's `/opt/oh-seed/package.json` carries
+  `ghcr.io/mifunedev/agro:0.9.0` resolved to it too.
+- That build's `/opt/agro-seed/package.json` carries
   `"pnpm:devPreinstall": "pnpm run security:audit"` and pins vitest `^3.2.6`.
   `GHSA-82fw-gwwq-j7x9` covers `>=2.1.0 <4.1.11`, so its boot install fails for
   as long as that advisory stands. The build itself cannot be edited.
@@ -28,7 +28,7 @@ Every observation below is dated. Tags move; digests do not. Read a claim about
   R3 exist to change — after the release described here, `latest` is expected to
   name a working build and these sentences no longer describe it.
 - An image built locally from `development` at `b10ecac3` cold-boots: with no
-  `node_modules` present, `openharness-bootstrap.service` reached
+  `node_modules` present, `agro-bootstrap.service` reached
   `active (exited)` with `status=0/SUCCESS`, and its seeded manifest carries no
   lifecycle hook and pins vitest `^4.1.11`. That result describes the source
   revision. It says nothing about the published build, whose layers cannot be
@@ -51,8 +51,8 @@ rewrites them. Only a new build carries a fixed manifest.
 
 **Requirement.** After publishing, pull the published tag and cold-boot it
 against an empty workspace volume. Accept only on the observed service state:
-`systemctl is-active openharness-bootstrap.service` returns `active`, and
-`openharness-cron.service` returns `active`.
+`systemctl is-active agro-bootstrap.service` returns `active`, and
+`agro-cron.service` returns `active`.
 
 **Rationale.** A container that is `running` proves nothing. systemd is PID 1
 and the bootstrap unit is a `Type=oneshot`, so a container whose boot failed
@@ -72,7 +72,7 @@ published tag.
 - As of 2026-09-08, `:latest` resolved to the same failing build, so every new
   user who does not pin was blocked. Moving `:latest` to a fixed build is what
   unblocks them; re-check what `:latest` resolves to before acting.
-- `ghcr.io/mifunedev/openharness:0.9.0` is referenced by
+- `ghcr.io/mifunedev/agro:0.9.0` is referenced by
   `.agro/scripts/sandbox-upgrade-smoke.sh` (`LEGACY_IMAGE` default), by
   `.github/workflows/sandbox-boot-guard.yml`, and by
   `.agro/evals/probes/sandbox-boot-advisory-recovery.sh`. All three source the
@@ -97,7 +97,7 @@ reason either way. This document does not change the pin and does not choose.
 **Evidence for keeping the pin at `0.9.0`:**
 
 - `0.9.0` is the only published image whose seed lays down the legacy `.oh`
-  control plane. Its seed directory is `/opt/oh-seed`.
+  control plane. Its seed directory is `/opt/agro-seed`.
 - An image built from `development` seeds `/opt/agro-seed` and lays down
   `.agro`. Moving the pin to such an image changes the upgrade smoke from a
   `.oh`-to-`.agro` upgrade test into a same-layout test, and silently drops the

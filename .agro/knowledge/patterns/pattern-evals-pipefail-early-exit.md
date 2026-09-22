@@ -19,7 +19,7 @@ confidence: provisional
   appeared, and the capture-then-match form that fixes it.
 - `.agro/skills/wiki/references/lint.md` — the same check written as procedure,
   carrying the warning so the next author meets it before writing the pipeline.
-- `.oh/tasks/repo-knowledge-loop/evidence.md@fcbeedea` — the run that produced the
+- `.agro/tasks/repo-knowledge-loop/evidence.md@fcbeedea` — the run that produced the
   observation.
 
 ## Summary

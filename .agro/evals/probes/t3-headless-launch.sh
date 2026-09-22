@@ -61,8 +61,8 @@ set -e
 if ((doctor_code == 0)); then
   missing+=("$SCRIPT: 'doctor --tailscale' succeeded with no tailscale binary on PATH — the preflight is not load-bearing")
 fi
-grep -qF 'oh tool install tailscale' <<<"$doctor_out" \
-  || missing+=("$SCRIPT: 'doctor --tailscale' does not name 'oh tool install tailscale' as the fix (got: ${doctor_out//$'\n'/ })")
+grep -qF 'agro tool install tailscale' <<<"$doctor_out" \
+  || missing+=("$SCRIPT: 'doctor --tailscale' does not name 'agro tool install tailscale' as the fix (got: ${doctor_out//$'\n'/ })")
 
 stub_oldnode="$WORK/stub-oldnode"
 mkdir -p "$stub_oldnode"

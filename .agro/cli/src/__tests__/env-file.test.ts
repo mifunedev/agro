@@ -10,7 +10,7 @@ import {
   setEnvValue,
   setKeyInEnv,
 } from "../lib/env-file.js";
-import { ohConfigPath } from "../lib/oh-config.js";
+import { agroConfigPath } from "../lib/agro-config.js";
 
 const cleanups: string[] = [];
 afterEach(() => {
@@ -34,13 +34,13 @@ const expectNoDotenv = (root: string): void => {
 };
 
 const readConfig = (root: string): Record<string, never> =>
-  JSON.parse(readFileSync(ohConfigPath(root), "utf8"));
+  JSON.parse(readFileSync(agroConfigPath(root), "utf8"));
 
 describe("setKeyInEnv", () => {
   it("uncomments a template line IN PLACE, keeping the line count and the prose", () => {
     const before = [
       "# ─── Sandbox identity ───",
-      "# SANDBOX_NAME=openharness              # container + compose project name",
+      "# SANDBOX_NAME=agro              # container + compose project name",
       "# TZ=America/Los_Angeles",
       "",
     ].join("\n");
@@ -105,9 +105,9 @@ describe("the env-key bridge", () => {
   it("is idempotent — a second identical write rewrites nothing", () => {
     const root = makeRepo();
     setConfigField(root, "access.dockerSocket", "true");
-    const after = readFileSync(ohConfigPath(root), "utf8");
+    const after = readFileSync(agroConfigPath(root), "utf8");
     expect(setConfigField(root, "access.dockerSocket", "true")).toBe("already-set");
-    expect(readFileSync(ohConfigPath(root), "utf8")).toBe(after);
+    expect(readFileSync(agroConfigPath(root), "utf8")).toBe(after);
   });
 
   it("reports `added` for a field the defaults leave unset", () => {
@@ -117,14 +117,14 @@ describe("the env-key bridge", () => {
 });
 
 describe("setEnvValue", () => {
-  it("routes a compose variable to its oh.json field", () => {
+  it("routes a compose variable to its agro.json field", () => {
     const root = makeRepo();
     expect(setEnvValue(root, "DOCKER_SOCKET", "true", "agro")).toBe("updated");
     expect(readConfig(root)).toMatchObject({ access: { dockerSocket: true } });
     expectNoDotenv(root);
   });
 
-  it.each(["agro", "oh"])(
+  it.each(["agro", "agro"])(
     "refuses a retired INSTALL_* key for %s rather than resurrecting an install field",
     (bin) => {
       const root = makeRepo();
@@ -135,8 +135,8 @@ describe("setEnvValue", () => {
     },
   );
 
-  it.each(["agro", "oh"])(
-    "refuses a key that has no oh.json field for %s rather than falling back to a dotenv",
+  it.each(["agro", "agro"])(
+    "refuses a key that has no agro.json field for %s rather than falling back to a dotenv",
     (bin) => {
       const root = makeRepo();
       expect(() => setEnvValue(root, "GH_TOKEN", "ghp_example", bin)).toThrow(
@@ -156,7 +156,7 @@ describe("setConfigField", () => {
   });
 
   it("refuses an unknown field", () => {
-    expect(() => setConfigField(makeRepo(), "access.nope", "1")).toThrow(/unknown oh.json field/);
+    expect(() => setConfigField(makeRepo(), "access.nope", "1")).toThrow(/unknown agro.json field/);
   });
 });
 

@@ -28,8 +28,8 @@ for compose in "$COMPOSE_PRIMARY" "$COMPOSE_IO"; do
     fails+=("$label must have exactly one mount targeting /home/sandbox (found ${home_mounts:-0})")
   fi
 
-  grep -Eq '^[[:space:]]*-[[:space:]]*\$\{AGRO_HOME_MOUNT:-\$\{OH_HOME_MOUNT:-workspace\}\}:/home/sandbox$' "$compose" \
-    || fails+=("$label must mount \${AGRO_HOME_MOUNT:-\${OH_HOME_MOUNT:-workspace}} at /home/sandbox so a blank agro.json storage.homePath falls back to the named volume")
+  grep -Eq '^[[:space:]]*-[[:space:]]*\$\{AGRO_HOME_MOUNT:-workspace\}:/home/sandbox$' "$compose" \
+    || fails+=("$label must mount \${AGRO_HOME_MOUNT:-workspace} at /home/sandbox so a blank agro.json storage.homePath falls back to the named volume")
 
   grep -qE '^  workspace:$' "$compose" \
     || fails+=("$label must declare the top-level named volume 'workspace' (compose prefixes it with the project name)")
@@ -45,7 +45,7 @@ for compose in "$COMPOSE_PRIMARY" "$COMPOSE_IO"; do
   done
 done
 
-grep -Eq '^[[:space:]]*-[[:space:]]*(\$\{AGRO_REPO_DIR:-\$\{OH_REPO_DIR:-\.\.\}\}|\$\{OH_REPO_DIR:-\.\.\}|\.\.):/home/sandbox/harness$' "$COMPOSE_PRIMARY" \
+grep -Eq '^[[:space:]]*-[[:space:]]*(\$\{AGRO_REPO_DIR:-\$\{AGRO_REPO_DIR:-\.\.\}\}|\$\{AGRO_REPO_DIR:-\.\.\}|\.\.):/home/sandbox/harness$' "$COMPOSE_PRIMARY" \
   || fails+=("docker-compose.yml must bind the checkout at the fixed path /home/sandbox/harness, nested inside the home mount")
 
 if grep -qE '^[[:space:]]*-[[:space:]]*\.\.:' "$COMPOSE_IO"; then
@@ -73,8 +73,8 @@ grep -Fq 'rm -rf /opt/home-seed/harness' "$DOCKERFILE" \
 if grep -E -- '-xdev' "$ENTRYPOINT" | grep -Fq '/home/sandbox'; then
   fails+=("entrypoint.sh must not use -xdev under /home/sandbox: once home is a mount it shares a device with the checkout and stops pruning it")
 fi
-grep -Fq 'find /home/sandbox -path "$OH_PROJECT_ROOT" -prune -o' "$ENTRYPOINT" \
-  || fails+=("entrypoint.sh must prune \$OH_PROJECT_ROOT explicitly when repairing home ownership")
+grep -Fq 'find /home/sandbox -path "$AGRO_PROJECT_ROOT" -prune -o' "$ENTRYPOINT" \
+  || fails+=("entrypoint.sh must prune \$AGRO_PROJECT_ROOT explicitly when repairing home ownership")
 
 # ── behavioral sim of the fenced seed_home ────────────────────────────
 seed_fn_file="$(mktemp)"
@@ -91,14 +91,14 @@ else
 
   # (a) fresh dest gets the whole baked home
   dest_a="$simdir/a"
-  ( set -e; source "$seed_fn_file"; OH_HOME_SEED_SRC="$src" seed_home "$dest_a" )
+  ( set -e; source "$seed_fn_file"; AGRO_HOME_SEED_SRC="$src" seed_home "$dest_a" )
   [[ -f "$dest_a/.zshrc" && -f "$dest_a/.oh-my-zsh/marker" ]] \
     || fails+=("seed sim (a): an empty home mount must receive the baked dotfiles")
 
   # (b) operator state is never clobbered, and new files still backfill
   dest_b="$simdir/b"; mkdir -p "$dest_b"
   printf 'mine\n' > "$dest_b/.zshrc"
-  ( set -e; source "$seed_fn_file"; OH_HOME_SEED_SRC="$src" seed_home "$dest_b" )
+  ( set -e; source "$seed_fn_file"; AGRO_HOME_SEED_SRC="$src" seed_home "$dest_b" )
   [[ "$(cat "$dest_b/.zshrc")" == "mine" ]] \
     || fails+=("seed sim (b): seed_home must never clobber an existing file")
   [[ -f "$dest_b/.oh-my-zsh/marker" ]] \
@@ -110,7 +110,7 @@ else
   mkdir -p "$src/.ssh"; chmod 755 "$src/.ssh"
   printf 'baked\n' > "$src/.ssh/known_hosts"
   dest_b2="$simdir/b2"; mkdir -p "$dest_b2/.ssh"; chmod 700 "$dest_b2/.ssh"
-  ( set -e; source "$seed_fn_file"; OH_HOME_SEED_SRC="$src" seed_home "$dest_b2" )
+  ( set -e; source "$seed_fn_file"; AGRO_HOME_SEED_SRC="$src" seed_home "$dest_b2" )
   [[ "$(stat -c %a "$dest_b2/.ssh")" == "700" ]] \
     || fails+=("seed sim (b2): seed_home must not rewrite the mode of a directory the home mount already has")
   [[ ! -e "$dest_b2/.ssh/known_hosts" ]] \
@@ -118,25 +118,25 @@ else
 
   # (b3) a top-level directory the mount lacks arrives whole, with its mode
   dest_b3="$simdir/b3"
-  ( set -e; source "$seed_fn_file"; OH_HOME_SEED_SRC="$src" seed_home "$dest_b3" )
+  ( set -e; source "$seed_fn_file"; AGRO_HOME_SEED_SRC="$src" seed_home "$dest_b3" )
   [[ "$(stat -c %a "$dest_b3/.ssh")" == "755" ]] \
     || fails+=("seed sim (b3): a directory absent from the home mount must arrive with the seed's mode")
   [[ -f "$dest_b3/.ssh/known_hosts" ]] \
     || fails+=("seed sim (b3): a directory absent from the home mount must arrive with its contents")
 
   # (c) idempotent across boots
-  ( set -e; source "$seed_fn_file"; OH_HOME_SEED_SRC="$src" seed_home "$dest_a" )
+  ( set -e; source "$seed_fn_file"; AGRO_HOME_SEED_SRC="$src" seed_home "$dest_a" )
   [[ "$(cat "$dest_a/.zshrc")" == "baked" ]] \
     || fails+=("seed sim (c): a second boot must leave an already-seeded home unchanged")
 
   # (d) a missing seed source is a no-op, never a boot failure
-  ( set -e; source "$seed_fn_file"; OH_HOME_SEED_SRC="$simdir/absent" seed_home "$simdir/d" ) \
+  ( set -e; source "$seed_fn_file"; AGRO_HOME_SEED_SRC="$simdir/absent" seed_home "$simdir/d" ) \
     || fails+=("seed sim (d): seed_home must return 0 when the baked seed is absent")
 
   # (e) a genuine copy failure is reported, not swallowed
   dest_e="$simdir/e"; mkdir -p "$dest_e"; chmod 500 "$dest_e"
   if [[ "$(id -u)" != "0" ]]; then
-    if ( source "$seed_fn_file"; OH_HOME_SEED_SRC="$src" seed_home "$dest_e" ) 2>/dev/null; then
+    if ( source "$seed_fn_file"; AGRO_HOME_SEED_SRC="$src" seed_home "$dest_e" ) 2>/dev/null; then
       fails+=("seed sim (e): seed_home must return non-zero when it cannot write the home mount, so a partial seed is visible in the boot log")
     fi
   fi
@@ -149,5 +149,5 @@ if (( ${#fails[@]} > 0 )); then
   exit 1
 fi
 
-echo "PASS: one \${AGRO_HOME_MOUNT:-\${OH_HOME_MOUNT:-workspace}} mount at /home/sandbox in both compose files with the per-tool volumes retired and no pinned volume name; the checkout binds at the fixed /home/sandbox/harness; the Dockerfile stages /opt/home-seed and leaves the image home empty; entrypoint prunes \$OH_PROJECT_ROOT instead of -xdev; seed_home copies whole top-level entries the mount lacks, never touches one it already has (mode included), reports write failures, and no-ops without a seed" >&2
+echo "PASS: one \${AGRO_HOME_MOUNT:-workspace} mount at /home/sandbox in both compose files with the per-tool volumes retired and no pinned volume name; the checkout binds at the fixed /home/sandbox/harness; the Dockerfile stages /opt/home-seed and leaves the image home empty; entrypoint prunes \$AGRO_PROJECT_ROOT instead of -xdev; seed_home copies whole top-level entries the mount lacks, never touches one it already has (mode included), reports write failures, and no-ops without a seed" >&2
 exit 0

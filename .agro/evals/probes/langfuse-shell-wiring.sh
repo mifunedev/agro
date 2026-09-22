@@ -2,7 +2,7 @@
 # tier: A
 # source: issue #1131 US-004 — .agro/install/.zshrc is the only managed shell surface and
 #         zsh reads it for INTERACTIVE shells alone, so `zsh -c` carried no credentials.
-#         openharness-cron.service runs /bin/bash -c with Environment=HOME only and got
+#         agro-cron.service runs /bin/bash -c with Environment=HOME only and got
 #         credentials by accident, because .tmux.conf sets no default-command and
 #         tmux new-session therefore spawns a login shell. cron-runtime.ts branches on
 #         liveEntry.tmux, and the tmux: false path had no such luck — those fires emitted
@@ -20,7 +20,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"; cd "$ROOT"
 
 ZSHENV=".agro/install/.zshenv"
 DOCKERFILE=".devcontainer/Dockerfile"
-UNIT=".devcontainer/openharness-cron.service"
+UNIT=".devcontainer/agro-cron.service"
 FRAGMENT='.config/agro/langfuse.env'
 
 for f in "$DOCKERFILE" "$UNIT"; do
@@ -75,5 +75,5 @@ if ((${#missing[@]})); then
   exit 1
 fi
 
-echo "PASS: tracked .zshenv guards and set -a exports ~/$FRAGMENT, the Dockerfile copies it to /home/sandbox/.zshenv, openharness-cron.service carries EnvironmentFile=- for the same fragment; $behavior" >&2
+echo "PASS: tracked .zshenv guards and set -a exports ~/$FRAGMENT, the Dockerfile copies it to /home/sandbox/.zshenv, agro-cron.service carries EnvironmentFile=- for the same fragment; $behavior" >&2
 exit 0

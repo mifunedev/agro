@@ -9,7 +9,7 @@ readonly PROG=registry-portability
 readonly UNIX_ROOTS=" bin boot dev etc home lib media mnt opt proc root run sbin srv sys tmp usr var "
 readonly META_PREFIXES=(foo bar baz qux)
 
-readonly RE_OH='\.(oh|agro)/[A-Za-z0-9._/-]+'
+readonly RE_OH='\.agro/[A-Za-z0-9._/-]+'
 readonly RE_SPAN='`([^`]+)`'
 readonly RE_REF='^(references|scripts)/[A-Za-z0-9._-]+\.(md|sh)'
 readonly RE_NAME='^[a-z][a-z0-9-]*$'
@@ -191,8 +191,8 @@ is_placeholder() {
 
 covered_by_oh_path() {
   local token=$1 seen
-  if (( ${#OH_TOKENS[@]} == 0 )); then return 1; fi
-  for seen in "${OH_TOKENS[@]}"; do
+  if (( ${#AGRO_TOKENS[@]} == 0 )); then return 1; fi
+  for seen in "${AGRO_TOKENS[@]}"; do
     if [[ $seen == *"$token"* ]]; then return 0; fi
   done
   return 1
@@ -200,18 +200,18 @@ covered_by_oh_path() {
 
 
 declare -a FINDINGS=()
-declare -a OH_TOKENS=()
+declare -a AGRO_TOKENS=()
 
 scan_line() {
   local rel=$1 lineno=$2 base=$3 line=$4
   local rest token whole span head name ref
 
-  OH_TOKENS=()
+  AGRO_TOKENS=()
 
   rest=$line
   while [[ $rest =~ $RE_OH ]]; do
     token=${BASH_REMATCH[0]}
-    OH_TOKENS+=("$token")
+    AGRO_TOKENS+=("$token")
     FINDINGS+=("$rel"$'\t'"$lineno"$'\t'"OH-PATH"$'\t'"$token")
     rest=${rest#*"$token"}
   done

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { runConfigSet, runConfigShow, type ConfigIO } from "../commands/config.js";
 import { runSecretList, runSecretSet, type SecretIO } from "../commands/secret.js";
 import { setSecret } from "../lib/secrets.js";
-import { ohConfigPath } from "../lib/oh-config.js";
+import { agroConfigPath } from "../lib/agro-config.js";
 
 vi.mock("../cli.js", async (importOriginal) => {
   const original = process.exit;
@@ -25,9 +25,9 @@ afterEach(() => {
 });
 
 function makeRepo(): string {
-  const d = mkdtempSync(join(tmpdir(), "oh-config-cmd-"));
+  const d = mkdtempSync(join(tmpdir(), "agro-config-cmd-"));
   cleanups.push(d);
-  mkdirSync(join(d, ".oh", "scripts"), { recursive: true });
+  mkdirSync(join(d, ".agro", "scripts"), { recursive: true });
   return d;
 }
 
@@ -38,7 +38,7 @@ function makeIo(): { io: ConfigIO & SecretIO; out: string[]; err: string[] } {
 }
 
 const readConfig = (root: string): Record<string, never> =>
-  JSON.parse(readFileSync(ohConfigPath(root), "utf8"));
+  JSON.parse(readFileSync(agroConfigPath(root), "utf8"));
 
 describe("parseConfigArgs", () => {
   it("routes show and set, and still routes an integration name", () => {
@@ -109,16 +109,16 @@ describe("parseSecretArgs", () => {
 
 describe("--sandbox <name>", () => {
   function registryEntry(name: string): string {
-    const home = mkdtempSync(join(tmpdir(), "oh-config-registry-"));
+    const home = mkdtempSync(join(tmpdir(), "agro-config-registry-"));
     cleanups.push(home);
-    vi.stubEnv("OH_HOME", home);
+    vi.stubEnv("AGRO_HOME", home);
     const root = join(home, "sandboxes", name);
     mkdirSync(root, { recursive: true });
-    writeFileSync(join(root, "oh.json"), `${JSON.stringify({ version: 1, name })}\n`);
+    writeFileSync(join(root, "agro.json"), `${JSON.stringify({ version: 1, name })}\n`);
     return root;
   }
 
-  it("parses --sandbox out of `oh config` and `oh secret` argv", () => {
+  it("parses --sandbox out of `agro config` and `agro secret` argv", () => {
     expect(parseConfigArgs(["set", "access.ssh", "true", "--sandbox", "box"])).toEqual({
       ok: true,
       args: {
@@ -139,53 +139,53 @@ describe("--sandbox <name>", () => {
     if (!missing.ok) expect(missing.error).toContain("--sandbox requires a sandbox name");
   });
 
-  it("`oh config set --sandbox` writes the entry, not the project", async () => {
+  it("`agro config set --sandbox` writes the entry, not the project", async () => {
     const entry = registryEntry("box");
     const project = makeRepo();
     const { io } = makeIo();
 
     expect(
-      await runConfigSet("access.sshPort", "2345", { bin: "oh", cwd: project, sandbox: "box" }, io),
+      await runConfigSet("access.sshPort", "2345", { bin: "agro", cwd: project, sandbox: "box" }, io),
     ).toBe(0);
     expect(readConfig(entry)).toMatchObject({ access: { sshPort: 2345 } });
-    expect(existsSync(ohConfigPath(project))).toBe(false);
+    expect(existsSync(agroConfigPath(project))).toBe(false);
   });
 
-  it("`oh config show --sandbox` reads the entry", async () => {
+  it("`agro config show --sandbox` reads the entry", async () => {
     registryEntry("box");
     const { io, out } = makeIo();
-    expect(await runConfigShow({ bin: "oh", cwd: makeRepo(), sandbox: "box" }, io)).toBe(0);
+    expect(await runConfigShow({ bin: "agro", cwd: makeRepo(), sandbox: "box" }, io)).toBe(0);
     expect(JSON.parse(out.join(""))).toMatchObject({ name: "box" });
   });
 
   it("errors when the named sandbox is not registered", async () => {
     registryEntry("box");
     const { io } = makeIo();
-    await expect(runConfigShow({ bin: "oh", sandbox: "absent" }, io)).rejects.toThrow(
+    await expect(runConfigShow({ bin: "agro", sandbox: "absent" }, io)).rejects.toThrow(
       "no sandbox named `absent`",
     );
   });
 
-  it("`oh secret set --sandbox` writes the entry .env and no .gitignore", async () => {
+  it("`agro secret set --sandbox` writes the entry .env and no .gitignore", async () => {
     const entry = registryEntry("box");
     const { io } = makeIo();
     io.askSecret = async () => "ghp_registry";
 
-    expect(await runSecretSet("GH_TOKEN", { bin: "oh", sandbox: "box" }, io)).toBe(0);
+    expect(await runSecretSet("GH_TOKEN", { bin: "agro", sandbox: "box" }, io)).toBe(0);
     expect(readFileSync(join(entry, ".env"), "utf8")).toContain("GH_TOKEN=ghp_registry");
     expect(existsSync(join(entry, ".gitignore"))).toBe(false);
   });
 
-  it("`oh secret set` appends .env to the project .gitignore exactly once", async () => {
+  it("`agro secret set` appends .env to the project .gitignore exactly once", async () => {
     const project = makeRepo();
     mkdirSync(join(project, ".git"), { recursive: true });
     const { io } = makeIo();
     io.askSecret = async () => "ghp_project";
 
-    expect(await runSecretSet("GH_TOKEN", { bin: "oh", cwd: project }, io)).toBe(0);
+    expect(await runSecretSet("GH_TOKEN", { bin: "agro", cwd: project }, io)).toBe(0);
     expect(readFileSync(join(project, ".gitignore"), "utf8")).toBe(".env\n");
 
-    expect(await runSecretSet("GH_TOKEN", { bin: "oh", cwd: project }, io)).toBe(0);
+    expect(await runSecretSet("GH_TOKEN", { bin: "agro", cwd: project }, io)).toBe(0);
     expect(readFileSync(join(project, ".gitignore"), "utf8")).toBe(".env\n");
   });
 
@@ -194,16 +194,16 @@ describe("--sandbox <name>", () => {
     const { io } = makeIo();
     io.askSecret = async () => "ghp_project";
 
-    expect(await runSecretSet("GH_TOKEN", { bin: "oh", cwd: project }, io)).toBe(0);
+    expect(await runSecretSet("GH_TOKEN", { bin: "agro", cwd: project }, io)).toBe(0);
     expect(existsSync(join(project, ".gitignore"))).toBe(false);
   });
 });
 
-describe("oh config show", () => {
-  it("prints the resolved oh.json as JSON", async () => {
+describe("agro config show", () => {
+  it("prints the resolved agro.json as JSON", async () => {
     const root = makeRepo();
     const { io, out } = makeIo();
-    expect(await runConfigShow({ bin: "oh", cwd: root }, io)).toBe(0);
+    expect(await runConfigShow({ bin: "agro", cwd: root }, io)).toBe(0);
     const printed = JSON.parse(out.join(""));
     expect(printed.version).toBe(1);
     expect(printed.access).toBeDefined();
@@ -211,35 +211,35 @@ describe("oh config show", () => {
   });
 });
 
-describe("oh config set", () => {
-  it("writes a validated value to oh.json", async () => {
+describe("agro config set", () => {
+  it("writes a validated value to agro.json", async () => {
     const root = makeRepo();
     const { io, out } = makeIo();
-    expect(await runConfigSet("access.sshPort", "2200", { bin: "oh", cwd: root }, io)).toBe(0);
+    expect(await runConfigSet("access.sshPort", "2200", { bin: "agro", cwd: root }, io)).toBe(0);
     expect(readConfig(root)).toMatchObject({ access: { sshPort: 2200 } });
-    expect(out.join("")).toContain("oh.json: set access.sshPort=2200");
+    expect(out.join("")).toContain("agro.json: set access.sshPort=2200");
   });
 
-  it("rejects a secret key and points at `oh secret set`", async () => {
+  it("rejects a secret key and points at `agro secret set`", async () => {
     const root = makeRepo();
     const { io, err } = makeIo();
-    expect(await runConfigSet("GH_TOKEN", "ghp_example", { bin: "oh", cwd: root }, io)).toBe(1);
+    expect(await runConfigSet("GH_TOKEN", "ghp_example", { bin: "agro", cwd: root }, io)).toBe(1);
     expect(err.join("")).toMatch(/is a secret/);
-    expect(err.join("")).toContain("oh secret set GH_TOKEN");
-    expect(existsSync(ohConfigPath(root))).toBe(false);
+    expect(err.join("")).toContain("agro secret set GH_TOKEN");
+    expect(existsSync(agroConfigPath(root))).toBe(false);
   });
 
   it("rejects a lowercased secret key too", async () => {
     const root = makeRepo();
     const { io, err } = makeIo();
-    expect(await runConfigSet("gh_token", "ghp_example", { bin: "oh", cwd: root }, io)).toBe(1);
-    expect(err.join("")).toContain("oh secret set GH_TOKEN");
+    expect(await runConfigSet("gh_token", "ghp_example", { bin: "agro", cwd: root }, io)).toBe(1);
+    expect(err.join("")).toContain("agro secret set GH_TOKEN");
   });
 
   it("rejects an unknown field and lists the settable ones", async () => {
     const root = makeRepo();
     const { io, err } = makeIo();
-    expect(await runConfigSet("access.nope", "1", { bin: "oh", cwd: root }, io)).toBe(1);
+    expect(await runConfigSet("access.nope", "1", { bin: "agro", cwd: root }, io)).toBe(1);
     expect(err.join("")).toMatch(/unknown field "access.nope"/);
     expect(err.join("")).toContain("access.sshPort");
   });
@@ -247,20 +247,20 @@ describe("oh config set", () => {
   it("rejects an invalid value without writing", async () => {
     const root = makeRepo();
     const { io, err } = makeIo();
-    expect(await runConfigSet("access.sshPort", "0", { bin: "oh", cwd: root }, io)).toBe(1);
+    expect(await runConfigSet("access.sshPort", "0", { bin: "agro", cwd: root }, io)).toBe(1);
     expect(err.join("")).toMatch(/between 1 and 65535/);
-    expect(existsSync(ohConfigPath(root))).toBe(false);
+    expect(existsSync(agroConfigPath(root))).toBe(false);
   });
 });
 
-describe("oh secret set", () => {
+describe("agro secret set", () => {
   it("stores a Muse API key through the hidden prompt and redacts its listing", async () => {
     const root = makeRepo();
     const { io, out } = makeIo();
     io.askSecret = async () => "meta_test_credential_not_real";
-    expect(await runSecretSet("META_API_KEY", { bin: "oh", cwd: root }, io)).toBe(0);
+    expect(await runSecretSet("META_API_KEY", { bin: "agro", cwd: root }, io)).toBe(0);
     expect(readFileSync(join(root, ".env"), "utf8")).toContain("META_API_KEY=meta_test_credential_not_real");
-    expect(await runSecretList({ bin: "oh", cwd: root }, io)).toBe(0);
+    expect(await runSecretList({ bin: "agro", cwd: root }, io)).toBe(0);
     expect(out.join("")).toContain("META_API_KEY");
     expect(out.join("")).not.toContain("meta_test_credential_not_real");
   });
@@ -272,7 +272,7 @@ describe("oh secret set", () => {
       asked.push(q);
       return "ghp_supersecretvalue";
     };
-    expect(await runSecretSet("GH_TOKEN", { bin: "oh", cwd: root }, io)).toBe(0);
+    expect(await runSecretSet("GH_TOKEN", { bin: "agro", cwd: root }, io)).toBe(0);
     expect(asked).toHaveLength(1);
     expect(asked[0]).toContain("input hidden");
     expect(out.join("")).not.toContain("ghp_supersecretvalue");
@@ -280,12 +280,12 @@ describe("oh secret set", () => {
     expect(readFileSync(join(root, ".env"), "utf8")).toContain("GH_TOKEN=ghp_supersecretvalue");
   });
 
-  it("refuses a non-secret key and points at `oh config set`", async () => {
+  it("refuses a non-secret key and points at `agro config set`", async () => {
     const root = makeRepo();
     const { io, err } = makeIo();
     io.askSecret = async () => "never";
-    expect(await runSecretSet("SANDBOX_NAME", { bin: "oh", cwd: root }, io)).toBe(1);
-    expect(err.join("")).toContain("oh config set SANDBOX_NAME");
+    expect(await runSecretSet("SANDBOX_NAME", { bin: "agro", cwd: root }, io)).toBe(1);
+    expect(err.join("")).toContain("agro config set SANDBOX_NAME");
     expect(existsSync(join(root, ".env"))).toBe(false);
   });
 
@@ -293,19 +293,19 @@ describe("oh secret set", () => {
     const root = makeRepo();
     const { io, err } = makeIo();
     io.askSecret = async () => "  ";
-    expect(await runSecretSet("GH_TOKEN", { bin: "oh", cwd: root }, io)).toBe(1);
+    expect(await runSecretSet("GH_TOKEN", { bin: "agro", cwd: root }, io)).toBe(1);
     expect(err.join("")).toMatch(/no value entered/);
     expect(existsSync(join(root, ".env"))).toBe(false);
   });
 });
 
-describe("oh secret list", () => {
+describe("agro secret list", () => {
   it("redacts every value it prints", async () => {
     const root = makeRepo();
     setSecret(root, "GH_TOKEN", "ghp_supersecretvalue");
     setSecret(root, "XAI_API_KEY", "xai_anotherlongsecret");
     const { io, out } = makeIo();
-    expect(await runSecretList({ bin: "oh", cwd: root }, io)).toBe(0);
+    expect(await runSecretList({ bin: "agro", cwd: root }, io)).toBe(0);
     const printed = out.join("");
     expect(printed).toContain("GH_TOKEN");
     expect(printed).toContain("XAI_API_KEY");
@@ -316,20 +316,20 @@ describe("oh secret list", () => {
 
   it("says so when nothing is set", async () => {
     const { io, out } = makeIo();
-    expect(await runSecretList({ bin: "oh", cwd: makeRepo() }, io)).toBe(0);
+    expect(await runSecretList({ bin: "agro", cwd: makeRepo() }, io)).toBe(0);
     expect(out.join("")).toMatch(/no secrets set/);
   });
 });
 
 describe("the invoked binary names itself in config and secret hints", () => {
-  it.each(["agro", "oh"])("tells %s users their own secret set verb", async (bin) => {
+  it.each(["agro", "agro"])("tells %s users their own secret set verb", async (bin) => {
     const { io, err } = makeIo();
     expect(await runConfigSet("GH_TOKEN", "x", { bin, cwd: makeRepo() }, io)).toBe(1);
     expect(err.join("")).toContain(`${bin} config set:`);
     expect(err.join("")).toContain(`Set it with \`${bin} secret set GH_TOKEN\``);
   });
 
-  it.each(["agro", "oh"])("tells %s users their own secret set verb when none is set", async (bin) => {
+  it.each(["agro", "agro"])("tells %s users their own secret set verb when none is set", async (bin) => {
     const { io, out } = makeIo();
     expect(await runSecretList({ bin, cwd: makeRepo() }, io)).toBe(0);
     expect(out.join("")).toContain(`write one with \`${bin} secret set <KEY>\``);

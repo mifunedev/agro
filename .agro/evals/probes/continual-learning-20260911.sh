@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tier: A
-# source: retro lesson 2026-09-11 (issue #1046) — `agro sandbox install docker` ended with `next: oh shell <name>`
-# desc: no command module hardcodes an operator-facing `oh`/`agro` invocation instead of the bin resolved from argv
+# source: retro lesson 2026-09-11 (issue #1046) — `agro sandbox install docker` ended with `next: agro shell <name>`
+# desc: no command module hardcodes an operator-facing `agro` invocation instead of the bin resolved from argv
 set -euo pipefail
 
 DEFAULT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -29,7 +29,7 @@ else
   done < <(find "$CMDS" -type f -name '*.ts' -print0 || true)
 fi
 
-PATTERN='(^|[^A-Za-z0-9_.~$])(oh|agro)[[:space:]]+[a-z]'
+PATTERN='(^|[^A-Za-z0-9_.~$])agro[[:space:]]+[a-z]'
 
 hits=()
 scanned=0

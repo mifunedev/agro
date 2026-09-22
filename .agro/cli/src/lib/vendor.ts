@@ -13,7 +13,7 @@ export function assertDestInTarget(dest: string, targetOh: string, sep: string):
   if (dest === targetOh || dest.startsWith(targetOh + sep)) {
     return;
   }
-  throw new Error(`${activeBin()}: refusing to write outside target .oh: ` + dest);
+  throw new Error(`${activeBin()}: refusing to write outside target .agro: ` + dest);
 }
 
 export function assertDestInRoot(dest: string, targetRoot: string, sep: string): void {
@@ -62,7 +62,7 @@ export interface CopyResult {
   skipped: number;
 }
 
-export function copyOhPayload(
+export function copyControlPayload(
   fromOh: string,
   targetOh: string,
   manifest: Manifest | null,

@@ -7,22 +7,22 @@ _create=1
 for _arg in "$@"; do
     case "$_arg" in
         --no-create) _create=0 ;;
-        -*) printf 'oh-path: unknown option "%s"\n' "$_arg" >&2; exit 2 ;;
+        -*) printf 'agro-path: unknown option "%s"\n' "$_arg" >&2; exit 2 ;;
         *)
             if [ -z "$_name" ]; then
                 _name="$_arg"
             else
-                printf 'oh-path: unexpected argument "%s"\n' "$_arg" >&2
+                printf 'agro-path: unexpected argument "%s"\n' "$_arg" >&2
                 exit 2
             fi
             ;;
     esac
 done
-[ -n "$_name" ] || { printf 'Usage: oh-path <name> [--no-create]\n' >&2; exit 2; }
+[ -n "$_name" ] || { printf 'Usage: agro-path <name> [--no-create]\n' >&2; exit 2; }
 
 _script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)
-_oh_dir=$(dirname -- "$_script_dir")
-_root=$(dirname -- "$_oh_dir")
+_agro_dir=$(dirname -- "$_script_dir")
+_root=$(dirname -- "$_agro_dir")
 
 case "$_name" in
     worktrees) _dir=".worktrees" ;;
@@ -31,7 +31,7 @@ case "$_name" in
     agents|skills|hooks|scripts|tasks|evals|templates|install|cli)
         _dir=".agro/$_name" ;;
     *)
-        printf 'oh-path: unknown name "%s"\n' "$_name" >&2
+        printf 'agro-path: unknown name "%s"\n' "$_name" >&2
         exit 2
         ;;
 esac

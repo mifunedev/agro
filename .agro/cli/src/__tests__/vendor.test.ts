@@ -5,7 +5,7 @@ import * as path from "node:path";
 import { withInvokedBin } from "./invoked-bin.js";
 
 import {
-  copyOhPayload,
+  copyControlPayload,
   copyRootPayload,
   assertDestInTarget,
   assertDestInRoot,
@@ -36,7 +36,7 @@ afterEach(() => {
   tmpdirs = [];
 });
 
-describe("copyOhPayload — manifest filtering", () => {
+describe("copyControlPayload — manifest filtering", () => {
   it("ships include-matched files, excludes not-in-payload + prunes node_modules/dist", () => {
     const from = mkTmp();
     write(
@@ -55,8 +55,8 @@ describe("copyOhPayload — manifest filtering", () => {
     write(from, "patches/p.diff", "patch");
 
     const target = mkTmp();
-    const targetOh = path.join(target, ".oh");
-    const res = copyOhPayload(from, targetOh, loadManifest(from), {
+    const targetOh = path.join(target, ".agro");
+    const res = copyControlPayload(from, targetOh, loadManifest(from), {
       skipExisting: true,
     });
 
@@ -81,8 +81,8 @@ describe("copyOhPayload — manifest filtering", () => {
     write(from, "cli/dist/oh.js", "z");
 
     const target = mkTmp();
-    const targetOh = path.join(target, ".oh");
-    copyOhPayload(from, targetOh, null, {});
+    const targetOh = path.join(target, ".agro");
+    copyControlPayload(from, targetOh, null, {});
 
     expect(fs.existsSync(path.join(targetOh, "scripts/foo.sh"))).toBe(true);
     expect(fs.existsSync(path.join(targetOh, "cli/node_modules/p/i.js"))).toBe(false);
@@ -90,15 +90,15 @@ describe("copyOhPayload — manifest filtering", () => {
   });
 });
 
-describe("copyOhPayload — safety", () => {
-  it("assertDestInTarget refuses paths outside target .oh, allows inside", () => {
-    const targetOh = path.resolve(mkTmp(), ".oh");
+describe("copyControlPayload — safety", () => {
+  it("assertDestInTarget refuses paths outside target .agro, allows inside", () => {
+    const targetOh = path.resolve(mkTmp(), ".agro");
 
-    for (const bin of ["agro", "oh"]) {
+    for (const bin of ["agro", "agro"]) {
       withInvokedBin(bin, () => {
         expect(() =>
           assertDestInTarget(path.resolve(targetOh, "../evil.ts"), targetOh, path.sep),
-        ).toThrow(`${bin}: refusing to write outside target .oh`);
+        ).toThrow(`${bin}: refusing to write outside target .agro`);
       });
     }
     expect(() =>
@@ -115,30 +115,30 @@ describe("copyOhPayload — safety", () => {
     fs.symlinkSync(path.join(outside, "secret.txt"), path.join(from, "link.txt"));
 
     const target = mkTmp();
-    const targetOh = path.join(target, ".oh");
-    copyOhPayload(from, targetOh, null, {});
+    const targetOh = path.join(target, ".agro");
+    copyControlPayload(from, targetOh, null, {});
 
     expect(fs.existsSync(path.join(targetOh, "real.txt"))).toBe(true);
     expect(fs.existsSync(path.join(targetOh, "link.txt"))).toBe(false);
   });
 });
 
-describe("copyOhPayload — skipExisting vs force vs dryRun", () => {
+describe("copyControlPayload — skipExisting vs force vs dryRun", () => {
   it("skipExisting leaves an existing dest untouched; force overwrites it", () => {
     const from = mkTmp();
     write(from, "manifest.json", JSON.stringify({ include: ["**"], exclude: [] }));
     write(from, "scripts/foo.sh", "SOURCE");
 
     const target = mkTmp();
-    const targetOh = path.join(target, ".oh");
+    const targetOh = path.join(target, ".agro");
     write(targetOh, "scripts/foo.sh", "LOCAL");
 
     const manifest = loadManifest(from);
 
-    copyOhPayload(from, targetOh, manifest, { skipExisting: true });
+    copyControlPayload(from, targetOh, manifest, { skipExisting: true });
     expect(fs.readFileSync(path.join(targetOh, "scripts/foo.sh"), "utf8")).toBe("LOCAL");
 
-    const b = copyOhPayload(from, targetOh, manifest, { skipExisting: true, force: true });
+    const b = copyControlPayload(from, targetOh, manifest, { skipExisting: true, force: true });
     expect(fs.readFileSync(path.join(targetOh, "scripts/foo.sh"), "utf8")).toBe("SOURCE");
     expect(b.written).toBeGreaterThan(0);
   });
@@ -149,13 +149,13 @@ describe("copyOhPayload — skipExisting vs force vs dryRun", () => {
     write(from, "scripts/foo.sh", "x");
 
     const target = mkTmp();
-    const targetOh = path.join(target, ".oh");
+    const targetOh = path.join(target, ".agro");
 
     const actions: string[] = [];
     const reporter = (a: CopyAction, rel: string): void => {
       actions.push(`${a} ${rel}`);
     };
-    const res = copyOhPayload(
+    const res = copyControlPayload(
       from,
       targetOh,
       loadManifest(from),
@@ -177,18 +177,18 @@ describe("copyRootPayload", () => {
     write(from, "docs/intro.md", "docs\n");
     write(
       from,
-      ".oh/manifest.json",
+      ".agro/manifest.json",
       JSON.stringify({ include: ["cli/**"], rootInclude: ["crons/**"], exclude: [] }),
     );
 
-    const manifest = loadManifest(path.join(from, ".oh"));
+    const manifest = loadManifest(path.join(from, ".agro"));
     const res = copyRootPayload(from, target, manifest, {});
 
     expect(fs.existsSync(path.join(target, "crons/heartbeat.md"))).toBe(true);
     expect(fs.existsSync(path.join(target, "docs/intro.md"))).toBe(false);
     expect(res.written).toBe(1);
 
-    for (const bin of ["agro", "oh"]) {
+    for (const bin of ["agro", "agro"]) {
       withInvokedBin(bin, () => {
         expect(() =>
           assertDestInRoot(path.resolve(target, "../evil.md"), target, path.sep),

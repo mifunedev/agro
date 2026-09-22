@@ -61,7 +61,7 @@ describe("locked-append.sh", () => {
     expect(run(path.relative(cwd, target), "relative\n", cwd).status).toBe(0);
 
     expect(readFileSync(target, "utf-8")).toBe("absolute\nrelative\n");
-    const lockDir = path.join(tmp, "openharness-locked-append");
+    const lockDir = path.join(tmp, "agro-locked-append");
     expect(readdirSync(lockDir).filter((entry) => entry.endsWith(".lock"))).toHaveLength(1);
   });
 

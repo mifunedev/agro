@@ -4,15 +4,15 @@
 # freshly built image.
 #
 # COVERAGE REDUCTION — read before touching an assertion below.
-# ghcr.io/mifunedev/openharness:0.9.0's seeded /opt/oh-seed/package.json pins
+# ghcr.io/mifunedev/agro:0.9.0's seeded /opt/agro-seed/package.json pins
 # vitest ^3.2.6 and wires "pnpm:devPreinstall": "pnpm run security:audit".
 # GHSA-82fw-gwwq-j7x9 covers that pin, so booting that published image now
-# makes its entrypoint's `pnpm install` exit 1 and openharness-bootstrap.service
+# makes its entrypoint's `pnpm install` exit 1 and agro-bootstrap.service
 # fail, every time, permanently. The image is immutable; this cannot be fixed
 # in source, and no volume-layout trick repairs it.
 #
 # So this script never boots the legacy image. It extracts the real
-# /opt/oh-seed payload from that image with a short-lived helper container,
+# /opt/agro-seed payload from that image with a short-lived helper container,
 # lays it into a fresh workspace volume as $PROJECT_ROOT/.oh (genuine
 # published content, not hand-fabricated), stamps the .image-seeded marker a
 # completed legacy boot would already have written before ever reaching the
@@ -27,14 +27,14 @@
 # reachable from either side of the upgrade because upgrading never rewrites
 # an existing workspace's package.json. Setting build.skipPnpmInstall would
 # dodge that but also skip installing node_modules entirely, which then
-# starves openharness-cron.service of the real dependencies (e.g. croner) it
+# starves agro-cron.service of the real dependencies (e.g. croner) it
 # needs to start — so instead this script deletes just the copied
 # package.json's "pnpm:devPreinstall" security-audit hook before the boot,
 # the one lifecycle script the advisory turns into a permanent failure. The
 # rest of `pnpm install` — resolving and installing every real dependency —
 # still runs for real, on the genuine (if dated) legacy manifest.
 #
-# What this no longer proves: that ghcr.io/mifunedev/openharness:0.9.0 (or
+# What this no longer proves: that ghcr.io/mifunedev/agro:0.9.0 (or
 # any volume actually seeded by running it) can still boot end to end, or
 # that its pnpm install still succeeds against today's advisories — neither
 # is true, and no volume-layout trick repairs it. This script proves the
@@ -49,12 +49,12 @@ REPO_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
 COMPOSE_FILE=${UPGRADE_SMOKE_COMPOSE_FILE:-$REPO_ROOT/.devcontainer/docker-compose.image-only.yml}
 SERVICE=${UPGRADE_SMOKE_SERVICE:-sandbox}
 PROJECT=${UPGRADE_SMOKE_PROJECT:-agro-upgrade-$$}
-LEGACY_IMAGE=${LEGACY_IMAGE:-ghcr.io/mifunedev/openharness:0.9.0}
+LEGACY_IMAGE=${LEGACY_IMAGE:-ghcr.io/mifunedev/agro:0.9.0}
 NEW_IMAGE=${NEW_IMAGE:-}
 KEEP=${KEEP:-0}
 TIMEOUT=${UPGRADE_SMOKE_TIMEOUT_SECONDS:-600}
 INTERVAL=${UPGRADE_SMOKE_INTERVAL_SECONDS:-5}
-PROJECT_ROOT=${OH_PROJECT_ROOT:-/home/sandbox/harness}
+PROJECT_ROOT=${AGRO_PROJECT_ROOT:-/home/sandbox/harness}
 VOLUME="${PROJECT}_workspace"
 WORKDIR=$(mktemp -d "${TMPDIR:-/tmp}/sandbox-upgrade-smoke.XXXXXX")
 
@@ -89,7 +89,7 @@ diagnostics() {
     echo "--- container state ($cid)"
     docker inspect --format '{{.State.Status}} exit={{.State.ExitCode}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$cid" || true
     echo "--- systemd units ($cid)"
-    docker exec "$cid" systemctl status openharness-bootstrap.service openharness-cron.service --no-pager || true
+    docker exec "$cid" systemctl status agro-bootstrap.service agro-cron.service --no-pager || true
     echo "--- container logs tail ($cid)"
     docker logs --tail 200 "$cid" 2>&1 || true
   fi
@@ -128,7 +128,7 @@ READY_CID=""
 wait_ready() {
   local label="$1" end cid state
   end=$(( $(date +%s) + TIMEOUT ))
-  log "waiting up to ${TIMEOUT}s for $label: systemd units openharness-bootstrap.service and openharness-cron.service"
+  log "waiting up to ${TIMEOUT}s for $label: systemd units agro-bootstrap.service and agro-cron.service"
   while [ "$(date +%s)" -le "$end" ]; do
     cid=$(container_id)
     if [ -n "$cid" ]; then
@@ -136,11 +136,11 @@ wait_ready() {
       if [ "$state" != "running" ]; then
         fail "$label: container $cid is $state, not running"
       fi
-      if docker exec "$cid" systemctl is-failed --quiet openharness-bootstrap.service 2>/dev/null; then
-        fail "$label: openharness-bootstrap.service failed"
+      if docker exec "$cid" systemctl is-failed --quiet agro-bootstrap.service 2>/dev/null; then
+        fail "$label: agro-bootstrap.service failed"
       fi
-      if docker exec "$cid" systemctl is-active --quiet openharness-bootstrap.service 2>/dev/null \
-        && docker exec "$cid" systemctl is-active --quiet openharness-cron.service 2>/dev/null; then
+      if docker exec "$cid" systemctl is-active --quiet agro-bootstrap.service 2>/dev/null \
+        && docker exec "$cid" systemctl is-active --quiet agro-cron.service 2>/dev/null; then
         log "$label ready: container $cid, bootstrap oneshot succeeded, cron runtime active"
         READY_CID="$cid"
         return 0
@@ -165,8 +165,8 @@ printf 'hosts_sha=%s\n' "$( [ -f "$home/.config/gh/hosts.yml" ] && sha256sum "$h
 printf 'canary_sha=%s\n' "$( [ -f "$harness/UPGRADE-CANARY.txt" ] && sha256sum "$harness/UPGRADE-CANARY.txt" | cut -d' ' -f1 || echo absent)"
 printf 'oh_dir=%s\n' "$( [ -d "$harness/.oh" ] && echo present || echo absent)"
 printf 'agro_dir=%s\n' "$( [ -e "$harness/.agro" ] && echo present || echo absent)"
-printf 'oh_marker=%s\n' "$( [ -f "$harness/.oh/.image-seeded" ] && echo present || echo absent)"
-printf 'oh_scripts_sha=%s\n' "$( [ -d "$harness/.oh/scripts" ] && (cd "$harness/.oh/scripts" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1) || echo absent)"
+printf 'oh_marker=%s\n' "$( [ -f "$harness/.agro/.image-seeded" ] && echo present || echo absent)"
+printf 'oh_scripts_sha=%s\n' "$( [ -d "$harness/.agro/scripts" ] && (cd "$harness/.agro/scripts" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1) || echo absent)"
 printf 'oh_entries=%s\n' "$( [ -d "$harness/.oh" ] && (cd "$harness/.oh" && ls -A1 | LC_ALL=C sort | tr '\n' ',') || echo absent)"
 EOF
 }
@@ -181,8 +181,8 @@ printf 'hosts_sha=%s\n' "$( [ -f "$home/.config/gh/hosts.yml" ] && sha256sum "$h
 printf 'canary_sha=%s\n' "$( [ -f "$harness/UPGRADE-CANARY.txt" ] && sha256sum "$harness/UPGRADE-CANARY.txt" | cut -d' ' -f1 || echo absent)"
 printf 'oh_dir=%s\n' "$( [ -d "$harness/.oh" ] && echo present || echo absent)"
 printf 'agro_dir=%s\n' "$( [ -e "$harness/.agro" ] && echo present || echo absent)"
-printf 'oh_marker=%s\n' "$( [ -f "$harness/.oh/.image-seeded" ] && echo present || echo absent)"
-printf 'oh_scripts_sha=%s\n' "$( [ -d "$harness/.oh/scripts" ] && (cd "$harness/.oh/scripts" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1) || echo absent)"
+printf 'oh_marker=%s\n' "$( [ -f "$harness/.agro/.image-seeded" ] && echo present || echo absent)"
+printf 'oh_scripts_sha=%s\n' "$( [ -d "$harness/.agro/scripts" ] && (cd "$harness/.agro/scripts" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1) || echo absent)"
 printf 'oh_entries=%s\n' "$( [ -d "$harness/.oh" ] && (cd "$harness/.oh" && ls -A1 | LC_ALL=C sort | tr '\n' ',') || echo absent)"
 EOF
 }
@@ -192,8 +192,8 @@ seed_legacy_volume() {
   docker run --rm -i --entrypoint bash -v "$vol:/home/sandbox" "$LEGACY_IMAGE" -s <<EOF
 set -eu
 mkdir -p /home/sandbox/harness
-cp -a /opt/oh-seed/. /home/sandbox/harness/
-: > /home/sandbox/harness/.oh/.image-seeded
+cp -a /opt/agro-seed/. /home/sandbox/harness/
+: > /home/sandbox/harness/.agro/.image-seeded
 tmp_pkg_json=\$(mktemp)
 jq 'del(.scripts["pnpm:devPreinstall"])' /home/sandbox/harness/package.json > "\$tmp_pkg_json"
 mv "\$tmp_pkg_json" /home/sandbox/harness/package.json
@@ -235,7 +235,7 @@ if ! docker image inspect --format '{{.Id}}' "$LEGACY_IMAGE" >/dev/null 2>&1; th
   docker pull "$LEGACY_IMAGE"
 fi
 
-log "step 2/6: seed workspace volume $VOLUME from $LEGACY_IMAGE's real /opt/oh-seed, plus synthetic canary state"
+log "step 2/6: seed workspace volume $VOLUME from $LEGACY_IMAGE's real /opt/agro-seed, plus synthetic canary state"
 seed_legacy_volume "$VOLUME"
 docker run --rm --entrypoint bash -v "$VOLUME:/home/sandbox" "$LEGACY_IMAGE" -c 'ls -la "$HOME/harness/.oh" 2>&1 | head' | sed 's/^/    /'
 
@@ -248,7 +248,7 @@ printf '%s\n' "$before" | sed 's/^/    /'
 [ "$(value_of "$before" canary_sha)" != "absent" ] || fail "precondition: UPGRADE-CANARY.txt was not written into the seeded volume"
 [ "$(value_of "$before" oh_dir)" = "present" ] || fail "precondition: the seeded volume does not have $PROJECT_ROOT/.oh"
 [ "$(value_of "$before" agro_dir)" = "absent" ] || fail "precondition: the seeded volume has $PROJECT_ROOT/.agro, so this run cannot prove the legacy-volume path"
-[ "$(value_of "$before" oh_marker)" = "present" ] || fail "precondition: $PROJECT_ROOT/.oh/.image-seeded was not stamped into the seeded volume"
+[ "$(value_of "$before" oh_marker)" = "present" ] || fail "precondition: $PROJECT_ROOT/.agro/.image-seeded was not stamped into the seeded volume"
 
 if [ -n "$NEW_IMAGE" ]; then
   log "step 4/6: using NEW_IMAGE=$NEW_IMAGE (no build)"
@@ -273,7 +273,7 @@ log "upgraded snapshot:"
 printf '%s\n' "$after" | sed 's/^/    /'
 log_shape "$new_cid" "upgraded"
 
-bootstrap_log=$(docker exec "$new_cid" journalctl -u openharness-bootstrap.service --no-pager -o cat 2>/dev/null || true)
+bootstrap_log=$(docker exec "$new_cid" journalctl -u agro-bootstrap.service --no-pager -o cat 2>/dev/null || true)
 if [ -z "$bootstrap_log" ]; then
   bootstrap_log=$(docker logs "$new_cid" 2>&1 || true)
 fi
@@ -283,11 +283,11 @@ fi
 [ "$(value_of "$after" canary_sha)" = "$(value_of "$before" canary_sha)" ] \
   || fail "$PROJECT_ROOT/UPGRADE-CANARY.txt changed across the upgrade (before $(value_of "$before" canary_sha), after $(value_of "$after" canary_sha))"
 [ "$(value_of "$after" oh_dir)" = "present" ] || fail "$PROJECT_ROOT/.oh is gone after the upgrade"
-[ "$(value_of "$after" agro_dir)" = "absent" ] || fail "$PROJECT_ROOT/.agro was created next to the legacy .oh/ control plane"
+[ "$(value_of "$after" agro_dir)" = "absent" ] || fail "$PROJECT_ROOT/.agro was created next to the legacy .agro/ control plane"
 [ "$(value_of "$after" oh_marker)" = "$(value_of "$before" oh_marker)" ] \
-  || fail "$PROJECT_ROOT/.oh/.image-seeded changed (before $(value_of "$before" oh_marker), after $(value_of "$after" oh_marker))"
+  || fail "$PROJECT_ROOT/.agro/.image-seeded changed (before $(value_of "$before" oh_marker), after $(value_of "$after" oh_marker))"
 [ "$(value_of "$after" oh_scripts_sha)" = "$(value_of "$before" oh_scripts_sha)" ] \
-  || fail "$PROJECT_ROOT/.oh/scripts content changed across the upgrade"
+  || fail "$PROJECT_ROOT/.agro/scripts content changed across the upgrade"
 before_entries=$(value_of "$before" oh_entries)
 after_entries=$(value_of "$after" oh_entries)
 IFS=',' read -r -a entries <<<"$before_entries"
@@ -295,7 +295,7 @@ for entry in "${entries[@]}"; do
   [ -n "$entry" ] || continue
   case ",$after_entries," in
     *",$entry,"*) ;;
-    *) fail "$PROJECT_ROOT/.oh/$entry disappeared across the upgrade" ;;
+    *) fail "$PROJECT_ROOT/.agro/$entry disappeared across the upgrade" ;;
   esac
 done
 if printf '%s\n' "$bootstrap_log" | grep -q "not seeding"; then
@@ -305,10 +305,10 @@ if printf '%s\n' "$bootstrap_log" | grep -q "resolve the conflict"; then
   fail "the upgraded entrypoint logged a control-plane conflict"
 fi
 if printf '%s\n' "$bootstrap_log" | grep -q "seeded control plane into"; then
-  fail "the upgraded entrypoint re-seeded the workspace over the legacy .oh/ control plane"
+  fail "the upgraded entrypoint re-seeded the workspace over the legacy .agro/ control plane"
 fi
-docker exec "$new_cid" systemctl is-active --quiet openharness-bootstrap.service || fail "openharness-bootstrap.service is not active after the upgrade"
-docker exec "$new_cid" systemctl is-active --quiet openharness-cron.service || fail "openharness-cron.service is not active after the upgrade"
+docker exec "$new_cid" systemctl is-active --quiet agro-bootstrap.service || fail "agro-bootstrap.service is not active after the upgrade"
+docker exec "$new_cid" systemctl is-active --quiet agro-cron.service || fail "agro-cron.service is not active after the upgrade"
 log "compose health after upgrade: $(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$new_cid" 2>/dev/null || echo inspect-failed)"
 
 log "all assertions held"

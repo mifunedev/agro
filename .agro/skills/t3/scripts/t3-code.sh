@@ -126,13 +126,13 @@ doctor() {
     echo "ERROR: node not found in PATH; T3 Code requires Node ${NODE_RANGE}" >&2
     failures=$((failures + 1))
   elif ! node_version_ok; then
-    echo "ERROR: Node $(node -v 2>/dev/null) does not satisfy ${NODE_RANGE}; raise the harness Node pin in .devcontainer/Dockerfile and rebuild with 'oh rebuild'" >&2
+    echo "ERROR: Node $(node -v 2>/dev/null) does not satisfy ${NODE_RANGE}; raise the harness Node pin in .devcontainer/Dockerfile and rebuild with 'agro rebuild'" >&2
     failures=$((failures + 1))
   fi
 
   if [[ "$TAILSCALE" == "true" ]]; then
     if ! command -v tailscale >/dev/null 2>&1; then
-      echo "ERROR: tailscale not found in PATH; run 'oh tool install tailscale'" >&2
+      echo "ERROR: tailscale not found in PATH; run 'agro tool install tailscale'" >&2
       failures=$((failures + 1))
     elif ! tailscale status --json >/dev/null 2>&1; then
       echo "ERROR: tailscaled is not running or its socket is unreachable" >&2

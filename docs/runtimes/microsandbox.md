@@ -116,7 +116,7 @@ msb becomes the runner, and the thing it runs is the image AGRO already
 publishes:
 
 ```
-ghcr.io/mifunedev/openharness:latest
+ghcr.io/mifunedev/agro:latest
 ```
 
 msb runs standard OCI images from any registry, so no new image is needed. The
@@ -180,14 +180,14 @@ directories — the entrypoint runs `chown -R sandbox:sandbox` and `chmod 700`
 against these, so never point them at your real `~/.ssh` or `~/.config`:
 
 ```bash
-mkdir -p ~/.openharness-msb/{workspace,claude,config,herdr,ssh}
+mkdir -p ~/.agro-msb/{workspace,claude,config,herdr,ssh}
 ```
 
 **`workspace/` must be empty.** The entrypoint seeds the control plane from the
 image's baked `/opt/agro-seed` on first boot, and seeds only when the workspace
 holds no control directory. The entrypoint then writes an `.image-seeded` marker
 inside the directory it seeded, which makes the seed once-only. A workspace from
-an earlier release that holds `.oh/` counts as that control directory and keeps
+an earlier release that holds `.agro/` counts as that control directory and keeps
 resolving, so the entrypoint never re-seeds it. Point it at a directory that
 already contains a `.agro/` and the seed is skipped **with no error message** —
 every step in that path is `|| true` — leaving a harness with no control plane.
@@ -195,13 +195,13 @@ Confirm it before you boot:
 
 ```bash
 # Must print nothing. Anything here means the seed will be skipped.
-ls -A ~/.openharness-msb/workspace
+ls -A ~/.agro-msb/workspace
 ```
 
 **These directories now hold your secrets.** Under Docker, volume contents sat
 root-owned outside your home directory. Under an msb bind they sit in your own
 filesystem in plaintext. Not new secrets, but a new location — permission and
-back up `~/.openharness-msb/` accordingly.
+back up `~/.agro-msb/` accordingly.
 
 ### Step 3 — Write the config (host)
 
@@ -211,7 +211,7 @@ Container paths are the same on both sides.
 
 | Compose (`docker-compose.image-only.yml`) | msb config | Notes |
 |---|---|---|
-| `image:` | `image:` | `ghcr.io/mifunedev/openharness:latest`, public |
+| `image:` | `image:` | `ghcr.io/mifunedev/agro:latest`, public |
 | `volumes:` (named) | `mounts:` | msb binds **host paths**, not named volumes — the directories from Step 2 |
 | `environment:` | `env:` | two keys are load-bearing; see below |
 | `ports:` (overlays only) | `network.ports:` | the base stack declares none — it is exec-based |
@@ -235,30 +235,30 @@ recipe's `.config/gh` and `.pi`, and `SANDBOX_NAME` is dropped because the
 sandbox is named on the `msb run` command line in Step 4.
 
 ```yaml
-image: ghcr.io/mifunedev/openharness:latest
+image: ghcr.io/mifunedev/agro:latest
 workdir: /home/sandbox/harness
 cmd: ["/sbin/init"]
 
 env:
-  OH_PROJECT_ROOT: /home/sandbox/harness      # load-bearing — must equal the mount target
+  AGRO_PROJECT_ROOT: /home/sandbox/harness      # load-bearing — must equal the mount target
   GIT_USER_NAME: "<your-name>"
   GIT_USER_EMAIL: "<your-email>"
 
 mounts:
-  - "~/.openharness-msb/workspace:/home/sandbox/harness"
-  - "~/.openharness-msb/claude:/home/sandbox/.claude"
-  - "~/.openharness-msb/config:/home/sandbox/.config"
-  - "~/.openharness-msb/herdr:/home/sandbox/.herdr"
-  - "~/.openharness-msb/ssh:/home/sandbox/.ssh"
+  - "~/.agro-msb/workspace:/home/sandbox/harness"
+  - "~/.agro-msb/claude:/home/sandbox/.claude"
+  - "~/.agro-msb/config:/home/sandbox/.config"
+  - "~/.agro-msb/herdr:/home/sandbox/.herdr"
+  - "~/.agro-msb/ssh:/home/sandbox/.ssh"
 
 network:
   policy: public
 ```
 
 **Set `cmd:` explicitly.** Do not rely on msb inheriting the image's `CMD`.
-systemd must be PID 1: it runs `entrypoint.sh` as `openharness-bootstrap.service`
+systemd must be PID 1: it runs `entrypoint.sh` as `agro-bootstrap.service`
 — the UID sync, the `gosu` privilege drop, `link-providers.sh --init`, and the
-workspace seed — and then supervises `openharness-cron.service`. If msb starts
+workspace seed — and then supervises `agro-cron.service`. If msb starts
 anything else as PID 1, none of that runs and Step 5 fails with no explanation.
 Whether msb can satisfy systemd's cgroup requirement at all is risk 5.
 
@@ -280,7 +280,7 @@ you may not use — add them as you enable those harnesses.
 ### Step 4 — Boot the sandbox (host)
 
 ```bash
-msb run --conf sandbox.yaml --name openharness
+msb run --conf sandbox.yaml --name agro
 msb ls                                    # confirm it is running
 ```
 
@@ -291,7 +291,7 @@ First boot pulls the image and seeds the workspace, so give it time.
 This is the step that catches a silent half-boot:
 
 ```bash
-msb exec openharness -- bash -lc '
+msb exec agro -- bash -lc '
   ls /home/sandbox/harness/.agro >/dev/null \
   && bash /home/sandbox/harness/.agro/scripts/link-providers.sh --check \
   && echo SEED_OK'
@@ -302,8 +302,8 @@ the seed was skipped — stop the sandbox, empty the workspace directory, and
 start again:
 
 ```bash
-msb stop openharness
-rm -rf ~/.openharness-msb/workspace/*
+msb stop agro
+rm -rf ~/.agro-msb/workspace/*
 # then re-run Step 4
 ```
 
@@ -317,7 +317,7 @@ directory.
 ### Step 6 — Attach and work (host → inside)
 
 ```bash
-msb exec openharness -- zsh
+msb exec agro -- zsh
 ```
 
 Then, inside — exactly as in any AGRO sandbox:
@@ -336,8 +336,8 @@ claude
 Stop and restart without losing state — the bind directories hold everything:
 
 ```bash
-msb stop openharness
-msb run --conf sandbox.yaml --name openharness   # second boot skips the seed
+msb stop agro
+msb run --conf sandbox.yaml --name agro   # second boot skips the seed
 ```
 
 ### What you lose by leaving Docker

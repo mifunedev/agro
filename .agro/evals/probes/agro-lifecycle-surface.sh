@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tier: A
-# source: issue #881 — the Makefile is retired and `oh` is the only front door
+# source: issue #881 — the Makefile is retired and `agro` is the only front door
 # desc: every verb documented in docs/lifecycle-commands.md dispatches in cli.ts or the
 #       COMPOSE_VERBS table in lifecycle.ts; only .agro/scripts/docker-compose.sh drives a
 #       compose project; and no Makefile exists to reopen the second door.
@@ -35,7 +35,7 @@ COMPOSE_TABLE_VERBS=(stop restart logs ps destroy)
 
 for verb in "${CLI_VERBS[@]}"; do
   grep -qF "first === \"$verb\"" <<<"$CLI_CODE" \
-    || missing+=("S1: \`oh $verb\` has no \`first === \"$verb\"\` dispatch in cli.ts")
+    || missing+=("S1: \`agro $verb\` has no \`first === \"$verb\"\` dispatch in cli.ts")
 done
 
 compose_table="$(awk '/^const COMPOSE_VERBS = Object.freeze\(\{/,/^\}\);/' <<<"$LIFECYCLE_CODE")"
@@ -44,31 +44,31 @@ if [[ -z "$compose_table" ]]; then
 else
   for verb in "${COMPOSE_TABLE_VERBS[@]}"; do
     grep -qE "^  $verb: Object\.freeze\(\[" <<<"$compose_table" \
-      || missing+=("S2: \`oh $verb\` is not a key of the COMPOSE_VERBS table in lifecycle.ts")
+      || missing+=("S2: \`agro $verb\` is not a key of the COMPOSE_VERBS table in lifecycle.ts")
   done
 fi
 
 compose_branch="$(awk '/if \(first === "compose"\) \{/,/^  \}/' <<<"$CLI_CODE")"
 if [[ -z "$compose_branch" ]]; then
-  missing+=("S3: cli.ts has no \`first === \"compose\"\` branch — \`oh compose config\` cannot dispatch")
+  missing+=("S3: cli.ts has no \`first === \"compose\"\` branch — \`agro compose config\` cannot dispatch")
 elif ! grep -qF 'runComposeConfig(' <<<"$compose_branch"; then
-  missing+=("S3: the \`oh compose\` branch in cli.ts does not call runComposeConfig — \`oh compose config\` prints nothing")
+  missing+=("S3: the \`agro compose\` branch in cli.ts does not call runComposeConfig — \`agro compose config\` prints nothing")
 fi
 
 config_branch="$(awk '/if \(first === "config"\) \{/,/^  \}/' <<<"$CLI_CODE")"
 if [[ -n "$config_branch" ]] && grep -qF 'runComposeConfig(' <<<"$config_branch"; then
-  missing+=("S3: the \`oh config\` integration branch calls runComposeConfig — the compose printer belongs under \`oh compose\`")
+  missing+=("S3: the \`agro config\` integration branch calls runComposeConfig — the compose printer belongs under \`agro compose\`")
 fi
 
 if [[ ! -f "$MAP" ]]; then
   missing+=("S4: docs/lifecycle-commands.md is missing — the verb reference has no home")
 else
   for verb in "${CLI_VERBS[@]}" "${COMPOSE_TABLE_VERBS[@]}"; do
-    grep -qE "\`(agro|oh) $verb( |\`)" "$MAP" \
-      || missing+=("S4: \`oh $verb\` dispatches but is not documented in docs/lifecycle-commands.md")
+    grep -qE "\`agro $verb( |\`)" "$MAP" \
+      || missing+=("S4: \`agro $verb\` dispatches but is not documented in docs/lifecycle-commands.md")
   done
-  grep -qE '`(agro|oh) compose config`' "$MAP" \
-    || missing+=("S4: \`oh compose config\` is not documented in docs/lifecycle-commands.md")
+  grep -qE "\`agro compose config\`" "$MAP" \
+    || missing+=("S4: \`agro compose config\` is not documented in docs/lifecycle-commands.md")
 fi
 
 PROJECT_VERBS='up|down|stop|start|restart|logs|ps|config|exec|run|build|pull|create|kill|rm'
@@ -87,7 +87,7 @@ if [[ -n "$ts_argv" ]]; then
 fi
 
 if [[ -e "$ROOT/Makefile" ]]; then
-  missing+=("S6: a Makefile exists at the repository root — \`oh\` is the only front door (issue #881)")
+  missing+=("S6: a Makefile exists at the repository root — \`agro\` is the only front door (issue #881)")
 fi
 
 if ((${#missing[@]})); then
@@ -95,5 +95,5 @@ if ((${#missing[@]})); then
   exit 1
 fi
 
-echo 'PASS: every documented oh verb dispatches, only docker-compose.sh drives compose, and no Makefile exists' >&2
+echo 'PASS: every documented agro verb dispatches, only docker-compose.sh drives compose, and no Makefile exists' >&2
 exit 0

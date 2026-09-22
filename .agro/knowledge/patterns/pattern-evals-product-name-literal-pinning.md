@@ -18,10 +18,10 @@ confidence: provisional
 # Probes and tests that pin the product name beside a verb break when the executable is renamed or templated
 
 ## Relevant Source Files
-- `.oh/evals/probes/tool-catalog-boundary.sh@17bc5379` — `grep -qF 'oh tool <args...>'` over `cli.ts`, which now reads `${bin} tool <args...>`.
-- `.oh/evals/probes/oh-lifecycle-surface.sh@17bc5379` — every verb grepped as `\`oh $verb` in `docs/lifecycle-commands.md`, which now documents `agro <verb>`.
-- `.oh/cli/src/__tests__/compose-verbs.test.ts@17bc5379` — the same `\`oh ${verb}` pin in a vitest.
-- `.oh/evals/probes/oh-lifecycle-surface.sh@16a39922` and `tool-catalog-boundary.sh@07e7399f` — the repaired forms accept the product set.
+- `.agro/evals/probes/tool-catalog-boundary.sh@17bc5379` — `grep -qF 'agro tool <args...>'` over `cli.ts`, which now reads `${bin} tool <args...>`.
+- `.agro/evals/probes/oh-lifecycle-surface.sh@17bc5379` — every verb grepped as `\`oh $verb` in `docs/lifecycle-commands.md`, which now documents `agro <verb>`.
+- `.agro/cli/src/__tests__/compose-verbs.test.ts@17bc5379` — the same `\`oh ${verb}` pin in a vitest.
+- `.agro/evals/probes/oh-lifecycle-surface.sh@16a39922` and `tool-catalog-boundary.sh@07e7399f` — the repaired forms accept the product set.
 
 ## Summary
 A probe that guards "verb X is documented" or "verb X is in the usage block" usually

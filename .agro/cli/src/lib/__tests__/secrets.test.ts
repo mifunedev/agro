@@ -40,7 +40,7 @@ describe("allow-list", () => {
     ]);
   });
 
-  it("excludes non-secret settings that live in oh.json", () => {
+  it("excludes non-secret settings that live in agro.json", () => {
     for (const key of ["SANDBOX_NAME", "TZ", "GIT_USER_EMAIL", "SANDBOX_SSH_AUTHORIZED_KEYS"]) {
       expect(isSecretKey(key)).toBe(false);
     }
@@ -55,7 +55,7 @@ describe("setSecret", () => {
     expect(statSync(secretsFilePath(root)).mode & 0o777).toBe(0o600);
   });
 
-  it.each(["agro", "oh"])("points a non-allow-listed key at `%s config set`", (bin) => {
+  it.each(["agro", "agro"])("points a non-allow-listed key at `%s config set`", (bin) => {
     const root = makeRoot();
     withInvokedBin(bin, () => {
       expect(() => setSecret(root, "SANDBOX_NAME", "demo")).toThrow(`\`${bin} config set\``);
@@ -98,7 +98,7 @@ describe("readSecret", () => {
     expect(readSecret(root, "XAI_API_KEY")).toBeUndefined();
   });
 
-  it.each(["agro", "oh"])("refuses to read a key that is not a secret under %s", (bin) => {
+  it.each(["agro", "agro"])("refuses to read a key that is not a secret under %s", (bin) => {
     const root = makeRoot();
     withInvokedBin(bin, () => {
       expect(() => readSecret(root, "TZ")).toThrow(`\`${bin} config set\``);

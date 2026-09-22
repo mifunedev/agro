@@ -5,16 +5,16 @@ AGRO keeps its portable machinery here. The sandbox definition stays in
 
 | Path | Contents |
 | --- | --- |
-| `cli/` | The `agro` package and the legacy `oh` shim. |
+| `cli/` | The `agro` package. |
 | `scripts/`, `install/` | Lifecycle scripts, runtime helpers, and image inputs. |
 | `skills/`, `hooks/`, `skills.lock` | Shared procedures, hooks, and pack metadata. |
 | `evals/` | Regression probes, capability tasks, datasets, and scoreboards. |
 | `knowledge/` | Tracked synthesis, external snapshots, and a generated index. |
 | `tasks/` | Local task plans, structured state, and execution records. |
 | `logs/`, `memories/` | Local logs and operator-context files with scoped contracts. |
-| `manifest.json` | The payload allowlist for `oh update`. |
+| `manifest.json` | The payload allowlist for `agro vendor`. |
 
 Read each applicable `AGENTS.md` before changing that directory's contents.
-See the [source directory guide](https://github.com/mifunedev/agro/blob/main/docs/oh-directory-layout.md)
+See the [source directory guide](https://github.com/mifunedev/agro/blob/main/docs/agro-directory-layout.md)
 for architecture, provider links, and distribution boundaries.
-Root `docs/` does not ship through `oh update`.
+Root `docs/` does not ship through `agro vendor`.

@@ -19,7 +19,7 @@ export UV_TOOL_DIR="$HOME/.local/share/uv/tools"
 export UV_TOOL_BIN_DIR="$HOME/.local/bin"
 export PATH="$UV_PYTHON_BIN_DIR:$PATH"
 cd "$HOME"
-kernel="$HOME/.local/share/oh/kernel"
+kernel="$HOME/.local/share/agro/kernel"
 
 assert_python() {
   local version="$1"
@@ -50,7 +50,7 @@ expect_verify_failure
 test ! -e "$UV_PYTHON_BIN_DIR/python"
 bash "$SCRIPT"
 
-OH_PYTHON_VERSION=3.11 bash "$SCRIPT"
+AGRO_PYTHON_VERSION=3.11 bash "$SCRIPT"
 assert_python 3.11
 uv venv --python "$kernel/bin/python" "$HOME/project/.venv"
 project_before=$("$HOME/project/.venv/bin/python" -c 'import sys; print(sys.version, sys.prefix, sys._base_executable)')
@@ -58,7 +58,7 @@ project_cfg=$(sha256sum "$HOME/project/.venv/pyvenv.cfg")
 uv python install --default 3.13
 expect_verify_failure
 printf 'rollback\n' > "$kernel/sentinel"
-if OH_PYTHON_KERNEL_PACKAGES=agro-nonexistent-package-rollback-test-7f33 UV_OFFLINE=1 bash "$SCRIPT"; then
+if AGRO_PYTHON_KERNEL_PACKAGES=agro-nonexistent-package-rollback-test-7f33 UV_OFFLINE=1 bash "$SCRIPT"; then
   printf 'Expected package installation to fail.\n' >&2
   exit 1
 fi

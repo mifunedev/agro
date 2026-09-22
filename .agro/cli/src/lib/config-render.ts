@@ -1,11 +1,10 @@
-import { configCheckout, type OhConfig } from "./oh-config.js";
+import { configCheckout, type AgroConfig } from "./agro-config.js";
 import { isSecretKey } from "./secrets.js";
 
 const RETIRED_KEYS = [
   "WORKTREES_DIR",
   "PROJECTS_DIR",
   "CRONS_DIR",
-  "OH_PROJECT_ROOT",
   "AGRO_PROJECT_ROOT",
   "INSTALL_DEEPAGENTS",
   "INSTALL_OPENCODE",
@@ -28,7 +27,7 @@ export interface RenderedVar {
   value: string;
 }
 
-export function renderComposeVars(config: OhConfig): RenderedVar[] {
+export function renderComposeVars(config: AgroConfig): RenderedVar[] {
   const out: RenderedVar[] = [];
   const put = (key: string, value: string | number | boolean | undefined): void => {
     if (value === undefined) return;
@@ -65,7 +64,7 @@ export function renderComposeVars(config: OhConfig): RenderedVar[] {
   return out;
 }
 
-export function renderComposeEnv(config: OhConfig): string {
+export function renderComposeEnv(config: AgroConfig): string {
   const vars = renderComposeVars(config);
   return vars.length === 0 ? "" : `${vars.map(({ key, value }) => `${key}=${value}`).join("\n")}\n`;
 }

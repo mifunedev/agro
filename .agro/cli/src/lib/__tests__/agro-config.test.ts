@@ -5,15 +5,15 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   configCheckout,
-  defaultOhConfig,
-  OH_CONFIG_FIELDS,
-  ohConfigPath,
-  readOhConfig,
-  setOhConfigValue,
-  validateOhConfig,
-  writeOhConfig,
-  type OhConfig,
-} from "../oh-config.js";
+  defaultAgroConfig,
+  AGRO_CONFIG_FIELDS,
+  agroConfigPath,
+  readAgroConfig,
+  setAgroConfigValue,
+  validateAgroConfig,
+  writeAgroConfig,
+  type AgroConfig,
+} from "../agro-config.js";
 
 const cleanups: string[] = [];
 afterEach(() => {
@@ -21,22 +21,22 @@ afterEach(() => {
 });
 
 function makeRoot(): string {
-  const d = mkdtempSync(join(tmpdir(), "oh-config-"));
+  const d = mkdtempSync(join(tmpdir(), "agro-config-"));
   cleanups.push(d);
   return d;
 }
 
-describe("ohConfigPath", () => {
+describe("agroConfigPath", () => {
   it("resolves agro.json at a fresh project root", () => {
     const root = makeRoot();
-    expect(ohConfigPath(root)).toBe(join(root, "agro.json"));
+    expect(agroConfigPath(root)).toBe(join(root, "agro.json"));
   });
 });
 
-describe("readOhConfig", () => {
+describe("readAgroConfig", () => {
   it("returns defaults named after the project directory when the file is absent", () => {
     const root = makeRoot();
-    const config = readOhConfig(ohConfigPath(root));
+    const config = readAgroConfig(agroConfigPath(root));
     expect(config.version).toBe(1);
     expect(config.name).toBe(root.split("/").pop());
     expect(config.access?.sshPort).toBe(2222);
@@ -44,238 +44,222 @@ describe("readOhConfig", () => {
 
   it("rejects a file that is not valid JSON", () => {
     const root = makeRoot();
-    writeFileSync(ohConfigPath(root), "{nope");
-    expect(() => readOhConfig(ohConfigPath(root))).toThrow(/agro\.json is not valid JSON/);
+    writeFileSync(agroConfigPath(root), "{nope");
+    expect(() => readAgroConfig(agroConfigPath(root))).toThrow(/agro\.json is not valid JSON/);
   });
 
   it("rejects a JSON array", () => {
     const root = makeRoot();
-    writeFileSync(ohConfigPath(root), "[]");
-    expect(() => readOhConfig(ohConfigPath(root))).toThrow(/oh\.json: must contain a JSON object/);
+    writeFileSync(agroConfigPath(root), "[]");
+    expect(() => readAgroConfig(agroConfigPath(root))).toThrow(/agro\.json: must contain a JSON object/);
   });
 });
 
 describe("round trip", () => {
   it("preserves the default config exactly", () => {
     const root = makeRoot();
-    const config = defaultOhConfig("demo");
-    writeOhConfig(root, config);
-    expect(readOhConfig(ohConfigPath(root))).toEqual(config);
+    const config = defaultAgroConfig("demo");
+    writeAgroConfig(root, config);
+    expect(readAgroConfig(agroConfigPath(root))).toEqual(config);
   });
 
   it("preserves an unknown top-level key the operator added by hand", () => {
     const root = makeRoot();
     writeFileSync(
-      ohConfigPath(root),
+      agroConfigPath(root),
       JSON.stringify({ version: 1, name: "demo", experimental: { beam: true } }, null, 2),
     );
 
-    const read = readOhConfig(ohConfigPath(root));
+    const read = readAgroConfig(agroConfigPath(root));
     expect(read.experimental).toEqual({ beam: true });
 
-    writeOhConfig(root, read);
-    const again = JSON.parse(readFileSync(ohConfigPath(root), "utf8")) as Record<string, unknown>;
+    writeAgroConfig(root, read);
+    const again = JSON.parse(readFileSync(agroConfigPath(root), "utf8")) as Record<string, unknown>;
     expect(again.experimental).toEqual({ beam: true });
   });
 
   it("preserves an unknown key nested inside a known section", () => {
     const root = makeRoot();
     writeFileSync(
-      ohConfigPath(root),
+      agroConfigPath(root),
       JSON.stringify({ version: 1, access: { ssh: true, futureFlag: "keep" } }),
     );
-    const read = readOhConfig(ohConfigPath(root));
-    writeOhConfig(root, read);
-    const again = JSON.parse(readFileSync(ohConfigPath(root), "utf8")) as {
+    const read = readAgroConfig(agroConfigPath(root));
+    writeAgroConfig(root, read);
+    const again = JSON.parse(readFileSync(agroConfigPath(root), "utf8")) as {
       access: Record<string, unknown>;
     };
     expect(again.access.futureFlag).toBe("keep");
   });
 
-  it("writes oh.json world-readable — it is a tracked, non-secret file", () => {
+  it("writes agro.json world-readable — it is a tracked, non-secret file", () => {
     const root = makeRoot();
-    writeOhConfig(root, defaultOhConfig("demo"));
-    expect(statSync(ohConfigPath(root)).mode & 0o777).toBe(0o644);
+    writeAgroConfig(root, defaultAgroConfig("demo"));
+    expect(statSync(agroConfigPath(root)).mode & 0o777).toBe(0o644);
   });
 
   it("stamps version 1 on a config that omits it", () => {
     const root = makeRoot();
-    writeOhConfig(root, { name: "demo" } as unknown as OhConfig);
-    expect(readOhConfig(ohConfigPath(root)).version).toBe(1);
+    writeAgroConfig(root, { name: "demo" } as unknown as AgroConfig);
+    expect(readAgroConfig(agroConfigPath(root)).version).toBe(1);
   });
 });
 
-describe("validateOhConfig", () => {
+describe("validateAgroConfig", () => {
   const cases: Array<[string, unknown, RegExp]> = [
-    ["name", { name: 1 }, /^oh\.json: name must be a string$/],
-    ["runtime", { runtime: "podman" }, /^oh\.json: runtime must be one of docker$/],
-    ["repo", { repo: 7 }, /^oh\.json: repo must be a string$/],
-    ["checkout", { checkout: 7 }, /^oh\.json: checkout must be a string$/],
-    ["timezone", { timezone: true }, /^oh\.json: timezone must be a string$/],
+    ["name", { name: 1 }, /^agro\.json: name must be a string$/],
+    ["runtime", { runtime: "podman" }, /^agro\.json: runtime must be one of docker$/],
+    ["repo", { repo: 7 }, /^agro\.json: repo must be a string$/],
+    ["checkout", { checkout: 7 }, /^agro\.json: checkout must be a string$/],
+    ["timezone", { timezone: true }, /^agro\.json: timezone must be a string$/],
     [
       "storage.homePath",
       { storage: { homePath: [] } },
-      /^oh\.json: storage\.homePath must be a string$/,
+      /^agro\.json: storage\.homePath must be a string$/,
     ],
     [
       "storage.homePath relative",
       { storage: { homePath: "oh-home" } },
-      /^oh\.json: storage\.homePath must be an absolute host path$/,
+      /^agro\.json: storage\.homePath must be an absolute host path$/,
     ],
-    ["git", { git: "me" }, /^oh\.json: git must be an object$/],
-    ["git.userName", { git: { userName: 7 } }, /^oh\.json: git\.userName must be a string$/],
-    ["git.userEmail", { git: { userEmail: 7 } }, /^oh\.json: git\.userEmail must be a string$/],
-    ["access.ssh", { access: { ssh: "yes" } }, /^oh\.json: access\.ssh must be a boolean$/],
-    ["access.sshPort", { access: { sshPort: "2222" } }, /^oh\.json: access\.sshPort must be a number$/],
+    ["git", { git: "me" }, /^agro\.json: git must be an object$/],
+    ["git.userName", { git: { userName: 7 } }, /^agro\.json: git\.userName must be a string$/],
+    ["git.userEmail", { git: { userEmail: 7 } }, /^agro\.json: git\.userEmail must be a string$/],
+    ["access.ssh", { access: { ssh: "yes" } }, /^agro\.json: access\.ssh must be a boolean$/],
+    ["access.sshPort", { access: { sshPort: "2222" } }, /^agro\.json: access\.sshPort must be a number$/],
     [
       "access.sshPort range",
       { access: { sshPort: 0 } },
-      /^oh\.json: access\.sshPort must be an integer between 1 and 65535$/,
+      /^agro\.json: access\.sshPort must be an integer between 1 and 65535$/,
     ],
     [
       "access.sshAuthorizedKeys",
       { access: { sshAuthorizedKeys: ["k"] } },
-      /^oh\.json: access\.sshAuthorizedKeys must be a string$/,
+      /^agro\.json: access\.sshAuthorizedKeys must be a string$/,
     ],
     [
       "access.dockerSocket",
       { access: { dockerSocket: "on" } },
-      /^oh\.json: access\.dockerSocket must be a boolean$/,
+      /^agro\.json: access\.dockerSocket must be a boolean$/,
     ],
     [
       "hermesDashboard.port",
       { hermesDashboard: { port: "9119" } },
-      /^oh\.json: hermesDashboard\.port must be a number$/,
+      /^agro\.json: hermesDashboard\.port must be a number$/,
     ],
-    ["cron.agentBin", { cron: { agentBin: 3 } }, /^oh\.json: cron\.agentBin must be a string$/],
+    ["cron.agentBin", { cron: { agentBin: 3 } }, /^agro\.json: cron\.agentBin must be a string$/],
     [
       "build.skipPnpmInstall",
       { build: { skipPnpmInstall: "1" } },
-      /^oh\.json: build\.skipPnpmInstall must be a boolean$/,
+      /^agro\.json: build\.skipPnpmInstall must be a boolean$/,
     ],
-    ["image.ref", { image: { ref: 5 } }, /^oh\.json: image\.ref must be a string$/],
-    ["image.mode", { image: { mode: "pull" } }, /^oh\.json: image\.mode must be one of build, image$/],
+    ["image.ref", { image: { ref: 5 } }, /^agro\.json: image\.ref must be a string$/],
+    ["image.mode", { image: { mode: "pull" } }, /^agro\.json: image\.mode must be one of build, image$/],
     [
       "image.pullPolicy",
       { image: { pullPolicy: "sometimes" } },
-      /^oh\.json: image\.pullPolicy must be one of missing, always, never$/,
+      /^agro\.json: image\.pullPolicy must be one of missing, always, never$/,
     ],
     [
       "composeOverrides",
       { composeOverrides: "a.yml" },
-      /^oh\.json: composeOverrides must be an array of strings$/,
+      /^agro\.json: composeOverrides must be an array of strings$/,
     ],
     [
       "composeOverrides entries",
       { composeOverrides: ["a.yml", 2] },
-      /^oh\.json: composeOverrides must be an array of strings$/,
+      /^agro\.json: composeOverrides must be an array of strings$/,
     ],
-    ["version", { version: 2 }, /^oh\.json: version must be 1$/],
+    ["version", { version: 2 }, /^agro\.json: version must be 1$/],
   ];
 
   for (const [label, value, message] of cases) {
     it(`rejects a wrong type at ${label} with a path-qualified message`, () => {
-      expect(() => validateOhConfig(value)).toThrow(message);
+      expect(() => validateAgroConfig(value)).toThrow(message);
     });
   }
 
   it("accepts the default config", () => {
-    expect(() => validateOhConfig(defaultOhConfig("demo"))).not.toThrow();
+    expect(() => validateAgroConfig(defaultAgroConfig("demo"))).not.toThrow();
   });
 
-  // #948: the template carries no `install` section, but an oh.json written
+  // #948: the template carries no `install` section, but an agro.json written
   // before the verb became the only door still does. An unknown key is data the
   // validator carries through, never a reason to refuse the file.
   it("tolerates a stale install section rather than refusing the file", () => {
     const stale = {
-      ...defaultOhConfig("legacy"),
+      ...defaultAgroConfig("legacy"),
       install: { opencode: true, hermes: false, tailscale: "yes" },
     };
-    const validated = validateOhConfig(stale);
+    const validated = validateAgroConfig(stale);
     expect(validated.version).toBe(1);
     expect(validated.install).toEqual({ opencode: true, hermes: false, tailscale: "yes" });
   });
 
   it("accepts a registry entry: runtime docker with an absolute repo path", () => {
-    const entry = { ...defaultOhConfig("oh-sbx-1"), runtime: "docker", repo: "/srv/checkout" };
-    const validated = validateOhConfig(entry);
+    const entry = { ...defaultAgroConfig("oh-sbx-1"), runtime: "docker", repo: "/srv/checkout" };
+    const validated = validateAgroConfig(entry);
     expect(validated.runtime).toBe("docker");
     expect(validated.repo).toBe("/srv/checkout");
   });
 
-  it("makes runtime and repo settable through `oh config set`", () => {
-    expect(OH_CONFIG_FIELDS.find((f) => f.path === "runtime")).toEqual({
+  it("makes runtime and repo settable through `agro config set`", () => {
+    expect(AGRO_CONFIG_FIELDS.find((f) => f.path === "runtime")).toEqual({
       path: "runtime",
       type: "enum",
       values: ["docker"],
     });
-    expect(OH_CONFIG_FIELDS.find((f) => f.path === "repo")).toEqual({
+    expect(AGRO_CONFIG_FIELDS.find((f) => f.path === "repo")).toEqual({
       path: "repo",
       type: "string",
     });
-    expect(OH_CONFIG_FIELDS.find((f) => f.path === "checkout")).toEqual({
+    expect(AGRO_CONFIG_FIELDS.find((f) => f.path === "checkout")).toEqual({
       path: "checkout",
       type: "string",
     });
   });
 
-  it("writes the checkout field through `oh config set checkout <dir>`", () => {
-    const next = setOhConfigValue(defaultOhConfig("demo"), "checkout", "/srv/checkout");
+  it("writes the checkout field through `agro config set checkout <dir>`", () => {
+    const next = setAgroConfigValue(defaultAgroConfig("demo"), "checkout", "/srv/checkout");
     expect(next.checkout).toBe("/srv/checkout");
     expect(next.repo).toBeUndefined();
   });
 
   it("declares no install field in the template or the settable field list", () => {
-    expect(Object.keys(defaultOhConfig("demo"))).not.toContain("install");
-    expect(OH_CONFIG_FIELDS.some((f) => f.path.startsWith("install."))).toBe(false);
+    expect(Object.keys(defaultAgroConfig("demo"))).not.toContain("install");
+    expect(AGRO_CONFIG_FIELDS.some((f) => f.path.startsWith("install."))).toBe(false);
   });
 });
 
-describe("ohConfigPath — dual-generation config files", () => {
-  it("writes agro.json for a fresh root without any migration step", () => {
+describe("agroConfigPath", () => {
+  it("writes agro.json for a fresh root", () => {
     const root = makeRoot();
-    expect(ohConfigPath(root)).toBe(join(root, "agro.json"));
-    writeOhConfig(root, defaultOhConfig("demo"));
+    expect(agroConfigPath(root)).toBe(join(root, "agro.json"));
+    writeAgroConfig(root, defaultAgroConfig("demo"));
     expect(readFileSync(join(root, "agro.json"), "utf8")).toContain('"name": "demo"');
     expect(existsSync(join(root, "oh.json"))).toBe(false);
   });
 
-  it("keeps writing oh.json next to a legacy .oh/ control dir that has no config yet", () => {
+  it("writes agro.json next to an existing .agro/ control dir with no config yet", () => {
     const root = makeRoot();
-    mkdirSync(join(root, ".oh", "scripts"), { recursive: true });
-    expect(ohConfigPath(root)).toBe(join(root, "oh.json"));
-    writeOhConfig(root, defaultOhConfig("demo"));
-    expect(existsSync(join(root, "oh.json"))).toBe(true);
-    expect(existsSync(join(root, "agro.json"))).toBe(false);
+    mkdirSync(join(root, ".agro", "scripts"), { recursive: true });
+    expect(agroConfigPath(root)).toBe(join(root, "agro.json"));
+    writeAgroConfig(root, defaultAgroConfig("demo"));
+    expect(existsSync(join(root, "agro.json"))).toBe(true);
   });
 
-  it("reads oh.json when only the legacy config exists", () => {
-    const root = makeRoot();
-    writeFileSync(join(root, "oh.json"), JSON.stringify({ version: 1, name: "legacy-era" }));
-    expect(ohConfigPath(root)).toBe(join(root, "oh.json"));
-    expect(readOhConfig(ohConfigPath(root)).name).toBe("legacy-era");
-  });
-
-  it("selects agro.json when it is the only config present", () => {
+  it("reads agro.json when it is present", () => {
     const root = makeRoot();
     writeFileSync(join(root, "agro.json"), JSON.stringify({ version: 1, name: "agro-era" }));
-    expect(ohConfigPath(root)).toBe(join(root, "agro.json"));
-    expect(readOhConfig(ohConfigPath(root)).name).toBe("agro-era");
+    expect(agroConfigPath(root)).toBe(join(root, "agro.json"));
+    expect(readAgroConfig(agroConfigPath(root)).name).toBe("agro-era");
   });
 
-  it("selects agro.json when both files are byte-identical", () => {
+  it("ignores a legacy oh.json entirely", () => {
     const root = makeRoot();
-    const body = JSON.stringify({ version: 1, name: "twin" });
-    writeFileSync(join(root, "oh.json"), body);
-    writeFileSync(join(root, "agro.json"), body);
-    expect(ohConfigPath(root)).toBe(join(root, "agro.json"));
-  });
-
-  it("fails closed when oh.json and agro.json differ", () => {
-    const root = makeRoot();
-    writeFileSync(join(root, "oh.json"), JSON.stringify({ version: 1, name: "one" }));
-    writeFileSync(join(root, "agro.json"), JSON.stringify({ version: 1, name: "two" }));
-    expect(() => ohConfigPath(root)).toThrow(/both exist and differ/);
+    writeFileSync(join(root, "oh.json"), JSON.stringify({ version: 1, name: "legacy-era" }));
+    expect(agroConfigPath(root)).toBe(join(root, "agro.json"));
+    expect(readAgroConfig(agroConfigPath(root)).name).not.toBe("legacy-era");
   });
 });
 
@@ -298,19 +282,19 @@ describe("configCheckout", () => {
     expect(configCheckout({ version: 1, repo: "" })).toBeUndefined();
   });
 
-  it("round-trips a checkout field through validateOhConfig", () => {
-    const validated = validateOhConfig({ version: 1, checkout: "/srv/checkout" });
+  it("round-trips a checkout field through validateAgroConfig", () => {
+    const validated = validateAgroConfig({ version: 1, checkout: "/srv/checkout" });
     expect(configCheckout(validated)).toBe("/srv/checkout");
   });
 });
 
 describe("langfuse settings", () => {
   it("defaults to an empty section", () => {
-    expect(defaultOhConfig("demo").langfuse).toEqual({});
+    expect(defaultAgroConfig("demo").langfuse).toEqual({});
   });
 
   it("accepts all four non-secret fields", () => {
-    const validated = validateOhConfig({
+    const validated = validateAgroConfig({
       version: 1,
       langfuse: {
         enabled: true,
@@ -334,23 +318,23 @@ describe("langfuse settings", () => {
     [{ userId: {} }, /langfuse\.userId must be a string/],
     ["on", /langfuse must be an object/],
   ] as [unknown, RegExp][])("rejects langfuse %j", (langfuse, message) => {
-    expect(() => validateOhConfig({ version: 1, langfuse })).toThrow(message);
+    expect(() => validateAgroConfig({ version: 1, langfuse })).toThrow(message);
   });
 
-  it("registers all four paths in OH_CONFIG_FIELDS", () => {
-    const paths = OH_CONFIG_FIELDS.map((field) => field.path);
+  it("registers all four paths in AGRO_CONFIG_FIELDS", () => {
+    const paths = AGRO_CONFIG_FIELDS.map((field) => field.path);
     expect(paths).toContain("langfuse.enabled");
     expect(paths).toContain("langfuse.baseUrl");
     expect(paths).toContain("langfuse.environment");
     expect(paths).toContain("langfuse.userId");
-    expect(OH_CONFIG_FIELDS.find((field) => field.path === "langfuse.enabled")?.type).toBe(
+    expect(AGRO_CONFIG_FIELDS.find((field) => field.path === "langfuse.enabled")?.type).toBe(
       "boolean",
     );
   });
 
-  it("sets langfuse.baseUrl through setOhConfigValue", () => {
-    const next = setOhConfigValue(
-      defaultOhConfig("demo"),
+  it("sets langfuse.baseUrl through setAgroConfigValue", () => {
+    const next = setAgroConfigValue(
+      defaultAgroConfig("demo"),
       "langfuse.baseUrl",
       "http://host.docker.internal:3000",
     );
@@ -358,35 +342,35 @@ describe("langfuse settings", () => {
   });
 
   it("registers no credential path", () => {
-    const paths = OH_CONFIG_FIELDS.map((field) => field.path);
+    const paths = AGRO_CONFIG_FIELDS.map((field) => field.path);
     expect(paths).not.toContain("langfuse.publicKey");
     expect(paths).not.toContain("langfuse.secretKey");
-    expect(() => setOhConfigValue(defaultOhConfig("demo"), "langfuse.publicKey", "pk")).toThrow(
-      /unknown oh\.json field "langfuse\.publicKey"/,
+    expect(() => setAgroConfigValue(defaultAgroConfig("demo"), "langfuse.publicKey", "pk")).toThrow(
+      /unknown agro\.json field "langfuse\.publicKey"/,
     );
   });
 
   it("keeps the privacy preset retired", () => {
-    expect(OH_CONFIG_FIELDS.map((field) => field.path)).not.toContain("langfuse.privacyPreset");
+    expect(AGRO_CONFIG_FIELDS.map((field) => field.path)).not.toContain("langfuse.privacyPreset");
   });
 
   it("loads an existing config with no langfuse section and leaves the feature inert", () => {
     const root = makeRoot();
     writeFileSync(
-      ohConfigPath(root),
+      agroConfigPath(root),
       `${JSON.stringify({ version: 1, name: "demo", timezone: "UTC" }, null, 2)}\n`,
     );
-    const config = readOhConfig(ohConfigPath(root));
+    const config = readAgroConfig(agroConfigPath(root));
     expect(config.langfuse).toBeUndefined();
     expect(config.langfuse?.enabled ?? false).toBe(false);
   });
 
-  it("round-trips the section through writeOhConfig", () => {
+  it("round-trips the section through writeAgroConfig", () => {
     const root = makeRoot();
-    const config = defaultOhConfig("demo");
+    const config = defaultAgroConfig("demo");
     config.langfuse = { enabled: true, environment: "demo" };
-    writeOhConfig(root, config);
-    expect(readOhConfig(ohConfigPath(root)).langfuse).toEqual({
+    writeAgroConfig(root, config);
+    expect(readAgroConfig(agroConfigPath(root)).langfuse).toEqual({
       enabled: true,
       environment: "demo",
     });
@@ -396,7 +380,7 @@ describe("langfuse settings", () => {
 describe("the tracked agro.json", () => {
   it("carries a langfuse section that validates and holds no credential", () => {
     const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", "..");
-    const config = readOhConfig(join(repoRoot, "agro.json"));
+    const config = readAgroConfig(join(repoRoot, "agro.json"));
     expect(config.langfuse).toBeDefined();
     expect(JSON.stringify(config.langfuse ?? {})).not.toMatch(/pk-lf|sk-lf|publicKey|secretKey/);
   });

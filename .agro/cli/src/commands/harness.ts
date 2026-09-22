@@ -7,7 +7,7 @@ import {
   resolveTargetStatus,
   runtimeIsAbsent,
 } from "../lib/execution/index.js";
-import { aliasedEnvPair, aliasedEnvValue, remoteControlDirScript } from "../lib/compat.js";
+import { agroEnvPair, agroEnvValue, remoteControlDirScript } from "../lib/layout.js";
 import { sourceDocsUrl } from "../lib/docs.js";
 import { runningInsideSandbox } from "../lib/execution/detect.js";
 import { LocalExecutionTarget } from "../lib/execution/local-target.js";
@@ -23,7 +23,6 @@ import {
 } from "../lib/host-config.js";
 import {
   resolveExistingWorkspace,
-  stateHomeRefusal,
   stateHomeRootRefusal,
 } from "../lib/host-workspace.js";
 import { ask as promptAsk } from "../lib/prompt.js";
@@ -303,7 +302,7 @@ async function reconcileHermes(
 ): Promise<number> {
   const result = await target.exec({
     argv: remoteControlDirScript(root, "scripts/link-providers.sh", ["--init", "--hermes-only"]),
-    env: aliasedEnvPair("PROJECT_ROOT", root),
+    env: agroEnvPair("PROJECT_ROOT", root),
     ...(user ? { user } : {}),
     stdio: "inherit",
   });
@@ -348,12 +347,6 @@ async function installOnHost(
   const env = opts.env ?? process.env;
   const home = homeOf(opts);
   const flagged = opts.host === true || opts.path !== undefined || opts.workspace !== undefined;
-
-  const generation = stateHomeRefusal(bin, home);
-  if (generation !== undefined) {
-    io.stderr(generation);
-    return 1;
-  }
 
   if (!flagged && !isInteractive(opts)) {
     io.stderr(
@@ -413,7 +406,7 @@ async function installOnHost(
 
   const linked = await target.exec({
     argv: remoteControlDirScript(root, "scripts/link-providers.sh", ["--init"]),
-    env: aliasedEnvPair("PROJECT_ROOT", root),
+    env: agroEnvPair("PROJECT_ROOT", root),
     stdio: "inherit",
   });
   if (linked.exitCode !== 0) {
@@ -426,7 +419,7 @@ async function installOnHost(
 
   const hermes = entry.id === "hermes";
   const installEnv = hermes ? {
-    ...aliasedEnvPair("PROJECT_ROOT", root),
+    ...agroEnvPair("PROJECT_ROOT", root),
     HERMES_HOME: `${root}/.hermes`,
   } : undefined;
   if (hermes) {
@@ -554,12 +547,6 @@ async function uninstallOnHost(
   const home = homeOf(opts);
   const computed = hostPrefix(home);
 
-  const generation = stateHomeRefusal(bin, home);
-  if (generation !== undefined) {
-    io.stderr(generation);
-    return 1;
-  }
-
   if (resolveUninstallArgv(entry, computed) === null) {
     io.stdout(`${entry.id}: nothing to remove — npx fetches it at each run\n`);
     return 0;
@@ -635,7 +622,7 @@ export async function runHarnessInstall(
 ): Promise<number> {
   const run = opts.run ?? spawnRunner;
   const env = opts.env ?? process.env;
-  const projectRoot = aliasedEnvValue(env, "PROJECT_ROOT");
+  const projectRoot = agroEnvValue(env, "PROJECT_ROOT");
   const root = resolveProjectRoot(
     name === "hermes" && runningInsideSandbox(env) && projectRoot !== undefined
       ? projectRoot
@@ -654,7 +641,7 @@ export async function runHarnessInstall(
 
   const hermes = entry.id === "hermes";
   const installEnv = hermes ? {
-    ...aliasedEnvPair("PROJECT_ROOT", hermesTargetRoot(target)),
+    ...agroEnvPair("PROJECT_ROOT", hermesTargetRoot(target)),
     HERMES_HOME: `${hermesTargetRoot(target)}/.hermes`,
   } : undefined;
   if (hermes) {

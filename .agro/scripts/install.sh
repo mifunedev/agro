@@ -86,22 +86,22 @@ AGRO — Installer
 
 Usage:
   curl -fsSL https://agro.mifune.dev/install.sh | bash [-s -- <flags>]
-  curl -fsSL -o openharness-install.sh https://agro.mifune.dev/install.sh
-  # Review openharness-install.sh in your editor or pager, then:
-  bash openharness-install.sh [<flags>]
+  curl -fsSL -o agro-install.sh https://agro.mifune.dev/install.sh
+  # Review agro-install.sh in your editor or pager, then:
+  bash agro-install.sh [<flags>]
   ./.agro/scripts/install.sh [<flags>]
 
-Clones (or pulls) the repo into ~/.openharness, prepares host auth dirs,
-installs the 'oh' CLI, and brings up the sandbox with 'oh sandbox'. A bare
-'get-oh.sh' is a separate path that installs only 'oh' and equips an existing
+Clones (or pulls) the repo into ~/.agro, prepares host auth dirs,
+installs the 'agro' CLI, and brings up the sandbox with 'agro sandbox'. A bare
+'get-agro.sh' is a separate path that installs only 'agro' and equips an existing
 project repo instead (see docs/installation.md).
 
 Prerequisites:
   Docker with the Compose plugin
   git (used to clone or update AGRO)
-  Node.js >= 20 — required to run 'oh', the only lifecycle door. When it is
+  Node.js >= 20 — required to run 'agro', the only lifecycle door. When it is
                   missing this installer offers to install nvm + Node 22,
-                  through the same ensure_node that get-oh.sh uses.
+                  through the same ensure_node that get-agro.sh uses.
 
 Flags:
   -y, --yes            Accept default at any prompt.
@@ -109,12 +109,12 @@ Flags:
   -h, --help           Show this help and exit.
 
 Env vars:
-  OH_INSTALL_REF       Git ref (tag/SHA) to clone instead of main
-  OH_ASSUME_YES        Set to 1 for --yes
+  AGRO_INSTALL_REF       Git ref (tag/SHA) to clone instead of main
+  AGRO_ASSUME_YES        Set to 1 for --yes
   SANDBOX_NAME         Skip the "Container name" prompt
-  OH_GITHUB_REPO       GitHub repo to clone (default: mifunedev/openharness)
-  OH_GITHUB_REF        Git ref to clone (alias: OH_INSTALL_REF)
-  OH_REPLACE           Set to 1 to rebuild in place even when a sandbox of the
+  AGRO_GITHUB_REPO       GitHub repo to clone (default: mifunedev/agro)
+  AGRO_GITHUB_REF        Git ref to clone (alias: AGRO_INSTALL_REF)
+  AGRO_REPLACE           Set to 1 to rebuild in place even when a sandbox of the
                        same name is already running (default: refuse, so a live
                        sandbox is never overwritten)
   DOCKER_SOCKET=true   Mount the host Docker socket into the sandbox
@@ -124,21 +124,21 @@ Env vars:
 
 Examples:
   curl -fsSL https://agro.mifune.dev/install.sh | bash
-  curl -fsSL -o openharness-install.sh https://agro.mifune.dev/install.sh
-  # Review openharness-install.sh before running it.
-  bash openharness-install.sh
+  curl -fsSL -o agro-install.sh https://agro.mifune.dev/install.sh
+  # Review agro-install.sh before running it.
+  bash agro-install.sh
   curl -fsSL https://agro.mifune.dev/install.sh | bash -s -- --yes
   ./.agro/scripts/install.sh
-  OH_GITHUB_REPO=myorg/my-harness curl -fsSL \
+  AGRO_GITHUB_REPO=myorg/my-harness curl -fsSL \
     https://raw.githubusercontent.com/myorg/my-harness/main/.agro/scripts/install.sh | bash
-  curl -fsSL -o openharness-install.sh \
+  curl -fsSL -o agro-install.sh \
     https://raw.githubusercontent.com/myorg/my-harness/main/.agro/scripts/install.sh
-  # Review openharness-install.sh, then run it against your fork.
-  OH_GITHUB_REPO=myorg/my-harness bash openharness-install.sh
+  # Review agro-install.sh, then run it against your fork.
+  AGRO_GITHUB_REPO=myorg/my-harness bash agro-install.sh
 HELPEOF
 }
 
-ASSUME_YES="${OH_ASSUME_YES:+true}"; ASSUME_YES="${ASSUME_YES:-false}"
+ASSUME_YES="${AGRO_ASSUME_YES:+true}"; ASSUME_YES="${ASSUME_YES:-false}"
 ASSUME_NO=false
 
 while [ $# -gt 0 ]; do
@@ -193,27 +193,27 @@ if [ -n "$REPO_CANDIDATE" ] && [ -f "$REPO_CANDIDATE/.devcontainer/docker-compos
   REPO_DIR="$REPO_CANDIDATE"
   ok "Using local repo: $REPO_DIR"
 else
-  OLD_REPO="$HOME/openharness"
-  REPO_DIR="$HOME/.openharness"
+  OLD_REPO="$HOME/agro"
+  REPO_DIR="$HOME/.agro"
 
-  OH_GITHUB_REPO="${OH_GITHUB_REPO:-mifunedev/openharness}"
-  if [[ ! "$OH_GITHUB_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
-    die "OH_GITHUB_REPO must be <owner>/<repo>: got '$OH_GITHUB_REPO'"
+  AGRO_GITHUB_REPO="${AGRO_GITHUB_REPO:-mifunedev/agro}"
+  if [[ ! "$AGRO_GITHUB_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+    die "AGRO_GITHUB_REPO must be <owner>/<repo>: got '$AGRO_GITHUB_REPO'"
   fi
-  if [ "$OH_GITHUB_REPO" != "mifunedev/openharness" ]; then
-    warn "Cloning from fork: $OH_GITHUB_REPO"
+  if [ "$AGRO_GITHUB_REPO" != "mifunedev/agro" ]; then
+    warn "Cloning from fork: $AGRO_GITHUB_REPO"
   fi
 
-  if [ -n "${OH_GITHUB_REF:-}" ] && [ -n "${OH_INSTALL_REF:-}" ] && [ "$OH_GITHUB_REF" != "$OH_INSTALL_REF" ]; then
-    warn "OH_GITHUB_REF and OH_INSTALL_REF both set with different values; OH_GITHUB_REF wins."
+  if [ -n "${AGRO_GITHUB_REF:-}" ] && [ -n "${AGRO_INSTALL_REF:-}" ] && [ "$AGRO_GITHUB_REF" != "$AGRO_INSTALL_REF" ]; then
+    warn "AGRO_GITHUB_REF and AGRO_INSTALL_REF both set with different values; AGRO_GITHUB_REF wins."
   fi
-  OH_GITHUB_REF="${OH_GITHUB_REF:-${OH_INSTALL_REF:-}}"
+  AGRO_GITHUB_REF="${AGRO_GITHUB_REF:-${AGRO_INSTALL_REF:-}}"
 
   __HAS_OLD=0; __HAS_NEW=0
   [ -d "$OLD_REPO/.git" ] && __HAS_OLD=1
   if [ -d "$REPO_DIR" ] && [ ! -d "$REPO_DIR/.git" ]; then
     # shellcheck disable=SC2088  # ~ is intentional display text in this user-facing message; do not substitute $HOME
-    die "~/.openharness exists but is not a git clone. Inspect and remove it, then re-run."
+    die "~/.agro exists but is not a git clone. Inspect and remove it, then re-run."
   fi
   [ -d "$REPO_DIR/.git" ] && __HAS_NEW=1
 
@@ -252,14 +252,14 @@ else
   if [ -d "$REPO_DIR/.git" ]; then
     __ORIGIN_RAW="$(git -C "$REPO_DIR" remote get-url origin 2>/dev/null || true)"
     __ORIGIN_SLUG="$(normalize_gh_slug "${__ORIGIN_RAW:-}")"
-    __EXPECTED_SLUG="$(normalize_gh_slug "$OH_GITHUB_REPO")"
+    __EXPECTED_SLUG="$(normalize_gh_slug "$AGRO_GITHUB_REPO")"
     if [ -z "$__ORIGIN_RAW" ] || [ "$__ORIGIN_SLUG" != "$__EXPECTED_SLUG" ]; then
-      warn "Existing clone origin (${__ORIGIN_RAW:-<none>}) does not match OH_GITHUB_REPO=${OH_GITHUB_REPO}."
+      warn "Existing clone origin (${__ORIGIN_RAW:-<none>}) does not match AGRO_GITHUB_REPO=${AGRO_GITHUB_REPO}."
       warn "Skipping pull. To switch sources:"
-      warn "  1. Back up customizations:  cp ~/.openharness/.devcontainer/.env /tmp/oh.env.bak"
-      warn "  2. Remove the clone:        rm -rf ~/.openharness"
-      warn "  3. Re-run with the desired OH_GITHUB_REPO and (if needed) OH_GITHUB_REF."
-      warn "  Note: rm -rf also discards any local changes and pinned OH_INSTALL_REF state."
+      warn "  1. Back up customizations:  cp ~/.agro/.devcontainer/.env /tmp/oh.env.bak"
+      warn "  2. Remove the clone:        rm -rf ~/.agro"
+      warn "  3. Re-run with the desired AGRO_GITHUB_REPO and (if needed) AGRO_GITHUB_REF."
+      warn "  Note: rm -rf also discards any local changes and pinned AGRO_INSTALL_REF state."
     else
       if git -C "$REPO_DIR" diff --quiet 2>/dev/null && git -C "$REPO_DIR" diff --cached --quiet 2>/dev/null; then
         printf "  Repository exists — pulling latest changes...\n"
@@ -271,17 +271,17 @@ else
     fi
     unset __ORIGIN_RAW __ORIGIN_SLUG __EXPECTED_SLUG
   else
-    if [ -n "$OH_GITHUB_REF" ]; then
-      git clone --branch "$OH_GITHUB_REF" "https://github.com/${OH_GITHUB_REPO}.git" "$REPO_DIR"
-      ok "Repository cloned at ref '$OH_GITHUB_REF': $REPO_DIR"
+    if [ -n "$AGRO_GITHUB_REF" ]; then
+      git clone --branch "$AGRO_GITHUB_REF" "https://github.com/${AGRO_GITHUB_REPO}.git" "$REPO_DIR"
+      ok "Repository cloned at ref '$AGRO_GITHUB_REF': $REPO_DIR"
     else
-      git clone "https://github.com/${OH_GITHUB_REPO}.git" "$REPO_DIR"
+      git clone "https://github.com/${AGRO_GITHUB_REPO}.git" "$REPO_DIR"
       ok "Repository cloned: $REPO_DIR"
     fi
   fi
 
   printf "\n"
-  warn "If your current shell is still in ~/openharness, run: cd ~/.openharness"
+  warn "If your current shell is still in ~/agro, run: cd ~/.agro"
   printf "\n"
 fi
 
@@ -291,27 +291,27 @@ if [ -x .agro/scripts/link-providers.sh ]; then
   bash .agro/scripts/link-providers.sh --init
 fi
 
-banner "Installing the 'oh' CLI"
-OH_SKIP_EPILOGUE=1
-export OH_SKIP_EPILOGUE
+banner "Installing the 'agro' CLI"
+AGRO_SKIP_EPILOGUE=1
+export AGRO_SKIP_EPILOGUE
 # shellcheck source=/dev/null
-if ! . "$REPO_DIR/.agro/scripts/get-oh.sh"; then
-  unset _OH_SOURCED OH_SKIP_EPILOGUE
-  die "Could not install the 'oh' CLI. 'oh' is the only lifecycle door — see docs/installation.md."
+if ! . "$REPO_DIR/.agro/scripts/get-agro.sh"; then
+  unset _AGRO_SOURCED AGRO_SKIP_EPILOGUE
+  die "Could not install the 'agro' CLI. 'agro' is the only lifecycle door — see docs/installation.md."
 fi
-unset _OH_SOURCED OH_SKIP_EPILOGUE
-command -v oh >/dev/null 2>&1 || die "'oh' is not on PATH after install — expected $OH_BIN_DIR/oh."
-ok "oh $(oh --version 2>/dev/null || echo '(version unavailable)')"
+unset _AGRO_SOURCED AGRO_SKIP_EPILOGUE
+command -v agro >/dev/null 2>&1 || die "'agro' is not on PATH after install — expected $AGRO_BIN_DIR/agro."
+ok "agro $(agro --version 2>/dev/null || echo '(version unavailable)')"
 
 banner "Configuring sandbox"
 
 DEFAULT_NAME=$(basename "$REPO_DIR"); DEFAULT_NAME="${DEFAULT_NAME#.}"
-[ -n "$DEFAULT_NAME" ] || DEFAULT_NAME="openharness"
+[ -n "$DEFAULT_NAME" ] || DEFAULT_NAME="agro"
 prompt_input SANDBOX_NAME "Container name" "$DEFAULT_NAME"
 ok "Name: $SANDBOX_NAME"
 
-if [ "${OH_REPLACE:-}" != "1" ] && docker ps -a --format '{{.Names}}' 2>/dev/null | grep -Fxq "$SANDBOX_NAME"; then
-  die "A sandbox named '$SANDBOX_NAME' already exists (a container with that name is present — running or stopped) — refusing to overwrite it and risk losing its .devcontainer/.env or .hermes state. Choose a unique name (re-run with SANDBOX_NAME=<name>), or pass OH_REPLACE=1 to rebuild this one in place."
+if [ "${AGRO_REPLACE:-}" != "1" ] && docker ps -a --format '{{.Names}}' 2>/dev/null | grep -Fxq "$SANDBOX_NAME"; then
+  die "A sandbox named '$SANDBOX_NAME' already exists (a container with that name is present — running or stopped) — refusing to overwrite it and risk losing its .devcontainer/.env or .hermes state. Choose a unique name (re-run with SANDBOX_NAME=<name>), or pass AGRO_REPLACE=1 to rebuild this one in place."
 fi
 
 mkdir -p "$REPO_DIR/.devcontainer"
@@ -347,7 +347,7 @@ if [ -f "$REPO_DIR/harness.yaml" ] && [ -f "$REPO_DIR/.agro/scripts/migrate-harn
 fi
 
 _config_get() {
-  ( cd "$REPO_DIR" && oh config show 2>/dev/null ) | node -e '
+  ( cd "$REPO_DIR" && agro config show 2>/dev/null ) | node -e '
     let raw = "";
     process.stdin.on("data", (d) => { raw += d; });
     process.stdin.on("end", () => {
@@ -366,7 +366,7 @@ _config_get() {
 
 _config_set() {
   [ -n "${2:-}" ] || return 0
-  ( cd "$REPO_DIR" && oh config set "$1" "$2" ) >/dev/null || return 1
+  ( cd "$REPO_DIR" && agro config set "$1" "$2" ) >/dev/null || return 1
   ok "agro.json: $1"
 }
 
@@ -436,7 +436,7 @@ banner "Building and starting sandbox"
 printf "${CYAN}==> Building image — ~10 min on cold cache, ~30s on warm cache. Compose output below.${NC}\n"
 (
   cd "$REPO_DIR"
-  oh sandbox
+  agro sandbox
 )
 ok "Sandbox '$SANDBOX_NAME' started"
 
@@ -444,36 +444,36 @@ printf "\n${GREEN}Installation complete!${NC}\n\n"
 printf "  ${CYAN}Configuration${NC}\n"
 printf "  ──────────────────────────────────────\n"
 printf "       ${CYAN}agro.json${NC}      — the tracked home for every NON-secret setting. Your\n"
-printf "                      installer answers were written here with 'oh config set'.\n"
+printf "                      installer answers were written here with 'agro config set'.\n"
 printf "                      Field reference: docs/configuration.md.\n"
 printf "       ${CYAN}.env${NC}         — gitignored and 0600, seeded from the tracked .example.env,\n"
 printf "                      which documents every allow-listed secret. Secrets only;\n"
 printf "                      .devcontainer/.env symlinks to it so VS Code \"Reopen in\n"
 printf "                      Container\" reads the same file.\n"
 printf "\n"
-printf "  ${CYAN}Lifecycle — 'oh' is the only front door${NC}\n"
+printf "  ${CYAN}Lifecycle — 'agro' is the only front door${NC}\n"
 printf "  ──────────────────────────────────────\n"
 printf "       cd %s\n" "$REPO_DIR"
-printf "       oh shell                         # enter the sandbox\n"
+printf "       agro shell                         # enter the sandbox\n"
 printf "                                        # then pick your agent: claude, codex, opencode, pi, ...\n"
-printf "       oh ps | oh logs | oh restart     # inspect and control it\n"
-printf "       oh stop                          # stop it, keeping the volumes\n"
-printf "       oh destroy                       # tear it down (wipes the volumes)\n"
-printf "       oh --help                        # every subcommand\n"
+printf "       agro ps | agro logs | agro restart     # inspect and control it\n"
+printf "       agro stop                          # stop it, keeping the volumes\n"
+printf "       agro destroy                       # tear it down (wipes the volumes)\n"
+printf "       agro --help                        # every subcommand\n"
 printf "       docs/lifecycle-commands.md       # the verb reference\n"
 printf "\n"
 printf "  ${CYAN}Harnesses and tools${NC}  (nothing installs at boot — the verb is the only door)\n"
 printf "  ──────────────────────────────────────\n"
-printf "       oh harness install claude-code   — Claude Code\n"
-printf "       oh harness install codex         — Codex\n"
-printf "       oh harness install pi            — Pi\n"
-printf "       oh tool install herdr            — Herdr terminal workspace manager\n"
-printf "       oh tool install cloudflared      — public preview tunnels\n"
-printf "       oh harness list | oh tool list   — every id, kind, and install state\n"
+printf "       agro harness install claude-code   — Claude Code\n"
+printf "       agro harness install codex         — Codex\n"
+printf "       agro harness install pi            — Pi\n"
+printf "       agro tool install herdr            — Herdr terminal workspace manager\n"
+printf "       agro tool install cloudflared      — public preview tunnels\n"
+printf "       agro harness list | agro tool list   — every id, kind, and install state\n"
 printf "\n"
 printf "  ${CYAN}Messaging gateways${NC}\n"
 printf "  ──────────────────────────────────────\n"
-printf "       oh gateway pi | oh gateway hermes | oh gateway status\n"
+printf "       agro gateway pi | agro gateway hermes | agro gateway status\n"
 printf "       details: docs/integrations/slack.md\n"
 printf "\n"
 printf "  ${CYAN}VS Code (alternative)${NC}\n"

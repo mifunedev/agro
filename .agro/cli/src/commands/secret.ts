@@ -46,7 +46,7 @@ export async function runSecretSet(
 ): Promise<number> {
   if (!isSecretKey(key)) {
     io.stderr(
-      `${opts.bin} secret set: ${key} is not a secret — non-secret settings live in oh.json.\n` +
+      `${opts.bin} secret set: ${key} is not a secret — non-secret settings live in agro.json.\n` +
         `Set it with \`${opts.bin} config set ${key}\` instead.\n\nKeys:\n${secretKeyList()}\n`,
     );
     return 1;

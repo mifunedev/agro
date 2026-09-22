@@ -69,7 +69,7 @@ if [[ -n $config_path_body ]]; then
     missing+=("host-config.ts: \`hostConfigPath\` does not name HOST_CONFIG_FILE — the host config file name must be fixed, not derived per generation")
   fi
   if grep -qE "GENERATIONS\.[a-z]+\.configFile" <<<"$config_path_body"; then
-    missing+=("host-config.ts: \`hostConfigPath\` names a project config file (GENERATIONS.*.configFile) — host config must not reuse agro.json/oh.json, which collides with a cloned checkout's own tracked agro.json")
+    missing+=("host-config.ts: \`hostConfigPath\` names a project config file (GENERATIONS.*.configFile) — host config must not reuse agro.json/agro.json, which collides with a cloned checkout's own tracked agro.json")
   fi
 fi
 

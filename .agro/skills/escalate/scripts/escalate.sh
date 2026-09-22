@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-HARNESS="${AGRO_PROJECT_ROOT:-${OH_PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)}}"
+HARNESS="${AGRO_PROJECT_ROOT:-${AGRO_PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)}}"
 SLACK_ENV="$HARNESS/.devcontainer/.env"
 BRIDGE_CONFIG="${ESCALATE_BRIDGE_CONFIG:-$HOME/.pi/msg-bridge.json}"
 if [ -n "${ESCALATE_STATE_DIR:-}" ]; then
   STATE_DIR="$ESCALATE_STATE_DIR"
-elif [ ! -d "$HOME/.agro/escalate" ] && [ -d "$HOME/.oh/escalate" ]; then
-  STATE_DIR="$HOME/.oh/escalate"
+elif [ ! -d "$HOME/.agro/escalate" ] && [ -d "$HOME/.agro/escalate" ]; then
+  STATE_DIR="$HOME/.agro/escalate"
 else
   STATE_DIR="$HOME/.agro/escalate"
 fi

@@ -3,7 +3,7 @@ set -u
 
 BACKEND="${GATEWAY_BACKEND:-pi}"
 SUPERVISE_CMD="${SUPERVISE_CMD:-}"
-HARNESS="${HARNESS:-${OH_PROJECT_ROOT:-/home/sandbox/harness}}"
+HARNESS="${HARNESS:-${AGRO_PROJECT_ROOT:-/home/sandbox/harness}}"
 BRIDGE_ENTRY="${BRIDGE_ENTRY:-$HARNESS/.pi/bridge/node_modules/pi-messenger-bridge/dist/index.js}"
 RECOVERY_ENTRY="${RECOVERY_ENTRY:-$HARNESS/.pi/bridge-recovery/index.ts}"
 LOG="${LOG:-/tmp/client-slack-$BACKEND.log}"

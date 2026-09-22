@@ -30,7 +30,7 @@ grep -qF '`agent` is not an artifact type' "$SKILL" \
   || fail "builder does not state that agent is not an artifact type"
 
 for ref in "$REFS"/*.md; do
-  grep -nE '\.(oh|claude|codex|pi)/agents/' "$ref" >/dev/null \
+  grep -nE '\.(agro|claude|codex|pi)/agents/' "$ref" >/dev/null \
     && fail "builder reference still writes to a project-agent directory: ${ref#"$ROOT/"}"
 done
 

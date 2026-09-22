@@ -21,7 +21,7 @@ function fixture(): string {
 function link(dir: string, mode: string) {
   return spawnSync("bash", [join(root, ".agro/scripts/link-providers.sh"), mode], {
     cwd: dir, encoding: "utf8",
-    env: { PATH: "/usr/bin:/bin", HOME: dir, OH_PROJECT_ROOT: dir },
+    env: { PATH: "/usr/bin:/bin", HOME: dir, AGRO_PROJECT_ROOT: dir },
   });
 }
 
@@ -71,7 +71,7 @@ describe("standard project skills", () => {
     for (const retired of [".agro/agents", ".claude/agents", ".codex/agents", ".pi/agents"]) expect(existsSync(join(dir, retired))).toBe(false);
   });
 
-  it("retires an old Open Harness Pi skill link", () => {
+  it("retires an old AGRO Pi skill link", () => {
     const dir = fixture();
     mkdirSync(join(dir, ".pi"), { recursive: true });
     symlinkSync("../.agro/skills", join(dir, ".pi/skills"));
@@ -208,10 +208,9 @@ describe("standard project skills", () => {
   });
 
   describe.each([".pi", ".codex"])("%s safe retirement", (provider) => {
-    it.each(["../.agro/skills", "../.oh/skills", "../.claude/skills"])("retires %s once and keeps the replacement", (target) => {
+    it.each(["../.agro/skills", "../.claude/skills"])("retires %s once and keeps the replacement", (target) => {
       const dir = fixture();
       expect(link(dir, "--init").status).toBe(0);
-      symlinkSync(".agro", join(dir, ".oh"));
       mkdirSync(join(dir, provider), { recursive: true });
       symlinkSync(target, join(dir, provider, "skills"));
       writeFileSync(join(dir, provider, "config.toml"), "operator-owned\n");

@@ -155,10 +155,10 @@ Heartbeat body.
   it("parses an optional canonical repo target", () => {
     expect(
       parseCronFile(
-        `---\nschedule: "* * * * *"\nrepo: mifunedev/openharness\n---\nbody\n`,
+        `---\nschedule: "* * * * *"\nrepo: mifunedev/agro\n---\nbody\n`,
         "autopilot.md",
       )?.repo,
-    ).toBe("mifunedev/openharness");
+    ).toBe("mifunedev/agro");
     expect(parseCronFile(`---\nschedule: "* * * * *"\n---\nbody\n`, "c.md")?.repo).toBeUndefined();
   });
 
@@ -221,7 +221,7 @@ describe("resolveAgentBin", () => {
   it("reads cron.agentBin from agro.json through the CLI", () => {
     delete process.env.CRON_AGENT_BIN;
     const dir = mkdtempSync(path.join(tmpdir(), "cron-agent-bin-"));
-    const stub = path.join(dir, "oh");
+    const stub = path.join(dir, "agro");
     writeFileSync(stub, '#!/usr/bin/env bash\necho \'{"cron":{"agentBin":"codex"}}\'\n');
     chmodSync(stub, 0o755);
     process.env.PATH = `${dir}:/usr/bin:/bin`;
@@ -264,7 +264,7 @@ describe("isValidAgentBin", () => {
 
 describe("isValidRepo / isValidRemote", () => {
   it("accepts GitHub owner/name repo targets and simple remote names", () => {
-    expect(isValidRepo("mifunedev/openharness")).toBe(true);
+    expect(isValidRepo("mifunedev/agro")).toBe(true);
     expect(isValidRepo("ryan-eggz/open_harness.docs")).toBe(true);
     expect(isValidRemote("origin")).toBe(true);
     expect(isValidRemote("upstream")).toBe(true);
@@ -425,12 +425,12 @@ describe("buildTmuxWrapper", () => {
       id: "autopilot",
       agentBin: "pi",
       promptFile: "/tmp/cron-autopilot-0610-1805.prompt",
-      repo: "mifunedev/openharness",
+      repo: "mifunedev/agro",
       remote: "upstream",
     });
 
     expect(repoWrapper).toContain(
-      "CRON_REPO='mifunedev/openharness' CRON_REMOTE='upstream';",
+      "CRON_REPO='mifunedev/agro' CRON_REMOTE='upstream';",
     );
   });
 
@@ -502,11 +502,11 @@ describe("buildCronAgentCommand", () => {
       agentBin: "claude",
       promptFile: "/tmp/cron-global.prompt",
       logFile: "/tmp/cron-global.log",
-      repo: "mifunedev/openharness",
+      repo: "mifunedev/agro",
       remote: "upstream",
     });
 
-    expect(command).toContain("export CRON_REPO='mifunedev/openharness';");
+    expect(command).toContain("export CRON_REPO='mifunedev/agro';");
     expect(command).toContain("export CRON_REMOTE='upstream';");
   });
 
@@ -930,7 +930,7 @@ describe("reloadEntryForFire", () => {
 
     writeFileSync(
       cronFile,
-      `---\nid: hot\nschedule: "* * * * *"\nenabled: true\nagent: pi\npreflight: scripts/autopilot-caps.sh\nrepo: mifunedev/openharness\n---\nupdated body\n`,
+      `---\nid: hot\nschedule: "* * * * *"\nenabled: true\nagent: pi\npreflight: scripts/autopilot-caps.sh\nrepo: mifunedev/agro\n---\nupdated body\n`,
     );
 
     const appendSpy = vi.mocked(fsModule.appendFileSync);
@@ -939,7 +939,7 @@ describe("reloadEntryForFire", () => {
 
     expect(liveEntry?.agentBin).toBe("pi");
     expect(liveEntry?.preflight).toBe("scripts/autopilot-caps.sh");
-    expect(liveEntry?.repo).toBe("mifunedev/openharness");
+    expect(liveEntry?.repo).toBe("mifunedev/agro");
     expect(liveEntry?.body).toBe("original body\n");
     const lines = appendSpy.mock.calls.map((c) => String(c[1]));
     expect(lines.some((line) => line.includes("ENTRY_RELOADED") && line.includes("agentBin,preflight,repo"))).toBe(true);
@@ -1344,7 +1344,7 @@ describe("runPreflight + the fire() preflight gate", () => {
     const script = preflightScript({ exit: 10, stdout: "SKIPPED-CAP-DAILY" });
     writeFileSync(
       cronFile,
-      `---\nid: autopilot\nschedule: "* * * * *"\nenabled: true\ntmux: true\npreflight: ${script}\nrepo: mifunedev/openharness\n---\nbody\n`,
+      `---\nid: autopilot\nschedule: "* * * * *"\nenabled: true\ntmux: true\npreflight: ${script}\nrepo: mifunedev/agro\n---\nbody\n`,
     );
     fire({ ...entry(undefined), filePath: cronFile });
 
@@ -1355,10 +1355,10 @@ describe("runPreflight + the fire() preflight gate", () => {
   });
 
   it("exports repo and matching remote into preflight runs", () => {
-    withTempGitRemotes({ upstream: "https://github.com/mifunedev/openharness.git" }, () => {
+    withTempGitRemotes({ upstream: "https://github.com/mifunedev/agro.git" }, () => {
       const script = path.join(tmp, "preflight-env.sh");
       const out = path.join(tmp, "preflight-env.out");
-      const expectedRemote = remoteForRepo("mifunedev/openharness");
+      const expectedRemote = remoteForRepo("mifunedev/agro");
       expect(expectedRemote).toBe("upstream");
       writeFileSync(
         script,
@@ -1366,10 +1366,10 @@ describe("runPreflight + the fire() preflight gate", () => {
         { mode: 0o755 },
       );
 
-      const r = runPreflight({ ...entry(script), repo: "mifunedev/openharness" });
+      const r = runPreflight({ ...entry(script), repo: "mifunedev/agro" });
 
       expect(r.status).toBe(0);
-      expect(readFileSync(out, "utf-8").trim()).toBe(`mifunedev/openharness ${expectedRemote}`);
+      expect(readFileSync(out, "utf-8").trim()).toBe(`mifunedev/agro ${expectedRemote}`);
     });
   });
 
@@ -1392,8 +1392,8 @@ describe("runPreflight + the fire() preflight gate", () => {
 
 describe("remoteForRepo", () => {
   it("resolves the canonical repo to the local remote whose URL matches it", () => {
-    withTempGitRemotes({ origin: "https://github.com/example/openharness.git", upstream: "git@github.com:mifunedev/openharness.git" }, () => {
-      const remote = remoteForRepo("mifunedev/openharness");
+    withTempGitRemotes({ origin: "https://github.com/example/agro.git", upstream: "git@github.com:mifunedev/agro.git" }, () => {
+      const remote = remoteForRepo("mifunedev/agro");
       expect(remote).toBe("upstream");
       expect(isValidRemote(remote!)).toBe(true);
     });

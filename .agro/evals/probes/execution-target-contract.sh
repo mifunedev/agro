@@ -3,7 +3,7 @@
 # source: issue #733 (ExecutionTarget contract + Docker Compose adapter) 2026-08-10
 # desc: the execution seam stays provider-neutral — the contract file names no substrate and
 #       declares no snapshot method, the shell verb builds no engine argv of its own, and the
-#       operator-facing `oh shell` attach call is byte-for-byte unchanged.
+#       operator-facing `agro shell` attach call is byte-for-byte unchanged.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -71,7 +71,7 @@ fi
 
 shell_body="$(awk '/export function runShell/,/^}/' <<<"$code")"
 if [[ -z "$shell_body" ]]; then
-  missing+=("C5: runShell has no recognizable body — the \`oh shell\` entry point moved")
+  missing+=("C5: runShell has no recognizable body — the \`agro shell\` entry point moved")
 elif ! sed 's/^[[:space:]]*//' <<<"$shell_body" |
   grep -Fxq 'code = target.attach({ argv: ["zsh"], user: "sandbox" });'; then
   missing+=("C5: runShell no longer contains the verbatim attach call \`code = target.attach({ argv: [\"zsh\"], user: \"sandbox\" });\` — the operator-facing shell entry changed")
@@ -82,5 +82,5 @@ if ((${#missing[@]})); then
   exit 1
 fi
 
-echo 'PASS: target.ts is substrate-neutral with no snapshot method, runShell builds no engine argv, and the `oh shell` attach call is verbatim intact' >&2
+echo 'PASS: target.ts is substrate-neutral with no snapshot method, runShell builds no engine argv, and the `agro shell` attach call is verbatim intact' >&2
 exit 0

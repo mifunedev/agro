@@ -58,7 +58,7 @@ if grep -Fq 'SKIP_PNPM_INSTALL' <<<"$text"; then
 fi
 has 'docker build \' "local docker build step"
 has '--file .devcontainer/Dockerfile' "devcontainer Dockerfile build target"
-has '--tag openharness-sandbox-boot-guard:${{ github.sha }}' "local CI image tag"
+has '--tag agro-sandbox-boot-guard:${{ github.sha }}' "local CI image tag"
 has '--tag "sandbox-${SANDBOX_NAME}"' "compose image tag for smoke boot"
 has 'bash .agro/scripts/sandbox-boot-smoke.sh' "boot smoke healthcheck invocation"
 has 'name: Validate sandbox compose and image build' "the named boot guard job"
@@ -153,7 +153,7 @@ else
   # operator does instead, and must not reintroduce the args.
   for arg in INSTALL_HERMES INSTALL_DEEPAGENTS INSTALL_OPENCODE INSTALL_GROK_BUILD; do
     if grep -Fq -- "--build-arg $arg" <<<"$compat"; then
-      missing+=("compatibility workflow: still builds with $arg — that build arg no longer exists; install through \`oh harness install\`")
+      missing+=("compatibility workflow: still builds with $arg — that build arg no longer exists; install through \`agro harness install\`")
     fi
   done
   optional=$(awk '
@@ -165,7 +165,7 @@ else
     missing+=("compatibility workflow: no optional-harness-install job")
   else
     ohas() { grep -Fq -- "$1" <<<"$optional" || missing+=("compatibility optional harness job: $2"); }
-    ohas 'oh harness install' "does not install through the CLI — the path #908 made the only one"
+    ohas 'agro harness install' "does not install through the CLI — the path #908 made the only one"
     ohas 'select(.kind == "installable") | .id' "does not read the installable set from the catalog, so it can drift"
     ohas 'would pass vacuously' "does not fail closed when the catalog yields no installable harness"
     ohas '/home/sandbox/.local/*)' "does not assert the install landed in the home mount"

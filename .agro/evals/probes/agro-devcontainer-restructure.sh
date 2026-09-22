@@ -43,8 +43,8 @@ fi
 
 grep -Fq 'dockerfile: .devcontainer/Dockerfile' "$COMPOSE" \
   || regress "docker-compose.yml does not set dockerfile: .devcontainer/Dockerfile"
-grep -Eq '^[[:space:]]*context: (\$\{AGRO_REPO_DIR:-\$\{OH_REPO_DIR:-\.\.\}\}|\$\{OH_REPO_DIR:-\.\.\}|\.\.)$' "$COMPOSE" \
-  || regress "docker-compose.yml build context is not the checkout with '..' as its default (context: \${AGRO_REPO_DIR:-\${OH_REPO_DIR:-..}})"
+grep -Eq '^[[:space:]]*context: (\$\{AGRO_REPO_DIR:-\$\{AGRO_REPO_DIR:-\.\.\}\}|\$\{AGRO_REPO_DIR:-\.\.\}|\.\.)$' "$COMPOSE" \
+  || regress "docker-compose.yml build context is not the checkout with '..' as its default (context: \${AGRO_REPO_DIR:-\${AGRO_REPO_DIR:-..}})"
 
 grep -Fq 'COPY .devcontainer/entrypoint.sh' "$DOCKERFILE" \
   || regress "Dockerfile does not COPY .devcontainer/entrypoint.sh"

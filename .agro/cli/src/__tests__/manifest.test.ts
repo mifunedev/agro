@@ -179,7 +179,7 @@ describe("loadManifest", () => {
 
 
 describe("runUpdate — manifest payload filtering", () => {
-  it("INTEGRATION: overlays allow-listed .oh files; root docs stay project-owned; patches/dist excluded", async () => {
+  it("INTEGRATION: overlays allow-listed .agro files; root docs stay project-owned; patches/dist excluded", async () => {
     const base = mkTmp();
     const src = path.join(base, "src-checkout");
     const tgt = path.join(base, "target-repo");
@@ -188,26 +188,26 @@ describe("runUpdate — manifest payload filtering", () => {
 
     writeFile(
       src,
-      ".oh/cli/package.json",
+      ".agro/cli/package.json",
       JSON.stringify({ version: "9.9.9" }),
     );
     writeFile(
       src,
-      ".oh/manifest.json",
+      ".agro/manifest.json",
       JSON.stringify({
         include: ["cli/**", "README.md", "manifest.json"],
         exclude: ["**/dist/**"],
       }),
     );
-    writeFile(src, ".oh/cli/cli.ts", "export const x = 1;\n");
-    writeFile(src, ".oh/cli/dist/oh.js", "console.log('built');\n");
-    writeFile(src, ".oh/README.md", "# control plane\n");
+    writeFile(src, ".agro/cli/cli.ts", "export const x = 1;\n");
+    writeFile(src, ".agro/cli/dist/oh.js", "console.log('built');\n");
+    writeFile(src, ".agro/README.md", "# control plane\n");
     writeFile(src, "docs/site.md", "# source docs must not be vendored\n");
-    writeFile(src, ".oh/patches/p.diff", "--- a\n+++ b\n");
+    writeFile(src, ".agro/patches/p.diff", "--- a\n+++ b\n");
 
     writeFile(
       tgt,
-      ".oh/cli/package.json",
+      ".agro/cli/package.json",
       JSON.stringify({ version: "0.1.0" }),
     );
     writeFile(tgt, ".devcontainer/.env", "SANDBOX_NAME=my-harness\n");
@@ -220,19 +220,19 @@ describe("runUpdate — manifest payload filtering", () => {
     const docsBefore = fs.readFileSync(path.join(tgt, "docs/site.md"), "utf8");
 
     const { out, io } = mkIo();
-    const rc = await runUpdate({ bin: "oh", targetDir: tgt, fromDir: src }, io);
+    const rc = await runUpdate({ bin: "agro", targetDir: tgt, fromDir: src }, io);
 
     expect(rc).toBe(0);
 
-    expect(fs.existsSync(path.join(tgt, ".oh/cli/cli.ts"))).toBe(true);
-    expect(fs.existsSync(path.join(tgt, ".oh/README.md"))).toBe(true);
-    expect(fs.existsSync(path.join(tgt, ".oh/manifest.json"))).toBe(true);
-    expect(fs.existsSync(path.join(tgt, ".oh", "docs", "site.md"))).toBe(false);
+    expect(fs.existsSync(path.join(tgt, ".agro/cli/cli.ts"))).toBe(true);
+    expect(fs.existsSync(path.join(tgt, ".agro/README.md"))).toBe(true);
+    expect(fs.existsSync(path.join(tgt, ".agro/manifest.json"))).toBe(true);
+    expect(fs.existsSync(path.join(tgt, ".agro", "docs", "site.md"))).toBe(false);
     expect(fs.readFileSync(path.join(tgt, "docs/site.md"), "utf8")).toBe(
       docsBefore,
     );
-    expect(fs.existsSync(path.join(tgt, ".oh/patches/p.diff"))).toBe(false);
-    expect(fs.existsSync(path.join(tgt, ".oh/cli/dist/oh.js"))).toBe(false);
+    expect(fs.existsSync(path.join(tgt, ".agro/patches/p.diff"))).toBe(false);
+    expect(fs.existsSync(path.join(tgt, ".agro/cli/dist/oh.js"))).toBe(false);
 
     expect(fs.readFileSync(path.join(tgt, ".devcontainer/.env"), "utf8")).toBe(
       envBefore,
@@ -243,7 +243,7 @@ describe("runUpdate — manifest payload filtering", () => {
     ).toBe(true);
   });
 
-  it("BACK-COMPAT: source with NO manifest.json overlays all of .oh/ in legacy mode", async () => {
+  it("source with NO manifest.json overlays all of .agro/ (whole-tree mode)", async () => {
     const base = mkTmp();
     const src = path.join(base, "src-checkout");
     const tgt = path.join(base, "target-repo");
@@ -252,27 +252,27 @@ describe("runUpdate — manifest payload filtering", () => {
 
     writeFile(
       src,
-      ".oh/cli/package.json",
+      ".agro/cli/package.json",
       JSON.stringify({ version: "9.9.9" }),
     );
-    writeFile(src, ".oh/cli/cli.ts", "export const x = 1;\n");
-    writeFile(src, ".oh/README.md", "# control plane\n");
-    writeFile(src, path.join(".oh", "docs", "site.md"), "# docs site\n");
-    writeFile(src, ".oh/patches/p.diff", "--- a\n+++ b\n");
+    writeFile(src, ".agro/cli/cli.ts", "export const x = 1;\n");
+    writeFile(src, ".agro/README.md", "# control plane\n");
+    writeFile(src, path.join(".agro", "docs", "site.md"), "# docs site\n");
+    writeFile(src, ".agro/patches/p.diff", "--- a\n+++ b\n");
 
     writeFile(
       tgt,
-      ".oh/cli/package.json",
+      ".agro/cli/package.json",
       JSON.stringify({ version: "0.1.0" }),
     );
     writeFile(tgt, ".devcontainer/.env", "SANDBOX_NAME=my-harness\n");
 
     const { out, io } = mkIo();
-    const rc = await runUpdate({ bin: "oh", targetDir: tgt, fromDir: src }, io);
+    const rc = await runUpdate({ bin: "agro", targetDir: tgt, fromDir: src }, io);
 
     expect(rc).toBe(0);
-    expect(fs.existsSync(path.join(tgt, ".oh", "docs", "site.md"))).toBe(true);
-    expect(fs.existsSync(path.join(tgt, ".oh/patches/p.diff"))).toBe(true);
-    expect(out.some((l) => l.includes("legacy mode"))).toBe(true);
+    expect(fs.existsSync(path.join(tgt, ".agro", "docs", "site.md"))).toBe(true);
+    expect(fs.existsSync(path.join(tgt, ".agro/patches/p.diff"))).toBe(true);
+    expect(out.some((l) => l.includes("whole-tree mode"))).toBe(true);
   });
 });

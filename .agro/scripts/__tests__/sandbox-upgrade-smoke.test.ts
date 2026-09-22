@@ -18,7 +18,7 @@ describe("sandbox upgrade smoke script", () => {
   });
 
   it("seeds from the last legacy image by default and accepts the documented knobs", () => {
-    expect(script).toContain("LEGACY_IMAGE=${LEGACY_IMAGE:-ghcr.io/mifunedev/openharness:0.9.0}");
+    expect(script).toContain("LEGACY_IMAGE=${LEGACY_IMAGE:-ghcr.io/mifunedev/agro:0.9.0}");
     expect(script).toContain("NEW_IMAGE=${NEW_IMAGE:-}");
     expect(script).toContain("KEEP=${KEEP:-0}");
     expect(script).toContain("docker-compose.image-only.yml");
@@ -37,10 +37,10 @@ describe("sandbox upgrade smoke script", () => {
     expect(script).toContain('docker rmi -f "$BUILT_IMAGE"');
   });
 
-  it("seeds the workspace volume from the legacy image's real /opt/oh-seed via a helper container", () => {
+  it("seeds the workspace volume from the legacy image's real /opt/agro-seed via a helper container", () => {
     expect(script).toContain("seed_legacy_volume");
-    expect(script).toContain("cp -a /opt/oh-seed/. /home/sandbox/harness/");
-    expect(script).toContain(': > /home/sandbox/harness/.oh/.image-seeded');
+    expect(script).toContain("cp -a /opt/agro-seed/. /home/sandbox/harness/");
+    expect(script).toContain(': > /home/sandbox/harness/.agro/.image-seeded');
     expect(script).toContain('VOLUME="${PROJECT}_workspace"');
     expect(script).toContain('-v "$vol:/home/sandbox" "$LEGACY_IMAGE"');
     expect(script).toContain("mounted_volume=$(docker inspect --format");
@@ -64,10 +64,10 @@ describe("sandbox upgrade smoke script", () => {
   });
 
   it("asserts the legacy control plane, the marker, both systemd units, and a clean entrypoint log", () => {
-    expect(script).toContain("openharness-bootstrap.service");
-    expect(script).toContain("openharness-cron.service");
-    expect(script).toContain(".oh/.image-seeded");
-    expect(script).toContain('.agro was created next to the legacy .oh/ control plane');
+    expect(script).toContain("agro-bootstrap.service");
+    expect(script).toContain("agro-cron.service");
+    expect(script).toContain(".agro/.image-seeded");
+    expect(script).toContain('.agro was created next to the legacy .agro/ control plane');
     expect(script).toContain('grep -q "not seeding"');
     expect(script).toContain('grep -q "seeded control plane into"');
   });

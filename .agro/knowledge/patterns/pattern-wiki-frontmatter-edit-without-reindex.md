@@ -7,7 +7,7 @@ created: 2026-09-08
 updated: 2026-09-08
 sources:
   - .agro/evals/probes/wiki-readme-index.sh@a18e421a
-  - .agro/knowledge/source/oh-cli-portable-lifecycle.md@b63cf41e
+  - .oh/knowledge/source/oh-cli-portable-lifecycle.md@b63cf41e
   - .agro/knowledge/README.md@a18e421a
   - .agro/skills/wiki/references/schema.md@a18e421a
 confidence: provisional
@@ -18,7 +18,7 @@ confidence: provisional
 ## Relevant Source Files
 - `.agro/knowledge/README.md@a18e421a` — the generated index, derived state with no writer of its own.
 - `.agro/evals/probes/wiki-readme-index.sh@a18e421a` — the drift guard that reconstructs the table from frontmatter.
-- `.agro/knowledge/source/oh-cli-portable-lifecycle.md@b63cf41e` — the page whose `updated:` moved without the index.
+- `.oh/knowledge/source/oh-cli-portable-lifecycle.md@b63cf41e` — the page whose `updated:` moved without the index.
 - `.agro/skills/wiki/references/schema.md@a18e421a` — § 10, which declares the index an owned generated artifact.
 
 ## Summary
@@ -30,7 +30,7 @@ that CI will reject.
 
 ## Detail
 **Symptom.** The owner advanced `verified_at:` and `updated:` on
-`.agro/knowledge/source/oh-cli-portable-lifecycle.md` in one commit, ran
+`.agro/knowledge/source/agro-cli-portable-lifecycle.md` in one commit, ran
 `.agro/skills/wiki/scripts/knowledge-source-freshness.sh` (exit 0) and
 `knowledge-impact.sh --verified` (0 pages needing review), and pushed. CI then
 reported `wiki-readme-index` as `PASS -> REGRESSION` in run `34184298311`: the
@@ -66,4 +66,4 @@ knowledge page to the index before considering the page written.
 
 ## See Also
 - [[pattern-wiki-ungated-check-drift]]
-- [[oh-cli-portable-lifecycle]]
+- [[agro-cli-portable-lifecycle]]

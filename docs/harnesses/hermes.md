@@ -84,16 +84,16 @@ The image sets `HERMES_HOME=/home/sandbox/harness/.hermes` for config, memory,
 runtime skills, and sessions. The managed installer sets that home before running
 upstream code. The managed installer adds Slack, Teams, web, and PTY extras to
 the same virtual environment as the executable.
-Installation reconciles `.hermes/skills/openharness` with `.agro/skills`
+Installation reconciles `.hermes/skills/agro` with `.agro/skills`
 immediately, without a restart.
 
 ```text
-.hermes/skills/openharness -> ../../.agro/skills
+.hermes/skills/agro -> ../../.agro/skills
 ```
  Repeated installation repairs missing integration
 without reinstalling an existing executable. Boot uses the same provider linker.
 
-The `openharness` child link preserves Hermes-native skills beside it. A foreign
+The `agro` child link preserves Hermes-native skills beside it. A foreign
 symlink, occupied file or directory, linked runtime parent, or unset, relative, or conflicting
 `HERMES_HOME` stops managed installation without replacing that path. Resolve the
 conflict explicitly; do not merge populated homes automatically. Standalone Hermes
@@ -287,7 +287,7 @@ The sandbox onboarding banner reports Hermes as:
 - `✅ authenticated` — when `~/harness/.hermes/auth.json` exists and is
   non-empty.
 
-Set `OH_BANNER_STATUS_STYLE=legacy` to force the old `[✗]` / `[✓]` markers when emoji rendering is unavailable.
+Set `AGRO_BANNER_STATUS_STYLE=legacy` to force the old `[✗]` / `[✓]` markers when emoji rendering is unavailable.
 
 ## Upstream documentation
 

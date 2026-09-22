@@ -17,9 +17,9 @@ confidence: provisional
 # Mapping an external model onto the harness reimports a tier it deleted
 
 ## Relevant Source Files
-- `.oh/knowledge/source/wikiskill-experience-compilation.md@933f6741` — the ingested paper whose layer model was mapped onto the local corpus.
-- `.oh/skills/wiki/references/compile.md@c841e567` — the resulting subcommand, and the explicit prohibition the mapping needed.
-- `.oh/skills/wiki/references/schema.md@c841e567` — the same prohibition stated in the schema.
+- `.agro/knowledge/source/wikiskill-experience-compilation.md@933f6741` — the ingested paper whose layer model was mapped onto the local corpus.
+- `.agro/skills/wiki/references/compile.md@c841e567` — the resulting subcommand, and the explicit prohibition the mapping needed.
+- `.agro/skills/wiki/references/schema.md@c841e567` — the same prohibition stated in the schema.
 
 ## Summary
 Adopting an external architecture works structure by structure, and the structures
@@ -32,7 +32,7 @@ where the original deletion rationale no longer matches the name.
 **Symptom.** A design derived from an ingested paper proposes a structure that a
 prior deliberate deletion forbids, and it does not read as a regression because it
 arrives under the source's terminology rather than the local one. Mapping the paper
-at `.oh/knowledge/source/wikiskill-experience-compilation.md@933f6741` onto the
+at `.agro/knowledge/source/wikiskill-experience-compilation.md@933f6741` onto the
 corpus proposed snapshotting session retrospective reports into the corpus's raw
 tier. Six of seven mapped structures transferred without objection; the seventh
 would have rebuilt the removed per-session journal tier — one dated entry per run,

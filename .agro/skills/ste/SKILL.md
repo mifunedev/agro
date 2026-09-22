@@ -133,8 +133,8 @@ CONDITION → ACTOR → ACTION → OBJECT → EXPECTED RESULT
 ```
 
 ```text after
-If `config.yaml` sets `DOCKER_SOCKET=true`, the operator runs `oh sandbox` to
-start the `openharness` container. The container reports `healthy` within 60
+If `config.yaml` sets `DOCKER_SOCKET=true`, the operator runs `agro sandbox` to
+start the `agro` container. The container reports `healthy` within 60
 seconds.
 ```
 
@@ -167,7 +167,7 @@ Never drop the condition.
 | `run the migrations when you get a chance` | `run pnpm db:migrate before you start the API` |
 | `the command failed` | `the command exited with code 1` |
 | `it should work now` | `the endpoint returns HTTP 200` |
-| `blow away the container` | `delete the openharness container` |
+| `blow away the container` | `delete the agro container` |
 | `the system will handle it` | `the scheduler retries the job three times` |
 
 ## Ambiguity detection

@@ -16,9 +16,9 @@ confidence: provisional
 # A simplify round seeded with the audit's own measurement is non-reducing by construction
 
 ## Relevant Source Files
-- `.oh/skills/spec/references/execute.md@2c955907` — step 5: the owner writes `simplify-rounds.json` from `slop-metrics`, and the loop ends on a non-reducing round or the cap.
-- `.oh/skills/audit/scripts/implementation-gates.sh@2c955907` — `slop-metrics`, the measurement gate 5 compares against `prevNetAdded`.
-- `.oh/tasks/sandbox-registry/simplify-rounds.json@b2fcc812` — the round record as it stood at the first audit.
+- `.agro/skills/spec/references/execute.md@2c955907` — step 5: the owner writes `simplify-rounds.json` from `slop-metrics`, and the loop ends on a non-reducing round or the cap.
+- `.agro/skills/audit/scripts/implementation-gates.sh@2c955907` — `slop-metrics`, the measurement gate 5 compares against `prevNetAdded`.
+- `.agro/tasks/sandbox-registry/simplify-rounds.json@b2fcc812` — the round record as it stood at the first audit.
 
 ## Summary
 The simplify sub-loop stops when a round's `netAdded` does not fall strictly below

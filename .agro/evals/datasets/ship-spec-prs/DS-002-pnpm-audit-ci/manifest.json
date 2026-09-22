@@ -5,11 +5,11 @@
   "title": "Run pnpm security audits in CI",
   "created": "2026-06-15",
   "source": {
-    "repo": "ryaneggz/openharness",
+    "repo": "ryaneggz/agro",
     "pr": 172,
     "issue": 171,
     "merge_commit": "997e232",
-    "url": "https://github.com/ryaneggz/openharness/pull/172"
+    "url": "https://github.com/ryaneggz/agro/pull/172"
   },
   "trajectory": {
     "kind": "ship-spec-pr",

@@ -30,7 +30,7 @@ has_test() {
   grep -Fq -- "$1" <<<"$test_text" || missing+=("test: $2")
 }
 
-has_entrypoint 'PNPM_INSTALL_MARKER_FILENAME=".openharness-root-pnpm-manifest.sha256"' "Open Harness marker filename"
+has_entrypoint 'PNPM_INSTALL_MARKER_FILENAME=".agro-root-pnpm-manifest.sha256"' "AGRO marker filename"
 has_entrypoint 'PNPM_INSTALL_MARKER="$HARNESS/node_modules/$PNPM_INSTALL_MARKER_FILENAME"' "marker stored under node_modules"
 has_entrypoint 'pnpm_manifest_fingerprint()' "pnpm_manifest_fingerprint helper"
 has_entrypoint 'package.json pnpm-lock.yaml pnpm-workspace.yaml' "root manifest inputs"
@@ -40,7 +40,7 @@ has_entrypoint 'sha256sum "$root/$rel"' "per-file content hashing"
 has_entrypoint "| sha256sum | awk '{print \$1}'" "final manifest-list digest"
 has_entrypoint "oh_config_truthy '.build.skipPnpmInstall'" "build.skipPnpmInstall escape hatch read from agro.json"
 if grep -Fq -- 'SKIP_PNPM_INSTALL' <<<"$compose_text"; then
-  missing+=("compose: SKIP_PNPM_INSTALL returned — the opt-out lives in agro.json, read through the oh CLI")
+  missing+=("compose: SKIP_PNPM_INSTALL returned — the opt-out lives in agro.json, read through the agro CLI")
 fi
 has_entrypoint '[ ! -d "$HARNESS/node_modules" ]' "missing node_modules install branch"
 has_entrypoint '[ ! -f "$PNPM_INSTALL_MARKER" ] || [ "$(cat "$PNPM_INSTALL_MARKER" 2>/dev/null || true)" != "$PNPM_MANIFEST_FINGERPRINT" ]' "missing/stale marker reinstall branch"
@@ -54,7 +54,7 @@ if ! awk '/pnpm install failed/{seen=1} seen && /exit 1/{found=1} END{exit found
   missing+=("entrypoint: install failure exits boot")
 fi
 
-has_test 'Open Harness marker stored under node_modules' "marker contract assertion"
+has_test 'AGRO marker stored under node_modules' "marker contract assertion"
 has_test 'pnpm_manifest_fingerprint helper contract' "fingerprint helper assertion"
 has_test 'reinstalls when manifests drift or the marker is missing' "drift reinstall assertion"
 has_test 'skips install when dependencies are current' "current-dependencies assertion"

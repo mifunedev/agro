@@ -24,14 +24,14 @@ an unchanged version gives a clean, green no-op run.
 One release produces, from one build and one commit:
 
 - The canonical npm package `@mifune/agro` (the `agro` executable, from `.agro/cli`).
-  The `@mifune/openharness` shim source remains at `.agro/cli/legacy/` and
+  The `@mifune/agro` shim source remains at `.agro/cli/legacy/` and
   already-published shim versions remain on the registry. The release path does
   not publish, wait for, or deprecate the shim.
-- Four immutable GHCR tags: `ghcr.io/mifunedev/openharness:<version>`,
+- Four immutable GHCR tags: `ghcr.io/mifunedev/agro:<version>`,
   `:sha-<sha>`, `ghcr.io/mifunedev/agro:<version>`, and `:sha-<sha>`, verified to
   share one manifest digest (`.agro/scripts/verify-release-aliases.sh`), then
   `latest` on both repositories (`.agro/scripts/promote-release-latest.sh`).
-- Four GitHub Release assets: `agro.js`, `oh.js`, `get-agro.sh`, and `get-oh.sh`,
+- Four GitHub Release assets: `agro.js`, `oh.js`, `get-agro.sh`, and `get-agro.sh`,
   attached before the release is undrafted so
   `releases/latest/download/<asset>` resolves on publication.
 
@@ -45,7 +45,7 @@ fails the build when they drift:
 
 The retained shim at `.agro/cli/legacy/package.json` keeps its own `version` and
 an exact `@mifune/agro` pin that equals that shim version. The shim version does
-not have to match a later canonical version. `agro-legacy-shim.sh` checks that
+not have to match a later canonical version. `` checks that
 internal coherence.
 
 ## Operator prerequisites this repository cannot verify
@@ -70,7 +70,7 @@ internal coherence.
   ```
 
 - The docs repository target is the repository variable `AGRO_WEB_REPO`, default
-  `mifunedev/openharness-web`. After the docs repository is renamed, point it at
+  `mifunedev/agro-web`. After the docs repository is renamed, point it at
   the new name:
 
   ```bash
@@ -108,9 +108,9 @@ Require all of the following before a release push:
 - CI for the source commit is green.
 - Root `package.json` names the version to publish, `.agro/cli/package.json`
   matches it (`bash .agro/evals/probes/version-parity.sh`), the retained shim
-  stays internally coherent (`bash .agro/evals/probes/agro-legacy-shim.sh`), and
+  stays internally coherent (`bash .agro/evals/probes/`), and
   no `v<version>` tag exists yet. An unbumped push is a green no-op that publishes
-  nothing. A newly published `@mifune/openharness` version is not required.
+  nothing. A newly published `@mifune/agro` version is not required.
 - `CHANGELOG.md` has a `## [<version>]` section matching that version (the
   workflow falls back to `[Unreleased]` when the section is absent).
 - The remote release branch is an ancestor of the source commit, so promotion is
@@ -172,7 +172,7 @@ gh run watch <run-id> --repo "$REPO" --exit-status
 After success, fetch tags and identify the SemVer tag pointing to the exact SHA,
 then verify the four immutable image tags, the canonical npm package, the release
 assets, and the GitHub Release. The tag carries the `v` prefix; the image tags
-do not. A newly published `@mifune/openharness` version is not a release gate.
+do not. A newly published `@mifune/agro` version is not a release gate.
 Automatic `notify-docs` dispatch is not the only documentation acceptance path.
 
 ```bash
@@ -183,12 +183,12 @@ TAG=$(git tag --points-at "$SHA" \
 test -n "$TAG" || { echo "No SemVer tag found for $SHA" >&2; exit 1; }
 gh release view "$TAG" --repo "$REPO" --json assets -q '.assets[].name'
 .agro/scripts/verify-release-aliases.sh check \
-  "ghcr.io/mifunedev/openharness:${TAG#v}" "ghcr.io/mifunedev/agro:${TAG#v}"
+  "ghcr.io/mifunedev/agro:${TAG#v}" "ghcr.io/mifunedev/agro:${TAG#v}"
 npm view "@mifune/agro@${TAG#v}" version
-printf 'Images: ghcr.io/mifunedev/{openharness,agro}:%s and :sha-%s\n' "${TAG#v}" "$SHA"
+printf 'Images: ghcr.io/mifunedev/{agro,agro}:%s and :sha-%s\n' "${TAG#v}" "$SHA"
 ```
 
-The asset list must name `agro.js`, `oh.js`, `get-agro.sh`, and `get-oh.sh`.
+The asset list must name `agro.js`, `oh.js`, `get-agro.sh`, and `get-agro.sh`.
 
 The canonical mutable/latest branch is `main` when it exists, otherwise
 `master`. Immediately before promotion, the workflow freshly reads both remote
@@ -203,7 +203,7 @@ After `finalize` succeeds on a real release, `notify-docs` sends
 that commit. Confirm the dispatch landed:
 
 ```bash
-gh run list --repo "${AGRO_WEB_REPO:-mifunedev/openharness-web}" \
+gh run list --repo "${AGRO_WEB_REPO:-mifunedev/agro-web}" \
   --workflow pages.yml --event repository_dispatch --limit 3 \
   --json databaseId,status,conclusion,createdAt,url
 ```

@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
 # tier: A
-# source: issue #879 — `oh` becomes the only front door, so `make destroy` must
-#         survive as `oh destroy` without becoming one typo away from wiping
+# source: issue #879 — `agro` becomes the only front door, so `make destroy` must
+#         survive as `agro destroy` without becoming one typo away from wiping
 #         the provider-auth volumes
-# desc: `oh destroy` never reaches the container engine without confirmation — it refuses
+# desc: `agro destroy` never reaches the container engine without confirmation — it refuses
 #       outright when stdin is not a TTY and --yes is absent, and it aborts on any
 #       answer that is not the sandbox name when it does prompt.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-OH="$ROOT/.agro/cli/dist/oh.js"
+OH="$ROOT/.agro/cli/dist/agro.js"
 
 if ! command -v node >/dev/null 2>&1; then
-  echo "SKIPPED: node is not on PATH — the oh CLI cannot be exercised" >&2
+  echo "SKIPPED: node is not on PATH — the agro CLI cannot be exercised" >&2
   exit 2
 fi
 
 if [[ ! -f "$OH" ]]; then
-  echo "SKIPPED: .agro/cli/dist/oh.js is not built — run \`cd .agro/cli && npm install && npm run build\`" >&2
+  echo "SKIPPED: .agro/cli/dist/agro.js is not built — run \`cd .agro/cli && npm install && npm run build\`" >&2
   exit 2
 fi
 
@@ -27,8 +27,8 @@ trap 'rm -rf "$WORK"' EXIT
 SANDBOX_NAME=oh-destroy-guard
 MARKER="DOCKER-ENGINE-RAN"
 
-OH_HOME="$WORK/home"
-ENTRY="$OH_HOME/sandboxes/$SANDBOX_NAME"
+AGRO_HOME="$WORK/home"
+ENTRY="$AGRO_HOME/sandboxes/$SANDBOX_NAME"
 mkdir -p "$ENTRY" "$WORK/bin"
 printf '{ "version": 1, "name": "%s" }\n' "$SANDBOX_NAME" >"$ENTRY/agro.json"
 cat >"$WORK/bin/docker" <<EOF
@@ -42,7 +42,7 @@ VOLUME="$(awk '/^volumes:/ { f = 1; next } f && /^  [A-Za-z]/ { sub(/:.*$/, "");
 [[ -n "$VOLUME" ]] || VOLUME=workspace
 
 oh_destroy() {
-  env -u SANDBOX_SSH PATH="$WORK/bin:$PATH" OH_HOME="$OH_HOME" SANDBOX_NAME="$SANDBOX_NAME" \
+  env -u SANDBOX_SSH PATH="$WORK/bin:$PATH" AGRO_HOME="$AGRO_HOME" SANDBOX_NAME="$SANDBOX_NAME" \
     node "$OH" destroy "$SANDBOX_NAME" "$@"
 }
 
@@ -50,15 +50,15 @@ fails=()
 
 code=0
 out="$(oh_destroy </dev/null 2>&1)" || code=$?
-[[ $code -eq 1 ]] || fails+=("non-interactive \`oh destroy\` exited $code, not 1 — it must refuse without --yes")
+[[ $code -eq 1 ]] || fails+=("non-interactive \`agro destroy\` exited $code, not 1 — it must refuse without --yes")
 grep -qF -- '--yes' <<<"$out" \
   || fails+=("the non-interactive refusal does not name --yes, so there is no way forward: $out")
 grep -qF "$MARKER" <<<"$out" \
-  && fails+=("non-interactive \`oh destroy\` reached the container engine — the --yes gate is gone")
+  && fails+=("non-interactive \`agro destroy\` reached the container engine — the --yes gate is gone")
 
 if command -v script >/dev/null 2>&1; then
   pty() {
-    printf '%s' "$1" | env -u SANDBOX_SSH PATH="$WORK/bin:$PATH" OH_HOME="$OH_HOME" \
+    printf '%s' "$1" | env -u SANDBOX_SSH PATH="$WORK/bin:$PATH" AGRO_HOME="$AGRO_HOME" \
       SANDBOX_NAME="$SANDBOX_NAME" \
       script -qec "node '$OH' destroy '$SANDBOX_NAME'" /dev/null 2>&1 || true
   }
@@ -81,7 +81,7 @@ if command -v script >/dev/null 2>&1; then
     printf 'REGRESSION: %s\n' "${fails[@]}" >&2
     exit 1
   fi
-  echo "PASS: \`oh destroy\` refuses without a TTY and without --yes, and aborts on a wrong or blank answer" >&2
+  echo "PASS: \`agro destroy\` refuses without a TTY and without --yes, and aborts on a wrong or blank answer" >&2
   exit 0
 fi
 

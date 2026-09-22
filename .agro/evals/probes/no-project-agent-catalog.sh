@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tier: A
 # source: ADR #929 — .agro/agents/ is retired; provider-link and update logic must not recreate it
-# desc: no project-agent catalog exists in the tree, the index, the oh payload manifest, or the
+# desc: no project-agent catalog exists in the tree, the index, the agro payload manifest, or the
 #       provider wiring, and link-providers.sh --init does not recreate one
 set -euo pipefail
 
@@ -17,7 +17,7 @@ done
 [ -z "$(git ls-files .agro/agents .claude/agents .codex/agents .pi/agents)" ] \
   || fail "a project-agent catalog path is still tracked in the git index"
 
-grep -qF 'agents' .agro/manifest.json && fail "the oh payload manifest still ships an agents/** pack"
+grep -qF 'agents' .agro/manifest.json && fail "the agro payload manifest still ships an agents/** pack"
 
 LINKER=".agro/scripts/link-providers.sh"
 [ -x "$LINKER" ] || fail "$LINKER is missing or not executable"

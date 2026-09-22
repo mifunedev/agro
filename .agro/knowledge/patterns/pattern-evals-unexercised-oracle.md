@@ -20,11 +20,11 @@ confidence: provisional
 
 ## Relevant Source Files
 - `.agro/skills/eval/run.sh` — the runner that assigns PASS, REGRESSION, and SKIPPED and decides which of them fails the suite.
-- `.oh/evals/probes/wiki-skill-impact-append-only.sh@bfe22487` — a probe that reported PASS while three parser defects made its comparison meaningless.
-- `.oh/evals/probes/wiki-skill-impact-append-only.sh@af1c14ec` — the same probe after fault injection, carrying an override that makes the failing branch reachable.
+- `.agro/evals/probes/wiki-skill-impact-append-only.sh@bfe22487` — a probe that reported PASS while three parser defects made its comparison meaningless.
+- `.agro/evals/probes/wiki-skill-impact-append-only.sh@af1c14ec` — the same probe after fault injection, carrying an override that makes the failing branch reachable.
 - `docs/evals.md:51-55,79-82` — the standing note that a degraded probe does not fail the gate.
-- `.oh/scripts/hermes-install-smoke.sh@7610c7c4` — the real-consumer smoke with a retained runtime-home assertion.
-- `.oh/tasks/hermes-child-container-layout/evidence.md@465075d6` — the observed bad-home rejection and corrected-home success.
+- `.agro/scripts/hermes-install-smoke.sh@7610c7c4` — the real-consumer smoke with a retained runtime-home assertion.
+- `.agro/tasks/hermes-child-container-layout/evidence.md@465075d6` — the observed bad-home rejection and corrected-home success.
 
 ## Summary
 A passing probe establishes sensitivity only after it rejects an input that violates

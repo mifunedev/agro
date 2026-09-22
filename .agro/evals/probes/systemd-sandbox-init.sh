@@ -8,8 +8,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 DOCKERFILE="$ROOT/.devcontainer/Dockerfile"
 COMPOSE="$ROOT/.devcontainer/docker-compose.yml"
 COMPOSE_IO="$ROOT/.devcontainer/docker-compose.image-only.yml"
-BOOTSTRAP="$ROOT/.devcontainer/openharness-bootstrap.service"
-GENERATOR="$ROOT/.devcontainer/openharness-env-generator.sh"
+BOOTSTRAP="$ROOT/.devcontainer/agro-bootstrap.service"
+GENERATOR="$ROOT/.devcontainer/agro-env-generator.sh"
 
 for file in "$DOCKERFILE" "$COMPOSE" "$COMPOSE_IO" "$BOOTSTRAP" "$GENERATOR"; do
   [[ -f "$file" ]] || { echo "SKIPPED: required file absent: $file" >&2; exit 2; }
@@ -31,18 +31,18 @@ fi
 if grep -qF 'CMD ["sleep", "infinity"]' "$DOCKERFILE"; then
   missing+=("Dockerfile still uses sleep infinity as the container lifecycle owner")
 fi
-grep -qF 'system-environment-generators/10-openharness' "$DOCKERFILE" \
+grep -qF 'system-environment-generators/10-agro' "$DOCKERFILE" \
   || missing+=("Dockerfile must install the environment generator — systemd units do not inherit the container environment")
 grep -qF '/proc/1/environ' "$GENERATOR" \
   || missing+=("the environment generator must derive the unit environment from PID 1 rather than guessing a variable list")
 
-grep -qE '^WantedBy=multi-user.target$' "$BOOTSTRAP" || missing+=("openharness-bootstrap.service must be WantedBy=multi-user.target")
-grep -qE '^Type=oneshot$' "$BOOTSTRAP" || missing+=("openharness-bootstrap.service must be Type=oneshot")
-grep -qE '^RemainAfterExit=yes$' "$BOOTSTRAP" || missing+=("openharness-bootstrap.service must set RemainAfterExit=yes")
+grep -qE '^WantedBy=multi-user.target$' "$BOOTSTRAP" || missing+=("agro-bootstrap.service must be WantedBy=multi-user.target")
+grep -qE '^Type=oneshot$' "$BOOTSTRAP" || missing+=("agro-bootstrap.service must be Type=oneshot")
+grep -qE '^RemainAfterExit=yes$' "$BOOTSTRAP" || missing+=("agro-bootstrap.service must set RemainAfterExit=yes")
 grep -qE '^ExecStart=/usr/local/bin/entrypoint.sh$' "$BOOTSTRAP" \
-  || missing+=("openharness-bootstrap.service must run the existing entrypoint as its ExecStart")
+  || missing+=("agro-bootstrap.service must run the existing entrypoint as its ExecStart")
 grep -qE '^KillMode=process$' "$BOOTSTRAP" \
-  || missing+=("openharness-bootstrap.service must use KillMode=process so the daemons it starts survive the oneshot exiting")
+  || missing+=("agro-bootstrap.service must use KillMode=process so the daemons it starts survive the oneshot exiting")
 
 for compose in "$COMPOSE" "$COMPOSE_IO"; do
   rel="${compose#"$ROOT"/}"
