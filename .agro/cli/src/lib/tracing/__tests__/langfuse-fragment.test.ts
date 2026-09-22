@@ -219,7 +219,13 @@ describe.skipIf(!existsSync(CLAUDE_PROJECT_SETTINGS))("deny coverage of the frag
     expect(rulesFor(tool, param).some((re) => re.test(fragment))).toBe(true);
   });
 
-  it("an existing Bash deny rule already covers a command naming the fragment", () => {
+  it("an existing Bash path rule covers any command naming the fragment, probed with a verb no verb-specific rule names", () => {
+    const rules = rulesFor("Bash", "command");
+    expect(rules.some((re) => re.test(`less ${fragment}`))).toBe(true);
+    expect(rules.some((re) => re.test("less /home/sandbox/notes.txt"))).toBe(false);
+  });
+
+  it("the dotenv rule also covers reading the fragment with cat", () => {
     expect(rulesFor("Bash", "command").some((re) => re.test(`cat ${fragment}`))).toBe(true);
   });
 
