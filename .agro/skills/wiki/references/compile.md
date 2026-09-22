@@ -28,7 +28,7 @@ that gap without touching `/retro`, whose report-only contract is guarded by
 ## When to Use
 
 - After `/retro` (including its task-scoped form, `/retro --task <slug>`) emits a
-  report with at least one `supported` hypothesis at `medium` or `high`
+  report with at least one `supported` lesson at `medium` or `high`
   confidence.
 - To record counter-evidence against a pattern a later run refuted.
 - Before `/builder` proposes a skill change, so the proposal has a pattern to cite.
@@ -39,7 +39,7 @@ that gap without touching `/retro`, whose report-only contract is guarded by
   never writes to `.agro/knowledge/raw/`.
 - **A per-run note.** One page per failure mode, never one per run. See the
   anti-patterns.
-- **An `inconclusive` hypothesis.** It is not knowledge yet.
+- **An `inconclusive` lesson.** It is not knowledge yet.
 
 ## Argument Interface (locked)
 
@@ -61,8 +61,8 @@ The interface is locked; adding a flag requires editing this reference and
 
 ### 1. Read the report
 
-Locate the report's `## Hypotheses` table and its promotion-candidate lines, which
-`/retro` emits in this exact form:
+Locate the report's `## Lessons` list, whose lines carry a `[<verdict> · <confidence>]`
+tag, and its promotion-candidate lines, which `/retro` emits in this exact form:
 
 ```
 - <principle> [<subsystem> · <confidence> · harden|proceduralize|eval] — probe: <id> | basis: <one clause>
@@ -84,7 +84,7 @@ Reuse `/retro`'s own promotion bar rather than inventing a second one.
 
 ### 3. Derive the target slug — one page per failure mode
 
-The slug is `pattern-<subsystem>-<failure-mode>`, derived from the hypothesis's
+The slug is `pattern-<subsystem>-<failure-mode>`, derived from the lesson's
 subsystem and the mode it describes — never from the date or the run.
 
 ```
@@ -93,10 +93,9 @@ BAD   pattern-2026-08-31-retro-findings
 ```
 
 The `<subsystem>` token is the **knowledge base's** subsystem vocabulary — the prefix a
-reader would grep for (`evals`, `wiki`, `docs`, `spec`) — not `/retro`'s
-five-lens taxonomy, which names where a signal was *noticed* rather than what the
-page is about. A lesson noticed through the continual-learning lens about probe
-behavior is `pattern-evals-...`, never `pattern-continual-learning-...`.
+reader would grep for (`evals`, `wiki`, `docs`, `spec`) — the same vocabulary the
+promotion line's `<subsystem>` uses. Name the page for what it is about, never for
+where the signal was noticed: a lesson about probe behavior is `pattern-evals-...`.
 
 **Fan-out.** One retro may legitimately yield several pages when it surfaced
 several distinct modes, but each additional page must carry its own root cause and
@@ -165,8 +164,8 @@ Print to the terminal and write no report file:
 ```
 Slugs-Created:        <slug> ...
 Slugs-Patched:        <slug> ...
-Hypotheses-Compiled:  <n> of <m>
-Skipped:              <hypothesis> — <verdict>/<confidence>
+Lessons-Compiled:     <n> of <m>
+Skipped:              <lesson> — <verdict>/<confidence>
 Result:               OP | DRY-RUN | FAIL
 ```
 
@@ -202,7 +201,7 @@ rather than appended to, and cited by a skill proposal, passes it.
   for a date is a journal entry. Name it for the failure mode and patch on repeat.
 - **Snapshotting the retro report into `.agro/knowledge/raw/`** — see § 4. `raw/`
   is for external sources; `/retro` output is ephemeral by contract.
-- **Compiling an `inconclusive` hypothesis** — the report already judged it not to be
+- **Compiling an `inconclusive` lesson** — the report already judged it not to be
   knowledge. Compiling it launders a guess into the knowledge base.
 - **Deleting or blanking a pattern page because the change it motivated was
   rejected** — forbidden by `.agro/skills/wiki/references/schema.md` § 12. That

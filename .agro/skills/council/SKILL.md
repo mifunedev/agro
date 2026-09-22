@@ -138,26 +138,11 @@ Existing skills keep their contracts; this skill does not migrate their workflow
 | [`/delegate`](../delegate/SKILL.md) | Worker execution mechanics and acceptance records. |
 | [`/architect`](../architect/SKILL.md) | Architecture decisions and the Architecture Brief. |
 | [`/audit`](../audit/SKILL.md) | Audit verdicts. |
-| [`/strategic-proposal`](../strategic-proposal/SKILL.md) | Roadmap priorities and their publication rules. |
-| [`/weigh`](../weigh/SKILL.md) | Deterministic candidate selection from supplied signals. |
 | [`/spec`](../spec/SKILL.md) | Plans, builds, and ready PRs. |
 | [`/supervisor`](../supervisor/SKILL.md) | External session supervision. |
 | [`/builder`](../builder/SKILL.md) | Skill authoring. |
 | [`/ste`](../ste/SKILL.md) | Artifact prose. |
 | [`/wiki`](../wiki/SKILL.md) | Knowledge promotion. |
-
-### Explicit weighting
-
-Council deliberates and retains dissent. `/weigh` selects candidates from supplied signals.
-A council request does not authorize automatic weighting or another sampling panel.
-If the operator explicitly requests weighting, pass accepted candidate outputs through `/weigh --cohort <path>`.
-Use the canonical [schema](../weigh/scripts/score-trajectories.mjs) and [scoring contract](../weigh/references/scoring.md); do not duplicate their formulas.
-Keep unknown signals unknown. Neutral scorer contributions are not `PASS` evidence.
-Disclose model-assigned signals as judgments, not factual measurements.
-Proposal token cost is not adoption cost.
-Preserve the scorer's actual selection, floor failures, and `NO-SELECTION` result.
-Never handpick rejected candidates or change weights or `--soft` to favor an answer.
-Selection grants no council completion, build, or publication authority.
 
 ## Validation examples
 

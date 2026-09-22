@@ -65,22 +65,11 @@ export interface StorageSettings {
   homePath?: string;
 }
 
-export type LangfusePrivacyPreset =
-  | "metadata-only"
-  | "prompts-only"
-  | "conversations"
-  | "full-debug";
-
-export const LANGFUSE_PRIVACY_PRESETS: readonly LangfusePrivacyPreset[] = [
-  "metadata-only",
-  "prompts-only",
-  "conversations",
-  "full-debug",
-];
-
 export interface LangfuseSettings {
+  enabled?: boolean;
   baseUrl?: string;
-  privacyPreset?: LangfusePrivacyPreset;
+  environment?: string;
+  userId?: string;
 }
 
 export type SandboxRuntime = "docker";
@@ -244,8 +233,10 @@ export function validateOhConfig(value: unknown): OhConfig {
 
   const langfuse = expectSection(record, "langfuse");
   if (langfuse) {
+    expectBoolean(langfuse, "enabled", "langfuse.");
     expectString(langfuse, "baseUrl", "langfuse.");
-    expectEnum(langfuse, "privacyPreset", "langfuse.", LANGFUSE_PRIVACY_PRESETS);
+    expectString(langfuse, "environment", "langfuse.");
+    expectString(langfuse, "userId", "langfuse.");
   }
 
   if (record.composeOverrides !== undefined) {
@@ -347,8 +338,10 @@ export const OH_CONFIG_FIELDS: readonly OhConfigField[] = [
   { path: "image.mode", type: "enum", values: ["build", "image"] },
   { path: "image.pullPolicy", type: "enum", values: ["missing", "always", "never"] },
   { path: "storage.homePath", type: "string" },
+  { path: "langfuse.enabled", type: "boolean" },
   { path: "langfuse.baseUrl", type: "string" },
-  { path: "langfuse.privacyPreset", type: "enum", values: LANGFUSE_PRIVACY_PRESETS },
+  { path: "langfuse.environment", type: "string" },
+  { path: "langfuse.userId", type: "string" },
   { path: "composeOverrides", type: "list" },
 ];
 

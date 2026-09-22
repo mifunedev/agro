@@ -11,7 +11,7 @@
 #       the real .agro/ path and are structurally blind to it. (2) STATIC: no executable
 #       line under .agro/skills/**/*.mjs may reintroduce that comparison, in either operand
 #       order, nor hand process.argv to pathToFileURL() — mine-traces.mjs was the third
-#       instance of a pattern rlm/ and weigh/ already document as forbidden.
+#       instance of this forbidden pattern.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

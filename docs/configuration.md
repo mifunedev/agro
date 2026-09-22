@@ -132,6 +132,20 @@ at boot. The install lands in `~/.local` inside the persistent home volume, and
 | --- | --- | --- | --- | --- |
 | `build.skipPnpmInstall` | boolean | `false` | — | `true` skips the entrypoint's root `pnpm install`. Use it when the dependency tree is managed outside the sandbox. |
 
+### Langfuse tracing
+
+`agro config langfuse` writes these four fields. The two Langfuse keys are
+secrets and live in `.env`, not here. `agro langfuse apply` reads both surfaces
+and renders them into the credential fragment `~/.config/agro/langfuse.env` and
+into one tracing file per harness. See [Langfuse](integrations/langfuse.md).
+
+| Field | Type | Default | Compose variable | What it does |
+| --- | --- | --- | --- | --- |
+| `langfuse.enabled` | boolean | `false` | — | Turns tracing on. `agro langfuse apply` writes the credential fragment only when this field is `true`. `agro langfuse disable` sets it to `false` and deletes the fragment. |
+| `langfuse.baseUrl` | string | `https://cloud.langfuse.com` | — | Endpoint each harness sends traces to. Pick the URL from where the harness runs, not from where you browse. |
+| `langfuse.environment` | string | the `name` field, else `sandbox` | — | Trace environment. Langfuse stores it at write time, so choose the name before you collect traces. |
+| `langfuse.userId` | string | unset | — | User id for Pi traces. It reaches `~/.pi/agent/langfuse.json` only. |
+
 ### Prebuilt image
 
 Run a published image instead of building from `.devcontainer/Dockerfile`.
@@ -142,19 +156,6 @@ Recipe: [`agro sandbox install docker`](deployment-prebuilt-image.md).
 | `image.ref` | string | `ghcr.io/mifunedev/agro:latest` | `AGRO_SANDBOX_IMAGE` (legacy alias `OH_SANDBOX_IMAGE`) | Published image reference. Set it per sandbox with `agro config set --sandbox <name> image.ref <ref>`. `agro sandbox install docker` writes this field when it binds a `--checkout` directory that holds no `.devcontainer/Dockerfile`. The sandbox then runs the published image instead of a local build target. A configured value wins, and the install preserves that value. |
 | `image.mode` | `"build"` \| `"image"` | `build` | — | Whether the lifecycle builds locally or runs `image.ref`. A build happens only when the entry carries `checkout` and that directory holds `.devcontainer/Dockerfile`. Pairs with `agro sandbox install docker --image`. |
 | `image.pullPolicy` | `"missing"` \| `"always"` \| `"never"` | `missing` | `AGRO_PULL_POLICY` (legacy alias `OH_PULL_POLICY`) | Compose pull policy for `image.ref`. |
-
-### Langfuse
-
-Tracing settings the Pi harness reads from its own process environment. They are
-not secrets — the Langfuse key pair is, and lives in `.env`. The harness does not
-project these into the container: export them in the shell that launches Pi.
-They remain settable here so a deployment can record its intended values in one
-tracked place.
-
-| Field | Type | Default | Compose variable | What it does |
-| --- | --- | --- | --- | --- |
-| `langfuse.baseUrl` | string | unset | — | Langfuse host Pi sends traces to, for example `http://langfuse-web:3000`. Takes precedence over `LANGFUSE_HOST`. |
-| `langfuse.privacyPreset` | `"metadata-only"` \| `"prompts-only"` \| `"conversations"` \| `"full-debug"` | unset (compose default `metadata-only`) | — | How much of each trace Pi captures. Prefer `metadata-only` unless a broader capture policy is approved. |
 
 ### Compose overlays
 
@@ -169,12 +170,38 @@ root `.env` may hold. Each is documented, commented out, in the tracked
 `.example.env`:
 
 `GH_TOKEN`, `SANDBOX_PASSWORD`, `XAI_API_KEY`, `META_API_KEY`, `PI_SLACK_APP_TOKEN`,
-`PI_SLACK_BOT_TOKEN`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`.
+`PI_SLACK_BOT_TOKEN`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`,
+`TYPESAFE_API_KEY`.
 
 Any other key is rejected by `agro secret set`.
 
 For Muse Code, `agro secret set META_API_KEY` stores the key but does not export it into a running shell.
 See [Muse authentication](harnesses/muse-code.md#authentication) for process injection and credential precedence.
+
+### TypeSafe
+
+`TYPESAFE_API_KEY` authenticates the System One judgment adapter at
+`.agro/scripts/typesafe.mjs`. Set it with `agro secret set TYPESAFE_API_KEY`, or add it
+to `.env` and load it with `set -a; source .env; set +a`.
+
+It is deliberately absent from every compose `environment:` block. A value reaches the
+sandbox through Compose only if a process outside the sandbox — or the entrypoint before
+the control plane is readable — must act on it, and nothing outside the sandbox acts on
+this key. `.agro/evals/probes/typesafe-key-boundary.sh` fails if it ever appears there.
+
+**Unconfigured fails loudly, then continues.** Without the key, every consumer prints a
+diagnostic naming the variable and the command that sets it, then falls back to its
+deterministic path and completes. Nothing silently degrades and nothing crashes. The
+same applies to an invalid key, a timeout, or an unreachable host, each reported as a
+distinct cause. Check the current state with:
+
+```bash
+node .agro/scripts/typesafe.mjs           # is the key set?
+node .agro/scripts/typesafe.mjs --live    # does the key work?
+```
+
+Consumers are opt-in. `prompt-miner --judge` is the only one today; without the flag the
+engine never consults TypeSafe.
 
 ## Retired keys
 

@@ -9,7 +9,7 @@ import {
 import { resolveProjectRoot } from "../lib/project.js";
 import * as prompt from "../lib/prompt.js";
 import { resolveSandboxRoot } from "../lib/registry.js";
-import { isSecretKey } from "../lib/secrets.js";
+import { isSecretKey, type SecretKey } from "../lib/secrets.js";
 import { destroyConfirmationPhrase, namedVolumes } from "./lifecycle.js";
 
 export interface ConfigIO {
@@ -26,6 +26,18 @@ export interface ConfigOptions {
 }
 
 const HOME_PATH_FIELD = "storage.homePath";
+
+const SECRET_KEY_BY_CONFIG_PATH: Record<string, SecretKey> = {
+  "langfuse.publickey": "LANGFUSE_PUBLIC_KEY",
+  "langfuse.secretkey": "LANGFUSE_SECRET_KEY",
+};
+
+export function secretKeyForConfigPath(key: string): SecretKey | undefined {
+  if (isSecretKey(key)) return key;
+  const upper = key.toUpperCase();
+  if (isSecretKey(upper)) return upper;
+  return SECRET_KEY_BY_CONFIG_PATH[key.toLowerCase()];
+}
 
 function currentHomePath(root: string): string | undefined {
   return readOhConfig(ohConfigPath(root)).storage?.homePath;
@@ -65,10 +77,11 @@ export async function runConfigSet(
   opts: ConfigOptions,
   io: ConfigIO,
 ): Promise<number> {
-  if (isSecretKey(key) || isSecretKey(key.toUpperCase())) {
+  const secretKey = secretKeyForConfigPath(key);
+  if (secretKey !== undefined) {
     io.stderr(
-      `${opts.bin} config set: ${key.toUpperCase()} is a secret — oh.json is tracked by git.\n` +
-        `Set it with \`${opts.bin} secret set ${key.toUpperCase()}\` instead.\n`,
+      `${opts.bin} config set: ${secretKey} is a secret — oh.json is tracked by git.\n` +
+        `Set it with \`${opts.bin} secret set ${secretKey}\` instead.\n`,
     );
     return 1;
   }

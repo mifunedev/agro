@@ -27,7 +27,6 @@ if ((${#bad[@]})); then printf '%s\n' "${bad[@]}" >&2; echo 'REGRESSION: active 
 bare_audit='`/audit`'
 for caller in \
   .agro/knowledge/source/recursive-language-models.md \
-  .agro/skills/weigh \
   .agro/skills/benchmark/SKILL.md \
   .agro/skills/spec/SKILL.md \
   .agro/skills/spec/references/execute.md \

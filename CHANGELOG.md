@@ -10,6 +10,11 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
+- Add `agro config langfuse` and `agro langfuse apply|status|disable`. Settings live in `agro.json` and `.env`, render to a `0600` fragment and the harness files, and re-apply at boot ([#1131](https://github.com/mifunedev/agro/issues/1131)).
+- Add `.agro/scripts/typesafe.mjs`, a zero-dependency TypeSafe System One adapter. Unconfigured, it names the variable and the command that sets it, then returns null so the caller continues ([#1121](https://github.com/mifunedev/agro/issues/1121)).
+- Add `prompt-miner --judge`, scoring `correctionDensity` with a typed judgment instead of the 12-word negation lexicon. Off by default and uncalibrated ([#1121](https://github.com/mifunedev/agro/issues/1121)).
+- Add `TYPESAFE_API_KEY` to the secret allow-list and a `typesafe-ai` skill preflight that reports an unconfigured sandbox before the first API call ([#1121](https://github.com/mifunedev/agro/issues/1121)).
+- Add six probes pinning the TypeSafe degradation contract: null without a key, one cause per failure, one diagnostic source, preflight exit 0, key absent from compose, judge off by default ([#1121](https://github.com/mifunedev/agro/issues/1121)).
 - Add the opt-in `crap-pilot.sh` CRAP measurement tool for a bounded sample of scripts; it is not wired into tests, CI, evals, or any skill ([#1118](https://github.com/mifunedev/agro/issues/1118)).
 - Default Antigravity CLI (`agy`) to zero-confirmation mode with a sandbox alias, catalog launch flag, and seeded settings.json ([#1090](https://github.com/mifunedev/agro/issues/1090)).
 - Add `agro workspace create [<name>]` and `agro workspace list`, so an operator creates and inspects a host AGRO workspace under `~/.agro/workspaces/` without installing a harness ([#1086](https://github.com/mifunedev/agro/issues/1086)).
@@ -22,6 +27,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 
+- Rewrite the Langfuse guide around the official Claude Code, Pi, and Codex plugins, and document the environment and trace-tag model ([#1125](https://github.com/mifunedev/agro/issues/1125)).
 - Replace skill-health scores and eval flag-count verdicts with evidence-backed advice that preserves unknown usage and detects eval changes during read-only audits ([#1114](https://github.com/mifunedev/agro/issues/1114)).
 - Separate scoped directory contracts from reference documentation and retire the `harness-context` skill ([#1112](https://github.com/mifunedev/agro/issues/1112)).
 - Drop no-op lint and format CI steps, delete path filters that name missing trees, and rebuild the sandbox image only when boot or image inputs change ([#1092](https://github.com/mifunedev/agro/issues/1092)).
@@ -34,6 +40,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Removed
 
+- Remove the superseded `pi-langfuse` fork installer; the official Langfuse plugins read `LANGFUSE_BASE_URL` from the environment ([#1127](https://github.com/mifunedev/agro/issues/1127)).
 - Remove the Agent GitHub issue template and the `agent` issue/branch prefix ([#1092](https://github.com/mifunedev/agro/issues/1092)).
 - Remove the five `CLAUDE.md` symlinks. A present `CLAUDE.md` suppresses the `AGENTS.md` that Claude Code now reads directly ([#1082](https://github.com/mifunedev/agro/issues/1082)).
 - Remove V2MOM and its bundled reference from the strategy workflow ([#1076](https://github.com/mifunedev/agro/issues/1076)).

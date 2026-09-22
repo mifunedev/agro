@@ -2,461 +2,333 @@
 title: Langfuse
 ---
 
-# Langfuse
+# 🔭 Langfuse
 
-[Langfuse](https://langfuse.com) is optional, external observability for **Pi**
-and **Claude Code** sessions. AGRO does not bundle or operate Langfuse:
-deploy it separately (Langfuse Cloud or your own installation) and follow the
-[official Docker Compose deployment guide](https://langfuse.com/self-hosting/deployment/docker-compose)
-if you self-host. Secure that external service with appropriate access controls
-and TLS.
+**[Langfuse](https://langfuse.com) gives your agent sessions a trace.** It records
+prompts, model outputs, tool calls, token usage, and cost for every turn, so you
+can compare harnesses and models in one place.
 
-The two integrations provide end-to-end observability, **not identical event
-schemas or privacy controls**. In particular, Pi supports deliberate capture
-presets including `metadata-only`; the Claude Code plugin does not. Read the
-privacy sections for the CLI you use before enabling either integration.
+Langfuse is optional and external. AGRO does not bundle or operate it. Deploy it
+yourself, or use Langfuse Cloud, then point each harness at it.
 
-## Pi
+Langfuse publishes an official plugin for each default AGRO harness. Use those
+plugins. Native OpenTelemetry export emits runtime spans, not prompts or cost.
 
-[`pi-langfuse` v1.5.9](https://www.npmjs.com/package/pi-langfuse/v/1.5.9) is a
-Pi package. While the upstream shutdown fix is under review, AGRO uses
-the maintained fork at commit
-[`51a59c854859bbb08a43baad98f0b9eb4a94588c`](https://github.com/ryaneggz/pi-langfuse/commit/51a59c854859bbb08a43baad98f0b9eb4a94588c),
-which is the source for upstream PR
-[#14](https://github.com/gooyoung/pi-langfuse/pull/14). Pi packages can execute
-arbitrary code, so review that source before installing it.
+| Harness | Plugin | Trace tag |
+| --- | --- | --- |
+| [Claude Code](#1-claude-code) | `langfuse-observability` | `claude-code` (automatic) |
+| [Pi](#2-pi) | `@langfuse/pi-observability-plugin` | `pi` (automatic) |
+| [Codex](#3-codex) | `tracing@codex-observability-plugin` | none — the wizard sets it |
 
-Install the pinned fork through the repository-owned helper:
+Every plugin sends conversation content to your Langfuse deployment. Treat each
+trace as data that leaves the sandbox.
 
-```bash
-bash .pi/install/install-langfuse.sh
-```
+## ⚡ Configure Langfuse in one command
 
-The helper installs the fork commit in user scope through Pi's managed npm
-root, registers the installed path with Pi, applies the scoped
-`@opentelemetry/sdk-node@0.220.0` override, verifies the package lock resolves
-the exact reviewed commit, and requires a clean `npm audit`. The upstream fix
-classifies only an `AbortError` caused by pi-langfuse's own shutdown controller
-as an expected bounded timeout; with `PI_LANGFUSE_DEBUG=1` it remains visible as
-a debug message, while other shutdown errors still update runtime status and
-emit the normal warning. Rerun the helper after any package reinstall or `~/.pi`
-volume reset. The OpenTelemetry override remediates the vulnerable tree selected
-by pi-langfuse's declared `^0.218.0` range without npm audit's unsafe
-recommendation to downgrade pi-langfuse to `1.0.0`; unrelated npm overrides are
-preserved.
-
-This fork pin is temporary and intentionally immutable. If upstream merges and
-publishes #14, migrate the installer to that reviewed upstream release in a
-separate change; do not follow a moving branch automatically.
-
-This is deliberately **not** an AGRO default package. It instruments Pi
-sessions only; it does not instrument standalone Claude Code, Codex CLI, or
-Gemini CLI sessions.
-
-### Local self-hosted setup walkthrough
-
-The following procedure mirrors a working local installation: clone Langfuse as
-an independent project under AGRO's `projects/` namespace,
-start its Compose stack, attach the existing sandbox to Langfuse's Docker
-network, and configure Pi against the service hostname. The same service can be
-used by Claude Code after completing steps 1–5; see [Claude Code](#claude-code)
-for its plugin configuration.
-
-Commands run from the normal host terminal unless marked **SANDBOX** or **PI**.
-
-#### 1. Clone Langfuse under `projects/`
-
-Start from the AGRO checkout:
+Run the wizard in the sandbox:
 
 ```bash
-cd /path/to/openharness
-PROJECTS_ROOT="$(bash .agro/scripts/oh-path projects --no-create 2>/dev/null || printf '%s' projects)"
-mkdir -p "$PROJECTS_ROOT/langfuse"
-git clone https://github.com/langfuse/langfuse.git \
-  "$PROJECTS_ROOT/langfuse/langfuse"
-cd "$PROJECTS_ROOT/langfuse/langfuse"
+agro config langfuse
 ```
 
-This is an independent repository with its own `.git`, not a harness branch or
-Git worktree. Its own worktrees, if any, live at
-`projects/langfuse/langfuse/.worktrees/`. If it is already cloned, update it instead:
+The wizard collects the configuration once, stores it in the two existing
+sources of truth, and renders it into the file each harness reads.
+
+| Step | Question | Behaviour |
+| --- | --- | --- |
+| 1 | Enable | With tracing off the wizard asks *Enable Langfuse tracing?*. Decline and the wizard writes nothing. With tracing on the wizard asks *Keep it enabled?*. Decline and the wizard runs the disable path. |
+| 2 | Base URL | A menu of the three locations in the table below, plus a custom URL. |
+| 3 | API keys | Hidden input for `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY`. Press Enter to keep the key already in `.env`. |
+| 4 | Segmentation | The trace environment and an optional user id. |
+| 5 | Verify and write | The wizard requests `GET <base URL>/api/public/health`. On a failure the wizard warns and asks whether to save anyway. The wizard then saves the settings, offers to install each missing plugin, and runs `agro langfuse apply`. |
+
+The wizard needs an interactive terminal. Without one the wizard asks nothing
+and runs `agro langfuse apply` instead.
+
+### Pick the base URL
+
+Pick the base URL from where the *harness* runs, not from where you browse. The
+menu in step 2 mirrors the first three rows.
+
+| Harness location | Langfuse location | `LANGFUSE_BASE_URL` |
+| --- | --- | --- |
+| Sandbox | Cloud or remote | its HTTPS URL |
+| Sandbox | Docker host | `http://host.docker.internal:3000` |
+| Sandbox | Compose service on a shared Docker network | `http://langfuse-web:3000` |
+| Host shell | Same host | `http://localhost:3000` |
+
+Inside the sandbox, `localhost` is the sandbox itself. The `langfuse-web` name
+resolves only after you attach both containers to one Docker network.
+
+### Decide how traces segment
+
+Two dimensions separate sessions inside one Langfuse project:
+
+- **Environment** — *where* the session ran. Step 4 writes
+  `langfuse.environment`, and the fragment carries it as
+  `LANGFUSE_TRACING_ENVIRONMENT`. Use one value per location, such as
+  `agro-sbx-local` or `agro-vm`. Langfuse stores the value at write time, so
+  choose the name before you collect traces.
+- **Tags** — *which* harness ran. Claude Code and Pi tag themselves. Codex tags
+  nothing, so the wizard writes the `codex` tag into `~/.codex/langfuse.json`.
+
+Model is an observation field, not a trace field. Filter by model under
+**Tracing → Observations**, not on the Traces tab.
+
+## 🗄 Where the settings live
+
+| Setting | Home | Written by |
+| --- | --- | --- |
+| `langfuse.enabled`, `langfuse.baseUrl`, `langfuse.environment`, `langfuse.userId` | the `langfuse` section of `agro.json`, tracked by git | the wizard, or `agro config set` |
+| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | the gitignored root `.env`, mode `0600` | the wizard, or `agro secret set` |
+
+See the [field reference](../configuration.md#langfuse-tracing) for the four
+`agro.json` fields.
+
+## 📄 What `agro langfuse apply` writes
+
+`apply` never prompts and never installs a plugin. It reads `langfuse.*` from
+`agro.json` and the two keys from `.env`, and it writes nothing while
+`langfuse.enabled` is not `true`.
+
+| Path | Mode | Holds |
+| --- | --- | --- |
+| `~/.config/agro/langfuse.env` | `0600` | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL`, `LANGFUSE_TRACING_ENVIRONMENT` |
+| `~/.claude/settings.json` | `0644` | a merged `env` block that carries the base URL and the environment |
+| `~/.pi/agent/langfuse.json` | `0644` | `environment` and `userId` |
+| `~/.codex/langfuse.json` | `0600` | `enabled`, `tags`, and `environment` |
+
+The fragment holds the only credential at rest. The three harness files carry no
+key. The Codex file keeps mode `0600`, which matches the
+[manual procedure](#-manual-configuration) and costs nothing.
+
+**The fragment carries bare `KEY=value` lines and no `export`.** systemd rejects
+an `EnvironmentFile` that uses `export`, and
+`.devcontainer/openharness-cron.service` loads this same file with
+`EnvironmentFile=-`. The tracked `.agro/install/.zshenv` wraps its `source` in
+`set -a` and `set +a`, so an interactive shell exports every key anyway. In your
+own shell profile, keep `export` — see [manual
+configuration](#-manual-configuration).
+
+`.devcontainer/entrypoint.sh` runs `agro langfuse apply` at every start, so the
+configuration survives `agro destroy` and a recreate. A failed apply prints a
+warning and the boot continues.
+
+`~/.claude`, `~/.pi`, and `~/.codex` exist only in the sandbox. On the host the
+wizard and `agro langfuse disable` save the settings, then refuse the file work
+and name the sandbox command. `agro langfuse status` prints the settings and
+says that the files live in the sandbox.
+
+## 🩺 Check the state
 
 ```bash
-cd /path/to/openharness
-PROJECTS_ROOT="$(bash .agro/scripts/oh-path projects --no-create 2>/dev/null || printf '%s' projects)"
-cd "$PROJECTS_ROOT/langfuse/langfuse"
-git pull --ff-only
+agro langfuse status
 ```
 
-#### 2. Start and verify Langfuse
+`status` prints the resolved settings, the state of each generated file, and the
+plugin state of each harness. It exits non-zero when a file is missing or
+differs from a fresh render, so a check script can call it.
+
+`status` also exits `1` when `langfuse.enabled` is `false` and the credential
+fragment survives. The fragment is the off switch, and a stale fragment is the
+unsafe state. Run `agro langfuse disable` to delete the fragment.
+
+`status` warns when `~/.zshenv` exists and does not source the fragment. A
+non-interactive shell then carries no Langfuse credential. Add the source block
+from `.agro/install/.zshenv`.
+
+## 🤖 Harnesses
+
+The wizard offers to install each missing plugin. Install one by hand with the
+commands below.
+
+### 1. Claude Code
 
 ```bash
-docker compose up -d --wait --wait-timeout 300
-docker compose ps
-curl -fsS http://localhost:3000/api/public/health
-```
-
-A failed health check can be investigated with:
-
-```bash
-docker compose logs --tail=200
-```
-
-#### 3. Start the sandbox and discover Langfuse's network
-
-```bash
-docker start oh-sbx-local
-LANGFUSE_WEB_ID=$(docker compose ps -q langfuse-web)
-LANGFUSE_NETWORK=$(
-  docker inspect "$LANGFUSE_WEB_ID" \
-    --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{"\n"}}{{end}}' |
-  head -n 1
-)
-printf 'Langfuse container: %s\nLangfuse network: %s\n' \
-  "$LANGFUSE_WEB_ID" "$LANGFUSE_NETWORK"
-```
-
-Run these commands from the cloned Langfuse repository so `docker compose`
-selects its Compose project.
-
-#### 4. Attach the sandbox to Langfuse
-
-The conditional network attachment is idempotent:
-
-```bash
-docker inspect oh-sbx-local \
-  --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{"\n"}}{{end}}' |
-  grep -Fxq "$LANGFUSE_NETWORK" ||
-  docker network connect "$LANGFUSE_NETWORK" oh-sbx-local
-```
-
-Confirm that both containers share the network, then verify DNS and HTTP from
-the sandbox:
-
-```bash
-docker network inspect "$LANGFUSE_NETWORK" \
-  --format '{{range .Containers}}{{println .Name}}{{end}}' |
-  sort
-
-docker exec -u sandbox oh-sbx-local getent hosts langfuse-web
-docker exec -u sandbox oh-sbx-local \
-  curl -fsS http://langfuse-web:3000/api/public/health
-```
-
-Compose may prefix the Langfuse container's displayed name. The service DNS
-name remains `langfuse-web`. Repeat the network attachment whenever the
-`oh-sbx-local` container is destroyed and recreated.
-
-#### 5. Create the local user, project, and keys
-
-Open <http://localhost:3000> on the host and:
-
-1. Select **Sign up** and create the initial local user.
-2. Sign in and create an organization when prompted.
-3. Create a project, for example `openharness-local`.
-4. Open **Settings → API Keys** and select **Create new API keys**.
-5. Copy the public key (`pk-lf-...`) and secret key (`sk-lf-...`) while shown.
-
-Keep the secret key out of source files, shell history, screenshots, and chat.
-
-#### 6. Install and configure Pi
-
-Enter the existing sandbox:
-
-```bash
-docker exec -it -u sandbox oh-sbx-local bash
-```
-
-Then run these commands in the **SANDBOX**:
-
-```bash
-pi --version
-bash .pi/install/install-langfuse.sh
-pi list
-export LANGFUSE_PRIVACY_PRESET=metadata-only
-pi
-```
-
-At the **PI** prompt, run `/langfuse-setup` and enter:
-
-```text
-Public key:  pk-lf-...
-Secret key:  sk-lf-...
-Langfuse URL: http://langfuse-web:3000
-```
-
-Do not use `localhost` here: inside the sandbox it refers to the sandbox, not
-the Langfuse container. The saved configuration lives at
-`~/.pi/agent/pi-langfuse/config.json` on AGRO's persistent `pi-auth`
-volume.
-
-#### 7. Verify Pi tracing and permissions
-
-At the **PI** prompt:
-
-1. Run `/langfuse-status`; confirm the masked public key, host
-   `http://langfuse-web:3000`, `metadata-only` privacy, and no runtime error.
-2. Run `/langfuse-test`; confirm the test trace appears in the local project.
-3. Send a normal prompt and confirm its session trace appears as well.
-
-Exit Pi, then verify restrictive permissions from the **SANDBOX** without
-printing the credential file:
-
-```bash
-stat -c '%a %n' \
-  ~/.pi/agent/pi-langfuse \
-  ~/.pi/agent/pi-langfuse/config.json
-```
-
-Expected permissions are `700` for the directory and `600` for the file. Keep
-`LANGFUSE_PRIVACY_PRESET=metadata-only` set before future Pi launches unless a
-broader capture policy is deliberately approved.
-
-### Configure Pi
-
-#### Interactive setup (recommended)
-
-Start Pi, then run its package command:
-
-```text
-/langfuse-setup
-```
-
-Enter the Langfuse public key (`pk-lf-...`), secret key (`sk-lf-...`), and
-external Langfuse URL. The package persists them in
-`~/.pi/agent/pi-langfuse/config.json`; in the sandbox, `~/.pi` is on the
-`pi-auth` named volume. When the package writes the file it creates a `0700`
-directory and a `0600` file where POSIX permissions are available.
-`agro destroy` removes named volumes, including `pi-auth`, so configure again
-after destroying the sandbox.
-
-#### Environment-only setup
-
-For a non-interactive shell, export credentials before starting Pi:
-
-```bash
-export LANGFUSE_PUBLIC_KEY='pk-lf-...'
-export LANGFUSE_SECRET_KEY='sk-lf-...'
-export LANGFUSE_BASE_URL='https://cloud.langfuse.com'
-export LANGFUSE_PRIVACY_PRESET='metadata-only'
-pi
-```
-
-`LANGFUSE_HOST` is supported as a fallback name. For an environment-only
-configuration, `LANGFUSE_BASE_URL` wins over `LANGFUSE_HOST`.
-
-`langfuse.baseUrl` and `langfuse.privacyPreset` in `agro.json` record the intended
-values in one tracked place, but the harness does **not** project them into the
-container — Pi reads them from its own process environment, so export them in the
-shell that launches Pi (see the block above):
-
-```json
-{
-  "langfuse": {
-    "baseUrl": "http://langfuse-web:3000",
-    "privacyPreset": "metadata-only"
-  }
-}
-```
-
-The two credentials stay secrets:
-keep `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` in the root dotenv (`agro
-secret set`) or in the saved `~/.pi/agent/pi-langfuse/config.json`, and export
-them in the shell that launches Pi if you use the environment-only path.
-
-### Pi configuration and privacy precedence
-
-A valid saved `~/.pi/agent/pi-langfuse/config.json` (one with both keys) supplies
-credentials and host before environment configuration. Environment privacy
-settings still apply: `LANGFUSE_PRIVACY_PRESET` and the individual capture flags
-override saved privacy settings. If there is no complete saved config,
-environment credentials are used; then `LANGFUSE_BASE_URL` takes precedence over
-`LANGFUSE_HOST`.
-
-The upstream default is `full-debug`, which captures prompts, outputs, tool I/O,
-the system prompt, and cwd. Prefer a narrower preset unless that detail is
-explicitly approved:
-
-| Preset | Captures |
-| --- | --- |
-| `metadata-only` | metadata only; no inputs, outputs, tool I/O, system prompt, or cwd |
-| `prompts-only` | inputs/prompts only; no outputs, tool I/O, system prompt, or cwd |
-| `conversations` | inputs and assistant outputs; no tool I/O, system prompt, or cwd |
-| `full-debug` (default) | inputs, outputs, tool I/O, system prompt, and cwd |
-
-Fine-grained environment flags override a preset:
-
-```bash
-export LANGFUSE_CAPTURE_INPUTS=true
-export LANGFUSE_CAPTURE_OUTPUTS=true
-export LANGFUSE_CAPTURE_TOOL_IO=false
-export LANGFUSE_CAPTURE_SYSTEM_PROMPT=false
-export LANGFUSE_CAPTURE_CWD=false
-```
-
-The package redacts common secrets and local paths before upload, but redaction
-is defense in depth, not permission to upload sensitive prompts, tool results,
-or source context. Keep keys out of version control, use the least capture that
-meets the need, and treat the Langfuse deployment as an external data boundary.
-
-### Choose the URL from where Pi runs
-
-| Pi location | Langfuse location | URL to configure | Notes |
-| --- | --- | --- | --- |
-| Host shell | Langfuse on the same host | `http://localhost:3000` | Normal host-loopback case. |
-| Sandbox | Langfuse on the Docker host | `http://host.docker.internal:3000` | The sandbox already maps `host.docker.internal` to Docker's host gateway. `localhost` inside the sandbox is the sandbox itself. |
-| Sandbox | Another Compose service | that service's hostname, for example `http://langfuse-web:3000` | Works only after both services are explicitly attached to a shared Docker network. It is not automatic. |
-| Sandbox or host | Cloud or remote self-hosted Langfuse | its HTTPS public URL | Verify DNS, TLS, routing, and firewall access from the process running Pi. |
-
-### Verify Pi with a real prompt
-
-1. Confirm Pi loaded the optional package:
-   ```bash
-   pi list
-   ```
-2. In Pi, run `/langfuse-status`. It shows the selected source, host, masked
-   public key, effective capture policy, config path, and last runtime error.
-3. Run `/langfuse-test`. It performs a timeout-bounded authenticated request and
-   sends a small test trace.
-4. Send a normal Pi prompt, then inspect the resulting trace in Langfuse. A
-   real prompt is the end-to-end check for the session trace, generations, and
-   any tool observations.
-
-### Troubleshoot Pi
-
-| Symptom | Check and fix |
-| --- | --- |
-| Missing keys or no configuration | Run `/langfuse-setup`, or export both `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` before starting Pi. |
-| Old key or host still wins | A complete saved config takes precedence for credentials and host. Use `/langfuse-status` to see its source, then rerun `/langfuse-setup` to replace stale saved values. |
-| Wrong URL | With environment-only setup, use `LANGFUSE_BASE_URL`; it wins over `LANGFUSE_HOST`. A saved host still wins over either, so update or remove the stale saved config deliberately. |
-| Connection refused or timeout | Check the location table: sandbox `localhost` is not the Docker host; use `host.docker.internal` for the host, or explicitly share a Compose network for a service hostname. |
-| `DOMException [AbortError]` during shutdown | Rerun `bash .pi/install/install-langfuse.sh` so the reviewed local patch is applied. The package's own bounded deadline is best-effort and may leave telemetry incomplete; unexpected shutdown errors remain visible. |
-| TLS or DNS error | Use the externally reachable HTTPS URL, verify the hostname resolves from the Pi process, and provide a certificate chain trusted by that process. |
-| Test works but no useful trace | Send a real Pi prompt after `/langfuse-test`, then use `/langfuse-status` and Pi output for the last runtime error and effective capture policy. |
-| Usage or cost is absent | These fields are conditional on provider events. Some providers do not expose them; inspect raw observations and do not treat their absence as a tracing failure. |
-
-For package installation scope, pins, and trust behavior, see the upstream
-[Pi packages documentation](https://github.com/earendil-works/pi-mono/blob/main/packages/coding-agent/docs/packages.md).
-The repository helper intentionally uses user scope so opting into observability
-does not modify the tracked project package list.
-
-## Claude Code
-
-The official, supported Claude Code path is Langfuse's marketplace plugin, not
-native Claude OpenTelemetry environment variables. The plugin repository is
-[Langfuse/Claude-Observability-Plugin](https://github.com/langfuse/Claude-Observability-Plugin),
-observed at commit
-[`9ad0076a7a24e8673ac6e7ac6f7b658b18826bb6`](https://github.com/langfuse/Claude-Observability-Plugin/commit/9ad0076a7a24e8673ac6e7ac6f7b658b18826bb6)
-(version 1.0.0). Review plugin source before installing it: marketplace plugins
-can execute code and add hooks to Claude Code.
-
-### Install and configure
-
-From a shell that runs Claude Code, install the marketplace and plugin exactly
-as follows:
-
-```bash
+# Install the marketplace and plugin, then restart Claude Code
 claude plugin marketplace add langfuse/Claude-Observability-Plugin
 claude plugin install langfuse-observability@langfuse-observability
 ```
 
-Restart Claude Code. Then, at the **Claude prompt** (not the shell), run:
+The plugin registers `Stop` and `SessionEnd` hooks. It uses `uv`, already present
+in the sandbox, and installs its own Python dependencies.
 
-```text
-/plugin configure langfuse-observability@langfuse-observability
-```
+`agro langfuse apply` writes the base URL and the environment into the `env`
+block of `~/.claude/settings.json`, and leaves every other key in that file
+alone. The keys reach the plugin from the fragment. Git tracks a project
+`.claude/settings.json`, so the user file is the right home for these values.
 
-Enter the two required fields in the plugin configuration:
+Optional: `LANGFUSE_USER_ID`, `CC_LANGFUSE_TRACE_TAGS`, `CC_LANGFUSE_MAX_CHARS`
+(default `20000`), `CC_LANGFUSE_SKILL_TAGS` (default `true`),
+`CC_LANGFUSE_CAPTURE_SKILL_CONTENT` (default `false`), `CC_LANGFUSE_DEBUG`.
+Environment variables win over `/plugin configure` values.
 
-- `LANGFUSE_PUBLIC_KEY`
-- `LANGFUSE_SECRET_KEY`
-
-`LANGFUSE_BASE_URL` is optional and defaults to the US region
-(`https://us.cloud.langfuse.com`); use `https://cloud.langfuse.com` for EU or
-your self-hosted URL. Other optional fields are `LANGFUSE_USER_ID`,
-`CC_LANGFUSE_DEBUG` (default `false`), `CC_LANGFUSE_MAX_CHARS` (default
-`20000`), `CC_LANGFUSE_SKILL_TAGS` (default `true`), and
-`CC_LANGFUSE_CAPTURE_SKILL_CONTENT` (default `false`). The plugin needs `uv`
-(already installed in AGRO), or its Python 3.10+ fallback with
-`langfuse>=4.0,<5`. Do not add a separate `pip install` when `uv` is available.
-
-The plugin installs and is enabled at **user scope**. Configuration is stored by
-Claude's plugin configuration and OS-keychain mechanisms according to upstream.
-AGRO persists `~/.claude` in the `/home/sandbox` mount, but OS-keychain
-availability and persistence are platform-dependent; verify the plugin remains
-configured after a sandbox rebuild. You can enter the same Langfuse key pair in
-Pi and Claude Code, but their saved configurations are independent. Do not put
-Claude plugin keys in `.devcontainer/.env`, source files, shell history,
-screenshots, or chat.
-
-### Choose the Claude plugin base URL
-
-Set `LANGFUSE_BASE_URL` according to where the Claude Code process runs:
-
-| Claude Code location | Langfuse location | `LANGFUSE_BASE_URL` |
-| --- | --- | --- |
-| Host shell | Same host | `http://localhost:3000` |
-| Sandbox | Docker host | `http://host.docker.internal:3000` |
-| Sandbox | Local Langfuse Compose service on an explicitly shared Docker network | `http://langfuse-web:3000` |
-| Host or sandbox | Cloud or remote self-hosted deployment | Its externally reachable HTTPS URL |
-
-`localhost` from the sandbox is the sandbox itself. The host-gateway mapping
-makes `host.docker.internal` the host route. The `langfuse-web` name works only
-after explicit shared-network attachment; AGRO does not modify Compose
-or create that connection automatically. For a remote or Cloud endpoint, verify
-DNS, TLS, routing, and firewall access from the process running Claude Code.
-
-### Privacy and capture boundary
-
-The plugin uses Claude Code Stop and SessionEnd hooks plus transcript files. It
-captures user prompts, assistant text, tool invocations, tool inputs and
-results, session and timing data, and token usage when present.
-`CC_LANGFUSE_MAX_CHARS` defaults to 20,000 characters for relevant captured
-text and results; it is not a universal field-size cap, and structured tool
-inputs are not recursively truncated.
-
-This is not Pi's `metadata-only` model: the plugin offers no general redaction,
-no metadata-only mode, and no prompt-off control.
-`CC_LANGFUSE_CAPTURE_SKILL_CONTENT` defaults to `false`, but the conversation
-and tool data above are otherwise captured. The official integration page
-loosely mentions reasoning; do **not** rely on that as a capture claim—the
-examined plugin text extractor includes text blocks only and does not extract
-Claude thinking blocks.
-
-Treat every trace as data sent to the Langfuse deployment. Before a sensitive
-session, disable the plugin at user scope and restart Claude Code:
+### 2. Pi
 
 ```bash
-claude plugin disable langfuse-observability@langfuse-observability --scope user
-claude plugin list
+# Install in user scope
+pi install npm:@langfuse/pi-observability-plugin
 ```
 
-Re-enable it when approved, then restart Claude Code:
+Do not pass `-l`. A project-local install writes `.pi/settings.json`, which git
+tracks.
+
+`~/.pi/agent/langfuse.json` accepts `environment` and `userId` and holds no
+`baseUrl` field, so Pi reads its endpoint from the environment. The fragment is
+therefore the primary transport, and the harness files are a second, non-secret
+layer.
+
+Environment variables win over the file. Pi traces carry `git_branch`, `cwd`,
+`model`, and `provider` in metadata, and mark subagent turns with `pi_subagent`.
+
+### 3. Codex
 
 ```bash
-claude plugin enable langfuse-observability@langfuse-observability --scope user
-claude plugin list
+# Install the marketplace and plugin
+codex plugin marketplace add langfuse/codex-observability-plugin
+codex plugin add tracing@codex-observability-plugin
 ```
 
-To remove it instead:
+Enable plugin hooks in `~/.codex/config.toml`:
+
+```toml
+[features]
+plugin_hooks = true
+
+[plugins."tracing@codex-observability-plugin"]
+enabled = true
+```
+
+`codex plugin add` writes the `[plugins]` table already. Do not add it twice —
+duplicate tables are invalid TOML. `agro langfuse apply` never edits
+`config.toml`.
+
+**Approve the hook once.** Start `codex` interactively and approve the
+**Uploading Codex trace to Langfuse** hook. Codex prompts for hook trust only in
+interactive mode, and an untrusted hook never runs. This step stays manual.
 
 ```bash
-claude plugin uninstall langfuse-observability
+# Confirm the approval; a trusted_hash entry must appear
+grep -A2 'tracing@codex-observability-plugin.*stop' ~/.codex/config.toml
 ```
 
-### Verify and troubleshoot
+Optional variables use a `LANGFUSE_CODEX_` prefix and override the file:
+`LANGFUSE_CODEX_TAGS`, `LANGFUSE_CODEX_METADATA`, `LANGFUSE_CODEX_USER_ID`,
+`LANGFUSE_CODEX_MAX_CHARS` (default `20000`), `LANGFUSE_CODEX_DEBUG`,
+`LANGFUSE_CODEX_FAIL_ON_ERROR` (default `false`).
 
-After configuration and restart, send a non-sensitive test prompt in Claude
-Code and confirm that its trace appears in the selected Langfuse project. For
-hook diagnostics, inspect `~/.claude/state/langfuse_hook.log` without exposing
-credentials. Restart Claude Code after installation or disable/enable changes.
+## ✅ Verify
 
-The plugin supports the Claude Code CLI and Claude Code GUI **Code** mode. It
-does not instrument Claude Desktop Chat. This guide intentionally adds no MCP
-server, custom launcher, adapter, native service, or native OTEL configuration.
+Send one non-sensitive prompt from each harness, then open the Langfuse project
+and filter by that harness's tag.
 
-### Claude Code sources
+```bash
+# Confirm the settings and the generated files first
+agro langfuse status
 
-- [Langfuse: Claude Code integration](https://langfuse.com/integrations/developer-tools/claude-code) (verified 2026-07-11; page last edited 2026-06-22)
-- [Langfuse Claude Observability Plugin](https://github.com/langfuse/Claude-Observability-Plugin) at [observed commit `9ad0076a7a24e8673ac6e7ac6f7b658b18826bb6`](https://github.com/langfuse/Claude-Observability-Plugin/commit/9ad0076a7a24e8673ac6e7ac6f7b658b18826bb6)
-- Anthropic's [Claude Code plugins](https://code.claude.com/docs/en/plugins) and [hooks guide](https://code.claude.com/docs/en/hooks-guide)
+# Confirm the deployment answers before blaming a plugin
+curl -fsS "$LANGFUSE_BASE_URL/api/public/health"
+
+# Turn on plugin debug output
+CC_LANGFUSE_DEBUG=true claude      # Claude Code
+LANGFUSE_DEBUG=true pi             # Pi
+LANGFUSE_CODEX_DEBUG=true codex    # Codex
+```
+
+## 🔧 Troubleshoot
+
+| Symptom | Cause and fix |
+| --- | --- |
+| No traces from any harness | Run `agro langfuse status`. A missing fragment or a missing plugin shows there. Restart the harness after any change. |
+| `status` reports `drifted` or `missing` | `agro.json` changed after the last render. Run `agro langfuse apply`. |
+| `status` exits 1 on a disabled sandbox | Tracing is off and the credential fragment survives. Run `agro langfuse disable`. |
+| Traces continue after `agro langfuse disable` | The running harness keeps the values it loaded. Restart every harness session. |
+| One harness lags after a key rotation | A second copy of the keys outranks `.env`. Delete the copy and run `agro config langfuse` again. |
+| Codex shows no hook | Codex does not trust the `Stop` hook. Start `codex` interactively and approve the hook. |
+| Claude Code reports a missing hook script | The `uv` environment is incomplete. Remove `~/.cache/uv/environments-v2/langfuse-hook-*`, run `uv cache prune`, then rerun the hook once. |
+| Traces reach the wrong project | The key pair belongs to another project. Query `/api/public/projects` to resolve it. |
+| `/api/public/traces` returns 404 | The deployment runs Langfuse v4 in `events_only` mode. Ingestion still works; read traces in the interface. |
+| Your own API call returns 403 | A content delivery network blocks non-browser clients. This affects your calls, not the plugins. |
+| No traces after `agro destroy` | The command removes the named volumes, so every plugin install is gone. The entrypoint re-applies the settings at boot; run `agro config langfuse` to reinstall the plugins. |
+
+## 🔒 Before a sensitive session
+
+No plugin offers a metadata-only mode. Disable tracing instead.
+
+```bash
+agro langfuse disable
+```
+
+`disable` sets `langfuse.enabled=false`, deletes the credential fragment, and
+rewrites each harness file with tracing off. It keeps the other `langfuse.*`
+settings and both `.env` keys, so re-enabling needs no re-prompt.
+
+`disable` then warns about running sessions. A harness that already started
+keeps the credentials it loaded. Restart every running harness session.
+
+## 🛠 Manual configuration
+
+Use this procedure for a harness that AGRO has no tracing writer for. The
+writers live in `.agro/cli/src/lib/tracing/harness-writers.ts`.
+
+All three plugins read the same variables. Keep **one** source of truth — keys in
+two places means a rotation leaves one harness on the old pair.
+
+```bash
+# Add to the shell profile that starts your harnesses
+export LANGFUSE_PUBLIC_KEY='pk-lf-...'
+export LANGFUSE_SECRET_KEY='sk-lf-...'
+export LANGFUSE_BASE_URL='https://langfuse.example.com'
+export LANGFUSE_TRACING_ENVIRONMENT='agro-sbx-local'
+
+# Restrict the file that holds the secret key
+chmod 600 ~/.zshenv
+```
+
+Use `export` in your own profile. A bare assignment creates a shell parameter,
+not an environment variable, and a hook runs in a child process that never sees
+it. The generated fragment is the one exception, because systemd reads that file
+too.
+
+Restart the harness after any change. Each plugin reads the environment at start.
+
+To scope settings to one harness, write the file that `agro langfuse apply`
+generates:
+
+```json
+// ~/.claude/settings.json — Claude Code
+{
+  "env": {
+    "LANGFUSE_BASE_URL": "https://langfuse.example.com",
+    "LANGFUSE_TRACING_ENVIRONMENT": "agro-sbx-local"
+  }
+}
+```
+
+```json
+// ~/.pi/agent/langfuse.json — Pi
+{
+  "environment": "agro-sbx-local",
+  "userId": "operator"
+}
+```
+
+```bash
+# ~/.codex/langfuse.json — Codex
+cat > ~/.codex/langfuse.json <<'JSON'
+{
+  "enabled": true,
+  "tags": ["codex"],
+  "environment": "agro-sbx-local"
+}
+JSON
+
+chmod 600 ~/.codex/langfuse.json
+```
+
+## 📚 Sources
+
+- [Langfuse: Claude Code](https://langfuse.com/integrations/developer-tools/claude-code)
+- [Langfuse: Pi agent](https://langfuse.com/integrations/developer-tools/pi-agent)
+- [Langfuse: Codex](https://langfuse.com/integrations/developer-tools/codex)
+- [Langfuse self-hosting](https://langfuse.com/self-hosting)

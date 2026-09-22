@@ -555,8 +555,8 @@ from what those routes observed. Step 10 renders the body and then verifies it.
 ### 8. `spec-retro` — capture the lessons
 
 On `AUDIT-PASS`, run `/spec retro <slug>`, which is a thin wrapper for
-`/retro --task <slug>`. It turns the run's signals into falsifiable,
-evidence-tested lessons with verdicts and confidence levels. `/retro` is
+`/retro --task <slug>`. It turns the run's signals into lessons, each tagged
+with a verdict and a confidence level backed by the run's evidence. `/retro` is
 report-only by contract and writes no file; step 9 is where its supported lessons
 become durable.
 

@@ -71,29 +71,7 @@ Name the next authorized step or request permission. Do not treat agreement as a
 ## Routing boundaries
 A factual lookup, audit request, roadmap request, or implementation request alone does not trigger `/council`.
 An explicit request for multiple independent perspectives triggers deliberation, not ownership transfer.
-Keep architecture decisions with `/architect`, audit verdicts with `/audit`, and roadmap publication with `/strategic-proposal`.
+Keep architecture decisions with `/architect` and audit verdicts with `/audit`.
 Keep worker mechanics with `/delegate`, builds with `/spec`, and external session supervision with `/supervisor`.
 Keep authoring with `/builder`, prose with `/ste`, and knowledge promotion with `/wiki`.
 Load only a skill required for authorized composition. Do not launch another owner or alter existing skill contracts.
-
-## Roadmap advice and publication
-Input: `/strategic-proposal Rank product priorities; report only`.
-Expect current repository evidence and one council with a required strategic critic. No separate panel or synthesis workers apply.
-Expect a roadmap table only after `COMPLETE`. Require demand evidence or a concrete prerequisite tied to a cited dependent outcome for `Build Now`.
-Expect no GitHub mutation and no authentication gate for local advice.
-With explicit publication intent, require a verified repository and issue target before mutation.
-Expect a complete issue search, a fresh target read, and preservation of content outside approved scope.
-Create or pin only with explicit intent. Verify body, title, and pin state before reporting a success URL.
-
-## Publication blockers
-Explicit publication lacks authentication, has multiple matching roadmap issues, or follows a `PARTIAL`/`BLOCKED` council.
-Expect no publication. Name the auth or target blocker; for incomplete council coverage, return observations only.
-Do not return `HEARTBEAT_OK`, pick the first issue, create a duplicate, or treat accepted observations as a final roadmap.
-
-## Explicit weighting and unknown signals
-A council request alone never invokes `/weigh`. Unknown eval, audit, cost, or judge signals remain unknown, not invented successes.
-If weighting is explicit, reuse accepted outputs through `/weigh --cohort` and the canonical schema; do not sample a second panel.
-Treat neutral scorer contributions as non-evidence, not `PASS`. Distinguish model judgments from measurements and proposal token cost from adoption cost.
-If the scorer returns `NO-SELECTION`, retain the result and floor failures; do not handpick a rejected candidate.
-Do not change weights or `--soft` to favor an answer. Withhold selection-dependent roadmap publication.
-An actual selection grants no council completion, build, or publication authority. Retain dissent.

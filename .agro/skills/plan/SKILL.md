@@ -204,4 +204,4 @@ Do not treat generating or revising a plan as approval.
 - `.agro/plans/webhook-retry-limits/plan.html` can hold an optional rendering of that same plan.
 - `/plan` without a planning request prints usage and writes nothing.
 - If a saved plan fails validation, revise that same plan and rerun the checks; do not create duplicate recovery drafts.
-- Use `/imagine` for a speculative PRD sketch, `/prd` for structured requirements, and `/spec plan` for an executable task folder.
+- Use `/prd` for structured requirements, and `/spec plan` for an executable task folder.
