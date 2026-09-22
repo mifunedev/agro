@@ -19,6 +19,12 @@ import {
   type SecretIO,
 } from "./commands/secret.js";
 import {
+  runLangfuseApply,
+  runLangfuseDisable,
+  runLangfuseStatus,
+  type LangfuseIO,
+} from "./commands/langfuse.js";
+import {
   runComposeConfig,
   runComposeVerb,
   runDestroy,
@@ -118,6 +124,7 @@ Usage:
   ${bin} shell [name]           Open a zsh shell in the running sandbox container
   ${bin} config <args...>       Read and write ${stateNames(bin).configFile} (show|set), or run a wizard
   ${bin} secret <args...>       Read and write the gitignored root .env (set|list)
+  ${bin} langfuse <args...>     Render, check, or disable Langfuse tracing files (apply|status|disable)
   ${bin} update                 ${updateSummary}
   ${bin} migrate                Move a legacy .oh/ project or ~/.oh registry to AGRO names (--check|--home)
   ${bin} stop [name]            Stop the sandbox, preserving volumes
@@ -182,6 +189,28 @@ gitignored; every non-secret setting belongs in ${stateNames(bin).configFile} (\
 
 Keys:
 ${secretKeyList()}
+`);
+}
+
+export function printLangfuseHelp(bin: string = LEGACY_PRODUCT.bin): void {
+  process.stdout.write(`${bin} langfuse — Render, check, or disable the Langfuse tracing files
+
+Usage:
+  ${bin} langfuse apply     Render ~/.config/agro/langfuse.env and every harness tracing file
+  ${bin} langfuse status    Show the resolved settings and whether each generated file is current
+  ${bin} langfuse disable   Set langfuse.enabled=false, delete the credential fragment, rewrite the files
+
+\`apply\` never prompts and never installs anything; bootstrap, systemd, and cron run it.
+It reads langfuse.* from ${stateNames(bin).configFile} and the keys from the gitignored .env,
+and writes nothing when langfuse.enabled is not true. The generated files live in the
+sandbox home, so \`apply\` and \`disable\` refuse to touch them from the host.
+
+\`status\` exits non-zero when a generated file is missing or differs from a fresh render,
+so it works as a check. \`disable\` keeps the non-secret settings and the .env keys, so
+re-enabling needs no re-prompt; already-running harnesses keep their loaded credentials
+until restarted.
+
+${sourceDocsUrl("docs/integrations/langfuse.md")}
 `);
 }
 
@@ -535,6 +564,32 @@ export function extractSandboxFlag(
     i++;
   }
   return { ok: true, args: sandbox === undefined ? { rest: kept } : { rest: kept, sandbox } };
+}
+
+export const LANGFUSE_VERBS = ["apply", "status", "disable"] as const;
+
+export type LangfuseVerb = (typeof LANGFUSE_VERBS)[number];
+
+export interface LangfuseArgs {
+  help: boolean;
+  verb?: LangfuseVerb;
+}
+
+export function parseLangfuseArgs(rest: string[], bin: string = LEGACY_PRODUCT.bin): ParseResult<LangfuseArgs> {
+  if (rest.length === 0 || isHelpFlag(rest[0])) return { ok: true, args: { help: true } };
+  const [head, ...tail] = rest;
+  if (!(LANGFUSE_VERBS as readonly string[]).includes(head)) {
+    return {
+      ok: false,
+      error: `${bin} langfuse: unknown subcommand "${head}" — expected apply, status, or disable`,
+      showHelp: true,
+    };
+  }
+  if (isHelpFlag(tail[0])) return { ok: true, args: { help: true } };
+  if (tail.length > 0) {
+    return { ok: false, error: `${bin} langfuse ${head}: unexpected argument "${tail[0]}"` };
+  }
+  return { ok: true, args: { help: false, verb: head as LangfuseVerb } };
 }
 
 export const CONFIG_VERBS = ["show", "set", "repo"] as const;
@@ -1327,6 +1382,27 @@ async function main(argv: string[]): Promise<number> {
     const scope = a.sandbox === undefined ? { bin } : { bin, sandbox: a.sandbox };
     if (a.verb === "list") return await runSecretList(scope, io);
     return await runSecretSet(a.key as string, scope, io);
+  }
+
+  if (first === "langfuse") {
+    const parsed = parseLangfuseArgs(argv.slice(1), bin);
+    if (!parsed.ok) {
+      process.stderr.write(`${parsed.error}\n`);
+      if (parsed.showHelp) printLangfuseHelp(bin);
+      return 1;
+    }
+    const a = parsed.args;
+    if (a.help) {
+      printLangfuseHelp(bin);
+      return second === undefined ? 1 : 0;
+    }
+    const io: LangfuseIO = {
+      stdout: (s) => process.stdout.write(s),
+      stderr: (s) => process.stderr.write(s),
+    };
+    if (a.verb === "status") return await runLangfuseStatus({ bin }, io);
+    if (a.verb === "disable") return await runLangfuseDisable({ bin }, io);
+    return await runLangfuseApply({ bin }, io);
   }
 
   if (first === "migrate") {
