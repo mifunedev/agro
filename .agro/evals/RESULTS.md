@@ -111,7 +111,6 @@ probe id; git history is the time series.** Schema and exit-code semantics are i
 | operator-config-guard | A | 2026-09-19 22:52 | PASS | operator directives 2026-08-06 (.config/ and settings.local.json are operator-only) |
 | plan-orchestration-contract | A | 2026-09-19 22:52 | PASS | issue #988 / ADR #989 |
 | pnpm-audit-ci-gate | A | 2026-09-19 22:52 | PASS | issue #171 — pnpm security audits must run in CI; #943 — GHSA-82fw-gwwq-j7x9 turned a live `pnpm:devPreinstall` advisory query into a sandbox boot failure; #1019 — the same class of failure must not recur through a different hook |
-| post-bridge-publish-confirmation | A | 2026-09-19 22:52 | PASS | #523 — post-bridge live publishing requires an explicit final confirmation gate |
 | prd-output-path-contract | A | 2026-09-19 22:52 | PASS | retro lesson 2026-06-19 |
 | prompt-miner-schema-compat | A | 2026-09-19 22:52 | PASS | issue #253 — prompt-miner JSONL schema-drift guard |
 | prompt-miner-symlink-entrypoint | A | 2026-09-19 22:52 | PASS | issue #663 — prompt-miner engine no-ops via the documented .claude/skills symlink |
@@ -146,7 +145,6 @@ probe id; git history is the time series.** Schema and exit-code semantics are i
 | spec-task-artifact-contract | A | 2026-09-19 22:52 | PASS | issue #1086 — the build reached a ready PR with simplicity-review.json and |
 | ste-checker-contract | A | 2026-09-19 22:52 | PASS | issue #750 PR audit — the /ste checker had four fail-open paths (unclosed |
 | submitted-by-trailers | A | 2026-09-19 22:52 | PASS | conversation 2026-06-12 (commit attribution trailers); the single-owner |
-| sync-skill-contract | A | 2026-09-19 22:52 | PASS | issue #331 — /sync dispatcher skill (bidirectional origin↔upstream sync) |
 | systemd-sandbox-init | A | 2026-09-19 22:52 | PASS | issue #956 (systemd PID 1; cron supervision leaves tmux) 2026-09-04 |
 | t3-headless-launch | A | 2026-09-19 22:52 | PASS | issue #858 — /t3 launched a bare `npx --yes t3`, which is the local GUI and |
 | tailscale-tool-boundary | A | 2026-09-19 22:52 | PASS | issue #858 — Tailscale mobile access for T3 Code. There is no tailnet, no |
