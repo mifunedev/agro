@@ -20,7 +20,7 @@ messaging setup are optional.
 
 ## How the primitive pack ships
 
-AGRO keeps a minimal skill pack in `.agro/skills/` (`/git`, `/worktrees`, `/prd` and `/ralph`) and shared
+AGRO keeps a minimal skill pack in `.agro/skills/` (`/agent-browser`, `/escalate`, `/git`, `/prd`, `/ralph`, `/release`, `/ste` and `/worktrees`) and shared
 security hooks in `.agro/hooks/`, and links each provider surface at them.
 Codex and Pi reach the pack through `.agents/skills`; Claude Code uses
 `.claude/skills`. Provider-specific configuration stays separate. See the

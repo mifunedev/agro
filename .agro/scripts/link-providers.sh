@@ -6,16 +6,22 @@ PROTECTED_PATHS_FILE=".claude/protected-paths.txt"
 CC_SAFETY_NET_PIN="1.0.6"
 
 required_files=(
+  ".agro/skills/agent-browser/SKILL.md"
+  ".agro/skills/escalate/SKILL.md"
   ".agro/skills/git/SKILL.md"
-  ".agro/skills/worktrees/SKILL.md"
   ".agro/skills/prd/SKILL.md"
   ".agro/skills/ralph/SKILL.md"
+  ".agro/skills/release/SKILL.md"
+  ".agro/skills/ste/SKILL.md"
+  ".agro/skills/worktrees/SKILL.md"
 )
 
 required_execs=(
   ".agro/hooks/deny-env-dump.sh"
   ".agro/hooks/deny-secret-paths.sh"
   ".agro/hooks/warn-devtcp.sh"
+  ".agro/skills/escalate/scripts/escalate.sh"
+  ".agro/skills/ste/scripts/ste-check.sh"
 )
 
 provider_links=(
