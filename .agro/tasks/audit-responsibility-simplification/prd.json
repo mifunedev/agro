@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "project": "AGRO",
+  "branchName": "skill/1114-audit-responsibility-simplification",
+  "description": "Approved fallback: retain original panels and correct evidence judgments",
+  "repo": "mifunedev/agro",
+  "base": "development",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Retain original panels under the approved fallback",
+      "description": "As an operator, I want the existing panel contract retained when composition fails its cost gate.",
+      "acceptanceCriteria": [
+        "Verify baseline equality for harness, external, council, dispatcher, full, runtime scripts, and gate owners.",
+        "Preserve R1\u2013R11 and R14\u2013R15; review C1\u2013C9 and C17\u2013C19 against retained procedures.",
+        "Record rejected composition and advisor-approved fallback without claiming D2 composition shipped.",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Advisor accepted fallback implementation at a1304db3: repaired-commands.json, repaired-cost-verification.json, independent-rereview.md, local-build-checks.json and final-knowledge-impact.json. C2 baseline limitation retained; composition not shipped. Readiness gates remain separate."
+    },
+    {
+      "id": "US-002",
+      "title": "Correct skill and eval-quality evidence judgments",
+      "description": "As an operator, I want health advice based on evidence rather than unsupported scores.",
+      "acceptanceCriteria": [
+        "Preserve all five skill investigations and seven eval-quality checks; verify R12\u2013R13 and C10\u2013C15.",
+        "Replace empty-status read-only proof with before/after status and content comparison that detects changes to already dirty files; verify C16.",
+        "Preserve native labels and advisory authority; no automatic mutation or deletion.",
+        "Run all D6 commands and STE on every changed Markdown file.",
+        "Measure full applicable procedure sets and disclose no council consolidation benefit.",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Advisor accepted fallback implementation at a1304db3: repaired-commands.json, repaired-cost-verification.json, independent-rereview.md, local-build-checks.json and final-knowledge-impact.json. C2 baseline limitation retained; composition not shipped. Readiness gates remain separate."
+    },
+    {
+      "id": "US-003",
+      "title": "Accept independent evidence and resolve knowledge impact",
+      "description": "As an operator, I want substantive independent review and source-backed knowledge dispositions.",
+      "acceptanceCriteria": [
+        "Review every R1\u2013R15 and C1\u2013C19 disposition independently at a fixed candidate.",
+        "Record D1\u2013D8 evidence with fallback applicability, exact commands, tested revision, exit status, findings, and disposition.",
+        "Resolve actual knowledge impact from final changed paths and declared dependencies; verify wiki index.",
+        "Verify changelog, append-only proposal records, and public-documentation assessment.",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Advisor accepted fallback implementation at a1304db3: repaired-commands.json, repaired-cost-verification.json, independent-rereview.md, local-build-checks.json and final-knowledge-impact.json. C2 baseline limitation retained; composition not shipped. Readiness gates remain separate."
+    }
+  ]
+}

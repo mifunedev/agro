@@ -1,446 +1,200 @@
 # Eval Lint
 
-Score every eval **probe** and **capability benchmark task** across seven
-deterministic anti-Goodhart failure modes and produce a **KEEP / GROOM / CUT**
-verdict for each. No LLM judgment — verdicts come from file stats, grep counts,
-git history, and the last `/eval` scoreboard only.
+Inspect probes and capability tasks against seven evidence questions. Recommend `KEEP`, `GROOM`, or `CUT` with reasons, not flag counts.
+This route reads and reports only. Never edit, move, delete, or rewrite an eval artifact during the audit.
+Do not add a scoring engine, history collector, or probe for this grooming procedure.
 
-The probe suite is now ~75 probes. Once the harness can improve itself it can
-also *overfit its own probes* — so the probes and capability tasks need the same
-cheap, high-value grooming pass that `/audit skills` gives skills. `/audit eval-quality` is
-that pass. It is a **skill/report, not a probe**: it must not add machinery to
-the very suite it grooms.
+## Contents
 
-**Read-only by default.** This skill only reads and prints. It never edits,
-deletes, or rewrites a probe or capability file. After any run,
-`git status --porcelain .agro/evals/` MUST be empty. Grooming and cutting are
-follow-up edits a human (or a separate task) applies deliberately — never a side
-effect of the lint.
+1. [Select targets and preserve state](#1-select-targets-and-preserve-state)
+2. [Inspect seven questions](#2-inspect-seven-questions)
+3. [Triage observed failures](#3-triage-observed-failures)
+4. [Recommend and report](#4-recommend-and-report)
+5. [Compare before and after](#5-compare-before-and-after)
 
-## Instructions
-
-### 1. Parse target
+## 1. Select targets and preserve state
 
 Arguments received: `$ARGUMENTS`
 
-| Argument | Scope |
-|----------|-------|
-| `all` (default, or empty) | All probes **and** all capability tasks |
-| `probes` | `.agro/evals/probes/*.sh` only |
-| `capability` | `.agro/evals/capability/tasks/CB-*.md` only |
-| `<probe-or-task-id>` | A single probe id (e.g. `skill-paths`) or task id (e.g. `CB-001`) |
+| Argument | Scope under `AUDIT_ROOT` |
+|---|---|
+| Empty or `all` | All probes and capability tasks |
+| `probes` | `.agro/evals/probes/*.sh` |
+| `capability` | `.agro/evals/capability/tasks/CB-*.md` |
+| `<probe-or-task-id>` | The named probe basename or `CB-NNN` task |
 
-### 2. Discover targets
+Discover actual files, including uncommitted files. Apply all seven questions to each selected target; question 7 remains a suite-level advisory.
+Missing targets or inaccessible evidence make coverage incomplete, not clean.
+Use authorized repository evidence and existing authorized CI history only. Do not inspect private session traces.
+If permission prevents a required read, record the gap and withhold the dependent judgment.
 
-Two target classes, discovered from the neutral `.agro/evals/` source tree:
+Before investigation, capture the eval tree with the function in section 5.
+Keep the capture outside the repository and include pre-existing dirty files.
+Do not run `/eval` here: its scoreboard write belongs to a separate operation, not this read-only audit.
 
-- **Probes** — every `.agro/evals/probes/*.sh`. Id = basename without `.sh`.
-- **Capability tasks** — every `.agro/evals/capability/tasks/CB-*.md`. Id = the
-  `CB-NNN` prefix.
+## 2. Inspect seven questions
 
-> Concrete copy-pasteable discovery + scoring driver blocks and a sample matrix
-> live in **§ Scoring procedure** below.
+For each question, record the observation, source location, interpretation, and missing evidence separately.
 
-### 3. Score each target against the seven failure modes
+### 1. Stale
 
-Each target is checked against seven named failure modes. Every check emits a
-**flag** (raised or clear); three checks are **fatal** (a single hit is enough to
-CUT). All signals are deterministic — same inputs, same flags.
+Read each probe's `# source:` header, cited paths, and guarded assertion.
+For capability tasks, check `datasets:` references and the most-recent real-instance pointer.
+Determine whether the lesson, source, and intended contract still apply. Cite current and prior sources for a drift claim.
+Timestamps describe file history; age alone does not prove staleness.
+A moved citation can require grooming without invalidating the assertion.
 
----
+### 2. Duplicate
 
-#### Check 1 — stale
+Use normalized hashes, shared source issues, and overlapping asserted strings only to locate candidates.
+Compare their actual assertions, invariants, input domains, environment guards, and intended scope.
+A duplicate finding requires the same invariant and scope plus an identified retained replacement.
+Shared issue numbers, matching fragments, or normalization collisions alone do not prove redundancy.
+Preserve distinct responsibilities when recommending consolidation.
 
-*The probe/task guards a lesson, issue, or path that no longer exists, or has
-rotted while what it guards moved on.*
+### 3. Always-SKIP-in-CI
 
-Signal: read the probe's `# source:` header (and any bare path in the body) and
-verify each cited file/path still resolves (`[ -e "$path" ]`); a capability
-task's `datasets:` refs and "most-recent real instance" pointer must resolve
-too. Secondary signal: file mtime age via `stat -c %Y` — a very old probe whose
-guarded target changed *more recently* is drifting.
+Read the target's latest `.agro/evals/RESULTS.md` row with its run context.
+One `SKIPPED` row establishes one observed skip, not permanent ineffectiveness. An `exit 2` occurrence proves no execution history.
+Analyze source paths, guards, dependencies, and intended environments before claiming the assertion is unreachable across its intended scope.
+A permanent-skip claim requires that source-path proof; a runnable intended-environment path refutes the claim.
+Existing authorized CI history can support a bounded historical claim. State its time range, environments, and missing runs.
+Do not invent a persistence threshold or history collector. Without decisive evidence, withhold removal advice.
 
-Groomable (refresh the source pointer / re-anchor the assertion), not fatal.
+### 4. Implementation detail rather than user outcome
 
-#### Check 2 — duplicate
+Inspect literal and line-number assertions against the intended public contract.
+Identify whether a harmless refactor would fail the assertion or a real regression could pass it.
+A narrow string can enforce a real interface; its presence alone does not prove a weak instrument.
+Recommend grooming only with the brittle assertion and the intended replacement outcome identified.
 
-*Two targets assert the same invariant — redundant machinery.*
+### 5. No longer held out
 
-Signal: a normalized-body hash collision (strip shebang, comments, and
-whitespace, then hash), an identical `# source:` issue reference shared by two
-probes, or an identical set of asserted paths/strings. An **exact** normalized
-duplicate is **fatal** (one of the pair is dead weight); a near-duplicate is
-groomable (merge or differentiate).
+Apply `.agro/evals/capability/AGENTS.md` to capability tasks and fixtures.
+Trace suspected special-casing from benchmark material into non-eval harness behavior.
+Distinguish ordinary documentation, provenance, and scorer references from tuning the implementation to the holdout.
+Proven contamination can justify advisory `CUT` or redesign. Cite the contaminated assertion and implementation path.
+Never delete a difficult capability task to inflate the suite score.
 
-#### Check 3 — always-SKIP-in-CI
+### 6. Too easy, narrow, or special-cased
 
-*The probe reports `SKIPPED` (exit 2) every run — it never actually asserts
-anything in CI, so it guards nothing.*
+Inspect the assertion and reachable pass/fail paths, not just file length or assertion count.
+A short decisive probe can be valid; a shared issue can support different assertions.
+Check unconditional success, tautologies, and guards that exempt the exact condition the probe claims to test.
+A proven tautology can justify advisory `CUT`; a missing but repairable assertion can justify `GROOM`.
+Name the failing condition the instrument should detect. Do not create a fixture-only scoring oracle that repeats expected verdicts.
 
-Oracle: **cross-reference `.agro/evals/RESULTS.md`** — the per-probe status column
-from the last `/eval` — **not a guess** from `grep 'exit 2'`. A probe whose
-RESULTS.md status is `SKIPPED` (and which has no environment path to ever run)
-is **fatal**: a permanently-skipped probe is a green light that can never turn
-red.
+### 7. Machinery growth without capability movement
 
-#### Check 4 — asserts-implementation-detail-not-user-outcome
+Compare probe count and capability results over the same revision span and comparable task sets.
+Disclose changed coverage, missing results, and differences in environment or rubric.
+Growth with a flat ceiling is a suite-level redirect signal, not a per-target removal rule.
+Report the comparison in the footer; do not infer benefit or ineffectiveness from probe count alone.
 
-*The probe pins a brittle internal implementation detail (an exact private
-variable name, an internal line, a hardcoded impl string) instead of a
-user-visible contract or behavior.*
+## 3. Triage observed failures
 
-Signal: the probe greps into implementation files for narrow literal strings or
-line-number references rather than asserting a documented contract/output. Such
-a probe breaks on harmless refactors and passes on real regressions.
+Before recommending a change, resolve both questions:
 
-Groomable — rewrite to assert the user outcome, not the mechanism.
+1. **Defect or intended policy?** Search probes for both the source path and words describing the behavior.
+   Read matching assertions and the governing contract. A path-only search can miss a behavior guarded through procedure text.
+2. **Local failure or intended-environment failure?** Inspect existing authorized CI evidence for the same target and revision.
+   Record environment and dependency differences. Local red with CI green requires diagnosis, not automatic removal or a declaration that the source is sound.
 
-#### Check 5 — no-longer-held-out
+An unavailable tool or CI record is an evidence gap, not a defect in the audited target.
+If either answer remains material and unknown, withhold the dependent verdict.
 
-*A capability benchmark task (or its fixtures) has been tuned-to / special-cased,
-violating the held-out discipline in `.agro/evals/capability/AGENTS.md`.*
+## 4. Recommend and report
 
-Signal: the task's guarded assertion is now baked into the very file it inspects,
-or the benchmark manifest (a task's fixtures) is
-referenced by non-eval harness code — evidence the harness was special-cased *to*
-the benchmark. Per the capability contract, special-casing the harness to ace a
-task corrupts the instrument. **Fatal** — a no-longer-held-out task measures
-nothing.
+| Label | Evidence-backed interpretation |
+|---|---|
+| `KEEP` | The checked assertion still guards its intended invariant within the inspected scope. State limits; the label does not establish universal validity. |
+| `GROOM` | A cited, repairable defect needs a concrete change: repair provenance, broaden a case, differentiate overlap, or assert the intended outcome. |
+| `CUT` | Evidence supports retirement or redesign, such as proven duplication, unreachable assertion, tautology, or holdout contamination. Preserve responsibility ownership and name any retained replacement. |
 
-#### Check 6 — too-easy/too-narrow/special-cased
+No flag total, fatal-marker shortcut, size threshold, timestamp, or single skip determines these judgments.
+`CUT` is advice only. If required evidence is missing, leave the verdict withheld and record incomplete assessment separately from native labels.
 
-*A probe that trivially passes (a tautology), tests a single hardcoded literal,
-or is special-cased so it can never meaningfully fail.*
+Print `Eval Lint — YYYY-MM-DD`, scope, target counts, verdict counts, and incomplete/withheld counts.
+Use one row per target with class, seven-question evidence, cited reasons, native verdict or withheld judgment, and completeness.
+Order actionable findings first. Include per-target recommendations and the question-7 suite advisory.
+Report the section-5 state comparison separately; a mismatch does not itself prove which process changed the files.
 
-Signal: an unconditional `exit 0`, a single assertion over one hardcoded path, a
-suspiciously tiny body, or a guard that special-cases the exact path it checks.
-A probe that cannot fail is indistinguishable from no probe.
-
-Groomable — broaden the case or add the assertion it is missing.
-
-#### Check 7 — machinery-growth-without-capability-movement
-
-*The meta check: the probe count keeps growing while the capability suite score
-stays flat — the "redirect" signal in `.agro/evals/capability/AGENTS.md`.*
-
-Signal: count probes now vs. an earlier git revision, compared against the
-capability `RESULTS.md` suite-score delta over the same span. Growing floor
-machinery with a flat ceiling means the harness is busy but not *better*. This
-is a **suite-level advisory** annotated in the report footer, not a per-row
-flag.
-
----
-
-### 3a. Triage a red target before you judge it
-
-A red target is not evidence until both questions below are answered. Each is one
-command. Skipping either has produced a wrong verdict in this repo.
-
-**Is the behavior actually a defect, or is it policy?**
-
-Grep the probe suite for the path **and** for the words that describe the
-behavior. Both, because a probe may guard a behavior by asserting on the document
-that specifies it rather than on the code that implements it:
-
-```bash
-grep -rl '<file-under-test>' .agro/evals/probes/
-grep -rl '<behavior-in-words>' .agro/evals/probes/
-```
-
-Read what the matching probes assert. If a probe asserts the behavior you were
-about to call a bug, it is a deliberate contract — changing it turns that probe
-red. This repo carries no code comments, so **intent lives in the probe suite**;
-the probe is the comment.
-
-Catches: proposing a "fix" to `.agro/skills/eval/run.sh`'s `prior = PASS` gate,
-which is deliberate policy enforced by `eval-gate.sh`.
-
-The path grep alone does **not** catch that one, and the reason is the trap worth
-remembering: `eval-gate.sh` asserts against `.agro/skills/spec/references/execute.md`,
-the spec prose, and never mentions `run.sh` at all. `grep -rl 'eval/run.sh'`
-returns five probes, none of them the one that matters. `grep -rl 'delta'` and
-`grep -rl 'green->red'` both return it. When the path grep comes back empty or
-irrelevant, that is not an all-clear — it means the guard is phrased in terms of
-the behavior, so search for the behavior.
-
-**Is it red where it gates, or only here?**
-
-```bash
-gh run view <run-id> --log | grep '<probe-id>'
-```
-
-A probe red locally and green on CI is reporting the environment, not the repo.
-Cause and impact are different questions and a verdict needs both. Catches:
-recommending removal or a deep rewrite for `audit-run-root-contract`, which was
-`PASS` on every CI run while red in the sandbox, because the sandbox's PID 1 does
-not reap zombies and `kill -0` succeeds on a zombie.
-
-When a hedge appears in your own reasoning — "I'd want to verify", "assuming",
-"worth checking" — that clause is a required check, not a caveat. Do not issue a
-verdict that depends on it until it is answered.
-
----
-
-### 4. Compute the verdict — KEEP / GROOM / CUT
-
-Tally each target's raised flags from checks 1–6 (check 7 is a suite-level
-footer note, not a per-row flag). `fatal` checks are **3 (always-SKIP)**,
-**2 (exact duplicate)**, and **5 (no-longer-held-out)**.
-
-| Condition | Verdict |
-|-----------|---------|
-| 0 flags | **KEEP** |
-| 1–2 non-fatal flags | **GROOM** |
-| Any fatal flag, **or** 3+ flags | **CUT** |
-
-- **KEEP** — the target guards a real, still-held invariant/capability and earns
-  its place. No action.
-- **GROOM** — fixable in place: refresh a stale source pointer, rewrite an
-  implementation-detail assertion into a user-outcome one, merge/differentiate a
-  near-duplicate, or broaden a too-narrow case. Keep after grooming.
-- **CUT** — remove or fully redesign: a probe that only ever SKIPs, an exact
-  duplicate, or a benchmark task the harness has been tuned to. **CUT is a
-  recommendation only** — this skill never deletes anything.
-
-### 5. Emit report
-
-Print today's date as `YYYY-MM-DD` (`date +%F`), then a summary line, the
-KEEP/GROOM/CUT matrix (one row per target, worst verdict first), and the
-per-target recommendations. The concrete emit block and a sample matrix are in
-**§ Scoring procedure**. Close with the check-7 suite-level machinery-growth
-footnote.
-
-### 6. Return to the dispatcher
-
-When `AUDIT_RUN_ID` is inherited, return this structured observation instead of
-reporting a run record of your own; the outer dispatcher prints the single record:
+Return the structured observation to the outer dispatcher and suppress a child terminal record:
 
 ```markdown
 ## [Eval Lint] — HH:MM UTC
 - **Result**: OP
-- **Action**: scored N probes + M capability tasks
+- **Action**: inspected N probes + M capability tasks; U assessments incomplete
 - **Keep**: K | **Groom**: G | **Cut**: C
-- **Observation**: [one sentence — top finding]
+- **Observation**: [top finding, evidence gap, or state-comparison failure]
 ```
 
-## Scoring procedure
+## 5. Compare before and after
 
-One self-contained, copy-pasteable driver (the established deterministic lint idiom). It discovers every
-probe + capability task, cross-references the `.agro/evals/RESULTS.md` SKIPPED
-oracle, computes the deterministic checks from § 3, emits the KEEP/GROOM/CUT
-matrix (worst verdict first) with the check-7 suite footer, and closes with the
-`git status --porcelain .agro/evals/` read-only proof. It reads and prints only —
-nothing under `.agro/evals/` is ever written.
+Use this capture function before investigation and after reporting.
+Require Python 3.11 or newer and Git. Missing tools, unreadable files, unauthorized scope, or capture errors block the read-only claim.
+The capture records status, staged content, file hashes, types, symlink targets, and modes, including ignored and untracked eval files.
+Do not follow symlinks or print raw file contents. Concurrent writers require an isolated rerun; never restore their changes.
 
 ```bash
-set -uo pipefail   # NOT -e: grep returning 1 (no match) is normal control flow
+capture_eval_state() {
+  : "${AUDIT_ROOT:?outer audit dispatcher did not export AUDIT_ROOT}"
+  python3 - "$AUDIT_ROOT" "$1" <<'PY'
+import hashlib
+import json
+import os
+import stat
+import subprocess
+import sys
+from pathlib import Path
 
-ROOT="$(git rev-parse --show-toplevel)"
-EVALS="$ROOT/.agro/evals"
-RESULTS="$EVALS/RESULTS.md"
-
-# ── Discover targets ────────────────────────────────────────────────────────
-mapfile -t PROBES < <(ls "$EVALS"/probes/*.sh 2>/dev/null | sort)
-mapfile -t CAPS   < <(ls "$EVALS"/capability/tasks/CB-*.md 2>/dev/null | sort)
-
-# ── Oracle: persistently-SKIPPED probe ids from the last /eval (RESULTS.md) ──
-# The "always-SKIP" verdict is REAL DATA — the status column, never grep 'exit 2'.
-skip_status() {  # $1 = probe id → prints the RESULTS.md status column, trimmed
-  awk -F'|' -v id="$1" '
-    { gsub(/^ +| +$/,"",$2); gsub(/^ +| +$/,"",$5) }
-    $2==id { print $5; exit }' "$RESULTS"
+root = Path(sys.argv[1]).resolve()
+tree = root / ".agro/evals"
+if tree.resolve() != tree or not tree.is_dir():
+    raise SystemExit("eval tree must be a canonical real directory")
+def fail(error):
+    raise error
+paths = [tree]
+for directory, directories, files in os.walk(tree, followlinks=False, onerror=fail):
+    paths.extend(Path(directory) / name for name in directories + files)
+entries = []
+for path in sorted(paths):
+    mode = path.lstat().st_mode
+    if stat.S_ISLNK(mode):
+        value = os.readlink(path)
+    elif stat.S_ISREG(mode):
+        with path.open("rb") as source:
+            value = hashlib.file_digest(source, "sha256").hexdigest()
+    elif stat.S_ISDIR(mode):
+        value = None
+    else:
+        raise SystemExit("unsupported eval file type")
+    entries.append([str(path.relative_to(root)), mode, value])
+def git(*args):
+    return subprocess.check_output(["git", "--no-optional-locks", "-C", str(root), *args]).hex()
+snapshot = {
+    "entries": entries,
+    "status": git("status", "--porcelain=v1", "-z", "--untracked-files=all", "--", ".agro/evals/"),
+    "index": git("ls-files", "--stage", "-z", "--", ".agro/evals/"),
 }
-
-# ── Duplicate oracle: normalized-body hash → colliding probe ids ─────────────
-# Strip shebang/comments/blank/whitespace, then hash. A shared hash = exact twin.
-declare -A HASH2IDS
-for f in "${PROBES[@]}"; do
-  id=$(basename "$f" .sh)
-  h=$(grep -vE '^[[:space:]]*#|^[[:space:]]*$' "$f" | tr -d '[:space:]' | sha256sum | cut -c1-16)
-  HASH2IDS[$h]+=" $id"
-done
-
-verdict() {  # $1 = fatal(≥1) · $2 = non-fatal flag count → KEEP/GROOM/CUT
-  if   [ "$1" -ge 1 ]; then echo CUT
-  elif [ "$2" -ge 3 ]; then echo CUT
-  elif [ "$2" -ge 1 ]; then echo GROOM
-  else echo KEEP; fi
+Path(sys.argv[2]).write_text(json.dumps(snapshot, sort_keys=True) + "\n")
+PY
 }
-
-ROWS=""; KEEP=0; GROOM=0; CUT=0
-
-# ── Score probes (checks 1,2,3,4,6) ─────────────────────────────────────────
-for f in "${PROBES[@]}"; do
-  id=$(basename "$f" .sh); fatal=0; nf=0; flags=""
-
-  # Check 3 — always-SKIP-in-CI (FATAL, RESULTS.md oracle)
-  [ "$(skip_status "$id")" = "SKIPPED" ] && { fatal=1; flags+="3 "; }
-
-  # Check 2 — exact duplicate (FATAL if a normalized twin exists)
-  h=$(grep -vE '^[[:space:]]*#|^[[:space:]]*$' "$f" | tr -d '[:space:]' | sha256sum | cut -c1-16)
-  peers=(${HASH2IDS[$h]}); [ "${#peers[@]}" -ge 2 ] && { fatal=1; flags+="2 "; }
-
-  # Check 1 — stale (GROOM): no `# source:` provenance header to anchor the lesson
-  grep -qE '^#[[:space:]]*source:' "$f" || { nf=$((nf+1)); flags+="1 "; }
-
-  # Check 4 — asserts-implementation-detail (GROOM): a line-number pin into files
-  grep -qE "sed -n '[0-9]+p'|head -n?[0-9]+ .*tail" "$f" && { nf=$((nf+1)); flags+="4 "; }
-
-  # Check 6 — too-easy/too-narrow (GROOM): tiny body (< 8 non-comment lines)
-  sloc=$(grep -vcE '^[[:space:]]*#|^[[:space:]]*$' "$f")
-  [ "$sloc" -lt 8 ] && { nf=$((nf+1)); flags+="6 "; }
-
-  v=$(verdict "$fatal" "$nf")
-  case "$v" in KEEP) KEEP=$((KEEP+1));; GROOM) GROOM=$((GROOM+1));; CUT) CUT=$((CUT+1));; esac
-  ROWS+="$v|probe|$id|${flags:-—}"$'\n'
-done
-
-# ── Score capability tasks (checks 1,5,6) ────────────────────────────────────
-for f in "${CAPS[@]}"; do
-  id=$(grep -m1 '^id:' "$f" | awk '{print $2}')
-  fatal=0; nf=0; flags=""
-
-  slug=$(grep -m1 '^slug:' "$f" | awk '{print $2}')
-  # Check 5 — no-longer-held-out (FATAL): executable harness LOGIC (NOT the eval
-  # scorer, NOT docs) hardcodes the task's slug ⇒ the harness was special-cased.
-  if git -C "$ROOT" grep -lF "$slug" -- '.agro/scripts/' '.agro/hooks/' 2>/dev/null \
-       | grep -qviE 'benchmark-score|README'; then fatal=1; flags+="5 "; fi
-  # Check 1 — stale (GROOM): a declared datasets: DS-NNN ref that no longer
-  # resolves under datasets/**/ (datasets are nested dirs, not bare files).
-  for ds in $(grep -m1 '^datasets:' "$f" | grep -oE 'DS-[0-9]+'); do
-    find "$EVALS/datasets" -maxdepth 2 -name "${ds}*" 2>/dev/null | grep -q . \
-      || { nf=$((nf+1)); flags+="1 "; break; }
-  done
-  # Check 6 — too-narrow (GROOM): missing a scoring rubric / success signal
-  grep -qE '^## Rubric|^## Success signal' "$f" || { nf=$((nf+1)); flags+="6 "; }
-
-  v=$(verdict "$fatal" "$nf")
-  case "$v" in KEEP) KEEP=$((KEEP+1));; GROOM) GROOM=$((GROOM+1));; CUT) CUT=$((CUT+1));; esac
-  ROWS+="$v|task|$id|${flags:-—}"$'\n'
-done
-
-# ── Emit matrix (worst verdict first) ────────────────────────────────────────
-echo "## Eval Lint — $(date +%F)"
-echo
-echo "### Summary"
-echo "${#PROBES[@]} probes + ${#CAPS[@]} capability tasks scored | KEEP $KEEP | GROOM $GROOM | CUT $CUT"
-echo
-echo "| Target | Class | Flags | Verdict |"
-echo "|--------|-------|-------|---------|"
-printf '%s' "$ROWS" | awk -F'|' '
-  BEGIN{ord["CUT"]=0; ord["GROOM"]=1; ord["KEEP"]=2}
-  { print ord[$1]"\t"$0 }' | sort -k1,1n | cut -f2- | while IFS='|' read -r v cls id fl; do
-    printf '| %-42s | %-5s | %-6s | %-5s |\n' "$id" "$cls" "$fl" "$v"
-  done
-
-# ── Check 7 — machinery-growth footer (suite-level advisory, not a per-row flag)
-SUITE=$(grep -oE 'suite score = [^·]*' "$EVALS/capability/RESULTS.md" | head -1)
-echo
-echo "_Check 7 (suite advisory): ${#PROBES[@]} probes now; capability ${SUITE:-score n/a}."
-echo "Growing probe count against a flat ceiling ⇒ machinery-without-capability; compare"
-echo "\`git -C \"\$ROOT\" grep -c '' -- .agro/evals/probes | wc -l\` at an earlier revision._"
-
-# ── Read-only proof (this skill only reads + prints) ─────────────────────────
-echo
-if [ -z "$(git -C "$ROOT" status --porcelain .agro/evals/)" ]; then
-  echo "read-only proof: git status --porcelain .agro/evals/ is EMPTY ✓"
-else
-  echo "read-only proof: FAILED — the lint mutated .agro/evals/ (bug); investigate:"
-  git -C "$ROOT" status --porcelain .agro/evals/
-fi
+umask 077
+state=$(mktemp -d /tmp/eval-audit-state.XXXXXX) || exit "$?"
+capture_eval_state "$state/before.json" || exit "$?"
 ```
 
-### Sample matrix
+If the first capture fails, stop before investigation. Otherwise retain `$state` and the function in the same shell context.
+After the read-only investigation, run:
 
-Real output against the current tree (77 targets: 75 probes + 2 `CB-*` tasks).
-Only the two probes RESULTS.md records as persistently
-`SKIPPED` fire the fatal check-3 CUT; every other target is a clean KEEP:
-
-```
-## Eval Lint — 2026-07-03
-
-### Summary
-75 probes + 2 capability tasks scored | KEEP 75 | GROOM 0 | CUT 2
-
-| Target | Class | Flags | Verdict |
-|--------|-------|-------|---------|
-| autopilot-preflight-gate                   | probe | 3      | CUT   |
-| next-dev-prod                              | probe | 3      | CUT   |
-| spec-single-owner                          | probe | —      | KEEP  |
-| … (73 more probes) …                       | probe | —      | KEEP  |
-| CB-001                                     | task  | —      | KEEP  |
-| CB-002                                     | task  | —      | KEEP  |
-
-_Check 7 (suite advisory): 75 probes now; capability suite score = mean of task scores…_
-
-read-only proof: git status --porcelain .agro/evals/ is EMPTY ✓
+```bash
+capture_eval_state "$state/after.json" || exit "$?"
+cmp -- "$state/before.json" "$state/after.json" || exit "$?"
 ```
 
-Both `SKIPPED` rows are the check-3 oracle finding — `autopilot-preflight-gate`
-and `next-dev-prod` are the only probes whose `.agro/evals/RESULTS.md` status is
-`SKIPPED`, so they are the only fatal CUTs. Re-running the driver twice yields
-byte-identical verdicts (deterministic), and `.agro/evals/` stays unmodified.
-
-## Guidelines
-
-- Scoring is fully deterministic — run the same commands twice and get the same
-  verdicts. Do not adjust a verdict on content quality or subjective judgment.
-- The always-SKIP oracle is **real data**: read the `status` column of
-  `.agro/evals/RESULTS.md` (written by the last `/eval`), never a guess from
-  `grep 'exit 2'`. A probe can legitimately `exit 2` in *this* environment yet
-  assert normally elsewhere; only a probe RESULTS.md records as persistently
-  `SKIPPED` is a true always-SKIP finding.
-- **Read-only, always.** Never edit, move, or delete a probe or capability file.
-  If a run leaves `git status --porcelain .agro/evals/` non-empty, the run is a
-  bug — it mutated state it was only allowed to read.
-- **CUT is advisory.** A `CUT` verdict is a recommendation for a human/follow-up
-  task, mirroring `/audit skills`'s `DELETE`. Deleting a hard capability task to
-  inflate the suite score is the cardinal sin the capability README forbids —
-  this skill flags, it does not act.
-- Do not Goodhart the linter itself: `/audit eval-quality` is markdown-driven and ships
-  no probe of its own. It must **not** be registered under `.agro/evals/probes/`
-  or `link-providers.sh` — adding a probe for it grows the machinery it exists
-  to groom.
-- For the single-target mode (`$ARGUMENTS` = a probe or task id), run all seven
-  checks and emit the same matrix for just that target, plus its recommendation.
-
-## Reference
-
-### Target classes
-
-| Class | Root | Id |
-|-------|------|----|
-| Probe | `.agro/evals/probes/*.sh` | basename without `.sh` |
-| Capability task | `.agro/evals/capability/tasks/CB-*.md` | `CB-NNN` prefix |
-
-### The seven failure modes
-
-| # | Failure mode | Fatal? | Fix |
-|---|--------------|--------|-----|
-| 1 | stale | no | refresh source pointer / re-anchor assertion |
-| 2 | duplicate | exact dup → yes | merge or differentiate |
-| 3 | always-SKIP-in-CI | yes | run it or remove it |
-| 4 | asserts-implementation-detail-not-user-outcome | no | assert the user outcome |
-| 5 | no-longer-held-out | yes | restore held-out discipline or retire |
-| 6 | too-easy/too-narrow/special-cased | no | broaden the case |
-| 7 | machinery-growth-without-capability-movement | suite footer | redirect, don't add machinery |
-
-### Probe status oracle (from `.agro/evals/RESULTS.md`)
-
-Exit-code semantics written by `/eval`: `0=PASS`, `1=REGRESSION`, `2=SKIPPED`,
-`124=TIMEOUT`, other=`ERROR`. `SKIPPED` does not count toward pass-rate — and a
-*persistently* `SKIPPED` probe is a check-3 CUT candidate.
-
-### Verdict thresholds
-
-| Flags | Verdict | Action |
-|-------|---------|--------|
-| 0 | KEEP | Earns its place — no action |
-| 1–2 non-fatal | GROOM | Fixable in place — refresh/rewrite/broaden/merge |
-| Any fatal, or 3+ | CUT | Remove or redesign (advisory — never auto-applied) |
-
-### Related skills
-
-- `/audit skills` — the sibling grooming pass this skill mirrors (skills ↔ evals).
-- `/eval` — writes the `.agro/evals/RESULTS.md` status oracle check 3 reads.
-- `/benchmark` — consumes the capability ceiling check 7 watches for movement.
+Require both captures and `cmp` to exit 0 before claiming unchanged state.
+A pre-existing dirty file passes when its content and status stay unchanged.
+A mutation to that same file fails even if its porcelain status remains identical.
+On mismatch or error, report the gap and retain the captures for diagnosis. Do not blame or overwrite operator changes.
+After reporting a successful comparison, remove only this invocation's temporary captures.

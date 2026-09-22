@@ -1,0 +1,23 @@
+{
+  "commit": "d1ac804fbca84cfde2369e3f623b890818fb30e7",
+  "runnerExit": 0,
+  "ranAt": "2026-09-20T19:26:56.440066+00:00",
+  "newRegressions": [],
+  "preExistingReds": [
+    "next-dev-prod",
+    "skills-vendored"
+  ],
+  "skipped": [
+    "registry-portability",
+    "sandbox-boot-advisory-recovery",
+    "wiki-pattern-persistence"
+  ],
+  "scoreboardSha256": "67303dca6c996a7c0490882da6ed1dc374c37ed1e1467fe9d564ac4a2b3422f5",
+  "originalBaseStatuses": {
+    "next-dev-prod": "SKIPPED",
+    "skills-vendored": "REGRESSION"
+  },
+  "nonGatingTransitions": {
+    "next-dev-prod": "First cycle SKIPPED->REGRESSION; final cycle REGRESSION->REGRESSION; no green-to-red."
+  }
+}
