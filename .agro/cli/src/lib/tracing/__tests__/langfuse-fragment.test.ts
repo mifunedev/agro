@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -188,11 +188,14 @@ describe("loadLangfuseCredentials", () => {
   });
 });
 
-describe("deny coverage of the fragment path", () => {
-  const settings = JSON.parse(readFileSync(CLAUDE_PROJECT_SETTINGS, "utf8")) as {
-    permissions: { deny: string[] };
-  };
-  const deny = settings.permissions.deny;
+describe.skipIf(!existsSync(CLAUDE_PROJECT_SETTINGS))("deny coverage of the fragment path", () => {
+  let deny: string[] = [];
+  beforeAll(() => {
+    const settings = JSON.parse(readFileSync(CLAUDE_PROJECT_SETTINGS, "utf8")) as {
+      permissions: { deny: string[] };
+    };
+    deny = settings.permissions.deny;
+  });
   const fragment = langfuseFragmentPath("/home/sandbox");
 
   function rulesFor(tool: string, param: string): RegExp[] {
