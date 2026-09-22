@@ -38,7 +38,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Removed
 
-- Remove the superseded `pi-langfuse` fork installer and the `agro.json` `langfuse` section; the official Langfuse plugins read `LANGFUSE_BASE_URL` from the environment ([#1127](https://github.com/mifunedev/agro/issues/1127)).
+- Remove the superseded `pi-langfuse` fork installer; the official Langfuse plugins read `LANGFUSE_BASE_URL` from the environment ([#1127](https://github.com/mifunedev/agro/issues/1127)).
 - Remove the Agent GitHub issue template and the `agent` issue/branch prefix ([#1092](https://github.com/mifunedev/agro/issues/1092)).
 - Remove the five `CLAUDE.md` symlinks. A present `CLAUDE.md` suppresses the `AGENTS.md` that Claude Code now reads directly ([#1082](https://github.com/mifunedev/agro/issues/1082)).
 - Remove V2MOM and its bundled reference from the strategy workflow ([#1076](https://github.com/mifunedev/agro/issues/1076)).
