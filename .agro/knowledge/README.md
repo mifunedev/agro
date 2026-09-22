@@ -17,6 +17,9 @@ its [schema](../skills/wiki/references/schema.md) owns entry formats.
 | Slug | Title | Tags | Updated |
 | --- | --- | --- | --- |
 | sandbox-dependency-installs | Sandbox Dependency Installs | [sandbox, devcontainer, pnpm, dependencies, boot] | 2026-09-22 |
+| pattern-wiki-undeclared-body-citation | A path cited in a page body but absent from sources: is invisible to the impact graph | [wiki, knowledge, freshness, sources, citations, impact-graph] | 2026-09-22 |
+| pattern-evals-exemption-list-unearned | An exemption list entry that asserts nothing is a free pass for every later entry | [evals, probes, allowlist, exemption, goodhart, boundary, oracles] | 2026-09-22 |
+| pattern-delegate-reasoned-reported-as-executed | A worker report that does not separate executed from reasoned reads uniformly confident | [delegate, workers, evidence, acceptance, verification, honesty] | 2026-09-22 |
 | oh-cli-portable-lifecycle | oh CLI Portable Lifecycle | [cli, oh, agro, lifecycle, standalone, registry, sandbox, workspace, host-install, remote-fetch, execution-target, update, self-upgrade, npm, install-kind, recovery] | 2026-09-22 |
 | recursive-language-models | Recursive Language Models | [rlm, context-as-environment, weighted-trajectories, agent-harness, llm-agents, self-consistency, retired-experiment] | 2026-09-21 |
 | compose-env-boundary | Compose Environment Boundary | [compose, devcontainer, oh-json, cli, entrypoint, boundary, installs, sandbox, registry, tracing, langfuse, secrets] | 2026-09-21 |
