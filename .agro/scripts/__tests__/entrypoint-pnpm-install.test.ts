@@ -22,8 +22,8 @@ describe("devcontainer entrypoint pnpm install", () => {
     expect(compose).not.toContain("SKIP_PNPM_INSTALL");
   });
 
-  it("uses an Open Harness marker stored under node_modules", () => {
-    expect(entrypoint).toContain('PNPM_INSTALL_MARKER_FILENAME=".openharness-root-pnpm-manifest.sha256"');
+  it("uses an AGRO marker stored under node_modules", () => {
+    expect(entrypoint).toContain('PNPM_INSTALL_MARKER_FILENAME=".agro-root-pnpm-manifest.sha256"');
     expect(entrypoint).toContain('PNPM_INSTALL_MARKER="$HARNESS/node_modules/$PNPM_INSTALL_MARKER_FILENAME"');
   });
 

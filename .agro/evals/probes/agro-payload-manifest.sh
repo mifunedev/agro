@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tier: A
-# source: issue #531 follow-on (.oh payload manifest — oh update ships a declared allowlist)
-# desc: oh update overlays only manifest-declared .oh payload (root docs and patches excluded); static guard that the manifest + matcher + integration are wired.
+# source: issue #531 follow-on (.agro payload manifest — agro vendor ships a declared allowlist)
+# desc: agro vendor overlays only manifest-declared .agro payload (root docs and patches excluded); static guard that the manifest + matcher + integration are wired.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

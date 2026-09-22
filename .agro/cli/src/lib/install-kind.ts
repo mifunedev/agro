@@ -1,6 +1,6 @@
 import { realpathSync } from "node:fs";
 
-export const IMAGE_ROOT = "/opt/oh/";
+export const IMAGE_ROOT = "/opt/agro/";
 
 export function toPosix(path: string): string {
   return path.replace(/\\/g, "/");

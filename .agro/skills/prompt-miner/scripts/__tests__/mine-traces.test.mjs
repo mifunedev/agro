@@ -256,7 +256,7 @@ test("--no-git stubs the ground-truth bonus to 0 even when a PR URL is present",
     {
       kind: "assistant",
       stopReason: "end_turn",
-      text: "Opened https://github.com/mifunedev/openharness/pull/7",
+      text: "Opened https://github.com/mifunedev/agro/pull/7",
       ts: "2026-01-01T00:01:00Z",
     },
   ];

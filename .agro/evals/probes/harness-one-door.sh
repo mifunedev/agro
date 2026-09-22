@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # tier: A
-# source: #948 — `oh harness install` / `oh tool install` are the only door; boot
+# source: #948 — `agro harness install` / `agro tool install` are the only door; boot
 #         installs nothing, so no default set, no install.* keys, no persist
-#         flags, no provisioner, and no OH_PROVISION_DEFAULTS off-ramp survive
+#         flags, no provisioner, and no AGRO_PROVISION_DEFAULTS off-ramp survive
 # desc: neither catalog declares kind:"default", harnessKey or toolKey; no boot
-#       provisioner, install.* config key, OH_PROVISION_DEFAULTS gate or
+#       provisioner, install.* config key, AGRO_PROVISION_DEFAULTS gate or
 #       provision-failed marker remains under .devcontainer/, .agro/scripts/ or
 #       .github/; catalog.ts declares SANDBOX_HARNESS_PREFIX and it equals the
 #       Dockerfile's NPM_USER_PREFIX, which is what lets HARNESS_PREFIX_TOKEN
@@ -16,7 +16,7 @@ set -euo pipefail
 ROOT="${HARNESS_ONE_DOOR_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
 HARNESSES="$ROOT/.agro/cli/src/lib/harnesses/catalog.ts"
 TOOLS="$ROOT/.agro/cli/src/lib/tools/catalog.ts"
-CONFIG="$ROOT/.agro/cli/src/lib/oh-config.ts"
+CONFIG="$ROOT/.agro/cli/src/lib/agro-config.ts"
 DOCKERFILE="$ROOT/.devcontainer/Dockerfile"
 
 for f in "$HARNESSES" "$TOOLS" "$CONFIG" "$DOCKERFILE"; do
@@ -60,19 +60,19 @@ done
 
 PROVISIONER="$ROOT/.agro/scripts/provision-defaults.sh"
 if [[ -e $PROVISIONER ]]; then
-  missing+=(".agro/scripts/provision-defaults.sh exists — the boot path installs nothing; \`oh harness install\` / \`oh tool install\` are the only door")
+  missing+=(".agro/scripts/provision-defaults.sh exists — the boot path installs nothing; \`agro harness install\` / \`agro tool install\` are the only door")
 fi
 
 config_text=$(cat "$CONFIG")
 if grep -qE '(^|[^A-Za-z])install[.:]|"install"' <<<"$config_text"; then
-  missing+=(".agro/cli/src/lib/oh-config.ts: carries an install key — a second place that decides what gets installed")
+  missing+=(".agro/cli/src/lib/agro-config.ts: carries an install key — a second place that decides what gets installed")
 fi
 
 for dir in .devcontainer .agro/scripts .github; do
   [[ -d "$ROOT/$dir" ]] || continue
-  hits=$(grep -rlE 'OH_PROVISION_DEFAULTS|provision-failed' "$ROOT/$dir" 2>/dev/null || true)
+  hits=$(grep -rlE 'AGRO_PROVISION_DEFAULTS|provision-failed' "$ROOT/$dir" 2>/dev/null || true)
   if [[ -n $hits ]]; then
-    missing+=("$dir: OH_PROVISION_DEFAULTS or the provision-failed marker is back in: $(tr '\n' ' ' <<<"${hits//$ROOT\//}")")
+    missing+=("$dir: AGRO_PROVISION_DEFAULTS or the provision-failed marker is back in: $(tr '\n' ' ' <<<"${hits//$ROOT\//}")")
   fi
 done
 

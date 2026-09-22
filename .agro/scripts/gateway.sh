@@ -2,7 +2,7 @@
 #   hermes  client-slack-hermes  `hermes gateway run` — Hermes' native messaging
 set -u
 
-HARNESS="${HARNESS:-${OH_PROJECT_ROOT:-/home/sandbox/harness}}"
+HARNESS="${HARNESS:-${AGRO_PROJECT_ROOT:-/home/sandbox/harness}}"
 SLACK_ENV="$HARNESS/.devcontainer/.env"
 FORK_PIN="github:ryaneggz/pi-messenger-bridge#c8b96e9d0fb69611c4e67ae298d1d10d83792a26"
 
@@ -122,7 +122,7 @@ start_pi() {
   local session="client-slack-pi" log="/tmp/client-slack-pi.log"
   local bridge_dir="$HARNESS/.pi/bridge"
   local bridge_entry="$bridge_dir/node_modules/pi-messenger-bridge/dist/index.js"
-  local bridge_pin_file="$bridge_dir/.openharness-pin"
+  local bridge_pin_file="$bridge_dir/.agro-pin"
   local recovery_entry="$HARNESS/.pi/bridge-recovery/index.ts"
 
   command -v pi >/dev/null 2>&1 \

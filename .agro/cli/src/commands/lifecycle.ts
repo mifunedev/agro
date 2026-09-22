@@ -16,9 +16,9 @@ import {
   type RunResult,
 } from "../lib/execution/runner.js";
 import { renderComposeEnv } from "../lib/config-render.js";
-import { getOhConfigValue, ohConfigPath, readOhConfig } from "../lib/oh-config.js";
+import { getAgroConfigValue, agroConfigPath, readAgroConfig } from "../lib/agro-config.js";
 import { resolveProjectRoot } from "../lib/project.js";
-import { DEFAULT_SANDBOX_NAME, aliasedEnvPair, aliasedEnvValue } from "../lib/compat.js";
+import { DEFAULT_SANDBOX_NAME, agroEnvPair, agroEnvValue } from "../lib/layout.js";
 import { materialize, registryRoot, resolveSandboxRoot } from "../lib/registry.js";
 import { setEnvValue } from "../lib/env-file.js";
 import * as prompt from "../lib/prompt.js";
@@ -50,7 +50,7 @@ function composeEnvDir(): string {
 
 function writeComposeEnv(root: string, dir: string): string {
   const file = join(dir, "compose.env");
-  writeFileSync(file, renderComposeEnv(readOhConfig(ohConfigPath(root))), {
+  writeFileSync(file, renderComposeEnv(readAgroConfig(agroConfigPath(root))), {
     mode: 0o600,
     encoding: "utf8",
   });
@@ -58,7 +58,7 @@ function writeComposeEnv(root: string, dir: string): string {
 }
 
 export function withComposeEnvFile<T>(root: string, fn: (extraArgs: string[]) => T): T {
-  if (!existsSync(ohConfigPath(root))) return fn([]);
+  if (!existsSync(agroConfigPath(root))) return fn([]);
   const dir = composeEnvDir();
   try {
     return fn(["--extra-env-file", writeComposeEnv(root, dir)]);
@@ -71,7 +71,7 @@ export async function withComposeEnvFileAsync<T>(
   root: string,
   fn: (extraArgs: string[]) => Promise<T>,
 ): Promise<T> {
-  if (!existsSync(ohConfigPath(root))) return await fn([]);
+  if (!existsSync(agroConfigPath(root))) return await fn([]);
   const dir = composeEnvDir();
   try {
     return await fn(["--extra-env-file", writeComposeEnv(root, dir)]);
@@ -83,7 +83,7 @@ export async function withComposeEnvFileAsync<T>(
 export interface SandboxOptions extends LifecycleOptions {
   /** `--image` was passed (run the prebuilt image; implies `--no-build`). */
   image?: boolean;
-  /** Explicit ref from `--image=<ref>`; when set it wins over `oh.json`. */
+  /** Explicit ref from `--image=<ref>`; when set it wins over `agro.json`. */
   imageRef?: string;
   /** `--no-build` was passed (suppress the local build, reuse an existing image). */
   noBuild?: boolean;
@@ -93,7 +93,7 @@ export interface SandboxOptions extends LifecycleOptions {
 
 function sandboxRoot(opts: SandboxTargetOptions): string {
   const root = resolveSandboxRoot({ name: opts.name, cwd: opts.cwd });
-  if (existsSync(ohConfigPath(root))) {
+  if (existsSync(agroConfigPath(root))) {
     const repo = configuredString(root, "repo");
     materialize(root, repo === undefined ? {} : { repo });
   }
@@ -105,10 +105,10 @@ export const DEFAULT_CONTAINER_NAME = DEFAULT_SANDBOX_NAME;
 export const DEFAULT_SANDBOX_IMAGE = "ghcr.io/mifunedev/agro:latest";
 
 function configuredField(root: string, path: string): unknown {
-  const file = ohConfigPath(root);
+  const file = agroConfigPath(root);
   if (!existsSync(file)) return undefined;
   try {
-    return getOhConfigValue(readOhConfig(file), path);
+    return getAgroConfigValue(readAgroConfig(file), path);
   } catch {
     return undefined;
   }
@@ -152,7 +152,7 @@ async function maybePromptDockerSocket(root: string, io: LifecycleIO, bin: strin
 }
 
 export function configuredImage(root: string): string | undefined {
-  return aliasedEnvValue(process.env, "SANDBOX_IMAGE") ?? configuredString(root, "image.ref");
+  return agroEnvValue(process.env, "SANDBOX_IMAGE") ?? configuredString(root, "image.ref");
 }
 
 export async function runSandbox(opts: SandboxOptions, io: LifecycleIO): Promise<number> {
@@ -167,7 +167,7 @@ export async function runSandbox(opts: SandboxOptions, io: LifecycleIO): Promise
     ? (opts.imageRef ?? configuredImage(root) ?? DEFAULT_SANDBOX_IMAGE)
     : undefined;
   const env: NodeJS.ProcessEnv | undefined =
-    imageRef === undefined ? undefined : { ...process.env, ...aliasedEnvPair("SANDBOX_IMAGE", imageRef) };
+    imageRef === undefined ? undefined : { ...process.env, ...agroEnvPair("SANDBOX_IMAGE", imageRef) };
 
   if (opts.printArgv === true) {
     const script = requireLifecycleScript(root, "docker-compose.sh");
@@ -335,7 +335,7 @@ export async function runDestroy(opts: DestroyOptions, io: LifecycleIO): Promise
       return 1;
     }
 
-    const homePath = readOhConfig(ohConfigPath(root)).storage?.homePath;
+    const homePath = readAgroConfig(agroConfigPath(root)).storage?.homePath;
     io.stdout(`\n${prompt.bold(`${opts.bin} destroy — ${name}`)}\n\n`);
 
     if (homePath !== undefined && homePath !== "") {
@@ -381,7 +381,7 @@ export function runGateway(args: string[], opts: LifecycleOptions): number {
   const script = requireLifecycleScript(root, "gateway.sh");
   const r = run("bash", [script, ...args], {
     stdio: "inherit",
-    env: { ...process.env, ...aliasedEnvPair("PROJECT_ROOT", root) },
+    env: { ...process.env, ...agroEnvPair("PROJECT_ROOT", root) },
   });
   assertSpawned(r, `bash ${script}`);
   return r.status ?? 1;

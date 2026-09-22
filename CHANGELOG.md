@@ -26,6 +26,13 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 
+- Retire the Open Harness compatibility layer: `.agro/`, `agro.json`, `AGRO_*`, `~/.agro` and `/opt/agro-seed` are the only spellings ([#1061](https://github.com/mifunedev/agro/issues/1061)).
+- Split the overloaded `update` verb: `agro self-upgrade` (alias `agro update`) upgrades the CLI, and the new `agro vendor` writes the control plane into a checkout ([#1061](https://github.com/mifunedev/agro/issues/1061)).
+- Rename `compat.ts` to `layout.ts`, `oh-config.ts` to `agro-config.ts`, `compat.sh` to `paths.sh`, `oh-path` to `agro-path`, and the `oh-asset:` scheme to `agro-asset:` ([#1061](https://github.com/mifunedev/agro/issues/1061)).
+- Rename the `openharness-*.service` units to `agro-*.service`, and `openharness-env-generator.sh` to `agro-env-generator.sh` ([#1061](https://github.com/mifunedev/agro/issues/1061)).
+- Replace `docs/agro-compatibility.md` with a cutover record and a migration procedure ([#1061](https://github.com/mifunedev/agro/issues/1061)).
+- Rename `docs/oh-directory-layout.md` to `docs/agro-directory-layout.md` ([#1061](https://github.com/mifunedev/agro/issues/1061)).
+- Repoint the sandbox upgrade smoke at the `.agro` layout; the legacy-volume upgrade path it guarded is retired ([#1061](https://github.com/mifunedev/agro/issues/1061)).
 - Rewrite the Langfuse guide around the official Claude Code, Pi, and Codex plugins, and document the environment and trace-tag model ([#1125](https://github.com/mifunedev/agro/issues/1125)).
 - Separate scoped directory contracts from reference documentation and retire the `harness-context` skill ([#1112](https://github.com/mifunedev/agro/issues/1112)).
 - Drop no-op lint and format CI steps, delete path filters that name missing trees, and rebuild the sandbox image only when boot or image inputs change ([#1092](https://github.com/mifunedev/agro/issues/1092)).
@@ -38,6 +45,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Removed
 
+- Remove the `@mifune/openharness` shim and the `oh` executable, the `dist/oh.js` artifact, and `get-oh.sh` ([#1061](https://github.com/mifunedev/agro/issues/1061)).
+- Remove the dual-generation resolver, `agro migrate`, `.agro/compat-inventory.json`, and the split-state-home refusal ([#1061](https://github.com/mifunedev/agro/issues/1061)).
 - Remove the superseded `pi-langfuse` fork installer; the official Langfuse plugins read `LANGFUSE_BASE_URL` from the environment ([#1127](https://github.com/mifunedev/agro/issues/1127)).
 - Remove the Agent GitHub issue template and the `agent` issue/branch prefix ([#1092](https://github.com/mifunedev/agro/issues/1092)).
 - Remove the five `CLAUDE.md` symlinks. A present `CLAUDE.md` suppresses the `AGENTS.md` that Claude Code now reads directly ([#1082](https://github.com/mifunedev/agro/issues/1082)).
@@ -547,6 +556,7 @@ do not need that recovery.
 - Make the `prompt-miner` engine run through the `.claude/skills` symlink with a symlink-safe entrypoint guard ([#692](https://github.com/mifunedev/openharness/issues/692), [#663](https://github.com/mifunedev/openharness/issues/663)).
 - Index `.oh/docs/rfcs/rfc-runtime-support.md` from `.oh/docs/README.md` and repoint the dangling `.claude/rules/` bullet in the `critic` and `implementer` agents ([#686](https://github.com/mifunedev/openharness/issues/686)).
 - Declare `/help`, `/trusted`, `/channels`, `/enable`, `/disable`, `/revoke`, and `/toggletools` in `.pi/install/slack-manifest.json` ([#354](https://github.com/ryaneggz/openharness/issues/354)).
+
 ### Removed
 ### Deprecated
 ### Security

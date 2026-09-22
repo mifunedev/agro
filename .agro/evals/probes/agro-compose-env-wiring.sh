@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # tier: A
-# source: issue #880 (oh as the only front door — agro.json is the non-secret config surface)
-# desc: guards the two-file compose env wiring — docker-compose.sh puts --extra-env-file FIRST and the root dotenv second (secrets win), still runs standalone off the dotenv alone, and resolves composeOverrides[] agro.json -> .agro/config.json -> config.json without requiring jq; `oh sandbox install --print-argv` renders agro.json into a 0600 temp file outside both the repo and the registry and leaves neither the file, its mkdtemp directory, the preview root, nor a registry entry behind
+# source: issue #880 (agro as the only front door — agro.json is the non-secret config surface)
+# desc: guards the two-file compose env wiring — docker-compose.sh puts --extra-env-file FIRST and the root dotenv second (secrets win), still runs standalone off the dotenv alone, and resolves composeOverrides[] agro.json -> .agro/config.json -> config.json without requiring jq; `agro sandbox install --print-argv` renders agro.json into a 0600 temp file outside both the repo and the registry and leaves neither the file, its mkdtemp directory, the preview root, nor a registry entry behind
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 WRAPPER="$ROOT/.agro/scripts/docker-compose.sh"
-COMPAT="$ROOT/.agro/scripts/compat.sh"
+COMPAT="$ROOT/.agro/scripts/paths.sh"
 LIFECYCLE="$ROOT/.agro/cli/src/commands/lifecycle.ts"
 RENDER_SRC="$ROOT/.agro/cli/src/lib/config-render.ts"
-DIST="$ROOT/.agro/cli/dist/oh.js"
+DIST="$ROOT/.agro/cli/dist/agro.js"
 DOTENV_NAME=".env"
 
 if [[ ! -f "$WRAPPER" || ! -f "$LIFECYCLE" || ! -f "$RENDER_SRC" ]]; then
@@ -25,7 +25,7 @@ make_repo() {
   local dir="$1"
   mkdir -p "$dir/.devcontainer" "$dir/.agro/scripts"
   cp "$WRAPPER" "$dir/.agro/scripts/docker-compose.sh"
-  cp "$COMPAT" "$dir/.agro/scripts/compat.sh"
+  cp "$COMPAT" "$dir/.agro/scripts/paths.sh"
   printf 'services: {}\n' > "$dir/.devcontainer/docker-compose.yml"
   printf '{ "version": 1, "name": "probe" }\n' > "$dir/agro.json"
   printf 'GH_TOKEN=probe\n' > "$dir/$DOTENV_NAME"
@@ -52,7 +52,7 @@ if [[ "${#solo[@]}" -ne 1 || "${solo[0]}" != "$fixture/$DOTENV_NAME" ]]; then
   fails+=("docker-compose.sh run directly must fall back to the root dotenv alone (saw ${solo[*]:-none})")
 fi
 grep -Fq 'agro.json' "$tmp/note.txt" \
-  || fails+=("docker-compose.sh run directly must print a note that non-secret config comes from agro.json via \`oh\`")
+  || fails+=("docker-compose.sh run directly must print a note that non-secret config comes from agro.json via \`agro\`")
 
 overrides="$tmp/overrides"
 make_repo "$overrides"
@@ -99,12 +99,12 @@ report() {
 
 if [[ ! -f "$DIST" ]]; then
   report
-  echo "SKIPPED: .agro/cli/dist/oh.js is not built — cannot exercise \`oh sandbox install docker --print-argv\` end to end" >&2
+  echo "SKIPPED: .agro/cli/dist/agro.js is not built — cannot exercise \`agro sandbox install docker --print-argv\` end to end" >&2
   exit 2
 fi
 if ! command -v node >/dev/null 2>&1; then
   report
-  echo "SKIPPED: node is not on PATH — cannot exercise \`oh sandbox install docker --print-argv\` end to end" >&2
+  echo "SKIPPED: node is not on PATH — cannot exercise \`agro sandbox install docker --print-argv\` end to end" >&2
   exit 2
 fi
 
@@ -113,17 +113,17 @@ e2ehome="$tmp/e2e-home"
 make_repo "$e2e"
 mkdir -p "$e2ehome"
 set +e
-out="$(cd "$e2e" && env -u SANDBOX_NAME -u SANDBOX_SSH OH_HOME="$e2ehome" OH_EXECUTION_TARGET=docker-compose \
+out="$(cd "$e2e" && env -u SANDBOX_NAME -u SANDBOX_SSH AGRO_HOME="$e2ehome" AGRO_EXECUTION_TARGET=docker-compose \
   node "$DIST" sandbox install docker --yes --print-argv </dev/null 2>"$tmp/e2e.err")"
 status=$?
 set -e
 
 if (( status != 0 )); then
-  fails+=("\`oh sandbox install docker --print-argv\` exited $status: $(tr '\n' ' ' < "$tmp/e2e.err")")
+  fails+=("\`agro sandbox install docker --print-argv\` exited $status: $(tr '\n' ' ' < "$tmp/e2e.err")")
 else
   mapfile -t e2efiles < <(env_files "$out")
   if [[ "${#e2efiles[@]}" -ne 1 ]]; then
-    fails+=("\`oh sandbox install docker --print-argv\` must emit exactly one --env-file — the rendered agro.json (saw ${#e2efiles[@]}: ${e2efiles[*]:-none})")
+    fails+=("\`agro sandbox install docker --print-argv\` must emit exactly one --env-file — the rendered agro.json (saw ${#e2efiles[@]}: ${e2efiles[*]:-none})")
   else
     rendered="${e2efiles[0]}"
     if [[ "$rendered" == "$e2e"/* || "$rendered" == "$e2ehome"/* ]]; then
@@ -141,11 +141,11 @@ else
     fails+=("the preview compose file must not survive --print-argv (still present at $preview)")
   fi
   if [[ -n "$(find "$e2ehome" -mindepth 1 -print -quit)" ]]; then
-    fails+=("--print-argv registered a sandbox under OH_HOME — a preview must write nothing")
+    fails+=("--print-argv registered a sandbox under AGRO_HOME — a preview must write nothing")
   fi
 fi
 
 report
 
-echo "PASS: docker-compose.sh orders --extra-env-file before the root dotenv so secrets win, still runs standalone off the dotenv with a note, and resolves composeOverrides[] agro.json -> .agro/config.json -> config.json; oh renders agro.json into a 0600 temp file outside the repo and the registry and leaves no file, mkdtemp directory, preview root, or registry entry behind" >&2
+echo "PASS: docker-compose.sh orders --extra-env-file before the root dotenv so secrets win, still runs standalone off the dotenv with a note, and resolves composeOverrides[] agro.json -> .agro/config.json -> config.json; agro renders agro.json into a 0600 temp file outside the repo and the registry and leaves no file, mkdtemp directory, preview root, or registry entry behind" >&2
 exit 0

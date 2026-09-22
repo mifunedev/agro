@@ -16,8 +16,8 @@ confidence: provisional
 # A probe brief derived from a name grep misses the probes that pin behaviour
 
 ## Relevant Source Files
-- `.oh/tasks/sandbox-registry/progress.txt@b2fcc812` — the wave-2a line: nine probes briefed, sixteen red on the first suite run.
-- `.oh/evals/probes/oh-lifecycle-surface.sh@2c955907`, `.oh/evals/probes/oh-config-surfaces.sh@2c955907` — two of the seven unlisted probes; neither contains the retired verb names the brief grepped for.
+- `.agro/tasks/sandbox-registry/progress.txt@b2fcc812` — the wave-2a line: nine probes briefed, sixteen red on the first suite run.
+- `.agro/evals/probes/oh-lifecycle-surface.sh@2c955907`, `.agro/evals/probes/oh-config-surfaces.sh@2c955907` — two of the seven unlisted probes; neither contains the retired verb names the brief grepped for.
 
 ## Summary
 When a change retires a surface, the advisor enumerates the probes an executor
@@ -34,7 +34,7 @@ probes were red, and the seven extra ones (`oh-compose-env-wiring`,
 `oh-config-surfaces`, `oh-destroy-guard`, `oh-devcontainer-restructure`,
 `oh-home-mount`, `oh-lifecycle-surface`, `skills-task-tool-coupling`) asserted
 behaviour the wave-1 CLI change altered — the lifecycle verb list, a `$HOME`
-config-resolution rule, the `..:` bind — without naming `oh init` or `oh runtime`.
+config-resolution rule, the `..:` bind — without naming `agro init` or `agro runtime`.
 
 **Root cause.** The grep answers "which files mention the thing being removed",
 but a probe's oracle is written against what the tree *does*, and a probe that

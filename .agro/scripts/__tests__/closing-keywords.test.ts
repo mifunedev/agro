@@ -57,7 +57,7 @@ describe("parseClosingRefs", () => {
   });
 
   it("ignores an issue URL", () => {
-    expect(parseClosingRefs("", "Closes https://github.com/mifunedev/openharness/issues/5")).toEqual(
+    expect(parseClosingRefs("", "Closes https://github.com/mifunedev/agro/issues/5")).toEqual(
       [],
     );
   });

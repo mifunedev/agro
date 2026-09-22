@@ -104,7 +104,7 @@ key. The Codex file keeps mode `0600`, which matches the
 
 **The fragment carries bare `KEY=value` lines and no `export`.** systemd rejects
 an `EnvironmentFile` that uses `export`, and
-`.devcontainer/openharness-cron.service` loads this same file with
+`.devcontainer/agro-cron.service` loads this same file with
 `EnvironmentFile=-`. The tracked `.agro/install/.zshenv` wraps its `source` in
 `set -a` and `set +a`, so an interactive shell exports every key anyway. In your
 own shell profile, keep `export` — see [manual

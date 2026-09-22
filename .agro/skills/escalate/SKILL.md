@@ -160,10 +160,10 @@ always prints the reason to stderr and returns the reason in the JSON.
 - **Channel**: `--channel`, else the first `enabled` entry in
   `~/.pi/msg-bridge.json` under `auth.channels`.
 - **State**: quiet-window markers in `~/.agro/escalate` (`ESCALATE_STATE_DIR`).
-  The script keeps an existing legacy `~/.oh/escalate` directory in use, so an
+  The script keeps an existing legacy `~/.agro/escalate` directory in use, so an
   open quiet window survives.
 - **Harness root**: `AGRO_PROJECT_ROOT`, else the legacy alias
-  `OH_PROJECT_ROOT`, else the path four levels above the script.
+  `AGRO_PROJECT_ROOT`, else the path four levels above the script.
 - **Log**: every attempt appends one JSON line to
   `$AGRO_PROJECT_ROOT/.agro/logs/escalations.jsonl` (`ESCALATE_LOG`). The line
   carries the per-destination result. The path resolves to the **harness root**,

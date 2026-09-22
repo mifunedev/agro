@@ -15,10 +15,10 @@ confidence: provisional
 
 ## Relevant Source Files
 - `raw/2026-07-04-crabbox-remote-exec-control-plane.md` — WebFetch snapshot of the Crabbox "how it works" docs + canonical URLs.
-- `docs/rfcs/rfc-runtime-support.md` §6 — where Open Harness weighs Crabbox as an A3 (fan-out) option.
+- `docs/rfcs/rfc-runtime-support.md` §6 — where AGRO weighs Crabbox as an A3 (fan-out) option.
 
 ## Summary
-Crabbox (`crabbox.sh`, `openclaw/crabbox`) is a **remote software testing / execution control plane** for short-lived boxes: "warm a box, sync the diff, run the suite." You keep the local edit-save-run loop but offload the expensive or evidence-producing command to an ephemeral remote runner via **lease → sync → run → release**. For Open Harness it is an **axis-A3 (scale/fan-out)** candidate of a fundamentally different shape than "swap the substrate": a lease/govern/cleanup control plane rather than a per-task substrate.
+Crabbox (`crabbox.sh`, `openclaw/crabbox`) is a **remote software testing / execution control plane** for short-lived boxes: "warm a box, sync the diff, run the suite." You keep the local edit-save-run loop but offload the expensive or evidence-producing command to an ephemeral remote runner via **lease → sync → run → release**. For AGRO it is an **axis-A3 (scale/fan-out)** candidate of a fundamentally different shape than "swap the substrate": a lease/govern/cleanup control plane rather than a per-task substrate.
 
 ## Detail
 **Five-phase `crabbox run` lifecycle.** *Plan* (load layered config, mint a `cbx_…` lease ID, create a per-lease SSH key) → *Lease* (`POST /v1/leases` to the coordinator with class/provider/TTL/idle-timeout/caps + SSH pubkey; coordinator authenticates, enforces spend caps, provisions) → *Sync* (seed remote git from origin+base ref, then rsync only the **dirty** checkout; fingerprint-skip no-op syncs; guard against mass deletion of tracked files) → *Run* (execute over SSH, stream stdout/stderr, heartbeat, mirror phased run records to the broker) → *Release* (delete the runner and free provider state unless `--keep`).

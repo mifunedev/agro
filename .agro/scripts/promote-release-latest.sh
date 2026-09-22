@@ -86,7 +86,7 @@ if [[ ! "$RELEASE_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)
   exit 64
 fi
 
-IMAGE_REPOSITORIES=${IMAGE_REPOSITORIES:-ghcr.io/mifunedev/agro ghcr.io/mifunedev/openharness}
+IMAGE_REPOSITORIES=${IMAGE_REPOSITORIES:-ghcr.io/mifunedev/agro}
 read -r -a repositories <<< "$IMAGE_REPOSITORIES"
 if (( ${#repositories[@]} == 0 )); then
   echo "IMAGE_REPOSITORIES must name at least one image repository" >&2

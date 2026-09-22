@@ -41,25 +41,25 @@ describe("runningInsideSandbox", () => {
   const absent = (): boolean => false;
 
   it("is true when the container marker and SANDBOX_NAME are both present", () => {
-    expect(runningInsideSandbox({ SANDBOX_NAME: "openharness" }, present)).toBe(true);
+    expect(runningInsideSandbox({ SANDBOX_NAME: "agro" }, present)).toBe(true);
   });
 
   it("is false on a host without the container marker", () => {
-    expect(runningInsideSandbox({ SANDBOX_NAME: "openharness" }, absent)).toBe(false);
+    expect(runningInsideSandbox({ SANDBOX_NAME: "agro" }, absent)).toBe(false);
   });
 
-  it("is false inside a container that is not an Open Harness sandbox", () => {
+  it("is false inside a container that is not an AGRO sandbox", () => {
     expect(runningInsideSandbox({}, present)).toBe(false);
   });
 
-  it("honours OH_EXECUTION_TARGET=local on a host", () => {
-    expect(runningInsideSandbox({ OH_EXECUTION_TARGET: "local" }, absent)).toBe(true);
+  it("honours AGRO_EXECUTION_TARGET=local on a host", () => {
+    expect(runningInsideSandbox({ AGRO_EXECUTION_TARGET: "local" }, absent)).toBe(true);
   });
 
-  it("honours OH_EXECUTION_TARGET=docker-compose inside the sandbox", () => {
+  it("honours AGRO_EXECUTION_TARGET=docker-compose inside the sandbox", () => {
     expect(
       runningInsideSandbox(
-        { OH_EXECUTION_TARGET: "docker-compose", SANDBOX_NAME: "openharness" },
+        { AGRO_EXECUTION_TARGET: "docker-compose", SANDBOX_NAME: "agro" },
         present,
       ),
     ).toBe(false);
@@ -70,8 +70,8 @@ describe("resolveExecutionTarget", () => {
   it("returns the local target inside the sandbox", () => {
     const t = resolveExecutionTarget({
       projectRoot: "/workspace",
-      container: "openharness",
-      env: { OH_EXECUTION_TARGET: "local" },
+      container: "agro",
+      env: { AGRO_EXECUTION_TARGET: "local" },
     });
     expect(t.kind).toBe("local");
   });
@@ -79,8 +79,8 @@ describe("resolveExecutionTarget", () => {
   it("returns the docker compose target on the host", () => {
     const t = resolveExecutionTarget({
       projectRoot: "/workspace",
-      container: "openharness",
-      env: { OH_EXECUTION_TARGET: "docker-compose" },
+      container: "agro",
+      env: { AGRO_EXECUTION_TARGET: "docker-compose" },
     });
     expect(t.kind).toBe("docker-compose");
   });

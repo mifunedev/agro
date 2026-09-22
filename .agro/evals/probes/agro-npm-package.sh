@@ -2,8 +2,8 @@
 # tier: A
 # source: npm publish path for the standalone `agro` CLI (@mifune/agro; issue #941 Phase 1) — alternative to get-agro.sh
 # desc: STATIC guard — `.agro/cli/package.json` is publishable to npm: NOT private, publishConfig.access
-#       "public", ships only the built `dist/` bundle, bin `agro` -> ./dist/agro.js and no `oh` bin (the
-#       legacy `oh` bin belongs to the .agro/cli/legacy shim, see agro-legacy-shim.sh), name @mifune/agro,
+#       "public", ships only the built `dist/` bundle, bin `agro` -> ./dist/agro.js and no `oh` bin
+#       (the `oh` executable is retired, see docs/agro-compatibility.md), name @mifune/agro,
 #       engines.node declared, a README + LICENSE ship for the npm page, and publish-cli.yml carries the
 #       publish-npm job (npm publish, run from .agro/cli). Complements get-agro-bootstrap.sh.
 set -euo pipefail
@@ -47,7 +47,7 @@ if ! jq -e '.bin.agro == "./dist/agro.js"' "$PKG" >/dev/null; then
 fi
 
 if jq -e '.bin | has("oh")' "$PKG" >/dev/null; then
-  echo 'REGRESSION .agro/cli/package.json declares an oh bin — that executable belongs to the @mifune/openharness shim (.agro/cli/legacy), so both packages can coexist' >&2
+  echo 'REGRESSION .agro/cli/package.json declares an oh bin — the oh executable is retired' >&2
   exit 1
 fi
 

@@ -52,6 +52,6 @@ citations on the same page.
 The durable fix is a lint asserting that every repo-relative path cited in a page body
 appears in that page's `sources:`. Until it exists, treat an inline path citation as an
 undeclared dependency by default. A second instance was found and deliberately left in
-`oh-cli-portable-lifecycle` (it cites `config-render.ts` and `docker-compose.yml`
+`agro-cli-portable-lifecycle` (it cites `config-render.ts` and `docker-compose.yml`
 without declaring them), so the mode recurs within a single corpus and is not a
 one-page slip.

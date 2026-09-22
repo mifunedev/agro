@@ -1,10 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { assertInRoot } from "./env-file.js";
-import { GENERATIONS, resolveProjectLayout } from "./compat.js";
+import { NAMES, resolveProjectLayout } from "./layout.js";
 
-const OH_CONFIG_FILE = GENERATIONS.legacy.configFile;
-const OH_CONFIG_MODE = 0o644;
+const AGRO_CONFIG_FILE = NAMES.configFile;
+const AGRO_CONFIG_MODE = 0o644;
 
 const RESERVED_HOME_PATHS: readonly string[] = [
   "/",
@@ -76,7 +76,7 @@ export type SandboxRuntime = "docker";
 
 export const SANDBOX_RUNTIMES: readonly SandboxRuntime[] = ["docker"];
 
-export interface OhConfig {
+export interface AgroConfig {
   version: 1;
   name?: string;
   runtime?: SandboxRuntime;
@@ -95,16 +95,16 @@ export interface OhConfig {
   [key: string]: unknown;
 }
 
-export function configCheckout(config: OhConfig): string | undefined {
+export function configCheckout(config: AgroConfig): string | undefined {
   const value = config.checkout ?? config.repo;
   return typeof value === "string" && value !== "" ? value : undefined;
 }
 
-export function ohConfigPath(root: string): string {
+export function agroConfigPath(root: string): string {
   return resolveProjectLayout(root).configFile;
 }
 
-export function defaultOhConfig(name: string): OhConfig {
+export function defaultAgroConfig(name: string): AgroConfig {
   return {
     version: 1,
     name,
@@ -126,8 +126,8 @@ export function defaultOhConfig(name: string): OhConfig {
   };
 }
 
-export function readOhConfig(path: string): OhConfig {
-  if (!existsSync(path)) return defaultOhConfig(basename(dirname(resolve(path))));
+export function readAgroConfig(path: string): AgroConfig {
+  if (!existsSync(path)) return defaultAgroConfig(basename(dirname(resolve(path))));
 
   let raw: string;
   try {
@@ -143,18 +143,18 @@ export function readOhConfig(path: string): OhConfig {
   } catch {
     throw new Error(`${basename(path)} is not valid JSON: ${path}`);
   }
-  return validateOhConfig(parsed);
+  return validateAgroConfig(parsed);
 }
 
-export function writeOhConfig(root: string, config: OhConfig): void {
-  const path = ohConfigPath(root);
+export function writeAgroConfig(root: string, config: AgroConfig): void {
+  const path = agroConfigPath(root);
   assertInRoot(path, resolve(root));
-  const validated = validateOhConfig({ ...config, version: 1 });
+  const validated = validateAgroConfig({ ...config, version: 1 });
   const body = `${JSON.stringify(validated, null, 2)}\n`;
   const tmp = `${path}.tmp.${process.pid}`;
   mkdirSync(dirname(path), { recursive: true });
   try {
-    writeFileSync(tmp, body, { mode: OH_CONFIG_MODE, encoding: "utf8" });
+    writeFileSync(tmp, body, { mode: AGRO_CONFIG_MODE, encoding: "utf8" });
     renameSync(tmp, path);
   } catch (error) {
     try {
@@ -166,7 +166,7 @@ export function writeOhConfig(root: string, config: OhConfig): void {
   }
 }
 
-export function validateOhConfig(value: unknown): OhConfig {
+export function validateAgroConfig(value: unknown): AgroConfig {
   const record = expectObject(value, "");
 
   if (record.version !== undefined && record.version !== 1) {
@@ -249,17 +249,17 @@ export function validateOhConfig(value: unknown): OhConfig {
     }
   }
 
-  return { ...(record as OhConfig), version: 1 };
+  return { ...(record as AgroConfig), version: 1 };
 }
 
 function fieldError(path: string, requirement: string): Error {
-  return new Error(`${OH_CONFIG_FILE}: ${path} ${requirement}`);
+  return new Error(`${AGRO_CONFIG_FILE}: ${path} ${requirement}`);
 }
 
 function expectObject(value: unknown, path: string): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw path === ""
-      ? new Error(`${OH_CONFIG_FILE}: must contain a JSON object`)
+      ? new Error(`${AGRO_CONFIG_FILE}: must contain a JSON object`)
       : fieldError(path, "must be an object");
   }
   return value as Record<string, unknown>;
@@ -309,15 +309,15 @@ function expectEnum(
   }
 }
 
-export type OhConfigFieldType = "string" | "boolean" | "port" | "enum" | "list";
+export type AgroConfigFieldType = "string" | "boolean" | "port" | "enum" | "list";
 
-export interface OhConfigField {
+export interface AgroConfigField {
   path: string;
-  type: OhConfigFieldType;
+  type: AgroConfigFieldType;
   values?: readonly string[];
 }
 
-export const OH_CONFIG_FIELDS: readonly OhConfigField[] = [
+export const AGRO_CONFIG_FIELDS: readonly AgroConfigField[] = [
   { path: "name", type: "string" },
   { path: "runtime", type: "enum", values: SANDBOX_RUNTIMES },
   { path: "repo", type: "string" },
@@ -345,15 +345,15 @@ export const OH_CONFIG_FIELDS: readonly OhConfigField[] = [
   { path: "composeOverrides", type: "list" },
 ];
 
-export function findOhConfigField(path: string): OhConfigField | undefined {
-  return OH_CONFIG_FIELDS.find((field) => field.path === path);
+export function findAgroConfigField(path: string): AgroConfigField | undefined {
+  return AGRO_CONFIG_FIELDS.find((field) => field.path === path);
 }
 
-export function ohConfigFieldPaths(): string[] {
-  return OH_CONFIG_FIELDS.map((field) => field.path);
+export function agroConfigFieldPaths(): string[] {
+  return AGRO_CONFIG_FIELDS.map((field) => field.path);
 }
 
-export function getOhConfigValue(config: OhConfig, path: string): unknown {
+export function getAgroConfigValue(config: AgroConfig, path: string): unknown {
   let cursor: unknown = config;
   for (const segment of path.split(".")) {
     if (!cursor || typeof cursor !== "object") return undefined;
@@ -362,13 +362,13 @@ export function getOhConfigValue(config: OhConfig, path: string): unknown {
   return cursor;
 }
 
-export function setOhConfigValue(config: OhConfig, path: string, raw: string): OhConfig {
-  const field = findOhConfigField(path);
-  if (!field) throw new Error(`unknown oh.json field "${path}"`);
+export function setAgroConfigValue(config: AgroConfig, path: string, raw: string): AgroConfig {
+  const field = findAgroConfigField(path);
+  if (!field) throw new Error(`unknown agro.json field "${path}"`);
 
   const parsed = coerceFieldValue(field, raw);
   const segments = path.split(".");
-  const next: OhConfig = { ...config, version: 1 };
+  const next: AgroConfig = { ...config, version: 1 };
 
   let cursor = next as unknown as Record<string, unknown>;
   for (const segment of segments.slice(0, -1)) {
@@ -382,10 +382,10 @@ export function setOhConfigValue(config: OhConfig, path: string, raw: string): O
   }
   cursor[segments[segments.length - 1]] = parsed;
 
-  return validateOhConfig(next);
+  return validateAgroConfig(next);
 }
 
-function coerceFieldValue(field: OhConfigField, raw: string): unknown {
+function coerceFieldValue(field: AgroConfigField, raw: string): unknown {
   if (field.type === "boolean") {
     if (raw === "true") return true;
     if (raw === "false") return false;

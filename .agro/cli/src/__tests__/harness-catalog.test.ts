@@ -87,7 +87,7 @@ describe("harness catalog", () => {
       ]);
     });
 
-    it("carries no oh.json key on any entry — the verb is the only door", () => {
+    it("carries no agro.json key on any entry — the verb is the only door", () => {
       const required = [
         "binary",
         "docsPath",
@@ -132,7 +132,7 @@ describe("harness catalog", () => {
   });
 
   // #908: the INSTALL_* build args are gone. The catalog no longer mirrors the
-  // Dockerfile — it replaces it, and `oh harness install` is the only path.
+  // Dockerfile — it replaces it, and `agro harness install` is the only path.
   describe("owns the install, and the image no longer does", () => {
     it("declares no buildArg anywhere — the field itself is gone", () => {
       expect(read(".agro/cli/src/lib/harnesses/catalog.ts")).not.toContain("buildArg");
@@ -222,7 +222,7 @@ describe("harness catalog", () => {
         expect(pkg, `${id} declares no install package`).toMatch(/^(@[^/]+\/)?[^-].*/);
         expect(
           DOCKERFILE_CODE,
-          `${id} is baked into the image; it enters only through \`oh harness install\``,
+          `${id} is baked into the image; it enters only through \`agro harness install\``,
         ).not.toContain(pkg);
       },
     );

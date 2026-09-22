@@ -15,9 +15,9 @@ confidence: provisional
 # A provider built-in worker type carries its own model; omitting `model` does not inherit
 
 ## Relevant Source Files
-- `.oh/tasks/advisor-first-orchestration/delegate-graph.json@144d9d8b` — the dispatch records that hold each worker's requested and observed settings.
-- `.oh/tasks/advisor-first-orchestration/evidence.md@144d9d8b` — the run that observed the mismatch.
-- `.oh/skills/delegate/SKILL.md@144d9d8b` — the policy that keeps a requested setting apart from an observed one.
+- `.agro/tasks/advisor-first-orchestration/delegate-graph.json@144d9d8b` — the dispatch records that hold each worker's requested and observed settings.
+- `.agro/tasks/advisor-first-orchestration/evidence.md@144d9d8b` — the run that observed the mismatch.
+- `.agro/skills/delegate/SKILL.md@144d9d8b` — the policy that keeps a requested setting apart from an observed one.
 
 ## Summary
 A provider built-in worker type defines its own model. Omitting the `model`

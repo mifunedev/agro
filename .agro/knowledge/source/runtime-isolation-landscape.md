@@ -15,7 +15,7 @@ confidence: provisional
 
 ## Relevant Source Files
 - `raw/2026-07-04-runtime-isolation-landscape.md` — WebFetch snapshot (isolation strategies) + the multi-source 2026 landscape corpus.
-- `docs/rfcs/rfc-runtime-support.md` — the Open Harness runtime-support RFC whose fit matrix this entry backs.
+- `docs/rfcs/rfc-runtime-support.md` — the AGRO runtime-support RFC whose fit matrix this entry backs.
 
 ## Summary
 A reference map of the 2026 sandbox-isolation options for running agent-generated code, ranked by isolation depth and tagged to the harness's runtime axes (A1 substrate, A2 deploy, A3 fan-out). The load-bearing fact: **plain containers are Level-1 isolation** ("insufficient for anything an LLM generates"), which is exactly the harness's current substrate — one privileged container sharing the host kernel and Docker socket. Stronger tiers (gVisor → Kata/Firecracker) exist and are what an A1 upgrade would adopt.
@@ -31,7 +31,7 @@ A reference map of the 2026 sandbox-isolation options for running agent-generate
 
 **Cloudflare is two-tier — only one tier is a substrate.** *Dynamic Workers* = V8 isolates, ~100× faster/cheaper than containers with ms cold starts, but **no full OS** → an A2 deploy target only, never an A1 substrate. *Sandboxes/Containers* (GA 2026) = persistent isolated Linux with PTY, snapshot recovery, filesystem watch, code interpreter, and egress-proxy credential injection → the real Cloudflare fit for **A1/A3**. This is the "Cloudflare Workers can't host the sandbox" myth-bust; see [[crabbox-remote-exec-control-plane]] for Workers used correctly as a control plane.
 
-**Categorization for adoption.** *Primitives* (Firecracker/gVisor) suit teams running their own fleet; *embeddable runtimes* (E2B, microsandbox) add code-exec quickly; *managed platforms* (Modal/Northflank/Daytona) suit data-heavy/GPU/zero-ops. For Open Harness the cheapest, most reversible first experiment is a **gVisor overlay** — a large isolation gain over `--privileged` + host socket for roughly one command's cost.
+**Categorization for adoption.** *Primitives* (Firecracker/gVisor) suit teams running their own fleet; *embeddable runtimes* (E2B, microsandbox) add code-exec quickly; *managed platforms* (Modal/Northflank/Daytona) suit data-heavy/GPU/zero-ops. For AGRO the cheapest, most reversible first experiment is a **gVisor overlay** — a large isolation gain over `--privileged` + host socket for roughly one command's cost.
 
 ## See Also
 - [[crabbox-remote-exec-control-plane]]

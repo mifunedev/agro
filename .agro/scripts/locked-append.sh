@@ -24,7 +24,7 @@ if command -v flock >/dev/null 2>&1; then
   else
     key=$(printf '%s' "$canonical_target" | tr -c 'A-Za-z0-9._-' '_')
   fi
-  lock_dir=${TMPDIR:-/tmp}/openharness-locked-append
+  lock_dir=${TMPDIR:-/tmp}/agro-locked-append
   mkdir -p -- "$lock_dir"
   lock_file=$lock_dir/$key.lock
   exec 9>"$lock_file"

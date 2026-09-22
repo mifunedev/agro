@@ -105,7 +105,7 @@ Run first. Every create/remove op needs `$BASE` and `$WORKTREES_ROOT`.
 
 `$WORKTREES_ROOT` is always `.worktrees/` inside **the repository you are standing
 in** — run this from the harness root for harness branches, or from
-`projects/<owner>/<repo>/` to cut a worktree of that project. `oh-path` resolves the
+`projects/<owner>/<repo>/` to cut a worktree of that project. `agro-path` resolves the
 fixed root and only exists at the harness root, so the project case
 falls through to the repository toplevel.
 
@@ -113,9 +113,9 @@ falls through to the repository toplevel.
 BASE=$(git show-ref --verify --quiet refs/heads/development && echo development || \
        git show-ref --verify --quiet refs/heads/main && echo main || echo master)
 TOPLEVEL="$(git rev-parse --show-toplevel)"
-if [ -x "$TOPLEVEL/.agro/scripts/oh-path" ]; then
-  WORKTREES_ROOT="$(bash "$TOPLEVEL/.agro/scripts/oh-path" worktrees --no-create 2>/dev/null || printf '%s' "$TOPLEVEL/.worktrees")"
-  PROJECTS_ROOT="$(bash "$TOPLEVEL/.agro/scripts/oh-path" projects --no-create 2>/dev/null || printf '%s' "$TOPLEVEL/projects")"
+if [ -x "$TOPLEVEL/.agro/scripts/agro-path" ]; then
+  WORKTREES_ROOT="$(bash "$TOPLEVEL/.agro/scripts/agro-path" worktrees --no-create 2>/dev/null || printf '%s' "$TOPLEVEL/.worktrees")"
+  PROJECTS_ROOT="$(bash "$TOPLEVEL/.agro/scripts/agro-path" projects --no-create 2>/dev/null || printf '%s' "$TOPLEVEL/projects")"
 else
   WORKTREES_ROOT="$TOPLEVEL/.worktrees"
   PROJECTS_ROOT=""

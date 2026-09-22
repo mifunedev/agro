@@ -19,7 +19,7 @@ const MASTER_SHA = "89abcdef0123456789abcdef0123456789abcdef";
 const STALE_SHA = "fedcba9876543210fedcba9876543210fedcba98";
 const DIGEST = `sha256:${"a".repeat(64)}`;
 const OTHER_DIGEST = `sha256:${"b".repeat(64)}`;
-const LEGACY = "ghcr.io/example/openharness";
+const MIRROR = "ghcr.io/example/agro-mirror";
 const AGRO = "ghcr.io/example/agro";
 
 let fixture = "";
@@ -43,7 +43,7 @@ function run(
       FAKE_DOCKER_LOG: dockerLog,
       FAKE_DOCKER_INSPECTION: `Name: test\nMediaType: application/vnd.oci.image.index.v1+json\nDigest: ${DIGEST}`,
       FAKE_GIT_REFS: `${MAIN_SHA}\trefs/heads/main`,
-      IMAGE_REPOSITORIES: `${LEGACY} ${AGRO}`,
+      IMAGE_REPOSITORIES: `${MIRROR} ${AGRO}`,
       RELEASE_BRANCH: "main",
       RELEASE_SHA: MAIN_SHA,
       RELEASE_VERSION: "0.1.0",
@@ -91,12 +91,12 @@ describe("promote-release-latest.sh", () => {
     const result = run("promote");
 
     expect(result.status, result.stderr).toBe(0);
-    expect(result.stdout).toContain(`Promoted ${LEGACY}:0.1.0`);
+    expect(result.stdout).toContain(`Promoted ${MIRROR}:0.1.0`);
     expect(result.stdout).toContain(`Promoted ${AGRO}:0.1.0`);
     expect(readFileSync(dockerLog, "utf8").trim().split("\n")).toEqual([
-      `buildx imagetools inspect ${LEGACY}:0.1.0`,
+      `buildx imagetools inspect ${MIRROR}:0.1.0`,
       `buildx imagetools inspect ${AGRO}:0.1.0`,
-      `buildx imagetools create --tag ${LEGACY}:latest ${LEGACY}:0.1.0@${DIGEST}`,
+      `buildx imagetools create --tag ${MIRROR}:latest ${MIRROR}:0.1.0@${DIGEST}`,
       `buildx imagetools create --tag ${AGRO}:latest ${AGRO}:0.1.0@${DIGEST}`,
     ]);
   });
@@ -108,18 +108,18 @@ describe("promote-release-latest.sh", () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("refusing to promote latest");
-    expect(result.stderr).toContain(`${LEGACY}:0.1.0 is ${DIGEST}`);
+    expect(result.stderr).toContain(`${MIRROR}:0.1.0 is ${DIGEST}`);
     expect(result.stderr).toContain(`${AGRO}:0.1.0 is ${OTHER_DIGEST}`);
     expect(readFileSync(dockerLog, "utf8")).not.toContain("imagetools create");
   });
 
   it("promotes a single repository when IMAGE_REPOSITORIES names only one", () => {
-    const result = run("promote", { IMAGE_REPOSITORIES: LEGACY });
+    const result = run("promote", { IMAGE_REPOSITORIES: MIRROR });
 
     expect(result.status, result.stderr).toBe(0);
     expect(readFileSync(dockerLog, "utf8").trim().split("\n")).toEqual([
-      `buildx imagetools inspect ${LEGACY}:0.1.0`,
-      `buildx imagetools create --tag ${LEGACY}:latest ${LEGACY}:0.1.0@${DIGEST}`,
+      `buildx imagetools inspect ${MIRROR}:0.1.0`,
+      `buildx imagetools create --tag ${MIRROR}:latest ${MIRROR}:0.1.0@${DIGEST}`,
     ]);
   });
 
@@ -127,7 +127,7 @@ describe("promote-release-latest.sh", () => {
     const source = readFileSync(HELPER, "utf8");
 
     expect(source).toContain(
-      "IMAGE_REPOSITORIES=${IMAGE_REPOSITORIES:-ghcr.io/mifunedev/agro ghcr.io/mifunedev/openharness}",
+      "IMAGE_REPOSITORIES=${IMAGE_REPOSITORIES:-ghcr.io/mifunedev/agro}",
     );
     expect(source).not.toContain("IMAGE_REPOSITORY=");
   });

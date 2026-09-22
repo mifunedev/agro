@@ -1,9 +1,9 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { basename, join } from "node:path";
-import { resolveProjectLayout } from "../compat.js";
+import { resolveProjectLayout } from "../layout.js";
 import { invokedFromImage } from "../install-kind.js";
-import { activeBin, LEGACY_PRODUCT } from "../product.js";
+import { activeBin, AGRO_PRODUCT } from "../product.js";
 
 export interface RunResult {
   status: number | null;
@@ -73,7 +73,7 @@ function recoveryRoute(): string {
   if (invokedFromImage()) {
     return `the sandbox image ships this CLI; pull a newer image on the host (${bin} stop, then ${bin} sandbox install docker --name <name>)`;
   }
-  return `run \`${LEGACY_PRODUCT.bin} update\` to re-vendor the control-plane payload`;
+  return `run \`${AGRO_PRODUCT.bin} vendor\` to re-vendor the control-plane payload`;
 }
 
 export function requireLifecycleScript(root: string, rel: string): string {

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # tier: A
 # source: PR #887 (config split across two authored surfaces — a tracked agro.json and a secrets-only root dotenv — with nothing left under $HOME)
-# source: issue #1131 (the langfuse wizard writes derived harness files under $HOME while reading every authored setting from the repository root — the $HOME rule now checks what a source reads, not whether it mentions homedir(), and user-state owner status is earned by the OH_HOME/AGRO_HOME alias contract rather than granted by a path list)
-# desc: the two authored config surfaces stay honest — tracked agro.json holds no allow-listed secret, the root dotenv is gitignored/0600 and holds nothing but allow-listed secrets, .devcontainer/.env is a symlink to ../.env, no live file still depends on the retired .devcontainer/.example.env, no CLI source outside the user-state owners locates config through XDG_CONFIG_HOME/OH_CONFIG_DIR/OH_CLOUD_CONFIG, every listed user-state owner resolves its home through the OH_HOME/AGRO_HOME alias, and every other CLI source that references $HOME resolves the project root through resolveProjectRoot(), passes only root-derived paths into readOhConfig/ohConfigPath/readSecret/loadEnvInto, and never joins a $HOME-derived path with agro.json or the root dotenv
+# source: issue #1131 (the langfuse wizard writes derived harness files under $HOME while reading every authored setting from the repository root — the $HOME rule now checks what a source reads, not whether it mentions homedir(), and user-state owner status is earned by the AGRO_HOME contract rather than granted by a path list)
+# desc: the two authored config surfaces stay honest — tracked agro.json holds no allow-listed secret, the root dotenv is gitignored/0600 and holds nothing but allow-listed secrets, .devcontainer/.env is a symlink to ../.env, no live file still depends on the retired .devcontainer/.example.env, no CLI source outside the user-state owners locates config through XDG_CONFIG_HOME/AGRO_CONFIG_DIR/AGRO_CLOUD_CONFIG, every listed user-state owner resolves its home through the AGRO_HOME/AGRO_HOME alias, and every other CLI source that references $HOME resolves the project root through resolveProjectRoot(), passes only root-derived paths into readOhConfig/ohConfigPath/readSecret/loadEnvInto, and never joins a $HOME-derived path with agro.json or the root dotenv
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -33,17 +33,17 @@ fi
 
 fails=()
 
-OH_JSON="$ROOT/agro.json"
+AGRO_JSON="$ROOT/agro.json"
 if ! git -C "$ROOT" ls-files --error-unmatch agro.json >/dev/null 2>&1; then
   fails+=("agro.json is not tracked at the repository root — it is the authored home for every non-secret setting (docs/configuration.md)")
 fi
-if [[ -f "$OH_JSON" ]]; then
-  if ! python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$OH_JSON" >/dev/null 2>&1; then
+if [[ -f "$AGRO_JSON" ]]; then
+  if ! python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$AGRO_JSON" >/dev/null 2>&1; then
     fails+=("agro.json is not valid JSON")
   fi
   while read -r key; do
     [[ -n "$key" ]] || continue
-    grep -Fq "$key" "$OH_JSON" \
+    grep -Fq "$key" "$AGRO_JSON" \
       && fails+=("allow-listed secret $key appears in the TRACKED agro.json — secrets belong in the gitignored root dotenv")
   done <<<"$SECRETS"
 fi
@@ -88,9 +88,9 @@ done < <(git -C "$ROOT" grep -lF 'devcontainer/.example.env' -- . 2>/dev/null ||
 (( ${#stale[@]} == 0 )) \
   || fails+=("tracked files still reference the retired .devcontainer/.example.env: ${stale[*]}")
 
-USER_STATE_OWNERS=(.agro/cli/src/lib/registry.ts .agro/cli/src/lib/compat.ts)
-USER_STATE_CONTRACT='aliasedEnvValue\([A-Za-z_.]+, "HOME"|resolveUserStateHome\(process\.env\)'
-LOCATION_VARS='XDG_CONFIG_HOME|OH_CONFIG_DIR|OH_CLOUD_CONFIG'
+USER_STATE_OWNERS=(.agro/cli/src/lib/registry.ts .agro/cli/src/lib/layout.ts)
+USER_STATE_CONTRACT='agroEnvValue\([A-Za-z_.]+, "HOME"|resolveUserStateHome\(|resolveRegistryHome\('
+LOCATION_VARS='XDG_CONFIG_HOME|AGRO_CONFIG_DIR|AGRO_CLOUD_CONFIG'
 HOME_REFS='homedir\(\)|process\.env\.HOME\b|[^A-Za-z_.]env\.HOME\b'
 HOME_TOKENS='\bhome\b|homedir\(|HOME\b|tmpdir\('
 AUTHORED_READERS='readOhConfig|ohConfigPath|readSecret|loadEnvInto'
@@ -108,7 +108,7 @@ for owner in "${USER_STATE_OWNERS[@]}"; do
   if [[ ! -f "$ROOT/$owner" ]]; then
     fails+=("$owner is listed as a user-state owner but does not exist")
   elif ! grep -qE "$USER_STATE_CONTRACT" "$ROOT/$owner"; then
-    fails+=("$owner is listed as a user-state owner but never resolves the user-state home through the OH_HOME/AGRO_HOME alias (aliasedEnvValue(env, \"HOME\") or resolveUserStateHome(process.env)) — owner status is earned by that contract, not by the listing")
+    fails+=("$owner is listed as a user-state owner but never resolves the user-state home through AGRO_HOME (agroEnvValue(env, \"HOME\"), resolveUserStateHome() or resolveRegistryHome()) — owner status is earned by that contract, not by the listing")
   fi
 done
 
@@ -147,5 +147,5 @@ if (( ${#fails[@]} > 0 )); then
   exit 1
 fi
 
-echo "PASS: config surfaces — tracked agro.json is secret-free, the root dotenv is gitignored/0600 and allow-listed-only, .devcontainer/.env symlinks to ../.env, nothing live references .devcontainer/.example.env, only the OH_HOME/AGRO_HOME-relocatable user-state owners locate config under \$HOME, and every other \$HOME-aware CLI source reads authored config from the repository root only" >&2
+echo "PASS: config surfaces — tracked agro.json is secret-free, the root dotenv is gitignored/0600 and allow-listed-only, .devcontainer/.env symlinks to ../.env, nothing live references .devcontainer/.example.env, only the AGRO_HOME/AGRO_HOME-relocatable user-state owners locate config under \$HOME, and every other \$HOME-aware CLI source reads authored config from the repository root only" >&2
 exit 0

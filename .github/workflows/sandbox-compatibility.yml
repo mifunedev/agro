@@ -74,25 +74,25 @@ jobs:
 
       # #908 removed the INSTALL_* build args, so there is no longer an image to
       # build with every installer enabled. The path that replaced it —
-      # `oh harness install <id>` into the home mount, as the sandbox user — is
+      # `agro harness install <id>` into the home mount, as the sandbox user — is
       # what this job must exercise instead. Building and then INSTALLING is
       # strictly closer to what an operator does than the old build-arg matrix.
       - name: Build the sandbox image
         run: |
           docker build \
             --file .devcontainer/Dockerfile \
-            --tag openharness-sandbox-optional:${{ github.sha }} \
+            --tag agro-sandbox-optional:${{ github.sha }} \
             .
 
       - name: Verify the image satisfies the default contract
-        run: bash .agro/scripts/verify-sandbox-image.sh openharness-sandbox-optional:${{ github.sha }}
+        run: bash .agro/scripts/verify-sandbox-image.sh agro-sandbox-optional:${{ github.sha }}
 
       - name: Install each installable harness through the CLI and verify its version
         run: |
           set -euo pipefail
           export SANDBOX_NAME=oh-hermes-optional-${{ github.run_id }}
-          export OH_SANDBOX_IMAGE=openharness-sandbox-optional:${{ github.sha }}
-          export OH_PULL_POLICY=never
+          export AGRO_SANDBOX_IMAGE=agro-sandbox-optional:${{ github.sha }}
+          export AGRO_PULL_POLICY=never
           compose=(docker compose --file .devcontainer/docker-compose.image-only.yml)
           trap '"${compose[@]}" down -v >/dev/null 2>&1 || true' EXIT
           "${compose[@]}" up -d --wait --wait-timeout 600
@@ -100,7 +100,7 @@ jobs:
           docker exec "$cid" bash /home/sandbox/harness/.agro/scripts/sandbox-healthcheck.sh
 
           ids=$(docker exec -u sandbox "$cid" bash -lc \
-            'cd /opt/agro-seed && OH_EXECUTION_TARGET=local oh harness list --json' \
+            'cd /opt/agro-seed && AGRO_EXECUTION_TARGET=local agro harness list --json' \
             | jq -r '.[] | select(.kind == "installable") | .id')
           if [ -z "$ids" ]; then
             echo "ERROR: the harness catalog declares no installable harnesses — this job would pass vacuously" >&2
@@ -116,9 +116,9 @@ jobs:
           # path, a sudo prompt) fails both attempts and still fails the job.
           for id in $ids; do
             for attempt in 1 2; do
-              echo "--- oh harness install $id (attempt $attempt)"
+              echo "--- agro harness install $id (attempt $attempt)"
               if docker exec -u sandbox "$cid" bash -lc \
-                "cd /opt/agro-seed && OH_EXECUTION_TARGET=local oh harness install '$id'"; then
+                "cd /opt/agro-seed && AGRO_EXECUTION_TARGET=local agro harness install '$id'"; then
                 break
               fi
               if [ "$attempt" = 2 ]; then
@@ -130,20 +130,20 @@ jobs:
             done
           done
 
-          docker exec -u sandbox -w /tmp -e OH_HERMES_SMOKE=1 "$cid" \
+          docker exec -u sandbox -w /tmp -e AGRO_HERMES_SMOKE=1 "$cid" \
             bash /home/sandbox/harness/.agro/scripts/hermes-install-smoke.sh
-          docker exec -u sandbox -w /home/sandbox/harness "$cid" oh harness install hermes
-          docker exec -u sandbox -w /tmp -e OH_HERMES_SMOKE=1 "$cid" \
+          docker exec -u sandbox -w /home/sandbox/harness "$cid" agro harness install hermes
+          docker exec -u sandbox -w /tmp -e AGRO_HERMES_SMOKE=1 "$cid" \
             bash /home/sandbox/harness/.agro/scripts/hermes-install-smoke.sh
 
           "${compose[@]}" restart sandbox
           "${compose[@]}" up -d --wait --wait-timeout 600
-          docker exec -u sandbox -w /tmp -e OH_HERMES_SMOKE=1 "$cid" zsh -lic \
+          docker exec -u sandbox -w /tmp -e AGRO_HERMES_SMOKE=1 "$cid" zsh -lic \
             'bash /home/sandbox/harness/.agro/scripts/hermes-install-smoke.sh'
 
           for id in $ids; do
             binary=$(docker exec -u sandbox "$cid" bash -lc \
-              'cd /opt/agro-seed && OH_EXECUTION_TARGET=local oh harness list --json' \
+              'cd /opt/agro-seed && AGRO_EXECUTION_TARGET=local agro harness list --json' \
               | jq -r --arg id "$id" '.[] | select(.id == $id) | .binary')
             echo "--- $binary --version"
             output=$(docker exec -u sandbox "$cid" bash -lc "

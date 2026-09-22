@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
-import { resolveAgroUserStateHome } from "./compat.js";
+import { resolveUserStateHome } from "./layout.js";
 import { SANDBOX_NAME_PATTERN } from "./registry.js";
 
 const HOST_CONFIG_MODE = 0o644;
@@ -28,7 +28,7 @@ export interface HostConfig {
 }
 
 export function hostStateHome(env: NodeJS.ProcessEnv, home: string): string {
-  return resolveAgroUserStateHome(env, home);
+  return resolveUserStateHome(env, home);
 }
 
 export function hostConfigPath(env: NodeJS.ProcessEnv, home: string): string {

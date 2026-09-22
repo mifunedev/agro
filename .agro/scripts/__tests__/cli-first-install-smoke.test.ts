@@ -70,7 +70,7 @@ function fixtureDocker(opts: { keepId?: boolean; inheritHost?: boolean; socketMo
       '    if [[ "$all" == *systemctl* ]]; then exit 0; fi',
       "    if [[ \"\$all\" == *'.agro/.image-seeded'* && \"\$all\" == *test* ]]; then exit 0; fi",
       "    if [[ \"\$all\" == *'test -d /home/sandbox/harness/.agro'* ]]; then exit 0; fi",
-      "    if [[ \"\$all\" == *'test ! -e /home/sandbox/harness/.oh'* ]]; then exit 0; fi",
+      "    if [[ \"\$all\" == *'test ! -e /home/sandbox/harness/.agro'* ]]; then exit 0; fi",
       "    if [[ \"\$all\" == *'test -S /var/run/docker.sock'* ]]; then",
       '      [ "$(cat "$sockf")" = "1" ] && exit 0 || exit 1',
       "    fi",
@@ -215,16 +215,16 @@ describe("cli-first-install-smoke.sh", () => {
     const workdir = join(fx.dir, "work");
     mkdirSync(workdir);
     const result = run(
-      ["--phase", "seed", "--image", "openharness-sandbox-boot-guard:abc", "--workdir", workdir, "--keep"],
+      ["--phase", "seed", "--image", "agro-sandbox-boot-guard:abc", "--workdir", workdir, "--keep"],
       { CLI_FIRST_AGRO: join(fx.bin, "agro"), CLI_FIRST_TIMEOUT_SECONDS: "1", CLI_FIRST_INTERVAL_SECONDS: "0" },
       { path: `${fx.bin}:${process.env.PATH ?? ""}` },
     );
     expect(result.status, result.stderr + result.stdout).toBe(0);
-    expect(result.stdout).toContain("seed_image=openharness-sandbox-boot-guard:abc");
+    expect(result.stdout).toContain("seed_image=agro-sandbox-boot-guard:abc");
     expect(result.stdout).not.toContain(":latest");
     const agroLog = readFileSync(join(fx.state, "agro.log"), "utf8");
     expect(agroLog).toContain("sandbox install docker");
-    expect(agroLog).toContain("--image=openharness-sandbox-boot-guard:abc");
+    expect(agroLog).toContain("--image=agro-sandbox-boot-guard:abc");
     expect(agroLog).not.toContain("--repo");
   });
 
@@ -265,7 +265,7 @@ describe("cli-first-install-smoke.sh", () => {
   it("is wired into sandbox-boot-guard.yml against the locally built candidate image", () => {
     const workflow = readFileSync(WORKFLOW, "utf8");
     expect(workflow).toContain("cli-first-install-smoke.sh");
-    expect(workflow).toContain("openharness-sandbox-boot-guard:${{ github.sha }}");
+    expect(workflow).toContain("agro-sandbox-boot-guard:${{ github.sha }}");
     expect(workflow).toContain("--require-docker");
     expect(workflow).toContain("--bootstrap-without-node");
     expect(workflow).toContain("debian:bookworm-slim");

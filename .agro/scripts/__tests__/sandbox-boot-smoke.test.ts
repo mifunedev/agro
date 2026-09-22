@@ -51,7 +51,7 @@ if [ "$1" = "ps" ] && [ "\${2:-}" = "-q" ]; then
   exit 0
 fi
 if [ "$1" = "ps" ]; then
-  printf 'NAME STATUS\nopenharness running\n'
+  printf 'NAME STATUS\nagro running\n'
   exit 0
 fi
 exit 0
@@ -84,7 +84,7 @@ case "$1" in
         printf '%s\n' ${JSON.stringify(opts.pid1 ?? "systemd")}
         exit 0
         ;;
-      *"systemctl is-active --quiet openharness-cron.service"*)
+      *"systemctl is-active --quiet agro-cron.service"*)
         exit ${opts.cronUnitInactive ? "1" : "0"}
         ;;
       *"systemctl is-active"*)
@@ -126,7 +126,7 @@ case "$1" in
         printf '%s\n' ${JSON.stringify(markerOwner)}
         exit 0
         ;;
-      *"oh harness list --json"*)
+      *"agro harness list --json"*)
         cat <<'JSON'
 ${
   opts.noInstallableHarnesses
@@ -142,7 +142,7 @@ ${
 JSON
         exit 0
         ;;
-      *"oh tool list --json"*)
+      *"agro tool list --json"*)
         cat <<'JSON'
 ${
   opts.noInstallableTools
@@ -198,7 +198,7 @@ function runSmoke(fx: ReturnType<typeof fixture>, extraEnv: Record<string, strin
       BOOT_SMOKE_INTERVAL_SECONDS: "1",
       BOOT_SMOKE_RELOAD_TIMEOUT_SECONDS: "2",
       BOOT_SMOKE_RECOVERY_TIMEOUT_SECONDS: "2",
-      SANDBOX_NAME: "openharness-test",
+      SANDBOX_NAME: "agro-test",
       NPM_USER_PREFIX: PREFIX,
       ...extraEnv,
     },
@@ -218,7 +218,7 @@ describe("sandbox boot smoke systemd supervision", () => {
     const result = runSmoke(fixture({ cronUnitInactive: true }));
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("openharness-cron.service is not active");
+    expect(result.stderr).toContain("agro-cron.service is not active");
   });
 
   it("fails when systemctl reload never reaches the runtime's SIGHUP path", () => {
@@ -271,8 +271,8 @@ describe("sandbox boot smoke", () => {
     expect(result.stdout).toContain(
       `sandbox user, bind mount, and sandbox-created files all resolve to ${HOST_UID}:${HOST_GID}`,
     );
-    expect(dockerCalls).toContain("oh harness list --json");
-    expect(dockerCalls).toContain("oh tool list --json");
+    expect(dockerCalls).toContain("agro harness list --json");
+    expect(dockerCalls).toContain("agro tool list --json");
     expect(result.stdout).toContain(`claude-code not installed at boot (claude absent from ${PREFIX})`);
     expect(result.stdout).toContain(`pi not installed at boot (pi absent from ${PREFIX})`);
     expect(result.stdout).toContain(`herdr not installed at boot (herdr absent from ${PREFIX})`);

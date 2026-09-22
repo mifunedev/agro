@@ -52,7 +52,7 @@ hardcodes no skill name. It applies three rules.
 
 ### `OH-PATH`
 
-Reports any `.oh/…` or `.agro/…` path in a scanned file. An installer has neither tree, so
+Reports any `.agro/…` or `.agro/…` path in a scanned file. An installer has neither tree, so
 the reference cannot resolve.
 
 ### `HARNESS-SKILL`
@@ -82,7 +82,7 @@ The published folder is the installer's whole copy of the skill, so a sibling
 file that is not in it cannot be opened.
 
 The rule never double-reports a path that `OH-PATH` already reported on the same
-line. A `.oh/` or `.agro/` path is counted once.
+line. A `.agro/` or `.agro/` path is counted once.
 
 ## Running the check
 
@@ -125,7 +125,7 @@ which is how the five day-one `KNOWN` entries were retired.
 
 | Probe | Reads | Skips when |
 |---|---|---|
-| `.agro/evals/probes/registry-portability.sh` | the published registry | `OH_REGISTRY_CHECKOUT` is unset |
+| `.agro/evals/probes/registry-portability.sh` | the published registry | `AGRO_REGISTRY_CHECKOUT` is unset |
 | `.agro/evals/probes/registry-portability-gate.sh` | this repository | never |
 
 The first probe scans the registry, so it needs a checkout and reports SKIPPED
@@ -216,7 +216,7 @@ exit code alone, unless you pass `--strict-exceptions`.
   backticks is not reported.
 - `HARNESS-SKILL` reads single-word routes only. A two-word route is not
   reported.
-- `OH-PATH` covers `.oh/` and `.agro/` only. The adjacent class is real and larger: the
+- `OH-PATH` covers `.agro/` and `.agro/` only. The adjacent class is real and larger: the
   registry carries 82 `.claude/` references across 15 of its 18 skills, measured
   at `1d11ab6`. Widening the rule is a follow-up, deliberately left out of this
   change.
@@ -229,7 +229,7 @@ exit code alone, unless you pass `--strict-exceptions`.
 
 ## When this check actually runs
 
-Nothing runs the registry scan automatically. `OH_REGISTRY_CHECKOUT` is set in no
+Nothing runs the registry scan automatically. `AGRO_REGISTRY_CHECKOUT` is set in no
 GitHub workflow and no cron; it appears only in the probe that reads it and in
 this file. CI runs the probe suite (`.github/workflows/ci-harness.yml` and
 `release.yml` both call `.agro/skills/eval/run.sh`), so the gate probe fires on

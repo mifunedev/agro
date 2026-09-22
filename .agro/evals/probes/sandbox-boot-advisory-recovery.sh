@@ -4,20 +4,20 @@
 #         into a permanent boot failure for every workspace volume already seeded from that image
 # desc: the documented population-B recovery still holds — a failed bootstrap oneshot leaves the
 #       container running and exec-reachable, deleting the seeded manifest's pnpm:devPreinstall hook
-#       and restarting the container returns openharness-bootstrap.service to active, and the harness
+#       and restarting the container returns agro-bootstrap.service to active, and the harness
 #       checkout's uncommitted change, control-plane task folder, gh credentials and 0600 .env survive
 set -euo pipefail
 
 ROOT="${BOOT_RECOVERY_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
 DOC="$ROOT/docs/repair-sandbox-boot-advisory.md"
 ENTRYPOINT="$ROOT/.devcontainer/entrypoint.sh"
-UNIT="$ROOT/.devcontainer/openharness-bootstrap.service"
+UNIT="$ROOT/.devcontainer/agro-bootstrap.service"
 COMPOSE_FILE="$ROOT/.devcontainer/docker-compose.image-only.yml"
 
 SYMPTOM='pnpm install failed — see /tmp/pnpm-install.log; aborting sandbox boot'
 HOOK_DELETE='jq --indent 2 '\''del(.scripts["pnpm:devPreinstall"])'\'' package.json'
 
-LEGACY_IMAGE="${LEGACY_IMAGE:-ghcr.io/mifunedev/openharness:0.9.0}"
+LEGACY_IMAGE="${LEGACY_IMAGE:-ghcr.io/mifunedev/agro:0.9.0}"
 LIVE="${SANDBOX_BOOT_RECOVERY_LIVE:-0}"
 TIMEOUT="${SANDBOX_BOOT_RECOVERY_TIMEOUT_SECONDS:-600}"
 INTERVAL="${SANDBOX_BOOT_RECOVERY_INTERVAL_SECONDS:-5}"
@@ -33,9 +33,9 @@ grep -Fq -- "$SYMPTOM" "$ENTRYPOINT" \
 grep -Fq -- "$SYMPTOM" "$DOC" \
   || fails+=("the runbook must quote entrypoint.sh's abort line verbatim, or the failure is unrecognisable from what a user sees")
 grep -qE '^Type=oneshot$' "$UNIT" \
-  || fails+=("openharness-bootstrap.service is no longer Type=oneshot — a failed boot would stop taking PID 1 down with it, and the recovery vector assumes it does not")
+  || fails+=("agro-bootstrap.service is no longer Type=oneshot — a failed boot would stop taking PID 1 down with it, and the recovery vector assumes it does not")
 grep -qE '^RemainAfterExit=yes$' "$UNIT" \
-  || fails+=("openharness-bootstrap.service no longer sets RemainAfterExit=yes")
+  || fails+=("agro-bootstrap.service no longer sets RemainAfterExit=yes")
 grep -Fq -- "$HOOK_DELETE" "$DOC" \
   || fails+=("the runbook no longer names the exact manifest edit ${HOOK_DELETE}")
 grep -Fq -- 'docker restart <name>' "$DOC" \
@@ -110,12 +110,12 @@ live_fail() {
 docker volume create "$VOLUME" >/dev/null
 
 docker run --rm -i --entrypoint bash -v "$VOLUME:/home/sandbox" "$LEGACY_IMAGE" -s >"$WORKDIR/seed.log" 2>&1 <<'SEED' \
-  || live_fail "could not seed a workspace volume from $LEGACY_IMAGE's published /opt/oh-seed (see $WORKDIR/seed.log)"
+  || live_fail "could not seed a workspace volume from $LEGACY_IMAGE's published /opt/agro-seed (see $WORKDIR/seed.log)"
 set -eu
 cp -a /opt/home-seed/. /home/sandbox/
 mkdir -p /home/sandbox/harness
-cp -a /opt/oh-seed/. /home/sandbox/harness/
-: > /home/sandbox/harness/.oh/.image-seeded
+cp -a /opt/agro-seed/. /home/sandbox/harness/
+: > /home/sandbox/harness/.agro/.image-seeded
 export HOME=/home/sandbox
 cd /home/sandbox/harness
 git init -q -b main .
@@ -127,8 +127,8 @@ jq --indent 2 '.scripts["my:check"]="./operator-check.sh --strict" | .operatorNo
 cat "$tmp" > package.json
 rm -f "$tmp"
 chmod 0644 package.json
-mkdir -p /home/sandbox/harness/.oh/tasks/boot-recovery-probe
-printf 'probe task state\n' > /home/sandbox/harness/.oh/tasks/boot-recovery-probe/notes.md
+mkdir -p /home/sandbox/harness/.agro/tasks/boot-recovery-probe
+printf 'probe task state\n' > /home/sandbox/harness/.agro/tasks/boot-recovery-probe/notes.md
 mkdir -p /home/sandbox/.config/gh
 printf 'github.com:\n    user: probe-canary\n    oauth_token: gho_PROBE_CANARY\n    git_protocol: https\n' \
   > /home/sandbox/.config/gh/hosts.yml
@@ -145,7 +145,7 @@ h=$HOME/harness
 gh_hosts=$HOME/.config/gh/hosts.yml
 printf 'readme=%s\n' "$(sha256sum "$h/README.md" | cut -d' ' -f1)"
 printf 'readme_dirty=%s\n' "$(cd "$h" && git status --porcelain -- README.md | tr -d ' \n')"
-printf 'task=%s\n' "$( [ -f "$h/.oh/tasks/boot-recovery-probe/notes.md" ] && sha256sum "$h/.oh/tasks/boot-recovery-probe/notes.md" | cut -d' ' -f1 || echo absent)"
+printf 'task=%s\n' "$( [ -f "$h/.agro/tasks/boot-recovery-probe/notes.md" ] && sha256sum "$h/.agro/tasks/boot-recovery-probe/notes.md" | cut -d' ' -f1 || echo absent)"
 printf 'gh_token=%s\n' "$( [ -f "$gh_hosts" ] && sed -n 's/^ *oauth_token: //p' "$gh_hosts" | head -1 || echo absent)"
 printf 'gh_user=%s\n' "$( [ -f "$gh_hosts" ] && sed -n 's/^ *user: //p' "$gh_hosts" | head -1 || echo absent)"
 printf 'gh_mode=%s\n' "$( [ -f "$gh_hosts" ] && stat -c '%a' "$gh_hosts" || echo absent)"
@@ -176,7 +176,7 @@ wait_for_unit() {
   local want="$1" end state
   end=$(( $(date +%s) + TIMEOUT ))
   while [ "$(date +%s)" -le "$end" ]; do
-    state="$(docker exec "$PROJECT" systemctl is-active openharness-bootstrap.service 2>/dev/null || true)"
+    state="$(docker exec "$PROJECT" systemctl is-active agro-bootstrap.service 2>/dev/null || true)"
     [[ "$state" == "$want" ]] && return 0
     [[ "$state" == "failed" || "$state" == "active" ]] && return 1
     sleep "$INTERVAL"
@@ -185,7 +185,7 @@ wait_for_unit() {
 }
 
 wait_for_unit failed \
-  || live_fail "openharness-bootstrap.service did not fail on the seeded 0.9.0 volume — the reproduction this recovery path guards no longer happens, so the recovery is unverified"
+  || live_fail "agro-bootstrap.service did not fail on the seeded 0.9.0 volume — the reproduction this recovery path guards no longer happens, so the recovery is unverified"
 
 [[ "$(docker inspect --format '{{.State.Status}}' "$PROJECT")" == "running" ]] \
   || live_fail "the container is not running after the bootstrap oneshot failed — the recovery vector assumes the failed boot leaves the container up"
@@ -242,7 +242,7 @@ run_documented_recovery >"$WORKDIR/refuse-symlink.log" 2>&1 || rc=$?
   || live_fail "the documented block did not refuse a symlinked package.json (exit $rc) — it must not follow the link and write through it"
 grep -Fq 'is not a regular file' "$WORKDIR/refuse-symlink.log" \
   || live_fail "the symlink refusal did not name the reason (see $WORKDIR/refuse-symlink.log)"
-[[ "$(docker exec "$PROJECT" systemctl is-active openharness-bootstrap.service 2>/dev/null || true)" == "failed" ]] \
+[[ "$(docker exec "$PROJECT" systemctl is-active agro-bootstrap.service 2>/dev/null || true)" == "failed" ]] \
   || live_fail "the bootstrap unit changed state during the symlink refusal case"
 
 rc=0
@@ -277,7 +277,7 @@ grep -Fq './my-checks.sh' "$WORKDIR/refuse-combined.log" \
   || live_fail "the modified-hook refusal did not report the value it found (see $WORKDIR/refuse-combined.log)"
 diff -q <(manifest_bytes) "$WORKDIR/pkg-combined.json" >/dev/null \
   || live_fail "the modified-hook refusal wrote to package.json instead of leaving it untouched"
-[[ "$(docker exec "$PROJECT" systemctl is-active openharness-bootstrap.service 2>/dev/null || true)" == "failed" ]] \
+[[ "$(docker exec "$PROJECT" systemctl is-active agro-bootstrap.service 2>/dev/null || true)" == "failed" ]] \
   || live_fail "the bootstrap unit changed state during the modified-hook refusal case"
 
 rc=0
@@ -309,10 +309,10 @@ docker restart "$PROJECT" >/dev/null \
   || live_fail "the runbook's restart command failed"
 
 wait_for_unit active \
-  || live_fail "openharness-bootstrap.service did not reach active after the documented recovery — the recovery path is broken"
+  || live_fail "agro-bootstrap.service did not reach active after the documented recovery — the recovery path is broken"
 
-docker exec "$PROJECT" systemctl is-active --quiet openharness-cron.service \
-  || live_fail "openharness-cron.service is not active after the documented recovery"
+docker exec "$PROJECT" systemctl is-active --quiet agro-cron.service \
+  || live_fail "agro-cron.service is not active after the documented recovery"
 
 after="$(volume_snapshot)"
 
@@ -344,5 +344,5 @@ if (( ${#fails[@]} )); then
   exit 1
 fi
 
-echo "PASS: a volume seeded from $LEGACY_IMAGE fails its boot with the documented symptom, stays running and exec-reachable; the documented block refuses a symlinked manifest and a pnpm:devPreinstall carrying operator logic without writing either; and on the audit-only hook it removes exactly that one line, keeping package.json's mode, owner, inode and the operator's own fields, returns openharness-bootstrap.service to active, and leaves the checkout's uncommitted change, task folder, gh credentials and 0600 .env intact" >&2
+echo "PASS: a volume seeded from $LEGACY_IMAGE fails its boot with the documented symptom, stays running and exec-reachable; the documented block refuses a symlinked manifest and a pnpm:devPreinstall carrying operator logic without writing either; and on the audit-only hook it removes exactly that one line, keeping package.json's mode, owner, inode and the operator's own fields, returns agro-bootstrap.service to active, and leaves the checkout's uncommitted change, task folder, gh credentials and 0600 .env intact" >&2
 exit 0

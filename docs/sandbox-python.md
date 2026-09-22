@@ -8,7 +8,7 @@ Project virtual environments retain their own interpreters and packages.
 
 ## Kernel provisioning
 
-The kernel environment lives at `$HOME/.local/share/oh/kernel`.
+The kernel environment lives at `$HOME/.local/share/agro/kernel`.
 The provisioner compares its base interpreter with the requested uv-managed interpreter.
 It reuses a matching environment and recreates a stale environment at the same path.
 If creation or package installation fails during migration, it restores the old kernel.
@@ -16,10 +16,10 @@ The provisioner retains older managed Python installations.
 A file lock serializes provisioning within one HOME.
 Boot reports provisioning failures as warnings and continues.
 
-Use `OH_PYTHON_VERSION`, `OH_PYTHON_KERNEL_HOME`, and `OH_PYTHON_KERNEL_PACKAGES` to override defaults.
+Use `AGRO_PYTHON_VERSION`, `AGRO_PYTHON_KERNEL_HOME`, and `AGRO_PYTHON_KERNEL_PACKAGES` to override defaults.
 The provisioner refuses kernel replacement at `/`, HOME, an ancestor of HOME, a symlink path, or a non-managed environment.
 It accepts legacy uv environments at the default or explicitly configured kernel path.
-Set `OH_PYTHON_KERNEL_HOME` only to the environment that the provisioner must manage.
+Set `AGRO_PYTHON_KERNEL_HOME` only to the environment that the provisioner must manage.
 
 ## Verification
 

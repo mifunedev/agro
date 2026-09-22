@@ -5,11 +5,11 @@
   "title": "Add default Pi Monitor support",
   "created": "2026-06-15",
   "source": {
-    "repo": "ryaneggz/openharness",
+    "repo": "ryaneggz/agro",
     "pr": 147,
     "issue": 146,
     "merge_commit": "7c92c13",
-    "url": "https://github.com/ryaneggz/openharness/pull/147"
+    "url": "https://github.com/ryaneggz/agro/pull/147"
   },
   "trajectory": {
     "kind": "ship-spec-pr",

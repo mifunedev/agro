@@ -33,4 +33,4 @@ alias agy='agy --dangerously-skip-permissions'
 
 cd ~/harness 2>/dev/null
 
-source "${OH_PROJECT_ROOT:-$HOME/harness}/.agro/install/banner.sh" 2>/dev/null
+source "${AGRO_PROJECT_ROOT:-$HOME/harness}/.agro/install/banner.sh" 2>/dev/null

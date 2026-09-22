@@ -1,6 +1,6 @@
 # RFC: Normalized trace / event ledger
 
-Status: Draft foundational spec for [#525](https://github.com/mifunedev/openharness/issues/525).
+Status: Draft foundational spec for [#525](https://github.com/mifunedev/agro/issues/525).
 
 This RFC describes the normalized append-only event ledger that later
 self-improvement work can build on. It is deliberately a spec only: it does not
@@ -18,14 +18,14 @@ in the [glossary](../glossary.md).
   shape.
 - Preserve enough structure for replay, diagnosis, and scoring without storing
   secrets or large raw transcripts by default.
-- Reserve a storage layout that fits the `.oh/` control-plane model documented in
-  [`.oh/` directory layout](../oh-directory-layout.md).
+- Reserve a storage layout that fits the `.agro/` control-plane model documented in
+  [`.agro/` directory layout](../agro-directory-layout.md).
 - Keep the ledger append-only so later analysis can trust historical events.
 
 ## Non-goals
 
 - No provider adapters, hooks, or runner changes in this RFC.
-- No new `.oh/traces/` or `.oh/sessions/` directory is created by this document.
+- No new `.agro/traces/` or `.agro/sessions/` directory is created by this document.
 - No promise of byte-for-byte deterministic replay of model output.
 - No central service or external database; the first storage target is files in
   the repo checkout.
@@ -76,25 +76,25 @@ first-class type if browser traces need separate scoring semantics.
 
 ## Storage layout
 
-The ledger belongs in the `.oh/` machinery namespace because traces are harness
+The ledger belongs in the `.agro/` machinery namespace because traces are harness
 runtime evidence, not application source. The current
-[`.oh/` directory layout](../oh-directory-layout.md) correctly lists
+[`.agro/` directory layout](../agro-directory-layout.md) correctly lists
 `traces/` and `sessions/` as **proposed, not present**. When implemented, this RFC
 reserves:
 
 ```text
-.oh/traces/<run_id>/events.jsonl
-.oh/traces/<run_id>/artifacts/<artifact_id>
-.oh/traces/<run_id>/manifest.json
-.oh/sessions/<session_id>.json
+.agro/traces/<run_id>/events.jsonl
+.agro/traces/<run_id>/artifacts/<artifact_id>
+.agro/traces/<run_id>/manifest.json
+.agro/sessions/<session_id>.json
 ```
 
-- `.oh/traces/<run_id>/events.jsonl` is the append-only ledger.
-- `.oh/traces/<run_id>/artifacts/` stores optional sanitized artifacts too large
+- `.agro/traces/<run_id>/events.jsonl` is the append-only ledger.
+- `.agro/traces/<run_id>/artifacts/` stores optional sanitized artifacts too large
   or sensitive to inline in events.
-- `.oh/traces/<run_id>/manifest.json` records schema version, task/branch/issue
+- `.agro/traces/<run_id>/manifest.json` records schema version, task/branch/issue
   pointers, retention policy, and artifact hash inventory.
-- `.oh/sessions/<session_id>.json` is an index from a longer-lived session to the
+- `.agro/sessions/<session_id>.json` is an index from a longer-lived session to the
   runs it produced; it should not duplicate event payloads.
 
 Until a runtime implementation lands, absence of these directories is the
@@ -160,16 +160,16 @@ explain what happened.
 Each line below is a complete JSON object.
 
 ```jsonl
-{"schema_version":"trace-ledger.v0","event_id":"evt_0001","run_id":"run_20260703T190800Z_oh525","session_id":"sess_firstmate_oh_selfimprove_foundation","ts":"2026-07-03T19:08:00Z","type":"Run","actor":"firstmate","source":".oh/scripts/firstmate.sh","payload":{"task":"oh-selfimprove-foundation","branch":"feat/525-oh-selfimprove-foundation","status":"started"}}
-{"schema_version":"trace-ledger.v0","event_id":"evt_0002","run_id":"run_20260703T190800Z_oh525","session_id":"sess_firstmate_oh_selfimprove_foundation","step_id":"US-002","parent_event_id":"evt_0001","ts":"2026-07-03T19:09:00Z","type":"Step","actor":"ralph","source":".oh/tasks/oh-selfimprove-foundation/prd.json","payload":{"title":"Normalized trace/event ledger RFC (foundational spec, descriptive)","status":"started"}}
-{"schema_version":"trace-ledger.v0","event_id":"evt_0003","run_id":"run_20260703T190800Z_oh525","session_id":"sess_firstmate_oh_selfimprove_foundation","step_id":"US-002","parent_event_id":"evt_0002","ts":"2026-07-03T19:20:00Z","type":"file_change","actor":"ralph","source":"git diff","payload":{"path":".oh/docs/rfcs/rfc-trace-ledger.md","change":"created","diff_stat":"+170 -0","content_sha256":"sha256:example"}}
+{"schema_version":"trace-ledger.v0","event_id":"evt_0001","run_id":"run_20260703T190800Z_oh525","session_id":"sess_firstmate_oh_selfimprove_foundation","ts":"2026-07-03T19:08:00Z","type":"Run","actor":"firstmate","source":".agro/scripts/firstmate.sh","payload":{"task":"oh-selfimprove-foundation","branch":"feat/525-oh-selfimprove-foundation","status":"started"}}
+{"schema_version":"trace-ledger.v0","event_id":"evt_0002","run_id":"run_20260703T190800Z_oh525","session_id":"sess_firstmate_oh_selfimprove_foundation","step_id":"US-002","parent_event_id":"evt_0001","ts":"2026-07-03T19:09:00Z","type":"Step","actor":"ralph","source":".agro/tasks/oh-selfimprove-foundation/prd.json","payload":{"title":"Normalized trace/event ledger RFC (foundational spec, descriptive)","status":"started"}}
+{"schema_version":"trace-ledger.v0","event_id":"evt_0003","run_id":"run_20260703T190800Z_oh525","session_id":"sess_firstmate_oh_selfimprove_foundation","step_id":"US-002","parent_event_id":"evt_0002","ts":"2026-07-03T19:20:00Z","type":"file_change","actor":"ralph","source":"git diff","payload":{"path":".agro/docs/rfcs/rfc-trace-ledger.md","change":"created","diff_stat":"+170 -0","content_sha256":"sha256:example"}}
 {"schema_version":"trace-ledger.v0","event_id":"evt_0004","run_id":"run_20260703T190800Z_oh525","session_id":"sess_firstmate_oh_selfimprove_foundation","step_id":"US-002","parent_event_id":"evt_0002","ts":"2026-07-03T19:25:00Z","type":"validation","actor":"ralph","source":"pnpm","payload":{"command":"pnpm run test","exit_code":0,"status":"PASS"}}
 {"schema_version":"trace-ledger.v0","event_id":"evt_0005","run_id":"run_20260703T190800Z_oh525","session_id":"sess_firstmate_oh_selfimprove_foundation","step_id":"US-002","parent_event_id":"evt_0002","ts":"2026-07-03T19:26:00Z","type":"handoff_status","actor":"ralph","source":"progress.txt","payload":{"marker":"US-002 PASS","next":"US-003","parse_status":"ok"}}
 ```
 
 ## Implementation notes for future child issues
 
-- Add `.oh/traces/` and `.oh/sessions/` to the directory-layout doc only in the
+- Add `.agro/traces/` and `.agro/sessions/` to the directory-layout doc only in the
   implementation PR that creates them.
 - Decide retention and gitignore rules before writing private traces to disk.
 - Keep provider-specific raw logs as optional artifacts; normalize only the

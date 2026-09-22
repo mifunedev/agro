@@ -10,11 +10,11 @@ import {
   writeFileSync,
 } from "node:fs";
 import { basename, delimiter, dirname, extname, join } from "node:path";
-import { aliasedEnvValue } from "../lib/compat.js";
+import { agroEnvValue } from "../lib/layout.js";
 import { IMAGE_ROOT, toPosix } from "../lib/install-kind.js";
 import { AGRO_PRODUCT, resolveProduct } from "../lib/product.js";
 
-export type InstallKind = "npm" | "standalone" | "image" | "source" | "legacy-package" | "unknown";
+export type InstallKind = "npm" | "standalone" | "image" | "source" | "unknown";
 
 export interface Installation {
   kind: InstallKind;
@@ -108,7 +108,6 @@ function resolveTarget(invoked: string, deps: SelfUpgradeDeps): { target: string
 
 function kindOfTarget(target: string, deps: SelfUpgradeDeps): Pick<Installation, "kind" | "npmPrefix"> {
   const posix = toPosix(target);
-  if (posix.includes("/node_modules/@mifune/openharness/")) return { kind: "legacy-package" };
   if (posix.includes(`/node_modules/${PACKAGE}/`)) return { kind: "npm", npmPrefix: npmPrefixOf(posix) };
   if (posix.startsWith(IMAGE_ROOT)) return { kind: "image" };
   if (isSourceCheckout(deps, target)) return { kind: "source" };
@@ -188,8 +187,6 @@ function refuseUnsupported(installation: Installation, bin: string): Error {
       );
     case "source":
       return new Error(`${at} — rebuild from the checkout: npm --prefix .agro/cli run build`);
-    case "legacy-package":
-      return new Error(`${at} — install the canonical package: npm install -g ${PACKAGE}`);
     default:
       return new Error(
         `unknown installation (${reason ?? target}) — install with npm install -g ${PACKAGE} or get-agro.sh`,
@@ -298,7 +295,7 @@ async function upgradeStandalone(
   const target = installation.target;
   const dir = dirname(target);
   const current = deps.currentVersion;
-  const url = aliasedEnvValue(deps.env, "JS_URL", (m) => io.stderr(`${m}\n`)) ?? DEFAULT_ARTIFACT_URL;
+  const url = agroEnvValue(deps.env, "JS_URL") ?? DEFAULT_ARTIFACT_URL;
 
   try {
     deps.access(dir, constants.W_OK);

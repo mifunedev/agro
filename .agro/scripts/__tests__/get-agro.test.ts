@@ -3,7 +3,6 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { loadVectors, type Vector } from "../../cli/src/lib/__tests__/fixtures/compat-fixture.js";
 
 const REPO_ROOT = resolve(import.meta.dirname, "../../..");
 const SCRIPT = join(REPO_ROOT, ".agro", "scripts", "get-agro.sh");
@@ -62,32 +61,25 @@ function install(h: Home, env: Record<string, string>): ShellResult {
   return run([], { HOME: h.home, ...env });
 }
 
-describe("get-agro.sh alias resolution (compat env vectors)", () => {
-  const envVectors = loadVectors().filter((v): v is Extract<Vector, { kind: "env" }> => v.kind === "env");
-
-  it("has env vectors to prove", () => {
-    expect(envVectors.length).toBeGreaterThan(0);
+describe("get-agro.sh env resolution", () => {
+  it("reports the AGRO_ spelling as the source when it is set", () => {
+    const result = run(["--resolve", "JS_URL", "https://example.invalid/agro.js"], {
+      AGRO_JS_URL: "https://example.invalid/override.js",
+    });
+    expect(result.status).toBe(0);
+    expect(result.stdout.trimEnd()).toBe("agro\thttps://example.invalid/override.js");
+    expect(result.stderr).toBe("");
   });
 
-  for (const vector of envVectors) {
-    it(vector.id, () => {
-      const result = run(["--resolve", vector.suffix, ""], vector.env);
-      expect(result.status).toBe(0);
-      const [source, value] = result.stdout.trimEnd().split("\t");
-      expect(source).toBe(vector.expect.source);
-      expect(blankToNull(value)).toBe(vector.expect.value);
-      if (!vector.expect.conflict) {
-        expect(result.stderr).toBe("");
-        return;
-      }
-      expect(result.stderr).toContain(`AGRO_${vector.suffix}`);
-      expect(result.stderr).toContain(`OH_${vector.suffix}`);
-      expect(result.stderr).toContain(`using AGRO_${vector.suffix}`);
-      for (const v of Object.values(vector.env)) expect(result.stderr).not.toContain(v);
+  it("ignores the retired OH_ spelling entirely", () => {
+    const result = run(["--resolve", "JS_URL", "https://example.invalid/agro.js"], {
+      OH_JS_URL: "https://example.invalid/legacy.js",
     });
-  }
+    expect(result.status).toBe(0);
+    expect(result.stdout.trimEnd()).toBe("none\thttps://example.invalid/agro.js");
+  });
 
-  it("prints the default when neither spelling is set", () => {
+  it("prints the default when the variable is unset", () => {
     const result = run(["--resolve", "JS_URL", "https://example.invalid/agro.js"]);
     expect(result.status).toBe(0);
     expect(result.stdout.trimEnd()).toBe("none\thttps://example.invalid/agro.js");
@@ -115,17 +107,17 @@ describe("get-agro.sh end to end", () => {
     expect(result.stderr).toBe("");
   });
 
-  it("falls back to the legacy OH_* installer variables", () => {
+  it("falls back to the legacy AGRO_* installer variables", () => {
     const h = makeHome();
     const binDir = join(h.home, "legacy-bin");
-    const result = install(h, { OH_BIN_DIR: binDir, OH_JS_URL: `file://${h.artifact}` });
+    const result = install(h, { AGRO_BIN_DIR: binDir, AGRO_JS_URL: `file://${h.artifact}` });
     expect(result.status, result.stderr).toBe(0);
     expect(readFileSync(join(binDir, "agro"), "utf8")).toBe(FAKE_ARTIFACT);
     expect(readFileSync(h.profile, "utf8")).toContain(`export PATH="${binDir}:$PATH"`);
     expect(result.stderr).toBe("");
   });
 
-  it("prefers AGRO_BIN_DIR over a differing OH_BIN_DIR and warns naming only the keys", () => {
+  it("installs into AGRO_BIN_DIR and ignores the retired OH_BIN_DIR spelling", () => {
     const h = makeHome();
     const agroDir = join(h.home, "agro-bin");
     const legacyDir = join(h.home, "legacy-bin");
@@ -137,8 +129,6 @@ describe("get-agro.sh end to end", () => {
     expect(result.status, result.stderr).toBe(0);
     expect(readFileSync(join(agroDir, "agro"), "utf8")).toBe(FAKE_ARTIFACT);
     expect(() => statSync(join(legacyDir, "agro"))).toThrow();
-    expect(result.stderr).toContain("AGRO_BIN_DIR and OH_BIN_DIR are both set and differ — using AGRO_BIN_DIR");
-    expect(result.stderr).not.toContain(legacyDir);
   });
 
   it("fails on a missing artifact with the URL and the npm alternative, without building", () => {
@@ -228,7 +218,7 @@ describe("get-agro.sh static contract", () => {
       "npm run build",
       "build_from_source",
       "GITHUB_REF",
-      "_OH_SOURCED",
+      "_AGRO_SOURCED",
     ]) {
       const hits = source.split("\n").filter((line) => line.includes(forbidden));
       const onlyNpmAlternative = forbidden === "npm install" && hits.every((l) => l.includes(NPM_ALTERNATIVE));
@@ -246,7 +236,7 @@ describe("get-agro.sh static contract", () => {
       "https://github.com/someone/fork/releases/latest/download/agro.js",
     );
     expect(run(["--help"], { AGRO_GITHUB_REPO: "not-a-slug" }).status).not.toBe(0);
-    for (const item of ["AGRO_BIN_DIR", "AGRO_JS_URL", "AGRO_NVM_VERSION", "AGRO_ASSUME_YES", "OH_<NAME>", NPM_ALTERNATIVE]) {
+    for (const item of ["AGRO_BIN_DIR", "AGRO_JS_URL", "AGRO_NVM_VERSION", "AGRO_ASSUME_YES", NPM_ALTERNATIVE]) {
       expect(help.stdout).toContain(item);
     }
   });

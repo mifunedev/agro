@@ -21,7 +21,7 @@ confidence: provisional
   `git rev-parse HEAD` and `git add -f`s it in the same step.
 - `.agro/evals/probes/eval-runs-once-per-cycle.sh` — the oracle that requires every
   reader to compare the record's `commit` against HEAD before reusing it.
-- `.oh/tasks/repo-knowledge-loop/eval-result.json@fcbeedea` — the record three
+- `.agro/tasks/repo-knowledge-loop/eval-result.json@fcbeedea` — the record three
   consecutive audits declined to reuse.
 
 ## Summary

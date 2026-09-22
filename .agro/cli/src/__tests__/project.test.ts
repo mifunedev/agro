@@ -21,41 +21,41 @@ afterEach(() => {
 });
 
 describe("resolveProjectRoot", () => {
-  it("returns the starting directory itself when it contains .oh/", () => {
+  it("returns the starting directory itself when it contains .agro/", () => {
     const root = mkTmp();
-    mkdirSync(join(root, ".oh"));
+    mkdirSync(join(root, ".agro"));
     expect(resolveProjectRoot(root)).toBe(root);
   });
 
   it("walks up from a cwd nested 2+ levels deep to the equipped root", () => {
     const root = mkTmp();
-    mkdirSync(join(root, ".oh"));
+    mkdirSync(join(root, ".agro"));
     const nested = join(root, "packages", "app", "src");
     mkdirSync(nested, { recursive: true });
     expect(resolveProjectRoot(nested)).toBe(root);
   });
 
-  it("stops at the NEAREST equipped ancestor (inner .oh/ wins over outer)", () => {
+  it("stops at the NEAREST equipped ancestor (inner .agro/ wins over outer)", () => {
     const outer = mkTmp();
-    mkdirSync(join(outer, ".oh"));
+    mkdirSync(join(outer, ".agro"));
     const inner = join(outer, "vendored", "child");
-    mkdirSync(join(inner, ".oh"), { recursive: true });
+    mkdirSync(join(inner, ".agro"), { recursive: true });
     const deep = join(inner, "deep", "er");
     mkdirSync(deep, { recursive: true });
     expect(resolveProjectRoot(deep)).toBe(inner);
     expect(resolveProjectRoot(inner)).toBe(inner);
   });
 
-  it("ignores a plain FILE named .oh and keeps walking", () => {
+  it("ignores a plain FILE named .agro and keeps walking", () => {
     const root = mkTmp();
-    mkdirSync(join(root, ".oh"));
+    mkdirSync(join(root, ".agro"));
     const child = join(root, "sub");
     mkdirSync(child);
-    writeFileSync(join(child, ".oh"), "not a directory\n");
+    writeFileSync(join(child, ".agro"), "not a directory\n");
     expect(resolveProjectRoot(child)).toBe(root);
   });
 
-  it.each(["agro", "oh"])(
+  it.each(["agro"])(
     "errors clearly (no %s: prefix) when no ancestor contains a control directory",
     (bin) => {
       const bare = mkTmp();
@@ -63,7 +63,7 @@ describe("resolveProjectRoot", () => {
       mkdirSync(nested, { recursive: true });
       withInvokedBin(bin, () => {
         expect(() => resolveProjectRoot(nested)).toThrow(
-          `not an OpenHarness-equipped repo — run \`${bin} update\` first`,
+          `not an AGRO-equipped repo — run \`${bin} vendor\` first`,
         );
         expect(() => resolveProjectRoot(nested)).not.toThrow(new RegExp(`^${bin}:`));
       });
@@ -71,7 +71,7 @@ describe("resolveProjectRoot", () => {
   );
 });
 
-describe("resolveProjectRoot — dual-generation control directories", () => {
+describe("resolveProjectRoot — control directory", () => {
   it("recognizes an .agro/-only root", () => {
     const root = mkTmp();
     mkdirSync(join(root, ".agro"));
@@ -80,27 +80,9 @@ describe("resolveProjectRoot — dual-generation control directories", () => {
     expect(resolveProjectRoot(nested)).toBe(root);
   });
 
-  it("recognizes a root where .oh/ and .agro/ are byte-identical", () => {
+  it("ignores a legacy .oh/ directory", () => {
     const root = mkTmp();
     mkdirSync(join(root, ".oh"));
-    mkdirSync(join(root, ".agro"));
-    writeFileSync(join(root, ".oh", "README.md"), "same\n");
-    writeFileSync(join(root, ".agro", "README.md"), "same\n");
-    expect(resolveProjectRoot(root)).toBe(root);
-  });
-
-  it("fails closed when .oh/ and .agro/ both exist and differ", () => {
-    const root = mkTmp();
-    mkdirSync(join(root, ".oh"));
-    mkdirSync(join(root, ".agro"));
-    writeFileSync(join(root, ".oh", "README.md"), "one\n");
-    writeFileSync(join(root, ".agro", "README.md"), "two\n");
-    expect(() => resolveProjectRoot(root)).toThrow(/both exist and differ/);
-  });
-
-  it("keeps the legacy default: a plain .oh/ root resolves exactly as before", () => {
-    const root = mkTmp();
-    mkdirSync(join(root, ".oh"));
-    expect(resolveProjectRoot(root)).toBe(root);
+    expect(() => resolveProjectRoot(root)).toThrow(/not an AGRO-equipped repo/);
   });
 });

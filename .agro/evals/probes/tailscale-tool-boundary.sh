@@ -11,14 +11,14 @@
 #         interactive `sudo` and /etc/sudoers.d/sandbox has no NOPASSWD.
 #         #920 removed the duplicate boot-path installer: the tool catalog is now the
 #         only place the version and both checksums may appear.
-#         #948 made `oh tool install tailscale` the only door: nothing installs at boot.
+#         #948 made `agro tool install tailscale` the only door: nothing installs at boot.
 #         #956 made systemd PID 1, which needs cap_add SYS_ADMIN to mount its own cgroup2
 #         hierarchy. That capability is unrelated to Tailscale: a tun device still requires
 #         /dev/net/tun plus CAP_NET_ADMIN, and neither is granted. The blanket "no cap_add"
 #         check therefore narrows to an allowlist of exactly SYS_ADMIN, whose presence and
 #         justification are owned by .agro/evals/probes/systemd-sandbox-init.sh.
 # desc: the Tailscale tool stays a zero-privilege, zero-exposure install reached only
-#       through `oh tool install` — tools/catalog.ts is the sole owner of the version
+#       through `agro tool install` — tools/catalog.ts is the sole owner of the version
 #       and both sha256 pins, the entrypoint holds neither a guard nor a pin, no
 #       no networking capability, devices, privileged or 3773 in any compose file
 #       (SYS_ADMIN for systemd is the only capability allowed), no tailscaled or
@@ -44,7 +44,7 @@ fi
 missing=()
 
 grep -qF 'INSTALL_TAILSCALE' "$ENTRY" \
-  && missing+=("$ENTRY: INSTALL_TAILSCALE guard returned — the install belongs to the tool catalog, reached through \`oh tool install tailscale\`")
+  && missing+=("$ENTRY: INSTALL_TAILSCALE guard returned — the install belongs to the tool catalog, reached through \`agro tool install tailscale\`")
 grep -qF 'INSTALL_TAILSCALE' "$DOCKERFILE" \
   && missing+=("$DOCKERFILE: INSTALL_TAILSCALE appeared — an image-layer install is discarded on every container recreate")
 
@@ -125,11 +125,11 @@ if ! grep -qE 'id:[[:space:]]*"tailscale"' "$CATALOG"; then
 else
   entry_block=$(awk '/id:[[:space:]]*"tailscale"/{found=1} found{print; if (/\}\)/) exit}' "$CATALOG")
   grep -qE 'kind:[[:space:]]*"installable"' <<<"$entry_block" \
-    || missing+=("$CATALOG: the tailscale entry is not kind \"installable\" — it enters the sandbox only through \`oh tool install\`, never at boot and never from the image")
+    || missing+=("$CATALOG: the tailscale entry is not kind \"installable\" — it enters the sandbox only through \`agro tool install\`, never at boot and never from the image")
   grep -qF 'entrypointGuard' <<<"$entry_block" \
     && missing+=("$CATALOG: the tailscale entry declares an entrypointGuard — it records a second installer that must not exist")
   # tailscaled runs fine unprivileged with --tun=userspace-networking, so nothing
-  # here needs root. A root install would hang `oh tool install tailscale` on a
+  # here needs root. A root install would hang `agro tool install tailscale` on a
   # sudo password prompt no agent can answer, and would put the binary in an
   # image-layer path that no running sandbox can upgrade and every container
   # recreate discards.
@@ -149,14 +149,14 @@ grep -qE 'install -m 0755 [^ ]+ /usr/local/bin/tailscaled?' "$ENTRY" \
 # tailscaled's default control socket is /var/run/tailscale/tailscaled.sock and
 # t3-code.sh calls a bare `tailscale status`. Only root can create that directory,
 # so the entrypoint must, and it must not be gated behind INSTALL_TAILSCALE —
-# `oh tool install tailscale` is supposed to leave the tool usable immediately.
+# `agro tool install tailscale` is supposed to leave the tool usable immediately.
 socket_dir_line=$(grep -nE 'install -d .*-o sandbox .*/var/run/tailscale' "$ENTRY" | head -1 | cut -d: -f1)
 if [ -z "$socket_dir_line" ]; then
   missing+=("$ENTRY: never creates /var/run/tailscale — tailscaled's default socket path is unwritable, so a bare \`tailscale status\` cannot work")
 else
   socket_dir_text=$(sed -n "${socket_dir_line}p" "$ENTRY")
   if [[ $socket_dir_text == [[:space:]]* ]]; then
-    missing+=("$ENTRY: creates /var/run/tailscale inside a conditional block — a later \`oh tool install tailscale\` would then need a reboot before the socket path exists")
+    missing+=("$ENTRY: creates /var/run/tailscale inside a conditional block — a later \`agro tool install tailscale\` would then need a reboot before the socket path exists")
   fi
 fi
 

@@ -10,7 +10,7 @@ TIMEOUT=${BOOT_SMOKE_TIMEOUT_SECONDS:-600}
 INTERVAL=${BOOT_SMOKE_INTERVAL_SECONDS:-10}
 UP_ARGS=${BOOT_SMOKE_UP_ARGS:-up -d --no-build}
 DOWN_ARGS=${BOOT_SMOKE_DOWN_ARGS:-down -v --remove-orphans}
-HEALTH_CMD=${BOOT_SMOKE_HEALTH_CMD:-bash ${OH_PROJECT_ROOT:-/home/sandbox/harness}/.agro/scripts/sandbox-healthcheck.sh}
+HEALTH_CMD=${BOOT_SMOKE_HEALTH_CMD:-bash ${AGRO_PROJECT_ROOT:-/home/sandbox/harness}/.agro/scripts/sandbox-healthcheck.sh}
 RELOAD_TIMEOUT=${BOOT_SMOKE_RELOAD_TIMEOUT_SECONDS:-20}
 RECOVERY_TIMEOUT=${BOOT_SMOKE_RECOVERY_TIMEOUT_SECONDS:-60}
 
@@ -37,7 +37,7 @@ status_diagnostics() {
 
 verify_bind_ownership() {
   local cid="$1"
-  local project_root=${OH_PROJECT_ROOT:-/home/sandbox/harness}
+  local project_root=${AGRO_PROJECT_ROOT:-/home/sandbox/harness}
   local marker=".sandbox-boot-smoke-owner-$$"
   local host_uid host_gid observed
 
@@ -93,8 +93,8 @@ verify_nothing_installed() {
     return 1
   fi
 
-  if ! states=$(docker exec -u sandbox "$cid" bash -lc "oh $cmd list --json" 2>/tmp/sandbox-boot-smoke-catalog.err); then
-    echo "sandbox boot smoke failed: 'oh $cmd list --json' did not run in the booted sandbox" >&2
+  if ! states=$(docker exec -u sandbox "$cid" bash -lc "agro $cmd list --json" 2>/tmp/sandbox-boot-smoke-catalog.err); then
+    echo "sandbox boot smoke failed: 'agro $cmd list --json' did not run in the booted sandbox" >&2
     cat /tmp/sandbox-boot-smoke-catalog.err >&2 || true
     return 1
   fi
@@ -143,7 +143,7 @@ verify_nothing_installed() {
 
 verify_systemd_supervision() {
   local cid="$1"
-  local project_root=${OH_PROJECT_ROOT:-/home/sandbox/harness}
+  local project_root=${AGRO_PROJECT_ROOT:-/home/sandbox/harness}
   local pid_file="$project_root/crons/.pid"
   local cron_log="$project_root/crons/.cron.log"
   local pid1 main_pid locked_pid reloads_before reloads_after new_pid waited
@@ -154,22 +154,22 @@ verify_systemd_supervision() {
     return 1
   fi
 
-  if ! docker exec "$cid" systemctl is-active --quiet openharness-bootstrap.service; then
-    echo "sandbox boot smoke failed: openharness-bootstrap.service is not active" >&2
-    docker exec "$cid" systemctl status openharness-bootstrap.service --no-pager >&2 || true
+  if ! docker exec "$cid" systemctl is-active --quiet agro-bootstrap.service; then
+    echo "sandbox boot smoke failed: agro-bootstrap.service is not active" >&2
+    docker exec "$cid" systemctl status agro-bootstrap.service --no-pager >&2 || true
     return 1
   fi
 
-  if ! docker exec "$cid" systemctl is-active --quiet openharness-cron.service; then
-    echo "sandbox boot smoke failed: openharness-cron.service is not active" >&2
-    docker exec "$cid" systemctl status openharness-cron.service --no-pager >&2 || true
+  if ! docker exec "$cid" systemctl is-active --quiet agro-cron.service; then
+    echo "sandbox boot smoke failed: agro-cron.service is not active" >&2
+    docker exec "$cid" systemctl status agro-cron.service --no-pager >&2 || true
     return 1
   fi
 
-  main_pid=$(docker exec "$cid" systemctl show -p MainPID --value openharness-cron.service 2>/dev/null | tr -d ' \r')
+  main_pid=$(docker exec "$cid" systemctl show -p MainPID --value agro-cron.service 2>/dev/null | tr -d ' \r')
   locked_pid=$(docker exec "$cid" cat "$pid_file" 2>/dev/null | tr -d ' \r')
   if [ -z "$main_pid" ] || [ "$main_pid" -le 1 ] 2>/dev/null; then
-    echo "sandbox boot smoke failed: openharness-cron.service reports MainPID '${main_pid:-<empty>}'" >&2
+    echo "sandbox boot smoke failed: agro-cron.service reports MainPID '${main_pid:-<empty>}'" >&2
     return 1
   fi
   if [ "$main_pid" != "$locked_pid" ]; then
@@ -179,8 +179,8 @@ verify_systemd_supervision() {
   echo "sandbox boot smoke: systemd is PID 1 and supervises cron-runtime.ts at PID $main_pid (matches crons/.pid)"
 
   reloads_before=$(docker exec "$cid" sh -lc "awk -F'\t' '\$3 == \"RELOAD\"' '$cron_log' 2>/dev/null | wc -l" | tr -d ' \r')
-  if ! docker exec "$cid" systemctl reload openharness-cron.service; then
-    echo "sandbox boot smoke failed: systemctl reload openharness-cron.service returned non-zero" >&2
+  if ! docker exec "$cid" systemctl reload agro-cron.service; then
+    echo "sandbox boot smoke failed: systemctl reload agro-cron.service returned non-zero" >&2
     return 1
   fi
   waited=0
@@ -201,9 +201,9 @@ verify_systemd_supervision() {
   waited=0
   new_pid=""
   while [ "$waited" -lt "$RECOVERY_TIMEOUT" ]; do
-    new_pid=$(docker exec "$cid" systemctl show -p MainPID --value openharness-cron.service 2>/dev/null | tr -d ' \r')
+    new_pid=$(docker exec "$cid" systemctl show -p MainPID --value agro-cron.service 2>/dev/null | tr -d ' \r')
     if [ -n "$new_pid" ] && [ "$new_pid" != "0" ] && [ "$new_pid" != "$main_pid" ] \
-      && docker exec "$cid" systemctl is-active --quiet openharness-cron.service; then
+      && docker exec "$cid" systemctl is-active --quiet agro-cron.service; then
       break
     fi
     waited=$((waited + 1))
@@ -211,7 +211,7 @@ verify_systemd_supervision() {
   done
   if [ -z "$new_pid" ] || [ "$new_pid" = "0" ] || [ "$new_pid" = "$main_pid" ]; then
     echo "sandbox boot smoke failed: systemd did not recover the scheduler after SIGKILL (MainPID stayed '${new_pid:-<empty>}')" >&2
-    docker exec "$cid" systemctl status openharness-cron.service --no-pager >&2 || true
+    docker exec "$cid" systemctl status agro-cron.service --no-pager >&2 || true
     return 1
   fi
   locked_pid=$(docker exec "$cid" cat "$pid_file" 2>/dev/null | tr -d ' \r')

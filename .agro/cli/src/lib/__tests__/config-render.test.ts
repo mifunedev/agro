@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderComposeEnv, renderComposeVars } from "../config-render.js";
 import { SECRET_KEYS } from "../secrets.js";
-import { defaultOhConfig, type OhConfig } from "../oh-config.js";
+import { defaultAgroConfig, type AgroConfig } from "../agro-config.js";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", "..");
 const DEVCONTAINER = join(REPO_ROOT, ".devcontainer");
@@ -13,7 +13,7 @@ const RETIRED = [
   "WORKTREES_DIR",
   "PROJECTS_DIR",
   "CRONS_DIR",
-  "OH_PROJECT_ROOT",
+  "AGRO_PROJECT_ROOT",
   "AGRO_PROJECT_ROOT",
   "INSTALL_DEEPAGENTS",
   "INSTALL_OPENCODE",
@@ -55,8 +55,8 @@ function composeInterpolatedVars(): string[] {
   return [...found].sort();
 }
 
-function fullConfig(): OhConfig {
-  const config = defaultOhConfig("demo");
+function fullConfig(): AgroConfig {
+  const config = defaultAgroConfig("demo");
   config.runtime = "docker";
   config.repo = "/srv/checkout";
   config.git = { userName: "Ada", userEmail: "ada@example.com" };
@@ -68,11 +68,11 @@ function fullConfig(): OhConfig {
     sshAuthorizedKeys: "ssh-ed25519 AAAA you@laptop",
     dockerSocket: true,
   };
-  config.image = { ref: "ghcr.io/mifunedev/openharness:latest", mode: "image", pullPolicy: "always" };
+  config.image = { ref: "ghcr.io/mifunedev/agro:latest", mode: "image", pullPolicy: "always" };
   return config;
 }
 
-function langfuseConfig(): OhConfig {
+function langfuseConfig(): AgroConfig {
   const config = fullConfig();
   config.langfuse = {
     enabled: true,
@@ -83,7 +83,7 @@ function langfuseConfig(): OhConfig {
   return config;
 }
 
-const keysOf = (config: OhConfig): string[] => renderComposeVars(config).map((v) => v.key);
+const keysOf = (config: AgroConfig): string[] => renderComposeVars(config).map((v) => v.key);
 
 describe("renderComposeEnv", () => {
   it("emits KEY=value lines with a trailing newline", () => {
@@ -94,7 +94,7 @@ describe("renderComposeEnv", () => {
     }
   });
 
-  it("carries every host-side setting through from oh.json", () => {
+  it("carries every host-side setting through from agro.json", () => {
     const text = renderComposeEnv(fullConfig());
     expect(text).toContain("SANDBOX_NAME=demo");
     expect(text).toContain("TZ=America/Los_Angeles");
@@ -105,7 +105,7 @@ describe("renderComposeEnv", () => {
     expect(text).toContain("DOCKER_SOCKET=true");
     expect(text).toContain("SANDBOX_SSH=true");
     expect(text).toContain("SANDBOX_SSH_PORT=2022");
-    expect(text).toContain("AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/openharness:latest");
+    expect(text).toContain("AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/agro:latest");
     expect(text).toContain("AGRO_PULL_POLICY=always");
   });
 
@@ -116,7 +116,7 @@ describe("renderComposeEnv", () => {
   it("covers every variable the real compose files interpolate", () => {
     expect(existsSync(DEVCONTAINER)).toBe(true);
     const rendered = new Set(keysOf(fullConfig()));
-    const legacyAliasOf = (key: string): string => key.replace(/^OH_/, "AGRO_");
+    const legacyAliasOf = (key: string): string => key.replace(/^AGRO_/, "AGRO_");
     const uncovered = composeInterpolatedVars().filter(
       (key) =>
         !rendered.has(key) &&
@@ -127,16 +127,16 @@ describe("renderComposeEnv", () => {
     expect(uncovered).toEqual([]);
   });
 
-  it("keeps a legacy OH_ fallback for every AGRO_ key the compose files interpolate", () => {
+  it("keeps a legacy AGRO_ fallback for every AGRO_ key the compose files interpolate", () => {
     const interpolated = composeInterpolatedVars();
     for (const key of keysOf(fullConfig()).filter((k) => k.startsWith("AGRO_"))) {
       expect(interpolated, key).toContain(key);
-      expect(interpolated, key).toContain(key.replace(/^AGRO_/, "OH_"));
+      expect(interpolated, key).toContain(key.replace(/^AGRO_/, "AGRO_"));
     }
     for (const name of readdirSync(DEVCONTAINER).filter((n) => /^docker-compose.*\.ya?ml$/.test(n))) {
       const text = readFileSync(join(DEVCONTAINER, name), "utf8");
-      for (const match of text.matchAll(/\$\{(AGRO_[A-Z0-9_]+):-\$\{(OH_[A-Z0-9_]+):-/g)) {
-        expect(match[2], name).toBe(match[1].replace(/^AGRO_/, "OH_"));
+      for (const match of text.matchAll(/\$\{(AGRO_[A-Z0-9_]+):-\$\{(AGRO_[A-Z0-9_]+):-/g)) {
+        expect(match[2], name).toBe(match[1].replace(/^AGRO_/, "AGRO_"));
       }
     }
   });
@@ -176,28 +176,28 @@ describe("renderComposeEnv", () => {
     }
   });
 
-  it("omits a key whose oh.json field is unset", () => {
-    const config: OhConfig = { version: 1, name: "demo" };
+  it("omits a key whose agro.json field is unset", () => {
+    const config: AgroConfig = { version: 1, name: "demo" };
     expect(keysOf(config)).toEqual(["SANDBOX_NAME"]);
   });
 
   it("renders AGRO_REPO_DIR only for a sandbox that binds a checkout", () => {
-    const imageOnly = defaultOhConfig("demo");
+    const imageOnly = defaultAgroConfig("demo");
     imageOnly.runtime = "docker";
     expect(keysOf(imageOnly)).not.toContain("AGRO_REPO_DIR");
 
-    const withRepo = defaultOhConfig("demo");
+    const withRepo = defaultAgroConfig("demo");
     withRepo.repo = "/srv/checkout";
     expect(renderComposeEnv(withRepo)).toContain("AGRO_REPO_DIR=/srv/checkout");
   });
 
-  it("leaves skipPnpmInstall to oh.json — entrypoint.sh reads it through the CLI", () => {
-    const config = defaultOhConfig("demo");
+  it("leaves skipPnpmInstall to agro.json — entrypoint.sh reads it through the CLI", () => {
+    const config = defaultAgroConfig("demo");
     config.build = { skipPnpmInstall: true };
     expect(renderComposeEnv(config)).not.toContain("SKIP_PNPM_INSTALL");
   });
 
-  it("leaves the sshd mode to oh.json, publishing only the port", () => {
+  it("leaves the sshd mode to agro.json, publishing only the port", () => {
     const text = renderComposeEnv(fullConfig());
     expect(text).toContain("SANDBOX_SSH_PORT=2022");
     expect(text).not.toContain("SANDBOX_SSH_PASSWORD_AUTH");
@@ -205,7 +205,7 @@ describe("renderComposeEnv", () => {
   });
 
   it("refuses a value containing a newline", () => {
-    const config = defaultOhConfig("demo");
+    const config = defaultAgroConfig("demo");
     config.git = { userName: "Ada\nMalicious" };
     expect(() => renderComposeEnv(config)).toThrow(/must not contain a newline/);
   });
@@ -213,28 +213,28 @@ describe("renderComposeEnv", () => {
   it("image-only compose falls back to ghcr.io/mifunedev/agro:latest", () => {
     const text = readFileSync(join(DEVCONTAINER, "docker-compose.image-only.yml"), "utf8");
     expect(text).toContain(
-      "image: ${AGRO_SANDBOX_IMAGE:-${OH_SANDBOX_IMAGE:-ghcr.io/mifunedev/agro:latest}}",
+      "image: ${AGRO_SANDBOX_IMAGE:-ghcr.io/mifunedev/agro:latest}",
     );
     expect(text).not.toContain("ghcr.io/mifunedev/openharness:latest");
   });
 
   it("renders a stored legacy image.ref without rewriting it", () => {
-    const config = defaultOhConfig("demo");
-    config.image = { ref: "ghcr.io/mifunedev/openharness:latest" };
+    const config = defaultAgroConfig("demo");
+    config.image = { ref: "ghcr.io/mifunedev/agro:latest" };
     expect(renderComposeEnv(config)).toContain(
-      "AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/openharness:latest",
+      "AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/agro:latest",
     );
   });
 });
 
 describe("AGRO_REPO_DIR — repo and checkout are one field", () => {
-  const dirOf = (config: OhConfig): string | undefined =>
+  const dirOf = (config: AgroConfig): string | undefined =>
     renderComposeVars(config).find((v) => v.key === "AGRO_REPO_DIR")?.value;
 
   it("renders an identical value for either spelling", () => {
-    const withRepo = defaultOhConfig("demo");
+    const withRepo = defaultAgroConfig("demo");
     withRepo.repo = "/srv/checkout";
-    const withCheckout = defaultOhConfig("demo");
+    const withCheckout = defaultAgroConfig("demo");
     withCheckout.checkout = "/srv/checkout";
 
     expect(renderComposeVars(withRepo)).toEqual(renderComposeVars(withCheckout));
@@ -242,13 +242,13 @@ describe("AGRO_REPO_DIR — repo and checkout are one field", () => {
   });
 
   it("lets checkout outrank repo when a file holds both", () => {
-    const config = defaultOhConfig("demo");
+    const config = defaultAgroConfig("demo");
     config.repo = "/srv/old";
     config.checkout = "/srv/new";
     expect(dirOf(config)).toBe("/srv/new");
   });
 
   it("emits no AGRO_REPO_DIR when neither field is set", () => {
-    expect(dirOf(defaultOhConfig("demo"))).toBeUndefined();
+    expect(dirOf(defaultAgroConfig("demo"))).toBeUndefined();
   });
 });

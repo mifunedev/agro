@@ -39,20 +39,21 @@ vi.mock("../cli.js", async (importOriginal) => {
   return mod;
 });
 
-const { parseUpdateArgs, printUpdateHelp } = await import("../cli.js");
+const { parseSelfUpgradeArgs, parseVendorArgs, printSelfUpgradeHelp, printVendorHelp } =
+  await import("../cli.js");
 
-const LEGACY_UPDATE_HELP = `oh update — Vendor or upgrade the .oh/ control plane
+const VENDOR_HELP = `agro vendor — Vendor or upgrade the .agro/ control plane
 
 Usage:
-  oh update [--from <dir> | --from-remote [--ref <ref>]] [--dry-run] [--force]
+  agro vendor [--from <dir> | --from-remote [--ref <ref>]] [--dry-run] [--force]
 
-Writes ONLY the .oh/ control plane and crons/ (skills, scripts, CLI) into the
+Writes ONLY the .agro/ control plane and crons/ (skills, scripts, CLI) into the
 current directory. An empty directory is equipped from scratch; everything else
-in your project is left untouched — it writes no oh.json, .env, AGENTS.md,
+in your project is left untouched — it writes no agro.json, .env, AGENTS.md,
 .gitignore or .devcontainer/.
 
 Payload source precedence: --from <dir> > --from-remote > the CLI's own bundled
-.oh/ payload > a remote fetch announced on one line.
+.agro/ payload > a remote fetch announced on one line.
 
 Flags:
   --from <dir>    A built AGRO checkout to vendor from.
@@ -133,12 +134,12 @@ function equippedCheckout(): { checkout: string; home: string } {
   const root = mkTmp();
   const checkout = join(root, "checkout");
   const home = join(root, "home");
-  mkdirSync(join(checkout, ".oh"), { recursive: true });
-  writeFileSync(join(checkout, ".oh", "manifest.json"), `${JSON.stringify({ include: ["**"], exclude: [] })}\n`);
-  writeFileSync(join(checkout, "oh.json"), `${JSON.stringify({ project: { name: "fixture" } })}\n`);
+  mkdirSync(join(checkout, ".agro"), { recursive: true });
+  writeFileSync(join(checkout, ".agro", "manifest.json"), `${JSON.stringify({ include: ["**"], exclude: [] })}\n`);
+  writeFileSync(join(checkout, "agro.json"), `${JSON.stringify({ project: { name: "fixture" } })}\n`);
   writeFileSync(join(checkout, ".env"), "SLACK_BOT_TOKEN=xoxb-fixture\n", { mode: 0o600 });
-  mkdirSync(join(home, ".oh", "sandboxes", "one"), { recursive: true });
-  writeFileSync(join(home, ".oh", "sandboxes", "one", "oh.json"), `${JSON.stringify({ runtime: "docker" })}\n`);
+  mkdirSync(join(home, ".agro", "sandboxes", "one"), { recursive: true });
+  writeFileSync(join(home, ".agro", "sandboxes", "one", "agro.json"), `${JSON.stringify({ runtime: "docker" })}\n`);
   return { checkout, home };
 }
 
@@ -259,19 +260,19 @@ describe("classifyInstallation", () => {
     expect(classifyInstallation(target, fakeWorld().deps).kind).toBe("standalone");
   });
 
-  it("classifies /opt/oh as image", () => {
+  it("classifies /opt/agro as image", () => {
     const deps = fakeWorld().deps;
-    deps.realpath = () => "/opt/oh/dist/agro.js";
+    deps.realpath = () => "/opt/agro/dist/agro.js";
     deps.stat = () => ({ mode: 0o755, isFile: () => true, isDirectory: () => false });
     expect(classifyInstallation("/usr/local/bin/agro", deps)).toEqual({
       kind: "image",
-      target: "/opt/oh/dist/agro.js",
+      target: "/opt/agro/dist/agro.js",
       invoked: "/usr/local/bin/agro",
     });
   });
 
   it("classifies a checkout's dist/ beside src/ and package.json as source", () => {
-    const cli = join(mkTmp(), "checkout", ".oh", "cli");
+    const cli = join(mkTmp(), "checkout", ".agro", "cli");
     const target = join(cli, "dist", "agro.js");
     writeExecutable(target, bundle(CURRENT));
     mkdirSync(join(cli, "src"), { recursive: true });
@@ -285,15 +286,6 @@ describe("classifyInstallation", () => {
     expect(classifyInstallation(target, fakeWorld().deps).kind).toBe("standalone");
   });
 
-  it("classifies the legacy shim's tree as legacy-package, even when agro is nested under it", () => {
-    const shim = join(mkTmp(), "lib", "node_modules", "@mifune", "openharness");
-    const ohBin = join(shim, "bin", "oh.js");
-    const nested = join(shim, "node_modules", "@mifune", "agro", "dist", "agro.js");
-    writeExecutable(ohBin, bundle(CURRENT));
-    writeExecutable(nested, bundle(CURRENT));
-    expect(classifyInstallation(ohBin, fakeWorld().deps).kind).toBe("legacy-package");
-    expect(classifyInstallation(nested, fakeWorld().deps).kind).toBe("legacy-package");
-  });
 
   it("classifies a missing path, a directory, and an empty argv[1] as unknown", () => {
     const deps = fakeWorld().deps;
@@ -331,7 +323,7 @@ describe("runSelfUpgrade — npm-managed", () => {
       const before = manifest(checkout) + manifest(home);
       const { prefix, target, link } = npmFixture();
       const world = fakeWorld({ npmInstall: installingNpm(prefix, target, NEWER) });
-      world.deps.env = { HOME: home, OH_HOME: join(home, ".oh") };
+      world.deps.env = { HOME: home, AGRO_HOME: join(home, ".agro") };
 
       const code = await runSelfUpgrade({ dryRun: false, argv1: link }, world.deps, world.io);
 
@@ -431,7 +423,7 @@ describe("runSelfUpgrade — standalone", () => {
       const before = manifest(checkout) + manifest(home);
       const { dir, target } = standaloneFixture();
       const world = fakeWorld();
-      world.deps.env = { HOME: home, OH_HOME: join(home, ".oh") };
+      world.deps.env = { HOME: home, AGRO_HOME: join(home, ".agro") };
 
       const code = await runSelfUpgrade({ dryRun: false, argv1: target }, world.deps, world.io);
 
@@ -449,7 +441,7 @@ describe("runSelfUpgrade — standalone", () => {
     });
   }
 
-  it("prefers AGRO_JS_URL over OH_JS_URL and falls back to the release asset", async () => {
+  it("uses AGRO_JS_URL, ignores the retired OH_JS_URL, and falls back to the release asset", async () => {
     const { target } = standaloneFixture();
     const urls: string[] = [];
     const world = fakeWorld({ artifact: async () => bundle(CURRENT) });
@@ -457,14 +449,14 @@ describe("runSelfUpgrade — standalone", () => {
       urls.push(url);
       return world.artifact();
     };
-    world.deps.env = { AGRO_JS_URL: "https://a.example/agro.js", OH_JS_URL: "https://o.example/agro.js" };
+    world.deps.env = { AGRO_JS_URL: "https://a.example/agro.js", OH_JS_URL: "https://o.example/oh.js" };
     await runSelfUpgrade({ dryRun: false, argv1: target }, world.deps, world.io);
-    world.deps.env = { OH_JS_URL: "https://o.example/agro.js" };
+    world.deps.env = { OH_JS_URL: "https://o.example/oh.js" };
     await runSelfUpgrade({ dryRun: false, argv1: target }, world.deps, world.io);
     world.deps.env = {};
     await runSelfUpgrade({ dryRun: false, argv1: target }, world.deps, world.io);
-    expect(urls).toEqual(["https://a.example/agro.js", "https://o.example/agro.js", DEFAULT_ARTIFACT_URL]);
-    expect(world.err()).toBe("compat: AGRO_JS_URL and OH_JS_URL are both set and differ — using AGRO_JS_URL\n");
+    expect(urls).toEqual(["https://a.example/agro.js", DEFAULT_ARTIFACT_URL, DEFAULT_ARTIFACT_URL]);
+    expect(world.err()).toBe("");
   });
 
   it("is a no-op when the artifact equals the running version, leaving no temp file", async () => {
@@ -608,24 +600,24 @@ describe("runSelfUpgrade — standalone", () => {
 });
 
 describe("runSelfUpgrade — refusals shared by every kind", () => {
-  it.each(["agro", "oh"])(
+  it.each(["agro", "agro"])(
     "refuses an image-managed executable with the %s image procedure",
     async (bin) => {
       const world = fakeWorld();
-      world.deps.realpath = () => "/opt/oh/dist/agro.js";
+      world.deps.realpath = () => "/opt/agro/dist/agro.js";
       world.deps.stat = () => ({ mode: 0o755, isFile: () => true, isDirectory: () => false });
       expect(
         await runSelfUpgrade({ dryRun: false, argv1: `/usr/local/bin/${bin}` }, world.deps, world.io),
       ).toBe(1);
       expect(world.err()).toBe(
-        `agro update: image installation at /opt/oh/dist/agro.js — the sandbox image ships this CLI; pull a newer image on the host (${bin} stop, then ${bin} sandbox install docker --name <name>)\n`,
+        `agro update: image installation at /opt/agro/dist/agro.js — the sandbox image ships this CLI; pull a newer image on the host (${bin} stop, then ${bin} sandbox install docker --name <name>)\n`,
       );
       expect(world.out()).toBe("");
     },
   );
 
   it("refuses a source checkout with the rebuild procedure", async () => {
-    const cli = join(mkTmp(), "checkout", ".oh", "cli");
+    const cli = join(mkTmp(), "checkout", ".agro", "cli");
     const target = join(cli, "dist", "agro.js");
     writeExecutable(target, bundle(CURRENT));
     mkdirSync(join(cli, "src"), { recursive: true });
@@ -637,15 +629,6 @@ describe("runSelfUpgrade — refusals shared by every kind", () => {
     );
   });
 
-  it("refuses the legacy package with the canonical install", async () => {
-    const target = join(mkTmp(), "lib", "node_modules", "@mifune", "openharness", "bin", "oh.js");
-    writeExecutable(target, bundle(CURRENT));
-    const world = fakeWorld();
-    expect(await runSelfUpgrade({ dryRun: false, argv1: target }, world.deps, world.io)).toBe(1);
-    expect(world.err()).toBe(
-      `agro update: legacy-package installation at ${target} — install the canonical package: npm install -g @mifune/agro\n`,
-    );
-  });
 
   it("refuses an unresolvable executable and names the alternatives", async () => {
     const missing = join(mkTmp(), "nope", "agro");
@@ -698,44 +681,45 @@ describe("runSelfUpgrade — refusals shared by every kind", () => {
   });
 });
 
-describe("parseUpdateArgs — agro vs oh", () => {
-  const PAYLOAD_FLAGS = ["--from", "--from-remote", "--ref", "--force"];
-
-  for (const flag of PAYLOAD_FLAGS) {
-    it(`rejects ${flag} for agro with the command-specific error`, () => {
-      const result = parseUpdateArgs([flag, "x"], "agro");
-      expect(result).toEqual({
-        ok: false,
-        error: `agro update: ${flag} belongs to the legacy project-payload command; run \`oh update ${flag}\` during the compatibility window — agro update upgrades only the installed CLI`,
-        showHelp: true,
-      });
-    });
-  }
-
-  it("accepts --dry-run and help for agro", () => {
-    expect(parseUpdateArgs(["--dry-run"], "agro")).toEqual({
+describe("parseVendorArgs", () => {
+  it("accepts --dry-run and help", () => {
+    expect(parseVendorArgs(["--dry-run"], "agro")).toEqual({
       ok: true,
       args: { help: false, fromRemote: false, force: false, dryRun: true },
     });
-    expect(parseUpdateArgs(["--help"], "agro")).toMatchObject({ ok: true, args: { help: true } });
-    expect(parseUpdateArgs([], "agro")).toMatchObject({ ok: true, args: { help: false, dryRun: false } });
+    expect(parseVendorArgs(["--help"], "agro")).toMatchObject({ ok: true, args: { help: true } });
+    expect(parseVendorArgs([], "agro")).toMatchObject({ ok: true, args: { help: false, dryRun: false } });
   });
 
-  it("keeps every payload flag for oh (default and explicit)", () => {
+  it("keeps every payload flag", () => {
     const expected = {
       ok: true,
       args: { help: false, fromDir: "/x", fromRemote: false, force: true, dryRun: false },
     };
-    expect(parseUpdateArgs(["--from", "/x", "--force"])).toEqual(expected);
-    expect(parseUpdateArgs(["--from", "/x", "--force"], "oh")).toEqual(expected);
-    expect(parseUpdateArgs(["--from-remote", "--ref", "main"], "oh")).toEqual({
+    expect(parseVendorArgs(["--from", "/x", "--force"])).toEqual(expected);
+    expect(parseVendorArgs(["--from", "/x", "--force"], "agro")).toEqual(expected);
+    expect(parseVendorArgs(["--from-remote", "--ref", "main"], "agro")).toEqual({
       ok: true,
       args: { help: false, fromRemote: true, ref: "main", force: false, dryRun: false },
     });
   });
 });
 
-describe("printUpdateHelp", () => {
+describe("parseSelfUpgradeArgs", () => {
+  const PAYLOAD_FLAGS = ["--from", "--from-remote", "--ref", "--force"];
+
+  for (const flag of PAYLOAD_FLAGS) {
+    it(`rejects ${flag} with the command-specific error`, () => {
+      expect(parseSelfUpgradeArgs([flag, "x"], "agro")).toEqual({
+        ok: false,
+        error: `agro self-upgrade: ${flag} belongs to the project-payload command; run \`agro vendor ${flag}\` — agro self-upgrade upgrades only the installed CLI`,
+        showHelp: true,
+      });
+    });
+  }
+});
+
+describe("help output", () => {
   let captured = "";
   beforeEach(() => {
     captured = "";
@@ -748,24 +732,23 @@ describe("printUpdateHelp", () => {
     vi.restoreAllMocks();
   });
 
-  it("prints the legacy oh update help unchanged, by default and for oh", () => {
-    printUpdateHelp();
-    expect(captured).toBe(LEGACY_UPDATE_HELP);
+  it("prints the vendor help unchanged", () => {
+    printVendorHelp();
+    expect(captured).toBe(VENDOR_HELP);
     captured = "";
-    printUpdateHelp("oh");
-    expect(captured).toBe(LEGACY_UPDATE_HELP);
+    printVendorHelp("agro");
+    expect(captured).toBe(VENDOR_HELP);
   });
 
-  it("prints the self-upgrade help for agro", () => {
-    printUpdateHelp("agro");
-    expect(captured.startsWith("agro update — Upgrade the installed agro CLI\n")).toBe(true);
-    expect(captured).toContain("agro update [--dry-run]");
+  it("prints the self-upgrade help", () => {
+    printSelfUpgradeHelp("agro");
+    expect(captured.startsWith("agro self-upgrade — Upgrade the installed agro CLI\n")).toBe(true);
+    expect(captured).toContain("agro self-upgrade [--dry-run]");
     expect(captured).toContain("npm-managed");
     expect(captured).toContain("standalone");
     expect(captured).toContain("AGRO_JS_URL");
-    expect(captured).toContain("OH_JS_URL");
     expect(captured).toContain(DEFAULT_ARTIFACT_URL);
-    expect(captured).toContain("`oh update` during the\ncompatibility window");
+    expect(captured).toContain("`agro vendor`");
     expect(captured).not.toContain("--from-remote [--ref <ref>]");
     expect(captured).not.toContain("--force         Override");
   });

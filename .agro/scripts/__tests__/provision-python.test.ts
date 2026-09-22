@@ -140,12 +140,12 @@ esac
     UV_CACHE_DIR: join(home, "cache"),
     UV_TOOL_DIR: join(home, "tools"),
     UV_TOOL_BIN_DIR: join(home, ".local/bin"),
-    OH_PYTHON_VERSION: "",
-    OH_PYTHON_KERNEL_HOME: "",
-    OH_PYTHON_KERNEL_PACKAGES: "",
+    AGRO_PYTHON_VERSION: "",
+    AGRO_PYTHON_KERNEL_HOME: "",
+    AGRO_PYTHON_KERNEL_PACKAGES: "",
     MOCK_PYTHON: python,
   };
-  return { home, env, kernel: join(home, ".local/share/oh/kernel") };
+  return { home, env, kernel: join(home, ".local/share/agro/kernel") };
 }
 
 function runFixture(fx: ReturnType<typeof fixture>, args: string[] = [], extra: Record<string, string> = {}) {
@@ -179,7 +179,7 @@ describe("provision-python behavior", () => {
 
   it("migrates a legacy 3.11 kernel and leaves a caller project venv unchanged", () => {
     const fx = fixture();
-    expectSuccess(runFixture(fx, [], { OH_PYTHON_VERSION: "3.11" }));
+    expectSuccess(runFixture(fx, [], { AGRO_PYTHON_VERSION: "3.11" }));
     writeFileSync(join(fx.kernel, "old-kernel"), "old");
     const project = join(fx.home, "project/.venv");
     mkdirSync(join(project, "bin"), { recursive: true });
@@ -207,7 +207,7 @@ describe("provision-python behavior", () => {
 
   it.each(["MOCK_FAIL_PIP", "MOCK_FAIL_VENV"])("restores the old kernel on %s", (failure) => {
     const fx = fixture();
-    expectSuccess(runFixture(fx, [], { OH_PYTHON_VERSION: "3.11" }));
+    expectSuccess(runFixture(fx, [], { AGRO_PYTHON_VERSION: "3.11" }));
     writeFileSync(join(fx.kernel, "sentinel"), "old");
     expect(runFixture(fx, [], { [failure]: "1" }).status).toBe(1);
     expect(readFileSync(join(fx.kernel, "sentinel"), "utf8")).toBe("old");
@@ -226,7 +226,7 @@ describe("provision-python behavior", () => {
     const directory = join(fx.home, "ordinary");
     mkdirSync(directory);
     const paths: Record<string, string> = { home: fx.home, root: "/", directory, symlink: linked, "ancestor-symlink": join(linked, "kernel") };
-    expect(runFixture(fx, [], { OH_PYTHON_KERNEL_HOME: paths[kind] }).status).toBe(1);
+    expect(runFixture(fx, [], { AGRO_PYTHON_KERNEL_HOME: paths[kind] }).status).toBe(1);
     expect(readFileSync(join(project, "sentinel"), "utf8")).toBe("keep");
   });
 
@@ -246,24 +246,24 @@ describe("provision-python behavior", () => {
   it("migrates an unmarked legacy custom kernel from 3.11 to 3.13", () => {
     const fx = fixture();
     const custom = join(fx.home, "custom-kernel");
-    const extra = { OH_PYTHON_KERNEL_HOME: custom };
-    expectSuccess(runFixture(fx, [], { ...extra, OH_PYTHON_VERSION: "3.11" }));
-    expect(existsSync(join(custom, ".oh-kernel"))).toBe(false);
+    const extra = { AGRO_PYTHON_KERNEL_HOME: custom };
+    expectSuccess(runFixture(fx, [], { ...extra, AGRO_PYTHON_VERSION: "3.11" }));
+    expect(existsSync(join(custom, ".agro-kernel"))).toBe(false);
     writeFileSync(join(custom, "sentinel"), "old");
     expectSuccess(runFixture(fx, [], extra));
     expect(readFileSync(join(custom, "base"), "utf8")).toContain("/3.13/bin/python");
     expect(existsSync(join(custom, "sentinel"))).toBe(false);
-    expect(existsSync(join(custom, ".oh-kernel"))).toBe(false);
+    expect(existsSync(join(custom, ".agro-kernel"))).toBe(false);
     expect(existsSync(fx.kernel)).toBe(false);
     expectSuccess(runFixture(fx, ["--verify"], extra));
   });
 
   it("supports version, kernel, and Python bin overrides", () => {
     const fx = fixture();
-    const extra = { OH_PYTHON_VERSION: "3.12", OH_PYTHON_KERNEL_HOME: join(fx.home, "custom-kernel"), UV_PYTHON_BIN_DIR: join(fx.home, "custom-bin") };
+    const extra = { AGRO_PYTHON_VERSION: "3.12", AGRO_PYTHON_KERNEL_HOME: join(fx.home, "custom-kernel"), UV_PYTHON_BIN_DIR: join(fx.home, "custom-bin") };
     expectSuccess(runFixture(fx, [], extra));
     expectSuccess(runFixture(fx, ["--verify"], extra));
-    expectSuccess(runFixture(fx, [], { ...extra, OH_PYTHON_VERSION: "3.13" }));
+    expectSuccess(runFixture(fx, [], { ...extra, AGRO_PYTHON_VERSION: "3.13" }));
   });
 });
 
@@ -289,9 +289,9 @@ describe("Dockerfile uv ownership", () => {
   it("provisions Python as the sandbox user, not root", () => {
     const text = dockerfile();
     expect(text).toContain("ARG INSTALL_PYTHON_KERNEL=true");
-    expect(text).toContain("ARG OH_PYTHON_VERSION=3.13");
+    expect(text).toContain("ARG AGRO_PYTHON_VERSION=3.13");
     expect(text).toContain("ENV UV_PYTHON_BIN_DIR=/home/sandbox/.local/bin");
-    expect(text).toContain('su - sandbox -c "OH_PYTHON_VERSION=');
+    expect(text).toContain('su - sandbox -c "AGRO_PYTHON_VERSION=');
     expect(text).toContain("/tmp/provision-python.sh");
   });
 
@@ -307,7 +307,7 @@ describe("entrypoint uv ownership repair", () => {
     const text = entrypoint();
     expect(text).toContain("/home/sandbox/.local/share/uv/python");
     expect(text).toContain("/home/sandbox/.cache/uv");
-    expect(text).toContain('find /home/sandbox -path "$OH_PROJECT_ROOT" -prune -o');
+    expect(text).toContain('find /home/sandbox -path "$AGRO_PROJECT_ROOT" -prune -o');
     expect(text).toContain('-exec chown -h "$owner" {} +');
   });
 
@@ -316,7 +316,7 @@ describe("entrypoint uv ownership repair", () => {
     const links = text.indexOf('link-providers.sh" --init');
     const provision = text.indexOf('"$CONTROL_DIR/scripts/provision-python.sh"; then');
     expect(provision).toBeGreaterThan(links);
-    expect(text).toContain('"${OH_PROVISION_PYTHON:-true}" = "true"');
+    expect(text).toContain('"${AGRO_PROVISION_PYTHON:-true}" = "true"');
     expect(text).toContain("WARNING: Python provisioning did not complete");
   });
 });

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ "${OH_HERMES_SMOKE:-}" != "1" ] || [[ "${SANDBOX_NAME:-}" != oh-hermes-* ]]; then
-  echo "ERROR: use OH_HERMES_SMOKE=1 only in a disposable oh-hermes-* sandbox" >&2
+if [ "${AGRO_HERMES_SMOKE:-}" != "1" ] || [[ "${SANDBOX_NAME:-}" != oh-hermes-* ]]; then
+  echo "ERROR: use AGRO_HERMES_SMOKE=1 only in a disposable oh-hermes-* sandbox" >&2
   exit 64
 fi
 if [ -S /var/run/docker.sock ] || [ "$(id -un)" != sandbox ]; then
@@ -17,7 +17,7 @@ import os
 import sys
 from pathlib import Path
 
-root = Path(os.environ['OH_PROJECT_ROOT'])
+root = Path(os.environ['AGRO_PROJECT_ROOT'])
 sys.path.insert(0, str(Path.home() / '.local/lib/hermes-agent'))
 from hermes_constants import get_hermes_home
 
@@ -25,7 +25,7 @@ home = get_hermes_home()
 assert home == root / '.hermes', str(home)
 assert (home / 'config.yaml').is_file(), 'configuration not in project home'
 pack = root / '.agro/skills'
-link = home / 'skills/openharness'
+link = home / 'skills/agro'
 assert link.is_symlink() and link.resolve() == pack.resolve(), str(link)
 shared_name = 'oh-layout-smoke-shared'
 native_name = 'oh-layout-smoke-native'

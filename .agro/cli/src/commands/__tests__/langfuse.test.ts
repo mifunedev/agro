@@ -12,7 +12,7 @@ import {
 } from "../langfuse.js";
 import { runConfigSet, secretKeyForConfigPath } from "../config.js";
 import type { LifecycleRunner, RunResult } from "../../lib/execution/runner.js";
-import { ohConfigPath, readOhConfig } from "../../lib/oh-config.js";
+import { agroConfigPath, readAgroConfig } from "../../lib/agro-config.js";
 import * as prompt from "../../lib/prompt.js";
 import { listSecretKeys, setSecret } from "../../lib/secrets.js";
 import { langfuseFragmentPath } from "../../lib/tracing/providers/langfuse.js";
@@ -41,7 +41,7 @@ function makeFixture(langfuse: Record<string, unknown>, opts: { keys?: boolean }
   const home = mkdtempSync(join(tmpdir(), "agro-langfuse-home-"));
   cleanups.push(root, home);
   mkdirSync(join(root, ".agro", "scripts"), { recursive: true });
-  writeFileSync(ohConfigPath(root), `${JSON.stringify({ name: "demo", langfuse }, null, 2)}\n`, "utf8");
+  writeFileSync(agroConfigPath(root), `${JSON.stringify({ name: "demo", langfuse }, null, 2)}\n`, "utf8");
   if (opts.keys !== false) {
     setSecret(root, "LANGFUSE_PUBLIC_KEY", PUBLIC_KEY);
     setSecret(root, "LANGFUSE_SECRET_KEY", SECRET_KEY);
@@ -351,7 +351,7 @@ describe("agro langfuse disable", () => {
     const { io, out, err, all } = makeIo();
     expect(await runLangfuseDisable(sandboxOpts(f), io)).toBe(0);
 
-    const config = JSON.parse(readFileSync(ohConfigPath(f.root), "utf8"));
+    const config = JSON.parse(readFileSync(agroConfigPath(f.root), "utf8"));
     expect(config.langfuse).toEqual({ ...ENABLED, enabled: false });
     expect(existsSync(langfuseFragmentPath(f.home))).toBe(false);
     expect(JSON.parse(readFileSync(codexTracingConfigPath(f.home), "utf8")).enabled).toBe(false);
@@ -372,7 +372,7 @@ describe("agro langfuse disable", () => {
     const f = makeFixture(ENABLED);
     await runLangfuseApply(sandboxOpts(f), makeIo().io);
     await runLangfuseDisable(sandboxOpts(f), makeIo().io);
-    writeFileSync(ohConfigPath(f.root), `${JSON.stringify({ name: "demo", langfuse: ENABLED }, null, 2)}\n`, "utf8");
+    writeFileSync(agroConfigPath(f.root), `${JSON.stringify({ name: "demo", langfuse: ENABLED }, null, 2)}\n`, "utf8");
     expect(await runLangfuseApply(sandboxOpts(f), makeIo().io)).toBe(0);
     expect(readFileSync(langfuseFragmentPath(f.home), "utf8")).toContain(`LANGFUSE_SECRET_KEY=${SECRET_KEY}\n`);
   });
@@ -381,7 +381,7 @@ describe("agro langfuse disable", () => {
     const f = makeFixture(ENABLED);
     const { io, err } = makeIo();
     expect(await runLangfuseDisable(sandboxOpts(f, false), io)).toBe(1);
-    expect(JSON.parse(readFileSync(ohConfigPath(f.root), "utf8")).langfuse.enabled).toBe(false);
+    expect(JSON.parse(readFileSync(agroConfigPath(f.root), "utf8")).langfuse.enabled).toBe(false);
     expect(err.join("")).toContain("exist only in the sandbox");
   });
 });
@@ -416,12 +416,12 @@ describe("config set redirects dotted langfuse credential paths to secret set", 
     expect(err.join("")).toContain("LANGFUSE_PUBLIC_KEY is a secret");
     expect(err.join("")).toContain("agro secret set LANGFUSE_PUBLIC_KEY");
     expect(err.join("")).not.toContain("unknown field");
-    expect(readFileSync(ohConfigPath(f.root), "utf8")).not.toContain(PUBLIC_KEY);
+    expect(readFileSync(agroConfigPath(f.root), "utf8")).not.toContain(PUBLIC_KEY);
   });
 });
 
 function langfuseSection(root: string): Record<string, unknown> {
-  return (readOhConfig(ohConfigPath(root)).langfuse ?? {}) as Record<string, unknown>;
+  return (readAgroConfig(agroConfigPath(root)).langfuse ?? {}) as Record<string, unknown>;
 }
 
 function healthOnly(reply: RunResult = curlOk): ReturnType<typeof fakeRunner> {

@@ -19,11 +19,11 @@ function fixture() {
 function run(root: string, mode = "--init", env = {}) {
   return spawnSync("bash", [script, mode, "--hermes-only"], {
     cwd: tmpdir(), encoding: "utf8",
-    env: { ...process.env, OH_PROJECT_ROOT: root, HERMES_HOME: join(root, ".hermes"), ...env },
+    env: { ...process.env, AGRO_PROJECT_ROOT: root, HERMES_HOME: join(root, ".hermes"), ...env },
   });
 }
 
-const slot = (root: string) => join(root, ".hermes/skills/openharness");
+const slot = (root: string) => join(root, ".hermes/skills/agro");
 
 describe("Hermes-only additive linking", () => {
   it("requires integration without requiring Claude scaffolding", () => {
@@ -76,7 +76,7 @@ describe("Hermes-only additive linking", () => {
     if (parent.endsWith("skills")) mkdirSync(join(root, ".hermes"));
     symlinkSync(other, join(root, parent));
     expect(run(root).status).toBe(1);
-    expect(existsSync(join(other, "openharness"))).toBe(false);
+    expect(existsSync(join(other, "agro"))).toBe(false);
     expect(existsSync(join(other, "skills"))).toBe(false);
   });
 
@@ -120,7 +120,7 @@ describe("Hermes-only additive linking", () => {
     }
     const result = spawnSync("bash", [script, "--init"], {
       cwd: root, encoding: "utf8",
-      env: { ...process.env, PATH: `${root}/bin:${process.env.PATH}`, OH_PROJECT_ROOT: root,
+      env: { ...process.env, PATH: `${root}/bin:${process.env.PATH}`, AGRO_PROJECT_ROOT: root,
         HERMES_HOME: "/home/sandbox/harness/.hermes", CC_SAFETY_NET_STRICT: "" },
     });
     expect(result.status, result.stderr).toBe(0);
@@ -130,8 +130,8 @@ describe("Hermes-only additive linking", () => {
   });
 
   it.each([
-    { OH_HERMES_SMOKE: "", SANDBOX_NAME: "oh-hermes-test" },
-    { OH_HERMES_SMOKE: "1", SANDBOX_NAME: "oh-sbx-live" },
+    { AGRO_HERMES_SMOKE: "", SANDBOX_NAME: "oh-hermes-test" },
+    { AGRO_HERMES_SMOKE: "1", SANDBOX_NAME: "oh-sbx-live" },
   ])("refuses smoke without both disposable scope and opt-in: %s", env => {
     const result = spawnSync("bash", [resolve(".agro/scripts/hermes-install-smoke.sh")], {
       encoding: "utf8", env: { ...process.env, ...env },

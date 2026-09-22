@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tier: A
 # source: retro lesson 2026-09-01 (issue #926) — the reviewer evidence recorded an acceptance
-#         criterion as satisfied by an openharness-web follow-up that had not been filed; every
+#         criterion as satisfied by an agro-web follow-up that had not been filed; every
 #         internal gate passed and external verification caught it. Evidence moved from
 #         .agro/tasks/<slug>/evidence.md into the PR body in issue #1088.
 # desc: the reviewer evidence contract requires a follow-up to be CITED, not named. Assert the

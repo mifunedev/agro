@@ -5,7 +5,7 @@ import { setConfigField } from "../lib/env-file.js";
 import { runningInsideSandbox } from "../lib/execution/detect.js";
 import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import { HARNESS_CATALOG, type HarnessEntry } from "../lib/harnesses/catalog.js";
-import { ohConfigPath, readOhConfig, writeOhConfig, type LangfuseSettings } from "../lib/oh-config.js";
+import { agroConfigPath, readAgroConfig, writeAgroConfig, type LangfuseSettings } from "../lib/agro-config.js";
 import { resolveProjectRoot } from "../lib/project.js";
 import * as prompt from "../lib/prompt.js";
 import { readSecret, setSecret } from "../lib/secrets.js";
@@ -175,7 +175,7 @@ function context(opts: LangfuseOptions): Context {
 }
 
 export function resolveLangfuse(root: string): ResolvedLangfuse {
-  const config = readOhConfig(ohConfigPath(root));
+  const config = readAgroConfig(agroConfigPath(root));
   const settings = config.langfuse ?? {};
   const enabled = settings.enabled === true;
   return {
@@ -571,14 +571,14 @@ export async function runLangfuseSetup(opts: LangfuseSetupOptions, io: LangfuseI
   }
 
   try {
-    const config = readOhConfig(ohConfigPath(ctx.root));
+    const config = readAgroConfig(agroConfigPath(ctx.root));
     config.langfuse = {
       enabled: true,
       baseUrl,
       environment,
       ...(userId === "" ? {} : { userId }),
     };
-    writeOhConfig(ctx.root, config);
+    writeAgroConfig(ctx.root, config);
     io.stdout(`agro.json: set langfuse.enabled=true baseUrl=${baseUrl} environment=${environment} userId=${userId === "" ? "(unset)" : userId}\n`);
     for (const [key, value] of pendingKeys) {
       setSecret(ctx.root, key, value);

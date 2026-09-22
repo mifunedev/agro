@@ -25,8 +25,8 @@ done
 
 # The product name is templated in source (`${bin}`) and written out in prose, so every pin accepts
 # the product set rather than one product name.
-product='(agro|oh|\$\{bin\})'
-prose_product='(agro|oh)'
+product='(agro|\$\{bin\})'
+prose_product='agro'
 
 problems=()
 need() {
@@ -38,9 +38,9 @@ forbid() {
   grep -Eq -- "$pattern" "$file" && problems+=("$label") || true
 }
 
-help_block="$(awk '/^export function printOhHelp/{on=1} on{print} on && /^}$/{exit}' "$CLI")"
+help_block="$(awk '/^export function printAgroHelp/{on=1} on{print} on && /^}$/{exit}' "$CLI")"
 if ! grep -Eq -- "^ +${product} workspace " <<<"$help_block"; then
-  problems+=("printOhHelp in .agro/cli/src/cli.ts lists no \`workspace\` usage line")
+  problems+=("printAgroHelp in .agro/cli/src/cli.ts lists no \`workspace\` usage line")
 fi
 
 need "docs/lifecycle-commands.md documents no \`workspace create\` or \`workspace list\` verb" \

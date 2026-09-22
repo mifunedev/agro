@@ -16,8 +16,8 @@ confidence: provisional
 # An eval run from a shell with a different PATH reports environment gaps as probe regressions
 
 ## Relevant Source Files
-- `.oh/evals/RESULTS.md@70a8b072` — the scoreboard whose last rows were produced from a login shell.
-- `.oh/evals/probes/oh-config-surfaces.sh@70a8b072`, `.oh/evals/probes/curl-bash-safe-alternatives.sh@70a8b072` — probes that call `python3` without a SKIPPED guard.
+- `.agro/evals/RESULTS.md@70a8b072` — the scoreboard whose last rows were produced from a login shell.
+- `.agro/evals/probes/oh-config-surfaces.sh@70a8b072`, `.agro/evals/probes/curl-bash-safe-alternatives.sh@70a8b072` — probes that call `python3` without a SKIPPED guard.
 
 ## Summary
 `/eval` keys on the delta against the previous `RESULTS.md`. When the previous

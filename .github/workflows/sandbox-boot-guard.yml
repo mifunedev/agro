@@ -69,26 +69,26 @@ jobs:
 
       - name: Build sandbox image locally
         env:
-          SANDBOX_NAME: openharness-boot-guard-${{ github.run_id }}
+          SANDBOX_NAME: agro-boot-guard-${{ github.run_id }}
         run: |
           docker build \
             --file .devcontainer/Dockerfile \
             --tag "sandbox-${SANDBOX_NAME}" \
-            --tag openharness-sandbox-boot-guard:${{ github.sha }} \
+            --tag agro-sandbox-boot-guard:${{ github.sha }} \
             .
 
       # Reusable image verification: base distribution, apt suites, the built-in
       # sandbox UID/GID contract, the Node/pnpm pins, the architecture-specific
       # Herdr checksum, and version output from every required default tool.
       - name: Verify sandbox image contract
-        run: bash .agro/scripts/verify-sandbox-image.sh openharness-sandbox-boot-guard:${{ github.sha }}
+        run: bash .agro/scripts/verify-sandbox-image.sh agro-sandbox-boot-guard:${{ github.sha }}
 
       # ── Option C: pre-seed node_modules on the runner, BEFORE boot ──────────
       # The devcontainer bind-mounts the checkout (..:/home/sandbox/harness) and
       # can run a synchronous `pnpm install` during boot when the root dependency
       # tree is missing or its manifest marker is stale — a cold install can
       # overrun the healthcheck's ~690s unhealthy deadline and fail the boot with
-      # "systemd unit not active: openharness-cron.service". Seeding node_modules here
+      # "systemd unit not active: agro-cron.service". Seeding node_modules here
       # moves that slow/variable install OUT of the healthcheck-timed window; the
       # step below also sets build.skipPnpmInstall in agro.json so the pre-seeded CI
       # path remains an explicit boot-window escape hatch even before a marker
@@ -137,7 +137,7 @@ jobs:
 
       - name: Candidate CLI-first install and recreation smoke
         env:
-          CANDIDATE_IMAGE: openharness-sandbox-boot-guard:${{ github.sha }}
+          CANDIDATE_IMAGE: agro-sandbox-boot-guard:${{ github.sha }}
         run: |
           set -o pipefail
           bash .agro/scripts/cli-first-install-smoke.sh \
@@ -173,7 +173,7 @@ jobs:
       # Deps are pre-seeded above and proven visible; build.skipPnpmInstall keeps
       # the in-container install out of the healthcheck-timed window. This is the
       # Option C contract: pnpm slowness can no longer trip the ~690s unhealthy
-      # deadline. entrypoint.sh reads this through `oh config show`, so it is set
+      # deadline. entrypoint.sh reads this through `agro config show`, so it is set
       # in agro.json rather than passed as an environment knob.
       - name: Skip the in-container pnpm install
         run: |
@@ -186,7 +186,7 @@ jobs:
       # boot installed no harness and no tool into it.
       - name: Boot sandbox and verify healthcheck (asserts boot installs nothing)
         env:
-          SANDBOX_NAME: openharness-boot-guard-${{ github.run_id }}
+          SANDBOX_NAME: agro-boot-guard-${{ github.run_id }}
           # The smoke deadline has to clear the compose healthcheck's 600s
           # start_period plus the 3x30s retry window (~690s), not just the old
           # 300s one.
@@ -215,7 +215,7 @@ jobs:
 
       - name: Upgrade a legacy workspace volume to the freshly built image
         env:
-          LEGACY_IMAGE: ghcr.io/mifunedev/openharness:0.9.0
+          LEGACY_IMAGE: ghcr.io/mifunedev/agro:0.9.0
           UPGRADE_SMOKE_PROJECT: agro-upgrade-${{ github.run_id }}
           UPGRADE_SMOKE_TIMEOUT_SECONDS: "1200"
           UPGRADE_SMOKE_INTERVAL_SECONDS: "10"

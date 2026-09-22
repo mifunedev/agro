@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tier: A
-# source: openharness#878 — oh as the only front door, T0 sandbox base image
+# source: agro#878 — agro as the only front door, T0 sandbox base image
 # desc: the sandbox image builds on an official node trixie base (node:*-trixie*), the NodeSource vendor-script install is gone from every .devcontainer/ asset, and the sandbox user is pinned to an explicit uid 1000 so bind-mounted files keep their host ownership even though the node image already claims uid 1000.
 set -euo pipefail
 

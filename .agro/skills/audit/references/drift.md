@@ -210,12 +210,12 @@ fi
 ```
 
 If `/proc/<pid>/stat` is inaccessible (PID namespace isolation, non-Linux
-host, stale PID), fall back to the `openharness-cron.service` start
+host, stale PID), fall back to the `agro-cron.service` start
 timestamp:
 
 ```bash
 if [ -z "$RUNTIME_START" ]; then
-  UNIT_START=$(systemctl show -p ExecMainStartTimestamp --value openharness-cron.service 2>/dev/null)
+  UNIT_START=$(systemctl show -p ExecMainStartTimestamp --value agro-cron.service 2>/dev/null)
   if [ -n "$UNIT_START" ]; then
     RUNTIME_START=$(date -d "$UNIT_START" +%s 2>/dev/null || echo "")
     if [ -n "$RUNTIME_START" ]; then
@@ -396,9 +396,9 @@ Print (do not execute):
 ```
   Recommended: reschedule or restart the cron runtime
     # preferred live reschedule:
-    systemctl reload openharness-cron.service
+    systemctl reload agro-cron.service
     # or restart the service:
-    systemctl restart openharness-cron.service
+    systemctl restart agro-cron.service
 ```
 
 Note: this recommendation names the reschedule/restart commands but never runs

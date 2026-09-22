@@ -165,12 +165,12 @@ wait "${pids[1]}"; wait "${pids[2]}"
 mapfile -t ids < <(cat "$tmp/rec.1" "$tmp/rec.2" | sed -n 's/^audit -- run-id=\([^ ]*\).*/\1/p')
 [[ ${#ids[@]} -eq 2 && ${ids[0]} != "${ids[1]}" ]] || fail 'run IDs not unique'
 [[ ${ids[0]} =~ ^audit-[0-9]{8}T[0-9]{6}Z-[A-Za-z0-9._-]+$ ]] || fail 'run ID shape'
-[[ -z $(find "$tmpdir" -mindepth 1 -maxdepth 1 ! -name openharness-locked-append -print -quit) ]] || fail 'invocation temp not cleaned'
+[[ -z $(find "$tmpdir" -mindepth 1 -maxdepth 1 ! -name agro-locked-append -print -quit) ]] || fail 'invocation temp not cleaned'
 id=${ids[0]}
 child_rec=$(AUDIT_RUN_ID="$id" AUDIT_ROOT="$tmp" TMPDIR="$tmpdir" bash "$RUN" drift -- \
   bash -c '[[ "$AUDIT_RUN_ID" == "$1" && "$AUDIT_ROOT" == "$2" ]]; "$AUDIT_ROOT/.agro/skills/audit/scripts/audit-evidence.sh" complete DRIFT-OK' _ "$id" "$tmp" 2>&1 >/dev/null)
 [[ $(grep -c '^audit -- run-id=' <<<"$child_rec") -eq 0 ]] || fail 'child reported its own run record'
-[[ -z $(find "$tmpdir" -mindepth 1 -maxdepth 1 ! -name openharness-locked-append -print -quit) ]] || fail 'child temp not cleaned'
+[[ -z $(find "$tmpdir" -mindepth 1 -maxdepth 1 ! -name agro-locked-append -print -quit) ]] || fail 'child temp not cleaned'
 cat >"$tmp/args-driver" <<'DRIVER'
 #!/usr/bin/env bash
 printf '%s\n' "$PWD" "$AUDIT_TARGET" "$AUDIT_TARGET_ARGS_JSON" "$@" >"$AUDIT_ROOT/args-seen"

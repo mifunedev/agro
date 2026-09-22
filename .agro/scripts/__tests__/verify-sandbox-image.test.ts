@@ -16,7 +16,7 @@ type Overrides = Partial<{
   node: string;
   pnpm: string;
   agroVersion: string;
-  ohVersion: string;
+  legacyEntryPoint: boolean;
   missingTool: string;
   nonVersionTool: string;
   platformWarning: string;
@@ -44,7 +44,7 @@ function fixture(o: Overrides = {}) {
     node: "v22.14.0",
     pnpm: "10.33.0",
     agroVersion: "0.8.0",
-    ohVersion: "0.8.0",
+    legacyEntryPoint: false,
     missingTool: "",
     nonVersionTool: "",
     platformWarning: "",
@@ -85,10 +85,10 @@ case "$cmd" in
   "node --version") printf '%s\\n' ${JSON.stringify(v.node)} ;;
   "pnpm --version") printf '%s\\n' ${JSON.stringify(v.pnpm)} ;;
   "agro --version") printf '%s\\n' ${JSON.stringify(v.agroVersion)} ;;
-  "oh --version") printf '%s\\n' ${JSON.stringify(v.ohVersion)} ;;
-  *"oh harness list --json"*)
+  "command -v oh") [ "${v.legacyEntryPoint ? "1" : "0"}" = "1" ] && printf '/usr/local/bin/oh\\n' || exit 1 ;;
+  *"agro harness list --json"*)
     if [ "${v.harnessCatalogFails ? "1" : "0"}" = "1" ]; then
-      echo 'not an OpenHarness-equipped repo' >&2
+      echo 'not an AGRO-equipped repo' >&2
       exit 1
     fi
     cat <<'JSON'
@@ -102,7 +102,7 @@ ${
 }
 JSON
     ;;
-  *"oh tool list --json"*)
+  *"agro tool list --json"*)
     cat <<'JSON'
 ${(() => {
   const rows: string[] = [];
@@ -158,7 +158,7 @@ describe("verify-sandbox-image", () => {
     expect(result.stdout).toContain("built-in sandbox user is 1000:1000");
     expect(result.stdout).toContain("node is major 22");
     expect(result.stdout).toContain("pnpm is exactly 10.33.0");
-    expect(result.stdout).toContain("agro and oh report the same CLI version (0.8.0)");
+    expect(result.stdout).toContain("agro reports CLI version 0.8.0");
     expect(result.stdout).toContain("no harness is baked into the image");
     expect(result.stdout).toContain("no installable tool is baked into the image");
     expect(result.stdout).toContain("all checks passed");
@@ -220,18 +220,18 @@ describe("verify-sandbox-image", () => {
     expect(result.stdout).not.toContain("does not match the detected host platform");
   });
 
-  it("rejects an image whose agro and oh entry points disagree on the version", () => {
-    const result = run(fixture({ ohVersion: "0.7.0" }));
+  it("rejects an image that still ships the retired oh entry point", () => {
+    const result = run(fixture({ legacyEntryPoint: true }));
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("agro --version ('0.8.0') and oh --version ('0.7.0')");
+    expect(result.stderr).toContain("the retired 'oh' entry point is present");
   });
 
   it("rejects an image with no agro entry point", () => {
     const result = run(fixture({ agroVersion: "" }));
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("agro --version ('')");
+    expect(result.stderr).toContain("agro --version reported nothing");
   });
 
   it("rejects an unsupported architecture", () => {

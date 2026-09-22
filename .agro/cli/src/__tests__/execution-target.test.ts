@@ -21,14 +21,14 @@ afterEach(() => {
 });
 
 function makeRepo(): string {
-  const d = mkdtempSync(join(tmpdir(), "oh-exec-target-"));
+  const d = mkdtempSync(join(tmpdir(), "agro-exec-target-"));
   cleanups.push(d);
-  mkdirSync(join(d, ".oh", "scripts"), { recursive: true });
+  mkdirSync(join(d, ".agro", "scripts"), { recursive: true });
   return d;
 }
 
 function addScript(root: string, name: string): string {
-  const p = join(root, ".oh", "scripts", name);
+  const p = join(root, ".agro", "scripts", name);
   writeFileSync(p, "#!/usr/bin/env bash\n");
   return p;
 }
@@ -81,12 +81,12 @@ describe("DockerComposeExecutionTarget.provision", () => {
     const root = makeRepo();
     const script = addScript(root, "docker-compose.sh");
     const { calls, run } = makeRunner([{ status: 0 }]);
-    const env = { ...process.env, OH_SANDBOX_IMAGE: "ghcr.io/x/y:pinned" };
+    const env = { ...process.env, AGRO_SANDBOX_IMAGE: "ghcr.io/x/y:pinned" };
 
     await resolveExecutionTarget({ projectRoot: root, run, build: false, env }).provision();
 
     expect(calls[0].args).toEqual([script, "--repo-dir", root, "up", "-d", "--no-build"]);
-    expect(calls[0].opts.env?.OH_SANDBOX_IMAGE).toBe("ghcr.io/x/y:pinned");
+    expect(calls[0].opts.env?.AGRO_SANDBOX_IMAGE).toBe("ghcr.io/x/y:pinned");
   });
 
   it("throws ExecutionExitError carrying the child's code — provision() has nowhere to return it", async () => {
@@ -319,18 +319,18 @@ function bareRoot(): string {
 
 describe("requireLifecycleScript diagnostics", () => {
   it("routes an image installation to the host image refresh, not to a self-upgrade verb", () => {
-    const message = diagnose("/opt/oh/dist/agro.js", makeRepo());
+    const message = diagnose("/opt/agro/dist/agro.js", makeRepo());
 
     expect(message).toContain("missing lifecycle script");
     expect(message).toContain("sandbox install docker");
     expect(message).not.toContain("agro update");
-    expect(message).not.toContain("oh update");
+    expect(message).not.toContain("agro vendor");
   });
 
   it("routes a non-image installation to the payload vendoring verb", () => {
     const message = diagnose("/usr/lib/node_modules/@mifune/agro/dist/agro.js", makeRepo());
 
-    expect(message).toContain("`oh update`");
+    expect(message).toContain("`agro vendor`");
     expect(message).not.toContain("sandbox install docker");
   });
 
