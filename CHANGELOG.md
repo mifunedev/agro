@@ -15,7 +15,6 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 - Add `prompt-miner --judge`, scoring `correctionDensity` with a typed judgment instead of the 12-word negation lexicon. Off by default and uncalibrated ([#1121](https://github.com/mifunedev/agro/issues/1121)).
 - Add `TYPESAFE_API_KEY` to the secret allow-list and a `typesafe-ai` skill preflight that reports an unconfigured sandbox before the first API call ([#1121](https://github.com/mifunedev/agro/issues/1121)).
 - Add six probes pinning the TypeSafe degradation contract: null without a key, one cause per failure, one diagnostic source, preflight exit 0, key absent from compose, judge off by default ([#1121](https://github.com/mifunedev/agro/issues/1121)).
-- Add the opt-in `crap-pilot.sh` CRAP measurement tool for a bounded sample of scripts; it is not wired into tests, CI, evals, or any skill ([#1118](https://github.com/mifunedev/agro/issues/1118)).
 - Default Antigravity CLI (`agy`) to zero-confirmation mode with a sandbox alias, catalog launch flag, and seeded settings.json ([#1090](https://github.com/mifunedev/agro/issues/1090)).
 - Add `agro workspace create [<name>]` and `agro workspace list`, so an operator creates and inspects a host AGRO workspace under `~/.agro/workspaces/` without installing a harness ([#1086](https://github.com/mifunedev/agro/issues/1086)).
 - Add two probes: `spec-task-artifact-contract` fails when a completed task folder lacks a required artifact, and `audit-tooling-blocked-signal` fails when an unrunnable gate reads as failed ([#1088](https://github.com/mifunedev/agro/issues/1088)).
@@ -28,7 +27,6 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Changed
 
 - Rewrite the Langfuse guide around the official Claude Code, Pi, and Codex plugins, and document the environment and trace-tag model ([#1125](https://github.com/mifunedev/agro/issues/1125)).
-- Replace skill-health scores and eval flag-count verdicts with evidence-backed advice that preserves unknown usage and detects eval changes during read-only audits ([#1114](https://github.com/mifunedev/agro/issues/1114)).
 - Separate scoped directory contracts from reference documentation and retire the `harness-context` skill ([#1112](https://github.com/mifunedev/agro/issues/1112)).
 - Drop no-op lint and format CI steps, delete path filters that name missing trees, and rebuild the sandbox image only when boot or image inputs change ([#1092](https://github.com/mifunedev/agro/issues/1092)).
 - Copy only `provision-python.sh` into the image home stage before the Python kernel, and clean npm and uv installer leftovers in the same layer ([#1093](https://github.com/mifunedev/agro/issues/1093)).
