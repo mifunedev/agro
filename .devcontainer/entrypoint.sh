@@ -234,9 +234,10 @@ HARNESS="${HARNESS:-$AGRO_PROJECT_ROOT}"
 CONTROL_DIR="$(agro_control_dir "$HARNESS")"
 
 if [ -x "$CONTROL_DIR/scripts/link-providers.sh" ]; then
-  if ! gosu sandbox bash "$CONTROL_DIR/scripts/link-providers.sh" --init; then
-    echo "[entrypoint] failed to link provider skills; run: bash $CONTROL_DIR/scripts/link-providers.sh --init"
-    exit 1
+  if ! gosu sandbox env AGRO_PROJECT_ROOT="$HARNESS" bash "$CONTROL_DIR/scripts/link-providers.sh" --init; then
+    echo "[entrypoint] WARNING: could not link provider skills from $CONTROL_DIR" >&2
+    echo "[entrypoint] WARNING: a control plane vendored before the AGRO cutover cannot link here" >&2
+    echo "[entrypoint] WARNING: re-vendor it with 'agro vendor', then run: bash $CONTROL_DIR/scripts/link-providers.sh --init" >&2
   fi
 fi
 

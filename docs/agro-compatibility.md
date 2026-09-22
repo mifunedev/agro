@@ -65,7 +65,16 @@ Rename any `OH_*` variables in your shell profile, CI configuration and
 `.env` files to `AGRO_*`. The CLI no longer reads the `OH_` prefix and will not
 warn about one it finds.
 
-Then re-vendor the control plane and re-link the providers:
+### Re-vendor before you upgrade the image
+
+An existing sandbox workspace volume still holds the control plane that was
+vendored into it before the cutover. That copy reads the retired `OH_*`
+variables, which the new image no longer sets, so its provider linking cannot
+run. The sandbox still boots — the entrypoint reports the problem and
+continues rather than failing the unit — but agents have no linked skills
+until the control plane is re-vendored.
+
+Re-vendor the control plane and re-link the providers:
 
 ```bash
 agro vendor
