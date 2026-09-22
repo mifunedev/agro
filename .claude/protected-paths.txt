@@ -26,7 +26,6 @@ ralph
 architect
 audit
 delegate
-strategic-proposal
 spec
 eval
 health-check

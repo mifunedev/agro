@@ -100,8 +100,7 @@ never fails and never substitutes silently.
 
 **Status: uncalibrated. The threshold is a starting value, not a validated one.** No
 comparison has been run, so `--judge` is not yet known to beat the lexicon and must not
-be promoted past opt-in on the strength of the mechanism alone. Run the comparison the
-way `weigh` documents:
+be promoted past opt-in on the strength of the mechanism alone. Run this comparison:
 
 1. Hand-label the follow-ups in `scripts/__tests__/fixtures/` as corrective or not.
 2. Run the same cohort with and without `--judge`.

@@ -46,16 +46,6 @@
         ".agro/skills/delegate"
       ]
     },
-    "interview": {
-      "source": "github:mifunedev/skills",
-      "registry_version": "2026.5.17",
-      "skill_version": "0.1.0",
-      "commit": "c559c100177b3b2edc5d1c29cc3741ce48342e51",
-      "checksum": "sha256:b3e563d025d0c3f27edf5ca3c0d4b955399ff71fc303461f000ca92fc9b361bd",
-      "installed_paths": [
-        ".agro/skills/interview"
-      ]
-    },
     "prd": {
       "source": "github:mifunedev/skills",
       "registry_version": "2026.5.17",
@@ -84,16 +74,6 @@
       "checksum": "sha256:57ffd3a2bfb2fa3bb53e086e8e7951bc4f6fe95b071179740bd10dfcb16c6e64",
       "installed_paths": [
         ".agro/skills/release"
-      ]
-    },
-    "strategic-proposal": {
-      "source": "github:mifunedev/skills",
-      "registry_version": "2026.5.17",
-      "skill_version": "0.1.0",
-      "commit": "c559c100177b3b2edc5d1c29cc3741ce48342e51",
-      "checksum": "sha256:941f425f4a612e8d36a4d870ddf90f7cb6a8d9aa40efe596111c0eb78ddabe20",
-      "installed_paths": [
-        ".agro/skills/strategic-proposal"
       ]
     },
     "worktrees": {
