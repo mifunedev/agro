@@ -153,9 +153,12 @@
     },
     {
       "id": "US-008",
-      "title": "`agro langfuse setup` wizard",
+      "title": "`agro config langfuse` wizard",
       "description": "As an operator, I want a guided five-step wizard so that I can configure Langfuse correctly without reading the integration doc.",
       "acceptanceCriteria": [
+        "Registered in `INTEGRATIONS` in `.agro/cli/src/cli.ts` as `langfuse`, becoming the registry's first member; `agro config` help lists it instead of `(none)`",
+        "`agro config langfuse --help` renders through the existing `printIntegrationHelp`",
+        "The `Integration` interface is **not** changed \u2014 no argv parameter, no flags",
         "Five steps rendered with `prompt.step(n, 5, label)` \u2014 its first caller",
         "Step 1 \u2014 enable: `askYesNo`. Declining writes nothing and exits `0`",
         "Step 2 \u2014 base URL: a **menu**, not free text, with Langfuse Cloud / `http://host.docker.internal:3000` / Compose service name / custom, mirroring the table in `docs/integrations/langfuse.md`",
@@ -167,8 +170,7 @@
         "Interactivity gate copies `sandbox.ts:265` exactly: `opts.yes !== true && (process.stdin.isTTY === true || io.ask !== undefined)`",
         "With `--yes` or no TTY, the wizard is skipped and the command behaves as `apply`",
         "No secret is ever echoed; terminal output uses `prompt.redact`",
-        "Tests inject `io.ask` / `io.askSecret` following the `SecretIO` pattern; no test needs a real TTY",
-        "Typecheck, lint, and unit tests pass"
+        "Tests inject `io.ask` / `io.askSecret` following the `SecretIO` pattern; no test needs a real TTY"
       ],
       "priority": 9,
       "passes": false,

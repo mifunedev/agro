@@ -219,7 +219,7 @@ after `agro destroy` and recreate, so that unattended work is never silently unt
 - [ ] Verified end to end: configure, `agro destroy`, recreate, then confirm both harness
       files and the fragment are present with correct modes
 
-### US-008: `agro langfuse setup` wizard
+### US-008: `agro config langfuse` wizard
 
 **Description:** As an operator, I want a guided five-step wizard so that I can configure
 Langfuse correctly without reading the integration doc.
@@ -227,8 +227,19 @@ Langfuse correctly without reading the integration doc.
 Reuses the existing precedent: `runWizard` at `.agro/cli/src/commands/sandbox.ts:169` and
 the interactivity gate at `sandbox.ts:265`.
 
+**The wizard is registered in the existing integration registry.** `.agro/cli/src/cli.ts:84`
+declares `const INTEGRATIONS: Record<string, Integration> = {}` — a fully wired registry
+with routing, per-integration `--help`, and a `(none)` placeholder, and **zero members**.
+`agro config langfuse` becomes its first. The non-interactive verbs cannot live there:
+`Integration` is `{ description, runner: () => Promise<number> }` and its help states the
+wizard "takes no flags", so `apply`, `status`, and `disable` stay under `agro langfuse`.
+
 **Acceptance Criteria:**
 
+- [ ] Registered in `INTEGRATIONS` in `.agro/cli/src/cli.ts` as `langfuse`, becoming the
+      registry's first member; `agro config` help lists it instead of `(none)`
+- [ ] `agro config langfuse --help` renders through the existing `printIntegrationHelp`
+- [ ] The `Integration` interface is **not** changed — no argv parameter, no flags
 - [ ] Five steps rendered with `prompt.step(n, 5, label)` — its first caller
 - [ ] Step 1 — enable: `askYesNo`. Declining writes nothing and exits `0`
 - [ ] Step 2 — base URL: a **menu**, not free text, with Langfuse Cloud /
@@ -404,6 +415,10 @@ nothing. This is the single most likely first-run failure.
 - **FR-16:** `.claude/settings.json` `permissions.deny` must include the fragment path.
 - **FR-17:** Provider logic must live under `lib/tracing/providers/`, keeping the command
   surface singular while leaving the seam provider-shaped.
+- **FR-25:** The wizard must register in the existing `INTEGRATIONS` registry as
+  `agro config langfuse` without altering the `Integration` interface. The non-interactive
+  verbs `apply`, `status`, and `disable` live under `agro langfuse`, because that registry
+  hosts flagless interactive wizards only.
 - **FR-18:** Running any command on the host must persist settings and state clearly that the
   apply happens in the sandbox.
 - **FR-19:** No command, flag, or document may describe this feature as OpenTelemetry. Native
@@ -495,7 +510,11 @@ Three recalled items changed the plan rather than merely confirming it:
 - **Constraints discovered during grounding**: three, none contradicting the approved plan —
   (1) the credential fragment must serve two consumers with incompatible formats, resolved as D10 (bare `KEY=value` plus `set -a` in `.zshenv`) rather than by rendering two files;
   (2) `[[pattern-cli-bundled-asset-relative-import]]` constrains how the provider module may reference tracked assets;
-  (3) new probes require recorded fault injection per `[[pattern-evals-probe-failure-path-untested]]`.
+  (3) new probes require recorded fault injection per `[[pattern-evals-probe-failure-path-untested]]`;
+  (4) `.agro/cli/src/cli.ts:84` already carries an empty `INTEGRATIONS` wizard registry built
+  for exactly this case. Grounding surfaced it, the operator was asked because it changes the
+  mechanism the PRD named, and approved the hybrid: `agro config langfuse` for the wizard,
+  `agro langfuse <verb>` for the non-interactive commands. `Integration` stays unchanged.
 - **Orchestration preserved**: NOT-APPLICABLE — the approved PRD carries no `## advisor orchestration strategy`; this build uses the default advisor-first dispatch from `.agro/skills/spec/references/execute.md`.
 
 

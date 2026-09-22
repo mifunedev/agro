@@ -8,3 +8,13 @@
   Architecture decided inline via /architect earlier this session; prd.md carries it.
   Issue #1131 opened. Worktree .worktrees/feat/1131-langfuse-config-wizard from origin/development.
   prd.json: 14 stories (13 from prd.md + US-014 knowledge/ADR, required by Expected Knowledge Impact).
+
+2026-09-21 execute/ground — issue #1131, draft PR #1132, branch feat/1131-langfuse-config-wizard.
+  Drift vs plan base: 0 files.
+  GROUNDING FINDING (material, operator consulted): .agro/cli/src/cli.ts:84 carries an empty
+  INTEGRATIONS wizard registry, fully routed with per-integration --help and zero members.
+  Integration is { description, runner: () => Promise<number> } and its help says the wizard
+  takes no flags, so it can host the wizard but not apply/status/disable.
+  Operator approved the hybrid surface: `agro config langfuse` (registry's first member) for
+  the wizard, `agro langfuse apply|status|disable` for the non-interactive verbs.
+  Integration interface unchanged. Recorded as FR-25; US-008 retitled and resynced into prd.json.
