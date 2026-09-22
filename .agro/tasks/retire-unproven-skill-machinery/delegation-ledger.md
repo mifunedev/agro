@@ -160,4 +160,10 @@ touch `.agro/evals/RESULTS.md`. Shared-file work serializes by contract.
   dangling-reference scan clean
 - **Covered DoD IDs**: 3, 7
 - **Acceptance owner**: the advisor
-- **Status**: pending
+- **Status**: completed. Advisor verified the worker's refusal of the brief rather than
+  the brief: `schema.md:107` scopes `verified_at` to `kind: repo` only, and zero of the
+  six `kind: external` pages carry it, so advancing `updated:` was correct and the
+  brief was wrong. Both remaining `sources:` paths resolve and are tracked; the
+  dangling-reference scan over `.agro/knowledge/` returns no matches.
+- **Artifact references**: commit `678cef133b49d6d9fcabc52df6b990e5aaa73db6`
+- **Usage**: 81,960 subagent tokens, 28 tool uses, 115s

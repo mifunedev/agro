@@ -74,7 +74,7 @@
         "No retired skill name appears in tracked active surfaces over a working-tree scan, not a git ls-files scan"
       ],
       "priority": 5,
-      "passes": false
+      "passes": true
     }
   ]
 }
