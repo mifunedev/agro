@@ -45,7 +45,7 @@ nodes`. Not created by this node; `/spec execute` opens it.
 
 ## Definition of Done
 
-1. `bash .agro/evals/run.sh` exits 0 with no REGRESSION, and the probe count
+1. `bash .agro/skills/eval/run.sh` exits 0 with no REGRESSION, and the probe count
    drops by exactly 4 (`sync-skill-contract.sh`, `rlm-context-budget.sh`,
    `post-bridge-publish-confirmation.sh`, `weigh-scorer-contract.sh`).
 2. `.agro/skills/{fanout,render-html,sync,blog,post-bridge,rlm,weigh,imagine,interview,strategic-proposal}`
@@ -64,7 +64,9 @@ nodes`. Not created by this node; `/spec execute` opens it.
    ([[pattern-evals-probe-failure-path-untested]]).
 7. CB-005 re-scored at >= 1.33 in `.agro/evals/capability/RESULTS.md`.
 8. `bash .agro/scripts/link-providers.sh` runs clean and every symlink resolves.
-9. `node -e "require('./.agro/skills.lock')"` parses and holds no retired entry.
+9. `.agro/skills.lock` parses under `JSON.parse` and holds no retired entry.
+   (`require()` cannot read it: Node resolves a `.lock` extension as CommonJS,
+   so it throws on the unmodified file too.)
 
 ## Advisor orchestration
 
@@ -74,8 +76,8 @@ dispatched in order because waves 2 and 3 depend on wave 1's sweep landing.
 
 | Worker | Owned write paths | Excluded | Evidence |
 |---|---|---|---|
-| W1 wave 1 | `.agro/skills/{fanout,render-html,sync,blog,post-bridge}/`, `.agro/evals/probes/{sync-skill-contract,post-bridge-publish-confirmation}.sh`, `.agro/skills.lock` | `.agro/skills/retro/`, `.agro/evals/capability/` | `bash .agro/evals/run.sh` exit 0 |
-| W2 wave 2 | `.agro/skills/{rlm,weigh,imagine,interview,strategic-proposal}/`, `.agro/evals/probes/{rlm-context-budget,weigh-scorer-contract,prompt-miner-symlink-entrypoint,audit-stale-references}.sh`, `.claude/protected-paths.txt`, `docs/glossary.md`, `.agro/evals/RESULTS.md` | `.agro/skills/retro/` | `bash .agro/evals/run.sh` exit 0 |
+| W1 wave 1 | `.agro/skills/{fanout,render-html,sync,blog,post-bridge}/`, `.agro/evals/probes/{sync-skill-contract,post-bridge-publish-confirmation}.sh`, `.agro/skills.lock` | `.agro/skills/retro/`, `.agro/evals/capability/` | `bash .agro/skills/eval/run.sh` exit 0 |
+| W2 wave 2 | `.agro/skills/{rlm,weigh,imagine,interview,strategic-proposal}/`, `.agro/evals/probes/{rlm-context-budget,weigh-scorer-contract,prompt-miner-symlink-entrypoint,audit-stale-references}.sh`, `.claude/protected-paths.txt`, `docs/glossary.md`, `.agro/evals/RESULTS.md` | `.agro/skills/retro/` | `bash .agro/skills/eval/run.sh` exit 0 |
 | W3 wave 3 | `.agro/skills/retro/`, `.agro/evals/probes/retro-deterministic-contract.sh`, `.agro/skills/wiki/references/compile.md`, `.agro/skills/spec/references/{retro,execute}.md` | everything wave 1 and 2 own | probe fault-injection table + `wiki-compile-contract.sh` PASS |
 
 The owner reconciles each wave before dispatching the next. No worker writes
