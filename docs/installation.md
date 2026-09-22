@@ -361,7 +361,7 @@ per-tool volumes did before.
 Hermes is split: when the `hermes` binary is present (after
 `agro harness install hermes`), `HERMES_HOME` is the project-local
 bind-mounted `~/harness/.hermes/` directory. The entrypoint links `.hermes/skills/openharness` to the tracked
-shared skill directory (`.agro/skills/`) so Hermes sees the same harness skills as
+shared hook directory (`.agro/hooks/`) so Hermes sees the same guards as
 Claude, Codex, and Pi without copying them into runtime state. Project-local
 runtime contents are gitignored except `.hermes/README.md`.
 

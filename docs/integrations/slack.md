@@ -258,7 +258,7 @@ gateway status            # show client-slack-pi + client-slack-hermes
 `agro gateway pi`). The same command brings up the sibling Hermes gateway
 client: `gateway hermes`. Detach an attached session with `Ctrl-b d`. The
 session name `client-slack-pi` follows the `client-` prefix convention in
-[`.agro/skills/t3/references/sandbox-processes.md`](https://github.com/mifunedev/agro/blob/development/.agro/skills/t3/references/sandbox-processes.md).
+[`docs/sandbox-processes.md`](https://github.com/mifunedev/agro/blob/development/docs/sandbox-processes.md).
 
 ## 5. Access Control — challenge-based auth
 

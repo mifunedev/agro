@@ -7,6 +7,17 @@ application code inside the sandbox.
 
 Every coding harness reads this file directly.
 
+## Minimal-core experiment
+
+This branch is an experiment. It strips the control plane down to the sandbox
+and the lifecycle CLI, and removes the probe suite, the skill pack, the wiki,
+the task scaffolding, and the per-session memory files. Nothing here replaces
+them. Use the coding harness's own judgment and the operator's instructions
+instead.
+
+Do not port the removed machinery back onto this branch. The branch exists to
+measure how the work goes without it.
+
 ## What AGRO is
 
 AGRO is a portable home for autonomous coding agents. It turns a repository
@@ -17,8 +28,8 @@ work after the operator disconnects.
 
 AGRO does not replace Claude Code, Codex, Pi, or another coding harness. It
 surrounds each harness with two layers: `.devcontainer/` defines the isolated
-runtime, and `.agro/` provides the portable control plane for identity, schedules,
-task procedures, and checks. The operator chooses the coding harness.
+runtime, and `.agro/` provides the portable control plane for lifecycle,
+identity, and schedules. The operator chooses the coding harness.
 
 The following properties are non-negotiable.
 
@@ -33,7 +44,7 @@ change agent-owned files after initial scaffolding.
 ### 2. Coding-harness choice does not change the workspace
 
 Claude Code, Codex, Pi, and other coding harnesses use the same project state and
-shared primitives. Canonical skills, task procedures, and hooks live under `.agro/`.
+the same shared primitives. Canonical hooks live under `.agro/hooks/`.
 Compatibility directories expose those primitives through symlinks. Change the
 canonical `.agro/` source. Do not patch a generated mirror.
 
@@ -55,18 +66,8 @@ locks, or service boundaries instead of hidden terminal state.
 
 Do not add explanatory comments to tracked code. Comments create a second,
 unverified description that drifts from behavior. Express intent through names,
-types, structure, tests, and deterministic probes. Keep only machine-read
-directives and comment-shaped data that a verified tool or oracle requires.
-
-## One advisor, bounded workers
-
-The active session acts as advisor and owns decisions and acceptance. The role
-requires no particular model and no handoff. Keep the active session on advice,
-bounded assignments, integration decisions, and evidence review. Assign
-implementation to bounded workers through the canonical delegation procedure in
-[`.agro/skills/delegate/SKILL.md`](.agro/skills/delegate/SKILL.md), inside the
-build that [`.agro/skills/spec/SKILL.md`](.agro/skills/spec/SKILL.md) owns. Keep
-one accountable owner and preserve the sandbox and worktree boundaries.
+types, structure, and tests. Keep only machine-read directives and
+comment-shaped data that a verified tool requires.
 
 ## A note from the maintainer
 
@@ -86,13 +87,11 @@ cross the sandbox boundary or make persistent work depend on an attached termina
 - **operator** means the person who owns the project and directs the agents.
 - **application agent** means the coding agent that owns implementation inside the
   sandbox.
-- **advisor** means the active session's behavior of deciding, assigning, and
-  accepting work, not an identity, a model, or a terminal.
 - **host** means the laptop or VM that runs Docker and the root lifecycle commands.
 - **sandbox** means the project container defined by `.devcontainer/` and the
   persistent agent environment inside it.
 - **control plane** means only the portable `.agro/` machinery that manages lifecycle,
-  agent identity, schedules, task procedures, and checks.
+  agent identity, and schedules.
 - **coding harness** means Claude Code, Codex, Pi, or another agent interface running
   in the sandbox.
 - **agent session** means one running instance of a coding harness acting with an
@@ -139,14 +138,14 @@ silently skip a surface.
   state?
 - **Public documentation:** Does user-facing behavior or terminology require a
   matching change in `mifunedev/agro-web`?
-- **Verification:** Which tests, probes, and CI paths prove the changed behavior?
+- **Verification:** Which tests and CI paths prove the changed behavior?
 
 ## How to work in this repository
 
 This file is the root context. Read each applicable scoped `AGENTS.md` before
 producing files in its directory. Local contracts hold mandatory obligations;
 READMEs provide orientation, package information, or indexes. Keep detailed
-explanations in `docs/` and reusable procedures in canonical skills.
+explanations in `docs/`.
 
 Use the lifecycle in this order:
 
@@ -163,20 +162,30 @@ Run `agro destroy <name>` only for operator-authorized teardown.
 Host prerequisites are Docker, Git, and Node 20 or newer. The verb reference is
 [`docs/lifecycle-commands.md`](docs/lifecycle-commands.md).
 
+## Git conventions
+
+- Branch: `<prefix>/<issue#>-<short-desc>`, where `<prefix>` is `feat`, `bug`,
+  `task`, or `audit`. Cut from `development`.
+- PR title: `FROM <source-branch> TO <target-branch>`.
+- PR body: carry a `Closes #<issue#>` trailer; the close-on-development workflow
+  reads it.
+- Commit: `<type>: <description>`, where `<type>` is `feat`, `fix`, `task`, or
+  `audit`.
+- CHANGELOG: every PR with user-visible impact adds one entry of at most 250
+  characters under `## [Unreleased]`, linking the PR.
+- Worktrees live at `.worktrees/<branch>`.
+
 ## How the system fits together
 
-Tests and deterministic probes verify the control plane against real repository
-state.
+Tests verify the control plane against real repository state.
 
-The repository has one sandbox definition and four control-plane areas:
+The repository has one sandbox definition and one control-plane area:
 
 - `.devcontainer/` defines the sandbox image, Compose configuration, and entrypoint.
   This directory stays outside the `.agro/` control plane.
 - `.agro/scripts/`, `.agro/install/`, and `.agro/cli/` implement lifecycle and runtime
   behavior.
-- `.agro/skills/` and `.agro/hooks/` hold portable primitives; skills encode roles.
-- `.agro/tasks/` holds task-specific plans, graphs, progress, and evidence.
-- `.agro/evals/` holds regression probes and capability benchmarks.
+- `.agro/hooks/` holds the security hooks that each provider surface mirrors.
 
 Read the nearest directory `README.md` before changing unfamiliar machinery.
 
@@ -185,6 +194,6 @@ Read the nearest directory `README.md` before changing unfamiliar machinery.
 - Prefer a smaller truthful model over a complete-looking abstraction.
 - Make ownership and execution location obvious.
 - Keep one source of truth for each policy and behavior.
-- Use code, tests, and probes as evidence.
+- Use code and tests as evidence.
 - Preserve human judgment where automation cannot prove the decision.
 - Delete obsolete paths instead of leaving dormant alternatives.

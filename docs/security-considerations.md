@@ -103,7 +103,7 @@ event.
   | pi | `npm:cc-safety-net` package extension (auto-registers, fails closed) | `SENSITIVE_PATHS` confirm — interactive-mode only; a **headless no-op today** (pre-existing gap, named future work) |
   | hermes | **none** — no hook surface + no upstream support (**documented gap**) | none |
 
-- **Eval:** [`.agro/evals/probes/cc-safety-net-wiring.sh`](../.agro/evals/probes/cc-safety-net-wiring.sh) asserts every wiring point above (config entries are repo-static — absence is a REGRESSION, never a SKIP; only the live-binary block test may SKIP when the binary is absent outside the built image).
+- **Check:** `bash .agro/scripts/link-providers.sh --check` asserts the hook link and every protected path listed in `.claude/protected-paths.txt`.
 
 ### Operator runbook
 
@@ -186,11 +186,10 @@ expose to whichever trust level you choose.
   the host's cgroup tree and its neighbours' `cgroup.procs` breaks the first non-negotiable
   in `AGENTS.md` (agent work stays inside the sandbox) in a way a mount capability does not. It is also far narrower than the
   Docker socket in Caveat 1, which remains the dominant risk when enabled.
-  [`.agro/evals/probes/systemd-sandbox-init.sh`](../.agro/evals/probes/systemd-sandbox-init.sh)
-  pins this shape and fails on `privileged: true` or a host cgroup bind;
-  [`.agro/evals/probes/tailscale-tool-boundary.sh`](../.agro/evals/probes/tailscale-tool-boundary.sh)
-  holds `SYS_ADMIN` as the **only** capability the sandbox may grant, so a networking
-  capability can never be added quietly.
+  [`sandbox-privilege-boundary.test.ts`](../.agro/scripts/__tests__/sandbox-privilege-boundary.test.ts)
+  pins this shape: it fails on `privileged: true`, a host cgroup bind, a device
+  grant, or any capability other than `SYS_ADMIN`, so a networking capability can
+  never be added quietly.
 
 - **Caveat 4 — the optional sshd overlay (RECOMMENDED to configure).** The base
   container publishes **no ports** and runs **no** SSH daemon. The opt-in overlay
@@ -245,7 +244,7 @@ expose to whichever trust level you choose.
 
 No agent merges its own work to the trunk.
 
-- **Doctrine:** [the `/spec` workflow contract](../.agro/skills/spec/SKILL.md#workflow-contract) — the canonical path ends `… → merge (human) → reset|clean`, and the human alone merges. The runner resets; it never merges.
+- **Doctrine:** the canonical path ends `… → merge (human) → reset|clean`, and the human alone merges. The runner resets; it never merges.
 - **No unattended merger exists:** the `autopilot` self-improvement loop and its rate-capping preflight were removed in 0.4.0. No scheduled agent now opens or promotes PRs unattended, so there is no automated path to a merge at all.
 - **RECOMMENDED (hard gate):** the ultimate enforcement of "no agent merges" is **GitHub branch protection** (required reviews / restricted merge) on `development`/`main`. That lives in repo settings, not this tree — configure it. Without it, "no auto-merge" rests on the agents' skill definitions, not a server-side block.
 
@@ -294,4 +293,3 @@ exploit publicly.
 ## Related
 
 - [Contributing](contributing.md) · [Connecting to the sandbox](connecting.md) · [Installation](installation.md)
-- [The `/spec` workflow contract](../.agro/skills/spec/SKILL.md#workflow-contract) — the human merge gate in context.

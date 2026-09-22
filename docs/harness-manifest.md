@@ -21,17 +21,14 @@ name: openharness
 version: 1
 
 primitives:
-  skills: .agro/skills/
   hooks: .agro/hooks/
 
 loops:
   schedules: crons/
-  task_artifacts: .agro/tasks/
 
 policies:
   operator_instructions: AGENTS.md
-  git_workflow: .agro/skills/git/SKILL.md
-  security_hooks: .agro/hooks/                       # secret-exposure guards
+  security_hooks: .agro/hooks/                     # secret-exposure guards
   destructive_command_guard: cc-safety-net@1.0.6   # global binary (Dockerfile) + provider config entries
 ```
 
@@ -39,16 +36,12 @@ policies:
 
 - `name` and `version` are plain labels for humans. They do not imply a manifest
   version registry.
-- `primitives` points at the real provider-portable primitive pack: skills and
-  hooks already live under `.agro/`. There is no agent-definitions entry — skills
-  are the reusable-role primitive, and provider-native sub-agents are a bounded
-  execution choice made by `/delegate`, not a repository artifact.
-- `loops` points at today's scheduled cron prompts and task artifact directory.
-  `/spec execute` owns implementation directly; it does not delegate to a separate
-  implementation process.
+- `primitives` points at the real provider-portable primitive pack: the hooks
+  under `.agro/`. There is no agent-definitions entry.
+- `loops` points at today's scheduled cron prompts.
 - `policies` points at existing policy surfaces instead of inventing a
-  `.agro/policies/` directory: the root instructions file, the git workflow skill,
-  and hook-enforced guardrails. The guardrails are two complementary layers: the
+  `.agro/policies/` directory: the root instructions file and the hook-enforced
+  guardrails. The guardrails are two complementary layers: the
   secret-exposure hooks under `.agro/hooks/`, and the destructive-command guard
   (cc-safety-net@1.0.6 — a global binary from the image plus guard-wrapped
   entries in the provider configs, not an `.agro/` file). Both are described in

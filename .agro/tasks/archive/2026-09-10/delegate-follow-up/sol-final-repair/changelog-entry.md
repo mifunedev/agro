@@ -1,1 +1,0 @@
-- Require verified dependency acceptance and safe resume eligibility before dispatching delegated work. ([#1004](https://github.com/mifunedev/openharness/pull/1004))

@@ -59,7 +59,7 @@ agro harness install claude-code --path /srv/agro   # install from /srv/agro, ou
 ```
 
 Work from the harness root. A harness started outside an AGRO checkout finds no
-`AGENTS.md`, no `.agro/skills/`, no hooks and no task state, so `cd` into the
+`AGENTS.md` and no hooks, so `cd` into the
 harness root before you start the harness. The command prints the launch line as
 its last line, in the form `cd <root> && <binary>`. For a harness that declares a
 bypass-permissions flag, the line carries that flag, because a first-run
@@ -225,7 +225,7 @@ Two optional surfaces cover most day-to-day use:
 - **Pi+Slack** — chat with the agent from Slack instead of the terminal.
 - **T3 Code** — browser UI on port `3773` driving Claude / Codex / OpenCode.
 
-Each runs in its own named tmux session per [`.agro/skills/t3/references/sandbox-processes.md`](https://github.com/mifunedev/agro/blob/development/.agro/skills/t3/references/sandbox-processes.md). For the two browser surfaces, open them in **VS Code's Simple Browser** (`Ctrl+Shift+P` → `Simple Browser: Show`; `Cmd+Shift+P` on macOS) so the live UI sits in a tab next to the code you're editing.
+Each runs in its own named tmux session per [`docs/sandbox-processes.md`](https://github.com/mifunedev/agro/blob/development/docs/sandbox-processes.md). For the two browser surfaces, open them in **VS Code's Simple Browser** (`Ctrl+Shift+P` → `Simple Browser: Show`; `Cmd+Shift+P` on macOS) so the live UI sits in a tab next to the code you're editing.
 
 ### Pi+Slack
 

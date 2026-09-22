@@ -1,59 +1,35 @@
-# Protected paths — load-bearing skills, scripts, and config that critics
-# must NOT propose for deletion or deprecation without an explicit override
-# note in the finding's RECOMMENDATION column.
+# Protected paths — load-bearing scripts and config that critics must NOT
+# propose for deletion or deprecation without an explicit override note in
+# the finding's RECOMMENDATION column.
 #
-# When you ship a new orchestrator-load-bearing skill or script, ADD it
-# here in the same PR. When something on this list becomes truly obsolete,
-# remove it here in a separate PR with a CHANGELOG entry explaining why.
+# When you ship a new load-bearing script, ADD it here in the same PR. When
+# something on this list becomes truly obsolete, remove it here in a separate
+# PR with a CHANGELOG entry explaining why.
 #
-# Format: one entry per line. Skill names are bare (e.g., "release"), not
-# slash-prefixed. Scripts and files use repo-relative paths.
-# Lines starting with # are comments. Blank lines are ignored.
+# Format: one repo-relative path per line. Lines starting with # are
+# comments. Blank lines are ignored.
 #
-# Last reviewed: 2026-08-13 (issue #753)
+# Last reviewed: 2026-09-22 (issue #1134)
 #
-# Every entry is checked by .agro/evals/probes/protected-paths-resolve.sh.
-# An entry that resolves to nothing protects nothing, and reads identical
-# to one that passes — so a rename silently disarms the guard.
+# Every entry is checked by .agro/scripts/link-providers.sh --check. An entry
+# that resolves to nothing protects nothing, and reads identical to one that
+# passes — so a rename silently disarms the guard.
 
-# --- Orchestrator skills (.claude/skills/) ---
-release
-ci-status
-cloudflared
-agent-browser
-prd
-ralph
-architect
-audit
-delegate
-spec
-eval
-health-check
-retro
-t3
-# --- Orchestrator scripts (.agro/scripts/) ---
-.agro/skills/wiki/scripts/knowledge-impact.sh
+# --- Lifecycle and runtime scripts ---
 .agro/scripts/cron-runtime.ts
 .agro/scripts/sandbox-healthcheck.sh
 .agro/scripts/link-providers.sh
+.agro/scripts/docker-compose.sh
 
 # --- Install / runtime scripts wired into the Dockerfile or sourced at boot ---
 .agro/install/banner.sh
-.agro/skills/cloudflared/scripts/run.sh
 .devcontainer/entrypoint.sh
 .devcontainer/Dockerfile
 
+# --- Security hooks mirrored to every provider surface ---
+.agro/hooks/deny-env-dump.sh
+.agro/hooks/deny-secret-paths.sh
+.agro/hooks/warn-devtcp.sh
+
 # --- Crons (referenced by .agro/scripts/cron-runtime.ts) ---
 crons/heartbeat.md
-crons/cleanup-tasks.md
-.agro/evals/probes/cleanup-tasks-worktree-grooming.sh
-.agro/evals/probes/markitdown-wiki-ingest.sh
-crons/eval-weekly.md
-
-# --- Norms folded into skills (B-state M3+M4) ---
-.agro/skills/git/SKILL.md
-.agro/skills/t3/references/sandbox-processes.md
-.agro/skills/spec/references/plan.md
-.agro/skills/spec/references/execute.md
-.agro/skills/spec/references/retro.md
-

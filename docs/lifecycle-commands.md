@@ -217,9 +217,9 @@ lifecycle script is truly absent.
 `agro migrate` moves an installation created under the legacy names to the AGRO
 names. It renames `.oh/` to `.agro/` and `oh.json` to `agro.json` wholesale,
 and re-points three active provider links from `../.oh/…` to `../.agro/…`:
-`.claude/skills`, `.claude/hooks`, and `.agents/skills`.
+`.claude/hooks`.
 The retired links are `.pi/skills` and `.codex/skills`.
-If a retired link resolves to the AGRO pack and `.agents/skills` independently links to that pack, migration moves the retired link to `<path>.migrated`.
+A retired skill-pack link that still resolves to the AGRO tree is moved to `<path>.migrated`.
 Otherwise, migration preserves the retired path. Migration re-points a preserved
 `../.oh/skills` link to `../.agro/skills` so discovery survives the pack rename.
 Custom directories and foreign links remain unchanged. An existing retirement
@@ -318,7 +318,7 @@ record.
 
 A **host workspace** is an AGRO checkout under
 `${AGRO_HOME:-~/.agro}/workspaces/<name>/`. It carries the control plane that a
-harness on the host reads: `AGENTS.md`, `.agro/skills/`, the hooks, and task
+harness on the host reads: `AGENTS.md`, the hooks, and task
 state. `agro workspace` is the only verb that creates one.
 
 ```bash

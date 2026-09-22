@@ -187,7 +187,7 @@ to `.env` and load it with `set -a; source .env; set +a`.
 It is deliberately absent from every compose `environment:` block. A value reaches the
 sandbox through Compose only if a process outside the sandbox — or the entrypoint before
 the control plane is readable — must act on it, and nothing outside the sandbox acts on
-this key. `.agro/evals/probes/typesafe-key-boundary.sh` fails if it ever appears there.
+this key.
 
 **Unconfigured fails loudly, then continues.** Without the key, every consumer prints a
 diagnostic naming the variable and the command that sets it, then falls back to its

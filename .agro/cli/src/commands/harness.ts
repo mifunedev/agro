@@ -294,25 +294,6 @@ function hermesTargetRoot(target: ExecutionTarget): string {
   return target.kind === "docker-compose" ? "/home/sandbox/harness" : target.workspace.targetRoot;
 }
 
-async function reconcileHermes(
-  target: ExecutionTarget,
-  io: HarnessIO,
-  bin: string,
-  user: InstallUser,
-  root: string = hermesTargetRoot(target),
-): Promise<number> {
-  const result = await target.exec({
-    argv: remoteControlDirScript(root, "scripts/link-providers.sh", ["--init", "--hermes-only"]),
-    env: aliasedEnvPair("PROJECT_ROOT", root),
-    ...(user ? { user } : {}),
-    stdio: "inherit",
-  });
-  if (result.exitCode !== 0) {
-    io.stderr(`${bin} harness: Hermes integration failed (exit ${result.exitCode}); no installation success reported.\n`);
-  }
-  return result.exitCode;
-}
-
 function unreachableReason(status: string): string {
   return runtimeIsAbsent(status)
     ? "No container runtime is on PATH."
@@ -418,7 +399,7 @@ async function installOnHost(
   });
   if (linked.exitCode !== 0) {
     io.stderr(
-      `${bin} harness: could not link provider skills in ${root} (exit ${linked.exitCode}); nothing was installed.\n` +
+      `${bin} harness: could not link provider hooks in ${root} (exit ${linked.exitCode}); nothing was installed.\n` +
         `Run: bash ${root}/.agro/scripts/link-providers.sh --init\n`,
     );
     return 1;
@@ -429,11 +410,6 @@ async function installOnHost(
     ...aliasedEnvPair("PROJECT_ROOT", root),
     HERMES_HOME: `${root}/.hermes`,
   } : undefined;
-  if (hermes) {
-    const code = await reconcileHermes(target, io, bin, undefined, root);
-    if (code !== 0) return code;
-  }
-
   if (await probeInstalled(target, entry, prefix, undefined, installEnv) === true) {
     io.stdout(`${entry.id}: already installed (${entry.binary})\n`);
     try {
@@ -461,8 +437,6 @@ async function installOnHost(
       io.stderr(`${bin} harness: Hermes installation finished but executable verification failed.\n`);
       return 1;
     }
-    const code = await reconcileHermes(target, io, bin, undefined, root);
-    if (code !== 0) return code;
   }
 
   const receipt: HostHarnessReceipt = {
@@ -657,11 +631,6 @@ export async function runHarnessInstall(
     ...aliasedEnvPair("PROJECT_ROOT", hermesTargetRoot(target)),
     HERMES_HOME: `${hermesTargetRoot(target)}/.hermes`,
   } : undefined;
-  if (hermes) {
-    const code = await reconcileHermes(target, io, opts.bin, "sandbox");
-    if (code !== 0) return code;
-  }
-
   const already = await probeInstalled(target, entry, SANDBOX_HARNESS_PREFIX, "sandbox", installEnv);
   if (already === true) {
     io.stdout(`${entry.id}: already installed (${entry.binary})\n`);
@@ -689,8 +658,6 @@ export async function runHarnessInstall(
       io.stderr(`${opts.bin} harness: Hermes installation finished but executable verification failed.\n`);
       return 1;
     }
-    const code = await reconcileHermes(target, io, opts.bin, "sandbox");
-    if (code !== 0) return code;
   }
 
   io.stdout(`${entry.id}: installed — see ${sourceDocsUrl(entry.docsPath)} for authentication\n`);

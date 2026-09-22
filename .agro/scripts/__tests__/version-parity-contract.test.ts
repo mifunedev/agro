@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 const ROOT = join(import.meta.dirname, "../../..");
-const PARITY = join(ROOT, ".agro", "evals", "probes", "version-parity.sh");
-const SHIM = join(ROOT, ".agro", "evals", "probes", "agro-legacy-shim.sh");
+const PARITY = join(ROOT, ".agro", "scripts", "version-parity.sh");
+const SHIM = join(ROOT, ".agro", "scripts", "agro-legacy-shim.sh");
 
 const cleanups: string[] = [];
 afterEach(() => {

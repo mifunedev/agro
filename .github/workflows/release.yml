@@ -63,6 +63,11 @@ jobs:
       - name: Check pnpm pin drift
         run: bash .agro/scripts/check-pnpm-pin.sh
 
+      - name: Check version parity and the retained shim
+        run: |
+          bash .agro/scripts/version-parity.sh
+          bash .agro/scripts/agro-legacy-shim.sh
+
   boot-lint:
     name: Boot Path Lint (shellcheck + hadolint)
     runs-on: ubuntu-latest
@@ -83,7 +88,7 @@ jobs:
         run: |
           command -v shellcheck >/dev/null 2>&1 || { sudo apt-get update && sudo apt-get install -y shellcheck; }
           shellcheck --version
-          shellcheck -S warning .devcontainer/*.sh .agro/install/*.sh .agro/scripts/*.sh .agro/skills/audit/scripts/*.sh .claude/hooks/*.sh .claude/skills/retro/scripts/*.sh
+          shellcheck -S warning .devcontainer/*.sh .agro/install/*.sh .agro/scripts/*.sh .agro/hooks/*.sh
 
       - name: Hadolint Dockerfile
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
@@ -92,28 +97,9 @@ jobs:
           config: .hadolint.yaml
           failure-threshold: warning
 
-  eval-probes:
-    name: Eval Probe Regression Gate
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout the event commit
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-          submodules: recursive
-
-      - name: Link provider skills
-        run: bash .agro/scripts/link-providers.sh --init
-
-      - name: Run eval probe suite
-        run: bash .agro/skills/eval/run.sh
-
   reserve:
     name: Reserve SemVer draft
-    needs: [validate, boot-lint, eval-probes]
+    needs: [validate, boot-lint]
     runs-on: ubuntu-latest
     permissions:
       contents: write

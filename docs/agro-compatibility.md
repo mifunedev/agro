@@ -107,9 +107,14 @@ seeds a workspace whose two control directories diverge.
 `.agro/compat-inventory.json` classifies every `OH_*` identifier in tracked files
 and every persisted legacy path as one of `migrate-later`, `alias-sla`,
 `retained-generic`, or `obsolete`, with the owning phase. The test
-`compat-inventory.test.ts` and the probe `agro-compat-inventory.sh` fail when an
-identifier appears in the tree without a classification, when a non-obsolete
-entry goes stale, or when an `alias-sla` entry lacks its `AGRO_*` spelling.
+`compat-inventory.test.ts` fails when an identifier appears in the tree without
+a classification, when a non-obsolete entry goes stale, or when an `alias-sla`
+entry lacks its `AGRO_*` spelling.
+
+`OH_SCRIPTS_REF` is the one entry no core file consumes. The docs-site build in
+`mifunedev/agro-web` reads `AGRO_SCRIPTS_REF` first and falls back to
+`OH_SCRIPTS_REF`, defaulting to `main`. It stays classified `alias-sla` for the
+whole compatibility window, and this paragraph is its mention in the tree.
 
 ## Phase 1 — entry points and artifacts
 
@@ -338,12 +343,6 @@ pnpm vitest run .agro/cli/src/__tests__/bundle-identity.test.ts \
   .agro/cli/src/__tests__/self-upgrade.test.ts \
   .agro/scripts/__tests__/get-agro.test.ts \
   .agro/scripts/__tests__/verify-release-aliases.test.ts
-bash .agro/evals/probes/agro-compat-inventory.sh
-bash .agro/evals/probes/get-agro-bootstrap.sh
-bash .agro/evals/probes/agro-legacy-shim.sh
-bash .agro/evals/probes/oh-npm-package.sh
-bash .agro/evals/probes/version-parity.sh
-bash .agro/evals/probes/sandbox-registry.sh
-bash .agro/evals/probes/oh-image-only-deploy.sh
-bash .agro/evals/probes/oh-compose-env-wiring.sh
+bash .agro/scripts/version-parity.sh
+bash .agro/scripts/agro-legacy-shim.sh
 ```

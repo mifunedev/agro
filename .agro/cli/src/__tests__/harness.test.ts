@@ -865,7 +865,7 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
         io,
       ),
     ).toBe(1);
-    expect(text(err)).toContain(`could not link provider skills in ${defaultRoot(home)} (exit 3)`);
+    expect(text(err)).toContain(`could not link provider hooks in ${defaultRoot(home)} (exit 3)`);
     expect(text(err)).toContain(
       `bash ${defaultRoot(home)}/.agro/scripts/link-providers.sh --init`,
     );

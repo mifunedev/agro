@@ -1,5 +1,3 @@
-.oh/skills.lock.lck
-.agro/skills.lock.lck
 **/.env*
 # agro.json holds every non-secret setting and is tracked; the root dotenv holds
 # secrets only. The tracked template is named .example.env so that **/.env*

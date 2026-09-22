@@ -4,9 +4,17 @@ All notable changes to this project are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions use [SemVer](https://semver.org/) (`MAJOR.MINOR.PATCH`), read from root `package.json`, and ship as `v`-prefixed git tags.
 
-Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.md) § Changelog.
+Update policy and release automation live in [`AGENTS.md`](AGENTS.md) § Git conventions.
 
 ## [Unreleased]
+
+### Removed
+
+- Strip the control plane to its core on the minimal-core experiment branch: remove `.agro/evals/`, `.agro/skills/`, `.agro/knowledge/`, `.agro/tasks/`, `.agro/plans/`, `.agro/memories/`, and the provider skill links ([#1134](https://github.com/mifunedev/agro/issues/1134)).
+
+### Changed
+
+- Reduce `link-providers.sh` to the `.claude/hooks` link and retire stale skill-pack links; promote `version-parity.sh`, `agro-legacy-shim.sh`, and the sandbox privilege-boundary guard out of the probe suite into `.agro/scripts/` and CI ([#1134](https://github.com/mifunedev/agro/issues/1134)).
 
 ### Added
 

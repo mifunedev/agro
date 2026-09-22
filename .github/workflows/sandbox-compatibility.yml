@@ -130,16 +130,10 @@ jobs:
             done
           done
 
-          docker exec -u sandbox -w /tmp -e OH_HERMES_SMOKE=1 "$cid" \
-            bash /home/sandbox/harness/.agro/scripts/hermes-install-smoke.sh
           docker exec -u sandbox -w /home/sandbox/harness "$cid" oh harness install hermes
-          docker exec -u sandbox -w /tmp -e OH_HERMES_SMOKE=1 "$cid" \
-            bash /home/sandbox/harness/.agro/scripts/hermes-install-smoke.sh
 
           "${compose[@]}" restart sandbox
           "${compose[@]}" up -d --wait --wait-timeout 600
-          docker exec -u sandbox -w /tmp -e OH_HERMES_SMOKE=1 "$cid" zsh -lic \
-            'bash /home/sandbox/harness/.agro/scripts/hermes-install-smoke.sh'
 
           for id in $ids; do
             binary=$(docker exec -u sandbox "$cid" bash -lc \

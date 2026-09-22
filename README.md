@@ -16,7 +16,7 @@
 
 **AGRO gives AI coding agents a workspace you control.** It packages a Docker sandbox and shared agent procedures around the coding harness you choose—Claude Code, Codex, Pi, or another.
 
-Develop on your laptop or a remote VM. Install tools and harnesses on demand, organize parallel changes in separate git worktrees, and use shared skills and evidence checks to guide the work.
+Develop on your laptop or a remote VM. Install tools and harnesses on demand, and organize parallel changes in separate git worktrees.
 
 Start with the quickstart below. See the [documentation](docs/README.md) for more guidance.
 
@@ -328,7 +328,7 @@ Browse the [documentation](docs/README.md) or jump to a topic below.
 | Terminal workspace | [Herdr](docs/integrations/herdr.md) |
 | Coding harnesses | [Harness overview and setup guides](docs/harnesses/overview.md) |
 | Configuration | [Settings and secrets](docs/configuration.md) |
-| Agent procedures | [Shared skills and hooks](docs/README.md#how-the-primitive-pack-ships) · [Directory layout](docs/oh-directory-layout.md) |
+| Agent procedures | [Shared hooks](docs/README.md#how-the-primitive-pack-ships) · [Directory layout](docs/oh-directory-layout.md) |
 | Integrations | [GitHub](docs/integrations/github.md) · [Slack](docs/integrations/slack.md) · [Langfuse](docs/integrations/langfuse.md) |
 | Debugging and testing | [DebugMCP](docs/integrations/debugmcp.md) · [Property testing](docs/property-testing.md) |
 | Security | [Permissions and trust boundaries](docs/security-considerations.md) |
