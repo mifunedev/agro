@@ -15,10 +15,9 @@ Use `agro` for lifecycle operations; each script's callers determine its executi
 | `verify-sandbox-image.sh`, `node-pnpm-parity.sh`, `check-pnpm-pin.sh` | Image and dependency parity checks. |
 | `release-reservation.mjs`, `reserve-github-release.mjs`, `promote-release-latest.sh` | Release reservation and image promotion. |
 | `verify-release-aliases.sh`, `npm-wait-version.sh` | Release artifact checks. |
-| `version-parity.sh`, `agro-legacy-shim.sh` | Release version parity and retained-shim integrity gates. |
+| `version-parity.sh` | Release version parity gate. |
 | `git-maintenance.sh`, `locked-append.sh`, `closing-keywords.mjs` | Git maintenance, serialized appends, and issue-closing parsing. |
 | `cli-first-install-smoke.sh` | Installer smoke checks. |
-| `migrate-harness-yaml.sh` | Legacy configuration migration. |
 | `__tests__/` | Script tests. |
 
 Source references:

@@ -62,11 +62,6 @@ fi
 # shellcheck source=paths.sh
 . "$PATHS_SH"
 
-MIGRATOR="$SCRIPT_DIR/migrate-harness-yaml.sh"
-if [ -f "$REPO_DIR/harness.yaml" ] && [ -f "$MIGRATOR" ]; then
-  sh "$MIGRATOR" "$REPO_DIR" >&2 || true
-fi
-
 ENV_FILE="$REPO_DIR/.env"
 [ -f "$ENV_FILE" ] || ENV_FILE="$REPO_DIR/.devcontainer/.env"
 

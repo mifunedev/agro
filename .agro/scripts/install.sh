@@ -342,10 +342,6 @@ if [ ! -L "$DEVCONTAINER_ENV_LINK" ] || [ "$(readlink "$DEVCONTAINER_ENV_LINK")"
   ok "Linked .devcontainer/.env -> ../.env for VS Code \"Reopen in Container\""
 fi
 
-if [ -f "$REPO_DIR/harness.yaml" ] && [ -f "$REPO_DIR/.agro/scripts/migrate-harness-yaml.sh" ]; then
-  sh "$REPO_DIR/.agro/scripts/migrate-harness-yaml.sh" "$REPO_DIR"
-fi
-
 _config_get() {
   ( cd "$REPO_DIR" && agro config show 2>/dev/null ) | node -e '
     let raw = "";

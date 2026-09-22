@@ -9,10 +9,6 @@ agro sandbox install docker   # wizard: name, timezone, git identity, SSH, Docke
 agro shell <name>             # attach as the sandbox user
 ```
 
-A registry created by an
-earlier release stays at `${AGRO_HOME:-~/.oh}/sandboxes/<name>/` and still
-resolves; `agro migrate --home` moves it.
-
 **Running the published image is the default.** Each tagged release publishes the
 sandbox image, already built and smoke-tested, to GHCR.
 The canonical default is `ghcr.io/mifunedev/agro:latest`.

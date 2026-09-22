@@ -10,6 +10,7 @@ Update policy and release automation live in [`AGENTS.md`](AGENTS.md) § Git con
 
 ### Removed
 
+- Retire the `harness.yaml` compatibility generation: delete `migrate-harness-yaml.sh`, its two lifecycle guards, and the stale `agro migrate` and `~/.oh` references in docs ([#1134](https://github.com/mifunedev/agro/issues/1134)).
 - Strip the control plane to its core on the minimal-core experiment branch: remove `.agro/evals/`, `.agro/skills/`, `.agro/knowledge/`, `.agro/tasks/`, `.agro/plans/`, `.agro/memories/`, and the provider skill links ([#1134](https://github.com/mifunedev/agro/issues/1134)).
 
 ### Changed
@@ -18,6 +19,7 @@ Update policy and release automation live in [`AGENTS.md`](AGENTS.md) § Git con
 
 ### Added
 
+- Add `VISION.md`: the operator audience, five floor primitives, four scope tests, security posture, and the known gaps against them ([#1134](https://github.com/mifunedev/agro/issues/1134)).
 - Add `agro config langfuse` and `agro langfuse apply|status|disable`. Settings live in `agro.json` and `.env`, render to a `0600` fragment and the harness files, and re-apply at boot ([#1131](https://github.com/mifunedev/agro/issues/1131)).
 - Add `.agro/scripts/typesafe.mjs`, a zero-dependency TypeSafe System One adapter. Unconfigured, it names the variable and the command that sets it, then returns null so the caller continues ([#1121](https://github.com/mifunedev/agro/issues/1121)).
 - Add `prompt-miner --judge`, scoring `correctionDensity` with a typed judgment instead of the 12-word negation lexicon. Off by default and uncalibrated ([#1121](https://github.com/mifunedev/agro/issues/1121)).

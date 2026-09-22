@@ -98,17 +98,11 @@ lowercase letters, digits and dashes, starting with a letter or a digit.
 `agro workspace create` refuses any other name and creates nothing.
 `agro workspace list` prints every entry and marks the recorded `harnessRoot`.
 
-The state home itself is never the harness root. A checkout at `~/.agro` or
-`~/.oh` makes `~` resolve as a project root with two generations, which blocks
-every `agro` command run from `~`.
+The state home itself is never the harness root. A checkout at `~/.agro` makes
+`~` resolve as a project root, which blocks every `agro` command run from `~`.
 
-The host path refuses in three cases, and it moves nothing by itself.
-
-| Case | What it says |
-|---|---|
-| `~/.oh` exists and `~/.agro` does not | host state now lives in `~/.agro`; migrate first with `agro migrate --home` |
-| `~/.oh` and `~/.agro` both exist | the state home is split; merge it with `agro migrate --home` |
-| The resolved harness root is `~/.oh` or `~/.agro` itself | move that directory out, for example `mv ~/.agro ~/agro` |
+The host path refuses when the resolved harness root is `~/.agro` itself. Move
+that directory out, for example `mv ~/.agro ~/agro`. It moves nothing by itself.
 
 Before it installs, the command runs `link-providers.sh --init` in the harness
 root, exactly as the sandbox entrypoint does on every boot. A failure fails the

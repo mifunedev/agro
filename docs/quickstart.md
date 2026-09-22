@@ -73,9 +73,7 @@ whether to mount the host Docker socket. `--yes` keeps every default and asks
 nothing. The answers land in a registry entry at
 `~/.agro/sandboxes/<name>/agro.json`, together with the compose files and the
 wrapper script the CLI regenerates on every lifecycle call — edit only
-`agro.json` there. A registry written by an earlier release stays at
-`~/.agro/sandboxes/<name>/agro.json` and keeps working; `agro migrate --home` moves
-it when you choose.
+`agro.json` there.
 
 Without `--checkout` the sandbox runs the published image
 (`ghcr.io/mifunedev/agro:latest`) and seeds its workspace from the
@@ -272,8 +270,7 @@ the tracked `.example.env` documents every allow-listed secret key, commented
 out, so a fresh copy changes nothing.
 
 Each sandbox keeps its own pair inside its registry entry at
-`~/.agro/sandboxes/<name>/` (a registry from an earlier release stays at
-`~/.agro/sandboxes/<name>/` until `agro migrate --home` runs). Write them with
+`~/.agro/sandboxes/<name>/`. Write them with
 `agro config set --sandbox <name> <field> <value>` and `agro secret set
 --sandbox <name> <KEY>`; without `--sandbox` both act on the project root
 instead. In an equipped checkout, `.devcontainer/.env` is a symlink to that root

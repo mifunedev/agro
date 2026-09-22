@@ -76,9 +76,6 @@ private configuration, credentials, and unrelated files out of the contribution.
 [contribution prompt](./quickstart.md#optional-prompt--prepare-an-agro-contribution) walks
 an authenticated agent through the same decision.
 
-A checkout equipped before the AGRO cutover carries `.agro/` and `agro.json`. Both still
-resolve; run `agro migrate --check` and then `agro migrate` to move it.
-
 ### Local validation
 
 Use the fast harness build for routine development:
