@@ -7,6 +7,7 @@ AGRO keeps its portable machinery here. The sandbox definition stays in
 | --- | --- |
 | `cli/` | The `agro` package. |
 | `scripts/`, `install/` | Lifecycle scripts, runtime helpers, and image inputs. |
+| `skills/` | The retained skill pack: `/git`, `/worktrees`, `/prd` and `/ralph`. |
 | `hooks/` | Security hooks mirrored onto each provider surface. |
 | `logs/` | Local logs with a scoped contract. |
 | `manifest.json` | The payload allowlist for `agro vendor`. |

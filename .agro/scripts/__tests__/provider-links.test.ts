@@ -13,6 +13,7 @@ function fixture(): string {
   scratch.push(dir);
   mkdirSync(join(dir, ".agro"), { recursive: true });
   cpSync(join(root, ".agro/hooks"), join(dir, ".agro/hooks"), { recursive: true });
+  cpSync(join(root, ".agro/skills"), join(dir, ".agro/skills"), { recursive: true });
   mkdirSync(join(dir, ".claude"), { recursive: true });
   writeFileSync(join(dir, ".claude/protected-paths.txt"), ".agro/hooks/deny-env-dump.sh\n");
   return dir;
@@ -40,14 +41,36 @@ describe("provider links", () => {
     expect(readlinkSync(join(dir, ".claude/hooks"))).toBe("../.agro/hooks");
   });
 
-  it("retires a stale skill-pack link instead of recreating it", () => {
+  it("creates and repairs the .agents and .claude skill links", () => {
     const dir = fixture();
-    expect(link(dir, "--init").status).toBe(0);
-    mkdirSync(join(dir, ".agents"), { recursive: true });
-    symlinkSync("../.agro/skills", join(dir, ".agents/skills"));
+    expect(link(dir, "--init").status, link(dir, "--init").stderr).toBe(0);
+    expect(readlinkSync(join(dir, ".agents/skills"))).toBe("../.agro/skills");
+    expect(readlinkSync(join(dir, ".claude/skills"))).toBe("../.agro/skills");
+    expect(existsSync(join(dir, ".agents/skills/git/SKILL.md"))).toBe(true);
+    expect(existsSync(join(dir, ".agents/skills/worktrees/SKILL.md"))).toBe(true);
+
+    rmSync(join(dir, ".agents/skills"));
     expect(link(dir, "--check").status).toBe(1);
     expect(link(dir, "--init").status).toBe(0);
-    expect(existsSync(join(dir, ".agents/skills"))).toBe(false);
+    expect(readlinkSync(join(dir, ".agents/skills"))).toBe("../.agro/skills");
+  });
+
+  it("still retires the .pi and .codex skill links", () => {
+    const dir = fixture();
+    expect(link(dir, "--init").status).toBe(0);
+    mkdirSync(join(dir, ".pi"), { recursive: true });
+    symlinkSync("../.agro/skills", join(dir, ".pi/skills"));
+    expect(link(dir, "--check").status).toBe(1);
+    expect(link(dir, "--init").status).toBe(0);
+    expect(existsSync(join(dir, ".pi/skills"))).toBe(false);
+  });
+
+  it("fails when a retained skill is missing from the pack", () => {
+    const dir = fixture();
+    rmSync(join(dir, ".agro/skills/git"), { recursive: true, force: true });
+    const checked = link(dir, "--check");
+    expect(checked.status).toBe(1);
+    expect(checked.stderr).toContain("required pack file missing");
   });
 
   it("fails when a protected path no longer resolves", () => {

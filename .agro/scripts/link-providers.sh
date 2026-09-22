@@ -5,6 +5,13 @@ PROTECTED_PATHS_FILE=".claude/protected-paths.txt"
 
 CC_SAFETY_NET_PIN="1.0.6"
 
+required_files=(
+  ".agro/skills/git/SKILL.md"
+  ".agro/skills/worktrees/SKILL.md"
+  ".agro/skills/prd/SKILL.md"
+  ".agro/skills/ralph/SKILL.md"
+)
+
 required_execs=(
   ".agro/hooks/deny-env-dump.sh"
   ".agro/hooks/deny-secret-paths.sh"
@@ -12,12 +19,12 @@ required_execs=(
 )
 
 provider_links=(
+  ".agents/skills|../.agro/skills"
+  ".claude/skills|../.agro/skills"
   ".claude/hooks|../.agro/hooks"
 )
 
 retired_links=(
-  ".agents/skills"
-  ".claude/skills"
   ".pi/skills"
   ".codex/skills"
 )
@@ -70,7 +77,7 @@ fail() {
 
 print_state() {
   cat >&2 <<EOF
-Provider surfaces: .claude/hooks -> ../.agro/hooks
+Provider surfaces: .agents/skills and .claude/skills -> ../.agro/skills; .claude/hooks -> ../.agro/hooks
 Remediation: bash .agro/scripts/link-providers.sh --init
 EOF
 }
@@ -194,6 +201,9 @@ init_links() {
 
 check_links() {
   local f link path expected_target
+  for f in "${required_files[@]}"; do
+    [ -f "$f" ] || fail "required pack file missing: $f"
+  done
   for f in "${required_execs[@]}"; do
     [ -x "$f" ] || fail "required hook missing or not executable: $f"
   done
@@ -225,4 +235,4 @@ if [ "$failures" -ne 0 ]; then
   exit 1
 fi
 
-printf 'Providers OK: .claude/hooks -> .agro/hooks\n'
+printf 'Providers OK: .agents/.claude skills -> .agro/skills; .claude/hooks -> .agro/hooks\n'

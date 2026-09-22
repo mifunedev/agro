@@ -342,8 +342,9 @@ per-tool volumes did before.
 
 Hermes is split: when the `hermes` binary is present (after
 `agro harness install hermes`), `HERMES_HOME` is the project-local
-bind-mounted `~/harness/.hermes/` directory. It carries no skill link:
-provider surfaces share only the hook directory (`.agro/hooks/`). Project-local
+bind-mounted `~/harness/.hermes/` directory. It carries no skill link of its
+own; the other provider surfaces share `.agro/skills/` and `.agro/hooks/`.
+Project-local
 runtime contents are gitignored except `.hermes/README.md`.
 
 `agro destroy` and `docker compose down -v` delete the named volume and everything

@@ -11,6 +11,7 @@ Canonical skills own reusable procedures. Documentation under `docs/` explains A
 | --- | --- |
 | `.agro/cli/` | The `agro` CLI package. |
 | `.agro/scripts/`, `.agro/install/` | Lifecycle scripts, runtime helpers, and image installation inputs. |
+| `.agro/skills/` | The retained skill pack: `/git`, `/worktrees`, `/prd` and `/ralph`. |
 | `.agro/hooks/` | Vendored security hooks, mirrored onto each provider surface. |
 | `.agro/logs/` | Local logs with a scoped contract. |
 | `.agro/manifest.json` | The declared control-plane and root payload. |
@@ -31,16 +32,18 @@ Do not infer current files from historical directory names.
 
 ## Provider exposure
 
-Git tracks shared hooks directly in `.agro/`. The pack needs no submodule fetch.
+Git tracks the skill pack and shared hooks directly in `.agro/`. The pack needs no submodule fetch.
 The [provider linker](../.agro/scripts/link-providers.sh) creates these links:
 
 | Surface | Target |
 | --- | --- |
+| `.agents/skills` | `../.agro/skills` |
+| `.claude/skills` | `../.agro/skills` |
 | `.claude/hooks` | `../.agro/hooks` |
 
 Pi-specific settings and extensions stay in `.pi/`.
-The linker removes retired `.agents/skills`, `.claude/skills`, `.pi/skills`, and
-`.codex/skills` aliases without replacing foreign paths.
+The linker removes the retired `.pi/skills` and `.codex/skills` aliases without
+replacing foreign paths.
 Run `bash .agro/scripts/link-providers.sh --check` to verify the pack and links.
 See [Hermes](harnesses/hermes.md) for its additive link and runtime-home safety checks.
 
@@ -83,7 +86,7 @@ An equal version is a no-op without `--force`; a downgrade requires `--force`.
 - `exclude` applies to both lists and wins over an include match.
 - Symlinks, `node_modules`, and `dist` directories do not enter the file walk.
 
-The current payload includes `cli`, `scripts`, `install`, and `hooks`.
+The current payload includes `cli`, `scripts`, `install`, `skills`, and `hooks`.
 It also includes `README.md` and the manifest itself.
 The payload omits `logs`, dependency patches, and root `docs/`.
 The omissions describe the current manifest, not every file present in the repository.

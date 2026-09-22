@@ -3,6 +3,7 @@
     "cli/**",
     "scripts/**",
     "install/**",
+    "skills/**",
     "hooks/**",
     "README.md",
     "manifest.json"

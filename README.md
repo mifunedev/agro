@@ -328,7 +328,7 @@ Browse the [documentation](docs/README.md) or jump to a topic below.
 | Terminal workspace | [Herdr](docs/integrations/herdr.md) |
 | Coding harnesses | [Harness overview and setup guides](docs/harnesses/overview.md) |
 | Configuration | [Settings and secrets](docs/configuration.md) |
-| Agent procedures | [Shared hooks](docs/README.md#how-the-primitive-pack-ships) · [Directory layout](docs/agro-directory-layout.md) |
+| Agent procedures | [Shared skills and hooks](docs/README.md#how-the-primitive-pack-ships) · [Directory layout](docs/agro-directory-layout.md) |
 | Integrations | [GitHub](docs/integrations/github.md) · [Slack](docs/integrations/slack.md) · [Langfuse](docs/integrations/langfuse.md) |
 | Debugging and testing | [DebugMCP](docs/integrations/debugmcp.md) · [Property testing](docs/property-testing.md) |
 | Security | [Permissions and trust boundaries](docs/security-considerations.md) |
