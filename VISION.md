@@ -138,11 +138,20 @@ in the same kind of capability, the answer is a contract, not a queue of merges.
 Land the seam, port the existing implementation onto it, and let the rest ship
 against it.
 
-**Transitional code declares its end.** A compatibility shim, a config
-migration, or a rename alias ships with the release that retires it. Runtime
-code reads the current schema only. A change that invalidates existing operator
-configuration carries the migration that detects the old shape, explains it,
-backs it up, and rewrites it.
+**Transitional code declares its end, and the end is honored.** A compatibility
+shim, a config migration, or a rename alias ships naming the release that
+retires it, and is deleted in that release rather than left to accumulate.
+Runtime code reads the current schema only.
+
+AGRO carries no legacy generation today. `harness.yaml`, `.oh/`, `oh.json`,
+`OH_*`, `~/.oh`, the `oh` executable, and `agro migrate` are gone, along with
+the machinery that translated them. A shim that outlives its stated release is
+a defect, not a courtesy: it is unreachable code that every operator still
+pays for on every lifecycle call.
+
+A change that invalidates existing operator configuration carries the migration
+that detects the old shape, explains it, backs it up, and rewrites it — and
+that migration declares its own end on arrival.
 
 ## What we will not add, for now
 
@@ -166,6 +175,8 @@ real constraint can change it.
 ## Known gaps
 
 Stated plainly, because the tests above currently fail against the repository.
+A claim in this file that the code does not meet belongs here, not in the
+section that asserts it.
 
 - **P5 covers two harnesses, not nine.** The harness catalog ships nine. Only
   Claude Code and Codex have any hook surface, and the Codex adapters read
@@ -182,8 +193,9 @@ Stated plainly, because the tests above currently fail against the repository.
 - **The documented journeys are mostly AGRO repairing AGRO.** The operator's
   actual path — an agent working in a project clone — is a few prose prompts
   with no commands and no failure paths.
-- **Documentation is not checked against the binary.** `docs/installation.md`
-  documents `agro migrate`, which is not a verb.
+- **Documentation is not verified against the binary.** Nothing fails when a
+  doc names a verb the CLI does not implement. The `agro migrate` references
+  were found by reading, not by a check.
 
 ## Open questions
 
@@ -204,6 +216,10 @@ Stated plainly, because the tests above currently fail against the repository.
 - A journey proves a tenant is load-bearing. It moves into the floor, and the
   floor is restated here.
 - A known gap closes, and the claim it qualifies becomes a fact.
+
+The gaps and open questions above are the current state of the repository, not
+a permanent description of it. Each entry is expected to be deleted, and
+deleting one is the unit of progress this file measures.
 
 Prefer ambitious outcomes and simple systems. Find the real constraint, then
 choose the smallest model that makes correct behavior unsurprising.
