@@ -39,19 +39,32 @@ sandbox_ownership() {
 }
 
 reconcile_shell_env_exports() {
-  local f repaired=0
+  local f repaired=0 added=0
   for f in /home/sandbox/.profile /home/sandbox/.zprofile; do
     [ -f "$f" ] || continue
-    grep -qE '^export (NPM_USER_PREFIX|PNPM_HOME)="/' "$f" 2>/dev/null || continue
-    sed -i \
-      -e 's|^export NPM_USER_PREFIX=.*|export NPM_USER_PREFIX="${NPM_USER_PREFIX:-/home/sandbox/.local}"|' \
-      -e 's|^export PNPM_HOME=.*|export PNPM_HOME="${PNPM_HOME:-/home/sandbox/.local/share/pnpm}"|' \
-      "$f" 2>/dev/null || continue
-    chown "$(sandbox_ownership)" "$f" 2>/dev/null || true
-    repaired=1
+    if grep -qE '^export (NPM_USER_PREFIX|PNPM_HOME)="/' "$f" 2>/dev/null; then
+      if sed -i \
+        -e 's|^export NPM_USER_PREFIX=.*|export NPM_USER_PREFIX="${NPM_USER_PREFIX:-/home/sandbox/.local}"|' \
+        -e 's|^export PNPM_HOME=.*|export PNPM_HOME="${PNPM_HOME:-/home/sandbox/.local/share/pnpm}"|' \
+        "$f" 2>/dev/null; then
+        chown "$(sandbox_ownership)" "$f" 2>/dev/null || true
+        repaired=1
+      fi
+    fi
+    if grep -qE '^export NPM_USER_PREFIX=' "$f" 2>/dev/null \
+      && ! grep -qE '^export NPM_CONFIG_PREFIX=' "$f" 2>/dev/null; then
+      if sed -i '0,/^export NPM_USER_PREFIX=.*/s||&\nexport NPM_CONFIG_PREFIX="${NPM_CONFIG_PREFIX:-$NPM_USER_PREFIX}"|' \
+        "$f" 2>/dev/null; then
+        chown "$(sandbox_ownership)" "$f" 2>/dev/null || true
+        added=1
+      fi
+    fi
   done
   if [ "$repaired" = "1" ]; then
     echo "[entrypoint] replaced hardcoded NPM_USER_PREFIX/PNPM_HOME exports in the home mount's shell profile; the image environment now wins"
+  fi
+  if [ "$added" = "1" ]; then
+    echo "[entrypoint] added the NPM_CONFIG_PREFIX export to the home mount's shell profile; npm global installs stay in the home volume"
   fi
 }
 

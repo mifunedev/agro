@@ -60,6 +60,8 @@ RUN cd /opt/agro && AGRO_ASSET_ROOT=/opt/agro-assets npm install --no-audit --no
  && npm cache clean --force \
  && rm -rf /tmp/*
 
+ENV NPM_CONFIG_PREFIX="$NPM_USER_PREFIX"
+
 RUN userdel -r node 2>/dev/null || true \
  && useradd -m -u 1000 -s /bin/zsh sandbox \
  && echo "sandbox ALL=(ALL) ALL" > /etc/sudoers.d/sandbox \

@@ -132,6 +132,30 @@ root holds a workspace or that prefix exists. They never clone. Each row carries
 a `location` of `sandbox`, `host`, or `unknown`, and the table names the probed
 prefix.
 
+## Updating a harness
+
+Two paths update a harness in the sandbox. Both land in `/home/sandbox/.local`
+in the persistent home volume.
+
+```bash
+agro harness install claude-code   # re-run the door; installs the latest version
+claude update                      # the harness updates itself
+```
+
+The harness self-update path works because npm's global prefix in the sandbox is
+`/home/sandbox/.local`, not `/usr/local`. The sandbox image exports
+`NPM_CONFIG_PREFIX="$NPM_USER_PREFIX"`, so a bare `npm install -g` from a
+harness updater writes to the home volume and the update survives a container
+recreate.
+
+Never run a harness update through `sudo`. The harness binaries are not on
+sudo's `secure_path`, so `sudo claude update` reports `command not found`. A
+root-owned global install would also land outside the home volume and disappear
+on the next recreate.
+
+A container created before this prefix existed picks it up at the next boot: the
+entrypoint adds the export to the home mount's shell profile.
+
 ## Removing a harness
 
 `agro harness uninstall <id>` undoes an install. It resolves its target exactly
