@@ -11,7 +11,7 @@ Canonical skills own reusable procedures. Documentation under `docs/` explains A
 | --- | --- |
 | `.agro/cli/` | The `agro` CLI package. |
 | `.agro/scripts/`, `.agro/install/` | Lifecycle scripts, runtime helpers, and image installation inputs. |
-| `.agro/skills/` | The retained skill pack: `/agent-browser`, `/escalate`, `/git`, `/prd`, `/ralph`, `/release`, `/ste` and `/worktrees`. |
+| `.agro/skills/` | The retained skill pack: `/agent-browser`, `/escalate`, `/git`, `/herdr`, `/prd`, `/ralph`, `/release`, `/ste` and `/worktrees`. |
 | `.agro/hooks/` | Vendored security hooks, mirrored onto each provider surface. |
 | `.agro/logs/` | Local logs with a scoped contract. |
 | `.agro/manifest.json` | The declared control-plane and root payload. |

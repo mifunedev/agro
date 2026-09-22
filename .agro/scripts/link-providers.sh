@@ -9,6 +9,7 @@ required_files=(
   ".agro/skills/agent-browser/SKILL.md"
   ".agro/skills/escalate/SKILL.md"
   ".agro/skills/git/SKILL.md"
+  ".agro/skills/herdr/SKILL.md"
   ".agro/skills/prd/SKILL.md"
   ".agro/skills/ralph/SKILL.md"
   ".agro/skills/release/SKILL.md"
