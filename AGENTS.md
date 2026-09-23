@@ -10,10 +10,13 @@ Every coding harness reads this file directly.
 ## Minimal-core experiment
 
 This branch is an experiment. It strips the control plane down to the sandbox
-and the lifecycle CLI, and removes the probe suite, the skill pack, the wiki,
-the task scaffolding, and the per-session memory files. Nothing here replaces
-them. Use the coding harness's own judgment and the operator's instructions
-instead.
+and the lifecycle CLI, and removes the probe suite, the wiki, the task
+scaffolding, and the per-session memory files. Nothing here replaces them. Use
+the coding harness's own judgment and the operator's instructions instead.
+
+The branch keeps a small skill pack that agents use often and get better results
+with: `/agent-browser`, `/escalate`, `/git`, `/herdr`, `/prd`, `/ralph`,
+`/release`, `/ste`, and `/worktrees`.
 
 Do not port the removed machinery back onto this branch. The branch exists to
 measure how the work goes without it.
@@ -44,7 +47,8 @@ change agent-owned files after initial scaffolding.
 ### 2. Coding-harness choice does not change the workspace
 
 Claude Code, Codex, Pi, and other coding harnesses use the same project state and
-the same shared primitives. Canonical hooks live under `.agro/hooks/`.
+the same shared primitives. Canonical hooks and skills live under
+`.agro/hooks/` and `.agro/skills/`.
 Compatibility directories expose those primitives through symlinks. Change the
 canonical `.agro/` source. Do not patch a generated mirror.
 
@@ -158,7 +162,7 @@ Use the lifecycle in this order:
 Run `agro destroy <name>` only for operator-authorized teardown.
 
 `agro` is the only lifecycle door, on the host and in the sandbox, and it calls
-`.agro/scripts/docker-compose.sh`. The legacy `oh` alias is retired.
+`.agro/scripts/docker-compose.sh`.
 Host prerequisites are Docker, Git, and Node 20 or newer. The verb reference is
 [`docs/lifecycle-commands.md`](docs/lifecycle-commands.md).
 
@@ -186,6 +190,8 @@ The repository has one sandbox definition and one control-plane area:
 - `.agro/scripts/`, `.agro/install/`, and `.agro/cli/` implement lifecycle and runtime
   behavior.
 - `.agro/hooks/` holds the security hooks that each provider surface mirrors.
+- `.agro/skills/` holds the retained skill pack; `.agents/skills` and
+  `.claude/skills` link to it.
 
 Read the nearest directory `README.md` before changing unfamiliar machinery.
 
