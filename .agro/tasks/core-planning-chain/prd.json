@@ -14,7 +14,8 @@
         "/prd holds the only slug rules",
         "/prd offers the /git draft-PR procedure only after operator approval",
         "prd-output-path-contract probe passes; plan-orchestration-contract probe removed or replaced",
-        "/prd triggers include \"write a plan\" and \"plan this\""
+        "/prd triggers include \"write a plan\" and \"plan this\"",
+        "/prd's plan structure ends with a ## Lessons section that the advisor fills before undraft"
       ],
       "dependsOn": [],
       "files": [
@@ -56,7 +57,8 @@
       "acceptanceCriteria": [
         "Issue title format is <prefix>: <shortdesc>",
         "A Draft PR for a task section covers issue, branch, plan commit, push, and draft PR from the PR template",
-        "No .claude/skills path references remain in /git"
+        "No .claude/skills path references remain in /git",
+        "The ready step refuses undraft unless prd.md has a non-empty ## Lessons section; \"None\" is allowed"
       ],
       "dependsOn": [],
       "files": [
@@ -79,6 +81,7 @@
         "notes records that classification for every criterion of an accepted story",
         "delegate-graph.json, the recursion gate, /spec coupling, and embedded provider model names are removed; the dispatch record keeps at most 8 fields",
         "Each accepted story is committed and pushed and the PR Stories checklist is updated",
+        "The closing step writes ## Lessons in prd.md: each lesson has a claim, evidence, and exactly one outcome (fixed in this PR, issue #N, or dropped with reason)",
         "delegate-worker-boundary and delegate-model-effort-policy probes pass"
       ],
       "dependsOn": [
@@ -103,7 +106,8 @@
         ".github/pull_request_template.md has a Stories checklist near the top",
         "It has sections for what the issue asked for, what was built, divergence, and what remains unverified",
         "The template names no repository-specific branch or tool",
-        "feat.md Metadata carries no worktree path; worktree placement belongs to the environment"
+        "feat.md Metadata carries no worktree path; worktree placement belongs to the environment",
+        "The PR template has a Lessons section that summarizes prd.md ## Lessons"
       ],
       "dependsOn": [],
       "files": [

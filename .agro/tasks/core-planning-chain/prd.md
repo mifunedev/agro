@@ -61,7 +61,7 @@ Current state:
 | `/prd` | Modify | Writes the plan to the task folder with `feat.md` headings; offers the draft PR after approval |
 | `/delegate` | Modify | `prd.json` input; per-story commit and push |
 | `.github/ISSUE_TEMPLATE/feat.md` | Modify | Remove `worktree_path` from Metadata; the environment owns worktree placement |
-| `.github/pull_request_template.md` | Modify | Stories checklist near the top; evidence sections: what the issue asked for, what was built, divergence, unverified |
+| `.github/pull_request_template.md` | Modify | Stories checklist near the top; evidence sections: what the issue asked for, what was built, divergence, unverified; Lessons summary |
 
 ## Storage
 
@@ -76,6 +76,7 @@ Current state:
 - **Visibility**: After operator approval, the first branch commit is the plan and a draft PR opens immediately.
 - **Evidence**: On acceptance, the active session writes the story's `notes`, marking each criterion `executed` (command and exit status) or `reasoned` (argument only). Decisions made during the build amend `prd.md`. The PR body summarizes both.
 - **Orchestration**: `/delegate` follows the Advisor/Worker pattern. The advisor is the active session: it decides, assigns bounded stories, verifies, accepts, and alone writes `prd.json`. A worker is a bounded execution context: it implements one assignment inside its owned paths, reports each criterion as executed or reasoned, and never accepts its own result.
+- **Lessons**: Before undraft, the advisor writes `## Lessons` at the end of `prd.md` as `/delegate`'s closing step. Each lesson states the claim, its evidence, and exactly one outcome: `fixed in this PR` (name the change), `issue #N`, or `dropped` (reason). Write "None" when the build taught nothing. No other lessons file, ledger, or skill; `/retro` is not part of the chain.
 - **Naming**: Keep "worker" (25 skill, probe, and root files; `AGENTS.md` "One advisor, bounded workers"). Do not adopt "executor": `/spec` already uses it for a different role.
 - **Scope of `/spec`**: Unchanged except for references to removed skills.
 
@@ -121,6 +122,17 @@ Operator decisions without task-history signal. The build applies each default u
 - [ ] `/git` documents the draft-PR-for-task procedure and `<prefix>: <shortdesc>` titles
 - [ ] PR template has a Stories checklist and evidence sections
 - [ ] `git check-ignore` does not match `.agro/tasks/<slug>/prd.md` or `prd.json`
+- [ ] `prd.md` ends with `## Lessons`; `/git` refuses undraft without it ("None" allowed)
 - [ ] `/eval` has no REGRESSION
 - [ ] CHANGELOG entry under `[Unreleased]`
 - [ ] Draft PR opened: `FROM feat/1147-core-planning-chain TO development`
+
+## Lessons
+
+Filled by the advisor before undraft. Candidates recorded during planning; each outcome is set at undraft.
+
+| Lesson | Evidence | Outcome |
+| --- | --- | --- |
+| Check where data is actually read before keeping or dropping the file that holds it; a usage count alone misleads. | `progress.txt` was kept on a 30-of-33 usage count, then dropped when `prd.json` `notes` already held the per-story evidence in 29 of 33 tasks. | pending |
+| The secret-exposure hook blocks any command containing the word "history", including commit messages. | Two pushes on this branch were denied until the commit message changed to "task-record". | pending |
+| Separate documented contradictions from observed failures when ranking fixes. | The `ralph/` branch-prefix contradiction appears in 0 `prd.json` files. | pending |
