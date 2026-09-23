@@ -39,7 +39,6 @@ Arguments received: `$ARGUMENTS`
 
 Comprehensive input already holds the operator's decisions. For that input, do
 not ask clarifying questions. Record each gap as an open question in the plan.
-`/spec plan --plan <path>` passes plan content to this skill in this way.
 
 ## 2. Derive the slug
 

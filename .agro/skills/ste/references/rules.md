@@ -138,7 +138,7 @@ Copy every file path, package name, environment variable, function name, and lab
 
 ```text
 Wrong: the agro scripts ralph script
-Right: `/spec execute`
+Right: `/delegate`
 ```
 
 ## 3. Verbs and voice
@@ -368,7 +368,7 @@ Write the unit with every number. Write the absolute path or the repo-relative p
 
 ```text
 Wrong: The timeout is large. Edit the config in the scripts folder.
-Right: `/spec execute` keeps implementation with one owner. Read `.agro/skills/spec/references/execute.md` for the workflow.
+Right: `/delegate` keeps acceptance with one owner. Read `.agro/skills/delegate/SKILL.md` for the workflow.
 ```
 
 ### 39. A heading is not an antecedent

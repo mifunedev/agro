@@ -156,8 +156,8 @@ Catches: proposing a "fix" to `.agro/skills/eval/run.sh`'s `prior = PASS` gate,
 which is deliberate policy enforced by `eval-gate.sh`.
 
 The path grep alone does **not** catch that one, and the reason is the trap worth
-remembering: `eval-gate.sh` asserts against `.agro/skills/spec/references/execute.md`,
-the spec prose, and never mentions `run.sh` at all. `grep -rl 'eval/run.sh'`
+remembering: `eval-gate.sh` asserts against the gate prose in a skill reference and
+never mentions `run.sh` at all. `grep -rl 'eval/run.sh'`
 returns five probes, none of them the one that matters. `grep -rl 'delta'` and
 `grep -rl 'green->red'` both return it. When the path grep comes back empty or
 irrelevant, that is not an all-clear — it means the guard is phrased in terms of
@@ -366,7 +366,7 @@ Only the two probes RESULTS.md records as persistently
 |--------|-------|-------|---------|
 | autopilot-preflight-gate                   | probe | 3      | CUT   |
 | next-dev-prod                              | probe | 3      | CUT   |
-| spec-single-owner                          | probe | —      | KEEP  |
+| eval-gate                                  | probe | —      | KEEP  |
 | … (73 more probes) …                       | probe | —      | KEEP  |
 | CB-001                                     | task  | —      | KEEP  |
 | CB-002                                     | task  | —      | KEEP  |

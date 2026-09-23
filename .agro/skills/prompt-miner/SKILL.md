@@ -9,8 +9,7 @@ description: |
   JSONL traces, scores each session by a friction + ground-truth outcome proxy,
   ranks the initiating prompts, then synthesizes falsifiable prompt markers
   STRATIFIED by session type and proposes harness identity improvements
-  behind a /retro-style propose-then-confirm gate. A cross-session, data-driven
-  cousin of /retro. TRIGGER when: /prompt-miner invoked, or asked to "mine
+  behind a propose-then-confirm gate. TRIGGER when: /prompt-miner invoked, or asked to "mine
   prompts", "rank prompts by outcome", "what prompt patterns work best", "mine
   session traces", "find good prompt markers", "analyze prompt quality".
 ---
@@ -23,9 +22,7 @@ the **judgment layer** on top of the deterministic `mine-traces.mjs` engine: the
 engine collects, scores, and ranks; this skill correlates prompt features against
 outcome, mines **falsifiable markers**, and proposes durable lessons for approval.
 
-It is a cross-session, data-driven cousin of `/retro`. Where `/retro` reflects on
-the *current* conversation, `/prompt-miner` reflects on the *corpus* of past
-sessions across both harnesses.
+`/prompt-miner` reflects on the *corpus* of past sessions across both harnesses.
 
 > `disable-model-invocation: true` suppresses **auto**-invocation only — the model
 > will not fire this skill on its own. A user-typed `/prompt-miner` still runs the
@@ -56,8 +53,6 @@ content. The contract is non-negotiable:
 
 ## When NOT to use
 
-- **`/retro`** — reflects on the current conversation, not the historical corpus.
-  Use `/retro` to close a session; use `/prompt-miner` to learn across sessions.
 - **`/audit context` / `/audit skills` / `/wiki lint`** — those score harness
   artifacts (context budget, skills, wiki). `/prompt-miner` scores *prompts*.
 
@@ -172,18 +167,17 @@ reliably, and stop — do **not** propose markers from a thin corpus. If strata 
 large enough but nothing clears both thresholds this run, report `NO-CANDIDATE`
 and stop (no identity proposals).
 
-### Step 4 — Propose-then-confirm (mirrors `/retro`)
+### Step 4 — Propose-then-confirm
 
 Only run this step when reportable markers exist and `--report-only` / `--dry-run`
 were **not** passed. Translate each reportable marker into a candidate lesson,
-then gate it exactly like `/retro` (`.agro/skills/retro/SKILL.md` §§ 3–4):
+then gate it:
 
 1. **Qualify filter.** Drop any candidate that is a secret, raw command output, a
    step-by-step plan, or anything re-derivable in under a minute.
 2. **Dedup against existing probes.** For each surviving candidate, grep
    `.agro/evals/probes/` for a probe that already asserts the same invariant; if it
-   is already captured, link or skip — never double-write (this is the same dedup
-   `/retro` performs in its qualify filter).
+   is already captured, link or skip — never double-write.
 3. **Promotability.** A marker that is merely descriptive ("this corpus shows X
    prompt trait correlates with better `<type>` sessions") is **reported, not
    promoted** — say it in the report and stop there. Only a marker that has
@@ -202,7 +196,7 @@ then gate it exactly like `/retro` (`.agro/skills/retro/SKILL.md` §§ 3–4):
 5. **Record approved items.** On `APPROVE`, add each approved probe proposal to the
    run report in `$TMPDIR`, beside the weakness records and the ranked marker
    table. `/prompt-miner` writes no tracked file; an approved proposal becomes a
-   real probe only through `/spec`, which builds and gates it. `--report-only` and
+   real probe only through a plan: `/prd` plans it and `/delegate` builds it. `--report-only` and
    `--dry-run` skip this step entirely.
 
 Announce `RESULT: MINING-COMPLETE` once the gate has run.

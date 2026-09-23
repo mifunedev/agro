@@ -49,8 +49,7 @@ behavior, not an identity, a model, or a terminal.
 `/delegate` owns the worker boundary and the fan-out policy. Read `/delegate`
 for worker limits and model policy. Restate neither here.
 
-`/spec` owns the build loop the advisor runs. `/prd` owns the contract
-documents. `/herdr` owns the full pane command catalog. `/escalate`
+`/prd` owns the contract documents. `/herdr` owns the full pane command catalog. `/escalate`
 owns the operator channel. `/ste` owns the prose of every artifact.
 
 ## Duty 1 — start an advisor session
@@ -502,7 +501,6 @@ checks. Each level is assumed sound while auditing the level below it.
 | Skill | Owns |
 |---|---|
 | `/delegate` | Fan-out policy, worker limits, model policy |
-| `/spec` | The build loop the advisor runs |
 | `/prd` | The contract documents |
 | `/herdr` | The pane command catalog |
 | `/escalate` | The operator channel |
