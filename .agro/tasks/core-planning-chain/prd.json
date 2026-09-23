@@ -72,9 +72,9 @@
       "description": "As an advisor session, I want /delegate to run stories from prd.json so that one file holds tasks and completion state.",
       "acceptanceCriteria": [
         "/delegate reads prd.json stories as tasks, using priority and optional dependsOn for waves",
-        "The active session sets passes and commit after acceptance; workers never write prd.json",
+        "The active session sets passes, commit, and notes after acceptance; workers never write prd.json",
         "Worker briefs require each criterion to be reported as executed (command and exit status) or reasoned",
-        "The active session appends one progress.txt entry per accepted story with that classification",
+        "notes records that classification for every criterion of an accepted story",
         "delegate-graph.json, the recursion gate, /spec coupling, and embedded provider model names are removed; the dispatch record keeps at most 8 fields",
         "Each accepted story is committed and pushed and the PR Stories checklist is updated",
         "delegate-worker-boundary and delegate-model-effort-policy probes pass"
@@ -114,11 +114,11 @@
     {
       "id": "US-006",
       "title": "Track the core task contract in git",
-      "description": "As an operator, I want prd.md, prd.json, and progress.txt committed without force-adds so that the draft PR carries the plan and its evidence.",
+      "description": "As an operator, I want prd.md and prd.json committed without force-adds so that the draft PR carries the plan and its evidence.",
       "acceptanceCriteria": [
-        "git check-ignore does not match .agro/tasks/<slug>/prd.md, prd.json, or progress.txt",
+        "git check-ignore does not match .agro/tasks/<slug>/prd.md or prd.json",
         "The duplicate .agro/tasks ignore block is removed",
-        ".agro/tasks/AGENTS.md describes the three-file core contract and drops delegate-graph.json",
+        ".agro/tasks/AGENTS.md describes the two-file core contract, marks progress.txt as /spec-only, and drops delegate-graph.json",
         "task-completion-structured-state and spec-task-artifact-contract probes pass"
       ],
       "dependsOn": [],

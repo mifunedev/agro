@@ -34,7 +34,7 @@ Current state:
 - 24 of 33 PRDs name a source plan file: the plan-then-PRD translation is the common path.
 - Every recorded worker brief uses `Max depth: 1`; the recursion gate has never authorized recursion.
 - Delegate graphs hold 47 `unknown` values, mostly observed-settings fields.
-- 30 of 33 tasks have real `progress.txt` entries; `pattern-delegate-reasoned-reported-as-executed` depends on it to separate executed from reasoned criteria. `progress.txt` stays.
+- 29 of 33 tasks already record per-story acceptance evidence in `prd.json` `notes`; `pattern-delegate-reasoned-reported-as-executed` cites those notes. `progress.txt` duplicates that evidence; its unique content is `/spec` task-level detail (base commit, knowledge queries, drift, decisions). The core chain drops it; `/spec` keeps it.
 - No `prd.json` uses a `ralph/` branch prefix; that contradiction is a documentation fix, not an observed failure.
 
 ## Key Integration Points
@@ -48,7 +48,7 @@ Current state:
 | `.agro/skills/git/SKILL.md` | Issue Titles, new "Draft PR for a task" | `<prefix>: <shortdesc>` titles; issue → branch → plan commit → draft PR |
 | `.agro/skills/spec/**` | path references only | Point `/spec plan` at `/prd` and `prd/references/tracker.md` |
 | `.gitignore` | `.agro/tasks/*` rules | Track `prd.md` and `prd.json`; remove the duplicate block |
-| `.agro/tasks/AGENTS.md` | artifact table | Core contract: `prd.md`, `prd.json`, `progress.txt`; `delegate-graph.json` removed |
+| `.agro/tasks/AGENTS.md` | artifact table | Core contract: `prd.md`, `prd.json`; `progress.txt` is `/spec`-only; `delegate-graph.json` removed |
 | `.agro/evals/probes/*` | see Test Plan | Probes that pin the changed contracts |
 
 ## Interface Integration Points
@@ -64,7 +64,7 @@ Current state:
 
 ## Storage
 
-- **Persistence layer**: Git-tracked files in `.agro/tasks/<slug>/`: `prd.md`, `prd.json`, `progress.txt`.
+- **Persistence layer**: Git-tracked files in `.agro/tasks/<slug>/`: `prd.md`, `prd.json`.
 - **Location / schema**: `prd.md` (prose plan) and `prd.json` (`schemaVersion: 1`, `userStories[]` with `passes`; new optional `dependsOn`, `files`, `commit`).
 - **Pattern**: Only the active session writes `prd.json`. Workers never write it.
 
@@ -73,7 +73,7 @@ Current state:
 - **Source of truth**: `prd.md` owns intent; `prd.json` owns order and completion. Nothing else records story state.
 - **State management**: Keep `passes` as the completion field so `jq -e 'all(.userStories[]; .passes == true)'` and `/spec` keep working. New fields are optional; no schema version bump.
 - **Visibility**: After operator approval, the first branch commit is the plan and a draft PR opens immediately.
-- **Evidence**: `progress.txt` keeps one entry per accepted story that marks each criterion `executed` (command and exit status) or `reasoned` (argument only). The PR body summarizes it.
+- **Evidence**: On acceptance, the active session writes the story's `notes`, marking each criterion `executed` (command and exit status) or `reasoned` (argument only). Decisions made during the build amend `prd.md`. The PR body summarizes both.
 - **Scope of `/spec`**: Unchanged except for references to removed skills.
 
 ## Test Plan (TDD)
@@ -85,7 +85,7 @@ Update or add probes before the skill edits; each must fail against the current 
 | `.agro/evals/probes/prd-output-path-contract.sh` | `/prd` writes `.agro/tasks/<slug>/prd.md`; `references/tracker.md` exists; no `.agro/plans` path | US-001, US-002 |
 | `.agro/evals/probes/plan-orchestration-contract.sh` | Remove or replace; no live reference to `skills/plan` | US-001 |
 | `.agro/evals/probes/delegate-worker-boundary.sh`, `delegate-model-effort-policy.sh` | Advisor accepts; workers never write `prd.json`; no embedded provider model names | US-004 |
-| `.agro/evals/probes/task-completion-structured-state.sh`, `spec-task-artifact-contract.sh` | Still pass with the three-file core contract | US-006 |
+| `.agro/evals/probes/task-completion-structured-state.sh`, `spec-task-artifact-contract.sh` | Still pass with the two-file core contract; `/spec` tasks keep `progress.txt` | US-006 |
 | new `core-chain-references.sh` | No live reference to `skills/plan`, `skills/ralph`, `.agro/plans`, or `ralph/` branch prefixes outside archives | US-007 |
 
 ## Design Principles
@@ -113,10 +113,10 @@ Operator decisions without task-history signal. The build applies each default u
 
 - [ ] `.agro/skills/plan/` and `.agro/skills/ralph/` no longer exist; no live reference points to them
 - [ ] `/prd` writes `.agro/tasks/<slug>/prd.md` with `feat.md` headings and `prd.json` via `references/tracker.md`
-- [ ] `/delegate` runs from `prd.json`, writes no `delegate-graph.json`, and records executed-versus-reasoned evidence per story in `progress.txt`
+- [ ] `/delegate` runs from `prd.json`, writes no `delegate-graph.json`, and records executed-versus-reasoned evidence in each story's `notes`
 - [ ] `/git` documents the draft-PR-for-task procedure and `<prefix>: <shortdesc>` titles
 - [ ] PR template has a Stories checklist and evidence sections
-- [ ] `git check-ignore` does not match `.agro/tasks/<slug>/prd.md`, `prd.json`, or `progress.txt`
+- [ ] `git check-ignore` does not match `.agro/tasks/<slug>/prd.md` or `prd.json`
 - [ ] `/eval` has no REGRESSION
 - [ ] CHANGELOG entry under `[Unreleased]`
 - [ ] Draft PR opened: `FROM feat/1147-core-planning-chain TO development`
