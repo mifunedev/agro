@@ -11,9 +11,9 @@ assignees: ""
 > **IMPORTANT**: The very first step should _ALWAYS_ be validating this metadata section to maintain a **CLEAN** development workflow.
 
 ```yml
-pull_request_title: "FROM feat/[issue#]-[shortdesc] TO development"
+pull_request_title: "FROM feat/[issue#]-[shortdesc] TO [target-branch]"
 branch: "feat/[issue#]-[shortdesc]"
-worktree_path: "$WORKSPACE/.worktrees/feat-[issue#]"
+worktree_path: ".worktrees/feat/[issue#]-[shortdesc]"
 ```
 
 ---
@@ -22,7 +22,7 @@ worktree_path: "$WORKSPACE/.worktrees/feat-[issue#]"
 
 <!-- Define the feature from the user's perspective FIRST. Every story follows the format:
      "As a [role], I want [capability] so that [benefit]."
-     These stories drive all downstream decisions — integration points, UI, and acceptance criteria. -->
+     These stories drive all downstream decisions — integration points, interfaces, and acceptance criteria. -->
 
 - As a **[role]**, I want **[capability]** so that **[benefit]**.
 - As a **[role]**, I want **[capability]** so that **[benefit]**.
@@ -35,39 +35,38 @@ worktree_path: "$WORKSPACE/.worktrees/feat-[issue#]"
 
 ### Visual Reference
 
-<!-- Screenshots, mockups, or links to reference implementations. -->
+<!-- Screenshots, mockups, ASCII sketches, or links to reference implementations. -->
 
 ---
 
 ## Key Integration Points
 
-<!-- Backend files/functions that need changes. Describe the ROLE each plays. -->
+<!-- Files, modules, or functions that need changes. Describe the ROLE each plays. -->
 
-| File                 | Function(s)       | Role                                       |
-| -------------------- | ----------------- | ------------------------------------------ |
-| `src/app/api/...`    | `handler()`       | _e.g., New API route for feature_          |
-| `src/lib/models/...` | `function_name()` | _e.g., CRUD operations for new collection_ |
+| File                 | Function(s) / Symbol(s) | Role                                  |
+| -------------------- | ----------------------- | ------------------------------------- |
+| _e.g., `path/to/module`_ | _e.g., `function_name()`_ | _e.g., New entry point for feature_ |
 
 ---
 
-## UI Integration Points
+## Interface Integration Points
 
-<!-- Which existing frontend components are modified or extended? Where does the new UI live? -->
+<!-- Which user-facing surfaces change? UI components, routes, CLI commands, API endpoints, config, or docs. Mark N/A if none. -->
 
-| Component / Route                       | Change Type | Description                      |
-| --------------------------------------- | ----------- | -------------------------------- |
-| _e.g., `src/components/nav/Navbar.tsx`_ | Modify      | _e.g., Add nav link to new page_ |
-| _e.g., `src/app/new-page/page.tsx`_     | New page    | _e.g., Dedicated feature page_   |
+| Surface                      | Change Type | Description                        |
+| ---------------------------- | ----------- | ---------------------------------- |
+| _e.g., `path/to/component`_  | Modify      | _e.g., Add entry point to feature_ |
+| _e.g., `command --flag`_     | New         | _e.g., Expose feature from the CLI_ |
 
 ---
 
 ## Storage
 
-<!-- Where and how is data persisted? Specify the pattern to follow. -->
+<!-- Where and how is data persisted? Specify the existing pattern to follow. Mark N/A if the feature is stateless. -->
 
-- **Persistence layer**: <!-- MongoDB via native driver (`src/lib/mongodb.ts`) -->
-- **Collection**: <!-- e.g., `features` -->
-- **Model pattern**: <!-- CRUD functions in `src/lib/models/` following existing patterns -->
+- **Persistence layer**: <!-- e.g., database, file, cache, or none -->
+- **Location / schema**: <!-- e.g., table, collection, file path -->
+- **Pattern**: <!-- e.g., existing module or helper to follow -->
 
 ---
 
@@ -75,9 +74,9 @@ worktree_path: "$WORKSPACE/.worktrees/feat-[issue#]"
 
 <!-- Explicit decisions that prevent misinterpretation. State the source of truth, state management approach, etc. -->
 
-- **Source of truth**: <!-- e.g., MongoDB — NOT localStorage -->
-- **State management**: <!-- e.g., React Context via AuthProvider, or local useState + useEffect fetch -->
-- **Auth / scoping**: <!-- e.g., Protected by requireAuth() middleware, user-scoped via JWT claims -->
+- **Source of truth**: <!-- e.g., the database — NOT client-side storage -->
+- **State management**: <!-- e.g., existing store, local state, or none -->
+- **Auth / scoping**: <!-- e.g., existing auth guard, per-user scoping, or N/A -->
 
 ---
 
@@ -86,12 +85,12 @@ worktree_path: "$WORKSPACE/.worktrees/feat-[issue#]"
 > **TDD is the best approach.** Write failing tests _before_ implementation. Tests define the contract; code makes them pass. This order catches misunderstandings early and keeps scope tight.
 
 <!-- List the test files and cases that will be written BEFORE implementation code.
-     Follow existing patterns: Vitest + @testing-library/react, tests in `__tests__/` dirs next to source. -->
+     Follow the repository's existing test framework and file layout. -->
 
-| Test File                                             | Case(s)                                   | Validates                |
-| ----------------------------------------------------- | ----------------------------------------- | ------------------------ |
-| _e.g., `src/lib/__tests__/feature.test.ts`_           | _e.g., `creates record with valid input`_ | _e.g., Model CRUD logic_ |
-| _e.g., `src/app/api/feature/__tests__/route.test.ts`_ | _e.g., `returns 401 without auth`_        | _e.g., API auth guard_   |
+| Test File                         | Case(s)                                   | Validates                  |
+| --------------------------------- | ----------------------------------------- | -------------------------- |
+| _e.g., `path/to/feature.test`_    | _e.g., `creates record with valid input`_ | _e.g., Core feature logic_ |
+| _e.g., `path/to/endpoint.test`_   | _e.g., `rejects unauthorized request`_    | _e.g., Access guard_       |
 
 ---
 
@@ -100,7 +99,7 @@ worktree_path: "$WORKSPACE/.worktrees/feat-[issue#]"
 - Simplicity is beauty, complexity is pain.
 - _ALWAYS_ look at the current codebase first — achieve the goal in the **least amount of changes**.
 - **TDD-first**: write tests _before_ implementation — this is the **best** approach. Red → Green → Refactor.
-- Follow existing patterns: native MongoDB driver (no ORM), Tailwind CSS only, App Router conventions.
+- Follow existing repository patterns, conventions, and tooling.
 - <!-- Add any feature-specific principles here -->
 
 ---
@@ -116,11 +115,10 @@ worktree_path: "$WORKSPACE/.worktrees/feat-[issue#]"
 <!-- Every criterion must be binary — testable by an agent with a pass/fail outcome. Avoid subjective language. -->
 
 - [ ] Implementation plan is thoroughly documented
-- [ ] `pnpm lint` passes
 - [ ] Tests written **before** implementation (TDD)
-- [ ] `pnpm test` passes (new tests required for all new logic)
-- [ ] `pnpm build` succeeds
-- [ ] New code follows existing repo patterns (`src/lib/models/` for data, `src/app/api/` for routes, Tailwind for styles)
+- [ ] The repository's lint, typecheck, test, and build commands pass (new tests required for all new logic)
+- [ ] New code follows existing repository patterns
 - [ ] No new dependencies added beyond what's already in the project (or justified in PR description)
-- [ ] Draft PR opened: `FROM feat/[issue#]-[shortdesc] TO development`
+- [ ] User-facing documentation updated if behavior changes
+- [ ] Draft PR opened: `FROM feat/[issue#]-[shortdesc] TO [target-branch]`
 - [ ] <!-- Add feature-specific criteria -->
