@@ -9,10 +9,10 @@
       "title": "Default the official image tag to the CLI version",
       "description": "As an operator, I want the default image tag to equal my `agro` CLI version so that each sandbox runs a known release, not `latest`.",
       "acceptanceCriteria": [
-        "A function `officialImageRef(version)` returns `ghcr.io/mifunedev/agro:<version>` when `version` matches `^[0-9]+\\.[0-9]+\\.[0-9]+$`.",
+        "If `version` matches `^[0-9]+\\.[0-9]+\\.[0-9]+$`, the function `officialImageRef(version)` returns `ghcr.io/mifunedev/agro:<version>`.",
         "`officialImageRef(version)` returns `ghcr.io/mifunedev/agro:latest` for `0.0.0-dev` and for each prerelease version, such as `0.14.0-rc.1`.",
         "Library code reads the CLI version from one shared module. `cli.ts` imports the version from that module, and `agro --version` still prints the bare version.",
-        "`DEFAULT_SANDBOX_IMAGE` is replaced by the result of `officialImageRef(<CLI version>)` at each use site in `lifecycle.ts` and `sandbox.ts`.",
+        "Each use site in `lifecycle.ts` and `sandbox.ts` calls `officialImageRef(<CLI version>)` in place of `DEFAULT_SANDBOX_IMAGE`.",
         "A bare `agro sandbox install docker --image` with no configured `image.ref` runs `ghcr.io/mifunedev/agro:<CLI version>`. A `lifecycle.test.ts` case proves the `AGRO_SANDBOX_IMAGE` value.",
         "For a sandbox that runs the prebuilt image and has no `image.ref`, the rendered compose env file sets `AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/agro:<CLI version>`. A `config-render.test.ts` case proves the value.",
         "For a build-mode sandbox with no `image.ref`, the rendered compose env file does not set `AGRO_SANDBOX_IMAGE`.",
@@ -35,16 +35,16 @@
     {
       "id": "US-002",
       "title": "Add `--version` to `agro sandbox install`",
-      "description": "As an operator, I want to type `agro sandbox install docker --version=0.13.0` so that I can pin an official release without typing the full image reference.",
+      "description": "As an operator, I want to type `agro sandbox install docker --version=0.13.0` so that I can pin an official release without typing the full image ref.",
       "acceptanceCriteria": [
         "The parser accepts `--version=<X.Y.Z>` and `--version <X.Y.Z>` after `sandbox install`.",
         "The parser removes one leading `v`, so `--version=v0.13.0` selects `ghcr.io/mifunedev/agro:0.13.0`.",
         "If the value does not match `^v?[0-9]+\\.[0-9]+\\.[0-9]+$`, the command exits 1 with an error that names the value and the expected form `X.Y.Z`.",
         "If `--version` has no value, the command exits 1 with `agro sandbox install: --version requires a value`.",
         "If the operator passes `--version` together with `--image=<ref>`, the command exits 1 with an error that names both flags. The command writes no sandbox entry.",
-        "`--version` together with a bare `--image` is accepted and selects `ghcr.io/mifunedev/agro:<X.Y.Z>`.",
+        "The parser accepts `--version` together with a bare `--image`. The install then selects `ghcr.io/mifunedev/agro:<X.Y.Z>`.",
         "`--version` selects image mode and implies `--no-build`, the same as `--image=<ref>`.",
-        "`--version` wins over `image.ref` in the entry `agro.json`, over the checkout `agro.json`, and over `AGRO_SANDBOX_IMAGE`.",
+        "`--version` overrides `image.ref` in the entry `agro.json`, `image.ref` in the checkout `agro.json`, and `AGRO_SANDBOX_IMAGE`.",
         "`agro --version` and `agro -v` as the first argument still print the CLI version.",
         "`agro sandbox --help` lists `--version <X.Y.Z>` and describes `--image=<ref>` as the flag for a custom image.",
         "`agro sandbox install docker --version=0.13.0 --yes --print-argv` prints a compose argv whose env selects `ghcr.io/mifunedev/agro:0.13.0`.",
@@ -89,7 +89,7 @@
     {
       "id": "US-004",
       "title": "Document version pinning",
-      "description": "As an operator, I want the docs to show `--version` as the way to pin a release so that I skip the full image reference.",
+      "description": "As an operator, I want the docs to show `--version` as the way to pin a release so that I skip the full image ref.",
       "acceptanceCriteria": [
         "`docs/lifecycle-commands.md` lists `[--version <X.Y.Z>]` in the `agro sandbox install` row.",
         "`docs/deployment-prebuilt-image.md` states that the default tag is the CLI version, shows `agro sandbox install docker --version=0.13.0`, and keeps `--image=<ref>` for custom images.",
