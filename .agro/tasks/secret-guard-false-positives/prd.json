@@ -73,7 +73,7 @@
     {
       "id": "US-004",
       "title": "Triage Close findings before issue creation",
-      "description": "As an operator, I want each Close finding folded, proposed as an issue, or dropped so that the issue queue holds only defects I approved.",
+      "description": "As an operator, I want the advisor to fold, propose, or drop each Close finding so that the issue queue holds only approved defects.",
       "acceptanceCriteria": [
         "`.agro/skills/delegate/SKILL.md` § Close states the fold rule: fold a finding into the PR only when its fix is in a file the PR already changes and the PR caused or exposed the finding, or the finding breaks the chain in use.",
         "§ Close states the issue rule: one proposed issue per defect surface, and a comment on an open issue that already covers the surface.",

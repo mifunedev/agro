@@ -48,9 +48,9 @@ The operator added this story during execution. The advisor pushed after each ac
 
 ### US-004: Triage Close findings before issue creation
 
-**Description:** As an operator, I want each Close finding folded, proposed as an issue, or dropped so that the issue queue holds only defects I approved.
+**Description:** As an operator, I want the advisor to fold, propose, or drop each Close finding so that the issue queue holds only approved defects.
 
-The operator added this story after the ready check. This run opened three issues mid-run, and two of them covered one surface.
+The operator added this story after the ready check. This run opened three issues mid-run. Two of the three issues covered one surface.
 
 **Acceptance Criteria:**
 
