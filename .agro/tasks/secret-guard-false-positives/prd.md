@@ -33,6 +33,19 @@ The guard must deny the `history` command, not the word in an argument. The prob
 - [ ] After the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 0.
 - [ ] `CHANGELOG.md` `[Unreleased]` has one `### Fixed` entry that links #1149.
 
+### US-003: Push only for the draft and before undraft
+
+**Description:** As an operator, I want the advisor to push the task branch only twice so that CI runs once on the finished branch.
+
+The operator added this story during execution. The advisor pushed after each accepted story because `/delegate` Integration step 2 and the `/git` "Draft PR for a task" procedure require a push per story.
+
+**Acceptance Criteria:**
+
+- [ ] `.agro/skills/delegate/SKILL.md` § Integration contains no push step.
+- [ ] `.agro/skills/git/SKILL.md` § "Draft PR for a task" states that the advisor commits each accepted story and does not push it.
+- [ ] `.agro/skills/git/SKILL.md` § "Ready for review" pushes the task branch once, before `gh pr ready`, and then runs `/ci-status`.
+- [ ] `bash .claude/skills/eval/run.sh` reports no new red on `delegate-*`, `advisor-*`, or `prd-*` probes.
+
 ## Summary
 
 `.agro/hooks/deny-env-dump.sh` is the Bash `PreToolUse` guard. `.claude/settings.json` wires it to the `Bash` matcher. `.codex/hooks/deny-env-dump.sh` calls it, so Codex inherits each fix.

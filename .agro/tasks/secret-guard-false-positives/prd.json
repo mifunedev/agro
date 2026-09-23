@@ -49,6 +49,25 @@
         "CHANGELOG.md"
       ],
       "commit": "db8c94df"
+    },
+    {
+      "id": "US-003",
+      "title": "Push only for the draft and before undraft",
+      "description": "As an operator, I want the advisor to push the task branch only twice so that CI runs once on the finished branch.",
+      "acceptanceCriteria": [
+        "`.agro/skills/delegate/SKILL.md` § Integration contains no push step.",
+        "`.agro/skills/git/SKILL.md` § \"Draft PR for a task\" states that the advisor commits each accepted story and does not push it.",
+        "`.agro/skills/git/SKILL.md` § \"Ready for review\" pushes the task branch once, before `gh pr ready`, and then runs `/ci-status`.",
+        "`bash .claude/skills/eval/run.sh` reports no new red on `delegate-*`, `advisor-*`, or `prd-*` probes."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/delegate/SKILL.md",
+        ".agro/skills/git/SKILL.md"
+      ]
     }
   ]
 }
