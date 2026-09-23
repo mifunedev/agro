@@ -44,8 +44,6 @@ policies:
   are the reusable-role primitive, and provider-native sub-agents are a bounded
   execution choice made by `/delegate`, not a repository artifact.
 - `loops` points at today's scheduled cron prompts and task artifact directory.
-  `/spec execute` owns implementation directly; it does not delegate to a separate
-  implementation process.
 - `policies` points at existing policy surfaces instead of inventing a
   `.agro/policies/` directory: the root instructions file, the git workflow skill,
   and hook-enforced guardrails. The guardrails are two complementary layers: the

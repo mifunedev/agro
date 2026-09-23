@@ -17,20 +17,6 @@ Task identity and state never depend on a session, tab, or pane.
 - Follow the [prd skill](../skills/prd/SKILL.md) for planning.
 - Record completion in `userStories[].passes`, never in a prose sentinel.
 
-## `/spec` tasks
-
-A `/spec` task also carries `progress.txt` and its gate records.
-The [spec skill](../skills/spec/SKILL.md) and [execute procedure](../skills/spec/references/execute.md) define them.
-
-| Artifact | Purpose |
-| --- | --- |
-| `progress.txt` | Advisor-appended execution narrative and resume evidence. |
-| `eval-result.json`, `simplicity-review.json`, `ui-evidence.json`, `simplify-rounds.json` | Conditional gate records. |
-
-Git ignores these records. Stage a required PR artifact explicitly with `git add -f`.
-Put reviewer evidence in the PR body.
-Do not persist a generated launch prompt as another task artifact.
-
 ## Completion
 
 Use the structured check:

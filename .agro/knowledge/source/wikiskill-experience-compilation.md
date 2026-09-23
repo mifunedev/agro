@@ -20,7 +20,7 @@ cs.AI/cs.CL. Source: <https://arxiv.org/abs/2608.27454>.
 - `.agro/skills/wiki/references/schema.md` — the local analogue of the paper's wiki layer schema.
 - `.agro/knowledge/raw/` — the local analogue of the paper's raw layer, holding source snapshots rather than agent traces.
 - `.agro/skills/builder/SKILL.md` — the local analogue of the paper's Skill Proposer.
-- `.agro/skills/retro/SKILL.md` — report-only lesson producer; the paper's maintainer role has no local owner.
+- `.agro/skills/retro/SKILL.md@ea448383` — the report-only lesson producer until #1156 retired it; the paper's maintainer role has no local owner.
 - `.agro/evals/capability/RESULTS.md` — the ceiling instrument the paper's ablation argues should move.
 
 ## Summary
@@ -61,11 +61,12 @@ when a skill encodes model-specific low-level workarounds.
 injected wholesale); strict gating rejects neutral proposals the authors admit
 could pay off later; there is no wiki pruning; long-horizon tasks are uncovered.
 
-**Local reading.** All three parts the ablation credits now exist. Issue #916
-added the pattern layer and the impact ledger; issue #926 added the read on the
-proposer path — `/spec plan` queries tracked knowledge and then `--patterns`
-before the PRD is written, and `/spec execute` deliberately does not, which is the
-asymmetry the ablation measured. The layers map onto
+**Local reading.** At the time of capture, all three parts the ablation credits
+existed. Issue #916 added the pattern layer and the impact ledger; issue #926 added
+the read on the proposer path — the plan step queried tracked knowledge and then
+`--patterns` before the PRD was written, and the execute step deliberately did not,
+which was the asymmetry the ablation measured. Issue #1156 retired both steps with
+`/spec`. The layers map onto
 `.agro/knowledge/{raw,source,patterns}` with the ledger moved out to
 `.agro/evals/decisions/skill-impact.md`, because a record of accepted and rejected
 proposals is a decision history rather than synthesis about a topic.

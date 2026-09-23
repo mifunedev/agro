@@ -47,7 +47,7 @@ CHANGELOG.md
 ```
 
 *Runner-logic distinction (prose, not a second tier):* the `scripts/` surface
-holds workflow code such as the `/spec execute` implementation cycle. **Editing** such a file is
+holds workflow code. **Editing** such a file is
 safe-by-default (it is in the set above); what raises operational caution is
 changing a runner's *runtime behavior*, which is reviewed at the human merge
 gate — the file's home tier does not change, and no path here is repeated in
@@ -85,8 +85,8 @@ is a human, applied at a review gate; no automation merges these.
   the unattended loop entirely. Root `AGENTS.md` § "Agent work stays inside the
   sandbox" states the scope boundary. `security-considerations.md §5` mirrors it.
 - Any change to the trunk itself: no agent merges its own work. The canonical
-  path in `.agro/skills/spec/SKILL.md` ends `… → merge (human) → reset|clean`,
-  and the loop is rate-capped and never auto-merges. See
+  path in `.agro/skills/git/SKILL.md` § Ready for review ends at `gh pr ready`,
+  and no agent auto-merges. See
   `security-considerations.md §4` (human merge gate / no auto-merge).
 - The ultimate hard gate for this tier is server-side branch protection on the
   trunk, which lives in repo settings rather than this tree.
@@ -97,7 +97,7 @@ is a human, applied at a review gate; no automation merges these.
 |------|--------------|----------|
 | 1 | safe-by-default | the tier-1 self-edit surface — this page § Tier 1` |
 | 2 | stronger-gate | `deny-env-dump.sh` · `deny-secret-paths.sh` · `warn-devtcp.sh` + `security-considerations.md §2` |
-| 3 | human-approval-required | `AGENTS.md` § "Agent work stays inside the sandbox" · `.agro/skills/spec/SKILL.md` § Workflow contract · `security-considerations.md §4`/`§5` |
+| 3 | human-approval-required | `AGENTS.md` § "Agent work stays inside the sandbox" · `.agro/skills/git/SKILL.md` § Ready for review · `security-considerations.md §4`/`§5` |
 
 Each token in the Tier 1 surface belongs to Tier 1 only; Tiers 2 and 3 name
 *mechanisms and prose boundaries*, never a Tier 1 path, so no surface is
