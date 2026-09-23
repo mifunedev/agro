@@ -48,8 +48,8 @@
         "The shellcheck step in `.github/workflows/ci-harness.yml` and `.github/workflows/release.yml` names no `retro/scripts` path."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at 4c070ce2 (cherry-pick of worker commit e0344573). AC1 executed: test -e over the five removed paths -> none exist. AC2 and AC3 executed: grep -rniE \"compile|/retro|/spec\" .agro/skills/wiki/ -> exit 1. AC4 executed: grep -c retro .agro/skills.lock -> 0. AC5: grep -c retro over link-providers.sh and hermes-links.test.ts -> 0 each (executed); bash .agro/scripts/link-providers.sh --check -> exit 0 (executed); pnpm test:scripts executed by the worker (one failure right after pnpm install, then three passes, 1560 tests); the advisor verifies it through CI \"Typecheck, Build & Test\" at undraft. AC6: grep -c retro over both workflows -> 0 (executed); shellcheck is not installed locally, so CI \"Boot Path Lint\" verifies it at undraft.",
       "dependsOn": [],
       "files": [
         ".agro/skills/retro/",
@@ -62,7 +62,8 @@
         ".agro/scripts/__tests__/hermes-links.test.ts",
         ".github/workflows/ci-harness.yml",
         ".github/workflows/release.yml"
-      ]
+      ],
+      "commit": "4c070ce2"
     },
     {
       "id": "US-003",
@@ -76,8 +77,8 @@
         "`.agro/skills/t3/references/sandbox-processes.md` keeps the heading that `headless-tmux-preserved.sh` pins."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at 7079b4a5 (cherry-picks of worker commits 4af6f80b and repair 488173a4). AC1 executed: grep -rnE \"/spec\\b|spec (plan|execute)|/retro\\b\" .agro/skills (retro and wiki excluded while US-002 was pending; spec already deleted) -> exit 1; after US-002 integration the /retro grep over all of .agro/skills -> exit 1. AC2 executed: grep over prompt-miner/SKILL.md and audit/references/implementation.md for /retro routes -> no match. AC3 executed: architect/SKILL.md lines 4, 14, 23 name /prd. AC4 executed: benchmark/SKILL.md line 4 \"Operator-run\", line 21 \"The operator runs it. No other skill calls it.\" AC5 executed: bash .agro/evals/probes/headless-tmux-preserved.sh -> exit 0. One bounded repair: two generic \"spec\" words in git/SKILL.md:120 and worktrees/SKILL.md:47 matched the grep, and an eval-quality.md row named eval-gate, which US-005 may delete. Open for US-005: eval-quality.md lines 156 and 159 still cite eval-gate.sh as a worked example. Interim red until US-005: architect-skill-contract (pins /spec plan).",
       "dependsOn": [],
       "files": [
         ".agro/skills/architect/",
@@ -89,7 +90,8 @@
         ".agro/skills/prompt-miner/",
         ".agro/skills/ste/references/rules.md",
         ".agro/skills/t3/references/sandbox-processes.md"
-      ]
+      ],
+      "commit": "7079b4a5"
     },
     {
       "id": "US-004",
