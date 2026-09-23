@@ -16,7 +16,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Fixed
 
-- Stop the Bash secret-exposure guard from denying ordinary commands: it now denies `history` only at command position or as a shell `-c` argument, so a commit message that mentions the word passes, and it no longer reads a `jq` filter such as `'.env'` as a secret-file path, while `jq` reads of a real `.env` file stay denied ([#1149](https://github.com/mifunedev/agro/issues/1149)).
+- Stop false denies in the Bash secret guard: match `history` only at command position, and never read a `jq` filter such as `'.env'` as a secret path ([#1149](https://github.com/mifunedev/agro/issues/1149)).
 
 ## [0.13.0] - 2026-09-22
 
