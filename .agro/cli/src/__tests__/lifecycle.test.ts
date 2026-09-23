@@ -841,6 +841,68 @@ describe("parseSandboxArgs", () => {
   });
 });
 
+describe("parseSandboxArgs — --version", () => {
+  const pinned = {
+    help: false,
+    yes: false,
+    image: true,
+    imageRef: "ghcr.io/mifunedev/agro:0.13.0",
+    noBuild: false,
+    printArgv: false,
+    json: false,
+    subcommand: "install",
+    runtime: "docker",
+  };
+
+  it.each([
+    [["--version=0.13.0"]],
+    [["--version", "0.13.0"]],
+    [["--version=v0.13.0"]],
+    [["--version", "v0.13.0"]],
+    [["--image", "--version=0.13.0"]],
+    [["--version", "0.13.0", "--image"]],
+  ])("selects the official image for %j", (flags) => {
+    expect(parseSandboxArgs(["install", "docker", ...flags])).toEqual({ ok: true, args: pinned });
+  });
+
+  it.each(["0.13", "latest", "0.14.0-rc.1", "vv0.13.0", "--yes"])(
+    "rejects %j, naming the value and the form X.Y.Z",
+    (value) => {
+      const parsed = parseSandboxArgs(["install", "docker", "--version", value]);
+      expect(parsed.ok).toBe(false);
+      if (!parsed.ok) {
+        expect(parsed.error).toContain(`"${value}"`);
+        expect(parsed.error).toContain("X.Y.Z");
+      }
+    },
+  );
+
+  it.each([[["--version"]], [["--version="]]])("requires a value for %j", (flags) => {
+    expect(parseSandboxArgs(["install", "docker", ...flags])).toEqual({
+      ok: false,
+      error: "agro sandbox install: --version requires a value",
+    });
+  });
+
+  it.each([
+    [["--version=0.13.0", "--image=my/img:1"]],
+    [["--image=my/img:1", "--version", "0.13.0"]],
+  ])("rejects %j, naming both flags", (flags) => {
+    const parsed = parseSandboxArgs(["install", "docker", ...flags]);
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) {
+      expect(parsed.error).toContain("--version");
+      expect(parsed.error).toContain("--image=<ref>");
+    }
+  });
+
+  it("sandbox help lists --version and keeps --image=<ref> for a custom image", () => {
+    const text = captureStdout(printSandboxHelp);
+    expect(text).toContain("--version <X.Y.Z>");
+    expect(text).toMatch(/--image=<ref>[^\n]*custom image/);
+  });
+});
+
 describe("parseShellArgs", () => {
   it("takes one optional positional sandbox name", () => {
     expect(parseShellArgs([])).toEqual({ ok: true, args: { help: false } });

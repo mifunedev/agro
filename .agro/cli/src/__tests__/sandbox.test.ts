@@ -1134,3 +1134,65 @@ describe("the invoked binary names itself in sandbox output", () => {
     expect(err.join("")).toContain(`${bin} sandbox install: unknown runtime "nope"`);
   });
 });
+
+describe("agro sandbox install — the --version pin", () => {
+  const PINNED = "ghcr.io/mifunedev/agro:0.13.0";
+
+  function envRunner(): { envs: Array<string | undefined>; argvs: string[][]; run: LifecycleRunner } {
+    const envs: Array<string | undefined> = [];
+    const argvs: string[][] = [];
+    const run: LifecycleRunner = (cmd, args, opts) => {
+      if (cmd === "git") return { status: 0, stdout: "Ada Lovelace\n" };
+      if (cmd === "docker") return { status: 0, stdout: "" };
+      if (cmd === "bash") {
+        envs.push(opts.env?.AGRO_SANDBOX_IMAGE);
+        argvs.push([...args]);
+      }
+      return { status: 0 };
+    };
+    return { envs, argvs, run };
+  }
+
+  it("overrides the entry image.ref, the checkout image.ref and AGRO_SANDBOX_IMAGE", async () => {
+    const registryPath = registry();
+    const checkout = harnessCheckout();
+    writeFileSync(
+      join(checkout, "agro.json"),
+      JSON.stringify({ version: 1, name: "pin", image: { ref: "ghcr.io/x/y:checkout", mode: "image" } }),
+    );
+    expect(
+      await runSandboxInstall(
+        { bin: "agro", runtime: "docker", name: "pin", checkout, yes: true, imageRef: "ghcr.io/x/y:entry", run: envRunner().run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    vi.stubEnv("AGRO_SANDBOX_IMAGE", "ghcr.io/x/y:ambient");
+
+    const { envs, argvs, run } = envRunner();
+    expect(
+      await runSandboxInstall(
+        { bin: "agro", runtime: "docker", name: "pin", checkout, yes: true, image: true, imageRef: PINNED, run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    expect(envs.at(-1)).toBe(PINNED);
+    expect(argvs.at(-1)?.slice(-3)).toEqual(["up", "-d", "--no-build"]);
+    expect(readJson(join(registryPath, "pin", "agro.json"))).toMatchObject({
+      image: { ref: PINNED, mode: "image" },
+    });
+  });
+
+  it("--print-argv selects the pinned image in the compose env", async () => {
+    registry();
+    const { envs, argvs, run } = envRunner();
+    expect(
+      await runSandboxInstall(
+        { bin: "agro", runtime: "docker", name: "pin", yes: true, image: true, imageRef: PINNED, printArgv: true, run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    expect(envs).toEqual([PINNED]);
+    expect(argvs[0]).toContain("--print-argv");
+    expect(argvs[0].slice(-3)).toEqual(["up", "-d", "--no-build"]);
+  });
+});

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AGRO_VERSION, officialImageRef } from "../version.js";
+import { AGRO_VERSION, officialImageRef, parseReleaseVersion } from "../version.js";
 
 describe("officialImageRef", () => {
   it.each(["0.13.0", "1.0.0", "10.20.30"])("tags release %s with its version", (version) => {
@@ -18,4 +18,21 @@ describe("AGRO_VERSION", () => {
   it("is 0.0.0-dev when the build did not inject a version", () => {
     expect(AGRO_VERSION).toBe("0.0.0-dev");
   });
+});
+
+describe("parseReleaseVersion", () => {
+  it.each([
+    ["0.13.0", "0.13.0"],
+    ["v0.13.0", "0.13.0"],
+    ["10.20.30", "10.20.30"],
+  ])("accepts %j as %j", (value, version) => {
+    expect(parseReleaseVersion(value)).toBe(version);
+  });
+
+  it.each(["", "v", "vv0.13.0", "0.13", "0.14.0-rc.1", "latest", "V0.13.0", " 0.13.0"])(
+    "rejects %j",
+    (value) => {
+      expect(parseReleaseVersion(value)).toBeUndefined();
+    },
+  );
 });
