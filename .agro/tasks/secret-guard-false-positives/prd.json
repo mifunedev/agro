@@ -82,14 +82,15 @@
         "`bash .agro/evals/probes/advisor-execution-contract.sh` and `bash .agro/evals/probes/delegate-worker-boundary.sh` exit 0."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at cc74ead8 (cherry-pick of worker commit 5ea92b0c). AC1-AC4 executed: awk over /delegate § Close, then grep -c for \"file that the PR already changes\", \"breaks the chain in use\", \"one issue for each defect surface\", \"propose a comment on that issue\", \"create no issue\", \"fixed in this PR\", \"issue #N\", \"dropped, with the reason\" -> 1 each. AC5 executed: advisor-execution-contract.sh exit 0; delegate-worker-boundary.sh exit 0. Full suite: bash .claude/skills/eval/run.sh -> exit 0, 159 probes, persistent reds next-dev-prod and skills-vendored only (run before this acceptance; spec-task-artifact-contract turns red locally once all stories pass, issue #1153).",
       "dependsOn": [
         "US-003"
       ],
       "files": [
         ".agro/skills/delegate/SKILL.md"
-      ]
+      ],
+      "commit": "cc74ead8"
     }
   ]
 }
