@@ -38,8 +38,8 @@
         "`CHANGELOG.md` `[Unreleased]` has one `### Fixed` entry that links #1149."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at db8c94df. AC1 executed: the advisor ran the final probe against the pre-US-002 hook (git show dd2d3ae0:.agro/hooks/deny-env-dump.sh in a scratch tree) -> exit 1, REGRESSION names jq '.env' .claude/settings.json. AC2 executed: bash .agro/evals/probes/secret-exposure-guard.sh -> exit 0 with the three jq allow assertions. AC3 executed: same run, exit 0, all six required deny assertions plus ten added deny cases (-rf, --from-file, --from-file=, --slurpfile, --arg, command substitution and backtick filters, a chained cat .env). AC4 executed: same run, cat .env.example asserted allow. AC5 executed: secret-exposure-guard.sh exit 0; docker-inspect-env-guard.sh exit 0; operator-config-guard.sh exit 0. AC6 executed: the [Unreleased] section has exactly one ### Fixed heading, and its bullet links issues/1149 (awk + grep -c -> 1, 1). Advisor adversarial run: 15 extra cases (quoted .env input, input builtin, --arg before .env, < redirection, --indent, chained reads, the settings.json allow cases, .env.example) -> 15/15 match. Worker fixed a pre-existing false allow in scope: basename on a --flag=.env token parsed it as an option and the hook exited with no output; now basename --.",
       "dependsOn": [
         "US-001"
       ],
@@ -47,7 +47,8 @@
         ".agro/hooks/deny-env-dump.sh",
         ".agro/evals/probes/secret-exposure-guard.sh",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "db8c94df"
     }
   ]
 }
