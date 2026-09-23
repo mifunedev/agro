@@ -16,13 +16,14 @@
         "After the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at 6754162b. AC1 executed: .agro/evals/probes/secret-exposure-guard.sh exists, is executable, declares tier/source/desc headers, and feeds a jq-built JSON fixture file to .agro/hooks/deny-env-dump.sh. AC2 executed: the advisor ran the new probe against the plan-commit hook (git show e6d864c1:.agro/hooks/deny-env-dump.sh in a scratch tree) -> exit 1, REGRESSION names git commit -m \"record history of X\". AC3 executed: bash .agro/evals/probes/secret-exposure-guard.sh -> exit 0 with both commit-message allow assertions. AC4 executed: same run, exit 0, all six deny assertions pass. AC5 executed: secret-exposure-guard.sh exit 0; docker-inspect-env-guard.sh exit 0; operator-config-guard.sh exit 0. One bounded repair: the first commit (02e77b74) turned builtin/command/sudo/exec/eval-wrapped history into allows, a new false allow; the repair (6754162b) adds a wrapper-word prefix and six deny assertions, shown failing (exit 1 on builtin history) before the hook repair.",
       "dependsOn": [],
       "files": [
         ".agro/hooks/deny-env-dump.sh",
         ".agro/evals/probes/secret-exposure-guard.sh"
-      ]
+      ],
+      "commit": "6754162b"
     },
     {
       "id": "US-002",
@@ -39,7 +40,9 @@
       "priority": 2,
       "passes": false,
       "notes": "",
-      "dependsOn": ["US-001"],
+      "dependsOn": [
+        "US-001"
+      ],
       "files": [
         ".agro/hooks/deny-env-dump.sh",
         ".agro/evals/probes/secret-exposure-guard.sh",
