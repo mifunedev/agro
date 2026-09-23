@@ -69,6 +69,7 @@ Update policy and release automation live in [`AGENTS.md`](AGENTS.md) § Git con
 - Point npm's global prefix at `/home/sandbox/.local`, so `claude update` and `codex update` no longer fail with EACCES on `/usr/local` and a self-update persists across a container recreate ([#1138](https://github.com/mifunedev/agro/issues/1138)).
 - Expose `python` and `python3` as Python 3.13 and migrate existing kernels to Python 3.13 ([#1110](https://github.com/mifunedev/agro/issues/1110)).
 - Route the `missing lifecycle script` error to a recovery that works for the reader's installation: a host image refresh for an image-shipped CLI, and `oh update` elsewhere ([#1080](https://github.com/mifunedev/agro/issues/1080)).
+- Stop false denies in the Bash secret guard: match `history` only at command position, and never read a `jq` filter such as `'.env'` as a secret path ([#1149](https://github.com/mifunedev/agro/issues/1149)).
 
 ## [0.12.2] - 2026-09-15
 
