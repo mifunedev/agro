@@ -44,7 +44,8 @@ Current state:
 | `.agro/skills/prd/SKILL.md` | whole skill | Single planning skill: grounding, questions, `prd.md`, draft-PR offer after approval |
 | `.agro/skills/prd/references/tracker.md` | new | `prd.md` → `prd.json` rules, story sizing, optional `dependsOn` / `files` / `commit` |
 | `.agro/skills/plan/`, `.agro/skills/ralph/` | removed | Merged into `/prd` |
-| `.agro/skills/delegate/SKILL.md` | whole skill | Executes stories from `prd.json`; commits and pushes per accepted story; updates the PR Stories checklist |
+| `.agro/skills/delegate/SKILL.md` | whole skill | Opens with the Advisor/Worker pattern; executes stories from `prd.json`; commits and pushes per accepted story; updates the PR Stories checklist |
+| `AGENTS.md` | glossary | Defines **worker** beside **advisor** |
 | `.agro/skills/git/SKILL.md` | Issue Titles, new "Draft PR for a task" | `<prefix>: <shortdesc>` titles; issue → branch → plan commit → draft PR |
 | `.agro/skills/spec/**` | path references only | Point `/spec plan` at `/prd` and `prd/references/tracker.md` |
 | `.gitignore` | `.agro/tasks/*` rules | Track `prd.md` and `prd.json`; remove the duplicate block |
@@ -74,6 +75,8 @@ Current state:
 - **State management**: Keep `passes` as the completion field so `jq -e 'all(.userStories[]; .passes == true)'` and `/spec` keep working. New fields are optional; no schema version bump.
 - **Visibility**: After operator approval, the first branch commit is the plan and a draft PR opens immediately.
 - **Evidence**: On acceptance, the active session writes the story's `notes`, marking each criterion `executed` (command and exit status) or `reasoned` (argument only). Decisions made during the build amend `prd.md`. The PR body summarizes both.
+- **Orchestration**: `/delegate` follows the Advisor/Worker pattern. The advisor is the active session: it decides, assigns bounded stories, verifies, accepts, and alone writes `prd.json`. A worker is a bounded execution context: it implements one assignment inside its owned paths, reports each criterion as executed or reasoned, and never accepts its own result.
+- **Naming**: Keep "worker" (25 skill, probe, and root files; `AGENTS.md` "One advisor, bounded workers"). Do not adopt "executor": `/spec` already uses it for a different role.
 - **Scope of `/spec`**: Unchanged except for references to removed skills.
 
 ## Test Plan (TDD)
@@ -113,6 +116,7 @@ Operator decisions without task-history signal. The build applies each default u
 
 - [ ] `.agro/skills/plan/` and `.agro/skills/ralph/` no longer exist; no live reference points to them
 - [ ] `/prd` writes `.agro/tasks/<slug>/prd.md` with `feat.md` headings and `prd.json` via `references/tracker.md`
+- [ ] `/delegate` opens with the Advisor/Worker pattern; `AGENTS.md` glossary defines worker
 - [ ] `/delegate` runs from `prd.json`, writes no `delegate-graph.json`, and records executed-versus-reasoned evidence in each story's `notes`
 - [ ] `/git` documents the draft-PR-for-task procedure and `<prefix>: <shortdesc>` titles
 - [ ] PR template has a Stories checklist and evidence sections

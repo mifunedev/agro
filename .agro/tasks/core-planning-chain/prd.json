@@ -71,6 +71,8 @@
       "title": "Slim /delegate to execute from prd.json",
       "description": "As an advisor session, I want /delegate to run stories from prd.json so that one file holds tasks and completion state.",
       "acceptanceCriteria": [
+        "/delegate opens with an Advisor/Worker pattern section: the advisor (active session) decides, assigns, verifies, accepts, and alone writes prd.json; a worker implements one bounded assignment and never accepts its own result",
+        "AGENTS.md glossary defines worker; no core-chain file introduces executor for this role",
         "/delegate reads prd.json stories as tasks, using priority and optional dependsOn for waves",
         "The active session sets passes, commit, and notes after acceptance; workers never write prd.json",
         "Worker briefs require each criterion to be reported as executed (command and exit status) or reasoned",
@@ -86,7 +88,8 @@
       "files": [
         ".agro/skills/delegate/SKILL.md",
         ".agro/evals/probes/delegate-worker-boundary.sh",
-        ".agro/evals/probes/delegate-model-effort-policy.sh"
+        ".agro/evals/probes/delegate-model-effort-policy.sh",
+        "AGENTS.md"
       ],
       "priority": 4,
       "passes": false,
