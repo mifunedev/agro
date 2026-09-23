@@ -13,7 +13,8 @@
         "/prd keeps /plan's repository grounding and /ste pass and uses feat.md section headings",
         "/prd holds the only slug rules",
         "/prd offers the /git draft-PR procedure only after operator approval",
-        "prd-output-path-contract probe passes; plan-orchestration-contract probe removed or replaced"
+        "prd-output-path-contract probe passes; plan-orchestration-contract probe removed or replaced",
+        "/prd triggers include \"write a plan\" and \"plan this\""
       ],
       "dependsOn": [],
       "files": [
@@ -72,7 +73,9 @@
       "acceptanceCriteria": [
         "/delegate reads prd.json stories as tasks, using priority and optional dependsOn for waves",
         "The active session sets passes and commit after acceptance; workers never write prd.json",
-        "delegate-graph.json, the recursion gate, /spec coupling, and embedded provider model names are removed",
+        "Worker briefs require each criterion to be reported as executed (command and exit status) or reasoned",
+        "The active session appends one progress.txt entry per accepted story with that classification",
+        "delegate-graph.json, the recursion gate, /spec coupling, and embedded provider model names are removed; the dispatch record keeps at most 8 fields",
         "Each accepted story is committed and pushed and the PR Stories checklist is updated",
         "delegate-worker-boundary and delegate-model-effort-policy probes pass"
       ],
@@ -110,12 +113,12 @@
     },
     {
       "id": "US-006",
-      "title": "Track prd.md and prd.json in git",
-      "description": "As an operator, I want plan files committed without force-adds so that the draft PR carries the plan.",
+      "title": "Track the core task contract in git",
+      "description": "As an operator, I want prd.md, prd.json, and progress.txt committed without force-adds so that the draft PR carries the plan and its evidence.",
       "acceptanceCriteria": [
-        "git check-ignore does not match .agro/tasks/<slug>/prd.md or prd.json",
+        "git check-ignore does not match .agro/tasks/<slug>/prd.md, prd.json, or progress.txt",
         "The duplicate .agro/tasks ignore block is removed",
-        ".agro/tasks/AGENTS.md describes the two-file core contract",
+        ".agro/tasks/AGENTS.md describes the three-file core contract and drops delegate-graph.json",
         "task-completion-structured-state and spec-task-artifact-contract probes pass"
       ],
       "dependsOn": [],
