@@ -146,8 +146,7 @@ Filled by the advisor before undraft.
 ### Stories
 
 - Give each story the heading `### US-00N: <title>`, a description in the form "As a <role>, I want <capability> so that <benefit>", and an acceptance-criteria checklist.
-- Make each story small enough for one focused implementation session.
-- Order the stories so that each story depends only on earlier stories.
+- Size and order the stories by the rules in [`references/tracker.md`](references/tracker.md).
 
 ### Acceptance criteria
 
