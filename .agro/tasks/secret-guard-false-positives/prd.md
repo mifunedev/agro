@@ -60,6 +60,20 @@ The operator added this story after the ready check. The advisor opened three is
 - [ ] § Close keeps the three outcomes: fixed in this PR, issue #N, or dropped with the reason.
 - [ ] `bash .agro/evals/probes/advisor-execution-contract.sh` and `bash .agro/evals/probes/delegate-worker-boundary.sh` exit 0.
 
+### US-005: Verify the merge before task cleanup
+
+**Description:** As an operator, I want the advisor to verify the merge before any cleanup so that cleanup never closes an open PR.
+
+The operator added this story after the ready check. The advisor removed the task worktree and deleted the remote branch while #1151 was open. GitHub closed #1151. The advisor restored the branch at `3765bedc` and reopened #1151.
+
+**Acceptance Criteria:**
+
+- [ ] `.agro/skills/git/SKILL.md` has an after-merge step for a task PR that runs `gh pr view <N> --json state -q .state` as its own command before any cleanup.
+- [ ] The step stops all cleanup when the output is not `MERGED`. An operator statement is not evidence of the merge.
+- [ ] The step removes the task worktree and the local branch through `.agro/scripts/git-maintenance.sh` only after the check prints `MERGED`.
+- [ ] The step states that deleting the remote branch of an open PR closes the PR.
+- [ ] `bash .claude/skills/eval/run.sh` reports no new red on `git-*`, `delegate-*`, or `advisor-*` probes.
+
 ## Summary
 
 `.agro/hooks/deny-env-dump.sh` is the Bash `PreToolUse` guard. `.claude/settings.json` wires it to the `Bash` matcher. `.codex/hooks/deny-env-dump.sh` calls it, so Codex inherits each fix.
@@ -155,5 +169,6 @@ Resolved: the advisor run found that `jq -n 'env'` and `jq -n '$ENV'` return `al
 | `spec-task-artifact-contract` fails every completed core-chain task, and CI does not catch the failure. | The probe exits 1 after the US-003 acceptance. The CI checkout has no `development` ref, so the probe exits `SKIPPED`. The #1148 `/eval` ran before its last acceptance. | issue #1153 |
 | The Bash guard allows `jq -n 'env'`, `jq -n '$ENV'`, and `docker inspect --format 'json'`. | The advisor found the `jq` forms during grounding. The US-001 worker found the literal `["\x27]` class in the container-inspect term. The advisor confirmed each `allow` on the base hook and on this branch. | issue #1150 (#1152 merged into it) |
 | One issue per finding fills the queue, and issues created mid-run skip operator review. | The advisor opened #1150, #1152, and #1153 during this run. #1150 and #1152 cover one guard surface. | fixed in this PR: US-004 |
+| Cleanup that runs in the same command as its merge check ignores the check result. | The advisor ran the state check and `git push origin --delete` in one command. The check printed `OPEN`, the delete ran, and GitHub closed #1151. | fixed in this PR: US-005 |
 | A crashing hook prints nothing, and empty output means `allow`. | The first US-002 draft crashed under `set -u` and allowed every command. `docker-inspect-env-guard.sh` failed on that draft. `basename` on a `--flag=.env` token failed the same way before this PR. | dropped: a deny assertion in a probe fails when the hook crashes, so each guard probe catches a crash. This PR fixes the `basename` case and adds a `path_cmd` fallback. |
 | A run of the full probe suite finds failures that the targeted story checks miss. | The targeted US-002 checks passed. The full `/eval` run found the 384-character changelog bullet. | dropped: the `/delegate` Close step already requires the full suite; the Close step caught the failure. |

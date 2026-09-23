@@ -91,6 +91,27 @@
         ".agro/skills/delegate/SKILL.md"
       ],
       "commit": "cc74ead8"
+    },
+    {
+      "id": "US-005",
+      "title": "Verify the merge before task cleanup",
+      "description": "As an operator, I want the advisor to verify the merge before any cleanup so that cleanup never closes an open PR.",
+      "acceptanceCriteria": [
+        "`.agro/skills/git/SKILL.md` has an after-merge step for a task PR that runs `gh pr view <N> --json state -q .state` as its own command before any cleanup.",
+        "The step stops all cleanup when the output is not `MERGED`. An operator statement is not evidence of the merge.",
+        "The step removes the task worktree and the local branch through `.agro/scripts/git-maintenance.sh` only after the check prints `MERGED`.",
+        "The step states that deleting the remote branch of an open PR closes the PR.",
+        "`bash .claude/skills/eval/run.sh` reports no new red on `git-*`, `delegate-*`, or `advisor-*` probes."
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        ".agro/skills/git/SKILL.md"
+      ]
     }
   ]
 }
