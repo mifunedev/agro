@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Changed
+
+- Replace the feature issue template with a user-story, integration-point, and TDD test-plan template with binary acceptance criteria ([#1145](https://github.com/mifunedev/agro/issues/1145)).
+
 ## [0.13.0] - 2026-09-22
 
 ### Added
