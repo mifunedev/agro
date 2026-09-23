@@ -36,8 +36,8 @@
         "`CHANGELOG.md` `[Unreleased]` `### Fixed` has one entry that links #1150, and the entry is at most 250 characters."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at f050f2f8. AC1 executed: the advisor ran the final container-inspect probe against the pre-US-002 hook (git show 8c988fc0 in a scratch tree) -> exit 1, REGRESSION names the single-quoted --format json case. AC2 executed: bash .agro/evals/probes/docker-inspect-env-guard.sh -> exit 0 with the three new deny assertions. AC3 executed: same run, every existing assertion passes. AC4 executed: docker-inspect-env-guard.sh exit 0; secret-exposure-guard.sh exit 0; operator-config-guard.sh exit 0. AC5 executed: the [Unreleased] ### Fixed section holds one bullet linking issues/1150 (awk + grep -c -> 1); changelog-entry-length.sh exit 0 (189 characters per the worker). Full suite before this acceptance: bash .claude/skills/eval/run.sh -> exit 0, 159 probes, persistent reds next-dev-prod and skills-vendored only.",
       "dependsOn": [
         "US-001"
       ],
@@ -45,7 +45,8 @@
         ".agro/hooks/deny-env-dump.sh",
         ".agro/evals/probes/docker-inspect-env-guard.sh",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "f050f2f8"
     }
   ]
 }
