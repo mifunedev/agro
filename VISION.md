@@ -7,11 +7,9 @@ own work. It cannot give itself an isolated runtime, a durable identity,
 supervision that outlives a terminal, or a single policy source that holds
 across harnesses. AGRO supplies those and stops.
 
-This file sets the trajectory and the floor that changes are measured against.
-`AGENTS.md` holds the rules that bind agents working here. When the two
-disagree, `AGENTS.md` wins for conduct and this file wins for scope.
-`AGENTS.md` asks for detailed explanation to live in `docs/`. A vision is scope,
-not explanation, so it sits beside the rules it governs.
+This file sets the scope that changes are measured against. `AGENTS.md` holds
+the rules that bind agents working here. When the two disagree, `AGENTS.md`
+wins for conduct and this file wins for scope.
 
 ## Who AGRO is for
 
@@ -25,7 +23,7 @@ tenant above the operator, no plane above the sandbox, and no account the
 workspace reports to.
 
 A proposal that only makes sense when something manages many sandboxes at once
-is out of scope here. That is a boundary of design, not of packaging: it holds
+is out of scope. That is a boundary of design, not of packaging: it holds
 whatever else exists elsewhere.
 
 ## The workspace
@@ -65,14 +63,11 @@ The artifacts that realize them:
 - **P5** — `.agro/hooks/`, `link-providers.sh` with its `--check` mode, and the
   environment-capability skills.
 
-## The tax
-
 The floor carries a stricter bar than anything above it, because its cost is
-paid per project and per boot rather than once.
-
-A tenant that serves one project costs that project. A line of the control plane
-reaches every repository in the workspace. A line of the entrypoint runs on
-every boot, for every operator, whether or not it applies.
+paid per project and per boot rather than once. A tenant that serves one project
+costs that project. A line of the control plane reaches every repository in the
+workspace. A line of the entrypoint runs on every boot, for every operator,
+whether or not it applies.
 
 Tenants are welcome. The bar is about where a thing plugs in, not whether it
 deserves to exist.
@@ -94,6 +89,16 @@ Apply all four. A proposal that fails any one is a tenant, not core.
 
 "A test fails" is not an observable failure. Name the broken user path.
 
+## How the core grows
+
+Recurring demand defines interfaces. When several independent requests wire in
+the same kind of capability, the answer is a contract, not a queue of merges.
+Land the seam, port the existing implementation onto it, and let the rest ship
+against it.
+
+The core reads one current shape of its own configuration. Growth adds a seam or
+a primitive; it does not add a second way to express the same thing.
+
 ## Security posture
 
 P1 is stated in one direction: agent work must not escape onto the host. The
@@ -114,7 +119,7 @@ live in [`SECURITY.md`](SECURITY.md).
 ## Skills
 
 A skill earns its place when it teaches a harness to drive something AGRO
-provides that the harness cannot discover on its own. The pack sorts three ways.
+provides that the harness cannot discover on its own. Skills sort three ways.
 
 - **Environment capability.** Driving the terminal workspace, reaching a human
   from an unattended session, automating a browser, and the worktree and project
@@ -122,35 +127,12 @@ provides that the harness cannot discover on its own. The pack sorts three ways.
   repository in the workspace. They are floor.
 - **Product operations.** Releasing AGRO itself, and this repository's own
   branch, pull request, and changelog conventions. These serve exactly one
-  repository. Conventions belong in `AGENTS.md`, which already holds them.
+  repository. Conventions belong in `AGENTS.md`.
 - **Methodology.** Requirements documents, plan formats, and prose style. The
-  harness owns these, on the same reasoning that removed the task, evaluation,
-  knowledge, and memory machinery.
+  harness owns these.
 
-The current pack is retained by operator decision. The second and third
-categories stay until they have somewhere to go; see Open questions. A skill
-that mixes categories gets split, not kept whole and not cut whole.
-
-## Promotion and migration
-
-**Recurring demand defines interfaces.** When several independent requests wire
-in the same kind of capability, the answer is a contract, not a queue of merges.
-Land the seam, port the existing implementation onto it, and let the rest ship
-against it.
-
-**Transitional code declares its end, and the end is honored.** A compatibility
-shim, a config migration, or a rename alias ships naming the release that
-retires it, and is deleted in that release rather than left to accumulate.
-Runtime code reads the current schema only.
-
-Retired names and their manual migration live in
-[`docs/agro-compatibility.md`](docs/agro-compatibility.md), not here. A shim
-that outlives its stated release is a defect, not a courtesy: it is unreachable
-code that every operator still pays for on every lifecycle call.
-
-A change that invalidates existing operator configuration carries the migration
-that detects the old shape, explains it, backs it up, and rewrites it — and
-that migration declares its own end on arrival.
+Only the first category is core. A skill that mixes categories gets split, not
+kept whole and not cut whole.
 
 ## What we will not add, for now
 
@@ -195,8 +177,9 @@ section that asserts it.
   actual path — an agent working in a project clone — is a few prose prompts
   with no commands and no failure paths.
 - **Documentation is not verified against the binary.** Nothing fails when a
-  doc names a verb the CLI does not implement. The `agro migrate` references
-  were found by reading, not by a check.
+  doc names a verb, variable, or file the CLI does not implement.
+- **Skills outside the floor still ship.** Product-operations and methodology
+  skills stay in the pack until they have a destination; see Open questions.
 
 ## Open questions
 
