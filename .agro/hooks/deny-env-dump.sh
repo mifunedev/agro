@@ -36,7 +36,7 @@ DOCKER_INSPECT='\b(docker|podman|nerdctl)[[:space:]]+([^|;&]{0,160}[[:space:]])?
 DOCKER_FMT='(--format[=[:space:]]|(^|[[:space:]])-f[=[:space:]])'
 DOCKER_FMT_UNSAFE='env'
 DOCKER_FMT_UNSAFE+='|\{\{[[:space:]]*(json[[:space:]]*)?\.(Config)?[[:space:]]*\}\}'
-DOCKER_FMT_UNSAFE+='|(--format|(^|[[:space:]])-f)[=[:space:]]+["\x27]?json["\x27]?([[:space:]]|$)'
+DOCKER_FMT_UNSAFE+="|(--format|(^|[[:space:]])-f)[=[:space:]]+[\"']?json[\"']?([[:space:]]|\$)"
 
 OPERATOR_PATH='(^|[^A-Za-z0-9._-])\.config([^A-Za-z0-9_-]|$)'
 OPERATOR_PATH+='|(^|[^A-Za-z0-9._-])settings\.local\.json([^A-Za-z0-9._-]|$)'
