@@ -342,6 +342,27 @@ Do these steps in this sequence:
   Lessons. "None" or "Nothing" is a valid body.
 - The repository's checks pass on the pushed branch (`/ci-status`).
 
+### After the merge
+
+Do these steps in this sequence:
+
+1. Run the merge check as its own command. Do not chain it with a cleanup
+   command:
+
+   ```bash
+   gh pr view <N> --json state -q .state
+   ```
+
+2. If the output is not `MERGED`, stop. Do no cleanup. An operator statement is
+   not evidence of the merge.
+3. Remove the task worktree:
+   `bash .agro/scripts/git-maintenance.sh worktree-remove <path>`.
+4. Delete the local task branch:
+   `bash .agro/scripts/git-maintenance.sh branch-delete <branch>`.
+5. Confirm the issue closed (see § Workflow step 7).
+
+Deleting the remote branch of an open PR closes the PR.
+
 ## After Push
 
 If `.agro/skills/ci-status/` exists, invoke `/ci-status` after every `git push` to confirm pipeline green before declaring work done. Push failing CI is not done.
