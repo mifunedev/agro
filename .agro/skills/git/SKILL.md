@@ -328,7 +328,9 @@ refuse and keep the PR in draft.
 - `prd.md` ends with a non-empty `## Lessons` section. "None" is a valid body:
   `awk '/^## /{s=($0=="## Lessons");n=0;next} s&&NF{n++} END{exit !(s&&n)}' .agro/tasks/<slug>/prd.md`
   exits 0.
-- The PR body Summary, Changes, Test Plan, and Verification sections are filled.
+- The PR body evidence sections are non-empty: What the issue asked for, What
+  was built, Where it diverged, What remains unverified, Verification, and
+  Lessons. "None" or "Nothing" is a valid body.
 - The repository's checks pass (`/ci-status`).
 
 ## After Push
