@@ -20,7 +20,7 @@ cs.AI/cs.CL. Source: <https://arxiv.org/abs/2608.27454>.
 - `.agro/skills/wiki/references/schema.md` — the local analogue of the paper's wiki layer schema.
 - `.agro/knowledge/raw/` — the local analogue of the paper's raw layer, holding source snapshots rather than agent traces.
 - `.agro/skills/builder/SKILL.md` — the local analogue of the paper's Skill Proposer.
-- `.agro/skills/retro/SKILL.md@ea448383` — the report-only lesson producer until #1156 retired it; the paper's maintainer role has no local owner.
+- `.agro/skills/retro/SKILL.md@51b44e10` — the report-only lesson producer until #1156 retired it; the paper's maintainer role has no local owner.
 - `.agro/evals/capability/RESULTS.md` — the ceiling instrument the paper's ablation argues should move.
 
 ## Summary
