@@ -98,7 +98,7 @@ generated ID matches `audit-[0-9]{8}T[0-9]{6}Z-[A-Za-z0-9._-]+`.
 
 Read exactly the route returned by that boundary; supporting scripts/references are private,
 never targets. Children inherit all roots and the ID, return structured observations, and
-suppress their own memory/retro append. Native verdicts are preserved; the dispatcher does
+suppress their own memory append. Native verdicts are preserved; the dispatcher does
 not normalize them.
 
 Default behavior is report-only except disclosed local state: `/eval` scoreboard,

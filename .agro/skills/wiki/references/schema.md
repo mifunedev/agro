@@ -9,7 +9,7 @@ relationships, not loose notes.
 
 **Two surfaces, one owner each.** `.agro/knowledge/` owns the **data**.
 `.agro/skills/wiki/` owns the **procedure** — how a page is written, queried,
-linted, and compiled. Nothing about a page's schema, provenance, or lifecycle
+and linted. Nothing about a page's schema, provenance, or lifecycle
 lives inside the skill's implementation tree, and no knowledge page lives inside
 it either.
 
@@ -59,8 +59,8 @@ other repository content, reviewed in the PR that lands them. There is no
 cannot see, which is the same as no provenance.
 
 **`local/` is the only ignored tier, and nothing reads it.** `/wiki query`
-enumerates `source/` and `patterns/`. Every `/spec` flow consumes tracked
-knowledge only. There is no flag that folds a local page into a normal result
+enumerates `source/` and `patterns/`. Every planning and build flow consumes
+tracked knowledge only. There is no flag that folds a local page into a normal result
 set. Promotion out of `local/` goes through `/wiki ingest`, which applies this
 schema and lands a tracked page.
 
@@ -114,7 +114,7 @@ confidence: confirmed
 | --- | --- | --- | --- | --- | --- |
 | `repo` | `source/` | Synthesis about **this repository** — a subsystem, pipeline, runtime, or convention | Repository-relative paths or globs, plus `verified_at` | `/wiki ingest` | any session, `/wiki query <topic>` |
 | `external` | `source/` | Synthesis about an **outside** topic — a paper, a product, a landscape | At least one `raw/<yyyy-mm-dd>-<slug>.md` snapshot | `/wiki ingest` | any session, `/wiki query <topic>` |
-| `pattern` | `patterns/` | A failure mode or working strategy observed in **this harness's own runs**, with an actionable workaround | Pinned evidence, `<repo-relative-path>@<short-sha>` | `/wiki compile` | the proposer role, `/wiki query <topic> --patterns` |
+| `pattern` | `patterns/` | A failure mode or working strategy observed in **this harness's own runs**, with an actionable workaround | Pinned evidence, `<repo-relative-path>@<short-sha>` | Orchestrator, manually | the proposer role, `/wiki query <topic> --patterns` |
 
 **A `kind: repo` page never snapshots this repository's own source into `raw/`.**
 The repository is already versioned; a snapshot of it is a second copy that
@@ -167,7 +167,7 @@ page meets the standard when:
   cite external URLs only when the page is about an external artifact.
 - **Claims are line-cited**: repository behavior, stage ordering, lifecycle
   claims, and invariants cite source paths with line numbers such as
-  `AGENTS.md:111` or `.agro/skills/spec/references/execute.md:20`.
+  `AGENTS.md:111` or `.agro/skills/wiki/references/lint.md:20`.
 - **Relationships are visible**: when the page explains a pipeline, runtime, or
   architecture, include a compact Mermaid diagram or table showing ownership,
   ordering, and handoff boundaries.
@@ -197,7 +197,7 @@ so patterns need no structural exception and no special case in `/wiki lint`.
 
 **Root cause.** <Why it happens, cited to `path:line`.>
 
-**Workaround.** <The actionable change. Append-only across compiles; a superseded
+**Workaround.** <The actionable change. Append-only across amendments; a superseded
 workaround is annotated `(superseded YYYY-MM-DD, SI-nnnn)`, never deleted.>
 
 ## See Also
@@ -205,7 +205,7 @@ workaround is annotated `(superseded YYYY-MM-DD, SI-nnnn)`, never deleted.>
 ```
 
 Title a pattern for the failure mode, not the incident that revealed it:
-`pattern-evals-probe-provenance-decay`, not `pattern-2026-08-31-retro-findings`.
+`pattern-evals-probe-provenance-decay`, not `pattern-2026-08-31-run-findings`.
 One page per failure mode, never one per run — a dated per-run page is a session
 journal, which this knowledge base is not.
 
@@ -217,9 +217,9 @@ entry, each a pinned repository-evidence path of the form
 reproducibility that immutability buys for a `raw/` snapshot. A pattern grounded
 in an ingested external source may additionally cite that `raw/` snapshot.
 
-**`/wiki compile` MUST NOT write a `raw/` snapshot of a `/retro` report.** `raw/`
-holds snapshots of external sources. A `/retro` report is this harness's own
-ephemeral output, and `/retro` is report-only by contract; persisting its reports
+**A pattern write MUST NOT add a `raw/` snapshot of a session report.** `raw/`
+holds snapshots of external sources. A session report is this harness's own
+ephemeral output; persisting it
 under `raw/` would recreate the per-session journal tier the harness deliberately
 removed, wearing a new name.
 
@@ -283,7 +283,7 @@ bash .agro/skills/wiki/scripts/knowledge-impact.sh --verified
 ```
 
 `knowledge-impact.sh` is the single implementation of dependency-aware
-invalidation. `/wiki lint` calls it for the freshness check and `/spec execute`
+invalidation. `/wiki lint` calls it for the freshness check and a build
 calls it with `--changed <paths>` for the Actual Knowledge Impact gate; neither
 reimplements the logic.
 
@@ -361,7 +361,7 @@ finding trains readers to ignore the report. `/wiki lint` does not check it.
 
 | Value | Set by | Trigger |
 | --- | --- | --- |
-| `provisional` | `/wiki ingest`, `/wiki compile` | Automatically on entry creation |
+| `provisional` | `/wiki ingest`, orchestrator pattern writes | Automatically on entry creation |
 | `confirmed` | Orchestrator, manually | After the orchestrator reviews and validates the entry's accuracy |
 | `deprecated` | Orchestrator, manually | When the orchestrator judges the entry stale, superseded, or incorrect beyond update |
 
@@ -378,7 +378,7 @@ orchestrator; automation only reads it.
     [entry removed]
 ```
 
-**Patterns.** A `kind: pattern` entry is created `provisional` by `/wiki compile`.
+**Patterns.** A `kind: pattern` entry is created `provisional` by the orchestrator.
 The orchestrator promotes it to `confirmed` when a skill proposal it motivated is
 recorded `ACCEPTED` in `.agro/evals/decisions/skill-impact.md`. **A `REJECTED`
 proposal never demotes or deprecates its motivating pattern** — see § 12.
@@ -486,7 +486,7 @@ page exists to hold.
 When a skill proposal is rejected and the skill edit is reverted, the revert
 covers the skill artifact **only**. The pattern page that motivated the proposal
 stays, its `confidence` is unchanged, its `sources:` list is unchanged, and its
-accumulated `**Workaround.**` text is unchanged. `/wiki compile` records the
+accumulated `**Workaround.**` text is unchanged. The orchestrator records the
 rejection as evidence — annotating the workaround that failed with
 `(superseded YYYY-MM-DD, SI-nnnn)` — rather than deleting it. The
 `.agro/evals/decisions/skill-impact.md` record of the rejected proposal is likewise

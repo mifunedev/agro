@@ -6,7 +6,7 @@ enabled: true
 overlap: false
 catchup: false
 agent: pi
-description: Weekly `/spec execute` task sweep — archive completed tasks
+description: Weekly task sweep — archive completed tasks
 ---
 
 # Weekly Task Cleanup

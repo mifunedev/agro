@@ -2,49 +2,44 @@
 # tier: A
 # source: retro lesson 2026-06-11 (eval-gate)
 # desc: the eval gate keys on the green→red delta + the runner exit code, never on the bare
-#       presence of a REGRESSION row. The rule lives with whoever RUNS the gate: that moved
-#       from autopilot §6 to the build path's own /eval gate in spec-simplification US-002,
-#       and moved again with that path when /ship-spec was absorbed into /spec execute (US-003).
-#       Issue #816. The autopilot half of this assertion was dropped in 0.3.0 when autopilot
-#       was removed; the rule is asserted on /spec execute, its sole owner and runner.
+#       presence of a REGRESSION row. The rule lives with whoever RUNS the gate: since
+#       issue #1156 that is /audit implementation Gate 2 and /benchmark Signal 1.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-SPEC="$ROOT/.claude/skills/spec/references/execute.md"
+IMPL="$ROOT/.agro/skills/audit/references/implementation.md"
+BENCH="$ROOT/.agro/skills/benchmark/SKILL.md"
 
-for f in "$SPEC"; do
+for f in "$IMPL" "$BENCH"; do
   if [[ ! -f "$f" ]]; then
-    echo "SKIPPED: required file absent: $f" >&2
-    exit 2
+    echo "REGRESSION: required gate owner absent: $f" >&2
+    exit 1
   fi
 done
 
-spec_section=$(awk '
-  /^### 5\. `implementation ⇄ audit`/ {f=1; print; next}
-  f && /^### / {f=0}
-  f {print}
-' "$SPEC")
+problems=()
+check_gate() {
+  local name="$1" section="$2"
+  if [[ -z "$section" ]]; then
+    problems+=("$name: could not locate its /eval gate section")
+    return
+  fi
+  grep -qE 'Any[[:space:]]+.?REGRESSION' <<<"$section" \
+    && problems+=("$name: still uses the bare \"Any \`REGRESSION\`\" rule (must key on delta + exit code)")
+  grep -qiE 'green.*red' <<<"$section" || problems+=("$name: lacks green->red language")
+  grep -qi 'exit' <<<"$section" || problems+=("$name: lacks runner exit-code language")
+  grep -qi 'pre-existing' <<<"$section" || problems+=("$name: lacks the pre-existing-red carve-out")
+  grep -qi 'delta\|unchanged' <<<"$section" || problems+=("$name: lacks delta/unchanged language")
+}
 
-if [[ -z "$spec_section" ]]; then
-  echo "REGRESSION: could not locate the implementation ⇄ audit section in $SPEC" >&2
+check_gate "/audit implementation Gate 2" "$(awk '/^### Gate 2 /{f=1} f && /^### Gate 3 /{exit} f' "$IMPL")"
+check_gate "/benchmark Signal 1" "$(awk '/^### Signal 1 /{f=1} f && /^### Signal 2 /{exit} f' "$BENCH")"
+
+if (( ${#problems[@]} )); then
+  echo "REGRESSION: the eval gate's delta/exit-code rule is broken:" >&2
+  printf '  - %s\n' "${problems[@]}" >&2
   exit 1
 fi
 
-if grep -qE 'Any[[:space:]]+.?REGRESSION' <<<"$spec_section"; then
-  echo "REGRESSION: /spec execute's eval gate still uses the bare \"Any \`REGRESSION\`\" rule (must key on delta + exit code)" >&2
-  exit 1
-fi
-
-missing=()
-grep -qiE 'green.*red'         <<<"$spec_section" || missing+=("green->red language")
-grep -qi 'exit'                <<<"$spec_section" || missing+=("runner exit-code language")
-grep -qi 'pre-existing'        <<<"$spec_section" || missing+=("pre-existing-red carve-out")
-grep -qi 'delta\|unchanged'    <<<"$spec_section" || missing+=("delta/unchanged language")
-
-if (( ${#missing[@]} )); then
-  echo "REGRESSION: the eval gate's delta/exit-code rule is broken: ${missing[*]}" >&2
-  exit 1
-fi
-
-echo "PASS: /spec execute keys the eval gate on green->red delta + runner exit code (no bare-REGRESSION gate)" >&2
+echo "PASS: /audit implementation Gate 2 and /benchmark Signal 1 key the eval gate on green->red delta + runner exit code (no bare-REGRESSION gate)" >&2
 exit 0

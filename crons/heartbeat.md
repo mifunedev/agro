@@ -16,8 +16,9 @@ that catches anything time-sensitive without doing real work.
 
 ## Tasks
 
-1. Check active `/spec execute` tasks: for each `.agro/tasks/*/progress.txt`, note
-   any whose last update is older than 2 hours. Surface those in the reply.
+1. Check active tasks: for each `.agro/tasks/*/prd.json` that has a story with
+   `"passes": false`, note any whose last update is older than 2 hours. Surface
+   those in the reply.
 2.5. Read the `## Active items` section below. For each item, decide
     whether resolution can be confirmed using ONLY the validation
     mechanisms enumerated in that section. If yes, surface
@@ -38,7 +39,7 @@ that catches anything time-sensitive without doing real work.
 ## Reporting
 
 - Healthy with nothing to do → reply `HEARTBEAT_OK`.
-- Action taken or stale `/spec execute` task detected → one-line summary plus
+- Action taken or stale task detected → one-line summary plus
   the action.
 - Pending `## Active items` → include in reply as
   `WATCHING: <item> (added <date>, age <Nd>)`. Resolved-this-pulse →
@@ -53,7 +54,7 @@ that catches anything time-sensitive without doing real work.
   printf '[%s] heartbeat: %s\n' "$(date -Iseconds)" "$STATUS" | scripts/locked-append.sh crons/.cron.log
   ```
 
-  where `<status>` is one of `OK`, `OK (N watching)`, `OK (stale spec task: <name>)`,
+  where `<status>` is one of `OK`, `OK (N watching)`, `OK (stale task: <name>)`,
   or `OK (resolved: <item-snippet>)`.
   This is the cron's only per-pulse liveness signal — it MUST
   execute every pulse regardless of what else happened.

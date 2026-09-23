@@ -40,11 +40,11 @@ cite them, not results.
 
 ## When to Use
 
-- `/wiki query <topic>` when a session needs to recall previously-compiled
+- `/wiki query <topic>` when a session needs to recall previously-captured
   knowledge about a recurring topic (tools, integrations, constraints, key
   concepts).
 - **Before re-deriving something from scratch** — check the knowledge base first.
-  `/spec plan`'s recall step is exactly this call.
+  A planning recall step is exactly this call.
 - After `/wiki ingest` lands a new entry, to verify it is queryable.
 
 ## When NOT to Use
@@ -87,8 +87,8 @@ This is a **default, not a boundary**. Any session can read a pattern file
 directly; nothing prevents it. The flag keeps patterns out of ordinary results,
 which is what the measurement supports — do not describe it as isolation.
 
-**The planner/executor asymmetry.** `/spec plan` queries both modes: patterns
-inform proposal and design. `/spec execute` consumes the approved PRD's
+**The planner/executor asymmetry.** Planning queries both modes: patterns
+inform proposal and design. Execution consumes the approved PRD's
 `## Knowledge Context` and re-reads the authoritative sources it names; it does
 not load the pattern set unless the task turns into replanning.
 
@@ -224,7 +224,7 @@ descending.
 
 **Why ranking exists in `--patterns` mode only.** Pattern pages accumulate
 monotonically and are never pruned, so a recency-only order degenerates into
-"most recently compiled" — the wrong bias for a proposer that needs the
+"most recently written" — the wrong bias for a proposer that needs the
 *relevant* failure mode, not the newest one. Entity pages have a natural refresh
 cycle through re-ingest, so their recency ordering still carries signal.
 
@@ -300,7 +300,7 @@ in one will not work in another.
   entity pages answer different questions for different roles, and the
   measurement behind the split scored the mixed configuration worst-of-both.
 - **Ranking patterns by recency alone** — patterns are never pruned, so recency
-  ordering degenerates into "most recently compiled". Rank by term-hit count
+  ordering degenerates into "most recently written". Rank by term-hit count
   first.
 - **Treating a returned page as authority** — re-ground its material claims
   against the sources it cites. The repository outranks the page.
@@ -310,7 +310,6 @@ in one will not work in another.
 - `.agro/skills/wiki/references/schema.md` — the locked schema: § 2 (layout and the
   tracked boundary), § 3 (entry schema), § 7 (cross-links), § 9 (extraction)
 - `/wiki ingest` — add or update an entity page
-- `/wiki compile` — create or patch a `kind: pattern` page from a `/retro` report
 - `/wiki lint` — health-check the knowledge base and regenerate the index
 - `.agro/evals/probes/wiki-query-pattern-isolation.sh` — the guard on the mode split
 - `.agro/evals/probes/knowledge-tracked-query-boundary.sh` — the guard on the

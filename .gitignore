@@ -78,7 +78,7 @@ packages/*/node_modules/
 # Durable repository knowledge (.agro/knowledge/) is TRACKED: source/ and
 # patterns/ hold shared synthesis, raw/ holds the immutable external evidence
 # those pages cite. Only local/ is ignored — per-machine scratch that /wiki query
-# and every /spec flow refuse to read, so a page on one machine can never
+# and every plan refuse to read, so a page on one machine can never
 # silently inform a plan another machine cannot reproduce.
 .agro/knowledge/local/*
 !.agro/knowledge/local/README.md

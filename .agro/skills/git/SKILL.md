@@ -117,7 +117,7 @@ Displaced detail has a destination — put it there, not in the entry:
 | Detail | Destination |
 |--------|-------------|
 | Rationale, rejected alternatives | The PR body — the `([#N])` link is the pointer |
-| Task/spec decisions | `.agro/tasks/<slug>/prd.md` |
+| Task decisions | `.agro/tasks/<slug>/prd.md` |
 | Architecture decisions | `docs/rfcs/` |
 | Durable, generalized lessons | A minted probe under `.agro/evals/probes/` |
 

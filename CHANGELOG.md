@@ -15,6 +15,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 - Consolidate the planning chain: `/prd` absorbs `/plan` and `/ralph`, `/delegate` runs the advisor/worker pattern from `prd.json`, and plans land in a draft PR before implementation ([#1147](https://github.com/mifunedev/agro/issues/1147)).
 - Reduce the issue templates to `feat`, `bug`, and `task`: rewrite the bug template in the feature template's shape, thin the task template, and remove the audit and skill templates ([#1158](https://github.com/mifunedev/agro/issues/1158)).
 
+### Removed
+
+- Remove `/spec`, `/retro`, and `/wiki compile`. Plans use the core chain: `/prd`, a draft PR, `/delegate`, and a ready PR. Lessons live in the plan's `## Lessons` ([#1156](https://github.com/mifunedev/agro/issues/1156)).
+
 ### Fixed
 
 - Stop false denies in the Bash secret guard: match `history` only at command position, and never read a `jq` filter such as `'.env'` as a secret path ([#1149](https://github.com/mifunedev/agro/issues/1149)).

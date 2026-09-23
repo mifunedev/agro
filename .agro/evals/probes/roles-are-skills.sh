@@ -13,7 +13,7 @@ cd "$ROOT"
 
 fail() { echo "REGRESSION: $*" >&2; exit 1; }
 
-for skill in architect spec audit retro delegate builder; do
+for skill in architect prd audit delegate builder; do
   [ -f ".agro/skills/$skill/SKILL.md" ] || fail "role-owning skill missing: .agro/skills/$skill/SKILL.md"
 done
 

@@ -318,7 +318,7 @@ test("extractFeatures captures the documented marker keys", () => {
 
 test("detectSessionType classifies the first prompt", () => {
   assert.equal(detectSessionType("Heartbeat check-in."), "cron");
-  assert.equal(detectSessionType("Run /retro on this session"), "retro");
+  assert.equal(detectSessionType("Run a retro on this session"), "retro");
   assert.equal(detectSessionType("Audit the open PRs"), "audit");
   assert.equal(detectSessionType("Implement the widget"), "impl");
   assert.equal(detectSessionType("What does the wiki say about X?"), "query");

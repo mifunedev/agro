@@ -54,11 +54,11 @@ Change `SOUL.md` only when the operator asks. Report every change to that file.
 
 ## How an entry graduates
 
-A lesson that recurs across sessions graduates to a compiled pattern under
-`.agro/knowledge/patterns/` through `/wiki compile`. A lesson that a
-deterministic probe can guard graduates to `.agro/evals/probes/` through
-`/retro`. Remove the entry from `MEMORY.md` after the graduation lands, because
-one fact belongs in one place.
+A lesson graduates through the `## Lessons` section of a task plan at
+`.agro/tasks/<slug>/prd.md`. Give the lesson exactly one outcome there: fixed in
+the PR, issue #N, or dropped with the reason. Fix a lesson that a deterministic
+probe can guard with a probe under `.agro/evals/probes/`. Remove the entry from
+`MEMORY.md` after the graduation lands, because one fact belongs in one place.
 
 ## What this directory never carries upstream
 
