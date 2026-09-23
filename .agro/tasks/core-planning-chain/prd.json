@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1147-core-planning-chain",
+  "description": "Consolidate the core planning chain: /prd plans and tracks, /delegate executes from prd.json, templates share one shape, and the plan lands in a draft PR before implementation.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Merge /plan into /prd",
+      "description": "As an operator, I want one planning skill that writes .agro/tasks/<slug>/prd.md with feat.md headings so that I review one document.",
+      "acceptanceCriteria": [
+        ".agro/skills/plan/ is removed",
+        "/prd keeps /plan's repository grounding and /ste pass and uses feat.md section headings",
+        "/prd holds the only slug rules",
+        "/prd offers the /git draft-PR procedure only after operator approval",
+        "prd-output-path-contract probe passes; plan-orchestration-contract probe removed or replaced"
+      ],
+      "dependsOn": [],
+      "files": [".agro/skills/prd/SKILL.md", ".agro/skills/plan/", ".agro/evals/probes/prd-output-path-contract.sh", ".agro/evals/probes/plan-orchestration-contract.sh"],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Fold /ralph into /prd as references/tracker.md",
+      "description": "As an operator, I want prd.json conversion to be part of planning so that the tracker cannot drift from the plan.",
+      "acceptanceCriteria": [
+        ".agro/skills/ralph/ is removed and .agro/skills/prd/references/tracker.md exists",
+        "branchName is always <prefix>/<issue#>-<slug>; no ralph/ prefix remains",
+        "Example includes schemaVersion; no Amp or .claude/skills/git reference remains",
+        "Optional dependsOn, files, and commit story fields are documented",
+        "Story sizing and verifiable-criteria rules exist only in tracker.md"
+      ],
+      "dependsOn": ["US-001"],
+      "files": [".agro/skills/prd/references/tracker.md", ".agro/skills/ralph/"],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Add the draft-PR-for-task procedure to /git",
+      "description": "As an operator, I want the approved plan committed and a draft PR opened before implementation so that I can inspect work in progress.",
+      "acceptanceCriteria": [
+        "Issue title format is <prefix>: <shortdesc>",
+        "A Draft PR for a task section covers issue, branch, plan commit, push, and draft PR from the PR template",
+        "No .claude/skills path references remain in /git"
+      ],
+      "dependsOn": [],
+      "files": [".agro/skills/git/SKILL.md"],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Slim /delegate to execute from prd.json",
+      "description": "As an advisor session, I want /delegate to run stories from prd.json so that one file holds tasks and completion state.",
+      "acceptanceCriteria": [
+        "/delegate reads prd.json stories as tasks, using priority and optional dependsOn for waves",
+        "The active session sets passes and commit after acceptance; workers never write prd.json",
+        "delegate-graph.json, the recursion gate, /spec coupling, and embedded provider model names are removed",
+        "Each accepted story is committed and pushed and the PR Stories checklist is updated",
+        "delegate-worker-boundary and delegate-model-effort-policy probes pass"
+      ],
+      "dependsOn": ["US-002", "US-003"],
+      "files": [".agro/skills/delegate/SKILL.md", ".agro/evals/probes/delegate-worker-boundary.sh", ".agro/evals/probes/delegate-model-effort-policy.sh"],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Add Stories checklist and evidence sections to the PR template",
+      "description": "As a reviewer, I want each PR to show story progress and answer the issue it closes.",
+      "acceptanceCriteria": [
+        ".github/pull_request_template.md has a Stories checklist near the top",
+        "It has sections for what the issue asked for, what was built, divergence, and what remains unverified",
+        "The template names no repository-specific branch or tool"
+      ],
+      "dependsOn": [],
+      "files": [".github/pull_request_template.md"],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Track prd.md and prd.json in git",
+      "description": "As an operator, I want plan files committed without force-adds so that the draft PR carries the plan.",
+      "acceptanceCriteria": [
+        "git check-ignore does not match .agro/tasks/<slug>/prd.md or prd.json",
+        "The duplicate .agro/tasks ignore block is removed",
+        ".agro/tasks/AGENTS.md describes the two-file core contract",
+        "task-completion-structured-state and spec-task-artifact-contract probes pass"
+      ],
+      "dependsOn": [],
+      "files": [".gitignore", ".agro/tasks/AGENTS.md"],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Repoint references and verify",
+      "description": "As a maintainer, I want no live reference to removed skills so that the chain works end to end.",
+      "acceptanceCriteria": [
+        "core-chain-references probe exists and passes",
+        "/spec, /supervisor, /retro, /audit, and crons reference /prd and prd/references/tracker.md where they referenced /plan or /ralph",
+        "Provider skill symlinks resolve",
+        "/eval reports no REGRESSION",
+        "CHANGELOG has an [Unreleased] entry"
+      ],
+      "dependsOn": ["US-001", "US-002", "US-004", "US-006"],
+      "files": [".agro/skills/spec/", ".agro/skills/supervisor/SKILL.md", ".agro/skills/retro/SKILL.md", ".agro/skills/audit/", "crons/cleanup-tasks.md", ".agro/evals/probes/core-chain-references.sh", "CHANGELOG.md"],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
