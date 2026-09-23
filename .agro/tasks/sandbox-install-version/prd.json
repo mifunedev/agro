@@ -78,15 +78,16 @@
         "`npm test` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Worker commit 5822075b cherry-picked to the task branch as 96599bc1. The install no longer stores a default ref; config-render supplies it for image mode. AC1 executed: sandbox.test.ts --version pin case stores image.ref ghcr.io/mifunedev/agro:0.13.0 with mode image, npm test exit 0. AC2 executed: sandbox.test.ts case for no-checkout and image-mode checkout stores no ref, and renderComposeVars yields officialImageRef(AGRO_VERSION), npm test exit 0. AC3 executed: sandbox.test.ts 0.12.0 then 0.13.0 re-install case, npm test exit 0. AC4 reasoned: one dedicated case per criterion in the --version pin describe block; the seeded image.ref case still passes. AC5 executed on task branch: npm test exit 0 (1609/1609), cli typecheck exit 0, pnpm run typecheck exit 0.",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         ".agro/cli/src/commands/sandbox.ts",
         ".agro/cli/src/__tests__/sandbox.test.ts"
-      ]
+      ],
+      "commit": "96599bc1"
     },
     {
       "id": "US-004",
