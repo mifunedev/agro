@@ -59,6 +59,12 @@ assert deny "docker inspect --format '{{.Config}}' web" \
   "the Config subtree (which contains the env block) was allowed"
 assert deny "docker inspect --format json web" \
   "--format json re-dumps the whole object"
+assert deny "docker inspect --format 'json' web" \
+  "a single-quoted --format json re-dumps the whole object"
+assert deny "docker inspect -f 'json' web" \
+  "a single-quoted -f json re-dumps the whole object"
+assert deny "docker inspect --format='json' web" \
+  "a single-quoted --format=json re-dumps the whole object"
 assert deny "docker inspect web | jq '.[0].State'" \
   "an unverifiable jq pipe over full JSON was allowed"
 assert deny "podman inspect mycontainer" \
