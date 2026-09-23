@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1160-sandbox-install-version",
+  "description": "Pin the official sandbox image by version: add `agro sandbox install --version <X.Y.Z>`, keep `--image=<ref>` for custom images, and default the image tag to the CLI version.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Default the official image tag to the CLI version",
+      "description": "As an operator, I want the default image tag to equal my `agro` CLI version so that each sandbox runs a known release, not `latest`.",
+      "acceptanceCriteria": [
+        "A function `officialImageRef(version)` returns `ghcr.io/mifunedev/agro:<version>` when `version` matches `^[0-9]+\\.[0-9]+\\.[0-9]+$`.",
+        "`officialImageRef(version)` returns `ghcr.io/mifunedev/agro:latest` for `0.0.0-dev` and for each prerelease version, such as `0.14.0-rc.1`.",
+        "Library code reads the CLI version from one shared module. `cli.ts` imports the version from that module, and `agro --version` still prints the bare version.",
+        "`DEFAULT_SANDBOX_IMAGE` is replaced by the result of `officialImageRef(<CLI version>)` at each use site in `lifecycle.ts` and `sandbox.ts`.",
+        "A bare `agro sandbox install docker --image` with no configured `image.ref` runs `ghcr.io/mifunedev/agro:<CLI version>`. A `lifecycle.test.ts` case proves the `AGRO_SANDBOX_IMAGE` value.",
+        "For a sandbox that runs the prebuilt image and has no `image.ref`, the rendered compose env file sets `AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/agro:<CLI version>`. A `config-render.test.ts` case proves the value.",
+        "For a build-mode sandbox with no `image.ref`, the rendered compose env file does not set `AGRO_SANDBOX_IMAGE`.",
+        "`npm test` exits 0 and `npm --prefix .agro/cli run typecheck` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/commands/lifecycle.ts",
+        ".agro/cli/src/commands/sandbox.ts",
+        ".agro/cli/src/lib/config-render.ts",
+        ".agro/cli/src/__tests__/lifecycle.test.ts",
+        ".agro/cli/src/lib/__tests__/config-render.test.ts"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Add `--version` to `agro sandbox install`",
+      "description": "As an operator, I want to type `agro sandbox install docker --version=0.13.0` so that I can pin an official release without typing the full image reference.",
+      "acceptanceCriteria": [
+        "The parser accepts `--version=<X.Y.Z>` and `--version <X.Y.Z>` after `sandbox install`.",
+        "The parser removes one leading `v`, so `--version=v0.13.0` selects `ghcr.io/mifunedev/agro:0.13.0`.",
+        "If the value does not match `^v?[0-9]+\\.[0-9]+\\.[0-9]+$`, the command exits 1 with an error that names the value and the expected form `X.Y.Z`.",
+        "If `--version` has no value, the command exits 1 with `agro sandbox install: --version requires a value`.",
+        "If the operator passes `--version` together with `--image=<ref>`, the command exits 1 with an error that names both flags. The command writes no sandbox entry.",
+        "`--version` together with a bare `--image` is accepted and selects `ghcr.io/mifunedev/agro:<X.Y.Z>`.",
+        "`--version` selects image mode and implies `--no-build`, the same as `--image=<ref>`.",
+        "`--version` wins over `image.ref` in the entry `agro.json`, over the checkout `agro.json`, and over `AGRO_SANDBOX_IMAGE`.",
+        "`agro --version` and `agro -v` as the first argument still print the CLI version.",
+        "`agro sandbox --help` lists `--version <X.Y.Z>` and describes `--image=<ref>` as the flag for a custom image.",
+        "`agro sandbox install docker --version=0.13.0 --yes --print-argv` prints a compose argv whose env selects `ghcr.io/mifunedev/agro:0.13.0`.",
+        "`npm test` exits 0 and `npm --prefix .agro/cli run typecheck` exits 0."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/commands/sandbox.ts",
+        ".agro/cli/src/commands/lifecycle.ts",
+        ".agro/cli/src/__tests__/sandbox.test.ts",
+        ".agro/cli/src/__tests__/cli-first-help.test.ts"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Persist explicit version pins",
+      "description": "As an operator, I want an install-time pin to persist so that `agro start` and `agro restart` keep the same release.",
+      "acceptanceCriteria": [
+        "After `agro sandbox install docker --version=0.13.0 --yes`, the entry `agro.json` holds `image.ref` = `ghcr.io/mifunedev/agro:0.13.0` and `image.mode` = `image`.",
+        "After an install with no `--version` and no `--image=<ref>`, the entry `agro.json` holds no `image.ref` that the install added. The default tag follows the CLI version at each later start.",
+        "A re-install of an existing entry with a new `--version` value replaces the stored `image.ref`.",
+        "`sandbox.test.ts` holds one case for each of the three criteria above.",
+        "`npm test` exits 0."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/cli/src/commands/sandbox.ts",
+        ".agro/cli/src/__tests__/sandbox.test.ts"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Document version pinning",
+      "description": "As an operator, I want the docs to show `--version` as the way to pin a release so that I skip the full image reference.",
+      "acceptanceCriteria": [
+        "`docs/lifecycle-commands.md` lists `[--version <X.Y.Z>]` in the `agro sandbox install` row.",
+        "`docs/deployment-prebuilt-image.md` states that the default tag is the CLI version, shows `agro sandbox install docker --version=0.13.0`, and keeps `--image=<ref>` for custom images.",
+        "`docs/deployment-prebuilt-image.md` states the resolution order: `--version` or `--image=<ref>`, then `image.ref` or `AGRO_SANDBOX_IMAGE`, then `ghcr.io/mifunedev/agro:<CLI version>`.",
+        "`docs/configuration.md` gives the `image.ref` default as `ghcr.io/mifunedev/agro:<CLI version>`.",
+        "`docs/installation.md` and `docs/quickstart.md` no longer state that a sandbox without `--checkout` runs `ghcr.io/mifunedev/agro:latest`.",
+        "`CHANGELOG.md` holds an entry for the new flag and the new default.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 for each changed file under `docs/`."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        "docs/lifecycle-commands.md",
+        "docs/deployment-prebuilt-image.md",
+        "docs/configuration.md",
+        "docs/installation.md",
+        "docs/quickstart.md",
+        "CHANGELOG.md"
+      ]
+    }
+  ]
+}
