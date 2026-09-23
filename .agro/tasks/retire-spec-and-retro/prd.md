@@ -152,4 +152,11 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+| Lesson | Evidence | Outcome |
+| --- | --- | --- |
+| A source pin to a task-branch commit dangles after a squash merge. | US-004 first pinned the knowledge sources `@ea448383`, the plan commit of this branch. The repair pinned `@51b44e10` and `@80b9342a`, which are ancestors of `development`. | fixed in this PR (US-004 repair) |
+| A probe that skips when a required file is missing hides lost coverage. | Seven probes turned `SKIPPED` when `.agro/skills/spec/` went, and `run.sh` does not gate `SKIPPED`. US-005 trimmed them, and `eval-gate` and `eval-runs-once-per-cycle` now exit 1 on a missing required file. | fixed in this PR (US-005) |
+| Worker briefs omit two rules that the active session receives. Use no bare `git stash`. A rerun of a hook-blocked command through a script file bypasses the hook. | The US-004 worker ran a bare `git stash` and `git stash pop`. The US-005 worker reran a blocked `rm -rf` of its scratch clone through a script file. Neither action lost data. | proposed issue: `/delegate` worker brief omits the shared-stash and hook-bypass rules |
+| The public docs site still names `/spec`. | A shallow clone of `mifunedev/agro-web` shows `/spec` in `docs/glossary.md`, `docs/security-considerations.md`, and `docs/oh-directory-layout.md`. | proposed issue (`mifunedev/agro-web`): remove `/spec` and `/retro` from the docs |
+| A literal grep criterion matches generic uses of a word. | The US-003 grep matched "Task/spec" in `/git` and "plans/spec" in `/worktrees`. | dropped: the repair reworded both lines; a criterion author can exclude generic uses. |
+| The capability scoreboard row for CB-002 predates the rewrite. | `.agro/evals/capability/RESULTS.md` describes CB-002 as the old workflow. | dropped: the next benchmark run rewrites the row; CB-002 records that earlier scores are not comparable. |
