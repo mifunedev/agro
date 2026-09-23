@@ -50,7 +50,7 @@ The operator added this story during execution. The advisor pushed after each ac
 
 **Description:** As an operator, I want the advisor to fold, propose, or drop each Close finding so that the issue queue holds only approved defects.
 
-The operator added this story after the ready check. This run opened three issues mid-run. Two of the three issues covered one surface.
+The operator added this story after the ready check. The advisor opened three issues during the run. Two of the three issues covered one surface.
 
 **Acceptance Criteria:**
 
