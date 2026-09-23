@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tier: A
-# source: ADR #929, issue #988 / ADR #989, issue #1003, issue #1147 (Advisor/Worker pattern over prd.json)
-# desc: prose check: /delegate opens with the Advisor/Worker pattern (the advisor decides, assigns,
+# source: ADR #929, issue #988 / ADR #989, issue #1003, issue #1147 (advisor/worker pattern over prd.json)
+# desc: prose check: /delegate opens with the advisor/worker pattern (the advisor decides, assigns,
 #       verifies, accepts, and alone writes prd.json; a worker implements one bounded assignment and
 #       never accepts its own result), keeps judgment in the active session, reads prd.json stories
 #       with priority and dependsOn, keeps a dispatch record of at most 8 fields, isolates parallel
@@ -33,11 +33,11 @@ need() {
 }
 
 first_heading="$(grep -m1 '^## ' "$SKILL" || true)"
-[[ "$first_heading" == "## Advisor/Worker pattern" ]] \
-  || problems+=("the first section is '$first_heading', not '## Advisor/Worker pattern'")
+[[ "$first_heading" == "## The advisor/worker pattern" ]] \
+  || problems+=("the first section is '$first_heading', not '## The advisor/worker pattern'")
 
-pattern="$(section '## Advisor/Worker pattern')"
-need "Advisor/Worker pattern" "$pattern" \
+pattern="$(section '## The advisor/worker pattern')"
+need "advisor/worker pattern" "$pattern" \
   'decides' 'assigns' 'verifies' 'accepts' 'alone writes `prd.json`' \
   'bounded execution context' 'one assignment' 'never accepts its own result' \
   'self-contained' 'parallelism' 'isolated context' 'share substantial context' 'iterative refinement'
@@ -65,10 +65,10 @@ executor="$(grep -niE '\bexecutors?\b' "$SKILL" "$AGENTS" || true)"
 [[ -z "$executor" ]] || problems+=("executor names the worker role: $executor")
 
 if (( ${#problems[@]} > 0 )); then
-  echo "REGRESSION: /delegate Advisor/Worker boundary is broken; issues:" >&2
+  echo "REGRESSION: /delegate advisor/worker boundary is broken; issues:" >&2
   printf '  - %s\n' "${problems[@]}" >&2
   exit 1
 fi
 
-echo "PASS: /delegate opens with the Advisor/Worker pattern, runs prd.json stories in bounded isolated waves, keeps an 8-field dispatch record, flat workers, and executed/reasoned reports, and AGENTS.md defines worker (prose check only; runtime behavior unverified)" >&2
+echo "PASS: /delegate opens with the advisor/worker pattern, runs prd.json stories in bounded isolated waves, keeps an 8-field dispatch record, flat workers, and executed/reasoned reports, and AGENTS.md defines worker (prose check only; runtime behavior unverified)" >&2
 exit 0

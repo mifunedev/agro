@@ -11,7 +11,7 @@ argument-hint: "[<task-slug> | --plan <path>] [--dry-run]"
 
 # Delegate
 
-## Advisor/Worker pattern
+## The advisor/worker pattern
 
 The **advisor** is the active session. It decides, assigns bounded stories,
 verifies each result, and accepts it. The advisor alone writes `prd.json`:
