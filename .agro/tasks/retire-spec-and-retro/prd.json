@@ -106,8 +106,8 @@
         "`CHANGELOG.md` `[Unreleased]` has one `### Removed` entry of at most 250 characters that links the task issue."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at 39bd3216 (cherry-picks of worker commit 37dc6dcd and repair 88a1467a). AC1 executed: grep -rnE over crons/, docs/ (rfcs excluded), the three AGENTS.md files, .gitignore, datasets/README.md -> exit 1. AC2 executed: docs/security-considerations.md lines 248 and 297 anchor the merge gate to .agro/skills/git/SKILL.md#ready-for-review. AC3 executed: CB-002 is titled \"Walk the core chain end-to-end\" and names /prd 10 times; CB-001 names /prd 4 times. AC4 executed: capability-benchmark-schema.sh exit 0. AC5 executed: no @ea448383 pin remains; plan-vs-built-reconciliation.md sources pin @51b44e10 (an ancestor of development) and its line citations pin @80b9342a (gh compare 80b9342a...development -> ahead); knowledge-source-freshness.sh exit 0; wiki-readme-index.sh exit 0. The second page is kind: external, not kind: repo; its /retro citation pins @51b44e10. AC6 executed: [Unreleased] has one ### Removed heading; its bullet is 221 characters and links #1156. One bounded repair: the first pins used the task branch's plan commit, which a squash merge leaves unreachable.",
       "dependsOn": [],
       "files": [
         "crons/",
@@ -121,7 +121,8 @@
         ".agro/evals/capability/tasks/CB-001-ship-harness-change.md",
         ".agro/evals/capability/tasks/CB-002-walk-the-workflow.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "39bd3216"
     },
     {
       "id": "US-005",
