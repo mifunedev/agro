@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1150-guard-false-allows",
+  "description": "Close the Bash secret-guard false allows: deny jq reads of env and $ENV, and deny a quoted json format in container inspect.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Deny jq access to the process environment",
+      "description": "As an operator, I want the Bash guard to deny a `jq` filter that reads `env` or `$ENV` so that an agent cannot print secrets through `jq`.",
+      "acceptanceCriteria": [
+        "Before the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 1 on `jq -n 'env'`. The evidence records the command and the exit status.",
+        "The probe asserts `deny` for `jq -n 'env'`, `jq -n '$ENV'`, `jq -n 'env.HOME'`, `jq -n '$ENV.GH_TOKEN'`, `jq -n '[env[]]'`, and `jq -n \"\\$ENV\"`.",
+        "The probe asserts `allow` for `jq '.env' .claude/settings.json`, `jq -r '.env // {}' .claude/settings.json`, and `jq '.x' env.json`.",
+        "After the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/hooks/deny-env-dump.sh",
+        ".agro/evals/probes/secret-exposure-guard.sh"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Deny a quoted json format in container inspect",
+      "description": "As an operator, I want the container-inspect guard to deny a `json` format value in every quoting form so that `docker inspect` cannot print `Config.Env`.",
+      "acceptanceCriteria": [
+        "Before the hook change, `bash .agro/evals/probes/docker-inspect-env-guard.sh` exits 1 on `docker inspect --format 'json' web`. The evidence records the command and the exit status.",
+        "The probe asserts `deny` for `docker inspect --format 'json' web`, `docker inspect -f 'json' web`, and `docker inspect --format='json' web`.",
+        "Every existing assertion in `docker-inspect-env-guard.sh` still passes, including the `allow` cases for narrow `--format` templates.",
+        "After the hook change, `bash .agro/evals/probes/docker-inspect-env-guard.sh` exits 0.",
+        "`CHANGELOG.md` `[Unreleased]` `### Fixed` has one entry that links #1150, and the entry is at most 250 characters."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/hooks/deny-env-dump.sh",
+        ".agro/evals/probes/docker-inspect-env-guard.sh",
+        "CHANGELOG.md"
+      ]
+    }
+  ]
+}
