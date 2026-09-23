@@ -15,8 +15,8 @@
         "`bash .agro/evals/probes/protected-paths-resolve.sh` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at 212a2f0a. AC1 executed: test ! -e .agro/skills/spec -> exit 0. AC2 executed: ls .agro/evals/probes/spec-* -> no match. AC3 executed: grep -cE \"^(spec|retro)$|skills/spec/references\" .claude/protected-paths.txt -> 0. AC4 executed: bash .agro/evals/probes/protected-paths-resolve.sh -> exit 0, all 26 entries resolve. Expected interim reds until US-005 and US-004: audit-slop-gate, audit-stale-references, knowledge-source-freshness, roles-are-skills, skills-vendored, workflow-boundaries; protected-path-deletion needs the PR-body justification at Close.",
       "dependsOn": [],
       "files": [
         ".agro/skills/spec/",
@@ -32,7 +32,8 @@
         ".agro/evals/probes/spec-ready-finalization.sh",
         ".agro/evals/probes/spec-single-owner.sh",
         ".agro/evals/probes/spec-task-artifact-contract.sh"
-      ]
+      ],
+      "commit": "212a2f0a"
     },
     {
       "id": "US-002",
@@ -97,7 +98,7 @@
       "acceptanceCriteria": [
         "`grep -rnE \"/spec\\b|spec (plan|execute)|/retro\\b\"` over `crons/`, `docs/` (except `docs/rfcs/`), `.agro/tasks/AGENTS.md`, `.agro/knowledge/AGENTS.md`, `.agro/memories/AGENTS.md`, `.gitignore`, and `.agro/evals/datasets/README.md` prints nothing.",
         "`docs/security-considerations.md` anchors the human merge gate to a surviving file.",
-        "`.agro/evals/capability/tasks/CB-002-walk-the-workflow.md` describes the core chain (`/prd` \u2192 draft PR \u2192 `/delegate` \u2192 ready PR), and `CB-001-ship-harness-change.md` names the core chain.",
+        "`.agro/evals/capability/tasks/CB-002-walk-the-workflow.md` describes the core chain (`/prd` → draft PR → `/delegate` → ready PR), and `CB-001-ship-harness-change.md` names the core chain.",
         "`bash .agro/evals/probes/capability-benchmark-schema.sh` exits 0.",
         "The two `kind: repo` knowledge pages that cite `/spec` files pin those sources `@<sha>`, per `.agro/skills/wiki/references/lint.md`.",
         "`CHANGELOG.md` `[Unreleased]` has one `### Removed` entry of at most 250 characters that links the task issue."
