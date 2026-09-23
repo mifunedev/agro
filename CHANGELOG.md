@@ -26,7 +26,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 
-- Default Claude Code to `claude-opus-5-5` (1M context) at `medium` effort, and Codex to `gpt-6-astra` at `medium` reasoning.
+- Default Claude Code to `claude-opus-5-5` (1M context) at `medium` effort, Codex to `gpt-6-astra` at `medium` reasoning, and Pi to `gpt-6-sol` at `medium` thinking.
 - Retire the Open Harness compatibility layer: `.agro/`, `agro.json`, `AGRO_*`, `~/.agro` and `/opt/agro-seed` are the only spellings ([#1061](https://github.com/mifunedev/agro/issues/1061)).
 - Split the overloaded `update` verb: `agro self-upgrade` (alias `agro update`) upgrades the CLI, and the new `agro vendor` writes the control plane into a checkout ([#1061](https://github.com/mifunedev/agro/issues/1061)).
 - Rename `compat.ts` to `layout.ts`, `oh-config.ts` to `agro-config.ts`, `compat.sh` to `paths.sh`, `oh-path` to `agro-path`, and the `oh-asset:` scheme to `agro-asset:` ([#1061](https://github.com/mifunedev/agro/issues/1061)).
