@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # tier: A
 # source: issue #1149 (secret-exposure guard false positives on ordinary command text)
-# desc: the Bash secret-exposure guard denies shell-hist access by command position
-#       and hist-file reads, and allows commands that only mention the word in
-#       an argument such as a commit message
+# desc: the Bash secret-exposure guard denies shell-hist access by command position,
+#       hist-file reads, and jq filters that read the process environment, and
+#       allows commands that only mention the word in an argument such as a
+#       commit message
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -115,5 +116,24 @@ assert deny "jq -n \`cat .env\`" \
 assert deny "cat .env && jq '.x' data.json" \
   "an env file read beside a jq call was allowed"
 
-echo "PASS: the secret-exposure guard denies shell-hist access by command position and hist-file reads, allows the word inside ordinary arguments, exempts the jq filter from the secret-path check, and still denies env-file reads" >&2
+JQ_ENV_WORD=env
+JQ_ENV_VAR='$ENV'
+
+assert deny "jq -n '$JQ_ENV_WORD'" \
+  "a jq filter that reads the process environment through env was allowed"
+assert deny "jq -n '$JQ_ENV_VAR'" \
+  "a jq filter that reads the process environment through \$ENV was allowed"
+assert deny "jq -n '$JQ_ENV_WORD.HOME'" \
+  "a jq filter that reads one env field was allowed"
+assert deny "jq -n '$JQ_ENV_VAR.GH_TOKEN'" \
+  "a jq filter that reads one \$ENV field was allowed"
+assert deny "jq -n '[$JQ_ENV_WORD[]]'" \
+  "a jq filter that iterates env was allowed"
+assert deny "jq -n \"$JQ_ENV_VAR\"" \
+  "a double-quoted jq filter that reads \$ENV was allowed"
+
+assert allow "jq '.x' $JQ_ENV_WORD.json" \
+  "a jq input file whose name starts with env was treated as an env read"
+
+echo "PASS: the secret-exposure guard denies shell-hist access by command position and hist-file reads, allows the word inside ordinary arguments, exempts the jq filter from the secret-path check, and still denies env-file reads and jq filters that read the process environment" >&2
 exit 0

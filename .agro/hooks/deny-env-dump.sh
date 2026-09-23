@@ -97,7 +97,30 @@ mask_jq_filters() {
   printf '%s' "$out$rest"
 }
 
+JQ_ARG_FLAG='(^|[[:space:]])--(arg|argjson|slurpfile|rawfile|indent)([[:space:]]|$)'
+JQ_WORD='(^|[^A-Za-z0-9_-])jq([^A-Za-z0-9_-]|$)'
+JQ_ENV_READ='\$ENV|(^|[^A-Za-z0-9_.$])env\b'
+
+jq_filters() {
+  local rest=$1 out=''
+  local -a m
+  while [[ $rest =~ $JQ_CALL ]]; do
+    m=("${BASH_REMATCH[@]}")
+    if [[ ${m[2]} =~ $JQ_PATH_FLAG || ${m[2]} =~ $JQ_ARG_FLAG || ${m[5]} == -* ]]; then
+      printf '%s' "$out ${m[5]}${m[6]}"
+      return 0
+    fi
+    out+=" ${m[5]}"
+    rest=${m[6]}
+  done
+  if [[ $rest =~ $JQ_WORD ]]; then
+    out+=" $rest"
+  fi
+  printf '%s' "$out"
+}
+
 path_cmd=$(mask_jq_filters "$cmd") || path_cmd=$cmd
+jq_filter_text=$(jq_filters "$cmd") || jq_filter_text=$cmd
 
 emit() {
   jq -n --arg d "$1" --arg r "$2" '{
@@ -111,6 +134,8 @@ emit() {
 
 if grep -qEi -- "$DENY" <<<"$cmd"; then
   emit deny 'Secret-exposure guard (deny): command matches a high-risk pattern — bulk env dump (env/set/export -p/declare -x/-p/compgen/printenv/proc environ), shell history, echo/printf of a secret-named variable (TOKEN/SECRET/KEY/PASSWORD/AUTH/CREDENTIAL/BEARER/SLACK_*/OPENAI_*/ANTHROPIC_*/GH_TOKEN/AWS_SECRET), Authorization header with variable interpolation, or a token-printing CLI (gh auth token, gcloud auth print-*-token, aws configure get, kubectl get secret -o yaml/json, docker secret/config inspect). These almost always leak credentials into the transcript and prompt cache. Do NOT retry a variant that bypasses this check. Ask the user to run the command themselves and paste only the specific non-secret output you need.'
+elif grep -qE -- "$JQ_ENV_READ" <<<"$jq_filter_text"; then
+  emit deny 'Secret-exposure guard (deny): a jq filter reads the process environment through `env` or `$ENV`, which prints environment variables, secrets included. Do NOT retry a variant that reaches the environment another way. To read an `env` key from JSON input, write `.env`. If you need an environment value, ask the user to paste only that non-secret value.'
 elif grep -qEi -- "$DOCKER_INSPECT" <<<"$cmd"; then
   seg=$(grep -oEi -- "${DOCKER_INSPECT}.*" <<<"$cmd" | head -1)
   if ! grep -qEi -- "$DOCKER_FMT" <<<"$seg"; then
