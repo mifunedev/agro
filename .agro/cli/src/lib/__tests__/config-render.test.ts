@@ -177,9 +177,9 @@ describe("renderComposeEnv", () => {
     }
   });
 
-  it("omits a key whose agro.json field is unset, except the derived default image", () => {
+  it("omits a key whose agro.json field is unset", () => {
     const config: AgroConfig = { version: 1, name: "demo" };
-    expect(keysOf(config)).toEqual(["SANDBOX_NAME", "AGRO_SANDBOX_IMAGE"]);
+    expect(keysOf(config)).toEqual(["SANDBOX_NAME"]);
   });
 
   it("renders AGRO_REPO_DIR only for a sandbox that binds a checkout", () => {
@@ -219,8 +219,9 @@ describe("renderComposeEnv", () => {
     expect(text).not.toContain("ghcr.io/mifunedev/openharness:latest");
   });
 
-  it("defaults a checkout-less sandbox to the official image tagged with the CLI version", () => {
+  it("defaults a checkout-less image-mode sandbox to the official image tagged with the CLI version", () => {
     const config = defaultAgroConfig("demo");
+    config.image = { mode: "image" };
     expect(renderComposeEnv(config)).toContain(
       `AGRO_SANDBOX_IMAGE=${officialImageRef(AGRO_VERSION)}\n`,
     );
@@ -233,6 +234,12 @@ describe("renderComposeEnv", () => {
     expect(renderComposeEnv(config)).toContain(
       `AGRO_SANDBOX_IMAGE=${officialImageRef(AGRO_VERSION)}\n`,
     );
+  });
+
+  it("leaves AGRO_SANDBOX_IMAGE unset for a checkout-less build-mode config without image.ref", () => {
+    const config = defaultAgroConfig("demo");
+    config.image = { mode: "build" };
+    expect(renderComposeEnv(config)).not.toContain("AGRO_SANDBOX_IMAGE");
   });
 
   it("leaves AGRO_SANDBOX_IMAGE unset for a build-mode sandbox without image.ref", () => {

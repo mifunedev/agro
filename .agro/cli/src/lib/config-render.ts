@@ -29,7 +29,7 @@ export interface RenderedVar {
 }
 
 function runsPrebuiltImage(config: AgroConfig): boolean {
-  return configCheckout(config) === undefined || config.image?.mode === "image";
+  return config.image?.mode === "image";
 }
 
 function sandboxImageRef(config: AgroConfig): string | undefined {
