@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1156-retire-spec-and-retro",
+  "description": "Retire /spec, /retro, and /wiki compile; the core chain (/prd, draft PR, /delegate, ready PR) is the only build path and prd.md Lessons the only lesson record.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Remove the /spec skill and its dedicated probes",
+      "description": "As an operator, I want `/spec` removed so that the core chain is the only build path.",
+      "acceptanceCriteria": [
+        "`.agro/skills/spec/` does not exist.",
+        "These probes do not exist: `spec-execute-knowledge-impact.sh`, `spec-execute-running-contract.sh`, `spec-family-contract.sh`, `spec-no-advisor-session-coupling.sh`, `spec-no-agent-handoff.sh`, `spec-no-generated-prompt-contract.sh`, `spec-plan-knowledge-context.sh`, `spec-plan-reconciliation-gate.sh`, `spec-ready-finalization.sh`, `spec-single-owner.sh`, and `spec-task-artifact-contract.sh`.",
+        "`.claude/protected-paths.txt` has no `spec`, `retro`, or `.agro/skills/spec/references/*` entry.",
+        "`bash .agro/evals/probes/protected-paths-resolve.sh` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/spec/",
+        ".claude/protected-paths.txt",
+        ".agro/evals/probes/spec-execute-knowledge-impact.sh",
+        ".agro/evals/probes/spec-execute-running-contract.sh",
+        ".agro/evals/probes/spec-family-contract.sh",
+        ".agro/evals/probes/spec-no-advisor-session-coupling.sh",
+        ".agro/evals/probes/spec-no-agent-handoff.sh",
+        ".agro/evals/probes/spec-no-generated-prompt-contract.sh",
+        ".agro/evals/probes/spec-plan-knowledge-context.sh",
+        ".agro/evals/probes/spec-plan-reconciliation-gate.sh",
+        ".agro/evals/probes/spec-ready-finalization.sh",
+        ".agro/evals/probes/spec-single-owner.sh",
+        ".agro/evals/probes/spec-task-artifact-contract.sh"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Remove /retro and /wiki compile",
+      "description": "As an operator, I want the `/retro` skill and the `/wiki compile` subcommand removed so that the Lessons section of each plan is the only lesson record.",
+      "acceptanceCriteria": [
+        "`.agro/skills/retro/`, `.agro/skills/wiki/references/compile.md`, `.agro/evals/probes/retro-deterministic-contract.sh`, `.agro/evals/probes/wiki-compile-contract.sh`, and `.agro/evals/capability/tasks/CB-005-compile-a-lesson.md` do not exist.",
+        "`.agro/skills/wiki/SKILL.md` routes three subcommands (`ingest`, `query`, `lint`) and names no `compile` subcommand and no `/retro` or `/spec`.",
+        "`.agro/skills/wiki/references/query.md` and `.agro/skills/wiki/references/schema.md` name no `/retro`, `/spec`, or `compile` subcommand.",
+        "`.agro/skills.lock` has no `retro` entry.",
+        "`.agro/scripts/link-providers.sh` and `.agro/scripts/__tests__/hermes-links.test.ts` name no `retro` path, and `pnpm test:scripts` exits 0.",
+        "The shellcheck step in `.github/workflows/ci-harness.yml` and `.github/workflows/release.yml` names no `retro/scripts` path."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/retro/",
+        ".agro/skills/wiki/",
+        ".agro/evals/probes/retro-deterministic-contract.sh",
+        ".agro/evals/probes/wiki-compile-contract.sh",
+        ".agro/evals/capability/tasks/CB-005-compile-a-lesson.md",
+        ".agro/skills.lock",
+        ".agro/scripts/link-providers.sh",
+        ".agro/scripts/__tests__/hermes-links.test.ts",
+        ".github/workflows/ci-harness.yml",
+        ".github/workflows/release.yml"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Repoint the skills that name /spec or /retro",
+      "description": "As an agent, I want each surviving skill to route to `/prd` and `/delegate` so that no skill sends work to a retired skill.",
+      "acceptanceCriteria": [
+        "`grep -rnE \"/spec\\b|spec (plan|execute)|/retro\\b\" .agro/skills` prints nothing.",
+        "`/prompt-miner` and `.agro/skills/audit/references/implementation.md` route no step to `/retro`.",
+        "`/architect` hands off to `/prd` where it handed off to `/spec plan`.",
+        "`/benchmark` states that the operator runs it, and names no automatic caller.",
+        "`.agro/skills/t3/references/sandbox-processes.md` keeps the heading that `headless-tmux-preserved.sh` pins."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/architect/",
+        ".agro/skills/prd/",
+        ".agro/skills/benchmark/",
+        ".agro/skills/audit/",
+        ".agro/skills/council/",
+        ".agro/skills/supervisor/",
+        ".agro/skills/prompt-miner/",
+        ".agro/skills/ste/references/rules.md",
+        ".agro/skills/t3/references/sandbox-processes.md"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Update docs, crons, and directory contracts",
+      "description": "As an operator, I want the docs and crons to describe the core chain only so that no reader follows a retired path.",
+      "acceptanceCriteria": [
+        "`grep -rnE \"/spec\\b|spec (plan|execute)|/retro\\b\"` over `crons/`, `docs/` (except `docs/rfcs/`), `.agro/tasks/AGENTS.md`, `.agro/knowledge/AGENTS.md`, `.agro/memories/AGENTS.md`, `.gitignore`, and `.agro/evals/datasets/README.md` prints nothing.",
+        "`docs/security-considerations.md` anchors the human merge gate to a surviving file.",
+        "`.agro/evals/capability/tasks/CB-002-walk-the-workflow.md` describes the core chain (`/prd` \u2192 draft PR \u2192 `/delegate` \u2192 ready PR), and `CB-001-ship-harness-change.md` names the core chain.",
+        "`bash .agro/evals/probes/capability-benchmark-schema.sh` exits 0.",
+        "The two `kind: repo` knowledge pages that cite `/spec` files pin those sources `@<sha>`, per `.agro/skills/wiki/references/lint.md`.",
+        "`CHANGELOG.md` `[Unreleased]` has one `### Removed` entry of at most 250 characters that links the task issue."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        "crons/",
+        "docs/",
+        ".agro/tasks/AGENTS.md",
+        ".agro/knowledge/AGENTS.md",
+        ".agro/knowledge/source/",
+        ".agro/memories/AGENTS.md",
+        ".gitignore",
+        ".agro/evals/datasets/README.md",
+        ".agro/evals/capability/tasks/CB-001-ship-harness-change.md",
+        ".agro/evals/capability/tasks/CB-002-walk-the-workflow.md",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Repoint the probes that name /spec or /retro",
+      "description": "As a reviewer, I want each surviving probe to check only surviving files so that no probe fails or turns `SKIPPED` because of the retirement.",
+      "acceptanceCriteria": [
+        "Each probe in this list keeps its assertions on surviving files, drops its assertions on retired files, and is deleted when no assertion survives: `advisor-execution-contract`, `architect-skill-contract`, `audit-slop-gate`, `audit-stale-references`, `continual-learning-20260911b`, `delegate-worker-boundary`, `eval-gate`, `eval-runs-once-per-cycle`, `headless-tmux-preserved`, `knowledge-tracked-query-boundary`, `roles-are-skills`, `skills-vendored`, `submitted-by-trailers`, `task-completion-structured-state`, and `workflow-boundaries`.",
+        "No surviving probe reads a path under `.agro/skills/spec/` or `.agro/skills/retro/`.",
+        "`bash .claude/skills/eval/run.sh` reports no `PASS->REGRESSION` and no `PASS->SKIPPED` delta for a surviving probe."
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        ".agro/evals/probes/advisor-execution-contract.sh",
+        ".agro/evals/probes/architect-skill-contract.sh",
+        ".agro/evals/probes/audit-slop-gate.sh",
+        ".agro/evals/probes/audit-stale-references.sh",
+        ".agro/evals/probes/continual-learning-20260911b.sh",
+        ".agro/evals/probes/delegate-worker-boundary.sh",
+        ".agro/evals/probes/eval-gate.sh",
+        ".agro/evals/probes/eval-runs-once-per-cycle.sh",
+        ".agro/evals/probes/headless-tmux-preserved.sh",
+        ".agro/evals/probes/knowledge-tracked-query-boundary.sh",
+        ".agro/evals/probes/roles-are-skills.sh",
+        ".agro/evals/probes/skills-vendored.sh",
+        ".agro/evals/probes/submitted-by-trailers.sh",
+        ".agro/evals/probes/task-completion-structured-state.sh",
+        ".agro/evals/probes/workflow-boundaries.sh"
+      ]
+    }
+  ]
+}
