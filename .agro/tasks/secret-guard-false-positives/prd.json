@@ -61,13 +61,14 @@
         "`bash .claude/skills/eval/run.sh` reports no new red on `delegate-*`, `advisor-*`, or `prd-*` probes."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at 8cb29177 (cherry-pick of worker commit 33cfa523). AC1 executed: awk over /delegate § Integration | grep -ci \"push the task branch\" -> 0. AC2 executed: awk over /git § \"Draft PR for a task\" | grep -c \"does not push it\" -> 1. AC3 executed: /git § \"Ready for review\" lists step 2 `git push`, step 3 `/ci-status`, step 4 `gh pr ready`, and the CI condition reads \"on the pushed branch\". AC4 executed: bash .claude/skills/eval/run.sh -> exit 0, 159 probes; advisor-execution-contract, delegate-model-effort-policy, delegate-worker-boundary, prd-output-path-contract PASS unchanged; only persistent reds next-dev-prod and skills-vendored.",
       "dependsOn": [],
       "files": [
         ".agro/skills/delegate/SKILL.md",
         ".agro/skills/git/SKILL.md"
-      ]
+      ],
+      "commit": "8cb29177"
     }
   ]
 }
