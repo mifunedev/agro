@@ -15,8 +15,8 @@ confidence: provisional
 # Unit tests with a stubbed runner cannot see state a verb fails to persist
 
 ## Relevant Source Files
-- `.oh/tasks/sandbox-registry/evidence.md@b2fcc812` — the D2 rehearsal transcript that showed an entry `agro.json` with no `image.ref` after `--image=<ref>`.
-- `.oh/cli/src/commands/sandbox.ts@1b13bb1d` — the fixup that persists the explicit ref.
+- `.agro/tasks/sandbox-registry/evidence.md@b2fcc812` — the D2 rehearsal transcript that showed an entry `agro.json` with no `image.ref` after `--image=<ref>`.
+- `.agro/cli/src/commands/sandbox.ts@1b13bb1d` — the fixup that persists the explicit ref.
 
 ## Summary
 A verb that both writes state and spawns a process is usually tested with the
@@ -26,10 +26,10 @@ sees the default, and the only test that notices is a live run of two verbs in
 sequence.
 
 ## Detail
-**Symptom.** `oh sandbox install docker --image=openharness:one-door` booted the
-right image (the runner received `OH_SANDBOX_IMAGE`), 895 unit tests were green,
+**Symptom.** `agro sandbox install docker --image=agro:one-door` booted the
+right image (the runner received `AGRO_SANDBOX_IMAGE`), 895 unit tests were green,
 and the registry entry's `agro.json` had `image: { mode: "image" }` with no `ref`.
-Every subsequent `oh ps` / `oh restart` on that entry rendered the default
+Every subsequent `agro ps` / `agro restart` on that entry rendered the default
 `ghcr.io/…:latest` into `compose.env`. The gap was found by rehearsing the D2
 evidence leg against the wave-1 head, hours before the merge.
 

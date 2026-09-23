@@ -31,8 +31,7 @@ Apply this decision order:
    `.claude/rules/<name>.md` only after confirming that path is the local source of
    truth and portability is not required.
 5. **Project-wide identity or operating principle**: use the locally canonical
-   `AGENTS.md` or `CLAUDE.md`, not an unconditional rule hidden in a provider
-   directory.
+   `AGENTS.md`, not an unconditional rule hidden in a provider directory.
 6. **Multi-step workflow**: use `/builder command`; rules describe behavior, not a
    procedure with side effects.
 

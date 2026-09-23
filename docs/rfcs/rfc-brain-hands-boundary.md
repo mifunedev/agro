@@ -1,6 +1,6 @@
 # RFC: The brain/hands boundary — Phase-0 decisions for the execution seam
 
-Status: Draft for [#733](https://github.com/mifunedev/openharness/issues/733). Implementation epic: [#731](https://github.com/mifunedev/openharness/issues/731).
+Status: Draft for [#733](https://github.com/mifunedev/agro/issues/733). Implementation epic: [#731](https://github.com/mifunedev/agro/issues/731).
 
 > **AUTHORITY CLAUSE.** This file is the sole authority for Phase-0 brain/hands
 > boundary decisions. Do not restate its content in future PRDs, task folders, or wiki
@@ -8,16 +8,16 @@ Status: Draft for [#733](https://github.com/mifunedev/openharness/issues/733). I
 
 Consequences of that clause, stated once so they are not re-litigated:
 
-- Task folders under `.oh/tasks/` are **build artifacts** and get archived. This RFC is the
+- Task folders under `.agro/tasks/` are **build artifacts** and get archived. This RFC is the
   durable record. When the two disagree, this file wins and the folder is simply stale.
-- Downstream slices ([#732](https://github.com/mifunedev/openharness/issues/732),
-  [#734](https://github.com/mifunedev/openharness/issues/734),
-  `openharness-cloud#104`) **cite** this file and **amend** this file. They do not fork a
+- Downstream slices ([#732](https://github.com/mifunedev/agro/issues/732),
+  [#734](https://github.com/mifunedev/agro/issues/734),
+  `agro-cloud#104`) **cite** this file and **amend** this file. They do not fork a
   second copy of the boundary into their own specs.
 - Amending is expected and cheap: change the section, note the amending issue. Reconciling
   three parallel copies is neither.
 
-This document decides *where the line falls* between the part of Open Harness that decides
+This document decides *where the line falls* between the part of AGRO that decides
 what to do (**brain**) and the part that makes something happen inside an environment
 (**hands**). It defines no runtime and implements no adapter. The first adapter, and the
 `ExecutionTarget` contract it implements, land in #733; the substrate taxonomy those adapters
@@ -26,10 +26,10 @@ are selected from lives in [`rfc-runtime-support.md`](rfc-runtime-support.md).
 ## 1. Why a boundary at all
 
 The harness has a clean *configuration* seam — `harness.yaml` plus compose overlays assembled
-by `.oh/scripts/docker-compose.sh` — and no *execution* seam. Lifecycle behavior is expressed
+by `.agro/scripts/docker-compose.sh` — and no *execution* seam. Lifecycle behavior is expressed
 directly in Docker terms, including in TypeScript: `runShell` shells out to a literal
-`docker exec -it -u sandbox <name> zsh` argv (`.oh/cli/src/commands/lifecycle.ts:298`). Every
-substrate explored under [#591](https://github.com/mifunedev/openharness/issues/591) therefore
+`docker exec -it -u sandbox <name> zsh` argv (`.agro/cli/src/commands/lifecycle.ts:298`). Every
+substrate explored under [#591](https://github.com/mifunedev/agro/issues/591) therefore
 risks landing as another branch *inside* Docker-shaped lifecycle code rather than as an
 interchangeable implementation behind a contract.
 
@@ -44,14 +44,14 @@ inside the environment to do its job?"*
 
 | Subsystem | Side | Why |
 |---|---|---|
-| **The build executor** (`.oh/scripts/firstmate.sh`, the story cycle) | **Brain** | Chooses the next story, decides when the loop terminates. It *invokes* hands; it is not hands. |
+| **The build executor** (`.agro/scripts/firstmate.sh`, the story cycle) | **Brain** | Chooses the next story, decides when the loop terminates. It *invokes* hands; it is not hands. |
 | **Cron** (`crons/`, the scheduled-agent runtime) | **Brain** | Scheduling and cap enforcement are policy. The work a cron fires may be hands-side; the scheduler is not. |
 | **Autopilot** (`/autopilot`) | **Brain** | Issue selection, caps, and the merge gate are pure orchestration. |
-| **Wiki** (`.oh/knowledge/`) | **Brain** | Same: repo-file knowledge state. |
+| **Wiki** (`.agro/knowledge/`) | **Brain** | Same: repo-file knowledge state. |
 | **Provisioning / attach / exec** | **Hands** | The definition of the side. |
-| **Evals** (`.oh/evals/probes/`) | **Split — see §3** | Determined per-probe by a rule, not by a list. |
+| **Evals** (`.agro/evals/probes/`) | **Split — see §3** | Determined per-probe by a rule, not by a list. |
 
-`oh gateway` is **brain-side by design** and is deliberately *not* routed through the
+`agro gateway` is **brain-side by design** and is deliberately *not* routed through the
 execution contract: it is orchestration and policy, not execution. Routing it would invert the
 boundary on day one.
 
@@ -107,10 +107,10 @@ Two consequences that must not be forgotten when a second execution target lands
    about — a *second, nested* hands layer beneath the harness's own. The contract does not
    model it, and Phase-0 does not try to.
 2. Its brain-side surface is configured through an execution-shaped mechanism: the dashboard
-   was toggled by a compose overlay (retired in #920; `hermesDashboard.enabled` in `oh.json` now starts it on container loopback),
+   was toggled by a compose overlay (retired in #920; `hermesDashboard.enabled` in `agro.json` now starts it on container loopback),
    so brain-side policy rides on substrate configuration.
 
-This is accepted for Phase-0 because Hermes is present only after `oh harness install hermes`.
+This is accepted for Phase-0 because Hermes is present only after `agro harness install hermes`.
 It is recorded so that a later slice which finds the taxonomy "already violated" knows it was
 a decision, not an oversight.
 
@@ -130,7 +130,7 @@ that it will.
 This is an honest description of today's code rather than an aspiration. Nothing above the
 seam performs path translation: the CLI resolves one project root (`resolveProjectRoot`) and
 uses that same string for reading files and for invoking compose. The base compose file *does*
-bind a host directory to `OH_PROJECT_ROOT` (`..:${OH_PROJECT_ROOT:-/home/sandbox/harness}`,
+bind a host directory to `AGRO_PROJECT_ROOT` (`..:${AGRO_PROJECT_ROOT:-/home/sandbox/harness}`,
 `.devcontainer/docker-compose.yml`) — but that mapping lives **below** the seam, inside the
 adapter's own machinery, and Phase-0 deliberately does not expose it. A consumer that needs
 the two paths to differ is asking for a capability the contract does not have.
@@ -150,7 +150,7 @@ is *not* acceptable is leaving a second field indefinitely that no code reads, w
 this section commits the next slice to resolving it.
 
 **Deferred, with an owner:** whether identical-path mapping is too strict for
-`openharness-cloud#104` (golden-image provisioning may need a host path that differs from the
+`agro-cloud#104` (golden-image provisioning may need a host path that differs from the
 in-target path) is resolved in the **#734 planning spec** — before any #734 implementation
 begins, not during its build. Either Phase-0's stance loosens, or Cloud carries a documented
 exception.
@@ -164,7 +164,7 @@ deliberate.
 Rationale, all verifiable in today's code:
 
 - **The seam it wraps is already synchronous.** `LifecycleRunner` is
-  `(cmd, args, opts) => RunResult` (`.oh/cli/src/commands/lifecycle.ts:49-53`) over `spawnSync`
+  `(cmd, args, opts) => RunResult` (`.agro/cli/src/commands/lifecycle.ts:49-53`) over `spawnSync`
   (`:59`). A sync `attach()` is the *existing* pattern, not a concession to it.
 - **`attach()` is a terminal handoff.** It inherits stdio, blocks until the child exits, and
   returns the exit code. There is nothing to await; `Promise<number>` would be ceremony
@@ -172,7 +172,7 @@ Rationale, all verifiable in today's code:
 - **It keeps the compatibility oracle literally true.** `runShell` is
   `export function runShell(opts, io): number` (`:298`) and its tests assert synchronously —
   `expect(runShell(...)).toBe(0)` and `expect(() => runShell(...)).toThrow(...)`
-  (`.oh/cli/src/__tests__/lifecycle.test.ts:362`, `:428`, `:435`). An async `attach()` would
+  (`.agro/cli/src/__tests__/lifecycle.test.ts:362`, `:428`, `:435`). An async `attach()` would
   force `runShell` to return a Promise, which neither assertion can observe, and the
   "no behavior change" proof would have to be weakened to accommodate the abstraction. That
   is the wrong trade for an invisible refactor.
@@ -190,7 +190,7 @@ a door that closes here.
 - **Decides:** the brain/hands split (§2), the eval capability rule (§3), the four-class state
   taxonomy and its one known violation (§4), the Phase-0 workspace stance and its speculative
   second field (§5), and `attach()` synchrony with its migration path (§6).
-- **Defers:** identical-path mapping vs. `openharness-cloud#104` → the **#734 planning spec**
+- **Defers:** identical-path mapping vs. `agro-cloud#104` → the **#734 planning spec**
   (§5.1). Whether `ExecutionCapability` gains `"watch"` → until a consumer needs it. Any
   second adapter → #731's ordering.
 

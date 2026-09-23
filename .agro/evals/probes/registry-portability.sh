@@ -7,20 +7,20 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 LINTER="$ROOT/.agro/scripts/registry-portability.sh"
 
-REGISTRY="${OH_REGISTRY_CHECKOUT:-}"
+REGISTRY="${AGRO_REGISTRY_CHECKOUT:-}"
 
 if [[ -z "$REGISTRY" ]]; then
-  echo "SKIPPED: no registry checkout supplied — set OH_REGISTRY_CHECKOUT to a clone of the published skills registry to arm this probe" >&2
+  echo "SKIPPED: no registry checkout supplied — set AGRO_REGISTRY_CHECKOUT to a clone of the published skills registry to arm this probe" >&2
   exit 2
 fi
 
 if [[ ! -d "$REGISTRY" ]]; then
-  echo "SKIPPED: OH_REGISTRY_CHECKOUT is not a directory: $REGISTRY" >&2
+  echo "SKIPPED: AGRO_REGISTRY_CHECKOUT is not a directory: $REGISTRY" >&2
   exit 2
 fi
 
 if [[ ! -d "$REGISTRY/skills" ]]; then
-  echo "SKIPPED: OH_REGISTRY_CHECKOUT is not a registry checkout (no skills/ subdirectory): $REGISTRY" >&2
+  echo "SKIPPED: AGRO_REGISTRY_CHECKOUT is not a registry checkout (no skills/ subdirectory): $REGISTRY" >&2
   exit 2
 fi
 

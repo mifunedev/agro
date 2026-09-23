@@ -12,7 +12,7 @@ description: |
   status, or install a Herdr provider integration.
   Do NOT trigger for tmux-managed headless services (cron, Slack gateway,
   tunnels) — those stay in their own tmux sessions, and the cron runtime is
-  the systemd service openharness-cron.service.
+  the systemd service agro-cron.service.
 allowed-tools: Bash, Read
 ---
 

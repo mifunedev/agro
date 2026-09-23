@@ -15,9 +15,9 @@ confidence: provisional
 # The implementation audit's promotable gate classifies the pushed head, not the audited tree
 
 ## Relevant Source Files
-- `.oh/skills/audit/scripts/pr-classify.sh@2c955907` — reads the PR's `statusCheckRollup`, `mergeable`, and `mergeStateStatus` from GitHub; it never compares `headRefOid` to the local `HEAD`.
-- `.oh/skills/spec/references/execute.md@2c955907` — step 10 requires the head comparison before the undraft, but step 5 (the implementation audit) does not.
-- `.oh/tasks/sandbox-registry/evidence.md@b2fcc812` — the run: gate 3 `promotable: true` while the remote head was the scaffold commit.
+- `.agro/skills/audit/scripts/pr-classify.sh@2c955907` — reads the PR's `statusCheckRollup`, `mergeable`, and `mergeStateStatus` from GitHub; it never compares `headRefOid` to the local `HEAD`.
+- `.agro/skills/spec/references/execute.md@2c955907` — step 10 requires the head comparison before the undraft, but step 5 (the implementation audit) does not.
+- `.agro/tasks/sandbox-registry/evidence.md@b2fcc812` — the run: gate 3 `promotable: true` while the remote head was the scaffold commit.
 
 ## Summary
 Gate 3 of `/audit implementation` asks GitHub whether the PR is promotable. GitHub

@@ -1,4 +1,4 @@
-# evals/datasets/ — Verifiable harness-trajectory corpus
+# .agro/evals/datasets/ — Verifiable harness-trajectory corpus
 
 This directory is the harness's **example corpus**: a catalogue of concrete,
 verifiable *trajectories* — a real prompt, the real change it produced, and a
@@ -16,7 +16,7 @@ concrete instances both draw from.
 |---|---|---|---|
 | **Floor** (regression) | [`../README.md`](../README.md) | "Did we **break** it?" | Deterministic 3-state probes (`PASS`/`REGRESSION`/`SKIPPED`); must stay green |
 | **Ceiling** (progress) | [`../capability/README.md`](../capability/README.md) | "Did we **get better**?" | Graded end-to-end tasks scored on success · cost-time · unattended |
-| **Corpus** (examples) | here (`evals/datasets/`) | Concrete verifiable example trajectories | One folder per example: prompt + oracle + `verify.sh`, reward-scored 0..1 |
+| **Corpus** (examples) | here (`.agro/evals/datasets/`) | Concrete verifiable example trajectories | One folder per example: prompt + oracle + `verify.sh`, reward-scored 0..1 |
 
 The floor and ceiling are *instruments*; this corpus is the *material* they
 score with. A capability task can sample these instances; a probe can assert a
@@ -24,7 +24,7 @@ candidate diff still earns its example's reward.
 
 ## Per-example folder layout
 
-Each example lives at `evals/datasets/<dataset>/<DS-id>-<slug>/`. `<dataset>` is
+Each example lives at `.agro/evals/datasets/<dataset>/<DS-id>-<slug>/`. `<dataset>` is
 the trajectory class (`spec-execute-prs`);
 `<DS-id>` is the never-reused `DS-NNN` id; `<slug>` is a short kebab label.
 
@@ -88,7 +88,7 @@ Keep the corpus small and git-friendly:
 ## Catalogue
 
 Every example folder's `id` appears here, and every row id maps to a real
-folder (the `evals/probes/datasets-schema.sh` drift guard enforces both
+folder (the `.agro/evals/probes/datasets-schema.sh` drift guard enforces both
 directions; column 1 is the bare `DS-NNN`).
 
 | id | dataset | title | source | reward_kind |
@@ -109,4 +109,3 @@ would make the record claim a skill that did not exist at capture time. Read the
 - [`../README.md`](../README.md) — the probe suite (the regression **floor**).
 - [`../capability/README.md`](../capability/README.md) — the capability benchmark (the progress **ceiling**).
 - Source inspiration: [huggingface/Repo2RLEnv](https://github.com/huggingface/Repo2RLEnv) — turning a repo's history into verifiable RL environments.
-- `.agro/skills/harness-context/references/directory-readme.md` — the directory-README convention this file follows.

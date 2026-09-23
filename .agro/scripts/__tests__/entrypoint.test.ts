@@ -19,7 +19,7 @@ describe("devcontainer entrypoint home mount ownership", () => {
     expect(text).toContain('$(id -u sandbox)');
     expect(text).toContain('$(id -g sandbox)');
     expect(text).toContain('owner="$(sandbox_ownership)"');
-    expect(text).toContain('find /home/sandbox -path "$OH_PROJECT_ROOT" -prune -o');
+    expect(text).toContain('find /home/sandbox -path "$AGRO_PROJECT_ROOT" -prune -o');
     expect(text).toContain('-exec chown -h "$owner" {} +');
     expect(text).toContain("chmod 700 /home/sandbox/.ssh");
   });
@@ -40,7 +40,7 @@ describe("devcontainer entrypoint home mount ownership", () => {
     expect(seedFn).toBeGreaterThan(-1);
     expect(text).toContain('if [ -e "$dest/$name" ] || [ -L "$dest/$name" ]; then');
     expect(text).toContain('find . -mindepth 1 -maxdepth 1');
-    expect(text).toContain('${OH_HOME_SEED_SRC:-/opt/home-seed}');
+    expect(text).toContain('${AGRO_HOME_SEED_SRC:-/opt/home-seed}');
     expect(seedCall).toBeGreaterThan(seedFn);
     expect(uidSync).toBeGreaterThan(seedCall);
   });
@@ -109,27 +109,24 @@ describe("devcontainer entrypoint home mount ownership", () => {
   });
 });
 
-describe("devcontainer entrypoint dual-generation control dir", () => {
-  it("detects a checkout bind through compat_control_dir and refuses a divergent .oh/.agro pair", () => {
+describe("devcontainer entrypoint control dir", () => {
+  it("detects a checkout bind through agro_control_dir", () => {
     const text = entrypoint();
     const detect = text.indexOf('if mountpoint -q "$HARNESS_DIR" 2>/dev/null; then');
-    const resolve = text.indexOf('CHECKOUT_CONTROL_DIR="$(compat_selected_path compat_control_dir "$HARNESS_DIR")"');
-    const refuse = text.indexOf("refusing to boot; resolve the conflict");
+    const resolve = text.indexOf('CHECKOUT_CONTROL_DIR="$(agro_control_dir "$HARNESS_DIR")"');
     const branch = text.indexOf('if [ -d "$CHECKOUT_CONTROL_DIR" ]; then');
     expect(detect).toBeGreaterThan(-1);
     expect(resolve).toBeGreaterThan(detect);
-    expect(refuse).toBeGreaterThan(resolve);
-    expect(branch).toBeGreaterThan(refuse);
-    expect(text.slice(resolve, branch)).toContain("exit 1");
-    expect(text).not.toContain('[ -d "$HARNESS_DIR/.oh" ]');
+    expect(branch).toBeGreaterThan(resolve);
+    expect(text).not.toContain("refusing to boot; resolve the conflict");
   });
 
   it("resolves CONTROL_DIR once after flavor detection and routes every control-plane path through it", () => {
     const text = entrypoint();
-    const assignment = 'CONTROL_DIR="$(compat_selected_path compat_control_dir "$HARNESS" 2>/dev/null)" || CONTROL_DIR="$HARNESS/$COMPAT_AGRO_CONTROL_DIR"';
+    const assignment = 'CONTROL_DIR="$(agro_control_dir "$HARNESS")"';
     expect(text.split(assignment).length - 1).toBe(1);
     const assigned = text.indexOf(assignment);
-    expect(assigned).toBeGreaterThan(text.indexOf('seed_workspace_volume "$OH_PROJECT_ROOT"'));
+    expect(assigned).toBeGreaterThan(text.indexOf('seed_workspace_volume "$AGRO_PROJECT_ROOT"'));
     for (const use of [
       'bash "$CONTROL_DIR/scripts/link-providers.sh" --init',
       'bash "$CONTROL_DIR/scripts/provision-python.sh"',
@@ -141,22 +138,22 @@ describe("devcontainer entrypoint dual-generation control dir", () => {
     }
     const body = text.slice(text.indexOf("uid_reconcile_step() {"));
     expect(body).not.toMatch(/\$HARNESS\/\.agro\//);
-    expect(body).not.toMatch(/\$\{OH_PROJECT_ROOT\}\/\.agro\//);
+    expect(body).not.toMatch(/\$\{AGRO_PROJECT_ROOT\}\/\.agro\//);
   });
 
-  it("resolves the CLI executable through compat_env BIN with agro as the default", () => {
+  it("resolves the CLI executable through agro_env BIN with agro as the default", () => {
     const text = entrypoint();
-    expect(text).toContain('CLI_BIN="$(compat_env_value BIN)"');
+    expect(text).toContain('CLI_BIN="$(agro_env_value BIN)"');
     expect(text).toContain('[ -n "$CLI_BIN" ] || CLI_BIN=agro');
     expect(text).toContain('gosu sandbox "$CLI_BIN" config show');
-    expect(text).not.toContain("${OH_BIN:-");
+    expect(text).not.toContain("${AGRO_BIN:-");
   });
 
   it("resolves the control dir at run time in the compose healthchecks", () => {
     for (const file of [".devcontainer/docker-compose.yml", ".devcontainer/docker-compose.image-only.yml"]) {
       const compose = readFileSync(join(ROOT, file), "utf8");
       const test = compose.split("\n").find((line) => /^\s*test:/.test(line)) ?? "";
-      expect(test, file).toContain('["CMD", "bash", "-c", "if [ -d /home/sandbox/harness/.agro ]; then exec bash /home/sandbox/harness/.agro/scripts/sandbox-healthcheck.sh; fi; exec bash /home/sandbox/harness/.oh/scripts/sandbox-healthcheck.sh"]');
+      expect(test, file).toContain('["CMD", "bash", "-c", "exec bash /home/sandbox/harness/.agro/scripts/sandbox-healthcheck.sh"]');
     }
   });
 });
@@ -222,8 +219,8 @@ describe("client-slack bridge supervisor", () => {
 });
 
 describe("devcontainer entrypoint cron supervision", () => {
-  const CRON_UNIT = join(ROOT, ".devcontainer/openharness-cron.service");
-  const BOOTSTRAP_UNIT = join(ROOT, ".devcontainer/openharness-bootstrap.service");
+  const CRON_UNIT = join(ROOT, ".devcontainer/agro-cron.service");
+  const BOOTSTRAP_UNIT = join(ROOT, ".devcontainer/agro-bootstrap.service");
 
   it("owns no cron supervision — systemd does", () => {
     const text = entrypoint();
@@ -252,7 +249,7 @@ describe("devcontainer entrypoint cron supervision", () => {
     const unit = readFileSync(CRON_UNIT, "utf8");
 
     expect(unit).toContain(
-      "ExecStart=/bin/bash -c 'if [ -d /home/sandbox/harness/.agro ]; then exec /usr/local/bin/node --experimental-strip-types /home/sandbox/harness/.agro/scripts/cron-runtime.ts; fi; exec /usr/local/bin/node --experimental-strip-types /home/sandbox/harness/.oh/scripts/cron-runtime.ts'",
+      "ExecStart=/usr/local/bin/node --experimental-strip-types /home/sandbox/harness/.agro/scripts/cron-runtime.ts",
     );
     const execStart = unit.split("\n").find((line) => line.startsWith("ExecStart=")) ?? "";
     expect(execStart).not.toContain("$");
@@ -262,8 +259,8 @@ describe("devcontainer entrypoint cron supervision", () => {
     expect(unit).toContain("Restart=on-failure");
     expect(unit).toContain("StartLimitIntervalSec=");
     expect(unit).toContain("StartLimitBurst=");
-    expect(unit).toContain("Requires=openharness-bootstrap.service");
-    expect(unit).toContain("After=openharness-bootstrap.service");
+    expect(unit).toContain("Requires=agro-bootstrap.service");
+    expect(unit).toContain("After=agro-bootstrap.service");
     expect(unit).toContain("KillMode=process");
   });
 });

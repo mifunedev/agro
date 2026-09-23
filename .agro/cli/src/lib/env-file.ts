@@ -1,12 +1,12 @@
 import { existsSync } from "node:fs";
 import { resolve, sep } from "node:path";
 import {
-  getOhConfigValue,
-  ohConfigPath,
-  readOhConfig,
-  setOhConfigValue,
-  writeOhConfig,
-} from "./oh-config.js";
+  getAgroConfigValue,
+  agroConfigPath,
+  readAgroConfig,
+  setAgroConfigValue,
+  writeAgroConfig,
+} from "./agro-config.js";
 
 
 export function assertInRoot(dest: string, root: string): void {
@@ -37,7 +37,7 @@ export function setEnvValue(
   const path = CONFIG_FIELD_BY_ENV_KEY[key];
   if (path === undefined) {
     throw new Error(
-      `${key} is not a settable oh.json field — run \`${bin} config set\` for a non-secret, ` +
+      `${key} is not a settable agro.json field — run \`${bin} config set\` for a non-secret, ` +
         `\`${bin} secret set\` for a credential`,
     );
   }
@@ -45,16 +45,16 @@ export function setEnvValue(
 }
 
 export function setConfigField(root: string, path: string, value: string): ConfigFieldOutcome {
-  const file = ohConfigPath(root);
+  const file = agroConfigPath(root);
   assertInRoot(file, resolve(root));
-  const config = readOhConfig(file);
-  const before = getOhConfigValue(config, path);
-  const next = setOhConfigValue(config, path, value);
-  const after = getOhConfigValue(next, path);
+  const config = readAgroConfig(file);
+  const before = getAgroConfigValue(config, path);
+  const next = setAgroConfigValue(config, path, value);
+  const after = getAgroConfigValue(next, path);
   if (existsSync(file) && JSON.stringify(before) === JSON.stringify(after)) {
     return "already-set";
   }
-  writeOhConfig(root, next);
+  writeAgroConfig(root, next);
   return before === undefined ? "added" : "updated";
 }
 

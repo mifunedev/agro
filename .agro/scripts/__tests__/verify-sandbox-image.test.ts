@@ -16,7 +16,7 @@ type Overrides = Partial<{
   node: string;
   pnpm: string;
   agroVersion: string;
-  ohVersion: string;
+  legacyEntryPoint: boolean;
   missingTool: string;
   nonVersionTool: string;
   platformWarning: string;
@@ -27,6 +27,7 @@ type Overrides = Partial<{
   noBakedInTools: boolean;
   missingBakedInTool: boolean;
   harnessCatalogFails: boolean;
+  pythonFailure: string;
 }>;
 
 function fixture(o: Overrides = {}) {
@@ -43,7 +44,7 @@ function fixture(o: Overrides = {}) {
     node: "v22.14.0",
     pnpm: "10.33.0",
     agroVersion: "0.8.0",
-    ohVersion: "0.8.0",
+    legacyEntryPoint: false,
     missingTool: "",
     nonVersionTool: "",
     platformWarning: "",
@@ -54,6 +55,7 @@ function fixture(o: Overrides = {}) {
     noBakedInTools: false,
     missingBakedInTool: false,
     harnessCatalogFails: false,
+    pythonFailure: "",
     ...o,
   };
 
@@ -64,16 +66,29 @@ function fixture(o: Overrides = {}) {
 if [ "$1" = "image" ]; then printf '%s\\n' ${JSON.stringify(v.architecture)}; exit 0; fi
 cmd="\${@: -1}"
 case "$cmd" in
+  *"cp -a /opt/home-seed/. /home/sandbox/"*)
+    [[ "$*" == *"--network none"* ]] || exit 91
+    [[ "$cmd" == *"gosu sandbox env -i HOME=/home/sandbox"* ]] || exit 92
+    [[ "$cmd" == *"PATH=/home/sandbox/.local/bin:/usr/local/bin:/usr/bin:/bin"* ]] || exit 93
+    [[ "$cmd" == *"bash --noprofile --norc"* ]] || exit 94
+    [[ "$cmd" == *"provision-python.sh --verify"* ]] || exit 95
+    [[ "$cmd" == *'python -c '* && "$cmd" == *'python3 -c '* ]] || exit 96
+    [[ "$cmd" == *'kernel/bin/python -c '* && "$cmd" == *'import sys, ipykernel'* ]] || exit 97
+    if [ -n ${JSON.stringify(v.pythonFailure)} ]; then
+      printf '%s\\n' ${JSON.stringify(v.pythonFailure)} >&2
+      exit 1
+    fi
+    ;;
   *VERSION_CODENAME*) printf '%s' ${JSON.stringify(v.codename)} ;;
   *docker.list*) printf 'deb [arch=amd64] https://download.docker.com/linux/debian %s stable\\n' ${JSON.stringify(v.dockerSuite)} ;;
   *"id -u sandbox"*) printf '%s\\n%s\\n' ${JSON.stringify(v.uid)} ${JSON.stringify(v.gid)} ;;
   "node --version") printf '%s\\n' ${JSON.stringify(v.node)} ;;
   "pnpm --version") printf '%s\\n' ${JSON.stringify(v.pnpm)} ;;
   "agro --version") printf '%s\\n' ${JSON.stringify(v.agroVersion)} ;;
-  "oh --version") printf '%s\\n' ${JSON.stringify(v.ohVersion)} ;;
-  *"oh harness list --json"*)
+  "command -v oh") [ "${v.legacyEntryPoint ? "1" : "0"}" = "1" ] && printf '/usr/local/bin/oh\\n' || exit 1 ;;
+  *"agro harness list --json"*)
     if [ "${v.harnessCatalogFails ? "1" : "0"}" = "1" ]; then
-      echo 'not an OpenHarness-equipped repo' >&2
+      echo 'not an AGRO-equipped repo' >&2
       exit 1
     fi
     cat <<'JSON'
@@ -87,7 +102,7 @@ ${
 }
 JSON
     ;;
-  *"oh tool list --json"*)
+  *"agro tool list --json"*)
     cat <<'JSON'
 ${(() => {
   const rows: string[] = [];
@@ -143,10 +158,22 @@ describe("verify-sandbox-image", () => {
     expect(result.stdout).toContain("built-in sandbox user is 1000:1000");
     expect(result.stdout).toContain("node is major 22");
     expect(result.stdout).toContain("pnpm is exactly 10.33.0");
-    expect(result.stdout).toContain("agro and oh report the same CLI version (0.8.0)");
+    expect(result.stdout).toContain("agro reports CLI version 0.8.0");
     expect(result.stdout).toContain("no harness is baked into the image");
     expect(result.stdout).toContain("no installable tool is baked into the image");
     expect(result.stdout).toContain("all checks passed");
+  });
+
+  it("checks Python in the restored seed as sandbox without network or login activation", () => {
+    const result = run(fixture());
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("seeded sandbox defaults and kernel use Python 3.13");
+  });
+
+  it.each(["missing python", "wrong python3", "stale kernel", "missing ipykernel", "seed restore failed"])("rejects seeded Python failure: %s", (pythonFailure) => {
+    const result = run(fixture({ pythonFailure }));
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(`seeded sandbox Python verification failed: ${pythonFailure}`);
   });
 
   it("requires an image reference", () => {
@@ -193,18 +220,18 @@ describe("verify-sandbox-image", () => {
     expect(result.stdout).not.toContain("does not match the detected host platform");
   });
 
-  it("rejects an image whose agro and oh entry points disagree on the version", () => {
-    const result = run(fixture({ ohVersion: "0.7.0" }));
+  it("rejects an image that still ships the retired oh entry point", () => {
+    const result = run(fixture({ legacyEntryPoint: true }));
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("agro --version ('0.8.0') and oh --version ('0.7.0')");
+    expect(result.stderr).toContain("the retired 'oh' entry point is present");
   });
 
   it("rejects an image with no agro entry point", () => {
     const result = run(fixture({ agroVersion: "" }));
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("agro --version ('')");
+    expect(result.stderr).toContain("agro --version reported nothing");
   });
 
   it("rejects an unsupported architecture", () => {

@@ -17,15 +17,15 @@ describe("sandbox upgrade smoke script", () => {
     expect(parsed.status).toBe(0);
   });
 
-  it("seeds from the last legacy image by default and accepts the documented knobs", () => {
-    expect(script).toContain("LEGACY_IMAGE=${LEGACY_IMAGE:-ghcr.io/mifunedev/openharness:0.9.0}");
+  it("seeds from the published image by default and accepts the documented knobs", () => {
+    expect(script).toContain("SEED_IMAGE=${SEED_IMAGE:-ghcr.io/mifunedev/agro:latest}");
     expect(script).toContain("NEW_IMAGE=${NEW_IMAGE:-}");
     expect(script).toContain("KEEP=${KEEP:-0}");
     expect(script).toContain("docker-compose.image-only.yml");
     expect(script).toContain('docker build --file "$REPO_ROOT/.devcontainer/Dockerfile"');
   });
 
-  it("never boots the legacy image and tears down with down -v under a trap", () => {
+  it("never boots the seed image and tears down with down -v under a trap", () => {
     const bootCalls = script.match(/compose up -d --no-build "\$SERVICE"/g) ?? [];
     expect(bootCalls).toHaveLength(1);
     const waitReadyCalls = script.match(/wait_ready "[^"]+"/g) ?? [];
@@ -37,21 +37,19 @@ describe("sandbox upgrade smoke script", () => {
     expect(script).toContain('docker rmi -f "$BUILT_IMAGE"');
   });
 
-  it("seeds the workspace volume from the legacy image's real /opt/oh-seed via a helper container", () => {
-    expect(script).toContain("seed_legacy_volume");
-    expect(script).toContain("cp -a /opt/oh-seed/. /home/sandbox/harness/");
-    expect(script).toContain(': > /home/sandbox/harness/.oh/.image-seeded');
+  it("seeds the workspace volume from the seed image's real /opt/agro-seed via a helper container", () => {
+    expect(script).toContain("seed_workspace_fixture");
+    expect(script).toContain("cp -a /opt/agro-seed/. /home/sandbox/harness/");
+    expect(script).toContain(': > /home/sandbox/harness/.agro/.image-seeded');
     expect(script).toContain('VOLUME="${PROJECT}_workspace"');
-    expect(script).toContain('-v "$vol:/home/sandbox" "$LEGACY_IMAGE"');
+    expect(script).toContain('-v "$vol:/home/sandbox" "$SEED_IMAGE"');
     expect(script).toContain("mounted_volume=$(docker inspect --format");
   });
 
-  it("states the coverage reduction: the legacy image itself is no longer proven to boot", () => {
-    expect(script).toContain("COVERAGE REDUCTION");
-    expect(script).toContain("GHSA-82fw-gwwq-j7x9");
-    expect(script).toContain("this script never boots the legacy image");
-    expect(script).toContain("does not prove the published legacy image itself still boots");
-    expect(script).toContain("not be read as repairing that image or any volume already seeded from it");
+  it("states its scope: the seed image itself is never booted, and the .oh layout is retired", () => {
+    expect(script).toContain("This script never boots that");
+    expect(script).toContain("The legacy `.oh` layout is retired");
+    expect(script).toContain("docs/agro-compatibility.md");
     expect(script).toContain('del(.scripts["pnpm:devPreinstall"])');
   });
 
@@ -63,11 +61,11 @@ describe("sandbox upgrade smoke script", () => {
     }
   });
 
-  it("asserts the legacy control plane, the marker, both systemd units, and a clean entrypoint log", () => {
-    expect(script).toContain("openharness-bootstrap.service");
-    expect(script).toContain("openharness-cron.service");
-    expect(script).toContain(".oh/.image-seeded");
-    expect(script).toContain('.agro was created next to the legacy .oh/ control plane');
+  it("asserts the control plane, the marker, both systemd units, and a clean entrypoint log", () => {
+    expect(script).toContain("agro-bootstrap.service");
+    expect(script).toContain("agro-cron.service");
+    expect(script).toContain(".agro/.image-seeded");
+    expect(script).toContain('a retired $PROJECT_ROOT/.oh was created by the upgrade');
     expect(script).toContain('grep -q "not seeding"');
     expect(script).toContain('grep -q "seeded control plane into"');
   });
@@ -78,6 +76,6 @@ describe("sandbox upgrade smoke script", () => {
     expect(workflow).toContain("bash .agro/scripts/sandbox-upgrade-smoke.sh 2>&1 | tee sandbox-upgrade-smoke.log");
     expect(workflow).toContain("uses: actions/upload-artifact@v4");
     expect(workflow).toContain("path: sandbox-upgrade-smoke.log");
-    expect(workflow).toContain('- ".agro/scripts/sandbox-upgrade-smoke.sh"');
+    expect(workflow).toContain('- ".agro/scripts/**"');
   });
 });

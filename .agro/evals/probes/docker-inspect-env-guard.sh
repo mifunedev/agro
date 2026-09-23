@@ -45,9 +45,9 @@ assert() {
 }
 
 ENV_FIELD='.Config.'"En"'v'
-assert deny "docker inspect openharness" \
+assert deny "docker inspect agro" \
   "bare inspect dumps full JSON including the env block"
-assert deny "docker container inspect openharness" \
+assert deny "docker container inspect agro" \
   "the container subcommand form bypassed the guard"
 assert deny "docker inspect --format '{{${ENV_FIELD}}}' web" \
   "an explicit env template was allowed"
@@ -64,13 +64,13 @@ assert deny "docker inspect web | jq '.[0].State'" \
 assert deny "podman inspect mycontainer" \
   "the podman equivalent bypassed the guard"
 
-assert allow "docker inspect --format '{{.State.Health.Status}}' openharness" \
+assert allow "docker inspect --format '{{.State.Health.Status}}' agro" \
   "guard over-blocked a narrow health-status read"
-assert allow "docker container inspect -f '{{.State.Status}}' openharness" \
+assert allow "docker container inspect -f '{{.State.Status}}' agro" \
   "guard over-blocked the -f short form"
 assert allow "docker inspect --format '{{.NetworkSettings.IPAddress}}' web" \
   "guard over-blocked a narrow network read"
-assert allow "docker inspect --format '{{json .State.Health}}' openharness" \
+assert allow "docker inspect --format '{{json .State.Health}}' agro" \
   "guard over-blocked a scoped json subtree (see docs/installation.md)"
 assert allow "docker inspect oh-sbx-local --format '{{range \$name, \$_ := .NetworkSettings.Networks}}{{\$name}}{{end}}'" \
   "guard over-blocked the network-discovery template (see docs/integrations/langfuse.md)"
@@ -79,7 +79,7 @@ assert allow "docker image inspect --format '{{.Id}}' node:20" \
 
 assert allow "docker ps -a" "guard leaked onto docker ps"
 assert allow "docker compose up -d --build" "guard leaked onto docker compose"
-assert allow "docker exec -it openharness tmux ls" "guard leaked onto docker exec"
+assert allow "docker exec -it agro tmux ls" "guard leaked onto docker exec"
 
 assert deny "docker sec""ret inspect foo" "docker secret inspect stopped being denied"
 assert deny "docker con""fig inspect foo" "docker config inspect stopped being denied"

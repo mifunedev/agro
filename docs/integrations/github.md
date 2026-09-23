@@ -65,7 +65,7 @@ for you. After this, `git@github.com:...` remotes push without prompting.
 **B. Automatic — via `GH_TOKEN` at container start.** If `GH_TOKEN` was provided when the
 sandbox booted, the entrypoint mirrors the interactive SSH path: it generates an ed25519
 keypair at `~/.ssh/id_ed25519` and uploads the public key to GitHub as
-`openharness-<sandbox-name>` (`.devcontainer/entrypoint.sh:275-309`). This upload requires
+`agro-<sandbox-name>` (`.devcontainer/entrypoint.sh:275-309`). This upload requires
 the token to carry the **`admin:public_key`** scope; without it the key is still generated
 but not uploaded, and HTTPS + the credential helper continue to work. The step is
 idempotent — an already-registered key is detected and skipped.
@@ -88,7 +88,7 @@ ssh -T git@github.com    # "Hi <user>! You've successfully authenticated…"
 | `gh repo create` refuses | `gh auth refresh -s repo,workflow` | The token lacks a scope. `admin:public_key` is what the SSH-key upload needs. |
 | Everything gone after a teardown | `gh auth login` again | `agro destroy` and `docker compose down -v` delete the home volume with the token and keys in it. Use `agro stop` to keep them. |
 
-`agro config repo` (and `oh config repo`) creates a repository and re-points `origin` for
+`agro config repo` (and `agro config repo`) creates a repository and re-points `origin` for
 the retired clone-and-own recipe. It stays supported through the
 [AGRO compatibility](../agro-compatibility.md) window, asks before it runs, defaults to no,
 and skips itself entirely in a non-interactive shell. It is not the canonical onboarding

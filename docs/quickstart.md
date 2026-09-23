@@ -12,9 +12,7 @@ Install Docker with the Compose plugin ([docs.docker.com/get-docker](https://doc
 
 ## Install
 
-`agro` is the only front door. Get it, then create a sandbox. Every `agro` verb
-is also available as `oh <verb>` — `oh` is the compatibility alias for the same
-executable (see [Compatibility entry point](#compatibility-entry-point-oh)).
+`agro` is the only front door. Get it, then create a sandbox.
 
 **1. Get `agro`** — from npm if you already have Node ≥ 20:
 
@@ -40,34 +38,28 @@ bash get-agro.sh
 
 `get-agro.sh` installs to `~/.local/bin/agro` (`AGRO_BIN_DIR` overrides it);
 after the piped form, `export PATH="$HOME/.local/bin:$PATH"` puts it on an
-already-open shell's PATH. Upgrade later with `agro update`.
+already-open shell's PATH. Upgrade later with `agro self-upgrade`.
 
 ### Package and PATH rules
 
-`@mifune/agro` ships only `agro`; `@mifune/openharness` ships only `oh` and
-depends on the exact same `@mifune/agro` version. Both may be installed
-together, and installing or removing either never removes the other's
-executable. `npx @mifune/agro <verb>` works without a global install. A
-standalone `get-agro.sh` install and an npm install can coexist, but `agro
-update` refuses when another `agro` is earlier on PATH than the one it would
-replace. Details: [Installation → Package and PATH rules](./installation.md#package-and-path-rules).
+`@mifune/agro` ships the single `agro` executable; the retired
+`@mifune/openharness` shim is no longer published. `npx @mifune/agro <verb>`
+works without a global install. A standalone `get-agro.sh` install and an npm
+install can coexist, but `agro self-upgrade` refuses when another `agro` is
+earlier on PATH than the one it would replace. Details: [Installation → Package and PATH rules](./installation.md#package-and-path-rules).
 
-### Compatibility entry point (`oh`)
+### Standalone install (`get-agro.sh`)
 
-`oh` keeps working for the whole compatibility window and runs the same bundle.
-From npm it is the deprecated shim `@mifune/openharness`
-(`npm install -g @mifune/openharness`, or `npx @mifune/openharness --help`);
-`oh update` remains the command that vendors `.agro/` + `crons/` into a checkout.
-The curl bootstrap is `get-oh.sh`:
+The curl bootstrap installs the self-contained `agro` binary to
+`~/.local/bin/agro` — no repo clone:
 
 ```bash
-curl -fsSL https://oh.mifune.dev/get-oh.sh | bash
+curl -fsSL https://agro.mifune.dev/get-agro.sh | bash
 ```
 
-Review-first: `curl -fsSL -o get-oh.sh https://oh.mifune.dev/get-oh.sh`, read
-it, then `bash get-oh.sh`. It installs the self-contained `oh` binary to
-`~/.local/bin/oh` — no repo clone. `source <(curl -fsSL https://oh.mifune.dev/get-oh.sh)`
-installs *and* puts `oh` on the current shell's PATH.
+Review-first: `curl -fsSL -o get-agro.sh https://agro.mifune.dev/get-agro.sh`, read
+it, then `bash get-agro.sh`. `source <(curl -fsSL https://agro.mifune.dev/get-agro.sh)`
+installs *and* puts `agro` on the current shell's PATH.
 
 **2. Create the sandbox** — from any directory, with no project checkout:
 
@@ -82,7 +74,7 @@ nothing. The answers land in a registry entry at
 `~/.agro/sandboxes/<name>/agro.json`, together with the compose files and the
 wrapper script the CLI regenerates on every lifecycle call — edit only
 `agro.json` there. A registry written by an earlier release stays at
-`~/.oh/sandboxes/<name>/oh.json` and keeps working; `agro migrate --home` moves
+`~/.agro/sandboxes/<name>/agro.json` and keeps working; `agro migrate --home` moves
 it when you choose.
 
 Without `--checkout` the sandbox runs the published image
@@ -103,11 +95,11 @@ is bind-mounted at `/home/sandbox/harness`:
 
 ```bash
 cd <your-project>
-oh update                                     # vendor .agro/ + crons/ into this checkout
+agro vendor                                     # vendor .agro/ + crons/ into this checkout
 agro sandbox install docker --checkout "$PWD" --name <your-project>
 ```
 
-`oh update` writes `.agro/` and `crons/` and **nothing else** — no `agro.json`, no
+`agro vendor` writes `.agro/` and `crons/` and **nothing else** — no `agro.json`, no
 `.env`, no `AGENTS.md`, no provider configuration, and no `.gitignore` line
 beyond the `.env` line `agro secret set` adds inside a git checkout. Those files
 are yours to author. `--checkout` takes a host path. The CLI selects build mode
@@ -266,7 +258,7 @@ live in [Contributing](./contributing.md).
 
 ### `agro config repo` is a compatibility helper
 
-`agro config repo` (and `oh config repo`) creates a repository and re-points
+`agro config repo` (and `agro config repo`) creates a repository and re-points
 `origin` for the retired clone-and-own recipe. It stays supported through the
 [AGRO compatibility](./agro-compatibility.md) window and is **not** the
 canonical onboarding path. Prefer the prompts above, which inspect the workspace
@@ -281,7 +273,7 @@ out, so a fresh copy changes nothing.
 
 Each sandbox keeps its own pair inside its registry entry at
 `~/.agro/sandboxes/<name>/` (a registry from an earlier release stays at
-`~/.oh/sandboxes/<name>/` until `agro migrate --home` runs). Write them with
+`~/.agro/sandboxes/<name>/` until `agro migrate --home` runs). Write them with
 `agro config set --sandbox <name> <field> <value>` and `agro secret set
 --sandbox <name> <KEY>`; without `--sandbox` both act on the project root
 instead. In an equipped checkout, `.devcontainer/.env` is a symlink to that root
@@ -302,7 +294,7 @@ lifecycle command.)
 ```json
 // agro.json — non-secret settings (example)
 {
-  "name": "openharness",
+  "name": "agro",
   "timezone": "UTC",
   "git": { "userName": "your-name", "userEmail": "you@example.com" }
 }

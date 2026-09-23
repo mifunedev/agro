@@ -30,6 +30,17 @@ Verify the install:
 codex --version
 ```
 
+## Update
+
+```bash
+codex update                   # the harness updates itself
+agro harness install codex     # or re-run the door
+```
+
+Both write to `/home/sandbox/.local`, because the sandbox exports
+`NPM_CONFIG_PREFIX` as that prefix. Do not use `sudo`: `codex` is not on sudo's
+`secure_path`, and a root-owned install would leave the home volume.
+
 ## Authentication
 
 Run `codex login` once and follow the prompts:
@@ -75,6 +86,21 @@ Run inside a dedicated tmux session:
 tmux new-session -d -s agent-codex 'codex --dangerously-bypass-approvals-and-sandbox "your task here"'
 tmux attach -t agent-codex
 ```
+
+## Optional Langfuse observability
+
+[Langfuse](../integrations/langfuse.md#3-codex) traces Codex turns, tool calls,
+and cost through the official `codex-observability-plugin`. The plugin stays off
+until you enable tracing, and the plugin sets no trace tag of its own.
+
+Run `agro config langfuse` to configure the plugin. The wizard offers to install
+the plugin and writes `~/.codex/langfuse.json` with `enabled`, the `codex` tag,
+and the trace environment, at mode `0600`. That file holds no credential, and
+the wizard never edits `~/.codex/config.toml`.
+
+One step stays manual. Start `codex` once interactively and approve the
+**Uploading Codex trace to Langfuse** hook. Codex prompts for hook trust only in
+interactive mode, and an untrusted hook never runs.
 
 ## Tips
 

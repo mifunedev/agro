@@ -1,15 +1,15 @@
 import { assertSpawned, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import { setConfigField } from "../lib/env-file.js";
 import {
-  findOhConfigField,
-  ohConfigFieldPaths,
-  ohConfigPath,
-  readOhConfig,
-} from "../lib/oh-config.js";
+  findAgroConfigField,
+  agroConfigFieldPaths,
+  agroConfigPath,
+  readAgroConfig,
+} from "../lib/agro-config.js";
 import { resolveProjectRoot } from "../lib/project.js";
 import * as prompt from "../lib/prompt.js";
 import { resolveSandboxRoot } from "../lib/registry.js";
-import { isSecretKey } from "../lib/secrets.js";
+import { isSecretKey, type SecretKey } from "../lib/secrets.js";
 import { destroyConfirmationPhrase, namedVolumes } from "./lifecycle.js";
 
 export interface ConfigIO {
@@ -27,8 +27,20 @@ export interface ConfigOptions {
 
 const HOME_PATH_FIELD = "storage.homePath";
 
+const SECRET_KEY_BY_CONFIG_PATH: Record<string, SecretKey> = {
+  "langfuse.publickey": "LANGFUSE_PUBLIC_KEY",
+  "langfuse.secretkey": "LANGFUSE_SECRET_KEY",
+};
+
+export function secretKeyForConfigPath(key: string): SecretKey | undefined {
+  if (isSecretKey(key)) return key;
+  const upper = key.toUpperCase();
+  if (isSecretKey(upper)) return upper;
+  return SECRET_KEY_BY_CONFIG_PATH[key.toLowerCase()];
+}
+
 function currentHomePath(root: string): string | undefined {
-  return readOhConfig(ohConfigPath(root)).storage?.homePath;
+  return readAgroConfig(agroConfigPath(root)).storage?.homePath;
 }
 
 function existingNamedVolume(root: string, run: LifecycleRunner): string | undefined {
@@ -47,14 +59,14 @@ function configRoot(opts: ConfigOptions): string {
 }
 
 export function configFieldList(): string {
-  return ohConfigFieldPaths()
+  return agroConfigFieldPaths()
     .map((path) => `  ${path}`)
     .join("\n");
 }
 
 export async function runConfigShow(opts: ConfigOptions, io: ConfigIO): Promise<number> {
   const root = configRoot(opts);
-  const config = readOhConfig(ohConfigPath(root));
+  const config = readAgroConfig(agroConfigPath(root));
   io.stdout(`${JSON.stringify(config, null, 2)}\n`);
   return 0;
 }
@@ -65,15 +77,16 @@ export async function runConfigSet(
   opts: ConfigOptions,
   io: ConfigIO,
 ): Promise<number> {
-  if (isSecretKey(key) || isSecretKey(key.toUpperCase())) {
+  const secretKey = secretKeyForConfigPath(key);
+  if (secretKey !== undefined) {
     io.stderr(
-      `${opts.bin} config set: ${key.toUpperCase()} is a secret — oh.json is tracked by git.\n` +
-        `Set it with \`${opts.bin} secret set ${key.toUpperCase()}\` instead.\n`,
+      `${opts.bin} config set: ${secretKey} is a secret — agro.json is tracked by git.\n` +
+        `Set it with \`${opts.bin} secret set ${secretKey}\` instead.\n`,
     );
     return 1;
   }
 
-  if (!findOhConfigField(key)) {
+  if (!findAgroConfigField(key)) {
     io.stderr(`${opts.bin} config set: unknown field "${key}"\n\nFields:\n${configFieldList()}\n`);
     return 1;
   }
@@ -103,8 +116,8 @@ export async function runConfigSet(
 
   io.stdout(
     outcome === "already-set"
-      ? `oh.json: ${key} already ${value}\n`
-      : `oh.json: set ${key}=${value} (${outcome})\n`,
+      ? `agro.json: ${key} already ${value}\n`
+      : `agro.json: set ${key}=${value} (${outcome})\n`,
   );
   return 0;
 }
@@ -121,7 +134,7 @@ interface PlannedCommand {
   args: string[];
 }
 
-const UPSTREAM_REMOTE = "openharness";
+const UPSTREAM_REMOTE = "agro";
 
 function repoUrl(owner: string, name: string): string {
   return `git@github.com:${owner}/${name}.git`;
@@ -211,8 +224,8 @@ export async function runConfigRepo(opts: RepoOptions, io: RepoIO): Promise<numb
     return 1;
   }
 
-  const name = await askOn(io, "Repository name [openharness]:");
-  const repoName = name === "" ? "openharness" : name;
+  const name = await askOn(io, "Repository name [agro]:");
+  const repoName = name === "" ? "agro" : name;
   const nameError = validateSegment("repository name", repoName);
   if (nameError) {
     io.stderr(`${opts.bin} config repo: ${nameError}\n`);

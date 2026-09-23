@@ -18,9 +18,9 @@ confidence: provisional
 # A script that gains a sourced sibling breaks every test and probe that copies it alone
 
 ## Relevant Source Files
-- `.oh/scripts/docker-compose.sh@dbc82ed4` — the wrapper that started sourcing `compat.sh` from its own directory.
-- `.oh/scripts/__tests__/compose-args.test.ts@dbc82ed4`, `.oh/evals/probes/oh-compose-env-wiring.sh@dbc82ed4` — sites that `copyFileSync` / `cp` the wrapper into a fixture by itself.
-- `.oh/cli/src/lib/registry.ts@dbc82ed4`, `.devcontainer/Dockerfile@dbc82ed4` — the bundle and image asset lists that also had to name the sibling.
+- `.agro/scripts/docker-compose.sh@dbc82ed4` — the wrapper that started sourcing `paths.sh` from its own directory.
+- `.agro/scripts/__tests__/compose-args.test.ts@dbc82ed4`, `.agro/evals/probes/oh-compose-env-wiring.sh@dbc82ed4` — sites that `copyFileSync` / `cp` the wrapper into a fixture by itself.
+- `.agro/cli/src/lib/registry.ts@dbc82ed4`, `.devcontainer/Dockerfile@dbc82ed4` — the bundle and image asset lists that also had to name the sibling.
 
 ## Summary
 A shell script that is copied standalone by tests, probes, the CLI bundle, and
@@ -30,10 +30,10 @@ still ships one file fails at first use. Refuse loudly and enumerate the copy
 sites; do not fall back to the old behavior inside the script.
 
 ## Detail
-**Symptom.** After `docker-compose.sh` sourced `.agro/scripts/compat.sh`, the
+**Symptom.** After `docker-compose.sh` sourced `.agro/scripts/paths.sh`, the
 `--print-argv` oracle test and the `oh-compose-env-wiring` probe both failed with
-`error: <fixture>/.agro/scripts/compat.sh is missing`, while the vector tests for
-`compat.sh` itself were green.
+`error: <fixture>/.agro/scripts/paths.sh is missing`, while the vector tests for
+`paths.sh` itself were green.
 
 **Root cause.** `compose-args.test.ts` and the probe build a fixture by copying
 only `docker-compose.sh`; the registry `materialize()` list and the Dockerfile

@@ -98,12 +98,12 @@ Groomable — rewrite to assert the user outcome, not the mechanism.
 #### Check 5 — no-longer-held-out
 
 *A capability benchmark task (or its fixtures) has been tuned-to / special-cased,
-violating the held-out discipline in `.agro/evals/capability/README.md`.*
+violating the held-out discipline in `.agro/evals/capability/AGENTS.md`.*
 
 Signal: the task's guarded assertion is now baked into the very file it inspects,
 or the benchmark manifest (a task's fixtures) is
 referenced by non-eval harness code — evidence the harness was special-cased *to*
-the benchmark. Per the capability README, special-casing the harness to ace a
+the benchmark. Per the capability contract, special-casing the harness to ace a
 task corrupts the instrument. **Fatal** — a no-longer-held-out task measures
 nothing.
 
@@ -121,7 +121,7 @@ Groomable — broaden the case or add the assertion it is missing.
 #### Check 7 — machinery-growth-without-capability-movement
 
 *The meta check: the probe count keeps growing while the capability suite score
-stays flat — the "redirect" signal in `.agro/evals/capability/README.md`.*
+stays flat — the "redirect" signal in `.agro/evals/capability/AGENTS.md`.*
 
 Signal: count probes now vs. an earlier git revision, compared against the
 capability `RESULTS.md` suite-score delta over the same span. Growing floor

@@ -103,31 +103,29 @@ For Eval Probe Regression Gate failures, immediately inspect the failed probe na
 - **PASS**: Report "CI green" with the run URL
 - **FAIL**: Report the failing step, error message, and suggest a fix. Then fix the issue, commit, push, and run `/ci-status` again
 - **NO RUN**: No workflow's `on:` filter matched the push, or `PR_NUMBER` was set but `gh pr checks` returned no rows (the PR exists but no workflows were triggered yet). *(Note: the workflow names below reflect this harness's layout and may differ in other checkouts.)*
-  - `ci-harness.yml` — push only: `packages/**`, `.agro/**`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, itself
+  - `ci-harness.yml` — `.agro/**`, `docs/**`, `.devcontainer/**`, `package.json`, `pnpm-lock.yaml`, itself
+  - `sandbox-boot-guard.yml` — `.devcontainer/**`, `.agro/cli/**`, `.agro/scripts/**`, `.agro/install/**`
   - Docs site CI/deploy lives in `mifunedev/agro-web`; this repo has no `docs.yml` Docusaurus workflow.
   - `release.yml` — every push to `main` or `master`; validation precedes automatic release publication
 
-  Infrastructure-only PRs (devcontainer/scripts/install/) trigger NOTHING on push — that's expected. `pull_request`-event workflows still fire when the PR opens. Diagnose with: `git diff --name-only HEAD~1 HEAD` and compare against each workflow's `on:` block.
+  Diagnose with: `git diff --name-only HEAD~1 HEAD` and compare against each workflow's `on:` block.
 
 ## CI Pipeline Steps
 
-*(Note: the steps below reflect this harness's CI layout and may differ in other checkouts.)*
-
 This project's CI (`CI: Harness`) runs these steps in order:
 
-1. Lint (`pnpm run lint`)
-2. Format check (`pnpm run format:check`)
-3. Type check (`pnpm run type-check`)
-4. Prisma generate (`pnpm exec prisma generate`)
-5. Prisma migrate (`npx prisma migrate deploy`)
-6. Build (`pnpm run build`)
-7. Test (`pnpm test`)
-8. Playwright E2E (`pnpm run test:e2e`)
+1. Security audit (`pnpm run security:audit`)
+2. Install (`pnpm install --frozen-lockfile`)
+3. Typecheck (`pnpm run typecheck`)
+4. Build (`pnpm run build:harness`)
+5. Test (`pnpm test:scripts`)
+
+Sibling jobs: Boot Path Lint (shellcheck + hadolint) and Eval Probe Regression Gate.
 
 ## Local Pre-flight
 
 Before pushing, you can run the same checks locally to catch issues early:
 
 ```bash
-pnpm -r run lint && pnpm -r run format:check && pnpm -r run build && pnpm -r run test
+pnpm run typecheck && pnpm run build:harness && pnpm test
 ```

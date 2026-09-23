@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "commit": "32d03ac9804ba23fffc0885db09cf93636ef0977",
+  "reviewer": "bounded read-only reviewer (Explore, opus) - not an implementer of the code under review",
+  "reviewedAt": "2026-09-19T18:31:47Z",
+  "findings": [
+    {
+      "file": ".agro/evals/probes/spec-task-artifact-contract.sh",
+      "line": 28,
+      "simplerAlternative": "Delete the SPEC_ARTIFACT_SCOPE branch; SPEC_ARTIFACT_TASKS_DIR alone suffices for the US-004 fault injection.",
+      "removesLines": 7,
+      "blocking": false,
+      "status": "open",
+      "resolvedIn": null
+    },
+    {
+      "file": ".agro/evals/probes/audit-dispatcher-contract.sh",
+      "line": 35,
+      "simplerAlternative": "Drop the verdict-derivation block; no acceptance criterion requests it and the new probe already asserts the tokens end to end.",
+      "removesLines": 26,
+      "blocking": false,
+      "status": "open",
+      "resolvedIn": null
+    },
+    {
+      "file": ".agro/skills/audit/scripts/pr-acquire.sh",
+      "line": 45,
+      "simplerAlternative": "exit 69 has no production consumer because pipefail masks it behind pr-classify.sh; the stderr TOOLING-BLOCKED marker is the channel the driver actually reads.",
+      "removesLines": 8,
+      "blocking": false,
+      "status": "open",
+      "resolvedIn": null
+    }
+  ]
+}

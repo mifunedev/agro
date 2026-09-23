@@ -31,7 +31,7 @@ describe("default Herdr integration", () => {
     (composeFile) => {
       const compose = readRepoFile(`.devcontainer/${composeFile}`);
 
-      expect(compose).toContain("${AGRO_HOME_MOUNT:-${OH_HOME_MOUNT:-workspace}}:/home/sandbox");
+      expect(compose).toContain("${AGRO_HOME_MOUNT:-workspace}:/home/sandbox");
       expect(compose).not.toContain("/home/sandbox/.herdr");
       expect(compose).not.toContain("/home/sandbox/.config");
       expect(compose).toMatch(/^  workspace:$/m);
@@ -41,7 +41,7 @@ describe("default Herdr integration", () => {
   it("repairs ownership for Herdr state after UID sync", () => {
     const entrypoint = readRepoFile(".devcontainer/entrypoint.sh");
 
-    expect(entrypoint).toContain('find /home/sandbox -path "$OH_PROJECT_ROOT" -prune -o');
+    expect(entrypoint).toContain('find /home/sandbox -path "$AGRO_PROJECT_ROOT" -prune -o');
     expect(entrypoint).toContain('-exec chown -h "$owner" {} +');
   });
 

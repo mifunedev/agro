@@ -88,7 +88,7 @@ herdr agent start <name> --cwd <harness root> --env AGRO_SUPERVISOR_PANE=<pane>
    one destination delivered. `.ok` is false when no destination delivered, and
    the operator was **not** reached. Read `.destinations` to learn which
    destination delivered and which one failed. After a false `.ok`, surface the
-   escalation where a human will look — a PR comment, `evidence.md`. The script
+   escalation where a human will look — a PR comment, the PR body. The script
    already wrote the record (see below). The script made nobody read the record.
 4. **One escalation per blocker.** Do not narrate a session in Slack.
 5. **Read the reply channel honestly.** The escalate skill is one-way. The
@@ -160,10 +160,10 @@ always prints the reason to stderr and returns the reason in the JSON.
 - **Channel**: `--channel`, else the first `enabled` entry in
   `~/.pi/msg-bridge.json` under `auth.channels`.
 - **State**: quiet-window markers in `~/.agro/escalate` (`ESCALATE_STATE_DIR`).
-  The script keeps an existing legacy `~/.oh/escalate` directory in use, so an
+  The script keeps an existing legacy `~/.agro/escalate` directory in use, so an
   open quiet window survives.
 - **Harness root**: `AGRO_PROJECT_ROOT`, else the legacy alias
-  `OH_PROJECT_ROOT`, else the path four levels above the script.
+  `AGRO_PROJECT_ROOT`, else the path four levels above the script.
 - **Log**: every attempt appends one JSON line to
   `$AGRO_PROJECT_ROOT/.agro/logs/escalations.jsonl` (`ESCALATE_LOG`). The line
   carries the per-destination result. The path resolves to the **harness root**,

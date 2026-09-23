@@ -75,7 +75,7 @@ The standard provider surface is:
 .agents/skills -> ../.agro/skills
 ```
 
-Sandbox bootstrap creates and repairs this link through the canonical linker. To equip another checkout, run `oh update`, then:
+Sandbox bootstrap creates and repairs this link through the canonical linker. To equip another checkout, run `agro vendor`, then:
 
 ```bash
 bash .agro/scripts/link-providers.sh --init

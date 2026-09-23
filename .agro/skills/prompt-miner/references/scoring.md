@@ -77,6 +77,38 @@ that `markers.md` makes mandatory. The count is reported as
 `not what`, `that's not`, `try again`, `fix`. Single words match on word
 boundaries; phrases match as substrings (case-insensitive).
 
+### `--judge`: a typed judgment instead of the lexicon (opt-in, uncalibrated)
+
+`--judge` replaces the lexicon with one TypeSafe Noul per follow-up: *"Is this message
+correcting, rejecting, or redirecting the assistant's previous work?"* Follow-ups are
+deduplicated and batched into as few requests as the limits allow (at most
+`JUDGE_MAX_QUESTIONS_PER_REQUEST` = 100 questions or
+`JUDGE_MAX_CHARS_PER_REQUEST` = 60,000 characters per request), because the state
+dominates cost. A probability at or above `CORRECTION_JUDGE_THRESHOLD` (0.5) counts as
+corrective; **the density itself is still divided in code**, because Jev is explicitly
+not a calculator.
+
+The flag is **off by default** and the default output is byte-identical to a
+lexicon-only run — `.agro/evals/probes/prompt-miner-judge-default-off.sh` pins that.
+With the flag on, every session row carries `correctionSource`, `"judge"` or
+`"lexicon"`, so a fallback can never be mistaken for a judgment.
+
+If `TYPESAFE_API_KEY` is unset, the adapter is unreachable, or
+`.agro/scripts/typesafe.mjs` is absent (a standalone skill install), the run prints what
+to configure, scores with the lexicon, marks the rows `"lexicon"`, and completes. It
+never fails and never substitutes silently.
+
+**Status: uncalibrated. The threshold is a starting value, not a validated one.** No
+comparison has been run, so `--judge` is not yet known to beat the lexicon and must not
+be promoted past opt-in on the strength of the mechanism alone. Run this comparison:
+
+1. Hand-label the follow-ups in `scripts/__tests__/fixtures/` as corrective or not.
+2. Run the same cohort with and without `--judge`.
+3. Correlate each against the labels, and against `scoreUncapped` — never `score`, which
+   is censored at 100 and collapses every good session onto the ceiling.
+4. Record the result here, **including a negative one**. If the judgment does not beat a
+   12-word lexicon, say so and leave the default alone.
+
 ## Ground-truth bonus (+15, total capped at 100)
 
 A session earns the bonus when **either**:

@@ -264,6 +264,99 @@ function matchesLexicon(text, lexicon) {
   return false;
 }
 
+export const CORRECTION_JUDGE_THRESHOLD = 0.5;
+export const JUDGE_MAX_QUESTIONS_PER_REQUEST = 100;
+export const JUDGE_MAX_CHARS_PER_REQUEST = 60_000;
+
+const CORRECTION_INSTRUCTIONS =
+  "Is this message correcting, rejecting, or redirecting the assistant's previous work?";
+const CORRECTION_CRITERIA = Object.freeze({
+  true: "The message rejects, contradicts, undoes, or redirects what the assistant just did.",
+  false: "The message asks for something new, answers a question, or continues without objection.",
+});
+
+export function batchFollowups(
+  texts,
+  maxQuestions = JUDGE_MAX_QUESTIONS_PER_REQUEST,
+  maxChars = JUDGE_MAX_CHARS_PER_REQUEST,
+) {
+  const batches = [];
+  let current = [];
+  let chars = 0;
+  for (const text of texts) {
+    const size = text.length;
+    if (current.length > 0 && (current.length >= maxQuestions || chars + size > maxChars)) {
+      batches.push(current);
+      current = [];
+      chars = 0;
+    }
+    current.push(text);
+    chars += size;
+  }
+  if (current.length > 0) batches.push(current);
+  return batches;
+}
+
+async function loadAdapter() {
+  try {
+    return await import(new URL("../../../scripts/typesafe.mjs", import.meta.url).href);
+  } catch {
+    return null;
+  }
+}
+
+export async function judgeCorrections(texts, opts = {}) {
+  const unique = [...new Set(texts.filter((t) => typeof t === "string" && t.trim() !== ""))];
+  if (unique.length === 0) return new Map();
+
+  const adapter = opts.adapter ?? (await loadAdapter());
+  if (!adapter) {
+    const write = opts.onDiagnostic ?? ((l) => process.stderr.write(`${l}\n`));
+    write(
+      "TypeSafe adapter is missing — expected .agro/scripts/typesafe.mjs beside this skill.\n" +
+        "  --judge cannot run. Install the control-plane sibling or drop the flag.\n" +
+        "Continuing with the negation lexicon.",
+    );
+    return null;
+  }
+
+  const answers = new Map();
+  for (const batch of batchFollowups(unique)) {
+    const messages = {};
+    const questions = {};
+    batch.forEach((text, i) => {
+      const id = `m${i}`;
+      messages[id] = text;
+      questions[id] = adapter.noul(
+        `Does \`messages.${id}\` do this? ${CORRECTION_INSTRUCTIONS}`,
+        CORRECTION_CRITERIA,
+      );
+    });
+    const result = await adapter.systemOne({ state: { messages }, questions }, opts.request ?? {});
+    if (!result) return null;
+    batch.forEach((text, i) => {
+      const a = result.answers?.[`m${i}`];
+      if (a && typeof a.noul === "number") answers.set(text, a.noul);
+    });
+  }
+  return answers;
+}
+
+export function applyJudgedCorrections(agg, judged, threshold = CORRECTION_JUDGE_THRESHOLD) {
+  const followups = (agg.humanPrompts ?? []).slice(1);
+  let corrective = 0;
+  for (const text of followups) {
+    const p = judged.get(text);
+    if (typeof p === "number" ? p >= threshold : false) corrective += 1;
+  }
+  const density = agg.humanPromptCount > 0 ? corrective / agg.humanPromptCount : 0;
+  return {
+    ...agg,
+    correctiveFollowups: corrective,
+    correctionDensity: clamp(density, 0, 1),
+  };
+}
+
 export function aggregateSession(events, meta = {}) {
   const humanPrompts = [];
   let assistantTurns = 0;
@@ -586,6 +679,7 @@ export function parseArgs(argv) {
     out: null,
     reportOnly: false,
     dryRun: false,
+    judge: false,
     maxFileMb: 50,
     fixturesDir: process.env.PROMPT_MINER_FIXTURES_DIR || null,
     now: process.env.PROMPT_MINER_NOW || null,
@@ -659,6 +753,9 @@ export function parseArgs(argv) {
         break;
       case "--report-only":
         args.reportOnly = true;
+        break;
+      case "--judge":
+        args.judge = true;
         break;
       case "--dry-run":
         args.dryRun = true;
@@ -871,12 +968,26 @@ async function run(args) {
 
   const commitTimes = args.noGit ? [] : loadGitCommitTimes();
   let sessions = [];
+  const aggregates = [];
   for (const bucket of store.values()) {
-    const agg = aggregateSession(bucket.events, {
-      sessionId: bucket.sessionId,
-      harness: bucket.harness,
-      gitBranch: bucket.gitBranch,
-    });
+    aggregates.push(
+      aggregateSession(bucket.events, {
+        sessionId: bucket.sessionId,
+        harness: bucket.harness,
+        gitBranch: bucket.gitBranch,
+      }),
+    );
+  }
+
+  let judged = null;
+  if (args.judge) {
+    const followups = [];
+    for (const a of aggregates) followups.push(...(a.humanPrompts ?? []).slice(1));
+    judged = await judgeCorrections(followups);
+  }
+
+  for (const raw of aggregates) {
+    const agg = judged ? applyJudgedCorrections(raw, judged) : raw;
     const gt = resolveGroundTruth(agg, { noGit: args.noGit, commitTimes });
     const scored = scoreSession(agg, args.weights, gt);
     const attributedText =
@@ -906,6 +1017,9 @@ async function run(args) {
       totalInputTokens: agg.totalInputTokens,
       totalOutputTokens: agg.totalOutputTokens,
     };
+    if (args.judge) {
+      record.correctionSource = judged ? "judge" : "lexicon";
+    }
     if (args.includePromptText && !agg.noHumanPrompt) {
       record.promptText = redact(attributedText);
     }

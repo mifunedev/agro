@@ -1,0 +1,8 @@
+{
+  "commit": "1444942a76fc596ec4b8bd0bffc7e601a8390277",
+  "runnerExit": 0,
+  "ranAt": "2026-09-19T18:47:21Z",
+  "newRegressions": [],
+  "preExistingReds": [],
+  "evidence": "157 probes, runner exit 0, no PASS->REGRESSION, re-run after merging origin/development (which carried #1087). The merge brought in .agro/tasks/agro-workspace-verb/evidence.md; spec-task-artifact-contract flagged it and this PR removed it, since retiring the artifact means removing the last instance. Its content lives in #1087's merged PR body. Unit suite: 6 failed | 1646 passed, the sandbox file-mode baseline."
+}

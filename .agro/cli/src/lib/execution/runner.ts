@@ -1,8 +1,9 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { basename, join } from "node:path";
-import { resolveProjectLayout } from "../compat.js";
-import { activeBin } from "../product.js";
+import { resolveProjectLayout } from "../layout.js";
+import { invokedFromImage } from "../install-kind.js";
+import { activeBin, AGRO_PRODUCT } from "../product.js";
 
 export interface RunResult {
   status: number | null;
@@ -67,12 +68,20 @@ export function assertSpawned(r: RunResult, what: string): void {
   }
 }
 
+function recoveryRoute(): string {
+  const bin = activeBin();
+  if (invokedFromImage()) {
+    return `the sandbox image ships this CLI; pull a newer image on the host (${bin} stop, then ${bin} sandbox install docker --name <name>)`;
+  }
+  return `run \`${AGRO_PRODUCT.bin} vendor\` to re-vendor the control-plane payload`;
+}
+
 export function requireLifecycleScript(root: string, rel: string): string {
   const { controlDir } = resolveProjectLayout(root);
   const script = join(controlDir, "scripts", rel);
   if (!existsSync(script)) {
     throw new Error(
-      `missing lifecycle script ${script} — the vendored ${basename(controlDir)}/ payload looks incomplete; run \`${activeBin()} update\` to re-vendor it`,
+      `missing lifecycle script ${script} — the vendored ${basename(controlDir)}/ payload looks incomplete; ${recoveryRoute()}`,
     );
   }
   return script;

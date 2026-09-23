@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { resolveControlDir } from '../lib/compat.js';
+import { resolveControlDir } from '../lib/layout.js';
 import { loadManifest, rootPayloadDirs } from '../lib/manifest.js';
-import { copyOhPayload, copyRootPayload, assertDestInTarget, type CopyReport } from '../lib/vendor.js';
+import { copyControlPayload, copyRootPayload, assertDestInTarget, type CopyReport } from '../lib/vendor.js';
 
 export { assertDestInTarget };
 
@@ -58,31 +58,26 @@ export async function runUpdate(opts: UpdateOptions, io: UpdateIO): Promise<numb
   const { bin, targetDir, fromDir, force, dryRun } = opts;
   const dryPrefix = dryRun ? '[dry-run] ' : '';
 
-  const source = resolveControlDir(fromDir);
-  if (source.kind === 'absent') {
+  const fromControl = resolveControlDir(fromDir);
+  if (!existsSync(fromControl)) {
     io.stderr(
       bin + ' update: update source not found at ' +
-        source.agroPath +
-        ' or ' +
-        source.legacyPath +
+        fromControl +
         '. Pass --from <built-AGRO-checkout> or --from-remote [--ref <ref>].\n',
     );
     return 1;
   }
-  const fromOh = source.path;
-  const controlName = path.basename(fromOh);
 
-  const target = resolveControlDir(targetDir);
-  const targetOh = target.kind === 'absent' ? path.resolve(targetDir, controlName) : target.path;
-  const targetName = path.basename(targetOh);
+  const targetControl = resolveControlDir(targetDir);
+  const targetName = path.basename(targetControl);
 
-  if (fromOh === targetOh) {
+  if (fromControl === targetControl) {
     io.stderr(bin + ' update: source and target are the same ' + targetName + '; nothing to update.\n');
     return 1;
   }
 
-  const available = readCliVersion(fromOh);
-  const current = readCliVersion(targetOh);
+  const available = readCliVersion(fromControl);
+  const current = readCliVersion(targetControl);
   const cmp = compareVersions(available, current);
 
   if (cmp > 0) {
@@ -109,11 +104,11 @@ export async function runUpdate(opts: UpdateOptions, io: UpdateIO): Promise<numb
     );
   }
 
-  const manifest = loadManifest(fromOh);
+  const manifest = loadManifest(fromControl);
   if (manifest === null) {
     io.stdout(
       dryPrefix +
-        bin + ' update: no ' + controlName + '/manifest.json in source; overlaying all of ' + controlName + '/ (legacy mode)\n',
+        bin + ' update: no ' + targetName + '/manifest.json in source; overlaying all of ' + targetName + '/ (whole-tree mode)\n',
     );
   }
 
@@ -142,7 +137,7 @@ export async function runUpdate(opts: UpdateOptions, io: UpdateIO): Promise<numb
     }
   };
 
-  const { skipped } = copyOhPayload(fromOh, targetOh, manifest, { force, dryRun }, report);
+  const { skipped } = copyControlPayload(fromControl, targetControl, manifest, { force, dryRun }, report);
 
   const rootResult = copyRootPayload(
     path.resolve(fromDir),
@@ -153,7 +148,7 @@ export async function runUpdate(opts: UpdateOptions, io: UpdateIO): Promise<numb
   );
 
   for (const dir of rootPayloadDirs(manifest ?? { include: [], exclude: [] })) {
-    const stranded = path.join(targetOh, dir);
+    const stranded = path.join(targetControl, dir);
     if (existsSync(stranded)) {
       io.stdout(
         dryPrefix +

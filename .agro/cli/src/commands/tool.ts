@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { delimiter, join, resolve } from "node:path";
+import { delimiter, join } from "node:path";
 import {
   ExecutionSpawnError,
   resolveExecutionTarget,
@@ -14,17 +14,19 @@ import { sourceDocsUrl } from "../lib/docs.js";
 import { harnessBinPath, SANDBOX_HARNESS_PREFIX } from "../lib/harnesses/catalog.js";
 import {
   readHostConfig,
+  recordHarnessRoot,
   resolveHarnessRoot,
   writeHostConfig,
   type HostHarnessReceipt,
 } from "../lib/host-config.js";
-import { AGRO_REPO_URL, ensureHostWorkspace } from "../lib/host-workspace.js";
+import { resolveExistingWorkspace } from "../lib/host-workspace.js";
 import { resolveProjectRoot } from "../lib/project.js";
 import { ask as promptAsk, confirm } from "../lib/prompt.js";
 import {
   findTool,
   hostCapableToolIds,
   installableToolIds,
+  resolveToolInstallArgv,
   resolveToolUninstallArgv,
   toolIds,
   TOOL_CATALOG,
@@ -338,16 +340,18 @@ async function confirmDownload(
   entry: ToolEntry,
   opts: ToolInstallOptions,
   io: ToolIO,
+  host = false,
 ): Promise<boolean> {
-  if (entry.downloadSize === undefined) return true;
+  const size = host ? entry.hostDownloadSize : entry.downloadSize;
+  if (size === undefined) return true;
   if (opts.yes === true) return true;
 
-  const question = `${entry.id} downloads ${entry.downloadSize}. Continue?`;
+  const question = `${entry.id} downloads ${size}. Continue?`;
   if (io.confirm !== undefined) return io.confirm(question);
   if (process.stdin.isTTY === true) return confirm(question, false);
 
   io.stderr(
-    `${entry.id} downloads ${entry.downloadSize} and this is not an interactive terminal.\n` +
+    `${entry.id} downloads ${size} and this is not an interactive terminal.\n` +
       "Re-run with --yes to accept the download.\n",
   );
   return false;
@@ -431,26 +435,16 @@ async function installOnHost(
       io.stderr(sandboxRefusal(bin, status));
       return 1;
     }
-    if (!sticky) {
-      const chosen = (await ask(`Harness root [${root}]:`)).trim();
-      if (chosen !== "") root = resolve(chosen);
-    }
   }
   if (sticky) io.stdout(`using the recorded harness root ${root}\n`);
 
-  try {
-    if (!existsSync(join(root, ".git"))) io.stdout(`cloning ${AGRO_REPO_URL} into ${root}…\n`);
-    const workspace = ensureHostWorkspace(root, run);
-    root = workspace.root;
-    io.stdout(
-      workspace.action === "cloned"
-        ? `host workspace cloned into ${root}\n`
-        : `host workspace reused at ${root}\n`,
-    );
-  } catch (err) {
-    io.stderr(`${bin} tool: ${messageOf(err)}\n`);
+  const resolved = resolveExistingWorkspace(bin, "tool", root, env, home);
+  if (!resolved.ok) {
+    io.stderr(resolved.refusal);
     return 1;
   }
+  root = resolved.root;
+  io.stdout(`host workspace ${root}\n`);
 
   const prefix = hostPrefix(home);
   const installEnv: Record<string, string> = { NPM_USER_PREFIX: prefix };
@@ -458,14 +452,20 @@ async function installOnHost(
 
   if (await probeInstalled(target, entry, undefined, installEnv) === true) {
     io.stdout(`${entry.id}: already installed (${entry.binary})\n`);
+    try {
+      recordHarnessRoot(root, env, home);
+    } catch (err) {
+      io.stderr(`${bin} tool: could not record the harness root: ${messageOf(err)}\n`);
+      return 1;
+    }
     return 0;
   }
 
-  if (!(await confirmDownload(entry, opts, io))) return 1;
+  if (!(await confirmDownload(entry, opts, io, true))) return 1;
 
   io.stdout(`installing ${entry.title} on the host…\n`);
   const r = await target.exec({
-    argv: [...entry.installArgv!],
+    argv: resolveToolInstallArgv(entry, true)!,
     stdio: "inherit",
     env: installEnv,
   });
@@ -569,8 +569,9 @@ async function removeTool(
   user: ProbeUser,
   opts: ToolOptions,
   io: ToolIO,
+  host = false,
 ): Promise<RemovalOutcome> {
-  const argv = resolveToolUninstallArgv(entry, prefix)!;
+  const argv = resolveToolUninstallArgv(entry, prefix, host)!;
 
   if (await probeInstalled(target, entry, user) !== true) {
     io.stdout(`${entry.id}: not installed (${entry.binary})\n`);
@@ -633,7 +634,7 @@ async function uninstallOnHost(
 
   const prefix = receipt?.prefix ?? computed;
   const target = hostTargetFor(receipt?.workspaceRoot ?? workspace, prefix, run, env);
-  const outcome = await removeTool(entry, target, prefix, undefined, opts, io);
+  const outcome = await removeTool(entry, target, prefix, undefined, opts, io, true);
 
   if (outcome.dropReceipt && receipt !== undefined) {
     const remaining = { ...(config.hostTools ?? {}) };

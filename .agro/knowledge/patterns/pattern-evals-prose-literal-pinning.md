@@ -19,8 +19,8 @@ confidence: provisional
 # Contract probes that pin multi-word prose break on reflow, not on drift
 
 ## Relevant Source Files
-- `.oh/evals/probes/wiki-kind-schema-contract.sh@bfe22487` — ten pinned literals over one reference document; the two longest were the two that failed.
-- `.oh/skills/wiki/references/schema.md@c841e567` — the pinned document, hard-wrapped prose.
+- `.agro/evals/probes/wiki-kind-schema-contract.sh@bfe22487` — ten pinned literals over one reference document; the two longest were the two that failed.
+- `.agro/skills/wiki/references/schema.md@c841e567` — the pinned document, hard-wrapped prose.
 
 ## Summary
 A contract probe that asserts a reference document still says something usually does
@@ -66,14 +66,14 @@ cannot satisfy an assertion about the thing itself
 surfaced it; neither probe had ever been run against a broken input.
 
 A third instance, from task `one-door` (#948): a documentation sweep that rewrote
-onboarding sentences to put `oh tool install herdr` before `herdr` broke two
+onboarding sentences to put `agro tool install herdr` before `herdr` broke two
 whole-sentence pins in `.agro/scripts/__tests__/herdr-default.test.ts:62-63`
 ("then run `herdr` first") and pushed `AGENTS.md` 13 bytes over the 9500-byte
 always-on budget that `.agro/evals/probes/context-tier-size-budget.sh` enforces. The
 contract the test protects — Herdr is the first interactive action — still held;
 only the pinned bytes had moved. Workaround, appended 2026-09-02: when a wave
 rewrites prose, run the suites that pin that prose in the same wave and repin to
-the shortest fragment that carries the claim (here `run \`oh tool install herdr\`
+the shortest fragment that carries the claim (here `run \`agro tool install herdr\`
 and \`herdr\` first`), and treat any always-on byte budget as one of those pins;
 the fix is mechanical, but a later wave that does not know the pins exist pays a
 full gate cycle to find them.

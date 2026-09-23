@@ -5,7 +5,7 @@ agents work: the repository root, Docker lifecycle, shared agent infrastructure,
 and the boundaries that keep agent work safe. Application agents write
 application code inside the sandbox.
 
-`CLAUDE.md` is a provider-compatibility symlink to this file. Edit `AGENTS.md`.
+Every coding harness reads this file directly.
 
 ## What AGRO is
 
@@ -143,9 +143,10 @@ silently skip a surface.
 
 ## How to work in this repository
 
-This file is the only always-on context. A nested `AGENTS.md` exists only in
-`.worktrees/`, `projects/`, `crons/`, and `.agro/logs/`, whose contents are
-produced apart from it. Every other directory uses a `README.md`.
+This file is the root context. Read each applicable scoped `AGENTS.md` before
+producing files in its directory. Local contracts hold mandatory obligations;
+READMEs provide orientation, package information, or indexes. Keep detailed
+explanations in `docs/` and reusable procedures in canonical skills.
 
 Use the lifecycle in this order:
 
@@ -158,7 +159,7 @@ Use the lifecycle in this order:
 Run `agro destroy <name>` only for operator-authorized teardown.
 
 `agro` is the only lifecycle door, on the host and in the sandbox, and it calls
-`.agro/scripts/docker-compose.sh`. `oh` remains a working alias through the SLA.
+`.agro/scripts/docker-compose.sh`. The legacy `oh` alias is retired.
 Host prerequisites are Docker, Git, and Node 20 or newer. The verb reference is
 [`docs/lifecycle-commands.md`](docs/lifecycle-commands.md).
 

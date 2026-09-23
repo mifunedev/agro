@@ -40,18 +40,6 @@ curl -fsSL https://agro.mifune.dev/get-agro.sh | bash
   npm will not install Node for you.
 - **Docker** and **git** for the sandbox lifecycle commands (`agro sandbox install`, `agro shell`).
 
-## Compatibility: `oh`
-
-`oh` is the compatibility entry point for `agro`. It ships as the npm package
-[`@mifune/openharness`](https://www.npmjs.com/package/@mifune/openharness), which
-contains no CLI code of its own: its only file imports the `agro` bundle from an
-exact-pinned `@mifune/agro` dependency. The two packages expose disjoint executables
-(`agro` and `oh`), can be installed together, and removing either never removes the
-other's executable. `oh --help` ends with a line that names `agro` as the canonical
-CLI; everything else about `oh` — the `.agro/` control plane, `agro.json`, `OH_*`
-variables, `~/.oh/sandboxes` — is unchanged, and `agro` reads and writes exactly the
-same files.
-
 ## Quick start
 
 Create a sandbox from any directory — no project checkout needed:
@@ -66,7 +54,7 @@ To bind one of your own checkouts into the sandbox, equip it and pass `--checkou
 
 ```bash
 cd your-project
-oh update                                       # vendor .agro/ + crons/ — and nothing else (compatibility window)
+agro vendor                                       # vendor .agro/ + crons/ — and nothing else (compatibility window)
 agro sandbox install docker --checkout "$PWD" --name your-project
 ```
 
@@ -91,7 +79,7 @@ agro tool install agent-browser   # asks before the ~1 GB Chromium download
 `agro harness` and `agro tool` also run **inside** the sandbox, where they install
 into the current environment instead of driving the container over Docker
 Compose. Detection is automatic (`/.dockerenv` plus `SANDBOX_NAME`); override it
-with `OH_EXECUTION_TARGET=local` or `OH_EXECUTION_TARGET=docker-compose`.
+with `AGRO_EXECUTION_TARGET=local` or `AGRO_EXECUTION_TARGET=docker-compose`.
 `agro sandbox install` remains host-only and says so.
 
 ## Commands
@@ -106,10 +94,10 @@ with `OH_EXECUTION_TARGET=local` or `OH_EXECUTION_TARGET=docker-compose`.
 | `agro logs [name]` | Tail the sandbox compose logs. |
 | `agro ps [name]` | Show sandbox service status. |
 | `agro destroy [name] [--yes]` | Remove the sandbox, wipe its named volumes (`docker compose down -v`), then delete the registry entry. Names the volumes, then requires you to type the sandbox name; refuses without a TTY unless `--yes` is passed. |
-| `agro update [--dry-run]` | Upgrade the installed `agro` executable and nothing else, through the mechanism that installed it: npm-managed (`npm view` + `npm install -g --prefix <owning prefix> @mifune/agro@<version>`) or standalone (download `AGRO_JS_URL`, falling back to `OH_JS_URL` and defaulting to the latest `agro.js` release asset; verify its shebang and `--version`; rename it over the file; keep `<path>.prev` until the new file verifies). Refuses image-shipped, source-checkout, legacy-package, unresolvable, read-only, PATH-shadowed, and downgrade cases with the supported procedure; never uses `sudo`; a no-op when current. Project payload vendoring is `oh update` — see the compatibility note below. |
+| `agro update [--dry-run]` | Upgrade the installed `agro` executable and nothing else, through the mechanism that installed it: npm-managed (`npm view` + `npm install -g --prefix <owning prefix> @mifune/agro@<version>`) or standalone (download `AGRO_JS_URL`, falling back to `AGRO_JS_URL` and defaulting to the latest `agro.js` release asset; verify its shebang and `--version`; rename it over the file; keep `<path>.prev` until the new file verifies). Refuses image-shipped, source-checkout, legacy-package, unresolvable, read-only, PATH-shadowed, and downgrade cases with the supported procedure; never uses `sudo`; a no-op when current. Project payload vendoring is `agro vendor` — see the compatibility note below. |
 | `agro config show [--sandbox <name>]` | Print the resolved `agro.json` — every non-secret setting. |
 | `agro config set <field> <value> [--sandbox <name>]` | Set one dotted `agro.json` field (`access.sshPort 2200`), validated against the schema. A secret key is refused with a pointer at `agro secret set`. |
-| `agro config repo` | Create a repo on your GitHub account, keep the cloned-from upstream as the `openharness` remote, point `origin` at yours, and push. Asks first and defaults to no; never runs without an interactive yes. |
+| `agro config repo` | Create a repo on your GitHub account, keep the cloned-from upstream as the `agro` remote, point `origin` at yours, and push. Asks first and defaults to no; never runs without an interactive yes. |
 | `agro config <integration>` | Configure an integration via an interactive wizard. |
 | `agro secret set <KEY> [--sandbox <name>]` | Prompt for the value with the input hidden and write it to the gitignored `.env` (mode `0600`). The value is never taken from the command line, where shell history would keep it. |
 | `agro secret list [--sandbox <name>]` | List the allow-listed keys that hold a value, with the values redacted. |
@@ -127,17 +115,17 @@ two homes — a sandbox's registry entry (`--sandbox <name>`) and the project ro
 [configuration](https://github.com/mifunedev/agro/blob/main/docs/configuration.md)
 for the field reference.
 
-`agro` (or `oh`) is the only lifecycle door, on the host and in the sandbox, and every verb
+`agro` is the only lifecycle door, on the host and in the sandbox, and every verb
 runs `.agro/scripts/docker-compose.sh` — see
 [lifecycle commands](https://github.com/mifunedev/agro/blob/main/docs/lifecycle-commands.md), which also
 states the confirmation policy `agro destroy` carries.
 
-`agro update` never touches a project. During the compatibility window `oh update` vendors
+`agro update` never touches a project. During the compatibility window `agro vendor` vendors
 `.agro/` + `crons/` into the current directory, equipping an empty checkout and upgrading an
 equipped one (`--from <dir>` / `--from-remote [--ref <ref>]`, `--dry-run`, `--force`); it
 writes nothing else and never prompts. `agro update` rejects those flags and points at
-`oh update`. `oh update` prefers the payload bundled into the CLI itself; with `--from-remote`
-(or no payload at all) it shallow-clones the public OpenHarness repo into a temp dir and
+`agro vendor`. `agro vendor` prefers the payload bundled into the CLI itself; with `--from-remote`
+(or no payload at all) it shallow-clones the public AGRO repo into a temp dir and
 removes it after the run (`--ref <ref>` pins it). Root `docs/` remains project-owned and is
 not part of that payload. Catalog and help output therefore links to the AGRO source
 documentation instead of a path inside the equipped project.

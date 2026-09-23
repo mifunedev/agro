@@ -1,0 +1,24 @@
+[Unit]
+Description=AGRO cron runtime
+Documentation=https://github.com/mifunedev/agro
+Requires=agro-bootstrap.service
+After=agro-bootstrap.service
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=sandbox
+WorkingDirectory=/home/sandbox/harness
+Environment=HOME=/home/sandbox
+EnvironmentFile=-/home/sandbox/.config/agro/langfuse.env
+ExecStart=/usr/local/bin/node --experimental-strip-types /home/sandbox/harness/.agro/scripts/cron-runtime.ts
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+KillMode=process
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target

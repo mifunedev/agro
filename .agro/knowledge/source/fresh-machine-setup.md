@@ -2,9 +2,9 @@
 title: "Fresh-Machine Setup Flow"
 slug: fresh-machine-setup
 kind: repo
-tags: [setup, onboarding, installation, agro, registry, gateway, ssh, github, slack]
+tags: [setup, onboarding, installation, agro, registry, workspace, host-install, gateway, ssh, github, slack]
 created: 2026-07-02
-updated: 2026-09-11
+updated: 2026-09-19
 sources:
   - README.md
   - docs/quickstart.md
@@ -18,12 +18,16 @@ sources:
   - .devcontainer/entrypoint.sh
   - .devcontainer/Dockerfile
   - .agro/cli/src/commands/harness.ts
+  - .agro/cli/src/commands/tool.ts
+  - .agro/cli/src/commands/workspace.ts
+  - .agro/cli/src/lib/host-workspace.ts
+  - docs/harnesses/overview.md
   - .agro/scripts/link-providers.sh
   - .agro/scripts/hermes-install-smoke.sh
   - .agro/scripts/gateway.sh
   - .agro/scripts/get-agro.sh
-verified_at: 5d48b5f601c28748a37fb3d14a475bbf4b08f81e
-related: [sandbox-dependency-installs, oh-cli-portable-lifecycle]
+verified_at: d4466d81d77127fae62634e364da488a62d77077
+related: [sandbox-dependency-installs, agro-cli-portable-lifecycle]
 confidence: provisional
 ---
 
@@ -32,7 +36,7 @@ confidence: provisional
 ## Relevant Source Files
 - `docs/quickstart.md` — the **canonical human walkthrough**: get `agro`, create the sandbox, enter it, install Herdr, install and authenticate one harness, then the GitHub-login prerequisite and the two optional agent prompts. This entry is a synthesis and doc-handoff map only.
 - `README.md` — the same path in eight numbered steps, three of them marked optional, and the shortest statement of what onboarding now is.
-- `docs/installation.md` — host prerequisites, the `agro` install paths, the `oh` compatibility entry point, the package/PATH rules, and the second shape: equipping an existing project repo with `oh update`.
+- `docs/installation.md` — host prerequisites, the `agro` install paths, the package/PATH rules, and the second shape: equipping an existing project repo with `agro vendor`.
 - `.agro/scripts/get-agro.sh` — artifact-only installer: the `agro.js` release asset, `AGRO_<NAME>` with `OH_<NAME>` fallback, no clone and no build.
 - `docs/deployment-prebuilt-image.md` — the `agro sandbox install docker` page: image-only by default, `--checkout` to bind a checkout.
 - `docs/integrations/github.md` — the command-level GitHub reference: protocol choice, SSH-key upload (interactive + entrypoint auto-keygen), the recovery table, and `agro config repo` as a compatibility helper.
@@ -41,20 +45,21 @@ confidence: provisional
 - `docs/integrations/slack.md`, `docs/harnesses/hermes.md` — Slack config + gateway run/verify.
 - `.devcontainer/entrypoint.sh` — auto SSH keygen + pubkey upload when `GH_TOKEN` carries `admin:public_key`.
 - `.devcontainer/Dockerfile`, `.agro/cli/src/commands/harness.ts`, `.agro/scripts/link-providers.sh` — Hermes runtime home and immediate shared-skill integration.
+- `.agro/cli/src/commands/workspace.ts`, `.agro/cli/src/lib/host-workspace.ts`, `docs/harnesses/overview.md` — the **host** alternative to the sandbox path: the workspace door and the install refusal that points at it.
 - `.agro/scripts/gateway.sh` — sandbox-only lifecycle for the sibling `client-slack-pi` / `client-slack-hermes` sessions.
 
 ## Summary
 Onboarding is **sandbox-first**. The operator installs one host binary, creates a
 sandbox from the published image, and does everything else inside it. There is no
 fork step, no clone-and-own recipe, no one-line repository installer, and no
-`~/.openharness` checkout — #942 retired all four from `README.md`,
+`~/.agro` checkout — #942 retired all four from `README.md`,
 `docs/quickstart.md`, and `docs/installation.md`. Three commands run on the
 **host** (install `agro`; `agro sandbox install docker`; `agro shell <name>`);
 everything after that runs **inside the sandbox**: `agro tool install herdr` then
 `herdr`, then `agro harness install <id>` and that harness's login. A working
 sandbox is an installed and authenticated harness inside Herdr — everything past
-that point is optional. The docs write `agro`; `oh` is the compatibility alias
-for the same executable (#941), and `agro migrate` moves legacy `.oh/` state when
+that point is optional. The docs write `agro`
+for the same executable (#941), and `agro migrate` moves legacy `.agro/` state when
 the operator asks (#942).
 
 ## Detail
@@ -67,15 +72,14 @@ Makefile). Install it with `npm install -g @mifune/agro`, run it zero-install wi
 (`AGRO_BIN_DIR`), checks the shebang, offers nvm + Node 22 when Node is missing, and
 never clones or builds — no ref override exists because nothing is checked out. Each
 `AGRO_<NAME>` falls back to `OH_<NAME>`; a warning names both keys when they differ
-(`agro_env`). `get-oh.sh` stays the compatibility bootstrap for `oh`, and
-`@mifune/openharness` installs the delegating `oh` shim. `agro update` upgrades the
-executable later ([[oh-cli-portable-lifecycle]]). The documented entry points are
+(`agro_env`). `get-agro.sh` is the standalone bootstrap for `agro`. `agro self-upgrade` upgrades the
+executable later ([[agro-cli-portable-lifecycle]]). The documented entry points are
 `https://agro.mifune.dev/get-agro.sh` (canonical; `README.md:47`,
-`docs/installation.md:38`) and `https://oh.mifune.dev/get-oh.sh` (compatibility;
+`docs/installation.md:38`) and `https://oh.mifune.dev/get-agro.sh` (compatibility;
 `docs/installation.md:74`), and README and the docs link `mifunedev/agro`,
 `mifunedev/agro-web`, and `agro.mifune.dev` (#943; `README.md:341,366`). The GitHub
 repository rename is an operator step in `docs/agro-cutover-runbook.md`, pending at
-this pin, so `mifunedev/openharness` still resolves directly and the `mifunedev/agro`
+this pin, so `mifunedev/agro` still resolves directly and the `mifunedev/agro`
 default takes effect once the rename lands. [[agro-web-pipeline]] describes the site
 that serves the installers.
 
@@ -87,10 +91,10 @@ and `--yes` takes every default. The default name is `agro-sbx-<n>`, the
 lowest unused number. The answers land in a registry entry at
 `~/.agro/sandboxes/<name>/agro.json`, beside the compose files and the wrapper the CLI
 regenerates on every lifecycle call — the operator edits only `agro.json`. A registry
-written by an earlier release stays at `~/.oh/sandboxes/<name>/oh.json` and keeps
+written by an earlier release stays at `~/.agro/sandboxes/<name>/agro.json` and keeps
 working under both names; `agro migrate --home` moves it when the operator chooses.
 Without `--checkout` the unselected fallback is `ghcr.io/mifunedev/agro:latest`
-(`DEFAULT_SANDBOX_IMAGE`, `lifecycle.ts:104`) and the sandbox seeds its workspace from
+(`DEFAULT_SANDBOX_IMAGE`, `lifecycle.ts:105`) and the sandbox seeds its workspace from
 the image's `/opt/agro-seed`, so nothing is cloned and nothing is built. Since #1042 a
 `--checkout <dir>` that is not itself a harness checkout reaches the same outcome: build
 mode follows `<dir>/.devcontainer/Dockerfile`, so such a path binds and builds nothing,
@@ -98,7 +102,7 @@ and the install pins `image.ref` to the same published image. The flag `--repo` 
 `agro.json` field `repo` remain supported aliases for `--checkout` and `checkout`
 (`docs/installation.md:103`, `docs/quickstart.md:117-118`,
 `docs/deployment-prebuilt-image.md:115-116`). An explicit
-`image.ref` and `AGRO_SANDBOX_IMAGE` over `OH_SANDBOX_IMAGE` are unchanged.
+`image.ref` and `AGRO_SANDBOX_IMAGE` over `AGRO_SANDBOX_IMAGE` are unchanged.
 Non-secret configuration is edited with `agro config set --sandbox <name>`; secrets go
 through `agro secret set --sandbox <name>` into the entry's gitignored dotenv. The CLI
 writes no `AGENTS.md`, provider config, or scaffold; the operator owns those files.
@@ -120,6 +124,8 @@ host, where browser-redirect OAuth typically fails; explicit `--device-auth` fla
 remains the documented default. **DebugMCP** is a separate, optional cross-harness MCP
 debugging capability, enabled by the VS Code attach-to-container route; any MCP-capable
 harness can drive it.
+
+**The host path is the off-sandbox alternative, and since #1086 it creates nothing.** When no sandbox is reachable, `agro harness install <id> --host` and `agro tool install <id> --host` install into the host's own `~/.local` and run from an AGRO checkout called a **host workspace**. That checkout is no longer a side effect of the install: the wizard that asked `Workspace name [default]:` is gone, and the operator now runs `agro workspace create [<name>]` first, which clones into `~/.agro/workspaces/<name>` (`.agro/cli/src/commands/workspace.ts`). A host install with no such checkout exits 1, lists every workspace that exists, and names `agro workspace create` (`resolveExistingWorkspace`, `.agro/cli/src/lib/host-workspace.ts:145-172`). A successful host install still records the root as `harnessRoot`, through the shared `recordHarnessRoot` on the already-installed path (`.agro/cli/src/lib/host-config.ts:172`) and inline beside the install receipt otherwise (`.agro/cli/src/commands/harness.ts:480`), so later host installs reuse it. Commands and precedence live in `docs/harnesses/overview.md` and `docs/lifecycle-commands.md`; cite them, do not restate them ([[agro-cli-portable-lifecycle]]).
 
 **GitHub is a prerequisite, not a step in the middle.** Local sandbox use stays
 available with no GitHub account; pushing, creating a repository, and opening a pull
@@ -153,11 +159,11 @@ helper, `Permission denied (publickey)`, a token missing a scope, and the fact t
 `agro destroy` or `down -v` deletes the home volume holding the token and keys.
 Contribution conventions live in `docs/contributing.md`.
 
-Optionally, a project checkout can be bound instead: `oh update` inside it vendors the
+Optionally, a project checkout can be bound instead: `agro vendor` inside it vendors the
 control plane and `crons/` and nothing else, then
 `agro sandbox install docker --checkout "$PWD" --name <project>` bind-mounts it at
-`/home/sandbox/harness`. A checkout equipped by an earlier release carries `.oh/` and
-`oh.json`; both keep resolving, and `agro migrate` renames them when the operator asks.
+`/home/sandbox/harness`. A checkout equipped by an earlier release carries `.agro/` and
+`agro.json`; both keep resolving, and `agro migrate` renames them when the operator asks.
 
 Slack + gateways: `pi-messenger-bridge` bridges Slack to Pi; Hermes uses its native
 gateway. One `.agro/scripts/gateway.sh` lifecycle manages both in sibling tmux sessions
@@ -176,9 +182,9 @@ Commands themselves live in `quickstart.md`, not here.
 Hermes onboarding separates the program home from runtime state. The program remains in
 `~/.local/lib/hermes-agent`; the image defaults runtime state to `~/harness/.hermes`
 (`.devcontainer/Dockerfile:4`). The installer reconciles shared skills immediately and
-checks the executable before reporting success (`.agro/cli/src/commands/harness.ts:176`,
-`.agro/cli/src/commands/harness.ts:259-262`); the reconcile call now reaches the linker
-through `remoteControlDirScript`, so it works against a `.agro/` or a `.oh/` sandbox.
+checks the executable before reporting success (`.agro/cli/src/commands/harness.ts:661`,
+`.agro/cli/src/commands/harness.ts:687-692`); the reconcile call now reaches the linker
+through `remoteControlDirScript`, so it works against a `.agro/` or a `.agro/` sandbox.
 Native skills remain beside the additive shared link. Conflicting, unset, or relative
 managed homes fail before installation (`.agro/scripts/link-providers.sh:197-210`).
 
@@ -208,7 +214,7 @@ flowchart TD
     G3 --> G4{"is this the intended account?"}
     G4 -->|no| G1
     G4 -->|yes| P["optional agent prompt:<br/>private versioning | AGRO contribution"]
-    WORKING --> R["optional: oh update + --checkout to bind a checkout"]
+    WORKING --> R["optional: agro vendor + --checkout to bind a checkout"]
     WORKING --> SL["optional: Slack + gateway run/verify"]
   end
   H1 -.-> D1["installation.md prerequisites + get-agro.sh"]
@@ -221,4 +227,4 @@ flowchart TD
 
 ## See Also
 - [[sandbox-dependency-installs]]
-- [[oh-cli-portable-lifecycle]]
+- [[agro-cli-portable-lifecycle]]

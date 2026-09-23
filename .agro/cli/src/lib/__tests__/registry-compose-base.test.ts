@@ -3,10 +3,10 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { entryRoot, materialize } from "../registry.js";
-import { configCheckout, ohConfigPath, readOhConfig, type ImageMode } from "../oh-config.js";
+import { configCheckout, agroConfigPath, readAgroConfig, type ImageMode } from "../agro-config.js";
 
-const BUILD_STANZA = "context: ${AGRO_REPO_DIR:-${OH_REPO_DIR:-..}}";
-const CHECKOUT_MOUNT = "${AGRO_REPO_DIR:-${OH_REPO_DIR:-..}}:/home/sandbox/harness";
+const BUILD_STANZA = "context: ${AGRO_REPO_DIR:-..}";
+const CHECKOUT_MOUNT = "${AGRO_REPO_DIR:-..}:/home/sandbox/harness";
 
 type Base = "image-only" | "repo";
 
@@ -20,7 +20,7 @@ afterEach(() => {
 function registry(): void {
   const home = mkdtempSync(join(tmpdir(), "agro-compose-base-"));
   cleanups.push(home);
-  vi.stubEnv("OH_HOME", home);
+  vi.stubEnv("AGRO_HOME", home);
 }
 
 function entry(name: string, mode: ImageMode, checkout?: string): string {
@@ -39,7 +39,7 @@ function entry(name: string, mode: ImageMode, checkout?: string): string {
 }
 
 function writtenCompose(root: string): string {
-  const config = readOhConfig(ohConfigPath(root));
+  const config = readAgroConfig(agroConfigPath(root));
   const checkout = configCheckout(config);
   materialize(root, { ...(checkout === undefined ? {} : { checkout }) });
   return readFileSync(join(root, ".devcontainer", "docker-compose.yml"), "utf8");

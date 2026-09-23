@@ -15,6 +15,7 @@ export const SECRET_KEYS = [
   "PI_SLACK_BOT_TOKEN",
   "LANGFUSE_PUBLIC_KEY",
   "LANGFUSE_SECRET_KEY",
+  "TYPESAFE_API_KEY",
 ] as const;
 
 export type SecretKey = (typeof SECRET_KEYS)[number];
@@ -32,7 +33,7 @@ export function isSecretKey(key: string): key is SecretKey {
 export function assertSecretKey(key: string): asserts key is SecretKey {
   if (ALLOWED.has(key)) return;
   throw new Error(
-    `${key} is not a secret — non-secret settings live in oh.json; use \`${activeBin()} config set\` instead`,
+    `${key} is not a secret — non-secret settings live in agro.json; use \`${activeBin()} config set\` instead`,
   );
 }
 

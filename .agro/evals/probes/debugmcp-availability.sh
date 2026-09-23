@@ -20,7 +20,7 @@ trap cleanup EXIT
 
 HEADERS_FILE="$(mktemp)"
 BODY_FILE="$(mktemp)"
-INIT_BODY='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"openharness-probe","version":"0.0.1"}}}'
+INIT_BODY='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"agro-probe","version":"0.0.1"}}}'
 connect_rc=0
 curl -s -o "$BODY_FILE" -D "$HEADERS_FILE" --max-time 5 \
   -X POST "$URL" \

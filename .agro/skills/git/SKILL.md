@@ -24,7 +24,7 @@ for routing changes to the right remote and for preserving local work safely.
 This checkout commonly has two remotes:
 
 - `upstream` → `mifunedev/agro` (public template/canonical upstream)
-- `origin` → your fork of `openharness` (private/operator fork)
+- `origin` → your fork of `agro` (private/operator fork)
 
 Before every commit or PR, inspect the changed paths and choose the remote
 explicitly. Do not assume `origin` is the public target.
@@ -33,7 +33,7 @@ explicitly. Do not assume `origin` is the public target.
 
 Format: `<prefix>(<issue#>): <shortdesc>`
 
-`<prefix>` ∈ `feat` · `bug` · `task` · `audit` · `skill` · `agent`
+`<prefix>` ∈ `feat` · `bug` · `task` · `audit` · `skill`
 (matches `.github/ISSUE_TEMPLATE/<prefix>.md`)
 
 Example: `feat(#42): slack thread replies`
@@ -109,7 +109,7 @@ An entry states WHAT changed and its user-visible effect. Never why. Never alter
 
 ```markdown
 ### Added
-- Slack thread replies in multi-channel mode ([#42](https://github.com/mifunedev/openharness/pull/42)).
+- Slack thread replies in multi-channel mode ([#42](https://github.com/mifunedev/agro/pull/42)).
 ```
 
 Displaced detail has a destination — put it there, not in the entry:
@@ -124,13 +124,13 @@ Displaced detail has a destination — put it there, not in the entry:
 BAD (real entry, 3,579 chars — a design doc wearing a bullet):
 
 ```markdown
-- Add `oh harness <list|install|status>` so installing an agent harness stops requiring a full image rebuild. Adding one of the four optional harnesses previously meant knowing that `harness.yaml` carries an `install:` section, …
+- Add `agro harness <list|install|status>` so installing an agent harness stops requiring a full image rebuild. Adding one of the four optional harnesses previously meant knowing that `harness.yaml` carries an `install:` section, …
 ```
 
 GOOD (233 chars — same fact, rationale left to the PR):
 
 ```markdown
-- Add `oh harness <list|install|status>` to install optional harnesses into a running sandbox without a rebuild, persisting the choice to `install.<key>` for the next build ([#821](https://github.com/mifunedev/openharness/pull/821)).
+- Add `agro harness <list|install|status>` to install optional harnesses into a running sandbox without a rebuild, persisting the choice to `install.<key>` for the next build ([#821](https://github.com/mifunedev/agro/pull/821)).
 ```
 
 Enforced by `.agro/evals/probes/changelog-entry-length.sh` (report-only) over `## [Unreleased]`.
@@ -142,7 +142,7 @@ Automatic branch-push releases use the matching `## [<VERSION>] - YYYY-MM-DD` se
 Path: `.worktrees/<branch>` at the root of the repository the branch belongs to. A project clone under `projects/` keeps its own worktrees the same way, at `projects/<owner>/<repo>/.worktrees/`. Independent project clones (own `.git`, not harness branches) live under `projects/<owner>/<repo>/`. Both roots are fixed conventions, not settings — see `.worktrees/AGENTS.md` and `projects/AGENTS.md`.
 
 ```bash
-WORKTREES_ROOT="$(bash .agro/scripts/oh-path worktrees --no-create 2>/dev/null || printf '%s' .worktrees)"
+WORKTREES_ROOT="$(bash .agro/scripts/agro-path worktrees --no-create 2>/dev/null || printf '%s' .worktrees)"
 mkdir -p "$WORKTREES_ROOT"
 git worktree add "$WORKTREES_ROOT/<branch>" <branch>                # existing branch
 git worktree add -b <prefix>/<issue#>-<short-desc> \
@@ -249,16 +249,16 @@ jobs all skip. The run stays **green**. To publish again, bump the version.
 
 The `v` prefix appears only in the git tag and the GitHub Release name. The step
 output, the GHCR image tags, and the concurrency group all stay bare
-(`ghcr.io/mifunedev/openharness:0.1.0`, `ghcr.io/mifunedev/agro:0.1.0`).
+(`ghcr.io/mifunedev/agro:0.1.0`, `ghcr.io/mifunedev/agro:0.1.0`).
 
 One release publishes the canonical npm package `@mifune/agro` (`agro`). The
-`@mifune/openharness` shim source remains at `.agro/cli/legacy/` and already-published
+`@mifune/agro` shim source remains at `.agro/cli/legacy/` and already-published
 shim versions remain on the registry. The release path does not publish, wait for,
 or deprecate the shim. The same build still publishes the GHCR tags
-`ghcr.io/mifunedev/openharness:<version>`, `:sha-<sha>`,
+`ghcr.io/mifunedev/agro:<version>`, `:sha-<sha>`,
 `ghcr.io/mifunedev/agro:<version>`, `:sha-<sha>`, verified to share one digest,
 plus `latest` on both repositories; and the release assets `agro.js`, `oh.js`,
-`get-agro.sh`, `get-oh.sh`. Publishing `@mifune/agro` needs npm rights for that
+`get-agro.sh`, `get-agro.sh`. Publishing `@mifune/agro` needs npm rights for that
 name, and the GHCR package `mifunedev/agro` must be made public after its first
 push; neither is verifiable here. The compatibility SLA clock starts at the first
 public AGRO release.
@@ -268,11 +268,11 @@ The artifact sequence is:
 ```
 main|master push → validate + boot-lint + eval → read version from package.json
                  → reserve v<version> tag + draft
-                 → build once + boot smoke + agro/oh version smoke
-                 → push openharness + agro <version> and sha-<full-SHA> GHCR tags
+                 → build once + boot smoke + agro/agro version smoke
+                 → push agro + agro <version> and sha-<full-SHA> GHCR tags
                  → verify one digest → canonical latest-by-digest on both
                  → publish/no-op @mifune/agro
-                 → attach agro.js, oh.js, get-agro.sh, get-oh.sh
+                 → attach agro.js, oh.js, get-agro.sh, get-agro.sh
                  → publish GitHub Release
 ```
 

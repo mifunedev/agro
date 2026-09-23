@@ -67,9 +67,9 @@ Set `DOCKER_SOCKET=true` before you start the container.
 ```
 
 ```text after
-1. Stop the `openharness` container.
-2. Delete the `openharness_data` volume.
-3. Start the `openharness` container.
+1. Stop the `agro` container.
+2. Delete the `agro_data` volume.
+3. Start the `agro` container.
 ```
 
 **Why:** One action per step lets the operator stop after any step.
@@ -230,14 +230,14 @@ Due to the fact that the cache is sometimes corrupted, you should probably clear
 **Domain:** Warnings and cautions
 **Rules:** warning before command, named loss
 ```text before
-Run `oh destroy` to reset the sandbox. Note that this will also remove the volumes and the data in them is deleted permanently, so make sure you have a backup of anything important before you go ahead.
+Run `agro destroy` to reset the sandbox. Note that this will also remove the volumes and the data in them is deleted permanently, so make sure you have a backup of anything important before you go ahead.
 ```
 
 ```text after
-**WARNING:** `oh destroy` deletes the `openharness_postgres` volume and every row in the database. The deletion is permanent.
+**WARNING:** `agro destroy` deletes the `agro_postgres` volume and every row in the database. The deletion is permanent.
 
 1. Back up the database with `pg_dump`.
-2. Run `oh destroy`.
+2. Run `agro destroy`.
 ```
 
 **Why:** The warning precedes the command and names the volume and the rows.

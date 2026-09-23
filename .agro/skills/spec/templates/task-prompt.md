@@ -12,7 +12,7 @@ Read the approved plan in `.agro/tasks/<slug>/prd.md` and the ordered stories in
 - Branch: `<branch>` — never push to `development` or `main`.
 - Issue: #<issue>.
 - Task folder: `.agro/tasks/<slug>/` (`prd.md`, `prd.json`, `progress.txt`; you add
-  `evidence.md` and `eval-result.json`).
+  `eval-result.json`). The reviewer evidence goes into the PR body, never into a file.
 - Status file: `/tmp/spec-<slug>.state` — keep it current at every phase.
 
 ## Ownership
@@ -68,7 +68,7 @@ set — that is the planner's input.
 After implementation completes, continue in this same session with the `/spec execute`
 procedure, in this order: the implementation-side audit loop; `/eval` once; the Actual
 Knowledge Impact gate (`knowledge-impact.sh --changed <actual diff>`, then resolve every
-impacted page to UPDATED / REVERIFIED / NOT-AFFECTED); write and commit `evidence.md`;
+impacted page to UPDATED / REVERIFIED / NOT-AFFECTED); write the evidence into the PR body;
 `/spec retro <slug>`; `/wiki compile`; optional non-gating context compaction; `/benchmark`;
 then run a fresh `/audit pr`. Mark the PR ready only when that audit is promotable. Never merge
 the PR. Report `READY` or `DRAFT-BLOCKED(<gate>)` and mirror it into the status file.

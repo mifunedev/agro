@@ -28,28 +28,34 @@ with no container runtime takes the same path: `agro` treats an unspawnable
 runtime as an unreachable sandbox and installs on the host. The host path needs
 no Docker.
 
-An interactive run asks for confirmation and then for the workspace name. Answer
-`n` to install nothing; the command then exits non-zero and points at
-`agro sandbox`. A non-interactive run needs `--host` or `--path`. Without
-either flag it keeps the refusal, so scripts see the same exit code as before.
+An interactive run asks for confirmation. Answer `n` to install nothing; the
+command then exits non-zero and points at `agro sandbox`. A non-interactive run
+needs `--host` or `--path`. Without either flag it keeps the refusal, so scripts
+see the same exit code as before.
 
 The host path uses two distinct locations.
 
 | Location | What it holds | How you choose it |
 |---|---|---|
-| Harness root | The AGRO workspace clone, which carries the control plane | `--workspace <name>` or `--path <dir>`, else the recorded `harnessRoot`, else `~/.agro/workspaces/default` |
+| Harness root | An existing AGRO workspace, which carries the control plane | `--workspace <name>` or `--path <dir>`, else the recorded `harnessRoot`, else `~/.agro/workspaces/default` |
 | Install prefix | The harness binaries, at `<prefix>/bin` | Always `~/.local` for the invoking user |
 
-The command clones `https://github.com/mifunedev/agro.git` into the harness root
-when that root holds no git checkout, then installs the harness into `~/.local`.
-It writes nothing into the clone, so the checkout stays clean. Every harness
-lands in the same normal per-user prefix. If `~/.local/bin` is not on your
-`PATH`, the command prints the `export PATH` line to add.
+The command creates no workspace. Create one first with
+`agro workspace create <name>` — see
+[Lifecycle commands → Host workspaces](../lifecycle-commands.md#host-workspaces-agro-workspace).
+When the resolved harness root holds no git checkout, the command exits 1. The
+refusal lists every workspace that exists and names `agro workspace create`.
+
+The command installs the harness into `~/.local`. It writes nothing into the
+workspace, so the checkout stays clean. Every harness lands in the same normal
+per-user prefix. If `~/.local/bin` is not on your `PATH`, the command prints the
+`export PATH` line to add.
 
 ```bash
-agro harness install claude-code --host                  # clone in ~/.agro/workspaces/default
-agro harness install claude-code --workspace acme       # clone in ~/.agro/workspaces/acme
-agro harness install claude-code --path /srv/agro       # clone in /srv/agro, outside the registry
+agro workspace create acme                          # create the workspace first
+agro harness install claude-code --workspace acme   # install from ~/.agro/workspaces/acme
+agro harness install claude-code --host             # install from the resolved default root
+agro harness install claude-code --path /srv/agro   # install from /srv/agro, outside the registry
 ```
 
 Work from the harness root. A harness started outside an AGRO checkout finds no
@@ -60,19 +66,22 @@ bypass-permissions flag, the line carries that flag, because a first-run
 folder-trust prompt can ignore the project `defaultMode`.
 
 A successful install records two things in `~/.agro/config.json`: `harnessRoot`,
-the clone location, and a `hostHarnesses` entry for the harness carrying the
+the selected workspace root, and a `hostHarnesses` entry for the harness carrying the
 prefix and the binary it created. Neither is recorded when the install fails.
 
-The first host install is the one moment you choose the workspace. After it, the
-recorded `harnessRoot` is sticky: every later host install reports the recorded
-root and clones nothing new, without asking for a name. Pass `--workspace <name>`
-or `--path <dir>` to move the clone; a successful install records the new value.
+A host install selects a workspace with `--workspace <name>` or `--path <dir>`.
+A successful install records that root as `harnessRoot`. The recorded root is
+sticky: every later host install reports the recorded root and selects it again,
+without asking for a name. Pass `--workspace <name>` or `--path <dir>` to select
+another workspace; a successful install records the new value.
 
 Harness root precedence:
 
 1. `--workspace <name>` or `--path <dir>` — pass one, not both
 2. `harnessRoot` in `~/.agro/config.json`
 3. `~/.agro/workspaces/default`
+
+Each candidate must already hold a git checkout. The command clones nothing.
 
 A host workspace is a named registry entry, exactly like a sandbox:
 
@@ -83,10 +92,11 @@ A host workspace is a named registry entry, exactly like a sandbox:
 └── workspaces/ <name>/   host workspace registry
 ```
 
-The first interactive host install asks `Workspace name [default]:`. The name
-becomes a path segment, so it must match the sandbox name rule: lowercase
-letters, digits and dashes, starting with a letter or digit. Any other name is
-refused and nothing is created.
+`agro workspace create <name>` writes that entry, and no other command writes
+one. The name becomes a path segment, so it obeys the sandbox name rule:
+lowercase letters, digits and dashes, starting with a letter or a digit.
+`agro workspace create` refuses any other name and creates nothing.
+`agro workspace list` prints every entry and marks the recorded `harnessRoot`.
 
 The state home itself is never the harness root. A checkout at `~/.agro` or
 `~/.oh` makes `~` resolve as a project root with two generations, which blocks
@@ -118,8 +128,8 @@ Flags:
 |---|---|
 | `--json` | `list` and `status` only: machine-readable output |
 | `--host` | `install` only: install on the host when the sandbox is not running |
-| `--workspace <name>` | `install` only: host workspace registry entry; implies `--host` |
-| `--path <dir>` | `install` only: harness root outside the registry; implies `--host` |
+| `--workspace <name>` | `install` only: select the existing host workspace `~/.agro/workspaces/<name>`; implies `--host` |
+| `--path <dir>` | `install` only: select an existing harness root outside the registry; implies `--host` |
 | `--force` | `uninstall` only: remove on the host with no recorded install |
 
 `list` and `status` reject `--host` and `--path`. When the sandbox is not
@@ -127,6 +137,30 @@ running they probe the host install prefix `~/.local`, but only once a harness
 root holds a workspace or that prefix exists. They never clone. Each row carries
 a `location` of `sandbox`, `host`, or `unknown`, and the table names the probed
 prefix.
+
+## Updating a harness
+
+Two paths update a harness in the sandbox. Both land in `/home/sandbox/.local`
+in the persistent home volume.
+
+```bash
+agro harness install claude-code   # re-run the door; installs the latest version
+claude update                      # the harness updates itself
+```
+
+The harness self-update path works because npm's global prefix in the sandbox is
+`/home/sandbox/.local`, not `/usr/local`. The sandbox image exports
+`NPM_CONFIG_PREFIX="$NPM_USER_PREFIX"`, so a bare `npm install -g` from a
+harness updater writes to the home volume and the update survives a container
+recreate.
+
+Never run a harness update through `sudo`. The harness binaries are not on
+sudo's `secure_path`, so `sudo claude update` reports `command not found`. A
+root-owned global install would also land outside the home volume and disappear
+on the next recreate.
+
+A container created before this prefix existed picks it up at the next boot: the
+entrypoint adds the export to the home mount's shell profile.
 
 ## Removing a harness
 

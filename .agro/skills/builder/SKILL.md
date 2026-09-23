@@ -54,9 +54,8 @@ steps.
 
 ### 1. Discover local authority
 
-- Find and read applicable `AGENTS.md` and `CLAUDE.md` files from repository root
-  through the target directory. More local instructions win; in one directory,
-  `AGENTS.md` is canonical.
+- Find and read applicable `AGENTS.md` files from repository root through the
+  target directory. More local instructions win.
 - Identify the source-of-truth artifact directory. In AGRO and equipped
   projects, edit `.agro/skills/`; provider directories such as `.claude/`,
   `.codex/`, and `.pi/` are generated or symlinked exposure surfaces.

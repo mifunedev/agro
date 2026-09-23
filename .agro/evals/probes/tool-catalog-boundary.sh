@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tier: A
 # source: agent-browser's exclusion from the harness catalog (#821), the three-catalog
-#         split introduced with `oh tool`, and #920 — the CLI is the only install
+#         split introduced with `agro tool`, and #920 — the CLI is the only install
 #         surface, so a second installer on the boot path is a second unverified
 #         description of the same pin.
 # desc: the harness/runtime/tool catalogs stay disjoint; agent-browser's ground truth is
@@ -33,7 +33,7 @@ strip_comments() {
 }
 
 if grep -qF 'INSTALL_AGENT_BROWSER' "$ENTRY"; then
-  missing+=("entrypoint.sh: INSTALL_AGENT_BROWSER guard returned — the install belongs to the tool catalog, reached through \`oh tool install agent-browser\`")
+  missing+=("entrypoint.sh: INSTALL_AGENT_BROWSER guard returned — the install belongs to the tool catalog, reached through \`agro tool install agent-browser\`")
 fi
 if grep -qF 'INSTALL_AGENT_BROWSER' "$DOCKERFILE"; then
   missing+=("Dockerfile: INSTALL_AGENT_BROWSER appeared — an image-layer install is discarded on every container recreate")
@@ -84,9 +84,9 @@ fi
 CLI="$ROOT/.agro/cli/src/cli.ts"
 if [[ -f "$CLI" ]]; then
   grep -qF 'first === "tool"' "$CLI" \
-    || missing+=("cli.ts: no dispatch for `oh tool`")
-  grep -qE '(oh|\$\{bin\}) tool <args\.\.\.>' "$CLI" \
-    || missing+=("cli.ts: `oh tool` missing from the top-level usage block")
+    || missing+=("cli.ts: no dispatch for `agro tool`")
+  grep -qE '(agro|\$\{bin\}) tool <args\.\.\.>' "$CLI" \
+    || missing+=("cli.ts: `agro tool` missing from the top-level usage block")
 fi
 
 if ((${#missing[@]})); then

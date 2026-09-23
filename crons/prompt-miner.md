@@ -6,7 +6,7 @@ enabled: false
 overlap: false
 catchup: false
 tmux: true
-repo: mifunedev/openharness
+repo: mifunedev/agro
 description: Daily prompt-miner — mine 24h of session traces for prompt-quality markers and ship a top finding to the origin fork via /spec (opt-in, cap-gated)
 ---
 
@@ -32,7 +32,7 @@ This cron is **opt-in and cap-gated**:
   0.3.0 with the autopilot machinery it was built on — the gate had no enabled
   consumer. The cron ships `enabled: false`, so nothing runs uncapped today.
   **Before flipping `enabled: true`, restore a cap gate** that counts open PRs
-  labeled `prompt-miner` on `mifunedev/openharness` and wire it back as
+  labeled `prompt-miner` on `mifunedev/agro` and wire it back as
   `preflight:`; recover the previous implementation from git history
   (`git log -- .agro/skills/autopilot/autopilot-caps.sh`).
 
@@ -76,9 +76,9 @@ Read the mined markers (stratified by session type; see `references/markers.md`)
   the improvement the marker motivates:
 
   ```bash
-  gh label create prompt-miner --repo mifunedev/openharness --color FBCA04 \
+  gh label create prompt-miner --repo mifunedev/agro --color FBCA04 \
     --description "prompt-miner-sourced improvement" 2>/dev/null || true
-  gh issue create --repo mifunedev/openharness --label prompt-miner \
+  gh issue create --repo mifunedev/agro --label prompt-miner \
     --title "<short marker-driven improvement>" --body "<marker + evidence>"
   ```
 
@@ -93,9 +93,9 @@ single-owner implementation with bounded `/delegate` fan-out, the `/eval` gate, 
 undraft) and targets the fork:
 
 ```bash
-/spec plan --issue <N> --repo mifunedev/openharness --base development
+/spec plan --issue <N> --repo mifunedev/agro --base development
 # then, once the operator approves prd.md:
-/spec execute <slug> --repo mifunedev/openharness --base development
+/spec execute <slug> --repo mifunedev/agro --base development
 ```
 
 Capture the **created PR number**, then label the PR itself — GitHub does **not**
@@ -103,7 +103,7 @@ propagate the issue's label onto the PR, so an unlabeled PR would silently defea
 the cap once a preflight gate is restored (it counts PRs by label, not issues):
 
 ```bash
-gh pr edit <PR> --repo mifunedev/openharness --add-label prompt-miner
+gh pr edit <PR> --repo mifunedev/agro --add-label prompt-miner
 ```
 
 ### 4. Append the liveness line
@@ -127,5 +127,5 @@ printf '[%s]\tprompt-miner\t%s\t%s\n' "$(date -Iseconds)" "<STATUS>" "<msg>" \
   never as unattended mutations. The interactive `/prompt-miner` Step-4 gate only
   proposes a probe, and it requires human `APPROVE`.
 - **Origin-only.** Issue, PR, and ground-truth cross-ref target
-  `mifunedev/openharness` / `origin/development` — never `upstream`/`mifunedev`.
+  `mifunedev/agro` / `origin/development` — never `upstream`/`mifunedev`.
 - **Harness-infra scope only** (skills/rules/docs/scripts/crons/wiki).

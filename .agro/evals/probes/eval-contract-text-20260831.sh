@@ -6,14 +6,14 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 PROBES="$ROOT/.agro/evals/probes"
-README="$ROOT/.agro/evals/README.md"
+README="$ROOT/.agro/evals/AGENTS.md"
 MAX=72   # a pinned literal longer than this is likely to span a hard wrap
 
 [[ -d "$PROBES" ]] || { echo "SKIPPED: probe dir absent" >&2; exit 2; }
 
 failures=()
 grep -qF -- '### Pinning contract text' "$README" \
-  || failures+=("evals/README.md missing the '### Pinning contract text' contract")
+  || failures+=("evals/AGENTS.md missing the '### Pinning contract text' contract")
 
 # Flag long fixed-string literals passed to grep -F / -qF across the corpus.
 while IFS= read -r hit; do

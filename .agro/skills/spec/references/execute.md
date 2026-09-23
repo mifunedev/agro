@@ -398,7 +398,7 @@ git add -f "$COUNTER"
 Two things end this loop, and neither of them is agreement: the **cap** of 3
 rounds, and a **non-reducing round** — one whose `netAdded` did not strictly fall
 below the previous round's. Either way the audit stops blocking and passes with
-`SIMPLICITY-RESIDUAL`, and those residual findings go into `evidence.md` under
+`SIMPLICITY-RESIDUAL`, and those residual findings go into the PR body under
 *What remains unverified* for the operator to judge.
 
 **UI stories — verified browser evidence.** When a story declares browser
@@ -417,8 +417,9 @@ owner re-verifies and rewrites the record.
 branch. If it updates `.agro/evals/RESULTS.md`, commit the benchmark refresh on the
 branch. Treat only a NEW green→red probe regression or a non-zero eval runner
 exit as blocking; a pre-existing red with an unchanged delta is non-gating but
-must be disclosed in the PR body and in `evidence.md`. Key on the **delta and the
-runner's exit code**, never on the bare presence of a `REGRESSION` row.
+must be disclosed in the PR body under *What remains unverified*. Key on the
+**delta and the runner's exit code**, never on the bare presence of a
+`REGRESSION` row.
 
 This is the **only** suite run in the cycle. `/audit implementation` Gate 2 and
 `/benchmark` Signal 1 read this result instead of re-running; three runs of the
@@ -470,7 +471,7 @@ second copy of the logic.
 
 Take the union of the pages the script reports `NEEDS-REVIEW` and the pages
 `Expected Knowledge Impact` named. **Every page in that union ends in exactly one
-explicit state**, recorded in `evidence.md`:
+explicit state**, recorded in the PR body under *Knowledge impact*:
 
 | State | Means | Required action |
 |---|---|---|
@@ -484,7 +485,7 @@ one failure this gate cannot detect afterwards.
 
 A page rewrite counts as a tracked implementation edit: the owner decides each page's
 state, a bounded worker performs the `UPDATED` rewrite, and the owner records
-the state in `evidence.md`. New pages the run should create — an external
+the state in the PR body. New pages the run should create — an external
 source the work depended on — go through `/wiki ingest` here. Pattern pages are **not** written here; they are
 step 9's job, because they need the retro's verdicts.
 
@@ -499,26 +500,31 @@ Commit knowledge changes with the implementation branch (a plain `git add` —
 the union is unresolved, or the index probe fails, leave the PR draft, set
 `DRAFT-BLOCKED(knowledge)`, and comment the missing gate.
 
-### 7. Write `evidence.md` — the answer back to the plan
+### 7. Write the evidence into the PR body — the answer back to the plan
 
-**This is a gate condition, not a formality.** Step 10 refuses to undraft without
-it — this artifact carries the implementation's answer to the reviewer.
+**This is a gate condition, not a formality.** Step 10 refuses to undraft a PR
+whose body does not carry it — the body is where the implementation answers the
+reviewer.
 
 The operator's understanding of this work stops at the plan they approved. The
-same session orchestrates the stories, accepts each result, and records it.
-`evidence.md` answers back to the plan with the observed behavior, deviations,
-and remaining gaps.
+same session orchestrates the stories, accepts each result, and records it. The
+PR body answers back to the plan with the observed behavior, deviations, and
+remaining gaps.
 
-Write `.agro/tasks/<slug>/evidence.md` and **commit it on the branch**, so it
-travels in the PR diff. The full contract — path, linkage, observed-output rule,
-correlation to one audit run, honesty about gaps — is
+**The PR description is the evidence surface, and the only one.** No task-folder
+file carries this record. The body travels with the review, GitHub versions every
+edit of it, and no forced add is needed to make a reviewer see it — an evidence
+file under the gitignored `.agro/tasks/` could be written and still be absent
+from the diff, and that failure class is what this surface removes. The full
+contract — the surface, the observed-output rule, correlation to one audit run,
+honesty about gaps — is
 `.agro/skills/audit/references/reviewer-evidence-doc.md`. Follow it, and make sure
-the doc answers these five questions in this order:
+the body answers these five questions in this order:
 
 0. **Why this is better than not doing it** — the before and after in the
    operator's terms, with a number wherever one exists, and the cost paid to get
    it. This question comes first because it is the only one the reviewer cannot
-   answer from the diff, the gates, or the plan. **A doc that proves every gate
+   answer from the diff, the gates, or the plan. **A body that proves every gate
    green and never says what improved has failed.** A benefit with no measurement
    behind it is written *claimed, unmeasured* rather than asserted — and "the
    gates are green" is not an answer to this question.
@@ -529,21 +535,28 @@ the doc answers these five questions in this order:
 3. **Where they diverged, and why** — every place the implementation differs from
    the approved plan: a criterion satisfied differently, a deviation taken
    deliberately, a scope call made mid-implementation. **A run with no divergence
-   says "none" explicitly**; silence here reads as "nothing diverged" and is the
-   most expensive thing this document can get wrong.
+   writes `None` explicitly**; silence here reads as "nothing diverged" and is the
+   most expensive thing this record can get wrong.
 4. **What remains unverified** — gates that were skipped, criteria that were
    argued rather than observed, pre-existing reds carried forward, and anything a
-   reviewer would have to check by hand.
+   reviewer would have to check by hand. **A run with nothing outstanding writes
+   `Nothing` explicitly.**
 
-Step 6's Actual Knowledge Impact table belongs in this document, under *What was
-built*. The read-only audit routes do not write this file; this node writes it
-from what those routes observed.
+An empty *diverged* or *unverified* section is written as `None` / `Nothing`
+rather than omitted. Dropping the heading reads as "nothing diverged, nothing
+unchecked" — the most expensive claim this pipeline can make by accident — and
+step 10 refuses the undraft for it exactly as it refuses a body with no evidence
+at all.
+
+Step 6's Actual Knowledge Impact table belongs in the body, under *Knowledge
+impact*. The read-only audit routes do not write the body; this node writes it
+from what those routes observed. Step 10 renders the body and then verifies it.
 
 ### 8. `spec-retro` — capture the lessons
 
 On `AUDIT-PASS`, run `/spec retro <slug>`, which is a thin wrapper for
-`/retro --task <slug>`. It turns the run's signals into falsifiable,
-evidence-tested lessons with verdicts and confidence levels. `/retro` is
+`/retro --task <slug>`. It turns the run's signals into lessons, each tagged
+with a verdict and a confidence level backed by the run's evidence. `/retro` is
 report-only by contract and writes no file; step 9 is where its supported lessons
 become durable.
 
@@ -599,30 +612,9 @@ to review:
   || { echo "ERROR: PR head is not local HEAD — push, wait for CI, re-audit"; exit 1; }
 ```
 
-**The evidence gate.** Before the undraft, `.agro/tasks/<slug>/evidence.md` must
-exist, be committed on the branch, and answer the five questions step 7 names.
-**Refuse the undraft without it** — a PR whose reviewer cannot see how the built
-thing differs from the plan they approved is not ready for review, whatever CI
-says:
-
-```bash
-if [ ! -f ".agro/tasks/<slug>/evidence.md" ]; then
-  gh pr comment <PR> --repo "$SPEC_REPO" --body "spec execute: PR left draft — .agro/tasks/<slug>/evidence.md is missing. The merge gate requires the implementation's answer back to the approved plan (what was asked, what was built, where they diverged, what is unverified). Resume: write it, commit it on the branch, re-run the promotable gate."
-  printf 'DRAFT-BLOCKED(evidence) %s\n' "<pr-url>" > "/tmp/spec-<slug>.state"
-  exit 0
-fi
-git ls-files --error-unmatch ".agro/tasks/<slug>/evidence.md" >/dev/null 2>&1 \
-  || { echo "ERROR: evidence.md exists but is untracked — .agro/tasks/ is gitignored; commit it with 'git add -f'"; exit 1; }
-```
-
-The `git ls-files` half is not redundant: `.agro/tasks/` is gitignored, so an
-`evidence.md` that was written but added without `-f` is present on disk and
-**absent from the PR diff** — which is the same as not having it, from the
-reviewer's seat.
-
-**Promote the implementation narrative into the PR body.** `progress.txt` holds
-the per-story record the owner wrote. Update the PR body from it and from
-`evidence.md` so the reviewer meets the work in the PR rather than by opening the
+**Write the evidence into the PR body.** `progress.txt` holds the per-story
+record the owner wrote. Render the body from it and from what the audit routes
+observed, so the reviewer meets the work in the PR rather than by opening the
 task folder:
 
 ```bash
@@ -630,6 +622,9 @@ gh pr edit <PR> --repo "$SPEC_REPO" --body "$(cat <<'EOF'
 Closes #<N>.
 
 **Status: READY — implementation audit PASSED, /eval clean, knowledge impact resolved, PR audit promotable.**
+
+## Why this is better
+<the before and after in the operator's terms, with a number wherever one exists, and the cost paid — a benefit with no measurement behind it is labelled "claimed, unmeasured">
 
 ## What the plan asked for
 <from the approved prd.md's goals, in the operator's terms — 2-4 lines>
@@ -646,23 +641,58 @@ Closes #<N>.
 ## What remains unverified
 <skipped gates, argued-not-observed criteria, pre-existing reds carried forward, anything needing a hand check — or "Nothing">
 
-## Evidence
-- `.agro/tasks/<slug>/evidence.md` — observed output per gate, correlated to audit run `<AUDIT_RUN_ID>`
-- `.agro/tasks/<slug>/progress.txt` — the per-story implementation narrative
+## Proof by gate
+<one row per gate: what was checked, the observed result, PASS / FAIL / N/A — correlated to audit run `<AUDIT_RUN_ID>`, verdict `<NATIVE-VERDICT>`>
+
+## Observed output
+<the exact commands and their real, trimmed output — never paraphrased, never predicted>
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code) via /spec execute
 EOF
 )"
 ```
 
+**The evidence gate.** Before the undraft, read the body back from GitHub and
+confirm it answers the five questions step 7 names, each under a non-empty
+section. **Refuse the undraft without them** — a PR whose reviewer cannot see how
+the built thing differs from the plan they approved is not ready for review,
+whatever CI says:
+
+```bash
+body=$(gh pr view <PR> --repo "$SPEC_REPO" --json body --jq .body)
+section_body() { awk -v h="## $1" 'index($0, h) == 1 { f = 1; next } /^## / { f = 0 } f' <<<"$body" | tr -d '[:space:]'; }
+missing=()
+while IFS= read -r section; do
+  [ -n "$(section_body "$section")" ] || missing+=("$section")
+done <<'SECTIONS'
+Why this is better
+What the plan asked for
+What was built
+Where it diverged from the plan, and why
+What remains unverified
+SECTIONS
+if [ "${#missing[@]}" -gt 0 ]; then
+  gh pr comment <PR> --repo "$SPEC_REPO" --body "spec execute: PR left draft — the PR body is missing its evidence sections: ${missing[*]}. The merge gate requires the implementation's answer back to the approved plan (why this is better, what the plan asked, what was built, where they diverged, what is unverified). An empty section is written as None / Nothing, never omitted. Resume: edit the PR body, re-run the promotable gate."
+  printf 'DRAFT-BLOCKED(evidence) %s\n' "<pr-url>" > "/tmp/spec-<slug>.state"
+  exit 0
+fi
+```
+
+Reading the body back from GitHub is not redundant: the body a reviewer sees is
+the one on the server, not the heredoc this session believed it sent. A section
+dropped by a quoting error, a truncated edit, or an `gh pr edit` that never ran
+is **absent from the review** — which is the same as not having written it, from
+the reviewer's seat.
+
 The **diverged** and **unverified** sections are the two the reviewer cannot
 reconstruct from the diff, so neither may be omitted; an empty one is written as
-`None` / `Nothing` explicitly. A body that silently drops them reads as "nothing
-diverged, nothing unchecked", which is the most expensive claim this pipeline can
-make by accident.
+`None` / `Nothing` explicitly, which is why the check tests each section for
+content rather than for its heading alone. A body that silently drops them reads
+as "nothing diverged, nothing unchecked", which is the most expensive claim this
+pipeline can make by accident.
 
-Then mark the PR ready — **only** when the implementation audit PASSED,
-`evidence.md` is present and committed, the knowledge-impact union is resolved,
+Then mark the PR ready — **only** when the implementation audit PASSED, the PR
+body carries the five evidence sections, the knowledge-impact union is resolved,
 and that immediately preceding fresh PR audit classified it promotable:
 
 ```bash
@@ -672,7 +702,7 @@ printf 'READY %s\n' "<pr-url>" > "/tmp/spec-<slug>.state"
 
 **The gate re-opens on every push after the undraft.** `READY` is a claim about
 the head that was classified, not a property the PR keeps. Any later commit —
-including a one-line `progress.txt` or `evidence.md` follow-up — moves the head
+including a one-line `progress.txt` or task-record follow-up — moves the head
 past the verdict, and a push whose CI has not finished leaves a ready PR whose
 checks are still running. So a push to an already-ready PR re-enters this step:
 wait for CI on the new head, re-run `/audit pr` against it, and confirm it is
@@ -690,8 +720,9 @@ classification that no longer describes its head — a reviewer reads *ready* as
 "the gates passed on what I am looking at".
 
 **The cheapest way to honor this is to finish the tail before undrafting.**
-Evidence, knowledge impact, retro, compile, and benchmark all write files; run
-them, push once, wait for CI, audit, then undraft. Every commit after `gh pr
+Knowledge impact, retro, compile, and benchmark all write files, and the
+evidence goes into the PR body; run them, push once, wait for CI, audit, then
+undraft. Every commit after `gh pr
 ready` costs another full CI cycle and another audit.
 
 Otherwise (not promotable: red/pending CI, conflicts, a new eval regression, an
@@ -722,9 +753,9 @@ output.
 | 4 | The run stops, or leaves acceptance criteria incomplete | Leave the PR draft and comment the resume command (`/spec execute <slug>` against the same task folder). Do not start a second implementation owner. |
 | 5 | `/eval` reports a NEW green→red regression or exits non-zero | Leave the PR draft; fix or document the regression, then re-run `/eval` |
 | 6 | A page in the impact union has no explicit final state, or the index probe fails | `DRAFT-BLOCKED(knowledge)`; resolve every page, regenerate the index, re-run the gate |
-| 7 | `evidence.md` cannot be written because a gate produced no observed output | Record the gap in the doc and leave the PR draft — a gate with no observed output is a gap, never a pass |
+| 7 | The evidence cannot be written because a gate produced no observed output | Record the gap in the PR body and leave the PR draft — a gate with no observed output is a gap, never a pass |
 | 9 | `/compact` unavailable or errors | Non-blocking; log a warning and continue |
-| 10 | `.agro/tasks/<slug>/evidence.md` is missing, or present but untracked (added without `-f`) | `DRAFT-BLOCKED(evidence)`; write and commit it, then re-run the promotable gate |
+| 10 | The PR body is missing one of the five evidence sections, or leaves *diverged* or *unverified* empty instead of `None` / `Nothing` | `DRAFT-BLOCKED(evidence)`; edit the PR body, then re-run the promotable gate |
 | 10 | The PR audit cannot classify (gh/API error), or CI is red/pending so the PR is not promotable | Leave the PR draft; fix CI and re-run the audit executor |
 | 10 | The PR's head is not the commit just pushed | Push, wait for CI on that head, re-audit; a verdict about another commit is not this commit's verdict |
 | 10 | A commit is pushed AFTER the undraft | Re-enter step 10 against the new head: wait for CI, re-audit, re-confirm promotable. Not promotable → `gh pr ready --undo`, comment the gate, `DRAFT-BLOCKED(<gate>)` |
@@ -743,7 +774,7 @@ Every step checks for prior state and resumes rather than duplicating:
 | 4 | `jq -e 'all(.userStories[]; .passes == true)'` on `prd.json` exits 0 | Implementation is complete; continue to the tail. Worktree present → reuse |
 | 5 | `eval-result.json`'s `commit` equals HEAD and records no new regression | Continue; otherwise re-run `/eval` |
 | 6 | Every page in the impact union already carries a final state for the current HEAD | Continue |
-| 7 | `evidence.md` exists and correlates to the CURRENT audit run id | Reuse; a doc citing a stale run id is rewritten, not kept |
+| 7 | The PR body carries the five sections and correlates to the CURRENT audit run id | Reuse; a body citing a stale run id is rewritten, not kept |
 | 10 | The PR audit already classified this PR promotable | Continue to the undraft |
 | 10 | PR is already ready-for-review AND its head equals local HEAD with CI green | Print the terminal status; do not mutate. A head that has moved re-enters the gate |
 
@@ -759,8 +790,8 @@ does not end there. The terminal successful state is a
 **ready-for-review** PR, reached only after implementation completes, the
 implementation audit returns AUDIT-PASS, `/eval` shows no new green→red
 regression, every page in the Actual Knowledge Impact union carries an explicit
-final state, **`.agro/tasks/<slug>/evidence.md` is committed and answers back to
-the approved plan**, and a fresh PR audit immediately classifies the PR
+final state, **the PR body answers back to the approved plan**, and a fresh PR
+audit immediately classifies the PR
 **promotable** (CI green + mergeable + clean) before `gh pr ready`.
 
 **That classification binds to one head.** A push after the undraft moves the PR
@@ -769,7 +800,7 @@ and return the PR to draft if it no longer classifies promotable. `READY` is
 never a state the PR keeps while its head changes underneath it.
 
 Draft is reserved for blocked states: an incomplete build, a new eval regression,
-an unresolved knowledge page, **missing or untracked evidence**, a not-promotable
+an unresolved knowledge page, **evidence missing from the PR body**, a not-promotable
 PR (red/pending CI or conflicts), a head that moved past its promotable
 classification, or an explicit user stop. Each is reported as
 `DRAFT-BLOCKED(<gate>)` with the gate named — a silent stop is not a terminal
@@ -817,7 +848,7 @@ work, but it never authorizes `gh pr ready`. Never auto-merge.
 | `/eval` skill | `.agro/skills/eval/SKILL.md` | Step 5 — probe regression floor, run once |
 | Knowledge invalidation | `.agro/skills/wiki/scripts/knowledge-impact.sh` | Step 6 — the one dependency-aware impact implementation |
 | Knowledge schema | `.agro/skills/wiki/references/schema.md` | Step 6 — page kinds, `verified_at`, provenance forms |
-| Reviewer evidence doc | `.agro/skills/audit/references/reviewer-evidence-doc.md` | Step 7 — the contract `evidence.md` follows |
+| Reviewer evidence contract | `.agro/skills/audit/references/reviewer-evidence-doc.md` | Step 7 — the contract the PR body's evidence sections follow |
 | `/retro` skill | `.agro/skills/retro/SKILL.md` | Step 8 — report-only lesson engine, task-scoped |
 | `/wiki compile` | `.agro/skills/wiki/references/compile.md` | Step 9 — the durable pattern writer |
 | `/compact` | (built-in) | Step 9 — optional, non-gating, after distillation |

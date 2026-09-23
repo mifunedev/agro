@@ -10,12 +10,15 @@ export interface ToolEntry {
   readonly verifyArgv: readonly string[];
   readonly versionArgv?: readonly string[];
   readonly installArgv?: readonly string[];
+  readonly hostInstallArgv?: readonly string[];
   readonly installUser?: "root" | "sandbox";
   readonly downloadSize?: string;
+  readonly hostDownloadSize?: string;
   readonly notInstallableReason?: (bin: string) => string;
   readonly hostCapable: boolean;
   readonly notHostCapableReason?: (bin: string) => string;
   readonly uninstallArgv: readonly string[] | null;
+  readonly hostUninstallArgv?: readonly string[];
   readonly docsPath: string;
 }
 
@@ -33,14 +36,50 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
     installArgv: Object.freeze([
       "bash",
       "-lc",
-      "pnpm add -g agent-browser@0.8.5 && find \"$PNPM_HOME\" -name \"agent-browser-linux-*\" -exec chmod +x {} \\; && agent-browser install --with-deps",
+      "pnpm add -g agent-browser@0.38.1 && find \"$PNPM_HOME\" -name \"agent-browser-linux-*\" -exec chmod +x {} \\; && agent-browser install --with-deps",
+    ]),
+    hostInstallArgv: Object.freeze([
+      "bash",
+      "-lc",
+      [
+        "set -e",
+        "version=0.38.1",
+        'case "$(dpkg --print-architecture)" in',
+        "  amd64) arch=x64; sha=5100149a1903211c889de4e545bf36d90803740cea4f99aa22651649f9205ea1 ;;",
+        "  arm64) arch=arm64; sha=937b315ee0761e8a62f7950ddcfef9b3d3d8e8d5eb9c9d2bf9e23e5725664511 ;;",
+        '  *) echo "no pinned agent-browser build for $(dpkg --print-architecture)" >&2; exit 1 ;;',
+        "esac",
+        'prefix="${NPM_USER_PREFIX:-$HOME/.local}"',
+        'tmp="$(mktemp -d)"',
+        "trap 'rm -rf \"$tmp\"' EXIT",
+        'curl -fsSL "https://github.com/vercel-labs/agent-browser/releases/download/v$version/agent-browser-linux-$arch" -o "$tmp/agent-browser"',
+        'echo "$sha  $tmp/agent-browser" | sha256sum -c -',
+        'install -d "$prefix/bin"',
+        'install -m 0755 "$tmp/agent-browser" "$prefix/bin/agent-browser"',
+        'browser=""',
+        'for candidate in "$AGENT_BROWSER_EXECUTABLE_PATH" google-chrome google-chrome-stable chromium chromium-browser brave-browser microsoft-edge; do',
+        '  test -n "$candidate" || continue',
+        '  resolved="$(command -v "$candidate" 2>/dev/null || true)"',
+        '  test -n "$resolved" || continue',
+        '  browser="$resolved"',
+        "  break",
+        "done",
+        'if [ -z "$browser" ]; then',
+        '  echo "agent-browser is installed at $prefix/bin/agent-browser, but no Chromium-family browser was found on this host." >&2',
+        '  echo "AGRO does not install browser libraries on the host. Point agent-browser at an existing browser, then rerun:" >&2',
+        '  echo "  export AGENT_BROWSER_EXECUTABLE_PATH=/path/to/chrome" >&2',
+        '  echo "Or install one with your own package manager. Inside the sandbox, agro tool install agent-browser downloads Chrome for you." >&2',
+        "  exit 1",
+        "fi",
+        'echo "agent-browser will drive $browser"',
+        '"$prefix/bin/agent-browser" --version >/dev/null',
+      ].join("\n"),
     ]),
     installUser: "sandbox",
     downloadSize: "~1 GB",
-    hostCapable: false,
-    notHostCapableReason: (): string =>
-      "agent-browser runs `agent-browser install --with-deps`, which installs system packages with the operating system package manager. AGRO installs it into the sandbox only, where that stays contained.",
+    hostCapable: true,
     uninstallArgv: Object.freeze(["bash", "-lc", "pnpm remove -g agent-browser"]),
+    hostUninstallArgv: Object.freeze(["rm", "-rf", `${HARNESS_PREFIX_TOKEN}/bin/agent-browser`]),
     docsPath: TOOLS_DOC,
   }),
   Object.freeze({
@@ -211,8 +250,15 @@ export function hostCapableToolIds(): string[] {
 export function resolveToolUninstallArgv(
   entry: ToolEntry,
   prefix: string,
+  host = false,
 ): string[] | null {
-  return entry.uninstallArgv === null
+  const argv = host ? (entry.hostUninstallArgv ?? entry.uninstallArgv) : entry.uninstallArgv;
+  return argv === null || argv === undefined
     ? null
-    : entry.uninstallArgv.map((part) => part.split(HARNESS_PREFIX_TOKEN).join(prefix));
+    : argv.map((part) => part.split(HARNESS_PREFIX_TOKEN).join(prefix));
+}
+
+export function resolveToolInstallArgv(entry: ToolEntry, host: boolean): string[] | undefined {
+  const argv = host ? (entry.hostInstallArgv ?? entry.installArgv) : entry.installArgv;
+  return argv === undefined ? undefined : [...argv];
 }

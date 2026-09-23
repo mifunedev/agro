@@ -1,4 +1,4 @@
-declare module "oh-asset:*" {
+declare module "agro-asset:*" {
   const content: string;
   export default content;
 }

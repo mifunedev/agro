@@ -4,7 +4,7 @@ Ignored scratch space for git worktrees of this repository. Every repository kee
 its worktrees at its own root, so a project clone under `projects/` has a
 `.worktrees/` of its own that follows the same rules as this one.
 
-`CLAUDE.md` is a provider-compatibility symlink to this file. Edit `AGENTS.md`.
+Every coding harness reads this file directly.
 
 | Subfolder | What lives here |
 | --------- | --------------- |
@@ -13,7 +13,7 @@ its worktrees at its own root, so a project clone under `projects/` has a
 | `archive/` | `archive/<YYYY-MM-DD>` — weekly cleanup-tasks archive sweeps. |
 
 Lifecycle is `git worktree add` / `git worktree remove`. The root is always
-`.worktrees/` at the repository root; `.agro/scripts/oh-path worktrees` resolves it.
+`.worktrees/` at the repository root; `.agro/scripts/agro-path worktrees` resolves it.
 
 Clones of repositories that are **not** harnesses do not belong here — they go in
 `projects/`, which is a plain `git clone` namespace rather than a worktree root.

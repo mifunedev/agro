@@ -139,7 +139,7 @@ This planning revision launches no workers. Future implementation uses one conti
 Use native continuation or checkpoint-and-rebrief. Never start a second writer in either checkout.
 
 Resolve execution worktrees under each repository's `.worktrees/` after ownership checks; do not reuse a paused task's checkout.
-Core repository: `/home/sandbox/harness`. Agro-web checkout recorded in the original plan: `/home/sandbox/harness/projects/mifunedev/openharness-web`.
+Core repository: `/home/sandbox/harness`. Agro-web checkout recorded in the original plan: `/home/sandbox/harness/projects/mifunedev/agro-web`.
 Revalidate that checkout's remote and path before dispatch. Record final absolute worktree paths in the build records.
 Requested settings below are not observed settings. Apply `/delegate` capability, model-exclusion, budget, and recursion policies at dispatch.
 

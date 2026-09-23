@@ -1,0 +1,18 @@
+[Unit]
+Description=AGRO sandbox bootstrap
+Documentation=https://github.com/mifunedev/agro
+After=network-online.target
+Wants=network-online.target
+Before=agro-cron.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/entrypoint.sh
+TimeoutStartSec=0
+KillMode=process
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target

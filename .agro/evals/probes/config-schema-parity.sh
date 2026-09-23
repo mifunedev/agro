@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tier: A
-# source: PR #833 (one schema file — DOCKER_SOCKET, SANDBOX_SSH, OH_SANDBOX_IMAGE, OH_PULL_POLICY, SKIP_PNPM_INSTALL were consumed but undocumented); rewritten for the agro.json/secrets split by PR #887
+# source: PR #833 (one schema file — DOCKER_SOCKET, SANDBOX_SSH, AGRO_SANDBOX_IMAGE, AGRO_PULL_POLICY, SKIP_PNPM_INSTALL were consumed but undocumented); rewritten for the agro.json/secrets split by PR #887
 # desc: the agro.json/.env split loses no variable — every compose-interpolated var is either a documented agro.json field or an allow-listed secret, every var config-render.ts renders is documented, and neither surface holds the other's keys
 set -euo pipefail
 

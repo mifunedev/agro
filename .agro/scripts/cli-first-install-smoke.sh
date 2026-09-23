@@ -286,10 +286,10 @@ verify_systemd() {
   local pid1
   pid1=$(docker exec "$cid" sh -lc 'ps -p 1 -o comm=' | tr -d ' \r')
   [ "$pid1" = "systemd" ] || die "PID 1 is '$pid1', not systemd"
-  docker exec "$cid" systemctl is-active --quiet openharness-bootstrap.service \
-    || die "openharness-bootstrap.service is not active"
-  docker exec "$cid" systemctl is-active --quiet openharness-cron.service \
-    || die "openharness-cron.service is not active"
+  docker exec "$cid" systemctl is-active --quiet agro-bootstrap.service \
+    || die "agro-bootstrap.service is not active"
+  docker exec "$cid" systemctl is-active --quiet agro-cron.service \
+    || die "agro-cron.service is not active"
 }
 
 verify_seed() {
@@ -299,14 +299,14 @@ verify_seed() {
   docker exec "$cid" sh -lc 'test -f /home/sandbox/harness/.agro/.image-seeded' \
     || die ".agro/.image-seeded is missing"
   docker exec "$cid" sh -lc 'test ! -e /home/sandbox/harness/.oh' \
-    || die "legacy .oh/ is present on a fresh seed"
+    || die "legacy .agro/ is present on a fresh seed"
 }
 
 agro_cmd() {
   local agro="${CLI_FIRST_AGRO:-$WORKDIR/prefix/bin/agro}"
   [ -x "$agro" ] || agro=$(command -v agro)
   [ -n "$agro" ] || die "agro executable not found"
-  AGRO_HOME="$WORKDIR/agro-home" OH_HOME="$WORKDIR/agro-home" \
+  AGRO_HOME="$WORKDIR/agro-home" AGRO_HOME="$WORKDIR/agro-home" \
     "$agro" "$@"
 }
 

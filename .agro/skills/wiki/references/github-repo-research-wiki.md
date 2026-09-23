@@ -36,7 +36,7 @@ Keep the wiki entry under the standard 600-word cap. Put raw excerpts and scan d
 
 ## Local integration scans
 
-When assessing integration into OpenHarness or another current repo, scan for direct touchpoints. For example, for installer-safety tools, search for `curl | bash`, `wget | sh`, and installer docs/examples, then recommend a measurable gate such as “0 public one-liners without nearby safe-review alternative.”
+When assessing integration into AGRO or another current repo, scan for direct touchpoints. For example, for installer-safety tools, search for `curl | bash`, `wget | sh`, and installer docs/examples, then recommend a measurable gate such as “0 public one-liners without nearby safe-review alternative.”
 
 ## Pitfalls
 

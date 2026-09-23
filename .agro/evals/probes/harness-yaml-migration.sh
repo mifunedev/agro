@@ -61,7 +61,7 @@ else
   [[ "$(field '.timezone')"    == "America/Denver" ]] || fails+=(".timezone not set from harness.yaml (got '$(field '.timezone')')")
   [[ "$(field '.git.userName')" == "Probe User"    ]] || fails+=(".git.userName lost its already-correct value (got '$(field '.git.userName')')")
   jq -e 'has("install")' "$work/agro.json" >/dev/null 2>&1 \
-    && fails+=("the migrator carried a retired install section into agro.json — \`oh harness install\` and \`oh tool install\` are the only install door")
+    && fails+=("the migrator carried a retired install section into agro.json — \`agro harness install\` and \`agro tool install\` are the only install door")
   jq -e '.composeOverrides | index(".devcontainer/docker-compose.probe.yml")' "$work/agro.json" >/dev/null 2>&1 \
     || fails+=("compose.overrides path did not reach agro.json composeOverrides[]")
   jq -e 'type == "object"' "$work/agro.json" >/dev/null 2>&1 \

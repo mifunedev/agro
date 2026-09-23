@@ -38,7 +38,7 @@ working** — validated on `oh-remote`, 2026-06-23):
    **microsoft/DebugMCP** (`ozzafar.debugmcpextension`, v2.0.1) and install it there. It
    activates in the workspace/remote extension host, so it must be present where the IDE runs.
 2. **Attach VS Code to the running container** — Dev Containers → *Attach to Running
-   Container* → `openharness` (local), or Remote-SSH to the host first and then attach
+   Container* → `agro` (local), or Remote-SSH to the host first and then attach
    ([Connecting to the Sandbox](../connecting.md)). The attach provisions the VS Code server *inside* the
    container — the binary the headless image lacks.
 3. On attach the extension activates and binds the MCP server on `http://localhost:3001/mcp`.

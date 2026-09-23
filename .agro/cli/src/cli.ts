@@ -4,7 +4,6 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { runUpdate } from "./commands/update.js";
 import { DEFAULT_ARTIFACT_URL, defaultDeps, runSelfUpgrade } from "./commands/self-upgrade.js";
-import { parseMigrateArgs, printMigrateHelp, runMigrate } from "./commands/migrate.js";
 import {
   configFieldList,
   runConfigRepo,
@@ -18,6 +17,13 @@ import {
   secretKeyList,
   type SecretIO,
 } from "./commands/secret.js";
+import {
+  runLangfuseApply,
+  runLangfuseDisable,
+  runLangfuseSetup,
+  runLangfuseStatus,
+  type LangfuseIO,
+} from "./commands/langfuse.js";
 import {
   runComposeConfig,
   runComposeVerb,
@@ -42,6 +48,12 @@ import {
   runHarnessUninstall,
   type HarnessIO,
 } from "./commands/harness.js";
+import {
+  runWorkspaceCreate,
+  runWorkspaceList,
+  type WorkspaceIO,
+} from "./commands/workspace.js";
+import { AGRO_REPO_URL } from "./lib/host-workspace.js";
 import { harnessIds } from "./lib/harnesses/catalog.js";
 import { RUNTIME_CATALOG } from "./lib/runtimes/catalog.js";
 import {
@@ -53,8 +65,8 @@ import {
 } from "./commands/tool.js";
 import { hostCapableToolIds, installableToolIds, toolIds } from "./lib/tools/catalog.js";
 import { sourceDocsUrl } from "./lib/docs.js";
-import { AGRO_PRODUCT, LEGACY_PRODUCT, resolveProduct, stateNames, type Product } from "./lib/product.js";
-import { resolveControlDir } from "./lib/compat.js";
+import { AGRO_PRODUCT, resolveProduct, stateNames, type Product } from "./lib/product.js";
+import { resolveControlDir } from "./lib/layout.js";
 import { DEFAULT_NAME_PREFIX } from "./lib/registry.js";
 import {
   fetchRemoteSource,
@@ -62,10 +74,10 @@ import {
   type FetchRemoteSourceOptions,
 } from "./lib/remote.js";
 
-declare const __OH_VERSION__: string;
-const VERSION: string = typeof __OH_VERSION__ === "string" ? __OH_VERSION__ : "0.0.0-dev";
+declare const __AGRO_VERSION__: string;
+const VERSION: string = typeof __AGRO_VERSION__ === "string" ? __AGRO_VERSION__ : "0.0.0-dev";
 
-const DEFAULT_SOURCE_OH_DIR = resolve(
+const DEFAULT_SOURCE_CONTROL_DIR = resolve(
   dirname(fileURLToPath(import.meta.url)),
   "../..",
 );
@@ -75,7 +87,16 @@ interface Integration {
   runner: () => Promise<number>;
 }
 
-const INTEGRATIONS: Record<string, Integration> = {};
+const INTEGRATIONS: Record<string, Integration> = {
+  langfuse: {
+    description: "Configure Langfuse tracing: enable, base URL, keys, segmentation, verify",
+    runner: () =>
+      runLangfuseSetup(
+        { bin: resolveProduct(process.argv[1]).bin },
+        { stdout: (s) => process.stdout.write(s), stderr: (s) => process.stderr.write(s) },
+      ),
+  },
+};
 
 export function isHelpFlag(arg: string | undefined): boolean {
   return arg === "--help" || arg === "-h" || arg === "help";
@@ -94,17 +115,8 @@ function integrationLines(): string {
     .join("\n");
 }
 
-function compatibilityNote(product: Product): string {
-  if (product.name !== "oh") return "";
-  return `${product.bin} is the compatibility entry point for ${AGRO_PRODUCT.bin} (npm: ${AGRO_PRODUCT.packageName}).\n`;
-}
-
-export function printOhHelp(product: Product = LEGACY_PRODUCT): void {
+export function printAgroHelp(product: Product = AGRO_PRODUCT): void {
   const { bin, title } = product;
-  const updateSummary =
-    bin === AGRO_PRODUCT.bin
-      ? `Upgrade the installed ${bin} CLI`
-      : `Vendor or upgrade the ${stateNames(bin).controlDir}/ control plane`;
   process.stdout.write(`${bin} — ${title} (v${VERSION})
 
 Usage:
@@ -112,14 +124,16 @@ Usage:
   ${bin} shell [name]           Open a zsh shell in the running sandbox container
   ${bin} config <args...>       Read and write ${stateNames(bin).configFile} (show|set), or run a wizard
   ${bin} secret <args...>       Read and write the gitignored root .env (set|list)
-  ${bin} update                 ${updateSummary}
-  ${bin} migrate                Move a legacy .oh/ project or ~/.oh registry to AGRO names (--check|--home)
+  ${bin} langfuse <args...>     Render, check, or disable Langfuse tracing files (apply|status|disable)
+  ${bin} self-upgrade           Upgrade the installed ${bin} CLI
+  ${bin} vendor                 Vendor or upgrade the ${stateNames(bin).controlDir}/ control plane
   ${bin} stop [name]            Stop the sandbox, preserving volumes
   ${bin} restart [name]         Restart the sandbox service
   ${bin} logs [name]            Tail sandbox logs (follows)
   ${bin} ps [name]              Show sandbox service status
   ${bin} destroy [name]         Remove the sandbox and wipe its named volumes
   ${bin} compose config         Print the resolved docker compose configuration
+  ${bin} workspace <args...>    Create and list host AGRO workspaces (create|list)
   ${bin} harness <args...>      Install and inspect agent CLI harnesses
   ${bin} tool <args...>         Install and inspect sandbox tooling
   ${bin} gateway <args...>      Manage a messaging client session (pi|hermes)
@@ -128,10 +142,10 @@ Usage:
 
 Integrations:
 ${integrationLines()}
-${compatibilityNote(product)}`);
+`);
 }
 
-function printConfigHelp(bin: string = LEGACY_PRODUCT.bin): void {
+function printConfigHelp(bin: string = AGRO_PRODUCT.bin): void {
   process.stdout.write(`${bin} config — Read and write ${stateNames(bin).configFile}, the tracked non-secret settings
 
 Usage:
@@ -159,7 +173,7 @@ ${integrationLines()}
 `);
 }
 
-export function printSecretHelp(bin: string = LEGACY_PRODUCT.bin): void {
+export function printSecretHelp(bin: string = AGRO_PRODUCT.bin): void {
   process.stdout.write(`${bin} secret — Read and write the gitignored root .env
 
 Usage:
@@ -178,10 +192,34 @@ ${secretKeyList()}
 `);
 }
 
-function printSelfUpgradeHelp(bin: string): void {
-  process.stdout.write(`${bin} update — Upgrade the installed ${bin} CLI
+export function printLangfuseHelp(bin: string = AGRO_PRODUCT.bin): void {
+  process.stdout.write(`${bin} langfuse — Render, check, or disable the Langfuse tracing files
 
 Usage:
+  ${bin} langfuse apply     Render ~/.config/agro/langfuse.env and every harness tracing file
+  ${bin} langfuse status    Show the resolved settings and whether each generated file is current
+  ${bin} langfuse disable   Set langfuse.enabled=false, delete the credential fragment, rewrite the files
+
+\`${bin} config langfuse\` is the interactive wizard that writes these settings.
+\`apply\` never prompts and never installs anything; bootstrap, systemd, and cron run it.
+It reads langfuse.* from ${stateNames(bin).configFile} and the keys from the gitignored .env,
+and writes nothing when langfuse.enabled is not true. The generated files live in the
+sandbox home, so \`apply\` and \`disable\` refuse to touch them from the host.
+
+\`status\` exits non-zero when a generated file is missing or differs from a fresh render,
+so it works as a check. \`disable\` keeps the non-secret settings and the .env keys, so
+re-enabling needs no re-prompt; already-running harnesses keep their loaded credentials
+until restarted.
+
+${sourceDocsUrl("docs/integrations/langfuse.md")}
+`);
+}
+
+export function printSelfUpgradeHelp(bin: string = AGRO_PRODUCT.bin): void {
+  process.stdout.write(`${bin} self-upgrade — Upgrade the installed ${bin} CLI
+
+Usage:
+  ${bin} self-upgrade [--dry-run]
   ${bin} update [--dry-run]
 
 Upgrades exactly one thing: the ${bin} executable that is running. It writes no
@@ -191,39 +229,32 @@ The upgrade follows whichever mechanism installed this executable:
   npm-managed    realpath under node_modules/${AGRO_PRODUCT.packageName}/: reads the registry
                  version with \`npm view\`, then runs
                  \`npm install -g --prefix <owning prefix> ${AGRO_PRODUCT.packageName}@<version>\`.
-  standalone     a plain file (get-agro.sh): downloads AGRO_JS_URL (falls back to
-                 OH_JS_URL; default
+  standalone     a plain file (get-agro.sh): downloads AGRO_JS_URL (default
                  ${DEFAULT_ARTIFACT_URL})
                  into the same directory, checks its shebang and \`--version\`,
                  renames it over the executable, and keeps <path>.prev until the
                  new file verifies.
 
 It refuses, with the supported procedure, when the executable is shipped by the
-sandbox image (/opt/oh), is a source checkout's dist/, belongs to the legacy
-${LEGACY_PRODUCT.packageName} package, cannot be resolved, sits in a read-only
-directory, is shadowed by another ${bin} earlier on PATH, or does not report the
-running version. Downgrades are refused. When the installed version is already
-current it changes nothing.
+sandbox image (/opt/agro), is a source checkout's dist/, cannot be resolved,
+sits in a read-only directory, is shadowed by another ${bin} earlier on PATH, or
+does not report the running version. Downgrades are refused. When the installed
+version is already current it changes nothing.
 
 Flags:
   --dry-run       Report the installation kind, target, and versions without
                   changing anything.
 
-Project payload vendoring (${stateNames(bin).controlDir}/ + crons/) is \`oh update\` during the
-compatibility window; its --from, --from-remote, --ref and --force flags are
-not accepted here.
+Project payload vendoring (${stateNames(bin).controlDir}/ + crons/) is \`${bin} vendor\`; its --from,
+--from-remote, --ref and --force flags are not accepted here.
 `);
 }
 
-export function printUpdateHelp(bin: string = LEGACY_PRODUCT.bin): void {
-  if (bin === AGRO_PRODUCT.bin) {
-    printSelfUpgradeHelp(bin);
-    return;
-  }
-  process.stdout.write(`${bin} update — Vendor or upgrade the ${stateNames(bin).controlDir}/ control plane
+export function printVendorHelp(bin: string = AGRO_PRODUCT.bin): void {
+  process.stdout.write(`${bin} vendor — Vendor or upgrade the ${stateNames(bin).controlDir}/ control plane
 
 Usage:
-  ${bin} update [--from <dir> | --from-remote [--ref <ref>]] [--dry-run] [--force]
+  ${bin} vendor [--from <dir> | --from-remote [--ref <ref>]] [--dry-run] [--force]
 
 Writes ONLY the ${stateNames(bin).controlDir}/ control plane and crons/ (skills, scripts, CLI) into the
 current directory. An empty directory is equipped from scratch; everything else
@@ -252,7 +283,7 @@ export function runtimeLines(): string {
   ).join("\n");
 }
 
-export function printSandboxHelp(bin: string = LEGACY_PRODUCT.bin): void {
+export function printSandboxHelp(bin: string = AGRO_PRODUCT.bin): void {
   process.stdout.write(`${bin} sandbox — Create and list sandboxes
 
 Usage:
@@ -300,7 +331,7 @@ Next: ${bin} shell <name>
 `);
 }
 
-export function printShellHelp(bin: string = LEGACY_PRODUCT.bin): void {
+export function printShellHelp(bin: string = AGRO_PRODUCT.bin): void {
   process.stdout.write(`${bin} shell — Open a shell in the running sandbox container
 
 Usage:
@@ -314,7 +345,7 @@ exit code.
 `);
 }
 
-export function printHarnessHelp(bin: string = LEGACY_PRODUCT.bin): void {
+export function printHarnessHelp(bin: string = AGRO_PRODUCT.bin): void {
   process.stdout.write(`${bin} harness — Install and inspect agent CLI harnesses
 
 Usage:
@@ -324,12 +355,12 @@ Usage:
   ${bin} harness status [name]            Show installed state
 
 \`install\` and \`uninstall\` act on the running sandbox. When no sandbox is
-reachable they act on the host. A host install clones the AGRO workspace into the
-harness root, then installs the harness into \`~/.local\`. The default root is the
-workspace registry entry \`~/.agro/workspaces/default\`; an interactive run asks for
-the workspace name. \`--workspace <name>\` chooses that entry and \`--path <dir>\` a
-directory outside the registry. A successful install records the root as
-\`harnessRoot\` in \`~/.agro/config.json\`. The install prefix is always \`~/.local\`.
+reachable they act on the host. A host install needs an existing AGRO workspace
+and creates none — run \`${bin} workspace create <name>\` first. The default root is
+the workspace registry entry \`~/.agro/workspaces/default\`. \`--workspace <name>\`
+chooses another entry and \`--path <dir>\` a directory outside the registry. A
+successful install records the root as \`harnessRoot\` in \`~/.agro/config.json\`. The
+install prefix is always \`~/.local\`.
 
 On the host, \`uninstall\` removes only the harness \`install\` recorded, from the
 prefix in that record. Without a record it refuses, and \`--force\` overrides. In
@@ -347,7 +378,29 @@ ${harnessIds().map((h) => `  ${h}`).join("\n")}
 `);
 }
 
-export function printGatewayHelp(bin: string = LEGACY_PRODUCT.bin): void {
+export function printWorkspaceHelp(bin: string = AGRO_PRODUCT.bin): void {
+  process.stdout.write(`${bin} workspace — Create and list host AGRO workspaces
+
+Usage:
+  ${bin} workspace create [<name>]   Clone the AGRO repository into a registry entry
+  ${bin} workspace list              List every host workspace
+
+A host workspace is an AGRO checkout under \`~/.agro/workspaces/<name>\`. \`create\`
+clones ${AGRO_REPO_URL} into that entry, and reuses an existing checkout. The
+default name is \`default\`. \`--path <dir>\` creates the workspace outside the
+registry instead.
+
+\`create\` records no default. A host install selects its root with
+\`${bin} harness install <harness> --workspace <name>\`, and that install records the
+root as \`harnessRoot\`. \`list\` marks the recorded root.
+
+Flags:
+  --json           Machine-readable output
+  --path <dir>     Create the workspace at a directory outside the registry
+`);
+}
+
+export function printGatewayHelp(bin: string = AGRO_PRODUCT.bin): void {
   process.stdout.write(`${bin} gateway — Manage a messaging client session (Slack bridge)
 
 Usage:
@@ -377,7 +430,7 @@ export type ParseResult<T> =
   | { ok: true; args: T }
   | { ok: false; error: string; showHelp?: boolean };
 
-export function printToolHelp(bin: string = LEGACY_PRODUCT.bin): void {
+export function printToolHelp(bin: string = AGRO_PRODUCT.bin): void {
   process.stdout.write(`${bin} tool — Install and inspect sandbox tooling
 
 Tooling that is not an agent CLI (see \`${bin} harness\`) — a headless browser, a
@@ -402,9 +455,10 @@ install needs Linux, because every installer is Debian-specific, and it works
 only on these tools:
 ${hostCapableToolIds().map((t) => `  ${t}`).join("\n")}
 
-A host install clones the AGRO workspace into the harness root — \`--path <dir>\`,
-then \`harnessRoot\` in \`~/.agro/config.json\`, then \`~/.agro/workspaces/default\` — and
-installs into \`~/.local\`. It records the install as \`hostTools\` in that same file. On the host,
+A host install needs an existing AGRO workspace — \`--path <dir>\`, then
+\`harnessRoot\` in \`~/.agro/config.json\`, then \`~/.agro/workspaces/default\`. It creates
+no workspace: run \`${bin} workspace create <name>\` first. It installs into
+\`~/.local\` and records the install as \`hostTools\` in that same file. On the host,
 \`uninstall\` removes only what \`install\` recorded, from the prefix in that record.
 Without a record it refuses, and \`--force\` overrides.
 
@@ -412,7 +466,7 @@ Flags:
   --yes            Accept a large download without prompting
   --json           Machine-readable output (list/status)
   --host           Install on the host when the sandbox is not running (install)
-  --path <dir>     Harness root for the workspace clone; implies --host (install)
+  --path <dir>     Harness root outside the registry; implies --host (install)
   --force          Remove without a recorded host install (uninstall)
 
 Tools:
@@ -420,7 +474,7 @@ ${toolIds().map((t) => `  ${t}`).join("\n")}
 `);
 }
 
-export function printComposeVerbHelp(verb: ComposeVerb, bin: string = LEGACY_PRODUCT.bin): void {
+export function printComposeVerbHelp(verb: ComposeVerb, bin: string = AGRO_PRODUCT.bin): void {
   const what: Record<ComposeVerb, string> = {
     stop: "Stop the sandbox, preserving volumes for a later restart",
     restart: "Restart the sandbox service",
@@ -441,7 +495,7 @@ See ${sourceDocsUrl("docs/lifecycle-commands.md")} for every verb.
 `);
 }
 
-export function printDestroyHelp(bin: string = LEGACY_PRODUCT.bin): void {
+export function printDestroyHelp(bin: string = AGRO_PRODUCT.bin): void {
   process.stdout.write(`${bin} destroy — Remove the sandbox and wipe its named volumes
 
 Usage:
@@ -464,7 +518,7 @@ See ${sourceDocsUrl("docs/lifecycle-commands.md")} for the full mapping.
 `);
 }
 
-export function printComposeHelp(bin: string = LEGACY_PRODUCT.bin): void {
+export function printComposeHelp(bin: string = AGRO_PRODUCT.bin): void {
   process.stdout.write(`${bin} compose — Inspect the resolved docker compose setup
 
 Usage:
@@ -507,6 +561,32 @@ export function extractSandboxFlag(
   return { ok: true, args: sandbox === undefined ? { rest: kept } : { rest: kept, sandbox } };
 }
 
+export const LANGFUSE_VERBS = ["apply", "status", "disable"] as const;
+
+export type LangfuseVerb = (typeof LANGFUSE_VERBS)[number];
+
+export interface LangfuseArgs {
+  help: boolean;
+  verb?: LangfuseVerb;
+}
+
+export function parseLangfuseArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): ParseResult<LangfuseArgs> {
+  if (rest.length === 0 || isHelpFlag(rest[0])) return { ok: true, args: { help: true } };
+  const [head, ...tail] = rest;
+  if (!(LANGFUSE_VERBS as readonly string[]).includes(head)) {
+    return {
+      ok: false,
+      error: `${bin} langfuse: unknown subcommand "${head}" — expected apply, status, or disable`,
+      showHelp: true,
+    };
+  }
+  if (isHelpFlag(tail[0])) return { ok: true, args: { help: true } };
+  if (tail.length > 0) {
+    return { ok: false, error: `${bin} langfuse ${head}: unexpected argument "${tail[0]}"` };
+  }
+  return { ok: true, args: { help: false, verb: head as LangfuseVerb } };
+}
+
 export const CONFIG_VERBS = ["show", "set", "repo"] as const;
 
 export type ConfigVerb = (typeof CONFIG_VERBS)[number];
@@ -522,7 +602,7 @@ export interface ConfigArgs {
   force?: boolean;
 }
 
-export function parseConfigArgs(input: string[], bin: string = LEGACY_PRODUCT.bin): ParseResult<ConfigArgs> {
+export function parseConfigArgs(input: string[], bin: string = AGRO_PRODUCT.bin): ParseResult<ConfigArgs> {
   const scoped = extractSandboxFlag(`${bin} config`, input);
   if (!scoped.ok) return scoped;
   const forced = scoped.args.rest.includes("--force");
@@ -589,7 +669,7 @@ export interface SecretArgs {
   sandbox?: string;
 }
 
-export function parseSecretArgs(input: string[], bin: string = LEGACY_PRODUCT.bin): ParseResult<SecretArgs> {
+export function parseSecretArgs(input: string[], bin: string = AGRO_PRODUCT.bin): ParseResult<SecretArgs> {
   const scoped = extractSandboxFlag(`${bin} secret`, input);
   if (!scoped.ok) return scoped;
   const rest = scoped.args.rest;
@@ -640,7 +720,7 @@ export interface DestroyArgs {
   name?: string;
 }
 
-export function parseDestroyArgs(rest: string[], bin: string = LEGACY_PRODUCT.bin): ParseResult<DestroyArgs> {
+export function parseDestroyArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): ParseResult<DestroyArgs> {
   const args: DestroyArgs = { help: false, yes: false };
   if (isHelpFlag(rest[0])) return { ok: true, args: { ...args, help: true } };
   for (const token of rest) {
@@ -666,7 +746,7 @@ export interface ComposeArgs {
   passthrough: string[];
 }
 
-export function parseComposeArgs(rest: string[], bin: string = LEGACY_PRODUCT.bin): ParseResult<ComposeArgs> {
+export function parseComposeArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): ParseResult<ComposeArgs> {
   const args: ComposeArgs = { help: false, passthrough: [] };
   if (rest.length === 0 || isHelpFlag(rest[0])) {
     return { ok: true, args: { ...args, help: true } };
@@ -692,7 +772,12 @@ export function parseComposeArgs(rest: string[], bin: string = LEGACY_PRODUCT.bi
   return { ok: true, args };
 }
 
-export interface UpdateArgs {
+export interface SelfUpgradeArgs {
+  help: boolean;
+  dryRun: boolean;
+}
+
+export interface VendorArgs {
   help: boolean;
   fromDir?: string;
   fromRemote: boolean;
@@ -701,23 +786,45 @@ export interface UpdateArgs {
   dryRun: boolean;
 }
 
-const PAYLOAD_UPDATE_FLAGS = ["--from", "--from-remote", "--ref", "--force"];
+const VENDOR_ONLY_FLAGS = ["--from", "--from-remote", "--ref", "--force"];
 
-export function parseUpdateArgs(rest: string[], bin: string = LEGACY_PRODUCT.bin): ParseResult<UpdateArgs> {
-  const args: UpdateArgs = { help: false, fromRemote: false, force: false, dryRun: false };
-  for (let i = 0; i < rest.length; i++) {
-    const arg = rest[i];
-    if (bin === AGRO_PRODUCT.bin && PAYLOAD_UPDATE_FLAGS.includes(arg)) {
+export function parseSelfUpgradeArgs(
+  rest: string[],
+  bin: string = AGRO_PRODUCT.bin,
+): ParseResult<SelfUpgradeArgs> {
+  const args: SelfUpgradeArgs = { help: false, dryRun: false };
+  for (const arg of rest) {
+    if (VENDOR_ONLY_FLAGS.includes(arg)) {
       return {
         ok: false,
-        error: `${bin} update: ${arg} belongs to the legacy project-payload command; run \`oh update ${arg}\` during the compatibility window — ${bin} update upgrades only the installed CLI`,
+        error: `${bin} self-upgrade: ${arg} belongs to the project-payload command; run \`${bin} vendor ${arg}\` — ${bin} self-upgrade upgrades only the installed CLI`,
         showHelp: true,
       };
     }
+    if (arg === "--dry-run") {
+      args.dryRun = true;
+      continue;
+    }
+    if (isHelpFlag(arg)) {
+      args.help = true;
+      return { ok: true, args };
+    }
+    return { ok: false, error: `${bin} self-upgrade: unexpected argument "${arg}"`, showHelp: true };
+  }
+  return { ok: true, args };
+}
+
+export function parseVendorArgs(
+  rest: string[],
+  bin: string = AGRO_PRODUCT.bin,
+): ParseResult<VendorArgs> {
+  const args: VendorArgs = { help: false, fromRemote: false, force: false, dryRun: false };
+  for (let i = 0; i < rest.length; i++) {
+    const arg = rest[i];
     if (arg === "--from") {
       const value = rest[i + 1];
       if (value === undefined) {
-        return { ok: false, error: `${bin} update: --from requires a directory` };
+        return { ok: false, error: `${bin} vendor: --from requires a directory` };
       }
       args.fromDir = value;
       i++;
@@ -730,7 +837,7 @@ export function parseUpdateArgs(rest: string[], bin: string = LEGACY_PRODUCT.bin
     if (arg === "--ref") {
       const value = rest[i + 1];
       if (value === undefined) {
-        return { ok: false, error: `${bin} update: --ref requires a ref argument (branch or tag)` };
+        return { ok: false, error: `${bin} vendor: --ref requires a ref argument (branch or tag)` };
       }
       args.ref = value;
       i++;
@@ -748,16 +855,16 @@ export function parseUpdateArgs(rest: string[], bin: string = LEGACY_PRODUCT.bin
       args.help = true;
       return { ok: true, args };
     }
-    return { ok: false, error: `${bin} update: unexpected argument "${arg}"`, showHelp: true };
+    return { ok: false, error: `${bin} vendor: unexpected argument "${arg}"`, showHelp: true };
   }
   if (args.fromRemote && args.fromDir !== undefined) {
     return {
       ok: false,
-      error: `${bin} update: --from-remote conflicts with --from — pass exactly one payload source`,
+      error: `${bin} vendor: --from-remote conflicts with --from — pass exactly one payload source`,
     };
   }
   if (args.ref !== undefined && !args.fromRemote) {
-    return { ok: false, error: `${bin} update: --ref requires --from-remote` };
+    return { ok: false, error: `${bin} vendor: --ref requires --from-remote` };
   }
   return { ok: true, args };
 }
@@ -784,7 +891,7 @@ const SANDBOX_VALUE_FLAGS: Record<string, "name" | "checkout" | "homeMount"> = {
   "--home-mount": "homeMount",
 };
 
-export function parseSandboxArgs(rest: string[], bin: string = LEGACY_PRODUCT.bin): ParseResult<SandboxArgs> {
+export function parseSandboxArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): ParseResult<SandboxArgs> {
   const args: SandboxArgs = {
     help: false,
     yes: false,
@@ -878,7 +985,7 @@ export interface ShellArgs {
   name?: string;
 }
 
-export function parseShellArgs(rest: string[], bin: string = LEGACY_PRODUCT.bin): ParseResult<ShellArgs> {
+export function parseShellArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): ParseResult<ShellArgs> {
   const args: ShellArgs = { help: false };
   if (isHelpFlag(rest[0])) return { ok: true, args: { help: true } };
   for (const token of rest) {
@@ -893,6 +1000,73 @@ export function parseShellArgs(rest: string[], bin: string = LEGACY_PRODUCT.bin)
   return { ok: true, args };
 }
 
+export interface WorkspaceArgs {
+  help: boolean;
+  subcommand?: "create" | "list";
+  name?: string;
+  json: boolean;
+  path?: string;
+}
+
+export function parseWorkspaceArgs(
+  rest: string[],
+  bin: string = AGRO_PRODUCT.bin,
+): ParseResult<WorkspaceArgs> {
+  const args: WorkspaceArgs = { help: false, json: false };
+  if (rest.length === 0 || isHelpFlag(rest[0])) {
+    return { ok: true, args: { ...args, help: true } };
+  }
+
+  const positionals: string[] = [];
+  let expectPath = false;
+  for (const token of rest) {
+    if (expectPath) {
+      expectPath = false;
+      args.path = token;
+    } else if (token === "--json") {
+      args.json = true;
+    } else if (token === "--path") {
+      expectPath = true;
+    } else if (token.startsWith("--path=")) {
+      args.path = token.slice("--path=".length);
+    } else if (token.startsWith("-")) {
+      return { ok: false, error: `${bin} workspace: unknown flag "${token}"` };
+    } else {
+      positionals.push(token);
+    }
+  }
+  if (expectPath || args.path === "") {
+    return { ok: false, error: `${bin} workspace: --path requires a directory` };
+  }
+
+  const [sub, name, ...extra] = positionals;
+  if (sub !== "create" && sub !== "list") {
+    return {
+      ok: false,
+      error: `${bin} workspace: unknown subcommand "${sub}" — expected create or list`,
+      showHelp: true,
+    };
+  }
+  if (extra.length > 0) {
+    return { ok: false, error: `${bin} workspace: unexpected argument "${extra[0]}"` };
+  }
+  if (sub === "list" && name !== undefined) {
+    return { ok: false, error: `${bin} workspace list: unexpected argument "${name}"` };
+  }
+  if (sub === "list" && args.path !== undefined) {
+    return { ok: false, error: `${bin} workspace list: --path applies to create only` };
+  }
+  if (args.path !== undefined && name !== undefined) {
+    return {
+      ok: false,
+      error: `${bin} workspace: --path names a directory and <name> names a registry entry — pass one, not both`,
+    };
+  }
+  args.subcommand = sub;
+  if (name !== undefined) args.name = name;
+  return { ok: true, args };
+}
+
 export interface HarnessArgs {
   help: boolean;
   subcommand?: "list" | "install" | "status" | "uninstall";
@@ -904,7 +1078,7 @@ export interface HarnessArgs {
   force: boolean;
 }
 
-export function parseHarnessArgs(rest: string[], bin: string = LEGACY_PRODUCT.bin): ParseResult<HarnessArgs> {
+export function parseHarnessArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): ParseResult<HarnessArgs> {
   const args: HarnessArgs = {
     help: false,
     json: false,
@@ -1004,7 +1178,7 @@ interface ToolArgs {
   name?: string;
 }
 
-export function parseToolArgs(rest: string[], bin: string = LEGACY_PRODUCT.bin): ParseResult<ToolArgs> {
+export function parseToolArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): ParseResult<ToolArgs> {
   const args: ToolArgs = { help: false, yes: false, json: false, host: false, force: false };
   if (rest.length === 0 || isHelpFlag(rest[0])) {
     return { ok: true, args: { ...args, help: true } };
@@ -1077,25 +1251,25 @@ export function parseGatewayArgs(rest: string[]): ParseResult<GatewayArgs> {
 
 
 export interface BundledPayloadPaths {
-  sourceOhDir: string;
+  sourceControlDir: string;
   exists?: (path: string) => boolean;
 }
 
 export function bundledPayloadExists(
-  bundled: { sourceOhDir: string },
+  bundled: { sourceControlDir: string },
   exists: (path: string) => boolean = existsSync,
 ): boolean {
-  return exists(join(bundled.sourceOhDir, "manifest.json"));
+  return exists(join(bundled.sourceControlDir, "manifest.json"));
 }
 
 export type UpdateSource =
   | { kind: "local"; fromDir: string }
   | { kind: "remote"; ref?: string; notice?: string };
 
-export function resolveUpdateSource(
-  args: Pick<UpdateArgs, "fromDir" | "fromRemote" | "ref">,
+export function resolveVendorSource(
+  args: Pick<VendorArgs, "fromDir" | "fromRemote" | "ref">,
   bundled: BundledPayloadPaths,
-  bin: string = LEGACY_PRODUCT.bin,
+  bin: string = AGRO_PRODUCT.bin,
 ): UpdateSource {
   const exists = bundled.exists ?? existsSync;
 
@@ -1106,7 +1280,7 @@ export function resolveUpdateSource(
     return { kind: "remote", ref: args.ref };
   }
   if (bundledPayloadExists(bundled, exists)) {
-    return { kind: "local", fromDir: resolve(bundled.sourceOhDir, "..") };
+    return { kind: "local", fromDir: resolve(bundled.sourceControlDir, "..") };
   }
   return {
     kind: "remote",
@@ -1128,7 +1302,7 @@ export interface RemoteSourceHooks {
 function readPayloadVersion(checkoutDir: string): string {
   try {
     const parsed = JSON.parse(
-      readFileSync(join(resolveControlDir(checkoutDir).path, "cli", "package.json"), "utf8"),
+      readFileSync(join(resolveControlDir(checkoutDir), "cli", "package.json"), "utf8"),
     );
     if (parsed && typeof parsed.version === "string") return parsed.version;
   } catch {
@@ -1161,7 +1335,7 @@ async function main(argv: string[]): Promise<number> {
   const [first, second] = argv;
 
   if (!first || isHelpFlag(first)) {
-    printOhHelp(product);
+    printAgroHelp(product);
     return 0;
   }
   if (isVersionFlag(first)) {
@@ -1232,33 +1406,58 @@ async function main(argv: string[]): Promise<number> {
     return await runSecretSet(a.key as string, scope, io);
   }
 
-  if (first === "migrate") {
-    const parsed = parseMigrateArgs(argv.slice(1), bin);
+  if (first === "langfuse") {
+    const parsed = parseLangfuseArgs(argv.slice(1), bin);
     if (!parsed.ok) {
       process.stderr.write(`${parsed.error}\n`);
-      if (parsed.showHelp) printMigrateHelp(bin);
+      if (parsed.showHelp) printLangfuseHelp(bin);
+      return 1;
+    }
+    const a = parsed.args;
+    if (a.help) {
+      printLangfuseHelp(bin);
+      return second === undefined ? 1 : 0;
+    }
+    const io: LangfuseIO = {
+      stdout: (s) => process.stdout.write(s),
+      stderr: (s) => process.stderr.write(s),
+    };
+    if (a.verb === "status") return await runLangfuseStatus({ bin }, io);
+    if (a.verb === "disable") return await runLangfuseDisable({ bin }, io);
+    return await runLangfuseApply({ bin }, io);
+  }
+
+  if (first === "update" || first === "self-upgrade") {
+    const parsed = parseSelfUpgradeArgs(argv.slice(1), bin);
+    if (!parsed.ok) {
+      process.stderr.write(`${parsed.error}\n`);
+      if (parsed.showHelp) printSelfUpgradeHelp(bin);
       return 1;
     }
     if (parsed.args.help) {
-      printMigrateHelp(bin);
+      printSelfUpgradeHelp(bin);
       return 0;
     }
     const io = {
       stdout: (s: string) => process.stdout.write(s),
       stderr: (s: string) => process.stderr.write(s),
     };
-    return runMigrate(parsed.args, io);
+    return await runSelfUpgrade(
+      { dryRun: parsed.args.dryRun, argv1: process.argv[1] },
+      defaultDeps(VERSION),
+      io,
+    );
   }
 
-  if (first === "update") {
-    const parsed = parseUpdateArgs(argv.slice(1), bin);
+  if (first === "vendor") {
+    const parsed = parseVendorArgs(argv.slice(1), bin);
     if (!parsed.ok) {
       process.stderr.write(`${parsed.error}\n`);
-      if (parsed.showHelp) printUpdateHelp(bin);
+      if (parsed.showHelp) printVendorHelp(bin);
       return 1;
     }
     if (parsed.args.help) {
-      printUpdateHelp(bin);
+      printVendorHelp(bin);
       return 0;
     }
 
@@ -1267,11 +1466,8 @@ async function main(argv: string[]): Promise<number> {
       stdout: (s: string) => process.stdout.write(s),
       stderr: (s: string) => process.stderr.write(s),
     };
-    if (product.name === "agro") {
-      return await runSelfUpgrade({ dryRun, argv1: process.argv[1] }, defaultDeps(VERSION), io);
-    }
     const targetDir = process.cwd();
-    const source = resolveUpdateSource(parsed.args, { sourceOhDir: DEFAULT_SOURCE_OH_DIR }, bin);
+    const source = resolveVendorSource(parsed.args, { sourceControlDir: DEFAULT_SOURCE_CONTROL_DIR }, bin);
 
     if (source.kind === "local") {
       return await runUpdate({ bin, targetDir, fromDir: source.fromDir, force, dryRun }, io);
@@ -1361,6 +1557,32 @@ async function main(argv: string[]): Promise<number> {
       return 0;
     }
     return runComposeConfig({ bin }, parsed.args.passthrough);
+  }
+
+  if (first === "workspace") {
+    const parsed = parseWorkspaceArgs(argv.slice(1), bin);
+    if (!parsed.ok) {
+      process.stderr.write(`${parsed.error}\n`);
+      if (parsed.showHelp) printWorkspaceHelp(bin);
+      return 1;
+    }
+    if (parsed.args.help) {
+      printWorkspaceHelp(bin);
+      return 0;
+    }
+    const a = parsed.args;
+    const io: WorkspaceIO = {
+      stdout: (s) => process.stdout.write(s),
+      stderr: (s) => process.stderr.write(s),
+    };
+    if (a.subcommand === "list") {
+      return await runWorkspaceList({ bin, json: a.json }, io);
+    }
+    return await runWorkspaceCreate(
+      a.name,
+      { bin, json: a.json, ...(a.path !== undefined ? { path: a.path } : {}) },
+      io,
+    );
   }
 
   if ((composeVerbs() as string[]).includes(first)) {
@@ -1469,7 +1691,7 @@ async function main(argv: string[]): Promise<number> {
   }
 
   process.stderr.write(`${bin}: unknown command "${first}"\n\n`);
-  printOhHelp(product);
+  printAgroHelp(product);
   return 1;
 }
 

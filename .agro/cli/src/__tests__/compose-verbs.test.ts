@@ -20,7 +20,7 @@ vi.mock("../cli.js", async (importOriginal) => {
   return mod;
 });
 
-const { printComposeVerbHelp, printOhHelp } = await import("../cli.js");
+const { printComposeVerbHelp, printAgroHelp } = await import("../cli.js");
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 const read = (p: string): string => readFileSync(join(REPO_ROOT, p), "utf8");
@@ -38,10 +38,10 @@ const entry = { name: ENTRY_NAME };
 function makeRepo(): string {
   const home = mkdtempSync(join(tmpdir(), "oh-compose-verb-"));
   cleanups.push(home);
-  vi.stubEnv("OH_HOME", home);
+  vi.stubEnv("AGRO_HOME", home);
   const d = join(home, "sandboxes", ENTRY_NAME);
-  mkdirSync(join(d, ".oh", "scripts"), { recursive: true });
-  writeFileSync(join(d, ".oh", "scripts", "docker-compose.sh"), "#!/usr/bin/env bash\n");
+  mkdirSync(join(d, ".agro", "scripts"), { recursive: true });
+  writeFileSync(join(d, ".agro", "scripts", "docker-compose.sh"), "#!/usr/bin/env bash\n");
   return d;
 }
 
@@ -84,10 +84,10 @@ describe("runComposeVerb", () => {
     (verb, expected) => {
       const root = makeRepo();
       const { calls, run } = makeRunner();
-      expect(runComposeVerb(verb, { bin: "oh", ...entry, run })).toBe(0);
+      expect(runComposeVerb(verb, { bin: "agro", ...entry, run })).toBe(0);
       expect(calls).toHaveLength(1);
       expect(calls[0].cmd).toBe("bash");
-      expect(calls[0].args[0]).toBe(join(root, ".oh", "scripts", "docker-compose.sh"));
+      expect(calls[0].args[0]).toBe(join(root, ".agro", "scripts", "docker-compose.sh"));
       expect(calls[0].args.slice(1)).toEqual(expected);
     },
   );
@@ -95,7 +95,7 @@ describe("runComposeVerb", () => {
   it("never names docker — the script owns the engine argv", () => {
     const root = makeRepo();
     const { calls, run } = makeRunner();
-    for (const verb of composeVerbs()) runComposeVerb(verb, { bin: "oh", ...entry, run });
+    for (const verb of composeVerbs()) runComposeVerb(verb, { bin: "agro", ...entry, run });
     for (const c of calls) {
       expect(c.cmd).not.toBe("docker");
       expect(c.args.join(" ")).not.toContain("docker compose");
@@ -105,33 +105,33 @@ describe("runComposeVerb", () => {
   it("forwards extra arguments after the verb", () => {
     const root = makeRepo();
     const { calls, run } = makeRunner();
-    runComposeVerb("logs", { bin: "oh", ...entry, run }, ["--tail", "50"]);
+    runComposeVerb("logs", { bin: "agro", ...entry, run }, ["--tail", "50"]);
     expect(calls[0].args.slice(1)).toEqual(["logs", "-f", "--tail", "50"]);
   });
 
   it("propagates the child's exit code", () => {
     const root = makeRepo();
     const { run } = makeRunner({ status: 3 });
-    expect(runComposeVerb("ps", { bin: "oh", ...entry, run })).toBe(3);
+    expect(runComposeVerb("ps", { bin: "agro", ...entry, run })).toBe(3);
   });
 
   it("reports a signal-killed child as failure, not success", () => {
     const root = makeRepo();
     const { run } = makeRunner({ status: null } as RunResult);
-    expect(runComposeVerb("logs", { bin: "oh", ...entry, run })).toBe(1);
+    expect(runComposeVerb("logs", { bin: "agro", ...entry, run })).toBe(1);
   });
 
-  it.each(["agro", "oh"])(
-    "fails with the %s re-vendor hint when the entry carries no script",
+  it.each(["agro", "agro"])(
+    "fails with the %s payload diagnosis when the entry carries no script",
     (bin) => {
       const home = mkdtempSync(join(tmpdir(), "oh-compose-bare-"));
       cleanups.push(home);
-      vi.stubEnv("OH_HOME", home);
-      mkdirSync(join(home, "sandboxes", "bare", ".oh", "scripts"), { recursive: true });
+      vi.stubEnv("AGRO_HOME", home);
+      mkdirSync(join(home, "sandboxes", "bare", ".agro", "scripts"), { recursive: true });
       const { run } = makeRunner();
       withInvokedBin(bin, () => {
         expect(() => runComposeVerb("ps", { bin, name: "bare", run })).toThrow(
-          `\`${bin} update\``,
+          /missing lifecycle script[\s\S]*incomplete/,
         );
       });
     },
@@ -141,9 +141,9 @@ describe("runComposeVerb", () => {
 describe("help", () => {
   it("lists every verb in the top-level usage block", () => {
     const spy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-    printOhHelp();
+    printAgroHelp();
     const text = spy.mock.calls.map((c) => String(c[0])).join("");
-    for (const verb of composeVerbs()) expect(text, verb).toContain(`oh ${verb}`);
+    for (const verb of composeVerbs()) expect(text, verb).toContain(`agro ${verb}`);
   });
 
   it("names no second door and links the verb reference", () => {
@@ -151,14 +151,14 @@ describe("help", () => {
     printComposeVerbHelp("stop");
     const text = spy.mock.calls.map((c) => String(c[0])).join("");
     expect(text).not.toMatch(/\bmake\b/);
-    expect(text).toContain("oh stop");
+    expect(text).toContain("agro stop");
     expect(text).toContain(
       "https://github.com/mifunedev/agro/blob/main/docs/lifecycle-commands.md",
     );
   });
 });
 
-describe("oh is the only front door", () => {
+describe("agro is the only front door", () => {
   it("has no Makefile to mirror", () => {
     expect(existsSync(join(REPO_ROOT, "Makefile"))).toBe(false);
   });

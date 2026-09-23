@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "project": "Gateway lifecycle-script diagnostic and recovery",
+  "branchName": "bug/1080-gateway-lifecycle-script-recovery",
+  "description": "Correct the missing-lifecycle-script diagnostic so its recovery instruction is installation-aware and names the generation skew, add regression coverage, and document safe recovery for a sandbox whose image-installed CLI predates the .agro generation.",
+  "notes": "Governed by mifunedev/agro#1080. Base development at f14840b982532e46459cfe7b620958dcb49326de. Operator authorized a bounded fix through a ready-for-review PR; the advisor never merges. Every tracked edit is assigned to a bounded /delegate worker in an isolated worktree; the advisor runs each gate command and owns acceptance. No Herdr message to the supervisor, no /escalate, no Slack bypass. US-003 (generation-skew diagnosis) was REMOVED from the contract during execution by advisor decision: the branch was unreachable for real workspaces (resolveControlDir selects with isDirectoryAt, so an existing .oh/ directory becomes the resolved control dir and the guard never holds) and could not reach the reported operator in any case, because the stale image-installed bundle prints its own hardcoded text. Recorded as a material deviation in prd.md Plan Reconciliation and in evidence.md. Removed rather than marked passing, so the completion oracle stays honest. US-007 (ready-for-review PR) was REMOVED from the task graph by advisor decision after /audit implementation failed gate 1 on it. It was an advisor graph-design error: the PR's ready state is the pipeline's terminal state, reachable only after AUDIT-PASS, so scoring it inside the audited graph made the gate unsatisfiable by construction. Removing it does not weaken D5 — publication is still gated by a fresh /audit pr classification, a head-specific CI check, and the human merge boundary, none of which this graph controls. Recorded in evidence.md.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "D1 - Reproduce and document the cause, separating bundle from source",
+      "description": "Read-only triage recorded in evidence.md.",
+      "acceptanceCriteria": [
+        "evidence.md records the installed bundle version (/opt/oh/package.json) and the current source version (.agro/cli/package.json) as measured values",
+        "evidence.md shows the hardcoded .oh/scripts literals present in /opt/oh/dist/agro.js and their absence from current source",
+        "evidence.md shows current source resolving the control dir through resolveProjectLayout, with file:line citations",
+        "No gateway process was started or stopped and no token or credential value appears in any artifact",
+        "The remaining current-source defect is stated as the diagnostic's recovery advice, not as an invented path bug"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Accepted by the advisor at 88d370ac; verified by the advisor running the suite and the revert-and-rerun decisiveness check personally."
+    },
+    {
+      "id": "US-002",
+      "title": "D2 - Installation-aware missing-lifecycle-script diagnostic",
+      "description": "Smallest supported correction in .agro/cli/src/lib/execution/runner.ts.",
+      "acceptanceCriteria": [
+        "requireLifecycleScript names a recovery route that can succeed for the reader's actual installation kind, reusing the existing classifyInstallation surface rather than duplicating its logic",
+        "An image installation is told to refresh the sandbox image on the host, never to run a verb that refuses",
+        "A non-image installation is told the verb that actually vendors the control-plane payload",
+        "No .oh symlink, no boot-time install or refresh, no ownership change, no change to resolveProjectLayout semantics",
+        "Affected surfaces from AGENTS.md are each marked applied or not applicable in evidence.md"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Accepted by the advisor at 88d370ac; verified by the advisor running the suite and the revert-and-rerun decisiveness check personally."
+    },
+    {
+      "id": "US-004",
+      "title": "D3 - Decisive regression coverage, failing then passing",
+      "description": "Tests under .agro/cli/src/__tests__/.",
+      "acceptanceCriteria": [
+        "A test asserts the image-install recovery route (the host image refresh) and fails against the pre-change diagnostic",
+        "A test asserts the non-image recovery route (the payload vendoring verb) and fails against the pre-change diagnostic",
+        "A test asserts the retained incomplete-payload diagnosis when neither control dir is present; this case passes both before and after, and guards the retained branch rather than demonstrating the fix",
+        "The failing run against the defect and the passing run after the fix are both captured verbatim in evidence.md, naming only the tests that exist",
+        "Assertions pin short tokens and identifiers, not whole reflowable sentences",
+        "The full repository Vitest suite passes (npx vitest run from the repository root; .agro/cli declares no test script)"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "RECONCILED after US-003 was removed. The original second criterion required a generation-skew test; that test was deleted with the unreachable branch in ebd89a74, so the criterion was replaced with the non-image route assertion that the surviving test actually makes. Two of the three tests are decisive (fail against the pre-change message); the third guards a retained branch and is not claimed as decisive. Re-verified by the advisor at 008f2a71: full suite 82 files / 1624 tests passed. The decisiveness revert-and-rerun was performed by the advisor at 88d370ac against the then-current test set, which included the since-deleted skew test; the two surviving decisive tests were among the three that failed in that run."
+    },
+    {
+      "id": "US-005",
+      "title": "D6 - Operator recovery documentation and changelog",
+      "description": "Docs plus a user-visible CHANGELOG entry.",
+      "acceptanceCriteria": [
+        "Documentation gives safe recovery steps for a sandbox whose image-installed CLI predates the checkout's control-plane generation",
+        "The documented steps do not mutate /opt/oh, install packages globally, restart infrastructure, or run a vendoring update against the operator's checkout",
+        "The docs state plainly that agro update refuses for image installations and why",
+        "CHANGELOG.md carries a user-visible entry under the unreleased section, in the file's existing format",
+        "Any warranted mifunedev/agro-web change is either made or recorded as an explicit gap in evidence.md"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Accepted by the advisor at ebd89a74. Advisor verified the quoted recognition string byte-for-byte against /opt/oh/dist/agro.js, which hardcodes 'oh update' rather than resolving the invoked bin, and ran the STE checker over the new section (zero findings in its line range)."
+    },
+    {
+      "id": "US-006",
+      "title": "D4 - Gates run by the advisor with real outputs preserved",
+      "description": "Verification owned by the advisor, not by a worker.",
+      "acceptanceCriteria": [
+        "The advisor personally ran the .agro/cli Vitest suite and recorded the real output",
+        "The advisor personally ran /eval and recorded the probe-suite result, including any REGRESSION or SKIPPED probes",
+        "The advisor personally ran /audit implementation and recorded the verdict",
+        "Every gap, skip, and unverified claim is stated in evidence.md rather than omitted",
+        "Operator intent preserved is recorded in prd.md and unchanged"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Accepted at ab178cc7. All three gates were executed by the advisor personally, not read from a worker report: (1) npx vitest run from the repository root, 82 files / 1624 tests passed; (2) bash .agro/skills/eval/run.sh, 152 probes, runner exit 0, no green-to-red delta, result recorded in eval-result.json keyed to 9332375f; (3) /audit implementation via audit-run.sh, run id audit-20260918T011135Z-2620257. Gaps are stated in evidence.md rather than omitted: tsc could not run (.agro/cli/node_modules absent, no install performed), three probes are red for reasons confirmed on the untouched base checkout, mifunedev/agro-web was not assessed, and the decisiveness capture is bound to 88d370ac and was not re-executed at the current head."
+    },
+    {
+      "id": "US-008",
+      "title": "Knowledge impact on oh-cli-portable-lifecycle",
+      "description": "Expected Knowledge Impact is REQUIRED.",
+      "acceptanceCriteria": [
+        "oh-cli-portable-lifecycle records the corrected lifecycle diagnostic and its installation-aware recovery route, aligned with this PRD's goals and non-goals",
+        "The page body stays source-backed per .agro/skills/wiki/references/schema.md section 3",
+        "verified_at advances for the page, whose claims were re-read",
+        ".agro/knowledge/README.md is regenerated and bash .agro/evals/probes/wiki-readme-index.sh passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "Accepted at ec8654a2. verified_at was rejected on partial coverage, sent back, and accepted only after a full-page re-read that corrected 25 drifted cites and one wrong attribution; the advisor spot-checked six corrections against source."
+    }
+  ]
+}

@@ -2,11 +2,11 @@
 
 case $- in *i*) ;; *) return 0 ;; esac
 
-[ -n "$OH_BANNER_SHOWN" ] && return 0
-export OH_BANNER_SHOWN=1
+[ -n "$AGRO_BANNER_SHOWN" ] && return 0
+export AGRO_BANNER_SHOWN=1
 
 
-cli_bin="${AGRO_BIN:-${OH_BIN:-agro}}"
+cli_bin="${AGRO_BIN:-${AGRO_BIN:-agro}}"
 sandbox_name="${SANDBOX_NAME:-$(hostname)}"
 timezone="${TZ:-$(date +%Z 2>/dev/null)}"
 project_dir="${HOME}/harness"
@@ -23,7 +23,7 @@ fi
 [ -z "$overlays" ] && overlays="(none)"
 
 
-case "${OH_BANNER_STATUS_STYLE:-auto}" in
+case "${AGRO_BANNER_STATUS_STYLE:-auto}" in
   emoji)
     status_ok="✅"
     status_x="❌"
@@ -118,7 +118,7 @@ fi
 hermes_status="$status_x"
 hermes_detail="not installed — run: ${cli_bin} harness install hermes"
 if command -v hermes >/dev/null 2>&1; then
-  if [ -s "${HERMES_HOME:-${OH_PROJECT_ROOT:-/home/sandbox/harness}/.hermes}/auth.json" ]; then
+  if [ -s "${HERMES_HOME:-${AGRO_PROJECT_ROOT:-/home/sandbox/harness}/.hermes}/auth.json" ]; then
     hermes_status="$status_ok"
     hermes_detail="authenticated"
   else
@@ -150,13 +150,13 @@ if command -v hermes >/dev/null 2>&1; then
   fi
 fi
 
-# oh CLI — verify the bind-mounted package built and symlinked
-oh_status="$status_x"
-oh_detail="not installed — check entrypoint logs"
-if command -v oh >/dev/null 2>&1; then
-  oh_version=$(oh --version 2>/dev/null | head -1)
-  oh_status="$status_ok"
-  oh_detail="${oh_version:-installed}"
+# agro CLI — verify the bind-mounted package built and symlinked
+agro_status="$status_x"
+agro_detail="not installed — check entrypoint logs"
+if command -v agro >/dev/null 2>&1; then
+  agro_version=$(agro --version 2>/dev/null | head -1)
+  agro_status="$status_ok"
+  agro_detail="${agro_version:-installed}"
 fi
 
 
@@ -176,17 +176,17 @@ printf '    %-6s %-11s %s\n' "$pi_status"         "pi"          "$pi_detail"
 printf '    %-6s %-11s %s\n' "$hermes_status"     "hermes"      "$hermes_detail"
 printf '    %-6s %-11s %s\n' "$antigravity_status" "agy"        "$antigravity_detail"
 [ -n "$dashboard_status" ] && printf '    %-6s %-11s %s\n' "$dashboard_status" "dashboard" "$dashboard_detail"
-printf '    %-6s %-11s %s\n' "$oh_status"         "oh"          "$oh_detail"
+printf '    %-6s %-11s %s\n' "$agro_status"        "agro"        "$agro_detail"
 printf '\n'
 shortcuts=""
-for _oh_binary in claude codex pi opencode grok agy hermes herdr cloudflared tailscale agent-browser; do
-  command -v "$_oh_binary" >/dev/null 2>&1 || continue
-  if [ -z "$shortcuts" ]; then shortcuts="$_oh_binary"; else shortcuts="$shortcuts · $_oh_binary"; fi
+for _agro_binary in claude codex pi opencode grok agy hermes herdr cloudflared tailscale agent-browser; do
+  command -v "$_agro_binary" >/dev/null 2>&1 || continue
+  if [ -z "$shortcuts" ]; then shortcuts="$_agro_binary"; else shortcuts="$shortcuts · $_agro_binary"; fi
 done
 if [ -n "$shortcuts" ]; then
-  printf '  Recovery commands: %s · systemctl status openharness-cron.service\n' "$shortcuts"
+  printf '  Recovery commands: %s · systemctl status agro-cron.service\n' "$shortcuts"
 else
-  printf '  Recovery commands: systemctl status openharness-cron.service\n'
+  printf '  Recovery commands: systemctl status agro-cron.service\n'
   printf '  No harness or tool is installed. Add one with `%s harness install <id>` or `%s tool install <id>`.\n' "$cli_bin" "$cli_bin"
 fi
 printf '\n'

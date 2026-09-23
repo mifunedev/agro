@@ -60,7 +60,7 @@ These names describe separate layers, not interchangeable jobs:
 - **harness** — The whole portable setup: one git repo that boots one Docker
   sandbox, wraps your project inside it, and versions the agent's identity,
   skills, crons, and memory. "AGRO" names both this project and any
-  single repo-per-sandbox instance of it. "Open Harness" is the former name of
+  single repo-per-sandbox instance of it. "AGRO" is the former name of
   this project and names nothing current.
   Source: [`intro.md`](intro.md).
 
@@ -84,7 +84,7 @@ These names describe separate layers, not interchangeable jobs:
 - **orchestrator** — The root-level role that manages the sandbox lifecycle and
   git but does not write application code; its job is provisioning, scaffolding
   the workspace, and running lifecycle skills. Its instructions live in the root
-  `AGENTS.md` (aliased for provider compatibility as `CLAUDE.md`).
+  `AGENTS.md`, which every coding harness reads directly.
   Source: [`AGENTS.md`](../AGENTS.md).
 
 - **policy** — The provider-portable conventions and guardrails the harness
@@ -106,7 +106,7 @@ These names describe separate layers, not interchangeable jobs:
   creating another one. Source: [`docs/rfcs/README.md`](rfcs/README.md).
 
 - **rule** — Ambient repository policy an agent carries without invoking
-  anything: an `AGENTS.md` (aliased `CLAUDE.md` for provider compatibility) that
+  anything: an `AGENTS.md` that
   applies to every task under its directory, or a path-scoped reference skill.
   Distinct from a skill, which is invoked for a job.
   Source: [`AGENTS.md`](../AGENTS.md).

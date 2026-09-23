@@ -14,10 +14,10 @@ dispatch token. Never paste a token into a command line, a chat, or a log.
 
 ## Preconditions
 
-- [ ] The US-001 web PR [mifunedev/openharness-web#46](https://github.com/mifunedev/openharness-web/pull/46) is merged.
+- [ ] The US-001 web PR [mifunedev/agro-web#46](https://github.com/mifunedev/agro-web/pull/46) is merged.
 - [ ] The core PR [#1015](https://github.com/mifunedev/agro/pull/1015) is green.
-- [ ] The operator account has admin rights on `mifunedev/openharness`, on
-      `mifunedev/openharness-web`, and on the Cloudflare zone `mifune.dev`.
+- [ ] The operator account has admin rights on `mifunedev/agro`, on
+      `mifunedev/agro-web`, and on the Cloudflare zone `mifune.dev`.
 - [ ] The DNS record `agro.mifune.dev` exists in Cloudflare (proxied; the host
       answers `421` until step 5).
 - [ ] The GHCR package `mifunedev/agro` is public.
@@ -35,10 +35,10 @@ Run the steps in order. Record the output of each step in
 ### 1. Record the repository IDs and the endpoint status before the cutover
 
 ```bash
-gh repo view mifunedev/openharness --json id,name,url
-gh repo view mifunedev/openharness-web --json id,name,url
+gh repo view mifunedev/agro --json id,name,url
+gh repo view mifunedev/agro-web --json id,name,url
 for host in oh.mifune.dev agro.mifune.dev; do
-  for path in /install.sh /get-oh.sh /oh.js /get-agro.sh /agro.js; do
+  for path in /install.sh /get-agro.sh /oh.js /get-agro.sh /agro.js; do
     printf '%s%s ' "$host" "$path"
     curl -sS -o /dev/null -w '%{http_code} %{redirect_url}\n' "https://$host$path"
   done
@@ -47,14 +47,14 @@ done
 
 Expected output: the core ID is `R_kgDORyBFdg` and the web ID is
 `R_kgDOTHLFeQ`. On `oh.mifune.dev`, `/install.sh` prints `302` with a
-`raw.githubusercontent.com` URL, `/get-oh.sh` and `/oh.js` print `200`, and
+`raw.githubusercontent.com` URL, `/get-agro.sh` and `/oh.js` print `200`, and
 `/get-agro.sh` and `/agro.js` print `404`. Every `agro.mifune.dev` path prints
 `421`.
 
 ### 2. Rename the core repository
 
 ```bash
-gh repo rename agro --repo mifunedev/openharness --yes
+gh repo rename agro --repo mifunedev/agro --yes
 gh repo view mifunedev/agro --json id,nameWithOwner
 ```
 
@@ -64,7 +64,7 @@ Expected output: `nameWithOwner` is `mifunedev/agro` and `id` is still
 ### 3. Rename the web repository
 
 ```bash
-gh repo rename agro-web --repo mifunedev/openharness-web --yes
+gh repo rename agro-web --repo mifunedev/agro-web --yes
 gh repo view mifunedev/agro-web --json id,nameWithOwner
 ```
 
@@ -132,8 +132,8 @@ with a dynamic target):
 | Order | Name | When incoming requests match (expression) | Then (target expression) | Status | Preserve query string |
 |---|---|---|---|---|---|
 | 1 | `agro-install-sh` | `http.request.uri.path eq "/install.sh" and http.host in {"oh.mifune.dev" "agro.mifune.dev"}` | `"https://raw.githubusercontent.com/mifunedev/agro/main/.agro/scripts/install.sh"` | 302 | off |
-| 2 | `agro-legacy-artifacts` | `http.host eq "oh.mifune.dev" and http.request.uri.path in {"/get-oh.sh" "/oh.js" "/get-agro.sh" "/agro.js"}` | `concat("https://agro.mifune.dev", http.request.uri.path)` | 302 | on |
-| 3 | `agro-docs-catch-all` | `http.host eq "oh.mifune.dev" and not http.request.uri.path in {"/install.sh" "/get-oh.sh" "/oh.js" "/get-agro.sh" "/agro.js"}` | `concat("https://agro.mifune.dev", http.request.uri.path)` | 301 | on |
+| 2 | `agro-legacy-artifacts` | `http.host eq "oh.mifune.dev" and http.request.uri.path in {"/get-agro.sh" "/oh.js" "/get-agro.sh" "/agro.js"}` | `concat("https://agro.mifune.dev", http.request.uri.path)` | 302 | on |
+| 3 | `agro-docs-catch-all` | `http.host eq "oh.mifune.dev" and not http.request.uri.path in {"/install.sh" "/get-agro.sh" "/oh.js" "/get-agro.sh" "/agro.js"}` | `concat("https://agro.mifune.dev", http.request.uri.path)` | 301 | on |
 
 The same three rules as one API call (the entrypoint ruleset of the
 `http_request_dynamic_redirect` phase; the call replaces every rule in that
@@ -160,7 +160,7 @@ curl -sS -X PUT "https://api.cloudflare.com/client/v4/zones/<zone-id>/rulesets/p
     },
     {
       "description": "agro-legacy-artifacts",
-      "expression": "http.host eq \"oh.mifune.dev\" and http.request.uri.path in {\"/get-oh.sh\" \"/oh.js\" \"/get-agro.sh\" \"/agro.js\"}",
+      "expression": "http.host eq \"oh.mifune.dev\" and http.request.uri.path in {\"/get-agro.sh\" \"/oh.js\" \"/get-agro.sh\" \"/agro.js\"}",
       "action": "redirect",
       "action_parameters": {
         "from_value": {
@@ -172,7 +172,7 @@ curl -sS -X PUT "https://api.cloudflare.com/client/v4/zones/<zone-id>/rulesets/p
     },
     {
       "description": "agro-docs-catch-all",
-      "expression": "http.host eq \"oh.mifune.dev\" and not http.request.uri.path in {\"/install.sh\" \"/get-oh.sh\" \"/oh.js\" \"/get-agro.sh\" \"/agro.js\"}",
+      "expression": "http.host eq \"oh.mifune.dev\" and not http.request.uri.path in {\"/install.sh\" \"/get-agro.sh\" \"/oh.js\" \"/get-agro.sh\" \"/agro.js\"}",
       "action": "redirect",
       "action_parameters": {
         "from_value": {
@@ -197,8 +197,8 @@ itself, is a valid choice; this runbook documents the redirect form only.
 
 Sequencing hazard: rule 1's target names `.agro/scripts/install.sh` on `main`.
 That path does not exist on `main` yet. `main` still carries
-`.oh/scripts/install.sh`, because `main` predates the `.oh/` to `.agro/`
-rename. Keep the rule target on the `.oh/` path until the release that
+`.agro/scripts/install.sh`, because `main` predates the `.agro/` to `.agro/`
+rename. Keep the rule target on the `.agro/` path until the release that
 carries the rename lands on `main`. Change the target to
 `https://raw.githubusercontent.com/mifunedev/agro/main/.agro/scripts/install.sh`
 in the same change window as that release, never before it. An earlier
@@ -226,8 +226,8 @@ repository; a fork stays untouched.
 ```bash
 url="$(git remote get-url origin)"
 normalized="$(printf '%s\n' "$url" | sed -E 's#^(https://github\.com/|ssh://git@github\.com/|git@github\.com:)##; s#\.git$##')"
-if [ "$normalized" = "mifunedev/openharness" ]; then
-  git remote set-url origin "${url%/openharness*}/agro${url##*openharness}"
+if [ "$normalized" = "mifunedev/agro" ]; then
+  git remote set-url origin "${url%/agro*}/agro${url##*agro}"
 fi
 git remote get-url origin
 ```
@@ -245,12 +245,12 @@ returns a body.
 | Host and path | Expected status | Resolves to | Check |
 |---|---|---|---|
 | `https://oh.mifune.dev/install.sh` | 302 | the raw `install.sh` on `main` of `mifunedev/agro` | `curl -fsSL https://oh.mifune.dev/install.sh \| head -c 2` prints `#!` |
-| `https://oh.mifune.dev/get-oh.sh` | 302 | `https://agro.mifune.dev/get-oh.sh` | `curl -fsSL https://oh.mifune.dev/get-oh.sh \| head -c 2` prints `#!` |
+| `https://oh.mifune.dev/get-agro.sh` | 302 | `https://agro.mifune.dev/get-agro.sh` | `curl -fsSL https://oh.mifune.dev/get-agro.sh \| head -c 2` prints `#!` |
 | `https://oh.mifune.dev/oh.js` | 302 | `https://agro.mifune.dev/oh.js` | `curl -fsSL https://oh.mifune.dev/oh.js \| head -c 2` prints `#!` |
 | `https://oh.mifune.dev/get-agro.sh` | 302 | `https://agro.mifune.dev/get-agro.sh` | `curl -fsSL https://oh.mifune.dev/get-agro.sh \| head -c 2` prints `#!` |
 | `https://oh.mifune.dev/agro.js` | 302 | `https://agro.mifune.dev/agro.js` | `curl -fsSL https://oh.mifune.dev/agro.js \| head -c 2` prints `#!` |
 | `https://agro.mifune.dev/install.sh` | 302 | the raw `install.sh` on `main` of `mifunedev/agro` | `curl -fsSL https://agro.mifune.dev/install.sh \| head -c 2` prints `#!` |
-| `https://agro.mifune.dev/get-oh.sh` | 200 | the Pages static file | `curl -fsSL https://agro.mifune.dev/get-oh.sh \| head -c 2` prints `#!` |
+| `https://agro.mifune.dev/get-agro.sh` | 200 | the Pages static file | `curl -fsSL https://agro.mifune.dev/get-agro.sh \| head -c 2` prints `#!` |
 | `https://agro.mifune.dev/oh.js` | 200 | the Pages static file | `curl -fsSL https://agro.mifune.dev/oh.js \| head -c 2` prints `#!` |
 | `https://agro.mifune.dev/get-agro.sh` | 200 | the Pages static file | `curl -fsSL https://agro.mifune.dev/get-agro.sh \| head -c 2` prints `#!` |
 | `https://agro.mifune.dev/agro.js` | 200 | the Pages static file | `curl -fsSL https://agro.mifune.dev/agro.js \| head -c 2` prints `#!` |
@@ -262,10 +262,10 @@ redirect URL, and the `agro.mifune.dev` rows print `200` or `302`.
 Repository, image, and dispatch checks:
 
 ```bash
-gh repo view mifunedev/openharness --json nameWithOwner
-git ls-remote https://github.com/mifunedev/openharness.git HEAD
+gh repo view mifunedev/agro --json nameWithOwner
+git ls-remote https://github.com/mifunedev/agro.git HEAD
 docker buildx imagetools inspect ghcr.io/mifunedev/agro:latest --format '{{json .Manifest.Digest}}'
-docker buildx imagetools inspect ghcr.io/mifunedev/openharness:latest --format '{{json .Manifest.Digest}}'
+docker buildx imagetools inspect ghcr.io/mifunedev/agro:latest --format '{{json .Manifest.Digest}}'
 gh run list --repo mifunedev/agro-web --workflow pages.yml --event repository_dispatch --limit 1
 ```
 

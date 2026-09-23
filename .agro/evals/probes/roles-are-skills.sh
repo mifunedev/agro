@@ -23,7 +23,7 @@ for role in architect advisor auditor implementer critic pm council first-mate p
   done
 done
 
-agent_file_refs="$(grep -rnE '\.(oh|claude|codex|pi)/agents/[A-Za-z0-9_-]+\.md' \
+agent_file_refs="$(grep -rnE '\.(agro|claude|codex|pi)/agents/[A-Za-z0-9_-]+\.md' \
   .agro/skills docs AGENTS.md README.md .agro/README.md 2>/dev/null \
   | grep -v '^docs/rfcs/preserved-changelog-rationale\.md:' || true)"
 if [ -n "$agent_file_refs" ]; then

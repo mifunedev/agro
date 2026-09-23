@@ -2,7 +2,7 @@
 
 > Detail doc for the **`plan`** subcommand of the `/spec` skill
 > (`.agro/skills/spec/SKILL.md`). Argument form:
-> `plan <topic> [--plan <path>] [--issue <N>] [--slug <slug>] [--prefix feat|bug|task|audit|skill|agent] [--repo <owner/name>] [--base <branch>]`.
+> `plan <topic> [--plan <path>] [--issue <N>] [--slug <slug>] [--prefix feat|bug|task|audit|skill] [--repo <owner/name>] [--base <branch>]`.
 > The dispatcher passes the argument string after `plan` to this procedure as
 > `$ARGUMENTS`. Authority: `.agro/skills/spec/SKILL.md`.
 
@@ -32,7 +32,7 @@ written.
 | Arg | Meaning |
 |-----|---------|
 | `<topic>` | Free-text feature description — the seed for recall and `/prd`. Required unless `--plan` or `--issue` supplies the spec. |
-| `--plan <path>` | A plan file (e.g. `/imagine` output) used as comprehensive `/prd` input; skips `/prd`'s clarifying questions. **Its presence is the operator's approval** — see `## Plan Reconciliation`. |
+| `--plan <path>` | A plan file used as comprehensive `/prd` input; skips `/prd`'s clarifying questions. **Its presence is the operator's approval** — see `## Plan Reconciliation`. |
 | `--issue <N>` | The issue number this spec builds — **consumed by the `/ralph` step** (the branch name embeds it, so `/ralph` hard-fails without it). The human selects the issue. For a fresh manual topic with no issue, open one first (per `/git`) or let `/spec execute` open one in a standalone run. `plan` only **reads** `<N>`. |
 | `--slug <slug>` | Override the derived slug. Must match `[a-z0-9-]+`, ≤5 words, not `archive`. |
 | `--prefix <type>` | Branch/issue prefix (default `feat`), per `.agro/skills/git/SKILL.md`. |

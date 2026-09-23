@@ -17,11 +17,11 @@ confidence: provisional
 # A sentence-wide negation filter lets a forbidden routing target through
 
 ## Relevant Source Files
-- `.oh/evals/probes/delegate-model-effort-policy.sh@144d9d8b:70-71` — the repaired oracle: a negation within 40 characters before the `Sonnet` token.
-- `.oh/evals/probes/delegate-model-effort-policy.sh@144d9d8b:20` — the sentence-wide negation pattern the other checks still use.
-- `.oh/evals/probes/spec-single-owner.sh@144d9d8b:68-71` — the permission-verb scan added beside the verb-adverb scan at `:65-66`.
-- `.oh/evals/probes/advisor-execution-contract.sh@144d9d8b:98` — the same permission-verb pattern in the new contract probe.
-- `.oh/tasks/advisor-first-orchestration/evidence.md@144d9d8b` — the review that found both escapes and the injection that proved the repair.
+- `.agro/evals/probes/delegate-model-effort-policy.sh@144d9d8b:70-71` — the repaired oracle: a negation within 40 characters before the `Sonnet` token.
+- `.agro/evals/probes/delegate-model-effort-policy.sh@144d9d8b:20` — the sentence-wide negation pattern the other checks still use.
+- `.agro/evals/probes/spec-single-owner.sh@144d9d8b:68-71` — the permission-verb scan added beside the verb-adverb scan at `:65-66`.
+- `.agro/evals/probes/advisor-execution-contract.sh@144d9d8b:98` — the same permission-verb pattern in the new contract probe.
+- `.agro/tasks/advisor-first-orchestration/evidence.md@144d9d8b` — the review that found both escapes and the injection that proved the repair.
 
 ## Summary
 A prose probe that forbids a token outside a negation often drops every sentence

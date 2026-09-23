@@ -3,8 +3,7 @@
 # source: issue #872
 # desc: a repository keeps its worktrees at its own root in .worktrees/, and
 #       non-harness clones live at projects/<owner>/<repo>/. Both roots are
-#       gitignored except a tracked AGENTS.md guide and its CLAUDE.md
-#       provider-compatibility symlink, the retired
+#       gitignored except a tracked AGENTS.md guide, the retired
 #       .agro/worktrees/ root is gone, and the layout is a fixed convention:
 #       WORKTREES_DIR / PROJECTS_DIR / CRONS_DIR are retired and cannot move
 #       any of these roots.
@@ -30,20 +29,16 @@ for guide in ".worktrees/AGENTS.md" "projects/AGENTS.md"; do
 done
 
 tracked="$(git ls-files .worktrees projects)"
-expected=$'.worktrees/AGENTS.md\n.worktrees/CLAUDE.md\nprojects/AGENTS.md\nprojects/CLAUDE.md'
+expected=$'.worktrees/AGENTS.md\nprojects/AGENTS.md'
 if [[ "$tracked" != "$expected" ]]; then
-  echo "REGRESSION: .worktrees/ and projects/ must track exactly their AGENTS.md + CLAUDE.md alias; got:" >&2
+  echo "REGRESSION: .worktrees/ and projects/ must track exactly their AGENTS.md guide; got:" >&2
   printf '%s\n' "$tracked" >&2
   exit 1
 fi
 
 for alias in ".worktrees/CLAUDE.md" "projects/CLAUDE.md"; do
-  if [[ ! -L "$alias" ]]; then
-    echo "REGRESSION: $alias must be a symlink, not a copy" >&2
-    exit 1
-  fi
-  if [[ "$(readlink "$alias")" != "AGENTS.md" ]]; then
-    echo "REGRESSION: $alias must point at the sibling AGENTS.md, got: $(readlink "$alias")" >&2
+  if [[ -e "$alias" ]]; then
+    echo "REGRESSION: $alias is back — it suppresses the AGENTS.md fallback" >&2
     exit 1
   fi
 done
@@ -76,7 +71,7 @@ if grep -Eq 'process\.env\.(WORKTREES|PROJECTS|CRONS)_DIR' .agro/scripts/cron-ru
 fi
 
 for guarded in \
-  .agro/scripts/oh-path \
+  .agro/scripts/agro-path \
   .devcontainer/entrypoint.sh \
   .devcontainer/docker-compose.yml \
   .devcontainer/docker-compose.image-only.yml \
@@ -88,23 +83,23 @@ for guarded in \
   fi
 done
 
-wt="$(WORKTREES_DIR=/tmp/oh-probe-wt bash .agro/scripts/oh-path worktrees --no-create)"
-pr="$(PROJECTS_DIR=/tmp/oh-probe-pr bash .agro/scripts/oh-path projects --no-create)"
-cr="$(CRONS_DIR=/tmp/oh-probe-cr bash .agro/scripts/oh-path crons --no-create)"
+wt="$(WORKTREES_DIR=/tmp/agro-probe-wt bash .agro/scripts/agro-path worktrees --no-create)"
+pr="$(PROJECTS_DIR=/tmp/agro-probe-pr bash .agro/scripts/agro-path projects --no-create)"
+cr="$(CRONS_DIR=/tmp/agro-probe-cr bash .agro/scripts/agro-path crons --no-create)"
 if [[ "$wt" != "$ROOT/.worktrees" || "$pr" != "$ROOT/projects" || "$cr" != "$ROOT/crons" ]]; then
-  echo "REGRESSION: oh-path is still overridable or resolves wrong: worktrees=$wt projects=$pr crons=$cr" >&2
+  echo "REGRESSION: agro-path is still overridable or resolves wrong: worktrees=$wt projects=$pr crons=$cr" >&2
   exit 1
 fi
 
-if bash .agro/scripts/oh-path definitely-not-a-harness-dir --no-create >/dev/null 2>&1; then
-  echo "REGRESSION: oh-path guesses a path for an unknown name instead of erroring" >&2
+if bash .agro/scripts/agro-path definitely-not-a-harness-dir --no-create >/dev/null 2>&1; then
+  echo "REGRESSION: agro-path guesses a path for an unknown name instead of erroring" >&2
   exit 1
 fi
 
-if ! grep -Fq 'ENV OH_PROJECT_ROOT=/home/sandbox/harness' .devcontainer/Dockerfile; then
-  echo "REGRESSION: OH_PROJECT_ROOT lost its fixed image-level definition" >&2
+if ! grep -Fq 'ENV AGRO_PROJECT_ROOT=/home/sandbox/harness' .devcontainer/Dockerfile; then
+  echo "REGRESSION: AGRO_PROJECT_ROOT lost its fixed image-level definition" >&2
   exit 1
 fi
 
-echo "PASS: .worktrees/, projects/ and crons/ live at the repo root as a fixed convention, the retired *_DIR knobs are gone from every surface, and oh-path errors on an unknown name" >&2
+echo "PASS: .worktrees/, projects/ and crons/ live at the repo root as a fixed convention, the retired *_DIR knobs are gone from every surface, and agro-path errors on an unknown name" >&2
 exit 0

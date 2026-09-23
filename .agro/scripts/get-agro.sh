@@ -11,18 +11,10 @@ die()    { printf "${RED}ERROR: %s${NC}\n" "$*" >&2; exit 1; }
 cleanup() { [ -n "${TMP:-}" ] && rm -rf "$TMP" 2>/dev/null || true; }
 
 agro_env() {
-  local agro_key="AGRO_$1" legacy_key="OH_$1" agro_value legacy_value
+  local agro_key="AGRO_$1" agro_value
   agro_value="${!agro_key:-}"
-  legacy_value="${!legacy_key:-}"
   if [ -n "$agro_value" ]; then
-    if [ -n "$legacy_value" ] && [ "$agro_value" != "$legacy_value" ]; then
-      printf 'get-agro.sh: %s and %s are both set and differ — using %s\n' "$agro_key" "$legacy_key" "$agro_key" >&2
-    fi
     printf 'agro\t%s\n' "$agro_value"
-    return 0
-  fi
-  if [ -n "$legacy_value" ]; then
-    printf 'legacy\t%s\n' "$legacy_value"
     return 0
   fi
   printf 'none\t%s\n' "$2"
@@ -89,9 +81,6 @@ Env vars:
                        (default: mifunedev/agro)
   AGRO_NVM_VERSION     nvm version tag for the Node install (default: v0.40.3)
   AGRO_ASSUME_YES      Non-empty accepts prompts (same as --yes)
-
-  Each AGRO_<NAME> falls back to the legacy OH_<NAME> spelling. When both are
-  set and differ, the AGRO value wins and a warning names the two keys.
 
 Alternative:
   npm install -g @mifune/agro

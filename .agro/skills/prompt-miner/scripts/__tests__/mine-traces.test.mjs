@@ -9,6 +9,10 @@ import { execFileSync } from "node:child_process";
 import {
   classifyLine,
   aggregateSession,
+  applyJudgedCorrections,
+  batchFollowups,
+  judgeCorrections,
+  JUDGE_MAX_QUESTIONS_PER_REQUEST,
   scoreSession,
   extractFeatures,
   detectSessionType,
@@ -252,7 +256,7 @@ test("--no-git stubs the ground-truth bonus to 0 even when a PR URL is present",
     {
       kind: "assistant",
       stopReason: "end_turn",
-      text: "Opened https://github.com/mifunedev/openharness/pull/7",
+      text: "Opened https://github.com/mifunedev/agro/pull/7",
       ts: "2026-01-01T00:01:00Z",
     },
   ];
@@ -616,4 +620,73 @@ test("the privacy contract holds: no promptText key without --include-prompt-tex
   for (const r of [...data.sessions, ...data.unranked]) {
     assert.ok(!("promptText" in r), `no promptText on ${r.sessionId}`);
   }
+});
+
+test("batchFollowups chunks by question count and by character budget", () => {
+  const many = Array.from({ length: 250 }, (_, i) => `m${i}`);
+  const byCount = batchFollowups(many);
+  assert.equal(byCount.length, 3);
+  assert.equal(byCount[0].length, JUDGE_MAX_QUESTIONS_PER_REQUEST);
+
+  const fat = [ "a".repeat(40), "b".repeat(40), "c".repeat(40) ];
+  const byChars = batchFollowups(fat, 100, 80);
+  assert.equal(byChars.length, 2);
+  assert.deepEqual(byChars[0].length, 2);
+});
+
+test("judgeCorrections reports a missing adapter and returns null", async () => {
+  const lines = [];
+  const out = await judgeCorrections(["undo that"], {
+    adapter: false,
+    onDiagnostic: (l) => lines.push(l),
+  });
+  assert.equal(out, null);
+  assert.match(lines[0], /adapter is missing/);
+  assert.match(lines[0], /Continuing with the negation lexicon/);
+});
+
+test("judgeCorrections returns a probability map from a stub adapter", async () => {
+  const stub = {
+    noul: (instructions, criteria) => ({ type: "noul", instructions, criteria }),
+    systemOne: async ({ state, questions }) => {
+      assert.ok(state.messages);
+      const answers = {};
+      for (const id of Object.keys(questions)) {
+        answers[id] = { type: "noul", noul: state.messages[id].includes("undo") ? 0.93 : 0.04 };
+      }
+      return { model: "jev-1.13.0", answers };
+    },
+  };
+  const out = await judgeCorrections(["undo that", "thanks, next please"], { adapter: stub });
+  assert.equal(out.get("undo that"), 0.93);
+  assert.equal(out.get("thanks, next please"), 0.04);
+});
+
+test("judgeCorrections degrades to null when the adapter degrades", async () => {
+  const stub = {
+    noul: () => ({ type: "noul" }),
+    systemOne: async () => null,
+  };
+  assert.equal(await judgeCorrections(["anything"], { adapter: stub }), null);
+});
+
+test("judgeCorrections skips a request when there is nothing to judge", async () => {
+  const out = await judgeCorrections(["", "   "], { adapter: false });
+  assert.equal(out.size, 0);
+});
+
+test("applyJudgedCorrections recomputes density from probabilities, not the lexicon", () => {
+  const agg = {
+    humanPrompts: ["build a parser", "undo that", "looks good"],
+    humanPromptCount: 3,
+    correctiveFollowups: 0,
+    correctionDensity: 0,
+  };
+  const judged = new Map([["undo that", 0.91], ["looks good", 0.02]]);
+  const out = applyJudgedCorrections(agg, judged);
+  assert.equal(out.correctiveFollowups, 1);
+  assert.equal(Number(out.correctionDensity.toFixed(4)), Number((1 / 3).toFixed(4)));
+
+  const belowThreshold = applyJudgedCorrections(agg, new Map([["undo that", 0.49]]));
+  assert.equal(belowThreshold.correctiveFollowups, 0);
 });

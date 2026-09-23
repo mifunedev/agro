@@ -16,7 +16,7 @@ afterEach(() => {
 function registry(): string {
   const home = mkdtempSync(join(tmpdir(), "oh-sandbox-cmd-"));
   cleanups.push(home);
-  vi.stubEnv("OH_HOME", home);
+  vi.stubEnv("AGRO_HOME", home);
   vi.stubEnv("TZ", "UTC");
   return join(home, "sandboxes");
 }
@@ -76,8 +76,8 @@ function harnessCheckout(): string {
   return dir;
 }
 
-describe("oh sandbox install — runtime selection", () => {
-  it.each(["agro", "oh"])(
+describe("agro sandbox install — runtime selection", () => {
+  it.each(["agro", "agro"])(
     "refuses microsandbox with the RFC pointer and the %s tool verb",
     async (bin) => {
       registry();
@@ -93,30 +93,30 @@ describe("oh sandbox install — runtime selection", () => {
   it("refuses an unknown runtime and lists the catalog", async () => {
     registry();
     const { err, io } = makeIo();
-    expect(await runSandboxInstall({ bin: "oh", runtime: "podman", yes: true }, io)).toBe(1);
+    expect(await runSandboxInstall({ bin: "agro", runtime: "podman", yes: true }, io)).toBe(1);
     expect(err.join("")).toContain('unknown runtime "podman"');
     expect(err.join("")).toContain("docker, microsandbox");
   });
 
   it("writes no entry for a refused runtime", async () => {
     const registryPath = registry();
-    await runSandboxInstall({ bin: "oh", runtime: "microsandbox", yes: true }, makeIo().io);
+    await runSandboxInstall({ bin: "agro", runtime: "microsandbox", yes: true }, makeIo().io);
     expect(existsSync(registryPath)).toBe(false);
   });
 });
 
-describe("oh sandbox install — the entry it writes", () => {
+describe("agro sandbox install — the entry it writes", () => {
   it("names the sandbox agro-sbx-1, then agro-sbx-2, and boots each one", async () => {
     const registryPath = registry();
     const { calls, run } = makeRunner();
     const { out, io } = makeIo();
 
-    expect(await runSandboxInstall({ bin: "oh", runtime: "docker", yes: true, run }, io)).toBe(0);
+    expect(await runSandboxInstall({ bin: "agro", runtime: "docker", yes: true, run }, io)).toBe(0);
     expect(readdirSync(registryPath)).toEqual(["agro-sbx-1"]);
-    expect(out.join("")).toContain("next: oh shell agro-sbx-1");
+    expect(out.join("")).toContain("next: agro shell agro-sbx-1");
     expect(calls.some((c) => c.cmd === "bash" && c.args.includes("up"))).toBe(true);
 
-    expect(await runSandboxInstall({ bin: "oh", runtime: "docker", yes: true, run }, makeIo().io)).toBe(0);
+    expect(await runSandboxInstall({ bin: "agro", runtime: "docker", yes: true, run }, makeIo().io)).toBe(0);
     expect(readdirSync(registryPath).sort()).toEqual(["agro-sbx-1", "agro-sbx-2"]);
   });
 
@@ -125,7 +125,7 @@ describe("oh sandbox install — the entry it writes", () => {
     const { run } = makeRunner();
 
     expect(
-      await runSandboxInstall({ bin: "oh", runtime: "docker", name: "box", yes: true, run }, makeIo().io),
+      await runSandboxInstall({ bin: "agro", runtime: "docker", name: "box", yes: true, run }, makeIo().io),
     ).toBe(0);
     const config = readJson(join(registryPath, "box", "agro.json"));
     expect(config).toMatchObject({
@@ -144,7 +144,7 @@ describe("oh sandbox install — the entry it writes", () => {
     const { calls, run } = makeRunner();
 
     expect(
-      await runSandboxInstall({ bin: "oh", runtime: "docker", name: "box", yes: true, run }, makeIo().io),
+      await runSandboxInstall({ bin: "agro", runtime: "docker", name: "box", yes: true, run }, makeIo().io),
     ).toBe(0);
     const root = join(registryPath, "box");
     for (const rel of [
@@ -176,7 +176,7 @@ describe("oh sandbox install — the entry it writes", () => {
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "box", checkout: checkout, yes: true, run },
+        { bin: "agro", runtime: "docker", name: "box", checkout: checkout, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -188,15 +188,15 @@ describe("oh sandbox install — the entry it writes", () => {
     });
     expect(rendered.join("")).toContain(`AGRO_REPO_DIR=${checkout}`);
     const base = readFileSync(join(root, ".devcontainer", "docker-compose.yml"), "utf8");
-    expect(base).toContain("${AGRO_REPO_DIR:-${OH_REPO_DIR:-..}}:/home/sandbox/harness");
+    expect(base).toContain("${AGRO_REPO_DIR:-..}:/home/sandbox/harness");
   });
 
-  it("seeds every default from <repo>/oh.json when that checkout has one", async () => {
+  it("seeds every default from <repo>/agro.json when that checkout has one", async () => {
     const registryPath = registry();
     const checkout = mkdtempSync(join(tmpdir(), "oh-sandbox-repo-"));
     cleanups.push(checkout);
     writeFileSync(
-      join(checkout, "oh.json"),
+      join(checkout, "agro.json"),
       `${JSON.stringify({
         version: 1,
         name: "seeded",
@@ -211,7 +211,7 @@ describe("oh sandbox install — the entry it writes", () => {
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", checkout: checkout, yes: true, run },
+        { bin: "agro", runtime: "docker", checkout: checkout, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -234,7 +234,7 @@ describe("oh sandbox install — the entry it writes", () => {
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "box", yes: true, printArgv: true, run },
+        { bin: "agro", runtime: "docker", name: "box", yes: true, printArgv: true, run },
         io,
       ),
     ).toBe(0);
@@ -251,7 +251,7 @@ describe("oh sandbox install — the entry it writes", () => {
 
     expect(
       await runSandboxInstall(
-        { bin: "oh",
+        { bin: "agro",
           runtime: "docker",
           name: "x",
           yes: true,
@@ -273,7 +273,7 @@ describe("oh sandbox install — the entry it writes", () => {
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "y", yes: true, noBuild: true, image: true, run },
+        { bin: "agro", runtime: "docker", name: "y", yes: true, noBuild: true, image: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -282,13 +282,13 @@ describe("oh sandbox install — the entry it writes", () => {
   });
 });
 
-describe("oh sandbox install — re-installing an existing name", () => {
+describe("agro sandbox install — re-installing an existing name", () => {
   it("preserves the saved timezone, docker socket and git identity", async () => {
     const registryPath = registry();
     const { run } = makeRunner();
     const { io } = makeIo(["box", "Europe/Berlin", "Ada", "ada@example.com", "n", "y"]);
 
-    expect(await runSandboxInstall({ bin: "oh", runtime: "docker", run }, io)).toBe(0);
+    expect(await runSandboxInstall({ bin: "agro", runtime: "docker", run }, io)).toBe(0);
     const entry = join(registryPath, "box", "agro.json");
     expect(readJson(entry)).toMatchObject({
       timezone: "Europe/Berlin",
@@ -297,7 +297,7 @@ describe("oh sandbox install — re-installing an existing name", () => {
     });
 
     expect(
-      await runSandboxInstall({ bin: "oh", runtime: "docker", name: "box", yes: true, run }, makeIo().io),
+      await runSandboxInstall({ bin: "agro", runtime: "docker", name: "box", yes: true, run }, makeIo().io),
     ).toBe(0);
     expect(readJson(entry)).toMatchObject({
       name: "box",
@@ -318,11 +318,11 @@ describe("oh sandbox install — re-installing an existing name", () => {
     };
     const { io } = makeIo(["box", "Europe/Berlin", "", "", "n", "y"]);
 
-    expect(await runSandboxInstall({ bin: "oh", runtime: "docker", run }, io)).toBe(0);
+    expect(await runSandboxInstall({ bin: "agro", runtime: "docker", run }, io)).toBe(0);
     rendered.length = 0;
 
     expect(
-      await runSandboxInstall({ bin: "oh", runtime: "docker", name: "box", yes: true, run }, makeIo().io),
+      await runSandboxInstall({ bin: "agro", runtime: "docker", name: "box", yes: true, run }, makeIo().io),
     ).toBe(0);
     expect(rendered.join("")).toContain("DOCKER_SOCKET=true");
     expect(rendered.join("")).toContain("TZ=Europe/Berlin");
@@ -335,7 +335,7 @@ describe("oh sandbox install — re-installing an existing name", () => {
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "box", checkout: checkout, yes: true, run },
+        { bin: "agro", runtime: "docker", name: "box", checkout: checkout, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -352,13 +352,12 @@ describe("oh sandbox install — re-installing an existing name", () => {
         cron: { agentBin: "codex" },
         build: { skipPnpmInstall: true },
         git: { userName: "Round Trip", userEmail: "round@example.test" },
-        langfuse: { baseUrl: "https://lf.example.test", privacyPreset: "prompts-only" },
         composeOverrides: ["docker-compose.extra.yml"],
       })}\n`,
     );
 
     expect(
-      await runSandboxInstall({ bin: "oh", runtime: "docker", name: "box", yes: true, run }, makeIo().io),
+      await runSandboxInstall({ bin: "agro", runtime: "docker", name: "box", yes: true, run }, makeIo().io),
     ).toBe(0);
     expect(readJson(entry)).toMatchObject({
       checkout: checkout,
@@ -368,7 +367,6 @@ describe("oh sandbox install — re-installing an existing name", () => {
       cron: { agentBin: "codex" },
       build: { skipPnpmInstall: true },
       git: { userName: "Round Trip", userEmail: "round@example.test" },
-      langfuse: { baseUrl: "https://lf.example.test", privacyPreset: "prompts-only" },
       composeOverrides: ["docker-compose.extra.yml"],
       image: { mode: "build" },
     });
@@ -380,12 +378,12 @@ describe("oh sandbox install — re-installing an existing name", () => {
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "box", yes: true, imageRef: "example.test/img:1", run },
+        { bin: "agro", runtime: "docker", name: "box", yes: true, imageRef: "example.test/img:1", run },
         makeIo().io,
       ),
     ).toBe(0);
     expect(
-      await runSandboxInstall({ bin: "oh", runtime: "docker", name: "box", yes: true, run }, makeIo().io),
+      await runSandboxInstall({ bin: "agro", runtime: "docker", name: "box", yes: true, run }, makeIo().io),
     ).toBe(0);
     expect(readJson(join(registryPath, "box", "agro.json"))).toMatchObject({
       image: { ref: "example.test/img:1", mode: "image", pullPolicy: "missing" },
@@ -398,13 +396,13 @@ describe("oh sandbox install — re-installing an existing name", () => {
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "box", yes: true, imageRef: "example.test/img:1", run },
+        { bin: "agro", runtime: "docker", name: "box", yes: true, imageRef: "example.test/img:1", run },
         makeIo().io,
       ),
     ).toBe(0);
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "box", yes: true, imageRef: "example.test/img:2", run },
+        { bin: "agro", runtime: "docker", name: "box", yes: true, imageRef: "example.test/img:2", run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -420,13 +418,13 @@ describe("oh sandbox install — re-installing an existing name", () => {
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", run },
+        { bin: "agro", runtime: "docker", run },
         makeIo(["box", "Europe/Berlin", "Ada", "ada@example.com", "n", "y"]).io,
       ),
     ).toBe(0);
 
     const { asked, io } = makeIo(["", "Asia/Tokyo", "", "", "", ""]);
-    expect(await runSandboxInstall({ bin: "oh", runtime: "docker", name: "box", run }, io)).toBe(0);
+    expect(await runSandboxInstall({ bin: "agro", runtime: "docker", name: "box", run }, io)).toBe(0);
 
     expect(asked[1]).toContain("[Europe/Berlin]");
     expect(asked[2]).toContain("[Ada]");
@@ -446,7 +444,7 @@ describe("oh sandbox install — re-installing an existing name", () => {
     const { run } = makeRunner();
     const { io } = makeIo(["box", "Europe/Berlin", "", "", "n", "y"]);
 
-    expect(await runSandboxInstall({ bin: "oh", runtime: "docker", run }, io)).toBe(0);
+    expect(await runSandboxInstall({ bin: "agro", runtime: "docker", run }, io)).toBe(0);
     writeFileSync(
       join(checkout, "agro.json"),
       `${JSON.stringify({ version: 1, timezone: "Asia/Tokyo" })}\n`,
@@ -454,7 +452,7 @@ describe("oh sandbox install — re-installing an existing name", () => {
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "box", checkout: checkout, yes: true, run },
+        { bin: "agro", runtime: "docker", name: "box", checkout: checkout, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -469,9 +467,9 @@ describe("oh sandbox install — re-installing an existing name", () => {
     const { run } = makeRunner();
     const { io } = makeIo(["saved", "Europe/Berlin", "", "", "n", "y"]);
 
-    expect(await runSandboxInstall({ bin: "oh", runtime: "docker", run }, io)).toBe(0);
+    expect(await runSandboxInstall({ bin: "agro", runtime: "docker", run }, io)).toBe(0);
     expect(
-      await runSandboxInstall({ bin: "oh", runtime: "docker", name: "fresh", yes: true, run }, makeIo().io),
+      await runSandboxInstall({ bin: "agro", runtime: "docker", name: "fresh", yes: true, run }, makeIo().io),
     ).toBe(0);
 
     expect(readJson(join(registryPath, "fresh", "agro.json"))).toMatchObject({
@@ -504,7 +502,7 @@ describe("oh sandbox install — re-installing an existing name", () => {
     );
 
     expect(
-      await runSandboxInstall({ bin: "oh", runtime: "docker", name: "box", yes: true, run }, makeIo().io),
+      await runSandboxInstall({ bin: "agro", runtime: "docker", name: "box", yes: true, run }, makeIo().io),
     ).toBe(0);
     const config = readJson(join(root, "agro.json"));
     expect(config).toMatchObject({ timezone: "Europe/Berlin" });
@@ -520,13 +518,13 @@ describe("oh sandbox install — re-installing an existing name", () => {
   });
 });
 
-describe("oh sandbox install — the wizard", () => {
+describe("agro sandbox install — the wizard", () => {
   it("asks exactly seven questions in order and writes the answers", async () => {
     const registryPath = registry();
     const { run } = makeRunner();
     const { asked, io } = makeIo(["box", "Europe/Berlin", "Ada", "ada@example.com", "n", "y"]);
 
-    expect(await runSandboxInstall({ bin: "oh", runtime: "docker", run }, io)).toBe(0);
+    expect(await runSandboxInstall({ bin: "agro", runtime: "docker", run }, io)).toBe(0);
     expect(asked).toHaveLength(7);
     expect(asked[0]).toContain("Sandbox name");
     expect(asked[1]).toContain("Timezone");
@@ -549,7 +547,7 @@ describe("oh sandbox install — the wizard", () => {
     const { run } = makeRunner();
     const { asked, io } = makeIo(["box", "", "", "", "y", "2345", "n"]);
 
-    expect(await runSandboxInstall({ bin: "oh", runtime: "docker", run }, io)).toBe(0);
+    expect(await runSandboxInstall({ bin: "agro", runtime: "docker", run }, io)).toBe(0);
     expect(asked).toHaveLength(8);
     expect(asked[5]).toContain("SSH host port");
     expect(readJson(join(registryPath, "box", "agro.json"))).toMatchObject({
@@ -562,12 +560,12 @@ describe("oh sandbox install — the wizard", () => {
     const { run } = makeRunner();
     const { asked, io } = makeIo(["never-read"]);
 
-    expect(await runSandboxInstall({ bin: "oh", runtime: "docker", yes: true, run }, io)).toBe(0);
+    expect(await runSandboxInstall({ bin: "agro", runtime: "docker", yes: true, run }, io)).toBe(0);
     expect(asked).toEqual([]);
   });
 });
 
-describe("oh sandbox install — build mode inference and the home mount", () => {
+describe("agro sandbox install — build mode inference and the home mount", () => {
   it("keeps image mode for a --checkout directory without .devcontainer/Dockerfile", async () => {
     const registryPath = registry();
     const plain = tempDir("oh-sandbox-plain-");
@@ -581,7 +579,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "box", checkout: plain, yes: true, run },
+        { bin: "agro", runtime: "docker", name: "box", checkout: plain, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -605,7 +603,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "box", checkout: plain, yes: true, run },
+        { bin: "agro", runtime: "docker", name: "box", checkout: plain, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -629,7 +627,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "box", checkout: plain, yes: true, run },
+        { bin: "agro", runtime: "docker", name: "box", checkout: plain, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -645,7 +643,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "box", checkout: checkout, yes: true, run },
+        { bin: "agro", runtime: "docker", name: "box", checkout: checkout, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -659,7 +657,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
     const { run } = makeRunner();
 
     expect(
-      await runSandboxInstall({ bin: "oh", runtime: "docker", name: "box", yes: true, run }, makeIo().io),
+      await runSandboxInstall({ bin: "agro", runtime: "docker", name: "box", yes: true, run }, makeIo().io),
     ).toBe(0);
     const config = readJson(join(registryPath, "box", "agro.json"));
     expect(config).toMatchObject({ image: { mode: "image" } });
@@ -673,7 +671,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "box", checkout: plain, yes: true, printArgv: true, run },
+        { bin: "agro", runtime: "docker", name: "box", checkout: plain, yes: true, printArgv: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -693,7 +691,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "box", checkout: checkout, yes: true, run },
+        { bin: "agro", runtime: "docker", name: "box", checkout: checkout, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -702,7 +700,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
     });
   });
 
-  it.each(["agro", "oh"])(
+  it.each(["agro", "agro"])(
     "fails before the wizard under %s when image.mode is build and no Dockerfile exists",
     async (bin) => {
       registry();
@@ -735,7 +733,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
     const { calls, run } = makeRunner();
 
     expect(
-      await runSandboxInstall({ bin: "oh", runtime: "docker", checkout: plain, yes: true, run }, makeIo().io),
+      await runSandboxInstall({ bin: "agro", runtime: "docker", checkout: plain, yes: true, run }, makeIo().io),
     ).not.toBe(0);
     expect(existsSync(registryPath)).toBe(false);
     expect(calls.some((c) => c.cmd === "bash")).toBe(false);
@@ -753,7 +751,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "box", checkout: plain, homeMount: home, yes: true, run },
+        { bin: "agro", runtime: "docker", name: "box", checkout: plain, homeMount: home, yes: true, run },
         makeIo().io,
       ),
     ).not.toBe(0);
@@ -774,7 +772,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "box", homeMount: home, yes: true, run },
+        { bin: "agro", runtime: "docker", name: "box", homeMount: home, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -802,7 +800,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "box", checkout: checkout, homeMount: home, yes: true, run },
+        { bin: "agro", runtime: "docker", name: "box", checkout: checkout, homeMount: home, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -816,7 +814,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
     expect(env).toContain(`AGRO_HOME_MOUNT=${home}`);
     expect(env).toContain(`AGRO_REPO_DIR=${checkout}`);
     const base = readFileSync(join(root, ".devcontainer", "docker-compose.yml"), "utf8");
-    expect(base).toContain("${AGRO_REPO_DIR:-${OH_REPO_DIR:-..}}:/home/sandbox/harness");
+    expect(base).toContain("${AGRO_REPO_DIR:-..}:/home/sandbox/harness");
   });
 
   it("resolves a relative --home-mount and creates the directory", async () => {
@@ -828,7 +826,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
       const { run } = makeRunner();
       expect(
         await runSandboxInstall(
-          { bin: "oh", runtime: "docker", name: "box", homeMount: join("state", "home"), yes: true, run },
+          { bin: "agro", runtime: "docker", name: "box", homeMount: join("state", "home"), yes: true, run },
           makeIo().io,
         ),
       ).toBe(0);
@@ -850,7 +848,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "box", homeMount: home, yes: true, run },
+        { bin: "agro", runtime: "docker", name: "box", homeMount: home, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -861,7 +859,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
     const { err, io } = makeIo();
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "other", homeMount: join(home, "already-here"), yes: true, run },
+        { bin: "agro", runtime: "docker", name: "other", homeMount: join(home, "already-here"), yes: true, run },
         io,
       ),
     ).not.toBe(0);
@@ -873,7 +871,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
     const { run } = makeRunner();
     const { io } = makeIo(["box", "", "", "", "n", "n", ""]);
 
-    expect(await runSandboxInstall({ bin: "oh", runtime: "docker", run }, io)).toBe(0);
+    expect(await runSandboxInstall({ bin: "agro", runtime: "docker", run }, io)).toBe(0);
     const saved = readJson(join(registryPath, "box", "agro.json"));
     expect((saved.storage as Record<string, unknown> | undefined)?.homePath).toBeUndefined();
   });
@@ -884,7 +882,7 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
     const { run } = makeRunner();
     const { asked, io } = makeIo(["box", "", "", "", "n", "n", ""]);
 
-    expect(await runSandboxInstall({ bin: "oh", runtime: "docker", homeMount: home, run }, io)).toBe(0);
+    expect(await runSandboxInstall({ bin: "agro", runtime: "docker", homeMount: home, run }, io)).toBe(0);
     expect(asked[6]).toContain(`[${home}]`);
     expect(readJson(join(registryPath, "box", "agro.json"))).toMatchObject({
       storage: { homePath: home },
@@ -892,17 +890,17 @@ describe("oh sandbox install — build mode inference and the home mount", () =>
   });
 });
 
-describe("oh sandbox list", () => {
+describe("agro sandbox list", () => {
   function seed(name: string, config: Record<string, unknown> = {}): void {
     const root = join(registryRootPath(), name);
     mkdirSync(root, { recursive: true });
     writeFileSync(
-      join(root, "oh.json"),
+      join(root, "agro.json"),
       `${JSON.stringify({ version: 1, name, runtime: "docker", ...config })}\n`,
     );
   }
   function registryRootPath(): string {
-    return join(process.env.OH_HOME as string, "sandboxes");
+    return join(process.env.AGRO_HOME as string, "sandboxes");
   }
 
   it("prints one row per entry with runtime, status and repo", async () => {
@@ -917,7 +915,7 @@ describe("oh sandbox list", () => {
     };
     const { out, io } = makeIo();
 
-    expect(await runSandboxList({ bin: "oh", run }, io)).toBe(0);
+    expect(await runSandboxList({ bin: "agro", run }, io)).toBe(0);
     const rows = out.join("").trimEnd().split("\n");
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatch(/^alpha\s+docker\s+ready\s+-$/);
@@ -930,7 +928,7 @@ describe("oh sandbox list", () => {
     const run: LifecycleRunner = () => ({ status: 1 });
     const { out, io } = makeIo();
 
-    expect(await runSandboxList({ bin: "oh", json: true, run }, io)).toBe(0);
+    expect(await runSandboxList({ bin: "agro", json: true, run }, io)).toBe(0);
     expect(JSON.parse(out.join(""))).toEqual([
       {
         name: "alpha",
@@ -950,7 +948,7 @@ describe("oh sandbox list", () => {
     const run: LifecycleRunner = () => ({ status: 1 });
     const { out, io } = makeIo();
 
-    expect(await runSandboxList({ bin: "oh", json: true, run }, io)).toBe(0);
+    expect(await runSandboxList({ bin: "agro", json: true, run }, io)).toBe(0);
     const rows = JSON.parse(out.join("")) as { name: string; checkout: string; repo: string }[];
     expect(rows.map((row) => row.checkout)).toEqual(["/srv/checkout", "/srv/legacy", "-"]);
     for (const row of rows) expect(row.repo).toBe(row.checkout);
@@ -962,7 +960,7 @@ describe("oh sandbox list", () => {
     const run: LifecycleRunner = () => ({ status: 1 });
     const { out, io } = makeIo();
 
-    expect(await runSandboxList({ bin: "oh", json: true, run }, io)).toBe(0);
+    expect(await runSandboxList({ bin: "agro", json: true, run }, io)).toBe(0);
     const [row] = JSON.parse(out.join("")) as Record<string, string>[];
     expect(Object.keys(row)).toEqual(["name", "runtime", "checkout", "repo", "status"]);
   });
@@ -980,7 +978,7 @@ describe("oh sandbox list", () => {
     };
     const { out, io } = makeIo();
 
-    expect(await runSandboxList({ bin: "oh", run }, io)).toBe(0);
+    expect(await runSandboxList({ bin: "agro", run }, io)).toBe(0);
     expect(out.join("")).toBe(
       "alpha             docker  ready    -\n" +
         "beta-longer-name  docker  stopped  /srv/checkout\n" +
@@ -991,8 +989,8 @@ describe("oh sandbox list", () => {
   it("points at the install verb when the registry is empty", async () => {
     registry();
     const { out, io } = makeIo();
-    expect(await runSandboxList({ bin: "oh", run: makeRunner().run }, io)).toBe(0);
-    expect(out.join("")).toContain("`oh sandbox install docker`");
+    expect(await runSandboxList({ bin: "agro", run: makeRunner().run }, io)).toBe(0);
+    expect(out.join("")).toContain("`agro sandbox install docker`");
   });
 });
 
@@ -1020,7 +1018,7 @@ describe("the checkout field — one concept, two spellings", () => {
 
     expect(
       await runSandboxInstall(
-        { bin: "oh", runtime: "docker", name: "box", checkout: plain, yes: true, run },
+        { bin: "agro", runtime: "docker", name: "box", checkout: plain, yes: true, run },
         makeIo().io,
       ),
     ).toBe(0);
@@ -1043,7 +1041,7 @@ describe("the checkout field — one concept, two spellings", () => {
     };
 
     expect(
-      await runSandboxInstall({ bin: "oh", runtime: "docker", name: "box", yes: true, run }, makeIo().io),
+      await runSandboxInstall({ bin: "agro", runtime: "docker", name: "box", yes: true, run }, makeIo().io),
     ).toBe(0);
     const config = readJson(join(registryPath, "box", "agro.json"));
     expect(config).toMatchObject({
@@ -1056,7 +1054,7 @@ describe("the checkout field — one concept, two spellings", () => {
       join(registryPath, "box", ".devcontainer", "docker-compose.yml"),
       "utf8",
     );
-    expect(base).toContain("${AGRO_REPO_DIR:-${OH_REPO_DIR:-..}}:/home/sandbox/harness");
+    expect(base).toContain("${AGRO_REPO_DIR:-..}:/home/sandbox/harness");
   });
 
   it("lets an explicit image ref outrank the published-image pin", async () => {
@@ -1066,7 +1064,7 @@ describe("the checkout field — one concept, two spellings", () => {
 
     expect(
       await runSandboxInstall(
-        { bin: "oh",
+        { bin: "agro",
           runtime: "docker",
           name: "box",
           checkout: plain,
@@ -1110,7 +1108,7 @@ describe("the checkout field — one concept, two spellings", () => {
 describe("the invoked binary names itself in sandbox output", () => {
   it.each([
     ["agro", "next: agro shell agro-sbx-1"],
-    ["oh", "next: oh shell agro-sbx-1"],
+    ["agro", "next: agro shell agro-sbx-1"],
   ])("ends a successful %s install with %s", async (bin, expected) => {
     registry();
     const { run } = makeRunner();
@@ -1120,7 +1118,7 @@ describe("the invoked binary names itself in sandbox output", () => {
     expect(out.join("")).toContain(expected);
   });
 
-  it.each(["agro", "oh"])("points %s at its own install verb when no sandbox exists", async (bin) => {
+  it.each(["agro", "agro"])("points %s at its own install verb when no sandbox exists", async (bin) => {
     registry();
     const { out, io } = makeIo();
 
@@ -1128,7 +1126,7 @@ describe("the invoked binary names itself in sandbox output", () => {
     expect(out.join("")).toContain(`create one with \`${bin} sandbox install docker\``);
   });
 
-  it.each(["agro", "oh"])("names %s in the unknown-runtime refusal", async (bin) => {
+  it.each(["agro", "agro"])("names %s in the unknown-runtime refusal", async (bin) => {
     registry();
     const { err, io } = makeIo();
 

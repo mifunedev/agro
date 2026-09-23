@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tier: A
-# source: #455 — docs builds must stay out of fast harness/eval/release gates; #536 — docs site externalized to openharness-web; docs markdown relocated to docs/
+# source: #455 — docs builds must stay out of fast harness/eval/release gates; #536 — docs site externalized to agro-web; docs markdown relocated to docs/
 # desc: Docusaurus site/BUILD machinery stays out of the core repo (agro-web owns the rendered site). The GitHub-readable markdown now lives at docs/; only build machinery is forbidden under that path.
 set -euo pipefail
 
@@ -74,14 +74,14 @@ for key in build setup build:harness docs:build docs:dev docs:serve; do
       [[ -z "$value" ]] || failures+=("package.json scripts.$key must be absent after site extraction: $value")
       ;;
     *)
-      if grep -Eiq 'docusaurus|docs:build|docs:dev|docs:serve|packages/docs|@openharness/docs|\.agro/docs' <<<"$value"; then
+      if grep -Eiq 'docusaurus|docs:build|docs:dev|docs:serve|packages/docs|@agro/docs|\.agro/docs' <<<"$value"; then
         failures+=("package.json scripts.$key enters removed docs-site path: $value")
       fi
       ;;
   esac
 done
 
-if grep -Eiq '@docusaurus|docusaurus|@openharness/docs|@easyops-cn/docusaurus-search-local|gray-matter|mermaid' "$PACKAGE_JSON" "$LOCKFILE"; then
+if grep -Eiq '@docusaurus|docusaurus|@agro/docs|@easyops-cn/docusaurus-search-local|gray-matter|mermaid' "$PACKAGE_JSON" "$LOCKFILE"; then
   failures+=("root package/lockfile must not retain Docusaurus docs-site dependencies")
 fi
 
@@ -109,7 +109,7 @@ done
 grep -Fq 'https://agro.mifune.dev' "$README" || failures+=("README.md must point readers to the maintained documentation site")
 grep -Fq 'docs/README.md' "$README" || failures+=("README.md must point readers to docs/README.md")
 
-if git -C "$ROOT" grep -nE 'docusaurus build|pnpm (run )?docs:build|pnpm --dir (\.agro/)?docs build|@openharness/docs' -- \
+if git -C "$ROOT" grep -nE 'docusaurus build|pnpm (run )?docs:build|pnpm --dir (\.agro/)?docs build|@agro/docs' -- \
   ':!.agro/evals/probes/docs-build-fast-path.sh' \
   ':!.agro/tasks/**' \
   ':!CHANGELOG.md' >/tmp/docs-site-externalized-grep.txt; then

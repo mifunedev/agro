@@ -19,9 +19,9 @@ function firstBootBlock(entrypoint: string): string {
   return match?.[0] ?? "";
 }
 
-function ohStatusBlock(banner: string): string {
-  const match = banner.match(/# oh CLI[\s\S]*?printf '    %-6s %-11s %s\\n' "\$oh_status"[^\n]+/);
-  expect(match, "oh CLI status block should be present").not.toBeNull();
+function agroStatusBlock(banner: string): string {
+  const match = banner.match(/# agro CLI[\s\S]*?printf '    %-6s %-11s %s\\n' "\$agro_status"[^\n]+/);
+  expect(match, "agro CLI status block should be present").not.toBeNull();
   return match?.[0] ?? "";
 }
 
@@ -34,9 +34,9 @@ describe("boot banners", () => {
     expect(block).toContain("First command after attaching");
     expect(block).toContain("herdr");
     expect(block).not.toContain("Start an agent from this shell");
-    expect(block).not.toContain("openharness onboard");
+    expect(block).not.toContain("agro onboard");
     expect(block).not.toContain("Complete setup");
-    expect(block).not.toContain("oh config slack");
+    expect(block).not.toContain("agro config slack");
   });
 
   it("interactive shell banner makes Herdr the canonical next action", () => {
@@ -46,14 +46,14 @@ describe("boot banners", () => {
     expect(banner).toContain("Complete setup, authentication, agents, tests, and servers inside Herdr");
   });
 
-  it("interactive shell banner checks and labels the installed oh CLI", () => {
-    const block = ohStatusBlock(readRepoFile(".agro", "install", "banner.sh"));
+  it("interactive shell banner checks and labels the installed agro CLI", () => {
+    const block = agroStatusBlock(readRepoFile(".agro", "install", "banner.sh"));
 
-    expect(block).toContain("command -v oh");
-    expect(block).toContain("oh --version");
-    expect(block).toContain('"oh"');
-    expect(block).not.toContain("command -v openharness");
-    expect(block).not.toContain("openharness --version");
-    expect(block).not.toContain('"openharness"');
+    expect(block).toContain("command -v agro");
+    expect(block).toContain("agro --version");
+    expect(block).toContain('"agro"');
+    expect(block).not.toContain("command -v oh ");
+    expect(block).not.toContain("oh --version");
+    expect(block).not.toContain('"oh"');
   });
 });

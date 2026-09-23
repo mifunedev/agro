@@ -8,7 +8,7 @@ Each clone is its own git boundary, with its own remote, branches, CI, and histo
 Never commit into one from the harness root, and never resolve a change here by
 resetting the harness checkout — the two repositories are independent.
 
-`CLAUDE.md` is a provider-compatibility symlink to this file. Edit `AGENTS.md`.
+Every coding harness reads this file directly.
 
 Folder shape mirrors the remote:
 
@@ -21,7 +21,7 @@ same rule the harness follows at its root.
 
 Lifecycle is `git clone` / `rm -rf`, never `git worktree` — these are separate
 repositories, not checkouts of this one. The root is always `projects/` at the
-repository root; `.agro/scripts/oh-path projects` resolves it.
+repository root; `.agro/scripts/agro-path projects` resolves it.
 
 Everything here is gitignored except this file. See the `/worktrees` skill
 § PROJECT CLONE for the procedure.

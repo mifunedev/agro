@@ -45,8 +45,8 @@ bash .agro/scripts/link-providers.sh --check >/dev/null
 if [ "${SKILLS_VENDORED_SKIP_CLEAN_CLONE:-0}" != "1" ]; then
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' EXIT
-  git clone --no-recurse-submodules "$ROOT" "$tmp/openharness" >/dev/null 2>&1
-  cd "$tmp/openharness"
+  git clone --no-recurse-submodules "$ROOT" "$tmp/agro" >/dev/null 2>&1
+  cd "$tmp/agro"
   [ -f .agro/skills/git/SKILL.md ] || fail "clean clone is missing the vendored .agro/skills pack"
   [ -f .agents/skills/git/SKILL.md ] || fail "standard skill symlink does not resolve in a clean clone"
   for link in .pi/skills .codex/skills; do
@@ -59,13 +59,13 @@ if [ "${SKILLS_VENDORED_SKIP_CLEAN_CLONE:-0}" != "1" ]; then
 
   PATH="$bare_path" bash .agro/scripts/link-providers.sh --check >/dev/null
   PATH="$bare_path" bash .agro/scripts/link-providers.sh --init >/dev/null
-  [ ! -e .hermes/skills/openharness ] \
+  [ ! -e .hermes/skills/agro ] \
     || fail "Hermes skill symlink created with no hermes binary on PATH — the wiring must key off the binary"
 
   printf '#!/bin/sh\nexit 0\n' > "$fake_bin/hermes"
   chmod +x "$fake_bin/hermes"
   PATH="$bare_path" bash .agro/scripts/link-providers.sh --init >/dev/null
-  [ -f .hermes/skills/openharness/git/SKILL.md ] \
+  [ -f .hermes/skills/agro/git/SKILL.md ] \
     || fail "Hermes skill symlink missing after an init with hermes on PATH"
   cd "$ROOT"
 fi

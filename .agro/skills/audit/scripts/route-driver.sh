@@ -12,6 +12,8 @@ scripts="$AUDIT_ROOT/.agro/skills/audit/scripts"
 gates="$scripts/implementation-gates.sh"
 head=$(git -C "$AUDIT_ROOT" rev-parse HEAD)
 pr='' repo='' base='' branch=''
+errlog=$(mktemp "${AUDIT_TMP_ROOT:-${TMPDIR:-/tmp}}/route-driver.XXXXXX")
+trap 'rm -f "$errlog"' EXIT INT TERM HUP
 
 publish(){
   printf 'AUDIT-EVIDENCE: %s\n' "$1"
@@ -19,6 +21,24 @@ publish(){
   exit 0
 }
 fail(){ printf '%s\n' "$1"; publish AUDIT-FAIL; }
+# A gate that COULD NOT RUN is not a gate that failed. pr-acquire.sh exits 69 with a
+# TOOLING-BLOCKED marker when the installed gh cannot answer the query at all; reporting
+# that as FAIL makes a missing gh field indistinguishable from a real PR defect. It still
+# fails closed: the verdict is not a pass and no gate is credited.
+tooling_blocked(){
+  printf 'TOOLING-BLOCKED: %s\n' "$1"
+  printf 'The gate could not run. This is a tooling gap in this environment, not a defect in the reviewed change.\n'
+  publish "$2"
+}
+classify_pr(){
+  local number=$1 rc=0
+  : >"$errlog"
+  classify_json=$("$gates" classify-pr "$repo" "$number" "${base:-development}" 2>"$errlog") || rc=$?
+  [[ -s $errlog ]] && cat "$errlog" >&2
+  classify_blocked=false
+  grep -q 'TOOLING-BLOCKED:' "$errlog" && classify_blocked=true
+  return "$rc"
+}
 resolve_repo(){
   [[ -n $repo ]] && return 0
   repo=$(cd "$AUDIT_ROOT" && gh repo view --json nameWithOwner -q .nameWithOwner)
@@ -69,7 +89,10 @@ gate2(){
 }
 gate3_pr(){
   local json rc=0 reason
-  json=$("$gates" classify-pr "$repo" "$pr" "${base:-development}") || rc=$?
+  classify_pr "$pr" || rc=$?
+  json=$classify_json
+  [[ $classify_blocked == true ]] \
+    && tooling_blocked "gate3: $(grep -m1 'TOOLING-BLOCKED:' "$errlog" | sed 's/^TOOLING-BLOCKED: //')" AUDIT-TOOLING-BLOCKED
   [[ -z $json ]] || printf '%s\n' "$json"
   ((rc == 0)) && jq -e 'type=="object"' <<<"$json" >/dev/null 2>&1 \
     || fail "gate3: FAIL (classification exited $rc)"
@@ -164,7 +187,10 @@ pr_route(){
   local number=$1 json rc=0 verdict; shift
   read_options "$@"
   resolve_repo || { printf 'repository could not be resolved\n'; publish PR-AUDIT-UNKNOWN; }
-  json=$("$gates" classify-pr "$repo" "$number" "${base:-development}") || rc=$?
+  classify_pr "$number" || rc=$?
+  json=$classify_json
+  [[ $classify_blocked == true ]] \
+    && tooling_blocked "$(grep -m1 'TOOLING-BLOCKED:' "$errlog" | sed 's/^TOOLING-BLOCKED: //')" PR-AUDIT-TOOLING-BLOCKED
   [[ -z $json ]] || printf '%s\n' "$json"
   ((rc == 0)) || { printf 'acquisition or classification exited %s\n' "$rc"; publish PR-AUDIT-UNKNOWN; }
   verdict=$(jq -r 'if .evidenceComplete==true and .promotable==true then "PR-AUDIT-PROMOTABLE"

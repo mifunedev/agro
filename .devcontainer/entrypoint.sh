@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-# shellcheck source=../.agro/scripts/compat.sh
-. "${OH_COMPAT_SH:-/opt/agro-assets/.agro/scripts/compat.sh}"
+# shellcheck source=../.agro/scripts/paths.sh
+. "${AGRO_PATHS_SH:-/opt/agro-assets/.agro/scripts/paths.sh}"
 
 uid_reconcile_step() {
   local description="$1"
@@ -39,19 +39,32 @@ sandbox_ownership() {
 }
 
 reconcile_shell_env_exports() {
-  local f repaired=0
+  local f repaired=0 added=0
   for f in /home/sandbox/.profile /home/sandbox/.zprofile; do
     [ -f "$f" ] || continue
-    grep -qE '^export (NPM_USER_PREFIX|PNPM_HOME)="/' "$f" 2>/dev/null || continue
-    sed -i \
-      -e 's|^export NPM_USER_PREFIX=.*|export NPM_USER_PREFIX="${NPM_USER_PREFIX:-/home/sandbox/.local}"|' \
-      -e 's|^export PNPM_HOME=.*|export PNPM_HOME="${PNPM_HOME:-/home/sandbox/.local/share/pnpm}"|' \
-      "$f" 2>/dev/null || continue
-    chown "$(sandbox_ownership)" "$f" 2>/dev/null || true
-    repaired=1
+    if grep -qE '^export (NPM_USER_PREFIX|PNPM_HOME)="/' "$f" 2>/dev/null; then
+      if sed -i \
+        -e 's|^export NPM_USER_PREFIX=.*|export NPM_USER_PREFIX="${NPM_USER_PREFIX:-/home/sandbox/.local}"|' \
+        -e 's|^export PNPM_HOME=.*|export PNPM_HOME="${PNPM_HOME:-/home/sandbox/.local/share/pnpm}"|' \
+        "$f" 2>/dev/null; then
+        chown "$(sandbox_ownership)" "$f" 2>/dev/null || true
+        repaired=1
+      fi
+    fi
+    if grep -qE '^export NPM_USER_PREFIX=' "$f" 2>/dev/null \
+      && ! grep -qE '^export NPM_CONFIG_PREFIX=' "$f" 2>/dev/null; then
+      if sed -i '0,/^export NPM_USER_PREFIX=.*/s||&\nexport NPM_CONFIG_PREFIX="${NPM_CONFIG_PREFIX:-$NPM_USER_PREFIX}"|' \
+        "$f" 2>/dev/null; then
+        chown "$(sandbox_ownership)" "$f" 2>/dev/null || true
+        added=1
+      fi
+    fi
   done
   if [ "$repaired" = "1" ]; then
     echo "[entrypoint] replaced hardcoded NPM_USER_PREFIX/PNPM_HOME exports in the home mount's shell profile; the image environment now wins"
+  fi
+  if [ "$added" = "1" ]; then
+    echo "[entrypoint] added the NPM_CONFIG_PREFIX export to the home mount's shell profile; npm global installs stay in the home volume"
   fi
 }
 
@@ -67,18 +80,24 @@ repair_home_mount_ownership() {
     /home/sandbox/.cache \
     /home/sandbox/.cache/uv 2>/dev/null || true
 
-  find /home/sandbox -path "$OH_PROJECT_ROOT" -prune -o \
+  find /home/sandbox -path "$AGRO_PROJECT_ROOT" -prune -o \
     -exec chown -h "$owner" {} + 2>/dev/null || true
 
   if [ -d /home/sandbox/.ssh ]; then
     chmod 700 /home/sandbox/.ssh 2>/dev/null || true
+  fi
+
+  if [ ! -f /home/sandbox/.gemini/antigravity-cli/settings.json ]; then
+    install -d -o sandbox -g sandbox /home/sandbox/.gemini/antigravity-cli
+    echo '{"defaultPermissionMode": "bypassPermissions"}' > /home/sandbox/.gemini/antigravity-cli/settings.json
+    chown -h "$owner" /home/sandbox/.gemini/antigravity-cli/settings.json 2>/dev/null || true
   fi
 }
 
 # >>> seed_home >>>
 seed_home() {
   local dest="${1:-/home/sandbox}"
-  local src="${OH_HOME_SEED_SRC:-/opt/home-seed}"
+  local src="${AGRO_HOME_SEED_SRC:-/opt/home-seed}"
   [ -d "$src" ] || return 0
   mkdir -p "$dest" || return 1
   local name
@@ -94,9 +113,9 @@ seed_home() {
 # >>> seed_workspace_volume >>>
 seed_workspace_volume() {
   local dest="$1"
-  local src control kind marker
-  src="$(compat_seed_src)"
-  OH_IMAGE_SEEDED_THIS_BOOT=0
+  local src control marker
+  src="$(agro_seed_src)"
+  AGRO_IMAGE_SEEDED_THIS_BOOT=0
   if [ -n "$src" ] && [ -d "$src/.claude" ]; then
     local _rel
     for _rel in protected-paths.txt settings.json; do
@@ -106,40 +125,34 @@ seed_workspace_volume() {
       fi
     done
   fi
-  if ! control="$(compat_control_dir "$dest")"; then
-    echo "[entrypoint] WARNING: $dest holds both .oh/ and .agro/ with different content — not seeding; resolve the conflict" >&2
+  control="$(agro_control_dir "$dest")"
+  if [ -d "$control" ] && [ -f "$control/.image-seeded" ]; then
     return 0
   fi
-  kind="${control%%	*}"
-  control="${control#*	}"
-  if [ "$kind" != absent ] && [ -f "$control/.image-seeded" ]; then
-    return 0
-  fi
-  if [ -n "$src" ] && [ -d "$src" ] && [ "$kind" = absent ]; then
+  if [ -n "$src" ] && [ -d "$src" ] && [ ! -d "$control" ]; then
     cp -a "$src/." "$dest/" 2>/dev/null || true
-    control="$(compat_selected_path compat_control_dir "$dest" 2>/dev/null)" || control=""
   fi
   if [ -d "$control" ]; then
     marker="$control/.image-seeded"
     : > "$marker" 2>/dev/null || true
-    OH_IMAGE_SEEDED_THIS_BOOT=1
+    AGRO_IMAGE_SEEDED_THIS_BOOT=1
   fi
   return 0
 }
 # <<< seed_workspace_volume <<<
 
 # >>> oh_config >>>
-OH_CONFIG_JSON=""
-CLI_BIN="$(compat_env_value BIN)"
+AGRO_CONFIG_JSON=""
+CLI_BIN="$(agro_env_value BIN)"
 [ -n "$CLI_BIN" ] || CLI_BIN=agro
 oh_config() {
   local filter="$1" fallback="${2-}" out
   command -v jq >/dev/null 2>&1 || { printf '%s' "$fallback"; return 0; }
-  if [ -z "$OH_CONFIG_JSON" ]; then
-    OH_CONFIG_JSON="$(cd "$HARNESS" 2>/dev/null && gosu sandbox "$CLI_BIN" config show 2>/dev/null)" || OH_CONFIG_JSON=""
-    [ -n "$OH_CONFIG_JSON" ] || OH_CONFIG_JSON="{}"
+  if [ -z "$AGRO_CONFIG_JSON" ]; then
+    AGRO_CONFIG_JSON="$(cd "$HARNESS" 2>/dev/null && gosu sandbox "$CLI_BIN" config show 2>/dev/null)" || AGRO_CONFIG_JSON=""
+    [ -n "$AGRO_CONFIG_JSON" ] || AGRO_CONFIG_JSON="{}"
   fi
-  out="$(printf '%s' "$OH_CONFIG_JSON" | jq -r "$filter" 2>/dev/null)" || out=""
+  out="$(printf '%s' "$AGRO_CONFIG_JSON" | jq -r "$filter" 2>/dev/null)" || out=""
   if [ -z "$out" ] || [ "$out" = "null" ]; then printf '%s' "$fallback"; else printf '%s' "$out"; fi
 }
 
@@ -151,18 +164,41 @@ oh_config_truthy() {
 }
 # <<< oh_config <<<
 
-OH_PROJECT_ROOT="${OH_PROJECT_ROOT:-/home/sandbox/harness}"
-HARNESS="${HARNESS:-$OH_PROJECT_ROOT}"
+# >>> langfuse_apply >>>
+langfuse_apply() {
+  local out
+  if ! gosu sandbox env HOME=/home/sandbox bash -lc 'command -v "$1" >/dev/null 2>&1' _ "$CLI_BIN"; then
+    echo "[entrypoint] $CLI_BIN not on the sandbox PATH — skipping langfuse apply"
+    return 0
+  fi
+  if ! gosu sandbox env HOME=/home/sandbox bash -lc 'exec "$1" langfuse --help' _ "$CLI_BIN" >/dev/null 2>&1; then
+    echo "[entrypoint] $CLI_BIN has no langfuse command — skipping langfuse apply"
+    return 0
+  fi
+  if out="$(gosu sandbox env HOME=/home/sandbox bash -lc 'cd "$1" || exit 1; exec "$2" langfuse apply' _ "$HARNESS" "$CLI_BIN" 2>&1)"; then
+    if [ -n "$out" ]; then
+      printf '%s\n' "$out" | sed 's/^/[entrypoint] /'
+    fi
+    return 0
+  fi
+  echo "[entrypoint] WARNING: $CLI_BIN langfuse apply failed — tracing may be unconfigured; continuing boot" >&2
+  if [ -n "$out" ]; then
+    printf '%s\n' "$out" | sed 's/^/[entrypoint] /' >&2
+  fi
+  return 0
+}
+# <<< langfuse_apply <<<
+
+AGRO_PROJECT_ROOT="${AGRO_PROJECT_ROOT:-/home/sandbox/harness}"
+export AGRO_PROJECT_ROOT
+HARNESS="${HARNESS:-$AGRO_PROJECT_ROOT}"
 
 seed_home /home/sandbox || echo "[entrypoint] WARNING: home seed incomplete; some baked dotfiles may be missing" >&2
 
-HARNESS_DIR="$OH_PROJECT_ROOT"
+HARNESS_DIR="$AGRO_PROJECT_ROOT"
 CHECKOUT_CONTROL_DIR=""
 if mountpoint -q "$HARNESS_DIR" 2>/dev/null; then
-  if ! CHECKOUT_CONTROL_DIR="$(compat_selected_path compat_control_dir "$HARNESS_DIR")"; then
-    echo "[entrypoint] $HARNESS_DIR holds both .oh/ and .agro/ with different content — refusing to boot; resolve the conflict" >&2
-    exit 1
-  fi
+  CHECKOUT_CONTROL_DIR="$(agro_control_dir "$HARNESS_DIR")"
 fi
 if [ -d "$CHECKOUT_CONTROL_DIR" ]; then
   echo "[entrypoint] checkout bind detected at $HARNESS_DIR ($CHECKOUT_CONTROL_DIR) — syncing host UID/GID"
@@ -190,13 +226,13 @@ if [ -d "$CHECKOUT_CONTROL_DIR" ]; then
     fi
   fi
 else
-  echo "[entrypoint] no checkout bind at $HARNESS_DIR — seeding from $(compat_seed_src)"
-  seed_workspace_volume "$OH_PROJECT_ROOT"
-  if [ "${OH_IMAGE_SEEDED_THIS_BOOT:-0}" = "1" ]; then
-    echo "[entrypoint] seeded control plane into $OH_PROJECT_ROOT from $(compat_seed_src)"
-    chown -R "$(id -u sandbox):$(id -g sandbox)" "$OH_PROJECT_ROOT" 2>/dev/null || true
+  echo "[entrypoint] no checkout bind at $HARNESS_DIR — seeding from $(agro_seed_src)"
+  seed_workspace_volume "$AGRO_PROJECT_ROOT"
+  if [ "${AGRO_IMAGE_SEEDED_THIS_BOOT:-0}" = "1" ]; then
+    echo "[entrypoint] seeded control plane into $AGRO_PROJECT_ROOT from $(agro_seed_src)"
+    chown -R "$(id -u sandbox):$(id -g sandbox)" "$AGRO_PROJECT_ROOT" 2>/dev/null || true
   else
-    chown "$(id -u sandbox):$(id -g sandbox)" "$OH_PROJECT_ROOT" 2>/dev/null || true
+    chown "$(id -u sandbox):$(id -g sandbox)" "$AGRO_PROJECT_ROOT" 2>/dev/null || true
   fi
 fi
 
@@ -207,22 +243,25 @@ unset PW
 repair_home_mount_ownership
 reconcile_shell_env_exports
 
-HARNESS="${HARNESS:-$OH_PROJECT_ROOT}"
-CONTROL_DIR="$(compat_selected_path compat_control_dir "$HARNESS" 2>/dev/null)" || CONTROL_DIR="$HARNESS/$COMPAT_AGRO_CONTROL_DIR"
+HARNESS="${HARNESS:-$AGRO_PROJECT_ROOT}"
+CONTROL_DIR="$(agro_control_dir "$HARNESS")"
 
 if [ -x "$CONTROL_DIR/scripts/link-providers.sh" ]; then
-  if ! gosu sandbox bash "$CONTROL_DIR/scripts/link-providers.sh" --init; then
-    echo "[entrypoint] failed to link provider skills; run: bash $CONTROL_DIR/scripts/link-providers.sh --init"
-    exit 1
+  if ! gosu sandbox env AGRO_PROJECT_ROOT="$HARNESS" bash "$CONTROL_DIR/scripts/link-providers.sh" --init; then
+    echo "[entrypoint] WARNING: could not link provider skills from $CONTROL_DIR" >&2
+    echo "[entrypoint] WARNING: a control plane vendored before the AGRO cutover cannot link here" >&2
+    echo "[entrypoint] WARNING: re-vendor it with 'agro vendor', then run: bash $CONTROL_DIR/scripts/link-providers.sh --init" >&2
   fi
 fi
 
-if [ "${OH_PROVISION_PYTHON:-true}" = "true" ] \
+if [ "${AGRO_PROVISION_PYTHON:-true}" = "true" ] \
    && [ -x "$CONTROL_DIR/scripts/provision-python.sh" ]; then
   if ! bash "$CONTROL_DIR/scripts/provision-python.sh"; then
     echo "[entrypoint] WARNING: Python provisioning did not complete; run: bash $CONTROL_DIR/scripts/provision-python.sh" >&2
   fi
 fi
+
+langfuse_apply
 
 if command -v hermes >/dev/null 2>&1; then
   HERMES_RUNTIME="$HARNESS/.hermes"
@@ -291,7 +330,7 @@ if oh_config_truthy '.access.ssh' && [ -x /usr/sbin/sshd ]; then
     fi
 
     mkdir -p /etc/ssh/sshd_config.d
-    cat > /etc/ssh/sshd_config.d/openharness.conf <<EOF
+    cat > /etc/ssh/sshd_config.d/agro.conf <<EOF
 # Managed by AGRO entrypoint — regenerated every boot.
 PermitRootLogin no
 PubkeyAuthentication yes
@@ -300,8 +339,8 @@ EOF
 
     if [ "$_pw_auth" = "no" ] && [ "$_have_keys" -eq 0 ]; then
       echo "[entrypoint] WARNING: sshd starting with NO authorized_keys and password auth OFF —" >&2
-      echo "[entrypoint]          no one can log in. Run: oh config set access.sshAuthorizedKeys '<public key>'" >&2
-      echo "[entrypoint]          or: oh config set access.sshPasswordAuth true. See docs/integrations/sshd.md" >&2
+      echo "[entrypoint]          no one can log in. Run: agro config set access.sshAuthorizedKeys '<public key>'" >&2
+      echo "[entrypoint]          or: agro config set access.sshPasswordAuth true. See docs/integrations/sshd.md" >&2
     fi
 
     if /usr/sbin/sshd; then
@@ -361,12 +400,12 @@ if [ -n "${GH_TOKEN:-}" ] && gosu sandbox env -u GH_TOKEN -u GITHUB_TOKEN gh aut
     chown -h "$(sandbox_ownership)" "$SSH_DIR"
     chmod 700 "$SSH_DIR"
     if gosu sandbox ssh-keygen -t ed25519 -f "$SSH_KEY" -N "" \
-         -C "openharness-${SANDBOX_NAME:-$(hostname)}" &>/dev/null; then
+         -C "agro-${SANDBOX_NAME:-$(hostname)}" &>/dev/null; then
       echo "[entrypoint] Generated SSH key at $SSH_KEY"
     fi
   fi
   if [ -f "$SSH_KEY.pub" ]; then
-    KEY_TITLE="openharness-${SANDBOX_NAME:-$(hostname)}"
+    KEY_TITLE="agro-${SANDBOX_NAME:-$(hostname)}"
     PUB_MATERIAL=$(awk '{print $2}' "$SSH_KEY.pub")
     if gosu sandbox env -u GH_TOKEN -u GITHUB_TOKEN gh ssh-key list 2>/dev/null \
          | grep -Fq "$PUB_MATERIAL"; then
@@ -485,7 +524,7 @@ pnpm_manifest_fingerprint() {
 }
 
 if [ -f "$HARNESS/package.json" ] && ! oh_config_truthy '.build.skipPnpmInstall'; then
-  PNPM_INSTALL_MARKER_FILENAME=".openharness-root-pnpm-manifest.sha256"
+  PNPM_INSTALL_MARKER_FILENAME=".agro-root-pnpm-manifest.sha256"
   PNPM_INSTALL_MARKER="$HARNESS/node_modules/$PNPM_INSTALL_MARKER_FILENAME"
   PNPM_MANIFEST_FINGERPRINT="$(pnpm_manifest_fingerprint "$HARNESS")"
   PNPM_INSTALL_REQUIRED=false
@@ -553,7 +592,7 @@ if [ ! -f "/home/sandbox/.claude/.onboarded" ]; then
   if gosu sandbox bash -lc 'command -v herdr' >/dev/null 2>&1; then
     echo "  │    herdr   # then complete setup in its panes   │"
   else
-    echo "  │    oh tool install herdr   # then run herdr     │"
+    echo "  │    agro tool install herdr   # then run herdr     │"
   fi
   echo "  └─────────────────────────────────────────────────┘"
   echo ""

@@ -87,7 +87,7 @@ describe("harness catalog", () => {
       ]);
     });
 
-    it("carries no oh.json key on any entry — the verb is the only door", () => {
+    it("carries no agro.json key on any entry — the verb is the only door", () => {
       const required = [
         "binary",
         "docsPath",
@@ -99,25 +99,40 @@ describe("harness catalog", () => {
         "uninstallArgv",
         "verifyArgv",
       ];
+      const optional = ["bypassPermissionsFlag", "tracingWriter"];
       for (const h of HARNESS_CATALOG) {
         const keys = Object.keys(h).sort();
-        expect(keys.filter((k) => k !== "bypassPermissionsFlag"), h.id).toEqual(required);
+        expect(keys.filter((k) => !optional.includes(k)), h.id).toEqual(required);
       }
     });
 
-    it("names a bypass-permissions flag for claude-code and leaves it off elsewhere", () => {
+    it("names a bypass-permissions flag for claude-code and antigravity-cli and leaves it off elsewhere", () => {
       const byId = new Map(HARNESS_CATALOG.map((h) => [h.id, h]));
       expect(byId.get("claude-code")!.bypassPermissionsFlag).toBe("--permission-mode bypassPermissions");
+      expect(byId.get("antigravity-cli")!.bypassPermissionsFlag).toBe("--dangerously-skip-permissions");
       expect(byId.get("codex")!.bypassPermissionsFlag).toBeUndefined();
       expect(harnessLaunchCommand(byId.get("claude-code")!)).toBe(
         "claude --permission-mode bypassPermissions",
       );
+      expect(harnessLaunchCommand(byId.get("antigravity-cli")!)).toBe(
+        "agy --dangerously-skip-permissions",
+      );
       expect(harnessLaunchCommand(byId.get("codex")!)).toBe("codex");
+    });
+
+    it("ships antigravity-cli zero-confirmation defaults in the image, entrypoint, and zshrc", () => {
+      expect(DOCKERFILE).toContain("alias agy='agy --dangerously-skip-permissions'");
+      expect(DOCKERFILE).toContain('{"defaultPermissionMode": "bypassPermissions"}');
+      expect(ENTRYPOINT).toContain("/home/sandbox/.gemini/antigravity-cli/settings.json");
+      expect(ENTRYPOINT).toContain('{"defaultPermissionMode": "bypassPermissions"}');
+      expect(read(".agro/install/.zshrc")).toContain(
+        "alias agy='agy --dangerously-skip-permissions'",
+      );
     });
   });
 
   // #908: the INSTALL_* build args are gone. The catalog no longer mirrors the
-  // Dockerfile — it replaces it, and `oh harness install` is the only path.
+  // Dockerfile — it replaces it, and `agro harness install` is the only path.
   describe("owns the install, and the image no longer does", () => {
     it("declares no buildArg anywhere — the field itself is gone", () => {
       expect(read(".agro/cli/src/lib/harnesses/catalog.ts")).not.toContain("buildArg");
@@ -188,6 +203,30 @@ describe("harness catalog", () => {
       expect(DOCKERFILE).toContain(`ENV NPM_USER_PREFIX="${NPM_USER_PREFIX}"`);
     });
 
+    it("points npm's global prefix at NPM_USER_PREFIX so a harness can update itself", () => {
+      expect(DOCKERFILE).toContain('ENV NPM_CONFIG_PREFIX="$NPM_USER_PREFIX"');
+    });
+
+    it("sets NPM_CONFIG_PREFIX after the last image-layer global install", () => {
+      const lines = DOCKERFILE.split("\n");
+      const configAt = lines.findIndex((l) => l.startsWith("ENV NPM_CONFIG_PREFIX="));
+      const lastGlobalInstallAt = lines.reduce(
+        (found, line, i) => (line.includes("npm install -g") ? i : found),
+        -1,
+      );
+      expect(configAt).toBeGreaterThan(lastGlobalInstallAt);
+    });
+
+    it("exports the same prefix from the shell profile fragment", () => {
+      expect(read(".agro/install/path-env.sh")).toContain(
+        'export NPM_CONFIG_PREFIX="${NPM_CONFIG_PREFIX:-$NPM_USER_PREFIX}"',
+      );
+    });
+
+    it("adds the export to a home mount seeded before the prefix existed", () => {
+      expect(ENTRYPOINT).toContain("NPM_CONFIG_PREFIX");
+    });
+
     it.each(npmHarnesses.map((h) => [h.id, h] as const))(
       "%s: installs as the sandbox user into NPM_USER_PREFIX",
       (_id, h) => {
@@ -207,7 +246,7 @@ describe("harness catalog", () => {
         expect(pkg, `${id} declares no install package`).toMatch(/^(@[^/]+\/)?[^-].*/);
         expect(
           DOCKERFILE_CODE,
-          `${id} is baked into the image; it enters only through \`oh harness install\``,
+          `${id} is baked into the image; it enters only through \`agro harness install\``,
         ).not.toContain(pkg);
       },
     );

@@ -16,7 +16,7 @@ afterEach(() => roots.splice(0).forEach(root => rmSync(root, { recursive: true, 
 function setup({ installed = false, installExit = 0, linkExit = 0, verify = true } = {}) {
   const root = mkdtempSync(join(tmpdir(), "oh-hermes-install-"));
   roots.push(root);
-  mkdirSync(join(root, ".oh"));
+  mkdirSync(join(root, ".agro"));
   const calls: { cmd: string; args: string[]; env?: NodeJS.ProcessEnv }[] = [];
   let probes = 0;
   const run: LifecycleRunner = (cmd, args, opts) => {
@@ -28,9 +28,9 @@ function setup({ installed = false, installExit = 0, linkExit = 0, verify = true
     return { status, stdout: "", stderr: "" };
   };
   const out: string[] = [], err: string[] = [];
-  return { root, calls, out, err, invoke: () => runHarnessInstall("hermes", { bin: "oh",
+  return { root, calls, out, err, invoke: () => runHarnessInstall("hermes", { bin: "agro",
     cwd: tmpdir(), run,
-    env: { OH_EXECUTION_TARGET: "local", OH_PROJECT_ROOT: root },
+    env: { AGRO_EXECUTION_TARGET: "local", AGRO_PROJECT_ROOT: root },
   }, { stdout: s => out.push(s), stderr: s => err.push(s) }) };
 }
 
@@ -42,15 +42,15 @@ describe("Hermes installation postconditions", () => {
       calls.push([cmd, ...args]);
       return { status: 0, stdout: args[0] === "inspect" ? "running\n" : "", stderr: "" };
     };
-    expect(await runHarnessInstall("hermes", { bin: "oh",
-      cwd: t.root, run, env: { OH_EXECUTION_TARGET: "docker-compose" },
+    expect(await runHarnessInstall("hermes", { bin: "agro",
+      cwd: t.root, run, env: { AGRO_EXECUTION_TARGET: "docker-compose" },
     }, { stdout: () => {}, stderr: () => {} })).toBe(0);
     const link = calls.find(args => args.includes("--hermes-only"))!;
     expect(link).toContain("/home/sandbox/harness");
     expect(link).toContain("scripts/link-providers.sh");
-    expect(link.join(" ")).toContain(".agro .oh");
+    expect(link.join(" ")).toContain(".agro");
+    expect(link.join(" ")).not.toContain(".oh");
     expect(link).toContain("AGRO_PROJECT_ROOT=/home/sandbox/harness");
-    expect(link).toContain("OH_PROJECT_ROOT=/home/sandbox/harness");
     expect(calls.flat().some(arg => arg.includes(t.root))).toBe(false);
   });
 
@@ -59,7 +59,7 @@ describe("Hermes installation postconditions", () => {
     expect(await t.invoke()).toBe(0);
     const install = t.calls.find(c => c.args.some(a => a.includes("install.sh")))!;
     expect(install.env?.HERMES_HOME).toBe(join(t.root, ".hermes"));
-    expect(install.env?.OH_PROJECT_ROOT).toBe(t.root);
+    expect(install.env?.AGRO_PROJECT_ROOT).toBe(t.root);
     expect(t.calls.filter(c => c.args.includes("--hermes-only"))).toHaveLength(2);
     expect(t.calls.filter(c => c.cmd === "hermes")).toHaveLength(2);
     expect(t.calls[0].args).toContain(t.root);

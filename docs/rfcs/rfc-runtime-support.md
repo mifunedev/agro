@@ -1,8 +1,8 @@
 # RFC: Runtime support — axes taxonomy & the "supported runtime" contract
 
-Status: Draft for [#592](https://github.com/mifunedev/openharness/issues/592). Implementation epic: [#591](https://github.com/mifunedev/openharness/issues/591).
+Status: Draft for [#592](https://github.com/mifunedev/agro/issues/592). Implementation epic: [#591](https://github.com/mifunedev/agro/issues/591).
 
-This document defines *how Open Harness treats runtimes* so the build-validate-support
+This document defines *how AGRO treats runtimes* so the build-validate-support
 program in #591 builds against a shared contract instead of ad-hoc per-runtime decisions.
 It is a definition/decision artifact — it implements no runtime. Which runtimes land, and
 in what order, are #591's child issues.
@@ -13,7 +13,7 @@ Today the harness has exactly one substrate — a single privileged `debian:trix
 container per repo (`.devcontainer/docker-compose.yml`). The host Docker socket is **opt-in and
 off by default**: it is a separate overlay (`.devcontainer/docker-compose.docker-sock.yml`)
 applied only when `sandbox.docker_socket` / `DOCKER_SOCKET` is truthy
-(`.oh/scripts/docker-compose.sh:136`). The image ships the **docker CLI but no `dockerd`**
+(`.agro/scripts/docker-compose.sh:136`). The image ships the **docker CLI but no `dockerd`**
 (`docker-ce-cli` + `docker-compose-plugin`, `.devcontainer/Dockerfile:37`), so in-sandbox Docker
 work depends on that opt-in socket — and enabling it is a root-on-host boundary that is fine for
 a trusted single operator but the weakest link the moment untrusted, agent-generated code runs
@@ -43,8 +43,8 @@ are supported today (`docs/harnesses/overview.md`):
 2. **One-toggle** — opt-in via a *single* surface: a `harness.yaml` toggle, a compose overlay, or a
    `RUNTIME=` selector. Never a manual multi-step setup.
 3. **Validated** — boots the sandbox (or performs its axis's job) and clears the boot-lint +
-   `.oh/evals/probes/*` floor.
-4. **Guarded** — a dedicated eval/drift probe (exemplar: `.oh/evals/probes/railway-one-click-deploy.sh`)
+   `.agro/evals/probes/*` floor.
+4. **Guarded** — a dedicated eval/drift probe (exemplar: `.agro/evals/probes/railway-one-click-deploy.sh`)
    so support can't silently rot.
 
 **Per-runtime definition of done:** `implement → validate (probe-green) → document as supported →
@@ -113,7 +113,7 @@ lease/sync/run pattern, or **integrate** Crabbox directly? Reference wiki entrie
 
 ## 8. Proposed child-issue ordering (implements this contract; filed under #591)
 
-1. **A1 · Sysbox execution target** — the scheduled next slice of [#731](https://github.com/mifunedev/openharness/issues/731), landing behind the `ExecutionTarget` contract from [#733](https://github.com/mifunedev/openharness/issues/733). Unprivileged containers that run their *own* `dockerd`, so the tier gains stronger isolation **without** trading away sibling-container capability (see §9).
+1. **A1 · Sysbox execution target** — the scheduled next slice of [#731](https://github.com/mifunedev/agro/issues/731), landing behind the `ExecutionTarget` contract from [#733](https://github.com/mifunedev/agro/issues/733). Unprivileged containers that run their *own* `dockerd`, so the tier gains stronger isolation **without** trading away sibling-container capability (see §9).
 2. **A1 · gVisor overlay** — cheapest, most reversible; sets the "one-toggle, probe-guarded, documented" support template the others reuse.
 3. **A1 · Firecracker microVM** — land #384.
 4. **A1 · Kata Containers**.
@@ -131,8 +131,8 @@ lease/sync/run pattern, or **integrate** Crabbox directly? Reference wiki entrie
   `dockerd`** inside an unprivileged container, so a stronger-isolation tier keeps
   sibling-container capability instead of losing it — which is why Sysbox is now §8 item 1. The
   host socket stays what it already is: opt-in and off by default (§Purpose). Decided under
-  [#731](https://github.com/mifunedev/openharness/issues/731) /
-  [#733](https://github.com/mifunedev/openharness/issues/733); the boundary that makes a second
+  [#731](https://github.com/mifunedev/agro/issues/731) /
+  [#733](https://github.com/mifunedev/agro/issues/733); the boundary that makes a second
   execution target an implementation detail is recorded in
   [`rfc-brain-hands-boundary.md`](rfc-brain-hands-boundary.md). Still open *per candidate*: what
   gVisor and Firecracker tiers do, since neither ships a nested daemon for free.

@@ -34,7 +34,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-const COMPOSE_YML = `name: \${SANDBOX_NAME:-openharness}
+const COMPOSE_YML = `name: \${SANDBOX_NAME:-agro}
 
 services:
   sandbox:
@@ -54,15 +54,15 @@ const entry = { name: ENTRY_NAME };
 function makeRepo(sandboxName?: string): string {
   const home = mkdtempSync(join(tmpdir(), "oh-destroy-"));
   cleanups.push(home);
-  vi.stubEnv("OH_HOME", home);
+  vi.stubEnv("AGRO_HOME", home);
   const d = join(home, "sandboxes", ENTRY_NAME);
   mkdirSync(d, { recursive: true });
-  mkdirSync(join(d, ".oh", "scripts"), { recursive: true });
-  writeFileSync(join(d, ".oh", "scripts", "docker-compose.sh"), "#!/usr/bin/env bash\n");
+  mkdirSync(join(d, ".agro", "scripts"), { recursive: true });
+  writeFileSync(join(d, ".agro", "scripts", "docker-compose.sh"), "#!/usr/bin/env bash\n");
   mkdirSync(join(d, ".devcontainer"), { recursive: true });
   writeFileSync(join(d, ".devcontainer", "docker-compose.yml"), COMPOSE_YML);
   if (sandboxName !== undefined) {
-    writeFileSync(join(d, "oh.json"), `${JSON.stringify({ version: 1, name: sandboxName })}\n`);
+    writeFileSync(join(d, "agro.json"), `${JSON.stringify({ version: 1, name: sandboxName })}\n`);
   }
   return d;
 }
@@ -131,21 +131,21 @@ describe("destroy confirmation phrase", () => {
     expect(destroyConfirmationPhrase(makeRepo("from-file"))).toBe("from-env");
   });
 
-  it("falls back to oh.json, then to the default", () => {
+  it("falls back to agro.json, then to the default", () => {
     vi.stubEnv("SANDBOX_NAME", "");
     expect(destroyConfirmationPhrase(makeRepo("from-file"))).toBe("from-file");
     expect(destroyConfirmationPhrase(makeRepo())).toBe("agro");
   });
 });
 
-describe("oh destroy — the confirmation policy", () => {
+describe("agro destroy — the confirmation policy", () => {
   it("refuses outright when stdin is not a TTY and --yes is absent", async () => {
     vi.stubEnv("SANDBOX_NAME", "");
     const root = makeRepo("acme");
     const { calls, run } = makeRunner();
     const { err, io } = makeIo();
 
-    expect(await runDestroy({ bin: "oh", ...entry, run }, io)).toBe(1);
+    expect(await runDestroy({ bin: "agro", ...entry, run }, io)).toBe(1);
     expect(calls).toHaveLength(0);
     expect(err.join("")).toContain("refusing to destroy `acme` without a terminal");
     expect(err.join("")).toContain("--yes");
@@ -157,7 +157,7 @@ describe("oh destroy — the confirmation policy", () => {
     const { run } = makeRunner();
     const { out, asked, io } = makeIo(["acme"]);
 
-    expect(await runDestroy({ bin: "oh", ...entry, run }, io)).toBe(0);
+    expect(await runDestroy({ bin: "agro", ...entry, run }, io)).toBe(0);
     const text = out.join("");
     const volumes = namedVolumes(join(HERE, "..", "..", "..", ".."));
     expect(volumes.length).toBeGreaterThan(0);
@@ -174,12 +174,12 @@ describe("oh destroy — the confirmation policy", () => {
     const { calls, run } = makeRunner();
     const { err, io } = makeIo([""]);
 
-    expect(await runDestroy({ bin: "oh", ...entry, run }, io)).toBe(1);
+    expect(await runDestroy({ bin: "agro", ...entry, run }, io)).toBe(1);
     expect(calls).toHaveLength(0);
     expect(err.join("")).toContain("aborted — nothing was removed");
   });
 
-  it.each(["ACME", "yes", "y", "openharness", "acme acme"])(
+  it.each(["ACME", "yes", "y", "agro", "acme acme"])(
     "aborts and touches nothing on the wrong answer %j",
     async (answer) => {
       vi.stubEnv("SANDBOX_NAME", "");
@@ -187,7 +187,7 @@ describe("oh destroy — the confirmation policy", () => {
       const { calls, run } = makeRunner();
       const { err, io } = makeIo([answer]);
 
-      expect(await runDestroy({ bin: "oh", ...entry, run }, io)).toBe(1);
+      expect(await runDestroy({ bin: "agro", ...entry, run }, io)).toBe(1);
       expect(calls).toHaveLength(0);
       expect(err.join("")).toContain("aborted");
     },
@@ -199,10 +199,10 @@ describe("oh destroy — the confirmation policy", () => {
     const { calls, run } = makeRunner();
     const { io } = makeIo(["acme"]);
 
-    expect(await runDestroy({ bin: "oh", ...entry, run }, io)).toBe(0);
+    expect(await runDestroy({ bin: "agro", ...entry, run }, io)).toBe(0);
     expect(calls).toHaveLength(1);
     expect(calls[0].cmd).toBe("bash");
-    expect(calls[0].args[0]).toBe(join(root, ".oh", "scripts", "docker-compose.sh"));
+    expect(calls[0].args[0]).toBe(join(root, ".agro", "scripts", "docker-compose.sh"));
     expect(calls[0].args[1]).toBe("--extra-env-file");
     expect(calls[0].args.slice(3)).toEqual(["down", "-v"]);
   });
@@ -213,7 +213,7 @@ describe("oh destroy — the confirmation policy", () => {
     const { calls, run } = makeRunner();
     const { out, asked, io } = makeIo();
 
-    expect(await runDestroy({ bin: "oh", ...entry, run, yes: true }, io)).toBe(0);
+    expect(await runDestroy({ bin: "agro", ...entry, run, yes: true }, io)).toBe(0);
     expect(asked).toHaveLength(0);
     expect(out.join("")).toBe(`removed the sandbox entry ${root}\n`);
     expect(calls[0].args.slice(3)).toEqual(["down", "-v"]);
@@ -224,7 +224,7 @@ describe("oh destroy — the confirmation policy", () => {
     const root = makeRepo("acme");
     const { run } = makeRunner({ status: 7 });
     const { io } = makeIo();
-    expect(await runDestroy({ bin: "oh", ...entry, run, yes: true }, io)).toBe(7);
+    expect(await runDestroy({ bin: "agro", ...entry, run, yes: true }, io)).toBe(7);
   });
 });
 
@@ -269,7 +269,7 @@ describe("parseDestroyArgs", () => {
   });
 });
 
-describe("oh compose config", () => {
+describe("agro compose config", () => {
   it("parses the config subcommand", () => {
     expect(parseComposeArgs(["config"])).toEqual({
       ok: true,
@@ -307,10 +307,10 @@ describe("oh compose config", () => {
   it("runs `config` through the vendored script", () => {
     const root = makeRepo();
     const { calls, run } = makeRunner();
-    expect(runComposeConfig({ bin: "oh", ...entry, run })).toBe(0);
+    expect(runComposeConfig({ bin: "agro", ...entry, run })).toBe(0);
     expect(calls[0].cmd).toBe("bash");
     expect(calls[0].args).toEqual([
-      join(root, ".oh", "scripts", "docker-compose.sh"),
+      join(root, ".agro", "scripts", "docker-compose.sh"),
       "config",
     ]);
   });
@@ -318,18 +318,18 @@ describe("oh compose config", () => {
   it("forwards extra args to the script", () => {
     const root = makeRepo();
     const { calls, run } = makeRunner();
-    runComposeConfig({ bin: "oh", ...entry, run }, ["--services"]);
+    runComposeConfig({ bin: "agro", ...entry, run }, ["--services"]);
     expect(calls[0].args.slice(1)).toEqual(["config", "--services"]);
   });
 });
 
-describe("`oh config <integration>` is not overloaded", () => {
+describe("`agro config <integration>` is not overloaded", () => {
   it("keeps compose config out of the integration namespace", () => {
     const spy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     printComposeHelp();
     const text = spy.mock.calls.map((c) => String(c[0])).join("");
-    expect(text).toContain("oh compose config");
-    expect(text).toContain("oh config <integration>");
+    expect(text).toContain("agro compose config");
+    expect(text).toContain("agro config <integration>");
   });
 
   it("dispatches compose and config down separate branches in cli.ts", async () => {
@@ -337,7 +337,7 @@ describe("`oh config <integration>` is not overloaded", () => {
     const cli = readFileSync(join(HERE, "..", "cli.ts"), "utf8");
     expect(cli).toContain('if (first === "compose") {');
     expect(cli).toContain('if (first === "config") {');
-    expect(cli).toContain("const INTEGRATIONS: Record<string, Integration> = {};");
+    expect(cli).toContain("const INTEGRATIONS: Record<string, Integration> = {");
   });
 });
 

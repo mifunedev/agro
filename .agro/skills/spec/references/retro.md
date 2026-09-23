@@ -18,10 +18,10 @@ Read `.agro/skills/retro/SKILL.md` and follow it with `--task <slug>` (plus
 
 ## Why a wrapper and not a second node
 
-`/retro` already implements the whole scientific pass — falsifiable hypotheses,
-evidence for *and* against, verdict plus confidence, and a propose-then-confirm
-nomination of candidate probes. Its `--task <slug>` flag already scopes that pass
-to one `.agro/tasks/<slug>/` run.
+`/retro` already implements the whole pass — lessons tagged with a verdict and a
+confidence level that session evidence backs, and the nomination of candidate
+probes in the line `/wiki compile` parses. Its `--task <slug>` flag already scopes
+that pass to one `.agro/tasks/<slug>/` run.
 
 There is therefore exactly **one** retro ontology, and it lives in `/retro`.
 Earlier revisions of this document described `/spec retro` as owning a
@@ -32,7 +32,7 @@ second description that drifts from the one that runs.
 
 | Concern | Owner |
 |---|---|
-| Hypotheses, evidence, verdicts, confidence, probe nominations | `/retro` |
+| Lessons, evidence, verdicts, confidence, probe nominations | `/retro` |
 | Scoping that pass to one task folder | `/retro --task <slug>` |
 | Writing durable `kind: pattern` pages from the report | `/wiki compile` |
 | Deciding promotability of the implementation | the implementation audit route, earlier in `/spec execute` |
@@ -50,8 +50,8 @@ and fall back to a plain `/retro` on the session.
 ## Pipeline position
 
 Within the workflow owned by `.agro/skills/spec/SKILL.md`, this runs inside the
-`spec-execute` tail, after the implementation audit passes and `evidence.md` is
-written, and before `/wiki compile` turns the supported lessons into durable
+`spec-execute` tail, after the implementation audit passes and the PR body's
+evidence sections are written, and before `/wiki compile` turns the supported lessons into durable
 pattern pages. It writes no file of its own, and it always completes, so the
 execute tail always continues.
 

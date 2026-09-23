@@ -23,7 +23,7 @@ messaging setup are optional.
 AGRO keeps shared skills and hooks in `.agro/skills/` and `.agro/hooks/`.
 Codex and Pi access shared skills through `.agents/skills`; Claude Code uses
 `.claude/skills`. Provider-specific configuration stays separate. See the
-[directory layout](oh-directory-layout.md) for details.
+[directory layout](agro-directory-layout.md) for details.
 
 ## Setup & first steps
 
@@ -68,7 +68,10 @@ Codex and Pi access shared skills through `.agents/skills`; Claude Code uses
 - [Repair a sandbox boot blocked by a security advisory](repair-sandbox-boot-advisory.md)
 - [Artifact-contract schema](artifact-contract-schema.md)
 - [Registry portability contract and exception list](../.agro/scripts/registry-portability.md)
-- [`.agro/` directory layout](oh-directory-layout.md)
+- [`.agro/` directory layout](agro-directory-layout.md)
+- [Regression evals](evals.md)
+- [Capability benchmark](capability-benchmark.md)
+- [Sandbox Python](sandbox-python.md)
 - [Descriptive `.agro/harness.yml` example](harness-manifest.md)
 - [Glossary](glossary.md)
 - [RFC / ADR index](rfcs/README.md)

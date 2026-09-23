@@ -7,53 +7,40 @@ if [[ -z "$REPORT" || ! -f "$REPORT" ]]; then
   exit 64
 fi
 
-required_literals=(
-  '## Session signals'
-  '## Hypotheses'
-  '| ID | Subsystem | Hypothesis | Evidence for | Evidence against | Verdict | Confidence | Promotion |'
-  '## Promotion candidates'
-  '## Summary'
-  'STATUS: RETRO-DONE'
-)
-for literal in "${required_literals[@]}"; do
-  if ! grep -Fq -- "$literal" "$REPORT"; then
-    echo "REGRESSION: retro report missing required literal: $literal" >&2
+retired_tiers=('.agro/memory' 'MEMORY.md' 'MEMORY_DIR')
+for token in "${retired_tiers[@]}"; do
+  if grep -qF -- "$token" "$REPORT"; then
+    echo "REGRESSION: retro report writes to a retired tier: $token" >&2
     exit 1
   fi
 done
 
-last_line=$(awk 'NF { line=$0 } END { print line }' "$REPORT")
-if [[ "$last_line" != 'STATUS: RETRO-DONE' ]]; then
-  echo "REGRESSION: final non-empty line must be STATUS: RETRO-DONE" >&2
+for heading in '## Lessons' '## Promotion candidates' 'Probe candidates:'; do
+  if ! grep -qxF -- "$heading" "$REPORT"; then
+    echo "REGRESSION: retro report missing section: $heading" >&2
+    exit 1
+  fi
+done
+
+lessons=0
+while IFS= read -r lesson; do
+  lessons=$((lessons + 1))
+  if ! grep -Eq '\[(supported|refuted|inconclusive) · (low|medium|high)\]' <<<"$lesson"; then
+    echo "REGRESSION: lesson missing a valid [verdict · confidence] tag: $lesson" >&2
+    exit 1
+  fi
+done < <(awk '/^## Lessons$/{f=1;next} f&&/^## /{f=0} f&&/^- /{print}' "$REPORT")
+if (( lessons < 1 )); then
+  echo "REGRESSION: retro report has no lessons" >&2
   exit 1
 fi
 
-awk -F'|' '
-  /^\|[[:space:]]*[A-Z0-9-]+[[:space:]]*\|/ {
-    id=$2; gsub(/^[[:space:]]+|[[:space:]]+$/, "", id)
-    if (id == "ID" || id ~ /^-+$/) next
-    verdict=$7; confidence=$8; against=$6; promotion=$9
-    gsub(/^[[:space:]]+|[[:space:]]+$/, "", verdict)
-    gsub(/^[[:space:]]+|[[:space:]]+$/, "", confidence)
-    gsub(/^[[:space:]]+|[[:space:]]+$/, "", against)
-    gsub(/^[[:space:]]+|[[:space:]]+$/, "", promotion)
-    if (against == "") { print "REGRESSION: missing Evidence against" > "/dev/stderr"; exit 1 }
-    if (verdict !~ /^(supported|refuted|inconclusive)$/) { print "REGRESSION: bad verdict: " verdict > "/dev/stderr"; exit 1 }
-    if (confidence !~ /^(low|medium|high)$/) { print "REGRESSION: bad confidence: " confidence > "/dev/stderr"; exit 1 }
-    if (promotion !~ /^(report-only|probe|discarded)$/) { print "REGRESSION: bad promotion: " promotion > "/dev/stderr"; exit 1 }
-    rows++
-  }
-  END { if (rows < 1) { print "REGRESSION: no hypothesis rows" > "/dev/stderr"; exit 1 } }
-' "$REPORT"
+while IFS= read -r cand; do
+  [[ "$cand" == "- none" ]] && continue
+  if ! grep -Eq '\[[^]]+ · (low|medium|high) · (harden|proceduralize|eval)\] — probe: [^ ]+ \| basis: .+' <<<"$cand"; then
+    echo "REGRESSION: probe candidate missing triage tag, probe id, or basis: $cand" >&2
+    exit 1
+  fi
+done < <(awk '/^Probe candidates:$/{f=1;next} f&&/^## /{f=0} f&&/^- /{print}' "$REPORT")
 
-if grep -q '^Probe candidates:' "$REPORT"; then
-  while IFS= read -r cand; do
-    [[ "$cand" == "- none" ]] && continue
-    if ! grep -Eq '\[[^]]+ · (low|medium|high) · (harden|proceduralize|eval)\] — probe: ' <<<"$cand"; then
-      echo "REGRESSION: probe candidate missing triage tag or probe id: $cand" >&2
-      exit 1
-    fi
-  done < <(awk '/^Probe candidates:/{f=1;next} f&&/^## /{f=0} f&&/^- /{print}' "$REPORT")
-fi
-
-echo "PASS: retro report satisfies deterministic schema" >&2
+echo "PASS: retro report is report-only and its promotion lines parse" >&2

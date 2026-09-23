@@ -135,7 +135,7 @@ grep -qF 'Max children per level: M' <<<"$skill_flat"          || missing+=("the
 grep -qF 'Step budget: S' <<<"$skill_flat"                     || missing+=("the Step budget recursion field")
 (( ${#missing[@]} == 0 )) || fail "/delegate dropped a concurrency or recursion limit: ${missing[*]}"
 
-stale="$(grep -nE '\.(oh|claude|codex|pi)/agents/[A-Za-z0-9_-]+\.md' "$SKILL" || true)"
+stale="$(grep -nE '\.(agro|claude|codex|pi)/agents/[A-Za-z0-9_-]+\.md' "$SKILL" || true)"
 [[ -z "$stale" ]] || fail "/delegate still cites project-agent definition files: $stale"
 
 roles="$(grep -nEi 'subagent_type: *(implementer|critic|pm|council)|`(implementer|critic|pm|council)`' "$SKILL" || true)"

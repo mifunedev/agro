@@ -6,7 +6,7 @@ job; the runtime scans this directory at boot, schedules every enabled
 job via [Croner](https://github.com/Hexagon/croner), and re-fires the
 file's body as the next prompt to the active agent.
 
-`CLAUDE.md` is a provider-compatibility symlink to this file. Edit `AGENTS.md`.
+Every coding harness reads this file directly.
 
 These files are **agent instructions, not documentation**. A cron body is a
 prompt an agent executes unattended, on a schedule, with no operator in the
@@ -60,7 +60,7 @@ Body becomes the agent prompt at fire time.
 ## Conventions
 
 - Filename = `<id>.md`, kebab-case.
-- systemd supervises the runtime as `openharness-cron.service`; only detached
+- systemd supervises the runtime as `agro-cron.service`; only detached
   job fires get tmux sessions, named `cron-<id>-<MMDD>-<HHMM>` under the
   `cron-` category prefix (see
   `.agro/skills/t3/references/sandbox-processes.md`).
@@ -124,14 +124,14 @@ returns before generating a shell wrapper or spawning an agent.
 
 ## Runtime supervision
 
-systemd is PID 1 in the sandbox and runs `.agro/scripts/cron-runtime.ts` directly as `openharness-cron.service` (user `sandbox`, working directory `/home/sandbox/harness`). It starts after `openharness-bootstrap.service`, restarts on failure, and its `ExecReload` sends `SIGHUP`. Inspect it with `systemctl status openharness-cron.service` and read its output with `journalctl -u openharness-cron.service`.
+systemd is PID 1 in the sandbox and runs `.agro/scripts/cron-runtime.ts` directly as `agro-cron.service` (user `sandbox`, working directory `/home/sandbox/harness`). It starts after `agro-bootstrap.service`, restarts on failure, and its `ExecReload` sends `SIGHUP`. Inspect it with `systemctl status agro-cron.service` and read its output with `journalctl -u agro-cron.service`.
 
 | Action | Command |
 |--------|---------|
-| Liveness | `systemctl is-active openharness-cron.service` |
-| Reschedule (SIGHUP) | `systemctl reload openharness-cron.service` |
-| Restart | `systemctl restart openharness-cron.service` |
-| Logs | `journalctl -u openharness-cron.service` |
+| Liveness | `systemctl is-active agro-cron.service` |
+| Reschedule (SIGHUP) | `systemctl reload agro-cron.service` |
+| Restart | `systemctl restart agro-cron.service` |
+| Logs | `journalctl -u agro-cron.service` |
 
 There is no tmux supervisor and no tmux wrapper around the scheduler. tmux remains the convention for detached job fires.
 
@@ -160,17 +160,17 @@ The runtime runs inside the container, so reload from the host via `docker exec`
 
 ```bash
 # Health check first — confirm the PID file points at a live runtime.
-docker exec -u sandbox openharness sh -c 'kill -0 "$(cat crons/.pid)" 2>/dev/null && echo alive || echo "not running"'
+docker exec -u sandbox agro sh -c 'kill -0 "$(cat crons/.pid)" 2>/dev/null && echo alive || echo "not running"'
 
 # Reload schedules.
-docker exec openharness systemctl reload openharness-cron.service
+docker exec agro systemctl reload agro-cron.service
 ```
 
-The bare `kill -HUP "$(cat crons/.pid)"` form works only from *inside* the container — the host is a different PID namespace, so the PID in `crons/.pid` (set by `PID_FILE`) does not resolve there. **Escape hatch:** if a reload arms zero crons (e.g. files removed by accident), restart the runtime to restore the last good state — `systemctl restart openharness-cron.service`; systemd relaunches `node --experimental-strip-types .agro/scripts/cron-runtime.ts` from `.devcontainer/openharness-cron.service`.
+The bare `kill -HUP "$(cat crons/.pid)"` form works only from *inside* the container — the host is a different PID namespace, so the PID in `crons/.pid` (set by `PID_FILE`) does not resolve there. **Escape hatch:** if a reload arms zero crons (e.g. files removed by accident), restart the runtime to restore the last good state — `systemctl restart agro-cron.service`; systemd relaunches `node --experimental-strip-types .agro/scripts/cron-runtime.ts` from `.devcontainer/agro-cron.service`.
 
 ## Layout
 
 The runtime always reads `crons/` at the repository root, and `/worktrees`
 scratch roots always live under `.worktrees/`. These locations are a convention,
-not a setting; `.agro/scripts/oh-path crons` and `.agro/scripts/oh-path worktrees`
+not a setting; `.agro/scripts/agro-path crons` and `.agro/scripts/agro-path worktrees`
 resolve them.

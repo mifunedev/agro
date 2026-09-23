@@ -248,7 +248,8 @@ can pick up the worktree. Write the graph to disk before spawning any worker.
 | `delegate-log.txt` | Append-only run log; one line per wave boundary, per status change, per capability check, and per blocked control |
 
 Never write `prd.json` or `progress.txt`. Those belong to the implementation owner
-(`.agro/tasks/README.md`), and `progress.txt` in particular must not be edited by hand.
+(see the [task contract](https://github.com/mifunedev/agro/blob/main/.agro/tasks/AGENTS.md)).
+Only the implementation owner appends to `progress.txt`.
 This skill's two files sit beside them without collision.
 
 Both live under `.agro/tasks/`, which is gitignored — that is correct for run state.

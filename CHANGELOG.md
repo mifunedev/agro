@@ -8,6 +8,59 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-09-22
+
+### Added
+
+- Add `agro config langfuse` and `agro langfuse apply|status|disable`. Settings live in `agro.json` and `.env`, render to a `0600` fragment and the harness files, and re-apply at boot ([#1131](https://github.com/mifunedev/agro/issues/1131)).
+- Add `.agro/scripts/typesafe.mjs`, a zero-dependency TypeSafe System One adapter. Unconfigured, it names the variable and the command that sets it, then returns null so the caller continues ([#1121](https://github.com/mifunedev/agro/issues/1121)).
+- Add `prompt-miner --judge`, scoring `correctionDensity` with a typed judgment instead of the 12-word negation lexicon. Off by default and uncalibrated ([#1121](https://github.com/mifunedev/agro/issues/1121)).
+- Add `TYPESAFE_API_KEY` to the secret allow-list and a `typesafe-ai` skill preflight that reports an unconfigured sandbox before the first API call ([#1121](https://github.com/mifunedev/agro/issues/1121)).
+- Add six probes pinning the TypeSafe degradation contract: null without a key, one cause per failure, one diagnostic source, preflight exit 0, key absent from compose, judge off by default ([#1121](https://github.com/mifunedev/agro/issues/1121)).
+- Default Antigravity CLI (`agy`) to zero-confirmation mode with a sandbox alias, catalog launch flag, and seeded settings.json ([#1090](https://github.com/mifunedev/agro/issues/1090)).
+- Add `agro workspace create [<name>]` and `agro workspace list`, so an operator creates and inspects a host AGRO workspace under `~/.agro/workspaces/` without installing a harness ([#1086](https://github.com/mifunedev/agro/issues/1086)).
+- Add two probes: `spec-task-artifact-contract` fails when a completed task folder lacks a required artifact, and `audit-tooling-blocked-signal` fails when an unrunnable gate reads as failed ([#1088](https://github.com/mifunedev/agro/issues/1088)).
+- Add the `.agro/memories/` tier: `SOUL.md`, `USER.md` and `MEMORY.md` for durable operator context and cross-session lessons, each shipping working defaults ([#1084](https://github.com/mifunedev/agro/issues/1084)).
+- Add the `memories-tier-defaults` probe. It fails when a memory file carries a real identity or a dated entry, and when the root `AGENTS.md` names the tier ([#1084](https://github.com/mifunedev/agro/issues/1084)).
+- Add the `agents-md-fallback` probe. It fails when a tracked `CLAUDE.md` returns or a directory guide stops being a real `AGENTS.md` ([#1082](https://github.com/mifunedev/agro/issues/1082)).
+- Add `/council` for bounded independent perspectives, advisor synthesis, and explicit advice limits ([#1076](https://github.com/mifunedev/agro/issues/1076)).
+- Install `agent-browser` on the host from a pinned release binary, without the operating system package manager; it drives an existing Chromium-family browser and refuses when none is found ([#1078](https://github.com/mifunedev/agro/issues/1078)).
+
+### Changed
+
+- Default Claude Code to `claude-opus-5-5` (1M context) at `medium` effort, Codex to `gpt-6-astra` at `medium` reasoning, and Pi to `gpt-6-sol` at `medium` thinking.
+- Retire the Open Harness compatibility layer: `.agro/`, `agro.json`, `AGRO_*`, `~/.agro` and `/opt/agro-seed` are the only spellings ([#1061](https://github.com/mifunedev/agro/issues/1061)).
+- Split the overloaded `update` verb: `agro self-upgrade` (alias `agro update`) upgrades the CLI, and the new `agro vendor` writes the control plane into a checkout ([#1061](https://github.com/mifunedev/agro/issues/1061)).
+- Rename `compat.ts` to `layout.ts`, `oh-config.ts` to `agro-config.ts`, `compat.sh` to `paths.sh`, `oh-path` to `agro-path`, and the `oh-asset:` scheme to `agro-asset:` ([#1061](https://github.com/mifunedev/agro/issues/1061)).
+- Rename the `openharness-*.service` units to `agro-*.service`, and `openharness-env-generator.sh` to `agro-env-generator.sh` ([#1061](https://github.com/mifunedev/agro/issues/1061)).
+- Replace `docs/agro-compatibility.md` with a cutover record and a migration procedure ([#1061](https://github.com/mifunedev/agro/issues/1061)).
+- Rename `docs/oh-directory-layout.md` to `docs/agro-directory-layout.md` ([#1061](https://github.com/mifunedev/agro/issues/1061)).
+- Repoint the sandbox upgrade smoke at the `.agro` layout; the legacy-volume upgrade path it guarded is retired ([#1061](https://github.com/mifunedev/agro/issues/1061)).
+- Rewrite the Langfuse guide around the official Claude Code, Pi, and Codex plugins, and document the environment and trace-tag model ([#1125](https://github.com/mifunedev/agro/issues/1125)).
+- Separate scoped directory contracts from reference documentation and retire the `harness-context` skill ([#1112](https://github.com/mifunedev/agro/issues/1112)).
+- Drop no-op lint and format CI steps, delete path filters that name missing trees, and rebuild the sandbox image only when boot or image inputs change ([#1092](https://github.com/mifunedev/agro/issues/1092)).
+- Copy only `provision-python.sh` into the image home stage before the Python kernel, and clean npm and uv installer leftovers in the same layer ([#1093](https://github.com/mifunedev/agro/issues/1093)).
+- Stop `agro harness install --host` and `agro tool install --host` from creating a workspace; each now exits 1 when none exists and names `agro workspace create` ([#1086](https://github.com/mifunedev/agro/issues/1086)).
+- Retire `.agro/tasks/<slug>/evidence.md`. The reviewer evidence now lives in the pull request body, which `/spec execute` reads back and checks before it undrafts ([#1088](https://github.com/mifunedev/agro/issues/1088)).
+- Read project instructions from `AGENTS.md` on every harness. Claude Code needs 2.1.277 or later ([#1082](https://github.com/mifunedev/agro/issues/1082)).
+- Route `/strategic-proposal` roadmap deliberation through `/council` with required critique and explicit publication permission ([#1076](https://github.com/mifunedev/agro/issues/1076)).
+- Pin `agent-browser` to 0.38.1, up from 0.8.5 ([#1078](https://github.com/mifunedev/agro/issues/1078)).
+
+### Removed
+
+- Remove the `@mifune/openharness` shim and the `oh` executable, the `dist/oh.js` artifact, and `get-oh.sh` ([#1061](https://github.com/mifunedev/agro/issues/1061)).
+- Remove the dual-generation resolver, `agro migrate`, `.agro/compat-inventory.json`, and the split-state-home refusal ([#1061](https://github.com/mifunedev/agro/issues/1061)).
+- Remove the superseded `pi-langfuse` fork installer; the official Langfuse plugins read `LANGFUSE_BASE_URL` from the environment ([#1127](https://github.com/mifunedev/agro/issues/1127)).
+- Remove the Agent GitHub issue template and the `agent` issue/branch prefix ([#1092](https://github.com/mifunedev/agro/issues/1092)).
+- Remove the five `CLAUDE.md` symlinks. A present `CLAUDE.md` suppresses the `AGENTS.md` that Claude Code now reads directly ([#1082](https://github.com/mifunedev/agro/issues/1082)).
+- Remove V2MOM and its bundled reference from the strategy workflow ([#1076](https://github.com/mifunedev/agro/issues/1076)).
+
+### Fixed
+
+- Point npm's global prefix at `/home/sandbox/.local`, so `claude update` and `codex update` no longer fail with EACCES on `/usr/local` and a self-update persists across a container recreate ([#1138](https://github.com/mifunedev/agro/issues/1138)).
+- Expose `python` and `python3` as Python 3.13 and migrate existing kernels to Python 3.13 ([#1110](https://github.com/mifunedev/agro/issues/1110)).
+- Route the `missing lifecycle script` error to a recovery that works for the reader's installation: a host image refresh for an image-shipped CLI, and `oh update` elsewhere ([#1080](https://github.com/mifunedev/agro/issues/1080)).
+
 ## [0.12.2] - 2026-09-15
 
 ### Fixed
@@ -507,6 +560,7 @@ do not need that recovery.
 - Make the `prompt-miner` engine run through the `.claude/skills` symlink with a symlink-safe entrypoint guard ([#692](https://github.com/mifunedev/openharness/issues/692), [#663](https://github.com/mifunedev/openharness/issues/663)).
 - Index `.oh/docs/rfcs/rfc-runtime-support.md` from `.oh/docs/README.md` and repoint the dangling `.claude/rules/` bullet in the `critic` and `implementer` agents ([#686](https://github.com/mifunedev/openharness/issues/686)).
 - Declare `/help`, `/trusted`, `/channels`, `/enable`, `/disable`, `/revoke`, and `/toggletools` in `.pi/install/slack-manifest.json` ([#354](https://github.com/ryaneggz/openharness/issues/354)).
+
 ### Removed
 ### Deprecated
 ### Security

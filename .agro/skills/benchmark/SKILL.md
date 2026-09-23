@@ -35,7 +35,7 @@ that grows the harness but does not move the capability benchmark is
 > **Not `/audit implementation`.** `/audit implementation` is the per-unit *floor* gate (does this one impl
 > satisfy its task graph and is it promotable?). `/benchmark` is the *ceiling*
 > gate (did the harness get **better**?). Distinct instruments, distinct
-> question — see `.agro/evals/capability/README.md` § *Ceiling vs. floor*. `/benchmark`
+> question — see the [instrument reference](https://github.com/mifunedev/agro/blob/main/docs/capability-benchmark.md). `/benchmark`
 > *consults* `/eval`; it does not replace or fork it.
 
 ---
@@ -95,8 +95,9 @@ git show "${BASE:-development}":.agro/evals/capability/RESULTS.md \
   | grep -oE 'suite score = [0-9.]+' | head -1                              # counterfactual
 ```
 
-Decide on the delta (v1 is rubric inspection — the instrument has no auto-runner
-yet, see `.agro/evals/capability/README.md` § *Non-scope*):
+Decide on the delta using hand-scored judgment axes.
+The runner computes arithmetic, not judgment; see the
+[instrument limits](https://github.com/mifunedev/agro/blob/main/docs/capability-benchmark.md#evidence-and-limitations):
 
 | Ceiling delta vs. counterfactual | Verdict |
 |---|---|
@@ -172,5 +173,5 @@ REDIRECT-FLAG: capability suite score flat at <X.XX>/2.00 for <N> cycles while N
 - **Fork `/eval` or the instrument.** It composes both; it never reimplements the
   probe runner or re-authors the capability tasks.
 - **Tune the harness to the benchmark.** The task set is held-out
-  (`.agro/evals/capability/README.md` § *Held-out discipline*); special-casing to ace a
+  ([capability contract](../../evals/capability/AGENTS.md)); special-casing to ace a
   task corrupts the instrument.

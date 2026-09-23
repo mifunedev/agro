@@ -61,7 +61,7 @@ if [ -z "$trusted_line" ] || [ -z "$heading_line" ] || [ "$trusted_line" -le "$h
 fi
 
 need_literal "$ROOT/.agro/scripts/gateway.sh" "bridge slash-command handler pin" 'c8b96e9d0fb69611c4e67ae298d1d10d83792a26'
-need_literal "$ROOT/.agro/scripts/gateway.sh" "bridge pin reconciliation marker" '.openharness-pin'
+need_literal "$ROOT/.agro/scripts/gateway.sh" "bridge pin reconciliation marker" '.agro-pin'
 need_literal "$ROOT/.agro/scripts/gateway.sh" "bridge pin reconciliation check" 'installed_pin" != "$FORK_PIN'
 
 echo "PASS: Slack manifest and docs expose admin commands while Pi keeps /msg-bridge as its command surface" >&2

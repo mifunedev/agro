@@ -36,7 +36,7 @@ export function resolveAgentBin(): string {
     resolvedAgentBin = fromEnv;
     return resolvedAgentBin;
   }
-  const shown = spawnSync("oh", ["config", "show"], { encoding: "utf8" });
+  const shown = spawnSync("agro", ["config", "show"], { encoding: "utf8" });
   if (shown.status === 0 && shown.stdout) {
     try {
       const parsed = JSON.parse(shown.stdout) as { cron?: { agentBin?: string } };

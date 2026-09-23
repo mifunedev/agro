@@ -55,18 +55,40 @@ describe("tool catalog shape", () => {
   });
 
   it("lands every downloaded binary in NPM_USER_PREFIX behind a sha256 check", () => {
-    const downloaders = TOOL_CATALOG.filter((t) =>
-      (t.installArgv ?? []).join("\n").includes("curl -fsSL"),
-    );
-    expect(downloaders.map((t) => t.id)).toEqual([
+    const scripts = TOOL_CATALOG.flatMap((t) =>
+      [t.installArgv, t.hostInstallArgv]
+        .filter((argv): argv is readonly string[] => argv !== undefined)
+        .map((argv) => [t.id, argv.join("\n")] as const),
+    ).filter(([, body]) => body.includes("curl -fsSL"));
+
+    expect(scripts.map(([id]) => id)).toEqual([
+      "agent-browser",
       "herdr",
       "cloudflared",
       "microsandbox",
       "tailscale",
     ]);
-    for (const t of downloaders) {
-      expect(t.installArgv!.join("\n"), t.id).toContain("NPM_USER_PREFIX");
-      expect(t.installArgv!.join("\n"), t.id).toContain("sha256sum -c -");
+    for (const [id, body] of scripts) {
+      expect(body, id).toContain("NPM_USER_PREFIX");
+      expect(body, id).toContain("sha256sum -c -");
+    }
+  });
+
+  it("keeps every host installer clear of the operating system package manager", () => {
+    for (const t of TOOL_CATALOG) {
+      if (t.hostInstallArgv === undefined) continue;
+      const body = t.hostInstallArgv.join("\n");
+      expect(body, t.id).not.toMatch(/\bapt(-get)?\s/);
+      expect(body, t.id).not.toMatch(/\bdpkg\s+-i\b/);
+      expect(body, t.id).not.toContain("sudo");
+      expect(body, t.id).not.toContain("--with-deps");
+    }
+  });
+
+  it("gives a host installer only to a tool the host gate admits", () => {
+    for (const t of TOOL_CATALOG) {
+      if (t.hostInstallArgv !== undefined) expect(t.hostCapable, t.id).toBe(true);
+      if (t.hostUninstallArgv !== undefined) expect(t.hostCapable, t.id).toBe(true);
     }
   });
 
@@ -157,7 +179,7 @@ describe("agent-browser is installed from the catalog, not the boot path", () =>
   const ab = findTool("agent-browser")!;
   const ENTRYPOINT = read(".devcontainer/entrypoint.sh");
 
-  it("declares neither a build arg, an entrypoint guard, nor an oh.json key", () => {
+  it("declares neither a build arg, an entrypoint guard, nor an agro.json key", () => {
     expect(Object.keys(ab)).not.toContain("buildArg");
     expect(Object.keys(ab)).not.toContain("entrypointGuard");
     expect(ab.kind).toBe("installable");
@@ -170,13 +192,13 @@ describe("agent-browser is installed from the catalog, not the boot path", () =>
   });
 
   it("is the sole owner of the pinned version", () => {
-    expect(ab.installArgv!.join(" ")).toContain("agent-browser@0.8.5");
+    expect(ab.installArgv!.join(" ")).toContain("agent-browser@0.38.1");
   });
 
   it("carries every install step itself", () => {
     const argv = ab.installArgv!.join(" ");
     for (const step of [
-      "pnpm add -g agent-browser@0.8.5",
+      "pnpm add -g agent-browser@0.38.1",
       "-exec chmod +x",
       "agent-browser install --with-deps",
     ]) {
@@ -192,10 +214,10 @@ describe("agent-browser is installed from the catalog, not the boot path", () =>
 
   it("arms the download gate with the size the install verb quotes", () => {
     expect(ab.downloadSize).toBe("~1 GB");
-    expect(read(".agro/cli/src/commands/tool.ts")).toContain("downloads ${entry.downloadSize}");
+    expect(read(".agro/cli/src/commands/tool.ts")).toContain("downloads ${size}");
   });
 
-  it("is reachable only through `oh tool install` — never through compose", () => {
+  it("is reachable only through `agro tool install` — never through compose", () => {
     expect(read(".devcontainer/docker-compose.yml")).not.toContain("INSTALL_AGENT_BROWSER");
     expect(read(".agro/cli/src/lib/config-render.ts")).toContain('"INSTALL_AGENT_BROWSER"');
   });
@@ -208,7 +230,7 @@ describe("tailscale is installed from the catalog, not the boot path", () => {
   const SHA_AMD64 = "36ddd9b51be57ffc2990cf76323cfa13643bfbb1b8a969f6183fa164741cdef5";
   const SHA_ARM64 = "a0fa1b154af8c61f862a2259f559f7396d96c0225f4a863eae2333e1546bbe25";
 
-  it("declares neither a build arg, an entrypoint guard, nor an oh.json key", () => {
+  it("declares neither a build arg, an entrypoint guard, nor an agro.json key", () => {
     expect(Object.keys(ts)).not.toContain("buildArg");
     expect(Object.keys(ts)).not.toContain("entrypointGuard");
     expect(ts.kind).toBe("installable");
@@ -263,7 +285,7 @@ describe("tailscale is installed from the catalog, not the boot path", () => {
     expect(ts.downloadSize).toBeUndefined();
   });
 
-  it("is reachable only through `oh tool install` — never through compose", () => {
+  it("is reachable only through `agro tool install` — never through compose", () => {
     expect(read(".devcontainer/docker-compose.yml")).not.toContain("INSTALL_TAILSCALE");
     expect(read(".agro/cli/src/lib/config-render.ts")).toContain('"INSTALL_TAILSCALE"');
   });
@@ -287,7 +309,7 @@ describe("baked-in tools", () => {
     }
   });
 
-  // #948: herdr and cloudflared enter only through `oh tool install`. The
+  // #948: herdr and cloudflared enter only through `agro tool install`. The
   // inverse of the check above — an installable tool must NOT be in the
   // Dockerfile — lives in .agro/evals/probes/harness-one-door.sh, which matches
   // on the pinned project URL rather than the bare binary name.

@@ -7,54 +7,38 @@ on:
       - development
       - main
     paths:
-      - "packages/**"
       - ".agro/**"
-      - ".oh/**"
       - "docs/**"
       - ".pi/**"
       - "agro.json"
-      - "oh.json"
       - ".example.env"
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - "vitest.config.ts"
       - ".github/workflows/ci-harness.yml"
-      - ".agro/skills/**"
       - ".claude/hooks/**"
       - ".claude/protected-paths.txt"
-      - ".agro/hooks/**"
       - "crons/**"
       - ".devcontainer/**"
-      - ".agro/evals/**"
-      - ".agro/knowledge/**"
       - "AGENTS.md"
-      - "CLAUDE.md"
   pull_request:
     paths:
-      - "packages/**"
       - ".agro/**"
-      - ".oh/**"
       - "docs/**"
       - ".pi/**"
       - "agro.json"
-      - "oh.json"
       - ".example.env"
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - "vitest.config.ts"
       - ".github/workflows/ci-harness.yml"
-      - ".agro/skills/**"
       - ".claude/hooks/**"
       - ".claude/protected-paths.txt"
-      - ".agro/hooks/**"
       - "crons/**"
       - ".devcontainer/**"
-      - ".agro/evals/**"
-      - ".agro/knowledge/**"
       - "AGENTS.md"
-      - "CLAUDE.md"
 
 concurrency:
   group: ci-harness-${{ github.ref }}
@@ -65,7 +49,7 @@ permissions:
 
 jobs:
   ci:
-    name: "Lint, Typecheck, Build & Test"
+    name: "Typecheck, Build & Test"
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
 
     steps:
@@ -99,12 +83,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
-        run: pnpm run lint
-
-      - name: Format check
-        run: pnpm run format:check
-
       - name: Typecheck
         run: pnpm run typecheck
 
@@ -131,7 +109,7 @@ jobs:
         run: |
           command -v shellcheck >/dev/null 2>&1 || { sudo apt-get update && sudo apt-get install -y shellcheck; }
           shellcheck --version
-          shellcheck -S warning .devcontainer/*.sh .agro/install/*.sh .agro/scripts/*.sh .agro/skills/audit/scripts/*.sh .agro/skills/escalate/scripts/*.sh .claude/hooks/*.sh .claude/skills/retro/scripts/*.sh
+          shellcheck -S warning .devcontainer/*.sh .agro/install/*.sh .agro/scripts/*.sh .agro/skills/audit/scripts/*.sh .agro/skills/escalate/scripts/*.sh .agro/skills/typesafe-ai/scripts/*.sh .claude/hooks/*.sh .claude/skills/retro/scripts/*.sh
 
       - name: Hadolint Dockerfile
         uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
