@@ -147,6 +147,15 @@ When every story has `passes: true`, do these steps:
    - issue #N; or
    - dropped, with the reason.
 
+   Fold a finding into the PR only when one of these conditions is true:
+   its fix is in a file that the PR already changes and the PR caused or
+   exposed the finding, or the finding breaks the chain in use. For each
+   other defect, propose one issue for each defect surface. If an open issue
+   already covers the surface, propose a comment on that issue. Drop
+   judgment and process observations, and findings that a probe already
+   catches. List the proposed issues in the final report. Before the
+   operator approves the proposed issues at Close, create no issue.
+
    "None" is a valid body.
 3. Fill the PR evidence sections from the `notes` in `prd.json`.
 4. Continue with the "Ready for review" step of `/git`.
