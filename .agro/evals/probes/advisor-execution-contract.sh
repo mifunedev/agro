@@ -7,14 +7,13 @@
 #       transfer happens only on operator request with the originating advisor stopping dispatch
 #       and the receiver acknowledging ownership, a plan without a handoff prompt is valid, the
 #       advisor has no fixed identity, /spec launches no coding-agent process, a worker's completed
-#       status is a report rather than acceptance, and the human merge gate stays. Extended by
-#       issue #1003 for /delegate: acceptance is recorded before a dependent is released, resume
-#       reconciles `running` tasks and stale completion evidence, every procedure reference
-#       resolves (no Memory Protocol), planning alone is not a trigger, and the diagram branches
-#       on --dry-run before the run-ledger write (asserted as graph edges, not text order).
-#       Issue #1004 requires blocked and pending tasks to satisfy every dependency, prerequisite,
-#       control, and provenance condition before dispatch. This probe inspects instruction text;
-#       it does not verify runtime delegation, recovery, eligibility decisions, or model settings.
+#       status is a report rather than acceptance, and the human merge gate stays. Issue #1147 moves
+#       /delegate onto prd.json: the advisor reruns verification on the integrated task branch before
+#       it writes passes, commit, and notes (each criterion executed or reasoned), repairs return to
+#       the same worker, dependents of a failed story wait, resume reads prd.json with no separate
+#       ledger, the close writes ## Lessons, planning alone is not a trigger, and --dry-run writes
+#       and dispatches nothing. This probe inspects instruction text; it does not verify runtime
+#       delegation, recovery, or model settings.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -36,8 +35,7 @@ exec_flat="$(flatten "$EXEC")"
 prompt_flat="$(flatten "$PROMPT")"
 spec_flat="$(flatten "$SPEC")"
 delegate_flat="$(flatten "$DELEGATE")"
-delegate_portable="$(awk '/^#+ .*[Pp]reference/{skip=1; next} skip && /^## /{skip=0} !skip{print}' "$DELEGATE" | tr -s '[:space:]' ' ')"
-sentences="$(printf '%s\n%s\n%s\n%s\n' "$exec_flat" "$prompt_flat" "$spec_flat" "$delegate_portable" | sed 's/[.!?] /&\n/g')"
+sentences="$(printf '%s\n%s\n%s\n%s\n' "$exec_flat" "$prompt_flat" "$spec_flat" "$delegate_flat" | sed 's/[.!?] /&\n/g')"
 
 problems=()
 need() {
@@ -87,47 +85,22 @@ need spec/SKILL.md "$spec_flat" \
   'never launches another coding-agent process' \
   'human merge gate'
 need delegate/SKILL.md "$delegate_flat" \
-  'completed status is a report, not acceptance' \
-  'acceptance decision, never a worker' \
-  'the accepted state that step 5d reads' \
-  'Release a dependent only on accepted artifacts' \
-  'is a separate, still-required check' \
-  'inspect the persisted native worker reference and the current artifacts' \
-  'never spawn a duplicate for it' \
-  'retry only the incomplete scope' \
-  'Re-read the artifact references against the current tree' \
-  'returns to `running` for reconciliation' \
-  'its dependents wait' \
-  'blocks every write to the affected paths' \
-  'never authorizes a second writer' \
-  'it never truncates it' \
-  'write neither file' \
-  'dispatch no worker, create no execution state' \
+  'A worker report is not acceptance' \
+  'rerun the verification on the integrated task branch' \
+  'write `passes: true`, `commit`, and `notes`' \
+  'each criterion executed or reasoned' \
+  'returns to the same worker with a bounded repair' \
+  'the advisor does not repair' \
+  'Dependents of a failed story wait' \
+  'tick the story in the PR `## Stories` checklist' \
+  're-verify the stories it builds on' \
+  'No separate ledger' \
+  '## Lessons' \
+  'claim, evidence, and exactly one outcome' \
+  'Write nothing' \
+  'dispatches nothing' \
   'is not a trigger' \
-  'authorizes no dispatch and creates no execution state' \
-  '- `FAIL`: read the failed task' \
-  'Accepted prior-wave artifact references and summaries, not full output' \
-  'Dispatch eligibility applies to initial and resumed runs' \
-  'It remains `BLOCKED` while any condition is unmet' \
-  'becomes eligible only after every condition holds' \
-  'Re-evaluate a `BLOCKED` dependent against all dependencies' \
-  'release it only when every condition holds'
-
-if grep -qiF 'Memory Protocol' "$DELEGATE"; then
-  problems+=("/delegate still calls the undefined Memory Protocol")
-fi
-if grep -qF 'Pass completed task summaries as context to the next wave' <<<"$delegate_flat"; then
-  problems+=("step 5d still releases a dependent on a worker report instead of on accepted artifacts")
-fi
-if grep -qF 'treat `completed` tasks as done' <<<"$delegate_flat"; then
-  problems+=("resume still trusts a saved completed label without re-checking its evidence")
-fi
-if grep -qF 'Re-run only tasks whose status is `pending`, `FAIL`, or `BLOCKED`' <<<"$delegate_flat"; then
-  problems+=("resume still skips running tasks instead of reconciling them")
-fi
-if grep -qF -- '- `pending`, `BLOCKED`: re-run the task under its dispatch record.' "$DELEGATE"; then
-  problems+=("resume still dispatches pending and blocked tasks without re-evaluating dependencies and controls")
-fi
+  'authorizes no dispatch'
 
 delegate_frontmatter="$(awk 'NR==1 && $0=="---"{f=1; next} f && /^---$/{exit} f{print}' "$DELEGATE")"
 delegate_desc="$(awk '/^description: \|$/{f=1; next} f && /^[a-z][a-z-]*:/{exit} f{print}' <<<"$delegate_frontmatter" | tr -s '[:space:]' ' ')"
@@ -148,25 +121,12 @@ unnegated_hits() {
 if [[ -z "${delegate_desc//[[:space:]]/}" ]]; then
   problems+=("/delegate frontmatter has no description block scalar")
 else
-  planning_command='/(prd|plan|imagine|spec)\b'
+  planning_command='(^|[[:space:]("`])/(prd|plan|imagine|spec)\b'
   planning_event='(plan creation|plan is (created|written|finished)|after (writing|creating|finishing) a plan)'
   cmd_hits="$(unnegated_hits "$delegate_desc" "$planning_command")"
   [[ -z "$cmd_hits" ]] || problems+=("/delegate names a planning command as a trigger, so planning alone would authorize dispatch: $cmd_hits")
   event_hits="$(unnegated_hits "$delegate_desc" "$planning_event")"
   [[ -z "$event_hits" ]] || problems+=("/delegate triggers on plan creation, so finishing a plan would authorize dispatch: $event_hits")
-fi
-
-delegate_mermaid="$(awk '/^```mermaid$/{f=1; next} f && /^```$/{f=0} f{print}' "$DELEGATE")"
-if [[ -z "${delegate_mermaid//[[:space:]]/}" ]]; then
-  problems+=("/delegate has no Decision Flow mermaid diagram")
-else
-  grep -qF 'D --> F{--dry-run?}' <<<"$delegate_mermaid" \
-    || problems+=("the Decision Flow diagram is missing the dependency-graph edge to --dry-run")
-  grep -qF 'F -->|No| E["Step 4: Write run ledger' <<<"$delegate_mermaid" \
-    || problems+=("the Decision Flow diagram is missing the --dry-run false edge to the run-ledger write")
-  if grep -qiE 'MEM_|Memory Protocol' <<<"$delegate_mermaid"; then
-    problems+=("the Decision Flow diagram still routes to the undefined Memory Protocol")
-  fi
 fi
 
 fixed="$(grep -iE 'advisor[^.|]{0,80}\b(is|are|runs on|runs in|lives in|uses|requires|must use|means|=)\b[^.|]{0,60}\b(Fable|Opus|Sonnet|Haiku|Luna|Astra|GPT|tmux|Herdr|pane|tab|persistent identity|named agent)\b|(owner|advisor)[^.|]{0,40}(requires|needs|must use) (a |the )?(particular|specific|fixed) (model|identity|terminal)' <<<"$sentences" | grep -vE "$negation|operator preference" || true)"
@@ -198,5 +158,5 @@ if (( ${#problems[@]} > 0 )); then
   exit 1
 fi
 
-echo "PASS: /spec keeps one advisor deciding and accepting, workers implementing first, same-session execution by default, operator-only transfer, no fixed advisor identity, no launched agent, and the human merge gate; /delegate releases only tasks whose full eligibility and accepted-evidence checks hold, reconciles interrupted work, resolves every procedure reference, and keeps --dry-run read-only (prose check only; runtime behavior unverified)" >&2
+echo "PASS: /spec keeps one advisor deciding and accepting, workers implementing first, same-session execution by default, operator-only transfer, no fixed advisor identity, no launched agent, and the human merge gate; /delegate accepts only after the advisor reruns verification, records executed/reasoned notes in prd.json, resumes from prd.json alone, closes with ## Lessons, and keeps --dry-run read-only (prose check only; runtime behavior unverified)" >&2
 exit 0
