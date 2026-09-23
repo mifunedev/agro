@@ -33,7 +33,7 @@ explicitly. Do not assume `origin` is the public target.
 
 Format: `<prefix>: <shortdesc>`
 
-`<prefix>` ∈ `feat` · `bug` · `task` · `audit` · `skill`
+`<prefix>` ∈ `feat` · `bug` · `task`
 (matches `.github/ISSUE_TEMPLATE/<prefix>.md`)
 
 Example: `feat: slack thread replies`
@@ -93,7 +93,7 @@ Example: `FROM feat/42-slack-thread-replies TO development`
 
 ## Commit Messages
 
-Format: `<type>: <description>` where `<type>` ∈ `feat` · `fix` · `task` · `audit` · `skill`
+Format: `<type>: <description>` where `<type>` ∈ `feat` · `fix` · `task`
 
 ## Changelog
 
