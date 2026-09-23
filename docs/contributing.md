@@ -104,7 +104,7 @@ lives in [Slack integration](./integrations/slack.md).
 
 All feature branches follow the format `<prefix>/<issue#>-<short-desc>`.
 
-Prefixes: `feat` · `fix` · `task` · `audit` · `skill` · `agent`
+Prefixes: `feat` · `bug` · `task`
 
 Short description: kebab-case, maximum 5 words.
 
@@ -124,7 +124,7 @@ git checkout -b feat/42-slack-thread-replies development
 
 Commit format: `<type>: <description>`
 
-Types: `feat` · `fix` · `task` · `audit` · `skill`
+Types: `feat` · `fix` · `task`
 
 Example:
 
