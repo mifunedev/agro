@@ -6,16 +6,6 @@
   "generated_by": "git-sync/manual",
   "generated_at": "2026-05-22T00:00:00Z",
   "skills": {
-    "retro": {
-      "source": "github:mifunedev/skills",
-      "registry_version": "in-tree",
-      "skill_version": "0.1.0",
-      "commit": "pending-upstream",
-      "installed_paths": [
-        ".agro/skills/retro"
-      ],
-      "note": "In-tree fork of upstream mifunedev/skills `reflect`, rewritten as `/retro`; diverged from registry so checksum dropped and commit marked pending-upstream."
-    },
     "agent-browser": {
       "source": "github:mifunedev/skills",
       "registry_version": "2026.5.17",

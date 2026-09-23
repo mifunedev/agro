@@ -1,13 +1,13 @@
 ---
 name: wiki
 description: |
-  Dispatch four subcommands: ingest, query, lint, or compile. Manage tracked knowledge; .agro/knowledge/
+  Dispatch three subcommands: ingest, query, or lint. Manage tracked knowledge; .agro/knowledge/
   owns source pages, patterns, and raw snapshots; local scratch is excluded.
   Canonical schema: .agro/skills/wiki/references/schema.md. Procedures:
-  references/{ingest,query,lint,compile}.md.
+  references/{ingest,query,lint}.md.
   TRIGGER when: ingest a URL, path, or draft; query the wiki before planning;
-  lint the index or review status; or compile a retro lesson into a pattern.
-argument-hint: "ingest <url|path> [--slug <override>] | ingest --from-draft <slug> [--allow-stale] | query <topic> [--patterns] | lint [--dry-run] | compile [--from <path>] [--task <slug>] [--dry-run]"
+  or lint the index or review status.
+argument-hint: "ingest <url|path> [--slug <override>] | ingest --from-draft <slug> [--allow-stale] | query <topic> [--patterns] | lint [--dry-run]"
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch
 ---
 
@@ -15,7 +15,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch
 
 One parameterized skill over the harness knowledge base. The first token of
 `$ARGUMENTS` selects the operation; the remainder is that subcommand's argument
-string. This dispatcher holds the routing logic and the rules shared by all four
+string. This dispatcher holds the routing logic and the rules shared by all three
 operations; the full per-subcommand procedure lives in `references/`.
 
 **Two surfaces, one owner each.** `.agro/knowledge/` owns the **data**; this skill
@@ -29,7 +29,6 @@ schema rule lives anywhere but `references/schema.md`.
 | `ingest` | `<url\|path> [--slug <override>]` · `--from-draft <slug> [--allow-stale]` | Capture a source or promote a draft into an entity page (the only authorized write path) | `references/ingest.md` |
 | `query` | `<topic> [--patterns]` | Frontmatter OR-search over tracked knowledge; read the top matches into context (≤3 entity, ≤5 pattern) | `references/query.md` |
 | `lint` | `[--dry-run]` | Six correctness checks + atomic `.agro/knowledge/README.md` index regeneration | `references/lint.md` |
-| `compile` | `[--from <path>] [--task <slug>] [--dry-run]` | Consolidate a `/retro` report into `kind: pattern` entries (create or patch) | `references/compile.md` |
 
 ## Dispatch
 
@@ -51,12 +50,11 @@ instructions are authoritative — this dispatcher does not restate them):
 | `ingest` | Read `references/ingest.md`; execute it with `$REST` as its argument string. |
 | `query` | Read `references/query.md`; execute it with `$REST` as the `<topic>`. |
 | `lint` | Read `references/lint.md`; execute it with `$REST` (only `--dry-run` is recognized). |
-| `compile` | Read `references/compile.md`; execute it with `$REST` as its argument string. |
 | anything else (incl. empty) | Print the usage line from `argument-hint` and exit 0. Do not guess a subcommand. |
 
 ## Shared rules
 
-These hold across all four subcommands; the reference docs assume them.
+These hold across all three subcommands; the reference docs assume them.
 
 - **Knowledge root**: entity pages at `.agro/knowledge/source/<slug>.md`, pattern
   pages at `.agro/knowledge/patterns/pattern-<subsystem>-<mode>.md`, immutable
@@ -65,7 +63,7 @@ These hold across all four subcommands; the reference docs assume them.
 - **Tracked by default**: `source/`, `patterns/`, and `raw/` are committed like
   any other repository content — a plain `git add`, no `-f`, no whitelist.
   `.agro/knowledge/local/` is the only ignored tier.
-- **`local/` is never an input**: no query path and no `/spec` flow reads it. A
+- **`local/` is never an input**: no query path and no planning flow reads it. A
   page one machine can see must not inform a plan another machine cannot
   reproduce. Promotion goes through `ingest`.
 - **The repository outranks the knowledge base**: a page is orientation, not
@@ -82,10 +80,9 @@ These hold across all four subcommands; the reference docs assume them.
   ```
 - **One freshness implementation**: `.agro/skills/wiki/scripts/knowledge-impact.sh`
   decides dependency-aware invalidation. `lint` calls it with `--verified`;
-  `/spec execute` calls it with `--changed <paths>`. Nothing reimplements it.
+  a build calls it with `--changed <paths>`. Nothing reimplements it.
 - **Orchestrator-only write gate**: `ingest` writes (snapshots + entity pages),
-  `compile`'s pattern-page writes, and `lint`'s index regeneration are
-  orchestrator-only. Sub-agents propose drafts to
+  pattern-page writes, and `lint`'s index regeneration are orchestrator-only. Sub-agents propose drafts to
   `$TMPDIR/oh-wiki-drafts/<slug>.md`; the orchestrator promotes via
   `/wiki ingest --from-draft <slug>`. A sub-agent that writes directly to
   `.agro/knowledge/` is out of scope and may be reverted.
@@ -99,7 +96,7 @@ These hold across all four subcommands; the reference docs assume them.
   knowledge.
 - A **session journal** entry ("this run showed Y") → the run's report. A
   *recurring failure mode* the run revealed is different: that is a
-  `kind: pattern` entry, written by `compile`, named for the mode not the run.
+  `kind: pattern` entry, named for the mode not the run.
 - A **proposal decision record** → `.agro/evals/decisions/skill-impact.md`, not a
   knowledge page.
 - **Human-facing prose** → `docs/` (knowledge pages are LLM-readable synthesis).
@@ -109,7 +106,7 @@ These hold across all four subcommands; the reference docs assume them.
 ## See Also
 
 - `.agro/skills/wiki/references/schema.md` — canonical schema and authoring rules
-- `.agro/skills/wiki/references/ingest.md` · `query.md` · `lint.md` · `compile.md` — full procedures
+- `.agro/skills/wiki/references/ingest.md` · `query.md` · `lint.md` — full procedures
 - `.agro/skills/wiki/scripts/knowledge-impact.sh` — dependency-aware invalidation
 - `.agro/knowledge/README.md` — the generated index
 - `.agro/evals/decisions/skill-impact.md` — the skill-change ledger the proposer reads
