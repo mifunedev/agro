@@ -58,6 +58,12 @@ assert deny "$H | tail" \
   "the shell-hist builtin piped to tail was allowed"
 assert deny "bash -ic $H" \
   "the shell-hist builtin as a -c argument was allowed"
+for wrapper in builtin command sudo exec eval; do
+  assert deny "$wrapper $H" \
+    "the shell-hist builtin behind the $wrapper wrapper was allowed"
+done
+assert deny "bash -ic 'builtin $H'" \
+  "a wrapped shell-hist builtin as a -c argument was allowed"
 assert deny "fc -l" \
   "fc -l was allowed"
 assert deny "cat ~/.zsh_$H" \
