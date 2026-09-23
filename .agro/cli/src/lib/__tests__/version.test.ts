@@ -1,0 +1,21 @@
+import { describe, expect, it } from "vitest";
+import { AGRO_VERSION, officialImageRef } from "../version.js";
+
+describe("officialImageRef", () => {
+  it.each(["0.13.0", "1.0.0", "10.20.30"])("tags release %s with its version", (version) => {
+    expect(officialImageRef(version)).toBe(`ghcr.io/mifunedev/agro:${version}`);
+  });
+
+  it.each(["0.0.0-dev", "0.14.0-rc.1", "1.2.3-beta", "v0.13.0", "0.13", ""])(
+    "falls back to latest for non-release version %j",
+    (version) => {
+      expect(officialImageRef(version)).toBe("ghcr.io/mifunedev/agro:latest");
+    },
+  );
+});
+
+describe("AGRO_VERSION", () => {
+  it("is 0.0.0-dev when the build did not inject a version", () => {
+    expect(AGRO_VERSION).toBe("0.0.0-dev");
+  });
+});

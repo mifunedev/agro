@@ -1,5 +1,6 @@
 import { configCheckout, type AgroConfig } from "./agro-config.js";
 import { isSecretKey } from "./secrets.js";
+import { AGRO_VERSION, officialImageRef } from "./version.js";
 
 const RETIRED_KEYS = [
   "WORKTREES_DIR",
@@ -27,6 +28,14 @@ export interface RenderedVar {
   value: string;
 }
 
+function runsPrebuiltImage(config: AgroConfig): boolean {
+  return configCheckout(config) === undefined || config.image?.mode === "image";
+}
+
+function sandboxImageRef(config: AgroConfig): string | undefined {
+  return config.image?.ref ?? (runsPrebuiltImage(config) ? officialImageRef(AGRO_VERSION) : undefined);
+}
+
 export function renderComposeVars(config: AgroConfig): RenderedVar[] {
   const out: RenderedVar[] = [];
   const put = (key: string, value: string | number | boolean | undefined): void => {
@@ -46,7 +55,7 @@ export function renderComposeVars(config: AgroConfig): RenderedVar[] {
   put("SANDBOX_SSH", config.access?.ssh);
   put("SANDBOX_SSH_PORT", config.access?.sshPort);
 
-  put("AGRO_SANDBOX_IMAGE", config.image?.ref);
+  put("AGRO_SANDBOX_IMAGE", sandboxImageRef(config));
   put("AGRO_PULL_POLICY", config.image?.pullPolicy);
 
   for (const { key, value } of out) {

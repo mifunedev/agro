@@ -32,7 +32,6 @@ import {
   runShell,
   composeVerbs,
   DEFAULT_CONTAINER_NAME,
-  DEFAULT_SANDBOX_IMAGE,
   type ComposeVerb,
   type LifecycleIO,
 } from "./commands/lifecycle.js";
@@ -73,9 +72,7 @@ import {
   DEFAULT_REPO_URL,
   type FetchRemoteSourceOptions,
 } from "./lib/remote.js";
-
-declare const __AGRO_VERSION__: string;
-const VERSION: string = typeof __AGRO_VERSION__ === "string" ? __AGRO_VERSION__ : "0.0.0-dev";
+import { AGRO_VERSION as VERSION, officialImageRef } from "./lib/version.js";
 
 const DEFAULT_SOURCE_CONTROL_DIR = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -318,7 +315,7 @@ Flags:
   --yes            Non-interactive: keep every default and ask nothing
   --image[=<ref>]  Run the prebuilt image instead of building (implies
                    --no-build). Ref resolves last-wins: --image=<ref> >
-                   ${stateNames(bin).configFile} image.ref > ${DEFAULT_SANDBOX_IMAGE}.
+                   ${stateNames(bin).configFile} image.ref > ${officialImageRef(VERSION)}.
   --no-build       Suppress the local build and reuse an existing image
   --print-argv     Print the docker compose argv that would run, then exit
                    without writing an entry
