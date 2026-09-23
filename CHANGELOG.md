@@ -14,6 +14,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 - Make the pull request template repo-agnostic and pair it with the feature template: changes table, TDD test plan, verification, visual reference, follow-ups, and an acceptance checklist ([#1145](https://github.com/mifunedev/agro/issues/1145)).
 - Consolidate the planning chain: `/prd` absorbs `/plan` and `/ralph`, `/delegate` runs the advisor/worker pattern from `prd.json`, and plans land in a draft PR before implementation ([#1147](https://github.com/mifunedev/agro/issues/1147)).
 
+### Fixed
+
+- Stop the Bash secret-exposure guard from denying ordinary commands: it now denies `history` only at command position or as a shell `-c` argument, so a commit message that mentions the word passes, and it no longer reads a `jq` filter such as `'.env'` as a secret-file path, while `jq` reads of a real `.env` file stay denied ([#1149](https://github.com/mifunedev/agro/issues/1149)).
+
 ## [0.13.0] - 2026-09-22
 
 ### Added

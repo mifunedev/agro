@@ -71,5 +71,49 @@ assert deny "cat ~/.zsh_$H" \
 assert deny "tail ~/.bash_$H" \
   "reading the bash hist file was allowed"
 
-echo "PASS: the secret-exposure guard denies shell-hist access by command position and hist-file reads, and allows the word inside ordinary arguments" >&2
+SETTINGS_JSON=".claude/settings.json"
+
+assert allow "jq '.env' $SETTINGS_JSON" \
+  "a quoted jq filter that names an env key was treated as a secret path"
+assert allow "jq -r '.env // {}' $SETTINGS_JSON" \
+  "a flagged jq filter that names an env key was treated as a secret path"
+assert allow "jq .env $SETTINGS_JSON" \
+  "a bare jq filter that names an env key was treated as a secret path"
+assert allow "cat .env.example" \
+  "reading an env example file was denied"
+
+assert deny "cat .env" \
+  "reading an env file was allowed"
+assert deny "cat ./app/.env.local" \
+  "reading a nested local env file was allowed"
+assert deny "jq '.env' .env" \
+  "jq reading an env file through its input argument was allowed"
+assert deny "jq . .env" \
+  "jq reading an env file after a bare filter was allowed"
+assert deny "jq '.env' $SETTINGS_JSON .env" \
+  "jq reading an env file as a second input was allowed"
+assert deny "jq --arg k v '.x' .env" \
+  "jq reading an env file after an --arg pair was allowed"
+assert deny "jq -f .env data.json" \
+  "jq loading an env file as the filter file was allowed"
+assert deny "jq -rf .env data.json" \
+  "jq loading an env file through a short flag cluster was allowed"
+assert deny "jq -nr --from-file .env" \
+  "jq loading an env file through --from-file was allowed"
+assert deny "jq --from-file=.env data.json" \
+  "jq loading an env file through --from-file= was allowed"
+assert deny "jq --rawfile s .env -n '\$s'" \
+  "jq loading an env file through --rawfile was allowed"
+assert deny "jq --slurpfile s .env -n ." \
+  "jq loading an env file through --slurpfile was allowed"
+assert deny "jq -n '.' < .env" \
+  "jq reading an env file through stdin redirection was allowed"
+assert deny "jq -n \"\$(cat .env)\"" \
+  "an env file read through command substitution in the jq filter was allowed"
+assert deny "jq -n \`cat .env\`" \
+  "an env file read through a backtick substitution in the jq filter was allowed"
+assert deny "cat .env && jq '.x' data.json" \
+  "an env file read beside a jq call was allowed"
+
+echo "PASS: the secret-exposure guard denies shell-hist access by command position and hist-file reads, allows the word inside ordinary arguments, exempts the jq filter from the secret-path check, and still denies env-file reads" >&2
 exit 0
