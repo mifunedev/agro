@@ -13,7 +13,6 @@ assignees: ""
 ```yml
 pull_request_title: "FROM feat/[issue#]-[shortdesc] TO [target-branch]"
 branch: "feat/[issue#]-[shortdesc]"
-worktree_path: ".worktrees/feat/[issue#]-[shortdesc]"
 ```
 
 ---

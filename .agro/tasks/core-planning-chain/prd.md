@@ -50,6 +50,7 @@ Current state:
 | `/ralph` | Remove | Folded into `/prd` as a reference |
 | `/prd` | Modify | Writes the plan to the task folder with `feat.md` headings; offers the draft PR after approval |
 | `/delegate` | Modify | `prd.json` input; per-story commit and push |
+| `.github/ISSUE_TEMPLATE/feat.md` | Modify | Remove `worktree_path` from Metadata; the environment owns worktree placement |
 | `.github/pull_request_template.md` | Modify | Stories checklist near the top; evidence sections: what the issue asked for, what was built, divergence, unverified |
 
 ## Storage
