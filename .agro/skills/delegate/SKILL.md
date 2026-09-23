@@ -108,10 +108,10 @@ The advisor does not repair. Dependents of a failed story wait.
 
 After acceptance, do these steps on the task branch:
 
-1. Commit `prd.json` with the accepted story.
-2. Push the task branch.
-3. Tick the story in the PR `## Stories` checklist.
-4. Remove the worker worktree and branch. Use the git maintenance shim that
+1. Commit `prd.json` with the accepted story. Do not push it. `/git` § Draft PR
+   for a task names the two pushes.
+2. Tick the story in the PR `## Stories` checklist.
+3. Remove the worker worktree and branch. Use the git maintenance shim that
    `/git` names.
 
 ## Resume
@@ -146,6 +146,15 @@ When every story has `passes: true`, do these steps:
    - fixed in this PR;
    - issue #N; or
    - dropped, with the reason.
+
+   Fold a finding into the PR only when one of these conditions is true:
+   its fix is in a file that the PR already changes and the PR caused or
+   exposed the finding, or the finding breaks the chain in use. For each
+   other defect, propose one issue for each defect surface. If an open issue
+   already covers the surface, propose a comment on that issue. Drop
+   judgment and process observations, and findings that a probe already
+   catches. List the proposed issues in the final report. Before the
+   operator approves the proposed issues at Close, create no issue.
 
    "None" is a valid body.
 3. Fill the PR evidence sections from the `notes` in `prd.json`.
