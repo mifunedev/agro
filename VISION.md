@@ -7,9 +7,12 @@ own work. It cannot give itself an isolated runtime, a durable identity,
 supervision that outlives a terminal, or a single policy source that holds
 across harnesses. AGRO supplies those and stops.
 
-This file sets the scope that changes are measured against. `AGENTS.md` holds
-the rules that bind agents working here. When the two disagree, `AGENTS.md`
-wins for conduct and this file wins for scope.
+This file is for the operators AGRO serves and the people who build it. It
+states the value AGRO adds and the direction it is meant to evolve in, so a
+reader can judge whether AGRO fits their work and a contributor can judge
+whether a change moves it forward. `AGENTS.md` holds the rules that bind agents
+working here. When the two disagree, `AGENTS.md` wins for conduct and this file
+wins for scope.
 
 ## Who AGRO is for
 
@@ -116,27 +119,26 @@ live in [`SECURITY.md`](SECURITY.md).
 
 ## Skills
 
-A skill earns its place when it teaches a harness to drive something AGRO
-provides that the harness cannot discover on its own. Skills sort three ways.
+A skill earns its place in one of two ways. It teaches a harness to drive
+something AGRO provides that the harness cannot discover on its own, or agents
+use it often and get better results with it.
 
 - **Environment capability.** Driving the terminal workspace, reaching a human
   from an unattended session, automating a browser, and the worktree and project
   clone mechanics that keep parallel work from colliding. These serve every
   repository in the workspace. They are floor.
-- **Product operations.** Releasing AGRO itself, and this repository's own
-  branch, pull request, and changelog conventions. These serve exactly one
-  repository. Conventions belong in `AGENTS.md`.
-- **Methodology.** Requirements documents, plan formats, and prose style. The
-  harness owns these.
+- **Working practice.** Branch, pull request, and release conventions,
+  requirements documents, plan formats, and prose style. These are tenants.
+  They ship because they earn their place through use, and they stay only while
+  that holds. AGRO does not require them; a harness is free to work its own way.
 
-Only the first category is floor. A skill that mixes categories gets split, not
-kept whole and not cut whole.
+A skill that mixes categories gets split, not kept whole and not cut whole.
 
-## Known gaps
+## Where AGRO is going
 
-Stated plainly, because the tests above currently fail against the repository.
-A claim in this file that the code does not meet belongs here, not in the
-section that asserts it.
+Each item below is a place where the repository does not yet meet this file.
+Closing them is the direction of travel. A claim in this file that the code does
+not meet belongs here, not in the section that asserts it.
 
 - **P5 covers two harnesses, not nine.** The harness catalog ships nine.
   Claude Code and Codex run the canonical `.agro/hooks/` scripts. Pi enforces
@@ -162,14 +164,9 @@ section that asserts it.
   entrypoint write permission-bypass aliases and settings for several harnesses
   (`.devcontainer/Dockerfile`, `.devcontainer/entrypoint.sh`) instead of reading
   them from operator configuration.
-- **Skills outside the floor still ship.** The pack carries product-operations
-  and methodology skills; see Open questions.
 
 ## Open questions
 
-- **Where product-operations and methodology skills go.** A separate
-  repository, a published pack, or deletion are all defensible. Nothing is
-  decided.
 - **Preventive day-2 operation.** Recovery and upgrade are documented in
   `docs/lifecycle-commands.md` and `docs/repair-sandbox-boot-advisory.md`, and
   the `self-upgrade` and `vendor` split is taught there. What does not exist is
@@ -182,7 +179,7 @@ section that asserts it.
   P1 through P5 do not cover.
 - A journey proves a tenant is load-bearing and it passes all four tests. It
   moves into the floor, and the floor is restated here.
-- A known gap closes, and the claim it qualifies becomes a fact.
+- A gap closes, and the claim it qualifies becomes a fact.
 
 The gaps and open questions above are the current state of the repository, not
 a permanent description of it. Each entry is expected to be deleted, and
