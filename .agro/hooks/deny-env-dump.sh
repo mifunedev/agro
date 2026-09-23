@@ -20,7 +20,9 @@ DENY+='|\bdeclare[[:space:]]+-[xp]\b'
 DENY+='|\bcompgen[[:space:]]+-[vxAe]'
 DENY+='|/proc/[^/[:space:]]+/environ'
 DENY+='|\bprintenv[[:space:]]*([|;>&]|$)'
-DENY+='|\bhistory\b'
+HIST_WRAPPERS='((builtin|command|exec|eval|sudo|nohup|time|env)[[:space:]]+)*'
+DENY+="|(^|[;&|(\`])[[:space:]]*${HIST_WRAPPERS}history\\b"
+DENY+="|(^|[[:space:]])-[A-Za-z]*c[[:space:]]+[\"']?${HIST_WRAPPERS}history\\b"
 DENY+='|\bfc[[:space:]]+-l'
 DENY+="|\\b(echo|printf)\\b[^#]*\\\$\\{?[A-Z0-9_]*${SECRET_NAME}[A-Z0-9_]*\\}?"
 DENY+="|Authorization:[[:space:]]*['\"]?(Bearer|Basic|Token)[[:space:]]+\\\$"
@@ -74,6 +76,29 @@ SECRET_PATH_DENY="\\b${READ_CMD}\\b[^#|]*${SECRET_PATH}"
 
 ASK='\bprintenv[[:space:]]+[A-Za-z_]'
 
+JQ_CALL='(^|[^A-Za-z0-9_-])jq(([[:space:]]+-[^[:space:]]*)*)([[:space:]]+)'
+JQ_CALL+="('[^']*'|\"[^\"\$\`]*\"|[^[:space:];&|<>()\$\`\"']+)(.*)\$"
+JQ_PATH_FLAG='(^|[[:space:]])(-[A-Za-z]*[fL]|--[^[:space:]]*file)'
+
+mask_jq_filters() {
+  local rest=$1 out='' prefix
+  local -a m
+  while [[ $rest =~ $JQ_CALL ]]; do
+    m=("${BASH_REMATCH[@]}")
+    prefix=${rest%"${m[0]}"}
+    if [[ ${m[2]} =~ $JQ_PATH_FLAG ]]; then
+      out+="${prefix}${m[1]}jq"
+      rest="${m[2]}${m[4]}${m[5]}${m[6]}"
+    else
+      out+="${prefix}${m[1]}jq${m[2]}${m[4]}JQ_FILTER"
+      rest=${m[6]}
+    fi
+  done
+  printf '%s' "$out$rest"
+}
+
+path_cmd=$(mask_jq_filters "$cmd") || path_cmd=$cmd
+
 emit() {
   jq -n --arg d "$1" --arg r "$2" '{
     hookSpecificOutput: {
@@ -95,13 +120,13 @@ elif grep -qEi -- "$DOCKER_INSPECT" <<<"$cmd"; then
   fi
 elif grep -qEi -- "$OPERATOR_PATH" <<<"$cmd"; then
   emit deny 'Operator-only path guard (deny): command references .config/ or settings.local.json, which hold operator-managed configuration and are off-limits to agents for both read and write. This is a deliberate policy, not a misconfiguration — do not retry a variant that spells the path differently, resolves it through a variable or symlink, or reaches it from a subshell. If you need a value from it, ask the operator to paste only that value into the chat. If you only need to mention the path in prose (commit message, PR body), pass it via a file (`git commit -F msg.txt`, `gh pr create --body-file body.md`) or a HEREDOC, which this guard strips.'
-elif grep -qEi -- "$SECRET_PATH_DENY" <<<"$cmd"; then
+elif grep -qEi -- "$SECRET_PATH_DENY" <<<"$path_cmd"; then
   ALLOWED=0
-  mapfile -t env_tokens < <(grep -oEi "[^[:space:]\"']*\\.env[^[:space:]\"']*" <<<"$cmd" || true)
+  mapfile -t env_tokens < <(grep -oEi "[^[:space:]\"']*\\.env[^[:space:]\"']*" <<<"$path_cmd" || true)
   if [ "${#env_tokens[@]}" -gt 0 ]; then
     ALLOWED=1
     for token in "${env_tokens[@]}"; do
-      base=$(basename "$token")
+      base=$(basename -- "$token")
       if ! { grep -qiE '\.env' <<<"$base" && grep -qiE '(example|sample|template)' <<<"$base"; }; then
         ALLOWED=0
         break
