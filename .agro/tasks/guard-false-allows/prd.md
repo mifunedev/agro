@@ -117,7 +117,7 @@ None.
 
 | Lesson | Evidence | Outcome |
 | --- | --- | --- |
-| The Bash guard allows an environment dump through a script interpreter. | The advisor ran the hook on this branch: `python3 -c` with `os.environ` and `perl -e` with `%ENV` return `allow`. | proposed issue: Bash guard allows interpreter environment dumps |
-| The secret-path check denies a command that names `.env` inside a search pattern. | The hook denied the advisor's `grep "Config.Env" .claude/settings.json` during grounding. `grep process.env src/index.ts` returns `deny`. | proposed issue: secret-path check denies `.env` substrings in search patterns |
-| The guard reads the text of every command argument, so notes that name a guarded command trigger the guard. | The guard denied the advisor's `jq --arg n '<notes>'` call because the notes named a container-inspect command. | dropped: the workaround is a notes file through `--rawfile`; the second proposed issue covers the pattern-text surface. |
+| The Bash guard allows an environment dump through a script interpreter. | The advisor ran the hook on this branch: `python3 -c` with `os.environ` and `perl -e` with `%ENV` return `allow`. | issue #1155 |
+| The secret-path check denies a command that names `.env` inside a search pattern. | The hook denied the advisor's `grep "Config.Env" .claude/settings.json` during grounding. `grep process.env src/index.ts` returns `deny`. | issue #1155 (folded with the interpreter gap) |
+| The guard reads the text of every command argument, so notes that name a guarded command trigger the guard. | The guard denied the advisor's `jq --arg n '<notes>'` call because the notes named a container-inspect command. | dropped: the workaround is a notes file through `--rawfile`; issue #1155 covers the pattern-text surface. |
 | `spec-task-artifact-contract` fails every completed core-chain task. | After the US-002 acceptance, `bash .agro/evals/probes/spec-task-artifact-contract.sh` exits 1 and reports `progress.txt` as missing for `guard-false-allows`. | issue #1153 (open; no new issue) |
