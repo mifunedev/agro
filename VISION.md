@@ -19,7 +19,7 @@ those agents from somewhere else.
 
 The operator is the focus, and the only one. AGRO knows nothing of fleets,
 consoles, or hosted operations, and gains nothing by learning. There is no
-tenant above the operator, no plane above the sandbox, and no account the
+authority above the operator, no plane above the sandbox, and no account the
 workspace reports to.
 
 A proposal that only makes sense when something manages many sandboxes at once
@@ -28,12 +28,12 @@ whatever else exists elsewhere.
 
 ## The workspace
 
-The sandbox holds one workspace. The workspace is the harness repository at its
+The sandbox holds one workspace. The workspace is the AGRO repository at its
 root, and any number of independent clones under `projects/<owner>/<repo>/`.
 
 A project clone is its own git boundary, with its own remote, branches, history,
-and worktrees. The harness is not their parent. It is the first instance of the
-same rule.
+and worktrees. The AGRO repository is not their parent. It is the first
+instance of the same rule.
 
 This shape decides what the control plane is for. The control plane serves an
 agent working on **any** repository in the workspace.
@@ -69,17 +69,18 @@ costs that project. A line of the control plane reaches every repository in the
 workspace. A line of the entrypoint runs on every boot, for every operator,
 whether or not it applies.
 
-Tenants are welcome. The bar is about where a thing plugs in, not whether it
-deserves to exist.
+Anything that plugs in above the floor without joining it is a tenant. Tenants
+are welcome. The bar is about where a thing plugs in, not whether it deserves
+to exist.
 
 ## Four tests
 
-Apply all four. A proposal that fails any one is a tenant, not core.
+Apply all four. A proposal that fails any one is a tenant, not floor.
 
 1. **Primitive test.** Which of P1 to P5 does it serve? No answer means no.
 2. **Workspace test.** Does it serve an agent working on any repository in the
    workspace? A thing that only applies to AGRO's own repository is product
-   operations, not control plane.
+   operations, not floor.
 3. **Boot-path test.** The entrypoint may only do work that is true for every
    project.
 4. **Journey test.** Every floor artifact appears in a numbered step of a real
@@ -89,15 +90,12 @@ Apply all four. A proposal that fails any one is a tenant, not core.
 
 "A test fails" is not an observable failure. Name the broken user path.
 
-## How the core grows
+## How the floor grows
 
 Recurring demand defines interfaces. When several independent requests wire in
 the same kind of capability, the answer is a contract, not a queue of merges.
 Land the seam, port the existing implementation onto it, and let the rest ship
 against it.
-
-The core reads one current shape of its own configuration. Growth adds a seam or
-a primitive; it does not add a second way to express the same thing.
 
 ## Security posture
 
@@ -131,27 +129,8 @@ provides that the harness cannot discover on its own. Skills sort three ways.
 - **Methodology.** Requirements documents, plan formats, and prose style. The
   harness owns these.
 
-Only the first category is core. A skill that mixes categories gets split, not
+Only the first category is floor. A skill that mixes categories gets split, not
 kept whole and not cut whole.
-
-## What we will not add, for now
-
-- A task system, an evaluation harness, a knowledge base, or a memory store.
-  The harness owns these.
-- Fleet management, shared control planes, multi-tenancy, or any notion of an
-  authority above the operator.
-- Reporting a sandbox's existence, health, or activity to anything the operator
-  did not configure themselves.
-- New methodology skills.
-- Project-specific install or start work in the boot path.
-- Anything that moves operator data off the host by default.
-- Machinery that hides the sandbox boundary, the privilege posture, or a
-  credential decision from the operator.
-- A second door. Lifecycle work reaches the operator through `agro` or not at
-  all.
-
-This list is a roadmap guardrail, not a law of physics. A real journey and a
-real constraint can change it.
 
 ## Known gaps
 
@@ -159,34 +138,38 @@ Stated plainly, because the tests above currently fail against the repository.
 A claim in this file that the code does not meet belongs here, not in the
 section that asserts it.
 
-- **P5 covers two harnesses, not nine.** The harness catalog ships nine. Only
-  Claude Code and Codex have a hook surface; the other seven run with no policy
-  enforcement. Until that closes, "harness choice does not change behavior" is
-  a goal, not a fact. Every surface that exists now reads the canonical
-  `.agro/hooks/` source directly, so what is missing is coverage, not
-  correctness.
+- **P5 covers two harnesses, not nine.** The harness catalog ships nine.
+  Claude Code and Codex run the canonical `.agro/hooks/` scripts. Pi enforces
+  its own inline path guard, which does not read `.agro/hooks/`. The other six
+  run with no policy enforcement. Until that closes, "harness choice does not
+  change behavior" is a goal, not a fact.
 - **The boot path is not clean, and the escape hatch is not a seam.** A large
   share of the entrypoint is stack- or vendor-specific work that runs inline.
   The `*-entrypoint-hook.sh` loop exists, ships no hooks, has no documented
   contract, runs as root, and runs after the work it would replace. The rule in
   test 3 cannot be enforced until that contract exists.
 - **The one door does not know the workspace shape.** No `agro` verb addresses
-  `projects/<owner>/<repo>/`. The shape lives in `agro-path`, two `AGENTS.md`
-  files, and a skill.
-- **The documented journeys are mostly AGRO repairing AGRO.** The operator's
-  actual path — an agent working in a project clone — is a few prose prompts
+  `projects/<owner>/<repo>/`. `agro-path` resolves only the `projects/` root.
+  The rest of the shape lives in two `AGENTS.md` files, the `git` and
+  `worktrees` skills, and `README.md`.
+- **The operator's journey is not documented.** The operator's actual path —
+  an agent working in a project clone — is a few prose prompts in `README.md`
   with no commands and no failure paths.
-- **Documentation is not verified against the binary.** Nothing fails when a
-  doc names a verb, variable, or file the CLI does not implement.
-- **Skills outside the floor still ship.** Product-operations and methodology
-  skills stay in the pack until they have a destination; see Open questions.
+- **P4 does not reach the documentation.** Compose verbs are checked from the
+  binary to the docs. Nothing fails when a doc names a verb, variable, or file
+  that the code does not have.
+- **The privilege posture is not visible to the operator.** The image and the
+  entrypoint write permission-bypass aliases and settings for several harnesses
+  (`.devcontainer/Dockerfile`, `.devcontainer/entrypoint.sh`) instead of reading
+  them from operator configuration.
+- **Skills outside the floor still ship.** The pack carries product-operations
+  and methodology skills; see Open questions.
 
 ## Open questions
 
-- **Where product-operations and methodology skills go.** Eviction without a
-  destination does not happen. A separate repository, a published pack, or
-  deletion are all defensible. Nothing is decided, and nothing moves until it
-  is.
+- **Where product-operations and methodology skills go.** A separate
+  repository, a published pack, or deletion are all defensible. Nothing is
+  decided.
 - **Preventive day-2 operation.** Recovery and upgrade are documented in
   `docs/lifecycle-commands.md` and `docs/repair-sandbox-boot-advisory.md`, and
   the `self-upgrade` and `vendor` split is taught there. What does not exist is
@@ -197,13 +180,10 @@ section that asserts it.
 
 - A sixth primitive appears: a failure no harness can prevent for itself that
   P1 through P5 do not cover.
-- A journey proves a tenant is load-bearing. It moves into the floor, and the
-  floor is restated here.
+- A journey proves a tenant is load-bearing and it passes all four tests. It
+  moves into the floor, and the floor is restated here.
 - A known gap closes, and the claim it qualifies becomes a fact.
 
 The gaps and open questions above are the current state of the repository, not
 a permanent description of it. Each entry is expected to be deleted, and
 deleting one is the unit of progress this file measures.
-
-Prefer ambitious outcomes and simple systems. Find the real constraint, then
-choose the smallest model that makes correct behavior unsurprising.
