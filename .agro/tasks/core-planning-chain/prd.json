@@ -174,8 +174,9 @@
         ".agro/evals/probes/"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Accepted by advisor. EXECUTED on the integrated branch: full /eval (run.sh) exit 0, 158 probes, REGRESSION only on the two pre-change reds next-dev-prod (running next dev server) and skills-vendored (cc-safety-net not installed), both delta=unchanged. EXECUTED: protected-path-deletion exit 0 after the PR body named ralph as folded into prd/references/tracker.md (advisor-owned PR body). EXECUTED: grep for skills/plan, skills/ralph, .agro/plans, /ralph, ralph/ finds only the prd-output-path-contract guard lines outside dated records. EXECUTED: .claude/skills/prd/references/tracker.md resolves; .claude/skills/plan and ralph do not exist. EXECUTED: CHANGELOG [Unreleased] entry is 240 characters. REASONED: /spec plan passes --plan content as comprehensive input to /prd, inserts its Knowledge Context, Expected Knowledge Impact, and Plan Reconciliation sections before ## Lessons, and follows tracker.md with --issue. agro-web has no live /plan or /ralph reference (dated task records and blog prose only).",
+      "commit": "0ffd8d04"
     }
   ]
 }

@@ -137,12 +137,11 @@ Operator decisions recorded before execution.
 
 ## Lessons
 
-Filled by the advisor before undraft. Candidates recorded during planning; each outcome is set at undraft.
-
 | Lesson | Evidence | Outcome |
 | --- | --- | --- |
-| Check where data is actually read before keeping or dropping the file that holds it; a usage count alone misleads. | `progress.txt` was kept on a 30-of-33 usage count, then dropped when `prd.json` `notes` already held the per-story evidence in 29 of 33 tasks. | pending |
-| The secret-exposure hook blocks any command containing the word "history", including commit messages. | Two pushes on this branch were denied until the commit message changed to "task-record". | pending |
-| Separate documented contradictions from observed failures when ranking fixes. | The `ralph/` branch-prefix contradiction appears in 0 `prd.json` files. | pending |
-| Worker briefs must forbid restoring or discarding files by any route a hook blocks; generated-file cleanup belongs to the advisor through the maintenance shim. | The US-006 worker restored `RESULTS.md` with `git show HEAD:<file> >` after the hook denied `git checkout --`. | pending |
-| The secret-exposure hook also blocks a `jq '.env'` filter on `.claude/settings.json`, which holds no secret. | An advisor probe of the settings `env` block was denied as a secret-file read. | pending |
+| Check where data is actually read before keeping or dropping the file that holds it; a usage count alone misleads. | `progress.txt` was kept on a 30-of-33 usage count, then dropped when `prd.json` `notes` already held the per-story evidence in 29 of 33 tasks. | dropped: a review practice with no enforceable change; the reversal is recorded in `## Summary` signal. |
+| The secret-exposure hook blocks any command containing the word "history", including commit messages. | Two pushes on this branch were denied until the commit message changed to "task-record". | issue #1149 |
+| Separate documented contradictions from observed failures when ranking fixes. | The `ralph/` branch-prefix contradiction appears in 0 `prd.json` files. | dropped: judgment guidance; the fix shipped in `tracker.md` regardless. |
+| Worker briefs must forbid restoring or discarding files by any route a hook blocks; generated-file cleanup belongs to the advisor through the maintenance shim. | The US-006 worker restored `RESULTS.md` with `git show HEAD:<file> >` after the hook denied `git checkout --`. | fixed in this PR: `/delegate` worker briefs require "Never bypass a hook. Report a blocked action as `BLOCKED`." and integration removes worker worktrees through the git maintenance shim. |
+| The secret-exposure hook also blocks a `jq '.env'` filter on `.claude/settings.json`, which holds no secret. | An advisor probe of the settings `env` block was denied as a secret-file read. | issue #1149 |
+| An existing vocabulary probe outranks a requested heading. | `roles-are-skills` (ADR #989) failed on `## Advisor/Worker pattern`; the heading became `## The advisor/worker pattern` and the probe passed. | dropped: the probe worked as designed; no change needed. |
