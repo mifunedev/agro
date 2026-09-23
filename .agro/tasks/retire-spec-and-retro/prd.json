@@ -134,8 +134,8 @@
         "`bash .claude/skills/eval/run.sh` reports no `PASS->REGRESSION` and no `PASS->SKIPPED` delta for a surviving probe."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at 2fd92b02 (cherry-pick of worker commit 4086fe67). AC1 executed: 12 probes trimmed or repointed, submitted-by-trailers deleted (its only subjects were /spec execute and the task prompt), delegate-worker-boundary unchanged; the worker drove each changed probe's REGRESSION branch in a scratch clone and each named its condition. AC2 executed: grep -rnE 'skills/(spec|retro)/' .agro/evals/probes -> exit 1. AC3 executed: bash .claude/skills/eval/run.sh -> 145 probes, 133 PASS, 9 SKIPPED (the same set as the pre-wave baseline, comm -> empty), 3 REGRESSION: next-dev-prod and skills-vendored unchanged, protected-path-deletion PASS->REGRESSION pending the PR-body justification at Close. No PASS->SKIPPED delta. eval-gate and eval-runs-once-per-cycle now exit 1, not 2, on a missing required file.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -158,7 +158,8 @@
         ".agro/evals/probes/submitted-by-trailers.sh",
         ".agro/evals/probes/task-completion-structured-state.sh",
         ".agro/evals/probes/workflow-boundaries.sh"
-      ]
+      ],
+      "commit": "2fd92b02"
     }
   ]
 }
