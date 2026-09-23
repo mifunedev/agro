@@ -48,8 +48,9 @@
         ".agro/skills/ralph/"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Accepted by advisor after one repair (331418a1 then a96dae08, cherry-picked as 6e022cce): /prd SKILL.md first kept its own sizing and ordering bullets; they now point to tracker.md. EXECUTED: test -f tracker.md and test ! -e skills/ralph exit 0 on the integrated branch. EXECUTED: grep -i 'ralph|amp |.claude/skills' in tracker.md exit 1 (none). EXECUTED: the branchName regex, jq -e ., and dependsOn-existence checks exit 0 on core-planning-chain/prd.json; the dependsOn check exits 1 on a file with a missing ID. EXECUTED: prd-output-path-contract exit 0; ste-check on tracker.md and prd/SKILL.md exit 0. EXECUTED: .claude/skills/prd/references/tracker.md resolves through the provider link. REASONED: the example includes schemaVersion; dependsOn, files, and commit are documented as optional.",
+      "commit": "6e022cce"
     },
     {
       "id": "US-003",
