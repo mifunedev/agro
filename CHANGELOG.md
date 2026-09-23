@@ -12,6 +12,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 - Replace the feature issue template with a repo-agnostic template covering user stories, integration points, a TDD test plan, and binary acceptance criteria ([#1145](https://github.com/mifunedev/agro/issues/1145)).
 - Make the pull request template repo-agnostic and pair it with the feature template: changes table, TDD test plan, verification, visual reference, follow-ups, and an acceptance checklist ([#1145](https://github.com/mifunedev/agro/issues/1145)).
+- Consolidate the planning chain: `/prd` absorbs `/plan` and `/ralph`, `/delegate` runs the advisor/worker pattern from `prd.json`, and plans land in a draft PR before implementation ([#1147](https://github.com/mifunedev/agro/issues/1147)).
 
 ## [0.13.0] - 2026-09-22
 

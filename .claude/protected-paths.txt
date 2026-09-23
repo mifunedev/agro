@@ -22,7 +22,6 @@ ci-status
 cloudflared
 agent-browser
 prd
-ralph
 architect
 audit
 delegate
