@@ -104,14 +104,15 @@
         "`bash .claude/skills/eval/run.sh` reports no new red on `git-*`, `delegate-*`, or `advisor-*` probes."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at 430a8797 (cherry-pick of worker commit 237465bc). AC1-AC4 executed: awk over /git § \"After the merge\", then grep -cF for \"gh pr view <N> --json state -q .state\", \"as its own command\", \"is not `MERGED`, stop\", \"not evidence of the merge\", \"worktree-remove <path>\", \"branch-delete <branch>\", \"remote branch of an open PR closes the PR\" -> 1 each; the cleanup steps 3-4 follow the MERGED gate in step 2. AC5 executed: bash .claude/skills/eval/run.sh -> exit 0, 159 probes; git-skill, advisor-execution-contract, delegate-model-effort-policy, delegate-worker-boundary PASS unchanged; persistent reds next-dev-prod and skills-vendored only.",
       "dependsOn": [
         "US-003"
       ],
       "files": [
         ".agro/skills/git/SKILL.md"
-      ]
+      ],
+      "commit": "430a8797"
     }
   ]
 }
