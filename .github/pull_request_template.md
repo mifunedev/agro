@@ -10,37 +10,40 @@ Put a closing keyword — Closes, Fixes or Resolves — in this body or in the t
 one per issue. A bare `#42` links the issue but does not close it.
 -->
 
-## Summary
+## Stories
 
-<!-- What changed, and why. Rationale and rejected alternatives belong here. -->
+<!-- One line per story from the plan's tracker. Tick a story when the advisor accepts it. -->
 
-## Changes
+- [ ] US-001: <story title>
 
-<!-- Files, modules, or surfaces touched, and the role each change plays. -->
+## What the issue asked for
 
-| File / Surface | Change | Why |
-| -------------- | ------ | --- |
-|                |        |     |
+<!-- The goals in the requester's terms, in 2–4 lines. -->
 
-## Test Plan (TDD)
+## What was built
 
-<!-- Tests written before implementation, and what each proves. -->
+<!-- The observable behavior that is now true, one line per story. -->
 
-| Test File | Case(s) | Validates |
-| --------- | ------- | --------- |
-|           |         |           |
+## Where it diverged
+
+<!-- Every deliberate deviation from the plan and why, or "None". -->
+
+## What remains unverified
+
+<!-- Skipped checks, and criteria that were reasoned but not executed, or "Nothing". -->
 
 ## Verification
 
-<!-- The commands you ran and what they proved. Paste relevant output. -->
+<!-- The commands you ran and their real output, trimmed. -->
 
 ## Visual Reference
 
 <!-- Screenshots or recordings for user-facing changes. Delete if N/A. -->
 
-## Out of Scope / Follow-ups
+## Lessons
 
-<!-- Anything intentionally left out, with linked issues where they exist. -->
+<!-- A summary of the plan's Lessons section. Give each lesson its outcome:
+     fixed in this PR, issue #N, or dropped with the reason. Write "None" if there are none. -->
 
 ## Checklist
 

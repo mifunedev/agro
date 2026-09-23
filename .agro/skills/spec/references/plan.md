@@ -33,7 +33,7 @@ written.
 |-----|---------|
 | `<topic>` | Free-text feature description — the seed for recall and `/prd`. Required unless `--plan` or `--issue` supplies the spec. |
 | `--plan <path>` | A plan file used as comprehensive `/prd` input; skips `/prd`'s clarifying questions. **Its presence is the operator's approval** — see `## Plan Reconciliation`. |
-| `--issue <N>` | The issue number this spec builds — **consumed by the `/ralph` step** (the branch name embeds it, so `/ralph` hard-fails without it). The human selects the issue. For a fresh manual topic with no issue, open one first (per `/git`) or let `/spec execute` open one in a standalone run. `plan` only **reads** `<N>`. |
+| `--issue <N>` | The issue number this spec builds — **consumed by the tracker step** (the branch name embeds it, so `.agro/skills/prd/references/tracker.md` hard-fails without it). The human selects the issue. For a fresh manual topic with no issue, open one first (per `/git`) or let `/spec execute` open one in a standalone run. `plan` only **reads** `<N>`. |
 | `--slug <slug>` | Override the derived slug. Must match `[a-z0-9-]+`, ≤5 words, not `archive`. |
 | `--prefix <type>` | Branch/issue prefix (default `feat`), per `.agro/skills/git/SKILL.md`. |
 | `--repo <owner/name>` | Recorded for downstream `/spec execute`; not acted on here. Default `mifunedev/agro`. |
@@ -134,7 +134,8 @@ Verify `.agro/tasks/<slug>/prd.md` exists before continuing.
 
 ### 5. Record the three knowledge sections in `prd.md`
 
-Reuse these block shapes verbatim — `/spec execute`'s gates read them.
+Insert the three sections before `## Lessons`, which `/prd` keeps last. Reuse
+these block shapes verbatim — `/spec execute`'s gates read them.
 
 #### `## Knowledge Context` — what informed this plan
 
@@ -202,7 +203,7 @@ covering it. With no `--plan` file the field is `Source plan: none` and the PRD
 itself is the first artifact anyone could approve.
 
 **The orchestration-transfer check.** A source plan that carries an
-`## advisor orchestration strategy` (`.agro/skills/plan/SKILL.md`) states worker
+advisor orchestration strategy (`.agro/skills/delegate/SKILL.md`) states worker
 scope, model constraints, evidence gates, and recorded exceptions. Confirm that
 each of them survives conversion: the bounded assignments, their owned write
 paths and exclusions, their requested model and reasoning constraints, their
@@ -217,11 +218,11 @@ without a handoff prompt passes.
 
 `## Wiki Alignment` is superseded by these three sections. Do not write it.
 
-### 6. `/ralph` → `.agro/tasks/<slug>/prd.json`
+### 6. Tracker → `.agro/tasks/<slug>/prd.json`
 
-Invoke the `ralph` skill: `.agro/tasks/<slug>/ --issue <N> --prefix <prefix>`. It
+Follow `.agro/skills/prd/references/tracker.md`: `.agro/tasks/<slug>/ --issue <N> --prefix <prefix>`. It
 writes `prd.json` with `branchName: <prefix>/<N>-<slug>`. Verify it parses
-(`node -e "require('./.agro/tasks/<slug>/prd.json')"`). **`/ralph` hard-fails
+(`node -e "require('./.agro/tasks/<slug>/prd.json')"`). **The tracker hard-fails
 without `--issue <N>`** (the branch name embeds it). `plan` consumes the number;
 it never creates the issue.
 

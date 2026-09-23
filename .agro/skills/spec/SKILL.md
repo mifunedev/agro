@@ -203,7 +203,7 @@ esac
   ownership before it dispatches a worker. A plan without a handoff prompt is
   complete. A factual question or a plan-only request needs no worker.
 - **Compose, don't fork** — each node reuses existing skills rather than
-  re-implementing them: `plan` composes `/wiki query` + `/prd` + `/ralph`;
+  re-implementing them: `plan` composes `/wiki query` + `/prd` + `prd/references/tracker.md`;
   `execute` composes `/audit implementation` + `/eval` + `knowledge-impact.sh` +
   `/wiki compile` + `/benchmark` + `/audit pr`; `retro` composes `/retro`. The
   build **literals** — the `gh` invocations, the branch and PR shapes, the

@@ -31,14 +31,14 @@ explicitly. Do not assume `origin` is the public target.
 
 ## Issue Titles
 
-Format: `<prefix>(<issue#>): <shortdesc>`
+Format: `<prefix>: <shortdesc>`
 
 `<prefix>` ∈ `feat` · `bug` · `task` · `audit` · `skill`
 (matches `.github/ISSUE_TEMPLATE/<prefix>.md`)
 
-Example: `feat(#42): slack thread replies`
+Example: `feat: slack thread replies`
 
-> Create issue first so `<issue#>` exists, then branch.
+> Create the issue first so `<issue#>` exists, then branch.
 
 ## Branch Names
 
@@ -284,9 +284,58 @@ always false for the noncanonical branch. The GitHub Release stays draft until
 immutable image and successful/no-op CLI publication finish. See `/release` for
 the fast-forward promotion, monitoring, and verification procedure.
 
+## Draft PR for a task
+
+Run the steps below after the operator approves `.agro/tasks/<slug>/prd.md`.
+Creating the issue and the PR is outward-facing. Create them only after explicit
+operator approval of the plan. Writing a plan is not approval.
+
+1. Open the issue. Use the `.github/ISSUE_TEMPLATE/feat.md` shape. Fill User
+   Stories, Summary, and Acceptance Criteria from `prd.md`. Record `<N>`:
+
+   ```bash
+   gh issue create --title "<prefix>: <shortdesc>" --body-file <issue-body.md>
+   ```
+
+2. Create branch `<prefix>/<N>-<slug>` from `$BASE` in an isolated worktree
+   (see § Worktrees).
+3. Commit the plan as the first commit. Push the branch:
+
+   ```bash
+   git add .agro/tasks/<slug>/prd.md .agro/tasks/<slug>/prd.json
+   git commit -m "<prefix>: plan <slug>"
+   git push -u origin <prefix>/<N>-<slug>
+   ```
+
+4. Open the draft PR. Build the body from `.github/pull_request_template.md`.
+   Put `Closes #<N>` in the body. Add a `## Stories` checklist from `prd.json`:
+
+   ```bash
+   jq -r '.userStories[] | "- [ ] \(.id): \(.title)"' .agro/tasks/<slug>/prd.json
+   gh pr create --draft --base $BASE --title "FROM <prefix>/<N>-<slug> TO $BASE" --body-file <pr-body.md>
+   ```
+
+The advisor commits and pushes each accepted story to this branch.
+
+### Ready for review
+
+Run `gh pr ready` only when all of these conditions are true. If one is false,
+refuse and keep the PR in draft.
+
+- Every story passes:
+  `jq -e 'all(.userStories[]; .passes == true)' .agro/tasks/<slug>/prd.json`
+  exits 0.
+- `prd.md` ends with a non-empty `## Lessons` section. "None" is a valid body:
+  `awk '/^## /{s=($0=="## Lessons");n=0;next} s&&NF{n++} END{exit !(s&&n)}' .agro/tasks/<slug>/prd.md`
+  exits 0.
+- The PR body evidence sections are non-empty: What the issue asked for, What
+  was built, Where it diverged, What remains unverified, Verification, and
+  Lessons. "None" or "Nothing" is a valid body.
+- The repository's checks pass (`/ci-status`).
+
 ## After Push
 
-If `.claude/skills/ci-status/` exists, invoke `/ci-status` after every `git push` to confirm pipeline green before declaring work done. Push failing CI is not done.
+If `.agro/skills/ci-status/` exists, invoke `/ci-status` after every `git push` to confirm pipeline green before declaring work done. Push failing CI is not done.
 
 ## Provider Portability
 

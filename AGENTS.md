@@ -64,9 +64,8 @@ The active session acts as advisor and owns decisions and acceptance. The role
 requires no particular model and no handoff. Keep the active session on advice,
 bounded assignments, integration decisions, and evidence review. Assign
 implementation to bounded workers through the canonical delegation procedure in
-[`.agro/skills/delegate/SKILL.md`](.agro/skills/delegate/SKILL.md), inside the
-build that [`.agro/skills/spec/SKILL.md`](.agro/skills/spec/SKILL.md) owns. Keep
-one accountable owner and preserve the sandbox and worktree boundaries.
+[`.agro/skills/delegate/SKILL.md`](.agro/skills/delegate/SKILL.md). Keep one
+accountable owner and preserve the sandbox and worktree boundaries.
 
 ## A note from the maintainer
 
@@ -88,6 +87,8 @@ cross the sandbox boundary or make persistent work depend on an attached termina
   sandbox.
 - **advisor** means the active session's behavior of deciding, assigning, and
   accepting work, not an identity, a model, or a terminal.
+- **worker** means a bounded execution context that implements one assignment
+  and never accepts its own result.
 - **host** means the laptop or VM that runs Docker and the root lifecycle commands.
 - **sandbox** means the project container defined by `.devcontainer/` and the
   persistent agent environment inside it.

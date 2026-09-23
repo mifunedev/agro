@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1147-core-planning-chain",
+  "description": "Consolidate the core planning chain: /prd plans and tracks, /delegate executes from prd.json, templates share one shape, and the plan lands in a draft PR before implementation.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Merge /plan into /prd",
+      "description": "As an operator, I want one planning skill that writes .agro/tasks/<slug>/prd.md with feat.md headings so that I review one document.",
+      "acceptanceCriteria": [
+        ".agro/skills/plan/ is removed",
+        "/prd keeps /plan's repository grounding and /ste pass and uses feat.md section headings",
+        "/prd holds the only slug rules",
+        "/prd offers the /git draft-PR procedure only after operator approval",
+        "prd-output-path-contract probe passes; plan-orchestration-contract probe removed or replaced",
+        "/prd triggers include \"write a plan\" and \"plan this\"",
+        "/prd's plan structure ends with a ## Lessons section that the advisor fills before undraft"
+      ],
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/prd/SKILL.md",
+        ".agro/skills/plan/",
+        ".agro/evals/probes/prd-output-path-contract.sh",
+        ".agro/evals/probes/plan-orchestration-contract.sh"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Accepted by advisor. EXECUTED: .agro/skills/plan and plan-orchestration-contract.sh removed (test ! -e, exit 0). EXECUTED: prd-output-path-contract failed before the rewrite (exit 1) and passes after, on the integrated branch (exit 0). EXECUTED: ste-check on prd/SKILL.md exit 0; 188 lines. EXECUTED: grep for .agro/plans, /ralph, skills/plan in the skill exit 1 (none). REASONED: grounding, BLOCKED status, and no-invented-values rules kept in sections 3 and 6; headings match feat.md in order; slug rules only here; section 7 gates tracker conversion and the /git draft PR on explicit approval; triggers include write a plan and plan this; skeleton ends with ## Lessons.",
+      "commit": "f9e13f26"
+    },
+    {
+      "id": "US-002",
+      "title": "Fold /ralph into /prd as references/tracker.md",
+      "description": "As an operator, I want prd.json conversion to be part of planning so that the tracker cannot drift from the plan.",
+      "acceptanceCriteria": [
+        ".agro/skills/ralph/ is removed and .agro/skills/prd/references/tracker.md exists",
+        "branchName is always <prefix>/<issue#>-<slug>; no ralph/ prefix remains",
+        "Example includes schemaVersion; no Amp or .claude/skills/git reference remains",
+        "Optional dependsOn, files, and commit story fields are documented",
+        "Story sizing and verifiable-criteria rules exist only in tracker.md"
+      ],
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/skills/prd/references/tracker.md",
+        ".agro/skills/ralph/"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Accepted by advisor after one repair (331418a1 then a96dae08, cherry-picked as 6e022cce): /prd SKILL.md first kept its own sizing and ordering bullets; they now point to tracker.md. EXECUTED: test -f tracker.md and test ! -e skills/ralph exit 0 on the integrated branch. EXECUTED: grep -i 'ralph|amp |.claude/skills' in tracker.md exit 1 (none). EXECUTED: the branchName regex, jq -e ., and dependsOn-existence checks exit 0 on core-planning-chain/prd.json; the dependsOn check exits 1 on a file with a missing ID. EXECUTED: prd-output-path-contract exit 0; ste-check on tracker.md and prd/SKILL.md exit 0. EXECUTED: .claude/skills/prd/references/tracker.md resolves through the provider link. REASONED: the example includes schemaVersion; dependsOn, files, and commit are documented as optional.",
+      "commit": "6e022cce"
+    },
+    {
+      "id": "US-003",
+      "title": "Add the draft-PR-for-task procedure to /git",
+      "description": "As an operator, I want the approved plan committed and a draft PR opened before implementation so that I can inspect work in progress.",
+      "acceptanceCriteria": [
+        "Issue title format is <prefix>: <shortdesc>",
+        "A Draft PR for a task section covers issue, branch, plan commit, push, and draft PR from the PR template",
+        "No .claude/skills path references remain in /git",
+        "The ready step refuses undraft unless prd.md has a non-empty ## Lessons section; \"None\" is allowed"
+      ],
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/git/SKILL.md"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Accepted by advisor after one repair (4e523351 then dab73eaf): the ready step first named the old PR template sections. EXECUTED: grep .claude/skills in git/SKILL.md exit 1 (none). EXECUTED: git-skill probe exit 0 on the integrated branch. EXECUTED: the Lessons awk check exits 0 on core-planning-chain/prd.md and 1 on a file without the section, an empty section, and a non-final section. REASONED: Draft PR for a task covers issue, branch, plan commit, push, and draft PR with a jq Stories checklist; issue title is <prefix>: <shortdesc>. Pre-existing ste-check findings outside the new lines are unchanged.",
+      "commit": "dab73eaf"
+    },
+    {
+      "id": "US-004",
+      "title": "Slim /delegate to execute from prd.json",
+      "description": "As an advisor session, I want /delegate to run stories from prd.json so that one file holds tasks and completion state.",
+      "acceptanceCriteria": [
+        "/delegate opens with an Advisor/Worker pattern section: the advisor (active session) decides, assigns, verifies, accepts, and alone writes prd.json; a worker implements one bounded assignment and never accepts its own result",
+        "AGENTS.md glossary defines worker; no core-chain file introduces executor for this role",
+        "/delegate reads prd.json stories as tasks, using priority and optional dependsOn for waves",
+        "The active session sets passes, commit, and notes after acceptance; workers never write prd.json",
+        "Worker briefs require each criterion to be reported as executed (command and exit status) or reasoned",
+        "notes records that classification for every criterion of an accepted story",
+        "Each accepted story is committed and pushed and the PR Stories checklist is updated",
+        "delegate-graph.json, the recursion gate, /spec coupling, and all model names are removed; the dispatch record keeps at most 8 fields",
+        "Worker model defaults move to the Claude Code subagent-model setting in .claude/settings.json when that setting exists; otherwise they are dropped. Nothing is written outside the repository",
+        "The closing step writes ## Lessons in prd.md: each lesson has a claim, evidence, and exactly one outcome (fixed in this PR, issue #N, or dropped with reason)",
+        "delegate-worker-boundary and delegate-model-effort-policy probes pass"
+      ],
+      "dependsOn": [
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".agro/skills/delegate/SKILL.md",
+        ".agro/evals/probes/delegate-worker-boundary.sh",
+        ".agro/evals/probes/delegate-model-effort-policy.sh",
+        "AGENTS.md",
+        ".claude/settings.json"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Accepted by advisor after one repair (c5011ab4 then 8b2232df, cherry-picked as eb11fe8f): the first heading used a capitalized Advisor, which roles-are-skills (ADR #989) forbids; it is now '## The advisor/worker pattern'. EXECUTED on the integrated branch: roles-are-skills, delegate-worker-boundary, delegate-model-effort-policy, advisor-execution-contract, context-tier-size-budget, prd-output-path-contract, git-skill all exit 0. EXECUTED: the three delegate probes exited 1 before the rewrite (worker, test-first) and a restored old heading makes delegate-worker-boundary exit 1 (fault injection). EXECUTED: grep for delegate-graph, max depth, /spec, and model names in delegate/SKILL.md counts 0; the skill is 157 lines; the dispatch-record probe fails at 9 rows. EXECUTED: .claude/settings.json env.CLAUDE_CODE_SUBAGENT_MODEL is opus; no other settings change. REASONED: AGENTS.md glossary defines worker and drops the /spec clause; the skill's acceptance, integration, resume, and closing steps write passes/commit/notes, tick the PR Stories checklist, and write ## Lessons.",
+      "commit": "eb11fe8f"
+    },
+    {
+      "id": "US-005",
+      "title": "Align the PR and issue templates",
+      "description": "As a reviewer, I want each PR to show story progress and answer the issue it closes.",
+      "acceptanceCriteria": [
+        ".github/pull_request_template.md has a Stories checklist near the top",
+        "It has sections for what the issue asked for, what was built, divergence, and what remains unverified",
+        "The template names no repository-specific branch or tool",
+        "feat.md Metadata carries no worktree path; worktree placement belongs to the environment",
+        "The PR template has a Lessons section that summarizes prd.md ## Lessons"
+      ],
+      "dependsOn": [],
+      "files": [
+        ".github/pull_request_template.md",
+        ".github/ISSUE_TEMPLATE/feat.md"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Accepted by advisor. EXECUTED: grep '^## ' shows Stories first (line 13), then What the issue asked for, What was built, Where it diverged, What remains unverified, Verification, Visual Reference, Lessons, Checklist (exit 0). EXECUTED: grep -i 'development|pnpm|jq|agro|worktree' on the PR template exit 1 (no match). EXECUTED: grep -c worktree feat.md = 0. REASONED: feat.md line 11 'development workflow' is an English adjective, not a branch name; left unchanged. No consumer depends on the removed Summary/Changes/Test Plan/Out of Scope sections (grep of .agro, .github/workflows).",
+      "commit": "ae42b65c"
+    },
+    {
+      "id": "US-006",
+      "title": "Track the core task contract in git",
+      "description": "As an operator, I want prd.md and prd.json committed without force-adds so that the draft PR carries the plan and its evidence.",
+      "acceptanceCriteria": [
+        "git check-ignore does not match .agro/tasks/<slug>/prd.md or prd.json",
+        "The duplicate .agro/tasks ignore block is removed",
+        ".agro/tasks/AGENTS.md describes the two-file core contract, marks progress.txt as /spec-only, and drops delegate-graph.json",
+        "task-completion-structured-state and spec-task-artifact-contract probes pass"
+      ],
+      "dependsOn": [],
+      "files": [
+        ".gitignore",
+        ".agro/tasks/AGENTS.md"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Accepted by advisor. EXECUTED: git check-ignore --no-index on .agro/tasks/<slug>/prd.md and prd.json exit 1 (not ignored); progress.txt and archive/<date>/<slug>/prd.md exit 0 (ignored). EXECUTED: one .agro/tasks/* block remains. EXECUTED: task-completion-structured-state and spec-task-artifact-contract exit 0 on the integrated branch. EXECUTED: git status shows 0 newly visible task files (existing ones were already force-added). REASONED: tasks/AGENTS.md states the two-file contract, advisor-only prd.json writes, executed/reasoned notes, /spec-only progress.txt, and drops delegate-graph.json.",
+      "commit": "2a58b605"
+    },
+    {
+      "id": "US-007",
+      "title": "Repoint references and verify",
+      "description": "As a maintainer, I want no live reference to removed skills so that the chain works end to end without new probe machinery.",
+      "acceptanceCriteria": [
+        "A one-time grep finds no live reference to skills/plan, skills/ralph, .agro/plans, or a ralph/ branch prefix outside archives",
+        "Probes that check deleted skills are removed or updated; no new probe is added",
+        "/spec, /supervisor, /retro, /audit, and crons reference /prd and prd/references/tracker.md where they referenced /plan or /ralph",
+        "/spec plan can still add its Knowledge Context and Plan Reconciliation sections to /prd output",
+        "Provider skill symlinks resolve",
+        "/eval reports no REGRESSION against the pre-change baseline",
+        "CHANGELOG has an [Unreleased] entry"
+      ],
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-004",
+        "US-006"
+      ],
+      "files": [
+        ".agro/skills/spec/",
+        ".agro/skills/supervisor/SKILL.md",
+        ".agro/skills/retro/SKILL.md",
+        ".agro/skills/audit/",
+        "crons/cleanup-tasks.md",
+        "CHANGELOG.md",
+        ".agro/evals/probes/"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Accepted by advisor. EXECUTED on the integrated branch: full /eval (run.sh) exit 0, 158 probes, REGRESSION only on the two pre-change reds next-dev-prod (running next dev server) and skills-vendored (cc-safety-net not installed), both delta=unchanged. EXECUTED: protected-path-deletion exit 0 after the PR body named ralph as folded into prd/references/tracker.md (advisor-owned PR body). EXECUTED: grep for skills/plan, skills/ralph, .agro/plans, /ralph, ralph/ finds only the prd-output-path-contract guard lines outside dated records. EXECUTED: .claude/skills/prd/references/tracker.md resolves; .claude/skills/plan and ralph do not exist. EXECUTED: CHANGELOG [Unreleased] entry is 240 characters. REASONED: /spec plan passes --plan content as comprehensive input to /prd, inserts its Knowledge Context, Expected Knowledge Impact, and Plan Reconciliation sections before ## Lessons, and follows tracker.md with --issue. agro-web has no live /plan or /ralph reference (dated task records and blog prose only).",
+      "commit": "0ffd8d04"
+    }
+  ]
+}
