@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-09-22
+
 ### Added
 
 - Add `agro config langfuse` and `agro langfuse apply|status|disable`. Settings live in `agro.json` and `.env`, render to a `0600` fragment and the harness files, and re-apply at boot ([#1131](https://github.com/mifunedev/agro/issues/1131)).
