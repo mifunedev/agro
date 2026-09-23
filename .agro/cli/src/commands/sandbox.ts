@@ -24,7 +24,6 @@ import {
 } from "../lib/registry.js";
 import { findRuntime, runtimeIds } from "../lib/runtimes/catalog.js";
 import { runSandbox, type LifecycleIO } from "./lifecycle.js";
-import { AGRO_VERSION, officialImageRef } from "../lib/version.js";
 
 export interface SandboxIO extends LifecycleIO {
   ask?: (q: string) => Promise<string>;
@@ -266,14 +265,6 @@ export async function runSandboxInstall(
 
   if (opts.imageRef !== undefined) {
     config.image = { ...config.image, ref: opts.imageRef, mode: "image" };
-  }
-
-  if (
-    configCheckout(config) !== undefined &&
-    config.image?.mode === "image" &&
-    nonEmpty(config.image?.ref) === undefined
-  ) {
-    config.image = { ...config.image, ref: officialImageRef(AGRO_VERSION) };
   }
 
   const useNoBuild =
