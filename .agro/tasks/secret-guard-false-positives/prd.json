@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1149-secret-guard-false-positives",
+  "description": "Stop secret-guard false positives on trigger words: the Bash guard denies the history command, not the word in an argument, and the secret-path check skips the jq filter argument, while real secret reads stay denied.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Match shell-history access by command position",
+      "description": "As an agent, I want the Bash guard to deny the `history` command so that a commit message can contain the word.",
+      "acceptanceCriteria": [
+        "`.agro/evals/probes/secret-exposure-guard.sh` exists, declares `# tier:`, `# source:`, and `# desc:` headers, and drives `.agro/hooks/deny-env-dump.sh` through the file-fixture driver pattern.",
+        "Before the hook change, the probe exits 1 on `git commit -m \"record history of X\"`. The evidence records the command and the exit status.",
+        "The probe asserts `allow` for `git commit -m \"record history of X\"` and `git commit -m \"apply task-history signal\"`.",
+        "The probe asserts `deny` for `history`, `history | tail`, `bash -ic history`, `fc -l`, `cat ~/.zsh_history`, and `tail ~/.bash_history`.",
+        "After the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/hooks/deny-env-dump.sh",
+        ".agro/evals/probes/secret-exposure-guard.sh"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Exempt the jq filter argument from the secret-path check",
+      "description": "As an agent, I want the secret-path check to skip the filter argument of `jq`, so that `jq '.env' .claude/settings.json` reads the settings `env` block.",
+      "acceptanceCriteria": [
+        "Before the hook change, the probe exits 1 on `jq '.env' .claude/settings.json`. The evidence records the command and the exit status.",
+        "The probe asserts `allow` for `jq '.env' .claude/settings.json`, `jq -r '.env // {}' .claude/settings.json`, and `jq .env .claude/settings.json`.",
+        "The probe asserts `deny` for `cat .env`, `cat ./app/.env.local`, `jq '.env' .env`, `jq -f .env data.json`, `jq --rawfile s .env -n '$s'`, and `jq -n '.' < .env`.",
+        "The probe asserts `allow` for `cat .env.example`.",
+        "After the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 0.",
+        "`CHANGELOG.md` `[Unreleased]` has one `### Fixed` entry that links #1149."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-001"],
+      "files": [
+        ".agro/hooks/deny-env-dump.sh",
+        ".agro/evals/probes/secret-exposure-guard.sh",
+        "CHANGELOG.md"
+      ]
+    }
+  ]
+}
