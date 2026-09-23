@@ -79,8 +79,9 @@
         "The active session sets passes, commit, and notes after acceptance; workers never write prd.json",
         "Worker briefs require each criterion to be reported as executed (command and exit status) or reasoned",
         "notes records that classification for every criterion of an accepted story",
-        "delegate-graph.json, the recursion gate, /spec coupling, and embedded provider model names are removed; the dispatch record keeps at most 8 fields",
         "Each accepted story is committed and pushed and the PR Stories checklist is updated",
+        "delegate-graph.json, the recursion gate, /spec coupling, and all model names are removed; the dispatch record keeps at most 8 fields",
+        "Worker model defaults move to the Claude Code subagent-model setting in .claude/settings.json when that setting exists; otherwise they are dropped. Nothing is written outside the repository",
         "The closing step writes ## Lessons in prd.md: each lesson has a claim, evidence, and exactly one outcome (fixed in this PR, issue #N, or dropped with reason)",
         "delegate-worker-boundary and delegate-model-effort-policy probes pass"
       ],
@@ -92,7 +93,8 @@
         ".agro/skills/delegate/SKILL.md",
         ".agro/evals/probes/delegate-worker-boundary.sh",
         ".agro/evals/probes/delegate-model-effort-policy.sh",
-        "AGENTS.md"
+        "AGENTS.md",
+        ".claude/settings.json"
       ],
       "priority": 4,
       "passes": false,
@@ -140,12 +142,14 @@
     {
       "id": "US-007",
       "title": "Repoint references and verify",
-      "description": "As a maintainer, I want no live reference to removed skills so that the chain works end to end.",
+      "description": "As a maintainer, I want no live reference to removed skills so that the chain works end to end without new probe machinery.",
       "acceptanceCriteria": [
-        "core-chain-references probe exists and passes",
+        "A one-time grep finds no live reference to skills/plan, skills/ralph, .agro/plans, or a ralph/ branch prefix outside archives",
+        "Probes that check deleted skills are removed or updated; no new probe is added",
         "/spec, /supervisor, /retro, /audit, and crons reference /prd and prd/references/tracker.md where they referenced /plan or /ralph",
+        "/spec plan can still add its Knowledge Context and Plan Reconciliation sections to /prd output",
         "Provider skill symlinks resolve",
-        "/eval reports no REGRESSION",
+        "/eval reports no REGRESSION against the pre-change baseline",
         "CHANGELOG has an [Unreleased] entry"
       ],
       "dependsOn": [
@@ -160,8 +164,8 @@
         ".agro/skills/retro/SKILL.md",
         ".agro/skills/audit/",
         "crons/cleanup-tasks.md",
-        ".agro/evals/probes/core-chain-references.sh",
-        "CHANGELOG.md"
+        "CHANGELOG.md",
+        ".agro/evals/probes/"
       ],
       "priority": 7,
       "passes": false,

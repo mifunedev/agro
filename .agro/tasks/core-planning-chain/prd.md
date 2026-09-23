@@ -28,6 +28,13 @@ Current state:
 - The `/git` issue title `<prefix>(<issue#>): <shortdesc>` cannot be typed at issue creation; `/spec execute` and `feat.md` use `<prefix>: `.
 - `.gitignore` ignores `.agro/tasks/*` twice (lines 24–25 and 28–29) with different exceptions.
 
+### Alignment with `minimal-core` (#1134, PR #1137)
+
+The experiment deletes `/plan`, `/spec`, `/retro`, `/delegate`, and the probe suite, and keeps `/prd`, `/ralph`, and `/git`. This plan converges with it and differs in two places:
+
+- `/delegate` stays, reduced to the Advisor/Worker pattern over `prd.json`. The experiment has no replacement for the execution half of the chain.
+- The build adds no probe machinery. It removes or updates only the probes that check deleted skills, so that `/eval` on `development` reports no regression.
+
 ### Signal from `.agro/tasks/` (33 tasks, archives included)
 
 - 15 tasks carry both `delegate-graph.json` and `prd.json`; in 8, `prd.json` shows every story passed while the graph shows unfinished tasks. `pattern-delegate-ledger-stale-at-acceptance` records the resulting duplicate-worker hazard.
@@ -82,7 +89,7 @@ Current state:
 
 ## Test Plan (TDD)
 
-Update or add probes before the skill edits; each must fail against the current tree and pass after.
+Update existing probes before the skill edits; each must fail against the current tree and pass after. Add no new probe.
 
 | Test File | Case(s) | Validates |
 | --- | --- | --- |
@@ -90,7 +97,7 @@ Update or add probes before the skill edits; each must fail against the current 
 | `.agro/evals/probes/plan-orchestration-contract.sh` | Remove or replace; no live reference to `skills/plan` | US-001 |
 | `.agro/evals/probes/delegate-worker-boundary.sh`, `delegate-model-effort-policy.sh` | Advisor accepts; workers never write `prd.json`; no embedded provider model names | US-004 |
 | `.agro/evals/probes/task-completion-structured-state.sh`, `spec-task-artifact-contract.sh` | Still pass with the two-file core contract; `/spec` tasks keep `progress.txt` | US-006 |
-| new `core-chain-references.sh` | No live reference to `skills/plan`, `skills/ralph`, `.agro/plans`, or `ralph/` branch prefixes outside archives | US-007 |
+| one-time `grep` in US-007 (no new probe) | No live reference to `skills/plan`, `skills/ralph`, `.agro/plans`, or `ralph/` branch prefixes outside archives | US-007 |
 
 ## Design Principles
 
@@ -105,13 +112,14 @@ Update or add probes before the skill edits; each must fail against the current 
 - Reshaping `bug.md`, `task.md`, `audit.md`, `skill.md`.
 - A fresh-context story loop runner.
 
-## Open Questions
+## Decisions
 
-Operator decisions without task-history signal. The build applies each default unless the operator overrides it.
+Operator decisions recorded before execution.
 
-- **Skill name**: keep `/prd`, with "write a plan" and "plan this" as triggers. Default: `/prd`; delete `/plan`.
-- **Model preferences**: where do the Claude Code preferences removed from `/delegate` live: operator-level user config or `agro.json`? Default: operator-level user config.
-- **Private plans**: retire `.agro/plans/`; an unapproved draft stays uncommitted in `.agro/tasks/<slug>/`. Default: retire.
+- **Skill name**: `/prd` survives, with "write a plan" and "plan this" as triggers. `/plan` is deleted.
+- **Private plans**: `.agro/plans/` retires. Unapproved drafts stay uncommitted in `.agro/tasks/<slug>/`. Existing local drafts are not moved or deleted.
+- **Model preferences**: `/delegate` names no model. Worker model defaults live in the provider settings that already hold the session default (`.claude/settings.json`), through the Claude Code subagent-model setting. If that setting does not exist, the preferences are dropped and the operator names a model per run. Nothing is written to the home directory.
+- **Execution**: This build runs under the new rules defined here: the active session is the advisor, workers take bounded stories, and evidence goes to `prd.json` `notes`. The current `/delegate` skill is not invoked.
 
 ## Acceptance Criteria
 
@@ -123,7 +131,7 @@ Operator decisions without task-history signal. The build applies each default u
 - [ ] PR template has a Stories checklist and evidence sections
 - [ ] `git check-ignore` does not match `.agro/tasks/<slug>/prd.md` or `prd.json`
 - [ ] `prd.md` ends with `## Lessons`; `/git` refuses undraft without it ("None" allowed)
-- [ ] `/eval` has no REGRESSION
+- [ ] No new probe is added; `/eval` has no REGRESSION
 - [ ] CHANGELOG entry under `[Unreleased]`
 - [ ] Draft PR opened: `FROM feat/1147-core-planning-chain TO development`
 
