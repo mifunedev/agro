@@ -100,8 +100,9 @@
         ".claude/settings.json"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Accepted by advisor after one repair (c5011ab4 then 8b2232df, cherry-picked as eb11fe8f): the first heading used a capitalized Advisor, which roles-are-skills (ADR #989) forbids; it is now '## The advisor/worker pattern'. EXECUTED on the integrated branch: roles-are-skills, delegate-worker-boundary, delegate-model-effort-policy, advisor-execution-contract, context-tier-size-budget, prd-output-path-contract, git-skill all exit 0. EXECUTED: the three delegate probes exited 1 before the rewrite (worker, test-first) and a restored old heading makes delegate-worker-boundary exit 1 (fault injection). EXECUTED: grep for delegate-graph, max depth, /spec, and model names in delegate/SKILL.md counts 0; the skill is 157 lines; the dispatch-record probe fails at 9 rows. EXECUTED: .claude/settings.json env.CLAUDE_CODE_SUBAGENT_MODEL is opus; no other settings change. REASONED: AGENTS.md glossary defines worker and drops the /spec clause; the skill's acceptance, integration, resume, and closing steps write passes/commit/notes, tick the PR Stories checklist, and write ## Lessons.",
+      "commit": "eb11fe8f"
     },
     {
       "id": "US-005",
