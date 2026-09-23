@@ -15,13 +15,14 @@
         "After the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at 1bfa5230. AC1 executed: the advisor ran the final probe against the plan-commit hook (git show ee371605:.agro/hooks/deny-env-dump.sh in a scratch tree) -> exit 1, REGRESSION names jq -n 'env'. AC2 executed: bash .agro/evals/probes/secret-exposure-guard.sh -> exit 0 with the six deny assertions. AC3 executed: same run, the three allow assertions pass. AC4 executed: secret-exposure-guard.sh exit 0; docker-inspect-env-guard.sh exit 0; operator-config-guard.sh exit 0. Advisor adversarial run: 16 commands (absolute jq path, def wrapper, @sh interpolation, $ENV in an object, piped input and output, --argjson and --indent before the filter, .environment and .env.FOO field reads, env.json file, commit text, two container-inspect regressions) -> 16/16 expected decision.",
       "dependsOn": [],
       "files": [
         ".agro/hooks/deny-env-dump.sh",
         ".agro/evals/probes/secret-exposure-guard.sh"
-      ]
+      ],
+      "commit": "1bfa5230"
     },
     {
       "id": "US-002",
