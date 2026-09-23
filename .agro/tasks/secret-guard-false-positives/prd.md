@@ -46,6 +46,20 @@ The operator added this story during execution. The advisor pushed after each ac
 - [ ] `.agro/skills/git/SKILL.md` § "Ready for review" pushes the task branch once, before `gh pr ready`, and then runs `/ci-status`.
 - [ ] `bash .claude/skills/eval/run.sh` reports no new red on `delegate-*`, `advisor-*`, or `prd-*` probes.
 
+### US-004: Triage Close findings before issue creation
+
+**Description:** As an operator, I want each Close finding folded, proposed as an issue, or dropped so that the issue queue holds only defects I approved.
+
+The operator added this story after the ready check. This run opened three issues mid-run, and two of them covered one surface.
+
+**Acceptance Criteria:**
+
+- [ ] `.agro/skills/delegate/SKILL.md` § Close states the fold rule: fold a finding into the PR only when its fix is in a file the PR already changes and the PR caused or exposed the finding, or the finding breaks the chain in use.
+- [ ] § Close states the issue rule: one proposed issue per defect surface, and a comment on an open issue that already covers the surface.
+- [ ] § Close states that the advisor creates no issue before the operator approves the proposed issues at Close.
+- [ ] § Close keeps the three outcomes: fixed in this PR, issue #N, or dropped with the reason.
+- [ ] `bash .agro/evals/probes/advisor-execution-contract.sh` and `bash .agro/evals/probes/delegate-worker-boundary.sh` exit 0.
+
 ## Summary
 
 `.agro/hooks/deny-env-dump.sh` is the Bash `PreToolUse` guard. `.claude/settings.json` wires it to the `Bash` matcher. `.codex/hooks/deny-env-dump.sh` calls it, so Codex inherits each fix.
@@ -139,7 +153,7 @@ Resolved: the advisor run found that `jq -n 'env'` and `jq -n '$ENV'` return `al
 | A narrower deny pattern can open a false allow. List what the old pattern denied before you accept the new pattern. | The first US-001 commit (`02e77b74`) allowed `builtin history`, `command history`, and `sudo history`. The old bare-word term denied all three. The repair (`6754162b`) restored the deny. | fixed in this PR |
 | The advisor pushed after each accepted story. `/delegate` § Integration and `/git` § "Draft PR for a task" required that push. The operator requires two pushes: one for the draft PR and one before undraft. | The task branch received a push after the US-001 and US-002 acceptances. | fixed in this PR: US-003 |
 | `spec-task-artifact-contract` fails every completed core-chain task, and CI does not catch the failure. | The probe exits 1 after the US-003 acceptance. The CI checkout has no `development` ref, so the probe exits `SKIPPED`. The #1148 `/eval` ran before its last acceptance. | issue #1153 |
-| The container-inspect guard allows `docker inspect --format 'json'` and `-f 'json'`. | The US-001 worker found the literal `["\x27]` class. The advisor confirmed `allow` on the base hook and on this branch. | issue #1152 |
-| The Bash guard allows `jq -n 'env'` and `jq -n '$ENV'`. | The advisor found both during grounding. | issue #1150 |
+| The Bash guard allows `jq -n 'env'`, `jq -n '$ENV'`, and `docker inspect --format 'json'`. | The advisor found the `jq` forms during grounding. The US-001 worker found the literal `["\x27]` class in the container-inspect term. The advisor confirmed each `allow` on the base hook and on this branch. | issue #1150 (#1152 merged into it) |
+| One issue per finding fills the queue, and issues created mid-run skip operator review. | The advisor opened #1150, #1152, and #1153 during this run. #1150 and #1152 cover one guard surface. | fixed in this PR: US-004 |
 | A crashing hook prints nothing, and empty output means `allow`. | The first US-002 draft crashed under `set -u` and allowed every command. `docker-inspect-env-guard.sh` failed on that draft. `basename` on a `--flag=.env` token failed the same way before this PR. | dropped: a deny assertion in a probe fails when the hook crashes, so each guard probe catches a crash. This PR fixes the `basename` case and adds a `path_cmd` fallback. |
 | A run of the full probe suite finds failures that the targeted story checks miss. | The targeted US-002 checks passed. The full `/eval` run found the 384-character changelog bullet. | dropped: the `/delegate` Close step already requires the full suite; the Close step caught the failure. |

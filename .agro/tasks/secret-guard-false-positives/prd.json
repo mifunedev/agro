@@ -69,6 +69,27 @@
         ".agro/skills/git/SKILL.md"
       ],
       "commit": "8cb29177"
+    },
+    {
+      "id": "US-004",
+      "title": "Triage Close findings before issue creation",
+      "description": "As an operator, I want each Close finding folded, proposed as an issue, or dropped so that the issue queue holds only defects I approved.",
+      "acceptanceCriteria": [
+        "`.agro/skills/delegate/SKILL.md` § Close states the fold rule: fold a finding into the PR only when its fix is in a file the PR already changes and the PR caused or exposed the finding, or the finding breaks the chain in use.",
+        "§ Close states the issue rule: one proposed issue per defect surface, and a comment on an open issue that already covers the surface.",
+        "§ Close states that the advisor creates no issue before the operator approves the proposed issues at Close.",
+        "§ Close keeps the three outcomes: fixed in this PR, issue #N, or dropped with the reason.",
+        "`bash .agro/evals/probes/advisor-execution-contract.sh` and `bash .agro/evals/probes/delegate-worker-boundary.sh` exit 0."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        ".agro/skills/delegate/SKILL.md"
+      ]
     }
   ]
 }
