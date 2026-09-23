@@ -134,4 +134,12 @@ Resolved: the advisor run found that `jq -n 'env'` and `jq -n '$ENV'` return `al
 
 ## Lessons
 
-Filled by the advisor before undraft.
+| Lesson | Evidence | Outcome |
+| --- | --- | --- |
+| A narrower deny pattern can open a false allow. List what the old pattern denied before you accept the new pattern. | The first US-001 commit (`02e77b74`) allowed `builtin history`, `command history`, and `sudo history`. The old bare-word term denied all three. The repair (`6754162b`) restored the deny. | fixed in this PR |
+| The advisor pushed after each accepted story. `/delegate` § Integration and `/git` § "Draft PR for a task" required that push. The operator requires two pushes: one for the draft PR and one before undraft. | The task branch received a push after the US-001 and US-002 acceptances. | fixed in this PR: US-003 |
+| `spec-task-artifact-contract` fails every completed core-chain task, and CI does not catch the failure. | The probe exits 1 after the US-003 acceptance. The CI checkout has no `development` ref, so the probe exits `SKIPPED`. The #1148 `/eval` ran before its last acceptance. | issue #1153 |
+| The container-inspect guard allows `docker inspect --format 'json'` and `-f 'json'`. | The US-001 worker found the literal `["\x27]` class. The advisor confirmed `allow` on the base hook and on this branch. | issue #1152 |
+| The Bash guard allows `jq -n 'env'` and `jq -n '$ENV'`. | The advisor found both during grounding. | issue #1150 |
+| A crashing hook prints nothing, and empty output means `allow`. | The first US-002 draft crashed under `set -u` and allowed every command. `docker-inspect-env-guard.sh` failed on that draft. `basename` on a `--flag=.env` token failed the same way before this PR. | dropped: a deny assertion in a probe fails when the hook crashes, so each guard probe catches a crash. This PR fixes the `basename` case and adds a `path_cmd` fallback. |
+| A run of the full probe suite finds failures that the targeted story checks miss. | The targeted US-002 checks passed. The full `/eval` run found the 384-character changelog bullet. | dropped: the `/delegate` Close step already requires the full suite; the Close step caught the failure. |
