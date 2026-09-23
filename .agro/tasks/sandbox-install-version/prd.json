@@ -19,8 +19,8 @@
         "`npm test` exits 0 and `npm --prefix .agro/cli run typecheck` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Commits fec75ca2 + fix 0f03fa51 (advisor review: build-mode root agro.json with no checkout would have received the official ref; prebuilt test narrowed to image.mode == \"image\"). Integrated on task branch. AC1 executed: version.test.ts release refs, npm test exit 0. AC2 executed: version.test.ts dev/prerelease -> latest, npm test exit 0. AC3 executed: build + `node dist/agro.js --version` printed 0.13.0 (worker); lib/version.ts is sole declaration. AC4 reasoned: grep finds no DEFAULT_SANDBOX_IMAGE; both use sites call officialImageRef(AGRO_VERSION). AC5 executed: lifecycle.test.ts bare --image cases. AC6 executed: config-render.test.ts image-mode default cases. AC7 executed: config-render.test.ts build-mode cases with and without checkout. AC8 executed on task branch: npm test exit 0 (1574 tests; 1 of 4 runs had one intermittent failure that did not reproduce in 3 reruns), cli typecheck exit 0, pnpm run typecheck exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib",
@@ -30,7 +30,8 @@
         ".agro/cli/src/lib/config-render.ts",
         ".agro/cli/src/__tests__/lifecycle.test.ts",
         ".agro/cli/src/lib/__tests__/config-render.test.ts"
-      ]
+      ],
+      "commit": "0f03fa51"
     },
     {
       "id": "US-002",
