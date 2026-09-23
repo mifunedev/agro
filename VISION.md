@@ -143,11 +143,10 @@ shim, a config migration, or a rename alias ships naming the release that
 retires it, and is deleted in that release rather than left to accumulate.
 Runtime code reads the current schema only.
 
-AGRO carries no legacy generation today. `harness.yaml`, `.oh/`, `oh.json`,
-`OH_*`, `~/.oh`, the `oh` executable, and `agro migrate` are gone, along with
-the machinery that translated them. A shim that outlives its stated release is
-a defect, not a courtesy: it is unreachable code that every operator still
-pays for on every lifecycle call.
+Retired names and their manual migration live in
+[`docs/agro-compatibility.md`](docs/agro-compatibility.md), not here. A shim
+that outlives its stated release is a defect, not a courtesy: it is unreachable
+code that every operator still pays for on every lifecycle call.
 
 A change that invalidates existing operator configuration carries the migration
 that detects the old shape, explains it, backs it up, and rewrites it — and
