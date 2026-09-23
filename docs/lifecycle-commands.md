@@ -38,7 +38,7 @@ Amazon Bedrock, Vertex or Foundry, reads no project instructions at all.
 
 | Verb | Runs |
 |---|---|
-| `agro sandbox install <runtime> [--name <name>] [--checkout <dir>] [--yes] [--image[=<ref>]] [--no-build]` | write the registry entry, then `docker-compose.sh up -d` inside it |
+| `agro sandbox install <runtime> [--name <name>] [--checkout <dir>] [--yes] [--version <X.Y.Z>] [--image[=<ref>]] [--no-build]` | write the registry entry, then `docker-compose.sh up -d` inside it |
 | `agro sandbox list [--json]` | every registry entry: name, runtime, status, checkout |
 | `agro shell [name]` | an interactive `zsh` in the sandbox container |
 | `agro stop [name]` | `docker-compose.sh stop` — containers down, volumes kept |

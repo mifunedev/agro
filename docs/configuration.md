@@ -153,7 +153,7 @@ Recipe: [`agro sandbox install docker`](deployment-prebuilt-image.md).
 
 | Field | Type | Default | Compose variable | What it does |
 | --- | --- | --- | --- | --- |
-| `image.ref` | string | `ghcr.io/mifunedev/agro:latest` | `AGRO_SANDBOX_IMAGE` (legacy alias `AGRO_SANDBOX_IMAGE`) | Published image reference. Set it per sandbox with `agro config set --sandbox <name> image.ref <ref>`. `agro sandbox install docker` writes this field when it binds a `--checkout` directory that holds no `.devcontainer/Dockerfile`. The sandbox then runs the published image instead of a local build target. A configured value wins, and the install preserves that value. |
+| `image.ref` | string | `ghcr.io/mifunedev/agro:<CLI version>` | `AGRO_SANDBOX_IMAGE` | Published image reference. Set the field per sandbox with `agro config set --sandbox <name> image.ref <ref>`. `agro sandbox install docker` writes this field only for an explicit pin: `--version <X.Y.Z>` or `--image=<ref>`. Without a pin, each start of an `image`-mode sandbox renders the default. If the CLI version is not a plain `X.Y.Z` release, the default tag is `latest`. The install preserves a configured value. |
 | `image.mode` | `"build"` \| `"image"` | `build` | — | Whether the lifecycle builds locally or runs `image.ref`. A build happens only when the entry carries `checkout` and that directory holds `.devcontainer/Dockerfile`. Pairs with `agro sandbox install docker --image`. |
 | `image.pullPolicy` | `"missing"` \| `"always"` \| `"never"` | `missing` | `AGRO_PULL_POLICY` (legacy alias `AGRO_PULL_POLICY`) | Compose pull policy for `image.ref`. |
 

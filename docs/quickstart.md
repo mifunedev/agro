@@ -78,7 +78,7 @@ wrapper script the CLI regenerates on every lifecycle call — edit only
 it when you choose.
 
 Without `--checkout` the sandbox runs the published image
-(`ghcr.io/mifunedev/agro:latest`) and seeds its workspace from the
+(`ghcr.io/mifunedev/agro:<CLI version>`) and seeds its workspace from the
 image's `/opt/agro-seed`, so there is no build and no clone. To persist
 `/home/sandbox` at a host path instead of the Docker-managed volume, pass
 `--home-mount <dir>`.

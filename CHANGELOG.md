@@ -8,8 +8,13 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Add `agro sandbox install docker --version <X.Y.Z>` to pin the official image `ghcr.io/mifunedev/agro:<X.Y.Z>` without the full image ref. The flag accepts one leading `v`, and it exits 1 together with `--image=<ref>` ([#1160](https://github.com/mifunedev/agro/issues/1160)).
+
 ### Changed
 
+- Default the sandbox image tag to the `agro` CLI version instead of `latest`. The install stores only an explicit `--version` or `--image=<ref>` pin, so an unpinned sandbox follows the CLI version at each start ([#1160](https://github.com/mifunedev/agro/issues/1160)).
 - Replace the feature issue template with a repo-agnostic template covering user stories, integration points, a TDD test plan, and binary acceptance criteria ([#1145](https://github.com/mifunedev/agro/issues/1145)).
 - Make the pull request template repo-agnostic and pair it with the feature template: changes table, TDD test plan, verification, visual reference, follow-ups, and an acceptance checklist ([#1145](https://github.com/mifunedev/agro/issues/1145)).
 - Consolidate the planning chain: `/prd` absorbs `/plan` and `/ralph`, `/delegate` runs the advisor/worker pattern from `prd.json`, and plans land in a draft PR before implementation ([#1147](https://github.com/mifunedev/agro/issues/1147)).

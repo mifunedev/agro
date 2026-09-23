@@ -157,7 +157,7 @@ agro migrate --check   # print the plan, change nothing
 agro migrate           # .agro/ -> .agro/, agro.json -> agro.json, provider links re-pointed
 ```
 
-A checkout bound with `--checkout` mounts at `/home/sandbox/harness`. Without `--checkout` the sandbox runs `ghcr.io/mifunedev/agro:latest` and seeds its workspace from the image — see [`agro sandbox install docker`](deployment-prebuilt-image.md) for that recipe and the `--image` / `--no-build` flags.
+A checkout bound with `--checkout` mounts at `/home/sandbox/harness`. Without `--checkout` the sandbox runs `ghcr.io/mifunedev/agro:<CLI version>` and seeds its workspace from the image. See [`agro sandbox install docker`](deployment-prebuilt-image.md) for that recipe and the `--image` / `--no-build` flags.
 
 ## Next step
 
