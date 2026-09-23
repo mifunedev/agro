@@ -52,8 +52,8 @@
         "`npm test` exits 0 and `npm --prefix .agro/cli run typecheck` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated on task branch. AC1 executed: lifecycle.test.ts parseSandboxArgs = and space forms, npm test exit 0. AC2 executed: v-prefix cases, npm test exit 0. AC3 executed: advisor ran bundle `--version=0.13` -> exit 1 naming the value and X.Y.Z. AC4 executed: parser and bundle tests for a missing value, npm test exit 0. AC5 executed: advisor ran bundle `--version=0.13.0 --image=my/img:1 --yes` with scratch AGRO_HOME -> exit 1, AGRO_HOME stayed empty. AC6 executed: parser tests with bare --image in both orders. AC7 executed: sandbox.test.ts argv ends `up -d --no-build`. AC8 executed: sandbox.test.ts case with entry ref, checkout ref and AGRO_SANDBOX_IMAGE -> runner receives the 0.13.0 ref. AC9 executed: advisor ran `node dist/agro.js --version` -> 0.13.0; bundle tests cover -v. AC10 executed: lifecycle.test.ts help case. AC11 executed via test: print-argv output omits variables; sandbox.test.ts print-argv case proves AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/agro:0.13.0 reaches the runner. AC12 executed on task branch: npm test exit 0 (1605/1605), cli typecheck exit 0, pnpm run typecheck exit 0, build exit 0.",
       "dependsOn": [
         "US-001"
       ],
@@ -63,7 +63,8 @@
         ".agro/cli/src/commands/lifecycle.ts",
         ".agro/cli/src/__tests__/sandbox.test.ts",
         ".agro/cli/src/__tests__/cli-first-help.test.ts"
-      ]
+      ],
+      "commit": "d246413a"
     },
     {
       "id": "US-003",
