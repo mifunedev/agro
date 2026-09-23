@@ -10,7 +10,7 @@ argument-hint: "[--dry-run]"
 # Release
 
 `.github/workflows/release.yml` owns version allocation and artifact mutation.
-The workflow validates every push to `main` or `master` first, then reserves the
+The workflow validates every push to `main`, `master`, or `experiment/**` first, then reserves the
 `v<version>` tag for the version root `package.json` names, publishes GHCR and
 the CLI (or confirms the CLI version already exists), and finally publishes the
 GitHub Release. Do not pre-create a release tag, draft, or `release/<version>`
@@ -76,6 +76,37 @@ internal coherence.
   ```bash
   gh variable set AGRO_WEB_REPO --repo mifunedev/agro --body mifunedev/agro-web
   ```
+
+## Pre-releases
+
+A pre-release version has the form `MAJOR.MINOR.PATCH-<channel>.<n>`, for example
+`0.14.0-minimal.1`. `<channel>` is lowercase (`[a-z][a-z0-9]*`) and is not `latest`.
+`minimal` names the `experiment/minimal-core` track. Reserve `rc` for candidates of
+the next `main` release.
+
+| Version form | Branches that publish it | GitHub Release | npm dist-tag | GHCR `latest` |
+| --- | --- | --- | --- | --- |
+| `0.14.0` | `main`, `master` | latest | `latest` | moves |
+| `0.14.0-minimal.1` | `main`, `master`, `experiment/**` | pre-release, never latest | `minimal` | never moves |
+
+A stable version on an `experiment/**` push is a green no-op
+(`stable-off-release-branch`), so a stable bump merged from `development` never
+publishes from an experiment branch.
+
+To cut a pre-release on an experiment branch:
+
+1. Merge `development` into the branch so its `release.yml` supports pre-releases.
+2. Set the version in root `package.json`, `.agro/cli/package.json`, and
+   `.agro/cli/package-lock.json`.
+3. Add a dated `## [<version>] - YYYY-MM-DD` heading to `CHANGELOG.md`.
+4. Push the branch. Monitor the run as in step 4, with `--branch <experiment-branch>`.
+
+Install the pre-release:
+
+```bash
+npm i -g @mifune/agro@minimal
+agro sandbox install docker --image=ghcr.io/mifunedev/agro:0.14.0-minimal.1
+```
 
 ## 1. Resolve the canonical destination
 

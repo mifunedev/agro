@@ -66,11 +66,11 @@ function createRefBody(tagName: string) {
   return { ref: `refs/tags/${tagName}`, sha: RELEASE_SHA };
 }
 
-function createReleaseBody(tagName: string) {
+function createReleaseBody(tagName: string, prerelease = false) {
   return {
     body: "Image publication is pending.",
     draft: true,
-    prerelease: false,
+    prerelease,
     tag_name: tagName,
     target_commitish: RELEASE_SHA,
   };
@@ -79,6 +79,7 @@ function createReleaseBody(tagName: string) {
 function options(fetchImpl: typeof fetch, overrides: Record<string, unknown> = {}) {
   return {
     fetchImpl,
+    releaseBranch: "main",
     releaseSha: RELEASE_SHA,
     releaseVersion: VERSION,
     repository: REPOSITORY,
@@ -89,9 +90,27 @@ function options(fetchImpl: typeof fetch, overrides: Record<string, unknown> = {
 
 describe("SemVer reservation", () => {
   it("accepts strict MAJOR.MINOR.PATCH versions", () => {
-    expect(parseSemVer("0.1.0")).toEqual({ major: 0, minor: 1, patch: 0, version: "0.1.0" });
-    expect(parseSemVer("1.2.3")).toEqual({ major: 1, minor: 2, patch: 3, version: "1.2.3" });
-    expect(parseSemVer("10.0.0")).toEqual({ major: 10, minor: 0, patch: 0, version: "10.0.0" });
+    expect(parseSemVer("0.1.0")).toEqual({
+      major: 0,
+      minor: 1,
+      patch: 0,
+      channel: null,
+      version: "0.1.0",
+    });
+    expect(parseSemVer("1.2.3")).toMatchObject({ major: 1, minor: 2, patch: 3, channel: null });
+    expect(parseSemVer("10.0.0")).toMatchObject({ major: 10, minor: 0, patch: 0, channel: null });
+  });
+
+  it("accepts MAJOR.MINOR.PATCH-<channel>.<n> pre-releases and exposes the channel", () => {
+    expect(parseSemVer("0.14.0-minimal.1")).toEqual({
+      major: 0,
+      minor: 14,
+      patch: 0,
+      channel: "minimal",
+      version: "0.14.0-minimal.1",
+    });
+    expect(parseSemVer("1.0.0-rc.0").channel).toBe("rc");
+    expect(parseSemVer("2.3.4-exp2.10").channel).toBe("exp2");
   });
 
   it("rejects malformed versions, including the CalVer forms that are not SemVer", () => {
@@ -101,7 +120,14 @@ describe("SemVer reservation", () => {
       "1.2",
       "1.2.3.4",
       "2026.8.7-1",
-      "1.0.0-rc.1",
+      "1.0.0-rc",
+      "1.0.0-rc.",
+      "1.0.0-rc.01",
+      "1.0.0-Rc.1",
+      "1.0.0-rc.1.2",
+      "1.0.0-1rc.1",
+      "1.0.0-latest.1",
+      "1.0.0-",
       "1.0.0+build.5",
       "v1.2.3",
       "",
@@ -299,6 +325,48 @@ describe("GitHub reservation bridge", () => {
     assertFetchDone(fetchImpl);
   });
 
+  it("marks a pre-release reservation as a GitHub pre-release on any branch", async () => {
+    const version = "0.14.0-minimal.1";
+    const tag = `v${version}`;
+    const fetchImpl = queuedFetch([
+      {
+        method: "POST",
+        path: "/git/refs",
+        status: 201,
+        body: createRefBody(tag),
+        responseBody: tagRef(RELEASE_SHA),
+      },
+      {
+        method: "POST",
+        path: "/releases",
+        status: 201,
+        body: createReleaseBody(tag, true),
+        responseBody: release(102, tag, true),
+      },
+    ]);
+
+    const result = await reserveGitHubRelease(
+      options(fetchImpl, { releaseBranch: "experiment/minimal-core", releaseVersion: version }),
+    );
+    expect(result).toMatchObject({ publishedNoop: false, releaseVersion: version });
+    assertFetchDone(fetchImpl);
+  });
+
+  it("skips a stable version off main and master before touching GitHub", async () => {
+    const fetchImpl = queuedFetch([]);
+    const result = await reserveGitHubRelease(
+      options(fetchImpl, { releaseBranch: "experiment/minimal-core" }),
+    );
+    expect(result).toEqual({
+      publishedNoop: true,
+      releaseId: 0,
+      releaseSha: RELEASE_SHA,
+      releaseVersion: VERSION,
+      reservationKind: "stable-off-release-branch",
+    });
+    assertFetchDone(fetchImpl);
+  });
+
   it("rejects a malformed version before touching GitHub", async () => {
     const fetchImpl = queuedFetch([]);
     await expect(
@@ -312,7 +380,8 @@ describe("release workflow contract", () => {
   const source = readFileSync(WORKFLOW, "utf8");
 
   it("triggers for main and master without dropping intermediate pushes", () => {
-    expect(source).toMatch(/push:\n\s+branches:\n\s+- main\n\s+- master/);
+    expect(source).toMatch(/push:\n\s+branches:\n\s+- main\n\s+- master\n\s+- experiment\/\*\*\n/);
+    expect(source).toContain("RELEASE_BRANCH: ${{ github.ref_name }}\n          RELEASE_SHA: ${{ github.sha }}");
     expect(source).not.toMatch(/^concurrency:/m);
     expect(source).not.toMatch(/push:\n(\s+branches:[\s\S]*?)?\s+tags:/);
   });
@@ -462,7 +531,10 @@ describe("CLI publication workflow contract", () => {
     expect(source).toMatch(/workflow_dispatch:\n\s+inputs:\n\s+ref:/);
     expect(source).toContain("ref: ${{ inputs.ref }}");
     expect(source).not.toMatch(/push:\n\s+tags:/);
-    expect(source).toContain("npm publish --access public --provenance");
+    expect(source).toContain('npm publish --access public --provenance --tag "$DIST_TAG"');
+    expect(source).toContain('echo "distTag=${BASH_REMATCH[1]}"');
+    expect(source).toContain('echo "distTag=latest"');
+    expect(source).toContain("DIST_TAG: ${{ steps.guard.outputs.distTag }}");
   });
 
   it("publishes only @mifune/agro and performs no legacy npm publish, wait, or deprecate", () => {

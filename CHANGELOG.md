@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Publish `MAJOR.MINOR.PATCH-<channel>.<n>` pre-releases from `main`, `master` and `experiment/**`: a GitHub pre-release, npm dist-tag `<channel>`, immutable GHCR tags, never `latest` ([#1143](https://github.com/mifunedev/agro/issues/1143)).
+
 ## [0.13.0] - 2026-09-22
 
 ### Added
