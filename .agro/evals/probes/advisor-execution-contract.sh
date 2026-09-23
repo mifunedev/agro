@@ -1,41 +1,29 @@
 #!/usr/bin/env bash
 # tier: A
 # source: issue #988 / ADR #989
-# desc: prose check of the advisor-first execution contract in /spec execute, its task prompt, and
-#       the /spec skill: bounded workers implement before the owner accepts, a direct owner edit
-#       needs a recorded operator exception, the task stays in the same session by default,
-#       transfer happens only on operator request with the originating advisor stopping dispatch
-#       and the receiver acknowledging ownership, a plan without a handoff prompt is valid, the
-#       advisor has no fixed identity, /spec launches no coding-agent process, a worker's completed
-#       status is a report rather than acceptance, and the human merge gate stays. Issue #1147 moves
-#       /delegate onto prd.json: the advisor reruns verification on the integrated task branch before
-#       it writes passes, commit, and notes (each criterion executed or reasoned), repairs return to
-#       the same worker, dependents of a failed story wait, resume reads prd.json with no separate
-#       ledger, the close writes ## Lessons, planning alone is not a trigger, and --dry-run writes
-#       and dispatches nothing. This probe inspects instruction text; it does not verify runtime
-#       delegation, recovery, or model settings.
+# desc: prose check of the advisor/worker execution contract in /delegate over prd.json: a worker
+#       report is not acceptance, the advisor reruns verification on the integrated task branch
+#       before it writes passes, commit, and notes (each criterion executed or reasoned), repairs
+#       return to the same worker, dependents of a failed story wait, resume reads prd.json with no
+#       separate ledger, the close writes ## Lessons, planning alone is not a trigger, --dry-run
+#       writes and dispatches nothing, and no sentence fixes the advisor to a model or terminal,
+#       mandates a handoff, lets the advisor implement directly, or launches a coding-agent process.
+#       This probe inspects instruction text; it does not verify runtime delegation, recovery, or
+#       model settings.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-EXEC="$ROOT/.agro/skills/spec/references/execute.md"
-PROMPT="$ROOT/.agro/skills/spec/templates/task-prompt.md"
-SPEC="$ROOT/.agro/skills/spec/SKILL.md"
 DELEGATE="$ROOT/.agro/skills/delegate/SKILL.md"
 
-for file in "$EXEC" "$PROMPT" "$SPEC" "$DELEGATE"; do
-  if [[ ! -f "$file" ]]; then
-    echo "SKIPPED: required file absent: $file" >&2
-    exit 2
-  fi
-done
+if [[ ! -f "$DELEGATE" ]]; then
+  echo "SKIPPED: required file absent: $DELEGATE" >&2
+  exit 2
+fi
 
 negation='\b([Nn]o|[Nn]ot|[Nn]ever|[Nn]either)\b'
 flatten() { tr -s '[:space:]' ' ' <"$1"; }
-exec_flat="$(flatten "$EXEC")"
-prompt_flat="$(flatten "$PROMPT")"
-spec_flat="$(flatten "$SPEC")"
 delegate_flat="$(flatten "$DELEGATE")"
-sentences="$(printf '%s\n%s\n%s\n%s\n' "$exec_flat" "$prompt_flat" "$spec_flat" "$delegate_flat" | sed 's/[.!?] /&\n/g')"
+sentences="$(printf '%s\n' "$delegate_flat" | sed 's/[.!?] /&\n/g')"
 
 problems=()
 need() {
@@ -46,44 +34,6 @@ need() {
   done
 }
 
-need execute.md "$exec_flat" \
-  'workers perform the tracked implementation edits' \
-  'before the owner performs acceptance' \
-  'operator exception recorded in `progress.txt` before the edit' \
-  'Same session by default' \
-  'needs no particular model and no handoff' \
-  'Ownership transfers only when the operator requests another session' \
-  'originating advisor stops dispatching work' \
-  'acknowledges ownership' \
-  'Worker delegation never transfers ownership' \
-  'This node launches nothing' \
-  'never creates the agent that executes it' \
-  'human merge gate' \
-  'Merge is the human'
-need task-prompt.md "$prompt_flat" \
-  'perform every tracked implementation edit' \
-  'before you perform acceptance' \
-  'record the explicit operator exception in `progress.txt` before the edit' \
-  'Continue in this session by default' \
-  'the task needs no handoff' \
-  'Transfer ownership only when the operator requests another session' \
-  'stop dispatching work for this task' \
-  'acknowledges ownership before it dispatches a worker' \
-  'Worker delegation never transfers task ownership' \
-  'do not launch another coding-agent process' \
-  'Ownership is a role, not a terminal topology' \
-  'Never merge the PR'
-need spec/SKILL.md "$spec_flat" \
-  'before the owner performs acceptance' \
-  'operator exception recorded in `progress.txt` before the edit' \
-  'Same session by default' \
-  'needs no particular model and no handoff' \
-  'only when the operator requests another session' \
-  'originating advisor stops dispatching work' \
-  'acknowledges ownership before it dispatches a worker' \
-  'A plan without a handoff prompt is complete' \
-  'never launches another coding-agent process' \
-  'human merge gate'
 need delegate/SKILL.md "$delegate_flat" \
   'A worker report is not acceptance' \
   'rerun the verification on the integrated task branch' \
@@ -121,7 +71,7 @@ unnegated_hits() {
 if [[ -z "${delegate_desc//[[:space:]]/}" ]]; then
   problems+=("/delegate frontmatter has no description block scalar")
 else
-  planning_command='(^|[[:space:]("`])/(prd|plan|imagine|spec)\b'
+  planning_command='(^|[[:space:]("`])/(prd|plan|imagine)\b'
   planning_event='(plan creation|plan is (created|written|finished)|after (writing|creating|finishing) a plan)'
   cmd_hits="$(unnegated_hits "$delegate_desc" "$planning_command")"
   [[ -z "$cmd_hits" ]] || problems+=("/delegate names a planning command as a trigger, so planning alone would authorize dispatch: $cmd_hits")
@@ -150,7 +100,7 @@ stale="$(grep -iE '(completed status|completion summary|worker'"'"'?s? (summary|
 [[ -z "$stale" ]] || problems+=("a worker's completed status or summary counts as acceptance: $stale")
 
 launches="$(grep -iE '(launch|spawn|start)(es|s)? (a |the |another )?(coding[- ]agent|agent) (process|session)[^.]{0,60}(to|for) (do|perform|run|implement)' <<<"$sentences" | grep -vE "$negation" || true)"
-[[ -z "$launches" ]] || problems+=("/spec launches a coding-agent process: $launches")
+[[ -z "$launches" ]] || problems+=("/delegate launches a coding-agent process: $launches")
 
 if (( ${#problems[@]} > 0 )); then
   echo "REGRESSION: advisor-first execution contract is broken; issues:" >&2
@@ -158,5 +108,5 @@ if (( ${#problems[@]} > 0 )); then
   exit 1
 fi
 
-echo "PASS: /spec keeps one advisor deciding and accepting, workers implementing first, same-session execution by default, operator-only transfer, no fixed advisor identity, no launched agent, and the human merge gate; /delegate accepts only after the advisor reruns verification, records executed/reasoned notes in prd.json, resumes from prd.json alone, closes with ## Lessons, and keeps --dry-run read-only (prose check only; runtime behavior unverified)" >&2
+echo "PASS: /delegate accepts only after the advisor reruns verification, records executed/reasoned notes in prd.json, resumes from prd.json alone, closes with ## Lessons, keeps --dry-run read-only, fixes the advisor to no model or terminal, and launches no coding-agent process (prose check only; runtime behavior unverified)" >&2
 exit 0

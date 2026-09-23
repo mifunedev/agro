@@ -10,11 +10,8 @@ cd "$ROOT"
 
 CRON="crons/cleanup-tasks.md"
 TASKS_README=".agro/tasks/AGENTS.md"
-EXECUTE=".agro/skills/spec/references/execute.md"
-SPEC=".agro/skills/spec/SKILL.md"
-PROMPT=".agro/skills/spec/templates/task-prompt.md"
 
-for f in "$CRON" "$TASKS_README" "$EXECUTE" "$SPEC" "$PROMPT"; do
+for f in "$CRON" "$TASKS_README"; do
   [[ -f "$f" ]] || { echo "SKIPPED: required file absent: $f" >&2; exit 2; }
 done
 
@@ -56,12 +53,6 @@ grep -qF -- "$JQ_CHECK" "$CRON" \
   || failures+=("the cleanup cron does not derive completion from prd.json story state")
 grep -qF -- "$JQ_CHECK" "$TASKS_README" \
   || failures+=(".agro/tasks/AGENTS.md does not document the structured completion check")
-grep -qF -- "$JQ_CHECK" "$EXECUTE" \
-  || failures+=("execute.md does not derive completion from prd.json story state")
-grep -qF -- "$JQ_CHECK" "$PROMPT" \
-  || failures+=("the task prompt does not tell the owner how completion is decided")
-grep -qF 'Completion is structured state' "$SPEC" \
-  || failures+=("the /spec dispatcher does not state that completion is structured state")
 
 # 4. An unreadable task graph must not read as complete.
 grep -qiF 'no readable `prd.json`' "$CRON" \

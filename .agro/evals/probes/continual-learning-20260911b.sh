@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 # tier: A
 # source: retro lesson 2026-09-11 — an EMPTY CI check set was read as green; zero checks is pending or no-run, never success
-# desc: pr-classify.sh classifies an empty statusCheckRollup as non-PASS and not promotable, and ci-status/SKILL.md plus spec/references/execute.md still say a no-run check set is not a pass
+# desc: pr-classify.sh classifies an empty statusCheckRollup as non-PASS and not promotable, and ci-status/SKILL.md still reports a no-run check set as NO RUN, not a pass
 set -euo pipefail
 
 ROOT="${CI_EVIDENCE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
 
 CLASSIFY="$ROOT/.agro/skills/audit/scripts/pr-classify.sh"
 CI_SKILL="$ROOT/.agro/skills/ci-status/SKILL.md"
-EXECUTE="$ROOT/.agro/skills/spec/references/execute.md"
 
-for f in "$CLASSIFY" "$CI_SKILL" "$EXECUTE"; do
+for f in "$CLASSIFY" "$CI_SKILL"; do
   if [[ ! -f "$f" ]]; then
     echo "SKIPPED: ${f#"$ROOT/"} absent — not a harness checkout carrying the CI-evidence surfaces" >&2
     exit 2
@@ -32,7 +31,6 @@ pin() {
 
 pin "$CI_SKILL" 'returns no rows, report NO-RUN'
 pin "$CI_SKILL" '**NO RUN**'
-pin "$EXECUTE" 'no-run CI status is not promotable'
 pin "$CLASSIFY" '(.statusCheckRollup|length)==0'
 # shellcheck disable=SC2016 # literal jq source text, grepped not expanded
 pin "$CLASSIFY" '$ci.value=="PASS"'
@@ -89,5 +87,5 @@ if ((${#fails[@]})); then
   exit 1
 fi
 
-echo "PASS: an empty CI check set classifies as ci=NONE and not promotable, a real green rollup still classifies promotable, and all three surfaces still say a no-run check set is not a pass" >&2
+echo "PASS: an empty CI check set classifies as ci=NONE and not promotable, a real green rollup still classifies promotable, and ci-status still reports a no-run check set as NO RUN" >&2
 exit 0

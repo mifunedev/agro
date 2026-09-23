@@ -52,7 +52,7 @@ if [ "${SKILLS_VENDORED_SKIP_CLEAN_CLONE:-0}" != "1" ]; then
   for link in .pi/skills .codex/skills; do
     [ ! -e "$link" ] && [ ! -L "$link" ] || fail "clean clone still contains the retired $link surface"
   done
-  [ -f .claude/skills/spec/SKILL.md ] || fail "Claude skill symlink does not resolve in a clean clone"
+  [ -f .claude/skills/delegate/SKILL.md ] || fail "Claude skill symlink does not resolve in a clean clone"
   fake_bin="$tmp/bin"
   mkdir -p "$fake_bin"
   bare_path="$fake_bin:/usr/bin:/bin"
