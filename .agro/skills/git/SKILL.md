@@ -315,12 +315,21 @@ operator approval of the plan. Writing a plan is not approval.
    gh pr create --draft --base $BASE --title "FROM <prefix>/<N>-<slug> TO $BASE" --body-file <pr-body.md>
    ```
 
-The advisor commits and pushes each accepted story to this branch.
+The advisor commits each accepted story to this branch and does not push it.
+The advisor pushes the task branch only two times: in step 3 for the draft PR,
+and in § Ready for review before `gh pr ready`. Push at another time only when
+the operator explicitly requires it.
 
 ### Ready for review
 
-Run `gh pr ready` only when all of these conditions are true. If one is false,
-refuse and keep the PR in draft.
+Do these steps in this sequence:
+
+1. Examine the first three conditions below. If one is false, stop and keep the
+   PR in draft.
+2. Push the task branch one time: `git push`.
+3. Run `/ci-status` to examine the last condition.
+4. Run `gh pr ready` only when all of these conditions are true. If one is
+   false, refuse and keep the PR in draft.
 
 - Every story passes:
   `jq -e 'all(.userStories[]; .passes == true)' .agro/tasks/<slug>/prd.json`
@@ -331,7 +340,7 @@ refuse and keep the PR in draft.
 - The PR body evidence sections are non-empty: What the issue asked for, What
   was built, Where it diverged, What remains unverified, Verification, and
   Lessons. "None" or "Nothing" is a valid body.
-- The repository's checks pass (`/ci-status`).
+- The repository's checks pass on the pushed branch (`/ci-status`).
 
 ## After Push
 

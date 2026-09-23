@@ -108,10 +108,10 @@ The advisor does not repair. Dependents of a failed story wait.
 
 After acceptance, do these steps on the task branch:
 
-1. Commit `prd.json` with the accepted story.
-2. Push the task branch.
-3. Tick the story in the PR `## Stories` checklist.
-4. Remove the worker worktree and branch. Use the git maintenance shim that
+1. Commit `prd.json` with the accepted story. Do not push it. `/git` § Draft PR
+   for a task names the two pushes.
+2. Tick the story in the PR `## Stories` checklist.
+3. Remove the worker worktree and branch. Use the git maintenance shim that
    `/git` names.
 
 ## Resume
