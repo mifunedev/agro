@@ -35,15 +35,16 @@
         "After the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at 92cd9942. AC1 executed: the advisor ran the final probe against the pre-US-002 hook (git show 31765b2f in a scratch tree) -> exit 1, REGRESSION names grep process.env src/index.ts. AC2 executed: bash .agro/evals/probes/secret-exposure-guard.sh -> exit 0 with the three allow assertions. AC3 executed: same run, the five deny assertions plus rg -g .env TOKEN pass. AC4 executed: secret-exposure-guard.sh exit 0; docker-inspect-env-guard.sh exit 0; operator-config-guard.sh exit 0. The mask generalizes mask_jq_filters into mask_first_operand for jq, grep, egrep, fgrep, and rg; only path_cmd uses it. Known false denies kept on purpose: grep -r and grep -E before the pattern, because rg gives -r and -E a value.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/hooks/deny-env-dump.sh",
         ".agro/evals/probes/secret-exposure-guard.sh"
-      ]
+      ],
+      "commit": "92cd9942"
     },
     {
       "id": "US-003",
