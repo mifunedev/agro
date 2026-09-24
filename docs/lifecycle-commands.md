@@ -306,15 +306,32 @@ or `--path`; without either it keeps the refusal. See
 [Harnesses Overview](harnesses/overview.md#installing-a-harness).
 
 `agro tool install <id>` uses the same host path, with two limits. A tool must
-declare a host install. `herdr`, `cloudflared`, `microsandbox` and
-`tailscale` declare a host install. `agent-browser` does not, because its installer adds
-system packages to the machine. `gh` and the Docker CLI do not, because the
-sandbox image provides them. A host install also needs Linux, because every tool
-installer is Debian-specific. The command refuses on any other platform and names
-that platform. A successful host install records the installed id as `hostTools` in the host
-`agro.json`, separately from `hostHarnesses`. `agro tool uninstall <id>` removes
-only what that record names, and `--force` removes from `~/.local` without a
-record.
+declare a host install. `agent-browser`, `herdr`, `cloudflared`, `microsandbox`,
+`tailscale`, `code-server`, `docker`, and `desktop` declare a host install. `gh`
+and the Docker CLI do not, because the sandbox image provides them. A host install
+also needs Linux, because every tool installer is Debian-specific. The command
+refuses on any other platform and names that platform. A successful host install
+records the installed id as `hostTools` in the host `agro.json`, separately from
+`hostHarnesses`. `agro tool uninstall <id>` has no `--host` flag. It removes only
+what that record names when no sandbox is reachable, and `--force` removes from
+`~/.local` without a record.
+
+| Tool | Host install level | In the sandbox |
+|------|--------------------|----------------|
+| `code-server` | invoking user, `~/.local` | installs |
+| `docker` | root-level | refused; names `access.dockerSocket` |
+| `desktop` | root-level | refused |
+
+A root-level tool installs system packages as root. `agro tool list` marks it
+`(root)`. When you are not root, the installer runs through `sudo -n`. When
+`sudo -n true` fails, the command exits 1 and changes nothing. The message names
+`<id>` and passwordless `sudo`.
+`docker` and `desktop` install only with `--host`, and `agro tool uninstall`
+refuses them. `docker` installs Docker Engine and Compose. `desktop` installs
+XFCE, XRDP, and system Tailscale, and serves TCP 3389 only through Tailscale. It
+ends by printing the two remaining steps: `sudo tailscale up` and
+`sudo passwd <user>`. Then connect an RDP client to the Tailscale address on port
+3389. See [Installation](installation.md#ai-agent-clis).
 
 ## Host workspaces: `agro workspace`
 
