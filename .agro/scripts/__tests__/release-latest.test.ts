@@ -179,7 +179,22 @@ describe("promote-release-latest.sh", () => {
     expect(existsSync(dockerLog)).toBe(false);
   });
 
-  it.each(["2026.8.3-1", "2026.08.03", "1.2", "1.2.3.4", "v0.1.0", "0.1.0-rc.1"])(
+  it.each(["0.1.0-minimal.1", "0.2.0-rc.3"])(
+    "never makes the pre-release %j latest, even from the canonical head",
+    (version) => {
+      const output = join(fixture, "github-output");
+      const check = run("check", { GITHUB_OUTPUT: output, RELEASE_VERSION: version });
+      const promote = run("promote", { RELEASE_VERSION: version });
+
+      expect(check.status, check.stderr).toBe(0);
+      expect(readFileSync(output, "utf8")).toContain("makeLatest=false\n");
+      expect(promote.status, promote.stderr).toBe(0);
+      expect(promote.stdout).toContain("Skipping latest");
+      expect(existsSync(dockerLog)).toBe(false);
+    },
+  );
+
+  it.each(["2026.8.3-1", "2026.08.03", "1.2", "1.2.3.4", "v0.1.0"])(
     "rejects the non-SemVer version %j before invoking docker",
     (version) => {
       const result = run("promote", { RELEASE_VERSION: version });

@@ -52,6 +52,11 @@ jobs:
         run: |
           V=$(node -p "require('./.agro/cli/package.json').version")
           echo "version=$V" >> "$GITHUB_OUTPUT"
+          if [[ "$V" =~ ^[0-9]+\.[0-9]+\.[0-9]+-([a-z][a-z0-9]*)\. ]]; then
+            echo "distTag=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "distTag=latest" >> "$GITHUB_OUTPUT"
+          fi
           if npm view "@mifune/agro@$V" version --prefer-online >/dev/null 2>&1; then
             echo "@mifune/agro@$V already published — skipping"
             echo "skip=true" >> "$GITHUB_OUTPUT"
@@ -76,6 +81,7 @@ jobs:
         # `npm publish` packs the working directory and ignores `--prefix` for
         # package selection — running from repo root would pack the private
         # root package (EPRIVATE). Must run inside .agro/cli.
-        run: npm publish --access public --provenance
+        run: npm publish --access public --provenance --tag "$DIST_TAG"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          DIST_TAG: ${{ steps.guard.outputs.distTag }}
