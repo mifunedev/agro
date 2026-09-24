@@ -40,8 +40,8 @@
         "`agro tool uninstall code-server --host` removes the link and the extracted directory."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Worker commit 6a308f09, integrated as 144ad0c8. AC1 executed: tool-catalog.test.ts code-server entry (invoking-user install, hostCapable, uninstallArgv). AC2 executed: worker downloaded both v4.129.0 tarballs and sha256sum matched both pinned hashes; host run printed \"code-server.tar.gz: OK\". AC3 executed: install script with a fake dpkg reporting riscv64 exited 1 naming riscv64. AC4 executed: host run with a temp HOME produced $HOME/.local/lib/code-server-4.129.0 and the $HOME/.local/bin/code-server link. AC5 executed: `HOME=<tmp> AGRO_EXECUTION_TARGET=docker-compose DOCKER_HOST=unix:///nonexistent/docker.sock node .agro/cli/dist/agro.js tool install code-server --host` exit 0; `<tmp>/.local/bin/code-server --version` printed \"4.129.0 77baee7f\u2026 with Code 1.129.0\". AC6 executed with divergence: `agro tool uninstall` has no --host flag (existing CLI: \"--host and --path apply to install only\"); it targets the host when no sandbox is reachable. `agro tool uninstall code-server` in the same host env exit 0, removed the link and directory, and cleared the host record. On the task branch: npx vitest run exit 0; cli typecheck exit 0.",
       "dependsOn": [
         "US-001"
       ],
@@ -49,7 +49,8 @@
         ".agro/cli/src/lib/tools/catalog.ts",
         ".agro/cli/src/__tests__/tool-catalog.test.ts",
         ".agro/cli/src/__tests__/tool.test.ts"
-      ]
+      ],
+      "commit": "144ad0c8"
     },
     {
       "id": "US-003",
