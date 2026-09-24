@@ -15,13 +15,14 @@
         "After the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at b8a43f3b (worker commits 0de68b24 and repair b8a43f3b). AC1 executed: the advisor ran the final probe against the plan-commit hook (git show b340ef6f in a scratch tree) -> exit 1, REGRESSION names the python3 -c os.environ case. AC2 executed: bash .agro/evals/probes/secret-exposure-guard.sh -> exit 0 with the five deny assertions plus -Ic and -ne forms. AC3 executed: same run, the three allow assertions pass. AC4 executed: secret-exposure-guard.sh exit 0; docker-inspect-env-guard.sh exit 0; operator-config-guard.sh exit 0. One bounded repair: the first commit's DENY term crossed into later commands and matched env case-insensitively; the repair moves the check to its own case-sensitive branch bounded to one command segment (quoted separators masked) and adds allow assertions for pytest -k env -q, && ls env/, and | grep --env x. The pre-existing DENY rule for env as the last word stays: narrowing it would allow docker exec <c> env.",
       "dependsOn": [],
       "files": [
         ".agro/hooks/deny-env-dump.sh",
         ".agro/evals/probes/secret-exposure-guard.sh"
-      ]
+      ],
+      "commit": "b8a43f3b"
     },
     {
       "id": "US-002",
