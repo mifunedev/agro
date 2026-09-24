@@ -58,8 +58,8 @@
         "`CHANGELOG.md` `[Unreleased]` `### Fixed` has one entry that links #1155, and the entry is at most 250 characters."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at 429b52d4. AC1 executed: the advisor ran the final probe against the pre-US-003 hook (git show 8d526a63 in a scratch tree) -> exit 1, REGRESSION names the env word in a command piped from a jq --arg call. AC2 executed: bash .agro/evals/probes/secret-exposure-guard.sh -> exit 0 with both allow assertions. AC3 executed: same run, the three deny assertions plus two later-jq-call denies (after ; and after |) pass. AC4 executed: secret-exposure-guard.sh exit 0; docker-inspect-env-guard.sh exit 0; operator-config-guard.sh exit 0. AC5 executed: [Unreleased] ### Fixed has one bullet linking issues/1155 (awk + grep -c -> 1); changelog-entry-length.sh exit 0 (235 characters per the worker). Full suite: bash .claude/skills/eval/run.sh -> exit 0, persistent reds next-dev-prod and skills-vendored only, no PASS-> delta. The fallback keeps parsing later jq calls, so a jq call after a separator stays checked.",
       "dependsOn": [
         "US-002"
       ],
@@ -67,7 +67,8 @@
         ".agro/hooks/deny-env-dump.sh",
         ".agro/evals/probes/secret-exposure-guard.sh",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "429b52d4"
     }
   ]
 }
