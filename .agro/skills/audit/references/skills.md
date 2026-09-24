@@ -181,7 +181,7 @@ Sort the Scores table by Total ascending (worst first). Omit CURRENT skills from
 
 ### 7. Memory Protocol
 
-Return this structured observation to the outer dispatcher and suppress target logging/retro:
+Return this structured observation to the outer dispatcher and suppress target logging:
 
 ```markdown
 ## [Skill Lint] — HH:MM UTC

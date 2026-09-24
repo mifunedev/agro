@@ -19,10 +19,9 @@ baked in (see commit `b30cef9`).
 ### Agent task workflows are not a tmux exception
 
 This rule covers **headless infrastructure** — cron runtime and detached fires, messaging
-gateways, supervisors and watchdogs, tunnels, the T3 Code server. It does not reach
-`/spec execute`, which claims no session of its own: the agent the operator already started
-owns the task, so there is no `/spec` session to name, log, attach to, or kill.
-Do not reintroduce an `agent-spec-*` convention or any other `/spec` agent-handoff session.
+gateways, supervisors and watchdogs, tunnels, the T3 Code server. It does not reach an agent
+task workflow. The agent that the operator started owns the task in Herdr, so the task has no
+tmux session to name, log, attach to, or kill.
 
 ## Session Naming
 

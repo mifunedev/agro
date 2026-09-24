@@ -1,5 +1,8 @@
 {
   "enabledMcpjsonServers": ["debugmcp"],
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "opus"
+  },
   "permissions": {
     "deny": [
       "Read(file_path=**/.env*)",

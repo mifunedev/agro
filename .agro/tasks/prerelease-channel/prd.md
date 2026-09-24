@@ -9,7 +9,7 @@ runs a long-lived comparison track, `experiment/minimal-core`, and needs an
 installable, versioned build of that track without touching the stable channel.
 
 This feature adds SemVer pre-releases to the existing pipeline. A version such as
-`0.14.0-minimal.1` publishes a tag, a GitHub pre-release, an npm version under a
+`0.15.0-minimal.1` publishes a tag, a GitHub pre-release, an npm version under a
 non-`latest` dist-tag, and immutable GHCR tags. Stable users never receive it.
 
 The label after the hyphen names the channel. `minimal` names the experiment
@@ -31,8 +31,8 @@ track. `rc` is reserved for real candidates of the next `main` release.
 
 **Acceptance Criteria:**
 
-- [ ] `parseSemVer("0.14.0-minimal.1")` and `parseSemVer("0.14.0-rc.2")` succeed.
-- [ ] Malformed forms (`0.14.0-`, `0.14.0-Minimal.1`, `0.14.0-minimal`, `0.14.0+b1`) are rejected.
+- [ ] `parseSemVer("0.15.0-minimal.1")` and `parseSemVer("0.15.0-rc.2")` succeed.
+- [ ] Malformed forms (`0.15.0-`, `0.15.0-Minimal.1`, `0.15.0-minimal`, `0.15.0+b1`) are rejected.
 - [ ] The parsed result exposes the channel label (`minimal`, `rc`), or `null` for a stable version.
 - [ ] Unit tests cover each case; `pnpm test:scripts` passes.
 
@@ -99,6 +99,7 @@ pre-release so that the procedure is repeatable.
 - FR-5: The GHCR `latest` tag must not move for any version with a label.
 - FR-6: `npm publish` must use `--tag <label>` for any version with a label.
 - FR-7: `release.yml` must run on pushes to `main`, `master`, and `experiment/**`.
+- FR-9: The CLI must treat a pre-release version as a release version: `agro sandbox install docker --version <X.Y.Z-channel.n>` pins that image, and a pre-release CLI defaults to its own image, not `latest`.
 - FR-8: Version sources stay unchanged: root `package.json` and `.agro/cli/package.json` must agree, and `CHANGELOG.md` must carry a dated heading for the version.
 
 ## Non-Goals
@@ -115,17 +116,17 @@ pre-release so that the procedure is repeatable.
   must merge `development` after this lands before its first pre-release push.
 - `experiment/minimal-core` removed the eval-probe gate from its own `release.yml`.
   Its pre-releases run with the lighter gate. The operator accepted this.
-- Docker tags and npm versions accept `0.14.0-minimal.1` unchanged.
+- Docker tags and npm versions accept `0.15.0-minimal.1` unchanged.
 - The CHANGELOG notes extractor matches `## [<version>] - ` literally, so a
   pre-release heading works without change.
 
 ## Success Metrics
 
-- One version bump on `experiment/minimal-core` produces `v0.14.0-minimal.1`,
-  `@mifune/agro@minimal`, and `ghcr.io/mifunedev/agro:0.14.0-minimal.1`.
+- One version bump on `experiment/minimal-core` produces `v0.15.0-minimal.1`,
+  `@mifune/agro@minimal`, and `ghcr.io/mifunedev/agro:0.15.0-minimal.1`.
 - `@mifune/agro@latest`, GHCR `:latest`, and GitHub's latest release are unchanged afterward.
 
 ## Open Questions
 
-- None. Version base `0.14.0-minimal.N`, the lighter gate, and no public docs were
+- None. Version base `0.15.0-minimal.N`, the lighter gate, and no public docs were
   confirmed by the operator.

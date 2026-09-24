@@ -6,16 +6,6 @@
   "generated_by": "git-sync/manual",
   "generated_at": "2026-05-22T00:00:00Z",
   "skills": {
-    "retro": {
-      "source": "github:mifunedev/skills",
-      "registry_version": "in-tree",
-      "skill_version": "0.1.0",
-      "commit": "pending-upstream",
-      "installed_paths": [
-        ".agro/skills/retro"
-      ],
-      "note": "In-tree fork of upstream mifunedev/skills `reflect`, rewritten as `/retro`; diverged from registry so checksum dropped and commit marked pending-upstream."
-    },
     "agent-browser": {
       "source": "github:mifunedev/skills",
       "registry_version": "2026.5.17",
@@ -54,16 +44,6 @@
       "checksum": "sha256:72a5877e59b76abaf28443f3034c360842768562c6a1e0e6dcb5f92944b102c8",
       "installed_paths": [
         ".agro/skills/prd"
-      ]
-    },
-    "ralph": {
-      "source": "github:mifunedev/skills",
-      "registry_version": "2026.5.17",
-      "skill_version": "0.1.0",
-      "commit": "c559c100177b3b2edc5d1c29cc3741ce48342e51",
-      "checksum": "sha256:cfba2c8fc999e082d48d637d78d7425482cd726da5026198e53b3b89ca0f5256",
-      "installed_paths": [
-        ".agro/skills/ralph"
       ]
     },
     "release": {

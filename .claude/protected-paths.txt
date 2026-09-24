@@ -22,14 +22,11 @@ ci-status
 cloudflared
 agent-browser
 prd
-ralph
 architect
 audit
 delegate
-spec
 eval
 health-check
-retro
 t3
 # --- Orchestrator scripts (.agro/scripts/) ---
 .agro/skills/wiki/scripts/knowledge-impact.sh
@@ -53,7 +50,4 @@ crons/eval-weekly.md
 # --- Norms folded into skills (B-state M3+M4) ---
 .agro/skills/git/SKILL.md
 .agro/skills/t3/references/sandbox-processes.md
-.agro/skills/spec/references/plan.md
-.agro/skills/spec/references/execute.md
-.agro/skills/spec/references/retro.md
 

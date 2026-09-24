@@ -14,7 +14,7 @@ These names describe separate layers, not interchangeable jobs:
 - **Model** — The LLM selected by a provider; it proposes text and tool calls, while the surrounding agent, harness, and policy decide where those requests run and what is allowed. See the **model** glossary entry.
 - **Agent / CLI** — The process that wraps a model with tools, instructions, and session state, such as Claude Code, Codex, or Pi. It is the runtime: the active session owns the work. See the **agent** glossary entry.
 - **Harness** — The repo, Docker sandbox, and `.agro/` control plane that give agents a reproducible workspace and lifecycle. See the **harness** glossary entry.
-- **Loop** — A repeated workflow that the harness drives until a terminal state, such as the `/spec execute` implementation cycle ending after every story passes. See the **loop** and **terminal state** glossary entries.
+- **Loop** — A repeated workflow that the harness drives until a terminal state, such as the `/delegate` implementation cycle ending after every story passes. See the **loop** and **terminal state** glossary entries.
 - **Policy** — The provider-portable rules, skills, and hooks that constrain agent behavior and tool use. See the **policy** and **tool** glossary entries.
 - **Trace** — Recorded session evidence consumed later by analysis, not the live execution layer itself. See the **trace** glossary entry.
 
@@ -36,21 +36,21 @@ These names describe separate layers, not interchangeable jobs:
 
 - **artifact** — Any inspectable file a workflow stage produces and a later stage
   or a human then consumes. The canonical example is the `.agro/tasks/<slug>/` task
-  folder and its three-file contract (`prd.md`, `prd.json`,
-  `progress.txt`), which the `/spec` pipeline reads and writes as
-  they progress. Source: [`.agro/tasks/`](../.agro/tasks/).
+  folder and its two-file contract (`prd.md` and `prd.json`), which `/prd`
+  writes and `/delegate` reads and updates.
+  Source: [`.agro/tasks/AGENTS.md`](../.agro/tasks/AGENTS.md).
 
 - **capability** — What the harness can actually do end-to-end, measured by the
   capability benchmark rather than by how much machinery it accumulates. The
   `.agro/evals/capability/` suite grades concrete deliverables (a shipped PR, a
-  passing eval, a clean retro), so a rising score is evidence the loop got
+  passing eval), so a rising score is evidence the loop got
   better. Source: [`.agro/evals/capability/`](../.agro/evals/capability/).
 
 - **checkpoint** — An intermediate, observable stage output that is explicitly
-  *not* the terminal state. For example, `/spec execute` opens a draft PR early as
-  an observability checkpoint while implementation is still pending, then marks
-  it ready once the gates pass.
-  Source: [`.agro/skills/spec/references/execute.md`](../.agro/skills/spec/references/execute.md).
+  *not* the terminal state. For example, the draft PR opens with the plan
+  before implementation, and the advisor marks it ready only after the gates
+  pass.
+  Source: [`.agro/skills/git/SKILL.md`](../.agro/skills/git/SKILL.md) § Draft PR for a task.
 
 - **evaluator / eval** — A deterministic, exit-code-scored probe that checks
   harness state against a recorded lesson; the probe corpus and the `/eval`
@@ -71,10 +71,10 @@ These names describe separate layers, not interchangeable jobs:
   Source: [`.agro/knowledge/`](../.agro/knowledge/).
 
 - **loop** — A repeated implement → commit → check cycle driven until the task
-  graph is satisfied. `/spec execute` owns the implementation cycle; completion
+  graph is satisfied. `/delegate` owns the implementation cycle; completion
   is structured state in `prd.json` — every entry in `userStories` carrying
   `"passes": true` — not a marker in prose.
-  Source: [`.agro/skills/spec/references/execute.md`](../.agro/skills/spec/references/execute.md).
+  Source: [`.agro/skills/delegate/SKILL.md`](../.agro/skills/delegate/SKILL.md).
 
 - **model** — The LLM an agent or CLI uses to produce reasoning, text, and
   tool-call requests. The model is only one part of an agent session; the
@@ -122,26 +122,26 @@ These names describe separate layers, not interchangeable jobs:
 
 - **session** — A terminal-backend run of an agent: a tmux session, a Herdr pane, or a
   plain shell. It is a *backend*, not an identity. Distinguish it from the
-  **implementation owner** — the logical role that owns one `/spec execute` task from the
-  isolated worktree through the final PR gates. `/spec execute` keeps the decisions,
-  validation, evidence, and PR finalization with the single agent that invoked it, whatever
-  backend that agent happens to be running in. That agent advises and accepts while bounded
-  workers perform the tracked edits, and it launches no session of its own.
-  Source: [`.agro/skills/spec/references/execute.md`](../.agro/skills/spec/references/execute.md) and
+  **advisor** — the role that owns one task from the isolated worktree through the
+  final PR gates. The advisor keeps the decisions, validation, evidence, and PR
+  finalization, whatever backend it runs in. Bounded workers perform the tracked
+  edits, and the advisor launches no session of its own.
+  Source: [`.agro/skills/delegate/SKILL.md`](../.agro/skills/delegate/SKILL.md) and
   [`sandbox-processes.md`](../.agro/skills/t3/references/sandbox-processes.md).
 
 - **skill** — A packaged, invocable workflow (a `SKILL.md` plus optional
   references and scripts) that an agent runs via the Skill tool or a `/name`
   slash command; the shared set lives under `.agro/skills/`. **Skills are the
   canonical primitive for a reusable role, procedure, checklist, constraint set,
-  or body of domain judgment** — `/architect`, `/spec`, `/audit`, `/retro`, and
+  or body of domain judgment** — `/architect`, `/prd`, `/audit`, and
   `/delegate` are roles encoded this way, loaded into the active session rather
   than spawned as separate identities. Source: [`.agro/skills/`](../.agro/skills/).
 
-- **terminal state** — The end state that closes a workflow cycle. `/spec execute`
-  completes implementation only after every story passes; the operative path
-  then ends at the human `merge` followed by the runner's `reset | clean`.
-  Source: [the `/spec` workflow contract](../.agro/skills/spec/SKILL.md#workflow-contract).
+- **terminal state** — The end state that closes a workflow cycle. `/delegate`
+  completes implementation only after every story passes. The advisor then marks
+  the PR ready for review. A human merges, and the advisor cleans up only after
+  `gh pr view` reports `MERGED`.
+  Source: [`.agro/skills/git/SKILL.md`](../.agro/skills/git/SKILL.md) § Ready for review and § After the merge.
 
 - **tool** — A discrete action an agent can invoke — read a file, run a command,
   call an MCP server. Hooks under `.agro/hooks/` intercept tool calls to enforce
@@ -162,5 +162,5 @@ These names describe separate layers, not interchangeable jobs:
 
 - **worktree** — A separate git working directory under `.worktrees/` that
   isolates a branch so parallel work doesn't collide; the `/worktrees` skill
-  manages their lifecycle and `/spec execute` builds each task in one.
+  manages their lifecycle, and `/delegate` builds each task in one.
   Source: [`.agro/skills/worktrees/SKILL.md`](../.agro/skills/worktrees/SKILL.md).

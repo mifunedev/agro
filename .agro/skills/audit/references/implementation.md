@@ -1,8 +1,7 @@
 # Audit implementation — per-unit verdict gate
 
-The **audit** gate, composed by `/spec execute` in `.agro/skills/spec/SKILL.md`. It answers
-one question: *does this one implementation satisfy its task graph and is it
-promotable?* — and emits exactly one verdict the caller routes on.
+The **audit** gate. It answers one question: *does this one implementation
+satisfy its task graph and is it promotable?* — and emits exactly one verdict the caller routes on.
 
 **Core principle: compose, don't re-derive — and never infer green from silence.**
 This skill owns the *verdict*, not the checks. Each gate below is an existing
@@ -92,7 +91,7 @@ fails on a missing path lives at
 The probe suite must stay green for this change. Gate on the runner's **exit code +
 delta**, not its prose.
 
-**Read the cycle's result before running the suite.** `/spec execute` runs `/eval` once
+**Read the cycle's result before running the suite.** The task owner runs `/eval` once
 per cycle and publishes `.agro/tasks/<slug>/eval-result.json`. Reuse it **only while it
 describes the code under test** — that is, while its `commit` equals the current
 `HEAD`:
@@ -117,7 +116,7 @@ you did not compare, and never treat a missing record as a pass.
 
 Block only on a **new** `green→red` regression or a non-zero runner exit. A
 pre-existing red with an unchanged delta is non-gating but MUST be disclosed in
-the verdict. (Mirrors `/spec execute`'s `/eval` gate and `.agro/evals/probes/eval-gate.sh`.)
+the verdict. (Mirrors `.agro/evals/probes/eval-gate.sh`.)
 
 ### Gate 3 — Promotable / CI state
 
@@ -162,7 +161,7 @@ The production helper's `browser-required` mode runs this check. When no story
 declares browser verification, the gate is **not applicable**, and no part of the
 audit invokes `agent-browser`.
 
-**Who produces the evidence.** The owner of `/spec execute` produces it, before the
+**Who produces the evidence.** The task owner produces it, before the
 audit. The owner runs the helper's `browser-preflight` mode (not the ordinary
 `/agent-browser` repair/install preflight). The preflight requires `command -v
 agent-browser` and a successful `agent-browser --version`, creates a profile beneath
@@ -259,8 +258,8 @@ with no new work. Anything else is disclosed, non-gating. A function the diff
 disclosed only — the same pre-existing/new distinction gate 2 makes.
 
 **Who produces the findings.** A fresh read-only reviewer who did not write the code
-under review reads the diff at `HEAD` and returns findings in the shape above. The owner
-of `/spec execute` writes them to `.agro/tasks/<slug>/simplicity-review.json`, schema
+under review reads the diff at `HEAD` and returns findings in the shape above. The task
+owner writes them to `.agro/tasks/<slug>/simplicity-review.json`, schema
 version 1, and adds the file with `git add -f`. The driver never writes this record, and
 the implementer of the code under review never writes it:
 
@@ -313,7 +312,7 @@ route for each one.
 
 | All applicable gates pass | Any gate fails |
 |---|---|
-| `AUDIT-PASS` → `retro` | `AUDIT-FAIL` → `implement` (resume) |
+| `AUDIT-PASS` → `ready` | `AUDIT-FAIL` → `implement` (resume) |
 
 State the verdict, then — on the **final line** — emit the routing token. Always
 name the deciding gate on `AUDIT-FAIL` and disclose any non-gating pre-existing

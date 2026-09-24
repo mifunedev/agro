@@ -111,7 +111,7 @@ describe("Hermes-only additive linking", () => {
       ".agro/skills/wiki/references/schema.md", ".agro/skills/eval/run.sh",
       ".agro/hooks/deny-env-dump.sh", ".agro/hooks/deny-secret-paths.sh", ".agro/hooks/warn-devtcp.sh",
       ".agro/skills/cloudflared/scripts/run.sh", ".agro/skills/health-check/scripts/scope-preflight.sh",
-      ".agro/skills/retro/scripts/validate-retro-report.sh", ".agro/skills/t3/scripts/t3-code.sh",
+      ".agro/skills/t3/scripts/t3-code.sh",
       "bin/hermes",
     ];
     for (const path of files) {

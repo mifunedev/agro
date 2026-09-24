@@ -28,9 +28,6 @@ bare_audit='`/audit`'
 for caller in \
   .agro/knowledge/source/recursive-language-models.md \
   .agro/skills/benchmark/SKILL.md \
-  .agro/skills/spec/SKILL.md \
-  .agro/skills/spec/references/execute.md \
-  .agro/skills/spec/references/retro.md \
   docs/artifact-contract-schema.md
 do
   if git grep -nF "$bare_audit" -- "$caller"; then
@@ -44,7 +41,7 @@ fi
 canonical_skills='$AUDIT_ROOT/.agro/skills/'
 grep -qF "$canonical_skills" .agro/skills/audit/references/skills.md \
   || { echo 'REGRESSION: skills audit does not scan canonical .agro/skills' >&2; exit 1; }
-for path in AGENTS.md docs/README.md docs/artifact-contract-schema.md crons/heartbeat.md .github/workflows/ci-harness.yml .agro/evals/capability/tasks/CB-001-ship-harness-change.md .agro/skills/benchmark/SKILL.md .agro/skills/spec/references/retro.md; do
+for path in AGENTS.md docs/README.md docs/artifact-contract-schema.md crons/heartbeat.md .github/workflows/ci-harness.yml .agro/evals/capability/tasks/CB-001-ship-harness-change.md .agro/skills/benchmark/SKILL.md; do
   git ls-files --error-unmatch "$path" >/dev/null || { echo "REGRESSION: stale-reference coverage path missing: $path" >&2; exit 1; }
 done
 echo 'PASS: no active legacy audit references across tracked active surfaces' >&2

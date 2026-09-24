@@ -1,279 +1,186 @@
 ---
 name: prd
-description: "Generate a Product Requirements Document (PRD) for a new feature. Use when planning a feature, starting a new project, or when asked to create a PRD. Triggers on: create a prd, write prd for, plan this feature, requirements for, spec out."
+description: |
+  Write or revise a repository-grounded plan for one task at
+  .agro/tasks/<slug>/prd.md, with user stories, binary acceptance criteria,
+  and the section headings of the feature issue template. Apply /ste.
+  This skill plans only. It never implements the plan.
+  TRIGGER when: "write a plan", "plan this", "plan this feature",
+  "create a prd", "write prd for", "requirements for", "spec out".
+argument-hint: "<request | existing-prd-path | input-file-or-issue>"
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
-# PRD Generator
+# PRD
 
-Create detailed Product Requirements Documents that are clear, actionable, and suitable for implementation.
+Write one plan per task. The plan is `.agro/tasks/<slug>/prd.md`. The operator
+reviews it, and the implementation owner builds from it. Run inline in the
+active session.
 
----
+## Required contract
 
-## The Job
+- Write the plan to `.agro/tasks/<slug>/prd.md` in the target repository.
+- Read `.agro/skills/ste/SKILL.md` before you write. Apply `/ste` to every plan and every revision.
+- Plan only. Do not implement, commit, push, open a pull request, launch workers, or start services.
+- Writing or revising a plan is never approval.
 
-1. Receive a feature description from the user
-2. Ask 3-5 essential clarifying questions (with lettered options)
-3. Generate a structured PRD based on answers
-4. Save to `.agro/tasks/<feature-name>/prd.md`
+## 1. Resolve the request
 
-**Important:** Do NOT start implementing. Just create the PRD.
+Arguments received: `$ARGUMENTS`
 
----
+1. Identify the input type:
+   - free text: a new plan request;
+   - a path to an existing `prd.md`: revise that plan in place;
+   - another file or an issue: comprehensive input for a new plan.
+2. If the argument is empty, use the explicit planning request in the current conversation.
+3. If no source identifies a task, print `Usage: /prd <request | existing-prd-path | input-file-or-issue>` and stop. Write nothing.
+4. If the input names a file or an issue, read the complete input before you write.
+5. Confirm the target repository from the request and the current directory. When the target is ambiguous, ask the operator.
 
-## Step 1: Clarifying Questions
+Comprehensive input already holds the operator's decisions. For that input, do
+not ask clarifying questions. Record each gap as an open question in the plan.
 
-Ask only critical questions where the initial prompt is ambiguous. Focus on:
+## 2. Derive the slug
 
-- **Problem/Goal:** What problem does this solve?
-- **Core Functionality:** What are the key actions?
-- **Scope/Boundaries:** What should it NOT do?
-- **Success Criteria:** How do we know it's done?
+This section is the only copy of the slug rules. Other skills refer to it.
 
-### Format Questions Like This:
+1. Convert the task name to lowercase.
+2. Replace each run of whitespace or punctuation with one `-`.
+3. Remove a `-` at the start or at the end.
+4. Reject the result if the result is empty, contains `/`, has more than 5 hyphen-separated words, or equals `archive`.
 
+The result matches `[a-z0-9-]+`. The slug becomes the `<shortdesc>` segment of the task branch.
+
+| Input | Slug |
+|---|---|
+| `Install Prereq Detection` | `install-prereq-detection` |
+| `Add a long six word feature` | rejected: more than 5 words |
+| `archive` | rejected: reserved name |
+
+If `.agro/tasks/<slug>/prd.md` exists and the operator did not ask for a
+revision of it, ask before you replace it.
+
+## 3. Ground the plan
+
+1. Read each applicable `AGENTS.md` and directory `README.md` for the affected paths.
+2. Read the code, tests, configuration, and documentation that control the requested behavior.
+3. Separate verified facts from assumptions.
+4. Never invent a missing command, path, threshold, or result. Write an explicit placeholder, such as `<test command>`, and add an open question.
+
+A draft with an unresolved required decision has the status `BLOCKED`.
+
+## 4. Ask clarifying questions
+
+Ask only the questions whose answers change scope, safety, or acceptance.
+Give lettered options, so that the operator can answer with `1A, 2C`:
+
+```text
+1. What is the scope?
+   A. Minimal version
+   B. Full feature
+   C. Backend only
+   D. Other: <specify>
 ```
-1. What is the primary goal of this feature?
-   A. Improve user onboarding experience
-   B. Increase user retention
-   C. Reduce support burden
-   D. Other: [please specify]
 
-2. Who is the target user?
-   A. New users only
-   B. Existing users only
-   C. All users
-   D. Admin users only
+For comprehensive input, skip this step.
 
-3. What is the scope?
-   A. Minimal viable version
-   B. Full-featured implementation
-   C. Just the backend/API
-   D. Just the UI
-```
+## 5. Write the plan
 
-This lets users respond with "1A, 2C, 3B" for quick iteration.
-
----
-
-## Step 2: PRD Structure
-
-Generate the PRD with these sections:
-
-### 1. Introduction/Overview
-
-Brief description of the feature and the problem it solves.
-
-### 2. Goals
-
-Specific, measurable objectives (bullet list).
-
-### 3. User Stories
-
-Each story needs:
-
-- **Title:** Short descriptive name
-- **Description:** "As a [user], I want [feature] so that [benefit]"
-- **Acceptance Criteria:** Verifiable checklist of what "done" means
-
-Each story should be small enough to implement in one focused session.
-
-**Format:**
+Use the section headings of `.github/ISSUE_TEMPLATE/feat.md`, in this order.
+When a section does not apply, write "N/A" and give the reason.
 
 ```markdown
-### US-001: [Title]
+# PRD: <title>
 
-**Description:** As a [user], I want [feature] so that [benefit].
-
-**Acceptance Criteria:**
-
-- [ ] Specific verifiable criterion
-- [ ] Another criterion
-- [ ] Typecheck/lint passes
-- [ ] **[UI stories only]** Verify in browser using agent-browser skill
-```
-
-**Important:**
-
-- Acceptance criteria must be verifiable, not vague. "Works correctly" is bad. "Button shows confirmation dialog before deleting" is good.
-- **For any story with UI changes:** Always include "Verify in browser using agent-browser skill" as acceptance criteria. This ensures visual verification of frontend work.
-
-### 4. Functional Requirements
-
-Numbered list of specific functionalities:
-
-- "FR-1: The system must allow users to..."
-- "FR-2: When a user clicks X, the system must..."
-
-Be explicit and unambiguous.
-
-### 5. Non-Goals (Out of Scope)
-
-What this feature will NOT include. Critical for managing scope.
-
-### 6. Design Considerations (Optional)
-
-- UI/UX requirements
-- Link to mockups if available
-- Relevant existing components to reuse
-
-### 7. Technical Considerations (Optional)
-
-- Known constraints or dependencies
-- Integration points with existing systems
-- Performance requirements
-
-### 8. Success Metrics
-
-How will success be measured?
-
-- "Reduce time to complete X by 50%"
-- "Increase conversion rate by 10%"
-
-### 9. Open Questions
-
-Remaining questions or areas needing clarification.
-
----
-
-## Writing for Junior Developers
-
-The PRD reader may be a junior developer or AI agent. Therefore:
-
-- Be explicit and unambiguous
-- Avoid jargon or explain it
-- Provide enough detail to understand purpose and core logic
-- Number requirements for easy reference
-- Use concrete examples where helpful
-
----
-
-## Output
-
-- **Format:** Markdown (`.md`)
-- **Location:** `.agro/tasks/<feature-name>/`
-- **Filename:** `prd.md`
-- **Feature name (`<short-desc>`):** lowercase kebab-case, `[a-z0-9-]+`, **≤5 words** (per `.claude/skills/git/SKILL.md` — this slug becomes the `<short-desc>` segment in any branch the task produces). Slugify the user-supplied name:
-  - Lowercase everything
-  - Replace runs of whitespace or punctuation with a single `-`
-  - Strip leading/trailing `-`
-  - Reject if the result is empty, contains `/`, exceeds 5 hyphen-separated words, or equals `archive`
-
-  Examples:
-  | Input | Slug |
-  |---|---|
-  | `Install Prereq Detection` | `install-prereq-detection` |
-  | `Slack thread replies` | `slack-thread-replies` |
-  | `Add a long six word feature` | rejected — exceeds 5 words |
-  | `archive` | rejected — `archive` is reserved |
-- **Rerun:** if `.agro/tasks/<feature-name>/prd.md` already exists, overwrite in place. The PRD is a living spec; git history is the recovery path.
-
----
-
-## Example PRD
-
-```markdown
-# PRD: Task Priority System
-
-## Introduction
-
-Add priority levels to tasks so users can focus on what matters most. Tasks can be marked as high, medium, or low priority, with visual indicators and filtering to help users manage their workload effectively.
-
-## Goals
-
-- Allow assigning priority (high/medium/low) to any task
-- Provide clear visual differentiation between priority levels
-- Enable filtering and sorting by priority
-- Default new tasks to medium priority
+Status: DRAFT | BLOCKED
 
 ## User Stories
 
-### US-001: Add priority field to database
+### US-001: <title>
 
-**Description:** As a developer, I need to store task priority so it persists across sessions.
-
-**Acceptance Criteria:**
-
-- [ ] Add priority column to tasks table: 'high' | 'medium' | 'low' (default 'medium')
-- [ ] Generate and run migration successfully
-- [ ] Typecheck passes
-
-### US-002: Display priority indicator on task cards
-
-**Description:** As a user, I want to see task priority at a glance so I know what needs attention first.
+**Description:** As a <role>, I want <capability> so that <benefit>.
 
 **Acceptance Criteria:**
 
-- [ ] Each task card shows colored priority badge (red=high, yellow=medium, gray=low)
-- [ ] Priority visible without hovering or clicking
-- [ ] Typecheck passes
-- [ ] Verify in browser using agent-browser skill
+- [ ] <Binary, verifiable criterion.>
 
-### US-003: Add priority selector to task edit
+## Summary
+<Context beyond the stories: verified current state and the selected approach.>
 
-**Description:** As a user, I want to change a task's priority when editing it.
+## Key Integration Points
+| File | Function(s) / Symbol(s) | Role |
+|---|---|---|
 
-**Acceptance Criteria:**
+## Interface Integration Points
+| Surface | Change Type | Description |
+|---|---|---|
 
-- [ ] Priority dropdown in task edit modal
-- [ ] Shows current priority as selected
-- [ ] Saves immediately on selection change
-- [ ] Typecheck passes
-- [ ] Verify in browser using agent-browser skill
+## Storage
+<Persistence layer, location or schema, pattern to follow. N/A with a reason if stateless.>
 
-### US-004: Filter tasks by priority
+## Architectural Decisions
+<Source of truth, state management, auth or scoping.>
 
-**Description:** As a user, I want to filter the task list to see only high-priority items when I'm focused.
+## Test Plan (TDD)
+| Test File | Case(s) | Validates |
+|---|---|---|
 
-**Acceptance Criteria:**
+## Design Principles
+<Repository principles plus task-specific principles.>
 
-- [ ] Filter dropdown with options: All | High | Medium | Low
-- [ ] Filter persists in URL params
-- [ ] Empty state message when no tasks match filter
-- [ ] Typecheck passes
-- [ ] Verify in browser using agent-browser skill
-
-## Functional Requirements
-
-- FR-1: Add `priority` field to tasks table ('high' | 'medium' | 'low', default 'medium')
-- FR-2: Display colored priority badge on each task card
-- FR-3: Include priority selector in task edit modal
-- FR-4: Add priority filter dropdown to task list header
-- FR-5: Sort by priority within each status column (high to medium to low)
-
-## Non-Goals
-
-- No priority-based notifications or reminders
-- No automatic priority assignment based on due date
-- No priority inheritance for subtasks
-
-## Technical Considerations
-
-- Reuse existing badge component with color variants
-- Filter state managed via URL search params
-- Priority stored in database, not computed
-
-## Success Metrics
-
-- Users can change priority in under 2 clicks
-- High-priority tasks immediately visible at top of lists
-- No regression in task list performance
+## Out of Scope
+<What this task does not include.>
 
 ## Open Questions
+<Unresolved decisions. Write "None" when no question remains.>
 
-- Should priority affect task ordering within a column?
-- Should we add keyboard shortcuts for priority changes?
+## Acceptance Criteria
+- [ ] <Task-level binary criterion.>
+
+## Lessons
+
+Filled by the advisor before undraft.
 ```
 
----
+### Stories
 
-## Checklist
+- Give each story the heading `### US-00N: <title>`, a description in the form "As a <role>, I want <capability> so that <benefit>", and an acceptance-criteria checklist.
+- Size and order the stories by the rules in [`references/tracker.md`](references/tracker.md).
 
-Before saving the PRD:
+### Acceptance criteria
 
-- [ ] Asked clarifying questions with lettered options
-- [ ] Incorporated user's answers
-- [ ] User stories are small and specific
-- [ ] Functional requirements are numbered and unambiguous
-- [ ] Non-goals section defines clear boundaries
-- [ ] Feature name is lowercase kebab-case (`[a-z0-9-]+`, not `archive`)
-- [ ] Saved to `.agro/tasks/<feature-name>/prd.md`
+Write each criterion as a binary check. An agent must be able to execute or verify each check.
+
+- Bad: "Works correctly." Good: "The button opens a confirmation dialog before it deletes the task."
+- Bad: "Fast enough." Good: "`<command>` completes in less than 2 seconds on the fixture."
+
+For each story that changes a user interface, add this criterion:
+"Verify in browser using agent-browser skill".
+
+## 6. Verify and report
+
+1. Read the saved file back from disk.
+2. Confirm that each story has at least one acceptance criterion.
+3. Confirm that each section is present and in order. `## Lessons` must be the last section.
+4. Run `bash .agro/skills/ste/scripts/ste-check.sh <prd-path>` from the harness repository. Use an absolute path for another repository.
+5. Fix each checker finding. Then review the meaning with the ten-question check in `/ste`.
+6. Report the path, the status, and the open questions.
+
+Use `DRAFT` only when the plan passes these checks and waits for operator approval.
+Use `BLOCKED` when a required decision, prerequisite, or check remains open.
+If the write fails, report `FAILED` with the cause. Do not report a plan that you did not read back.
+
+## 7. After operator approval
+
+Do these steps only after the operator approves the plan. The approval is an
+explicit operator statement. Writing or revising the plan does not start
+either step.
+
+1. Convert `prd.md` to `.agro/tasks/<slug>/prd.json`. Follow [`references/tracker.md`](references/tracker.md).
+2. Offer the "Draft PR for a task" procedure in [`.agro/skills/git/SKILL.md`](../git/SKILL.md). Run the procedure only when the operator accepts.
+
+## Examples
+
+- `/prd webhook retry limits` writes a grounded draft at `.agro/tasks/webhook-retry-limits/prd.md`.
+- `/prd .agro/tasks/webhook-retry-limits/prd.md` reads the draft and revises it in place.
+- `/prd` with no request prints the usage message and writes nothing.

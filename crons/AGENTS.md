@@ -118,9 +118,9 @@ returns before generating a shell wrapper or spawning an agent.
 | File | Schedule | Description |
 |------|----------|-------------|
 | `heartbeat.md` | `0 * * * *` (hourly) — currently `enabled: false` | Hourly pulse — review memory, surface anything urgent |
-| `cleanup-tasks.md` | `0 23 * * 0` (Sun 23:00 MT) | Weekly `/spec execute` task sweep — archive completed tasks |
+| `cleanup-tasks.md` | `0 23 * * 0` (Sun 23:00 MT) | Weekly task sweep — archive completed tasks |
 | `eval-weekly.md` | `0 6 * * 0` (Sun 06:00 MT) | Weekly eval suite — run probes, log any regressions to memory |
-| `prompt-miner.md` | `0 5 * * *` (daily 05:00 MT) | Daily prompt-miner — mine 24h of session traces for prompt-quality markers; ship a top finding to the origin fork via `/spec` (opt-in `enabled: false`, cap-gated by `preflight: .agro/skills/prompt-miner/prompt-miner-caps.sh`) |
+| `prompt-miner.md` | `0 5 * * *` (daily 05:00 MT) | Daily prompt-miner — mine 24h of session traces for prompt-quality markers; ship a top finding to the origin fork via `/prd` and `/delegate` (opt-in `enabled: false`, cap-gated by `preflight: .agro/skills/prompt-miner/prompt-miner-caps.sh`) |
 
 ## Runtime supervision
 

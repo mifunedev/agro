@@ -3,7 +3,7 @@
 #
 # One implementation, two consumers:
 #   /wiki lint       — `--verified`, the source-change freshness check
-#   /spec execute    — `--changed <paths>`, the Actual Knowledge Impact gate
+#   a build          — `--changed <paths>`, the Actual Knowledge Impact gate
 #
 # A page's `sources:` list IS its dependency declaration. Only the
 # repository-relative entries expire: a `raw/<date>-<slug>.md` snapshot is

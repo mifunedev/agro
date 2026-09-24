@@ -4,8 +4,8 @@ The human-readable proof a reviewer reads to see *that the change works*, not me
 *that a verdict was emitted*. It is written **into the pull request description**, so
 it arrives with the review itself.
 
-**It is a gate condition.** `/spec execute` refuses to undraft a PR whose body does not
-carry it. The operator's understanding of the work stops at the plan they approved;
+**It is a gate condition.** `/git` § Ready for review refuses to undraft a PR whose body
+does not carry it. The operator's understanding of the work stops at the plan they approved;
 everything after that happened inside a compacted session they did not watch. These
 sections are how the build answers back to that plan, which is what makes approving a
 merge an informed act rather than a trusting one.
@@ -27,8 +27,7 @@ separate, human-addressed narrative in the PR description.
 `/audit implementation` and `/audit pr` are read-only: they decide, they do not mutate
 the repository and they do not edit the PR. Neither route writes these sections. The
 **orchestrating caller** writes them from the observations those routes returned — in
-the shipped workflow that caller is `/spec execute`, after its `/audit pr` delegation
-returns. A route that wrote the body itself would break its report-only contract.
+the shipped workflow that caller is the advisor that owns the task PR. A route that wrote the body itself would break its report-only contract.
 
 ## Contract
 
@@ -64,7 +63,7 @@ returns. A route that wrote the body itself would break its report-only contract
   them — *why this is better*, *divergence* and *unverified* — are the things a reviewer cannot reconstruct
   from the diff, so an empty one is written as `None` / `Nothing` explicitly. Omitting
   them reads as "nothing diverged, nothing unchecked", the most expensive claim this
-  record can make by accident, and `/spec execute` refuses the undraft for it.
+  record can make by accident, and `/git` § Ready for review refuses the undraft for it.
 
 ## The five questions
 

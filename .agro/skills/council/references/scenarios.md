@@ -72,6 +72,6 @@ Name the next authorized step or request permission. Do not treat agreement as a
 A factual lookup, audit request, roadmap request, or implementation request alone does not trigger `/council`.
 An explicit request for multiple independent perspectives triggers deliberation, not ownership transfer.
 Keep architecture decisions with `/architect` and audit verdicts with `/audit`.
-Keep worker mechanics with `/delegate`, builds with `/spec`, and external session supervision with `/supervisor`.
+Keep plans with `/prd`, worker mechanics with `/delegate`, and external session supervision with `/supervisor`.
 Keep authoring with `/builder`, prose with `/ste`, and knowledge promotion with `/wiki`.
 Load only a skill required for authorized composition. Do not launch another owner or alter existing skill contracts.

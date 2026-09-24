@@ -44,7 +44,7 @@ under `.worktrees/`.
 
 **Reset/remove** only known local, generated, or abandoned state, such as:
 
-- worktree contents, task progress, memory/log state, plans/spec scratch,
+- worktree contents, task progress, memory/log state, plan scratch,
   screenshots, build output, dependencies, local env/auth files, and caches
   covered by `.gitignore`;
 - an explicit operator-local setting or a tracked edit that was reviewed and

@@ -8,12 +8,11 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 REF="$ROOT/.agro/skills/audit/references/implementation.md"
-EXEC="$ROOT/.agro/skills/spec/references/execute.md"
 GATE="$ROOT/.agro/skills/audit/scripts/implementation-gates.sh"
 
 fail() { echo "REGRESSION: $*" >&2; exit 1; }
 
-for f in "$REF" "$EXEC" "$GATE"; do [[ -f $f ]] || fail "missing: $f"; done
+for f in "$REF" "$GATE"; do [[ -f $f ]] || fail "missing: $f"; done
 
 grep -Fq '## The five gates (fail-fast, in order)' "$REF" || fail 'gate 5 not in the fail-fast chain'
 grep -Fq '### Gate 5 — Slop (less code, low complexity)' "$REF" || fail 'gate 5 section missing'
@@ -23,8 +22,6 @@ grep -Fq 'SIMPLICITY-RESIDUAL' "$REF" || fail 'residual disclosure missing from 
 grep -Fq 'never report it as CCN' "$REF" || fail 'the bash branch-point proxy is not labelled as a proxy'
 grep -Fq 'never infer green from' "$REF" || fail 'unavailable complexity tool may be read as green'
 grep -Fq '.agro/tasks/<slug>/simplify-rounds.json' "$REF" || fail 'gate 5 does not name the round record'
-grep -Fq 'simplify-rounds.json' "$EXEC" || fail 'the caller that owns the round record does not write it'
-grep -Fq 'non-reducing round' "$EXEC" || fail 'the monotone termination rule is not documented for the caller'
 
 root=$(mktemp -d); trap 'rm -rf "$root"' EXIT
 mkdir -p "$root/.agro/tasks/demo"

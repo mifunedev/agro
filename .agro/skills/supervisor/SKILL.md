@@ -49,8 +49,7 @@ behavior, not an identity, a model, or a terminal.
 `/delegate` owns the worker boundary and the fan-out policy. Read `/delegate`
 for worker limits and model policy. Restate neither here.
 
-`/spec` owns the build loop the advisor runs. `/prd` and `/plan` own the
-contract documents. `/herdr` owns the full pane command catalog. `/escalate`
+`/prd` owns the contract documents. `/herdr` owns the full pane command catalog. `/escalate`
 owns the operator channel. `/ste` owns the prose of every artifact.
 
 ## Duty 1 — start an advisor session
@@ -429,7 +428,7 @@ write the file, then point at the file at the next seam.
 **4. A task contract without `prd.json` records no completion.**
 Symptom: the run reached story four with no machine-readable completion state.
 Cause: the task folder carried `prd.md` alone. Correction: generate `prd.json`
-with `/ralph` when the PRD lands.
+with `.agro/skills/prd/references/tracker.md` when the PRD lands.
 
 **5. `herdr agent send` types text without submitting.**
 Symptom: the brief sat unsent in the advisor's prompt. Cause: `agent send`
@@ -502,8 +501,7 @@ checks. Each level is assumed sound while auditing the level below it.
 | Skill | Owns |
 |---|---|
 | `/delegate` | Fan-out policy, worker limits, model policy |
-| `/spec` | The build loop the advisor runs |
-| `/prd` and `/plan` | The contract documents |
+| `/prd` | The contract documents |
 | `/herdr` | The pane command catalog |
 | `/escalate` | The operator channel |
 | `/worktrees` | The worktree layout |

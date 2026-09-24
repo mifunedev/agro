@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1160-sandbox-install-version",
+  "description": "Pin the official sandbox image by version: add `agro sandbox install --version <X.Y.Z>`, keep `--image=<ref>` for custom images, and default the image tag to the CLI version.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Default the official image tag to the CLI version",
+      "description": "As an operator, I want the default image tag to equal my `agro` CLI version so that each sandbox runs a known release, not `latest`.",
+      "acceptanceCriteria": [
+        "If `version` matches `^[0-9]+\\.[0-9]+\\.[0-9]+$`, the function `officialImageRef(version)` returns `ghcr.io/mifunedev/agro:<version>`.",
+        "`officialImageRef(version)` returns `ghcr.io/mifunedev/agro:latest` for `0.0.0-dev` and for each prerelease version, such as `0.14.0-rc.1`.",
+        "Library code reads the CLI version from one shared module. `cli.ts` imports the version from that module, and `agro --version` still prints the bare version.",
+        "Each use site in `lifecycle.ts` and `sandbox.ts` calls `officialImageRef(<CLI version>)` in place of `DEFAULT_SANDBOX_IMAGE`.",
+        "A bare `agro sandbox install docker --image` with no configured `image.ref` runs `ghcr.io/mifunedev/agro:<CLI version>`. A `lifecycle.test.ts` case proves the `AGRO_SANDBOX_IMAGE` value.",
+        "For a sandbox that runs the prebuilt image and has no `image.ref`, the rendered compose env file sets `AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/agro:<CLI version>`. A `config-render.test.ts` case proves the value.",
+        "For a build-mode sandbox with no `image.ref`, the rendered compose env file does not set `AGRO_SANDBOX_IMAGE`.",
+        "`npm test` exits 0 and `npm --prefix .agro/cli run typecheck` exits 0."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Commits fec75ca2 + fix 0f03fa51 (advisor review: build-mode root agro.json with no checkout would have received the official ref; prebuilt test narrowed to image.mode == \"image\"). Integrated on task branch. AC1 executed: version.test.ts release refs, npm test exit 0. AC2 executed: version.test.ts dev/prerelease -> latest, npm test exit 0. AC3 executed: build + `node dist/agro.js --version` printed 0.13.0 (worker); lib/version.ts is sole declaration. AC4 reasoned: grep finds no DEFAULT_SANDBOX_IMAGE; both use sites call officialImageRef(AGRO_VERSION). AC5 executed: lifecycle.test.ts bare --image cases. AC6 executed: config-render.test.ts image-mode default cases. AC7 executed: config-render.test.ts build-mode cases with and without checkout. AC8 executed on task branch: npm test exit 0 (1574 tests; 1 of 4 runs had one intermittent failure that did not reproduce in 3 reruns), cli typecheck exit 0, pnpm run typecheck exit 0.",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/commands/lifecycle.ts",
+        ".agro/cli/src/commands/sandbox.ts",
+        ".agro/cli/src/lib/config-render.ts",
+        ".agro/cli/src/__tests__/lifecycle.test.ts",
+        ".agro/cli/src/lib/__tests__/config-render.test.ts"
+      ],
+      "commit": "0f03fa51"
+    },
+    {
+      "id": "US-002",
+      "title": "Add `--version` to `agro sandbox install`",
+      "description": "As an operator, I want to type `agro sandbox install docker --version=0.13.0` so that I can pin an official release without typing the full image ref.",
+      "acceptanceCriteria": [
+        "The parser accepts `--version=<X.Y.Z>` and `--version <X.Y.Z>` after `sandbox install`.",
+        "The parser removes one leading `v`, so `--version=v0.13.0` selects `ghcr.io/mifunedev/agro:0.13.0`.",
+        "If the value does not match `^v?[0-9]+\\.[0-9]+\\.[0-9]+$`, the command exits 1 with an error that names the value and the expected form `X.Y.Z`.",
+        "If `--version` has no value, the command exits 1 with `agro sandbox install: --version requires a value`.",
+        "If the operator passes `--version` together with `--image=<ref>`, the command exits 1 with an error that names both flags. The command writes no sandbox entry.",
+        "The parser accepts `--version` together with a bare `--image`. The install then selects `ghcr.io/mifunedev/agro:<X.Y.Z>`.",
+        "`--version` selects image mode and implies `--no-build`, the same as `--image=<ref>`.",
+        "`--version` overrides `image.ref` in the entry `agro.json`, `image.ref` in the checkout `agro.json`, and `AGRO_SANDBOX_IMAGE`.",
+        "`agro --version` and `agro -v` as the first argument still print the CLI version.",
+        "`agro sandbox --help` lists `--version <X.Y.Z>` and describes `--image=<ref>` as the flag for a custom image.",
+        "`agro sandbox install docker --version=0.13.0 --yes --print-argv` prints a compose argv whose env selects `ghcr.io/mifunedev/agro:0.13.0`.",
+        "`npm test` exits 0 and `npm --prefix .agro/cli run typecheck` exits 0."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Integrated on task branch. AC1 executed: lifecycle.test.ts parseSandboxArgs = and space forms, npm test exit 0. AC2 executed: v-prefix cases, npm test exit 0. AC3 executed: advisor ran bundle `--version=0.13` -> exit 1 naming the value and X.Y.Z. AC4 executed: parser and bundle tests for a missing value, npm test exit 0. AC5 executed: advisor ran bundle `--version=0.13.0 --image=my/img:1 --yes` with scratch AGRO_HOME -> exit 1, AGRO_HOME stayed empty. AC6 executed: parser tests with bare --image in both orders. AC7 executed: sandbox.test.ts argv ends `up -d --no-build`. AC8 executed: sandbox.test.ts case with entry ref, checkout ref and AGRO_SANDBOX_IMAGE -> runner receives the 0.13.0 ref. AC9 executed: advisor ran `node dist/agro.js --version` -> 0.13.0; bundle tests cover -v. AC10 executed: lifecycle.test.ts help case. AC11 executed via test: print-argv output omits variables; sandbox.test.ts print-argv case proves AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/agro:0.13.0 reaches the runner. AC12 executed on task branch: npm test exit 0 (1605/1605), cli typecheck exit 0, pnpm run typecheck exit 0, build exit 0.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/commands/sandbox.ts",
+        ".agro/cli/src/commands/lifecycle.ts",
+        ".agro/cli/src/__tests__/sandbox.test.ts",
+        ".agro/cli/src/__tests__/cli-first-help.test.ts"
+      ],
+      "commit": "d246413a"
+    },
+    {
+      "id": "US-003",
+      "title": "Persist explicit version pins",
+      "description": "As an operator, I want an install-time pin to persist so that `agro start` and `agro restart` keep the same release.",
+      "acceptanceCriteria": [
+        "After `agro sandbox install docker --version=0.13.0 --yes`, the entry `agro.json` holds `image.ref` = `ghcr.io/mifunedev/agro:0.13.0` and `image.mode` = `image`.",
+        "After an install with no `--version` and no `--image=<ref>`, the entry `agro.json` holds no `image.ref` that the install added. The default tag follows the CLI version at each later start.",
+        "A re-install of an existing entry with a new `--version` value replaces the stored `image.ref`.",
+        "`sandbox.test.ts` holds one case for each of the three criteria above.",
+        "`npm test` exits 0."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Worker commit 5822075b cherry-picked to the task branch as 96599bc1. The install no longer stores a default ref; config-render supplies it for image mode. AC1 executed: sandbox.test.ts --version pin case stores image.ref ghcr.io/mifunedev/agro:0.13.0 with mode image, npm test exit 0. AC2 executed: sandbox.test.ts case for no-checkout and image-mode checkout stores no ref, and renderComposeVars yields officialImageRef(AGRO_VERSION), npm test exit 0. AC3 executed: sandbox.test.ts 0.12.0 then 0.13.0 re-install case, npm test exit 0. AC4 reasoned: one dedicated case per criterion in the --version pin describe block; the seeded image.ref case still passes. AC5 executed on task branch: npm test exit 0 (1609/1609), cli typecheck exit 0, pnpm run typecheck exit 0.",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/cli/src/commands/sandbox.ts",
+        ".agro/cli/src/__tests__/sandbox.test.ts"
+      ],
+      "commit": "96599bc1"
+    },
+    {
+      "id": "US-004",
+      "title": "Document version pinning",
+      "description": "As an operator, I want the docs to show `--version` as the way to pin a release so that I skip the full image ref.",
+      "acceptanceCriteria": [
+        "`docs/lifecycle-commands.md` lists `[--version <X.Y.Z>]` in the `agro sandbox install` row.",
+        "`docs/deployment-prebuilt-image.md` states that the default tag is the CLI version, shows `agro sandbox install docker --version=0.13.0`, and keeps `--image=<ref>` for custom images.",
+        "`docs/deployment-prebuilt-image.md` states the resolution order: `--version` or `--image=<ref>`, then `image.ref` or `AGRO_SANDBOX_IMAGE`, then `ghcr.io/mifunedev/agro:<CLI version>`.",
+        "`docs/configuration.md` gives the `image.ref` default as `ghcr.io/mifunedev/agro:<CLI version>`.",
+        "`docs/installation.md` and `docs/quickstart.md` no longer state that a sandbox without `--checkout` runs `ghcr.io/mifunedev/agro:latest`.",
+        "`CHANGELOG.md` holds an entry for the new flag and the new default.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 for each changed file under `docs/`."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Commits 0bcc8362 (docs), d88a5a59 (probe repair: agro-sandbox-image-mode.sh pinned the removed DEFAULT_SANDBOX_IMAGE literal; now guards officialImageRef/AGRO_VERSION and image-mode-only default; 10 injected faults each exit 1), 0e4b9759 (changelog entries shortened below the 250-char probe limit), 5f4659d2 (operator-chosen STE rewrite of lifecycle-commands, configuration, installation, quickstart: 122 existing findings cleared; headings, code and link targets unchanged). Integrated on task branch by fast-forward. AC1 reasoned: lifecycle-commands.md install row lists [--version <X.Y.Z>]. AC2 reasoned: deployment-prebuilt-image.md states the CLI-version default, shows --version=0.13.0, keeps --image=<ref> for custom images. AC3 reasoned: \"Which image ref wins\" lists --version/--image=<ref>, AGRO_SANDBOX_IMAGE, image.ref, ghcr.io/mifunedev/agro:<CLI version> (the order the code uses). AC4 reasoned: configuration.md image.ref default is ghcr.io/mifunedev/agro:<CLI version>. AC5 reasoned: installation.md and quickstart.md say <CLI version> instead of :latest. AC6 executed: CHANGELOG Unreleased has Added and Changed entries linked to #1160; changelog-entry-length.sh exit 0. AC7 executed on task branch: ste-check.sh exit 0 for all five changed docs. Also on task branch: npm test exit 0 (1609/1609), cli typecheck exit 0, pnpm run typecheck exit 0; all 159 probes run with timeout 30: only next-dev-prod.sh and skills-vendored.sh exit 1, and both exit 1 on development.",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        "docs/lifecycle-commands.md",
+        "docs/deployment-prebuilt-image.md",
+        "docs/configuration.md",
+        "docs/installation.md",
+        "docs/quickstart.md",
+        "CHANGELOG.md"
+      ],
+      "commit": "5f4659d2"
+    }
+  ]
+}

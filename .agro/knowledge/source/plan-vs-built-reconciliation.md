@@ -7,9 +7,9 @@ created: 2026-08-24
 updated: 2026-09-07
 sources:
   - raw/2026-08-24-plan-vs-built-reconciliation.md
-  - .agro/skills/spec/references/execute.md
+  - .agro/skills/spec/references/execute.md@51b44e10
   - .agro/skills/audit/references/reviewer-evidence-doc.md
-  - .agro/evals/probes/spec-ready-finalization.sh
+  - .agro/evals/probes/spec-ready-finalization.sh@51b44e10
 verified_at: 4db24429bbf08c521b62ad6386fd1370445ac203
 related: [audit-architecture]
 confidence: provisional
@@ -18,12 +18,14 @@ confidence: provisional
 # Plan-vs-Built Reconciliation
 
 ## Relevant Source Files
-- `.agro/skills/spec/references/execute.md:502` — step 7 writes `evidence.md`; `:602` gates the undraft on it.
+- `.agro/skills/spec/references/execute.md@80b9342a:502` — step 7 writes `evidence.md`; `:602` gates the undraft on it.
 - `.agro/skills/audit/references/reviewer-evidence-doc.md:1` — the doc's contract: path, linkage, observed-output rule, run correlation, honesty about gaps.
-- `.agro/evals/probes/spec-ready-finalization.sh:47-58` — the three assertions that keep the gate from being quietly deleted.
+- `.agro/evals/probes/spec-ready-finalization.sh@80b9342a:46-57` — the three assertions that keep the gate from being quietly deleted.
 - `.agro/tasks/<slug>/prd.md` / `progress.txt` / `evidence.md` — the plan, the implementation narrative, and the answer back.
 
 ## Summary
+Issue #1156 retired `/spec`. The sources pin the execute procedure and its probe at `51b44e10`, a `development` revision where both files exist. Issue #1088 removed the evidence gate earlier. The line citations on this page pin `80b9342a`, the `development` revision before that removal.
+
 The pipeline had ~10 verification nodes and zero comprehension nodes: every gate asked *is this correct?* and none asked *is this still what you agreed to?* An operator's model of the work stops at the plan they approved, while the single implementation owner — the agent running `/spec execute` — acts as advisor: it assigns the tracked edits to bounded `/delegate` workers and carries verification and acceptance through one owned workflow (ADR #989). Reconciliation closes that gap with one tracked artifact — `.agro/tasks/<slug>/evidence.md` — which the merge gate **refuses to undraft without** (`execute.md:604`).
 
 ## Detail

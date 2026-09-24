@@ -22,6 +22,7 @@ import { DEFAULT_SANDBOX_NAME, agroEnvPair, agroEnvValue } from "../lib/layout.j
 import { materialize, registryRoot, resolveSandboxRoot } from "../lib/registry.js";
 import { setEnvValue } from "../lib/env-file.js";
 import * as prompt from "../lib/prompt.js";
+import { AGRO_VERSION, officialImageRef } from "../lib/version.js";
 
 
 export interface LifecycleIO {
@@ -102,8 +103,6 @@ function sandboxRoot(opts: SandboxTargetOptions): string {
 
 export const DEFAULT_CONTAINER_NAME = DEFAULT_SANDBOX_NAME;
 
-export const DEFAULT_SANDBOX_IMAGE = "ghcr.io/mifunedev/agro:latest";
-
 function configuredField(root: string, path: string): unknown {
   const file = agroConfigPath(root);
   if (!existsSync(file)) return undefined;
@@ -164,7 +163,7 @@ export async function runSandbox(opts: SandboxOptions, io: LifecycleIO): Promise
   const useImage = opts.image === true || opts.imageRef !== undefined;
   const useNoBuild = useImage || opts.noBuild === true;
   const imageRef = useImage
-    ? (opts.imageRef ?? configuredImage(root) ?? DEFAULT_SANDBOX_IMAGE)
+    ? (opts.imageRef ?? configuredImage(root) ?? officialImageRef(AGRO_VERSION))
     : undefined;
   const env: NodeJS.ProcessEnv | undefined =
     imageRef === undefined ? undefined : { ...process.env, ...agroEnvPair("SANDBOX_IMAGE", imageRef) };

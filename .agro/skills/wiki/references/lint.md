@@ -54,7 +54,7 @@ the enforcement:
 
 - `/wiki lint` to regenerate `.agro/knowledge/README.md` and surface findings.
 - `/wiki lint --dry-run` to preview without writing.
-- After `/wiki ingest` or `/wiki compile` lands a page, so the index matches.
+- After a page lands, so the index matches.
 
 ## When NOT to Use
 
@@ -401,7 +401,7 @@ Check 6 is the only writer. Everything else reports.
   a link from a page that should have had one, not a report row.
 - **Deciding validity from `updated:`** — age is telemetry. Check 3 decides.
 - **Reimplementing freshness** — `knowledge-impact.sh` is the one implementation,
-  and `/spec execute` calls the same script. A second copy will disagree with it.
+  and a build calls the same script. A second copy will disagree with it.
 - **Advancing `verified_at:` to silence check 3** — the pin means "the claims
   were re-read against these sources at this commit". Moving it without reading
   launders staleness into freshness.

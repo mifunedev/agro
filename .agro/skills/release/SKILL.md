@@ -80,14 +80,14 @@ internal coherence.
 ## Pre-releases
 
 A pre-release version has the form `MAJOR.MINOR.PATCH-<channel>.<n>`, for example
-`0.14.0-minimal.1`. `<channel>` is lowercase (`[a-z][a-z0-9]*`) and is not `latest`.
+`0.15.0-minimal.1`. `<channel>` is lowercase (`[a-z][a-z0-9]*`) and is not `latest`.
 `minimal` names the `experiment/minimal-core` track. Reserve `rc` for candidates of
 the next `main` release.
 
 | Version form | Branches that publish it | GitHub Release | npm dist-tag | GHCR `latest` |
 | --- | --- | --- | --- | --- |
-| `0.14.0` | `main`, `master` | latest | `latest` | moves |
-| `0.14.0-minimal.1` | `main`, `master`, `experiment/**` | pre-release, never latest | `minimal` | never moves |
+| `0.15.0` | `main`, `master` | latest | `latest` | moves |
+| `0.15.0-minimal.1` | `main`, `master`, `experiment/**` | pre-release, never latest | `minimal` | never moves |
 
 A stable version on an `experiment/**` push is a green no-op
 (`stable-off-release-branch`), so a stable bump merged from `development` never
@@ -105,7 +105,7 @@ Install the pre-release:
 
 ```bash
 npm i -g @mifune/agro@minimal
-agro sandbox install docker --image=ghcr.io/mifunedev/agro:0.14.0-minimal.1
+agro sandbox install docker --version 0.15.0-minimal.1
 ```
 
 ## 1. Resolve the canonical destination

@@ -8,7 +8,7 @@ title: "Lifecycle commands"
 source of truth for the verbs; every other document links here rather than
 restating them.
 
-`agro` is the only executable; the legacy `oh` alias is retired (see the
+`agro` is the only executable; AGRO retired the legacy `oh` alias (see the
 [AGRO naming cutover](agro-compatibility.md)). Two verbs are easy to confuse:
 [`agro self-upgrade`](#upgrading-the-cli-agro-self-upgrade) upgrades the
 installed CLI, and [`agro vendor`](#equipping-a-checkout-agro-vendor) writes the
@@ -26,19 +26,19 @@ resolves; `agro migrate --home` moves it. Details:
 [Configuration → the two `agro.json` files](configuration.md#the-two-agrojson-files).
 
 Host prerequisites: **Docker** (with the Compose plugin), **Git**, and
-**Node.js ≥ 20**. Node runs `agro` itself; `get-agro.sh` installs it for you
-when it is missing. Everything else — pnpm, Python, the agent CLIs — lives inside the
+**Node.js ≥ 20**. Node runs `agro` itself. When Node is missing, `get-agro.sh`
+installs Node for you. Everything else — pnpm, Python, the agent CLIs — lives inside the
 sandbox.
 
-Project instructions live in `AGENTS.md`. Codex and Pi read that name natively.
-Claude Code reads it from **2.1.277**; an older release, and a session on
+Project instructions live in `AGENTS.md`. Codex and Pi read the `AGENTS.md` name natively.
+Claude Code reads `AGENTS.md` from **2.1.277**; an older release, and a session on
 Amazon Bedrock, Vertex or Foundry, reads no project instructions at all.
 
 ## The verbs
 
 | Verb | Runs |
 |---|---|
-| `agro sandbox install <runtime> [--name <name>] [--checkout <dir>] [--yes] [--image[=<ref>]] [--no-build]` | write the registry entry, then `docker-compose.sh up -d` inside it |
+| `agro sandbox install <runtime> [--name <name>] [--checkout <dir>] [--yes] [--version <X.Y.Z>] [--image[=<ref>]] [--no-build]` | write the registry entry, then `docker-compose.sh up -d` inside it |
 | `agro sandbox list [--json]` | every registry entry: name, runtime, status, checkout |
 | `agro shell [name]` | an interactive `zsh` in the sandbox container |
 | `agro stop [name]` | `docker-compose.sh stop` — containers down, volumes kept |
@@ -75,12 +75,13 @@ agro shell <name>                # attach as the sandbox user
 
 - The entry lands in `${AGRO_HOME:-~/.agro}/sandboxes/<name>/`, holding its own
   `agro.json`, its `.env`, and the compose files plus the wrapper script the CLI
-  re-materialises on every lifecycle call. Edit `agro.json`; the rest is generated.
+  re-materialises on every lifecycle call. Edit `agro.json`; the CLI generates the rest.
 - The default name is `agro-sbx-<n>`, the lowest unused number. `--yes` prompts
   zero times and keeps every default.
 - Without `--checkout` the sandbox runs the prebuilt image and the image's
-  `/opt/agro-seed` seeds the workspace volume. With `--checkout <dir>` that
-  checkout is bind-mounted at `/home/sandbox/harness` and can be built locally.
+  `/opt/agro-seed` seeds the workspace volume. With `--checkout <dir>`, the CLI
+  bind-mounts that checkout at `/home/sandbox/harness`, and the sandbox can build
+  locally.
   `--repo <dir>` remains a supported alias. Recipes:
   [`agro sandbox install docker`](deployment-prebuilt-image.md).
 - `docker` is the only provisionable runtime today. `agro sandbox install
@@ -103,15 +104,15 @@ agro shell <name>                # attach as the sandbox user
 `agro sandbox list` prints that list, with the container status of each.
 
 `agro sandbox list --json` prints the same entries as JSON. Each entry carries the
-bound directory under the key `checkout`. The key `repo` is deprecated in the JSON
-output. It holds the identical value and stays present for existing consumers. Read
+bound directory under the key `checkout`. The JSON output keeps the key `repo` as
+a deprecated key. It holds the identical value and stays present for existing consumers. Read
 `checkout`.
 
 ## Upgrading the CLI: `agro self-upgrade`
 
-`agro self-upgrade` (alias: `agro update`) upgrades exactly one thing: the `agro` executable that is running.
-It writes no project file — no `.agro/`, no `agro.json`, no `.env` — and it never
-asks for `sudo`. The upgrade follows whichever mechanism installed the
+`agro self-upgrade` (alias: `agro update`) upgrades exactly one thing: the running `agro` executable.
+The upgrade writes no project file — no `.agro/`, no `agro.json`, no `.env` — and
+the upgrade never asks for `sudo`. The upgrade follows whichever mechanism installed the
 executable:
 
 | Installation | Detected as | What `agro self-upgrade` does |
@@ -119,13 +120,14 @@ executable:
 | `npm install -g @mifune/agro` | realpath under `node_modules/@mifune/agro/` | reads the registry version with `npm view`, then runs `npm install -g --prefix <owning prefix> @mifune/agro@<version>` |
 | `get-agro.sh` | a plain file | downloads `AGRO_JS_URL` (default `https://github.com/mifunedev/agro/releases/latest/download/agro.js`) into the same directory, checks its shebang and `--version`, renames it over the executable, and keeps `<path>.prev` until the new file verifies |
 
-It refuses, and prints the supported procedure, when the executable is shipped
-by the sandbox image (`/opt/agro`), is a source checkout's `dist/`, cannot be
-resolved, sits in a read-only
-directory, is shadowed by another `agro` earlier on PATH, or does not report the
-running version. Downgrades are refused. When the installed version is already
-current it changes nothing. `--dry-run` reports the installation kind, target,
-and versions without changing anything.
+`agro self-upgrade` refuses, and prints the supported procedure, in each of these
+cases: the sandbox image ships the executable (`/opt/agro`); the executable is a
+source checkout's `dist/`; the CLI cannot resolve the executable; the executable
+sits in a read-only directory; another `agro` earlier on PATH shadows the
+executable; or the executable does not report the running version. The upgrade
+refuses a downgrade. When the installed version is already current, the upgrade
+changes nothing. `--dry-run` reports the installation kind, target, and versions
+without a change.
 
 `agro self-upgrade` rejects the payload flags `--from`, `--from-remote`, `--ref`,
 and `--force` and points at `agro vendor`.
@@ -133,16 +135,16 @@ and `--force` and points at `agro vendor`.
 ## Equipping a checkout: `agro vendor`
 
 `agro vendor` is the command that vendors the
-`.agro/` control plane and `crons/` into the current directory. An empty directory
-is equipped from scratch; an equipped one is upgraded. Payload precedence:
+`.agro/` control plane and `crons/` into the current directory. `agro vendor`
+equips an empty directory from scratch and upgrades an equipped directory. Payload precedence:
 `--from <dir>`, then `--from-remote [--ref <ref>]`, then the CLI's own bundled
 payload, then a remote fetch announced on one line. `--dry-run` previews the
 changes; `--force` overrides the up-to-date and downgrade gate.
 
 It writes **nothing else** — no `agro.json`, no `.env`, no `AGENTS.md`, no
 `.gitignore` line, no `.devcontainer/`, no provider configuration. Those files
-are yours. It never prompts. It does not upgrade the CLI itself; that is
-`agro update`.
+are yours. `agro vendor` never prompts. `agro vendor` does not upgrade the CLI
+itself; `agro update` does.
 
 ## Recovering from `missing lifecycle script`
 
@@ -249,14 +251,15 @@ agro migrate --home    # move the registry instead
 | Exit code | Meaning |
 |---|---|
 | `0` | applied, or nothing to do |
-| `2` | refused: a conflict, or the `.agro-migrate.lock` is held |
+| `2` | refused: a conflict, or another run holds the `.agro-migrate.lock` |
 | `1` | failure |
 
-It is idempotent: a second run is a no-op. It never merges and has no force
-option — divergent `.agro/` and `.agro/` (or `agro.json` and `agro.json`) copies are
-refused with the differing entries named, and you keep exactly one copy or make
-them identical. It preserves unknown files, permission bits, and symlink targets,
-and it never touches `~/.agro`, `.env`, or git history.
+The migration is idempotent: a second run is a no-op. The migration never merges
+and has no force option. The migration refuses divergent `.agro/` and `.agro/` (or
+`agro.json` and `agro.json`) copies and names the differing entries. You keep
+exactly one copy or make the copies identical. The migration preserves unknown
+files, permission bits, and symlink targets, and never touches `~/.agro`, `.env`,
+or git history.
 
 ## Where you are standing when you type `agro`
 
@@ -266,7 +269,7 @@ Compose. Inside the sandbox it runs commands directly, because the sandbox *is*
 the environment those commands target.
 
 Detection is automatic: `agro` treats itself as in-sandbox when `/.dockerenv`
-exists **and** `SANDBOX_NAME` is set. Override it with
+exists **and** `SANDBOX_NAME` holds a value. Override the detection with
 `AGRO_EXECUTION_TARGET=local` or `AGRO_EXECUTION_TARGET=docker-compose`; the
 legacy `AGRO_EXECUTION_TARGET` spelling still applies when the AGRO one is unset.
 
@@ -274,7 +277,7 @@ legacy `AGRO_EXECUTION_TARGET` spelling still applies when the AGRO one is unset
 |---|---|---|
 | `agro harness install` | installs into the running container over Docker Compose; offers a host install when the container is not reachable | installs live, in place |
 | `agro harness uninstall` | removes from the running container over Docker Compose; removes the recorded host install when the container is not reachable | removes live, in place |
-| `agro tool install` | installs into the running container over Docker Compose; offers a host install when the container is not reachable and the tool allows one | installs live, in place |
+| `agro tool install` | installs into the running container over Docker Compose; offers a host install when the container is not reachable and the catalog entry allows one | installs live, in place |
 | `agro tool uninstall` | removes from the running container over Docker Compose; removes the recorded host install when the container is not reachable | removes live, in place |
 | `agro harness list/status` | probes the host install prefix `~/.local` when the container is not reachable; reports `?` when neither a harness root nor that prefix exists | reports the real state of this environment |
 | `agro tool list/status` | probes the host install prefix `~/.local` when the container is not reachable; reports `?` when neither a harness root nor that prefix exists | reports the real state of this environment |
@@ -303,12 +306,12 @@ or `--path`; without either it keeps the refusal. See
 [Harnesses Overview](harnesses/overview.md#installing-a-harness).
 
 `agro tool install <id>` uses the same host path, with two limits. A tool must
-declare that it installs on the host. `herdr`, `cloudflared`, `microsandbox` and
-`tailscale` declare it. `agent-browser` does not, because its installer adds
+declare a host install. `herdr`, `cloudflared`, `microsandbox` and
+`tailscale` declare a host install. `agent-browser` does not, because its installer adds
 system packages to the machine. `gh` and the Docker CLI do not, because the
 sandbox image provides them. A host install also needs Linux, because every tool
 installer is Debian-specific. The command refuses on any other platform and names
-it. A successful host install records the tool as `hostTools` in the host
+that platform. A successful host install records the installed id as `hostTools` in the host
 `agro.json`, separately from `hostHarnesses`. `agro tool uninstall <id>` removes
 only what that record names, and `--force` removes from `~/.local` without a
 record.
@@ -403,20 +406,19 @@ configuration survives `agro destroy` and a recreate. Full reference:
 
 `down -v` wipes the sandbox home volume, and that volume holds provider
 authentication. `agro destroy` is therefore the only lifecycle verb that asks
-before it runs. It names the volumes it is about to delete — read from
-`.devcontainer/docker-compose.yml`, not hardcoded — then requires you to type
-the sandbox name. A blank line, a wrong name, or anything else aborts with a
-non-zero exit and removes nothing.
+before it runs. `agro destroy` names the volumes to delete, as read
+from `.devcontainer/docker-compose.yml`, not hardcoded. Next, `agro destroy`
+requires you to type the sandbox name. Any other input, including a blank line or
+a wrong name, aborts with a non-zero exit and removes nothing.
 
-Once `down -v` succeeds the registry entry under
-`${AGRO_HOME:-~/.agro}/sandboxes/<name>/` is removed too, so the name becomes
-free again.
+After `down -v` succeeds, `agro destroy` also removes the registry entry under
+`${AGRO_HOME:-~/.agro}/sandboxes/<name>/`, so the name becomes free again.
 
 When `storage.homePath` points the home mount at a host path, `down -v` cannot
-delete it. `agro destroy` says so and leaves the directory in place; remove it
-yourself if you want it gone.
+delete the host directory. `agro destroy` says so and leaves the directory in place.
+To delete the directory, remove the directory yourself.
 
-Non-interactive use is gated on an explicit flag. When stdin is not a terminal
+Non-interactive use requires an explicit flag. When stdin is not a terminal
 and `--yes` is absent, `agro destroy` refuses outright rather than assume consent.
 
 ## `agro compose config`, not `agro config`
@@ -448,10 +450,10 @@ Non-secret `agro.json` settings only reach compose when `agro` renders them, so
 on this path each variable falls back to its default in
 `.devcontainer/docker-compose.yml`.
 
-:::danger `storage.homePath` is ignored on this path
+:::danger This path ignores `storage.homePath`
 `AGRO_HOME_MOUNT` is one of those rendered-only variables, so *Reopen in
 Container* falls back to the Docker-managed `<name>_workspace` volume even when
-`storage.homePath` points the sandbox home at a host directory. That is a
+`storage.homePath` points the sandbox home at a host directory. The volume becomes a
 **second, separate home**: agent logins made through `agro sandbox install docker` are not there,
 and the two diverge silently from then on.
 
@@ -459,5 +461,5 @@ If you set `storage.homePath`, always provision with `agro sandbox install
 docker` and attach.
 :::
 
-If you need any overlay, provision with `agro sandbox install docker` and then use
+If you need any overlay, provision with `agro sandbox install docker`. Then use
 *Dev Containers: Attach to Running Container* instead of *Reopen in Container*.

@@ -14,30 +14,31 @@ earlier release stays at `${AGRO_HOME:-~/.oh}/sandboxes/<name>/` and still
 resolves; `agro migrate --home` moves it.
 
 **Running the published image is the default.** Each tagged release publishes the
-sandbox image, already built and smoke-tested, to GHCR.
-The canonical default is `ghcr.io/mifunedev/agro:latest`.
-The legacy image alias remains available. Explicit image refs in the examples below use this alias:
+sandbox image to GHCR. The release workflow builds and smoke-tests the image first.
+The default tag is the `agro` CLI version: `ghcr.io/mifunedev/agro:<CLI version>`.
+Each released CLI therefore runs the image of the same release. If the CLI
+version is not a plain `X.Y.Z` release, for example `0.0.0-dev` from a source
+run, the default falls back to `ghcr.io/mifunedev/agro:latest`.
 
 ```
-ghcr.io/mifunedev/agro:latest      # legacy alias for the newest release
-ghcr.io/mifunedev/agro:<version>   # legacy alias, e.g. 0.1.0 — pin for reproducibility
+ghcr.io/mifunedev/agro:<X.Y.Z>   # one immutable tag per release, e.g. 0.13.0
+ghcr.io/mifunedev/agro:latest    # moving alias for the newest release
 ```
 
-With no `--checkout` there is **no checkout on the host at all**: the workspace and
-the `.agro/` control plane live in the sandbox's home volume, seeded once from the
-image's baked `/opt/agro-seed`. Nothing is cloned and nothing is built. A volume
-seeded by an earlier image keeps its `.agro/` control plane and is never
-re-seeded.
+With no `--checkout`, the host holds **no checkout at all**. The workspace and
+the `.agro/` control plane live in the sandbox's home volume. The entrypoint
+seeds that volume once from the image's baked `/opt/agro-seed`. The CLI clones
+nothing and builds nothing. A volume that an earlier image seeded keeps its
+`.agro/` control plane, and the entrypoint never seeds that volume again.
 
-Pass `--checkout <dir>` and that checkout is bind-mounted at
+Pass `--checkout <dir>`, and the CLI bind-mounts that checkout at
 `/home/sandbox/harness` instead. The image then supplies only the **toolchain** —
 your live, git-versioned `.agro/` control plane (and the rest of your repo)
-shadows the copy baked into the image. That is the key property: **the image
-version is a toolchain concern, not a correctness one**, which is why `latest` is
-a safe default. Building locally from
+shadows the copy baked into the image. The key property follows: **the image
+version is a toolchain concern, not a correctness one**. A local build from
 [`.devcontainer/Dockerfile`](../.devcontainer/Dockerfile) — Node, `gh`, the
 Docker CLI, bun, uv, pnpm — happens only in that case, and only when
-`image.mode` is `build`. On a cold cache that build is **~10 minutes**.
+`image.mode` is `build`. On a cold cache that build takes **~10 minutes**.
 
 ## Prerequisites
 
@@ -47,7 +48,7 @@ Docker CLI, bun, uv, pnpm — happens only in that case, and only when
 | Node.js ≥ 20 | running the `agro` CLI |
 | A checkout equipped with `agro vendor` | only for `--checkout`: the bind-mounted `.agro/` control plane |
 
-The image is public — no `docker login ghcr.io` is required to pull it. The
+The image is public — you need no `docker login ghcr.io` to pull the image. The
 release currently publishes for the architecture the CI runner builds on; if you
 run a different CPU arch, prefer a local build (`--checkout` with `image.mode` set to
 `build`) until multi-arch images land.
@@ -55,32 +56,55 @@ run a different CPU arch, prefer a local build (`--checkout` with `image.mode` s
 ## Pinning an image ref
 
 ```bash
-agro sandbox install docker --image              # pull ghcr.io/mifunedev/agro:latest
-agro sandbox install docker --image=ghcr.io/mifunedev/agro:2026.7.5   # pin a release
-agro shell <name>                                # zsh in the running container, as usual
+agro sandbox install docker                     # run ghcr.io/mifunedev/agro:<CLI version>
+agro sandbox install docker --version=0.13.0    # pin the official 0.13.0 release
+agro sandbox install docker --image=<registry>/<image>:<tag>   # run a custom image
+agro shell <name>                               # zsh in the running container, as usual
 ```
 
-`--image` implies `--no-build`: it swaps the wrapper's `up -d --build` for
-`up -d --no-build` and threads the resolved image ref through
-`AGRO_SANDBOX_IMAGE` (with the legacy `AGRO_SANDBOX_IMAGE` spelling beside it),
-which the compose file interpolates at `image:`.
+`--version <X.Y.Z>` selects the official image `ghcr.io/mifunedev/agro:<X.Y.Z>`.
+The flag accepts `--version=0.13.0`, `--version 0.13.0`, and one leading `v`, as
+in `--version=v0.13.0`. If the value does not match `X.Y.Z`, the command exits
+with code 1. `--version` implies `--image`, so a bare `--image` beside
+`--version` changes nothing.
+
+Use `--image=<ref>` for a custom image. `--version` and `--image=<ref>` both
+choose the image. If you pass both flags, the command exits with code 1 and
+writes no sandbox entry.
+
+`--image`, `--image=<ref>`, and `--version` imply `--no-build`. The CLI swaps
+the wrapper's `up -d --build` for `up -d --no-build`. The CLI then passes the
+resolved image ref through `AGRO_SANDBOX_IMAGE`, which the compose file
+interpolates at `image:`.
 
 `--no-build` on its own suppresses the build and reuses whatever image compose
 already resolves (a previously built `sandbox-<name>`, or an `image.ref` set in
 the entry's `agro.json`) without pinning one — an advanced escape hatch.
 
-### Which image ref wins (last wins)
+### What the install stores
 
-```
-ghcr.io/mifunedev/agro:latest             (built-in default)
-  └─ agro.json  image.ref=<ref>               (the entry's default — see docs/configuration.md)
-       └─ agro sandbox install docker --image=<ref> (per-invocation override)
-```
+The install stores only an explicit pin in the entry's `image.ref`. A
+`--version` value and an `--image=<ref>` value are explicit pins. A re-install
+with a new value replaces the stored ref. Later runs of `agro start` and
+`agro restart` keep the pinned image.
 
-Set a durable default on the entry:
+Without a pin, the install stores no `image.ref`. Each start then renders the
+default `ghcr.io/mifunedev/agro:<CLI version>`. After `agro update`, the next
+start of an unpinned sandbox runs the image that matches the new CLI version.
+
+### Which image ref wins
+
+The CLI uses the first source in this list that holds a ref:
+
+1. `--version <X.Y.Z>` or `--image=<ref>` on `agro sandbox install docker`
+2. `AGRO_SANDBOX_IMAGE` in the process environment
+3. `image.ref` in the entry's `agro.json` (see [configuration](configuration.md))
+4. `ghcr.io/mifunedev/agro:<CLI version>`, the built-in default
+
+Set a durable pin on the entry:
 
 ```bash
-agro config set --sandbox <name> image.ref ghcr.io/mifunedev/agro:latest
+agro config set --sandbox <name> image.ref ghcr.io/mifunedev/agro:0.13.0
 agro config set --sandbox <name> image.pullPolicy always
 ```
 
@@ -89,15 +113,16 @@ which is the same as writing this into `~/.agro/sandboxes/<name>/agro.json`:
 ```json
 {
   "image": {
-    "ref": "ghcr.io/mifunedev/agro:latest",
+    "ref": "ghcr.io/mifunedev/agro:0.13.0",
     "mode": "image",
     "pullPolicy": "missing"
   }
 }
 ```
 
-With `image.ref` set, a bare `agro sandbox install docker --image` uses it; set
-`image.pullPolicy` to `"always"` to always re-pull `latest`.
+If the entry sets `image.ref`, a bare `agro sandbox install docker --image` uses
+that ref. To follow the moving `latest` alias, set `image.ref` to
+`ghcr.io/mifunedev/agro:latest` and set `image.pullPolicy` to `"always"`.
 
 ## `--checkout`: bind a checkout into the sandbox
 
@@ -107,7 +132,7 @@ agro vendor                                     # vendor .agro/ + crons/ into th
 agro sandbox install docker --checkout "$PWD" --name <your-project>
 ```
 
-`checkout` is stored in the entry's `agro.json` and rendered into the compose
+The CLI stores `checkout` in the entry's `agro.json` and renders the value into the compose
 environment as `AGRO_REPO_DIR`, which the base compose file reads as
 `${AGRO_REPO_DIR:-${AGRO_REPO_DIR:-..}}` for both the bind mount and the build
 context — so an entry rendered by an older CLI still resolves. It also lets a
@@ -130,7 +155,7 @@ The CLI is a thin wrapper over the compose files it materialises into the entry;
 you can drive compose directly from an equipped checkout:
 
 ```bash
-AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/agro:latest \
+AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/agro:0.13.0 \
   bash .agro/scripts/docker-compose.sh --repo-dir "$PWD" up -d --no-build
 ```
 
@@ -147,7 +172,7 @@ The VS Code Dev Containers path reads
 `pull_policy`. Set both in `.devcontainer/.env` (compose auto-loads it):
 
 ```dotenv
-AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/agro:latest
+AGRO_SANDBOX_IMAGE=ghcr.io/mifunedev/agro:0.13.0
 AGRO_PULL_POLICY=always
 ```
 
@@ -161,13 +186,13 @@ AGRO_PULL_POLICY=always
 
 For a minimal VS Code container that pulls and skips compose entirely, point
 `devcontainer.json` at the image instead of the compose file. Note this drops the
-named auth volumes and compose overlays — it is a lighter, less-featured
+named auth volumes and compose overlays — the result is a lighter, less-featured
 container:
 
 ```jsonc
 {
   "name": "agro-image",
-  "image": "ghcr.io/mifunedev/agro:latest",
+  "image": "ghcr.io/mifunedev/agro:0.13.0",
   "workspaceFolder": "/home/sandbox/harness",
   "remoteUser": "sandbox"
 }
@@ -210,8 +235,8 @@ and reads the answer from the kernel and the filesystem:
   and run the first-boot seed (below) before `link-providers`, the root
   `pnpm install`, and cron tmux setup, so those steps see a populated `.agro/`.
 
-The detected mode is logged on both paths, so a wrong detection is visible in
-`agro logs` rather than silent:
+The entrypoint logs the detected mode on both paths, so `agro logs` shows a
+wrong detection:
 
 ```
 [entrypoint] checkout bind detected at /home/sandbox/harness — syncing host UID/GID
@@ -221,14 +246,14 @@ The detected mode is logged on both paths, so a wrong detection is visible in
 Three independent guards keep a misdetection from seeding over a real checkout:
 `mountpoint -q` is a kernel fact rather than a heuristic, `seed_workspace_volume`
 refuses when `.agro/` or a legacy `.agro/` already exists, and
-`.agro/.image-seeded` is gitignored.
+`.gitignore` excludes `.agro/.image-seeded`.
 
 ### Seed-to-volume persistence
 
 On the **first boot** against an empty home mount, the entrypoint
 seeds the baked control plane — from the image's `/opt/agro-seed` — into the
 volume, then writes the marker `.agro/.image-seeded`. From that point on, the
-**volume is authoritative**: it is the operator-editable copy of `.agro/` (and
+**volume is authoritative**: the volume holds the operator-editable copy of `.agro/` (and
 the rest of the repo), and edits made inside the running sandbox persist there
 across image pulls and container recreation, not in the image itself. Later
 boots see the marker and skip re-seeding, so a populated volume is never
@@ -248,7 +273,7 @@ clobbered.
 
 The [compose file](../.devcontainer/docker-compose.image-only.yml) is the
 canonical one-liner (`docker compose -f … up -d`). If you drive Docker directly
-instead, this is the equivalent teardown → fresh run → verify sequence. It
+instead, run the equivalent teardown → fresh run → verify sequence below. It
 mirrors the compose file's env and volume set — note it reads `GIT_USER_NAME` /
 `GIT_USER_EMAIL` (the entrypoint ignores any `AGRO_GIT_*` variants).
 
@@ -326,13 +351,13 @@ the wait loop works as written — or use `agro ps <name>` and `agro shell <name
 at if you want a microVM rather than a container. The `docker run` recipe above
 is the invocation to translate — see
 [Running AGRO on MicroSandbox](runtimes/microsandbox.md#running-agro-on-microsandbox).
-Untested end to end; the risks are listed there.
+Nobody has tested this path end to end; that page lists the risks.
 
 ### Single-arch caveat
 
 Same caveat as above: the published image targets the CI runner's architecture.
 If you run a different CPU arch, prefer `--checkout` with `image.mode` set to
-`build`, so the image is built on the machine that runs it, until multi-arch
+`build`, so the machine that runs the image also builds the image, until multi-arch
 images land.
 
 ### Manual live-host smoke checklist (non-gating)

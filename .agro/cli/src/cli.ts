@@ -32,7 +32,6 @@ import {
   runShell,
   composeVerbs,
   DEFAULT_CONTAINER_NAME,
-  DEFAULT_SANDBOX_IMAGE,
   type ComposeVerb,
   type LifecycleIO,
 } from "./commands/lifecycle.js";
@@ -73,9 +72,7 @@ import {
   DEFAULT_REPO_URL,
   type FetchRemoteSourceOptions,
 } from "./lib/remote.js";
-
-declare const __AGRO_VERSION__: string;
-const VERSION: string = typeof __AGRO_VERSION__ === "string" ? __AGRO_VERSION__ : "0.0.0-dev";
+import { AGRO_VERSION as VERSION, officialImageRef, parseReleaseVersion } from "./lib/version.js";
 
 const DEFAULT_SOURCE_CONTROL_DIR = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -289,7 +286,8 @@ export function printSandboxHelp(bin: string = AGRO_PRODUCT.bin): void {
 Usage:
   ${bin} sandbox install <runtime> [--name <name>] [--checkout <dir>]
                                [--home-mount <dir>] [--yes]
-                               [--image[=<ref>]] [--no-build] [--print-argv]
+                               [--version <X.Y.Z> | --image[=<ref>]]
+                               [--no-build] [--print-argv]
   ${bin} sandbox list [--json]
 
 \`install\` writes a sandbox entry under \${${stateNames(bin).envPrefix}HOME:-~/${stateNames(bin).userStateDir}}/sandboxes/<name>/,
@@ -316,9 +314,15 @@ Flags:
                    Docker-managed volume. Relative paths resolve against the
                    working directory. The directory is created when absent
   --yes            Non-interactive: keep every default and ask nothing
-  --image[=<ref>]  Run the prebuilt image instead of building (implies
-                   --no-build). Ref resolves last-wins: --image=<ref> >
-                   ${stateNames(bin).configFile} image.ref > ${DEFAULT_SANDBOX_IMAGE}.
+  --version <X.Y.Z>
+                   Run the official release image ghcr.io/mifunedev/agro:<X.Y.Z>
+                   (implies --image). A leading v and a -<channel>.<n>
+                   pre-release suffix are accepted
+  --image          Run the prebuilt image instead of building (implies
+                   --no-build). The ref resolves first-match: --version or
+                   --image=<ref> > ${stateNames(bin).envPrefix}SANDBOX_IMAGE >
+                   ${stateNames(bin).configFile} image.ref > ${officialImageRef(VERSION)}
+  --image=<ref>    Run a custom image (implies --image); conflicts with --version
   --no-build       Suppress the local build and reuse an existing image
   --print-argv     Print the docker compose argv that would run, then exit
                    without writing an entry
@@ -917,6 +921,7 @@ export function parseSandboxArgs(rest: string[], bin: string = AGRO_PRODUCT.bin)
 
   const positionals: string[] = [];
   const checkoutSpellings = new Set<string>();
+  let version: string | undefined;
   for (let i = 0; i < tail.length; i++) {
     const token = tail[i];
     const valueFlag = SANDBOX_VALUE_FLAGS[token];
@@ -943,6 +948,18 @@ export function parseSandboxArgs(rest: string[], bin: string = AGRO_PRODUCT.bin)
       }
       args.image = true;
       args.imageRef = ref;
+    } else if (token === "--version" || token.startsWith("--version=")) {
+      const value = token === "--version" ? tail[++i] : token.slice("--version=".length);
+      if (value === undefined || value === "") {
+        return { ok: false, error: `${bin} sandbox ${head}: --version requires a value` };
+      }
+      version = parseReleaseVersion(value);
+      if (version === undefined) {
+        return {
+          ok: false,
+          error: `${bin} sandbox ${head}: --version "${value}" is not a release version — expected X.Y.Z`,
+        };
+      }
     } else if (token === "--json") {
       args.json = true;
     } else if (token.startsWith("-")) {
@@ -957,6 +974,17 @@ export function parseSandboxArgs(rest: string[], bin: string = AGRO_PRODUCT.bin)
       ok: false,
       error: `${bin} sandbox ${head}: --checkout conflicts with --repo — pass exactly one, and prefer --checkout`,
     };
+  }
+
+  if (version !== undefined) {
+    if (args.imageRef !== undefined) {
+      return {
+        ok: false,
+        error: `${bin} sandbox ${head}: --version conflicts with --image=<ref> — pass --version for an official release or --image=<ref> for a custom image`,
+      };
+    }
+    args.image = true;
+    args.imageRef = officialImageRef(version);
   }
 
   if (head === "list") {
