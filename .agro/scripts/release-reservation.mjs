@@ -9,18 +9,19 @@ export class ReleaseReservationError extends Error {
   }
 }
 
-const SEMVER_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+const SEMVER_PATTERN =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([a-z][a-z0-9]*)\.(0|[1-9]\d*))?$/;
 
 export function parseSemVer(version) {
-  if (typeof version !== "string" || !SEMVER_PATTERN.test(version)) {
+  if (typeof version !== "string" || !SEMVER_PATTERN.test(version) || /-latest\./.test(version)) {
     throw new ReleaseReservationError(
       "INVALID_SEMVER_VERSION",
-      `invalid SemVer release version ${JSON.stringify(version)} — expected MAJOR.MINOR.PATCH`,
+      `invalid SemVer release version ${JSON.stringify(version)} — expected MAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH-<channel>.<n>`,
       { version },
     );
   }
-  const [major, minor, patch] = version.split(".").map(Number);
-  return { major, minor, patch, version };
+  const [, major, minor, patch, channel = null] = SEMVER_PATTERN.exec(version);
+  return { major: Number(major), minor: Number(minor), patch: Number(patch), channel, version };
 }
 
 export async function reserveReleaseVersion({ attemptCreate, version }) {

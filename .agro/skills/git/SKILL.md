@@ -222,7 +222,7 @@ Keep stacks shallow: one level routine, two levels rare, three levels means some
 
 ## Releases
 
-Every push to `main` or `master` triggers `.github/workflows/release.yml`. The
+Every push to `main`, `master`, or `experiment/**` triggers `.github/workflows/release.yml`. The
 workflow checks out the exact event SHA and requires validation, boot-path lint,
 and eval probes to pass before it mutates a tag, GitHub Release, or package.
 Do **not** manually pre-create a release tag or `release/<version>` branch.

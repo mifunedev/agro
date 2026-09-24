@@ -36,6 +36,8 @@ Update policy and release automation live in [`AGENTS.md`](AGENTS.md) § Git con
 - Add `/council` for bounded independent perspectives, advisor synthesis, and explicit advice limits ([#1076](https://github.com/mifunedev/agro/issues/1076)).
 - Install `agent-browser` on the host from a pinned release binary, without the operating system package manager; it drives an existing Chromium-family browser and refuses when none is found ([#1078](https://github.com/mifunedev/agro/issues/1078)).
 - Add `agro sandbox install docker --version <X.Y.Z>` to pin the official image `ghcr.io/mifunedev/agro:<X.Y.Z>` without typing the full ref ([#1160](https://github.com/mifunedev/agro/issues/1160)).
+- Publish `MAJOR.MINOR.PATCH-<channel>.<n>` pre-releases from `main`, `master` and `experiment/**`: a GitHub pre-release, npm dist-tag `<channel>`, immutable GHCR tags, never `latest` ([#1143](https://github.com/mifunedev/agro/issues/1143)).
+- Accept a pre-release version in `agro sandbox install docker --version`, and default a pre-release CLI to its own image instead of `latest` ([#1143](https://github.com/mifunedev/agro/issues/1143)).
 
 ### Changed
 

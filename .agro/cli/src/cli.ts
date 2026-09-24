@@ -316,7 +316,8 @@ Flags:
   --yes            Non-interactive: keep every default and ask nothing
   --version <X.Y.Z>
                    Run the official release image ghcr.io/mifunedev/agro:<X.Y.Z>
-                   (implies --image). A leading v is accepted
+                   (implies --image). A leading v and a -<channel>.<n>
+                   pre-release suffix are accepted
   --image          Run the prebuilt image instead of building (implies
                    --no-build). The ref resolves first-match: --version or
                    --image=<ref> > ${stateNames(bin).envPrefix}SANDBOX_IMAGE >

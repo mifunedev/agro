@@ -6,6 +6,7 @@ import { pathToFileURL } from "node:url";
 import { parseSemVer, reserveReleaseVersion } from "./release-reservation.mjs";
 
 const GITHUB_API_VERSION = "2022-11-28";
+const STABLE_RELEASE_BRANCHES = new Set(["main", "master"]);
 
 export function releaseTagName(version) {
   return `v${version}`;
@@ -34,6 +35,7 @@ function assertRelease(value, tagName) {
 export async function reserveGitHubRelease({
   apiUrl = "https://api.github.com",
   fetchImpl = fetch,
+  releaseBranch,
   releaseSha,
   releaseVersion,
   repository,
@@ -47,7 +49,16 @@ export async function reserveGitHubRelease({
   }
   if (!token) throw new Error("GITHUB_TOKEN is required");
 
-  parseSemVer(releaseVersion);
+  const { channel } = parseSemVer(releaseVersion);
+  if (channel === null && !STABLE_RELEASE_BRANCHES.has(releaseBranch)) {
+    return {
+      publishedNoop: true,
+      releaseId: 0,
+      releaseSha,
+      releaseVersion,
+      reservationKind: "stable-off-release-branch",
+    };
+  }
 
   const repositoryUrl = `${apiUrl.replace(/\/$/, "")}/repos/${repository}`;
   const headers = {
@@ -154,7 +165,7 @@ export async function reserveGitHubRelease({
       body: JSON.stringify({
         body: "Image publication is pending.",
         draft: true,
-        prerelease: false,
+        prerelease: channel !== null,
         tag_name: tagName,
         target_commitish: releaseSha,
       }),
@@ -258,6 +269,7 @@ async function main() {
   }
   const reservation = await reserveGitHubRelease({
     apiUrl: process.env.GITHUB_API_URL,
+    releaseBranch: process.env.RELEASE_BRANCH ?? "",
     releaseSha: process.env.RELEASE_SHA ?? "",
     releaseVersion,
     repository: process.env.GITHUB_REPOSITORY ?? "",
@@ -268,6 +280,14 @@ async function main() {
     console.log(
       `already-released: ${reservation.releaseVersion} is tagged on another commit — ` +
         "bump the version in package.json to cut a new release. Skipping publication.",
+    );
+    return;
+  }
+  if (reservation.reservationKind === "stable-off-release-branch") {
+    console.log(
+      `stable-off-release-branch: ${reservation.releaseVersion} is a stable version and ` +
+        `${process.env.RELEASE_BRANCH} is not main or master — only a pre-release version ` +
+        "(MAJOR.MINOR.PATCH-<channel>.<n>) publishes from this branch. Skipping publication.",
     );
     return;
   }
