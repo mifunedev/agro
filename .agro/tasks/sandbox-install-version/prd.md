@@ -153,4 +153,7 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+- **A green test suite missed a build-mode regression.** Claim: US-001 first treated "no checkout" as "prebuilt image". The harness root `agro.json` has build mode and no checkout, so the root build would have been tagged with the official ref. Evidence: advisor review of `fec75ca2`; the worker's tests passed. Outcome: fixed in this PR (`0f03fa51` narrows the check to `image.mode === "image"` and adds a build-mode test).
+- **A probe pinned a literal that the plan retired.** Claim: `agro-sandbox-image-mode.sh` asserted `DEFAULT_SANDBOX_IMAGE = "ghcr.io/mifunedev/agro:latest"`, and the plan did not list the probe as an integration point. Evidence: the probe exited 1 after US-001. Outcome: fixed in this PR (`d88a5a59`).
+- **Two probes already fail on `development`.** Claim: `next-dev-prod.sh` and `skills-vendored.sh` exit 1 without this change. Evidence: both exit 1 on `development`. Outcome: proposed issue, awaiting operator approval.
+- **`docs/installation.md` contradicts itself on a `get-agro.sh` build fallback.** Claim: one passage says no source-build fallback exists; the override list names a build fallback for `AGRO_GITHUB_REPO` and `AGRO_GITHUB_REF`. Evidence: US-004 worker report. Outcome: proposed issue, awaiting operator approval.

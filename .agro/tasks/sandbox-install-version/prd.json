@@ -103,8 +103,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 for each changed file under `docs/`."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Commits 0bcc8362 (docs), d88a5a59 (probe repair: agro-sandbox-image-mode.sh pinned the removed DEFAULT_SANDBOX_IMAGE literal; now guards officialImageRef/AGRO_VERSION and image-mode-only default; 10 injected faults each exit 1), 0e4b9759 (changelog entries shortened below the 250-char probe limit), 5f4659d2 (operator-chosen STE rewrite of lifecycle-commands, configuration, installation, quickstart: 122 existing findings cleared; headings, code and link targets unchanged). Integrated on task branch by fast-forward. AC1 reasoned: lifecycle-commands.md install row lists [--version <X.Y.Z>]. AC2 reasoned: deployment-prebuilt-image.md states the CLI-version default, shows --version=0.13.0, keeps --image=<ref> for custom images. AC3 reasoned: \"Which image ref wins\" lists --version/--image=<ref>, AGRO_SANDBOX_IMAGE, image.ref, ghcr.io/mifunedev/agro:<CLI version> (the order the code uses). AC4 reasoned: configuration.md image.ref default is ghcr.io/mifunedev/agro:<CLI version>. AC5 reasoned: installation.md and quickstart.md say <CLI version> instead of :latest. AC6 executed: CHANGELOG Unreleased has Added and Changed entries linked to #1160; changelog-entry-length.sh exit 0. AC7 executed on task branch: ste-check.sh exit 0 for all five changed docs. Also on task branch: npm test exit 0 (1609/1609), cli typecheck exit 0, pnpm run typecheck exit 0; all 159 probes run with timeout 30: only next-dev-prod.sh and skills-vendored.sh exit 1, and both exit 1 on development.",
       "dependsOn": [
         "US-003"
       ],
@@ -115,7 +115,8 @@
         "docs/installation.md",
         "docs/quickstart.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "5f4659d2"
     }
   ]
 }
