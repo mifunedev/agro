@@ -8,6 +8,11 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Publish `MAJOR.MINOR.PATCH-<channel>.<n>` pre-releases from `main`, `master` and `experiment/**`: a GitHub pre-release, npm dist-tag `<channel>`, immutable GHCR tags, never `latest` ([#1143](https://github.com/mifunedev/agro/issues/1143)).
+- Accept a pre-release version in `agro sandbox install docker --version`, and default a pre-release CLI to its own image instead of `latest` ([#1143](https://github.com/mifunedev/agro/issues/1143)).
+
 ## [0.14.0] - 2026-09-23
 
 ### Added

@@ -865,7 +865,7 @@ describe("parseSandboxArgs — --version", () => {
     expect(parseSandboxArgs(["install", "docker", ...flags])).toEqual({ ok: true, args: pinned });
   });
 
-  it.each(["0.13", "latest", "0.14.0-rc.1", "vv0.13.0", "--yes"])(
+  it.each(["0.13", "latest", "0.14.0-rc", "vv0.13.0", "--yes"])(
     "rejects %j, naming the value and the form X.Y.Z",
     (value) => {
       const parsed = parseSandboxArgs(["install", "docker", "--version", value]);
