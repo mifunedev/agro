@@ -234,7 +234,7 @@ download in a non-interactive run and changes nothing else.
 When no sandbox is reachable, `agro tool install` and `agro tool uninstall` act on
 the host, with two limits. First, each tool declares whether it installs on the
 host. `agent-browser`, `herdr`, `cloudflared`, `microsandbox`, `tailscale`,
-`code-server`, `docker`, and `desktop` do. `gh` and the Docker CLI do not, because
+`code-server`, `docker-engine`, and `desktop` do. `gh` and the Docker CLI do not, because
 the image provides them. Second, a host install needs Linux, because every tool
 installer is Debian-specific; on any other platform the command refuses and names
 the platform. A host install needs an existing workspace — `--path <dir>`, then
@@ -243,22 +243,23 @@ exits 1 when none resolves. It records the installed id under `hostTools` in
 `~/.agro/config.json`. `agro tool uninstall` removes only what that record names;
 `--force` removes from `~/.local` without a record.
 
-Most host tools install into `~/.local` for the invoking user. `docker` and
-`desktop` are root-level: they install system packages as root. `agro tool list`
-marks them `(root)`.
+Most host tools install into `~/.local` for the invoking user. `docker-engine`
+and `desktop` are root-level: they install system packages as root.
+`agro tool list` marks them `(root)`.
 
 | Tool | Host install | Level | Sandbox |
 |------|--------------|-------|---------|
 | `code-server` | pinned, checksum-verified release in `~/.local/lib/code-server-<version>`, linked from `~/.local/bin/code-server` | invoking user | installs into `~/.local` |
-| `docker` | Docker Engine and the Compose plugin from Docker's apt repository for Ubuntu; adds the invoking user to the `docker` group | root | refused; names `access.dockerSocket` |
+| `docker-engine` | Docker Engine and the Compose plugin from Docker's apt repository for Ubuntu; adds the invoking user to the `docker` group | root | refused; names `access.dockerSocket` |
 | `desktop` | XFCE and XRDP, plus system Tailscale from Tailscale's apt repository; serves TCP 3389 only through Tailscale | root | refused |
 
 When you are not root, a root-level install runs its installer through `sudo -n`.
 When `sudo -n true` fails, the command exits 1 and changes nothing. The message
 names `<id>` and passwordless `sudo`.
-`docker` and `desktop` install on the host only. Run `agro tool install docker
---host` or `agro tool install desktop --host`. `agro tool uninstall` refuses both.
-After a `docker` install, log in again to use the `docker` group.
+`docker-engine` and `desktop` install on the host only. Run
+`agro tool install docker-engine --host` or `agro tool install desktop --host`.
+`agro tool uninstall` refuses both.
+After a `docker-engine` install, log in again to use the `docker` group.
 
 To use the desktop:
 

@@ -27,7 +27,7 @@ describe("tool catalog shape", () => {
       "gh",
       "tailscale",
       "code-server",
-      "docker",
+      "docker-engine",
       "desktop",
     ]);
   });
@@ -67,7 +67,7 @@ describe("tool catalog shape", () => {
       if (t.hostInstallUser === "root") expect(t.hostCapable, t.id).toBe(true);
     }
     expect(TOOL_CATALOG.filter((t) => t.hostInstallUser === "root").map((t) => t.id)).toEqual([
-      "docker",
+      "docker-engine",
       "desktop",
     ]);
   });
@@ -141,7 +141,7 @@ describe("tool catalog shape", () => {
       "gh",
       "tailscale",
       "code-server",
-      "docker",
+      "docker-engine",
     ]);
     for (const t of TOOL_CATALOG) {
       if (t.versionArgv) expect(t.versionArgv, t.id).toEqual([t.binary, "--version"]);
@@ -175,10 +175,10 @@ describe("the catalogs stay separate", () => {
     }
   });
 
-  it("shares only the microsandbox substrate and the docker engine with the runtime catalog", () => {
+  it("shares only the microsandbox substrate with the runtime catalog", () => {
     const runtime = new Set(RUNTIME_CATALOG.map((r) => r.id));
     const shared = toolIds().filter((id) => runtime.has(id));
-    expect(shared).toEqual(["microsandbox", "docker"]);
+    expect(shared).toEqual(["microsandbox"]);
     expect(RUNTIME_CATALOG.find((r) => r.id === "microsandbox")?.provisionable).toBe(false);
     expect(findTool("microsandbox")?.kind).toBe("installable");
   });
@@ -190,7 +190,7 @@ describe("the catalogs stay separate", () => {
   it("keeps the baked-in docker-cli distinct from the host docker engine", () => {
     expect(findTool("docker-cli")?.kind).toBe("baked-in");
     expect(findTool("docker-cli")?.hostCapable).toBe(false);
-    expect(findTool("docker")?.hostInstallUser).toBe("root");
+    expect(findTool("docker-engine")?.hostInstallUser).toBe("root");
     expect(RUNTIME_CATALOG.some((r) => r.id === "docker")).toBe(true);
   });
 
@@ -366,8 +366,8 @@ describe("code-server installs a pinned release for the invoking user", () => {
   });
 });
 
-describe("docker installs Docker Engine on an Ubuntu host as root", () => {
-  const dk = findTool("docker")!;
+describe("docker-engine installs Docker Engine on an Ubuntu host as root", () => {
+  const dk = findTool("docker-engine")!;
   const script = dk.hostInstallArgv!.join("\n");
   const FINGERPRINT = "9DC858229FC7DD38854AE2D88D81803C0EBFCD88";
 
@@ -384,7 +384,7 @@ describe("docker installs Docker Engine on an Ubuntu host as root", () => {
   it("refuses the sandbox by naming access.dockerSocket", () => {
     const reason = dk.notInstallableReason!("agro");
     expect(reason).toContain("access.dockerSocket");
-    expect(reason).toContain("agro tool install docker --host");
+    expect(reason).toContain("agro tool install docker-engine --host");
   });
 
   it("verifies the engine, the compose plugin, the enabled service and the docker group", () => {

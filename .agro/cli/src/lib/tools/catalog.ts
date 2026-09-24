@@ -277,7 +277,7 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
     docsPath: TOOLS_DOC,
   }),
   Object.freeze({
-    id: "docker",
+    id: "docker-engine",
     title: "Docker Engine + Compose",
     kind: "installable",
     binary: "docker",
@@ -294,7 +294,7 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
         "set -e",
         ". /etc/os-release",
         'if [ "${ID:-}" != ubuntu ]; then',
-        '  echo "docker installs from Docker\'s Ubuntu repository; this host is ${ID:-unknown}" >&2',
+        '  echo "docker-engine installs from Docker\'s Ubuntu repository; this host is ${ID:-unknown}" >&2',
         "  exit 1",
         "fi",
         "fingerprint=9DC858229FC7DD38854AE2D88D81803C0EBFCD88",
@@ -322,7 +322,7 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
     ]),
     hostInstallUser: "root",
     notInstallableReason: (bin: string): string =>
-      `Docker Engine installs on the host only, with \`${bin} tool install docker --host\`. ` +
+      `Docker Engine installs on the host only, with \`${bin} tool install docker-engine --host\`. ` +
       "To use Docker inside the sandbox, set `access.dockerSocket` to true in agro.json on the host and recreate the sandbox. That mounts the host Docker socket, which is effectively host root.",
     hostCapable: true,
     uninstallArgv: null,

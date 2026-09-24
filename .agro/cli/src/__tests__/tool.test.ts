@@ -1468,7 +1468,7 @@ describe("tool location reporting", () => {
     );
     const rows = JSON.parse(out.join("")) as Array<Record<string, unknown>>;
     expect(rows.filter((r) => r.hostCapable === true).map((r) => r.id)).toEqual(
-      [...HOST_INSTALLERS.map(([id]) => id), "docker", "desktop"],
+      [...HOST_INSTALLERS.map(([id]) => id), "docker-engine", "desktop"],
     );
   });
 });
@@ -1691,20 +1691,20 @@ describe("agro tool install --host — a root-level host tool", () => {
     const json = makeIo();
     await runToolList({ ...opts, json: true }, json.io);
     const rows = JSON.parse(json.out.join("")) as Array<Record<string, unknown>>;
-    expect(rows.filter((r) => r.hostRoot === true).map((r) => r.id)).toEqual(["docker", "desktop", "root-probe"]);
+    expect(rows.filter((r) => r.hostRoot === true).map((r) => r.id)).toEqual(["docker-engine", "desktop", "root-probe"]);
     expect(rows.every((r) => typeof r.hostRoot === "boolean")).toBe(true);
 
     const table = makeIo();
     await runToolList(opts, table.io);
     const text = table.out.join("");
     expect(text).toMatch(/^root-probe\s+installable \(root\)/m);
-    expect(text).toMatch(/^docker\s+installable \(root\)/m);
+    expect(text).toMatch(/^docker-engine\s+installable \(root\)/m);
     expect(text).toMatch(/^herdr\s+installable\s/m);
     expect(text).toContain("(root) installs on the host as root through `sudo -n`.");
   });
 });
 
-describe("agro tool install docker", () => {
+describe("agro tool install docker-engine", () => {
   const INSIDE: NodeJS.ProcessEnv = { AGRO_EXECUTION_TARGET: "local" };
   const isDockerInstaller = (c: RecordedCall): boolean =>
     c.args.some((a) => a.includes("docker-compose-plugin"));
@@ -1716,7 +1716,7 @@ describe("agro tool install docker", () => {
     const { calls, run } = makeRunner();
     const { io, err } = makeIo(true);
     expect(
-      await runToolInstall("docker", { bin: "agro", cwd: root, run, env: INSIDE, host, yes: true }, io),
+      await runToolInstall("docker-engine", { bin: "agro", cwd: root, run, env: INSIDE, host, yes: true }, io),
     ).toBe(1);
     expect(hostText(err)).toContain("access.dockerSocket");
     expect(calls).toHaveLength(0);
@@ -1728,14 +1728,14 @@ describe("agro tool install docker", () => {
     const { io, err } = makeIo(true);
     expect(
       await runToolInstall(
-        "docker",
+        "docker-engine",
         { bin: "agro", cwd: root, run, env: emptyStateHome().env, homedir: fakeHome().homedir },
         io,
       ),
     ).toBe(1);
     const text = hostText(err);
     expect(text).toContain("access.dockerSocket");
-    expect(text).toContain("agro tool install docker --host");
+    expect(text).toContain("agro tool install docker-engine --host");
     expect(calls.some(isDockerInstaller)).toBe(false);
     expect(calls.some((c) => c.cmd === "sudo")).toBe(false);
   });
@@ -1750,7 +1750,7 @@ describe("agro tool install docker", () => {
     const { calls, run } = hostRunner(reply, inspect);
     const { io, out, err } = makeIo();
     const code = await runToolInstall(
-      "docker",
+      "docker-engine",
       {
         bin: "agro",
         cwd: repo,
@@ -1775,20 +1775,20 @@ describe("agro tool install docker", () => {
     const install = r.calls.filter(isDockerInstaller);
     expect(install).toHaveLength(1);
     expect(install[0].cmd).toBe("sudo");
-    expect(install[0].args).toEqual(["-n", "--", ...findTool("docker")!.hostInstallArgv!]);
+    expect(install[0].args).toEqual(["-n", "--", ...findTool("docker-engine")!.hostInstallArgv!]);
     expect(r.calls.findIndex(isSudoProbe)).toBeLessThan(r.calls.indexOf(install[0]));
   });
 
   it("exits 0 and changes nothing when the engine is already installed", async () => {
     const r = await installDockerOnHost(() => undefined);
     expect(r.code).toBe(0);
-    expect(r.out).toContain("docker: already installed (docker)");
+    expect(r.out).toContain("docker-engine: already installed (docker)");
     expect(r.calls.some(isDockerInstaller)).toBe(false);
     expect(r.calls.some((c) => c.cmd === "sudo")).toBe(false);
   });
 });
 
-describe("agro tool install docker — the host success output", () => {
+describe("agro tool install docker-engine — the host success output", () => {
   it("prints one host success line, no prefix or PATH hint, and keeps the receipt", async () => {
     const repo = makeRepo();
     const home = emptyStateHome();
@@ -1798,7 +1798,7 @@ describe("agro tool install docker — the host success output", () => {
     const { io, out } = makeIo();
     expect(
       await runToolInstall(
-        "docker",
+        "docker-engine",
         {
           bin: "agro",
           cwd: repo,
@@ -1813,11 +1813,11 @@ describe("agro tool install docker — the host success output", () => {
       ),
     ).toBe(0);
     const text = hostText(out);
-    expect(text).toMatch(/^docker installed on the host — see /m);
+    expect(text).toMatch(/^docker-engine installed on the host — see /m);
     expect(text).not.toContain(user.prefix);
     expect(text).not.toContain("installed at");
     expect(text).not.toContain("Add this line to your shell profile");
-    expect(Object.keys(receiptsIn(home.dir))).toEqual(["docker"]);
+    expect(Object.keys(receiptsIn(home.dir))).toEqual(["docker-engine"]);
   });
 });
 
