@@ -21,12 +21,12 @@ import {
   runSandbox,
   runShell,
   DEFAULT_CONTAINER_NAME,
-  DEFAULT_SANDBOX_IMAGE,
   type LifecycleIO,
   type LifecycleRunner,
   type RunResult,
 } from "../commands/lifecycle.js";
 import { agroConfigPath } from "../lib/agro-config.js";
+import { AGRO_VERSION, officialImageRef } from "../lib/version.js";
 import { withInvokedBinAsync } from "./invoked-bin.js";
 
 const readOhJson = (root: string): Record<string, never> =>
@@ -434,7 +434,7 @@ describe("runSandbox", () => {
     expect(calls[0].args.slice(5)).toEqual(["up", "-d", "--build"]);
   });
 
-  it("--image (bare, no AGRO_SANDBOX_IMAGE) → up -d --no-build + AGRO_SANDBOX_IMAGE=<default>", async () => {
+  it("--image (bare, no AGRO_SANDBOX_IMAGE) → up -d --no-build + AGRO_SANDBOX_IMAGE=<CLI version ref>", async () => {
     const root = makeRepo();
     const script = addScript(root, "docker-compose.sh");
     const { calls, run } = makeRunner([{ status: 0 }]);
@@ -445,8 +445,8 @@ describe("runSandbox", () => {
     expect(calls[0].cmd).toBe("bash");
     expect(calls[0].args).toEqual([script, "--repo-dir", root, "up", "-d", "--no-build"]);
     expect(calls[0].args).not.toContain("--build");
-    expect(calls[0].opts.env?.AGRO_SANDBOX_IMAGE).toBe(DEFAULT_SANDBOX_IMAGE);
-    expect(out.join("")).toContain(`image mode: ${DEFAULT_SANDBOX_IMAGE}`);
+    expect(calls[0].opts.env?.AGRO_SANDBOX_IMAGE).toBe(officialImageRef(AGRO_VERSION));
+    expect(out.join("")).toContain(`image mode: ${officialImageRef(AGRO_VERSION)}`);
   });
 
   it("--image=<ref> wins over agro.json image.ref (explicit ref short-circuits the read)", async () => {
@@ -493,8 +493,15 @@ describe("runSandbox", () => {
     expect(calls[0].opts.env?.AGRO_SANDBOX_IMAGE).toBe("ghcr.io/x/y:ambient");
   });
 
-  it("unselected --image fallback is ghcr.io/mifunedev/agro:latest", () => {
-    expect(DEFAULT_SANDBOX_IMAGE).toBe("ghcr.io/mifunedev/agro:latest");
+  it("--image (bare) with a clean agro.json runs the official image tagged with the CLI version", async () => {
+    const root = makeRepo();
+    addScript(root, "docker-compose.sh");
+    mkdirSync(join(root, ".devcontainer"), { recursive: true });
+    writeOhJson(root, { access: { dockerSocket: false } });
+    const { calls, run } = makeRunner([{ status: 0 }]);
+
+    expect(await runSandbox({ bin: "agro", cwd: root, run, image: true }, makeIo().io)).toBe(0);
+    expect(calls[0].opts.env?.AGRO_SANDBOX_IMAGE).toBe(officialImageRef(AGRO_VERSION));
   });
 
   it("AGRO_SANDBOX_IMAGE takes precedence over AGRO_SANDBOX_IMAGE", async () => {
@@ -834,6 +841,68 @@ describe("parseSandboxArgs", () => {
   });
 });
 
+describe("parseSandboxArgs — --version", () => {
+  const pinned = {
+    help: false,
+    yes: false,
+    image: true,
+    imageRef: "ghcr.io/mifunedev/agro:0.13.0",
+    noBuild: false,
+    printArgv: false,
+    json: false,
+    subcommand: "install",
+    runtime: "docker",
+  };
+
+  it.each([
+    [["--version=0.13.0"]],
+    [["--version", "0.13.0"]],
+    [["--version=v0.13.0"]],
+    [["--version", "v0.13.0"]],
+    [["--image", "--version=0.13.0"]],
+    [["--version", "0.13.0", "--image"]],
+  ])("selects the official image for %j", (flags) => {
+    expect(parseSandboxArgs(["install", "docker", ...flags])).toEqual({ ok: true, args: pinned });
+  });
+
+  it.each(["0.13", "latest", "0.14.0-rc.1", "vv0.13.0", "--yes"])(
+    "rejects %j, naming the value and the form X.Y.Z",
+    (value) => {
+      const parsed = parseSandboxArgs(["install", "docker", "--version", value]);
+      expect(parsed.ok).toBe(false);
+      if (!parsed.ok) {
+        expect(parsed.error).toContain(`"${value}"`);
+        expect(parsed.error).toContain("X.Y.Z");
+      }
+    },
+  );
+
+  it.each([[["--version"]], [["--version="]]])("requires a value for %j", (flags) => {
+    expect(parseSandboxArgs(["install", "docker", ...flags])).toEqual({
+      ok: false,
+      error: "agro sandbox install: --version requires a value",
+    });
+  });
+
+  it.each([
+    [["--version=0.13.0", "--image=my/img:1"]],
+    [["--image=my/img:1", "--version", "0.13.0"]],
+  ])("rejects %j, naming both flags", (flags) => {
+    const parsed = parseSandboxArgs(["install", "docker", ...flags]);
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) {
+      expect(parsed.error).toContain("--version");
+      expect(parsed.error).toContain("--image=<ref>");
+    }
+  });
+
+  it("sandbox help lists --version and keeps --image=<ref> for a custom image", () => {
+    const text = captureStdout(printSandboxHelp);
+    expect(text).toContain("--version <X.Y.Z>");
+    expect(text).toMatch(/--image=<ref>[^\n]*custom image/);
+  });
+});
+
 describe("parseShellArgs", () => {
   it("takes one optional positional sandbox name", () => {
     expect(parseShellArgs([])).toEqual({ ok: true, args: { help: false } });
@@ -891,7 +960,7 @@ describe("help surfaces", () => {
     expect(sandbox).toContain("agro sandbox install <runtime>");
     expect(sandbox).toContain("agro sandbox list");
     expect(sandbox).toContain("Next: agro shell <name>");
-    expect(sandbox).toContain(DEFAULT_SANDBOX_IMAGE);
+    expect(sandbox).toContain(officialImageRef(AGRO_VERSION));
     expect(sandbox).not.toContain("ghcr.io/mifunedev/openharness:latest");
 
     const shell = captureStdout(printShellHelp);
