@@ -54,6 +54,13 @@ describe("tool catalog shape", () => {
     }
   });
 
+  it("marks a root-level host install only on a host-capable entry", () => {
+    for (const t of TOOL_CATALOG) {
+      if (t.hostInstallUser === "root") expect(t.hostCapable, t.id).toBe(true);
+    }
+    expect(TOOL_CATALOG.filter((t) => t.hostInstallUser === "root").map((t) => t.id)).toEqual([]);
+  });
+
   it("lands every downloaded binary in NPM_USER_PREFIX behind a sha256 check", () => {
     const scripts = TOOL_CATALOG.flatMap((t) =>
       [t.installArgv, t.hostInstallArgv]

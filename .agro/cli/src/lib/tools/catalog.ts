@@ -12,6 +12,7 @@ export interface ToolEntry {
   readonly installArgv?: readonly string[];
   readonly hostInstallArgv?: readonly string[];
   readonly installUser?: "root" | "sandbox";
+  readonly hostInstallUser?: "root";
   readonly downloadSize?: string;
   readonly hostDownloadSize?: string;
   readonly notInstallableReason?: (bin: string) => string;

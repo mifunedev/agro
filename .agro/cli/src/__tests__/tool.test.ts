@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
@@ -16,8 +16,34 @@ import {
   type ToolIO,
 } from "../commands/tool.js";
 import type { LifecycleRunner, RunResult } from "../lib/execution/runner.js";
-import { TOOL_CATALOG, findTool, resolveToolUninstallArgv } from "../lib/tools/catalog.js";
+import {
+  TOOL_CATALOG,
+  findTool,
+  resolveToolUninstallArgv,
+  type ToolEntry,
+} from "../lib/tools/catalog.js";
 import { defaultAgroConfig, agroConfigPath } from "../lib/agro-config.js";
+
+const extraTools = vi.hoisted(() => [] as import("../lib/tools/catalog.js").ToolEntry[]);
+
+vi.mock("../lib/tools/catalog.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/tools/catalog.js")>();
+  const all = () => [...actual.TOOL_CATALOG, ...extraTools];
+  return {
+    ...actual,
+    findTool: (id: string) => all().find((t) => t.id === id),
+    toolIds: () => all().map((t) => t.id),
+    installableToolIds: () => all().filter((t) => t.installArgv !== undefined).map((t) => t.id),
+    hostCapableToolIds: () => all().filter((t) => t.hostCapable).map((t) => t.id),
+    TOOL_CATALOG: new Proxy(actual.TOOL_CATALOG, {
+      get: (_target, key) => {
+        const list = all();
+        const value = Reflect.get(list, key);
+        return typeof value === "function" ? value.bind(list) : value;
+      },
+    }),
+  };
+});
 
 vi.mock("../cli.js", async (importOriginal) => {
   const original = process.exit;
@@ -1535,4 +1561,143 @@ describe("tool uninstall knowledge", () => {
       }
     },
   );
+});
+
+const ROOT_PROBE: ToolEntry = Object.freeze({
+  id: "root-probe",
+  title: "root probe",
+  kind: "installable",
+  binary: "root-probe",
+  verifyArgv: Object.freeze(["bash", "-lc", "command -v root-probe >/dev/null"]),
+  installArgv: Object.freeze(["bash", "-lc", "echo sandbox-root-probe"]),
+  hostInstallArgv: Object.freeze(["bash", "-lc", "echo host-root-probe"]),
+  installUser: "sandbox",
+  hostInstallUser: "root",
+  hostCapable: true,
+  uninstallArgv: Object.freeze(["bash", "-lc", "true"]),
+  docsPath: "docs/installation.md",
+});
+
+describe("agro tool install --host — a root-level host tool", () => {
+  beforeEach(() => {
+    extraTools.push(ROOT_PROBE);
+  });
+  afterEach(() => {
+    extraTools.length = 0;
+  });
+
+  const isSudoProbe = (c: RecordedCall): boolean =>
+    c.cmd === "sudo" && c.args.join(" ") === "-n true";
+  const rootInstaller = (calls: RecordedCall[]): RecordedCall[] =>
+    calls.filter((c) => c.args.some((a) => a.includes("host-root-probe")));
+
+  async function installRootProbe(
+    reply: (cmd: string, args: string[]) => RunResult | undefined,
+    identity?: () => { name: string; uid: number },
+  ) {
+    const repo = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    seedWorkspace(defaultRoot(home));
+    const { calls, run } = hostRunner((cmd, args) => reply(cmd, args) ?? absentOnHost("root-probe")(cmd, args));
+    const { io, out, err } = makeIo();
+    const code = await runToolInstall(
+      "root-probe",
+      {
+        bin: "agro",
+        cwd: repo,
+        run,
+        env: home.env,
+        homedir: user.homedir,
+        interactive: false,
+        host: true,
+        platform: LINUX,
+        ...(identity ? { identity } : {}),
+      },
+      io,
+    );
+    return { code, calls, out: hostText(out), err: hostText(err), home };
+  }
+
+  it("runs the script directly when the invoking user is root", async () => {
+    const r = await installRootProbe(() => undefined, () => ({ name: "root", uid: 0 }));
+    expect(r.code).toBe(0);
+    expect(r.calls.some((c) => c.cmd === "sudo")).toBe(false);
+    const install = rootInstaller(r.calls);
+    expect(install).toHaveLength(1);
+    expect(install[0].cmd).toBe("bash");
+    expect(install[0].args).toEqual(["-lc", "echo host-root-probe"]);
+  });
+
+  it("runs the script through sudo -n for a user with passwordless sudo", async () => {
+    const r = await installRootProbe(() => undefined);
+    expect(r.code).toBe(0);
+    expect(r.calls.some(isSudoProbe)).toBe(true);
+    const install = rootInstaller(r.calls);
+    expect(install).toHaveLength(1);
+    expect(install[0].cmd).toBe("sudo");
+    expect(install[0].args).toEqual(["-n", "--", "bash", "-lc", "echo host-root-probe"]);
+    expect(r.calls.findIndex(isSudoProbe)).toBeLessThan(r.calls.indexOf(install[0]));
+  });
+
+  it("refuses without passwordless sudo, naming the tool, and changes nothing", async () => {
+    const r = await installRootProbe((cmd, args) =>
+      cmd === "sudo" && args.join(" ") === "-n true"
+        ? { status: 1, stdout: "", stderr: "sudo: a password is required" }
+        : undefined,
+    );
+    expect(r.code).toBe(1);
+    expect(r.err).toContain("root-probe");
+    expect(r.err).toContain("passwordless `sudo`");
+    expect(rootInstaller(r.calls)).toHaveLength(0);
+    expect(existsSync(hostConfigFile(r.home.dir))).toBe(false);
+  });
+
+  it("keeps a non-root host install free of sudo", async () => {
+    const repo = makeRepo();
+    const home = emptyStateHome();
+    seedWorkspace(defaultRoot(home));
+    const { calls, run } = hostRunner(absentOnHost("herdr"));
+    expect(
+      await runToolInstall(
+        "herdr",
+        {
+          bin: "agro",
+          cwd: repo,
+          run,
+          env: home.env,
+          homedir: fakeHome().homedir,
+          interactive: false,
+          host: true,
+          platform: LINUX,
+        },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    expect(calls.some((c) => c.cmd === "sudo")).toBe(false);
+  });
+
+  it("marks each root-level host tool in agro tool list", async () => {
+    const repo = makeRepo();
+    const opts = {
+      bin: "agro",
+      cwd: repo,
+      run: liveHost().run,
+      env: emptyStateHome().env,
+      homedir: fakeHome().homedir,
+    };
+
+    const json = makeIo();
+    await runToolList({ ...opts, json: true }, json.io);
+    const rows = JSON.parse(json.out.join("")) as Array<Record<string, unknown>>;
+    expect(rows.filter((r) => r.hostRoot === true).map((r) => r.id)).toEqual(["root-probe"]);
+    expect(rows.every((r) => typeof r.hostRoot === "boolean")).toBe(true);
+
+    const table = makeIo();
+    await runToolList(opts, table.io);
+    const text = table.out.join("");
+    expect(text).toMatch(/^root-probe\s+installable \(root\)/m);
+    expect(text).toMatch(/^herdr\s+installable\s/m);
+    expect(text).toContain("(root) installs on the host as root through `sudo -n`.");
+  });
 });
