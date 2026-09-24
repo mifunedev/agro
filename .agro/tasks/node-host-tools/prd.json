@@ -65,8 +65,8 @@
         "A second install exits 0 and changes nothing."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Worker commits dcdbb13b + repair cfa6616a (advisor review: root-level host installs no longer print the ~/.local prefix and PATH hints), integrated ending at d814009c. AC1 executed: tool-catalog.test.ts docker is host-only, root-level, installable. AC2 executed: tests assert the five packages, Docker's Ubuntu apt repository, and the fingerprint check before the key is trusted; worker fetched the live key and gpg --show-keys printed 9DC858229FC7DD38854AE2D88D81803C0EBFCD88. AC3 executed: test asserts usermod -aG docker \"$user\" (SUDO_USER) and systemctl enable --now docker. AC4 NOT RUN: needs an Ubuntu 24.04 VM with systemd; deferred to the agro-console node validation (mifunedev/agro-console#168 US-007). AC5 executed: tool.test.ts inside the sandbox with and without --host, and on the host with a running sandbox and no --host, each exit 1 naming access.dockerSocket with no installer run. AC6 executed: tool.test.ts already-installed path exits 0 with no sudo or installer call; reasoned: the script's steps are idempotent. Rendered script: bash -n exit 0; npx shellcheck -S warning exit 0. On the task branch: npx vitest run exit 0; cli typecheck exit 0. Known: host receipt still records the ~/.local prefix (host-config.ts shape); docker uninstall is refused (uninstallArgv null).",
       "dependsOn": [
         "US-002"
       ],
@@ -75,7 +75,8 @@
         ".agro/cli/src/commands/tool.ts",
         ".agro/cli/src/__tests__/tool-catalog.test.ts",
         ".agro/cli/src/__tests__/tool.test.ts"
-      ]
+      ],
+      "commit": "d814009c"
     },
     {
       "id": "US-004",
