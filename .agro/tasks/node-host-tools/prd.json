@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1168-node-host-tools",
+  "description": "Host tools for AGRO nodes: root-level host installs via sudo, code-server, docker, and desktop tools, and agro workspace create --ref, released as 0.15.0.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Install root-level host tools",
+      "description": "As an operator, I want `agro tool install <id> --host` to run a root-level installer through `sudo` so that a dedicated VM can install system packages with `agro`.",
+      "acceptanceCriteria": [
+        "`ToolEntry` gains a field that marks a host install as root-level. Existing entries keep their behavior.",
+        "If the invoking user is not root, a root-level host install runs its script through `sudo -n`.",
+        "If `sudo -n true` fails, the command exits 1 and prints a message that names the tool and states that it needs passwordless `sudo`. The command changes nothing.",
+        "`agro tool list` marks each root-level host tool.",
+        "Unit tests cover the root user, a user with passwordless `sudo`, and a user without it."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/tools/catalog.ts",
+        ".agro/cli/src/commands/tool.ts",
+        ".agro/cli/src/__tests__/tool.test.ts",
+        ".agro/cli/src/__tests__/tool-catalog.test.ts"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Add the code-server tool",
+      "description": "As an operator, I want `agro tool install code-server --host` so that `agro` owns the code-server version on every node.",
+      "acceptanceCriteria": [
+        "`TOOL_CATALOG` has a `code-server` entry that installs for the invoking user, with `hostCapable: true` and an `uninstallArgv`.",
+        "The script pins code-server `4.129.0` and checks the SHA-256 of the release tarball: `amd64` `889b09ff3a167a293f53cb68a5a7f38dbab6bd2b50d7a5951c757e56ba51a2b0`, `arm64` `62f7886018923a18cc16112ccfbcd51aee80f8e0c1bb7abc48773d1fd32a7617`.",
+        "If the architecture is not `amd64` or `arm64`, the script exits non-zero and names the architecture.",
+        "The script extracts the tarball to `$HOME/.local/lib/code-server-4.129.0` and links `$HOME/.local/bin/code-server` to its `bin/code-server`.",
+        "After `agro tool install code-server --host` on a Linux host, `$HOME/.local/bin/code-server --version` prints a line that starts with `4.129.0`.",
+        "`agro tool uninstall code-server --host` removes the link and the extracted directory."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/cli/src/lib/tools/catalog.ts",
+        ".agro/cli/src/__tests__/tool-catalog.test.ts",
+        ".agro/cli/src/__tests__/tool.test.ts"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Add the docker tool",
+      "description": "As an operator, I want `agro tool install docker --host` so that every node gets Docker Engine and Compose from one command.",
+      "acceptanceCriteria": [
+        "`TOOL_CATALOG` has a `docker` entry that is host-capable and root-level (US-001).",
+        "The script installs `docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`, and `docker-compose-plugin` from Docker's apt repository for Ubuntu, with the repository key checked.",
+        "The script adds the invoking user to the `docker` group and enables the `docker` service.",
+        "After the install and a new login, `docker run --rm hello-world` exits 0 and `docker compose version` exits 0 for the invoking user.",
+        "Inside an AGRO sandbox, `agro tool install docker` refuses with a message that names `access.dockerSocket`.",
+        "A second install exits 0 and changes nothing."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/cli/src/lib/tools/catalog.ts",
+        ".agro/cli/src/commands/tool.ts",
+        ".agro/cli/src/__tests__/tool-catalog.test.ts",
+        ".agro/cli/src/__tests__/tool.test.ts"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Add the desktop tool",
+      "description": "As an operator, I want `agro tool install desktop --host` so that a node can serve an XFCE desktop over RDP through Tailscale.",
+      "acceptanceCriteria": [
+        "`TOOL_CATALOG` has a `desktop` entry that is host-capable and root-level (US-001).",
+        "If `tailscale` is not installed, the command exits 1 and names `agro tool install tailscale --host`.",
+        "The script installs `xfce4`, `xfce4-goodies`, `xrdp`, and `xorgxrdp`, writes `xfce4-session` to the invoking user's `~/.xsession`, adds `xrdp` to `ssl-cert`, and enables `xrdp`.",
+        "After the install, TCP 3389 accepts connections on the Tailscale address and refuses connections on the public address.",
+        "The script does not change any SSH firewall rule and does not set a password.",
+        "On completion, the command prints the two remaining operator steps: `sudo tailscale up` and `sudo passwd <user>`.",
+        "The steps follow `https://github.com/ryaneggz/runbooks/blob/main/runbooks/ubuntu-24-xfce-xrdp-tailscale.md`, steps 3 to 6."
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        ".agro/cli/src/lib/tools/catalog.ts",
+        ".agro/cli/src/__tests__/tool-catalog.test.ts",
+        ".agro/cli/src/__tests__/tool.test.ts"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Pin the workspace ref",
+      "description": "As an operator, I want `agro workspace create --ref <tag>` so that a node's workspace matches the CLI release.",
+      "acceptanceCriteria": [
+        "`agro workspace create [<name>] --ref <ref>` clones `https://github.com/mifunedev/agro.git` at `<ref>`.",
+        "If `<ref>` does not exist, the command exits 1, names the ref, and leaves no target directory.",
+        "Without `--ref`, the command keeps its current behavior.",
+        "`docs/lifecycle-commands.md` documents `--ref`.",
+        "Unit tests cover a tag, a missing ref, and no `--ref`."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/commands/workspace.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/__tests__/workspace.test.ts",
+        "docs/lifecycle-commands.md"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Document and release",
+      "description": "As an operator, I want the tools in a release so that the console can pin that release.",
+      "acceptanceCriteria": [
+        "`docs/installation.md` and `docs/lifecycle-commands.md` list `code-server`, `docker`, and `desktop`, and state which tools are root-level.",
+        "`CHANGELOG.md` has entries for US-001 to US-005.",
+        "`npm test`, `npm --prefix .agro/cli run typecheck`, and the eval probes pass.",
+        "The pull request body has a `## Host install evidence` section with the commands and exit codes of US-002 to US-005 on an Ubuntu 24.04 host. A check that did not run is listed as `NOT RUN` with the reason.",
+        "AGRO `0.15.0` publishes the changes."
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004",
+        "US-005"
+      ],
+      "files": [
+        "docs/installation.md",
+        "docs/lifecycle-commands.md",
+        "CHANGELOG.md",
+        "package.json",
+        ".agro/cli/package.json",
+        ".agro/cli/package-lock.json"
+      ]
+    }
+  ]
+}
