@@ -54,6 +54,26 @@ describe("ensureHostWorkspace", () => {
     expect(runner.calls).toEqual([{ cmd: "git", args: ["clone", AGRO_REPO_URL, root] }]);
   });
 
+  it("clones a ref with --branch when one is given", () => {
+    const base = makeTemp();
+    const root = join(base, "agro");
+    const runner = fakeRunner();
+
+    expect(ensureHostWorkspace(root, runner.run, "v0.15.0")).toEqual({ root, action: "cloned" });
+    expect(runner.calls).toEqual([
+      { cmd: "git", args: ["clone", "--branch", "v0.15.0", AGRO_REPO_URL, root] },
+    ]);
+  });
+
+  it("clones a ref through staging into an existing empty directory", () => {
+    const root = makeTemp();
+    const runner = fakeRunner();
+
+    expect(ensureHostWorkspace(root, runner.run, "main")).toEqual({ root, action: "cloned" });
+    expect(runner.calls[0].args.slice(0, 4)).toEqual(["clone", "--branch", "main", AGRO_REPO_URL]);
+    expect(existsSync(join(root, "README.md"))).toBe(true);
+  });
+
   it("clones into a directory that holds only ignorable entries and preserves them", () => {
     const root = makeTemp();
     mkdirSync(join(root, "sandboxes"));

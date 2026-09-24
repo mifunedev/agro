@@ -1,13 +1,14 @@
 import { existsSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, userInfo } from "node:os";
 import { delimiter, join } from "node:path";
 import {
   ExecutionSpawnError,
   resolveExecutionTarget,
   resolveTargetStatus,
+  runningInsideSandbox,
   runtimeIsAbsent,
 } from "../lib/execution/index.js";
-import { LocalExecutionTarget } from "../lib/execution/local-target.js";
+import { LocalExecutionTarget, type LocalIdentity } from "../lib/execution/local-target.js";
 import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import type { ExecutionTarget } from "../lib/execution/target.js";
 import { sourceDocsUrl } from "../lib/docs.js";
@@ -55,6 +56,7 @@ export interface ToolOptions {
   homedir?: () => string;
   force?: boolean;
   platform?: NodeJS.Platform;
+  identity?: () => LocalIdentity;
 }
 
 export interface ToolInstallOptions extends ToolOptions {
@@ -72,6 +74,7 @@ interface ToolRow {
   version: string | null;
   installable: boolean;
   hostCapable: boolean;
+  hostRoot: boolean;
   location: ToolLocation;
   docs: string;
 }
@@ -139,6 +142,11 @@ function platformOf(opts: ToolOptions): NodeJS.Platform {
   return opts.platform ?? process.platform;
 }
 
+function isRootUser(opts: ToolOptions): boolean {
+  const identity = opts.identity ?? (() => ({ name: userInfo().username, uid: userInfo().uid }));
+  return identity().uid === 0;
+}
+
 function isInteractive(opts: ToolOptions): boolean {
   return opts.interactive ?? (process.stdin.isTTY === true && process.stdout.isTTY === true);
 }
@@ -200,6 +208,7 @@ function rowOf(
     version,
     installable: entry.installArgv !== undefined,
     hostCapable: entry.hostCapable,
+    hostRoot: entry.hostInstallUser === "root",
     location,
     docs: sourceDocsUrl(entry.docsPath),
   };
@@ -265,7 +274,11 @@ function cell(value: boolean | null, absent: string): string {
 function renderTable(collected: CollectedRows, io: ToolIO, bin: string): void {
   const rows = collected.rows;
   const header = ["TOOL", "KIND", "INSTALLED"];
-  const body = rows.map((r) => [r.id, r.kind, cell(r.installed, "?")]);
+  const body = rows.map((r) => [
+    r.id,
+    r.hostRoot ? `${r.kind} (root)` : r.kind,
+    cell(r.installed, "?"),
+  ]);
   const widths = header.map((h, i) =>
     Math.max(h.length, ...body.map((b) => b[i].length)),
   );
@@ -273,6 +286,9 @@ function renderTable(collected: CollectedRows, io: ToolIO, bin: string): void {
     cols.map((c, i) => c.padEnd(widths[i])).join("  ").trimEnd() + "\n";
   io.stdout(line(header));
   for (const row of body) io.stdout(line(row));
+  if (rows.some((r) => r.hostRoot)) {
+    io.stdout("\n(root) installs on the host as root through `sudo -n`.\n");
+  }
   if (rows.some((r) => r.location === "host")) {
     io.stdout(
       `\nINSTALLED reports the host prefix ${collected.hostPrefix} — the sandbox is not running.\n`,
@@ -461,11 +477,21 @@ async function installOnHost(
     return 0;
   }
 
+  const sudo = entry.hostInstallUser === "root" && !isRootUser(opts);
+  if (sudo && (await tryExec(target, ["sudo", "-n", "true"], undefined))?.exitCode !== 0) {
+    io.stderr(
+      `${bin} tool: ${entry.id} installs as root on the host and needs passwordless \`sudo\`.\n` +
+        `\`sudo -n true\` failed. Configure passwordless sudo for this user, or run as root.\n`,
+    );
+    return 1;
+  }
+
   if (!(await confirmDownload(entry, opts, io, true))) return 1;
 
   io.stdout(`installing ${entry.title} on the host…\n`);
+  const argv = resolveToolInstallArgv(entry, true)!;
   const r = await target.exec({
-    argv: resolveToolInstallArgv(entry, true)!,
+    argv: sudo ? ["sudo", "-n", "--", ...argv] : argv,
     stdio: "inherit",
     env: installEnv,
   });
@@ -497,6 +523,10 @@ async function installOnHost(
     return 1;
   }
 
+  if (entry.hostInstallUser === "root") {
+    io.stdout(`${entry.id} installed on the host — see ${sourceDocsUrl(entry.docsPath)}\n`);
+    return 0;
+  }
   io.stdout(`${entry.id}: installed at ${prefix} — see ${sourceDocsUrl(entry.docsPath)}\n`);
   if (!onPath(prefix, env)) {
     io.stdout(`Add this line to your shell profile: export PATH="${harnessBinPath(prefix)}:$PATH"\n`);
@@ -516,19 +546,26 @@ export async function runToolInstall(
   const entry = findTool(name);
   if (!entry) return unknownTool(name, io, opts.bin);
 
-  if (entry.installArgv === undefined) {
+  const hostOnly = entry.installArgv === undefined && entry.hostInstallArgv !== undefined;
+  const refuseContainer = (): number => {
     io.stderr(`${opts.bin} tool: ${entry.id} cannot be installed by this command.\n\n`);
     io.stderr(`${entry.notInstallableReason?.(opts.bin) ?? ""}\n\n`);
     io.stderr(`Installable tools:\n${installableToolIds().map((t) => `  ${t}`).join("\n")}\n`);
     return 1;
+  };
+
+  if (entry.installArgv === undefined && (!hostOnly || runningInsideSandbox(opts.env ?? process.env))) {
+    return refuseContainer();
   }
 
   const target = targetFor(root, run, opts.env);
   const status = await resolveTargetStatus(target);
 
-  if (!isReachable(status)) {
+  if (!isReachable(status) || (hostOnly && opts.host === true)) {
     return await installOnHost(entry, opts, io, run, status);
   }
+
+  if (entry.installArgv === undefined) return refuseContainer();
 
   const already = await probeInstalled(target, entry, "sandbox");
   if (already === true) {

@@ -8,7 +8,15 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-09-24
+
 ### Added
+
+- Run a root-level host tool installer through `sudo -n`; without passwordless `sudo`, `agro tool install` exits 1 and changes nothing. `agro tool list` marks root-level tools `(root)` ([#1168](https://github.com/mifunedev/agro/issues/1168)).
+- Add the `code-server` tool: a pinned, checksum-verified code-server 4.129.0 in `~/.local` on the host or in the sandbox ([#1168](https://github.com/mifunedev/agro/issues/1168)).
+- Add the host-only, root-level `docker-engine` tool: Docker Engine and Compose from Docker's Ubuntu apt repository. Inside a sandbox, the install refuses and names `access.dockerSocket` ([#1168](https://github.com/mifunedev/agro/issues/1168)).
+- Add the host-only, root-level `desktop` tool: XFCE over XRDP with system Tailscale, serving TCP 3389 only through Tailscale. The install prints `sudo tailscale up` and `sudo passwd <user>` ([#1168](https://github.com/mifunedev/agro/issues/1168)).
+- Add `agro workspace create --ref <ref>` to clone a branch or tag; an unknown ref exits 1 and leaves no target directory ([#1168](https://github.com/mifunedev/agro/issues/1168)).
 
 - Publish `MAJOR.MINOR.PATCH-<channel>.<n>` pre-releases from `main`, `master` and `experiment/**`: a GitHub pre-release, npm dist-tag `<channel>`, immutable GHCR tags, never `latest` ([#1143](https://github.com/mifunedev/agro/issues/1143)).
 - Accept a pre-release version in `agro sandbox install docker --version`, and default a pre-release CLI to its own image instead of `latest` ([#1143](https://github.com/mifunedev/agro/issues/1143)).

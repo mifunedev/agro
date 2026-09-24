@@ -8,18 +8,21 @@
 #       provision-failed marker remains under .devcontainer/, .agro/scripts/ or
 #       .github/; catalog.ts declares SANDBOX_HARNESS_PREFIX and it equals the
 #       Dockerfile's NPM_USER_PREFIX, which is what lets HARNESS_PREFIX_TOKEN
-#       count as that prefix; and every installable entry installs as the sandbox
-#       user into NPM_USER_PREFIX, checksums what it downloads, and is absent
-#       from the image.
+#       count as that prefix; every installable entry without
+#       hostInstallUser:"root" installs as the sandbox user into NPM_USER_PREFIX,
+#       checksums what it downloads, and is absent from the image; and every
+#       root-level tool is host-capable and host-only (no container installArgv),
+#       and reaches root only through the `sudo -n` path in commands/tool.ts.
 set -euo pipefail
 
 ROOT="${HARNESS_ONE_DOOR_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
 HARNESSES="$ROOT/.agro/cli/src/lib/harnesses/catalog.ts"
 TOOLS="$ROOT/.agro/cli/src/lib/tools/catalog.ts"
+TOOL_CMD="$ROOT/.agro/cli/src/commands/tool.ts"
 CONFIG="$ROOT/.agro/cli/src/lib/agro-config.ts"
 DOCKERFILE="$ROOT/.devcontainer/Dockerfile"
 
-for f in "$HARNESSES" "$TOOLS" "$CONFIG" "$DOCKERFILE"; do
+for f in "$HARNESSES" "$TOOLS" "$TOOL_CMD" "$CONFIG" "$DOCKERFILE"; do
   if [[ ! -f $f ]]; then
     echo "SKIPPED: absent: ${f#"$ROOT/"}" >&2
     exit 2
@@ -97,6 +100,26 @@ tool_entries=$(awk '
 
 installable=0
 checksummed=0
+root_level=0
+
+check_root_entry() {
+  local name="$1" entry="$2" id="$3"
+
+  root_level=$((root_level + 1))
+
+  if [[ $entry != *'hostCapable: true'* ]]; then
+    missing+=("$name: \"$id\" is root-level but not hostCapable — a root-level install exists only on the host")
+  fi
+  if [[ $entry =~ (^|[^A-Za-z])installArgv: ]]; then
+    missing+=("$name: \"$id\" is root-level but declares a container installArgv — a root install in the sandbox becomes an interactive \`sudo\`, and /etc/sudoers.d/sandbox has no NOPASSWD")
+  fi
+  if [[ $entry =~ (^|[^A-Za-z])installUser:\ \"root\" ]]; then
+    missing+=("$name: \"$id\" declares installUser: \"root\" — only the host install of a tool may be root-level")
+  fi
+  if [[ $entry != *'hostInstallArgv:'* ]]; then
+    missing+=("$name: \"$id\" is root-level but declares no hostInstallArgv — nothing installs it")
+  fi
+}
 
 check_entry() {
   local name="$1" entry="$2" id="$3"
@@ -165,8 +188,25 @@ while IFS= read -r entry; do
   [[ $entry == *'kind: "installable"'* ]] || continue
   id=$(sed -n 's/.*id: "\([^"]*\)".*/\1/p' <<<"$entry")
   [[ -n $id ]] || continue
-  check_entry "tools/catalog.ts" "$entry" "$id"
+  if [[ $entry == *'hostInstallUser: "root"'* ]]; then
+    check_root_entry "tools/catalog.ts" "$entry" "$id"
+  else
+    check_entry "tools/catalog.ts" "$entry" "$id"
+  fi
 done <<<"$tool_entries"
+
+if ((root_level)); then
+  tool_code=$(cat "$TOOL_CMD")
+  if ! grep -qE 'const sudo = entry\.hostInstallUser === "root"' <<<"$tool_code"; then
+    missing+=("commands/tool.ts: \`sudo\` is not gated on entry.hostInstallUser === \"root\" — a user-level install could reach root")
+  fi
+  if ! grep -qF 'sudo ? ["sudo", "-n", "--", ...argv] : argv' <<<"$tool_code"; then
+    missing+=("commands/tool.ts: the root-level install does not run through \`sudo -n --\` — a root install must never prompt for a password")
+  fi
+  if grep -qE '"sudo",[[:space:]]*"[^-]|"sudo",[[:space:]]*"-[^n]|"sudo"[[:space:]]*[])]' <<<"$tool_code"; then
+    missing+=("commands/tool.ts: runs \`sudo\` without \`-n\` — every path to root must be non-interactive")
+  fi
+fi
 
 if ((installable == harness_installable)); then
   missing+=("tools/catalog.ts: no kind:\"installable\" tool parsed, so the tool half would pass vacuously")
@@ -180,4 +220,4 @@ if ((${#missing[@]})); then
   exit 1
 fi
 
-echo "PASS: no default set, install key, provisioner or boot-time off-ramp remains, SANDBOX_HARNESS_PREFIX resolves $PREFIX_TOKEN to $PREFIX, and all $installable installable entries install as the sandbox user into $PREFIX, checksum their $checksummed downloads, and stay out of the image" >&2
+echo "PASS: no default set, install key, provisioner or boot-time off-ramp remains, SANDBOX_HARNESS_PREFIX resolves $PREFIX_TOKEN to $PREFIX, all $installable user-level installable entries install as the sandbox user into $PREFIX, checksum their $checksummed downloads, and stay out of the image, and all $root_level root-level tools are host-only behind the sudo -n path in commands/tool.ts" >&2
