@@ -92,8 +92,8 @@
         "The steps follow `https://github.com/ryaneggz/runbooks/blob/main/runbooks/ubuntu-24-xfce-xrdp-tailscale.md`, steps 3 to 6."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Worker commits 0c8e7dbf + repair e5167b5c, integrated ending at d2efcf19. Advisor decision during review: agro's tailscale tool is a user-level binary with no tailscaled service, so `sudo tailscale up` and the tailscale0 interface would not exist on a VM; the desktop tool installs system Tailscale from Tailscale's signed apt repository (fingerprint 2596A99EAAB33821893C0A79458CA832957F5868 checked before trust) and enables tailscaled, skipping the install when tailscaled.service exists. AC1 executed: tool-catalog.test.ts desktop is host-capable, root-level, host-only, refused inside the sandbox. AC2 superseded by that decision (no tailscale prerequisite); executed instead: test runs the skip path with stubbed commands (only systemctl cat and enable --now tailscaled) and asserts key, source, package, and service order before the firewall and xrdp. AC3 executed (script content tests): apt-get install xfce4 xfce4-goodies xrdp xorgxrdp, xfce4-session to the invoking user's ~/.xsession with that user's ownership, adduser xrdp ssl-cert, systemctl enable and restart xrdp. AC4 NOT RUN: needs an Ubuntu 24.04 VM; mechanism: nftables table inet agro_xrdp accepts lo and tailscale0 and resets TCP 3389 elsewhere, loaded before xrdp is installed and by an xrdp ExecStartPre drop-in. AC5 executed: tests assert no ufw, ssh, 22, chpasswd, or usermod -p. AC6 executed: script ends by printing `sudo tailscale up` and `sudo passwd $user`. AC7 reasoned: runbook steps 3, 4, 6, and 7 (minus tailscale up) are taken; step 5 is the printed passwd step; the runbook ufw steps are replaced by nftables so SSH rules are untouched. Rendered script: bash -n and npx shellcheck -S warning exit 0. On the task branch: npx vitest run exit 0 (1679 tests); cli typecheck exit 0.",
       "dependsOn": [
         "US-003"
       ],
@@ -101,7 +101,8 @@
         ".agro/cli/src/lib/tools/catalog.ts",
         ".agro/cli/src/__tests__/tool-catalog.test.ts",
         ".agro/cli/src/__tests__/tool.test.ts"
-      ]
+      ],
+      "commit": "d2efcf19"
     },
     {
       "id": "US-005",
