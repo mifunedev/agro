@@ -66,7 +66,7 @@
       ],
       "priority": 4,
       "passes": true,
-      "notes": "Worker commits dcdbb13b + repair cfa6616a (advisor review: root-level host installs no longer print the ~/.local prefix and PATH hints), integrated ending at d814009c. AC1 executed: tool-catalog.test.ts docker is host-only, root-level, installable. AC2 executed: tests assert the five packages, Docker's Ubuntu apt repository, and the fingerprint check before the key is trusted; worker fetched the live key and gpg --show-keys printed 9DC858229FC7DD38854AE2D88D81803C0EBFCD88. AC3 executed: test asserts usermod -aG docker \"$user\" (SUDO_USER) and systemctl enable --now docker. AC4 NOT RUN: needs an Ubuntu 24.04 VM with systemd; deferred to the agro-console node validation (mifunedev/agro-console#168 US-007). AC5 executed: tool.test.ts inside the sandbox with and without --host, and on the host with a running sandbox and no --host, each exit 1 naming access.dockerSocket with no installer run. AC6 executed: tool.test.ts already-installed path exits 0 with no sudo or installer call; reasoned: the script's steps are idempotent. Rendered script: bash -n exit 0; npx shellcheck -S warning exit 0. On the task branch: npx vitest run exit 0; cli typecheck exit 0. Known: host receipt still records the ~/.local prefix (host-config.ts shape); docker uninstall is refused (uninstallArgv null).",
+      "notes": "Worker commits dcdbb13b + repair cfa6616a (advisor review: root-level host installs no longer print the ~/.local prefix and PATH hints), integrated ending at d814009c. AC1 executed: tool-catalog.test.ts docker is host-only, root-level, installable. AC2 executed: tests assert the five packages, Docker's Ubuntu apt repository, and the fingerprint check before the key is trusted; worker fetched the live key and gpg --show-keys printed 9DC858229FC7DD38854AE2D88D81803C0EBFCD88. AC3 executed: test asserts usermod -aG docker \"$user\" (SUDO_USER) and systemctl enable --now docker. AC4 NOT RUN: needs an Ubuntu 24.04 VM with systemd; deferred to the agro-console node validation (mifunedev/agro-console#168 US-007). AC5 executed: tool.test.ts inside the sandbox with and without --host, and on the host with a running sandbox and no --host, each exit 1 naming access.dockerSocket with no installer run. AC6 executed: tool.test.ts already-installed path exits 0 with no sudo or installer call; reasoned: the script's steps are idempotent. Rendered script: bash -n exit 0; npx shellcheck -S warning exit 0. On the task branch: npx vitest run exit 0; cli typecheck exit 0. Known: host receipt still records the ~/.local prefix (host-config.ts shape); docker uninstall is refused (uninstallArgv null). Later renamed: the tool id is docker-engine (392e7bd1), because the runtime catalog owns the id docker; commands read `agro tool install docker-engine --host`.",
       "dependsOn": [
         "US-002"
       ],
@@ -139,8 +139,8 @@
         "AGRO `0.15.0` publishes the changes."
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Worker commit bee2592c integrated as e94d3bc3, plus advisor-assigned repair 5106b09f integrated as 392e7bd1 (the eval gate failed tool-catalog-boundary, harness-one-door, and agent-browser-host-boundary after US-003/US-004; fix: tool id docker renamed docker-engine because the runtime catalog owns `docker`, and the probes' user-level host-install rules now skip root-level tools, which get their own invariant; fault injection on five mutations made the probes fail as expected). AC1 reasoned: advisor read docs/installation.md and docs/lifecycle-commands.md; both list code-server, docker-engine, desktop and mark the root-level tools; ste-check.sh exit 0 on both. AC2 executed: CHANGELOG.md [0.15.0] - 2026-09-24 has US-001..US-005 entries linking #1168; changelog-entry-length.sh pass. AC3 executed on the task branch: npx vitest run exit 0 (1679 tests); cli typecheck exit 0; version-parity.sh pass at 0.15.0; `bash .agro/skills/eval/run.sh` exit 0 with only the persistent non-gating reds next-dev-prod and skills-vendored (both red on development). AC4 executed: PR #1169 has a Host install evidence section; host installs on a real Ubuntu 24.04 VM are listed NOT RUN with the reason. AC5 pending at acceptance: 0.15.0 publishes after the merge; the advisor verifies the release assets and records the result in the PR.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -155,7 +155,8 @@
         "package.json",
         ".agro/cli/package.json",
         ".agro/cli/package-lock.json"
-      ]
+      ],
+      "commit": "392e7bd1"
     }
   ]
 }

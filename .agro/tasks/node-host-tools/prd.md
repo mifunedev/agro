@@ -149,4 +149,9 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+- **The eval probes allowed only user-level host installs.** Evidence: after US-003 and US-004, `tool-catalog-boundary`, `harness-one-door`, and `agent-browser-host-boundary` failed, and the id `docker` collided with the runtime catalog. Outcome: fixed in this PR. The tool is `docker-engine`, and the probes check root-level tools with their own rule.
+- **The `tailscale` tool installs a user binary with no `tailscaled` service.** Evidence: its catalog script copies `tailscale` and `tailscaled` to `~/.local/bin` and starts nothing, so `sudo tailscale up` and `tailscale0` do not exist on a VM. Outcome: fixed in this PR. The `desktop` tool installs system Tailscale from Tailscale's apt repository.
+- **A host tool install needs an existing workspace.** Evidence: `resolveExistingWorkspace` refuses `agro tool install <id> --host` outside a workspace. Outcome: fixed in this PR. The docs state the rule, and the agro-console bootstrap runs `agro workspace create` first.
+- **A root-level host tool gets a user-level receipt, and uninstall refuses it.** Evidence: the `hostTools` receipt records the `~/.local` prefix for `docker-engine` and `desktop`, and both have `uninstallArgv: null`. Outcome: proposed issue, pending operator approval.
+- **The public docs do not name the new tools.** Evidence: `mifunedev/agro-web` does not document `code-server`, `docker-engine`, `desktop`, or `workspace create --ref`. Outcome: proposed issue in `mifunedev/agro-web`, pending operator approval.
+- **The host installs have not run on a real VM.** Evidence: the sandbox has no systemd and no root. Outcome: dropped from this PR. The agro-console node validation (mifunedev/agro-console#168, US-007) runs them on Ubuntu 24.04.
