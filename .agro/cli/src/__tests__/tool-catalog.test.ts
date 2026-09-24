@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { afterEach, describe, expect, it } from "vitest";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -15,7 +17,7 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", ".."
 const read = (p: string): string => readFileSync(join(REPO_ROOT, p), "utf8");
 
 describe("tool catalog shape", () => {
-  it("lists the nine known tools", () => {
+  it("lists the ten known tools", () => {
     expect(toolIds()).toEqual([
       "agent-browser",
       "herdr",
@@ -26,6 +28,7 @@ describe("tool catalog shape", () => {
       "tailscale",
       "code-server",
       "docker",
+      "desktop",
     ]);
   });
 
@@ -65,6 +68,7 @@ describe("tool catalog shape", () => {
     }
     expect(TOOL_CATALOG.filter((t) => t.hostInstallUser === "root").map((t) => t.id)).toEqual([
       "docker",
+      "desktop",
     ]);
   });
 
@@ -427,6 +431,143 @@ describe("docker installs Docker Engine on an Ubuntu host as root", () => {
   it("runs as root through the CLI and never calls sudo itself", () => {
     expect(script).toContain("set -e");
     expect(script).not.toContain("sudo ");
+  });
+});
+
+describe("desktop serves XFCE over XRDP through Tailscale only", () => {
+  const dt = findTool("desktop")!;
+  const script = dt.hostInstallArgv![2];
+  const RULES = "/etc/xrdp/agro-tailscale-only.nft";
+  const DROP_IN = "/etc/systemd/system/xrdp.service.d/agro-tailscale-only.conf";
+
+  it("is a host-only, root-level installable tool", () => {
+    expect(dt.kind).toBe("installable");
+    expect(dt.binary).toBe("xrdp");
+    expect(dt.hostCapable).toBe(true);
+    expect(dt.hostInstallUser).toBe("root");
+    expect(dt.installArgv).toBeUndefined();
+    expect(dt.hostInstallArgv!.slice(0, 2)).toEqual(["bash", "-lc"]);
+    expect(dt.uninstallArgv).toBeNull();
+    expect(dt.notInstallableReason!("agro")).toContain("agro tool install desktop --host");
+  });
+
+  it("verifies the package, the enabled service, the Tailscale guard and the session file", () => {
+    const verify = dt.verifyArgv.join(" ");
+    expect(verify).toContain("command -v xrdp >/dev/null");
+    expect(verify).toContain("systemctl is-enabled --quiet xrdp");
+    expect(verify).toContain(`test -f ${DROP_IN}`);
+    expect(verify).toContain('grep -qx xfce4-session "$HOME/.xsession"');
+  });
+
+  describe("the Tailscale gate", () => {
+    const gateEnd = script.indexOf("\nfi\n", script.indexOf("tailscale --host")) + 3;
+    const gate = script.slice(0, gateEnd);
+    const dirs: string[] = [];
+    afterEach(() => {
+      while (dirs.length > 0) rmSync(dirs.pop()!, { recursive: true, force: true });
+    });
+
+    function runGate(withUserTailscale: boolean) {
+      const dir = mkdtempSync(join(tmpdir(), "agro-desktop-gate-"));
+      dirs.push(dir);
+      const bin = join(dir, "stub-bin");
+      const home = join(dir, "home");
+      mkdirSync(bin, { recursive: true });
+      mkdirSync(join(home, ".local", "bin"), { recursive: true });
+      writeFileSync(join(bin, "getent"), `#!/bin/sh\necho "operator:x:1000:1000::${home}:/bin/sh"\n`);
+      writeFileSync(join(bin, "cut"), `#!/bin/sh\nexec /usr/bin/cut "$@"\n`);
+      chmodSync(join(bin, "getent"), 0o755);
+      chmodSync(join(bin, "cut"), 0o755);
+      if (withUserTailscale) {
+        writeFileSync(join(home, ".local", "bin", "tailscale"), "#!/bin/sh\n");
+        chmodSync(join(home, ".local", "bin", "tailscale"), 0o755);
+      }
+      return spawnSync("/bin/bash", ["-c", gate], {
+        env: { PATH: bin, SUDO_USER: "operator" },
+        encoding: "utf8",
+      });
+    }
+
+    it("comes first and touches nothing", () => {
+      expect(gate.startsWith("set -e\n")).toBe(true);
+      expect(gate).not.toMatch(/apt-get|nft |systemctl|os-release|chown|printf|cat /);
+    });
+
+    it("exits 1 and names the tailscale install when tailscale is absent", () => {
+      const r = runGate(false);
+      expect(r.status).toBe(1);
+      expect(r.stderr).toContain("agro tool install tailscale --host");
+    });
+
+    it("accepts the tailscale that agro installs into the invoking user's ~/.local", () => {
+      const r = runGate(true);
+      expect(r.status).toBe(0);
+      expect(r.stderr).toBe("");
+    });
+
+    it("also accepts a tailscale on root's PATH", () => {
+      expect(gate).toContain(
+        'if ! command -v tailscale >/dev/null && [ ! -x "$home/.local/bin/tailscale" ]; then',
+      );
+    });
+  });
+
+  it("refuses a host that is not Ubuntu", () => {
+    expect(script).toContain(". /etc/os-release");
+    expect(script).toContain('if [ "${ID:-}" != ubuntu ]; then');
+  });
+
+  it("installs the four runbook packages (step 3)", () => {
+    expect(script).toContain("apt-get install -y xfce4 xfce4-goodies xrdp xorgxrdp");
+  });
+
+  it("writes xfce4-session to the invoking user's ~/.xsession with their ownership (step 4)", () => {
+    expect(script).toContain('user="${SUDO_USER:-$(id -un)}"');
+    expect(script).toContain('home="$(getent passwd "$user" | cut -d: -f6)"');
+    expect(script).toContain(`printf '%s\\n' xfce4-session > "$home/.xsession"`);
+    expect(script).toContain('chown "$user:$(id -gn "$user")" "$home/.xsession"');
+  });
+
+  it("adds xrdp to ssl-cert and enables xrdp (step 6)", () => {
+    expect(script).toContain("adduser xrdp ssl-cert");
+    expect(script).toContain("systemctl enable xrdp");
+    expect(script).toContain("systemctl restart xrdp");
+    expect(script).toContain("systemctl is-active --quiet xrdp");
+  });
+
+  it("refuses 3389 on every interface but Tailscale and loopback, before xrdp exists", () => {
+    expect(script).toContain(`cat > ${RULES} <<'EOF'`);
+    expect(script).toContain("table inet agro_xrdp {");
+    expect(script).toContain('iifname { "lo", "tailscale0" } accept');
+    expect(script).toContain("tcp dport 3389 reject with tcp reset");
+    const load = script.indexOf(`nft -f ${RULES}`);
+    expect(load).toBeGreaterThan(-1);
+    expect(load).toBeLessThan(script.indexOf("apt-get install -y xfce4"));
+  });
+
+  it("reloads the guard every time xrdp starts, so it holds across reboots", () => {
+    expect(script).toContain(
+      `printf '[Service]\\nExecStartPre=%s -f ${RULES}\\n' "$(command -v nft)" > ${DROP_IN}`,
+    );
+    expect(script.indexOf(DROP_IN)).toBeLessThan(script.indexOf("apt-get install -y xfce4"));
+  });
+
+  it("changes no SSH rule, no ufw state, and sets no password (step 5 is left to the operator)", () => {
+    expect(script).not.toMatch(/\bufw\b/);
+    expect(script).not.toMatch(/\b22\b/);
+    expect(script).not.toMatch(/\bssh/i);
+    expect(script).not.toMatch(/chpasswd|usermod -p/);
+    expect(script.split("\n").filter((l) => /\bpasswd\b/.test(l) && !l.includes("getent passwd"))).toEqual([
+      'echo "  sudo passwd $user"',
+    ]);
+  });
+
+  it("ends by printing the two remaining operator steps", () => {
+    expect(script.split("\n").slice(-3)).toEqual([
+      'echo "The desktop is installed. Two steps remain:"',
+      'echo "  sudo tailscale up"',
+      'echo "  sudo passwd $user"',
+    ]);
   });
 });
 

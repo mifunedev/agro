@@ -1468,7 +1468,7 @@ describe("tool location reporting", () => {
     );
     const rows = JSON.parse(out.join("")) as Array<Record<string, unknown>>;
     expect(rows.filter((r) => r.hostCapable === true).map((r) => r.id)).toEqual(
-      [...HOST_INSTALLERS.map(([id]) => id), "docker"],
+      [...HOST_INSTALLERS.map(([id]) => id), "docker", "desktop"],
     );
   });
 });
@@ -1691,7 +1691,7 @@ describe("agro tool install --host — a root-level host tool", () => {
     const json = makeIo();
     await runToolList({ ...opts, json: true }, json.io);
     const rows = JSON.parse(json.out.join("")) as Array<Record<string, unknown>>;
-    expect(rows.filter((r) => r.hostRoot === true).map((r) => r.id)).toEqual(["docker", "root-probe"]);
+    expect(rows.filter((r) => r.hostRoot === true).map((r) => r.id)).toEqual(["docker", "desktop", "root-probe"]);
     expect(rows.every((r) => typeof r.hostRoot === "boolean")).toBe(true);
 
     const table = makeIo();
@@ -1818,5 +1818,75 @@ describe("agro tool install docker — the host success output", () => {
     expect(text).not.toContain("installed at");
     expect(text).not.toContain("Add this line to your shell profile");
     expect(Object.keys(receiptsIn(home.dir))).toEqual(["docker"]);
+  });
+});
+
+describe("agro tool install desktop", () => {
+  const INSIDE: NodeJS.ProcessEnv = { AGRO_EXECUTION_TARGET: "local" };
+  const isDesktopInstaller = (c: RecordedCall): boolean =>
+    c.args.some((a) => a.includes("xfce4-goodies"));
+
+  it.each([false, true])("refuses inside the sandbox (--host %s), naming the host install", async (host) => {
+    const root = makeRepo();
+    const { calls, run } = makeRunner();
+    const { io, err } = makeIo(true);
+    expect(
+      await runToolInstall("desktop", { bin: "agro", cwd: root, run, env: INSIDE, host, yes: true }, io),
+    ).toBe(1);
+    expect(hostText(err)).toContain("agro tool install desktop --host");
+    expect(calls).toHaveLength(0);
+  });
+
+  async function installDesktopOnHost(reply: (cmd: string, args: string[]) => RunResult | undefined) {
+    const repo = makeRepo();
+    const home = emptyStateHome();
+    seedWorkspace(defaultRoot(home));
+    const { calls, run } = hostRunner(reply);
+    const { io, out, err } = makeIo();
+    const code = await runToolInstall(
+      "desktop",
+      {
+        bin: "agro",
+        cwd: repo,
+        run,
+        env: home.env,
+        homedir: fakeHome().homedir,
+        interactive: false,
+        host: true,
+        platform: LINUX,
+      },
+      io,
+    );
+    return { code, calls, out: hostText(out), err: hostText(err), home };
+  }
+
+  it("runs the root script through sudo -n and records the install", async () => {
+    const r = await installDesktopOnHost(absentOnHost("xrdp"));
+    expect(r.code).toBe(0);
+    const install = r.calls.filter(isDesktopInstaller);
+    expect(install).toHaveLength(1);
+    expect(install[0].cmd).toBe("sudo");
+    expect(install[0].args).toEqual(["-n", "--", ...findTool("desktop")!.hostInstallArgv!]);
+    expect(r.out).toMatch(/^desktop installed on the host — see /m);
+    expect(Object.keys(receiptsIn(r.home.dir))).toEqual(["desktop"]);
+  });
+
+  it("exits 1 and records nothing when the script's Tailscale gate fails", async () => {
+    const r = await installDesktopOnHost((cmd, args) =>
+      cmd === "sudo" && args.some((a) => a.includes("xfce4-goodies"))
+        ? { status: 1, stdout: "", stderr: "" }
+        : absentOnHost("xrdp")(cmd, args),
+    );
+    expect(r.code).toBe(1);
+    expect(r.err).toContain("installing desktop failed (exit 1)");
+    expect(existsSync(hostConfigFile(r.home.dir))).toBe(false);
+  });
+
+  it("exits 0 and changes nothing when the desktop is already installed", async () => {
+    const r = await installDesktopOnHost(() => undefined);
+    expect(r.code).toBe(0);
+    expect(r.out).toContain("desktop: already installed (xrdp)");
+    expect(r.calls.some(isDesktopInstaller)).toBe(false);
+    expect(r.calls.some((c) => c.cmd === "sudo")).toBe(false);
   });
 });
