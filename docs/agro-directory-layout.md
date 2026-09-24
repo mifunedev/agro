@@ -14,7 +14,7 @@ Canonical skills own reusable procedures. Documentation under `docs/` explains A
 | `.agro/skills/`, `.agro/hooks/`, `.agro/skills.lock` | Vendored shared procedures, hooks, and pack metadata. |
 | `.agro/evals/` | Regression probes, capability benchmark, datasets, and decision records. |
 | `.agro/knowledge/` | Tracked source pages, patterns, external captures, and a generated index; ignored `local/` scratch. |
-| `.agro/tasks/` | Local spec task plans, graphs, progress, and gate records. |
+| `.agro/tasks/` | Task plans (`prd.md`) and story state (`prd.json`). |
 | `.agro/logs/`, `.agro/memories/` | Local logs and operator context, each with a scoped contract. |
 | `.agro/manifest.json` | The declared control-plane and root payload. |
 | `.devcontainer/` | Dockerfile, Compose configuration, entrypoint, and sandbox bootstrap assets. |

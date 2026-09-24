@@ -20,13 +20,14 @@ projects/*
 !projects/AGENTS.md
 .claude/worktrees/
 
-# Task artifacts are local runtime state; keep only the directory guide tracked.
+# Task folders track only prd.md and prd.json; archive and run artifacts stay local.
 .agro/tasks/*
-!.agro/tasks/README.md
-.agro/logs/*
-!.agro/logs/AGENTS.md
-.agro/tasks/*
+!.agro/tasks/*/
+.agro/tasks/*/*
+!.agro/tasks/*/prd.md
+!.agro/tasks/*/prd.json
 !.agro/tasks/AGENTS.md
+.agro/tasks/archive/
 .agro/logs/*
 !.agro/logs/AGENTS.md
 
@@ -77,7 +78,7 @@ packages/*/node_modules/
 # Durable repository knowledge (.agro/knowledge/) is TRACKED: source/ and
 # patterns/ hold shared synthesis, raw/ holds the immutable external evidence
 # those pages cite. Only local/ is ignored — per-machine scratch that /wiki query
-# and every /spec flow refuse to read, so a page on one machine can never
+# and every plan refuse to read, so a page on one machine can never
 # silently inform a plan another machine cannot reproduce.
 .agro/knowledge/local/*
 !.agro/knowledge/local/README.md

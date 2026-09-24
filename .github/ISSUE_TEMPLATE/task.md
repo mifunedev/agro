@@ -1,27 +1,32 @@
 ---
 name: Task
-about: A discrete unit of work to be completed
-title: "[TASK] "
+about: A chore, refactor, or maintenance change with no new behavior and no bug
+title: "task: "
 labels: task
 assignees: ""
 ---
 
-## Description
+## Metadata
 
-<!-- What needs to be done? Be specific. -->
+> **IMPORTANT**: The very first step should _ALWAYS_ be validating this metadata section to maintain a **CLEAN** development workflow.
 
-## Context
-
-<!-- Any relevant background, links, or dependencies. -->
+```yml
+pull_request_title: "FROM task/[issue#]-[shortdesc] TO [target-branch]"
+branch: "task/[issue#]-[shortdesc]"
+```
 
 ---
 
-> **Git workflow**: see the [/git skill](../../.agro/skills/git/SKILL.md)
+## Description
+
+<!-- What needs to be done and why? Link related issues or context. -->
 
 ---
 
 ## Done When
 
-- [ ] <!-- Criteria 1 -->
-- [ ] <!-- Criteria 2 -->
-- [ ] PR targets `development` unless the git workflow rule says otherwise
+<!-- Every criterion must be binary — testable by an agent with a pass/fail outcome. -->
+
+- [ ] <!-- Criterion 1 -->
+- [ ] The repository's lint, typecheck, test, and build commands pass
+- [ ] Draft PR opened: `FROM task/[issue#]-[shortdesc] TO [target-branch]`

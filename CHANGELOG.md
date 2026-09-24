@@ -8,6 +8,31 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-09-23
+
+### Added
+
+- Add `agro sandbox install docker --version <X.Y.Z>` to pin the official image `ghcr.io/mifunedev/agro:<X.Y.Z>` without typing the full ref ([#1160](https://github.com/mifunedev/agro/issues/1160)).
+
+### Changed
+
+- Default the sandbox image tag to the `agro` CLI version instead of `latest`. The install stores only an explicit pin, so an unpinned sandbox follows the CLI version ([#1160](https://github.com/mifunedev/agro/issues/1160)).
+- Replace the feature issue template with a repo-agnostic template covering user stories, integration points, a TDD test plan, and binary acceptance criteria ([#1145](https://github.com/mifunedev/agro/issues/1145)).
+- Make the pull request template repo-agnostic and pair it with the feature template: changes table, TDD test plan, verification, visual reference, follow-ups, and an acceptance checklist ([#1145](https://github.com/mifunedev/agro/issues/1145)).
+- Consolidate the planning chain: `/prd` absorbs `/plan` and `/ralph`, `/delegate` runs the advisor/worker pattern from `prd.json`, and plans land in a draft PR before implementation ([#1147](https://github.com/mifunedev/agro/issues/1147)).
+- Reduce the issue templates to `feat`, `bug`, and `task`: rewrite the bug template in the feature template's shape, thin the task template, and remove the audit and skill templates ([#1158](https://github.com/mifunedev/agro/issues/1158)).
+
+### Removed
+
+- Remove `/spec`, `/retro`, and `/wiki compile`. Plans use the core chain: `/prd`, a draft PR, `/delegate`, and a ready PR. Lessons live in the plan's `## Lessons` ([#1156](https://github.com/mifunedev/agro/issues/1156)).
+
+### Fixed
+
+- Stop false denies in the Bash secret guard: match `history` only at command position, and never read a `jq` filter such as `'.env'` as a secret path ([#1149](https://github.com/mifunedev/agro/issues/1149)).
+- Close false allows in the Bash secret guard: deny `jq` filters that read `env` or `$ENV`, and deny a quoted `json` inspect format ([#1150](https://github.com/mifunedev/agro/issues/1150)).
+- Tighten the Bash secret guard: deny inline interpreter code that reads the environment, stop reading grep or rg patterns as secret paths, and end the `jq` scan at its own call ([#1155](https://github.com/mifunedev/agro/issues/1155)).
+- Forbid a bare `git stash` in the worker brief, and name a blocked command rerun through a script file, a heredoc, or another tool as a hook bypass ([#1162](https://github.com/mifunedev/agro/issues/1162)).
+
 ## [0.13.0] - 2026-09-22
 
 ### Added

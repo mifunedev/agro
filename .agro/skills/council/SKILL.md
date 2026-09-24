@@ -138,7 +138,7 @@ Existing skills keep their contracts; this skill does not migrate their workflow
 | [`/delegate`](../delegate/SKILL.md) | Worker execution mechanics and acceptance records. |
 | [`/architect`](../architect/SKILL.md) | Architecture decisions and the Architecture Brief. |
 | [`/audit`](../audit/SKILL.md) | Audit verdicts. |
-| [`/spec`](../spec/SKILL.md) | Plans, builds, and ready PRs. |
+| [`/prd`](../prd/SKILL.md) | Plans. |
 | [`/supervisor`](../supervisor/SKILL.md) | External session supervision. |
 | [`/builder`](../builder/SKILL.md) | Skill authoring. |
 | [`/ste`](../ste/SKILL.md) | Artifact prose. |

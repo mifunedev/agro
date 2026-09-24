@@ -4,7 +4,7 @@ This directory is the harness's **example corpus**: a catalogue of concrete,
 verifiable *trajectories* — a real prompt, the real change it produced, and a
 machine-checkable oracle for that change. Inspired by HuggingFace's
 [Repo2RLEnv](https://github.com/huggingface/Repo2RLEnv), each example turns a
-shipped PR or a retro lesson into a reward-bearing instance a
+shipped PR or a plan lesson into a reward-bearing instance a
 candidate trajectory can be **scored against** (or an existing trajectory
 **improved from**). Where the probe suite asks "did we break it?" and the
 capability benchmark asks "did we get better?", this corpus supplies the
@@ -25,14 +25,14 @@ candidate diff still earns its example's reward.
 ## Per-example folder layout
 
 Each example lives at `.agro/evals/datasets/<dataset>/<DS-id>-<slug>/`. `<dataset>` is
-the trajectory class (`spec-execute-prs`);
+the trajectory class (`task-prs`);
 `<DS-id>` is the never-reused `DS-NNN` id; `<slug>` is a short kebab label.
 
 | Path | Holds |
 |---|---|
 | `manifest.json` | The example's metadata record (schema below) — the single source of truth for its `id`, source, and reward. |
 | `prompt.md` | The trajectory **input**: the task/prompt as the harness received it. |
-| `oracle/` | The verified ground truth. `summary.md` (always) and `changed-files.txt` (always); `diff.patch` for small diffs; `lesson.md` for retro examples. |
+| `oracle/` | The verified ground truth. `summary.md` (always) and `changed-files.txt` (always); `diff.patch` for small diffs; `lesson.md` for lesson examples. |
 | `verify.sh` | Dual-mode scorer. **Self-check** with no args (validate the example is internally consistent — manifest, oracle, hash). **Score mode** `verify.sh <candidate-diff>` prints exactly one line `score=<0..1>` rating the candidate against the oracle. |
 
 `oracle/`:
@@ -42,7 +42,7 @@ the trajectory class (`spec-execute-prs`);
 | `summary.md` | always | Prose statement of what a correct trajectory does and why. |
 | `changed-files.txt` | always | Sorted list of paths the trajectory touched — the `content_hash` is taken over this file. |
 | `diff.patch` | small diffs only | The literal patch (see *Size discipline*). |
-| `lesson.md` | retro examples | The distilled lesson the retro produced. |
+| `lesson.md` | lesson examples | The lesson from the `## Lessons` section of the task plan. |
 
 ## `manifest.json` fields
 
@@ -50,12 +50,12 @@ the trajectory class (`spec-execute-prs`);
 |---|---|---|---|
 | `id` | string | yes | `DS-NNN`; matches the folder's `DS-id` and the `## Catalogue` row. |
 | `slug` | string | yes | Kebab label; matches the folder's `<slug>`. |
-| `dataset` | string | yes | Trajectory class: `spec-execute-prs`. |
+| `dataset` | string | yes | Trajectory class: `task-prs`. |
 | `title` | string | yes | Human-readable one-line title. |
 | `created` | date | yes | UTC `YYYY-MM-DD` the example was captured. |
-| `source` | object | yes | Provenance. PR examples: `{repo, pr, issue, merge_commit, url}`. Retro examples: `{repo, memory_ref, lesson_date, origin}`. |
-| `trajectory` | object | yes | `{kind, outcome}` — e.g. `kind: "spec-execute"`, `outcome: "merged"`. |
-| `skills` | array | yes | Skills the trajectory exercised (e.g. `["spec","eval"]`). |
+| `source` | object | yes | Provenance. PR examples: `{repo, pr, issue, merge_commit, url}`. Lesson examples: `{repo, memory_ref, lesson_date, origin}`. |
+| `trajectory` | object | yes | `{kind, outcome}` — e.g. `kind: "delegate"`, `outcome: "merged"`. |
+| `skills` | array | yes | Skills the trajectory exercised (e.g. `["prd","delegate","eval"]`). |
 | `reward_kind` | array | yes | One or more reward modes (table below). |
 | `oracle` | object | yes | `{summary, changed_files, changed_file_count, diff?, lesson?}` — relative paths into `oracle/` plus the file count; `diff`/`lesson` present only when stored. |
 | `content_hash` | string | yes | `sha256:<hex>` taken over `oracle/changed-files.txt` — the drift anchor. |
@@ -96,13 +96,9 @@ directions; column 1 is the bare `DS-NNN`).
 | DS-001 | ship-spec-prs † | Add default Pi Monitor support | PR #147 (closes #146) | diff_similarity, artifact_presence |
 | DS-002 | ship-spec-prs † | Run pnpm security audits in CI | PR #172 (closes #171) | diff_similarity, artifact_presence, test_execution |
 
-† **Legacy class name.** `/ship-spec` was absorbed into `/spec execute` and deleted
-(spec-simplification US-003, 2026-08-24). The class for NEW examples is
-`spec-execute-prs`, as the schema above records. DS-001 and DS-002 keep the
-`ship-spec-prs` directory and manifest they were captured under: a dataset is a frozen
-record of what a run actually did, and renaming the class those runs were recorded in
-would make the record claim a skill that did not exist at capture time. Read the on-disk
-`ship-spec-prs/` folder as the historical spelling of `spec-execute-prs`.
+† **Legacy class name.** DS-001 and DS-002 keep the `ship-spec-prs` directory and
+manifest from their capture. A dataset is a frozen record of what a run did. A new
+class name on these records would claim a skill that did not exist at capture time. The class for new examples is `task-prs`, as the schema above records.
 
 ## Pointers
 

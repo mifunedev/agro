@@ -1,7 +1,7 @@
 ---
 name: benchmark
 description: >-
-  Progress-ceiling verdict gate (part of `/spec execute`'s improve tail) — decide whether ONE
+  Operator-run progress-ceiling verdict gate — decide whether ONE
   landed change was actually BENEFICIAL (moved or held the capability-benchmark
   ceiling without breaking the regression floor, and is worth its complexity),
   then emit a single BENEFICIAL/NOT-BENEFICIAL verdict. Composes (never forks)
@@ -10,18 +10,16 @@ description: >-
   counterfactual). Machinery added with no benchmark movement is NOT-BENEFICIAL
   by definition. Distinct from /audit implementation (per-unit promotability =
   floor) — this is the ceiling: did the harness get BETTER, not just not-broken.
-  TRIGGER when: a change has landed and the loop needs a benefit-vs-counterfactual
-  verdict before the cycle repeats; the improve tail of `/spec execute`
-  runs; "was <change> beneficial", "score the capability benchmark", "benchmark
-  this cycle".
+  TRIGGER when: the operator asks for a benefit-vs-counterfactual verdict on a
+  landed change; "was <change> beneficial", "score the capability benchmark",
+  "benchmark this cycle".
 argument-hint: "[--base <ref>] [--cycles <N>]"
 ---
 
 # Benchmark — progress-ceiling verdict gate
 
-The **benchmark** gate, part of `/spec execute`'s improve tail in
-`.agro/skills/spec/SKILL.md`. It answers one question: *was this change actually beneficial — did it
-move or hold the capability ceiling without breaking the regression floor, and is
+The **benchmark** gate. The operator runs it. No other skill calls it. It
+answers one question: *was this change actually beneficial — did it move or hold the capability ceiling without breaking the regression floor, and is
 it worth its complexity?* — and emits exactly one verdict.
 
 **Core principle: compose, don't re-derive — and judge OUTCOMES, not machinery.**
@@ -65,7 +63,7 @@ rather than launching a third one:
 ```bash
 RESULT=".agro/tasks/<slug>/eval-result.json"
 if [ -f "$RESULT" ] && [ "$(jq -r .commit "$RESULT")" = "$(git rev-parse HEAD)" ]; then
-  rc="$(jq -r .runnerExit "$RESULT")"          # inherit /spec execute's single run
+  rc="$(jq -r .runnerExit "$RESULT")"
 else
   bash .claude/skills/eval/run.sh ; rc=$?
 fi

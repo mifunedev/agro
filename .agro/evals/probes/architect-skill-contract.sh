@@ -45,7 +45,7 @@ done
 
 grep -qF 'ARCHITECTURAL | NOT-ARCHITECTURAL' "$SKILL" || fail "architect omits the significance classification"
 grep -qF 'NOT-ARCHITECTURAL' "$SKILL" || fail "architect omits the non-architectural bypass"
-grep -qF '/spec plan' "$SKILL" || fail "architect does not route ordinary work to /spec plan"
+grep -qF 'route the work straight to `/prd`' "$SKILL" || fail "architect does not route ordinary work to /prd"
 grep -qF 'AGENTS.md' "$SKILL" || fail "architect grounding omits applicable repository instructions"
 grep -qF 'docs/rfcs/README.md' "$SKILL" || fail "architect grounding omits the RFC/ADR index"
 

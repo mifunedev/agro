@@ -31,14 +31,14 @@ explicitly. Do not assume `origin` is the public target.
 
 ## Issue Titles
 
-Format: `<prefix>(<issue#>): <shortdesc>`
+Format: `<prefix>: <shortdesc>`
 
-`<prefix>` ∈ `feat` · `bug` · `task` · `audit` · `skill`
+`<prefix>` ∈ `feat` · `bug` · `task`
 (matches `.github/ISSUE_TEMPLATE/<prefix>.md`)
 
-Example: `feat(#42): slack thread replies`
+Example: `feat: slack thread replies`
 
-> Create issue first so `<issue#>` exists, then branch.
+> Create the issue first so `<issue#>` exists, then branch.
 
 ## Branch Names
 
@@ -93,7 +93,7 @@ Example: `FROM feat/42-slack-thread-replies TO development`
 
 ## Commit Messages
 
-Format: `<type>: <description>` where `<type>` ∈ `feat` · `fix` · `task` · `audit` · `skill`
+Format: `<type>: <description>` where `<type>` ∈ `feat` · `fix` · `task`
 
 ## Changelog
 
@@ -117,7 +117,7 @@ Displaced detail has a destination — put it there, not in the entry:
 | Detail | Destination |
 |--------|-------------|
 | Rationale, rejected alternatives | The PR body — the `([#N])` link is the pointer |
-| Task/spec decisions | `.agro/tasks/<slug>/prd.md` |
+| Task decisions | `.agro/tasks/<slug>/prd.md` |
 | Architecture decisions | `docs/rfcs/` |
 | Durable, generalized lessons | A minted probe under `.agro/evals/probes/` |
 
@@ -284,9 +284,88 @@ always false for the noncanonical branch. The GitHub Release stays draft until
 immutable image and successful/no-op CLI publication finish. See `/release` for
 the fast-forward promotion, monitoring, and verification procedure.
 
+## Draft PR for a task
+
+Run the steps below after the operator approves `.agro/tasks/<slug>/prd.md`.
+Creating the issue and the PR is outward-facing. Create them only after explicit
+operator approval of the plan. Writing a plan is not approval.
+
+1. Open the issue. Use the `.github/ISSUE_TEMPLATE/feat.md` shape. Fill User
+   Stories, Summary, and Acceptance Criteria from `prd.md`. Record `<N>`:
+
+   ```bash
+   gh issue create --title "<prefix>: <shortdesc>" --body-file <issue-body.md>
+   ```
+
+2. Create branch `<prefix>/<N>-<slug>` from `$BASE` in an isolated worktree
+   (see § Worktrees).
+3. Commit the plan as the first commit. Push the branch:
+
+   ```bash
+   git add .agro/tasks/<slug>/prd.md .agro/tasks/<slug>/prd.json
+   git commit -m "<prefix>: plan <slug>"
+   git push -u origin <prefix>/<N>-<slug>
+   ```
+
+4. Open the draft PR. Build the body from `.github/pull_request_template.md`.
+   Put `Closes #<N>` in the body. Add a `## Stories` checklist from `prd.json`:
+
+   ```bash
+   jq -r '.userStories[] | "- [ ] \(.id): \(.title)"' .agro/tasks/<slug>/prd.json
+   gh pr create --draft --base $BASE --title "FROM <prefix>/<N>-<slug> TO $BASE" --body-file <pr-body.md>
+   ```
+
+The advisor commits each accepted story to this branch and does not push it.
+The advisor pushes the task branch only two times: in step 3 for the draft PR,
+and in § Ready for review before `gh pr ready`. Push at another time only when
+the operator explicitly requires it.
+
+### Ready for review
+
+Do these steps in this sequence:
+
+1. Examine the first three conditions below. If one is false, stop and keep the
+   PR in draft.
+2. Push the task branch one time: `git push`.
+3. Run `/ci-status` to examine the last condition.
+4. Run `gh pr ready` only when all of these conditions are true. If one is
+   false, refuse and keep the PR in draft.
+
+- Every story passes:
+  `jq -e 'all(.userStories[]; .passes == true)' .agro/tasks/<slug>/prd.json`
+  exits 0.
+- `prd.md` ends with a non-empty `## Lessons` section. "None" is a valid body:
+  `awk '/^## /{s=($0=="## Lessons");n=0;next} s&&NF{n++} END{exit !(s&&n)}' .agro/tasks/<slug>/prd.md`
+  exits 0.
+- The PR body evidence sections are non-empty: What the issue asked for, What
+  was built, Where it diverged, What remains unverified, Verification, and
+  Lessons. "None" or "Nothing" is a valid body.
+- The repository's checks pass on the pushed branch (`/ci-status`).
+
+### After the merge
+
+Do these steps in this sequence:
+
+1. Run the merge check as its own command. Do not chain it with a cleanup
+   command:
+
+   ```bash
+   gh pr view <N> --json state -q .state
+   ```
+
+2. If the output is not `MERGED`, stop. Do no cleanup. An operator statement is
+   not evidence of the merge.
+3. Remove the task worktree:
+   `bash .agro/scripts/git-maintenance.sh worktree-remove <path>`.
+4. Delete the local task branch:
+   `bash .agro/scripts/git-maintenance.sh branch-delete <branch>`.
+5. Confirm the issue closed (see § Workflow step 7).
+
+Deleting the remote branch of an open PR closes the PR.
+
 ## After Push
 
-If `.claude/skills/ci-status/` exists, invoke `/ci-status` after every `git push` to confirm pipeline green before declaring work done. Push failing CI is not done.
+If `.agro/skills/ci-status/` exists, invoke `/ci-status` after every `git push` to confirm pipeline green before declaring work done. Push failing CI is not done.
 
 ## Provider Portability
 

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # tier: A
 # source: issue #928 — retire automated /spec agent handoff
-# desc: retiring the /spec Advisor handoff must not strip tmux from independently justified
-#       headless infrastructure — cron runtime, gateway clients, tunnels, and the T3 Code server
+# desc: retiring the automated agent handoff must not strip tmux from independently justified
+#       headless infrastructure — cron runtime, gateway clients, tunnels, and the T3 Code server;
+#       agent task workflows stay outside the tmux rule
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -31,16 +32,15 @@ grep -qF 'tmuxSessionName' "$CRON_RUNTIME" || missing+=("cron-runtime.ts lost it
 grep -qF 'cron-<id>-<MMDD>-<HHMM>' "$CRON_GUIDE" || missing+=("crons/AGENTS.md lost the detached-fire tmux session convention")
 grep -qF 'tmux' "$ENTRYPOINT" || missing+=("the sandbox entrypoint no longer starts its tmux supervisor sessions")
 
-# The retirement is scoped: the /spec agent-handoff exception is gone, the generic rule stays.
-grep -qiF 'not a tmux exception' "$PROC" || missing+=("sandbox-processes.md no longer scopes the tmux rule away from /spec execute")
+grep -qiF 'not a tmux exception' "$PROC" || missing+=("sandbox-processes.md no longer scopes the tmux rule away from agent task workflows")
 retired_session='agent-''spec-'
 prescribed=$(grep -nF -- "$retired_session" "$PROC" | grep -vF 'Do not reintroduce' || true)
 [[ -n "$prescribed" ]] && missing+=("sandbox-processes.md still prescribes the retired $retired_session session convention: ${prescribed//$'\n'/ ; }")
 
 if (( ${#missing[@]} )); then
-  printf 'REGRESSION: headless tmux infrastructure damaged by the /spec handoff retirement:\n' >&2
+  printf 'REGRESSION: headless tmux infrastructure damaged by the agent handoff retirement:\n' >&2
   printf '  - %s\n' "${missing[@]}" >&2
   exit 1
 fi
 
-echo "PASS: tmux remains intact for cron, gateway, tunnel, and T3 headless infrastructure while the /spec Advisor exception is gone" >&2
+echo "PASS: tmux remains intact for cron, gateway, tunnel, and T3 headless infrastructure while the agent-handoff exception is gone" >&2

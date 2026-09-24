@@ -19,7 +19,6 @@ required_execs=(
   ".agro/skills/cloudflared/scripts/run.sh"
   ".agro/skills/health-check/scripts/scope-preflight.sh"
   ".agro/skills/eval/run.sh"
-  ".agro/skills/retro/scripts/validate-retro-report.sh"
   ".agro/skills/t3/scripts/t3-code.sh"
 )
 

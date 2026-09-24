@@ -1,7 +1,7 @@
 ---
 name: architect
 description: |
-  Decide what the system should become before /spec commits an implementation
+  Decide what the system should become before /prd writes an implementation
   plan. Runs inline in the active coding-agent session, grounds every claim in
   current repository sources, and returns one Architecture Brief.
   TRIGGER when: a change alters module/system boundaries, the execution or
@@ -11,7 +11,7 @@ description: |
   reusable abstraction, the retirement of an existing one, or any structural
   decision that is expensive to reverse; asked to "design this", "what should
   the architecture be", "is this architecturally significant", "ADR for X",
-  before /spec plan on a structural change.
+  before /prd on a structural change.
   Do NOT trigger for ordinary local changes — a bug fix, a copy edit, a new
   test, a contained refactor inside one module.
 argument-hint: "<problem | issue number | plan path>"
@@ -20,7 +20,7 @@ allowed-tools: Read, Glob, Grep, Bash
 
 # Architect
 
-Determine what the system should become before `/spec` commits the
+Determine what the system should become before `/prd` writes the
 implementation plan. This skill decides architecture; it does not implement.
 
 Arguments received: `$ARGUMENTS`
@@ -62,7 +62,7 @@ Architecture review is selective, not ceremony. Treat the change as
 - a structural decision that is difficult or expensive to reverse.
 
 Otherwise the change is **NOT-ARCHITECTURAL**. Say so in two or three
-sentences, name the reason, route the work straight to `/spec plan`, and stop.
+sentences, name the reason, route the work straight to `/prd`, and stop.
 Do not produce the full brief for a small local change.
 
 ## 2. Ground the decision
@@ -175,9 +175,9 @@ NONE | UPDATE <issue/RFC/ADR> | PROPOSE ADR: <title>
 | Naming the decision and the options | Writing the implementation |
 | Recommending one option with tradeoffs | Opening branches, worktrees, or PRs |
 | Pointing a durable decision at an RFC/ADR issue | Creating a new decision store |
-| Handing the accepted direction to `/spec plan` | Owning the build |
+| Handing the accepted direction to `/prd` | Owning the build |
 
-`/architect` decides architecture. `/spec` turns the accepted direction into
-executable work. Neither is a mandatory phase for the other: a
-`NOT-ARCHITECTURAL` change goes straight to `/spec plan`, and a brief that ends
+`/architect` decides architecture. `/prd` turns the accepted direction into a
+plan, and `/delegate` executes it. Neither is a mandatory phase for the other: a
+`NOT-ARCHITECTURAL` change goes straight to `/prd`, and a brief that ends
 in a rejected option produces no plan at all.

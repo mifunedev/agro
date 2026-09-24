@@ -1,20 +1,16 @@
 #!/usr/bin/env bash
 # tier: A
 # source: issue #926 — ignored local scratch must never be an implicit input
-# desc: /wiki query and every /spec flow read tracked knowledge only; .agro/knowledge/local/ is
-#       gitignored, holds nothing tracked but its README anchor, and no read path enumerates it
+# desc: /wiki query reads tracked knowledge only; .agro/knowledge/local/ is
+#       gitignored, holds nothing tracked but its README anchor, and the query path does not enumerate it
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$ROOT"
 
 QUERY=".agro/skills/wiki/references/query.md"
-PLAN=".agro/skills/spec/references/plan.md"
-EXECUTE=".agro/skills/spec/references/execute.md"
 
-for f in "$QUERY" "$PLAN" "$EXECUTE"; do
-  [[ -f "$f" ]] || { echo "SKIPPED: required file absent: $f" >&2; exit 2; }
-done
+[[ -f "$QUERY" ]] || { echo "SKIPPED: required file absent: $QUERY" >&2; exit 2; }
 
 failures=()
 
@@ -40,19 +36,15 @@ grep -qF 'DIR="$KNOWLEDGE/source"' "$QUERY" \
 grep -qF 'DIR="$KNOWLEDGE/patterns"' "$QUERY" \
   || failures+=("query.md does not enumerate .agro/knowledge/patterns/")
 
-# 4. Every mention of the scratch tier in a read path must be a prohibition, never
+# 4. Every mention of the scratch tier in the query path must be a prohibition, never
 #    an enumeration. A read path that globs it is the failure this probe exists for.
-for f in "$QUERY" "$PLAN" "$EXECUTE"; do
-  if grep -nE 'knowledge/local/\*|knowledge/local/\*\.md|for .* in .*knowledge/local' "$f"; then
-    failures+=("$f enumerates the ignored scratch tier")
-  fi
-done
+if grep -nE 'knowledge/local/\*|knowledge/local/\*\.md|for .* in .*knowledge/local' "$QUERY"; then
+  failures+=("$QUERY enumerates the ignored scratch tier")
+fi
 
-# 5. The prohibition must be stated where a reader of each path will meet it.
+# 5. The prohibition must be stated where a reader of the query path will meet it.
 grep -qF 'does **not** read `.agro/knowledge/local/`' "$QUERY" \
   || failures+=("query.md does not state that it refuses the scratch tier")
-grep -qF 'query path reads it' "$PLAN" \
-  || failures+=("plan.md does not state that recall refuses the scratch tier")
 
 # 6. The scratch tier must document its explicit promotion path, or it becomes a
 #    dead end people work around by hand-moving files past the schema.

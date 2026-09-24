@@ -62,7 +62,7 @@ The [capability contract](../.agro/evals/capability/AGENTS.md) requires evidence
 Never tune the harness to a task id or delete difficult tasks to raise the average.
 Compare unchanged task sets, and disclose additions rather than presenting their average as a like-for-like delta.
 
-The [benchmark skill](../.agro/skills/benchmark/SKILL.md) consumes the scoreboard for benefit verdicts in the spec improvement flow.
+The operator runs the [benchmark skill](../.agro/skills/benchmark/SKILL.md), which consumes the scoreboard for benefit verdicts.
 There is no CI job that blocks a merge on the capability-score delta.
 The runner alone is not a live gate or an automatic judge.
 If the ceiling stays flat while complexity grows, report the need for human redirect.

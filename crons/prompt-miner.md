@@ -7,7 +7,7 @@ overlap: false
 catchup: false
 tmux: true
 repo: mifunedev/agro
-description: Daily prompt-miner — mine 24h of session traces for prompt-quality markers and ship a top finding to the origin fork via /spec (opt-in, cap-gated)
+description: Daily prompt-miner — mine 24h of session traces for prompt-quality markers and ship a top finding to the origin fork via /prd and /delegate (opt-in, cap-gated)
 ---
 
 # prompt-miner
@@ -16,8 +16,8 @@ You are running on a daily prompt-miner cycle, inside your own detached tmux
 session. Create an isolated `/worktrees` checkout for any source or branch work so
 the shared root checkout stays clean. Your job is to mine the last 24h of session
 traces for a high-confidence prompt-quality marker and, when one clears the bar,
-ship it to the **origin fork** through `/spec` — never upstream, never
-auto-merged.
+ship it to the **origin fork** through `/prd` and `/delegate` — never upstream,
+never auto-merged.
 
 This cron is **opt-in and cap-gated**:
 
@@ -86,17 +86,14 @@ Read the mined markers (stratified by session type; see `references/markers.md`)
   bar) or `NO-CORPUS` (no stratum reached the `sessions_supporting ≥ 10` floor) to
   the reply and **stop**. No issue, no branch, no PR.
 
-### 3. Ship the candidate to origin via `/spec`
+### 3. Ship the candidate to origin through the core chain
 
-Hand the issue to `/spec`, which owns plan and build end-to-end (isolated worktree,
-single-owner implementation with bounded `/delegate` fan-out, the `/eval` gate, `/audit pr`
-undraft) and targets the fork:
-
-```bash
-/spec plan --issue <N> --repo mifunedev/agro --base development
-# then, once the operator approves prd.md:
-/spec execute <slug> --repo mifunedev/agro --base development
-```
+Write the plan for the issue with `/prd`. Stop until the operator approves
+`prd.md`. After approval, open the draft PR with the "Draft PR for a task"
+procedure of `/git`. Use the issue from step 2 in place of step 1 of that
+procedure. Target `mifunedev/agro` and base `development`. Then
+run `/delegate` on the task. `/delegate` ends at the "Ready for review" step of
+`/git`.
 
 Capture the **created PR number**, then label the PR itself — GitHub does **not**
 propagate the issue's label onto the PR, so an unlabeled PR would silently defeat
@@ -123,8 +120,7 @@ printf '[%s]\tprompt-miner\t%s\t%s\n' "$(date -Iseconds)" "<STATUS>" "<msg>" \
 
 - **Never auto-merge.** This cron opens a PR and labels it; a human merges.
 - **Never edit tracked harness files directly.** Improvements land as
-  loop-gated PRs through `/spec` (whose execute node walks retro/compound),
-  never as unattended mutations. The interactive `/prompt-miner` Step-4 gate only
+  PRs through `/prd` and `/delegate`, never as unattended mutations. The interactive `/prompt-miner` Step-4 gate only
   proposes a probe, and it requires human `APPROVE`.
 - **Origin-only.** Issue, PR, and ground-truth cross-ref target
   `mifunedev/agro` / `origin/development` — never `upstream`/`mifunedev`.

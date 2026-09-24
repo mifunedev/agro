@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { renderComposeEnv, renderComposeVars } from "../config-render.js";
 import { SECRET_KEYS } from "../secrets.js";
 import { defaultAgroConfig, type AgroConfig } from "../agro-config.js";
+import { AGRO_VERSION, officialImageRef } from "../version.js";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", "..");
 const DEVCONTAINER = join(REPO_ROOT, ".devcontainer");
@@ -216,6 +217,36 @@ describe("renderComposeEnv", () => {
       "image: ${AGRO_SANDBOX_IMAGE:-ghcr.io/mifunedev/agro:latest}",
     );
     expect(text).not.toContain("ghcr.io/mifunedev/openharness:latest");
+  });
+
+  it("defaults a checkout-less image-mode sandbox to the official image tagged with the CLI version", () => {
+    const config = defaultAgroConfig("demo");
+    config.image = { mode: "image" };
+    expect(renderComposeEnv(config)).toContain(
+      `AGRO_SANDBOX_IMAGE=${officialImageRef(AGRO_VERSION)}\n`,
+    );
+  });
+
+  it("defaults an image-mode checkout sandbox to the official image tagged with the CLI version", () => {
+    const config = defaultAgroConfig("demo");
+    config.checkout = "/srv/checkout";
+    config.image = { mode: "image" };
+    expect(renderComposeEnv(config)).toContain(
+      `AGRO_SANDBOX_IMAGE=${officialImageRef(AGRO_VERSION)}\n`,
+    );
+  });
+
+  it("leaves AGRO_SANDBOX_IMAGE unset for a checkout-less build-mode config without image.ref", () => {
+    const config = defaultAgroConfig("demo");
+    config.image = { mode: "build" };
+    expect(renderComposeEnv(config)).not.toContain("AGRO_SANDBOX_IMAGE");
+  });
+
+  it("leaves AGRO_SANDBOX_IMAGE unset for a build-mode sandbox without image.ref", () => {
+    const config = defaultAgroConfig("demo");
+    config.checkout = "/srv/checkout";
+    config.image = { mode: "build" };
+    expect(renderComposeEnv(config)).not.toContain("AGRO_SANDBOX_IMAGE");
   });
 
   it("renders a stored legacy image.ref without rewriting it", () => {
