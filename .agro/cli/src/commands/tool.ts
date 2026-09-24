@@ -5,6 +5,7 @@ import {
   ExecutionSpawnError,
   resolveExecutionTarget,
   resolveTargetStatus,
+  runningInsideSandbox,
   runtimeIsAbsent,
 } from "../lib/execution/index.js";
 import { LocalExecutionTarget, type LocalIdentity } from "../lib/execution/local-target.js";
@@ -541,19 +542,26 @@ export async function runToolInstall(
   const entry = findTool(name);
   if (!entry) return unknownTool(name, io, opts.bin);
 
-  if (entry.installArgv === undefined) {
+  const hostOnly = entry.installArgv === undefined && entry.hostInstallArgv !== undefined;
+  const refuseContainer = (): number => {
     io.stderr(`${opts.bin} tool: ${entry.id} cannot be installed by this command.\n\n`);
     io.stderr(`${entry.notInstallableReason?.(opts.bin) ?? ""}\n\n`);
     io.stderr(`Installable tools:\n${installableToolIds().map((t) => `  ${t}`).join("\n")}\n`);
     return 1;
+  };
+
+  if (entry.installArgv === undefined && (!hostOnly || runningInsideSandbox(opts.env ?? process.env))) {
+    return refuseContainer();
   }
 
   const target = targetFor(root, run, opts.env);
   const status = await resolveTargetStatus(target);
 
-  if (!isReachable(status)) {
+  if (!isReachable(status) || (hostOnly && opts.host === true)) {
     return await installOnHost(entry, opts, io, run, status);
   }
+
+  if (entry.installArgv === undefined) return refuseContainer();
 
   const already = await probeInstalled(target, entry, "sandbox");
   if (already === true) {

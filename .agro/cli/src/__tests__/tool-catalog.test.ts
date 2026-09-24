@@ -15,7 +15,7 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", ".."
 const read = (p: string): string => readFileSync(join(REPO_ROOT, p), "utf8");
 
 describe("tool catalog shape", () => {
-  it("lists the eight known tools", () => {
+  it("lists the nine known tools", () => {
     expect(toolIds()).toEqual([
       "agent-browser",
       "herdr",
@@ -25,6 +25,7 @@ describe("tool catalog shape", () => {
       "gh",
       "tailscale",
       "code-server",
+      "docker",
     ]);
   });
 
@@ -39,7 +40,9 @@ describe("tool catalog shape", () => {
     ]);
     for (const t of TOOL_CATALOG) {
       expect(["baked-in", "installable"], t.id).toContain(t.kind);
-      if (t.kind === "installable") expect(t.installArgv, t.id).toBeDefined();
+      if (t.kind === "installable") {
+        expect(t.installArgv ?? t.hostInstallArgv, t.id).toBeDefined();
+      }
       if (t.kind === "baked-in") expect(t.installArgv, t.id).toBeUndefined();
     }
   });
@@ -49,7 +52,7 @@ describe("tool catalog shape", () => {
   // no NOPASSWD. A root install would hang an agent on a password prompt, and
   // could not be upgraded by the running sandbox afterwards.
   it("installs every installable tool as the sandbox user", () => {
-    const installable = TOOL_CATALOG.filter((t) => t.kind === "installable");
+    const installable = TOOL_CATALOG.filter((t) => t.installArgv !== undefined);
     expect(installable.length).toBeGreaterThan(0);
     for (const t of installable) {
       expect(t.installUser, t.id).toBe("sandbox");
@@ -60,7 +63,9 @@ describe("tool catalog shape", () => {
     for (const t of TOOL_CATALOG) {
       if (t.hostInstallUser === "root") expect(t.hostCapable, t.id).toBe(true);
     }
-    expect(TOOL_CATALOG.filter((t) => t.hostInstallUser === "root").map((t) => t.id)).toEqual([]);
+    expect(TOOL_CATALOG.filter((t) => t.hostInstallUser === "root").map((t) => t.id)).toEqual([
+      "docker",
+    ]);
   });
 
   it("lands every downloaded binary in NPM_USER_PREFIX behind a sha256 check", () => {
@@ -68,7 +73,9 @@ describe("tool catalog shape", () => {
       [t.installArgv, t.hostInstallArgv]
         .filter((argv): argv is readonly string[] => argv !== undefined)
         .map((argv) => [t.id, argv.join("\n")] as const),
-    ).filter(([, body]) => body.includes("curl -fsSL"));
+    ).filter(
+      ([id, body]) => body.includes("curl -fsSL") && findTool(id)?.hostInstallUser !== "root",
+    );
 
     expect(scripts.map(([id]) => id)).toEqual([
       "agent-browser",
@@ -84,9 +91,9 @@ describe("tool catalog shape", () => {
     }
   });
 
-  it("keeps every host installer clear of the operating system package manager", () => {
+  it("keeps every user-level host installer clear of the operating system package manager", () => {
     for (const t of TOOL_CATALOG) {
-      if (t.hostInstallArgv === undefined) continue;
+      if (t.hostInstallArgv === undefined || t.hostInstallUser === "root") continue;
       const body = t.hostInstallArgv.join("\n");
       expect(body, t.id).not.toMatch(/\bapt(-get)?\s/);
       expect(body, t.id).not.toMatch(/\bdpkg\s+-i\b/);
@@ -130,6 +137,7 @@ describe("tool catalog shape", () => {
       "gh",
       "tailscale",
       "code-server",
+      "docker",
     ]);
     for (const t of TOOL_CATALOG) {
       if (t.versionArgv) expect(t.versionArgv, t.id).toEqual([t.binary, "--version"]);
@@ -163,10 +171,10 @@ describe("the catalogs stay separate", () => {
     }
   });
 
-  it("shares exactly one id with the runtime catalog: the planned microsandbox substrate", () => {
+  it("shares only the microsandbox substrate and the docker engine with the runtime catalog", () => {
     const runtime = new Set(RUNTIME_CATALOG.map((r) => r.id));
     const shared = toolIds().filter((id) => runtime.has(id));
-    expect(shared).toEqual(["microsandbox"]);
+    expect(shared).toEqual(["microsandbox", "docker"]);
     expect(RUNTIME_CATALOG.find((r) => r.id === "microsandbox")?.provisionable).toBe(false);
     expect(findTool("microsandbox")?.kind).toBe("installable");
   });
@@ -175,9 +183,10 @@ describe("the catalogs stay separate", () => {
     expect(new Set(toolIds()).size).toBe(TOOL_CATALOG.length);
   });
 
-  it("keeps docker-cli distinct from the docker RUNTIME", () => {
-    expect(findTool("docker-cli")).toBeDefined();
-    expect(findTool("docker")).toBeUndefined();
+  it("keeps the baked-in docker-cli distinct from the host docker engine", () => {
+    expect(findTool("docker-cli")?.kind).toBe("baked-in");
+    expect(findTool("docker-cli")?.hostCapable).toBe(false);
+    expect(findTool("docker")?.hostInstallUser).toBe("root");
     expect(RUNTIME_CATALOG.some((r) => r.id === "docker")).toBe(true);
   });
 
@@ -350,6 +359,74 @@ describe("code-server installs a pinned release for the invoking user", () => {
       `${HARNESS_PREFIX_TOKEN}/lib/code-server-${VERSION}`,
     ]);
     expect(cs.hostUninstallArgv).toBeUndefined();
+  });
+});
+
+describe("docker installs Docker Engine on an Ubuntu host as root", () => {
+  const dk = findTool("docker")!;
+  const script = dk.hostInstallArgv!.join("\n");
+  const FINGERPRINT = "9DC858229FC7DD38854AE2D88D81803C0EBFCD88";
+
+  it("is a host-only, root-level installable tool", () => {
+    expect(dk.kind).toBe("installable");
+    expect(dk.binary).toBe("docker");
+    expect(dk.hostCapable).toBe(true);
+    expect(dk.hostInstallUser).toBe("root");
+    expect(dk.installArgv).toBeUndefined();
+    expect(dk.hostInstallArgv!.slice(0, 2)).toEqual(["bash", "-lc"]);
+    expect(dk.uninstallArgv).toBeNull();
+  });
+
+  it("refuses the sandbox by naming access.dockerSocket", () => {
+    const reason = dk.notInstallableReason!("agro");
+    expect(reason).toContain("access.dockerSocket");
+    expect(reason).toContain("agro tool install docker --host");
+  });
+
+  it("verifies the engine, the compose plugin, the enabled service and the docker group", () => {
+    const verify = dk.verifyArgv.join(" ");
+    expect(verify).toContain("command -v docker >/dev/null");
+    expect(verify).toContain("docker compose version >/dev/null");
+    expect(verify).toContain("systemctl is-enabled --quiet docker");
+    expect(verify).toContain('id -nG "${SUDO_USER:-$(id -un)}"');
+  });
+
+  it("refuses a host that is not Ubuntu", () => {
+    expect(script).toContain(". /etc/os-release");
+    expect(script).toContain('if [ "${ID:-}" != ubuntu ]; then');
+  });
+
+  it("trusts Docker's repository key only after checking its fingerprint", () => {
+    expect(script).toContain("install -m 0755 -d /etc/apt/keyrings");
+    expect(script).toContain(
+      'curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o "$tmp/docker.asc"',
+    );
+    expect(script).toContain(`fingerprint=${FINGERPRINT}`);
+    expect(script).toContain('gpg --homedir "$tmp" --show-keys --with-colons "$tmp/docker.asc"');
+    const check = script.indexOf('if [ "$actual" != "$fingerprint" ]; then');
+    const trust = script.indexOf('install -m 0644 "$tmp/docker.asc" /etc/apt/keyrings/docker.asc');
+    expect(check).toBeGreaterThan(-1);
+    expect(trust).toBeGreaterThan(check);
+  });
+
+  it("installs the five packages from the signed Docker repository", () => {
+    expect(script).toContain(
+      'echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${UBUNTU_CODENAME:-$VERSION_CODENAME} stable" > /etc/apt/sources.list.d/docker.list',
+    );
+    expect(script).toContain(
+      "apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
+    );
+  });
+
+  it("adds the invoking user to the docker group and enables the service", () => {
+    expect(script).toContain('user="${SUDO_USER:-$(id -un)}"');
+    expect(script).toContain('usermod -aG docker "$user"');
+    expect(script).toContain("systemctl enable --now docker");
+  });
+
+  it("runs as root through the CLI and never calls sudo itself", () => {
+    expect(script).toContain("set -e");
+    expect(script).not.toContain("sudo ");
   });
 });
 
