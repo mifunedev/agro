@@ -113,21 +113,40 @@ JQ_ARG_FLAG='(^|[[:space:]])--(arg|argjson|slurpfile|rawfile|indent)([[:space:]]
 JQ_WORD='(^|[^A-Za-z0-9_-])jq([^A-Za-z0-9_-]|$)'
 JQ_ENV_READ='\$ENV|(^|[^A-Za-z0-9_.$])env\b'
 
+first_segment() {
+  local masked pipe_or_semi and_and
+  masked=$(mask_quoted_separators "$1")
+  pipe_or_semi=${masked%%[|;]*}
+  and_and=${masked%%&&*}
+  if ((${#pipe_or_semi} <= ${#and_and})); then
+    printf '%s' "$pipe_or_semi"
+  else
+    printf '%s' "$and_and"
+  fi
+}
+
 jq_filters() {
-  local rest=$1 out=''
+  local rest=$1 out='' call_text seg
   local -a m
   while [[ $rest =~ $JQ_CALL ]]; do
     m=("${BASH_REMATCH[@]}")
     if [[ ${m[2]} =~ $JQ_PATH_FLAG || ${m[2]} =~ $JQ_ARG_FLAG || ${m[5]} == -* ]]; then
-      printf '%s' "$out ${m[5]}${m[6]}"
-      return 0
+      call_text="${m[5]}${m[6]}"
+      seg=$(first_segment "$call_text")
+      out+=" $seg"
+      rest=${call_text:${#seg}+1}
+    else
+      out+=" ${m[5]}"
+      rest=${m[6]}
     fi
-    out+=" ${m[5]}"
-    rest=${m[6]}
   done
-  if [[ $rest =~ $JQ_WORD ]]; then
-    out+=" $rest"
-  fi
+  while [[ -n $rest ]]; do
+    seg=$(first_segment "$rest")
+    if [[ $seg =~ $JQ_WORD ]]; then
+      out+=" $seg"
+    fi
+    rest=${rest:${#seg}+1}
+  done
   printf '%s' "$out"
 }
 

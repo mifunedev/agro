@@ -135,6 +135,25 @@ assert deny "jq -n \"$JQ_ENV_VAR\"" \
 assert allow "jq '.x' $JQ_ENV_WORD.json" \
   "a jq input file whose name starts with env was treated as an env read"
 
+JQ_PIPED_TO_HOOK='jq -nc --arg c x '\''{a: $c}'\'' | bash .agro/hooks/deny-'
+JQ_PIPED_TO_HOOK+="$JQ_ENV_WORD-dump.sh"
+
+assert allow "$JQ_PIPED_TO_HOOK" \
+  "an env word in a command piped from a jq --arg call was read as a jq filter"
+assert allow "jq --arg k v '.x' data.json; ls $JQ_ENV_WORD/" \
+  "an env word in a command after a jq --arg call was read as a jq filter"
+
+assert deny "jq --arg k v '$JQ_ENV_WORD'" \
+  "a jq filter that reads env after an --arg pair was allowed"
+assert deny "jq --arg k v -n '$JQ_ENV_VAR' | cat" \
+  "a piped jq filter that reads \$ENV after an --arg pair was allowed"
+assert deny "jq -f prog.jq --arg k v -n '$JQ_ENV_WORD'" \
+  "a jq filter that reads env after a filter file flag was allowed"
+assert deny "jq --arg k v '.x' data.json; jq -n '$JQ_ENV_WORD'" \
+  "a jq filter that reads env in a later jq call was allowed"
+assert deny "jq --arg k v '.x' data.json | jq -n \"$JQ_ENV_VAR\"" \
+  "a double-quoted jq filter that reads \$ENV in a piped jq call was allowed"
+
 assert allow "grep process.env src/index.ts" \
   "a grep pattern that names process.env was treated as a secret path"
 assert allow "grep \"Config.Env\" notes.md" \
