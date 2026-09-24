@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1155-guard-accuracy-gaps",
+  "description": "Close the remaining Bash secret-guard accuracy gaps: deny interpreter environment reads, skip the grep/rg pattern argument in the secret-path check, and bound the jq parse-gap scan to the jq call.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Deny interpreter environment reads",
+      "description": "As an operator, I want the Bash guard to deny inline interpreter code that reads the environment so that no interpreter prints secrets.",
+      "acceptanceCriteria": [
+        "Before the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 1 on `python3 -c 'import os; print(dict(os.environ))'`. The evidence records the command and the exit status.",
+        "The probe asserts `deny` for `python3 -c 'import os; print(dict(os.environ))'`, `python -c 'import os; print(os.getenv(\"GH_TOKEN\"))'`, `perl -e 'print \"$_=$ENV{$_}\\n\" for keys %ENV'`, `ruby -e 'p ENV'`, and `node -e 'console.log(process.env)'`.",
+        "The probe asserts `allow` for `python3 -c 'print(1)'`, `node -e 'console.log(1)'`, and `python3 scripts/build.py`.",
+        "After the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/hooks/deny-env-dump.sh",
+        ".agro/evals/probes/secret-exposure-guard.sh"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Exempt the search-pattern argument from the secret-path check",
+      "description": "As an agent, I want the secret-path check to skip the pattern argument of `grep` and `rg` so that the guard allows a search for `process.env`.",
+      "acceptanceCriteria": [
+        "Before the hook change, the probe exits 1 on `grep process.env src/index.ts`. The evidence records the command and the exit status.",
+        "The probe asserts `allow` for `grep process.env src/index.ts`, `grep \"Config.Env\" notes.md`, and `rg 'import.meta.env' src`.",
+        "The probe asserts `deny` for `grep TOKEN .env`, `rg KEY .env.production`, `grep -f .env src/index.ts`, `grep -e TOKEN .env`, and `cat prod.env`.",
+        "After the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 0."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/hooks/deny-env-dump.sh",
+        ".agro/evals/probes/secret-exposure-guard.sh"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Bound the jq parse-gap scan to the jq call",
+      "description": "As an agent, I want the `jq` environment check to read only its own command segment so that later text cannot trigger it.",
+      "acceptanceCriteria": [
+        "Before the hook change, the probe exits 1 on `jq -nc --arg c x '{a: $c}' | bash .agro/hooks/deny-env-dump.sh`. The evidence records the command and the exit status.",
+        "The probe asserts `allow` for `jq -nc --arg c x '{a: $c}' | bash .agro/hooks/deny-env-dump.sh` and `jq --arg k v '.x' data.json; ls env/`.",
+        "The probe asserts `deny` for `jq --arg k v 'env'`, `jq --arg k v -n '$ENV' | cat`, and `jq -f prog.jq --arg k v -n 'env'`.",
+        "After the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 0.",
+        "`CHANGELOG.md` `[Unreleased]` `### Fixed` has one entry that links #1155, and the entry is at most 250 characters."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/hooks/deny-env-dump.sh",
+        ".agro/evals/probes/secret-exposure-guard.sh",
+        "CHANGELOG.md"
+      ]
+    }
+  ]
+}
