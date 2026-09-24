@@ -17,6 +17,7 @@ Update policy and release automation live in [`AGENTS.md`](AGENTS.md) § Git con
 
 - Point the Codex `deny-env-dump` adapter at the canonical `.agro/hooks/` source instead of the generated `.claude/hooks/` mirror, so Codex policy no longer depends on another provider's surface ([#1134](https://github.com/mifunedev/agro/issues/1134)).
 - Reduce `link-providers.sh` to the `.claude/hooks` link and retire stale skill-pack links; promote `version-parity.sh`, `agro-legacy-shim.sh`, and the sandbox privilege-boundary guard out of the probe suite into `.agro/scripts/` and CI ([#1134](https://github.com/mifunedev/agro/issues/1134)).
+- Default the sandbox image tag to the `agro` CLI version instead of `latest`. The install stores only an explicit pin, so an unpinned sandbox follows the CLI version ([#1160](https://github.com/mifunedev/agro/issues/1160)).
 
 ### Added
 
@@ -34,6 +35,7 @@ Update policy and release automation live in [`AGENTS.md`](AGENTS.md) § Git con
 - Add the `agents-md-fallback` probe. It fails when a tracked `CLAUDE.md` returns or a directory guide stops being a real `AGENTS.md` ([#1082](https://github.com/mifunedev/agro/issues/1082)).
 - Add `/council` for bounded independent perspectives, advisor synthesis, and explicit advice limits ([#1076](https://github.com/mifunedev/agro/issues/1076)).
 - Install `agent-browser` on the host from a pinned release binary, without the operating system package manager; it drives an existing Chromium-family browser and refuses when none is found ([#1078](https://github.com/mifunedev/agro/issues/1078)).
+- Add `agro sandbox install docker --version <X.Y.Z>` to pin the official image `ghcr.io/mifunedev/agro:<X.Y.Z>` without typing the full ref ([#1160](https://github.com/mifunedev/agro/issues/1160)).
 
 ### Changed
 

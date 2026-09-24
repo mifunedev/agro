@@ -4,7 +4,7 @@ title: "Installation"
 
 # Installation
 
-AGRO is a portable harness that boots an isolated Docker sandbox. The `agro` CLI is the only front door: it creates a sandbox (`agro sandbox install docker`) and drives the rest of the lifecycle; `agro vendor` equips a checkout with the control plane. Two shapes exist — a sandbox on its own, running the published image, or a sandbox with a checkout bind-mounted into it (`--checkout`) — and both use the same commands. See [lifecycle commands](lifecycle-commands.md) for the verb reference.
+AGRO is a portable harness that boots an isolated Docker sandbox. The `agro` CLI is the only front door. The CLI creates a sandbox (`agro sandbox install docker`) and drives the rest of the lifecycle. `agro vendor` equips a checkout with the control plane. Two shapes exist: a sandbox on its own that runs the published image, and a sandbox with a checkout bind-mounted into it. Both shapes use the same commands; `--checkout` selects the second shape. See [lifecycle commands](lifecycle-commands.md) for the verb reference.
 
 Installing this harness never means cloning it onto your host. There is no fork step, no host-side source checkout, and no managed clone directory. You install the CLI, create a sandbox, and work inside it.
 
@@ -18,11 +18,11 @@ The CLI writes only what you ask it to: a registry entry under `~/.agro/sandboxe
 | git | Cloning a repo, and `agro vendor --from-remote` | [git-scm.com](https://git-scm.com/) |
 | Node.js ≥ 20 (22 recommended) | Running the `agro` CLI itself | [nodejs.org](https://nodejs.org/) — or let [`get-agro.sh`](#get-the-cli-agro) install nvm + Node 22 for you |
 
-That is the entire host requirement. Node runs `agro` and nothing else: pnpm, Python, and every AI CLI live inside the sandbox.
+These three dependencies make up the entire host requirement. Node runs `agro` and nothing else: pnpm, Python, and every AI CLI live inside the sandbox.
 
 ## Get the CLI: `agro`
 
-The CLI is published as [`@mifune/agro`](https://www.npmjs.com/package/@mifune/agro). With Node.js ≥ 20 on your host, install it globally or run it zero-install:
+The npm package [`@mifune/agro`](https://www.npmjs.com/package/@mifune/agro) publishes the CLI. With Node.js ≥ 20 on your host, install the package globally or run the package zero-install:
 
 ```bash
 npm install -g @mifune/agro          # puts `agro` on your PATH
@@ -44,9 +44,9 @@ curl -fsSL -o get-agro.sh https://agro.mifune.dev/get-agro.sh
 bash get-agro.sh
 ```
 
-If `agro` is not found after the piped form, add the install directory to the current shell's PATH: `export PATH="$HOME/.local/bin:$PATH"`. Environment overrides: `AGRO_BIN_DIR=<dir>` (install location, default `~/.local/bin`), `AGRO_JS_URL=<url>` (artifact URL), `AGRO_NVM_VERSION=<tag>` (nvm version for the Node install), `AGRO_ASSUME_YES=1` (same as `--yes`); `--yes`/`--no` accept or decline the Node-install prompt. Each `AGRO_<NAME>` falls back to the legacy `OH_<NAME>` spelling; when both are set and differ, the AGRO value wins and a warning names the two keys. There is no source-build fallback, so `get-agro.sh` has no repository or ref override.
+If the shell cannot find `agro` after the piped form, add the install directory to the current shell's PATH: `export PATH="$HOME/.local/bin:$PATH"`. Environment overrides: `AGRO_BIN_DIR=<dir>` (install location, default `~/.local/bin`), `AGRO_JS_URL=<url>` (artifact URL), `AGRO_NVM_VERSION=<tag>` (nvm version for the Node install), `AGRO_ASSUME_YES=1` (same as `--yes`); `--yes`/`--no` accept or decline the Node-install prompt. Each `AGRO_<NAME>` falls back to the legacy `OH_<NAME>` spelling; when both hold values that differ, the AGRO value wins and a warning names the two keys. There is no source-build fallback, so `get-agro.sh` has no repository or ref override.
 
-Upgrade the installed CLI later with `agro self-upgrade`; it upgrades the running executable through the mechanism that installed it (npm or `get-agro.sh`) and touches no project file. See [lifecycle commands](lifecycle-commands.md#upgrading-the-cli-agro-self-upgrade).
+Upgrade the installed CLI later with `agro self-upgrade`. The upgrade follows the mechanism that installed the running executable (npm or `get-agro.sh`) and touches no project file. See [lifecycle commands](lifecycle-commands.md#upgrading-the-cli-agro-self-upgrade).
 
 ### Package and PATH rules
 
@@ -57,7 +57,7 @@ Upgrade the installed CLI later with `agro self-upgrade`; it upgrades the runnin
 
 ### Standalone install (`get-agro.sh`)
 
-Bootstrap with `get-agro.sh`, which installs the single self-contained `agro` binary to `~/.local/bin/agro` — no repo clone, and it does not touch an existing `~/.agro` checkout. If Node.js ≥ 20 is missing, it offers to install nvm + Node 22 and sources it so `agro` works in the same shell:
+Bootstrap with `get-agro.sh`. The script installs the single self-contained `agro` binary to `~/.local/bin/agro`. The script clones no repo and does not touch an existing `~/.agro` checkout. If Node.js ≥ 20 is missing, the script offers to install nvm + Node 22. The script then sources nvm, so `agro` works in the same shell:
 
 ```bash
 curl -fsSL https://agro.mifune.dev/get-agro.sh | bash
@@ -71,7 +71,15 @@ curl -fsSL -o get-agro.sh https://agro.mifune.dev/get-agro.sh
 bash get-agro.sh
 ```
 
-Environment overrides: `AGRO_BIN_DIR=<dir>` (install location, default `~/.local/bin`), `AGRO_JS_URL=<url>` (prebuilt bundle URL), `AGRO_GITHUB_REPO=<org>/<fork>` / `AGRO_GITHUB_REF=<ref>` (source for `get-agro.sh`'s build fallback; `get-agro.sh` reads `AGRO_GITHUB_REPO` only to pick the release that hosts its artifacts), `AGRO_NVM_VERSION=<tag>` (nvm version for the Node install), `--yes`/`--no` (auto-accept/decline the Node-install prompt). `agro vendor` is the project-payload command, not a self-upgrade: use `agro self-upgrade` (or its `agro update` alias) to upgrade the installed CLI.
+Environment overrides:
+
+- `AGRO_BIN_DIR=<dir>`: install location, default `~/.local/bin`.
+- `AGRO_JS_URL=<url>`: prebuilt bundle URL.
+- `AGRO_GITHUB_REPO=<org>/<fork>` / `AGRO_GITHUB_REF=<ref>`: source for `get-agro.sh`'s build fallback. `get-agro.sh` reads `AGRO_GITHUB_REPO` only to pick the release that hosts its artifacts.
+- `AGRO_NVM_VERSION=<tag>`: nvm version for the Node install.
+- `--yes`/`--no`: auto-accept or decline the Node-install prompt.
+
+`agro vendor` is the project-payload command, not a self-upgrade. Use `agro self-upgrade` (or its `agro update` alias) to upgrade the installed CLI.
 
 ## Create the sandbox
 
@@ -106,7 +114,7 @@ docker ps --filter "name=<name>" --format "{{.Names}} {{.Status}}"
 docker inspect --format '{{json .State.Health}}' <name>
 ```
 
-A healthy sandbox reports the systemd units `agro-bootstrap.service` and `agro-cron.service` as active; optional Slack and Hermes dashboard tmux sessions are checked only when configured. To debug a failure from inside the container, run `bash /home/sandbox/harness/.agro/scripts/sandbox-healthcheck.sh` for the exact unit or session at fault. For a temporary local escape hatch, add a Compose override with `services.sandbox.healthcheck.disable: true`; do not commit that override unless you are deliberately changing the harness health policy.
+A healthy sandbox reports the systemd units `agro-bootstrap.service` and `agro-cron.service` as active. The healthcheck checks the optional Slack and Hermes dashboard tmux sessions only when you configure those sessions. To debug a failure from inside the container, run `bash /home/sandbox/harness/.agro/scripts/sandbox-healthcheck.sh` for the exact unit or session at fault. For a temporary local escape hatch, add a Compose override with `services.sandbox.healthcheck.disable: true`. Do not commit that override unless you deliberately change the harness health policy.
 
 ### Open a shell
 
@@ -114,17 +122,17 @@ A healthy sandbox reports the systemd units `agro-bootstrap.service` and `agro-c
 agro shell <name>
 ```
 
-Omit the name when exactly one sandbox is registered, or when you are standing in the checkout it was created for. `agro sandbox list` prints every registered name.
+Omit the name when the registry holds exactly one sandbox, or when you stand in the checkout that a sandbox binds. `agro sandbox list` prints every registered name.
 
 ### GitHub authentication and repository work
 
-Creating the sandbox needs no GitHub account, and local sandbox use stays available without one. Pushing, creating a repository, and opening a pull request need one. Complete the GitHub-login prerequisite inside the sandbox first — `gh auth login`, `gh auth setup-git`, `gh auth status`, then confirm the account — and only then hand the workspace to a coding agent. The five steps and the two optional agent prompts (private versioning; AGRO contribution) are in [Quickstart → Authenticate GitHub before any repository work](./quickstart.md#authenticate-github-before-any-repository-work); command-level detail and recovery are in [GitHub auth](./integrations/github.md), and the contribution workflow is in [Contributing](./contributing.md).
+Creating the sandbox needs no GitHub account, and local sandbox use stays available without one. Pushing, creating a repository, and opening a pull request need one. First, complete the GitHub-login prerequisite inside the sandbox: `gh auth login`, `gh auth setup-git`, `gh auth status`, and an account check. Only then hand the workspace to a coding agent. [Quickstart → Authenticate GitHub before any repository work](./quickstart.md#authenticate-github-before-any-repository-work) holds the five steps and the two optional agent prompts (private versioning; AGRO contribution). [GitHub auth](./integrations/github.md) holds command-level detail and recovery. [Contributing](./contributing.md) holds the contribution workflow.
 
 `agro config repo` (and `agro config repo`) creates a repository and re-points `origin` for the retired clone-and-own recipe. It stays supported through the [AGRO compatibility](./agro-compatibility.md) window and is not the canonical onboarding path.
 
 ## Equip an existing repo
 
-A sandbox created above runs the published image and needs no repository of yours. This section is the other shape: it equips **your existing project repo** with the control plane and drives the sandbox, still without keeping a harness checkout on your host. The host requirements are the same [Prerequisites](#prerequisites) — Docker, git, and Node ≥ 20 — and the CLI comes from [Get the CLI](#get-the-cli-agro). The published package is one single self-contained bundle: it carries the compose files and the wrapper a sandbox needs, and `agro vendor` carries the `.agro/` payload (falling back to an on-demand fetch, no repo clone).
+A sandbox created above runs the published image and needs no repository of yours. This section covers the other shape. The other shape equips **your existing project repo** with the control plane and drives the sandbox. The other shape still keeps no harness checkout on your host. The host requirements match [Prerequisites](#prerequisites): Docker, git, and Node ≥ 20. The CLI comes from [Get the CLI](#get-the-cli-agro). The published package is one self-contained bundle. The bundle carries the compose files and the wrapper that a sandbox needs. `agro vendor` carries the `.agro/` payload and falls back to an on-demand fetch, with no repo clone.
 
 Then, in any project:
 
@@ -147,9 +155,9 @@ agro vendor --from-remote --ref v0.6.0 # ...or shallow-clone a pinned payload in
 agro vendor --from <local-checkout>    # ...or vendor from a built checkout, offline
 ```
 
-`agro vendor` equips an empty directory and upgrades an equipped one with the same command; a second run reports it is already up to date. It writes only `.agro/` and `crons/` — never `agro.json`, `.env`, `AGENTS.md`, `.gitignore`, `.devcontainer/`, or a provider directory. It never prompts. Payload precedence is `--from` > `--from-remote` > the CLI's bundled payload > a remote fetch announced on one line. `--from-remote` fetches over public HTTPS only — private or credential-prompting remotes fail fast (`GIT_TERMINAL_PROMPT=0`).
+`agro vendor` equips an empty directory and upgrades an equipped one with the same command; a second run reports that the directory is already up to date. It writes only `.agro/` and `crons/` — never `agro.json`, `.env`, `AGENTS.md`, `.gitignore`, `.devcontainer/`, or a provider directory. It never prompts. Payload precedence is `--from` > `--from-remote` > the CLI's bundled payload > a remote fetch announced on one line. `--from-remote` fetches over public HTTPS only — private or credential-prompting remotes fail fast (`GIT_TERMINAL_PROMPT=0`).
 
-A checkout bound with `--checkout` mounts at `/home/sandbox/harness`. Without `--checkout` the sandbox runs `ghcr.io/mifunedev/agro:latest` and seeds its workspace from the image — see [`agro sandbox install docker`](deployment-prebuilt-image.md) for that recipe and the `--image` / `--no-build` flags.
+A checkout bound with `--checkout` mounts at `/home/sandbox/harness`. Without `--checkout` the sandbox runs `ghcr.io/mifunedev/agro:<CLI version>` and seeds its workspace from the image — see [`agro sandbox install docker`](deployment-prebuilt-image.md) for that recipe and the `--image` / `--no-build` flags.
 
 ## Next step
 
@@ -159,17 +167,25 @@ Once installed, proceed to the [Quickstart](./quickstart.md) to authenticate ins
 
 The sandbox image ships a complete development environment. The required host dependencies are Docker with the Compose plugin, Git, and Node.js ≥ 20 (see [Prerequisites](#prerequisites)).
 
-Project-local Pi packages are loaded from `.pi/settings.json`; the defaults include `@tintinweb/pi-subagents`, `@tintinweb/pi-tasks`, `@narumitw/pi-goal`, `@narumitw/pi-codex-usage@0.6.2` for `/codex-status` plus fixed statusline usage timers, `@tifan/pi-recap` for `/recap` plus automatic idle/resume session summaries, `@trevonistrevon/pi-loop` for Monitor/Loop tools, and `@guwidoe/pi-prompt-suggester` for next-prompt suggestions.
+Pi loads project-local packages from `.pi/settings.json`. The defaults include:
+
+- `@tintinweb/pi-subagents`
+- `@tintinweb/pi-tasks`
+- `@narumitw/pi-goal`
+- `@narumitw/pi-codex-usage@0.6.2` for `/codex-status` plus fixed statusline usage timers
+- `@tifan/pi-recap` for `/recap` plus automatic idle/resume session summaries
+- `@trevonistrevon/pi-loop` for Monitor/Loop tools
+- `@guwidoe/pi-prompt-suggester` for next-prompt suggestions
 
 ### Base image
 
 Debian Trixie (slim), the current Debian stable. The `sandbox` user has passwordless sudo.
 
-Docker's apt repository tracks the `trixie` suite, and it is now the only third-party apt source in the image. cloudflared used to force a `bookworm` suite here because Cloudflare publishes no Trixie suite (`pkg.cloudflare.com/cloudflared/dists/trixie` returns HTTP 404); moving it to a pinned, checksum-verified binary in the tool catalog removed that exception.
+Docker's apt repository tracks the `trixie` suite. Docker's repository is now the only third-party apt source in the image. cloudflared used to force a `bookworm` suite here, because Cloudflare publishes no Trixie suite (`pkg.cloudflare.com/cloudflared/dists/trixie` returns HTTP 404). AGRO now ships cloudflared as a pinned, checksum-verified binary from its tool catalog, and that move removed the exception.
 
 ### AI agent CLIs
 
-No agent CLI is baked into the image, and nothing installs one at boot. A
+The image contains no agent CLI, and nothing installs one at boot. A
 harness enters the sandbox only when you run `agro harness install <id>`, which
 installs into `~/.local` — inside the home mount — as the `sandbox` user. That
 placement is what makes an in-place upgrade possible: a copy in a root-owned
@@ -215,12 +231,12 @@ a host install needs Linux, because every tool installer is Debian-specific; on
 any other platform the command refuses and names the platform. A host install
 clones the AGRO workspace into the harness root — `--path <dir>`, then
 `harnessRoot` in `~/.agro/config.json`, then `~/.agro/workspaces/default` — installs into `~/.local`,
-and records the tool under `hostTools` in that same file. `agro tool uninstall`
+and records the installed id under `hostTools` in that same file. `agro tool uninstall`
 removes only what that record names; `--force` removes from `~/.local` without a
 record.
 
 On the host, `agent-browser` installs a pinned release binary into `~/.local/bin`
-and never calls the operating system package manager. It does not download a
+and never calls the operating system package manager. The installer does not download a
 browser. After the binary lands, the installer looks for an existing
 Chromium-family browser in this order: `AGENT_BROWSER_EXECUTABLE_PATH`,
 `google-chrome`, `google-chrome-stable`, `chromium`, `chromium-browser`,
@@ -232,8 +248,8 @@ export AGENT_BROWSER_EXECUTABLE_PATH=/path/to/chrome
 ```
 
 agent-browser drives Chromium over CDP and Safari over WebDriver. Firefox is not
-a supported target. In the sandbox the behavior is unchanged: `agro tool install
-agent-browser` downloads Chrome for Testing and the browser libraries it needs,
+a supported target. In the sandbox, the behavior stays the same: `agro tool install
+agent-browser` downloads Chrome for Testing and the browser libraries that Chrome needs,
 which is why that path asks to confirm about 1 GB first.
 
 Installing `tailscale` places the `tailscale` and `tailscaled` binaries in
@@ -256,11 +272,11 @@ recreate.
 
 ### DevOps & infrastructure
 
-`agro tool list` reports which of these are present, and `agro tool status <name>`
-adds a version where the tool has a verified version flag. Herdr and cloudflared
+`agro tool list` reports which tools below are present, and `agro tool status <name>`
+adds a version where a tool has a verified version flag. Herdr and cloudflared
 are `kind: "installable"` — `agro tool install <name>` puts a pinned,
-checksum-verified binary into `~/.local/bin`, and upgrades it in place. The rest
-are baked into the image, so there is nothing to install.
+checksum-verified binary into `~/.local/bin`, and upgrades it in place. The image
+already contains the rest, so the rest needs no install.
 
 | Tool | Purpose |
 |------|---------|
@@ -322,17 +338,17 @@ Leave `storage.homePath` unset to keep the Docker-managed volume. Use a
 it, so never point it at your own host `$HOME`.
 
 The repository checkout is bind-mounted at `/home/sandbox/harness`, nested
-inside that mount. Its location is fixed, not configurable.
+inside that mount. No setting changes that location.
 
 The image ships its baked home at `/opt/home-seed`. On every boot the entrypoint
 copies in each **top-level** entry the mount does not already have, and never
-touches one it does — not even its permissions. A fresh mount comes up complete;
+touches an entry the mount has — not even the permissions of that entry. A fresh mount comes up complete;
 an image upgrade adds whatever new top-level entries it introduced (a new agent
-CLI's `~/.newtool`, say) and leaves everything you already have alone. It does
-not merge new files into a directory the mount already has, which is what the
-per-tool volumes did before.
+CLI's `~/.newtool`, say) and leaves everything you already have alone. The entrypoint
+does not merge new files into a directory the mount already has; the per-tool
+volumes did that merge before.
 
-Hermes is split: when the `hermes` binary is present (after
+Hermes differs: when the `hermes` binary is present (after
 `agro harness install hermes`), `HERMES_HOME` is the project-local
 bind-mounted `~/harness/.hermes/` directory. It carries no skill link of its
 own; the other provider surfaces share `.agro/skills/` and `.agro/hooks/`.
@@ -347,7 +363,7 @@ it, and `agro destroy` says so.
 #### Migrating from the per-tool volumes
 
 Releases before this change kept eleven separate volumes (`claude-auth`,
-`config-dir`, `ssh-config`, and so on). They are not migrated automatically.
+`config-dir`, `ssh-config`, and eight others). AGRO does not migrate those volumes automatically.
 **Before** upgrading, copy the old home out of the still-running container:
 
 ```bash
@@ -359,10 +375,10 @@ agro config set --sandbox <sandbox-name> storage.homePath /srv/agro-home
 
 The trailing `/.` matters: without it `docker cp` places the copy at
 `/srv/agro-home/sandbox/` instead of unpacking its contents, and the
-sandbox comes up freshly seeded as though nothing was migrated. The `rm -rf`
+sandbox comes up freshly seeded as though no migration happened. The `rm -rf`
 drops the copy of the repository checkout — `docker cp` reads through the bind
 mount, so the archive includes `harness/` with its `.git` and `node_modules`,
-which can be several GB and is shadowed by the checkout bind at runtime anyway.
+which can reach multiple GB. The checkout bind shadows that copy at runtime anyway.
 
 Then rebuild. To stay on a Docker-managed volume instead, copy that directory
 into the new volume once:
@@ -372,7 +388,7 @@ docker run --rm -v <sandbox-name>_workspace:/to -v /srv/agro-home:/from \
   alpine cp -a /from/. /to/
 ```
 
-Skipping this loses every agent login and the SSH keys; nothing else breaks, and
-you simply sign in again.
+If you skip this step, you lose every agent login and the SSH keys. Nothing else
+breaks, and you sign in again.
 
-Downstream harness packs and Pi extensions can introduce additional volumes or bind-mount overlays by adding paths to `composeOverrides[]` in the tracked `agro.json`. That list is the one place overlay paths live, and only `agro` applies it: VS Code "Reopen in Container" reads `.devcontainer/docker-compose.yml` alone and applies [no overlays at all](lifecycle-commands.md#vs-code-reopen-in-container-applies-no-overlays).
+Downstream harness packs and Pi extensions can introduce additional volumes or bind-mount overlays by adding paths to `composeOverrides[]` in the tracked `agro.json`. That list is the one place for overlay paths, and only `agro` applies the list. VS Code "Reopen in Container" reads `.devcontainer/docker-compose.yml` alone and applies [no overlays at all](lifecycle-commands.md#vs-code-reopen-in-container-applies-no-overlays).

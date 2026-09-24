@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { AGRO_PRODUCT, resolveProduct } from "../lib/product.js";
@@ -80,12 +81,16 @@ const CLI_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const AGRO_JS = join(CLI_DIR, "dist", "agro.js");
 const ESBUILD_AVAILABLE = existsSync(join(CLI_DIR, "node_modules", "esbuild"));
 
-function run(bundle: string, args: string[]): { code: number; stdout: string; stderr: string } {
+function run(
+  bundle: string,
+  args: string[],
+  extraEnv: NodeJS.ProcessEnv = {},
+): { code: number; stdout: string; stderr: string } {
   try {
     const stdout = execFileSync(process.execPath, [bundle, ...args], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env, AGRO_EXECUTION_TARGET: "docker-compose" },
+      env: { ...process.env, AGRO_EXECUTION_TARGET: "docker-compose", ...extraEnv },
     });
     return { code: 0, stdout, stderr: "" };
   } catch (err) {
@@ -122,6 +127,36 @@ describe.skipIf(!ESBUILD_AVAILABLE)(
       expect(run(AGRO_JS, ["update", "--from"]).stderr).toMatch(
         /^agro self-upgrade: --from belongs to the project-payload command; run `agro vendor --from` — agro self-upgrade upgrades only the installed CLI\n/,
       );
+    });
+
+    it("agro --version and agro -v print the bare CLI version", () => {
+      const version = JSON.parse(readFileSync(join(CLI_DIR, "package.json"), "utf8")).version as string;
+      for (const flag of ["--version", "-v"]) {
+        const result = run(AGRO_JS, [flag]);
+        expect(result.code).toBe(0);
+        expect(result.stdout).toBe(`${version}\n`);
+      }
+    });
+
+    it("agro sandbox install rejects --version without a value or with --image=<ref>, writing no entry", () => {
+      const home = mkdtempSync(join(tmpdir(), "agro-version-pin-"));
+      try {
+        const missing = run(AGRO_JS, ["sandbox", "install", "docker", "--yes", "--version"], { AGRO_HOME: home });
+        expect(missing.code).toBe(1);
+        expect(missing.stderr).toBe("agro sandbox install: --version requires a value\n");
+
+        const both = run(
+          AGRO_JS,
+          ["sandbox", "install", "docker", "--yes", "--version=0.13.0", "--image=my/img:1"],
+          { AGRO_HOME: home },
+        );
+        expect(both.code).toBe(1);
+        expect(both.stderr).toContain("--version");
+        expect(both.stderr).toContain("--image=<ref>");
+        expect(existsSync(join(home, "sandboxes"))).toBe(false);
+      } finally {
+        rmSync(home, { recursive: true, force: true });
+      }
     });
 
     it("agro vendor requires a directory for --from", () => {

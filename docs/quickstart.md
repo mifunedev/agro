@@ -8,7 +8,7 @@ This guide takes you from zero to a running sandbox with an interactive shell in
 
 ## Before you start
 
-Install Docker with the Compose plugin ([docs.docker.com/get-docker](https://docs.docker.com/get-docker/)), Git ([git-scm.com](https://git-scm.com/)), and Node.js ≥ 20 ([nodejs.org](https://nodejs.org/)) — Node runs the `agro` CLI, and `get-agro.sh` below installs it for you if you skip it. Python, pnpm, and the agent CLIs run inside the container.
+Install Docker with the Compose plugin ([docs.docker.com/get-docker](https://docs.docker.com/get-docker/)), Git ([git-scm.com](https://git-scm.com/)), and Node.js ≥ 20 ([nodejs.org](https://nodejs.org/)). Node runs the `agro` CLI. If you skip Node, `get-agro.sh` below installs Node for you. Python, pnpm, and the agent CLIs run inside the container.
 
 ## Install
 
@@ -20,9 +20,10 @@ Install Docker with the Compose plugin ([docs.docker.com/get-docker](https://doc
 npm install -g @mifune/agro   # or, zero-install: npx @mifune/agro --help
 ```
 
-…or with the curl bootstrap, which downloads the prebuilt `agro` artifact from
-the latest GitHub release — nothing is cloned or built on your host — and offers
-to install nvm + Node 22 when Node is missing:
+…or with the curl bootstrap. The bootstrap downloads the prebuilt `agro` artifact
+from the latest GitHub release, and the bootstrap clones nothing and builds
+nothing on your host. When Node is missing, the bootstrap offers to install
+nvm + Node 22:
 
 ```bash
 curl -fsSL https://agro.mifune.dev/get-agro.sh | bash
@@ -45,8 +46,8 @@ already-open shell's PATH. Upgrade later with `agro self-upgrade`.
 `@mifune/agro` ships the single `agro` executable; the retired
 `@mifune/openharness` shim is no longer published. `npx @mifune/agro <verb>`
 works without a global install. A standalone `get-agro.sh` install and an npm
-install can coexist, but `agro self-upgrade` refuses when another `agro` is
-earlier on PATH than the one it would replace. Details: [Installation → Package and PATH rules](./installation.md#package-and-path-rules).
+install can coexist, but `agro self-upgrade` refuses when another `agro` comes
+earlier on PATH than the `agro` that the upgrade replaces. Details: [Installation → Package and PATH rules](./installation.md#package-and-path-rules).
 
 ### Standalone install (`get-agro.sh`)
 
@@ -76,7 +77,7 @@ wrapper script the CLI regenerates on every lifecycle call — edit only
 `agro.json` there.
 
 Without `--checkout` the sandbox runs the published image
-(`ghcr.io/mifunedev/agro:latest`) and seeds its workspace from the
+(`ghcr.io/mifunedev/agro:<CLI version>`) and seeds its workspace from the
 image's `/opt/agro-seed`, so there is no build and no clone. To persist
 `/home/sandbox` at a host path instead of the Docker-managed volume, pass
 `--home-mount <dir>`.
@@ -109,7 +110,7 @@ supported aliases for `--checkout` and `checkout`.
 
 ## Enter the sandbox
 
-**Recommended: attach with VS Code's Dev Containers extension.** Works identically whether the sandbox is on your laptop or on a remote host you're SSH'd into (with VS Code's Remote-SSH extension). One window, your normal editor, integrated terminal, file tree — the most consistent and productive setup across environments.
+**Recommended: attach with VS Code's Dev Containers extension.** The attach works the same way on your laptop and on a remote host. For a remote host, connect over SSH with VS Code's Remote-SSH extension first. One window holds your normal editor, the integrated terminal, and the file tree. This setup gives the most consistent and productive experience across environments.
 
 1. Install the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
 2. Open the Command Palette with `Ctrl+Shift+P` (`Cmd+Shift+P` on macOS) → **Dev Containers: Attach to Running Container...** → select your sandbox name from `agro sandbox list`.
@@ -118,7 +119,7 @@ supported aliases for `--checkout` and `checkout`.
 > **Optional — DebugMCP (cross-harness debugging).** If you take the VS Code attach route
 > above, you can install the `microsoft/DebugMCP` extension to expose a debugging MCP server
 > that **any MCP-capable harness** (Claude Code, Codex, …) can drive — breakpoints, stepping,
-> variable inspection. It is not tied to one agent and is unnecessary for the terminal path.
+> variable inspection. DebugMCP serves every such agent, not one agent. The terminal path does not need DebugMCP.
 > Runbook: [DebugMCP](./integrations/debugmcp.md#confirmed-setup-runbook).
 
 **Terminal fallback** for when VS Code isn't available or you just need a shell:
@@ -126,11 +127,11 @@ supported aliases for `--checkout` and `checkout`.
 ```bash
 agro shell <name>
 ```
-`<name>` is an entry from `agro sandbox list`; omit it when exactly one sandbox is
-registered, or when you are standing in the checkout a sandbox was created for.
+`<name>` is an entry from `agro sandbox list`. Omit `<name>` when the registry holds
+exactly one sandbox, or when you stand in the checkout that a sandbox binds.
 `agro shell` always attaches as the `sandbox` user; if the target container has no
 such user, use `docker exec -it -u <user> <container> zsh` instead. On a stopped
-container it tells you to start it with `agro sandbox install docker`.
+container, `agro shell` tells you to start the container with `agro sandbox install docker`.
 
 Either way you're inside the isolated sandbox as the `sandbox` user. Working
 directory: `/home/sandbox/harness`.
@@ -154,7 +155,7 @@ continue to run independently under tmux.
 
 ## Set up agents inside Herdr
 
-No agent CLI and no tool is baked into the image, and nothing installs one at
+The image contains no agent CLI and no tool, and nothing installs one at
 boot. Install what you need through the one door:
 
 ```bash
@@ -164,7 +165,7 @@ agro tool install cloudflared      # or herdr, agent-browser, tailscale
 
 Each install lands in `~/.local` inside the persistent home volume, not in the
 image, so `agro harness install <id>` also upgrades in place without a rebuild. An
-install needs network access. T3 Code is on demand: it has no install, and the
+install needs network access. T3 Code runs on demand: T3 Code has no install, and the
 `/t3` skill (or direct `npx`) fetches it at each run. Authenticate at least one
 harness before use.
 
@@ -174,8 +175,8 @@ harness before use.
 > in a browser on *any* device — no local browser on the host required, so it works cleanly on
 > a **headless or remote sandbox** (e.g. a cloud VM you SSH into). Browser-redirect OAuth
 > assumes a local browser and often fails there; device mode doesn't. The per-harness commands
-> below are equivalents for when you prefer a one-liner — several expose an explicit
-> `--device-auth` flag (e.g. `codex login --device-auth`, `grok login --device-auth`).
+> below are equivalents for when you prefer a one-liner. At least two harnesses expose an
+> explicit `--device-auth` flag: `codex login --device-auth` and `grok login --device-auth`.
 
 - **[Claude Code](./harnesses/claude-code.md)**: `claude auth login` (or `/login` in an interactive session), then `claude auth status` to verify
 - **[Codex](./harnesses/codex.md)**: `codex login --device-auth` (device mode; or `/login` in-session)
@@ -219,8 +220,8 @@ gh auth setup-git
 gh auth status
 ```
 
-The initial login is never delegated to the prompts. Both prompts assume it is
-already complete and recheck it before acting. Protocol choice, SSH-key upload,
+The prompts never perform the initial login. Both prompts assume that you
+completed the login, and both prompts recheck the login before acting. Protocol choice, SSH-key upload,
 `GH_TOKEN` at boot, and recovery after a `down -v` are in
 [GitHub auth](./integrations/github.md).
 
@@ -260,7 +261,7 @@ live in [Contributing](./contributing.md).
 `origin` for the retired clone-and-own recipe. It stays supported through the
 [AGRO compatibility](./agro-compatibility.md) window and is **not** the
 canonical onboarding path. Prefer the prompts above, which inspect the workspace
-before they change anything.
+before they make a change.
 
 ## Configuration
 
@@ -284,9 +285,9 @@ non-secret falls back to its compose default, and
 [no overlay applies](./lifecycle-commands.md#vs-code-reopen-in-container-applies-no-overlays).
 (Before 0.4.0 a
 `harness.yaml` layer sat in front of the dotenv and was readable on the first
-path only, so a key set there silently did nothing under VS Code. It was
-removed; any leftover `harness.yaml` is migrated automatically on the next
-lifecycle command.)
+path only, so a key set there had no effect under VS Code. Release 0.4.0 removed
+that layer. The next lifecycle command migrates a leftover `harness.yaml`
+automatically.)
 
 ```json
 // agro.json — non-secret settings (example)
@@ -357,7 +358,7 @@ required path; everything after them is optional and can wait. Steps 4 onward ru
    ```bash
    agro shell <name>   # attach as the sandbox user
    ```
-4. **Install and start Herdr** — a fresh sandbox has none; all remaining setup runs in its panes:
+4. **Get Herdr running** — a fresh sandbox has no Herdr; the commands below install Herdr and start Herdr. All remaining setup runs in Herdr panes:
    ```bash
    agro tool install herdr
    herdr
@@ -368,7 +369,7 @@ required path; everything after them is optional and can wait. Steps 4 onward ru
    agro harness install claude-code
    claude auth login && claude auth status
    ```
-   That is a working sandbox. Stop here until you need more.
+   The sandbox now works. Stop here until you need more.
 
 Optional, in any order:
 
@@ -385,15 +386,15 @@ Optional, in any order:
    > VS Code — see [Enter the sandbox](#enter-the-sandbox) above.
 8. **Configure Slack** for Pi (and Hermes) — create the Slack app, add tokens, set trust
    ([Slack](./integrations/slack.md); Hermes uses `hermes gateway setup`).
-9. **Run and verify the gateways** (sandbox-only; watch read-only so you can't kill them —
-   [Slack § Run and verify](./integrations/slack.md), [Hermes § Run and verify](./harnesses/hermes.md#run-and-verify-read-only)):
+9. **Gateway check** (sandbox-only): the commands below run the gateways and verify the gateways. Watch read-only so you can't kill a gateway
+   ([Slack § Run and verify](./integrations/slack.md), [Hermes § Run and verify](./harnesses/hermes.md#run-and-verify-read-only)):
    ```bash
    gateway pi && gateway hermes        # start the client-slack-* sessions
    gateway status                      # both sessions + state
    tmux attach -r -t client-slack-pi   # read-only view; detach with Ctrl-b d
    ```
 
-> Shortcut: if `GH_TOKEN` was set at install, the entrypoint already ran `gh auth login`
+> Shortcut: if you set `GH_TOKEN` at install, the entrypoint already ran `gh auth login`
 > + `gh auth setup-git` and generated/uploaded an SSH key for you. Verify with
 > `gh auth status` before you rely on it.
 
