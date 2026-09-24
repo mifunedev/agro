@@ -8,6 +8,8 @@ Update policy and release automation live in [`AGENTS.md`](AGENTS.md) § Git con
 
 ## [Unreleased]
 
+## [0.15.0-minimal.1] - 2026-09-23
+
 ### Removed
 
 - Retire the `harness.yaml` compatibility generation: delete `migrate-harness-yaml.sh`, its two lifecycle guards, and the stale `agro migrate` and `~/.oh` references in docs ([#1134](https://github.com/mifunedev/agro/issues/1134)).
