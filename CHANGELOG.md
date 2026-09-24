@@ -23,6 +23,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 - Stop false denies in the Bash secret guard: match `history` only at command position, and never read a `jq` filter such as `'.env'` as a secret path ([#1149](https://github.com/mifunedev/agro/issues/1149)).
 - Close false allows in the Bash secret guard: deny `jq` filters that read `env` or `$ENV`, and deny a quoted `json` inspect format ([#1150](https://github.com/mifunedev/agro/issues/1150)).
+- Forbid a bare `git stash` in the worker brief, and name a blocked command rerun through a script file, a heredoc, or another tool as a hook bypass ([#1162](https://github.com/mifunedev/agro/issues/1162)).
 
 ## [0.13.0] - 2026-09-22
 

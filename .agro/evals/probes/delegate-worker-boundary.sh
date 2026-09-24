@@ -48,7 +48,8 @@ need "/delegate" "$skill_flat" \
   'at most 5 workers' 'isolated worktree' 'overlapping `files` run in sequence' \
   'Workers stay flat' 'never spawn workers' \
   'executed' 'reasoned' 'command and exit status' \
-  'never write `prd.json`' 'never push' 'never bypass a hook'
+  'never write `prd.json`' 'never push' 'never bypass a hook' \
+  'The stash stack is shared' 'through a script file, a heredoc, or another tool is a bypass'
 
 record="$(awk '/^## Dispatch record$/{f=1; next} f && /^## /{exit} f && /^\| /{print}' "$SKILL" | grep -vE '^\| *(Field|-+) *\|' || true)"
 rows="$(grep -c . <<<"$record" || true)"
