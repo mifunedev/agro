@@ -16,15 +16,16 @@
         "Unit tests cover the root user, a user with passwordless `sudo`, and a user without it."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Worker commit 99621b34, integrated as 57133ba6. Advisor reviewed the diff: ToolEntry.hostInstallUser \"root\"; installOnHost probes `sudo -n true` for non-root users, refuses with exit 1 before any prompt or write, then runs the installer as `sudo -n -- <argv>`; tool list shows `installable (root)` plus a footnote. AC1 executed: tool-catalog.test.ts invariant and herdr no-sudo test. AC2 executed: tool.test.ts sudo-n path. AC3 executed: tool.test.ts refusal, exit 1, no installer call, no host config write. AC4 executed: tool.test.ts list JSON hostRoot and table marker. AC5 executed: root, passwordless sudo, and no sudo cases. On the task branch: `npx vitest run` exit 0 (80 files, 1625 tests); `npm --prefix .agro/cli run typecheck` exit 0. Follow-up for US-003/US-004: host uninstall of a root tool does not go through sudo yet; root scripts should use SUDO_USER for the invoking user.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/tools/catalog.ts",
         ".agro/cli/src/commands/tool.ts",
         ".agro/cli/src/__tests__/tool.test.ts",
         ".agro/cli/src/__tests__/tool-catalog.test.ts"
-      ]
+      ],
+      "commit": "57133ba6"
     },
     {
       "id": "US-002",
