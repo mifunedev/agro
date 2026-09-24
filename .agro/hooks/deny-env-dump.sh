@@ -76,25 +76,37 @@ SECRET_PATH_DENY="\\b${READ_CMD}\\b[^#|]*${SECRET_PATH}"
 
 ASK='\bprintenv[[:space:]]+[A-Za-z_]'
 
-JQ_CALL='(^|[^A-Za-z0-9_-])jq(([[:space:]]+-[^[:space:]]*)*)([[:space:]]+)'
-JQ_CALL+="('[^']*'|\"[^\"\$\`]*\"|[^[:space:];&|<>()\$\`\"']+)(.*)\$"
+CALL_TAIL='(([[:space:]]+-[^[:space:]]*)*)([[:space:]]+)'
+CALL_TAIL+="('[^']*'|\"[^\"\$\`]*\"|[^[:space:];&|<>()\$\`\"']+)(.*)\$"
+JQ_CALL="(^|[^A-Za-z0-9_-])jq${CALL_TAIL}"
 JQ_PATH_FLAG='(^|[[:space:]])(-[A-Za-z]*[fL]|--[^[:space:]]*file)'
+SEARCH_PATTERN_FLAG='(^|[[:space:]])(-[A-Za-z]*[ABCDEMTdefgjmrt]|--[^=[:space:]]*([[:space:]]|$)|--[^[:space:]]*(file|regexp))'
 
-mask_jq_filters() {
-  local rest=$1 out='' prefix
+mask_first_operand() {
+  local rest=$1 name=$2 path_flag=$3 placeholder=$4 out='' prefix
+  local call="(^|[^A-Za-z0-9_-])${name}${CALL_TAIL}"
   local -a m
-  while [[ $rest =~ $JQ_CALL ]]; do
+  while [[ $rest =~ $call ]]; do
     m=("${BASH_REMATCH[@]}")
     prefix=${rest%"${m[0]}"}
-    if [[ ${m[2]} =~ $JQ_PATH_FLAG ]]; then
-      out+="${prefix}${m[1]}jq"
+    if [[ ${m[2]} =~ $path_flag ]]; then
+      out+="${prefix}${m[1]}${name}"
       rest="${m[2]}${m[4]}${m[5]}${m[6]}"
     else
-      out+="${prefix}${m[1]}jq${m[2]}${m[4]}JQ_FILTER"
+      out+="${prefix}${m[1]}${name}${m[2]}${m[4]}${placeholder}"
       rest=${m[6]}
     fi
   done
   printf '%s' "$out$rest"
+}
+
+mask_path_cmd() {
+  local masked name
+  masked=$(mask_first_operand "$1" jq "$JQ_PATH_FLAG" JQ_FILTER) || return 1
+  for name in grep egrep fgrep rg; do
+    masked=$(mask_first_operand "$masked" "$name" "$SEARCH_PATTERN_FLAG" SEARCH_PATTERN) || return 1
+  done
+  printf '%s' "$masked"
 }
 
 JQ_ARG_FLAG='(^|[[:space:]])--(arg|argjson|slurpfile|rawfile|indent)([[:space:]]|$)'
@@ -137,7 +149,7 @@ mask_quoted_separators() {
   printf '%s' "$out"
 }
 
-path_cmd=$(mask_jq_filters "$cmd") || path_cmd=$cmd
+path_cmd=$(mask_path_cmd "$cmd") || path_cmd=$cmd
 interp_cmd=$(mask_quoted_separators "$cmd") || interp_cmd=$cmd
 jq_filter_text=$(jq_filters "$cmd") || jq_filter_text=$cmd
 

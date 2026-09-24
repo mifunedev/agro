@@ -135,6 +135,26 @@ assert deny "jq -n \"$JQ_ENV_VAR\"" \
 assert allow "jq '.x' $JQ_ENV_WORD.json" \
   "a jq input file whose name starts with env was treated as an env read"
 
+assert allow "grep process.env src/index.ts" \
+  "a grep pattern that names process.env was treated as a secret path"
+assert allow "grep \"Config.Env\" notes.md" \
+  "a quoted grep pattern that names Config.Env was treated as a secret path"
+assert allow "rg 'import.meta.env' src" \
+  "an rg pattern that names import.meta.env was treated as a secret path"
+
+assert deny "grep TOKEN .env" \
+  "grep searching an env file was allowed"
+assert deny "rg KEY .env.production" \
+  "rg searching a production env file was allowed"
+assert deny "grep -f .env src/index.ts" \
+  "grep loading patterns from an env file was allowed"
+assert deny "grep -e TOKEN .env" \
+  "grep with an -e pattern searching an env file was allowed"
+assert deny "rg -g .env TOKEN" \
+  "rg selecting env files through a glob flag value was allowed"
+assert deny "cat prod.env" \
+  "reading a named env file was allowed"
+
 PY_ENVIRON='os.env'
 PY_ENVIRON+='iron'
 PY_GETENV='os.get'
@@ -176,5 +196,5 @@ assert allow "python3 -c 'print(1)' && ls env/" \
 assert allow "node -e 'console.log(1)' | grep --env x" \
   "an env flag in a piped command was attributed to the node -e program"
 
-echo "PASS: the secret-exposure guard denies shell-hist access by command position and hist-file reads, allows the word inside ordinary arguments, exempts the jq filter from the secret-path check, and still denies env-file reads, jq filters, and inline interpreter code that read the process environment" >&2
+echo "PASS: the secret-exposure guard denies shell-hist access by command position and hist-file reads, allows the word inside ordinary arguments, exempts the jq filter and the grep or rg search pattern from the secret-path check, and still denies env-file reads, jq filters, and inline interpreter code that read the process environment" >&2
 exit 0
