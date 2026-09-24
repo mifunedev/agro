@@ -57,7 +57,7 @@ Amazon Bedrock, Vertex or Foundry, reads no project instructions at all.
 | `agro langfuse apply` · `agro langfuse status` · `agro langfuse disable` | render, check, or remove the Langfuse tracing files — see below |
 | `agro gateway <pi\|hermes>` · `agro gateway status` | `.agro/scripts/gateway.sh` |
 | `agro harness` · `agro tool` | install and inspect harnesses and tooling |
-| `agro workspace create [<name>] [--path <dir>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
+| `agro workspace create [<name>] [--path <dir>] [--ref <ref>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
 | `agro --help` · `agro --version` | usage and version |
 
 `agro <verb> -- <args>` forwards extra arguments to `docker compose`, e.g.
@@ -306,15 +306,32 @@ or `--path`; without either it keeps the refusal. See
 [Harnesses Overview](harnesses/overview.md#installing-a-harness).
 
 `agro tool install <id>` uses the same host path, with two limits. A tool must
-declare a host install. `herdr`, `cloudflared`, `microsandbox` and
-`tailscale` declare a host install. `agent-browser` does not, because its installer adds
-system packages to the machine. `gh` and the Docker CLI do not, because the
-sandbox image provides them. A host install also needs Linux, because every tool
-installer is Debian-specific. The command refuses on any other platform and names
-that platform. A successful host install records the installed id as `hostTools` in the host
-`agro.json`, separately from `hostHarnesses`. `agro tool uninstall <id>` removes
-only what that record names, and `--force` removes from `~/.local` without a
-record.
+declare a host install. `agent-browser`, `herdr`, `cloudflared`, `microsandbox`,
+`tailscale`, `code-server`, `docker-engine`, and `desktop` declare a host install. `gh`
+and the Docker CLI do not, because the sandbox image provides them. A host install
+also needs Linux, because every tool installer is Debian-specific. The command
+refuses on any other platform and names that platform. A successful host install
+records the installed id as `hostTools` in the host `agro.json`, separately from
+`hostHarnesses`. `agro tool uninstall <id>` has no `--host` flag. It removes only
+what that record names when no sandbox is reachable, and `--force` removes from
+`~/.local` without a record.
+
+| Tool | Host install level | In the sandbox |
+|------|--------------------|----------------|
+| `code-server` | invoking user, `~/.local` | installs |
+| `docker-engine` | root-level | refused; names `access.dockerSocket` |
+| `desktop` | root-level | refused |
+
+A root-level tool installs system packages as root. `agro tool list` marks it
+`(root)`. When you are not root, the installer runs through `sudo -n`. When
+`sudo -n true` fails, the command exits 1 and changes nothing. The message names
+`<id>` and passwordless `sudo`.
+`docker-engine` and `desktop` install only with `--host`, and `agro tool uninstall`
+refuses them. `docker-engine` installs Docker Engine and Compose. `desktop` installs
+XFCE, XRDP, and system Tailscale, and serves TCP 3389 only through Tailscale. It
+ends by printing the two remaining steps: `sudo tailscale up` and
+`sudo passwd <user>`. Then connect an RDP client to the Tailscale address on port
+3389. See [Installation](installation.md#ai-agent-clis).
 
 ## Host workspaces: `agro workspace`
 
@@ -327,6 +344,7 @@ state. `agro workspace` is the only verb that creates one.
 agro workspace create                     # clone into ~/.agro/workspaces/default
 agro workspace create acme                # clone into ~/.agro/workspaces/acme
 agro workspace create --path /srv/agro    # clone into /srv/agro, outside the registry
+agro workspace create --ref v0.15.0       # clone tag v0.15.0 into ~/.agro/workspaces/default
 agro workspace list                       # every workspace, with the default marked
 agro workspace list --json                # the same rows as JSON
 ```
@@ -339,6 +357,11 @@ agro workspace list --json                # the same rows as JSON
   or a digit. The command refuses any other name and creates nothing.
 - `--path <dir>` creates the workspace outside the registry. Pass a name or
   `--path <dir>`, never both.
+- `--ref <ref>` clones the branch or tag `<ref>` instead of the default branch.
+  A tag gives a detached checkout. If `<ref>` does not exist, the command exits
+  1, names the ref, and leaves no target directory. The command reuses a target
+  that already holds a `.git` checkout and does not change its ref. `list`
+  refuses `--ref`.
 - `create` records no default. The command leaves `harnessRoot` in
   `~/.agro/config.json` unchanged. Only a host install writes that key.
 - `agro workspace list` reports every child of `~/.agro/workspaces/` that obeys

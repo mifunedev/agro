@@ -57,15 +57,16 @@ function assertCloned(result: RunResult, root: string): void {
   }
 }
 
-function cloneInto(target: string, run: LifecycleRunner, root: string): void {
-  assertCloned(run("git", ["clone", AGRO_REPO_URL, target], { stdio: "inherit" }), root);
+function cloneInto(target: string, run: LifecycleRunner, root: string, ref: string | undefined): void {
+  const branch = ref !== undefined ? ["--branch", ref] : [];
+  assertCloned(run("git", ["clone", ...branch, AGRO_REPO_URL, target], { stdio: "inherit" }), root);
 }
 
-function cloneThroughStaging(root: string, run: LifecycleRunner): void {
+function cloneThroughStaging(root: string, run: LifecycleRunner, ref: string | undefined): void {
   const staging = mkdtempSync(join(dirname(root), "agro-clone-"));
   try {
     const checkout = join(staging, "agro");
-    cloneInto(checkout, run, root);
+    cloneInto(checkout, run, root, ref);
     for (const name of readdirSync(checkout)) {
       const destination = join(root, name);
       if (existsSync(destination)) {
@@ -78,7 +79,11 @@ function cloneThroughStaging(root: string, run: LifecycleRunner): void {
   }
 }
 
-export function ensureHostWorkspace(path: string, run: LifecycleRunner = spawnRunner): HostWorkspaceResult {
+export function ensureHostWorkspace(
+  path: string,
+  run: LifecycleRunner = spawnRunner,
+  ref?: string,
+): HostWorkspaceResult {
   const root = resolve(path);
 
   if (existsSync(join(root, ".git"))) return { root, action: "reused" };
@@ -86,7 +91,7 @@ export function ensureHostWorkspace(path: string, run: LifecycleRunner = spawnRu
   const stats = statSync(root, { throwIfNoEntry: false });
   if (stats === undefined) {
     mkdirSync(dirname(root), { recursive: true });
-    cloneInto(root, run, root);
+    cloneInto(root, run, root, ref);
     return { root, action: "cloned" };
   }
 
@@ -101,7 +106,7 @@ export function ensureHostWorkspace(path: string, run: LifecycleRunner = spawnRu
     );
   }
 
-  cloneThroughStaging(root, run);
+  cloneThroughStaging(root, run, ref);
   return { root, action: "cloned" };
 }
 

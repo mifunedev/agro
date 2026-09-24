@@ -7,6 +7,7 @@ on:
     branches:
       - main
       - master
+      - experiment/**
 
 permissions:
   contents: write
@@ -143,6 +144,7 @@ jobs:
         id: reserve_release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_BRANCH: ${{ github.ref_name }}
           RELEASE_SHA: ${{ github.sha }}
           RELEASE_VERSION: ${{ steps.release_version.outputs.version }}
         run: node .agro/scripts/reserve-github-release.mjs
@@ -332,6 +334,7 @@ jobs:
         env:
           RELEASE_BRANCH: ${{ github.ref_name }}
           RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
+          RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
         run: .agro/scripts/promote-release-latest.sh check
 
       - name: Publish the draft after image and CLI publication

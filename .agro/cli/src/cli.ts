@@ -316,7 +316,8 @@ Flags:
   --yes            Non-interactive: keep every default and ask nothing
   --version <X.Y.Z>
                    Run the official release image ghcr.io/mifunedev/agro:<X.Y.Z>
-                   (implies --image). A leading v is accepted
+                   (implies --image). A leading v and a -<channel>.<n>
+                   pre-release suffix are accepted
   --image          Run the prebuilt image instead of building (implies
                    --no-build). The ref resolves first-match: --version or
                    --image=<ref> > ${stateNames(bin).envPrefix}SANDBOX_IMAGE >
@@ -385,7 +386,8 @@ export function printWorkspaceHelp(bin: string = AGRO_PRODUCT.bin): void {
   process.stdout.write(`${bin} workspace — Create and list host AGRO workspaces
 
 Usage:
-  ${bin} workspace create [<name>]   Clone the AGRO repository into a registry entry
+  ${bin} workspace create [<name>] [--ref <ref>]
+                                   Clone the AGRO repository into a registry entry
   ${bin} workspace list              List every host workspace
 
 A host workspace is an AGRO checkout under \`~/.agro/workspaces/<name>\`. \`create\`
@@ -400,6 +402,9 @@ root as \`harnessRoot\`. \`list\` marks the recorded root.
 Flags:
   --json           Machine-readable output
   --path <dir>     Create the workspace at a directory outside the registry
+  --ref <ref>      Clone this branch or tag instead of the default branch (create
+                   only). A missing ref exits 1 and leaves no target directory.
+                   An existing checkout is reused as is.
 `);
 }
 
@@ -1033,6 +1038,7 @@ export interface WorkspaceArgs {
   name?: string;
   json: boolean;
   path?: string;
+  ref?: string;
 }
 
 export function parseWorkspaceArgs(
@@ -1046,16 +1052,24 @@ export function parseWorkspaceArgs(
 
   const positionals: string[] = [];
   let expectPath = false;
+  let expectRef = false;
   for (const token of rest) {
     if (expectPath) {
       expectPath = false;
       args.path = token;
+    } else if (expectRef) {
+      expectRef = false;
+      args.ref = token;
     } else if (token === "--json") {
       args.json = true;
     } else if (token === "--path") {
       expectPath = true;
     } else if (token.startsWith("--path=")) {
       args.path = token.slice("--path=".length);
+    } else if (token === "--ref") {
+      expectRef = true;
+    } else if (token.startsWith("--ref=")) {
+      args.ref = token.slice("--ref=".length);
     } else if (token.startsWith("-")) {
       return { ok: false, error: `${bin} workspace: unknown flag "${token}"` };
     } else {
@@ -1064,6 +1078,9 @@ export function parseWorkspaceArgs(
   }
   if (expectPath || args.path === "") {
     return { ok: false, error: `${bin} workspace: --path requires a directory` };
+  }
+  if (expectRef || args.ref === "") {
+    return { ok: false, error: `${bin} workspace: --ref requires a branch or tag` };
   }
 
   const [sub, name, ...extra] = positionals;
@@ -1082,6 +1099,9 @@ export function parseWorkspaceArgs(
   }
   if (sub === "list" && args.path !== undefined) {
     return { ok: false, error: `${bin} workspace list: --path applies to create only` };
+  }
+  if (sub === "list" && args.ref !== undefined) {
+    return { ok: false, error: `${bin} workspace list: --ref applies to create only` };
   }
   if (args.path !== undefined && name !== undefined) {
     return {
@@ -1607,7 +1627,12 @@ async function main(argv: string[]): Promise<number> {
     }
     return await runWorkspaceCreate(
       a.name,
-      { bin, json: a.json, ...(a.path !== undefined ? { path: a.path } : {}) },
+      {
+        bin,
+        json: a.json,
+        ...(a.path !== undefined ? { path: a.path } : {}),
+        ...(a.ref !== undefined ? { ref: a.ref } : {}),
+      },
       io,
     );
   }

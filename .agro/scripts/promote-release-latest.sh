@@ -20,6 +20,13 @@ if [[ ! "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
   exit 64
 fi
 
+SEMVER='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+PRERELEASE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-[a-z][a-z0-9]*\.(0|[1-9][0-9]*)$'
+if [[ -n "${RELEASE_VERSION:-}" && ! "$RELEASE_VERSION" =~ $SEMVER && ! "$RELEASE_VERSION" =~ $PRERELEASE ]]; then
+  echo "RELEASE_VERSION must be a SemVer version (MAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH-<channel>.<n>)" >&2
+  exit 64
+fi
+
 REMOTE=${RELEASE_REMOTE:-origin}
 REFS=$(git ls-remote --heads "$REMOTE" refs/heads/main refs/heads/master)
 main_sha=""
@@ -59,6 +66,9 @@ make_latest=false
 if [[ "$RELEASE_BRANCH" == "$canonical_branch" && "$RELEASE_SHA" == "$canonical_sha" ]]; then
   make_latest=true
 fi
+if [[ "${RELEASE_VERSION:-}" =~ $PRERELEASE ]]; then
+  make_latest=false
+fi
 
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
   {
@@ -81,10 +91,6 @@ if [[ "$make_latest" != true ]]; then
 fi
 
 : "${RELEASE_VERSION:?RELEASE_VERSION is required for promote mode}"
-if [[ ! "$RELEASE_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-  echo "RELEASE_VERSION must be a SemVer version (MAJOR.MINOR.PATCH)" >&2
-  exit 64
-fi
 
 IMAGE_REPOSITORIES=${IMAGE_REPOSITORIES:-ghcr.io/mifunedev/agro}
 read -r -a repositories <<< "$IMAGE_REPOSITORIES"

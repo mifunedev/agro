@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { afterEach, describe, expect, it } from "vitest";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -8,14 +10,14 @@ import {
   toolIds,
   TOOL_CATALOG,
 } from "../lib/tools/catalog.js";
-import { HARNESS_CATALOG } from "../lib/harnesses/catalog.js";
+import { HARNESS_CATALOG, HARNESS_PREFIX_TOKEN } from "../lib/harnesses/catalog.js";
 import { RUNTIME_CATALOG } from "../lib/runtimes/catalog.js";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 const read = (p: string): string => readFileSync(join(REPO_ROOT, p), "utf8");
 
 describe("tool catalog shape", () => {
-  it("lists the seven known tools", () => {
+  it("lists the ten known tools", () => {
     expect(toolIds()).toEqual([
       "agent-browser",
       "herdr",
@@ -24,6 +26,9 @@ describe("tool catalog shape", () => {
       "docker-cli",
       "gh",
       "tailscale",
+      "code-server",
+      "docker-engine",
+      "desktop",
     ]);
   });
 
@@ -34,10 +39,13 @@ describe("tool catalog shape", () => {
       "cloudflared",
       "microsandbox",
       "tailscale",
+      "code-server",
     ]);
     for (const t of TOOL_CATALOG) {
       expect(["baked-in", "installable"], t.id).toContain(t.kind);
-      if (t.kind === "installable") expect(t.installArgv, t.id).toBeDefined();
+      if (t.kind === "installable") {
+        expect(t.installArgv ?? t.hostInstallArgv, t.id).toBeDefined();
+      }
       if (t.kind === "baked-in") expect(t.installArgv, t.id).toBeUndefined();
     }
   });
@@ -47,11 +55,21 @@ describe("tool catalog shape", () => {
   // no NOPASSWD. A root install would hang an agent on a password prompt, and
   // could not be upgraded by the running sandbox afterwards.
   it("installs every installable tool as the sandbox user", () => {
-    const installable = TOOL_CATALOG.filter((t) => t.kind === "installable");
+    const installable = TOOL_CATALOG.filter((t) => t.installArgv !== undefined);
     expect(installable.length).toBeGreaterThan(0);
     for (const t of installable) {
       expect(t.installUser, t.id).toBe("sandbox");
     }
+  });
+
+  it("marks a root-level host install only on a host-capable entry", () => {
+    for (const t of TOOL_CATALOG) {
+      if (t.hostInstallUser === "root") expect(t.hostCapable, t.id).toBe(true);
+    }
+    expect(TOOL_CATALOG.filter((t) => t.hostInstallUser === "root").map((t) => t.id)).toEqual([
+      "docker-engine",
+      "desktop",
+    ]);
   });
 
   it("lands every downloaded binary in NPM_USER_PREFIX behind a sha256 check", () => {
@@ -59,7 +77,9 @@ describe("tool catalog shape", () => {
       [t.installArgv, t.hostInstallArgv]
         .filter((argv): argv is readonly string[] => argv !== undefined)
         .map((argv) => [t.id, argv.join("\n")] as const),
-    ).filter(([, body]) => body.includes("curl -fsSL"));
+    ).filter(
+      ([id, body]) => body.includes("curl -fsSL") && findTool(id)?.hostInstallUser !== "root",
+    );
 
     expect(scripts.map(([id]) => id)).toEqual([
       "agent-browser",
@@ -67,6 +87,7 @@ describe("tool catalog shape", () => {
       "cloudflared",
       "microsandbox",
       "tailscale",
+      "code-server",
     ]);
     for (const [id, body] of scripts) {
       expect(body, id).toContain("NPM_USER_PREFIX");
@@ -74,9 +95,9 @@ describe("tool catalog shape", () => {
     }
   });
 
-  it("keeps every host installer clear of the operating system package manager", () => {
+  it("keeps every user-level host installer clear of the operating system package manager", () => {
     for (const t of TOOL_CATALOG) {
-      if (t.hostInstallArgv === undefined) continue;
+      if (t.hostInstallArgv === undefined || t.hostInstallUser === "root") continue;
       const body = t.hostInstallArgv.join("\n");
       expect(body, t.id).not.toMatch(/\bapt(-get)?\s/);
       expect(body, t.id).not.toMatch(/\bdpkg\s+-i\b/);
@@ -119,6 +140,8 @@ describe("tool catalog shape", () => {
       "docker-cli",
       "gh",
       "tailscale",
+      "code-server",
+      "docker-engine",
     ]);
     for (const t of TOOL_CATALOG) {
       if (t.versionArgv) expect(t.versionArgv, t.id).toEqual([t.binary, "--version"]);
@@ -152,7 +175,7 @@ describe("the catalogs stay separate", () => {
     }
   });
 
-  it("shares exactly one id with the runtime catalog: the planned microsandbox substrate", () => {
+  it("shares only the microsandbox substrate with the runtime catalog", () => {
     const runtime = new Set(RUNTIME_CATALOG.map((r) => r.id));
     const shared = toolIds().filter((id) => runtime.has(id));
     expect(shared).toEqual(["microsandbox"]);
@@ -164,9 +187,10 @@ describe("the catalogs stay separate", () => {
     expect(new Set(toolIds()).size).toBe(TOOL_CATALOG.length);
   });
 
-  it("keeps docker-cli distinct from the docker RUNTIME", () => {
-    expect(findTool("docker-cli")).toBeDefined();
-    expect(findTool("docker")).toBeUndefined();
+  it("keeps the baked-in docker-cli distinct from the host docker engine", () => {
+    expect(findTool("docker-cli")?.kind).toBe("baked-in");
+    expect(findTool("docker-cli")?.hostCapable).toBe(false);
+    expect(findTool("docker-engine")?.hostInstallUser).toBe("root");
     expect(RUNTIME_CATALOG.some((r) => r.id === "docker")).toBe(true);
   });
 
@@ -288,6 +312,274 @@ describe("tailscale is installed from the catalog, not the boot path", () => {
   it("is reachable only through `agro tool install` — never through compose", () => {
     expect(read(".devcontainer/docker-compose.yml")).not.toContain("INSTALL_TAILSCALE");
     expect(read(".agro/cli/src/lib/config-render.ts")).toContain('"INSTALL_TAILSCALE"');
+  });
+});
+
+describe("code-server installs a pinned release for the invoking user", () => {
+  const cs = findTool("code-server")!;
+  const script = cs.installArgv!.join("\n");
+  const VERSION = "4.129.0";
+  const SHA_AMD64 = "889b09ff3a167a293f53cb68a5a7f38dbab6bd2b50d7a5951c757e56ba51a2b0";
+  const SHA_ARM64 = "62f7886018923a18cc16112ccfbcd51aee80f8e0c1bb7abc48773d1fd32a7617";
+
+  it("is an installable, host-capable tool that installs without root", () => {
+    expect(cs.kind).toBe("installable");
+    expect(cs.hostCapable).toBe(true);
+    expect(cs.hostInstallUser).toBeUndefined();
+    expect(cs.installUser).toBe("sandbox");
+    expect(cs.hostInstallArgv).toBeUndefined();
+    expect(script).not.toContain("sudo");
+  });
+
+  it("pins the release and both tarball checksums", () => {
+    expect(script).toContain(`version=${VERSION}`);
+    expect(script).toContain(
+      "https://github.com/coder/code-server/releases/download/v$version/code-server-$version-linux-$arch.tar.gz",
+    );
+    expect(script).toContain(`amd64) sha=${SHA_AMD64} ;;`);
+    expect(script).toContain(`arm64) sha=${SHA_ARM64} ;;`);
+    expect(script).toContain("sha256sum -c -");
+  });
+
+  it("refuses an unpinned architecture by name", () => {
+    expect(script).toContain('*) echo "no pinned code-server build for $arch" >&2; exit 1 ;;');
+  });
+
+  it("extracts under lib and links the launcher into bin", () => {
+    expect(script).toContain('prefix="${NPM_USER_PREFIX:-$HOME/.local}"');
+    expect(script).toContain('dest="$prefix/lib/code-server-$version"');
+    expect(script).toContain('ln -sfn "$dest/bin/code-server" "$prefix/bin/code-server"');
+  });
+
+  it("fails the install unless the linked launcher reports the pinned version", () => {
+    expect(script).toContain('"$prefix/bin/code-server" --version | grep -q "^$version "');
+  });
+
+  it("removes the link and the extracted release", () => {
+    expect(cs.uninstallArgv).toEqual([
+      "rm",
+      "-rf",
+      `${HARNESS_PREFIX_TOKEN}/bin/code-server`,
+      `${HARNESS_PREFIX_TOKEN}/lib/code-server-${VERSION}`,
+    ]);
+    expect(cs.hostUninstallArgv).toBeUndefined();
+  });
+});
+
+describe("docker-engine installs Docker Engine on an Ubuntu host as root", () => {
+  const dk = findTool("docker-engine")!;
+  const script = dk.hostInstallArgv!.join("\n");
+  const FINGERPRINT = "9DC858229FC7DD38854AE2D88D81803C0EBFCD88";
+
+  it("is a host-only, root-level installable tool", () => {
+    expect(dk.kind).toBe("installable");
+    expect(dk.binary).toBe("docker");
+    expect(dk.hostCapable).toBe(true);
+    expect(dk.hostInstallUser).toBe("root");
+    expect(dk.installArgv).toBeUndefined();
+    expect(dk.hostInstallArgv!.slice(0, 2)).toEqual(["bash", "-lc"]);
+    expect(dk.uninstallArgv).toBeNull();
+  });
+
+  it("refuses the sandbox by naming access.dockerSocket", () => {
+    const reason = dk.notInstallableReason!("agro");
+    expect(reason).toContain("access.dockerSocket");
+    expect(reason).toContain("agro tool install docker-engine --host");
+  });
+
+  it("verifies the engine, the compose plugin, the enabled service and the docker group", () => {
+    const verify = dk.verifyArgv.join(" ");
+    expect(verify).toContain("command -v docker >/dev/null");
+    expect(verify).toContain("docker compose version >/dev/null");
+    expect(verify).toContain("systemctl is-enabled --quiet docker");
+    expect(verify).toContain('id -nG "${SUDO_USER:-$(id -un)}"');
+  });
+
+  it("refuses a host that is not Ubuntu", () => {
+    expect(script).toContain(". /etc/os-release");
+    expect(script).toContain('if [ "${ID:-}" != ubuntu ]; then');
+  });
+
+  it("trusts Docker's repository key only after checking its fingerprint", () => {
+    expect(script).toContain("install -m 0755 -d /etc/apt/keyrings");
+    expect(script).toContain(
+      'curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o "$tmp/docker.asc"',
+    );
+    expect(script).toContain(`fingerprint=${FINGERPRINT}`);
+    expect(script).toContain('gpg --homedir "$tmp" --show-keys --with-colons "$tmp/docker.asc"');
+    const check = script.indexOf('if [ "$actual" != "$fingerprint" ]; then');
+    const trust = script.indexOf('install -m 0644 "$tmp/docker.asc" /etc/apt/keyrings/docker.asc');
+    expect(check).toBeGreaterThan(-1);
+    expect(trust).toBeGreaterThan(check);
+  });
+
+  it("installs the five packages from the signed Docker repository", () => {
+    expect(script).toContain(
+      'echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${UBUNTU_CODENAME:-$VERSION_CODENAME} stable" > /etc/apt/sources.list.d/docker.list',
+    );
+    expect(script).toContain(
+      "apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
+    );
+  });
+
+  it("adds the invoking user to the docker group and enables the service", () => {
+    expect(script).toContain('user="${SUDO_USER:-$(id -un)}"');
+    expect(script).toContain('usermod -aG docker "$user"');
+    expect(script).toContain("systemctl enable --now docker");
+  });
+
+  it("runs as root through the CLI and never calls sudo itself", () => {
+    expect(script).toContain("set -e");
+    expect(script).not.toContain("sudo ");
+  });
+});
+
+describe("desktop serves XFCE over XRDP through Tailscale only", () => {
+  const dt = findTool("desktop")!;
+  const script = dt.hostInstallArgv![2];
+  const RULES = "/etc/xrdp/agro-tailscale-only.nft";
+  const DROP_IN = "/etc/systemd/system/xrdp.service.d/agro-tailscale-only.conf";
+
+  it("is a host-only, root-level installable tool", () => {
+    expect(dt.kind).toBe("installable");
+    expect(dt.binary).toBe("xrdp");
+    expect(dt.hostCapable).toBe(true);
+    expect(dt.hostInstallUser).toBe("root");
+    expect(dt.installArgv).toBeUndefined();
+    expect(dt.hostInstallArgv!.slice(0, 2)).toEqual(["bash", "-lc"]);
+    expect(dt.uninstallArgv).toBeNull();
+    expect(dt.notInstallableReason!("agro")).toContain("agro tool install desktop --host");
+  });
+
+  it("verifies the package, the enabled service, the Tailscale guard and the session file", () => {
+    const verify = dt.verifyArgv.join(" ");
+    expect(verify).toContain("command -v xrdp >/dev/null");
+    expect(verify).toContain("systemctl is-enabled --quiet xrdp");
+    expect(verify).toContain("systemctl is-enabled --quiet tailscaled");
+    expect(verify).toContain(`test -f ${DROP_IN}`);
+    expect(verify).toContain('grep -qx xfce4-session "$HOME/.xsession"');
+  });
+
+  describe("system Tailscale", () => {
+    const KEYRING = "/usr/share/keyrings/tailscale-archive-keyring.gpg";
+    const guard = "if ! systemctl cat tailscaled.service >/dev/null 2>&1; then";
+    const enable = "systemctl enable --now tailscaled";
+    const block = script.slice(script.indexOf(guard), script.indexOf(enable) + enable.length);
+    const dirs: string[] = [];
+    afterEach(() => {
+      while (dirs.length > 0) rmSync(dirs.pop()!, { recursive: true, force: true });
+    });
+
+    it("no longer asks for a user-level tailscale", () => {
+      expect(script).not.toContain("agro tool install tailscale --host");
+      expect(script).not.toContain(".local/bin/tailscale");
+    });
+
+    it("trusts Tailscale's repository key only after checking its fingerprint", () => {
+      expect(block).toContain("fingerprint=2596A99EAAB33821893C0A79458CA832957F5868");
+      expect(block).toContain(
+        'curl -fsSL "https://pkgs.tailscale.com/stable/ubuntu/$codename.noarmor.gpg" -o "$tmp/tailscale.gpg"',
+      );
+      expect(block).toContain('gpg --homedir "$tmp" --show-keys --with-colons "$tmp/tailscale.gpg"');
+      const check = block.indexOf('if [ "$actual" != "$fingerprint" ]; then');
+      const trust = block.indexOf(`install -m 0644 "$tmp/tailscale.gpg" ${KEYRING}`);
+      expect(check).toBeGreaterThan(-1);
+      expect(trust).toBeGreaterThan(check);
+    });
+
+    it("installs the tailscale package from the signed repository and enables tailscaled", () => {
+      expect(block).toContain(
+        `echo "deb [signed-by=${KEYRING}] https://pkgs.tailscale.com/stable/ubuntu $codename main" > /etc/apt/sources.list.d/tailscale.list`,
+      );
+      expect(block.indexOf("apt-get install -y tailscale")).toBeGreaterThan(
+        block.indexOf("/etc/apt/sources.list.d/tailscale.list"),
+      );
+      expect(block.endsWith(`fi\n${enable}`)).toBe(true);
+    });
+
+    it("comes before the nftables guard and the desktop packages", () => {
+      const end = script.indexOf(enable);
+      expect(script.indexOf(guard)).toBeGreaterThan(script.indexOf("apt-get install -y ca-certificates curl gnupg nftables"));
+      expect(end).toBeLessThan(script.indexOf("cat > /etc/xrdp/agro-tailscale-only.nft"));
+      expect(end).toBeLessThan(script.indexOf("apt-get install -y xfce4"));
+    });
+
+    it("skips the repository and package when the tailscaled unit already exists", () => {
+      const dir = mkdtempSync(join(tmpdir(), "agro-desktop-tailscale-"));
+      dirs.push(dir);
+      const log = join(dir, "calls.log");
+      for (const cmd of ["systemctl", "curl", "gpg", "install", "apt-get"]) {
+        writeFileSync(join(dir, cmd), `#!/bin/sh\necho "${cmd} $*" >> "${log}"\n`);
+        chmodSync(join(dir, cmd), 0o755);
+      }
+      const r = spawnSync("/bin/bash", ["-c", `set -e\n${block}`], {
+        env: { PATH: dir, codename: "noble", tmp: dir },
+        encoding: "utf8",
+      });
+      expect(r.status).toBe(0);
+      expect(readFileSync(log, "utf8").trim().split("\n")).toEqual([
+        "systemctl cat tailscaled.service",
+        "systemctl enable --now tailscaled",
+      ]);
+    });
+  });
+
+  it("refuses a host that is not Ubuntu", () => {
+    expect(script).toContain(". /etc/os-release");
+    expect(script).toContain('if [ "${ID:-}" != ubuntu ]; then');
+  });
+
+  it("installs the four runbook packages (step 3)", () => {
+    expect(script).toContain("apt-get install -y xfce4 xfce4-goodies xrdp xorgxrdp");
+  });
+
+  it("writes xfce4-session to the invoking user's ~/.xsession with their ownership (step 4)", () => {
+    expect(script).toContain('user="${SUDO_USER:-$(id -un)}"');
+    expect(script).toContain('home="$(getent passwd "$user" | cut -d: -f6)"');
+    expect(script).toContain(`printf '%s\\n' xfce4-session > "$home/.xsession"`);
+    expect(script).toContain('chown "$user:$(id -gn "$user")" "$home/.xsession"');
+  });
+
+  it("adds xrdp to ssl-cert and enables xrdp (step 6)", () => {
+    expect(script).toContain("adduser xrdp ssl-cert");
+    expect(script).toContain("systemctl enable xrdp");
+    expect(script).toContain("systemctl restart xrdp");
+    expect(script).toContain("systemctl is-active --quiet xrdp");
+  });
+
+  it("refuses 3389 on every interface but Tailscale and loopback, before xrdp exists", () => {
+    expect(script).toContain(`cat > ${RULES} <<'EOF'`);
+    expect(script).toContain("table inet agro_xrdp {");
+    expect(script).toContain('iifname { "lo", "tailscale0" } accept');
+    expect(script).toContain("tcp dport 3389 reject with tcp reset");
+    const load = script.indexOf(`nft -f ${RULES}`);
+    expect(load).toBeGreaterThan(-1);
+    expect(load).toBeLessThan(script.indexOf("apt-get install -y xfce4"));
+  });
+
+  it("reloads the guard every time xrdp starts, so it holds across reboots", () => {
+    expect(script).toContain(
+      `printf '[Service]\\nExecStartPre=%s -f ${RULES}\\n' "$(command -v nft)" > ${DROP_IN}`,
+    );
+    expect(script.indexOf(DROP_IN)).toBeLessThan(script.indexOf("apt-get install -y xfce4"));
+  });
+
+  it("changes no SSH rule, no ufw state, and sets no password (step 5 is left to the operator)", () => {
+    expect(script).not.toMatch(/\bufw\b/);
+    expect(script).not.toMatch(/\b22\b/);
+    expect(script).not.toMatch(/\bssh/i);
+    expect(script).not.toMatch(/chpasswd|usermod -p/);
+    expect(script.split("\n").filter((l) => /\bpasswd\b/.test(l) && !l.includes("getent passwd"))).toEqual([
+      'echo "  sudo passwd $user"',
+    ]);
+  });
+
+  it("ends by printing the two remaining operator steps", () => {
+    expect(script.split("\n").slice(-3)).toEqual([
+      'echo "The desktop is installed. Two steps remain:"',
+      'echo "  sudo tailscale up"',
+      'echo "  sudo passwd $user"',
+    ]);
   });
 });
 

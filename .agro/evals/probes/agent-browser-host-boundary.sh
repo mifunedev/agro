@@ -3,8 +3,9 @@
 # source: #1078 — agent-browser became host-installable. The opt-out it replaced existed
 #         because `agent-browser install --with-deps` drives the operating system package
 #         manager. Host installs must never do that, whatever else the entry gains.
-# desc: every hostInstallArgv in the tool catalog stays clear of the OS package manager and
-#       of sudo; agent-browser's host path fetches a pinned release binary behind a sha256
+# desc: every user-level hostInstallArgv in the tool catalog stays clear of the OS package
+#       manager and of sudo; a root-level (hostInstallUser:"root") hostInstallArgv never
+#       calls sudo itself, because commands/tool.ts elevates it; agent-browser's host path fetches a pinned release binary behind a sha256
 #       check and resolves an existing browser instead of downloading one.
 set -euo pipefail
 
@@ -23,7 +24,24 @@ fi
 
 missing=()
 
-host_block=$(awk '/hostInstallArgv: Object.freeze\(\[/,/\]\),/' "$TOOLS")
+host_blocks() {
+  awk -v want="$1" '
+    /^  Object\.freeze\(\{$/ { buf=""; root=0; inb=1; next }
+    /^  \}\),$/              { if (inb && root == want) printf "%s", buf; inb=0; next }
+    !inb                     { next }
+    /hostInstallUser: "root"/ { root=1 }
+    /hostInstallArgv: Object\.freeze\(\[/ { inh=1 }
+    inh                      { buf = buf $0 "\n" }
+    inh && /^    \]\),$/     { inh=0 }
+  ' "$TOOLS"
+}
+
+host_block=$(host_blocks 0)
+root_block=$(host_blocks 1)
+
+if grep -E '\bsudo\b' <<<"$root_block" | grep -qvE "^[[:space:]]*['\"][[:space:]]*echo[[:space:]]"; then
+  missing+=("tools/catalog.ts: a root-level hostInstallArgv calls sudo itself — root-level installs reach root only through the sudo -n path in commands/tool.ts")
+fi
 
 if [[ -z $host_block ]]; then
   missing+=("tools/catalog.ts: no hostInstallArgv — the host path fell back to the sandbox installer")

@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1168-node-host-tools",
+  "description": "Host tools for AGRO nodes: root-level host installs via sudo, code-server, docker, and desktop tools, and agro workspace create --ref, released as 0.15.0.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Install root-level host tools",
+      "description": "As an operator, I want `agro tool install <id> --host` to run a root-level installer through `sudo` so that a dedicated VM can install system packages with `agro`.",
+      "acceptanceCriteria": [
+        "`ToolEntry` gains a field that marks a host install as root-level. Existing entries keep their behavior.",
+        "If the invoking user is not root, a root-level host install runs its script through `sudo -n`.",
+        "If `sudo -n true` fails, the command exits 1 and prints a message that names the tool and states that it needs passwordless `sudo`. The command changes nothing.",
+        "`agro tool list` marks each root-level host tool.",
+        "Unit tests cover the root user, a user with passwordless `sudo`, and a user without it."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Worker commit 99621b34, integrated as 57133ba6. Advisor reviewed the diff: ToolEntry.hostInstallUser \"root\"; installOnHost probes `sudo -n true` for non-root users, refuses with exit 1 before any prompt or write, then runs the installer as `sudo -n -- <argv>`; tool list shows `installable (root)` plus a footnote. AC1 executed: tool-catalog.test.ts invariant and herdr no-sudo test. AC2 executed: tool.test.ts sudo-n path. AC3 executed: tool.test.ts refusal, exit 1, no installer call, no host config write. AC4 executed: tool.test.ts list JSON hostRoot and table marker. AC5 executed: root, passwordless sudo, and no sudo cases. On the task branch: `npx vitest run` exit 0 (80 files, 1625 tests); `npm --prefix .agro/cli run typecheck` exit 0. Follow-up for US-003/US-004: host uninstall of a root tool does not go through sudo yet; root scripts should use SUDO_USER for the invoking user.",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/tools/catalog.ts",
+        ".agro/cli/src/commands/tool.ts",
+        ".agro/cli/src/__tests__/tool.test.ts",
+        ".agro/cli/src/__tests__/tool-catalog.test.ts"
+      ],
+      "commit": "57133ba6"
+    },
+    {
+      "id": "US-002",
+      "title": "Add the code-server tool",
+      "description": "As an operator, I want `agro tool install code-server --host` so that `agro` owns the code-server version on every node.",
+      "acceptanceCriteria": [
+        "`TOOL_CATALOG` has a `code-server` entry that installs for the invoking user, with `hostCapable: true` and an `uninstallArgv`.",
+        "The script pins code-server `4.129.0` and checks the SHA-256 of the release tarball: `amd64` `889b09ff3a167a293f53cb68a5a7f38dbab6bd2b50d7a5951c757e56ba51a2b0`, `arm64` `62f7886018923a18cc16112ccfbcd51aee80f8e0c1bb7abc48773d1fd32a7617`.",
+        "If the architecture is not `amd64` or `arm64`, the script exits non-zero and names the architecture.",
+        "The script extracts the tarball to `$HOME/.local/lib/code-server-4.129.0` and links `$HOME/.local/bin/code-server` to its `bin/code-server`.",
+        "After `agro tool install code-server --host` on a Linux host, `$HOME/.local/bin/code-server --version` prints a line that starts with `4.129.0`.",
+        "`agro tool uninstall code-server --host` removes the link and the extracted directory."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Worker commit 6a308f09, integrated as 144ad0c8. AC1 executed: tool-catalog.test.ts code-server entry (invoking-user install, hostCapable, uninstallArgv). AC2 executed: worker downloaded both v4.129.0 tarballs and sha256sum matched both pinned hashes; host run printed \"code-server.tar.gz: OK\". AC3 executed: install script with a fake dpkg reporting riscv64 exited 1 naming riscv64. AC4 executed: host run with a temp HOME produced $HOME/.local/lib/code-server-4.129.0 and the $HOME/.local/bin/code-server link. AC5 executed: `HOME=<tmp> AGRO_EXECUTION_TARGET=docker-compose DOCKER_HOST=unix:///nonexistent/docker.sock node .agro/cli/dist/agro.js tool install code-server --host` exit 0; `<tmp>/.local/bin/code-server --version` printed \"4.129.0 77baee7f\u2026 with Code 1.129.0\". AC6 executed with divergence: `agro tool uninstall` has no --host flag (existing CLI: \"--host and --path apply to install only\"); it targets the host when no sandbox is reachable. `agro tool uninstall code-server` in the same host env exit 0, removed the link and directory, and cleared the host record. On the task branch: npx vitest run exit 0; cli typecheck exit 0.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/cli/src/lib/tools/catalog.ts",
+        ".agro/cli/src/__tests__/tool-catalog.test.ts",
+        ".agro/cli/src/__tests__/tool.test.ts"
+      ],
+      "commit": "144ad0c8"
+    },
+    {
+      "id": "US-003",
+      "title": "Add the docker tool",
+      "description": "As an operator, I want `agro tool install docker --host` so that every node gets Docker Engine and Compose from one command.",
+      "acceptanceCriteria": [
+        "`TOOL_CATALOG` has a `docker` entry that is host-capable and root-level (US-001).",
+        "The script installs `docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`, and `docker-compose-plugin` from Docker's apt repository for Ubuntu, with the repository key checked.",
+        "The script adds the invoking user to the `docker` group and enables the `docker` service.",
+        "After the install and a new login, `docker run --rm hello-world` exits 0 and `docker compose version` exits 0 for the invoking user.",
+        "Inside an AGRO sandbox, `agro tool install docker` refuses with a message that names `access.dockerSocket`.",
+        "A second install exits 0 and changes nothing."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Worker commits dcdbb13b + repair cfa6616a (advisor review: root-level host installs no longer print the ~/.local prefix and PATH hints), integrated ending at d814009c. AC1 executed: tool-catalog.test.ts docker is host-only, root-level, installable. AC2 executed: tests assert the five packages, Docker's Ubuntu apt repository, and the fingerprint check before the key is trusted; worker fetched the live key and gpg --show-keys printed 9DC858229FC7DD38854AE2D88D81803C0EBFCD88. AC3 executed: test asserts usermod -aG docker \"$user\" (SUDO_USER) and systemctl enable --now docker. AC4 NOT RUN: needs an Ubuntu 24.04 VM with systemd; deferred to the agro-console node validation (mifunedev/agro-console#168 US-007). AC5 executed: tool.test.ts inside the sandbox with and without --host, and on the host with a running sandbox and no --host, each exit 1 naming access.dockerSocket with no installer run. AC6 executed: tool.test.ts already-installed path exits 0 with no sudo or installer call; reasoned: the script's steps are idempotent. Rendered script: bash -n exit 0; npx shellcheck -S warning exit 0. On the task branch: npx vitest run exit 0; cli typecheck exit 0. Known: host receipt still records the ~/.local prefix (host-config.ts shape); docker uninstall is refused (uninstallArgv null). Later renamed: the tool id is docker-engine (392e7bd1), because the runtime catalog owns the id docker; commands read `agro tool install docker-engine --host`.",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/cli/src/lib/tools/catalog.ts",
+        ".agro/cli/src/commands/tool.ts",
+        ".agro/cli/src/__tests__/tool-catalog.test.ts",
+        ".agro/cli/src/__tests__/tool.test.ts"
+      ],
+      "commit": "d814009c"
+    },
+    {
+      "id": "US-004",
+      "title": "Add the desktop tool",
+      "description": "As an operator, I want `agro tool install desktop --host` so that a node can serve an XFCE desktop over RDP through Tailscale.",
+      "acceptanceCriteria": [
+        "`TOOL_CATALOG` has a `desktop` entry that is host-capable and root-level (US-001).",
+        "If `tailscale` is not installed, the command exits 1 and names `agro tool install tailscale --host`.",
+        "The script installs `xfce4`, `xfce4-goodies`, `xrdp`, and `xorgxrdp`, writes `xfce4-session` to the invoking user's `~/.xsession`, adds `xrdp` to `ssl-cert`, and enables `xrdp`.",
+        "After the install, TCP 3389 accepts connections on the Tailscale address and refuses connections on the public address.",
+        "The script does not change any SSH firewall rule and does not set a password.",
+        "On completion, the command prints the two remaining operator steps: `sudo tailscale up` and `sudo passwd <user>`.",
+        "The steps follow `https://github.com/ryaneggz/runbooks/blob/main/runbooks/ubuntu-24-xfce-xrdp-tailscale.md`, steps 3 to 6."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Worker commits 0c8e7dbf + repair e5167b5c, integrated ending at d2efcf19. Advisor decision during review: agro's tailscale tool is a user-level binary with no tailscaled service, so `sudo tailscale up` and the tailscale0 interface would not exist on a VM; the desktop tool installs system Tailscale from Tailscale's signed apt repository (fingerprint 2596A99EAAB33821893C0A79458CA832957F5868 checked before trust) and enables tailscaled, skipping the install when tailscaled.service exists. AC1 executed: tool-catalog.test.ts desktop is host-capable, root-level, host-only, refused inside the sandbox. AC2 superseded by that decision (no tailscale prerequisite); executed instead: test runs the skip path with stubbed commands (only systemctl cat and enable --now tailscaled) and asserts key, source, package, and service order before the firewall and xrdp. AC3 executed (script content tests): apt-get install xfce4 xfce4-goodies xrdp xorgxrdp, xfce4-session to the invoking user's ~/.xsession with that user's ownership, adduser xrdp ssl-cert, systemctl enable and restart xrdp. AC4 NOT RUN: needs an Ubuntu 24.04 VM; mechanism: nftables table inet agro_xrdp accepts lo and tailscale0 and resets TCP 3389 elsewhere, loaded before xrdp is installed and by an xrdp ExecStartPre drop-in. AC5 executed: tests assert no ufw, ssh, 22, chpasswd, or usermod -p. AC6 executed: script ends by printing `sudo tailscale up` and `sudo passwd $user`. AC7 reasoned: runbook steps 3, 4, 6, and 7 (minus tailscale up) are taken; step 5 is the printed passwd step; the runbook ufw steps are replaced by nftables so SSH rules are untouched. Rendered script: bash -n and npx shellcheck -S warning exit 0. On the task branch: npx vitest run exit 0 (1679 tests); cli typecheck exit 0.",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        ".agro/cli/src/lib/tools/catalog.ts",
+        ".agro/cli/src/__tests__/tool-catalog.test.ts",
+        ".agro/cli/src/__tests__/tool.test.ts"
+      ],
+      "commit": "d2efcf19"
+    },
+    {
+      "id": "US-005",
+      "title": "Pin the workspace ref",
+      "description": "As an operator, I want `agro workspace create --ref <tag>` so that a node's workspace matches the CLI release.",
+      "acceptanceCriteria": [
+        "`agro workspace create [<name>] --ref <ref>` clones `https://github.com/mifunedev/agro.git` at `<ref>`.",
+        "If `<ref>` does not exist, the command exits 1, names the ref, and leaves no target directory.",
+        "Without `--ref`, the command keeps its current behavior.",
+        "`docs/lifecycle-commands.md` documents `--ref`.",
+        "Unit tests cover a tag, a missing ref, and no `--ref`."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Worker commits 1194bdef + repair 2a97b395 (advisor review: replaced a clone-argv runner wrapper with a `ref` parameter on ensureHostWorkspace), integrated as 2bd492d9 + cfd35def. AC1 executed: workspace.test.ts tag case and host-workspace.test.ts argv `clone --branch <ref> <url> <target>` for direct and staged clones; worker also ran real `git clone --branch v1` on a local tag repo, exit 0. AC2 executed: workspace.test.ts missing-ref case exits 1, names the ref, removes the created target; real `git clone --branch nope` exited 128 and left no directory. AC3 executed: no-ref argv stays `clone <url> <target>`; existing create tests unchanged. AC4 executed: docs test for `--ref <ref>`; ste-check.sh docs/lifecycle-commands.md exit 0. AC5 executed: tag, missing ref, no --ref cases. On the task branch: `npx vitest run` exit 0 (1633 tests); cli typecheck exit 0. Note: with --ref, an existing .git checkout is reused without changing its ref (documented).",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/commands/workspace.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/__tests__/workspace.test.ts",
+        "docs/lifecycle-commands.md"
+      ],
+      "commit": "cfd35def"
+    },
+    {
+      "id": "US-006",
+      "title": "Document and release",
+      "description": "As an operator, I want the tools in a release so that the console can pin that release.",
+      "acceptanceCriteria": [
+        "`docs/installation.md` and `docs/lifecycle-commands.md` list `code-server`, `docker`, and `desktop`, and state which tools are root-level.",
+        "`CHANGELOG.md` has entries for US-001 to US-005.",
+        "`npm test`, `npm --prefix .agro/cli run typecheck`, and the eval probes pass.",
+        "The pull request body has a `## Host install evidence` section with the commands and exit codes of US-002 to US-005 on an Ubuntu 24.04 host. A check that did not run is listed as `NOT RUN` with the reason.",
+        "AGRO `0.15.0` publishes the changes."
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Worker commit bee2592c integrated as e94d3bc3, plus advisor-assigned repair 5106b09f integrated as 392e7bd1 (the eval gate failed tool-catalog-boundary, harness-one-door, and agent-browser-host-boundary after US-003/US-004; fix: tool id docker renamed docker-engine because the runtime catalog owns `docker`, and the probes' user-level host-install rules now skip root-level tools, which get their own invariant; fault injection on five mutations made the probes fail as expected). AC1 reasoned: advisor read docs/installation.md and docs/lifecycle-commands.md; both list code-server, docker-engine, desktop and mark the root-level tools; ste-check.sh exit 0 on both. AC2 executed: CHANGELOG.md [0.15.0] - 2026-09-24 has US-001..US-005 entries linking #1168; changelog-entry-length.sh pass. AC3 executed on the task branch: npx vitest run exit 0 (1679 tests); cli typecheck exit 0; version-parity.sh pass at 0.15.0; `bash .agro/skills/eval/run.sh` exit 0 with only the persistent non-gating reds next-dev-prod and skills-vendored (both red on development). AC4 executed: PR #1169 has a Host install evidence section; host installs on a real Ubuntu 24.04 VM are listed NOT RUN with the reason. AC5 pending at acceptance: 0.15.0 publishes after the merge; the advisor verifies the release assets and records the result in the PR.",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004",
+        "US-005"
+      ],
+      "files": [
+        "docs/installation.md",
+        "docs/lifecycle-commands.md",
+        "CHANGELOG.md",
+        "package.json",
+        ".agro/cli/package.json",
+        ".agro/cli/package-lock.json"
+      ],
+      "commit": "392e7bd1"
+    }
+  ]
+}
