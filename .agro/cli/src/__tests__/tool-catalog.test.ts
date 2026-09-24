@@ -455,60 +455,72 @@ describe("desktop serves XFCE over XRDP through Tailscale only", () => {
     const verify = dt.verifyArgv.join(" ");
     expect(verify).toContain("command -v xrdp >/dev/null");
     expect(verify).toContain("systemctl is-enabled --quiet xrdp");
+    expect(verify).toContain("systemctl is-enabled --quiet tailscaled");
     expect(verify).toContain(`test -f ${DROP_IN}`);
     expect(verify).toContain('grep -qx xfce4-session "$HOME/.xsession"');
   });
 
-  describe("the Tailscale gate", () => {
-    const gateEnd = script.indexOf("\nfi\n", script.indexOf("tailscale --host")) + 3;
-    const gate = script.slice(0, gateEnd);
+  describe("system Tailscale", () => {
+    const KEYRING = "/usr/share/keyrings/tailscale-archive-keyring.gpg";
+    const guard = "if ! systemctl cat tailscaled.service >/dev/null 2>&1; then";
+    const enable = "systemctl enable --now tailscaled";
+    const block = script.slice(script.indexOf(guard), script.indexOf(enable) + enable.length);
     const dirs: string[] = [];
     afterEach(() => {
       while (dirs.length > 0) rmSync(dirs.pop()!, { recursive: true, force: true });
     });
 
-    function runGate(withUserTailscale: boolean) {
-      const dir = mkdtempSync(join(tmpdir(), "agro-desktop-gate-"));
+    it("no longer asks for a user-level tailscale", () => {
+      expect(script).not.toContain("agro tool install tailscale --host");
+      expect(script).not.toContain(".local/bin/tailscale");
+    });
+
+    it("trusts Tailscale's repository key only after checking its fingerprint", () => {
+      expect(block).toContain("fingerprint=2596A99EAAB33821893C0A79458CA832957F5868");
+      expect(block).toContain(
+        'curl -fsSL "https://pkgs.tailscale.com/stable/ubuntu/$codename.noarmor.gpg" -o "$tmp/tailscale.gpg"',
+      );
+      expect(block).toContain('gpg --homedir "$tmp" --show-keys --with-colons "$tmp/tailscale.gpg"');
+      const check = block.indexOf('if [ "$actual" != "$fingerprint" ]; then');
+      const trust = block.indexOf(`install -m 0644 "$tmp/tailscale.gpg" ${KEYRING}`);
+      expect(check).toBeGreaterThan(-1);
+      expect(trust).toBeGreaterThan(check);
+    });
+
+    it("installs the tailscale package from the signed repository and enables tailscaled", () => {
+      expect(block).toContain(
+        `echo "deb [signed-by=${KEYRING}] https://pkgs.tailscale.com/stable/ubuntu $codename main" > /etc/apt/sources.list.d/tailscale.list`,
+      );
+      expect(block.indexOf("apt-get install -y tailscale")).toBeGreaterThan(
+        block.indexOf("/etc/apt/sources.list.d/tailscale.list"),
+      );
+      expect(block.endsWith(`fi\n${enable}`)).toBe(true);
+    });
+
+    it("comes before the nftables guard and the desktop packages", () => {
+      const end = script.indexOf(enable);
+      expect(script.indexOf(guard)).toBeGreaterThan(script.indexOf("apt-get install -y ca-certificates curl gnupg nftables"));
+      expect(end).toBeLessThan(script.indexOf("cat > /etc/xrdp/agro-tailscale-only.nft"));
+      expect(end).toBeLessThan(script.indexOf("apt-get install -y xfce4"));
+    });
+
+    it("skips the repository and package when the tailscaled unit already exists", () => {
+      const dir = mkdtempSync(join(tmpdir(), "agro-desktop-tailscale-"));
       dirs.push(dir);
-      const bin = join(dir, "stub-bin");
-      const home = join(dir, "home");
-      mkdirSync(bin, { recursive: true });
-      mkdirSync(join(home, ".local", "bin"), { recursive: true });
-      writeFileSync(join(bin, "getent"), `#!/bin/sh\necho "operator:x:1000:1000::${home}:/bin/sh"\n`);
-      writeFileSync(join(bin, "cut"), `#!/bin/sh\nexec /usr/bin/cut "$@"\n`);
-      chmodSync(join(bin, "getent"), 0o755);
-      chmodSync(join(bin, "cut"), 0o755);
-      if (withUserTailscale) {
-        writeFileSync(join(home, ".local", "bin", "tailscale"), "#!/bin/sh\n");
-        chmodSync(join(home, ".local", "bin", "tailscale"), 0o755);
+      const log = join(dir, "calls.log");
+      for (const cmd of ["systemctl", "curl", "gpg", "install", "apt-get"]) {
+        writeFileSync(join(dir, cmd), `#!/bin/sh\necho "${cmd} $*" >> "${log}"\n`);
+        chmodSync(join(dir, cmd), 0o755);
       }
-      return spawnSync("/bin/bash", ["-c", gate], {
-        env: { PATH: bin, SUDO_USER: "operator" },
+      const r = spawnSync("/bin/bash", ["-c", `set -e\n${block}`], {
+        env: { PATH: dir, codename: "noble", tmp: dir },
         encoding: "utf8",
       });
-    }
-
-    it("comes first and touches nothing", () => {
-      expect(gate.startsWith("set -e\n")).toBe(true);
-      expect(gate).not.toMatch(/apt-get|nft |systemctl|os-release|chown|printf|cat /);
-    });
-
-    it("exits 1 and names the tailscale install when tailscale is absent", () => {
-      const r = runGate(false);
-      expect(r.status).toBe(1);
-      expect(r.stderr).toContain("agro tool install tailscale --host");
-    });
-
-    it("accepts the tailscale that agro installs into the invoking user's ~/.local", () => {
-      const r = runGate(true);
       expect(r.status).toBe(0);
-      expect(r.stderr).toBe("");
-    });
-
-    it("also accepts a tailscale on root's PATH", () => {
-      expect(gate).toContain(
-        'if ! command -v tailscale >/dev/null && [ ! -x "$home/.local/bin/tailscale" ]; then',
-      );
+      expect(readFileSync(log, "utf8").trim().split("\n")).toEqual([
+        "systemctl cat tailscaled.service",
+        "systemctl enable --now tailscaled",
+      ]);
     });
   });
 

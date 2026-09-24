@@ -1871,7 +1871,7 @@ describe("agro tool install desktop", () => {
     expect(Object.keys(receiptsIn(r.home.dir))).toEqual(["desktop"]);
   });
 
-  it("exits 1 and records nothing when the script's Tailscale gate fails", async () => {
+  it("exits 1 and records nothing when the root script fails", async () => {
     const r = await installDesktopOnHost((cmd, args) =>
       cmd === "sudo" && args.some((a) => a.includes("xfce4-goodies"))
         ? { status: 1, stdout: "", stderr: "" }
