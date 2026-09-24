@@ -81,4 +81,4 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+None. The story passed on its first commit, and the worker brief for this story already carried both rules.

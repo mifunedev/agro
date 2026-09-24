@@ -10,20 +10,21 @@
       "description": "As an advisor, I want the worker brief to name the shared stash and the routes around a hook so that workers obey both.",
       "acceptanceCriteria": [
         "Before the skill change, `bash .agro/evals/probes/delegate-worker-boundary.sh` exits 1 and names each new brief fragment. The evidence records the command and the exit status.",
-        "`.agro/skills/delegate/SKILL.md` \u00a7 Worker brief forbids a bare `git stash` and `git stash pop`, and states that the stash stack is shared.",
-        "\u00a7 Worker brief states that a rerun of a blocked command through a script file, a heredoc, or another tool is a bypass, and that the worker reports `BLOCKED` instead.",
+        "`.agro/skills/delegate/SKILL.md` § Worker brief forbids a bare `git stash` and `git stash pop`, and states that the stash stack is shared.",
+        "§ Worker brief states that a rerun of a blocked command through a script file, a heredoc, or another tool is a bypass, and that the worker reports `BLOCKED` instead.",
         "After the skill change, `bash .agro/evals/probes/delegate-worker-boundary.sh` exits 0.",
         "`CHANGELOG.md` `[Unreleased]` `### Fixed` has one entry that links #1162, and the entry is at most 250 characters."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at df1153d5. AC1 executed: the advisor ran the final probe against the plan-commit brief (git show 11152a6b:.agro/skills/delegate/SKILL.md in a scratch tree) -> exit 1, \"lacks 'The stash stack is shared'\" and \"lacks 'through a script file, a heredoc, or another tool is a bypass'\". AC2 and AC3 executed: delegate-worker-boundary.sh pins both fragments and exits 0. AC4 executed: bash .agro/evals/probes/delegate-worker-boundary.sh -> exit 0. AC5 executed: changelog-entry-length.sh -> exit 0; the ### Fixed bullet links #1162 (206 characters). Full suite: bash .claude/skills/eval/run.sh -> exit 0, persistent reds next-dev-prod and skills-vendored only, no PASS-> delta.",
       "dependsOn": [],
       "files": [
         ".agro/skills/delegate/SKILL.md",
         ".agro/evals/probes/delegate-worker-boundary.sh",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "df1153d5"
     }
   ]
 }
