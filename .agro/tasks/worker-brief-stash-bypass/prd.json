@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1162-worker-brief-stash-bypass",
+  "description": "Add the shared-stash and hook-bypass rules to the /delegate worker brief.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "State the shared-stash and hook-bypass rules in the worker brief",
+      "description": "As an advisor, I want the worker brief to name the shared stash and the routes around a hook so that workers obey both.",
+      "acceptanceCriteria": [
+        "Before the skill change, `bash .agro/evals/probes/delegate-worker-boundary.sh` exits 1 and names each new brief fragment. The evidence records the command and the exit status.",
+        "`.agro/skills/delegate/SKILL.md` \u00a7 Worker brief forbids a bare `git stash` and `git stash pop`, and states that the stash stack is shared.",
+        "\u00a7 Worker brief states that a rerun of a blocked command through a script file, a heredoc, or another tool is a bypass, and that the worker reports `BLOCKED` instead.",
+        "After the skill change, `bash .agro/evals/probes/delegate-worker-boundary.sh` exits 0.",
+        "`CHANGELOG.md` `[Unreleased]` `### Fixed` has one entry that links #1162, and the entry is at most 250 characters."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/delegate/SKILL.md",
+        ".agro/evals/probes/delegate-worker-boundary.sh",
+        "CHANGELOG.md"
+      ]
+    }
+  ]
+}
