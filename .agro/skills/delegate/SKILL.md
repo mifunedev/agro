@@ -89,7 +89,10 @@ Give each worker the dispatch record, the exclusions, and these rules:
   - **reasoned**: a one-line argument.
 - Commit on the worker branch. Never push.
 - Never write `prd.json`.
-- Never bypass a hook. Report a blocked action as `BLOCKED`.
+- Use no bare `git stash` or `git stash pop`. The stash stack is shared with
+  other sessions.
+- Never bypass a hook. A rerun of a blocked command through a script file, a
+  heredoc, or another tool is a bypass. Report a blocked action as `BLOCKED`.
 
 ## Acceptance
 
