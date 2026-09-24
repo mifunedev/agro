@@ -523,6 +523,10 @@ async function installOnHost(
     return 1;
   }
 
+  if (entry.hostInstallUser === "root") {
+    io.stdout(`${entry.id} installed on the host — see ${sourceDocsUrl(entry.docsPath)}\n`);
+    return 0;
+  }
   io.stdout(`${entry.id}: installed at ${prefix} — see ${sourceDocsUrl(entry.docsPath)}\n`);
   if (!onPath(prefix, env)) {
     io.stdout(`Add this line to your shell profile: export PATH="${harnessBinPath(prefix)}:$PATH"\n`);

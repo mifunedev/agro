@@ -1763,7 +1763,7 @@ describe("agro tool install docker", () => {
       },
       io,
     );
-    return { code, calls, out: hostText(out), err: hostText(err) };
+    return { code, calls, out: hostText(out), err: hostText(err), home };
   }
 
   it.each([
@@ -1785,5 +1785,38 @@ describe("agro tool install docker", () => {
     expect(r.out).toContain("docker: already installed (docker)");
     expect(r.calls.some(isDockerInstaller)).toBe(false);
     expect(r.calls.some((c) => c.cmd === "sudo")).toBe(false);
+  });
+});
+
+describe("agro tool install docker — the host success output", () => {
+  it("prints one host success line, no prefix or PATH hint, and keeps the receipt", async () => {
+    const repo = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    seedWorkspace(defaultRoot(home));
+    const { run } = hostRunner(absentOnHost("docker"));
+    const { io, out } = makeIo();
+    expect(
+      await runToolInstall(
+        "docker",
+        {
+          bin: "agro",
+          cwd: repo,
+          run,
+          env: { ...home.env, PATH: "/usr/bin" },
+          homedir: user.homedir,
+          interactive: false,
+          host: true,
+          platform: LINUX,
+        },
+        io,
+      ),
+    ).toBe(0);
+    const text = hostText(out);
+    expect(text).toMatch(/^docker installed on the host — see /m);
+    expect(text).not.toContain(user.prefix);
+    expect(text).not.toContain("installed at");
+    expect(text).not.toContain("Add this line to your shell profile");
+    expect(Object.keys(receiptsIn(home.dir))).toEqual(["docker"]);
   });
 });
