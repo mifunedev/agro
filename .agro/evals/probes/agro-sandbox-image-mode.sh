@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tier: A
 # source: conversation 2026-07-05 (basic Docker deployment — prebuilt-image mode)
-# desc: guards prebuilt-image deployment mode — compose image/pull_policy parameterized (AGRO_SANDBOX_IMAGE, AGRO_PULL_POLICY) with the build: block retained so local build stays default; agro.json carries image.ref/image.pullPolicy, config-render.ts renders both and defaults AGRO_SANDBOX_IMAGE to officialImageRef(AGRO_VERSION) only in image mode, docs/configuration.md documents both; docker-compose.sh passes `up -d --no-build` through verbatim; agro sandbox (lifecycle.ts/cli.ts) wires --image/--version/--no-build, unselected default officialImageRef(AGRO_VERSION) (lib/version.ts maps a plain X.Y.Z CLI version to its own ghcr.io/mifunedev/agro tag, anything else to latest), and threads SANDBOX_IMAGE; get-agro.sh no longer claims the CLI is unpublished
+# desc: guards prebuilt-image deployment mode — compose image/pull_policy parameterized (AGRO_SANDBOX_IMAGE, AGRO_PULL_POLICY) with the build: block retained so local build stays default; agro.json carries image.ref/image.pullPolicy, config-render.ts renders both and defaults AGRO_SANDBOX_IMAGE to officialImageRef(AGRO_VERSION) only in image mode, docs/configuration.md documents both; docker-compose.sh passes `up -d --no-build` through verbatim; agro sandbox (lifecycle.ts/cli.ts) wires --image/--version/--no-build, unselected default officialImageRef(AGRO_VERSION) (lib/version.ts maps an X.Y.Z or X.Y.Z-<channel>.<n> CLI version to its own ghcr.io/mifunedev/agro tag, anything else to latest), and threads SANDBOX_IMAGE; get-agro.sh no longer claims the CLI is unpublished
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -74,8 +74,8 @@ grep -Fq '?? officialImageRef(AGRO_VERSION)' "$LIFECYCLE" \
 if [[ -f "$VERSION_SRC" ]]; then
   grep -Fq '"ghcr.io/mifunedev/agro"' "$VERSION_SRC" \
     || fails+=("lib/version.ts must name the official image ghcr.io/mifunedev/agro")
-  grep -Fq '/^[0-9]+\.[0-9]+\.[0-9]+$/' "$VERSION_SRC" \
-    || fails+=("lib/version.ts must recognize a release version as plain X.Y.Z")
+  grep -Fq '/^[0-9]+\.[0-9]+\.[0-9]+(?:-[a-z][a-z0-9]*\.[0-9]+)?$/' "$VERSION_SRC" \
+    || fails+=("lib/version.ts must recognize a release version as X.Y.Z or X.Y.Z-<channel>.<n>")
   grep -Fq '? version : "latest"' "$VERSION_SRC" \
     || fails+=("lib/version.ts must tag a release version with itself and anything else with latest")
 else
@@ -102,5 +102,5 @@ if (( ${#fails[@]} > 0 )); then
   exit 1
 fi
 
-echo "PASS: prebuilt-image mode — compose image/pull_policy parameterized (build: retained), agro.json carries image.ref/image.pullPolicy and config-render.ts renders both, docs/configuration.md documents them, docker-compose.sh passes --no-build verbatim, config-render.ts defaults AGRO_SANDBOX_IMAGE to officialImageRef(AGRO_VERSION) only in image mode, agro sandbox wires --image/--version/--no-build with unselected default officialImageRef(AGRO_VERSION), lib/version.ts maps X.Y.Z to its own tag and anything else to latest, get-agro.sh publish note current" >&2
+echo "PASS: prebuilt-image mode — compose image/pull_policy parameterized (build: retained), agro.json carries image.ref/image.pullPolicy and config-render.ts renders both, docs/configuration.md documents them, docker-compose.sh passes --no-build verbatim, config-render.ts defaults AGRO_SANDBOX_IMAGE to officialImageRef(AGRO_VERSION) only in image mode, agro sandbox wires --image/--version/--no-build with unselected default officialImageRef(AGRO_VERSION), lib/version.ts maps X.Y.Z and X.Y.Z-<channel>.<n> to its own tag and anything else to latest, get-agro.sh publish note current" >&2
 exit 0
