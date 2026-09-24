@@ -70,8 +70,9 @@ function cloneRunner(): { calls: RecordedCall[]; run: LifecycleRunner } {
   const run: LifecycleRunner = (cmd, args): RunResult => {
     calls.push({ cmd, args: [...args] });
     if (cmd === "git" && args[0] === "clone") {
-      mkdirSync(join(args[2], ".git"), { recursive: true });
-      writeFileSync(join(args[2], "README.md"), "agro\n");
+      const target = args[args.length - 1];
+      mkdirSync(join(target, ".git"), { recursive: true });
+      writeFileSync(join(target, "README.md"), "agro\n");
     }
     return { status: 0, stdout: "", stderr: "" };
   };
@@ -122,6 +123,23 @@ describe("parseWorkspaceArgs", () => {
     expect(equals.ok && equals.args.path).toBe("/srv/agro");
   });
 
+  it("parses --ref <v> and --ref=<v> for create", () => {
+    const spaced = parseWorkspaceArgs(["create", "alpha", "--ref", "v0.15.0"]);
+    expect(spaced.ok && spaced.args.ref).toBe("v0.15.0");
+    const equals = parseWorkspaceArgs(["create", "--ref=main"]);
+    expect(equals.ok && equals.args.ref).toBe("main");
+    const none = parseWorkspaceArgs(["create", "alpha"]);
+    expect(none.ok && none.args.ref).toBeUndefined();
+  });
+
+  it("rejects a missing --ref value and --ref on list", () => {
+    expect(parseWorkspaceArgs(["create", "--ref"]).ok).toBe(false);
+    expect(parseWorkspaceArgs(["create", "--ref="]).ok).toBe(false);
+    const list = parseWorkspaceArgs(["list", "--ref", "v0.15.0"]);
+    expect(list.ok).toBe(false);
+    expect(!list.ok && list.error).toMatch(/--ref applies to create only/);
+  });
+
   it("rejects --path together with a positional name", () => {
     const p = parseWorkspaceArgs(["create", "alpha", "--path", "/srv/agro"]);
     expect(p.ok).toBe(false);
@@ -144,7 +162,7 @@ describe("help", () => {
 
   it("documents both subcommands", () => {
     const help = captureStdout(() => printWorkspaceHelp());
-    for (const s of ["agro workspace create", "agro workspace list", "--json", "--path"]) {
+    for (const s of ["agro workspace create", "agro workspace list", "--json", "--path", "--ref"]) {
       expect(help).toContain(s);
     }
   });
@@ -153,6 +171,7 @@ describe("help", () => {
     const docs = readFileSync(join(REPO_ROOT, "docs/lifecycle-commands.md"), "utf8");
     expect(docs).toContain("`agro workspace create");
     expect(docs).toContain("`agro workspace list");
+    expect(docs).toContain("--ref <ref>");
   });
 });
 
@@ -171,6 +190,88 @@ describe("runWorkspaceCreate", () => {
     expect(clone.args[1]).toBe("https://github.com/mifunedev/agro.git");
     expect(clone.args[2]).toBe(workspacePath(home, "alpha"));
     expect(text(out)).toContain(`host workspace cloned into ${workspacePath(home, "alpha")}`);
+  });
+
+  it("clones without --branch when no --ref is given", async () => {
+    const home = emptyStateHome();
+    const user = fakeHome();
+    const { calls, run } = cloneRunner();
+    const { io } = makeIo();
+
+    expect(
+      await runWorkspaceCreate("alpha", { bin: "agro", run, env: home.env, homedir: user.homedir }, io),
+    ).toBe(0);
+    expect(gitCalls(calls).map((c) => c.args)).toEqual([
+      ["clone", "https://github.com/mifunedev/agro.git", workspacePath(home, "alpha")],
+    ]);
+  });
+
+  it("clones a tag with --ref", async () => {
+    const home = emptyStateHome();
+    const user = fakeHome();
+    const { calls, run } = cloneRunner();
+    const { out, io } = makeIo();
+
+    expect(
+      await runWorkspaceCreate(
+        "alpha",
+        { bin: "agro", run, env: home.env, homedir: user.homedir, ref: "v0.15.0" },
+        io,
+      ),
+    ).toBe(0);
+    expect(gitCalls(calls).map((c) => c.args)).toEqual([
+      [
+        "clone",
+        "--branch",
+        "v0.15.0",
+        "https://github.com/mifunedev/agro.git",
+        workspacePath(home, "alpha"),
+      ],
+    ]);
+    expect(text(out)).toContain(`host workspace cloned into ${workspacePath(home, "alpha")}`);
+  });
+
+  it("clones a ref through staging into an existing empty --path directory", async () => {
+    const home = emptyStateHome();
+    const user = fakeHome();
+    const target = mkdtempSync(join(tmpdir(), "agro-workspace-empty-"));
+    cleanups.push(target);
+    const { calls, run } = cloneRunner();
+    const { io } = makeIo();
+
+    expect(
+      await runWorkspaceCreate(
+        undefined,
+        { bin: "agro", run, env: home.env, homedir: user.homedir, path: target, ref: "v0.15.0" },
+        io,
+      ),
+    ).toBe(0);
+    const clone = gitCalls(calls)[0].args;
+    expect(clone.slice(0, 4)).toEqual(["clone", "--branch", "v0.15.0", "https://github.com/mifunedev/agro.git"]);
+    expect(existsSync(join(target, "README.md"))).toBe(true);
+  });
+
+  it("exits 1, names a missing ref, and leaves no target directory", async () => {
+    const home = emptyStateHome();
+    const user = fakeHome();
+    const run: LifecycleRunner = (cmd, args): RunResult => {
+      if (cmd === "git" && args[0] === "clone") {
+        mkdirSync(join(args[args.length - 1], ".git"), { recursive: true });
+        return { status: 128, stdout: "", stderr: "fatal: Remote branch v9.9.9 not found" };
+      }
+      return { status: 0, stdout: "", stderr: "" };
+    };
+    const { err, io } = makeIo();
+
+    expect(
+      await runWorkspaceCreate(
+        "alpha",
+        { bin: "agro", run, env: home.env, homedir: user.homedir, ref: "v9.9.9" },
+        io,
+      ),
+    ).toBe(1);
+    expect(text(err)).toContain('agro workspace: could not clone ref "v9.9.9"');
+    expect(existsSync(workspacePath(home, "alpha"))).toBe(false);
   });
 
   it("defaults the name to `default`", async () => {

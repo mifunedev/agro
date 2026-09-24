@@ -57,7 +57,7 @@ Amazon Bedrock, Vertex or Foundry, reads no project instructions at all.
 | `agro langfuse apply` · `agro langfuse status` · `agro langfuse disable` | render, check, or remove the Langfuse tracing files — see below |
 | `agro gateway <pi\|hermes>` · `agro gateway status` | `.agro/scripts/gateway.sh` |
 | `agro harness` · `agro tool` | install and inspect harnesses and tooling |
-| `agro workspace create [<name>] [--path <dir>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
+| `agro workspace create [<name>] [--path <dir>] [--ref <ref>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
 | `agro --help` · `agro --version` | usage and version |
 
 `agro <verb> -- <args>` forwards extra arguments to `docker compose`, e.g.
@@ -327,6 +327,7 @@ state. `agro workspace` is the only verb that creates one.
 agro workspace create                     # clone into ~/.agro/workspaces/default
 agro workspace create acme                # clone into ~/.agro/workspaces/acme
 agro workspace create --path /srv/agro    # clone into /srv/agro, outside the registry
+agro workspace create --ref v0.15.0       # clone tag v0.15.0 into ~/.agro/workspaces/default
 agro workspace list                       # every workspace, with the default marked
 agro workspace list --json                # the same rows as JSON
 ```
@@ -339,6 +340,11 @@ agro workspace list --json                # the same rows as JSON
   or a digit. The command refuses any other name and creates nothing.
 - `--path <dir>` creates the workspace outside the registry. Pass a name or
   `--path <dir>`, never both.
+- `--ref <ref>` clones the branch or tag `<ref>` instead of the default branch.
+  A tag gives a detached checkout. If `<ref>` does not exist, the command exits
+  1, names the ref, and leaves no target directory. The command reuses a target
+  that already holds a `.git` checkout and does not change its ref. `list`
+  refuses `--ref`.
 - `create` records no default. The command leaves `harnessRoot` in
   `~/.agro/config.json` unchanged. Only a host install writes that key.
 - `agro workspace list` reports every child of `~/.agro/workspaces/` that obeys
