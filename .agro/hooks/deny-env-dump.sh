@@ -31,9 +31,6 @@ DENY+='|\bgh[[:space:]]+auth[[:space:]]+token\b'
 DENY+='|\bgcloud[[:space:]]+auth[[:space:]]+print-(access|identity)-token\b'
 DENY+='|\bkubectl[[:space:]]+get[[:space:]]+secret[^|]*-o[[:space:]]*(yaml|json)'
 DENY+='|\bdocker[[:space:]]+(secret|config)[[:space:]]+inspect\b'
-INTERP_CODE='\b(python[0-9.]*|perl|ruby|node|nodejs)\b.*[[:space:]]-[A-Za-z]*[cep]([[:space:]"'\'']|$)'
-INTERP_ENV_READ='.*(os\.environ|getenv|%ENV|\$ENV\{|\bENV\b|process\.env)'
-DENY+="|${INTERP_CODE}${INTERP_ENV_READ}"
 
 DOCKER_INSPECT='\b(docker|podman|nerdctl)[[:space:]]+([^|;&]{0,160}[[:space:]])?inspect\b'
 DOCKER_FMT='(--format[=[:space:]]|(^|[[:space:]])-f[=[:space:]])'
@@ -122,7 +119,26 @@ jq_filters() {
   printf '%s' "$out"
 }
 
+INTERP_CODE='\b(python[0-9.]*|perl|ruby|node|nodejs)\b[^|;&]*[[:space:]](-[A-Za-z]*[cepE]|--eval|--print)([[:space:]"'\'']|$)'
+INTERP_ENV_READ="${INTERP_CODE}"'[^|;&]*(os\.environ|getenv|%ENV|\$ENV\{|\bENV\b|process\.env)'
+
+mask_quoted_separators() {
+  local s=$1 out='' quote='' c i
+  for ((i = 0; i < ${#s}; i++)); do
+    c=${s:i:1}
+    if [[ -n $quote ]]; then
+      [[ $c == "$quote" ]] && quote=''
+      [[ $c == [\;\|\&] ]] && c=' '
+    elif [[ $c == "'" || $c == '"' ]]; then
+      quote=$c
+    fi
+    out+=$c
+  done
+  printf '%s' "$out"
+}
+
 path_cmd=$(mask_jq_filters "$cmd") || path_cmd=$cmd
+interp_cmd=$(mask_quoted_separators "$cmd") || interp_cmd=$cmd
 jq_filter_text=$(jq_filters "$cmd") || jq_filter_text=$cmd
 
 emit() {
@@ -136,7 +152,9 @@ emit() {
 }
 
 if grep -qEi -- "$DENY" <<<"$cmd"; then
-  emit deny 'Secret-exposure guard (deny): command matches a high-risk pattern — bulk env dump (env/set/export -p/declare -x/-p/compgen/printenv/proc environ, or inline python/perl/ruby/node code that reads the environment), shell history, echo/printf of a secret-named variable (TOKEN/SECRET/KEY/PASSWORD/AUTH/CREDENTIAL/BEARER/SLACK_*/OPENAI_*/ANTHROPIC_*/GH_TOKEN/AWS_SECRET), Authorization header with variable interpolation, or a token-printing CLI (gh auth token, gcloud auth print-*-token, aws configure get, kubectl get secret -o yaml/json, docker secret/config inspect). These almost always leak credentials into the transcript and prompt cache. Do NOT retry a variant that bypasses this check. Ask the user to run the command themselves and paste only the specific non-secret output you need.'
+  emit deny 'Secret-exposure guard (deny): command matches a high-risk pattern — bulk env dump (env/set/export -p/declare -x/-p/compgen/printenv/proc environ), shell history, echo/printf of a secret-named variable (TOKEN/SECRET/KEY/PASSWORD/AUTH/CREDENTIAL/BEARER/SLACK_*/OPENAI_*/ANTHROPIC_*/GH_TOKEN/AWS_SECRET), Authorization header with variable interpolation, or a token-printing CLI (gh auth token, gcloud auth print-*-token, aws configure get, kubectl get secret -o yaml/json, docker secret/config inspect). These almost always leak credentials into the transcript and prompt cache. Do NOT retry a variant that bypasses this check. Ask the user to run the command themselves and paste only the specific non-secret output you need.'
+elif grep -qE -- "$INTERP_ENV_READ" <<<"$interp_cmd"; then
+  emit deny 'Secret-exposure guard (deny): inline python, perl, ruby, or node code (-c, -e, -p, --eval) reads the process environment (os.environ, getenv, %ENV, $ENV{...}, ENV, process.env), which can print every environment variable, secrets included. Do NOT retry a variant that reaches the environment another way. If you need an environment value, ask the user to paste only that non-secret value.'
 elif grep -qE -- "$JQ_ENV_READ" <<<"$jq_filter_text"; then
   emit deny 'Secret-exposure guard (deny): a jq filter reads the process environment through `env` or `$ENV`, which prints environment variables, secrets included. Do NOT retry a variant that reaches the environment another way. To read an `env` key from JSON input, write `.env`. If you need an environment value, ask the user to paste only that non-secret value.'
 elif grep -qEi -- "$DOCKER_INSPECT" <<<"$cmd"; then

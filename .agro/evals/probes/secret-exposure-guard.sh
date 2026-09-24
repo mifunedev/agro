@@ -169,6 +169,12 @@ assert allow "node -e 'console.log(1)'" \
   "a node -e program that does not read the environment was denied"
 assert allow "python3 scripts/build.py" \
   "a python3 script run without inline code was denied"
+assert allow "python3 -m pytest -c tox.ini -k env -q" \
+  "a lowercase env argument to a python3 module run was treated as an environment read"
+assert allow "python3 -c 'print(1)' && ls env/" \
+  "an env word in a later command was attributed to the python3 -c program"
+assert allow "node -e 'console.log(1)' | grep --env x" \
+  "an env flag in a piped command was attributed to the node -e program"
 
 echo "PASS: the secret-exposure guard denies shell-hist access by command position and hist-file reads, allows the word inside ordinary arguments, exempts the jq filter from the secret-path check, and still denies env-file reads, jq filters, and inline interpreter code that read the process environment" >&2
 exit 0
