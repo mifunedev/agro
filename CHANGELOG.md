@@ -73,6 +73,7 @@ Update policy and release automation live in [`AGENTS.md`](AGENTS.md) § Git con
 - Route the `missing lifecycle script` error to a recovery that works for the reader's installation: a host image refresh for an image-shipped CLI, and `oh update` elsewhere ([#1080](https://github.com/mifunedev/agro/issues/1080)).
 - Stop false denies in the Bash secret guard: match `history` only at command position, and never read a `jq` filter such as `'.env'` as a secret path ([#1149](https://github.com/mifunedev/agro/issues/1149)).
 - Close false allows in the Bash secret guard: deny `jq` filters that read `env` or `$ENV`, and deny a quoted `json` inspect format ([#1150](https://github.com/mifunedev/agro/issues/1150)).
+- Tighten the Bash secret guard: deny inline interpreter code that reads the environment, stop reading grep or rg patterns as secret paths, and end the `jq` scan at its own call ([#1155](https://github.com/mifunedev/agro/issues/1155)).
 
 ## [0.12.2] - 2026-09-15
 
