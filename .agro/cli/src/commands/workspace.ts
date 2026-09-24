@@ -44,14 +44,6 @@ function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function atRef(run: LifecycleRunner, ref: string | undefined): LifecycleRunner {
-  if (ref === undefined) return run;
-  return (cmd, args, runOpts) =>
-    cmd === "git" && args[0] === "clone"
-      ? run(cmd, ["clone", "--branch", ref, ...args.slice(1)], runOpts)
-      : run(cmd, args, runOpts);
-}
-
 function recordedRoot(env: NodeJS.ProcessEnv, home: string): string | undefined {
   const configured = readHostConfig(env, home).harnessRoot;
   return typeof configured === "string" && configured !== "" ? resolve(configured) : undefined;
@@ -106,7 +98,7 @@ export async function runWorkspaceCreate(
       const at = opts.ref !== undefined ? ` at ${opts.ref}` : "";
       io.stdout(`cloning ${AGRO_REPO_URL}${at} into ${root}…\n`);
     }
-    const created = ensureHostWorkspace(root, atRef(run, opts.ref));
+    const created = ensureHostWorkspace(root, run, opts.ref);
     root = created.root;
     action = created.action;
   } catch (err) {
