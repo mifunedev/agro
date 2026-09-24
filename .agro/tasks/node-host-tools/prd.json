@@ -113,15 +113,16 @@
         "Unit tests cover a tag, a missing ref, and no `--ref`."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Worker commits 1194bdef + repair 2a97b395 (advisor review: replaced a clone-argv runner wrapper with a `ref` parameter on ensureHostWorkspace), integrated as 2bd492d9 + cfd35def. AC1 executed: workspace.test.ts tag case and host-workspace.test.ts argv `clone --branch <ref> <url> <target>` for direct and staged clones; worker also ran real `git clone --branch v1` on a local tag repo, exit 0. AC2 executed: workspace.test.ts missing-ref case exits 1, names the ref, removes the created target; real `git clone --branch nope` exited 128 and left no directory. AC3 executed: no-ref argv stays `clone <url> <target>`; existing create tests unchanged. AC4 executed: docs test for `--ref <ref>`; ste-check.sh docs/lifecycle-commands.md exit 0. AC5 executed: tag, missing ref, no --ref cases. On the task branch: `npx vitest run` exit 0 (1633 tests); cli typecheck exit 0. Note: with --ref, an existing .git checkout is reused without changing its ref (documented).",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/commands/workspace.ts",
         ".agro/cli/src/cli.ts",
         ".agro/cli/src/__tests__/workspace.test.ts",
         "docs/lifecycle-commands.md"
-      ]
+      ],
+      "commit": "cfd35def"
     },
     {
       "id": "US-006",
