@@ -76,50 +76,100 @@ SECRET_PATH_DENY="\\b${READ_CMD}\\b[^#|]*${SECRET_PATH}"
 
 ASK='\bprintenv[[:space:]]+[A-Za-z_]'
 
-JQ_CALL='(^|[^A-Za-z0-9_-])jq(([[:space:]]+-[^[:space:]]*)*)([[:space:]]+)'
-JQ_CALL+="('[^']*'|\"[^\"\$\`]*\"|[^[:space:];&|<>()\$\`\"']+)(.*)\$"
+CALL_TAIL='(([[:space:]]+-[^[:space:]]*)*)([[:space:]]+)'
+CALL_TAIL+="('[^']*'|\"[^\"\$\`]*\"|[^[:space:];&|<>()\$\`\"']+)(.*)\$"
+JQ_CALL="(^|[^A-Za-z0-9_-])jq${CALL_TAIL}"
 JQ_PATH_FLAG='(^|[[:space:]])(-[A-Za-z]*[fL]|--[^[:space:]]*file)'
+SEARCH_PATTERN_FLAG='(^|[[:space:]])(-[A-Za-z]*[ABCDEMTdefgjmrt]|--[^=[:space:]]*([[:space:]]|$)|--[^[:space:]]*(file|regexp))'
 
-mask_jq_filters() {
-  local rest=$1 out='' prefix
+mask_first_operand() {
+  local rest=$1 name=$2 path_flag=$3 placeholder=$4 out='' prefix
+  local call="(^|[^A-Za-z0-9_-])${name}${CALL_TAIL}"
   local -a m
-  while [[ $rest =~ $JQ_CALL ]]; do
+  while [[ $rest =~ $call ]]; do
     m=("${BASH_REMATCH[@]}")
     prefix=${rest%"${m[0]}"}
-    if [[ ${m[2]} =~ $JQ_PATH_FLAG ]]; then
-      out+="${prefix}${m[1]}jq"
+    if [[ ${m[2]} =~ $path_flag ]]; then
+      out+="${prefix}${m[1]}${name}"
       rest="${m[2]}${m[4]}${m[5]}${m[6]}"
     else
-      out+="${prefix}${m[1]}jq${m[2]}${m[4]}JQ_FILTER"
+      out+="${prefix}${m[1]}${name}${m[2]}${m[4]}${placeholder}"
       rest=${m[6]}
     fi
   done
   printf '%s' "$out$rest"
 }
 
+mask_path_cmd() {
+  local masked name
+  masked=$(mask_first_operand "$1" jq "$JQ_PATH_FLAG" JQ_FILTER) || return 1
+  for name in grep egrep fgrep rg; do
+    masked=$(mask_first_operand "$masked" "$name" "$SEARCH_PATTERN_FLAG" SEARCH_PATTERN) || return 1
+  done
+  printf '%s' "$masked"
+}
+
 JQ_ARG_FLAG='(^|[[:space:]])--(arg|argjson|slurpfile|rawfile|indent)([[:space:]]|$)'
 JQ_WORD='(^|[^A-Za-z0-9_-])jq([^A-Za-z0-9_-]|$)'
 JQ_ENV_READ='\$ENV|(^|[^A-Za-z0-9_.$])env\b'
 
+first_segment() {
+  local masked pipe_or_semi and_and
+  masked=$(mask_quoted_separators "$1")
+  pipe_or_semi=${masked%%[|;]*}
+  and_and=${masked%%&&*}
+  if ((${#pipe_or_semi} <= ${#and_and})); then
+    printf '%s' "$pipe_or_semi"
+  else
+    printf '%s' "$and_and"
+  fi
+}
+
 jq_filters() {
-  local rest=$1 out=''
+  local rest=$1 out='' call_text seg
   local -a m
   while [[ $rest =~ $JQ_CALL ]]; do
     m=("${BASH_REMATCH[@]}")
     if [[ ${m[2]} =~ $JQ_PATH_FLAG || ${m[2]} =~ $JQ_ARG_FLAG || ${m[5]} == -* ]]; then
-      printf '%s' "$out ${m[5]}${m[6]}"
-      return 0
+      call_text="${m[5]}${m[6]}"
+      seg=$(first_segment "$call_text")
+      out+=" $seg"
+      rest=${call_text:${#seg}+1}
+    else
+      out+=" ${m[5]}"
+      rest=${m[6]}
     fi
-    out+=" ${m[5]}"
-    rest=${m[6]}
   done
-  if [[ $rest =~ $JQ_WORD ]]; then
-    out+=" $rest"
-  fi
+  while [[ -n $rest ]]; do
+    seg=$(first_segment "$rest")
+    if [[ $seg =~ $JQ_WORD ]]; then
+      out+=" $seg"
+    fi
+    rest=${rest:${#seg}+1}
+  done
   printf '%s' "$out"
 }
 
-path_cmd=$(mask_jq_filters "$cmd") || path_cmd=$cmd
+INTERP_CODE='\b(python[0-9.]*|perl|ruby|node|nodejs)\b[^|;&]*[[:space:]](-[A-Za-z]*[cepE]|--eval|--print)([[:space:]"'\'']|$)'
+INTERP_ENV_READ="${INTERP_CODE}"'[^|;&]*(os\.environ|getenv|%ENV|\$ENV\{|\bENV\b|process\.env)'
+
+mask_quoted_separators() {
+  local s=$1 out='' quote='' c i
+  for ((i = 0; i < ${#s}; i++)); do
+    c=${s:i:1}
+    if [[ -n $quote ]]; then
+      [[ $c == "$quote" ]] && quote=''
+      [[ $c == [\;\|\&] ]] && c=' '
+    elif [[ $c == "'" || $c == '"' ]]; then
+      quote=$c
+    fi
+    out+=$c
+  done
+  printf '%s' "$out"
+}
+
+path_cmd=$(mask_path_cmd "$cmd") || path_cmd=$cmd
+interp_cmd=$(mask_quoted_separators "$cmd") || interp_cmd=$cmd
 jq_filter_text=$(jq_filters "$cmd") || jq_filter_text=$cmd
 
 emit() {
@@ -134,6 +184,8 @@ emit() {
 
 if grep -qEi -- "$DENY" <<<"$cmd"; then
   emit deny 'Secret-exposure guard (deny): command matches a high-risk pattern — bulk env dump (env/set/export -p/declare -x/-p/compgen/printenv/proc environ), shell history, echo/printf of a secret-named variable (TOKEN/SECRET/KEY/PASSWORD/AUTH/CREDENTIAL/BEARER/SLACK_*/OPENAI_*/ANTHROPIC_*/GH_TOKEN/AWS_SECRET), Authorization header with variable interpolation, or a token-printing CLI (gh auth token, gcloud auth print-*-token, aws configure get, kubectl get secret -o yaml/json, docker secret/config inspect). These almost always leak credentials into the transcript and prompt cache. Do NOT retry a variant that bypasses this check. Ask the user to run the command themselves and paste only the specific non-secret output you need.'
+elif grep -qE -- "$INTERP_ENV_READ" <<<"$interp_cmd"; then
+  emit deny 'Secret-exposure guard (deny): inline python, perl, ruby, or node code (-c, -e, -p, --eval) reads the process environment (os.environ, getenv, %ENV, $ENV{...}, ENV, process.env), which can print every environment variable, secrets included. Do NOT retry a variant that reaches the environment another way. If you need an environment value, ask the user to paste only that non-secret value.'
 elif grep -qE -- "$JQ_ENV_READ" <<<"$jq_filter_text"; then
   emit deny 'Secret-exposure guard (deny): a jq filter reads the process environment through `env` or `$ENV`, which prints environment variables, secrets included. Do NOT retry a variant that reaches the environment another way. To read an `env` key from JSON input, write `.env`. If you need an environment value, ask the user to paste only that non-secret value.'
 elif grep -qEi -- "$DOCKER_INSPECT" <<<"$cmd"; then
