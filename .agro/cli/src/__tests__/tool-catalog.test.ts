@@ -8,14 +8,14 @@ import {
   toolIds,
   TOOL_CATALOG,
 } from "../lib/tools/catalog.js";
-import { HARNESS_CATALOG } from "../lib/harnesses/catalog.js";
+import { HARNESS_CATALOG, HARNESS_PREFIX_TOKEN } from "../lib/harnesses/catalog.js";
 import { RUNTIME_CATALOG } from "../lib/runtimes/catalog.js";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 const read = (p: string): string => readFileSync(join(REPO_ROOT, p), "utf8");
 
 describe("tool catalog shape", () => {
-  it("lists the seven known tools", () => {
+  it("lists the eight known tools", () => {
     expect(toolIds()).toEqual([
       "agent-browser",
       "herdr",
@@ -24,6 +24,7 @@ describe("tool catalog shape", () => {
       "docker-cli",
       "gh",
       "tailscale",
+      "code-server",
     ]);
   });
 
@@ -34,6 +35,7 @@ describe("tool catalog shape", () => {
       "cloudflared",
       "microsandbox",
       "tailscale",
+      "code-server",
     ]);
     for (const t of TOOL_CATALOG) {
       expect(["baked-in", "installable"], t.id).toContain(t.kind);
@@ -74,6 +76,7 @@ describe("tool catalog shape", () => {
       "cloudflared",
       "microsandbox",
       "tailscale",
+      "code-server",
     ]);
     for (const [id, body] of scripts) {
       expect(body, id).toContain("NPM_USER_PREFIX");
@@ -126,6 +129,7 @@ describe("tool catalog shape", () => {
       "docker-cli",
       "gh",
       "tailscale",
+      "code-server",
     ]);
     for (const t of TOOL_CATALOG) {
       if (t.versionArgv) expect(t.versionArgv, t.id).toEqual([t.binary, "--version"]);
@@ -295,6 +299,57 @@ describe("tailscale is installed from the catalog, not the boot path", () => {
   it("is reachable only through `agro tool install` — never through compose", () => {
     expect(read(".devcontainer/docker-compose.yml")).not.toContain("INSTALL_TAILSCALE");
     expect(read(".agro/cli/src/lib/config-render.ts")).toContain('"INSTALL_TAILSCALE"');
+  });
+});
+
+describe("code-server installs a pinned release for the invoking user", () => {
+  const cs = findTool("code-server")!;
+  const script = cs.installArgv!.join("\n");
+  const VERSION = "4.129.0";
+  const SHA_AMD64 = "889b09ff3a167a293f53cb68a5a7f38dbab6bd2b50d7a5951c757e56ba51a2b0";
+  const SHA_ARM64 = "62f7886018923a18cc16112ccfbcd51aee80f8e0c1bb7abc48773d1fd32a7617";
+
+  it("is an installable, host-capable tool that installs without root", () => {
+    expect(cs.kind).toBe("installable");
+    expect(cs.hostCapable).toBe(true);
+    expect(cs.hostInstallUser).toBeUndefined();
+    expect(cs.installUser).toBe("sandbox");
+    expect(cs.hostInstallArgv).toBeUndefined();
+    expect(script).not.toContain("sudo");
+  });
+
+  it("pins the release and both tarball checksums", () => {
+    expect(script).toContain(`version=${VERSION}`);
+    expect(script).toContain(
+      "https://github.com/coder/code-server/releases/download/v$version/code-server-$version-linux-$arch.tar.gz",
+    );
+    expect(script).toContain(`amd64) sha=${SHA_AMD64} ;;`);
+    expect(script).toContain(`arm64) sha=${SHA_ARM64} ;;`);
+    expect(script).toContain("sha256sum -c -");
+  });
+
+  it("refuses an unpinned architecture by name", () => {
+    expect(script).toContain('*) echo "no pinned code-server build for $arch" >&2; exit 1 ;;');
+  });
+
+  it("extracts under lib and links the launcher into bin", () => {
+    expect(script).toContain('prefix="${NPM_USER_PREFIX:-$HOME/.local}"');
+    expect(script).toContain('dest="$prefix/lib/code-server-$version"');
+    expect(script).toContain('ln -sfn "$dest/bin/code-server" "$prefix/bin/code-server"');
+  });
+
+  it("fails the install unless the linked launcher reports the pinned version", () => {
+    expect(script).toContain('"$prefix/bin/code-server" --version | grep -q "^$version "');
+  });
+
+  it("removes the link and the extracted release", () => {
+    expect(cs.uninstallArgv).toEqual([
+      "rm",
+      "-rf",
+      `${HARNESS_PREFIX_TOKEN}/bin/code-server`,
+      `${HARNESS_PREFIX_TOKEN}/lib/code-server-${VERSION}`,
+    ]);
+    expect(cs.hostUninstallArgv).toBeUndefined();
   });
 });
 

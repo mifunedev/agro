@@ -561,6 +561,7 @@ const HOST_INSTALLERS: ReadonlyArray<readonly [string, string]> = [
   ["cloudflared", "cloudflared-linux-"],
   ["microsandbox", "install-msb.sh"],
   ["tailscale", "pkgs.tailscale.com/stable/"],
+  ["code-server", "coder/code-server/releases/download/"],
 ];
 
 const NOT_HOST_CAPABLE: ReadonlyArray<readonly [string, string]> = [
@@ -650,7 +651,7 @@ function writeReceipt(dir: string, id: string, prefix: string, binary: string): 
 const LINUX: NodeJS.Platform = "linux";
 
 describe("agro tool install — the sandbox argv is unchanged", () => {
-  it.each(["herdr", "cloudflared", "microsandbox", "tailscale", "agent-browser"])(
+  it.each(["herdr", "cloudflared", "microsandbox", "tailscale", "agent-browser", "code-server"])(
     "%s: execs the catalog argv verbatim as the sandbox user",
     async (id) => {
       const root = makeRepo();
