@@ -2,9 +2,9 @@
 # tier: A
 # source: issue #1149 (secret-exposure guard false positives on ordinary command text)
 # desc: the Bash secret-exposure guard denies shell-hist access by command position,
-#       hist-file reads, and jq filters that read the process environment, and
-#       allows commands that only mention the word in an argument such as a
-#       commit message
+#       hist-file reads, jq filters, and inline interpreter code that read the
+#       process environment, and allows commands that only mention the word in
+#       an argument such as a commit message
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -135,5 +135,85 @@ assert deny "jq -n \"$JQ_ENV_VAR\"" \
 assert allow "jq '.x' $JQ_ENV_WORD.json" \
   "a jq input file whose name starts with env was treated as an env read"
 
-echo "PASS: the secret-exposure guard denies shell-hist access by command position and hist-file reads, allows the word inside ordinary arguments, exempts the jq filter from the secret-path check, and still denies env-file reads and jq filters that read the process environment" >&2
+JQ_PIPED_TO_HOOK='jq -nc --arg c x '\''{a: $c}'\'' | bash .agro/hooks/deny-'
+JQ_PIPED_TO_HOOK+="$JQ_ENV_WORD-dump.sh"
+
+assert allow "$JQ_PIPED_TO_HOOK" \
+  "an env word in a command piped from a jq --arg call was read as a jq filter"
+assert allow "jq --arg k v '.x' data.json; ls $JQ_ENV_WORD/" \
+  "an env word in a command after a jq --arg call was read as a jq filter"
+
+assert deny "jq --arg k v '$JQ_ENV_WORD'" \
+  "a jq filter that reads env after an --arg pair was allowed"
+assert deny "jq --arg k v -n '$JQ_ENV_VAR' | cat" \
+  "a piped jq filter that reads \$ENV after an --arg pair was allowed"
+assert deny "jq -f prog.jq --arg k v -n '$JQ_ENV_WORD'" \
+  "a jq filter that reads env after a filter file flag was allowed"
+assert deny "jq --arg k v '.x' data.json; jq -n '$JQ_ENV_WORD'" \
+  "a jq filter that reads env in a later jq call was allowed"
+assert deny "jq --arg k v '.x' data.json | jq -n \"$JQ_ENV_VAR\"" \
+  "a double-quoted jq filter that reads \$ENV in a piped jq call was allowed"
+
+assert allow "grep process.env src/index.ts" \
+  "a grep pattern that names process.env was treated as a secret path"
+assert allow "grep \"Config.Env\" notes.md" \
+  "a quoted grep pattern that names Config.Env was treated as a secret path"
+assert allow "rg 'import.meta.env' src" \
+  "an rg pattern that names import.meta.env was treated as a secret path"
+
+assert deny "grep TOKEN .env" \
+  "grep searching an env file was allowed"
+assert deny "rg KEY .env.production" \
+  "rg searching a production env file was allowed"
+assert deny "grep -f .env src/index.ts" \
+  "grep loading patterns from an env file was allowed"
+assert deny "grep -e TOKEN .env" \
+  "grep with an -e pattern searching an env file was allowed"
+assert deny "rg -g .env TOKEN" \
+  "rg selecting env files through a glob flag value was allowed"
+assert deny "cat prod.env" \
+  "reading a named env file was allowed"
+
+PY_ENVIRON='os.env'
+PY_ENVIRON+='iron'
+PY_GETENV='os.get'
+PY_GETENV+='env'
+PL_ENV_HASH='%EN'
+PL_ENV_HASH+='V'
+PL_ENV_ELEM='$EN'
+PL_ENV_ELEM+='V{$_}'
+RB_ENV='EN'
+RB_ENV+='V'
+JS_ENV='process.en'
+JS_ENV+='v'
+
+assert deny "python3 -c 'import os; print(dict($PY_ENVIRON))'" \
+  "a python3 -c program that dumps the process environment was allowed"
+assert deny "python -c 'import os; print($PY_GETENV(\"GH_TOKEN\"))'" \
+  "a python -c program that reads one environment value was allowed"
+assert deny "perl -e 'print \"\$_=$PL_ENV_ELEM\\n\" for keys $PL_ENV_HASH'" \
+  "a perl -e program that dumps the process environment was allowed"
+assert deny "ruby -e 'p $RB_ENV'" \
+  "a ruby -e program that prints the process environment was allowed"
+assert deny "node -e 'console.log($JS_ENV)'" \
+  "a node -e program that prints the process environment was allowed"
+assert deny "python3 -Ic 'import os; print($PY_ENVIRON)'" \
+  "a python3 program behind a clustered -Ic flag that reads the environment was allowed"
+assert deny "perl -ne 'print $PL_ENV_ELEM'" \
+  "a perl program behind a clustered -ne flag that reads the environment was allowed"
+
+assert allow "python3 -c 'print(1)'" \
+  "a python3 -c program that does not read the environment was denied"
+assert allow "node -e 'console.log(1)'" \
+  "a node -e program that does not read the environment was denied"
+assert allow "python3 scripts/build.py" \
+  "a python3 script run without inline code was denied"
+assert allow "python3 -m pytest -c tox.ini -k env -q" \
+  "a lowercase env argument to a python3 module run was treated as an environment read"
+assert allow "python3 -c 'print(1)' && ls env/" \
+  "an env word in a later command was attributed to the python3 -c program"
+assert allow "node -e 'console.log(1)' | grep --env x" \
+  "an env flag in a piped command was attributed to the node -e program"
+
+echo "PASS: the secret-exposure guard denies shell-hist access by command position and hist-file reads, allows the word inside ordinary arguments, exempts the jq filter and the grep or rg search pattern from the secret-path check, and still denies env-file reads, jq filters, and inline interpreter code that read the process environment" >&2
 exit 0

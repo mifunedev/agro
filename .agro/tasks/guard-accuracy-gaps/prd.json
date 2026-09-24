@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1155-guard-accuracy-gaps",
+  "description": "Close the remaining Bash secret-guard accuracy gaps: deny interpreter environment reads, skip the grep/rg pattern argument in the secret-path check, and bound the jq parse-gap scan to the jq call.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Deny interpreter environment reads",
+      "description": "As an operator, I want the Bash guard to deny inline interpreter code that reads the environment so that no interpreter prints secrets.",
+      "acceptanceCriteria": [
+        "Before the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 1 on `python3 -c 'import os; print(dict(os.environ))'`. The evidence records the command and the exit status.",
+        "The probe asserts `deny` for `python3 -c 'import os; print(dict(os.environ))'`, `python -c 'import os; print(os.getenv(\"GH_TOKEN\"))'`, `perl -e 'print \"$_=$ENV{$_}\\n\" for keys %ENV'`, `ruby -e 'p ENV'`, and `node -e 'console.log(process.env)'`.",
+        "The probe asserts `allow` for `python3 -c 'print(1)'`, `node -e 'console.log(1)'`, and `python3 scripts/build.py`.",
+        "After the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 0."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at b8a43f3b (worker commits 0de68b24 and repair b8a43f3b). AC1 executed: the advisor ran the final probe against the plan-commit hook (git show b340ef6f in a scratch tree) -> exit 1, REGRESSION names the python3 -c os.environ case. AC2 executed: bash .agro/evals/probes/secret-exposure-guard.sh -> exit 0 with the five deny assertions plus -Ic and -ne forms. AC3 executed: same run, the three allow assertions pass. AC4 executed: secret-exposure-guard.sh exit 0; docker-inspect-env-guard.sh exit 0; operator-config-guard.sh exit 0. One bounded repair: the first commit's DENY term crossed into later commands and matched env case-insensitively; the repair moves the check to its own case-sensitive branch bounded to one command segment (quoted separators masked) and adds allow assertions for pytest -k env -q, && ls env/, and | grep --env x. The pre-existing DENY rule for env as the last word stays: narrowing it would allow docker exec <c> env.",
+      "dependsOn": [],
+      "files": [
+        ".agro/hooks/deny-env-dump.sh",
+        ".agro/evals/probes/secret-exposure-guard.sh"
+      ],
+      "commit": "b8a43f3b"
+    },
+    {
+      "id": "US-002",
+      "title": "Exempt the search-pattern argument from the secret-path check",
+      "description": "As an agent, I want the secret-path check to skip the pattern argument of `grep` and `rg` so that the guard allows a search for `process.env`.",
+      "acceptanceCriteria": [
+        "Before the hook change, the probe exits 1 on `grep process.env src/index.ts`. The evidence records the command and the exit status.",
+        "The probe asserts `allow` for `grep process.env src/index.ts`, `grep \"Config.Env\" notes.md`, and `rg 'import.meta.env' src`.",
+        "The probe asserts `deny` for `grep TOKEN .env`, `rg KEY .env.production`, `grep -f .env src/index.ts`, `grep -e TOKEN .env`, and `cat prod.env`.",
+        "After the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 0."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at 92cd9942. AC1 executed: the advisor ran the final probe against the pre-US-002 hook (git show 31765b2f in a scratch tree) -> exit 1, REGRESSION names grep process.env src/index.ts. AC2 executed: bash .agro/evals/probes/secret-exposure-guard.sh -> exit 0 with the three allow assertions. AC3 executed: same run, the five deny assertions plus rg -g .env TOKEN pass. AC4 executed: secret-exposure-guard.sh exit 0; docker-inspect-env-guard.sh exit 0; operator-config-guard.sh exit 0. The mask generalizes mask_jq_filters into mask_first_operand for jq, grep, egrep, fgrep, and rg; only path_cmd uses it. Known false denies kept on purpose: grep -r and grep -E before the pattern, because rg gives -r and -E a value.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/hooks/deny-env-dump.sh",
+        ".agro/evals/probes/secret-exposure-guard.sh"
+      ],
+      "commit": "92cd9942"
+    },
+    {
+      "id": "US-003",
+      "title": "Bound the jq parse-gap scan to the jq call",
+      "description": "As an agent, I want the `jq` environment check to read only its own command segment so that later text cannot trigger it.",
+      "acceptanceCriteria": [
+        "Before the hook change, the probe exits 1 on `jq -nc --arg c x '{a: $c}' | bash .agro/hooks/deny-env-dump.sh`. The evidence records the command and the exit status.",
+        "The probe asserts `allow` for `jq -nc --arg c x '{a: $c}' | bash .agro/hooks/deny-env-dump.sh` and `jq --arg k v '.x' data.json; ls env/`.",
+        "The probe asserts `deny` for `jq --arg k v 'env'`, `jq --arg k v -n '$ENV' | cat`, and `jq -f prog.jq --arg k v -n 'env'`.",
+        "After the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 0.",
+        "`CHANGELOG.md` `[Unreleased]` `### Fixed` has one entry that links #1155, and the entry is at most 250 characters."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Accepted by the advisor on the integrated task branch at 429b52d4. AC1 executed: the advisor ran the final probe against the pre-US-003 hook (git show 8d526a63 in a scratch tree) -> exit 1, REGRESSION names the env word in a command piped from a jq --arg call. AC2 executed: bash .agro/evals/probes/secret-exposure-guard.sh -> exit 0 with both allow assertions. AC3 executed: same run, the three deny assertions plus two later-jq-call denies (after ; and after |) pass. AC4 executed: secret-exposure-guard.sh exit 0; docker-inspect-env-guard.sh exit 0; operator-config-guard.sh exit 0. AC5 executed: [Unreleased] ### Fixed has one bullet linking issues/1155 (awk + grep -c -> 1); changelog-entry-length.sh exit 0 (235 characters per the worker). Full suite: bash .claude/skills/eval/run.sh -> exit 0, persistent reds next-dev-prod and skills-vendored only, no PASS-> delta. The fallback keeps parsing later jq calls, so a jq call after a separator stays checked.",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/hooks/deny-env-dump.sh",
+        ".agro/evals/probes/secret-exposure-guard.sh",
+        "CHANGELOG.md"
+      ],
+      "commit": "429b52d4"
+    }
+  ]
+}
