@@ -1,0 +1,1 @@
+5e28ccac779d1f6f57e9444118089da0a1aefecf fix: compare compose --env-file by file identity, not path string

@@ -1,0 +1,1 @@
+b91a113fee4465726186e9bb33feba422b60ad85 task: retire the stale agro cloud command

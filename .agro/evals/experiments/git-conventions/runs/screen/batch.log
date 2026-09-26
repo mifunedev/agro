@@ -1,0 +1,25 @@
+run-batch: run screen, 1 cases, jobs 1, started 2026-09-26T15:52:27Z
+run-batch: start 1154 (spent 0 USD)
+screen--1154--baseline--r1--a1 ok pass=true cost=0.44267460000000003 elapsed_s=47.033
+run-batch: finished 2026-09-26T15:53:14Z; spent 0.44267460000000003 USD; budget stop 0
+run-batch: run screen, 10 cases, jobs 3, started 2026-09-26T15:53:29Z
+run-batch: skip 1154 (recorded)
+run-batch: start 1049 (spent 0.44267460000000003 USD)
+run-batch: start 1063 (spent 0.44267460000000003 USD)
+run-batch: start 1111 (spent 0.44267460000000003 USD)
+screen--1111--baseline--r1--a1 ok pass=true cost=0.47191539999999993 elapsed_s=43.070
+run-batch: start 1083 (spent 0.91459 USD)
+screen--1049--baseline--r1--a1 ok pass=false cost=0.7869185999999999 elapsed_s=82.326
+screen--1063--baseline--r1--a1 ok pass=true cost=0.566025 elapsed_s=83.796
+run-batch: start 1051 (spent 2.2675336 USD)
+run-batch: start 1091 (spent 2.2675336 USD)
+screen--1083--baseline--r1--a1 ok pass=true cost=0.5138658 elapsed_s=48.957
+run-batch: start 1180 (spent 2.7813994 USD)
+screen--1091--baseline--r1--a1 ok pass=true cost=0.39110579999999995 elapsed_s=37.781
+run-batch: start 1069 (spent 3.1725052000000002 USD)
+screen--1180--baseline--r1--a1 ok pass=true cost=0.36833459999999996 elapsed_s=33.138
+run-batch: start 1169 (spent 3.5408398 USD)
+screen--1051--baseline--r1--a1 ok pass=false cost=0.6210202000000001 elapsed_s=62.785
+screen--1069--baseline--r1--a1 ok pass=true cost=0.37530679999999994 elapsed_s=37.782
+screen--1169--baseline--r1--a1 ok pass=false cost=0.6692288000000002 elapsed_s=77.269
+run-batch: finished 2026-09-26T15:56:56Z; spent 5.2063956 USD; budget stop 0

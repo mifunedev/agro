@@ -1,0 +1,172 @@
+{
+  "run_id": "screen",
+  "cases": 10,
+  "scored": 10,
+  "passed": 7,
+  "pass_rate": 0.7,
+  "check_rates": {
+    "c1_commit_subjects": 1,
+    "c2_branch": 1,
+    "c3_pr_title": 1,
+    "c4_pr_body": 1,
+    "c5_changelog": 0.9,
+    "c6_scope": 0.8
+  },
+  "status_counts": {
+    "ok": 10
+  },
+  "attempts": 10,
+  "total_cost_usd": 5.21,
+  "mean_turns": 12.5,
+  "mean_elapsed_s": 55,
+  "refs_left": [],
+  "decision": "freeze-d1-git",
+  "per_case": [
+    {
+      "pr": 1049,
+      "issue": 935,
+      "revision": "ed9ac894",
+      "family": ".agro/scripts",
+      "status": "ok",
+      "pass": false,
+      "branch": "bug/935-compose-env-path-parity",
+      "failed_checks": [
+        "c6_scope"
+      ],
+      "cost_usd": 0.79,
+      "turns": 23,
+      "elapsed_s": 82,
+      "uncommitted": 0
+    },
+    {
+      "pr": 1051,
+      "issue": 1050,
+      "revision": "dd5ff0c0",
+      "family": ".agro/cli",
+      "status": "ok",
+      "pass": false,
+      "branch": "task/1050-retire-agro-cloud-command",
+      "failed_checks": [
+        "c6_scope"
+      ],
+      "cost_usd": 0.62,
+      "turns": 15,
+      "elapsed_s": 63,
+      "uncommitted": 0
+    },
+    {
+      "pr": 1063,
+      "issue": 1062,
+      "revision": "c49f4c89",
+      "family": ".agro/skills",
+      "status": "ok",
+      "pass": true,
+      "branch": "skill/1062-supervisor-description-limit",
+      "failed_checks": [],
+      "cost_usd": 0.57,
+      "turns": 13,
+      "elapsed_s": 84,
+      "uncommitted": 0
+    },
+    {
+      "pr": 1069,
+      "issue": 1068,
+      "revision": "a33545a2",
+      "family": ".agro/skills",
+      "status": "ok",
+      "pass": true,
+      "branch": "bug/1068-supervisor-pi-description-limit",
+      "failed_checks": [],
+      "cost_usd": 0.38,
+      "turns": 8,
+      "elapsed_s": 38,
+      "uncommitted": 0
+    },
+    {
+      "pr": 1083,
+      "issue": 1082,
+      "revision": "81e66e66",
+      "family": ".agro/skills",
+      "status": "ok",
+      "pass": true,
+      "branch": "task/1082-retire-claude-md-symlinks",
+      "failed_checks": [],
+      "cost_usd": 0.51,
+      "turns": 11,
+      "elapsed_s": 49,
+      "uncommitted": 0
+    },
+    {
+      "pr": 1091,
+      "issue": 1090,
+      "revision": "ab86a8c3",
+      "family": ".agro/cli",
+      "status": "ok",
+      "pass": true,
+      "branch": "feat/1090-antigravity-zero-confirmation-default",
+      "failed_checks": [],
+      "cost_usd": 0.39,
+      "turns": 9,
+      "elapsed_s": 38,
+      "uncommitted": 0
+    },
+    {
+      "pr": 1111,
+      "issue": 1110,
+      "revision": "632a77e1",
+      "family": ".agro/scripts",
+      "status": "ok",
+      "pass": true,
+      "branch": "bug/1110-sandbox-python-commands",
+      "failed_checks": [],
+      "cost_usd": 0.47,
+      "turns": 11,
+      "elapsed_s": 43,
+      "uncommitted": 0
+    },
+    {
+      "pr": 1154,
+      "issue": 1150,
+      "revision": "90707bd2",
+      "family": ".agro/hooks",
+      "status": "ok",
+      "pass": true,
+      "branch": "bug/1150-guard-false-allows",
+      "failed_checks": [],
+      "cost_usd": 0.44,
+      "turns": 10,
+      "elapsed_s": 47,
+      "uncommitted": 0
+    },
+    {
+      "pr": 1169,
+      "issue": 1168,
+      "revision": "de2c33ca",
+      "family": ".agro/cli",
+      "status": "ok",
+      "pass": false,
+      "branch": "feat/1168-node-host-tools",
+      "failed_checks": [
+        "c5_changelog"
+      ],
+      "cost_usd": 0.67,
+      "turns": 16,
+      "elapsed_s": 77,
+      "uncommitted": 0
+    },
+    {
+      "pr": 1180,
+      "issue": 1179,
+      "revision": "9a9ddacc",
+      "family": ".pi",
+      "status": "ok",
+      "pass": true,
+      "branch": "task/1179-remove-pi-recap-default",
+      "failed_checks": [],
+      "cost_usd": 0.37,
+      "turns": 9,
+      "elapsed_s": 33,
+      "uncommitted": 0
+    }
+  ]
+}

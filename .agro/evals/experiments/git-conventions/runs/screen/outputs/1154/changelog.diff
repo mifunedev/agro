@@ -1,0 +1,12 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 09f0ace5..89ab2d9f 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -17,6 +17,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
+ ### Fixed
+ 
+ - Stop false denies in the Bash secret guard: match `history` only at command position, and never read a `jq` filter such as `'.env'` as a secret path ([#1149](https://github.com/mifunedev/agro/issues/1149)).
++- Deny `jq` filters that read `env` or `$ENV`, and deny a single-quoted `json` format value in `docker inspect` ([#1150](https://github.com/mifunedev/agro/issues/1150)).
+ 
+ ## [0.13.0] - 2026-09-22
+ 
