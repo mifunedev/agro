@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "experiment": "prd-grounding",
+  "issue": 1188,
+  "kind": "headroom-screen",
+  "target_skill": ".agro/skills/prd/SKILL.md",
+  "skill_overlay": {
+    "path": ".agro/skills/prd",
+    "revision": "d5987a569b5428c53f62917f28c41015bb33d3b1",
+    "reason": "The /prd skill before 93b009d0 is a different skill with no template headings and no /ste step. Each episode replaces .agro/skills/prd/ at the pinned revision with the tree at the base revision, so every episode measures the current skill against the repository state of its issue."
+  },
+  "provider": "anthropic",
+  "harness": "claude-code",
+  "harness_version": "2.1.280",
+  "model": "claude-opus-5-5",
+  "effort": "medium",
+  "claude_args": [
+    "-p",
+    "--model",
+    "claude-opus-5-5",
+    "--effort",
+    "medium",
+    "--setting-sources",
+    "project,local",
+    "--strict-mcp-config",
+    "--permission-mode",
+    "bypassPermissions",
+    "--no-session-persistence",
+    "--output-format",
+    "stream-json",
+    "--verbose"
+  ],
+  "episode_prompt": "/prd <path>",
+  "episode_timeout_s": 900,
+  "repeats": 1,
+  "corpus": {
+    "manifest": "corpus/manifest.json",
+    "cases": 10
+  },
+  "verifier": "verify-prd.sh",
+  "budget": {
+    "first_episode_max_usd": 3.0,
+    "max_total_usd": 30.0,
+    "max_parallel": 3
+  },
+  "decision": {
+    "freeze_d1_if_pass_rate_lt": 0.75,
+    "otherwise": "screen the PR-body and commit conventions of /git next"
+  },
+  "pins": {
+    "verify_prd_sh": "8404e7f778537a28c11ea63d2b87c06f3035b94745a29c09fd5706e4d453743f",
+    "corpus_manifest": "ba43430b715f625232dd080ec59e4b25224897766b8f94e02efb968132ef0e56",
+    "prd_skill_tree": "915108d3c0fc3d0319e3b39072e49da6f84965ae"
+  }
+}
