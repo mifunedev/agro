@@ -40,10 +40,15 @@ exceeds budget.phases.<phase>.max_usd, or when the recorded cost of all runs
 plus the same reserve exceeds budget.hard_cap_usd. The refused slot gets a
 budget_refused line, and no later episode starts.
 
+Usage limit: when an episode of this batch records usage_limit (the account
+spend or usage limit), no other episode starts. The running episodes finish,
+the batch prints "run-batch: stopped: account usage limit: <text>", and exits
+1. A rerun retries each usage_limit slot.
+
 The batch compares the refs of this repository before and after the run.
 --detach starts the batch in the new detached tmux session prd-efficiency.
-Exit 0 when every slot ran, 1 when the gate or the guard stopped the batch,
-2 on bad arguments.
+Exit 0 when every slot ran, 1 when the gate, the guard, or the usage limit
+stopped the batch, 2 on bad arguments.
 USAGE
 }
 
@@ -162,6 +167,7 @@ run_dir="$RUNS_DIR/$run_id"
 episodes="$run_dir/episodes.jsonl"
 mkdir -p "$run_dir"
 touch "$episodes"
+start_lines="$(wc -l <"$episodes" | tr -d ' ')"
 exec > >(tee -a "$run_dir/batch.log") 2>&1
 
 hard_cap="$(jq -r '.budget.hard_cap_usd' "$EXPERIMENT")"
@@ -187,6 +193,16 @@ slot_state() {
   jq -r -s --arg c "$1" --arg a "$2" --argjson n "$3" --argjson scored "$SCORED" '
     [.[] | select(.case_id == $c and .arm == $a and .repeat == $n) | .status] as $s
     | if any($s[]; . as $x | $scored | index($x)) then "done" else "pending" end' "$episodes"
+}
+
+stop_on_usage_limit() {
+  local text
+  [ -z "$stopped" ] || return 0
+  text="$(tail -n "+$((start_lines + 1))" "$episodes" \
+    | jq -r -s 'map(select(.status == "usage_limit")) | first | select(. != null) | .error // "no error text"')"
+  [ -n "$text" ] || return 0
+  printf 'run-batch: stopped: account usage limit: %s\n' "$text"
+  stopped="account usage limit"
 }
 
 has_scored_line() {
@@ -288,6 +304,8 @@ for slot in "${slots[@]}"; do
   while [ "${#running[@]}" -ge "$jobs" ]; do
     reap_one
   done
+  stop_on_usage_limit
+  [ -z "$stopped" ] || break
   refusal="$(guard_refusal)"
   if [ -n "$refusal" ]; then
     printf 'run-batch: budget guard: %s; no episode starts\n' "$refusal"
@@ -304,6 +322,8 @@ for slot in "${slots[@]}"; do
     while [ "${#running[@]}" -gt 0 ]; do
       reap_one
     done
+    stop_on_usage_limit
+    [ -z "$stopped" ] || break
     first_cost="$(jq -r -s --arg c "$c" --arg a "$a" --argjson n "$n" \
       '[.[] | select(.case_id == $c and .arm == $a and .repeat == $n)] | last | .usage.total_cost_usd? // "null"' "$episodes")"
     if [ "$first_cost" = null ] || jq -e -n --argjson x "$first_cost" --argjson m "$first_max" '$x > $m' >/dev/null; then
@@ -318,6 +338,7 @@ done
 while [ "${#running[@]}" -gt 0 ]; do
   reap_one
 done
+stop_on_usage_limit
 
 if [ -n "$stopped" ]; then
   printf 'run-batch: stopped early: %s\n' "$stopped"

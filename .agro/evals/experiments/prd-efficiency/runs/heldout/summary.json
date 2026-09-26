@@ -32,7 +32,8 @@
       "budget_refused",
       "infra_failure",
       "interrupted",
-      "pin_mismatch"
+      "pin_mismatch",
+      "usage_limit"
     ],
     "latest": "highest attempt per (case_id, arm, repeat), last line on a tie"
   },
@@ -376,7 +377,7 @@
       "pass_rate_guard": true,
       "no_new_failure_class": true,
       "substance_guard": false,
-      "verdict": "no-success"
+      "verdict": "no-improvement"
     }
   },
   "noise": null

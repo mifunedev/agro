@@ -55,7 +55,9 @@ holds usage, elapsed_s, the verifier result, and substance: the g1 checked-path
 count and the checklist-line count of the plan. The runner deletes the episode
 repository and keeps the gzip trace under .../prd-efficiency/traces/.
 
-Statuses: ok, timeout, plan_missing, infra_failure, pin_mismatch, interrupted.
+Statuses: ok, timeout, plan_missing, infra_failure, usage_limit, pin_mismatch,
+interrupted. usage_limit: the result event is an error whose text matches
+"hit your ... limit" (the account spend or usage limit); error holds that text.
 Test overrides: PRD_EFFICIENCY_RUNS_DIR, PRD_EFFICIENCY_TIMEOUT_S, and
 PRD_EFFICIENCY_REPO_BUILDER (a script with the arguments of
 make-episode-repo.sh).
@@ -429,6 +431,10 @@ collect_other_changes
 
 if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
   finish timeout "claude exceeded ${timeout_s}s"
+fi
+usage_limit_text="$(jq -r 'select(.is_error == true and ((.result // "") | type) == "string" and ((.result // "") | test("hit your .*limit"; "i"))) | .result' <<<"${result_event:-null}")"
+if [ -n "$usage_limit_text" ]; then
+  finish usage_limit "$usage_limit_text"
 fi
 if [ "$rc" -ne 0 ]; then
   finish infra_failure "claude exited $rc: $stderr_tail"

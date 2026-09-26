@@ -7,7 +7,7 @@ readonly EXP_DIR="${TEST_DIR%/tests}"
 REPO_ROOT="$(git -C "$EXP_DIR" rev-parse --show-toplevel)"
 readonly REPO_ROOT
 readonly RUN_EPISODE="$EXP_DIR/run-episode.sh"
-readonly RUN_BATCH="$EXP_DIR/run-batch.sh"
+readonly RUN_BATCH="${PRD_EFFICIENCY_RUN_BATCH:-$EXP_DIR/run-batch.sh}"
 readonly SHARED_REF_BUILDER="$TEST_DIR/fixtures/shared-ref-repo.sh"
 readonly REQUIRED='["run_id","episode_id","case_id","issue","area","split","arm","repeat","attempt","revision","skill_revision","model","effort","harness_version","trace","verifier","pass","usage","elapsed_s","substance","status","other_changes","error"]'
 readonly CASE_A=1064
@@ -29,6 +29,13 @@ repository. The runner then refuses each episode, and the test exits 1. The
 fake claude also reports the refs, the commits, and the git directory that it
 sees, so the test exits 1 when a runner without the isolation check lets
 claude start in a shared-ref worktree.
+
+Usage limit: the fake claude in limit mode prints an is_error result event
+with "You've hit your monthly spend limit" and exits 1. The test checks the
+usage_limit status and its error text, that the batch starts no later slot and
+exits 1, and that a rerun retries the slot. PRD_EFFICIENCY_RUN_BATCH=<path>
+runs another run-batch.sh beside this one; a copy whose
+stop_on_usage_limit returns at once makes the test exit 1.
 USAGE
     exit 0 ;;
 esac
@@ -107,6 +114,12 @@ PLAN
       usage: {input_tokens: 10, output_tokens: 20, cache_read_input_tokens: 30, cache_creation_input_tokens: 40}}'
     ;;
   sleep) exec sleep 60 ;;
+  limit)
+    text="You've hit your monthly spend limit · raise it at claude.ai/settings/usage"
+    jq -cn --arg t "$text" '{type: "assistant", error: "rate_limit", message: {content: [{type: "text", text: $t}]}}'
+    jq -cn --arg t "$text" '{type: "result", subtype: "success", is_error: true, api_error_status: 429, num_turns: 1,
+      total_cost_usd: 0, result: $t, usage: {input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0}}'
+    exit 1 ;;
 esac
 FAKE
 chmod +x "$scratch/bin/claude"
@@ -322,6 +335,51 @@ if [ "$guard_rc" -eq 1 ] \
   pass "budget guard: $seed_cost + $reserve <= $noise_cap starts 1064; $seed_cost + 0.02 + $reserve > $noise_cap refuses 1088 with a budget_refused line (exit 1)"
 else
   fail "budget guard: exit $guard_rc, $(episodes_of t-guard | jq -c -s 'map({case_id, status, error})')"
+fi
+
+limit_text="You've hit your monthly spend limit · raise it at claude.ai/settings/usage"
+set +e
+FAKE_CLAUDE_MODE=limit bash "$RUN_BATCH" --run-id t-limit --phase noise --arm baseline --cases "$CASE_A,$CASE_B" --jobs 1 >/dev/null 2>&1
+limit_rc=$?
+set -e
+limit_log="$PRD_EFFICIENCY_RUNS_DIR/t-limit/batch.log"
+if [ "$limit_rc" -eq 1 ] \
+  && episodes_of t-limit | jq -e -s --arg t "$limit_text" 'length == 1 and .[0].status == "usage_limit" and .[0].case_id == "1064"
+      and .[0].error == $t and .[0].claude_exit == 1 and .[0].pass == false' >/dev/null \
+  && grep -qF "run-batch: stopped: account usage limit: $limit_text" "$limit_log" \
+  && ! grep -q 'start 1088' "$limit_log"; then
+  pass "a first episode at the account usage limit records usage_limit and stops the batch before 1088 (exit 1)"
+else
+  fail "usage limit at the first episode: exit $limit_rc, $(episodes_of t-limit | jq -c -s 'map({case_id, status, error})')"
+fi
+
+mkdir -p "$PRD_EFFICIENCY_RUNS_DIR/t-limit-open"
+jq -cn '{run_id: "t-limit-open", case_id: "seed", arm: "baseline", repeat: 1, status: "ok", usage: {total_cost_usd: 0.01}}' \
+  >"$PRD_EFFICIENCY_RUNS_DIR/t-limit-open/episodes.jsonl"
+set +e
+FAKE_CLAUDE_MODE=limit bash "$RUN_BATCH" --run-id t-limit-open --phase noise --arm baseline --cases "$CASE_A,$CASE_B" --jobs 1 >/dev/null 2>&1
+limit_open_rc=$?
+set -e
+limit_open_log="$PRD_EFFICIENCY_RUNS_DIR/t-limit-open/batch.log"
+if [ "$limit_open_rc" -eq 1 ] \
+  && episodes_of t-limit-open | jq -e -s 'length == 2 and .[1].status == "usage_limit" and .[1].case_id == "1064"' >/dev/null \
+  && grep -q 'run-batch: stopped: account usage limit: ' "$limit_open_log" \
+  && ! grep -q 'start 1088' "$limit_open_log"; then
+  pass "with the gate open, a usage_limit episode stops the batch before the next slot starts (exit 1)"
+else
+  fail "usage limit with the gate open: exit $limit_open_rc, $(episodes_of t-limit-open | jq -c -s 'map({case_id, status})')"
+fi
+
+set +e
+bash "$RUN_BATCH" --run-id t-limit --phase noise --arm baseline --cases "$CASE_A,$CASE_B" --jobs 1 >/dev/null 2>&1
+retry_rc=$?
+set -e
+if [ "$retry_rc" -eq 0 ] \
+  && episodes_of t-limit | jq -e -s 'length == 3 and .[1].case_id == "1064" and .[1].attempt == 2 and .[1].status == "ok"
+      and .[2].case_id == "1088" and .[2].status == "ok"' >/dev/null; then
+  pass "a rerun retries the usage_limit slot as attempt 2 and runs the rest (exit 0)"
+else
+  fail "usage_limit retry: exit $retry_rc, $(episodes_of t-limit | jq -c -s 'map({case_id, attempt, status})')"
 fi
 
 remaining="$(find "$REPOS_DIR" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')"

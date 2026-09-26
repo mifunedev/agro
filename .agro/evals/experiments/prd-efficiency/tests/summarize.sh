@@ -28,9 +28,11 @@ Fixtures:
                 on case A in both arms is not a new class.
   noise         3 baseline cases with log-cost deviations 0, +0.4, -0.4 /
                 +0.2, -0.2, 0 / +0.2, -0.2: sigma_w^2 = 0.48 / 5.
-The test also derives an upper-bound fault, a substance fault, and a
-single-repeat noise run from these files, and rescores a stored plan that
-fails g4_structure.
+The test also derives an upper-bound fault, a substance fault, a
+usage_limit run, and a single-repeat noise run from these files, and rescores
+a stored plan that fails g4_structure. A failed verdict is
+experiment.json .decision.otherwise (no-improvement); a copy of summarize.sh
+beside an experiment.json without it also writes no-improvement.
 
 Fault injection: PRD_EFFICIENCY_SUMMARIZE=<path> runs another summarize.sh;
 a copy beside a symlinked experiment.json and ../prd-grounding with a broken
@@ -80,6 +82,9 @@ jq -c 'if .arm == "candidate" and .case_id == "C" then .usage.total_cost_usd = 1
 jq -c 'if .arm == "candidate" and .status == "ok" then .substance.g1_checked = 6 else . end' \
   "$PRD_EFFICIENCY_RUNS_DIR/win/episodes.jsonl" >"$PRD_EFFICIENCY_RUNS_DIR/substance/episodes.jsonl"
 jq -c 'select(.repeat == 1)' "$PRD_EFFICIENCY_RUNS_DIR/noise/episodes.jsonl" >"$PRD_EFFICIENCY_RUNS_DIR/single/episodes.jsonl"
+mkdir -p "$PRD_EFFICIENCY_RUNS_DIR/limit"
+jq -c 'if .status == "infra_failure" then .status = "usage_limit" else . end' \
+  "$PRD_EFFICIENCY_RUNS_DIR/win/episodes.jsonl" >"$PRD_EFFICIENCY_RUNS_DIR/limit/episodes.jsonl"
 cp "$PRD_EFFICIENCY_RUNS_DIR/win/episodes.jsonl" "$scratch/win.before"
 
 summarize win
@@ -128,19 +133,49 @@ fi
 summarize fault --paired
 expect fault "a candidate g2 fail on a case where the baseline passes g2 flips no_new_failure_class" \
   '.paired.new_failure_classes == [{check: "g2_trackable", case_id: "B"}]
-   and .paired.decision == {ratio_le_max: true, upper_lt_max: true, pass_rate_guard: true, no_new_failure_class: false, substance_guard: true, verdict: "no-success"}'
+   and .paired.decision == {ratio_le_max: true, upper_lt_max: true, pass_rate_guard: true, no_new_failure_class: false, substance_guard: true, verdict: "no-improvement"}'
 expect fault "fault pass rates 5/7 and 4/6 stay within the 0.05 margin" \
   "$(jq_def 'near(.paired.pass_rate.baseline; 0.714286) and near(.paired.pass_rate.candidate; 0.666667) and near(.per_arm.candidate.check_rates.g2_trackable; 0.833333)')"
 
 summarize upper --paired
 expect upper "case C ratio 1.25: ratio 0.3125^(1/3), ci95 [0.5, 1.25], upper_lt_max false" \
   "$(jq_def 'near(.paired.ratio; 0.678604) and near(.paired.ci95[0]; 0.5) and near(.paired.ci95[1]; 1.25)
-   and .paired.decision.ratio_le_max == true and .paired.decision.upper_lt_max == false and .paired.decision.verdict == "no-success"')"
+   and .paired.decision.ratio_le_max == true and .paired.decision.upper_lt_max == false and .paired.decision.verdict == "no-improvement"')"
 
 summarize substance --paired
 expect substance "candidate median g1_checked 6 < 0.70 x 10 flips substance_guard" \
   '.paired.substance.g1_checked.ok == false and .paired.substance.acceptance_criteria.ok == true
-   and .paired.decision.substance_guard == false and .paired.decision.verdict == "no-success"'
+   and .paired.decision.substance_guard == false and .paired.decision.verdict == "no-improvement"'
+
+summarize limit
+expect limit "usage_limit is excluded and counted in infra_failure_rate" \
+  "$(jq_def '.per_arm.candidate.n_scored == 6 and .per_arm.candidate.excluded == {usage_limit: 1}
+   and near(.per_arm.candidate.infra_failure_rate; 0.142857) and (.rules.excluded | index("usage_limit")) != null')"
+
+default_dir="$scratch/default/prd-efficiency"
+mkdir -p "$default_dir"
+cp "$SUMMARIZE" "$default_dir/summarize.sh"
+jq 'del(.decision.otherwise)' "$EXP_DIR/experiment.json" >"$default_dir/experiment.json"
+ln -s "$EXP_DIR/../prd-grounding" "$scratch/default/prd-grounding"
+if bash "$default_dir/summarize.sh" fault --paired >/dev/null 2>"$scratch/stderr" \
+  && jq -e '.paired.decision.verdict == "no-improvement"' "$PRD_EFFICIENCY_RUNS_DIR/fault/summary.json" >/dev/null; then
+  printf 'PASS without decision.otherwise a failed verdict defaults to no-improvement\n'
+else
+  printf 'FAIL default verdict: %s %s\n' "$(jq -c '.paired.decision' "$PRD_EFFICIENCY_RUNS_DIR/fault/summary.json" 2>/dev/null)" "$(cat "$scratch/stderr")" >&2
+  status=1
+fi
+otherwise_dir="$scratch/otherwise/prd-efficiency"
+mkdir -p "$otherwise_dir"
+cp "$SUMMARIZE" "$otherwise_dir/summarize.sh"
+jq '.decision.otherwise = "probe-otherwise"' "$EXP_DIR/experiment.json" >"$otherwise_dir/experiment.json"
+ln -s "$EXP_DIR/../prd-grounding" "$scratch/otherwise/prd-grounding"
+if bash "$otherwise_dir/summarize.sh" fault --paired >/dev/null 2>"$scratch/stderr" \
+  && jq -e '.paired.decision.verdict == "probe-otherwise"' "$PRD_EFFICIENCY_RUNS_DIR/fault/summary.json" >/dev/null; then
+  printf 'PASS a failed verdict is the decision.otherwise of experiment.json\n'
+else
+  printf 'FAIL decision.otherwise verdict: %s %s\n' "$(jq -c '.paired.decision' "$PRD_EFFICIENCY_RUNS_DIR/fault/summary.json" 2>/dev/null)" "$(cat "$scratch/stderr")" >&2
+  status=1
+fi
 
 summarize noise --noise
 expect noise "a timeout is a scored guard fail with its cost; infra_failure is excluded" \

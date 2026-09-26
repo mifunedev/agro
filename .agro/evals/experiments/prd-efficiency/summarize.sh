@@ -19,9 +19,10 @@ highest attempt, and the last line when attempts are equal or null.
   scored    ok, timeout, plan_missing. A timeout or plan_missing counts as a
             guard fail (pass false) with its recorded cost, turns, and elapsed
             time, when the line records them.
-  excluded  infra_failure, interrupted, pin_mismatch, budget_refused. Each is
-            counted in excluded. infra_failure_rate is (infra_failure +
-            interrupted + pin_mismatch) / (latest lines - budget_refused).
+  excluded  infra_failure, usage_limit, interrupted, pin_mismatch,
+            budget_refused. Each is counted in excluded. infra_failure_rate is
+            (infra_failure + usage_limit + interrupted + pin_mismatch) /
+            (latest lines - budget_refused).
 lines.episodes is the line count of episodes.jsonl; a consumer compares it
 with the file to detect a stale summary. experiment.mixed_models is true when
 the lines record more than one model.
@@ -53,7 +54,8 @@ per_case.<case>.<arm>: n_scored, passes, mean_cost_usd, median_cost_usd.
            fails g1_paths or g2_trackable and no baseline ok record of that
            case fails the same check), substance_guard (each candidate median
            substance >= 0.70 x the baseline median), verdict (success when
-           each condition is true). experiment.json .decision overrides the
+           each condition is true, else experiment.json .decision.otherwise,
+           default no-improvement). experiment.json .decision overrides the
            thresholds: ratio_max, upper_max, pass_rate_margin,
            substance_floor, bootstrap_seed, bootstrap_resamples.
 
@@ -122,7 +124,7 @@ want_paired, want_noise, want_rescore = (sys.argv[i] == "1" for i in (6, 7, 8))
 n_cases = int(sys.argv[9])
 
 SCORED = {"ok", "timeout", "plan_missing"}
-INFRA = {"infra_failure", "interrupted", "pin_mismatch"}
+INFRA = {"infra_failure", "usage_limit", "interrupted", "pin_mismatch"}
 CHECKS = ["g1_paths", "g2_trackable", "g3_commands", "g4_structure"]
 GUARD_CHECKS = ["g1_paths", "g2_trackable"]
 SUBSTANCE = ["g1_checked", "acceptance_criteria"]
@@ -167,6 +169,7 @@ with open(experiment_path) as fh:
     experiment = json.load(fh)
 thresholds = dict(DEFAULTS)
 thresholds.update({k: v for k, v in (experiment.get("decision") or {}).items() if k in DEFAULTS})
+otherwise = (experiment.get("decision") or {}).get("otherwise") or "no-improvement"
 
 with open(episodes_path) as fh:
     lines = [json.loads(line) for line in fh if line.strip()]
@@ -339,7 +342,7 @@ if want_paired:
         "no_new_failure_class": not new_classes,
         "substance_guard": all(v["ok"] for v in substance.values()),
     }
-    decision["verdict"] = "success" if all(decision.values()) else "no-success"
+    decision["verdict"] = "success" if all(decision.values()) else otherwise
     summary["paired"] = {
         "n_cases": len(pairs),
         "ratio": r6(ratio),
