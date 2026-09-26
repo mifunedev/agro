@@ -17,8 +17,9 @@ import {
   readHostConfig,
   recordHarnessRoot,
   resolveHarnessRoot,
+  isRootToolReceipt,
   writeHostConfig,
-  type HostHarnessReceipt,
+  type HostToolReceipt,
 } from "../lib/host-config.js";
 import { resolveExistingWorkspace } from "../lib/host-workspace.js";
 import { resolveProjectRoot } from "../lib/project.js";
@@ -500,13 +501,11 @@ async function installOnHost(
     return r.exitCode;
   }
 
-  const receipt: HostHarnessReceipt = {
-    prefix,
-    binary: entry.binary,
-    binPath: harnessBinPath(prefix),
-    installedAt: new Date().toISOString(),
-    workspaceRoot: root,
-  };
+  const installedAt = new Date().toISOString();
+  const receipt: HostToolReceipt =
+    entry.hostInstallUser === "root"
+      ? { scope: "root", binary: entry.binary, installedAt, workspaceRoot: root }
+      : { prefix, binary: entry.binary, binPath: harnessBinPath(prefix), installedAt, workspaceRoot: root };
   try {
     const config = readHostConfig(env, home);
     writeHostConfig(
@@ -669,7 +668,7 @@ async function uninstallOnHost(
     return 1;
   }
 
-  const prefix = receipt?.prefix ?? computed;
+  const prefix = receipt === undefined || isRootToolReceipt(receipt) ? computed : receipt.prefix;
   const target = hostTargetFor(receipt?.workspaceRoot ?? workspace, prefix, run, env);
   const outcome = await removeTool(entry, target, prefix, undefined, opts, io, true);
 
