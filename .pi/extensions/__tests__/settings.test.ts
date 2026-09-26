@@ -7,7 +7,7 @@ interface PiSettings {
 }
 
 const RETIRED_PACKAGE_NAME = "pi-dynamic-workflows";
-const RETIRED_PACKAGE_NAMES = [RETIRED_PACKAGE_NAME, "pi-tasks", "pi-recap"];
+const RETIRED_PACKAGE_NAMES = [RETIRED_PACKAGE_NAME, "pi-recap"];
 
 function readPiSettings(): PiSettings {
   return JSON.parse(readFileSync(".pi/settings.json", "utf8")) as PiSettings;
@@ -26,6 +26,7 @@ describe("project Pi settings", () => {
 
     expect(settings.packages).toEqual([
       "npm:@tintinweb/pi-subagents@0.12.0",
+      "npm:@tintinweb/pi-tasks@0.7.0",
       "npm:@narumitw/pi-goal@0.4.2",
       "npm:@narumitw/pi-codex-usage@0.6.2",
       "npm:@trevonistrevon/pi-loop@0.5.5",

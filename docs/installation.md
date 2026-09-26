@@ -178,9 +178,10 @@ The sandbox image ships a complete development environment. The required host de
 Pi loads project-local packages from `.pi/settings.json`. The defaults include:
 
 - `@tintinweb/pi-subagents`
+- `@tintinweb/pi-tasks`
 - `@narumitw/pi-goal`
 - `@narumitw/pi-codex-usage@0.6.2` for `/codex-status` plus fixed statusline usage timers
-- `@trevonistrevon/pi-loop` for Monitor/Loop tools and native fallback task tracking with `/tasks`
+- `@trevonistrevon/pi-loop` for Monitor/Loop tools
 - `@guwidoe/pi-prompt-suggester` for next-prompt suggestions
 
 ### Base image

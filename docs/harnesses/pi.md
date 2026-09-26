@@ -36,6 +36,7 @@ This is Pi-specific. The Codex CLI has its own headless path (`codex login --dev
 AGRO loads these project-local Pi packages from `.pi/settings.json`:
 
 - [`@tintinweb/pi-subagents`](https://pi.dev/packages/@tintinweb/pi-subagents) — Claude Code-style sub-agent commands for Pi, including FleetView (enabled by default). With an empty prompt, press `↓` (or `←`) to focus the agent list, then `↑`/`↓` to select and `Enter` to open an agent; toggle it via `/agents` → Settings → Fleet view.
+- [`@tintinweb/pi-tasks`](https://github.com/tintinweb/pi-tasks) — task tracking for Pi with `TaskCreate`, `TaskList`, `TaskGet`, `TaskUpdate`, `TaskOutput`, `TaskStop`, and `TaskExecute` tools; a `/tasks` menu; and a persistent task widget. `TaskExecute` integrates with `@tintinweb/pi-subagents` so tracked tasks can run through configured subagents.
 - [`@narumitw/pi-goal`](https://pi.dev/packages/@narumitw/pi-goal?name=goal) — `/goal <task>` mode that keeps Pi working until it verifies completion and calls the `goal_complete` tool. Use `/goal pause`, `/goal resume`, or `/goal clear` to manage the active goal.
 - [`@narumitw/pi-codex-usage`](https://github.com/narumiruna/pi-extensions/tree/main/extensions/pi-codex-usage) — `/codex-status` plus a compact `openai-codex` statusline for 5-hour session usage and weekly usage. AGRO pins `0.6.2`, which includes the upstream stale-`ExtensionContext` statusline timer fix that prevents crashes after Pi replaces an extension context.
 - [`@trevonistrevon/pi-loop`](https://pi.dev/packages/@trevonistrevon/pi-loop?name=monitor) — Monitor and loop tools for background command monitoring and scheduled re-wakes. Use `MonitorCreate`, `MonitorList`, and `MonitorStop` for long-running commands; use `/loop` or `LoopCreate` for cron/event-triggered follow-up prompts.
@@ -117,9 +118,11 @@ Auth is layered: the extension uses Pi's own `openai-codex` provider auth first,
 
 ## Task tracking
 
-`@trevonistrevon/pi-loop` provides native fallback task tracking when no other task package loads. Use `/tasks` to inspect tasks, or use `TaskCreate`, `TaskList`, `TaskUpdate`, and `TaskDelete` to manage them. The retired `TaskGet`, `TaskExecute`, `TaskOutput`, and `TaskStop` tools do not come from this fallback. Use `@tintinweb/pi-subagents` for sub-agent work.
+The default task runtime state lives under `.pi/tasks/`, which is gitignored. Leave the default for per-checkout task state; set `PI_TASKS=off` to disable task tracking; set `PI_TASKS=<named-list>` to select a named task list; or pass an explicit task-list path when you intentionally want a shared list outside the gitignored default.
 
-Removing project package declarations does not delete existing runtime state or cached installations. A running Pi session retains its loaded packages until you reload or restart it. Personal package declarations and explicit `pi -e` arguments can still load these packages.
+`pi-loop` detects `@tintinweb/pi-tasks` over Pi's event bus. Because AGRO loads `pi-tasks` by default, `pi-loop` delegates task management to that package; its native fallback `TaskCreate`/`TaskList`/`TaskUpdate`/`TaskDelete` tools and `/tasks` command only register in projects where `pi-tasks` is absent.
+
+Removing the project recap package declaration does not delete existing runtime state or cached installations. A running Pi session retains `pi-recap` until you reload or restart the session. Personal package declarations and explicit `pi -e` arguments can still load `pi-recap`.
 
 ## Dynamic workflow retirement
 

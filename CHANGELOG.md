@@ -10,7 +10,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Removed
 
-- Remove the project Pi task and recap packages; use `pi-loop` for native fallback tasks ([#1179](https://github.com/mifunedev/agro/issues/1179)).
+- Remove the project Pi recap package so new sessions no longer load `/recap` by default ([#1179](https://github.com/mifunedev/agro/issues/1179)).
 
 ### Changed
 
