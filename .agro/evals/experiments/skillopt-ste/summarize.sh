@@ -4,6 +4,7 @@ set -euo pipefail
 EXP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly EXP_DIR
 readonly EXPERIMENT="$EXP_DIR/experiment.json"
+readonly VERIFY="$EXP_DIR/verify.sh"
 readonly RUNS_DIR="${SKILLOPT_STE_RUNS_DIR:-$EXP_DIR/runs}"
 
 usage() {
@@ -12,7 +13,9 @@ Usage: summarize.sh <run-id>
 
 Read runs/<run-id>/episodes.jsonl and runs/<run-id>/canaries.jsonl, write
 runs/<run-id>/summary.json, and print it. Only the latest attempt of each
-(document, arm, repeat) counts. pass_rate is passes / (ok + timeout);
+(document, arm, repeat) counts. Each ok episode is scored again from its
+stored output with the current verify.sh; episodes.jsonl stays unchanged.
+pass_rate is passes / (ok + timeout);
 infra_failure, interrupted, and pin_mismatch attempts count only in
 infra_failure_rate.
 
@@ -42,9 +45,27 @@ if [ -f "$canaries" ]; then
   canary_json="$(jq -c -s '.' "$canaries")"
 fi
 threshold="$(jq -r '.success.headroom_stop_train_pass_rate_ge' "$EXPERIMENT")"
+verifier_sha256="$(sha256sum "$VERIFY" | cut -d' ' -f1)"
+
+rescore_file="$(mktemp)"
+cleanup() {
+  rm -f "$rescore_file" "$run_dir/summary.json.tmp"
+}
+trap cleanup EXIT
+jq -r 'select(.status == "ok") | [.episode_id, .document_id, .arm, (.repeat | tostring), (.attempt | tostring)] | @tsv' "$episodes" \
+  | while IFS=$'\t' read -r episode_id doc arm repeat attempt; do
+      output="$run_dir/outputs/${doc}-${arm}-r${repeat}-a${attempt}.md"
+      if [ -f "$output" ] && verdict="$(bash "$VERIFY" "$EXP_DIR/corpus/sources/$doc.md" "$output" "$doc")"; then
+        jq -cn --arg id "$episode_id" --argjson v "$verdict" '{id: $id, verifier: $v}'
+      else
+        jq -cn --arg id "$episode_id" '{id: $id, verifier: null}'
+      fi
+    done >"$rescore_file"
 
 jq -s \
   --arg run_id "$run_id" \
+  --arg verifier_sha256 "$verifier_sha256" \
+  --slurpfile rescored "$rescore_file" \
   --argjson canaries "$canary_json" \
   --argjson threshold "$threshold" '
   def r4: if . == null then null else (. * 10000 | round) / 10000 end;
@@ -82,7 +103,12 @@ jq -s \
         }
       };
   def by(f): group_by(f) | map({key: (.[0] | f), value: stats}) | from_entries;
-  . as $lines
+  ($rescored | map({key: .id, value: .verifier}) | from_entries) as $fresh
+  | map(if .status == "ok" then
+      . + {as_run_pass: .pass, rescore_missing: ($fresh[.episode_id] == null)}
+      | if .rescore_missing then . else . + {verifier: $fresh[.episode_id], pass: $fresh[.episode_id].pass} end
+    else . end)
+  | . as $lines
   | ($lines | group_by([.document_id, .arm, .repeat]) | map(max_by(.attempt))) as $latest
   | ($latest | distinct(.split)) as $splits
   | ($latest | stats) as $overall
@@ -90,6 +116,13 @@ jq -s \
       run_id: $run_id,
       splits: $splits,
       lines: {episodes: ($lines | length), latest: ($latest | length), superseded: (($lines | length) - ($latest | length)), canaries: ($canaries | length)},
+      rescore: {
+        verifier_sha256: $verifier_sha256,
+        rescored: ([$latest[] | select(.status == "ok" and .rescore_missing == false)] | length),
+        rescored_changes: ([$latest[] | select(.status == "ok" and .rescore_missing == false and .as_run_pass != .pass)] | length),
+        changed: [$latest[] | select(.status == "ok" and .rescore_missing == false and .as_run_pass != .pass) | {episode_id, as_run_pass, pass}],
+        missing_outputs: [$latest[] | select(.status == "ok" and .rescore_missing) | .episode_id]
+      },
       experiment: {
         models: ($lines | distinct(.model)),
         efforts: ($lines | distinct(.effort)),

@@ -84,6 +84,20 @@ path_trailing = ")]}\"'*,;:!?.`>\\"
 path_prefixes = ("/", "./", "../", "~/")
 path_ext_re = re.compile(r"\.[A-Za-z0-9]{1,8}$")
 number_re = re.compile(r"(?<!\w)(?<!\w[.,])\d+(?:[.,]\d+)*(?!\w)(?![.,]\w)")
+whitespace_re = re.compile(r"\s+")
+glued_number_re = re.compile(r"(?<!\w)(?<!\w[.,])(\d+(?:[.,]\d+)*)(?=[A-Za-z])")
+number_words = {
+    word: str(value)
+    for value, word in enumerate(
+        "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen "
+        "fifteen sixteen seventeen eighteen nineteen twenty".split()
+    )
+}
+number_words.update({
+    "thirty": "30", "forty": "40", "fifty": "50", "sixty": "60", "seventy": "70",
+    "eighty": "80", "ninety": "90", "hundred": "100", "thousand": "1000",
+})
+number_word_re = re.compile(r"\b(" + "|".join(number_words) + r")\b", re.I)
 list_marker_re = re.compile(r"^(\s*)(\d+)([.)])(?=\s)", re.M)
 angle_re = re.compile(r"<[^<>\n]*>")
 placeholder_re = re.compile(r"<[A-Za-z][^<>\n]{0,60}>")
@@ -145,10 +159,20 @@ def split_blocks(text):
     return prose, [b for b in bodies if b.strip()]
 
 
-def add(literals, seen, item):
+def add(literals, seen, item, kind="exact"):
     if item and item not in seen:
         seen.add(item)
-        literals.append(item)
+        literals.append((item, kind))
+
+
+def collapse(text):
+    return whitespace_re.sub(" ", text)
+
+
+def present(item, kind, out, collapsed_out):
+    if kind == "span":
+        return collapse(item) in collapsed_out
+    return item in out
 
 
 def path_token(token):
@@ -168,7 +192,7 @@ def literals_of(text):
         escaped = line.replace("\\`", "\0\0")
         rest = line
         for found in code_re.finditer(escaped):
-            add(literals, seen, line[found.start():found.end()])
+            add(literals, seen, line[found.start(2):found.end(2)], "span")
             rest = blank(rest, found.start(), found.end())
         for found in url_re.finditer(rest):
             add(literals, seen, found.group(0).rstrip(url_trailing))
@@ -182,10 +206,18 @@ def literals_of(text):
     return literals
 
 
+def number_values(text):
+    return number_re.findall(text) + glued_number_re.findall(text)
+
+
 def numeric_tokens(text):
     text = list_marker_re.sub(lambda m: m.group(1) + " " * len(m.group(2)) + m.group(3), text)
     text = angle_re.sub(lambda m: " " * len(m.group(0)), text)
-    return number_re.findall(text)
+    return number_values(text)
+
+
+def number_word_values(text):
+    return [number_words[word.lower()] for word in number_word_re.findall(text)]
 
 
 def is_html_tag(token):
@@ -213,14 +245,15 @@ def word_count(path):
 
 
 source_literals = literals_of(source)
-missing = [item for item in source_literals if item not in output]
+collapsed_output = collapse(output)
+missing = [item for item, kind in source_literals if not present(item, kind, output, collapsed_output)]
 p1 = not missing
 
 checked = subprocess.run(["bash", checker, output_path], capture_output=True, text=True)
 findings = [line.replace(output_path, "output", 1) for line in checked.stdout.splitlines() if line.strip()]
 p2 = checked.returncode == 0
 
-source_numbers = set(numeric_tokens(source))
+source_numbers = set(numeric_tokens(source)) | set(number_word_values(source))
 new_numbers = []
 for token in numeric_tokens(output):
     if token not in source_numbers and token not in new_numbers:
@@ -230,7 +263,7 @@ filled = []
 for gap in gaps:
     value = number_re.search(gap["removed"])
     value = value.group(0) if value else gap["removed"]
-    if value in number_re.findall(output) and value not in filled:
+    if value in number_values(output) and value not in filled:
         filled.append(value)
 marks = placeholders(output, source)
 p3 = not new_numbers and not filled and len(marks) >= len(gaps)

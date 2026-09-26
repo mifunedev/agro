@@ -9,6 +9,13 @@
     "superseded": 0,
     "canaries": 1
   },
+  "rescore": {
+    "verifier_sha256": "21f897fd73d12e328b897dc9d169447625698a9865d1d79d79c0dcdb88681677",
+    "rescored": 2,
+    "rescored_changes": 0,
+    "changed": [],
+    "missing_outputs": []
+  },
   "experiment": {
     "models": [
       "claude-sonnet-5"

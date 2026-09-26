@@ -21,12 +21,12 @@ only() {
 }
 
 readonly ALL_TRUE='.p1_literals and .p2_checker and .p3_no_invention and .p4_length and .pass'
-readonly EDGE_MISSING='.details.p1.missing == ["`real code`","``a `tick` b``","./scripts/run.sh","docs/guide.md","https://example.com/a","../skills/eval/SKILL.md","~/.config/gh",".agro/tasks/","echo hi"]'
+readonly EDGE_MISSING='.details.p1.missing == ["real code","a `tick` b","./scripts/run.sh","docs/guide.md","https://example.com/a","../skills/eval/SKILL.md","~/.config/gh",".agro/tasks/","echo hi"]'
 readonly EDGE_NUMBERS='.p1_literals and .p3_no_invention and .details.p3.placeholders == 1 and .details.p3.new_numbers == []'
 
 cases=(
   "clean|$GAP_SOURCE|$FIXTURES/F3-03.clean.md|F3-03|$ALL_TRUE"
-  "changed code span|$GAP_SOURCE|$FIXTURES/F3-03.fault-code-span.md|F3-03|$(only p1_literals) and .details.p1.missing == [\"\`opencode-ai\`\"]"
+  "changed code span|$GAP_SOURCE|$FIXTURES/F3-03.fault-code-span.md|F3-03|$(only p1_literals) and .details.p1.missing == [\"opencode-ai\"]"
   "dropped path|$GAP_SOURCE|$FIXTURES/F3-03.fault-dropped-path.md|F3-03|$(only p1_literals) and .details.p1.missing == [\".devcontainer/docker-compose.yml:58\"]"
   "checker finding|$GAP_SOURCE|$FIXTURES/F3-03.fault-checker.md|F3-03|$(only p2_checker)"
   "invented number|$GAP_SOURCE|$FIXTURES/F3-03.fault-invented-number.md|F3-03|$(only p3_no_invention) and .details.p3.new_numbers == [\"7\"]"
@@ -34,6 +34,11 @@ cases=(
   "truncated output|$GAP_SOURCE|$FIXTURES/F3-03.fault-truncated.md|F3-03|$(only p4_length)"
   "edge literal extraction|$EDGE_SOURCE|$FIXTURES/edge.empty.md|F1-01|$EDGE_MISSING"
   "edge list markers, placeholder numbers, html tags|$EDGE_SOURCE|$FIXTURES/edge.output.md|F1-01|$EDGE_NUMBERS"
+  "numbers glued to units in the source|$EXP_DIR/corpus/sources/F1-02.md|$FIXTURES/F1-02.glued-units.md|F1-02|.p3_no_invention and .details.p3.new_numbers == []"
+  "number words may become digits|$EXP_DIR/corpus/sources/F1-05.md|$FIXTURES/F1-05.number-words.md|F1-05|.p3_no_invention and .details.p3.new_numbers == []"
+  "inline spans moved into a fenced block keep P1|$EXP_DIR/corpus/sources/F1-05.md|$FIXTURES/F1-05.spans-to-fence.md|F1-05|.p1_literals and .details.p1.missing == []"
+  "an inline span wrapped across a line break keeps P1|$EXP_DIR/corpus/sources/F1-06.md|$FIXTURES/F1-06.wrapped-span.md|F1-06|.p1_literals and .details.p1.missing == []"
+  "a gap value glued to a unit counts as filled|$GAP_SOURCE|$FIXTURES/F3-03.glued-gap.md|F3-03|$(only p3_no_invention) and .details.p3.filled_gaps == [\"755\"]"
 )
 
 status=0
