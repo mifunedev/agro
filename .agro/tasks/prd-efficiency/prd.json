@@ -84,8 +84,8 @@
         "`noise.md` names the held-out repeat count: the smallest count with a minimum detectable ratio of 0.80 or more. If no count from 1 to 4 meets that bound, the story stops the experiment and asks the operator."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: run-batch.sh --run-id noise --cases 1181 --repeats 1 --phase noise; the first episode cost $0.81, gate passed. 2 executed: jq on runs/noise/episodes.jsonl gives 15 ok baseline records, 5 cases x 3 repeats; total $12.26 under the $18 noise cap. 3 executed: summarize.sh noise --noise; sigma_w 0.068, minimum detectable ratios 0.925, 0.947, 0.956, 0.962 for 1 to 4 repeats at 12 cases; noise.md reports them. 4 executed: noise.md names 1 repeat under the rule; the advisor proposes the D1 held-out repeat count for operator approval at US-005 because the pass-rate guard needs more attempts than the cost metric.",
       "dependsOn": [
         "US-002",
         "US-003"
@@ -93,7 +93,8 @@
       "files": [
         ".agro/evals/experiments/prd-efficiency/runs/noise/",
         ".agro/evals/experiments/prd-efficiency/noise.md"
-      ]
+      ],
+      "commit": "06dc4962"
     },
     {
       "id": "US-005",
