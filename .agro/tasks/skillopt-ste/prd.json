@@ -7,9 +7,9 @@
     {
       "id": "US-001",
       "title": "Freeze the rewrite corpus",
-      "description": "As the advisor, I want a fixed corpus in six document-type families so that both arms see the same inputs.",
+      "description": "As the advisor, I want a fixed corpus in four families so that both arms see the same inputs.",
       "acceptanceCriteria": [
-        "`.agro/tasks/skillopt-ste/corpus/` holds 60 source documents: 10 documents in each family F1 to F6.",
+        "`.agro/tasks/skillopt-ste/corpus/` holds 60 source documents: 15 documents in each family F1 to F4.",
         "`corpus/manifest.json` records the family, the split, the origin, and the `sha256` digest of each source document.",
         "`jq -e '[.documents[] | select(.split == \"train\")] | length == 30' corpus/manifest.json` exits 0.",
         "`jq -e '[.documents[] | select(.split == \"heldout\")] | length == 30' corpus/manifest.json` exits 0.",

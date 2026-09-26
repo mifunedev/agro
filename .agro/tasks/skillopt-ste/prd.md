@@ -6,11 +6,11 @@ Status: DRAFT
 
 ### US-001: Freeze the rewrite corpus
 
-**Description:** As the advisor, I want a fixed corpus in six document-type families so that both arms see the same inputs.
+**Description:** As the advisor, I want a fixed corpus in four families so that both arms see the same inputs.
 
 **Acceptance Criteria:**
 
-- [ ] `.agro/tasks/skillopt-ste/corpus/` holds 60 source documents: 10 documents in each family F1 to F6.
+- [ ] `.agro/tasks/skillopt-ste/corpus/` holds 60 source documents: 15 documents in each family F1 to F4.
 - [ ] `corpus/manifest.json` records the family, the split, the origin, and the `sha256` digest of each source document.
 - [ ] `jq -e '[.documents[] | select(.split == "train")] | length == 30' corpus/manifest.json` exits 0.
 - [ ] `jq -e '[.documents[] | select(.split == "heldout")] | length == 30' corpus/manifest.json` exits 0.
@@ -118,7 +118,8 @@ Verified facts:
 - `.agro/skills/ste/scripts/ste-check.sh` is a deterministic checker. It exits 0 for a clean document and exits 1 for one or more findings.
 - `.agro/evals/probes/ste-checker-contract.sh` guards the checker.
 - The `/ste` skill states two further contracts that a script can check: copy each literal byte for byte, and mark each missing value with a placeholder.
-- 44 of 66 tracked Markdown files in `docs/`, `README.md`, `CHANGELOG.md`, and `.agro/*/` fail `ste-check.sh` today.
+- At revision `3230337b`, 31 `docs/` files and 20 directory `README.md`, scoped `AGENTS.md`, and `SKILL.md` files hold 80 to 1500 words and fail `ste-check.sh`.
+- `CHANGELOG.md` sections pass `ste-check.sh`. The corpus does not use `CHANGELOG.md`.
 - More than 200 merged pull requests and 243 issues predate the STE adoption on 2026-08-13 (#750).
 - Claude Code 2.1.280 is installed in the sandbox.
 
@@ -166,9 +167,10 @@ These values go into `experiment.json` in US-003. The operator approves them wit
 | Episode prompt | `/ste Rewrite <path> in place. Follow rewrite mode.` |
 | Episode timeout | 600 seconds |
 | Repeats | 3 for each document and arm |
-| Training families | F1 `docs/` guides and runbooks; F2 GitHub issue bodies created before 2026-08-13; F3 merged GitHub PR bodies created before 2026-08-13 |
-| Held-out families | F4 directory `README.md` files; F5 scoped `AGENTS.md` and `SKILL.md` files, excluding `.agro/skills/ste/`; F6 `CHANGELOG.md` release sections |
-| Document selection | For each family, sort the eligible documents by `sha256` of the origin path, then take the first 10 that fail `ste-check.sh` |
+| Training families | Repository files: F1 `docs/` guides and runbooks; F2 directory `README.md` files outside `docs/`, scoped `AGENTS.md` files except the root file, and `SKILL.md` files, excluding `.agro/skills/ste/` |
+| Held-out families | GitHub bodies: F3 issue bodies created before 2026-08-13; F4 merged PR bodies created before 2026-08-13 |
+| Eligibility | 80 to 1500 words for each document |
+| Document selection | For each family, sort the eligible documents by `sha256` of the origin identifier, then take the first 15 that fail `ste-check.sh` |
 | Budget | 540 attempts: 90 baseline training, 240 optimization, 180 held-out, and 30 retries |
 | Success threshold | The candidate held-out pass rate is at least 0.15 above the baseline held-out pass rate |
 
