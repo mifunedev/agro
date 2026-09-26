@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1211-prd-turn-reduction",
+  "description": "Take only the turn-reduction edits of the #1197 candidate into .agro/skills/prd/SKILL.md, and measure them on the held-out split under the #1197 decision rule.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add the turn-reduction edits to /prd",
+      "description": "As a /prd user, I want fewer tool turns for each plan so that each plan costs less.",
+      "acceptanceCriteria": [
+        "`.agro/skills/prd/SKILL.md` holds only group 1 edits from `.agro/evals/experiments/prd-efficiency/runs/optimize/candidates/cand-3.SKILL.md`: parallel setup reads, batched grounding calls, one call that writes and verifies the plan, one fix call for all checker findings, and no second read of a file.",
+        "The file holds no group 2 edit (a story cap, a Summary word cap, a story description word cap) and no group 3 edit (backtick rules, the `UNTRACKED` path loop, the task-folder rule).",
+        "The PR body maps each edit of candidate 3 to group 1, 2, or 3, and to included or excluded.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/prd/SKILL.md` exits 0.",
+        "`bash .agro/scripts/link-providers.sh --check` exits 0, and `git diff --check` prints nothing.",
+        "`.agro/evals/decisions/skill-impact.md` holds a new `PROPOSED` record for the change."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/prd/SKILL.md",
+        ".agro/evals/decisions/skill-impact.md"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Measure the change on the held-out split",
+      "description": "As the operator, I want a paired held-out measurement so that the change lands only on evidence.",
+      "acceptanceCriteria": [
+        "`runs/heldout-1211/` of the `prd-efficiency` experiment holds 72 scored records: 12 held-out cases, 3 repeats, the baseline arm and the candidate arm at the US-001 commit.",
+        "The first episode costs $3.00 or less, and the run costs $70 or less.",
+        "`summarize.sh heldout-1211 --paired` reports each condition of the #1197 decision rule.",
+        "`results-1211.md` states the verdict, the metrics for each arm, and that the held-out split had one earlier evaluation in #1197.",
+        "If the verdict is not `success`, the branch reverts the `SKILL.md` change and keeps the evidence.",
+        "A comment on issue #1211 reports the verdict and the cost."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/evals/experiments/prd-efficiency/runs/heldout-1211/",
+        ".agro/evals/experiments/prd-efficiency/results-1211.md",
+        ".agro/skills/prd/SKILL.md"
+      ]
+    }
+  ]
+}
