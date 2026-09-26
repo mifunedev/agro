@@ -94,15 +94,16 @@
         "`run-batch.sh` runs in the named tmux session `skillopt-ste` and resumes from `episodes.jsonl` after a restart."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted on integrated task branch at 40d453b1. C1 executed: smoke run created detached worktrees under .worktrees/skillopt-ste-ep/, ran check-pins.sh --arm baseline --root <wt>, leak guard, copied source to work/<doc>.md, ran claude with pinned claude_args/prompt; traces show claude-sonnet-5 and 2.1.280. C2 executed: fake test confirms .claude/skills -> ../.agro/skills resolves ste/SKILL.md; real canary (runs/smoke/canaries.jsonl) quoted '# STE \u2014 Simplified Technical English' and the checker path, 1 turn, $0.067. Stream-json does not record slash expansion, so per-episode skill_loaded was replaced by skill_invocation=slash-prompt plus a per-arm canary gate. C3 executed: tests/run-episode.sh exit 0; one line each for ok, timeout, infra_failure, interrupted (exit 143), pin_mismatch. C4 executed: jq -e -s all 17 fields present on runs/smoke/episodes.jsonl -> true. C5 executed: git worktree list shows 0 skillopt-ste-ep worktrees after all cases. C6 executed: --detach starts tmux session skillopt-ste and refuses a second; resume test gives exactly 2 ok lines; real resume skipped both smoke episodes. Smoke: F1-04 and F2-03 both ok, pass, $0.34/$0.44, 5/12 turns, 120/191 s, other_changes []. Committed smoke canary line uses key cost_usd (code now writes cost).",
       "dependsOn": [
         "US-003"
       ],
       "files": [
         ".agro/evals/experiments/skillopt-ste/run-episode.sh",
         ".agro/evals/experiments/skillopt-ste/run-batch.sh"
-      ]
+      ],
+      "commit": "40d453b1"
     },
     {
       "id": "US-005",
