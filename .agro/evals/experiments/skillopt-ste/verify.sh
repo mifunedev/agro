@@ -76,7 +76,7 @@ list_limit = 10
 item_width = 80
 min_ratio, max_ratio = 0.5, 1.5
 fence_re = re.compile(r"^\s*(`{3,}|~{3,})")
-code_re = re.compile(r"(`+)(?!`)(.+?)(?<!`)\1(?!`)")
+code_re = re.compile(r"(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)", re.S)
 url_re = re.compile(r"https?://\S+")
 url_trailing = ".,;:)>]\"'*"
 path_leading = "([{\"'*`<\\"
@@ -130,6 +130,7 @@ def split_blocks(text):
         if fence is None and match:
             fence = match.group(1)
             body = []
+            prose.append("")
             continue
         if fence is not None:
             if match and match.group(1)[0] == fence[0] and len(match.group(1)) >= len(fence) and not line.strip()[len(match.group(1)):].strip():
@@ -137,6 +138,7 @@ def split_blocks(text):
                 bodies.append("\n".join(body))
             else:
                 body.append(line)
+            prose.append("")
             continue
         masked = line
         pos = 0
@@ -184,15 +186,25 @@ def path_token(token):
     return None
 
 
+def paragraphs(lines):
+    current = []
+    for line in lines + [""]:
+        if line.strip():
+            current.append(line)
+        elif current:
+            yield "\n".join(current)
+            current = []
+
+
 def literals_of(text):
     prose, bodies = split_blocks(text)
     literals = []
     seen = set()
-    for line in prose:
-        escaped = line.replace("\\`", "\0\0")
-        rest = line
+    for paragraph in paragraphs(prose):
+        escaped = paragraph.replace("\\`", "\0\0")
+        rest = paragraph
         for found in code_re.finditer(escaped):
-            add(literals, seen, line[found.start(2):found.end(2)], "span")
+            add(literals, seen, collapse(paragraph[found.start(2):found.end(2)]), "span")
             rest = blank(rest, found.start(), found.end())
         for found in url_re.finditer(rest):
             add(literals, seen, found.group(0).rstrip(url_trailing))

@@ -21,7 +21,7 @@ only() {
 }
 
 readonly ALL_TRUE='.p1_literals and .p2_checker and .p3_no_invention and .p4_length and .pass'
-readonly EDGE_MISSING='.details.p1.missing == ["real code","a `tick` b","./scripts/run.sh","docs/guide.md","https://example.com/a","../skills/eval/SKILL.md","~/.config/gh",".agro/tasks/","echo hi"]'
+readonly EDGE_MISSING='(.details.p1.missing | sort) == (["real code","a `tick` b","./scripts/run.sh","docs/guide.md","https://example.com/a","../skills/eval/SKILL.md","~/.config/gh",".agro/tasks/","echo hi"] | sort)'
 readonly EDGE_NUMBERS='.p1_literals and .p3_no_invention and .details.p3.placeholders == 1 and .details.p3.new_numbers == []'
 
 cases=(
@@ -38,6 +38,7 @@ cases=(
   "number words may become digits|$EXP_DIR/corpus/sources/F1-05.md|$FIXTURES/F1-05.number-words.md|F1-05|.p3_no_invention and .details.p3.new_numbers == []"
   "inline spans moved into a fenced block keep P1|$EXP_DIR/corpus/sources/F1-05.md|$FIXTURES/F1-05.spans-to-fence.md|F1-05|.p1_literals and .details.p1.missing == []"
   "an inline span wrapped across a line break keeps P1|$EXP_DIR/corpus/sources/F1-06.md|$FIXTURES/F1-06.wrapped-span.md|F1-06|.p1_literals and .details.p1.missing == []"
+  "a source inline span that wraps a line pairs its own backticks|$EXP_DIR/corpus/sources/F1-14.md|$FIXTURES/F1-14.source-wrapped-span.md|F1-14|.p1_literals and .details.p1.missing == []"
   "a gap value glued to a unit counts as filled|$GAP_SOURCE|$FIXTURES/F3-03.glued-gap.md|F3-03|$(only p3_no_invention) and .details.p3.filled_gaps == [\"755\"]"
 )
 
