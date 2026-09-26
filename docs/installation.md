@@ -257,7 +257,8 @@ When `sudo -n true` fails, the command exits 1 and changes nothing. The message
 names `<id>` and passwordless `sudo`.
 `docker-engine` and `desktop` install on the host only. Run
 `agro tool install docker-engine --host` or `agro tool install desktop --host`.
-`agro tool uninstall` refuses both.
+`agro tool uninstall` refuses both. To remove `docker-engine` or `desktop`, see
+[Remove a root-level tool](#remove-a-root-level-tool).
 After a `docker-engine` install, log in again to use the `docker` group.
 
 To use the desktop:
@@ -269,6 +270,90 @@ To use the desktop:
    `tailscale ip -4`.
 
 The desktop install changes no SSH firewall rule and sets no password.
+
+#### Remove a root-level tool
+
+`agro tool uninstall docker-engine` and `agro tool uninstall desktop` exit 1 and
+change nothing. `agro` does not remove system packages that it installed as root,
+because other software can depend on those packages. Run the steps below on the
+host to remove a root-level tool by hand.
+
+To remove `docker-engine`:
+
+1. Remove the Docker packages:
+
+   ```bash
+   sudo apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+   ```
+
+2. Remove Docker's apt repository and key, then refresh the package index:
+
+   ```bash
+   sudo rm -f /etc/apt/sources.list.d/docker.list /etc/apt/keyrings/docker.asc
+   sudo apt-get update
+   ```
+
+3. Remove your user from the `docker` group. Log in again to apply the change.
+
+   ```bash
+   sudo gpasswd -d "$USER" docker
+   ```
+
+4. **Warning:** `apt-get purge` does not delete `/var/lib/docker`. The directory
+   `/var/lib/docker` holds every image, container, and volume on the host. The next command deletes
+   every image, container, and volume. To keep that data, skip this step.
+
+   ```bash
+   sudo rm -rf /var/lib/docker /var/lib/containerd
+   ```
+
+To remove `desktop`:
+
+1. Stop XRDP before you remove the firewall rule. TCP 3389 then stays closed.
+
+   ```bash
+   sudo systemctl disable --now xrdp
+   ```
+
+2. Remove the desktop packages:
+
+   ```bash
+   sudo apt-get purge -y xrdp xorgxrdp xfce4 xfce4-goodies
+   ```
+
+3. Remove the packages that only the desktop needed. Read the list that
+   `apt-get` prints. Confirm only when the list holds no package that you use.
+
+   ```bash
+   sudo apt-get autoremove
+   ```
+
+4. Remove the XRDP firewall rule. When the table `inet agro_xrdp` is not loaded,
+   `nft` exits 1. Continue with the next step.
+
+   ```bash
+   sudo rm -f /etc/systemd/system/xrdp.service.d/agro-tailscale-only.conf /etc/xrdp/agro-tailscale-only.nft
+   sudo systemctl daemon-reload
+   sudo nft delete table inet agro_xrdp
+   ```
+
+5. Remove the XFCE session file that the install wrote:
+
+   ```bash
+   rm -f ~/.xsession
+   ```
+
+6. **Warning:** If Tailscale was on the host before you ran
+   `agro tool install desktop --host`, keep Tailscale and stop here. The install
+   did not install Tailscale on that host. If you connect to the host over
+   Tailscale, the next commands end that connection.
+
+   ```bash
+   sudo systemctl disable --now tailscaled
+   sudo apt-get purge -y tailscale
+   sudo rm -f /etc/apt/sources.list.d/tailscale.list /usr/share/keyrings/tailscale-archive-keyring.gpg
+   sudo apt-get update
+   ```
 
 On the host, `agent-browser` installs a pinned release binary into `~/.local/bin`
 and never calls the operating system package manager. The installer does not download a

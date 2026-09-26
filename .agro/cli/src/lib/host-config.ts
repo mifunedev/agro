@@ -19,11 +19,24 @@ export interface HostHarnessReceipt {
   workspaceRoot?: string;
 }
 
+export interface HostRootToolReceipt {
+  scope: "root";
+  binary: string;
+  installedAt: string;
+  workspaceRoot?: string;
+}
+
+export type HostToolReceipt = HostHarnessReceipt | HostRootToolReceipt;
+
+export function isRootToolReceipt(receipt: HostToolReceipt): receipt is HostRootToolReceipt {
+  return (receipt as Partial<HostRootToolReceipt>).scope === "root";
+}
+
 export interface HostConfig {
   version: 1;
   harnessRoot?: string;
   hostHarnesses?: Record<string, HostHarnessReceipt>;
-  hostTools?: Record<string, HostHarnessReceipt>;
+  hostTools?: Record<string, HostToolReceipt>;
   [key: string]: unknown;
 }
 
@@ -80,7 +93,7 @@ export function validateHostConfig(value: unknown): HostConfig {
   if (hostHarnesses !== undefined) validateReceipts(hostHarnesses, "hostHarnesses", "harness");
 
   const hostTools = record.hostTools;
-  if (hostTools !== undefined) validateReceipts(hostTools, "hostTools", "tool");
+  if (hostTools !== undefined) validateReceipts(hostTools, "hostTools", "tool", true);
 
   return { ...(record as HostConfig), version: 1 };
 }
@@ -93,7 +106,7 @@ function absoluteField(value: unknown, path: string): string {
   return value;
 }
 
-function validateReceipts(value: unknown, field: string, noun: string): void {
+function validateReceipts(value: unknown, field: string, noun: string, allowRootScope = false): void {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw fieldError(field, `must be a JSON object keyed by ${noun} id`);
   }
@@ -104,8 +117,15 @@ function validateReceipts(value: unknown, field: string, noun: string): void {
       throw fieldError(at, "must be a JSON object");
     }
     const entry = receipt as Record<string, unknown>;
-    absoluteField(entry.prefix, `${at}.prefix`);
-    absoluteField(entry.binPath, `${at}.binPath`);
+    if (allowRootScope && entry.scope !== undefined) {
+      if (entry.scope !== "root") throw fieldError(`${at}.scope`, 'must be "root" when present');
+      for (const key of ["prefix", "binPath"]) {
+        if (entry[key] !== undefined) throw fieldError(`${at}.${key}`, 'must be absent when scope is "root"');
+      }
+    } else {
+      absoluteField(entry.prefix, `${at}.prefix`);
+      absoluteField(entry.binPath, `${at}.binPath`);
+    }
     if (typeof entry.binary !== "string" || entry.binary === "") {
       throw fieldError(`${at}.binary`, "must be a non-empty string");
     }

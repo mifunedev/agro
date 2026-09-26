@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1185-root-tool-receipt-uninstall",
+  "description": "Root-level host tools (docker-engine, desktop) get a receipt with no user prefix, and agro tool uninstall refuses them with removal guidance (mifunedev/agro#1185).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "A root-level tool receipt records no user prefix",
+      "description": "As an operator, I want each root-level tool receipt to state the install scope, so that `~/.agro/config.json` claims no `~/.local` install.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/lib/host-config.ts` defines `HostToolReceipt` as a user receipt (the current `HostHarnessReceipt` shape) or a root receipt `{ scope: \"root\"; binary; installedAt; workspaceRoot? }`. `HostConfig.hostTools` uses `HostToolReceipt`. `hostHarnesses` keeps `HostHarnessReceipt`.",
+        "`installOnHost` in `.agro/cli/src/commands/tool.ts` writes a root receipt with no `prefix` and no `binPath` when `entry.hostInstallUser === \"root\"`. A user-level tool receipt does not change.",
+        "`validateHostConfig` accepts a root receipt without `prefix` and `binPath`. The function refuses a root receipt that has `prefix` or `binPath`.",
+        "`validateHostConfig` still accepts a 0.15.0 receipt for `docker-engine` or `desktop` that carries `prefix` and `binPath`.",
+        "Tests in `.agro/cli/src/__tests__/tool.test.ts` prove the root receipt shape after a `docker-engine` install and the unchanged `herdr` receipt shape.",
+        "`pnpm vitest run .agro/cli/src/__tests__/tool.test.ts` passes, and `pnpm typecheck` exits 0."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "AC1 reasoned: host-config.ts defines HostRootToolReceipt { scope: \"root\"; binary; installedAt; workspaceRoot? } and HostToolReceipt union; hostTools uses it, hostHarnesses keeps HostHarnessReceipt. AC2 executed: test \"records a root receipt with no prefix and no binPath\" (keys binary, installedAt, scope, workspaceRoot); herdr receipt keys unchanged (existing test). AC3 executed: validator accepts root receipt; refuses root receipt carrying prefix or binPath; refuses unknown scope. AC4 executed: 0.15.0 docker-engine and desktop receipts with prefix/binPath still validate. AC5 executed: tool.test.ts 138/138. AC6 executed: pnpm typecheck exit 0.",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/host-config.ts",
+        ".agro/cli/src/commands/tool.ts",
+        ".agro/cli/src/__tests__/tool.test.ts"
+      ],
+      "commit": "36f98eae"
+    },
+    {
+      "id": "US-002",
+      "title": "Uninstall refuses a root-level tool with a clear message",
+      "description": "As an operator, I want `agro tool uninstall` to explain how to remove a root-level tool, so that the refusal does not show install instructions.",
+      "acceptanceCriteria": [
+        "`agro tool uninstall docker-engine` and `agro tool uninstall desktop` exit 1, with and without `--host` and `--force`.",
+        "The refusal names the tool, states that `agro` does not remove system packages that it installed as root, and links the removal section of `docs/installation.md`.",
+        "The refusal does not print the install text of `notInstallableReason`.",
+        "The refusal leaves the `hostTools` receipt unchanged.",
+        "`docs/installation.md` has a section that removes `docker-engine` and `desktop` by hand, with numbered steps. The `desktop` steps warn the operator to keep Tailscale if Tailscale was present before the install.",
+        "The `agro tool` help in `.agro/cli/src/cli.ts` states that `uninstall` refuses root-level tools.",
+        "Tests in `.agro/cli/src/__tests__/tool.test.ts` prove the exit code, the message, and the unchanged receipt for both tools.",
+        "`pnpm vitest run .agro/cli/src/__tests__/tool.test.ts` passes, and `pnpm typecheck` exits 0."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "AC1 executed: uninstall of docker-engine and desktop exits 1 for host/force in all four combinations, sandbox running and exited (it.each, 16 cases); `--host` on uninstall is also refused by the parser (exit 1). AC2 executed: message names the tool, \"agro does not remove system packages that it installed as root.\", links docs/installation.md#remove-a-root-level-tool; a test proves the anchor exists. AC3 executed: message does not contain notInstallableReason nor \"tool install\". AC4 executed: config file byte-identical after refusal; no exec calls. AC5 reasoned: docs/installation.md \"Remove a root-level tool\" has numbered steps for both tools, the /var/lib/docker warning precedes the delete command, and step 6 warns to keep a pre-existing Tailscale; ste-check clean. AC6 executed: test \"states the refusal in the agro tool help\". AC7 executed: tool.test.ts 138/138. AC8 executed: pnpm typecheck exit 0; pnpm build:harness exit 0; pnpm test 1714/1714.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/cli/src/commands/tool.ts",
+        ".agro/cli/src/cli.ts",
+        "docs/installation.md",
+        ".agro/cli/src/__tests__/tool.test.ts",
+        "CHANGELOG.md"
+      ],
+      "commit": "ff476291"
+    }
+  ]
+}

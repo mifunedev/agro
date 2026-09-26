@@ -23,6 +23,7 @@ import {
   type ToolEntry,
 } from "../lib/tools/catalog.js";
 import { defaultAgroConfig, agroConfigPath } from "../lib/agro-config.js";
+import { validateHostConfig } from "../lib/host-config.js";
 
 const extraTools = vi.hoisted(() => [] as import("../lib/tools/catalog.js").ToolEntry[]);
 
@@ -758,6 +759,7 @@ describe("agro tool install on the host", () => {
     expect(receipt.binPath).toBe(join(user.prefix, "bin"));
     expect(receipt.workspaceRoot).toBe(defaultRoot(home));
     expect(typeof receipt.installedAt).toBe("string");
+    expect(Object.keys(receipt).sort()).toEqual(["binPath", "binary", "installedAt", "prefix", "workspaceRoot"]);
   });
 
   it("writes no receipt when the installer fails", async () => {
@@ -1819,6 +1821,61 @@ describe("agro tool install docker-engine — the host success output", () => {
     expect(text).not.toContain("Add this line to your shell profile");
     expect(Object.keys(receiptsIn(home.dir))).toEqual(["docker-engine"]);
   });
+
+  it("records a root receipt with no prefix and no binPath", async () => {
+    const repo = makeRepo();
+    const home = emptyStateHome();
+    seedWorkspace(defaultRoot(home));
+    const { run } = hostRunner(absentOnHost("docker"));
+    expect(
+      await runToolInstall(
+        "docker-engine",
+        {
+          bin: "agro",
+          cwd: repo,
+          run,
+          env: home.env,
+          homedir: fakeHome().homedir,
+          interactive: false,
+          host: true,
+          platform: LINUX,
+        },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    const receipt = receiptsIn(home.dir)["docker-engine"] as Record<string, unknown>;
+    expect(Object.keys(receipt).sort()).toEqual(["binary", "installedAt", "scope", "workspaceRoot"]);
+    expect(receipt.scope).toBe("root");
+    expect(receipt.binary).toBe("docker");
+    expect(receipt.workspaceRoot).toBe(defaultRoot(home));
+    expect(typeof receipt.installedAt).toBe("string");
+  });
+});
+
+describe("host config — root-level tool receipts", () => {
+  const base = { binary: "docker", installedAt: "2026-09-26T00:00:00.000Z", workspaceRoot: "/w" };
+
+  it("accepts a root receipt without prefix and binPath", () => {
+    const config = validateHostConfig({ version: 1, hostTools: { "docker-engine": { scope: "root", ...base } } });
+    expect(config.hostTools?.["docker-engine"]).toEqual({ scope: "root", ...base });
+  });
+
+  it.each(["prefix", "binPath"])("refuses a root receipt that carries %s", (key) => {
+    expect(() =>
+      validateHostConfig({ version: 1, hostTools: { desktop: { scope: "root", ...base, [key]: "/home/me/.local" } } }),
+    ).toThrow(`hostTools.desktop.${key} must be absent when scope is "root"`);
+  });
+
+  it("refuses an unknown scope", () => {
+    expect(() =>
+      validateHostConfig({ version: 1, hostTools: { desktop: { scope: "user", ...base } } }),
+    ).toThrow('hostTools.desktop.scope must be "root" when present');
+  });
+
+  it.each(["docker-engine", "desktop"])("still accepts a 0.15.0 %s receipt with prefix and binPath", (id) => {
+    const legacy = { prefix: "/home/me/.local", binPath: "/home/me/.local/bin", ...base };
+    expect(validateHostConfig({ version: 1, hostTools: { [id]: legacy } }).hostTools?.[id]).toEqual(legacy);
+  });
 });
 
 describe("agro tool install desktop", () => {
@@ -1888,5 +1945,86 @@ describe("agro tool install desktop", () => {
     expect(r.out).toContain("desktop: already installed (xrdp)");
     expect(r.calls.some(isDesktopInstaller)).toBe(false);
     expect(r.calls.some((c) => c.cmd === "sudo")).toBe(false);
+  });
+});
+
+describe("agro tool uninstall — a root-level tool", () => {
+  const ROOT_RECEIPTS: Record<string, Record<string, unknown>> = {
+    "docker-engine": { scope: "root", binary: "docker", installedAt: "2026-09-26T00:00:00.000Z" },
+    desktop: {
+      prefix: "/home/me/.local",
+      binary: "xrdp",
+      binPath: "/home/me/.local/bin",
+      installedAt: "2026-09-24T00:00:00.000Z",
+    },
+  };
+  const FLAGS = [
+    { host: false, force: false },
+    { host: true, force: false },
+    { host: false, force: true },
+    { host: true, force: true },
+  ];
+
+  it.each(
+    ["docker-engine", "desktop"].flatMap((id) =>
+      FLAGS.flatMap((flags) => [
+        [id, flags, running],
+        [id, flags, exited],
+      ] as const),
+    ),
+  )("%s %o: exits 1, links the removal steps, and keeps the receipt", async (id, flags, inspect) => {
+    const repo = makeRepo();
+    const home = emptyStateHome();
+    writeFileSync(
+      hostConfigFile(home.dir),
+      `${JSON.stringify({ version: 1, hostTools: ROOT_RECEIPTS }, null, 2)}\n`,
+    );
+    const before = readFileSync(hostConfigFile(home.dir), "utf8");
+    const { calls, run } = hostRunner(() => undefined, inspect);
+    const { io, out, err } = makeIo();
+
+    expect(
+      await runToolUninstall(
+        id,
+        { bin: "agro", cwd: repo, run, env: home.env, homedir: fakeHome().homedir, interactive: false, ...flags },
+        io,
+      ),
+    ).toBe(1);
+
+    const text = hostText(err);
+    expect(text).toContain(`agro tool: ${id} cannot be removed by this command.`);
+    expect(text).toContain("agro does not remove system packages that it installed as root.");
+    expect(text).toContain(
+      `Remove ${id} by hand: https://github.com/mifunedev/agro/blob/main/docs/installation.md#remove-a-root-level-tool`,
+    );
+    expect(text).not.toContain(findTool(id)!.notInstallableReason!("agro"));
+    expect(text).not.toContain("tool install");
+    expect(out).toEqual([]);
+    expect(calls).toEqual([]);
+    expect(readFileSync(hostConfigFile(home.dir), "utf8")).toBe(before);
+  });
+
+  it("refuses --host on uninstall at the parser, which exits 1", () => {
+    for (const id of ["docker-engine", "desktop"]) {
+      const r = parseToolArgs(["uninstall", id, "--host"]);
+      expect(r.ok, id).toBe(false);
+      expect(!r.ok && r.error).toMatch(/--host and --path apply to install only/);
+    }
+  });
+
+  it("links a removal section that exists in docs/installation.md", () => {
+    const doc = readFileSync(join(REPO_ROOT, "docs", "installation.md"), "utf8");
+    expect(doc).toMatch(/^#### Remove a root-level tool$/m);
+    expect(doc).toContain("keep Tailscale and stop here");
+    expect(doc).toContain(
+      "sudo apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
+    );
+  });
+
+  it("states the refusal in the agro tool help", () => {
+    const w = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    printToolHelp();
+    const help = w.mock.calls.map((c) => String(c[0])).join("");
+    expect(help).toContain("`uninstall` refuses each root-level tool");
   });
 });
