@@ -1,0 +1,301 @@
+diff --git a/.agro/evals/probes/docker-inspect-env-guard.sh b/.agro/evals/probes/docker-inspect-env-guard.sh
+index 3792dbf4..0282eda8 100755
+--- a/.agro/evals/probes/docker-inspect-env-guard.sh
++++ b/.agro/evals/probes/docker-inspect-env-guard.sh
+@@ -59,6 +59,12 @@ assert deny "docker inspect --format '{{.Config}}' web" \
+   "the Config subtree (which contains the env block) was allowed"
+ assert deny "docker inspect --format json web" \
+   "--format json re-dumps the whole object"
++assert deny "docker inspect --format 'json' web" \
++  "a single-quoted --format json re-dumps the whole object"
++assert deny "docker inspect -f 'json' web" \
++  "a single-quoted -f json re-dumps the whole object"
++assert deny "docker inspect --format='json' web" \
++  "a single-quoted --format=json re-dumps the whole object"
+ assert deny "docker inspect web | jq '.[0].State'" \
+   "an unverifiable jq pipe over full JSON was allowed"
+ assert deny "podman inspect mycontainer" \
+diff --git a/.agro/evals/probes/secret-exposure-guard.sh b/.agro/evals/probes/secret-exposure-guard.sh
+index cbc299b5..f71c7cec 100755
+--- a/.agro/evals/probes/secret-exposure-guard.sh
++++ b/.agro/evals/probes/secret-exposure-guard.sh
+@@ -1,9 +1,10 @@
+ #!/usr/bin/env bash
+ # tier: A
+ # source: issue #1149 (secret-exposure guard false positives on ordinary command text)
+-# desc: the Bash secret-exposure guard denies shell-hist access by command position
+-#       and hist-file reads, and allows commands that only mention the word in
+-#       an argument such as a commit message
++# desc: the Bash secret-exposure guard denies shell-hist access by command position,
++#       hist-file reads, and jq filters that read the process environment, and
++#       allows commands that only mention the word in an argument such as a
++#       commit message
+ set -euo pipefail
+ 
+ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+@@ -115,5 +116,24 @@ assert deny "jq -n \`cat .env\`" \
+ assert deny "cat .env && jq '.x' data.json" \
+   "an env file read beside a jq call was allowed"
+ 
+-echo "PASS: the secret-exposure guard denies shell-hist access by command position and hist-file reads, allows the word inside ordinary arguments, exempts the jq filter from the secret-path check, and still denies env-file reads" >&2
++JQ_ENV_WORD=env
++JQ_ENV_VAR='$ENV'
++
++assert deny "jq -n '$JQ_ENV_WORD'" \
++  "a jq filter that reads the process environment through env was allowed"
++assert deny "jq -n '$JQ_ENV_VAR'" \
++  "a jq filter that reads the process environment through \$ENV was allowed"
++assert deny "jq -n '$JQ_ENV_WORD.HOME'" \
++  "a jq filter that reads one env field was allowed"
++assert deny "jq -n '$JQ_ENV_VAR.GH_TOKEN'" \
++  "a jq filter that reads one \$ENV field was allowed"
++assert deny "jq -n '[$JQ_ENV_WORD[]]'" \
++  "a jq filter that iterates env was allowed"
++assert deny "jq -n \"$JQ_ENV_VAR\"" \
++  "a double-quoted jq filter that reads \$ENV was allowed"
++
++assert allow "jq '.x' $JQ_ENV_WORD.json" \
++  "a jq input file whose name starts with env was treated as an env read"
++
++echo "PASS: the secret-exposure guard denies shell-hist access by command position and hist-file reads, allows the word inside ordinary arguments, exempts the jq filter from the secret-path check, and still denies env-file reads and jq filters that read the process environment" >&2
+ exit 0
+diff --git a/.agro/hooks/deny-env-dump.sh b/.agro/hooks/deny-env-dump.sh
+index 0fb44c6e..ff290ce7 100755
+--- a/.agro/hooks/deny-env-dump.sh
++++ b/.agro/hooks/deny-env-dump.sh
+@@ -36,7 +36,7 @@ DOCKER_INSPECT='\b(docker|podman|nerdctl)[[:space:]]+([^|;&]{0,160}[[:space:]])?
+ DOCKER_FMT='(--format[=[:space:]]|(^|[[:space:]])-f[=[:space:]])'
+ DOCKER_FMT_UNSAFE='env'
+ DOCKER_FMT_UNSAFE+='|\{\{[[:space:]]*(json[[:space:]]*)?\.(Config)?[[:space:]]*\}\}'
+-DOCKER_FMT_UNSAFE+='|(--format|(^|[[:space:]])-f)[=[:space:]]+["\x27]?json["\x27]?([[:space:]]|$)'
++DOCKER_FMT_UNSAFE+="|(--format|(^|[[:space:]])-f)[=[:space:]]+[\"']?json[\"']?([[:space:]]|\$)"
+ 
+ OPERATOR_PATH='(^|[^A-Za-z0-9._-])\.config([^A-Za-z0-9_-]|$)'
+ OPERATOR_PATH+='|(^|[^A-Za-z0-9._-])settings\.local\.json([^A-Za-z0-9._-]|$)'
+@@ -97,7 +97,30 @@ mask_jq_filters() {
+   printf '%s' "$out$rest"
+ }
+ 
++JQ_ARG_FLAG='(^|[[:space:]])--(arg|argjson|slurpfile|rawfile|indent)([[:space:]]|$)'
++JQ_WORD='(^|[^A-Za-z0-9_-])jq([^A-Za-z0-9_-]|$)'
++JQ_ENV_READ='\$ENV|(^|[^A-Za-z0-9_.$])env\b'
++
++jq_filters() {
++  local rest=$1 out=''
++  local -a m
++  while [[ $rest =~ $JQ_CALL ]]; do
++    m=("${BASH_REMATCH[@]}")
++    if [[ ${m[2]} =~ $JQ_PATH_FLAG || ${m[2]} =~ $JQ_ARG_FLAG || ${m[5]} == -* ]]; then
++      printf '%s' "$out ${m[5]}${m[6]}"
++      return 0
++    fi
++    out+=" ${m[5]}"
++    rest=${m[6]}
++  done
++  if [[ $rest =~ $JQ_WORD ]]; then
++    out+=" $rest"
++  fi
++  printf '%s' "$out"
++}
++
+ path_cmd=$(mask_jq_filters "$cmd") || path_cmd=$cmd
++jq_filter_text=$(jq_filters "$cmd") || jq_filter_text=$cmd
+ 
+ emit() {
+   jq -n --arg d "$1" --arg r "$2" '{
+@@ -111,6 +134,8 @@ emit() {
+ 
+ if grep -qEi -- "$DENY" <<<"$cmd"; then
+   emit deny 'Secret-exposure guard (deny): command matches a high-risk pattern — bulk env dump (env/set/export -p/declare -x/-p/compgen/printenv/proc environ), shell history, echo/printf of a secret-named variable (TOKEN/SECRET/KEY/PASSWORD/AUTH/CREDENTIAL/BEARER/SLACK_*/OPENAI_*/ANTHROPIC_*/GH_TOKEN/AWS_SECRET), Authorization header with variable interpolation, or a token-printing CLI (gh auth token, gcloud auth print-*-token, aws configure get, kubectl get secret -o yaml/json, docker secret/config inspect). These almost always leak credentials into the transcript and prompt cache. Do NOT retry a variant that bypasses this check. Ask the user to run the command themselves and paste only the specific non-secret output you need.'
++elif grep -qE -- "$JQ_ENV_READ" <<<"$jq_filter_text"; then
++  emit deny 'Secret-exposure guard (deny): a jq filter reads the process environment through `env` or `$ENV`, which prints environment variables, secrets included. Do NOT retry a variant that reaches the environment another way. To read an `env` key from JSON input, write `.env`. If you need an environment value, ask the user to paste only that non-secret value.'
+ elif grep -qEi -- "$DOCKER_INSPECT" <<<"$cmd"; then
+   seg=$(grep -oEi -- "${DOCKER_INSPECT}.*" <<<"$cmd" | head -1)
+   if ! grep -qEi -- "$DOCKER_FMT" <<<"$seg"; then
+diff --git a/.agro/tasks/guard-false-allows/prd.json b/.agro/tasks/guard-false-allows/prd.json
+new file mode 100644
+index 00000000..a624109a
+--- /dev/null
++++ b/.agro/tasks/guard-false-allows/prd.json
+@@ -0,0 +1,52 @@
++{
++  "schemaVersion": 1,
++  "project": "agro",
++  "branchName": "bug/1150-guard-false-allows",
++  "description": "Close the Bash secret-guard false allows: deny jq reads of env and $ENV, and deny a quoted json format in container inspect.",
++  "userStories": [
++    {
++      "id": "US-001",
++      "title": "Deny jq access to the process environment",
++      "description": "As an operator, I want the Bash guard to deny a `jq` filter that reads `env` or `$ENV` so that an agent cannot print secrets through `jq`.",
++      "acceptanceCriteria": [
++        "Before the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 1 on `jq -n 'env'`. The evidence records the command and the exit status.",
++        "The probe asserts `deny` for `jq -n 'env'`, `jq -n '$ENV'`, `jq -n 'env.HOME'`, `jq -n '$ENV.GH_TOKEN'`, `jq -n '[env[]]'`, and `jq -n \"\\$ENV\"`.",
++        "The probe asserts `allow` for `jq '.env' .claude/settings.json`, `jq -r '.env // {}' .claude/settings.json`, and `jq '.x' env.json`.",
++        "After the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 0."
++      ],
++      "priority": 1,
++      "passes": true,
++      "notes": "Accepted by the advisor on the integrated task branch at 1bfa5230. AC1 executed: the advisor ran the final probe against the plan-commit hook (git show ee371605:.agro/hooks/deny-env-dump.sh in a scratch tree) -> exit 1, REGRESSION names jq -n 'env'. AC2 executed: bash .agro/evals/probes/secret-exposure-guard.sh -> exit 0 with the six deny assertions. AC3 executed: same run, the three allow assertions pass. AC4 executed: secret-exposure-guard.sh exit 0; docker-inspect-env-guard.sh exit 0; operator-config-guard.sh exit 0. Advisor adversarial run: 16 commands (absolute jq path, def wrapper, @sh interpolation, $ENV in an object, piped input and output, --argjson and --indent before the filter, .environment and .env.FOO field reads, env.json file, commit text, two container-inspect regressions) -> 16/16 expected decision.",
++      "dependsOn": [],
++      "files": [
++        ".agro/hooks/deny-env-dump.sh",
++        ".agro/evals/probes/secret-exposure-guard.sh"
++      ],
++      "commit": "1bfa5230"
++    },
++    {
++      "id": "US-002",
++      "title": "Deny a quoted json format in container inspect",
++      "description": "As an operator, I want the container-inspect guard to deny a `json` format value in every quoting form so that `docker inspect` cannot print `Config.Env`.",
++      "acceptanceCriteria": [
++        "Before the hook change, `bash .agro/evals/probes/docker-inspect-env-guard.sh` exits 1 on `docker inspect --format 'json' web`. The evidence records the command and the exit status.",
++        "The probe asserts `deny` for `docker inspect --format 'json' web`, `docker inspect -f 'json' web`, and `docker inspect --format='json' web`.",
++        "Every existing assertion in `docker-inspect-env-guard.sh` still passes, including the `allow` cases for narrow `--format` templates.",
++        "After the hook change, `bash .agro/evals/probes/docker-inspect-env-guard.sh` exits 0.",
++        "`CHANGELOG.md` `[Unreleased]` `### Fixed` has one entry that links #1150, and the entry is at most 250 characters."
++      ],
++      "priority": 2,
++      "passes": true,
++      "notes": "Accepted by the advisor on the integrated task branch at f050f2f8. AC1 executed: the advisor ran the final container-inspect probe against the pre-US-002 hook (git show 8c988fc0 in a scratch tree) -> exit 1, REGRESSION names the single-quoted --format json case. AC2 executed: bash .agro/evals/probes/docker-inspect-env-guard.sh -> exit 0 with the three new deny assertions. AC3 executed: same run, every existing assertion passes. AC4 executed: docker-inspect-env-guard.sh exit 0; secret-exposure-guard.sh exit 0; operator-config-guard.sh exit 0. AC5 executed: the [Unreleased] ### Fixed section holds one bullet linking issues/1150 (awk + grep -c -> 1); changelog-entry-length.sh exit 0 (189 characters per the worker). Full suite before this acceptance: bash .claude/skills/eval/run.sh -> exit 0, 159 probes, persistent reds next-dev-prod and skills-vendored only.",
++      "dependsOn": [
++        "US-001"
++      ],
++      "files": [
++        ".agro/hooks/deny-env-dump.sh",
++        ".agro/evals/probes/docker-inspect-env-guard.sh",
++        "CHANGELOG.md"
++      ],
++      "commit": "f050f2f8"
++    }
++  ]
++}
+diff --git a/.agro/tasks/guard-false-allows/prd.md b/.agro/tasks/guard-false-allows/prd.md
+new file mode 100644
+index 00000000..7ce10d68
+--- /dev/null
++++ b/.agro/tasks/guard-false-allows/prd.md
+@@ -0,0 +1,123 @@
++# PRD: Close the Bash secret-guard false allows
++
++Status: DRAFT
++
++Issue: [#1150](https://github.com/mifunedev/agro/issues/1150) (includes #1152)
++
++## User Stories
++
++### US-001: Deny jq access to the process environment
++
++**Description:** As an operator, I want the Bash guard to deny a `jq` filter that reads `env` or `$ENV` so that an agent cannot print secrets through `jq`.
++
++**Acceptance Criteria:**
++
++- [ ] Before the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 1 on `jq -n 'env'`. The evidence records the command and the exit status.
++- [ ] The probe asserts `deny` for `jq -n 'env'`, `jq -n '$ENV'`, `jq -n 'env.HOME'`, `jq -n '$ENV.GH_TOKEN'`, `jq -n '[env[]]'`, and `jq -n "\$ENV"`.
++- [ ] The probe asserts `allow` for `jq '.env' .claude/settings.json`, `jq -r '.env // {}' .claude/settings.json`, and `jq '.x' env.json`.
++- [ ] After the hook change, `bash .agro/evals/probes/secret-exposure-guard.sh` exits 0.
++
++### US-002: Deny a quoted json format in container inspect
++
++**Description:** As an operator, I want the container-inspect guard to deny a `json` format value in every quoting form so that `docker inspect` cannot print `Config.Env`.
++
++**Acceptance Criteria:**
++
++- [ ] Before the hook change, `bash .agro/evals/probes/docker-inspect-env-guard.sh` exits 1 on `docker inspect --format 'json' web`. The evidence records the command and the exit status.
++- [ ] The probe asserts `deny` for `docker inspect --format 'json' web`, `docker inspect -f 'json' web`, and `docker inspect --format='json' web`.
++- [ ] Every existing assertion in `docker-inspect-env-guard.sh` still passes, including the `allow` cases for narrow `--format` templates.
++- [ ] After the hook change, `bash .agro/evals/probes/docker-inspect-env-guard.sh` exits 0.
++- [ ] `CHANGELOG.md` `[Unreleased]` `### Fixed` has one entry that links #1150, and the entry is at most 250 characters.
++
++## Summary
++
++`.agro/hooks/deny-env-dump.sh` is the Bash `PreToolUse` guard. #1151 added `mask_jq_filters`, which finds the filter argument of each `jq` call for the secret-path check.
++
++Verified current behavior (advisor run of the hook on `development` at `90707bd2`, 2026-09-23):
++
++| Command | Decision | Cause |
++| --- | --- | --- |
++| `jq -n env` | deny | The `DENY` term for a bare `env` at the end of the command matches. |
++| `jq -n 'env'`, `jq -n '$ENV'`, `jq -n 'env.HOME'`, `jq -n '[env[]]'` | allow | No term reads the `jq` filter. |
++| `jq -r 'env \| keys'` | deny | The `DENY` term for `env` before `\|` matches. The match is accidental. |
++| `docker inspect --format json web`, `--format "json"` | deny | `DOCKER_FMT_UNSAFE` matches. |
++| `docker inspect --format 'json' web`, `-f 'json'`, `--format='json'` | allow | The quote class `["\x27]` sits in a single-quoted bash string. `grep -E` reads it as the literal characters `"`, `\`, `x`, `2`, and `7`. |
++
++Selected approach:
++
++1. Add a `DENY`-level check on the `jq` filter text. Use the filter that the `mask_jq_filters` parse finds. Deny when the filter contains `$ENV`, or the word `env` that no `.`, identifier character, or `$` precedes. The check reads the filter argument only, so a file named `env.json` stays allowed.
++2. Fix the quote class in the `DOCKER_FMT_UNSAFE` `json` term so that it matches a single quote and a double quote.
++
++## Key Integration Points
++
++| File | Function(s) / Symbol(s) | Role |
++| --- | --- | --- |
++| `.agro/hooks/deny-env-dump.sh` | `DENY`, `JQ_CALL`, `mask_jq_filters`, `DOCKER_FMT_UNSAFE` | The Bash guard. Both fixes land here. |
++| `.agro/evals/probes/secret-exposure-guard.sh` | assertion list | US-001 assertions. |
++| `.agro/evals/probes/docker-inspect-env-guard.sh` | assertion list | US-002 assertions. |
++| `.codex/hooks/deny-env-dump.sh` | wrapper | Calls the shared hook. No change. |
++| `CHANGELOG.md` | `[Unreleased]` `### Fixed` | One entry. |
++
++## Interface Integration Points
++
++| Surface | Change Type | Description |
++| --- | --- | --- |
++| Claude Code Bash `PreToolUse` | behavior | Denies the listed environment reads. |
++| Codex Bash hook | behavior | Inherits the same change through the wrapper. |
++
++## Storage
++
++N/A. The hook is stateless.
++
++## Architectural Decisions
++
++- The shared hook stays the single source of truth.
++- The `jq` check denies a single value read, such as `env.HOME`, as well as a full dump. A single value can be a secret. The guard cannot tell a secret name from a safe name in a `jq` path.
++- The `jq` check reads the filter argument from the existing parse. It adds no second parser.
++- When the parse finds no filter argument for a `jq` call, the check reads the whole text of that call. A parse gap produces a false deny. A filter that `-f` loads from a file stays out of scope.
++- The tasks extend the two existing probes and add no probe file.
++
++## Test Plan (TDD)
++
++| Test File | Case(s) | Validates |
++| --- | --- | --- |
++| `.agro/evals/probes/secret-exposure-guard.sh` | US-001 deny and allow cases | The guard denies `jq` environment reads and allows `jq` field reads named `env`. |
++| `.agro/evals/probes/docker-inspect-env-guard.sh` | US-002 deny cases and all existing cases | The guard denies every quoting form of a `json` format value and allows narrow templates. |
++| `bash .claude/skills/eval/run.sh` | all probes | No new red beyond `next-dev-prod`, `skills-vendored`, and `spec-task-artifact-contract` after the last acceptance (#1153). |
++
++Each story adds its probe assertions first and records the probe exit 1 against the unchanged hook. Then the story changes the hook.
++
++## Design Principles
++
++- Deny on doubt. A parse gap produces a false deny, never a false allow.
++- One source of truth: `.agro/hooks/deny-env-dump.sh`.
++- Change the smallest set of patterns that closes the two reported false allows.
++- Add no explanatory comments to the hook (root `AGENTS.md`, non-negotiable 5).
++
++## Out of Scope
++
++- A `jq` program that `-f` or `--from-file` loads from a file.
++- Other `.env` substrings in command text, such as `grep "Config.Env" <file>`. The secret-path check still denies that command.
++- `yq` filters.
++- `spec-task-artifact-contract` (#1153).
++
++## Open Questions
++
++None.
++
++## Acceptance Criteria
++
++- [ ] `jq -n 'env'` and `jq -n '$ENV'` are denied.
++- [ ] `jq '.env' .claude/settings.json` is allowed.
++- [ ] `docker inspect --format 'json' web` and `docker inspect -f 'json' web` are denied.
++- [ ] `bash .agro/evals/probes/secret-exposure-guard.sh` and `bash .agro/evals/probes/docker-inspect-env-guard.sh` exit 0.
++- [ ] `bash .claude/skills/eval/run.sh` reports no new red.
++
++## Lessons
++
++| Lesson | Evidence | Outcome |
++| --- | --- | --- |
++| The Bash guard allows an environment dump through a script interpreter. | The advisor ran the hook on this branch: `python3 -c` with `os.environ` and `perl -e` with `%ENV` return `allow`. | issue #1155 |
++| The secret-path check denies a command that names `.env` inside a search pattern. | The hook denied the advisor's `grep "Config.Env" .claude/settings.json` during grounding. `grep process.env src/index.ts` returns `deny`. | issue #1155 (folded with the interpreter gap) |
++| The guard reads the text of every command argument, so notes that name a guarded command trigger the guard. | The guard denied the advisor's `jq --arg n '<notes>'` call because the notes named a container-inspect command. | dropped: the workaround is a notes file through `--rawfile`; issue #1155 covers the pattern-text surface. |
++| `spec-task-artifact-contract` fails every completed core-chain task. | After the US-002 acceptance, `bash .agro/evals/probes/spec-task-artifact-contract.sh` exits 1 and reports `progress.txt` as missing for `guard-false-allows`. | issue #1153 (open; no new issue) |

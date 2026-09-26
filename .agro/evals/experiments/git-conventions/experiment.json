@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "experiment": "git-conventions",
+  "issue": 1190,
+  "kind": "headroom-screen",
+  "target_skill": ".agro/skills/git/SKILL.md",
+  "overlay": {
+    "revision": "2ab265fb2f79057d3118551ba8268394370f302f",
+    "paths": [
+      ".agro/skills/git/SKILL.md",
+      ".github/pull_request_template.md"
+    ],
+    "reason": "Seven of the 10 revisions have a pull request template with no evidence sections, and the /git skill changed after each revision. Each episode writes both files from the base revision into the worktree and marks them skip-worktree, so every episode measures the current conventions and the overlay cannot enter a commit."
+  },
+  "provider": "anthropic",
+  "harness": "claude-code",
+  "harness_version": "2.1.280",
+  "model": "claude-opus-5-5",
+  "effort": "medium",
+  "claude_args": [
+    "-p",
+    "--model",
+    "claude-opus-5-5",
+    "--effort",
+    "medium",
+    "--setting-sources",
+    "project,local",
+    "--strict-mcp-config",
+    "--permission-mode",
+    "bypassPermissions",
+    "--no-session-persistence",
+    "--output-format",
+    "stream-json",
+    "--verbose"
+  ],
+  "episode_prompt": "/git The working tree holds the complete change for issue #<N> (\"<issue title>\"). Create the task branch, commit the change, and write the pull request title on the first line of work/pr.md and the pull request body after it. Do not push and do not call GitHub.",
+  "episode_timeout_s": 900,
+  "repeats": 1,
+  "corpus": {
+    "manifest": "corpus/manifest.json",
+    "cases": 10
+  },
+  "verifier": "verify-git.sh",
+  "egress_wrapper": "no-egress.sh",
+  "budget": {
+    "first_episode_max_usd": 3.0,
+    "max_total_usd": 30.0,
+    "max_parallel": 3
+  },
+  "decision": {
+    "freeze_d1_if_pass_rate_lt": 0.75
+  },
+  "pins": {
+    "verify_git_sh": "a934f433b171b1fb6ef60bfd0e757abad1aa8306a818d44216a26e135b22c99e",
+    "no_egress_sh": "8e0a3443a21bb3319fdef7d05d0e8bbc7917ba0a3236ab3baf916d593f0a9e39",
+    "corpus_manifest": "314b794824118f013e698e2d89f067c9fbdd8581d02f493e6756dd43e1ca509e",
+    "overlay_blobs": {
+      ".agro/skills/git/SKILL.md": "89a25b86e52d81eac6d9f72400fda5e0f2d176d3",
+      ".github/pull_request_template.md": "3dbf322505052421ea92950ef1a041e7edf0ea91"
+    },
+    "patches_match_manifest": true
+  }
+}

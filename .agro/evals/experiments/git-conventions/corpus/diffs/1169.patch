@@ -1,0 +1,2192 @@
+diff --git a/.agro/cli/package-lock.json b/.agro/cli/package-lock.json
+index a33ee530..c69539c2 100644
+--- a/.agro/cli/package-lock.json
++++ b/.agro/cli/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "@mifune/agro",
+-  "version": "0.14.0",
++  "version": "0.15.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "@mifune/agro",
+-      "version": "0.14.0",
++      "version": "0.15.0",
+       "license": "Apache-2.0",
+       "bin": {
+         "agro": "dist/agro.js"
+diff --git a/.agro/cli/package.json b/.agro/cli/package.json
+index 269e3066..76e77313 100644
+--- a/.agro/cli/package.json
++++ b/.agro/cli/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "@mifune/agro",
+-  "version": "0.14.0",
++  "version": "0.15.0",
+   "description": "AGRO CLI — create and manage sandboxes for coding agents.",
+   "license": "Apache-2.0",
+   "homepage": "https://github.com/mifunedev/agro#readme",
+diff --git a/.agro/cli/src/__tests__/tool-catalog.test.ts b/.agro/cli/src/__tests__/tool-catalog.test.ts
+index 0b6f609e..9e01bc9c 100644
+--- a/.agro/cli/src/__tests__/tool-catalog.test.ts
++++ b/.agro/cli/src/__tests__/tool-catalog.test.ts
+@@ -1,5 +1,7 @@
+-import { describe, expect, it } from "vitest";
+-import { readFileSync } from "node:fs";
++import { afterEach, describe, expect, it } from "vitest";
++import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
++import { spawnSync } from "node:child_process";
++import { tmpdir } from "node:os";
+ import { dirname, join } from "node:path";
+ import { fileURLToPath } from "node:url";
+ import {
+@@ -8,14 +10,14 @@ import {
+   toolIds,
+   TOOL_CATALOG,
+ } from "../lib/tools/catalog.js";
+-import { HARNESS_CATALOG } from "../lib/harnesses/catalog.js";
++import { HARNESS_CATALOG, HARNESS_PREFIX_TOKEN } from "../lib/harnesses/catalog.js";
+ import { RUNTIME_CATALOG } from "../lib/runtimes/catalog.js";
+ 
+ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
+ const read = (p: string): string => readFileSync(join(REPO_ROOT, p), "utf8");
+ 
+ describe("tool catalog shape", () => {
+-  it("lists the seven known tools", () => {
++  it("lists the ten known tools", () => {
+     expect(toolIds()).toEqual([
+       "agent-browser",
+       "herdr",
+@@ -24,6 +26,9 @@ describe("tool catalog shape", () => {
+       "docker-cli",
+       "gh",
+       "tailscale",
++      "code-server",
++      "docker-engine",
++      "desktop",
+     ]);
+   });
+ 
+@@ -34,10 +39,13 @@ describe("tool catalog shape", () => {
+       "cloudflared",
+       "microsandbox",
+       "tailscale",
++      "code-server",
+     ]);
+     for (const t of TOOL_CATALOG) {
+       expect(["baked-in", "installable"], t.id).toContain(t.kind);
+-      if (t.kind === "installable") expect(t.installArgv, t.id).toBeDefined();
++      if (t.kind === "installable") {
++        expect(t.installArgv ?? t.hostInstallArgv, t.id).toBeDefined();
++      }
+       if (t.kind === "baked-in") expect(t.installArgv, t.id).toBeUndefined();
+     }
+   });
+@@ -47,19 +55,31 @@ describe("tool catalog shape", () => {
+   // no NOPASSWD. A root install would hang an agent on a password prompt, and
+   // could not be upgraded by the running sandbox afterwards.
+   it("installs every installable tool as the sandbox user", () => {
+-    const installable = TOOL_CATALOG.filter((t) => t.kind === "installable");
++    const installable = TOOL_CATALOG.filter((t) => t.installArgv !== undefined);
+     expect(installable.length).toBeGreaterThan(0);
+     for (const t of installable) {
+       expect(t.installUser, t.id).toBe("sandbox");
+     }
+   });
+ 
++  it("marks a root-level host install only on a host-capable entry", () => {
++    for (const t of TOOL_CATALOG) {
++      if (t.hostInstallUser === "root") expect(t.hostCapable, t.id).toBe(true);
++    }
++    expect(TOOL_CATALOG.filter((t) => t.hostInstallUser === "root").map((t) => t.id)).toEqual([
++      "docker-engine",
++      "desktop",
++    ]);
++  });
++
+   it("lands every downloaded binary in NPM_USER_PREFIX behind a sha256 check", () => {
+     const scripts = TOOL_CATALOG.flatMap((t) =>
+       [t.installArgv, t.hostInstallArgv]
+         .filter((argv): argv is readonly string[] => argv !== undefined)
+         .map((argv) => [t.id, argv.join("\n")] as const),
+-    ).filter(([, body]) => body.includes("curl -fsSL"));
++    ).filter(
++      ([id, body]) => body.includes("curl -fsSL") && findTool(id)?.hostInstallUser !== "root",
++    );
+ 
+     expect(scripts.map(([id]) => id)).toEqual([
+       "agent-browser",
+@@ -67,6 +87,7 @@ describe("tool catalog shape", () => {
+       "cloudflared",
+       "microsandbox",
+       "tailscale",
++      "code-server",
+     ]);
+     for (const [id, body] of scripts) {
+       expect(body, id).toContain("NPM_USER_PREFIX");
+@@ -74,9 +95,9 @@ describe("tool catalog shape", () => {
+     }
+   });
+ 
+-  it("keeps every host installer clear of the operating system package manager", () => {
++  it("keeps every user-level host installer clear of the operating system package manager", () => {
+     for (const t of TOOL_CATALOG) {
+-      if (t.hostInstallArgv === undefined) continue;
++      if (t.hostInstallArgv === undefined || t.hostInstallUser === "root") continue;
+       const body = t.hostInstallArgv.join("\n");
+       expect(body, t.id).not.toMatch(/\bapt(-get)?\s/);
+       expect(body, t.id).not.toMatch(/\bdpkg\s+-i\b/);
+@@ -119,6 +140,8 @@ describe("tool catalog shape", () => {
+       "docker-cli",
+       "gh",
+       "tailscale",
++      "code-server",
++      "docker-engine",
+     ]);
+     for (const t of TOOL_CATALOG) {
+       if (t.versionArgv) expect(t.versionArgv, t.id).toEqual([t.binary, "--version"]);
+@@ -152,7 +175,7 @@ describe("the catalogs stay separate", () => {
+     }
+   });
+ 
+-  it("shares exactly one id with the runtime catalog: the planned microsandbox substrate", () => {
++  it("shares only the microsandbox substrate with the runtime catalog", () => {
+     const runtime = new Set(RUNTIME_CATALOG.map((r) => r.id));
+     const shared = toolIds().filter((id) => runtime.has(id));
+     expect(shared).toEqual(["microsandbox"]);
+@@ -164,9 +187,10 @@ describe("the catalogs stay separate", () => {
+     expect(new Set(toolIds()).size).toBe(TOOL_CATALOG.length);
+   });
+ 
+-  it("keeps docker-cli distinct from the docker RUNTIME", () => {
+-    expect(findTool("docker-cli")).toBeDefined();
+-    expect(findTool("docker")).toBeUndefined();
++  it("keeps the baked-in docker-cli distinct from the host docker engine", () => {
++    expect(findTool("docker-cli")?.kind).toBe("baked-in");
++    expect(findTool("docker-cli")?.hostCapable).toBe(false);
++    expect(findTool("docker-engine")?.hostInstallUser).toBe("root");
+     expect(RUNTIME_CATALOG.some((r) => r.id === "docker")).toBe(true);
+   });
+ 
+@@ -291,6 +315,274 @@ describe("tailscale is installed from the catalog, not the boot path", () => {
+   });
+ });
+ 
++describe("code-server installs a pinned release for the invoking user", () => {
++  const cs = findTool("code-server")!;
++  const script = cs.installArgv!.join("\n");
++  const VERSION = "4.129.0";
++  const SHA_AMD64 = "889b09ff3a167a293f53cb68a5a7f38dbab6bd2b50d7a5951c757e56ba51a2b0";
++  const SHA_ARM64 = "62f7886018923a18cc16112ccfbcd51aee80f8e0c1bb7abc48773d1fd32a7617";
++
++  it("is an installable, host-capable tool that installs without root", () => {
++    expect(cs.kind).toBe("installable");
++    expect(cs.hostCapable).toBe(true);
++    expect(cs.hostInstallUser).toBeUndefined();
++    expect(cs.installUser).toBe("sandbox");
++    expect(cs.hostInstallArgv).toBeUndefined();
++    expect(script).not.toContain("sudo");
++  });
++
++  it("pins the release and both tarball checksums", () => {
++    expect(script).toContain(`version=${VERSION}`);
++    expect(script).toContain(
++      "https://github.com/coder/code-server/releases/download/v$version/code-server-$version-linux-$arch.tar.gz",
++    );
++    expect(script).toContain(`amd64) sha=${SHA_AMD64} ;;`);
++    expect(script).toContain(`arm64) sha=${SHA_ARM64} ;;`);
++    expect(script).toContain("sha256sum -c -");
++  });
++
++  it("refuses an unpinned architecture by name", () => {
++    expect(script).toContain('*) echo "no pinned code-server build for $arch" >&2; exit 1 ;;');
++  });
++
++  it("extracts under lib and links the launcher into bin", () => {
++    expect(script).toContain('prefix="${NPM_USER_PREFIX:-$HOME/.local}"');
++    expect(script).toContain('dest="$prefix/lib/code-server-$version"');
++    expect(script).toContain('ln -sfn "$dest/bin/code-server" "$prefix/bin/code-server"');
++  });
++
++  it("fails the install unless the linked launcher reports the pinned version", () => {
++    expect(script).toContain('"$prefix/bin/code-server" --version | grep -q "^$version "');
++  });
++
++  it("removes the link and the extracted release", () => {
++    expect(cs.uninstallArgv).toEqual([
++      "rm",
++      "-rf",
++      `${HARNESS_PREFIX_TOKEN}/bin/code-server`,
++      `${HARNESS_PREFIX_TOKEN}/lib/code-server-${VERSION}`,
++    ]);
++    expect(cs.hostUninstallArgv).toBeUndefined();
++  });
++});
++
++describe("docker-engine installs Docker Engine on an Ubuntu host as root", () => {
++  const dk = findTool("docker-engine")!;
++  const script = dk.hostInstallArgv!.join("\n");
++  const FINGERPRINT = "9DC858229FC7DD38854AE2D88D81803C0EBFCD88";
++
++  it("is a host-only, root-level installable tool", () => {
++    expect(dk.kind).toBe("installable");
++    expect(dk.binary).toBe("docker");
++    expect(dk.hostCapable).toBe(true);
++    expect(dk.hostInstallUser).toBe("root");
++    expect(dk.installArgv).toBeUndefined();
++    expect(dk.hostInstallArgv!.slice(0, 2)).toEqual(["bash", "-lc"]);
++    expect(dk.uninstallArgv).toBeNull();
++  });
++
++  it("refuses the sandbox by naming access.dockerSocket", () => {
++    const reason = dk.notInstallableReason!("agro");
++    expect(reason).toContain("access.dockerSocket");
++    expect(reason).toContain("agro tool install docker-engine --host");
++  });
++
++  it("verifies the engine, the compose plugin, the enabled service and the docker group", () => {
++    const verify = dk.verifyArgv.join(" ");
++    expect(verify).toContain("command -v docker >/dev/null");
++    expect(verify).toContain("docker compose version >/dev/null");
++    expect(verify).toContain("systemctl is-enabled --quiet docker");
++    expect(verify).toContain('id -nG "${SUDO_USER:-$(id -un)}"');
++  });
++
++  it("refuses a host that is not Ubuntu", () => {
++    expect(script).toContain(". /etc/os-release");
++    expect(script).toContain('if [ "${ID:-}" != ubuntu ]; then');
++  });
++
++  it("trusts Docker's repository key only after checking its fingerprint", () => {
++    expect(script).toContain("install -m 0755 -d /etc/apt/keyrings");
++    expect(script).toContain(
++      'curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o "$tmp/docker.asc"',
++    );
++    expect(script).toContain(`fingerprint=${FINGERPRINT}`);
++    expect(script).toContain('gpg --homedir "$tmp" --show-keys --with-colons "$tmp/docker.asc"');
++    const check = script.indexOf('if [ "$actual" != "$fingerprint" ]; then');
++    const trust = script.indexOf('install -m 0644 "$tmp/docker.asc" /etc/apt/keyrings/docker.asc');
++    expect(check).toBeGreaterThan(-1);
++    expect(trust).toBeGreaterThan(check);
++  });
++
++  it("installs the five packages from the signed Docker repository", () => {
++    expect(script).toContain(
++      'echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${UBUNTU_CODENAME:-$VERSION_CODENAME} stable" > /etc/apt/sources.list.d/docker.list',
++    );
++    expect(script).toContain(
++      "apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
++    );
++  });
++
++  it("adds the invoking user to the docker group and enables the service", () => {
++    expect(script).toContain('user="${SUDO_USER:-$(id -un)}"');
++    expect(script).toContain('usermod -aG docker "$user"');
++    expect(script).toContain("systemctl enable --now docker");
++  });
++
++  it("runs as root through the CLI and never calls sudo itself", () => {
++    expect(script).toContain("set -e");
++    expect(script).not.toContain("sudo ");
++  });
++});
++
++describe("desktop serves XFCE over XRDP through Tailscale only", () => {
++  const dt = findTool("desktop")!;
++  const script = dt.hostInstallArgv![2];
++  const RULES = "/etc/xrdp/agro-tailscale-only.nft";
++  const DROP_IN = "/etc/systemd/system/xrdp.service.d/agro-tailscale-only.conf";
++
++  it("is a host-only, root-level installable tool", () => {
++    expect(dt.kind).toBe("installable");
++    expect(dt.binary).toBe("xrdp");
++    expect(dt.hostCapable).toBe(true);
++    expect(dt.hostInstallUser).toBe("root");
++    expect(dt.installArgv).toBeUndefined();
++    expect(dt.hostInstallArgv!.slice(0, 2)).toEqual(["bash", "-lc"]);
++    expect(dt.uninstallArgv).toBeNull();
++    expect(dt.notInstallableReason!("agro")).toContain("agro tool install desktop --host");
++  });
++
++  it("verifies the package, the enabled service, the Tailscale guard and the session file", () => {
++    const verify = dt.verifyArgv.join(" ");
++    expect(verify).toContain("command -v xrdp >/dev/null");
++    expect(verify).toContain("systemctl is-enabled --quiet xrdp");
++    expect(verify).toContain("systemctl is-enabled --quiet tailscaled");
++    expect(verify).toContain(`test -f ${DROP_IN}`);
++    expect(verify).toContain('grep -qx xfce4-session "$HOME/.xsession"');
++  });
++
++  describe("system Tailscale", () => {
++    const KEYRING = "/usr/share/keyrings/tailscale-archive-keyring.gpg";
++    const guard = "if ! systemctl cat tailscaled.service >/dev/null 2>&1; then";
++    const enable = "systemctl enable --now tailscaled";
++    const block = script.slice(script.indexOf(guard), script.indexOf(enable) + enable.length);
++    const dirs: string[] = [];
++    afterEach(() => {
++      while (dirs.length > 0) rmSync(dirs.pop()!, { recursive: true, force: true });
++    });
++
++    it("no longer asks for a user-level tailscale", () => {
++      expect(script).not.toContain("agro tool install tailscale --host");
++      expect(script).not.toContain(".local/bin/tailscale");
++    });
++
++    it("trusts Tailscale's repository key only after checking its fingerprint", () => {
++      expect(block).toContain("fingerprint=2596A99EAAB33821893C0A79458CA832957F5868");
++      expect(block).toContain(
++        'curl -fsSL "https://pkgs.tailscale.com/stable/ubuntu/$codename.noarmor.gpg" -o "$tmp/tailscale.gpg"',
++      );
++      expect(block).toContain('gpg --homedir "$tmp" --show-keys --with-colons "$tmp/tailscale.gpg"');
++      const check = block.indexOf('if [ "$actual" != "$fingerprint" ]; then');
++      const trust = block.indexOf(`install -m 0644 "$tmp/tailscale.gpg" ${KEYRING}`);
++      expect(check).toBeGreaterThan(-1);
++      expect(trust).toBeGreaterThan(check);
++    });
++
++    it("installs the tailscale package from the signed repository and enables tailscaled", () => {
++      expect(block).toContain(
++        `echo "deb [signed-by=${KEYRING}] https://pkgs.tailscale.com/stable/ubuntu $codename main" > /etc/apt/sources.list.d/tailscale.list`,
++      );
++      expect(block.indexOf("apt-get install -y tailscale")).toBeGreaterThan(
++        block.indexOf("/etc/apt/sources.list.d/tailscale.list"),
++      );
++      expect(block.endsWith(`fi\n${enable}`)).toBe(true);
++    });
++
++    it("comes before the nftables guard and the desktop packages", () => {
++      const end = script.indexOf(enable);
++      expect(script.indexOf(guard)).toBeGreaterThan(script.indexOf("apt-get install -y ca-certificates curl gnupg nftables"));
++      expect(end).toBeLessThan(script.indexOf("cat > /etc/xrdp/agro-tailscale-only.nft"));
++      expect(end).toBeLessThan(script.indexOf("apt-get install -y xfce4"));
++    });
++
++    it("skips the repository and package when the tailscaled unit already exists", () => {
++      const dir = mkdtempSync(join(tmpdir(), "agro-desktop-tailscale-"));
++      dirs.push(dir);
++      const log = join(dir, "calls.log");
++      for (const cmd of ["systemctl", "curl", "gpg", "install", "apt-get"]) {
++        writeFileSync(join(dir, cmd), `#!/bin/sh\necho "${cmd} $*" >> "${log}"\n`);
++        chmodSync(join(dir, cmd), 0o755);
++      }
++      const r = spawnSync("/bin/bash", ["-c", `set -e\n${block}`], {
++        env: { PATH: dir, codename: "noble", tmp: dir },
++        encoding: "utf8",
++      });
++      expect(r.status).toBe(0);
++      expect(readFileSync(log, "utf8").trim().split("\n")).toEqual([
++        "systemctl cat tailscaled.service",
++        "systemctl enable --now tailscaled",
++      ]);
++    });
++  });
++
++  it("refuses a host that is not Ubuntu", () => {
++    expect(script).toContain(". /etc/os-release");
++    expect(script).toContain('if [ "${ID:-}" != ubuntu ]; then');
++  });
++
++  it("installs the four runbook packages (step 3)", () => {
++    expect(script).toContain("apt-get install -y xfce4 xfce4-goodies xrdp xorgxrdp");
++  });
++
++  it("writes xfce4-session to the invoking user's ~/.xsession with their ownership (step 4)", () => {
++    expect(script).toContain('user="${SUDO_USER:-$(id -un)}"');
++    expect(script).toContain('home="$(getent passwd "$user" | cut -d: -f6)"');
++    expect(script).toContain(`printf '%s\\n' xfce4-session > "$home/.xsession"`);
++    expect(script).toContain('chown "$user:$(id -gn "$user")" "$home/.xsession"');
++  });
++
++  it("adds xrdp to ssl-cert and enables xrdp (step 6)", () => {
++    expect(script).toContain("adduser xrdp ssl-cert");
++    expect(script).toContain("systemctl enable xrdp");
++    expect(script).toContain("systemctl restart xrdp");
++    expect(script).toContain("systemctl is-active --quiet xrdp");
++  });
++
++  it("refuses 3389 on every interface but Tailscale and loopback, before xrdp exists", () => {
++    expect(script).toContain(`cat > ${RULES} <<'EOF'`);
++    expect(script).toContain("table inet agro_xrdp {");
++    expect(script).toContain('iifname { "lo", "tailscale0" } accept');
++    expect(script).toContain("tcp dport 3389 reject with tcp reset");
++    const load = script.indexOf(`nft -f ${RULES}`);
++    expect(load).toBeGreaterThan(-1);
++    expect(load).toBeLessThan(script.indexOf("apt-get install -y xfce4"));
++  });
++
++  it("reloads the guard every time xrdp starts, so it holds across reboots", () => {
++    expect(script).toContain(
++      `printf '[Service]\\nExecStartPre=%s -f ${RULES}\\n' "$(command -v nft)" > ${DROP_IN}`,
++    );
++    expect(script.indexOf(DROP_IN)).toBeLessThan(script.indexOf("apt-get install -y xfce4"));
++  });
++
++  it("changes no SSH rule, no ufw state, and sets no password (step 5 is left to the operator)", () => {
++    expect(script).not.toMatch(/\bufw\b/);
++    expect(script).not.toMatch(/\b22\b/);
++    expect(script).not.toMatch(/\bssh/i);
++    expect(script).not.toMatch(/chpasswd|usermod -p/);
++    expect(script.split("\n").filter((l) => /\bpasswd\b/.test(l) && !l.includes("getent passwd"))).toEqual([
++      'echo "  sudo passwd $user"',
++    ]);
++  });
++
++  it("ends by printing the two remaining operator steps", () => {
++    expect(script.split("\n").slice(-3)).toEqual([
++      'echo "The desktop is installed. Two steps remain:"',
++      'echo "  sudo tailscale up"',
++      'echo "  sudo passwd $user"',
++    ]);
++  });
++});
++
+ describe("baked-in tools", () => {
+   it("declare no install argv — the installer must not invent one", () => {
+     for (const t of TOOL_CATALOG) {
+diff --git a/.agro/cli/src/__tests__/tool.test.ts b/.agro/cli/src/__tests__/tool.test.ts
+index bfbe5cf1..3cc4cf1e 100644
+--- a/.agro/cli/src/__tests__/tool.test.ts
++++ b/.agro/cli/src/__tests__/tool.test.ts
+@@ -1,4 +1,4 @@
+-import { afterEach, describe, expect, it, vi } from "vitest";
++import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+ import { tmpdir } from "node:os";
+ 
+@@ -16,9 +16,35 @@ import {
+   type ToolIO,
+ } from "../commands/tool.js";
+ import type { LifecycleRunner, RunResult } from "../lib/execution/runner.js";
+-import { TOOL_CATALOG, findTool, resolveToolUninstallArgv } from "../lib/tools/catalog.js";
++import {
++  TOOL_CATALOG,
++  findTool,
++  resolveToolUninstallArgv,
++  type ToolEntry,
++} from "../lib/tools/catalog.js";
+ import { defaultAgroConfig, agroConfigPath } from "../lib/agro-config.js";
+ 
++const extraTools = vi.hoisted(() => [] as import("../lib/tools/catalog.js").ToolEntry[]);
++
++vi.mock("../lib/tools/catalog.js", async (importOriginal) => {
++  const actual = await importOriginal<typeof import("../lib/tools/catalog.js")>();
++  const all = () => [...actual.TOOL_CATALOG, ...extraTools];
++  return {
++    ...actual,
++    findTool: (id: string) => all().find((t) => t.id === id),
++    toolIds: () => all().map((t) => t.id),
++    installableToolIds: () => all().filter((t) => t.installArgv !== undefined).map((t) => t.id),
++    hostCapableToolIds: () => all().filter((t) => t.hostCapable).map((t) => t.id),
++    TOOL_CATALOG: new Proxy(actual.TOOL_CATALOG, {
++      get: (_target, key) => {
++        const list = all();
++        const value = Reflect.get(list, key);
++        return typeof value === "function" ? value.bind(list) : value;
++      },
++    }),
++  };
++});
++
+ vi.mock("../cli.js", async (importOriginal) => {
+   const original = process.exit;
+   process.exit = (() => {}) as never;
+@@ -535,6 +561,7 @@ const HOST_INSTALLERS: ReadonlyArray<readonly [string, string]> = [
+   ["cloudflared", "cloudflared-linux-"],
+   ["microsandbox", "install-msb.sh"],
+   ["tailscale", "pkgs.tailscale.com/stable/"],
++  ["code-server", "coder/code-server/releases/download/"],
+ ];
+ 
+ const NOT_HOST_CAPABLE: ReadonlyArray<readonly [string, string]> = [
+@@ -624,7 +651,7 @@ function writeReceipt(dir: string, id: string, prefix: string, binary: string):
+ const LINUX: NodeJS.Platform = "linux";
+ 
+ describe("agro tool install — the sandbox argv is unchanged", () => {
+-  it.each(["herdr", "cloudflared", "microsandbox", "tailscale", "agent-browser"])(
++  it.each(["herdr", "cloudflared", "microsandbox", "tailscale", "agent-browser", "code-server"])(
+     "%s: execs the catalog argv verbatim as the sandbox user",
+     async (id) => {
+       const root = makeRepo();
+@@ -1441,7 +1468,7 @@ describe("tool location reporting", () => {
+     );
+     const rows = JSON.parse(out.join("")) as Array<Record<string, unknown>>;
+     expect(rows.filter((r) => r.hostCapable === true).map((r) => r.id)).toEqual(
+-      HOST_INSTALLERS.map(([id]) => id),
++      [...HOST_INSTALLERS.map(([id]) => id), "docker-engine", "desktop"],
+     );
+   });
+ });
+@@ -1495,9 +1522,9 @@ describe("tool uninstall knowledge", () => {
+   const HOST_PREFIX = "/home/me/.agro/.local";
+   const FOREIGN_PREFIX = "/home/other/.local";
+ 
+-  it("declares removal for every installable entry and none for a baked-in one", () => {
++  it("declares removal for every sandbox-installable entry and none for any other", () => {
+     for (const t of TOOL_CATALOG) {
+-      if (t.kind === "installable") {
++      if (t.installArgv !== undefined) {
+         expect(t.uninstallArgv, t.id).not.toBeNull();
+         expect(resolveToolUninstallArgv(t, HOST_PREFIX), t.id).not.toBeNull();
+       } else {
+@@ -1536,3 +1563,330 @@ describe("tool uninstall knowledge", () => {
+     },
+   );
+ });
++
++const ROOT_PROBE: ToolEntry = Object.freeze({
++  id: "root-probe",
++  title: "root probe",
++  kind: "installable",
++  binary: "root-probe",
++  verifyArgv: Object.freeze(["bash", "-lc", "command -v root-probe >/dev/null"]),
++  installArgv: Object.freeze(["bash", "-lc", "echo sandbox-root-probe"]),
++  hostInstallArgv: Object.freeze(["bash", "-lc", "echo host-root-probe"]),
++  installUser: "sandbox",
++  hostInstallUser: "root",
++  hostCapable: true,
++  uninstallArgv: Object.freeze(["bash", "-lc", "true"]),
++  docsPath: "docs/installation.md",
++});
++
++describe("agro tool install --host — a root-level host tool", () => {
++  beforeEach(() => {
++    extraTools.push(ROOT_PROBE);
++  });
++  afterEach(() => {
++    extraTools.length = 0;
++  });
++
++  const isSudoProbe = (c: RecordedCall): boolean =>
++    c.cmd === "sudo" && c.args.join(" ") === "-n true";
++  const rootInstaller = (calls: RecordedCall[]): RecordedCall[] =>
++    calls.filter((c) => c.args.some((a) => a.includes("host-root-probe")));
++
++  async function installRootProbe(
++    reply: (cmd: string, args: string[]) => RunResult | undefined,
++    identity?: () => { name: string; uid: number },
++  ) {
++    const repo = makeRepo();
++    const home = emptyStateHome();
++    const user = fakeHome();
++    seedWorkspace(defaultRoot(home));
++    const { calls, run } = hostRunner((cmd, args) => reply(cmd, args) ?? absentOnHost("root-probe")(cmd, args));
++    const { io, out, err } = makeIo();
++    const code = await runToolInstall(
++      "root-probe",
++      {
++        bin: "agro",
++        cwd: repo,
++        run,
++        env: home.env,
++        homedir: user.homedir,
++        interactive: false,
++        host: true,
++        platform: LINUX,
++        ...(identity ? { identity } : {}),
++      },
++      io,
++    );
++    return { code, calls, out: hostText(out), err: hostText(err), home };
++  }
++
++  it("runs the script directly when the invoking user is root", async () => {
++    const r = await installRootProbe(() => undefined, () => ({ name: "root", uid: 0 }));
++    expect(r.code).toBe(0);
++    expect(r.calls.some((c) => c.cmd === "sudo")).toBe(false);
++    const install = rootInstaller(r.calls);
++    expect(install).toHaveLength(1);
++    expect(install[0].cmd).toBe("bash");
++    expect(install[0].args).toEqual(["-lc", "echo host-root-probe"]);
++  });
++
++  it("runs the script through sudo -n for a user with passwordless sudo", async () => {
++    const r = await installRootProbe(() => undefined);
++    expect(r.code).toBe(0);
++    expect(r.calls.some(isSudoProbe)).toBe(true);
++    const install = rootInstaller(r.calls);
++    expect(install).toHaveLength(1);
++    expect(install[0].cmd).toBe("sudo");
++    expect(install[0].args).toEqual(["-n", "--", "bash", "-lc", "echo host-root-probe"]);
++    expect(r.calls.findIndex(isSudoProbe)).toBeLessThan(r.calls.indexOf(install[0]));
++  });
++
++  it("refuses without passwordless sudo, naming the tool, and changes nothing", async () => {
++    const r = await installRootProbe((cmd, args) =>
++      cmd === "sudo" && args.join(" ") === "-n true"
++        ? { status: 1, stdout: "", stderr: "sudo: a password is required" }
++        : undefined,
++    );
++    expect(r.code).toBe(1);
++    expect(r.err).toContain("root-probe");
++    expect(r.err).toContain("passwordless `sudo`");
++    expect(rootInstaller(r.calls)).toHaveLength(0);
++    expect(existsSync(hostConfigFile(r.home.dir))).toBe(false);
++  });
++
++  it("keeps a non-root host install free of sudo", async () => {
++    const repo = makeRepo();
++    const home = emptyStateHome();
++    seedWorkspace(defaultRoot(home));
++    const { calls, run } = hostRunner(absentOnHost("herdr"));
++    expect(
++      await runToolInstall(
++        "herdr",
++        {
++          bin: "agro",
++          cwd: repo,
++          run,
++          env: home.env,
++          homedir: fakeHome().homedir,
++          interactive: false,
++          host: true,
++          platform: LINUX,
++        },
++        makeIo().io,
++      ),
++    ).toBe(0);
++    expect(calls.some((c) => c.cmd === "sudo")).toBe(false);
++  });
++
++  it("marks each root-level host tool in agro tool list", async () => {
++    const repo = makeRepo();
++    const opts = {
++      bin: "agro",
++      cwd: repo,
++      run: liveHost().run,
++      env: emptyStateHome().env,
++      homedir: fakeHome().homedir,
++    };
++
++    const json = makeIo();
++    await runToolList({ ...opts, json: true }, json.io);
++    const rows = JSON.parse(json.out.join("")) as Array<Record<string, unknown>>;
++    expect(rows.filter((r) => r.hostRoot === true).map((r) => r.id)).toEqual(["docker-engine", "desktop", "root-probe"]);
++    expect(rows.every((r) => typeof r.hostRoot === "boolean")).toBe(true);
++
++    const table = makeIo();
++    await runToolList(opts, table.io);
++    const text = table.out.join("");
++    expect(text).toMatch(/^root-probe\s+installable \(root\)/m);
++    expect(text).toMatch(/^docker-engine\s+installable \(root\)/m);
++    expect(text).toMatch(/^herdr\s+installable\s/m);
++    expect(text).toContain("(root) installs on the host as root through `sudo -n`.");
++  });
++});
++
++describe("agro tool install docker-engine", () => {
++  const INSIDE: NodeJS.ProcessEnv = { AGRO_EXECUTION_TARGET: "local" };
++  const isDockerInstaller = (c: RecordedCall): boolean =>
++    c.args.some((a) => a.includes("docker-compose-plugin"));
++  const isSudoProbe = (c: RecordedCall): boolean =>
++    c.cmd === "sudo" && c.args.join(" ") === "-n true";
++
++  it.each([false, true])("refuses inside the sandbox (--host %s), naming access.dockerSocket", async (host) => {
++    const root = makeRepo();
++    const { calls, run } = makeRunner();
++    const { io, err } = makeIo(true);
++    expect(
++      await runToolInstall("docker-engine", { bin: "agro", cwd: root, run, env: INSIDE, host, yes: true }, io),
++    ).toBe(1);
++    expect(hostText(err)).toContain("access.dockerSocket");
++    expect(calls).toHaveLength(0);
++  });
++
++  it("refuses a container install from the host when the sandbox runs", async () => {
++    const root = makeRepo();
++    const { calls, run } = liveHost();
++    const { io, err } = makeIo(true);
++    expect(
++      await runToolInstall(
++        "docker-engine",
++        { bin: "agro", cwd: root, run, env: emptyStateHome().env, homedir: fakeHome().homedir },
++        io,
++      ),
++    ).toBe(1);
++    const text = hostText(err);
++    expect(text).toContain("access.dockerSocket");
++    expect(text).toContain("agro tool install docker-engine --host");
++    expect(calls.some(isDockerInstaller)).toBe(false);
++    expect(calls.some((c) => c.cmd === "sudo")).toBe(false);
++  });
++
++  async function installDockerOnHost(
++    reply: (cmd: string, args: string[]) => RunResult | undefined,
++    inspect: RunResult = exited,
++  ) {
++    const repo = makeRepo();
++    const home = emptyStateHome();
++    seedWorkspace(defaultRoot(home));
++    const { calls, run } = hostRunner(reply, inspect);
++    const { io, out, err } = makeIo();
++    const code = await runToolInstall(
++      "docker-engine",
++      {
++        bin: "agro",
++        cwd: repo,
++        run,
++        env: home.env,
++        homedir: fakeHome().homedir,
++        interactive: false,
++        host: true,
++        platform: LINUX,
++      },
++      io,
++    );
++    return { code, calls, out: hostText(out), err: hostText(err), home };
++  }
++
++  it.each([
++    ["stopped", exited],
++    ["running", running],
++  ] as const)("runs the root script through sudo -n with --host when the sandbox is %s", async (_state, inspect) => {
++    const r = await installDockerOnHost(absentOnHost("docker"), inspect);
++    expect(r.code).toBe(0);
++    const install = r.calls.filter(isDockerInstaller);
++    expect(install).toHaveLength(1);
++    expect(install[0].cmd).toBe("sudo");
++    expect(install[0].args).toEqual(["-n", "--", ...findTool("docker-engine")!.hostInstallArgv!]);
++    expect(r.calls.findIndex(isSudoProbe)).toBeLessThan(r.calls.indexOf(install[0]));
++  });
++
++  it("exits 0 and changes nothing when the engine is already installed", async () => {
++    const r = await installDockerOnHost(() => undefined);
++    expect(r.code).toBe(0);
++    expect(r.out).toContain("docker-engine: already installed (docker)");
++    expect(r.calls.some(isDockerInstaller)).toBe(false);
++    expect(r.calls.some((c) => c.cmd === "sudo")).toBe(false);
++  });
++});
++
++describe("agro tool install docker-engine — the host success output", () => {
++  it("prints one host success line, no prefix or PATH hint, and keeps the receipt", async () => {
++    const repo = makeRepo();
++    const home = emptyStateHome();
++    const user = fakeHome();
++    seedWorkspace(defaultRoot(home));
++    const { run } = hostRunner(absentOnHost("docker"));
++    const { io, out } = makeIo();
++    expect(
++      await runToolInstall(
++        "docker-engine",
++        {
++          bin: "agro",
++          cwd: repo,
++          run,
++          env: { ...home.env, PATH: "/usr/bin" },
++          homedir: user.homedir,
++          interactive: false,
++          host: true,
++          platform: LINUX,
++        },
++        io,
++      ),
++    ).toBe(0);
++    const text = hostText(out);
++    expect(text).toMatch(/^docker-engine installed on the host — see /m);
++    expect(text).not.toContain(user.prefix);
++    expect(text).not.toContain("installed at");
++    expect(text).not.toContain("Add this line to your shell profile");
++    expect(Object.keys(receiptsIn(home.dir))).toEqual(["docker-engine"]);
++  });
++});
++
++describe("agro tool install desktop", () => {
++  const INSIDE: NodeJS.ProcessEnv = { AGRO_EXECUTION_TARGET: "local" };
++  const isDesktopInstaller = (c: RecordedCall): boolean =>
++    c.args.some((a) => a.includes("xfce4-goodies"));
++
++  it.each([false, true])("refuses inside the sandbox (--host %s), naming the host install", async (host) => {
++    const root = makeRepo();
++    const { calls, run } = makeRunner();
++    const { io, err } = makeIo(true);
++    expect(
++      await runToolInstall("desktop", { bin: "agro", cwd: root, run, env: INSIDE, host, yes: true }, io),
++    ).toBe(1);
++    expect(hostText(err)).toContain("agro tool install desktop --host");
++    expect(calls).toHaveLength(0);
++  });
++
++  async function installDesktopOnHost(reply: (cmd: string, args: string[]) => RunResult | undefined) {
++    const repo = makeRepo();
++    const home = emptyStateHome();
++    seedWorkspace(defaultRoot(home));
++    const { calls, run } = hostRunner(reply);
++    const { io, out, err } = makeIo();
++    const code = await runToolInstall(
++      "desktop",
++      {
++        bin: "agro",
++        cwd: repo,
++        run,
++        env: home.env,
++        homedir: fakeHome().homedir,
++        interactive: false,
++        host: true,
++        platform: LINUX,
++      },
++      io,
++    );
++    return { code, calls, out: hostText(out), err: hostText(err), home };
++  }
++
++  it("runs the root script through sudo -n and records the install", async () => {
++    const r = await installDesktopOnHost(absentOnHost("xrdp"));
++    expect(r.code).toBe(0);
++    const install = r.calls.filter(isDesktopInstaller);
++    expect(install).toHaveLength(1);
++    expect(install[0].cmd).toBe("sudo");
++    expect(install[0].args).toEqual(["-n", "--", ...findTool("desktop")!.hostInstallArgv!]);
++    expect(r.out).toMatch(/^desktop installed on the host — see /m);
++    expect(Object.keys(receiptsIn(r.home.dir))).toEqual(["desktop"]);
++  });
++
++  it("exits 1 and records nothing when the root script fails", async () => {
++    const r = await installDesktopOnHost((cmd, args) =>
++      cmd === "sudo" && args.some((a) => a.includes("xfce4-goodies"))
++        ? { status: 1, stdout: "", stderr: "" }
++        : absentOnHost("xrdp")(cmd, args),
++    );
++    expect(r.code).toBe(1);
++    expect(r.err).toContain("installing desktop failed (exit 1)");
++    expect(existsSync(hostConfigFile(r.home.dir))).toBe(false);
++  });
++
++  it("exits 0 and changes nothing when the desktop is already installed", async () => {
++    const r = await installDesktopOnHost(() => undefined);
++    expect(r.code).toBe(0);
++    expect(r.out).toContain("desktop: already installed (xrdp)");
++    expect(r.calls.some(isDesktopInstaller)).toBe(false);
++    expect(r.calls.some((c) => c.cmd === "sudo")).toBe(false);
++  });
++});
+diff --git a/.agro/cli/src/__tests__/workspace.test.ts b/.agro/cli/src/__tests__/workspace.test.ts
+index 65149f7c..70b618ca 100644
+--- a/.agro/cli/src/__tests__/workspace.test.ts
++++ b/.agro/cli/src/__tests__/workspace.test.ts
+@@ -70,8 +70,9 @@ function cloneRunner(): { calls: RecordedCall[]; run: LifecycleRunner } {
+   const run: LifecycleRunner = (cmd, args): RunResult => {
+     calls.push({ cmd, args: [...args] });
+     if (cmd === "git" && args[0] === "clone") {
+-      mkdirSync(join(args[2], ".git"), { recursive: true });
+-      writeFileSync(join(args[2], "README.md"), "agro\n");
++      const target = args[args.length - 1];
++      mkdirSync(join(target, ".git"), { recursive: true });
++      writeFileSync(join(target, "README.md"), "agro\n");
+     }
+     return { status: 0, stdout: "", stderr: "" };
+   };
+@@ -122,6 +123,23 @@ describe("parseWorkspaceArgs", () => {
+     expect(equals.ok && equals.args.path).toBe("/srv/agro");
+   });
+ 
++  it("parses --ref <v> and --ref=<v> for create", () => {
++    const spaced = parseWorkspaceArgs(["create", "alpha", "--ref", "v0.15.0"]);
++    expect(spaced.ok && spaced.args.ref).toBe("v0.15.0");
++    const equals = parseWorkspaceArgs(["create", "--ref=main"]);
++    expect(equals.ok && equals.args.ref).toBe("main");
++    const none = parseWorkspaceArgs(["create", "alpha"]);
++    expect(none.ok && none.args.ref).toBeUndefined();
++  });
++
++  it("rejects a missing --ref value and --ref on list", () => {
++    expect(parseWorkspaceArgs(["create", "--ref"]).ok).toBe(false);
++    expect(parseWorkspaceArgs(["create", "--ref="]).ok).toBe(false);
++    const list = parseWorkspaceArgs(["list", "--ref", "v0.15.0"]);
++    expect(list.ok).toBe(false);
++    expect(!list.ok && list.error).toMatch(/--ref applies to create only/);
++  });
++
+   it("rejects --path together with a positional name", () => {
+     const p = parseWorkspaceArgs(["create", "alpha", "--path", "/srv/agro"]);
+     expect(p.ok).toBe(false);
+@@ -144,7 +162,7 @@ describe("help", () => {
+ 
+   it("documents both subcommands", () => {
+     const help = captureStdout(() => printWorkspaceHelp());
+-    for (const s of ["agro workspace create", "agro workspace list", "--json", "--path"]) {
++    for (const s of ["agro workspace create", "agro workspace list", "--json", "--path", "--ref"]) {
+       expect(help).toContain(s);
+     }
+   });
+@@ -153,6 +171,7 @@ describe("help", () => {
+     const docs = readFileSync(join(REPO_ROOT, "docs/lifecycle-commands.md"), "utf8");
+     expect(docs).toContain("`agro workspace create");
+     expect(docs).toContain("`agro workspace list");
++    expect(docs).toContain("--ref <ref>");
+   });
+ });
+ 
+@@ -173,6 +192,88 @@ describe("runWorkspaceCreate", () => {
+     expect(text(out)).toContain(`host workspace cloned into ${workspacePath(home, "alpha")}`);
+   });
+ 
++  it("clones without --branch when no --ref is given", async () => {
++    const home = emptyStateHome();
++    const user = fakeHome();
++    const { calls, run } = cloneRunner();
++    const { io } = makeIo();
++
++    expect(
++      await runWorkspaceCreate("alpha", { bin: "agro", run, env: home.env, homedir: user.homedir }, io),
++    ).toBe(0);
++    expect(gitCalls(calls).map((c) => c.args)).toEqual([
++      ["clone", "https://github.com/mifunedev/agro.git", workspacePath(home, "alpha")],
++    ]);
++  });
++
++  it("clones a tag with --ref", async () => {
++    const home = emptyStateHome();
++    const user = fakeHome();
++    const { calls, run } = cloneRunner();
++    const { out, io } = makeIo();
++
++    expect(
++      await runWorkspaceCreate(
++        "alpha",
++        { bin: "agro", run, env: home.env, homedir: user.homedir, ref: "v0.15.0" },
++        io,
++      ),
++    ).toBe(0);
++    expect(gitCalls(calls).map((c) => c.args)).toEqual([
++      [
++        "clone",
++        "--branch",
++        "v0.15.0",
++        "https://github.com/mifunedev/agro.git",
++        workspacePath(home, "alpha"),
++      ],
++    ]);
++    expect(text(out)).toContain(`host workspace cloned into ${workspacePath(home, "alpha")}`);
++  });
++
++  it("clones a ref through staging into an existing empty --path directory", async () => {
++    const home = emptyStateHome();
++    const user = fakeHome();
++    const target = mkdtempSync(join(tmpdir(), "agro-workspace-empty-"));
++    cleanups.push(target);
++    const { calls, run } = cloneRunner();
++    const { io } = makeIo();
++
++    expect(
++      await runWorkspaceCreate(
++        undefined,
++        { bin: "agro", run, env: home.env, homedir: user.homedir, path: target, ref: "v0.15.0" },
++        io,
++      ),
++    ).toBe(0);
++    const clone = gitCalls(calls)[0].args;
++    expect(clone.slice(0, 4)).toEqual(["clone", "--branch", "v0.15.0", "https://github.com/mifunedev/agro.git"]);
++    expect(existsSync(join(target, "README.md"))).toBe(true);
++  });
++
++  it("exits 1, names a missing ref, and leaves no target directory", async () => {
++    const home = emptyStateHome();
++    const user = fakeHome();
++    const run: LifecycleRunner = (cmd, args): RunResult => {
++      if (cmd === "git" && args[0] === "clone") {
++        mkdirSync(join(args[args.length - 1], ".git"), { recursive: true });
++        return { status: 128, stdout: "", stderr: "fatal: Remote branch v9.9.9 not found" };
++      }
++      return { status: 0, stdout: "", stderr: "" };
++    };
++    const { err, io } = makeIo();
++
++    expect(
++      await runWorkspaceCreate(
++        "alpha",
++        { bin: "agro", run, env: home.env, homedir: user.homedir, ref: "v9.9.9" },
++        io,
++      ),
++    ).toBe(1);
++    expect(text(err)).toContain('agro workspace: could not clone ref "v9.9.9"');
++    expect(existsSync(workspacePath(home, "alpha"))).toBe(false);
++  });
++
+   it("defaults the name to `default`", async () => {
+     const home = emptyStateHome();
+     const user = fakeHome();
+diff --git a/.agro/cli/src/cli.ts b/.agro/cli/src/cli.ts
+index f6a6d40c..f748964f 100644
+--- a/.agro/cli/src/cli.ts
++++ b/.agro/cli/src/cli.ts
+@@ -386,7 +386,8 @@ export function printWorkspaceHelp(bin: string = AGRO_PRODUCT.bin): void {
+   process.stdout.write(`${bin} workspace — Create and list host AGRO workspaces
+ 
+ Usage:
+-  ${bin} workspace create [<name>]   Clone the AGRO repository into a registry entry
++  ${bin} workspace create [<name>] [--ref <ref>]
++                                   Clone the AGRO repository into a registry entry
+   ${bin} workspace list              List every host workspace
+ 
+ A host workspace is an AGRO checkout under \`~/.agro/workspaces/<name>\`. \`create\`
+@@ -401,6 +402,9 @@ root as \`harnessRoot\`. \`list\` marks the recorded root.
+ Flags:
+   --json           Machine-readable output
+   --path <dir>     Create the workspace at a directory outside the registry
++  --ref <ref>      Clone this branch or tag instead of the default branch (create
++                   only). A missing ref exits 1 and leaves no target directory.
++                   An existing checkout is reused as is.
+ `);
+ }
+ 
+@@ -1034,6 +1038,7 @@ export interface WorkspaceArgs {
+   name?: string;
+   json: boolean;
+   path?: string;
++  ref?: string;
+ }
+ 
+ export function parseWorkspaceArgs(
+@@ -1047,16 +1052,24 @@ export function parseWorkspaceArgs(
+ 
+   const positionals: string[] = [];
+   let expectPath = false;
++  let expectRef = false;
+   for (const token of rest) {
+     if (expectPath) {
+       expectPath = false;
+       args.path = token;
++    } else if (expectRef) {
++      expectRef = false;
++      args.ref = token;
+     } else if (token === "--json") {
+       args.json = true;
+     } else if (token === "--path") {
+       expectPath = true;
+     } else if (token.startsWith("--path=")) {
+       args.path = token.slice("--path=".length);
++    } else if (token === "--ref") {
++      expectRef = true;
++    } else if (token.startsWith("--ref=")) {
++      args.ref = token.slice("--ref=".length);
+     } else if (token.startsWith("-")) {
+       return { ok: false, error: `${bin} workspace: unknown flag "${token}"` };
+     } else {
+@@ -1066,6 +1079,9 @@ export function parseWorkspaceArgs(
+   if (expectPath || args.path === "") {
+     return { ok: false, error: `${bin} workspace: --path requires a directory` };
+   }
++  if (expectRef || args.ref === "") {
++    return { ok: false, error: `${bin} workspace: --ref requires a branch or tag` };
++  }
+ 
+   const [sub, name, ...extra] = positionals;
+   if (sub !== "create" && sub !== "list") {
+@@ -1084,6 +1100,9 @@ export function parseWorkspaceArgs(
+   if (sub === "list" && args.path !== undefined) {
+     return { ok: false, error: `${bin} workspace list: --path applies to create only` };
+   }
++  if (sub === "list" && args.ref !== undefined) {
++    return { ok: false, error: `${bin} workspace list: --ref applies to create only` };
++  }
+   if (args.path !== undefined && name !== undefined) {
+     return {
+       ok: false,
+@@ -1608,7 +1627,12 @@ async function main(argv: string[]): Promise<number> {
+     }
+     return await runWorkspaceCreate(
+       a.name,
+-      { bin, json: a.json, ...(a.path !== undefined ? { path: a.path } : {}) },
++      {
++        bin,
++        json: a.json,
++        ...(a.path !== undefined ? { path: a.path } : {}),
++        ...(a.ref !== undefined ? { ref: a.ref } : {}),
++      },
+       io,
+     );
+   }
+diff --git a/.agro/cli/src/commands/tool.ts b/.agro/cli/src/commands/tool.ts
+index 0ba4dcbb..9ef3aa00 100644
+--- a/.agro/cli/src/commands/tool.ts
++++ b/.agro/cli/src/commands/tool.ts
+@@ -1,13 +1,14 @@
+ import { existsSync } from "node:fs";
+-import { homedir } from "node:os";
++import { homedir, userInfo } from "node:os";
+ import { delimiter, join } from "node:path";
+ import {
+   ExecutionSpawnError,
+   resolveExecutionTarget,
+   resolveTargetStatus,
++  runningInsideSandbox,
+   runtimeIsAbsent,
+ } from "../lib/execution/index.js";
+-import { LocalExecutionTarget } from "../lib/execution/local-target.js";
++import { LocalExecutionTarget, type LocalIdentity } from "../lib/execution/local-target.js";
+ import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
+ import type { ExecutionTarget } from "../lib/execution/target.js";
+ import { sourceDocsUrl } from "../lib/docs.js";
+@@ -55,6 +56,7 @@ export interface ToolOptions {
+   homedir?: () => string;
+   force?: boolean;
+   platform?: NodeJS.Platform;
++  identity?: () => LocalIdentity;
+ }
+ 
+ export interface ToolInstallOptions extends ToolOptions {
+@@ -72,6 +74,7 @@ interface ToolRow {
+   version: string | null;
+   installable: boolean;
+   hostCapable: boolean;
++  hostRoot: boolean;
+   location: ToolLocation;
+   docs: string;
+ }
+@@ -139,6 +142,11 @@ function platformOf(opts: ToolOptions): NodeJS.Platform {
+   return opts.platform ?? process.platform;
+ }
+ 
++function isRootUser(opts: ToolOptions): boolean {
++  const identity = opts.identity ?? (() => ({ name: userInfo().username, uid: userInfo().uid }));
++  return identity().uid === 0;
++}
++
+ function isInteractive(opts: ToolOptions): boolean {
+   return opts.interactive ?? (process.stdin.isTTY === true && process.stdout.isTTY === true);
+ }
+@@ -200,6 +208,7 @@ function rowOf(
+     version,
+     installable: entry.installArgv !== undefined,
+     hostCapable: entry.hostCapable,
++    hostRoot: entry.hostInstallUser === "root",
+     location,
+     docs: sourceDocsUrl(entry.docsPath),
+   };
+@@ -265,7 +274,11 @@ function cell(value: boolean | null, absent: string): string {
+ function renderTable(collected: CollectedRows, io: ToolIO, bin: string): void {
+   const rows = collected.rows;
+   const header = ["TOOL", "KIND", "INSTALLED"];
+-  const body = rows.map((r) => [r.id, r.kind, cell(r.installed, "?")]);
++  const body = rows.map((r) => [
++    r.id,
++    r.hostRoot ? `${r.kind} (root)` : r.kind,
++    cell(r.installed, "?"),
++  ]);
+   const widths = header.map((h, i) =>
+     Math.max(h.length, ...body.map((b) => b[i].length)),
+   );
+@@ -273,6 +286,9 @@ function renderTable(collected: CollectedRows, io: ToolIO, bin: string): void {
+     cols.map((c, i) => c.padEnd(widths[i])).join("  ").trimEnd() + "\n";
+   io.stdout(line(header));
+   for (const row of body) io.stdout(line(row));
++  if (rows.some((r) => r.hostRoot)) {
++    io.stdout("\n(root) installs on the host as root through `sudo -n`.\n");
++  }
+   if (rows.some((r) => r.location === "host")) {
+     io.stdout(
+       `\nINSTALLED reports the host prefix ${collected.hostPrefix} — the sandbox is not running.\n`,
+@@ -461,11 +477,21 @@ async function installOnHost(
+     return 0;
+   }
+ 
++  const sudo = entry.hostInstallUser === "root" && !isRootUser(opts);
++  if (sudo && (await tryExec(target, ["sudo", "-n", "true"], undefined))?.exitCode !== 0) {
++    io.stderr(
++      `${bin} tool: ${entry.id} installs as root on the host and needs passwordless \`sudo\`.\n` +
++        `\`sudo -n true\` failed. Configure passwordless sudo for this user, or run as root.\n`,
++    );
++    return 1;
++  }
++
+   if (!(await confirmDownload(entry, opts, io, true))) return 1;
+ 
+   io.stdout(`installing ${entry.title} on the host…\n`);
++  const argv = resolveToolInstallArgv(entry, true)!;
+   const r = await target.exec({
+-    argv: resolveToolInstallArgv(entry, true)!,
++    argv: sudo ? ["sudo", "-n", "--", ...argv] : argv,
+     stdio: "inherit",
+     env: installEnv,
+   });
+@@ -497,6 +523,10 @@ async function installOnHost(
+     return 1;
+   }
+ 
++  if (entry.hostInstallUser === "root") {
++    io.stdout(`${entry.id} installed on the host — see ${sourceDocsUrl(entry.docsPath)}\n`);
++    return 0;
++  }
+   io.stdout(`${entry.id}: installed at ${prefix} — see ${sourceDocsUrl(entry.docsPath)}\n`);
+   if (!onPath(prefix, env)) {
+     io.stdout(`Add this line to your shell profile: export PATH="${harnessBinPath(prefix)}:$PATH"\n`);
+@@ -516,20 +546,27 @@ export async function runToolInstall(
+   const entry = findTool(name);
+   if (!entry) return unknownTool(name, io, opts.bin);
+ 
+-  if (entry.installArgv === undefined) {
++  const hostOnly = entry.installArgv === undefined && entry.hostInstallArgv !== undefined;
++  const refuseContainer = (): number => {
+     io.stderr(`${opts.bin} tool: ${entry.id} cannot be installed by this command.\n\n`);
+     io.stderr(`${entry.notInstallableReason?.(opts.bin) ?? ""}\n\n`);
+     io.stderr(`Installable tools:\n${installableToolIds().map((t) => `  ${t}`).join("\n")}\n`);
+     return 1;
++  };
++
++  if (entry.installArgv === undefined && (!hostOnly || runningInsideSandbox(opts.env ?? process.env))) {
++    return refuseContainer();
+   }
+ 
+   const target = targetFor(root, run, opts.env);
+   const status = await resolveTargetStatus(target);
+ 
+-  if (!isReachable(status)) {
++  if (!isReachable(status) || (hostOnly && opts.host === true)) {
+     return await installOnHost(entry, opts, io, run, status);
+   }
+ 
++  if (entry.installArgv === undefined) return refuseContainer();
++
+   const already = await probeInstalled(target, entry, "sandbox");
+   if (already === true) {
+     io.stdout(`${entry.id}: already installed (${entry.binary})\n`);
+diff --git a/.agro/cli/src/commands/workspace.ts b/.agro/cli/src/commands/workspace.ts
+index 772a09fc..97b2feed 100644
+--- a/.agro/cli/src/commands/workspace.ts
++++ b/.agro/cli/src/commands/workspace.ts
+@@ -1,4 +1,4 @@
+-import { existsSync } from "node:fs";
++import { existsSync, rmSync } from "node:fs";
+ import { homedir } from "node:os";
+ import { join, resolve } from "node:path";
+ import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
+@@ -26,6 +26,7 @@ export interface WorkspaceOptions {
+   json?: boolean;
+   env?: NodeJS.ProcessEnv;
+   path?: string;
++  ref?: string;
+   homedir?: () => string;
+ }
+ 
+@@ -91,14 +92,23 @@ export async function runWorkspaceCreate(
+   }
+ 
+   let action: string;
++  const preexisting = existsSync(root);
+   try {
+     if (!opts.json && !existsSync(join(root, ".git"))) {
+-      io.stdout(`cloning ${AGRO_REPO_URL} into ${root}…\n`);
++      const at = opts.ref !== undefined ? ` at ${opts.ref}` : "";
++      io.stdout(`cloning ${AGRO_REPO_URL}${at} into ${root}…\n`);
+     }
+-    const created = ensureHostWorkspace(root, run);
++    const created = ensureHostWorkspace(root, run, opts.ref);
+     root = created.root;
+     action = created.action;
+   } catch (err) {
++    if (opts.ref !== undefined) {
++      if (!preexisting) rmSync(root, { recursive: true, force: true });
++      io.stderr(
++        `${bin} workspace: could not clone ref "${opts.ref}" — the ref does not exist in ${AGRO_REPO_URL} or the clone failed (${messageOf(err)})\n`,
++      );
++      return 1;
++    }
+     io.stderr(`${bin} workspace: ${messageOf(err)}\n`);
+     return 1;
+   }
+diff --git a/.agro/cli/src/lib/__tests__/host-workspace.test.ts b/.agro/cli/src/lib/__tests__/host-workspace.test.ts
+index 4fd5d8de..15722135 100644
+--- a/.agro/cli/src/lib/__tests__/host-workspace.test.ts
++++ b/.agro/cli/src/lib/__tests__/host-workspace.test.ts
+@@ -54,6 +54,26 @@ describe("ensureHostWorkspace", () => {
+     expect(runner.calls).toEqual([{ cmd: "git", args: ["clone", AGRO_REPO_URL, root] }]);
+   });
+ 
++  it("clones a ref with --branch when one is given", () => {
++    const base = makeTemp();
++    const root = join(base, "agro");
++    const runner = fakeRunner();
++
++    expect(ensureHostWorkspace(root, runner.run, "v0.15.0")).toEqual({ root, action: "cloned" });
++    expect(runner.calls).toEqual([
++      { cmd: "git", args: ["clone", "--branch", "v0.15.0", AGRO_REPO_URL, root] },
++    ]);
++  });
++
++  it("clones a ref through staging into an existing empty directory", () => {
++    const root = makeTemp();
++    const runner = fakeRunner();
++
++    expect(ensureHostWorkspace(root, runner.run, "main")).toEqual({ root, action: "cloned" });
++    expect(runner.calls[0].args.slice(0, 4)).toEqual(["clone", "--branch", "main", AGRO_REPO_URL]);
++    expect(existsSync(join(root, "README.md"))).toBe(true);
++  });
++
+   it("clones into a directory that holds only ignorable entries and preserves them", () => {
+     const root = makeTemp();
+     mkdirSync(join(root, "sandboxes"));
+diff --git a/.agro/cli/src/lib/host-workspace.ts b/.agro/cli/src/lib/host-workspace.ts
+index 6f66ffff..fe8b3a4a 100644
+--- a/.agro/cli/src/lib/host-workspace.ts
++++ b/.agro/cli/src/lib/host-workspace.ts
+@@ -57,15 +57,16 @@ function assertCloned(result: RunResult, root: string): void {
+   }
+ }
+ 
+-function cloneInto(target: string, run: LifecycleRunner, root: string): void {
+-  assertCloned(run("git", ["clone", AGRO_REPO_URL, target], { stdio: "inherit" }), root);
++function cloneInto(target: string, run: LifecycleRunner, root: string, ref: string | undefined): void {
++  const branch = ref !== undefined ? ["--branch", ref] : [];
++  assertCloned(run("git", ["clone", ...branch, AGRO_REPO_URL, target], { stdio: "inherit" }), root);
+ }
+ 
+-function cloneThroughStaging(root: string, run: LifecycleRunner): void {
++function cloneThroughStaging(root: string, run: LifecycleRunner, ref: string | undefined): void {
+   const staging = mkdtempSync(join(dirname(root), "agro-clone-"));
+   try {
+     const checkout = join(staging, "agro");
+-    cloneInto(checkout, run, root);
++    cloneInto(checkout, run, root, ref);
+     for (const name of readdirSync(checkout)) {
+       const destination = join(root, name);
+       if (existsSync(destination)) {
+@@ -78,7 +79,11 @@ function cloneThroughStaging(root: string, run: LifecycleRunner): void {
+   }
+ }
+ 
+-export function ensureHostWorkspace(path: string, run: LifecycleRunner = spawnRunner): HostWorkspaceResult {
++export function ensureHostWorkspace(
++  path: string,
++  run: LifecycleRunner = spawnRunner,
++  ref?: string,
++): HostWorkspaceResult {
+   const root = resolve(path);
+ 
+   if (existsSync(join(root, ".git"))) return { root, action: "reused" };
+@@ -86,7 +91,7 @@ export function ensureHostWorkspace(path: string, run: LifecycleRunner = spawnRu
+   const stats = statSync(root, { throwIfNoEntry: false });
+   if (stats === undefined) {
+     mkdirSync(dirname(root), { recursive: true });
+-    cloneInto(root, run, root);
++    cloneInto(root, run, root, ref);
+     return { root, action: "cloned" };
+   }
+ 
+@@ -101,7 +106,7 @@ export function ensureHostWorkspace(path: string, run: LifecycleRunner = spawnRu
+     );
+   }
+ 
+-  cloneThroughStaging(root, run);
++  cloneThroughStaging(root, run, ref);
+   return { root, action: "cloned" };
+ }
+ 
+diff --git a/.agro/cli/src/lib/tools/catalog.ts b/.agro/cli/src/lib/tools/catalog.ts
+index 4ea76966..b1c8dffe 100644
+--- a/.agro/cli/src/lib/tools/catalog.ts
++++ b/.agro/cli/src/lib/tools/catalog.ts
+@@ -12,6 +12,7 @@ export interface ToolEntry {
+   readonly installArgv?: readonly string[];
+   readonly hostInstallArgv?: readonly string[];
+   readonly installUser?: "root" | "sandbox";
++  readonly hostInstallUser?: "root";
+   readonly downloadSize?: string;
+   readonly hostDownloadSize?: string;
+   readonly notInstallableReason?: (bin: string) => string;
+@@ -229,6 +230,182 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
+     ]),
+     docsPath: TOOLS_DOC,
+   }),
++  Object.freeze({
++    id: "code-server",
++    title: "code-server",
++    kind: "installable",
++    binary: "code-server",
++    verifyArgv: Object.freeze(["bash", "-lc", "command -v code-server >/dev/null"]),
++    versionArgv: Object.freeze(["code-server", "--version"]),
++    installArgv: Object.freeze([
++      "bash",
++      "-lc",
++      [
++        "set -e",
++        "version=4.129.0",
++        'arch="$(dpkg --print-architecture)"',
++        'case "$arch" in',
++        "  amd64) sha=889b09ff3a167a293f53cb68a5a7f38dbab6bd2b50d7a5951c757e56ba51a2b0 ;;",
++        "  arm64) sha=62f7886018923a18cc16112ccfbcd51aee80f8e0c1bb7abc48773d1fd32a7617 ;;",
++        '  *) echo "no pinned code-server build for $arch" >&2; exit 1 ;;',
++        "esac",
++        'prefix="${NPM_USER_PREFIX:-$HOME/.local}"',
++        'dest="$prefix/lib/code-server-$version"',
++        'tmp="$(mktemp -d)"',
++        "trap 'rm -rf \"$tmp\"' EXIT",
++        'curl -fsSL "https://github.com/coder/code-server/releases/download/v$version/code-server-$version-linux-$arch.tar.gz" -o "$tmp/code-server.tar.gz"',
++        'echo "$sha  $tmp/code-server.tar.gz" | sha256sum -c -',
++        'install -d "$tmp/release" "$prefix/lib" "$prefix/bin"',
++        'tar -xzf "$tmp/code-server.tar.gz" -C "$tmp/release" --strip-components=1',
++        'rm -rf "$dest"',
++        'mv "$tmp/release" "$dest"',
++        'ln -sfn "$dest/bin/code-server" "$prefix/bin/code-server"',
++        'if ! "$prefix/bin/code-server" --version | grep -q "^$version "; then',
++        '  echo "$prefix/bin/code-server does not report version $version" >&2',
++        "  exit 1",
++        "fi",
++      ].join("\n"),
++    ]),
++    installUser: "sandbox",
++    hostCapable: true,
++    uninstallArgv: Object.freeze([
++      "rm",
++      "-rf",
++      `${HARNESS_PREFIX_TOKEN}/bin/code-server`,
++      `${HARNESS_PREFIX_TOKEN}/lib/code-server-4.129.0`,
++    ]),
++    docsPath: TOOLS_DOC,
++  }),
++  Object.freeze({
++    id: "docker-engine",
++    title: "Docker Engine + Compose",
++    kind: "installable",
++    binary: "docker",
++    verifyArgv: Object.freeze([
++      "bash",
++      "-lc",
++      'command -v docker >/dev/null && docker compose version >/dev/null && systemctl is-enabled --quiet docker && id -nG "${SUDO_USER:-$(id -un)}" | tr " " "\\n" | grep -qx docker',
++    ]),
++    versionArgv: Object.freeze(["docker", "--version"]),
++    hostInstallArgv: Object.freeze([
++      "bash",
++      "-lc",
++      [
++        "set -e",
++        ". /etc/os-release",
++        'if [ "${ID:-}" != ubuntu ]; then',
++        '  echo "docker-engine installs from Docker\'s Ubuntu repository; this host is ${ID:-unknown}" >&2',
++        "  exit 1",
++        "fi",
++        "fingerprint=9DC858229FC7DD38854AE2D88D81803C0EBFCD88",
++        'user="${SUDO_USER:-$(id -un)}"',
++        "export DEBIAN_FRONTEND=noninteractive",
++        'tmp="$(mktemp -d)"',
++        "trap 'rm -rf \"$tmp\"' EXIT",
++        "apt-get update",
++        "apt-get install -y ca-certificates curl gnupg",
++        "install -m 0755 -d /etc/apt/keyrings",
++        'curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o "$tmp/docker.asc"',
++        'actual="$(gpg --homedir "$tmp" --show-keys --with-colons "$tmp/docker.asc" | awk -F: \'$1 == "fpr" { print $10; exit }\')"',
++        'if [ "$actual" != "$fingerprint" ]; then',
++        '  echo "Docker\'s repository key has fingerprint ${actual:-none}, expected $fingerprint" >&2',
++        "  exit 1",
++        "fi",
++        'install -m 0644 "$tmp/docker.asc" /etc/apt/keyrings/docker.asc',
++        'echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${UBUNTU_CODENAME:-$VERSION_CODENAME} stable" > /etc/apt/sources.list.d/docker.list',
++        "apt-get update",
++        "apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
++        'usermod -aG docker "$user"',
++        "systemctl enable --now docker",
++        'echo "$user is in the docker group. Log out and back in before you run docker without sudo."',
++      ].join("\n"),
++    ]),
++    hostInstallUser: "root",
++    notInstallableReason: (bin: string): string =>
++      `Docker Engine installs on the host only, with \`${bin} tool install docker-engine --host\`. ` +
++      "To use Docker inside the sandbox, set `access.dockerSocket` to true in agro.json on the host and recreate the sandbox. That mounts the host Docker socket, which is effectively host root.",
++    hostCapable: true,
++    uninstallArgv: null,
++    docsPath: TOOLS_DOC,
++  }),
++  Object.freeze({
++    id: "desktop",
++    title: "XFCE desktop over XRDP",
++    kind: "installable",
++    binary: "xrdp",
++    verifyArgv: Object.freeze([
++      "bash",
++      "-lc",
++      'command -v xrdp >/dev/null && systemctl is-enabled --quiet xrdp && systemctl is-enabled --quiet tailscaled && test -f /etc/systemd/system/xrdp.service.d/agro-tailscale-only.conf && grep -qx xfce4-session "$HOME/.xsession"',
++    ]),
++    hostInstallArgv: Object.freeze([
++      "bash",
++      "-lc",
++      [
++        "set -e",
++        ". /etc/os-release",
++        'if [ "${ID:-}" != ubuntu ]; then',
++        '  echo "desktop installs Ubuntu packages; this host is ${ID:-unknown}" >&2',
++        "  exit 1",
++        "fi",
++        'user="${SUDO_USER:-$(id -un)}"',
++        'home="$(getent passwd "$user" | cut -d: -f6)"',
++        'codename="${UBUNTU_CODENAME:-$VERSION_CODENAME}"',
++        "export DEBIAN_FRONTEND=noninteractive",
++        'tmp="$(mktemp -d)"',
++        "trap 'rm -rf \"$tmp\"' EXIT",
++        "apt-get update",
++        "apt-get install -y ca-certificates curl gnupg nftables",
++        "if ! systemctl cat tailscaled.service >/dev/null 2>&1; then",
++        "  fingerprint=2596A99EAAB33821893C0A79458CA832957F5868",
++        '  curl -fsSL "https://pkgs.tailscale.com/stable/ubuntu/$codename.noarmor.gpg" -o "$tmp/tailscale.gpg"',
++        '  actual="$(gpg --homedir "$tmp" --show-keys --with-colons "$tmp/tailscale.gpg" | awk -F: \'$1 == "fpr" { print $10; exit }\')"',
++        '  if [ "$actual" != "$fingerprint" ]; then',
++        '    echo "Tailscale\'s repository key has fingerprint ${actual:-none}, expected $fingerprint" >&2',
++        "    exit 1",
++        "  fi",
++        '  install -m 0644 "$tmp/tailscale.gpg" /usr/share/keyrings/tailscale-archive-keyring.gpg',
++        '  echo "deb [signed-by=/usr/share/keyrings/tailscale-archive-keyring.gpg] https://pkgs.tailscale.com/stable/ubuntu $codename main" > /etc/apt/sources.list.d/tailscale.list',
++        "  apt-get update",
++        "  apt-get install -y tailscale",
++        "fi",
++        "systemctl enable --now tailscaled",
++        "install -d -m 0755 /etc/xrdp /etc/systemd/system/xrdp.service.d",
++        "cat > /etc/xrdp/agro-tailscale-only.nft <<'EOF'",
++        "table inet agro_xrdp",
++        "delete table inet agro_xrdp",
++        "table inet agro_xrdp {",
++        "  chain input {",
++        "    type filter hook input priority filter; policy accept;",
++        '    iifname { "lo", "tailscale0" } accept',
++        "    tcp dport 3389 reject with tcp reset",
++        "  }",
++        "}",
++        "EOF",
++        "nft -f /etc/xrdp/agro-tailscale-only.nft",
++        "printf '[Service]\\nExecStartPre=%s -f /etc/xrdp/agro-tailscale-only.nft\\n' \"$(command -v nft)\" > /etc/systemd/system/xrdp.service.d/agro-tailscale-only.conf",
++        "systemctl daemon-reload",
++        "apt-get install -y xfce4 xfce4-goodies xrdp xorgxrdp",
++        "printf '%s\\n' xfce4-session > \"$home/.xsession\"",
++        'chown "$user:$(id -gn "$user")" "$home/.xsession"',
++        "adduser xrdp ssl-cert",
++        "systemctl daemon-reload",
++        "systemctl enable xrdp",
++        "systemctl restart xrdp",
++        "systemctl is-active --quiet xrdp",
++        'echo "The desktop is installed. Two steps remain:"',
++        'echo "  sudo tailscale up"',
++        'echo "  sudo passwd $user"',
++      ].join("\n"),
++    ]),
++    hostInstallUser: "root",
++    notInstallableReason: (bin: string): string =>
++      `The desktop installs on the host only, with \`${bin} tool install desktop --host\`. ` +
++      "It installs Tailscale and serves XFCE over XRDP on TCP 3389 through Tailscale only.",
++    hostCapable: true,
++    uninstallArgv: null,
++    docsPath: TOOLS_DOC,
++  }),
+ ]);
+ 
+ export function findTool(id: string): ToolEntry | undefined {
+diff --git a/.agro/evals/probes/agent-browser-host-boundary.sh b/.agro/evals/probes/agent-browser-host-boundary.sh
+index f0956d61..b808f3de 100755
+--- a/.agro/evals/probes/agent-browser-host-boundary.sh
++++ b/.agro/evals/probes/agent-browser-host-boundary.sh
+@@ -3,8 +3,9 @@
+ # source: #1078 — agent-browser became host-installable. The opt-out it replaced existed
+ #         because `agent-browser install --with-deps` drives the operating system package
+ #         manager. Host installs must never do that, whatever else the entry gains.
+-# desc: every hostInstallArgv in the tool catalog stays clear of the OS package manager and
+-#       of sudo; agent-browser's host path fetches a pinned release binary behind a sha256
++# desc: every user-level hostInstallArgv in the tool catalog stays clear of the OS package
++#       manager and of sudo; a root-level (hostInstallUser:"root") hostInstallArgv never
++#       calls sudo itself, because commands/tool.ts elevates it; agent-browser's host path fetches a pinned release binary behind a sha256
+ #       check and resolves an existing browser instead of downloading one.
+ set -euo pipefail
+ 
+@@ -23,7 +24,24 @@ fi
+ 
+ missing=()
+ 
+-host_block=$(awk '/hostInstallArgv: Object.freeze\(\[/,/\]\),/' "$TOOLS")
++host_blocks() {
++  awk -v want="$1" '
++    /^  Object\.freeze\(\{$/ { buf=""; root=0; inb=1; next }
++    /^  \}\),$/              { if (inb && root == want) printf "%s", buf; inb=0; next }
++    !inb                     { next }
++    /hostInstallUser: "root"/ { root=1 }
++    /hostInstallArgv: Object\.freeze\(\[/ { inh=1 }
++    inh                      { buf = buf $0 "\n" }
++    inh && /^    \]\),$/     { inh=0 }
++  ' "$TOOLS"
++}
++
++host_block=$(host_blocks 0)
++root_block=$(host_blocks 1)
++
++if grep -E '\bsudo\b' <<<"$root_block" | grep -qvE "^[[:space:]]*['\"][[:space:]]*echo[[:space:]]"; then
++  missing+=("tools/catalog.ts: a root-level hostInstallArgv calls sudo itself — root-level installs reach root only through the sudo -n path in commands/tool.ts")
++fi
+ 
+ if [[ -z $host_block ]]; then
+   missing+=("tools/catalog.ts: no hostInstallArgv — the host path fell back to the sandbox installer")
+diff --git a/.agro/evals/probes/harness-one-door.sh b/.agro/evals/probes/harness-one-door.sh
+index 1ccae538..3e8cddfb 100755
+--- a/.agro/evals/probes/harness-one-door.sh
++++ b/.agro/evals/probes/harness-one-door.sh
+@@ -8,18 +8,21 @@
+ #       provision-failed marker remains under .devcontainer/, .agro/scripts/ or
+ #       .github/; catalog.ts declares SANDBOX_HARNESS_PREFIX and it equals the
+ #       Dockerfile's NPM_USER_PREFIX, which is what lets HARNESS_PREFIX_TOKEN
+-#       count as that prefix; and every installable entry installs as the sandbox
+-#       user into NPM_USER_PREFIX, checksums what it downloads, and is absent
+-#       from the image.
++#       count as that prefix; every installable entry without
++#       hostInstallUser:"root" installs as the sandbox user into NPM_USER_PREFIX,
++#       checksums what it downloads, and is absent from the image; and every
++#       root-level tool is host-capable and host-only (no container installArgv),
++#       and reaches root only through the `sudo -n` path in commands/tool.ts.
+ set -euo pipefail
+ 
+ ROOT="${HARNESS_ONE_DOOR_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
+ HARNESSES="$ROOT/.agro/cli/src/lib/harnesses/catalog.ts"
+ TOOLS="$ROOT/.agro/cli/src/lib/tools/catalog.ts"
++TOOL_CMD="$ROOT/.agro/cli/src/commands/tool.ts"
+ CONFIG="$ROOT/.agro/cli/src/lib/agro-config.ts"
+ DOCKERFILE="$ROOT/.devcontainer/Dockerfile"
+ 
+-for f in "$HARNESSES" "$TOOLS" "$CONFIG" "$DOCKERFILE"; do
++for f in "$HARNESSES" "$TOOLS" "$TOOL_CMD" "$CONFIG" "$DOCKERFILE"; do
+   if [[ ! -f $f ]]; then
+     echo "SKIPPED: absent: ${f#"$ROOT/"}" >&2
+     exit 2
+@@ -97,6 +100,26 @@ tool_entries=$(awk '
+ 
+ installable=0
+ checksummed=0
++root_level=0
++
++check_root_entry() {
++  local name="$1" entry="$2" id="$3"
++
++  root_level=$((root_level + 1))
++
++  if [[ $entry != *'hostCapable: true'* ]]; then
++    missing+=("$name: \"$id\" is root-level but not hostCapable — a root-level install exists only on the host")
++  fi
++  if [[ $entry =~ (^|[^A-Za-z])installArgv: ]]; then
++    missing+=("$name: \"$id\" is root-level but declares a container installArgv — a root install in the sandbox becomes an interactive \`sudo\`, and /etc/sudoers.d/sandbox has no NOPASSWD")
++  fi
++  if [[ $entry =~ (^|[^A-Za-z])installUser:\ \"root\" ]]; then
++    missing+=("$name: \"$id\" declares installUser: \"root\" — only the host install of a tool may be root-level")
++  fi
++  if [[ $entry != *'hostInstallArgv:'* ]]; then
++    missing+=("$name: \"$id\" is root-level but declares no hostInstallArgv — nothing installs it")
++  fi
++}
+ 
+ check_entry() {
+   local name="$1" entry="$2" id="$3"
+@@ -165,9 +188,26 @@ while IFS= read -r entry; do
+   [[ $entry == *'kind: "installable"'* ]] || continue
+   id=$(sed -n 's/.*id: "\([^"]*\)".*/\1/p' <<<"$entry")
+   [[ -n $id ]] || continue
+-  check_entry "tools/catalog.ts" "$entry" "$id"
++  if [[ $entry == *'hostInstallUser: "root"'* ]]; then
++    check_root_entry "tools/catalog.ts" "$entry" "$id"
++  else
++    check_entry "tools/catalog.ts" "$entry" "$id"
++  fi
+ done <<<"$tool_entries"
+ 
++if ((root_level)); then
++  tool_code=$(cat "$TOOL_CMD")
++  if ! grep -qE 'const sudo = entry\.hostInstallUser === "root"' <<<"$tool_code"; then
++    missing+=("commands/tool.ts: \`sudo\` is not gated on entry.hostInstallUser === \"root\" — a user-level install could reach root")
++  fi
++  if ! grep -qF 'sudo ? ["sudo", "-n", "--", ...argv] : argv' <<<"$tool_code"; then
++    missing+=("commands/tool.ts: the root-level install does not run through \`sudo -n --\` — a root install must never prompt for a password")
++  fi
++  if grep -qE '"sudo",[[:space:]]*"[^-]|"sudo",[[:space:]]*"-[^n]|"sudo"[[:space:]]*[])]' <<<"$tool_code"; then
++    missing+=("commands/tool.ts: runs \`sudo\` without \`-n\` — every path to root must be non-interactive")
++  fi
++fi
++
+ if ((installable == harness_installable)); then
+   missing+=("tools/catalog.ts: no kind:\"installable\" tool parsed, so the tool half would pass vacuously")
+ fi
+@@ -180,4 +220,4 @@ if ((${#missing[@]})); then
+   exit 1
+ fi
+ 
+-echo "PASS: no default set, install key, provisioner or boot-time off-ramp remains, SANDBOX_HARNESS_PREFIX resolves $PREFIX_TOKEN to $PREFIX, and all $installable installable entries install as the sandbox user into $PREFIX, checksum their $checksummed downloads, and stay out of the image" >&2
++echo "PASS: no default set, install key, provisioner or boot-time off-ramp remains, SANDBOX_HARNESS_PREFIX resolves $PREFIX_TOKEN to $PREFIX, all $installable user-level installable entries install as the sandbox user into $PREFIX, checksum their $checksummed downloads, and stay out of the image, and all $root_level root-level tools are host-only behind the sudo -n path in commands/tool.ts" >&2
+diff --git a/.agro/tasks/node-host-tools/prd.json b/.agro/tasks/node-host-tools/prd.json
+new file mode 100644
+index 00000000..93262659
+--- /dev/null
++++ b/.agro/tasks/node-host-tools/prd.json
+@@ -0,0 +1,162 @@
++{
++  "schemaVersion": 1,
++  "project": "agro",
++  "branchName": "feat/1168-node-host-tools",
++  "description": "Host tools for AGRO nodes: root-level host installs via sudo, code-server, docker, and desktop tools, and agro workspace create --ref, released as 0.15.0.",
++  "userStories": [
++    {
++      "id": "US-001",
++      "title": "Install root-level host tools",
++      "description": "As an operator, I want `agro tool install <id> --host` to run a root-level installer through `sudo` so that a dedicated VM can install system packages with `agro`.",
++      "acceptanceCriteria": [
++        "`ToolEntry` gains a field that marks a host install as root-level. Existing entries keep their behavior.",
++        "If the invoking user is not root, a root-level host install runs its script through `sudo -n`.",
++        "If `sudo -n true` fails, the command exits 1 and prints a message that names the tool and states that it needs passwordless `sudo`. The command changes nothing.",
++        "`agro tool list` marks each root-level host tool.",
++        "Unit tests cover the root user, a user with passwordless `sudo`, and a user without it."
++      ],
++      "priority": 1,
++      "passes": true,
++      "notes": "Worker commit 99621b34, integrated as 57133ba6. Advisor reviewed the diff: ToolEntry.hostInstallUser \"root\"; installOnHost probes `sudo -n true` for non-root users, refuses with exit 1 before any prompt or write, then runs the installer as `sudo -n -- <argv>`; tool list shows `installable (root)` plus a footnote. AC1 executed: tool-catalog.test.ts invariant and herdr no-sudo test. AC2 executed: tool.test.ts sudo-n path. AC3 executed: tool.test.ts refusal, exit 1, no installer call, no host config write. AC4 executed: tool.test.ts list JSON hostRoot and table marker. AC5 executed: root, passwordless sudo, and no sudo cases. On the task branch: `npx vitest run` exit 0 (80 files, 1625 tests); `npm --prefix .agro/cli run typecheck` exit 0. Follow-up for US-003/US-004: host uninstall of a root tool does not go through sudo yet; root scripts should use SUDO_USER for the invoking user.",
++      "dependsOn": [],
++      "files": [
++        ".agro/cli/src/lib/tools/catalog.ts",
++        ".agro/cli/src/commands/tool.ts",
++        ".agro/cli/src/__tests__/tool.test.ts",
++        ".agro/cli/src/__tests__/tool-catalog.test.ts"
++      ],
++      "commit": "57133ba6"
++    },
++    {
++      "id": "US-002",
++      "title": "Add the code-server tool",
++      "description": "As an operator, I want `agro tool install code-server --host` so that `agro` owns the code-server version on every node.",
++      "acceptanceCriteria": [
++        "`TOOL_CATALOG` has a `code-server` entry that installs for the invoking user, with `hostCapable: true` and an `uninstallArgv`.",
++        "The script pins code-server `4.129.0` and checks the SHA-256 of the release tarball: `amd64` `889b09ff3a167a293f53cb68a5a7f38dbab6bd2b50d7a5951c757e56ba51a2b0`, `arm64` `62f7886018923a18cc16112ccfbcd51aee80f8e0c1bb7abc48773d1fd32a7617`.",
++        "If the architecture is not `amd64` or `arm64`, the script exits non-zero and names the architecture.",
++        "The script extracts the tarball to `$HOME/.local/lib/code-server-4.129.0` and links `$HOME/.local/bin/code-server` to its `bin/code-server`.",
++        "After `agro tool install code-server --host` on a Linux host, `$HOME/.local/bin/code-server --version` prints a line that starts with `4.129.0`.",
++        "`agro tool uninstall code-server --host` removes the link and the extracted directory."
++      ],
++      "priority": 3,
++      "passes": true,
++      "notes": "Worker commit 6a308f09, integrated as 144ad0c8. AC1 executed: tool-catalog.test.ts code-server entry (invoking-user install, hostCapable, uninstallArgv). AC2 executed: worker downloaded both v4.129.0 tarballs and sha256sum matched both pinned hashes; host run printed \"code-server.tar.gz: OK\". AC3 executed: install script with a fake dpkg reporting riscv64 exited 1 naming riscv64. AC4 executed: host run with a temp HOME produced $HOME/.local/lib/code-server-4.129.0 and the $HOME/.local/bin/code-server link. AC5 executed: `HOME=<tmp> AGRO_EXECUTION_TARGET=docker-compose DOCKER_HOST=unix:///nonexistent/docker.sock node .agro/cli/dist/agro.js tool install code-server --host` exit 0; `<tmp>/.local/bin/code-server --version` printed \"4.129.0 77baee7f\u2026 with Code 1.129.0\". AC6 executed with divergence: `agro tool uninstall` has no --host flag (existing CLI: \"--host and --path apply to install only\"); it targets the host when no sandbox is reachable. `agro tool uninstall code-server` in the same host env exit 0, removed the link and directory, and cleared the host record. On the task branch: npx vitest run exit 0; cli typecheck exit 0.",
++      "dependsOn": [
++        "US-001"
++      ],
++      "files": [
++        ".agro/cli/src/lib/tools/catalog.ts",
++        ".agro/cli/src/__tests__/tool-catalog.test.ts",
++        ".agro/cli/src/__tests__/tool.test.ts"
++      ],
++      "commit": "144ad0c8"
++    },
++    {
++      "id": "US-003",
++      "title": "Add the docker tool",
++      "description": "As an operator, I want `agro tool install docker --host` so that every node gets Docker Engine and Compose from one command.",
++      "acceptanceCriteria": [
++        "`TOOL_CATALOG` has a `docker` entry that is host-capable and root-level (US-001).",
++        "The script installs `docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`, and `docker-compose-plugin` from Docker's apt repository for Ubuntu, with the repository key checked.",
++        "The script adds the invoking user to the `docker` group and enables the `docker` service.",
++        "After the install and a new login, `docker run --rm hello-world` exits 0 and `docker compose version` exits 0 for the invoking user.",
++        "Inside an AGRO sandbox, `agro tool install docker` refuses with a message that names `access.dockerSocket`.",
++        "A second install exits 0 and changes nothing."
++      ],
++      "priority": 4,
++      "passes": true,
++      "notes": "Worker commits dcdbb13b + repair cfa6616a (advisor review: root-level host installs no longer print the ~/.local prefix and PATH hints), integrated ending at d814009c. AC1 executed: tool-catalog.test.ts docker is host-only, root-level, installable. AC2 executed: tests assert the five packages, Docker's Ubuntu apt repository, and the fingerprint check before the key is trusted; worker fetched the live key and gpg --show-keys printed 9DC858229FC7DD38854AE2D88D81803C0EBFCD88. AC3 executed: test asserts usermod -aG docker \"$user\" (SUDO_USER) and systemctl enable --now docker. AC4 NOT RUN: needs an Ubuntu 24.04 VM with systemd; deferred to the agro-console node validation (mifunedev/agro-console#168 US-007). AC5 executed: tool.test.ts inside the sandbox with and without --host, and on the host with a running sandbox and no --host, each exit 1 naming access.dockerSocket with no installer run. AC6 executed: tool.test.ts already-installed path exits 0 with no sudo or installer call; reasoned: the script's steps are idempotent. Rendered script: bash -n exit 0; npx shellcheck -S warning exit 0. On the task branch: npx vitest run exit 0; cli typecheck exit 0. Known: host receipt still records the ~/.local prefix (host-config.ts shape); docker uninstall is refused (uninstallArgv null). Later renamed: the tool id is docker-engine (392e7bd1), because the runtime catalog owns the id docker; commands read `agro tool install docker-engine --host`.",
++      "dependsOn": [
++        "US-002"
++      ],
++      "files": [
++        ".agro/cli/src/lib/tools/catalog.ts",
++        ".agro/cli/src/commands/tool.ts",
++        ".agro/cli/src/__tests__/tool-catalog.test.ts",
++        ".agro/cli/src/__tests__/tool.test.ts"
++      ],
++      "commit": "d814009c"
++    },
++    {
++      "id": "US-004",
++      "title": "Add the desktop tool",
++      "description": "As an operator, I want `agro tool install desktop --host` so that a node can serve an XFCE desktop over RDP through Tailscale.",
++      "acceptanceCriteria": [
++        "`TOOL_CATALOG` has a `desktop` entry that is host-capable and root-level (US-001).",
++        "If `tailscale` is not installed, the command exits 1 and names `agro tool install tailscale --host`.",
++        "The script installs `xfce4`, `xfce4-goodies`, `xrdp`, and `xorgxrdp`, writes `xfce4-session` to the invoking user's `~/.xsession`, adds `xrdp` to `ssl-cert`, and enables `xrdp`.",
++        "After the install, TCP 3389 accepts connections on the Tailscale address and refuses connections on the public address.",
++        "The script does not change any SSH firewall rule and does not set a password.",
++        "On completion, the command prints the two remaining operator steps: `sudo tailscale up` and `sudo passwd <user>`.",
++        "The steps follow `https://github.com/ryaneggz/runbooks/blob/main/runbooks/ubuntu-24-xfce-xrdp-tailscale.md`, steps 3 to 6."
++      ],
++      "priority": 5,
++      "passes": true,
++      "notes": "Worker commits 0c8e7dbf + repair e5167b5c, integrated ending at d2efcf19. Advisor decision during review: agro's tailscale tool is a user-level binary with no tailscaled service, so `sudo tailscale up` and the tailscale0 interface would not exist on a VM; the desktop tool installs system Tailscale from Tailscale's signed apt repository (fingerprint 2596A99EAAB33821893C0A79458CA832957F5868 checked before trust) and enables tailscaled, skipping the install when tailscaled.service exists. AC1 executed: tool-catalog.test.ts desktop is host-capable, root-level, host-only, refused inside the sandbox. AC2 superseded by that decision (no tailscale prerequisite); executed instead: test runs the skip path with stubbed commands (only systemctl cat and enable --now tailscaled) and asserts key, source, package, and service order before the firewall and xrdp. AC3 executed (script content tests): apt-get install xfce4 xfce4-goodies xrdp xorgxrdp, xfce4-session to the invoking user's ~/.xsession with that user's ownership, adduser xrdp ssl-cert, systemctl enable and restart xrdp. AC4 NOT RUN: needs an Ubuntu 24.04 VM; mechanism: nftables table inet agro_xrdp accepts lo and tailscale0 and resets TCP 3389 elsewhere, loaded before xrdp is installed and by an xrdp ExecStartPre drop-in. AC5 executed: tests assert no ufw, ssh, 22, chpasswd, or usermod -p. AC6 executed: script ends by printing `sudo tailscale up` and `sudo passwd $user`. AC7 reasoned: runbook steps 3, 4, 6, and 7 (minus tailscale up) are taken; step 5 is the printed passwd step; the runbook ufw steps are replaced by nftables so SSH rules are untouched. Rendered script: bash -n and npx shellcheck -S warning exit 0. On the task branch: npx vitest run exit 0 (1679 tests); cli typecheck exit 0.",
++      "dependsOn": [
++        "US-003"
++      ],
++      "files": [
++        ".agro/cli/src/lib/tools/catalog.ts",
++        ".agro/cli/src/__tests__/tool-catalog.test.ts",
++        ".agro/cli/src/__tests__/tool.test.ts"
++      ],
++      "commit": "d2efcf19"
++    },
++    {
++      "id": "US-005",
++      "title": "Pin the workspace ref",
++      "description": "As an operator, I want `agro workspace create --ref <tag>` so that a node's workspace matches the CLI release.",
++      "acceptanceCriteria": [
++        "`agro workspace create [<name>] --ref <ref>` clones `https://github.com/mifunedev/agro.git` at `<ref>`.",
++        "If `<ref>` does not exist, the command exits 1, names the ref, and leaves no target directory.",
++        "Without `--ref`, the command keeps its current behavior.",
++        "`docs/lifecycle-commands.md` documents `--ref`.",
++        "Unit tests cover a tag, a missing ref, and no `--ref`."
++      ],
++      "priority": 2,
++      "passes": true,
++      "notes": "Worker commits 1194bdef + repair 2a97b395 (advisor review: replaced a clone-argv runner wrapper with a `ref` parameter on ensureHostWorkspace), integrated as 2bd492d9 + cfd35def. AC1 executed: workspace.test.ts tag case and host-workspace.test.ts argv `clone --branch <ref> <url> <target>` for direct and staged clones; worker also ran real `git clone --branch v1` on a local tag repo, exit 0. AC2 executed: workspace.test.ts missing-ref case exits 1, names the ref, removes the created target; real `git clone --branch nope` exited 128 and left no directory. AC3 executed: no-ref argv stays `clone <url> <target>`; existing create tests unchanged. AC4 executed: docs test for `--ref <ref>`; ste-check.sh docs/lifecycle-commands.md exit 0. AC5 executed: tag, missing ref, no --ref cases. On the task branch: `npx vitest run` exit 0 (1633 tests); cli typecheck exit 0. Note: with --ref, an existing .git checkout is reused without changing its ref (documented).",
++      "dependsOn": [],
++      "files": [
++        ".agro/cli/src/commands/workspace.ts",
++        ".agro/cli/src/cli.ts",
++        ".agro/cli/src/__tests__/workspace.test.ts",
++        "docs/lifecycle-commands.md"
++      ],
++      "commit": "cfd35def"
++    },
++    {
++      "id": "US-006",
++      "title": "Document and release",
++      "description": "As an operator, I want the tools in a release so that the console can pin that release.",
++      "acceptanceCriteria": [
++        "`docs/installation.md` and `docs/lifecycle-commands.md` list `code-server`, `docker`, and `desktop`, and state which tools are root-level.",
++        "`CHANGELOG.md` has entries for US-001 to US-005.",
++        "`npm test`, `npm --prefix .agro/cli run typecheck`, and the eval probes pass.",
++        "The pull request body has a `## Host install evidence` section with the commands and exit codes of US-002 to US-005 on an Ubuntu 24.04 host. A check that did not run is listed as `NOT RUN` with the reason.",
++        "AGRO `0.15.0` publishes the changes."
++      ],
++      "priority": 6,
++      "passes": true,
++      "notes": "Worker commit bee2592c integrated as e94d3bc3, plus advisor-assigned repair 5106b09f integrated as 392e7bd1 (the eval gate failed tool-catalog-boundary, harness-one-door, and agent-browser-host-boundary after US-003/US-004; fix: tool id docker renamed docker-engine because the runtime catalog owns `docker`, and the probes' user-level host-install rules now skip root-level tools, which get their own invariant; fault injection on five mutations made the probes fail as expected). AC1 reasoned: advisor read docs/installation.md and docs/lifecycle-commands.md; both list code-server, docker-engine, desktop and mark the root-level tools; ste-check.sh exit 0 on both. AC2 executed: CHANGELOG.md [0.15.0] - 2026-09-24 has US-001..US-005 entries linking #1168; changelog-entry-length.sh pass. AC3 executed on the task branch: npx vitest run exit 0 (1679 tests); cli typecheck exit 0; version-parity.sh pass at 0.15.0; `bash .agro/skills/eval/run.sh` exit 0 with only the persistent non-gating reds next-dev-prod and skills-vendored (both red on development). AC4 executed: PR #1169 has a Host install evidence section; host installs on a real Ubuntu 24.04 VM are listed NOT RUN with the reason. AC5 pending at acceptance: 0.15.0 publishes after the merge; the advisor verifies the release assets and records the result in the PR.",
++      "dependsOn": [
++        "US-001",
++        "US-002",
++        "US-003",
++        "US-004",
++        "US-005"
++      ],
++      "files": [
++        "docs/installation.md",
++        "docs/lifecycle-commands.md",
++        "CHANGELOG.md",
++        "package.json",
++        ".agro/cli/package.json",
++        ".agro/cli/package-lock.json"
++      ],
++      "commit": "392e7bd1"
++    }
++  ]
++}
+diff --git a/.agro/tasks/node-host-tools/prd.md b/.agro/tasks/node-host-tools/prd.md
+new file mode 100644
+index 00000000..49c9d4e3
+--- /dev/null
++++ b/.agro/tasks/node-host-tools/prd.md
+@@ -0,0 +1,157 @@
++# PRD: Host tools for AGRO nodes
++
++Status: DRAFT
++
++## User Stories
++
++### US-001: Install root-level host tools
++
++**Description:** As an operator, I want `agro tool install <id> --host` to run a root-level installer through `sudo` so that a dedicated VM can install system packages with `agro`.
++
++**Acceptance Criteria:**
++
++- [ ] `ToolEntry` gains a field that marks a host install as root-level. Existing entries keep their behavior.
++- [ ] If the invoking user is not root, a root-level host install runs its script through `sudo -n`.
++- [ ] If `sudo -n true` fails, the command exits 1 and prints a message that names the tool and states that it needs passwordless `sudo`. The command changes nothing.
++- [ ] `agro tool list` marks each root-level host tool.
++- [ ] Unit tests cover the root user, a user with passwordless `sudo`, and a user without it.
++
++### US-002: Add the code-server tool
++
++**Description:** As an operator, I want `agro tool install code-server --host` so that `agro` owns the code-server version on every node.
++
++**Acceptance Criteria:**
++
++- [ ] `TOOL_CATALOG` has a `code-server` entry that installs for the invoking user, with `hostCapable: true` and an `uninstallArgv`.
++- [ ] The script pins code-server `4.129.0` and checks the SHA-256 of the release tarball: `amd64` `889b09ff3a167a293f53cb68a5a7f38dbab6bd2b50d7a5951c757e56ba51a2b0`, `arm64` `62f7886018923a18cc16112ccfbcd51aee80f8e0c1bb7abc48773d1fd32a7617`.
++- [ ] If the architecture is not `amd64` or `arm64`, the script exits non-zero and names the architecture.
++- [ ] The script extracts the tarball to `$HOME/.local/lib/code-server-4.129.0` and links `$HOME/.local/bin/code-server` to its `bin/code-server`.
++- [ ] After `agro tool install code-server --host` on a Linux host, `$HOME/.local/bin/code-server --version` prints a line that starts with `4.129.0`.
++- [ ] `agro tool uninstall code-server --host` removes the link and the extracted directory.
++
++### US-003: Add the docker tool
++
++**Description:** As an operator, I want `agro tool install docker --host` so that every node gets Docker Engine and Compose from one command.
++
++**Acceptance Criteria:**
++
++- [ ] `TOOL_CATALOG` has a `docker` entry that is host-capable and root-level (US-001).
++- [ ] The script installs `docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`, and `docker-compose-plugin` from Docker's apt repository for Ubuntu, with the repository key checked.
++- [ ] The script adds the invoking user to the `docker` group and enables the `docker` service.
++- [ ] After the install and a new login, `docker run --rm hello-world` exits 0 and `docker compose version` exits 0 for the invoking user.
++- [ ] Inside an AGRO sandbox, `agro tool install docker` refuses with a message that names `access.dockerSocket`.
++- [ ] A second install exits 0 and changes nothing.
++
++### US-004: Add the desktop tool
++
++**Description:** As an operator, I want `agro tool install desktop --host` so that a node can serve an XFCE desktop over RDP through Tailscale.
++
++**Acceptance Criteria:**
++
++- [ ] `TOOL_CATALOG` has a `desktop` entry that is host-capable and root-level (US-001).
++- [ ] If `tailscale` is not installed, the command exits 1 and names `agro tool install tailscale --host`.
++- [ ] The script installs `xfce4`, `xfce4-goodies`, `xrdp`, and `xorgxrdp`, writes `xfce4-session` to the invoking user's `~/.xsession`, adds `xrdp` to `ssl-cert`, and enables `xrdp`.
++- [ ] After the install, TCP 3389 accepts connections on the Tailscale address and refuses connections on the public address.
++- [ ] The script does not change any SSH firewall rule and does not set a password.
++- [ ] On completion, the command prints the two remaining operator steps: `sudo tailscale up` and `sudo passwd <user>`.
++- [ ] The steps follow `https://github.com/ryaneggz/runbooks/blob/main/runbooks/ubuntu-24-xfce-xrdp-tailscale.md`, steps 3 to 6.
++
++### US-005: Pin the workspace ref
++
++**Description:** As an operator, I want `agro workspace create --ref <tag>` so that a node's workspace matches the CLI release.
++
++**Acceptance Criteria:**
++
++- [ ] `agro workspace create [<name>] --ref <ref>` clones `https://github.com/mifunedev/agro.git` at `<ref>`.
++- [ ] If `<ref>` does not exist, the command exits 1, names the ref, and leaves no target directory.
++- [ ] Without `--ref`, the command keeps its current behavior.
++- [ ] `docs/lifecycle-commands.md` documents `--ref`.
++- [ ] Unit tests cover a tag, a missing ref, and no `--ref`.
++
++### US-006: Document and release
++
++**Description:** As an operator, I want the tools in a release so that the console can pin that release.
++
++**Acceptance Criteria:**
++
++- [ ] `docs/installation.md` and `docs/lifecycle-commands.md` list `code-server`, `docker`, and `desktop`, and state which tools are root-level.
++- [ ] `CHANGELOG.md` has entries for US-001 to US-005.
++- [ ] `npm test`, `npm --prefix .agro/cli run typecheck`, and the eval probes pass.
++- [ ] The pull request body has a `## Host install evidence` section with the commands and exit codes of US-002 to US-005 on an Ubuntu 24.04 host. A check that did not run is listed as `NOT RUN` with the reason.
++- [ ] AGRO `0.15.0` publishes the changes.
++
++## Summary
++
++Verified current state:
++
++- `agro tool install <id> --host` installs into `~/.local` for the invoking user. `agent-browser` has no host install because its installer adds system packages (`docs/lifecycle-commands.md`).
++- `docker-cli` is baked into the sandbox image and has no host install. No tool installs Docker Engine.
++- `tailscale` is host-capable.
++- `agro workspace create` clones the default branch of `mifunedev/agro` and has no ref option.
++- `mifunedev/agro-console` will build each node on this CLI; see its plan `agro-node-base`.
++
++## Key Integration Points
++
++| File | Function(s) / Symbol(s) | Role |
++|---|---|---|
++| `.agro/cli/src/lib/tools/catalog.ts` | `ToolEntry`, `TOOL_CATALOG` | Root-level field; `code-server`, `docker`, `desktop` entries. |
++| `.agro/cli/src/commands/tool.ts` | host install path | `sudo -n` for root-level tools. |
++| `.agro/cli/src/commands/workspace.ts` | `create` | `--ref`. |
++| `docs/installation.md`, `docs/lifecycle-commands.md`, `CHANGELOG.md` | tool and verb docs | Documentation. |
++
++## Interface Integration Points
++
++| Surface | Change Type | Description |
++|---|---|---|
++| `agro tool install code-server\|docker\|desktop` | New tools | Host installs. |
++| `agro workspace create --ref` | New flag | Pinned clone. |
++| `agro tool list` | Output | Marks root-level tools. |
++
++## Storage
++
++N/A. The existing `hostTools` record in the host `agro.json` records each host install.
++
++## Architectural Decisions
++
++- A dedicated VM may install system packages. The catalog marks those tools as root-level instead of refusing them.
++- Tools that need interactive credentials stop before the credential step and print it.
++- The desktop tool never exposes RDP on the public address.
++
++## Test Plan (TDD)
++
++| Test File | Case(s) | Validates |
++|---|---|---|
++| `.agro/cli/src/__tests__/tool-catalog.test.ts` | new entries, root-level marker, pinned hashes | US-001 to US-004 |
++| `.agro/cli/src/commands/__tests__/` tool install tests | `sudo -n` path and refusal | US-001 |
++| workspace command tests | `--ref` tag, missing ref, default | US-005 |
++
++## Design Principles
++
++- One owner: `agro` owns tool versions and install steps.
++- Keep each install idempotent.
++- Add no comments to tracked code.
++
++## Out of Scope
++
++- A Tailscale auth key flow.
++- A firewall policy beyond port 3389.
++- Non-Ubuntu hosts.
++
++## Open Questions
++
++None.
++
++## Acceptance Criteria
++
++- [ ] On a fresh Ubuntu 24.04 VM with passwordless `sudo`, `agro tool install docker --host`, `agro tool install code-server --host`, and `agro workspace create --ref v0.15.0` each exit 0.
++- [ ] AGRO `0.15.0` is released.
++- [ ] CI is green on the pull request.
++
++## Lessons
++
++- **The eval probes allowed only user-level host installs.** Evidence: after US-003 and US-004, `tool-catalog-boundary`, `harness-one-door`, and `agent-browser-host-boundary` failed, and the id `docker` collided with the runtime catalog. Outcome: fixed in this PR. The tool is `docker-engine`, and the probes check root-level tools with their own rule.
++- **The `tailscale` tool installs a user binary with no `tailscaled` service.** Evidence: its catalog script copies `tailscale` and `tailscaled` to `~/.local/bin` and starts nothing, so `sudo tailscale up` and `tailscale0` do not exist on a VM. Outcome: fixed in this PR. The `desktop` tool installs system Tailscale from Tailscale's apt repository.
++- **A host tool install needs an existing workspace.** Evidence: `resolveExistingWorkspace` refuses `agro tool install <id> --host` outside a workspace. Outcome: fixed in this PR. The docs state the rule, and the agro-console bootstrap runs `agro workspace create` first.
++- **A root-level host tool gets a user-level receipt, and uninstall refuses it.** Evidence: the `hostTools` receipt records the `~/.local` prefix for `docker-engine` and `desktop`, and both have `uninstallArgv: null`. Outcome: proposed issue, pending operator approval.
++- **The public docs do not name the new tools.** Evidence: `mifunedev/agro-web` does not document `code-server`, `docker-engine`, `desktop`, or `workspace create --ref`. Outcome: proposed issue in `mifunedev/agro-web`, pending operator approval.
++- **The host installs have not run on a real VM.** Evidence: the sandbox has no systemd and no root. Outcome: dropped from this PR. The agro-console node validation (mifunedev/agro-console#168, US-007) runs them on Ubuntu 24.04.
+diff --git a/docs/installation.md b/docs/installation.md
+index fccabeea..856b79f1 100644
+--- a/docs/installation.md
++++ b/docs/installation.md
+@@ -223,9 +223,9 @@ system path is unwritable from a running sandbox. Consequences worth knowing:
+ | [Antigravity CLI](harnesses/antigravity-cli.md) | `agy` | Google's terminal coding agent, installed from `https://antigravity.google/cli/install.sh` (aliased to `agy --dangerously-skip-permissions`) | `agro harness install antigravity-cli` |
+ | T3 Code | `npx t3` | Browser UI over Claude/Codex/OpenCode | on demand, no install |
+ 
+-Tools follow the same rule. `herdr`, `cloudflared`, `agent-browser`, and
+-`tailscale` are `kind: "installable"` and enter the sandbox only through
+-`agro tool install <name>`. `gh` and the Docker CLI are `kind: "baked-in"`: they
++Tools follow the same rule. `herdr`, `cloudflared`, `agent-browser`,
++`tailscale`, and `code-server` are `kind: "installable"` and enter the sandbox only
++through `agro tool install <name>`. `gh` and the Docker CLI are `kind: "baked-in"`: they
+ are in the image, and `agro tool install` refuses them. Every install is
+ idempotent, and none needs an image rebuild. `agro tool install agent-browser`
+ downloads about 1 GB, so it asks for confirmation first; `--yes` accepts that
+@@ -233,15 +233,43 @@ download in a non-interactive run and changes nothing else.
+ 
+ When no sandbox is reachable, `agro tool install` and `agro tool uninstall` act on
+ the host, with two limits. First, each tool declares whether it installs on the
+-host. `agent-browser`, `herdr`, `cloudflared`, `microsandbox` and `tailscale` do.
+-`gh` and the Docker CLI do not, because the image provides them. Second,
+-a host install needs Linux, because every tool installer is Debian-specific; on
+-any other platform the command refuses and names the platform. A host install
+-clones the AGRO workspace into the harness root — `--path <dir>`, then
+-`harnessRoot` in `~/.agro/config.json`, then `~/.agro/workspaces/default` — installs into `~/.local`,
+-and records the installed id under `hostTools` in that same file. `agro tool uninstall`
+-removes only what that record names; `--force` removes from `~/.local` without a
+-record.
++host. `agent-browser`, `herdr`, `cloudflared`, `microsandbox`, `tailscale`,
++`code-server`, `docker-engine`, and `desktop` do. `gh` and the Docker CLI do not, because
++the image provides them. Second, a host install needs Linux, because every tool
++installer is Debian-specific; on any other platform the command refuses and names
++the platform. A host install needs an existing workspace — `--path <dir>`, then
++`harnessRoot` in `~/.agro/config.json`, then `~/.agro/workspaces/default` — and
++exits 1 when none resolves. It records the installed id under `hostTools` in
++`~/.agro/config.json`. `agro tool uninstall` removes only what that record names;
++`--force` removes from `~/.local` without a record.
++
++Most host tools install into `~/.local` for the invoking user. `docker-engine`
++and `desktop` are root-level: they install system packages as root.
++`agro tool list` marks them `(root)`.
++
++| Tool | Host install | Level | Sandbox |
++|------|--------------|-------|---------|
++| `code-server` | pinned, checksum-verified release in `~/.local/lib/code-server-<version>`, linked from `~/.local/bin/code-server` | invoking user | installs into `~/.local` |
++| `docker-engine` | Docker Engine and the Compose plugin from Docker's apt repository for Ubuntu; adds the invoking user to the `docker` group | root | refused; names `access.dockerSocket` |
++| `desktop` | XFCE and XRDP, plus system Tailscale from Tailscale's apt repository; serves TCP 3389 only through Tailscale | root | refused |
++
++When you are not root, a root-level install runs its installer through `sudo -n`.
++When `sudo -n true` fails, the command exits 1 and changes nothing. The message
++names `<id>` and passwordless `sudo`.
++`docker-engine` and `desktop` install on the host only. Run
++`agro tool install docker-engine --host` or `agro tool install desktop --host`.
++`agro tool uninstall` refuses both.
++After a `docker-engine` install, log in again to use the `docker` group.
++
++To use the desktop:
++
++1. Run `agro tool install desktop --host`.
++2. Run `sudo tailscale up`, and sign in to your tailnet.
++3. Run `sudo passwd <user>` to set the password that XRDP asks for.
++4. Connect an RDP client to `<tailscale-ip>:3389`. Get the address with
++   `tailscale ip -4`.
++
++The desktop install changes no SSH firewall rule and sets no password.
+ 
+ On the host, `agent-browser` installs a pinned release binary into `~/.local/bin`
+ and never calls the operating system package manager. The installer does not download a
+diff --git a/docs/lifecycle-commands.md b/docs/lifecycle-commands.md
+index 9e2e67d2..6a4dec63 100644
+--- a/docs/lifecycle-commands.md
++++ b/docs/lifecycle-commands.md
+@@ -57,7 +57,7 @@ Amazon Bedrock, Vertex or Foundry, reads no project instructions at all.
+ | `agro langfuse apply` · `agro langfuse status` · `agro langfuse disable` | render, check, or remove the Langfuse tracing files — see below |
+ | `agro gateway <pi\|hermes>` · `agro gateway status` | `.agro/scripts/gateway.sh` |
+ | `agro harness` · `agro tool` | install and inspect harnesses and tooling |
+-| `agro workspace create [<name>] [--path <dir>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
++| `agro workspace create [<name>] [--path <dir>] [--ref <ref>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
+ | `agro --help` · `agro --version` | usage and version |
+ 
+ `agro <verb> -- <args>` forwards extra arguments to `docker compose`, e.g.
+@@ -306,15 +306,32 @@ or `--path`; without either it keeps the refusal. See
+ [Harnesses Overview](harnesses/overview.md#installing-a-harness).
+ 
+ `agro tool install <id>` uses the same host path, with two limits. A tool must
+-declare a host install. `herdr`, `cloudflared`, `microsandbox` and
+-`tailscale` declare a host install. `agent-browser` does not, because its installer adds
+-system packages to the machine. `gh` and the Docker CLI do not, because the
+-sandbox image provides them. A host install also needs Linux, because every tool
+-installer is Debian-specific. The command refuses on any other platform and names
+-that platform. A successful host install records the installed id as `hostTools` in the host
+-`agro.json`, separately from `hostHarnesses`. `agro tool uninstall <id>` removes
+-only what that record names, and `--force` removes from `~/.local` without a
+-record.
++declare a host install. `agent-browser`, `herdr`, `cloudflared`, `microsandbox`,
++`tailscale`, `code-server`, `docker-engine`, and `desktop` declare a host install. `gh`
++and the Docker CLI do not, because the sandbox image provides them. A host install
++also needs Linux, because every tool installer is Debian-specific. The command
++refuses on any other platform and names that platform. A successful host install
++records the installed id as `hostTools` in the host `agro.json`, separately from
++`hostHarnesses`. `agro tool uninstall <id>` has no `--host` flag. It removes only
++what that record names when no sandbox is reachable, and `--force` removes from
++`~/.local` without a record.
++
++| Tool | Host install level | In the sandbox |
++|------|--------------------|----------------|
++| `code-server` | invoking user, `~/.local` | installs |
++| `docker-engine` | root-level | refused; names `access.dockerSocket` |
++| `desktop` | root-level | refused |
++
++A root-level tool installs system packages as root. `agro tool list` marks it
++`(root)`. When you are not root, the installer runs through `sudo -n`. When
++`sudo -n true` fails, the command exits 1 and changes nothing. The message names
++`<id>` and passwordless `sudo`.
++`docker-engine` and `desktop` install only with `--host`, and `agro tool uninstall`
++refuses them. `docker-engine` installs Docker Engine and Compose. `desktop` installs
++XFCE, XRDP, and system Tailscale, and serves TCP 3389 only through Tailscale. It
++ends by printing the two remaining steps: `sudo tailscale up` and
++`sudo passwd <user>`. Then connect an RDP client to the Tailscale address on port
++3389. See [Installation](installation.md#ai-agent-clis).
+ 
+ ## Host workspaces: `agro workspace`
+ 
+@@ -327,6 +344,7 @@ state. `agro workspace` is the only verb that creates one.
+ agro workspace create                     # clone into ~/.agro/workspaces/default
+ agro workspace create acme                # clone into ~/.agro/workspaces/acme
+ agro workspace create --path /srv/agro    # clone into /srv/agro, outside the registry
++agro workspace create --ref v0.15.0       # clone tag v0.15.0 into ~/.agro/workspaces/default
+ agro workspace list                       # every workspace, with the default marked
+ agro workspace list --json                # the same rows as JSON
+ ```
+@@ -339,6 +357,11 @@ agro workspace list --json                # the same rows as JSON
+   or a digit. The command refuses any other name and creates nothing.
+ - `--path <dir>` creates the workspace outside the registry. Pass a name or
+   `--path <dir>`, never both.
++- `--ref <ref>` clones the branch or tag `<ref>` instead of the default branch.
++  A tag gives a detached checkout. If `<ref>` does not exist, the command exits
++  1, names the ref, and leaves no target directory. The command reuses a target
++  that already holds a `.git` checkout and does not change its ref. `list`
++  refuses `--ref`.
+ - `create` records no default. The command leaves `harnessRoot` in
+   `~/.agro/config.json` unchanged. Only a host install writes that key.
+ - `agro workspace list` reports every child of `~/.agro/workspaces/` that obeys
+diff --git a/package.json b/package.json
+index b79f2576..05f90265 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "agro",
+-  "version": "0.14.0",
++  "version": "0.15.0",
+   "private": true,
+   "description": "AGRO — Agent Governance Runtime Orchestrator",
+   "license": "Apache-2.0",

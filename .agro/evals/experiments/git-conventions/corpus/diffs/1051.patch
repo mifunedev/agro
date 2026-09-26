@@ -1,0 +1,1515 @@
+diff --git a/.agro/cli/README.md b/.agro/cli/README.md
+index dddef65e..e60cf300 100644
+--- a/.agro/cli/README.md
++++ b/.agro/cli/README.md
+@@ -117,7 +117,6 @@ with `OH_EXECUTION_TARGET=local` or `OH_EXECUTION_TARGET=docker-compose`.
+ | `agro harness <list\|install\|status>` | Install and inspect agent CLI harnesses. `install` is the only door: it probes the running sandbox, installs into the persistent home volume, and reports. It reads and writes no `agro.json` field, and needs no rebuild. |
+ | `agro tool <list\|install\|status>` | Install and inspect sandbox tooling that is not an agent CLI. `herdr`, `cloudflared`, `agent-browser`, `microsandbox`, and `tailscale` are `installable`; `gh` and the Docker CLI are `baked-in` and cannot be installed. Nothing installs at boot. A large download is confirmed first, and `--yes` accepts it. |
+ | `agro gateway <args…>` | Manage a messaging client session (Slack bridge for `pi`/`hermes`). |
+-| `agro cloud <args…>` | Configure credentials and manage OpenHarness Cloud SSH keys and nodes. |
+ | `agro --version` | Print the CLI version. |
+ | `agro --help` | Show help; every subcommand also accepts `--help`. |
+ 
+@@ -146,33 +145,6 @@ documentation instead of a path inside the equipped project.
+ The CLI writes no scaffold. It creates no `AGENTS.md`, no provider configuration, and no
+ `.gitignore` line beyond the `.env` line `agro secret set` adds inside a git checkout.
+ 
+-## OpenHarness Cloud
+-
+-`agro cloud` is an Apache-2.0 licensed client that talks to a proprietary hosted service.
+-Configure the Cloud API once, then use `agro cloud` instead of hand-writing authenticated HTTP
+-requests:
+-
+-```bash
+-agro cloud config  # securely prompts for the current provisioner key
+-agro cloud ssh-keys create --name laptop --public-key-file ~/.ssh/openharness_node.pub
+-agro cloud nodes create --name demo --ssh-key-id <ssh-key-id>
+-agro cloud nodes watch <node-id>
+-```
+-
+-Both settings are repository-local. `agro cloud config` writes the API base URL to `cloud.apiUrl`
+-in the tracked `agro.json` and, until OpenHarness Cloud issues user API tokens, stores the
+-user-provided provisioner key as `OH_CLOUD_PROVISION_KEY` in the gitignored root `.env`
+-(mode `0600`). The key is never printed; `agro cloud config show` redacts it. Nothing is written
+-under `$HOME`.
+-
+-`OH_CLOUD_API_URL` and `OH_CLOUD_PROVISION_KEY` (`OH_PROVISION_KEY` and `PROVISION_KEY` are
+-still accepted) provide non-persistent overrides for automation. Because the settings live in
+-the repository, `agro cloud` runs inside an OpenHarness-equipped repo; outside one, pass
+-`--api-url` and `--provision-key`. On the first `agro cloud` run in a repo, a legacy
+-`~/.config/openharness/cloud.json` is migrated into these two homes and then reported as no
+-longer read — it is left on disk for you to delete. Run `agro cloud --help` for the complete
+-SSH-key and node lifecycle command set.
+-
+ ## Documentation
+ 
+ - **Docs:** https://agro.mifune.dev
+diff --git a/.agro/cli/package.json b/.agro/cli/package.json
+index e19ae322..6191a414 100644
+--- a/.agro/cli/package.json
++++ b/.agro/cli/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "@mifune/agro",
+   "version": "0.10.0",
+-  "description": "AGRO CLI — create sandboxes for coding agents and manage OpenHarness Cloud nodes.",
++  "description": "AGRO CLI — create and manage sandboxes for coding agents.",
+   "license": "Apache-2.0",
+   "homepage": "https://github.com/mifunedev/agro#readme",
+   "repository": {
+diff --git a/.agro/cli/src/__tests__/cloud.test.ts b/.agro/cli/src/__tests__/cloud.test.ts
+deleted file mode 100644
+index 78bbd848..00000000
+--- a/.agro/cli/src/__tests__/cloud.test.ts
++++ /dev/null
+@@ -1,322 +0,0 @@
+-import { afterEach, describe, expect, it } from "vitest";
+-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+-import { tmpdir } from "node:os";
+-import { join } from "node:path";
+-
+-import { createCloudApiClient, runCloud, type CloudIO } from "../commands/cloud.js";
+-import { readOhConfig, ohConfigPath } from "../lib/oh-config.js";
+-import { readSecret } from "../lib/secrets.js";
+-import { withInvokedBinAsync } from "./invoked-bin.js";
+-
+-const cleanups: string[] = [];
+-
+-afterEach(() => {
+-  while (cleanups.length > 0) rmSync(cleanups.pop()!, { recursive: true, force: true });
+-});
+-
+-interface Fixture {
+-  root: string;
+-  home: string;
+-  ohJson: string;
+-  dotenv: string;
+-  legacy: string;
+-  env: NodeJS.ProcessEnv;
+-}
+-
+-function tempConfig(): Fixture {
+-  const dir = mkdtempSync(join(tmpdir(), "oh-cloud-"));
+-  cleanups.push(dir);
+-  const root = join(dir, "repo");
+-  const home = join(dir, "home");
+-  mkdirSync(join(root, ".oh"), { recursive: true });
+-  mkdirSync(home, { recursive: true });
+-  return {
+-    root,
+-    home,
+-    ohJson: ohConfigPath(root),
+-    dotenv: join(root, ".env"),
+-    legacy: join(home, ".config", "openharness", "cloud.json"),
+-    env: { HOME: home },
+-  };
+-}
+-
+-function seedLegacy(fixture: Fixture, config: Record<string, unknown>): void {
+-  mkdirSync(join(fixture.home, ".config", "openharness"), { recursive: true });
+-  writeFileSync(fixture.legacy, `${JSON.stringify({ version: 1, ...config }, null, 2)}\n`);
+-}
+-
+-function response(payload: unknown, status = 200): Response {
+-  return new Response(JSON.stringify(payload), {
+-    status,
+-    headers: { "content-type": "application/json" },
+-  });
+-}
+-
+-function io(overrides: Partial<CloudIO> = {}): CloudIO & { out: string[]; err: string[] } {
+-  const out: string[] = [];
+-  const err: string[] = [];
+-  return {
+-    bin: "oh",
+-    stdout: (text) => out.push(text),
+-    stderr: (text) => err.push(text),
+-    out,
+-    err,
+-    ...overrides,
+-  };
+-}
+-
+-describe("cloud config", () => {
+-  it("splits a prompted provisioner key into the root dotenv and the URL into oh.json", async () => {
+-    const fixture = tempConfig();
+-    const console = io({
+-      env: fixture.env,
+-      cwd: fixture.root,
+-      askSecret: async () => "temporary-provisioner-secret",
+-    });
+-
+-    expect(await runCloud(["config"], console)).toBe(0);
+-    expect(readOhConfig(fixture.ohJson).cloud).toEqual({ apiUrl: "http://127.0.0.1:3000" });
+-    expect(readSecret(fixture.root, "OH_CLOUD_PROVISION_KEY")).toBe("temporary-provisioner-secret");
+-    expect(statSync(fixture.dotenv).mode & 0o777).toBe(0o600);
+-    expect(readFileSync(fixture.ohJson, "utf8")).not.toContain("temporary-provisioner-secret");
+-    expect(console.out.join("")).toContain("Provision credential: configured");
+-    expect(console.out.join("")).not.toContain("temporary-provisioner-secret");
+-    expect(readdirSync(fixture.home)).toEqual([]);
+-  });
+-
+-  it("shows config state without revealing the stored credential", async () => {
+-    const fixture = tempConfig();
+-    const setup = io({ env: fixture.env, cwd: fixture.root, askSecret: async () => "provisioner-secret-value" });
+-    await runCloud(["config", "--api-url", "https://cloud.example.test"], setup);
+-
+-    const console = io({ env: fixture.env, cwd: fixture.root });
+-    expect(await runCloud(["config", "show"], console)).toBe(0);
+-    expect(console.out.join("")).toContain("API URL: https://cloud.example.test");
+-    expect(console.out.join("")).toContain("provi******************");
+-    expect(console.out.join("")).not.toContain("provisioner-secret-value");
+-    expect(readdirSync(fixture.home)).toEqual([]);
+-  });
+-
+-  it("migrates a legacy user config once and leaves the old file in place", async () => {
+-    const fixture = tempConfig();
+-    seedLegacy(fixture, { apiUrl: "https://legacy.example.test", provisionKey: "legacy-key" });
+-
+-    const console = io({ env: fixture.env, cwd: fixture.root });
+-    expect(await runCloud(["config", "show"], console)).toBe(0);
+-
+-    expect(readOhConfig(fixture.ohJson).cloud).toEqual({ apiUrl: "https://legacy.example.test" });
+-    expect(readSecret(fixture.root, "OH_CLOUD_PROVISION_KEY")).toBe("legacy-key");
+-    expect(statSync(fixture.legacy).isFile()).toBe(true);
+-    const output = console.out.join("");
+-    expect(output).toContain(`Migrated OpenHarness Cloud settings out of ${fixture.legacy}`);
+-    expect(output).toContain("is no longer read");
+-    expect(output).toContain("API URL: https://legacy.example.test");
+-    expect(output).not.toContain("legacy-key");
+-
+-    const second = io({ env: fixture.env, cwd: fixture.root });
+-    expect(await runCloud(["config", "show"], second)).toBe(0);
+-    expect(second.out.join("")).not.toContain("Migrated");
+-  });
+-
+-  it.each(["agro", "oh"])(
+-    "names the %s flag escape hatch when it runs outside an equipped repo",
+-    async (bin) => {
+-      const fixture = tempConfig();
+-      const console = io({ bin, env: fixture.env, cwd: fixture.home });
+-      await withInvokedBinAsync(bin, async () => {
+-        expect(await runCloud(["nodes", "list"], console)).toBe(1);
+-      });
+-      expect(console.err.join("")).toBe(
+-        `${bin} cloud: not an OpenHarness-equipped repo — run \`${bin} update\` first; ` +
+-          `pass --api-url and --provision-key to run \`${bin} cloud\` outside a repo\n`,
+-      );
+-    },
+-  );
+-
+-  it("runs outside an equipped repo when both flags are supplied", async () => {
+-    const fixture = tempConfig();
+-    let call: { url: string; init: RequestInit } | undefined;
+-    const console = io({
+-      env: fixture.env,
+-      cwd: fixture.home,
+-      fetch: (async (url: string | URL | Request, init?: RequestInit) => {
+-        call = { url: String(url), init: init ?? {} };
+-        return response({ ok: true });
+-      }) as typeof fetch,
+-    });
+-    expect(
+-      await runCloud(
+-        ["--api-url", "https://cloud.example.test", "--provision-key", "flag-key", "nodes", "list"],
+-        console,
+-      ),
+-    ).toBe(0);
+-    expect(call?.url).toBe("https://cloud.example.test/api/nodes");
+-    expect((call?.init.headers as Record<string, string>)["x-provision-key"]).toBe("flag-key");
+-    expect(readdirSync(fixture.home)).toEqual([]);
+-  });
+-});
+-
+-describe("cloud API commands", () => {
+-  it("uses saved config to create a node and print one selected field", async () => {
+-    const fixture = tempConfig();
+-    await runCloud(
+-      ["config", "--api-url", "https://cloud.example.test", "--provision-key", "saved-key"],
+-      io({ env: fixture.env, cwd: fixture.root }),
+-    );
+-
+-    const calls: Array<{ url: string; init: RequestInit }> = [];
+-    const console = io({
+-      env: fixture.env,
+-      cwd: fixture.root,
+-      fetch: (async (url: string | URL | Request, init?: RequestInit) => {
+-        calls.push({ url: String(url), init: init ?? {} });
+-        return response({ id: "node-1", status: "queued" }, 202);
+-      }) as typeof fetch,
+-    });
+-
+-    expect(
+-      await runCloud(
+-        ["nodes", "create", "--name", "smoke-1", "--ssh-key-id", "key-1", "--output", "id"],
+-        console,
+-      ),
+-    ).toBe(0);
+-    expect(console.out.join("")).toBe("node-1\n");
+-    expect(calls[0]?.url).toBe("https://cloud.example.test/api/nodes");
+-    expect(calls[0]?.init.method).toBe("POST");
+-    expect((calls[0]?.init.headers as Record<string, string>)["x-provision-key"]).toBe("saved-key");
+-    expect(JSON.parse(String(calls[0]?.init.body))).toEqual({ name: "smoke-1", sshKeyId: "key-1" });
+-  });
+-
+-  it("maps every SSH-key and node lifecycle command to its API endpoint", async () => {
+-    const cases = [
+-      { args: ["nodes", "list"], method: "GET", path: "/api/nodes" },
+-      { args: ["nodes", "get", "node/1"], method: "GET", path: "/api/nodes/node%2F1" },
+-      { args: ["nodes", "events", "node-1"], method: "GET", path: "/api/nodes/node-1/events" },
+-      { args: ["nodes", "destroy", "node-1"], method: "DELETE", path: "/api/nodes/node-1" },
+-      { args: ["nodes", "restart", "node-1"], method: "POST", path: "/api/nodes/node-1/restart" },
+-      { args: ["nodes", "rebuild", "node-1"], method: "POST", path: "/api/nodes/node-1/rebuild" },
+-      { args: ["ssh-keys", "list"], method: "GET", path: "/api/ssh-keys" },
+-    ];
+-
+-    for (const item of cases) {
+-      const fixture = tempConfig();
+-      let call: { url: string; init: RequestInit } | undefined;
+-      const console = io({
+-        env: { ...fixture.env, OH_CLOUD_PROVISION_KEY: "env-key" },
+-        cwd: fixture.root,
+-        fetch: (async (url: string | URL | Request, init?: RequestInit) => {
+-          call = { url: String(url), init: init ?? {} };
+-          return response({ ok: true });
+-        }) as typeof fetch,
+-      });
+-      expect(await runCloud(item.args, console)).toBe(0);
+-      expect(call?.url).toBe(`http://127.0.0.1:3000${item.path}`);
+-      expect(call?.init.method).toBe(item.method);
+-    }
+-  });
+-
+-  it("reads and trims an SSH public key file", async () => {
+-    const fixture = tempConfig();
+-    let body: unknown;
+-    const console = io({
+-      env: { ...fixture.env, PROVISION_KEY: "key" },
+-      cwd: fixture.root,
+-      readFile: async () => "ssh-ed25519 AAAA user@example\n",
+-      fetch: (async (_url: string | URL | Request, init?: RequestInit) => {
+-        body = JSON.parse(String(init?.body));
+-        return response({ id: "key-1" }, 201);
+-      }) as typeof fetch,
+-    });
+-
+-    expect(
+-      await runCloud(
+-        ["ssh-keys", "create", "--name", "laptop", "--public-key-file", "/tmp/key.pub"],
+-        console,
+-      ),
+-    ).toBe(0);
+-    expect(body).toEqual({ name: "laptop", publicKey: "ssh-ed25519 AAAA user@example" });
+-  });
+-
+-  it("watches status changes and stops at the requested terminal status", async () => {
+-    const fixture = tempConfig();
+-    const nodes = [
+-      { id: "node-1", status: "queued" },
+-      { id: "node-1", status: "queued" },
+-      { id: "node-1", status: "creating_vm" },
+-      { id: "node-1", status: "running" },
+-    ];
+-    const sleeps: number[] = [];
+-    const console = io({
+-      env: { ...fixture.env, OH_PROVISION_KEY: "key" },
+-      cwd: fixture.root,
+-      sleep: async (milliseconds) => { sleeps.push(milliseconds); },
+-      fetch: (async () => response(nodes.shift())) as typeof fetch,
+-    });
+-
+-    expect(await runCloud(["nodes", "watch", "node-1", "--interval", "0.25"], console)).toBe(0);
+-    expect(console.out.map((text) => JSON.parse(text).status)).toEqual([
+-      "queued",
+-      "creating_vm",
+-      "running",
+-    ]);
+-    expect(sleeps).toEqual([250, 250, 250]);
+-  });
+-
+-  it("reports structured API errors without throwing past the command boundary", async () => {
+-    const request = createCloudApiClient({
+-      apiUrl: "http://127.0.0.1:3000",
+-      provisionKey: "wrong",
+-      fetch: (async () => response({ error: "Unauthorized", code: "UNAUTHORIZED" }, 401)) as typeof fetch,
+-    });
+-    await expect(request("GET", "/api/nodes")).rejects.toMatchObject({
+-      status: 401,
+-      message: "API request failed with 401 (UNAUTHORIZED): Unauthorized",
+-    });
+-
+-    const fixture = tempConfig();
+-    const console = io({
+-      env: { ...fixture.env, OH_PROVISION_KEY: "wrong" },
+-      cwd: fixture.root,
+-      fetch: (async () => response({ error: "Unauthorized", code: "UNAUTHORIZED" }, 401)) as typeof fetch,
+-    });
+-    expect(await runCloud(["nodes", "list"], console)).toBe(1);
+-    expect(console.err.join("")).toBe(
+-      "oh cloud: API request failed with 401 (UNAUTHORIZED): Unauthorized\n",
+-    );
+-  });
+-
+-  it("summarizes HTML responses instead of dumping a full Next.js error page", async () => {
+-    const html = `<!DOCTYPE html><html><body>${"server-details-".repeat(100)}</body></html>`;
+-    const htmlResponse = (status: number): Response =>
+-      new Response(html, { status, headers: { "content-type": "text/html; charset=utf-8" } });
+-
+-    const failedRequest = createCloudApiClient({
+-      apiUrl: "http://127.0.0.1:3000",
+-      provisionKey: "key",
+-      fetch: (async () => htmlResponse(500)) as typeof fetch,
+-    });
+-    const failure = await failedRequest("GET", "/api/nodes").catch((error: unknown) => error);
+-    expect(failure).toMatchObject({
+-      status: 500,
+-      message: expect.stringContaining("server returned text/html instead of JSON"),
+-    });
+-    expect((failure as Error).message.length).toBeLessThan(300);
+-
+-    const successfulHtmlRequest = createCloudApiClient({
+-      apiUrl: "http://127.0.0.1:3000",
+-      provisionKey: "key",
+-      fetch: (async () => htmlResponse(200)) as typeof fetch,
+-    });
+-    await expect(successfulHtmlRequest("GET", "/api/nodes")).rejects.toMatchObject({
+-      status: 200,
+-      message: expect.stringContaining("expected JSON"),
+-    });
+-  });
+-
+-  it("prints help without requiring a stored credential", async () => {
+-    const console = io({ env: {} });
+-    expect(await runCloud(["--help"], console)).toBe(0);
+-    expect(console.out.join("")).toContain("oh cloud config");
+-    expect(console.out.join("")).toContain("nodes create");
+-  });
+-});
+diff --git a/.agro/cli/src/__tests__/lifecycle.test.ts b/.agro/cli/src/__tests__/lifecycle.test.ts
+index d260282d..4e691d43 100644
+--- a/.agro/cli/src/__tests__/lifecycle.test.ts
++++ b/.agro/cli/src/__tests__/lifecycle.test.ts
+@@ -884,7 +884,6 @@ describe("help surfaces", () => {
+     expect(text).toContain("oh sandbox");
+     expect(text).toContain("oh shell [name]");
+     expect(text).toContain("oh gateway");
+-    expect(text).toContain("oh cloud <args...>");
+   });
+ 
+   it("per-verb --help output documents each verb's contract", () => {
+diff --git a/.agro/cli/src/__tests__/sandbox.test.ts b/.agro/cli/src/__tests__/sandbox.test.ts
+index 94e13e8d..341434dc 100644
+--- a/.agro/cli/src/__tests__/sandbox.test.ts
++++ b/.agro/cli/src/__tests__/sandbox.test.ts
+@@ -351,7 +351,7 @@ describe("oh sandbox install — re-installing an existing name", () => {
+         hermesDashboard: { enabled: true, port: 9200 },
+         cron: { agentBin: "codex" },
+         build: { skipPnpmInstall: true },
+-        cloud: { apiUrl: "https://cloud.example.test" },
++        git: { userName: "Round Trip", userEmail: "round@example.test" },
+         langfuse: { baseUrl: "https://lf.example.test", privacyPreset: "prompts-only" },
+         composeOverrides: ["docker-compose.extra.yml"],
+       })}\n`,
+@@ -367,7 +367,7 @@ describe("oh sandbox install — re-installing an existing name", () => {
+       hermesDashboard: { enabled: true, port: 9200 },
+       cron: { agentBin: "codex" },
+       build: { skipPnpmInstall: true },
+-      cloud: { apiUrl: "https://cloud.example.test" },
++      git: { userName: "Round Trip", userEmail: "round@example.test" },
+       langfuse: { baseUrl: "https://lf.example.test", privacyPreset: "prompts-only" },
+       composeOverrides: ["docker-compose.extra.yml"],
+       image: { mode: "build" },
+diff --git a/.agro/cli/src/cli.ts b/.agro/cli/src/cli.ts
+index ab2db771..2853c7c3 100644
+--- a/.agro/cli/src/cli.ts
++++ b/.agro/cli/src/cli.ts
+@@ -5,7 +5,6 @@ import { tmpdir } from "node:os";
+ import { runUpdate } from "./commands/update.js";
+ import { DEFAULT_ARTIFACT_URL, defaultDeps, runSelfUpgrade } from "./commands/self-upgrade.js";
+ import { parseMigrateArgs, printMigrateHelp, runMigrate } from "./commands/migrate.js";
+-import { runCloud } from "./commands/cloud.js";
+ import {
+   configFieldList,
+   runConfigRepo,
+@@ -122,7 +121,6 @@ Usage:
+   ${bin} harness <args...>      Install and inspect agent CLI harnesses
+   ${bin} tool <args...>         Install and inspect sandbox tooling
+   ${bin} gateway <args...>      Manage a messaging client session (pi|hermes)
+-  ${bin} cloud <args...>        Manage OpenHarness Cloud nodes
+   ${bin} --version              Print version
+   ${bin} --help                 Show this help
+ 
+@@ -1335,14 +1333,6 @@ async function main(argv: string[]): Promise<number> {
+     return await runToolInstall(a.name as string, { bin, yes: a.yes }, io);
+   }
+ 
+-  if (first === "cloud") {
+-    return await runCloud(argv.slice(1), {
+-      bin,
+-      stdout: (s) => process.stdout.write(s),
+-      stderr: (s) => process.stderr.write(s),
+-    });
+-  }
+-
+   if (first === "gateway") {
+     const parsed = parseGatewayArgs(argv.slice(1));
+     if (!parsed.ok) {
+diff --git a/.agro/cli/src/commands/cloud.ts b/.agro/cli/src/commands/cloud.ts
+deleted file mode 100644
+index d650acef..00000000
+--- a/.agro/cli/src/commands/cloud.ts
++++ /dev/null
+@@ -1,560 +0,0 @@
+-import { readFile } from "node:fs/promises";
+-import { existsSync, readFileSync } from "node:fs";
+-import { join } from "node:path";
+-import { askSecret, redact } from "../lib/prompt.js";
+-import { ohConfigPath, readOhConfig, writeOhConfig, type OhConfig } from "../lib/oh-config.js";
+-import { resolveProjectRoot } from "../lib/project.js";
+-import { readSecret, setSecret } from "../lib/secrets.js";
+-
+-const DEFAULT_API_URL = "http://127.0.0.1:3000";
+-const DEFAULT_TERMINAL_STATUSES = ["running", "failed", "destroyed"];
+-
+-export const PROVISION_KEY_SECRET = "OH_CLOUD_PROVISION_KEY";
+-
+-export function cloudHelpText(bin: string): string {
+-  return `${bin} cloud — Manage OpenHarness Cloud nodes
+-
+-Usage:
+-  ${bin} cloud config [--api-url <url>] [--provision-key <key>]
+-  ${bin} cloud config show
+-  ${bin} cloud [global options] nodes list
+-  ${bin} cloud [global options] nodes get <node-id>
+-  ${bin} cloud [global options] nodes create --ssh-key-id <id> [--name <name>]
+-  ${bin} cloud [global options] nodes events <node-id>
+-  ${bin} cloud [global options] nodes watch <node-id> [--interval <seconds>] [--until <statuses>]
+-  ${bin} cloud [global options] nodes destroy <node-id>
+-  ${bin} cloud [global options] nodes restart <node-id>
+-  ${bin} cloud [global options] nodes rebuild <node-id>
+-  ${bin} cloud [global options] ssh-keys list
+-  ${bin} cloud [global options] ssh-keys create --name <name> (--public-key <key> | --public-key-file <path>)
+-
+-Global options:
+-  --api-url <url>          API base URL (default: OH_CLOUD_API_URL, OH_API_URL,
+-                           oh.json cloud.apiUrl, or http://127.0.0.1:3000)
+-  --provision-key <key>    Admin key (default: OH_CLOUD_PROVISION_KEY in the
+-                           environment or in the root .env)
+-  --output <field>         Print one top-level response field instead of JSON
+-  -h, --help               Show this help
+-
+-Configuration:
+-  ${bin} cloud config writes cloud.apiUrl to the repository oh.json and securely
+-  prompts for the current provisioner key, which it stores as
+-  ${PROVISION_KEY_SECRET} in the gitignored root .env. This is the temporary
+-  credential model until OpenHarness Cloud issues user API tokens.
+-
+-  Both settings are repository-local, so ${bin} cloud runs inside an
+-  OpenHarness-equipped repo. Outside one, pass --api-url and --provision-key.
+-
+-Environment:
+-  OH_CLOUD_API_URL         Override the OpenHarness Cloud API base URL
+-  OH_CLOUD_PROVISION_KEY   Override the stored key (OH_PROVISION_KEY and
+-                           PROVISION_KEY are also accepted)
+-
+-Examples:
+-  ${bin} cloud config
+-  ${bin} cloud ssh-keys create --name laptop --public-key-file ~/.ssh/openharness_node.pub
+-  ${bin} cloud nodes create --name smoke-1 --ssh-key-id <ssh-key-id>
+-  ${bin} cloud nodes watch <node-id>
+-`;
+-}
+-
+-export interface CloudIO {
+-  bin: string;
+-  stdout: (text: string) => void;
+-  stderr: (text: string) => void;
+-  env?: NodeJS.ProcessEnv;
+-  fetch?: typeof globalThis.fetch;
+-  readFile?: (path: string, encoding: BufferEncoding) => Promise<string>;
+-  sleep?: (milliseconds: number) => Promise<void>;
+-  askSecret?: (question: string) => Promise<string>;
+-  cwd?: string;
+-}
+-
+-export class CloudCliError extends Error {
+-  readonly status?: number;
+-  readonly payload?: unknown;
+-
+-  constructor(message: string, options: { status?: number; payload?: unknown } = {}) {
+-    super(message);
+-    this.name = "CloudCliError";
+-    this.status = options.status;
+-    this.payload = options.payload;
+-  }
+-}
+-
+-function takeOption(args: string[], name: string, alias?: string): string | undefined {
+-  const names = alias ? [name, alias] : [name];
+-  for (const candidate of names) {
+-    const index = args.indexOf(candidate);
+-    if (index === -1) continue;
+-    const value = args[index + 1];
+-    if (value === undefined || value.startsWith("-")) {
+-      throw new CloudCliError(`${candidate} requires a value`);
+-    }
+-    args.splice(index, 2);
+-    return value;
+-  }
+-  return undefined;
+-}
+-
+-function requireOption(value: string | undefined, name: string): string {
+-  if (!value) throw new CloudCliError(`${name} is required`);
+-  return value;
+-}
+-
+-function requirePositional(value: string | undefined, name: string): string {
+-  if (!value || value.startsWith("-")) throw new CloudCliError(`${name} is required`);
+-  return value;
+-}
+-
+-function assertNoExtraArgs(args: string[]): void {
+-  if (args.length > 0) {
+-    throw new CloudCliError(
+-      `unexpected argument${args.length === 1 ? "" : "s"}: ${args.join(" ")}`,
+-    );
+-  }
+-}
+-
+-function normalizeApiUrl(value: string): string {
+-  let url: URL;
+-  try {
+-    url = new URL(value);
+-  } catch {
+-    throw new CloudCliError(`invalid API URL: ${value}`);
+-  }
+-  if (url.protocol !== "http:" && url.protocol !== "https:") {
+-    throw new CloudCliError(`API URL must use http or https: ${value}`);
+-  }
+-  return url.toString().replace(/\/$/, "");
+-}
+-
+-function formatJson(value: unknown): string {
+-  return `${JSON.stringify(value, null, 2)}\n`;
+-}
+-
+-function bodyPreview(body: string): string {
+-  const compact = body.replace(/\s+/g, " ").trim();
+-  return compact.length > 180 ? `${compact.slice(0, 177)}...` : compact;
+-}
+-
+-function responseKind(contentType: string | null): string {
+-  return contentType?.split(";", 1)[0]?.trim() || "non-JSON content";
+-}
+-
+-function formatApiFailure(
+-  status: number,
+-  payload: unknown,
+-  contentType: string | null,
+-): string {
+-  if (payload && typeof payload === "object") {
+-    const record = payload as Record<string, unknown>;
+-    const message = record.error ?? record.message;
+-    const code = typeof record.code === "string" ? ` (${record.code})` : "";
+-    if (typeof message === "string") {
+-      return `API request failed with ${status}${code}: ${message}`;
+-    }
+-  }
+-  if (typeof payload === "string" && payload.length > 0) {
+-    return `API request failed with ${status}: server returned ${responseKind(contentType)} instead of JSON (${bodyPreview(payload)})`;
+-  }
+-  return `API request failed with ${status}`;
+-}
+-
+-interface ParsedResponse {
+-  payload: unknown;
+-  isJson: boolean;
+-  contentType: string | null;
+-}
+-
+-async function parseResponse(response: Response): Promise<ParsedResponse> {
+-  const text = await response.text();
+-  const contentType = response.headers.get("content-type");
+-  if (!text) return { payload: null, isJson: true, contentType };
+-  try {
+-    return { payload: JSON.parse(text) as unknown, isJson: true, contentType };
+-  } catch {
+-    return { payload: text, isJson: false, contentType };
+-  }
+-}
+-
+-export type CloudRequest = (
+-  method: string,
+-  pathname: string,
+-  body?: unknown,
+-) => Promise<unknown>;
+-
+-export function createCloudApiClient(options: {
+-  apiUrl: string;
+-  provisionKey: string;
+-  fetch?: typeof globalThis.fetch;
+-}): CloudRequest {
+-  const fetchImpl = options.fetch ?? globalThis.fetch;
+-  if (typeof fetchImpl !== "function") {
+-    throw new CloudCliError(
+-      "the cloud CLI requires Node.js 20 or newer (global fetch is unavailable)",
+-    );
+-  }
+-
+-  return async (method: string, pathname: string, body?: unknown): Promise<unknown> => {
+-    let response: Response;
+-    try {
+-      response = await fetchImpl(`${options.apiUrl}${pathname}`, {
+-        method,
+-        headers: {
+-          "x-provision-key": options.provisionKey,
+-          ...(body === undefined ? {} : { "content-type": "application/json" }),
+-        },
+-        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+-      });
+-    } catch (error) {
+-      const detail = error instanceof Error ? error.message : String(error);
+-      throw new CloudCliError(`could not reach ${options.apiUrl}: ${detail}`);
+-    }
+-
+-    const parsed = await parseResponse(response);
+-    if (!response.ok) {
+-      throw new CloudCliError(
+-        formatApiFailure(response.status, parsed.payload, parsed.contentType),
+-        {
+-          status: response.status,
+-          payload: parsed.payload,
+-        },
+-      );
+-    }
+-    if (!parsed.isJson) {
+-      throw new CloudCliError(
+-        `API returned ${response.status} ${responseKind(parsed.contentType)}; expected JSON (${bodyPreview(parsed.payload as string)})`,
+-        { status: response.status, payload: parsed.payload },
+-      );
+-    }
+-    return parsed.payload;
+-  };
+-}
+-
+-function nodePath(nodeId: string, suffix = ""): string {
+-  return `/api/nodes/${encodeURIComponent(nodeId)}${suffix}`;
+-}
+-
+-async function readPublicKey(
+-  args: string[],
+-  readFileImpl: (path: string, encoding: BufferEncoding) => Promise<string>,
+-): Promise<string> {
+-  const inline = takeOption(args, "--public-key");
+-  const file = takeOption(args, "--public-key-file");
+-  if (inline && file) {
+-    throw new CloudCliError("use only one of --public-key or --public-key-file");
+-  }
+-  if (!inline && !file) {
+-    throw new CloudCliError("--public-key or --public-key-file is required");
+-  }
+-
+-  if (inline) return inline.trim();
+-  try {
+-    const value = (await readFileImpl(file as string, "utf8")).trim();
+-    if (!value) throw new CloudCliError(`SSH public key file is empty: ${file}`);
+-    return value;
+-  } catch (error) {
+-    if (error instanceof CloudCliError) throw error;
+-    const detail = error instanceof Error ? error.message : String(error);
+-    throw new CloudCliError(`could not read SSH public key file ${file}: ${detail}`);
+-  }
+-}
+-
+-interface DispatchOptions {
+-  bin: string;
+-  request: CloudRequest;
+-  readFile: (path: string, encoding: BufferEncoding) => Promise<string>;
+-  sleep: (milliseconds: number) => Promise<void>;
+-  write: (value: unknown) => void;
+-}
+-
+-async function dispatch(args: string[], options: DispatchOptions): Promise<unknown> {
+-  const resource = args.shift();
+-  const action = args.shift();
+-
+-  if (!resource || !action) {
+-    throw new CloudCliError(
+-      `a resource and action are required. Run \`${options.bin} cloud --help\` for usage.`,
+-    );
+-  }
+-
+-  if (resource === "ssh-keys") {
+-    if (action === "list") {
+-      assertNoExtraArgs(args);
+-      return options.request("GET", "/api/ssh-keys");
+-    }
+-    if (action === "create") {
+-      const name = requireOption(takeOption(args, "--name"), "--name");
+-      const publicKey = await readPublicKey(args, options.readFile);
+-      assertNoExtraArgs(args);
+-      return options.request("POST", "/api/ssh-keys", { name, publicKey });
+-    }
+-    throw new CloudCliError(`unknown ssh-keys action: ${action}`);
+-  }
+-
+-  if (resource !== "nodes") throw new CloudCliError(`unknown resource: ${resource}`);
+-
+-  if (action === "list") {
+-    assertNoExtraArgs(args);
+-    return options.request("GET", "/api/nodes");
+-  }
+-
+-  if (action === "create") {
+-    const name = takeOption(args, "--name");
+-    const sshKeyId = requireOption(takeOption(args, "--ssh-key-id"), "--ssh-key-id");
+-    assertNoExtraArgs(args);
+-    return options.request("POST", "/api/nodes", {
+-      ...(name ? { name } : {}),
+-      sshKeyId,
+-    });
+-  }
+-
+-  const nodeIdActions = ["get", "events", "destroy", "restart", "rebuild", "watch"];
+-  if (!nodeIdActions.includes(action)) {
+-    throw new CloudCliError(`unknown nodes action: ${action}`);
+-  }
+-  const nodeId = requirePositional(args.shift(), "<node-id>");
+-  if (action === "get") {
+-    assertNoExtraArgs(args);
+-    return options.request("GET", nodePath(nodeId));
+-  }
+-  if (action === "events") {
+-    assertNoExtraArgs(args);
+-    return options.request("GET", nodePath(nodeId, "/events"));
+-  }
+-  if (action === "destroy") {
+-    assertNoExtraArgs(args);
+-    return options.request("DELETE", nodePath(nodeId));
+-  }
+-  if (action === "restart" || action === "rebuild") {
+-    assertNoExtraArgs(args);
+-    return options.request("POST", nodePath(nodeId, `/${action}`));
+-  }
+-  if (action === "watch") {
+-    const intervalValue = takeOption(args, "--interval") ?? "5";
+-    const intervalSeconds = Number(intervalValue);
+-    if (!Number.isFinite(intervalSeconds) || intervalSeconds < 0) {
+-      throw new CloudCliError(`--interval must be a non-negative number: ${intervalValue}`);
+-    }
+-    const untilValue = takeOption(args, "--until");
+-    const terminalStatuses = new Set(
+-      (untilValue ? untilValue.split(",") : DEFAULT_TERMINAL_STATUSES)
+-        .map((status) => status.trim())
+-        .filter(Boolean),
+-    );
+-    if (terminalStatuses.size === 0) {
+-      throw new CloudCliError("--until must contain at least one status");
+-    }
+-    assertNoExtraArgs(args);
+-
+-    let lastStatus: string | undefined;
+-    while (true) {
+-      const node = await options.request("GET", nodePath(nodeId));
+-      if (
+-        !node ||
+-        typeof node !== "object" ||
+-        typeof (node as Record<string, unknown>).status !== "string"
+-      ) {
+-        throw new CloudCliError("node response did not include a status");
+-      }
+-      const status = (node as Record<string, unknown>).status as string;
+-      if (status !== lastStatus) {
+-        options.write(node);
+-        lastStatus = status;
+-      }
+-      if (terminalStatuses.has(status)) return undefined;
+-      await options.sleep(intervalSeconds * 1_000);
+-    }
+-  }
+-
+-  throw new CloudCliError(`unknown nodes action: ${action}`);
+-}
+-
+-interface CloudSettings {
+-  apiUrl?: string;
+-  provisionKey?: string;
+-}
+-
+-function outsideRepoHint(bin: string): string {
+-  return `; pass --api-url and --provision-key to run \`${bin} cloud\` outside a repo`;
+-}
+-
+-function requireRoot(io: CloudIO): string {
+-  try {
+-    return resolveProjectRoot(io.cwd);
+-  } catch (error) {
+-    const detail = error instanceof Error ? error.message : String(error);
+-    throw new CloudCliError(`${detail}${outsideRepoHint(io.bin)}`);
+-  }
+-}
+-
+-function legacyCloudConfigPath(env: NodeJS.ProcessEnv): string | undefined {
+-  const home = env.HOME ?? env.USERPROFILE;
+-  if (!home) return undefined;
+-  return join(home, ".config", "openharness", "cloud.json");
+-}
+-
+-function readLegacyCloudConfig(path: string): CloudSettings | undefined {
+-  let parsed: unknown;
+-  try {
+-    parsed = JSON.parse(readFileSync(path, "utf8")) as unknown;
+-  } catch {
+-    return undefined;
+-  }
+-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return undefined;
+-  const record = parsed as Record<string, unknown>;
+-  return {
+-    ...(typeof record.apiUrl === "string" ? { apiUrl: record.apiUrl } : {}),
+-    ...(typeof record.provisionKey === "string" ? { provisionKey: record.provisionKey } : {}),
+-  };
+-}
+-
+-function migrateLegacyCloudConfig(root: string, io: CloudIO, env: NodeJS.ProcessEnv): void {
+-  const path = legacyCloudConfigPath(env);
+-  if (!path || !existsSync(path)) return;
+-
+-  const config = readOhConfig(ohConfigPath(root));
+-  if (config.cloud?.apiUrl !== undefined) return;
+-  if (readSecret(root, PROVISION_KEY_SECRET) !== undefined) return;
+-
+-  const legacy = readLegacyCloudConfig(path);
+-  if (!legacy || (!legacy.apiUrl && !legacy.provisionKey)) return;
+-
+-  if (legacy.apiUrl) {
+-    const next: OhConfig = {
+-      ...config,
+-      cloud: { ...config.cloud, apiUrl: normalizeApiUrl(legacy.apiUrl) },
+-    };
+-    writeOhConfig(root, next);
+-  }
+-  if (legacy.provisionKey) setSecret(root, PROVISION_KEY_SECRET, legacy.provisionKey);
+-
+-  io.stdout(`Migrated OpenHarness Cloud settings out of ${path}\n`);
+-  if (legacy.apiUrl) io.stdout(`  cloud.apiUrl -> ${ohConfigPath(root)}\n`);
+-  if (legacy.provisionKey) io.stdout(`  ${PROVISION_KEY_SECRET} -> ${join(root, ".env")}\n`);
+-  io.stdout(`${path} is no longer read; delete it when you no longer need the copy.\n`);
+-}
+-
+-function loadCloudSettings(root: string, io: CloudIO, env: NodeJS.ProcessEnv): CloudSettings {
+-  migrateLegacyCloudConfig(root, io, env);
+-  const config = readOhConfig(ohConfigPath(root));
+-  return {
+-    ...(config.cloud?.apiUrl ? { apiUrl: config.cloud.apiUrl } : {}),
+-    ...(() => {
+-      const key = readSecret(root, PROVISION_KEY_SECRET);
+-      return key ? { provisionKey: key } : {};
+-    })(),
+-  };
+-}
+-
+-function envProvisionKey(env: NodeJS.ProcessEnv): string | undefined {
+-  return env.OH_CLOUD_PROVISION_KEY ?? env.OH_PROVISION_KEY ?? env.PROVISION_KEY;
+-}
+-
+-async function configureCloud(args: string[], io: CloudIO, env: NodeJS.ProcessEnv): Promise<void> {
+-  const root = requireRoot(io);
+-  const current = loadCloudSettings(root, io, env);
+-
+-  if (args[0] === "show") {
+-    args.shift();
+-    assertNoExtraArgs(args);
+-    io.stdout(`Config: ${ohConfigPath(root)}\n`);
+-    io.stdout(`Secrets: ${join(root, ".env")}\n`);
+-    io.stdout(`API URL: ${current.apiUrl ?? DEFAULT_API_URL}\n`);
+-    io.stdout(
+-      `Provision credential: ${current.provisionKey ? redact(current.provisionKey) : "not configured"}\n`,
+-    );
+-    return;
+-  }
+-
+-  const apiUrl = normalizeApiUrl(
+-    takeOption(args, "--api-url") ??
+-      current.apiUrl ??
+-      env.OH_CLOUD_API_URL ??
+-      env.OH_API_URL ??
+-      DEFAULT_API_URL,
+-  );
+-  const providedKey = takeOption(args, "--provision-key");
+-  assertNoExtraArgs(args);
+-  const provisionKey = (
+-    providedKey ??
+-    (await (io.askSecret ?? askSecret)("OpenHarness Cloud provisioner key:"))
+-  ).trim();
+-  if (!provisionKey) throw new CloudCliError("provisioner key cannot be empty");
+-
+-  const config = readOhConfig(ohConfigPath(root));
+-  writeOhConfig(root, { ...config, cloud: { ...config.cloud, apiUrl } });
+-  setSecret(root, PROVISION_KEY_SECRET, provisionKey);
+-  io.stdout(`Saved cloud.apiUrl to ${ohConfigPath(root)}\n`);
+-  io.stdout(`Saved ${PROVISION_KEY_SECRET} to ${join(root, ".env")}\n`);
+-  io.stdout("Provision credential: configured\n");
+-}
+-
+-async function executeCloud(argv: string[], io: CloudIO): Promise<void> {
+-  const args = [...argv];
+-  const env = io.env ?? process.env;
+-
+-  if (args.includes("--help") || args.includes("-h") || args[0] === "help") {
+-    io.stdout(cloudHelpText(io.bin));
+-    return;
+-  }
+-  if (args[0] === "config") {
+-    args.shift();
+-    await configureCloud(args, io, env);
+-    return;
+-  }
+-
+-  const flagApiUrl = takeOption(args, "--api-url");
+-  const flagProvisionKey = takeOption(args, "--provision-key");
+-  const stored =
+-    flagProvisionKey && flagApiUrl ? {} : loadCloudSettings(requireRoot(io), io, env);
+-
+-  const apiUrl = normalizeApiUrl(
+-    flagApiUrl ?? env.OH_CLOUD_API_URL ?? env.OH_API_URL ?? stored.apiUrl ?? DEFAULT_API_URL,
+-  );
+-  const provisionKey = flagProvisionKey ?? envProvisionKey(env) ?? stored.provisionKey;
+-  if (!provisionKey) {
+-    throw new CloudCliError(
+-      `no provision credential found. Run \`${io.bin} cloud config\`, set ${PROVISION_KEY_SECRET}, or pass --api-url and --provision-key.`,
+-    );
+-  }
+-
+-  const outputField = takeOption(args, "--output");
+-  const request = createCloudApiClient({
+-    apiUrl,
+-    provisionKey,
+-    fetch: io.fetch,
+-  });
+-  const write = (value: unknown): void => io.stdout(formatJson(value));
+-  const result = await dispatch(args, {
+-    bin: io.bin,
+-    request,
+-    readFile: io.readFile ?? readFile,
+-    sleep:
+-      io.sleep ??
+-      ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds))),
+-    write,
+-  });
+-  if (result === undefined) return;
+-
+-  if (outputField) {
+-    if (!result || typeof result !== "object" || !(outputField in result)) {
+-      throw new CloudCliError(`response does not contain top-level field: ${outputField}`);
+-    }
+-    const value = (result as Record<string, unknown>)[outputField];
+-    io.stdout(typeof value === "object" ? formatJson(value) : `${String(value)}\n`);
+-    return;
+-  }
+-  write(result);
+-}
+-
+-export async function runCloud(argv: string[], io: CloudIO): Promise<number> {
+-  try {
+-    await executeCloud(argv, io);
+-    return 0;
+-  } catch (error) {
+-    const message = error instanceof Error ? error.message : String(error);
+-    io.stderr(`${io.bin} cloud: ${message}\n`);
+-    return 1;
+-  }
+-}
+diff --git a/.agro/cli/src/lib/__tests__/oh-config.test.ts b/.agro/cli/src/lib/__tests__/oh-config.test.ts
+index d766dc9b..e7ef53af 100644
+--- a/.agro/cli/src/lib/__tests__/oh-config.test.ts
++++ b/.agro/cli/src/lib/__tests__/oh-config.test.ts
+@@ -159,7 +159,11 @@ describe("validateOhConfig", () => {
+       { image: { pullPolicy: "sometimes" } },
+       /^oh\.json: image\.pullPolicy must be one of missing, always, never$/,
+     ],
+-    ["cloud.apiUrl", { cloud: { apiUrl: 1 } }, /^oh\.json: cloud\.apiUrl must be a string$/],
++    [
++      "langfuse.baseUrl",
++      { langfuse: { baseUrl: 1 } },
++      /^oh\.json: langfuse\.baseUrl must be a string$/,
++    ],
+     [
+       "composeOverrides",
+       { composeOverrides: "a.yml" },
+diff --git a/.agro/cli/src/lib/__tests__/secrets.test.ts b/.agro/cli/src/lib/__tests__/secrets.test.ts
+index cc5aee09..5bb48982 100644
+--- a/.agro/cli/src/lib/__tests__/secrets.test.ts
++++ b/.agro/cli/src/lib/__tests__/secrets.test.ts
+@@ -36,7 +36,6 @@ describe("allow-list", () => {
+       "PI_SLACK_BOT_TOKEN",
+       "LANGFUSE_PUBLIC_KEY",
+       "LANGFUSE_SECRET_KEY",
+-      "OH_CLOUD_PROVISION_KEY",
+     ]);
+   });
+ 
+@@ -87,8 +86,8 @@ describe("setSecret", () => {
+ describe("readSecret", () => {
+   it("round-trips a value", () => {
+     const root = makeRoot();
+-    setSecret(root, "OH_CLOUD_PROVISION_KEY", "pk-123");
+-    expect(readSecret(root, "OH_CLOUD_PROVISION_KEY")).toBe("pk-123");
++    setSecret(root, "LANGFUSE_SECRET_KEY", "pk-123");
++    expect(readSecret(root, "LANGFUSE_SECRET_KEY")).toBe("pk-123");
+   });
+ 
+   it("returns undefined when the file or the key is absent", () => {
+diff --git a/.agro/cli/src/lib/oh-config.ts b/.agro/cli/src/lib/oh-config.ts
+index 138e443d..45e3a822 100644
+--- a/.agro/cli/src/lib/oh-config.ts
++++ b/.agro/cli/src/lib/oh-config.ts
+@@ -65,10 +65,6 @@ export interface StorageSettings {
+   homePath?: string;
+ }
+ 
+-export interface CloudSettings {
+-  apiUrl?: string;
+-}
+-
+ export type LangfusePrivacyPreset =
+   | "metadata-only"
+   | "prompts-only"
+@@ -105,7 +101,6 @@ export interface OhConfig {
+   cron?: CronSettings;
+   build?: BuildSettings;
+   image?: ImageSettings;
+-  cloud?: CloudSettings;
+   langfuse?: LangfuseSettings;
+   composeOverrides?: string[];
+   [key: string]: unknown;
+@@ -137,7 +132,6 @@ export function defaultOhConfig(name: string): OhConfig {
+     cron: { agentBin: "claude" },
+     build: { skipPnpmInstall: false },
+     image: { mode: "build", pullPolicy: "missing" },
+-    cloud: {},
+     langfuse: {},
+     composeOverrides: [],
+   };
+@@ -248,9 +242,6 @@ export function validateOhConfig(value: unknown): OhConfig {
+     expectEnum(image, "pullPolicy", "image.", ["missing", "always", "never"]);
+   }
+ 
+-  const cloud = expectSection(record, "cloud");
+-  if (cloud) expectString(cloud, "apiUrl", "cloud.");
+-
+   const langfuse = expectSection(record, "langfuse");
+   if (langfuse) {
+     expectString(langfuse, "baseUrl", "langfuse.");
+@@ -356,7 +347,6 @@ export const OH_CONFIG_FIELDS: readonly OhConfigField[] = [
+   { path: "image.mode", type: "enum", values: ["build", "image"] },
+   { path: "image.pullPolicy", type: "enum", values: ["missing", "always", "never"] },
+   { path: "storage.homePath", type: "string" },
+-  { path: "cloud.apiUrl", type: "string" },
+   { path: "langfuse.baseUrl", type: "string" },
+   { path: "langfuse.privacyPreset", type: "enum", values: LANGFUSE_PRIVACY_PRESETS },
+   { path: "composeOverrides", type: "list" },
+diff --git a/.agro/cli/src/lib/secrets.ts b/.agro/cli/src/lib/secrets.ts
+index 06317971..03c53215 100644
+--- a/.agro/cli/src/lib/secrets.ts
++++ b/.agro/cli/src/lib/secrets.ts
+@@ -15,7 +15,6 @@ export const SECRET_KEYS = [
+   "PI_SLACK_BOT_TOKEN",
+   "LANGFUSE_PUBLIC_KEY",
+   "LANGFUSE_SECRET_KEY",
+-  "OH_CLOUD_PROVISION_KEY",
+ ] as const;
+ 
+ export type SecretKey = (typeof SECRET_KEYS)[number];
+diff --git a/.agro/compat-inventory.json b/.agro/compat-inventory.json
+index 272f6603..d3233617 100644
+--- a/.agro/compat-inventory.json
++++ b/.agro/compat-inventory.json
+@@ -37,10 +37,10 @@
+     "OH_SKIP_EPILOGUE": { "classification": "retained-generic", "owner": ".agro/scripts/get-oh.sh", "note": "Installer-internal handshake between install.sh and get-oh.sh." },
+     "OH_ASSUME_YES": { "classification": "alias-sla", "phase": 1, "owner": ".agro/scripts/install.sh", "agro": "AGRO_ASSUME_YES", "note": "Installer non-interactive switch; the AGRO_ASSUME_YES alias is delivered in get-agro.sh (Phase 1), with OH_ASSUME_YES as the fallback." },
+     "OH_REPLACE": { "classification": "obsolete", "owner": ".agro/scripts/install.sh", "note": "Managed source-checkout installer control; retires with install.sh under Q2." },
+-    "OH_CLOUD_PROVISION_KEY": { "classification": "migrate-later", "phase": 4, "owner": ".agro/cli/src/commands/cloud.ts", "note": "Cloud provisioning credential variable." },
+-    "OH_PROVISION_KEY": { "classification": "migrate-later", "phase": 4, "owner": ".agro/cli/src/commands/cloud.ts", "note": "Older alias of OH_CLOUD_PROVISION_KEY." },
+-    "OH_CLOUD_API_URL": { "classification": "migrate-later", "phase": 4, "owner": ".agro/cli/src/commands/cloud.ts", "note": "Cloud API base URL." },
+-    "OH_API_URL": { "classification": "migrate-later", "phase": 4, "owner": ".agro/cli/src/commands/cloud.ts", "note": "Older alias of OH_CLOUD_API_URL." },
++    "OH_CLOUD_PROVISION_KEY": { "classification": "obsolete", "note": "Cloud provisioning credential variable. Issue 1050 retired the agro cloud command and deleted its owner, so the Phase 4 rename obligation no longer applies; a prefix rename must never reactivate it." },
++    "OH_PROVISION_KEY": { "classification": "obsolete", "note": "Older alias of OH_CLOUD_PROVISION_KEY. Retired with the agro cloud command in issue 1050." },
++    "OH_CLOUD_API_URL": { "classification": "obsolete", "note": "Cloud API base URL. Retired with the agro cloud command in issue 1050." },
++    "OH_API_URL": { "classification": "obsolete", "note": "Older alias of OH_CLOUD_API_URL. Retired with the agro cloud command in issue 1050." },
+     "OH_HERMES_SMOKE": { "classification": "retained-generic", "owner": ".agro/scripts/hermes-install-smoke.sh", "note": "CI smoke gate for disposable Hermes sandboxes." },
+     "OH_REGISTRY_CHECKOUT": { "classification": "retained-generic", "owner": ".agro/evals/probes/registry-portability.sh", "note": "Probe input naming a skills-registry checkout." },
+     "OH_TOKENS": { "classification": "retained-generic", "owner": ".agro/scripts/registry-portability.sh", "note": "Script-local bash array." },
+@@ -65,7 +65,7 @@
+     "/opt/oh-seed": { "classification": "migrate-later", "phase": 2, "agro": "/opt/agro-seed", "note": "Image seed. Since Phase 2 the Dockerfile stages only /opt/agro-seed; compat_seed_src still prefers this path when a legacy image ships it." },
+     "/opt/oh-assets": { "classification": "obsolete", "phase": 2, "note": "Retired in Phase 2: the image stages /opt/agro-assets for the isolated CLI build and the entrypoint's compat adapter; no runtime reads this path." },
+     "/opt/oh": { "classification": "migrate-later", "phase": 1, "note": "Image-internal CLI install root; dist/oh.js is linked as /usr/local/bin/oh and, since Phase 1, dist/agro.js as /usr/local/bin/agro. agro update refuses this location." },
+-    "~/.config/openharness/cloud.json": { "classification": "migrate-later", "phase": 4, "note": "Cloud CLI stored settings; owned by the Cloud phase." },
++    "~/.config/openharness/cloud.json": { "classification": "obsolete", "note": "Cloud CLI stored settings. Issue 1050 retired the agro cloud command, so no code reads or migrates this path. An existing file stays on disk for the operator to delete." },
+     "~/.local/share/oh/": { "classification": "migrate-later", "phase": 2, "agro": "~/.local/share/agro/", "note": "Python kernel home and python-env.sh written by provision-python.sh. Not renamed in Phase 2 — provision-python.sh and the Dockerfile shell hook still write and read this path; the AGRO spelling is unimplemented." },
+     ".oh/scripts/get-oh.sh": { "classification": "alias-sla", "phase": 1, "agro": "get-agro.sh", "note": "Installer. get-agro.sh (artifact-only, AGRO_*/OH_* aliases) is delivered in Phase 1; get-oh.sh is retained unchanged, including its source-build fallback, through the SLA. Since the Phase 2 tree rename both scripts live at .agro/scripts/; the published asset names are unchanged." },
+     ".oh/scripts/install.sh": { "classification": "obsolete", "phase": 1, "note": "Managed source-checkout installer; retired by Q2 without deleting existing checkouts. Since the Phase 2 tree rename the file sits at .agro/scripts/install.sh, and Phase 2 removed its clone-and-own, fork, and one-line recipes from README, quickstart, installation, and contributing." },
+diff --git a/.agro/evals/probes/oh-lifecycle-surface.sh b/.agro/evals/probes/oh-lifecycle-surface.sh
+index a4795337..a3e09e09 100755
+--- a/.agro/evals/probes/oh-lifecycle-surface.sh
++++ b/.agro/evals/probes/oh-lifecycle-surface.sh
+@@ -30,7 +30,7 @@ grep -qF 'export async function run(' <<<"$CLI_CODE" \
+ 
+ missing=()
+ 
+-CLI_VERBS=(sandbox shell destroy compose config secret update harness tool cloud gateway)
++CLI_VERBS=(sandbox shell destroy compose config secret update harness tool gateway)
+ COMPOSE_TABLE_VERBS=(stop restart logs ps destroy)
+ 
+ for verb in "${CLI_VERBS[@]}"; do
+diff --git a/.agro/scripts/migrate-harness-yaml.sh b/.agro/scripts/migrate-harness-yaml.sh
+index 35a66128..a437f9fc 100755
+--- a/.agro/scripts/migrate-harness-yaml.sh
++++ b/.agro/scripts/migrate-harness-yaml.sh
+@@ -115,7 +115,7 @@ _secret_keys() {
+         return 0
+     fi
+     printf '%s\n' GH_TOKEN XAI_API_KEY SANDBOX_PASSWORD PI_SLACK_APP_TOKEN \
+-        PI_SLACK_BOT_TOKEN LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY OH_CLOUD_PROVISION_KEY
++        PI_SLACK_BOT_TOKEN LANGFUSE_PUBLIC_KEY LANGFUSE_SECRET_KEY
+ }
+ 
+ _secrets=$(_secret_keys)
+diff --git a/.agro/tasks/retire-agro-cloud/evidence.md b/.agro/tasks/retire-agro-cloud/evidence.md
+new file mode 100644
+index 00000000..90027e8b
+--- /dev/null
++++ b/.agro/tasks/retire-agro-cloud/evidence.md
+@@ -0,0 +1,58 @@
++# Verification evidence — retire `agro cloud` (#1050)
++
++Base commit: `dd5ff0c0`. Verified by the advisor in the feature worktree, not taken from the implementation worker's report.
++
++## D1 — no cloud surface remains
++
++`grep -rn "oh cloud\|agro cloud\|OH_CLOUD\|CloudSettings\|runCloud\|cloud\.apiUrl\|OH_PROVISION_KEY\|OH_API_URL"` over the tree, excluding `node_modules`, `.git`, `dist`, and this task folder, returns only:
++
++- `CHANGELOG.md:35` — the new `Removed` entry.
++- `CHANGELOG.md:521` — the 2026-07-10 entry. History stays.
++- `.agro/evals/probes/oh-config-surfaces.sh:94,97` — the guard that asserts `OH_CLOUD_CONFIG` never returns.
++- `.agro/compat-inventory.json:40-43,57,68` — the ledger rows, retired in place.
++- `docs/agro-compatibility.md:326-328` — the reconciliation paragraph.
++
++No `CloudSettings`, `runCloud`, or cloud dispatch survives in CLI sources.
++
++## D2 — tests and probes
++
++Typecheck: `tsc --noEmit` exits 0 with no diagnostics.
++
++Unit suite: 1429 passed, 2 failed.
++
++The two failures are `migrate-rehearsal.test.ts > agro ps / oh ps resolves the migrated entry and reaches docker compose`. They are pre-existing and environmental. The advisor confirmed this by checking out `dd5ff0c0` into a separate worktree and running the same suite. The failure name sets are identical:
++
++```
++$ diff base-fails.txt feat-fails.txt
++  (no output)
++```
++
++Cause: `docker compose` is on PATH, so `dockerComposeAvailable()` returns true, but no daemon is reachable, so `agro ps` exits 1. Nothing cloud-related. A full-suite run can cascade extra failures inside this one file; an isolated run of the file yields exactly these two on both trees.
++
++Probes, all exit 0:
++
++| Probe | Result |
++|---|---|
++| `oh-lifecycle-surface.sh` | PASS — the tier-A tripwire; `CLI_VERBS` no longer lists `cloud` |
++| `oh-config-surfaces.sh` | PASS |
++| `agro-compat-inventory.sh` | PASS — every `OH_*` identifier stays classified |
++| `config-schema-parity.sh` | PASS — `.example.env`, `secrets.ts`, and `docs/configuration.md` agree |
++| `changelog-entry-length.sh` | PASS — the new entry is 218 characters, under the 250 cap |
++| `audit-stale-references.sh` | PASS |
++| `operator-config-guard.sh` | PASS |
++
++`python3` is absent from this container, so `oh-config-surfaces.sh:40` reports invalid JSON on any tree. The advisor ran that probe behind a scratchpad `python3` shim that validates JSON through `node`. Nothing was written to the repository. CI supplies a real `python3`.
++
++## D3 — documentation
++
++`config-schema-parity.sh` is the cross-surface oracle for D3 and passes. It checks `.example.env` against the `secrets.ts` allow-list and `docs/configuration.md`, which is the coherence a partial doc deletion would break.
++
++## D4 — pull request
++
++Recorded in the PR description and the closing session report.
++
++## Deviation from the operator ruling
++
++The operator chose a hard delete. One surface is retired in place instead: the six `.agro/compat-inventory.json` rows. That file is a ledger of deferred compatibility obligations, and `docs/agro-compatibility.md` recorded that the namespace cutover routed around Cloud deliberately. Deleting the rows would erase that record. The advisor raised this before implementation and the operator confirmed it.
++
++The rows moved to the file's existing `obsolete` classification. That classification is forced, not merely apt: `agro-compat-inventory.sh` fails any non-obsolete row whose owning file the tree no longer mentions.
+diff --git a/.agro/tasks/retire-agro-cloud/prd.json b/.agro/tasks/retire-agro-cloud/prd.json
+new file mode 100644
+index 00000000..6a073ae4
+--- /dev/null
++++ b/.agro/tasks/retire-agro-cloud/prd.json
+@@ -0,0 +1,83 @@
++{
++  "schemaVersion": 1,
++  "project": "AGRO",
++  "branchName": "task/1050-retire-agro-cloud",
++  "description": "Retire the stale agro cloud command and every surface it owns",
++  "userStories": [
++    {
++      "id": "US-001",
++      "title": "Remove the cloud verb from the CLI",
++      "description": "As an operator, I want agro cloud to stop dispatching so that the CLI stops advertising a command against a service this repository does not run.",
++      "acceptanceCriteria": [
++        "Delete .agro/cli/src/commands/cloud.ts",
++        "Delete .agro/cli/src/__tests__/cloud.test.ts",
++        "Remove the runCloud import, the cloud help line, and the first === \\\"cloud\\\" dispatch from .agro/cli/src/cli.ts",
++        "Remove the cloud assertion from .agro/cli/src/__tests__/lifecycle.test.ts help surface test",
++        "Typecheck passes"
++      ],
++      "priority": 1,
++      "passes": false,
++      "notes": ""
++    },
++    {
++      "id": "US-002",
++      "title": "Remove cloud from the config schema and secrets",
++      "description": "As an operator, I want cloud config keys gone from the schema so that agro.json carries no field for a retired command.",
++      "acceptanceCriteria": [
++        "Remove CloudSettings, the cloud field, the cloud default, the cloud validation, and the cloud.apiUrl OH_CONFIG_FIELDS entry from .agro/cli/src/lib/oh-config.ts",
++        "Remove OH_CLOUD_PROVISION_KEY from SECRET_KEYS in .agro/cli/src/lib/secrets.ts",
++        "Remove the cloud section from agro.json",
++        "Remove OH_CLOUD_PROVISION_KEY from the fallback secret-key list in .agro/scripts/migrate-harness-yaml.sh",
++        "Update the cloud rows in .agro/cli/src/lib/__tests__/oh-config.test.ts and .agro/cli/src/__tests__/sandbox.test.ts to use a surviving config field",
++        "Typecheck passes and unit tests pass"
++      ],
++      "priority": 2,
++      "passes": false,
++      "notes": ""
++    },
++    {
++      "id": "US-003",
++      "title": "Retire the compat-inventory rows in place",
++      "description": "As a maintainer, I want the cloud compatibility rows marked retired rather than deleted so that the deferred phase-4 obligation stays on the record.",
++      "acceptanceCriteria": [
++        "Mark the cloud rows in .agro/compat-inventory.json retired, referencing issue 1050, instead of deleting them",
++        "Keep the ~/.config/openharness/cloud.json path row so .agro/cli/src/lib/__tests__/compat-inventory.test.ts:98 still passes, updating its status only",
++        "Do not delete .agro/evals/probes/oh-config-surfaces.sh",
++        "compat-inventory tests pass"
++      ],
++      "priority": 3,
++      "passes": false,
++      "notes": ""
++    },
++    {
++      "id": "US-004",
++      "title": "Update the lifecycle surface probe",
++      "description": "As a maintainer, I want the tier-A verb probe to match the shipped verb set so that the suite stays green and honest.",
++      "acceptanceCriteria": [
++        "Remove cloud from CLI_VERBS in .agro/evals/probes/oh-lifecycle-surface.sh",
++        "Remove the agro cloud row from docs/lifecycle-commands.md",
++        "The probe passes against the edited cli.ts"
++      ],
++      "priority": 4,
++      "passes": false,
++      "notes": ""
++    },
++    {
++      "id": "US-005",
++      "title": "Align documentation and changelog",
++      "description": "As an operator, I want the docs to stop describing a removed command so that no page teaches a surface that does not exist.",
++      "acceptanceCriteria": [
++        "Remove the cloud table row and the OpenHarness Cloud section from .agro/cli/README.md",
++        "Remove the Cloud section and the cloud env-override entries from docs/configuration.md",
++        "Remove the OpenHarness Cloud provisioning block from .example.env",
++        "Reconcile the cloud references in docs/agro-compatibility.md with the retirement",
++        "Update the package description in .agro/cli/package.json if it names OpenHarness Cloud",
++        "Add a Removed entry to CHANGELOG.md under Unreleased citing issue 1050, at most 250 characters",
++        "No tracked file outside CHANGELOG history and archived task evidence references agro cloud or oh cloud"
++      ],
++      "priority": 5,
++      "passes": false,
++      "notes": ""
++    }
++  ]
++}
+diff --git a/.agro/tasks/retire-agro-cloud/prd.md b/.agro/tasks/retire-agro-cloud/prd.md
+new file mode 100644
+index 00000000..196b004d
+--- /dev/null
++++ b/.agro/tasks/retire-agro-cloud/prd.md
+@@ -0,0 +1,45 @@
++# Retire the stale `agro cloud` command
++
++## Intent
++Create a PR that deletes the `agro cloud` verb and every surface it owns. The operator requested a scoped retirement PR and explicitly chose a hard delete. Do not merge.
++
++## Architecture decision
++`agro cloud` is a client for a first-party hosted service this repository does not run. The default API base is `http://127.0.0.1:3000`. No harness behavior depends on it: no skill invokes it, and the CLI carries zero runtime dependencies for it. Deletion removes a dormant alternative rather than replacing one abstraction with another. No new abstraction and no ADR are needed.
++
++One exception to the hard delete. `.agro/compat-inventory.json` is a ledger of deferred compatibility obligations, not configuration. Its cloud rows are marked migrate-later, phase 4, and `docs/agro-compatibility.md:323` records that the namespace cutover routed around cloud on purpose. Mark those rows retired in place. Dropping them would erase the record that the obligation existed.
++
++## Definition of Done
++- D1: `agro cloud` does not dispatch. No cloud surface remains in the CLI, the config schema, or the secret key list.
++- D2: The tier-A probe suite is green, including `.agro/evals/probes/oh-lifecycle-surface.sh`. Unit tests and typecheck pass.
++- D3: Tracked documentation, `.example.env`, and `CHANGELOG.md` match the shipped behavior.
++- D4: A PR is open against `mifunedev/agro:development` with its observed CI state reported, and it is not merged.
++
++## Advisor orchestration
++One bounded implementation worker owns the coupled code, test, probe, and prose edits inside the feature worktree. The advisor reviews the diff, runs verification, owns acceptance, commits, and publishes the PR. Repairs return to the same worker.
++
++## Knowledge Context
++- Base commit: `dd5ff0c0`
++- Grounded against: `.agro/cli/src/commands/cloud.ts`, `.agro/cli/src/cli.ts`, `.agro/cli/src/lib/oh-config.ts`, `.agro/compat-inventory.json`, `.agro/evals/probes/oh-lifecycle-surface.sh`.
++- Staleness evidence: last feature commit `766fb311` on 2026-07-09; three later commits are repository-wide sweeps.
++
++## Expected Knowledge Impact
++REQUIRED: the lifecycle verb set loses `cloud`. Historical changelog entries and archived task evidence remain unchanged.
++
++## Plan Reconciliation
++Intent preserved: YES. The retirement deletes the stale surface while keeping the compatibility ledger honest. No unrelated verb or provider setting changes.
++
++## Affected surfaces
++- Host and sandbox: applied; edit and verify in the sandbox worktree, no host change.
++- Lifecycle door: applied; `agro` loses one verb, and the probe that guards the verb set is updated in the same commit.
++- Canonical and provider: applied; all edits are canonical under `.agro/`, no mirror is patched.
++- Root and scaffold: applied; `agro.json` and `.example.env` affect initialized projects.
++- Interactive and headless: not applicable; no service changes.
++- Local and remote: applied; no terminal-dependent state.
++- Parallel operation: applied; single writer in an isolated worktree.
++- Public documentation: applied in repository docs; a matching `mifunedev/agro-web` change is out of scope for this PR.
++- Verification: unit tests, typecheck, tier-A probes, CI.
++
++## Non-goals
++- Do not merge the PR.
++- Do not change `cloudflared`, Langfuse Cloud, or `gcloud` hook deny-patterns. These are unrelated uses of the word.
++- Do not delete `.agro/evals/probes/oh-config-surfaces.sh`. It keeps asserting that `OH_CLOUD_CONFIG` never returns, which enforces the retirement.
+diff --git a/.agro/tasks/retire-agro-cloud/progress.txt b/.agro/tasks/retire-agro-cloud/progress.txt
+new file mode 100644
+index 00000000..4b2a545c
+--- /dev/null
++++ b/.agro/tasks/retire-agro-cloud/progress.txt
+@@ -0,0 +1,2 @@
++task: retire agro cloud — scaffolded issue #1050, branch task/1050-retire-agro-cloud
++task: retire agro cloud — implemented, verified, PR pending
+diff --git a/.example.env b/.example.env
+index b0927036..729fcefc 100644
+--- a/.example.env
++++ b/.example.env
+@@ -95,12 +95,6 @@
+ # LANGFUSE_PUBLIC_KEY=pk-lf-...
+ # LANGFUSE_SECRET_KEY=sk-lf-...
+ 
+-# ─── OpenHarness Cloud provisioning ──────────────────────────────────
+-# Provisioner key for `agro cloud`. `agro cloud config` normally stores it
+-# at ~/.config/openharness/cloud.json with mode 0600 and never prints it;
+-# set it here only for non-interactive automation that cannot run that
+-# prompt. Without a key, every `agro cloud` call that reaches the API
+-# fails. This OH_CLOUD_PROVISION_KEY spelling is owned by the Cloud phase
+-# and is not renamed here.
+-# OH_CLOUD_PROVISION_KEY=
++# ─── Muse Code ───────────────────────────────────────────────────────
++# Meta API key for the Muse Code harness. See docs/harnesses/muse-code.md.
+ # META_API_KEY=
+diff --git a/agro.json b/agro.json
+index c46c083a..c32a06a8 100644
+--- a/agro.json
++++ b/agro.json
+@@ -20,7 +20,6 @@
+   "cron": { "agentBin": "claude" },
+   "build": { "skipPnpmInstall": false },
+   "image": { "mode": "build", "pullPolicy": "missing" },
+-  "cloud": {},
+   "langfuse": {},
+   "composeOverrides": []
+ }
+diff --git a/docs/agro-compatibility.md b/docs/agro-compatibility.md
+index 214f53ef..43c43408 100644
+--- a/docs/agro-compatibility.md
++++ b/docs/agro-compatibility.md
+@@ -249,8 +249,7 @@ agent prompts in
+ 
+ The CLI install root `/opt/oh`, the default image reference
+ `ghcr.io/mifunedev/openharness:latest`, the `oh.mifune.dev` domain, the GitHub
+-repository name, the Cloud variables, and the Python kernel home
+-`~/.local/share/oh/` are unchanged. Every `OH_*` variable, `oh`, `oh.json`
++repository name, and the Python kernel home `~/.local/share/oh/` are unchanged. Every `OH_*` variable, `oh`, `oh.json`
+ reading, `~/.oh`, and the legacy images stay valid through the SLA.
+ 
+ ## Phase 3 — AGRO is the canonical external identity
+@@ -313,18 +312,21 @@ does not exist on `main` yet, and an early change breaks the endpoint.
+ The unselected image fallback is `ghcr.io/mifunedev/agro:latest`. An explicit
+ `image.ref`, `AGRO_SANDBOX_IMAGE`, or `OH_SANDBOX_IMAGE` value stays as stored,
+ including `ghcr.io/mifunedev/openharness:latest`. Both image names publish from
+-one digest. The CLI install root `/opt/oh`, the Cloud variables, the
+-Python kernel home `~/.local/share/oh/`, `oh`, `@mifune/openharness`, `get-oh.sh`,
++one digest. The CLI install root `/opt/oh`, the Python kernel home
++`~/.local/share/oh/`, `oh`, `@mifune/openharness`, `get-oh.sh`,
+ `oh.js`, every `OH_*` variable, `~/.oh`, and the legacy GHCR tags stay valid
+ through the SLA. This repository keeps `"name": "openharness"` in `agro.json`.
+ 
+ ## Legacy references intentionally left for later phases
+ 
+-- Phase 4: the Cloud CLI variables (`OH_CLOUD_*`, `OH_API_URL`,
+-  `OH_PROVISION_KEY`).
+ - Phase 5: retirement of `oh`, `@mifune/openharness`, `get-oh.sh`, and the
+   legacy GHCR tags after the SLA.
+ 
++Phase 4 holds no rename obligation. Issue
++[#1050](https://github.com/mifunedev/agro/issues/1050) deleted the `agro cloud`
++command, so the Cloud CLI variables (`OH_CLOUD_*`, `OH_API_URL`,
++`OH_PROVISION_KEY`) are classified `obsolete` in `.agro/compat-inventory.json`.
++
+ ## Verification
+ 
+ ```bash
+diff --git a/docs/configuration.md b/docs/configuration.md
+index ec10b8af..82028244 100644
+--- a/docs/configuration.md
++++ b/docs/configuration.md
+@@ -143,12 +143,6 @@ Recipe: [`agro sandbox install docker`](deployment-prebuilt-image.md).
+ | `image.mode` | `"build"` \| `"image"` | `build` | — | Whether the lifecycle builds locally or runs `image.ref`. A build happens only when the entry carries `checkout` and that directory holds `.devcontainer/Dockerfile`. Pairs with `agro sandbox install docker --image`. |
+ | `image.pullPolicy` | `"missing"` \| `"always"` \| `"never"` | `missing` | `AGRO_PULL_POLICY` (legacy alias `OH_PULL_POLICY`) | Compose pull policy for `image.ref`. |
+ 
+-### Cloud
+-
+-| Field | Type | Default | Compose variable | What it does |
+-| --- | --- | --- | --- | --- |
+-| `cloud.apiUrl` | string | unset | — | OpenHarness Cloud API base URL used by `agro cloud`. The provisioner key is a secret (`OH_CLOUD_PROVISION_KEY`) and lives in `.env`, never here. |
+-
+ ### Langfuse
+ 
+ Tracing settings the Pi harness reads from its own process environment. They are
+@@ -175,24 +169,13 @@ root `.env` may hold. Each is documented, commented out, in the tracked
+ `.example.env`:
+ 
+ `GH_TOKEN`, `SANDBOX_PASSWORD`, `XAI_API_KEY`, `META_API_KEY`, `PI_SLACK_APP_TOKEN`,
+-`PI_SLACK_BOT_TOKEN`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`,
+-`OH_CLOUD_PROVISION_KEY`.
++`PI_SLACK_BOT_TOKEN`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`.
+ 
+ Any other key is rejected by `agro secret set`.
+ 
+ For Muse Code, `agro secret set META_API_KEY` stores the key but does not export it into a running shell.
+ See [Muse authentication](harnesses/muse-code.md#authentication) for process injection and credential precedence.
+ 
+-## Settings that are neither
+-
+-A few variables are read directly from the environment of one process and are
+-not harness configuration at all, so they appear in neither surface:
+-
+-- `OH_CLOUD_API_URL` and `OH_CLOUD_PROVISION_KEY` — non-persistent `agro cloud`
+-  overrides for the persisted `cloud.apiUrl` field and the
+-  `OH_CLOUD_PROVISION_KEY` secret. `OH_PROVISION_KEY` and `PROVISION_KEY` are
+-  accepted as legacy spellings. See `.agro/cli/README.md`.
+-
+ ## Retired keys
+ 
+ The directory layout is fixed convention and is no longer configurable.
+diff --git a/docs/lifecycle-commands.md b/docs/lifecycle-commands.md
+index defd8c7b..4054e782 100644
+--- a/docs/lifecycle-commands.md
++++ b/docs/lifecycle-commands.md
+@@ -52,7 +52,6 @@ sandbox.
+ | `agro secret set <KEY> [--sandbox <name>]` · `agro secret list [--sandbox <name>]` | read and write the gitignored `.env` |
+ | `agro gateway <pi\|hermes>` · `agro gateway status` | `.agro/scripts/gateway.sh` |
+ | `agro harness` · `agro tool` | install and inspect harnesses and tooling |
+-| `agro cloud` | manage OpenHarness Cloud nodes |
+ | `agro --help` · `agro --version` | usage and version |
+ 
+ `agro <verb> -- <args>` forwards extra arguments to `docker compose`, e.g.

@@ -1,0 +1,1 @@
+- Default Claude Code to `claude-opus-5-5` (1M context) at `medium` effort, Codex to `gpt-6-astra` at `medium` reasoning, and Pi to `gpt-6-sol` at `medium` thinking.

@@ -1,0 +1,759 @@
+diff --git a/.agro/scripts/README.md b/.agro/scripts/README.md
+index 53b43fde..58c72140 100644
+--- a/.agro/scripts/README.md
++++ b/.agro/scripts/README.md
+@@ -10,13 +10,51 @@ Provisioning and the cron runtime live here.
+ | `release-reservation.mjs` | Validates the SemVer release version and drives the reservation state machine |
+ | `reserve-github-release.mjs` | Atomically reserves the `v<version>` tag and recovers its same-SHA GitHub draft |
+ | `promote-release-latest.sh` | Fresh-checks canonical `main`-else-`master` and promotes its image to `latest` by digest |
+-| `verify-sandbox-image.sh` | Verifies a built sandbox image: `verify-sandbox-image.sh <image-ref>` checks the Debian Trixie base, the `trixie` Docker apt suite, the built-in `sandbox` UID/GID `1000:1000`, Node 22, the pinned pnpm 10.33.0 and numeric dotted version output from `gh`, Docker, Bun and uv, that no harness and no `kind:"installable"` tool is baked into the image, and that every `kind:"baked-in"` tool is present |
++| `verify-sandbox-image.sh` | Checks image distribution, user IDs, tool versions, catalog installation policy, and seeded Python defaults: `verify-sandbox-image.sh <image-ref>`. |
++| `provision-python.sh` | Provisions Python 3.13 defaults and the isolated kernel environment inside the sandbox. |
+ | `sandbox-boot-smoke.sh` | Boots the compose sandbox, polls the healthcheck, and verifies the Herdr runtime plus the bind-mount ownership contract |
+ | `node-pnpm-parity.sh` | CI base-parity check: installs Node and pnpm in fixed Bookworm and Trixie images with the exact Dockerfile commands and requires identical versions |
+ | `cron-runtime.ts` | Croner runtime — scans `crons/*.md`, schedules, fires each job     |
+ | `prompt-miner-caps.sh` | REMOVED in 0.3.0 with the autopilot cap gate it wrapped — see `crons/prompt-miner.md` § Caps | <!-- legacy: `autopilot-caps.sh` with `CRON_REPO=mifunedev/openharness` + `AUTOPILOT_LABEL=prompt-miner` |
+ | `__tests__/`      | Vitest unit tests (`vitest.config.ts` at repo root targets this)   |
+ 
++## Sandbox Python
++
++`provision-python.sh` runs inside the sandbox during image creation and boot.
++It installs Python 3.13 with `uv python install --default`.
++The default `UV_PYTHON_BIN_DIR` is `$HOME/.local/bin`.
++The image PATH includes this directory, so `python` and `python3` need no shell activation.
++Project virtual environments retain their own interpreters and packages.
++
++The kernel environment lives at `$HOME/.local/share/oh/kernel`.
++The provisioner compares its base interpreter with the requested uv-managed interpreter.
++It reuses a matching environment and recreates a stale environment at the same path.
++If creation or package installation fails during migration, it restores the old kernel.
++The provisioner retains older managed Python installations.
++A file lock serializes provisioning within one HOME.
++Boot reports provisioning failures as warnings and continues.
++
++Use `OH_PYTHON_VERSION`, `OH_PYTHON_KERNEL_HOME`, and `OH_PYTHON_KERNEL_PACKAGES` to override the defaults.
++The provisioner refuses root, HOME, ancestor, symlink, and non-venv kernel replacement paths.
++It accepts legacy uv environments at the default or explicitly configured kernel path.
++Set `OH_PYTHON_KERNEL_HOME` only to the environment that the provisioner must manage.
++
++Run `bash .agro/scripts/provision-python.sh --verify` to check the current installation without repair.
++Verification checks both default commands, the kernel base interpreter, and the `ipykernel` import.
++Base-command checks use an explicit PATH independent of the caller's active project environment.
++`verify-sandbox-image.sh` restores `/opt/home-seed` in an ephemeral container with networking disabled.
++It checks Python 3.13 defaults and the kernel as `sandbox`, without a login shell.
++
++Run the real-uv regression matrix as a non-root sandbox user:
++
++```bash
++bash .agro/scripts/__tests__/provision-python.integration.sh
++```
++
++The matrix downloads interpreters and packages into a disposable HOME.
++It checks fresh provisioning, migration, rollback, command resolution, verification failures, and project isolation.
++It deletes the test HOME on exit.
++
+ ## Release
+ 
+ `.github/workflows/release.yml` drives the release scripts in this directory.
+diff --git a/.agro/scripts/__tests__/provision-python.integration.sh b/.agro/scripts/__tests__/provision-python.integration.sh
+new file mode 100644
+index 00000000..64c210c3
+--- /dev/null
++++ b/.agro/scripts/__tests__/provision-python.integration.sh
+@@ -0,0 +1,83 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++SCRIPT=$(realpath "$(dirname "$0")/../provision-python.sh")
++if [ "${1:-}" != --isolated ]; then
++  [ "$(id -u)" != 0 ] || { printf 'Run as a non-root sandbox user.\n' >&2; exit 1; }
++  uv_bin=$(dirname "$(command -v uv)")
++  scratch=$(mktemp -d)
++  trap 'rm -rf -- "$scratch"' EXIT
++  env -i HOME="$scratch" PATH="$uv_bin:/usr/local/bin:/usr/bin:/bin" \
++    bash "$0" --isolated
++  exit
++fi
++
++export UV_PYTHON_INSTALL_DIR="$HOME/.local/share/uv/python"
++export UV_PYTHON_BIN_DIR="$HOME/.local/bin"
++export UV_CACHE_DIR="$HOME/.cache/uv"
++export UV_TOOL_DIR="$HOME/.local/share/uv/tools"
++export UV_TOOL_BIN_DIR="$HOME/.local/bin"
++export PATH="$UV_PYTHON_BIN_DIR:$PATH"
++cd "$HOME"
++kernel="$HOME/.local/share/oh/kernel"
++
++assert_python() {
++  local version="$1"
++  python -c "import sys; assert '.'.join(map(str, sys.version_info[:2])) == '$version'"
++  python3 -c "import sys; assert '.'.join(map(str, sys.version_info[:2])) == '$version'"
++  "$kernel/bin/python" -c "import sys, ipykernel; assert '.'.join(map(str, sys.version_info[:2])) == '$version'"
++}
++
++expect_verify_failure() {
++  if bash "$SCRIPT" --verify; then
++    printf 'Expected verification to fail.\n' >&2
++    exit 1
++  fi
++}
++
++bash "$SCRIPT"
++bash "$SCRIPT" --verify
++assert_python 3.13
++printf 'keep\n' > "$kernel/sentinel"
++bash "$SCRIPT"
++test "$(<"$kernel/sentinel")" = keep
++printf '#!/usr/bin/env python\nimport sys; assert sys.version_info[:2] == (3, 13)\n' > "$HOME/shebang-check"
++chmod +x "$HOME/shebang-check"
++bash --noprofile --norc -c 'python --version; python3 --version; "$HOME/shebang-check"'
++
++rm "$UV_PYTHON_BIN_DIR/python"
++expect_verify_failure
++test ! -e "$UV_PYTHON_BIN_DIR/python"
++bash "$SCRIPT"
++
++OH_PYTHON_VERSION=3.11 bash "$SCRIPT"
++assert_python 3.11
++uv venv --python "$kernel/bin/python" "$HOME/project/.venv"
++project_before=$("$HOME/project/.venv/bin/python" -c 'import sys; print(sys.version, sys.prefix, sys._base_executable)')
++project_cfg=$(sha256sum "$HOME/project/.venv/pyvenv.cfg")
++uv python install --default 3.13
++expect_verify_failure
++printf 'rollback\n' > "$kernel/sentinel"
++if OH_PYTHON_KERNEL_PACKAGES=agro-nonexistent-package-rollback-test-7f33 UV_OFFLINE=1 bash "$SCRIPT"; then
++  printf 'Expected package installation to fail.\n' >&2
++  exit 1
++fi
++test "$(<"$kernel/sentinel")" = rollback
++"$kernel/bin/python" -c 'import sys, ipykernel; assert sys.version_info[:2] == (3, 11)'
++
++VIRTUAL_ENV="$HOME/project/.venv" PATH="$HOME/project/.venv/bin:$PATH" bash "$SCRIPT"
++assert_python 3.13
++test ! -e "$kernel/sentinel"
++test "$("$HOME/project/.venv/bin/python" -c 'import sys; print(sys.version, sys.prefix, sys._base_executable)')" = "$project_before"
++test "$(sha256sum "$HOME/project/.venv/pyvenv.cfg")" = "$project_cfg"
++bash "$SCRIPT" --verify
++bash "$SCRIPT"
++
++python311=$(uv python find --managed-python --system --no-project 3.11)
++ln -sfn "$python311" "$UV_PYTHON_BIN_DIR/python3"
++expect_verify_failure
++test "$(realpath "$UV_PYTHON_BIN_DIR/python3")" = "$(realpath "$python311")"
++bash "$SCRIPT"
++bash "$SCRIPT" --verify
++assert_python 3.13
++printf 'PASS: fresh defaults, verification, idempotence, migration, rollback, project isolation, and non-login commands.\n'
+diff --git a/.agro/scripts/__tests__/provision-python.test.ts b/.agro/scripts/__tests__/provision-python.test.ts
+index af7a408c..c65d4988 100644
+--- a/.agro/scripts/__tests__/provision-python.test.ts
++++ b/.agro/scripts/__tests__/provision-python.test.ts
+@@ -1,7 +1,8 @@
+-import { execFileSync } from "node:child_process";
+-import { readFileSync } from "node:fs";
++import { execFileSync, spawnSync } from "node:child_process";
++import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
++import { tmpdir } from "node:os";
+ import { join } from "node:path";
+-import { describe, expect, it } from "vitest";
++import { afterEach, describe, expect, it } from "vitest";
+ 
+ const ROOT = join(import.meta.dirname, "../../..");
+ const SCRIPT = join(ROOT, ".agro/scripts/provision-python.sh");
+@@ -46,9 +47,9 @@ describe("provision-python.sh", () => {
+ 
+   it("runs uv python install unconditionally so the install dir is exercised", () => {
+     const text = script();
+-    const install = text.indexOf('uv python install "$PY_VERSION"');
++    const install = text.indexOf('uv python install --default "$PY_VERSION"');
+     expect(install).toBeGreaterThan(-1);
+-    expect(text).toContain('uv python find --managed-python "$PY_VERSION"');
++    expect(text).toContain('uv python find --managed-python --system --no-project --no-python-downloads "$PY_VERSION"');
+   });
+ 
+   it("emits an actionable error instead of a bare permission denial", () => {
+@@ -78,6 +79,194 @@ describe("provision-python.sh", () => {
+   });
+ });
+ 
++const scratch: string[] = [];
++afterEach(() => {
++  for (const dir of scratch.splice(0)) rmSync(dir, { recursive: true, force: true });
++});
++
++function fixture() {
++  const home = mkdtempSync(join(tmpdir(), "provision-python-"));
++  scratch.push(home);
++  const bin = join(home, "mock-bin");
++  mkdirSync(bin);
++  const python = join(bin, "mock-python");
++  writeFileSync(python, `#!/bin/bash
++case "$2" in
++  *sys._base_executable*) cat "$(dirname "$0")/../base" ;;
++  *sys.executable*) realpath "$0" ;;
++  *"import ipykernel"*) test -f "$(dirname "$0")/../ipykernel" ;;
++  *) exit 0 ;;
++esac
++`);
++  chmodSync(python, 0o755);
++  writeFileSync(join(bin, "uv"), `#!/bin/bash
++set -eu
++printf '%s\\n' "$*" >> "$HOME/uv.log"
++case "$1 $2" in
++  'python install')
++    version="$4"
++    target="$UV_PYTHON_INSTALL_DIR/$version/bin/python"
++    mkdir -p "$(dirname "$target")" "$UV_PYTHON_BIN_DIR"
++    cp "$MOCK_PYTHON" "$target"
++    ln -sfn "$target" "$UV_PYTHON_BIN_DIR/python"
++    ln -sfn "$target" "$UV_PYTHON_BIN_DIR/python3"
++    ;;
++  'python find')
++    version="\${@: -1}"
++    test -x "$UV_PYTHON_INSTALL_DIR/$version/bin/python" || exit 1
++    printf '%s\\n' "$UV_PYTHON_INSTALL_DIR/$version/bin/python"
++    ;;
++  'venv --python')
++    mkdir -p "$4/bin"
++    test "\${MOCK_FAIL_VENV:-0}" != 1 || exit 1
++    cp "$MOCK_PYTHON" "$4/bin/python"
++    printf '%s\\n' "$3" > "$4/base"
++    printf 'uv = mock\\n' > "$4/pyvenv.cfg"
++    ;;
++  'pip install')
++    test "\${MOCK_FAIL_PIP:-0}" != 1 || exit 1
++    touch "$(dirname "$4")/../ipykernel"
++    ;;
++  *) exit 2 ;;
++esac
++`);
++  chmodSync(join(bin, "uv"), 0o755);
++  const env = {
++    ...process.env,
++    HOME: home,
++    PATH: `${bin}:/usr/local/bin:/usr/bin:/bin`,
++    UV_PYTHON_INSTALL_DIR: join(home, "managed"),
++    UV_PYTHON_BIN_DIR: join(home, ".local/bin"),
++    UV_CACHE_DIR: join(home, "cache"),
++    UV_TOOL_DIR: join(home, "tools"),
++    UV_TOOL_BIN_DIR: join(home, ".local/bin"),
++    OH_PYTHON_VERSION: "",
++    OH_PYTHON_KERNEL_HOME: "",
++    OH_PYTHON_KERNEL_PACKAGES: "",
++    MOCK_PYTHON: python,
++  };
++  return { home, env, kernel: join(home, ".local/share/oh/kernel") };
++}
++
++function runFixture(fx: ReturnType<typeof fixture>, args: string[] = [], extra: Record<string, string> = {}) {
++  return spawnSync("bash", [SCRIPT, ...args], { env: { ...fx.env, ...extra }, encoding: "utf8" });
++}
++
++function expectSuccess(result: ReturnType<typeof runFixture>) {
++  expect(result.status, result.stdout + result.stderr).toBe(0);
++}
++
++describe("provision-python behavior", () => {
++  it("fails verification of an empty HOME without creating provisioning directories", () => {
++    const fx = fixture();
++    expect(runFixture(fx, ["--verify"]).status).toBe(1);
++    expect(existsSync(join(fx.home, ".local"))).toBe(false);
++    expect(existsSync(fx.env.UV_PYTHON_INSTALL_DIR)).toBe(false);
++    expect(readFileSync(join(fx.home, "uv.log"), "utf8")).not.toMatch(/install|venv/);
++  });
++
++  it("installs defaults, verifies without writes, and reuses the matching kernel", () => {
++    const fx = fixture();
++    expectSuccess(runFixture(fx));
++    writeFileSync(join(fx.kernel, "sentinel"), "keep");
++    expectSuccess(runFixture(fx));
++    expect(readFileSync(join(fx.kernel, "sentinel"), "utf8")).toBe("keep");
++    writeFileSync(join(fx.home, "uv.log"), "");
++    expectSuccess(runFixture(fx, ["--verify"]));
++    expect(readFileSync(join(fx.home, "uv.log"), "utf8")).not.toMatch(/install|venv/);
++    expect(realpathSync(join(fx.env.UV_PYTHON_BIN_DIR, "python3"))).toContain("/3.13/bin/python");
++  });
++
++  it("migrates a legacy 3.11 kernel and leaves a caller project venv unchanged", () => {
++    const fx = fixture();
++    expectSuccess(runFixture(fx, [], { OH_PYTHON_VERSION: "3.11" }));
++    writeFileSync(join(fx.kernel, "old-kernel"), "old");
++    const project = join(fx.home, "project/.venv");
++    mkdirSync(join(project, "bin"), { recursive: true });
++    writeFileSync(join(project, "bin/python"), "project interpreter");
++    expectSuccess(runFixture(fx, [], { VIRTUAL_ENV: project, PATH: `${project}/bin:${fx.env.PATH}` }));
++    expect(existsSync(join(fx.kernel, "old-kernel"))).toBe(false);
++    expect(readFileSync(join(fx.kernel, "base"), "utf8")).toContain("/3.13/bin/python");
++    expect(readFileSync(join(project, "bin/python"), "utf8")).toBe("project interpreter");
++    expect(existsSync(join(fx.env.UV_PYTHON_INSTALL_DIR, "3.11/bin/python"))).toBe(true);
++  });
++
++  it.each(["missing", "wrong", "stale", "import"])("rejects %s state without repairing it", (state) => {
++    const fx = fixture();
++    expectSuccess(runFixture(fx));
++    const alias = join(fx.env.UV_PYTHON_BIN_DIR, "python3");
++    if (state === "missing" || state === "wrong") rmSync(alias);
++    if (state === "wrong") symlinkSync(fx.env.MOCK_PYTHON, alias);
++    if (state === "stale") writeFileSync(join(fx.kernel, "base"), "/old/python\n");
++    if (state === "import") rmSync(join(fx.kernel, "ipykernel"));
++    writeFileSync(join(fx.home, "uv.log"), "");
++    expect(runFixture(fx, ["--verify"]).status).toBe(1);
++    expect(readFileSync(join(fx.home, "uv.log"), "utf8")).not.toMatch(/install|venv/);
++    if (state === "missing") expect(existsSync(alias)).toBe(false);
++  });
++
++  it.each(["MOCK_FAIL_PIP", "MOCK_FAIL_VENV"])("restores the old kernel on %s", (failure) => {
++    const fx = fixture();
++    expectSuccess(runFixture(fx, [], { OH_PYTHON_VERSION: "3.11" }));
++    writeFileSync(join(fx.kernel, "sentinel"), "old");
++    expect(runFixture(fx, [], { [failure]: "1" }).status).toBe(1);
++    expect(readFileSync(join(fx.kernel, "sentinel"), "utf8")).toBe("old");
++    expect(readFileSync(join(fx.kernel, "base"), "utf8")).toContain("/3.11/bin/python");
++    expectSuccess(runFixture(fx));
++  });
++
++  it.each(["home", "root", "directory", "symlink", "ancestor-symlink"])("refuses unsafe %s kernel paths", (kind) => {
++    const fx = fixture();
++    const project = join(fx.home, "project");
++    mkdirSync(project);
++    writeFileSync(join(project, "sentinel"), "keep");
++    writeFileSync(join(project, "pyvenv.cfg"), "uv = mock\n");
++    const linked = join(fx.home, "linked");
++    symlinkSync(project, linked);
++    const directory = join(fx.home, "ordinary");
++    mkdirSync(directory);
++    const paths: Record<string, string> = { home: fx.home, root: "/", directory, symlink: linked, "ancestor-symlink": join(linked, "kernel") };
++    expect(runFixture(fx, [], { OH_PYTHON_KERNEL_HOME: paths[kind] }).status).toBe(1);
++    expect(readFileSync(join(project, "sentinel"), "utf8")).toBe("keep");
++  });
++
++  it.each(["bin", "pyvenv.cfg"])("refuses a kernel with a symlinked %s", (part) => {
++    const fx = fixture();
++    expectSuccess(runFixture(fx));
++    const original = join(fx.kernel, part);
++    rmSync(original, { recursive: true, force: true });
++    const external = join(fx.home, "external");
++    if (part === "bin") mkdirSync(external);
++    else writeFileSync(external, "uv = mock\n");
++    symlinkSync(external, original);
++    expect(runFixture(fx).status).toBe(1);
++    expect(existsSync(external)).toBe(true);
++  });
++
++  it("migrates an unmarked legacy custom kernel from 3.11 to 3.13", () => {
++    const fx = fixture();
++    const custom = join(fx.home, "custom-kernel");
++    const extra = { OH_PYTHON_KERNEL_HOME: custom };
++    expectSuccess(runFixture(fx, [], { ...extra, OH_PYTHON_VERSION: "3.11" }));
++    expect(existsSync(join(custom, ".oh-kernel"))).toBe(false);
++    writeFileSync(join(custom, "sentinel"), "old");
++    expectSuccess(runFixture(fx, [], extra));
++    expect(readFileSync(join(custom, "base"), "utf8")).toContain("/3.13/bin/python");
++    expect(existsSync(join(custom, "sentinel"))).toBe(false);
++    expect(existsSync(join(custom, ".oh-kernel"))).toBe(false);
++    expect(existsSync(fx.kernel)).toBe(false);
++    expectSuccess(runFixture(fx, ["--verify"], extra));
++  });
++
++  it("supports version, kernel, and Python bin overrides", () => {
++    const fx = fixture();
++    const extra = { OH_PYTHON_VERSION: "3.12", OH_PYTHON_KERNEL_HOME: join(fx.home, "custom-kernel"), UV_PYTHON_BIN_DIR: join(fx.home, "custom-bin") };
++    expectSuccess(runFixture(fx, [], extra));
++    expectSuccess(runFixture(fx, ["--verify"], extra));
++    expectSuccess(runFixture(fx, [], { ...extra, OH_PYTHON_VERSION: "3.13" }));
++  });
++});
++
+ describe("Dockerfile uv ownership", () => {
+   it("names each uv directory level so no parent is left root-owned", () => {
+     const text = dockerfile();
+@@ -100,6 +289,8 @@ describe("Dockerfile uv ownership", () => {
+   it("provisions Python as the sandbox user, not root", () => {
+     const text = dockerfile();
+     expect(text).toContain("ARG INSTALL_PYTHON_KERNEL=true");
++    expect(text).toContain("ARG OH_PYTHON_VERSION=3.13");
++    expect(text).toContain("ENV UV_PYTHON_BIN_DIR=/home/sandbox/.local/bin");
+     expect(text).toContain('su - sandbox -c "OH_PYTHON_VERSION=');
+     expect(text).toContain("/tmp/provision-python.sh");
+   });
+diff --git a/.agro/scripts/__tests__/verify-sandbox-image.test.ts b/.agro/scripts/__tests__/verify-sandbox-image.test.ts
+index 8581bdc5..c1541be3 100644
+--- a/.agro/scripts/__tests__/verify-sandbox-image.test.ts
++++ b/.agro/scripts/__tests__/verify-sandbox-image.test.ts
+@@ -27,6 +27,7 @@ type Overrides = Partial<{
+   noBakedInTools: boolean;
+   missingBakedInTool: boolean;
+   harnessCatalogFails: boolean;
++  pythonFailure: string;
+ }>;
+ 
+ function fixture(o: Overrides = {}) {
+@@ -54,6 +55,7 @@ function fixture(o: Overrides = {}) {
+     noBakedInTools: false,
+     missingBakedInTool: false,
+     harnessCatalogFails: false,
++    pythonFailure: "",
+     ...o,
+   };
+ 
+@@ -64,6 +66,19 @@ function fixture(o: Overrides = {}) {
+ if [ "$1" = "image" ]; then printf '%s\\n' ${JSON.stringify(v.architecture)}; exit 0; fi
+ cmd="\${@: -1}"
+ case "$cmd" in
++  *"cp -a /opt/home-seed/. /home/sandbox/"*)
++    [[ "$*" == *"--network none"* ]] || exit 91
++    [[ "$cmd" == *"gosu sandbox env -i HOME=/home/sandbox"* ]] || exit 92
++    [[ "$cmd" == *"PATH=/home/sandbox/.local/bin:/usr/local/bin:/usr/bin:/bin"* ]] || exit 93
++    [[ "$cmd" == *"bash --noprofile --norc"* ]] || exit 94
++    [[ "$cmd" == *"provision-python.sh --verify"* ]] || exit 95
++    [[ "$cmd" == *'python -c '* && "$cmd" == *'python3 -c '* ]] || exit 96
++    [[ "$cmd" == *'kernel/bin/python -c '* && "$cmd" == *'import sys, ipykernel'* ]] || exit 97
++    if [ -n ${JSON.stringify(v.pythonFailure)} ]; then
++      printf '%s\\n' ${JSON.stringify(v.pythonFailure)} >&2
++      exit 1
++    fi
++    ;;
+   *VERSION_CODENAME*) printf '%s' ${JSON.stringify(v.codename)} ;;
+   *docker.list*) printf 'deb [arch=amd64] https://download.docker.com/linux/debian %s stable\\n' ${JSON.stringify(v.dockerSuite)} ;;
+   *"id -u sandbox"*) printf '%s\\n%s\\n' ${JSON.stringify(v.uid)} ${JSON.stringify(v.gid)} ;;
+@@ -149,6 +164,18 @@ describe("verify-sandbox-image", () => {
+     expect(result.stdout).toContain("all checks passed");
+   });
+ 
++  it("checks Python in the restored seed as sandbox without network or login activation", () => {
++    const result = run(fixture());
++    expect(result.status).toBe(0);
++    expect(result.stdout).toContain("seeded sandbox defaults and kernel use Python 3.13");
++  });
++
++  it.each(["missing python", "wrong python3", "stale kernel", "missing ipykernel", "seed restore failed"])("rejects seeded Python failure: %s", (pythonFailure) => {
++    const result = run(fixture({ pythonFailure }));
++    expect(result.status).toBe(1);
++    expect(result.stderr).toContain(`seeded sandbox Python verification failed: ${pythonFailure}`);
++  });
++
+   it("requires an image reference", () => {
+     const result = spawnSync("bash", [SCRIPT], { cwd: ROOT, encoding: "utf8" });
+ 
+diff --git a/.agro/scripts/provision-python.sh b/.agro/scripts/provision-python.sh
+index 11380996..3c61ae2f 100755
+--- a/.agro/scripts/provision-python.sh
++++ b/.agro/scripts/provision-python.sh
+@@ -3,7 +3,7 @@
+ set -euo pipefail
+ 
+ SANDBOX_USER="${OH_SANDBOX_USER:-sandbox}"
+-PY_VERSION="${OH_PYTHON_VERSION:-3.11}"
++PY_VERSION="${OH_PYTHON_VERSION:-3.13}"
+ 
+ MODE="provision"
+ case "${1:-}" in
+@@ -31,19 +31,21 @@ if [ "$(id -u)" = "0" ]; then
+   USER_HOME=$(getent passwd "$SANDBOX_USER" | cut -d: -f6)
+   [ -n "$USER_HOME" ] || die "cannot resolve home directory for '$SANDBOX_USER'"
+ 
+-  install -d -o "$SANDBOX_USER" -g "$SANDBOX_USER" \
+-    "$USER_HOME/.local" \
+-    "$USER_HOME/.local/bin" \
+-    "$USER_HOME/.local/share" \
+-    "$USER_HOME/.local/share/uv" \
+-    "$USER_HOME/.local/share/uv/tools" \
+-    "$USER_HOME/.local/share/uv/python" \
+-    "$USER_HOME/.cache" \
+-    "$USER_HOME/.cache/uv" 2>/dev/null || true
+-
+-  for d in "$USER_HOME/.local/share/uv" "$USER_HOME/.cache/uv"; do
+-    [ -d "$d" ] && chown -R "$(id -u "$SANDBOX_USER"):$(id -g "$SANDBOX_USER")" "$d" 2>/dev/null || true
+-  done
++  if [ "$MODE" = "provision" ]; then
++    install -d -o "$SANDBOX_USER" -g "$SANDBOX_USER" \
++      "$USER_HOME/.local" \
++      "$USER_HOME/.local/bin" \
++      "$USER_HOME/.local/share" \
++      "$USER_HOME/.local/share/uv" \
++      "$USER_HOME/.local/share/uv/tools" \
++      "$USER_HOME/.local/share/uv/python" \
++      "$USER_HOME/.cache" \
++      "$USER_HOME/.cache/uv" 2>/dev/null || true
++
++    for d in "$USER_HOME/.local/share/uv" "$USER_HOME/.cache/uv"; do
++      [ -d "$d" ] && chown -R "$(id -u "$SANDBOX_USER"):$(id -g "$SANDBOX_USER")" "$d" 2>/dev/null || true
++    done
++  fi
+ 
+   if command -v gosu >/dev/null 2>&1; then
+     exec gosu "$SANDBOX_USER" env HOME="$USER_HOME" "$0" "$@"
+@@ -58,6 +60,7 @@ export UV_PYTHON_INSTALL_DIR="${UV_PYTHON_INSTALL_DIR:-$HOME/.local/share/uv/pyt
+ export UV_CACHE_DIR="${UV_CACHE_DIR:-$HOME/.cache/uv}"
+ export UV_TOOL_DIR="${UV_TOOL_DIR:-$HOME/.local/share/uv/tools}"
+ export UV_TOOL_BIN_DIR="${UV_TOOL_BIN_DIR:-$HOME/.local/bin}"
++export UV_PYTHON_BIN_DIR="${UV_PYTHON_BIN_DIR:-$HOME/.local/bin}"
+ 
+ KERNEL_HOME="${OH_PYTHON_KERNEL_HOME:-$HOME/.local/share/oh/kernel}"
+ KERNEL_PYTHON="$KERNEL_HOME/bin/python"
+@@ -67,6 +70,7 @@ ENV_FILE="$HOME/.local/share/oh/python-env.sh"
+ if [ "$MODE" = "print-env" ]; then
+   printf 'export UV_PYTHON_INSTALL_DIR=%s\n' "$UV_PYTHON_INSTALL_DIR"
+   printf 'export UV_CACHE_DIR=%s\n' "$UV_CACHE_DIR"
++  printf 'export UV_PYTHON_BIN_DIR=%s\n' "$UV_PYTHON_BIN_DIR"
+   exit 0
+ fi
+ 
+@@ -85,7 +89,7 @@ check_writable() {
+         "a root-owned interpreter is unusable by the '$SANDBOX_USER' user." \
+         "repair from the host or as root:" \
+         "  docker exec -u root <container> chown -R $SANDBOX_USER:$SANDBOX_USER $parent"
+-    fi
++  fi
+   if [ ! -w "$dir" ]; then
+     die "$dir is not writable by $(id -un) (owned by $(stat -c '%U:%G' "$dir" 2>/dev/null || echo unknown))" \
+         "do not work around this with 'sudo uv' — it installs under /root/.local," \
+@@ -95,24 +99,27 @@ check_writable() {
+   fi
+ }
+ 
+-for d in "$HOME/.local/share/uv" "$UV_PYTHON_INSTALL_DIR" "$HOME/.cache" "$UV_CACHE_DIR" "$UV_TOOL_BIN_DIR"; do
+-  [ "$MODE" = "verify" ] && [ ! -d "$d" ] && continue
+-  check_writable "$d"
+-done
++if [ "$MODE" = "provision" ]; then
++  for d in "$HOME/.local/share/uv" "$UV_PYTHON_INSTALL_DIR" "$HOME/.cache" "$UV_CACHE_DIR" "$UV_TOOL_BIN_DIR" "$UV_PYTHON_BIN_DIR" "$HOME/.local/share/oh"; do
++    check_writable "$d"
++  done
++  exec 9>"$HOME/.local/share/oh/provision-python.lock"
++  flock -x 9
++fi
+ 
+ uv_python_path() {
+-  uv python find --managed-python "$PY_VERSION" 2>/dev/null | head -1
++  uv python find --managed-python --system --no-project --no-python-downloads "$PY_VERSION" 2>/dev/null
+ }
+ 
+ if [ "$MODE" = "provision" ]; then
+   log "ensuring managed Python $PY_VERSION in $UV_PYTHON_INSTALL_DIR"
+-  uv python install "$PY_VERSION" \
++  uv python install --default "$PY_VERSION" \
+     || die "uv python install $PY_VERSION failed" \
+            "UV_PYTHON_INSTALL_DIR=$UV_PYTHON_INSTALL_DIR must exist and be writable by $(id -un)." \
+            "do not retry with sudo — that installs under /root/.local."
+ fi
+ 
+-PY_PATH="$(uv_python_path)"
++PY_PATH="$(uv_python_path)" || die "no uv-managed Python $PY_VERSION available to $(id -un)"
+ [ -n "$PY_PATH" ] || die \
+   "no uv-managed Python $PY_VERSION available to $(id -un)" \
+   "run: bash .agro/scripts/provision-python.sh"
+@@ -124,36 +131,91 @@ case "$PY_PATH" in
+                "  bash .agro/scripts/provision-python.sh" ;;
+ esac
+ 
++BASE_PATH="$UV_PYTHON_BIN_DIR:/usr/local/bin:/usr/bin:/bin"
++PY_REAL="$(realpath "$PY_PATH")"
++for alias in python python3; do
++  [ -x "$UV_PYTHON_BIN_DIR/$alias" ] && [ "$(realpath "$UV_PYTHON_BIN_DIR/$alias")" = "$PY_REAL" ] \
++    || die "default $alias does not resolve to $PY_PATH in $UV_PYTHON_BIN_DIR"
++  resolved=$(env -u VIRTUAL_ENV -u PYTHONHOME -u PYTHONPATH PATH="$BASE_PATH" \
++    "$alias" -c 'import os, sys; print(os.path.realpath(sys.executable))')
++  [ "$resolved" = "$PY_REAL" ] || die "default $alias resolves to $resolved, expected $PY_REAL"
++done
++
++kernel_matches() {
++  [ -f "$KERNEL_HOME/pyvenv.cfg" ] && [ -x "$KERNEL_PYTHON" ] || return 1
++  local base
++  base=$(env -u PYTHONHOME -u PYTHONPATH "$KERNEL_PYTHON" -c \
++    'import os, sys; assert sys.prefix != sys.base_prefix; assert os.path.realpath(sys.prefix) == sys.argv[1]; print(os.path.realpath(sys._base_executable))' \
++    "$KERNEL_HOME") || return 1
++  [ "$base" = "$PY_REAL" ]
++}
++
++check_kernel_home() {
++  local normalized canonical home_real
++  normalized=$(realpath -ms "$KERNEL_HOME")
++  canonical=$(realpath -m "$KERNEL_HOME")
++  home_real=$(realpath "$HOME")
++  [ "$KERNEL_HOME" = "$normalized" ] && [ "$canonical" = "$normalized" ] \
++    || die "unsafe kernel path: $KERNEL_HOME (must be absolute without symlink components)"
++  case "$home_real/" in
++    "$canonical/"*) die "unsafe kernel path: $KERNEL_HOME is HOME or an ancestor" ;;
++  esac
++  [ "$canonical" != / ] || die "unsafe kernel path: /"
++  if [ -e "$KERNEL_HOME" ]; then
++    [ -d "$KERNEL_HOME" ] && [ -f "$KERNEL_HOME/pyvenv.cfg" ] \
++      && [ ! -L "$KERNEL_HOME/pyvenv.cfg" ] && [ ! -L "$KERNEL_HOME/bin" ] \
++      && grep -q '^uv = ' "$KERNEL_HOME/pyvenv.cfg" \
++      || die "refusing non-managed kernel directory: $KERNEL_HOME"
++  fi
++}
++
++BACKUP=""
++CREATING_KERNEL=false
++rollback_kernel() {
++  local status=$?
++  trap - EXIT
++  if [ "$CREATING_KERNEL" = true ]; then
++    rm -rf -- "$KERNEL_HOME"
++    if [ -n "$BACKUP" ]; then
++      mv -- "$BACKUP/kernel" "$KERNEL_HOME" || exit 1
++      rmdir -- "$BACKUP"
++    fi
++  fi
++  exit "$status"
++}
++
+ if [ "$MODE" = "provision" ]; then
+-  if [ ! -x "$KERNEL_PYTHON" ]; then
+-    log "creating kernel venv at $KERNEL_HOME"
++  check_kernel_home
++  if ! kernel_matches; then
+     mkdir -p "$(dirname "$KERNEL_HOME")"
++    if [ -e "$KERNEL_HOME" ]; then
++      BACKUP=$(mktemp -d "${KERNEL_HOME}.rollback.XXXXXX")
++      mv -- "$KERNEL_HOME" "$BACKUP/kernel"
++    fi
++    CREATING_KERNEL=true
++    trap rollback_kernel EXIT
++    trap 'exit 130' INT
++    trap 'exit 143' TERM
++    log "creating kernel venv at $KERNEL_HOME"
+     uv venv --python "$PY_PATH" "$KERNEL_HOME" \
+       || die "failed to create the kernel venv at $KERNEL_HOME"
+   fi
+ 
+-  # shellcheck disable=SC2086 # KERNEL_PACKAGES is an intentional argv fragment.
+   log "installing kernel packages: $KERNEL_PACKAGES"
++  # shellcheck disable=SC2086
+   uv pip install --python "$KERNEL_PYTHON" $KERNEL_PACKAGES \
+     || die "failed to install kernel packages into $KERNEL_HOME" \
+            "packages requested: $KERNEL_PACKAGES" \
+            "override the list with OH_PYTHON_KERNEL_PACKAGES if a spec is unavailable."
+-
+-  mkdir -p "$(dirname "$ENV_FILE")"
+-  cat > "$ENV_FILE" <<ENVEOF
+-# Generated by .agro/scripts/provision-python.sh — do not edit by hand.
+-export UV_PYTHON_INSTALL_DIR="$UV_PYTHON_INSTALL_DIR"
+-export UV_CACHE_DIR="$UV_CACHE_DIR"
+-export UV_TOOL_DIR="$UV_TOOL_DIR"
+-export UV_TOOL_BIN_DIR="$UV_TOOL_BIN_DIR"
+-ENVEOF
+ fi
+ 
++kernel_matches || die "kernel interpreter is stale or missing at $KERNEL_PYTHON; expected $PY_PATH"
++
+ [ -x "$KERNEL_PYTHON" ] || die \
+   "kernel interpreter missing at $KERNEL_PYTHON" \
+   "run: bash .agro/scripts/provision-python.sh"
+ 
+-"$KERNEL_PYTHON" -c "import ipykernel" >/dev/null 2>&1 \
++env -u PYTHONHOME -u PYTHONPATH "$KERNEL_PYTHON" -c "import ipykernel" >/dev/null 2>&1 \
+   || die "kernel environment is incomplete — ipykernel is not importable by $KERNEL_PYTHON" \
+          "run: bash .agro/scripts/provision-python.sh"
+ 
+@@ -161,9 +223,21 @@ for spec in $KERNEL_PACKAGES; do
+   mod="${spec%%[<>=!\[]*}"
+   mod="${mod//-/_}"
+   [ "$mod" = "ipykernel" ] && continue
+-  "$KERNEL_PYTHON" -c "import $mod" >/dev/null 2>&1 \
++  env -u PYTHONHOME -u PYTHONPATH "$KERNEL_PYTHON" -c "import $mod" >/dev/null 2>&1 \
+     || warn "requested package '$spec' is installed but module '$mod' is not importable"
+ done
+ 
++if [ "$MODE" = "provision" ]; then
++  mkdir -p "$(dirname "$ENV_FILE")"
++  printf 'export %s=%q\n' \
++    UV_PYTHON_INSTALL_DIR "$UV_PYTHON_INSTALL_DIR" \
++    UV_CACHE_DIR "$UV_CACHE_DIR" \
++    UV_TOOL_DIR "$UV_TOOL_DIR" \
++    UV_TOOL_BIN_DIR "$UV_TOOL_BIN_DIR" \
++    UV_PYTHON_BIN_DIR "$UV_PYTHON_BIN_DIR" > "$ENV_FILE"
++  CREATING_KERNEL=false
++  [ -z "$BACKUP" ] || rm -rf -- "$BACKUP"
++fi
++
+ log "OK  python=$PY_PATH"
+ log "OK  kernel=$KERNEL_PYTHON (ipykernel present)"
+diff --git a/.agro/scripts/verify-sandbox-image.sh b/.agro/scripts/verify-sandbox-image.sh
+index 40488e32..96aea798 100755
+--- a/.agro/scripts/verify-sandbox-image.sh
++++ b/.agro/scripts/verify-sandbox-image.sh
+@@ -1,9 +1,4 @@
+ #!/usr/bin/env bash
+-# Verify a built sandbox image: base distribution, apt suites, the sandbox
+-# UID/GID contract, the Node/pnpm pins, and version output from every baked-in
+-# tool; that no catalog entry the CLI can install is baked into it; and that
+-# every kind:"baked-in" tool actually is.
+-# Usage: verify-sandbox-image.sh <image-ref>
+ 
+ set -euo pipefail
+ 
+@@ -83,9 +78,6 @@ else
+   fail "agro --version ('$agro_version') and oh --version ('$oh_version') must be the same non-empty version"
+ fi
+ 
+-# Under emulation `docker run` prefixes its output with a platform-mismatch
+-# warning on stderr. Drop it so the reported line is the tool's own version,
+-# not the runner's complaint about the architecture.
+ first_real_line() {
+   grep -vE "^WARNING: The requested image's platform" | grep -m1 -E '[^[:space:]]' || true
+ }
+@@ -108,13 +100,24 @@ for tool in "gh --version" "docker --version" "docker compose version" \
+   fi
+ done
+ 
+-# The image must ship no entry that carries an installArgv: every harness, and
+-# every kind:"installable" tool. Each one is installed into /home/sandbox/.local
+-# through `oh harness install` / `oh tool install`, and a copy baked into a
+-# system path shadows that install with one no running sandbox can upgrade. The
+-# catalogs inside the image are the source of truth, so this cannot drift from
+-# the TypeScript. Tools that are kind:"baked-in" carry no installArgv and are
+-# checked by the inverse below instead.
++if python_out=$(docker run --rm --network none --entrypoint /bin/bash "$IMAGE" -c '
++  set -euo pipefail
++  cp -a /opt/home-seed/. /home/sandbox/
++  exec gosu sandbox env -i HOME=/home/sandbox USER=sandbox UV_OFFLINE=1 \
++    PATH=/home/sandbox/.local/bin:/usr/local/bin:/usr/bin:/bin \
++    bash --noprofile --norc -c '\''
++      set -euo pipefail
++      bash /opt/agro-seed/.agro/scripts/provision-python.sh --verify
++      python -c "import sys; assert sys.version_info[:2] == (3, 13)"
++      python3 -c "import sys; assert sys.version_info[:2] == (3, 13)"
++      /home/sandbox/.local/share/oh/kernel/bin/python -c "import sys, ipykernel; assert sys.version_info[:2] == (3, 13)"
++    '\''
++' 2>&1); then
++  ok "seeded sandbox defaults and kernel use Python 3.13 (ipykernel present)"
++else
++  fail "seeded sandbox Python verification failed: $python_out"
++fi
++
+ check_nothing_baked() {
+   local noun="$1" cmd="$2" filter="$3" json ids baked
+ 
+@@ -144,8 +147,6 @@ else
+   fail "jq is required to read the image's harness and tool catalogs"
+ fi
+ 
+-# The inverse for tools: a kind:"baked-in" tool must actually be present, or the
+-# check above is passing because the image is simply missing everything.
+ if command -v jq >/dev/null 2>&1; then
+   if baked_json=$(run "cd /opt/agro-seed && OH_EXECUTION_TARGET=local oh tool list --json" 2>/dev/null); then
+     absent=$(jq -r '.[] | select(.kind == "baked-in" and .installed != true) | .id' <<<"$baked_json")
+diff --git a/.devcontainer/Dockerfile b/.devcontainer/Dockerfile
+index 64b30051..ea4c7f3b 100644
+--- a/.devcontainer/Dockerfile
++++ b/.devcontainer/Dockerfile
+@@ -70,6 +70,7 @@ RUN userdel -r node 2>/dev/null || true \
+ ENV UV_TOOL_DIR=/home/sandbox/.local/share/uv/tools
+ ENV UV_TOOL_BIN_DIR=/home/sandbox/.local/bin
+ ENV UV_PYTHON_INSTALL_DIR=/home/sandbox/.local/share/uv/python
++ENV UV_PYTHON_BIN_DIR=/home/sandbox/.local/bin
+ ENV UV_CACHE_DIR=/home/sandbox/.cache/uv
+ 
+ FROM base AS home
+@@ -115,7 +116,7 @@ RUN cat /tmp/path-env.sh >> /home/sandbox/.profile \
+ 
+ COPY --chown=sandbox:sandbox .agro/scripts/provision-python.sh /tmp/provision-python.sh
+ ARG INSTALL_PYTHON_KERNEL=true
+-ARG OH_PYTHON_VERSION=3.11
++ARG OH_PYTHON_VERSION=3.13
+ RUN if [ "${INSTALL_PYTHON_KERNEL}" = "true" ]; then \
+       su - sandbox -c "OH_PYTHON_VERSION='${OH_PYTHON_VERSION}' bash /tmp/provision-python.sh"; \
+     else \

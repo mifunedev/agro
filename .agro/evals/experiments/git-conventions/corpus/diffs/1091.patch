@@ -1,0 +1,142 @@
+diff --git a/.agro/cli/src/__tests__/harness-catalog.test.ts b/.agro/cli/src/__tests__/harness-catalog.test.ts
+index a1b22e93..4ddda074 100644
+--- a/.agro/cli/src/__tests__/harness-catalog.test.ts
++++ b/.agro/cli/src/__tests__/harness-catalog.test.ts
+@@ -105,15 +105,29 @@ describe("harness catalog", () => {
+       }
+     });
+ 
+-    it("names a bypass-permissions flag for claude-code and leaves it off elsewhere", () => {
++    it("names a bypass-permissions flag for claude-code and antigravity-cli and leaves it off elsewhere", () => {
+       const byId = new Map(HARNESS_CATALOG.map((h) => [h.id, h]));
+       expect(byId.get("claude-code")!.bypassPermissionsFlag).toBe("--permission-mode bypassPermissions");
++      expect(byId.get("antigravity-cli")!.bypassPermissionsFlag).toBe("--dangerously-skip-permissions");
+       expect(byId.get("codex")!.bypassPermissionsFlag).toBeUndefined();
+       expect(harnessLaunchCommand(byId.get("claude-code")!)).toBe(
+         "claude --permission-mode bypassPermissions",
+       );
++      expect(harnessLaunchCommand(byId.get("antigravity-cli")!)).toBe(
++        "agy --dangerously-skip-permissions",
++      );
+       expect(harnessLaunchCommand(byId.get("codex")!)).toBe("codex");
+     });
++
++    it("ships antigravity-cli zero-confirmation defaults in the image, entrypoint, and zshrc", () => {
++      expect(DOCKERFILE).toContain("alias agy='agy --dangerously-skip-permissions'");
++      expect(DOCKERFILE).toContain('{"defaultPermissionMode": "bypassPermissions"}');
++      expect(ENTRYPOINT).toContain("/home/sandbox/.gemini/antigravity-cli/settings.json");
++      expect(ENTRYPOINT).toContain('{"defaultPermissionMode": "bypassPermissions"}');
++      expect(read(".agro/install/.zshrc")).toContain(
++        "alias agy='agy --dangerously-skip-permissions'",
++      );
++    });
+   });
+ 
+   // #908: the INSTALL_* build args are gone. The catalog no longer mirrors the
+diff --git a/.agro/cli/src/lib/harnesses/catalog.ts b/.agro/cli/src/lib/harnesses/catalog.ts
+index 4854992b..478f260c 100644
+--- a/.agro/cli/src/lib/harnesses/catalog.ts
++++ b/.agro/cli/src/lib/harnesses/catalog.ts
+@@ -152,6 +152,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
+     uninstallArgv: ["rm", "-rf", `${HARNESS_PREFIX_TOKEN}/bin/agy`],
+     docsPath: "docs/harnesses/antigravity-cli.md",
+     kind: "installable",
++    bypassPermissionsFlag: "--dangerously-skip-permissions",
+   },
+   {
+     id: "t3code",
+diff --git a/.agro/install/.zshrc b/.agro/install/.zshrc
+index 14aa2ff4..885dee4f 100644
+--- a/.agro/install/.zshrc
++++ b/.agro/install/.zshrc
+@@ -29,6 +29,7 @@ bindkey -e
+ 
+ alias claude='claude --dangerously-skip-permissions'
+ alias codex='codex --dangerously-bypass-approvals-and-sandbox'
++alias agy='agy --dangerously-skip-permissions'
+ 
+ cd ~/harness 2>/dev/null
+ 
+diff --git a/.devcontainer/Dockerfile b/.devcontainer/Dockerfile
+index e62b8bf5..f02394cf 100644
+--- a/.devcontainer/Dockerfile
++++ b/.devcontainer/Dockerfile
+@@ -99,7 +99,12 @@ RUN printf '%s\n' \
+  && chown sandbox:sandbox /home/sandbox/.profile /home/sandbox/.zprofile
+ 
+ RUN echo "alias claude='claude --dangerously-skip-permissions'" >> /home/sandbox/.bashrc \
+- && echo "alias codex='codex --dangerously-bypass-approvals-and-sandbox'" >> /home/sandbox/.bashrc
++ && echo "alias codex='codex --dangerously-bypass-approvals-and-sandbox'" >> /home/sandbox/.bashrc \
++ && echo "alias agy='agy --dangerously-skip-permissions'" >> /home/sandbox/.bashrc
++
++RUN mkdir -p /home/sandbox/.gemini/antigravity-cli \
++ && echo '{"defaultPermissionMode": "bypassPermissions"}' > /home/sandbox/.gemini/antigravity-cli/settings.json \
++ && chown -R sandbox:sandbox /home/sandbox/.gemini
+ 
+ RUN su - sandbox -c "git config --global --add safe.directory ${OH_PROJECT_ROOT}"
+ 
+diff --git a/.devcontainer/entrypoint.sh b/.devcontainer/entrypoint.sh
+index 33c386ea..a3cc7270 100644
+--- a/.devcontainer/entrypoint.sh
++++ b/.devcontainer/entrypoint.sh
+@@ -73,6 +73,12 @@ repair_home_mount_ownership() {
+   if [ -d /home/sandbox/.ssh ]; then
+     chmod 700 /home/sandbox/.ssh 2>/dev/null || true
+   fi
++
++  if [ ! -f /home/sandbox/.gemini/antigravity-cli/settings.json ]; then
++    install -d -o sandbox -g sandbox /home/sandbox/.gemini/antigravity-cli
++    echo '{"defaultPermissionMode": "bypassPermissions"}' > /home/sandbox/.gemini/antigravity-cli/settings.json
++    chown -h "$owner" /home/sandbox/.gemini/antigravity-cli/settings.json 2>/dev/null || true
++  fi
+ }
+ 
+ # >>> seed_home >>>
+diff --git a/docs/harnesses/antigravity-cli.md b/docs/harnesses/antigravity-cli.md
+index ac8974ef..936609ea 100644
+--- a/docs/harnesses/antigravity-cli.md
++++ b/docs/harnesses/antigravity-cli.md
+@@ -95,6 +95,22 @@ A headless run reads the cached credentials. An unauthenticated headless run ret
+ 
+ Run interactive sessions in Herdr so the terminal survives a disconnect.
+ 
++## Permissions and zero-confirmation mode
++
++In AGRO, Docker is the isolation boundary. Antigravity CLI runs in zero-confirmation mode by default inside the sandbox:
++
++- The sandbox shell alias defines `alias agy='agy --dangerously-skip-permissions'`.
++- `agro harness install antigravity-cli` outputs the launch line with `--dangerously-skip-permissions`.
++- Sandbox provisioning pre-seeds `~/.gemini/antigravity-cli/settings.json` with:
++
++```json
++{
++  "defaultPermissionMode": "bypassPermissions"
++}
++```
++
++This allows unattended tasks and cron jobs to operate without interactive prompt blocks.
++
+ ## Execution modes
+ 
+ `--mode` accepts three values:
+diff --git a/docs/installation.md b/docs/installation.md
+index f72149ee..2d910920 100644
+--- a/docs/installation.md
++++ b/docs/installation.md
+@@ -222,7 +222,7 @@ system path is unwritable from a running sandbox. Consequences worth knowing:
+ | Hermes | `hermes` | Nous Research's self-improving agent CLI | `agro harness install hermes` |
+ | [Muse Code](harnesses/muse-code.md) | `muse` | Meta's native terminal coding agent | `agro harness install muse-code` |
+ | Grok Build | `grok` | xAI's proprietary Grok Build CLI (`@xai-official/grok@0.2.39`, Node >=20) | `agro harness install grok-build` |
+-| [Antigravity CLI](harnesses/antigravity-cli.md) | `agy` | Google's terminal coding agent, installed from `https://antigravity.google/cli/install.sh` | `agro harness install antigravity-cli` |
++| [Antigravity CLI](harnesses/antigravity-cli.md) | `agy` | Google's terminal coding agent, installed from `https://antigravity.google/cli/install.sh` (aliased to `agy --dangerously-skip-permissions`) | `agro harness install antigravity-cli` |
+ | T3 Code | `npx t3` | Browser UI over Claude/Codex/OpenCode | on demand, no install |
+ 
+ Tools follow the same rule. `herdr`, `cloudflared`, `agent-browser`, and
+@@ -319,6 +319,7 @@ The sandbox user's `.bashrc` includes convenience aliases:
+ ```
+ claude  → claude --dangerously-skip-permissions
+ codex   → codex --dangerously-bypass-approvals-and-sandbox
++agy     → agy --dangerously-skip-permissions
+ ```
+ 
+ ### Persistent storage

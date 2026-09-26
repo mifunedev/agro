@@ -1,0 +1,117 @@
+diff --git a/.pi/extensions/__tests__/settings.test.ts b/.pi/extensions/__tests__/settings.test.ts
+index b157ad91..0e81f5c1 100644
+--- a/.pi/extensions/__tests__/settings.test.ts
++++ b/.pi/extensions/__tests__/settings.test.ts
+@@ -7,6 +7,7 @@ interface PiSettings {
+ }
+ 
+ const RETIRED_PACKAGE_NAME = "pi-dynamic-workflows";
++const RETIRED_PACKAGE_NAMES = [RETIRED_PACKAGE_NAME, "pi-recap"];
+ 
+ function readPiSettings(): PiSettings {
+   return JSON.parse(readFileSync(".pi/settings.json", "utf8")) as PiSettings;
+@@ -28,7 +29,6 @@ describe("project Pi settings", () => {
+       "npm:@tintinweb/pi-tasks@0.7.0",
+       "npm:@narumitw/pi-goal@0.4.2",
+       "npm:@narumitw/pi-codex-usage@0.6.2",
+-      "npm:@tifan/pi-recap@0.4.2",
+       "npm:@trevonistrevon/pi-loop@0.5.5",
+       "npm:@guwidoe/pi-prompt-suggester@0.3.10",
+       "npm:@ff-labs/pi-fff@0.9.5",
+@@ -49,13 +49,18 @@ describe("project Pi settings", () => {
+       RETIRED_PACKAGE_NAME,
+     );
+     expect(packageIdentity("npm:Pi-Dynamic-Workflows@1.0.1")).toBe(RETIRED_PACKAGE_NAME);
++    expect(packageIdentity("npm:@tintinweb/pi-tasks@0.7.0")).toBe("pi-tasks");
++    expect(packageIdentity("git:github.com/tifandotme/pi-recap@v1")).toBe("pi-recap");
+     expect(packageIdentity("npm:@tintinweb/pi-subagents@0.12.0")).toBe("pi-subagents");
+     expect(packageIdentity("npm:cc-safety-net@1.0.6")).toBe("cc-safety-net");
+   });
+ 
+-  it("excludes the retired dynamic workflow package from every source", () => {
++  it("excludes retired packages regardless of source or version", () => {
+     const settings = readPiSettings();
++    const identities = (settings.packages ?? []).map(packageIdentity);
+ 
+-    expect((settings.packages ?? []).map(packageIdentity)).not.toContain(RETIRED_PACKAGE_NAME);
++    for (const retired of RETIRED_PACKAGE_NAMES) {
++      expect(identities).not.toContain(retired);
++    }
+   });
+ });
+diff --git a/.pi/settings.json b/.pi/settings.json
+index 64afca76..36ee404e 100644
+--- a/.pi/settings.json
++++ b/.pi/settings.json
+@@ -19,7 +19,6 @@
+     "npm:@tintinweb/pi-tasks@0.7.0",
+     "npm:@narumitw/pi-goal@0.4.2",
+     "npm:@narumitw/pi-codex-usage@0.6.2",
+-    "npm:@tifan/pi-recap@0.4.2",
+     "npm:@trevonistrevon/pi-loop@0.5.5",
+     "npm:@guwidoe/pi-prompt-suggester@0.3.10",
+     "npm:@ff-labs/pi-fff@0.9.5",
+diff --git a/docs/harnesses/pi.md b/docs/harnesses/pi.md
+index 28edd411..d99e858c 100644
+--- a/docs/harnesses/pi.md
++++ b/docs/harnesses/pi.md
+@@ -39,7 +39,6 @@ AGRO loads these project-local Pi packages from `.pi/settings.json`:
+ - [`@tintinweb/pi-tasks`](https://github.com/tintinweb/pi-tasks) — task tracking for Pi with `TaskCreate`, `TaskList`, `TaskGet`, `TaskUpdate`, `TaskOutput`, `TaskStop`, and `TaskExecute` tools; a `/tasks` menu; and a persistent task widget. `TaskExecute` integrates with `@tintinweb/pi-subagents` so tracked tasks can run through configured subagents.
+ - [`@narumitw/pi-goal`](https://pi.dev/packages/@narumitw/pi-goal?name=goal) — `/goal <task>` mode that keeps Pi working until it verifies completion and calls the `goal_complete` tool. Use `/goal pause`, `/goal resume`, or `/goal clear` to manage the active goal.
+ - [`@narumitw/pi-codex-usage`](https://github.com/narumiruna/pi-extensions/tree/main/extensions/pi-codex-usage) — `/codex-status` plus a compact `openai-codex` statusline for 5-hour session usage and weekly usage. AGRO pins `0.6.2`, which includes the upstream stale-`ExtensionContext` statusline timer fix that prevents crashes after Pi replaces an extension context.
+-- [`@tifan/pi-recap`](https://github.com/tifandotme/pi-extensions/tree/master/packages/pi-recap) — one-line session recaps for re-entry. Use `/recap` for a fresh goal-first recap, `/recap status` to inspect freshness/model state, and `/recap config` to choose the recap model. The package also generates one idle recap after five minutes and refreshes stale/missing recaps on resume.
+ - [`@trevonistrevon/pi-loop`](https://pi.dev/packages/@trevonistrevon/pi-loop?name=monitor) — Monitor and loop tools for background command monitoring and scheduled re-wakes. Use `MonitorCreate`, `MonitorList`, and `MonitorStop` for long-running commands; use `/loop` or `LoopCreate` for cron/event-triggered follow-up prompts.
+ - [`@guwidoe/pi-prompt-suggester`](https://github.com/guwidoe/pi-prompt-suggester) — intent-aware next-prompt suggestions after assistant completions. Suggestions can appear as ghost text in the editor, with `/suggesterSettings` for interactive configuration and `/suggester status` / `/suggester reseed` for inspection and manual reseeding.
+ 
+@@ -61,7 +60,7 @@ holds no `baseUrl` field, so Pi reads the endpoint from the environment.
+ 
+ The installed `@earendil-works/pi-ai` Codex Responses provider can reuse WebSocket cached continuation state by sending `previous_response_id`. If the upstream Codex backend forgets that response id, it returns `previous_response_not_found`; Pi clears the stale continuation but the failed user turn would otherwise be lost. AGRO keeps a small auto-loaded `.pi/extensions/codex-stale-response-retry.ts` extension that re-injects non-Slack failed turns once via `sendUserMessage(..., { deliverAs: "followUp" })`, causing the next request to start from fresh/full context. Slack-prefixed turns remain owned by the dedicated `.pi/bridge-recovery/` extension that is co-loaded with `pi-messenger-bridge`.
+ 
+-Outside this project, try the packages manually with `pi -e npm:@narumitw/pi-goal`, `pi -e npm:@narumitw/pi-codex-usage@0.6.2`, `pi -e npm:@tifan/pi-recap`, `pi -e npm:@trevonistrevon/pi-loop`, or `pi -e npm:@guwidoe/pi-prompt-suggester@0.3.10`.
++Outside this project, try the packages manually with `pi -e npm:@narumitw/pi-goal`, `pi -e npm:@narumitw/pi-codex-usage@0.6.2`, `pi -e npm:@trevonistrevon/pi-loop`, or `pi -e npm:@guwidoe/pi-prompt-suggester@0.3.10`.
+ 
+ ## Prompt suggestions
+ 
+@@ -101,21 +100,6 @@ LoopDelete id="1"
+ 
+ The package keeps a compact status line when loops, monitors, or native fallback tasks are active. AGRO leaves `PI_LOOP_SCOPE` unset, which means `session` scope: loop state is stored under `.pi/loops/loops-<sessionId>.json` and stays isolated across concurrent sessions and worktree agents. `.pi/loops/` is gitignored. Set `PI_LOOP_SCOPE=memory` for disposable no-disk state, `PI_LOOP_SCOPE=project` only when intentionally sharing loops across sessions, or `PI_LOOP=off` to disable the package store.
+ 
+-## Recap
+-
+-Use `/recap` when re-entering a long Pi session without rereading the transcript. The recap is goal-first: it summarizes why the session exists, current state, decisions, relevant files or commands, and the likely next action.
+-
+-```text
+-/recap
+-/recap status
+-/recap config
+-/recap help
+-```
+-
+-`pi-recap` waits five idle minutes after each agent response and generates one automatic recap if you stay away. On resume, it shows the saved recap when current or regenerates it when stale/missing. The visible recap clears when you send a normal non-`/recap` message.
+-
+-Recap model selection is user-level state, not repository state. `/recap config` writes the user's selected model outside LLM context; the same setting can be edited manually at `~/.config/pi/extensions/pi-recap.json`. The upstream default is `openai-codex/gpt-5.6-luna`.
+-
+ ## Codex usage status
+ 
+ Use `/codex-status` to show ChatGPT Codex subscription usage without leaving Pi. AGRO enables `@narumitw/pi-codex-usage@0.6.2` by default; this fixed pin includes the upstream stale-`ExtensionContext` statusline timer cleanup, preventing timer callbacks from crashing after Pi replaces the extension context:
+@@ -138,6 +122,8 @@ The default task runtime state lives under `.pi/tasks/`, which is gitignored. Le
+ 
+ `pi-loop` detects `@tintinweb/pi-tasks` over Pi's event bus. Because AGRO loads `pi-tasks` by default, `pi-loop` delegates task management to that package; its native fallback `TaskCreate`/`TaskList`/`TaskUpdate`/`TaskDelete` tools and `/tasks` command only register in projects where `pi-tasks` is absent.
+ 
++Removing the project recap package declaration does not delete existing runtime state or cached installations. A running Pi session retains `pi-recap` until you reload or restart the session. Personal package declarations and explicit `pi -e` arguments can still load `pi-recap`.
++
+ ## Dynamic workflow retirement
+ 
+ AGRO no longer pins a dynamic workflow package, so a new Pi session registers no `workflow` tool. Use `/delegate` for bounded delegation over the Pi `Agent` tools.
+diff --git a/docs/installation.md b/docs/installation.md
+index 856b79f1..2ed2e7d2 100644
+--- a/docs/installation.md
++++ b/docs/installation.md
+@@ -181,7 +181,6 @@ Pi loads project-local packages from `.pi/settings.json`. The defaults include:
+ - `@tintinweb/pi-tasks`
+ - `@narumitw/pi-goal`
+ - `@narumitw/pi-codex-usage@0.6.2` for `/codex-status` plus fixed statusline usage timers
+-- `@tifan/pi-recap` for `/recap` plus automatic idle/resume session summaries
+ - `@trevonistrevon/pi-loop` for Monitor/Loop tools
+ - `@guwidoe/pi-prompt-suggester` for next-prompt suggestions
+ 
