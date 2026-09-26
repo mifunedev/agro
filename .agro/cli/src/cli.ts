@@ -360,8 +360,8 @@ Usage:
 
 \`install\` and \`uninstall\` act on the running sandbox. When no sandbox is
 reachable they act on the host. A host install needs an existing AGRO workspace
-and creates none — run \`${bin} workspace create <name>\` first. The default root is
-the workspace registry entry \`~/.agro/workspaces/default\`. \`--workspace <name>\`
+and creates none — run \`${bin} workspace create\` first. The fallback root is
+the workspace registry entry \`~/.agro/workspaces/harness\`. \`--workspace <name>\`
 chooses another entry and \`--path <dir>\` a directory outside the registry. A
 successful install records the root as \`harnessRoot\` in \`~/.agro/config.json\`. The
 install prefix is always \`~/.local\`.
@@ -392,8 +392,8 @@ Usage:
 
 A host workspace is an AGRO checkout under \`~/.agro/workspaces/<name>\`. \`create\`
 clones ${AGRO_REPO_URL} into that entry, and reuses an existing checkout. The
-default name is \`default\`. \`--path <dir>\` creates the workspace outside the
-registry instead.
+implicit name is \`harness\`. Pass \`default\` to create that named workspace.
+\`--path <dir>\` creates the workspace outside the registry instead.
 
 \`create\` records no default. A host install selects its root with
 \`${bin} harness install <harness> --workspace <name>\`, and that install records the
@@ -464,8 +464,8 @@ only on these tools:
 ${hostCapableToolIds().map((t) => `  ${t}`).join("\n")}
 
 A host install needs an existing AGRO workspace — \`--path <dir>\`, then
-\`harnessRoot\` in \`~/.agro/config.json\`, then \`~/.agro/workspaces/default\`. It creates
-no workspace: run \`${bin} workspace create <name>\` first. It installs into
+\`harnessRoot\` in \`~/.agro/config.json\`, then \`~/.agro/workspaces/harness\`. It creates
+no workspace: run \`${bin} workspace create\` first. It installs into
 \`~/.local\` and records the install as \`hostTools\` in that same file. On the host,
 \`uninstall\` removes only what \`install\` recorded, from the prefix in that record.
 Without a record it refuses, and \`--force\` overrides.

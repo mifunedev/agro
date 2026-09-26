@@ -56,4 +56,7 @@ dry=$(ESCALATE_LOG="$log" ESCALATE_BRIDGE_CONFIG="$tmp/bridge.json" PI_SLACK_BOT
 grep -Fq 'Authorization: Bearer %s' "$S" || fail 'token must be passed via a header file, not argv'
 grep -Eq '\-H "Authorization: Bearer \$' "$S" && fail 'token interpolated into argv where /proc exposes it'
 
-echo 'PASS: escalate no-ops loudly on an unavailable channel and records every attempt' >&2
+bash "$ROOT/.agro/skills/escalate/scripts/test-escalate-decision.sh" \
+  || fail 'operator decision and manifest contract failed'
+
+echo 'PASS: escalate delivery and operator decisions' >&2

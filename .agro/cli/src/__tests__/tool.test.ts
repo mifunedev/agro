@@ -90,7 +90,7 @@ function hostConfigFile(dir: string): string {
 }
 
 function defaultRoot(home: { dir: string }): string {
-  return join(home.dir, "workspaces", "default");
+  return join(home.dir, "workspaces", "harness");
 }
 
 function seedWorkspace(path: string): string {

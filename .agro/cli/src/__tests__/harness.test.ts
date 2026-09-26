@@ -69,7 +69,7 @@ function hostConfigFile(dir: string): string {
 }
 
 function defaultRoot(home: { dir: string }): string {
-  return join(home.dir, "workspaces", "default");
+  return join(home.dir, "workspaces", "harness");
 }
 
 function workspace(home: { dir: string }, name: string): string {
@@ -671,7 +671,7 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
       ),
     ).toBe(0);
     expect(gitCalls(calls)).toEqual([]);
-    expect(readConfig(home.dir).harnessRoot).toBe(join(home.dir, "workspaces", "default"));
+    expect(readConfig(home.dir).harnessRoot).toBe(defaultRoot(home));
     expect(readConfig(home.dir).harnessRoot).not.toBe(home.dir);
     expect(text(out)).toContain(`host workspace ${defaultRoot(home)}`);
   });
@@ -1497,7 +1497,7 @@ describe("parseHarnessArgs host flags", () => {
     expect(help).toContain("--host");
     expect(help).toContain("--path <dir>");
     expect(help).toContain("--workspace <name>");
-    expect(help).toContain("~/.agro/workspaces/default");
+    expect(help).toContain("~/.agro/workspaces/harness");
     expect(help).toContain("~/.agro/config.json");
     expect(help).toContain("harnessRoot");
     expect(help).not.toMatch(/It requires a running\nsandbox/);

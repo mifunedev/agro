@@ -38,12 +38,83 @@ Slack.
 1. Go to [api.slack.com/apps](https://api.slack.com/apps) and click
    **Create New App**.
 2. Choose **From an app manifest**.
-3. Select your workspace and paste the contents of
-   `.pi/install/slack-manifest.json` from this repo. The manifest enables
-   **Socket Mode**, declares the bridge admin slash commands, and requests the
-   bot scopes the bridge needs.
+3. Select your workspace and paste the YAML below into the Slack app manifest
+   UI. The manifest enables **Socket Mode** and declares the bridge admin slash commands.
+   The manifest requests the bot scopes the bridge needs.
 4. Click through the confirmation screens and then **Install to Workspace**.
 5. Approve the requested OAuth scopes.
+
+`.pi/install/slack-manifest.yaml` is the canonical manifest. Copy this entire
+YAML block for step 3:
+
+```yaml
+display_information:
+  name: AGRO
+  description: AI coding agent interface for AGRO sandboxes
+  background_color: "#1a1a2e"
+features:
+  app_home:
+    home_tab_enabled: false
+    messages_tab_enabled: true
+    messages_tab_read_only_enabled: false
+  bot_user:
+    display_name: agro
+    always_online: true
+  slash_commands:
+    - command: /help
+      description: "DM only: AGRO bridge admin help"
+      should_escape: false
+    - command: /trusted
+      description: "DM only: List trusted AGRO bridge users"
+      should_escape: false
+    - command: /revoke
+      description: "DM only: Revoke trust for an AGRO bridge user"
+      usage_hint: <userId>
+      should_escape: false
+    - command: /channels
+      description: "DM only: List AGRO bridge-enabled chats"
+      should_escape: false
+    - command: /enable
+      description: "DM only: Enable the AGRO bridge in a chat"
+      usage_hint: <chatId> <all|mentions|trusted-only>
+      should_escape: false
+    - command: /disable
+      description: "DM only: Disable the AGRO bridge in a chat"
+      usage_hint: <chatId>
+      should_escape: false
+    - command: /toggletools
+      description: "DM only: Toggle AGRO bridge tool-call visibility"
+      should_escape: false
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read
+      - channels:history
+      - channels:read
+      - chat:write
+      - commands
+      - files:read
+      - files:write
+      - groups:history
+      - groups:read
+      - im:history
+      - im:read
+      - im:write
+      - reactions:read
+      - users:read
+settings:
+  event_subscriptions:
+    bot_events:
+      - app_mention
+      - message.channels
+      - message.groups
+      - message.im
+  interactivity:
+    is_enabled: false
+  org_deploy_enabled: false
+  socket_mode_enabled: true
+  token_rotation_enabled: false
+```
 
 ## 3. Capture Tokens
 
@@ -63,7 +134,7 @@ Keep both values ready for the next step.
 Three layers. **Tokens** go in `.devcontainer/.env` (§ 4.1). The **Pi
 session command surface is the bridge's own `/msg-bridge` command** (§ 4.2):
 use it for connection/status/configuration inside `client-slack-pi`. The
-**Slack app manifest** in `.pi/install/slack-manifest.json` declares the admin
+**Slack app manifest** in `.pi/install/slack-manifest.yaml` declares the admin
 slash commands so Slack can show and route them (§ 6). Runtime trust/channel
 state persists in `~/.pi/msg-bridge.json`; the tracked `.pi/msg-bridge.json` is
 only an optional pre-seed for headless setups (§ 4.2).
@@ -106,7 +177,7 @@ README lists `/msg-bridge ...` under `## Commands`, then lists `/trusted`,
 `/channels`, `/enable`, `/disable`, `/revoke`, `/toggletools`, and `/help` in a
 separate "Admin commands (in DM with the bot)" section. The package source also
 registers only `msg-bridge` as a Pi command. AGRO additionally declares
-those admin commands in `.pi/install/slack-manifest.json` and pins the bridge
+those admin commands in `.pi/install/slack-manifest.yaml` and pins the bridge
 fork branch that handles Slack slash-command payloads by forwarding them to the
 same `handleAdminCommand` path as trusted DM text (§ 6). Auth/channel changes
 persist to `~/.pi/msg-bridge.json` (owned and rewritten by the package);
@@ -190,7 +261,7 @@ no recovery hook, so the process keeps running while the bridge silently stops
 responding. The supervisor tails the log for that stale-ctx signature (and
 catches any non-zero crash), kills the bridge pi, clears the single-instance
 lock (`~/.pi/msg-bridge.lock`), and relaunches a fresh process that reconnects
-— look for the `[Slack] Bot user ID:` connect marker (§ 7) again after a
+— look for the `[Slack] Bot user ID:` connect marker (§ 8) again after a
 restart. A clean pi exit (`rc=0`) stops the loop. The manual relaunch below is
 only needed to pick up config edits, not to recover from stale-ctx.
 
@@ -298,7 +369,7 @@ message event:
 | `/help` | Show the bridge's admin help |
 
 If you created the Slack app before this manifest declared admin slash
-commands, update/recreate the app from `.pi/install/slack-manifest.json` so
+commands, update/recreate the app from `.pi/install/slack-manifest.yaml` so
 Slack can show them in autocomplete and route command payloads to the bridge.
 If a command still does not arrive, use the supported inspection/configuration
 fallbacks:
@@ -314,7 +385,40 @@ For headless setups, pre-seed `auth.trustedUsers` and `auth.channels` in
 `/msg-bridge status` inside `gateway pi --attach` for connection state;
 `/msg-bridge status` is not a Slack admin command.
 
-## 7. Smoke Test
+## 7. Read an operator decision
+
+Create a separate Slack app from `.pi/install/slack-manifest.yaml` on each host.
+Give each host its own app-level and bot tokens. Install the app in the workspace
+and invite its bot to the escalation channel. Update an existing app from the
+YAML manifest and reinstall it when you add scopes.
+
+The bot needs `commands` for the seven bridge slash commands and
+`reactions:read` for decisions. The bot needs `channels:history`, `groups:history`,
+and `im:history` to read replies in public channels, private channels, and DMs.
+The manifest subscribes to `message.channels`, `message.groups`, and
+`message.im` events for bridge messages. The decision reader uses Slack Web API
+calls; the reader does not require an event handler.
+
+Set `ESCALATE_OPERATOR_SLACK_ID` to the operator's exact Slack member ID (for
+example, `U01ABCD2345`). If unset, the reader uses the first `slack:U…` entry
+in `~/.pi/msg-bridge.json` under `auth.trustedUsers`. Keep that first entry
+assigned to the operator. Trust for other users does not authorize decisions.
+The reader resolves `PI_SLACK_BOT_TOKEN` from its environment, then
+`.devcontainer/.env`, then `.slack.botToken` in the bridge config.
+
+Run the command once with the `channel` and `ts` returned by `escalate.sh`:
+
+```bash
+bash .agro/skills/escalate/scripts/escalate-decision.sh --channel C123 --ts 1757630000.000100
+```
+
+The command prints `approve`, `reject`, or `none`. Only the operator's
+`white_check_mark` or `x` reaction and a thread reply starting with `approve`
+or `reject` count. A reject wins. A missing operator ID or a Slack API error
+exits 2; do not interpret it as `none`. The caller owns its state and invokes
+the command when the caller is ready to check. Do not poll Slack.
+
+## 8. Smoke Test
 
 Run these checks in order. The first runs in the shell where you sourced the
 env (before attaching to tmux).
@@ -346,18 +450,18 @@ env (before attaching to tmux).
    should see the inbound event logged and the agent's reply posted back to
    Slack.
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | Bot stays silent; you've never authenticated | Deny-by-default — your Slack user isn't trusted yet | DM the bot plain text, read the 6-digit code from `tmux attach -r -t client-slack-pi`, reply with it in Slack — or pre-authorize your user ID in `.pi/msg-bridge.json` (§ 4.2) |
-| `/help` or `/trusted` is not visible in Slack autocomplete | The Slack app was created before `.pi/install/slack-manifest.json` declared admin slash commands, or the app manifest was not updated | Update/recreate the Slack app from `.pi/install/slack-manifest.json`, then `gateway pi --restart`; use `gateway status`, `tmux capture-pane -t client-slack-pi -p`, and `jq '.auth' ~/.pi/msg-bridge.json` to inspect runtime state |
+| `/help` or `/trusted` is not visible in Slack autocomplete | The Slack app was created before `.pi/install/slack-manifest.yaml` declared admin slash commands, or the app manifest was not updated | Update/recreate the Slack app from `.pi/install/slack-manifest.yaml`, then `gateway pi --restart`; use `gateway status`, `tmux capture-pane -t client-slack-pi -p`, and `jq '.auth' ~/.pi/msg-bridge.json` to inspect runtime state |
 | `invalid_auth` / `not_authed` in the log | `xapp-` and `xoxb-` tokens are swapped | `PI_SLACK_APP_TOKEN` must be the `xapp-` token; `PI_SLACK_BOT_TOKEN` must be the `xoxb-` token — correct `.devcontainer/.env` and relaunch |
 | Bridge won't start after an unclean exit | Stale lock file `~/.pi/msg-bridge.lock` left behind | `rm ~/.pi/msg-bridge.lock`, then relaunch the `client-slack-pi` session |
 | Bot connected (`[Slack] Bot user ID:` logged) but never replies | `autoConnect` not set in `.pi/msg-bridge.json` — the bridge stays idle | Set `"autoConnect": true` (§ 4.2) and relaunch |
 | Bot is trusted but channel messages ignored | Bot is not a member of the channel | In Slack, type `/invite @AGRO` in the target channel |
 
-## 9. Architecture Pointer
+## 10. Architecture Pointer
 
 The Slack capability is the **pi-messenger-bridge** npm package. The harness
 installs it via npm into a gitignored `.pi/bridge/` directory and loads it via

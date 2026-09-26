@@ -5,4 +5,4 @@ auto-loaded as Pi extensions.
 
 | File | Purpose |
 | --- | --- |
-| `slack-manifest.json` | Slack application manifest used by the Pi messenger bridge setup, including Socket Mode event subscriptions and admin slash command declarations. |
+| `slack-manifest.yaml` | Slack application manifest used by the Pi messenger bridge setup, including Socket Mode event subscriptions and admin slash command declarations. |
