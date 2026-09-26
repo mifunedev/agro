@@ -9,7 +9,7 @@ export const HOST_CONFIG_FILE = "config.json";
 
 export const WORKSPACES_SUBDIR = "workspaces";
 
-export const DEFAULT_WORKSPACE_NAME = "default";
+export const DEFAULT_WORKSPACE_NAME = "harness";
 
 export interface HostHarnessReceipt {
   prefix: string;

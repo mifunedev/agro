@@ -297,9 +297,9 @@ no `herdr` until you run `agro tool install herdr`. Each install lands in
 `~/.local` in the persistent home volume; `agro destroy` removes it.
 
 `agro harness install <id>` also installs on the host. When the sandbox is not
-running it clones the AGRO workspace into the harness root — `--workspace <name>` or
+running it uses an existing AGRO workspace as the harness root — `--workspace <name>` or
 `--path <dir>`, then `harnessRoot` in `~/.agro/config.json`, then the registry entry
-`~/.agro/workspaces/default` — and installs the harness
+`~/.agro/workspaces/harness` — and installs the harness
 into `~/.local` for the invoking user. The install prefix is never derived from
 the harness root, so the clone stays clean. A non-interactive run needs `--host`
 or `--path`; without either it keeps the refusal. See
@@ -341,10 +341,11 @@ harness on the host reads: `AGENTS.md`, `.agro/skills/`, the hooks, and task
 state. `agro workspace` is the only verb that creates one.
 
 ```bash
-agro workspace create                     # clone into ~/.agro/workspaces/default
+agro workspace create                     # clone into ~/.agro/workspaces/harness
+agro workspace create default             # clone into ~/.agro/workspaces/default
 agro workspace create acme                # clone into ~/.agro/workspaces/acme
 agro workspace create --path /srv/agro    # clone into /srv/agro, outside the registry
-agro workspace create --ref v0.15.0       # clone tag v0.15.0 into ~/.agro/workspaces/default
+agro workspace create --ref v0.15.0       # clone tag v0.15.0 into ~/.agro/workspaces/harness
 agro workspace list                       # every workspace, with the default marked
 agro workspace list --json                # the same rows as JSON
 ```
@@ -352,9 +353,10 @@ agro workspace list --json                # the same rows as JSON
 - `agro workspace create [<name>]` clones
   `https://github.com/mifunedev/agro.git` into the target directory. The command
   reuses a target that already holds a `.git` checkout, and clones nothing.
-- The default name is `default`. The name becomes a path segment, so it obeys the
-  sandbox name rule: lowercase letters, digits and dashes, starting with a letter
-  or a digit. The command refuses any other name and creates nothing.
+- The implicit name is `harness`. Pass `default` to create a workspace named
+  `default`. The name becomes a path segment, so it obeys the sandbox name rule:
+  lowercase letters, digits and dashes, starting with a letter or a digit. The
+  command refuses any other name and creates nothing.
 - `--path <dir>` creates the workspace outside the registry. Pass a name or
   `--path <dir>`, never both.
 - `--ref <ref>` clones the branch or tag `<ref>` instead of the default branch.

@@ -37,11 +37,11 @@ The host path uses two distinct locations.
 
 | Location | What it holds | How you choose it |
 |---|---|---|
-| Harness root | An existing AGRO workspace, which carries the control plane | `--workspace <name>` or `--path <dir>`, else the recorded `harnessRoot`, else `~/.agro/workspaces/default` |
+| Harness root | An existing AGRO workspace, which carries the control plane | `--workspace <name>` or `--path <dir>`, else the recorded `harnessRoot`, else `~/.agro/workspaces/harness` |
 | Install prefix | The harness binaries, at `<prefix>/bin` | Always `~/.local` for the invoking user |
 
-The command creates no workspace. Create one first with
-`agro workspace create <name>` — see
+The command creates no workspace. Create the implicit workspace first with
+`agro workspace create`, or create a named workspace with `agro workspace create <name>` — see
 [Lifecycle commands → Host workspaces](../lifecycle-commands.md#host-workspaces-agro-workspace).
 When the resolved harness root holds no git checkout, the command exits 1. The
 refusal lists every workspace that exists and names `agro workspace create`.
@@ -52,7 +52,8 @@ per-user prefix. If `~/.local/bin` is not on your `PATH`, the command prints the
 `export PATH` line to add.
 
 ```bash
-agro workspace create acme                          # create the workspace first
+agro workspace create                               # create the implicit harness workspace
+agro workspace create acme                          # create a named workspace first
 agro harness install claude-code --workspace acme   # install from ~/.agro/workspaces/acme
 agro harness install claude-code --host             # install from the resolved default root
 agro harness install claude-code --path /srv/agro   # install from /srv/agro, outside the registry
@@ -79,7 +80,7 @@ Harness root precedence:
 
 1. `--workspace <name>` or `--path <dir>` — pass one, not both
 2. `harnessRoot` in `~/.agro/config.json`
-3. `~/.agro/workspaces/default`
+3. `~/.agro/workspaces/harness`
 
 Each candidate must already hold a git checkout. The command clones nothing.
 
