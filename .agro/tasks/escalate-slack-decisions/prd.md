@@ -34,14 +34,14 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] The tracked Slack manifest declares seven bridge slash commands, `commands`, `reactions:read`, required history scopes, and message events.
+- [ ] The canonical YAML manifest and its complete guide copy declare seven bridge slash commands, `commands`, `reactions:read`, history scopes, and message events.
 - [ ] The Slack guide states that each host needs its own Slack app and explains operator identity, scopes, and the decision command.
 - [ ] The escalate skill explains decision interpretation and error handling without instructing sessions to poll.
 - [ ] A deterministic manifest check and the repository validation commands pass.
 
 ## Summary
 
-`escalate.sh` sends messages to Slack but has no decision reader. The tracked manifest already declares seven commands, message events, and most required scopes. Add one stateless decision command. Use the Slack operator member ID, not the bot token or shared GitHub identity, as the authorization boundary.
+`escalate.sh` sends messages to Slack but has no decision reader. The tracked YAML manifest already declares seven commands, message events, and most required scopes. Add one stateless decision command. Use the Slack operator member ID, not the bot token or shared GitHub identity, as the authorization boundary.
 
 ## Key Integration Points
 
@@ -49,7 +49,7 @@ Status: DRAFT
 |---|---|---|
 | `.agro/skills/escalate/scripts/escalate.sh` | `slack_api` | Send and return message timestamp. |
 | `.agro/skills/escalate/scripts/escalate-decision.sh` | command | Read reactions and thread replies. |
-| `.pi/install/slack-manifest.json` | `oauth_config` | Declare bot permissions. |
+| `.pi/install/slack-manifest.yaml` | `oauth_config` | Declare bot permissions. |
 | `docs/integrations/slack.md` | setup | Explain app and host setup. |
 
 ## Interface Integration Points
@@ -103,4 +103,5 @@ None.
 
 ## Lessons
 
-Filled after implementation.
+- Claim: The canonical Slack manifest is YAML, not JSON. Evidence: `.pi/install/slack-manifest.yaml` and its complete copy in `docs/integrations/slack.md` existed on the target branch. Outcome: fixed in this PR by adding `commands` to both copies and checking that they match.
+- Claim: A missing Slack identity or API error cannot authorize unattended work. Evidence: the stub HTTP test checks exit 2 for both cases. Outcome: fixed in this PR.

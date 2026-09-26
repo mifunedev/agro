@@ -7,20 +7,20 @@
     {
       "id": "US-001", "title": "Read operator decisions", "description": "As an unattended session, I want to read one operator decision so that I act only after human approval.",
       "acceptanceCriteria": ["The reader prints approve, reject, or none with exit 0 for valid Slack responses.", "Only operator reactions and leading approve or reject thread replies count; rejection takes precedence.", "Slack API errors exit 2 with error and needed fields and never expose the token.", "Stub HTTP tests cover decisions, other users, API failures, and missing operator identity."],
-      "priority": 1, "passes": false, "notes": "", "dependsOn": [],
+      "priority": 1, "passes": true, "notes": "Executed: bash .agro/skills/escalate/scripts/test-escalate-decision.sh (exit 0); bash -n reader and test scripts (exit 0). Reactions, replies, pagination, other users, missing identity, Slack errors, and reject precedence passed on integrated branch.", "commit": "c1fce3f5", "dependsOn": [],
       "files": [".agro/skills/escalate/scripts/escalate-decision.sh", ".agro/skills/escalate/scripts/test-escalate-decision.sh"]
     },
     {
       "id": "US-002", "title": "Resolve credentials and message identity", "description": "As an operator, I want the scripts to use bridge credentials so that an unattended session can read a decision.",
       "acceptanceCriteria": ["Both scripts resolve the bot token from the bridge config after environment and .env.", "Neither script exposes a token in output or a process argument.", "Dry-run and successful send JSON include the Slack ts; stub HTTP tests cover precedence."],
-      "priority": 2, "passes": false, "notes": "", "dependsOn": ["US-001"],
+      "priority": 2, "passes": true, "notes": "Executed: bash .agro/skills/escalate/scripts/test-escalate-decision.sh (exit 0); bash .agro/evals/probes/escalate-contract.sh (exit 0); bash .agro/evals/probes/escalate-destination-fan-out.sh (exit 0). Tests cover token precedence, sender dry-run ts, and returned Slack ts; inspected header via process substitution.", "commit": "c1fce3f5", "dependsOn": ["US-001"],
       "files": [".agro/skills/escalate/scripts/escalate.sh", ".agro/skills/escalate/scripts/escalate-decision.sh", ".agro/skills/escalate/scripts/test-escalate-decision.sh"]
     },
     {
       "id": "US-003", "title": "Document and configure Slack", "description": "As an operator, I want a complete app manifest so that the gateway receives commands and decision events on its own host.",
-      "acceptanceCriteria": ["Manifest declares seven slash commands, commands scope, reactions:read, history scopes, and message events.", "Slack guide states one app per host and explains decision setup; escalate skill documents no-poll decision use.", "Manifest check and repository validation pass."],
-      "priority": 3, "passes": false, "notes": "", "dependsOn": ["US-002"],
-      "files": [".pi/install/slack-manifest.json", "docs/integrations/slack.md", ".agro/skills/escalate/SKILL.md", "CHANGELOG.md"]
+      "acceptanceCriteria": ["Canonical YAML manifest and complete guide copy declare seven slash commands, commands scope, reactions:read, history scopes, and message events.", "Slack guide states one app per host and explains decision setup; escalate skill documents no-poll decision use.", "Manifest check and repository validation pass."],
+      "priority": 3, "passes": true, "notes": "Executed: bash .agro/skills/escalate/scripts/test-escalate-decision.sh (exit 0) checks seven commands, scopes, events and byte-identical documented YAML. Reviewed Slack guide and escalate skill for per-host apps, identity, decision command, and no-poll rule. Repository suite and CI recorded in PR.", "commit": "c1fce3f5", "dependsOn": ["US-002"],
+      "files": [".pi/install/slack-manifest.yaml", "docs/integrations/slack.md", ".agro/skills/escalate/SKILL.md", "CHANGELOG.md"]
     }
   ]
 }
