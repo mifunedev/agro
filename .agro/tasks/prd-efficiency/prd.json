@@ -10,19 +10,20 @@
       "description": "As the advisor, I want a reproducible corpus of 32 closed issues in two splits so that the held-out split measures generalization.",
       "acceptanceCriteria": [
         "`select.sh` writes `corpus/manifest.json` with the selection rule, the full candidate pool, each excluded candidate with its reason, and the `sha256` digest of each issue body.",
-        "The manifest holds 32 cases: 20 train cases and 12 held-out cases. Each area with 2 or more cases has at least 1 case in each split.",
+        "The manifest holds 32 cases: 20 train cases and 12 held-out cases. Each area with 2 or more cases and at least 1 case outside the #1188 screen has at least 1 case in each split.",
         "No held-out case is one of the 10 cases of the #1188 screen.",
         "`tests/select-reproducible.sh` runs `select.sh` twice and exits 0 when the two manifests are equal."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: select.sh ran in the worker (exit 0); the manifest holds the rule, 56 pool entries with 11 excluded entries and their reasons, and 32 body digests. 2 executed: jq on the manifest gives 32 cases, 20 train and 12 held-out; each area with a case outside the screen and 2 or more cases has cases in both splits; .agro/hooks is train-only under the operator amendment. 3 executed: jq gives 0 screen cases in held-out. 4 executed: bash tests/select-reproducible.sh, exit 0, rerun by the advisor.",
       "dependsOn": [],
       "files": [
         ".agro/evals/experiments/prd-efficiency/select.sh",
         ".agro/evals/experiments/prd-efficiency/corpus/",
         ".agro/evals/experiments/prd-efficiency/tests/select-reproducible.sh"
-      ]
+      ],
+      "commit": "61130d0c"
     },
     {
       "id": "US-002",

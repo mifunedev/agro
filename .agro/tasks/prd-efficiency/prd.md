@@ -15,7 +15,7 @@ Issue: #1197. Branch: `task/1197-prd-efficiency`.
 **Acceptance Criteria:**
 
 - [ ] `select.sh` writes `corpus/manifest.json` with the selection rule, the full candidate pool, each excluded candidate with its reason, and the `sha256` digest of each issue body.
-- [ ] The manifest holds 32 cases: 20 train cases and 12 held-out cases. Each area with 2 or more cases has at least 1 case in each split.
+- [ ] The manifest holds 32 cases: 20 train cases and 12 held-out cases. Each area with 2 or more cases and at least 1 case outside the #1188 screen has at least 1 case in each split.
 - [ ] No held-out case is one of the 10 cases of the #1188 screen.
 - [ ] `tests/select-reproducible.sh` runs `select.sh` twice and exits 0 when the two manifests are equal.
 
@@ -133,7 +133,7 @@ Verified current state:
 - The #1188 screen ran `/prd` on 10 issues: mean 16.6 turns, 122 s, and $0.90 for each plan. Each trace has one tool call in each turn. Cost follows turns: 11 turns cost $0.63, and 22 turns cost $1.19.
 - The #1188 episodes ran in worktrees of this repository. The #1143 episode read `origin/experiment/minimal-core` and ran `git ls-remote`. The #1188 numbers are therefore evidence of headroom, not a baseline. This experiment runs a fresh baseline in the isolated repository of #1190.
 - The #1188 pool held 28 issues with a plan in the task folder. Only 24 of these issues pass the exclusions. A wider rule is necessary for 32 cases.
-- 68 pull requests merged into `development` after `f94c1ad5`, the commit that introduced the `.agro/` layout. 55 of these pull requests close an issue, have `ste-check.sh` at the parent, do not change `.agro/skills/prd/`, and are not an experiment issue or an archive branch.
+- The US-001 pool holds 56 pull requests merged into `development` after `f94c1ad5`, the commit that introduced the `.agro/` layout. 45 of these pull requests pass the exclusions.
 - The SkillOpt adapter scores `hard` as a pass rate and reflects on failures only (`failure_only: true`). The adapter was tested with a fake `claude` only.
 
 Selected approach: a new experiment folder `.agro/evals/experiments/prd-efficiency/`. The folder reuses the frozen scripts by path with digest pins. The primary metric is the held-out paired mean cost ratio. The adapter turns efficiency into the binary `hard` score of SkillOpt, so the existing gate and failure reflection work without a change to SkillOpt.
@@ -196,6 +196,8 @@ The new folder `.agro/evals/experiments/prd-efficiency/` holds each tracked arti
     - The hard cap is $300.
     - The substance floor is 0.70 of the baseline median. The advisor reviews the value after the noise screen.
     - The advisor decides the adoption of a winning candidate after the verdict. A change to `SKILL.md` on `development` goes through `/builder`.
+
+11. **Amendment (2026-09-26, operator):** the area `.agro/hooks` has 2 cases, #1150 and #1155. Both cases are #1188 screen cases, so both stay in the train split. The US-001 split rule counts only the areas with a case outside the screen.
 
 ## Test Plan (TDD)
 
