@@ -10,7 +10,7 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] `.agro/tasks/skillopt-ste/corpus/` holds 60 source documents: 15 documents in each family F1 to F4.
+- [ ] `.agro/evals/experiments/skillopt-ste/corpus/` holds 60 source documents: 15 documents in each family F1 to F4.
 - [ ] `corpus/manifest.json` records the family, the split, the origin, and the `sha256` digest of each source document.
 - [ ] `jq -e '[.documents[] | select(.split == "train")] | length == 30' corpus/manifest.json` exits 0.
 - [ ] `jq -e '[.documents[] | select(.split == "heldout")] | length == 30' corpus/manifest.json` exits 0.
@@ -19,6 +19,7 @@ Status: DRAFT
 - [ ] No source document comes from `.agro/skills/ste/`.
 - [ ] Each family holds exactly 2 seeded-gap documents. Each seeded gap is a number, a duration, or a path that the corpus build removed from the original text. `manifest.json` records each seeded gap.
 - [ ] `select.sh` rebuilds `manifest.json` byte for byte from the pinned origins.
+- [ ] The surface table in `.agro/evals/README.md` lists `experiments/`.
 
 ### US-002: Build the episode verifier
 
@@ -134,7 +135,7 @@ Selected approach: rewrite one source document for each episode, then score the 
 | `.agro/skills/ste/references/` | `rules.md`, `dictionary.md`, `examples.md` | Skill references; frozen |
 | `.agro/evals/probes/ste-checker-contract.sh` | probe | Regression floor for the frozen candidate |
 | `.claude/skills` | symlink to `.agro/skills` | Native load path for each episode |
-| `.agro/tasks/skillopt-ste/` | `corpus/`, `verify.sh`, `run-episode.sh`, `run-batch.sh`, `runs/`, `experiment.json`, `results.md` | Experiment inputs, scripts, and evidence |
+| `.agro/evals/experiments/skillopt-ste/` | `corpus/`, `verify.sh`, `run-episode.sh`, `run-batch.sh`, `runs/`, `experiment.json`, `results.md` | Experiment inputs, scripts, and evidence |
 
 ## Interface Integration Points
 
@@ -146,12 +147,11 @@ Selected approach: rewrite one source document for each episode, then score the 
 
 ## Storage
 
-Git tracks each experiment file under `.agro/tasks/skillopt-ste/`.
+Git tracks each experiment file under `.agro/evals/experiments/skillopt-ste/`. The task folder `.agro/tasks/skillopt-ste/` holds only `prd.md` and `prd.json`, as `.gitignore` requires.
 
 - `runs/<run-id>/episodes.jsonl` holds one JSON line for each attempt. `run-batch.sh` appends lines and never rewrites them.
 - `runs/<run-id>/outputs/<document-id>-<arm>-<repeat>.md` holds each rewrite output.
-- `runs/<run-id>/traces/<episode-id>.jsonl.gz` holds each `claude -p --output-format stream-json` transcript.
-- When the trace files of one run exceed 50 MB, the advisor keeps the traces out of git, records the external location in `episodes.jsonl`, and records the gap in `results.md`.
+- Git does not track the transcripts. `run-episode.sh` writes each `claude -p --output-format stream-json` transcript to `${XDG_STATE_HOME:-$HOME/.local/state}/agro/skillopt-ste/traces/<episode-id>.jsonl.gz`. The `trace` field of each episode line records that path and the `sha256` digest of the transcript.
 
 ## Architectural Decisions
 
@@ -193,10 +193,10 @@ Execution location: each command runs in the sandbox. Each episode runs in its o
 
 | Test File | Case(s) | Validates |
 |---|---|---|
-| `.agro/tasks/skillopt-ste/tests/verify-faults.sh` | six fault fixtures from US-002 | Each check fails on its intended fault |
-| `.agro/tasks/skillopt-ste/tests/verify-faults.sh` | one clean fixture | `pass` is `true` on a correct rewrite |
-| `.agro/tasks/skillopt-ste/tests/select-reproducible.sh` | rebuild `manifest.json` twice | The corpus build is deterministic |
-| `.agro/tasks/skillopt-ste/tests/pin-check.sh` | change one pinned file digest | Each runner exits non-zero on a digest mismatch |
+| `.agro/evals/experiments/skillopt-ste/tests/verify-faults.sh` | six fault fixtures from US-002 | Each check fails on its intended fault |
+| `.agro/evals/experiments/skillopt-ste/tests/verify-faults.sh` | one clean fixture | `pass` is `true` on a correct rewrite |
+| `.agro/evals/experiments/skillopt-ste/tests/select-reproducible.sh` | rebuild `manifest.json` twice | The corpus build is deterministic |
+| `.agro/evals/experiments/skillopt-ste/tests/pin-check.sh` | change one pinned file digest | Each runner exits non-zero on a digest mismatch |
 | `.agro/evals/probes/ste-checker-contract.sh` | existing probe | The frozen candidate keeps the checker contract |
 
 ## Design Principles

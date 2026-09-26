@@ -9,7 +9,7 @@
       "title": "Freeze the rewrite corpus",
       "description": "As the advisor, I want a fixed corpus in four families so that both arms see the same inputs.",
       "acceptanceCriteria": [
-        "`.agro/tasks/skillopt-ste/corpus/` holds 60 source documents: 15 documents in each family F1 to F4.",
+        "`.agro/evals/experiments/skillopt-ste/corpus/` holds 60 source documents: 15 documents in each family F1 to F4.",
         "`corpus/manifest.json` records the family, the split, the origin, and the `sha256` digest of each source document.",
         "`jq -e '[.documents[] | select(.split == \"train\")] | length == 30' corpus/manifest.json` exits 0.",
         "`jq -e '[.documents[] | select(.split == \"heldout\")] | length == 30' corpus/manifest.json` exits 0.",
@@ -17,16 +17,18 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh <source>` exits 1 for each of the 60 source documents.",
         "No source document comes from `.agro/skills/ste/`.",
         "Each family holds exactly 2 seeded-gap documents. Each seeded gap is a number, a duration, or a path that the corpus build removed from the original text. `manifest.json` records each seeded gap.",
-        "`select.sh` rebuilds `manifest.json` byte for byte from the pinned origins."
+        "`select.sh` rebuilds `manifest.json` byte for byte from the pinned origins.",
+        "The surface table in `.agro/evals/README.md` lists `experiments/`."
       ],
       "priority": 1,
       "passes": false,
       "notes": "",
       "dependsOn": [],
       "files": [
-        ".agro/tasks/skillopt-ste/corpus/",
-        ".agro/tasks/skillopt-ste/select.sh",
-        ".agro/tasks/skillopt-ste/tests/select-reproducible.sh"
+        ".agro/evals/experiments/skillopt-ste/corpus/",
+        ".agro/evals/experiments/skillopt-ste/select.sh",
+        ".agro/evals/experiments/skillopt-ste/tests/select-reproducible.sh",
+        ".agro/evals/README.md"
       ]
     },
     {
@@ -50,8 +52,8 @@
         "US-001"
       ],
       "files": [
-        ".agro/tasks/skillopt-ste/verify.sh",
-        ".agro/tasks/skillopt-ste/tests/verify-faults.sh"
+        ".agro/evals/experiments/skillopt-ste/verify.sh",
+        ".agro/evals/experiments/skillopt-ste/tests/verify-faults.sh"
       ]
     },
     {
@@ -72,8 +74,8 @@
         "US-002"
       ],
       "files": [
-        ".agro/tasks/skillopt-ste/experiment.json",
-        ".agro/tasks/skillopt-ste/tests/pin-check.sh"
+        ".agro/evals/experiments/skillopt-ste/experiment.json",
+        ".agro/evals/experiments/skillopt-ste/tests/pin-check.sh"
       ]
     },
     {
@@ -95,8 +97,8 @@
         "US-003"
       ],
       "files": [
-        ".agro/tasks/skillopt-ste/run-episode.sh",
-        ".agro/tasks/skillopt-ste/run-batch.sh"
+        ".agro/evals/experiments/skillopt-ste/run-episode.sh",
+        ".agro/evals/experiments/skillopt-ste/run-batch.sh"
       ]
     },
     {
@@ -116,7 +118,7 @@
         "US-004"
       ],
       "files": [
-        ".agro/tasks/skillopt-ste/runs/baseline-train/"
+        ".agro/evals/experiments/skillopt-ste/runs/baseline-train/"
       ]
     },
     {
@@ -140,8 +142,8 @@
         "US-005"
       ],
       "files": [
-        ".agro/tasks/skillopt-ste/skillopt.md",
-        ".agro/tasks/skillopt-ste/runs/optimize/",
+        ".agro/evals/experiments/skillopt-ste/skillopt.md",
+        ".agro/evals/experiments/skillopt-ste/runs/optimize/",
         ".agro/skills/ste/SKILL.md"
       ]
     },
@@ -163,7 +165,7 @@
         "US-006"
       ],
       "files": [
-        ".agro/tasks/skillopt-ste/runs/heldout/"
+        ".agro/evals/experiments/skillopt-ste/runs/heldout/"
       ]
     },
     {
@@ -184,7 +186,7 @@
         "US-007"
       ],
       "files": [
-        ".agro/tasks/skillopt-ste/results.md"
+        ".agro/evals/experiments/skillopt-ste/results.md"
       ]
     }
   ]
