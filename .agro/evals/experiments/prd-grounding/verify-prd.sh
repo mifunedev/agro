@@ -309,6 +309,16 @@ sub declared_new {
 }
 
 my %materialized;
+sub ensure_dir {
+  my ($abs) = @_;
+  my $root = "$work/ignore";
+  my $cur = $root;
+  for my $seg (split m{/}, substr($abs, length($root) + 1)) {
+    $cur .= "/$seg";
+    unlink $cur if -f $cur;
+  }
+  make_path($abs) unless -d $abs;
+}
 sub ignored_paths {
   my (@paths) = @_;
   return {} unless @paths;
@@ -318,10 +328,10 @@ sub ignored_paths {
     my $abs = "$work/ignore/$bare";
     if (!$materialized{$bare}++) {
       if ($p =~ m{/$}) {
-        make_path($abs) unless -e $abs;
+        ensure_dir($abs);
       } else {
         (my $parent = $abs) =~ s{/[^/]+$}{};
-        make_path($parent) unless -d $parent;
+        ensure_dir($parent);
         if (!-e $abs) { open my $t, ">", $abs or die "touch $abs: $!"; close $t; }
       }
     }

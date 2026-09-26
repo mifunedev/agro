@@ -48,7 +48,7 @@
     "otherwise": "screen the PR-body and commit conventions of /git next"
   },
   "pins": {
-    "verify_prd_sh": "6e2a2a0e648f22f4d0694234f125ed25c6af76f5973e4228ab12d52880485f79",
+    "verify_prd_sh": "2724c466131215993dd45fcde1e8a6f347f1410968cd01ec752c757cb5addddd",
     "corpus_manifest": "ba43430b715f625232dd080ec59e4b25224897766b8f94e02efb968132ef0e56",
     "prd_skill_tree": "915108d3c0fc3d0319e3b39072e49da6f84965ae"
   },
@@ -56,6 +56,10 @@
     {
       "date": "2026-09-26",
       "change": "verifier fix A after episode 1181: the checklist rule declares a path new only when the path opens the checklist line and the next word is exists, holds, records, or contains. Stored outputs are rescored with summarize.sh --rescore."
+    },
+    {
+      "date": "2026-09-26",
+      "change": "verifier fix B after episode 1076: g2 materializes a directory where an earlier token made a file, so a plan that names both .agents/skills/council and .agents/skills/council/SKILL.md no longer crashes verify-prd.sh (exit 17). The stored 1076 output is rescored; the episode is not rerun."
     }
   ]
 }

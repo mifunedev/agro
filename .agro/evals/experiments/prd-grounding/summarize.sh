@@ -34,7 +34,9 @@ if [ "$rescore" -eq 1 ]; then
     out="$(jq -r '.plan.output // empty' <<<"$line")"
     if [ -n "$out" ]; then
       v="$(bash "$EXP_DIR/verify-prd.sh" "$EXP_DIR/$out" "$(jq -r '.revision' <<<"$line")" "$(jq -r '.document_id' <<<"$line")")"
-      line="$(jq -c --argjson v "$v" '.verifier = $v | .pass = $v.pass' <<<"$line")"
+      line="$(jq -c --argjson v "$v" '.verifier = $v | .pass = $v.pass
+        | if .status == "infra_failure" and ((.error // "") | startswith("verify-prd.sh exited"))
+          then .rescored_from = {status, error} | .status = "ok" | .error = null else . end' <<<"$line")"
     fi
     rescored="$(jq -c --argjson l "$line" '. + [$l]' <<<"$rescored")"
   done < <(jq -c '.[]' <<<"$last")

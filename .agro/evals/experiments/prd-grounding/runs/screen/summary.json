@@ -1,0 +1,159 @@
+{
+  "run_id": "screen",
+  "rescored": true,
+  "cases": 10,
+  "scored": 10,
+  "passed": 8,
+  "pass_rate": 0.8,
+  "check_rates": {
+    "g1_paths": 1,
+    "g2_trackable": 0.8,
+    "g3_commands": 1,
+    "g4_structure": 1
+  },
+  "status_counts": {
+    "infra_failure": 1,
+    "ok": 9
+  },
+  "attempts": 10,
+  "total_cost_usd": 9,
+  "mean_turns": 16.6,
+  "mean_elapsed_s": 122,
+  "decision": "no-headroom-screen-git-next",
+  "per_case": [
+    {
+      "issue": 1042,
+      "revision": "f94c1ad5",
+      "family": ".agro/cli",
+      "status": "ok",
+      "pass": true,
+      "failed_checks": [],
+      "cost_usd": 1.19,
+      "turns": 22,
+      "elapsed_s": 163,
+      "ran_ste_check": true,
+      "other_changes": 0
+    },
+    {
+      "issue": 1054,
+      "revision": "d341ebc3",
+      "family": "docs",
+      "status": "ok",
+      "pass": false,
+      "failed_checks": [
+        "g2_trackable"
+      ],
+      "cost_usd": 0.63,
+      "turns": 11,
+      "elapsed_s": 90,
+      "ran_ste_check": true,
+      "other_changes": 0
+    },
+    {
+      "issue": 1076,
+      "revision": "1317f352",
+      "family": ".agro/skills",
+      "status": "ok",
+      "pass": false,
+      "failed_checks": [
+        "g2_trackable"
+      ],
+      "cost_usd": 0.87,
+      "turns": 18,
+      "elapsed_s": 110,
+      "ran_ste_check": true,
+      "other_changes": 0
+    },
+    {
+      "issue": 1080,
+      "revision": "f14840b9",
+      "family": ".agro/cli",
+      "status": "ok",
+      "pass": true,
+      "failed_checks": [],
+      "cost_usd": 0.89,
+      "turns": 15,
+      "elapsed_s": 119,
+      "ran_ste_check": true,
+      "other_changes": 0
+    },
+    {
+      "issue": 1086,
+      "revision": "cf35b316",
+      "family": ".agro/cli",
+      "status": "ok",
+      "pass": true,
+      "failed_checks": [],
+      "cost_usd": 1.05,
+      "turns": 19,
+      "elapsed_s": 129,
+      "ran_ste_check": true,
+      "other_changes": 0
+    },
+    {
+      "issue": 1143,
+      "revision": "76d594e4",
+      "family": ".agro/scripts",
+      "status": "ok",
+      "pass": true,
+      "failed_checks": [],
+      "cost_usd": 0.82,
+      "turns": 13,
+      "elapsed_s": 104,
+      "ran_ste_check": true,
+      "other_changes": 0
+    },
+    {
+      "issue": 1149,
+      "revision": "93b009d0",
+      "family": ".agro/skills",
+      "status": "ok",
+      "pass": true,
+      "failed_checks": [],
+      "cost_usd": 0.85,
+      "turns": 18,
+      "elapsed_s": 120,
+      "ran_ste_check": true,
+      "other_changes": 0
+    },
+    {
+      "issue": 1150,
+      "revision": "90707bd2",
+      "family": ".agro/hooks",
+      "status": "ok",
+      "pass": true,
+      "failed_checks": [],
+      "cost_usd": 0.9,
+      "turns": 18,
+      "elapsed_s": 131,
+      "ran_ste_check": true,
+      "other_changes": 0
+    },
+    {
+      "issue": 1155,
+      "revision": "27edb569",
+      "family": ".agro/hooks",
+      "status": "ok",
+      "pass": true,
+      "failed_checks": [],
+      "cost_usd": 0.94,
+      "turns": 19,
+      "elapsed_s": 159,
+      "ran_ste_check": true,
+      "other_changes": 0
+    },
+    {
+      "issue": 1181,
+      "revision": "7219977d",
+      "family": ".agro/skills",
+      "status": "ok",
+      "pass": true,
+      "failed_checks": [],
+      "cost_usd": 0.84,
+      "turns": 13,
+      "elapsed_s": 96,
+      "ran_ste_check": true,
+      "other_changes": 0
+    }
+  ]
+}
