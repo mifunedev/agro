@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1210-verify-prd-lexical-positives",
+  "description": "Fix the verify-prd.sh lexical rules that fail correct plans: bind each new-word to its object spans, treat negative sentences as declared absent, re-pin the two experiments that pin the verifier, and report the rescore.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Bind the declaration words to their paths",
+      "description": "As an experiment advisor, I want the verifier to fail only real grounding defects so that pass rates measure grounding.",
+      "acceptanceCriteria": [
+        "A new-word declares new only the path spans that follow the new-word as its object: the first span after the word, and each span that a comma, \"and\", or \"or\" joins to that span. Other spans on the line keep their normal checks.",
+        "A path in a negative sentence counts as declared absent. The negative forms are \"no path under\", \"touches no\", \"does not touch\", \"do not touch\", and \"never touches\".",
+        "The fixture from `.agro/evals/experiments/prd-efficiency/runs/noise/outputs/1181-baseline-r3-a1.md` at revision `7219977d2b3a31589dda7ec110db7dc5abe6e7a4` passes `g2_trackable`.",
+        "The fixture from `.agro/evals/experiments/prd-efficiency/runs/baseline-train/outputs/1054-baseline-r1-a2.md` at revision `d341ebc38e28b1d5433844052bd1edb17df51cf7` passes `g1_paths`.",
+        "A fixture line that declares one path new and also names a missing path fails `g1_paths`.",
+        "`bash .agro/evals/experiments/prd-grounding/tests/verify-prd.sh` exits 0, and each earlier fixture keeps its result.",
+        "The `--help` text states the new rules."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/evals/experiments/prd-grounding/verify-prd.sh",
+        ".agro/evals/experiments/prd-grounding/tests/verify-prd.sh",
+        ".agro/evals/experiments/prd-grounding/tests/fixtures/"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Re-pin the experiments and report the rescore",
+      "description": "As the operator, I want each experiment that pins the verifier to record the change so that each result stays traceable.",
+      "acceptanceCriteria": [
+        "`.agro/evals/experiments/prd-grounding/experiment.json` and `.agro/evals/experiments/prd-efficiency/experiment.json` hold the new `pins.verify_prd_sh` digest and one amendment entry that names issue #1210 and the old digest.",
+        "`bash .agro/evals/experiments/prd-grounding/check-pins.sh` and `bash .agro/evals/experiments/prd-efficiency/check-pins.sh` exit 0.",
+        "`bash .agro/evals/experiments/prd-efficiency/tests/pin-check.sh` exits 0.",
+        "A rescore of each stored plan under `.agro/evals/experiments/prd-grounding/runs/` and `.agro/evals/experiments/prd-efficiency/runs/` lists each plan whose result changes, with the old and the new result of each check. The PR body holds the list. No stored `summary.json` or `episodes.jsonl` changes.",
+        "The advisor reviews each changed result, and no change accepts a wrong path."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/evals/experiments/prd-grounding/experiment.json",
+        ".agro/evals/experiments/prd-efficiency/experiment.json"
+      ]
+    }
+  ]
+}
