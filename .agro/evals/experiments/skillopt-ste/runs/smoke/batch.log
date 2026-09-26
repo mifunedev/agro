@@ -1,0 +1,5 @@
+run-batch: run=smoke split=train docs=1 repeats=1 arms=baseline=ae6efba21cb8d6eb9a3dac1165e4fd48484a5c20 jobs=1 started=2026-09-26T06:31:15Z
+canary baseline ae6efba21cb8d6eb9a3dac1165e4fd48484a5c20 ok pass=true
+smoke--F1-04--baseline--r1--a1 ok pass=true elapsed_s=39.385
+summary: attempts=1 ok=1 pass=1 cost_usd=0.29713780000000006
+run-batch: finished=2026-09-26T06:32:00Z

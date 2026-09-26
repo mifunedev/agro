@@ -81,7 +81,7 @@ stale=()
 while read -r f; do
   [[ -n "$f" ]] || continue
   case "$f" in
-    CHANGELOG.md|docs/rfcs/*|.agro/evals/probes/*) continue ;;
+    CHANGELOG.md|docs/rfcs/*|.agro/evals/probes/*|.agro/evals/experiments/*/corpus/*|.agro/evals/experiments/*/archive/*|.agro/evals/experiments/*/runs/*/outputs/*) continue ;;
   esac
   stale+=("$f")
 done < <(git -C "$ROOT" grep -lF 'devcontainer/.example.env' -- . 2>/dev/null || true)

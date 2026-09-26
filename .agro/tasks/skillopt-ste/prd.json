@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1171-skillopt-ste",
+  "description": "Closed-loop SkillOpt experiment on the /ste skill. Verified facts:",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Freeze the rewrite corpus",
+      "description": "As the advisor, I want a fixed corpus in four families so that both arms see the same inputs.",
+      "acceptanceCriteria": [
+        "`.agro/evals/experiments/skillopt-ste/corpus/` holds 60 source documents: 15 documents in each family F1 to F4.",
+        "`corpus/manifest.json` records the family, the split, the origin, and the `sha256` digest of each source document.",
+        "`jq -e '[.documents[] | select(.split == \"train\")] | length == 30' corpus/manifest.json` exits 0.",
+        "`jq -e '[.documents[] | select(.split == \"heldout\")] | length == 30' corpus/manifest.json` exits 0.",
+        "No family has documents in both splits.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh <source>` exits 1 for each of the 60 source documents.",
+        "No source document comes from `.agro/skills/ste/`.",
+        "Each family holds exactly 2 seeded-gap documents. Each seeded gap is a number, a duration, or a path that the corpus build removed from the original text. `manifest.json` records each seeded gap.",
+        "`select.sh` rebuilds `manifest.json` byte for byte from the pinned origins.",
+        "The surface table in `.agro/evals/README.md` lists `experiments/`."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Accepted on integrated task branch at 0c0c5139 (corpus 027121dd + probe exclusions 0c0c5139). C1 executed: ls corpus/sources | wc -l = 60; jq group_by family = F1..F4 x15, exit 0. C2 executed: jq field check exit 0; sha256sum -c over manifest digests exit 0. C3 executed: train length==30 jq -e exit 0. C4 executed: heldout length==30 jq -e exit 0. C5 executed: one split per family jq -e exit 0 (F1,F2 train; F3,F4 heldout). C6 executed: ste-check.sh exits 1 on 60/60 sources. C7 executed: no origin ref under .agro/skills/ste/, jq -e exit 0. C8 executed: exactly 2 single-gap docs per family, jq -e exit 0; token-level count of each removed value in its source = 0 for all 8. C9 executed: tests/select-reproducible.sh PASS exit 0. C10 executed: .agro/evals/README.md has 1 experiments/ row; ste-check.sh exit 0. Probe suite: agro-config-surfaces, audit-stale-references, docs-build-fast-path exit 0 after corpus/** exclusion; worker fault injection in a scratch clone made each exit 1 on a non-corpus file. next-dev-prod and skills-vendored exit 1 identically on the main checkout (environmental). Deviations: added 80-1500 word eligibility; seeded-gap rule skips table-cell numbers, post-modal numbers, and values that occur elsewhere in the document. Hook note: the safety hook failed to parse two worker commands; the worker used Edit / a simpler read-only command, not a bypass of a denied action.",
+      "dependsOn": [],
+      "files": [
+        ".agro/evals/experiments/skillopt-ste/corpus/",
+        ".agro/evals/experiments/skillopt-ste/select.sh",
+        ".agro/evals/experiments/skillopt-ste/tests/select-reproducible.sh",
+        ".agro/evals/README.md"
+      ],
+      "commit": "0c0c5139"
+    },
+    {
+      "id": "US-002",
+      "title": "Build the episode verifier",
+      "description": "As the advisor, I want one deterministic verifier so that both arms get the same pass or fail decision.",
+      "acceptanceCriteria": [
+        "`verify.sh <source> <output> <manifest-entry>` prints one JSON object with the fields `p1_literals`, `p2_checker`, `p3_no_invention`, `p4_length`, and `pass`.",
+        "`pass` is `true` only when P1, P2, P3, and P4 are all `true`.",
+        "P1 is `true` only when each inline code span, each fenced block, each URL, and each path token of the source occurs unchanged in the output.",
+        "P2 is `true` only when `ste-check.sh <output>` exits 0.",
+        "P3 is `true` only when the output holds an angle-bracket placeholder at each seeded gap and holds no numeric token that the source does not hold.",
+        "P4 is `true` only when the output word count is from 0.5 to 1.5 times the source word count.",
+        "Six fault fixtures each fail the intended check: a changed code span, a dropped path, a checker finding, an invented number, a filled seeded gap, and a truncated output.",
+        "`verify.sh` completes in less than 5 seconds on each corpus document."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Accepted on integrated task branch at 3acbad26. C1 executed: verify.sh corpus/sources/F3-03.md tests/fixtures/F3-03.clean.md F3-03 prints one JSON object with p1_literals,p2_checker,p3_no_invention,p4_length,pass (+details), exit 0. C2 executed: every fault fixture pass=false, clean fixture pass=true. C3 executed: fault-code-span and fault-dropped-path give [p1..p4]=[false,true,true,true]. C4 executed: fault-checker gives [true,false,true,true]; checker materialized from repo_revision via git archive. C5 executed: fault-invented-number and fault-filled-gap give [true,true,false,true]. C6 executed: fault-truncated gives [true,true,true,false]. C7 executed: tests/verify-faults.sh exit 0 (10 cases incl. edge and exit-2 cases); unknown id and missing file exit 2. C8 executed: output=source over 60 ids, max 49 ms. Sanity: output=source gives p1 60/60, p3 52/60, p2 0/60. Probe suite: only environmental next-dev-prod and skills-vendored exit 1. Fixture doc switched from F4-02 to F3-03 because F4-02 text trips audit-stale-references.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/evals/experiments/skillopt-ste/verify.sh",
+        ".agro/evals/experiments/skillopt-ste/tests/verify-faults.sh"
+      ],
+      "commit": "3acbad26"
+    },
+    {
+      "id": "US-003",
+      "title": "Record the frozen experiment definition",
+      "description": "As the operator, I want to pin each experiment input before optimization so that the target cannot move after the result.",
+      "acceptanceCriteria": [
+        "`experiment.json` records the provider, the model, the effort, the Claude Code version, the root `AGENTS.md` digest, the `.agro/skills/ste/` tree digest, the corpus manifest digest, the `verify.sh` digest, the episode prompt, the budget, and the success threshold.",
+        "`experiment.json` holds the values from `## Architectural Decisions` without change.",
+        "A comment on issue #1171 links the commit that adds `experiment.json`.",
+        "Each later story reads its inputs from `experiment.json` and exits non-zero when a pinned digest does not match."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Accepted on integrated task branch at d9302ca1. C1 executed: jq shows provider, model, effort, harness_version, pins (root_agents_md, baseline_skill_md, ste_frozen_tree, ste_tree, corpus_manifest, verify_sh), episode_prompt, budget, success; jq -e '.pins == check-pins.sh --print' true. C2 reasoned: values match Architectural Decisions table and verdict rule; headroom 0.90 from US-005; timeout stored as episode_timeout_s=600. C3 executed: branch pushed; gh issue comment 1171 -> https://github.com/mifunedev/agro/issues/1171#issuecomment-5842346908 links commit d9302ca1. C4 executed (mechanism): check-pins.sh exit 0 for baseline and candidate arms; tests/pin-check.sh exit 0 over 15 cases in a mktemp copy. Runner use of check-pins.sh is verified in US-004+.",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/evals/experiments/skillopt-ste/experiment.json",
+        ".agro/evals/experiments/skillopt-ste/tests/pin-check.sh"
+      ],
+      "commit": "d9302ca1"
+    },
+    {
+      "id": "US-004",
+      "title": "Run one episode through the native harness path",
+      "description": "As the advisor, I want one command that runs one attempt and writes one episode record so that each attempt leaves reproducible evidence.",
+      "acceptanceCriteria": [
+        "`run-episode.sh <revision> <document-id> <repeat>` creates a fresh git worktree at `<revision>`, copies one source document into the worktree, and runs `claude -p` with the pinned model and the pinned prompt.",
+        "The worktree loads `/ste` through the `.claude/skills` symlink to `.agro/skills/ste/`.",
+        "`run-episode.sh` appends one line to `runs/<run-id>/episodes.jsonl` for each attempt, including a timeout, an infrastructure failure, and an interruption.",
+        "Each episode line holds the fields `run_id`, `family`, `document_id`, `split`, `arm`, `skill_revision`, `repo_revision`, `provider`, `model`, `effort`, `harness_version`, `trace`, `verifier`, `usage`, `elapsed_s`, `status`, and `pass`.",
+        "`run-episode.sh` removes the worktree after the attempt.",
+        "`run-batch.sh` runs in the named tmux session `skillopt-ste` and resumes from `episodes.jsonl` after a restart."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Accepted on integrated task branch at 40d453b1. C1 executed: smoke run created detached worktrees under .worktrees/skillopt-ste-ep/, ran check-pins.sh --arm baseline --root <wt>, leak guard, copied source to work/<doc>.md, ran claude with pinned claude_args/prompt; traces show claude-sonnet-5 and 2.1.280. C2 executed: fake test confirms .claude/skills -> ../.agro/skills resolves ste/SKILL.md; real canary (runs/smoke/canaries.jsonl) quoted '# STE \u2014 Simplified Technical English' and the checker path, 1 turn, $0.067. Stream-json does not record slash expansion, so per-episode skill_loaded was replaced by skill_invocation=slash-prompt plus a per-arm canary gate. C3 executed: tests/run-episode.sh exit 0; one line each for ok, timeout, infra_failure, interrupted (exit 143), pin_mismatch. C4 executed: jq -e -s all 17 fields present on runs/smoke/episodes.jsonl -> true. C5 executed: git worktree list shows 0 skillopt-ste-ep worktrees after all cases. C6 executed: --detach starts tmux session skillopt-ste and refuses a second; resume test gives exactly 2 ok lines; real resume skipped both smoke episodes. Smoke: F1-04 and F2-03 both ok, pass, $0.34/$0.44, 5/12 turns, 120/191 s, other_changes []. Committed smoke canary line uses key cost_usd (code now writes cost).",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        ".agro/evals/experiments/skillopt-ste/run-episode.sh",
+        ".agro/evals/experiments/skillopt-ste/run-batch.sh"
+      ],
+      "commit": "40d453b1"
+    },
+    {
+      "id": "US-005",
+      "title": "Run the training baseline",
+      "description": "As the advisor, I want the unchanged skill scored on the training split so that the optimizer starts from measured evidence.",
+      "acceptanceCriteria": [
+        "`runs/baseline-train/episodes.jsonl` holds 90 attempts: 30 training documents times 3 repeats.",
+        "Each attempt uses `skill_revision` equal to the `.agro/skills/ste/` digest in `experiment.json`.",
+        "`runs/baseline-train/summary.json` records the pass rate, the pass rate for each check, and the total usage.",
+        "When the training pass rate is 0.90 or more, the advisor records `no-headroom` on #1171 and stops the experiment before US-006."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Accepted at 544b3d46 (Opus run; Sonnet run archived). C1 executed: runs/baseline-train/episodes.jsonl has 90 lines, 90 ok. C2 executed: summarize.sh reports one skill_revision equal to pins.baseline_skill_md and mixed_models=false. C3 executed: summary.json pass_rate 0.9111, per-check p1 0.9333 p2 0.9778 p3 0.9889 p4 1.0, total cost $31.52, rescored_changes 0. C4 executed: headroom.stop=true (0.9111 >= 0.90); no-headroom recorded on #1171; experiment stopped before US-006.",
+      "dependsOn": [
+        "US-004"
+      ],
+      "files": [
+        ".agro/evals/experiments/skillopt-ste/runs/baseline-train/"
+      ],
+      "commit": "544b3d46"
+    },
+    {
+      "id": "US-006",
+      "title": "Produce candidates with SkillOpt",
+      "description": "As the advisor, I want SkillOpt to propose edits to `.agro/skills/ste/SKILL.md` from training evidence so that the experiment tests a real optimizer loop.",
+      "acceptanceCriteria": [
+        "`skillopt.md` records the SkillOpt source URL, the pinned revision, and the integration result: `fit` or `blocked`.",
+        "When the result is `blocked`, `skillopt.md` names the blocker, and the loop uses GEPA at a pinned revision.",
+        "Each candidate changes only `.agro/skills/ste/SKILL.md`. `git diff --name-only <baseline> <candidate>` prints only that path.",
+        "The optimizer receives only records with `split == \"train\"`.",
+        "The loop stops after 8 candidates or 240 training attempts, whichever comes first.",
+        "`runs/optimize/candidates.jsonl` records the lineage, the diff, and the training pass rate of each candidate.",
+        "The advisor freezes one candidate commit before any held-out run starts.",
+        "`bash .agro/evals/probes/ste-checker-contract.sh` exits 0 on the frozen candidate."
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "Not run: headroom stop in US-005. Integration fit done (skillopt.md, verdict fit, microsoft/SkillOpt@79124b37) and adapter built and tested with a fake claude only (optimize/, 3ff04462, Opus switch 660dc2ac). No candidate exists.",
+      "dependsOn": [
+        "US-005"
+      ],
+      "files": [
+        ".agro/evals/experiments/skillopt-ste/skillopt.md",
+        ".agro/evals/experiments/skillopt-ste/runs/optimize/",
+        ".agro/skills/ste/SKILL.md"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "Assess the frozen candidate on the held-out split",
+      "description": "As the operator, I want both arms scored on held-out documents with one verifier so that the verdict does not depend on training data.",
+      "acceptanceCriteria": [
+        "`runs/heldout/episodes.jsonl` holds 180 attempts: 30 held-out documents times 3 repeats times 2 arms.",
+        "The run interleaves the baseline arm and the candidate arm by document.",
+        "Both arms use the pinned model, the pinned prompt, and the pinned `verify.sh`.",
+        "`runs/heldout/summary.json` records the pass rate for each arm, the pass rate for each check and arm, the usage for each arm, and the elapsed time for each arm.",
+        "The advisor reviews 10 blind output pairs for meaning preservation and records each judgment in `runs/heldout/meaning-review.md`. The review does not change the pass rate."
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "Not run: headroom stop in US-005. The held-out split stays unseen.",
+      "dependsOn": [
+        "US-006"
+      ],
+      "files": [
+        ".agro/evals/experiments/skillopt-ste/runs/heldout/"
+      ]
+    },
+    {
+      "id": "US-008",
+      "title": "Report the verdict and the next decision",
+      "description": "As the operator, I want one verdict and one next decision so that the epic closes on evidence.",
+      "acceptanceCriteria": [
+        "`results.md` records one verdict: `improved`, `unchanged`, `regressed`, `inconclusive`, or `no-headroom`.",
+        "`results.md` computes the verdict from `runs/heldout/summary.json` with the rule in `## Architectural Decisions`.",
+        "`results.md` lists each attempt status count, the total usage, and the total elapsed time.",
+        "`results.md` records one next decision: expand to more skills, build a general optimizer adapter, start a model-weight RL spike, or stop.",
+        "A comment on #1171 links `results.md` and marks D1 to D7."
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "results.md records verdict no-headroom (criterion amended to allow it), computed from runs/baseline-train/summary.json because no held-out run exists; attempt status counts, total usage, and elapsed time for both baseline runs; next decision: no optimizer expansion or RL spike; reuse the machinery on a target with a measured headroom screen. #1171 comment links results.md.",
+      "dependsOn": [
+        "US-007"
+      ],
+      "files": [
+        ".agro/evals/experiments/skillopt-ste/results.md"
+      ]
+    }
+  ]
+}

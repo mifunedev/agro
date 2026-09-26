@@ -1,0 +1,481 @@
+{
+  "run_id": "baseline-train",
+  "splits": [
+    "train"
+  ],
+  "lines": {
+    "episodes": 90,
+    "latest": 90,
+    "superseded": 0,
+    "canaries": 1
+  },
+  "rescore": {
+    "verifier_sha256": "a2ce8a849282c3947b01e82f19873fa643eb553cd54cf9e8f8e17e8a9441b5a5",
+    "rescored": 90,
+    "rescored_changes": 0,
+    "changed": [],
+    "missing_outputs": []
+  },
+  "experiment": {
+    "models": [
+      "claude-opus-5-5"
+    ],
+    "mixed_models": false,
+    "efforts": [
+      "medium"
+    ],
+    "harness_versions": [
+      "2.1.280"
+    ],
+    "repo_revisions": [
+      "ae6efba21cb8d6eb9a3dac1165e4fd48484a5c20"
+    ],
+    "skill_revisions": {
+      "baseline": [
+        "cfd05180d828bf176336eca0c9d586826bad2967b4c353f5785e95df27b0d1da"
+      ]
+    }
+  },
+  "overall": {
+    "attempts": {
+      "ok": 90
+    },
+    "total": 90,
+    "scored": 90,
+    "passes": 82,
+    "pass_rate": 0.9111,
+    "infra_failure_rate": 0,
+    "checks": {
+      "p1": 0.9333,
+      "p2": 0.9778,
+      "p3": 0.9889,
+      "p4": 1,
+      "p1_failures": 6
+    },
+    "usage": {
+      "total_cost_usd": 31.5165,
+      "mean_cost_usd": 0.3502,
+      "mean_num_turns": 6.9,
+      "mean_elapsed_s": 47.3199,
+      "p90_elapsed_s": 68.584
+    }
+  },
+  "per_arm": {
+    "baseline": {
+      "attempts": {
+        "ok": 90
+      },
+      "total": 90,
+      "scored": 90,
+      "passes": 82,
+      "pass_rate": 0.9111,
+      "infra_failure_rate": 0,
+      "checks": {
+        "p1": 0.9333,
+        "p2": 0.9778,
+        "p3": 0.9889,
+        "p4": 1,
+        "p1_failures": 6
+      },
+      "usage": {
+        "total_cost_usd": 31.5165,
+        "mean_cost_usd": 0.3502,
+        "mean_num_turns": 6.9,
+        "mean_elapsed_s": 47.3199,
+        "p90_elapsed_s": 68.584
+      }
+    }
+  },
+  "per_family": {
+    "F1": {
+      "attempts": {
+        "ok": 45
+      },
+      "total": 45,
+      "scored": 45,
+      "passes": 39,
+      "pass_rate": 0.8667,
+      "infra_failure_rate": 0,
+      "checks": {
+        "p1": 0.8667,
+        "p2": 1,
+        "p3": 1,
+        "p4": 1,
+        "p1_failures": 6
+      },
+      "usage": {
+        "total_cost_usd": 16.0402,
+        "mean_cost_usd": 0.3564,
+        "mean_num_turns": 6.5556,
+        "mean_elapsed_s": 48.613,
+        "p90_elapsed_s": 71.248
+      }
+    },
+    "F2": {
+      "attempts": {
+        "ok": 45
+      },
+      "total": 45,
+      "scored": 45,
+      "passes": 43,
+      "pass_rate": 0.9556,
+      "infra_failure_rate": 0,
+      "checks": {
+        "p1": 1,
+        "p2": 0.9556,
+        "p3": 0.9778,
+        "p4": 1,
+        "p1_failures": 0
+      },
+      "usage": {
+        "total_cost_usd": 15.4763,
+        "mean_cost_usd": 0.3439,
+        "mean_num_turns": 7.2444,
+        "mean_elapsed_s": 46.0268,
+        "p90_elapsed_s": 68.584
+      }
+    }
+  },
+  "per_document": {
+    "F1-01": {
+      "family": "F1",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F1-02": {
+      "family": "F1",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F1-03": {
+      "family": "F1",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F1-04": {
+      "family": "F1",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F1-05": {
+      "family": "F1",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F1-06": {
+      "family": "F1",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F1-07": {
+      "family": "F1",
+      "passes": 1,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 1,
+          "scored": 3
+        }
+      }
+    },
+    "F1-08": {
+      "family": "F1",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F1-09": {
+      "family": "F1",
+      "passes": 2,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 2,
+          "scored": 3
+        }
+      }
+    },
+    "F1-10": {
+      "family": "F1",
+      "passes": 0,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 0,
+          "scored": 3
+        }
+      }
+    },
+    "F1-11": {
+      "family": "F1",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F1-12": {
+      "family": "F1",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F1-13": {
+      "family": "F1",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F1-14": {
+      "family": "F1",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F1-15": {
+      "family": "F1",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F2-01": {
+      "family": "F2",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F2-02": {
+      "family": "F2",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F2-03": {
+      "family": "F2",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F2-04": {
+      "family": "F2",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F2-05": {
+      "family": "F2",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F2-06": {
+      "family": "F2",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F2-07": {
+      "family": "F2",
+      "passes": 1,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 1,
+          "scored": 3
+        }
+      }
+    },
+    "F2-08": {
+      "family": "F2",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F2-09": {
+      "family": "F2",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F2-10": {
+      "family": "F2",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F2-11": {
+      "family": "F2",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F2-12": {
+      "family": "F2",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F2-13": {
+      "family": "F2",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F2-14": {
+      "family": "F2",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    },
+    "F2-15": {
+      "family": "F2",
+      "passes": 3,
+      "scored": 3,
+      "by_arm": {
+        "baseline": {
+          "passes": 3,
+          "scored": 3
+        }
+      }
+    }
+  },
+  "spend": {
+    "all_attempts_cost_usd": 31.5165,
+    "canary_cost_usd": 0.1323,
+    "canaries_passed": 1
+  },
+  "headroom": {
+    "threshold": 0.90,
+    "train_pass_rate": 0.9111,
+    "stop": true
+  }
+}

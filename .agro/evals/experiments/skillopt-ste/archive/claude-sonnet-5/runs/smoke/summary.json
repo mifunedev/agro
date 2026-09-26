@@ -1,0 +1,172 @@
+{
+  "run_id": "smoke",
+  "splits": [
+    "train"
+  ],
+  "lines": {
+    "episodes": 2,
+    "latest": 2,
+    "superseded": 0,
+    "canaries": 1
+  },
+  "rescore": {
+    "verifier_sha256": "a2ce8a849282c3947b01e82f19873fa643eb553cd54cf9e8f8e17e8a9441b5a5",
+    "rescored": 2,
+    "rescored_changes": 0,
+    "changed": [],
+    "missing_outputs": []
+  },
+  "experiment": {
+    "models": [
+      "claude-sonnet-5"
+    ],
+    "efforts": [
+      "medium"
+    ],
+    "harness_versions": [
+      "2.1.280"
+    ],
+    "repo_revisions": [
+      "5c2d45e1f45a3761559e2d8d2902e8beacccdc41"
+    ],
+    "skill_revisions": {
+      "baseline": [
+        "cfd05180d828bf176336eca0c9d586826bad2967b4c353f5785e95df27b0d1da"
+      ]
+    }
+  },
+  "overall": {
+    "attempts": {
+      "ok": 2
+    },
+    "total": 2,
+    "scored": 2,
+    "passes": 2,
+    "pass_rate": 1,
+    "infra_failure_rate": 0,
+    "checks": {
+      "p1": 1,
+      "p2": 1,
+      "p3": 1,
+      "p4": 1,
+      "p1_failures": 0
+    },
+    "usage": {
+      "total_cost_usd": 0.7832,
+      "mean_cost_usd": 0.3916,
+      "mean_num_turns": 8.5,
+      "mean_elapsed_s": 155.4365,
+      "p90_elapsed_s": 190.597
+    }
+  },
+  "per_arm": {
+    "baseline": {
+      "attempts": {
+        "ok": 2
+      },
+      "total": 2,
+      "scored": 2,
+      "passes": 2,
+      "pass_rate": 1,
+      "infra_failure_rate": 0,
+      "checks": {
+        "p1": 1,
+        "p2": 1,
+        "p3": 1,
+        "p4": 1,
+        "p1_failures": 0
+      },
+      "usage": {
+        "total_cost_usd": 0.7832,
+        "mean_cost_usd": 0.3916,
+        "mean_num_turns": 8.5,
+        "mean_elapsed_s": 155.4365,
+        "p90_elapsed_s": 190.597
+      }
+    }
+  },
+  "per_family": {
+    "F1": {
+      "attempts": {
+        "ok": 1
+      },
+      "total": 1,
+      "scored": 1,
+      "passes": 1,
+      "pass_rate": 1,
+      "infra_failure_rate": 0,
+      "checks": {
+        "p1": 1,
+        "p2": 1,
+        "p3": 1,
+        "p4": 1,
+        "p1_failures": 0
+      },
+      "usage": {
+        "total_cost_usd": 0.3399,
+        "mean_cost_usd": 0.3399,
+        "mean_num_turns": 5,
+        "mean_elapsed_s": 120.276,
+        "p90_elapsed_s": 120.276
+      }
+    },
+    "F2": {
+      "attempts": {
+        "ok": 1
+      },
+      "total": 1,
+      "scored": 1,
+      "passes": 1,
+      "pass_rate": 1,
+      "infra_failure_rate": 0,
+      "checks": {
+        "p1": 1,
+        "p2": 1,
+        "p3": 1,
+        "p4": 1,
+        "p1_failures": 0
+      },
+      "usage": {
+        "total_cost_usd": 0.4433,
+        "mean_cost_usd": 0.4433,
+        "mean_num_turns": 12,
+        "mean_elapsed_s": 190.597,
+        "p90_elapsed_s": 190.597
+      }
+    }
+  },
+  "per_document": {
+    "F1-04": {
+      "family": "F1",
+      "passes": 1,
+      "scored": 1,
+      "by_arm": {
+        "baseline": {
+          "passes": 1,
+          "scored": 1
+        }
+      }
+    },
+    "F2-03": {
+      "family": "F2",
+      "passes": 1,
+      "scored": 1,
+      "by_arm": {
+        "baseline": {
+          "passes": 1,
+          "scored": 1
+        }
+      }
+    }
+  },
+  "spend": {
+    "all_attempts_cost_usd": 0.7832,
+    "canary_cost_usd": 0.0669,
+    "canaries_passed": 1
+  },
+  "headroom": {
+    "threshold": 0.90,
+    "train_pass_rate": 1,
+    "stop": true
+  }
+}

@@ -1,0 +1,180 @@
+# RFC: Normalized trace / event ledger
+
+Status: Draft foundational spec for [#525](https://github.com/mifunedev/agro/issues/525).
+
+This RFC specifies the normalized append-only event ledger. Later
+self-improvement work builds on this ledger. This RFC is a spec only. This RFC
+adds no runtime emission, no provider wiring, no replay code, and no changes to
+Ralph, autopilot, `/eval`, or `/audit`.
+
+This RFC is the first proposed child issue in the
+[self-improving harness roadmap curation](rfc-selfimprove-roadmap.md). The terms
+`trace`, `session`, `run`, `step`, and `artifact` follow the working definitions
+in the [glossary](../glossary.md).
+
+## Goals
+
+- Normalize traces from different agents and harness surfaces into one event
+  shape.
+- Preserve enough structure for replay, diagnosis, and scoring without storing
+  secrets or large raw transcripts by default.
+- Reserve a storage layout that fits the `.agro/` control-plane model documented in
+  [`.agro/` directory layout](../agro-directory-layout.md).
+- Keep the ledger append-only so later analysis can trust historical events.
+
+## Non-goals
+
+- No provider adapters, hooks, or runner changes in this RFC.
+- No new `.agro/traces/` or `.agro/sessions/` directory is created by this document.
+- No promise of byte-for-byte deterministic replay of model output.
+- No central service or external database; the first storage target is files in
+  the repo checkout.
+
+## Event model
+
+A ledger is newline-delimited JSON. Each line is one immutable event. Writers
+append new events. Writers never rewrite old events. If an event needs
+correction, the writer appends a new event with `corrects_event_id` and the
+corrected payload.
+
+Common envelope fields:
+
+| Field | Required | Meaning |
+|---|---:|---|
+| `schema_version` | yes | Schema identifier, initially `trace-ledger.v0`. |
+| `event_id` | yes | Stable ID unique within the ledger. |
+| `run_id` | yes | One end-to-end run, such as one Ralph iteration or one cron fire. |
+| `session_id` | recommended | Agent/session container when known, such as a tmux session. |
+| `step_id` | recommended | Current workflow step or task story. |
+| `parent_event_id` | optional | Causal parent for nested calls. |
+| `corrects_event_id` | optional | Prior event superseded by this append-only correction. |
+| `ts` | yes | UTC ISO-8601 timestamp. |
+| `type` | yes | Event type from the core vocabulary below. |
+| `actor` | yes | Agent, runner, human, or system surface that emitted the event. |
+| `source` | recommended | File, command, provider, skill, or runner that produced the event. |
+| `payload` | yes | Type-specific JSON object. |
+
+Core event types:
+
+| Type | Payload should capture |
+|---|---|
+| `Run` | Run start/end, task slug, branch, issue, terminal outcome. |
+| `Step` | Workflow step/story start/end, status, dependencies, acceptance surface. |
+| `model_call` | Provider/model, redacted input/output refs or hashes, token counts, error state. |
+| `tool_call` | Tool name, redacted args summary, result status, referenced artifacts. |
+| `file_change` | Path, change kind, diff stat, content hash; raw diffs only as safe artifacts. |
+| `command` | Redacted argv, cwd, exit code, duration, output artifact refs or summaries. |
+| `git_action` | Branch, remote, ref, commit, merge/fetch/checkout/commit/push metadata. |
+| `validation` | Check command/probe, expected result, observed result, PASS/REGRESSION/SKIPPED. |
+| `approval` | Human or gate decision, approver surface, reason, scope of authority granted. |
+| `handoff_status` | Emitted status token or completion marker, next target, parse result. |
+| `artifact_effect` | Artifact created/updated/deleted/read, location, content hash, consumer. |
+| `cost_time` | Wall time, model tokens/cost when available, retry count, unattended flag. |
+
+The initial ledger represents `browser_action` from the #525 epic as a
+`tool_call` event with browser-specific payload fields. If browser traces need separate scoring semantics, a later RFC can split
+`browser_action` into a first-class type.
+
+## Storage layout
+
+The ledger belongs in the `.agro/` machinery namespace because traces are harness
+runtime evidence, not application source. The current
+[`.agro/` directory layout](../agro-directory-layout.md) correctly lists
+`traces/` and `sessions/` as **proposed, not present**. When a runtime
+implementation lands, this RFC reserves the following paths:
+
+```text
+.agro/traces/<run_id>/events.jsonl
+.agro/traces/<run_id>/artifacts/<artifact_id>
+.agro/traces/<run_id>/manifest.json
+.agro/sessions/<session_id>.json
+```
+
+- `.agro/traces/<run_id>/events.jsonl` is the append-only ledger.
+- `.agro/traces/<run_id>/artifacts/` stores optional sanitized artifacts too large
+  or sensitive to inline in events.
+- `.agro/traces/<run_id>/manifest.json` records schema version, task/branch/issue
+  pointers, retention policy, and artifact hash inventory.
+- `.agro/sessions/<session_id>.json` is an index from a longer-lived session to
+  the runs the session produced. This file must not duplicate event payloads.
+
+Until a runtime implementation lands, the repository correctly omits these
+directories.
+
+## Secret and privacy handling
+
+The ledger must be safe to inspect. When the ledger contains private run
+evidence, the ledger must be safe to exclude from public PRs.
+
+- Do not record raw environment dumps, credentials, tokens, cookies, private
+  `.env` contents, Slack secrets, browser profile data, or host paths that reveal
+  private user material.
+- Store hashes, artifact references, redacted summaries, and diff stats by
+  default. Store raw prompts, command output, or file diffs only when
+  explicitly classified as safe artifacts.
+- Redact command argv and tool arguments before writing events. Prefer
+  `argv_redacted` plus `redactions: ["token", "env"]` over lossy prose.
+- For `file_change`, record path, change kind, stat, and content hash. Do not
+  inline full file contents.
+- For `model_call`, record provider/model, token counts, status, and content
+  hashes or artifact refs. Raw model prompts/responses are optional sanitized
+  artifacts, not required envelope fields.
+- If a writer detects a possible secret after append, the writer appends a
+  correction event. The writer quarantines or purges the unsafe artifact
+  according to the retention policy. The writer must not edit the historical
+  line.
+
+## Minimal events for replay, diagnosis, and scoring
+
+A useful run does not need every possible event. A useful run needs enough
+coverage to explain what happened.
+
+### Replay-required minimum
+
+- `Run` start and end.
+- `Step` start/end for each workflow step or user story.
+- `model_call` events that identify model/provider, prompt artifact refs or
+  hashes, and response status.
+- Every harness side effect as `tool_call`, `command`, `git_action`,
+  `file_change`, or `artifact_effect`.
+- `handoff_status` for terminal status markers and next-step routing.
+
+### Diagnosis-required minimum
+
+- Error payloads on failed `model_call`, `tool_call`, and `command` events.
+- `validation` events for checks that passed, failed, regressed, or skipped.
+- `artifact_effect` events for required artifacts, especially create/delete/read
+  transitions.
+- `approval` events whenever a human or gate expands authority or permits a risky
+  action.
+
+### Scoring-required minimum
+
+- Final `Run` outcome.
+- `validation` outcomes for the regression floor and relevant capability checks.
+- `cost_time` events or fields for elapsed time, token/cost totals when
+  available, retries, and unattended completion.
+- `handoff_status` parse results so malformed completion markers count as harness
+  failures, not ambiguous success.
+
+## Minimal JSONL example
+
+Each line below is a complete JSON object.
+
+```jsonl
+{"schema_version":"trace-ledger.v0","event_id":"evt_0001","run_id":"run_20260703T190800Z_oh525","session_id":"sess_firstmate_oh_selfimprove_foundation","ts":"2026-07-03T19:08:00Z","type":"Run","actor":"firstmate","source":".agro/scripts/firstmate.sh","payload":{"task":"oh-selfimprove-foundation","branch":"feat/525-oh-selfimprove-foundation","status":"started"}}
+{"schema_version":"trace-ledger.v0","event_id":"evt_0002","run_id":"run_20260703T190800Z_oh525","session_id":"sess_firstmate_oh_selfimprove_foundation","step_id":"US-002","parent_event_id":"evt_0001","ts":"2026-07-03T19:09:00Z","type":"Step","actor":"ralph","source":".agro/tasks/oh-selfimprove-foundation/prd.json","payload":{"title":"Normalized trace/event ledger RFC (foundational spec, descriptive)","status":"started"}}
+{"schema_version":"trace-ledger.v0","event_id":"evt_0003","run_id":"run_20260703T190800Z_oh525","session_id":"sess_firstmate_oh_selfimprove_foundation","step_id":"US-002","parent_event_id":"evt_0002","ts":"2026-07-03T19:20:00Z","type":"file_change","actor":"ralph","source":"git diff","payload":{"path":".agro/docs/rfcs/rfc-trace-ledger.md","change":"created","diff_stat":"+170 -0","content_sha256":"sha256:example"}}
+{"schema_version":"trace-ledger.v0","event_id":"evt_0004","run_id":"run_20260703T190800Z_oh525","session_id":"sess_firstmate_oh_selfimprove_foundation","step_id":"US-002","parent_event_id":"evt_0002","ts":"2026-07-03T19:25:00Z","type":"validation","actor":"ralph","source":"pnpm","payload":{"command":"pnpm run test","exit_code":0,"status":"PASS"}}
+{"schema_version":"trace-ledger.v0","event_id":"evt_0005","run_id":"run_20260703T190800Z_oh525","session_id":"sess_firstmate_oh_selfimprove_foundation","step_id":"US-002","parent_event_id":"evt_0002","ts":"2026-07-03T19:26:00Z","type":"handoff_status","actor":"ralph","source":"progress.txt","payload":{"marker":"US-002 PASS","next":"US-003","parse_status":"ok"}}
+```
+
+## Implementation notes for future child issues
+
+- Add `.agro/traces/` and `.agro/sessions/` to the directory-layout doc only in the
+  implementation PR that creates them.
+- Decide retention and gitignore rules before writing private traces to disk.
+- Keep provider-specific raw logs as optional artifacts. Normalize only the
+  cross-provider facts that later weakness mining and scoring need.
+- When runtime emission lands, add eval probes for append-only behavior,
+  redaction invariants, and malformed handoff-status detection.

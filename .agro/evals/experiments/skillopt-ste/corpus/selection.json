@@ -1,0 +1,634 @@
+{
+  "schemaVersion": 1,
+  "repo_revision": "3230337b1f7db559b469fa436c501528bf94b3e4",
+  "cutoff": "2026-08-13",
+  "eligibility": {
+    "min_words": 80,
+    "max_words": 1500
+  },
+  "take": 15,
+  "pools": {
+    "F1": {
+      "candidates": 55,
+      "eligible": 38,
+      "failing": 31
+    },
+    "F2": {
+      "candidates": 43,
+      "eligible": 34,
+      "failing": 20
+    },
+    "F3": {
+      "candidates": 316,
+      "eligible": 270,
+      "failing": 206
+    },
+    "F4": {
+      "candidates": 344,
+      "eligible": 292,
+      "failing": 155
+    }
+  },
+  "documents": [
+    {
+      "id": "F1-01",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/rfcs/adr-0001-standards-scope.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F1-02",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/rfcs/rfc-mcp-exec-runner.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F1-03",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/harness-manifest.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F1-04",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/rfcs/rfc-agro-migration.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F1-05",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/harnesses/pi.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F1-06",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/release-requirements-1019-boot-fix.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F1-07",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/agro-compatibility.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F1-08",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/intro.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F1-09",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/contributing.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F1-10",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/rfcs/README.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F1-11",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/repair-sandbox-boot-advisory.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F1-12",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/rfcs/rfc-runtime-support.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F1-13",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/harnesses/t3code.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F1-14",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/runtimes/overview.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F1-15",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/rfcs/rfc-trace-ledger.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F2-01",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/skills/cloudflared/SKILL.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F2-02",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "projects/AGENTS.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F2-03",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/skills/wiki/SKILL.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F2-04",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/skills/eval/SKILL.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F2-05",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/logs/AGENTS.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F2-06",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/skills/architect/SKILL.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F2-07",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/knowledge/README.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F2-08",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/skills/audit/SKILL.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F2-09",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/skills/release/SKILL.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F2-10",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/skills/builder/SKILL.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F2-11",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/skills/agent-browser/SKILL.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F2-12",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/skills/t3/SKILL.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F2-13",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/cli/README.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F2-14",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/evals/datasets/README.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F2-15",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".worktrees/AGENTS.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      }
+    },
+    {
+      "id": "F3-01",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/437",
+        "revision": "2026-06-18T20:03:53Z"
+      }
+    },
+    {
+      "id": "F3-02",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/63",
+        "revision": "2026-04-18T19:07:29Z"
+      }
+    },
+    {
+      "id": "F3-03",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/247",
+        "revision": "2026-05-04T03:42:37Z"
+      }
+    },
+    {
+      "id": "F3-04",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/307",
+        "revision": "2026-05-18T01:27:28Z"
+      }
+    },
+    {
+      "id": "F3-05",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/255",
+        "revision": "2026-05-08T05:26:49Z"
+      }
+    },
+    {
+      "id": "F3-06",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/140",
+        "revision": "2026-04-26T04:37:39Z"
+      }
+    },
+    {
+      "id": "F3-07",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/135",
+        "revision": "2026-04-26T04:41:24Z"
+      }
+    },
+    {
+      "id": "F3-08",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/297",
+        "revision": "2026-05-18T01:07:50Z"
+      }
+    },
+    {
+      "id": "F3-09",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/583",
+        "revision": "2026-07-03T23:02:12Z"
+      }
+    },
+    {
+      "id": "F3-10",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/207",
+        "revision": "2026-05-02T23:46:21Z"
+      }
+    },
+    {
+      "id": "F3-11",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/693",
+        "revision": "2026-08-03T03:43:08Z"
+      }
+    },
+    {
+      "id": "F3-12",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/235",
+        "revision": "2026-05-04T00:51:31Z"
+      }
+    },
+    {
+      "id": "F3-13",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/723",
+        "revision": "2026-08-09T04:05:17Z"
+      }
+    },
+    {
+      "id": "F3-14",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/316",
+        "revision": "2026-05-21T02:56:43Z"
+      }
+    },
+    {
+      "id": "F3-15",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/302",
+        "revision": "2026-05-16T06:09:30Z"
+      }
+    },
+    {
+      "id": "F4-01",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/482",
+        "revision": "2026-06-21T04:41:28Z"
+      }
+    },
+    {
+      "id": "F4-02",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/440",
+        "revision": "2026-06-18T20:25:12Z"
+      }
+    },
+    {
+      "id": "F4-03",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/153",
+        "revision": "2026-04-26T04:34:26Z"
+      }
+    },
+    {
+      "id": "F4-04",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/190",
+        "revision": "2026-04-30T04:35:52Z"
+      }
+    },
+    {
+      "id": "F4-05",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/696",
+        "revision": "2026-08-03T03:38:18Z"
+      }
+    },
+    {
+      "id": "F4-06",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/595",
+        "revision": "2026-08-13T14:18:48Z"
+      }
+    },
+    {
+      "id": "F4-07",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/427",
+        "revision": "2026-06-16T06:50:00Z"
+      }
+    },
+    {
+      "id": "F4-08",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/563",
+        "revision": "2026-07-03T03:42:47Z"
+      }
+    },
+    {
+      "id": "F4-09",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/593",
+        "revision": "2026-07-10T05:28:46Z"
+      }
+    },
+    {
+      "id": "F4-10",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/203",
+        "revision": "2026-04-30T17:30:33Z"
+      }
+    },
+    {
+      "id": "F4-11",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/68",
+        "revision": "2026-04-18T17:32:17Z"
+      }
+    },
+    {
+      "id": "F4-12",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/507",
+        "revision": "2026-06-21T23:16:27Z"
+      }
+    },
+    {
+      "id": "F4-13",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/547",
+        "revision": "2026-07-01T02:25:56Z"
+      }
+    },
+    {
+      "id": "F4-14",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/600",
+        "revision": "2026-07-05T16:09:58Z"
+      }
+    },
+    {
+      "id": "F4-15",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/562",
+        "revision": "2026-07-03T02:26:48Z"
+      }
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "${1:-}" = --version ]; then
+  printf '2.1.280 (Claude Code)\n'
+  exit 0
+fi
+
+state_dir="${FAKE_CLAUDE_STATE:?fake-claude: FAKE_CLAUDE_STATE is not set}"
+mkdir -p "$state_dir"
+real_claude="${SKILLOPT_STE_REAL_CLAUDE:-claude}"
+
+proposer=0
+system_file=""
+args=("$@")
+for ((i = 0; i < ${#args[@]}; i++)); do
+  case "${args[$i]}" in
+    --tools) proposer=1 ;;
+    --append-system-prompt-file) system_file="${args[$((i + 1))]:-}" ;;
+  esac
+done
+
+next_count() {
+  (
+    flock 9
+    n="$(cat "$state_dir/analyst-count" 2>/dev/null || printf '0')"
+    if [ "$1" = bump ]; then
+      n=$((n + 1))
+      printf '%s\n' "$n" >"$state_dir/analyst-count"
+    fi
+    printf '%s\n' "$n"
+  ) 9>"$state_dir/count.lock"
+}
+
+if [ "$proposer" -eq 1 ]; then
+  stdin_text="$(cat)"
+  if [[ "$stdin_text" == *"## Failed Trajectories"* ]]; then
+    n="$(next_count bump)"
+  else
+    n="$(next_count read)"
+  fi
+  if [ -n "${FAKE_CLAUDE_LOG_DIR:-}" ]; then
+    mkdir -p "$FAKE_CLAUDE_LOG_DIR"
+    call_id="$(date +%s%N)-$$"
+    system_text=""
+    if [ -n "$system_file" ] && [ -f "$system_file" ]; then
+      system_text="$(cat "$system_file")"
+    fi
+    argv_json="$(printf '%s\0' "$@" | jq -Rs 'split("\u0000") | .[:-1]')"
+    jq -n --argjson argv "$argv_json" --arg cwd "$PWD" --arg listing "$(ls -A)" --arg sources "${CLAUDE_SETTING_SOURCES:-}" \
+      --arg stdin "$stdin_text" --arg system "$system_text" --arg system_file "$system_file" \
+      '{argv: $argv, cwd: $cwd, cwd_listing: $listing, setting_sources_env: $sources,
+        system_file: $system_file, system: $system, stdin: $stdin}' \
+      >"$FAKE_CLAUDE_LOG_DIR/proposer-$call_id.json"
+  fi
+  edit="- Keep each literal byte for byte, and mark each missing value with a placeholder. Fake edit $n."
+  reply="$(jq -cn --arg e "$edit" '{reasoning: "fake proposer", patch: {reasoning: "fake proposer", edits: [{op: "append", content: $e}]}, edits: [{op: "append", content: $e}], selected_indices: [0]}')"
+  jq -cn --arg r "$reply" '{type: "result", subtype: "success", is_error: false, num_turns: 1, total_cost_usd: 0, result: $r, usage: {input_tokens: 1, output_tokens: 1}}'
+  exit 0
+fi
+
+prompt="${*: -1}"
+if [[ "$prompt" == *"quote verbatim the first markdown heading"* ]]; then
+  reply=NONE
+  if [ -f .claude/skills/ste/SKILL.md ]; then
+    reply="$(grep -m 1 '^# ' .claude/skills/ste/SKILL.md) .agro/skills/ste/scripts/ste-check.sh"
+  fi
+  jq -cn --arg r "$reply" '{type: "result", subtype: "success", is_error: false, num_turns: 1, total_cost_usd: 0, result: $r, usage: {input_tokens: 1, output_tokens: 1}}'
+  exit 0
+fi
+
+if [ -n "${SKILLOPT_STE_DRY_LOG:-}" ]; then
+  shown=""
+  for arg in "$real_claude" "$@"; do
+    if [[ "$arg" =~ ^[A-Za-z0-9_./:=,@+-]+$ ]]; then
+      shown+="$arg "
+    elif [[ "$arg" != *"'"* ]]; then
+      shown+="'$arg' "
+    else
+      printf -v quoted '%q' "$arg"
+      shown+="$quoted "
+    fi
+  done
+  printf 'episode: cd <episode worktree> && %s\n' "${shown% }" >>"$SKILLOPT_STE_DRY_LOG"
+fi
+
+path="${prompt#*Rewrite }"
+path="${path%% in place*}"
+doc="$(basename "$path" .md)"
+last_edit="$(grep -o 'Fake edit [0-9]*' .claude/skills/ste/SKILL.md 2>/dev/null | awk '{print $3}' | sort -n | tail -n 1)"
+skills='[]'
+[ -f .claude/skills/ste/SKILL.md ] && skills='["ste"]'
+printf '{"type":"system","subtype":"init","cwd":"%s","skills":%s,"slash_commands":%s}\n' "$PWD" "$skills" "$skills"
+printf '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Skill","input":{"skill":"ste"}}]}}\n'
+if [ -n "${FAKE_CLAUDE_GOOD_DIR:-}" ] && [ -n "$last_edit" ] && [ $((last_edit % 2)) -eq 1 ] && [ -f "$FAKE_CLAUDE_GOOD_DIR/$doc.md" ]; then
+  cp "$FAKE_CLAUDE_GOOD_DIR/$doc.md" "$path"
+else
+  sed 's/^/ /' "$path" >"$path.new"
+  mv "$path.new" "$path"
+fi
+printf '{"type":"result","subtype":"success","is_error":false,"num_turns":3,"total_cost_usd":0,"usage":{"input_tokens":10,"output_tokens":20,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}\n'
