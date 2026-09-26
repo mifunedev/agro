@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+case "${1:-}" in
+  --version)
+    printf '2.1.280 (Claude Code)\n'
+    exit 0 ;;
+  -h|--help)
+    cat >&2 <<'USAGE'
+Usage: fake-claude <claude arguments>
+
+Dry-run stand-in for claude; no model spend. With --tools (the proposer shim)
+it reads the prompt on stdin and replies with one SkillOpt append edit
+"Fake edit <n>", where <n> counts the failure-analysis calls in
+FAKE_CLAUDE_STATE. FAKE_CLAUDE_LOG_DIR keeps each proposer call: argv, cwd,
+the cwd listing, the system prompt, and stdin.
+
+Without --tools (an episode) it reads "/prd work/issue-<case>.md", writes
+.agro/tasks/fake-plan-<case>/prd.md (a copy of
+PRD_EFFICIENCY_FAKE_PLANS/<case>.md when it exists, else a plan that fails
+verify-prd.sh), and prints a stream-json trace. The cost and the turns follow
+the count of "Fake edit" lines in .agro/skills/prd/SKILL.md: none 1.00 USD and
+16 turns, odd 0.60 USD and 8 turns, even 0.95 USD and 14 turns.
+PRD_EFFICIENCY_DRY_LOG receives the real episode command line.
+USAGE
+    exit 0 ;;
+esac
+
+state_dir="${FAKE_CLAUDE_STATE:?fake-claude: FAKE_CLAUDE_STATE is not set}"
+mkdir -p "$state_dir"
+real_claude="${PRD_EFFICIENCY_REAL_CLAUDE:-claude}"
+
+proposer=0
+system_file=""
+args=("$@")
+for ((i = 0; i < ${#args[@]}; i++)); do
+  case "${args[$i]}" in
+    --tools) proposer=1 ;;
+    --append-system-prompt-file) system_file="${args[$((i + 1))]:-}" ;;
+  esac
+done
+
+next_count() {
+  (
+    flock 9
+    n="$(cat "$state_dir/analyst-count" 2>/dev/null || printf '0')"
+    if [ "$1" = bump ]; then
+      n=$((n + 1))
+      printf '%s\n' "$n" >"$state_dir/analyst-count"
+    fi
+    printf '%s\n' "$n"
+  ) 9>"$state_dir/count.lock"
+}
+
+shown_command() {
+  local shown="" arg quoted
+  for arg in "$@"; do
+    if [[ "$arg" =~ ^[A-Za-z0-9_./:=,@+-]+$ ]]; then
+      shown+="$arg "
+    elif [[ "$arg" != *"'"* ]]; then
+      shown+="'$arg' "
+    else
+      printf -v quoted '%q' "$arg"
+      shown+="$quoted "
+    fi
+  done
+  printf '%s' "${shown% }"
+}
+
+if [ "$proposer" -eq 1 ]; then
+  stdin_text="$(cat)"
+  if [[ "$stdin_text" == *"## Failed Trajectories"* ]]; then
+    n="$(next_count bump)"
+  else
+    n="$(next_count read)"
+  fi
+  if [ -n "${FAKE_CLAUDE_LOG_DIR:-}" ]; then
+    mkdir -p "$FAKE_CLAUDE_LOG_DIR"
+    call_id="$(date +%s%N)-$$"
+    system_text=""
+    if [ -n "$system_file" ] && [ -f "$system_file" ]; then
+      system_text="$(cat "$system_file")"
+    fi
+    argv_json="$(printf '%s\0' "$@" | jq -Rs 'split("\u0000") | .[:-1]')"
+    jq -n --argjson argv "$argv_json" --arg cwd "$PWD" --arg listing "$(ls -A)" --arg sources "${CLAUDE_SETTING_SOURCES:-}" \
+      --arg stdin "$stdin_text" --arg system "$system_text" --arg system_file "$system_file" \
+      '{argv: $argv, cwd: $cwd, cwd_listing: $listing, setting_sources_env: $sources,
+        system_file: $system_file, system: $system, stdin: $stdin}' \
+      >"$FAKE_CLAUDE_LOG_DIR/proposer-$call_id.json"
+  fi
+  edit="- Read each file once and write the plan after at most 8 tool calls. Fake edit $n."
+  reply="$(jq -cn --arg e "$edit" '{reasoning: "fake proposer", patch: {reasoning: "fake proposer", edits: [{op: "append", content: $e}]}, edits: [{op: "append", content: $e}], selected_indices: [0]}')"
+  jq -cn --arg r "$reply" --argjson c "${FAKE_PROPOSER_COST:-0}" \
+    '{type: "result", subtype: "success", is_error: false, num_turns: 1, total_cost_usd: $c, result: $r, usage: {input_tokens: 1, output_tokens: 1}}'
+  exit 0
+fi
+
+prompt="${*: -1}"
+if [ -n "${PRD_EFFICIENCY_DRY_LOG:-}" ]; then
+  printf 'episode: cd <episode repository> && %s\n' "$(shown_command "$real_claude" "$@")" >>"$PRD_EFFICIENCY_DRY_LOG"
+fi
+
+issue_path="${prompt#/prd }"
+[ -f "$issue_path" ]
+case_id="$(basename "$issue_path" .md)"
+case_id="${case_id#issue-}"
+skill=.agro/skills/prd/SKILL.md
+edits="$(grep -c 'Fake edit [0-9]*' "$skill" 2>/dev/null || true)"
+if [ "${edits:-0}" -eq 0 ]; then
+  cost=1.00
+  turns=16
+elif [ $((edits % 2)) -eq 1 ]; then
+  cost=0.60
+  turns=8
+else
+  cost=0.95
+  turns=14
+fi
+
+slug="fake-plan-$case_id"
+plan=".agro/tasks/$slug/prd.md"
+mkdir -p ".agro/tasks/$slug"
+if [ -n "${PRD_EFFICIENCY_FAKE_PLANS:-}" ] && [ -f "$PRD_EFFICIENCY_FAKE_PLANS/$case_id.md" ]; then
+  cp "$PRD_EFFICIENCY_FAKE_PLANS/$case_id.md" "$plan"
+else
+  printf '# PRD: fake plan\n\n- [ ] `fake/missing/path.md` holds the change.\n' >"$plan"
+fi
+
+printf '{"type":"system","subtype":"init","cwd":"%s","skills":["prd"],"slash_commands":["prd"]}\n' "$PWD"
+tool_event() {
+  jq -cn --arg id "msg_$1" --arg name "$2" --argjson input "$3" \
+    '{type: "assistant", message: {id: $id, role: "assistant", content: [{type: "tool_use", id: "tu_\($id)", name: $name, input: $input}]}}'
+}
+tool_event 1 Skill '{"skill":"prd"}'
+tool_event 2 Read "$(jq -cn --arg p "$issue_path" '{file_path: $p}')"
+for ((t = 3; t < turns; t++)); do
+  tool_event "$t" Bash "$(jq -cn --arg t "$t" '{command: "git log --oneline -n 20 -- .agro/skills/ && ls .agro/skills/prd/references # fake turn \($t) with a long command line that exceeds the one hundred and twenty character limit of the condensed trace"}')"
+done
+tool_event "$turns" Write "$(jq -cn --arg p "$plan" '{file_path: $p, content: "# PRD"}')"
+jq -cn --argjson c "$cost" --argjson t "$turns" '{type: "result", subtype: "success", is_error: false, num_turns: $t, total_cost_usd: $c,
+  usage: {input_tokens: 10, output_tokens: 20, cache_read_input_tokens: 30, cache_creation_input_tokens: 40}}'
