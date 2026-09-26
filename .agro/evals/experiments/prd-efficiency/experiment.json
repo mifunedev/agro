@@ -44,12 +44,24 @@
     "episode_reserve_usd": 1.5,
     "max_parallel": 3,
     "phases": {
-      "noise": {"max_usd": 15},
-      "baseline_train": {"max_usd": 40},
-      "proposer_smoke": {"max_usd": 2},
-      "optimize": {"max_usd": 150},
-      "heldout": {"max_usd": 70},
-      "retries": {"max_usd": 23}
+      "noise": {
+        "max_usd": 18
+      },
+      "baseline_train": {
+        "max_usd": 40
+      },
+      "proposer_smoke": {
+        "max_usd": 2
+      },
+      "optimize": {
+        "max_usd": 150
+      },
+      "heldout": {
+        "max_usd": 70
+      },
+      "retries": {
+        "max_usd": 20
+      }
     }
   },
   "pins": {}
