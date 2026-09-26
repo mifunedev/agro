@@ -44,7 +44,12 @@ Declared new: a repository path that
   - is under a declared-new directory that does not exist at <revision>, or
   - is on a line with a new-word and is a parent directory of a declared-new
     path, or
-  - is the task folder .agro/tasks/<slug>/ or its prd.md or prd.json.
+  - is the task folder .agro/tasks/<slug>/ or its prd.md or prd.json, or
+  - is a task file: a path under .agro/tasks/<name>/ other than prd.md,
+    prd.json, and AGENTS.md, outside .agro/tasks/archive/. The verifier does
+    not know the slug of the plan, so the rule applies to each task folder.
+    A task file that does not exist at <revision> and is declared absent
+    counts as declared absent, not declared new.
 
 Declared absent: a repository path
   - on a line that says "does not exist", "do not exist", "no longer exist",
@@ -258,6 +263,12 @@ sub normalize {
   return $t;
 }
 
+sub task_file {
+  my ($p) = @_;
+  return 0 if task_contract($p) || $p =~ m{(?:^|/)AGENTS\.md$};
+  return $p =~ m{^\.agro/tasks/(?!archive/)[^/]+/.} ? 1 : 0;
+}
+
 sub task_contract {
   my ($p) = @_;
   return $p =~ m{^\.agro/tasks/(?!archive/)[^/]+/(?:prd\.(?:md|json))?$} ? 1 : 0;
@@ -344,7 +355,7 @@ for my $line (@lines) {
 my @new_dirs = grep { !exists_at_rev($_) } keys %new_decl;
 sub declared_new {
   my ($p) = @_;
-  return 1 if $new_decl{$p} || task_contract($p);
+  return 1 if $new_decl{$p} || task_contract($p) || task_file($p);
   (my $base = $p) =~ s{/+$}{};
   $base =~ s{^.*/}{};
   return 1 if $new_base{$base};
@@ -407,6 +418,7 @@ for my $e (@span_paths) {
   next if $seen1{$p}++;
   $g1_checked++;
   next if exists_at_rev($p);
+  if ($absent_decl{$p} && task_file($p)) { push @g1_absent, $p; next; }
   if (declared_new($p)) { push @g1_new, $p; next; }
   if ($absent_decl{$p}) { push @g1_absent, $p; next; }
   push @g1_unresolved, [$p, $ln];
