@@ -338,7 +338,7 @@ Browse the [documentation](docs/README.md) or jump to a topic below.
 
 Contributions, bug reports, and feedback are welcome.
 
-[Contributing guide](docs/contributing.md) · [GitHub issues](https://github.com/mifunedev/agro/issues)
+[Contributing guide](docs/contributing.md) · [GitHub issues](https://github.com/mifunedev/agro/issues) · [GitHub Discussions](https://github.com/mifunedev/agro/discussions)
 
 [![Slack](https://img.shields.io/badge/-Join_our_Slack-4A154B?style=flat-square&logo=slack&logoColor=white)](https://join.slack.com/t/mifunedev/shared_invite/zt-3l2lnevo6-hOe5ZeoAz~xj7CFAJk2bzg)
 [![X: mifunedev](https://img.shields.io/badge/-mifunedev-000000?style=flat-square&logo=x&logoColor=white)](https://x.com/mifunedev)
