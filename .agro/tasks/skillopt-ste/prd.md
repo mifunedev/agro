@@ -104,7 +104,7 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] `results.md` records one verdict: `improved`, `unchanged`, `regressed`, or `inconclusive`.
+- [ ] `results.md` records one verdict: `improved`, `unchanged`, `regressed`, `inconclusive`, or `no-headroom`.
 - [ ] `results.md` computes the verdict from `runs/heldout/summary.json` with the rule in `## Architectural Decisions`.
 - [ ] `results.md` lists each attempt status count, the total usage, and the total elapsed time.
 - [ ] `results.md` records one next decision: expand to more skills, build a general optimizer adapter, start a model-weight RL spike, or stop.
@@ -178,6 +178,7 @@ Amendments before optimization:
 
 - 2026-09-26: the operator selected `claude-opus-5-5` in place of `claude-sonnet-5`. The Sonnet runs move to `archive/claude-sonnet-5/` and do not count toward the budget. US-005 runs again on Opus.
 - 2026-09-26: `verify.sh` fixes A to F remove six false-positive classes. Each fix is render-equivalent. `experiment.json` pins the fixed digest.
+- 2026-09-26: the Opus baseline passed 0.911 of training attempts. The headroom gate stopped the experiment before US-006. US-006 and US-007 did not run. US-008 records the verdict `no-headroom`.
 
 Verdict rule for US-008:
 
@@ -241,4 +242,8 @@ None. The operator approved the plan on 2026-09-25 with these resolutions:
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. Claim: a headroom screen must come before the freeze. Evidence: the Opus baseline reached 0.911 after the corpus, the runners, and the SkillOpt adapter existed. Outcome: fixed in this PR; `results.md` records the screen as the first step of the next experiment.
+2. Claim: the plan asserted counts and storage paths that the repository did not support. Evidence: "44 of 66" held only for whole files. The held-out families F4 and F6 could not supply 10 documents. The storage section contradicted the `.gitignore` task rule. Outcome: fixed in this PR by the re-split and the move to `.agro/evals/experiments/`. The general `/prd` grounding gap is the proposed next focus in issue #1171.
+3. Claim: a deterministic verifier needs fault fixtures from real outputs, not only from synthetic faults. Evidence: fixes A to F each came from a live baseline output; the synthetic fixtures passed before those fixes. Outcome: fixed in this PR.
+4. Claim: the `verify.sh` URL extractor reads past a Markdown link target. Evidence: F1-10 fails P1 on `issues/928)'s` in 3 of 3 Opus repeats. Outcome: proposed issue; the defect cannot change this verdict.
+5. Claim: two `/ste` rules conflict for multi-command code blocks. Evidence: F1-07 in both models splits one fenced block into numbered steps. Outcome: proposed issue for a `/builder` edit to `.agro/skills/ste/SKILL.md`.

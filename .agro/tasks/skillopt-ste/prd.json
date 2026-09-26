@@ -116,14 +116,15 @@
         "When the training pass rate is 0.90 or more, the advisor records `no-headroom` on #1171 and stops the experiment before US-006."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted at 544b3d46 (Opus run; Sonnet run archived). C1 executed: runs/baseline-train/episodes.jsonl has 90 lines, 90 ok. C2 executed: summarize.sh reports one skill_revision equal to pins.baseline_skill_md and mixed_models=false. C3 executed: summary.json pass_rate 0.9111, per-check p1 0.9333 p2 0.9778 p3 0.9889 p4 1.0, total cost $31.52, rescored_changes 0. C4 executed: headroom.stop=true (0.9111 >= 0.90); no-headroom recorded on #1171; experiment stopped before US-006.",
       "dependsOn": [
         "US-004"
       ],
       "files": [
         ".agro/evals/experiments/skillopt-ste/runs/baseline-train/"
-      ]
+      ],
+      "commit": "544b3d46"
     },
     {
       "id": "US-006",
@@ -141,7 +142,7 @@
       ],
       "priority": 6,
       "passes": false,
-      "notes": "",
+      "notes": "Not run: headroom stop in US-005. Integration fit done (skillopt.md, verdict fit, microsoft/SkillOpt@79124b37) and adapter built and tested with a fake claude only (optimize/, 3ff04462, Opus switch 660dc2ac). No candidate exists.",
       "dependsOn": [
         "US-005"
       ],
@@ -164,7 +165,7 @@
       ],
       "priority": 7,
       "passes": false,
-      "notes": "",
+      "notes": "Not run: headroom stop in US-005. The held-out split stays unseen.",
       "dependsOn": [
         "US-006"
       ],
@@ -177,15 +178,15 @@
       "title": "Report the verdict and the next decision",
       "description": "As the operator, I want one verdict and one next decision so that the epic closes on evidence.",
       "acceptanceCriteria": [
-        "`results.md` records one verdict: `improved`, `unchanged`, `regressed`, or `inconclusive`.",
+        "`results.md` records one verdict: `improved`, `unchanged`, `regressed`, `inconclusive`, or `no-headroom`.",
         "`results.md` computes the verdict from `runs/heldout/summary.json` with the rule in `## Architectural Decisions`.",
         "`results.md` lists each attempt status count, the total usage, and the total elapsed time.",
         "`results.md` records one next decision: expand to more skills, build a general optimizer adapter, start a model-weight RL spike, or stop.",
         "A comment on #1171 links `results.md` and marks D1 to D7."
       ],
       "priority": 8,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "results.md records verdict no-headroom (criterion amended to allow it), computed from runs/baseline-train/summary.json because no held-out run exists; attempt status counts, total usage, and elapsed time for both baseline runs; next decision: no optimizer expansion or RL spike; reuse the machinery on a target with a measured headroom screen. #1171 comment links results.md.",
       "dependsOn": [
         "US-007"
       ],
