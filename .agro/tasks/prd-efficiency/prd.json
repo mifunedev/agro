@@ -37,8 +37,8 @@
         "`tests/run-episode.sh` runs the runner with a fake `claude` for each arm and exits 0. A fault injection with a shared-ref worktree makes the test exit 1."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: bash tests/run-episode.sh on the integrated task branch, exit 0; the fake claude saw the WebFetch WebSearch block, one commit, no refs, no remote, and no token. 2 executed: same run; the baseline skill_revision equals the base tree, the candidate SKILL.md differs, and SKILL.md is skip-worktree; untracked tracker.md goes to core.excludesFile. 3 executed: the example record holds usage, elapsed_s, verifier, and substance. 4 executed: same run; the phase cap refuses at $15.01, the first-episode gate stops at $3.50, and --jobs 4 exits 2; the reserve is stricter than the criterion: $1.50 for each running episode. 5 executed: fault injection with PRD_EFFICIENCY_REPO_BUILDER=tests/fixtures/shared-ref-repo.sh, exit 1. Frozen folders and lib/ unchanged (git diff --stat empty).",
       "dependsOn": [
         "US-001"
       ],
@@ -47,7 +47,8 @@
         ".agro/evals/experiments/prd-efficiency/run-batch.sh",
         ".agro/evals/experiments/prd-efficiency/experiment.json",
         ".agro/evals/experiments/prd-efficiency/tests/run-episode.sh"
-      ]
+      ],
+      "commit": "c4ec1f29"
     },
     {
       "id": "US-003",
