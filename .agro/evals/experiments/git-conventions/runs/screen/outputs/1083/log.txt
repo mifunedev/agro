@@ -1,0 +1,1 @@
+be6092d5ad013b482b717f18006f0fdbfdad76c8 task: retire the CLAUDE.md provider-compatibility symlinks

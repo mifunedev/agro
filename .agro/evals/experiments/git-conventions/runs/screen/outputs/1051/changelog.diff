@@ -1,0 +1,15 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index bb06890..b77a740 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -20,6 +20,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
+ - Refuse `agro config set storage.homePath` when the sandbox's named volume already exists, unless you pass `--force`. ([#1042](https://github.com/mifunedev/agro/issues/1042))
+ - Rename the `agro sandbox install` flag `--repo <dir>` to `--checkout <dir>` and the `agro.json` field `repo` to `checkout`; both old spellings keep working. ([#1043](https://github.com/mifunedev/agro/issues/1043))
+ 
++### Removed
++
++- Remove the `agro cloud` command, the `cloud.apiUrl` field in `agro.json`, and the `OH_CLOUD_PROVISION_KEY` secret. ([#1050](https://github.com/mifunedev/agro/issues/1050))
++
+ ### Fixed
+ 
+ - Compare the compose wrapper's `--env-file` to `.devcontainer/.env` by file identity, not path string, so `compose-config-path-parity` stops failing on installed machines. ([#935](https://github.com/mifunedev/agro/issues/935))
