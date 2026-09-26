@@ -1,0 +1,899 @@
+{
+  "schemaVersion": 1,
+  "repo_revision": "3230337b1f7db559b469fa436c501528bf94b3e4",
+  "cutoff": "2026-08-13",
+  "eligibility": {
+    "min_words": 80,
+    "max_words": 1500
+  },
+  "documents": [
+    {
+      "id": "F1-01",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/rfcs/adr-0001-standards-scope.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 536,
+      "sha256": "6cff2245d662b7f2a60ae405b210607f191eb61088e1d0241e508eb9e7c0dd8f",
+      "origin_sha256": "6cff2245d662b7f2a60ae405b210607f191eb61088e1d0241e508eb9e7c0dd8f",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F1-02",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/rfcs/rfc-mcp-exec-runner.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 878,
+      "sha256": "df3ac3a014aa34b08bdc187240878cf3e62a7f244ea83ccd4311a8f29e2ae2fa",
+      "origin_sha256": "df3ac3a014aa34b08bdc187240878cf3e62a7f244ea83ccd4311a8f29e2ae2fa",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F1-03",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/harness-manifest.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 336,
+      "sha256": "2cda5a3dbc01ecf55ea1ba87601b37aa6c47659f87ed7ed446a03eeb8d3917c7",
+      "origin_sha256": "2cda5a3dbc01ecf55ea1ba87601b37aa6c47659f87ed7ed446a03eeb8d3917c7",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F1-04",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/rfcs/rfc-agro-migration.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 431,
+      "sha256": "587eea13e95843b4ff1eaeec182fa0987f201a003b61b8de693c3669a9c70572",
+      "origin_sha256": "648a5b6a905b28d0c882ffe4368dad41a09bf6744202c9deca9bc439ebc40943",
+      "seeded_gaps": [
+        {
+          "line": 30,
+          "removed": "90 days",
+          "replacement": "some"
+        }
+      ]
+    },
+    {
+      "id": "F1-05",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/harnesses/pi.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 1459,
+      "sha256": "2394ae4f5ff9b039005152ced60df5b5a80ec2cbf5614ae831ceebb667decd36",
+      "origin_sha256": "2394ae4f5ff9b039005152ced60df5b5a80ec2cbf5614ae831ceebb667decd36",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F1-06",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/release-requirements-1019-boot-fix.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 1095,
+      "sha256": "52df89210371fc445409db9436f28845925c26403f199df13a7c72beb68117b9",
+      "origin_sha256": "cfd328be2eb32393442c3888803e0f529e6b16a5aa1a45de04a4d9c44ceabb8b",
+      "seeded_gaps": [
+        {
+          "line": 19,
+          "removed": "11 seconds",
+          "replacement": "some"
+        }
+      ]
+    },
+    {
+      "id": "F1-07",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/agro-compatibility.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 530,
+      "sha256": "0a07baddadb0e8543baaaff7f7ea618411c210e372eabd7cb3bdd2b9152ffa98",
+      "origin_sha256": "0a07baddadb0e8543baaaff7f7ea618411c210e372eabd7cb3bdd2b9152ffa98",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F1-08",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/intro.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 752,
+      "sha256": "5215f7a8985b47d9a94dc308e55d0d20193ae1af718a2da2c270fa3ad51e1f33",
+      "origin_sha256": "5215f7a8985b47d9a94dc308e55d0d20193ae1af718a2da2c270fa3ad51e1f33",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F1-09",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/contributing.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 1282,
+      "sha256": "90de117ee8e814c3990f59fe585d53b49331f81983d9f6165e087fc8672cfddc",
+      "origin_sha256": "90de117ee8e814c3990f59fe585d53b49331f81983d9f6165e087fc8672cfddc",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F1-10",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/rfcs/README.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 775,
+      "sha256": "aae6f98bc9c11f881bf09e8b494fa5e7a4aa31b10ed9bedccd0746e8b16d0c0d",
+      "origin_sha256": "aae6f98bc9c11f881bf09e8b494fa5e7a4aa31b10ed9bedccd0746e8b16d0c0d",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F1-11",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/repair-sandbox-boot-advisory.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 1343,
+      "sha256": "4159739ef43ae7f71feedab2fbbd09469f40e7d11adf71deaa41301bb92dc0fb",
+      "origin_sha256": "4159739ef43ae7f71feedab2fbbd09469f40e7d11adf71deaa41301bb92dc0fb",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F1-12",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/rfcs/rfc-runtime-support.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 1453,
+      "sha256": "0e01d6195a72701f463ca4c68ba60a55c9604f03f1d66334477ef1395b7062f8",
+      "origin_sha256": "0e01d6195a72701f463ca4c68ba60a55c9604f03f1d66334477ef1395b7062f8",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F1-13",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/harnesses/t3code.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 1172,
+      "sha256": "724159ec39b50f92d4f795ed8d9d921ed09b1c022fb0c9c2a935d16092446b78",
+      "origin_sha256": "724159ec39b50f92d4f795ed8d9d921ed09b1c022fb0c9c2a935d16092446b78",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F1-14",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/runtimes/overview.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 528,
+      "sha256": "4e4f3215cb4fc710aa3a6e0804bb6c2fc89893caced1462f07533e54360dd984",
+      "origin_sha256": "4e4f3215cb4fc710aa3a6e0804bb6c2fc89893caced1462f07533e54360dd984",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F1-15",
+      "family": "F1",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "docs/rfcs/rfc-trace-ledger.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 1160,
+      "sha256": "f770fe54b2b4d574a6f9bb59bef9325907a2f531b630b23b5f7d838e72631e43",
+      "origin_sha256": "f770fe54b2b4d574a6f9bb59bef9325907a2f531b630b23b5f7d838e72631e43",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F2-01",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/skills/cloudflared/SKILL.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 965,
+      "sha256": "9c9f6de5be9f9c0f7d8d954d565414581e100ecd7714d1acf52e3188c34ca1b1",
+      "origin_sha256": "9c9f6de5be9f9c0f7d8d954d565414581e100ecd7714d1acf52e3188c34ca1b1",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F2-02",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": "projects/AGENTS.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 162,
+      "sha256": "c950e46325241e7b310550e1b4285a8b87c65493a55bf243fa95619abca64684",
+      "origin_sha256": "c950e46325241e7b310550e1b4285a8b87c65493a55bf243fa95619abca64684",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F2-03",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/skills/wiki/SKILL.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 778,
+      "sha256": "8a6b438f826748213b49c32cb8f3237fa18909013b6ee24dbef8e1ac8d2a74af",
+      "origin_sha256": "5e8b97926cebbc9baecbfaf322b313dcd7de7d7466a83bca575cf4b95ee65c20",
+      "seeded_gaps": [
+        {
+          "line": 53,
+          "removed": "0",
+          "replacement": "some"
+        }
+      ]
+    },
+    {
+      "id": "F2-04",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/skills/eval/SKILL.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 491,
+      "sha256": "55a84e3fd118811ed9b907e2e8838a5c25ff6c4073fc8281eecf008df4fed628",
+      "origin_sha256": "55a84e3fd118811ed9b907e2e8838a5c25ff6c4073fc8281eecf008df4fed628",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F2-05",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/logs/AGENTS.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 240,
+      "sha256": "bb87c95259f1b84ac75cba310bc10b5087e60534ffd244746ec7cf09f1932007",
+      "origin_sha256": "bb87c95259f1b84ac75cba310bc10b5087e60534ffd244746ec7cf09f1932007",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F2-06",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/skills/architect/SKILL.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 1034,
+      "sha256": "18acbda6c527730152e2a2aa4b5d5e57ec17fdeeb1e35fd7b3394e9cc59b3c54",
+      "origin_sha256": "18acbda6c527730152e2a2aa4b5d5e57ec17fdeeb1e35fd7b3394e9cc59b3c54",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F2-07",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/knowledge/README.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 1308,
+      "sha256": "55dceeb47120a57c8d663972b6ac3f22c3e0c3cbdfb012596478fa53f6ef7b83",
+      "origin_sha256": "311194ee621acbc251f65c988f5d43135fdc1b0c2af9ccbe1715e0b22ec4c166",
+      "seeded_gaps": [
+        {
+          "line": 58,
+          "removed": "2608.27454",
+          "replacement": "some"
+        }
+      ]
+    },
+    {
+      "id": "F2-08",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/skills/audit/SKILL.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 852,
+      "sha256": "a31064d7e64d66976ac0ea66746db9c125102a2e0adc6cc77c81920218f21e5d",
+      "origin_sha256": "a31064d7e64d66976ac0ea66746db9c125102a2e0adc6cc77c81920218f21e5d",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F2-09",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/skills/release/SKILL.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 1413,
+      "sha256": "4574d060316b7663c3769907b4dd51a6067ad205e2dd80590449ff1a774172d3",
+      "origin_sha256": "4574d060316b7663c3769907b4dd51a6067ad205e2dd80590449ff1a774172d3",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F2-10",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/skills/builder/SKILL.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 784,
+      "sha256": "6cec2589c168d1a0d305f09256eee3cf5a25fdc52d265ad832a4e88bb3930566",
+      "origin_sha256": "6cec2589c168d1a0d305f09256eee3cf5a25fdc52d265ad832a4e88bb3930566",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F2-11",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/skills/agent-browser/SKILL.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 994,
+      "sha256": "518d4f2b662e17661666bf3054e9c3f3dbe882782372620124201dcbca710fed",
+      "origin_sha256": "518d4f2b662e17661666bf3054e9c3f3dbe882782372620124201dcbca710fed",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F2-12",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/skills/t3/SKILL.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 890,
+      "sha256": "7bedf6e233b2335bca30beebd80b2bb3d10ead9085198e142ff43ae682d4c621",
+      "origin_sha256": "7bedf6e233b2335bca30beebd80b2bb3d10ead9085198e142ff43ae682d4c621",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F2-13",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/cli/README.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 1231,
+      "sha256": "4a871f840bf5259b6f8ef49e50c39cbe77a3bbfe0765c6c049598280a543eabc",
+      "origin_sha256": "4a871f840bf5259b6f8ef49e50c39cbe77a3bbfe0765c6c049598280a543eabc",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F2-14",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".agro/evals/datasets/README.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 968,
+      "sha256": "3cf55fe36e72ad6f9e12bc05253fb23a10e8058fc466d60175a65cb703d5b416",
+      "origin_sha256": "3cf55fe36e72ad6f9e12bc05253fb23a10e8058fc466d60175a65cb703d5b416",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F2-15",
+      "family": "F2",
+      "split": "train",
+      "origin": {
+        "kind": "file",
+        "ref": ".worktrees/AGENTS.md",
+        "revision": "3230337b1f7db559b469fa436c501528bf94b3e4"
+      },
+      "words": 198,
+      "sha256": "d5e4329757f69705d9bf2ecf1b41630c29be7d3b32d679e56943a68df509e5b8",
+      "origin_sha256": "d5e4329757f69705d9bf2ecf1b41630c29be7d3b32d679e56943a68df509e5b8",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F3-01",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/437",
+        "revision": "2026-06-18T20:03:53Z"
+      },
+      "words": 177,
+      "sha256": "62fea7cd2a4ed36ad3c9b357bcbd31e222d043da9c73b6a8c77ef0257cb5077e",
+      "origin_sha256": "62fea7cd2a4ed36ad3c9b357bcbd31e222d043da9c73b6a8c77ef0257cb5077e",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F3-02",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/63",
+        "revision": "2026-04-18T19:07:29Z"
+      },
+      "words": 377,
+      "sha256": "0051cd84cb32c09d68799adf9e8fcf99d2e8365d4c1123f4858555d4d150bc77",
+      "origin_sha256": "6c510c34f1f87138d811d9c269f009325113619a611810abcc3b8d19165e4e34",
+      "seeded_gaps": [
+        {
+          "line": 57,
+          "removed": "0",
+          "replacement": "some"
+        }
+      ]
+    },
+    {
+      "id": "F3-03",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/247",
+        "revision": "2026-05-04T03:42:37Z"
+      },
+      "words": 283,
+      "sha256": "f65e09b02d9b4ed59a4d57e139db052b401f380f9411be526e4d622f85f13722",
+      "origin_sha256": "36127cd24da2830c08c9afbf5c83922fe086d665f6ff6bf516bb95d86e8edd65",
+      "seeded_gaps": [
+        {
+          "line": 27,
+          "removed": "755",
+          "replacement": "some"
+        }
+      ]
+    },
+    {
+      "id": "F3-04",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/307",
+        "revision": "2026-05-18T01:27:28Z"
+      },
+      "words": 124,
+      "sha256": "25d9dcf3f741dbc9085f43bb4cf29ecc9a1c9f320616b73329a815943dfad8c7",
+      "origin_sha256": "25d9dcf3f741dbc9085f43bb4cf29ecc9a1c9f320616b73329a815943dfad8c7",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F3-05",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/255",
+        "revision": "2026-05-08T05:26:49Z"
+      },
+      "words": 304,
+      "sha256": "311259e1f972ef2016b377ff8744ac9c9dc09240b036f12eff3bdbc9eb5cd064",
+      "origin_sha256": "311259e1f972ef2016b377ff8744ac9c9dc09240b036f12eff3bdbc9eb5cd064",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F3-06",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/140",
+        "revision": "2026-04-26T04:37:39Z"
+      },
+      "words": 161,
+      "sha256": "76856406c0b6fa2285fd7e0c8c36ebf0370a5930d959f5f04322e1f47ff849ff",
+      "origin_sha256": "76856406c0b6fa2285fd7e0c8c36ebf0370a5930d959f5f04322e1f47ff849ff",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F3-07",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/135",
+        "revision": "2026-04-26T04:41:24Z"
+      },
+      "words": 147,
+      "sha256": "8da33171936470558a315531a09ad8d0cc822b598c72cc989ddfded52f630b4b",
+      "origin_sha256": "8da33171936470558a315531a09ad8d0cc822b598c72cc989ddfded52f630b4b",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F3-08",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/297",
+        "revision": "2026-05-18T01:07:50Z"
+      },
+      "words": 107,
+      "sha256": "2f1e510d1c365cf119020cdfa0252db4673a1b2fe9b288bdb0fe27b20eb4d6ad",
+      "origin_sha256": "2f1e510d1c365cf119020cdfa0252db4673a1b2fe9b288bdb0fe27b20eb4d6ad",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F3-09",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/583",
+        "revision": "2026-07-03T23:02:12Z"
+      },
+      "words": 272,
+      "sha256": "239733e9c9ab36958915ec1362246b97bce3a203b4cfc172d3c85c50d960aab3",
+      "origin_sha256": "239733e9c9ab36958915ec1362246b97bce3a203b4cfc172d3c85c50d960aab3",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F3-10",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/207",
+        "revision": "2026-05-02T23:46:21Z"
+      },
+      "words": 173,
+      "sha256": "61a65f91a969e8303033fb721518675447e308c6d41b1390fcfd043f2b196b78",
+      "origin_sha256": "61a65f91a969e8303033fb721518675447e308c6d41b1390fcfd043f2b196b78",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F3-11",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/693",
+        "revision": "2026-08-03T03:43:08Z"
+      },
+      "words": 381,
+      "sha256": "1b1e14b0c60e8135adf89d8a77d6a370e69c8edacaced4734a557a17f48a6223",
+      "origin_sha256": "1b1e14b0c60e8135adf89d8a77d6a370e69c8edacaced4734a557a17f48a6223",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F3-12",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/235",
+        "revision": "2026-05-04T00:51:31Z"
+      },
+      "words": 257,
+      "sha256": "9c848814fe303638baf4a293eafeff6332082b860b245e0a020d30eb8d10bddd",
+      "origin_sha256": "9c848814fe303638baf4a293eafeff6332082b860b245e0a020d30eb8d10bddd",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F3-13",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/723",
+        "revision": "2026-08-09T04:05:17Z"
+      },
+      "words": 280,
+      "sha256": "2f01eb4e6b8ebdfd3622691e6ab8ce7b487ed0ae22e5c7e1ac778a4e780e8fea",
+      "origin_sha256": "2f01eb4e6b8ebdfd3622691e6ab8ce7b487ed0ae22e5c7e1ac778a4e780e8fea",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F3-14",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/316",
+        "revision": "2026-05-21T02:56:43Z"
+      },
+      "words": 294,
+      "sha256": "f0a4c4b00a397d434e8b43be6df94d039bbd652c7e14f58afd14c8a7dff59c00",
+      "origin_sha256": "f0a4c4b00a397d434e8b43be6df94d039bbd652c7e14f58afd14c8a7dff59c00",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F3-15",
+      "family": "F3",
+      "split": "heldout",
+      "origin": {
+        "kind": "issue",
+        "ref": "issue/302",
+        "revision": "2026-05-16T06:09:30Z"
+      },
+      "words": 206,
+      "sha256": "6dcbdf8c74a17213c3cec3c58a5e0715c5b4ceff34327f3b393e72cdf473e36c",
+      "origin_sha256": "6dcbdf8c74a17213c3cec3c58a5e0715c5b4ceff34327f3b393e72cdf473e36c",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F4-01",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/482",
+        "revision": "2026-06-21T04:41:28Z"
+      },
+      "words": 390,
+      "sha256": "2ddf244858ea259e0b49d777ec57d125177c1adfbac69e25e739d0f6804951f6",
+      "origin_sha256": "1b136b96b5c5fa20d1a88af26a1fab36def9553e29e00076562a0b7334248135",
+      "seeded_gaps": [
+        {
+          "line": 13,
+          "removed": "12",
+          "replacement": "some"
+        }
+      ]
+    },
+    {
+      "id": "F4-02",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/440",
+        "revision": "2026-06-18T20:25:12Z"
+      },
+      "words": 129,
+      "sha256": "b13c41cba284bc25600bd2dc130ac76a25c1d74a3618695867034043aafc4539",
+      "origin_sha256": "f2691292dd46dacb18a3fb6eae30551df271644ccbd1882b4d8191ea8000e745",
+      "seeded_gaps": [
+        {
+          "line": 17,
+          "removed": "49",
+          "replacement": "some"
+        }
+      ]
+    },
+    {
+      "id": "F4-03",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/153",
+        "revision": "2026-04-26T04:34:26Z"
+      },
+      "words": 315,
+      "sha256": "e6c762f6f0cc816ca121ef538d4d2312e51a60d371f10168731409c427b9bf18",
+      "origin_sha256": "e6c762f6f0cc816ca121ef538d4d2312e51a60d371f10168731409c427b9bf18",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F4-04",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/190",
+        "revision": "2026-04-30T04:35:52Z"
+      },
+      "words": 351,
+      "sha256": "134cc461cafc754f9c2187494967d149c040d45794dc276540c1334992f7c804",
+      "origin_sha256": "134cc461cafc754f9c2187494967d149c040d45794dc276540c1334992f7c804",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F4-05",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/696",
+        "revision": "2026-08-03T03:38:18Z"
+      },
+      "words": 748,
+      "sha256": "8743069a37007b8e6922dbba844f8fa461922725e69d361f9bf81d0e6f0fe4f6",
+      "origin_sha256": "8743069a37007b8e6922dbba844f8fa461922725e69d361f9bf81d0e6f0fe4f6",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F4-06",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/595",
+        "revision": "2026-08-13T14:18:48Z"
+      },
+      "words": 386,
+      "sha256": "c8d9b458b823777aea5ef64ca6d54a1b64b624ee284c3b0e3eb1bb7cc6cf7ff8",
+      "origin_sha256": "c8d9b458b823777aea5ef64ca6d54a1b64b624ee284c3b0e3eb1bb7cc6cf7ff8",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F4-07",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/427",
+        "revision": "2026-06-16T06:50:00Z"
+      },
+      "words": 235,
+      "sha256": "9d6be5bc96429d5040fc46c2dad450a972ab4b3be8d4e3cf9b9ccbb28dd97ba5",
+      "origin_sha256": "9d6be5bc96429d5040fc46c2dad450a972ab4b3be8d4e3cf9b9ccbb28dd97ba5",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F4-08",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/563",
+        "revision": "2026-07-03T03:42:47Z"
+      },
+      "words": 189,
+      "sha256": "7c8624a7e5c18b8342b16c254e5cb65dd2fab00f61e7dd7995bcf1096b057041",
+      "origin_sha256": "7c8624a7e5c18b8342b16c254e5cb65dd2fab00f61e7dd7995bcf1096b057041",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F4-09",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/593",
+        "revision": "2026-07-10T05:28:46Z"
+      },
+      "words": 194,
+      "sha256": "7d436a864cd09d370563e4f07f624595d3b4df2dcd864c3a7cf50e40401bbd9a",
+      "origin_sha256": "7d436a864cd09d370563e4f07f624595d3b4df2dcd864c3a7cf50e40401bbd9a",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F4-10",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/203",
+        "revision": "2026-04-30T17:30:33Z"
+      },
+      "words": 318,
+      "sha256": "3a1992672556cf77aa38588e90ec9d7c43c0307901a8d4c9cd97e88e3587026b",
+      "origin_sha256": "3a1992672556cf77aa38588e90ec9d7c43c0307901a8d4c9cd97e88e3587026b",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F4-11",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/68",
+        "revision": "2026-04-18T17:32:17Z"
+      },
+      "words": 219,
+      "sha256": "98832c09f084ed0c9464190604d3680959ba9b8317fbc3f1409a99876fa79e23",
+      "origin_sha256": "98832c09f084ed0c9464190604d3680959ba9b8317fbc3f1409a99876fa79e23",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F4-12",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/507",
+        "revision": "2026-06-21T23:16:27Z"
+      },
+      "words": 136,
+      "sha256": "b985ccb9d65225e5d33fe2e778595e6e3682e949d81043e6e1f2321296bfd4a4",
+      "origin_sha256": "b985ccb9d65225e5d33fe2e778595e6e3682e949d81043e6e1f2321296bfd4a4",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F4-13",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/547",
+        "revision": "2026-07-01T02:25:56Z"
+      },
+      "words": 255,
+      "sha256": "706c96c526e9df9d6682b5adb984efc28508f84ccd05d7cd1dbf6332239b5f60",
+      "origin_sha256": "706c96c526e9df9d6682b5adb984efc28508f84ccd05d7cd1dbf6332239b5f60",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F4-14",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/600",
+        "revision": "2026-07-05T16:09:58Z"
+      },
+      "words": 306,
+      "sha256": "42c8694f17fa88eeee8f1c2d34e99ccb93f812ee57dda3eb3ac398da4bed0860",
+      "origin_sha256": "42c8694f17fa88eeee8f1c2d34e99ccb93f812ee57dda3eb3ac398da4bed0860",
+      "seeded_gaps": []
+    },
+    {
+      "id": "F4-15",
+      "family": "F4",
+      "split": "heldout",
+      "origin": {
+        "kind": "pr",
+        "ref": "pr/562",
+        "revision": "2026-07-03T02:26:48Z"
+      },
+      "words": 420,
+      "sha256": "47b4e2b75e135faa96a9f111ebe3626cee82c2bc5c6fa75ee9171cb691a95e6e",
+      "origin_sha256": "47b4e2b75e135faa96a9f111ebe3626cee82c2bc5c6fa75ee9171cb691a95e6e",
+      "seeded_gaps": []
+    }
+  ]
+}
