@@ -212,14 +212,15 @@
         "`summarize.sh heldout --paired` reports each condition of the decision rule as true or false."
       ],
       "priority": 10,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: summarize.sh heldout --paired; 72 latest records scored, 12 cases x 2 arms x 3 repeats, 0 excluded. 2 reasoned: run-batch.sh ran both arms in one batch and alternated the arm order for each slot; the account spend limit stopped 13 slots (1061 baseline r3, all of 1092 and 1168), and the resume batch retried them with both arms of 1092 and 1168 again in one batch. 3 executed: summary.json paired.decision reports ratio_le_max true, upper_lt_max true, pass_rate_guard true, no_new_failure_class true, substance_guard false, verdict no-success.",
       "dependsOn": [
         "US-009"
       ],
       "files": [
         ".agro/evals/experiments/prd-efficiency/runs/heldout/"
-      ]
+      ],
+      "commit": "45fbda91"
     },
     {
       "id": "US-011",
