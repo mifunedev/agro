@@ -39,6 +39,7 @@ legacy_docs_hits="$(git -C "$ROOT" grep -nI -F '.agro/docs' -- \
   ':!.agro/tasks/**' \
   ':!.agro/evals/experiments/*/corpus/**' \
   ':!.agro/evals/experiments/*/archive/**' \
+  ':!.agro/evals/experiments/*/runs/*/outputs/**' \
   ':!.agro/knowledge/raw/**' \
   ':!.agro/evals/RESULTS.md' \
   ':!.agro/evals/probes/docs-build-fast-path.sh')"
@@ -115,6 +116,8 @@ if git -C "$ROOT" grep -nE 'docusaurus build|pnpm (run )?docs:build|pnpm --dir (
   ':!.agro/evals/probes/docs-build-fast-path.sh' \
   ':!.agro/tasks/**' \
   ':!.agro/evals/experiments/*/corpus/**' \
+  ':!.agro/evals/experiments/*/archive/**' \
+  ':!.agro/evals/experiments/*/runs/*/outputs/**' \
   ':!CHANGELOG.md' >/tmp/docs-site-externalized-grep.txt; then
   failures+=("core repo still references removed docs-build commands: $(tr '\n' ';' </tmp/docs-site-externalized-grep.txt)")
 fi

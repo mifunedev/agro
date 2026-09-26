@@ -100,7 +100,7 @@ Verdict: **`fit`**.
 The integration has no blocker. Four conditions apply to the run:
 
 1. **Spend limit.** Each episode calls `claude -p`. The recommended proposer also calls `claude -p`. The run waits until the operator lifts the monthly limit.
-2. **Incomplete baseline.** `runs/baseline-train/summary.json` records 10 `infra_failure` attempts. F2-13, F2-14, and F2-15 hold no scored attempt. F2-12 holds 2 scored attempts. Each failure line records `claude exited 1`. Complete these attempts from the retry budget before the optimizer starts, or record why the gate can omit them.
+2. **Baseline run.** The Opus `runs/baseline-train` run replaces the archived Sonnet run in `archive/claude-sonnet-5/runs/baseline-train`. The optimizer starts only after `runs/baseline-train/summary.json` exists and records only `claude-opus-5-5`. Complete each `infra_failure` attempt from the retry budget before the optimizer starts, or record why the gate can omit it.
 3. **Protected regions.** Disable `optimizer.use_slow_update`, `optimizer.use_meta_skill`, and `optimizer.use_skill_aware_reflection`. The adapter rejects a candidate that holds a SkillOpt region marker.
 4. **Frontmatter.** The adapter removes the YAML frontmatter of `SKILL.md` before SkillOpt reads the body. The adapter adds the original frontmatter back, byte for byte, to each candidate. SkillOpt cannot change the skill `name` or the skill trigger text.
 
