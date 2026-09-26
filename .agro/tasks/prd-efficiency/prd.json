@@ -232,14 +232,15 @@
         "A comment on issue #1197 reports the verdict and the total cost."
       ],
       "priority": 11,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: results.md states the verdict no-improvement, the held-out metrics for each arm, the paired ratio 0.529 with interval 0.497 to 0.561, each guard result, the total cost $140.61, and the candidate diff groups; ste-check.sh exits 0. 2 executed: git diff --stat origin/development on the three frozen folders prints nothing. 3 executed: gh issue comment 1197, comment 5850787126.",
       "dependsOn": [
         "US-010"
       ],
       "files": [
         ".agro/evals/experiments/prd-efficiency/results.md"
-      ]
+      ],
+      "commit": "988f302a"
     }
   ]
 }
