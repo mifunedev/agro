@@ -1,0 +1,14 @@
+run-batch: run=smoke split=train docs=1 repeats=1 arms=baseline=5c2d45e1f45a3761559e2d8d2902e8beacccdc41 jobs=1 started=2026-09-26T02:29:58Z
+smoke--F1-04--baseline--r1--a1 ok pass=true elapsed_s=120.276
+summary: attempts=1 ok=1 pass=1 cost_usd=0.3398938
+run-batch: finished=2026-09-26T02:31:58Z
+run-batch: run=smoke split=train docs=1 repeats=1 arms=baseline=5c2d45e1f45a3761559e2d8d2902e8beacccdc41 jobs=1 started=2026-09-26T02:32:48Z
+smoke--F2-03--baseline--r1--a1 ok pass=true elapsed_s=190.597
+summary: attempts=2 ok=2 pass=2 cost_usd=0.7831728
+run-batch: finished=2026-09-26T02:35:59Z
+run-batch: run=smoke split=train docs=2 repeats=1 arms=baseline=5c2d45e1f45a3761559e2d8d2902e8beacccdc41 jobs=1 started=2026-09-26T03:09:27Z
+canary baseline 5c2d45e1f45a3761559e2d8d2902e8beacccdc41 ok pass=true
+skip F1-04 baseline r1: already recorded
+skip F2-03 baseline r1: already recorded
+summary: attempts=2 ok=2 pass=2 cost_usd=0.7831728
+run-batch: finished=2026-09-26T03:09:30Z
