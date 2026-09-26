@@ -47,15 +47,16 @@
         "`verify.sh` completes in less than 5 seconds on each corpus document."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted on integrated task branch at 3acbad26. C1 executed: verify.sh corpus/sources/F3-03.md tests/fixtures/F3-03.clean.md F3-03 prints one JSON object with p1_literals,p2_checker,p3_no_invention,p4_length,pass (+details), exit 0. C2 executed: every fault fixture pass=false, clean fixture pass=true. C3 executed: fault-code-span and fault-dropped-path give [p1..p4]=[false,true,true,true]. C4 executed: fault-checker gives [true,false,true,true]; checker materialized from repo_revision via git archive. C5 executed: fault-invented-number and fault-filled-gap give [true,true,false,true]. C6 executed: fault-truncated gives [true,true,true,false]. C7 executed: tests/verify-faults.sh exit 0 (10 cases incl. edge and exit-2 cases); unknown id and missing file exit 2. C8 executed: output=source over 60 ids, max 49 ms. Sanity: output=source gives p1 60/60, p3 52/60, p2 0/60. Probe suite: only environmental next-dev-prod and skills-vendored exit 1. Fixture doc switched from F4-02 to F3-03 because F4-02 text trips audit-stale-references.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/evals/experiments/skillopt-ste/verify.sh",
         ".agro/evals/experiments/skillopt-ste/tests/verify-faults.sh"
-      ]
+      ],
+      "commit": "3acbad26"
     },
     {
       "id": "US-003",
