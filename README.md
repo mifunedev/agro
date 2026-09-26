@@ -227,7 +227,7 @@ and [gateway documentation](docs/harnesses/hermes.md#model-and-gateway).
 #### Pi
 
 In [Slack Apps](https://api.slack.com/apps), create an app **From an app
-manifest** using [Pi's manifest](.pi/install/slack-manifest.json). It configures
+manifest** using [Pi's manifest](.pi/install/slack-manifest.yaml). It configures
 Socket Mode, events, and admin commands. Review permissions, install the app,
 and collect its own `xapp-` (`connections:write`) and `xoxb-` tokens.
 

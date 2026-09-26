@@ -11,6 +11,16 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Added
 
 - Print a one-time star line after the first successful `agro sandbox install` in an interactive terminal; set `AGRO_NO_STAR_PROMPT=1` to suppress it ([#1175](https://github.com/mifunedev/agro/issues/1175)).
+- Read operator Slack decisions by message timestamp and report sender timestamps for unattended escalations ([#1181](https://github.com/mifunedev/agro/issues/1181)).
+
+### Removed
+
+- Remove the project Pi recap package so new sessions no longer load `/recap` by default ([#1179](https://github.com/mifunedev/agro/issues/1179)).
+
+### Changed
+
+- Use a YAML Slack app manifest for Pi setup and provide a copyable version in the Slack docs while preserving the app's permissions, events, and admin commands ([#1177](https://github.com/mifunedev/agro/issues/1177)).
+- Use `~/.agro/workspaces/harness` for implicit host installs and `agro workspace create`, while retaining explicitly named `default` workspaces and recorded roots ([#1183](https://github.com/mifunedev/agro/issues/1183)).
 
 ## [0.15.0] - 2026-09-24
 

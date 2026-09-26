@@ -39,7 +39,6 @@ AGRO loads these project-local Pi packages from `.pi/settings.json`:
 - [`@tintinweb/pi-tasks`](https://github.com/tintinweb/pi-tasks) — task tracking for Pi with `TaskCreate`, `TaskList`, `TaskGet`, `TaskUpdate`, `TaskOutput`, `TaskStop`, and `TaskExecute` tools; a `/tasks` menu; and a persistent task widget. `TaskExecute` integrates with `@tintinweb/pi-subagents` so tracked tasks can run through configured subagents.
 - [`@narumitw/pi-goal`](https://pi.dev/packages/@narumitw/pi-goal?name=goal) — `/goal <task>` mode that keeps Pi working until it verifies completion and calls the `goal_complete` tool. Use `/goal pause`, `/goal resume`, or `/goal clear` to manage the active goal.
 - [`@narumitw/pi-codex-usage`](https://github.com/narumiruna/pi-extensions/tree/main/extensions/pi-codex-usage) — `/codex-status` plus a compact `openai-codex` statusline for 5-hour session usage and weekly usage. AGRO pins `0.6.2`, which includes the upstream stale-`ExtensionContext` statusline timer fix that prevents crashes after Pi replaces an extension context.
-- [`@tifan/pi-recap`](https://github.com/tifandotme/pi-extensions/tree/master/packages/pi-recap) — one-line session recaps for re-entry. Use `/recap` for a fresh goal-first recap, `/recap status` to inspect freshness/model state, and `/recap config` to choose the recap model. The package also generates one idle recap after five minutes and refreshes stale/missing recaps on resume.
 - [`@trevonistrevon/pi-loop`](https://pi.dev/packages/@trevonistrevon/pi-loop?name=monitor) — Monitor and loop tools for background command monitoring and scheduled re-wakes. Use `MonitorCreate`, `MonitorList`, and `MonitorStop` for long-running commands; use `/loop` or `LoopCreate` for cron/event-triggered follow-up prompts.
 - [`@guwidoe/pi-prompt-suggester`](https://github.com/guwidoe/pi-prompt-suggester) — intent-aware next-prompt suggestions after assistant completions. Suggestions can appear as ghost text in the editor, with `/suggesterSettings` for interactive configuration and `/suggester status` / `/suggester reseed` for inspection and manual reseeding.
 
@@ -61,7 +60,7 @@ holds no `baseUrl` field, so Pi reads the endpoint from the environment.
 
 The installed `@earendil-works/pi-ai` Codex Responses provider can reuse WebSocket cached continuation state by sending `previous_response_id`. If the upstream Codex backend forgets that response id, it returns `previous_response_not_found`; Pi clears the stale continuation but the failed user turn would otherwise be lost. AGRO keeps a small auto-loaded `.pi/extensions/codex-stale-response-retry.ts` extension that re-injects non-Slack failed turns once via `sendUserMessage(..., { deliverAs: "followUp" })`, causing the next request to start from fresh/full context. Slack-prefixed turns remain owned by the dedicated `.pi/bridge-recovery/` extension that is co-loaded with `pi-messenger-bridge`.
 
-Outside this project, try the packages manually with `pi -e npm:@narumitw/pi-goal`, `pi -e npm:@narumitw/pi-codex-usage@0.6.2`, `pi -e npm:@tifan/pi-recap`, `pi -e npm:@trevonistrevon/pi-loop`, or `pi -e npm:@guwidoe/pi-prompt-suggester@0.3.10`.
+Outside this project, try the packages manually with `pi -e npm:@narumitw/pi-goal`, `pi -e npm:@narumitw/pi-codex-usage@0.6.2`, `pi -e npm:@trevonistrevon/pi-loop`, or `pi -e npm:@guwidoe/pi-prompt-suggester@0.3.10`.
 
 ## Prompt suggestions
 
@@ -101,21 +100,6 @@ LoopDelete id="1"
 
 The package keeps a compact status line when loops, monitors, or native fallback tasks are active. AGRO leaves `PI_LOOP_SCOPE` unset, which means `session` scope: loop state is stored under `.pi/loops/loops-<sessionId>.json` and stays isolated across concurrent sessions and worktree agents. `.pi/loops/` is gitignored. Set `PI_LOOP_SCOPE=memory` for disposable no-disk state, `PI_LOOP_SCOPE=project` only when intentionally sharing loops across sessions, or `PI_LOOP=off` to disable the package store.
 
-## Recap
-
-Use `/recap` when re-entering a long Pi session without rereading the transcript. The recap is goal-first: it summarizes why the session exists, current state, decisions, relevant files or commands, and the likely next action.
-
-```text
-/recap
-/recap status
-/recap config
-/recap help
-```
-
-`pi-recap` waits five idle minutes after each agent response and generates one automatic recap if you stay away. On resume, it shows the saved recap when current or regenerates it when stale/missing. The visible recap clears when you send a normal non-`/recap` message.
-
-Recap model selection is user-level state, not repository state. `/recap config` writes the user's selected model outside LLM context; the same setting can be edited manually at `~/.config/pi/extensions/pi-recap.json`. The upstream default is `openai-codex/gpt-5.6-luna`.
-
 ## Codex usage status
 
 Use `/codex-status` to show ChatGPT Codex subscription usage without leaving Pi. AGRO enables `@narumitw/pi-codex-usage@0.6.2` by default; this fixed pin includes the upstream stale-`ExtensionContext` statusline timer cleanup, preventing timer callbacks from crashing after Pi replaces the extension context:
@@ -138,6 +122,8 @@ The default task runtime state lives under `.pi/tasks/`, which is gitignored. Le
 
 `pi-loop` detects `@tintinweb/pi-tasks` over Pi's event bus. Because AGRO loads `pi-tasks` by default, `pi-loop` delegates task management to that package; its native fallback `TaskCreate`/`TaskList`/`TaskUpdate`/`TaskDelete` tools and `/tasks` command only register in projects where `pi-tasks` is absent.
 
+Removing the project recap package declaration does not delete existing runtime state or cached installations. A running Pi session retains `pi-recap` until you reload or restart the session. Personal package declarations and explicit `pi -e` arguments can still load `pi-recap`.
+
 ## Dynamic workflow retirement
 
 AGRO no longer pins a dynamic workflow package, so a new Pi session registers no `workflow` tool. Use `/delegate` for bounded delegation over the Pi `Agent` tools.
@@ -146,6 +132,6 @@ A Pi session that is already running keeps the tool until you reload or restart 
 
 ## Slack integration
 
-The harness ships Slack via the **pi-messenger-bridge** npm package, loaded only in the dedicated `client-slack-pi` tmux session via `--extension` (not pinned in `.pi/settings.json`). Create/update the Slack app from `.pi/install/slack-manifest.json`, set `PI_SLACK_APP_TOKEN` and `PI_SLACK_BOT_TOKEN` in `.devcontainer/.env`, manage the session with `gateway pi` (`gateway status` to check, `gateway pi --restart` after token edits), and use the Pi-side `/msg-bridge` command for bridge status/configuration. Access control is challenge-based (deny-by-default, no static allowlist); trusted-user/channel admin is handled by manifest-backed Slack admin commands or `.pi/msg-bridge.json` pre-seeding, and inbound Slack messages route into the agent via the package using Pi's native `sendUserMessage()` / `turn_end`.
+The harness ships Slack via the **pi-messenger-bridge** npm package, loaded only in the dedicated `client-slack-pi` tmux session via `--extension` (not pinned in `.pi/settings.json`). Create/update the Slack app from `.pi/install/slack-manifest.yaml`, set `PI_SLACK_APP_TOKEN` and `PI_SLACK_BOT_TOKEN` in `.devcontainer/.env`, manage the session with `gateway pi` (`gateway status` to check, `gateway pi --restart` after token edits), and use the Pi-side `/msg-bridge` command for bridge status/configuration. Access control is challenge-based (deny-by-default, no static allowlist); trusted-user/channel admin is handled by manifest-backed Slack admin commands or `.pi/msg-bridge.json` pre-seeding, and inbound Slack messages route into the agent via the package using Pi's native `sendUserMessage()` / `turn_end`.
 
 See [Slack integration](../integrations/slack.md) for setup steps.
