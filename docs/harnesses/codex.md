@@ -41,6 +41,30 @@ Both write to `/home/sandbox/.local`, because the sandbox exports
 `NPM_CONFIG_PREFIX` as that prefix. Do not use `sudo`: `codex` is not on sudo's
 `secure_path`, and a root-owned install would leave the home volume.
 
+### Host installation with a different npm prefix
+
+On an authorized host, check which Codex executable the shell selects:
+
+```bash
+command -v codex
+readlink -f "$(command -v codex)"
+npm prefix -g
+codex --version
+```
+
+If the executable resolves under `$HOME/.local` but `npm prefix -g` reports
+another directory, a bare `npm install -g @openai/codex` updates a different
+installation. Update the selected installation instead:
+
+```bash
+npm install -g --prefix "$HOME/.local" @openai/codex@latest
+hash -r
+codex --version
+```
+
+Run these commands on the host only with approval for host file and credential
+access. Inside the sandbox, use `agro harness install codex`.
+
 ## Authentication
 
 Run `codex login` once and follow the prompts:

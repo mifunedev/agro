@@ -3,7 +3,7 @@
 # workspace sandbox. Keep permission-profile changes validated against `codex`;
 # the old glob-based shape makes Codex 0.118+ abort at startup.
 
-model = "gpt-6-astra"
+model = "gpt-6-sol"
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
 
