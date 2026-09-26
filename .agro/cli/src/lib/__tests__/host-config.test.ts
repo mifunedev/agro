@@ -84,7 +84,7 @@ describe("workspace roots", () => {
   it("sits beside the sandbox registry, never at the state home root", () => {
     const home = userHome("clean");
     const root = defaultHarnessRoot({}, home);
-    expect(root).toBe(join(home, ".agro", "workspaces", "default"));
+    expect(root).toBe(join(home, ".agro", "workspaces", "harness"));
     expect(root).not.toBe(join(home, ".agro"));
     expect(root.startsWith(join(home, ".agro", "sandboxes"))).toBe(false);
   });
@@ -106,20 +106,20 @@ describe("workspace roots", () => {
   it("follows an explicit state home override", () => {
     const env = stateHome(".agro");
     expect(defaultHarnessRoot(env, OVERRIDDEN_HOME)).toBe(
-      join(env.AGRO_HOME!, "workspaces", "default"),
+      join(env.AGRO_HOME!, "workspaces", "harness"),
     );
   });
 });
 
 describe("defaultHarnessRoot", () => {
-  it("names <home>/.agro/workspaces/default in a clean home", () => {
+  it("names <home>/.agro/workspaces/harness in a clean home", () => {
     const home = userHome("clean");
-    expect(defaultHarnessRoot({}, home)).toBe(join(home, ".agro", "workspaces", "default"));
+    expect(defaultHarnessRoot({}, home)).toBe(join(home, ".agro", "workspaces", "harness"));
   });
 
   it("stays on the agro generation when the home carries a legacy registry", () => {
     const home = userHome("legacy-registry");
-    expect(defaultHarnessRoot({}, home)).toBe(join(home, ".agro", "workspaces", "default"));
+    expect(defaultHarnessRoot({}, home)).toBe(join(home, ".agro", "workspaces", "harness"));
   });
 
   it("is never the state home root itself", () => {
@@ -258,11 +258,19 @@ describe("resolveHarnessRoot", () => {
     expect(resolveHarnessRoot(undefined, env, OVERRIDDEN_HOME)).toBe("/srv/agro");
   });
 
-  it("falls back to <home>/agro when no config exists", () => {
+  it("keeps a recorded default workspace instead of migrating it", () => {
+    const home = userHome("clean");
+    const recorded = workspaceRoot("default", {}, home);
+    writeHostConfig({ version: 1, harnessRoot: recorded }, {}, home);
+    expect(resolveHarnessRoot(undefined, {}, home)).toBe(recorded);
+    expect(readHostConfig({}, home).harnessRoot).toBe(recorded);
+  });
+
+  it("falls back to <home>/.agro/workspaces/harness when no config exists", () => {
     const home = userHome("legacy-registry");
     expect(resolveHarnessRoot(undefined, {}, home)).toBe(defaultHarnessRoot({}, home));
     expect(resolveHarnessRoot(undefined, {}, home)).toBe(
-      join(home, ".agro", "workspaces", "default"),
+      join(home, ".agro", "workspaces", "harness"),
     );
   });
 });

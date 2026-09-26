@@ -162,7 +162,10 @@ describe("help", () => {
 
   it("documents both subcommands", () => {
     const help = captureStdout(() => printWorkspaceHelp());
-    for (const s of ["agro workspace create", "agro workspace list", "--json", "--path", "--ref"]) {
+    for (const s of [
+      "agro workspace create", "agro workspace list", "--json", "--path", "--ref",
+      "implicit name is `harness`", "Pass `default`",
+    ]) {
       expect(help).toContain(s);
     }
   });
@@ -274,7 +277,7 @@ describe("runWorkspaceCreate", () => {
     expect(existsSync(workspacePath(home, "alpha"))).toBe(false);
   });
 
-  it("defaults the name to `default`", async () => {
+  it("defaults the name to `harness`", async () => {
     const home = emptyStateHome();
     const user = fakeHome();
     const { calls, run } = cloneRunner();
@@ -283,7 +286,20 @@ describe("runWorkspaceCreate", () => {
     expect(
       await runWorkspaceCreate(undefined, { bin: "agro", run, env: home.env, homedir: user.homedir }, io),
     ).toBe(0);
+    expect(gitCalls(calls)[0].args[2]).toBe(workspacePath(home, "harness"));
+  });
+
+  it("keeps an explicit `default` workspace available", async () => {
+    const home = emptyStateHome();
+    const user = fakeHome();
+    const { calls, run } = cloneRunner();
+    const { out, io } = makeIo();
+
+    expect(
+      await runWorkspaceCreate("default", { bin: "agro", run, env: home.env, homedir: user.homedir }, io),
+    ).toBe(0);
     expect(gitCalls(calls)[0].args[2]).toBe(workspacePath(home, "default"));
+    expect(text(out)).toContain("--workspace default");
   });
 
   it("reuses an existing checkout instead of cloning again", async () => {
