@@ -4,6 +4,7 @@ set -euo pipefail
 EXP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly EXP_DIR
 readonly VERIFY="$EXP_DIR/verify-prd.sh"
+readonly EFFICIENCY_RUNS="$EXP_DIR/../prd-efficiency/runs"
 REPO_ROOT="$(git -C "$EXP_DIR" rev-parse --show-toplevel)"
 readonly REPO_ROOT
 
@@ -62,6 +63,14 @@ cp "$node" "$work/g3-missing-script.md"
 prepare "g3 transplant" insert_after "$work/g3-missing-script.md" "## Acceptance Criteria" \
   '- [ ] `bash .agro/evals/run.sh` reports no new regression when a probe lands.' || true
 
+cp "$node" "$work/g1-new-and-missing.md"
+prepare "g1 new-word transplant" insert_after "$work/g1-new-and-missing.md" "## Summary" \
+  '- A new script `.agro/scripts/node-probe.sh` reads the tool list from `.agro/skills/strategic-proposal/SKILL.md`.' || true
+
+cp "$node" "$work/g1-negative-scope.md"
+prepare "g1 negative transplant" insert_after "$work/g1-negative-scope.md" "## Summary" \
+  '- The diff touches no path under `.claude/`. The tool list is in `.agro/skills/strategic-proposal/SKILL.md`.' || true
+
 prepare "g4 mutation" perl -0pe 's/(## Acceptance Criteria\n.*?)(## Lessons\n.*)\z/$2\n$1/s' "$node" >"$work/g4-lessons-not-last.md" || true
 
 prepare "skillopt-ste original" extract eee49851 .agro/tasks/skillopt-ste/prd.md "$work/skillopt-ste-original.md" || true
@@ -83,6 +92,11 @@ cases=(
   "a script path resolves through the .claude/skills symlink|$work/worker-brief-stash-bypass.md|9d4f7cc8|$ALL_TRUE and .details.g3.missing_scripts == []"
   "fix A: a checklist line that says holds after a local path does not declare the path new (live 1181)|$EXP_DIR/runs/screen/outputs/1181.md|7219977d|$ALL_TRUE and (.details.g1.ignored_local == [\".devcontainer/.env\"])"
   "fix B: a file path and a directory path under it do not crash g2 (live 1076)|$EXP_DIR/runs/screen/outputs/1076.md|1317f352|$(only g2_trackable) and ([.details.g2.ignored[].path] == [\".agro/tasks/council-skill/council.md\",\".agro/tasks/council-skill/evidence.md\"])"
+  "a new-word declares only its object spans new, so a second missing path on the line fails g1|$work/g1-new-and-missing.md|de2c33ca|$(only g1_paths) and .details.g1.missing == [{\"line\":85,\"parent_exists\":false,\"path\":\".agro/skills/strategic-proposal/SKILL.md\"}] and (.details.g1.declared_new | index(\".agro/scripts/node-probe.sh\") != null)"
+  "a negative form declares absent only the paths after it in the same sentence|$work/g1-negative-scope.md|de2c33ca|$(only g1_paths) and .details.g1.missing == [{\"line\":85,\"parent_exists\":false,\"path\":\".agro/skills/strategic-proposal/SKILL.md\"}]"
+  "#1210: a new-word does not declare an existing ignored path on its line new (efficiency 1181)|$EFFICIENCY_RUNS/noise/outputs/1181-baseline-r3-a1.md|7219977d2b3a31589dda7ec110db7dc5abe6e7a4|$ALL_TRUE and .details.g2.ignored == [] and (.details.g1.ignored_local == [\".devcontainer/.env\"])"
+  "#1210: a path in a negative sentence is declared absent (efficiency 1054)|$EFFICIENCY_RUNS/baseline-train/outputs/1054-baseline-r1-a2.md|d341ebc38e28b1d5433844052bd1edb17df51cf7|$ALL_TRUE and (.details.g1.declared_absent | index(\".pi/skills\") != null)"
+  "#1210: a path followed by \"(new)\" is declared new (efficiency 1086)|$EFFICIENCY_RUNS/noise/outputs/1086-baseline-r1-a1.md|cf35b316acccc03092d8f8da97fe2a50d9b12a1f|$ALL_TRUE and (.details.g1.declared_new | index(\".agro/cli/src/commands/workspace.ts\") != null)"
   "a worktree path is exempt from g2|$work/evidence-in-pr-body.md|80b9342a|.g1_paths and .g2_trackable and .g3_commands and (.g4_structure | not)"
 )
 

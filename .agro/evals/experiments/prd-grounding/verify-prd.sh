@@ -25,19 +25,33 @@ Exempt lines: lines under "## Out of Scope", "## Open Questions", and
 "## Lessons", and each line that names another repository of the same GitHub
 owner (for example mifunedev/agro-web). g1 and g3 skip exempt lines.
 
+New-word: new, add, create, introduce, or scaffold (any inflection) outside
+an inline code span. The object spans of a new-word are the first inline code
+span after the new-word on its line, and each span that a comma, "and", "or",
+"plus", or "/" joins to that span. Other spans on the line are not objects.
+
 Declared new: a repository path that
-  - is on a line with the word new, add, create, introduce, or scaffold
-    (any inflection), or
+  - is an object span of a new-word, or
+  - comes directly before a parenthesis that opens with a new-word, for
+    example "`<path>` (new)", or
+  - is in the first cell of a table row when a later cell of the row holds a
+    new-word, or
   - opens a checklist line ("- [ ] `<path>` exists", or holds, records,
     contains), or
-  - has a basename that a line with one of the words above names as the
-    first word of an inline code span, or
+  - has a basename that an object span of a new-word names as its first
+    word, or
   - is under "## Storage" or in the "## Test Plan (TDD)" section, or
   - is under a declared-new directory that does not exist at <revision>, or
+  - is on a line with a new-word and is a parent directory of a declared-new
+    path, or
   - is the task folder .agro/tasks/<slug>/ or its prd.md or prd.json.
 
-Declared absent: a repository path on a line that says "does not exist",
-"do not exist", "no longer exist", "absent", or "missing".
+Declared absent: a repository path
+  - on a line that says "does not exist", "do not exist", "no longer exist",
+    "absent", or "missing", or
+  - after "no path under", "touches no", "does not touch", "do not touch", or
+    "never touches" in the same sentence. The sentence ends at ".", "!", "?",
+    or ";" outside an inline code span, before a space or the line end.
 
 g1_paths      each repository path on a non-exempt line exists at <revision>,
               is ignored by the .gitignore files of <revision> (a local
@@ -52,7 +66,7 @@ g3_commands   on non-exempt lines, in fenced blocks and in inline spans with
               or ".", or a token that ends in .sh) that is a repository path
               exists at <revision> or is declared new; each "agro <verb>"
               names a verb that docs/lifecycle-commands.md at <revision>
-              names, or a verb on a line that declares it new. Without that
+              names, or a verb on a line with a new-word. Without that
               document the verb check is skipped and details.g3.verb_skip
               records the reason.
 g4_structure  ste-check.sh of <revision> exits 0 on the plan, each template
@@ -150,6 +164,9 @@ my $new_re = qr/\b(?:new|newly|adds?|added|adding|creates?|created|creating|intr
 my $check_new_re = qr/^\s*[-*]\s+\[[ xX]\]\s+`([^`\s]+)`\s+(?:exists?|holds?|records?|contains?)\b/i;
 my $untracked_re = qr/\b(?:worktrees?|gitignored|ignored|untracked|not tracked|does not track)\b/i;
 my $absent_re = qr/(?:does not exist|do not exist|no longer exists?|\babsent\b|\bmissing\b)/i;
+my $negative_re = qr/\b(?:no path under|touches no|does not touch|do not touch|never touches)\b/i;
+my $join_re = qr/\A\s*(?:,\s*(?:(?:and|or|plus)\s+)?|(?:and|or|plus|\/)\s+)\z/i;
+my $sentence_end_re = qr/[.!?;](?=\s|\z)/;
 my $verb_re = qr/(?:^|[^A-Za-z0-9\/._-])agro\s+([a-z][a-z-]*(?:\|[a-z][a-z-]*)*)/;
 my ($owner, $repo) = split m{/}, ($ENV{REPO_SLUG} // ""), 2;
 my $external_re = defined $repo && $repo ne ""
@@ -248,7 +265,7 @@ sub task_contract {
 
 my @lines = slurp_lines($ENV{PLAN});
 my ($fence, $section) = ("", "");
-my (@headings, @span_paths, @cmd_texts, %new_decl, %new_base, %untracked_decl, %absent_decl, %verb_new);
+my (@headings, @span_paths, @cmd_texts, %new_decl, %new_line, %new_base, %untracked_decl, %absent_decl, %verb_new);
 my $exempt_count = 0;
 my $lineno = 0;
 for my $line (@lines) {
@@ -268,26 +285,56 @@ for my $line (@lines) {
     push @headings, $section;
     next;
   }
-  my $is_new_line = $line =~ $new_re ? 1 : 0;
   my $check_subject = $line =~ $check_new_re ? $1 : "";
   my $is_absent_line = $line =~ $absent_re ? 1 : 0;
+  my $is_new_line = $line =~ $new_re ? 1 : 0;
   if ($is_new_line) {
     while ($line =~ /$verb_re/g) { $verb_new{$_} = 1 for split /\|/, $1; }
   }
+  my (@spans, %object, %negated);
+  my $masked = $line;
   while ($line =~ /(`+)(.+?)\1/g) {
-    my $span = $2;
+    push @spans, [$2, $-[0], $+[0]];
+    substr($masked, $-[0], $+[0] - $-[0]) = "`" . ("x" x ($+[0] - $-[0] - 2)) . "`";
+  }
+  while ($masked =~ /$new_re/g) {
+    my $after = $+[0];
+    my ($i) = grep { $spans[$_][1] >= $after } 0 .. $#spans;
+    next unless defined $i;
+    $object{$i} = 1;
+    while ($i < $#spans && substr($masked, $spans[$i][2], $spans[$i + 1][1] - $spans[$i][2]) =~ $join_re) {
+      $object{++$i} = 1;
+    }
+  }
+  for my $i (0 .. $#spans) {
+    $object{$i} = 1 if substr($masked, $spans[$i][2]) =~ /\A\s*\(\s*$new_re[^)]*\)/;
+  }
+  if ($masked =~ /^\s*\|[^|]*\|/) {
+    my $subject_end = $+[0];
+    if (substr($masked, $subject_end) =~ $new_re) {
+      $object{$_} = 1 for grep { $spans[$_][2] <= $subject_end } 0 .. $#spans;
+    }
+  }
+  while ($masked =~ /$negative_re/g) {
+    my $from = $+[0];
+    my $to = substr($masked, $from) =~ $sentence_end_re ? $from + $-[0] : length $masked;
+    $negated{$_} = 1 for grep { $spans[$_][1] >= $from && $spans[$_][1] < $to } 0 .. $#spans;
+  }
+  for my $i (0 .. $#spans) {
+    my $span = $spans[$i][0];
     $span =~ s/^\s+|\s+$//g;
     if ($span =~ /\s/) {
       push @cmd_texts, [$span, $lineno] unless $exempt;
       my ($head) = split /\s+/, $span;
-      $new_base{$head} = 1 if $is_new_line && $head !~ m{/};
+      $new_base{$head} = 1 if $object{$i} && $head !~ m{/};
       next;
     }
-    $new_base{$span} = 1 if $is_new_line && $span !~ m{/};
+    $new_base{$span} = 1 if $object{$i} && $span !~ m{/};
     my $p = normalize($span);
     next if $p eq "";
-    $new_decl{$p} = 1 if $is_new_line || $new_section{$section} || $span eq $check_subject;
-    $absent_decl{$p} = 1 if $is_absent_line;
+    $new_decl{$p} = 1 if $object{$i} || $new_section{$section} || $span eq $check_subject;
+    $new_line{$p} = 1 if $is_new_line;
+    $absent_decl{$p} = 1 if $is_absent_line || $negated{$i};
     $untracked_decl{$p} = 1 if $line =~ $untracked_re;
     if ($exempt) { $exempt_count++; next; }
     push @span_paths, [$p, $lineno];
@@ -301,6 +348,8 @@ sub declared_new {
   (my $base = $p) =~ s{/+$}{};
   $base =~ s{^.*/}{};
   return 1 if $new_base{$base};
+  (my $bare = $p) =~ s{/+$}{};
+  return 1 if $new_line{$p} && grep { index($_, "$bare/") == 0 } keys %new_decl;
   for my $d (@new_dirs) {
     (my $base = $d) =~ s{/+$}{};
     return 1 if index($p, "$base/") == 0;
