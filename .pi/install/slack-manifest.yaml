@@ -8,7 +8,7 @@ features:
     messages_tab_enabled: true
     messages_tab_read_only_enabled: false
   bot_user:
-    display_name: AGRO
+    display_name: agro
     always_online: true
   slash_commands:
     - command: /help

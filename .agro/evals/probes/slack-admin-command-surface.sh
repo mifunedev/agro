@@ -142,7 +142,7 @@ expected = {
     "display_information": {"name": "AGRO", "description": "AI coding agent interface for AGRO sandboxes", "background_color": "#1a1a2e"},
     "features": {
         "app_home": {"home_tab_enabled": False, "messages_tab_enabled": True, "messages_tab_read_only_enabled": False},
-        "bot_user": {"display_name": "AGRO", "always_online": True},
+        "bot_user": {"display_name": "agro", "always_online": True},
     },
     "oauth_config": {"scopes": {"bot": [
         "app_mentions:read", "channels:history", "channels:read", "chat:write", "files:read", "files:write",
