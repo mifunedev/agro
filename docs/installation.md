@@ -181,7 +181,6 @@ Pi loads project-local packages from `.pi/settings.json`. The defaults include:
 - `@tintinweb/pi-tasks`
 - `@narumitw/pi-goal`
 - `@narumitw/pi-codex-usage@0.6.2` for `/codex-status` plus fixed statusline usage timers
-- `@tifan/pi-recap` for `/recap` plus automatic idle/resume session summaries
 - `@trevonistrevon/pi-loop` for Monitor/Loop tools
 - `@guwidoe/pi-prompt-suggester` for next-prompt suggestions
 
@@ -238,7 +237,7 @@ host. `agent-browser`, `herdr`, `cloudflared`, `microsandbox`, `tailscale`,
 the image provides them. Second, a host install needs Linux, because every tool
 installer is Debian-specific; on any other platform the command refuses and names
 the platform. A host install needs an existing workspace — `--path <dir>`, then
-`harnessRoot` in `~/.agro/config.json`, then `~/.agro/workspaces/default` — and
+`harnessRoot` in `~/.agro/config.json`, then `~/.agro/workspaces/harness` — and
 exits 1 when none resolves. It records the installed id under `hostTools` in
 `~/.agro/config.json`. `agro tool uninstall` removes only what that record names;
 `--force` removes from `~/.local` without a record.
