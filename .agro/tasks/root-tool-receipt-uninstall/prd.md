@@ -119,4 +119,4 @@ None. The operator accepted the refusal on 2026-09-26. The CLI documents manual 
 
 ## Lessons
 
-Filled by the advisor before undraft.
+- `pnpm test` fails on three bundle tests until `pnpm build:harness` runs. Evidence: the first run failed `bundle-identity`, `cli-first-help`, and `cli-first-install-smoke`, and the run after the build passed 1714 of 1714. Outcome: dropped, because CI builds before the tests run.

@@ -17,14 +17,15 @@
         "`pnpm vitest run .agro/cli/src/__tests__/tool.test.ts` passes, and `pnpm typecheck` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1 reasoned: host-config.ts defines HostRootToolReceipt { scope: \"root\"; binary; installedAt; workspaceRoot? } and HostToolReceipt union; hostTools uses it, hostHarnesses keeps HostHarnessReceipt. AC2 executed: test \"records a root receipt with no prefix and no binPath\" (keys binary, installedAt, scope, workspaceRoot); herdr receipt keys unchanged (existing test). AC3 executed: validator accepts root receipt; refuses root receipt carrying prefix or binPath; refuses unknown scope. AC4 executed: 0.15.0 docker-engine and desktop receipts with prefix/binPath still validate. AC5 executed: tool.test.ts 138/138. AC6 executed: pnpm typecheck exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/host-config.ts",
         ".agro/cli/src/commands/tool.ts",
         ".agro/cli/src/__tests__/tool.test.ts"
-      ]
+      ],
+      "commit": "36f98eae"
     },
     {
       "id": "US-002",
@@ -41,8 +42,8 @@
         "`pnpm vitest run .agro/cli/src/__tests__/tool.test.ts` passes, and `pnpm typecheck` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1 executed: uninstall of docker-engine and desktop exits 1 for host/force in all four combinations, sandbox running and exited (it.each, 16 cases); `--host` on uninstall is also refused by the parser (exit 1). AC2 executed: message names the tool, \"agro does not remove system packages that it installed as root.\", links docs/installation.md#remove-a-root-level-tool; a test proves the anchor exists. AC3 executed: message does not contain notInstallableReason nor \"tool install\". AC4 executed: config file byte-identical after refusal; no exec calls. AC5 reasoned: docs/installation.md \"Remove a root-level tool\" has numbered steps for both tools, the /var/lib/docker warning precedes the delete command, and step 6 warns to keep a pre-existing Tailscale; ste-check clean. AC6 executed: test \"states the refusal in the agro tool help\". AC7 executed: tool.test.ts 138/138. AC8 executed: pnpm typecheck exit 0; pnpm build:harness exit 0; pnpm test 1714/1714.",
       "dependsOn": [
         "US-001"
       ],
@@ -52,7 +53,8 @@
         "docs/installation.md",
         ".agro/cli/src/__tests__/tool.test.ts",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "ff476291"
     }
   ]
 }
