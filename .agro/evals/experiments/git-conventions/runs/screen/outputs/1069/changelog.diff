@@ -1,0 +1,15 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index cdc6e9e..bcfc56e 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
+ 
+ ## [Unreleased]
+ 
++### Fixed
++
++- Shorten the `/supervisor` skill description to 722 characters so Pi loads it within its 1024-character metadata limit, with triggers and exclusions unchanged. ([#1068](https://github.com/mifunedev/agro/issues/1068))
++
+ ## [0.11.0] - 2026-09-14
+ 
+ ### Added

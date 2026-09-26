@@ -1,0 +1,12 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 3326f57..07d0a93 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -20,6 +20,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
+ 
+ ### Changed
+ 
++- Launch Antigravity CLI in zero-confirmation mode by default in the sandbox: `agy` aliases to `agy --dangerously-skip-permissions` and a seeded `settings.json` sets `bypassPermissions` ([#1090](https://github.com/mifunedev/agro/issues/1090)).
+ - Stop `agro harness install --host` and `agro tool install --host` from creating a workspace; each now exits 1 when none exists and names `agro workspace create` ([#1086](https://github.com/mifunedev/agro/issues/1086)).
+ - Retire `.agro/tasks/<slug>/evidence.md`. The reviewer evidence now lives in the pull request body, which `/spec execute` reads back and checks before it undrafts ([#1088](https://github.com/mifunedev/agro/issues/1088)).
+ - Read project instructions from `AGENTS.md` on every harness. Claude Code needs 2.1.277 or later ([#1082](https://github.com/mifunedev/agro/issues/1082)).

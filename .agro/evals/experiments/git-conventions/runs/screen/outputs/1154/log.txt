@@ -1,0 +1,1 @@
+2b32ea4624df7fdb6441abf46cc2ba896ab676d6 fix: close Bash secret guard false allows (#1150)

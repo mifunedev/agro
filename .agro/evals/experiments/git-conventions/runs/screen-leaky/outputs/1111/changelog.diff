@@ -1,0 +1,12 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 2e3e31ab..e5ed8fbc 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -37,6 +37,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
+ 
+ ### Fixed
+ 
++- Resolve `python` and `python3` to the uv-managed Python 3.13 in the sandbox without shell activation, and rebuild a stale kernel environment on that interpreter ([#1110](https://github.com/mifunedev/agro/issues/1110)).
+ - Route the `missing lifecycle script` error to a recovery that works for the reader's installation: a host image refresh for an image-shipped CLI, and `oh update` elsewhere ([#1080](https://github.com/mifunedev/agro/issues/1080)).
+ 
+ ## [0.12.2] - 2026-09-15

@@ -1,0 +1,1 @@
+1bdf654975408d8fa9f99ed3dc2da9aafd2615b2 fix: keep supervisor description within Pi metadata limit

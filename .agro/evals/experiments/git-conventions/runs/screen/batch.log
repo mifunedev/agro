@@ -1,0 +1,27 @@
+run-batch: run screen, 1 cases, jobs 1, started 2026-09-26T16:03:52Z
+run-batch: start 1154 (spent 5.21 USD)
+screen--1154--baseline--r1--a1 ok pass=true cost=0.4967288 elapsed_s=83.832
+run-batch: the refs of this repository are unchanged
+run-batch: finished 2026-09-26T16:05:16Z; spent 5.7067288 USD; budget stop 0
+run-batch: run screen, 10 cases, jobs 3, started 2026-09-26T16:05:25Z
+run-batch: skip 1154 (recorded)
+run-batch: start 1049 (spent 5.7067288 USD)
+run-batch: start 1063 (spent 5.7067288 USD)
+run-batch: start 1111 (spent 5.7067288 USD)
+screen--1063--baseline--r1--a1 ok pass=true cost=0.4555806 elapsed_s=42.837
+run-batch: start 1083 (spent 6.1623094 USD)
+screen--1111--baseline--r1--a1 ok pass=true cost=0.49683360000000004 elapsed_s=46.543
+screen--1049--baseline--r1--a1 ok pass=true cost=0.47180960000000005 elapsed_s=47.646
+run-batch: start 1051 (spent 7.1309526000000005 USD)
+run-batch: start 1091 (spent 7.1309526000000005 USD)
+screen--1091--baseline--r1--a1 ok pass=true cost=0.32140759999999996 elapsed_s=26.261
+run-batch: start 1180 (spent 7.4523602 USD)
+screen--1051--baseline--r1--a1 ok pass=true cost=0.4337091999999999 elapsed_s=34.496
+run-batch: start 1069 (spent 7.8860694 USD)
+screen--1083--baseline--r1--a1 ok pass=true cost=0.462369 elapsed_s=40.829
+run-batch: start 1169 (spent 8.3484384 USD)
+screen--1069--baseline--r1--a1 ok pass=true cost=0.3620956 elapsed_s=37.316
+screen--1180--baseline--r1--a1 ok pass=true cost=0.3531914 elapsed_s=42.689
+screen--1169--baseline--r1--a1 ok pass=true cost=0.5866495999999999 elapsed_s=64.320
+run-batch: the refs of this repository are unchanged
+run-batch: finished 2026-09-26T16:07:59Z; spent 9.650375 USD; budget stop 0

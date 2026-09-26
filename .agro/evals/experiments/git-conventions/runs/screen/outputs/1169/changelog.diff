@@ -1,0 +1,16 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index a2bcf29..430b428 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -12,6 +12,11 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
+ 
+ - Publish `MAJOR.MINOR.PATCH-<channel>.<n>` pre-releases from `main`, `master` and `experiment/**`: a GitHub pre-release, npm dist-tag `<channel>`, immutable GHCR tags, never `latest` ([#1143](https://github.com/mifunedev/agro/issues/1143)).
+ - Accept a pre-release version in `agro sandbox install docker --version`, and default a pre-release CLI to its own image instead of `latest` ([#1143](https://github.com/mifunedev/agro/issues/1143)).
++- Run root-level host tool installs through `sudo -n`, refuse without passwordless `sudo`, and mark root-level tools `(root)` in `agro tool list` ([#1168](https://github.com/mifunedev/agro/issues/1168)).
++- Add the `code-server` tool: a pinned, checksum-verified code-server `4.129.0` in `~/.local` for the sandbox or the host ([#1168](https://github.com/mifunedev/agro/issues/1168)).
++- Add the host-only, root-level `docker-engine` tool: Docker Engine and the Compose plugin from Docker's Ubuntu apt repository ([#1168](https://github.com/mifunedev/agro/issues/1168)).
++- Add the host-only, root-level `desktop` tool: XFCE over XRDP with system Tailscale, serving TCP 3389 only through Tailscale ([#1168](https://github.com/mifunedev/agro/issues/1168)).
++- Add `agro workspace create --ref <ref>` to clone the AGRO repository at a branch or tag; a missing ref exits 1 and leaves no target directory ([#1168](https://github.com/mifunedev/agro/issues/1168)).
+ 
+ ## [0.14.0] - 2026-09-23
+ 

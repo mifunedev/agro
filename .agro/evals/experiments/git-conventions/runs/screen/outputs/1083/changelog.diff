@@ -1,0 +1,12 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index a64ebba..7ee6ad5 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -23,6 +23,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
+ ### Removed
+ 
+ - Remove V2MOM and its bundled reference from the strategy workflow ([#1076](https://github.com/mifunedev/agro/issues/1076)).
++- Remove the `CLAUDE.md` symlinks; every coding harness reads `AGENTS.md` directly, and Claude Code needs 2.1.277 or newer to load project instructions ([#1082](https://github.com/mifunedev/agro/issues/1082)).
+ 
+ ### Fixed
+ 

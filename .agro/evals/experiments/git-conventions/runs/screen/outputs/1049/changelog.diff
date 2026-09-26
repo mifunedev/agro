@@ -1,0 +1,12 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index aa5ce19..4a37b51 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -28,6 +28,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
+ - Name `agro` in the instructional `docs/` commands, but leave legacy-explanatory prose and `oh update` alone, because `agro update` self-upgrades the CLI and `oh update` vendors the payload. ([#1046](https://github.com/mifunedev/agro/issues/1046))
+ - Name the invoked binary in the sandbox onboarding banner, so the shell banner an operator reads on every login no longer teaches the deprecated `oh` spelling. ([#1046](https://github.com/mifunedev/agro/issues/1046))
+ - Name `agro` as the canonical CLI in prose, diagram labels, and issue templates, so `docs/intro.md` no longer introduces the lifecycle as the `oh` CLI; compatibility prose stays verbatim. ([#1046](https://github.com/mifunedev/agro/issues/1046))
++- Make the `compose-config-path-parity` probe pass when `.devcontainer/.env` is a symlink or hardlink to the wrapper's env file, and name the skipped identity check when no env file exists. ([#935](https://github.com/mifunedev/agro/issues/935))
+ 
+ ## [0.10.0] - 2026-09-10
+ 

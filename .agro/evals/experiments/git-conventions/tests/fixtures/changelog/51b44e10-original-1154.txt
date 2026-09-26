@@ -1,0 +1,1 @@
+- Close false allows in the Bash secret guard: deny `jq` filters that read `env` or `$ENV`, and deny a quoted `json` inspect format ([#1150](https://github.com/mifunedev/agro/issues/1150)).

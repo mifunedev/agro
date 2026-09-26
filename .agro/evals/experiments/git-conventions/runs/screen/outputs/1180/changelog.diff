@@ -1,0 +1,15 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 027c317..025206a 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -12,6 +12,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
+ 
+ - Use a YAML Slack app manifest for Pi setup and provide a copyable version in the Slack docs while preserving the app's permissions, events, and admin commands ([#1177](https://github.com/mifunedev/agro/issues/1177)).
+ 
++### Removed
++
++- Remove `@tifan/pi-recap` from the default project Pi packages, so new Pi sessions no longer load `/recap` or automatic idle and resume recaps ([#1179](https://github.com/mifunedev/agro/issues/1179)).
++
+ ## [0.15.0] - 2026-09-24
+ 
+ ### Added

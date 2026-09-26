@@ -1,0 +1,498 @@
+diff --git a/.agro/evals/probes/agents-md-fallback.sh b/.agro/evals/probes/agents-md-fallback.sh
+new file mode 100755
+index 00000000..42971fa5
+--- /dev/null
++++ b/.agro/evals/probes/agents-md-fallback.sh
+@@ -0,0 +1,38 @@
++#!/usr/bin/env bash
++# tier: A
++# source: issue #1082
++# desc: Claude Code 2.1.277 reads AGENTS.md only when no CLAUDE.md sits in the
++#       working directory or above it. One reintroduced CLAUDE.md therefore
++#       silences every AGENTS.md below it, so the tree must ship none, and each
++#       directory guide must be a real AGENTS.md file rather than an alias.
++set -euo pipefail
++
++ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
++cd "$ROOT"
++
++found="$(git ls-files -- '*CLAUDE.md' 'CLAUDE.md')"
++if [[ -n "$found" ]]; then
++  echo "REGRESSION: a tracked CLAUDE.md suppresses the AGENTS.md fallback:" >&2
++  printf '%s\n' "$found" >&2
++  exit 1
++fi
++
++for guide in AGENTS.md .worktrees/AGENTS.md projects/AGENTS.md crons/AGENTS.md \
++  .agro/logs/AGENTS.md .agro/memories/AGENTS.md; do
++  if [[ ! -f "$guide" || -L "$guide" ]]; then
++    echo "REGRESSION: $guide must be a real file that a harness reads directly" >&2
++    exit 1
++  fi
++  if ! git ls-files --error-unmatch "$guide" >/dev/null 2>&1; then
++    echo "REGRESSION: $guide is not tracked" >&2
++    exit 1
++  fi
++done
++
++if ! grep -Fq '2.1.277' docs/lifecycle-commands.md; then
++  echo "REGRESSION: the Claude Code version floor for AGENTS.md is undocumented" >&2
++  exit 1
++fi
++
++echo "PASS: no CLAUDE.md shadows the tree, every directory guide is a real tracked AGENTS.md, and the version floor is documented" >&2
++exit 0
+diff --git a/.agro/evals/probes/crons-directory-guide.sh b/.agro/evals/probes/crons-directory-guide.sh
+index 5b99f8dc..4eabf78d 100755
+--- a/.agro/evals/probes/crons-directory-guide.sh
++++ b/.agro/evals/probes/crons-directory-guide.sh
+@@ -21,13 +21,8 @@ if [[ -f "$ROOT/crons/README.md" ]]; then
+   exit 1
+ fi
+ 
+-ALIAS="$ROOT/crons/CLAUDE.md"
+-if [[ ! -L "$ALIAS" ]]; then
+-  echo "REGRESSION: crons/CLAUDE.md must be a provider-compatibility symlink, not a copy" >&2
+-  exit 1
+-fi
+-if [[ "$(readlink "$ALIAS")" != "AGENTS.md" ]]; then
+-  echo "REGRESSION: crons/CLAUDE.md must point at the sibling AGENTS.md, got: $(readlink "$ALIAS")" >&2
++if [[ -e "$ROOT/crons/CLAUDE.md" ]]; then
++  echo "REGRESSION: crons/CLAUDE.md is back — it suppresses the AGENTS.md fallback" >&2
+   exit 1
+ fi
+ 
+@@ -48,5 +43,5 @@ if ! grep -Fq '`.agro/scripts/cron-runtime.ts`' "$GUIDE"; then
+   exit 1
+ fi
+ 
+-echo "PASS: crons/AGENTS.md is the single cron operating contract, carries its CLAUDE.md symlink, documents the reload rules, and is inert to the scheduler" >&2
++echo "PASS: crons/AGENTS.md is the single cron operating contract, documents the reload rules, and is inert to the scheduler" >&2
+ exit 0
+diff --git a/.agro/evals/probes/escalate-contract.sh b/.agro/evals/probes/escalate-contract.sh
+index 108898d9..76b6a265 100755
+--- a/.agro/evals/probes/escalate-contract.sh
++++ b/.agro/evals/probes/escalate-contract.sh
+@@ -15,10 +15,10 @@ fail() { echo "REGRESSION: $*" >&2; exit 1; }
+ [[ -f $S && -x $S ]] || fail 'escalate script missing or not executable'
+ [[ -f $SKILL ]] || fail 'escalate SKILL.md missing'
+ [[ -f $ROOT/.agro/logs/AGENTS.md ]] || fail '.agro/logs/AGENTS.md missing — the log directory has no contract'
+-[[ -L $ROOT/.agro/logs/CLAUDE.md && $(readlink "$ROOT/.agro/logs/CLAUDE.md") == AGENTS.md ]] \
+-  || fail '.agro/logs/CLAUDE.md must be a symlink to the sibling AGENTS.md'
++[[ ! -e $ROOT/.agro/logs/CLAUDE.md ]] \
++  || fail '.agro/logs/CLAUDE.md is back — it suppresses the AGENTS.md fallback'
+ grep -Fq '.agro/logs/*' "$ROOT/.gitignore" || fail '.agro/logs contents are not gitignored'
+-for keep in '!.agro/logs/AGENTS.md' '!.agro/logs/CLAUDE.md'; do
++for keep in '!.agro/logs/AGENTS.md'; do
+   grep -Fq "$keep" "$ROOT/.gitignore" || fail "$keep is not exempted from the ignore"
+ done
+ 
+diff --git a/.agro/evals/probes/worktrees-layout.sh b/.agro/evals/probes/worktrees-layout.sh
+index 3412584f..9f97a83d 100755
+--- a/.agro/evals/probes/worktrees-layout.sh
++++ b/.agro/evals/probes/worktrees-layout.sh
+@@ -3,8 +3,7 @@
+ # source: issue #872
+ # desc: a repository keeps its worktrees at its own root in .worktrees/, and
+ #       non-harness clones live at projects/<owner>/<repo>/. Both roots are
+-#       gitignored except a tracked AGENTS.md guide and its CLAUDE.md
+-#       provider-compatibility symlink, the retired
++#       gitignored except a tracked AGENTS.md guide, the retired
+ #       .agro/worktrees/ root is gone, and the layout is a fixed convention:
+ #       WORKTREES_DIR / PROJECTS_DIR / CRONS_DIR are retired and cannot move
+ #       any of these roots.
+@@ -30,20 +29,16 @@ for guide in ".worktrees/AGENTS.md" "projects/AGENTS.md"; do
+ done
+ 
+ tracked="$(git ls-files .worktrees projects)"
+-expected=$'.worktrees/AGENTS.md\n.worktrees/CLAUDE.md\nprojects/AGENTS.md\nprojects/CLAUDE.md'
++expected=$'.worktrees/AGENTS.md\nprojects/AGENTS.md'
+ if [[ "$tracked" != "$expected" ]]; then
+-  echo "REGRESSION: .worktrees/ and projects/ must track exactly their AGENTS.md + CLAUDE.md alias; got:" >&2
++  echo "REGRESSION: .worktrees/ and projects/ must track exactly their AGENTS.md guide; got:" >&2
+   printf '%s\n' "$tracked" >&2
+   exit 1
+ fi
+ 
+ for alias in ".worktrees/CLAUDE.md" "projects/CLAUDE.md"; do
+-  if [[ ! -L "$alias" ]]; then
+-    echo "REGRESSION: $alias must be a symlink, not a copy" >&2
+-    exit 1
+-  fi
+-  if [[ "$(readlink "$alias")" != "AGENTS.md" ]]; then
+-    echo "REGRESSION: $alias must point at the sibling AGENTS.md, got: $(readlink "$alias")" >&2
++  if [[ -e "$alias" ]]; then
++    echo "REGRESSION: $alias is back — it suppresses the AGENTS.md fallback" >&2
+     exit 1
+   fi
+ done
+diff --git a/.agro/logs/AGENTS.md b/.agro/logs/AGENTS.md
+index bd37751f..94e71f34 100644
+--- a/.agro/logs/AGENTS.md
++++ b/.agro/logs/AGENTS.md
+@@ -1,6 +1,6 @@
+ # `.agro/logs/`
+ 
+-`CLAUDE.md` is a provider-compatibility symlink to this file. Edit `AGENTS.md`.
++Every coding harness reads this file directly.
+ 
+ Durable operational records written by unattended sessions. Everything here is
+ gitignored except this file: a log is evidence for the next session and for the
+diff --git a/.agro/logs/CLAUDE.md b/.agro/logs/CLAUDE.md
+deleted file mode 120000
+index 47dc3e3d..00000000
+--- a/.agro/logs/CLAUDE.md
++++ /dev/null
+@@ -1 +0,0 @@
+-AGENTS.md
+\ No newline at end of file
+diff --git a/.agro/scripts/README.md b/.agro/scripts/README.md
+index 7c3f7782..53b43fde 100644
+--- a/.agro/scripts/README.md
++++ b/.agro/scripts/README.md
+@@ -57,7 +57,7 @@ The GHCR package `mifunedev/agro` must be public before consumers can pull the
+ - TypeScript scripts are run via `tsx` from the root `package.json`
+   scripts; tests run via `pnpm test`.
+ - Scripts here are **orchestrator-scope only**. Anything an in-sandbox
+-  agent needs lives under `.agro/install/`. Per `CLAUDE.md`, application code does
++  agent needs lives under `.agro/install/`. Per `AGENTS.md`, application code does
+   not belong in `scripts/`.
+ 
+ ## Adding a script
+diff --git a/.agro/skills/audit/references/context.md b/.agro/skills/audit/references/context.md
+index abe44f24..593bc67f 100644
+--- a/.agro/skills/audit/references/context.md
++++ b/.agro/skills/audit/references/context.md
+@@ -6,7 +6,7 @@ Score every file in the default-loaded context set on 4 deterministic dimensions
+ 
+ | Layer | Files | Loaded how |
+ |-------|-------|-----------|
+-| Bootloader | `AGENTS.md` (`CLAUDE.md` is a symlink to it) | always |
++| Bootloader | `AGENTS.md` | always |
+ | Skill metadata | frontmatter of all `**/SKILL.md` | always injected |
+ 
+ ## Instructions
+diff --git a/.agro/skills/audit/references/harness.md b/.agro/skills/audit/references/harness.md
+index 28187868..d825251b 100644
+--- a/.agro/skills/audit/references/harness.md
++++ b/.agro/skills/audit/references/harness.md
+@@ -117,7 +117,7 @@ Launch 4 Agent tool calls **in a single message**. Each receives the Context Sna
+ >
+ > **Audit areas:**
+ >
+-> 1. **Developer onboarding friction** — Read `.devcontainer/`, `.agro/cli/`, `.agro/install/`, `CLAUDE.md`. Count the distinct manual steps required from `git clone` to a working sandbox. Flag any step that is undocumented, error-prone, or requires copy-pasting secrets.
++> 1. **Developer onboarding friction** — Read `.devcontainer/`, `.agro/cli/`, `.agro/install/`, `AGENTS.md`. Count the distinct manual steps required from `git clone` to a working sandbox. Flag any step that is undocumented, error-prone, or requires copy-pasting secrets.
+ >
+ > 2. **Skill consistency** — Read every `SKILL.md` under `.claude/skills/`. Check: does each have valid YAML frontmatter (name, description)? Does each follow imperative instructions? Is any referenced nowhere (potentially stale)?
+ >
+diff --git a/.agro/skills/blog/SKILL.md b/.agro/skills/blog/SKILL.md
+index 55318413..c1beb47b 100644
+--- a/.agro/skills/blog/SKILL.md
++++ b/.agro/skills/blog/SKILL.md
+@@ -46,7 +46,7 @@ That reference is authoritative for the workflow details. This `SKILL.md` only d
+ 
+ - **Brief before drafting.** For non-trivial source material, read `/delegate` (`.agro/skills/delegate/SKILL.md`) and obtain a tight implementation briefing and bounded delegate plan before spawning workers or writing the post. Every worker briefing carries the five fields `/delegate` step 2 requires.
+ - **Audit all media before publishing.** Every source image/video screenshot must be accounted for as keep/drop/reference-only/missing. For Loom/demo.md sources, use source-faithful image handling: either embed the exact source image URLs or save local copies downloaded from those exact URLs when PR/site rendering would otherwise break. Do not publish unredacted screenshots that expose tokens, OAuth callback URLs, private accounts, hostnames, sensitive usage panels, or unrelated personal UI.
+-- **Target conventions win.** Read the target repo's local `AGENTS.md`/`CLAUDE.md` if present, then inspect existing posts and build scripts before writing.
++- **Target conventions win.** Read the target repo's local agent instruction files if present, then inspect existing posts and build scripts before writing.
+ - **No raw transcript dump.** A blog post needs a hook, narrative structure, concise steps, useful captions, and verified links. Timestamps can inform the outline; they are not the post.
+ - **Verify before done.** Run the target site's lightweight checks (`typecheck`, `build`, or documented equivalents) unless `--dry-run` was passed. Report exact blockers.
+ - **Respect existing work.** Check `git status --short` in the target repo before editing. Do not overwrite unrelated dirty files.
+diff --git a/.agro/skills/blog/references/loom-to-blog.md b/.agro/skills/blog/references/loom-to-blog.md
+index 8b54ea8b..886abf63 100644
+--- a/.agro/skills/blog/references/loom-to-blog.md
++++ b/.agro/skills/blog/references/loom-to-blog.md
+@@ -17,7 +17,7 @@ If either source or target cannot be inferred, ask one concise question listing
+ 
+ ## Step 1 — Read local context and target conventions
+ 
+-1. Check applicable `AGENTS.md`/`CLAUDE.md` files for the target path and follow the most specific instructions.
++1. Check applicable agent instruction files for the target path and follow the most specific instructions.
+ 2. In the target repo, read:
+    - `README.md`
+    - package/config files that reveal framework and validation commands (`package.json`, Docusaurus config, etc.)
+diff --git a/.agro/skills/builder/SKILL.md b/.agro/skills/builder/SKILL.md
+index 63ad8d9d..c6c8956d 100644
+--- a/.agro/skills/builder/SKILL.md
++++ b/.agro/skills/builder/SKILL.md
+@@ -54,9 +54,8 @@ steps.
+ 
+ ### 1. Discover local authority
+ 
+-- Find and read applicable `AGENTS.md` and `CLAUDE.md` files from repository root
+-  through the target directory. More local instructions win; in one directory,
+-  `AGENTS.md` is canonical.
++- Find and read applicable `AGENTS.md` files from repository root through the
++  target directory. More local instructions win.
+ - Identify the source-of-truth artifact directory. In AGRO and equipped
+   projects, edit `.agro/skills/`; provider directories such as `.claude/`,
+   `.codex/`, and `.pi/` are generated or symlinked exposure surfaces.
+diff --git a/.agro/skills/builder/references/rule.md b/.agro/skills/builder/references/rule.md
+index c3510c6d..9aac54a6 100644
+--- a/.agro/skills/builder/references/rule.md
++++ b/.agro/skills/builder/references/rule.md
+@@ -31,8 +31,7 @@ Apply this decision order:
+    `.claude/rules/<name>.md` only after confirming that path is the local source of
+    truth and portability is not required.
+ 5. **Project-wide identity or operating principle**: use the locally canonical
+-   `AGENTS.md` or `CLAUDE.md`, not an unconditional rule hidden in a provider
+-   directory.
++   `AGENTS.md`, not an unconditional rule hidden in a provider directory.
+ 6. **Multi-step workflow**: use `/builder command`; rules describe behavior, not a
+    procedure with side effects.
+ 
+diff --git a/.agro/skills/harness-context/SKILL.md b/.agro/skills/harness-context/SKILL.md
+index c656eea8..c103901c 100644
+--- a/.agro/skills/harness-context/SKILL.md
++++ b/.agro/skills/harness-context/SKILL.md
+@@ -16,7 +16,7 @@ conventions, git workflow, or where files live.
+ 
+ ## Steps
+ 
+-1. Read `CLAUDE.md` for the orchestrator contract — what the root-level
++1. Read `AGENTS.md` for the orchestrator contract — what the root-level
+    agent does and does not do.
+ 2. For layout questions, read the per-directory `README.md` files (e.g.
+    `.agro/README.md`, `.agro/tasks/README.md`,
+@@ -41,5 +41,5 @@ conventions, git workflow, or where files live.
+ 
+ - Short factual answer first, then file references.
+ - Lifecycle questions (setup / validate / teardown): cite the relevant
+-  section of `CLAUDE.md`.
++  section of `AGENTS.md`.
+ - Convention questions: cite the owning skill (`.agro/skills/<name>/SKILL.md`).
+diff --git a/.agro/skills/plan/SKILL.md b/.agro/skills/plan/SKILL.md
+index 9574e111..694fcdc3 100644
+--- a/.agro/skills/plan/SKILL.md
++++ b/.agro/skills/plan/SKILL.md
+@@ -37,7 +37,7 @@ Arguments received: `$ARGUMENTS`
+ 3. If neither source identifies a task, print `Usage: /plan <request | existing-plan-path>` and stop without writing.
+ 4. If the input names an existing file, read the complete file before drafting.
+ 5. Confirm the target repository from the request and current directory. Ask when the target is ambiguous.
+-6. Read applicable `AGENTS.md`, `CLAUDE.md`, and directory `README.md` files for the affected paths.
++6. Read applicable `AGENTS.md` and directory `README.md` files for the affected paths.
+ 7. Derive a descriptive lowercase kebab-case slug from the topic. Use at most five words; reject path separators and traversal components.
+ 
+ If the operator requests a revision, reuse the selected `.agro/plans/<slug>/plan.md` file.
+diff --git a/.agro/skills/render-html/SKILL.md b/.agro/skills/render-html/SKILL.md
+index dfa419b1..ea746826 100644
+--- a/.agro/skills/render-html/SKILL.md
++++ b/.agro/skills/render-html/SKILL.md
+@@ -35,7 +35,7 @@ Common targets in this harness:
+ Skip when the artifact is **source or pipeline input** — Markdown stays the substrate of the harness:
+ - PRDs (`.agro/tasks/*/prd.md`), briefings, commit messages, PR bodies, `CHANGELOG.md`
+ - The cron liveness trail itself (`crons/.cron.log`)
+-- Skill/identity sources (`CLAUDE.md`, `.claude/skills/`)
++- Skill/identity sources (`AGENTS.md`, `.agro/skills/`)
+ - Agent-to-agent handoffs (advisor → executor briefings)
+ 
+ If asked to render any of the above, refuse and explain.
+diff --git a/.agro/skills/rlm/SKILL.md b/.agro/skills/rlm/SKILL.md
+index 8aacbd41..ba023dc6 100644
+--- a/.agro/skills/rlm/SKILL.md
++++ b/.agro/skills/rlm/SKILL.md
+@@ -62,7 +62,7 @@ candidate answers a chunk yields. This skill never re-implements selection — i
+ - **You need to *select* among candidates, not decompose an artifact.** That is
+   `/weigh` directly.
+ - **Sandbox application code.** `/rlm` is harness-infra substrate; it does not write
+-  product code (the orchestrator boundary in `CLAUDE.md`).
++  product code (the orchestrator boundary in `AGENTS.md`).
+ 
+ ## Result tag
+ 
+diff --git a/.dockerignore b/.dockerignore
+index e3df1c5f..45244b8f 100644
+--- a/.dockerignore
++++ b/.dockerignore
+@@ -5,10 +5,8 @@
+ !.claude/.example.env.claude
+ .worktrees/*
+ !.worktrees/AGENTS.md
+-!.worktrees/CLAUDE.md
+ projects/*
+ !projects/AGENTS.md
+-!projects/CLAUDE.md
+ .git/
+ node_modules/
+ .pnpm-store/
+diff --git a/.github/workflows/ci-harness.yml b/.github/workflows/ci-harness.yml
+index 4ffacd14..3770d3e0 100644
+--- a/.github/workflows/ci-harness.yml
++++ b/.github/workflows/ci-harness.yml
+@@ -29,7 +29,6 @@ on:
+       - ".agro/evals/**"
+       - ".agro/knowledge/**"
+       - "AGENTS.md"
+-      - "CLAUDE.md"
+   pull_request:
+     paths:
+       - "packages/**"
+@@ -54,7 +53,6 @@ on:
+       - ".agro/evals/**"
+       - ".agro/knowledge/**"
+       - "AGENTS.md"
+-      - "CLAUDE.md"
+ 
+ concurrency:
+   group: ci-harness-${{ github.ref }}
+diff --git a/.gitignore b/.gitignore
+index 4d0df895..4f26459b 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -16,22 +16,19 @@
+ /.agro/config.json
+ .worktrees/*
+ !.worktrees/AGENTS.md
+-!.worktrees/CLAUDE.md
+ projects/*
+ !projects/AGENTS.md
+-!projects/CLAUDE.md
+ .claude/worktrees/
++
+ # Task artifacts are local runtime state; keep only the directory guide tracked.
+ .oh/tasks/*
+ !.oh/tasks/README.md
+ .oh/logs/*
+ !.oh/logs/AGENTS.md
+-!.oh/logs/CLAUDE.md
+ .agro/tasks/*
+ !.agro/tasks/README.md
+ .agro/logs/*
+ !.agro/logs/AGENTS.md
+-!.agro/logs/CLAUDE.md
+ 
+ # Build artifacts
+ **/.venv/
+diff --git a/.pi/APPEND_SYSTEM.md b/.pi/APPEND_SYSTEM.md
+index e9748934..f8c785e9 100644
+--- a/.pi/APPEND_SYSTEM.md
++++ b/.pi/APPEND_SYSTEM.md
+@@ -1,6 +1,6 @@
+ ## Project context
+ 
+-You are running inside a project workspace. Check `AGENTS.md` and `CLAUDE.md` if present. They define the project's identity, terminology, operating principles, and local boundaries. Treat task-specific procedures as on-demand context rather than root instructions.
++You are running inside a project workspace. Check `AGENTS.md` if present. They define the project's identity, terminology, operating principles, and local boundaries. Treat task-specific procedures as on-demand context rather than root instructions.
+ 
+ Application code and core logic are developed and tested within the local environment. Refer to project conventions for architecture patterns, tooling, and coding standards.
+ 
+diff --git a/.worktrees/AGENTS.md b/.worktrees/AGENTS.md
+index e4ea668d..8f074d97 100644
+--- a/.worktrees/AGENTS.md
++++ b/.worktrees/AGENTS.md
+@@ -4,7 +4,7 @@ Ignored scratch space for git worktrees of this repository. Every repository kee
+ its worktrees at its own root, so a project clone under `projects/` has a
+ `.worktrees/` of its own that follows the same rules as this one.
+ 
+-`CLAUDE.md` is a provider-compatibility symlink to this file. Edit `AGENTS.md`.
++Every coding harness reads this file directly.
+ 
+ | Subfolder | What lives here |
+ | --------- | --------------- |
+diff --git a/.worktrees/CLAUDE.md b/.worktrees/CLAUDE.md
+deleted file mode 120000
+index 47dc3e3d..00000000
+--- a/.worktrees/CLAUDE.md
++++ /dev/null
+@@ -1 +0,0 @@
+-AGENTS.md
+\ No newline at end of file
+diff --git a/AGENTS.md b/AGENTS.md
+index 7580bd9f..b34a110d 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -5,7 +5,7 @@ agents work: the repository root, Docker lifecycle, shared agent infrastructure,
+ and the boundaries that keep agent work safe. Application agents write
+ application code inside the sandbox.
+ 
+-`CLAUDE.md` is a provider-compatibility symlink to this file. Edit `AGENTS.md`.
++Every coding harness reads this file directly.
+ 
+ ## What AGRO is
+ 
+diff --git a/CLAUDE.md b/CLAUDE.md
+deleted file mode 120000
+index 47dc3e3d..00000000
+--- a/CLAUDE.md
++++ /dev/null
+@@ -1 +0,0 @@
+-AGENTS.md
+\ No newline at end of file
+diff --git a/crons/AGENTS.md b/crons/AGENTS.md
+index b251549b..1e991353 100644
+--- a/crons/AGENTS.md
++++ b/crons/AGENTS.md
+@@ -6,7 +6,7 @@ job; the runtime scans this directory at boot, schedules every enabled
+ job via [Croner](https://github.com/Hexagon/croner), and re-fires the
+ file's body as the next prompt to the active agent.
+ 
+-`CLAUDE.md` is a provider-compatibility symlink to this file. Edit `AGENTS.md`.
++Every coding harness reads this file directly.
+ 
+ These files are **agent instructions, not documentation**. A cron body is a
+ prompt an agent executes unattended, on a schedule, with no operator in the
+diff --git a/crons/CLAUDE.md b/crons/CLAUDE.md
+deleted file mode 120000
+index 47dc3e3d..00000000
+--- a/crons/CLAUDE.md
++++ /dev/null
+@@ -1 +0,0 @@
+-AGENTS.md
+\ No newline at end of file
+diff --git a/docs/glossary.md b/docs/glossary.md
+index 844f2639..572a0236 100644
+--- a/docs/glossary.md
++++ b/docs/glossary.md
+@@ -84,7 +84,7 @@ These names describe separate layers, not interchangeable jobs:
+ - **orchestrator** — The root-level role that manages the sandbox lifecycle and
+   git but does not write application code; its job is provisioning, scaffolding
+   the workspace, and running lifecycle skills. Its instructions live in the root
+-  `AGENTS.md` (aliased for provider compatibility as `CLAUDE.md`).
++  `AGENTS.md`, which every coding harness reads directly.
+   Source: [`AGENTS.md`](../AGENTS.md).
+ 
+ - **policy** — The provider-portable conventions and guardrails the harness
+@@ -106,7 +106,7 @@ These names describe separate layers, not interchangeable jobs:
+   creating another one. Source: [`docs/rfcs/README.md`](rfcs/README.md).
+ 
+ - **rule** — Ambient repository policy an agent carries without invoking
+-  anything: an `AGENTS.md` (aliased `CLAUDE.md` for provider compatibility) that
++  anything: an `AGENTS.md` that
+   applies to every task under its directory, or a path-scoped reference skill.
+   Distinct from a skill, which is invoked for a job.
+   Source: [`AGENTS.md`](../AGENTS.md).
+diff --git a/docs/lifecycle-commands.md b/docs/lifecycle-commands.md
+index e8b89892..acc72be6 100644
+--- a/docs/lifecycle-commands.md
++++ b/docs/lifecycle-commands.md
+@@ -31,6 +31,10 @@ Host prerequisites: **Docker** (with the Compose plugin), **Git**, and
+ when it is missing. Everything else — pnpm, Python, the agent CLIs — lives inside the
+ sandbox.
+ 
++Project instructions live in `AGENTS.md`. Codex and Pi read that name natively.
++Claude Code reads it from **2.1.277**; an older release, and a session on
++Amazon Bedrock, Vertex or Foundry, reads no project instructions at all.
++
+ ## The verbs
+ 
+ | Verb | Runs |
+diff --git a/projects/AGENTS.md b/projects/AGENTS.md
+index 1c50f446..8f855926 100644
+--- a/projects/AGENTS.md
++++ b/projects/AGENTS.md
+@@ -8,7 +8,7 @@ Each clone is its own git boundary, with its own remote, branches, CI, and histo
+ Never commit into one from the harness root, and never resolve a change here by
+ resetting the harness checkout — the two repositories are independent.
+ 
+-`CLAUDE.md` is a provider-compatibility symlink to this file. Edit `AGENTS.md`.
++Every coding harness reads this file directly.
+ 
+ Folder shape mirrors the remote:
+ 
+diff --git a/projects/CLAUDE.md b/projects/CLAUDE.md
+deleted file mode 120000
+index 47dc3e3d..00000000
+--- a/projects/CLAUDE.md
++++ /dev/null
+@@ -1 +0,0 @@
+-AGENTS.md
+\ No newline at end of file

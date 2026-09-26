@@ -1,0 +1,1 @@
+- Compare the compose wrapper's `--env-file` to `.devcontainer/.env` by file identity, not path string, so `compose-config-path-parity` stops failing on installed machines. ([#935](https://github.com/mifunedev/agro/issues/935))

@@ -1,0 +1,1 @@
+edeac761ed07ad6715d03f74c54261879a7cafc4 fix: keep supervisor trigger description within metadata limit

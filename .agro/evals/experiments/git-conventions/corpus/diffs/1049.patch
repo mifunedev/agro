@@ -1,0 +1,1412 @@
+diff --git a/.agro/evals/RESULTS.md b/.agro/evals/RESULTS.md
+index 1af7a49e..9c0c4a85 100644
+--- a/.agro/evals/RESULTS.md
++++ b/.agro/evals/RESULTS.md
+@@ -6,154 +6,154 @@ probe id; git history is the time series.** Schema and exit-code semantics are i
+ 
+ | probe | tier | last-run (UTC) | status | source |
+ |-------|------|----------------|--------|--------|
+-| advisor-execution-contract | A | 2026-09-11 02:32 | PASS | issue #988 / ADR #989 |
+-| agent-browser-cli | A | 2026-09-11 02:32 | PASS | retro lesson 2026-06-07 (agent-browser 0.8.5 CLI) |
+-| agents-identity-contract | A | 2026-09-11 02:32 | PASS | issue #854 — T3-style root identity, glossary, and skill-owned procedures |
+-| agro-compat-inventory | A | 2026-09-11 02:32 | PASS | issue #940 (AGRO Phase 0) — every active OH_* contract is inventoried and classified before any phase renames it |
+-| agro-legacy-shim | A | 2026-09-11 02:32 | PASS | issue #941 (AGRO Phase 1) — @mifune/openharness is a retained delegation shim |
+-| architect-skill-contract | A | 2026-09-11 02:32 | PASS | ADR #929 — skills are the role primitive; /architect is a skill, not an agent |
+-| architecture-record-reuse | A | 2026-09-11 02:32 | PASS | ADR #929 — durable decisions reuse the existing RFC/ADR issue convention |
+-| artifact-contract-audit | A | 2026-09-11 02:32 | PASS | issue #583/#645 — production /audit implementation Gate 1 behavior |
+-| audit-dispatcher-contract | A | 2026-09-11 02:32 | PASS | issue #645 — audit consolidation public taxonomy |
+-| audit-implementation-behavior | A | 2026-09-11 02:32 | PASS | issue #645 — implementation root/repo/browser behavior |
+-| audit-pr-acquire | A | 2026-09-11 02:32 | PASS | issue #645 — production PR acquisition behavior |
+-| audit-pr-classifier | A | 2026-09-11 02:32 | PASS | issue #645 — deterministic focused and queue PR classifier |
+-| audit-run-root-contract | A | 2026-09-11 02:32 | PASS | issue #645 — executable immutable audit root/run correlation |
+-| audit-shellcheck-coverage | A | 2026-09-11 02:32 | PASS | issue #645 — private audit scripts require release and CI lint coverage |
+-| audit-slop-gate | A | 2026-09-11 02:32 | PASS | .claude/specs/images/reduce-slop.png — the four correctness gates all pass a change |
+-| audit-stale-references | A | 2026-09-11 02:32 | PASS | issue #645 — clean-breaking audit migration |
+-| boot-lint-glob | A | 2026-09-11 02:32 | PASS | issue #90, issue #120 |
+-| builder-no-agent-artifact | A | 2026-09-11 02:32 | PASS | ADR #929 — /builder agent is retired; a reusable role is authored as a skill |
+-| builder-skill-consolidation | A | 2026-09-11 02:32 | PASS | issue #643 — consolidate artifact builders behind one /builder dispatcher |
+-| builder-wiki-proposer | A | 2026-09-11 02:32 | PASS | wikiskill arXiv:2608.27454 — the skill proposer reads accumulated knowledge first |
+-| capability-benchmark-schema | A | 2026-09-11 02:32 | PASS | issue #167 — capability benchmark instrument |
+-| cc-safety-net-wiring | A | 2026-09-11 02:32 | PASS | .agro/tasks/cc-safety-net/prd.json US-007 2026-07-19 |
+-| changelog-entry-length | A | 2026-09-11 02:32 | PASS | conversation 2026-08-24 — CHANGELOG.md grew to 259KB of bullet prose because "one line" was unquantified |
+-| cleanup-no-agent-session-coupling | A | 2026-09-11 02:32 | PASS | issue #928 — retire automated /spec agent handoff; |
+-| cleanup-tasks-scoped-guard | A | 2026-09-11 02:32 | PASS | issue #85 |
+-| cleanup-tasks-worktree-grooming | A | 2026-09-11 02:32 | PASS | issue #168; issue #327 |
+-| cli-publish-typecheck-scope | A | 2026-09-11 02:32 | PASS | release run 33271077312 — v0.5.0 pushed its GHCR image, then failed to publish |
+-| close-issues-on-development | A | 2026-09-11 02:32 | PASS | issue #841 (closing keywords never fire because the default branch is main) 2026-08-26 |
+-| codex-stale-response-retry | A | 2026-09-11 02:32 | PASS | issue #506 — Codex previous_response_not_found RCA |
+-| compose-config-path-parity | A | 2026-09-11 02:32 | PASS | PR #833 (remove harness.yaml — the wrapper and VS Code "Reopen in Container" paths must resolve the same service) 2026-08-26 |
+-| compose-env-boundary | A | 2026-09-11 02:32 | PASS | #920 — the epic #903→#911 made the CLI provision harnesses and tools from |
+-| compose-wrapper-sibling-copies | A | 2026-09-11 02:32 | PASS | pattern-scripts-sibling-dependency-standalone-copies (issue #940) — docker-compose.sh sources compat.sh, so a fixture that copies the wrapper alone cannot run it |
+-| config-schema-parity | A | 2026-09-11 02:32 | PASS | PR #833 (one schema file — DOCKER_SOCKET, SANDBOX_SSH, OH_SANDBOX_IMAGE, OH_PULL_POLICY, SKIP_PNPM_INSTALL were consumed but undocumented); rewritten for the agro.json/secrets split by PR #887 |
+-| context-tier-size-budget | A | 2026-09-11 02:32 | PASS | .agro/tasks/spec-simplification/ (issue #816, US-007) — the always-on tier was 85,256 B |
+-| continual-learning-20260831 | A | 2026-09-11 02:32 | PASS | retro lesson 2026-08-31 (unexercised oracle) — a probe green in a 112-probe run carried three parser defects |
+-| continual-learning-20260911 | A | 2026-09-11 02:32 | PASS | retro lesson 2026-09-11 (issue #1046) — `agro sandbox install docker` ended with `next: oh shell <name>` |
+-| continual-learning-20260911b | A | 2026-09-11 02:32 | PASS | retro lesson 2026-09-11 — an EMPTY CI check set was read as green; zero checks is pending or no-run, never success |
+-| cron-claude-codex-fallback | A | 2026-09-11 02:32 | PASS | conversation 2026-06-12 (default Codex fallback for crons) |
+-| cron-systemd-service | A | 2026-09-11 02:32 | PASS | issue #956 (systemd PID 1; cron supervision leaves tmux) 2026-09-04 |
+-| crons-directory-guide | A | 2026-09-11 02:32 | PASS | issue #874 |
+-| curl-bash-safe-alternatives | A | 2026-09-11 02:32 | ERROR | vet-run/vet integration — public curl|bash examples need review-first alternatives |
+-| datasets-schema | A | 2026-09-11 02:32 | PASS | issue #196 — .agro/evals/datasets verifiable trajectory corpus (Repo2RLEnv-inspired) |
+-| debugmcp-availability | A | 2026-09-11 02:32 | SKIPPED | issue #297 — DebugMCP MCP debug-server availability |
+-| delegate-model-effort-policy | A | 2026-09-11 02:32 | PASS | issue #988 / ADR #989 (advisor-first worker model and reasoning policy) |
+-| delegate-worker-boundary | A | 2026-09-11 02:32 | PASS | ADR #929 — subagents are a bounded execution primitive, not a project-role ontology; |
+-| devtcp-hook | A | 2026-09-11 02:32 | PASS | retro lesson 2026-06-10 (zsh /dev/tcp) |
+-| docker-inspect-env-guard | A | 2026-09-11 02:32 | PASS | operator directive 2026-08-08 (agents keep the docker socket, but must |
+-| docker-socket-gid-alignment | A | 2026-09-11 02:32 | PASS | issue 975 — groupmod -g refuses a GID another group already holds, and |
+-| docs-20260901-followup-artifact-cited | A | 2026-09-11 02:32 | PASS | retro lesson 2026-09-01 (issue #926) — evidence.md recorded an acceptance criterion |
+-| docs-20260911 | A | 2026-09-11 02:32 | PASS | retro lesson 2026-09-11 — issue #1043 renamed a CLI flag in the CLI and in docs/ while tracked README.md files kept teaching the old spelling as the current one; issue #1046 found docs/intro.md naming the deprecated `oh` binary as the one host CLI |
+-| docs-build-fast-path | A | 2026-09-11 02:32 | PASS | #455 — docs builds must stay out of fast harness/eval/release gates; #536 — docs site externalized to openharness-web; docs markdown relocated to docs/ |
+-| drift-check-cron-staleness-glob | A | 2026-09-11 02:32 | PASS | issue #98; issue #225 (restart-required cron frontmatter/config drift) |
+-| entrypoint-pnpm-manifest-fingerprint | A | 2026-09-11 02:32 | PASS | issue #521 (manifest-aware sandbox installs) 2026-07-01 |
+-| escalate-contract | A | 2026-09-11 02:32 | PASS | issue #799 — seven comments on a GitHub thread produced zero notifications and nobody |
+-| eval-ci-gate | A | 2026-09-11 02:32 | PASS | #103 — eval probe suite gated in CI |
+-| eval-contract-text-20260831 | A | 2026-09-11 02:32 | PASS | retro lesson 2026-08-31 (prose-literal pinning) — two assertions failed on first run purely from source line wrapping |
+-| eval-gate | A | 2026-09-11 02:32 | PASS | retro lesson 2026-06-11 (eval-gate) |
+-| eval-results-atomic | A | 2026-09-11 02:32 | PASS | issue #83 (eval-results-atomic-write) |
+-| eval-runner-exit | A | 2026-09-11 02:32 | PASS | retro lesson 2026-06-11 (eval-runner-exit) #29 |
+-| eval-runs-once-per-cycle | A | 2026-09-11 02:32 | PASS | .agro/tasks/spec-simplification/ (issue #816, US-006) — /eval ran 3x per cycle on the |
+-| evals-20260901-suite-tree-clean | A | 2026-09-11 02:32 | PASS | retro lesson 2026-09-01 (issue #926) — a probe carrying `&>2` wrote a file named 2 |
+-| execution-target-contract | A | 2026-09-11 02:32 | PASS | issue #733 (ExecutionTarget contract + Docker Compose adapter) 2026-08-10 |
+-| get-agro-bootstrap | A | 2026-09-11 02:32 | PASS | issue #941 (AGRO Phase 1) — get-agro.sh is the artifact-only installer for the standalone `agro` CLI (also on npm as @mifune/agro) |
+-| get-oh-bootstrap | A | 2026-09-11 02:32 | PASS | get-oh.sh bootstrap — the Node-bootstrapping host-side path to the standalone `oh` CLI (also on npm as @mifune/openharness; see oh-npm-package.sh) |
+-| git-skill | A | 2026-09-11 02:32 | PASS | conversation 2026-06-15 — rules are not always supported; git workflow must be the /git skill |
+-| harness-audit-empty-output-gate | A | 2026-09-11 02:32 | PASS | issue #246 — /audit harness must fail closed on empty auditor outputs |
+-| harness-ci-core-paths | A | 2026-09-11 02:32 | PASS | #165 — core sandbox config files must trigger harness CI |
+-| harness-ci-hooks-paths | A | 2026-09-11 02:32 | PASS | issue #202 — credential/security hook changes must trigger harness CI |
+-| harness-one-door | A | 2026-09-11 02:32 | PASS | #948 — `oh harness install` / `oh tool install` are the only door; boot |
+-| harness-yaml-migration | A | 2026-09-11 02:32 | PASS | PR #833 (migrate-harness-yaml.sh — append / uncomment-in-place / preserve / overwrite, plus a silent no-op second run) 2026-08-26 |
+-| headless-tmux-preserved | A | 2026-09-11 02:32 | PASS | issue #928 — retire automated /spec agent handoff |
+-| health-check-docker-stats | A | 2026-09-11 02:32 | PASS | retro lesson 2026-06-10 (docker stats vs ps Size) |
+-| health-check-socket-degrade | A | 2026-09-11 02:32 | PASS | issue #762 (refs #756) — /health-check degrades to one statement, not nine failures |
+-| heartbeat-logging-contract | A | 2026-09-11 02:32 | PASS | issue #447 (heartbeat log append hardening) 2026-06-18 |
+-| image-seed-hygiene | A | 2026-09-11 02:32 | PASS | issue #900 (slim the sandbox image) 2026-08-30 |
+-| knowledge-path-single-owner | A | 2026-09-11 02:32 | PASS | issue #926 — durable knowledge moved to .agro/knowledge/ with no compatibility alias |
+-| knowledge-source-freshness | A | 2026-09-11 02:32 | PASS | issue #926 — age is telemetry; a page is stale when a declared source moved |
+-| knowledge-tracked-query-boundary | A | 2026-09-11 02:32 | PASS | issue #926 — ignored local scratch must never be an implicit input |
+-| markitdown-wiki-ingest | A | 2026-09-11 02:32 | PASS | issue #649 — pinned local-document normalization contract for /wiki ingest |
+-| next-dev-prod | A | 2026-09-11 02:32 | SKIPPED | retro lesson 2026-06-04 |
+-| no-project-agent-catalog | A | 2026-09-11 02:32 | PASS | ADR #929 — .agro/agents/ is retired; provider-link and update logic must not recreate it |
+-| oh-compose-env-wiring | A | 2026-09-11 02:32 | PASS | issue #880 (oh as the only front door — agro.json is the non-secret config surface) |
+-| oh-config-surfaces | A | 2026-09-11 02:32 | REGRESSION | PR #887 (config split across two authored surfaces — a tracked agro.json and a secrets-only root dotenv — with nothing left under $HOME) |
+-| oh-destroy-guard | A | 2026-09-11 02:32 | PASS | issue #879 — `oh` becomes the only front door, so `make destroy` must |
+-| oh-devcontainer-restructure | A | 2026-09-11 02:32 | PASS | consolidate devcontainer — .agro/devcontainer/ folded back into .devcontainer/ |
+-| oh-home-mount | A | 2026-09-11 02:32 | PASS | issue #898 (single $HOME mount) 2026-08-30 |
+-| oh-image-only-deploy | A | 2026-09-11 02:32 | PASS | .agro/tasks/image-only-deploy/prd.json US-004 (issue #609, Flavor B image-only |
+-| oh-lifecycle-surface | A | 2026-09-11 02:32 | PASS | issue #881 — the Makefile is retired and `oh` is the only front door |
+-| oh-npm-package | A | 2026-09-11 02:32 | PASS | npm publish path for the standalone `agro` CLI (@mifune/agro; issue #941 Phase 1) — alternative to get-agro.sh |
+-| oh-payload-manifest | A | 2026-09-11 02:32 | PASS | issue #531 follow-on (.oh payload manifest — oh update ships a declared allowlist) |
+-| oh-sandbox-image-mode | A | 2026-09-11 02:32 | PASS | conversation 2026-07-05 (basic Docker deployment — prebuilt-image mode) |
+-| oh-shipped-repo-overridable | A | 2026-09-11 02:32 | PASS | issue #531 follow-on (de-hardcode residual — shipped .oh shell scripts keep the upstream repo overridable) |
+-| oh-standalone-lifecycle | A | 2026-09-11 02:32 | PASS | issue #564 |
+-| oh-update-bootstrap | A | 2026-09-11 02:32 | PASS | issue #950 US-003 / D5 — the scaffolding init verb is retired; `oh update` is the bootstrap that equips a checkout |
+-| oh-update | A | 2026-09-11 02:32 | PASS | issue #531 Phase 3 (oh update — upgrade only the .oh control plane) |
+-| operator-config-guard | A | 2026-09-11 02:32 | PASS | operator directives 2026-08-06 (.config/ and settings.local.json are operator-only) |
+-| plan-orchestration-contract | A | 2026-09-11 02:32 | PASS | issue #988 / ADR #989 |
+-| pnpm-audit-ci-gate | A | 2026-09-11 02:32 | PASS | issue #171 — pnpm security audits must run in CI; #943 — GHSA-82fw-gwwq-j7x9 turned a live `pnpm:devPreinstall` advisory query into a sandbox boot failure; #1019 — the same class of failure must not recur through a different hook |
+-| post-bridge-publish-confirmation | A | 2026-09-11 02:32 | PASS | #523 — post-bridge live publishing requires an explicit final confirmation gate |
+-| prd-output-path-contract | A | 2026-09-11 02:32 | PASS | retro lesson 2026-06-19 |
+-| prompt-miner-schema-compat | A | 2026-09-11 02:32 | PASS | issue #253 — prompt-miner JSONL schema-drift guard |
+-| prompt-miner-symlink-entrypoint | A | 2026-09-11 02:32 | PASS | issue #663 — prompt-miner engine no-ops via the documented .claude/skills symlink |
+-| prompt-miner-weakness-record | A | 2026-09-11 02:32 | PASS | issue #580 — prompt-miner weakness-record (WH-xxx) cluster output |
+-| protected-path-deletion | A | 2026-09-11 02:32 | PASS | .agro/tasks/spec-simplification/ (issue #816, US-001) — the critique gate was deleted, |
+-| protected-paths-resolve | A | 2026-09-11 02:32 | PASS | issue #753 — .claude/protected-paths.txt named 7 paths that did not exist. |
+-| registry-portability-gate | A | 2026-09-11 02:32 | PASS | issue #758 |
+-| registry-portability | A | 2026-09-11 02:32 | SKIPPED | issue #758 |
+-| retired-memory-vocabulary | A | 2026-09-11 02:32 | PASS | issue #926 — .agro/README.md and .gitignore still described a deleted subsystem |
+-| retro-deterministic-contract | A | 2026-09-11 02:32 | PASS | issue #443 — /retro deterministic output and self-contained helper contract |
+-| rlm-context-budget | A | 2026-09-11 02:32 | PASS | .agro/tasks/rlm-weighted-trajectories/prd.json US-006 |
+-| roles-are-skills | A | 2026-09-11 02:32 | PASS | ADR #929 — roles are behavior, skills encode behavior, agents execute behavior; |
+-| sandbox-boot-advisory-recovery | A | 2026-09-11 02:32 | SKIPPED | issue #1019 — GHSA-82fw-gwwq-j7x9 turned the 0.9.0 manifest's `pnpm:devPreinstall` audit |
+-| sandbox-boot-guard-ci | A | 2026-09-11 02:32 | PASS | issue #449 (sandbox image build CI guard) 2026-06-19; |
+-| sandbox-node-base | A | 2026-09-11 02:32 | PASS | openharness#878 — oh as the only front door, T0 sandbox base image |
+-| sandbox-registry | A | 2026-09-11 02:32 | PASS | issue #950 US-005 / D10 — `oh sandbox install` owns sandbox creation from a |
+-| skill-paths | A | 2026-09-11 02:32 | PASS | issue #43 — stale path references; extended by issue #69 — apps/->packages/ rename guard; extended by issue #870 — deleted .agro/agents/advisor.md |
+-| skills-dir-clean | A | 2026-09-11 02:32 | PASS | conversation 2026-06-29 — Pi parses every top-level `.md` in the skills |
+-| skills-task-tool-coupling | A | 2026-09-11 02:32 | PASS | council review 2026-08-29 (issue #886) — /delegate instructed Claude-Code-only |
+-| skills-vendored | A | 2026-09-11 02:32 | REGRESSION | absorb .mifune submodule into .oh — the skills/hooks pack is vendored |
+-| slack-admin-command-surface | A | 2026-09-11 02:32 | PASS | issue #354 — Slack bridge docs must distinguish Pi /msg-bridge commands from Slack DM admin text handlers |
+-| spec-execute-knowledge-impact | A | 2026-09-11 02:32 | PASS | issue #926 — the planner predicts, the diff decides |
+-| spec-execute-running-contract | A | 2026-09-11 02:32 | PASS | issue #926 — execute returned before the build finished while promising a ready PR; |
+-| spec-family-contract | A | 2026-09-11 02:32 | PASS | issue #265; spec-simplification issue #816; workflow authority issue #854; |
+-| spec-no-advisor-session-coupling | A | 2026-09-11 02:32 | PASS | issue #928 — retire automated /spec agent handoff |
+-| spec-no-agent-handoff | A | 2026-09-11 02:32 | PASS | issue #928 — retire automated /spec agent handoff |
+-| spec-no-generated-prompt-contract | A | 2026-09-11 02:32 | PASS | issue #926 — a persisted copy of a template drifts from the template |
+-| spec-plan-knowledge-context | A | 2026-09-11 02:32 | PASS | issue #926 — /spec wrote knowledge more reliably than it read it |
+-| spec-plan-reconciliation-gate | A | 2026-09-11 02:32 | PASS | issue #926 — an approved plan may not become a materially different PRD silently |
+-| spec-ready-finalization | A | 2026-09-11 02:32 | PASS | issue #134; spec-simplification issue #816; workflow authority issue #854 |
+-| spec-single-owner | A | 2026-09-11 02:32 | PASS | conversation 2026-06-19 (single-owner implementation workflow, issue #257); |
+-| ste-checker-contract | A | 2026-09-11 02:32 | PASS | issue #750 PR audit — the /ste checker had four fail-open paths (unclosed |
+-| submitted-by-trailers | A | 2026-09-11 02:32 | PASS | conversation 2026-06-12 (commit attribution trailers); the single-owner |
+-| sync-skill-contract | A | 2026-09-11 02:32 | PASS | issue #331 — /sync dispatcher skill (bidirectional origin↔upstream sync) |
+-| systemd-sandbox-init | A | 2026-09-11 02:32 | PASS | issue #956 (systemd PID 1; cron supervision leaves tmux) 2026-09-04 |
+-| t3-headless-launch | A | 2026-09-11 02:32 | PASS | issue #858 — /t3 launched a bare `npx --yes t3`, which is the local GUI and |
+-| tailscale-tool-boundary | A | 2026-09-11 02:32 | PASS | issue #858 — Tailscale mobile access for T3 Code. There is no tailnet, no |
+-| task-completion-structured-state | A | 2026-09-11 02:32 | PASS | issue #926 — a prose sentinel duplicated structured task-graph state |
+-| tool-catalog-boundary | A | 2026-09-11 02:32 | PASS | agent-browser's exclusion from the harness catalog (#821), the three-catalog |
+-| version-parity | A | 2026-09-11 02:32 | PASS | conversation 2026-08-29 — the oh CLI became the only lifecycle door, so its |
+-| weigh-scorer-contract | A | 2026-09-11 02:32 | PASS | .agro/tasks/rlm-weighted-trajectories/prd.json US-003 (2026-06-27) |
+-| wiki-compile-contract | A | 2026-09-11 02:32 | PASS | wikiskill arXiv:2608.27454 — Wiki Maintainer role added as /wiki compile |
+-| wiki-kind-schema-contract | A | 2026-09-11 02:32 | PASS | wikiskill arXiv:2608.27454 (pattern layer); issue #926 (repo|external|pattern kinds) |
+-| wiki-pattern-persistence | A | 2026-09-11 02:32 | SKIPPED | wikiskill arXiv:2608.27454 — pattern pages are never rolled back |
+-| wiki-query-pattern-isolation | A | 2026-09-11 02:32 | PASS | wikiskill arXiv:2608.27454 — proposer-only pattern access |
+-| wiki-readme-index | A | 2026-09-11 02:32 | PASS | issue #132 — knowledge README index drift guard |
+-| wiki-related-slugs | A | 2026-09-11 02:32 | PASS | wikiskill arXiv:2608.27454 — wiki lint link checks |
+-| wiki-skill-impact-append-only | A | 2026-09-11 02:32 | PASS | wikiskill arXiv:2608.27454 — skill-change ledger, never rolled back |
+-| workflow-boundaries | A | 2026-09-11 02:32 | PASS | conversation 2026-06-19 (workflow consolidation, issue #259); authority moved to /spec in issue #854 |
+-| worktrees-layout | A | 2026-09-11 02:32 | PASS | issue #872 |
++| advisor-execution-contract | A | 2026-09-11 03:32 | PASS | issue #988 / ADR #989 |
++| agent-browser-cli | A | 2026-09-11 03:32 | PASS | retro lesson 2026-06-07 (agent-browser 0.8.5 CLI) |
++| agents-identity-contract | A | 2026-09-11 03:32 | PASS | issue #854 — T3-style root identity, glossary, and skill-owned procedures |
++| agro-compat-inventory | A | 2026-09-11 03:32 | PASS | issue #940 (AGRO Phase 0) — every active OH_* contract is inventoried and classified before any phase renames it |
++| agro-legacy-shim | A | 2026-09-11 03:32 | PASS | issue #941 (AGRO Phase 1) — @mifune/openharness is a retained delegation shim |
++| architect-skill-contract | A | 2026-09-11 03:32 | PASS | ADR #929 — skills are the role primitive; /architect is a skill, not an agent |
++| architecture-record-reuse | A | 2026-09-11 03:32 | PASS | ADR #929 — durable decisions reuse the existing RFC/ADR issue convention |
++| artifact-contract-audit | A | 2026-09-11 03:32 | PASS | issue #583/#645 — production /audit implementation Gate 1 behavior |
++| audit-dispatcher-contract | A | 2026-09-11 03:32 | PASS | issue #645 — audit consolidation public taxonomy |
++| audit-implementation-behavior | A | 2026-09-11 03:32 | PASS | issue #645 — implementation root/repo/browser behavior |
++| audit-pr-acquire | A | 2026-09-11 03:32 | PASS | issue #645 — production PR acquisition behavior |
++| audit-pr-classifier | A | 2026-09-11 03:32 | PASS | issue #645 — deterministic focused and queue PR classifier |
++| audit-run-root-contract | A | 2026-09-11 03:32 | PASS | issue #645 — executable immutable audit root/run correlation |
++| audit-shellcheck-coverage | A | 2026-09-11 03:32 | PASS | issue #645 — private audit scripts require release and CI lint coverage |
++| audit-slop-gate | A | 2026-09-11 03:32 | PASS | .claude/specs/images/reduce-slop.png — the four correctness gates all pass a change |
++| audit-stale-references | A | 2026-09-11 03:32 | PASS | issue #645 — clean-breaking audit migration |
++| boot-lint-glob | A | 2026-09-11 03:32 | PASS | issue #90, issue #120 |
++| builder-no-agent-artifact | A | 2026-09-11 03:32 | PASS | ADR #929 — /builder agent is retired; a reusable role is authored as a skill |
++| builder-skill-consolidation | A | 2026-09-11 03:32 | PASS | issue #643 — consolidate artifact builders behind one /builder dispatcher |
++| builder-wiki-proposer | A | 2026-09-11 03:32 | PASS | wikiskill arXiv:2608.27454 — the skill proposer reads accumulated knowledge first |
++| capability-benchmark-schema | A | 2026-09-11 03:32 | PASS | issue #167 — capability benchmark instrument |
++| cc-safety-net-wiring | A | 2026-09-11 03:32 | PASS | .agro/tasks/cc-safety-net/prd.json US-007 2026-07-19 |
++| changelog-entry-length | A | 2026-09-11 03:32 | PASS | conversation 2026-08-24 — CHANGELOG.md grew to 259KB of bullet prose because "one line" was unquantified |
++| cleanup-no-agent-session-coupling | A | 2026-09-11 03:32 | PASS | issue #928 — retire automated /spec agent handoff; |
++| cleanup-tasks-scoped-guard | A | 2026-09-11 03:32 | PASS | issue #85 |
++| cleanup-tasks-worktree-grooming | A | 2026-09-11 03:32 | PASS | issue #168; issue #327 |
++| cli-publish-typecheck-scope | A | 2026-09-11 03:32 | PASS | release run 33271077312 — v0.5.0 pushed its GHCR image, then failed to publish |
++| close-issues-on-development | A | 2026-09-11 03:32 | PASS | issue #841 (closing keywords never fire because the default branch is main) 2026-08-26 |
++| codex-stale-response-retry | A | 2026-09-11 03:32 | PASS | issue #506 — Codex previous_response_not_found RCA |
++| compose-config-path-parity | A | 2026-09-11 03:32 | PASS | PR #833 (remove harness.yaml — the wrapper and VS Code "Reopen in Container" paths must resolve the same service) 2026-08-26 |
++| compose-env-boundary | A | 2026-09-11 03:32 | PASS | #920 — the epic #903→#911 made the CLI provision harnesses and tools from |
++| compose-wrapper-sibling-copies | A | 2026-09-11 03:32 | PASS | pattern-scripts-sibling-dependency-standalone-copies (issue #940) — docker-compose.sh sources compat.sh, so a fixture that copies the wrapper alone cannot run it |
++| config-schema-parity | A | 2026-09-11 03:32 | PASS | PR #833 (one schema file — DOCKER_SOCKET, SANDBOX_SSH, OH_SANDBOX_IMAGE, OH_PULL_POLICY, SKIP_PNPM_INSTALL were consumed but undocumented); rewritten for the agro.json/secrets split by PR #887 |
++| context-tier-size-budget | A | 2026-09-11 03:32 | PASS | .agro/tasks/spec-simplification/ (issue #816, US-007) — the always-on tier was 85,256 B |
++| continual-learning-20260831 | A | 2026-09-11 03:32 | PASS | retro lesson 2026-08-31 (unexercised oracle) — a probe green in a 112-probe run carried three parser defects |
++| continual-learning-20260911 | A | 2026-09-11 03:32 | PASS | retro lesson 2026-09-11 (issue #1046) — `agro sandbox install docker` ended with `next: oh shell <name>` |
++| continual-learning-20260911b | A | 2026-09-11 03:32 | PASS | retro lesson 2026-09-11 — an EMPTY CI check set was read as green; zero checks is pending or no-run, never success |
++| cron-claude-codex-fallback | A | 2026-09-11 03:32 | PASS | conversation 2026-06-12 (default Codex fallback for crons) |
++| cron-systemd-service | A | 2026-09-11 03:32 | PASS | issue #956 (systemd PID 1; cron supervision leaves tmux) 2026-09-04 |
++| crons-directory-guide | A | 2026-09-11 03:32 | PASS | issue #874 |
++| curl-bash-safe-alternatives | A | 2026-09-11 03:32 | ERROR | vet-run/vet integration — public curl|bash examples need review-first alternatives |
++| datasets-schema | A | 2026-09-11 03:32 | PASS | issue #196 — .agro/evals/datasets verifiable trajectory corpus (Repo2RLEnv-inspired) |
++| debugmcp-availability | A | 2026-09-11 03:32 | SKIPPED | issue #297 — DebugMCP MCP debug-server availability |
++| delegate-model-effort-policy | A | 2026-09-11 03:32 | PASS | issue #988 / ADR #989 (advisor-first worker model and reasoning policy) |
++| delegate-worker-boundary | A | 2026-09-11 03:32 | PASS | ADR #929 — subagents are a bounded execution primitive, not a project-role ontology; |
++| devtcp-hook | A | 2026-09-11 03:32 | PASS | retro lesson 2026-06-10 (zsh /dev/tcp) |
++| docker-inspect-env-guard | A | 2026-09-11 03:32 | PASS | operator directive 2026-08-08 (agents keep the docker socket, but must |
++| docker-socket-gid-alignment | A | 2026-09-11 03:32 | PASS | issue 975 — groupmod -g refuses a GID another group already holds, and |
++| docs-20260901-followup-artifact-cited | A | 2026-09-11 03:32 | PASS | retro lesson 2026-09-01 (issue #926) — evidence.md recorded an acceptance criterion |
++| docs-20260911 | A | 2026-09-11 03:32 | PASS | retro lesson 2026-09-11 — issue #1043 renamed a CLI flag in the CLI and in docs/ while tracked README.md files kept teaching the old spelling as the current one; issue #1046 found docs/intro.md naming the deprecated `oh` binary as the one host CLI |
++| docs-build-fast-path | A | 2026-09-11 03:32 | PASS | #455 — docs builds must stay out of fast harness/eval/release gates; #536 — docs site externalized to openharness-web; docs markdown relocated to docs/ |
++| drift-check-cron-staleness-glob | A | 2026-09-11 03:32 | PASS | issue #98; issue #225 (restart-required cron frontmatter/config drift) |
++| entrypoint-pnpm-manifest-fingerprint | A | 2026-09-11 03:32 | PASS | issue #521 (manifest-aware sandbox installs) 2026-07-01 |
++| escalate-contract | A | 2026-09-11 03:32 | PASS | issue #799 — seven comments on a GitHub thread produced zero notifications and nobody |
++| eval-ci-gate | A | 2026-09-11 03:32 | PASS | #103 — eval probe suite gated in CI |
++| eval-contract-text-20260831 | A | 2026-09-11 03:32 | PASS | retro lesson 2026-08-31 (prose-literal pinning) — two assertions failed on first run purely from source line wrapping |
++| eval-gate | A | 2026-09-11 03:32 | PASS | retro lesson 2026-06-11 (eval-gate) |
++| eval-results-atomic | A | 2026-09-11 03:32 | PASS | issue #83 (eval-results-atomic-write) |
++| eval-runner-exit | A | 2026-09-11 03:32 | PASS | retro lesson 2026-06-11 (eval-runner-exit) #29 |
++| eval-runs-once-per-cycle | A | 2026-09-11 03:32 | PASS | .agro/tasks/spec-simplification/ (issue #816, US-006) — /eval ran 3x per cycle on the |
++| evals-20260901-suite-tree-clean | A | 2026-09-11 03:32 | PASS | retro lesson 2026-09-01 (issue #926) — a probe carrying `&>2` wrote a file named 2 |
++| execution-target-contract | A | 2026-09-11 03:32 | PASS | issue #733 (ExecutionTarget contract + Docker Compose adapter) 2026-08-10 |
++| get-agro-bootstrap | A | 2026-09-11 03:32 | PASS | issue #941 (AGRO Phase 1) — get-agro.sh is the artifact-only installer for the standalone `agro` CLI (also on npm as @mifune/agro) |
++| get-oh-bootstrap | A | 2026-09-11 03:32 | PASS | get-oh.sh bootstrap — the Node-bootstrapping host-side path to the standalone `oh` CLI (also on npm as @mifune/openharness; see oh-npm-package.sh) |
++| git-skill | A | 2026-09-11 03:32 | PASS | conversation 2026-06-15 — rules are not always supported; git workflow must be the /git skill |
++| harness-audit-empty-output-gate | A | 2026-09-11 03:32 | PASS | issue #246 — /audit harness must fail closed on empty auditor outputs |
++| harness-ci-core-paths | A | 2026-09-11 03:32 | PASS | #165 — core sandbox config files must trigger harness CI |
++| harness-ci-hooks-paths | A | 2026-09-11 03:32 | PASS | issue #202 — credential/security hook changes must trigger harness CI |
++| harness-one-door | A | 2026-09-11 03:32 | PASS | #948 — `oh harness install` / `oh tool install` are the only door; boot |
++| harness-yaml-migration | A | 2026-09-11 03:32 | PASS | PR #833 (migrate-harness-yaml.sh — append / uncomment-in-place / preserve / overwrite, plus a silent no-op second run) 2026-08-26 |
++| headless-tmux-preserved | A | 2026-09-11 03:32 | PASS | issue #928 — retire automated /spec agent handoff |
++| health-check-docker-stats | A | 2026-09-11 03:32 | PASS | retro lesson 2026-06-10 (docker stats vs ps Size) |
++| health-check-socket-degrade | A | 2026-09-11 03:32 | PASS | issue #762 (refs #756) — /health-check degrades to one statement, not nine failures |
++| heartbeat-logging-contract | A | 2026-09-11 03:32 | PASS | issue #447 (heartbeat log append hardening) 2026-06-18 |
++| image-seed-hygiene | A | 2026-09-11 03:32 | PASS | issue #900 (slim the sandbox image) 2026-08-30 |
++| knowledge-path-single-owner | A | 2026-09-11 03:32 | PASS | issue #926 — durable knowledge moved to .agro/knowledge/ with no compatibility alias |
++| knowledge-source-freshness | A | 2026-09-11 03:32 | PASS | issue #926 — age is telemetry; a page is stale when a declared source moved |
++| knowledge-tracked-query-boundary | A | 2026-09-11 03:32 | PASS | issue #926 — ignored local scratch must never be an implicit input |
++| markitdown-wiki-ingest | A | 2026-09-11 03:32 | PASS | issue #649 — pinned local-document normalization contract for /wiki ingest |
++| next-dev-prod | A | 2026-09-11 03:32 | SKIPPED | retro lesson 2026-06-04 |
++| no-project-agent-catalog | A | 2026-09-11 03:32 | PASS | ADR #929 — .agro/agents/ is retired; provider-link and update logic must not recreate it |
++| oh-compose-env-wiring | A | 2026-09-11 03:32 | PASS | issue #880 (oh as the only front door — agro.json is the non-secret config surface) |
++| oh-config-surfaces | A | 2026-09-11 03:32 | REGRESSION | PR #887 (config split across two authored surfaces — a tracked agro.json and a secrets-only root dotenv — with nothing left under $HOME) |
++| oh-destroy-guard | A | 2026-09-11 03:32 | PASS | issue #879 — `oh` becomes the only front door, so `make destroy` must |
++| oh-devcontainer-restructure | A | 2026-09-11 03:32 | PASS | consolidate devcontainer — .agro/devcontainer/ folded back into .devcontainer/ |
++| oh-home-mount | A | 2026-09-11 03:32 | PASS | issue #898 (single $HOME mount) 2026-08-30 |
++| oh-image-only-deploy | A | 2026-09-11 03:32 | PASS | .agro/tasks/image-only-deploy/prd.json US-004 (issue #609, Flavor B image-only |
++| oh-lifecycle-surface | A | 2026-09-11 03:32 | PASS | issue #881 — the Makefile is retired and `oh` is the only front door |
++| oh-npm-package | A | 2026-09-11 03:32 | PASS | npm publish path for the standalone `agro` CLI (@mifune/agro; issue #941 Phase 1) — alternative to get-agro.sh |
++| oh-payload-manifest | A | 2026-09-11 03:32 | PASS | issue #531 follow-on (.oh payload manifest — oh update ships a declared allowlist) |
++| oh-sandbox-image-mode | A | 2026-09-11 03:32 | PASS | conversation 2026-07-05 (basic Docker deployment — prebuilt-image mode) |
++| oh-shipped-repo-overridable | A | 2026-09-11 03:32 | PASS | issue #531 follow-on (de-hardcode residual — shipped .oh shell scripts keep the upstream repo overridable) |
++| oh-standalone-lifecycle | A | 2026-09-11 03:32 | PASS | issue #564 |
++| oh-update-bootstrap | A | 2026-09-11 03:32 | PASS | issue #950 US-003 / D5 — the scaffolding init verb is retired; `oh update` is the bootstrap that equips a checkout |
++| oh-update | A | 2026-09-11 03:32 | PASS | issue #531 Phase 3 (oh update — upgrade only the .oh control plane) |
++| operator-config-guard | A | 2026-09-11 03:32 | PASS | operator directives 2026-08-06 (.config/ and settings.local.json are operator-only) |
++| plan-orchestration-contract | A | 2026-09-11 03:32 | PASS | issue #988 / ADR #989 |
++| pnpm-audit-ci-gate | A | 2026-09-11 03:32 | PASS | issue #171 — pnpm security audits must run in CI; #943 — GHSA-82fw-gwwq-j7x9 turned a live `pnpm:devPreinstall` advisory query into a sandbox boot failure; #1019 — the same class of failure must not recur through a different hook |
++| post-bridge-publish-confirmation | A | 2026-09-11 03:32 | PASS | #523 — post-bridge live publishing requires an explicit final confirmation gate |
++| prd-output-path-contract | A | 2026-09-11 03:32 | PASS | retro lesson 2026-06-19 |
++| prompt-miner-schema-compat | A | 2026-09-11 03:32 | PASS | issue #253 — prompt-miner JSONL schema-drift guard |
++| prompt-miner-symlink-entrypoint | A | 2026-09-11 03:32 | PASS | issue #663 — prompt-miner engine no-ops via the documented .claude/skills symlink |
++| prompt-miner-weakness-record | A | 2026-09-11 03:32 | PASS | issue #580 — prompt-miner weakness-record (WH-xxx) cluster output |
++| protected-path-deletion | A | 2026-09-11 03:32 | PASS | .agro/tasks/spec-simplification/ (issue #816, US-001) — the critique gate was deleted, |
++| protected-paths-resolve | A | 2026-09-11 03:32 | PASS | issue #753 — .claude/protected-paths.txt named 7 paths that did not exist. |
++| registry-portability-gate | A | 2026-09-11 03:32 | PASS | issue #758 |
++| registry-portability | A | 2026-09-11 03:32 | SKIPPED | issue #758 |
++| retired-memory-vocabulary | A | 2026-09-11 03:32 | PASS | issue #926 — .agro/README.md and .gitignore still described a deleted subsystem |
++| retro-deterministic-contract | A | 2026-09-11 03:32 | PASS | issue #443 — /retro deterministic output and self-contained helper contract |
++| rlm-context-budget | A | 2026-09-11 03:32 | PASS | .agro/tasks/rlm-weighted-trajectories/prd.json US-006 |
++| roles-are-skills | A | 2026-09-11 03:32 | PASS | ADR #929 — roles are behavior, skills encode behavior, agents execute behavior; |
++| sandbox-boot-advisory-recovery | A | 2026-09-11 03:32 | SKIPPED | issue #1019 — GHSA-82fw-gwwq-j7x9 turned the 0.9.0 manifest's `pnpm:devPreinstall` audit |
++| sandbox-boot-guard-ci | A | 2026-09-11 03:32 | PASS | issue #449 (sandbox image build CI guard) 2026-06-19; |
++| sandbox-node-base | A | 2026-09-11 03:32 | PASS | openharness#878 — oh as the only front door, T0 sandbox base image |
++| sandbox-registry | A | 2026-09-11 03:32 | PASS | issue #950 US-005 / D10 — `oh sandbox install` owns sandbox creation from a |
++| skill-paths | A | 2026-09-11 03:32 | PASS | issue #43 — stale path references; extended by issue #69 — apps/->packages/ rename guard; extended by issue #870 — deleted .agro/agents/advisor.md |
++| skills-dir-clean | A | 2026-09-11 03:32 | PASS | conversation 2026-06-29 — Pi parses every top-level `.md` in the skills |
++| skills-task-tool-coupling | A | 2026-09-11 03:32 | PASS | council review 2026-08-29 (issue #886) — /delegate instructed Claude-Code-only |
++| skills-vendored | A | 2026-09-11 03:32 | REGRESSION | absorb .mifune submodule into .oh — the skills/hooks pack is vendored |
++| slack-admin-command-surface | A | 2026-09-11 03:32 | PASS | issue #354 — Slack bridge docs must distinguish Pi /msg-bridge commands from Slack DM admin text handlers |
++| spec-execute-knowledge-impact | A | 2026-09-11 03:32 | PASS | issue #926 — the planner predicts, the diff decides |
++| spec-execute-running-contract | A | 2026-09-11 03:32 | PASS | issue #926 — execute returned before the build finished while promising a ready PR; |
++| spec-family-contract | A | 2026-09-11 03:32 | PASS | issue #265; spec-simplification issue #816; workflow authority issue #854; |
++| spec-no-advisor-session-coupling | A | 2026-09-11 03:32 | PASS | issue #928 — retire automated /spec agent handoff |
++| spec-no-agent-handoff | A | 2026-09-11 03:32 | PASS | issue #928 — retire automated /spec agent handoff |
++| spec-no-generated-prompt-contract | A | 2026-09-11 03:32 | PASS | issue #926 — a persisted copy of a template drifts from the template |
++| spec-plan-knowledge-context | A | 2026-09-11 03:32 | PASS | issue #926 — /spec wrote knowledge more reliably than it read it |
++| spec-plan-reconciliation-gate | A | 2026-09-11 03:32 | PASS | issue #926 — an approved plan may not become a materially different PRD silently |
++| spec-ready-finalization | A | 2026-09-11 03:32 | PASS | issue #134; spec-simplification issue #816; workflow authority issue #854 |
++| spec-single-owner | A | 2026-09-11 03:32 | PASS | conversation 2026-06-19 (single-owner implementation workflow, issue #257); |
++| ste-checker-contract | A | 2026-09-11 03:32 | PASS | issue #750 PR audit — the /ste checker had four fail-open paths (unclosed |
++| submitted-by-trailers | A | 2026-09-11 03:32 | PASS | conversation 2026-06-12 (commit attribution trailers); the single-owner |
++| sync-skill-contract | A | 2026-09-11 03:32 | PASS | issue #331 — /sync dispatcher skill (bidirectional origin↔upstream sync) |
++| systemd-sandbox-init | A | 2026-09-11 03:32 | PASS | issue #956 (systemd PID 1; cron supervision leaves tmux) 2026-09-04 |
++| t3-headless-launch | A | 2026-09-11 03:32 | PASS | issue #858 — /t3 launched a bare `npx --yes t3`, which is the local GUI and |
++| tailscale-tool-boundary | A | 2026-09-11 03:32 | PASS | issue #858 — Tailscale mobile access for T3 Code. There is no tailnet, no |
++| task-completion-structured-state | A | 2026-09-11 03:32 | PASS | issue #926 — a prose sentinel duplicated structured task-graph state |
++| tool-catalog-boundary | A | 2026-09-11 03:32 | PASS | agent-browser's exclusion from the harness catalog (#821), the three-catalog |
++| version-parity | A | 2026-09-11 03:32 | PASS | conversation 2026-08-29 — the oh CLI became the only lifecycle door, so its |
++| weigh-scorer-contract | A | 2026-09-11 03:32 | PASS | .agro/tasks/rlm-weighted-trajectories/prd.json US-003 (2026-06-27) |
++| wiki-compile-contract | A | 2026-09-11 03:32 | PASS | wikiskill arXiv:2608.27454 — Wiki Maintainer role added as /wiki compile |
++| wiki-kind-schema-contract | A | 2026-09-11 03:32 | PASS | wikiskill arXiv:2608.27454 (pattern layer); issue #926 (repo|external|pattern kinds) |
++| wiki-pattern-persistence | A | 2026-09-11 03:32 | SKIPPED | wikiskill arXiv:2608.27454 — pattern pages are never rolled back |
++| wiki-query-pattern-isolation | A | 2026-09-11 03:32 | PASS | wikiskill arXiv:2608.27454 — proposer-only pattern access |
++| wiki-readme-index | A | 2026-09-11 03:32 | PASS | issue #132 — knowledge README index drift guard |
++| wiki-related-slugs | A | 2026-09-11 03:32 | PASS | wikiskill arXiv:2608.27454 — wiki lint link checks |
++| wiki-skill-impact-append-only | A | 2026-09-11 03:32 | PASS | wikiskill arXiv:2608.27454 — skill-change ledger, never rolled back |
++| workflow-boundaries | A | 2026-09-11 03:32 | PASS | conversation 2026-06-19 (workflow consolidation, issue #259); authority moved to /spec in issue #854 |
++| worktrees-layout | A | 2026-09-11 03:32 | PASS | issue #872 |
+ 
+ <!-- benchmark: pass-rate = PASS / (PASS + REGRESSION + TIMEOUT); SKIPPED excluded -->
+diff --git a/.agro/evals/probes/compose-config-path-parity.sh b/.agro/evals/probes/compose-config-path-parity.sh
+index 43ecb096..791bdc14 100755
+--- a/.agro/evals/probes/compose-config-path-parity.sh
++++ b/.agro/evals/probes/compose-config-path-parity.sh
+@@ -15,16 +15,33 @@ if [[ ! -f "$WRAPPER" || ! -f "$COMPOSE_FILE" ]]; then
+ fi
+ 
+ fails=()
++env_asserted=0
++env_unasserted_reason=""
++
++file_identity() {
++  stat -Lc '%d:%i' "$1" 2>/dev/null && return 0
++  stat -Lf '%d:%i' "$1" 2>/dev/null && return 0
++  return 0
++}
+ 
+ argv="$(bash "$WRAPPER" --repo-dir "$ROOT" --print-argv config 2>/dev/null || true)"
+ env_file_count="$(grep -cx -- '--env-file' <<<"$argv" || true)"
+ 
+ if (( env_file_count > 1 )); then
+-  fails+=("the wrapper passes $env_file_count --env-file arguments; only .devcontainer/.env may be one, or path B cannot see the rest")
++  fails+=("the wrapper passes $env_file_count --env-file arguments; only one may name the file .devcontainer/.env resolves to, or path B cannot see the rest")
+ elif (( env_file_count == 1 )); then
+   named="$(grep -A1 -x -- '--env-file' <<<"$argv" | tail -1)"
+-  [[ "$named" == "$ROOT/.devcontainer/.env" ]] \
+-    || fails+=("the wrapper's --env-file is '$named', not .devcontainer/.env — path B auto-loads only the latter")
++  named_id="$(file_identity "$named")"
++  devcontainer_id="$(file_identity "$ROOT/.devcontainer/.env")"
++  if [[ -n "$named_id" && -n "$devcontainer_id" ]]; then
++    env_asserted=1
++    [[ "$named_id" == "$devcontainer_id" ]] \
++      || fails+=("the wrapper's --env-file '$named' ($named_id) and .devcontainer/.env ($devcontainer_id) are different files — path B auto-loads only the latter")
++  else
++    env_unasserted_reason="no usable stat on this host, so file identity was not determinable"
++  fi
++else
++  env_unasserted_reason="the wrapper emitted no --env-file, so no environment file exists to compare"
+ fi
+ 
+ grep -q 'harness-config.sh' <<<"$argv" \
+@@ -36,7 +53,11 @@ if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>
+     printf '  - %s\n' "${fails[@]}" >&2
+     exit 1
+   fi
+-  echo "SKIPPED: docker compose unavailable — structural half passed, behavioural half not run" >&2
++  if (( env_asserted )); then
++    echo "SKIPPED: docker compose unavailable — structural half passed, behavioural half not run" >&2
++  else
++    echo "SKIPPED: docker compose unavailable and $env_unasserted_reason — neither half asserted anything" >&2
++  fi
+   exit 2
+ fi
+ 
+@@ -68,7 +89,11 @@ if [[ -z "$via_wrapper" || -z "$via_vscode" ]]; then
+     printf '  - %s\n' "${fails[@]}" >&2
+     exit 1
+   fi
+-  echo "SKIPPED: docker compose config produced no output on this host — structural half passed" >&2
++  if (( env_asserted )); then
++    echo "SKIPPED: docker compose config produced no output on this host — structural half passed" >&2
++  else
++    echo "SKIPPED: docker compose config produced no output on this host and $env_unasserted_reason — neither half asserted anything" >&2
++  fi
+   exit 2
+ fi
+ 
+@@ -83,5 +108,9 @@ if (( ${#fails[@]} > 0 )); then
+   exit 1
+ fi
+ 
+-echo "PASS: compose config path parity — the wrapper and the direct VS Code path read the same .devcontainer/.env and resolve the same service" >&2
++if (( env_asserted )); then
++  echo "PASS: compose config path parity — the wrapper's --env-file and .devcontainer/.env are the same file, and both paths resolve the same service" >&2
++else
++  echo "PASS: compose config path parity — both paths resolve the same service from the same environment file (behavioural half); the env-file identity assertion was not made: $env_unasserted_reason" >&2
++fi
+ exit 0
+diff --git a/.agro/scripts/__tests__/compose-config-path-parity.test.ts b/.agro/scripts/__tests__/compose-config-path-parity.test.ts
+new file mode 100644
+index 00000000..3386d1a6
+--- /dev/null
++++ b/.agro/scripts/__tests__/compose-config-path-parity.test.ts
+@@ -0,0 +1,162 @@
++import { afterEach, beforeEach, describe, expect, it } from "vitest";
++import { spawnSync } from "node:child_process";
++import {
++  cpSync,
++  copyFileSync,
++  existsSync,
++  linkSync,
++  mkdirSync,
++  mkdtempSync,
++  rmSync,
++  symlinkSync,
++  writeFileSync,
++} from "node:fs";
++import { tmpdir } from "node:os";
++import path from "node:path";
++
++const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
++const PROBE = path.join(
++  REPO_ROOT,
++  ".agro",
++  "evals",
++  "probes",
++  "compose-config-path-parity.sh",
++);
++const SCRIPTS = path.join(REPO_ROOT, ".agro", "scripts");
++const ENV_BASENAME = [".", "env"].join("");
++
++const CANONICAL_VALUES = [
++  "SANDBOX_NAME=parityprobe",
++  "TZ=America/Denver",
++  "SANDBOX_PASSWORD=parityprobepw",
++  "GIT_USER_NAME=Parity Probe",
++  "",
++].join("\n");
++
++const DRIFTED_VALUES = [
++  "SANDBOX_NAME=driftedcopy",
++  "TZ=UTC",
++  "SANDBOX_PASSWORD=stale",
++  "GIT_USER_NAME=Stale Copy",
++  "",
++].join("\n");
++
++const dockerComposeAvailable = (() => {
++  const probe = spawnSync("docker", ["compose", "version"], {
++    encoding: "utf8",
++  });
++  return probe.status === 0;
++})();
++
++let tmp: string;
++
++function scaffold(): string {
++  const root = mkdtempSync(path.join(tmp, "parity-"));
++  mkdirSync(path.join(root, ".agro", "scripts"), { recursive: true });
++  mkdirSync(path.join(root, ".agro", "evals", "probes"), { recursive: true });
++
++  cpSync(path.join(REPO_ROOT, ".devcontainer"), path.join(root, ".devcontainer"), {
++    recursive: true,
++    dereference: false,
++  });
++  rmSync(path.join(root, ".devcontainer", ENV_BASENAME), { force: true });
++
++  for (const script of ["docker-compose.sh", "compat.sh", "check-host-port.sh"]) {
++    const from = path.join(SCRIPTS, script);
++    if (existsSync(from)) {
++      copyFileSync(from, path.join(root, ".agro", "scripts", script));
++    }
++  }
++  copyFileSync(
++    PROBE,
++    path.join(root, ".agro", "evals", "probes", "compose-config-path-parity.sh"),
++  );
++  return root;
++}
++
++function rootEnv(root: string, contents = CANONICAL_VALUES): void {
++  writeFileSync(path.join(root, ENV_BASENAME), contents);
++}
++
++function runProbe(root: string): { status: number; stderr: string } {
++  const result = spawnSync(
++    "bash",
++    [path.join(root, ".agro", "evals", "probes", "compose-config-path-parity.sh")],
++    { encoding: "utf8" },
++  );
++  return { status: result.status ?? -1, stderr: result.stderr ?? "" };
++}
++
++beforeEach(() => {
++  tmp = mkdtempSync(path.join(tmpdir(), "compose-parity-"));
++});
++
++afterEach(() => {
++  rmSync(tmp, { recursive: true, force: true });
++});
++
++describe("compose-config-path-parity probe", () => {
++  it.skipIf(!dockerComposeAvailable)(
++    "passes when .devcontainer env is a symlink to the root env file",
++    () => {
++      const root = scaffold();
++      rootEnv(root);
++      symlinkSync(
++        path.join("..", ENV_BASENAME),
++        path.join(root, ".devcontainer", ENV_BASENAME),
++      );
++
++      const { status, stderr } = runProbe(root);
++      expect(stderr).toContain("PASS:");
++      expect(status).toBe(0);
++      expect(stderr).toContain("are the same file");
++    },
++  );
++
++  it.skipIf(!dockerComposeAvailable)(
++    "passes and names the unasserted condition when no env file exists",
++    () => {
++      const root = scaffold();
++
++      const { status, stderr } = runProbe(root);
++      expect(stderr).toContain("PASS:");
++      expect(status).toBe(0);
++      expect(stderr).toContain("identity assertion was not made");
++      expect(stderr).toContain("the wrapper emitted no --env-file");
++    },
++  );
++
++  it.skipIf(!dockerComposeAvailable)(
++    "regresses when .devcontainer env is a drifted regular-file copy",
++    () => {
++      const root = scaffold();
++      rootEnv(root);
++      writeFileSync(
++        path.join(root, ".devcontainer", ENV_BASENAME),
++        DRIFTED_VALUES,
++      );
++
++      const { status, stderr } = runProbe(root);
++      expect(status).toBe(1);
++      expect(stderr).toContain("REGRESSION:");
++      expect(stderr).toContain("are different files");
++    },
++  );
++
++  it.skipIf(!dockerComposeAvailable)(
++    "passes when .devcontainer env is a hardlink to the root env file",
++    () => {
++      const root = scaffold();
++      rootEnv(root);
++      linkSync(
++        path.join(root, ENV_BASENAME),
++        path.join(root, ".devcontainer", ENV_BASENAME),
++      );
++
++      const { status, stderr } = runProbe(root);
++      expect(stderr).toContain("PASS:");
++      expect(status).toBe(0);
++      expect(stderr).toContain("are the same file");
++    },
++  );
++});
+diff --git a/.agro/tasks/compose-env-path-parity/eval-result.json b/.agro/tasks/compose-env-path-parity/eval-result.json
+new file mode 100644
+index 00000000..06b9972c
+--- /dev/null
++++ b/.agro/tasks/compose-env-path-parity/eval-result.json
+@@ -0,0 +1,7 @@
++{
++  "commit": "62aaae3119f9205d93bd3033410afde943579802",
++  "runnerExit": 0,
++  "ranAt": "2026-09-11T03:33:06Z",
++  "newRegressions": [],
++  "preExistingReds": ["curl-bash-safe-alternatives", "oh-config-surfaces", "skills-vendored"]
++}
+diff --git a/.agro/tasks/compose-env-path-parity/evidence.md b/.agro/tasks/compose-env-path-parity/evidence.md
+new file mode 100644
+index 00000000..d3a496a7
+--- /dev/null
++++ b/.agro/tasks/compose-env-path-parity/evidence.md
+@@ -0,0 +1,233 @@
++# Evidence — compose-env-path-parity (#935, PR #1049)
++
++Branch: `bug/935-compose-env-path-parity`
++Base: `development` @ `ed9ac89450103cfe71ff4c7c7fec7ea1009d5713`
++Worktree: `.worktrees/bug/935-compose-env-path-parity`
++
++## 0. Why this is better than not doing it
++
++**Before.** `.agro/evals/probes/compose-config-path-parity.sh` was a Tier-A probe that
++was wrong in both directions at once.
++
++- On any machine that had run `agro sandbox install`, it exited `1` with a REGRESSION
++  that described no real defect. `.agro/scripts/install.sh:322-343` unconditionally
++  creates the root environment file and force-heals `.devcontainer/.env` into a symlink
++  to it, so **this is the normal installed state**, not an edge case. Measured: the two
++  paths resolved to one inode (`747922`; the symlink itself is `747923`), and
++  `readlink -f` returned the same path for both.
++- In CI — the only place the probe runs on every commit — it exited `0` while asserting
++  nothing. Both environment files are gitignored, so the wrapper emits zero
++  `--env-file` arguments, the comparison branch at line 24 never executes, and the probe
++  printed `PASS: ... read the same .devcontainer/.env`, a claim the run never tested.
++
++**After.** Measured on the four layouts:
++
++| scenario | before | after |
++|---|---|---|
++| A — root file + `.devcontainer/.env` symlink (canonical) | exit 1, false REGRESSION | exit 0 |
++| B — neither file present (CI) | exit 0, PASS asserting nothing | exit 0, PASS naming the unasserted condition |
++| C — root file + drifted regular copy | exit 1 | exit 1 |
++| D — root file + hardlink | exit 1, false REGRESSION | exit 0 |
++
++**Cost.** `+29 / −6` lines in the probe, one new 160-line vitest file, one CHANGELOG
++line. No production code changed: `.agro/scripts/docker-compose.sh` is untouched, and
++the probe's `--env-file` count check, `harness-config.sh` check, and behavioural half
++are unchanged in behaviour.
++
++**A correction to the issue's own proposal, which is the part with the most value per
++line.** Issue #935 proposed `stat -c %d:%i`. That is defective: GNU `stat` defaults to
++`lstat(2)` and does not dereference, so it compares the symlink's own inode against the
++target's and **fails scenario A — the exact layout the fix exists to repair.** Measured:
++
++```
++root-stat=[87:747922]      # the regular file
++devc-stat=[87:747923]      # the symlink itself, not its target
++equal=no
++```
++
++Shipping the issue's text verbatim would have left the probe red on every operator
++machine while appearing to fix it. Posted to the issue before implementation:
++[comment 5628996672](https://github.com/mifunedev/agro/issues/935#issuecomment-5628996672).
++
++## 1. What the plan asked for
++
++The approved `prd.md` asked for four things, in the operator's terms:
++
++1. The probe should pass on a correctly installed machine.
++2. It should still fail when the two paths genuinely open different files.
++3. It should never print a PASS line claiming an assertion it did not make.
++4. The behavioural half must keep running in CI, where no environment file exists.
++
++Plus the hard constraints: do not touch `.agro/scripts/docker-compose.sh`, leave the
++`--env-file` count check and the `harness-config.sh` check unchanged, and keep `/eval`
++green.
++
++## 2. What was built
++
++### The identity comparison (US-001)
++
++`.agro/evals/probes/compose-config-path-parity.sh:21-45`. A `file_identity` helper tries
++`stat -Lc '%d:%i'` (GNU) then `stat -Lf '%d:%i'` (BSD/macOS) and prints nothing when
++neither works. The `-L` is the load-bearing part. When either identity is
++indeterminable, the assertion is recorded as *not made* rather than failed — a probe
++must never turn a missing tool into a REGRESSION.
++
++The ordering is safe against GNU's unrelated `stat -f` (filesystem status) meaning: the
++BSD form is only reached when the GNU form failed, and for an existing file on GNU the
++GNU form always succeeds.
++
++### Honest reporting (US-002, US-003)
++
++`env_asserted` and `env_unasserted_reason` track whether the assertion ran. Both exit-2
++branches and the final PASS branch on it. Observed at the real repository root, where no
++environment file exists:
++
++```
++$ bash .agro/evals/probes/compose-config-path-parity.sh
++PASS: compose config path parity — both paths resolve the same service from the same
++environment file (behavioural half); the env-file identity assertion was not made: the
++wrapper emitted no --env-file, so no environment file exists to compare
++EXIT=0
++```
++
++The `fails` check still precedes every `exit 2` in both branches, so a real regression
++can never be downgraded to a skip.
++
++### The regression test (US-004)
++
++`.agro/scripts/__tests__/compose-config-path-parity.test.ts` — four vitest cases building
++symlink, absent, drifted-copy and hardlink fixtures in `mkdtemp` directories.
++
++```
++$ npx vitest run .agro/scripts/__tests__/compose-config-path-parity.test.ts
++ Test Files  1 passed (1)
++      Tests  4 passed (4)
++```
++
++**It was verified to be a real oracle, not a vacuous one.** The previous probe was
++restored from `origin/development` and the same suite re-run:
++
++```
++=== test against OLD probe (expect failures) ===
++     × passes when .devcontainer env is a symlink to the root env file
++     × passes and names the unasserted condition when no env file exists
++     × regresses when .devcontainer env is a drifted regular-file copy
++     × passes when .devcontainer env is a hardlink to the root env file
++      Tests  4 failed (4)
++=== restored; test against NEW probe ===
++      Tests  4 passed (4)
++```
++
++The suite skips (does not fail) when `docker compose` is absent, and never reads or
++writes the real repository environment file.
++
++### Gate results (US-005)
++
++```
++$ bash .agro/skills/eval/run.sh
++ran 149 probe(s)
++RUNNER_EXIT=0
++```
++
++`.agro/evals/RESULTS.md` — `| compose-config-path-parity | A | ... | PASS |`.
++No green→red delta on any probe.
++
++**The gate caught a regression this change introduced, and it was fixed rather than
++waived.** The first CHANGELOG entry written for this task was 279 characters, and
++`changelog-entry-length` (cap 250) went `PASS → REGRESSION` with runner exit `1`:
++
++```
++REGRESSION: 1 changelog entry/entries exceed 250 characters:
++  [Unreleased] | - Compare the compose wrapper's `--env-file` to `.devcontain… | 279 chars
++```
++
++The entry was shortened to 222 characters, the probe returned `PASS`, and the suite
++re-run clean at `runnerExit: 0`. Recorded here because the green result above is the
++*second* run, not the first — an earlier `/eval` in this session reported exit 0 only
++because it ran before the CHANGELOG entry existed.
++
++Full vitest suite: `1432 passed | 1 failed | 14 skipped`. The single failure is
++`migrate-rehearsal.test.ts` (`agro ps` / `oh ps` resolve the migrated entry), confirmed
++**pre-existing** by running that file against `origin/development` in a detached
++baseline worktree with linked `node_modules`:
++
++```
++     × agro ps resolves the migrated entry and reaches docker compose
++     × oh ps resolves the migrated entry and reaches docker compose
++      Tests  2 failed | 4 passed (6)
++```
++
++Identical failures, identical names, on the unmodified base.
++
++### Actual Knowledge Impact
++
++`knowledge-impact.sh --changed` over the seven changed paths returns **10 FRESH, 31
++NOT-APPLICABLE, 0 NEEDS-REVIEW**. The union with `Expected Knowledge Impact` (which named
++no page) is therefore empty.
++
++| Page | State | Reason |
++|---|---|---|
++| `compose-env-boundary` | `NOT-AFFECTED (no declared source in the changed set)` | Its `sources:` list names the sibling probe `compose-env-boundary.sh`, not this one, and none of its claims describe the wrapper's environment-file preference order. It documents the **registry** route, which passes a rendered `compose.env` as `--extra-env-file`; this task touches the **in-checkout** route. Re-read during step 0; nothing in it constrains this change. |
++| 9 other `kind: repo` pages | `NOT-AFFECTED (no declared source in the changed set)` | None declares `.agro/evals/probes/compose-config-path-parity.sh`, `.agro/scripts/__tests__/`, `CHANGELOG.md`, or `.agro/evals/RESULTS.md` as a source. |
++| 31 `kind: pattern` pages | `NOT-AFFECTED (provenance is immutable)` | Freshness does not apply to pattern pages by schema. |
++
++Index regenerated and verified: `wiki-readme-index.sh` → `PASS`, exit 0.
++
++## 3. Where they diverged from the plan, and why
++
++Three divergences, all recorded rather than silent.
++
++1. **The three-file contract was gap-filled instead of re-planned.** `execute.md`'s
++   precondition requires `prd.md` to carry `## Knowledge Context`,
++   `## Expected Knowledge Impact` and `## Plan Reconciliation`, and requires a
++   `progress.txt`. `/prd` and `/ralph` emit none of these. Rather than refuse and
++   re-run `/spec plan`, the four sections were written directly, because the planning
++   base and execution base are the same commit (`ed9ac894`), the `git diff` across that
++   range is empty, and the operator's intent was unchanged. `Plan Reconciliation`
++   records `Intent preserved: YES`.
++
++2. **The owner performed the implementation edits directly, with no `/delegate`
++   worker.** `execute.md` step 4 requires an explicit operator exception recorded in
++   `progress.txt` *before* the edit; that entry exists. The operator instructed this
++   session to run `/spec execute` in this turn, and the change is one probe file plus
++   one test.
++
++3. **`shellcheck` was not run.** The PRD listed it as an acceptance criterion for
++   US-001. It is not installed in this sandbox. Carried below as unverified rather than
++   claimed.
++
++The PRD's chosen comparison method was `stat -Lc %d:%i` and that is what shipped — the
++correction to the issue's `stat -c` happened during planning, not during
++implementation, so it is not a divergence from the approved plan.
++
++## 4. What remains unverified
++
++- **`shellcheck` on the probe.** Not installed in this sandbox (`shellcheck: not
++  installed`). US-001's criterion is unmet in the literal sense. CI runs its own lint
++  path; if it carries shellcheck, that is the check this run could not perform locally.
++- **The BSD/macOS `stat -Lf` fallback was never executed.** This sandbox is GNU-only, so
++  only the first branch of `file_identity` ran in every test. The fallback is reasoned,
++  not observed. An operator on macOS is the first real execution of that line. The
++  failure mode if it is wrong is benign by construction — an empty identity records the
++  assertion as *not made* rather than raising a false REGRESSION.
++- **Three persistent red probes, carried forward, non-gating.** All three report
++  `delta=unchanged` and are red on `development` for reasons unrelated to this change:
++  - `curl-bash-safe-alternatives` — ERROR: `python3: command not found` in this sandbox.
++  - `oh-config-surfaces` — REGRESSION, pre-existing.
++  - `skills-vendored` — REGRESSION, pre-existing.
++- **`migrate-rehearsal.test.ts`** — 2 failures, demonstrated pre-existing on the base
++  commit above. Not investigated further; out of scope for #935.
++- **Secret-exposure guard limitation during validation.** The repository guard blocks
++  commands naming environment-file paths. It blocked a listing of the real repository
++  root, a `grep` for the devcontainer environment path, and a direct `stat` of the
++  fixtures. No bypass was engineered and no claim in this document rests on a blocked
++  command — the wrapper's own `--print-argv` output and directory-level `ls -lai`
++  supplied the same facts, including the inode numbers. Recorded because a reader
++  should know which observations were taken by a second route rather than the direct
++  one.
++- **`/audit implementation`, `/benchmark`, `/wiki compile` were not run as separate
++  routes.** The gates they compose were run directly and are reported above: task-graph
++  conformance (`jq -e 'all(.userStories[]; .passes == true)'` → 0), the `/eval`
++  regression floor (runner exit 0, no delta), and the PR promotable classification
++  (recorded at undraft time). No simplicity-review or UI-evidence artifact was produced;
++  there are no UI stories in this task.
+diff --git a/.agro/tasks/compose-env-path-parity/prd.json b/.agro/tasks/compose-env-path-parity/prd.json
+new file mode 100644
+index 00000000..efeab101
+--- /dev/null
++++ b/.agro/tasks/compose-env-path-parity/prd.json
+@@ -0,0 +1,102 @@
++{
++    "schemaVersion": 1,
++    "project": "Open Harness",
++    "branchName": "bug/935-compose-env-path-parity",
++    "description": "Fix the stale literal --env-file assertion in .agro/evals/probes/compose-config-path-parity.sh. The probe compares the wrapper's emitted --env-file to the literal string $ROOT/.devcontainer/.env, which raises a false REGRESSION on every machine that has run `agro sandbox install` (root env file plus a .devcontainer/.env symlink to ../.env), and reports a vacuous PASS in CI where no environment file exists. Replace the string comparison with a portable device-and-inode identity check, and stop emitting a PASS line that claims an assertion the run did not make. The wrapper .agro/scripts/docker-compose.sh must not be modified.",
++    "userStories": [
++        {
++            "id": "US-001",
++            "title": "Replace the literal comparison with a portable identity comparison",
++            "description": "As a harness maintainer, I want the probe to compare file identity instead of a path string, so a correctly installed machine stops reporting a false REGRESSION.",
++            "acceptanceCriteria": [
++                "In .agro/evals/probes/compose-config-path-parity.sh, the comparison at line ~26 no longer tests $named against $ROOT/.devcontainer/.env as a literal string",
++                "A helper function resolves a path to a device:inode identity, trying `stat -Lc '%d:%i'` first and `stat -Lf '%d:%i'` second, and printing nothing when neither succeeds",
++                "Identity resolution dereferences symlinks (the -L flag is present in both forms)",
++                "When both identities resolve and are equal, no entry is appended to the fails array",
++                "When both identities resolve and differ, one entry is appended to fails naming both the wrapper path and $ROOT/.devcontainer/.env",
++                "When either identity fails to resolve, no entry is appended to fails and the assertion is recorded as not made",
++                "Every stat invocation is guarded so that a failure under `set -euo pipefail` does not abort the probe",
++                "Scenario A (root env file plus .devcontainer/.env symlink to ../.env) exits 0",
++                "Scenario C (root env file plus a drifted regular-file .devcontainer/.env) exits 1 and names the mismatch",
++                "Scenario D (root env file plus a .devcontainer/.env hardlink) exits 0",
++                ".agro/scripts/docker-compose.sh is unmodified",
++                "The existing --env-file count check (lines 22-23) and harness-config.sh check (lines 30-31) are unchanged in behaviour",
++                "shellcheck on the probe reports no new finding",
++                "Typecheck passes"
++            ],
++            "priority": 1,
++            "passes": true,
++            "notes": "Implemented in .agro/evals/probes/compose-config-path-parity.sh:21-45. file_identity() tries stat -Lc then stat -Lf and prints nothing when neither works; the comparison is device:inode, dereferenced. Verified by the four-scenario vitest suite (A/B/C/D -> 0/0/1/0). docker-compose.sh untouched; count check and harness-config.sh check unchanged. shellcheck not installed in this sandbox — recorded as unverified."
++        },
++        {
++            "id": "US-002",
++            "title": "Stop reporting a PASS that asserts nothing",
++            "description": "As a harness maintainer, I want the probe's output to state exactly which assertions ran, so a green run in CI cannot be read as proof of path parity it never established.",
++            "acceptanceCriteria": [
++                "The probe tracks, in a single variable, whether the environment-file identity assertion was made",
++                "When env_file_count equals 0, the probe records that the wrapper emitted no --env-file and that the assertion was not made, appends nothing to fails, and continues to the behavioural half",
++                "The final PASS line does not claim both paths read the same .devcontainer/.env unless the identity assertion actually ran",
++                "When the assertion ran, the PASS line still states that both paths resolved to the same environment file",
++                "When the assertion did not run, the PASS line names the behavioural half as the sole basis for the pass and names the unasserted condition",
++                "Running the probe at the real repository root with no environment file present exits 0 and prints the unasserted condition",
++                "Typecheck passes"
++            ],
++            "priority": 2,
++            "passes": true,
++            "notes": "env_asserted + env_unasserted_reason track whether the assertion ran. Verified at the real repository root: probe exits 0 and prints \"the env-file identity assertion was not made: the wrapper emitted no --env-file\". Covered by the absent-file test case."
++        },
++        {
++            "id": "US-003",
++            "title": "Exit SKIPPED only when nothing at all was asserted",
++            "description": "As a harness maintainer, I want an exit code of 2 to mean the probe learned nothing, so the eval report distinguishes a real pass from an empty run.",
++            "acceptanceCriteria": [
++                "When the identity assertion was not made and `docker compose` is unavailable, the probe exits 2 with a message stating that neither half ran",
++                "When the identity assertion was not made and `docker compose config` produced no output, the probe exits 2 with the same class of message",
++                "When the identity assertion was made and the behavioural half cannot run, the probe exits 2 with the existing 'structural half passed' message",
++                "A non-empty fails array still causes exit 1 in every branch, evaluated before any exit 2",
++                "The behavioural half at lines 43-78 is unchanged in behaviour",
++                "Typecheck passes"
++            ],
++            "priority": 3,
++            "passes": true,
++            "notes": "Both exit-2 branches (lines 50-62, 86-98) now branch on env_asserted and say \"neither half asserted anything\" when nothing ran. The fails check still precedes every exit 2 in both branches."
++        },
++        {
++            "id": "US-004",
++            "title": "Lock the behaviour with a scenario-matrix regression test",
++            "description": "As a harness maintainer, I want the four environment-file layouts covered by an automated test, so a future edit cannot quietly reintroduce a string comparison.",
++            "acceptanceCriteria": [
++                "A new test file under .agro/scripts/__tests__/ builds four fixture workspaces in a temporary directory: symlink, absent, drifted regular copy, hardlink",
++                "Each fixture contains a copy of .devcontainer/, .agro/scripts/{docker-compose.sh,compat.sh}, and the probe under .agro/evals/probes/",
++                "The test asserts the probe exit codes are 0, 0, 1, 0 for the four scenarios in that order",
++                "The test asserts the absent-file run's output names the unasserted condition",
++                "The test never reads, writes, or depends on the real repository environment file",
++                "The test is skipped, not failed, when `docker compose` is unavailable",
++                "The test does not duplicate the install-time symlink assertion already at .agro/scripts/__tests__/compose-args.test.ts:474",
++                "The test runs under the repository's existing test command",
++                "Tests pass",
++                "Typecheck passes"
++            ],
++            "priority": 4,
++            "passes": true,
++            "notes": ".agro/scripts/__tests__/compose-config-path-parity.test.ts, 4 cases, vitest. Confirmed a genuine oracle: 4/4 FAIL against the previous probe (git show origin/development), 4/4 PASS against the new one. Skips via it.skipIf when docker compose is absent. Uses its own tmp fixtures; never touches the real repository environment file."
++        },
++        {
++            "id": "US-005",
++            "title": "Confirm the eval floor and the CI path",
++            "description": "As the advisor, I want proof the change holds the regression floor before the PR is opened.",
++            "acceptanceCriteria": [
++                "`/eval` runs green on branch bug/935-compose-env-path-parity",
++                ".agro/evals/RESULTS.md shows no probe moving from PASS to REGRESSION",
++                "The compose-config-path-parity row in .agro/evals/RESULTS.md is PASS",
++                "The CI eval-probes job is green on the pushed branch",
++                "A CHANGELOG entry is added per .agro/skills/git/SKILL.md",
++                "Tests pass",
++                "Typecheck passes"
++            ],
++            "priority": 5,
++            "passes": true,
++            "notes": "/eval runner exit 0; compose-config-path-parity row is PASS; no green->red delta. Three persistent reds pre-existing on development (curl-bash-safe-alternatives, oh-config-surfaces, skills-vendored), all delta=unchanged, disclosed in the PR body and evidence.md. CHANGELOG entry added under Unreleased/Fixed. CI status recorded after push."
++        }
++    ]
++}
+diff --git a/.agro/tasks/compose-env-path-parity/prd.md b/.agro/tasks/compose-env-path-parity/prd.md
+new file mode 100644
+index 00000000..7b607585
+--- /dev/null
++++ b/.agro/tasks/compose-env-path-parity/prd.md
+@@ -0,0 +1,396 @@
++# PRD: compose-env-path-parity
++
++Issue: `mifunedev/agro` #935
++Branch: `bug/935-compose-env-path-parity` (off `development`, isolated worktree)
++Task folder: `.agro/tasks/compose-env-path-parity/`
++
++## Knowledge Context
++
++- **Base commit**: `ed9ac89450103cfe71ff4c7c7fec7ea1009d5713`
++- **Knowledge used**: `compose-env-boundary`
++- **Grounded against**:
++  - `.agro/evals/probes/compose-config-path-parity.sh`
++  - `.agro/scripts/docker-compose.sh`
++  - `.agro/scripts/install.sh`
++  - `.agro/scripts/__tests__/compose-args.test.ts`
++  - `.github/workflows/ci-harness.yml`
++  - `.agro/knowledge/source/compose-env-boundary.md`
++
++`compose-env-boundary` describes the registry route, which passes a rendered
++`compose.env` as `--extra-env-file` and writes no `.devcontainer/.env`. This task
++touches the in-checkout route instead — the `ENV_FILE` preference at
++`.agro/scripts/docker-compose.sh:70-71` and the probe that asserts against it. The
++page's claims were re-read and none of them constrain this change.
++
++Every claim below was re-grounded by execution, not by recall. The reproduction
++transcript is `## 2. Validation evidence`.
++
++## Expected Knowledge Impact
++
++- Impact: **NOT-APPLICABLE (predicted)**
++
++The change is scoped to one Tier-A probe plus a new test. No knowledge page declares
++`.agro/evals/probes/compose-config-path-parity.sh` as a source. `compose-env-boundary`
++lists the sibling probe `compose-env-boundary.sh` but not this one, and none of its
++claims describe the wrapper's environment-file preference order. The prediction is
++non-authoritative; `## 6` of the execute pipeline derives the real answer from the
++actual diff.
++
++## Plan Reconciliation
++
++- Intent preserved: **YES**
++
++Planning base and execution base are the same commit
++(`ed9ac89450103cfe71ff4c7c7fec7ea1009d5713`), so nothing the plan rests on moved.
++
++One correction was made during planning and is already folded into the plan below:
++the fix proposed in issue #935 (`stat -c %d:%i`) is itself defective, because GNU
++`stat` defaults to `lstat` and therefore compares the symlink's own inode. The
++resolved method is the dereferencing form. This refines the mechanism, not the
++operator's intent, so it needs no re-approval. It is posted on the issue at
++[comment 5628996672](https://github.com/mifunedev/agro/issues/935#issuecomment-5628996672).
++
++## 1. Introduction
++
++`.agro/evals/probes/compose-config-path-parity.sh` is a Tier-A probe. It must prove
++that the `agro` wrapper path and the VS Code "Reopen in Container" path resolve the
++same compose service from the same environment file.
++
++The probe's structural half asserts the wrapper's emitted `--env-file` equals the
++literal string `$ROOT/.devcontainer/.env`. After #887/#920 the root environment file
++became the single secrets file and `.devcontainer/.env` became a symlink to `../.env`.
++The wrapper prefers the root file. The literal assertion no longer matches reality.
++
++The probe now fails in both directions. It reports REGRESSION on a correctly
++installed operator machine. It reports PASS in CI while asserting nothing.
++
++This PRD scopes a fix to the probe's structural assertion only.
++
++## 2. Validation evidence
++
++The claim was reproduced independently. It was not accepted from the issue.
++
++### Direction 1 — false REGRESSION on a correct machine
++
++A hermetic workspace was built under the session scratchpad. It contains a copy of
++`.devcontainer/`, `.agro/scripts/{docker-compose.sh,compat.sh,check-host-port.sh}`,
++and the probe at `.agro/evals/probes/`. The workspace holds a root environment file
++and a `.devcontainer/.env` symlink to `../.env`, which is the canonical post-#887
++layout.
++
++Wrapper output:
++
++```
++$ docker-compose.sh --repo-dir <W> --print-argv config
++docker compose --env-file <W>/.env -f <W>/.devcontainer/docker-compose.yml config
++```
++
++Probe output:
++
++```
++REGRESSION: compose config path parity broken:
++  - the wrapper's --env-file is '<W>/.env', not .devcontainer/.env — path B auto-loads only the latter
++exit 1
++```
++
++A directory listing proves both paths name one inode:
++
++```
++747922 -rw-r--r--  .env
++747923 lrwxrwxrwx  .devcontainer/.env -> ../.env
++```
++
++`readlink -f` on both paths returns `<W>/.env`. The failure is a string mismatch with
++no behavioural difference.
++
++### The failure is the normal installed state, not an edge case
++
++`.agro/scripts/install.sh:322-343` always creates the root environment file, then
++forces the symlink and self-heals it:
++
++```
++ENV_FILE="$REPO_DIR/.env"
++if [ ! -f "$ENV_FILE" ]; then ... cp "$REPO_DIR/.example.env" "$ENV_FILE" ... fi
++
++DEVCONTAINER_ENV_LINK="$REPO_DIR/.devcontainer/.env"
++if [ ! -L "$DEVCONTAINER_ENV_LINK" ] || [ "$(readlink "$DEVCONTAINER_ENV_LINK")" != "../.env" ]; then
++  rm -f "$DEVCONTAINER_ENV_LINK"
++  ln -s ../.env "$DEVCONTAINER_ENV_LINK"
++fi
++```
++
++Every machine that has run `agro sandbox install` reaches the state that makes the
++probe red. This is more severe than the issue reports.
++
++### Direction 2 — vacuous PASS where nothing was asserted
++
++`.agro/scripts/docker-compose.sh:80-82` emits `--env-file` only when the chosen file
++exists. In this orchestrator sandbox the wrapper emits none:
++
++```
++$ docker-compose.sh --repo-dir /home/sandbox/harness --print-argv config
++docker compose -f /home/sandbox/harness/.devcontainer/docker-compose.yml config
++```
++
++`env_file_count` is therefore `0`. The probe's `elif (( env_file_count == 1 ))` branch
++never runs, and the probe reports:
++
++```
++PASS: compose config path parity — the wrapper and the direct VS Code path read the same .devcontainer/.env and resolve the same service
++exit 0
++```
++
++A second hermetic workspace scaffolded with no environment file at all reproduces the
++same vacuous PASS. Both environment files are gitignored, and
++`.github/workflows/ci-harness.yml:146-167` runs `bash .agro/skills/eval/run.sh` on a
++fresh checkout, so CI always takes this path. The PASS line also states a fact the run
++did not establish.
++
++### The behavioural half is sound and is not part of this bug
++
++The behavioural half builds a `mktemp -d` workspace and writes its own environment
++file, so it is deterministic on every machine. It was exercised under the symlink
++layout with `docker compose` present (`Docker Compose version v5.5.1`) and passed. The
++`cp -R "$ROOT/.devcontainer/."` at line 47 carries the symlink into the temp
++workspace, and the subsequent write at line 58 follows it; the values still resolve
++identically and the half still passes. The briefing's assessment is confirmed.
++
++### Comparison-method experiment
++
++Four scenarios were run against four comparison methods. `A` = root file plus symlink.
++`B` = neither file present. `C` = root file plus a drifted regular copy. `D` = root
++file plus a hardlink.
++
++| method | A symlink | B absent | C drifted copy | D hardlink |
++|---|---|---|---|---|
++| literal string (current) | REGRESSION (wrong) | PASS (vacuous) | REGRESSION | REGRESSION (wrong) |
++| `readlink -f` | PASS | PASS (vacuous) | REGRESSION | REGRESSION (wrong) |
++| `stat -c %d:%i` | **REGRESSION (wrong)** | PASS (vacuous) | REGRESSION | PASS |
++| `stat -Lc %d:%i` | PASS | PASS (vacuous) | REGRESSION | PASS |
++
++The issue's proposed `stat -c %d:%i` is incorrect. GNU `stat` uses `lstat` by default,
++so it compares the symlink's own inode (`747923`) against the target's (`747922`) and
++fails the canonical layout. Only the dereferencing form `stat -Lc %d:%i` is correct.
++
++### Verdict
++
++Issue #935 is **VALID**. Both directions reproduced. The fix proposed in the issue
++contains a defect of its own, corrected below.
++
++### Recorded limitation
++
++The repository secret-exposure guard blocks commands that name environment-file paths.
++It blocked a listing of the real repository root, a `grep` for the devcontainer
++environment path, and a direct `stat` of the created fixtures. No repro claim in this
++document depends on a blocked command. The wrapper's own `--print-argv` output and
++directory listings that name only the containing directory supplied the same facts.
++Creating fixtures inside the session scratchpad was permitted, so the four scenarios
++above were genuinely executed, not inferred.
++
++## 3. Goals
++
++- The probe passes on a correctly installed machine where the wrapper emits the root
++  environment file and `.devcontainer/.env` resolves to the same file.
++- The probe fails when the two paths open different files.
++- The probe never reports a PASS line that claims an assertion it did not make.
++- The behavioural half continues to run in CI, where no environment file exists.
++- `/eval` stays green.
++
++## 4. Design decisions
++
++### Decision 1 — the no-environment-file case
++
++**Resolved: do not skip the probe. Skip only the environment-file assertion, record
++that it was not asserted, and keep the behavioural half running.**
++
++The issue proposes `SKIPPED` (exit 2). That is rejected. CI is the only place this
++probe runs on every commit, and CI has no environment file. Exiting 2 there would
++silence the sound behavioural half — the half that is the real parity oracle, because
++it creates its own environment file and compares both resolution paths end to end.
++Trading a real oracle for an honest-looking skip is a net loss of coverage.
++
++The vacuous-PASS defect is a reporting defect, not a control-flow defect. The fix is
++to stop claiming what was not checked, not to stop running.
++
++One exit-code refinement follows. When the environment-file assertion was not made
++*and* the behavioural half cannot run (no `docker compose`, or empty `config` output),
++the probe has asserted nothing at all and must exit 2 with a message that says so.
++Both branches already exit 2; only the message changes.
++
++### Decision 2 — comparison method
++
++**Resolved: compare file identity with the dereferencing form `stat -Lc %d:%i`, behind
++a portability shim, and treat an unavailable shim as "not asserted" rather than as a
++failure.**
++
++Rationale, from the experiment table:
++
++- The issue's `stat -c %d:%i` is wrong. It fails scenario A, the canonical layout.
++- `readlink -f` is correct for A, B and C but raises a false REGRESSION for D, the
++  hardlink. Device-and-inode identity is the property the probe actually cares about:
++  do both paths open the same bytes. Path-string equality after resolution is a proxy
++  that is wrong whenever two directory entries share one inode.
++- `stat -Lc %d:%i` is correct in every scenario, and it still catches the case that
++  matters operationally — scenario C, a `.devcontainer/.env` that has drifted into a
++  stale regular-file copy.
++
++Portability is the one cost. `stat -Lc` is GNU; BSD and macOS need `stat -Lf '%d:%i'`.
++Operators run `agro` from macOS hosts, so the probe must try the GNU form, fall back to
++the BSD form, and — if neither yields a value for both paths — record "identity not
++determinable on this host" and skip that one assertion instead of failing. A probe must
++never turn a missing tool into a REGRESSION.
++
++## 5. User stories
++
++### US-001: Replace the literal comparison with a portable identity comparison
++
++**Description:** As a harness maintainer, I want the probe to compare file identity
++instead of a path string, so a correctly installed machine stops reporting a false
++REGRESSION.
++
++**Acceptance Criteria:**
++
++- [ ] `.agro/evals/probes/compose-config-path-parity.sh` no longer compares `$named`
++      to `$ROOT/.devcontainer/.env` as a literal string.
++- [ ] A helper resolves a path to a `device:inode` identity, trying `stat -Lc '%d:%i'`
++      then `stat -Lf '%d:%i'`, and printing nothing when neither succeeds.
++- [ ] When both identities resolve and are equal, the assertion passes.
++- [ ] When both identities resolve and differ, `fails` gains an entry naming both
++      paths.
++- [ ] When either identity does not resolve, the assertion is recorded as not made and
++      does not append to `fails`.
++- [ ] The probe run in a workspace with a root environment file plus a
++      `.devcontainer/.env` symlink to `../.env` exits `0`.
++- [ ] The probe run in a workspace with a root environment file plus a drifted regular
++      `.devcontainer/.env` exits `1` and names the mismatch.
++- [ ] The probe run in a workspace with a root environment file plus a
++      `.devcontainer/.env` hardlink exits `0`.
++- [ ] `shellcheck` on the probe reports no new finding.
++
++### US-002: Stop reporting a PASS that asserts nothing
++
++**Description:** As a harness maintainer, I want the probe's output to state exactly
++which assertions ran, so a green run in CI cannot be read as proof of path parity it
++never established.
++
++**Acceptance Criteria:**
++
++- [ ] The probe tracks whether the environment-file assertion was made.
++- [ ] When `env_file_count == 0`, the probe records that the wrapper emitted no
++      `--env-file` and that the assertion was not made.
++- [ ] The final `PASS:` line does not claim both paths read the same
++      `.devcontainer/.env` unless the identity assertion actually ran.
++- [ ] When the assertion did run, the `PASS:` line still states it.
++- [ ] When the assertion did not run, the `PASS:` line names the behavioural half as
++      the sole basis for the pass.
++- [ ] Running the probe at the real repository root with no environment file present
++      exits `0` with an output line that names the unasserted condition.
++
++### US-003: Exit SKIPPED only when nothing at all was asserted
++
++**Description:** As a harness maintainer, I want an exit code of 2 to mean the probe
++learned nothing, so the eval report distinguishes a real pass from an empty run.
++
++**Acceptance Criteria:**
++
++- [ ] When the environment-file assertion was not made and `docker compose` is
++      unavailable, the probe exits `2` with a message stating that neither half ran.
++- [ ] When the environment-file assertion was not made and `docker compose config`
++      produced no output, the probe exits `2` with the same class of message.
++- [ ] When the environment-file assertion was made and the behavioural half cannot
++      run, the probe exits `2` with the existing "structural half passed" message.
++- [ ] A non-empty `fails` array still exits `1` in every branch, before any exit `2`.
++
++### US-004: Lock the behaviour with a scenario-matrix regression test
++
++**Description:** As a harness maintainer, I want the four layouts covered by an
++automated test, so a future edit cannot quietly reintroduce a string comparison.
++
++**Acceptance Criteria:**
++
++- [ ] A test builds the four scenarios — symlink, absent, drifted regular copy,
++      hardlink — in a temporary directory.
++- [ ] The test asserts exit `0`, `0`, `1`, `0` respectively.
++- [ ] The test asserts the absent-file run's output names the unasserted condition.
++- [ ] The test lives beside the existing suite in `.agro/scripts/__tests__/` and runs
++      under the repository's existing test command.
++- [ ] The test does not read, write, or depend on the real repository environment file.
++- [ ] The test is skipped, not failed, when `docker compose` is unavailable.
++
++### US-005: Confirm the eval floor and the CI path
++
++**Description:** As the advisor, I want proof the change holds the regression floor
++before the PR is opened.
++
++**Acceptance Criteria:**
++
++- [ ] `/eval` runs green on the branch.
++- [ ] `.agro/evals/RESULTS.md` shows no probe moving from PASS to REGRESSION.
++- [ ] The probe's own row in `.agro/evals/RESULTS.md` is PASS.
++- [ ] The CI `eval-probes` job is green on the pushed branch.
++- [ ] A CHANGELOG entry is added per `.agro/skills/git/SKILL.md`.
++
++## 6. Functional requirements
++
++- FR-1: The probe must compare the wrapper's emitted `--env-file` to
++  `$ROOT/.devcontainer/.env` by device-and-inode identity, not by path string.
++- FR-2: Identity resolution must dereference symlinks.
++- FR-3: Identity resolution must try `stat -Lc '%d:%i'` first and `stat -Lf '%d:%i'`
++  second.
++- FR-4: When identity cannot be resolved for either path, the probe must record the
++  assertion as not made and must not append to `fails`.
++- FR-5: When `env_file_count == 0`, the probe must record the assertion as not made,
++  must not append to `fails`, and must continue to the behavioural half.
++- FR-6: The probe must not emit a `PASS:` line claiming an assertion it did not make.
++- FR-7: The probe must exit `2` when neither the environment-file assertion nor the
++  behavioural half ran.
++- FR-8: The probe must exit `1` whenever `fails` is non-empty, in every branch.
++- FR-9: The existing `--env-file` count check at lines 22-23 must remain unchanged in
++  behaviour.
++- FR-10: The existing `harness-config.sh` check at lines 30-31 must remain unchanged.
++- FR-11: The behavioural half at lines 43-78 must remain unchanged in behaviour.
++- FR-12: `.agro/scripts/docker-compose.sh` must not be modified.
++
++## 7. Non-goals
++
++- Changing the wrapper's environment-file preference order. The root-file preference is
++  correct and is out of scope.
++- Changing which file `agro sandbox install` creates or links.
++- Changing the probe's tier or its `# source:` provenance line.
++- Adding a Tier-B behavioural eval.
++- Making either environment file tracked in git.
++- Relaxing or amending the secret-exposure guard.
++- Reworking the behavioural half's temp-workspace construction.
++
++## 8. Technical considerations
++
++- The probe is Tier-A. `.github/workflows/ci-harness.yml:146-167` runs the suite via
++  `bash .agro/skills/eval/run.sh` on every commit that touches `.agro/evals/**`.
++- `set -euo pipefail` is active. A `stat` failure must be guarded with
++  `2>/dev/null || true` or an explicit `if`, or the probe aborts instead of recording a
++  soft skip.
++- `stat` is absent on a minimal BusyBox image. FR-4 covers that case.
++- The wrapper emits `--env-file` only when the file exists
++  (`.agro/scripts/docker-compose.sh:80-82`). A count of `0` is normal, not an error.
++- `.agro/scripts/__tests__/compose-args.test.ts:474` already asserts the install-time
++  symlink form. The new test in US-004 complements it and must not duplicate it.
++- Work happens in an isolated worktree per `.agro/skills/worktrees/SKILL.md`, on branch
++  `bug/935-compose-env-path-parity` off `development`.
++
++## 9. Success metrics
++
++- The probe exits `0` on a machine that has run `agro sandbox install`, where it
++  currently exits `1`.
++- The probe exits `1` on a drifted `.devcontainer/.env`, which no method other than an
++  identity check detects reliably.
++- No probe in `.agro/evals/RESULTS.md` moves from PASS to REGRESSION.
++- A green CI run on the branch no longer implies an unproven parity claim.
++
++## 10. Open questions
++
++- Should the "assertion not made" condition appear in `.agro/evals/RESULTS.md` as a
++  distinct annotation on a PASS row, rather than only in the probe's stderr? Out of
++  scope here; it would change the eval report schema.
++- Should `install.sh` repair a `.devcontainer/.env` that is a drifted regular file
++  rather than a symlink? It already does, via the `[ ! -L ]` test at
++  `install.sh:339-343`. No action needed; recorded to close the question.
+diff --git a/.agro/tasks/compose-env-path-parity/progress.txt b/.agro/tasks/compose-env-path-parity/progress.txt
+new file mode 100644
+index 00000000..879221c4
+--- /dev/null
++++ b/.agro/tasks/compose-env-path-parity/progress.txt
+@@ -0,0 +1,90 @@
++# progress
++
++2026-09-11 — plan phase (advisor, session 01eecd5b)
++Validated issue #935 independently before planning. Both directions reproduced by
++execution in hermetic scratchpad fixtures, not accepted from the briefing:
++  - Direction 2 (vacuous PASS) reproduced at the real repository root: the wrapper
++    emits zero --env-file arguments, so the literal comparison branch never runs.
++  - Direction 1 (false REGRESSION) reproduced under the canonical post-#887 layout
++    (root env file + .devcontainer/.env -> ../.env, one inode).
++  - install.sh:322-343 unconditionally creates the root env file and force-heals the
++    symlink, so the red state is the normal installed state, not an edge case.
++  - Behavioural half (lines 43-78) exercised with docker compose v5.5.1 present and
++    confirmed sound, including the cp -R symlink-carry case. Out of scope.
++Method matrix over four layouts established that the fix proposed in the issue body
++(stat -c %d:%i) is itself broken: GNU stat defaults to lstat, so it compares the
++symlink's own inode (747923) against the target's (747922) and fails the canonical
++layout. Resolved method is the dereferencing form, behind a GNU->BSD shim.
++Findings posted to the issue: https://github.com/mifunedev/agro/issues/935#issuecomment-5628996672
++Wrote prd.md (/prd) and prd.json (/ralph), 5 stories.
++
++Guard limitation, recorded honestly: the repository secret-exposure guard blocks
++commands naming env-file paths. It blocked a listing of the real repository root, a
++grep for the devcontainer env path, and a direct stat of the fixtures. No repro claim
++depends on a blocked command, and no bypass was engineered. The wrapper's own
++--print-argv output and directory-level `ls -lai` supplied the same facts including
++the inode numbers.
++
++2026-09-11 — execute phase, step 0 (owner, session 01eecd5b)
++Operator exception recorded BEFORE any direct edit, per .agro/skills/spec/references/execute.md
++step 4: the operator instructed this session to run /spec execute directly in this
++turn. This task is a single-file probe change plus one test; the owner performs the
++tracked implementation edits itself rather than dispatching a /delegate worker.
++
++Contract gap-fill: /prd and /ralph do not emit the Knowledge Context, Expected
++Knowledge Impact, or Plan Reconciliation sections that execute.md's precondition
++requires, and no progress.txt existed. Added all four here rather than refusing and
++re-running /spec plan, because the plan's intent is unchanged and its base commit is
++identical to the execution base (ed9ac894). Plan Reconciliation records
++"Intent preserved: YES".
++
++Re-grounding: planning base == execution base == ed9ac89450103cfe71ff4c7c7fec7ea1009d5713.
++git diff over that range is empty, so no source the plan grounded on has moved.
++Knowledge page compose-env-boundary re-read; it describes the registry
++--extra-env-file route and does not constrain the in-checkout ENV_FILE preference
++this task touches.
++
++Worktree: .worktrees/bug/935-compose-env-path-parity on branch
++bug/935-compose-env-path-parity off origin/development.
++
++2026-09-11 — execute phase, steps 4-7 (owner, session 01eecd5b)
++US-001..US-004 implemented and validated; US-005 gates run.
++Files: .agro/evals/probes/compose-config-path-parity.sh (+29/-6),
++       .agro/scripts/__tests__/compose-config-path-parity.test.ts (new),
++       CHANGELOG.md, .agro/evals/RESULTS.md.
++Commit: ed75334c. .agro/scripts/docker-compose.sh untouched (verified by
++git diff --name-only). Count check and harness-config.sh check unchanged.
++
++Oracle check, not just a green suite: the previous probe was restored from
++origin/development and the new vitest suite re-run against it — 4/4 FAIL — then
++restored — 4/4 PASS. The test discriminates.
++
++/eval: runner exit 0, 149 probes, compose-config-path-parity PASS, no green->red
++delta. Three persistent reds (curl-bash-safe-alternatives ERROR python3 missing,
++oh-config-surfaces, skills-vendored) all delta=unchanged and pre-existing.
++
++Full vitest: 1432 passed, 1 failed, 14 skipped. The failure is
++migrate-rehearsal.test.ts, proven pre-existing by running that file against
++origin/development in a detached baseline worktree — same two tests, same names.
++
++Knowledge impact: knowledge-impact.sh over the 7 changed paths returns 0
++NEEDS-REVIEW (10 FRESH, 31 NOT-APPLICABLE). Union with Expected (which named no
++page) is empty, so Actual Knowledge Impact is NOT-APPLICABLE. compose-env-boundary
++recorded NOT-AFFECTED with reason: it declares the sibling probe
++compose-env-boundary.sh, not this one, and documents the registry
++--extra-env-file route rather than the in-checkout ENV_FILE preference.
++wiki-readme-index.sh PASS, exit 0.
++
++evidence.md written, answering all five questions. Divergences recorded: the
++three-file contract was gap-filled rather than re-planned; the owner edited
++directly under the operator exception above; shellcheck is not installed here and
++is carried as unverified. The BSD stat -Lf fallback is reasoned, never executed on
++this GNU-only host — also carried as unverified.
++
++2026-09-11 — execute phase, /eval gate (owner, session 01eecd5b)
++The eval floor caught a regression this task introduced. The first CHANGELOG entry
++was 279 chars; changelog-entry-length (cap 250) went PASS->REGRESSION, runner exit 1.
++Shortened to 222 chars, probe PASS, suite re-run clean: runner exit 0, 149 probes,
++no green->red delta. Recorded in evidence.md because the green result is the second
++run — the earlier exit-0 run predated the CHANGELOG entry and did not cover it.
++eval-result.json written, keyed to commit 62aaae31 (the head the suite ran against).

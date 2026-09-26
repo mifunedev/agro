@@ -1,0 +1,1 @@
+- Run a root-level host tool installer through `sudo -n`; without passwordless `sudo`, `agro tool install` exits 1 and changes nothing. `agro tool list` marks root-level tools `(root)` ([#1168](https://github.com/mifunedev/agro/issues/1168)).

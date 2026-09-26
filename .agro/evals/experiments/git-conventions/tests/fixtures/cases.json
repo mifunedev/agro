@@ -1,0 +1,369 @@
+{
+  "schemaVersion": 1,
+  "fixtures": [
+    {
+      "name": "baseline-1154",
+      "case": "1154",
+      "source": "PR #1154: real branch, title, body, and changelog entry; the real subjects with the prefix bug: edited to fix:",
+      "subjects": [
+        "fix: deny jq reads of env and $ENV (US-001)",
+        "fix: deny a quoted json format in container inspect (US-002)"
+      ],
+      "branch": "bug/1150-guard-false-allows",
+      "pr_file": "pr/1154.md",
+      "changelog": {
+        "mode": "original"
+      },
+      "expect_fail": []
+    },
+    {
+      "name": "no-changelog-when-original-had-none",
+      "case": "1154",
+      "source": "baseline-1154 scored as if the original PR added no changelog entry",
+      "subjects": [
+        "fix: deny jq reads of env and $ENV (US-001)"
+      ],
+      "branch": "bug/1150-guard-false-allows",
+      "pr_file": "pr/1154.md",
+      "changelog": {
+        "mode": "none"
+      },
+      "original_changelog": false,
+      "expect_fail": []
+    },
+    {
+      "name": "c1-real-subjects-1154",
+      "case": "1154",
+      "source": "PR #1154: the real commit subjects, which use the prefix bug:",
+      "subjects": [
+        "bug: plan guard-false-allows",
+        "bug: deny jq reads of env and $ENV (US-001)",
+        "bug: accept US-001",
+        "bug: deny a quoted json format in container inspect (US-002)",
+        "bug: accept US-002",
+        "bug: record lessons for guard-false-allows",
+        "bug: link lessons to #1155"
+      ],
+      "branch": "bug/1150-guard-false-allows",
+      "pr_file": "pr/1154.md",
+      "changelog": {
+        "mode": "original"
+      },
+      "expect_fail": [
+        "c1_commit_subjects"
+      ]
+    },
+    {
+      "name": "c1-real-scoped-subject-1069",
+      "case": "1154",
+      "source": "PR #1069: the real subject fix(supervisor): shorten Pi metadata description",
+      "subjects": [
+        "fix(supervisor): shorten Pi metadata description"
+      ],
+      "branch": "bug/1150-guard-false-allows",
+      "pr_file": "pr/1154.md",
+      "changelog": {
+        "mode": "original"
+      },
+      "expect_fail": [
+        "c1_commit_subjects"
+      ]
+    },
+    {
+      "name": "c2-fix-prefix",
+      "case": "1154",
+      "source": "the real prefix fix/ of the PR #1184 branch fix/1183-host-harness-workspace, applied to baseline-1154 with a matching title",
+      "subjects": [
+        "fix: deny jq reads of env and $ENV (US-001)"
+      ],
+      "branch": "fix/1150-guard-false-allows",
+      "pr_file": "pr/1154-fix-branch.md",
+      "changelog": {
+        "mode": "original"
+      },
+      "expect_fail": [
+        "c2_branch"
+      ]
+    },
+    {
+      "name": "c2-six-words",
+      "case": "1154",
+      "source": "baseline-1154 with a sixth word in the branch name and a matching title",
+      "subjects": [
+        "fix: deny jq reads of env and $ENV (US-001)"
+      ],
+      "branch": "bug/1150-guard-false-allows-in-jq-filters",
+      "pr_file": "pr/1154.md",
+      "title": "FROM bug/1150-guard-false-allows-in-jq-filters TO development",
+      "changelog": {
+        "mode": "original"
+      },
+      "expect_fail": [
+        "c2_branch"
+      ]
+    },
+    {
+      "name": "c3-real-title-1051",
+      "case": "1154",
+      "source": "PR #1051: the real title task: retire the stale agro cloud command",
+      "subjects": [
+        "fix: deny jq reads of env and $ENV (US-001)"
+      ],
+      "branch": "bug/1150-guard-false-allows",
+      "pr_file": "pr/1154-title-1051.md",
+      "changelog": {
+        "mode": "original"
+      },
+      "expect_fail": [
+        "c3_pr_title"
+      ]
+    },
+    {
+      "name": "c3-target-main",
+      "case": "1154",
+      "source": "baseline-1154 with the target branch main",
+      "subjects": [
+        "fix: deny jq reads of env and $ENV (US-001)"
+      ],
+      "branch": "bug/1150-guard-false-allows",
+      "pr_file": "pr/1154-title-main.md",
+      "changelog": {
+        "mode": "original"
+      },
+      "expect_fail": [
+        "c3_pr_title"
+      ]
+    },
+    {
+      "name": "c4-real-body-1091",
+      "case": "1091",
+      "source": "PR #1091: the real subjects, branch, title, body, and changelog entry; the body has no evidence section",
+      "subjects": [
+        "feat: antigravity cli zero-confirmation default",
+        "feat: complete antigravity zero-confirmation defaults"
+      ],
+      "branch": "feat/1090-antigravity-yolo-default",
+      "pr_file": "pr/1091.md",
+      "changelog": {
+        "mode": "original"
+      },
+      "expect_fail": [
+        "c4_pr_body"
+      ]
+    },
+    {
+      "name": "c4-comment-only-section",
+      "case": "1154",
+      "source": "baseline-1154 with the What remains unverified section reduced to the template comment",
+      "subjects": [
+        "fix: deny jq reads of env and $ENV (US-001)"
+      ],
+      "branch": "bug/1150-guard-false-allows",
+      "pr_file": "pr/1154-empty-unverified.md",
+      "changelog": {
+        "mode": "original"
+      },
+      "expect_fail": [
+        "c4_pr_body"
+      ]
+    },
+    {
+      "name": "c4-no-closing-keyword",
+      "case": "1154",
+      "source": "baseline-1154 with Closes #1150 changed to Refs #1150",
+      "subjects": [
+        "fix: deny jq reads of env and $ENV (US-001)"
+      ],
+      "branch": "bug/1150-guard-false-allows",
+      "pr_file": "pr/1154-no-closing.md",
+      "changelog": {
+        "mode": "original"
+      },
+      "expect_fail": [
+        "c4_pr_body"
+      ]
+    },
+    {
+      "name": "c5-real-two-sentences-1169",
+      "case": "1154",
+      "source": "PR #1169: the real two-sentence entry for #1168",
+      "subjects": [
+        "fix: deny jq reads of env and $ENV (US-001)"
+      ],
+      "branch": "bug/1150-guard-false-allows",
+      "pr_file": "pr/1154.md",
+      "changelog": {
+        "mode": "lines",
+        "file": "changelog/3230337b-two-sentences.txt"
+      },
+      "expect_fail": [
+        "c5_changelog"
+      ]
+    },
+    {
+      "name": "c5-real-long-entry",
+      "case": "1154",
+      "source": "CHANGELOG.md at 0409ae19, line 12: the real 3,591-character entry that the /git skill quotes as BAD",
+      "subjects": [
+        "fix: deny jq reads of env and $ENV (US-001)"
+      ],
+      "branch": "bug/1150-guard-false-allows",
+      "pr_file": "pr/1154.md",
+      "changelog": {
+        "mode": "lines",
+        "file": "changelog/0409ae19-long-entry.txt"
+      },
+      "expect_fail": [
+        "c5_changelog"
+      ]
+    },
+    {
+      "name": "c5-real-no-link",
+      "case": "1154",
+      "source": "CHANGELOG.md at 2ab265fb: the real entry Default Claude Code to claude-opus-5-5, which has no link",
+      "subjects": [
+        "fix: deny jq reads of env and $ENV (US-001)"
+      ],
+      "branch": "bug/1150-guard-false-allows",
+      "pr_file": "pr/1154.md",
+      "changelog": {
+        "mode": "lines",
+        "file": "changelog/2ab265fb-no-link.txt"
+      },
+      "expect_fail": [
+        "c5_changelog"
+      ]
+    },
+    {
+      "name": "c5-versioned-section",
+      "case": "1154",
+      "source": "the real #1154 entry placed under the first versioned section instead of ## [Unreleased]",
+      "subjects": [
+        "fix: deny jq reads of env and $ENV (US-001)"
+      ],
+      "branch": "bug/1150-guard-false-allows",
+      "pr_file": "pr/1154.md",
+      "changelog": {
+        "mode": "versioned",
+        "file": "changelog/51b44e10-original-1154.txt"
+      },
+      "expect_fail": [
+        "c5_changelog"
+      ]
+    },
+    {
+      "name": "c5-missing-entry",
+      "case": "1154",
+      "source": "baseline-1154 with no changelog entry; the original PR added one",
+      "subjects": [
+        "fix: deny jq reads of env and $ENV (US-001)"
+      ],
+      "branch": "bug/1150-guard-false-allows",
+      "pr_file": "pr/1154.md",
+      "changelog": {
+        "mode": "none"
+      },
+      "expect_fail": [
+        "c5_changelog"
+      ]
+    },
+    {
+      "name": "c6-committed-pr-file",
+      "case": "1154",
+      "source": "baseline-1154 that also commits work/pr.md",
+      "subjects": [
+        "fix: deny jq reads of env and $ENV (US-001)"
+      ],
+      "branch": "bug/1150-guard-false-allows",
+      "pr_file": "pr/1154.md",
+      "changelog": {
+        "mode": "original"
+      },
+      "extra_file": {
+        "path": "work/pr.md",
+        "from": "pr/1154.md"
+      },
+      "expect_fail": [
+        "c6_scope"
+      ]
+    },
+    {
+      "name": "c6-ignored-task-files-1049",
+      "source": "the leaky #1049 episode: its subject, branch, pr.md, and changelog entry; the tree leaves out the five task files that the .gitignore of ed9ac894 ignores",
+      "drop_paths": [
+        ".agro/tasks/compose-env-path-parity/eval-result.json",
+        ".agro/tasks/compose-env-path-parity/evidence.md",
+        ".agro/tasks/compose-env-path-parity/prd.json",
+        ".agro/tasks/compose-env-path-parity/prd.md",
+        ".agro/tasks/compose-env-path-parity/progress.txt"
+      ],
+      "expect_fail": [],
+      "case": "1049",
+      "subjects": [
+        "fix: compare compose --env-file by file identity, not path string"
+      ],
+      "branch": "bug/935-compose-env-path-parity",
+      "pr_file": "pr/1049-episode.md",
+      "changelog": {
+        "mode": "lines",
+        "file": "changelog/1049-episode.txt"
+      }
+    },
+    {
+      "name": "c6-missing-tracked-file-1049",
+      "source": "c6-ignored-task-files-1049 that also leaves out the tracked test file of the patch",
+      "drop_paths": [
+        ".agro/tasks/compose-env-path-parity/eval-result.json",
+        ".agro/tasks/compose-env-path-parity/evidence.md",
+        ".agro/tasks/compose-env-path-parity/prd.json",
+        ".agro/tasks/compose-env-path-parity/prd.md",
+        ".agro/tasks/compose-env-path-parity/progress.txt",
+        ".agro/scripts/__tests__/compose-config-path-parity.test.ts"
+      ],
+      "expect_fail": [
+        "c6_scope"
+      ],
+      "case": "1049",
+      "subjects": [
+        "fix: compare compose --env-file by file identity, not path string"
+      ],
+      "branch": "bug/935-compose-env-path-parity",
+      "pr_file": "pr/1049-episode.md",
+      "changelog": {
+        "mode": "lines",
+        "file": "changelog/1049-episode.txt"
+      }
+    },
+    {
+      "name": "c5-release-section-1169",
+      "case": "1169",
+      "source": "PR #1169: the real body and the real CHANGELOG.md of the merge commit, with its entries under the new ## [0.15.0] section; three two-sentence entries joined into one sentence each",
+      "subjects": [
+        "feat: add node host tools and workspace ref pinning"
+      ],
+      "branch": "feat/1168-node-host-tools",
+      "pr_file": "pr/1169.md",
+      "changelog": {
+        "mode": "original_sed",
+        "file": "changelog/1169-one-sentence.sed"
+      },
+      "expect_fail": []
+    },
+    {
+      "name": "c5-real-original-1169",
+      "case": "1169",
+      "source": "PR #1169: the real body and the real CHANGELOG.md of the merge commit, which holds three two-sentence entries under ## [0.15.0]",
+      "subjects": [
+        "feat: add node host tools and workspace ref pinning"
+      ],
+      "branch": "feat/1168-node-host-tools",
+      "pr_file": "pr/1169.md",
+      "changelog": {
+        "mode": "original"
+      },
+      "expect_fail": [
+        "c5_changelog"
+      ]
+    }
+  ]
+}
