@@ -81,8 +81,11 @@ if [ -z "${PI_SLACK_BOT_TOKEN:-}" ] && [ -f "$SLACK_ENV" ]; then
   [ -n "$t" ] && export PI_SLACK_BOT_TOKEN="$t"
   unset t
 fi
+if [ -z "${PI_SLACK_BOT_TOKEN:-}" ] && [ -f "$BRIDGE_CONFIG" ]; then
+  PI_SLACK_BOT_TOKEN=$(jq -r '.slack.botToken // empty' "$BRIDGE_CONFIG" 2>/dev/null) || PI_SLACK_BOT_TOKEN=''
+fi
 if [ -z "${PI_SLACK_BOT_TOKEN:-}" ]; then
-  slack_reason='no PI_SLACK_BOT_TOKEN in the environment or .devcontainer/.env'
+  slack_reason='no PI_SLACK_BOT_TOKEN in the environment, .devcontainer/.env, or bridge config'
 elif [ -z "$channel" ]; then
   if [ ! -f "$BRIDGE_CONFIG" ]; then
     slack_reason="no --channel and no bridge config at $BRIDGE_CONFIG"
@@ -101,7 +104,7 @@ text=$(printf '%s\n\n_%s · %s · %s_' "$text" "$host" "$branch" "$(date -u +%FT
 
 if [ "$dry_run" -eq 1 ]; then
   jq -n --arg channel "$channel" --arg supervisor "$supervisor" --arg text "$text" \
-    '{dryRun:true,channel:$channel,supervisor:$supervisor,text:$text}'
+    '{dryRun:true,channel:$channel,ts:"",supervisor:$supervisor,text:$text}'
   exit 0
 fi
 

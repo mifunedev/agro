@@ -91,10 +91,9 @@ herdr agent start <name> --cwd <harness root> --env AGRO_SUPERVISOR_PANE=<pane>
    escalation where a human will look — a PR comment, the PR body. The script
    already wrote the record (see below). The script made nobody read the record.
 4. **One escalation per blocker.** Do not narrate a session in Slack.
-5. **Read the reply channel honestly.** The escalate skill is one-way. The
-   script delivers a message. The script waits for no answer and receives no
-   answer. A session without its answer must stop, must leave durable state,
-   and must not poll.
+5. **Read the reply channel honestly.** Sending does not wait for an answer.
+   A session without its answer must stop and leave durable state. A caller
+   can check one message later with `escalate-decision.sh`; it must not poll.
 
 ## Exit codes
 
@@ -154,8 +153,8 @@ always prints the reason to stderr and returns the reason in the JSON.
 - **Supervisor target**: `--supervisor`, else `AGRO_SUPERVISOR_PANE`. A target
   is a Herdr pane id, a terminal id, or a unique agent name.
 - **Token**: `PI_SLACK_BOT_TOKEN` from the environment, else from
-  `.devcontainer/.env` — the order `.agro/scripts/gateway.sh` uses. The script
-  passes the token to `curl` through a header file, and never on the command
+  `.devcontainer/.env`, else `.slack.botToken` from the bridge config. The
+  scripts pass the token to `curl` through a header file, never on the command
   line where `/proc` would expose it.
 - **Channel**: `--channel`, else the first `enabled` entry in
   `~/.pi/msg-bridge.json` under `auth.channels`.
@@ -184,6 +183,26 @@ Verify the wiring without a send by adding `--dry-run`. The dry run prints the
 resolved supervisor target, the resolved channel, and the exact rendered
 message.
 
+## Read one decision
+
+Save `.channel` and `.ts` from a successful Slack send. The dry run sets `ts`
+to an empty string because it sends no message. When the caller is ready to
+check the message, run:
+
+```bash
+bash .agro/skills/escalate/scripts/escalate-decision.sh \
+  --channel C0123456789 --ts 1757630000.000100
+```
+
+The reader prints `approve`, `reject`, or `none` and exits 0. Only the operator's
+`white_check_mark` or `x` reaction, or a thread reply beginning with `approve`
+or `reject`, counts. A reject wins over an approve. The reader uses
+`ESCALATE_OPERATOR_SLACK_ID`, else the first `slack:` member ID in the bridge
+config's `auth.trustedUsers`. It compares exact Slack IDs. On a missing
+identity, transport failure, or Slack API error, it exits 2 and reports the
+error and any `needed` scope. Never treat exit 2 as `none` or as consent.
+The caller owns its state and decides when to check. Do not poll.
+
 ## Not this skill
 
 - **Sending a routine message to Slack.** This skill carries escalations. The
@@ -191,5 +210,5 @@ message.
 - **Talking to the gateway agent.** The `client-slack-pi` tmux session runs an
   interactive agent. Do not type into that session to send a message. Typing
   needs a human at a keyboard, and this skill removes that failure.
-- **Receiving replies.** This skill is one-way by design. The supervisor reads
-  its own pane and answers through its own channels.
+- **Watching replies continuously.** Neither script watches Slack. The caller
+  owns decision timing and durable state.
