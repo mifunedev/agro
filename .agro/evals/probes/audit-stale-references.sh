@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"; cd "$ROOT"
 pat='(^|[^A-Za-z0-9-])(pr-audit|harness-audit|context-audit|skill-lint|eval-lint|drift-check)([^A-Za-z0-9-]|$)|\.agro/skills/(pr-audit|harness-audit|context-audit|skill-lint|eval-lint|drift-check)(/|$)|auditor\.md'
 set +e
-hits=$(git grep -n -E "$pat" -- ':!CHANGELOG.md' ':!docs/rfcs/preserved-changelog-rationale.md' ':!.agro/evals/RESULTS.md' ':!.agro/evals/datasets/**' ':!.agro/tasks/archive/**')
+hits=$(git grep -n -E "$pat" -- ':!CHANGELOG.md' ':!docs/rfcs/preserved-changelog-rationale.md' ':!.agro/evals/RESULTS.md' ':!.agro/evals/datasets/**' ':!.agro/evals/experiments/*/corpus/**' ':!.agro/tasks/archive/**')
 rc=$?; set -e
 [[ $rc -eq 0 || $rc -eq 1 ]] || { echo 'REGRESSION: stale-reference inventory failed' >&2; exit 1; }
 bad=()

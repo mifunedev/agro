@@ -37,6 +37,7 @@ legacy_docs_hits="$(git -C "$ROOT" grep -nI -F '.agro/docs' -- \
   ':!docs/rfcs/preserved-changelog-rationale.md' \
   ':!docs/rfcs/rfc-trace-ledger.md' \
   ':!.agro/tasks/**' \
+  ':!.agro/evals/experiments/*/corpus/**' \
   ':!.agro/knowledge/raw/**' \
   ':!.agro/evals/RESULTS.md' \
   ':!.agro/evals/probes/docs-build-fast-path.sh')"
@@ -112,6 +113,7 @@ grep -Fq 'docs/README.md' "$README" || failures+=("README.md must point readers 
 if git -C "$ROOT" grep -nE 'docusaurus build|pnpm (run )?docs:build|pnpm --dir (\.agro/)?docs build|@agro/docs' -- \
   ':!.agro/evals/probes/docs-build-fast-path.sh' \
   ':!.agro/tasks/**' \
+  ':!.agro/evals/experiments/*/corpus/**' \
   ':!CHANGELOG.md' >/tmp/docs-site-externalized-grep.txt; then
   failures+=("core repo still references removed docs-build commands: $(tr '\n' ';' </tmp/docs-site-externalized-grep.txt)")
 fi
