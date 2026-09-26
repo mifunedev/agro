@@ -7,10 +7,8 @@ readonly EXPERIMENT="$EXP_DIR/experiment.json"
 readonly MANIFEST="$EXP_DIR/corpus/manifest.json"
 RUNNER_ROOT="$(git -C "$EXP_DIR" rev-parse --show-toplevel)"
 readonly RUNNER_ROOT
-COMMON_DIR="$(git -C "$EXP_DIR" rev-parse --path-format=absolute --git-common-dir)"
-readonly COMMON_ROOT="${COMMON_DIR%/.git}"
 readonly EXPERIMENTS_REL=.agro/evals/experiments
-readonly EPISODE_PARENT="$COMMON_ROOT/.worktrees/git-screen-ep"
+readonly EPISODE_PARENT="${XDG_STATE_HOME:-$HOME/.local/state}/agro/git-screen/repos"
 readonly RUNS_DIR="${GIT_SCREEN_RUNS_DIR:-$EXP_DIR/runs}"
 readonly TRACE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/agro/git-screen/traces"
 readonly PR_FILE_REL=work/pr.md
@@ -27,7 +25,9 @@ Run one /git attempt for one corpus case and append one line to
 runs/<run-id>/episodes.jsonl. Default --run-id: adhoc. Every setting comes
 from experiment.json and corpus/manifest.json.
 
-The episode worktree is detached at the pinned revision. The runner writes the
+The episode repository is a new repository under the XDG state directory
+that holds only the pinned revision (make-episode-repo.sh): no remote, no
+ref, and no other commit. The runner writes the
 overlay files from the base revision and marks them skip-worktree, deletes
 .agro/evals/experiments/ (leak guard), and applies the patch of the case as
 uncommitted changes. claude runs inside no-egress.sh. core.excludesFile
@@ -35,7 +35,8 @@ ignores /work/ in the episode.
 
 After the attempt the runner scores the episode with verify-git.sh, copies
 work/pr.md, the commit log, and the changelog diff to runs/<run-id>/outputs/<id>/,
-removes the worktree, and deletes each branch that the episode created.
+and deletes the episode repository. The episode shares no ref and no object
+store with this repository.
 
 Exit 0 when the line was recorded, whatever its status. Exit 2 on bad
 arguments. An interrupted attempt records its line and re-raises the signal.
@@ -87,7 +88,6 @@ mapfile -t claude_args < <(jq -r '.claude_args[]' "$EXPERIMENT")
 
 run_dir="$RUNS_DIR/$run_id"
 episodes="$run_dir/episodes.jsonl"
-git_lock="$EPISODE_PARENT/.git.lock"
 mkdir -p "$run_dir/outputs" "$EPISODE_PARENT" "$TRACE_DIR"
 touch "$episodes"
 attempt="$(jq -s --arg r "$run_id" --arg d "$case_id" '[.[] | select(.run_id == $r and .document_id == $d)] | length + 1' "$episodes")"
@@ -114,76 +114,24 @@ outputs_json="null"
 head_json="null"
 branch=""
 branch_created='[]'
-refs_changed='[]'
-refs_left='[]'
 leak_removed='[]'
 uncommitted='[]'
 recorded=0
-worktree_created=0
+repo_created=0
 claude_pid=""
 result_event=""
-refs_before=""
-refs_collected=0
-
-snapshot_refs() {
-  git -C "$RUNNER_ROOT" for-each-ref --format='%(refname) %(objectname)' | sort
-}
 
 remove_worktree() {
-  if [ "$worktree_created" -eq 1 ]; then
-    worktree_created=0
-    (
-      flock 8
-      cd "$RUNNER_ROOT"
-      bash .agro/scripts/git-maintenance.sh worktree-remove "$wt" >/dev/null 2>&1 || true
-      git worktree prune >/dev/null 2>&1 || true
-    ) 8>"$git_lock"
+  if [ "$repo_created" -eq 1 ]; then
+    repo_created=0
+    rm -rf "${wt:?}"
   fi
   rm -f "$raw_trace" "$claude_stderr" "$excludes_file"
 }
 
-episode_commits() {
-  [ -n "$revision" ] && [ -d "$wt" ] || return 0
-  git -C "$wt" rev-list "$revision..HEAD" 2>/dev/null || true
-  git -C "$wt" rev-parse --verify --quiet HEAD 2>/dev/null || true
-}
-
 collect_refs() {
-  [ -n "$refs_before" ] && [ "$refs_collected" -eq 0 ] || return 0
-  refs_collected=1
-  local after owned commits name sha
-  after="$(snapshot_refs)"
-  commits="$(episode_commits | sort -u)"
-  owned=()
-  while read -r name sha; do
-    [ -n "$name" ] || continue
-    if [ "$name" = "refs/heads/$branch" ] && [ -n "$branch" ]; then
-      owned+=("$name")
-    elif grep -qxF "$sha" <<<"$commits" && [ "$sha" != "$revision" ]; then
-      owned+=("$name")
-    elif [ "$sha" = "$revision" ] && [[ "$name" == refs/heads/*/"$issue"-* ]]; then
-      owned+=("$name")
-    fi
-  done < <(comm -13 <(cut -d' ' -f1 <<<"$refs_before") <(cut -d' ' -f1 <<<"$after") | while read -r n; do grep -m1 "^$n " <<<"$after"; done)
-  branch_created="$(printf '%s\n' "${owned[@]}" | sed '/^$/d' | sort -u | ep_json_lines)"
-  refs_changed="$(join <(printf '%s\n' "$refs_before") <(printf '%s\n' "$after") | awk '$2 != $3 {print $1}' | ep_json_lines)"
-}
-
-delete_owned_refs() {
-  local name
-  while read -r name; do
-    [ -n "$name" ] || continue
-    (
-      flock 8
-      cd "$RUNNER_ROOT"
-      case "$name" in
-        refs/heads/*) bash .agro/scripts/git-maintenance.sh branch-delete "${name#refs/heads/}" >/dev/null 2>&1 || true ;;
-      esac
-    ) 8>"$git_lock"
-  done < <(jq -r '.[]' <<<"$branch_created")
-  refs_left="$(jq -r '.[]' <<<"$branch_created" | while read -r name; do
-    if git -C "$RUNNER_ROOT" show-ref --verify --quiet "$name"; then printf '%s\n' "$name"; fi
-  done | ep_json_lines)"
+  [ -d "$wt/.git" ] || return 0
+  branch_created="$(git -C "$wt" for-each-ref --format='%(refname)' 2>/dev/null | ep_json_lines)"
 }
 
 record_line() {
@@ -218,8 +166,6 @@ record_line() {
     --arg branch "$branch" \
     --argjson head "$head_json" \
     --argjson branch_created "$branch_created" \
-    --argjson refs_changed "$refs_changed" \
-    --argjson refs_left "$refs_left" \
     --argjson leak_removed "$leak_removed" \
     --argjson uncommitted "$uncommitted" \
     --arg error "$error" \
@@ -231,7 +177,7 @@ record_line() {
       trace: $trace, verifier: $verifier, outputs: $outputs, usage: $usage, elapsed_s: $elapsed_s,
       status: $status, pass: $pass, started_at: $started_at, claude_exit: $claude_exit,
       skill_invocation: "slash-prompt", branch: (if $branch == "" then null else $branch end), head: $head,
-      branch_created: $branch_created, refs_changed: $refs_changed, refs_left: $refs_left,
+      branch_created: $branch_created, episode_repo: "isolated",
       leak_guard: {removed: $leak_removed}, other_changes: $uncommitted,
       error: (if $error == "" then null else $error end)}')"
   ep_append_line "$episodes" "$line"
@@ -241,7 +187,6 @@ record_line() {
 
 cleanup() {
   remove_worktree
-  delete_owned_refs
 }
 
 on_signal() {
@@ -299,14 +244,13 @@ set -e
 [ "$pin_rc" -eq 0 ] || finish pin_mismatch "check-pins.sh exited $pin_rc: $pin_err"
 
 if [ -e "$wt" ]; then
-  worktree_created=1
+  repo_created=1
   remove_worktree
 fi
-refs_before="$(ep_locked "$git_lock" snapshot_refs)"
-if ! add_err="$(ep_locked "$git_lock" git -C "$RUNNER_ROOT" worktree add --detach "$wt" "$resolved" 2>&1)"; then
-  finish infra_failure "git worktree add failed: $add_err"
+repo_created=1
+if ! add_err="$(bash "$EXP_DIR/make-episode-repo.sh" "$RUNNER_ROOT" "$resolved" "$wt" 2>&1)"; then
+  finish infra_failure "make-episode-repo.sh failed: $add_err"
 fi
-worktree_created=1
 
 for path in "${overlay_paths[@]}"; do
   mkdir -p "$(dirname "$wt/$path")"
@@ -384,7 +328,7 @@ fi
 if [ -z "$result_event" ]; then
   finish infra_failure "trace holds no result event: $stderr_tail"
 fi
-[ -n "$head_sha" ] || finish infra_failure "the episode worktree has no HEAD"
+[ -n "$head_sha" ] || finish infra_failure "the episode repository has no HEAD"
 
 set +e
 verifier_out="$(bash "$EXP_DIR/verify-git.sh" --repo "$wt" --revision "$revision" --head "$head_sha" \

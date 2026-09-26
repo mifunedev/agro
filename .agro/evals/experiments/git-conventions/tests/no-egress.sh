@@ -37,6 +37,8 @@ git -c user.name=probe -c user.email=probe@example.invalid commit -q --allow-emp
 attempt git-push-origin "$block" git push origin HEAD
 attempt git-push-https-url "$block" git push "$remote" HEAD:refs/heads/task/1190-no-egress-probe
 attempt git-push-ssh-url "$block" git push git@github.com:mifunedev/agro.git HEAD:refs/heads/task/1190-no-egress-probe
+attempt git-fetch-github "$block" git fetch https://github.com/mifunedev/agro.git development
+attempt git-ls-remote-github "$block" git ls-remote git@github.com:mifunedev/agro.git
 attempt git-credential-fill "terminal prompts disabled|could not read" sh -c 'printf "protocol=https\nhost=github.com\n\n" | git credential fill'
 attempt gh-auth-status "not logged in|gh auth login" gh auth status
 attempt gh-api-user "gh auth login|GH_TOKEN|authentication" gh api user
@@ -59,7 +61,7 @@ set -e
 [ "$rc" -eq 0 ] || fail "wrapper: the fake agent exited $rc"
 [ -s "$tmp/results.txt" ] || fail "wrapper: the fake agent recorded no result"
 
-expected=(git-push-origin git-push-https-url git-push-ssh-url git-credential-fill gh-auth-status gh-api-user gh-pr-create env-GH_TOKEN env-GITHUB_TOKEN env-GH_ENTERPRISE_TOKEN)
+expected=(git-push-origin git-push-https-url git-push-ssh-url git-fetch-github git-ls-remote-github git-credential-fill gh-auth-status gh-api-user gh-pr-create env-GH_TOKEN env-GITHUB_TOKEN env-GH_ENTERPRISE_TOKEN)
 for name in "${expected[@]}"; do
   line="$(grep -m1 "^$name " "$tmp/results.txt" || true)"
   if [ "${line#* }" = blocked ]; then

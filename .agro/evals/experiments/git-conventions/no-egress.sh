@@ -9,20 +9,21 @@ readonly UNSET_VARS=(
   REMOTE_CONTAINERS_IPC
 )
 readonly PUSH_PREFIXES=(https:// http:// ssh:// git:// git@ github.com:)
+readonly FETCH_PREFIXES=(https://github.com/ http://github.com/ ssh://git@github.com/ git://github.com/ git@github.com: github.com:)
 
 usage() {
   cat >&2 <<'USAGE'
 Usage: no-egress.sh [--git-config <key>=<value>]... -- <command> [<arg>...]
 
-Run <command> in an environment that cannot push with git and cannot reach
-the GitHub API with gh:
+Run <command> in an environment that cannot push with git, cannot fetch from
+GitHub with git, and cannot reach the GitHub API with gh:
   - env -u removes the GitHub tokens, the askpass helpers, the SSH agent
     socket, and the editor git bridges.
   - GH_CONFIG_DIR is a new empty directory, so gh has no login.
-  - GIT_CONFIG_COUNT sets remote.origin.pushurl to a path that does not exist,
-    rewrites each push URL prefix (https://, http://, ssh://, git://, git@,
-    github.com:) to that path with url.<path>.pushInsteadOf, and clears every
-    credential helper.
+  - GIT_CONFIG_COUNT rewrites each push URL prefix (https://, http://, ssh://,
+    git://, git@, github.com:) to a path that does not exist with
+    url.<path>.pushInsteadOf, rewrites each GitHub URL prefix to that path with
+    url.<path>.insteadOf, and clears every credential helper.
   - GIT_SSH_COMMAND is false and GIT_TERMINAL_PROMPT is 0.
 Each --git-config adds one more GIT_CONFIG_COUNT entry. The script removes
 the gh directory when <command> exits and returns the exit code of <command>.
@@ -50,10 +51,12 @@ pairs=(
   "credential.https://github.com.helper="
   "credential.https://gist.github.com.helper="
   "credential.helper="
-  "remote.origin.pushurl=$BLOCK_URL"
 )
 for prefix in "${PUSH_PREFIXES[@]}"; do
   pairs+=("url.$BLOCK_URL/.pushInsteadOf=$prefix")
+done
+for prefix in "${FETCH_PREFIXES[@]}"; do
+  pairs+=("url.$BLOCK_URL/.insteadOf=$prefix")
 done
 pairs+=("${extra[@]}")
 

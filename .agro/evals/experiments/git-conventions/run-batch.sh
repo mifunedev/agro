@@ -19,7 +19,7 @@ Run one attempt for each corpus case through run-episode.sh, in manifest
 order. A rerun skips each case that already has an ok or timeout line in
 runs/<run-id>/episodes.jsonl.
 
-Budget guard: no episode starts when the recorded cost plus
+Budget guard: no episode starts when budget.prior_spend_usd, the recorded cost, plus
 budget.first_episode_max_usd for each running episode and for the new
 episode exceeds budget.max_total_usd. Default --jobs: budget.max_parallel.
 --detach starts the batch in the new detached tmux session git-screen.
@@ -99,11 +99,17 @@ mkdir -p "$run_dir"
 touch "$episodes"
 exec > >(tee -a "$run_dir/batch.log") 2>&1
 
+REPO_ROOT="$(git -C "$EXP_DIR" rev-parse --show-toplevel)"
+refs_snapshot() {
+  git -C "$REPO_ROOT" for-each-ref --format='%(refname) %(objectname)'
+}
+refs_snapshot >"$run_dir/.refs-before"
 max_total="$(jq -r '.budget.max_total_usd' "$EXPERIMENT")"
 per_episode="$(jq -r '.budget.first_episode_max_usd' "$EXPERIMENT")"
+prior_spend="$(jq -r '.budget.prior_spend_usd // 0' "$EXPERIMENT")"
 
 spent() {
-  jq -s '[.[] | .usage.total_cost_usd // 0] | add // 0' "$episodes"
+  jq -s --argjson p "$prior_spend" '([.[] | .usage.total_cost_usd // 0] | add // 0) + $p' "$episodes"
 }
 
 done_case() {
@@ -141,4 +147,12 @@ done
 for pid in "${pids[@]}"; do
   wait "$pid" || true
 done
+refs_snapshot >"$run_dir/.refs-after"
+if cmp -s "$run_dir/.refs-before" "$run_dir/.refs-after"; then
+  printf 'run-batch: the refs of this repository are unchanged\n'
+else
+  printf 'run-batch: the refs of this repository changed:\n'
+  diff "$run_dir/.refs-before" "$run_dir/.refs-after" || true
+fi
+rm -f "$run_dir/.refs-before" "$run_dir/.refs-after"
 printf 'run-batch: finished %s; spent %s USD; budget stop %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(spent)" "$stopped"
