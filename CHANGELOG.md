@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.15.1] - 2026-09-26
+
 ### Added
 
 - Link GitHub Discussions from the README community section ([#1173](https://github.com/mifunedev/agro/issues/1173)).
