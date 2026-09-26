@@ -69,8 +69,8 @@
         "Each later story reads its inputs from `experiment.json` and exits non-zero when a pinned digest does not match."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted on integrated task branch at d9302ca1. C1 executed: jq shows provider, model, effort, harness_version, pins (root_agents_md, baseline_skill_md, ste_frozen_tree, ste_tree, corpus_manifest, verify_sh), episode_prompt, budget, success; jq -e '.pins == check-pins.sh --print' true. C2 reasoned: values match Architectural Decisions table and verdict rule; headroom 0.90 from US-005; timeout stored as episode_timeout_s=600. C3 executed: branch pushed; gh issue comment 1171 -> https://github.com/mifunedev/agro/issues/1171#issuecomment-5842346908 links commit d9302ca1. C4 executed (mechanism): check-pins.sh exit 0 for baseline and candidate arms; tests/pin-check.sh exit 0 over 15 cases in a mktemp copy. Runner use of check-pins.sh is verified in US-004+.",
       "dependsOn": [
         "US-001",
         "US-002"
@@ -78,7 +78,8 @@
       "files": [
         ".agro/evals/experiments/skillopt-ste/experiment.json",
         ".agro/evals/experiments/skillopt-ste/tests/pin-check.sh"
-      ]
+      ],
+      "commit": "d9302ca1"
     },
     {
       "id": "US-004",
