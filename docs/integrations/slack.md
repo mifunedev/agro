@@ -92,6 +92,7 @@ oauth_config:
       - channels:history
       - channels:read
       - chat:write
+      - commands
       - files:read
       - files:write
       - groups:history
@@ -260,7 +261,7 @@ no recovery hook, so the process keeps running while the bridge silently stops
 responding. The supervisor tails the log for that stale-ctx signature (and
 catches any non-zero crash), kills the bridge pi, clears the single-instance
 lock (`~/.pi/msg-bridge.lock`), and relaunches a fresh process that reconnects
-— look for the `[Slack] Bot user ID:` connect marker (§ 7) again after a
+— look for the `[Slack] Bot user ID:` connect marker (§ 8) again after a
 restart. A clean pi exit (`rc=0`) stops the loop. The manual relaunch below is
 only needed to pick up config edits, not to recover from stale-ctx.
 
@@ -384,7 +385,40 @@ For headless setups, pre-seed `auth.trustedUsers` and `auth.channels` in
 `/msg-bridge status` inside `gateway pi --attach` for connection state;
 `/msg-bridge status` is not a Slack admin command.
 
-## 7. Smoke Test
+## 7. Read an operator decision
+
+Create a separate Slack app from `.pi/install/slack-manifest.yaml` on each host.
+Give each host its own app-level and bot tokens. Install the app in the workspace
+and invite its bot to the escalation channel. Update an existing app from the
+YAML manifest and reinstall it when you add scopes.
+
+The bot needs `commands` for the seven bridge slash commands and
+`reactions:read` for decisions. The bot needs `channels:history`, `groups:history`,
+and `im:history` to read replies in public channels, private channels, and DMs.
+The manifest subscribes to `message.channels`, `message.groups`, and
+`message.im` events for bridge messages. The decision reader uses Slack Web API
+calls; the reader does not require an event handler.
+
+Set `ESCALATE_OPERATOR_SLACK_ID` to the operator's exact Slack member ID (for
+example, `U01ABCD2345`). If unset, the reader uses the first `slack:U…` entry
+in `~/.pi/msg-bridge.json` under `auth.trustedUsers`. Keep that first entry
+assigned to the operator. Trust for other users does not authorize decisions.
+The reader resolves `PI_SLACK_BOT_TOKEN` from its environment, then
+`.devcontainer/.env`, then `.slack.botToken` in the bridge config.
+
+Run the command once with the `channel` and `ts` returned by `escalate.sh`:
+
+```bash
+bash .agro/skills/escalate/scripts/escalate-decision.sh --channel C123 --ts 1757630000.000100
+```
+
+The command prints `approve`, `reject`, or `none`. Only the operator's
+`white_check_mark` or `x` reaction and a thread reply starting with `approve`
+or `reject` count. A reject wins. A missing operator ID or a Slack API error
+exits 2; do not interpret it as `none`. The caller owns its state and invokes
+the command when the caller is ready to check. Do not poll Slack.
+
+## 8. Smoke Test
 
 Run these checks in order. The first runs in the shell where you sourced the
 env (before attaching to tmux).
@@ -416,7 +450,7 @@ env (before attaching to tmux).
    should see the inbound event logged and the agent's reply posted back to
    Slack.
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
@@ -427,7 +461,7 @@ env (before attaching to tmux).
 | Bot connected (`[Slack] Bot user ID:` logged) but never replies | `autoConnect` not set in `.pi/msg-bridge.json` — the bridge stays idle | Set `"autoConnect": true` (§ 4.2) and relaunch |
 | Bot is trusted but channel messages ignored | Bot is not a member of the channel | In Slack, type `/invite @AGRO` in the target channel |
 
-## 9. Architecture Pointer
+## 10. Architecture Pointer
 
 The Slack capability is the **pi-messenger-bridge** npm package. The harness
 installs it via npm into a gitignored `.pi/bridge/` directory and loads it via

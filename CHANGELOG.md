@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Read operator Slack decisions by message timestamp and report sender timestamps for unattended escalations ([#1181](https://github.com/mifunedev/agro/issues/1181)).
+
 ### Changed
 
 - Use a YAML Slack app manifest for Pi setup and provide a copyable version in the Slack docs while preserving the app's permissions, events, and admin commands ([#1177](https://github.com/mifunedev/agro/issues/1177)).
