@@ -150,14 +150,15 @@
         "The run cost is within its phase cap."
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: summarize.sh baseline-train; 40 latest records scored, 20 cases x 2 repeats, 0 excluded. The first batch lost 8 slots to the account monthly spend limit (claude exited 1 with the limit message); the resume retried them as attempt 2 after the 12:00 reset. 2 executed: summary.json reports pass rate 0.80, mean cost $0.874, median $0.866, mean turns 15.1, and per_case median costs for 20 cases. 3 executed: the run cost $36.34 of the $40 cap, including $1.39 on episodes that the spend limit stopped. Failure classes: real plan defects (1124 g3, 1076 g1 and g2, 1080 g2 task-folder file) and two lexical verifier false positives (1181 g2, 1054 g1 negation line); both classes affect both arms.",
       "dependsOn": [
         "US-005"
       ],
       "files": [
         ".agro/evals/experiments/prd-efficiency/runs/baseline-train/"
-      ]
+      ],
+      "commit": "879a6554"
     },
     {
       "id": "US-008",
