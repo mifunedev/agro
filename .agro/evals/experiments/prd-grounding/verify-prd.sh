@@ -47,7 +47,9 @@ Declared new: a repository path that
   - is the task folder .agro/tasks/<slug>/ or its prd.md or prd.json, or
   - is a task file: a path under .agro/tasks/<name>/ other than prd.md,
     prd.json, and AGENTS.md, outside .agro/tasks/archive/. The verifier does
-    not know the slug of the plan, so the rule applies to each task folder.
+    not know the slug of the plan, so the rule applies to each task folder
+    except a folder whose name also exists as .agro/tasks/archive/*/<name>/
+    at <revision>: such a path names an archived task, not a new file.
     A task file that does not exist at <revision> and is declared absent
     counts as declared absent, not declared new.
 
@@ -263,10 +265,12 @@ sub normalize {
   return $t;
 }
 
+my %archived_task = map { m{^\.agro/tasks/archive/[^/]+/([^/]+)$} ? ($1 => 1) : () } keys %dir;
 sub task_file {
   my ($p) = @_;
   return 0 if task_contract($p) || $p =~ m{(?:^|/)AGENTS\.md$};
-  return $p =~ m{^\.agro/tasks/(?!archive/)[^/]+/.} ? 1 : 0;
+  return 0 unless $p =~ m{^\.agro/tasks/(?!archive/)([^/]+)/.};
+  return $archived_task{$1} ? 0 : 1;
 }
 
 sub task_contract {

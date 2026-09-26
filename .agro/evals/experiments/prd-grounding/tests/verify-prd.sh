@@ -98,6 +98,7 @@ cases=(
   "#1210: a path in a negative sentence is declared absent (efficiency 1054)|$EFFICIENCY_RUNS/baseline-train/outputs/1054-baseline-r1-a2.md|d341ebc38e28b1d5433844052bd1edb17df51cf7|$ALL_TRUE and (.details.g1.declared_absent | index(\".pi/skills\") != null)"
   "#1210: a path followed by \"(new)\" is declared new (efficiency 1086)|$EFFICIENCY_RUNS/noise/outputs/1086-baseline-r1-a1.md|cf35b316acccc03092d8f8da97fe2a50d9b12a1f|$ALL_TRUE and (.details.g1.declared_new | index(\".agro/cli/src/commands/workspace.ts\") != null)"
   "#1210: a deliverable in the ignored task folder fails g2 without a new-word (efficiency 1080)|$EFFICIENCY_RUNS/baseline-train/outputs/1080-baseline-r2-a1.md|f14840b982532e46459cfe7b620958dcb49326de|$(only g2_trackable) and ([.details.g2.ignored[].path] == [\".agro/tasks/lifecycle-script-recovery-hint/evidence.md\"])"
+  "#1210: a path under a task folder that the revision archived is not declared new (efficiency 1061)|$EFFICIENCY_RUNS/heldout/outputs/1061-baseline-r2-a1.md|567e8936e9f58def692a5d067837d28f6e5e8a69|$(only g3_commands) and .details.g2.ignored == [] and (.details.g1.ignored_local == [\".agro/tasks/retire-open-harness-name/classification.md\"])"
   "a worktree path is exempt from g2|$work/evidence-in-pr-body.md|80b9342a|.g1_paths and .g2_trackable and .g3_commands and (.g4_structure | not)"
 )
 
