@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Print a one-time star line after the first successful `agro sandbox install` in an interactive terminal; set `AGRO_NO_STAR_PROMPT=1` to suppress it ([#1175](https://github.com/mifunedev/agro/issues/1175)).
+
 ## [0.15.0] - 2026-09-24
 
 ### Added
