@@ -220,14 +220,13 @@ else
   pass "a ref written inside an episode does not reach this repository"
 fi
 
-worktrees_before="$(git -C "$REPO_ROOT" worktree list --porcelain)"
 rm -f "$FAKE_CLAUDE_STARTED"
 PRD_EFFICIENCY_REPO_BUILDER="$SHARED_REF_BUILDER" bash "$RUN_EPISODE" "$CASE_A" --run-id t-shared >/dev/null
 line="$(last_line t-shared)"
 if jq -e '.status == "infra_failure" and (.error | test("not isolated")) and .trace == null and .pass == false' <<<"$line" >/dev/null \
   && [ ! -e "$FAKE_CLAUDE_STARTED" ] \
   && [ ! -e "$REPOS_DIR/$(jq -r '.episode_id' <<<"$line")" ] \
-  && [ "$worktrees_before" = "$(git -C "$REPO_ROOT" worktree list --porcelain)" ]; then
+  && ! git -C "$REPO_ROOT" worktree list --porcelain | grep -qF "$scratch"; then
   pass "a shared-ref worktree is refused as infra_failure before claude starts: $(jq -r '.error' <<<"$line")"
 else
   fail "shared-ref worktree was not refused: $(jq -c '{status, error, trace}' <<<"$line")"
@@ -307,17 +306,20 @@ else
   fail "first-episode gate: exit $gate_rc, $(episodes_of t-gate | wc -l) line(s)"
 fi
 
+noise_cap="$(jq -r '.budget.phases.noise.max_usd' "$EXP_DIR/experiment.json")"
+reserve="$(jq -r '.budget.episode_reserve_usd' "$EXP_DIR/experiment.json")"
+seed_cost="$(jq -n --argjson c "$noise_cap" --argjson r "$reserve" '$c - $r - 0.01')"
 mkdir -p "$PRD_EFFICIENCY_RUNS_DIR/t-guard"
-jq -cn '{run_id: "t-guard", case_id: "seed", arm: "baseline", repeat: 1, status: "ok", usage: {total_cost_usd: 13.49}}' \
+jq -cn --argjson s "$seed_cost" '{run_id: "t-guard", case_id: "seed", arm: "baseline", repeat: 1, status: "ok", usage: {total_cost_usd: $s}}' \
   >"$PRD_EFFICIENCY_RUNS_DIR/t-guard/episodes.jsonl"
 set +e
 bash "$RUN_BATCH" --run-id t-guard --phase noise --arm baseline --cases "$CASE_A,$CASE_B" --jobs 1 >/dev/null 2>&1
 guard_rc=$?
 set -e
 if [ "$guard_rc" -eq 1 ] \
-  && episodes_of t-guard | jq -e -s 'length == 3 and .[1].status == "ok" and .[1].case_id == "1064"
-      and .[2].status == "budget_refused" and .[2].case_id == "1088" and (.[2].error | test("exceeds the noise cap 15"))' >/dev/null; then
-  pass "budget guard: 13.49 + 1.50 <= 15 starts 1064; 13.51 + 1.50 > 15 refuses 1088 with a budget_refused line (exit 1)"
+  && episodes_of t-guard | jq -e -s --argjson c "$noise_cap" 'length == 3 and .[1].status == "ok" and .[1].case_id == "1064"
+      and .[2].status == "budget_refused" and .[2].case_id == "1088" and (.[2].error | contains("exceeds the noise cap \($c) USD"))' >/dev/null; then
+  pass "budget guard: $seed_cost + $reserve <= $noise_cap starts 1064; $seed_cost + 0.02 + $reserve > $noise_cap refuses 1088 with a budget_refused line (exit 1)"
 else
   fail "budget guard: exit $guard_rc, $(episodes_of t-guard | jq -c -s 'map({case_id, status, error})')"
 fi
