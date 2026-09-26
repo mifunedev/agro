@@ -98,4 +98,5 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. **A rescore of every stored plan is the review that catches a verifier regression.** Evidence: the fixtures passed after the first fix. The rescore then showed that 1080 train r2-a1 lost a real `g2_trackable` failure. The second rescore showed a new false failure on heldout 1061 r2-a1. Outcome: fixed in this PR. Each fix got a fixture.
+2. **A strict object binding broke earlier fixtures.** Evidence: fix B 1076 and noise 1086 needed three more binding rules. Each rule keeps only declarations that the old rule also made. Outcome: fixed in this PR.
