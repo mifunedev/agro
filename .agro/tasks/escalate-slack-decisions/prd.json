@@ -19,7 +19,7 @@
     {
       "id": "US-003", "title": "Document and configure Slack", "description": "As an operator, I want a complete app manifest so that the gateway receives commands and decision events on its own host.",
       "acceptanceCriteria": ["Canonical YAML manifest and complete guide copy declare seven slash commands, commands scope, reactions:read, history scopes, and message events.", "Slack guide states one app per host and explains decision setup; escalate skill documents no-poll decision use.", "Manifest check and repository validation pass."],
-      "priority": 3, "passes": true, "notes": "Executed: bash .agro/skills/escalate/scripts/test-escalate-decision.sh (exit 0) checks seven commands, scopes, events and byte-identical documented YAML. Reviewed Slack guide and escalate skill for per-host apps, identity, decision command, and no-poll rule. Repository suite and CI recorded in PR.", "commit": "c1fce3f5", "dependsOn": ["US-002"],
+      "priority": 3, "passes": true, "notes": "Executed: bash .agro/skills/escalate/scripts/test-escalate-decision.sh (exit 0) checks seven commands, scopes, events and byte-identical documented YAML. Reviewed Slack guide and escalate skill for per-host apps, identity, decision command, and no-poll rule. Canonical manifest probe checks `commands` and passes after the CI failure exposed its old scope list. Repository suite and CI recorded in PR.", "commit": "c1fce3f5", "dependsOn": ["US-002"],
       "files": [".pi/install/slack-manifest.yaml", "docs/integrations/slack.md", ".agro/skills/escalate/SKILL.md", "CHANGELOG.md"]
     }
   ]

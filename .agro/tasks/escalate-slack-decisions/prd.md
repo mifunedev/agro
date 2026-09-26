@@ -105,3 +105,4 @@ None.
 
 - Claim: The canonical Slack manifest is YAML, not JSON. Evidence: `.pi/install/slack-manifest.yaml` and its complete copy in `docs/integrations/slack.md` existed on the target branch. Outcome: fixed in this PR by adding `commands` to both copies and checking that they match.
 - Claim: A missing Slack identity or API error cannot authorize unattended work. Evidence: the stub HTTP test checks exit 2 for both cases. Outcome: fixed in this PR.
+- Claim: The Slack manifest probe pinned the old scope list. Evidence: CI marked `slack-admin-command-surface` as a regression after adding `commands`. Outcome: fixed in this PR by requiring `commands` in the probe.
