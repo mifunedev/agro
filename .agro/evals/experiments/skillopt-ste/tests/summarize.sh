@@ -4,6 +4,8 @@ set -euo pipefail
 EXP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly EXP_DIR
 readonly SUMMARIZE="$EXP_DIR/summarize.sh"
+MODEL="$(jq -r '.model' "$EXP_DIR/experiment.json")"
+readonly MODEL
 
 scratch="$(mktemp -d)"
 cleanup() {
@@ -15,7 +17,7 @@ export SKILLOPT_STE_RUNS_DIR="$scratch/runs"
 readonly FIXTURES="$EXP_DIR/tests/fixtures"
 
 episode() {
-  local run="$1" doc="$2" split="$3" arm="$4" repeat="$5" attempt="$6" status="$7" as_run_pass="$8" output="${9:-}" billed="${10:-no}"
+  local run="$1" doc="$2" split="$3" arm="$4" repeat="$5" attempt="$6" status="$7" as_run_pass="$8" output="${9:-}" billed="${10:-no}" model="${11:-$MODEL}"
   local family="${doc%%-*}" verifier=null usage=null episode_id
   episode_id="$run--$doc--$arm--r$repeat--a$attempt"
   mkdir -p "$SKILLOPT_STE_RUNS_DIR/$run/outputs"
@@ -28,10 +30,10 @@ episode() {
   fi
   jq -cn --arg run "$run" --arg id "$episode_id" --arg doc "$doc" --arg family "$family" --arg split "$split" --arg arm "$arm" \
     --argjson repeat "$repeat" --argjson attempt "$attempt" --arg status "$status" --argjson pass "$as_run_pass" \
-    --argjson verifier "$verifier" --argjson usage "$usage" \
+    --argjson verifier "$verifier" --argjson usage "$usage" --arg model "$model" \
     '{run_id: $run, episode_id: $id, document_id: $doc, family: $family, split: $split, arm: $arm, repeat: $repeat,
       attempt: $attempt, status: $status, pass: $pass, verifier: $verifier, usage: $usage,
-      elapsed_s: (10 * $attempt), model: "claude-sonnet-5", effort: "medium", harness_version: "2.1.280",
+      elapsed_s: (10 * $attempt), model: $model, effort: "medium", harness_version: "2.1.280",
       repo_revision: ("rev-" + $arm), skill_revision: ("skill-" + $arm)}' \
     >>"$SKILLOPT_STE_RUNS_DIR/$run/episodes.jsonl"
 }
@@ -51,6 +53,9 @@ done
 episode high F3-03 train baseline 10 1 ok true F3-03.fault-checker.md
 
 episode held F3-03 heldout baseline 1 1 ok true F3-03.clean.md
+
+episode twomodels F3-03 train baseline 1 1 ok true F3-03.clean.md
+episode twomodels F3-03 train baseline 2 1 ok true F3-03.clean.md no claude-sonnet-5
 cp "$SKILLOPT_STE_RUNS_DIR/mixed/episodes.jsonl" "$scratch/mixed.before"
 
 status=0
@@ -65,7 +70,7 @@ expect() {
   fi
 }
 
-for run in mixed high held; do
+for run in mixed high held twomodels; do
   bash "$SUMMARIZE" "$run" >/dev/null
 done
 
@@ -96,6 +101,10 @@ expect high "headroom stop true at a 0.90 train pass rate" \
   '.headroom.stop == true and .headroom.train_pass_rate == 0.9'
 expect held "no headroom block for a held-out run" \
   '.headroom == null'
+expect mixed "one model: mixed_models is false" \
+  --arg m "$MODEL" '.experiment.models == [$m] and .experiment.mixed_models == false'
+expect twomodels "two models: mixed_models is true and both models are listed" \
+  --arg m "$MODEL" '.experiment.mixed_models == true and .experiment.models == ([$m, "claude-sonnet-5"] | sort)'
 
 if cmp -s "$scratch/mixed.before" "$SKILLOPT_STE_RUNS_DIR/mixed/episodes.jsonl"; then
   printf 'PASS episodes.jsonl stays byte for byte unchanged\n'

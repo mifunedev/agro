@@ -20,11 +20,14 @@ Install SkillOpt at the pinned revision into optimize/.venv, then run the
 SkillOpt loop on .agro/skills/ste/SKILL.md with the training split only.
 Each candidate runs through run-batch.sh. The loop stops after 8 candidates or
 240 optimize attempts. The last step writes runs/optimize/frozen.json.
+The loop starts only when runs/baseline-train/summary.json exists and records
+only the experiment.json model.
 
 --dry-run  Run the whole loop with optimize/fake-claude for the episodes and
            for the proposer. Write all state under
-           $XDG_STATE_HOME/agro/skillopt-ste/optimize-dry-run/. Print each
-           real command line at the end.
+           $XDG_STATE_HOME/agro/skillopt-ste/optimize-dry-run/. Copy
+           runs/baseline-train there when SKILLOPT_STE_RUNS_DIR is unset.
+           Print each real command line at the end.
 --detach   Start the run in the new detached tmux session skillopt-ste. The
            session stays open after the run ends.
 USAGE
@@ -89,7 +92,7 @@ if [ "$dry_run" -eq 1 ]; then
   done < <(git -C "$EXP_DIR" for-each-ref --format='%(refname)' "$ref_ns/")
   mkdir -p "$base/bin" "$base/proposer-bin"
   runs_dir="${SKILLOPT_STE_RUNS_DIR:-$base/runs}"
-  if [ ! -f "$runs_dir/baseline-train/episodes.jsonl" ]; then
+  if [ -z "${SKILLOPT_STE_RUNS_DIR:-}" ] && [ -d "$EXP_DIR/runs/baseline-train" ]; then
     mkdir -p "$runs_dir"
     cp -R "$EXP_DIR/runs/baseline-train" "$runs_dir/baseline-train"
   fi

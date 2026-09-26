@@ -1,7 +1,7 @@
 model:
   backend: claude_chat
-  optimizer: claude-sonnet-5
-  target: claude-sonnet-5
+  optimizer: ""
+  target: ""
   optimizer_backend: claude_chat
   target_backend: claude_chat
   reasoning_effort: medium

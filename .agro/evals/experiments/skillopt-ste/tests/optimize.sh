@@ -10,6 +10,9 @@ readonly COMMON_ROOT="${COMMON_DIR%/.git}"
 readonly RUN="$EXP_DIR/optimize/run.sh"
 readonly SHIM="$EXP_DIR/optimize/proposer-claude"
 readonly SKILL_REL=.agro/skills/ste/SKILL.md
+readonly SONNET_BASELINE="$EXP_DIR/archive/claude-sonnet-5/runs/baseline-train"
+MODEL="$(jq -r '.model' "$EXP_DIR/experiment.json")"
+readonly MODEL
 readonly DOCS=F1-12,F2-07
 HEAD_SHA="$(git -C "$REPO_ROOT" rev-parse HEAD)"
 readonly HEAD_SHA
@@ -41,13 +44,26 @@ pass() {
 
 good="$scratch/good"
 mkdir -p "$good"
-for output in "$EXP_DIR"/runs/baseline-train/outputs/F1-12-baseline-*.md; do
+for output in "$SONNET_BASELINE"/outputs/F1-12-baseline-*.md; do
   if bash "$EXP_DIR/verify.sh" "$EXP_DIR/corpus/sources/F1-12.md" "$output" F1-12 | jq -e '.pass' >/dev/null; then
     cp "$output" "$good/F1-12.md"
     break
   fi
 done
 [ -f "$good/F1-12.md" ] || { fail "no passing baseline output for F1-12"; exit 1; }
+
+fixture_runs="$scratch/fixture-runs"
+baseline="$fixture_runs/baseline-train"
+mkdir -p "$fixture_runs"
+cp -R "$SONNET_BASELINE" "$baseline"
+rm -f "$baseline/summary.json"
+jq -c --arg m "$MODEL" '.model = $m' "$SONNET_BASELINE/episodes.jsonl" >"$baseline/episodes.jsonl"
+SKILLOPT_STE_RUNS_DIR="$fixture_runs" bash "$EXP_DIR/summarize.sh" baseline-train >/dev/null
+
+seed_baseline() {
+  mkdir -p "$scratch/$1/runs"
+  cp -R "$2" "$scratch/$1/runs/baseline-train"
+}
 
 run_optimize() {
   local label="$1" ns="$2"
@@ -63,6 +79,7 @@ optimize_lines() {
 }
 
 mkdir -p "$scratch/main"
+seed_baseline main "$baseline"
 if ! run_optimize main "$NS_MAIN"; then
   fail "main dry run exited non-zero: $(tail -n 20 "$scratch/main/out.txt")"
 fi
@@ -160,22 +177,53 @@ fi
 
 set +e
 printf 'x' | SKILLOPT_STE_PROPOSER_CLAUDE=/bin/false SKILLOPT_STE_PROPOSER_LOG="$scratch/shim.log" \
-  SKILLOPT_STE_PROPOSER_MODEL=claude-sonnet-5 bash "$SHIM" -p --output-format json --model claude-sonnet-5 --allowedTools Read >/dev/null 2>&1
+  SKILLOPT_STE_PROPOSER_MODEL="$MODEL" bash "$SHIM" -p --output-format json --model "$MODEL" --allowedTools Read >/dev/null 2>&1
 unknown_rc=$?
 printf 'x' | SKILLOPT_STE_PROPOSER_CLAUDE=/bin/false SKILLOPT_STE_PROPOSER_LOG="$scratch/shim.log" \
-  SKILLOPT_STE_PROPOSER_MODEL=claude-sonnet-5 bash "$SHIM" -p --output-format json --model claude-opus-5 >/dev/null 2>&1
+  SKILLOPT_STE_PROPOSER_MODEL="$MODEL" bash "$SHIM" -p --output-format json --model claude-opus-5 >/dev/null 2>&1
 model_rc=$?
+printf 'x' | SKILLOPT_STE_PROPOSER_CLAUDE=/bin/false SKILLOPT_STE_PROPOSER_LOG="$scratch/shim.log" \
+  SKILLOPT_STE_PROPOSER_MODEL="$MODEL" bash "$SHIM" -p --output-format json --model claude-sonnet-5 >"$scratch/sonnet.out" 2>&1
+sonnet_rc=$?
 set -e
 if [ "$unknown_rc" -eq 2 ] && [ "$model_rc" -eq 2 ] && [ ! -e "$scratch/shim.log" ]; then
   pass "the proposer shim refuses an unknown argument and an unpinned model before any claude call"
 else
   fail "shim refusal: unknown exit $unknown_rc, model exit $model_rc"
 fi
+if [ "$MODEL" != claude-sonnet-5 ] && [ "$sonnet_rc" -eq 2 ] && [ ! -e "$scratch/shim.log" ] \
+  && grep -q -F "model claude-sonnet-5 is not the pinned model $MODEL" "$scratch/sonnet.out"; then
+  pass "the proposer shim refuses claude-sonnet-5 under the $MODEL pin"
+else
+  fail "sonnet refusal: exit $sonnet_rc, $(cat "$scratch/sonnet.out")"
+fi
+
+for label in sonnet nobase; do
+  mkdir -p "$scratch/$label"
+done
+seed_baseline sonnet "$SONNET_BASELINE"
+set +e
+run_optimize sonnet "$NS_GUARD"
+sonnet_driver_rc=$?
+run_optimize nobase "$NS_GUARD"
+nobase_driver_rc=$?
+set -e
+if [ "$sonnet_driver_rc" -ne 0 ] && grep -q -F "experiment.json pins $MODEL; refusing this run" "$scratch/sonnet/out.txt" \
+  && [ ! -e "$scratch/sonnet/runs/optimize/candidates.jsonl" ]; then
+  pass "the driver refuses a baseline summary whose model is not $MODEL"
+else
+  fail "sonnet baseline: exit $sonnet_driver_rc, $(tail -n 5 "$scratch/sonnet/out.txt")"
+fi
+if [ "$nobase_driver_rc" -ne 0 ] && grep -q -F "baseline-train/summary.json is missing; run the $MODEL baseline" "$scratch/nobase/out.txt"; then
+  pass "the driver refuses to start without runs/baseline-train/summary.json"
+else
+  fail "missing baseline: exit $nobase_driver_rc, $(tail -n 5 "$scratch/nobase/out.txt")"
+fi
 
 guard="$scratch/guard"
 mkdir -p "$guard/runs/optimize-seed" "$guard/hooks"
-cp -R "$EXP_DIR/runs/baseline-train" "$guard/runs/baseline-train"
-head -n 1 "$EXP_DIR/runs/baseline-train/episodes.jsonl" >"$guard/line.json"
+cp -R "$baseline" "$guard/runs/baseline-train"
+head -n 1 "$baseline/episodes.jsonl" >"$guard/line.json"
 for _ in $(seq 1 238); do
   cat "$guard/line.json"
 done >"$guard/runs/optimize-seed/episodes.jsonl"

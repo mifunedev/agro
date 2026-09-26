@@ -10,7 +10,7 @@ from pathlib import Path
 OPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(OPT_DIR))
 
-from adapter import AgroSteAdapter, CandidateLog, Settings, SkillFrame, StopOptimization, SKILL_REL
+from adapter import AgroSteAdapter, CandidateLog, Settings, SkillFrame, StopOptimization, SKILL_REL, jsonl, require_model
 
 
 def git(repo: Path, *args: str) -> str:
@@ -64,8 +64,20 @@ def main() -> int:
     ).stdout
     if hashlib.sha256(original.encode("utf-8")).hexdigest() != experiment["pins"]["baseline_skill_md"]:
         raise SystemExit(f"driver: {SKILL_REL} at parent {parent} does not match pins.baseline_skill_md")
-    if not (runs_dir / "baseline-train" / "episodes.jsonl").exists():
-        raise SystemExit(f"driver: {runs_dir / 'baseline-train'} holds no episodes.jsonl")
+    model = experiment["model"]
+    if os.environ.get("SKILLOPT_STE_PROPOSER_MODEL") != model:
+        raise SystemExit(f"driver: SKILLOPT_STE_PROPOSER_MODEL is not the experiment.json model {model}")
+    baseline_dir = runs_dir / "baseline-train"
+    baseline_summary = baseline_dir / "summary.json"
+    if not baseline_summary.exists():
+        raise SystemExit(
+            f"driver: {baseline_summary} is missing; run the {model} baseline with "
+            "run-batch.sh --run-id baseline-train, then summarize.sh baseline-train"
+        )
+    summary = json.loads(baseline_summary.read_text(encoding="utf-8"))
+    if summary.get("lines", {}).get("episodes") != len(jsonl(baseline_dir / "episodes.jsonl")):
+        raise SystemExit(f"driver: {baseline_summary} is stale; run summarize.sh baseline-train")
+    require_model(summary, model, baseline_summary)
     run_file.parent.mkdir(parents=True, exist_ok=True)
     if not run_file.exists():
         run_file.write_text(json.dumps({"parent": parent, "docs": docs, "dry_run": dry_run}, indent=2) + "\n", encoding="utf-8")
@@ -101,7 +113,7 @@ def main() -> int:
         "skillopt-train", "--config", str(OPT_DIR / "skillopt.yaml"), "--cfg-options",
         f"env.out_root={out_root}", f"env.skill_init={skill_init}", f"env.split_dir={split_dir}",
         f"train.batch_size={len(docs)}", f"train.num_epochs={settings.max_candidates}",
-        f"model.optimizer={os.environ['SKILLOPT_STE_PROPOSER_MODEL']}",
+        f"model.optimizer={model}", f"model.target={model}",
     ]
     cfg = skillopt_train.load_config(skillopt_train.parse_args())
     adapter = AgroSteAdapter(settings, frame, str(split_dir), cfg)

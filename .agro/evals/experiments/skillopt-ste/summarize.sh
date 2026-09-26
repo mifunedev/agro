@@ -17,7 +17,8 @@ runs/<run-id>/summary.json, and print it. Only the latest attempt of each
 stored output with the current verify.sh; episodes.jsonl stays unchanged.
 pass_rate is passes / (ok + timeout);
 infra_failure, interrupted, and pin_mismatch attempts count only in
-infra_failure_rate.
+infra_failure_rate. experiment.mixed_models is true when the episode lines
+record more than one model.
 
 Exit 0 when the summary was written. Exit 2 on bad arguments or a missing
 episodes.jsonl.
@@ -125,6 +126,7 @@ jq -s \
       },
       experiment: {
         models: ($lines | distinct(.model)),
+        mixed_models: (($lines | distinct(.model) | length) > 1),
         efforts: ($lines | distinct(.effort)),
         harness_versions: ($lines | distinct(.harness_version)),
         repo_revisions: ($lines | distinct(.repo_revision)),

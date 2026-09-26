@@ -8,6 +8,8 @@ One condition blocks the run today, but not the integration. The episodes and th
 
 This file records research only. No step of this assessment called a model API.
 
+Amendment of 2026-09-26: before optimization, the operator replaced `claude-sonnet-5` with `claude-opus-5-5` for the episodes and for the proposer.
+
 ## Sources (pinned)
 
 Each claim below names a source file and a commit. `SkillOpt@79124b37` means the file at that SkillOpt commit. `GEPA@d771eb21` means the file at that GEPA commit. A claim marked **unverified** has no source read.
@@ -142,7 +144,7 @@ Configuration in `optimize/skillopt.yaml`:
 | `optimizer.use_skill_aware_reflection` | `false` | The stage adds a protected region |
 | `optimizer.skill_update_mode` | `patch` | The default bounded edit mode |
 | `model.optimizer_backend` | `claude_chat` | One provider for the whole experiment |
-| `model.optimizer` | `claude-sonnet-5` | The pinned model of `experiment.json` |
+| `model.optimizer` | `claude-opus-5-5` | The pinned model of `experiment.json` |
 
 Data flow for the loader:
 
@@ -215,10 +217,10 @@ Proposer calls for each step: one reflection call for each minibatch of 8 rows, 
 ## Open questions
 
 1. **Baseline gaps.** Does the operator complete the 10 `infra_failure` baseline attempts from the 30-attempt retry budget before US-006?
-2. **Proposer provider.** Does the operator accept `claude_chat` with `claude-sonnet-5` on the same account? The alternatives are `codex_exec`, `copilot_chat`, `openai_chat`, or a local `openai_compatible` endpoint. Each alternative adds a second provider, and the plan excludes a second provider.
+2. **Proposer provider.** Does the operator accept `claude_chat` with `claude-opus-5-5` on the same account? The alternatives are `codex_exec`, `copilot_chat`, `openai_chat`, or a local `openai_compatible` endpoint. Each alternative adds a second provider, and the plan excludes a second provider.
 3. **Proposer isolation.** `claude_chat` runs `claude -p` with `--setting-sources user,project` by default (`skillopt/model/claude_backend.py`, lines 19 and 254 to 258). Set `CLAUDE_SETTING_SOURCES=project` for the proposer. Status of the effect in a temporary directory: **unverified**.
 4. **Row identity.** The rows use `<document-id>-r<repeat>`, not the item `id`. `attach_reference_context` matches rows to items by `id` (`skillopt/envs/base.py`). The fallback is one row for each document with `hard` equal to the pass fraction. Which form does the advisor accept?
 5. **Gate noise.** One repeat on 30 documents gives a noisy gate. Does the advisor accept a strict gain on a single repeat?
 6. **Gate metric.** Does the gate use `hard`, `soft`, or `mixed`?
 7. **Success feedback.** Does the loop set `gradient.failure_only: true`? That value cuts proposer calls. That value also removes the evidence of each passing rewrite.
-8. **Model output format.** SkillOpt defaults the Claude proposer to `claude-sonnet-4-6` (`skillopt/model/claude_backend.py`, line 22). Status of the JSON patch parse with `claude-sonnet-5`: **unverified**.
+8. **Model output format.** SkillOpt defaults the Claude proposer to `claude-sonnet-4-6` (`skillopt/model/claude_backend.py`, line 22). Status of the JSON patch parse with `claude-opus-5-5`: **unverified**.

@@ -67,6 +67,13 @@ class SkillFrame:
         return self.front + self.lead + body.strip() + "\n"
 
 
+def require_model(summary: dict, model: str, where: Path) -> None:
+    recorded = summary.get("experiment", {})
+    models = recorded.get("models")
+    if recorded.get("mixed_models") or models != [model]:
+        raise SystemExit(f"driver: {where} records models {models}; experiment.json pins {model}; refusing this run")
+
+
 def jsonl(path: Path) -> list[dict]:
     if not path.exists():
         return []
@@ -207,12 +214,15 @@ class AgroSteAdapter(EnvAdapter):
         if summary_path.exists():
             current = json.loads(summary_path.read_text(encoding="utf-8"))
             if current.get("lines", {}).get("episodes") == lines:
+                require_model(current, self.s.experiment["model"], summary_path)
                 return current
         subprocess.run(
             ["bash", str(self.s.exp_dir / "summarize.sh"), run_id],
             env=self.s.episode_env, check=True, stdout=subprocess.DEVNULL,
         )
-        return json.loads(summary_path.read_text(encoding="utf-8"))
+        current = json.loads(summary_path.read_text(encoding="utf-8"))
+        require_model(current, self.s.experiment["model"], summary_path)
+        return current
 
     def verify(self, doc_id: str, output: Path) -> dict:
         key = str(output)

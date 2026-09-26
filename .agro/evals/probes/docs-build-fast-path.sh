@@ -38,6 +38,7 @@ legacy_docs_hits="$(git -C "$ROOT" grep -nI -F '.agro/docs' -- \
   ':!docs/rfcs/rfc-trace-ledger.md' \
   ':!.agro/tasks/**' \
   ':!.agro/evals/experiments/*/corpus/**' \
+  ':!.agro/evals/experiments/*/archive/**' \
   ':!.agro/knowledge/raw/**' \
   ':!.agro/evals/RESULTS.md' \
   ':!.agro/evals/probes/docs-build-fast-path.sh')"

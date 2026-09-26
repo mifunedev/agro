@@ -10,12 +10,12 @@
   "provider": "anthropic",
   "harness": "claude-code",
   "harness_version": "2.1.280",
-  "model": "claude-sonnet-5",
+  "model": "claude-opus-5-5",
   "effort": "medium",
   "claude_args": [
     "-p",
     "--model",
-    "claude-sonnet-5",
+    "claude-opus-5-5",
     "--effort",
     "medium",
     "--setting-sources",
@@ -75,5 +75,11 @@
     "ste_tree": "5330ef615d982222285145e7ca7d9f8c48c49d619a4700386e53c531e15c0893",
     "corpus_manifest": "1b2a556227134d4a5c12e8d5b806eb0f86e91a5c41fcf0b528f3441e85ee670f",
     "verify_sh": "a2ce8a849282c3947b01e82f19873fa643eb553cd54cf9e8f8e17e8a9441b5a5"
-  }
+  },
+  "amendments": [
+    {
+      "date": "2026-09-26",
+      "change": "model claude-sonnet-5 -> claude-opus-5-5 before optimization; Sonnet runs archived under archive/claude-sonnet-5/ and excluded from the budget"
+    }
+  ]
 }
