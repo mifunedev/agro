@@ -170,15 +170,16 @@
         "The proposer process has no tools and runs from an empty directory, per its recorded command line."
       ],
       "priority": 8,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: optimize/run.sh --proposer-smoke, exit 0; one proposer call on train rows 1181, 1086, 1173; SkillOpt parsed and applied 4 edits. 2 executed: runs/proposer-smoke/result.json records cost $0.233 and proposer-usage.jsonl records the call. 3 executed: the recorded command line has --tools '' and cwd_empty true.",
       "dependsOn": [
         "US-006",
         "US-007"
       ],
       "files": [
         ".agro/evals/experiments/prd-efficiency/runs/proposer-smoke/"
-      ]
+      ],
+      "commit": "fb287fdd"
     },
     {
       "id": "US-009",
