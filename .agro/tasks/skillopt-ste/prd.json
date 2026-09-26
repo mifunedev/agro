@@ -21,15 +21,16 @@
         "The surface table in `.agro/evals/README.md` lists `experiments/`."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted on integrated task branch at 0c0c5139 (corpus 027121dd + probe exclusions 0c0c5139). C1 executed: ls corpus/sources | wc -l = 60; jq group_by family = F1..F4 x15, exit 0. C2 executed: jq field check exit 0; sha256sum -c over manifest digests exit 0. C3 executed: train length==30 jq -e exit 0. C4 executed: heldout length==30 jq -e exit 0. C5 executed: one split per family jq -e exit 0 (F1,F2 train; F3,F4 heldout). C6 executed: ste-check.sh exits 1 on 60/60 sources. C7 executed: no origin ref under .agro/skills/ste/, jq -e exit 0. C8 executed: exactly 2 single-gap docs per family, jq -e exit 0; token-level count of each removed value in its source = 0 for all 8. C9 executed: tests/select-reproducible.sh PASS exit 0. C10 executed: .agro/evals/README.md has 1 experiments/ row; ste-check.sh exit 0. Probe suite: agro-config-surfaces, audit-stale-references, docs-build-fast-path exit 0 after corpus/** exclusion; worker fault injection in a scratch clone made each exit 1 on a non-corpus file. next-dev-prod and skills-vendored exit 1 identically on the main checkout (environmental). Deviations: added 80-1500 word eligibility; seeded-gap rule skips table-cell numbers, post-modal numbers, and values that occur elsewhere in the document. Hook note: the safety hook failed to parse two worker commands; the worker used Edit / a simpler read-only command, not a bypass of a denied action.",
       "dependsOn": [],
       "files": [
         ".agro/evals/experiments/skillopt-ste/corpus/",
         ".agro/evals/experiments/skillopt-ste/select.sh",
         ".agro/evals/experiments/skillopt-ste/tests/select-reproducible.sh",
         ".agro/evals/README.md"
-      ]
+      ],
+      "commit": "0c0c5139"
     },
     {
       "id": "US-002",
