@@ -48,8 +48,14 @@
     "otherwise": "screen the PR-body and commit conventions of /git next"
   },
   "pins": {
-    "verify_prd_sh": "8404e7f778537a28c11ea63d2b87c06f3035b94745a29c09fd5706e4d453743f",
+    "verify_prd_sh": "6e2a2a0e648f22f4d0694234f125ed25c6af76f5973e4228ab12d52880485f79",
     "corpus_manifest": "ba43430b715f625232dd080ec59e4b25224897766b8f94e02efb968132ef0e56",
     "prd_skill_tree": "915108d3c0fc3d0319e3b39072e49da6f84965ae"
-  }
+  },
+  "amendments": [
+    {
+      "date": "2026-09-26",
+      "change": "verifier fix A after episode 1181: the checklist rule declares a path new only when the path opens the checklist line and the next word is exists, holds, records, or contains. Stored outputs are rescored with summarize.sh --rescore."
+    }
+  ]
 }

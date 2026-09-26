@@ -28,9 +28,9 @@ owner (for example mifunedev/agro-web). g1 and g3 skip exempt lines.
 Declared new: a repository path that
   - is on a line with the word new, add, create, introduce, or scaffold
     (any inflection), or
-  - is on a checklist line ("- [ ]") with the word exists, holds, records,
-    or contains, or
-  - has a basename that a declaring line (either rule above) names as the
+  - opens a checklist line ("- [ ] `<path>` exists", or holds, records,
+    contains), or
+  - has a basename that a line with one of the words above names as the
     first word of an inline code span, or
   - is under "## Storage" or in the "## Test Plan (TDD)" section, or
   - is under a declared-new directory that does not exist at <revision>, or
@@ -147,7 +147,7 @@ my @template = ("User Stories", "Summary", "Key Integration Points",
 my %exempt_section = map { $_ => 1 } ("Out of Scope", "Open Questions", "Lessons");
 my %new_section = map { $_ => 1 } ("Storage", "Test Plan (TDD)");
 my $new_re = qr/\b(?:new|newly|adds?|added|adding|creates?|created|creating|introduces?|introduced|introducing|scaffolds?|scaffolded|scaffolding)\b/i;
-my $check_new_re = qr/\b(?:exists?|holds?|records?|contains?)\b/i;
+my $check_new_re = qr/^\s*[-*]\s+\[[ xX]\]\s+`([^`\s]+)`\s+(?:exists?|holds?|records?|contains?)\b/i;
 my $untracked_re = qr/\b(?:worktrees?|gitignored|ignored|untracked|not tracked|does not track)\b/i;
 my $absent_re = qr/(?:does not exist|do not exist|no longer exists?|\babsent\b|\bmissing\b)/i;
 my $verb_re = qr/(?:^|[^A-Za-z0-9\/._-])agro\s+([a-z][a-z-]*(?:\|[a-z][a-z-]*)*)/;
@@ -268,7 +268,8 @@ for my $line (@lines) {
     push @headings, $section;
     next;
   }
-  my $is_new_line = ($line =~ $new_re || ($line =~ /^\s*[-*]\s+\[[ xX]\]/ && $line =~ $check_new_re)) ? 1 : 0;
+  my $is_new_line = $line =~ $new_re ? 1 : 0;
+  my $check_subject = $line =~ $check_new_re ? $1 : "";
   my $is_absent_line = $line =~ $absent_re ? 1 : 0;
   if ($is_new_line) {
     while ($line =~ /$verb_re/g) { $verb_new{$_} = 1 for split /\|/, $1; }
@@ -285,7 +286,7 @@ for my $line (@lines) {
     $new_base{$span} = 1 if $is_new_line && $span !~ m{/};
     my $p = normalize($span);
     next if $p eq "";
-    $new_decl{$p} = 1 if $is_new_line || $new_section{$section};
+    $new_decl{$p} = 1 if $is_new_line || $new_section{$section} || $span eq $check_subject;
     $absent_decl{$p} = 1 if $is_absent_line;
     $untracked_decl{$p} = 1 if $line =~ $untracked_re;
     if ($exempt) { $exempt_count++; next; }

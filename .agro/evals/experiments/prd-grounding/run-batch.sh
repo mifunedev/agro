@@ -111,17 +111,23 @@ done_case() {
 }
 
 printf 'run-batch: run %s, %s cases, jobs %s, started %s\n' "$run_id" "${#cases[@]}" "$jobs" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-running=0
+pids=()
 stopped=0
 for c in "${cases[@]}"; do
   if done_case "$c"; then
     printf 'run-batch: skip %s (recorded)\n' "$c"
     continue
   fi
-  while [ "$running" -ge "$jobs" ]; do
-    wait -n || true
-    running=$((running - 1))
+  while :; do
+    alive=()
+    for pid in "${pids[@]}"; do
+      kill -0 "$pid" 2>/dev/null && alive+=("$pid")
+    done
+    pids=("${alive[@]}")
+    [ "${#pids[@]}" -lt "$jobs" ] && break
+    sleep 5
   done
+  running="${#pids[@]}"
   projected="$(jq -n --argjson s "$(spent)" --argjson r "$running" --argjson p "$per_episode" '$s + ($r + 1) * $p')"
   if jq -e -n --argjson x "$projected" --argjson m "$max_total" '$x > $m' >/dev/null; then
     printf 'run-batch: budget guard: projected %s USD exceeds %s USD; no new episode starts\n' "$projected" "$max_total"
@@ -130,7 +136,9 @@ for c in "${cases[@]}"; do
   fi
   printf 'run-batch: start %s (spent %s USD)\n' "$c" "$(spent)"
   bash "$RUN_EPISODE" "$c" --run-id "$run_id" &
-  running=$((running + 1))
+  pids+=("$!")
 done
-wait || true
+for pid in "${pids[@]}"; do
+  wait "$pid" || true
+done
 printf 'run-batch: finished %s; spent %s USD; budget stop %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(spent)" "$stopped"

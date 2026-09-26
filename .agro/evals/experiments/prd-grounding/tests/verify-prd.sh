@@ -81,6 +81,7 @@ cases=(
   "transplanted fault: a missing script from supervisor-skill|$work/g3-missing-script.md|de2c33ca|$(only g3_commands) and (.details.g3.missing_scripts | map(.path)) == [\".agro/evals/run.sh\"]"
   "mutated fault: Lessons is not the last section|$work/g4-lessons-not-last.md|de2c33ca|$(only g4_structure) and .details.g4.lessons_last == false and .details.g4.order_ok == false"
   "a script path resolves through the .claude/skills symlink|$work/worker-brief-stash-bypass.md|9d4f7cc8|$ALL_TRUE and .details.g3.missing_scripts == []"
+  "fix A: a checklist line that says holds after a local path does not declare the path new (live 1181)|$EXP_DIR/runs/screen/outputs/1181.md|7219977d|$ALL_TRUE and (.details.g1.ignored_local == [\".devcontainer/.env\"])"
   "a worktree path is exempt from g2|$work/evidence-in-pr-body.md|80b9342a|.g1_paths and .g2_trackable and .g3_commands and (.g4_structure | not)"
 )
 

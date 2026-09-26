@@ -1,0 +1,3 @@
+run-batch: run screen, 1 cases, jobs 3, started 2026-09-26T07:07:05Z
+run-batch: start 1181 (spent 0 USD)
+screen--1181--baseline--r1--a1 ok pass=false cost=0.8415472 elapsed_s=96.492
