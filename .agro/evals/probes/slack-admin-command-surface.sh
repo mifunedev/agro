@@ -29,6 +29,18 @@ reject_regex() {
 [ -f "$DOC" ] || fail "missing Slack integration doc"
 [ -f "$MANIFEST" ] || fail "missing Slack manifest"
 
+manifest_copy=$(mktemp)
+trap 'rm -f "$manifest_copy"' EXIT
+awk '
+  /^## 2\. Create the Slack App$/ { section = 1; next }
+  section && /^## / { if (copying) exit 1; section = 0 }
+  section && /^```yaml$/ { if (count++) exit 1; copying = 1; next }
+  copying && /^```$/ { copying = 0; closed = 1; next }
+  copying { print }
+  END { if (count != 1 || !closed || copying) exit 1 }
+' "$DOC" > "$manifest_copy" || fail "Slack setup must contain one complete YAML manifest fence"
+cmp -s "$MANIFEST" "$manifest_copy" || fail "Slack setup YAML fence differs byte-for-byte from canonical Slack manifest"
+
 need_literal "$DOC" "Pi command surface" "Inside the Pi session, the bridge exposes **one** Pi slash command"
 need_literal "$DOC" "Pi /msg-bridge command" '`/msg-bridge status` — connection state plus trusted-user/channel counts.'
 need_literal "$DOC" "Slack admin command boundary" "manifest-backed Slack admin commands"
