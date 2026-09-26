@@ -469,6 +469,8 @@ no workspace: run \`${bin} workspace create\` first. It installs into
 \`~/.local\` and records the install as \`hostTools\` in that same file. On the host,
 \`uninstall\` removes only what \`install\` recorded, from the prefix in that record.
 Without a record it refuses, and \`--force\` overrides.
+\`uninstall\` refuses each root-level tool, marked \`(root)\` in \`${bin} tool list\`,
+with and without \`--force\`. The refusal links the manual removal steps.
 
 Flags:
   --yes            Accept a large download without prompting

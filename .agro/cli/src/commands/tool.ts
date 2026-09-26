@@ -38,6 +38,8 @@ import {
 import { configuredContainerName, DEFAULT_CONTAINER_NAME } from "./lifecycle.js";
 
 
+const ROOT_TOOL_REMOVAL_DOCS = `${sourceDocsUrl("docs/installation.md")}#remove-a-root-level-tool`;
+
 export interface ToolIO {
   stdout: (s: string) => void;
   stderr: (s: string) => void;
@@ -696,6 +698,15 @@ export async function runToolUninstall(
 
   const entry = findTool(name);
   if (!entry) return unknownTool(name, io, opts.bin);
+
+  if (entry.hostInstallUser === "root") {
+    io.stderr(
+      `${opts.bin} tool: ${entry.id} cannot be removed by this command.\n` +
+        `${opts.bin} does not remove system packages that it installed as root.\n` +
+        `Remove ${entry.id} by hand: ${ROOT_TOOL_REMOVAL_DOCS}\n`,
+    );
+    return 1;
+  }
 
   if (entry.uninstallArgv === null) {
     io.stderr(`${opts.bin} tool: ${entry.id} cannot be removed by this command.\n\n`);
