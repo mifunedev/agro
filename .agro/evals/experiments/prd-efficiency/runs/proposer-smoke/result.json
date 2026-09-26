@@ -1,0 +1,26 @@
+{
+  "dry_run": false,
+  "model": "claude-opus-5-5",
+  "effort": "medium",
+  "rows": [
+    "1181",
+    "1086",
+    "1173"
+  ],
+  "exit": 0,
+  "calls": 1,
+  "cost_usd": 0.233452,
+  "command_line": "cd <empty mktemp dir> && env CLAUDE_SETTING_SOURCES=project timeout -k 10 280 /home/sandbox/.local/bin/claude -p --output-format json --model claude-opus-5-5 --tools '' --strict-mcp-config --setting-sources project --disable-slash-commands --no-session-persistence --permission-mode dontAsk --effort medium --append-system-prompt-file '<private mktemp dir>/system_prompt.txt' < <prompt on stdin>",
+  "cwd_empty": true,
+  "parse": {
+    "ok": true,
+    "edits": 4,
+    "statuses": [
+      "applied_insert_after",
+      "applied_replace",
+      "applied_insert_after",
+      "applied_replace"
+    ],
+    "reasoning": "Cost is the dominant failure in the whole batch. The spend comes from three places: unbounded exploration, verbose plans, and a multi-turn post-write fix loop. Edit 1 adds an explicit budget for exploration and output that scales with the size of the issue. Edit 2 replaces the verify steps with one combined read-back and check command, plus one batched fix pass. Edit 3 addresses the g2 failure by forbidding backticked paths that git ignores, such as env files and local state; the operator can name these in prose instead. Edit 4 stops the episode from reading tracker.md before approval unless s"
+  }
+}
