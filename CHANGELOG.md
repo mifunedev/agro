@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Removed
+
+- Remove the project Pi recap package so new sessions no longer load `/recap` by default ([#1179](https://github.com/mifunedev/agro/issues/1179)).
+
 ### Changed
 
 - Use a YAML Slack app manifest for Pi setup and provide a copyable version in the Slack docs while preserving the app's permissions, events, and admin commands ([#1177](https://github.com/mifunedev/agro/issues/1177)).

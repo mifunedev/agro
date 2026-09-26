@@ -181,7 +181,6 @@ Pi loads project-local packages from `.pi/settings.json`. The defaults include:
 - `@tintinweb/pi-tasks`
 - `@narumitw/pi-goal`
 - `@narumitw/pi-codex-usage@0.6.2` for `/codex-status` plus fixed statusline usage timers
-- `@tifan/pi-recap` for `/recap` plus automatic idle/resume session summaries
 - `@trevonistrevon/pi-loop` for Monitor/Loop tools
 - `@guwidoe/pi-prompt-suggester` for next-prompt suggestions
 

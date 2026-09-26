@@ -7,6 +7,7 @@ interface PiSettings {
 }
 
 const RETIRED_PACKAGE_NAME = "pi-dynamic-workflows";
+const RETIRED_PACKAGE_NAMES = [RETIRED_PACKAGE_NAME, "pi-recap"];
 
 function readPiSettings(): PiSettings {
   return JSON.parse(readFileSync(".pi/settings.json", "utf8")) as PiSettings;
@@ -28,7 +29,6 @@ describe("project Pi settings", () => {
       "npm:@tintinweb/pi-tasks@0.7.0",
       "npm:@narumitw/pi-goal@0.4.2",
       "npm:@narumitw/pi-codex-usage@0.6.2",
-      "npm:@tifan/pi-recap@0.4.2",
       "npm:@trevonistrevon/pi-loop@0.5.5",
       "npm:@guwidoe/pi-prompt-suggester@0.3.10",
       "npm:@ff-labs/pi-fff@0.9.5",
@@ -49,13 +49,18 @@ describe("project Pi settings", () => {
       RETIRED_PACKAGE_NAME,
     );
     expect(packageIdentity("npm:Pi-Dynamic-Workflows@1.0.1")).toBe(RETIRED_PACKAGE_NAME);
+    expect(packageIdentity("npm:@tintinweb/pi-tasks@0.7.0")).toBe("pi-tasks");
+    expect(packageIdentity("git:github.com/tifandotme/pi-recap@v1")).toBe("pi-recap");
     expect(packageIdentity("npm:@tintinweb/pi-subagents@0.12.0")).toBe("pi-subagents");
     expect(packageIdentity("npm:cc-safety-net@1.0.6")).toBe("cc-safety-net");
   });
 
-  it("excludes the retired dynamic workflow package from every source", () => {
+  it("excludes retired packages regardless of source or version", () => {
     const settings = readPiSettings();
+    const identities = (settings.packages ?? []).map(packageIdentity);
 
-    expect((settings.packages ?? []).map(packageIdentity)).not.toContain(RETIRED_PACKAGE_NAME);
+    for (const retired of RETIRED_PACKAGE_NAMES) {
+      expect(identities).not.toContain(retired);
+    }
   });
 });
