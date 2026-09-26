@@ -161,7 +161,7 @@ These values go into `experiment.json` in US-003. The operator approves them wit
 |---|---|
 | Target skill | `.agro/skills/ste/SKILL.md`; references and checker frozen |
 | Provider | Anthropic, through Claude Code |
-| Model | `claude-sonnet-5` |
+| Model | `claude-opus-5-5`, for episodes and for the SkillOpt proposer |
 | Effort | `medium` |
 | Harness | Claude Code 2.1.280, headless `claude -p` |
 | Episode prompt | `/ste Rewrite <path> in place. Follow rewrite mode.` |
@@ -173,6 +173,11 @@ These values go into `experiment.json` in US-003. The operator approves them wit
 | Document selection | For each family, sort the eligible documents by `sha256` of the origin identifier, then take the first 15 that fail `ste-check.sh` |
 | Budget | 540 attempts: 90 baseline training, 240 optimization, 180 held-out, and 30 retries |
 | Success threshold | The candidate held-out pass rate is at least 0.15 above the baseline held-out pass rate |
+
+Amendments before optimization:
+
+- 2026-09-26: the operator selected `claude-opus-5-5` in place of `claude-sonnet-5`. The Sonnet runs move to `archive/claude-sonnet-5/` and do not count toward the budget. US-005 runs again on Opus.
+- 2026-09-26: `verify.sh` fixes A to F remove six false-positive classes. Each fix is render-equivalent. `experiment.json` pins the fixed digest.
 
 Verdict rule for US-008:
 
