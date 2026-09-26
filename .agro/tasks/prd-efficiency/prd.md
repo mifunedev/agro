@@ -241,4 +241,8 @@ None. The operator decided each question on 2026-09-26. Architectural decision 1
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. **Efficiency has headroom where pass rate had none.** Evidence: the held-out cost ratio is 0.529, and each case is between 0.43 and 0.62. The optimizer also shortened the plans, and the substance guard stopped acceptance. Outcome: issue #1211 takes only the turn-reduction edits.
+2. **The lexical rules of `verify-prd.sh` fail correct plans.** Evidence: case 1181 fails `g2_trackable` on a line with "new file", and case 1054 fails `g1_paths` on a negative sentence. The candidate learned rules that avoid both. Outcome: issue #1210.
+3. **The account spend limit burned the remaining slots of a batch.** Evidence: 21 episodes exited 1 with the limit message. The runner started each remaining slot. Outcome: fixed in this PR. The runner records `usage_limit`, and the batch stops.
+4. **The summary verdict label differed from the plan.** Evidence: `summarize.sh` wrote `no-success`, and the plan says `no-improvement`. Outcome: fixed in this PR.
+5. **An advisor change to `experiment.json` broke a test.** Evidence: the noise cap moved from 15 to 18, and `tests/run-episode.sh` asserted 15. Outcome: fixed in this PR. The test reads the cap from `experiment.json`.
