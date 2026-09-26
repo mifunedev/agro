@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+real="${SKILLOPT_STE_PROPOSER_CLAUDE:?proposer-claude: SKILLOPT_STE_PROPOSER_CLAUDE is not set}"
+exec_bin="${SKILLOPT_STE_PROPOSER_EXEC:-$real}"
+usage_log="${SKILLOPT_STE_PROPOSER_LOG:?proposer-claude: SKILLOPT_STE_PROPOSER_LOG is not set}"
+pinned_model="${SKILLOPT_STE_PROPOSER_MODEL:?proposer-claude: SKILLOPT_STE_PROPOSER_MODEL is not set}"
+dry_log="${SKILLOPT_STE_DRY_LOG:-}"
+timeout_s="${SKILLOPT_STE_PROPOSER_TIMEOUT_S:-280}"
+
+refuse() {
+  printf 'proposer-claude: refused: %s\n' "$1" >&2
+  exit 2
+}
+
+print_mode=0
+output_format=""
+model=""
+effort=""
+system_file=""
+schema=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --version) exec "$real" --version ;;
+    -p|--print) print_mode=1; shift ;;
+    --output-format|--model|--effort|--append-system-prompt-file|--schema|--json-schema|--permission-mode|--add-dir|--setting-sources)
+      [ "$#" -ge 2 ] || refuse "$1 needs a value"
+      case "$1" in
+        --output-format) output_format="$2" ;;
+        --model) model="$2" ;;
+        --effort) effort="$2" ;;
+        --append-system-prompt-file) system_file="$2" ;;
+        --schema|--json-schema) schema="$2" ;;
+      esac
+      shift 2 ;;
+    *) refuse "unknown argument $1" ;;
+  esac
+done
+[ "$print_mode" -eq 1 ] || refuse "only print mode is allowed"
+[ "$output_format" = json ] || refuse "only --output-format json is allowed"
+[ "$model" = "$pinned_model" ] || refuse "model $model is not the pinned model $pinned_model"
+
+private="$(mktemp -d)"
+empty_cwd="$(mktemp -d)"
+trap 'rm -rf "$private" "$empty_cwd"' EXIT
+
+args=(-p --output-format json --model "$model" --tools "" --strict-mcp-config --setting-sources project
+  --disable-slash-commands --no-session-persistence --permission-mode dontAsk)
+if [ -n "$effort" ]; then
+  args+=(--effort "$effort")
+fi
+if [ -n "$system_file" ]; then
+  [ -f "$system_file" ] || refuse "system prompt file $system_file is missing"
+  cp "$system_file" "$private/system_prompt.txt"
+  args+=(--append-system-prompt-file "$private/system_prompt.txt")
+fi
+if [ -n "$schema" ]; then
+  args+=(--json-schema "$schema")
+fi
+
+if [ -n "$dry_log" ]; then
+  shown=""
+  for arg in "$real" "${args[@]}"; do
+    [ "$arg" = "$private/system_prompt.txt" ] && arg='<private mktemp dir>/system_prompt.txt'
+    if [[ "$arg" =~ ^[A-Za-z0-9_./:=,@+-]+$ ]]; then
+      shown+="$arg "
+    elif [[ "$arg" != *"'"* ]]; then
+      shown+="'$arg' "
+    else
+      printf -v quoted '%q' "$arg"
+      shown+="$quoted "
+    fi
+  done
+  printf 'proposer: cd <empty mktemp dir> && env CLAUDE_SETTING_SOURCES=project timeout -k 10 %s %s< <prompt on stdin>\n' "$timeout_s" "$shown" >>"$dry_log"
+fi
+
+(
+  cd "$empty_cwd" || exit 1
+  CLAUDE_SETTING_SOURCES=project exec timeout -k 10 "$timeout_s" "$exec_bin" "${args[@]}"
+) >"$private/out.json"
+rc=$?
+
+cost="$(jq -s '[.[] | objects | select(.type == "result") | (.total_cost_usd // 0)] | add // 0' "$private/out.json" 2>/dev/null || printf '0')"
+jq -cn --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --argjson rc "$rc" --argjson cost "${cost:-0}" \
+  '{at: $at, exit: $rc, total_cost_usd: $cost}' >>"$usage_log"
+cat "$private/out.json"
+exit "$rc"
