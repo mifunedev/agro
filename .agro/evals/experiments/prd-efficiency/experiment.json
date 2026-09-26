@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "experiment": "prd-efficiency",
   "issue": 1197,
-  "kind": "efficiency-optimization",
+  "kind": "efficiency-experiment",
   "target_skill": ".agro/skills/prd/SKILL.md",
   "skill_path": ".agro/skills/prd",
   "base_revision": "e63364d37db47d85044f2c44069a188fc72eac51",
@@ -62,7 +62,63 @@
       "retries": {
         "max_usd": 20
       }
-    }
+    },
+    "max_candidates": 6,
+    "optimize_attempts": 140
   },
-  "pins": {}
+  "pins": {
+    "verify_prd_sh": "2724c466131215993dd45fcde1e8a6f347f1410968cd01ec752c757cb5addddd",
+    "make_episode_repo_sh": "de7fe7ae29168b059f2ffb81cdb1fe0211be3f984cac50d37018087784024910",
+    "no_egress_sh": "453ca798fefa162bfa8e4425a5a4e20f65d49dc657a6cf0ef0cd44b966e9bc3c",
+    "lib_episode_sh": "eb327daf73a67b27ee73db87546374541cb9fbb273f4cbe9e6b9eeb2f45318e7",
+    "prd_skill_tree": "915108d3c0fc3d0319e3b39072e49da6f84965ae",
+    "baseline_skill_md": "d6a22ebe2099addf9eb583cc94952d3802c0bf2e5009d93d2cc7d3329bc0c2d0",
+    "corpus_manifest": "397a55df5d35088233a60d0602c9cc8d7d7b444bbd6028b77545918293044940"
+  },
+  "d1_frozen_at": "2026-09-26",
+  "d1_approved": "operator, 2026-09-26",
+  "splits": {
+    "manifest": "corpus/manifest.json",
+    "train": 20,
+    "heldout": 12,
+    "rule": "stratified by area; no #1188 screen case in held-out; .agro/hooks train-only (plan decision 11)"
+  },
+  "repeats": {
+    "noise": 3,
+    "baseline_train": 2,
+    "candidate_train": 1,
+    "heldout": 3
+  },
+  "noise_screen": {
+    "run": "runs/noise",
+    "sigma_w": 0.067857,
+    "rule_repeats": 1,
+    "chosen_heldout_repeats": 3,
+    "reason": "the pass-rate guard needs 36 attempts per arm: one extra failure is 0.028, inside the 0.05 tolerance"
+  },
+  "efficiency_score": {
+    "hard": "1 when the episode passes verify-prd.sh and costs 0.80 or less of the baseline-train median cost of the case",
+    "threshold": 0.80
+  },
+  "efficiency_threshold": 0.80,
+  "decision": {
+    "metric": "per-case ratio r_i = mean candidate cost / mean baseline cost over the held-out repeats",
+    "aggregate": "geometric mean of r_i",
+    "ratio_max": 0.80,
+    "upper_max": 1.00,
+    "interval": "95% percentile bootstrap of the aggregate over cases",
+    "bootstrap_seed": 1197,
+    "bootstrap_resamples": 10000,
+    "pass_rate_margin": 0.05,
+    "no_new_failure_class": [
+      "g1_paths",
+      "g2_trackable"
+    ],
+    "substance_floor": 0.70,
+    "substance_fields": [
+      "g1_checked",
+      "acceptance_criteria"
+    ],
+    "otherwise": "no-improvement"
+  }
 }
