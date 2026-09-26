@@ -191,15 +191,16 @@
         "`runs/optimize/frozen.json` names the candidate with the highest train `hard` rate. A tie goes to the smaller diff."
       ],
       "priority": 9,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: optimize/run.sh --detach; SkillOpt ran 6 steps and produced 3 candidates in 60 optimize episodes; steps 4 to 6 skipped with no usable patches because candidate 3 left no failing train row (failure_only). Caps not reached: 3 of 6 candidates, 60 of 140 episodes, about $52 of $150. 2 executed: runs/optimize/candidates.jsonl holds k 1 to 3 with train hard rates 0.25, 0.65, 1.0, mean costs $0.726, $0.653, $0.475, diff sizes, and status accepted. 3 executed: runs/optimize/frozen.json names candidate 3 (12ec980b, refs/prd-efficiency/cand-3). Each candidate SKILL.md is copied to runs/optimize/candidates/. Train observation: candidate 3 median substance 10 paths and 19 criteria against 15 and 30 for the baseline.",
       "dependsOn": [
         "US-007",
         "US-008"
       ],
       "files": [
         ".agro/evals/experiments/prd-efficiency/runs/optimize/"
-      ]
+      ],
+      "commit": "02d31102"
     },
     {
       "id": "US-010",
