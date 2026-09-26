@@ -7,7 +7,7 @@
     {
       "id": "US-001", "title": "Read operator decisions", "description": "As an unattended session, I want to read one operator decision so that I act only after human approval.",
       "acceptanceCriteria": ["The reader prints approve, reject, or none with exit 0 for valid Slack responses.", "Only operator reactions and leading approve or reject thread replies count; rejection takes precedence.", "Slack API errors exit 2 with error and needed fields and never expose the token.", "Stub HTTP tests cover decisions, other users, API failures, and missing operator identity."],
-      "priority": 1, "passes": true, "notes": "Executed: bash .agro/skills/escalate/scripts/test-escalate-decision.sh (exit 0); bash -n reader and test scripts (exit 0). Reactions, replies, pagination, other users, missing identity, Slack errors, and reject precedence passed on integrated branch.", "commit": "c1fce3f5", "dependsOn": [],
+      "priority": 1, "passes": true, "notes": "Executed: bash .agro/skills/escalate/scripts/test-escalate-decision.sh (exit 0); bash .agro/evals/probes/escalate-contract.sh (exit 0); bash -n reader and test scripts (exit 0). Reactions, replies, pagination, other users, missing identity, Slack errors, and reject precedence passed on integrated branch and the CI eval probe.", "commit": "c1fce3f5", "dependsOn": [],
       "files": [".agro/skills/escalate/scripts/escalate-decision.sh", ".agro/skills/escalate/scripts/test-escalate-decision.sh"]
     },
     {
