@@ -1,0 +1,235 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1197-prd-efficiency",
+  "description": "Optimize /prd efficiency with SkillOpt: test whether an optimized .agro/skills/prd/SKILL.md cuts the held-out mean cost for each plan by 20% or more with claude-opus-5-5, while the verify-prd.sh grounding guard holds.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Select the corpus and the split",
+      "description": "As the advisor, I want a reproducible corpus of 32 closed issues in two splits so that the held-out split measures generalization.",
+      "acceptanceCriteria": [
+        "`select.sh` writes `corpus/manifest.json` with the selection rule, the full candidate pool, each excluded candidate with its reason, and the `sha256` digest of each issue body.",
+        "The manifest holds 32 cases: 20 train cases and 12 held-out cases. Each area with 2 or more cases has at least 1 case in each split.",
+        "No held-out case is one of the 10 cases of the #1188 screen.",
+        "`tests/select-reproducible.sh` runs `select.sh` twice and exits 0 when the two manifests are equal."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/evals/experiments/prd-efficiency/select.sh",
+        ".agro/evals/experiments/prd-efficiency/corpus/",
+        ".agro/evals/experiments/prd-efficiency/tests/select-reproducible.sh"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Run isolated episodes with an arm and repeats",
+      "description": "As the advisor, I want an isolated episode runner for each arm so that no episode can read a later answer or reach GitHub.",
+      "acceptanceCriteria": [
+        "`run-episode.sh <case-id> --run-id <id> --arm <baseline|candidate> --repeat <n>` builds the episode repository with `git-conventions/make-episode-repo.sh` and runs `claude` inside `git-conventions/no-egress.sh` with `--disallowedTools WebFetch WebSearch`.",
+        "The baseline arm overlays `.agro/skills/prd/` from the base revision. The candidate arm also replaces `SKILL.md` with the file at `--arm-rev candidate=<rev>`. The runner marks each overlay file skip-worktree.",
+        "Each record holds `usage.total_cost_usd`, `usage.num_turns`, `elapsed_s`, the verifier result, and `substance`: the `g1` checked-path count and the acceptance-criterion count of the plan.",
+        "`run-batch.sh` refuses to start an episode when the recorded cost of the run plus $1.50 exceeds the phase cap in `experiment.json`, and it runs at most 3 episodes in parallel.",
+        "`tests/run-episode.sh` runs the runner with a fake `claude` for each arm and exits 0. A fault injection with a shared-ref worktree makes the test exit 1."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/evals/experiments/prd-efficiency/run-episode.sh",
+        ".agro/evals/experiments/prd-efficiency/run-batch.sh",
+        ".agro/evals/experiments/prd-efficiency/experiment.json",
+        ".agro/evals/experiments/prd-efficiency/tests/run-episode.sh"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Summarize cost, guard, and noise",
+      "description": "As the advisor, I want one summary tool for the decision metrics so that each verdict is reproducible without new spend.",
+      "acceptanceCriteria": [
+        "`summarize.sh <run-id>` writes `summary.json` with the mean cost, turns, and elapsed time for each arm, the pass rate and check rates for each arm, and the median substance for each arm.",
+        "`summarize.sh <run-id> --paired` writes the paired mean cost ratio of the candidate to the baseline and its 95% bootstrap interval with a fixed seed.",
+        "`summarize.sh <run-id> --noise` writes the within-issue standard deviation of the log cost and the minimum detectable cost ratio for each repeat count from 1 to 4, at a two-sided 0.05 level and a power of 0.80.",
+        "`tests/summarize.sh` exits 0 on fixture records with known means, a known ratio, and a known interval."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/evals/experiments/prd-efficiency/summarize.sh",
+        ".agro/evals/experiments/prd-efficiency/tests/summarize.sh",
+        ".agro/evals/experiments/prd-efficiency/tests/fixtures/"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Run the noise screen",
+      "description": "As the advisor, I want a baseline-against-baseline measurement before the freeze so that the success threshold is larger than the run-to-run noise.",
+      "acceptanceCriteria": [
+        "The first episode costs $3.00 or less before any other episode starts.",
+        "`runs/noise/` holds 15 records: 5 train cases, 3 repeats each, baseline arm.",
+        "`noise.md` reports the within-issue standard deviation of the log cost and the minimum detectable cost ratio for 12 held-out cases at 1 to 4 repeats.",
+        "`noise.md` names the held-out repeat count: the smallest count with a minimum detectable ratio of 0.80 or more. If no count from 1 to 4 meets that bound, the story stops the experiment and asks the operator."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".agro/evals/experiments/prd-efficiency/runs/noise/",
+        ".agro/evals/experiments/prd-efficiency/noise.md"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Freeze D1",
+      "description": "As the operator, I want every experiment value pinned before the baseline run so that no value changes after the model sees the data.",
+      "acceptanceCriteria": [
+        "`experiment.json` records the model, the effort, the claude arguments, the prompt, the splits, the repeats, the phase caps, the hard cap, and the decision rule of issue #1197.",
+        "`check-pins.sh` exits 0 and pins the digests of `prd-grounding/verify-prd.sh`, `git-conventions/make-episode-repo.sh`, `git-conventions/no-egress.sh`, `lib/episode.sh`, the `/prd` skill tree, and `corpus/manifest.json`.",
+        "The operator approved the D1 values in a comment on issue #1197."
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-004"
+      ],
+      "files": [
+        ".agro/evals/experiments/prd-efficiency/experiment.json",
+        ".agro/evals/experiments/prd-efficiency/check-pins.sh"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Adapt SkillOpt to an efficiency score",
+      "description": "As the advisor, I want the SkillOpt adapter of #1171 to score efficiency under the guard so that the optimizer cuts cost safely.",
+      "acceptanceCriteria": [
+        "For each train case, `hard` is 1 only when the latest episode passes `verify-prd.sh` and its cost is 0.80 or less of the baseline-train median cost of that case.",
+        "Each row for the proposer holds the plan, the verifier result, the cost, the turns, and a condensed tool trace: one line for each tool call with the tool name, the first 120 characters of the input, and the turn number.",
+        "The proposer receives train records only. `tests/optimize.sh` exits 0 and fails when a held-out case id enters a proposer prompt.",
+        "`optimize/run.sh --dry-run` completes with a fake `claude` for the episodes and for the proposer."
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".agro/evals/experiments/prd-efficiency/optimize/",
+        ".agro/evals/experiments/prd-efficiency/tests/optimize.sh"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "Run the train baseline",
+      "description": "As the advisor, I want a baseline on the train split so that the adapter has a per-case cost reference.",
+      "acceptanceCriteria": [
+        "`runs/baseline-train/` holds 40 scored records: 20 train cases, 2 repeats each.",
+        "`summary.json` reports the pass rate, the mean cost, the mean turns, and the median cost for each case.",
+        "The run cost is within its phase cap."
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-005"
+      ],
+      "files": [
+        ".agro/evals/experiments/prd-efficiency/runs/baseline-train/"
+      ]
+    },
+    {
+      "id": "US-008",
+      "title": "Smoke the real proposer",
+      "description": "As the advisor, I want one real proposer call on `claude-opus-5-5` before the loop so that the proposer path is proven outside the fake `claude`.",
+      "acceptanceCriteria": [
+        "One proposer call through `optimize/proposer-claude` on 3 train rows returns exit 0 and a patch that SkillOpt parses.",
+        "The call costs $2.00 or less, and `proposer-usage.jsonl` records the cost.",
+        "The proposer process has no tools and runs from an empty directory, per its recorded command line."
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-006",
+        "US-007"
+      ],
+      "files": [
+        ".agro/evals/experiments/prd-efficiency/runs/proposer-smoke/"
+      ]
+    },
+    {
+      "id": "US-009",
+      "title": "Run the optimization loop",
+      "description": "As the advisor, I want the SkillOpt loop on the train split so that the loop freezes one candidate.",
+      "acceptanceCriteria": [
+        "The loop stops at 6 candidates or 140 episodes, whichever comes first.",
+        "`runs/optimize/candidates.jsonl` holds each candidate with its train `hard` rate, its mean cost, its diff size, and its status.",
+        "`runs/optimize/frozen.json` names the candidate with the highest train `hard` rate. A tie goes to the smaller diff."
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-007",
+        "US-008"
+      ],
+      "files": [
+        ".agro/evals/experiments/prd-efficiency/runs/optimize/"
+      ]
+    },
+    {
+      "id": "US-010",
+      "title": "Evaluate on the held-out split",
+      "description": "As the operator, I want a paired held-out comparison so that the verdict follows the decision rule of issue #1197.",
+      "acceptanceCriteria": [
+        "`runs/heldout/` holds scored records for 12 held-out cases, for both arms, at the repeat count from `noise.md`.",
+        "The baseline arm and the candidate arm of each case and repeat run in the same batch, in alternating order.",
+        "`summarize.sh heldout --paired` reports each condition of the decision rule as true or false."
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-009"
+      ],
+      "files": [
+        ".agro/evals/experiments/prd-efficiency/runs/heldout/"
+      ]
+    },
+    {
+      "id": "US-011",
+      "title": "Report the result",
+      "description": "As the operator, I want a results file and an issue comment so that the next focus follows from evidence.",
+      "acceptanceCriteria": [
+        "`results.md` states the verdict, the held-out metrics for each arm, the paired ratio and its interval, the guard results, the total cost, and the candidate diff.",
+        "`git diff --stat origin/development -- .agro/evals/experiments/skillopt-ste .agro/evals/experiments/prd-grounding .agro/evals/experiments/git-conventions` prints nothing.",
+        "A comment on issue #1197 reports the verdict and the total cost."
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-010"
+      ],
+      "files": [
+        ".agro/evals/experiments/prd-efficiency/results.md"
+      ]
+    }
+  ]
+}
