@@ -1,0 +1,25 @@
+run-batch: run screen, 1 cases, jobs 3, started 2026-09-26T07:07:05Z
+run-batch: start 1181 (spent 0 USD)
+screen--1181--baseline--r1--a1 ok pass=false cost=0.8415472 elapsed_s=96.492
+run-batch: run screen, 10 cases, jobs 3, started 2026-09-26T07:28:12Z
+run-batch: skip 1181 (recorded)
+run-batch: start 1086 (spent 0.8415472 USD)
+run-batch: start 1150 (spent 0.8415472 USD)
+run-batch: start 1042 (spent 0.8415472 USD)
+screen--1086--baseline--r1--a1 ok pass=true cost=1.052038 elapsed_s=128.736
+run-batch: start 1080 (spent 1.8935852 USD)
+screen--1150--baseline--r1--a1 ok pass=true cost=0.8989064000000002 elapsed_s=130.632
+run-batch: start 1155 (spent 2.7924916 USD)
+screen--1042--baseline--r1--a1 ok pass=true cost=1.1895874 elapsed_s=162.692
+run-batch: start 1149 (spent 3.9820789999999997 USD)
+screen--1080--baseline--r1--a1 ok pass=true cost=0.8938132000000001 elapsed_s=118.965
+run-batch: start 1076 (spent 4.8758922 USD)
+screen--1149--baseline--r1--a1 ok pass=true cost=0.8538705999999999 elapsed_s=119.543
+run-batch: start 1054 (spent 5.7297628 USD)
+screen--1155--baseline--r1--a1 ok pass=true cost=0.9441702 elapsed_s=159.192
+run-batch: start 1143 (spent 6.673933 USD)
+mkdir /tmp/tmp.YepVz9xEeF/ignore/.agents/skills/council: File exists at -e line 187.
+screen--1076--baseline--r1--a1 infra_failure pass=false cost=0.8674738 elapsed_s=109.909
+screen--1054--baseline--r1--a1 ok pass=false cost=0.6342588 elapsed_s=90.071
+screen--1143--baseline--r1--a1 ok pass=true cost=0.8221626 elapsed_s=103.525
+run-batch: finished 2026-09-26T07:34:51Z; spent 8.9978282 USD; budget stop 0
