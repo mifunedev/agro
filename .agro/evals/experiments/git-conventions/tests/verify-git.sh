@@ -50,6 +50,9 @@ build_head() {
     none) ;;
     original)
       GIT_INDEX_FILE="$idx" git -C "$REPO" update-index --cacheinfo "100644,$(git -C "$REPO" rev-parse "$merge:CHANGELOG.md"),CHANGELOG.md" ;;
+    original_sed)
+      git -C "$REPO" show "$merge:CHANGELOG.md" | sed -f "$FIXTURES/$(jq -r '.changelog.file' <<<"$fixture")" >"$tmp/changelog.new"
+      GIT_INDEX_FILE="$idx" git -C "$REPO" update-index --cacheinfo "100644,$(git -C "$REPO" hash-object -w "$tmp/changelog.new"),CHANGELOG.md" ;;
     lines|versioned)
       lines_file="$FIXTURES/$(jq -r '.changelog.file' <<<"$fixture")"
       git -C "$REPO" show "$rev:CHANGELOG.md" >"$tmp/changelog.old"
@@ -66,6 +69,9 @@ build_head() {
     GIT_INDEX_FILE="$idx" git -C "$REPO" update-index --add --cacheinfo \
       "100644,$(git -C "$REPO" hash-object -w "$FIXTURES/$(jq -r '.extra_file.from' <<<"$fixture")"),$(jq -r '.extra_file.path' <<<"$fixture")"
   fi
+  while IFS= read -r path; do
+    GIT_INDEX_FILE="$idx" git -C "$REPO" update-index --force-remove -- "$path"
+  done < <(jq -r '.drop_paths[]?' <<<"$fixture")
   tree="$(GIT_INDEX_FILE="$idx" git -C "$REPO" write-tree)"
   parent="$rev"
   commit="$rev"

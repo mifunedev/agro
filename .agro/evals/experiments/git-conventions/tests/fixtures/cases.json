@@ -286,6 +286,84 @@
       "expect_fail": [
         "c6_scope"
       ]
+    },
+    {
+      "name": "c6-ignored-task-files-1049",
+      "source": "the leaky #1049 episode: its subject, branch, pr.md, and changelog entry; the tree leaves out the five task files that the .gitignore of ed9ac894 ignores",
+      "drop_paths": [
+        ".agro/tasks/compose-env-path-parity/eval-result.json",
+        ".agro/tasks/compose-env-path-parity/evidence.md",
+        ".agro/tasks/compose-env-path-parity/prd.json",
+        ".agro/tasks/compose-env-path-parity/prd.md",
+        ".agro/tasks/compose-env-path-parity/progress.txt"
+      ],
+      "expect_fail": [],
+      "case": "1049",
+      "subjects": [
+        "fix: compare compose --env-file by file identity, not path string"
+      ],
+      "branch": "bug/935-compose-env-path-parity",
+      "pr_file": "pr/1049-episode.md",
+      "changelog": {
+        "mode": "lines",
+        "file": "changelog/1049-episode.txt"
+      }
+    },
+    {
+      "name": "c6-missing-tracked-file-1049",
+      "source": "c6-ignored-task-files-1049 that also leaves out the tracked test file of the patch",
+      "drop_paths": [
+        ".agro/tasks/compose-env-path-parity/eval-result.json",
+        ".agro/tasks/compose-env-path-parity/evidence.md",
+        ".agro/tasks/compose-env-path-parity/prd.json",
+        ".agro/tasks/compose-env-path-parity/prd.md",
+        ".agro/tasks/compose-env-path-parity/progress.txt",
+        ".agro/scripts/__tests__/compose-config-path-parity.test.ts"
+      ],
+      "expect_fail": [
+        "c6_scope"
+      ],
+      "case": "1049",
+      "subjects": [
+        "fix: compare compose --env-file by file identity, not path string"
+      ],
+      "branch": "bug/935-compose-env-path-parity",
+      "pr_file": "pr/1049-episode.md",
+      "changelog": {
+        "mode": "lines",
+        "file": "changelog/1049-episode.txt"
+      }
+    },
+    {
+      "name": "c5-release-section-1169",
+      "case": "1169",
+      "source": "PR #1169: the real body and the real CHANGELOG.md of the merge commit, with its entries under the new ## [0.15.0] section; three two-sentence entries joined into one sentence each",
+      "subjects": [
+        "feat: add node host tools and workspace ref pinning"
+      ],
+      "branch": "feat/1168-node-host-tools",
+      "pr_file": "pr/1169.md",
+      "changelog": {
+        "mode": "original_sed",
+        "file": "changelog/1169-one-sentence.sed"
+      },
+      "expect_fail": []
+    },
+    {
+      "name": "c5-real-original-1169",
+      "case": "1169",
+      "source": "PR #1169: the real body and the real CHANGELOG.md of the merge commit, which holds three two-sentence entries under ## [0.15.0]",
+      "subjects": [
+        "feat: add node host tools and workspace ref pinning"
+      ],
+      "branch": "feat/1168-node-host-tools",
+      "pr_file": "pr/1169.md",
+      "changelog": {
+        "mode": "original"
+      },
+      "expect_fail": [
+        "c5_changelog"
+      ]
     }
   ]
 }

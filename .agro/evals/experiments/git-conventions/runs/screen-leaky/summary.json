@@ -1,16 +1,18 @@
 {
-  "run_id": "screen",
+  "run_id": "screen-leaky",
+  "label": "leaky: episode worktrees shared the refs of the repository; not the decision run",
+  "rescored": true,
   "cases": 10,
   "scored": 10,
-  "passed": 7,
-  "pass_rate": 0.7,
+  "passed": 10,
+  "pass_rate": 1,
   "check_rates": {
     "c1_commit_subjects": 1,
     "c2_branch": 1,
     "c3_pr_title": 1,
     "c4_pr_body": 1,
-    "c5_changelog": 0.9,
-    "c6_scope": 0.8
+    "c5_changelog": 1,
+    "c6_scope": 1
   },
   "status_counts": {
     "ok": 10
@@ -20,7 +22,7 @@
   "mean_turns": 12.5,
   "mean_elapsed_s": 55,
   "refs_left": [],
-  "decision": "freeze-d1-git",
+  "decision": "no-headroom",
   "per_case": [
     {
       "pr": 1049,
@@ -28,15 +30,16 @@
       "revision": "ed9ac894",
       "family": ".agro/scripts",
       "status": "ok",
-      "pass": false,
+      "pass": true,
       "branch": "bug/935-compose-env-path-parity",
-      "failed_checks": [
-        "c6_scope"
-      ],
+      "failed_checks": [],
       "cost_usd": 0.79,
       "turns": 23,
       "elapsed_s": 82,
-      "uncommitted": 0
+      "uncommitted": 0,
+      "rescored_from": {
+        "pass": false
+      }
     },
     {
       "pr": 1051,
@@ -44,15 +47,16 @@
       "revision": "dd5ff0c0",
       "family": ".agro/cli",
       "status": "ok",
-      "pass": false,
+      "pass": true,
       "branch": "task/1050-retire-agro-cloud-command",
-      "failed_checks": [
-        "c6_scope"
-      ],
+      "failed_checks": [],
       "cost_usd": 0.62,
       "turns": 15,
       "elapsed_s": 63,
-      "uncommitted": 0
+      "uncommitted": 0,
+      "rescored_from": {
+        "pass": false
+      }
     },
     {
       "pr": 1063,
@@ -66,7 +70,10 @@
       "cost_usd": 0.57,
       "turns": 13,
       "elapsed_s": 84,
-      "uncommitted": 0
+      "uncommitted": 0,
+      "rescored_from": {
+        "pass": true
+      }
     },
     {
       "pr": 1069,
@@ -80,7 +87,10 @@
       "cost_usd": 0.38,
       "turns": 8,
       "elapsed_s": 38,
-      "uncommitted": 0
+      "uncommitted": 0,
+      "rescored_from": {
+        "pass": true
+      }
     },
     {
       "pr": 1083,
@@ -94,7 +104,10 @@
       "cost_usd": 0.51,
       "turns": 11,
       "elapsed_s": 49,
-      "uncommitted": 0
+      "uncommitted": 0,
+      "rescored_from": {
+        "pass": true
+      }
     },
     {
       "pr": 1091,
@@ -108,7 +121,10 @@
       "cost_usd": 0.39,
       "turns": 9,
       "elapsed_s": 38,
-      "uncommitted": 0
+      "uncommitted": 0,
+      "rescored_from": {
+        "pass": true
+      }
     },
     {
       "pr": 1111,
@@ -122,7 +138,10 @@
       "cost_usd": 0.47,
       "turns": 11,
       "elapsed_s": 43,
-      "uncommitted": 0
+      "uncommitted": 0,
+      "rescored_from": {
+        "pass": true
+      }
     },
     {
       "pr": 1154,
@@ -136,7 +155,10 @@
       "cost_usd": 0.44,
       "turns": 10,
       "elapsed_s": 47,
-      "uncommitted": 0
+      "uncommitted": 0,
+      "rescored_from": {
+        "pass": true
+      }
     },
     {
       "pr": 1169,
@@ -144,15 +166,16 @@
       "revision": "de2c33ca",
       "family": ".agro/cli",
       "status": "ok",
-      "pass": false,
+      "pass": true,
       "branch": "feat/1168-node-host-tools",
-      "failed_checks": [
-        "c5_changelog"
-      ],
+      "failed_checks": [],
       "cost_usd": 0.67,
       "turns": 16,
       "elapsed_s": 77,
-      "uncommitted": 0
+      "uncommitted": 0,
+      "rescored_from": {
+        "pass": false
+      }
     },
     {
       "pr": 1180,
@@ -166,7 +189,10 @@
       "cost_usd": 0.37,
       "turns": 9,
       "elapsed_s": 33,
-      "uncommitted": 0
+      "uncommitted": 0,
+      "rescored_from": {
+        "pass": true
+      }
     }
   ]
 }

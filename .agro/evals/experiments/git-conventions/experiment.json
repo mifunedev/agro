@@ -51,7 +51,7 @@
     "freeze_d1_if_pass_rate_lt": 0.75
   },
   "pins": {
-    "verify_git_sh": "a934f433b171b1fb6ef60bfd0e757abad1aa8306a818d44216a26e135b22c99e",
+    "verify_git_sh": "07cffb3478f2cc3b4929cb27d2525a6e74b495d2d840244a1a41f49647877bb7",
     "no_egress_sh": "8e0a3443a21bb3319fdef7d05d0e8bbc7917ba0a3236ab3baf916d593f0a9e39",
     "corpus_manifest": "314b794824118f013e698e2d89f067c9fbdd8581d02f493e6756dd43e1ca509e",
     "overlay_blobs": {
@@ -59,5 +59,11 @@
       ".github/pull_request_template.md": "3dbf322505052421ea92950ef1a041e7edf0ea91"
     },
     "patches_match_manifest": true
-  }
+  },
+  "amendments": [
+    {
+      "date": "2026-09-26",
+      "change": "Advisor rulings before the leak-free rerun: c6 leaves out each path that the patch adds and that the .gitignore files of the revision ignore; c5 accepts entries under the ## [<version>] section when the patch changes the version of package.json. The leaky run moved to runs/screen-leaky/ and was rescored with summarize.sh --rescore."
+    }
+  ]
 }

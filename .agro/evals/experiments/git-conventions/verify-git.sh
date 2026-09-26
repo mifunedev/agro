@@ -35,7 +35,10 @@ c4_pr_body          the lines after the first, without HTML comments, hold a
                     heading: What the issue asked for, What was built, Where it
                     diverged, What remains unverified, Verification, Lessons.
 c5_changelog        each non-blank line that <head> adds to CHANGELOG.md is
-                    under "## [Unreleased]"; it is a "### <category>" heading
+                    under "## [Unreleased]", or under "## [<version>]" when
+                    <patch> changes the "version" of package.json to
+                    <version>; it is a "## [<version>]" heading for that
+                    version (an optional " - YYYY-MM-DD"), a "### <category>" heading
                     (Added, Changed, Fixed, Removed, Deprecated, Security) or a
                     "- " entry of at most 250 characters that links
                     https://github.com/<owner>/<repo>/(pull|issues)/<number>
@@ -44,7 +47,10 @@ c5_changelog        each non-blank line that <head> adds to CHANGELOG.md is
                     or a code span. When --original-changelog is true, <head>
                     adds at least one entry.
 c6_scope            the tree of <head>, with CHANGELOG.md of <revision>, equals
-                    the tree of <revision> with <patch> applied.
+                    the tree of <revision> with <patch> applied. Both trees
+                    leave out each path that <patch> adds and that the
+                    .gitignore files of <revision> ignore
+                    (git check-ignore --no-index, no core.excludesFile).
 USAGE
 }
 
@@ -81,6 +87,10 @@ tip="$(git -C "$repo" rev-parse --verify "$head^{commit}")"
 patch="$(cd "$(dirname "$patch")" && pwd)/$(basename "$patch")"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
+
+ep_lines() {
+  jq -R -s -c 'split("\n") | map(select(length > 0))'
+}
 
 descends=false
 git -C "$repo" merge-base --is-ancestor "$rev" "$tip" && descends=true
@@ -142,20 +152,34 @@ while IFS=$'\t' read -r lineno text; do
   section="$(awk -v stop="$lineno" 'NR >= stop { exit } /^## / { s = $0 } END { print s }' "$tmp/changelog.new")"
   added="$(jq -c --argjson n "$lineno" --arg t "$text" --arg s "$section" '. + [{line: $n, text: $t, section: $s}]' <<<"$added")"
 done <"$tmp/added.tsv"
-c5_json="$(jq -cn --argjson a "$added" --argjson cap "$ENTRY_CAP" --argjson orig "$original_changelog" '
+release_version=""
+old_version="$(git -C "$repo" show "$rev:package.json" 2>/dev/null | jq -r '.version // empty' 2>/dev/null || true)"
+GIT_INDEX_FILE="$tmp/version.idx" git -C "$repo" read-tree "$rev"
+if GIT_INDEX_FILE="$tmp/version.idx" git -C "$repo" apply --cached --binary "$patch" >/dev/null 2>&1; then
+  new_version="$(GIT_INDEX_FILE="$tmp/version.idx" git -C "$repo" show ":package.json" 2>/dev/null | jq -r '.version // empty' 2>/dev/null || true)"
+  if [ -n "$new_version" ] && [ "$new_version" != "$old_version" ]; then
+    release_version="$new_version"
+  fi
+fi
+c5_json="$(jq -cn --argjson a "$added" --argjson cap "$ENTRY_CAP" --argjson orig "$original_changelog" --arg rel "$release_version" '
   def entry: startswith("- ");
+  def relre: $rel | gsub("(?<c>[.+*?()\\[\\]{}|^$\\\\])"; "\\\(.c)");
+  def allowed_section: test("^## \\[Unreleased\\]") or ($rel != "" and test("^## \\[" + relre + "\\]"));
+  def release_heading: $rel != "" and test("^## \\[" + relre + "\\]( - [0-9]{4}-[0-9]{2}-[0-9]{2})?[ \t]*$");
   def heading: test("^### (Added|Changed|Fixed|Removed|Deprecated|Security)[ \t]*$");
   def sentences: gsub("`[^`]*`"; "CODE") | gsub("\\]\\([^)]*\\)"; "]") | [scan("[.!?][ \t]+[A-Z0-9]")] | length + 1;
   [$a[] | . + {problems: (
-      [ (if (.section | test("^## \\[Unreleased\\]")) then empty else "not under ## [Unreleased]" end),
-        (if (.text | heading) then empty
+      [ (if (.text | release_heading) then empty
+         elif (.section | allowed_section) then empty
+         else "not under ## [Unreleased] or the release section of the patch" end),
+        (if (.text | heading) or (.text | release_heading) then empty
          elif (.text | entry) then
            (if (.text | length) > $cap then "longer than \($cap) characters (\(.text | length))" else empty end),
            (if (.text | test("\\]\\(https://github\\.com/[^/)]+/[^/)]+/(pull|issues)/[0-9]+\\)")) then empty else "no pull request or issue link" end),
            (if (.text | sentences) > 1 then "more than one sentence" else empty end)
          else "not an entry or a category heading" end) ]
     )}] as $rows
-  | {original_changelog: $orig,
+  | {original_changelog: $orig, release_version: (if $rel == "" then null else $rel end),
      entries: ([$rows[] | select(.text | entry)] | length),
      bad: [$rows[] | select(.problems | length > 0) | {line, text: .text[0:120], problems}]}
   | .ok = ((.bad | length) == 0 and ((($orig | not)) or .entries > 0))')"
@@ -175,13 +199,31 @@ if [ -n "$old_entry" ]; then
 else
   GIT_INDEX_FILE="$tmp/actual.idx" git -C "$repo" update-index --force-remove -- "$CHANGELOG"
 fi
+mkdir -p "$tmp/ignore"
+git -C "$tmp/ignore" init -q
+git -C "$repo" ls-tree -r --name-only "$rev" | { grep -E '(^|/)\.gitignore$' || true; } | while read -r f; do
+  mkdir -p "$tmp/ignore/$(dirname "$f")"
+  git -C "$repo" show "$rev:$f" >"$tmp/ignore/$f"
+done
+ignored_new='[]'
+if [ -n "$expected_tree" ]; then
+  git -C "$repo" diff --name-only --no-renames --diff-filter=A "$rev" "$expected_tree" >"$tmp/new-paths.txt"
+  git -C "$tmp/ignore" -c core.excludesFile=/dev/null check-ignore --no-index --stdin <"$tmp/new-paths.txt" >"$tmp/ignored.txt" || true
+  while read -r path; do
+    [ -n "$path" ] || continue
+    GIT_INDEX_FILE="$tmp/expected.idx" git -C "$repo" update-index --force-remove -- "$path"
+    GIT_INDEX_FILE="$tmp/actual.idx" git -C "$repo" update-index --force-remove -- "$path"
+  done <"$tmp/ignored.txt"
+  ignored_new="$(ep_lines <"$tmp/ignored.txt")"
+  expected_tree="$(GIT_INDEX_FILE="$tmp/expected.idx" git -C "$repo" write-tree)"
+fi
 actual_tree="$(GIT_INDEX_FILE="$tmp/actual.idx" git -C "$repo" write-tree)"
 differs='[]'
 if [ -n "$expected_tree" ] && [ "$expected_tree" != "$actual_tree" ]; then
   differs="$(git -C "$repo" diff --name-status "$expected_tree" "$actual_tree" | jq -R -s -c 'split("\n") | map(select(length > 0))')"
 fi
-c6_json="$(jq -cn --arg e "$expected_tree" --arg a "$actual_tree" --arg err "$apply_error" --argjson d "$differs" '
-  {expected_tree: $e, actual_tree: $a, patch_error: (if $e == "" then $err else null end), differs: $d,
+c6_json="$(jq -cn --arg e "$expected_tree" --arg a "$actual_tree" --arg err "$apply_error" --argjson d "$differs" --argjson ig "$ignored_new" '
+  {expected_tree: $e, actual_tree: $a, patch_error: (if $e == "" then $err else null end), ignored_excluded: $ig, differs: $d,
    ok: ($e != "" and $e == $a)}')"
 
 jq -n --arg rev "$rev" --arg tip "$tip" --arg issue "$issue" \
