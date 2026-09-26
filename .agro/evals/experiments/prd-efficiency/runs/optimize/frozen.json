@@ -1,0 +1,67 @@
+{
+  "k": 3,
+  "sha": "12ec980b480b60c4ddc1476eb26eb536c07bf6c2",
+  "ref": "refs/prd-efficiency/cand-3",
+  "train_hard_rate": 1.0,
+  "mean_cost_usd": 0.474532,
+  "diff": {
+    "added": 41,
+    "against": "base_revision",
+    "files": [
+      ".agro/skills/prd/SKILL.md"
+    ],
+    "removed": 6
+  },
+  "rule": "highest train_hard_rate; a tie goes to the smaller diff (added + removed lines), then to the lower k",
+  "stop_reason": "SkillOpt finished its steps",
+  "candidates": [
+    {
+      "k": 1,
+      "status": "accepted",
+      "train_hard_rate": 0.25,
+      "mean_cost_usd": 0.726446,
+      "mean_num_turns": 9.8,
+      "diff": {
+        "added": 31,
+        "against": "base_revision",
+        "files": [
+          ".agro/skills/prd/SKILL.md"
+        ],
+        "removed": 6
+      },
+      "reason": null
+    },
+    {
+      "k": 2,
+      "status": "accepted",
+      "train_hard_rate": 0.65,
+      "mean_cost_usd": 0.653066,
+      "mean_num_turns": 9.85,
+      "diff": {
+        "added": 34,
+        "against": "base_revision",
+        "files": [
+          ".agro/skills/prd/SKILL.md"
+        ],
+        "removed": 6
+      },
+      "reason": null
+    },
+    {
+      "k": 3,
+      "status": "accepted",
+      "train_hard_rate": 1.0,
+      "mean_cost_usd": 0.474532,
+      "mean_num_turns": 7.75,
+      "diff": {
+        "added": 41,
+        "against": "base_revision",
+        "files": [
+          ".agro/skills/prd/SKILL.md"
+        ],
+        "removed": 6
+      },
+      "reason": null
+    }
+  ]
+}

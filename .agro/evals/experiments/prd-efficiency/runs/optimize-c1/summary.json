@@ -1,0 +1,231 @@
+{
+  "run_id": "optimize-c1",
+  "lines": {
+    "episodes": 20,
+    "latest": 20,
+    "superseded": 0
+  },
+  "experiment": {
+    "models": [
+      "claude-opus-5-5"
+    ],
+    "mixed_models": false,
+    "efforts": [
+      "medium"
+    ],
+    "skill_revisions": {
+      "candidate": [
+        "bf7863cecf74c9c6a5208c8f52fc7bc5138da4aa"
+      ]
+    }
+  },
+  "rules": {
+    "scored": [
+      "ok",
+      "plan_missing",
+      "timeout"
+    ],
+    "excluded": [
+      "budget_refused",
+      "infra_failure",
+      "interrupted",
+      "pin_mismatch"
+    ],
+    "latest": "highest attempt per (case_id, arm, repeat), last line on a tie"
+  },
+  "rescore": null,
+  "per_arm": {
+    "candidate": {
+      "n_scored": 20,
+      "statuses": {
+        "ok": 20
+      },
+      "excluded": {},
+      "infra_failure_rate": 0.0,
+      "passes": 18,
+      "pass_rate": 0.9,
+      "check_rates": {
+        "g1_paths": 0.9,
+        "g2_trackable": 1.0,
+        "g3_commands": 0.95,
+        "g4_structure": 1.0
+      },
+      "mean_cost_usd": 0.726446,
+      "median_cost_usd": 0.745201,
+      "mean_num_turns": 9.8,
+      "mean_elapsed_s": 101.4242,
+      "median_substance": {
+        "g1_checked": 14.0,
+        "acceptance_criteria": 27.5
+      },
+      "total_cost_usd": 14.528927
+    }
+  },
+  "per_case": {
+    "1042": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 1,
+        "mean_cost_usd": 0.823109,
+        "median_cost_usd": 0.823109
+      }
+    },
+    "1046": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 1,
+        "mean_cost_usd": 0.797446,
+        "median_cost_usd": 0.797446
+      }
+    },
+    "1054": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 1,
+        "mean_cost_usd": 0.698262,
+        "median_cost_usd": 0.698262
+      }
+    },
+    "1076": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 0,
+        "mean_cost_usd": 0.714386,
+        "median_cost_usd": 0.714386
+      }
+    },
+    "1080": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 1,
+        "mean_cost_usd": 0.825217,
+        "median_cost_usd": 0.825217
+      }
+    },
+    "1086": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 1,
+        "mean_cost_usd": 0.763314,
+        "median_cost_usd": 0.763314
+      }
+    },
+    "1088": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 1,
+        "mean_cost_usd": 1.027142,
+        "median_cost_usd": 1.027142
+      }
+    },
+    "1114": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 1,
+        "mean_cost_usd": 0.500168,
+        "median_cost_usd": 0.500168
+      }
+    },
+    "1124": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 0,
+        "mean_cost_usd": 0.891416,
+        "median_cost_usd": 0.891416
+      }
+    },
+    "1127": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 1,
+        "mean_cost_usd": 0.648208,
+        "median_cost_usd": 0.648208
+      }
+    },
+    "1138": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 1,
+        "mean_cost_usd": 0.723047,
+        "median_cost_usd": 0.723047
+      }
+    },
+    "1143": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 1,
+        "mean_cost_usd": 0.828158,
+        "median_cost_usd": 0.828158
+      }
+    },
+    "1149": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 1,
+        "mean_cost_usd": 0.727088,
+        "median_cost_usd": 0.727088
+      }
+    },
+    "1150": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 1,
+        "mean_cost_usd": 0.670507,
+        "median_cost_usd": 0.670507
+      }
+    },
+    "1155": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 1,
+        "mean_cost_usd": 0.801851,
+        "median_cost_usd": 0.801851
+      }
+    },
+    "1160": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 1,
+        "mean_cost_usd": 0.804074,
+        "median_cost_usd": 0.804074
+      }
+    },
+    "1162": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 1,
+        "mean_cost_usd": 0.447365,
+        "median_cost_usd": 0.447365
+      }
+    },
+    "1173": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 1,
+        "mean_cost_usd": 0.388198,
+        "median_cost_usd": 0.388198
+      }
+    },
+    "1177": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 1,
+        "mean_cost_usd": 0.535932,
+        "median_cost_usd": 0.535932
+      }
+    },
+    "1181": {
+      "candidate": {
+        "n_scored": 1,
+        "passes": 1,
+        "mean_cost_usd": 0.91404,
+        "median_cost_usd": 0.91404
+      }
+    }
+  },
+  "spend": {
+    "all_attempts_cost_usd": 14.528927
+  },
+  "paired": null,
+  "noise": null
+}

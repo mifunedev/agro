@@ -1,0 +1,44 @@
+run-batch: run optimize-c2, phase optimize (cap 150 USD), 20 case(s), 20 slot(s), arms candidate, jobs 3, started 2026-09-26T18:26:34Z
+run-batch: start 1181 candidate r1 (run spent 0 USD)
+optimize-c2--1181--candidate--r1--a1 ok pass=true cost=0.6138488 elapsed_s=78.703
+run-batch: first-episode gate passed: 0.6138488 USD
+run-batch: start 1086 candidate r1 (run spent 0.6138488 USD)
+run-batch: start 1173 candidate r1 (run spent 0.6138488 USD)
+run-batch: start 1150 candidate r1 (run spent 0.6138488 USD)
+optimize-c2--1173--candidate--r1--a1 ok pass=true cost=0.4250568 elapsed_s=48.853
+run-batch: start 1042 candidate r1 (run spent 1.0389056 USD)
+optimize-c2--1086--candidate--r1--a1 ok pass=true cost=0.7730842 elapsed_s=103.395
+run-batch: start 1080 candidate r1 (run spent 1.8119898 USD)
+optimize-c2--1150--candidate--r1--a1 ok pass=true cost=0.6936276 elapsed_s=104.999
+run-batch: start 1155 candidate r1 (run spent 2.5056174 USD)
+optimize-c2--1042--candidate--r1--a1 ok pass=true cost=0.6923646 elapsed_s=81.028
+run-batch: start 1149 candidate r1 (run spent 3.197982 USD)
+optimize-c2--1155--candidate--r1--a1 ok pass=true cost=0.552485 elapsed_s=68.330
+run-batch: start 1138 candidate r1 (run spent 3.750467 USD)
+optimize-c2--1080--candidate--r1--a1 ok pass=true cost=0.6710684 elapsed_s=91.975
+run-batch: start 1076 candidate r1 (run spent 4.4215354 USD)
+optimize-c2--1149--candidate--r1--a1 ok pass=true cost=0.6101628 elapsed_s=80.557
+run-batch: start 1177 candidate r1 (run spent 5.0316982 USD)
+optimize-c2--1138--candidate--r1--a1 ok pass=true cost=0.6361476000000001 elapsed_s=80.778
+run-batch: start 1046 candidate r1 (run spent 5.6678458 USD)
+optimize-c2--1177--candidate--r1--a1 ok pass=true cost=0.5847302 elapsed_s=77.828
+run-batch: start 1124 candidate r1 (run spent 6.252576 USD)
+optimize-c2--1076--candidate--r1--a1 ok pass=true cost=0.6999512000000001 elapsed_s=93.956
+run-batch: start 1127 candidate r1 (run spent 6.9525272000000005 USD)
+optimize-c2--1046--candidate--r1--a1 ok pass=true cost=0.7722606 elapsed_s=102.859
+run-batch: start 1160 candidate r1 (run spent 7.7247878000000005 USD)
+optimize-c2--1127--candidate--r1--a1 ok pass=true cost=0.611381 elapsed_s=69.083
+run-batch: start 1114 candidate r1 (run spent 8.336168800000001 USD)
+optimize-c2--1124--candidate--r1--a1 ok pass=true cost=0.7804110000000001 elapsed_s=115.671
+run-batch: start 1054 candidate r1 (run spent 9.116579800000002 USD)
+optimize-c2--1114--candidate--r1--a1 ok pass=true cost=0.5277168000000001 elapsed_s=62.789
+run-batch: start 1162 candidate r1 (run spent 9.644296600000002 USD)
+optimize-c2--1160--candidate--r1--a1 ok pass=true cost=0.7027539999999999 elapsed_s=95.718
+run-batch: start 1088 candidate r1 (run spent 10.347050600000003 USD)
+optimize-c2--1162--candidate--r1--a1 ok pass=true cost=0.43641220000000003 elapsed_s=47.134
+run-batch: start 1143 candidate r1 (run spent 10.783462800000002 USD)
+optimize-c2--1054--candidate--r1--a1 ok pass=true cost=0.5951118000000001 elapsed_s=75.194
+optimize-c2--1143--candidate--r1--a1 ok pass=true cost=0.7171694000000001 elapsed_s=90.230
+optimize-c2--1088--candidate--r1--a1 ok pass=true cost=0.9655813999999999 elapsed_s=137.938
+run-batch: the refs of this repository are unchanged
+run-batch: finished 2026-09-26T18:37:44Z; run spent 13.061325400000001 USD of 150 (phase optimize)

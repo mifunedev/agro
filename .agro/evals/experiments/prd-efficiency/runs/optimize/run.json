@@ -1,0 +1,31 @@
+{
+  "parent": "855f62ce3c3ac1d7465e90a7e4fa0c2710c43eb1",
+  "base_revision": "e63364d37db47d85044f2c44069a188fc72eac51",
+  "baseline_skill_md": "d6a22ebe2099addf9eb583cc94952d3802c0bf2e5009d93d2cc7d3329bc0c2d0",
+  "cases": [
+    "1181",
+    "1086",
+    "1173",
+    "1150",
+    "1042",
+    "1080",
+    "1155",
+    "1149",
+    "1138",
+    "1076",
+    "1177",
+    "1046",
+    "1124",
+    "1127",
+    "1160",
+    "1114",
+    "1054",
+    "1162",
+    "1088",
+    "1143"
+  ],
+  "dry_run": false,
+  "max_candidates": 6,
+  "optimize_attempts": 140,
+  "efficiency_threshold": 0.8
+}
