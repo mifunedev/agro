@@ -1,0 +1,38 @@
+run-batch: run noise, phase noise (cap 18 USD), 1 case(s), 1 slot(s), arms baseline, jobs 3, started 2026-09-26T17:08:41Z
+run-batch: start 1181 baseline r1 (run spent 0 USD)
+noise--1181--baseline--r1--a1 ok pass=true cost=0.8147224 elapsed_s=99.849
+run-batch: first-episode gate passed: 0.8147224 USD
+run-batch: the refs of this repository are unchanged
+run-batch: finished 2026-09-26T17:10:21Z; run spent 0.8147224 USD of 18 (phase noise)
+run-batch: run noise, phase noise (cap 18 USD), 5 case(s), 15 slot(s), arms baseline, jobs 3, started 2026-09-26T17:10:28Z
+skip 1181 baseline r1: already recorded
+run-batch: start 1181 baseline r2 (run spent 0.8147224 USD)
+run-batch: start 1181 baseline r3 (run spent 0.8147224 USD)
+run-batch: start 1086 baseline r1 (run spent 0.8147224 USD)
+noise--1086--baseline--r1--a1 ok pass=true cost=0.8006898 elapsed_s=96.847
+run-batch: start 1086 baseline r2 (run spent 1.6154122 USD)
+noise--1181--baseline--r2--a1 ok pass=true cost=0.9618240000000001 elapsed_s=119.526
+run-batch: start 1086 baseline r3 (run spent 2.5772362 USD)
+noise--1181--baseline--r3--a1 ok pass=false cost=0.9258732000000001 elapsed_s=119.657
+run-batch: start 1173 baseline r1 (run spent 3.5031094000000005 USD)
+noise--1173--baseline--r1--a1 ok pass=true cost=0.3700428 elapsed_s=39.696
+run-batch: start 1173 baseline r2 (run spent 3.8731522000000007 USD)
+noise--1086--baseline--r2--a1 ok pass=true cost=0.8190059999999999 elapsed_s=106.602
+run-batch: start 1173 baseline r3 (run spent 4.692158200000001 USD)
+noise--1173--baseline--r2--a1 ok pass=true cost=0.4427363999999999 elapsed_s=47.588
+run-batch: start 1150 baseline r1 (run spent 5.134894600000001 USD)
+noise--1086--baseline--r3--a1 ok pass=true cost=0.8425416000000002 elapsed_s=110.135
+run-batch: start 1150 baseline r2 (run spent 5.977436200000001 USD)
+noise--1173--baseline--r3--a1 ok pass=true cost=0.427631 elapsed_s=47.261
+run-batch: start 1150 baseline r3 (run spent 6.405067200000001 USD)
+noise--1150--baseline--r1--a1 ok pass=true cost=0.879713 elapsed_s=131.072
+run-batch: start 1042 baseline r1 (run spent 7.284780200000001 USD)
+noise--1150--baseline--r2--a1 ok pass=true cost=0.8199529999999999 elapsed_s=113.265
+run-batch: start 1042 baseline r2 (run spent 8.104733200000002 USD)
+noise--1150--baseline--r3--a1 ok pass=true cost=0.8730554 elapsed_s=115.298
+run-batch: start 1042 baseline r3 (run spent 8.977788600000002 USD)
+noise--1042--baseline--r2--a1 ok pass=true cost=1.021754 elapsed_s=125.610
+noise--1042--baseline--r1--a1 ok pass=true cost=1.0959842 elapsed_s=161.177
+noise--1042--baseline--r3--a1 ok pass=true cost=1.1642992 elapsed_s=143.762
+run-batch: the refs of this repository are unchanged
+run-batch: finished 2026-09-26T17:18:58Z; run spent 12.259826000000002 USD of 18 (phase noise)

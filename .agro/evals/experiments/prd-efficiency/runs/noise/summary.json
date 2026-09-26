@@ -1,0 +1,179 @@
+{
+  "run_id": "noise",
+  "lines": {
+    "episodes": 15,
+    "latest": 15,
+    "superseded": 0
+  },
+  "experiment": {
+    "models": [
+      "claude-opus-5-5"
+    ],
+    "mixed_models": false,
+    "efforts": [
+      "medium"
+    ],
+    "skill_revisions": {
+      "baseline": [
+        "915108d3c0fc3d0319e3b39072e49da6f84965ae"
+      ]
+    }
+  },
+  "rules": {
+    "scored": [
+      "ok",
+      "plan_missing",
+      "timeout"
+    ],
+    "excluded": [
+      "budget_refused",
+      "infra_failure",
+      "interrupted",
+      "pin_mismatch"
+    ],
+    "latest": "highest attempt per (case_id, arm, repeat), last line on a tie"
+  },
+  "rescore": null,
+  "per_arm": {
+    "baseline": {
+      "n_scored": 15,
+      "statuses": {
+        "ok": 15
+      },
+      "excluded": {},
+      "infra_failure_rate": 0.0,
+      "passes": 14,
+      "pass_rate": 0.933333,
+      "check_rates": {
+        "g1_paths": 1.0,
+        "g2_trackable": 0.933333,
+        "g3_commands": 1.0,
+        "g4_structure": 1.0
+      },
+      "mean_cost_usd": 0.817322,
+      "median_cost_usd": 0.842542,
+      "mean_num_turns": 13.8,
+      "mean_elapsed_s": 105.156333,
+      "median_substance": {
+        "g1_checked": 13,
+        "acceptance_criteria": 42
+      },
+      "total_cost_usd": 12.259826
+    }
+  },
+  "per_case": {
+    "1042": {
+      "baseline": {
+        "n_scored": 3,
+        "passes": 3,
+        "mean_cost_usd": 1.094012,
+        "median_cost_usd": 1.095984
+      }
+    },
+    "1086": {
+      "baseline": {
+        "n_scored": 3,
+        "passes": 3,
+        "mean_cost_usd": 0.820746,
+        "median_cost_usd": 0.819006
+      }
+    },
+    "1150": {
+      "baseline": {
+        "n_scored": 3,
+        "passes": 3,
+        "mean_cost_usd": 0.857574,
+        "median_cost_usd": 0.873055
+      }
+    },
+    "1173": {
+      "baseline": {
+        "n_scored": 3,
+        "passes": 3,
+        "mean_cost_usd": 0.41347,
+        "median_cost_usd": 0.427631
+      }
+    },
+    "1181": {
+      "baseline": {
+        "n_scored": 3,
+        "passes": 2,
+        "mean_cost_usd": 0.900807,
+        "median_cost_usd": 0.925873
+      }
+    }
+  },
+  "spend": {
+    "all_attempts_cost_usd": 12.259826
+  },
+  "paired": null,
+  "noise": {
+    "arm": "baseline",
+    "cases_used": 5,
+    "costs_used": 15,
+    "df": 10,
+    "sigma_w": 0.067857,
+    "n_cases": 12,
+    "alpha_two_sided": 0.05,
+    "power": 0.8,
+    "z_alpha": 1.959964,
+    "z_power": 0.841621,
+    "min_detectable_ratio_floor": 0.8,
+    "table": [
+      {
+        "repeats": 1,
+        "se": 0.027703,
+        "min_detectable_log_drop": 0.077611,
+        "min_detectable_ratio": 0.925324
+      },
+      {
+        "repeats": 2,
+        "se": 0.019589,
+        "min_detectable_log_drop": 0.054879,
+        "min_detectable_ratio": 0.946599
+      },
+      {
+        "repeats": 3,
+        "se": 0.015994,
+        "min_detectable_log_drop": 0.044809,
+        "min_detectable_ratio": 0.95618
+      },
+      {
+        "repeats": 4,
+        "se": 0.013851,
+        "min_detectable_log_drop": 0.038806,
+        "min_detectable_ratio": 0.961938
+      }
+    ],
+    "chosen_repeats": 1,
+    "split": {
+      "n_cases": 5,
+      "per_case": [
+        {
+          "case_id": "1042",
+          "ratio": 1.07265
+        },
+        {
+          "case_id": "1086",
+          "ratio": 0.977636
+        },
+        {
+          "case_id": "1150",
+          "ratio": 1.072882
+        },
+        {
+          "case_id": "1173",
+          "ratio": 0.835808
+        },
+        {
+          "case_id": "1181",
+          "ratio": 0.84706
+        }
+      ],
+      "geo_mean_ratio": 0.955524,
+      "log_ratio_sd": 0.122218,
+      "min_ratio": 0.835808,
+      "max_ratio": 1.072882
+    }
+  }
+}
