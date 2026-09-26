@@ -171,9 +171,35 @@ def collapse(text):
     return whitespace_re.sub(" ", text)
 
 
-def present(item, kind, out, collapsed_out):
+def dedented_blocks(text):
+    blocks = []
+    fence = None
+    indent = 0
+    body = []
+    for line in text.split("\n"):
+        match = fence_re.match(line)
+        if fence is None and match:
+            fence = match.group(1)
+            indent = len(line) - len(line.lstrip(" "))
+            body = []
+            continue
+        if fence is not None:
+            if match and match.group(1)[0] == fence[0] and len(match.group(1)) >= len(fence) and not line.strip()[len(match.group(1)):].strip():
+                fence = None
+                blocks.append("\n".join(body))
+            else:
+                strip = min(indent, len(line) - len(line.lstrip(" ")))
+                body.append(line[strip:])
+    if fence is not None:
+        blocks.append("\n".join(body))
+    return blocks
+
+
+def present(item, kind, out, collapsed_out, out_blocks):
     if kind == "span":
         return collapse(item) in collapsed_out
+    if kind == "block":
+        return item in out or any(item in block for block in out_blocks)
     return item in out
 
 
@@ -214,7 +240,7 @@ def literals_of(text):
             if path:
                 add(literals, seen, path)
     for body in bodies:
-        add(literals, seen, body)
+        add(literals, seen, body, "block")
     return literals
 
 
@@ -258,7 +284,8 @@ def word_count(path):
 
 source_literals = literals_of(source)
 collapsed_output = collapse(output)
-missing = [item for item, kind in source_literals if not present(item, kind, output, collapsed_output)]
+output_blocks = dedented_blocks(output)
+missing = [item for item, kind in source_literals if not present(item, kind, output, collapsed_output, output_blocks)]
 p1 = not missing
 
 checked = subprocess.run(["bash", checker, output_path], capture_output=True, text=True)

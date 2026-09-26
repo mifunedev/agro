@@ -39,6 +39,8 @@ cases=(
   "inline spans moved into a fenced block keep P1|$EXP_DIR/corpus/sources/F1-05.md|$FIXTURES/F1-05.spans-to-fence.md|F1-05|.p1_literals and .details.p1.missing == []"
   "an inline span wrapped across a line break keeps P1|$EXP_DIR/corpus/sources/F1-06.md|$FIXTURES/F1-06.wrapped-span.md|F1-06|.p1_literals and .details.p1.missing == []"
   "a source inline span that wraps a line pairs its own backticks|$EXP_DIR/corpus/sources/F1-14.md|$FIXTURES/F1-14.source-wrapped-span.md|F1-14|.p1_literals and .details.p1.missing == []"
+  "a fenced block indented under a list item keeps P1|$EXP_DIR/corpus/sources/F2-09.md|$FIXTURES/F2-09.nested-block.md|F2-09|.p1_literals and .details.p1.missing == []"
+  "a split fenced block still fails P1 (live F2-09 r1)|$EXP_DIR/corpus/sources/F2-09.md|$FIXTURES/F2-09.live-r1-split-block.md|F2-09|(.p1_literals | not) and .details.p1.missing_count == 1 and (.details.p1.missing[0] | startswith(\"gh run list --repo\"))"
   "a gap value glued to a unit counts as filled|$GAP_SOURCE|$FIXTURES/F3-03.glued-gap.md|F3-03|$(only p3_no_invention) and .details.p3.filled_gaps == [\"755\"]"
 )
 

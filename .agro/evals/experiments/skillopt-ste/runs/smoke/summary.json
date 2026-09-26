@@ -10,7 +10,7 @@
     "canaries": 1
   },
   "rescore": {
-    "verifier_sha256": "710a2c2180c082617ed84445e69e12a3f0c66223649cbd055adeb07f33e8fbe1",
+    "verifier_sha256": "a2ce8a849282c3947b01e82f19873fa643eb553cd54cf9e8f8e17e8a9441b5a5",
     "rescored": 2,
     "rescored_changes": 0,
     "changed": [],
