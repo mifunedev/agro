@@ -23,6 +23,7 @@ import {
   registryRoot,
 } from "../lib/registry.js";
 import { findRuntime, runtimeIds } from "../lib/runtimes/catalog.js";
+import { maybePrintStarPrompt } from "../lib/star-prompt.js";
 import { runSandbox, type LifecycleIO } from "./lifecycle.js";
 
 export interface SandboxIO extends LifecycleIO {
@@ -294,7 +295,10 @@ export async function runSandboxInstall(
   materialize(root, { ...(configCheckout(config) !== undefined ? { checkout: configCheckout(config) } : {}) });
 
   const code = await runSandbox({ ...sandboxOpts, cwd: root }, io);
-  if (code === 0) io.stdout(`next: ${opts.bin} shell ${config.name}\n`);
+  if (code === 0) {
+    io.stdout(`next: ${opts.bin} shell ${config.name}\n`);
+    maybePrintStarPrompt(io);
+  }
   return code;
 }
 

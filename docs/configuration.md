@@ -203,6 +203,12 @@ node .agro/scripts/typesafe.mjs --live    # does the key work?
 Consumers are opt-in. `prompt-miner --judge` is the only one today; without the flag the
 engine never consults TypeSafe.
 
+## Environment variables
+
+| Variable | Default | What the variable does |
+| --- | --- | --- |
+| `AGRO_NO_STAR_PROMPT` | unset | `1` suppresses the one-time line `⭐ If AGRO helps, star https://github.com/mifunedev/agro` that `agro sandbox install` prints after its first successful install. The line also stays off when `CI` is set and not empty, or when stdout is not a TTY. The marker `${AGRO_HOME:-~/.agro}/star-prompt-shown` records that the line was shown. |
+
 ## Retired keys
 
 The directory layout follows a fixed convention, and no setting changes the layout.
