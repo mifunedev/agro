@@ -61,8 +61,8 @@
         "`tests/summarize.sh` exits 0 on fixture records with known means, a known ratio, and a known interval."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: bash tests/summarize.sh on the integrated task branch, exit 0 (27 checks); per-arm means, rates, and median substance match hand values. 2 executed: same run; --paired gives the geometric-mean ratio 0.584804, interval [0.5, 0.8] with seed 1197, byte-identical on rerun. 3 executed: same run; --noise gives sigma_w 0.309839 and minimum detectable ratios 0.7016, 0.7783, 0.8150, 0.8376 for 1 to 4 repeats at 12 cases. 4 executed: exit 0; four broken copies through PRD_EFFICIENCY_SUMMARIZE each exit 1 on the intended check. tests/run-episode.sh still exits 0. Frozen folders and lib/ unchanged.",
       "dependsOn": [
         "US-002"
       ],
@@ -70,7 +70,8 @@
         ".agro/evals/experiments/prd-efficiency/summarize.sh",
         ".agro/evals/experiments/prd-efficiency/tests/summarize.sh",
         ".agro/evals/experiments/prd-efficiency/tests/fixtures/"
-      ]
+      ],
+      "commit": "f7b1c5ac"
     },
     {
       "id": "US-004",
