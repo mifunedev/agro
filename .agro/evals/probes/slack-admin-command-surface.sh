@@ -157,7 +157,7 @@ expected = {
         "bot_user": {"display_name": "agro", "always_online": True},
     },
     "oauth_config": {"scopes": {"bot": [
-        "app_mentions:read", "channels:history", "channels:read", "chat:write", "files:read", "files:write",
+        "app_mentions:read", "channels:history", "channels:read", "chat:write", "commands", "files:read", "files:write",
         "groups:history", "groups:read", "im:history", "im:read", "im:write", "reactions:read", "users:read",
     ]}},
     "settings": {
