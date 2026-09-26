@@ -11,6 +11,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Changed
 
 - Use a YAML Slack app manifest for Pi setup and provide a copyable version in the Slack docs while preserving the app's permissions, events, and admin commands ([#1177](https://github.com/mifunedev/agro/issues/1177)).
+- Use `~/.agro/workspaces/harness` for implicit host installs and `agro workspace create`, while retaining explicitly named `default` workspaces and recorded roots ([#1183](https://github.com/mifunedev/agro/issues/1183)).
 
 ## [0.15.0] - 2026-09-24
 
