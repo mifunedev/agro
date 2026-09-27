@@ -5,8 +5,7 @@
 set -euo pipefail
 
 PROBE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$(cd "$PROBE_DIR" && git rev-parse --show-toplevel 2>/dev/null)" \
-  || ROOT="$(cd "$PROBE_DIR/../../.." && pwd)"
+ROOT="$(cd "$PROBE_DIR/../../.." && pwd)"
 
 DC="$ROOT/.devcontainer"
 DOCKERFILE="$DC/Dockerfile"

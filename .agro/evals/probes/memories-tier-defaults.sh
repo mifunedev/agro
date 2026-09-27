@@ -12,6 +12,11 @@ cd "$ROOT"
 
 fail() { echo "REGRESSION: $*" >&2; exit 1; }
 
+if [[ -n "$(git rev-parse --show-prefix)" ]]; then
+  echo "SKIPPED: the AGRO root is a subdirectory of $(git rev-parse --show-toplevel); an embedded private workspace may track its own memories" >&2
+  exit 2
+fi
+
 tracked="$(git ls-files .agro/memories)"
 expected=$'.agro/memories/AGENTS.md\n.agro/memories/MEMORY.md\n.agro/memories/SOUL.md\n.agro/memories/USER.md'
 [[ "$tracked" == "$expected" ]] \

@@ -10,6 +10,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$ROOT"
+prefix="$(git rev-parse --show-prefix)"
 
 fail() {
   echo "REGRESSION: $*" >&2
@@ -46,7 +47,7 @@ if [ "${SKILLS_VENDORED_SKIP_CLEAN_CLONE:-0}" != "1" ]; then
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' EXIT
   git clone --no-recurse-submodules "$ROOT" "$tmp/agro" >/dev/null 2>&1
-  cd "$tmp/agro"
+  cd "$tmp/agro/$prefix"
   [ -f .agro/skills/git/SKILL.md ] || fail "clean clone is missing the vendored .agro/skills pack"
   [ -f .agents/skills/git/SKILL.md ] || fail "standard skill symlink does not resolve in a clean clone"
   for link in .pi/skills .codex/skills; do

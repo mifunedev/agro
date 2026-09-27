@@ -4,7 +4,7 @@
 # desc: Static guard that `.claude/hooks/**` remains in ci-harness push + pull_request path filters and hook scripts remain shellchecked.
 set -euo pipefail
 
-ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 WORKFLOW="$ROOT/.github/workflows/ci-harness.yml"
 
 if [ ! -f "$WORKFLOW" ]; then

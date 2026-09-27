@@ -10,6 +10,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 SCRIPT="$ROOT/.agro/skills/wiki/scripts/knowledge-impact.sh"
 SCHEMA="$ROOT/.agro/skills/wiki/references/schema.md"
 LINT="$ROOT/.agro/skills/wiki/references/lint.md"
+PREFIX="$(git -C "$ROOT" rev-parse --show-prefix 2>/dev/null || true)"
 
 for f in "$SCRIPT" "$SCHEMA" "$LINT"; do
   [[ -f "$f" ]] || { echo "SKIPPED: required file absent: $f" >&2; exit 2; }
@@ -55,7 +56,7 @@ resolve_sources() {
         fi
         # A pin names a revision of the file's CONTENT. If the path has since moved,
         # look the basename up in that commit's tree rather than calling it broken.
-        if ! git -C "$ROOT" cat-file -e "$sha:$path" 2>/dev/null; then
+        if ! git -C "$ROOT" cat-file -e "$sha:$PREFIX$path" 2>/dev/null; then
           # `git ... | grep -q` would SIGPIPE git and trip pipefail on a MATCH,
           # so capture the tree first and match against the captured text.
           tree="$(git -C "$ROOT" ls-tree -r --name-only "$sha" 2>/dev/null || true)"
