@@ -41,6 +41,8 @@ cases=(
   "a source inline span that wraps a line pairs its own backticks|$EXP_DIR/corpus/sources/F1-14.md|$FIXTURES/F1-14.source-wrapped-span.md|F1-14|.p1_literals and .details.p1.missing == []"
   "a fenced block indented under a list item keeps P1|$EXP_DIR/corpus/sources/F2-09.md|$FIXTURES/F2-09.nested-block.md|F2-09|.p1_literals and .details.p1.missing == []"
   "a split fenced block still fails P1 (live F2-09 r1)|$EXP_DIR/corpus/sources/F2-09.md|$FIXTURES/F2-09.live-r1-split-block.md|F2-09|(.p1_literals | not) and .details.p1.missing_count == 1 and (.details.p1.missing[0] | startswith(\"gh run list --repo\"))"
+  "a Markdown link target ends at its closing parenthesis (live F1-10 r1)|$EXP_DIR/corpus/sources/F1-10.md|$FIXTURES/F1-10.live-r1-link-target.md|F1-10|.p1_literals and .details.p1.missing == []"
+  "a bare URL keeps a balanced parenthesis and drops a trailing one|$FIXTURES/bare-url-paren.source.md|$FIXTURES/edge.empty.md|F1-01|.details.p1.missing == [\"https://en.wikipedia.org/wiki/Markdown_(language)\"]"
   "a gap value glued to a unit counts as filled|$GAP_SOURCE|$FIXTURES/F3-03.glued-gap.md|F3-03|$(only p3_no_invention) and .details.p3.filled_gaps == [\"755\"]"
 )
 

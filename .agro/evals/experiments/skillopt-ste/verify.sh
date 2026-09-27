@@ -78,7 +78,7 @@ min_ratio, max_ratio = 0.5, 1.5
 fence_re = re.compile(r"^\s*(`{3,}|~{3,})")
 code_re = re.compile(r"(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)", re.S)
 url_re = re.compile(r"https?://\S+")
-url_trailing = ".,;:)>]\"'*"
+url_trailing = ".,;:>]\"'*"
 path_leading = "([{\"'*`<\\"
 path_trailing = ")]}\"'*,;:!?.`>\\"
 path_prefixes = ("/", "./", "../", "~/")
@@ -98,6 +98,20 @@ number_words.update({
     "eighty": "80", "ninety": "90", "hundred": "100", "thousand": "1000",
 })
 number_word_re = re.compile(r"\b(" + "|".join(number_words) + r")\b", re.I)
+
+
+def url_literal(match):
+    depth = 0
+    for index, char in enumerate(match):
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            if depth == 0:
+                return match[:index].rstrip(url_trailing)
+            depth -= 1
+    return match.rstrip(url_trailing)
+
+
 list_marker_re = re.compile(r"^(\s*)(\d+)([.)])(?=\s)", re.M)
 angle_re = re.compile(r"<[^<>\n]*>")
 placeholder_re = re.compile(r"<[A-Za-z][^<>\n]{0,60}>")
@@ -233,7 +247,7 @@ def literals_of(text):
             add(literals, seen, collapse(paragraph[found.start(2):found.end(2)]), "span")
             rest = blank(rest, found.start(), found.end())
         for found in url_re.finditer(rest):
-            add(literals, seen, found.group(0).rstrip(url_trailing))
+            add(literals, seen, url_literal(found.group(0)))
             rest = blank(rest, found.start(), found.end())
         for token in rest.replace("](", "] (").split():
             path = path_token(token)
