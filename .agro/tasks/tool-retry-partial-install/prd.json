@@ -14,12 +14,13 @@
         "On the current code, both cases fail because the second run prints `already installed` and exits 0 (reproduction in issue #1246)."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: vitest -t \"partial install\" on red commit: 2 failed (sandbox and host second run printed already installed); reasoned: reproduces #1246",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/__tests__/tool.test.ts"
-      ]
+      ],
+      "commit": "5a2290ea"
     },
     {
       "id": "US-002",
@@ -34,8 +35,8 @@
         "`/home/sandbox/harness/node_modules/.bin/vitest run .agro/cli/src/__tests__/tool.test.ts` from the repository root exits 0, and `npx tsc --noEmit -p .` in `.agro/cli` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: vitest tool.test.ts + harness.test.ts on task branch, 246 passed, exit 0; tsc --noEmit exit 0; reasoned: marker write, marker check, host receipt rule with root and outside-prefix exceptions, uninstall rm -f each covered by tests; existing cases pass unchanged; no helper extraction (three small functions)",
       "dependsOn": [
         "US-001"
       ],
@@ -44,7 +45,8 @@
         ".agro/cli/src/commands/harness.ts",
         ".agro/cli/src/lib",
         ".agro/cli/src/__tests__/tool.test.ts"
-      ]
+      ],
+      "commit": "47d10a6b"
     },
     {
       "id": "US-003",
