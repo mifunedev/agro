@@ -15,13 +15,14 @@
         "`pnpm run typecheck` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: harness-catalog test failed on origin/development argv, then passed (73/73); tsc --noEmit exit 0; git grep venv/bin/python in .agro/cli empty.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/harnesses/catalog.ts",
         ".agro/cli/src/__tests__/harness-catalog.test.ts"
-      ]
+      ],
+      "commit": "4cb64204"
     },
     {
       "id": "US-002",
@@ -34,13 +35,14 @@
         "`.agro/scripts/__tests__/hermes-links.test.ts` passes, and the guard cases still refuse a non-disposable sandbox."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: bash -n exit 0; grep venv/bin/python empty; hermes-links.test.ts 15/15. reasoned: trap rm -f removes the temp file on exit; the full smoke run is proved by CI in US-004.",
       "dependsOn": [],
       "files": [
         ".agro/scripts/hermes-install-smoke.sh",
         ".agro/scripts/__tests__/hermes-links.test.ts"
-      ]
+      ],
+      "commit": "c0f7a430"
     },
     {
       "id": "US-003",
@@ -53,13 +55,14 @@
         "`docs/harnesses/hermes.md` states that pm owns the Hermes environment and that AGRO adds the `slack` and `teams` extras. `ste-check.sh` reports no new finding on the file."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: ensure_hermes_teams_deps absent, bash -n exit 0; git grep hermes-agent/venv outside tasks empty after integration; gateway+entrypoint tests 34/34; ste-check hermes.md 0 findings before and after.",
       "dependsOn": [],
       "files": [
         ".agro/scripts/gateway.sh",
         "docs/harnesses/hermes.md"
-      ]
+      ],
+      "commit": "08f8664e,03e52d18"
     },
     {
       "id": "US-004",
