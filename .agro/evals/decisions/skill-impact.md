@@ -2506,3 +2506,73 @@ index 5fa73436..c6e2def3 100644
 
  Use `DRAFT` only when the plan passes these checks and waits for operator approval.
 ````
+
+## SI-0025 · 2026-09-26 · builder · PROPOSED
+
+- **proposal**: Add a headless rule and advisor turn-reduction edits to `/delegate`: record open decisions as stated defaults, report hook blocks and go to the next unblocked story, never end on a question; batch setup reads, read each file once, bound outputs, one verification command per story, and accept from the worker report, `git show --stat`, the owned-path diff, and the verification rerun.
+- **target**: `.agro/skills/delegate/SKILL.md`
+- **motivating patterns**: none (direct request)
+- **proposer**: /builder rule, issue #1226, evidence from `.agro/evals/experiments/delegate-overhead/report.md` (#1224: advisor share 0.56; 2 of 6 episodes stopped on an operator question)
+- **diff**:
+
+````diff
+diff --git a/.agro/skills/delegate/SKILL.md b/.agro/skills/delegate/SKILL.md
+index b9c0dd5a..33ad2651 100644
+--- a/.agro/skills/delegate/SKILL.md
++++ b/.agro/skills/delegate/SKILL.md
+@@ -52,6 +52,34 @@ Each story in `userStories` is one task:
+
+ The advisor skips each story with `passes: true`.
+
++## Cost budget
++
++Each advisor tool call sends the whole context again. Keep acceptance complete,
++and remove repeated work.
++
++- Read `prd.json`, `prd.md`, and each applicable `AGENTS.md` in one batched call.
++- Read each file one time. Do not read a file again after its content is in the
++  context.
++- Keep outputs short. Use `grep -n` or one `sed -n` window. Do not `cat` a long
++  file.
++- Put the verification of one story into one combined command.
++- Do not read the whole worker diff again. Use the worker report, `git show --stat`,
++  the diff of the owned write paths, and the rerun of the verification.
++
++## Headless run
++
++A headless run is a run where no operator can answer, such as an unattended or
++cron run. In a headless run, do these steps:
++
++- Record each open decision as a stated default in the `notes` of the story,
++  and continue.
++- If a hook blocks an action, write the block in the final report, and go to the
++  next unblocked story.
++- Never end the run with a question.
++
++The headless rule does not change the model policy or the hook rules. A default
++never replaces an explicit operator selection, and a block is never bypassed.
++
+ ## Dispatch record
+
+ Write one record for each story before dispatch. Keep only these fields:
+@@ -98,7 +126,8 @@ Give each worker the dispatch record, the exclusions, and these rules:
+
+ A worker report is not acceptance. For each story, the advisor does these steps:
+
+-1. Inspect the worker commit.
++1. Inspect the worker commit with `git show --stat` and the diff of the owned
++   write paths.
+ 2. Bring the commit onto the task branch.
+ 3. Rerun the verification on the integrated task branch.
+ 4. Write `passes: true`, `commit`, and `notes` in `prd.json`. In `notes`,
+@@ -132,7 +161,8 @@ There is no separate ledger. `prd.json` holds the state.
+ - Otherwise, choose a model for each story. Record the reason in the dispatch
+   record.
+ - Never substitute a model silently.
+-- A required control that is unavailable blocks the story. Ask the operator.
++- A required control that is unavailable blocks the story. Ask the operator. In a
++  headless run, report the block and go to the next unblocked story.
+
+ Provider defaults live in provider settings. For Claude Code, the default is
+ `CLAUDE_CODE_SUBAGENT_MODEL` in the `env` object of `.claude/settings.json`.
+````
