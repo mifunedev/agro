@@ -39,8 +39,8 @@
         "A comment on issue #1211 reports the verdict and the cost."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: summarize.sh heldout-1211 --paired; 72 scored records, 12 cases x 3 repeats x 2 arms, 0 excluded, candidate at 8fcbf890. 2 executed: the first episode cost $1.02; the run cost $54.30 of $70. 3 executed: summary.json paired.decision reports ratio_le_max true, upper_lt_max true, pass_rate_guard true, no_new_failure_class false (g1_paths on 1068), substance_guard true, verdict no-improvement. 4 executed: results-1211.md states the verdict, both arms, and the earlier #1197 evaluation; ste-check.sh exit 0. 5 executed: git diff --stat origin/development -- .agro/skills/prd/ prints nothing after the revert; SI-0024 stays in the append-only ledger. 6 executed: gh issue comment 1211, comment 5851382466.",
       "dependsOn": [
         "US-001"
       ],
@@ -48,7 +48,8 @@
         ".agro/evals/experiments/prd-efficiency/runs/heldout-1211/",
         ".agro/evals/experiments/prd-efficiency/results-1211.md",
         ".agro/skills/prd/SKILL.md"
-      ]
+      ],
+      "commit": "3de14777"
     }
   ]
 }

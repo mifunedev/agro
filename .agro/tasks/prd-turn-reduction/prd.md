@@ -93,4 +93,6 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. **The turn-reduction edits alone cut the cost by 23% and kept the plan substance.** Evidence: the held-out ratio is 0.766. The median acceptance criteria are 27.5 against 29. Outcome: dropped. The operator decides the next measurement, as `results-1211.md` states.
+2. **The absent rule of `verify-prd.sh` misses two correct forms.** Evidence: case 1068 has one plan that says `link-providers.sh` retires `.pi/skills`. A second plan says that no `.pi/skills` link exists. Both plans fail `g1_paths`. This one gap decided the verdict. Outcome: a proposed issue that waits for operator approval.
+3. **The skill-impact ledger has no verdict record for SI-0024.** Evidence: only `/benchmark` writes `SI-nnnn-V` records, and this task measured the change with the experiment machinery. The results file holds the verdict. Outcome: dropped. The ledger stays append-only, and `results-1211.md` names SI-0024.
