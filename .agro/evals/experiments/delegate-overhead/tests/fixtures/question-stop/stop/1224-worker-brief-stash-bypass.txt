@@ -1,0 +1,16 @@
+eckout, `SKILL.md` had git's skip-worktree flag set, which hid a local edit from `git status`. That edit is byte-identical to the worker's version. Because of this:
+1. My note to the worker wrongly said the rules were already in the file. The worker caught this and edited the file as the story requires.
+2. I cleared the flag, which loses no content. The fast-forward then refused, because the local edit would be overwritten. The hook blocked `git checkout -- .agro/skills/delegate/SKILL.md`.
+3. The worker hit the same block when discarding `.agro/evals/RESULTS.md`, which the probe suite rewrote in the worker worktree.
+
+**To finish, please run these yourself:**
+```
+cd /home/sandbox/.local/state/agro/delegate-overhead/repos/screen--worker-brief-stash-bypass--a1
+git checkout -- .agro/skills/delegate/SKILL.md
+git -C .worktrees/1162-us-001 checkout -- .agro/evals/RESULTS.md
+```
+Then tell me to continue. I'll fast-forward the task branch `bug/1162-worker-brief-stash-bypass` to `2b85042`, rerun the probe there, record the result in `prd.json` and commit it locally, and remove the worker worktree and branch.
+
+Close will also rewrite the `## Lessons` section in `prd.md`. It currently says the story passed on its first commit and that the brief already had both rules. The second part is wrong: the story needed the skill edit, and the skip-worktree flag caused both the wrong note to the worker and this block.
+
+I won't tick the PR `## Stories` checklist, because that means calling GitHub.

@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly THROUGH=67b0c72e4a96fcb008dc858996ae3a3465ba672f
-readonly CASES=6
 readonly EXCLUDED_SLUGS=" prd-efficiency prd-turn-reduction verify-prd-lexical-positives skillopt-ste "
 
 EXP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,13 +12,14 @@ export LC_ALL=C
 
 usage() {
   cat >&2 <<'USAGE'
-Usage: select.sh [<out-dir>]
+Usage: select.sh [--issue 1224|1233] [<out-dir>]
 
-Rebuild <out-dir>/manifest.json from git history only. The default <out-dir>
-is corpus/. The history must hold the first-parent chain of development up to
-67b0c72e.
+Rebuild <out-dir>/manifest.json from git history only. The default issue is
+1224. The default <out-dir> is corpus/ for 1224 and corpus-1233/ for 1233.
+The history must hold the first-parent chain of development up to the bound:
+67b0c72e for 1224, 5b73d1ae for 1233.
 
-Pool: each first-parent commit C of development through 67b0c72e that adds
+Pool: each first-parent commit C of development through the bound that adds
 .agro/tasks/<slug>/prd.json relative to C^1.
 
 Keep a candidate only when: C^1 holds .agro/skills/delegate/SKILL.md; C^1
@@ -31,16 +30,35 @@ prd-turn-reduction, verify-prd-lexical-positives, or skillopt-ste; the slug
 does not hold "screen" or "efficiency".
 
 Revision: C^1. The prd.md and prd.json digests are sha256 of the files at C.
-Order: sha256 of the slug, ascending. Take the first 6 candidates.
+Issue 1233 also drops a candidate when the diff C^1..C changes a path under
+the overlay of run-episode.sh: the skill_path of experiment-1233.json
+(.agro/skills/delegate/). The runner replaces that directory, so a task that
+edits it cannot merge its own work.
+
+Order: sha256 of the slug, ascending. Take the first 6 candidates for 1224
+and the first 8 for 1233. The script prints the case list.
 USAGE
 }
 
-case "${1:-}" in
-  -h|--help) usage; exit 0 ;;
-  -*) usage; exit 2 ;;
+issue=1224
+positional=()
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    --issue) [ "$#" -ge 2 ] || { usage; exit 2; }; issue="$2"; shift 2 ;;
+    -*) usage; exit 2 ;;
+    *) positional+=("$1"); shift ;;
+  esac
+done
+[ "${#positional[@]}" -le 1 ] || { usage; exit 2; }
+case "$issue" in
+  1224) THROUGH=67b0c72e4a96fcb008dc858996ae3a3465ba672f; CASES=6; corpus=corpus; overlay="" ;;
+  1233) THROUGH=5b73d1aeba7df4f1902775b9719c55a9a4a41bb2; CASES=8; corpus=corpus-1233
+    overlay="$(jq -r '.skill_path' "$EXP_DIR/experiment-1233.json")" ;;
+  *) usage; exit 2 ;;
 esac
-[ "$#" -le 1 ] || { usage; exit 2; }
-OUT_DIR="${1:-$EXP_DIR/corpus}"
+readonly THROUGH CASES overlay
+OUT_DIR="${positional[0]:-$EXP_DIR/$corpus}"
 readonly OUT_DIR
 mkdir -p "$OUT_DIR"
 
@@ -66,6 +84,9 @@ while read -r commit; do
     else
       add_reason "no prd.md at C"
     fi
+    if [ -n "$overlay" ] && [ -n "$(git -C "$REPO_ROOT" diff --name-only "$parent" "$commit" -- "$overlay/")" ]; then
+      add_reason "C changes the overlay $overlay/"
+    fi
     json_sha="$(git -C "$REPO_ROOT" cat-file blob "$commit:$path" | sha256sum | cut -d' ' -f1)"
     stories="$(git -C "$REPO_ROOT" cat-file blob "$commit:$path" | jq '(.userStories // []) | length' 2>/dev/null || printf 'null')"
     if [ "$stories" = null ] || [ "$stories" -lt 1 ] || [ "$stories" -gt 3 ]; then
@@ -83,17 +104,19 @@ done < <(git -C "$REPO_ROOT" rev-list --first-parent "$through")
 cases="$(jq -c --argjson n "$CASES" '[.[] | select(.excluded == [])] | sort_by(.order_key) | .[0:$n] | map(del(.excluded))' <<<"$pool")"
 [ "$(jq length <<<"$cases")" -eq "$CASES" ] || { printf 'select.sh: fewer than %s eligible candidates\n' "$CASES" >&2; exit 1; }
 
-jq -n --arg through "$through" --argjson cases "$cases" --argjson pool "$pool" '{
+jq -n --arg through "$through" --argjson cases "$cases" --argjson pool "$pool" \
+  --argjson issue "$issue" --argjson take "$CASES" --arg overlay "$overlay" '{
   schemaVersion: 1,
   experiment: "delegate-overhead",
-  issue: 1224,
+  issue: $issue,
   range: {through: $through, history: "first-parent of development"},
   selection: {
     pool: "first-parent commits C through range.through that add .agro/tasks/<slug>/prd.json relative to C^1",
-    keep: ["C^1 holds .agro/skills/delegate/SKILL.md", "C^1 holds each dot top-level directory that a backticked path in prd.md starts with", "C holds .agro/tasks/<slug>/prd.md", "prd.json at C has 1 to 3 userStories", "slug is not prd-efficiency, prd-turn-reduction, verify-prd-lexical-positives, or skillopt-ste", "slug does not hold screen or efficiency"],
+    keep: (["C^1 holds .agro/skills/delegate/SKILL.md", "C^1 holds each dot top-level directory that a backticked path in prd.md starts with", "C holds .agro/tasks/<slug>/prd.md", "prd.json at C has 1 to 3 userStories", "slug is not prd-efficiency, prd-turn-reduction, verify-prd-lexical-positives, or skillopt-ste", "slug does not hold screen or efficiency"]
+      + (if $overlay == "" then [] else ["the diff C^1..C changes no path under \($overlay)/, the overlay of run-episode.sh"] end)),
     revision: "C^1",
     order: "sha256 of the slug, ascending",
-    take: "the first 6 candidates in order"
+    take: "the first \($take) candidates in order"
   },
   cases: $cases,
   pool: $pool

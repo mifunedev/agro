@@ -22,7 +22,9 @@ share selects "target session context". No scored episode gives
 --paired (#1226): take the last ok or timeout line of each case, arm, and
 repeat. For each arm, print the episodes, the mean cost, the mean advisor
 cost, the advisor share of the mean cost, the mean stories accepted, the
-question stops, and the timeouts. A question stop is an episode with
+question stops, and the timeouts. summary-paired.json also holds
+verified_accepted: the mean verified_pass of accepted_verification (see
+verify-accepted.sh --help), or null when no episode has it. A question stop is an episode with
 question_stop true (see run-episode.sh --help). Write
 runs/<run-id>/summary-paired.json with the #1226 success checks:
 advisor_cost_lower (candidate mean advisor cost < baseline),
@@ -51,6 +53,7 @@ if [ "$paired" -eq 1 ]; then
         advisor_share_of_mean: (mean(.advisor_cost_usd) as $a | mean(.total_cost_usd) as $c
           | if $a == null or $c == null or $c == 0 then null else $a / $c end),
         stories_accepted: mean(.stories_accepted),
+        verified_accepted: mean(.accepted_verification.verified_pass?),
         question_stops: map(select(.question_stop == true)) | length,
         timeouts: map(select(.status == "timeout")) | length}}) | from_entries as $arms
     | ($arms.baseline // null) as $b | ($arms.candidate // null) as $c

@@ -3,8 +3,9 @@ set -euo pipefail
 
 EXP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly EXP_DIR
-readonly EXPERIMENT="$EXP_DIR/experiment.json"
-readonly MANIFEST="${DELEGATE_OVERHEAD_MANIFEST:-$EXP_DIR/corpus/manifest.json}"
+readonly EXPERIMENT="${DELEGATE_OVERHEAD_EXPERIMENT:-$EXP_DIR/experiment.json}"
+MANIFEST="${DELEGATE_OVERHEAD_MANIFEST:-$EXP_DIR/$(jq -r '.manifest // "corpus/manifest.json"' "$EXPERIMENT")}"
+readonly MANIFEST
 RUNNER_ROOT="$(git -C "$EXP_DIR" rev-parse --show-toplevel)"
 readonly RUNNER_ROOT
 readonly STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/agro/delegate-overhead"
@@ -14,6 +15,8 @@ readonly RUNS_DIR="${DELEGATE_OVERHEAD_RUNS_DIR:-$EXP_DIR/runs}"
 readonly REPO_BUILDER="$EXP_DIR/../git-conventions/make-episode-repo.sh"
 readonly NO_EGRESS="$EXP_DIR/../git-conventions/no-egress.sh"
 readonly SPLIT_JQ="$EXP_DIR/split.jq"
+readonly QUESTION_JQ="$EXP_DIR/question-stop.jq"
+readonly VERIFY_ACCEPTED="$EXP_DIR/verify-accepted.sh"
 
 # shellcheck source=../lib/episode.sh
 source "$EXP_DIR/../lib/episode.sh"
@@ -57,10 +60,29 @@ counts once per message.id. The estimated cost of each side uses the price
 table of ../skill-spend/report.md. advisor_cost_usd is total_cost_usd times
 the advisor share of the estimated cost.
 
-Question stop: question_stop is true when the result text of the trace ends
-with a question mark, or holds "once you answer", "tell me to", or "should I"
-(any case). The check is a text heuristic. It finds a stop that asks the
-operator, and it can miss a question with other words.
+Question stop: question-stop.jq reads the result event. question_stop is
+true when the result text ends with a question mark. question_stop is also
+true when the last 1500 characters of the text match one of these regular
+expressions (any case):
+  once you answer
+  \btell me (to|which)\b
+  \bshould i\b
+  \bdecisions? (for you|needed)\b
+  \byour call\b
+  \ballow me to\b
+  \brun (this|these)( yourself|:| command)
+  confirm as a whole word at the start of a line or a list item, or after
+  "please", "you", or "to"
+The word boundary rejects "confirmed". The check is a text heuristic. The
+check finds a final report that asks the operator for a decision, a
+command, or permission. The check can miss a question with other words.
+
+Experiment: DELEGATE_OVERHEAD_EXPERIMENT selects the experiment file (default
+experiment.json). Its manifest field selects the corpus (default
+corpus/manifest.json). The line records the issue of the experiment file.
+When the experiment file has verify_accepted true, verify-accepted.sh runs
+on the episode repository before the runner deletes it, and the line
+records its JSON as accepted_verification (null otherwise).
 
 Outcome: stories_accepted is the passes true count in the prd.json of the
 episode at the end. commits is the number of commits after the setup commit
@@ -72,7 +94,7 @@ The runner deletes the episode repository and keeps the gzip trace under
 
 Statuses: ok, timeout, infra_failure, pin_mismatch, usage_limit, interrupted.
 Test overrides: DELEGATE_OVERHEAD_RUNS_DIR, DELEGATE_OVERHEAD_TIMEOUT_S,
-DELEGATE_OVERHEAD_MANIFEST.
+DELEGATE_OVERHEAD_MANIFEST, DELEGATE_OVERHEAD_EXPERIMENT.
 
 Exit 0 when the line was recorded, 2 on bad arguments.
 USAGE
@@ -118,6 +140,9 @@ json_sha="$(jq -r '.prd_json_sha256' <<<"$entry")"
 stories_total="$(jq -r '.stories' <<<"$entry")"
 
 model="$(jq -r '.model' "$EXPERIMENT")"
+issue="$(jq -c '.issue' "$EXPERIMENT")"
+verify_accepted="$(jq -r '.verify_accepted // false' "$EXPERIMENT")"
+verification_json="null"
 effort="$(jq -r '.effort' "$EXPERIMENT")"
 prompt_template="$(jq -r '.episode_prompt' "$EXPERIMENT")"
 timeout_s="${DELEGATE_OVERHEAD_TIMEOUT_S:-$(jq -r '.episode_timeout_s' "$EXPERIMENT")}"
@@ -201,6 +226,12 @@ collect_outcome() {
   )"
 }
 
+verify_outcome() {
+  [ "$verify_accepted" = true ] && [ -n "$setup_commit" ] && [ -d "$wt" ] || return 0
+  verification_json="$(bash "$VERIFY_ACCEPTED" --repo "$wt" --source "$RUNNER_ROOT" --slug "$slug" --commit "$commit" 2>/dev/null || true)"
+  [ -n "$verification_json" ] || verification_json=null
+}
+
 record_line() {
   [ "$recorded" -eq 0 ] || return 0
   recorded=1
@@ -216,7 +247,8 @@ record_line() {
     --argjson outside "$outside_json" --arg setup_commit "$setup_commit" \
     --arg status "$status" --arg started_at "$started_at" --argjson claude_exit "$claude_exit" --arg error "$error" \
     --arg arm "$arm" --argjson repeat "$repeat" --arg candidate_rev "$candidate_rev" --argjson question_stop "$question_stop" \
-    '{run_id: $run_id, episode_id: $episode_id, case_id: $case_id, slug: $slug, attempt: $attempt,
+    --argjson issue "$issue" --argjson verification "$verification_json" \
+    '{run_id: $run_id, issue: $issue, episode_id: $episode_id, case_id: $case_id, slug: $slug, attempt: $attempt,
       arm: $arm, repeat: $repeat, candidate_rev: (if $candidate_rev == "" then null else $candidate_rev end),
       question_stop: $question_stop,
       revision: $revision, commit: $commit, setup_commit: (if $setup_commit == "" then null else $setup_commit end),
@@ -230,7 +262,7 @@ record_line() {
       worker_cost_usd: (if ($split.advisor_share? // null) != null and ($usage.total_cost_usd? // null) != null
         then $usage.total_cost_usd * (1 - $split.advisor_share) else null end),
       stories_total: $stories_total, stories_accepted: $stories_accepted, commits: $commits,
-      outside_task_changes: $outside,
+      outside_task_changes: $outside, accepted_verification: $verification,
       outside_task_changed: (if $outside == null then null else ($outside | length > 0) end),
       episode_repo: "isolated", status: $status, started_at: $started_at, claude_exit: $claude_exit,
       error: (if $error == "" then null else $error end)}')"
@@ -244,8 +276,7 @@ summarize_trace() {
   result_event="$(ep_result_event "$trace_gz")"
   usage_json="$(ep_usage_json "$result_event")"
   if [ -n "$result_event" ]; then
-    question_stop="$(jq -c '(.result // "") | if type == "string" then
-      (sub("\\s+$"; "") | endswith("?")) or test("once you answer|tell me to|should i\\b"; "i") else false end' <<<"$result_event")"
+    question_stop="$(jq -c -f "$QUESTION_JQ" <<<"$result_event")"
   fi
   if [ -f "$trace_gz" ]; then
     split_json="$(ep_trace_events "$trace_gz" | jq -c -s --argjson prices "$prices" -f "$SPLIT_JQ")"
@@ -367,6 +398,7 @@ claude_exit="$rc"
 stderr_tail="$(tail -c 2000 "$claude_stderr" 2>/dev/null || true)"
 summarize_trace
 collect_outcome
+verify_outcome
 
 if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
   finish timeout "claude exceeded ${timeout_s}s"
