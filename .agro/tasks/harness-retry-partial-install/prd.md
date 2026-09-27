@@ -124,4 +124,5 @@ None. The operator approved both recommendations: a sandbox binary without a mar
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. `agro tool install` uses the same binary-only probe (`tool.ts` lines 473 and 573). A partial tool install has the same retry defect. Outcome: a follow-up issue, proposed at Close and waiting for operator approval.
+2. The US-002 criterion ran vitest from `.agro/cli`. That directory has no vitest configuration for these files, so the command must run from the repository root. Outcome: dropped, because the criterion is plan text and the worker ran the correct command.
