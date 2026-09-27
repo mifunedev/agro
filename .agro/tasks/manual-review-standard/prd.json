@@ -21,15 +21,16 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on the reference file and on the changed lines of the git skill."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted on the task branch (merge 92e0c503). Executed: pr-manual-review.sh exit 0, and exit 1 with REGRESSION against a copy whose template renames the section; git-skill.sh exit 0; git-conventions tests/verify-git.sh exit 0; ste-check on the reference exit 0; git SKILL.md keeps its 13 base findings with none new. Reasoned: both shapes, rules, and the #185 citation are in the reference; the gate rejects None for Manual review; the draft step falls back to the harness template.",
       "dependsOn": [],
       "files": [
         ".github/pull_request_template.md",
         ".agro/skills/git/SKILL.md",
         ".agro/skills/git/references/manual-review.md",
         ".agro/evals/probes/pr-manual-review.sh"
-      ]
+      ],
+      "commit": "17a96f57"
     },
     {
       "id": "US-002",
@@ -42,13 +43,14 @@
         "Every probe that reads the `/prd` or `/delegate` skill still passes."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted on the task branch (merge 92e0c503). Executed: ste-check on prd and delegate skills exit 0; advisor-execution-contract, prd-output-path-contract, delegate-model-effort-policy, delegate-worker-boundary probes exit 0 before and after; skills-vendored.sh exits 1 before and after (cc-safety-net not on PATH). Reasoned: the last story captures evidence; Close fills Manual review from it with observed results only.",
       "dependsOn": [],
       "files": [
         ".agro/skills/prd/SKILL.md",
         ".agro/skills/delegate/SKILL.md"
-      ]
+      ],
+      "commit": "12853790"
     }
   ]
 }

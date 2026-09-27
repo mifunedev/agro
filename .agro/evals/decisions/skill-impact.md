@@ -2602,3 +2602,40 @@ index 00bce9dd..f568b59a 100644
  8. Run `scripts/ste-check.sh` against the file. Fix each finding. Repeat until
     the checker exits 0.
 ````
+
+## SI-0027 · 2026-09-27 · builder · PROPOSED
+
+- **proposal**: Require a `## Manual review` section in each PR body in one canonical shape, with a harness-template fallback, a final evidence story in `/prd`, and a `/delegate` Close step that fills the section.
+- **target**: `.agro/skills/git/SKILL.md`, `.agro/skills/prd/SKILL.md`, `.agro/skills/delegate/SKILL.md`
+- **motivating patterns**: mifunedev/agro-console#185 (operator request)
+- **proposer**: /builder rule, issue #1236
+- **diff**:
+
+````diff
+diff --git a/.agro/skills/git/SKILL.md b/.agro/skills/git/SKILL.md
+index 89a25b86..d1e225a6 100644
+--- a/.agro/skills/git/SKILL.md
++++ b/.agro/skills/git/SKILL.md
+@@ -308,6 +308,8 @@ operator approval of the plan. Writing a plan is not approval.
+    ```
+ 
+ 4. Open the draft PR. Build the body from `.github/pull_request_template.md`.
++   If the target repository has no `.github/pull_request_template.md`, use
++   `.github/pull_request_template.md` of the AGRO harness.
+    Put `Closes #<N>` in the body. Add a `## Stories` checklist from `prd.json`:
+ 
+    ```bash
+@@ -338,8 +340,10 @@ Do these steps in this sequence:
+   `awk '/^## /{s=($0=="## Lessons");n=0;next} s&&NF{n++} END{exit !(s&&n)}' .agro/tasks/<slug>/prd.md`
+   exits 0.
+ - The PR body evidence sections are non-empty: What the issue asked for, What
+-  was built, Where it diverged, What remains unverified, Verification, and
+-  Lessons. "None" or "Nothing" is a valid body.
++  was built, Where it diverged, Manual review, What remains unverified,
++  Verification, and Lessons. "None" or "Nothing" is a valid body, except for
++  Manual review. Manual review follows
++  [references/manual-review.md](references/manual-review.md).
+ - The repository's checks pass on the pushed branch (`/ci-status`).
+ 
+ ### After the merge
+````

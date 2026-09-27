@@ -10,6 +10,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
+- Require a `## Manual review` PR section with reviewer steps and observed results: annotated screenshots for a user journey, commands with example output for a server or CLI change ([#1236](https://github.com/mifunedev/agro/issues/1236)).
 - Add `agro sandbox upgrade <name> --version X.Y.Z` to recreate an image-mode sandbox with a pinned release while preserving its home data ([#1208](https://github.com/mifunedev/agro/issues/1208)).
 - Add `.github/assets/social-preview.jpg`, the 1280x640 repository social preview in the banner style that replaces the retired "Open Harness" image ([#1198](https://github.com/mifunedev/agro/issues/1198)).
 - Link GitHub Discussions from the README community section ([#1173](https://github.com/mifunedev/agro/issues/1173)).

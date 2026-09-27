@@ -90,4 +90,7 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+- The harness `.gitignore` ignores `.agro/tasks/*/*`, so an evidence screenshot does not reach the PR by default. Evidence: the US-001 report. Outcome: fixed in this PR. The reference says to commit each linked evidence file with `git add -f <path>`.
+- agent-browser 0.8.5 has no annotate flag. Evidence: the US-001 report. Outcome: fixed in this PR. The reference describes numbered callouts that the agent adds before each screenshot, and names no annotate tool.
+- `.github/ISSUE_TEMPLATE/feat.md` still has `### Visual Reference`. Evidence: `grep -n "Visual Reference" .github/ISSUE_TEMPLATE/feat.md`. Outcome: proposed issue "Align the feat issue template with the Manual review section".
+- `skills-vendored.sh` exits 1 in this sandbox because `cc-safety-net` is not on PATH. Evidence: the same failure on the base commit. Outcome: dropped, because the environment causes it and this PR does not touch that probe.
