@@ -10,7 +10,10 @@ if [ -S /var/run/docker.sock ] || [ "$(id -un)" != sandbox ]; then
   exit 64
 fi
 
-"$HOME/.local/lib/hermes-agent/venv/bin/python" - <<'PY'
+hermes_dir="$HOME/.local/lib/hermes-agent"
+program=$(mktemp "$hermes_dir/agro-smoke-XXXXXX.py")
+trap 'rm -f "$program"' EXIT
+cat >"$program" <<'PY'
 import hashlib
 import json
 import os
@@ -80,3 +83,4 @@ print(json.dumps({'home': str(home), 'cwd': os.getcwd(), 'uid': os.getuid(),
                   'canonical_files_unchanged': len(before), 'atomic_replace': True,
                   'skill_count': len(names), 'result': 'PASS'}, sort_keys=True))
 PY
+"$hermes_dir/scripts/_hermes-python" "$program"
