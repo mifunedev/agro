@@ -2061,6 +2061,18 @@ describe("agro tool install — a retry repairs a partial install", () => {
     expect(marked).toBe(true);
   });
 
+  it("clears the sandbox marker after a successful removal", async () => {
+    const root = makeRepo();
+    const { calls, run } = liveHost((cmd, args) =>
+      isExecOf(cmd, args, "command -v agent-browser") ? { status: 0, stdout: "", stderr: "" } : undefined,
+    );
+    const { io } = makeIo();
+    expect(await runToolUninstall("agent-browser", { bin: "agro", cwd: root, run, interactive: false }, io)).toBe(0);
+    expect(
+      calls.some((c) => c.args.includes("rm") && c.args.some((a) => a.endsWith("/share/agro/tools/agent-browser.installed"))),
+    ).toBe(true);
+  });
+
   it("runs the host install again for a user-prefix binary with no receipt", async () => {
     const repo = makeRepo();
     const home = emptyStateHome();

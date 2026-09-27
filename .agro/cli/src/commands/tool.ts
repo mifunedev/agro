@@ -111,6 +111,23 @@ function hostPrefix(home: string): string {
   return join(home, ".local");
 }
 
+function sandboxMarkerPath(entry: ToolEntry): string {
+  return `${SANDBOX_HARNESS_PREFIX}/share/agro/tools/${entry.id}.installed`;
+}
+
+async function sandboxMarkerExists(target: ExecutionTarget, entry: ToolEntry): Promise<boolean> {
+  const r = await target.exec({
+    argv: ["test", "-f", sandboxMarkerPath(entry)],
+    user: "sandbox",
+    stdio: "capture",
+  });
+  return r.exitCode === 0;
+}
+
+function hostBinaryUnderPrefix(entry: ToolEntry, prefix: string): boolean {
+  return existsSync(join(harnessBinPath(prefix), entry.binary));
+}
+
 function pathEntries(env: NodeJS.ProcessEnv): string[] {
   return (env.PATH ?? "").split(delimiter).filter((part) => part !== "");
 }
@@ -469,7 +486,17 @@ async function installOnHost(
   const installEnv: Record<string, string> = { NPM_USER_PREFIX: prefix };
   const target = hostTargetFor(root, prefix, run, env);
 
-  if (await probeInstalled(target, entry, undefined, installEnv) === true) {
+  let hasReceipt: boolean;
+  try {
+    hasReceipt = readHostConfig(env, home).hostTools?.[entry.id] !== undefined;
+  } catch (err) {
+    io.stderr(`${bin} tool: ${messageOf(err)}\n`);
+    return 1;
+  }
+  if (
+    await probeInstalled(target, entry, undefined, installEnv) === true &&
+    (hasReceipt || entry.hostInstallUser === "root" || !hostBinaryUnderPrefix(entry, prefix))
+  ) {
     io.stdout(`${entry.id}: already installed (${entry.binary})\n`);
     try {
       recordHarnessRoot(root, env, home);
@@ -569,7 +596,7 @@ export async function runToolInstall(
   if (entry.installArgv === undefined) return refuseContainer();
 
   const already = await probeInstalled(target, entry, "sandbox");
-  if (already === true) {
+  if (already === true && await sandboxMarkerExists(target, entry)) {
     io.stdout(`${entry.id}: already installed (${entry.binary})\n`);
     return 0;
   }
@@ -589,6 +616,17 @@ export async function runToolInstall(
   if (r.exitCode !== 0) {
     io.stderr(`${opts.bin} tool: installing ${entry.id} failed (exit ${r.exitCode}).\n`);
     return r.exitCode;
+  }
+
+  const marker = sandboxMarkerPath(entry);
+  const marked = await target.exec({
+    argv: ["sh", "-c", `mkdir -p "$(dirname "$1")" && : > "$1"`, "sh", marker],
+    user: "sandbox",
+    stdio: "capture",
+  });
+  if (marked.exitCode !== 0) {
+    io.stderr(`${opts.bin} tool: could not record the install at ${marker} (exit ${marked.exitCode}).\n`);
+    return 1;
   }
 
   io.stdout(`${entry.id}: installed — see ${sourceDocsUrl(entry.docsPath)}\n`);
@@ -719,5 +757,17 @@ export async function runToolUninstall(
     return await uninstallOnHost(entry, opts, io, run);
   }
 
-  return (await removeTool(entry, target, SANDBOX_HARNESS_PREFIX, "sandbox", opts, io)).code;
+  const outcome = await removeTool(entry, target, SANDBOX_HARNESS_PREFIX, "sandbox", opts, io);
+  if (outcome.dropReceipt) {
+    const cleared = await target.exec({
+      argv: ["rm", "-f", sandboxMarkerPath(entry)],
+      user: "sandbox",
+      stdio: "capture",
+    });
+    if (cleared.exitCode !== 0) {
+      io.stderr(`${opts.bin} tool: could not clear the install record (exit ${cleared.exitCode}).\n`);
+      return 1;
+    }
+  }
+  return outcome.code;
 }
