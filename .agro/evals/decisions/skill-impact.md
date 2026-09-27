@@ -2576,3 +2576,29 @@ index b9c0dd5a..33ad2651 100644
  Provider defaults live in provider settings. For Claude Code, the default is
  `CLAUDE_CODE_SUBAGENT_MODEL` in the `env` object of `.claude/settings.json`.
 ````
+
+## SI-0026 · 2026-09-27 · builder · PROPOSED
+
+- **proposal**: State that the byte-for-byte rule wins over rewrite step 6 in `/ste`: a code block with more than one command stays one block, and the prose around the block states the order. Add one multi-command before/after pair to `references/examples.md`.
+- **target**: `.agro/skills/ste/SKILL.md`
+- **motivating patterns**: none (direct request)
+- **proposer**: /builder rule, issue #1187
+- **diff**:
+
+````diff
+diff --git a/.agro/skills/ste/SKILL.md b/.agro/skills/ste/SKILL.md
+index 00bce9dd..f568b59a 100644
+--- a/.agro/skills/ste/SKILL.md
++++ b/.agro/skills/ste/SKILL.md
+@@ -108,7 +108,9 @@ Run these seven steps against an existing document.
+ 3. Rewrite each sentence to carry one idea, in the active voice.
+ 4. Replace every non-approved word with its approved replacement.
+ 5. Move each condition ahead of the action the condition guards.
+-6. Split each step that holds more than one action.
++6. Split each step that holds more than one action. Never split a code block.
++   A block with more than one command stays one block. The prose around the
++   block states the order.
+ 7. Mark each `missing` value with a placeholder. Never supply a value.
+ 8. Run `scripts/ste-check.sh` against the file. Fix each finding. Repeat until
+    the checker exits 0.
+````

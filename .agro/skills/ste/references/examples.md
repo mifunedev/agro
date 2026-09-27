@@ -326,6 +326,28 @@ Read `AGENTS.md` before you edit a file. Ask the operator when a requirement has
 
 **Why:** The rewrite gives the agent two testable instructions with a named file.
 
+**Domain:** Coding-agent instructions
+**Rules:** code block copied byte for byte, order stated in prose
+````markdown before
+1. You should probably install the dependencies and then run the tests, and it will usually pass:
+
+   ```bash
+   npm ci
+   npm test
+   ```
+````
+
+````markdown after
+1. Run the commands in this block in the given order. The first command installs the dependencies. The second command runs the tests.
+
+   ```bash
+   npm ci
+   npm test
+   ```
+````
+
+**Why:** The rewrite keeps the code block as one block and states the order in the prose.
+
 ## Architecture documents
 
 **Domain:** Architecture documents

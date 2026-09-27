@@ -108,7 +108,9 @@ Run these seven steps against an existing document.
 3. Rewrite each sentence to carry one idea, in the active voice.
 4. Replace every non-approved word with its approved replacement.
 5. Move each condition ahead of the action the condition guards.
-6. Split each step that holds more than one action.
+6. Split each step that holds more than one action. Never split a code block.
+   A block with more than one command stays one block. The prose around the
+   block states the order.
 7. Mark each `missing` value with a placeholder. Never supply a value.
 8. Run `scripts/ste-check.sh` against the file. Fix each finding. Repeat until
    the checker exits 0.
