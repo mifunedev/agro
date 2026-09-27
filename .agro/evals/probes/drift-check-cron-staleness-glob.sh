@@ -45,7 +45,7 @@ if ! printf '%s' "$BLOCK" | grep -qF 'crons/*.md'; then
   echo "REGRESSION: extracted Step C-2 block does not iterate crons/*.md — wrong block captured" >&2
   exit 1
 fi
-for required in schedule enabled agent tmux worktree preflight RESTART_REQUIRED_FRONTMATTER_FIELDS "frontmatter/config may be stale" "SIGHUP reschedule or runtime restart"; do
+for required in schedule enabled agent tmux worktree preflight RESTART_REQUIRED_FRONTMATTER_FIELDS "frontmatter/config may be stale" "SIGUSR1 reschedule or runtime restart"; do
   if ! printf '%s' "$BLOCK" | grep -qF "$required"; then
     echo "REGRESSION: Step C-2 block is missing restart-required frontmatter contract text: $required" >&2
     exit 1
@@ -259,7 +259,7 @@ if inert_contains "kkk-unsafe-agent.md"; then
   echo "REGRESSION: unsafe agent override was flagged inert — predicate diverges from runtime AGENT_INVALID skip" >&2
   fail=1
 fi
-if ! printf '%s\n' "$output" | grep -qF 'frontmatter/config may be stale until SIGHUP reschedule or runtime restart'; then
+if ! printf '%s\n' "$output" | grep -qF 'frontmatter/config may be stale until SIGUSR1 reschedule or runtime restart'; then
   echo "REGRESSION: inert cron diagnostic does not name restart-required frontmatter/config and the reschedule/restart recovery" >&2
   fail=1
 fi

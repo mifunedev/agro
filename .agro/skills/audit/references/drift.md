@@ -181,7 +181,7 @@ cron runtime started. Cron body text is hot-reloaded at fire time,
 but restart-required frontmatter/config (`schedule`, `enabled`, `agent`,
 `tmux`, `worktree`, `preflight`) is loaded when the scheduler arms the cron;
 a changed cron file may therefore leave the live runtime using stale config
-until a SIGHUP reschedule or runtime restart.
+until a SIGUSR1 reschedule or runtime restart.
 
 This detector is conservative: without a runtime snapshot it cannot prove
 which field changed. It reports that restart-required frontmatter/config **may**
@@ -378,7 +378,7 @@ for f in crons/*.md; do
   if [ -n "$FILE_MTIME" ] && [ "$FILE_MTIME" -gt "$RUNTIME_START" ]; then
     fm=$(awk 'NR>1 { sub(/\r$/,""); if ($0 ~ /^---[[:space:]]*$/) exit; print }' "$f")
     INERT+=("$f")
-    echo "DRIFT-CHECK (C): $f modified after runtime start — restart-required frontmatter/config may be stale until SIGHUP reschedule or runtime restart (${RESTART_REQUIRED_FRONTMATTER_FIELDS}; current $(cron_fm_fingerprint "$fm"))"
+    echo "DRIFT-CHECK (C): $f modified after runtime start — restart-required frontmatter/config may be stale until SIGUSR1 reschedule or runtime restart (${RESTART_REQUIRED_FRONTMATTER_FIELDS}; current $(cron_fm_fingerprint "$fm"))"
   fi
 done
 ```
@@ -411,7 +411,7 @@ this read-only skill.
 
 - Each class prints exactly one summary line when clean: `(A) Framework drift: OK`, `(B) Branch-behind drift: OK`, `(C) Cron-staleness drift: OK`. The `(C) Cron-staleness drift: OK` clean token is unchanged by the predicate — it still prints whenever no schedulable cron is inert.
 - When a class has findings, it prints one or more `DRIFT-CHECK (<letter>): ...` detail lines followed by a `Recommended:` block.
-- Class (C) evaluates only **schedulable cron files** — `crons/*.md` files that pass the Step C-2 predicate (a leading `---` frontmatter block declaring a non-empty, Croner-valid `schedule:` key, not `enabled: false`, valid cron id, filename/id match, and safe `agent:` override). Non-scheduled docs such as `crons/AGENTS.md` and malformed schedules the runtime would log as `SCHED_INVALID` are never evaluated, never emitted as a `DRIFT-CHECK (C)` line, and never counted toward the inert aggregate. Qualification is predicate-based, not a hard-coded name list, so a future non-cron file dropped into `crons/` is handled generically. Detail lines name the restart-required field set (`schedule enabled agent tmux worktree preflight`) and say the frontmatter/config may be stale until SIGHUP reschedule or runtime restart.
+- Class (C) evaluates only **schedulable cron files** — `crons/*.md` files that pass the Step C-2 predicate (a leading `---` frontmatter block declaring a non-empty, Croner-valid `schedule:` key, not `enabled: false`, valid cron id, filename/id match, and safe `agent:` override). Non-scheduled docs such as `crons/AGENTS.md` and malformed schedules the runtime would log as `SCHED_INVALID` are never evaluated, never emitted as a `DRIFT-CHECK (C)` line, and never counted toward the inert aggregate. Qualification is predicate-based, not a hard-coded name list, so a future non-cron file dropped into `crons/` is handled generically. Detail lines name the restart-required field set (`schedule enabled agent tmux worktree preflight`) and say the frontmatter/config may be stale until SIGUSR1 reschedule or runtime restart.
 - When at least one class is non-clean, print a final aggregate line:
 
 ```
@@ -435,7 +435,7 @@ DRIFT-CHECK (A): origin/development is 3 behind upstream/development (0 ahead)
   Recommended: git checkout upstream/development -- .claude/skills/git/SKILL.md scripts/cron-runtime.ts
 DRIFT-CHECK (B): ...
 (B) Branch-behind drift: OK
-DRIFT-CHECK (C): crons/heartbeat.md modified after runtime start — restart-required frontmatter/config may be stale until SIGHUP reschedule or runtime restart (schedule enabled agent tmux worktree preflight; current schedule=0 * * * * enabled=true agent=pi tmux=<unset> worktree=<unset> preflight=<unset>)
+DRIFT-CHECK (C): crons/heartbeat.md modified after runtime start — restart-required frontmatter/config may be stale until SIGUSR1 reschedule or runtime restart (schedule enabled agent tmux worktree preflight; current schedule=0 * * * * enabled=true agent=pi tmux=<unset> worktree=<unset> preflight=<unset>)
   Recommended: reschedule or restart the cron runtime ...
 DRIFT: framework drift (3 behind upstream), cron-staleness drift (1 inert file)
 ```

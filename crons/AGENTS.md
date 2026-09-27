@@ -29,13 +29,13 @@ See `.agro/scripts/cron-runtime.ts` for the runtime implementation
 | Change | Takes effect |
 | --- | --- |
 | Body (the agent prompt) | Next fire, automatically — the runtime re-reads the file. Logs `BODY_RELOADED`. |
-| Frontmatter (`schedule`, `enabled`, `timezone`, `overlap`, `agent`, `tmux`, `preflight`) | Only after a `SIGHUP` reschedule or a runtime restart. Until then the **old** schedule is live. |
-| Adding or removing a `<id>.md` file | Only after a `SIGHUP` reschedule or a runtime restart. |
+| Frontmatter (`schedule`, `enabled`, `timezone`, `overlap`, `agent`, `tmux`, `preflight`) | Only after a `SIGUSR1` reschedule or a runtime restart. Until then the **old** schedule is live. |
+| Adding or removing a `<id>.md` file | Only after a `SIGUSR1` reschedule or a runtime restart. |
 | `.agro/scripts/cron-runtime.ts` itself | Only after a full runtime restart. |
 
 The frontmatter row is the one that bites: an edited `schedule:` looks applied
 in git and is not applied in the runtime. See
-[Reload schedules](#reload-schedules-sighup).
+[Reload schedules](#reload-schedules-sigusr1).
 
 ## File shape
 
@@ -78,7 +78,7 @@ status column is one of:
 | Token | Meaning |
 |-------|---------|
 | `BOOT` | Runtime started and scheduled its crons (`id` is `system`; `msg` is the cron count). |
-| `RELOAD` | A `SIGHUP` reschedule re-read `crons/` and re-armed every schedule without restarting the runtime (`id` is `system`; `msg` is the cron count, e.g. `4 scheduled, 0 skipped`). See [Hot-reload](#hot-reload). |
+| `RELOAD` | A `SIGUSR1` reschedule re-read `crons/` and re-armed every schedule without restarting the runtime (`id` is `system`; `msg` is the cron count, e.g. `4 scheduled, 0 skipped`). See [Hot-reload](#hot-reload). |
 | `ID_INVALID` | A cron was skipped because its resolved `id` or filename basename is not lowercase kebab-case (`^[a-z0-9][a-z0-9-]*$`). |
 | `ID_MISMATCH` | A cron was skipped because its explicit frontmatter `id` does not match the filename basename. |
 | `SCHED_INVALID` | A cron was skipped because its `schedule:` is not a valid cron expression (`msg` contains the offending schedule string). |
@@ -124,12 +124,12 @@ returns before generating a shell wrapper or spawning an agent.
 
 ## Runtime supervision
 
-systemd is PID 1 in the sandbox and runs `.agro/scripts/cron-runtime.ts` directly as `agro-cron.service` (user `sandbox`, working directory `/home/sandbox/harness`). It starts after `agro-bootstrap.service`, restarts on failure, and its `ExecReload` sends `SIGHUP`. Inspect it with `systemctl status agro-cron.service` and read its output with `journalctl -u agro-cron.service`.
+systemd is PID 1 in the sandbox and runs `.agro/scripts/cron-runtime.ts` directly as `agro-cron.service` (user `sandbox`, working directory `/home/sandbox/harness`). It starts after `agro-bootstrap.service`, restarts on failure, and its `ExecReload` sends `SIGUSR1`. Inspect it with `systemctl status agro-cron.service` and read its output with `journalctl -u agro-cron.service`.
 
 | Action | Command |
 |--------|---------|
 | Liveness | `systemctl is-active agro-cron.service` |
-| Reschedule (SIGHUP) | `systemctl reload agro-cron.service` |
+| Reschedule (SIGUSR1) | `systemctl reload agro-cron.service` |
 | Restart | `systemctl restart agro-cron.service` |
 | Logs | `journalctl -u agro-cron.service` |
 
@@ -150,11 +150,11 @@ Jobs with `tmux` absent or `false` keep the default in-process spawn.
 
 ## Hot-reload
 
-A cron definition's **body** (the agent prompt) hot-reloads at fire time: the runtime re-reads the file just before each fire, so edits take effect at the next scheduled fire without a restart. On a read/parse error, the runtime falls back to the cached boot-time body and logs `BODY_RELOAD_ERR`. When a fire's body differs from the boot-time cached version, a `BODY_RELOADED` line appears in `crons/.cron.log` — this signal recurs on every fire after an edit until the runtime is restarted (which re-baselines). Schedule/frontmatter changes (`schedule`, `enabled`, `timezone`, `overlap`) and added/removed `crons/*.md` files now take effect via a `SIGHUP` reschedule (see [Reload schedules](#reload-schedules-sighup) below) — there is still no auto-watcher, so the reload is operator-triggered. A full runtime restart is only needed for `.agro/scripts/cron-runtime.ts` *code* changes. Rollback: remove the `reloadBody` call and restore the two `entry.body` usages in `.agro/scripts/cron-runtime.ts`.
+A cron definition's **body** (the agent prompt) hot-reloads at fire time: the runtime re-reads the file just before each fire, so edits take effect at the next scheduled fire without a restart. On a read/parse error, the runtime falls back to the cached boot-time body and logs `BODY_RELOAD_ERR`. When a fire's body differs from the boot-time cached version, a `BODY_RELOADED` line appears in `crons/.cron.log` — this signal recurs on every fire after an edit until the runtime is restarted (which re-baselines). Schedule/frontmatter changes (`schedule`, `enabled`, `timezone`, `overlap`) and added/removed `crons/*.md` files now take effect via a `SIGUSR1` reschedule (see [Reload schedules](#reload-schedules-sigusr1) below) — there is still no auto-watcher, so the reload is operator-triggered. A full runtime restart is only needed for `.agro/scripts/cron-runtime.ts` *code* changes. Rollback: remove the `reloadBody` call and restore the two `entry.body` usages in `.agro/scripts/cron-runtime.ts`.
 
-## Reload schedules (SIGHUP)
+## Reload schedules (SIGUSR1)
 
-The runtime installs a `SIGHUP` handler: on signal it stops the live croner jobs, re-reads every `crons/*.md`, and re-arms the schedules — so schedule/frontmatter edits and added/removed cron files apply without restarting the service. Each successful reload appends a `RELOAD` line (`id` `system`, `msg` the cron count) to `crons/.cron.log`. A malformed `schedule:` present during a reload is dropped (`SCHED_INVALID`) exactly as at boot; the rest stay scheduled and the runtime does not exit. In-flight fires are not interrupted — `overlap: false` remains the only protection against a reschedule racing a still-running fire.
+The runtime installs a `SIGUSR1` handler: on signal it stops the live croner jobs, re-reads every `crons/*.md`, and re-arms the schedules — so schedule/frontmatter edits and added/removed cron files apply without restarting the service. Each successful reload appends a `RELOAD` line (`id` `system`, `msg` the cron count) to `crons/.cron.log`. A malformed `schedule:` present during a reload is dropped (`SCHED_INVALID`) exactly as at boot; the rest stay scheduled and the runtime does not exit. In-flight fires are not interrupted — `overlap: false` remains the only protection against a reschedule racing a still-running fire.
 
 The runtime runs inside the container, so reload from the host via `docker exec`:
 
@@ -166,7 +166,15 @@ docker exec -u sandbox agro sh -c 'kill -0 "$(cat crons/.pid)" 2>/dev/null && ec
 docker exec agro systemctl reload agro-cron.service
 ```
 
-The bare `kill -HUP "$(cat crons/.pid)"` form works only from *inside* the container — the host is a different PID namespace, so the PID in `crons/.pid` (set by `PID_FILE`) does not resolve there. **Escape hatch:** if a reload arms zero crons (e.g. files removed by accident), restart the runtime to restore the last good state — `systemctl restart agro-cron.service`; systemd relaunches `node --experimental-strip-types .agro/scripts/cron-runtime.ts` from `.devcontainer/agro-cron.service`.
+The bare `kill -USR1 "$(cat crons/.pid)"` form works only from *inside* the container — the host is a different PID namespace, so the PID in `crons/.pid` (set by `PID_FILE`) does not resolve there. **Escape hatch:** if a reload arms zero crons (e.g. files removed by accident), restart the runtime to restore the last good state — `systemctl restart agro-cron.service`; systemd relaunches `node --experimental-strip-types .agro/scripts/cron-runtime.ts` from `.devcontainer/agro-cron.service`.
+
+### Stop a detached runtime
+
+`SIGTERM`, `SIGINT`, and `SIGHUP` stop the runtime. The runtime removes `crons/.pid` and exits 0. `tmux kill-session` sends `SIGHUP`. Thus `tmux kill-session` stops a runtime in that tmux session. To stop a detached runtime that systemd does not supervise, run the stop command below from inside the container:
+
+```bash
+kill -TERM "$(cat crons/.pid)"
+```
 
 ## Layout
 

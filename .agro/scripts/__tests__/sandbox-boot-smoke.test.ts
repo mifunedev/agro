@@ -222,11 +222,11 @@ describe("sandbox boot smoke systemd supervision", { timeout: SMOKE_TEST_TIMEOUT
     expect(result.stderr).toContain("agro-cron.service is not active");
   });
 
-  it("fails when systemctl reload never reaches the runtime's SIGHUP path", () => {
+  it("fails when systemctl reload never reaches the runtime's SIGUSR1 path", () => {
     const result = runSmoke(fixture({ reloadIsInert: true }));
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("did not reach the runtime's SIGHUP path");
+    expect(result.stderr).toContain("did not reach the runtime's SIGUSR1 path");
   });
 
   it("fails when systemd does not recover the scheduler after SIGKILL", () => {
@@ -241,7 +241,7 @@ describe("sandbox boot smoke systemd supervision", { timeout: SMOKE_TEST_TIMEOUT
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("systemd is PID 1 and supervises cron-runtime.ts at PID 1234");
-    expect(result.stdout).toContain("exercised the existing SIGHUP reschedule");
+    expect(result.stdout).toContain("exercised the SIGUSR1 reschedule");
     expect(result.stdout).toContain("recovered the killed scheduler at PID 4242");
   });
 });

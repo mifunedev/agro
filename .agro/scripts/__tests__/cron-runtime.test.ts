@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { spawn, spawnSync } from "node:child_process";
+import { EventEmitter } from "node:events";
 import type { Cron } from "croner";
 import * as fsModule from "node:fs";
 import {
@@ -14,7 +15,7 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-const SIGHUP_CRONS_DIR = `/tmp/cron-sighup-test-crons-${process.pid}`;
+const RELOAD_CRONS_DIR = `/tmp/cron-reload-test-crons-${process.pid}`;
 
 import {
   acquireLock,
@@ -23,6 +24,7 @@ import {
   decideOverlap,
   fire,
   holdEventLoopForSignals,
+  installSignalHandlers,
   isValidAgentBin,
   isValidCronId,
   isValidRemote,
@@ -40,7 +42,8 @@ import {
   resetActiveJobs,
   runPreflight,
   scheduleAll,
-  sighupHandler,
+  reloadHandler,
+  stopRuntime,
   tmuxSessionName,
 } from "../cron-runtime";
 
@@ -1141,7 +1144,7 @@ describe("readFailureTail", () => {
   });
 });
 
-describe("SIGHUP reload", () => {
+describe("SIGUSR1 reload", () => {
   const appendSpy = () => vi.mocked(fsModule.appendFileSync);
   const loggedLines = (): string[] =>
     appendSpy().mock.calls.map((c) => String(c[1]));
@@ -1152,8 +1155,8 @@ describe("SIGHUP reload", () => {
   const FAR_FUTURE = "0 0 1 1 *";
 
   const emptyCronsDir = (): void => {
-    rmSync(SIGHUP_CRONS_DIR, { recursive: true, force: true });
-    mkdirSync(SIGHUP_CRONS_DIR, { recursive: true });
+    rmSync(RELOAD_CRONS_DIR, { recursive: true, force: true });
+    mkdirSync(RELOAD_CRONS_DIR, { recursive: true });
   };
 
   beforeEach(() => {
@@ -1164,13 +1167,13 @@ describe("SIGHUP reload", () => {
 
   afterEach(() => {
     emptyCronsDir();
-    sighupHandler(SIGHUP_CRONS_DIR);
+    reloadHandler(RELOAD_CRONS_DIR);
     resetActiveJobs();
     appendSpy().mockClear();
   });
 
   afterAll(() => {
-    rmSync(SIGHUP_CRONS_DIR, { recursive: true, force: true });
+    rmSync(RELOAD_CRONS_DIR, { recursive: true, force: true });
   });
 
   it("stops every prior job handle before re-arming (.stop on each)", () => {
@@ -1180,56 +1183,56 @@ describe("SIGHUP reload", () => {
     let i = 0;
     scheduleAll(tmp, vi.fn(), () => ({ stop: stops[i++] }) as unknown as Cron);
 
-    sighupHandler(SIGHUP_CRONS_DIR);
+    reloadHandler(RELOAD_CRONS_DIR);
 
     expect(stops[0]).toHaveBeenCalledTimes(1);
     expect(stops[1]).toHaveBeenCalledTimes(1);
   });
 
   it("picks up an added cron file and drops a removed one on reload", () => {
-    writeFileSync(path.join(SIGHUP_CRONS_DIR, "one.md"), validCron("one", FAR_FUTURE));
-    sighupHandler(SIGHUP_CRONS_DIR);
+    writeFileSync(path.join(RELOAD_CRONS_DIR, "one.md"), validCron("one", FAR_FUTURE));
+    reloadHandler(RELOAD_CRONS_DIR);
     expect(reloadLines().at(-1)).toContain("1 scheduled, 0 skipped");
 
     appendSpy().mockClear();
-    writeFileSync(path.join(SIGHUP_CRONS_DIR, "two.md"), validCron("two", FAR_FUTURE));
-    sighupHandler(SIGHUP_CRONS_DIR);
+    writeFileSync(path.join(RELOAD_CRONS_DIR, "two.md"), validCron("two", FAR_FUTURE));
+    reloadHandler(RELOAD_CRONS_DIR);
     expect(reloadLines().at(-1)).toContain("2 scheduled, 0 skipped");
 
     appendSpy().mockClear();
-    rmSync(path.join(SIGHUP_CRONS_DIR, "one.md"));
-    sighupHandler(SIGHUP_CRONS_DIR);
+    rmSync(path.join(RELOAD_CRONS_DIR, "one.md"));
+    reloadHandler(RELOAD_CRONS_DIR);
     expect(reloadLines().at(-1)).toContain("1 scheduled, 0 skipped");
   });
 
   it("isolates a malformed cron file during reload without crashing", () => {
-    writeFileSync(path.join(SIGHUP_CRONS_DIR, "good.md"), validCron("good", FAR_FUTURE));
-    writeFileSync(path.join(SIGHUP_CRONS_DIR, "bad.md"), validCron("bad", "not-a-cron"));
+    writeFileSync(path.join(RELOAD_CRONS_DIR, "good.md"), validCron("good", FAR_FUTURE));
+    writeFileSync(path.join(RELOAD_CRONS_DIR, "bad.md"), validCron("bad", "not-a-cron"));
 
-    expect(() => sighupHandler(SIGHUP_CRONS_DIR)).not.toThrow();
+    expect(() => reloadHandler(RELOAD_CRONS_DIR)).not.toThrow();
     expect(reloadLines().at(-1)).toContain("1 scheduled, 1 skipped");
   });
 
   it("writes a RELOAD liveness line via the appendFileSync spy", () => {
-    sighupHandler(SIGHUP_CRONS_DIR);
+    reloadHandler(RELOAD_CRONS_DIR);
     expect(loggedLines().some((l) => l.includes("\tRELOAD\t"))).toBe(true);
     expect(reloadLines().at(-1)).toContain("\tsystem\tRELOAD\t");
   });
 
   it("does not throw when the prior activeJobs registry is empty", () => {
     resetActiveJobs();
-    expect(() => sighupHandler(SIGHUP_CRONS_DIR)).not.toThrow();
+    expect(() => reloadHandler(RELOAD_CRONS_DIR)).not.toThrow();
     expect(reloadLines()).toHaveLength(1);
   });
 
-  it("is re-entrancy-safe: a SIGHUP arriving mid-reload is a no-op", () => {
+  it("is re-entrancy-safe: a SIGUSR1 arriving mid-reload is a no-op", () => {
     writeFileSync(path.join(tmp, "a.md"), validCron("a"));
     const stop = vi.fn(() => {
-      sighupHandler(SIGHUP_CRONS_DIR);
+      reloadHandler(RELOAD_CRONS_DIR);
     });
     scheduleAll(tmp, vi.fn(), () => ({ stop }) as unknown as Cron);
 
-    sighupHandler(SIGHUP_CRONS_DIR);
+    reloadHandler(RELOAD_CRONS_DIR);
 
     expect(stop).toHaveBeenCalledTimes(1);
     expect(reloadLines()).toHaveLength(1);
@@ -1237,8 +1240,56 @@ describe("SIGHUP reload", () => {
   });
 });
 
+describe("installSignalHandlers", () => {
+  it.each(["SIGHUP", "SIGTERM", "SIGINT"])("stops the runtime on %s without a reload", (signal) => {
+    const target = new EventEmitter();
+    const stop = vi.fn();
+    const reload = vi.fn();
+    installSignalHandlers(target, stop, reload);
+
+    target.emit(signal);
+
+    expect(stop).toHaveBeenCalledTimes(1);
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it("reloads on SIGUSR1 and keeps the runtime running", async () => {
+    const target = new EventEmitter();
+    const stop = vi.fn();
+    const reload = vi.fn();
+    installSignalHandlers(target, stop, reload);
+
+    target.emit("SIGUSR1");
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(stop).not.toHaveBeenCalled();
+  });
+});
+
+describe("stopRuntime", () => {
+  it("removes the PID file and exits 0", () => {
+    const pidFile = path.join(tmp, ".pid");
+    writeFileSync(pidFile, "123");
+    const exit = vi.fn();
+
+    stopRuntime(pidFile, exit);
+
+    expect(existsSync(pidFile)).toBe(false);
+    expect(exit).toHaveBeenCalledWith(0);
+  });
+
+  it("exits 0 when the PID file is already gone", () => {
+    const exit = vi.fn();
+
+    stopRuntime(path.join(tmp, "missing.pid"), exit);
+
+    expect(exit).toHaveBeenCalledWith(0);
+  });
+});
+
 describe("holdEventLoopForSignals", () => {
-  it("keeps the runtime alive for SIGHUP/SIGTERM when zero crons are armed", () => {
+  it("keeps the runtime alive for SIGUSR1/SIGTERM when zero crons are armed", () => {
     const handle = holdEventLoopForSignals(50);
     try {
       expect(handle.hasRef()).toBe(true);

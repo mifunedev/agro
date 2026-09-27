@@ -23,7 +23,7 @@ This cron is **opt-in and cap-gated**:
 
 - **Kill-switch**: this cron is currently `enabled: false` in the frontmatter above
   and does not fire. To start it, flip that line to `enabled: true` and reload the
-  runtime (`SIGHUP` — `kill -HUP "$(cat crons/.pid)"` from inside the
+  runtime (`SIGUSR1` — `kill -USR1 "$(cat crons/.pid)"` from inside the
   container); disabling again is the same one-line edit + reload. Never delete the
   file (preserves history). The frontmatter `enabled:` value is the single source
   of truth — this paragraph previously claimed the cron shipped disabled while the

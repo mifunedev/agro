@@ -255,7 +255,7 @@ describe("devcontainer entrypoint cron supervision", () => {
     expect(execStart).not.toContain("$");
     expect(unit).toContain("User=sandbox");
     expect(unit).toContain("WorkingDirectory=/home/sandbox/harness");
-    expect(unit).toContain("ExecReload=/bin/kill -HUP $MAINPID");
+    expect(unit).toContain("ExecReload=/bin/kill -USR1 $MAINPID");
     expect(unit).toContain("Restart=on-failure");
     expect(unit).toContain("StartLimitIntervalSec=");
     expect(unit).toContain("StartLimitBurst=");

@@ -192,10 +192,10 @@ verify_systemd_supervision() {
     sleep 1
   done
   if [ "$reloads_after" -le "$reloads_before" ]; then
-    echo "sandbox boot smoke failed: systemctl reload did not reach the runtime's SIGHUP path (no new RELOAD line in crons/.cron.log)" >&2
+    echo "sandbox boot smoke failed: systemctl reload did not reach the runtime's SIGUSR1 path (no new RELOAD line in crons/.cron.log)" >&2
     return 1
   fi
-  echo "sandbox boot smoke: systemctl reload exercised the existing SIGHUP reschedule (RELOAD logged)"
+  echo "sandbox boot smoke: systemctl reload exercised the SIGUSR1 reschedule (RELOAD logged)"
 
   docker exec "$cid" sh -c "kill -9 $main_pid" || true
   waited=0

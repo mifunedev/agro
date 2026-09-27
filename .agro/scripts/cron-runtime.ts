@@ -706,7 +706,7 @@ export function scheduleAll(
   return { scheduled, skipped };
 }
 
-export function sighupHandler(dir: string = CRONS_DIR): void {
+export function reloadHandler(dir: string = CRONS_DIR): void {
   if (reloading) return;
   reloading = true;
   try {
@@ -731,21 +731,34 @@ export function holdEventLoopForSignals(
   return setInterval(() => undefined, intervalMs);
 }
 
+export function stopRuntime(
+  pidFile: string = PID_FILE,
+  exit: (code: number) => void = process.exit,
+): void {
+  try {
+    fs.unlinkSync(pidFile);
+  } catch {
+  }
+  exit(0);
+}
+
+export function installSignalHandlers(
+  target: Pick<NodeJS.EventEmitter, "on"> = process,
+  stop: () => void = stopRuntime,
+  reload: () => void = reloadHandler,
+): void {
+  for (const signal of ["SIGTERM", "SIGINT", "SIGHUP"]) {
+    target.on(signal, () => stop());
+  }
+  target.on("SIGUSR1", () => setImmediate(() => reload()));
+}
+
 function main(): void {
   if (!acquireLock()) {
     process.stderr.write("cron-runtime: another instance is running\n");
     process.exit(1);
   }
-  const cleanup = (): void => {
-    try {
-      fs.unlinkSync(PID_FILE);
-    } catch {
-    }
-    process.exit(0);
-  };
-  process.on("SIGTERM", cleanup);
-  process.on("SIGINT", cleanup);
-  process.on("SIGHUP", () => setImmediate(sighupHandler));
+  installSignalHandlers();
   holdEventLoopForSignals();
   scheduleAll();
 }

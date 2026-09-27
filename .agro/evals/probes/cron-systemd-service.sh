@@ -27,8 +27,8 @@ grep -qE '^Restart=on-failure$' "$UNIT" || missing+=("agro-cron.service must set
 grep -qE '^RestartSec=' "$UNIT" || missing+=("agro-cron.service must set RestartSec=")
 grep -qE '^StartLimitIntervalSec=' "$UNIT" && grep -qE '^StartLimitBurst=' "$UNIT" \
   || missing+=("agro-cron.service must bound its restart loop with StartLimitIntervalSec/StartLimitBurst — at RestartSec=5 the systemd defaults never trip, so a permanent failure such as 'another instance is running' would retry forever instead of surfacing as a failed unit")
-grep -qF 'ExecReload=/bin/kill -HUP $MAINPID' "$UNIT" \
-  || missing+=("agro-cron.service ExecReload must send SIGHUP to the main PID")
+grep -qF 'ExecReload=/bin/kill -USR1 $MAINPID' "$UNIT" \
+  || missing+=("agro-cron.service ExecReload must send SIGUSR1 to the main PID")
 grep -qE '^Requires=agro-bootstrap.service$' "$UNIT" \
   || missing+=("agro-cron.service must Require agro-bootstrap.service")
 grep -qE '^After=agro-bootstrap.service$' "$UNIT" \
@@ -76,5 +76,5 @@ if (( ${#missing[@]} )); then
   exit 1
 fi
 
-echo "PASS: agro-cron.service supervises cron-runtime.ts as sandbox with SIGHUP reload and on-failure restart, both units are enabled, distro cron/ssh are masked, health reads systemd, and no cron-watchdog or scheduler-level cron-system tmux supervision remains" >&2
+echo "PASS: agro-cron.service supervises cron-runtime.ts as sandbox with SIGUSR1 reload and on-failure restart, both units are enabled, distro cron/ssh are masked, health reads systemd, and no cron-watchdog or scheduler-level cron-system tmux supervision remains" >&2
 exit 0
