@@ -308,6 +308,8 @@ operator approval of the plan. Writing a plan is not approval.
    ```
 
 4. Open the draft PR. Build the body from `.github/pull_request_template.md`.
+   If the target repository has no `.github/pull_request_template.md`, use
+   `.github/pull_request_template.md` of the AGRO harness.
    Put `Closes #<N>` in the body. Add a `## Stories` checklist from `prd.json`:
 
    ```bash
@@ -338,8 +340,10 @@ Do these steps in this sequence:
   `awk '/^## /{s=($0=="## Lessons");n=0;next} s&&NF{n++} END{exit !(s&&n)}' .agro/tasks/<slug>/prd.md`
   exits 0.
 - The PR body evidence sections are non-empty: What the issue asked for, What
-  was built, Where it diverged, What remains unverified, Verification, and
-  Lessons. "None" or "Nothing" is a valid body.
+  was built, Where it diverged, Manual review, What remains unverified,
+  Verification, and Lessons. "None" or "Nothing" is a valid body, except for
+  Manual review. Manual review follows
+  [references/manual-review.md](references/manual-review.md).
 - The repository's checks pass on the pushed branch (`/ci-status`).
 
 ### After the merge

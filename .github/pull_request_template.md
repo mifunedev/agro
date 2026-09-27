@@ -28,6 +28,12 @@ one per issue. A bare `#42` links the issue but does not close it.
 
 <!-- Every deliberate deviation from the plan and why, or "None". -->
 
+## Manual review
+
+<!-- The steps a reviewer runs to confirm what shipped. Use the shape in
+     .agro/skills/git/references/manual-review.md: the user-journey shape
+     for a user interface change, or the server, CLI, or API shape. -->
+
 ## What remains unverified
 
 <!-- Skipped checks, and criteria that were reasoned but not executed, or "Nothing". -->
@@ -35,10 +41,6 @@ one per issue. A bare `#42` links the issue but does not close it.
 ## Verification
 
 <!-- The commands you ran and their real output, trimmed. -->
-
-## Visual Reference
-
-<!-- Screenshots or recordings for user-facing changes. Delete if N/A. -->
 
 ## Lessons
 
