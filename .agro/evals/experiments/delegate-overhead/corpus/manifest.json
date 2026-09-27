@@ -9,6 +9,8 @@
   "selection": {
     "pool": "first-parent commits C through range.through that add .agro/tasks/<slug>/prd.json relative to C^1",
     "keep": [
+      "C^1 holds .agro/skills/delegate/SKILL.md",
+      "C^1 holds each dot top-level directory that a backticked path in prd.md starts with",
       "C holds .agro/tasks/<slug>/prd.md",
       "prd.json at C has 1 to 3 userStories",
       "slug is not prd-efficiency, prd-turn-reduction, verify-prd-lexical-positives, or skillopt-ste",
@@ -19,16 +21,6 @@
     "take": "the first 6 candidates in order"
   },
   "cases": [
-    {
-      "id": "retire-codex-skills",
-      "slug": "retire-codex-skills",
-      "stories": 1,
-      "commit": "f94c1ad5bc25041ec4f1afaabac27016edb5f876",
-      "revision": "823aabbd7324e08e3b685af6b0a5ef5c3467a15f",
-      "prd_md_sha256": "4a561961a284da571a10a7d2bf7bb64a7c9c1fe3fbee89a238bb6941f6e1dcdc",
-      "prd_json_sha256": "981f4d9018d44e072d2532f2d62639c8f451564d738e851c2ebfbc3a44a1547f",
-      "order_key": "18ab58c5e836c0b0d2ac8ed7e8ade238d08e63cc7e689f4a3799260b3832b86f"
-    },
     {
       "id": "boot-smoke-test-timeout",
       "slug": "boot-smoke-test-timeout",
@@ -50,16 +42,6 @@
       "order_key": "6275cf3a4c4e9f740f740c1d1a0d3121727c9726a21b11846bd0b9bfefe16782"
     },
     {
-      "id": "council-skill",
-      "slug": "council-skill",
-      "stories": 3,
-      "commit": "cfbde325c5253d1cb0acad35ae848bd485a08bf5",
-      "revision": "1317f352ccbafeab747521446ac93b63c588605c",
-      "prd_md_sha256": "7e9844ffb7f112fca69468df3b4c63bccfb05abdecfba2477656b0a199d5b1f3",
-      "prd_json_sha256": "12a30410e4914716b9c4cf4abf4a6d3a7c0bdce74f161377487591086454de15",
-      "order_key": "73d680f896b558e0a4de1a0646a15d52dfd7999c602a058142bfe93448b6caae"
-    },
-    {
       "id": "root-tool-receipt-uninstall",
       "slug": "root-tool-receipt-uninstall",
       "stories": 2,
@@ -78,6 +60,26 @@
       "prd_md_sha256": "9a899f519334509d020808036576fb8e7463c88f915d27cfa61e39045bc4df25",
       "prd_json_sha256": "b2c97005bcd5e000c4bba795fdf4e4cfb101c597566e492637ce70843edcd815",
       "order_key": "795d672102e3fa599beb377b5fa11d7ed642d3102315436f4795bf3119090b47"
+    },
+    {
+      "id": "directory-contracts",
+      "slug": "directory-contracts",
+      "stories": 3,
+      "commit": "4fc0cd7eb9adcba71653d797373b814184d5eb67",
+      "revision": "a83e2dcae151dd999fd83bfad62a7b571f5b1d01",
+      "prd_md_sha256": "54dcc62f45ab31acba5da75cdcb444f50fc274cce1d1f120fc072acc56c959da",
+      "prd_json_sha256": "707a067a27f5ee4c4bdd51cd3e07a9aeb72b28934a2909ee615b18a5b52b80dd",
+      "order_key": "7ab0112b5f3f4d5edad1147ef19391648c9d771b988aeeee58b07a2ef73de800"
+    },
+    {
+      "id": "guard-accuracy-gaps",
+      "slug": "guard-accuracy-gaps",
+      "stories": 3,
+      "commit": "35f5bee515f733153a849e867fd7c0fe6f9cfba6",
+      "revision": "27edb5694b7a9a8521a9dc78d6f1bca0c7013c2a",
+      "prd_md_sha256": "7c324a8b12bce7044c5f79b398beef5458b4a43f0bb467e7ac9553f3ae1c08a3",
+      "prd_json_sha256": "a1bceb02d0361f12519a59dbfd82a0f28814fcc116ce95aeb2826af2c3e0ac68",
+      "order_key": "7b24635d322ef316dfc0faa2457ba98cea190fbf56a1fb60c3d6bca1ad44fe44"
     }
   ],
   "pool": [
@@ -386,6 +388,7 @@
       "prd_json_sha256": "9d1d282dae5fa4911ed54f0763d2f548c7bebfb90459bcefe40688f9ba8aad3f",
       "order_key": "e44d63ff7691d7b6cd42bf0b3bef159c02d984c836b0777a70419841de232eff",
       "excluded": [
+        "revision has no .oh/ named in prd.md",
         "story count is not 1 to 3"
       ]
     },
@@ -398,7 +401,9 @@
       "prd_md_sha256": "7e9844ffb7f112fca69468df3b4c63bccfb05abdecfba2477656b0a199d5b1f3",
       "prd_json_sha256": "12a30410e4914716b9c4cf4abf4a6d3a7c0bdce74f161377487591086454de15",
       "order_key": "73d680f896b558e0a4de1a0646a15d52dfd7999c602a058142bfe93448b6caae",
-      "excluded": []
+      "excluded": [
+        "revision has no .oh/ named in prd.md"
+      ]
     },
     {
       "id": "retire-open-harness-name",
@@ -475,6 +480,7 @@
       "prd_json_sha256": "3a70a679e8138ffddb6a3b926e6188759d846a0ffc9022a9a153110877164344",
       "order_key": "f46cf0d3ce84c9489262e6dd49982ab867417b5ac32dfc504b8eeb23767f3824",
       "excluded": [
+        "revision has no .oh/ named in prd.md",
         "story count is not 1 to 3"
       ]
     },
@@ -513,7 +519,10 @@
       "prd_md_sha256": "4a561961a284da571a10a7d2bf7bb64a7c9c1fe3fbee89a238bb6941f6e1dcdc",
       "prd_json_sha256": "981f4d9018d44e072d2532f2d62639c8f451564d738e851c2ebfbc3a44a1547f",
       "order_key": "18ab58c5e836c0b0d2ac8ed7e8ade238d08e63cc7e689f4a3799260b3832b86f",
-      "excluded": []
+      "excluded": [
+        "revision has no .agro/skills/delegate/SKILL.md",
+        "revision has no .agro/ named in prd.md"
+      ]
     }
   ]
 }

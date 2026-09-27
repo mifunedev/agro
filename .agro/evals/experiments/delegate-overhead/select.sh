@@ -23,7 +23,9 @@ is corpus/. The history must hold the first-parent chain of development up to
 Pool: each first-parent commit C of development through 67b0c72e that adds
 .agro/tasks/<slug>/prd.json relative to C^1.
 
-Keep a candidate only when: C also holds .agro/tasks/<slug>/prd.md; the
+Keep a candidate only when: C^1 holds .agro/skills/delegate/SKILL.md; C^1
+holds each dot top-level directory (for example .agro/) that a backticked path
+in prd.md starts with; C also holds .agro/tasks/<slug>/prd.md; the
 prd.json at C has 1 to 3 userStories; the slug is not prd-efficiency,
 prd-turn-reduction, verify-prd-lexical-positives, or skillopt-ste; the slug
 does not hold "screen" or "efficiency".
@@ -53,9 +55,14 @@ while read -r commit; do
     add_reason() { reasons="$(jq -c --arg r "$1" '. + [$r]' <<<"$reasons")"; }
     case "$EXCLUDED_SLUGS" in *" $slug "*) add_reason "experiment task" ;; esac
     case "$slug" in *screen*|*efficiency*) add_reason "slug holds screen or efficiency" ;; esac
+    git -C "$REPO_ROOT" cat-file -e "$parent:.agro/skills/delegate/SKILL.md" 2>/dev/null || add_reason "revision has no .agro/skills/delegate/SKILL.md"
     md_sha=null
     if git -C "$REPO_ROOT" cat-file -e "$commit:.agro/tasks/$slug/prd.md" 2>/dev/null; then
       md_sha="$(git -C "$REPO_ROOT" cat-file blob "$commit:.agro/tasks/$slug/prd.md" | sha256sum | cut -d' ' -f1 | jq -R .)"
+      while read -r top; do
+        git -C "$REPO_ROOT" cat-file -e "$parent:$top" 2>/dev/null || add_reason "revision has no $top/ named in prd.md"
+      done < <(git -C "$REPO_ROOT" cat-file blob "$commit:.agro/tasks/$slug/prd.md" \
+        | grep -oE '`\.[A-Za-z0-9_-]+/' | cut -c2- | sed 's#/$##' | sort -u)
     else
       add_reason "no prd.md at C"
     fi
@@ -83,7 +90,7 @@ jq -n --arg through "$through" --argjson cases "$cases" --argjson pool "$pool" '
   range: {through: $through, history: "first-parent of development"},
   selection: {
     pool: "first-parent commits C through range.through that add .agro/tasks/<slug>/prd.json relative to C^1",
-    keep: ["C holds .agro/tasks/<slug>/prd.md", "prd.json at C has 1 to 3 userStories", "slug is not prd-efficiency, prd-turn-reduction, verify-prd-lexical-positives, or skillopt-ste", "slug does not hold screen or efficiency"],
+    keep: ["C^1 holds .agro/skills/delegate/SKILL.md", "C^1 holds each dot top-level directory that a backticked path in prd.md starts with", "C holds .agro/tasks/<slug>/prd.md", "prd.json at C has 1 to 3 userStories", "slug is not prd-efficiency, prd-turn-reduction, verify-prd-lexical-positives, or skillopt-ste", "slug does not hold screen or efficiency"],
     revision: "C^1",
     order: "sha256 of the slug, ascending",
     take: "the first 6 candidates in order"

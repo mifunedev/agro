@@ -29,7 +29,11 @@ runs/<run-id>/episodes.jsonl. The default run id is adhoc.
 Setup: git-conventions/make-episode-repo.sh builds a new repository under
 ${XDG_STATE_HOME:-~/.local/state}/agro/delegate-overhead/repos/ from the case
 revision (C^1). The runner checks that the repository holds exactly one
-commit, no ref, no remote, and no alternates. The runner then writes prd.md
+commit, no ref, no remote, and no alternates. The runner replaces
+.agro/skills/delegate/ with the tree at base_revision of experiment.json.
+Each overlay file that the revision tracks is skip-worktree, and each other
+overlay file is in .git/info/exclude. The overlay tree must equal
+skill_tree, and skill_revision records it. The runner then writes prd.md
 and prd.json from C into .agro/tasks/<slug>/, sets each story to
 passes false, removes commit, sets notes to "", and commits the two files.
 The tree is then clean. A digest mismatch with the manifest records
@@ -92,6 +96,10 @@ effort="$(jq -r '.effort' "$EXPERIMENT")"
 prompt_template="$(jq -r '.episode_prompt' "$EXPERIMENT")"
 timeout_s="${DELEGATE_OVERHEAD_TIMEOUT_S:-$(jq -r '.episode_timeout_s' "$EXPERIMENT")}"
 prices="$(jq -c '.prices_usd_per_mtok' "$EXPERIMENT")"
+base_revision="$(jq -r '.base_revision' "$EXPERIMENT")"
+skill_path="$(jq -r '.skill_path' "$EXPERIMENT")"
+skill_tree="$(jq -r '.skill_tree' "$EXPERIMENT")"
+skill_revision="null"
 mapfile -t claude_args < <(jq -r '.claude_args[]' "$EXPERIMENT")
 
 run_dir="$RUNS_DIR/$run_id"
@@ -169,6 +177,7 @@ record_line() {
     --arg run_id "$run_id" --arg episode_id "$episode_id" --arg case_id "$case_id" --arg slug "$slug" \
     --argjson attempt "$attempt" --arg revision "$revision" --arg commit "$commit" \
     --arg model "$model" --arg effort "$effort" --argjson harness_version "$harness_version" \
+    --arg base_revision "$base_revision" --argjson skill_revision "$skill_revision" \
     --argjson trace "$trace_json" --argjson usage "$usage_json" --argjson split "$split_json" \
     --argjson elapsed_s "$(ep_elapsed_s "$start_ns")" --argjson stories_total "$stories_total" \
     --argjson stories_accepted "$stories_accepted" --argjson commits "$commits_json" \
@@ -176,6 +185,7 @@ record_line() {
     --arg status "$status" --arg started_at "$started_at" --argjson claude_exit "$claude_exit" --arg error "$error" \
     '{run_id: $run_id, episode_id: $episode_id, case_id: $case_id, slug: $slug, attempt: $attempt,
       revision: $revision, commit: $commit, setup_commit: (if $setup_commit == "" then null else $setup_commit end),
+      base_revision: $base_revision, skill_revision: $skill_revision,
       model: $model, effort: $effort, harness_version: $harness_version, trace: $trace,
       usage: $usage, total_cost_usd: ($usage.total_cost_usd? // null), num_turns: ($usage.num_turns? // null),
       elapsed_s: $elapsed_s, split: $split,
@@ -259,6 +269,22 @@ build_err="$(bash "$REPO_BUILDER" "$RUNNER_ROOT" "$revision" "$wt" 2>&1)" || fin
 iso_err="$(isolation_error "$wt")"
 [ -z "$iso_err" ] || finish infra_failure "episode repository is not isolated after the build: $iso_err"
 [ ! -e "$wt/$task_rel" ] || finish infra_failure "the revision already holds $task_rel"
+
+git -C "$wt" ls-files -z -- "$skill_path" | xargs -0 -r git -C "$wt" update-index --skip-worktree --
+rm -rf "${wt:?}/$skill_path"
+git -C "$RUNNER_ROOT" archive "$base_revision" -- "$skill_path" | tar -x -C "$wt"
+while read -r path; do
+  git -C "$wt" ls-files --error-unmatch -- "$path" >/dev/null 2>&1 || printf '/%s\n' "$path" >>"$wt/.git/info/exclude"
+done < <(cd "$wt" && find "$skill_path" -type f | sort)
+overlay_tree="$(
+  export GIT_INDEX_FILE="$wt/.git/overlay-index"
+  git -C "$wt" read-tree --empty
+  git -C "$wt" add -f -- "$skill_path"
+  git -C "$wt" write-tree --prefix="$skill_path/"
+)"
+rm -f "$wt/.git/overlay-index"
+[ "$overlay_tree" = "$skill_tree" ] || finish infra_failure "overlay tree $overlay_tree is not the skill tree $skill_tree"
+skill_revision="$(ep_json_str "$overlay_tree")"
 
 mkdir -p "$wt/$task_rel"
 git -C "$RUNNER_ROOT" cat-file blob "$commit:$task_rel/prd.md" >"$wt/$task_rel/prd.md"

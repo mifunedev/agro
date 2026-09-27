@@ -48,7 +48,8 @@ jq -cn --arg prompt "$prompt" --arg slug "$slug" \
   --argjson refs "$(git for-each-ref | wc -l)" --argjson commits "$(git rev-list --all | wc -l)" \
   --argjson remotes "$(git remote | wc -l)" \
   --arg token "${GH_TOKEN:-}${GITHUB_TOKEN:-}" \
-  '{prompt: $prompt, slug: $slug, stories: $stories, status: $status, refs: $refs, commits: $commits, remotes: $remotes, token: $token}' >"$FAKE_SEEN"
+  --arg skill "$(git hash-object .agro/skills/delegate/SKILL.md)" \
+  '{skill: $skill, prompt: $prompt, slug: $slug, stories: $stories, status: $status, refs: $refs, commits: $commits, remotes: $remotes, token: $token}' >"$FAKE_SEEN"
 if [ "${FAKE_MODE:-ok}" = limit ]; then
   printf '%s\n' '{"type":"result","subtype":"error_during_execution","is_error":true,"result":"You'"'"'ve hit your monthly spend limit","total_cost_usd":0,"num_turns":1,"usage":{}}'
   exit 1
@@ -88,6 +89,8 @@ check "every story reset to passes false" 'jq -e ".stories | length > 0 and all(
 check "commit removed and notes empty" 'jq -e ".stories | all(.has_commit == false and .notes == \"\")" "$FAKE_SEEN" >/dev/null'
 check "clean tree before claude" '[ -z "$(jq -r .status "$FAKE_SEEN")" ]'
 check "isolation: no ref, no remote, revision plus setup commit" 'jq -e ".refs == 0 and .remotes == 0 and .commits == 2" "$FAKE_SEEN" >/dev/null'
+base_rev="$(jq -r .base_revision "$EXP_DIR/experiment.json")"
+check "delegate skill of base_revision overlaid" '[ "$(jq -r .skill "$FAKE_SEEN")" = "$(git -C "$EXP_DIR" rev-parse "$base_rev:.agro/skills/delegate/SKILL.md")" ] && [ "$(jq -r .skill_revision <<<"$line")" = "$(jq -r .skill_tree "$EXP_DIR/experiment.json")" ]'
 check "no GitHub token inside no-egress" '[ -z "$(jq -r .token "$FAKE_SEEN")" ]'
 check "split field is parent_tool_use_id" '[ "$(jq -r .split.field <<<"$line")" = parent_tool_use_id ]'
 check "advisor message counted once" '[ "$(jq -r .split.advisor.messages <<<"$line")" = 1 ] && [ "$(jq -r .split.advisor.output_tokens <<<"$line")" = 100 ]'
