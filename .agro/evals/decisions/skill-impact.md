@@ -2602,3 +2602,37 @@ index 00bce9dd..f568b59a 100644
  8. Run `scripts/ste-check.sh` against the file. Fix each finding. Repeat until
     the checker exits 0.
 ````
+
+## SI-0027 · 2026-09-27 · builder · REJECTED
+
+- **proposal**: Add a "Run without an operator" section to `/delegate`: when the prompt forbids push or GitHub, record hook blocks and steps that need a push, GitHub, or a new issue under `## Not done` in the final report, finish the other steps, and never ask or wait. Rejected: the paired run of #1233 raised the mean advisor cost from $0.409 to $0.510 for each episode, so the #1226 condition advisor_cost_lower is false; see `.agro/evals/experiments/delegate-overhead/results-1233.md`.
+- **target**: `.agro/skills/delegate/SKILL.md`
+- **motivating patterns**: none (direct request)
+- **proposer**: /builder rule, issue #1233, candidate branch `cand/1233-headless-close` (`e9b4f98e`, not merged), evidence from `runs/screen-1233/` (5 question stops in 16 episodes) and `runs/paired-1233/`
+- **diff**:
+
+````diff
+diff --git a/.agro/skills/delegate/SKILL.md b/.agro/skills/delegate/SKILL.md
+index b9c0dd5a..1b5ee752 100644
+--- a/.agro/skills/delegate/SKILL.md
++++ b/.agro/skills/delegate/SKILL.md
+@@ -163,6 +163,18 @@ When every story has `passes: true`, do these steps:
+ 3. Fill the PR evidence sections from the `notes` in `prd.json`.
+ 4. Continue with the "Ready for review" step of `/git`.
+ 
++## Run without an operator
++
++A prompt that forbids push or GitHub starts a run without an operator. In
++this run, the advisor records each of these items in the final report, and
++then continues:
++
++- a hook blocks a write;
++- a step needs a push, GitHub, or a new issue.
++
++List the items under one heading, `## Not done`. Finish the other steps.
++Do not ask the operator. Do not wait for an answer.
++
+ ## Dry run
+ 
+ With `--dry-run`, print the waves and the dispatch records. Write nothing.
+````

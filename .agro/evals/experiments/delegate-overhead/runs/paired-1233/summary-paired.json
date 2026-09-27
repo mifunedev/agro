@@ -1,0 +1,30 @@
+{
+  "run_id": "paired-1233",
+  "arms": {
+    "baseline": {
+      "episodes": 16,
+      "total_cost_usd": 0.9575995375000002,
+      "advisor_cost_usd": 0.40945843604682647,
+      "advisor_share_of_mean": 0.4275883811679748,
+      "stories_accepted": 1.6875,
+      "verified_accepted": 0.5625,
+      "question_stops": 4,
+      "timeouts": 0
+    },
+    "candidate": {
+      "episodes": 16,
+      "total_cost_usd": 1.3505229625000001,
+      "advisor_cost_usd": 0.5099234269407497,
+      "advisor_share_of_mean": 0.3775747922099841,
+      "stories_accepted": 1.8125,
+      "verified_accepted": 0.375,
+      "question_stops": 0,
+      "timeouts": 0
+    }
+  },
+  "success": {
+    "advisor_cost_lower": false,
+    "accepted_not_lower": true,
+    "no_question_stops": true
+  }
+}
