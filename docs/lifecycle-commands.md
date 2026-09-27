@@ -346,13 +346,15 @@ the harness root, so the clone stays clean. A non-interactive run needs `--host`
 or `--path`; without either it keeps the refusal. See
 [Harnesses Overview](harnesses/overview.md#installing-a-harness).
 
-A harness counts as installed only after a complete install. In the sandbox,
-`agro harness install` writes `~/.local/share/agro/harnesses/<id>.installed`
-after the full install command succeeds. On the host, it records a receipt in
-`~/.agro/config.json`. If an install fails after the binary appears, the next
-`agro harness install <id>` runs the full install again.
-`agro harness uninstall <id>` removes the record. A host binary outside
-`~/.local` still counts as installed.
+A harness or tool counts as installed only after a complete install. In the
+sandbox, `agro harness install` writes
+`~/.local/share/agro/harnesses/<id>.installed` and `agro tool install` writes
+`~/.local/share/agro/tools/<id>.installed` after the full install command
+succeeds. On the host, each command records a receipt in `~/.agro/config.json`.
+If an install fails after the binary appears, the next install runs the full
+install again. The uninstall command removes the record. A host binary outside
+`~/.local` still counts as installed. A root-level host tool, such as
+`docker-engine` or `desktop`, also counts as installed when its check passes.
 
 `agro tool install <id>` uses the same host path, with two limits. A tool must
 declare a host install. `agent-browser`, `herdr`, `cloudflared`, `microsandbox`,
