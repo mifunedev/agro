@@ -108,7 +108,7 @@ check "trace kept under delegate-overhead/traces" '[ -f "$TRACES_DIR/t1--$CASE_A
 readonly CASE_IGNORED=audit-responsibility-simplification
 ignored_rev="$(jq -r --arg c "$CASE_IGNORED" '.cases[] | select(.id == $c) | .revision' "$EXP_DIR/corpus/manifest.json")"
 check "fixture revision ignores its task folder" 'git -C "$EXP_DIR" show "$ignored_rev:.gitignore" | grep -qxF ".agro/tasks/*"'
-bash "$RUN_EPISODE" "$CASE_IGNORED" --run-id ign >/dev/null
+bash "$RUN_EPISODE" "$CASE_IGNORED" --run-id ign >/dev/null 2>&1 || true
 check "seed commit succeeds when .gitignore ignores the task folder" '[ "$(jq -r .status <<<"$(line_of ign)")" = ok ] && [ "$(jq -r .slug "$FAKE_SEEN")" = "$CASE_IGNORED" ] && [ -z "$(jq -r .status "$FAKE_SEEN")" ]'
 
 mkdir -p "$DELEGATE_OVERHEAD_RUNS_DIR/retry"
