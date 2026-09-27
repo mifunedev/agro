@@ -290,7 +290,7 @@ mkdir -p "$wt/$task_rel"
 git -C "$RUNNER_ROOT" cat-file blob "$commit:$task_rel/prd.md" >"$wt/$task_rel/prd.md"
 git -C "$RUNNER_ROOT" cat-file blob "$commit:$task_rel/prd.json" \
   | jq '.userStories |= map(.passes = false | del(.commit) | .notes = "")' >"$wt/$task_rel/prd.json"
-git -C "$wt" add -- "$task_rel/prd.md" "$task_rel/prd.json"
+git -C "$wt" add -f -- "$task_rel/prd.md" "$task_rel/prd.json"
 git -C "$wt" -c user.name=delegate-overhead -c user.email=delegate-overhead@invalid -c commit.gpgsign=false \
   commit -q --no-verify -m "chore(tasks): seed $slug for the delegate-overhead episode"
 setup_commit="$(git -C "$wt" rev-parse HEAD)"

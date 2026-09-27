@@ -105,6 +105,19 @@ check "outside change recorded" 'jq -e ".outside_task_changed == true and .outsi
 check "episode repository removed" '[ -z "$(ls -A "$REPOS_DIR" 2>/dev/null)" ]'
 check "trace kept under delegate-overhead/traces" '[ -f "$TRACES_DIR/t1--$CASE_A--a1.jsonl.gz" ]'
 
+readonly CASE_IGNORED=audit-responsibility-simplification
+ignored_rev="$(jq -r --arg c "$CASE_IGNORED" '.cases[] | select(.id == $c) | .revision' "$EXP_DIR/corpus/manifest.json")"
+check "fixture revision ignores its task folder" 'git -C "$EXP_DIR" show "$ignored_rev:.gitignore" | grep -qxF ".agro/tasks/*"'
+bash "$RUN_EPISODE" "$CASE_IGNORED" --run-id ign >/dev/null
+check "seed commit succeeds when .gitignore ignores the task folder" '[ "$(jq -r .status <<<"$(line_of ign)")" = ok ] && [ "$(jq -r .slug "$FAKE_SEEN")" = "$CASE_IGNORED" ] && [ -z "$(jq -r .status "$FAKE_SEEN")" ]'
+
+mkdir -p "$DELEGATE_OVERHEAD_RUNS_DIR/retry"
+printf '%s\n' "{\"run_id\":\"retry\",\"case_id\":\"$CASE_B\",\"attempt\":1,\"total_cost_usd\":0,\"status\":\"infra_failure\"}" \
+  "{\"run_id\":\"retry\",\"case_id\":\"$CASE_A\",\"attempt\":1,\"total_cost_usd\":0.5,\"status\":\"ok\"}" >"$DELEGATE_OVERHEAD_RUNS_DIR/retry/episodes.jsonl"
+bash "$RUN_BATCH" --run-id retry --cases "$CASE_A,$CASE_B" >"$scratch/retry.log" 2>&1
+check "resume retries an infra_failure case as attempt 2" '[ "$(jq -r "select(.case_id == \"$CASE_B\" and .status == \"ok\") | .attempt" "$DELEGATE_OVERHEAD_RUNS_DIR/retry/episodes.jsonl")" = 2 ]'
+rm -rf "$DELEGATE_OVERHEAD_RUNS_DIR/ign" "$DELEGATE_OVERHEAD_RUNS_DIR/retry"
+
 set +e
 FAKE_COST=6 bash "$RUN_BATCH" --run-id gate --all --jobs 2 >"$scratch/gate.log" 2>&1
 gate_rc=$?
