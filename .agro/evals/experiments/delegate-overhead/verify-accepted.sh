@@ -40,7 +40,8 @@ no test, or the story has no "files", the tests of the story are all the
 tests (basis "commit_fallback").
 The result of an accepted story is "fail" when one of its tests fails,
 "infra_failure" when no test fails and one test is "infra_failure", and
-"pass" when each test passes. The result is "unverified" when C has no test.
+"pass" when each test passes. When C has no test, each accepted story gets
+"unverified".
 The result of a story with passes false is "not_accepted".
 
 Output fields: commit, head, deps, tests[{path, command, exit, result}],
