@@ -129,6 +129,10 @@
     {
       "date": "2026-09-27",
       "change": "verifier fix #1219: a path after retire, retires, or retired in the same sentence is declared absent, and a path after no and before exist or exists in the same sentence is declared absent (for example \"No `.pi/skills` link exists\"). verify_prd_sh was 18ac79ad951eee8f7f2df942837b378cad126c5b544c93a51d6ea8c808811d11. Stored results keep their recorded verdicts; heldout-1211 is rescored in runs/heldout-1211/summary.rescore-1219.json of prd-efficiency, and the rescore list is in the PR body."
+    },
+    {
+      "date": "2026-09-27",
+      "change": "runner arms #1228: --arm-effort <arm>=low|medium|high replaces the --effort value of claude_args for that arm, and the episode line records it as effort. --arm-rev baseline=<rev> replaces the baseline SKILL.md with the file at <rev>; without it, the baseline arm keeps the base_revision tree. Pinned values do not change. Episodes without these options run as before."
     }
   ]
 }

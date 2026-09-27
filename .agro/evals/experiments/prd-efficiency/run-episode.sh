@@ -23,7 +23,8 @@ shopt -u patsub_replacement 2>/dev/null || true
 usage() {
   cat >&2 <<'USAGE'
 Usage: run-episode.sh <case-id> [--run-id <id>] [--arm baseline|candidate]
-                      [--repeat <n>] [--arm-rev candidate=<rev>]
+                      [--repeat <n>] [--arm-rev <arm>=<rev>]...
+                      [--arm-effort <arm>=low|medium|high]...
 
 Run one /prd attempt for one corpus case and append one line to
 runs/<run-id>/episodes.jsonl. Defaults: --run-id adhoc, --arm baseline,
@@ -38,8 +39,12 @@ alternates, and its own git directory. It checks again before claude starts.
 A failed check records infra_failure, and claude does not start.
 
 Overlay: the baseline arm replaces .agro/skills/prd/ with the tree at
-base_revision. The candidate arm also replaces SKILL.md with the file at the
-<rev> of --arm-rev candidate=<rev>, a commit of this repository. Each overlay
+base_revision. An arm with --arm-rev <arm>=<rev> also replaces SKILL.md with
+the file at <rev>, a commit of this repository. The candidate arm needs
+--arm-rev candidate=<rev>. --arm-effort <arm>=<level> replaces the --effort
+value of claude_args for that arm, and the line records it as effort. Options
+for the other arm are ignored, so run-batch.sh passes the same options to
+each episode. Each overlay
 file that the revision tracks is skip-worktree. Each other overlay file is in
 the core.excludesFile of the episode, with /work/. skill_revision is the tree
 digest of the overlaid directory.
@@ -70,7 +75,8 @@ USAGE
 run_id=adhoc
 arm=baseline
 repeat=1
-arm_rev=""
+arm_revs=()
+arm_efforts=()
 positional=()
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -81,8 +87,15 @@ while [ "$#" -gt 0 ]; do
     --arm-rev)
       [ "$#" -ge 2 ] || { usage; exit 2; }
       case "$2" in
-        candidate=?*) arm_rev="${2#candidate=}" ;;
-        *) printf 'run-episode: --arm-rev needs candidate=<rev>: %s\n' "$2" >&2; exit 2 ;;
+        baseline=?*|candidate=?*) arm_revs+=("$2") ;;
+        *) printf 'run-episode: --arm-rev needs <arm>=<rev>: %s\n' "$2" >&2; exit 2 ;;
+      esac
+      shift 2 ;;
+    --arm-effort)
+      [ "$#" -ge 2 ] || { usage; exit 2; }
+      case "$2" in
+        baseline=low|baseline=medium|baseline=high|candidate=low|candidate=medium|candidate=high) arm_efforts+=("$2") ;;
+        *) printf 'run-episode: --arm-effort needs <arm>=low|medium|high: %s\n' "$2" >&2; exit 2 ;;
       esac
       shift 2 ;;
     -*) printf 'run-episode: unknown option: %s\n' "$1" >&2; usage; exit 2 ;;
@@ -101,10 +114,21 @@ case "$repeat" in
   ''|*[!0-9]*|0) printf 'run-episode: --repeat must be a positive whole number: %s\n' "$repeat" >&2; exit 2 ;;
 esac
 case "$arm" in
-  baseline) [ -z "$arm_rev" ] || { printf 'run-episode: --arm-rev applies to the candidate arm only\n' >&2; exit 2; } ;;
-  candidate) [ -n "$arm_rev" ] || { printf 'run-episode: the candidate arm needs --arm-rev candidate=<rev>\n' >&2; exit 2; } ;;
+  baseline|candidate) ;;
   *) printf 'run-episode: --arm must be baseline or candidate: %s\n' "$arm" >&2; exit 2 ;;
 esac
+arm_rev=""
+for spec in "${arm_revs[@]}"; do
+  [ "${spec%%=*}" = "$arm" ] && arm_rev="${spec#*=}"
+done
+arm_effort=""
+for spec in "${arm_efforts[@]}"; do
+  [ "${spec%%=*}" = "$arm" ] && arm_effort="${spec#*=}"
+done
+if [ "$arm" = candidate ] && [ -z "$arm_rev" ]; then
+  printf 'run-episode: the candidate arm needs --arm-rev candidate=<rev>\n' >&2
+  exit 2
+fi
 
 entry="$(jq -c --arg id "$case_id" '.cases[] | select(.id == $id)' "$MANIFEST")"
 if [ -z "$entry" ]; then
@@ -127,6 +151,12 @@ timeout_s="${PRD_EFFICIENCY_TIMEOUT_S:-$(jq -r '.episode_timeout_s' "$EXPERIMENT
 skill_path="$(jq -r '.skill_path' "$EXPERIMENT")"
 base_revision="$(jq -r '.base_revision' "$EXPERIMENT")"
 mapfile -t claude_args < <(jq -r '.claude_args[]' "$EXPERIMENT")
+if [ -n "$arm_effort" ]; then
+  effort="$arm_effort"
+  for i in "${!claude_args[@]}"; do
+    [ "${claude_args[$i]}" = --effort ] && claude_args[i + 1]="$effort"
+  done
+fi
 
 run_dir="$RUNS_DIR/$run_id"
 episodes="$run_dir/episodes.jsonl"
@@ -320,7 +350,7 @@ closing="$(git -C "$RUNNER_ROOT" rev-parse --verify --quiet "$closing_commit^{co
 base_tree="$(git -C "$RUNNER_ROOT" rev-parse --verify --quiet "$base_revision:$skill_path" || true)"
 [ -n "$base_tree" ] || finish infra_failure "base_revision holds no $skill_path"
 candidate_blob=""
-if [ "$arm" = candidate ]; then
+if [ -n "$arm_rev" ]; then
   arm_commit="$(git -C "$RUNNER_ROOT" rev-parse --verify --quiet "$arm_rev^{commit}" || true)"
   [ -n "$arm_commit" ] || finish infra_failure "unknown --arm-rev revision: $arm_rev"
   arm_rev_json="$(ep_json_str "$arm_commit")"
@@ -352,7 +382,7 @@ iso_err="$(isolation_error "$wt")"
 git -C "$wt" ls-files -z -- "$skill_path" | xargs -0 -r git -C "$wt" update-index --skip-worktree --
 rm -rf "${wt:?}/$skill_path"
 git -C "$RUNNER_ROOT" archive "$base_revision" -- "$skill_path" | tar -x -C "$wt"
-if [ "$arm" = candidate ]; then
+if [ -n "$candidate_blob" ]; then
   git -C "$RUNNER_ROOT" cat-file blob "$candidate_blob" >"$wt/$skill_path/SKILL.md"
 fi
 mapfile -t overlay_files < <(cd "$wt" && find "$skill_path" -type f | sort)
@@ -373,7 +403,7 @@ overlay_tree="$(
   git -C "$wt" write-tree --prefix="$skill_path/"
 )"
 rm -f "$digest_index"
-if [ "$arm" = baseline ] && [ "$overlay_tree" != "$base_tree" ]; then
+if [ -z "$arm_rev" ] && [ "$overlay_tree" != "$base_tree" ]; then
   finish infra_failure "baseline overlay tree $overlay_tree is not the base tree $base_tree"
 fi
 skill_revision="$(ep_json_str "$overlay_tree")"

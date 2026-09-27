@@ -218,6 +218,28 @@ if jq -e --arg t "$base_tree" --arg md "$candidate_md" '.skill_revision != $t an
 else
   fail "candidate overlay: $(jq -c '{skill_revision, overlay, arm_rev}' <<<"$candidate_line")"
 fi
+set +e
+bash "$RUN_BATCH" --run-id t-effort --phase noise --arm baseline --arm candidate \
+  --arm-rev "candidate=$CANDIDATE_REV" --arm-rev "baseline=$CANDIDATE_REV" \
+  --arm-effort baseline=low --arm-effort candidate=high --cases "$CASE_A" --repeats 1 >/dev/null 2>&1
+effort_rc=$?
+set -e
+effort_ok=0
+while IFS= read -r line; do
+  want="$(jq -r 'if .arm == "baseline" then "low" else "high" end' <<<"$line")"
+  got="$(probe_event "$line" | jq -r '.argv as $a | [range(0; $a | length) | select($a[.] == "--effort") | $a[. + 1]] | join(",")')"
+  if jq -e --arg w "$want" --arg md "$candidate_md" --arg c "$(git -C "$REPO_ROOT" rev-parse "$CANDIDATE_REV")" \
+      '.status == "ok" and .effort == $w and .overlay.skill_md_blob == $md and .arm_rev == $c' <<<"$line" >/dev/null \
+    && [ "$got" = "$want" ] && [ "$(probe_event "$line" | jq -r '.skill_md')" = "$candidate_md" ]; then
+    effort_ok=$((effort_ok + 1))
+  fi
+done < <(episodes_of t-effort)
+if [ "$effort_rc" -eq 0 ] && [ "$effort_ok" -eq 2 ]; then
+  pass "--arm-effort sets each arm's claude --effort and effort field; --arm-rev baseline=<rev> overlays the baseline SKILL.md"
+else
+  fail "arm effort/rev: exit $effort_rc, $(episodes_of t-effort | jq -c '{arm, status, effort, arm_rev, error}')"
+fi
+
 for line in "$baseline_line" "$candidate_line"; do
   if jq -e '.overlay.skip_worktree == [".agro/skills/prd/SKILL.md"] and .overlay.excluded == [".agro/skills/prd/references/tracker.md"]' <<<"$line" >/dev/null \
     && probe_event "$line" | jq -e '.skip_worktree == [".agro/skills/prd/SKILL.md"] and .status_lines == 0' >/dev/null; then

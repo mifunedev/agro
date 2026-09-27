@@ -18,12 +18,15 @@ source "$EXP_DIR/../lib/episode.sh"
 usage() {
   cat >&2 <<'USAGE'
 Usage: run-batch.sh --run-id <id> --arm baseline|candidate [--arm ...]
-                    [--arm-rev candidate=<rev>] (--cases <id,...> | --split train|heldout)
+                    [--arm-rev <arm>=<rev>]... [--arm-effort <arm>=low|medium|high]...
+                    (--cases <id,...> | --split train|heldout)
                     [--repeats N] [--jobs N] [--phase <name>] [--detach]
 
 Run each (case, repeat, arm) episode through run-episode.sh, in manifest
 order. With two arms, the arm order alternates from one (case, repeat) slot to
-the next. The candidate arm needs --arm-rev candidate=<rev>. Defaults:
+the next. The candidate arm needs --arm-rev candidate=<rev>. Each --arm-rev
+and --arm-effort goes to every episode; run-episode.sh applies the one for its
+arm. Defaults:
 --repeats 1, --jobs budget.max_parallel, --phase the run id with each dash
 replaced by an underscore. --jobs above budget.max_parallel (3) is refused.
 
@@ -55,7 +58,8 @@ USAGE
 original_args=("$@")
 run_id=""
 arms=()
-arm_rev_args=()
+arm_args=()
+has_candidate_rev=0
 cases_filter=""
 split=""
 repeats=1
@@ -68,7 +72,21 @@ while [ "$#" -gt 0 ]; do
     -h|--help) usage; exit 0 ;;
     --run-id) [ "$#" -ge 2 ] || { usage; exit 2; }; run_id="$2"; shift 2 ;;
     --arm) [ "$#" -ge 2 ] || { usage; exit 2; }; arms+=("$2"); shift 2 ;;
-    --arm-rev) [ "$#" -ge 2 ] || { usage; exit 2; }; arm_rev_args=(--arm-rev "$2"); shift 2 ;;
+    --arm-rev)
+      [ "$#" -ge 2 ] || { usage; exit 2; }
+      case "$2" in
+        candidate=?*) has_candidate_rev=1 ;;
+        baseline=?*) ;;
+        *) printf 'run-batch: --arm-rev needs <arm>=<rev>: %s\n' "$2" >&2; exit 2 ;;
+      esac
+      arm_args+=(--arm-rev "$2"); shift 2 ;;
+    --arm-effort)
+      [ "$#" -ge 2 ] || { usage; exit 2; }
+      case "$2" in
+        baseline=low|baseline=medium|baseline=high|candidate=low|candidate=medium|candidate=high) ;;
+        *) printf 'run-batch: --arm-effort needs <arm>=low|medium|high: %s\n' "$2" >&2; exit 2 ;;
+      esac
+      arm_args+=(--arm-effort "$2"); shift 2 ;;
     --cases) [ "$#" -ge 2 ] || { usage; exit 2; }; cases_filter="$2"; shift 2 ;;
     --split) [ "$#" -ge 2 ] || { usage; exit 2; }; split="$2"; shift 2 ;;
     --repeats) [ "$#" -ge 2 ] || { usage; exit 2; }; repeats="$2"; shift 2 ;;
@@ -95,7 +113,7 @@ fi
 for arm in "${arms[@]}"; do
   case "$arm" in
     baseline) ;;
-    candidate) [ "${#arm_rev_args[@]}" -eq 2 ] || { printf 'run-batch: the candidate arm needs --arm-rev candidate=<rev>\n' >&2; exit 2; } ;;
+    candidate) [ "$has_candidate_rev" -eq 1 ] || { printf 'run-batch: the candidate arm needs --arm-rev candidate=<rev>\n' >&2; exit 2; } ;;
     *) printf 'run-batch: --arm must be baseline or candidate: %s\n' "$arm" >&2; exit 2 ;;
   esac
 done
@@ -314,7 +332,7 @@ for slot in "${slots[@]}"; do
     break
   fi
   args=("$c" --run-id "$run_id" --arm "$a" --repeat "$n")
-  [ "$a" = candidate ] && args+=("${arm_rev_args[@]}")
+  args+=("${arm_args[@]}")
   printf 'run-batch: start %s %s r%s (run spent %s USD)\n' "$c" "$a" "$n" "$(run_spent)"
   bash "$RUN_EPISODE" "${args[@]}" &
   running[$!]=1
