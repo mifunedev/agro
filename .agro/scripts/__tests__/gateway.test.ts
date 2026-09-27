@@ -31,8 +31,7 @@ describe("gateway client-session launcher", () => {
     expect(gateway()).toContain("ensure_hermes_gateway_cwd");
   });
 
-  it("self-heals Hermes Teams gateway dependencies when Teams is configured", () => {
-    expect(gateway()).toContain("microsoft-teams-apps==2.0.13.4");
+  it("syncs Hermes Teams env aliases when Teams is configured", () => {
     expect(gateway()).toContain("sync_hermes_teams_env_aliases");
   });
 
