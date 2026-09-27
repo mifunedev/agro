@@ -365,7 +365,7 @@ Only the two probes RESULTS.md records as persistently
 | Target | Class | Flags | Verdict |
 |--------|-------|-------|---------|
 | autopilot-preflight-gate                   | probe | 3      | CUT   |
-| next-dev-prod                              | probe | 3      | CUT   |
+| (probe retired in #1212)                   | probe | 3      | CUT   |
 | advisor-execution-contract                 | probe | —      | KEEP  |
 | … (73 more probes) …                       | probe | —      | KEEP  |
 | CB-001                                     | task  | —      | KEEP  |
@@ -377,7 +377,7 @@ read-only proof: git status --porcelain .agro/evals/ is EMPTY ✓
 ```
 
 Both `SKIPPED` rows are the check-3 oracle finding — `autopilot-preflight-gate`
-and `next-dev-prod` are the only probes whose `.agro/evals/RESULTS.md` status is
+and a probe that #1212 retired are the only probes whose `.agro/evals/RESULTS.md` status is
 `SKIPPED`, so they are the only fatal CUTs. Re-running the driver twice yields
 byte-identical verdicts (deterministic), and `.agro/evals/` stays unmodified.
 

@@ -105,7 +105,6 @@ probe id; git history is the time series.** Schema and exit-code semantics are i
 | langfuse-wizard-unattended | A | 2026-09-23 17:59 | SKIPPED | #1131 — `agro config langfuse` is a five-step interactive wizard, but the same |
 | markitdown-wiki-ingest | A | 2026-09-23 17:59 | PASS | issue #649 — pinned local-document normalization contract for /wiki ingest |
 | memories-tier-defaults | A | 2026-09-23 17:59 | PASS | issue #1084 |
-| next-dev-prod | A | 2026-09-23 17:59 | REGRESSION | retro lesson 2026-06-04 |
 | no-project-agent-catalog | A | 2026-09-23 17:59 | PASS | ADR #929 — .agro/agents/ is retired; provider-link and update logic must not recreate it |
 | npm-global-prefix-home | A | 2026-09-23 17:59 | PASS | #1138 — a harness self-update ran a bare `npm install -g` and hit |
 | operator-config-guard | A | 2026-09-23 17:59 | PASS | operator directives 2026-08-06 (.config/ and settings.local.json are operator-only) |
