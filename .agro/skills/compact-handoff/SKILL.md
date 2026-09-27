@@ -1,10 +1,10 @@
 ---
 name: compact-handoff
 description: |
-  Generate exactly two ready-to-paste prompts from the current conversation: a
-  `/compact` prompt that carries the working state forward, and a
-  post-compaction prompt that directs the next unresolved task. Prints text
-  only; executes neither prompt.
+  Generate exactly two ready-to-paste prompts from the current conversation,
+  labeled COMPACT_PROMPT and COMPACT_POST_PROMPT: a `/compact` command that
+  carries the working state forward, and a post-compaction prompt that directs
+  the next unresolved task. Prints text only; executes neither prompt.
   TRIGGER when: /compact-handoff is invoked, or the operator asks for a compact
   prompt plus a resume prompt, a compaction carry-forward, or a handoff before
   compacting.
@@ -59,14 +59,21 @@ with the operator".
 
 ## 3. Write the prompts
 
-**Prompt 1 — `/compact`.** Start with `/compact`. Follow it with an
-instruction that tells the summarizer what to preserve, grouped under the
-seven headings from step 1. Tell it to drop stale, superseded, and redundant
-context, raw tool output, and file dumps. Tell it to keep open proposals
-labeled as unapproved.
+**`COMPACT_PROMPT` — the `/compact` command.** Write one command that the
+operator pastes as is. Start with `/compact ` and follow it on the same line
+with the compaction instruction. The instruction tells the summarizer what to
+keep to deliver the best result on the next task:
 
-**Prompt 2 — post-compaction.** Direct execution of the task from step 2.
-State:
+- the seven items from step 1, each with its concrete values;
+- open proposals, labeled as unapproved;
+- the references that the next task needs, copied exactly.
+
+The instruction also tells the summarizer to drop stale, superseded, and
+redundant context, raw tool output, and file dumps.
+
+**`COMPACT_POST_PROMPT` — the post-compaction prompt.** Write the message that
+the operator sends after the compaction. The message directs the task from
+step 2 and states:
 
 - **Objective:** what the task achieves.
 - **Scope:** what is in and out.
@@ -79,8 +86,22 @@ criteria from the conversation. If the conversation does not define one, use
 
 ## 4. Output
 
-Print only the two prompts, each in its own fenced `text` block, in order.
-Print no preamble, commentary, or closing text.
+Print exactly this shape and nothing else:
+
+````text
+COMPACT_PROMPT:
+```
+/compact <compaction instruction>
+```
+COMPACT_POST_PROMPT:
+```
+<post-compaction prompt>
+```
+````
+
+Use a plain fence with no language tag for each prompt. If a prompt contains
+a triple backtick, fence that prompt with four backticks. Print no preamble,
+commentary, or closing text.
 
 ## Examples
 
