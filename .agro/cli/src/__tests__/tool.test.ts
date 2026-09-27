@@ -2028,3 +2028,67 @@ describe("agro tool uninstall — a root-level tool", () => {
     expect(help).toContain("`uninstall` refuses each root-level tool");
   });
 });
+
+describe("agro tool install — a retry repairs a partial install", () => {
+  it("runs the sandbox install again when the first run failed after the binary landed", async () => {
+    const root = makeRepo();
+    let installs = 0;
+    let marked = false;
+    const { calls, run } = liveHost((cmd, args) => {
+      if (isExecOf(cmd, args, "command -v agent-browser")) {
+        return { status: installs > 0 ? 0 : 1, stdout: "", stderr: "" };
+      }
+      if (isExecOf(cmd, args, "--with-deps")) {
+        installs += 1;
+        return { status: installs === 1 ? 1 : 0, stdout: "", stderr: "" };
+      }
+      if (cmd === "docker" && args[0] === "exec" && args.includes("test") && args.includes("-f")) {
+        return { status: marked ? 0 : 1, stdout: "", stderr: "" };
+      }
+      if (isExecOf(cmd, args, ': > "$1"')) {
+        marked = true;
+        return { status: 0, stdout: "", stderr: "" };
+      }
+      return undefined;
+    });
+
+    const first = makeIo(true);
+    expect(await runToolInstall("agent-browser", { bin: "agro", cwd: root, run }, first.io)).toBe(1);
+    const second = makeIo(true);
+    expect(await runToolInstall("agent-browser", { bin: "agro", cwd: root, run }, second.io)).toBe(0);
+    expect(second.out.join("")).not.toContain("already installed");
+    expect(calls.filter(isInstallCall).length).toBe(2);
+    expect(marked).toBe(true);
+  });
+
+  it("runs the host install again for a user-prefix binary with no receipt", async () => {
+    const repo = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    seedWorkspace(defaultRoot(home));
+    mkdirSync(join(user.prefix, "bin"), { recursive: true });
+    writeFileSync(join(user.prefix, "bin", "herdr"), "");
+    const { calls, run } = hostRunner();
+    const { io, out } = makeIo();
+
+    expect(
+      await runToolInstall(
+        "herdr",
+        {
+          bin: "agro",
+          cwd: repo,
+          run,
+          env: home.env,
+          homedir: user.homedir,
+          interactive: false,
+          host: true,
+          platform: LINUX,
+        },
+        io,
+      ),
+    ).toBe(0);
+    expect(hostText(out)).not.toContain("already installed");
+    expect(installerCalls(calls).length).toBeGreaterThan(0);
+    expect(Object.keys(receiptsIn(home.dir))).toEqual(["herdr"]);
+  });
+});
