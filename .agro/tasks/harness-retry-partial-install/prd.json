@@ -76,8 +76,8 @@
         "The evidence uses CI as the disposable sandbox. It changes no live sandbox."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: CI job 108707647305 pass; evidence/manual-review.md records job URL, red output, green vitest 111 passed; reasoned: CI was the disposable sandbox, no live sandbox changed",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -85,7 +85,8 @@
       ],
       "files": [
         ".agro/tasks/harness-retry-partial-install/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "97de789d"
     }
   ]
 }
