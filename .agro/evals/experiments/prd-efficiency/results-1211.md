@@ -70,3 +70,14 @@ The run cost $54.30 of the $70 phase cap. The total for #1197 and #1211 is $194.
 - `runs/heldout-1211/summary.json`: the paired result and the decision object.
 - `runs/heldout-1211/episodes.jsonl` and `runs/heldout-1211/outputs/`: the records and the plans.
 - `.agro/evals/decisions/skill-impact.md`: record SI-0024 holds the proposed diff.
+
+## Operator decision after the rescore (#1219)
+
+Issue #1219 extended the absent rule of `verify-prd.sh` to "retires `x`" and "No `x` link exists". A rescore of the stored `heldout-1211` plans with the fixed verifier gives the verdict `success`. `runs/heldout-1211/summary.rescore-1219.json` holds the rescore. The recorded `summary.json` keeps the verdict `no-improvement`.
+
+The rescore came after the result, so the rule alone does not justify the change. The operator decided on 2026-09-27 to land the turn-reduction edits of `8fcbf890`. Reasons:
+
+- Two held-out runs agree on the cost cut.
+- The substance guard held.
+- The only failed condition was a verifier gap.
+- The change is one text file and easy to revert.
