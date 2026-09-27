@@ -30,11 +30,7 @@ branch: "feat/[issue#]-[shortdesc]"
 
 ## Summary
 
-<!-- Brief context beyond the user stories. Include visual references if applicable. -->
-
-### Visual Reference
-
-<!-- Screenshots, mockups, ASCII sketches, or links to reference implementations. -->
+<!-- Brief context beyond the user stories. Put screenshots and review evidence in the PR ## Manual review section: .agro/skills/git/references/manual-review.md -->
 
 ---
 

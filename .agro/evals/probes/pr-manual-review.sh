@@ -2,17 +2,18 @@
 # tier: A
 # source: issue #1236 — each PR body carries a ## Manual review section in one canonical shape
 # desc: the PR template holds ## Manual review after ## Where it diverged and no ## Visual Reference,
-#       the /git Ready-for-review gate lists Manual review, and the reference defines both shapes
+#       the feat issue template has no ### Visual Reference, the /git Ready-for-review gate lists Manual review, and the reference defines both shapes
 set -euo pipefail
 
 ROOT="${AGRO_PROBE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
 TEMPLATE="$ROOT/.github/pull_request_template.md"
 SKILL="$ROOT/.agro/skills/git/SKILL.md"
 REFERENCE="$ROOT/.agro/skills/git/references/manual-review.md"
+FEAT="$ROOT/.github/ISSUE_TEMPLATE/feat.md"
 
 missing=()
 
-for f in "$TEMPLATE" "$SKILL" "$REFERENCE"; do
+for f in "$TEMPLATE" "$SKILL" "$REFERENCE" "$FEAT"; do
   [[ -f "$f" ]] || missing+=("file exists: ${f#"$ROOT/"}")
 done
 
@@ -22,6 +23,12 @@ if [[ -f "$TEMPLATE" ]]; then
   after_diverged="$(awk '/^## /{ if (seen) { print; exit } if ($0 == "## Where it diverged") seen=1 }' "$TEMPLATE")"
   [[ "$after_diverged" == '## Manual review' ]] || missing+=("## Manual review directly follows ## Where it diverged")
   grep -qF '.agro/skills/git/references/manual-review.md' "$TEMPLATE" || missing+=("template comment points to the reference")
+fi
+
+if [[ -f "$FEAT" ]]; then
+  grep -qxF '### Visual Reference' "$FEAT" && missing+=("feat.md has no ### Visual Reference")
+  summary="$(awk '/^## /{s=($0=="## Summary");next} s' "$FEAT")"
+  grep -qF '.agro/skills/git/references/manual-review.md' <<<"$summary" || missing+=("feat.md Summary comment points to the reference")
 fi
 
 if [[ -f "$SKILL" ]]; then
