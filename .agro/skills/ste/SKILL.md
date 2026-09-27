@@ -101,7 +101,7 @@ Two clauses hold whichever mode runs:
 
 ## Rewrite mode
 
-Run these seven steps against an existing document.
+Run these eight steps against an existing document.
 
 1. Read the source to the end. Change nothing yet.
 2. List every ambiguity. Mark each one `resolvable` or `missing`.
