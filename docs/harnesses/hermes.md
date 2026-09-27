@@ -82,8 +82,8 @@ hermes doctor           # health check
 
 The image sets `HERMES_HOME=/home/sandbox/harness/.hermes` for config, memory,
 runtime skills, and sessions. The managed installer sets that home before running
-upstream code. The managed installer adds Slack, Teams, web, and PTY extras to
-the same virtual environment as the executable.
+upstream code. The Hermes package manager (pm) owns the Hermes Python environment.
+AGRO adds the `slack` and `teams` extras with `hermes pm install --extra slack --extra teams`.
 Installation reconciles `.hermes/skills/agro` with `.agro/skills`
 immediately, without a restart.
 

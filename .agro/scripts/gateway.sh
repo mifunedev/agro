@@ -224,32 +224,6 @@ path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 PY
 }
 
-ensure_hermes_teams_deps() {
-  local hermes_home="$1" py="/usr/local/lib/hermes-agent/venv/bin/python"
-  hermes_teams_configured "$hermes_home" || return 0
-  [ -x "$py" ] || return 0
-
-  if "$py" - <<'PY' >/dev/null 2>&1
-import importlib.util
-raise SystemExit(0 if importlib.util.find_spec("aiohttp") and importlib.util.find_spec("microsoft_teams") else 1)
-PY
-  then
-    return 0
-  fi
-
-  if ! command -v uv >/dev/null 2>&1; then
-    echo "[gateway] Teams is configured but Hermes Teams deps are missing and uv is unavailable" >&2
-    echo "[gateway] install manually: uv pip install --python $py 'microsoft-teams-apps==2.0.13.4' 'aiohttp==3.14.1'" >&2
-    return 1
-  fi
-
-  local venv_root; venv_root=$(dirname "$(dirname "$py")")
-  echo "[gateway] installing Hermes Teams gateway dependencies into $venv_root"
-  VIRTUAL_ENV="$venv_root" uv pip install --python "$py" \
-    'microsoft-teams-apps==2.0.13.4' \
-    'aiohttp==3.14.1' || return 1
-}
-
 ensure_hermes_gateway_cwd() {
   local hermes_home="$1" gateway_cwd="$2"
   local config_file="$hermes_home/config.yaml"
@@ -307,7 +281,6 @@ start_hermes() {
   fi
   mkdir -p "$hermes_home"
   sync_hermes_teams_env_aliases "$hermes_home" || return 1
-  ensure_hermes_teams_deps "$hermes_home" || return 1
   ensure_hermes_gateway_cwd "$hermes_home" "$gateway_cwd"
 
   local run_cmd
