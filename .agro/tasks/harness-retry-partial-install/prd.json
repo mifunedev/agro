@@ -56,14 +56,15 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on each changed prose file."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: ste-check docs/lifecycle-commands.md exit 0; git diff --quiet origin/development -- sandbox-compatibility.yml exit 0; reasoned: new paragraph states the completion rule, matches sandboxMarkerPath and host receipt logic",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         "docs/lifecycle-commands.md"
-      ]
+      ],
+      "commit": "296bdf0d"
     },
     {
       "id": "US-004",
