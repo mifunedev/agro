@@ -1,0 +1,13 @@
+US-001 passed my own checks and is committed on `bug/1204-boot-smoke-test-timeout`. Nothing was pushed, and I made no GitHub calls.
+
+- **Change** (`8665200`, by a Sonnet worker): adds `BOOT_SMOKE_TEST_TIMEOUT_MS = 30_000` and passes it as the `timeout` option to both `describe` blocks in `.agro/scripts/__tests__/sandbox-boot-smoke.test.ts`.
+- **Checks I reran on the task branch:**
+  - The case "fails when systemd does not recover the scheduler after SIGKILL" still asserts exit status 1 and the same error text.
+  - I changed the `kill -9` stub to always write `4242`. That case then failed (exit 1), as it should, and I reverted the stub.
+  - The test file passed 20 of 20 consecutive runs.
+  - `pnpm build:harness`, `pnpm test` (1779 tests) and `pnpm typecheck` all exited 0.
+- **Record:** `prd.json` now has `passes: true`, the commit and notes for each criterion (`bf3169e`). The worker's worktree and branch are removed.
+
+A safety hook blocked `git checkout --` when I went to undo the mutation, so I reversed that one-line edit by hand and confirmed the file matched the commit again.
+
+I skipped the steps that need GitHub: pushing, ticking the PR checklist, filling the PR evidence sections and marking it ready for review. `prd.md` already had a `## Lessons` section, and this run turned up nothing new for it, so I didn't propose any issues.

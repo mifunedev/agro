@@ -1,0 +1,13 @@
+n't pass under your instruction.** D5 requires opening a ready-for-review PR and checking CI, but you said not to push or call GitHub.
+3. **The stories list no files the worker may edit.** None of US-001–003 has a `files` field. `prd.md` describes the scope loosely ("classified documents, their direct consumers, narrow tests/probes, …") but never lists paths. It also points to an "operator-approved classification table in this conversation" that isn't here. D1 and D2 cover most of the 15 READMEs, but not every one clearly.
+
+**Smaller problems I'd fix on the way:**
+- HEAD is detached at `ce72eca`, and the local branch `task/1112-directory-contracts` doesn't exist yet. I'd create it before dispatching.
+- US-002's "Typecheck passes" needs a real command in the plan.
+
+**Decisions needed:**
+- **Reasoning:** go ahead with the default (inherited model, no reasoning setting, recorded that way in the dispatch notes), or hold until a high-reasoning setup exists?
+- **D5:** narrow it to local checks only (reference checks, provider-link check, affected probes, index byte-check, typecheck, full `/eval`), with the PR and CI steps recorded as not done at your direction? Or leave US-003 open?
+- **Files:** should I add a `files` list to each story from the D1–D4 text and show it to you first, or will you give me the classification table?
+
+Once you answer, I'll create the task branch and dispatch one continuing worker, as the plan says: US-001, then US-002, then US-003, in one worktree.

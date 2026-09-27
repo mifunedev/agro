@@ -1,0 +1,23 @@
+the stash stack is shared.
+- **Hook-bypass rule:** the committed skill names a script file, a heredoc, or another tool as a bypass and requires `BLOCKED`.
+- **After the change:** the probe exits 0.
+- **CHANGELOG:** one #1162 entry under `[Unreleased]` → `### Fixed`, 226 characters.
+- **Not run:** the full probe suite (`bash .claude/skills/eval/run.sh`).
+
+**Why integration stopped:**
+1. `git merge --ff-only` refused, because it would have overwritten your hidden local `SKILL.md`. Nothing changed.
+2. Getting past that means discarding the local file with `git checkout --` (after backing it up and restoring it afterwards). The safety hook blocked `git checkout --`, and I didn't route around it.
+
+Your local file is unchanged, still flagged `skip-worktree`, and backed up at `/tmp/delegate-SKILL.local.md`.
+
+**Decision for you:** to integrate, run this yourself from the repository root, or allow me to:
+
+```
+git update-index --no-skip-worktree .agro/skills/delegate/SKILL.md
+git checkout -- .agro/skills/delegate/SKILL.md
+git merge --ff-only bug/1162-worker-brief-stash-bypass-us-001
+cp /tmp/delegate-SKILL.local.md .agro/skills/delegate/SKILL.md
+git update-index --skip-worktree .agro/skills/delegate/SKILL.md
+```
+
+Your local copy already has the same worker-brief rules, so restoring it loses nothing. After that I'll rerun the checks on the task branch, commit `prd.json`, remove the worker worktree, and do Close (full probe suite, then Lessons). No push and no GitHub calls in any step.

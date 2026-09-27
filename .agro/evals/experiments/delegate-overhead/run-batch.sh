@@ -3,8 +3,17 @@ set -euo pipefail
 
 EXP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly EXP_DIR
-readonly EXPERIMENT="$EXP_DIR/experiment.json"
-readonly MANIFEST="${DELEGATE_OVERHEAD_MANIFEST:-$EXP_DIR/corpus/manifest.json}"
+for ((i = 1; i < $#; i++)); do
+  if [ "${!i}" = --experiment ]; then
+    j=$((i + 1))
+    DELEGATE_OVERHEAD_EXPERIMENT="$(realpath -- "${!j}")"
+    export DELEGATE_OVERHEAD_EXPERIMENT
+  fi
+done
+readonly EXPERIMENT="${DELEGATE_OVERHEAD_EXPERIMENT:-$EXP_DIR/experiment.json}"
+[ -f "$EXPERIMENT" ] || { printf 'run-batch: no experiment file %s\n' "$EXPERIMENT" >&2; exit 2; }
+MANIFEST="${DELEGATE_OVERHEAD_MANIFEST:-$EXP_DIR/$(jq -r '.manifest // "corpus/manifest.json"' "$EXPERIMENT")}"
+readonly MANIFEST
 readonly RUN_EPISODE="$EXP_DIR/run-episode.sh"
 readonly RUNS_DIR="${DELEGATE_OVERHEAD_RUNS_DIR:-$EXP_DIR/runs}"
 readonly SCORED='["ok","timeout"]'
@@ -16,6 +25,7 @@ usage() {
   cat >&2 <<'USAGE'
 Usage: run-batch.sh --run-id <id> (--cases <id,...> | --all) [--jobs N]
        [--arm baseline|candidate] [--arm-rev candidate=<rev>] [--repeats N]
+       [--experiment <file>]
 
 Run each case through run-episode.sh in manifest order. --jobs is 1 or 2;
 the default is 1.
@@ -25,6 +35,11 @@ case and one repeat. Even slots run baseline first, and odd slots run
 candidate first. --arm runs one arm. With neither option, the batch runs the
 baseline arm only. --repeats (default 1) gives the repeats of each case.
 run-episode.sh records arm and repeat.
+
+Experiment: --experiment selects the experiment file (default
+experiment.json) and passes it to run-episode.sh through
+DELEGATE_OVERHEAD_EXPERIMENT. Its manifest field selects the corpus (default
+corpus/manifest.json). experiment-1233.json selects corpus-1233/.
 
 Resume: a rerun skips each case, arm, and repeat that has an ok or timeout line in
 runs/<run-id>/episodes.jsonl and retries any other case as a new attempt.
@@ -36,7 +51,10 @@ more than budget.first_episode_max_usd (5 USD).
 
 Hard cap: no episode starts when the recorded cost of all runs plus
 budget.episode_reserve_usd for each running episode and for the new episode
-exceeds budget.hard_cap_usd (30 USD). The refused case gets a budget_refused
+exceeds budget.hard_cap_usd (30 USD for experiment.json, 60 USD for
+experiment-1233.json). When budget.cap_scope is "issue", the cost of all
+runs counts only the lines whose issue equals the issue of the experiment
+file. The refused case gets a budget_refused
 line, and no later episode starts.
 
 Usage limit: when an episode records usage_limit, no other episode starts.
@@ -65,6 +83,7 @@ while [ "$#" -gt 0 ]; do
     --arm) [ "$#" -ge 2 ] || { usage; exit 2; }; arm="$2"; shift 2 ;;
     --arm-rev) [ "$#" -ge 2 ] || { usage; exit 2; }; arm_rev="$2"; shift 2 ;;
     --repeats) [ "$#" -ge 2 ] || { usage; exit 2; }; repeats="$2"; shift 2 ;;
+    --experiment) [ "$#" -ge 2 ] || { usage; exit 2; }; shift 2 ;;
     *) printf 'run-batch: unknown argument: %s\n' "$1" >&2; usage; exit 2 ;;
   esac
 done
@@ -112,12 +131,15 @@ exec > >(tee -a "$run_dir/batch.log") 2>&1
 hard_cap="$(jq -r '.budget.hard_cap_usd' "$EXPERIMENT")"
 first_max="$(jq -r '.budget.first_episode_max_usd' "$EXPERIMENT")"
 reserve="$(jq -r '.budget.episode_reserve_usd' "$EXPERIMENT")"
+cap_scope="$(jq -r '.budget.cap_scope // "all"' "$EXPERIMENT")"
+issue="$(jq -c '.issue' "$EXPERIMENT")"
 
 all_spent() {
   local f
   for f in "$RUNS_DIR"/*/episodes.jsonl; do
     [ -f "$f" ] && cat "$f"
-  done | jq -s '[.[] | .total_cost_usd? // 0] | add // 0'
+  done | jq -s --arg scope "$cap_scope" --argjson issue "$issue" \
+    '[.[] | select($scope != "issue" or .issue == $issue) | .total_cost_usd? // 0] | add // 0'
 }
 
 case_done() {
@@ -189,8 +211,8 @@ for item in "${slots[@]}"; do
   refusal="$(guard_refusal)"
   if [ -n "$refusal" ]; then
     printf 'run-batch: hard cap: %s; no episode starts\n' "$refusal"
-    ep_append_line "$episodes" "$(jq -cn --arg r "$run_id" --arg c "$c" --arg arm "$a" --argjson rep "$rep" --arg e "$refusal" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-      '{run_id: $r, episode_id: null, case_id: $c, arm: $arm, repeat: $rep, total_cost_usd: null, status: "budget_refused", started_at: $at, error: $e}')"
+    ep_append_line "$episodes" "$(jq -cn --argjson issue "$issue" --arg r "$run_id" --arg c "$c" --arg arm "$a" --argjson rep "$rep" --arg e "$refusal" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+      '{run_id: $r, issue: $issue, episode_id: null, case_id: $c, arm: $arm, repeat: $rep, total_cost_usd: null, status: "budget_refused", started_at: $at, error: $e}')"
     stopped="hard cap"
     break
   fi

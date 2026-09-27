@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "experiment": "delegate-overhead",
+  "issue": 1233,
+  "base_revision": "5b73d1aeba7df4f1902775b9719c55a9a4a41bb2",
+  "skill_path": ".agro/skills/delegate",
+  "skill_tree": "50a5035a909f5001659f8da5cf41a6341661c34f",
+  "model": "claude-opus-5-5",
+  "effort": "low",
+  "claude_args": [
+    "-p",
+    "--model",
+    "claude-opus-5-5",
+    "--effort",
+    "low",
+    "--disallowedTools",
+    "WebFetch",
+    "WebSearch",
+    "--setting-sources",
+    "project,local",
+    "--strict-mcp-config",
+    "--permission-mode",
+    "bypassPermissions",
+    "--no-session-persistence",
+    "--output-format",
+    "stream-json",
+    "--verbose"
+  ],
+  "episode_prompt": "/delegate <slug>. Do not push and do not call GitHub.",
+  "episode_timeout_s": 1800,
+  "split_field": "parent_tool_use_id",
+  "prices_usd_per_mtok": {
+    "source": "../skill-spend/report.md",
+    "opus": {
+      "input": 5.00,
+      "output": 25.00,
+      "cache_write": 6.25,
+      "cache_read": 0.50
+    },
+    "sonnet": {
+      "input": 3.00,
+      "output": 15.00,
+      "cache_write": 3.75,
+      "cache_read": 0.30
+    },
+    "haiku": {
+      "input": 1.00,
+      "output": 5.00,
+      "cache_write": 1.25,
+      "cache_read": 0.10
+    }
+  },
+  "budget": {
+    "first_episode_max_usd": 5.0,
+    "hard_cap_usd": 60.0,
+    "episode_reserve_usd": 5.0,
+    "max_parallel": 2,
+    "cap_scope": "issue"
+  },
+  "manifest": "corpus-1233/manifest.json",
+  "cases": 8,
+  "repeats": 2,
+  "success": {
+    "source": "results-1226.md and summarize.sh --paired",
+    "advisor_cost_lower": "candidate mean advisor cost < baseline mean advisor cost",
+    "accepted_not_lower": "candidate mean accepted stories >= baseline mean accepted stories",
+    "no_question_stops": "candidate question stops == 0"
+  },
+  "verify_accepted": true
+}
