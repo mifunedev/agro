@@ -77,8 +77,8 @@
         "The evidence changes no live sandbox."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: all PR #1247 checks pass (job 108710541512); evidence/manual-review.md records the run URL, red output, green vitest 246 passed; reasoned: CI was the disposable sandbox",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -86,7 +86,8 @@
       ],
       "files": [
         ".agro/tasks/tool-retry-partial-install/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "85a2244a"
     }
   ]
 }
