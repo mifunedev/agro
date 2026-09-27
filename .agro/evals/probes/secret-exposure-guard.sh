@@ -154,6 +154,28 @@ assert deny "jq --arg k v '.x' data.json; jq -n '$JQ_ENV_WORD'" \
 assert deny "jq --arg k v '.x' data.json | jq -n \"$JQ_ENV_VAR\"" \
   "a double-quoted jq filter that reads \$ENV in a piped jq call was allowed"
 
+assert allow "jq '.userStories[0].notes = \"the $JQ_ENV_WORD check denies $JQ_ENV_VAR\"' prd.json" \
+  "a jq string literal that names env and \$ENV was read as an environment read"
+assert allow "jq '.notes = \"$JQ_ENV_WORD>.$JQ_ENV_WORD>bridge precedence\"' prd.json > /tmp/p" \
+  "a jq string literal that names an env redirect was read as an env dump"
+assert allow "jq --arg k v '.notes = \"echo \$botToken fallback\"' prd.json" \
+  "a jq string literal that names echo of a secret-named variable was denied"
+assert allow "git commit -m \"read the bridge botToken fallback\"" \
+  "a note argument that names botToken was denied"
+
+assert deny "jq -n '\"\\($JQ_ENV_WORD.HOME)\"'" \
+  "a jq string interpolation that reads env was allowed"
+assert deny "jq -n '\"x \\($JQ_ENV_VAR.GH_TOKEN)\"'" \
+  "a jq string interpolation that reads \$ENV was allowed"
+assert deny "jq '.a = \"note\" | $JQ_ENV_WORD' data.json" \
+  "a jq filter that reads env after a string literal was allowed"
+assert deny "jq '.a = \"note\"' data.json; jq -n '$JQ_ENV_WORD'" \
+  "a jq filter that reads env in a call after a string literal was allowed"
+assert deny "echo \"\$GH_TOKEN\"; jq '.a = \"note\"' data.json" \
+  "echo of a secret-named variable beside a jq string literal was allowed"
+assert deny "sh -c 'echo \"\$GH_TOKEN\"'" \
+  "echo of a secret-named variable inside a non-jq quoted argument was allowed"
+
 assert allow "grep process.env src/index.ts" \
   "a grep pattern that names process.env was treated as a secret path"
 assert allow "grep \"Config.Env\" notes.md" \

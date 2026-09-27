@@ -10,6 +10,11 @@ fi
 
 cmd=${cmd//$'\n'/ }
 
+literal_cmd=$cmd
+if command -v perl >/dev/null 2>&1; then
+  literal_cmd=$(perl -pe 's{((?:^|[^A-Za-z0-9_./-])jq(?:\s+-[^\s\x27"]*)*(?:\s+--(?:arg|argjson)\s+[^\s\x27"]+\s+[^\s\x27"]+)*(?:\s+-[^\s\x27"]*)*\s+)\x27([^\x27]*)\x27}{my ($p, $f) = ($1, $2); $f =~ s/"((?:[^"\\]|\\.)*)"/index($1, "\\(") >= 0 ? "\"$1\"" : "\"\""/ge; "$p\x27$f\x27"}ge' <<<"$cmd") || literal_cmd=$cmd
+fi
+
 SECRET_NAME='(TOKEN|SECRET|PASSWORD|PASSWD|APIKEY|API_KEY|ACCESS_KEY|PRIVATE_KEY|CREDENTIAL|AUTH|BEARER|SESSION|COOKIE|SLACK_[A-Z_]*|OPENAI_[A-Z_]*|ANTHROPIC_[A-Z_]*|GITHUB_TOKEN|GH_TOKEN|AWS_SECRET|AWS_SESSION|GCP_[A-Z_]*|DATABASE_URL|DB_PASSWORD)'
 
 DENY='(^|[^A-Za-z0-9._/-])env[[:space:]]*[|>;&]'
@@ -170,7 +175,7 @@ mask_quoted_separators() {
 
 path_cmd=$(mask_path_cmd "$cmd") || path_cmd=$cmd
 interp_cmd=$(mask_quoted_separators "$cmd") || interp_cmd=$cmd
-jq_filter_text=$(jq_filters "$cmd") || jq_filter_text=$cmd
+jq_filter_text=$(jq_filters "$literal_cmd") || jq_filter_text=$literal_cmd
 
 emit() {
   jq -n --arg d "$1" --arg r "$2" '{
@@ -182,7 +187,7 @@ emit() {
   }'
 }
 
-if grep -qEi -- "$DENY" <<<"$cmd"; then
+if grep -qEi -- "$DENY" <<<"$literal_cmd"; then
   emit deny 'Secret-exposure guard (deny): command matches a high-risk pattern — bulk env dump (env/set/export -p/declare -x/-p/compgen/printenv/proc environ), shell history, echo/printf of a secret-named variable (TOKEN/SECRET/KEY/PASSWORD/AUTH/CREDENTIAL/BEARER/SLACK_*/OPENAI_*/ANTHROPIC_*/GH_TOKEN/AWS_SECRET), Authorization header with variable interpolation, or a token-printing CLI (gh auth token, gcloud auth print-*-token, aws configure get, kubectl get secret -o yaml/json, docker secret/config inspect). These almost always leak credentials into the transcript and prompt cache. Do NOT retry a variant that bypasses this check. Ask the user to run the command themselves and paste only the specific non-secret output you need.'
 elif grep -qE -- "$INTERP_ENV_READ" <<<"$interp_cmd"; then
   emit deny 'Secret-exposure guard (deny): inline python, perl, ruby, or node code (-c, -e, -p, --eval) reads the process environment (os.environ, getenv, %ENV, $ENV{...}, ENV, process.env), which can print every environment variable, secrets included. Do NOT retry a variant that reaches the environment another way. If you need an environment value, ask the user to paste only that non-secret value.'
