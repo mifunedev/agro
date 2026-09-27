@@ -15,11 +15,18 @@ source "$EXP_DIR/../lib/episode.sh"
 usage() {
   cat >&2 <<'USAGE'
 Usage: run-batch.sh --run-id <id> (--cases <id,...> | --all) [--jobs N]
+       [--arm baseline|candidate] [--arm-rev candidate=<rev>] [--repeats N]
 
 Run each case through run-episode.sh in manifest order. --jobs is 1 or 2;
 the default is 1.
 
-Resume: a rerun skips each case that has an ok or timeout line in
+Arms: with --arm-rev and no --arm, each slot runs both arms. A slot is one
+case and one repeat. Even slots run baseline first, and odd slots run
+candidate first. --arm runs one arm. With neither option, the batch runs the
+baseline arm only. --repeats (default 1) gives the repeats of each case.
+run-episode.sh records arm and repeat.
+
+Resume: a rerun skips each case, arm, and repeat that has an ok or timeout line in
 runs/<run-id>/episodes.jsonl and retries any other case as a new attempt.
 
 First-episode gate: when the run has no ok or timeout line, the first episode
@@ -45,6 +52,9 @@ run_id=""
 cases_filter=""
 all=0
 jobs=1
+arm=""
+arm_rev=""
+repeats=1
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
@@ -52,12 +62,25 @@ while [ "$#" -gt 0 ]; do
     --cases) [ "$#" -ge 2 ] || { usage; exit 2; }; cases_filter="$2"; shift 2 ;;
     --all) all=1; shift ;;
     --jobs) [ "$#" -ge 2 ] || { usage; exit 2; }; jobs="$2"; shift 2 ;;
+    --arm) [ "$#" -ge 2 ] || { usage; exit 2; }; arm="$2"; shift 2 ;;
+    --arm-rev) [ "$#" -ge 2 ] || { usage; exit 2; }; arm_rev="$2"; shift 2 ;;
+    --repeats) [ "$#" -ge 2 ] || { usage; exit 2; }; repeats="$2"; shift 2 ;;
     *) printf 'run-batch: unknown argument: %s\n' "$1" >&2; usage; exit 2 ;;
   esac
 done
 case "$run_id" in
   ''|*[!A-Za-z0-9._-]*) printf 'run-batch: --run-id is required and may hold only letters, digits, dot, dash, underscore\n' >&2; exit 2 ;;
 esac
+case "$repeats" in ''|*[!0-9]*|0) printf 'run-batch: --repeats must be a positive whole number\n' >&2; exit 2 ;; esac
+case "$arm_rev" in ''|candidate=?*) ;; *) printf 'run-batch: bad --arm-rev: %s\n' "$arm_rev" >&2; exit 2 ;; esac
+case "$arm" in
+  '') if [ -n "$arm_rev" ]; then arms=(baseline candidate); else arms=(baseline); fi ;;
+  baseline) arms=(baseline) ;;
+  candidate) [ -n "$arm_rev" ] || { printf 'run-batch: the candidate arm requires --arm-rev candidate=<rev>\n' >&2; exit 2; }; arms=(candidate) ;;
+  *) printf 'run-batch: bad --arm: %s\n' "$arm" >&2; exit 2 ;;
+esac
+paired=0
+[ -z "$arm" ] && [ -z "$arm_rev" ] && [ "$repeats" -eq 1 ] || paired=1
 max_parallel="$(jq -r '.budget.max_parallel' "$EXPERIMENT")"
 case "$jobs" in ''|*[!0-9]*|0) printf 'run-batch: --jobs must be a positive whole number\n' >&2; exit 2 ;; esac
 [ "$jobs" -le "$max_parallel" ] || { printf 'run-batch: --jobs %s exceeds %s\n' "$jobs" "$max_parallel" >&2; exit 2; }
@@ -98,7 +121,8 @@ all_spent() {
 }
 
 case_done() {
-  jq -e -s --arg c "$1" --argjson scored "$SCORED" 'any(.[]; .case_id == $c and (.status as $x | $scored | index($x)))' "$episodes" >/dev/null
+  jq -e -s --arg c "$1" --arg arm "$2" --argjson rep "$3" --argjson scored "$SCORED" \
+    'any(.[]; .case_id == $c and (.arm // "baseline") == $arm and (.repeat // 1) == $rep and (.status as $x | $scored | index($x)))' "$episodes" >/dev/null
 }
 
 has_scored_line() {
@@ -140,11 +164,23 @@ guard_refusal() {
 }
 
 printf 'run-batch: run %s, %d case(s), jobs %s, started %s\n' "$run_id" "${#cases[@]}" "$jobs" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+slots=()
+slot=0
+for ((rep = 1; rep <= repeats; rep++)); do
+  for c in "${cases[@]}"; do
+    if [ $((slot % 2)) -eq 0 ]; then order=("${arms[@]}"); else order=(); for ((i = ${#arms[@]} - 1; i >= 0; i--)); do order+=("${arms[$i]}"); done; fi
+    for a in "${order[@]}"; do slots+=("$c $a $rep"); done
+    slot=$((slot + 1))
+  done
+done
 gate_open=0
 has_scored_line && gate_open=1
-for c in "${cases[@]}"; do
-  if case_done "$c"; then
-    printf 'skip %s: already recorded\n' "$c"
+for item in "${slots[@]}"; do
+  read -r c a rep <<<"$item"
+  label="$c"
+  [ "$paired" -eq 0 ] || label="$c $a r$rep"
+  if case_done "$c" "$a" "$rep"; then
+    printf 'skip %s: already recorded\n' "$label"
     continue
   fi
   while [ "${#running[@]}" -ge "$jobs" ]; do reap_one; done
@@ -153,19 +189,22 @@ for c in "${cases[@]}"; do
   refusal="$(guard_refusal)"
   if [ -n "$refusal" ]; then
     printf 'run-batch: hard cap: %s; no episode starts\n' "$refusal"
-    ep_append_line "$episodes" "$(jq -cn --arg r "$run_id" --arg c "$c" --arg e "$refusal" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-      '{run_id: $r, episode_id: null, case_id: $c, total_cost_usd: null, status: "budget_refused", started_at: $at, error: $e}')"
+    ep_append_line "$episodes" "$(jq -cn --arg r "$run_id" --arg c "$c" --arg arm "$a" --argjson rep "$rep" --arg e "$refusal" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+      '{run_id: $r, episode_id: null, case_id: $c, arm: $arm, repeat: $rep, total_cost_usd: null, status: "budget_refused", started_at: $at, error: $e}')"
     stopped="hard cap"
     break
   fi
-  printf 'run-batch: start %s (all runs spent %s USD)\n' "$c" "$(all_spent)"
-  bash "$RUN_EPISODE" "$c" --run-id "$run_id" &
+  printf 'run-batch: start %s (all runs spent %s USD)\n' "$label" "$(all_spent)"
+  episode_args=("$c" --run-id "$run_id")
+  [ "$paired" -eq 0 ] || episode_args+=(--arm "$a" --repeat "$rep")
+  [ -z "$arm_rev" ] || episode_args+=(--arm-rev "$arm_rev")
+  bash "$RUN_EPISODE" "${episode_args[@]}" &
   running[$!]=1
   if [ "$gate_open" -eq 0 ]; then
     while [ "${#running[@]}" -gt 0 ]; do reap_one; done
     stop_on_usage_limit
     [ -z "$stopped" ] || break
-    first_cost="$(jq -r -s --arg c "$c" --argjson scored "$SCORED" '[.[] | select(.case_id == $c)] | last | if (.status as $x | $scored | index($x)) then (.total_cost_usd // "null") else "null" end' "$episodes")"
+    first_cost="$(jq -r -s --arg c "$c" --arg a "$a" --argjson rep "$rep" --argjson scored "$SCORED" '[.[] | select(.case_id == $c and (.arm // "baseline") == $a and (.repeat // 1) == $rep)] | last | if (.status as $x | $scored | index($x)) then (.total_cost_usd // "null") else "null" end' "$episodes")"
     if [ "$first_cost" = null ] || jq -e -n --argjson x "$first_cost" --argjson m "$first_max" '$x > $m' >/dev/null; then
       printf 'run-batch: first-episode gate: %s cost %s USD, limit %s USD; no other episode starts\n' "$c" "$first_cost" "$first_max"
       stopped="first-episode gate"

@@ -21,7 +21,8 @@ shopt -u patsub_replacement 2>/dev/null || true
 
 usage() {
   cat >&2 <<'USAGE'
-Usage: run-episode.sh <case-id> [--run-id <id>]
+Usage: run-episode.sh <case-id> [--run-id <id>] [--arm baseline|candidate]
+       [--arm-rev candidate=<rev>] [--repeat N]
 
 Run one /delegate attempt for one corpus case and append one line to
 runs/<run-id>/episodes.jsonl. The default run id is adhoc.
@@ -36,7 +37,13 @@ overlay file is in .git/info/exclude. The overlay tree must equal
 skill_tree, and skill_revision records it. The runner then writes prd.md
 and prd.json from C into .agro/tasks/<slug>/, sets each story to
 passes false, removes commit, sets notes to "", and commits the two files.
-The tree is then clean. A digest mismatch with the manifest records
+The tree is then clean.
+
+Arms: the baseline arm uses the overlay as it is. The candidate arm then
+replaces SKILL.md of the overlay with SKILL.md at <rev> of --arm-rev, and
+skill_revision records the candidate tree. The candidate arm requires
+--arm-rev. The line records arm, repeat (default 1), and candidate_rev. With
+--arm or --repeat, the episode id is <run>--<case>--<arm>--r<N>--a<attempt>. A digest mismatch with the manifest records
 pin_mismatch, and claude does not start.
 
 Run: claude runs inside git-conventions/no-egress.sh with the claude_args of
@@ -49,6 +56,11 @@ parent_tool_use_id is worker (subagent) work. The usage of each message
 counts once per message.id. The estimated cost of each side uses the price
 table of ../skill-spend/report.md. advisor_cost_usd is total_cost_usd times
 the advisor share of the estimated cost.
+
+Question stop: question_stop is true when the result text of the trace ends
+with a question mark, or holds "once you answer", "tell me to", or "should I"
+(any case). The check is a text heuristic. It finds a stop that asks the
+operator, and it can miss a question with other words.
 
 Outcome: stories_accepted is the passes true count in the prd.json of the
 episode at the end. commits is the number of commits after the setup commit
@@ -67,11 +79,21 @@ USAGE
 }
 
 run_id=adhoc
+arm=baseline
+arm_given=0
+candidate_rev=""
+repeat=1
+repeat_given=0
 positional=()
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     --run-id) [ "$#" -ge 2 ] || { usage; exit 2; }; run_id="$2"; shift 2 ;;
+    --arm) [ "$#" -ge 2 ] || { usage; exit 2; }; arm="$2"; arm_given=1; shift 2 ;;
+    --arm-rev) [ "$#" -ge 2 ] || { usage; exit 2; }
+      case "$2" in candidate=?*) candidate_rev="${2#candidate=}" ;; *) printf 'run-episode: bad --arm-rev: %s\n' "$2" >&2; exit 2 ;; esac
+      shift 2 ;;
+    --repeat) [ "$#" -ge 2 ] || { usage; exit 2; }; repeat="$2"; repeat_given=1; shift 2 ;;
     -*) printf 'run-episode: unknown option: %s\n' "$1" >&2; usage; exit 2 ;;
     *) positional+=("$1"); shift ;;
   esac
@@ -81,6 +103,10 @@ case_id="${positional[0]}"
 case "$run_id" in
   ''|*[!A-Za-z0-9._-]*) printf 'run-episode: bad --run-id: %s\n' "$run_id" >&2; exit 2 ;;
 esac
+case "$arm" in baseline|candidate) ;; *) printf 'run-episode: bad --arm: %s\n' "$arm" >&2; exit 2 ;; esac
+case "$repeat" in ''|*[!0-9]*|0) printf 'run-episode: --repeat must be a positive whole number\n' >&2; exit 2 ;; esac
+[ "$arm" = baseline ] || [ -n "$candidate_rev" ] || { printf 'run-episode: the candidate arm requires --arm-rev candidate=<rev>\n' >&2; exit 2; }
+[ "$arm" = candidate ] || candidate_rev=""
 
 entry="$(jq -c --arg id "$case_id" '.cases[] | select(.id == $id)' "$MANIFEST")"
 [ -n "$entry" ] || { printf 'run-episode: unknown case id: %s\n' "$case_id" >&2; exit 2; }
@@ -106,8 +132,13 @@ run_dir="$RUNS_DIR/$run_id"
 episodes="$run_dir/episodes.jsonl"
 mkdir -p "$run_dir" "$EPISODE_PARENT" "$TRACE_DIR"
 touch "$episodes"
-attempt="$(jq -s --arg c "$case_id" '[.[] | select(.case_id == $c and .status != "budget_refused")] | length + 1' "$episodes")"
-episode_id="${run_id}--${case_id}--a${attempt}"
+attempt="$(jq -s --arg c "$case_id" --arg arm "$arm" --argjson rep "$repeat" \
+  '[.[] | select(.case_id == $c and (.arm // "baseline") == $arm and (.repeat // 1) == $rep and .status != "budget_refused")] | length + 1' "$episodes")"
+if [ "$arm_given" -eq 1 ] || [ "$repeat_given" -eq 1 ]; then
+  episode_id="${run_id}--${case_id}--${arm}--r${repeat}--a${attempt}"
+else
+  episode_id="${run_id}--${case_id}--a${attempt}"
+fi
 wt="$EPISODE_PARENT/$episode_id"
 raw_trace="$TRACE_DIR/$episode_id.jsonl"
 trace_gz="$raw_trace.gz"
@@ -124,6 +155,7 @@ trace_json="null"
 usage_json="null"
 split_json="null"
 stories_accepted="null"
+question_stop="null"
 commits_json="null"
 outside_json="null"
 setup_commit=""
@@ -183,7 +215,10 @@ record_line() {
     --argjson stories_accepted "$stories_accepted" --argjson commits "$commits_json" \
     --argjson outside "$outside_json" --arg setup_commit "$setup_commit" \
     --arg status "$status" --arg started_at "$started_at" --argjson claude_exit "$claude_exit" --arg error "$error" \
+    --arg arm "$arm" --argjson repeat "$repeat" --arg candidate_rev "$candidate_rev" --argjson question_stop "$question_stop" \
     '{run_id: $run_id, episode_id: $episode_id, case_id: $case_id, slug: $slug, attempt: $attempt,
+      arm: $arm, repeat: $repeat, candidate_rev: (if $candidate_rev == "" then null else $candidate_rev end),
+      question_stop: $question_stop,
       revision: $revision, commit: $commit, setup_commit: (if $setup_commit == "" then null else $setup_commit end),
       base_revision: $base_revision, skill_revision: $skill_revision,
       model: $model, effort: $effort, harness_version: $harness_version, trace: $trace,
@@ -208,6 +243,10 @@ summarize_trace() {
   trace_json="$(ep_finalize_trace "$raw_trace")"
   result_event="$(ep_result_event "$trace_gz")"
   usage_json="$(ep_usage_json "$result_event")"
+  if [ -n "$result_event" ]; then
+    question_stop="$(jq -c '(.result // "") | if type == "string" then
+      (sub("\\s+$"; "") | endswith("?")) or test("once you answer|tell me to|should i\\b"; "i") else false end' <<<"$result_event")"
+  fi
   if [ -f "$trace_gz" ]; then
     split_json="$(ep_trace_events "$trace_gz" | jq -c -s --argjson prices "$prices" -f "$SPLIT_JQ")"
   fi
@@ -254,6 +293,10 @@ finish() {
   exit 0
 }
 
+if [ "$arm" = candidate ]; then
+  git -C "$RUNNER_ROOT" cat-file -e "$candidate_rev:$skill_path/SKILL.md" 2>/dev/null || finish infra_failure "no $skill_path/SKILL.md at $candidate_rev"
+  candidate_rev="$(git -C "$RUNNER_ROOT" rev-parse "$candidate_rev^{commit}")"
+fi
 [ "$(git -C "$RUNNER_ROOT" rev-parse --verify --quiet "$revision^{commit}" || true)" = "$revision" ] || finish infra_failure "unknown revision: $revision"
 [ "$(git -C "$RUNNER_ROOT" rev-parse --verify --quiet "$commit^{commit}" || true)" = "$commit" ] || finish infra_failure "unknown commit: $commit"
 git -C "$RUNNER_ROOT" cat-file -e "$commit:$task_rel/prd.md" 2>/dev/null || finish pin_mismatch "no $task_rel/prd.md at $commit"
@@ -276,14 +319,19 @@ git -C "$RUNNER_ROOT" archive "$base_revision" -- "$skill_path" | tar -x -C "$wt
 while read -r path; do
   git -C "$wt" ls-files --error-unmatch -- "$path" >/dev/null 2>&1 || printf '/%s\n' "$path" >>"$wt/.git/info/exclude"
 done < <(cd "$wt" && find "$skill_path" -type f | sort)
-overlay_tree="$(
+overlay_tree_of() {
   export GIT_INDEX_FILE="$wt/.git/overlay-index"
   git -C "$wt" read-tree --empty
   git -C "$wt" add -f -- "$skill_path"
   git -C "$wt" write-tree --prefix="$skill_path/"
-)"
-rm -f "$wt/.git/overlay-index"
+  rm -f "$wt/.git/overlay-index"
+}
+overlay_tree="$(overlay_tree_of)"
 [ "$overlay_tree" = "$skill_tree" ] || finish infra_failure "overlay tree $overlay_tree is not the skill tree $skill_tree"
+if [ "$arm" = candidate ]; then
+  git -C "$RUNNER_ROOT" cat-file blob "$candidate_rev:$skill_path/SKILL.md" >"$wt/$skill_path/SKILL.md"
+  overlay_tree="$(overlay_tree_of)"
+fi
 skill_revision="$(ep_json_str "$overlay_tree")"
 
 mkdir -p "$wt/$task_rel"

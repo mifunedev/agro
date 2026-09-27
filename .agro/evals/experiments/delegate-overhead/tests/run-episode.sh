@@ -19,7 +19,9 @@ Run run-episode.sh, run-batch.sh, and summarize.sh with a fake claude on
 PATH; no model spend. The fake claude prints one advisor message twice (one
 event per content block), one Agent tool_use, and one worker message with a
 parent_tool_use_id. It sets the first story to passes true and commits one
-file outside the task folder. Exit 0 when every check passes and 1 otherwise.
+file outside the task folder. When SKILL.md holds "## Headless run", the fake
+costs 0.9 USD and ends with "done"; otherwise it costs FAKE_COST (1.2 USD) and
+ends with "Should I continue?". Exit 0 when every check passes and 1 otherwise.
 USAGE
     exit 0 ;;
 esac
@@ -65,7 +67,11 @@ printf 'fake worker\n' >fake-worker.txt
 git add fake-worker.txt
 git -c user.name=w -c user.email=w@invalid commit -q --no-verify -m "feat: fake worker"
 jq '.userStories[0].passes = true' "$prd" >"$prd.tmp" && mv "$prd.tmp" "$prd"
-printf '{"type":"result","subtype":"success","is_error":false,"result":"done","total_cost_usd":%s,"num_turns":7,"usage":%s}\n' "${FAKE_COST:-1.2}" "$adv_usage"
+cost="${FAKE_COST:-1.2}"
+result="Should I continue?"
+if grep -q '^## Headless run' .agro/skills/delegate/SKILL.md; then cost=0.9; result=done; fi
+jq -cn --arg r "$result" --argjson c "$cost" --argjson u "$adv_usage" \
+  '{type: "result", subtype: "success", is_error: false, result: $r, total_cost_usd: $c, num_turns: 7, usage: $u}'
 FAKE
 chmod +x "$scratch/bin/claude"
 export PATH="$scratch/bin:$PATH"
@@ -98,6 +104,7 @@ check "worker tokens attributed to the worker side" '[ "$(jq -r .split.workers.o
 check "advisor estimate 0.0138 USD" 'jq -e ".split.advisor.est_usd - 0.0138 | fabs < 1e-9" <<<"$line" >/dev/null'
 check "advisor share 1/3" 'jq -e ".advisor_share - (1/3) | fabs < 1e-9" <<<"$line" >/dev/null'
 check "advisor cost is total times share" 'jq -e "((.advisor_cost_usd - 0.4) | fabs < 1e-9) and ((.worker_cost_usd - 0.8) | fabs < 1e-9)" <<<"$line" >/dev/null'
+check "baseline arm and question stop recorded" 'jq -e ".arm == \"baseline\" and .repeat == 1 and .candidate_rev == null and .question_stop == true" <<<"$line" >/dev/null'
 check "cost and turns recorded" 'jq -e ".total_cost_usd == 1.2 and .num_turns == 7 and .elapsed_s >= 0" <<<"$line" >/dev/null'
 check "stories accepted 1" '[ "$(jq -r .stories_accepted <<<"$line")" = 1 ]'
 check "one commit on top of the setup commit" 'jq -e ".commits.head == 1 and .commits.all_refs == 1" <<<"$line" >/dev/null'
@@ -145,6 +152,21 @@ check "resume skips the recorded case" 'grep -q "skip $CASE_A" "$scratch/resume.
 
 bash "$SUMMARIZE" t1 >"$scratch/summary.txt"
 check "summary decision screens /delegate at share 1/3" 'grep -q "decision: screen /delegate" "$scratch/summary.txt" && jq -e ".episodes == 2 and (.mean.advisor_share_of_mean - (1/3) | fabs < 1e-9)" "$DELEGATE_OVERHEAD_RUNS_DIR/t1/summary.json" >/dev/null'
+
+cand_rev="$(git -C "$EXP_DIR" rev-parse HEAD)"
+set +e
+bash "$RUN_EPISODE" "$CASE_A" --run-id bad --arm candidate >/dev/null 2>&1
+bad_rc=$?
+set -e
+check "candidate arm without --arm-rev exits 2" '[ "$bad_rc" -eq 2 ]'
+bash "$RUN_BATCH" --run-id pair --cases "$CASE_A,$CASE_B" --arm-rev "candidate=$cand_rev" --repeats 2 --jobs 2 >"$scratch/pair.log" 2>&1
+pair="$DELEGATE_OVERHEAD_RUNS_DIR/pair/episodes.jsonl"
+check "paired batch runs 2 cases x 2 arms x 2 repeats" '[ "$(jq -s "map(select(.status == \"ok\")) | length" "$pair")" -eq 8 ]'
+check "arm order alternates per slot" '[ "$(grep -o "start [^ ]* [a-z]* r[0-9]" "$scratch/pair.log" | awk "{print \$3}" | tr "\n" " ")" = "baseline candidate candidate baseline baseline candidate candidate baseline " ]'
+check "candidate overlays SKILL.md of the rev" 'jq -e -s --arg r "$cand_rev" "map(select(.arm == \"candidate\")) | length == 4 and all(.candidate_rev == \$r and .question_stop == false and .total_cost_usd == 0.9)" "$pair" >/dev/null'
+check "paired episode ids name arm and repeat" 'grep -q "\"episode_id\":\"pair--$CASE_B--candidate--r2--a1\"" "$pair"'
+bash "$SUMMARIZE" --paired pair >"$scratch/paired.txt"
+check "paired summary success checks all true" 'jq -e ".arms.baseline.question_stops == 4 and .arms.candidate.question_stops == 0 and .arms.candidate.timeouts == 0 and .success == {advisor_cost_lower: true, accepted_not_lower: true, no_question_stops: true}" "$DELEGATE_OVERHEAD_RUNS_DIR/pair/summary-paired.json" >/dev/null && grep -q "no_question_stops=true" "$scratch/paired.txt"'
 
 [ "$failures" -eq 0 ] || { printf '%d check(s) failed\n' "$failures"; exit 1; }
 printf 'all checks passed\n'
