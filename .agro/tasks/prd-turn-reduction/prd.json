@@ -17,13 +17,14 @@
         "`.agro/evals/decisions/skill-impact.md` holds a new `PROPOSED` record for the change."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: git diff of SKILL.md holds the Cost budget section, the batched grounding bullets in section 3, and the single write-verify call and single fix call in section 6. 2 executed: grep for UNTRACKED, word caps, story caps, evidence.md, and ls-files finds 0 lines. 3 reasoned: the worker produced a 35-row mapping; the advisor puts it in the PR body. 4 executed: ste-check.sh on SKILL.md exit 0. 5 executed: link-providers.sh --check exit 0; git diff --check prints nothing. 6 executed: SI-0024 PROPOSED appended; wiki-skill-impact-append-only.sh and prd-output-path-contract.sh exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/skills/prd/SKILL.md",
         ".agro/evals/decisions/skill-impact.md"
-      ]
+      ],
+      "commit": "8fcbf890"
     },
     {
       "id": "US-002",
