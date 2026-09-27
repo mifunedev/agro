@@ -380,6 +380,40 @@ describe.each(["opencode", "muse-code"])("runHarnessInstall %s against the conta
 });
 
 
+describe("runHarnessInstall retries a partial sandbox install (#1244)", () => {
+  it("runs the install command again after a failed install left the binary", async () => {
+    const root = makeRepo();
+    const entry = HARNESS_CATALOG.find((h) => h.id === "hermes")!;
+    const installToken = resolveInstallArgv(entry, SANDBOX_HARNESS_PREFIX).at(-1)!;
+    const marker = `${SANDBOX_HARNESS_PREFIX}/share/agro/harnesses/hermes.installed`;
+    let markerExists = false;
+    let installs = 0;
+    const { run } = makeRunner((c, a) => {
+      if (isInspect(c, a)) return running;
+      if (c !== "docker" || a[0] !== "exec") return undefined;
+      if (a.includes(installToken)) {
+        installs += 1;
+        return { status: installs === 1 ? 1 : 0, stdout: "", stderr: "" };
+      }
+      if (a.includes("--version")) return { status: installs > 0 ? 0 : 1, stdout: "", stderr: "" };
+      if (a.includes(marker)) return { status: markerExists ? 0 : 1, stdout: "", stderr: "" };
+      if (a.some((arg) => arg.includes(marker))) markerExists = true;
+      return undefined;
+    });
+
+    const first = makeIo();
+    expect(await runHarnessInstall("hermes", { bin: "agro", cwd: root, run }, first.io)).toBe(1);
+    expect(installs).toBe(1);
+
+    const second = makeIo();
+    expect(await runHarnessInstall("hermes", { bin: "agro", cwd: root, run }, second.io)).toBe(0);
+    expect(installs).toBe(2);
+    expect(text(second.out)).not.toContain("already installed");
+    expect(markerExists).toBe(true);
+  });
+});
+
+
 describe("runHarnessList", () => {
   it("renders one row per catalog entry with the state columns", async () => {
     const root = makeRepo();
@@ -1299,6 +1333,31 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
     expect(config.harnessRoot).toBe(workspace(home, "beta"));
     expect(config.hostHarnesses).toBeUndefined();
     expect(npmCalls(calls)).toEqual([]);
+  });
+
+  it("runs the install again when a prefix binary has no install record (#1244)", async () => {
+    const root = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    seedWorkspace(defaultRoot(home));
+    let installs = 0;
+    const { calls, run } = hostRunner((cmd) => {
+      if (cmd === "claude") return { status: installs > 0 ? 0 : 1, stdout: "", stderr: "" };
+      if (cmd !== "npm") return undefined;
+      installs += 1;
+      mkdirSync(join(user.prefix, "bin"), { recursive: true });
+      writeFileSync(join(user.prefix, "bin", "claude"), "");
+      return { status: installs === 1 ? 1 : 0, stdout: "", stderr: "" };
+    });
+    const opts = { bin: "agro", cwd: root, run, env: home.env, homedir: user.homedir, interactive: false, host: true };
+
+    expect(await runHarnessInstall("claude-code", opts, makeIo().io)).toBe(1);
+    const second = makeIo();
+    expect(await runHarnessInstall("claude-code", opts, second.io)).toBe(0);
+    expect(npmCalls(calls)).toHaveLength(2);
+    expect(text(second.out)).not.toContain("already installed");
+    const config = readConfig(home.dir) as { hostHarnesses?: Record<string, unknown> };
+    expect(config.hostHarnesses?.["claude-code"]).toBeDefined();
   });
 
   it("rewrites nothing when the already-installed selection is unchanged", async () => {
