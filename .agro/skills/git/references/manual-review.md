@@ -22,6 +22,12 @@ mifunedev/agro-console#185.
 - Keep each evidence file under `.agro/tasks/<slug>/evidence/`.
 - Commit each evidence file that the section links. If the repository ignores
   the path, add the file with `git add -f <path>`.
+- Link each evidence file by `blob/<commit-sha>/<path>?raw=true`.
+  `<commit-sha>` is the full 40-character head commit of the PR. Never link
+  by a branch name. GitHub deletes the head branch after the merge, and a
+  branch link then returns HTTP 404.
+- Under each screenshot block, add a line that starts with `Callouts:` in the
+  same step. The line names each numbered callout.
 - In a private repository, an image renders only for a reviewer who is signed
   in to GitHub.
 - "N/A" is not a valid body. If the change has no user interface, server, CLI,
@@ -69,8 +75,9 @@ Example, trimmed from mifunedev/agro-console#185:
    "Creating recovery point", then "Baseline" with a time.
    <details><summary>Screenshot</summary>
 
-   <img src="https://github.com/<owner>/<repo>/blob/<branch>/.agro/tasks/<slug>/evidence/journey-03-baseline-ready.png?raw=true" width="720" alt="Card shows the ready Baseline point">
+   <img src="https://github.com/<owner>/<repo>/blob/<commit-sha>/.agro/tasks/<slug>/evidence/journey-03-baseline-ready.png?raw=true" width="720" alt="Card shows the ready Baseline point">
    </details>
+   Callouts: 1 is the card title. 2 is the "Baseline" time.
 
 **E. Cleanup**
 

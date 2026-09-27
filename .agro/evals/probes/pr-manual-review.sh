@@ -43,6 +43,10 @@ if [[ -f "$REFERENCE" ]]; then
   grep -qxF '## User-journey shape' "$REFERENCE" || missing+=("reference defines the user-journey shape")
   grep -qxF '## Server, CLI, or API shape' "$REFERENCE" || missing+=("reference defines the server, CLI, or API shape")
   grep -qF 'mifunedev/agro-console#185' "$REFERENCE" || missing+=("reference cites mifunedev/agro-console#185")
+  grep -qF 'blob/<branch>/' "$REFERENCE" && missing+=("reference has no blob/<branch>/")
+  grep -qF 'blob/<commit-sha>/' "$REFERENCE" || missing+=("reference pins links to blob/<commit-sha>/")
+  grep -qF 'HTTP 404' "$REFERENCE" || missing+=("reference states the HTTP 404 cause")
+  grep -qF 'Callouts:' "$REFERENCE" || missing+=("reference requires a Callouts: line")
 fi
 
 if (( ${#missing[@]} )); then
