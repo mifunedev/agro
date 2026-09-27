@@ -57,14 +57,15 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: ste-check docs/lifecycle-commands.md exit 0; reasoned: paragraph covers tool install and names ~/.local/share/agro/tools/<id>.installed; root tools docker-engine and desktop have hostInstallUser root in catalog.ts lines 323 and 401",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         "docs/lifecycle-commands.md"
-      ]
+      ],
+      "commit": "a1547159"
     },
     {
       "id": "US-004",
