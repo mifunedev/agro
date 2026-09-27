@@ -46,7 +46,7 @@ bash .agro/scripts/link-providers.sh --check >/dev/null
 if [ "${SKILLS_VENDORED_SKIP_CLEAN_CLONE:-0}" != "1" ]; then
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' EXIT
-  git clone --no-recurse-submodules "$ROOT" "$tmp/agro" >/dev/null 2>&1
+  git clone --no-recurse-submodules "$(git rev-parse --show-toplevel)" "$tmp/agro" >/dev/null 2>&1
   cd "$tmp/agro/$prefix"
   [ -f .agro/skills/git/SKILL.md ] || fail "clean clone is missing the vendored .agro/skills pack"
   [ -f .agents/skills/git/SKILL.md ] || fail "standard skill symlink does not resolve in a clean clone"

@@ -66,7 +66,10 @@ if [ "$hermes_only" = true ]; then
   repo_root="${AGRO_PROJECT_ROOT:-}"
 fi
 if [ -z "$repo_root" ]; then
-  repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+  candidate="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+  if [ -n "$candidate" ] && [ -d "$candidate/.agro/skills" ]; then
+    repo_root="$candidate"
+  fi
 fi
 if [ -z "$repo_root" ]; then
   repo_root="${AGRO_PROJECT_ROOT:-}"
@@ -76,9 +79,10 @@ if [ -z "$repo_root" ]; then
   candidate="$(dirname -- "$(dirname -- "$script_dir")")"
   if [ -d "$candidate/.agro/skills" ]; then
     repo_root="$candidate"
-  else
-    repo_root="$PWD"
   fi
+fi
+if [ -z "$repo_root" ]; then
+  repo_root="$PWD"
 fi
 if [ ! -d "$repo_root/.agro/skills" ]; then
   echo "ERROR: not an AGRO tree (no .agro/skills at $repo_root)" >&2

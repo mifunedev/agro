@@ -49,5 +49,12 @@ expect memories-tier-defaults 2
 expect skills-task-tool-coupling 0
 expect sandbox-node-base 0
 
+link_code=0
+link_out="$(cd "$ws" && bash .agro/scripts/link-providers.sh --check 2>&1)" || link_code=$?
+[ "$link_code" = 0 ] || fail "link-providers.sh --check exited $link_code in an AGRO tree under a parent repository: ${link_out:0:400}"
+case "$link_out" in
+  *"at $parent)"*) fail "link-providers.sh resolved the parent repository as the AGRO root: ${link_out:0:400}" ;;
+esac
+
 echo "PASS: probes resolve the AGRO root, and pinned knowledge sources, inside a parent repository" >&2
 exit 0
