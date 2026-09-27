@@ -42,7 +42,7 @@ and prd.json from C into .agro/tasks/<slug>/, sets each story to
 passes false, removes commit, sets notes to "", and commits the two files.
 The tree is then clean.
 
-Arms: the baseline arm uses the overlay as it is. The candidate arm then
+Arms: the baseline arm uses the overlay without a change. The candidate arm
 replaces SKILL.md of the overlay with SKILL.md at <rev> of --arm-rev, and
 skill_revision records the candidate tree. The candidate arm requires
 --arm-rev. The line records arm, repeat (default 1), and candidate_rev. With
@@ -82,7 +82,13 @@ experiment.json). Its manifest field selects the corpus (default
 corpus/manifest.json). The line records the issue of the experiment file.
 When the experiment file has verify_accepted true, verify-accepted.sh runs
 on the episode repository before the runner deletes it, and the line
-records its JSON as accepted_verification (null otherwise).
+records its JSON as accepted_verification (null otherwise). The verifier
+writes its test log to .../traces/<episode-id>.verify.jsonl.gz.
+
+Diff: before the runner deletes the episode repository, the runner writes
+"git diff <revision> HEAD" of the episode to
+.../traces/<episode-id>.diff.gz. The line records episode_diff with the path
+and the sha256 of the gzip file (null when the runner wrote no diff).
 
 Outcome: stories_accepted is the passes true count in the prd.json of the
 episode at the end. commits is the number of commits after the setup commit
@@ -96,7 +102,7 @@ Statuses: ok, timeout, infra_failure, pin_mismatch, usage_limit, interrupted.
 Test overrides: DELEGATE_OVERHEAD_RUNS_DIR, DELEGATE_OVERHEAD_TIMEOUT_S,
 DELEGATE_OVERHEAD_MANIFEST, DELEGATE_OVERHEAD_EXPERIMENT.
 
-Exit 0 when the line was recorded, 2 on bad arguments.
+Exit 0 when the runner recorded the line, 2 on bad arguments.
 USAGE
 }
 
@@ -143,6 +149,7 @@ model="$(jq -r '.model' "$EXPERIMENT")"
 issue="$(jq -c '.issue' "$EXPERIMENT")"
 verify_accepted="$(jq -r '.verify_accepted // false' "$EXPERIMENT")"
 verification_json="null"
+diff_json="null"
 effort="$(jq -r '.effort' "$EXPERIMENT")"
 prompt_template="$(jq -r '.episode_prompt' "$EXPERIMENT")"
 timeout_s="${DELEGATE_OVERHEAD_TIMEOUT_S:-$(jq -r '.episode_timeout_s' "$EXPERIMENT")}"
@@ -211,6 +218,10 @@ isolation_error() {
 
 collect_outcome() {
   [ -n "$setup_commit" ] && [ -d "$wt" ] || return 0
+  local diff_gz="$TRACE_DIR/$episode_id.diff.gz"
+  if git -C "$wt" diff "$revision" HEAD 2>/dev/null | gzip -c >"$diff_gz"; then
+    diff_json="$(jq -cn --arg p "$diff_gz" --arg s "$(sha256sum "$diff_gz" | cut -d' ' -f1)" '{path: $p, sha256: $s}')"
+  fi
   if [ -f "$wt/$task_rel/prd.json" ]; then
     stories_accepted="$(jq '[.userStories[]? | select(.passes == true)] | length' "$wt/$task_rel/prd.json" 2>/dev/null || printf 'null')"
   fi
@@ -228,7 +239,7 @@ collect_outcome() {
 
 verify_outcome() {
   [ "$verify_accepted" = true ] && [ -n "$setup_commit" ] && [ -d "$wt" ] || return 0
-  verification_json="$(bash "$VERIFY_ACCEPTED" --repo "$wt" --source "$RUNNER_ROOT" --slug "$slug" --commit "$commit" 2>/dev/null || true)"
+  verification_json="$(bash "$VERIFY_ACCEPTED" --repo "$wt" --source "$RUNNER_ROOT" --slug "$slug" --commit "$commit" --log "$TRACE_DIR/$episode_id.verify.jsonl.gz" 2>/dev/null || true)"
   [ -n "$verification_json" ] || verification_json=null
 }
 
@@ -247,7 +258,7 @@ record_line() {
     --argjson outside "$outside_json" --arg setup_commit "$setup_commit" \
     --arg status "$status" --arg started_at "$started_at" --argjson claude_exit "$claude_exit" --arg error "$error" \
     --arg arm "$arm" --argjson repeat "$repeat" --arg candidate_rev "$candidate_rev" --argjson question_stop "$question_stop" \
-    --argjson issue "$issue" --argjson verification "$verification_json" \
+    --argjson issue "$issue" --argjson verification "$verification_json" --argjson episode_diff "$diff_json" \
     '{run_id: $run_id, issue: $issue, episode_id: $episode_id, case_id: $case_id, slug: $slug, attempt: $attempt,
       arm: $arm, repeat: $repeat, candidate_rev: (if $candidate_rev == "" then null else $candidate_rev end),
       question_stop: $question_stop,
@@ -262,7 +273,7 @@ record_line() {
       worker_cost_usd: (if ($split.advisor_share? // null) != null and ($usage.total_cost_usd? // null) != null
         then $usage.total_cost_usd * (1 - $split.advisor_share) else null end),
       stories_total: $stories_total, stories_accepted: $stories_accepted, commits: $commits,
-      outside_task_changes: $outside, accepted_verification: $verification,
+      outside_task_changes: $outside, accepted_verification: $verification, episode_diff: $episode_diff,
       outside_task_changed: (if $outside == null then null else ($outside | length > 0) end),
       episode_repo: "isolated", status: $status, started_at: $started_at, claude_exit: $claude_exit,
       error: (if $error == "" then null else $error end)}')"

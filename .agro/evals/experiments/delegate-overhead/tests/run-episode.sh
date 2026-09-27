@@ -121,6 +121,7 @@ check "one commit on top of the setup commit" 'jq -e ".commits.head == 1 and .co
 check "outside change recorded" 'jq -e ".outside_task_changed == true and .outside_task_changes == [\"fake-worker.txt\"]" <<<"$line" >/dev/null'
 check "episode repository removed" '[ -z "$(ls -A "$REPOS_DIR" 2>/dev/null)" ]'
 check "trace kept under delegate-overhead/traces" '[ -f "$TRACES_DIR/t1--$CASE_A--a1.jsonl.gz" ]'
+check "episode diff kept with its sha256" 'd="$(jq -r .episode_diff.path <<<"$line")" && [ "$d" = "$TRACES_DIR/t1--$CASE_A--a1.diff.gz" ] && [ "$(sha256sum "$d" | cut -d" " -f1)" = "$(jq -r .episode_diff.sha256 <<<"$line")" ] && zcat "$d" | grep -q "^+++ b/fake-worker.txt"'
 
 readonly CASE_IGNORED=audit-responsibility-simplification
 ignored_rev="$(jq -r --arg c "$CASE_IGNORED" '.cases[] | select(.id == $c) | .revision' "$EXP_DIR/corpus/manifest.json")"
@@ -234,6 +235,7 @@ check "verifier: story with passing tests is pass" 'jq -e ".stories[0].result ==
 check "verifier: story whose files name no test falls back to all tests of C" 'jq -e ".stories[1].basis == \"commit_fallback\" and (.stories[1].tests | length) == 3 and .stories[1].result == \"fail\"" <<<"$verify_out" >/dev/null'
 check "verifier: story with a failing test is fail" 'jq -e ".stories[2].result == \"fail\" and .stories[2].basis == \"story_files\"" <<<"$verify_out" >/dev/null'
 check "verifier: story with passes false is not_accepted" 'jq -e ".stories[3].result == \"not_accepted\" and .verified_pass == 1 and .deps == \"none\"" <<<"$verify_out" >/dev/null'
+check "verifier: control at C passes for each test" 'jq -e "[.tests[].control] == [\"pass\", \"pass\", \"pass\"] and .tests[1].result == \"fail\" and .log == null" <<<"$verify_out" >/dev/null'
 check "verifier removes its worktree" '[ "$(git -C "$ep" worktree list | wc -l)" -eq 1 ] && [ -z "$(git -C "$ep" status --porcelain)" ]'
 
 mkdir -p "$fx/src/tests"
@@ -255,6 +257,14 @@ FX_NODE_MODULES="$(realpath "$ep/node_modules")"
 own_out="$(bash "$EXP_DIR/verify-accepted.sh" --repo "$ep" --source "$fx" --slug demo --commit "$vitest_c")"
 check "verifier uses node_modules of the episode repo" 'jq -e ".deps == \"own\" and .tests[0].result == \"pass\"" <<<"$own_out" >/dev/null'
 rm -rf "$ep/node_modules" "$scratch/bin/pnpm"
+printf '#!/usr/bin/env bash\necho env-probe-output\n[ -n "${FX_ENV_OK:-}" ]\n' >"$fx/src/tests/env.sh"
+fxgit add -A && fxgit commit -q --no-verify -m envtest
+env_c="$(git -C "$fx" rev-parse HEAD)"
+env_out="$(bash "$EXP_DIR/verify-accepted.sh" --repo "$ep" --source "$fx" --slug demo --commit "$env_c" --log "$scratch/verify.jsonl.gz")"
+check "verifier: a test that also fails at C is infra_failure, not fail" 'jq -e ".tests[0].result == \"fail\" and .tests[0].control == \"fail\" and .stories[0].result == \"infra_failure\"" <<<"$env_out" >/dev/null'
+check "verifier keeps a gzip log of each run with its sha256" '[ "$(jq -r .log.sha256 <<<"$env_out")" = "$(sha256sum "$scratch/verify.jsonl.gz" | cut -d" " -f1)" ] && [ "$(zcat "$scratch/verify.jsonl.gz" | jq -s "map(.phase) == [\"episode\", \"control\"] and all(.tail | test(\"env-probe-output\"))")" = true ]'
+env_ok_out="$(FX_ENV_OK=1 bash "$EXP_DIR/verify-accepted.sh" --repo "$ep" --source "$fx" --slug demo --commit "$env_c")"
+check "verifier: the same test passes when the environment allows it" 'jq -e ".stories[0].result == \"pass\" and .tests[0].control == \"pass\"" <<<"$env_ok_out" >/dev/null'
 printf 'v3\n' >"$fx/src/value.txt"
 fxgit add -A && fxgit commit -q --no-verify -m notests
 none_out="$(bash "$EXP_DIR/verify-accepted.sh" --repo "$ep" --source "$fx" --slug demo --commit "$(git -C "$fx" rev-parse HEAD)")"
@@ -268,6 +278,7 @@ bash "$RUN_BATCH" --experiment "$EXP_DIR/experiment-1233.json" --run-id e1233 --
 e1233_rc=$?
 set -e
 check "experiment-1233 runs a corpus-1233 case at effort low" '[ "$e1233_rc" -eq 0 ] && jq -e ".issue == 1233 and .effort == \"low\" and .status == \"ok\" and .accepted_verification != null" <<<"$(line_of e1233)" >/dev/null'
+check "experiment-1233 keeps the verifier log beside the trace" 'p="$(jq -r .accepted_verification.log.path <<<"$(line_of e1233)")" && [ "$p" = "$TRACES_DIR/$(jq -r .episode_id <<<"$(line_of e1233)").verify.jsonl.gz" ] && [ -f "$p" ]'
 check "experiment-1233 hard cap counts only issue 1233 lines" '! grep -q "hard cap" "$scratch/e1233.log"'
 check "old experiment records no verification" '[ "$(jq -r .accepted_verification <<<"$line")" = null ]'
 
