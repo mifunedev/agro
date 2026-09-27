@@ -230,11 +230,35 @@ git -C "$ep" -c user.name=t -c user.email=t@invalid add -A
 git -C "$ep" -c user.name=t -c user.email=t@invalid commit -q --no-verify -m episode
 verify_out="$(bash "$EXP_DIR/verify-accepted.sh" --repo "$ep" --source "$fx" --slug demo --commit "$merged_c")"
 check "verifier finds the probe and the tests/ scripts of C" 'jq -e "[.tests[].path] == [\".agro/evals/probes/value.sh\", \"src/tests/extra.sh\", \"src/tests/value-cmp.sh\"]" <<<"$verify_out" >/dev/null'
-check "verifier: story with passing tests is pass" 'jq -e ".stories[0].result == \"pass\" and .stories[0].tests == [\".agro/evals/probes/value.sh\", \"src/tests/value-cmp.sh\"]" <<<"$verify_out" >/dev/null'
-check "verifier: story with no test is unverified" 'jq -e ".stories[1].result == \"unverified\"" <<<"$verify_out" >/dev/null'
-check "verifier: story with a failing test is fail" 'jq -e ".stories[2].result == \"fail\"" <<<"$verify_out" >/dev/null'
-check "verifier: story with passes false is not_accepted" 'jq -e ".stories[3].result == \"not_accepted\" and .verified_pass == 1" <<<"$verify_out" >/dev/null'
+check "verifier: story with passing tests is pass" 'jq -e ".stories[0].result == \"pass\" and .stories[0].basis == \"story_files\" and .stories[0].tests == [\".agro/evals/probes/value.sh\", \"src/tests/value-cmp.sh\"]" <<<"$verify_out" >/dev/null'
+check "verifier: story whose files name no test falls back to all tests of C" 'jq -e ".stories[1].basis == \"commit_fallback\" and (.stories[1].tests | length) == 3 and .stories[1].result == \"fail\"" <<<"$verify_out" >/dev/null'
+check "verifier: story with a failing test is fail" 'jq -e ".stories[2].result == \"fail\" and .stories[2].basis == \"story_files\"" <<<"$verify_out" >/dev/null'
+check "verifier: story with passes false is not_accepted" 'jq -e ".stories[3].result == \"not_accepted\" and .verified_pass == 1 and .deps == \"none\"" <<<"$verify_out" >/dev/null'
 check "verifier removes its worktree" '[ "$(git -C "$ep" worktree list | wc -l)" -eq 1 ] && [ -z "$(git -C "$ep" status --porcelain)" ]'
+
+mkdir -p "$fx/src/tests"
+printf 'test\n' >"$fx/src/tests/unit.test.ts"
+fxgit add -A && fxgit commit -q --no-verify -m vitest
+vitest_c="$(git -C "$fx" rev-parse HEAD)"
+nodeps_out="$(bash "$EXP_DIR/verify-accepted.sh" --repo "$ep" --source "$fx" --slug demo --commit "$vitest_c")"
+check "verifier: no node_modules anywhere gives infra_failure, not fail" 'jq -e ".deps == \"none\" and .tests[0].result == \"infra_failure\" and .stories[0].result == \"infra_failure\" and .stories[0].basis == \"commit_fallback\"" <<<"$nodeps_out" >/dev/null'
+mkdir -p "$fx/node_modules"
+printf '#!/usr/bin/env bash\n[ -L node_modules ] && [ "$(readlink node_modules)" = "$FX_NODE_MODULES" ]\n' >"$scratch/bin/pnpm"
+chmod +x "$scratch/bin/pnpm"
+FX_NODE_MODULES="$(realpath "$fx/node_modules")"
+export FX_NODE_MODULES
+linked_out="$(bash "$EXP_DIR/verify-accepted.sh" --repo "$ep" --source "$fx" --slug demo --commit "$vitest_c")"
+check "verifier links node_modules of the source repo" 'jq -e ".deps == \"linked\" and .tests[0].result == \"pass\" and .stories[0].result == \"pass\"" <<<"$linked_out" >/dev/null'
+check "verifier removes the node_modules link" '[ ! -e "$ep/node_modules" ] && [ "$(git -C "$ep" worktree list | wc -l)" -eq 1 ]'
+mkdir -p "$ep/node_modules"
+FX_NODE_MODULES="$(realpath "$ep/node_modules")"
+own_out="$(bash "$EXP_DIR/verify-accepted.sh" --repo "$ep" --source "$fx" --slug demo --commit "$vitest_c")"
+check "verifier uses node_modules of the episode repo" 'jq -e ".deps == \"own\" and .tests[0].result == \"pass\"" <<<"$own_out" >/dev/null'
+rm -rf "$ep/node_modules" "$scratch/bin/pnpm"
+printf 'v3\n' >"$fx/src/value.txt"
+fxgit add -A && fxgit commit -q --no-verify -m notests
+none_out="$(bash "$EXP_DIR/verify-accepted.sh" --repo "$ep" --source "$fx" --slug demo --commit "$(git -C "$fx" rev-parse HEAD)")"
+check "verifier: C without a test gives unverified" 'jq -e "[.stories[] | select(.accepted) | .result] == [\"unverified\", \"unverified\", \"unverified\"]" <<<"$none_out" >/dev/null'
 
 mkdir -p "$DELEGATE_OVERHEAD_RUNS_DIR/old"
 printf '%s\n' '{"run_id":"old","case_id":"x","total_cost_usd":58,"status":"ok"}' >"$DELEGATE_OVERHEAD_RUNS_DIR/old/episodes.jsonl"

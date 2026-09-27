@@ -21,22 +21,31 @@ Each other changed path under a tests/ or __tests__/ directory is a support
 file.
 
 Run: the script adds a detached worktree of HEAD of <episode-repo>, writes
-the blobs of C for each test and support file into it, and links
-node_modules from <episode-repo>. When <episode-repo> has no node_modules,
-the script links node_modules from <source>.
+the blobs of C for each test and support file into it, and adds a
+node_modules symlink. The symlink points to node_modules of <episode-repo>
+(deps "own"). When <episode-repo> has no node_modules, the symlink points to
+node_modules of <source> (deps "linked"). When neither repository has
+node_modules, deps is "none". The script removes the worktree and the
+symlink at the end.
+
 A .sh test runs as "bash <path>". Another test runs as
 "pnpm exec vitest run <path>". Each test has a timeout of 600 s. Exit 0 is
-pass; another exit is fail. The script removes the worktree at the end.
+pass. Another exit is fail. When deps is "none", a vitest test does not run,
+and its result is "infra_failure".
 
 Stories: an accepted story has passes true in
 <episode-repo>/.agro/tasks/<slug>/prd.json. The tests of a story are the
-tests in its "files" list, or every test when the story has no "files".
-The result of an accepted story is "pass" when each of its tests passes,
-"fail" when one test fails, and "unverified" when the story has no test.
-A story with passes false gets "not_accepted".
+tests in its "files" list (basis "story_files"). When the "files" list names
+no test, or the story has no "files", the tests of the story are all the
+tests (basis "commit_fallback").
+The result of an accepted story is "fail" when one of its tests fails,
+"infra_failure" when no test fails and one test is "infra_failure", and
+"pass" when each test passes. The result is "unverified" when C has no test.
+The result of a story with passes false is "not_accepted".
 
-Output fields: commit, head, tests[{path, command, exit, result}],
-stories[{id, accepted, tests, result}], verified_pass (the pass count).
+Output fields: commit, head, deps, tests[{path, command, exit, result}],
+stories[{id, accepted, basis, tests, result}], verified_pass (the pass
+count).
 Test override: VERIFY_ACCEPTED_TIMEOUT_S.
 
 Exit 0 when the script printed the JSON, 1 on a setup failure, 2 on bad arguments.
@@ -101,6 +110,7 @@ cleanup() {
 trap cleanup EXIT
 
 results='[]'
+deps=none
 if [ "${#tests[@]}" -gt 0 ]; then
   git -C "$repo" worktree add -q --detach "$wt" HEAD >/dev/null
   for path in "${tests[@]}" "${support[@]}"; do
@@ -108,8 +118,10 @@ if [ "${#tests[@]}" -gt 0 ]; then
     git -C "$source_repo" cat-file blob "$commit:$path" >"$wt/$path"
   done
   if [ -d "$repo/node_modules" ]; then
+    deps=own
     ln -s "$(realpath "$repo/node_modules")" "$wt/node_modules"
   elif [ -d "$source_repo/node_modules" ]; then
+    deps=linked
     ln -s "$(realpath "$source_repo/node_modules")" "$wt/node_modules"
   fi
   for path in "${tests[@]}"; do
@@ -117,6 +129,11 @@ if [ "${#tests[@]}" -gt 0 ]; then
       *.sh) cmd=(bash "$path") ;;
       *) cmd=(pnpm exec vitest run "$path") ;;
     esac
+    if [ "${cmd[0]}" = pnpm ] && [ "$deps" = none ]; then
+      results="$(jq -c --arg p "$path" --arg c "${cmd[*]}" \
+        '. + [{path: $p, command: $c, exit: null, result: "infra_failure"}]' <<<"$results")"
+      continue
+    fi
     set +e
     (cd "$wt" && timeout -k 10 "$TEST_TIMEOUT_S" "${cmd[@]}" </dev/null >"$scratch/out" 2>&1)
     rc=$?
@@ -126,13 +143,17 @@ if [ "${#tests[@]}" -gt 0 ]; then
   done
 fi
 
-jq -c --arg commit "$commit" --arg head "$head" --argjson tests "$results" '
-  [.userStories[]? | {id, accepted: (.passes == true),
-     tests: (if has("files") then [.files[]? as $f | $tests[] | select(.path == $f) | .path] else [$tests[].path] end)}
+jq -c --arg commit "$commit" --arg head "$head" --arg deps "$deps" --argjson tests "$results" '
+  def res($p): first($tests[] | select(.path == $p) | .result);
+  [.userStories[]? | [.files[]? as $f | $tests[] | select(.path == $f) | .path] as $own
+   | {id, accepted: (.passes == true),
+      basis: (if ($own | length) > 0 then "story_files" else "commit_fallback" end),
+      tests: (if ($own | length) > 0 then $own else [$tests[].path] end)}
    | . as $s
    | .result = (if ($s.accepted | not) then "not_accepted"
        elif ($s.tests | length) == 0 then "unverified"
-       elif all($s.tests[]; . as $p | any($tests[]; .path == $p and .result == "pass")) then "pass"
-       else "fail" end)] as $stories
-  | {commit: $commit, head: $head, tests: $tests, stories: $stories,
+       elif any($s.tests[]; res(.) == "fail") then "fail"
+       elif any($s.tests[]; res(.) == "infra_failure") then "infra_failure"
+       else "pass" end)] as $stories
+  | {commit: $commit, head: $head, deps: $deps, tests: $tests, stories: $stories,
      verified_pass: ($stories | map(select(.result == "pass")) | length)}' "$prd"
