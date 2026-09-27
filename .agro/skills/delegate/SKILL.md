@@ -161,7 +161,10 @@ When every story has `passes: true`, do these steps:
 
    "None" is a valid body.
 3. Fill the PR evidence sections from the `notes` in `prd.json`.
-4. Continue with the "Ready for review" step of `/git`.
+4. Fill the PR `## Manual review` section from the evidence of the last story.
+   Use the shape of [`.agro/skills/git/references/manual-review.md`](../git/references/manual-review.md).
+   Write only the expected results that the evidence observed.
+5. Continue with the "Ready for review" step of `/git`.
 
 ## Dry run
 
