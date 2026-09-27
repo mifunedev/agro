@@ -117,4 +117,5 @@ None. The operator approved both recommendations. The worker moves the marker he
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. The advisor created the first worker worktree under `.agro/tasks/tool-retry-partial-install/` in the main checkout, because the shell was in that directory. Outcome: dropped. The advisor removed the worktree with `git-maintenance.sh`, and the operator decides on the empty leftover directory.
+2. A `--version` probe proves that the binary runs. The probe does not prove that the steps after the binary completed. Outcome: fixed in this PR by the completion record.
