@@ -128,4 +128,6 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. Claim: the CI retry cannot repair a partial harness install. Evidence: in run 36348006881, attempt 2 printed `hermes: already installed` and skipped the failed extras step. Outcome: proposed issue, pending operator approval.
+2. Claim: an upstream installer can move the Hermes environment without notice. Evidence: upstream `04ea129` moved the environment under `installs/<key>/environments/<generation>`. Outcome: fixed in this PR, because AGRO now uses `hermes pm install` and `_hermes-python`.
+3. Claim: a worker scope that lists only files which name a symbol can miss a test that checks the content of the symbol. Evidence: `gateway.test.ts` checked the `microsoft-teams-apps` pin and did not name `ensure_hermes_teams_deps`. Outcome: dropped, because the advisor fixed the scope with one bounded repair.

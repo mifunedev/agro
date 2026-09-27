@@ -74,8 +74,8 @@
         "Depends on US-001, US-002, and US-003."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: CI job Install every optional harness through the CLI passed (run 36349051501); evidence/manual-review.md records the install lines and three smoke PASS lines; ste-check exit 0.",
       "dependsOn": [
         "US-001",
         "US-002",
