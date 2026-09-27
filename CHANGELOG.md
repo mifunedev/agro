@@ -10,6 +10,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
+- Add `/compact-handoff`, a manual skill that prints a `/compact` carry-forward prompt and a post-compaction prompt for the next unresolved task without executing either ([#1248](https://github.com/mifunedev/agro/issues/1248)).
 - Require a `## Manual review` PR section with reviewer steps and observed results: annotated screenshots for a user journey, commands with example output for a server or CLI change ([#1236](https://github.com/mifunedev/agro/issues/1236)).
 - Add `agro sandbox upgrade <name> --version X.Y.Z` to recreate an image-mode sandbox with a pinned release while preserving its home data ([#1208](https://github.com/mifunedev/agro/issues/1208)).
 - Add `.github/assets/social-preview.jpg`, the 1280x640 repository social preview in the banner style that replaces the retired "Open Harness" image ([#1198](https://github.com/mifunedev/agro/issues/1198)).
