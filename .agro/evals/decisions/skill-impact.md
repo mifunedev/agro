@@ -2430,3 +2430,79 @@ index 2b911bd0..dc039294 100644
  Signal: count probes now vs. an earlier git revision, compared against the
  capability `RESULTS.md` suite-score delta over the same span. Growing floor
 ````
+
+## SI-0024 · 2026-09-26 · builder · PROPOSED
+
+- **proposal**: Add only the turn-reduction edits (group 1) of #1197 candidate 3 to `/prd`: parallel setup reads, batched static grounding, one write-and-verify call, one fix call, and no second read of a file.
+- **target**: `.agro/skills/prd/SKILL.md`
+- **motivating patterns**: none (direct request)
+- **proposer**: /builder rule, operator-approved plan `.agro/tasks/prd-turn-reduction/prd.md`, issue #1211, evidence from issue #1197
+- **diff**:
+
+````diff
+diff --git a/.agro/skills/prd/SKILL.md b/.agro/skills/prd/SKILL.md
+index 5fa73436..c6e2def3 100644
+--- a/.agro/skills/prd/SKILL.md
++++ b/.agro/skills/prd/SKILL.md
+@@ -24,6 +24,21 @@ active session.
+ - Plan only. Do not implement, commit, push, open a pull request, launch workers, or start services.
+ - Writing or revising a plan is never approval.
+
++## Cost budget
++
++Each tool call sends the whole context again, so the number of tool calls sets the cost.
++Keep the grounding complete, and remove repeated work.
++
++1. Read the setup files in one turn with two parallel Bash calls. The first call reads the input file, [`references/tracker.md`](references/tracker.md), and each applicable `AGENTS.md`. The second call reads `.agro/skills/ste/SKILL.md` alone.
++2. Ground the plan in about 2 to 4 batched calls. Section 3 gives the batch rules.
++3. Use one Bash call to write the plan and to verify the plan. Section 6 gives the command.
++4. Fix all checker findings in at most one more call.
++
++- Read each file one time. Do not read a file again after its content is in the context.
++- If a tool truncates an output, read only the missing line range with `sed -n`.
++- Do not read `.github/ISSUE_TEMPLATE/feat.md`. Section 5 holds the headings of that template.
++- Send independent tool calls in parallel in the same response.
++
+ ## 1. Resolve the request
+
+ Arguments received: `$ARGUMENTS`
+@@ -64,6 +79,14 @@ revision of it, ask before you replace it.
+
+ 1. Read each applicable `AGENTS.md` and directory `README.md` for the affected paths.
+ 2. Read the code, tests, configuration, and documentation that control the requested behavior.
++   - Before the first read, list the paths and symbols that the request names. Read all of them in one batched call.
++   - Put each file read and each `git grep -n` that you know you need into one command.
++   - Use paths relative to the repository root. Do not start each command with `cd <absolute path>`.
++   - For a long file, use `grep -n` or one `sed -n` window of 80 lines or less. Do not `cat` the whole file.
++   - Do not search again for a symbol that an earlier output located.
++   - Ground the plan statically. Do not run the target code, and do not build fixtures, driver scripts, or temporary harnesses.
++   - When the issue gives a reproduction, cite the issue. Put the reproduction into the red-test criterion of a story.
++   - Stop the grounding when each Key Integration Point, each Test Plan row, and each cited command has a verified source.
+ 3. Separate verified facts from assumptions.
+ 4. Never invent a missing command, path, threshold, or result. Write an explicit placeholder, such as `<test command>`, and add an open question.
+
+@@ -159,11 +182,18 @@ For each story that changes a user interface, add this criterion:
+
+ ## 6. Verify and report
+
+-1. Read the saved file back from disk.
+-2. Confirm that each story has at least one acceptance criterion.
+-3. Confirm that each section is present and in order. `## Lessons` must be the last section.
+-4. Run `bash .agro/skills/ste/scripts/ste-check.sh <prd-path>` from the harness repository. Use an absolute path for another repository.
+-5. Fix each checker finding. Then review the meaning with the ten-question check in `/ste`.
++1. Use one Bash call to write the plan and to verify the plan. Do not use the Write tool.
++   - Write the file with a quoted heredoc, so that backticks and `$` stay literal: `mkdir -p .agro/tasks/<slug> && cat > <prd-path> <<'PRD_EOF'`. End the heredoc with a `PRD_EOF` line.
++   - In the same call, run `grep -n '^## \|^### US-\|^- \[ \]\|^Status:' <prd-path>; bash .agro/skills/ste/scripts/ste-check.sh <prd-path>; echo "exit=$?"`.
++   - Run the checker from the harness repository. Use an absolute path for another repository.
++   - The output of that command is the read-back from disk.
++2. From that output, confirm that each story has at least one acceptance criterion.
++3. From that output, confirm that each section is present and in order. `## Lessons` must be the last section.
++4. If the checker reports findings, fix all of them in one script call. Then run the verification command again in that same call.
++   - Replace each flagged line by its line number with a full new line. Apply the replacements from the highest line number to the lowest.
++   - Do not replace substrings from memory. A pattern that does not match leaves the finding in the file.
++   - Do not print the flagged lines in a separate call, because the checker prints them. Do not read the source of `ste-check.sh`.
++5. Review the meaning with the ten-question check in `/ste`. This review needs no tool call.
+ 6. Report the path, the status, and the open questions.
+
+ Use `DRAFT` only when the plan passes these checks and waits for operator approval.
+````
