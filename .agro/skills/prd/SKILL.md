@@ -169,6 +169,12 @@ Filled by the advisor before undraft.
 
 - Give each story the heading `### US-00N: <title>`, a description in the form "As a <role>, I want <capability> so that <benefit>", and an acceptance-criteria checklist.
 - Size and order the stories by the rules in [`references/tracker.md`](references/tracker.md).
+- Make the last story capture the manual review evidence. The story depends on the stories that it proves.
+  - For a user interface change, the story records an agent-browser journey with annotated screenshots.
+  - For a server, CLI, or API change, the story writes a command transcript to `.agro/tasks/<slug>/evidence/manual-review.md`.
+  - The story uses a live or local resource only with operator approval, and it deletes each resource that it creates.
+  - Close uses the evidence to fill the PR `## Manual review` section in the shape of [`.agro/skills/git/references/manual-review.md`](../git/references/manual-review.md).
+- If the plan has no user interface change and no server, CLI, or API change, state the reason in `## Out of Scope`. Omit the evidence story.
 
 ### Acceptance criteria
 
