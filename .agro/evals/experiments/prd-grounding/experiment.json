@@ -48,7 +48,7 @@
     "otherwise": "screen the PR-body and commit conventions of /git next"
   },
   "pins": {
-    "verify_prd_sh": "18ac79ad951eee8f7f2df942837b378cad126c5b544c93a51d6ea8c808811d11",
+    "verify_prd_sh": "d09df59379052b93152a14abc943103ba6cd0bb8cb0de064ec0ddad7a88f8240",
     "corpus_manifest": "ba43430b715f625232dd080ec59e4b25224897766b8f94e02efb968132ef0e56",
     "prd_skill_tree": "915108d3c0fc3d0319e3b39072e49da6f84965ae"
   },
@@ -64,6 +64,10 @@
     {
       "date": "2026-09-26",
       "change": "verifier fix #1210: a new-word declares new only its object spans (the first span after the word and each span that a comma, and, or, plus, or / joins to it; a span before (new); the first cell of a table row with a new-word in a later cell; a parent directory of a declared-new path on a new-word line). A path after no path under, touches no, does not touch, do not touch, or never touches in the same sentence is declared absent. Each file under .agro/tasks/<name>/ other than prd.md, prd.json, and AGENTS.md, outside archive/, is declared new unless it is declared absent or .agro/tasks/archive/*/<name>/ exists at the revision. verify_prd_sh was 2724c466131215993dd45fcde1e8a6f347f1410968cd01ec752c757cb5addddd. Stored results keep their recorded verdicts; the rescore list is in the PR body."
+    },
+    {
+      "date": "2026-09-27",
+      "change": "verifier fix #1219: a path after retire, retires, or retired in the same sentence is declared absent, and a path after no and before exist or exists in the same sentence is declared absent (for example \"No `.pi/skills` link exists\"). verify_prd_sh was 18ac79ad951eee8f7f2df942837b378cad126c5b544c93a51d6ea8c808811d11. Stored results keep their recorded verdicts; heldout-1211 is rescored in runs/heldout-1211/summary.rescore-1219.json of prd-efficiency, and the rescore list is in the PR body."
     }
   ]
 }

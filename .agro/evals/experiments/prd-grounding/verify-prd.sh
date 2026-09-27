@@ -56,9 +56,12 @@ Declared new: a repository path that
 Declared absent: a repository path
   - on a line that says "does not exist", "do not exist", "no longer exist",
     "absent", or "missing", or
-  - after "no path under", "touches no", "does not touch", "do not touch", or
-    "never touches" in the same sentence. The sentence ends at ".", "!", "?",
-    or ";" outside an inline code span, before a space or the line end.
+  - after "no path under", "touches no", "does not touch", "do not touch",
+    "never touches", "retire", "retires", or "retired" in the same sentence, or
+  - after "no" and before "exist" or "exists" in the same sentence, for
+    example "No `<path>` link exists".
+    The sentence ends at ".", "!", "?", or ";" outside an inline code span,
+    before a space or the line end.
 
 g1_paths      each repository path on a non-exempt line exists at <revision>,
               is ignored by the .gitignore files of <revision> (a local
@@ -171,7 +174,9 @@ my $new_re = qr/\b(?:new|newly|adds?|added|adding|creates?|created|creating|intr
 my $check_new_re = qr/^\s*[-*]\s+\[[ xX]\]\s+`([^`\s]+)`\s+(?:exists?|holds?|records?|contains?)\b/i;
 my $untracked_re = qr/\b(?:worktrees?|gitignored|ignored|untracked|not tracked|does not track)\b/i;
 my $absent_re = qr/(?:does not exist|do not exist|no longer exists?|\babsent\b|\bmissing\b)/i;
-my $negative_re = qr/\b(?:no path under|touches no|does not touch|do not touch|never touches)\b/i;
+my $negative_re = qr/\b(?:no path under|touches no|does not touch|do not touch|never touches|retires|retired|retire)\b/i;
+my $no_re = qr/\bno\b/i;
+my $exists_re = qr/\bexists?\b/i;
 my $join_re = qr/\A\s*(?:,\s*(?:(?:and|or|plus)\s+)?|(?:and|or|plus|\/)\s+)\z/i;
 my $sentence_end_re = qr/[.!?;](?=\s|\z)/;
 my $verb_re = qr/(?:^|[^A-Za-z0-9\/._-])agro\s+([a-z][a-z-]*(?:\|[a-z][a-z-]*)*)/;
@@ -334,6 +339,13 @@ for my $line (@lines) {
     my $from = $+[0];
     my $to = substr($masked, $from) =~ $sentence_end_re ? $from + $-[0] : length $masked;
     $negated{$_} = 1 for grep { $spans[$_][1] >= $from && $spans[$_][1] < $to } 0 .. $#spans;
+  }
+  while ($masked =~ /$no_re/g) {
+    my $from = $+[0];
+    my $sentence = substr($masked, $from) =~ $sentence_end_re ? substr($masked, $from, $-[0]) : substr($masked, $from);
+    next unless $sentence =~ $exists_re;
+    my $to = $from + $-[0];
+    $negated{$_} = 1 for grep { $spans[$_][1] >= $from && $spans[$_][2] <= $to } 0 .. $#spans;
   }
   for my $i (0 .. $#spans) {
     my $span = $spans[$i][0];

@@ -71,6 +71,14 @@ cp "$node" "$work/g1-negative-scope.md"
 prepare "g1 negative transplant" insert_after "$work/g1-negative-scope.md" "## Summary" \
   '- The diff touches no path under `.claude/`. The tool list is in `.agro/skills/strategic-proposal/SKILL.md`.' || true
 
+cp "$node" "$work/g1-retire-scope.md"
+prepare "g1 retire transplant" insert_after "$work/g1-retire-scope.md" "## Summary" \
+  '- `.agro/scripts/link-providers.sh` retires `.pi/skills`. The tool list is in `.agro/skills/strategic-proposal/SKILL.md`.' || true
+
+cp "$node" "$work/g1-no-exists-scope.md"
+prepare "g1 no-exists transplant" insert_after "$work/g1-no-exists-scope.md" "## Summary" \
+  '- No `.pi/skills` link exists. The tool list in `.agro/skills/strategic-proposal/SKILL.md` exists.' || true
+
 prepare "g4 mutation" perl -0pe 's/(## Acceptance Criteria\n.*?)(## Lessons\n.*)\z/$2\n$1/s' "$node" >"$work/g4-lessons-not-last.md" || true
 
 prepare "skillopt-ste original" extract eee49851 .agro/tasks/skillopt-ste/prd.md "$work/skillopt-ste-original.md" || true
@@ -99,6 +107,10 @@ cases=(
   "#1210: a path followed by \"(new)\" is declared new (efficiency 1086)|$EFFICIENCY_RUNS/noise/outputs/1086-baseline-r1-a1.md|cf35b316acccc03092d8f8da97fe2a50d9b12a1f|$ALL_TRUE and (.details.g1.declared_new | index(\".agro/cli/src/commands/workspace.ts\") != null)"
   "#1210: a deliverable in the ignored task folder fails g2 without a new-word (efficiency 1080)|$EFFICIENCY_RUNS/baseline-train/outputs/1080-baseline-r2-a1.md|f14840b982532e46459cfe7b620958dcb49326de|$(only g2_trackable) and ([.details.g2.ignored[].path] == [\".agro/tasks/lifecycle-script-recovery-hint/evidence.md\"])"
   "#1210: a path under a task folder that the revision archived is not declared new (efficiency 1061)|$EFFICIENCY_RUNS/heldout/outputs/1061-baseline-r2-a1.md|567e8936e9f58def692a5d067837d28f6e5e8a69|$(only g3_commands) and .details.g2.ignored == [] and (.details.g1.ignored_local == [\".agro/tasks/retire-open-harness-name/classification.md\"])"
+  "#1219: a path after retires in the same sentence is declared absent (efficiency 1068)|$EFFICIENCY_RUNS/heldout-1211/outputs/1068-candidate-r1-a1.md|a33545a28052afedda27ed7e381331d2fb4ff477|.g1_paths and (.details.g1.declared_absent | index(\".pi/skills\") != null)"
+  "#1219: a path between No and exists in one sentence is declared absent (efficiency 1068)|$EFFICIENCY_RUNS/heldout-1211/outputs/1068-candidate-r3-a1.md|a33545a28052afedda27ed7e381331d2fb4ff477|.g1_paths and (.details.g1.declared_absent | index(\".pi/skills\") != null)"
+  "#1219: retires declares absent only the paths after it in the same sentence|$work/g1-retire-scope.md|de2c33ca|$(only g1_paths) and .details.g1.missing == [{\"line\":85,\"parent_exists\":false,\"path\":\".agro/skills/strategic-proposal/SKILL.md\"}]"
+  "#1219: No ... exists declares absent only the paths in its sentence|$work/g1-no-exists-scope.md|de2c33ca|$(only g1_paths) and .details.g1.missing == [{\"line\":85,\"parent_exists\":false,\"path\":\".agro/skills/strategic-proposal/SKILL.md\"}]"
   "a worktree path is exempt from g2|$work/evidence-in-pr-body.md|80b9342a|.g1_paths and .g2_trackable and .g3_commands and (.g4_structure | not)"
 )
 
