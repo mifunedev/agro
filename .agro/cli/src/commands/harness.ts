@@ -153,6 +153,24 @@ async function probeInstalled(
   }
 }
 
+function sandboxMarkerPath(entry: HarnessEntry): string {
+  return `${SANDBOX_HARNESS_PREFIX}/share/agro/harnesses/${entry.id}.installed`;
+}
+
+async function sandboxMarkerExists(target: ExecutionTarget, entry: HarnessEntry): Promise<boolean> {
+  const r = await target.exec({
+    argv: ["test", "-f", sandboxMarkerPath(entry)],
+    user: "sandbox",
+    stdio: "capture",
+    timeoutMs: PROBE_TIMEOUT_MS,
+  });
+  return r.exitCode === 0;
+}
+
+function hostBinaryUnderPrefix(entry: HarnessEntry, prefix: string): boolean {
+  return existsSync(join(harnessBinPath(prefix), entry.binary));
+}
+
 function stateOf(
   entry: HarnessEntry,
   installed: boolean | null,
@@ -427,7 +445,17 @@ async function installOnHost(
     if (code !== 0) return code;
   }
 
-  if (await probeInstalled(target, entry, prefix, undefined, installEnv) === true) {
+  let hasReceipt: boolean;
+  try {
+    hasReceipt = readHostConfig(env, home).hostHarnesses?.[entry.id] !== undefined;
+  } catch (err) {
+    io.stderr(`${bin} harness: ${messageOf(err)}\n`);
+    return 1;
+  }
+  if (
+    await probeInstalled(target, entry, prefix, undefined, installEnv) === true &&
+    (hasReceipt || !hostBinaryUnderPrefix(entry, prefix))
+  ) {
     io.stdout(`${entry.id}: already installed (${entry.binary})\n`);
     try {
       recordHarnessRoot(root, env, home);
@@ -612,7 +640,19 @@ export async function runHarnessUninstall(
     return await uninstallOnHost(entry, opts, io, run);
   }
 
-  return (await removeHarness(entry, target, SANDBOX_HARNESS_PREFIX, "sandbox", opts, io)).code;
+  const outcome = await removeHarness(entry, target, SANDBOX_HARNESS_PREFIX, "sandbox", opts, io);
+  if (outcome.dropReceipt) {
+    const cleared = await target.exec({
+      argv: ["rm", "-f", sandboxMarkerPath(entry)],
+      user: "sandbox",
+      stdio: "capture",
+    });
+    if (cleared.exitCode !== 0) {
+      io.stderr(`${opts.bin} harness: could not clear the install record (exit ${cleared.exitCode}).\n`);
+      return 1;
+    }
+  }
+  return outcome.code;
 }
 
 export async function runHarnessInstall(
@@ -650,7 +690,7 @@ export async function runHarnessInstall(
   }
 
   const already = await probeInstalled(target, entry, SANDBOX_HARNESS_PREFIX, "sandbox", installEnv);
-  if (already === true) {
+  if (already === true && await sandboxMarkerExists(target, entry)) {
     io.stdout(`${entry.id}: already installed (${entry.binary})\n`);
     return 0;
   }
@@ -678,6 +718,17 @@ export async function runHarnessInstall(
     }
     const code = await reconcileHermes(target, io, opts.bin, "sandbox");
     if (code !== 0) return code;
+  }
+
+  const marker = sandboxMarkerPath(entry);
+  const marked = await target.exec({
+    argv: ["sh", "-c", `mkdir -p "$(dirname "$1")" && : > "$1"`, "sh", marker],
+    user: "sandbox",
+    stdio: "capture",
+  });
+  if (marked.exitCode !== 0) {
+    io.stderr(`${opts.bin} harness: could not record the install at ${marker} (exit ${marked.exitCode}).\n`);
+    return 1;
   }
 
   io.stdout(`${entry.id}: installed — see ${sourceDocsUrl(entry.docsPath)} for authentication\n`);

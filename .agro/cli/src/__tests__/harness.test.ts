@@ -316,8 +316,9 @@ describe.each(["opencode", "muse-code"])("runHarnessInstall %s against the conta
     const { out, io } = makeIo();
 
     expect(await runHarnessInstall(harness, { bin: "agro", cwd: root, run }, io)).toBe(0);
-    expect(execCalls(calls)).toHaveLength(1);
+    expect(execCalls(calls)).toHaveLength(2);
     expect(execCalls(calls)[0].args.slice(-2)).toEqual(HARNESS_CATALOG.find((h) => h.id === harness)!.verifyArgv);
+    expect(execCalls(calls)[1].args.slice(-3)).toEqual(["test", "-f", `${SANDBOX_HARNESS_PREFIX}/share/agro/harnesses/${harness}.installed`]);
     expect(text(out)).toContain("already installed");
   });
 
@@ -396,7 +397,7 @@ describe("runHarnessInstall retries a partial sandbox install (#1244)", () => {
         return { status: installs === 1 ? 1 : 0, stdout: "", stderr: "" };
       }
       if (a.includes("--version")) return { status: installs > 0 ? 0 : 1, stdout: "", stderr: "" };
-      if (a.includes(marker)) return { status: markerExists ? 0 : 1, stdout: "", stderr: "" };
+      if (a.includes("test") && a.includes(marker)) return { status: markerExists ? 0 : 1, stdout: "", stderr: "" };
       if (a.some((arg) => arg.includes(marker))) markerExists = true;
       return undefined;
     });
@@ -1637,6 +1638,8 @@ describe("runHarnessUninstall", () => {
       "@anthropic-ai/claude-code",
     ]);
     expect(removal.args).toContain("sandbox");
+    const cleared = execCalls(calls).at(-1)!;
+    expect(cleared.args.slice(-3)).toEqual(["rm", "-f", `${SANDBOX_HARNESS_PREFIX}/share/agro/harnesses/claude-code.installed`]);
     expect(text(out)).toContain("claude-code: removed from /home/sandbox/.local");
     expect(existsSync(hostConfigFile(home.dir))).toBe(false);
   });
