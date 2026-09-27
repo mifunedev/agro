@@ -289,7 +289,7 @@ describe("prefix token and resolvers", () => {
     ["pi", ["npm", "--prefix", "/home/sandbox/.local", "install", "-g", "--ignore-scripts", "@earendil-works/pi-coding-agent"]],
     ["opencode", ["npm", "--prefix", "/home/sandbox/.local", "install", "-g", "opencode-ai"]],
     ["grok-build", ["bash", "-lc", expandSandboxHome("curl -fsSL https://x.ai/cli/install.sh | GROK_BIN_DIR=\"$HOME/.local/bin\" bash -s 0.2.39 && rm -f \"$HOME/.local/bin/agent\"")]],
-    ["hermes", ["bash", "-lc", expandSandboxHome("curl -fsSL https://hermes-agent.nousresearch.com/install.sh | HERMES_INSTALL_DIR=\"$HOME/.local/lib/hermes-agent\" bash -s -- --skip-setup --skip-browser && uv pip install --python \"$HOME/.local/lib/hermes-agent/venv/bin/python\" 'hermes-agent[slack,teams,web,pty]'")]],
+    ["hermes", ["bash", "-lc", expandSandboxHome("curl -fsSL https://hermes-agent.nousresearch.com/install.sh | HERMES_INSTALL_DIR=\"$HOME/.local/lib/hermes-agent\" bash -s -- --skip-setup --skip-browser && \"$HOME/.local/bin/hermes\" pm install --extra slack --extra teams")]],
     ["muse-code", ["bash", "-lc", expandSandboxHome("set -o pipefail; curl -fsSL https://dev.meta.ai/install.sh | MUSE_INSTALL_DIR=\"$HOME/.local/bin\" MUSE_NO_MODIFY_PATH=1 MUSE_LOGIN=0 bash")]],
     ["antigravity-cli", ["bash", "-lc", expandSandboxHome("set -o pipefail; curl -fsSL https://antigravity.google/cli/install.sh | bash -s -- --dir \"$HOME/.local/bin\"")]],
     ["t3code", ["npx", "--yes", "t3", "--version"]],

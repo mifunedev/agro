@@ -126,7 +126,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     installArgv: [
       "bash",
       "-lc",
-      `curl -fsSL https://hermes-agent.nousresearch.com/install.sh | HERMES_INSTALL_DIR="${HARNESS_PREFIX_TOKEN}/lib/hermes-agent" bash -s -- --skip-setup --skip-browser && uv pip install --python "${HARNESS_PREFIX_TOKEN}/lib/hermes-agent/venv/bin/python" 'hermes-agent[slack,teams,web,pty]'`,
+      `curl -fsSL https://hermes-agent.nousresearch.com/install.sh | HERMES_INSTALL_DIR="${HARNESS_PREFIX_TOKEN}/lib/hermes-agent" bash -s -- --skip-setup --skip-browser && "${HARNESS_PREFIX_TOKEN}/bin/hermes" pm install --extra slack --extra teams`,
     ],
     installUser: "sandbox",
     verifyArgv: ["hermes", "--version"],
