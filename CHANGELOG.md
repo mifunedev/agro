@@ -10,6 +10,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
+- Add `manual-review-check.sh` to reject branch-pinned evidence links and screenshots without a `Callouts:` line, and `annotate-screenshot.sh` to add numbered callouts to agent-browser screenshots ([#1239](https://github.com/mifunedev/agro/issues/1239)).
 - Add `/compact-handoff`, a manual skill that prints a `/compact` carry-forward prompt and a post-compaction prompt for the next unresolved task without executing either ([#1248](https://github.com/mifunedev/agro/issues/1248)).
 - Require a `## Manual review` PR section with reviewer steps and observed results: annotated screenshots for a user journey, commands with example output for a server or CLI change ([#1236](https://github.com/mifunedev/agro/issues/1236)).
 - Add `agro sandbox upgrade <name> --version X.Y.Z` to recreate an image-mode sandbox with a pinned release while preserving its home data ([#1208](https://github.com/mifunedev/agro/issues/1208)).
@@ -31,6 +32,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Fixed
 
+- Pin PR evidence links to the head commit SHA so screenshots still render after the branch is deleted, and drop `### Visual Reference` from the feature issue template ([#1239](https://github.com/mifunedev/agro/issues/1239)).
 - Restore the running container image after a failed upgrade of an unpinned sandbox, or refuse the upgrade if that image cannot be inspected ([#1217](https://github.com/mifunedev/agro/issues/1217)).
 - Record `docker-engine` and `desktop` host installs without a `~/.local` prefix, and make `agro tool uninstall` link manual removal steps for both ([#1185](https://github.com/mifunedev/agro/issues/1185)).
 
