@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1254-openshell-sandbox-runtime",
+  "description": "OpenShell sandbox runtime. V1 is a narrow, experimental, interactive-only slice. The slice proves one loop: install, shell, list, and destroy, with Claude Code under a default-deny policy. The published AGRO image runs with two additions. The policy sets `run_as_user: sandbox`. The new `openshell-main.sh` seeds the workspace and sleeps as the main process. V1 defers each feature that depends on OpenShell behavior that no AGRO run has observed. The cron runtime is the largest deferral, because a gateway restart stops every process. The US-007 transcript gives the evidence for the follow-up design.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Boot the published image under OpenShell without systemd",
+      "description": "As an operator, I want the published AGRO image to start as a non-root OpenShell workload so that one image serves both runtimes.",
+      "acceptanceCriteria": [
+        "`.devcontainer/openshell-main.sh` exists in the image at `/usr/local/bin/openshell-main.sh` with mode `0755`.",
+        "If `id -u` is not `0`, `.devcontainer/entrypoint.sh` runs only the steps that need no root: home seed, workspace seed, `link-providers.sh --init`, and git identity.",
+        "`openshell-main.sh` runs `entrypoint.sh` and then runs `exec sleep infinity`.",
+        "A second run of `entrypoint.sh` as `sandbox` against a seeded home keeps every file in `/home/sandbox` unchanged.",
+        "The Dockerfile creates `/home/sandbox/harness` with owner `sandbox:sandbox` before the `WORKDIR` line.",
+        "`bash .agro/scripts/sandbox-boot-smoke.sh` exits 0, so the Docker runtime still boots under systemd."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".devcontainer/entrypoint.sh",
+        ".devcontainer/openshell-main.sh",
+        ".devcontainer/Dockerfile"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Ship the canonical AGRO OpenShell policy",
+      "description": "As an operator, I want one reviewed default-deny policy so that Claude Code reaches GitHub, npm, and Anthropic and reaches nothing else.",
+      "acceptanceCriteria": [
+        "`.devcontainer/openshell-policy.yaml` exists, sets `process.run_as_user: sandbox`, and sets `process.run_as_group: sandbox`.",
+        "The policy holds exactly three named network rules: `github`, `npm`, and `anthropic`. Each rule lists its hosts and its binaries.",
+        "The `github` rule lists the binaries `/usr/bin/git`, `/usr/bin/gh`, and `/usr/bin/curl`. The rule permits `git push` over HTTPS and the release download hosts that `agro tool install herdr` uses.",
+        "The `npm` rule lists only the binary `/usr/local/bin/node` and sets `access: read-only`.",
+        "The `anthropic` rule lists only the binary glob `/home/sandbox/.local/lib/node_modules/@anthropic-ai/claude-code/bin/*`, the host `api.anthropic.com`, and the `<claude login hosts>`.",
+        "A test parses the policy and asserts that `/usr/local/bin/node` appears in no rule except `npm`.",
+        "`materialize()` in `.agro/cli/src/lib/registry.ts` writes `openshell-policy.yaml` into an `openshell` entry from an `agro-asset:` import and writes no compose file into that entry.",
+        "`pnpm exec vitest run .agro/cli/src/__tests__/sandbox.test.ts` exits 0 with a case that reads the materialized policy back from the entry.",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".devcontainer/openshell-policy.yaml",
+        ".agro/cli/src/lib/registry.ts",
+        ".agro/cli/src/lib/assets.d.ts",
+        ".agro/cli/src/__tests__/sandbox.test.ts"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Add the OpenShell execution target",
+      "description": "As a CLI maintainer, I want an `ExecutionTarget` for OpenShell so that `agro` reaches an OpenShell sandbox through the existing seam.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/lib/execution/openshell-target.ts` exports `OpenShellExecutionTarget` with `kind = \"openshell\"` and `contractVersion = 1`.",
+        "`provision()` runs `openshell sandbox create --name <name> --from <image-ref> --policy <entry>/openshell-policy.yaml --env AGRO_EXECUTION_TARGET=local --env SANDBOX_NAME=<name> --detach -- /usr/local/bin/openshell-main.sh`.",
+        "`attach()` runs `openshell sandbox exec -n <name> --tty --workdir /home/sandbox/harness -- zsh -l`.",
+        "`exec()` runs `openshell sandbox exec -n <name>` with `--workdir`, `--env`, and `--timeout` taken from the `ExecRequest`.",
+        "`status()` runs `openshell sandbox get <name> -o json` and reads the `phase` field. The map follows the phase table in Architectural Decisions.",
+        "If the output holds `sandbox '<name>' not found`, `status()` returns `absent`.",
+        "`destroy()` runs `openshell sandbox delete <name>`.",
+        "`capabilities()` returns `exec` and `pty`, and never returns `docker`.",
+        "`resolveExecutionTarget()` returns `OpenShellExecutionTarget` when the entry `agro.json` holds `runtime: \"openshell\"` and the caller runs on the host.",
+        "`target.ts` stays unchanged, and `bash .agro/evals/probes/execution-target-contract.sh` exits 0.",
+        "`openshell-target.ts` exports the pure functions `createArgv`, `attachArgv`, `execArgv`, and `deleteArgv`. Each function returns a `string[]` and spawns no process.",
+        "`provision()` and `agro sandbox install openshell --print-argv` both use `createArgv()`. A test asserts that both produce the same argv.",
+        "`openshell-target.ts` exports `openshellPreflight(run)`, which holds the `openshell` binary check and the `openshell status` check that US-004 uses.",
+        "`status()` parses the JSON output once through `parseOpenShellPhase()`. One frozen table maps each phase to an `ExecutionStatus`. A test proves that an unlisted phase maps to `failed`.",
+        "Each process in `openshell-target.ts` starts through the injected `LifecycleRunner`. `git grep -n 'child_process' .agro/cli/src/lib/execution/openshell-target.ts` prints nothing.",
+        "`git grep -nE 'openshell (sandbox|logs|status|policy|gateway)' .agro/cli/src ':!.agro/cli/src/__tests__'` lists only `openshell-target.ts`.",
+        "`pnpm exec vitest run .agro/cli/src/__tests__/openshell-target.test.ts .agro/cli/src/__tests__/execution-target.test.ts` exits 0.",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/execution/openshell-target.ts",
+        ".agro/cli/src/lib/execution/index.ts",
+        ".agro/cli/src/__tests__/openshell-target.test.ts",
+        ".agro/cli/src/__tests__/execution-target.test.ts"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Register the runtime and provision with `agro sandbox install openshell`",
+      "description": "As an operator, I want `agro sandbox install openshell` to create a registered OpenShell sandbox so that I use one command for both runtimes.",
+      "acceptanceCriteria": [
+        "`RUNTIME_CATALOG` holds an `openshell` entry with `provisionable: true` and `docsPath: \"docs/runtimes/openshell.md\"`.",
+        "`SANDBOX_RUNTIMES` equals `[\"docker\", \"openshell\"]`, and `agro sandbox --help` prints the line `openshell` followed by `provisionable`.",
+        "If `openshell` is not on `PATH`, the command exits 1 and prints the upstream install command plus a review-first alternative.",
+        "If `openshell status` exits non-zero, the command exits 1 and prints `openshell gateway add --local` as the next step.",
+        "`--checkout`, `--home-mount`, and `image.mode: \"build\"` each make the command exit 1 with a message that names the `openshell` runtime.",
+        "The command never prompts. Name, timezone, and git identity come from the flags and the `seedConfig()` defaults.",
+        "`--print-argv` prints the `openshell sandbox create` argv from US-003 and writes no registry entry.",
+        "A successful run writes `agro.json` with `runtime: \"openshell\"` and `image.mode: \"image\"`, then prints `next: agro shell <name>`.",
+        "If `openshell sandbox create` exits non-zero, the command exits with that code and removes the new registry entry.",
+        "`docs/configuration.md` lists `openshell` as a value of `runtime`, and `bash .agro/evals/probes/config-schema-parity.sh` exits 0.",
+        "`pnpm exec vitest run .agro/cli/src/__tests__/sandbox.test.ts .agro/cli/src/__tests__/tool-catalog.test.ts` exits 0.",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".agro/cli/src/lib/runtimes/catalog.ts",
+        ".agro/cli/src/lib/agro-config.ts",
+        ".agro/cli/src/commands/sandbox.ts",
+        ".agro/cli/src/controllers/sandbox.ts",
+        "docs/configuration.md",
+        ".agro/cli/src/__tests__/sandbox.test.ts",
+        ".agro/cli/src/__tests__/tool-catalog.test.ts"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Route shell, list, and destroy, and refuse the other verbs",
+      "description": "As an operator, I want `agro shell`, `agro sandbox list`, and `agro destroy` to act on an OpenShell entry so that the core loop needs no second CLI. For each other verb, I want the exact `openshell` command.",
+      "acceptanceCriteria": [
+        "For an `openshell` entry, `agro shell` calls `OpenShellExecutionTarget.attach()` and builds no argv in `lifecycle.ts`.",
+        "`agro sandbox list` prints runtime `openshell` and the status from `OpenShellExecutionTarget.status()`.",
+        "For an `openshell` entry, `agro destroy` asks the existing confirmation phrase, calls `OpenShellExecutionTarget.destroy()`, and then removes the registry entry.",
+        "For an `openshell` entry, `agro stop`, `agro restart`, `agro logs`, `agro ps`, `agro compose config`, and `agro sandbox upgrade` each exit 1 and print the `openshell` command from the Architectural Decisions table.",
+        "For a `docker` entry, each verb produces the same argv as before this task.",
+        "One resolver reads the entry `runtime` field and returns the verb policy. `git grep -n '\"openshell\"' .agro/cli/src/commands/lifecycle.ts .agro/cli/src/commands/sandbox-list.ts .agro/cli/src/services/sandbox-upgrade.ts` prints nothing.",
+        "`SANDBOX_RUNTIMES` is computed from the `RUNTIME_CATALOG` entries with `provisionable: true`, and a test asserts the result `[\"docker\", \"openshell\"]`.",
+        "The OpenShell verb table ends with `satisfies Record<LifecycleVerb, VerbPolicy>`. `LifecycleVerb` covers `shell`, `stop`, `restart`, `logs`, `ps`, `destroy`, `config`, and `upgrade`.",
+        "Each refusal throws `RuntimeUnsupportedError` with the runtime, the verb, and the hint. One catch site in `.agro/cli/src/cli.ts` prints the error and returns exit code 1.",
+        "`npm --prefix .agro/cli run typecheck` exits 0.",
+        "`pnpm exec vitest run .agro/cli/src/__tests__/lifecycle.test.ts .agro/cli/src/__tests__/compose-verbs.test.ts .agro/cli/src/__tests__/destroy.test.ts` exits 0.",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        ".agro/cli/src/commands/lifecycle.ts",
+        ".agro/cli/src/commands/sandbox-list.ts",
+        ".agro/cli/src/services/sandbox-upgrade.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/__tests__/lifecycle.test.ts",
+        ".agro/cli/src/__tests__/compose-verbs.test.ts",
+        ".agro/cli/src/__tests__/destroy.test.ts"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Document and guard the experimental runtime",
+      "description": "As an operator, I want a runtime page and a probe so that I know the v1 limits and the support cannot drift.",
+      "acceptanceCriteria": [
+        "`docs/runtimes/openshell.md` labels the runtime experimental, interactive-only, and Claude Code only.",
+        "`docs/runtimes/openshell.md` states the host prerequisites, the verb table, the policy file, and each item in `## Out of Scope`.",
+        "`docs/runtimes/overview.md` and `docs/lifecycle-commands.md` list `openshell` as provisionable and link the runtime page.",
+        "`.agro/evals/probes/openshell-runtime-contract.sh` fails if the catalog, the config enum, the policy asset, or the runtime page drops `openshell`.",
+        "`bash .agro/evals/probes/openshell-runtime-contract.sh` exits 0, and `bash .agro/evals/probes/curl-bash-safe-alternatives.sh` exits 0.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh docs/runtimes/openshell.md` exits 0."
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-004",
+        "US-005"
+      ],
+      "files": [
+        "docs/runtimes/openshell.md",
+        "docs/runtimes/overview.md",
+        "docs/lifecycle-commands.md",
+        ".agro/evals/probes/openshell-runtime-contract.sh"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "Record manual review evidence",
+      "description": "As the advisor, I want a live transcript against a real OpenShell gateway so that the PR proves the v1 loop. This story depends on US-001 through US-006.",
+      "acceptanceCriteria": [
+        "The operator approves the use of a local OpenShell gateway before the first live command.",
+        "`.agro/tasks/openshell-sandbox-runtime/evidence/manual-review.md` holds the command transcript with the exit code of each command.",
+        "Each step in the evidence file states its prerequisites, its location, the command, the trimmed output, and the exit status, as `.agro/skills/git/references/manual-review.md` requires.",
+        "The evidence file holds the failure path `agro sandbox install openshell --name <name>` with the gateway stopped, with exit status 1 and the `openshell gateway add --local` hint.",
+        "The transcript shows `agro sandbox install openshell --name <name>` exit 0 and `agro sandbox list` with status `ready`.",
+        "The transcript shows `whoami` print `sandbox` and `pwd` print `/home/sandbox/harness` inside `agro shell <name>`.",
+        "The transcript shows `git ls-remote https://github.com/mifunedev/agro` exit 0 and `npm view @anthropic-ai/claude-code version` exit 0 inside the sandbox.",
+        "The transcript shows `gh auth login && gh auth setup-git` exit 0 inside the sandbox.",
+        "In a clone of `<writable repository>` inside the sandbox, the transcript shows `git push --dry-run origin HEAD:refs/heads/openshell-review` exit 0.",
+        "After the operator signs in to Claude Code inside the sandbox, the transcript shows `claude -p 'reply with OK'` exit 0.",
+        "The transcript names each host in `<claude login hosts>` that the sign-in used.",
+        "The transcript shows `curl -sS https://example.com` exit non-zero inside the sandbox, because the policy denies the host.",
+        "The transcript shows `agro stop <name>` exit 1 with the `openshell sandbox stop <name>` hint.",
+        "The transcript ends with `agro destroy <name>` exit 0, then `openshell sandbox list` and `agro sandbox list` without the test sandbox."
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004",
+        "US-005",
+        "US-006"
+      ],
+      "files": [
+        ".agro/tasks/openshell-sandbox-runtime/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
