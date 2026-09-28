@@ -175,8 +175,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/runtimes/openshell.md` exits 0."
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated by fast-forward. Advisor re-ran: `bash .agro/evals/probes/openshell-runtime-contract.sh` exit 0 (PASS); `curl-bash-safe-alternatives.sh` exit 0; `ste-check.sh docs/runtimes/openshell.md` exit 0 (C5, C6 executed). C1, C3 executed by grep and the probe (experimental/interactive-only/Claude Code only; overview.md and lifecycle-commands.md list and link openshell). C2 reasoned by reading: prerequisites, verb table, phase table, policy, process model, storage, all Out of Scope items; hints pasted from the built CLI. C4 executed by the worker: 8 negative runs on a scratch copy each exit 1, unbroken copy exit 0, missing CLI source exit 2. Unrelated: skills-vendored.sh fails in worktrees (provider links absent) before and after this change.",
       "dependsOn": [
         "US-004",
         "US-005"
@@ -186,7 +186,8 @@
         "docs/runtimes/overview.md",
         "docs/lifecycle-commands.md",
         ".agro/evals/probes/openshell-runtime-contract.sh"
-      ]
+      ],
+      "commit": "2afcc09d"
     },
     {
       "id": "US-007",
