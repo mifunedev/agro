@@ -115,16 +115,9 @@ Status: DRAFT
 - [ ] `.agro/tasks/openshell-sandbox-runtime/evidence/manual-review.md` holds the command transcript with the exit code of each command.
 - [ ] Each step in the evidence file states its prerequisites, its location, the command, the trimmed output, and the exit status, as `.agro/skills/git/references/manual-review.md` requires.
 - [ ] The evidence file holds the failure path `agro sandbox install openshell --name <name>` with the gateway stopped, with exit status 1 and the `openshellGatewayHint()` text.
-- [ ] The transcript shows `agro sandbox install openshell --name <name>` exit 0 and `agro sandbox list` with status `ready`.
-- [ ] The transcript shows `whoami` print `sandbox` and `pwd` print `/home/sandbox/harness` inside `agro shell <name>`.
-- [ ] The transcript shows `git ls-remote https://github.com/mifunedev/agro` exit 0 and `npm view @anthropic-ai/claude-code version` exit 0 inside the sandbox.
-- [ ] The transcript shows `gh auth login && gh auth setup-git` exit 0 inside the sandbox.
-- [ ] In a clone of `<writable repository>` inside the sandbox, the transcript shows `git push --dry-run origin HEAD:refs/heads/openshell-review` exit 0.
-- [ ] After the operator signs in to Claude Code inside the sandbox, the transcript shows `claude -p 'reply with OK'` exit 0.
-- [ ] The transcript names each host in `<claude login hosts>` that the sign-in used.
-- [ ] The transcript shows `curl -sS https://example.com` exit non-zero inside the sandbox, because the policy denies the host.
-- [ ] The transcript shows `agro stop <name>` exit 1 with the `openshell sandbox stop <name>` hint.
-- [ ] The transcript ends with `agro destroy <name>` exit 0, then `openshell sandbox list` and `agro sandbox list` without the test sandbox.
+- [ ] The evidence file holds the `--checkout` refusal with exit status 1 and the `--print-argv` preview with exit status 0 from the operator host.
+- [ ] The evidence file holds a live `openshell sandbox create` failure, the passthrough exit status 1, and an empty `agro sandbox list` after the failure.
+- [ ] The evidence file lists each live check that did not run. The PR `## What remains unverified` section names the remote Linux validation issue.
 
 ## Summary
 
@@ -284,6 +277,7 @@ Each deferred item gets one follow-up issue after merge.
 - The MicroVM and Kubernetes drivers. The manual review covers the Docker driver only.
 - Host install of the `openshell` binary by `agro`.
 - The public page in `mifunedev/agro-web`.
+- A successful live provision. The operator ran the live check on WSL 2 with Docker Desktop, where the OpenShell supervisor cannot reach the gateway. On 2026-09-28 the operator decided to ship v1 as experimental and to validate on a remote Linux host in a follow-up issue.
 
 ## Open Questions
 
@@ -291,8 +285,7 @@ None. The operator approved `git push` on 2026-09-28. The v0.1.2 source settles 
 
 ## Acceptance Criteria
 
-- [ ] `agro sandbox install openshell --name <name>` creates a running OpenShell sandbox on a host with a local gateway.
-- [ ] `agro shell <name>` opens `zsh` as `sandbox` in `/home/sandbox/harness` inside that sandbox.
+- [ ] `docs/runtimes/openshell.md` labels the runtime experimental. Issue #<remote-validation> holds the live install and shell criteria for a remote Linux host.
 - [ ] Each refused verb exits 1 and prints its `openshell` command.
 - [ ] Each Docker lifecycle test and `bash .agro/scripts/sandbox-boot-smoke.sh` exit 0.
 - [ ] `pnpm test` exits 0, and `npm --prefix .agro/cli run typecheck` exits 0.
@@ -302,4 +295,8 @@ None. The operator approved `git push` on 2026-09-28. The v0.1.2 source settles 
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. **Claim:** OpenShell 0.1.2 cannot provision a sandbox on WSL 2 with Docker Desktop. **Evidence:** step E of `evidence/manual-review.md` shows `ControlSupervisorStartFailed` and `failed to connect to OpenShell server`. The supervisor uses host networking, and on Docker Desktop that network is the Docker Desktop VM. **Outcome:** fixed in this PR. Commit `a00a9859` prints the cleanup command after a failed create and documents the limit in `docs/runtimes/openshell.md`.
+2. **Claim:** No live run has provisioned an OpenShell sandbox through `agro` yet. **Evidence:** the `## Not run` list in `evidence/manual-review.md`. **Outcome:** issue #<remote-validation>.
+3. **Claim:** An OpenShell entry took its sandbox name from `SANDBOX_NAME` before `agro.json`, so `agro destroy` could delete another sandbox. **Evidence:** the built CLI printed `openshell sandbox stop agro-sbx-local` for the entry `osb`. **Outcome:** fixed in this PR, commit `97797b28`.
+4. **Claim:** The empty-registry message names only `agro sandbox install docker`. **Evidence:** step D of `evidence/manual-review.md`. **Outcome:** issue #<registry-message>.
+5. **Claim:** A hand-written YAML parser in a test limited the policy syntax. **Evidence:** the first US-002 commit `892e36a3`. **Outcome:** fixed in this PR. Commit `b174b4e1` parses the policy with `yaml@2.9.0`, which the lockfile already held.

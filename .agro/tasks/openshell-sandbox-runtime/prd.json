@@ -198,20 +198,13 @@
         "`.agro/tasks/openshell-sandbox-runtime/evidence/manual-review.md` holds the command transcript with the exit code of each command.",
         "Each step in the evidence file states its prerequisites, its location, the command, the trimmed output, and the exit status, as `.agro/skills/git/references/manual-review.md` requires.",
         "The evidence file holds the failure path `agro sandbox install openshell --name <name>` with the gateway stopped, with exit status 1 and the `openshellGatewayHint()` text.",
-        "The transcript shows `agro sandbox install openshell --name <name>` exit 0 and `agro sandbox list` with status `ready`.",
-        "The transcript shows `whoami` print `sandbox` and `pwd` print `/home/sandbox/harness` inside `agro shell <name>`.",
-        "The transcript shows `git ls-remote https://github.com/mifunedev/agro` exit 0 and `npm view @anthropic-ai/claude-code version` exit 0 inside the sandbox.",
-        "The transcript shows `gh auth login && gh auth setup-git` exit 0 inside the sandbox.",
-        "In a clone of `<writable repository>` inside the sandbox, the transcript shows `git push --dry-run origin HEAD:refs/heads/openshell-review` exit 0.",
-        "After the operator signs in to Claude Code inside the sandbox, the transcript shows `claude -p 'reply with OK'` exit 0.",
-        "The transcript names each host in `<claude login hosts>` that the sign-in used.",
-        "The transcript shows `curl -sS https://example.com` exit non-zero inside the sandbox, because the policy denies the host.",
-        "The transcript shows `agro stop <name>` exit 1 with the `openshell sandbox stop <name>` hint.",
-        "The transcript ends with `agro destroy <name>` exit 0, then `openshell sandbox list` and `agro sandbox list` without the test sandbox."
+        "The evidence file holds the `--checkout` refusal with exit status 1 and the `--print-argv` preview with exit status 0 from the operator host.",
+        "The evidence file holds a live `openshell sandbox create` failure, the passthrough exit status 1, and an empty `agro sandbox list` after the failure.",
+        "The evidence file lists each live check that did not run. The PR `## What remains unverified` section names the remote Linux validation issue."
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Operator decision 2026-09-28: ship v1 as experimental; full live validation on a remote Linux host follows in a separate issue. Executed on the operator host (WSL 2 + Docker Desktop, OpenShell 0.1.2, build ebd714af), transcript in evidence/manual-review.md: gateway connected exit 0; gateway-stopped install exit 1 with the gateway hint; --checkout refusal exit 1; --print-argv exit 0; live create failed ControlSupervisorStartFailed with passthrough exit 1; `agro sandbox list` empty after the failure exit 0. Not run: successful provision, shell identity, policy checks, Claude sign-in, push dry-run, live refusals, destroy (listed in the evidence file). ste-check on the evidence file exit 0.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -222,7 +215,8 @@
       ],
       "files": [
         ".agro/tasks/openshell-sandbox-runtime/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "<evidence commit>"
     }
   ]
 }
