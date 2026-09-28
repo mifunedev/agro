@@ -10,6 +10,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
+- Add `agro sandbox install openshell` as an experimental, interactive-only NVIDIA OpenShell runtime with a default-deny network policy; remote Linux validation is tracked in #1257 ([#1254](https://github.com/mifunedev/agro/issues/1254)).
 - Add `escalate-timeouts.sh` to permit one 24-hour reminder and 72-hour expiry without granting approval ([#1192](https://github.com/mifunedev/agro/issues/1192)).
 - Add `manual-review-check.sh` to reject branch-pinned evidence links and screenshots without `Callouts:`, and `annotate-screenshot.sh` to add numbered callouts to agent-browser screenshots ([#1239](https://github.com/mifunedev/agro/issues/1239)).
 - Add `/compact-handoff`, a manual skill that prints a `/compact` carry-forward prompt and a post-compaction prompt for the next unresolved task without executing either ([#1248](https://github.com/mifunedev/agro/issues/1248)).
