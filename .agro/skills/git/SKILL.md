@@ -16,7 +16,7 @@ allowed-tools: Bash
 
 Any time a chat mentions git, GitHub, branches, commits, pushes, pulls, PRs,
 issues, worktrees, merge conflicts, releases, changelog entries, or dirty
-workspace cleanup, read this skill before acting. Treat it as the source of truth
+workspace cleanup, read the git skill before acting. Treat this skill as the source of truth
 for routing changes to the right remote and for preserving local work safely.
 
 ## Repository and Memory Routing
@@ -83,7 +83,7 @@ Example: `FROM feat/42-slack-thread-replies TO development`
 > into `development` it parses the title and body for the nine closing keywords and closes
 > each referenced issue as `completed` (#841).
 >
-> The trailer is therefore load-bearing — write it on every PR. Close by hand only when the
+> The trailer is therefore load-bearing — write the trailer on every PR. Close by hand only when the
 > automation cannot see the merge (a direct push, a merge into another branch, a PR whose
 > body carried no trailer, or a PR opened from a **fork**, which gets a read-only token):
 >
@@ -139,7 +139,7 @@ Automatic branch-push releases use the matching `## [<VERSION>] - YYYY-MM-DD` se
 
 ## Worktrees
 
-Path: `.worktrees/<branch>` at the root of the repository the branch belongs to. A project clone under `projects/` keeps its own worktrees the same way, at `projects/<owner>/<repo>/.worktrees/`. Independent project clones (own `.git`, not harness branches) live under `projects/<owner>/<repo>/`. Both roots are fixed conventions, not settings — see `.worktrees/AGENTS.md` and `projects/AGENTS.md`.
+Path: `.worktrees/<branch>` at the root of the repository the branch belongs to. A project clone under `projects/` keeps its own worktrees the same way, at `projects/<owner>/<repo>/.worktrees/`. Independent project clones (own `.git`, not harness branches) live under `projects/<owner>/<repo>/`. Neither root is a setting; both roots are conventions — see `.worktrees/AGENTS.md` and `projects/AGENTS.md`.
 
 ```bash
 WORKTREES_ROOT="$(bash .agro/scripts/agro-path worktrees --no-create 2>/dev/null || printf '%s' .worktrees)"
@@ -157,7 +157,7 @@ Cleanup: `git worktree remove "$WORKTREES_ROOT/<branch>"`.
 
 ### Stale worktree policy
 
-Worktrees older than 30 days without a corresponding open PR may be removed via `git worktree remove`; corrupted worktree directories may be removed with `rm -rf` after confirming they are not valid `git worktree list` entries. The `/audit harness` skill flags stale-worktree candidates for review before cleanup.
+You may remove a worktree with `git worktree remove` when the worktree is older than 30 days and has no corresponding open PR. You may remove a corrupted worktree directory with `rm -rf` after you confirm that the directory is not a valid `git worktree list` entry. The `/audit harness` skill flags stale-worktree candidates for review before cleanup.
 
 ### Isolating in-flight work
 
@@ -191,11 +191,11 @@ bash .agro/scripts/git-maintenance.sh worktree-remove <path>
 bash .agro/scripts/git-maintenance.sh push-force <remote> <branch>   # uses --force-with-lease
 ```
 
-**Scope rule:** only **non-agent-mediated** invocations — raw scheduler/tmux shell scripts that never spawn a provider — bypass the PreToolUse hooks. Agent-driven crons do **not** bypass them (`cron-runtime.ts` runs them as `pi --continue` / `claude -p` prompts, so their Bash passes through the guard), so those must use the shim too. This is a compatibility shim, not a security control — the same script-file gap is also an evasion route; Docker is the security boundary.
+**Scope rule:** only **non-agent-mediated** invocations — raw scheduler/tmux shell scripts that never spawn a provider — bypass the PreToolUse hooks. Agent-driven crons do **not** bypass the hooks. `cron-runtime.ts` runs agent-driven crons as `pi --continue` / `claude -p` prompts, so their Bash passes through the guard. Agent-driven crons must use the shim too. The shim is a compatibility shim, not a security control. The same script-file gap is also an evasion route; Docker is the security boundary.
 
 ## Catching Up Feature Branches
 
-When an open feature branch falls behind `development`, prefer merging the target branch into the feature branch instead of rebasing it. This preserves the branch's published history, avoids force-push churn, and keeps integration-conflict resolution on the feature branch; the final squash merge keeps `development` free of the catch-up merge commit.
+When an open feature branch falls behind `development`, prefer merging the target branch into the feature branch instead of rebasing it. A merge preserves the branch's published history and avoids force-push churn. A merge also keeps integration-conflict resolution on the feature branch. The final squash merge keeps `development` free of the catch-up merge commit.
 
 ```bash
 git fetch origin development
@@ -206,7 +206,7 @@ git push origin <feature-branch>           # normal push; no --force-with-lease
 
 After the merge, rerun the targeted checks and `/ci-status`/`/audit pr` before marking the PR ready or merging it.
 
-Use rebase/force-push only for deliberate history surgery (for example, before a branch has been shared, or when explicitly managing a stacked PR as described below).
+Use rebase/force-push only for deliberate history surgery. Examples: before you share a branch, or when you explicitly manage a stacked PR by the procedure in § Stacked PRs.
 
 ## Stacked PRs
 
@@ -220,7 +220,7 @@ When PR needs work from another open PR (e.g. feature depending on in-flight doc
 
 When parent PR merges, GitHub auto-rebases stacked PR's base to parent's target (`development`). Do **not** force-push again after parent merges — let GitHub handle retarget.
 
-Keep stacks shallow: one level routine, two levels rare, three levels means something wrong with sequencing.
+Keep stacks shallow: one level routine, two levels rare, three levels means a sequencing error.
 
 ## Releases
 
@@ -259,7 +259,7 @@ or deprecate the shim. The same build still publishes the GHCR tags
 `ghcr.io/mifunedev/agro:<version>`, `:sha-<sha>`, verified to share one digest,
 plus `latest` on both repositories; and the release assets `agro.js`, `oh.js`,
 `get-agro.sh`, `get-agro.sh`. Publishing `@mifune/agro` needs npm rights for that
-name, and the GHCR package `mifunedev/agro` must be made public after its first
+name, and the package owner must make the GHCR package `mifunedev/agro` public after its first
 push; neither is verifiable here. The compatibility SLA clock starts at the first
 public AGRO release.
 
@@ -339,11 +339,14 @@ Do these steps in this sequence:
 - `prd.md` ends with a non-empty `## Lessons` section. "None" is a valid body:
   `awk '/^## /{s=($0=="## Lessons");n=0;next} s&&NF{n++} END{exit !(s&&n)}' .agro/tasks/<slug>/prd.md`
   exits 0.
-- The PR body evidence sections are non-empty: What the issue asked for, What
-  was built, Where it diverged, Manual review, What remains unverified,
+- The PR body evidence sections are non-empty: What the issue asked for,
+  `What was built`, Where it diverged, Manual review, What remains unverified,
   Verification, and Lessons. "None" or "Nothing" is a valid body, except for
   Manual review. Manual review follows
   [references/manual-review.md](references/manual-review.md).
+- The Manual review links and callouts pass. Write the PR body to a file, then
+  run `bash .agro/skills/git/scripts/manual-review-check.sh <body-file>`. The
+  command must exit 0.
 - The repository's checks pass on the pushed branch (`/ci-status`).
 
 ### After the merge
@@ -389,5 +392,5 @@ Let `$BASE` = default target branch (detected per rule above).
 5. `git push -u origin <branch>` → then `/ci-status` (if skill exists)
 6. `gh pr create --base $BASE --title "FROM <branch> TO $BASE" --body "Closes #<issue#>"`
 7. After the merge, confirm the issue closed. The `close-issues-on-development` workflow
-   closes it from the `Closes #N` trailer (see § PR Bodies). If the merge bypassed a PR into
-   `development`, close it by hand: `gh issue close <issue#> --repo <owner/name>`
+   closes the issue from the `Closes #N` trailer (see § PR Bodies). If the merge bypassed a PR into
+   `development`, close the issue by hand: `gh issue close <issue#> --repo <owner/name>`

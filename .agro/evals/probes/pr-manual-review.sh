@@ -2,7 +2,9 @@
 # tier: A
 # source: issue #1236 — each PR body carries a ## Manual review section in one canonical shape
 # desc: the PR template holds ## Manual review after ## Where it diverged and no ## Visual Reference,
-#       the feat issue template has no ### Visual Reference, the /git Ready-for-review gate lists Manual review, and the reference defines both shapes
+#       the feat issue template has no ### Visual Reference, the /git Ready-for-review gate lists Manual review
+#       and runs manual-review-check.sh, the check passes the pass shape and fails the branch-ref and no-callouts shapes,
+#       and the reference defines both shapes
 set -euo pipefail
 
 ROOT="${AGRO_PROBE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
@@ -10,6 +12,8 @@ TEMPLATE="$ROOT/.github/pull_request_template.md"
 SKILL="$ROOT/.agro/skills/git/SKILL.md"
 REFERENCE="$ROOT/.agro/skills/git/references/manual-review.md"
 FEAT="$ROOT/.github/ISSUE_TEMPLATE/feat.md"
+CHECK="$ROOT/.agro/skills/git/scripts/manual-review-check.sh"
+FIXTURES="$ROOT/.agro/skills/git/scripts/tests/fixtures"
 
 missing=()
 
@@ -35,6 +39,7 @@ if [[ -f "$SKILL" ]]; then
   gate="$(awk '/^### Ready for review$/{s=1;next} s&&/^##/{exit} s' "$SKILL" | tr -s '[:space:]' ' ')"
   grep -qF 'Where it diverged, Manual review,' <<<"$gate" || missing+=("Ready-for-review gate lists Manual review")
   grep -qF '(references/manual-review.md)' <<<"$gate" || missing+=("Ready-for-review gate links the reference")
+  grep -qF 'manual-review-check.sh' <<<"$gate" || missing+=("Ready-for-review gate names manual-review-check.sh")
   draft="$(awk '/^## Draft PR for a task$/{s=1;next} s&&/^### /{exit} s' "$SKILL" | tr -s '[:space:]' ' ')"
   grep -qF 'of the AGRO harness' <<<"$draft" || missing+=("Draft-PR step falls back to the harness template")
 fi
@@ -48,6 +53,13 @@ if [[ -f "$REFERENCE" ]]; then
   grep -qF 'HTTP 404' "$REFERENCE" || missing+=("reference states the HTTP 404 cause")
   grep -qF 'Callouts:' "$REFERENCE" || missing+=("reference requires a Callouts: line")
 fi
+
+bash "$CHECK" "$FIXTURES/pass-body.md" >/dev/null 2>&1 || missing+=("check passes the pass shape")
+for shape in fail-branch-ref-body fail-no-callouts-body; do
+  if bash "$CHECK" "$FIXTURES/$shape.md" >/dev/null 2>&1 || [[ ! -f "$CHECK" ]]; then
+    missing+=("check fails $shape")
+  fi
+done
 
 if (( ${#missing[@]} )); then
   printf 'REGRESSION: manual review PR section contract broken: %s\n' "$(IFS=';'; echo "${missing[*]}")" >&2
