@@ -62,7 +62,7 @@
         "`attach()` runs `openshell sandbox exec -n <name> --tty --workdir /home/sandbox/harness -- zsh -l`.",
         "`exec()` runs `openshell sandbox exec -n <name>` with `--workdir`, `--env`, and `--timeout` taken from the `ExecRequest`.",
         "`status()` runs `openshell sandbox get <name> -o json` and reads the `phase` field. The map follows the phase table in Architectural Decisions.",
-        "If the output holds `sandbox '<name>' not found`, `status()` returns `absent`.",
+        "If `openshell sandbox get <name>` exits non-zero with `sandbox not found` or `sandbox '<name>' not found`, `status()` returns `absent`.",
         "`destroy()` runs `openshell sandbox delete <name>`.",
         "`capabilities()` returns `exec` and `pty`, and never returns `docker`.",
         "`resolveExecutionTarget()` returns `OpenShellExecutionTarget` when the entry `agro.json` holds `runtime: \"openshell\"` and the caller runs on the host.",
@@ -77,15 +77,16 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated on the task branch and re-run. Executed: vitest openshell-target + execution-target exit 0 (76 tests); `npm --prefix .agro/cli run typecheck` exit 0; `execution-target-contract.sh` exit 0; `git diff --quiet b4010f85 -- target.ts` exit 0; `git grep child_process openshell-target.ts` no match (exit 1); `git grep -nE 'openshell (sandbox|logs|status|policy|gateway)'` lists only openshell-target.ts. Criteria 1-9, 11, 13-14 executed by unit tests. Criterion 12 --print-argv half reasoned: deferred to US-004, which reuses createArgv(). Flags verified against upstream v0.1.2 main.rs with file:line citations. Plan corrected: not-found text is `sandbox not found`; `openshell status` exits 0 when disconnected; `gateway add` needs an endpoint.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/execution/openshell-target.ts",
         ".agro/cli/src/lib/execution/index.ts",
         ".agro/cli/src/__tests__/openshell-target.test.ts",
         ".agro/cli/src/__tests__/execution-target.test.ts"
-      ]
+      ],
+      "commit": "b6c6ba7f"
     },
     {
       "id": "US-004",
@@ -95,7 +96,7 @@
         "`RUNTIME_CATALOG` holds an `openshell` entry with `provisionable: true` and `docsPath: \"docs/runtimes/openshell.md\"`.",
         "`SANDBOX_RUNTIMES` equals `[\"docker\", \"openshell\"]`, and `agro sandbox --help` prints the line `openshell` followed by `provisionable`.",
         "If `openshell` is not on `PATH`, the command exits 1 and prints the upstream install command plus a review-first alternative.",
-        "If `openshell status` exits non-zero, the command exits 1 and prints `openshell gateway add --local` as the next step.",
+        "If `openshell status -o json` exits non-zero or reports a `status` other than `connected`, the command exits 1 and prints the `openshellGatewayHint()` text.",
         "`--checkout`, `--home-mount`, and `image.mode: \"build\"` each make the command exit 1 with a message that names the `openshell` runtime.",
         "The command never prompts. Name, timezone, and git identity come from the flags and the `seedConfig()` defaults.",
         "`--print-argv` prints the `openshell sandbox create` argv from US-003 and writes no registry entry.",
@@ -191,7 +192,7 @@
         "The operator approves the use of a local OpenShell gateway before the first live command.",
         "`.agro/tasks/openshell-sandbox-runtime/evidence/manual-review.md` holds the command transcript with the exit code of each command.",
         "Each step in the evidence file states its prerequisites, its location, the command, the trimmed output, and the exit status, as `.agro/skills/git/references/manual-review.md` requires.",
-        "The evidence file holds the failure path `agro sandbox install openshell --name <name>` with the gateway stopped, with exit status 1 and the `openshell gateway add --local` hint.",
+        "The evidence file holds the failure path `agro sandbox install openshell --name <name>` with the gateway stopped, with exit status 1 and the `openshellGatewayHint()` text.",
         "The transcript shows `agro sandbox install openshell --name <name>` exit 0 and `agro sandbox list` with status `ready`.",
         "The transcript shows `whoami` print `sandbox` and `pwd` print `/home/sandbox/harness` inside `agro shell <name>`.",
         "The transcript shows `git ls-remote https://github.com/mifunedev/agro` exit 0 and `npm view @anthropic-ai/claude-code version` exit 0 inside the sandbox.",

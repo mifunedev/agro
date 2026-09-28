@@ -43,7 +43,7 @@ Status: DRAFT
 - [ ] `attach()` runs `openshell sandbox exec -n <name> --tty --workdir /home/sandbox/harness -- zsh -l`.
 - [ ] `exec()` runs `openshell sandbox exec -n <name>` with `--workdir`, `--env`, and `--timeout` taken from the `ExecRequest`.
 - [ ] `status()` runs `openshell sandbox get <name> -o json` and reads the `phase` field. The map follows the phase table in Architectural Decisions.
-- [ ] If the output holds `sandbox '<name>' not found`, `status()` returns `absent`.
+- [ ] If `openshell sandbox get <name>` exits non-zero with `sandbox not found` or `sandbox '<name>' not found`, `status()` returns `absent`.
 - [ ] `destroy()` runs `openshell sandbox delete <name>`.
 - [ ] `capabilities()` returns `exec` and `pty`, and never returns `docker`.
 - [ ] `resolveExecutionTarget()` returns `OpenShellExecutionTarget` when the entry `agro.json` holds `runtime: "openshell"` and the caller runs on the host.
@@ -65,7 +65,7 @@ Status: DRAFT
 - [ ] `RUNTIME_CATALOG` holds an `openshell` entry with `provisionable: true` and `docsPath: "docs/runtimes/openshell.md"`.
 - [ ] `SANDBOX_RUNTIMES` equals `["docker", "openshell"]`, and `agro sandbox --help` prints the line `openshell` followed by `provisionable`.
 - [ ] If `openshell` is not on `PATH`, the command exits 1 and prints the upstream install command plus a review-first alternative.
-- [ ] If `openshell status` exits non-zero, the command exits 1 and prints `openshell gateway add --local` as the next step.
+- [ ] If `openshell status -o json` exits non-zero or reports a `status` other than `connected`, the command exits 1 and prints the `openshellGatewayHint()` text.
 - [ ] `--checkout`, `--home-mount`, and `image.mode: "build"` each make the command exit 1 with a message that names the `openshell` runtime.
 - [ ] The command never prompts. Name, timezone, and git identity come from the flags and the `seedConfig()` defaults.
 - [ ] `--print-argv` prints the `openshell sandbox create` argv from US-003 and writes no registry entry.
@@ -114,7 +114,7 @@ Status: DRAFT
 - [ ] The operator approves the use of a local OpenShell gateway before the first live command.
 - [ ] `.agro/tasks/openshell-sandbox-runtime/evidence/manual-review.md` holds the command transcript with the exit code of each command.
 - [ ] Each step in the evidence file states its prerequisites, its location, the command, the trimmed output, and the exit status, as `.agro/skills/git/references/manual-review.md` requires.
-- [ ] The evidence file holds the failure path `agro sandbox install openshell --name <name>` with the gateway stopped, with exit status 1 and the `openshell gateway add --local` hint.
+- [ ] The evidence file holds the failure path `agro sandbox install openshell --name <name>` with the gateway stopped, with exit status 1 and the `openshellGatewayHint()` text.
 - [ ] The transcript shows `agro sandbox install openshell --name <name>` exit 0 and `agro sandbox list` with status `ready`.
 - [ ] The transcript shows `whoami` print `sandbox` and `pwd` print `/home/sandbox/harness` inside `agro shell <name>`.
 - [ ] The transcript shows `git ls-remote https://github.com/mifunedev/agro` exit 0 and `npm view @anthropic-ai/claude-code version` exit 0 inside the sandbox.
@@ -220,9 +220,9 @@ The OpenShell gateway owns the sandbox record in its SQLite store. The Docker dr
 | `Provisioning`, `Starting` | `starting` |
 | `Stopping`, `Stopped`, `Deleting`, `Completed` | `stopped` |
 | `Error`, `Unknown`, `Unspecified`, or an unlisted value | `failed` |
-| `sandbox '<name>' not found` | `absent` |
+| `sandbox not found` | `absent` |
 
-The phase names come from `SandboxPhase` in `proto/openshell.proto` at tag `v0.1.2`. An upstream test asserts the JSON value `"Ready"`.
+The phase names come from `SandboxPhase` in `proto/openshell.proto` at tag `v0.1.2`. `openshell status` exits 0 when the gateway is down, so the preflight reads the JSON `status` field. `openshell gateway add` requires an endpoint, so the hint names `https://127.0.0.1:17670`. An upstream test asserts the JSON value `"Ready"`.
 
 | agro verb | V1 behavior |
 |---|---|
