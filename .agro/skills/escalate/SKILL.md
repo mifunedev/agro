@@ -92,8 +92,8 @@ herdr agent start <name> --cwd <harness root> --env AGRO_SUPERVISOR_PANE=<pane>
    already wrote the record (see below). The script made nobody read the record.
 4. **One escalation per blocker.** Do not narrate a session in Slack.
 5. **Read the reply channel honestly.** Sending does not wait for an answer.
-   A session without its answer must stop and leave durable state. A caller
-   can check one message later with `escalate-decision.sh`; it must not poll.
+   A session without an answer must stop and leave durable state. A caller can
+   check one message later with `escalate-decision.sh`; the caller must not poll.
 
 ## Exit codes
 
@@ -123,7 +123,7 @@ destination. Each entry carries `ok` and `reason`.
 }
 ```
 
-The object omits the `supervisor` entry when no supervisor target resolves. The
+Stdout omits the `supervisor` entry when no supervisor target resolves. The
 script attempts the Slack destination on every run, so the object always carries
 the `slack` entry.
 
@@ -182,6 +182,102 @@ always prints the reason to stderr and returns the reason in the JSON.
 Verify the wiring without a send by adding `--dry-run`. The dry run prints the
 resolved supervisor target, the resolved channel, and the exact rendered
 message.
+
+## Check unanswered timeouts
+
+Use `escalate-timeouts.sh` when a caller already has pending Slack escalations.
+The caller owns the pending queue and the close action. The script does not add
+scheduler, polling, or queue storage.
+
+The caller starts the deadline clock only after `escalate.sh` reports a
+successful Slack send. Save the returned Slack `channel`, Slack `ts`, and
+escalation `link`. Expiry is not approval. Expiry never authorizes the blocked
+action.
+
+Pass a JSON array on stdin. Each item must hold string fields named `channel`,
+`ts`, and `link`.
+
+```bash
+printf '%s\n' '[{"channel":"C0123456789","ts":"1757630000.000100","link":"https://github.com/mifunedev/agro/issues/1192"}]' \
+  | bash .agro/skills/escalate/scripts/escalate-timeouts.sh
+```
+
+`ESCALATE_REMIND_AFTER` sets the reminder threshold in seconds. The default is
+`86400`. `ESCALATE_EXPIRE_AFTER` sets the expiry threshold in seconds. The
+default is `259200`. `ESCALATE_NOW` sets the Unix timestamp for tests. Each
+threshold must be a positive integer. `ESCALATE_EXPIRE_AFTER` must exceed
+`ESCALATE_REMIND_AFTER`.
+
+The script emits one JSON object. A false top-level `.ok` reports at least one
+failed decision read or failed Slack notice. The command can still exit 0 when
+`.ok` is false. A failed expiry notice does not stop the record from reporting
+`state:"expired"`.
+
+```json
+{
+  "ok": true,
+  "results": [
+    {
+      "channel": "C0123456789",
+      "ts": "1757630000.000100",
+      "link": "https://github.com/mifunedev/agro/issues/1192",
+      "state": "reminder_sent",
+      "action": "remind",
+      "decision": "none",
+      "reason": "reminder Slack notice delivered",
+      "ageSeconds": 86400,
+      "remindAfter": 86400,
+      "expireAfter": 259200,
+      "blockedActionExecuted": false,
+      "notice": {
+        "attempted": true,
+        "ok": true,
+        "dryRun": false,
+        "exitCode": 0,
+        "reason": "delivered",
+        "marker": "/home/operator/.agro/escalate/timeout_reminder_<hash>"
+      }
+    }
+  ]
+}
+```
+
+`state` has these values.
+
+| State | Meaning | Caller action |
+|---|---|---|
+| `pending` | The record has not reached the reminder threshold. | Keep the record queued. |
+| `reminder_requested` | `--dry-run` reached the reminder threshold. | Inspect the planned notice. |
+| `reminder_sent` | Slack accepted the reminder, or a reminder marker already exists. | Keep the record queued. |
+| `reminder_failed` | Slack did not accept the reminder. | Keep the record queued and retry later. |
+| `expired` | The record reached the expiry threshold. | Close or keep the queue item by caller policy. |
+| `decided` | `escalate-decision.sh` returned `approve` or `reject`. | Apply the caller's decision handling. |
+| `decision_error` | `escalate-decision.sh` exited non-zero. | Retry after the Slack or identity error clears. |
+
+`action` is `none`, `remind`, or `expire`. `decision` is `unchecked`, `none`,
+`approve`, `reject`, or the last reader output line on an error. The field
+`blockedActionExecuted` stays `false`. A caller must never treat `expired` as
+`approve`.
+
+`notice.ok` means Slack accepted the reminder or expiry notice. The script sets
+`notice.ok` to `true` for an existing marker because Slack already accepted that
+notice in an earlier run. For an expired record, `.notice.ok:false` means the
+expiry notice failed. The caller still receives `state:"expired"` and must not
+execute the blocked action.
+
+The script reads decisions before each real reminder or expiry transition. The
+script does not read decisions during `--dry-run`. `--dry-run` writes no marker,
+writes no log, and sends no Slack message.
+
+The script stores markers in `ESCALATE_STATE_DIR`, else `~/.agro/escalate`. The
+script writes `timeout_reminder_<hash>` and `timeout_expiry_<hash>` marker files.
+The hash covers notice kind, channel, and `ts`. The script holds
+`escalate-timeouts.lock` in the same directory with `flock`. Concurrent real
+runs cannot post duplicate notices. A failed Slack notice writes no marker, so a
+later run can retry.
+
+The canonical `.agro/skills/escalate/SKILL.md` is the source for provider-linked
+skills. Do not edit a generated mirror.
 
 ## Read one decision
 
