@@ -17,14 +17,15 @@
         "`bash .agro/scripts/sandbox-boot-smoke.sh` exits 0, so the Docker runtime still boots under systemd."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor re-ran on the integrated task branch: `docker build -f .devcontainer/Dockerfile` exit 0; `stat` shows `755 root:root /usr/local/bin/openshell-main.sh` and `755 sandbox:sandbox /home/sandbox/harness` (C1, C5 executed); container run as `--user sandbox --cap-drop ALL --security-opt no-new-privileges` with openshell-main.sh as entrypoint: PID 1 `sandbox sleep infinity`, home and workspace seeded (C2, C3 executed). `pnpm exec vitest run` exit 0 (82 files, 1843 tests). C4 executed by the worker: two runs against one volume, sha256/mode/owner listing diff exit 0. C6 executed by the worker in adapted form: sandbox-boot-smoke.sh exit 0 twice via BOOT_SMOKE_COMPOSE (image-only and checkout-as-volume), because this sandbox cannot bind-mount the worktree into Docker Desktop; CI sandbox-boot-guard is the authoritative run.",
       "dependsOn": [],
       "files": [
         ".devcontainer/entrypoint.sh",
         ".devcontainer/openshell-main.sh",
         ".devcontainer/Dockerfile"
-      ]
+      ],
+      "commit": "8f39d379"
     },
     {
       "id": "US-002",
