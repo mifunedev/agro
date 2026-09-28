@@ -59,14 +59,15 @@
         "The canonical `.agro/skills/escalate/SKILL.md` remains the source for provider-linked skills."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: inspected documented JSON input, thresholds, states, locking, markers and retry against integrated script; STE checker exit 0. 2 executed: skill states caller queue/close ownership, expiry not approval, and no scheduler or polling service; reviewed text. 3 reasoned: only canonical .agro/skills/escalate/SKILL.md changed; git show --stat 686a1599 lists that file alone. Integrated timeout suite and escalate-contract probe both exit 0.",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         ".agro/skills/escalate/SKILL.md"
-      ]
+      ],
+      "commit": "686a1599"
     },
     {
       "id": "US-004",
