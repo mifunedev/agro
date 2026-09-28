@@ -9,6 +9,7 @@ import { agroConfigPath, readAgroConfig } from "../lib/agro-config.js";
 import { renderComposeVars } from "../lib/config-render.js";
 import { AGRO_VERSION, officialImageRef } from "../lib/version.js";
 import { runSandboxUpgrade } from "../services/sandbox-upgrade.js";
+import { parse } from "yaml";
 import openshellPolicy from "agro-asset:.devcontainer/openshell-policy.yaml";
 
 const cleanups: string[] = [];
@@ -1552,66 +1553,6 @@ describe("agro sandbox install — the --version pin", () => {
   });
 });
 
-type YamlValue = string | number | boolean | YamlValue[] | { [key: string]: YamlValue };
-
-interface YamlLine {
-  indent: number;
-  text: string;
-}
-
-function parseBlockYaml(source: string): YamlValue {
-  const lines: YamlLine[] = source
-    .split("\n")
-    .filter((line) => line.trim() !== "" && !line.trim().startsWith("#"))
-    .map((line) => ({ indent: line.length - line.trimStart().length, text: line.trim() }));
-  let cursor = 0;
-
-  const scalar = (raw: string): YamlValue => {
-    if (/^[[{&!|>'"]/.test(raw)) throw new Error(`unsupported YAML scalar: ${raw}`);
-    if (raw === "true" || raw === "false") return raw === "true";
-    return /^\d+$/.test(raw) ? Number(raw) : raw;
-  };
-
-  const block = (indent: number): YamlValue =>
-    lines[cursor].text.startsWith("- ") ? sequence(indent) : mapping(indent);
-
-  const mapping = (indent: number): { [key: string]: YamlValue } => {
-    const result: { [key: string]: YamlValue } = {};
-    while (cursor < lines.length && lines[cursor].indent === indent && !lines[cursor].text.startsWith("- ")) {
-      const match = /^([A-Za-z0-9_-]+):(?: (.+))?$/.exec(lines[cursor].text);
-      if (match === null) throw new Error(`unsupported YAML line: ${lines[cursor].text}`);
-      if (match[1] in result) throw new Error(`duplicate YAML key: ${match[1]}`);
-      cursor += 1;
-      if (match[2] !== undefined) {
-        result[match[1]] = scalar(match[2]);
-      } else {
-        if (cursor >= lines.length || lines[cursor].indent <= indent) throw new Error(`empty YAML key: ${match[1]}`);
-        result[match[1]] = block(lines[cursor].indent);
-      }
-    }
-    return result;
-  };
-
-  const sequence = (indent: number): YamlValue[] => {
-    const result: YamlValue[] = [];
-    while (cursor < lines.length && lines[cursor].indent === indent && lines[cursor].text.startsWith("- ")) {
-      const item = lines[cursor].text.slice(2);
-      if (/^[A-Za-z0-9_-]+:( |$)/.test(item)) {
-        lines[cursor] = { indent: indent + 2, text: item };
-        result.push(mapping(indent + 2));
-      } else {
-        result.push(scalar(item));
-        cursor += 1;
-      }
-    }
-    return result;
-  };
-
-  const document = mapping(0);
-  if (cursor !== lines.length) throw new Error(`unparsed YAML line: ${lines[cursor].text}`);
-  return document;
-}
-
 interface PolicyRule {
   endpoints: Array<{ host: string; port: number; access?: string }>;
   binaries: Array<{ path: string }>;
@@ -1626,7 +1567,7 @@ const NODE_BINARY = "/usr/local/bin/node";
 const CLAUDE_BINARY_GLOB = "/home/sandbox/.local/lib/node_modules/@anthropic-ai/claude-code/bin/*";
 
 describe("the canonical OpenShell policy", () => {
-  const policy = parseBlockYaml(openshellPolicy) as unknown as OpenShellPolicy;
+  const policy = parse(openshellPolicy) as OpenShellPolicy;
   const rules = policy.network_policies;
   const binaries = (name: string): string[] => rules[name].binaries.map((binary) => binary.path);
   const hosts = (name: string): string[] => rules[name].endpoints.map((endpoint) => endpoint.host);
