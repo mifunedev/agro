@@ -6,8 +6,8 @@ Do not contact Slack during this review.
 
 ## Prerequisites and location
 
-Prerequisites: a checkout of AGRO on branch `task/1192-escalate-us004`, Bash, jq, Python 3, and executable escalate scripts.
-Location: AGRO sandbox, local worktree `/home/sandbox/harness/.worktrees/task/1192-escalate-us004`.
+Prerequisites: a checkout of AGRO on branch `feat/1192-escalate-timeouts`, Bash, jq, Python 3, and executable escalate scripts.
+Location: AGRO sandbox checkout at repository root.
 Live Slack: not used.
 Remote resources: not created.
 
@@ -16,7 +16,7 @@ Remote resources: not created.
 Run the local stub suite.
 
 ```bash
-cd /home/sandbox/harness/.worktrees/task/1192-escalate-us004 && git status --short --branch && bash .agro/skills/escalate/scripts/test-escalate-timeouts.sh > /tmp/us004-stub.stdout 2> /tmp/us004-stub.stderr; status=$?; printf 'status=%s\n' "$status"; printf -- '--- stdout ---\n'; python3 - <<'PY'
+bash .agro/skills/escalate/scripts/test-escalate-timeouts.sh > /tmp/us004-stub.stdout 2> /tmp/us004-stub.stderr; status=$?; printf 'status=%s\n' "$status"; printf -- '--- stdout ---\n'; python3 - <<'PY'
 from pathlib import Path
 p=Path('/tmp/us004-stub.stdout')
 print(p.read_text(), end='')
@@ -31,7 +31,6 @@ PY
 Observed output:
 
 ```text
-## task/1192-escalate-us004
 status=0
 --- stdout ---
 --- stderr ---
@@ -48,7 +47,7 @@ It sent no live Slack message.
 Run the timeout command with an invalid reminder threshold.
 
 ```bash
-cd /home/sandbox/harness/.worktrees/task/1192-escalate-us004 && ESCALATE_REMIND_AFTER=abc ESCALATE_NOW=1086400 ESCALATE_DECISION_SCRIPT=/bin/true ESCALATE_SENDER_SCRIPT=/bin/true bash .agro/skills/escalate/scripts/escalate-timeouts.sh <<'JSON' > /tmp/us004-invalid.stdout 2> /tmp/us004-invalid.stderr
+ESCALATE_REMIND_AFTER=abc ESCALATE_NOW=1086400 ESCALATE_DECISION_SCRIPT=/bin/true ESCALATE_SENDER_SCRIPT=/bin/true bash .agro/skills/escalate/scripts/escalate-timeouts.sh <<'JSON' > /tmp/us004-invalid.stdout 2> /tmp/us004-invalid.stderr
 [{"channel":"C1","ts":"1000000.000100","link":"https://example.invalid/escalation"}]
 JSON
 status=$?; printf 'status=%s\n' "$status"; printf -- '--- stdout ---\n'; python3 - <<'PY'
@@ -84,7 +83,7 @@ Caution: dry run reports `decision` as `unchecked`.
 Do not use this output as proof that Slack has no decision.
 
 ```bash
-cd /home/sandbox/harness/.worktrees/task/1192-escalate-us004 && ESCALATE_NOW=1086400 bash .agro/skills/escalate/scripts/escalate-timeouts.sh --dry-run <<'JSON' > /tmp/us004-dryrun.stdout 2> /tmp/us004-dryrun.stderr
+ESCALATE_NOW=1086400 bash .agro/skills/escalate/scripts/escalate-timeouts.sh --dry-run <<'JSON' > /tmp/us004-dryrun.stdout 2> /tmp/us004-dryrun.stderr
 [{"channel":"C1","ts":"1000000.000100","link":"https://example.invalid/escalation"}]
 JSON
 status=$?; printf 'status=%s\n' "$status"; printf -- '--- stdout ---\n'; python3 - <<'PY'
@@ -120,4 +119,5 @@ Remove only the transcript capture files from `/tmp`.
 rm -f /tmp/us004-stub.stdout /tmp/us004-stub.stderr /tmp/us004-invalid.stdout /tmp/us004-invalid.stderr /tmp/us004-dryrun.stdout /tmp/us004-dryrun.stderr
 ```
 
+Observed cleanup: the command exited 0 and removed the transcript capture files.
 No Slack resource or remote resource exists for cleanup.
