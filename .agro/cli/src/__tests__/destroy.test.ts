@@ -230,7 +230,7 @@ describe("agro destroy — the confirmation policy", () => {
 
 describe("agro destroy — an openshell entry", () => {
   function openshellEntry(): string {
-    vi.stubEnv("SANDBOX_NAME", "");
+    vi.stubEnv("SANDBOX_NAME", "other");
     vi.stubEnv("AGRO_EXECUTION_TARGET", "docker-compose");
     const root = makeRepo();
     writeFileSync(

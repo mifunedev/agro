@@ -23,7 +23,7 @@ import { materialize, registryRoot, resolveSandboxRoot } from "../lib/registry.j
 import { setEnvValue } from "../lib/env-file.js";
 import * as prompt from "../lib/prompt.js";
 import { AGRO_VERSION, officialImageRef } from "../lib/version.js";
-import { routeVerb } from "../lib/runtimes/verbs.js";
+import { entrySandboxName, routeVerb, shellFailureHint } from "../lib/runtimes/verbs.js";
 
 
 export interface LifecycleIO {
@@ -231,7 +231,7 @@ export function configuredContainerName(root: string): string | undefined {
 }
 
 function sandboxName(root: string): string {
-  return configuredContainerName(root) ?? DEFAULT_CONTAINER_NAME;
+  return entrySandboxName(root) ?? configuredContainerName(root) ?? DEFAULT_CONTAINER_NAME;
 }
 
 export function runShell(opts: SandboxTargetOptions, io: LifecycleIO): number {
@@ -250,9 +250,7 @@ export function runShell(opts: SandboxTargetOptions, io: LifecycleIO): number {
     throw err;
   }
   if (code !== 0) {
-    io.stderr(
-      `container \`${name}\` not running? start it with \`${opts.bin} sandbox install ${runtime}\`\n`,
-    );
+    io.stderr(`${shellFailureHint(runtime, opts.bin, name)}\n`);
   }
   return code;
 }

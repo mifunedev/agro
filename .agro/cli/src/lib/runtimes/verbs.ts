@@ -1,4 +1,5 @@
-import { entryRuntime, type SandboxRuntime } from "../agro-config.js";
+import { basename, resolve } from "node:path";
+import { agroConfigPath, entryRuntime, readAgroConfig, type SandboxRuntime } from "../agro-config.js";
 import { OPENSHELL_VERB_HINTS } from "../execution/openshell-target.js";
 import { activeBin } from "../product.js";
 
@@ -59,6 +60,45 @@ export const RUNTIME_VERBS = Object.freeze({
   docker: DOCKER_VERBS,
   openshell: OPENSHELL_VERBS,
 } satisfies Record<SandboxRuntime, Readonly<Record<LifecycleVerb, VerbPolicy>>>);
+
+function configuredEntryName(root: string): string | undefined {
+  try {
+    const name = readAgroConfig(agroConfigPath(root)).name;
+    return name === "" ? undefined : name;
+  } catch {
+    return undefined;
+  }
+}
+
+function entryDeclaredName(root: string): string {
+  return configuredEntryName(root) ?? basename(resolve(root));
+}
+
+interface RuntimeNaming {
+  readonly entryName: (root: string) => string | undefined;
+  readonly shellFailure: (bin: string, name: string) => string;
+}
+
+const RUNTIME_NAMING = Object.freeze({
+  docker: Object.freeze({
+    entryName: () => undefined,
+    shellFailure: (bin: string, name: string) =>
+      `container \`${name}\` not running? start it with \`${bin} sandbox install docker\``,
+  }),
+  openshell: Object.freeze({
+    entryName: entryDeclaredName,
+    shellFailure: (bin: string, name: string) =>
+      `sandbox \`${name}\` did not accept the shell; check its status with \`${bin} sandbox list\``,
+  }),
+} satisfies Record<SandboxRuntime, RuntimeNaming>);
+
+export function entrySandboxName(root: string): string | undefined {
+  return RUNTIME_NAMING[entryRuntime(root)].entryName(root);
+}
+
+export function shellFailureHint(runtime: SandboxRuntime, bin: string, name: string): string {
+  return RUNTIME_NAMING[runtime].shellFailure(bin, name);
+}
 
 export class RuntimeUnsupportedError extends Error {
   readonly runtime: SandboxRuntime;

@@ -32,6 +32,7 @@ import {
   LIFECYCLE_VERBS,
   RUNTIME_VERBS,
   RuntimeUnsupportedError,
+  entrySandboxName,
   routeVerb,
 } from "../lib/runtimes/verbs.js";
 import { SANDBOX_RUNTIMES } from "../lib/agro-config.js";
@@ -1092,7 +1093,7 @@ describe("runtime verb routing", () => {
   const OPENSHELL_NAME = "os-box";
 
   function openshellEntry(): string {
-    vi.stubEnv("SANDBOX_NAME", "");
+    vi.stubEnv("SANDBOX_NAME", "other");
     vi.stubEnv("AGRO_EXECUTION_TARGET", "docker-compose");
     const root = makeRepo();
     writeOhJson(root, { name: OPENSHELL_NAME, runtime: "openshell", image: { mode: "image" } });
@@ -1131,8 +1132,22 @@ describe("runtime verb routing", () => {
     const { err, io } = makeIo();
     expect(runShell({ bin: "agro", ...entry, run: makeRunner([{ status: 1 }]).run }, io)).toBe(1);
     expect(err).toEqual([
-      `container \`${OPENSHELL_NAME}\` not running? start it with \`agro sandbox install openshell\`\n`,
+      `sandbox \`${OPENSHELL_NAME}\` did not accept the shell; check its status with \`agro sandbox list\`\n`,
     ]);
+  });
+
+  it("names an openshell sandbox from its entry, never from an ambient SANDBOX_NAME", () => {
+    const root = openshellEntry();
+    expect(entrySandboxName(root)).toBe(OPENSHELL_NAME);
+    writeOhJson(root, { runtime: "openshell" });
+    expect(entrySandboxName(root)).toBe(ENTRY_NAME);
+  });
+
+  it("leaves docker sandbox naming to the ambient-first docker rules", () => {
+    vi.stubEnv("SANDBOX_NAME", "other");
+    const root = makeRepo();
+    writeOhJson(root, { name: "configured" });
+    expect(entrySandboxName(root)).toBeUndefined();
   });
 
   it("throws RuntimeUnsupportedError with the runtime, the verb, and the hint", () => {
@@ -1164,7 +1179,7 @@ describe("runtime verb routing", () => {
     ],
     [
       ["sandbox", "upgrade", ENTRY_NAME, "--version", "0.13.0"],
-      `agro sandbox upgrade: the openshell runtime does not support sandbox upgrade; run: agro destroy ${ENTRY_NAME}, then agro sandbox install openshell --name ${ENTRY_NAME} --image=<ref>`,
+      "agro sandbox upgrade: the openshell runtime does not support sandbox upgrade; run: agro destroy os-box, then agro sandbox install openshell --name os-box --image=<ref>",
     ],
   ])("refuses `agro %s` for an openshell entry with exit 1 and the openshell command", async (argv, message) => {
     const root = openshellEntry();
@@ -1176,8 +1191,7 @@ describe("runtime verb routing", () => {
   });
 
   it("lists an openshell entry with the status the openshell target reports", async () => {
-    const root = openshellEntry();
-    writeOhJson(root, { name: ENTRY_NAME, runtime: "openshell", image: { mode: "image" } });
+    openshellEntry();
     const { calls, run } = makeRunner([{ status: 0, stdout: JSON.stringify({ phase: "Ready" }) }]);
     const out: string[] = [];
 
@@ -1185,6 +1199,6 @@ describe("runtime verb routing", () => {
     expect(JSON.parse(out.join(""))).toEqual([
       expect.objectContaining({ name: ENTRY_NAME, runtime: "openshell", status: "ready" }),
     ]);
-    expect(calls.map((c) => [c.cmd, ...c.args])).toEqual([["openshell", "sandbox", "get", ENTRY_NAME, "-o", "json"]]);
+    expect(calls.map((c) => [c.cmd, ...c.args])).toEqual([["openshell", "sandbox", "get", OPENSHELL_NAME, "-o", "json"]]);
   });
 });
