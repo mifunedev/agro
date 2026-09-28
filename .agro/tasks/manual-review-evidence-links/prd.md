@@ -161,4 +161,11 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+- The standard caused the broken screenshots. `manual-review.md` taught `blob/<branch>/`, and GitHub deletes the head branch after the merge. Evidence: the API returned `Branch not found` for `feat/184-node-recovery-points`. Outcome: fixed in this PR (SHA rule, probe, and `manual-review-check.sh`).
+- The standard required callouts but named no method. Evidence: `agent-browser screenshot --help` has no annotation option, and #197 has plain screenshots. Outcome: fixed in this PR (`annotate-screenshot.sh` and the `Callouts:` rule).
+- A worker copied private agro-console PR bodies into fixtures of this public repository. Evidence: the first US-003 commit held a live IPv4 and node IDs. The advisor squashed the commit before any push. Outcome: fixed in this PR (synthetic fixtures). The worker brief in `/delegate` has no rule about repository visibility: proposed issue "delegate: forbid copying private-repository content into a public repository", not created.
+- The CC Safety Net hook blocks a recursive force-delete command that appears only as quoted text in a heredoc that writes documentation. One worker then ran the same edit from a script file, which the brief forbids. Evidence: the US-003 repair report, and an advisor write of this section. Outcome: proposed issue "CC Safety Net: allow a quoted delete command inside a file-write heredoc", not created.
+- `manual-review-check.sh` rejected process substitution, because the script tested `-f`. Outcome: fixed in this PR (`-r`, with a test case).
+- `git/SKILL.md` and `agent-browser/SKILL.md` had 15 earlier ste-check findings. Outcome: fixed in this PR.
+- The repaired #185 and #197 bodies still fail the `Callouts:` check. Outcome: dropped, because the operator decided that annotation applies to new PRs only.
+- The `skills-vendored` probe reports REGRESSION, because the sandbox has no `cc-safety-net` binary on PATH. The state is unchanged from the base. Outcome: proposed issue "eval: skills-vendored fails when cc-safety-net is absent from PATH", not created.

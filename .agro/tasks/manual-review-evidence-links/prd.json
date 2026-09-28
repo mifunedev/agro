@@ -131,8 +131,8 @@
         "Verify in browser using agent-browser skill."
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: evidence/manual-review.md records probe exit 0 and red exit 1, manual-review-check.test.sh exit 0, fixtures 0/1/1, annotate-screenshot.test.sh exit 0, ste-check exit 0, #185/#197 branch-ref counts 0 and SHA findings 0; evidence/annotate-fixture.png shows two callouts (agent-browser). executed: manual-review-check.sh exits 0 on the PR #1250 body, which links evidence by blob/b256b94f.../. reasoned: no screenshots of the private #185 and #197 bodies, because this repository is public; counts stand in. Cleanup: tmux session gone, port closed, temp copy removed.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -142,7 +142,8 @@
       ],
       "files": [
         ".agro/tasks/manual-review-evidence-links/evidence/"
-      ]
+      ],
+      "commit": "b256b94f"
     }
   ]
 }
