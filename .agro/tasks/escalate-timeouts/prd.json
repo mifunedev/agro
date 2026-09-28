@@ -38,15 +38,16 @@
         "`bash .agro/skills/escalate/scripts/test-escalate-timeouts.sh` and `bash .agro/evals/probes/escalate-contract.sh` exit 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: stub Slack-success and supervisor-only cases exit 0; marker only on .destinations.slack.ok. 2 executed: repeated, failed-post, quiet-window retry and distinct-channel marker tests exit 0. 3 executed: expiry notice link and blockedActionExecuted=false checks exit 0; notice.ok reports failure. 4 executed: concurrent flock and --dry-run no-state/no-log/no-send checks exit 0. 5 executed: stub suite covers fresh, repeat, expiry, decided, reader error, post failure, lock and dry run (exit 0). 6 executed: bash .agro/skills/escalate/scripts/test-escalate-timeouts.sh and bash .agro/evals/probes/escalate-contract.sh exit 0 on integrated branch. Repair commit 3326352a fixed marker collisions and warning stderr parsing.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/skills/escalate/scripts/escalate-timeouts.sh",
         ".agro/skills/escalate/scripts/test-escalate-timeouts.sh"
-      ]
+      ],
+      "commit": "3326352a"
     },
     {
       "id": "US-003",
