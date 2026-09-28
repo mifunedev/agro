@@ -204,7 +204,7 @@
       ],
       "priority": 7,
       "passes": true,
-      "notes": "Operator decision 2026-09-28: ship v1 as experimental; full live validation on a remote Linux host follows in a separate issue. Executed on the operator host (WSL 2 + Docker Desktop, OpenShell 0.1.2, build ebd714af), transcript in evidence/manual-review.md: gateway connected exit 0; gateway-stopped install exit 1 with the gateway hint; --checkout refusal exit 1; --print-argv exit 0; live create failed ControlSupervisorStartFailed with passthrough exit 1; `agro sandbox list` empty after the failure exit 0. Not run: successful provision, shell identity, policy checks, Claude sign-in, push dry-run, live refusals, destroy (listed in the evidence file). ste-check on the evidence file exit 0.",
+      "notes": "Operator decision 2026-09-28: ship v1 as experimental; full live validation on a remote Linux host follows in a separate issue. Executed on the operator host (WSL 2 + Docker Desktop, OpenShell 0.1.2, build ebd714af), transcript in evidence/manual-review.md: gateway connected exit 0; gateway-stopped install exit 1 with the gateway hint; --checkout refusal exit 1; --print-argv exit 0; live create failed ControlSupervisorStartFailed with passthrough exit 1; `agro sandbox list` empty after the failure exit 0. Not run: successful provision, shell identity, policy checks, Claude sign-in, push dry-run, live refusals, destroy (listed in the evidence file). ste-check on the evidence file exit 0. Remote Linux validation: issue #1257. Registry message: issue #1258.",
       "dependsOn": [
         "US-001",
         "US-002",

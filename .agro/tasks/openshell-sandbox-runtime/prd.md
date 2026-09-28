@@ -285,7 +285,7 @@ None. The operator approved `git push` on 2026-09-28. The v0.1.2 source settles 
 
 ## Acceptance Criteria
 
-- [ ] `docs/runtimes/openshell.md` labels the runtime experimental. Issue #<remote-validation> holds the live install and shell criteria for a remote Linux host.
+- [ ] `docs/runtimes/openshell.md` labels the runtime experimental. Issue #1257 holds the live install and shell criteria for a remote Linux host.
 - [ ] Each refused verb exits 1 and prints its `openshell` command.
 - [ ] Each Docker lifecycle test and `bash .agro/scripts/sandbox-boot-smoke.sh` exit 0.
 - [ ] `pnpm test` exits 0, and `npm --prefix .agro/cli run typecheck` exits 0.
@@ -296,7 +296,7 @@ None. The operator approved `git push` on 2026-09-28. The v0.1.2 source settles 
 ## Lessons
 
 1. **Claim:** OpenShell 0.1.2 cannot provision a sandbox on WSL 2 with Docker Desktop. **Evidence:** step E of `evidence/manual-review.md` shows `ControlSupervisorStartFailed` and `failed to connect to OpenShell server`. The supervisor uses host networking, and on Docker Desktop that network is the Docker Desktop VM. **Outcome:** fixed in this PR. Commit `a00a9859` prints the cleanup command after a failed create and documents the limit in `docs/runtimes/openshell.md`.
-2. **Claim:** No live run has provisioned an OpenShell sandbox through `agro` yet. **Evidence:** the `## Not run` list in `evidence/manual-review.md`. **Outcome:** issue #<remote-validation>.
+2. **Claim:** No live run has provisioned an OpenShell sandbox through `agro` yet. **Evidence:** the `## Not run` list in `evidence/manual-review.md`. **Outcome:** issue #1257.
 3. **Claim:** An OpenShell entry took its sandbox name from `SANDBOX_NAME` before `agro.json`, so `agro destroy` could delete another sandbox. **Evidence:** the built CLI printed `openshell sandbox stop agro-sbx-local` for the entry `osb`. **Outcome:** fixed in this PR, commit `97797b28`.
-4. **Claim:** The empty-registry message names only `agro sandbox install docker`. **Evidence:** step D of `evidence/manual-review.md`. **Outcome:** issue #<registry-message>.
+4. **Claim:** The empty-registry message names only `agro sandbox install docker`. **Evidence:** step D of `evidence/manual-review.md`. **Outcome:** issue #1258.
 5. **Claim:** A hand-written YAML parser in a test limited the policy syntax. **Evidence:** the first US-002 commit `892e36a3`. **Outcome:** fixed in this PR. Commit `b174b4e1` parses the policy with `yaml@2.9.0`, which the lockfile already held.
