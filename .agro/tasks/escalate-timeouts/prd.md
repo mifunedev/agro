@@ -114,4 +114,5 @@ None. The operator approved a JSON array on stdin and Slack `ts` as the clock st
 
 ## Lessons
 
-Filled by the advisor before undraft.
+- Claim: Distinct pending records must not share a notice marker. Evidence: the stub test uses channel names that collided under the first marker encoding. Outcome: fixed in this PR with a marker identity from notice kind, channel, and timestamp.
+- Claim: Sender diagnostics must not corrupt the JSON delivery result. Evidence: a stub sender emits a warning on stderr and a successful Slack result on stdout. Outcome: fixed in this PR by reading the streams separately.
