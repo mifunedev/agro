@@ -7,8 +7,9 @@ import composeDockerSock from "agro-asset:.devcontainer/docker-compose.docker-so
 import composeWrapper from "agro-asset:.agro/scripts/docker-compose.sh";
 import pathsShell from "agro-asset:.agro/scripts/paths.sh";
 import checkHostPort from "agro-asset:.agro/scripts/check-host-port.sh";
+import openshellPolicy from "agro-asset:.devcontainer/openshell-policy.yaml";
 import { spawnRunner, type LifecycleRunner } from "./execution/runner.js";
-import { configCheckout, agroConfigPath, readAgroConfig } from "./agro-config.js";
+import { configCheckout, agroConfigPath, entryRuntime, readAgroConfig } from "./agro-config.js";
 import { activeBin } from "./product.js";
 import { resolveProjectLayout, resolveUserStateHome } from "./layout.js";
 
@@ -88,10 +89,19 @@ export interface MaterializeOptions {
   checkout?: string;
 }
 
-export function materialize(root: string, opts: MaterializeOptions = {}): void {
-  const entry = resolve(root);
+interface MaterializedFile {
+  dest: string;
+  body: string;
+  mode: number;
+}
+
+function openshellFiles(entry: string): MaterializedFile[] {
+  return [{ dest: join(entry, "openshell-policy.yaml"), body: openshellPolicy, mode: 0o644 }];
+}
+
+function dockerFiles(entry: string, opts: MaterializeOptions): MaterializedFile[] {
   const scripts = join(resolveProjectLayout(entry).controlDir, "scripts");
-  const files = [
+  return [
     {
       dest: join(entry, ".devcontainer", "docker-compose.yml"),
       body: (opts.checkout ?? opts.repo) === undefined ? composeImageOnly : composeRepo,
@@ -103,6 +113,11 @@ export function materialize(root: string, opts: MaterializeOptions = {}): void {
     { dest: join(scripts, "paths.sh"), body: pathsShell, mode: 0o644 },
     { dest: join(scripts, "check-host-port.sh"), body: checkHostPort, mode: 0o755 },
   ];
+}
+
+export function materialize(root: string, opts: MaterializeOptions = {}): void {
+  const entry = resolve(root);
+  const files = entryRuntime(entry) === "openshell" ? openshellFiles(entry) : dockerFiles(entry, opts);
   for (const file of files) {
     const dest = resolve(file.dest);
     if (!dest.startsWith(entry + sep)) {

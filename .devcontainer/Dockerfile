@@ -51,7 +51,7 @@ RUN npm install -g cc-safety-net@1.0.6 \
  && npm cache clean --force \
  && rm -rf /tmp/*
 
-COPY .devcontainer/docker-compose.yml .devcontainer/docker-compose.image-only.yml .devcontainer/docker-compose.ssh.yml .devcontainer/docker-compose.docker-sock.yml /opt/agro-assets/.devcontainer/
+COPY .devcontainer/docker-compose.yml .devcontainer/docker-compose.image-only.yml .devcontainer/docker-compose.ssh.yml .devcontainer/docker-compose.docker-sock.yml .devcontainer/openshell-policy.yaml /opt/agro-assets/.devcontainer/
 COPY .agro/scripts/docker-compose.sh .agro/scripts/check-host-port.sh .agro/scripts/paths.sh /opt/agro-assets/.agro/scripts/
 COPY .agro/cli/ /opt/agro/
 RUN cd /opt/agro && AGRO_ASSET_ROOT=/opt/agro-assets npm install --no-audit --no-fund && AGRO_ASSET_ROOT=/opt/agro-assets npm run build \
@@ -138,8 +138,8 @@ LABEL org.opencontainers.image.description="AGRO sandbox image"
 
 COPY --chown=sandbox:sandbox . /opt/agro-seed/
 
-COPY .devcontainer/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+COPY .devcontainer/entrypoint.sh .devcontainer/openshell-main.sh /usr/local/bin/
+RUN chmod 0755 /usr/local/bin/entrypoint.sh /usr/local/bin/openshell-main.sh
 
 COPY .devcontainer/agro-bootstrap.service .devcontainer/agro-cron.service /usr/lib/systemd/system/
 COPY .devcontainer/agro-env-generator.sh /usr/lib/systemd/system-environment-generators/10-agro
@@ -150,7 +150,7 @@ RUN chmod 0755 /usr/lib/systemd/system-environment-generators/10-agro \
 COPY --from=home --chown=sandbox:sandbox /home/sandbox /opt/home-seed
 RUN rm -rf /opt/home-seed/harness /home/sandbox \
  && chmod 0700 /opt/home-seed \
- && install -d -o sandbox -g sandbox -m 0755 /home/sandbox
+ && install -d -o sandbox -g sandbox -m 0755 /home/sandbox /home/sandbox/harness
 
 WORKDIR ${AGRO_PROJECT_ROOT}
 

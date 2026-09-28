@@ -108,7 +108,7 @@ describe("round trip", () => {
 describe("validateAgroConfig", () => {
   const cases: Array<[string, unknown, RegExp]> = [
     ["name", { name: 1 }, /^agro\.json: name must be a string$/],
-    ["runtime", { runtime: "podman" }, /^agro\.json: runtime must be one of docker$/],
+    ["runtime", { runtime: "podman" }, /^agro\.json: runtime must be one of docker, openshell$/],
     ["repo", { repo: 7 }, /^agro\.json: repo must be a string$/],
     ["checkout", { checkout: 7 }, /^agro\.json: checkout must be a string$/],
     ["timezone", { timezone: true }, /^agro\.json: timezone must be a string$/],
@@ -207,7 +207,7 @@ describe("validateAgroConfig", () => {
     expect(AGRO_CONFIG_FIELDS.find((f) => f.path === "runtime")).toEqual({
       path: "runtime",
       type: "enum",
-      values: ["docker"],
+      values: ["docker", "openshell"],
     });
     expect(AGRO_CONFIG_FIELDS.find((f) => f.path === "repo")).toEqual({
       path: "repo",

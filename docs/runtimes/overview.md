@@ -10,13 +10,15 @@ lifecycles, which is why the runtime catalog lives under `agro sandbox` and
 [`agro harness`](../harnesses/overview.md) is its own command over its own
 catalog.
 
-AGRO runs on a **Docker container** today. Nothing on this page changes
-that.
+AGRO runs on a **Docker container** by default. The experimental
+[NVIDIA OpenShell](openshell.md) runtime is also provisionable, for interactive
+Claude Code work only.
 
 ## The commands
 
 ```bash
-agro sandbox install docker    # create a sandbox on the only provisionable runtime
+agro sandbox install docker    # create a sandbox on the default runtime
+agro sandbox install openshell # create an experimental OpenShell sandbox
 agro sandbox list              # every sandbox: name, runtime, status, checkout
 agro sandbox --help            # the catalog: which runtimes exist, and their state
 ```
@@ -27,11 +29,15 @@ $ agro sandbox --help
 Runtimes:
   docker        provisionable
   microsandbox  planned
+  openshell     provisionable
 ```
 
 `agro sandbox install docker` writes a registry entry under
 `${AGRO_HOME:-~/.agro}/sandboxes/<name>/` and boots the container — see
 [`agro sandbox install docker`](../deployment-prebuilt-image.md).
+
+`agro sandbox install openshell` creates the sandbox through the host `openshell`
+CLI and a connected gateway — see [NVIDIA OpenShell](openshell.md).
 
 `agro sandbox install microsandbox` refuses:
 
@@ -50,9 +56,10 @@ configuration. See
 | Runtime | Tier | State | How you reach it |
 |---|---|---|---|
 | [Docker container](docker.md) | shared host kernel, namespaces + cgroups | **provisionable** | `agro sandbox install docker` |
+| [NVIDIA OpenShell](openshell.md) | shared host kernel, OpenShell supervisor with a default-deny policy | **provisionable** (experimental) | `agro sandbox install openshell` |
 | [MicroSandbox](microsandbox.md) | microVM — one real kernel per sandbox, KVM-backed | planned | `agro tool install microsandbox` installs the `msb` binary inside a sandbox; running AGRO *on* msb is a manual host recipe |
 
-Two entries rather than one is deliberate. A single-entry catalog would encode a
+More than one entry is deliberate. A single-entry catalog would encode a
 false singleton and need a schema change the moment a second runtime lands.
 
 ### The two are reached differently
@@ -73,11 +80,12 @@ sysbox slice). The open decision, and the axes taxonomy behind it, live in
 #731 forks the `ExecutionTarget` seam.
 
 So the entry records only what it was actually provisioned on: `runtime:
-"docker"` in its `agro.json`. Nothing chooses a deeper tier for you.
+"docker"` or `runtime: "openshell"` in its `agro.json`. Nothing chooses a deeper tier for you.
 
 ## What this does not do
 
-- It does not change how the sandbox boots. Only `docker` is provisionable.
+- It does not change how a Docker sandbox boots. Only `docker` and `openshell`
+  are provisionable.
 - It adds no Dockerfile build arg. A build arg would bake a guaranteed-failing
   install into every image (see [MicroSandbox](microsandbox.md)).
 - `agro tool install microsandbox` installs a binary and nothing else: it rebuilds
