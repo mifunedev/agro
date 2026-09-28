@@ -55,9 +55,10 @@ Write these parts in this sequence:
 3. **Expected result.** End each step with `Expected:` and the exact visible
    text in quotes.
 4. **Screenshot.** Under each UI step, add an annotated screenshot in a
-   `<details><summary>Screenshot</summary>` block. Take the screenshot with
-   agent-browser: `agent-browser screenshot <path>`. Mark each value to check
-   with a numbered callout.
+   `<details><summary>Screenshot</summary>` block. Mark each value to check
+   with a numbered callout. Take the screenshot with
+   `.agro/skills/agent-browser/scripts/annotate-screenshot.sh <path> <selector>=<label>...`.
+   Each screenshot needs its `Callouts:` line. The script prints that line.
 5. **Cleanup.** Give the steps that delete each resource that the scenarios
    create.
 
