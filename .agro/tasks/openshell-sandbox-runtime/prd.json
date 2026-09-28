@@ -43,15 +43,16 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated by fast-forward (beb853f4, b174b4e1, b966b322). Advisor re-ran: `pnpm install --frozen-lockfile` exit 0; `pnpm exec vitest run .agro/cli/src/__tests__/sandbox.test.ts` exit 0 (89 tests: run_as_user/group, exactly three rules, github binaries+push+herdr host, npm node read-only, anthropic glob+host, node only in npm, materialize writes only the policy for an openshell entry and reads it back); `npm --prefix .agro/cli run typecheck` exit 0; full `pnpm exec vitest run` exit 0 (1851 tests). Worker executed image build exit 0 and `/opt/agro-assets/.devcontainer/openshell-policy.yaml` present. C5 reasoned/partial: `<claude login hosts>` intentionally absent; US-007 adds the observed hosts. Added beyond criteria: filesystem_policy (rw /home/sandbox,/tmp,/dev/null; ro system paths) \u2014 confirmed live in US-007. New root devDependency yaml@2.9.0 (already locked via vite) replaces a hand-written test parser.",
       "dependsOn": [],
       "files": [
         ".devcontainer/openshell-policy.yaml",
         ".agro/cli/src/lib/registry.ts",
         ".agro/cli/src/lib/assets.d.ts",
         ".agro/cli/src/__tests__/sandbox.test.ts"
-      ]
+      ],
+      "commit": "b966b322"
     },
     {
       "id": "US-003",
