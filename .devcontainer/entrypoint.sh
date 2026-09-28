@@ -16,24 +16,6 @@ uid_reconcile_step() {
   return 1
 }
 
-SOCK=/var/run/docker.sock
-if [ -S "$SOCK" ]; then
-  SOCK_GID=$(stat -c '%g' "$SOCK")
-  DOCKER_GID=$(getent group docker | cut -d: -f3)
-  if [ "$SOCK_GID" != "$DOCKER_GID" ]; then
-    if getent group "$SOCK_GID" >/dev/null 2>&1; then
-      SOCK_GROUP=$(getent group "$SOCK_GID" | cut -d: -f1)
-      if uid_reconcile_step "add sandbox to group $SOCK_GROUP that already owns GID $SOCK_GID" usermod -aG "$SOCK_GROUP" sandbox; then
-        echo "[entrypoint] sandbox joined $SOCK_GROUP (GID $SOCK_GID) for $SOCK"
-      fi
-    else
-      if uid_reconcile_step "set docker group GID to socket GID $SOCK_GID" groupmod -g "$SOCK_GID" docker; then
-        echo "[entrypoint] docker group GID $DOCKER_GID -> $SOCK_GID for $SOCK"
-      fi
-    fi
-  fi
-fi
-
 sandbox_ownership() {
   printf '%s:%s' "$(id -u sandbox)" "$(id -g sandbox)"
 }
@@ -189,11 +171,90 @@ langfuse_apply() {
 }
 # <<< langfuse_apply <<<
 
+seed_sandbox_home() {
+  seed_home /home/sandbox || echo "[entrypoint] WARNING: home seed incomplete; some baked dotfiles may be missing" >&2
+}
+
+set_git_identity_value() {
+  local key="$1" value="$2"
+  shift 2
+  if [ -z "$value" ] || [ "$value" = "null" ]; then
+    return 0
+  fi
+  if [ "$("$@" git config --global --get "$key" 2>/dev/null || true)" = "$value" ]; then
+    return 0
+  fi
+  "$@" git config --global "$key" "$value"
+}
+
+configure_git_identity() {
+  local name="${GIT_USER_NAME:-}" email="${GIT_USER_EMAIL:-}" login
+  if { [ -z "$name" ] || [ -z "$email" ]; } && "$@" gh auth status &>/dev/null; then
+    if [ -z "$name" ]; then
+      name="$("$@" gh api user --jq .name 2>/dev/null || true)"
+    fi
+    if [ -z "$email" ]; then
+      email="$("$@" gh api user --jq .email 2>/dev/null || true)"
+      if [ -z "$email" ] || [ "$email" = "null" ]; then
+        login="$("$@" gh api user --jq .login 2>/dev/null || true)"
+        email=""
+        [ -z "$login" ] || email="${login}@users.noreply.github.com"
+      fi
+    fi
+  fi
+  set_git_identity_value user.name "$name" "$@"
+  set_git_identity_value user.email "$email" "$@"
+}
+
+link_workspace_providers() {
+  local workspace="$1" link_script
+  link_script="$(agro_control_dir "$workspace")/scripts/link-providers.sh"
+  [ -x "$link_script" ] || return 0
+  if ! AGRO_PROJECT_ROOT="$workspace" bash "$link_script" --init; then
+    echo "[entrypoint] WARNING: could not link provider skills; run: bash $link_script --init" >&2
+  fi
+}
+
+run_user_bootstrap() {
+  local workspace="$1"
+  seed_sandbox_home
+  seed_workspace_volume "$workspace"
+  if [ "${AGRO_IMAGE_SEEDED_THIS_BOOT:-0}" = "1" ]; then
+    echo "[entrypoint] seeded control plane into $workspace from $(agro_seed_src)"
+  fi
+  link_workspace_providers "$workspace"
+  configure_git_identity
+}
+
 AGRO_PROJECT_ROOT="${AGRO_PROJECT_ROOT:-/home/sandbox/harness}"
 export AGRO_PROJECT_ROOT
 HARNESS="${HARNESS:-$AGRO_PROJECT_ROOT}"
 
-seed_home /home/sandbox || echo "[entrypoint] WARNING: home seed incomplete; some baked dotfiles may be missing" >&2
+if [ "$(id -u)" -ne 0 ]; then
+  echo "[entrypoint] running as $(id -un) — user bootstrap only"
+  run_user_bootstrap "$AGRO_PROJECT_ROOT"
+  exit 0
+fi
+
+SOCK=/var/run/docker.sock
+if [ -S "$SOCK" ]; then
+  SOCK_GID=$(stat -c '%g' "$SOCK")
+  DOCKER_GID=$(getent group docker | cut -d: -f3)
+  if [ "$SOCK_GID" != "$DOCKER_GID" ]; then
+    if getent group "$SOCK_GID" >/dev/null 2>&1; then
+      SOCK_GROUP=$(getent group "$SOCK_GID" | cut -d: -f1)
+      if uid_reconcile_step "add sandbox to group $SOCK_GROUP that already owns GID $SOCK_GID" usermod -aG "$SOCK_GROUP" sandbox; then
+        echo "[entrypoint] sandbox joined $SOCK_GROUP (GID $SOCK_GID) for $SOCK"
+      fi
+    else
+      if uid_reconcile_step "set docker group GID to socket GID $SOCK_GID" groupmod -g "$SOCK_GID" docker; then
+        echo "[entrypoint] docker group GID $DOCKER_GID -> $SOCK_GID for $SOCK"
+      fi
+    fi
+  fi
+fi
+
+seed_sandbox_home
 
 HARNESS_DIR="$AGRO_PROJECT_ROOT"
 CHECKOUT_CONTROL_DIR=""
@@ -370,22 +431,7 @@ if [ -n "${GH_TOKEN:-}" ]; then
   fi
 fi
 
-if [ -n "${GIT_USER_NAME:-}" ]; then
-  gosu sandbox git config --global user.name "$GIT_USER_NAME"
-elif gosu sandbox gh auth status &>/dev/null; then
-  GH_USER=$(gosu sandbox gh api user --jq .name 2>/dev/null || true)
-  [ -n "$GH_USER" ] && gosu sandbox git config --global user.name "$GH_USER"
-fi
-if [ -n "${GIT_USER_EMAIL:-}" ]; then
-  gosu sandbox git config --global user.email "$GIT_USER_EMAIL"
-elif gosu sandbox gh auth status &>/dev/null; then
-  GH_EMAIL=$(gosu sandbox gh api user --jq .email 2>/dev/null || true)
-  if [ -z "$GH_EMAIL" ] || [ "$GH_EMAIL" = "null" ]; then
-    GH_LOGIN=$(gosu sandbox gh api user --jq .login 2>/dev/null || true)
-    [ -n "$GH_LOGIN" ] && GH_EMAIL="${GH_LOGIN}@users.noreply.github.com"
-  fi
-  [ -n "$GH_EMAIL" ] && gosu sandbox git config --global user.email "$GH_EMAIL"
-fi
+configure_git_identity gosu sandbox
 if gosu sandbox env -u GH_TOKEN -u GITHUB_TOKEN gh auth status &>/dev/null; then
   if gosu sandbox env -u GH_TOKEN -u GITHUB_TOKEN gh auth setup-git 2>/dev/null; then
     echo "[entrypoint] git credential helper configured via gh auth setup-git"
