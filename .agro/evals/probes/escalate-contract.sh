@@ -56,7 +56,9 @@ dry=$(ESCALATE_LOG="$log" ESCALATE_BRIDGE_CONFIG="$tmp/bridge.json" PI_SLACK_BOT
 grep -Fq 'Authorization: Bearer %s' "$S" || fail 'token must be passed via a header file, not argv'
 grep -Eq '\-H "Authorization: Bearer \$' "$S" && fail 'token interpolated into argv where /proc exposes it'
 
-bash "$ROOT/.agro/skills/escalate/scripts/test-escalate-decision.sh" \
+timeout 20s bash "$ROOT/.agro/skills/escalate/scripts/test-escalate-decision.sh" \
   || fail 'operator decision and manifest contract failed'
+timeout 20s bash "$ROOT/.agro/skills/escalate/scripts/test-escalate-timeouts.sh" \
+  || fail 'escalation timeout contract failed'
 
-echo 'PASS: escalate delivery and operator decisions' >&2
+echo 'PASS: escalate delivery, operator decisions, and timeouts' >&2
