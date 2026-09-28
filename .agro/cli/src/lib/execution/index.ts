@@ -1,6 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
-import { agroConfigPath } from "../agro-config.js";
+import { agroConfigPath, entryRuntime, readAgroConfig, type AgroConfig } from "../agro-config.js";
 import { AGRO_VERSION, officialImageRef } from "../version.js";
 import { runningInsideSandbox } from "./detect.js";
 import {
@@ -27,12 +26,12 @@ export function resolveExecutionTarget(
       ...(opts.env ? { env: opts.env } : {}),
     });
   }
-  const entry = readEntrySelection(opts.projectRoot);
-  if (entry.runtime === "openshell") {
+  if (entryRuntime(opts.projectRoot) === "openshell") {
+    const config = readAgroConfig(agroConfigPath(opts.projectRoot));
     return new OpenShellExecutionTarget({
-      name: opts.container ?? entry.name ?? basename(resolve(opts.projectRoot)),
+      name: opts.container ?? nonEmpty(config.name) ?? basename(resolve(opts.projectRoot)),
       entryRoot: opts.projectRoot,
-      image: entry.imageRef ?? officialImageRef(AGRO_VERSION),
+      image: openshellImage(config),
       ...(opts.run ? { run: opts.run } : {}),
       ...(opts.env ? { env: opts.env } : {}),
     });
@@ -40,28 +39,12 @@ export function resolveExecutionTarget(
   return new DockerComposeExecutionTarget(opts);
 }
 
-interface EntrySelection {
-  runtime?: string;
-  name?: string;
-  imageRef?: string;
+export function openshellImage(config: AgroConfig): string {
+  return nonEmpty(config.image?.ref) ?? officialImageRef(AGRO_VERSION);
 }
 
-function readEntrySelection(projectRoot: string): EntrySelection {
-  const path = agroConfigPath(projectRoot);
-  if (!existsSync(path)) return {};
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(readFileSync(path, "utf8"));
-  } catch {
-    return {};
-  }
-  if (typeof parsed !== "object" || parsed === null) return {};
-  const record = parsed as { runtime?: unknown; name?: unknown; image?: { ref?: unknown } };
-  return {
-    ...(typeof record.runtime === "string" ? { runtime: record.runtime } : {}),
-    ...(typeof record.name === "string" && record.name !== "" ? { name: record.name } : {}),
-    ...(typeof record.image?.ref === "string" && record.image.ref !== "" ? { imageRef: record.image.ref } : {}),
-  };
+function nonEmpty(value: string | undefined): string | undefined {
+  return value === undefined || value === "" ? undefined : value;
 }
 
 export { DockerComposeExecutionTarget, type DockerComposeTargetOptions };

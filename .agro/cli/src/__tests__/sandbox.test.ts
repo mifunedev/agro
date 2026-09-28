@@ -5,7 +5,14 @@ import { join } from "node:path";
 import { runSandboxInstall, runSandboxList, type SandboxIO } from "../commands/sandbox.js";
 import { entryRoot, materialize, resolveSandboxRoot } from "../lib/registry.js";
 import type { LifecycleRunner, RunResult } from "../lib/execution/runner.js";
-import { agroConfigPath, readAgroConfig } from "../lib/agro-config.js";
+import { agroConfigPath, entryRuntime, readAgroConfig } from "../lib/agro-config.js";
+import { runtimeLines } from "../controllers/sandbox.js";
+import {
+  createArgv,
+  OPENSHELL_BIN,
+  openshellGatewayHint,
+  openshellInstallHint,
+} from "../lib/execution/openshell-target.js";
 import { renderComposeVars } from "../lib/config-render.js";
 import { AGRO_VERSION, officialImageRef } from "../lib/version.js";
 import { runSandboxUpgrade } from "../services/sandbox-upgrade.js";
@@ -1625,5 +1632,202 @@ describe("the canonical OpenShell policy", () => {
     materialize(root);
     expect(existsSync(join(root, "openshell-policy.yaml"))).toBe(false);
     expect(existsSync(join(root, ".devcontainer", "docker-compose.yml"))).toBe(true);
+  });
+});
+
+describe("agro sandbox install openshell", () => {
+  const connected = JSON.stringify({ status: "connected" });
+
+  interface OpenShellStub {
+    version?: RunResult;
+    status?: RunResult;
+    create?: RunResult;
+    onCreate?: () => void;
+  }
+
+  function openshellRunner(stub: OpenShellStub = {}): { calls: RecordedCall[]; run: LifecycleRunner } {
+    const calls: RecordedCall[] = [];
+    const run: LifecycleRunner = (cmd, args) => {
+      calls.push({ cmd, args: [...args] });
+      if (cmd === "git") return { status: 0, stdout: "Ada Lovelace\n" };
+      if (cmd === "docker") return { status: 0, stdout: "" };
+      if (cmd !== OPENSHELL_BIN) throw new Error(`unexpected command ${cmd}`);
+      if (args[0] === "--version") return stub.version ?? { status: 0, stdout: "openshell 0.1.2\n" };
+      if (args[0] === "status") return stub.status ?? { status: 0, stdout: connected };
+      stub.onCreate?.();
+      return stub.create ?? { status: 0 };
+    };
+    return { calls, run };
+  }
+
+  const openshellCalls = (calls: RecordedCall[]): RecordedCall[] => calls.filter((c) => c.cmd === OPENSHELL_BIN);
+  const createCall = (calls: RecordedCall[]): RecordedCall | undefined =>
+    calls.find((c) => c.cmd === OPENSHELL_BIN && c.args[0] === "sandbox");
+
+  it("lists openshell as a provisionable runtime in the help", () => {
+    expect(runtimeLines().split("\n")).toContainEqual(expect.stringMatching(/^\s*openshell\s+provisionable$/));
+  });
+
+  it("creates the entry, provisions through the shared argv builder and names the next step", async () => {
+    const registryPath = registry();
+    const root = entryRoot("box");
+    let policyAtCreate: string | undefined;
+    const { calls, run } = openshellRunner({
+      onCreate: () => {
+        policyAtCreate = readFileSync(join(root, "openshell-policy.yaml"), "utf8");
+      },
+    });
+    const { out, io } = makeIo();
+
+    expect(await runSandboxInstall({ bin: "agro", runtime: "openshell", name: "box", run }, io)).toBe(0);
+
+    expect(readdirSync(registryPath)).toEqual(["box"]);
+    expect(readJson(join(root, "agro.json"))).toMatchObject({
+      name: "box",
+      runtime: "openshell",
+      image: { mode: "image" },
+    });
+    expect(policyAtCreate).toBe(openshellPolicy);
+    expect(createCall(calls)?.args).toEqual(
+      createArgv({ name: "box", image: officialImageRef(AGRO_VERSION), entryRoot: root }),
+    );
+    expect(out.join("")).toContain("next: agro shell box\n");
+  });
+
+  it("never prompts and seeds name, timezone and git identity from the defaults", async () => {
+    registry();
+    const { run } = openshellRunner();
+    const { asked, io } = makeIo(["should-not-be-used"]);
+
+    expect(await runSandboxInstall({ bin: "agro", runtime: "openshell", run }, io)).toBe(0);
+
+    expect(asked).toEqual([]);
+    expect(readJson(join(entryRoot("agro-sbx-1"), "agro.json"))).toMatchObject({
+      name: "agro-sbx-1",
+      runtime: "openshell",
+      timezone: "UTC",
+      git: { userName: "Ada Lovelace", userEmail: "Ada Lovelace" },
+    });
+  });
+
+  it("--print-argv prints the same argv provision() runs and writes no entry", async () => {
+    const registryPath = registry();
+    const printed = openshellRunner();
+    const { out, io } = makeIo();
+
+    expect(
+      await runSandboxInstall({ bin: "agro", runtime: "openshell", name: "box", printArgv: true, run: printed.run }, io),
+    ).toBe(0);
+    expect(existsSync(registryPath)).toBe(false);
+    expect(openshellCalls(printed.calls)).toEqual([]);
+
+    const opts = { name: "box", image: officialImageRef(AGRO_VERSION), entryRoot: entryRoot("box") };
+    expect(out.join("")).toBe(`${[OPENSHELL_BIN, ...createArgv(opts)].join(" ")}\n`);
+
+    const provisioned = openshellRunner();
+    expect(
+      await runSandboxInstall({ bin: "agro", runtime: "openshell", name: "box", run: provisioned.run }, makeIo().io),
+    ).toBe(0);
+    const create = createCall(provisioned.calls);
+    expect([create?.cmd, ...(create?.args ?? [])].join(" ")).toBe(out.join("").trimEnd());
+  });
+
+  it("persists --image=<ref> and creates the sandbox from that image", async () => {
+    registry();
+    const { calls, run } = openshellRunner();
+
+    expect(
+      await runSandboxInstall(
+        { bin: "agro", runtime: "openshell", name: "box", image: true, imageRef: "example.test/img:1", run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    expect(readJson(join(entryRoot("box"), "agro.json"))).toMatchObject({
+      image: { ref: "example.test/img:1", mode: "image" },
+    });
+    expect(createCall(calls)?.args).toEqual(
+      createArgv({ name: "box", image: "example.test/img:1", entryRoot: entryRoot("box") }),
+    );
+  });
+
+  it("prints the upstream install command and a review-first alternative when openshell is not on PATH", async () => {
+    const registryPath = registry();
+    const { calls, run } = openshellRunner({ version: { status: null, error: { code: "ENOENT" } } });
+    const { err, io } = makeIo();
+
+    expect(await runSandboxInstall({ bin: "agro", runtime: "openshell", name: "box", run }, io)).toBe(1);
+    expect(err.join("")).toContain(openshellInstallHint());
+    expect(err.join("")).toContain("curl -LsSf https://raw.githubusercontent.com/NVIDIA/OpenShell/main/install.sh");
+    expect(err.join("")).toContain("review-first alternative");
+    expect(createCall(calls)).toBeUndefined();
+    expect(existsSync(registryPath)).toBe(false);
+  });
+
+  it.each([
+    ["status exits non-zero", { status: 1, stdout: "" }],
+    ["status is not connected", { status: 0, stdout: JSON.stringify({ status: "disconnected" }) }],
+  ])("prints the gateway hint when %s", async (_label, status) => {
+    const registryPath = registry();
+    const { calls, run } = openshellRunner({ status });
+    const { err, io } = makeIo();
+
+    expect(await runSandboxInstall({ bin: "agro", runtime: "openshell", name: "box", run }, io)).toBe(1);
+    expect(err.join("")).toContain(openshellGatewayHint());
+    expect(createCall(calls)).toBeUndefined();
+    expect(existsSync(registryPath)).toBe(false);
+  });
+
+  it.each([
+    ["--checkout", { checkout: "." }],
+    ["--home-mount", { homeMount: "./home" }],
+  ])("refuses %s and names the openshell runtime", async (flag, flags) => {
+    const registryPath = registry();
+    const { calls, run } = openshellRunner();
+    const { err, io } = makeIo();
+
+    expect(await runSandboxInstall({ bin: "agro", runtime: "openshell", name: "box", ...flags, run }, io)).toBe(1);
+    expect(err.join("")).toBe(`agro sandbox install: ${flag} is not supported on the openshell runtime\n`);
+    expect(openshellCalls(calls)).toEqual([]);
+    expect(existsSync(registryPath)).toBe(false);
+  });
+
+  it('refuses image.mode "build" and names the openshell runtime', async () => {
+    registry();
+    const root = entryRoot("box");
+    mkdirSync(root, { recursive: true });
+    writeFileSync(join(root, "agro.json"), `${JSON.stringify({ version: 1, name: "box", image: { mode: "build" } })}\n`);
+    const { calls, run } = openshellRunner();
+    const { err, io } = makeIo();
+
+    expect(await runSandboxInstall({ bin: "agro", runtime: "openshell", name: "box", run }, io)).toBe(1);
+    expect(err.join("")).toBe('agro sandbox install: image.mode "build" is not supported on the openshell runtime\n');
+    expect(openshellCalls(calls)).toEqual([]);
+  });
+
+  it("exits with the create exit code and removes the new entry when openshell sandbox create fails", async () => {
+    const registryPath = registry();
+    const { run } = openshellRunner({ create: { status: 7 } });
+    const { out, io } = makeIo();
+
+    expect(await runSandboxInstall({ bin: "agro", runtime: "openshell", name: "box", run }, io)).toBe(7);
+    expect(existsSync(entryRoot("box"))).toBe(false);
+    expect(readdirSync(registryPath)).toEqual([]);
+    expect(out.join("")).not.toContain("next:");
+  });
+});
+
+describe("entryRuntime", () => {
+  it("reads the runtime field and defaults to docker for an absent, unset or malformed field", () => {
+    const openshell = tempDir();
+    writeFileSync(join(openshell, "agro.json"), `${JSON.stringify({ version: 1, runtime: "openshell" })}\n`);
+    const unset = tempDir();
+    writeFileSync(join(unset, "agro.json"), `${JSON.stringify({ version: 1 })}\n`);
+    const malformed = tempDir();
+    writeFileSync(join(malformed, "agro.json"), "{not json");
+
+    expect(entryRuntime(openshell)).toBe("openshell");
+    expect(entryRuntime(unset)).toBe("docker");
+    expect(entryRuntime(malformed)).toBe("docker");
+    expect(entryRuntime(tempDir())).toBe("docker");
   });
 });

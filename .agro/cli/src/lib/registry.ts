@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
 import composeRepo from "agro-asset:.devcontainer/docker-compose.yml";
 import composeImageOnly from "agro-asset:.devcontainer/docker-compose.image-only.yml";
@@ -9,7 +9,7 @@ import pathsShell from "agro-asset:.agro/scripts/paths.sh";
 import checkHostPort from "agro-asset:.agro/scripts/check-host-port.sh";
 import openshellPolicy from "agro-asset:.devcontainer/openshell-policy.yaml";
 import { spawnRunner, type LifecycleRunner } from "./execution/runner.js";
-import { configCheckout, agroConfigPath, readAgroConfig } from "./agro-config.js";
+import { configCheckout, agroConfigPath, entryRuntime, readAgroConfig } from "./agro-config.js";
 import { activeBin } from "./product.js";
 import { resolveProjectLayout, resolveUserStateHome } from "./layout.js";
 
@@ -93,16 +93,6 @@ interface MaterializedFile {
   dest: string;
   body: string;
   mode: number;
-}
-
-function entryRuntime(entry: string): unknown {
-  const path = agroConfigPath(entry);
-  if (!existsSync(path)) return undefined;
-  try {
-    return (JSON.parse(readFileSync(path, "utf8")) as { runtime?: unknown }).runtime;
-  } catch {
-    return undefined;
-  }
 }
 
 function openshellFiles(entry: string): MaterializedFile[] {

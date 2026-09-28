@@ -12,6 +12,7 @@ import {
 } from "../lib/tools/catalog.js";
 import { HARNESS_CATALOG, HARNESS_PREFIX_TOKEN } from "../lib/harnesses/catalog.js";
 import { RUNTIME_CATALOG } from "../lib/runtimes/catalog.js";
+import { SANDBOX_RUNTIMES } from "../lib/agro-config.js";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 const read = (p: string): string => readFileSync(join(REPO_ROOT, p), "utf8");
@@ -192,6 +193,16 @@ describe("the catalogs stay separate", () => {
     expect(findTool("docker-cli")?.hostCapable).toBe(false);
     expect(findTool("docker-engine")?.hostInstallUser).toBe("root");
     expect(RUNTIME_CATALOG.some((r) => r.id === "docker")).toBe(true);
+  });
+
+  it("registers openshell as a provisionable runtime and derives SANDBOX_RUNTIMES from the catalog", () => {
+    expect(RUNTIME_CATALOG.find((r) => r.id === "openshell")).toMatchObject({
+      provisionable: true,
+      docsPath: "docs/runtimes/openshell.md",
+    });
+    expect(findTool("openshell")).toBeUndefined();
+    expect(SANDBOX_RUNTIMES).toEqual(["docker", "openshell"]);
+    expect(SANDBOX_RUNTIMES).toEqual(RUNTIME_CATALOG.filter((r) => r.provisionable).map((r) => r.id));
   });
 
   it("leaves agent-browser excluded from the harness catalog", () => {
