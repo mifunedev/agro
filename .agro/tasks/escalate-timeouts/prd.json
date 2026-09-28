@@ -16,10 +16,14 @@
         "`ESCALATE_REMIND_AFTER` and `ESCALATE_EXPIRE_AFTER` override the 24-hour and 72-hour defaults in seconds; invalid thresholds fail without posts."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: timeout stub test exit 0 checks JSON array and fields. 2 executed: stub boundaries 24h/72h exit 0. 3 executed: stub approve/reject/reader exit 2 checks exit 0. 4 reasoned: timeout script has no blocked action invocation; stub checks blockedActionExecuted=false. 5 executed: custom and invalid thresholds in stub exit 0. Integrated: bash .agro/skills/escalate/scripts/test-escalate-timeouts.sh, bash .agro/evals/probes/escalate-contract.sh, and bash -n scripts all exit 0.",
       "dependsOn": [],
-      "files": [".agro/skills/escalate/scripts/escalate-timeouts.sh", ".agro/skills/escalate/scripts/test-escalate-timeouts.sh"]
+      "files": [
+        ".agro/skills/escalate/scripts/escalate-timeouts.sh",
+        ".agro/skills/escalate/scripts/test-escalate-timeouts.sh"
+      ],
+      "commit": "d01ab60d"
     },
     {
       "id": "US-002",
@@ -36,8 +40,13 @@
       "priority": 2,
       "passes": false,
       "notes": "",
-      "dependsOn": ["US-001"],
-      "files": [".agro/skills/escalate/scripts/escalate-timeouts.sh", ".agro/skills/escalate/scripts/test-escalate-timeouts.sh"]
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/skills/escalate/scripts/escalate-timeouts.sh",
+        ".agro/skills/escalate/scripts/test-escalate-timeouts.sh"
+      ]
     },
     {
       "id": "US-003",
@@ -51,8 +60,12 @@
       "priority": 3,
       "passes": false,
       "notes": "",
-      "dependsOn": ["US-002"],
-      "files": [".agro/skills/escalate/SKILL.md"]
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/skills/escalate/SKILL.md"
+      ]
     },
     {
       "id": "US-004",
@@ -66,8 +79,14 @@
       "priority": 4,
       "passes": false,
       "notes": "",
-      "dependsOn": ["US-001", "US-002", "US-003"],
-      "files": [".agro/tasks/escalate-timeouts/evidence/manual-review.md"]
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".agro/tasks/escalate-timeouts/evidence/manual-review.md"
+      ]
     }
   ]
 }
