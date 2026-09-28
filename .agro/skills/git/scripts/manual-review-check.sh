@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 1 || ! -f "$1" ]]; then
+if [[ $# -ne 1 || ! -r "$1" ]]; then
   echo "usage: manual-review-check.sh <body-file>" >&2
   exit 2
 fi

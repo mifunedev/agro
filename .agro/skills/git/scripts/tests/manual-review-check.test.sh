@@ -41,6 +41,8 @@ expect 0 "SHA ref passes" "$TMP/sha.md"
 grep -v 'Callouts:' "$TMP/sha.md" >"$TMP/nocallout.md"
 expect 1 "screenshot without callout text fails" "$TMP/nocallout.md" "no Callouts: line: 1. Open the page."
 
+expect 0 "process substitution body passes" <(cat "$TMP/sha.md")
+
 expect 0 "pass shape passes" "$FIXTURES/pass-body.md"
 expect 1 "branch-pinned shape fails" "$FIXTURES/fail-branch-ref-body.md" 'ref "bug/1-example/.agro/tasks/example/evidence/step-01.png" does not start with a 40-character SHA'
 expect 1 "shape without callouts fails" "$FIXTURES/fail-no-callouts-body.md" 'no Callouts: line: 1. Open the home page. Expected: the header shows "Ready".'
