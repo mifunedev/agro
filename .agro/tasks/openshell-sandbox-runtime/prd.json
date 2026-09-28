@@ -145,8 +145,8 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated by fast-forward (665584ca, 97797b28). Advisor re-ran: full vitest exit 0 (82 files, 1893 tests); typecheck exit 0; execution-target-contract.sh exit 0; `git grep -n '\"openshell\"'` over lifecycle.ts/sandbox-list.ts/sandbox-upgrade.ts prints nothing (C6 executed); argv grep lists only openshell-target.ts; single `instanceof RuntimeUnsupportedError` catch in cli.ts (C9 executed). Built CLI with SANDBOX_NAME=agro-sbx-local exported and openshell entry osb: stop/restart/logs/ps/sandbox upgrade each exit 1 with hints naming osb (C4 executed). C1-C3, C5 executed by unit tests (attach via target, list status via target, destroy confirm+delete+entry removal and keep-on-failure, docker argv unchanged). C7 executed (SANDBOX_RUNTIMES test). C8 reasoned: tables are `Object.freeze({...} satisfies Record<LifecycleVerb, VerbPolicy>)`, so the line ends with `)`; RUNTIME_VERBS satisfies Record<SandboxRuntime, ...>. Repair R1 (advisor-found): openshell names came from SANDBOX_NAME before agro.json, so destroy could delete a different sandbox; fixed with entrySandboxName() and red-first tests.",
       "dependsOn": [
         "US-003",
         "US-004"
@@ -159,7 +159,8 @@
         ".agro/cli/src/__tests__/lifecycle.test.ts",
         ".agro/cli/src/__tests__/compose-verbs.test.ts",
         ".agro/cli/src/__tests__/destroy.test.ts"
-      ]
+      ],
+      "commit": "97797b28"
     },
     {
       "id": "US-006",
