@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -225,6 +225,51 @@ describe("agro destroy — the confirmation policy", () => {
     const { run } = makeRunner({ status: 7 });
     const { io } = makeIo();
     expect(await runDestroy({ bin: "agro", ...entry, run, yes: true }, io)).toBe(7);
+  });
+});
+
+describe("agro destroy — an openshell entry", () => {
+  function openshellEntry(): string {
+    vi.stubEnv("SANDBOX_NAME", "");
+    vi.stubEnv("AGRO_EXECUTION_TARGET", "docker-compose");
+    const root = makeRepo();
+    writeFileSync(
+      join(root, "agro.json"),
+      `${JSON.stringify({ version: 1, name: "os-box", runtime: "openshell", image: { mode: "image" } })}\n`,
+    );
+    return root;
+  }
+
+  it("asks the confirmation phrase, deletes the openshell sandbox, then removes the entry", async () => {
+    const root = openshellEntry();
+    const { calls, run } = makeRunner();
+    const { out, asked, io } = makeIo(["os-box"]);
+
+    expect(await runDestroy({ bin: "agro", ...entry, run }, io)).toBe(0);
+    expect(asked).toEqual(["Type the sandbox name `os-box` to destroy it:"]);
+    expect(calls).toEqual([{ cmd: "openshell", args: ["sandbox", "delete", "os-box"] }]);
+    expect(out.join("")).not.toContain("docker compose");
+    expect(out.join("")).toContain(`removed the sandbox entry ${root}\n`);
+    expect(existsSync(root)).toBe(false);
+  });
+
+  it("aborts and deletes nothing on the wrong answer", async () => {
+    const root = openshellEntry();
+    const { calls, run } = makeRunner();
+    const { io } = makeIo(["nope"]);
+
+    expect(await runDestroy({ bin: "agro", ...entry, run }, io)).toBe(1);
+    expect(calls).toHaveLength(0);
+    expect(existsSync(root)).toBe(true);
+  });
+
+  it("keeps the entry and propagates the exit code when the delete fails", async () => {
+    const root = openshellEntry();
+    const { run } = makeRunner({ status: 4 });
+    const { io } = makeIo();
+
+    expect(await runDestroy({ bin: "agro", ...entry, run, yes: true }, io)).toBe(4);
+    expect(existsSync(root)).toBe(true);
   });
 });
 

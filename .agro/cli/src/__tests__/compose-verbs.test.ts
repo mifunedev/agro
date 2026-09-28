@@ -5,9 +5,11 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   composeVerbs,
+  runComposeConfig,
   runComposeVerb,
   type ComposeVerb,
 } from "../commands/lifecycle.js";
+import { RuntimeUnsupportedError } from "../lib/runtimes/verbs.js";
 import type { LifecycleRunner, RunResult } from "../lib/execution/runner.js";
 import { withInvokedBin } from "./invoked-bin.js";
 
@@ -136,6 +138,56 @@ describe("runComposeVerb", () => {
       });
     },
   );
+});
+
+describe("runtime routing of the compose verbs", () => {
+  function entryWithRuntime(runtime: string): string {
+    vi.stubEnv("SANDBOX_NAME", "");
+    const root = makeRepo();
+    writeFileSync(join(root, "agro.json"), `${JSON.stringify({ version: 1, name: "box", runtime })}\n`);
+    return root;
+  }
+
+  it.each([
+    ["stop", ["stop"]],
+    ["restart", ["restart"]],
+    ["ps", ["ps"]],
+    ["logs", ["logs", "-f"]],
+    ["destroy", ["down", "-v"]],
+  ] as [ComposeVerb, string[]][])("keeps the docker %s argv for an explicit docker entry", (verb, expected) => {
+    const root = entryWithRuntime("docker");
+    const { calls, run } = makeRunner();
+    expect(runComposeVerb(verb, { bin: "agro", ...entry, run })).toBe(0);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].cmd).toBe("bash");
+    expect(calls[0].args[0]).toBe(join(root, ".agro", "scripts", "docker-compose.sh"));
+    expect(calls[0].args.slice(1, 2)).toEqual(["--extra-env-file"]);
+    expect(calls[0].args.slice(3)).toEqual(expected);
+  });
+
+  it("keeps the docker config argv for an explicit docker entry", () => {
+    entryWithRuntime("docker");
+    const { calls, run } = makeRunner();
+    expect(runComposeConfig({ bin: "agro", ...entry, run }, ["--services"])).toBe(0);
+    expect(calls[0].args.slice(3)).toEqual(["config", "--services"]);
+  });
+
+  it.each(["stop", "restart", "logs", "ps"] as ComposeVerb[])(
+    "refuses %s for an openshell entry and spawns nothing",
+    (verb) => {
+      entryWithRuntime("openshell");
+      const { calls, run } = makeRunner();
+      expect(() => runComposeVerb(verb, { bin: "agro", ...entry, run })).toThrow(RuntimeUnsupportedError);
+      expect(calls).toHaveLength(0);
+    },
+  );
+
+  it("refuses compose config for an openshell entry and spawns nothing", () => {
+    entryWithRuntime("openshell");
+    const { calls, run } = makeRunner();
+    expect(() => runComposeConfig({ bin: "agro", ...entry, run })).toThrow(RuntimeUnsupportedError);
+    expect(calls).toHaveLength(0);
+  });
 });
 
 describe("help", () => {

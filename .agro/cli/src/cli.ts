@@ -36,6 +36,7 @@ import {
   type LifecycleIO,
 } from "./commands/lifecycle.js";
 import { runSandboxCommand } from "./controllers/sandbox.js";
+import { RuntimeUnsupportedError } from "./lib/runtimes/verbs.js";
 export { parseSandboxArgs, printSandboxHelp, runtimeLines } from "./controllers/sandbox.js";
 export type { SandboxArgs } from "./controllers/sandbox.js";
 import {
@@ -1526,7 +1527,19 @@ function lifecycleIo(): LifecycleIO {
   };
 }
 
-main(process.argv.slice(2)).then(
+export async function runCli(argv: string[]): Promise<number> {
+  try {
+    return await main(argv);
+  } catch (err) {
+    if (err instanceof RuntimeUnsupportedError) {
+      process.stderr.write(`${err.message}\n`);
+      return 1;
+    }
+    throw err;
+  }
+}
+
+runCli(process.argv.slice(2)).then(
   (code) => process.exit(code),
   (err) => {
     const msg = err instanceof Error ? err.message : String(err);

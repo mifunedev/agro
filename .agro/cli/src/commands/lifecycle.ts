@@ -23,6 +23,7 @@ import { materialize, registryRoot, resolveSandboxRoot } from "../lib/registry.j
 import { setEnvValue } from "../lib/env-file.js";
 import * as prompt from "../lib/prompt.js";
 import { AGRO_VERSION, officialImageRef } from "../lib/version.js";
+import { routeVerb } from "../lib/runtimes/verbs.js";
 
 
 export interface LifecycleIO {
@@ -229,23 +230,28 @@ export function configuredContainerName(root: string): string | undefined {
   return fromProcessEnv("SANDBOX_NAME") ?? configuredString(root, "name");
 }
 
+function sandboxName(root: string): string {
+  return configuredContainerName(root) ?? DEFAULT_CONTAINER_NAME;
+}
+
 export function runShell(opts: SandboxTargetOptions, io: LifecycleIO): number {
   const run = opts.run ?? spawnRunner;
   const root = sandboxRoot(opts);
-  const name = configuredContainerName(root) ?? DEFAULT_CONTAINER_NAME;
+  const name = sandboxName(root);
+  const { runtime } = routeVerb(root, "shell", name);
   const target = resolveExecutionTarget({ projectRoot: root, container: name, run });
   let code: number;
   try {
     code = target.attach({ argv: ["zsh"], user: "sandbox" });
   } catch (err) {
     if (err instanceof ExecutionSpawnError && err.code === "ENOENT") {
-      throw new Error(`docker is required for \`${opts.bin} shell\` but was not found on PATH`);
+      throw new Error(`${runtime} is required for \`${opts.bin} shell\` but was not found on PATH`);
     }
     throw err;
   }
   if (code !== 0) {
     io.stderr(
-      `container \`${name}\` not running? start it with \`${opts.bin} sandbox install docker\`\n`,
+      `container \`${name}\` not running? start it with \`${opts.bin} sandbox install ${runtime}\`\n`,
     );
   }
   return code;
@@ -272,6 +278,7 @@ export function runComposeVerb(
 ): number {
   const run = opts.run ?? spawnRunner;
   const root = sandboxRoot(opts);
+  routeVerb(root, verb, sandboxName(root));
   const script = requireLifecycleScript(root, "docker-compose.sh");
   return withComposeEnvFile(root, (extraArgs) => {
     const r = run("bash", [script, ...extraArgs, ...COMPOSE_VERBS[verb], ...extra], {
@@ -285,6 +292,7 @@ export function runComposeVerb(
 export function runComposeConfig(opts: SandboxTargetOptions, extra: string[] = []): number {
   const run = opts.run ?? spawnRunner;
   const root = sandboxRoot(opts);
+  routeVerb(root, "config", sandboxName(root));
   const script = requireLifecycleScript(root, "docker-compose.sh");
   return withComposeEnvFile(root, (extraArgs) => {
     const r = run("bash", [script, ...extraArgs, "config", ...extra], { stdio: "inherit" });
@@ -317,12 +325,25 @@ export interface DestroyOptions extends SandboxTargetOptions {
 }
 
 export function destroyConfirmationPhrase(root: string): string {
-  return configuredContainerName(root) ?? DEFAULT_CONTAINER_NAME;
+  return sandboxName(root);
+}
+
+async function destroyThroughTarget(root: string, name: string, run: LifecycleRunner): Promise<number> {
+  const target = resolveExecutionTarget({ projectRoot: root, container: name, run });
+  if (target.destroy === undefined) throw new Error(`${target.describe()} cannot destroy its sandbox`);
+  try {
+    await target.destroy();
+    return 0;
+  } catch (err) {
+    if (err instanceof ExecutionExitError) return err.exitCode;
+    throw err;
+  }
 }
 
 export async function runDestroy(opts: DestroyOptions, io: LifecycleIO): Promise<number> {
   const root = sandboxRoot(opts);
   const name = destroyConfirmationPhrase(root);
+  const { via } = routeVerb(root, "destroy", name);
 
   if (opts.yes !== true) {
     const interactive = process.stdin.isTTY === true || io.ask !== undefined;
@@ -337,7 +358,12 @@ export async function runDestroy(opts: DestroyOptions, io: LifecycleIO): Promise
     const homePath = readAgroConfig(agroConfigPath(root)).storage?.homePath;
     io.stdout(`\n${prompt.bold(`${opts.bin} destroy — ${name}`)}\n\n`);
 
-    if (homePath !== undefined && homePath !== "") {
+    if (via === "target") {
+      io.stdout(
+        `This deletes the sandbox \`${name}\` and everything inside it — every agent CLI\n` +
+          "login, the gh CLI token, and the SSH keys. Sign-in starts over.\n\n",
+      );
+    } else if (homePath !== undefined && homePath !== "") {
       io.stdout("`docker compose down -v` removes the containers.\n");
       io.stdout(
         `This sandbox keeps its home on a host bind at ${homePath}, which \`down -v\`\n` +
@@ -366,7 +392,10 @@ export async function runDestroy(opts: DestroyOptions, io: LifecycleIO): Promise
     }
   }
 
-  const code = runComposeVerb("destroy", { ...opts, name: basename(root) });
+  const code =
+    via === "target"
+      ? await destroyThroughTarget(root, name, opts.run ?? spawnRunner)
+      : runComposeVerb("destroy", { ...opts, name: basename(root) });
   if (code === 0 && root.startsWith(registryRoot() + sep)) {
     rmSync(root, { recursive: true, force: true });
     io.stdout(`removed the sandbox entry ${root}\n`);

@@ -26,6 +26,15 @@ import {
   type RunResult,
 } from "../commands/lifecycle.js";
 import { runSandboxCommand } from "../controllers/sandbox.js";
+import { runSandboxList } from "../commands/sandbox-list.js";
+import { attachArgv, OPENSHELL_VERB_HINTS } from "../lib/execution/openshell-target.js";
+import {
+  LIFECYCLE_VERBS,
+  RUNTIME_VERBS,
+  RuntimeUnsupportedError,
+  routeVerb,
+} from "../lib/runtimes/verbs.js";
+import { SANDBOX_RUNTIMES } from "../lib/agro-config.js";
 import { agroConfigPath } from "../lib/agro-config.js";
 import { AGRO_VERSION, officialImageRef } from "../lib/version.js";
 import { withInvokedBinAsync } from "./invoked-bin.js";
@@ -50,6 +59,7 @@ const {
   printAgroHelp,
   printSandboxHelp,
   printShellHelp,
+  runCli,
 } = await import("../cli.js");
 
 
@@ -1074,5 +1084,107 @@ describe("lifecycle inside the sandbox", () => {
     const { calls, run } = makeRunner();
     expect(runShell({ bin: "agro", ...entry, run }, makeIo().io)).toBe(0);
     expect(calls[0].cmd).toBe("zsh");
+  });
+});
+
+
+describe("runtime verb routing", () => {
+  const OPENSHELL_NAME = "os-box";
+
+  function openshellEntry(): string {
+    vi.stubEnv("SANDBOX_NAME", "");
+    vi.stubEnv("AGRO_EXECUTION_TARGET", "docker-compose");
+    const root = makeRepo();
+    writeOhJson(root, { name: OPENSHELL_NAME, runtime: "openshell", image: { mode: "image" } });
+    return root;
+  }
+
+  function captureStderr(): { text: () => string } {
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    return { text: () => spy.mock.calls.map((c) => String(c[0])).join("") };
+  }
+
+  it("declares a policy for every lifecycle verb of every provisionable runtime", () => {
+    expect(SANDBOX_RUNTIMES).toEqual(["docker", "openshell"]);
+    expect(LIFECYCLE_VERBS).toEqual(["shell", "stop", "restart", "logs", "ps", "destroy", "config", "upgrade"]);
+    for (const runtime of SANDBOX_RUNTIMES) {
+      expect(Object.keys(RUNTIME_VERBS[runtime]).sort()).toEqual([...LIFECYCLE_VERBS].sort());
+    }
+  });
+
+  it("routes every docker verb", () => {
+    for (const policy of Object.values(RUNTIME_VERBS.docker)) expect(policy.action).toBe("route");
+  });
+
+  it("routes an openshell shell through the target attach and builds no docker argv", () => {
+    openshellEntry();
+    const { calls, run } = makeRunner([{ status: 0 }]);
+
+    expect(runShell({ bin: "agro", ...entry, run }, makeIo().io)).toBe(0);
+    expect(calls).toEqual([
+      { cmd: "openshell", args: attachArgv(OPENSHELL_NAME, { argv: ["zsh"] }), opts: { stdio: "inherit" } },
+    ]);
+  });
+
+  it("names the openshell install on a failed openshell attach", () => {
+    openshellEntry();
+    const { err, io } = makeIo();
+    expect(runShell({ bin: "agro", ...entry, run: makeRunner([{ status: 1 }]).run }, io)).toBe(1);
+    expect(err).toEqual([
+      `container \`${OPENSHELL_NAME}\` not running? start it with \`agro sandbox install openshell\`\n`,
+    ]);
+  });
+
+  it("throws RuntimeUnsupportedError with the runtime, the verb, and the hint", () => {
+    const root = openshellEntry();
+    let caught: unknown;
+    try {
+      routeVerb(root, "stop", OPENSHELL_NAME);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(RuntimeUnsupportedError);
+    const refusal = caught as RuntimeUnsupportedError;
+    expect(refusal.runtime).toBe("openshell");
+    expect(refusal.verb).toBe("stop");
+    expect(refusal.hint).toBe(OPENSHELL_VERB_HINTS.stop(OPENSHELL_NAME));
+  });
+
+  it.each([
+    [["stop", ENTRY_NAME], "agro stop: the openshell runtime does not support stop; run: openshell sandbox stop os-box"],
+    [
+      ["restart", ENTRY_NAME],
+      "agro restart: the openshell runtime does not support restart; run: openshell sandbox stop os-box && openshell sandbox start os-box",
+    ],
+    [["logs", ENTRY_NAME], "agro logs: the openshell runtime does not support logs; run: openshell logs os-box"],
+    [["ps", ENTRY_NAME], "agro ps: the openshell runtime does not support ps; run: openshell sandbox get os-box"],
+    [
+      ["compose", "config"],
+      "agro compose config: the openshell runtime does not support compose config; run: openshell policy get os-box",
+    ],
+    [
+      ["sandbox", "upgrade", ENTRY_NAME, "--version", "0.13.0"],
+      `agro sandbox upgrade: the openshell runtime does not support sandbox upgrade; run: agro destroy ${ENTRY_NAME}, then agro sandbox install openshell --name ${ENTRY_NAME} --image=<ref>`,
+    ],
+  ])("refuses `agro %s` for an openshell entry with exit 1 and the openshell command", async (argv, message) => {
+    const root = openshellEntry();
+    const stderr = captureStderr();
+
+    expect(await runCli(argv)).toBe(1);
+    expect(stderr.text()).toBe(`${message}\n`);
+    expect(existsSync(join(root, ".sandbox-upgrade.lock"))).toBe(false);
+  });
+
+  it("lists an openshell entry with the status the openshell target reports", async () => {
+    const root = openshellEntry();
+    writeOhJson(root, { name: ENTRY_NAME, runtime: "openshell", image: { mode: "image" } });
+    const { calls, run } = makeRunner([{ status: 0, stdout: JSON.stringify({ phase: "Ready" }) }]);
+    const out: string[] = [];
+
+    expect(await runSandboxList({ bin: "agro", json: true, run }, { stdout: (s) => out.push(s), stderr: () => {} })).toBe(0);
+    expect(JSON.parse(out.join(""))).toEqual([
+      expect.objectContaining({ name: ENTRY_NAME, runtime: "openshell", status: "ready" }),
+    ]);
+    expect(calls.map((c) => [c.cmd, ...c.args])).toEqual([["openshell", "sandbox", "get", ENTRY_NAME, "-o", "json"]]);
   });
 });
