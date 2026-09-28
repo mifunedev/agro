@@ -44,7 +44,7 @@ Run each check sequentially. If any check fails, **stop immediately** and report
 command -v agent-browser && agent-browser --version 2>&1 || echo "FAIL: agent-browser not found in PATH"
 ```
 
-If not found, install it through the CLI — the catalog entry pins the
+If not found, install agent-browser through the CLI — the catalog entry pins the
 version, fixes the binary's mode, and runs `agent-browser install --with-deps`
 for you:
 
@@ -52,7 +52,7 @@ for you:
 agro tool install agent-browser --yes
 ```
 
-`--yes` is required whenever stdin is not a TTY: the entry declares a
+The confirmation gate requires `--yes` whenever stdin is not a TTY: the entry declares a
 `~1 GB` download, and the confirmation gate refuses rather than prompting.
 
 That path applies in the sandbox. When no sandbox is reachable, the same
