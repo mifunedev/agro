@@ -16,13 +16,14 @@
         "The `## ` headings of `.agro/skills/prd/SKILL.md` section 5 match the `## ` headings of `feat.md` in order, except `## Metadata`, `## Open Questions`, and `## Lessons`."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: pr-manual-review.sh exit 0; red: exit 1 on copy restoring ### Visual Reference (AGRO_PROBE_ROOT); feat.md Summary comment names manual-review.md (grep); prd §5 vs feat headings diff empty (worker, exit 0).",
       "dependsOn": [],
       "files": [
         ".github/ISSUE_TEMPLATE/feat.md",
         ".agro/evals/probes/pr-manual-review.sh"
-      ]
+      ],
+      "commit": "f8c0f354"
     },
     {
       "id": "US-002",
@@ -36,15 +37,16 @@
         "`bash .agro/evals/probes/pr-manual-review.sh` exits 0 on the fixed reference."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: manual-review.md lines 25-29 hold the SHA rule, the HTTP 404 cause, and the Callouts: rule; example uses blob/<commit-sha>/; probe exit 0; red: exit 1 on copy with blob/<branch>/; ste-check exit 0.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/skills/git/references/manual-review.md",
         ".agro/evals/probes/pr-manual-review.sh"
-      ]
+      ],
+      "commit": "e5b9d4cb"
     },
     {
       "id": "US-003",
@@ -60,8 +62,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/git/SKILL.md .agro/skills/git/references/manual-review.md` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: manual-review-check.test.sh exit 0 (6 cases: branch ref fails and names bug/1-example, SHA passes, screenshot without Callouts: fails); pr-manual-review.sh exit 0; gate in git/SKILL.md line 348 runs the script and probe asserts it; ste-check SKILL.md + manual-review.md exit 0 (13 pre-existing findings fixed). reasoned: fixtures are synthetic because agro is public; #185/#197 shapes stand in as pass/fail-branch-ref/fail-no-callouts fixtures. Squashed with the repair so no private fixture enters history.",
       "dependsOn": [
         "US-002"
       ],
@@ -70,7 +72,8 @@
         ".agro/skills/git/scripts/tests/manual-review-check.test.sh",
         ".agro/skills/git/SKILL.md",
         ".agro/evals/probes/pr-manual-review.sh"
-      ]
+      ],
+      "commit": "552e745c"
     },
     {
       "id": "US-004",
