@@ -18,6 +18,7 @@ import {
   createArgv,
   OPENSHELL_BIN,
   OpenShellExecutionTarget,
+  openshellCleanupHint,
   openshellPreflight,
 } from "../lib/execution/openshell-target.js";
 import { ExecutionExitError } from "../lib/execution/runner.js";
@@ -366,7 +367,9 @@ async function installOpenShell(
   } catch (error) {
     if (created) rmSync(root, { recursive: true, force: true });
     io.stderr(`${opts.bin} sandbox install: ${error instanceof Error ? error.message : String(error)}\n`);
-    return error instanceof ExecutionExitError ? error.exitCode : 1;
+    if (!(error instanceof ExecutionExitError)) return 1;
+    io.stderr(`${opts.bin} sandbox install: ${openshellCleanupHint(name)}\n`);
+    return error.exitCode;
   }
 
   io.stdout(`next: ${opts.bin} shell ${name}\n`);

@@ -163,6 +163,10 @@ export function openshellGatewayHint(): string {
   ].join("\n");
 }
 
+export function openshellCleanupHint(name: string): string {
+  return `the OpenShell gateway can keep a failed sandbox record in the Error phase; if ${name} is not another sandbox, remove it with: openshell sandbox delete ${name}`;
+}
+
 export type OpenShellPreflight =
   | { ok: true }
   | { ok: false; reason: "missing-binary"; hint: string }

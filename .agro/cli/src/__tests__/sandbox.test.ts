@@ -10,6 +10,7 @@ import { runtimeLines } from "../controllers/sandbox.js";
 import {
   createArgv,
   OPENSHELL_BIN,
+  openshellCleanupHint,
   openshellGatewayHint,
   openshellInstallHint,
 } from "../lib/execution/openshell-target.js";
@@ -1807,12 +1808,23 @@ describe("agro sandbox install openshell", () => {
   it("exits with the create exit code and removes the new entry when openshell sandbox create fails", async () => {
     const registryPath = registry();
     const { run } = openshellRunner({ create: { status: 7 } });
-    const { out, io } = makeIo();
+    const { out, err, io } = makeIo();
 
     expect(await runSandboxInstall({ bin: "agro", runtime: "openshell", name: "box", run }, io)).toBe(7);
     expect(existsSync(entryRoot("box"))).toBe(false);
     expect(readdirSync(registryPath)).toEqual([]);
     expect(out.join("")).not.toContain("next:");
+    expect(err.join("")).toContain(`agro sandbox install: ${openshellCleanupHint("box")}\n`);
+  });
+
+  it("prints the cleanup command without running it when openshell sandbox create fails", async () => {
+    registry();
+    const { calls, run } = openshellRunner({ create: { status: 1 } });
+    const { err, io } = makeIo();
+
+    expect(await runSandboxInstall({ bin: "agro", runtime: "openshell", name: "box", run }, io)).toBe(1);
+    expect(err.join("")).toContain("openshell sandbox delete box");
+    expect(openshellCalls(calls).map((c) => c.args.slice(0, 2))).not.toContainEqual(["sandbox", "delete"]);
   });
 });
 

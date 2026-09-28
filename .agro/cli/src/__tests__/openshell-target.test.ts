@@ -8,6 +8,7 @@ import {
   OPENSHELL_PHASES,
   OPENSHELL_VERB_HINTS,
   OpenShellExecutionTarget,
+  openshellCleanupHint,
   openshellPreflight,
   parseOpenShellPhase,
 } from "../lib/execution/openshell-target.js";
@@ -374,5 +375,13 @@ describe("OPENSHELL_VERB_HINTS", () => {
     expect(OPENSHELL_VERB_HINTS.logs("box")).toBe("openshell logs box");
     expect(OPENSHELL_VERB_HINTS.ps("box")).toBe("openshell sandbox get box");
     expect(OPENSHELL_VERB_HINTS.config("box")).toBe("openshell policy get box");
+  });
+});
+
+describe("openshellCleanupHint", () => {
+  it("names the delete command and the Error-phase reason", () => {
+    const hint = openshellCleanupHint("box");
+    expect(hint).toContain("openshell sandbox delete box");
+    expect(hint).toContain("Error phase");
   });
 });

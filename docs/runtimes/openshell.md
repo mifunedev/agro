@@ -27,7 +27,7 @@ Every `openshell` command runs on the host. `agro` never installs OpenShell.
 | Docker | 28.0 or later |
 | Linux kernel | Landlock ABI 3 (Linux 6.2 or later), with seccomp user notification |
 | Gateway | the user service `openshell-gateway` on `https://127.0.0.1:17670`, with status `connected` |
-| WSL 2 | upstream marks WSL 2 as experimental |
+| WSL 2 | upstream marks WSL 2 with Docker Desktop as Experimental; see [Known host limits](#known-host-limits) |
 
 If the `openshell` binary is not on `PATH`, `agro sandbox install openshell`
 exits 1 and prints this text:
@@ -77,7 +77,16 @@ openshell sandbox create --name os-demo --from ghcr.io/mifunedev/agro:0.15.0 --p
 A successful run writes `agro.json` with `runtime: "openshell"` and
 `image.mode: "image"`, then prints `next: agro shell <name>`. If
 `openshell sandbox create` exits non-zero, the command exits with the same code
-and removes the new registry entry.
+and removes the new registry entry. The OpenShell gateway can keep the failed
+sandbox record in the `Error` phase, so the command also prints this text:
+
+```text
+agro sandbox install: the OpenShell gateway can keep a failed sandbox record in the Error phase; if <name> is not another sandbox, remove it with: openshell sandbox delete <name>
+```
+
+The command does not run `openshell sandbox delete`. A create can fail because
+another sandbox already has the name. Before you run the delete, make sure that
+the record is not another sandbox.
 
 The command refuses three options. Each refusal exits 1 and names the
 `openshell` runtime:
@@ -203,6 +212,46 @@ The OpenShell gateway keeps the sandbox record. The Docker driver keeps the
 container and its writable layer. The home directory and the workspace are in
 that layer. `agro destroy <name>` deletes both through
 `openshell sandbox delete <name>`.
+
+## Known host limits
+
+### WSL 2 with Docker Desktop
+
+On a WSL 2 distro with Docker Desktop, `agro sandbox install openshell` can fail
+after OpenShell prints `Created sandbox: <name>`. The error text includes these
+lines:
+
+```text
+Error:   × sandbox entered error phase while provisioning: ControlSupervisorStartFailed:
+  │ Docker supervisor exited before becoming ready; log tail: openshell: log push
+  │ connect failed: failed to connect to OpenShell server
+  │ Error:   × Startup configuration fetch failed after 5 attempts: failed to
+  │ connect to OpenShell server
+```
+
+Cause: the Docker driver runs the supervisor with host networking and points it
+at the gateway loopback endpoint. On Docker Desktop, the host network is the
+Docker Desktop VM, not the WSL 2 distro. The gateway user service listens on
+`127.0.0.1` in the WSL 2 distro, so the supervisor cannot reach the gateway.
+
+Upstream marks WSL 2 with Docker Desktop as Experimental. Upstream gives one
+setting for this case: `grpc_endpoint` in the `[openshell.drivers.docker]` table
+of `~/.config/openshell/gateway.toml`. If the sandbox cannot reach the gateway
+on host loopback, set the value:
+
+```toml
+[openshell.drivers.docker]
+grpc_endpoint = "<gateway endpoint reachable from Docker Desktop>"
+```
+
+AGRO has no tested value for this setting. Use a Linux host or a Linux VM with
+Docker Engine 28.0 or later for the `openshell` runtime.
+
+After a failed create, remove the `Error` phase record on the host:
+
+```bash
+openshell sandbox delete <name>
+```
 
 ## Out of scope in v1
 
