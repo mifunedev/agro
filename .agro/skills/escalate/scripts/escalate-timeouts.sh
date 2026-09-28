@@ -45,13 +45,14 @@ else
   STATE_DIR="$HOME/.agro/escalate"
 fi
 
-safe_key() {
-  printf '%s' "$1" | tr -c 'A-Za-z0-9._-' '_'
+marker_identity() {
+  local kind=$1 channel=$2 ts=$3
+  printf '%s\0%s\0%s' "$kind" "$channel" "$ts" | sha256sum | cut -d' ' -f1
 }
 
 marker_path() {
   local kind=$1 channel=$2 ts=$3
-  printf '%s/%s' "$STATE_DIR" "$(safe_key "timeout_${kind}_${channel}_${ts}")"
+  printf '%s/timeout_%s_%s' "$STATE_DIR" "$kind" "$(marker_identity "$kind" "$channel" "$ts")"
 }
 
 make_notice() {
@@ -64,7 +65,7 @@ make_notice() {
 
 send_notice() {
   local kind=$1 channel=$2 ts=$3 link=$4 marker=$5
-  local summary needs response status slack_ok reason marker_tmp
+  local summary needs response status slack_ok reason marker_tmp stderr_tmp
 
   if [ "$kind" = reminder ]; then
     summary='Escalation reminder: an operator decision is still pending.'
@@ -79,17 +80,23 @@ send_notice() {
     return 0
   fi
 
+  stderr_tmp=$(mktemp "${STATE_DIR}/escalate-sender-stderr.XXXXXX")
   set +e
-  response=$(bash "$SENDER_SCRIPT" --force --channel "$channel" --summary "$summary" --needs "$needs" --link "$link" 2>&1)
+  response=$(bash "$SENDER_SCRIPT" --force --channel "$channel" --summary "$summary" --needs "$needs" --link "$link" 2>"$stderr_tmp")
   status=$?
   set -e
+  rm -f "$stderr_tmp"
 
   slack_ok=false
-  if [ "$status" -eq 0 ] && jq -e . >/dev/null 2>&1 <<<"$response"; then
-    slack_ok=$(jq -r '.destinations.slack.ok // false' <<<"$response")
-    reason=$(jq -r '.destinations.slack.reason // .reason // "unknown"' <<<"$response")
+  if [ "$status" -eq 0 ]; then
+    if jq -e . >/dev/null 2>&1 <<<"$response"; then
+      slack_ok=$(jq -r '.destinations.slack.ok // false' <<<"$response")
+      reason=$(jq -r '.destinations.slack.reason // .reason // "unknown"' <<<"$response")
+    else
+      reason='sender returned invalid JSON'
+    fi
   else
-    reason=$response
+    reason="sender exited with status $status"
   fi
 
   if [ "$status" -eq 0 ] && [ "$slack_ok" = true ]; then

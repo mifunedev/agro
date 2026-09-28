@@ -39,6 +39,9 @@ printf -- '--end--\n' >>"$log"
 case "$mode" in
   success)
     jq -cn '{ok:true,destinations:{slack:{ok:true,reason:"delivered"},supervisor:{ok:false}}}' ;;
+  success_warning)
+    printf 'diagnostic warning\n' >&2
+    jq -cn '{ok:true,destinations:{slack:{ok:true,reason:"delivered"},supervisor:{ok:false}}}' ;;
   slack_false_supervisor_true)
     jq -cn '{ok:true,destinations:{slack:{ok:false,reason:"rejected"},supervisor:{ok:true}}}' ;;
   quiet)
@@ -228,5 +231,17 @@ out=$(ESCALATE_NOW=1086400 ESCALATE_DECISION_SCRIPT="$tmp/decision.sh" ESCALATE_
 assert_state "$out" 0 reminder_sent
 assert_state "$out" 1 reminder_sent
 assert_sender_count 2
+
+rm -rf "$tmp/state" "$tmp/sender.log"
+out=$(ESCALATE_NOW=1086400 ESCALATE_DECISION_SCRIPT="$tmp/decision.sh" ESCALATE_SENDER_SCRIPT="$tmp/sender.sh" ESCALATE_SENDER_LOG="$tmp/sender.log" ESCALATE_STATE_DIR="$tmp/state" bash "$SCRIPT_DIR/escalate-timeouts.sh" <<<'[{"channel":"C!X","ts":"1000000.000100","link":"L1"},{"channel":"C?X","ts":"1000000.000100","link":"L2"}]')
+assert_state "$out" 0 reminder_sent
+assert_state "$out" 1 reminder_sent
+assert_sender_count 2
+
+rm -rf "$tmp/state" "$tmp/sender.log"
+out=$(ESCALATE_SENDER_MODE=success_warning run_timeout 1086400 "$(item 1000000.000100)")
+assert_state "$out" 0 reminder_sent
+[[ $(jq -r '.results[0].notice.ok' <<<"$out") == true ]] || fail "sender warning broke Slack success parsing: $out"
+assert_sender_count 1
 
 printf 'PASS: escalate timeout deadlines\n' >&2
