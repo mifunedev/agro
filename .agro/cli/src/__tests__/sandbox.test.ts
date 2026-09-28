@@ -9,6 +9,7 @@ import { agroConfigPath, readAgroConfig } from "../lib/agro-config.js";
 import { renderComposeVars } from "../lib/config-render.js";
 import { AGRO_VERSION, officialImageRef } from "../lib/version.js";
 import { runSandboxUpgrade } from "../services/sandbox-upgrade.js";
+import openshellPolicy from "agro-asset:.devcontainer/openshell-policy.yaml";
 
 const cleanups: string[] = [];
 
@@ -1548,5 +1549,140 @@ describe("agro sandbox install — the --version pin", () => {
     expect(envs).toEqual([PINNED]);
     expect(argvs[0]).toContain("--print-argv");
     expect(argvs[0].slice(-3)).toEqual(["up", "-d", "--no-build"]);
+  });
+});
+
+type YamlValue = string | number | boolean | YamlValue[] | { [key: string]: YamlValue };
+
+interface YamlLine {
+  indent: number;
+  text: string;
+}
+
+function parseBlockYaml(source: string): YamlValue {
+  const lines: YamlLine[] = source
+    .split("\n")
+    .filter((line) => line.trim() !== "" && !line.trim().startsWith("#"))
+    .map((line) => ({ indent: line.length - line.trimStart().length, text: line.trim() }));
+  let cursor = 0;
+
+  const scalar = (raw: string): YamlValue => {
+    if (/^[[{&!|>'"]/.test(raw)) throw new Error(`unsupported YAML scalar: ${raw}`);
+    if (raw === "true" || raw === "false") return raw === "true";
+    return /^\d+$/.test(raw) ? Number(raw) : raw;
+  };
+
+  const block = (indent: number): YamlValue =>
+    lines[cursor].text.startsWith("- ") ? sequence(indent) : mapping(indent);
+
+  const mapping = (indent: number): { [key: string]: YamlValue } => {
+    const result: { [key: string]: YamlValue } = {};
+    while (cursor < lines.length && lines[cursor].indent === indent && !lines[cursor].text.startsWith("- ")) {
+      const match = /^([A-Za-z0-9_-]+):(?: (.+))?$/.exec(lines[cursor].text);
+      if (match === null) throw new Error(`unsupported YAML line: ${lines[cursor].text}`);
+      if (match[1] in result) throw new Error(`duplicate YAML key: ${match[1]}`);
+      cursor += 1;
+      if (match[2] !== undefined) {
+        result[match[1]] = scalar(match[2]);
+      } else {
+        if (cursor >= lines.length || lines[cursor].indent <= indent) throw new Error(`empty YAML key: ${match[1]}`);
+        result[match[1]] = block(lines[cursor].indent);
+      }
+    }
+    return result;
+  };
+
+  const sequence = (indent: number): YamlValue[] => {
+    const result: YamlValue[] = [];
+    while (cursor < lines.length && lines[cursor].indent === indent && lines[cursor].text.startsWith("- ")) {
+      const item = lines[cursor].text.slice(2);
+      if (/^[A-Za-z0-9_-]+:( |$)/.test(item)) {
+        lines[cursor] = { indent: indent + 2, text: item };
+        result.push(mapping(indent + 2));
+      } else {
+        result.push(scalar(item));
+        cursor += 1;
+      }
+    }
+    return result;
+  };
+
+  const document = mapping(0);
+  if (cursor !== lines.length) throw new Error(`unparsed YAML line: ${lines[cursor].text}`);
+  return document;
+}
+
+interface PolicyRule {
+  endpoints: Array<{ host: string; port: number; access?: string }>;
+  binaries: Array<{ path: string }>;
+}
+
+interface OpenShellPolicy {
+  process: { run_as_user: string; run_as_group: string };
+  network_policies: Record<string, PolicyRule>;
+}
+
+const NODE_BINARY = "/usr/local/bin/node";
+const CLAUDE_BINARY_GLOB = "/home/sandbox/.local/lib/node_modules/@anthropic-ai/claude-code/bin/*";
+
+describe("the canonical OpenShell policy", () => {
+  const policy = parseBlockYaml(openshellPolicy) as unknown as OpenShellPolicy;
+  const rules = policy.network_policies;
+  const binaries = (name: string): string[] => rules[name].binaries.map((binary) => binary.path);
+  const hosts = (name: string): string[] => rules[name].endpoints.map((endpoint) => endpoint.host);
+
+  it("runs the workload as the sandbox user and group", () => {
+    expect(policy.process).toEqual({ run_as_user: "sandbox", run_as_group: "sandbox" });
+  });
+
+  it("holds exactly the github, npm and anthropic rules, each with hosts and binaries", () => {
+    expect(Object.keys(rules).sort()).toEqual(["anthropic", "github", "npm"]);
+    for (const name of Object.keys(rules)) {
+      expect(hosts(name).length).toBeGreaterThan(0);
+      expect(binaries(name).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("lets git, gh and curl push over HTTPS and fetch the herdr release asset", () => {
+    expect(binaries("github")).toEqual(["/usr/bin/git", "/usr/bin/gh", "/usr/bin/curl"]);
+    expect(hosts("github")).toEqual(["github.com", "api.github.com", "release-assets.githubusercontent.com"]);
+    const gitHost = rules.github.endpoints.find((endpoint) => endpoint.host === "github.com");
+    expect(gitHost?.access).toBe("read-write");
+  });
+
+  it("gives node read-only npm registry access", () => {
+    expect(binaries("npm")).toEqual([NODE_BINARY]);
+    expect(rules.npm.endpoints.every((endpoint) => endpoint.access === "read-only")).toBe(true);
+  });
+
+  it("gives only the Claude Code native binary Anthropic access", () => {
+    expect(binaries("anthropic")).toEqual([CLAUDE_BINARY_GLOB]);
+    expect(hosts("anthropic")).toContain("api.anthropic.com");
+  });
+
+  it("lists node in no rule except npm", () => {
+    const rulesWithNode = Object.keys(rules).filter((name) => binaries(name).includes(NODE_BINARY));
+    expect(rulesWithNode).toEqual(["npm"]);
+  });
+
+  it("materialises the policy into an openshell entry and writes no compose file", () => {
+    registry();
+    const root = entryRoot("shell-box");
+    mkdirSync(root, { recursive: true });
+    writeFileSync(join(root, "agro.json"), `${JSON.stringify({ version: 1, name: "shell-box", runtime: "openshell" })}\n`);
+    materialize(root);
+    expect(readFileSync(join(root, "openshell-policy.yaml"), "utf8")).toBe(openshellPolicy);
+    expect(existsSync(join(root, ".devcontainer"))).toBe(false);
+    expect(readdirSync(root).sort()).toEqual(["agro.json", "openshell-policy.yaml"]);
+  });
+
+  it("writes no policy into a docker entry", () => {
+    registry();
+    const root = entryRoot("docker-box");
+    mkdirSync(root, { recursive: true });
+    writeFileSync(join(root, "agro.json"), `${JSON.stringify({ version: 1, name: "docker-box", runtime: "docker" })}\n`);
+    materialize(root);
+    expect(existsSync(join(root, "openshell-policy.yaml"))).toBe(false);
+    expect(existsSync(join(root, ".devcontainer", "docker-compose.yml"))).toBe(true);
   });
 });
