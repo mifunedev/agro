@@ -109,8 +109,8 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated by fast-forward (cd57f673, eb96168d). Advisor re-ran: full `pnpm exec vitest run` exit 0 (82 files, 1865 tests); typecheck exit 0; config-schema-parity.sh exit 0; execution-target-contract.sh exit 0; argv grep lists only openshell-target.ts. Built CLI: `agro sandbox --help` prints `openshell     provisionable` (C2 executed); `agro sandbox install openshell --name acc --yes --print-argv` exit 0 and prints the US-003 create argv (C7 executed). C3-C6, C8, C9 executed by unit tests (ENOENT hint, disconnected gateway, refusals for --checkout/--home-mount/build mode, no prompts, entry written with runtime openshell and image mode, failed create exits with its code and removes the new entry). C10 docs/configuration.md lists openshell. Worker also: SANDBOX_RUNTIMES computed from provisionable catalog entries; one typed entryRuntime() replaces the raw reads in registry.ts and execution/index.ts; agro-config.test.ts expected values updated with advisor approval. Known: entryRuntime() falls back to docker on an unreadable agro.json.",
       "dependsOn": [
         "US-002",
         "US-003"
@@ -123,7 +123,8 @@
         "docs/configuration.md",
         ".agro/cli/src/__tests__/sandbox.test.ts",
         ".agro/cli/src/__tests__/tool-catalog.test.ts"
-      ]
+      ],
+      "commit": "eb96168d"
     },
     {
       "id": "US-005",
