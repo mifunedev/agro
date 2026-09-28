@@ -87,8 +87,8 @@
         "Verify in browser using agent-browser skill."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: annotate-screenshot.test.sh exit 0 (red: exit 1 with 7 FAILs before the script); two selectors -> PNG non-empty, Callouts line printed, DOM holds 0 [data-agro-callout]; missing selector exits 1, names it, writes no PNG; pr-manual-review.sh exit 0. executed (browser): advisor viewed the annotated fixture PNG; callout 1 outlines the heading, callout 2 outlines \"Baseline 12:04\". SKILL.md ### Annotated screenshots and manual-review.md step 4 name the script.",
       "dependsOn": [
         "US-003"
       ],
@@ -97,7 +97,8 @@
         ".agro/skills/agent-browser/scripts/tests/annotate-screenshot.test.sh",
         ".agro/skills/agent-browser/SKILL.md",
         ".agro/skills/git/references/manual-review.md"
-      ]
+      ],
+      "commit": "a29631ef"
     },
     {
       "id": "US-005",
@@ -110,11 +111,12 @@
         "Each repaired image URL loads in a signed-in browser session and shows an image, not a 404 page."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: #185 32 links and #197 3 links now use blob/<sha>/; advisor re-fetch shows 0 branch refs on each; manual-review-check.sh reports no SHA findings (Callouts findings expected by operator decision: 13 and 2). executed: gh api contents at each SHA resolves all 24 image paths. reasoned: signed-in browser check not possible from the sandbox; signed-out agent-browser shows GitHub 404 as a private repo does. Backups in the session scratchpad.",
       "dependsOn": [
         "US-003"
-      ]
+      ],
+      "commit": "n/a (PR body edits)"
     },
     {
       "id": "US-006",
