@@ -11,10 +11,6 @@
 </p>
 
 <p align="center">
-  <a href="https://codespaces.new/mifunedev/agro?quickstart=1"><img alt="Open in GitHub Codespaces" src="https://github.com/codespaces/badge.svg"></a>
-</p>
-
-<p align="center">
   <img src=".github/assets/mifune-banner.jpg" alt="AGRO" width="100%">
 </p>
 
@@ -25,6 +21,10 @@ Develop on your laptop or a remote VM. Install tools and harnesses on demand, or
 Start with the quickstart below. See the [documentation](docs/README.md) for more guidance.
 
 ## 📦 Quickstart
+
+### Try AGRO in GitHub Codespaces
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/mifunedev/agro?quickstart=1)
 
 AGRO runs one project in one Docker sandbox, and **`agro` is the only
 front door**. Host prerequisites: Docker (with the Compose plugin), Git, and
