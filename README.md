@@ -22,6 +22,10 @@ Start with the quickstart below. See the [documentation](docs/README.md) for mor
 
 ## 📦 Quickstart
 
+### Try AGRO in GitHub Codespaces
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/mifunedev/agro?quickstart=1)
+
 AGRO runs one project in one Docker sandbox, and **`agro` is the only
 front door**. Host prerequisites: Docker (with the Compose plugin), Git, and
 Node.js ≥ 20.

@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Add a GitHub Codespaces badge under Quickstart in the README to open AGRO in Codespaces ([#1259](https://github.com/mifunedev/agro/issues/1259)).
+
 ## [0.16.0] - 2026-09-28
 
 ### Added
