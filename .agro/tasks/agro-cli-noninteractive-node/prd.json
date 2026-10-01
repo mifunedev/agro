@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1262-agro-cli-noninteractive-node",
+  "description": "Run the agro CLI in non-interactive shells after an nvm Node install. Register entry `C9` in `.agro/tasks/microvm-validation/prd.md` records the defect. The evidence comes from the exe.dev `exeuntu` image and from two agro-console `n4` nodes with agro 0.15.0 and 0.16.0.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "get-agro.sh pins the nvm Node in the installed CLI",
+      "description": "As an operator who installs AGRO on a host with no Node, I want `~/.local/bin/agro` to run in any shell. Cron jobs, systemd units, cloud-init, and plain `ssh` commands run the CLI with no nvm setup.",
+      "acceptanceCriteria": [
+        "A new case in `.agro/scripts/__tests__/get-agro.test.ts` runs `get-agro.sh --yes` with a `PATH` that holds no `node` and with a fake `NVM_DIR` whose `nvm.sh` installs a fake Node 22. The case fails before the change.",
+        "After the change, that case shows `~/.local/share/agro/node` as a symbolic link to the Node binary that `nvm which 22` prints.",
+        "After the change, the first line of the installed `agro` file is `#!<HOME>/.local/share/agro/node`.",
+        "After the change, `env -i HOME=<HOME> PATH=/usr/bin:/bin <HOME>/.local/bin/agro --version` exits 0 in that case.",
+        "A new case runs `get-agro.sh --yes` a second time with the fake nvm `node` on `PATH`. After the second run, the first line of the installed `agro` file is `#!<HOME>/.local/share/agro/node`.",
+        "A new case runs `get-agro.sh --yes` with `AGRO_BIN_DIR` outside `HOME` and the fake nvm `node`. The output holds one warning that names the install directory and `<HOME>/.local/share/agro/node`.",
+        "When the `node` on `PATH` is outside `$NVM_DIR`, the installed `agro` file equals the release `agro.js` byte for byte. An existing end-to-end case covers this path and still passes."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/scripts/get-agro.sh",
+        ".agro/scripts/__tests__/get-agro.test.ts"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "agro update keeps a pinned Node shebang",
+      "description": "As an operator with a pinned Node shebang, I want `agro update` to keep the pinned first line. An update then does not bring back the non-interactive failure.",
+      "acceptanceCriteria": [
+        "A new case in `.agro/cli/src/__tests__/self-upgrade.test.ts` starts from a target whose first line is `#!/abs/path/node`. After the update, the first line of the target is `#!/abs/path/node`, and the rest of the target equals the downloaded artifact after its first line.",
+        "A new case starts from a target whose first line is `#!/usr/bin/env node`. After the update, the target equals the downloaded artifact byte for byte.",
+        "The existing cases in `self-upgrade.test.ts` pass."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/commands/self-upgrade.ts",
+        ".agro/cli/src/__tests__/self-upgrade.test.ts"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Document the non-interactive behavior",
+      "description": "As an operator, I want the install documentation to state which shells find `agro` so that I write cron jobs and units that work.",
+      "acceptanceCriteria": [
+        "`docs/installation.md` states that `get-agro.sh` links the nvm Node to `~/.local/share/agro/node` and pins the `agro` shebang to that link.",
+        "`docs/installation.md` states that a non-interactive shell runs `~/.local/bin/agro` by its absolute path, and that a login shell finds `agro` on `PATH`.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh docs/installation.md` exits 0."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        "docs/installation.md",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Manual review evidence on a fresh VM",
+      "description": "As the advisor, I want a transcript from a VM with no Node so that the review has evidence from a real host.",
+      "acceptanceCriteria": [
+        "With operator approval, the advisor creates one exe.dev VM from the default `exeuntu` image through `.agro/tasks/microvm-validation/run.sh`.",
+        "The advisor copies the candidate `get-agro.sh` to the VM and runs `bash get-agro.sh --yes` there.",
+        "`ssh <vm> '~/.local/bin/agro --version'` prints the release version and exits 0.",
+        "`ssh <vm> 'bash -lc \"agro --version\"'` prints the release version and exits 0.",
+        "`.agro/tasks/agro-cli-noninteractive-node/evidence/manual-review.md` holds the commands, the outputs, and the VM removal output."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".agro/tasks/agro-cli-noninteractive-node/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
