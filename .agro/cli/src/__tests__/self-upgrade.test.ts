@@ -459,6 +459,34 @@ describe("runSelfUpgrade — standalone", () => {
     expect(world.err()).toBe("");
   });
 
+  it("keeps an absolute Node shebang from the current target", async () => {
+    const { dir, target } = standaloneFixture();
+    const pinned = "#!/abs/path/node";
+    writeExecutable(target, bundle(CURRENT, pinned));
+    const artifact = bundle(NEWER);
+    const world = fakeWorld({ artifact: async () => artifact });
+
+    expect(await runSelfUpgrade({ dryRun: false, argv1: target }, world.deps, world.io)).toBe(0);
+
+    const written = readFileSync(target);
+    const firstNewline = artifact.indexOf(0x0a);
+    expect(written.toString("utf8").split("\n")[0]).toBe(pinned);
+    expect(written).toEqual(Buffer.concat([Buffer.from(pinned), artifact.subarray(firstNewline)]));
+    expect(statSync(target).mode & 0o777).toBe(0o755);
+    expect(leftovers(dir)).toEqual([]);
+  });
+
+  it("writes the artifact byte for byte over an env Node shebang", async () => {
+    const { target } = standaloneFixture();
+    writeExecutable(target, bundle(CURRENT, "#!/usr/bin/env node"));
+    const artifact = Buffer.from("#!/usr/bin/env node\r\nAGRO_VERSION=1.1.0\né\n", "utf8");
+    const world = fakeWorld({ artifact: async () => artifact });
+
+    expect(await runSelfUpgrade({ dryRun: false, argv1: target }, world.deps, world.io)).toBe(0);
+
+    expect(readFileSync(target)).toEqual(artifact);
+  });
+
   it("is a no-op when the artifact equals the running version, leaving no temp file", async () => {
     const { dir, target } = standaloneFixture();
     const world = fakeWorld({ artifact: async () => bundle(CURRENT) });
