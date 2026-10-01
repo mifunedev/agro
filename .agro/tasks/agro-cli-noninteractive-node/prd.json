@@ -80,8 +80,8 @@
         "`.agro/tasks/agro-cli-noninteractive-node/evidence/manual-review.md` holds the commands, the outputs, and the VM removal output."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1 executed with a divergence: the advisor created the VM through the exedev adapter in .agro/tasks/microvm-validation/lib.sh (the adapter that run.sh uses), not run.sh itself; operator approved on 2026-10-01. AC2 executed: sha256 of the copied script equals the task-branch file; bash get-agro.sh --yes exit 0. AC3 executed: ssh vm ~/.local/bin/agro --version printed 0.16.0, exit 0. AC4 executed: ssh vm bash -lc \"agro --version\" printed 0.16.0, exit 0. AC5 executed: evidence/manual-review.md holds the transcript and the VM removal output; remaining agro-matrix VMs 0.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -89,7 +89,8 @@
       ],
       "files": [
         ".agro/tasks/agro-cli-noninteractive-node/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "effd85ee"
     }
   ]
 }
