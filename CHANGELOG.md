@@ -34,6 +34,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Fixed
 
+- Pin the `agro` shebang to the nvm Node that `get-agro.sh` installs, so cron, systemd, cloud-init, and plain `ssh` commands run `~/.local/bin/agro` by its absolute path ([#1262](https://github.com/mifunedev/agro/issues/1262)).
 - Pin PR evidence links to the head commit SHA so screenshots still render after the branch is deleted, and drop `### Visual Reference` from the feature issue template ([#1239](https://github.com/mifunedev/agro/issues/1239)).
 - Restore the running container image after a failed upgrade of an unpinned sandbox, or refuse the upgrade if that image cannot be inspected ([#1217](https://github.com/mifunedev/agro/issues/1217)).
 - Record `docker-engine` and `desktop` host installs without a `~/.local` prefix, and make `agro tool uninstall` link manual removal steps for both ([#1185](https://github.com/mifunedev/agro/issues/1185)).

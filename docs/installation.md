@@ -79,6 +79,12 @@ Environment overrides:
 - `AGRO_NVM_VERSION=<tag>`: nvm version for the Node install.
 - `--yes`/`--no`: auto-accept or decline the Node-install prompt.
 
+#### Non-interactive shells
+
+When `node` resolves under `$NVM_DIR`, `get-agro.sh` links that Node binary to `~/.local/share/agro/node`. The script then sets the first line of the installed `agro` file to `#!` and the absolute path of that link. When `node` resolves outside `$NVM_DIR`, the installed `agro` file stays equal to the release file. A system Node at `/usr/bin/node` is an example. When `AGRO_BIN_DIR` is outside `$HOME`, the script prints one warning: the `agro` file in that directory runs with the Node of the installing user.
+
+A login shell reads the `PATH` line that `get-agro.sh` adds to your profile, and finds `agro` on `PATH`. A non-interactive shell does not read the profile. In a cron job, a systemd unit, cloud-init, or a plain `ssh host cmd`, run `~/.local/bin/agro` by its absolute path, for example `/home/<user>/.local/bin/agro --version`. `agro update` keeps the pinned first line.
+
 `agro vendor` is the project-payload command, not a self-upgrade. Use `agro self-upgrade` (or its `agro update` alias) to upgrade the installed CLI.
 
 ## Create the sandbox
