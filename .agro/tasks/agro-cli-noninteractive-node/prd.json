@@ -56,8 +56,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/installation.md` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1 reasoned: docs/installation.md Non-interactive shells subsection states the link to ~/.local/share/agro/node and the pinned first line, matching pin_nvm_node. AC2 reasoned: the subsection states absolute-path use for cron, systemd, cloud-init, and plain ssh, and PATH lookup in a login shell. AC3 executed: bash .agro/skills/ste/scripts/ste-check.sh docs/installation.md exit 0 on the task branch. Changelog: .agro/evals/probes/changelog-entry-length.sh PASS.",
       "dependsOn": [
         "US-001",
         "US-002"
@@ -65,7 +65,8 @@
       "files": [
         "docs/installation.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "39cee711"
     },
     {
       "id": "US-004",
