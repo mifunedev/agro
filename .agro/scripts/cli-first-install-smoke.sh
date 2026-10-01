@@ -246,9 +246,7 @@ phase_bootstrap() {
   HOME="$home" AGRO_BIN_DIR="$bin_dir" AGRO_JS_URL="$url" AGRO_ASSUME_YES=1 \
     bash "$GET_AGRO" --yes
   [ -x "$bin_dir/agro" ] || die "get-agro.sh did not install $bin_dir/agro"
-  if ! cmp -s "$BUNDLE" "$bin_dir/agro"; then
-    die "installed agro is not the candidate bundle"
-  fi
+  verify_installed_bundle "$home" "$bin_dir/agro"
   local login_out
   login_out=$(HOME="$home" bash -lc '
     [ -f "$HOME/.profile" ] && . "$HOME/.profile"
@@ -264,6 +262,22 @@ phase_bootstrap() {
   ')
   echo "bootstrap_agro=$bin_dir/agro"
   printf '%s\n' "$login_out"
+}
+
+verify_installed_bundle() {
+  local home="$1" installed="$2"
+  local node_link="$home/.local/share/agro/node"
+  if [ "$(head -n1 "$installed")" != "#!$node_link" ]; then
+    cmp -s "$BUNDLE" "$installed" || die "installed agro is not the candidate bundle"
+    return 0
+  fi
+  [ -L "$node_link" ] || die "pinned Node $node_link is not a symlink"
+  [ -x "$node_link" ] || die "pinned Node $node_link does not resolve to an executable node"
+  cmp -s <(tail -n +2 "$BUNDLE") <(tail -n +2 "$installed") \
+    || die "installed agro is not the candidate bundle after the pinned shebang"
+  env -i HOME="$home" PATH=/usr/bin:/bin "$installed" --version >/dev/null \
+    || die "pinned agro failed: env -i HOME=$home PATH=/usr/bin:/bin $installed --version"
+  echo "pinned_node=$node_link -> $(readlink "$node_link")"
 }
 
 wait_health() {

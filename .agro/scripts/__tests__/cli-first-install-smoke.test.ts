@@ -1,4 +1,14 @@
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readlinkSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -208,6 +218,47 @@ describe("cli-first-install-smoke.sh", () => {
     const result = run(["--phase", "bootstrap", "--bootstrap-without-node"]);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("bootstrap-without-node requires node to be absent");
+  });
+
+  it.each([
+    { nodeUnderNvm: true, pinned: true },
+    { nodeUnderNvm: false, pinned: false },
+  ])("verifies the bootstrap install against the bundle (pinned=$pinned)", ({ nodeUnderNvm, pinned }) => {
+    const dir = mkdtempSync(join(tmpdir(), "cli-first-bootstrap-"));
+    cleanups.push(dir);
+    const bundle = join(dir, "agro.js");
+    writeFileSync(bundle, '#!/usr/bin/env node\nconsole.log("9.9.9")\n');
+    const nvmDir = join(dir, "nvm");
+    const nodeBinDir = join(nvmDir, "versions", "node", "v22.0.0", "bin");
+    mkdirSync(nodeBinDir, { recursive: true });
+    symlinkSync(process.execPath, join(nodeBinDir, "node"));
+    const workdir = join(dir, "work");
+    mkdirSync(workdir);
+    const result = run(
+      ["--phase", "bootstrap", "--workdir", workdir, "--bundle", bundle, "--keep"],
+      { NVM_DIR: nodeUnderNvm ? nvmDir : join(dir, "absent-nvm") },
+      { path: `${nodeBinDir}:${process.env.PATH ?? ""}` },
+    );
+    expect(result.status, result.stderr + result.stdout).toBe(0);
+    expect(result.stdout).toContain("bootstrap_version=9.9.9");
+    const home = join(workdir, "bootstrap-home");
+    const link = join(home, ".local", "share", "agro", "node");
+    const installed = readFileSync(join(home, ".local", "bin", "agro"), "utf8");
+    if (pinned) {
+      expect(installed.split("\n")[0]).toBe(`#!${link}`);
+      expect(readlinkSync(link)).toBe(join(nodeBinDir, "node"));
+      expect(result.stdout).toContain(`pinned_node=${link}`);
+    } else {
+      expect(installed).toBe(readFileSync(bundle, "utf8"));
+      expect(result.stdout).not.toContain("pinned_node=");
+    }
+  });
+
+  it("checks the pinned shebang, the bundle body, and an env -i run", () => {
+    const source = readFileSync(SCRIPT, "utf8");
+    expect(source).toContain('cmp -s "$BUNDLE" "$installed"');
+    expect(source).toContain('cmp -s <(tail -n +2 "$BUNDLE") <(tail -n +2 "$installed")');
+    expect(source).toContain('env -i HOME="$home" PATH=/usr/bin:/bin "$installed" --version');
   });
 
   it("provisions through agro with an explicit candidate image and isolated home", () => {
