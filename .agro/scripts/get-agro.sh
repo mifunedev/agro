@@ -147,6 +147,27 @@ ensure_node() {
   ok "Node.js $(node --version) — OK"
 }
 
+pin_nvm_node() {
+  local node_path nvm_dir node_link
+  nvm_dir="${NVM_DIR:-$HOME/.nvm}"
+  nvm_dir="${nvm_dir%/}"
+  node_path="$(command -v node)"
+  case "$node_path" in
+    "$nvm_dir"/*) ;;
+    *) return 0 ;;
+  esac
+  node_link="$HOME/.local/share/agro/node"
+  mkdir -p "$(dirname "$node_link")"
+  ln -sfn "$node_path" "$node_link"
+  { printf '#!%s\n' "$node_link"; tail -n +2 "$TMP/agro.js"; } > "$TMP/agro.pinned"
+  mv "$TMP/agro.pinned" "$TMP/agro.js"
+  ok "Pinned the 'agro' shebang to $node_link -> $node_path"
+  case "$AGRO_BIN_DIR" in
+    "$HOME"/*) ;;
+    *) warn "$AGRO_BIN_DIR is outside $HOME: the 'agro' CLI there runs with the Node of the installing user through $node_link" ;;
+  esac
+}
+
 printf "\n${CYAN}╔══════════════════════════════════════╗${NC}\n"
 printf "${CYAN}║       AGRO — install 'agro' CLI      ║${NC}\n"
 printf "${CYAN}╚══════════════════════════════════════╝${NC}\n\n"
@@ -166,6 +187,7 @@ ok "Downloaded prebuilt 'agro' from $AGRO_JS_URL"
 
 banner "Installing 'agro' to $AGRO_BIN_DIR/agro"
 mkdir -p "$AGRO_BIN_DIR"
+pin_nvm_node
 install -m 0755 "$TMP/agro.js" "$AGRO_BIN_DIR/agro"
 ok "Installed $AGRO_BIN_DIR/agro"
 

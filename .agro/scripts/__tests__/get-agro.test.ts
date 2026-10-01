@@ -1,6 +1,17 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readlinkSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -200,6 +211,136 @@ describe("get-agro.sh end to end", () => {
     expect(result.status, result.stderr).toBe(0);
     expect(readFileSync(h.profile, "utf8")).toBe("# existing profile\n");
     expect(result.stdout).not.toContain("ACTION REQUIRED");
+  });
+});
+
+const INSTALLER_TOOLS = [
+  "bash",
+  "sh",
+  "curl",
+  "mktemp",
+  "rm",
+  "cut",
+  "head",
+  "tail",
+  "grep",
+  "mkdir",
+  "install",
+  "ln",
+  "mv",
+  "dirname",
+  "cat",
+];
+
+function nodelessPath(h: Home): string {
+  const tools = join(h.home, "tools");
+  mkdirSync(tools);
+  for (const tool of INSTALLER_TOOLS) {
+    const found = spawnSync("bash", ["-c", `command -v ${tool}`], { encoding: "utf8" }).stdout.trim();
+    expect(found, `missing tool: ${tool}`).not.toBe("");
+    symlinkSync(found, join(tools, tool));
+  }
+  return tools;
+}
+
+function fakeNvm(h: Home): { nvmDir: string; nodeBin: string } {
+  const nvmDir = join(h.home, ".nvm");
+  mkdirSync(nvmDir);
+  const binDir = join(nvmDir, "versions", "node", "v22.0.0", "bin");
+  const nodeBin = join(binDir, "node");
+  writeFileSync(
+    join(nvmDir, "nvm.sh"),
+    [
+      "nvm() {",
+      '  case "$1 $2" in',
+      `    "install 22") mkdir -p "${binDir}" && ln -sf "${process.execPath}" "${nodeBin}" ;;`,
+      `    "use 22") export PATH="${binDir}:$PATH" ;;`,
+      `    "which 22") printf '%s\\n' "${nodeBin}" ;;`,
+      "    *) return 1 ;;",
+      "  esac",
+      "}",
+      "",
+    ].join("\n"),
+  );
+  return { nvmDir, nodeBin };
+}
+
+function nvmWhich(nvmDir: string, tools: string): string {
+  return spawnSync("bash", ["-c", `. "${nvmDir}/nvm.sh" && nvm which 22`], {
+    encoding: "utf8",
+    env: { HOME: tmpdir(), PATH: tools },
+  }).stdout.trim();
+}
+
+describe("get-agro.sh nvm Node pin", () => {
+  it("links the nvm Node and pins the installed shebang when no node is on PATH", () => {
+    const h = makeHome();
+    const tools = nodelessPath(h);
+    const { nvmDir } = fakeNvm(h);
+    const result = install(h, {
+      PATH: tools,
+      NVM_DIR: nvmDir,
+      AGRO_JS_URL: `file://${h.artifact}`,
+      ASSUME_YES: "true",
+    });
+    expect(result.status, result.stderr).toBe(0);
+
+    const link = join(h.home, ".local", "share", "agro", "node");
+    expect(lstatSync(link).isSymbolicLink()).toBe(true);
+    expect(readlinkSync(link)).toBe(nvmWhich(nvmDir, tools));
+
+    const installed = join(h.home, ".local", "bin", "agro");
+    const content = readFileSync(installed, "utf8");
+    expect(content.split("\n")[0]).toBe(`#!${link}`);
+    expect(content.slice(content.indexOf("\n"))).toBe(FAKE_ARTIFACT.slice(FAKE_ARTIFACT.indexOf("\n")));
+
+    const version = spawnSync("env", ["-i", `HOME=${h.home}`, "PATH=/usr/bin:/bin", installed, "--version"], {
+      encoding: "utf8",
+    });
+    expect(version.status, version.stderr).toBe(0);
+    expect(version.stdout.trim()).toBe("9.9.9");
+  });
+
+  it("keeps the pinned shebang on a second run with the nvm node on PATH", () => {
+    const h = makeHome();
+    const tools = nodelessPath(h);
+    const { nvmDir, nodeBin } = fakeNvm(h);
+    const env = { NVM_DIR: nvmDir, AGRO_JS_URL: `file://${h.artifact}` };
+    expect(install(h, { ...env, PATH: tools, ASSUME_YES: "true" }).status).toBe(0);
+    const second = install(h, { ...env, PATH: `${join(nodeBin, "..")}:${tools}` });
+    expect(second.status, second.stderr).toBe(0);
+    expect(second.stdout).not.toContain("Installing nvm");
+    const link = join(h.home, ".local", "share", "agro", "node");
+    expect(readFileSync(join(h.home, ".local", "bin", "agro"), "utf8").split("\n")[0]).toBe(`#!${link}`);
+    expect(readlinkSync(link)).toBe(nodeBin);
+  });
+
+  it("warns once when AGRO_BIN_DIR is outside HOME and the shebang is pinned", () => {
+    const h = makeHome();
+    const tools = nodelessPath(h);
+    const { nodeBin, nvmDir } = fakeNvm(h);
+    const outside = mkdtempSync(join(tmpdir(), "get-agro-bin-"));
+    cleanups.push(outside);
+    const env = { NVM_DIR: nvmDir, AGRO_JS_URL: `file://${h.artifact}`, ASSUME_YES: "true" };
+    expect(install(h, { ...env, PATH: tools }).status).toBe(0);
+    const result = install(h, { ...env, PATH: `${join(nodeBin, "..")}:${tools}`, AGRO_BIN_DIR: outside });
+    expect(result.status, result.stderr).toBe(0);
+    const link = join(h.home, ".local", "share", "agro", "node");
+    const warnings = (result.stdout + result.stderr).split("\n").filter((line) => line.includes("WARN:"));
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain(outside);
+    expect(warnings[0]).toContain(link);
+    expect(readFileSync(join(outside, "agro"), "utf8").split("\n")[0]).toBe(`#!${link}`);
+  });
+
+  it("leaves the release file unchanged when node resolves outside NVM_DIR", () => {
+    const h = makeHome();
+    const { nvmDir } = fakeNvm(h);
+    const binDir = join(h.home, "bin");
+    const result = install(h, { NVM_DIR: nvmDir, AGRO_BIN_DIR: binDir, AGRO_JS_URL: `file://${h.artifact}` });
+    expect(result.status, result.stderr).toBe(0);
+    expect(readFileSync(join(binDir, "agro"), "utf8")).toBe(FAKE_ARTIFACT);
+    expect(existsSync(join(h.home, ".local", "share", "agro", "node"))).toBe(false);
   });
 });
 
