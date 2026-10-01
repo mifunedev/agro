@@ -36,13 +36,14 @@
         "The existing cases in `self-upgrade.test.ts` pass."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1 executed: npx vitest run .agro/cli/src/__tests__/self-upgrade.test.ts exit 0 (48/48) on the task branch; worker red run failed before the fix with the release shebang in place of #!/abs/path/node (reasoned from worker report). AC2 executed: same run, the byte-for-byte case passes. AC3 executed: same run 48/48; pnpm run typecheck exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/commands/self-upgrade.ts",
         ".agro/cli/src/__tests__/self-upgrade.test.ts"
-      ]
+      ],
+      "commit": "b6dcd6a6"
     },
     {
       "id": "US-003",
