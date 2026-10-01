@@ -18,13 +18,14 @@
         "When the `node` on `PATH` is outside `$NVM_DIR`, the installed `agro` file equals the release `agro.js` byte for byte. An existing end-to-end case covers this path and still passes."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1 executed: pnpm vitest run .agro/scripts/__tests__/get-agro.test.ts exit 0 (17/17) on the task branch; worker red run showed 3 failed before the change (ENOENT on the link, release shebang kept, no warning) (reasoned from worker report). AC2-AC4 executed: same run, link equals nvm which 22 target, pinned first line, agro --version under a minimal PATH exits 0. AC5 executed: second-run case passes. AC6 executed: outside-HOME case shows one WARN line. AC7 executed: node-outside-NVM_DIR case byte-equal; existing end-to-end cases pass; bash -n exit 0. Shellcheck not installed: not run.",
       "dependsOn": [],
       "files": [
         ".agro/scripts/get-agro.sh",
         ".agro/scripts/__tests__/get-agro.test.ts"
-      ]
+      ],
+      "commit": "5dd8d243"
     },
     {
       "id": "US-002",
