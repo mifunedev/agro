@@ -3,6 +3,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { runSecretSet } from "../../cli/src/commands/secret.js";
 
 const ROOT = join(import.meta.dirname, "../../..");
 const GATEWAY = join(ROOT, ".agro/scripts/gateway.sh");
@@ -53,99 +54,132 @@ describe("gateway client-session launcher", () => {
   });
 });
 
+interface PiFixture {
+  harness: string;
+  home: string;
+  bin: string;
+  tmuxArgs: string;
+  piEnv: string;
+  pwned: string;
+}
+
+function piFixture(): PiFixture {
+  const temp = mkdtempSync(join(tmpdir(), "gateway-pi-"));
+  const fixture: PiFixture = {
+    harness: join(temp, "harness"),
+    home: join(temp, "home"),
+    bin: join(temp, "bin"),
+    tmuxArgs: join(temp, "tmux-args.txt"),
+    piEnv: join(temp, "pi-env.txt"),
+    pwned: join(temp, "pwned"),
+  };
+  const { harness, home, bin } = fixture;
+  mkdirSync(join(harness, ".devcontainer"), { recursive: true });
+  mkdirSync(join(harness, ".agro", "scripts"), { recursive: true });
+  mkdirSync(join(harness, ".pi"), { recursive: true });
+  mkdirSync(home, { recursive: true });
+  mkdirSync(bin);
+
+  writeFileSync(
+    join(harness, ".pi", "msg-bridge.json"),
+    JSON.stringify({ autoConnect: true, auth: { trustedUsers: [] } }),
+  );
+  cpSync(
+    join(ROOT, ".devcontainer/seed-msg-bridge.sh"),
+    join(harness, ".devcontainer/seed-msg-bridge.sh"),
+  );
+  writeFileSync(
+    join(bin, "tmux"),
+    [
+      "#!/usr/bin/env bash",
+      'case "$1" in',
+      "  ls) exit 0 ;;",
+      "  has-session) exit 1 ;;",
+      "  pipe-pane) exit 0 ;;",
+      "  kill-session) exit 0 ;;",
+      "esac",
+      "printf '%s\\n' \"$@\" > \"$TMUX_ARGS_FILE\"",
+      "",
+    ].join("\n"),
+    { mode: 0o755 },
+  );
+  writeFileSync(
+    join(bin, "pi"),
+    `#!/usr/bin/env bash\nprintf 'PI_SLACK_APP_TOKEN=%s\nPI_SLACK_BOT_TOKEN=%s\n' "$PI_SLACK_APP_TOKEN" "$PI_SLACK_BOT_TOKEN" > "$PI_ENV_FILE"\n`,
+    { mode: 0o755 },
+  );
+  writeFileSync(join(bin, "npm"), "#!/usr/bin/env bash\nexit 0\n", { mode: 0o755 });
+  writeFileSync(
+    join(harness, ".devcontainer", "client-slack-supervise.sh"),
+    '#!/usr/bin/env bash\nexec pi --extension "${BRIDGE_ENTRY:-x}" --extension "${RECOVERY_ENTRY:-y}" --approve\n',
+    { mode: 0o755 },
+  );
+  return fixture;
+}
+
+function launchPi({ harness, home, bin, tmuxArgs, piEnv, pwned }: PiFixture): string {
+  const env = { ...process.env };
+  delete env.PI_SLACK_APP_TOKEN;
+  delete env.PI_SLACK_BOT_TOKEN;
+  const path = `${bin}:${process.env.PATH ?? ""}`;
+
+  execFileSync("bash", [GATEWAY, "pi"], {
+    env: {
+      ...env,
+      HOME: home,
+      HARNESS: harness,
+      PATH: path,
+      TMUX_ARGS_FILE: tmuxArgs,
+      PI_ENV_FILE: piEnv,
+      PWNED: pwned,
+    },
+  });
+
+  const tmuxLines = readFileSync(tmuxArgs, "utf8").trim().split("\n");
+  const tmuxCommand = tmuxLines[tmuxLines.length - 1] ?? "";
+  execFileSync("bash", ["-c", tmuxCommand], {
+    env: { ...env, HOME: harness, PATH: path, PI_ENV_FILE: piEnv, PWNED: pwned },
+  });
+  return tmuxCommand;
+}
+
 describe("gateway pi: launches client-slack-pi handling tokens as data", () => {
   it("hands the PI_SLACK_* tokens to the supervisor as data — never evaluates them", () => {
-    const temp = mkdtempSync(join(tmpdir(), "gateway-pi-"));
-    const harness = join(temp, "harness");
-    const home = join(temp, "home");
-    const bin = join(temp, "bin");
-    const tmuxArgs = join(temp, "tmux-args.txt");
-    const piEnv = join(temp, "pi-env.txt");
-    const pwned = join(temp, "pwned");
-    mkdirSync(join(harness, ".devcontainer"), { recursive: true });
-    mkdirSync(join(harness, ".pi"), { recursive: true });
-    mkdirSync(home, { recursive: true });
-    mkdirSync(bin);
-
+    const fixture = piFixture();
     writeFileSync(
-      join(harness, ".devcontainer", ".env"),
+      join(fixture.harness, ".devcontainer", ".env"),
       ["PI_SLACK_APP_TOKEN=xapp token; touch $PWNED", "PI_SLACK_BOT_TOKEN=xoxb'quoted"].join("\n"),
     );
-    writeFileSync(
-      join(harness, ".pi", "msg-bridge.json"),
-      JSON.stringify({ autoConnect: true, auth: { trustedUsers: [] } }),
-    );
-    cpSync(
-      join(ROOT, ".devcontainer/seed-msg-bridge.sh"),
-      join(harness, ".devcontainer/seed-msg-bridge.sh"),
-    );
-    writeFileSync(
-      join(bin, "tmux"),
-      [
-        "#!/usr/bin/env bash",
-        'case "$1" in',
-        "  ls) exit 0 ;;",
-        "  has-session) exit 1 ;;",
-        "  pipe-pane) exit 0 ;;",
-        "  kill-session) exit 0 ;;",
-        "esac",
-        "printf '%s\\n' \"$@\" > \"$TMUX_ARGS_FILE\"",
-        "",
-      ].join("\n"),
-      { mode: 0o755 },
-    );
-    writeFileSync(
-      join(bin, "pi"),
-      `#!/usr/bin/env bash\nprintf 'PI_SLACK_APP_TOKEN=%s\nPI_SLACK_BOT_TOKEN=%s\n' "$PI_SLACK_APP_TOKEN" "$PI_SLACK_BOT_TOKEN" > "$PI_ENV_FILE"\n`,
-      { mode: 0o755 },
-    );
-    writeFileSync(join(bin, "npm"), "#!/usr/bin/env bash\nexit 0\n", { mode: 0o755 });
-    writeFileSync(
-      join(harness, ".devcontainer", "client-slack-supervise.sh"),
-      '#!/usr/bin/env bash\nexec pi --extension "${BRIDGE_ENTRY:-x}" --extension "${RECOVERY_ENTRY:-y}" --approve\n',
-      { mode: 0o755 },
-    );
 
-    const env = { ...process.env };
-    delete env.PI_SLACK_APP_TOKEN;
-    delete env.PI_SLACK_BOT_TOKEN;
-
-    execFileSync("bash", [GATEWAY, "pi"], {
-      env: {
-        ...env,
-        HOME: home,
-        HARNESS: harness,
-        PATH: `${bin}:${process.env.PATH ?? ""}`,
-        TMUX_ARGS_FILE: tmuxArgs,
-        PI_ENV_FILE: piEnv,
-        PWNED: pwned,
-      },
-    });
-
-    const tmuxLines = readFileSync(tmuxArgs, "utf8").trim().split("\n");
-    const tmuxCommand = tmuxLines[tmuxLines.length - 1] ?? "";
+    const tmuxCommand = launchPi(fixture);
     expect(tmuxCommand).toContain("bash -c");
     expect(tmuxCommand).toContain("client-slack-supervise.sh");
     expect(tmuxCommand).not.toContain("xapp token; touch $PWNED");
     expect(tmuxCommand).not.toContain("xoxb'quoted");
 
-    execFileSync("bash", ["-c", tmuxCommand], {
-      env: {
-        ...env,
-        HOME: harness,
-        PATH: `${bin}:${process.env.PATH ?? ""}`,
-        PI_ENV_FILE: piEnv,
-        PWNED: pwned,
-      },
-    });
-
-    expect(readFileSync(piEnv, "utf8")).toBe(
+    expect(readFileSync(fixture.piEnv, "utf8")).toBe(
       ["PI_SLACK_APP_TOKEN=xapp token; touch $PWNED", "PI_SLACK_BOT_TOKEN=xoxb'quoted", ""].join("\n"),
     );
-    expect(existsSync(pwned)).toBe(false);
+    expect(existsSync(fixture.pwned)).toBe(false);
 
-    const seeded = join(home, ".pi/msg-bridge.json");
+    const seeded = join(fixture.home, ".pi/msg-bridge.json");
     expect(existsSync(seeded)).toBe(true);
     expect(readFileSync(seeded, "utf8")).toContain("autoConnect");
+  });
+
+  it("reads the tokens `agro secret set` writes when .devcontainer/.env is absent", async () => {
+    const fixture = piFixture();
+    const values = { PI_SLACK_APP_TOKEN: "xapp-test", PI_SLACK_BOT_TOKEN: "xoxb-test" };
+    for (const [key, value] of Object.entries(values)) {
+      const io = { stdout: () => {}, stderr: () => {}, askSecret: async () => value };
+      expect(await runSecretSet(key, { bin: "agro", cwd: fixture.harness }, io)).toBe(0);
+    }
+    expect(existsSync(join(fixture.harness, ".devcontainer", ".env"))).toBe(false);
+
+    launchPi(fixture);
+
+    expect(readFileSync(fixture.piEnv, "utf8")).toBe(
+      ["PI_SLACK_APP_TOKEN=xapp-test", "PI_SLACK_BOT_TOKEN=xoxb-test", ""].join("\n"),
+    );
   });
 });

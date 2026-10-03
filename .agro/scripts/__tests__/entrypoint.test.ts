@@ -253,6 +253,10 @@ describe("devcontainer entrypoint Slack restore (delegates to gateway.sh)", () =
     expect(text).toContain('\\"$CONTROL_DIR\\"/scripts/gateway.sh pi');
   });
 
+  it("reads the tokens from the env file `agro secret set` writes", () => {
+    expect(entrypoint()).toContain('SLACK_ENV="$(agro_env_file "$HARNESS")"');
+  });
+
   it("reads token presence with grep — never sources the Compose env file", () => {
     const text = entrypoint();
     expect(text).not.toContain("source $SLACK_ENV");

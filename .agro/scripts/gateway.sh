@@ -3,7 +3,9 @@
 set -u
 
 HARNESS="${HARNESS:-${AGRO_PROJECT_ROOT:-/home/sandbox/harness}}"
-SLACK_ENV="$HARNESS/.devcontainer/.env"
+# shellcheck source=paths.sh
+. "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/paths.sh"
+SLACK_ENV="$(agro_env_file "$HARNESS")"
 FORK_PIN="github:ryaneggz/pi-messenger-bridge#c8b96e9d0fb69611c4e67ae298d1d10d83792a26"
 
 usage() {

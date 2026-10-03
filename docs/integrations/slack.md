@@ -53,20 +53,17 @@ interchangeable.
 
 ## 4. Store the tokens
 
-Inside the sandbox, add both tokens to `/home/sandbox/harness/.devcontainer/.env`
-in `KEY=value` form, with no `export`:
+Inside the sandbox, run `agro secret set` for each token. Each command prompts
+for the value and hides the input:
 
-```text
-PI_SLACK_APP_TOKEN=xapp-...
-PI_SLACK_BOT_TOKEN=xoxb-...
+```bash
+agro secret set PI_SLACK_APP_TOKEN    # the xapp- token
+agro secret set PI_SLACK_BOT_TOKEN    # the xoxb- token
 ```
 
-`PI_SLACK_APP_TOKEN` holds the `xapp-` token. `PI_SLACK_BOT_TOKEN` holds the
-`xoxb-` token. Git ignores the file.
-
-`agro gateway pi` reads both tokens from that file when the tokens are not already in
-its environment. You do not source the file yourself. At boot, the entrypoint
-starts `client-slack-pi` when the file holds both tokens.
+`agro gateway pi` reads both tokens from the file that `agro secret set` writes.
+At boot, the entrypoint starts `client-slack-pi` when that file holds both
+tokens.
 
 ## 5. Start the gateway
 
@@ -212,8 +209,8 @@ Run these checks in the sandbox, in order.
 |---------|-------|-----|
 | Bot stays silent; you never completed the challenge | The bridge denies unknown users | Read the code with `tmux attach -r -t client-slack-pi` and send the code in Slack, or pre-seed your user ID (section 6) |
 | `/help` or `/trusted` is missing from Slack autocomplete | The app predates the current manifest | Update the app from `.pi/install/slack-manifest.yaml`, then run `agro gateway pi --restart` |
-| `invalid_auth` or `not_authed` in the log | Each token sits in the other variable | Fix `.devcontainer/.env`, then run `agro gateway pi --restart` |
-| `agro gateway status` shows `disconnected (no PI_SLACK token)` | The tokens are missing from `.devcontainer/.env` | Add both tokens, then run `agro gateway pi --restart` |
+| `invalid_auth` or `not_authed` in the log | Each token sits in the other variable | Run `agro secret set` for each token again (section 4), then run `agro gateway pi --restart` |
+| `agro gateway status` shows `disconnected (no PI_SLACK token)` | The tokens are not set | Run `agro secret set` for both tokens (section 4), then run `agro gateway pi --restart` |
 | Bridge connects but never replies | `autoConnect` is not `true` | Set `"autoConnect": true` in `.pi/msg-bridge.json`, then run `agro gateway pi --restart` |
 | Trusted user, channel messages ignored | The bot is not in the channel | In the channel, run `/invite @agro` |
 

@@ -114,7 +114,7 @@ Pi+Slack and T3 Code each run in their own named tmux session per [`.agro/skills
 
 ### Pi+Slack
 
-The Pi agent with the Slack bridge loaded. Configuration is native — edit `.devcontainer/.env` + `.pi/msg-bridge.json` (see [Slack integration](../integrations/slack.md)). The `client-slack-pi` session starts automatically on container boot, or manually with `agro gateway pi`:
+The Pi agent with the Slack bridge loaded. Set the tokens with `agro secret set` and edit `.pi/msg-bridge.json` (see [Slack integration](../integrations/slack.md)). The `client-slack-pi` session starts automatically on container boot, or manually with `agro gateway pi`:
 
 ```bash
 agro gateway status               # show client-slack-pi + client-slack-hermes

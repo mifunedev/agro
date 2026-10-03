@@ -561,7 +561,7 @@ PROJECTS_PATH="$HARNESS/projects"
 CRONS_PATH="$HARNESS/crons"
 mkdir -p "$WORKTREES_PATH" "$PROJECTS_PATH" "$CRONS_PATH"
 ln -sf "$CONTROL_DIR/scripts/gateway.sh" /usr/local/bin/gateway 2>/dev/null || true
-SLACK_ENV="$HARNESS/.devcontainer/.env"
+SLACK_ENV="$(agro_env_file "$HARNESS")"
 if [ -f "$SLACK_ENV" ] \
    && grep -qE '^PI_SLACK_APP_TOKEN=.' "$SLACK_ENV" \
    && grep -qE '^PI_SLACK_BOT_TOKEN=.' "$SLACK_ENV" \

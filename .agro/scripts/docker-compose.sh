@@ -67,8 +67,7 @@ if [ -f "$REPO_DIR/harness.yaml" ] && [ -f "$MIGRATOR" ]; then
   sh "$MIGRATOR" "$REPO_DIR" >&2 || true
 fi
 
-ENV_FILE="$REPO_DIR/.env"
-[ -f "$ENV_FILE" ] || ENV_FILE="$REPO_DIR/.devcontainer/.env"
+ENV_FILE="$(agro_env_file "$REPO_DIR")"
 
 compose_path() {
   case "$1" in
