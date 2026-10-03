@@ -41,8 +41,8 @@
         "The test file proves that both adapters define the five required functions after `lib.sh` loads them."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: vitest remote-sandbox-adapters (exedev five functions + restart + row hooks; R11 200/302/401/403/500 via curl stub; URL https://vm1.exe.xyz/). 2 executed: vitest vercel five functions + vercel_row_ssh exact FAIL line, no vercel_row_https/vercel_restart, driver prints R11 SKIPPED no adapter hook. 3 executed: bash -n both adapters exit 0; reasoned: adapters only send commands through *_exec and read no secret on the host (VERCEL_SCOPE is a team slug). 4 executed: vitest loads real lib.sh, declare -F + valid_providers lists both. Advisor reran adapters + US-001 suites on the integrated task branch: 20/20.",
       "dependsOn": [
         "US-001"
       ],
@@ -50,7 +50,8 @@
         ".agro/skills/remote-sandbox/adapters/exedev.sh",
         ".agro/skills/remote-sandbox/adapters/vercel.sh",
         ".agro/scripts/__tests__/remote-sandbox-adapters.test.ts"
-      ]
+      ],
+      "commit": "506b0a3d"
     },
     {
       "id": "US-003",
