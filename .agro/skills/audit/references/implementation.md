@@ -23,14 +23,14 @@ is a downstream concern and remediation belongs to the build step on
 | Arg | Meaning |
 |-----|---------|
 | `<slug>` | The task slug — locates `.agro/tasks/<slug>/prd.json` and `.agro/tasks/<slug>/progress.txt`. Required. |
-| `--pr <N>` | The PR for this unit, if one exists. When set, gate 3 uses the shared focused classifier (which reads `statusCheckRollup`, subsuming `/ci-status`). |
+| `--pr <N>` | The PR for this unit, if one exists. When set, gate 2 uses the shared focused classifier (which reads `statusCheckRollup`, subsuming `/ci-status`). |
 | `--repo <owner/name>` | Repository passed unchanged to focused PR acquisition. Required with `--pr`; never inferred from the process checkout or a hard-coded default. |
 | `--base <branch>` | Expected PR base for focused classification. Defaults to `development`; set it to the parent branch for a stacked PR. |
-| `--branch <branch>` | The work branch. Used by gate 3's `/ci-status` fallback when there is no PR yet (e.g. an autopilot pre-PR audit). Defaults to the current branch. |
+| `--branch <branch>` | The work branch. Used by gate 2's `/ci-status` fallback when there is no PR yet (e.g. an autopilot pre-PR audit). Defaults to the current branch. |
 
 ---
 
-## The five gates (fail-fast, in order)
+## The four gates (fail-fast, in order)
 
 Run in order; the **first** gate that fails decides the verdict (`AUDIT-FAIL`,
 naming the gate). Only when **all** applicable gates pass is the verdict
@@ -83,42 +83,9 @@ A non-conformant graph **or** a missing required artifact is `AUDIT-FAIL` →
 `implement` (resume the unfinished stories, or produce the promised artifact). Do
 not advance to the later gates. A worked fixture proving the artifact sub-check
 fails on a missing path lives at
-[`../fixtures/artifact-contract.prd.json`](../fixtures/artifact-contract.prd.json)
-(exercised by `.agro/evals/probes/artifact-contract-audit.sh`).
+[`../fixtures/artifact-contract.prd.json`](../fixtures/artifact-contract.prd.json).
 
-### Gate 2 — Regression floor (`/eval`)
-
-The probe suite must stay green for this change. Gate on the runner's **exit code +
-delta**, not its prose.
-
-**Read the cycle's result before running the suite.** The task owner runs `/eval` once
-per cycle and publishes `.agro/tasks/<slug>/eval-result.json`. Reuse it **only while it
-describes the code under test** — that is, while its `commit` equals the current
-`HEAD`:
-
-```bash
-RESULT=".agro/tasks/<slug>/eval-result.json"
-if [ -f "$RESULT" ] && [ "$(jq -r .commit "$RESULT")" = "$(git rev-parse HEAD)" ]; then
-  rc="$(jq -r .runnerExit "$RESULT")"          # inherit the cycle's single run
-else
-  AUDIT_RUN_ID="$AUDIT_RUN_ID" AUDIT_ROOT="$AUDIT_ROOT" \
-    bash "$AUDIT_ROOT/.agro/skills/eval/run.sh" ; rc=$?
-fi
-# rc=0 → no NEW green→red regression for this commit (pass)
-# rc=1 → at least one new regression (FAIL gate2)
-```
-
-The scripted driver runs exactly this reuse-or-run step and reports `gate2: FAIL` on a
-non-zero exit. The commit check is what keeps the reuse honest: the moment the branch moves, the
-record describes code that is no longer under test, and this gate runs the suite
-itself rather than inheriting a stale green. **Never** reuse a record whose `commit`
-you did not compare, and never treat a missing record as a pass.
-
-Block only on a **new** `green→red` regression or a non-zero runner exit. A
-pre-existing red with an unchanged delta is non-gating but MUST be disclosed in
-the verdict. (Mirrors `.agro/evals/probes/eval-gate.sh`.)
-
-### Gate 3 — Promotable / CI state
+### Gate 2 — Promotable / CI state
 
 The implementation must be promotable: CI green **and** (for a PR) mergeable and
 clean.
@@ -138,20 +105,20 @@ clean.
 The scripted driver runs the `classify-pr` helper when the caller passes `--pr`. Without
 `--pr` the driver queries `gh run list --branch <branch>` and passes only when every run
 for `HEAD` has status `completed` and conclusion `success`; no run for `HEAD` fails with
-`gate3: FAIL (no green CI run for HEAD)`.
+`gate2: FAIL (no green CI run for HEAD)`.
 
 **A gate that could not run is not a gate that failed.** When the installed `gh` does not
 support a field the acquisition requires — `closingIssuesReferences` needs `gh >= 2.101.0`
 — `pr-acquire.sh` exits `69` with a `TOOLING-BLOCKED:` line and the driver reports
-`TOOLING-BLOCKED: gate3: <reason>` and publishes `AUDIT-TOOLING-BLOCKED` instead of
+`TOOLING-BLOCKED: gate2: <reason>` and publishes `AUDIT-TOOLING-BLOCKED` instead of
 `AUDIT-FAIL`. The run still fails closed: the verdict is not a pass, no gate is credited,
 and nothing may be promoted on it. The distinction matters because
-`gate3: FAIL (classification exited 1)` reads as a defect in the reviewed change, sending
+`gate2: FAIL (classification exited 1)` reads as a defect in the reviewed change, sending
 the owner to debug a pull request whose only problem is the auditor's toolchain.
 
-### Gate 4 — UI verification (conditional)
+### Gate 3 — UI verification (conditional)
 
-Gate 4 applies when a story in the task graph declares browser verification:
+Gate 3 applies when a story in the task graph declares browser verification:
 
 ```bash
 grep -qi "agent-browser\|Verify in browser" "$AUDIT_ROOT/.agro/tasks/$SLUG/prd.json" && echo "UI gate applies"
@@ -192,31 +159,31 @@ reader can match a stored screenshot to the verdict without the repository holdi
 image.
 
 **What the scripted driver enforces.** `scripts/route-driver.sh` never runs a browser.
-When `browser-required` exits 1 it prints `gate4: not applicable`. When it exits 0 the
+When `browser-required` exits 1 it prints `gate3: not applicable`. When it exits 0 the
 driver reads the record and fails closed on each of these conditions, naming the
 reason:
 
 | Condition | Report line |
 |---|---|
-| Record missing, symlinked, unreadable, or `commit` neither `HEAD` nor the content head | `gate4: FAIL (no ui evidence for HEAD <sha>)` |
-| Record does not match schema version 1 | `gate4: FAIL (malformed ui-evidence.json)` |
-| `preflight.exit` ≠ 0 | `gate4: FAIL (browser-preflight run <runId> exited <n>)` |
-| `criteria` is empty | `gate4: FAIL (no criteria verified)` |
-| Any criterion has `result: FAIL` | one `gate4: FAIL criterion <story> <criterion> — <note>` line per failure, then `gate4: FAIL (<n> criteria FAIL)` |
-| Otherwise | `gate4: PASS (<n> criteria verified by <reviewer> at <commit>)` |
+| Record missing, symlinked, unreadable, or `commit` neither `HEAD` nor the content head | `gate3: FAIL (no ui evidence for HEAD <sha>)` |
+| Record does not match schema version 1 | `gate3: FAIL (malformed ui-evidence.json)` |
+| `preflight.exit` ≠ 0 | `gate3: FAIL (browser-preflight run <runId> exited <n>)` |
+| `criteria` is empty | `gate3: FAIL (no criteria verified)` |
+| Any criterion has `result: FAIL` | one `gate3: FAIL criterion <story> <criterion> — <note>` line per failure, then `gate3: FAIL (<n> criteria FAIL)` |
+| Otherwise | `gate3: PASS (<n> criteria verified by <reviewer> at <commit>)` |
 
 **The content-head rule.** The driver accepts a record whose `commit` equals `HEAD`.
 The driver also accepts a record whose `commit` is an ancestor of `HEAD` when only
 record files changed since. Record files are paths under the audited task folder
-`.agro/tasks/<slug>/` and `.agro/evals/RESULTS.md`. The driver prints which case applied:
-`gate4: ui evidence commit <sha> equals HEAD` or
-`gate4: ui evidence commit <sha> is the content head; only task records changed since`.
-The same rule keys the `eval-result.json` reuse in gate 2 and the review in gate 5.
+`.agro/tasks/<slug>/`. The driver prints which case applied:
+`gate3: ui evidence commit <sha> equals HEAD` or
+`gate3: ui evidence commit <sha> is the content head; only task records changed since`.
+The same rule keys the review in gate 4.
 A stale record is not a pass: the moment code moves, the owner must re-verify
 and rewrite the record for the new `HEAD`. The driver enforces the record; the
 reviewer and the owner judge what the screenshots show.
 
-### Gate 5 — Slop (less code, low complexity)
+### Gate 4 — Slop (less code, low complexity)
 
 The correctness gates above prove the change *works*. None of them can fail a change
 that works and is twice the size it needed to be. This gate asks the one question that
@@ -234,7 +201,7 @@ which emits one JSON object. Report every number in the verdict:
 
 | Field | Meaning |
 |---|---|
-| `netAdded` / `netRemoved` | Lines the unit's diff adds and removes vs. `--base`, excluding lockfiles, `.agro/evals/RESULTS.md`, and symlinked provider mirrors. `netAdded` is the headline number the loop drives down. |
+| `netAdded` / `netRemoved` | Lines the unit's diff adds and removes vs. `--base`, excluding lockfiles and symlinked provider mirrors. `netAdded` is the headline number the loop drives down. |
 | `tsOverCcn` | Functions in the changed `.ts`/`.js`/`.mjs` files over `ccnMax` (default 10), from `uvx lizard`. **Real per-function cyclomatic complexity.** |
 | `shBranchPoints` | The *net* change in branch tokens across changed `.sh` files. No complexity tool parses bash, so this is an explicit **proxy** — never report it as CCN. |
 | `tool` | `lizard <version>`, `lizard n/a (no analysable files changed)`, or `unavailable`. |
@@ -255,7 +222,7 @@ story exercises.
 A finding is **blocking** only when its alternative satisfies every acceptance criterion
 with no new work. Anything else is disclosed, non-gating. A function the diff
 *introduces* above `ccnMax` is blocking; one already over the threshold on the base is
-disclosed only — the same pre-existing/new distinction gate 2 makes.
+disclosed only.
 
 **Who produces the findings.** A fresh read-only reviewer who did not write the code
 under review reads the diff at `HEAD` and returns findings in the shape above. The task
@@ -281,25 +248,25 @@ not on taste, so it terminates by construction.
 **What the scripted driver enforces.** `scripts/route-driver.sh` runs these steps in
 order and fails closed:
 
-1. Print `gate5: metrics <json>` from `slop-metrics <base>`. When `tool` starts with
-   `lizard` and `tsOverCcn` is non-empty, print `gate5: SIMPLICITY-RESIDUAL disclosed`.
+1. Print `gate4: metrics <json>` from `slop-metrics <base>`. When `tool` starts with
+   `lizard` and `tsOverCcn` is non-empty, print `gate4: SIMPLICITY-RESIDUAL disclosed`.
 2. Read `simplicity-review.json`. When the file is missing, symlinked, malformed, or its
-   `commit` is neither `HEAD` nor the content head (see the content-head rule in gate 4), report
-   `gate5: FAIL (no simplicity review for HEAD <sha>)` and publish `AUDIT-FAIL`. A stale
+   `commit` is neither `HEAD` nor the content head (see the content-head rule in gate 3), report
+   `gate4: FAIL (no simplicity review for HEAD <sha>)` and publish `AUDIT-FAIL`. A stale
    or absent review is not a pass.
 3. Read `simplify-rounds.json` when present. A file whose `rounds` is not a number
-   reports `gate5: FAIL (malformed simplify-rounds.json)`. Otherwise the driver prints
-   `gate5: rounds <json>` and computes the termination rule above.
-4. Print one `gate5: open <file>:<line> — <alternative>` line for every open finding,
+   reports `gate4: FAIL (malformed simplify-rounds.json)`. Otherwise the driver prints
+   `gate4: rounds <json>` and computes the termination rule above.
+4. Print one `gate4: open <file>:<line> — <alternative>` line for every open finding,
    so the report carries the judgment.
 5. When a finding has `blocking: true` and `status: open` and the loop is not
-   terminated, report `gate5: FAIL (<n> blocking simplicity finding(s) open)` and
+   terminated, report `gate4: FAIL (<n> blocking simplicity finding(s) open)` and
    publish `AUDIT-FAIL`.
 6. When blocking findings are open and the loop has ended, report
-   `gate5: PASS with SIMPLICITY-RESIDUAL (<n> open finding(s) after <rounds> round(s))`
+   `gate4: PASS with SIMPLICITY-RESIDUAL (<n> open finding(s) after <rounds> round(s))`
    and continue.
 7. Otherwise report
-   `gate5: PASS (review <reviewer> at <commit>, <n> finding(s), none blocking open)`.
+   `gate4: PASS (review <reviewer> at <commit>, <n> finding(s), none blocking open)`.
 
 This route **reads** both records. It never writes or increments them — the
 orchestrating caller owns those files, exactly as it owns the PR body. The driver
@@ -315,8 +282,7 @@ route for each one.
 | `AUDIT-PASS` → `ready` | `AUDIT-FAIL` → `implement` (resume) |
 
 State the verdict, then — on the **final line** — emit the routing token. Always
-name the deciding gate on `AUDIT-FAIL` and disclose any non-gating pre-existing
-red from gate 2. An `AUDIT-PASS` reached at the gate-5 round cap or on a
+name the deciding gate on `AUDIT-FAIL`. An `AUDIT-PASS` reached at the gate-4 round cap or on a
 non-reducing round carries `SIMPLICITY-RESIDUAL: <n>` with the residual findings;
 a `PASS` that hides residual slop is the one thing this gate exists to prevent.
 
@@ -330,12 +296,12 @@ a `PASS` that hides residual slop is the one thing this gate exists to prevent.
 - **Fork PR classification.** It consumes the same private classifier JSON as
   `/audit pr` and `/audit prs`.
 - **Re-run a passing gate.** Fail-fast: stop at the first failing gate.
-- **Write the gate-4 or gate-5 records.** It reads
+- **Write the gate-3 or gate-4 records.** It reads
   `.agro/tasks/<slug>/simplify-rounds.json`, `.agro/tasks/<slug>/simplicity-review.json`,
   and `.agro/tasks/<slug>/ui-evidence.json`; the orchestrating caller writes them.
-- **Run a browser.** Gate 4 reads the owner's verified record; the owner and a
+- **Run a browser.** Gate 3 reads the owner's verified record; the owner and a
   reviewer produce it.
-- **Apply the simplification.** Gate 5 names the smaller alternative; removing the
+- **Apply the simplification.** Gate 4 names the smaller alternative; removing the
   code is the `implement` node's job, like every other `AUDIT-FAIL`.
 - **Write the reviewer evidence.** The per-gate observations above are what the
   **PR body**'s evidence sections are built from, but the orchestrating caller writes
@@ -352,6 +318,6 @@ Return this structured observation to the outer dispatcher; do not report a run 
 - **Result**: OP
 - **Unit**: <slug> (PR #<N> / branch <branch>)
 - **Verdict**: AUDIT-PASS | AUDIT-FAIL (gate <n>: <reason>)
-- **Gates**: graph <p/t> · eval <rc> · promotable <class> · ui <pass|n/a> · slop +<netAdded>/-<netRemoved> (<clean|blocking n|residual n>)
+- **Gates**: graph <p/t> · promotable <class> · ui <pass|n/a> · slop +<netAdded>/-<netRemoved> (<clean|blocking n|residual n>)
 - **Observation**: <one sentence>
 ```

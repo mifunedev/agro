@@ -136,7 +136,6 @@ forward, anything needing a hand check — or "Nothing".>
 | Gate | What was checked | Observed | Result |
 |------|------------------|----------|--------|
 | Task graph | `prd.json` stories + artifact contract | `<t>/<t> stories pass` | PASS |
-| Regression floor | `/eval` runner exit + delta | `rc=0`, no new green→red | PASS |
 | Promotable / CI | focused classifier JSON | `promotable=true`, `evidenceComplete=true` | PASS |
 | UI | browser criteria | n/a — no story declares browser verification | N/A |
 | Slop | net lines + changed-function CCN | `+<netAdded>/-<netRemoved>`, `<n>` over CCN <max> | PASS |

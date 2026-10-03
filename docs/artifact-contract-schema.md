@@ -46,9 +46,9 @@ promise on that axis. Field names are canonical — declare them verbatim so a
 | `required_artifacts` | `string[]` | Repo-relative paths the finished task **must** leave on disk. **Enforced:** [`/audit implementation`](../.agro/skills/audit/references/implementation.md) Gate 1 `jq`-reads this array and a listed path that is absent is a hard `AUDIT-FAIL`. |
 | `allowed_locations` | `string[]` | Path prefixes the task's edits may land within — the self-edit surface for this unit (typically a subset of `OWNED_PATHS`; see the [repair-operator registry](repair-operator-registry.md) Tier 1). |
 | `forbidden_destructive_edits` | `string[]` | Paths or globs that must **not** be deleted or destructively rewritten — the lines this task promises to leave intact. |
-| `verification_commands` | `string[]` | The exact shell commands that prove the work (probes, eval runner, targeted checks). A reader runs these to confirm the deliverable, not to trust the narrative. |
+| `verification_commands` | `string[]` | The exact shell commands that prove the work (tests, typecheck, targeted checks). A reader runs these to confirm the deliverable, not to trust the narrative. |
 | `acceptance_criteria` | `string[]` | Contract-level acceptance gates for the whole unit — the done conditions, distinct from and complementary to the per-story `userStories[].acceptanceCriteria`. |
-| `rollback_conditions` | `string[]` | The observable conditions under which the change must be reverted (e.g. a green→red probe regression, CI red, a broken enforcer). |
+| `rollback_conditions` | `string[]` | The observable conditions under which the change must be reverted (e.g. a failing test, CI red, a broken enforcer). |
 | `final_handoff_requirements` | `string[]` | What must be true before the unit is handed off for the human merge gate (e.g. CI green, docs indexed, no new regression, PR marked ready). |
 
 ## Minimal embeddable example
@@ -58,32 +58,30 @@ A complete `artifact_contract` block, ready to paste at the root of a `prd.json`
 ```json
 "artifact_contract": {
   "required_artifacts": [
-    "docs/artifact-contract-schema.md",
-    ".agro/evals/probes/artifact-contract-audit.sh"
+    "docs/artifact-contract-schema.md"
   ],
   "allowed_locations": [
     "docs/",
-    ".agro/skills/audit/",
-    ".agro/evals/probes/"
+    ".agro/skills/audit/"
   ],
   "forbidden_destructive_edits": [
     ".agro/hooks/deny-env-dump.sh",
     ".agro/hooks/deny-secret-paths.sh"
   ],
   "verification_commands": [
-    "bash .agro/evals/probes/artifact-contract-audit.sh",
-    "bash .agro/skills/eval/run.sh"
+    "pnpm typecheck",
+    "pnpm test"
   ],
   "acceptance_criteria": [
     "All seven artifact-contract fields documented verbatim",
     "Gate 1 FAILs on a missing declared required_artifact"
   ],
   "rollback_conditions": [
-    "Any green->red probe regression in RESULTS.md",
+    "pnpm test fails",
     "Gate 1 change makes a no-contract prd.json fail"
   ],
   "final_handoff_requirements": [
-    "bash .agro/skills/eval/run.sh green with no new regression",
+    "pnpm test green",
     "Both new docs indexed in docs/README.md"
   ]
 }

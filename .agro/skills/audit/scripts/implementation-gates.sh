@@ -47,10 +47,10 @@ case $mode in
   browser-preflight)
     : "${AUDIT_RUN_ID:?AUDIT_RUN_ID is required}"
     : "${AUDIT_TMP_ROOT:?AUDIT_TMP_ROOT is required}"
-    command -v agent-browser >/dev/null || { echo 'FAIL gate4: agent-browser not found' >&2; exit 1; }
+    command -v agent-browser >/dev/null || { echo 'FAIL gate3: agent-browser not found' >&2; exit 1; }
     browsers=${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}
     [[ -d $browsers ]] || {
-      echo "FAIL gate4: no Playwright browser cache at $browsers; install one with: agent-browser install --with-deps" >&2
+      echo "FAIL gate3: no Playwright browser cache at $browsers; install one with: agent-browser install --with-deps" >&2
       exit 1
     }
     snapshot_repo(){
@@ -77,27 +77,27 @@ case $mode in
     runtime=$(mktemp -d "${TMPDIR:-/tmp}/oh-audit-xdg.XXXXXX")
     sock="$runtime/agent-browser/$session.sock"
     ((${#sock} < 108)) || {
-      echo "FAIL gate4: daemon socket path is ${#sock} bytes, over the 107-byte unix limit: $sock" >&2
+      echo "FAIL gate3: daemon socket path is ${#sock} bytes, over the 107-byte unix limit: $sock" >&2
       rm -rf "$runtime"; exit 1
     }
     browser_env=(HOME="$profile" XDG_RUNTIME_DIR="$runtime" PLAYWRIGHT_BROWSERS_PATH="$browsers")
     close_browser(){ env "${browser_env[@]}" agent-browser close --session "$session" >/dev/null 2>&1 || true; rm -rf "$profile" "$runtime"; }
     trap close_browser EXIT INT TERM HUP
     env "${browser_env[@]}" agent-browser --version >/dev/null 2>&1 \
-      || { echo 'FAIL gate4: agent-browser version check' >&2; exit 1; }
+      || { echo 'FAIL gate3: agent-browser version check' >&2; exit 1; }
     env "${browser_env[@]}" agent-browser open about:blank --session "$session" >/dev/null 2>&1 \
-      || { echo 'FAIL gate4: Chromium launch' >&2; exit 1; }
+      || { echo 'FAIL gate3: Chromium launch' >&2; exit 1; }
     close_browser; trap - EXIT INT TERM HUP
     snapshot_repo "$after"
-    cmp -s "$before" "$after" || { echo 'FAIL gate4: browser preflight mutated AUDIT_ROOT content or index' >&2; exit 1; }
+    cmp -s "$before" "$after" || { echo 'FAIL gate3: browser preflight mutated AUDIT_ROOT content or index' >&2; exit 1; }
     rm -f "$before" "$after"
     ;;
   slop-metrics)
     base=${1:-development}
     [[ $base =~ ^[A-Za-z0-9._/-]+$ ]] || { echo 'usage: implementation-gates.sh slop-metrics <base-ref>' >&2; exit 64; }
     git -C "$AUDIT_ROOT" rev-parse --verify --quiet "$base^{commit}" >/dev/null \
-      || { echo "FAIL gate5: unknown base ref: $base" >&2; exit 64; }
-    counted(){ case $1 in *pnpm-lock.yaml|*package-lock.json|*.agro/evals/RESULTS.md) return 1;; esac; [[ ! -L $AUDIT_ROOT/$1 ]]; }
+      || { echo "FAIL gate4: unknown base ref: $base" >&2; exit 64; }
+    counted(){ case $1 in *pnpm-lock.yaml|*package-lock.json) return 1;; esac; [[ ! -L $AUDIT_ROOT/$1 ]]; }
     added=0; removed=0
     while read -r a r path; do
       [[ $a == '-' ]] && continue
@@ -130,16 +130,16 @@ case $mode in
       '{netAdded:$netAdded,netRemoved:$netRemoved,shBranchPoints:$shBranchPoints,ccnMax:$ccnMax,tsOverCcn:$tsOverCcn,tool:$tool}'
     ;;
   simplicity-round)
-    slug=${1:-}; [[ $slug =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || { echo 'FAIL gate5: invalid slug' >&2; exit 64; }
+    slug=${1:-}; [[ $slug =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || { echo 'FAIL gate4: invalid slug' >&2; exit 64; }
     task_dir="$AUDIT_ROOT/.agro/tasks/$slug"; counter="$task_dir/simplify-rounds.json"
     resolved_task=$(realpath -e -- "$task_dir" 2>/dev/null) \
-      || { echo "FAIL gate5: missing task directory: $task_dir" >&2; exit 1; }
+      || { echo "FAIL gate4: missing task directory: $task_dir" >&2; exit 1; }
     [[ $resolved_task == "$task_dir" && ! -L $task_dir ]] \
-      || { echo "FAIL gate5: task directory is symlinked: $task_dir" >&2; exit 1; }
+      || { echo "FAIL gate4: task directory is symlinked: $task_dir" >&2; exit 1; }
     rounds=0; prev=none
     if [[ -f $counter && ! -L $counter ]]; then
       jq -e '(.rounds|type)=="number"' "$counter" >/dev/null \
-        || { echo "FAIL gate5: malformed counter: $counter" >&2; exit 1; }
+        || { echo "FAIL gate4: malformed counter: $counter" >&2; exit 1; }
       rounds=$(jq -r '.rounds' "$counter"); prev=$(jq -r '.netAdded // "none"' "$counter")
     fi
     escalate=false; (( rounds >= ROUND_CAP )) && escalate=true

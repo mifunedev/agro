@@ -1,15 +1,14 @@
 ---
 name: audit
 description: >-
-  Explicit nine-target audit dispatcher for implementation promotability, one PR,
-  the open PR queue, harness health, context budget, skill integrity, eval quality,
-  drift, and correlated full campaigns. TRIGGER when: audit this task; verify this
+  Explicit eight-target audit dispatcher for implementation promotability, one PR,
+  the open PR queue, harness health, context budget, skill integrity, drift, and
+  correlated full campaigns. TRIGGER when: audit this task; verify this
   implementation; is this the simplest approach; audit PR N; classify this pull request; audit open PRs; triage
   the PR queue; audit the harness; find harness improvements; audit context budget;
-  audit skills; find stale or broken skills; lint evals;
-  find Goodharted probes; check framework drift; cron staleness; run a full audit
+  audit skills; find stale or broken skills; check framework drift; cron staleness; run a full audit
   campaign; audit everything; cross-target next actions.
-argument-hint: "<implementation|pr|prs|harness|context|skills|eval-quality|drift|full> [target options]"
+argument-hint: "<implementation|pr|prs|harness|context|skills|drift|full> [target options]"
 ---
 
 # Audit — explicit target dispatcher
@@ -17,12 +16,12 @@ argument-hint: "<implementation|pr|prs|harness|context|skills|eval-quality|drift
 Usage validation happens before any reference is read, run identity is created, or state changes.
 The dispatcher never guesses a missing target from prose. Trigger families include:
 audit this task; audit PR N; triage the PR queue; audit the harness; audit context budget;
-audit skills; lint evals; check framework drift; and full audit campaign.
+audit skills; check framework drift; and full audit campaign.
 
 ## Canonical usage
 
 ```text
-usage: /audit <implementation|pr|prs|harness|context|skills|eval-quality|drift|full> [target options]
+usage: /audit <implementation|pr|prs|harness|context|skills|drift|full> [target options]
 ```
 
 | Target | Invocation | Native result |
@@ -33,11 +32,10 @@ usage: /audit <implementation|pr|prs|harness|context|skills|eval-quality|drift|f
 | `harness` | `/audit harness [--focus area] [--external URL|path] [actions]` | Tier 1/2/3 + Recommended Next 3 Actions |
 | `context` | `/audit context [all|--baseline]` | `KEEP` / `TRIM` / `DEMOTE` / `CUT` |
 | `skills` | `/audit skills [all|root|name]` | `CURRENT` / `STALE` / `BROKEN` / `DELETE` |
-| `eval-quality` | `/audit eval-quality [all|probes|id]` | `KEEP` / `GROOM` / `CUT` |
 | `drift` | `/audit drift` | per-class `OK` / aggregate `DRIFT:` |
 | `full` | `/audit full [--repo O/N] [--focus area] [--health-target target]` | `AUDIT-CAMPAIGN-COMPLETE` / `AUDIT-CAMPAIGN-PARTIAL` |
 
-For missing/unknown targets or missing required arguments, print the exact usage line and this table, then stop. Exactly these nine cases are public:
+For missing/unknown targets or missing required arguments, print the exact usage line and this table, then stop. Exactly these eight cases are public:
 
 | Target | Authoritative route |
 |---|---|
@@ -47,7 +45,6 @@ For missing/unknown targets or missing required arguments, print the exact usage
 | harness | `references/harness.md` |
 | context | `references/context.md` |
 | skills | `references/skills.md` |
-| eval-quality | `references/eval-quality.md` |
 | drift | `references/drift.md` |
 | full | `references/full.md` |
 
@@ -84,8 +81,8 @@ ROOT=$(git rev-parse --show-toplevel)
 The driver runs the deterministic gates itself for the `implementation` and `pr` targets,
 prints the gate report with a final `AUDIT-EVIDENCE: <NATIVE-VERDICT>` line, and atomically
 publishes the correlated evidence. It launches no nested inference CLI. The active session
-reads the report-only routes (`prs`, `harness`, `context`, `skills`, `eval-quality`,
-`drift`, `full`) directly; they never gated a merge, and the driver exits 64 for them
+reads the report-only routes (`prs`, `harness`, `context`, `skills`, `drift`, `full`)
+directly; they never gated a merge, and the driver exits 64 for them
 without evidence.
 
 **What the boundary requires is target-correlated schema-v1 evidence, not a particular process
@@ -101,7 +98,6 @@ never targets. Children inherit all roots and the ID, return structured observat
 suppress their own memory append. Native verdicts are preserved; the dispatcher does
 not normalize them.
 
-Default behavior is report-only except disclosed local state: `/eval` scoreboard,
-remote-ref fetches, invocation-scoped temp/recovery files, and the single audit log.
+Default behavior is report-only except disclosed local state: remote-ref fetches, invocation-scoped temp/recovery files, and the single audit log.
 No route may ready or merge a PR. GitHub comments, labels, closes, and external issue
 writes require the target's explicit action, exact preview, confirmation, and support dry-run.
