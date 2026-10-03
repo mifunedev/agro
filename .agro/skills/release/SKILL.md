@@ -45,8 +45,7 @@ fails the build when they drift:
 
 The retained shim at `.agro/cli/legacy/package.json` keeps its own `version` and
 an exact `@mifune/agro` pin that equals that shim version. The shim version does
-not have to match a later canonical version. `` checks that
-internal coherence.
+not have to match a later canonical version.
 
 ## Operator prerequisites this repository cannot verify
 

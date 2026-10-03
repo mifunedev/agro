@@ -258,12 +258,6 @@ dated record of what they were.
 
 ```allow
 # CLASS | RULE | registry-relative path | 12-hex line hash | reason
-ALLOW | AGRO-PATH | skills/ste/references/rules.md | 4a60b23b3dfd | example prose that teaches path-naming style; the reader is shown a path shape, not told to open it
-ALLOW | AGRO-PATH | skills/ste/references/rules.md | 15b94149666f | example prose that teaches path-naming style; the reader is shown a path shape, not told to open it
-ALLOW | AGRO-PATH | skills/ste/references/rules.md | 0a19004bd4ad | example prose that teaches path-naming style; the reader is shown a path shape, not told to open it
-ALLOW | AGRO-PATH | skills/ste/SKILL.md | 1a27405c7e92 | inside the [ -x ] existence guard; the whole block is a no-op outside a harness checkout
-ALLOW | AGRO-PATH | skills/ste/SKILL.md | dc032d4b6850 | inside the [ -x ] existence guard; the whole block is a no-op outside a harness checkout
-ALLOW | AGRO-PATH | skills/ste/SKILL.md | e6bc73aa7bbf | inside the [ -x ] existence guard; the whole block is a no-op outside a harness checkout
 ALLOW | AGRO-PATH | skills/agro-host-matrix/SKILL.md | ffc6a77da7f6 | raw GitHub URL of a candidate get-agro.sh in a GET_AGRO_URL example; curl fetches the URL, and no local path exists
 ALLOW | AGRO-PATH | skills/agro-host-matrix/scripts/restart-test.sh | eaf8abe9e58e | path inside the AGRO VM under test; the matrix driver runs the command on that VM and never opens the path locally
 ALLOW | AGRO-PATH | skills/agro-host-matrix/scripts/rows.sh | bb0bf234d2da | path inside the AGRO VM under test; the matrix driver runs the command on that VM and never opens the path locally
