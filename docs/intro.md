@@ -4,19 +4,41 @@ title: "Introduction"
 
 # AGRO
 
-AGRO is your **portable harness** — one repo per sandbox — that wraps your project in an isolated Docker container and versions its state. The repo tracks the agent's identity, skills, crons, and memory in git; the sandbox keeps the agent (Claude Code, Codex, Pi, or another of your choice) off your host machine. The agent owns its workspace, runs against your code, and wakes itself on a schedule via a tiny croner runtime.
+AGRO gives a coding agent an isolated Docker sandbox that you control. You choose
+the coding harness: Claude Code, Codex, Pi, or another. The sandbox keeps the
+agent, its tools, and its logins off your host. The sandbox runs on your laptop
+or on a remote VM, and the agent keeps working after you disconnect.
 
-## What is AGRO?
+## What AGRO gives you
 
-AGRO is a single repo that *is* your harness: it boots one Docker container — the sandbox — and wraps your project inside it. You bring the sandbox up with `agro sandbox install docker`, attach to it from your terminal or VS Code, and let your chosen agent work the project over time. Because the harness is a git repo, its whole setup is tracked and versioned — reproducible and portable. There is no per-agent fan-out: one host CLI, `agro`, drives the whole lifecycle, and the croner runtime that ships in the image wakes the agent on a schedule.
+- **One CLI.** `agro` creates, starts, stops, and removes each sandbox.
+- **A clean host.** The host needs Docker, Git, and Node.js ≥ 20. Node runs the
+  `agro` CLI only. See [Installation](installation.md#prerequisites).
+- **A persistent home.** Logins, tools, and the workspace live in one volume
+  that survives a restart.
+- **Markdown crons.** Each `crons/*.md` file declares a schedule. The cron
+  runtime sends the body to the agent as a prompt.
+- **Shared procedures.** Skills and hooks in `.agro/` serve every harness.
+- **Opt-in access.** SSH, the host Docker socket, Cloudflared tunnels, and Slack
+  stay off until you turn them on.
 
-Key capabilities:
+## How it works
 
-- **One repo, one sandbox.** Your portable harness is one repo; it boots one container. The agent owns its workspace; your machine stays clean — you're not running agents straight on your host.
-- **Markdown-defined crons.** `crons/*.md` files declare schedules; an in-container croner runtime fires the bodies as agent prompts so the agent can work autonomously while you focus on other things.
-- **Host dependencies: Docker, Git, and Node.js ≥ 20.** No Python, no pnpm, no agent CLIs, and no toolchain maintenance on your laptop — Node runs the `agro` CLI and nothing else, and `get-agro.sh` installs it for you when it is missing. (See [Prerequisites](/docs/installation#prerequisites).)
-- **Cloudflared previews.** Share sandbox app ports through Cloudflared tunnels; SSH and pack-supplied services remain opt-in Docker Compose overlays.
-- **Multi-agent messaging.** Bridge Slack (and other messengers) to a Pi agent with the [`pi-messenger-bridge`](/docs/integrations/slack) npm package; SSH and pack-supplied services remain opt-in Docker Compose overlays.
+1. On the host, run `agro sandbox install docker`. The sandbox runs the
+   published image, so you need no project checkout.
+2. Run `agro shell <name>`, or attach VS Code.
+3. In the sandbox, run `agro tool install herdr` and `herdr` first — nothing installs at boot.
+4. In a Herdr pane, install a harness, authenticate it, and start the agent.
+
+The agent in the first Herdr pane at `/home/sandbox/harness` is the
+orchestrator. The orchestrator manages git, the sandbox lifecycle, and the
+shared agent setup. `agro stop` keeps the home volume. `agro destroy` deletes the
+home volume, and it asks before it runs. See
+[Lifecycle commands](lifecycle-commands.md).
+
+In the sandbox, systemd runs `.agro/scripts/cron-runtime.ts` as
+`agro-cron.service`. The runtime reads `crons/*.md` and sends each body to the
+configured agent on its schedule.
 
 ## License
 
@@ -24,55 +46,9 @@ AGRO ships under [Apache-2.0](../LICENSE). Mifune's hosted control plane (the
 Mifune Console, provisioning, billing, and enterprise policy) is separate and
 proprietary.
 
-## How it works
+## Where to start
 
-The harness uses Docker Compose to build a sandbox image from `.devcontainer/`. Bring it up with `agro sandbox install docker`, attach with `agro shell <name>` (or VS Code), then run `agro tool install herdr` and `herdr` first — nothing installs at boot. Authenticate GitHub and your chosen provider and launch agents from Herdr panes. `agro stop` preserves state; `agro destroy` is the destructive teardown, and it asks before it wipes the volumes. Every one of those verbs runs `.agro/scripts/docker-compose.sh` — see [lifecycle commands](/docs/lifecycle-commands).
+1. [Installation](installation.md) installs the `agro` CLI.
+2. [Quickstart](quickstart.md) takes you to a working agent in the sandbox.
 
-The primary agent pane at the project root inside Herdr is your **orchestrator** — git, sandbox lifecycle, and most file edits all flow through that organized workspace. When the optional Docker socket is enabled (off by default — see [security-considerations.md](security-considerations.md#4-sandbox-isolation--the-docker-socket-caveat--enforced-with-a-caveat)), the orchestrator can also drive other containers and edit files inside them over that socket, so day-to-day work rarely needs anything else. Drop back to the host shell only when something can't be done from inside the container — typically adding a new bind-mounted volume, which requires a `.devcontainer/docker-compose.yml` change and restart.
-
-Stand up a **second sandbox** only when you want isolation — an independent identity, branch, or provider key running on its own. Most users won't need this.
-
-Inside the sandbox, systemd runs `scripts/cron-runtime.ts` as `agro-cron.service`, which reads `crons/*.md` and fires each body as a prompt to the configured agent on its declared schedule.
-
-```mermaid
-flowchart TB
-    You["You<br/>terminal · VS Code · browser · Slack"]
-    Repo[("Repo on disk")]
-    GH["GitHub"]
-    LLM["LLM provider"]
-
-    subgraph sandbox["Sandbox container — default workspace"]
-        Herdr["<b>Herdr</b><br/>interactive workspaces · panes"]
-        Orch{{"<b>Orchestrator pane</b><br/>chosen agent @ project root<br/>git · lifecycle · file edits"}}
-        Tmux["managed tmux services<br/>client-slack-pi · gateways · detached cron fires"]
-        Sock(["docker.sock<br/><i>opt-in</i>"])
-    end
-
-    Sb2["Second sandbox<br/><i>only if you need isolation</i>"]
-
-    You ==>|attach · install · run herdr| Herdr
-    Herdr --> Orch
-    You -.->|browser · Slack| Tmux
-    Repo <-.->|bind mount| Orch
-    Orch <-->|git| GH
-    Orch <-->|API| LLM
-    Tmux <-->|API| LLM
-    Orch -.->|docker socket · opt-in| Sock
-    Sock -.->|provisions| Sb2
-```
-
-## How to read these docs
-
-If you are new, follow this order:
-
-1. [Installation](/docs/installation) — install Docker, Git, and the `agro` CLI.
-2. [Quickstart](/docs/quickstart) — go from zero to a running sandbox in under five minutes.
-
-If you already have a sandbox running, jump directly to the page you need.
-
-## Where to get help
-
-- Source code and issues: [github.com/mifunedev/agro](https://github.com/mifunedev/agro)
-- Philosophy: [How AGRO embodies compound engineering](https://github.com/mifunedev/agro-web/tree/main/blog) — why each unit of work here should make the next one easier.
-
-[Connecting to the Sandbox](/docs/connecting)
+Report issues at [github.com/mifunedev/agro](https://github.com/mifunedev/agro/issues).

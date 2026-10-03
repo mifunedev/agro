@@ -8,37 +8,25 @@ title: "Lifecycle commands"
 source of truth for the verbs; every other document links here rather than
 restating them.
 
-`agro` is the only executable; AGRO retired the legacy `oh` alias (see the
-[AGRO naming cutover](https://github.com/mifunedev/agro/issues/1061)). Two verbs are easy to confuse:
-[`agro self-upgrade`](#upgrading-the-cli-agro-self-upgrade) upgrades the
-installed CLI, and [`agro vendor`](#equipping-a-checkout-agro-vendor) writes the
-`.agro/` control plane into a checkout.
+`agro self-upgrade` upgrades the installed CLI.
+[`agro vendor`](#equipping-a-checkout-agro-vendor) writes the `.agro/` control
+plane into a checkout. Do not confuse the two.
 
-Every compose verb runs `.agro/scripts/docker-compose.sh`, which owns overlay
-resolution, project naming, and env plumbing. `agro` is the surface; the script
-is the mechanism.
+Every compose verb runs `.agro/scripts/docker-compose.sh`. That script owns
+overlay resolution, project naming, and env plumbing.
 
 A sandbox is a **registry entry** under `${AGRO_HOME:-~/.agro}/sandboxes/<name>/`.
-`agro sandbox install docker` writes it, and every later verb finds it by name
-from any directory — no project checkout required. A registry created by an
-earlier release stays at `${AGRO_HOME:-~/.oh}/sandboxes/<name>/` and still
-resolves; `agro migrate --home` moves it. Details:
+`agro sandbox install docker` writes it. Every later verb finds it by name from
+any directory. See
 [Configuration → the two `agro.json` files](configuration.md#the-two-agrojson-files).
 
-Host prerequisites: **Docker** (with the Compose plugin), **Git**, and
-**Node.js ≥ 20**. Node runs `agro` itself. When Node is missing, `get-agro.sh`
-installs Node for you. Everything else — pnpm, Python, the agent CLIs — lives inside the
-sandbox.
-
-Project instructions live in `AGENTS.md`. Codex and Pi read the `AGENTS.md` name natively.
-Claude Code reads `AGENTS.md` from **2.1.277**; an older release, and a session on
-Amazon Bedrock, Vertex or Foundry, reads no project instructions at all.
+Host prerequisites and the CLI install are in [Installation](installation.md).
 
 ## The verbs
 
 | Verb | Runs |
 |---|---|
-| `agro sandbox install <runtime> [--name <name>] [--checkout <dir>] [--yes] [--version <X.Y.Z>] [--image[=<ref>]] [--no-build]` | write the registry entry, then `docker-compose.sh up -d` inside it |
+| `agro sandbox install <runtime> [--name <name>] [--checkout <dir>] [--home-mount <dir>] [--yes] [--version <X.Y.Z>] [--image[=<ref>]] [--no-build]` | write the registry entry, then `docker-compose.sh up -d` inside it |
 | `agro sandbox list [--json]` | every registry entry: name, runtime, status, checkout |
 | `agro sandbox upgrade <name> --version <X.Y.Z>` | recreate one image-mode sandbox with the specified official release image; keep its home and named volumes |
 | `agro shell [name]` | an interactive `zsh` in the sandbox container |
@@ -48,11 +36,10 @@ Amazon Bedrock, Vertex or Foundry, reads no project instructions at all.
 | `agro ps [name]` | `docker-compose.sh ps` |
 | `agro destroy [name] [--yes]` | `docker-compose.sh down -v`, then remove the registry entry — see below |
 | `agro compose config` | `docker-compose.sh config` — the resolved compose file |
-| `agro update [--dry-run]` | upgrade the installed `agro` executable through the mechanism that installed it — see below |
-| `agro migrate [--check] [--home] [--json]` | move a legacy `.agro/` project or `~/.oh` registry to the AGRO names — see below |
-| `agro vendor [--from <dir> \| --from-remote [--ref <ref>]] [--dry-run] [--force]` | equip an empty checkout with `.agro/` + `crons/`, and upgrade an equipped one (compatibility window) |
+| `agro self-upgrade [--dry-run]` (alias `agro update`) | upgrade the installed `agro` executable through the mechanism that installed it — see below |
+| `agro vendor [--from <dir> \| --from-remote [--ref <ref>]] [--dry-run] [--force]` | equip an empty checkout with `.agro/` + `crons/`, and upgrade an equipped one |
 | `agro config show [--sandbox <name>]` · `agro config set <field> <value> [--sandbox <name>]` | read and write `agro.json` |
-| `agro config repo` · `agro config <integration>` | GitHub-remote and integration wizards |
+| `agro config repo` · `agro config <integration>` | create a GitHub repo and point `origin` at it; run an integration wizard |
 | `agro secret set <KEY> [--sandbox <name>]` · `agro secret list [--sandbox <name>]` | read and write the gitignored `.env` |
 | `agro config langfuse` | the interactive Langfuse tracing wizard — see below |
 | `agro langfuse apply` · `agro langfuse status` · `agro langfuse disable` | render, check, or remove the Langfuse tracing files — see below |
@@ -83,12 +70,11 @@ agro shell <name>                # attach as the sandbox user
   `/opt/agro-seed` seeds the workspace volume. With `--checkout <dir>`, the CLI
   bind-mounts that checkout at `/home/sandbox/harness`, and the sandbox can build
   locally.
-  `--repo <dir>` remains a supported alias. Recipes:
-  [`agro sandbox install docker`](deployment-prebuilt-image.md).
-- `docker` is the only provisionable runtime today. `agro sandbox install
-  microsandbox` refuses and points at
-  [issue #592](https://github.com/mifunedev/agro/issues/592); inside a sandbox,
-  `agro tool install microsandbox` installs the `msb` binary.
+  `--repo <dir>` is a deprecated alias. Recipes:
+  [Creating a sandbox](deployment-prebuilt-image.md).
+- `docker` is the only provisionable runtime. `agro sandbox install
+  microsandbox` refuses. Inside a sandbox, `agro tool install microsandbox`
+  installs the `msb` binary.
 
 `agro sandbox` with no subcommand prints help and exits non-zero.
 
@@ -122,24 +108,17 @@ server, and job inside that container stops.** Choose a time when the interrupti
 is acceptable. The new container keeps the sandbox home mount, named volumes,
 checkout, `.env`, and unrelated configuration. The command does not use `down -v`.
 
-The command applies the image through the existing Compose wrapper and records
-`image.ref` only after a successful start. If provisioning or config persistence
-fails, the command keeps the old `image.ref` and attempts to restore the prior
-image. If restoration fails, the command reports that failure. Inspect the
-sandbox with `agro ps <name>` and repair it before resuming work. The command
-creates `.sandbox-upgrade.lock` in the entry. It removes the lock after a normal
-success or failure. An abrupt interruption, including `SIGKILL` or a crash,
-can leave the lock in place. The command refuses another upgrade of that entry
-and prints the lock path. Other entries can upgrade independently.
+The command records `image.ref` only after a successful start. On a failure it
+keeps the old `image.ref` and tries to restore the old image. If the restore
+fails, inspect the sandbox with `agro ps <name>` and repair it.
 
-If an upgrade refuses because the lock exists, recover on the host:
+The command holds `.sandbox-upgrade.lock` in the entry while it runs. A crash or
+`SIGKILL` can leave the lock, and the next upgrade of that entry refuses and
+prints the lock path. To recover on the host:
 
-1. Confirm that no upgrade process owns the entry. A PID in the lock can help
-   identify a process, but a PID alone does not prove whether that process owns
-   the entry.
-2. Only after that confirmation, remove the exact lock path printed by the
-   command.
-3. Retry `agro sandbox upgrade <name> --version X.Y.Z`.
+1. Confirm that no upgrade process owns the entry.
+2. Remove the exact lock path that the command printed.
+3. Run `agro sandbox upgrade <name> --version X.Y.Z` again.
 
 A conflicting `AGRO_SANDBOX_IMAGE` in the host shell or entry `.env` causes a
 refusal before recreation.
@@ -163,7 +142,9 @@ executable:
 cases: the sandbox image ships the executable (`/opt/agro`); the executable is a
 source checkout's `dist/`; the CLI cannot resolve the executable; the executable
 sits in a read-only directory; another `agro` earlier on PATH shadows the
-executable; or the executable does not report the running version. The upgrade
+executable; or the executable does not report the running version. For the
+image-shipped CLI, refresh the image from the host with `agro stop <name>`, then
+`agro sandbox install docker --name <name>`. The upgrade
 refuses a downgrade. When the installed version is already current, the upgrade
 changes nothing. `--dry-run` reports the installation kind, target, and versions
 without a change.
@@ -185,122 +166,6 @@ It writes **nothing else** — no `agro.json`, no `.env`, no `AGENTS.md`, no
 are yours. `agro vendor` never prompts. `agro vendor` does not upgrade the CLI
 itself; `agro update` does.
 
-## Recovering from `missing lifecycle script`
-
-A sandbox image can ship an `agro` CLI older than the checkout it runs against.
-The old CLI looks for the legacy control directory `.agro/`. An AGRO checkout
-carries `.agro/`. Every verb that runs a lifecycle script then fails:
-
-```
-$ agro gateway pi
-missing lifecycle script /home/sandbox/harness/.agro/scripts/gateway.sh — the vendored .agro/ payload looks incomplete; run `agro vendor` to re-vendor it
-```
-
-The cause is the version skew between the installed CLI and the checkout, not
-the missing payload that the message reports. The checkout is complete. The CLI
-is too old to look in the right place.
-
-**Ignore the advice in that message.** `agro vendor` vendors the control plane
-into the current directory. The control plane is already there, under `.agro/`,
-so a re-vendor changes nothing that matters here. `agro update` does not help
-either: it upgrades the installed executable, and it refuses on an executable
-that the sandbox image shipped.
-
-```
-image installation at /opt/agro/dist/agro.js — the sandbox image ships this CLI; pull a newer image on the host (agro stop, then agro sandbox install docker --name <name>)
-```
-
-**Confirm the skew.** Run both commands in the sandbox. Each one reads a file
-and changes nothing.
-
-```bash
-grep '"version"' /opt/agro/package.json     # the CLI the image installed
-grep '"version"' .agro/cli/package.json   # the CLI the checkout expects
-```
-
-A lower version in `/opt/agro/package.json` confirms the skew. The prefix
-`/opt/agro` marks an **image** installation: the image built that CLI in, and
-`/usr/local/bin/agro` resolves to `/opt/agro/dist/agro.js`.
-
-**Refresh the image from the host.** Run both commands on the host. `agro
-sandbox install docker` is host-only and refuses inside the sandbox.
-
-This recovery costs downtime. The two commands stop the container and create it
-again, so every agent, server, and job inside it stops. Only the sandbox home
-volume survives the recreation. You pick the moment, and nothing runs these
-commands for you.
-
-```bash
-agro stop <name>
-agro sandbox install docker --name <name>
-```
-
-The second command writes the registry entry again and starts the container from
-the current image, which carries a current CLI. That command keeps the sandbox
-home volume. Only `agro destroy` removes that volume.
-
-Keep the two `update` verbs apart:
-
-| Command | Upgrades | Writes |
-|---|---|---|
-| `agro update` | the installed `agro` executable | nothing in the project |
-| `agro sandbox upgrade <name> --version X.Y.Z` | one sandbox's image | `image.ref` in its registry entry after successful recreation |
-| `agro vendor` | the vendored control plane | `.agro/` and `crons/` in the current directory |
-
-Details: [`agro self-upgrade`](#upgrading-the-cli-agro-self-upgrade) and
-[`agro vendor`](#equipping-a-checkout-agro-vendor).
-
-A current CLI names the recovery route for your own installation kind whenever a
-lifecycle script is truly absent.
-
-## Migrating to the AGRO names: `agro migrate`
-
-`agro migrate` moves an installation created under the legacy names to the AGRO
-names. It renames `.agro/` to `.agro/` and `agro.json` to `agro.json` wholesale,
-and re-points three active provider links from `../.agro/…` to `../.agro/…`:
-`.claude/skills`, `.claude/hooks`, and `.agents/skills`.
-The retired links are `.pi/skills` and `.codex/skills`.
-If a retired link resolves to the AGRO pack and `.agents/skills` independently links to that pack, migration moves the retired link to `<path>.migrated`.
-Otherwise, migration preserves the retired path. Migration re-points a preserved
-`../.agro/skills` link to `../.agro/skills` so discovery survives the pack rename.
-Custom directories and foreign links remain unchanged. An existing retirement
-marker blocks retirement without overwriting the marker.
-Byte-identical legacy copies move to `<name>.migrated` instead of deletion.
-`agro migrate` dispatches to the same command.
-
-`bash .agro/scripts/link-providers.sh --init` repairs active links before retirement.
-Unlike CLI migration, this script refuses custom retired paths and unresolved collisions.
-Its `--check` mode reports retired links without changing files.
-Fresh clones omit both retired links; `.codex/` and `.pi/` retain provider configuration.
-
-Project mode is the default: it starts at the current directory and walks up to
-the nearest ancestor holding `.agro/`, `.agro/`, `agro.json`, or `agro.json`.
-
-| Flag | Effect |
-|---|---|
-| `--check` | print the plan and change nothing |
-| `--home` | migrate the sandbox registry `~/.agro/sandboxes` → `~/.agro/sandboxes` instead of a project |
-| `--json` | emit the plan (`--check`) or `{plan, result}` as JSON on stdout |
-
-```bash
-agro migrate --check   # plan the project in this directory
-agro migrate           # apply it
-agro migrate --home    # move the registry instead
-```
-
-| Exit code | Meaning |
-|---|---|
-| `0` | applied, or nothing to do |
-| `2` | refused: a conflict, or another run holds the `.agro-migrate.lock` |
-| `1` | failure |
-
-The migration is idempotent: a second run is a no-op. The migration never merges
-and has no force option. The migration refuses divergent `.agro/` and `.agro/` (or
-`agro.json` and `agro.json`) copies and names the differing entries. You keep
-exactly one copy or make the copies identical. The migration preserves unknown
-files, permission bits, and symlink targets, and never touches `~/.agro`, `.env`,
-or git history.
-
 ## Where you are standing when you type `agro`
 
 `agro` runs on the host **and** inside the sandbox, and it resolves a different
@@ -310,8 +175,7 @@ the environment those commands target.
 
 Detection is automatic: `agro` treats itself as in-sandbox when `/.dockerenv`
 exists **and** `SANDBOX_NAME` holds a value. Override the detection with
-`AGRO_EXECUTION_TARGET=local` or `AGRO_EXECUTION_TARGET=docker-compose`; the
-legacy `AGRO_EXECUTION_TARGET` spelling still applies when the AGRO one is unset.
+`AGRO_EXECUTION_TARGET=local` or `AGRO_EXECUTION_TARGET=docker-compose`.
 
 | Verb | On the host | Inside the sandbox |
 |---|---|---|
@@ -356,33 +220,9 @@ install again. The uninstall command removes the record. A host binary outside
 `~/.local` still counts as installed. A root-level host tool, such as
 `docker-engine` or `desktop`, also counts as installed when its check passes.
 
-`agro tool install <id>` uses the same host path, with two limits. A tool must
-declare a host install. `agent-browser`, `herdr`, `cloudflared`, `microsandbox`,
-`tailscale`, `code-server`, `docker-engine`, and `desktop` declare a host install. `gh`
-and the Docker CLI do not, because the sandbox image provides them. A host install
-also needs Linux, because every tool installer is Debian-specific. The command
-refuses on any other platform and names that platform. A successful host install
-records the installed id as `hostTools` in the host `agro.json`, separately from
-`hostHarnesses`. `agro tool uninstall <id>` has no `--host` flag. It removes only
-what that record names when no sandbox is reachable, and `--force` removes from
-`~/.local` without a record.
-
-| Tool | Host install level | In the sandbox |
-|------|--------------------|----------------|
-| `code-server` | invoking user, `~/.local` | installs |
-| `docker-engine` | root-level | refused; names `access.dockerSocket` |
-| `desktop` | root-level | refused |
-
-A root-level tool installs system packages as root. `agro tool list` marks it
-`(root)`. When you are not root, the installer runs through `sudo -n`. When
-`sudo -n true` fails, the command exits 1 and changes nothing. The message names
-`<id>` and passwordless `sudo`.
-`docker-engine` and `desktop` install only with `--host`, and `agro tool uninstall`
-refuses them. `docker-engine` installs Docker Engine and Compose. `desktop` installs
-XFCE, XRDP, and system Tailscale, and serves TCP 3389 only through Tailscale. It
-ends by printing the two remaining steps: `sudo tailscale up` and
-`sudo passwd <user>`. Then connect an RDP client to the Tailscale address on port
-3389. See [Installation](installation.md#ai-agent-clis).
+`agro tool install <id>` uses the same host path. The host tools, their install
+levels, and the root-level tools are in
+[Installation → Host tools](installation.md#host-tools).
 
 ## Host workspaces: `agro workspace`
 
@@ -421,10 +261,7 @@ agro workspace list --json                # the same rows as JSON
   the name rule and holds a `.git` marker. The `DEFAULT` column marks the
   workspace that `harnessRoot` names. An empty registry prints one hint that
   names `agro workspace create`.
-- `create` refuses two host states. A state home split across `~/.oh` and
-  `~/.agro` refuses, and `agro migrate --home` repairs that split. A target
-  directory equal to the state home refuses, and the message names the move to
-  run.
+- `create` refuses a target directory equal to the state home `~/.agro`.
 
 `agro harness install --host` and `agro tool install --host` create no workspace.
 Each verb resolves an existing workspace and exits 1 when none resolves. The
@@ -433,50 +270,18 @@ refusal lists every workspace that exists and names `agro workspace create`. See
 
 ## Langfuse tracing: `agro config langfuse` and `agro langfuse`
 
-`agro config langfuse` is the interactive wizard, and the first integration in
-the registry. `agro config --help` lists it. The wizard takes no flags and runs
-five steps: enable, base URL, API keys, segmentation, and a health check before
-the write.
-
-Step 1 depends on the current state. With `langfuse.enabled` unset or `false`
-the wizard asks *Enable Langfuse tracing?*, and a decline writes nothing. With
-`langfuse.enabled` set to `true` the wizard asks *Keep it enabled?*, and a
-decline runs the disable path. The wizard needs an interactive terminal.
-Without a TTY the wizard asks nothing and runs `agro langfuse apply`.
-
-The wizard writes the non-secret fields to the `langfuse` section of `agro.json`
-and both keys to the gitignored `.env`. It then offers to install each missing
-harness plugin and applies the configuration.
-
-Three non-interactive verbs carry the rest:
+`agro config langfuse` is the interactive wizard. It writes the non-secret
+fields to the `langfuse` section of `agro.json` and both keys to `.env`, then
+applies the configuration. Without a TTY it runs `agro langfuse apply`.
 
 | Verb | Runs |
 |---|---|
-| `agro langfuse apply` | render `~/.config/agro/langfuse.env` at mode `0600`, and one tracing file per harness |
-| `agro langfuse status` | print the resolved settings, the state of every generated file, and the plugin state of each harness |
-| `agro langfuse disable` | set `langfuse.enabled=false`, delete the credential fragment, and rewrite the harness files with tracing off |
+| `agro langfuse apply` | render the credential fragment and one tracing file per harness |
+| `agro langfuse status` | print the settings and the state of every generated file; exit non-zero on drift |
+| `agro langfuse disable` | set `langfuse.enabled=false` and delete the credential fragment |
 
-These three verbs sit outside the integration registry on purpose. An
-`Integration` is `{ description, runner: () => Promise<number> }`, and
-`agro config <integration>` accepts no flags and no subcommand.
-
-Four behaviours matter in a script:
-
-- `status` exits non-zero when a generated file is missing or differs from a
-  fresh render, so a check job can call it directly.
-- `status` also exits `1` when `langfuse.enabled` is `false` and the credential
-  fragment survives. The fragment is the off switch, and a stale fragment is the
-  unsafe state. The message names `agro langfuse disable`.
-- `disable` keeps the other `langfuse.*` settings and both `.env` keys, so
-  re-enabling needs no re-prompt. `disable` then warns that a running harness
-  keeps the credentials it loaded, and names the restart.
-- The generated files live in the sandbox home. On the host, the wizard and
-  `disable` save the settings, refuse the file work, name the sandbox command,
-  and exit `1`. On the host, `status` prints the settings and exits `0`.
-
-`.devcontainer/entrypoint.sh` runs `agro langfuse apply` at every start, so the
-configuration survives `agro destroy` and a recreate. Full reference:
-[Langfuse](integrations/langfuse.md).
+The generated files live in the sandbox home, so run these verbs in the
+sandbox. Full reference: [Langfuse](integrations/langfuse.md).
 
 ## `agro destroy` and its confirmation policy
 

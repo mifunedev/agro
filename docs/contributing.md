@@ -4,45 +4,23 @@ title: "Contributing"
 
 # Contributing to AGRO
 
-This guide covers the workflow for contributing to AGRO: creating branches, writing commits, updating the changelog, and shipping releases.
-
-For the inbound license terms and the Developer Certificate of Origin (DCO), see the root [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+This guide gives the branch, commit, changelog, and pull-request rules for an
+AGRO contribution. The license terms and the Developer Certificate of Origin
+are in the root [`CONTRIBUTING.md`](../CONTRIBUTING.md). The full git workflow is
+in `.agro/skills/git/SKILL.md`.
 
 ## Setup
 
-Contributions are prepared **inside a sandbox**, not from a host-side source checkout.
-Host requirements are the same as any other install: Docker (with `docker compose`),
-`git`, and Node.js ≥ 20 to run the `agro` CLI. See
-[Installation → Get the CLI](./installation.md#get-the-cli-agro).
-
-### Provision the sandbox
-
-The lifecycle is driven entirely by `agro`:
-
-```bash
-agro sandbox install docker   # write the registry entry and start the sandbox
-agro shell <name>             # enter the sandbox as the `sandbox` user
-agro ps <name>                # show service status
-agro logs <name>              # tail compose logs
-agro stop <name>              # stop the sandbox, preserving volumes
-agro destroy <name>           # stop and remove the sandbox (volumes wiped)
-agro restart <name>           # restart the service
-agro --help                   # list every verb
-```
-
-### Onboard inside the sandbox
-
-After `agro shell`, install and start Herdr before any other inside-sandbox setup.
-A fresh sandbox has none, because nothing installs at boot:
+Prepare a contribution inside a sandbox, not in a checkout on the host. To
+create the sandbox, follow [Installation](./installation.md#get-the-cli-agro) and
+the [Quickstart](./quickstart.md). After `agro shell <name>`, start Herdr first:
 
 ```bash
 agro tool install herdr
 herdr
 ```
 
-From the initial Herdr pane, complete GitHub authentication so `git push` and `gh` work
-from within the container. Run the checks in order and confirm the account before you
-continue — details in [GitHub auth](./integrations/github.md):
+In a Herdr pane, authenticate GitHub and confirm the account:
 
 ```bash
 gh auth login
@@ -50,54 +28,29 @@ gh auth setup-git
 gh auth status
 ```
 
-Then install and start agents from Herdr panes — nothing is baked into the image:
+Clone the repository in a Herdr pane:
 
 ```bash
-agro harness install claude-code   # claude
-agro harness install codex         # codex
-agro harness install pi            # pi
-```
-
-### Get the source into the sandbox
-
-Clone the repository inside the sandbox, in a Herdr pane:
-
-```bash
-git clone --recurse-submodules https://github.com/mifunedev/agro.git
+git clone https://github.com/mifunedev/agro.git
 cd agro
 ```
 
-If this sandbox already holds your own workspace, do not replace it. Check whether the
-workspace shares history with the canonical repository (`git merge-base --is-ancestor`
-against a fetched upstream ref). When it does, add an `upstream` remote and branch from
-it without touching your private `origin`. When it does not, use a separate ordinary
-clone inside the sandbox, as above, and move only the changes you select into it. Keep
-private configuration, credentials, and unrelated files out of the contribution. The
-[contribution prompt](./quickstart.md#optional-prompt--prepare-an-agro-contribution) walks
-an authenticated agent through the same decision.
+When the sandbox already holds your own workspace, keep that workspace. The
+[contribution prompt](./quickstart.md#optional-prompt--prepare-an-agro-contribution)
+tells an agent how to add an `upstream` remote or how to use a separate clone.
 
-A checkout equipped before the AGRO cutover carries `.agro/` and `agro.json`. Both still
-resolve; run `agro migrate --check` and then `agro migrate` to move it.
+## Local validation
 
-### Local validation
-
-Use the fast harness build for routine development:
+Run the build and the full test suite from the repository root:
 
 ```bash
-pnpm run build          # fast non-docs build
-pnpm run test:scripts   # root script + .pi extension tests
+pnpm run build
+pnpm test
 ```
 
-The rendered docs site is maintained in [`mifunedev/agro-web`](https://github.com/mifunedev/agro-web). In this core repo, validate docs by checking the Markdown links and the GitHub-readable index at `docs/README.md`; no Docusaurus build runs here.
-
-### Multi-agent messaging (Slack)
-
-Slack (and other messengers) bridge to a Pi agent via the
-[`pi-messenger-bridge`](https://github.com/tintinweb/pi-messenger-bridge) npm package. The
-harness installs it into a gitignored `.pi/bridge/` directory and loads it via `--extension`
-only in the dedicated `client-slack-pi` tmux session (managed by `.agro/scripts/gateway.sh`) —
-you don't run `pi install` yourself. Full setup (tokens, trust, the sibling Hermes gateway)
-lives in [Slack integration](./integrations/slack.md).
+The rendered docs site lives in
+[`mifunedev/agro-web`](https://github.com/mifunedev/agro-web). In this
+repository, check the Markdown links and the index at `docs/README.md`.
 
 ## Property Tests
 
@@ -107,82 +60,36 @@ assert an invariant over generated inputs, with [fast-check](https://fast-check.
 as the generator library. Run the full suite, including property tests, with
 `pnpm test` from the repo root.
 
-## Branch Naming
+## Branch names
 
-All feature branches follow the format `<prefix>/<issue#>-<short-desc>`.
-
-Prefixes: `feat` · `bug` · `task`
-
-Short description: kebab-case, maximum 5 words.
-
-Example:
-
-```
-feat/42-slack-thread-replies
-```
-
-Create your branch off the default target (`development` if it exists, otherwise `main`):
+Name a branch `<prefix>/<issue#>-<short-desc>`. The prefix is `feat`, `bug`, or
+`task`. The description is kebab-case, with five words or fewer. Branch from
+`development`:
 
 ```bash
 git checkout -b feat/42-slack-thread-replies development
 ```
 
-## Commit Messages
+## Commit messages
 
-Commit format: `<type>: <description>`
-
-Types: `feat` · `fix` · `task`
-
-Example:
+Write `<type>: <description>`. The type is `feat`, `fix`, or `task`:
 
 ```
 feat: add Slack thread replies for multi-channel mode
 ```
 
-## CHANGELOG Entries
+## CHANGELOG entries
 
-Every pull request with user-visible impact must add an entry to `CHANGELOG.md` under `## [Unreleased]` in the same commit as your change.
+When a pull request changes runtime or workflow behavior, add one line to
+`CHANGELOG.md` under `## [Unreleased]`, in the same commit. Use the categories
+`### Added`, `### Changed`, `### Fixed`, `### Removed`, `### Deprecated`, and
+`### Security`. Write the line in the imperative mood, with a link to the pull
+request or the issue.
 
-Categories: `### Added` · `### Changed` · `### Fixed` · `### Removed` · `### Deprecated` · `### Security`
+## Pull requests
 
-Format: one line, imperative mood, link to your PR or issue.
-
-Example:
-
-```markdown
-### Added
-- Slack thread replies in multi-channel mode ([#42](https://github.com/mifunedev/agro/pull/42)).
-```
-
-Skip CHANGELOG entries only for pure chores with no runtime or workflow effect (refactors, test fixes, typos). When in doubt, add an entry.
-
-## Pull Requests
-
-Target the default branch (`development`). Title format: `FROM <source-branch> TO <target-branch>` (literal).
-
-Example:
-
-```
-FROM feat/42-slack-thread-replies TO development
-```
-
-Link the issue in the title or the body with a closing keyword:
-
-```
-Closes #42
-```
-
-`Closes`, `Fixes` and `Resolves` all work, and each grammatical variant works
-(`Closed`, `Fixed`, `Resolved`). List every issue the pull request completes —
-one keyword per issue. A bare `#42` links the issue but does not close it.
-
-When the pull request merges into `development`, the workflow
-[`.github/workflows/close-issues-on-development.yml`](../.github/workflows/close-issues-on-development.yml)
-closes each referenced issue as `completed`. Closing the pull request without
-merging it closes no issue. A pull request opened from a fork gets a read-only
-token, so close its issue by hand.
-
-Create the PR:
+Target `development`. Write the title as `FROM <source-branch> TO <target-branch>`.
+Close each issue with its own keyword in the body:
 
 ```bash
 gh pr create --base development \
@@ -190,77 +97,15 @@ gh pr create --base development \
   --body "Closes #42"
 ```
 
+`Closes`, `Fixes`, and `Resolves` work. A bare `#42` links the issue and does not
+close the issue. When the pull request merges into `development`,
+[`close-issues-on-development.yml`](../.github/workflows/close-issues-on-development.yml)
+closes each linked issue. A pull request from a fork gets a read-only token, so
+close its issue by hand.
+
 ## Releases
 
-AGRO uses SemVer versioning: `MAJOR.MINOR.PATCH`, tagged
-`vMAJOR.MINOR.PATCH`. Root `package.json` holds the release version.
-The canonical CLI package and its lockfile must match that version.
-
-A release is a deliberate bump, not a side effect of a push. Every push to
-`main` or `master` runs `.github/workflows/release.yml`, which validates the
-commit, then publishes the version `package.json` names:
-
-1. Validation and boot-path lint must pass first
-2. The workflow reads the version from root `package.json`
-3. Creating `refs/tags/v<version>` reserves the version — this act is atomic
-4. Build and smoke-test the image
-5. Push the GHCR image tags `:<version>` and `:sha-<SHA>`, both bare — the `v`
-   prefix belongs to the git tag, not to the registry
-6. Promote `latest` by immutable digest from the canonical branch
-7. Publish the CLI
-8. Publish the GitHub Release
-
-To cut a release, update root `package.json`, `.agro/cli/package.json`, and its lockfile to the same version.
-Add the matching
-`## [<version>]` section to `CHANGELOG.md` in the same PR, then promote
-`development` to `main`. If you push to `main` without bumping the version, the
-run is a clean, **green** no-op: the reserve step reports the version as already
-released and every publication job skips.
-
-Do **not** manually pre-create a release tag or a `release/<version>` branch.
-
-Run the release skill from inside the orchestrator sandbox:
-
-```bash
-/release
-```
-
-For the full workflow, see the `git` and `release` skills in `.agro/skills/`.
-
-### Release helpers
-
-`.github/workflows/release.yml` drives the release scripts in `.agro/scripts/`.
-`reserve-github-release.mjs` uses the GitHub API user agent `agro-release-reservation`.
-The smoke sandbox name is `agro-release-smoke-<run id>`.
-`promote-release-latest.sh` defaults `IMAGE_REPOSITORIES` to
-`ghcr.io/mifunedev/agro ghcr.io/mifunedev/agro`.
-The `agro` digest is the reference that the legacy image alias must match.
-The GHCR package `mifunedev/agro` must be public before consumers can pull its tags.
-
-### Documentation notification
-
-After a real release's `finalize` succeeds, `notify-docs` sends `repository_dispatch`:
-
-| Field | Value |
-| --- | --- |
-| Repository | `AGRO_WEB_REPO`, default `mifunedev/agro-web`. |
-| Event type | `agro-release`. |
-| Payload | `{ "ref": "<released sha>" }`, from `needs.reserve.outputs.releaseSha`. |
-| Credential | `AGRO_WEB_DISPATCH_TOKEN`, passed as `GH_TOKEN`. |
-
-The token needs Contents read/write access on the docs repository.
-A classic token needs the `repo` scope.
-If the secret is absent, the job prints a notice and exits 0 without dispatching.
-Set the destination and upload the token from a file:
-
-```bash
-gh secret set AGRO_WEB_DISPATCH_TOKEN --repo mifunedev/agro < token-file
-gh variable set AGRO_WEB_REPO --repo mifunedev/agro --body mifunedev/agro-web
-```
-
-Do not place the token value in shell history or logs.
-
----
-
-Need to dive deeper? See the `git` skill (`.agro/skills/git/SKILL.md`)
-in the repo for the canonical workflow.
+A release is a version bump that merges to `main`. The `release` skill
+(`.agro/skills/release/SKILL.md`) owns the procedure, and
+`.github/workflows/release.yml` publishes the image, the CLI, and the GitHub
+Release. Do not create a release tag or a `release/<version>` branch by hand.

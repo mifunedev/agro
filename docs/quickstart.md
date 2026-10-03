@@ -4,217 +4,102 @@ title: "Quickstart"
 
 # Quickstart
 
-This guide takes you from zero to a running sandbox with an interactive shell in under five minutes. Required host dependencies are [Docker](https://docs.docker.com/get-docker/) with the Compose plugin, [Git](https://git-scm.com/), and [Node.js](https://nodejs.org/) ≥ 20 — the full list with install commands is in [Prerequisites](./installation.md#prerequisites).
+This guide takes you from a bare host to an authenticated agent in a sandbox.
+The host needs Docker with the Compose plugin, Git, and Node.js ≥ 20. See
+[Installation → Prerequisites](./installation.md#prerequisites).
 
-## Before you start
+## 1. Get `agro`
 
-Install Docker with the Compose plugin ([docs.docker.com/get-docker](https://docs.docker.com/get-docker/)), Git ([git-scm.com](https://git-scm.com/)), and Node.js ≥ 20 ([nodejs.org](https://nodejs.org/)). Node runs the `agro` CLI. If you skip Node, `get-agro.sh` below installs Node for you. Python, pnpm, and the agent CLIs run inside the container.
-
-## Install
-
-`agro` is the only front door. Get it, then create a sandbox.
-
-**1. Get `agro`** — from npm if you already have Node ≥ 20:
+Install the CLI from npm when Node is present:
 
 ```bash
-npm install -g @mifune/agro   # or, zero-install: npx @mifune/agro --help
+npm install -g @mifune/agro
 ```
 
-…or with the curl bootstrap. The bootstrap downloads the prebuilt `agro` artifact
-from the latest GitHub release, and the bootstrap clones nothing and builds
-nothing on your host. When Node is missing, the bootstrap offers to install
-nvm + Node 22:
+Without Node, use the bootstrap script. It installs `agro` to
+`~/.local/bin/agro` and offers to install Node:
 
 ```bash
 curl -fsSL https://agro.mifune.dev/get-agro.sh | bash
 ```
 
-Review-first, without adding a host dependency:
+Review-first install, PATH rules, and upgrades are in
+[Installation → Get the CLI](./installation.md#get-the-cli-agro).
+
+## 2. Create the sandbox
+
+Run `agro sandbox install docker` on the host, from any directory:
 
 ```bash
-curl -fsSL -o get-agro.sh https://agro.mifune.dev/get-agro.sh
-# Review get-agro.sh in your editor or pager before running it.
-bash get-agro.sh
+agro sandbox install docker
 ```
 
-`get-agro.sh` installs to `~/.local/bin/agro` (`AGRO_BIN_DIR` overrides it);
-after the piped form, `export PATH="$HOME/.local/bin:$PATH"` puts it on an
-already-open shell's PATH. Upgrade later with `agro self-upgrade`.
+The wizard asks for the sandbox name, the timezone, your git identity, SSH, the
+host Docker socket, and the host path for `/home/sandbox`. `--yes` keeps every
+default. The default name is `agro-sbx-<n>`. The entry lands in
+`~/.agro/sandboxes/<name>/`.
 
-### Package and PATH rules
+Without `--checkout`, the sandbox runs the published image and needs no project
+checkout. To bind your own checkout at `/home/sandbox/harness`, see
+[Installation → Create the sandbox](./installation.md#create-the-sandbox).
 
-`@mifune/agro` ships the single `agro` executable; the retired
-`@mifune/openharness` shim is no longer published. `npx @mifune/agro <verb>`
-works without a global install. A standalone `get-agro.sh` install and an npm
-install can coexist, but `agro self-upgrade` refuses when another `agro` comes
-earlier on PATH than the `agro` that the upgrade replaces. Details: [Installation → Package and PATH rules](./installation.md#package-and-path-rules).
-
-### Standalone install (`get-agro.sh`)
-
-The curl bootstrap installs the self-contained `agro` binary to
-`~/.local/bin/agro` — no repo clone:
+## 3. Enter the sandbox
 
 ```bash
-curl -fsSL https://agro.mifune.dev/get-agro.sh | bash
+agro sandbox list   # name, runtime, status, checkout
+agro shell <name>   # zsh in the container, as the sandbox user
 ```
 
-Review-first: `curl -fsSL -o get-agro.sh https://agro.mifune.dev/get-agro.sh`, read
-it, then `bash get-agro.sh`. `source <(curl -fsSL https://agro.mifune.dev/get-agro.sh)`
-installs *and* puts `agro` on the current shell's PATH.
+Omit `<name>` when the registry holds one sandbox. The working directory is
+`/home/sandbox/harness`. To attach VS Code or connect from another machine, see
+[Connecting to the sandbox](./connecting.md).
 
-**2. Create the sandbox** — from any directory, with no project checkout:
+## Start Herdr first
 
-```bash
-agro sandbox install docker   # wizard: name, timezone, git identity, SSH, Docker socket
-```
-
-It asks for the sandbox name (default `agro-sbx-<n>`, the lowest unused number),
-the timezone, your git identity, whether to run sshd and on which host port, and
-whether to mount the host Docker socket. `--yes` keeps every default and asks
-nothing. The answers land in a registry entry at
-`~/.agro/sandboxes/<name>/agro.json`, together with the compose files and the
-wrapper script the CLI regenerates on every lifecycle call — edit only
-`agro.json` there. A registry written by an earlier release stays at
-`~/.agro/sandboxes/<name>/agro.json` and keeps working; `agro migrate --home` moves
-it when you choose.
-
-Without `--checkout` the sandbox runs the published image
-(`ghcr.io/mifunedev/agro:<CLI version>`) and seeds its workspace from the
-image's `/opt/agro-seed`, so there is no build and no clone. To persist
-`/home/sandbox` at a host path instead of the Docker-managed volume, pass
-`--home-mount <dir>`.
-
-Finish by attaching:
-
-```bash
-agro sandbox list  # name, runtime, status, checkout
-agro shell <name>  # zsh in the container, as the sandbox user
-```
-
-**3. (Optional) Mount your own project.** Point the sandbox at a checkout and it
-is bind-mounted at `/home/sandbox/harness`:
-
-```bash
-cd <your-project>
-agro vendor                                     # vendor .agro/ + crons/ into this checkout
-agro sandbox install docker --checkout "$PWD" --name <your-project>
-```
-
-`agro vendor` writes `.agro/` and `crons/` and **nothing else** — no `agro.json`, no
-`.env`, no `AGENTS.md`, no provider configuration, and no `.gitignore` line
-beyond the `.env` line `agro secret set` adds inside a git checkout. Those files
-are yours to author. `--checkout` takes a host path. The CLI selects build mode
-only when that path holds `.devcontainer/Dockerfile`. In build mode the sandbox
-builds from that file instead of pulling (~10 min cold, ~30s warm). A
-`--checkout` path without `.devcontainer/Dockerfile` binds the directory and runs
-the published image. The flag `--repo` and the `agro.json` field `repo` remain
-supported aliases for `--checkout` and `checkout`.
-
-## Enter the sandbox
-
-**Recommended: attach with VS Code's Dev Containers extension.** The attach works the same way on your laptop and on a remote host. For a remote host, connect over SSH with VS Code's Remote-SSH extension first. One window holds your normal editor, the integrated terminal, and the file tree. This setup gives the most consistent and productive experience across environments.
-
-1. Install the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
-2. Open the Command Palette with `Ctrl+Shift+P` (`Cmd+Shift+P` on macOS) → **Dev Containers: Attach to Running Container...** → select your sandbox name from `agro sandbox list`.
-3. When the new VS Code window opens, set the workspace folder to `/home/sandbox/harness`.
-
-> **Optional — DebugMCP (cross-harness debugging).** If you take the VS Code attach route
-> above, you can install the `microsoft/DebugMCP` extension to expose a debugging MCP server
-> that **any MCP-capable harness** (Claude Code, Codex, …) can drive — breakpoints, stepping,
-> variable inspection. DebugMCP serves every such agent, not one agent. The terminal path does not need DebugMCP.
-> Runbook: [DebugMCP](./integrations/debugmcp.md#confirmed-setup-runbook).
-
-**Terminal fallback** for when VS Code isn't available or you just need a shell:
-
-```bash
-agro shell <name>
-```
-`<name>` is an entry from `agro sandbox list`. Omit `<name>` when the registry holds
-exactly one sandbox, or when you stand in the checkout that a sandbox binds.
-`agro shell` always attaches as the `sandbox` user; if the target container has no
-such user, use `docker exec -it -u <user> <container> zsh` instead. On a stopped
-container, `agro shell` tells you to start the container with `agro sandbox install docker`.
-
-Either way you're inside the isolated sandbox as the `sandbox` user. Working
-directory: `/home/sandbox/harness`.
-
-## Install and start Herdr first
-
-A fresh sandbox has no `herdr`. Nothing installs at boot. Your first two commands
-inside a fresh sandbox should be:
+A fresh sandbox has no `herdr`. Nothing installs at boot. Run these two commands
+first:
 
 ```bash
 agro tool install herdr
 herdr
 ```
 
-Herdr creates or reattaches the persistent interactive workspace for this repository.
-Complete GitHub and provider authentication, launch agents, and run tests and servers
-inside its panes. Detach with `Ctrl-b q`; run `herdr` again to return while the container
-keeps running. A container stop/rebuild restores metadata and layout, not terminated
-agent or server processes. Raw shells and direct agent commands remain recovery paths. Cron, Slack, and gateway infrastructure
-continue to run independently under tmux.
+Herdr is the persistent workspace for agents, tests, and development servers.
+Run every later step in a Herdr pane. Detach with `Ctrl-b q`. Run `herdr` again
+to reattach. The container keeps running after you detach. See
+[Herdr](./integrations/herdr.md).
 
-## Set up agents inside Herdr
+## 4. Install a harness
 
-The image contains no agent CLI and no tool, and nothing installs one at
-boot. Install what you need through the one door:
+The image contains no agent CLI. Install one harness, then authenticate it:
 
 ```bash
-agro harness install claude-code   # or codex, pi, opencode, hermes, grok-build, muse-code, antigravity-cli
-agro tool install cloudflared      # or herdr, agent-browser, tailscale
+agro harness install claude-code
+claude auth login
+claude auth status
 ```
 
-Each install lands in `~/.local` inside the persistent home volume, not in the
-image, so `agro harness install <id>` also upgrades in place without a rebuild. An
-install needs network access. T3 Code runs on demand: T3 Code has no install, and the
-`/t3` skill (or direct `npx`) fetches it at each run. Authenticate at least one
-harness before use.
+Each install lands in `~/.local` in the persistent home volume. Run
+`agro harness list` for every harness id. Each
+[harness guide](./harnesses/overview.md) gives its login command.
 
-> **Simplest cross-provider login — device mode via `/login`.** The most straightforward path
-> that works the same across most harnesses: launch the agent in **interactive mode**, run
-> **`/login`**, and choose **device mode** (device-auth). You get a short code + a URL to open
-> in a browser on *any* device — no local browser on the host required, so it works cleanly on
-> a **headless or remote sandbox** (e.g. a cloud VM you SSH into). Browser-redirect OAuth
-> assumes a local browser and often fails there; device mode doesn't. The per-harness commands
-> below are equivalents for when you prefer a one-liner. At least two harnesses expose an
-> explicit `--device-auth` flag: `codex login --device-auth` and `grok login --device-auth`.
+On a remote or headless sandbox, use device login. Start the agent, run
+`/login`, and choose device mode. Open the printed URL on any device.
 
-- **[Claude Code](./harnesses/claude-code.md)**: `claude auth login` (or `/login` in an interactive session), then `claude auth status` to verify
-- **[Codex](./harnesses/codex.md)**: `codex login --device-auth` (device mode; or `/login` in-session)
-- **[OpenCode](./harnesses/opencode.md)**: `agro harness install opencode`, then run `opencode auth login`
-- **[Pi](./harnesses/pi.md)**: configure provider keys via environment variables
-- **[Hermes](./harnesses/hermes.md)**: `agro harness install hermes`, then run `hermes setup`
-- **[Muse Code](./harnesses/muse-code.md)**: `agro harness install muse-code`, verify `muse --version`, then run `muse login`
-- **[Grok Build](./harnesses/grok-build.md)**: `agro harness install grok-build`, verify `grok --version`, then run `grok login --device-auth` (headless/remote) or `grok login`
-- **[Antigravity CLI](./harnesses/antigravity-cli.md)**: `agro harness install antigravity-cli`, then run `agy` and complete Google Sign-In — a remote sandbox prints an authorization URL and accepts a pasted code (install and login are not yet validated in AGRO)
-- **[T3 Code](./harnesses/t3code.md)**: authenticate one of Claude / Codex / OpenCode, then `/t3` or `npx t3` (browser UI on port 3773)
-
-Claude Code remains the documented default. See
-[the harnesses overview](./harnesses/overview.md) for the full list and
-per-harness setup.
-
-[Connecting to the Sandbox](/docs/connecting)
-
-An installed and authenticated harness inside Herdr is already a working
-sandbox. Everything below is optional.
+The sandbox now works. The next sections are optional.
 
 ## Authenticate GitHub before any repository work
 
-Local sandbox use stays available without a GitHub account. Work that reaches
-GitHub — pushing, creating a repository, opening a pull request — does not.
-Provider authentication authenticates the model, not GitHub, and grants no
-repository access.
+Local sandbox use needs no GitHub account. A push, a new repository, and a pull
+request need one. Provider login does not give repository access.
 
-Run these five steps in this order, inside a Herdr pane:
+Do these steps in a Herdr pane, in this order:
 
-1. Authenticate the intended GitHub account with `gh auth login`.
-2. Run `gh auth setup-git` to configure Git's credential helper.
+1. Run `gh auth login`.
+2. Run `gh auth setup-git`.
 3. Run `gh auth status`.
-4. Confirm the status output identifies the intended account with authenticated
-   access.
-5. Only after those checks pass, send either optional prompt below to the
-   authenticated coding agent.
+4. Confirm that the output names the intended account.
+5. Send one optional prompt below to the authenticated agent.
 
 ```bash
 gh auth login
@@ -222,14 +107,11 @@ gh auth setup-git
 gh auth status
 ```
 
-The prompts never perform the initial login. Both prompts assume that you
-completed the login, and both prompts recheck the login before acting. Protocol choice, SSH-key upload,
-`GH_TOKEN` at boot, and recovery after a `down -v` are in
-[GitHub auth](./integrations/github.md).
+If you set `GH_TOKEN` before install, the entrypoint runs the login and the
+credential setup for you. Run `gh auth status` to confirm. Protocol choice, SSH
+keys, and recovery are in [GitHub auth](./integrations/github.md).
 
 ### Optional prompt — version-control this sandbox privately
-
-Send this to the authenticated coding agent:
 
 > I have completed `gh auth login` and verified the intended GitHub account inside this sandbox.
 > Help me version-control this sandbox workspace in my own private GitHub repository.
@@ -242,8 +124,6 @@ Send this to the authenticated coding agent:
 
 ### Optional prompt — prepare an AGRO contribution
 
-Send this instead:
-
 > I have completed `gh auth login` and verified the intended GitHub account inside this sandbox.
 > Help me prepare an AGRO contribution from this sandbox.
 > Recheck GitHub authentication before acting.
@@ -254,167 +134,40 @@ Send this instead:
 > Confirm the fork, target branch, and diff with me before pushing or opening a pull request.
 > Do not replace the live workspace or create a host-side source checkout.
 
-Branch, commit, changelog, and pull-request conventions for the second prompt
-live in [Contributing](./contributing.md).
+The branch, commit, and pull-request rules are in [Contributing](./contributing.md).
 
-### `agro config repo` is a compatibility helper
+## Configure
 
-`agro config repo` (and `agro config repo`) creates a repository and re-points
-`origin` for the retired clone-and-own recipe. It stays supported through the
-[AGRO compatibility](https://github.com/mifunedev/agro/issues/1061) window and is **not** the
-canonical onboarding path. Prefer the prompts above, which inspect the workspace
-before they make a change.
+Settings live in `agro.json`, and secrets live in a gitignored `.env`. Change
+them on the host:
 
-## Configuration
-
-Configuration lives in **two** files, split by kind. `agro.json` holds every
-non-secret setting. A gitignored, mode-`0600` `.env` holds nothing but secrets;
-the tracked `.example.env` documents every allow-listed secret key, commented
-out, so a fresh copy changes nothing.
-
-Each sandbox keeps its own pair inside its registry entry at
-`~/.agro/sandboxes/<name>/` (a registry from an earlier release stays at
-`~/.agro/sandboxes/<name>/` until `agro migrate --home` runs). Write both files with
-`agro config set --sandbox <name> <field> <value>` and `agro secret set
---sandbox <name> <KEY>`; without `--sandbox` both act on the project root
-instead. In an equipped checkout, `.devcontainer/.env` is a symlink to that root
-`.env`.
-
-Both work on **every** path. `agro ...` renders `agro.json` and passes it plus the
-secrets file to compose with `--env-file`; the VS Code "Reopen in Container"
-path loads `.devcontainer/docker-compose.yml` directly, and compose auto-loads
-the `.devcontainer/.env` symlink sitting beside it — so secrets arrive, every
-non-secret falls back to its compose default, and
-[no overlay applies](./lifecycle-commands.md#vs-code-reopen-in-container-applies-no-overlays).
-(Before 0.4.0 a
-`harness.yaml` layer sat in front of the dotenv and was readable on the first
-path only, so a key set there had no effect under VS Code. Release 0.4.0 removed
-that layer. The next lifecycle command migrates a leftover `harness.yaml`
-automatically.)
-
-```json
-// agro.json — non-secret settings (example)
-{
-  "name": "agro",
-  "timezone": "UTC",
-  "git": { "userName": "your-name", "userEmail": "you@example.com" }
-}
+```bash
+agro config set --sandbox <name> <field> <value>
+agro secret set --sandbox <name> <KEY>
+agro stop <name> && agro sandbox install docker --name <name>
 ```
 
-`agro.json` also carries `checkout` and `runtime` for a registry entry, plus the SSH,
-Docker-socket, Hermes-dashboard, cron, build, and image settings. See
-[Configuration](./configuration.md) for the full field reference, and
-`agro config set <field> <value>` to edit one field.
-
-**Secrets** — keep in `.env` only (gitignored, `0600`); set one with
-`agro secret set <KEY>`, or `agro secret set --sandbox <name> <KEY>` for a registry
-entry:
-
-| Var | Purpose |
-|-----|---------|
-| `GH_TOKEN` | GitHub token for non-interactive auth |
-| `SANDBOX_PASSWORD` | The `sandbox` user's login and `sudo` password — **override the weak compose default on any network-reachable deployment** |
-| `PI_SLACK_APP_TOKEN` | Slack Socket Mode app token (`xapp-`) |
-| `PI_SLACK_BOT_TOKEN` | Slack bot token (`xoxb-`) |
-
-**Non-secret settings** — `agro.json` fields:
-
-| Field | Purpose |
-|-----|---------|
-| `name` | Container/compose project name |
-| `timezone` | Container timezone |
-| `git.userName` | Commit author name (spaces OK) |
-| `git.userEmail` | Commit author email |
-
-`agro.json` carries no install field. Install a harness or a tool with
-`agro harness install <id>` or `agro tool install <id>` instead.
-
-Set one field with `agro config set <field> <value>` and one secret with
-`agro secret set <KEY>`, then apply with
-`agro stop <name> && agro sandbox install docker --name <name>`.
-
-For additional services (databases, tunnels, reverse proxies), add overlay
-paths to `composeOverrides[]` in `agro.json` (last wins).
-
-## End-to-end setup walkthrough
-
-The full path from a bare host to a working sandbox. Steps 1–5 are the whole
-required path; everything after them is optional and can wait. Steps 4 onward run
-**inside the sandbox** (`agro shell <name>`).
-
-1. **Install host prerequisites** — Docker (+ Compose), Git, and Node.js ≥ 20
-   ([details](./installation.md#prerequisites)):
-   ```bash
-   curl -fsSL -o get-agro.sh https://agro.mifune.dev/get-agro.sh   # review it first
-   bash get-agro.sh                                          # installs `agro`, and Node if missing
-   ```
-
-   To skip the review step: `curl -fsSL https://agro.mifune.dev/get-agro.sh | bash`. `npm install -g @mifune/agro` is the npm equivalent when Node is already present.
-2. **Create the sandbox** — the wizard asks for the name, timezone, git identity,
-   SSH, and the Docker socket, then writes `~/.agro/sandboxes/<name>/`:
-   ```bash
-   agro sandbox install docker
-   ```
-   Add `--checkout "$PWD" --name <your-project>` to bind an existing checkout at
-   `/home/sandbox/harness` instead of running the published image.
-3. **Enter the sandbox**:
-   ```bash
-   agro shell <name>   # attach as the sandbox user
-   ```
-4. **Get Herdr running** — a fresh sandbox has no Herdr; the commands below install Herdr and start Herdr. All remaining setup runs in Herdr panes:
-   ```bash
-   agro tool install herdr
-   herdr
-   ```
-5. **Install and authenticate one harness** — Claude Code is the documented
-   default ([Claude Code](./harnesses/claude-code.md)):
-   ```bash
-   agro harness install claude-code
-   claude auth login && claude auth status
-   ```
-   The sandbox now works. Stop here until you need more.
-
-Optional, in any order:
-
-6. **Authenticate GitHub** before any repository work — the five checks in
-   [Authenticate GitHub before any repository work](#authenticate-github-before-any-repository-work),
-   then either optional prompt.
-7. **Add more harnesses** — `agro harness install codex`
-   ([Codex](./harnesses/codex.md)), `agro harness install pi` ([Pi](./harnesses/pi.md)),
-   `agro harness install hermes && hermes setup` ([Hermes](./harnesses/hermes.md)).
-   The simplest cross-provider method is `/login` → **device mode** inside each
-   agent's interactive session (see [Set up agents inside Herdr](#set-up-agents-inside-herdr));
-   the explicit commands are equivalents.
-   > Optional: DebugMCP (cross-harness debugging over MCP) is available if you attached via
-   > VS Code — see [Enter the sandbox](#enter-the-sandbox) above.
-8. **Configure Slack** for Pi (and Hermes) — create the Slack app, add tokens, set trust
-   ([Slack](./integrations/slack.md); Hermes uses `hermes gateway setup`).
-9. **Gateway check** (sandbox-only): the commands below run the gateways and verify the gateways. Watch read-only so you can't kill a gateway
-   ([Slack § Run and verify](./integrations/slack.md), [Hermes § Run and verify](./harnesses/hermes.md#run-and-verify-read-only)):
-   ```bash
-   gateway pi && gateway hermes        # start the client-slack-* sessions
-   gateway status                      # both sessions + state
-   tmux attach -r -t client-slack-pi   # read-only view; detach with Ctrl-b d
-   ```
-
-> Shortcut: if you set `GH_TOKEN` at install, the entrypoint already ran `gh auth login`
-> + `gh auth setup-git` and generated/uploaded an SSH key for you. Verify with
-> `gh auth status` before you rely on it.
+The field reference and the secret allow-list are in
+[Configuration](./configuration.md). Slack setup is in
+[Slack](./integrations/slack.md).
 
 ## Tear down
 
-When you're finished, exit the shell and clean up from the host:
+Run these commands on the host.
+
+Stop the sandbox and keep its home volume, logins included:
+
+```bash
+agro stop <name>
+agro sandbox install docker --name <name>   # start it again
+```
+
+Warning: `agro destroy` deletes the home volume, with every agent login and
+every install in it. The command has no undo. To remove the sandbox, its
+volumes, and its registry entry:
 
 ```bash
 agro destroy <name>
 ```
 
-This stops the container, removes its volumes, and drops the registry entry, so
-the name becomes free again. To keep auth credentials across rebuilds, stop
-without removing volumes:
-
-```bash
-agro stop <name>
-```
-
-Bring it back later with `agro sandbox install docker --name <name>`.
+See [Lifecycle commands](./lifecycle-commands.md).

@@ -14,7 +14,7 @@
   <img src=".github/assets/mifune-banner.jpg" alt="AGRO" width="100%">
 </p>
 
-**AGRO gives AI coding agents a workspace you control.** It packages a Docker sandbox and shared agent procedures around the coding harness you choose—Claude Code, Codex, Pi, or another.
+**AGRO gives AI coding agents a workspace you control.** It packages a Docker sandbox and shared agent procedures. You choose the coding harness: Claude Code, Codex, Pi, or another.
 
 Develop on your laptop or a remote VM. Install tools and harnesses on demand, organize parallel changes in separate git worktrees, and use shared skills and evidence checks to guide the work.
 
@@ -68,8 +68,8 @@ agro --help
 
 ### 2. Create the sandbox
 
-`agro sandbox install docker` runs from **any** directory — it needs no project
-checkout:
+`agro sandbox install docker` runs from **any** directory and needs no project
+checkout.
 
 Set up the sandbox, then enter it. For checkout and persistent home options, see [Create the sandbox](docs/installation.md#create-the-sandbox).
 
@@ -84,7 +84,7 @@ agro shell <name>
 `--checkout` and `--home-mount` bind different paths, so one command can carry
 both.
 
-`--repo` remains a supported alias for `--checkout`.
+`--repo` is a deprecated alias for `--checkout`.
 
 ### 3. Install tools
 
@@ -262,9 +262,10 @@ configuration.
 For a sandbox running on your local machine:
 
 1. Install VS Code's [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
-2. Check that your sandbox is running with `agro sandbox list` on the host.
-3. Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`), choose **Dev Containers: Attach to Running Container**, and select your sandbox.
-4. Choose **File → Open Folder** and open `/home/sandbox/harness` — the sandbox user's `~/harness` folder.
+2. On the host, run `agro sandbox list`. Confirm the status of your sandbox.
+3. Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`).
+4. Run **Dev Containers: Attach to Running Container**, then pick your sandbox.
+5. With **File → Open Folder**, open `/home/sandbox/harness`, the `~/harness` folder of the sandbox user.
 
 Use **Attach to Running Container**, not **Reopen in Container**.
 
@@ -277,7 +278,7 @@ your local machine:
 1. Install the [Remote - SSH extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) alongside Dev Containers.
 2. Run **Remote-SSH: Connect to Host** and connect to your Docker host using `user@host`.
 3. In the SSH-connected window, run **Dev Containers: Attach to Running Container** and select the sandbox on that host.
-4. Choose **File → Open Folder** and open `/home/sandbox/harness` (`~/harness` for the sandbox user).
+4. With **File → Open Folder**, open `/home/sandbox/harness` (`~/harness` for the sandbox user).
 
 Connect over SSH to the host, not directly to the container. See the
 [connection guide](docs/connecting.md) for more options.
@@ -295,7 +296,7 @@ Clone <owner>/<repo> into projects.
 Example agent response after a successful clone:
 
 > Cloned `<owner>/<repo>` to `~/harness/projects/<owner>/<repo>`.
-> This is a separate repository with its own history and remote.
+> The clone is a separate repository with its own history and remote.
 
 Then ask for an isolated workspace:
 
@@ -313,7 +314,7 @@ Each parallel agent gets its own branch and worktree, so agents do not overwrite
 each other's work. The agent manages these folders; you do not need to configure
 them manually.
 
-When the work is merged, ask:
+After the pull request merges, ask:
 
 ```text
 Clean up the merged worktree for issue #123 in <owner>/<repo>.
@@ -332,7 +333,7 @@ Browse the [documentation](docs/README.md) or jump to a topic below.
 | Terminal workspace | [Herdr](docs/integrations/herdr.md) |
 | Coding harnesses | [Harness overview and setup guides](docs/harnesses/overview.md) |
 | Configuration | [Settings and secrets](docs/configuration.md) |
-| Agent procedures | [Shared skills and hooks](docs/README.md#how-the-primitive-pack-ships) · [Directory layout](docs/agro-directory-layout.md) |
+| Agent procedures | [Shared skills and hooks](docs/agro-directory-layout.md#provider-exposure) · [Directory layout](docs/agro-directory-layout.md) |
 | Integrations | [GitHub](docs/integrations/github.md) · [Slack](docs/integrations/slack.md) · [Langfuse](docs/integrations/langfuse.md) |
 | Debugging and testing | [DebugMCP](docs/integrations/debugmcp.md) · [Property testing](docs/contributing.md#property-tests) |
 | Security | [Permissions and trust boundaries](docs/security-considerations.md) |
