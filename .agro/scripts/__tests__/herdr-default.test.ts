@@ -6,6 +6,14 @@ import path from "node:path";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const readRepoFile = (file: string): string => readFileSync(path.join(repoRoot, file), "utf8");
 
+function expectBefore(text: string, earlier: string, later: string): void {
+  const earlierAt = text.indexOf(earlier);
+  const laterAt = text.indexOf(later);
+  expect(earlierAt).toBeGreaterThan(-1);
+  expect(laterAt).toBeGreaterThan(-1);
+  expect(earlierAt).toBeLessThan(laterAt);
+}
+
 describe("default Herdr integration", () => {
   // #906: the pin moved out of the Dockerfile and into the tool catalog, which
   // provisions Herdr into the home mount at boot. The image no longer carries it.
@@ -54,11 +62,10 @@ describe("default Herdr integration", () => {
     const harnessOverview = readRepoFile("docs/harnesses/overview.md");
     const zshrc = readRepoFile(".agro/install/.zshrc");
 
-    expect(readme.indexOf("\nherdr\n")).toBeGreaterThan(-1);
-    expect(readme.indexOf("\nherdr\n")).toBeLessThan(readme.indexOf("gh auth login"));
-    expect(quickstart.indexOf("## Start Herdr first")).toBeLessThan(quickstart.indexOf("gh auth login"));
-    expect(agents.indexOf("Start the primary interactive workspace")).toBeLessThan(agents.indexOf("gh auth login"));
-    expect(contributing.indexOf("\nherdr\n")).toBeLessThan(contributing.indexOf("gh auth login"));
+    expectBefore(readme, "\nherdr\n", "gh auth login");
+    expectBefore(quickstart, "## Start Herdr first", "gh auth login");
+    expectBefore(agents, "Run `agro tool install herdr`, then `herdr`.", "gh auth login");
+    expectBefore(contributing, "\nherdr\n", "gh auth login");
     expect(intro).toContain("run `agro tool install herdr` and `herdr` first");
     expect(harnessOverview).toContain("run `agro tool install herdr`, then run `herdr`");
     expect(zshrc).toContain(".agro/install/banner.sh");
