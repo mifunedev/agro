@@ -248,12 +248,12 @@ and left unfixed.
 
 ## The exception list
 
-Current state: 9 `ALLOW` entries and no `KNOWN` entries. The check exits 0
-against registry master `eab0a14`.
+Current state: 4 `ALLOW` entries and no `KNOWN` entries. The check exits 0
+against registry master after mifunedev/skills#14.
 
 The four `skills/remote-sandbox/` entries guard the published copy of
-`remote-sandbox`. They report as stale until the registry pull request that
-publishes `remote-sandbox` merges.
+`remote-sandbox`. mifunedev/skills#14 publishes `remote-sandbox` and retires
+`agro-host-matrix`, so this list holds no `agro-host-matrix` entry.
 
 Day one held 5 more, all `KNOWN`, recording the defects the first sweep found and
 left standing. mifunedev/skills#8 repaired every one, so those entries matched no
@@ -262,11 +262,6 @@ dated record of what they were.
 
 ```allow
 # CLASS | RULE | registry-relative path | 12-hex line hash | reason
-ALLOW | AGRO-PATH | skills/agro-host-matrix/SKILL.md | ffc6a77da7f6 | raw GitHub URL of a candidate get-agro.sh in a GET_AGRO_URL example; curl fetches the URL, and no local path exists
-ALLOW | AGRO-PATH | skills/agro-host-matrix/scripts/restart-test.sh | eaf8abe9e58e | path inside the AGRO VM under test; the matrix driver runs the command on that VM and never opens the path locally
-ALLOW | AGRO-PATH | skills/agro-host-matrix/scripts/rows.sh | bb0bf234d2da | path inside the AGRO VM under test; the matrix driver runs the command on that VM and never opens the path locally
-ALLOW | AGRO-PATH | skills/agro-host-matrix/scripts/rows.sh | 9e06208319c8 | path inside the AGRO VM under test; the matrix driver runs the command on that VM and never opens the path locally
-ALLOW | AGRO-PATH | skills/agro-host-matrix/scripts/rows.sh | f34a62c6a090 | path inside the AGRO VM under test; the matrix driver runs the command on that VM and never opens the path locally
 ALLOW | AGRO-PATH | skills/remote-sandbox/checks/agro-rows.sh | bb0bf234d2da | path inside the AGRO VM under test; the remote-sandbox driver uploads the check, runs it on that VM, and never opens the path locally
 ALLOW | AGRO-PATH | skills/remote-sandbox/checks/agro-rows.sh | 9438513d0ff6 | path inside the AGRO VM under test; the remote-sandbox driver uploads the check, runs it on that VM, and never opens the path locally
 ALLOW | AGRO-PATH | skills/remote-sandbox/checks/agro-rows.sh | f34a62c6a090 | path inside the AGRO VM under test; the remote-sandbox driver uploads the check, runs it on that VM, and never opens the path locally
