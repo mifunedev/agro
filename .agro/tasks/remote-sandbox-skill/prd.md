@@ -68,12 +68,24 @@ Source decision: ADR #1314, migration step 1. The operator accepted the ADR on 2
 - [ ] A local registry checkout with a portable copy of `remote-sandbox` at `skills/remote-sandbox/` gives `neither: 0` for the files under `skills/remote-sandbox/`.
 - [ ] The PR body states the merge order: the mifunedev/skills PR that publishes `remote-sandbox` (ADR step 2) merges first.
 
+### US-007: Driver rows only after the matrix check
+
+**Description:** As an operator, I want the driver rows to run only after `checks/agro-rows.sh`, so that a fresh-install log holds only fresh-install results.
+
+**Acceptance Criteria:**
+
+- [ ] `run.sh` calls `driver_rows` only when the check is `checks/agro-rows.sh`.
+- [ ] A run of any other check prints no `R09-disconnect`, `R10-ssh-inbound`, or `R11-https-port` line.
+- [ ] A run of `checks/agro-rows.sh` still prints the `R09`, `R10`, and `R11` lines.
+- [ ] `pnpm exec vitest run .agro/scripts/__tests__/remote-sandbox.test.ts` passes, and the new case fails before the change.
+
 ### US-006: Manual review on exe.dev
 
 **Description:** As the operator, I want one live exe.dev run of each scenario, so that I compare the new driver with the 2026-10-03 baseline.
 
 **Acceptance Criteria:**
 
+- [ ] US-007 passes before the run.
 - [ ] The operator approves the VM spend before the run.
 - [ ] `run.sh exedev` against v0.16.2 prints `PASS` for F1 to F4.
 - [ ] `run.sh exedev checks/agro-rows.sh` matches the 2026-10-03 baseline row for row, `R14` included.
@@ -144,6 +156,7 @@ N/A. The skill keeps no state. Each run writes one log file under the output dir
 | `.agro/scripts/__tests__/remote-sandbox-adapters.test.ts` | `exedev` and `vercel` define the five required functions | US-002 |
 | `.agro/scripts/__tests__/remote-sandbox-suite.test.ts` | `checks/fresh-install.sh` with a `file://` fixture installer prints four `PASS` lines and `SUMMARY` | US-003 |
 | `.agro/scripts/__tests__/remote-sandbox-suite.test.ts` | `restart-test.sh` exits 2 with an adapter that lacks `<p>_restart` | US-003 |
+| `.agro/scripts/__tests__/remote-sandbox.test.ts` | fake adapter run of a check other than `checks/agro-rows.sh` prints no `R09`, `R10`, or `R11` line | US-007 |
 
 ## Design Principles
 

@@ -127,17 +127,41 @@
       "commit": "784e50ec"
     },
     {
+      "id": "US-007",
+      "title": "Driver rows only after the matrix check",
+      "description": "As an operator, I want the driver rows to run only after `checks/agro-rows.sh`, so that a fresh-install log holds only fresh-install results.",
+      "acceptanceCriteria": [
+        "`run.sh` calls `driver_rows` only when the check is `checks/agro-rows.sh`.",
+        "A run of any other check prints no `R09-disconnect`, `R10-ssh-inbound`, or `R11-https-port` line.",
+        "A run of `checks/agro-rows.sh` still prints the `R09`, `R10`, and `R11` lines.",
+        "`pnpm exec vitest run .agro/scripts/__tests__/remote-sandbox.test.ts` passes, and the new case fails before the change."
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-003"
+      ],
+      "files": [
+        ".agro/skills/remote-sandbox/scripts/run.sh",
+        ".agro/scripts/__tests__/remote-sandbox.test.ts",
+        ".agro/scripts/__tests__/fixtures/remote-sandbox/"
+      ]
+    },
+    {
       "id": "US-006",
       "title": "Manual review on exe.dev",
       "description": "As the operator, I want one live exe.dev run of each scenario, so that I compare the new driver with the 2026-10-03 baseline.",
       "acceptanceCriteria": [
+        "US-007 passes before the run.",
         "The operator approves the VM spend before the run.",
         "`run.sh exedev` against v0.16.2 prints `PASS` for F1 to F4.",
         "`run.sh exedev checks/agro-rows.sh` matches the 2026-10-03 baseline row for row, `R14` included.",
         "Each log ends with `remaining … : 0` and `RUN DONE`.",
         "The transcript is in `.agro/tasks/remote-sandbox-skill/evidence/manual-review.md`."
       ],
-      "priority": 6,
+      "priority": 7,
       "passes": false,
       "notes": "",
       "dependsOn": [
@@ -145,7 +169,8 @@
         "US-002",
         "US-003",
         "US-004",
-        "US-005"
+        "US-005",
+        "US-007"
       ],
       "files": [
         ".agro/tasks/remote-sandbox-skill/evidence/"
