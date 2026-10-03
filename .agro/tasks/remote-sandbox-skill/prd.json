@@ -138,8 +138,8 @@
         "`pnpm exec vitest run .agro/scripts/__tests__/remote-sandbox.test.ts` passes, and the new case fails before the change."
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: run.sh last line gates driver_rows on the resolved path $SKILL_DIR/checks/agro-rows.sh (advisor read); bash -n exit 0. 2 executed: vitest default fresh-install and env-check runs print no R09/R10/R11 line. 3 executed: vitest fake and hooked runs of checks/agro-rows.sh print R09, R10, R11 before the remaining line. 4 executed: SKILL.md table row and driver-rows paragraph state the rule; ste-check exit 0. 5 executed: advisor reran the three remote-sandbox suites on the integrated task branch: 29/29; worker showed 2 failures on the old run.sh. Reasoned: a non-agro-rows run still exits 0; SKILL.md examples pass checks/agro-rows.sh, which resolves to the skill path.",
       "dependsOn": [
         "US-001",
         "US-003"
@@ -149,7 +149,8 @@
         ".agro/scripts/__tests__/remote-sandbox.test.ts",
         ".agro/scripts/__tests__/fixtures/remote-sandbox/",
         ".agro/skills/remote-sandbox/SKILL.md"
-      ]
+      ],
+      "commit": "080de78a"
     },
     {
       "id": "US-006",
