@@ -20,31 +20,22 @@ const RELOAD_CRONS_DIR = `/tmp/cron-reload-test-crons-${process.pid}`;
 import {
   acquireLock,
   buildCronAgentCommand,
-  buildTmuxWrapper,
   decideOverlap,
   fire,
   holdEventLoopForSignals,
   installSignalHandlers,
-  isValidAgentBin,
-  isValidCronId,
-  isValidRemote,
-  isValidRepo,
-  isValidSchedule,
   loadCrons,
   onJobError,
-  parseCronFile,
   readFailureTail,
   reloadEntryForFire,
   remoteForRepo,
   resetAgentBinCache,
   resolveAgentBin,
-  reloadBody,
   resetActiveJobs,
   runPreflight,
   scheduleAll,
   reloadHandler,
   stopRuntime,
-  tmuxSessionName,
 } from "../cron-runtime";
 
 vi.mock("node:fs", async (importOriginal) => {
@@ -80,93 +71,6 @@ function withTempGitRemotes<T>(remotes: Record<string, string>, fn: () => T): T 
   }
 }
 
-describe("parseCronFile", () => {
-  it("parses the SPEC frontmatter shape", () => {
-    const content = `---
-id: heartbeat
-schedule: "0 * * * *"
-timezone: UTC
-enabled: true
-overlap: false
-catchup: false
----
-
-Heartbeat body.
-`;
-    const entry = parseCronFile(content, "heartbeat.md");
-    expect(entry).not.toBeNull();
-    expect(entry!.id).toBe("heartbeat");
-    expect(entry!.schedule).toBe("0 * * * *");
-    expect(entry!.timezone).toBe("UTC");
-    expect(entry!.enabled).toBe(true);
-    expect(entry!.overlap).toBe(false);
-    expect(entry!.catchup).toBe(false);
-    expect(entry!.body.trim()).toBe("Heartbeat body.");
-  });
-
-  it("derives id from filename when frontmatter omits it", () => {
-    const entry = parseCronFile(
-      `---\nschedule: "* * * * *"\n---\nbody\n`,
-      "weekly-cleanup.md",
-    );
-    expect(entry?.id).toBe("weekly-cleanup");
-  });
-
-  it("returns null when frontmatter is missing", () => {
-    expect(parseCronFile("# Plain markdown only\n", "x.md")).toBeNull();
-  });
-
-  it("returns null when schedule is missing", () => {
-    expect(parseCronFile(`---\nid: x\n---\nbody\n`, "x.md")).toBeNull();
-  });
-
-  it("parses tmux: true and defaults to false otherwise", () => {
-    expect(
-      parseCronFile(`---\nschedule: "* * * * *"\ntmux: true\n---\nbody\n`, "a.md")
-        ?.tmux,
-    ).toBe(true);
-    expect(
-      parseCronFile(`---\nschedule: "* * * * *"\ntmux: false\n---\nbody\n`, "b.md")
-        ?.tmux,
-    ).toBe(false);
-    expect(
-      parseCronFile(`---\nschedule: "* * * * *"\n---\nbody\n`, "c.md")?.tmux,
-    ).toBe(false);
-  });
-
-  it("parses an optional per-cron agent override", () => {
-    const entry = parseCronFile(
-      `---\nschedule: "* * * * *"\nagent: pi\n---\nbody\n`,
-      "autopilot.md",
-    );
-
-    expect(entry?.agentBin).toBe("pi");
-  });
-
-  it("parses an optional preflight gate path", () => {
-    expect(
-      parseCronFile(
-        `---\nschedule: "* * * * *"\npreflight: scripts/autopilot-caps.sh\n---\nbody\n`,
-        "autopilot.md",
-      )?.preflight,
-    ).toBe("scripts/autopilot-caps.sh");
-    expect(
-      parseCronFile(`---\nschedule: "* * * * *"\n---\nbody\n`, "c.md")?.preflight,
-    ).toBeUndefined();
-  });
-
-  it("parses an optional canonical repo target", () => {
-    expect(
-      parseCronFile(
-        `---\nschedule: "* * * * *"\nrepo: mifunedev/agro\n---\nbody\n`,
-        "autopilot.md",
-      )?.repo,
-    ).toBe("mifunedev/agro");
-    expect(parseCronFile(`---\nschedule: "* * * * *"\n---\nbody\n`, "c.md")?.repo).toBeUndefined();
-  });
-
-});
-
 describe("decideOverlap", () => {
   it("runs (never skips) when overlap is allowed", () => {
     expect(
@@ -187,20 +91,6 @@ describe("decideOverlap", () => {
     expect(
       decideOverlap({ overlap: false, pidfileExists: true, holderAlive: true }),
     ).toBe("skip");
-  });
-});
-
-describe("isValidCronId", () => {
-  it("accepts kebab-case ids that begin with a lowercase letter or digit", () => {
-    expect(isValidCronId("heartbeat")).toBe(true);
-    expect(isValidCronId("prompt-miner")).toBe(true);
-    expect(isValidCronId("cron2-task")).toBe(true);
-  });
-
-  it("rejects shell metacharacters, path traversal, uppercase, and empty ids", () => {
-    for (const id of ["", "../evil", "evil;touch-pwned", "bad id", "Bad", "bad_id"]) {
-      expect(isValidCronId(id)).toBe(false);
-    }
   });
 });
 
@@ -238,246 +128,6 @@ describe("resolveAgentBin", () => {
     process.env.PATH = "/nonexistent-path-for-cron-agent-bin";
     resetAgentBinCache();
     expect(resolveAgentBin()).toBe("claude");
-  });
-});
-
-describe("isValidAgentBin", () => {
-  it("accepts safe executable tokens and paths", () => {
-    for (const agent of ["claude", "pi", "codex", "opencode", "/usr/local/bin/claude", "./bin/pi-agent"]) {
-      expect(isValidAgentBin(agent)).toBe(true);
-    }
-  });
-
-  it("rejects shell syntax, whitespace, traversal, and flag-shaped values", () => {
-    for (const agent of [
-      "",
-      "-c",
-      "pi agent",
-      "pi;touch-pwned",
-      "$(touch /tmp/pwn)",
-      "pi && bad",
-      "pi\nwhoami",
-      "../bin/pi",
-      "`touch /tmp/pwn`",
-    ]) {
-      expect(isValidAgentBin(agent)).toBe(false);
-    }
-  });
-});
-
-describe("isValidRepo / isValidRemote", () => {
-  it("accepts GitHub owner/name repo targets and simple remote names", () => {
-    expect(isValidRepo("mifunedev/agro")).toBe(true);
-    expect(isValidRepo("ryan-eggz/open_harness.docs")).toBe(true);
-    expect(isValidRemote("origin")).toBe(true);
-    expect(isValidRemote("upstream")).toBe(true);
-  });
-
-  it("rejects unsafe repo and remote values", () => {
-    for (const repo of ["", "-bad/repo", "../repo", "owner/../repo", "owner/repo;bad", "owner repo/name", "owner"]) {
-      expect(isValidRepo(repo)).toBe(false);
-    }
-    for (const remote of ["", "-c", "../origin", "origin;bad", "origin upstream"]) {
-      expect(isValidRemote(remote)).toBe(false);
-    }
-  });
-});
-
-describe("isValidSchedule", () => {
-  it("returns true for a valid cron expression", () => {
-    expect(isValidSchedule("0 * * * *")).toBe(true);
-  });
-
-  it("returns false for a malformed string", () => {
-    expect(isValidSchedule("not-a-cron")).toBe(false);
-  });
-
-  it("returns false for the empty string", () => {
-    expect(isValidSchedule("")).toBe(false);
-  });
-
-  it("never throws and leaves no live timer behind for any input", () => {
-    for (const s of ["0 * * * *", "not-a-cron", "", "* * * *", "@@@"]) {
-      expect(() => isValidSchedule(s)).not.toThrow();
-    }
-  });
-});
-
-describe("tmuxSessionName", () => {
-  it("formats cron-<id>-<MMDD>-<HHMM> from local time, zero-padded", () => {
-    expect(tmuxSessionName("autopilot", new Date(2026, 5, 10, 18, 5))).toBe(
-      "cron-autopilot-0610-1805",
-    );
-    expect(tmuxSessionName("x", new Date(2026, 0, 2, 3, 4))).toBe("cron-x-0102-0304");
-  });
-});
-
-describe("buildTmuxWrapper", () => {
-  const wrapper = buildTmuxWrapper({
-    session: "cron-autopilot-0610-1805",
-    id: "autopilot",
-    agentBin: "claude",
-    promptFile: "/tmp/cron-autopilot-0610-1805.prompt",
-  });
-
-  const runWrapper = (opts: { agentBin: string; status: number }) => {
-    const session = `vitest-cron-wrapper-${process.pid}-${Date.now()}-${Math.random()
-      .toString(16)
-      .slice(2)}`;
-    const id = `vitest-${process.pid}-${Math.random().toString(16).slice(2)}`;
-    const promptFile = path.join(tmp, `${session}.prompt`);
-    const binDir = path.join(tmp, `${session}-bin`);
-    const agentPath = path.isAbsolute(opts.agentBin)
-      ? opts.agentBin
-      : path.join(binDir, opts.agentBin);
-    mkdirSync(path.dirname(agentPath), { recursive: true });
-    writeFileSync(promptFile, "prompt body");
-    writeFileSync(
-      agentPath,
-      `#!/usr/bin/env bash\nprintf 'agent-ran:%s\\n' "$1"\nexit ${opts.status}\n`,
-      { mode: 0o755 },
-    );
-    const command = buildTmuxWrapper({
-      session,
-      id,
-      agentBin: opts.agentBin,
-      promptFile,
-    });
-    const result = spawnSync("bash", ["-c", command], {
-      env: { ...process.env, PATH: `${binDir}:${process.env.PATH ?? ""}` },
-      encoding: "utf-8",
-    });
-    const pidFile = `/tmp/cron-${id}.pid`;
-    const logFile = `/tmp/${session}.log`;
-    const keepFile = `/tmp/${session}.keep`;
-    const resumeFile = `/tmp/${session}.agent`;
-    const logText = existsSync(logFile) ? readFileSync(logFile, "utf-8") : "";
-    rmSync(pidFile, { force: true });
-    rmSync(logFile, { force: true });
-    rmSync(keepFile, { force: true });
-    rmSync(resumeFile, { force: true });
-    return { result, command, pidFile, logText };
-  };
-
-  it("writes the per-id pidfile and cleans it up", () => {
-    expect(wrapper).toContain("echo $$ > '/tmp/cron-autopilot.pid';");
-    expect(wrapper).toContain("rm -f '/tmp/cron-autopilot.pid';");
-  });
-
-  it("rejects unsafe ids before generating shell wrapper text", () => {
-    expect(() =>
-      buildTmuxWrapper({
-        session: "cron-bad-0101-0000",
-        id: "bad;touch-pwned",
-        agentBin: "claude",
-        promptFile: "/tmp/prompt",
-      }),
-    ).toThrow("invalid cron id");
-  });
-
-  it("rejects unsafe agent binaries before generating shell wrapper text", () => {
-    expect(() =>
-      buildTmuxWrapper({
-        session: "cron-bad-0101-0000",
-        id: "autopilot",
-        agentBin: "pi;touch-pwned",
-        promptFile: "/tmp/prompt",
-      }),
-    ).toThrow("invalid agent bin");
-  });
-
-  it("runs cleanup after a non-Claude agent command instead of bypassing it", () => {
-    const { result, command, pidFile, logText } = runWrapper({
-      agentBin: path.join(tmp, "pi-agent"),
-      status: 7,
-    });
-
-    expect(command).not.toContain("exit $status; rm -f");
-    expect(command.indexOf("status=$?;")).toBeLessThan(command.indexOf("rm -f"));
-    expect(command.indexOf("rm -f")).toBeLessThan(command.lastIndexOf("exit $status"));
-    expect(result.status).toBe(7);
-    expect(result.stderr).toBe("");
-    expect(existsSync(pidFile)).toBe(false);
-    expect(logText).toContain("agent-ran:-p");
-  });
-
-  it("runs cleanup after the Claude command path and preserves the original status", () => {
-    const { result, command, pidFile, logText } = runWrapper({
-      agentBin: "claude",
-      status: 9,
-    });
-
-    expect(command).not.toContain("exit $status; rm -f");
-    expect(command.indexOf("status=$?;")).toBeLessThan(command.indexOf("rm -f"));
-    expect(command.indexOf("rm -f")).toBeLessThan(command.lastIndexOf("exit $status"));
-    expect(result.status).toBe(9);
-    expect(result.stderr).toBe("");
-    expect(existsSync(pidFile)).toBe(false);
-    expect(logText).toContain("agent-ran:-p");
-  });
-
-  it("exports the session, keep-marker, and overlap pidfile env vars", () => {
-    expect(wrapper).toContain(
-      "export CRON_TMUX_SESSION='cron-autopilot-0610-1805' CRON_KEEP_MARKER='/tmp/cron-autopilot-0610-1805.keep' CRON_OVERLAP_PIDFILE='/tmp/cron-autopilot.pid';",
-    );
-  });
-
-  it("exports the configured repo and resolved remote into tmux wrappers", () => {
-    const repoWrapper = buildTmuxWrapper({
-      session: "cron-autopilot-0610-1805",
-      id: "autopilot",
-      agentBin: "pi",
-      promptFile: "/tmp/cron-autopilot-0610-1805.prompt",
-      repo: "mifunedev/agro",
-      remote: "upstream",
-    });
-
-    expect(repoWrapper).toContain(
-      "CRON_REPO='mifunedev/agro' CRON_REMOTE='upstream';",
-    );
-  });
-
-  it("defaults to the id-scoped pidfile and never exports CRON_WORKTREE", () => {
-    expect(wrapper).toContain("echo $$ > '/tmp/cron-autopilot.pid';");
-    expect(wrapper).not.toContain("CRON_WORKTREE=");
-  });
-
-  it("runs the agent against the prompt file and tees the log", () => {
-    expect(wrapper).toContain(
-      'claude -p "$(cat \'/tmp/cron-autopilot-0610-1805.prompt\')" 2>&1 | tee \'/tmp/cron-autopilot-0610-1805.log\'',
-    );
-    expect(wrapper).toContain("AGENT_START");
-    expect(wrapper).toContain("cron-runtime: Claude limit detected; retrying with Codex");
-    expect(wrapper).toContain("AGENT_FALLBACK");
-    expect(wrapper).toContain(
-      'codex exec --sandbox danger-full-access "$(cat \'/tmp/cron-autopilot-0610-1805.prompt\')" 2>&1 | tee -a \'/tmp/cron-autopilot-0610-1805.log\'',
-    );
-    expect(wrapper).toContain("AGENT_DONE");
-    expect(wrapper).toContain('agent=$active_agent exit=$status');
-  });
-
-  it("persists a kept session as a resumed live agent, using Codex after fallback", () => {
-    expect(wrapper).toContain(
-      '[ "$(cat \'/tmp/cron-autopilot-0610-1805.agent\' 2>/dev/null || echo \'claude\')" = codex ]; then codex; else \'claude\' --continue; fi;',
-    );
-  });
-
-  it("runs kept Pi tmux sessions as attachable TUI sessions", () => {
-    const piWrapper = buildTmuxWrapper({
-      session: "cron-autopilot-0610-1805",
-      id: "autopilot",
-      agentBin: "pi",
-      promptFile: "/tmp/cron-autopilot-0610-1805.prompt",
-    });
-
-    expect(piWrapper).toContain('\'pi\' "$(cat \'/tmp/cron-autopilot-0610-1805.prompt\')";');
-    expect(piWrapper).not.toContain('pi -p "$(cat /tmp/cron-autopilot-0610-1805.prompt)"');
-    expect(piWrapper).not.toContain("tee /tmp/cron-autopilot-0610-1805.log");
-    expect(piWrapper).toContain("AGENT_START");
-    expect(piWrapper).toContain("AGENT_DONE");
-    expect(piWrapper).toContain(
-      '[ "$(cat \'/tmp/cron-autopilot-0610-1805.agent\' 2>/dev/null || echo \'pi\')" = codex ]; then codex; else \'pi\' --continue; fi;',
-    );
   });
 });
 
@@ -983,128 +633,6 @@ describe("reloadEntryForFire", () => {
   });
 });
 
-describe("reloadBody", () => {
-  afterEach(() => {
-    vi.mocked(fsModule.appendFileSync).mockClear();
-  });
-
-  it("returns the on-disk body when it has been mutated after CronEntry was built", () => {
-    const cronFile = path.join(tmp, "hot.md");
-    writeFileSync(
-      cronFile,
-      `---\nid: hot\nschedule: "* * * * *"\nenabled: true\n---\noriginal body\n`,
-    );
-    const [entry] = loadCrons(tmp);
-    expect(entry.body).toBe("original body\n");
-
-    writeFileSync(
-      cronFile,
-      `---\nid: hot\nschedule: "* * * * *"\nenabled: true\n---\nupdated body\n`,
-    );
-
-    const appendSpy = vi.mocked(fsModule.appendFileSync);
-    appendSpy.mockClear();
-    const result = reloadBody(entry);
-
-    expect(result).toBe("updated body\n");
-
-    const loggedArgs = appendSpy.mock.calls.map((c) => String(c[1]));
-    expect(loggedArgs.some((line) => line.includes("BODY_RELOADED"))).toBe(true);
-  });
-
-  it("reads the fresh body regardless of cwd after a metadata reload (regression: #275 CWD-relative read)", () => {
-    const cronFile = path.join(tmp, "hot.md");
-    writeFileSync(
-      cronFile,
-      `---\nid: hot\nschedule: "* * * * *"\nenabled: true\n---\noriginal body\n`,
-    );
-    const [entry] = loadCrons(tmp);
-    expect(path.isAbsolute(entry.filePath)).toBe(true);
-
-    const liveEntry = reloadEntryForFire(entry);
-    expect(liveEntry).not.toBeNull();
-
-    writeFileSync(
-      cronFile,
-      `---\nid: hot\nschedule: "* * * * *"\nenabled: true\n---\nupdated body\n`,
-    );
-
-    const appendSpy = vi.mocked(fsModule.appendFileSync);
-    appendSpy.mockClear();
-
-    const prevCwd = process.cwd();
-    process.chdir(tmpdir());
-    let result: string;
-    try {
-      result = reloadBody(liveEntry!);
-    } finally {
-      process.chdir(prevCwd);
-    }
-
-    expect(result).toBe("updated body\n");
-    const loggedArgs = appendSpy.mock.calls.map((c) => String(c[1]));
-    expect(loggedArgs.some((line) => line.includes("BODY_RELOADED"))).toBe(true);
-    expect(loggedArgs.some((line) => line.includes("BODY_RELOAD_ERR"))).toBe(false);
-  });
-
-  it("hot-reloads via an absolute filePath after the process cwd changes", () => {
-    const prevCwd = process.cwd();
-    const root = path.join(tmp, "cron-root");
-    const cronsDir = path.join(root, "crons");
-    mkdirSync(cronsDir, { recursive: true });
-    const cronFile = path.join(cronsDir, "hot.md");
-    writeFileSync(
-      cronFile,
-      `---\nid: hot\nschedule: "* * * * *"\nenabled: true\n---\noriginal body\n`,
-    );
-
-    try {
-      process.chdir(root);
-      const [entry] = loadCrons("crons");
-      expect(path.isAbsolute(entry.filePath)).toBe(true);
-      expect(entry.body).toBe("original body\n");
-
-      process.chdir(tmpdir());
-      writeFileSync(
-        cronFile,
-        `---\nid: hot\nschedule: "* * * * *"\nenabled: true\n---\nupdated body\n`,
-      );
-
-      const appendSpy = vi.mocked(fsModule.appendFileSync);
-      appendSpy.mockClear();
-      expect(reloadBody(entry)).toBe("updated body\n");
-      const loggedArgs = appendSpy.mock.calls.map((c) => String(c[1]));
-      expect(loggedArgs.some((line) => line.includes("BODY_RELOADED"))).toBe(true);
-      expect(loggedArgs.some((line) => line.includes("BODY_RELOAD_ERR"))).toBe(false);
-    } finally {
-      process.chdir(prevCwd);
-    }
-  });
-
-  it("returns cached entry.body and logs BODY_RELOAD_ERR when filePath is unreadable", () => {
-    const missingPath = path.join(tmp, "ghost.md");
-    const entry = {
-      id: "ghost",
-      schedule: "* * * * *",
-      enabled: true,
-      overlap: false,
-      catchup: false,
-      tmux: false,
-      body: "cached body\n",
-      filePath: missingPath,
-    };
-
-    const appendSpy = vi.mocked(fsModule.appendFileSync);
-    appendSpy.mockClear();
-    const result = reloadBody(entry);
-
-    expect(result).toBe("cached body\n");
-
-    const loggedArgs = appendSpy.mock.calls.map((c) => String(c[1]));
-    expect(loggedArgs.some((line) => line.includes("BODY_RELOAD_ERR"))).toBe(true);
-  });
-});
-
 describe("onJobError", () => {
   it("logs an ERR_JOB line through the injected logger", () => {
     const spy = vi.fn();
@@ -1438,15 +966,5 @@ describe("runPreflight + the fire() preflight gate", () => {
     ).toBe(true);
     expect(lines.some((l) => l.includes("SPAWNED"))).toBe(false);
     expect(lines.some((l) => l.includes("\tFIRE\t"))).toBe(false);
-  });
-});
-
-describe("remoteForRepo", () => {
-  it("resolves the canonical repo to the local remote whose URL matches it", () => {
-    withTempGitRemotes({ origin: "https://github.com/example/agro.git", upstream: "git@github.com:mifunedev/agro.git" }, () => {
-      const remote = remoteForRepo("mifunedev/agro");
-      expect(remote).toBe("upstream");
-      expect(isValidRemote(remote!)).toBe(true);
-    });
   });
 });

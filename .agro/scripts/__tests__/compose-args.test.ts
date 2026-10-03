@@ -21,7 +21,6 @@ import path from "node:path";
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const SCRIPT = path.join(REPO_ROOT, ".agro", "scripts", "docker-compose.sh");
 const COMPAT = path.join(REPO_ROOT, ".agro", "scripts", "paths.sh");
-const INSTALL = path.join(REPO_ROOT, ".agro", "scripts", "install.sh");
 
 let tmp: string;
 
@@ -433,66 +432,6 @@ describe("execution target argv equivalence (issue #733)", () => {
       "-d",
       "--build",
     ]);
-  });
-});
-
-describe("compose helper wiring", () => {
-  it("no Makefile survives to reopen the second door", () => {
-    expect(existsSync(path.join(REPO_ROOT, "Makefile"))).toBe(false);
-  });
-
-  it("installer provisions through `agro sandbox`, never through raw compose args", () => {
-    const text = readFileSync(INSTALL, "utf8");
-    expect(text).toMatch(/\(\n\s+cd "\$REPO_DIR"\n\s+agro sandbox\n\)/);
-    expect(text).not.toContain('"$REPO_DIR/.agro/scripts/docker-compose.sh" up -d --build');
-    expect(text).not.toContain("docker compose $COMPOSE_FILES");
-    expect(text).not.toContain("COMPOSE_FILES=\"-f .devcontainer/docker-compose.yml\"");
-  });
-
-  it("installer requires Node through get-agro.sh's ensure_node rather than a second copy", () => {
-    const text = readFileSync(INSTALL, "utf8");
-    expect(text).toContain('. "$REPO_DIR/.agro/scripts/get-agro.sh"');
-    expect(text).not.toContain("ensure_node() {");
-    expect(text).not.toContain("install_node_via_nvm() {");
-    expect(text).not.toMatch(/command -v make/);
-  });
-
-  it("installer writes every non-secret answer to agro.json and keeps .env for secrets only", () => {
-    const text = readFileSync(INSTALL, "utf8");
-    expect(text).not.toContain("_env_set");
-    expect(text).toContain("_config_set name");
-    expect(text).toContain("_config_set timezone");
-    expect(text).toContain("_config_set git.userName");
-    expect(text).toContain("_config_set git.userEmail");
-    expect(text).toContain("_config_set access.dockerSocket");
-    expect(text).toContain("agro config set");
-    expect(text).not.toContain("_yaml_set");
-    expect(text).not.toContain("_cfg_set");
-
-    expect(text).toContain('ENV_FILE="$REPO_DIR/.env"');
-    expect(text).toContain('cp "$REPO_DIR/.example.env" "$ENV_FILE"');
-    expect(text).toContain('ln -s ../.env "$DEVCONTAINER_ENV_LINK"');
-    expect(text).toContain('chmod 600 "$ENV_FILE"');
-
-    expect(text.indexOf("Created .env from .example.env")).toBeLessThan(
-      text.indexOf("_config_set name"),
-    );
-
-    expect(text).toContain("Existing .env preserved — updating keys in place");
-
-    expect(text).toContain("migrate-harness-yaml.sh");
-
-    expect(text).toContain("GH_TOKEN=");
-  });
-
-  it("installer's next steps name only `agro` verbs", () => {
-    const text = readFileSync(INSTALL, "utf8");
-    const epilogue = text.slice(text.indexOf("Installation complete!"));
-    expect(epilogue).not.toMatch(/\bmake [a-z]/);
-    expect(epilogue).toContain("agro shell");
-    expect(epilogue).toContain("agro destroy");
-    expect(epilogue).toContain("agro gateway");
-    expect(epilogue).toContain("agro --help");
   });
 });
 

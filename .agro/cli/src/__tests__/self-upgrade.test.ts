@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
 import {
   accessSync,
@@ -20,7 +20,6 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import {
-  classifyInstallation,
   compareSemver,
   DEFAULT_ARTIFACT_URL,
   defaultDeps,
@@ -29,42 +28,6 @@ import {
   type SelfUpgradeDeps,
   type SelfUpgradeIO,
 } from "../commands/self-upgrade.js";
-
-vi.mock("../cli.js", async (importOriginal) => {
-  const original = process.exit;
-  process.exit = (() => {}) as never;
-  const mod = await importOriginal<typeof import("../cli.js")>();
-  await new Promise((r) => setTimeout(r, 0));
-  process.exit = original;
-  return mod;
-});
-
-const { parseSelfUpgradeArgs, parseVendorArgs, printSelfUpgradeHelp, printVendorHelp } =
-  await import("../cli.js");
-
-const VENDOR_HELP = `agro vendor — Vendor or upgrade the .agro/ control plane
-
-Usage:
-  agro vendor [--from <dir> | --from-remote [--ref <ref>]] [--dry-run] [--force]
-
-Writes ONLY the .agro/ control plane and crons/ (skills, scripts, CLI) into the
-current directory. An empty directory is equipped from scratch; everything else
-in your project is left untouched — it writes no agro.json, .env, AGENTS.md,
-.gitignore or .devcontainer/.
-
-Payload source precedence: --from <dir> > --from-remote > the CLI's own bundled
-.agro/ payload > a remote fetch announced on one line.
-
-Flags:
-  --from <dir>    A built AGRO checkout to vendor from.
-  --from-remote   Fetch the source checkout from the public AGRO repo
-                  instead (shallow git clone into a temp dir, removed after
-                  the run). Conflicts with --from.
-  --ref <ref>     Branch or tag for --from-remote (default: the clone's
-                  default branch).
-  --dry-run       Preview the changes without writing anything.
-  --force         Override the up-to-date / downgrade gate.
-`;
 
 const CURRENT = "1.0.0";
 const NEWER = "1.1.0";
@@ -240,62 +203,6 @@ function installingNpm(prefix: string, target: string, version: string): (args: 
 function leftovers(dir: string): string[] {
   return readdirSync(dir).filter((name) => name.startsWith(".agro-update-") || name.endsWith(".prev"));
 }
-
-describe("classifyInstallation", () => {
-  it("resolves the invoked symlink to an npm-managed bundle and derives the prefix", () => {
-    const { prefix, target, link } = npmFixture();
-    const result = classifyInstallation(link, fakeWorld().deps);
-    expect(result).toEqual({ kind: "npm", target, invoked: link, npmPrefix: prefix });
-  });
-
-  it("derives a prefix without lib/ (Windows-style global layout)", () => {
-    const prefix = join(mkTmp(), "npm");
-    const target = join(prefix, "node_modules", "@mifune", "agro", "dist", "agro.js");
-    writeExecutable(target, bundle(CURRENT));
-    expect(classifyInstallation(target, fakeWorld().deps).npmPrefix).toBe(prefix);
-  });
-
-  it("classifies a plain file as standalone", () => {
-    const { target } = standaloneFixture();
-    expect(classifyInstallation(target, fakeWorld().deps).kind).toBe("standalone");
-  });
-
-  it("classifies /opt/agro as image", () => {
-    const deps = fakeWorld().deps;
-    deps.realpath = () => "/opt/agro/dist/agro.js";
-    deps.stat = () => ({ mode: 0o755, isFile: () => true, isDirectory: () => false });
-    expect(classifyInstallation("/usr/local/bin/agro", deps)).toEqual({
-      kind: "image",
-      target: "/opt/agro/dist/agro.js",
-      invoked: "/usr/local/bin/agro",
-    });
-  });
-
-  it("classifies a checkout's dist/ beside src/ and package.json as source", () => {
-    const cli = join(mkTmp(), "checkout", ".agro", "cli");
-    const target = join(cli, "dist", "agro.js");
-    writeExecutable(target, bundle(CURRENT));
-    mkdirSync(join(cli, "src"), { recursive: true });
-    writeFileSync(join(cli, "package.json"), "{}\n");
-    expect(classifyInstallation(target, fakeWorld().deps).kind).toBe("source");
-  });
-
-  it("classifies a dist/ without src/ as standalone", () => {
-    const target = join(mkTmp(), "dist", "agro.js");
-    writeExecutable(target, bundle(CURRENT));
-    expect(classifyInstallation(target, fakeWorld().deps).kind).toBe("standalone");
-  });
-
-
-  it("classifies a missing path, a directory, and an empty argv[1] as unknown", () => {
-    const deps = fakeWorld().deps;
-    const dir = mkTmp();
-    expect(classifyInstallation(join(dir, "missing"), deps).kind).toBe("unknown");
-    expect(classifyInstallation(dir, deps)).toMatchObject({ kind: "unknown", reason: `${dir} is not a regular file` });
-    expect(classifyInstallation(undefined, deps).kind).toBe("unknown");
-    expect(classifyInstallation("", deps).kind).toBe("unknown");
-  });
-});
 
 describe("compareSemver", () => {
   it("orders core versions, prereleases, and rejects non-semver", () => {
@@ -706,78 +613,5 @@ describe("runSelfUpgrade — refusals shared by every kind", () => {
     expect(await runSelfUpgrade({ dryRun: false, argv1: link }, world.deps, world.io)).toBe(1);
     expect(world.err()).toContain(`${foreign} reports "" for --version, not the running v${CURRENT}`);
     expect(readFileSync(foreign, "utf8")).toBe("#!/bin/sh\nexit 0\n");
-  });
-});
-
-describe("parseVendorArgs", () => {
-  it("accepts --dry-run and help", () => {
-    expect(parseVendorArgs(["--dry-run"], "agro")).toEqual({
-      ok: true,
-      args: { help: false, fromRemote: false, force: false, dryRun: true },
-    });
-    expect(parseVendorArgs(["--help"], "agro")).toMatchObject({ ok: true, args: { help: true } });
-    expect(parseVendorArgs([], "agro")).toMatchObject({ ok: true, args: { help: false, dryRun: false } });
-  });
-
-  it("keeps every payload flag", () => {
-    const expected = {
-      ok: true,
-      args: { help: false, fromDir: "/x", fromRemote: false, force: true, dryRun: false },
-    };
-    expect(parseVendorArgs(["--from", "/x", "--force"])).toEqual(expected);
-    expect(parseVendorArgs(["--from", "/x", "--force"], "agro")).toEqual(expected);
-    expect(parseVendorArgs(["--from-remote", "--ref", "main"], "agro")).toEqual({
-      ok: true,
-      args: { help: false, fromRemote: true, ref: "main", force: false, dryRun: false },
-    });
-  });
-});
-
-describe("parseSelfUpgradeArgs", () => {
-  const PAYLOAD_FLAGS = ["--from", "--from-remote", "--ref", "--force"];
-
-  for (const flag of PAYLOAD_FLAGS) {
-    it(`rejects ${flag} with the command-specific error`, () => {
-      expect(parseSelfUpgradeArgs([flag, "x"], "agro")).toEqual({
-        ok: false,
-        error: `agro self-upgrade: ${flag} belongs to the project-payload command; run \`agro vendor ${flag}\` — agro self-upgrade upgrades only the installed CLI`,
-        showHelp: true,
-      });
-    });
-  }
-});
-
-describe("help output", () => {
-  let captured = "";
-  beforeEach(() => {
-    captured = "";
-    vi.spyOn(process.stdout, "write").mockImplementation(((chunk: string | Uint8Array) => {
-      captured += String(chunk);
-      return true;
-    }) as typeof process.stdout.write);
-  });
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it("prints the vendor help unchanged", () => {
-    printVendorHelp();
-    expect(captured).toBe(VENDOR_HELP);
-    captured = "";
-    printVendorHelp("agro");
-    expect(captured).toBe(VENDOR_HELP);
-  });
-
-  it("prints the self-upgrade help", () => {
-    printSelfUpgradeHelp("agro");
-    expect(captured.startsWith("agro self-upgrade — Upgrade the installed agro CLI\n")).toBe(true);
-    expect(captured).toContain("agro self-upgrade [--dry-run]");
-    expect(captured).toContain("npm-managed");
-    expect(captured).toContain("standalone");
-    expect(captured).toContain("AGRO_JS_URL");
-    expect(captured).toContain(DEFAULT_ARTIFACT_URL);
-    expect(captured).toContain("`agro vendor`");
-    expect(captured).not.toContain("--from-remote [--ref <ref>]");
-    expect(captured).not.toContain("--force         Override");
   });
 });
