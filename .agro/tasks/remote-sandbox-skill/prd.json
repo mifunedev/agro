@@ -19,15 +19,16 @@
         "`pnpm exec vitest run .agro/scripts/__tests__/remote-sandbox.test.ts` passes. Each US-001 case fails before the implementation exists."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: grep for vercel_/exedev_/console_/case \"$PROVIDER\"/GET_AGRO_URL in scripts/*.sh exit 1 (no match). 2 executed: vitest loader case (skill adapters/ then REMOTE_SANDBOX_ADAPTERS, later dir overrides). 3 executed: vitest partial --preflight exit 2 with usage. 4 executed: vitest SKIPPED no adapter hook for R10/R11, hooked R10 via hook; reasoned: driver_rows never calls <p>_restart (restart-test.sh owns restart; calling it mid-rows would disturb rows). 5 executed: vitest default check=fresh-install.sh. 6 executed: vitest INSTALL_URL forwarded, GET_AGRO_URL unset in check. 7 executed: vitest SIGHUP ignored, SIGTERM exit 130 destroy once, KEEP=1, remaining 0 + RUN DONE. 8 executed: pnpm exec vitest run remote-sandbox.test.ts 7/7 on integrated task branch (advisor); worker showed 6/7 fail against unported scripts.",
       "dependsOn": [],
       "files": [
         ".agro/skills/remote-sandbox/scripts/lib.sh",
         ".agro/skills/remote-sandbox/scripts/run.sh",
         ".agro/scripts/__tests__/remote-sandbox.test.ts",
         ".agro/scripts/__tests__/fixtures/remote-sandbox/"
-      ]
+      ],
+      "commit": "615eb1f4"
     },
     {
       "id": "US-002",
