@@ -118,7 +118,7 @@ Displaced detail has a destination — put it there, not in the entry:
 |--------|-------------|
 | Rationale, rejected alternatives | The PR body — the `([#N])` link is the pointer |
 | Task decisions | `.agro/tasks/<slug>/prd.md` |
-| Architecture decisions | `docs/rfcs/` |
+| Architecture decisions | A GitHub issue titled `ADR: <title>` or `RFC: <title>` |
 | Durable, generalized lessons | A test under the nearest `__tests__/` directory |
 
 BAD (real entry, 3,579 chars — a design doc wearing a bullet):

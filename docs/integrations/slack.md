@@ -2,193 +2,134 @@
 title: Slack
 ---
 
-> Slack UI labels accurate as of 2026-05-12.
-
 # Slack
 
-The Slack integration is provided by the npm package
-[**pi-messenger-bridge**](https://github.com/tintinweb/pi-messenger-bridge)
-(MIT, multi-transport — Slack / Telegram / WhatsApp / Discord / Matrix). The
-harness **installs it via npm into a gitignored `.pi/bridge/` directory** and
-the **dedicated `client-slack-pi` tmux session loads it via `--extension`** — it
-is **not** globally pinned in `.pi/settings.json`, so no other `pi` session
-loads the bridge or competes for the Slack connection. You do **not** run
-`pi install` yourself. Once your sandbox is up and Slack
-tokens are in env, DM the bot or mention it in a channel to start a
-conversation. The bridge opens a Socket Mode WebSocket on startup, relays
-inbound Slack events into the Pi agent, and posts the agent's response back to
-Slack.
+The npm package
+[pi-messenger-bridge](https://github.com/tintinweb/pi-messenger-bridge) connects
+a Pi agent in the sandbox to Slack. The bridge opens a Socket Mode connection,
+sends each Slack message to the Pi agent, and posts the reply back to Slack. In a
+channel, the bot replies in a thread. In a DM, the bot replies flat.
 
-> Upstream / standalone users (outside this harness) install the package with
-> `pi install npm:pi-messenger-bridge`. Inside the harness the entrypoint's
-> `npm install` into `.pi/bridge/` plus the `client-slack-pi` `--extension` load
-> handles it.
+The `agro gateway` command owns the bridge. `agro gateway pi` installs the bridge into the
+gitignored `.pi/bridge/` directory and starts the `client-slack-pi` tmux session.
+Only that session loads the bridge, so no other Pi session competes for the
+Slack connection. You never run `pi install` for the bridge.
 
 ## 1. Prerequisites
 
-- Sandbox is running (`agro ps` shows the `agro` container).
-- `pi --version` works inside the sandbox (`agro shell` to verify).
-- A Slack workspace where you can create apps (workspace admin or equivalent).
-  If you are on a company Slack that restricts app creation, create a free
-  personal workspace at [slack.com/get-started](https://slack.com/get-started)
-  and use it for testing.
+- The sandbox runs (`agro ps <name>`).
+- Inside the sandbox, `pi --version` works.
+- You can create apps in a Slack workspace. If your company workspace blocks app
+  creation, create a free workspace at
+  [slack.com/get-started](https://slack.com/get-started).
 
-## 2. Create the Slack App
+## 2. Create the Slack app
 
-1. Go to [api.slack.com/apps](https://api.slack.com/apps) and click
-   **Create New App**.
-2. Choose **From an app manifest**.
-3. Select your workspace and paste the YAML below into the Slack app manifest
-   UI. The manifest enables **Socket Mode** and declares the bridge admin slash commands.
-   The manifest requests the bot scopes the bridge needs.
-4. Click through the confirmation screens and then **Install to Workspace**.
-5. Approve the requested OAuth scopes.
+The canonical manifest is
+[`.pi/install/slack-manifest.yaml`](../../.pi/install/slack-manifest.yaml). The
+manifest turns on Socket Mode, requests the bot scopes, and declares seven admin
+slash commands.
 
-`.pi/install/slack-manifest.yaml` is the canonical manifest. Copy this entire
-YAML block for step 3:
+1. Open [api.slack.com/apps](https://api.slack.com/apps).
+2. Click **Create New App**, then **From an app manifest**.
+3. Select your workspace.
+4. Paste the contents of `.pi/install/slack-manifest.yaml`.
+5. Click **Install to Workspace** and approve the OAuth scopes.
 
-```yaml
-display_information:
-  name: AGRO
-  description: AI coding agent interface for AGRO sandboxes
-  background_color: "#1a1a2e"
-features:
-  app_home:
-    home_tab_enabled: false
-    messages_tab_enabled: true
-    messages_tab_read_only_enabled: false
-  bot_user:
-    display_name: agro
-    always_online: true
-  slash_commands:
-    - command: /help
-      description: "DM only: AGRO bridge admin help"
-      should_escape: false
-    - command: /trusted
-      description: "DM only: List trusted AGRO bridge users"
-      should_escape: false
-    - command: /revoke
-      description: "DM only: Revoke trust for an AGRO bridge user"
-      usage_hint: <userId>
-      should_escape: false
-    - command: /channels
-      description: "DM only: List AGRO bridge-enabled chats"
-      should_escape: false
-    - command: /enable
-      description: "DM only: Enable the AGRO bridge in a chat"
-      usage_hint: <chatId> <all|mentions|trusted-only>
-      should_escape: false
-    - command: /disable
-      description: "DM only: Disable the AGRO bridge in a chat"
-      usage_hint: <chatId>
-      should_escape: false
-    - command: /toggletools
-      description: "DM only: Toggle AGRO bridge tool-call visibility"
-      should_escape: false
-oauth_config:
-  scopes:
-    bot:
-      - app_mentions:read
-      - channels:history
-      - channels:read
-      - chat:write
-      - commands
-      - files:read
-      - files:write
-      - groups:history
-      - groups:read
-      - im:history
-      - im:read
-      - im:write
-      - reactions:read
-      - users:read
-settings:
-  event_subscriptions:
-    bot_events:
-      - app_mention
-      - message.channels
-      - message.groups
-      - message.im
-  interactivity:
-    is_enabled: false
-  org_deploy_enabled: false
-  socket_mode_enabled: true
-  token_rotation_enabled: false
-```
+Create one Slack app for each host. Each host needs its own tokens.
 
-## 3. Capture Tokens
+When the manifest changes, update the app from the new manifest. Reinstall the
+app when the manifest adds a scope.
 
-After installation, collect two tokens from the Slack app settings. They are
-not interchangeable — the wrong token in the wrong variable causes a silent
-auth failure.
+## 3. Get the tokens
 
-| Token | Prefix | Where to find it |
-|-------|--------|-----------------|
-| App-Level Token | `xapp-` | **Basic Information** page → **App-Level Tokens** section → generate one with `connections:write` scope |
-| Bot User OAuth Token | `xoxb-` | **OAuth & Permissions** page → **Bot User OAuth Token** |
+Copy two tokens from the Slack app settings. The two tokens are not
+interchangeable.
 
-Keep both values ready for the next step.
+| Token | Prefix | Location in the Slack app settings |
+|-------|--------|------------------------------------|
+| App-Level Token | `xapp-` | **Basic Information** → **App-Level Tokens**. Generate one with the `connections:write` scope. |
+| Bot User OAuth Token | `xoxb-` | **OAuth & Permissions** → **Bot User OAuth Token** |
 
-## 4. Configure the bridge
+## 4. Store the tokens
 
-Three layers. **Tokens** go in `.devcontainer/.env` (§ 4.1). The **Pi
-session command surface is the bridge's own `/msg-bridge` command** (§ 4.2):
-use it for connection/status/configuration inside `client-slack-pi`. The
-**Slack app manifest** in `.pi/install/slack-manifest.yaml` declares the admin
-slash commands so Slack can show and route them (§ 6). Runtime trust/channel
-state persists in `~/.pi/msg-bridge.json`; the tracked `.pi/msg-bridge.json` is
-only an optional pre-seed for headless setups (§ 4.2).
+Inside the sandbox, add both tokens to `/home/sandbox/harness/.devcontainer/.env`
+in `KEY=value` form, with no `export`:
 
-### 4.1 Tokens — `.devcontainer/.env`
-
-`.devcontainer/.env` uses Docker Compose `KEY=value` format (no `export`
-prefix). It is gitignored, so your tokens are never committed. Add the two
-tokens from § 3:
-
-```
+```text
 PI_SLACK_APP_TOKEN=xapp-...
 PI_SLACK_BOT_TOKEN=xoxb-...
 ```
 
-`PI_SLACK_APP_TOKEN` is the `xapp-` App-Level Token; `PI_SLACK_BOT_TOKEN`
-is the `xoxb-` Bot User OAuth Token. Swapping them causes a silent auth
-failure — double-check the prefixes.
+`PI_SLACK_APP_TOKEN` holds the `xapp-` token. `PI_SLACK_BOT_TOKEN` holds the
+`xoxb-` token. Git ignores the file.
 
-### 4.2 Configure the messenger — the `/msg-bridge` command
+`agro gateway pi` reads both tokens from that file when the tokens are not already in
+its environment. You do not source the file yourself. At boot, the entrypoint
+starts `client-slack-pi` when the file holds both tokens.
 
-Inside the Pi session, the bridge exposes **one** Pi slash command:
-`/msg-bridge`. Attach only when you need to inspect or change the bridge from
-the TUI:
+## 5. Start the gateway
+
+Run `agro gateway` inside the sandbox. The command needs `pi` on `PATH`, and
+refuses to run on the host.
 
 ```bash
-gateway pi --attach     # start (if needed) + attach to client-slack-pi
+agro gateway pi              # start client-slack-pi (idempotent)
+agro gateway pi --restart    # restart to read token or config changes
+agro gateway pi --stop       # stop the session
+agro gateway pi --attach     # start if needed, then attach (read-write)
+agro gateway status          # health of client-slack-pi and client-slack-hermes
 ```
 
-Then, inside the session, use:
+`agro gateway pi` does these steps:
 
-- `/msg-bridge` — bridge status and the config menu.
-- `/msg-bridge status` — connection state plus trusted-user/channel counts.
-- `/msg-bridge help` — the Pi-side command reference.
-- `/msg-bridge connect` / `/msg-bridge disconnect` — Socket Mode lifecycle.
+1. Installs or updates the pinned bridge in `.pi/bridge/`.
+2. Merges `.pi/msg-bridge.json` into `~/.pi/msg-bridge.json`, and keeps every
+   trust grant that already exists.
+3. Removes a stale `~/.pi/msg-bridge.lock`.
+4. Starts `client-slack-pi` under `.devcontainer/client-slack-supervise.sh`. The
+   supervisor restarts Pi when the bridge stops responding or Pi crashes.
 
-Do **not** look for `/trusted`, `/channels`, `/enable`, `/disable`, or `/help`
-as Pi TUI commands. This mirrors the root package: `pi-messenger-bridge`'s
-README lists `/msg-bridge ...` under `## Commands`, then lists `/trusted`,
-`/channels`, `/enable`, `/disable`, `/revoke`, `/toggletools`, and `/help` in a
-separate "Admin commands (in DM with the bot)" section. The package source also
-registers only `msg-bridge` as a Pi command. AGRO additionally declares
-those admin commands in `.pi/install/slack-manifest.yaml` and pins the bridge
-fork branch that handles Slack slash-command payloads by forwarding them to the
-same `handleAdminCommand` path as trusted DM text (§ 6). Auth/channel changes
-persist to `~/.pi/msg-bridge.json` (owned and rewritten by the package);
-`gateway pi` preserves them across restarts, never clobbering live grants (bug
-#289).
+`agro gateway status` prints one state for each session:
 
-#### Optional pre-seed (headless) — `.pi/msg-bridge.json`
+| State | Meaning |
+|-------|---------|
+| `healthy` | The heartbeat is fresh. |
+| `recovering` | The supervisor is in a restart or a backoff. |
+| `running · disconnected (no PI_SLACK token)` | The bridge loaded without tokens. |
+| `stopped` | No session runs. |
 
-For headless setups where nobody watches the terminal, the tracked
-`.pi/msg-bridge.json` pre-seeds `autoConnect` plus a starting trust set, so the
-bridge is usable on first boot without the challenge handshake:
+To watch the session without risk, attach read-only. Detach with `Ctrl-b d`.
+Never press `Ctrl-C` or type `exit` in the session, because both stop Pi.
+
+```bash
+tmux attach -r -t client-slack-pi
+tail -f /tmp/client-slack-pi.log
+```
+
+The Hermes gateway uses the same command: `agro gateway hermes`, session
+`client-slack-hermes`. See [Hermes](../harnesses/hermes.md#run-and-verify-read-only).
+
+## 6. Configure the bridge
+
+### Pi command: `/msg-bridge`
+
+The bridge registers one Pi command, `/msg-bridge`. Run the command inside
+`client-slack-pi`. To open the session, use `agro gateway pi --attach`.
+`agro gateway msg-bridge` sends `/msg-bridge` to the session for you.
+
+- `/msg-bridge`: status and the configuration menu.
+- `/msg-bridge status`: connection state, trusted-user count, and channel count.
+- `/msg-bridge connect` and `/msg-bridge disconnect`: open and close Socket Mode.
+- `/msg-bridge help`: the Pi command reference.
+
+`/trusted`, `/channels`, `/enable`, `/disable`, and `/help` are Slack admin
+commands (section 8). They are not Pi commands.
+
+### Headless pre-seed: `.pi/msg-bridge.json`
+
+The bridge keeps runtime state in `~/.pi/msg-bridge.json`. The tracked
+`.pi/msg-bridge.json` is an optional seed for a sandbox that nobody watches:
 
 ```json
 {
@@ -202,282 +143,83 @@ bridge is usable on first boot without the challenge handshake:
 }
 ```
 
-- `autoConnect` — `true` opens Socket Mode as soon as the `client-slack-pi`
-  session boots.
-- `auth.trustedUsers` — Slack user IDs namespaced by transport as `slack:U…`;
-  pre-authorizing your own ID skips the first-message challenge (§ 5).
-- `auth.channels` — per-channel enablement keyed by channel ID (`C…`).
+- `autoConnect`: `true` opens Socket Mode when the session starts.
+- `auth.trustedUsers`: Slack user IDs in the form `slack:U…`. A listed user
+  skips the challenge (section 7).
+- `auth.channels`: per-channel settings, keyed by channel ID (`C…`).
 
-`gateway pi` seeds this into `~/.pi/msg-bridge.json` on launch but **preserves**
-any grants you've since added via Slack DM admin handlers or runtime challenge
-auth.
+After you edit the seed, run `agro gateway pi --restart`.
 
-### 4.3 The `client-slack-pi` session (managed by `gateway`)
+## 7. Access control
 
-On container boot, `.devcontainer/entrypoint.sh` hands off to
-`.agro/scripts/gateway.sh pi`, which npm-installs the bridge into a gitignored
-`.pi/bridge/` directory and starts the dedicated `client-slack-pi` tmux session
-loading it via `--extension`. You can also manage it by hand at any time with
-the bare `gateway` command (a boot-installed symlink to that script; equivalently
-`agro gateway pi`):
+The bridge denies every unknown user. A user earns trust through a one-time
+challenge:
 
-```bash
-gateway pi              # start (idempotent)
-gateway pi --restart    # restart to pick up config / token edits
-gateway pi --stop       # stop
-gateway status          # client-slack-pi + client-slack-hermes
-```
+1. An unknown user sends a message to the bot.
+2. The bridge prints a 6-digit code in the Pi session. Read the code with
+   `tmux attach -r -t client-slack-pi`.
+3. The user sends the code to the bot in Slack.
+4. The bridge adds the user to `auth.trustedUsers` in `~/.pi/msg-bridge.json`.
+   Trust survives a restart.
 
-The sibling Hermes gateway client is the same command: `gateway hermes` (session
-`client-slack-hermes`). Under the hood `gateway pi` / the supervisor run:
+To skip the challenge on a headless sandbox, add your `slack:U…` ID to the seed
+(section 6). Then restart the gateway.
 
-```bash
-pi --extension .pi/bridge/node_modules/pi-messenger-bridge/dist/index.js \
-   --extension .pi/bridge-recovery/index.ts \
-   --approve            # interactive on the pane TTY — no --mode rpc, no | tee
-```
+## 8. Slack admin commands
 
-pi runs **interactive**, attached to the pane's real TTY, so the loaded UI
-extensions render in the TUI instead of flooding stdout with
-`extension_ui_request` JSON frames — and the REPL stays alive at idle (no
-`--mode rpc`, no `| tee` pipe). Logs are captured out-of-band: pi's stderr goes
-to `/tmp/client-slack-pi.log`, and `gateway.sh` mirrors the pane there
-(ANSI-stripped) with `tmux pipe-pane`. `--approve` trusts the project-local
-files so the extension loads. A second `--extension`
-(`.pi/bridge-recovery/index.ts`) adds Codex retry-recovery (§ 4.5). The bridge
-is loaded **only** here — it is not pinned in `.pi/settings.json`, so no other
-`pi` session competes for the Slack connection.
+A trusted user runs these commands in a DM with the bot. The manifest declares
+each command, so Slack shows the commands in autocomplete.
 
-### 4.4 Self-healing supervisor
-
-The `client-slack-pi` session does not run that `pi` command directly — it runs it
-under a thin supervisor, `.devcontainer/client-slack-supervise.sh`, which
-relaunches pi whenever the bridge dies. This exists because
-pi-messenger-bridge binds its long-lived Slack socket to a **session-scoped pi
-ctx**: when pi replaces the session (compaction, fork, model switch, reload),
-that ctx goes stale and every subsequent Slack message throws
-`extension ctx is stale after session replacement or reload`. The package has
-no recovery hook, so the process keeps running while the bridge silently stops
-responding. The supervisor tails the log for that stale-ctx signature (and
-catches any non-zero crash), kills the bridge pi, clears the single-instance
-lock (`~/.pi/msg-bridge.lock`), and relaunches a fresh process that reconnects
-— look for the `[Slack] Bot user ID:` connect marker (§ 8) again after a
-restart. A clean pi exit (`rc=0`) stops the loop. The manual relaunch below is
-only needed to pick up config edits, not to recover from stale-ctx.
-
-### 4.5 Codex retry-recovery
-
-The bridge chains Codex turns through the openai-codex provider's
-connection-scoped `previous_response_id`. When that id goes stale the provider
-returns `previous_response_not_found` (HTTP 400), clears its own continuation,
-and re-throws **without** retrying — so a real Slack turn dies with no reply.
-The npm package has no recovery for this, so the harness co-loads a small
-in-tree extension, `.pi/bridge-recovery/index.ts` (the second `--extension`
-above). It hooks `agent_end`: on a recoverable provider-state error whose failed
-turn was Slack-originated (the bridge's `[📱 … via slack]:` stamp), it re-injects
-that turn **once** — the failed request already cleared the stale id, so the
-retry chains fresh and succeeds. It does not patch the npm package.
-
-### 4.6 Run and verify (read-only)
-
-Run and check the gateway **from inside the sandbox** — both `gateway <pi|hermes>` and
-`agro gateway <pi|hermes>` require `pi`/`hermes` on `PATH`, so they only work in the
-container (`.agro/scripts/gateway.sh` errors "run inside the sandbox" otherwise).
-
-```bash
-gateway pi                 # start the client-slack-pi session (idempotent)
-gateway status             # both sessions + HEALTH (not just existence), e.g.
-                           #   ✓ client-slack-pi  healthy   (tmux attach -t client-slack-pi)
-                           #   · client-slack-hermes  stopped   (gateway hermes)
-```
-
-`status` reports the supervisor's live state, not merely "a tmux session exists":
-`healthy` (heartbeat fresh), `recovering` (in a restart/backoff — may add
-`· N restart(s)` / `· recovered <age> ago` after a stale-ctx heal), or
-`running · disconnected (no PI_SLACK token)` when the bridge loaded without tokens.
-A session with no state yet falls back to `running`.
-
-To **watch** a running gateway without any risk of killing it, attach **read-only** with
-`-r`, then detach with `Ctrl-b d` — never `Ctrl-C` or `exit` (those stop the pi process):
-
-```bash
-tmux attach -r -t client-slack-pi     # read-only view of the live session; detach: Ctrl-b d
-tail -f /tmp/client-slack-pi.log      # or just tail the log — no attach needed
-```
-
-Use the interactive `gateway pi --attach` (read-write) **only** when you actually need to
-run Pi-side `/msg-bridge` commands inside the session. Slack trust/channel admin
-handlers are DM text messages to the bot, not Pi TUI commands. The sibling Hermes gateway
-is the same story — `gateway hermes`, session `client-slack-hermes`, log
-`/tmp/client-slack-hermes.log` (see [Hermes → Run and verify](../harnesses/hermes.md#run-and-verify-read-only)).
-
-### Manual relaunch
-
-After editing `.devcontainer/.env` or `.pi/msg-bridge.json`, restart the session
-to pick up the change. The `gateway` command owns the whole lifecycle — it
-sources the tokens from `.env`, seeds the config (preserving your trust grants),
-clears the single-instance lock, and runs the supervisor — so a relaunch is one
-line:
-
-```bash
-gateway pi --restart      # restart the client-slack-pi session
-gateway pi --attach       # start it (if needed) and attach to watch the log
-gateway status            # show client-slack-pi + client-slack-hermes
-```
-
-`gateway` is a boot-installed symlink to `.agro/scripts/gateway.sh` (equivalently
-`agro gateway pi`). The same command brings up the sibling Hermes gateway
-client: `gateway hermes`. Detach an attached session with `Ctrl-b d`. The
-session name `client-slack-pi` follows the `client-` prefix convention in
-[`.agro/skills/t3/references/sandbox-processes.md`](https://github.com/mifunedev/agro/blob/development/.agro/skills/t3/references/sandbox-processes.md).
-
-## 5. Access Control — challenge-based auth
-
-The bridge is **deny-by-default**: an unknown user gets no agent response until
-they prove they're allowed to talk to the bot. There is no static allowlist to
-maintain — trust is established through a one-time challenge.
-
-1. The first time an unknown user messages the bot, the bridge prints a
-   **6-digit challenge code** in the pi terminal. Read it with
-   `tmux attach -r -t client-slack-pi` (detach: `Ctrl-b d`).
-2. The user replies with that code in Slack.
-3. On a match, the user becomes **trusted** and is persisted to
-   `~/.pi/msg-bridge.json` under `auth.trustedUsers`, namespaced by transport as
-   `slack:U…`. Trust survives restarts.
-
-For **headless** setups where nobody is watching the pi terminal, pre-authorize
-your Slack user ID up front — add `slack:U…` to `auth.trustedUsers` in the
-tracked `.pi/msg-bridge.json` (§ 4.2) and restart the `client-slack-pi` session.
-That skips the challenge entirely.
-
-## 6. Admin Slack commands
-
-The shipped Slack manifest declares these **manifest-backed Slack admin commands**,
-and the pinned bridge fork handles them over Socket Mode after the invoking user
-is trusted.
-The same text still works as trusted Slack DM text when Slack delivers it as a
-message event:
-
-| Slack command / DM text | Effect |
+| Command | Effect |
 |---------|--------|
-| `/trusted` | List currently trusted users |
-| `/revoke <userId>` | Revoke a user's trust (use the `slack:U…` or `U…` ID) |
-| `/channels` | List known chats and their enabled mode |
-| `/enable <chatId> <all\|mentions\|trusted-only>` | Enable the bot in a chat with the given response mode |
-| `/disable <chatId>` | Disable the bot in a chat |
-| `/toggletools` | Toggle tool-call visibility in Slack replies |
-| `/help` | Show the bridge's admin help |
+| `/trusted` | List trusted users. |
+| `/revoke <userId>` | Revoke trust for a user (`slack:U…` or `U…`). |
+| `/channels` | List known chats and their mode. |
+| `/enable <chatId> <all\|mentions\|trusted-only>` | Turn on the bot in a chat with the given mode. |
+| `/disable <chatId>` | Turn off the bot in a chat. |
+| `/toggletools` | Show or hide tool calls in Slack replies. |
+| `/help` | Show the admin help. |
 
-If you created the Slack app before this manifest declared admin slash
-commands, update/recreate the app from `.pi/install/slack-manifest.yaml` so
-Slack can show them in autocomplete and route command payloads to the bridge.
-If a command still does not arrive, use the supported inspection/configuration
-fallbacks:
+The same text works as a plain DM message from a trusted user.
 
-```bash
-gateway status
-tmux capture-pane -t client-slack-pi -p | grep -F '[Slack] Bot user ID:'
-jq '.auth' ~/.pi/msg-bridge.json
-```
+## 9. Smoke test
 
-For headless setups, pre-seed `auth.trustedUsers` and `auth.channels` in
-`.pi/msg-bridge.json` (§ 4.2), then run `gateway pi --restart`. Use Pi-side
-`/msg-bridge status` inside `gateway pi --attach` for connection state;
-`/msg-bridge status` is not a Slack admin command.
+Run these checks in the sandbox, in order.
 
-## 7. Read an operator decision
+1. Confirm that the gateway is healthy:
 
-Create a separate Slack app from `.pi/install/slack-manifest.yaml` on each host.
-Give each host its own app-level and bot tokens. Install the app in the workspace
-and invite its bot to the escalation channel. Update an existing app from the
-YAML manifest and reinstall it when you add scopes.
-
-The bot needs `commands` for the seven bridge slash commands and
-`reactions:read` for decisions. The bot needs `channels:history`, `groups:history`,
-and `im:history` to read replies in public channels, private channels, and DMs.
-The manifest subscribes to `message.channels`, `message.groups`, and
-`message.im` events for bridge messages. The decision reader uses Slack Web API
-calls; the reader does not require an event handler.
-
-Set `ESCALATE_OPERATOR_SLACK_ID` to the operator's exact Slack member ID (for
-example, `U01ABCD2345`). If unset, the reader uses the first `slack:U…` entry
-in `~/.pi/msg-bridge.json` under `auth.trustedUsers`. Keep that first entry
-assigned to the operator. Trust for other users does not authorize decisions.
-The reader resolves `PI_SLACK_BOT_TOKEN` from its environment, then
-`.devcontainer/.env`, then `.slack.botToken` in the bridge config.
-
-Run the command once with the `channel` and `ts` returned by `escalate.sh`:
-
-```bash
-bash .agro/skills/escalate/scripts/escalate-decision.sh --channel C123 --ts 1757630000.000100
-```
-
-The command prints `approve`, `reject`, or `none`. Only the operator's
-`white_check_mark` or `x` reaction and a thread reply starting with `approve`
-or `reject` count. A reject wins. A missing operator ID or a Slack API error
-exits 2; do not interpret it as `none`. The caller owns its state and invokes
-the command when the caller is ready to check. Do not poll Slack.
-
-## 8. Smoke Test
-
-Run these checks in order. The first runs in the shell where you sourced the
-env (before attaching to tmux).
-
-1. **Vars present in the current shell:**
    ```bash
-   env | grep PI_SLACK
+   agro gateway status
    ```
-   Expected: `PI_SLACK_APP_TOKEN` and `PI_SLACK_BOT_TOKEN` are both listed. If
-   either is missing, `set -a` did not run in this shell — repeat the launch
-   from the beginning.
 
-2. **Socket Mode connected** (the real connectivity check):
+2. Confirm the Socket Mode connection. The `[Slack] Bot user ID:` line
+   appears after the bridge opens Socket Mode:
+
    ```bash
    tmux capture-pane -t client-slack-pi -p | grep -F '[Slack] Bot user ID:'
    ```
-   The `[Slack] Bot user ID:` line is the bridge's connect signal — it prints
-   once Socket Mode is open and the bot identity is resolved. Note:
-   `curl https://slack.com/api/auth.test` only validates the bot token
-   (`xoxb-`), not the Socket Mode app token (`xapp-`). An invalid
-   `PI_SLACK_APP_TOKEN` can pass `auth.test` and still fail to open a Socket
-   Mode connection. Use the tmux log check above as the authoritative test.
 
-3. **Round-trip test:**
-   DM the bot plain text such as `hello` or `@mention` it in a channel. If
-   you've never talked to it before, complete the 6-digit challenge (§ 5) first.
-   After trust succeeds, test one manifest-backed admin command such as
-   `/trusted` in the bot DM. Watch `tmux attach -r -t client-slack-pi` — you
-   should see the inbound event logged and the agent's reply posted back to
-   Slack.
+   `curl https://slack.com/api/auth.test` checks only the `xoxb-` token. An
+   invalid `xapp-` token passes `auth.test` and still fails Socket Mode. Use the
+   log line as the connection test.
 
-## 9. Troubleshooting
+3. Send `hello` to the bot in a DM. Complete the challenge if the bridge asks.
+   Then run `/trusted` in the DM. The agent reply appears in Slack.
+
+## 10. Troubleshooting
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| Bot stays silent; you've never authenticated | Deny-by-default — your Slack user isn't trusted yet | DM the bot plain text, read the 6-digit code from `tmux attach -r -t client-slack-pi`, reply with it in Slack — or pre-authorize your user ID in `.pi/msg-bridge.json` (§ 4.2) |
-| `/help` or `/trusted` is not visible in Slack autocomplete | The Slack app was created before `.pi/install/slack-manifest.yaml` declared admin slash commands, or the app manifest was not updated | Update/recreate the Slack app from `.pi/install/slack-manifest.yaml`, then `gateway pi --restart`; use `gateway status`, `tmux capture-pane -t client-slack-pi -p`, and `jq '.auth' ~/.pi/msg-bridge.json` to inspect runtime state |
-| `invalid_auth` / `not_authed` in the log | `xapp-` and `xoxb-` tokens are swapped | `PI_SLACK_APP_TOKEN` must be the `xapp-` token; `PI_SLACK_BOT_TOKEN` must be the `xoxb-` token — correct `.devcontainer/.env` and relaunch |
-| Bridge won't start after an unclean exit | Stale lock file `~/.pi/msg-bridge.lock` left behind | `rm ~/.pi/msg-bridge.lock`, then relaunch the `client-slack-pi` session |
-| Bot connected (`[Slack] Bot user ID:` logged) but never replies | `autoConnect` not set in `.pi/msg-bridge.json` — the bridge stays idle | Set `"autoConnect": true` (§ 4.2) and relaunch |
-| Bot is trusted but channel messages ignored | Bot is not a member of the channel | In Slack, type `/invite @AGRO` in the target channel |
+| Bot stays silent; you never completed the challenge | The bridge denies unknown users | Read the code with `tmux attach -r -t client-slack-pi` and send the code in Slack, or pre-seed your user ID (section 6) |
+| `/help` or `/trusted` is missing from Slack autocomplete | The app predates the current manifest | Update the app from `.pi/install/slack-manifest.yaml`, then run `agro gateway pi --restart` |
+| `invalid_auth` or `not_authed` in the log | Each token sits in the other variable | Fix `.devcontainer/.env`, then run `agro gateway pi --restart` |
+| `agro gateway status` shows `disconnected (no PI_SLACK token)` | The tokens are missing from `.devcontainer/.env` | Add both tokens, then run `agro gateway pi --restart` |
+| Bridge connects but never replies | `autoConnect` is not `true` | Set `"autoConnect": true` in `.pi/msg-bridge.json`, then run `agro gateway pi --restart` |
+| Trusted user, channel messages ignored | The bot is not in the channel | In the channel, run `/invite @agro` |
 
-## 10. Architecture Pointer
+To read the current trust and channel state, run
+`jq '.auth' ~/.pi/msg-bridge.json`.
 
-The Slack capability is the **pi-messenger-bridge** npm package. The harness
-installs it via npm into a gitignored `.pi/bridge/` directory and loads it via
-`--extension` only in the dedicated `client-slack-pi` tmux session
-(`.devcontainer/entrypoint.sh`) — it is not globally pinned in
-`.pi/settings.json`, so no other `pi` session competes for the Slack
-connection. Replies post **in a thread** anchored to the triggering channel
-message (`thread_ts`); DMs stay flat. The harness normally consumes the package
-as published, but while that thread-reply patch is unreleased it temporarily
-pins the entrypoint's `npm install` line to a fork branch
-(`github:ryaneggz/pi-messenger-bridge#c8b96e9d0fb69611c4e67ae298d1d10d83792a26`), the exact fork commit containing thread replies and admin slash-command handlers; re-pin to
-`pi-messenger-bridge@<version>` once upstream publishes them. Source lives upstream at
-[tintinweb/pi-messenger-bridge](https://github.com/tintinweb/pi-messenger-bridge).
-
-For upstream lineage, the version-pin model, the quarterly review cadence, and
-the removal of the old in-tree Slack extension, see
-[`.pi/UPSTREAM.md`](https://github.com/mifunedev/agro/blob/development/.pi/UPSTREAM.md).
-
-[Connecting to the Sandbox](/docs/connecting)
+AGRO pins the bridge in `.agro/scripts/gateway.sh`. Upstream lineage and the pin
+policy are in [`.pi/UPSTREAM.md`](../../.pi/UPSTREAM.md). For remote access to
+the sandbox, see [Connecting to the Sandbox](../connecting.md).

@@ -49,7 +49,7 @@ describe("sandbox upgrade smoke script", () => {
   it("states its scope: the seed image itself is never booted, and the .oh layout is retired", () => {
     expect(script).toContain("This script never boots that");
     expect(script).toContain("The legacy `.oh` layout is retired");
-    expect(script).toContain("docs/agro-compatibility.md");
+    expect(script).toContain("https://github.com/mifunedev/agro/issues/1061");
     expect(script).toContain('del(.scripts["pnpm:devPreinstall"])');
   });
 

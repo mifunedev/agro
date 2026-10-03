@@ -296,7 +296,7 @@ describe("agro sandbox install — runtime selection", () => {
       const { err, io } = makeIo();
       expect(await runSandboxInstall({ bin, runtime: "microsandbox", yes: true }, io)).toBe(1);
       expect(err.join("")).toContain(
-        "microsandbox is not a provisionable runtime yet; see docs/rfcs/rfc-runtime-support.md. " +
+        "microsandbox is not a provisionable runtime yet; see https://github.com/mifunedev/agro/issues/592. " +
           `Inside a sandbox run \`${bin} tool install microsandbox\`.`,
       );
     },

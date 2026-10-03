@@ -23,12 +23,6 @@ The same schema has two homes, and the flag you pass picks one:
 | **Registry entry** | `${AGRO_HOME:-~/.agro}/sandboxes/<name>/agro.json` | `agro sandbox install docker`, then `agro config set --sandbox <name>` | the sandbox: `name`, `runtime`, `checkout`, `timezone`, `git.*`, `access.*`, `image.*`, `storage.homePath`, `composeOverrides` |
 | **Project** | `<repo>/agro.json` | you, and `agro config set` with no flag | the settings a checkout wants to carry in git |
 
-A registry entry created by an earlier release stays at
-`${AGRO_HOME:-~/.oh}/sandboxes/<name>/agro.json`, and a checkout equipped by one
-keeps `.agro/` and `agro.json`. Both keep resolving under either executable name;
-`agro migrate` and `agro migrate --home` move them when you choose. Every verb
-below uses the `agro` CLI.
-
 `agro sandbox install docker` writes the registry entry and, beside it, the
 compose files and the compose wrapper. The CLI **generates** those files and
 re-materialises them on every lifecycle call, so edit only `agro.json` there.
@@ -83,9 +77,9 @@ or the CLI consumes the field itself.
 | `version` | number | `1` | — | Schema version. Must be `1`. |
 | `name` | string | directory name | `SANDBOX_NAME` | Container and Compose project name. |
 | `runtime` | `"docker"` | unset | — | The runtime that provisioned the entry. `agro sandbox install docker` writes the field; `docker` is the only value today. |
-| `checkout` | string | unset | `AGRO_REPO_DIR` (legacy alias `AGRO_REPO_DIR`) | Absolute **host** path of a checkout to bind-mount at `/home/sandbox/harness`, set by `agro sandbox install docker --checkout <dir>`. The CLI selects the build-capable compose base only when that path holds `.devcontainer/Dockerfile`. This field also lets a lifecycle verb resolve this sandbox from inside that directory. Unset means image-only: the entrypoint seeds the workspace volume from the image's `/opt/agro-seed`. The field `repo` and the flag `--repo` remain supported aliases. A file that holds both fields uses `checkout`. Either field renders to the Compose variable `AGRO_REPO_DIR`. A file that holds `repo` keeps that field. The CLI does not rewrite that field. |
+| `checkout` | string | unset | `AGRO_REPO_DIR` | Absolute **host** path of a checkout to bind-mount at `/home/sandbox/harness`. `agro sandbox install docker --checkout <dir>` sets the field. The CLI selects the build-capable compose base only when that path holds `.devcontainer/Dockerfile`. This field also lets a lifecycle verb resolve this sandbox from inside that directory. Unset means image-only: the entrypoint seeds the workspace volume from the image's `/opt/agro-seed`. The field `repo` and the flag `--repo` remain as deprecated aliases. A file that holds both fields uses `checkout`. |
 | `timezone` | string | `America/Los_Angeles` | `TZ` | Timezone for cron schedules and log timestamps. |
-| `storage.homePath` | string | unset | `AGRO_HOME_MOUNT` (legacy alias `AGRO_HOME_MOUNT`) | Absolute **host** path for the single `/home/sandbox` mount. Leave unset and Docker manages it as the named volume `<name>_workspace`. Must start with `/`; use a dedicated empty directory, since the sandbox takes ownership of every file in that directory. Set this field at create time with `agro sandbox install docker --home-mount <dir>`. The flag resolves the argument to an absolute path. The flag creates the directory when the directory is absent. The flag accepts a non-empty directory. `agro config set storage.homePath <dir>` refuses the change when the named volume `<name>_workspace` already exists. The next start would swap the mount source and orphan every file in that volume. Pass `--force` to override the refusal. A stale `AGRO_HOME_MOUNT` (or legacy `AGRO_HOME_MOUNT`) in `.devcontainer/.env` outranks this value, because the wrapper passes the dotenv last. |
+| `storage.homePath` | string | unset | `AGRO_HOME_MOUNT` | Absolute **host** path for the single `/home/sandbox` mount. Leave unset and Docker manages it as the named volume `<name>_workspace`. Must start with `/`; use a dedicated empty directory, since the sandbox takes ownership of every file in that directory. Set this field at create time with `agro sandbox install docker --home-mount <dir>`. The flag resolves the argument to an absolute path. The flag creates the directory when the directory is absent. The flag accepts a non-empty directory. `agro config set storage.homePath <dir>` refuses the change when the named volume `<name>_workspace` already exists. The next start would swap the mount source and orphan every file in that volume. Pass `--force` to override the refusal. A stale `AGRO_HOME_MOUNT` in `.devcontainer/.env` outranks this value, because the wrapper passes the dotenv last. |
 
 ### Git identity inside the sandbox
 
@@ -118,7 +112,7 @@ at boot. The install lands in `~/.local` inside the persistent home volume, and
 | Field | Type | Default | Compose variable | What the field does |
 | --- | --- | --- | --- | --- |
 | `hermesDashboard.enabled` | boolean | `false` | — | Auto-starts the web dashboard in the `app-hermes-dashboard` tmux session, bound to container loopback. |
-| `hermesDashboard.port` | number (1–65535) | `9119` | — | Container loopback port for the dashboard. Compose no longer publishes the port to the host; reach the dashboard from inside the sandbox, or over cloudflared or Tailscale. |
+| `hermesDashboard.port` | number (1–65535) | `9119` | — | Container loopback port for the dashboard. Compose does not publish the port to the host. Reach the dashboard from inside the sandbox, or over cloudflared or Tailscale. |
 
 ### Cron runtime
 
@@ -149,13 +143,13 @@ into one tracing file per harness. See [Langfuse](integrations/langfuse.md).
 ### Prebuilt image
 
 Run a published image instead of building from `.devcontainer/Dockerfile`.
-Recipe: [`agro sandbox install docker`](deployment-prebuilt-image.md).
+Recipe: [Creating a sandbox](deployment-prebuilt-image.md).
 
 | Field | Type | Default | Compose variable | What the field does |
 | --- | --- | --- | --- | --- |
 | `image.ref` | string | `ghcr.io/mifunedev/agro:<CLI version>` | `AGRO_SANDBOX_IMAGE` | Published image reference. Set the field per sandbox with `agro config set --sandbox <name> image.ref <ref>`. `agro sandbox install docker` writes this field only for an explicit pin: `--version <X.Y.Z>` or `--image=<ref>`. Without a pin, each start of an `image`-mode sandbox renders the default. If the CLI version is not a plain `X.Y.Z` release, the default tag is `latest`. The install preserves a configured value. |
 | `image.mode` | `"build"` \| `"image"` | `build` | — | Whether the lifecycle builds locally or runs `image.ref`. A build happens only when the entry carries `checkout` and that directory holds `.devcontainer/Dockerfile`. Pairs with `agro sandbox install docker --image`. |
-| `image.pullPolicy` | `"missing"` \| `"always"` \| `"never"` | `missing` | `AGRO_PULL_POLICY` (legacy alias `AGRO_PULL_POLICY`) | Compose pull policy for `image.ref`. |
+| `image.pullPolicy` | `"missing"` \| `"always"` \| `"never"` | `missing` | `AGRO_PULL_POLICY` | Compose pull policy for `image.ref`. |
 
 ### Compose overlays
 
@@ -178,40 +172,17 @@ out:
 For Muse Code, `agro secret set META_API_KEY` stores the key but does not export it into a running shell.
 See [Muse authentication](harnesses/muse-code.md#authentication) for process injection and credential precedence.
 
-### TypeSafe
-
-`TYPESAFE_API_KEY` authenticates the TypeSafe System One judgment adapter at
-`.agro/scripts/typesafe.mjs`. Set it with `agro secret set TYPESAFE_API_KEY`, or add it
-to `.env` and load it with `set -a; source .env; set +a`.
-
-`TYPESAFE_API_KEY` is deliberately absent from every compose `environment:` block. A value reaches the
-sandbox through Compose only if a process outside the sandbox — or the entrypoint before
-the control plane is readable — must act on it, and nothing outside the sandbox acts on
-this key. The compose environment boundary test in `.agro/scripts/__tests__/sandbox-privilege-boundary.test.ts` fails if it ever appears there.
-
-**Unconfigured fails loudly, then continues.** Without the key, every consumer prints a
-diagnostic naming the variable and the command that sets it, then falls back to its
-deterministic path and completes. Nothing silently degrades and nothing crashes. The
-same applies to an invalid key, a timeout, or an unreachable host, each reported as a
-distinct cause. Check the current state with:
-
-```bash
-node .agro/scripts/typesafe.mjs           # is the key set?
-node .agro/scripts/typesafe.mjs --live    # does the key work?
-```
-
-Consumers are opt-in. `prompt-miner --judge` is the only one today; without the flag the
-engine never consults TypeSafe.
+`TYPESAFE_API_KEY` serves the optional `typesafe-ai` skill and `prompt-miner --judge`.
+See `.agro/skills/typesafe-ai/SKILL.md`.
 
 ## Environment variables
 
 | Variable | Default | What the variable does |
 | --- | --- | --- |
-| `AGRO_NO_STAR_PROMPT` | unset | `1` suppresses the one-time line `⭐ If AGRO helps, star https://github.com/mifunedev/agro` that `agro sandbox install` prints after its first successful install. The line also stays off when `CI` is set and not empty, or when stdout is not a TTY. The marker `${AGRO_HOME:-~/.agro}/star-prompt-shown` records that the line was shown. |
+| `AGRO_NO_STAR_PROMPT` | unset | `1` suppresses the one-time line `⭐ If AGRO helps, star https://github.com/mifunedev/agro` that `agro sandbox install` prints after its first successful install. The line also stays off when `CI` holds a non-empty value, or when stdout is not a TTY. The marker `${AGRO_HOME:-~/.agro}/star-prompt-shown` records the first display. |
 
 ## Retired keys
 
-The directory layout follows a fixed convention, and no setting changes the layout.
-AGRO removed `WORKTREES_DIR`, `PROJECTS_DIR`, and `CRONS_DIR`;
-`config-render.ts` refuses to render them. See
+No setting changes the directory layout. `config-render.ts` refuses to render
+a retired key such as `WORKTREES_DIR`, `PROJECTS_DIR`, or `CRONS_DIR`. See
 [`.agro/` directory layout](agro-directory-layout.md).

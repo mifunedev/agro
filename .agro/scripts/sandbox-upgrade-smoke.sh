@@ -22,7 +22,7 @@
 #
 # Scope: this proves the freshly built image correctly upgrades a genuine
 # pre-existing workspace volume. The legacy `.oh` layout is retired
-# (docs/agro-compatibility.md) and is no longer exercised here.
+# (https://github.com/mifunedev/agro/issues/1061) and is no longer exercised here.
 
 set -euo pipefail
 
