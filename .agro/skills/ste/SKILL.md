@@ -98,7 +98,8 @@ confirmations in plain prose.
 Run these eight steps against an existing document.
 
 1. Read the source to the end. Change nothing yet.
-2. List every ambiguity. Mark each one `resolvable` or `missing`.
+2. List every ambiguity against the 10-question check. Mark each one
+   `resolvable` or `missing`.
 3. Rewrite each sentence to carry one idea, in the active voice.
 4. Replace every non-approved word with its approved replacement.
 5. Move each condition ahead of the action the condition guards.
@@ -163,40 +164,28 @@ Never drop the condition.
 | `blow away the container` | `delete the agro container` |
 | `the system will handle it` | `the scheduler retries the job three times` |
 
-## Ambiguity detection
+## The 10-question check
 
-Flag each of these during step 2 of rewrite mode:
+Ask these in step 2 of rewrite mode to list each ambiguity. Ask these again of
+every sentence you write or rewrite. A `no` on any question sends the sentence
+back.
 
-- a pronoun with no named antecedent
-- a missing actor: who performs the action
-- a missing object: what the action changes
-- a missing condition: when the reader acts
-- a missing unit, file, directory, or identifier
-- an unstated execution context: host or container
-- an unstated location: local or remote
-- an unstated order between two steps
-- more than one action inside one step
-- a word that carries more than one meaning in software text
+1. Does the sentence carry one idea, and each step one action in a stated order?
+2. Does the instruction name the actor and where the command runs: host or
+   container, local or remote?
+3. Does the instruction name the object?
+4. Does the text state each condition ahead of the action the condition guards?
+5. Does each term carry one meaning and match the term used elsewhere?
+6. Does the text state the unit, the file, the directory, and the identifier?
+7. Does every pronoun point at a named antecedent?
+8. Does the sentence stay clear of hedges, qualifiers, and the unresolved words
+   below?
+9. Does the text keep code, commands, and literals unchanged?
+10. Does the text mark every missing value with a placeholder?
 
 Treat these words as unresolved on sight: `normally`, `usually`, `some`,
 `appropriate`, `proper`, `correct`, `soon`, `as needed`, `if necessary`,
 `a while`.
-
-## The 10-question check
-
-Ask these of every sentence you write or rewrite. A `no` on any question sends
-the sentence back.
-
-1. Does the sentence carry exactly one idea?
-2. Does the instruction name the actor?
-3. Does the instruction name the object?
-4. Does the condition come ahead of the action?
-5. Does the term match the term used elsewhere for the same concept?
-6. Does the text state the unit, the path, and the identifier?
-7. Does every pronoun point at a named antecedent?
-8. Does the sentence stay clear of hedges and qualifiers?
-9. Does the text keep code, commands, and literals unchanged?
-10. Does the text mark every missing value with a placeholder?
 
 ## The checker
 
