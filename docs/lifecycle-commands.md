@@ -266,7 +266,7 @@ agro workspace list --json                # the same rows as JSON
 `agro harness install --host` and `agro tool install --host` create no workspace.
 Each verb resolves an existing workspace and exits 1 when none resolves. The
 refusal lists every workspace that exists and names `agro workspace create`. See
-[Harnesses Overview](harnesses/overview.md#installing-on-the-host).
+[Harnesses Overview](harnesses/overview.md#installing-a-harness).
 
 ## Langfuse tracing: `agro config langfuse` and `agro langfuse`
 

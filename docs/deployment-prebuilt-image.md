@@ -127,7 +127,7 @@ docker exec -it -u sandbox <name> zsh
 
 Without the `/home/sandbox` volume, a container removal deletes every login and
 every edit. The same image runs under MicroSandbox; see
-[Running AGRO on MicroSandbox](runtimes/microsandbox.md#running-agro-on-microsandbox).
+[MicroSandbox](runtimes/microsandbox.md).
 
 ## VS Code
 

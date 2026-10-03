@@ -217,8 +217,8 @@ app-level token (`xapp-`) with `connections:write` scope.
 hermes gateway setup
 
 # Start the Hermes gateway and check its status
-gateway hermes
-gateway status
+agro gateway hermes
+agro gateway status
 
 # Attach read-only from a Herdr pane; detach with Ctrl-b d
 tmux attach -r -t client-slack-hermes
@@ -246,8 +246,8 @@ agro secret set PI_SLACK_APP_TOKEN
 agro secret set PI_SLACK_BOT_TOKEN
 
 # Start the Pi bridge and check its status
-gateway pi
-gateway status
+agro gateway pi
+agro gateway status
 
 # Attach read-only from a Herdr pane; detach with Ctrl-b d
 tmux attach -r -t client-slack-pi

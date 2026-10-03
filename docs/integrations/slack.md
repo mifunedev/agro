@@ -10,7 +10,7 @@ a Pi agent in the sandbox to Slack. The bridge opens a Socket Mode connection,
 sends each Slack message to the Pi agent, and posts the reply back to Slack. In a
 channel, the bot replies in a thread. In a DM, the bot replies flat.
 
-The `gateway` command owns the bridge. `gateway pi` installs the bridge into the
+The `agro gateway` command owns the bridge. `agro gateway pi` installs the bridge into the
 gitignored `.pi/bridge/` directory and starts the `client-slack-pi` tmux session.
 Only that session loads the bridge, so no other Pi session competes for the
 Slack connection. You never run `pi install` for the bridge.
@@ -64,25 +64,24 @@ PI_SLACK_BOT_TOKEN=xoxb-...
 `PI_SLACK_APP_TOKEN` holds the `xapp-` token. `PI_SLACK_BOT_TOKEN` holds the
 `xoxb-` token. Git ignores the file.
 
-`gateway pi` reads both tokens from that file when the tokens are not already in
+`agro gateway pi` reads both tokens from that file when the tokens are not already in
 its environment. You do not source the file yourself. At boot, the entrypoint
 starts `client-slack-pi` when the file holds both tokens.
 
 ## 5. Start the gateway
 
-Run `gateway` inside the sandbox. The command needs `pi` on `PATH`, and refuses
-to run on the host. `gateway` is a symlink to `.agro/scripts/gateway.sh`.
-`agro gateway pi` runs the same script.
+Run `agro gateway` inside the sandbox. The command needs `pi` on `PATH`, and
+refuses to run on the host.
 
 ```bash
-gateway pi              # start client-slack-pi (idempotent)
-gateway pi --restart    # restart to read token or config changes
-gateway pi --stop       # stop the session
-gateway pi --attach     # start if needed, then attach (read-write)
-gateway status          # health of client-slack-pi and client-slack-hermes
+agro gateway pi              # start client-slack-pi (idempotent)
+agro gateway pi --restart    # restart to read token or config changes
+agro gateway pi --stop       # stop the session
+agro gateway pi --attach     # start if needed, then attach (read-write)
+agro gateway status          # health of client-slack-pi and client-slack-hermes
 ```
 
-`gateway pi` does these steps:
+`agro gateway pi` does these steps:
 
 1. Installs or updates the pinned bridge in `.pi/bridge/`.
 2. Merges `.pi/msg-bridge.json` into `~/.pi/msg-bridge.json`, and keeps every
@@ -91,7 +90,7 @@ gateway status          # health of client-slack-pi and client-slack-hermes
 4. Starts `client-slack-pi` under `.devcontainer/client-slack-supervise.sh`. The
    supervisor restarts Pi when the bridge stops responding or Pi crashes.
 
-`gateway status` prints one state for each session:
+`agro gateway status` prints one state for each session:
 
 | State | Meaning |
 |-------|---------|
@@ -108,7 +107,7 @@ tmux attach -r -t client-slack-pi
 tail -f /tmp/client-slack-pi.log
 ```
 
-The Hermes gateway uses the same command: `gateway hermes`, session
+The Hermes gateway uses the same command: `agro gateway hermes`, session
 `client-slack-hermes`. See [Hermes](../harnesses/hermes.md#run-and-verify-read-only).
 
 ## 6. Configure the bridge
@@ -116,8 +115,8 @@ The Hermes gateway uses the same command: `gateway hermes`, session
 ### Pi command: `/msg-bridge`
 
 The bridge registers one Pi command, `/msg-bridge`. Run the command inside
-`client-slack-pi`. To open the session, use `gateway pi --attach`.
-`gateway msg-bridge` sends `/msg-bridge` to the session for you.
+`client-slack-pi`. To open the session, use `agro gateway pi --attach`.
+`agro gateway msg-bridge` sends `/msg-bridge` to the session for you.
 
 - `/msg-bridge`: status and the configuration menu.
 - `/msg-bridge status`: connection state, trusted-user count, and channel count.
@@ -149,7 +148,7 @@ The bridge keeps runtime state in `~/.pi/msg-bridge.json`. The tracked
   skips the challenge (section 7).
 - `auth.channels`: per-channel settings, keyed by channel ID (`C…`).
 
-After you edit the seed, run `gateway pi --restart`.
+After you edit the seed, run `agro gateway pi --restart`.
 
 ## 7. Access control
 
@@ -190,7 +189,7 @@ Run these checks in the sandbox, in order.
 1. Confirm that the gateway is healthy:
 
    ```bash
-   gateway status
+   agro gateway status
    ```
 
 2. Confirm the Socket Mode connection. The `[Slack] Bot user ID:` line
@@ -212,10 +211,10 @@ Run these checks in the sandbox, in order.
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | Bot stays silent; you never completed the challenge | The bridge denies unknown users | Read the code with `tmux attach -r -t client-slack-pi` and send the code in Slack, or pre-seed your user ID (section 6) |
-| `/help` or `/trusted` is missing from Slack autocomplete | The app predates the current manifest | Update the app from `.pi/install/slack-manifest.yaml`, then run `gateway pi --restart` |
-| `invalid_auth` or `not_authed` in the log | Each token sits in the other variable | Fix `.devcontainer/.env`, then run `gateway pi --restart` |
-| `gateway status` shows `disconnected (no PI_SLACK token)` | The tokens are missing from `.devcontainer/.env` | Add both tokens, then run `gateway pi --restart` |
-| Bridge connects but never replies | `autoConnect` is not `true` | Set `"autoConnect": true` in `.pi/msg-bridge.json`, then run `gateway pi --restart` |
+| `/help` or `/trusted` is missing from Slack autocomplete | The app predates the current manifest | Update the app from `.pi/install/slack-manifest.yaml`, then run `agro gateway pi --restart` |
+| `invalid_auth` or `not_authed` in the log | Each token sits in the other variable | Fix `.devcontainer/.env`, then run `agro gateway pi --restart` |
+| `agro gateway status` shows `disconnected (no PI_SLACK token)` | The tokens are missing from `.devcontainer/.env` | Add both tokens, then run `agro gateway pi --restart` |
+| Bridge connects but never replies | `autoConnect` is not `true` | Set `"autoConnect": true` in `.pi/msg-bridge.json`, then run `agro gateway pi --restart` |
 | Trusted user, channel messages ignored | The bot is not in the channel | In the channel, run `/invite @agro` |
 
 To read the current trust and channel state, run

@@ -21,6 +21,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 - Print a one-time star line after the first successful `agro sandbox install` in an interactive terminal; set `AGRO_NO_STAR_PROMPT=1` to suppress it ([#1175](https://github.com/mifunedev/agro/issues/1175)).
 - Read operator Slack decisions by message timestamp and report sender timestamps for unattended escalations ([#1181](https://github.com/mifunedev/agro/issues/1181)).
 
+### Fixed
+
+- Fix stale links, commands, and names across `docs/` and trim each doc to its operator journey with one owner per topic, in Simplified Technical English ([#1278](https://github.com/mifunedev/agro/issues/1278)).
+
 ### Removed
 
 - Delete 22 docs with no operator journey, merge 4 into surviving docs, retire `docs/rfcs/`, and repoint `/architect`/`/git` to GitHub issues as the decision record ([#1275](https://github.com/mifunedev/agro/issues/1275)).
