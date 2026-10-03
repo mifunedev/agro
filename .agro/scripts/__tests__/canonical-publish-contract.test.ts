@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 const ROOT = join(import.meta.dirname, "../../..");
 const WORKFLOW = join(ROOT, ".github", "workflows", "publish-cli.yml");
 const RELEASE = join(ROOT, ".github", "workflows", "release.yml");
+const CLI = join(ROOT, ".agro", "cli");
 
 const cleanups: string[] = [];
 afterEach(() => {
@@ -164,5 +165,32 @@ describe("canonical publish-cli contract", () => {
     expect(log).toContain("view @mifune/agro@9.9.9 version");
     expect(log).not.toContain("publish");
     expect(log).not.toContain("openharness");
+  });
+});
+
+describe("@mifune/agro npm package", () => {
+  const pkg = JSON.parse(readFileSync(join(CLI, "package.json"), "utf8"));
+
+  it("is publishable as the public agro bin with only the built bundle", () => {
+    expect(pkg.private).not.toBe(true);
+    expect(pkg.name).toBe("@mifune/agro");
+    expect(pkg.publishConfig?.access).toBe("public");
+    expect(pkg.files).toContain("dist");
+    expect(pkg.bin).toEqual({ agro: "./dist/agro.js" });
+    expect(pkg.engines?.node).toBeTruthy();
+  });
+
+  it.each(["README.md", "LICENSE"])("ships %s for the npm page", (file) => {
+    expect(existsSync(join(CLI, file))).toBe(true);
+  });
+
+  it("keeps every CLI test file out of the publish typecheck", () => {
+    const build = JSON.parse(readFileSync(join(CLI, "tsconfig.build.json"), "utf8"));
+    expect(build.exclude).toContain("src/**/__tests__/**");
+    const testFiles = readdirSync(join(CLI, "src"), { recursive: true, encoding: "utf8" }).filter((f) =>
+      f.endsWith(".test.ts"),
+    );
+    expect(testFiles.length).toBeGreaterThan(0);
+    expect(testFiles.filter((f) => !f.split("/").includes("__tests__"))).toEqual([]);
   });
 });
