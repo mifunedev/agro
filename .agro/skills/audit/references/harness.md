@@ -6,7 +6,7 @@ Run 4 parallel audit perspectives (PM, Implementer, Critic, Explorer), synthesiz
 
 ## External proposal implementation audits
 
-When the user asks whether an external article, repo, or social post should be implemented into AGRO, use this skill as a decision audit rather than a generic repo-health audit. If the request also says “Add to Wiki,” ingest the source first (or in parallel) and cite the resulting wiki entry/snapshot in the GitHub issue. Convene at least three perspectives — product/alignment, implementer/feasibility, and critic/security/reliability — then synthesize a recommendation with non-goals, acceptance criteria, and gating criteria before any larger implementation.
+When the user asks whether an external article, repo, or social post should be implemented into AGRO, use this skill as a decision audit rather than a generic repo-health audit. Convene at least three perspectives — product/alignment, implementer/feasibility, and critic/security/reliability — then synthesize a recommendation with non-goals, acceptance criteria, and gating criteria before any larger implementation.
 
 When `--external <url|path>` is present, load the private supporting reference
 `$AUDIT_ROOT/.agro/skills/audit/references/external-proposal-audit.md`; this is the
@@ -20,10 +20,10 @@ flowchart TD
     A["Resolve args: $ARGUMENTS"] --> B["Gather context snapshot"]
     B --> C["Spawn 4 auditors IN ONE MESSAGE (parallel)"]
 
-    C --> PM["PM Auditor<br>onboarding · skill consistency<br>issue templates · wiki/memory"]
+    C --> PM["PM Auditor<br>onboarding · skill consistency<br>issue templates"]
     C --> IMP["Implementer Auditor<br>startup reliability · CI/CD<br>test coverage · package health"]
     C --> CRIT["Critic Auditor<br>security · heartbeat reliability<br>worktree cleanup · state corruption"]
-    C --> EXP["Explorer Auditor<br>memory quality · wiki utilization<br>heartbeat health · skill staleness"]
+    C --> EXP["Explorer Auditor<br>memory quality · heartbeat health<br>skill staleness"]
 
     PM & IMP & CRIT & EXP --> VAL["Validate auditor outputs<br/>non-empty sentinels"]
     VAL --> SYN["Synthesize: deduplicate + tier-rank"]
@@ -55,7 +55,6 @@ Read the following before spawning agents. Pass the assembled snapshot to every 
 ls "$AUDIT_ROOT/.claude/skills/"
 ls "$AUDIT_ROOT/crons/" 2>/dev/null || echo "no crons"
 tail -20 "$AUDIT_ROOT/crons/.cron.log" 2>/dev/null
-ls "$AUDIT_ROOT/.agro/knowledge/" 2>/dev/null | head -20
 
 # Package health
 cat "$AUDIT_ROOT/package.json" 2>/dev/null | head -30
@@ -88,9 +87,6 @@ Assemble a **Context Snapshot** (compact markdown, ~300 words):
 ### Memory logs (recent)
 [last 10 daily log files]
 
-### Wiki pages
-[list or "none"]
-
 ### Packages
 - root: [version, dep count]
 - docs site: external repo `mifunedev/agro-web`
@@ -122,8 +118,6 @@ Launch 4 Agent tool calls **in a single message**. Each receives the Context Sna
 > 2. **Skill consistency** — Read every `SKILL.md` under `.claude/skills/`. Check: does each have valid YAML frontmatter (name, description)? Does each follow imperative instructions? Is any referenced nowhere (potentially stale)?
 >
 > 3. **Issue template completeness** — List `.github/ISSUE_TEMPLATE/` files. For each template, check: does it have required fields, clear labels, and assignment guidance?
->
-> 4. **Wiki utilization** — Count wiki pages under `.agro/knowledge/`. For each, is it populated or a placeholder stub? What percentage is populated?
 >
 > **Return format (Ultra compression):**
 > ```
@@ -197,13 +191,11 @@ Launch 4 Agent tool calls **in a single message**. Each receives the Context Sna
 >
 > **Audit areas:**
 >
-> 1. **Wiki utilization** — List all files under `.agro/knowledge/`. For each, check if it has substantive content (>10 lines) or is a placeholder stub. What percentage is populated?
+> 1. **Cron health** — For each cron definition in `crons/`, classify: ACTIVE (recently logged evidence), STALE (defined but no recent log evidence), MISCONFIGURED (broken frontmatter or missing schedule). Check `crons/.cron.log` for cron execution traces.
 >
-> 2. **Cron health** — For each cron definition in `crons/`, classify: ACTIVE (recently logged evidence), STALE (defined but no recent log evidence), MISCONFIGURED (broken frontmatter or missing schedule). Check `crons/.cron.log` for cron execution traces.
+> 2. **Agent worktree status** — In the source checkout listed as `AUDIT_ROOT`, run `git worktree list` and `git branch -a | grep agent/`. Classify each: ACTIVE (commits in last 7 days), IDLE (commits 7-30 days ago), ORPHANED (no commits in 30+ days or branch deleted).
 >
-> 3. **Agent worktree status** — In the source checkout listed as `AUDIT_ROOT`, run `git worktree list` and `git branch -a | grep agent/`. Classify each: ACTIVE (commits in last 7 days), IDLE (commits 7-30 days ago), ORPHANED (no commits in 30+ days or branch deleted).
->
-> 5. **Skill usage patterns** — Use the Context Snapshot's `crons/.cron.log` excerpt plus in-repo references; keep `.claude/skills/` existence checks on `AUDIT_ROOT`. Which skills are referenced by a cron, a workflow, or another skill (evidence of use)? Which exist in `.claude/skills/` but are referenced nowhere (potentially stale or unknown)?
+> 3. **Skill usage patterns** — Use the Context Snapshot's `crons/.cron.log` excerpt plus in-repo references; keep `.claude/skills/` existence checks on `AUDIT_ROOT`. Which skills are referenced by a cron, a workflow, or another skill (evidence of use)? Which exist in `.claude/skills/` but are referenced nowhere (potentially stale or unknown)?
 >
 > **Return format (Ultra compression):**
 > ```
@@ -301,10 +293,10 @@ Return this structured observation to the outer dispatcher; do not report a run 
 
 | Auditor | Primary areas |
 |---------|--------------|
-| PM | Onboarding, skill consistency, issue templates, wiki/memory utilization |
+| PM | Onboarding, skill consistency, issue templates |
 | Implementer | Startup reliability, test coverage, CI/CD, package health, compose overlays |
 | Critic | Security, heartbeat reliability, worktree cleanup, state corruption |
-| Explorer | Memory quality, wiki utilization, heartbeat health, worktree status, skill usage |
+| Explorer | Memory quality, heartbeat health, worktree status, skill usage |
 
 ### Severity and effort definitions
 
@@ -321,7 +313,6 @@ Return this structured observation to the outer dispatcher; do not report a run 
 | Orchestrator skills | `.claude/skills/` |
 | Crons | `crons/` |
 | Cron liveness | `crons/.cron.log` |
-| Wiki | `.agro/knowledge/` |
 | Compose | `.devcontainer/docker-compose.yml` |
 | Entrypoint | `.devcontainer/entrypoint.sh` |
 | CI workflows | `.github/workflows/` |

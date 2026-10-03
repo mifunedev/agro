@@ -26,8 +26,7 @@ fail() {
 
 for path in \
   .agro/skills/git/SKILL.md \
-  .agro/skills/t3/references/sandbox-processes.md \
-  .agro/skills/wiki/references/schema.md; do
+  .agro/skills/t3/references/sandbox-processes.md; do
   [ -f "$path" ] || fail "vendored pack file missing: $path"
   git ls-files --error-unmatch "$path" >/dev/null 2>&1 || fail "pack file not tracked in-repo: $path"
 done

@@ -64,12 +64,6 @@ These names describe separate layers, not interchangeable jobs:
   this project and names nothing current.
   Source: [`intro.md`](intro.md).
 
-- **knowledge** — Durable repository knowledge kept under `.agro/knowledge/`: a
-  derived cache of understanding that the repository itself always outranks.
-  `source/` and `patterns/` entity pages are tracked and queryable; `local/` is
-  ignored per-machine scratch that nothing reads.
-  Source: [`.agro/knowledge/`](../.agro/knowledge/).
-
 - **loop** — A repeated implement → commit → check cycle driven until the task
   graph is satisfied. `/delegate` owns the implementation cycle; completion
   is structured state in `prd.json` — every entry in `userStories` carrying

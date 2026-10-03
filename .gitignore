@@ -75,16 +75,6 @@ crons/*.log
 # Legacy/future workspace package build artifacts
 packages/*/build/
 packages/*/node_modules/
-# Durable repository knowledge (.agro/knowledge/) is TRACKED: source/ and
-# patterns/ hold shared synthesis, raw/ holds the immutable external evidence
-# those pages cite. Only local/ is ignored — per-machine scratch that /wiki query
-# and every plan refuse to read, so a page on one machine can never
-# silently inform a plan another machine cannot reproduce.
-.agro/knowledge/local/*
-!.agro/knowledge/local/README.md
-.agro/knowledge/local/*
-!.agro/knowledge/local/README.md
-
 # Cron runtime state written by entrypoint.sh's seed_workspace_volume when there
 # is no checkout bind. It must never land in a real checkout, so it is ignored on
 # every branch.

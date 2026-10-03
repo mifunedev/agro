@@ -73,5 +73,5 @@ A factual lookup, audit request, roadmap request, or implementation request alon
 An explicit request for multiple independent perspectives triggers deliberation, not ownership transfer.
 Keep architecture decisions with `/architect` and audit verdicts with `/audit`.
 Keep plans with `/prd`, worker mechanics with `/delegate`, and external session supervision with `/supervisor`.
-Keep authoring with `/builder`, prose with `/ste`, and knowledge promotion with `/wiki`.
+Keep authoring with `/builder` and prose with `/ste`.
 Load only a skill required for authorized composition. Do not launch another owner or alter existing skill contracts.

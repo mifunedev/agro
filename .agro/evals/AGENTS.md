@@ -17,7 +17,7 @@ Before landing a new or changed probe, drive its REGRESSION branch against a
 deliberately broken input. Confirm the failure names the intended condition.
 Use a disposable copy; never restore over shared or uncommitted work.
 For history-dependent checks, expose the comparison point through a repeatable override.
-Keep `WIKI_LEDGER_BASE` and `WIKI_PERSISTENCE_BASE` reachable in their probes.
+Keep `SKILL_IMPACT_LEDGER_BASE` reachable in its probe.
 Exercise applicable skip guards too. If a probe routinely skips its intended environment,
 treat it as unverified, not healthy. Treat a missing required artifact as a regression.
 

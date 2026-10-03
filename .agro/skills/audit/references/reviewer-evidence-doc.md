@@ -117,10 +117,6 @@ no measurement behind them are labelled "claimed, unmeasured".>
 <2–4 sentences: the problem the change solves, and the observable behavior that
 proves it is solved.>
 
-## Knowledge impact
-
-<each impacted page and its final state: UPDATED / REVERIFIED / NOT-AFFECTED (reason).>
-
 ## Where it diverged from the plan, and why
 
 <every deliberate deviation, differently-satisfied criterion, and mid-build scope

@@ -40,7 +40,7 @@ Run the [canonical eval runner](../.agro/skills/eval/run.sh) from the checkout:
 
 ```bash
 bash .agro/skills/eval/run.sh
-bash .agro/skills/eval/run.sh --probe wiki-readme-index
+bash .agro/skills/eval/run.sh --probe skill-impact-append-only
 bash .agro/skills/eval/run.sh --tier A
 ```
 

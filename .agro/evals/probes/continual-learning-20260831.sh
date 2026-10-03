@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tier: A
 # source: retro lesson 2026-08-31 (unexercised oracle) — a probe green in a 112-probe run carried three parser defects
-# desc: the probe contract requires driving a new probe's REGRESSION branch against a broken input, and the two probes whose oracle lives in git history keep their comparison-point override reachable
+# desc: the probe contract requires driving a new probe's REGRESSION branch against a broken input, and the probe whose oracle lives in git history keeps its comparison-point override reachable
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -22,8 +22,7 @@ need 'unverified, not healthy'
 
 # The documented overrides must still exist, or the guidance names a dead handle.
 declare -A OVERRIDES=(
-  ["wiki-skill-impact-append-only"]="WIKI_LEDGER_BASE"
-  ["wiki-pattern-persistence"]="WIKI_PERSISTENCE_BASE"
+  ["skill-impact-append-only"]="SKILL_IMPACT_LEDGER_BASE"
 )
 for id in "${!OVERRIDES[@]}"; do
   probe="$ROOT/.agro/evals/probes/$id.sh"
@@ -41,5 +40,5 @@ if ((${#failures[@]})); then
   exit 1
 fi
 
-echo "PASS: the probe contract requires fault injection and both documented comparison-point overrides are live" >&2
+echo "PASS: the probe contract requires fault injection and the documented comparison-point override is live" >&2
 exit 0

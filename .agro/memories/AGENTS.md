@@ -30,7 +30,6 @@ and both carry the evidence that produced them.
 Keep these out of this directory:
 
 - architecture and non-negotiable constraints, which the root `AGENTS.md` owns;
-- a compiled failure mode, which `.agro/knowledge/patterns/` owns;
 - task evidence for one build, which `.agro/tasks/<slug>/evidence.md` owns;
 - a machine-checkable assertion, which `.agro/evals/probes/` owns.
 

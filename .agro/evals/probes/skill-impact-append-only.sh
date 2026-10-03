@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tier: A
 # source: wikiskill arXiv:2608.27454 — skill-change ledger, never rolled back
-# desc: the skill-impact ledger lives on the decisions surface, is tracked, carries no slug (so it never enters the knowledge index), and every SI record present at the merge-base is present and byte-identical at HEAD
+# desc: the skill-impact ledger lives on the decisions surface, is tracked, and every SI record present at the merge-base is present and byte-identical at HEAD
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -16,10 +16,6 @@ if ! git -C "$ROOT" ls-files --error-unmatch "$LEDGER_REL" >/dev/null 2>&1; then
   echo "REGRESSION: $LEDGER_REL exists but is untracked — the ledger must be reviewable in a pull request" >&2
   exit 1
 fi
-if grep -q '^slug:' "$LEDGER"; then
-  echo "REGRESSION: $LEDGER_REL carries a slug: field — it would become a knowledge index row" >&2
-  exit 1
-fi
 
 # Required record keys must be documented, so a writer cannot omit them silently.
 failures=()
@@ -31,9 +27,9 @@ if ((${#failures[@]})); then
   exit 1
 fi
 
-# WIKI_LEDGER_BASE overrides the comparison point so the append-only invariant can
+# SKILL_IMPACT_LEDGER_BASE overrides the comparison point so the append-only invariant can
 # be exercised against a real mutation rather than only asserted.
-base="${WIKI_LEDGER_BASE:-}"
+base="${SKILL_IMPACT_LEDGER_BASE:-}"
 [[ -n "$base" ]] && base="$(git -C "$ROOT" rev-parse "$base" 2>/dev/null || true)"
 for cand in development main master; do
   [[ -n "$base" ]] && break
@@ -106,5 +102,5 @@ if ((${#mutated[@]})); then
   exit 1
 fi
 
-echo "PASS: the skill-impact ledger is on the decisions surface, tracked, index-invisible, and append-only against the merge-base" >&2
+echo "PASS: the skill-impact ledger is on the decisions surface, tracked, and append-only against the merge-base" >&2
 exit 0

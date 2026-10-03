@@ -130,12 +130,10 @@ command for the change under evaluation, e.g.:
 git revert --no-edit <merge-or-commit-sha>     # undo the not-beneficial change, then → repeat
 ```
 
-**The revert never covers `.agro/knowledge/`.** Pattern pages and the
-`skill-impact.md` ledger are excluded from every revert: the knowledge that an
+**The revert never covers the `skill-impact.md` ledger.** The record that an
 approach was tried and did not work is the rejected cycle's durable output, and it is
-what stops the same proposal being made again
-(`.agro/skills/wiki/references/schema.md` § 8). Before naming a revert, confirm no
-`corpus/` path appears in its diff.
+what stops the same proposal being made again. Before naming a revert, confirm no
+`.agro/evals/decisions/skill-impact.md` record is removed by its diff.
 
 A `BENEFICIAL` change is kept and the cycle advances to `repeat` (the freshness
 gate), which closes back to `ideate`.

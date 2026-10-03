@@ -53,8 +53,8 @@ content. The contract is non-negotiable:
 
 ## When NOT to use
 
-- **`/audit context` / `/audit skills` / `/wiki lint`** — those score harness
-  artifacts (context budget, skills, wiki). `/prompt-miner` scores *prompts*.
+- **`/audit context` / `/audit skills`** — those score harness
+  artifacts (context budget, skills). `/prompt-miner` scores *prompts*.
 
 ## Result tag
 

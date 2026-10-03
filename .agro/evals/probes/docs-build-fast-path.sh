@@ -28,9 +28,8 @@ script_value() {
 failures=()
 
 # Classify old-path records instead of rewriting history: changelog and preserved
-# RFC examples, completed task artifacts, immutable wiki snapshots, the
-# runner-generated scoreboard, and this probe's negative guards are deliberate
-# exceptions. Every other tracked hit is current guidance and must use root docs/.
+# RFC examples, completed task artifacts, the runner-generated scoreboard, and
+# this probe's negative guards are deliberate exceptions. Every other tracked hit is current guidance and must use root docs/.
 set +e
 legacy_docs_hits="$(git -C "$ROOT" grep -nI -F '.agro/docs' -- \
   ':!CHANGELOG.md' \
@@ -40,7 +39,6 @@ legacy_docs_hits="$(git -C "$ROOT" grep -nI -F '.agro/docs' -- \
   ':!.agro/evals/experiments/*/corpus/**' \
   ':!.agro/evals/experiments/*/archive/**' \
   ':!.agro/evals/experiments/*/runs/*/outputs/**' \
-  ':!.agro/knowledge/raw/**' \
   ':!.agro/evals/RESULTS.md' \
   ':!.agro/evals/probes/docs-build-fast-path.sh')"
 legacy_docs_rc=$?

@@ -30,17 +30,16 @@ standard build ⇄ audit loop and the human merge.
 **Source of truth — the tier-1 path set, defined here since 0.3.0:**
 
 ```bash
-OWNED_PATHS=(.claude/ docs/ scripts/ crons/ .agro/skills/wiki/ .agro/evals/ .agro/tasks/ CHANGELOG.md)
+OWNED_PATHS=(.claude/ docs/ scripts/ crons/ .agro/evals/ .agro/tasks/ CHANGELOG.md)
 ```
 
-The tier-1 surface is exactly those ten tokens, verbatim:
+The tier-1 surface is exactly those seven tokens, verbatim:
 
 ```
 .claude/
 docs/
 scripts/
 crons/
-.agro/skills/wiki/
 .agro/evals/
 .agro/tasks/
 CHANGELOG.md

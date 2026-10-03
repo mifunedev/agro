@@ -23,13 +23,11 @@ SENTINEL="STATUS: ""COMPLETE"
 
 # 1. No ACTIVE surface may key on the prose sentinel. Historical records are
 #    excluded for the same reason .agro/evals/probes/audit-stale-references.sh
-#    excludes them: the changelog and the RFCs cite it as a past exhibit, and
-#    .agro/knowledge/raw/ holds immutable captures that are never rewritten.
+#    excludes them: the changelog and the RFCs cite it as a past exhibit.
 set +e
 hits="$(git grep -n -F -- "$SENTINEL" -- \
   ':!CHANGELOG.md' \
   ':!docs/rfcs/**' \
-  ':!.agro/knowledge/raw/**' \
   ':!.agro/evals/RESULTS.md' \
   ':!.agro/tasks/**' \
   ":!${BASH_SOURCE[0]#"$ROOT"/}")"

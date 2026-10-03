@@ -76,15 +76,11 @@ source and accepted decision records are authority.
 2. Read the RFC/ADR index at `docs/rfcs/README.md` and any listed proposal that
    already constrains this decision. An accepted decision is a constraint until
    a new proposal supersedes it.
-3. Query tracked repository knowledge when it is available:
-   `/wiki query <subsystem> --patterns` returns failure modes this harness has
-   already paid for. Cite the `[[pattern-...]]` slugs that changed the
-   recommendation.
-4. Inspect the authoritative code, tests, probes, and docs for the surfaces in
+3. Inspect the authoritative code, tests, probes, and docs for the surfaces in
    scope. Read them; do not infer their shape.
-5. Name the actual decision or decisions. A feature request restated is not a
+4. Name the actual decision or decisions. A feature request restated is not a
    decision.
-6. Label every claim as fact, constraint, assumption, or judgment. An
+5. Label every claim as fact, constraint, assumption, or judgment. An
    unverified assumption must say so.
 
 ## 3. Decide

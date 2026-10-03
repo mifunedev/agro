@@ -8,7 +8,6 @@ CC_SAFETY_NET_PIN="1.0.6"
 required_files=(
   ".agro/skills/git/SKILL.md"
   ".agro/skills/t3/references/sandbox-processes.md"
-  ".agro/skills/wiki/references/schema.md"
   ".agro/skills/eval/run.sh"
 )
 

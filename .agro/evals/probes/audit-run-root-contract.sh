@@ -38,7 +38,7 @@ set +e; usage_out=$(bash "$RUN" nope 2>&1); usage_rc=$?; set -e
 for route in implementation pr prs harness context skills eval-quality drift full; do grep -q "^| $route |" <<<"$usage_out" || fail "usage table missing $route"; done
 [[ -z $(find "$tmpdir" -mindepth 1 -print -quit) && ! -e "$tmp/.agro/logs" ]] || fail 'invalid usage created lifecycle state'
 if bash "$RUN" harness --external source --focus x -- true >/dev/null 2>&1; then fail 'external/focus conflict accepted'; fi
-if bash "$RUN" harness --wiki-ingest -- true >/dev/null 2>&1; then fail 'external-only option reached survey mode'; fi
+if bash "$RUN" harness --confirm -- true >/dev/null 2>&1; then fail 'external-only option reached survey mode'; fi
 if bash "$RUN" implementation -- true >/dev/null 2>&1; then fail 'missing implementation slug accepted'; fi
 if bash "$RUN" pr 7 --repo bad -- true >/dev/null 2>&1; then fail 'invalid focused repo accepted'; fi
 if bash "$RUN" drift >/dev/null 2>&1; then fail 'missing route driver accepted'; fi

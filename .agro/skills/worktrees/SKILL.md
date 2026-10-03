@@ -36,9 +36,6 @@ under `.worktrees/`.
   defaults.
 - `.worktrees/AGENTS.md`, `projects/AGENTS.md`, and other lifecycle
   documentation.
-- Curated wiki entries and the wiki index when intentionally promoted. The wiki
-  corpus is ignored by default; use `git add -f` only for reviewed entries.
-  Never promote `corpus/raw/` snapshots by accident.
 - A handoff only when it is deliberately shared, scrubbed of secrets, and meant
   to be durable in this harness checkout or its private operator fork.
 

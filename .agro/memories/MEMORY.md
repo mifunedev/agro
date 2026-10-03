@@ -5,8 +5,8 @@
   What belongs here: a runtime decision or a lesson, with the evidence that
   produced it.
   What does NOT belong here: operator identity and standing preferences
-  (USER.md), the agent's character (SOUL.md), architecture (the root
-  AGENTS.md), or a compiled pattern (.agro/knowledge/patterns/).
+  (USER.md), the agent's character (SOUL.md), or architecture (the root
+  AGENTS.md).
 -->
 
 This file starts empty. A session adds the first entry when it finishes work

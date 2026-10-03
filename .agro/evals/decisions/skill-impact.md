@@ -9,12 +9,7 @@ it scores that change. Read by `/builder`, before it proposes — a record marke
 `REJECTED` is a change already tried and refused, and must not be re-proposed without
 new evidence that contradicts the recorded validation.
 
-This file carries **no YAML frontmatter** deliberately. Both `/wiki lint` § 3 and
-`.oh/evals/probes/wiki-readme-index.sh` skip files with no `slug:` field, so the
-ledger is excluded from the corpus index by construction. It is not an entity page
-and is not returned by `/wiki query`.
-
-Guarded by `.oh/evals/probes/wiki-skill-impact-append-only.sh`.
+Guarded by `.agro/evals/probes/skill-impact-append-only.sh`.
 
 ## Why this is not the deleted memory tier
 
@@ -30,9 +25,9 @@ the opposite.
 | Duplicated what `git log` already held | Holds what `git log` does **not**: the motivating pattern, the validation result, and — critically — **rejected proposals, which leave no git trace at all after a revert** |
 | Any skill could write | Exactly two writers, both orchestrator-only |
 
-The sharp test is `/retro`'s own anti-pattern, "inventing a file to save a lesson
-in". This file saves no lessons — lessons live in `corpus/pattern-*.md`. It records
-**decisions about skills**, which today live nowhere.
+The sharp test is the anti-pattern "inventing a file to save a lesson in". This
+file saves no lessons — lessons live in plan Lessons sections. It records
+**decisions about skills**, which live nowhere else.
 
 ## Record format
 
@@ -46,7 +41,7 @@ append-only and make the invariant unenforceable.
 
 - **proposal**: <one sentence — what changes and why it should help>
 - **target**: <exactly one repo-relative artifact path>
-- **motivating patterns**: [[pattern-slug]], [[pattern-slug]] — or `none (direct request)`
+- **motivating patterns**: <plan Lessons entries or issues> — or `none (direct request)`
 - **proposer**: /builder <type>, <session or issue reference>
 - **diff**:
 
@@ -63,8 +58,8 @@ append-only and make the invariant unenforceable.
 ````
 
 `motivating patterns: none (direct request)` is a legitimate value. Not every skill
-edit answers a compiled pattern, and recording that honestly is better than inventing
-a pattern to cite.
+edit answers a recorded lesson, and recording that honestly is better than inventing
+a motivation.
 
 ## Records
 

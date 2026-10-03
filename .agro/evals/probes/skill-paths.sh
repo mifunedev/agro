@@ -15,7 +15,7 @@ fi
 hits=$(grep -rnE 'docs/wiki/|workspace/heartbeats/' "$SKILLS" || true)
 
 if [[ -n "$hits" ]]; then
-  echo "REGRESSION: retired path token(s) reappeared in .claude/skills/ (docs/wiki/ -> wiki/, workspace/heartbeats/ -> crons/):" >&2
+  echo "REGRESSION: retired path token(s) reappeared in .claude/skills/ (docs/wiki/ retired, workspace/heartbeats/ -> crons/):" >&2
   echo "$hits" >&2
   exit 1
 fi

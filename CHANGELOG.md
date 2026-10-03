@@ -24,6 +24,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Removed
 
 - Remove the project Pi recap package so new sessions no longer load `/recap` by default ([#1179](https://github.com/mifunedev/agro/issues/1179)).
+- Remove `.agro/knowledge/` and the `/wiki` skill so plans and skills no longer query a frozen knowledge tree and `agro vendor` stops shipping it ([#1277](https://github.com/mifunedev/agro/issues/1277)).
 
 ### Changed
 

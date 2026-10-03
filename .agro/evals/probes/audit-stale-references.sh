@@ -26,7 +26,6 @@ if ((${#bad[@]})); then printf '%s\n' "${bad[@]}" >&2; echo 'REGRESSION: active 
 # shellcheck disable=SC2016 # literal Markdown route token
 bare_audit='`/audit`'
 for caller in \
-  .agro/knowledge/source/recursive-language-models.md \
   .agro/skills/benchmark/SKILL.md \
   docs/artifact-contract-schema.md
 do

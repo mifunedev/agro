@@ -124,4 +124,4 @@ printf '[%s]\tprompt-miner\t%s\t%s\n' "$(date -Iseconds)" "<STATUS>" "<msg>" \
   proposes a probe, and it requires human `APPROVE`.
 - **Origin-only.** Issue, PR, and ground-truth cross-ref target
   `mifunedev/agro` / `origin/development` — never `upstream`/`mifunedev`.
-- **Harness-infra scope only** (skills/rules/docs/scripts/crons/wiki).
+- **Harness-infra scope only** (skills/rules/docs/scripts/crons).

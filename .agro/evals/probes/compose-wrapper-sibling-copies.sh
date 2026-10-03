@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tier: A
-# source: pattern-scripts-sibling-dependency-standalone-copies (issue #940) — docker-compose.sh sources paths.sh, so a fixture that copies the wrapper alone cannot run it
+# source: issue #940 — docker-compose.sh sources paths.sh, so a fixture that copies the wrapper alone cannot run it
 # desc: every test or probe that copies .agro/scripts/docker-compose.sh into a fixture also copies .agro/scripts/paths.sh, and the wrapper still refuses to run without its sibling
 set -euo pipefail
 

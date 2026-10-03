@@ -29,7 +29,6 @@ eval
 health-check
 t3
 # --- Orchestrator scripts (.agro/scripts/) ---
-.agro/skills/wiki/scripts/knowledge-impact.sh
 .agro/scripts/cron-runtime.ts
 .agro/scripts/sandbox-healthcheck.sh
 .agro/scripts/link-providers.sh
@@ -44,7 +43,6 @@ t3
 crons/heartbeat.md
 crons/cleanup-tasks.md
 .agro/evals/probes/cleanup-tasks-worktree-grooming.sh
-.agro/evals/probes/markitdown-wiki-ingest.sh
 crons/eval-weekly.md
 
 # --- Norms folded into skills (B-state M3+M4) ---

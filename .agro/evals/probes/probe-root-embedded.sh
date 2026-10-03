@@ -2,8 +2,7 @@
 # tier: A
 # source: issue #1193
 # desc: probes that read repository state resolve the AGRO root from their own path, so an AGRO tree
-#       committed in a subdirectory of a parent repository passes them, and pinned knowledge sources
-#       resolve against tree paths under that subdirectory.
+#       committed in a subdirectory of a parent repository passes them.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -25,17 +24,6 @@ git -C "$parent" config user.name probe
 printf 'parent\n' > "$parent/README"
 git -C "$parent" add -A
 git -C "$parent" commit -qm parent
-sha="$(git -C "$parent" rev-parse HEAD)"
-
-cat > "$ws/.agro/knowledge/source/zz-embedded-pin.md" <<PAGE
----
-title: "Embedded pin"
-sources:
-  - .agro/knowledge/AGENTS.md@$sha
----
-PAGE
-git -C "$parent" add -A
-git -C "$parent" commit -qm pin
 
 expect() {
   local probe="$1" want="$2" code=0 out
@@ -44,7 +32,6 @@ expect() {
 }
 
 expect harness-ci-hooks-paths 0
-expect knowledge-source-freshness 0
 expect memories-tier-defaults 2
 expect skills-task-tool-coupling 0
 expect sandbox-node-base 0
@@ -56,5 +43,5 @@ case "$link_out" in
   *"at $parent)"*) fail "link-providers.sh resolved the parent repository as the AGRO root: ${link_out:0:400}" ;;
 esac
 
-echo "PASS: probes resolve the AGRO root, and pinned knowledge sources, inside a parent repository" >&2
+echo "PASS: probes resolve the AGRO root inside a parent repository" >&2
 exit 0

@@ -65,10 +65,6 @@ steps.
   frontmatter, structure, tone, and validation conventions.
 - Search for an existing artifact with the same purpose. Prefer a focused update or
   explicit consolidation over a near-duplicate.
-- Consult compiled harness patterns before proposing a change. Run
-  `/wiki query <artifact-name-or-subsystem> --patterns` and read what it returns:
-  each page records a failure mode, its root cause, and a workaround this harness
-  already paid for. Cite the motivating `[[pattern-...]]` slugs in the report.
 - Read `.agro/evals/decisions/skill-impact.md` for prior proposals against the same
   target. Do not re-propose a change recorded there as `REJECTED` unless new evidence
   contradicts the recorded validation; when you do, cite the prior record id.
@@ -111,9 +107,9 @@ or create unsafe side effects. Otherwise use the request and repository evidence
   it did not.
 - Append a `PROPOSED` record to `.agro/evals/decisions/skill-impact.md` when a skill
   edit lands: the next `SI-nnnn` id, the one-sentence proposal, the single
-  target artifact, the motivating pattern slugs, and the unified diff scoped to that
-  target path. `motivating patterns: none (direct request)` is a legitimate value —
-  record it rather than inventing a pattern to cite. Stage the ledger
+  target artifact, the motivating plan Lessons entries or issues, and the unified
+  diff scoped to that target path. `motivating patterns: none (direct request)` is
+  a legitimate value — record it rather than inventing a motivation. Stage the ledger
   (`.agro/evals/decisions/` is tracked, so a plain `git add`) and report the
   allocated id. Never edit an existing record.
 
