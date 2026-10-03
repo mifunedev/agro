@@ -1,8 +1,8 @@
-import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const ROOT = join(import.meta.dirname, "../../..");
 const ENTRYPOINT = join(ROOT, ".devcontainer/entrypoint.sh");
@@ -106,6 +106,86 @@ describe("devcontainer entrypoint home mount ownership", () => {
     expect(success).toBeGreaterThan(usermod);
     expect(incomplete).toBeGreaterThan(success);
     expect(block).toContain("if [ \"$UID_GID_SYNC_OK\" = \"true\" ]; then");
+  });
+});
+
+describe("devcontainer entrypoint seed_home", () => {
+  const scratch: string[] = [];
+  afterEach(() => {
+    for (const dir of scratch.splice(0)) {
+      spawnSync("chmod", ["-R", "u+rwx", dir]);
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function fencedSeedHome(): string {
+    const match = entrypoint().match(/^# >>> seed_home >>>\n([\s\S]*?)^# <<< seed_home <<<$/m);
+    expect(match, "seed_home must sit inside its fence").not.toBeNull();
+    return match![1];
+  }
+
+  function sim() {
+    const dir = mkdtempSync(join(tmpdir(), "agro-seed-home-"));
+    scratch.push(dir);
+    const src = join(dir, "seed");
+    mkdirSync(join(src, ".oh-my-zsh"), { recursive: true });
+    writeFileSync(join(src, ".zshrc"), "baked\n");
+    writeFileSync(join(src, ".oh-my-zsh/marker"), "baked\n");
+    mkdirSync(join(src, ".ssh"));
+    chmodSync(join(src, ".ssh"), 0o755);
+    writeFileSync(join(src, ".ssh/known_hosts"), "baked\n");
+    const seed = (dest: string, source = src) =>
+      spawnSync("bash", ["-c", `set -e\n${fencedSeedHome()}\nseed_home "$1"`, "seed", dest], {
+        encoding: "utf8",
+        env: { ...process.env, AGRO_HOME_SEED_SRC: source },
+      });
+    return { dir, src, seed };
+  }
+
+  const mode = (path: string) => (statSync(path).mode & 0o777).toString(8);
+
+  it("fills an empty home mount with the baked entries and their modes", () => {
+    const { dir, seed } = sim();
+    const dest = join(dir, "home");
+    expect(seed(dest).status).toBe(0);
+    expect(readFileSync(join(dest, ".zshrc"), "utf8")).toBe("baked\n");
+    expect(existsSync(join(dest, ".oh-my-zsh/marker"))).toBe(true);
+    expect(mode(join(dest, ".ssh"))).toBe("755");
+    expect(existsSync(join(dest, ".ssh/known_hosts"))).toBe(true);
+  });
+
+  it("never clobbers an existing entry and still backfills missing ones", () => {
+    const { dir, seed } = sim();
+    const dest = join(dir, "home");
+    mkdirSync(join(dest, ".ssh"), { recursive: true });
+    chmodSync(join(dest, ".ssh"), 0o700);
+    writeFileSync(join(dest, ".zshrc"), "mine\n");
+    expect(seed(dest).status).toBe(0);
+    expect(readFileSync(join(dest, ".zshrc"), "utf8")).toBe("mine\n");
+    expect(mode(join(dest, ".ssh"))).toBe("700");
+    expect(existsSync(join(dest, ".ssh/known_hosts"))).toBe(false);
+    expect(existsSync(join(dest, ".oh-my-zsh/marker"))).toBe(true);
+  });
+
+  it("is idempotent across boots", () => {
+    const { dir, seed } = sim();
+    const dest = join(dir, "home");
+    expect(seed(dest).status).toBe(0);
+    expect(seed(dest).status).toBe(0);
+    expect(readFileSync(join(dest, ".zshrc"), "utf8")).toBe("baked\n");
+  });
+
+  it("is a no-op when the image carries no seed", () => {
+    const { dir, seed } = sim();
+    expect(seed(join(dir, "home"), join(dir, "absent")).status).toBe(0);
+  });
+
+  it.skipIf(process.getuid?.() === 0)("reports a home mount it cannot write", () => {
+    const { dir, seed } = sim();
+    const dest = join(dir, "home");
+    mkdirSync(dest);
+    chmodSync(dest, 0o500);
+    expect(seed(dest).status).not.toBe(0);
   });
 });
 
