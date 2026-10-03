@@ -17,7 +17,7 @@ worth remembering, using one bullet per entry:
 ```
 
 Never rewrite an entry to match a new opinion. Add a dated correction and state
-what changed. An entry that a command can prove belongs in a probe instead.
+what changed. An entry that a command can prove belongs in a test instead.
 
 ## Decisions & Preferences
 

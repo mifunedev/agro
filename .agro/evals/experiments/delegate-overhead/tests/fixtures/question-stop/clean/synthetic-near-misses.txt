@@ -1,1 +1,0 @@
-US-001 passed. I confirmed the file is unchanged and the probe confirms the fix. The worker will run this probe again in CI. The hook does not allow it to skip. Proposed issue (not created, needs your approval): make the suite write to an untracked path. Nothing is left for you to decide.

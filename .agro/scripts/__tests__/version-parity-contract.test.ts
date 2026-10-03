@@ -1,11 +1,9 @@
-import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 const ROOT = join(import.meta.dirname, "../../..");
-const PARITY = join(ROOT, ".agro", "evals", "probes", "version-parity.sh");
 
 const cleanups: string[] = [];
 afterEach(() => {
@@ -40,41 +38,43 @@ function tree(opts: TreeOptions = {}): string {
   return dir;
 }
 
-function runParity(dir: string): { status: number | null; stderr: string } {
-  const result = spawnSync("bash", [PARITY], {
-    encoding: "utf8",
-    env: { ...process.env, AGRO_PROBE_ROOT: dir },
-  });
-  return { status: result.status, stderr: result.stderr };
+function versionOf(file: string): string {
+  return JSON.parse(readFileSync(file, "utf8")).version;
 }
 
-describe("version-parity probe", () => {
+function parityViolations(root: string): string[] {
+  const violations: string[] = [];
+  const rootVersion = versionOf(join(root, "package.json"));
+  const cliVersion = versionOf(join(root, ".agro", "cli", "package.json"));
+  if (rootVersion !== cliVersion) violations.push(`version drift: root ${rootVersion}, CLI ${cliVersion}`);
+  if (existsSync(join(root, ".agro", "cli", "legacy"))) violations.push("retired shim .agro/cli/legacy is back");
+  const heading = new RegExp(`^## \\[${rootVersion.replaceAll(".", "\\.")}\\] - \\d{4}-\\d{2}-\\d{2}$`, "m");
+  if (!heading.test(readFileSync(join(root, "CHANGELOG.md"), "utf8"))) {
+    violations.push(`no dated CHANGELOG heading for ${rootVersion}`);
+  }
+  return violations;
+}
+
+describe("version parity", () => {
+  it("holds for this checkout", () => {
+    expect(parityViolations(ROOT)).toEqual([]);
+  });
+
   it("accepts a tree whose root, CLI, and CHANGELOG versions agree", () => {
-    const result = runParity(tree());
-    expect(result.status).toBe(0);
-    expect(result.stderr).toContain("PASS:");
+    expect(parityViolations(tree())).toEqual([]);
   });
 
   it("rejects canonical drift between root and CLI", () => {
-    const result = runParity(tree({ cliVersion: "1.1.0" }));
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain("version drift");
+    expect(parityViolations(tree({ cliVersion: "1.1.0" }))).toEqual([expect.stringContaining("version drift")]);
   });
 
   it("rejects a CHANGELOG with no dated heading for the canonical version", () => {
-    const result = runParity(tree({ changelogVersion: "0.9.0" }));
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain("no dated");
+    expect(parityViolations(tree({ changelogVersion: "0.9.0" }))).toEqual([
+      expect.stringContaining("no dated CHANGELOG heading"),
+    ]);
   });
 
   it("rejects the reappearance of the retired @mifune/openharness shim", () => {
-    const result = runParity(tree({ withLegacyDir: true }));
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain("shim is retired");
-  });
-
-  it("proves the shim is absent from this checkout", () => {
-    const result = runParity(ROOT);
-    expect(result.stderr).not.toContain("shim is retired");
+    expect(parityViolations(tree({ withLegacyDir: true }))).toEqual([expect.stringContaining("retired shim")]);
   });
 });

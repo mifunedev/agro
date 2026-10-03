@@ -86,7 +86,6 @@ Use the fast harness build for routine development:
 ```bash
 pnpm run build          # fast non-docs build
 pnpm run test:scripts   # root script + .pi extension tests
-bash .agro/skills/eval/run.sh
 ```
 
 The rendered docs site is maintained in [`mifunedev/agro-web`](https://github.com/mifunedev/agro-web). In this core repo, validate docs by checking the Markdown links and the GitHub-readable index at `docs/README.md`; no Docusaurus build runs here.
@@ -193,7 +192,7 @@ A release is a deliberate bump, not a side effect of a push. Every push to
 `main` or `master` runs `.github/workflows/release.yml`, which validates the
 commit, then publishes the version `package.json` names:
 
-1. Validation, boot-path lint, and the eval probe suite must pass first
+1. Validation and boot-path lint must pass first
 2. The workflow reads the version from root `package.json`
 3. Creating `refs/tags/v<version>` reserves the version — this act is atomic
 4. Build and smoke-test the image

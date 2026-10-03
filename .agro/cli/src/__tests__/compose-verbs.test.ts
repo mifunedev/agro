@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -166,6 +166,31 @@ describe("agro is the only front door", () => {
   it("documents every compose verb in the lifecycle reference", () => {
     const map = read("docs/lifecycle-commands.md");
     for (const verb of composeVerbs()) expect(map, verb).toContain(`\`agro ${verb}`);
+  });
+
+  it("drives a compose project only through docker-compose.sh", () => {
+    const projectVerb =
+      /^(?:(?:- )?run:\s*)?(?:if !? ?)?docker compose (up|down|stop|start|restart|logs|ps|config|exec|run|build|pull|create|kill|rm)\b/;
+    const offenders: string[] = [];
+    for (const dir of [".agro/scripts", ".github/workflows"]) {
+      for (const rel of readdirSync(join(REPO_ROOT, dir), { recursive: true, encoding: "utf8" })) {
+        const file = join(dir, rel);
+        if (!/\.(sh|yml)$/.test(rel) || file === ".agro/scripts/docker-compose.sh") continue;
+        read(file)
+          .split("\n")
+          .forEach((line, i) => {
+            if (projectVerb.test(line.trimStart())) offenders.push(`${file}:${i + 1}`);
+          });
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("builds no docker compose argv inside the CLI", () => {
+    const offenders = readdirSync(join(REPO_ROOT, ".agro/cli/src"), { recursive: true, encoding: "utf8" })
+      .filter((rel) => rel.endsWith(".ts") && !rel.split("/").includes("__tests__"))
+      .filter((rel) => /"docker"\s*,\s*\[?\s*"compose"/.test(read(join(".agro/cli/src", rel))));
+    expect(offenders).toEqual([]);
   });
 
   it("names no `make` lifecycle command in the lifecycle reference", () => {

@@ -73,9 +73,8 @@ published tag.
   user who does not pin was blocked. Moving `:latest` to a fixed build is what
   unblocks them; re-check what `:latest` resolves to before acting.
 - `ghcr.io/mifunedev/agro:0.9.0` is referenced by
-  `.agro/scripts/sandbox-upgrade-smoke.sh` (`LEGACY_IMAGE` default), by
-  `.github/workflows/sandbox-boot-guard.yml`, and by
-  `.agro/evals/probes/sandbox-boot-advisory-recovery.sh`. All three source the
+  `.agro/scripts/sandbox-upgrade-smoke.sh` (`LEGACY_IMAGE` default) and by
+  `.github/workflows/sandbox-boot-guard.yml`. Both source the
   real published payload from it. Keeping the version keeps those verifiable.
 - A user already running `0.9.0` recovers with the runbook and does not need
   the version withdrawn.
@@ -85,9 +84,9 @@ published tag.
 - The `0.9.0` build cannot cold-boot, and no republish under that version can
   change its digest. Leaving it published means a user who pins `0.9.0` gets a
   failure every time.
-- Yanking removes the source payload that the upgrade smoke and the recovery
-  probe extract. Both would need a replacement fixture, and the recovery
-  procedure would lose the only artifact it is verified against.
+- Yanking removes the source payload that the upgrade smoke extracts. The smoke
+  would need a replacement fixture, and the recovery procedure would lose the
+  only artifact it is verified against.
 
 ## R4 — Decide the `LEGACY_IMAGE` pin in `sandbox-boot-guard.yml`
 
@@ -132,16 +131,3 @@ The guidance must state four points, all verified:
 
 **Public documentation surface.** Check whether `mifunedev/agro-web` carries
 installation or troubleshooting copy that must match.
-
-## R6 — Optional: wire the recovery probe's live half into CI
-
-**Requirement, if wanted.** `.agro/evals/probes/sandbox-boot-advisory-recovery.sh`
-always runs a structural half. Its boot-and-recover half runs only under
-`SANDBOX_BOOT_RECOVERY_LIVE=1`, because `.agro/skills/eval/run.sh` caps every
-probe at 30 seconds and a real sandbox boot takes about two minutes. A step in
-`sandbox-boot-guard.yml` that sets `SANDBOX_BOOT_RECOVERY_LIVE=1` would exercise
-the whole path. It costs one image pull and one sandbox boot.
-
-**Rationale.** Under the eval suite the probe reports `SKIPPED` for its
-boot-and-recover half, so the recovery path is guarded there only by its
-structural assertions. Nothing in CI currently runs the live half.

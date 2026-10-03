@@ -76,7 +76,7 @@ source and accepted decision records are authority.
 2. Read the RFC/ADR index at `docs/rfcs/README.md` and any listed proposal that
    already constrains this decision. An accepted decision is a constraint until
    a new proposal supersedes it.
-3. Inspect the authoritative code, tests, probes, and docs for the surfaces in
+3. Inspect the authoritative code, tests, and docs for the surfaces in
    scope. Read them; do not infer their shape.
 4. Name the actual decision or decisions. A feature request restated is not a
    decision.
@@ -112,7 +112,7 @@ Durable architecture decisions reuse the existing convention in
 
 Do not invent an architecture database, service, document taxonomy, decision
 directory, or per-skill decision store. Do not require a record for every
-change — most decisions are captured well enough by the code and its probes.
+change — most decisions are captured well enough by the code and its tests.
 Propose a record only when the decision is architecturally significant and
 expensive to rediscover.
 

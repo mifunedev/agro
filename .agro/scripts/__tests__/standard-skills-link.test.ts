@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { relative, resolve, join } from "node:path";
@@ -18,10 +18,10 @@ function fixture(): string {
   return dir;
 }
 
-function link(dir: string, mode: string) {
+function link(dir: string, mode: string, pathPrefix = "") {
   return spawnSync("bash", [join(root, ".agro/scripts/link-providers.sh"), mode], {
     cwd: dir, encoding: "utf8",
-    env: { PATH: "/usr/bin:/bin", HOME: dir, AGRO_PROJECT_ROOT: dir },
+    env: { PATH: `${pathPrefix}/usr/bin:/bin`, HOME: dir, AGRO_PROJECT_ROOT: dir },
   });
 }
 
@@ -281,5 +281,47 @@ describe("standard project skills", () => {
     expect(result.stderr).toContain("exists and is not a symlink");
     expect(lstatSync(path).isDirectory()).toBe(true);
     expect(readFileSync(join(path, "keep.txt"), "utf8")).toBe("user-owned");
+  });
+});
+
+describe("repository provider surfaces", () => {
+  it.each([".agents/skills", ".claude/skills", ".claude/hooks"])("%s is a tracked symlink that resolves into .agro/", (path) => {
+    expect(lstatSync(join(root, path)).isSymbolicLink()).toBe(true);
+    expect(realpathSync(join(root, path))).toBe(realpathSync(join(root, ".agro", path.split("/")[1])));
+    expect(spawnSync("git", ["ls-files", "--error-unmatch", path], { cwd: root }).status).toBe(0);
+  });
+
+  it.each([".pi/skills", ".codex/skills"])("%s stays retired", (path) => {
+    expect(lstatSync(join(root, path), { throwIfNoEntry: false })).toBeUndefined();
+  });
+
+  it("passes the link check", () => {
+    const result = spawnSync("bash", [join(root, ".agro/scripts/link-providers.sh"), "--check"], { cwd: root, encoding: "utf8" });
+    expect(result.status, result.stderr).toBe(0);
+  });
+
+  it("keeps the skills scan dir free of loose files a provider would mis-load", () => {
+    const skills = join(root, ".agro/skills");
+    const loose = readdirSync(skills, { withFileTypes: true })
+      .filter((entry) => !entry.isDirectory())
+      .filter((entry) => {
+        if (!entry.name.endsWith(".md")) return true;
+        const frontmatter = readFileSync(join(skills, entry.name), "utf8").match(/^---\n([\s\S]*?)\n---/);
+        return !frontmatter || !/^description:\s*\S/m.test(frontmatter[1]);
+      })
+      .map((entry) => entry.name);
+    expect(loose).toEqual([]);
+  });
+
+  it("links Hermes only when the hermes binary is on PATH", () => {
+    const dir = fixture();
+    expect(link(dir, "--init").status).toBe(0);
+    expect(existsSync(join(dir, ".hermes"))).toBe(false);
+    const bin = join(dir, "fake-bin");
+    mkdirSync(bin);
+    writeFileSync(join(bin, "hermes"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+    const result = link(dir, "--init", `${bin}:`);
+    expect(result.status, result.stderr).toBe(0);
+    expect(readFileSync(join(dir, ".hermes/skills/agro/git/SKILL.md"), "utf8")).toBe(readFileSync(join(root, ".agro/skills/git/SKILL.md"), "utf8"));
   });
 });

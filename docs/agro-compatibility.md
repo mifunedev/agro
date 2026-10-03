@@ -98,10 +98,11 @@ agro sandbox install docker --name <name>
 
 ## Verifying the cutover
 
-Two probes guard the retirement:
+Two checks guard the retirement:
 
-- `.agro/evals/probes/version-parity.sh` fails if `.agro/cli/legacy/` returns.
+- `.agro/scripts/__tests__/version-parity-contract.test.ts` fails if
+  `.agro/cli/legacy/` returns.
 - `.agro/scripts/verify-sandbox-image.sh` fails if a built image still ships an
   `oh` entry point.
 
-Run the suite with `bash .agro/skills/eval/run.sh`.
+Run the tests with `pnpm test`.

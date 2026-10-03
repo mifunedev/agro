@@ -8,7 +8,6 @@ CC_SAFETY_NET_PIN="1.0.6"
 required_files=(
   ".agro/skills/git/SKILL.md"
   ".agro/skills/t3/references/sandbox-processes.md"
-  ".agro/skills/eval/run.sh"
 )
 
 required_execs=(
@@ -17,7 +16,6 @@ required_execs=(
   ".agro/hooks/warn-devtcp.sh"
   ".agro/skills/cloudflared/scripts/run.sh"
   ".agro/skills/health-check/scripts/scope-preflight.sh"
-  ".agro/skills/eval/run.sh"
   ".agro/skills/t3/scripts/t3-code.sh"
 )
 

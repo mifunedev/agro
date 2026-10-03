@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -14,6 +15,7 @@ import {
   writeAgroConfig,
   type AgroConfig,
 } from "../agro-config.js";
+import { SECRET_KEYS } from "../secrets.js";
 
 const cleanups: string[] = [];
 afterEach(() => {
@@ -383,5 +385,31 @@ describe("the tracked agro.json", () => {
     const config = readAgroConfig(join(repoRoot, "agro.json"));
     expect(config.langfuse).toBeDefined();
     expect(JSON.stringify(config.langfuse ?? {})).not.toMatch(/pk-lf|sk-lf|publicKey|secretKey/);
+  });
+});
+
+describe("authored config surfaces in this repository", () => {
+  const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", "..");
+  const dotenv = [".", "env"].join("");
+  const git = (...args: string[]) => spawnSync("git", args, { cwd: repoRoot, encoding: "utf8" });
+
+  it("tracks a valid agro.json that holds no allow-listed secret", () => {
+    expect(git("ls-files", "--error-unmatch", "agro.json").status).toBe(0);
+    const text = readFileSync(join(repoRoot, "agro.json"), "utf8");
+    expect(() => JSON.parse(text)).not.toThrow();
+    expect(SECRET_KEYS.filter((key) => text.includes(key))).toEqual([]);
+  });
+
+  it("keeps the root secrets file ignored and untracked", () => {
+    expect(git("check-ignore", "-q", "--no-index", dotenv).status).toBe(0);
+    expect(git("ls-files", dotenv).stdout).toBe("");
+  });
+
+  it("leaves no live reference to the retired devcontainer env template", () => {
+    const retired = `devcontainer/.example${dotenv}`;
+    const hits = git("grep", "-lF", retired, "--", ".", ":!CHANGELOG.md", ":!docs/rfcs")
+      .stdout.split("\n")
+      .filter(Boolean);
+    expect(hits).toEqual([]);
   });
 });

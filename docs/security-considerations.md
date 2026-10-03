@@ -103,7 +103,7 @@ event.
   | pi | `npm:cc-safety-net` package extension (auto-registers, fails closed) | `SENSITIVE_PATHS` confirm — interactive-mode only; a **headless no-op today** (pre-existing gap, named future work) |
   | hermes | **none** — no hook surface + no upstream support (**documented gap**) | none |
 
-- **Eval:** [`.agro/evals/probes/cc-safety-net-wiring.sh`](../.agro/evals/probes/cc-safety-net-wiring.sh) asserts every wiring point above (config entries are repo-static — absence is a REGRESSION, never a SKIP; only the live-binary block test may SKIP when the binary is absent outside the built image).
+- **Test:** the `cc-safety-net wiring` suite in [`.agro/scripts/__tests__/hooks.test.ts`](../.agro/scripts/__tests__/hooks.test.ts) asserts every wiring point above. Only the live-binary block test skips, and only when the binary is absent outside the built image.
 
 ### Operator runbook
 
@@ -186,11 +186,10 @@ expose to whichever trust level you choose.
   the host's cgroup tree and its neighbours' `cgroup.procs` breaks the first non-negotiable
   in `AGENTS.md` (agent work stays inside the sandbox) in a way a mount capability does not. It is also far narrower than the
   Docker socket in Caveat 1, which remains the dominant risk when enabled.
-  [`.agro/evals/probes/systemd-sandbox-init.sh`](../.agro/evals/probes/systemd-sandbox-init.sh)
-  pins this shape and fails on `privileged: true` or a host cgroup bind;
-  [`.agro/evals/probes/tailscale-tool-boundary.sh`](../.agro/evals/probes/tailscale-tool-boundary.sh)
-  holds `SYS_ADMIN` as the **only** capability the sandbox may grant, so a networking
-  capability can never be added quietly.
+  [`.agro/scripts/__tests__/sandbox-privilege-boundary.test.ts`](../.agro/scripts/__tests__/sandbox-privilege-boundary.test.ts)
+  pins this shape, fails on `privileged: true` or a host cgroup bind, and holds `SYS_ADMIN`
+  as the **only** capability the sandbox may grant, so a networking capability can never be
+  added quietly.
 
 - **Caveat 4 — the optional sshd overlay (RECOMMENDED to configure).** The base
   container publishes **no ports** and runs **no** SSH daemon. The opt-in overlay

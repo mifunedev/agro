@@ -264,7 +264,7 @@ work, gated behind whichever option is chosen.
 
 | Option | What it means | Trade-off |
 | --- | --- | --- |
-| **Docs-only** | Ship this page and the eval probe; install/registration stays a manual operator step. | Lowest cost and zero runtime surface, but DebugMCP is never available without per-operator setup, and the feasibility question stays unresolved in practice. |
+| **Docs-only** | Ship this page; install/registration stays a manual operator step. | Lowest cost and zero runtime surface, but DebugMCP is never available without per-operator setup, and the feasibility question stays unresolved in practice. |
 | **Optional installer** | Add an opt-in script (or flag) that installs the extension host + DebugMCP on request. | Makes activation one command without forcing it on every sandbox, but adds an installer surface to maintain and still requires resolving the container-side feasibility `UNVERIFIED`. |
 | **Default capability** | Bake the extension host + DebugMCP into the image so it is active out of the box. | Zero per-operator friction, but enlarges every image, adds a bound `:3001` listener to the attack surface by default, and commits the harness to maintaining the debug stack. |
 

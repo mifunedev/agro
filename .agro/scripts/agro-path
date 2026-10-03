@@ -28,7 +28,7 @@ case "$_name" in
     worktrees) _dir=".worktrees" ;;
     projects)  _dir="projects" ;;
     crons)     _dir="crons" ;;
-    agents|skills|hooks|scripts|tasks|evals|templates|install|cli)
+    agents|skills|hooks|scripts|tasks|templates|install|cli)
         _dir=".agro/$_name" ;;
     *)
         printf 'agro-path: unknown name "%s"\n' "$_name" >&2

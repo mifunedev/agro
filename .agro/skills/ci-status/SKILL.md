@@ -96,8 +96,6 @@ gh api "repos/$REPO/actions/jobs/$JOB_ID/logs" 2>&1 \
   | grep -B 15 "Process completed with exit code" | head -25
 ```
 
-For Eval Probe Regression Gate failures, immediately inspect the failed probe name from the log and run that probe locally. If the product behavior intentionally changed, patch the probe to assert the durable invariant instead of an obsolete exact literal; otherwise fix the product/skill/docs that regressed. Then amend/commit, push, and re-run PR checks.
-
 7. **Report the result:**
 
 - **PASS**: Report "CI green" with the run URL
@@ -120,7 +118,7 @@ This project's CI (`CI: Harness`) runs these steps in order:
 4. Build (`pnpm run build:harness`)
 5. Test (`pnpm test:scripts`)
 
-Sibling jobs: Boot Path Lint (shellcheck + hadolint) and Eval Probe Regression Gate.
+Sibling job: Boot Path Lint (shellcheck + hadolint).
 
 ## Local Pre-flight
 

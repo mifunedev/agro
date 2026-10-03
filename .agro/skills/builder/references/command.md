@@ -149,5 +149,4 @@ Bundled shell scripts must:
 Use `Created` for a new artifact and `Updated` for a focused revision of an
 existing one; the update path is the common case once an artifact exists. Add a
 **Motivated by** line naming the plan Lessons entries or issues behind the change,
-or `none (direct request)`, and a **Ledger** line naming the `SI-nnnn` id
-appended in step 4.
+or `none (direct request)`.

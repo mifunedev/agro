@@ -362,7 +362,7 @@ images land.
 
 ### Manual live-host smoke checklist (non-gating)
 
-The eval probe suite covers the static contract (env-var gating, compose
+The test suite covers the static contract (env-var gating, compose
 shape, doc content) deterministically, without a Docker host. It cannot cover
 an actual live boot. Before relying on the image-only path in production, run
 this checklist by hand on a real host:

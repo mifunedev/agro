@@ -93,28 +93,9 @@ jobs:
           config: .hadolint.yaml
           failure-threshold: warning
 
-  eval-probes:
-    name: Eval Probe Regression Gate
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout the event commit
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-          submodules: recursive
-
-      - name: Link provider skills
-        run: bash .agro/scripts/link-providers.sh --init
-
-      - name: Run eval probe suite
-        run: bash .agro/skills/eval/run.sh
-
   reserve:
     name: Reserve SemVer draft
-    needs: [validate, boot-lint, eval-probes]
+    needs: [validate, boot-lint]
     runs-on: ubuntu-latest
     permissions:
       contents: write

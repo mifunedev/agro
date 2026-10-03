@@ -40,22 +40,11 @@ These names describe separate layers, not interchangeable jobs:
   writes and `/delegate` reads and updates.
   Source: [`.agro/tasks/AGENTS.md`](../.agro/tasks/AGENTS.md).
 
-- **capability** — What the harness can actually do end-to-end, measured by the
-  capability benchmark rather than by how much machinery it accumulates. The
-  `.agro/evals/capability/` suite grades concrete deliverables (a shipped PR, a
-  passing eval), so a rising score is evidence the loop got
-  better. Source: [`.agro/evals/capability/`](../.agro/evals/capability/).
-
 - **checkpoint** — An intermediate, observable stage output that is explicitly
   *not* the terminal state. For example, the draft PR opens with the plan
   before implementation, and the advisor marks it ready only after the gates
   pass.
   Source: [`.agro/skills/git/SKILL.md`](../.agro/skills/git/SKILL.md) § Draft PR for a task.
-
-- **evaluator / eval** — A deterministic, exit-code-scored probe that checks
-  harness state against a recorded lesson; the probe corpus and the `/eval`
-  skill that runs it form the harness's fitness function, reporting PASS /
-  REGRESSION / SKIPPED per probe. Source: [`.agro/evals/`](../.agro/evals/).
 
 - **harness** — The whole portable setup: one git repo that boots one Docker
   sandbox, wraps your project inside it, and versions the agent's identity,

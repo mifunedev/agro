@@ -179,7 +179,7 @@ Removing the hook restores the boot. It does not remove the vulnerable
 dependency. Update the checkout to a source revision that pins vitest
 `>=4.1.11`. Current source removes the hook, pins vitest `^4.1.11`, and runs
 `pnpm run security:audit` as an explicit CI and release step instead — see
-[`.agro/evals/probes/pnpm-audit-ci-gate.sh`](../.agro/evals/probes/pnpm-audit-ci-gate.sh).
+[`.agro/scripts/__tests__/entrypoint-pnpm-install.test.ts`](../.agro/scripts/__tests__/entrypoint-pnpm-install.test.ts).
 
 ## Scope
 
@@ -201,6 +201,3 @@ docker run --rm --entrypoint bash ghcr.io/mifunedev/agro:latest \
 `absent` means that image cold-boots and needs nothing from this runbook. What
 a fixed release requires is in
 [`release-requirements-1019-boot-fix.md`](release-requirements-1019-boot-fix.md).
-
-The recovery path is guarded by
-[`.agro/evals/probes/sandbox-boot-advisory-recovery.sh`](../.agro/evals/probes/sandbox-boot-advisory-recovery.sh).

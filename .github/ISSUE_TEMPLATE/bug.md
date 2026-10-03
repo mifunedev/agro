@@ -68,7 +68,7 @@ branch: "bug/[issue#]-[shortdesc]"
 
 ## Test Plan (TDD)
 
-> **Reproduce first.** Write a test or probe that fails on the current code _before_ the fix. The fix is done when that test passes and nothing else turns red.
+> **Reproduce first.** Write a test that fails on the current code _before_ the fix. The fix is done when that test passes and nothing else turns red.
 
 | Test File                       | Case(s)                                     | Validates                    |
 | ------------------------------- | ------------------------------------------- | ---------------------------- |
@@ -97,7 +97,7 @@ branch: "bug/[issue#]-[shortdesc]"
 <!-- Every criterion must be binary — testable by an agent with a pass/fail outcome. Avoid subjective language. -->
 
 - [ ] Root cause is identified and stated in the PR description
-- [ ] A reproduction test or eval probe fails **before** the fix and passes after
+- [ ] A reproduction test fails **before** the fix and passes after
 - [ ] The reproduction steps above no longer produce the failure
 - [ ] The repository's lint, typecheck, test, and build commands pass
 - [ ] No new dependencies added (or justified in PR description)

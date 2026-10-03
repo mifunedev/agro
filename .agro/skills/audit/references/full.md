@@ -3,10 +3,9 @@
 Run inline from the top-level session under the inherited immutable `AUDIT_RUN_ID` and `AUDIT_ROOT`. Compose in cost order:
 
 1. `/audit drift`
-2. `/eval` in audit-child mode (regression floor; scoreboard write disclosed)
-3. `/audit skills all`, `/audit eval-quality all`, and `/audit context all`
-4. `/audit harness`
-5. `/audit prs [--repo O/N]`
+2. `/audit skills all` and `/audit context all`
+3. `/audit harness`
+4. `/audit prs [--repo O/N]`
 
 `--repo O/N` is optional exactly as it is for `/audit prs`: when supplied to
 `full`, forward the same owner/name unchanged to the queue child. When omitted,

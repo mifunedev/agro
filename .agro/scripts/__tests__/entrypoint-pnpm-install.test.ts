@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -57,5 +57,57 @@ describe("devcontainer entrypoint pnpm install", () => {
     expect(entrypoint).toContain("pnpm install failed — see /tmp/pnpm-install.log; aborting sandbox boot");
     expect(entrypoint).toMatch(/pnpm install failed[\s\S]*exit 1/);
     expect(entrypoint).not.toContain("cron-runtime and Slack Pi extension will not load");
+  });
+});
+
+const LIFECYCLE_HOOKS = ["preinstall", "install", "postinstall", "prepare", "pnpm:devPreinstall", "pnpm:devPrepare"];
+
+function workspacePackageDirs(root: string): string[] {
+  const workspace = path.join(root, "pnpm-workspace.yaml");
+  if (!existsSync(workspace)) return [];
+  const text = readFileSync(workspace, "utf-8");
+  const inline = text.match(/^packages:\s*\[(.*)\]\s*$/m);
+  const block = text.match(/^packages:\s*\n((?:\s+-.*\n?)*)/m);
+  const patterns = (inline ? inline[1].split(",") : (block?.[1] ?? "").split("\n").map((l) => l.replace(/^\s*-\s*/, "")))
+    .map((p) => p.trim().replace(/^['"]|['"]$/g, "").replace(/^\.\//, "").replace(/\/$/, ""))
+    .filter(Boolean);
+  return patterns.flatMap((pattern) => {
+    if (pattern.endsWith("/*") && !pattern.slice(0, -2).includes("*")) {
+      const parent = path.join(root, pattern.slice(0, -2));
+      return existsSync(parent)
+        ? readdirSync(parent, { withFileTypes: true })
+            .filter((e) => e.isDirectory())
+            .map((e) => path.join(parent, e.name))
+        : [];
+    }
+    expect(pattern, "unsupported workspace glob").not.toMatch(/[*?{[]/);
+    return [path.join(root, pattern)];
+  });
+}
+
+function bootInstallHooks(root: string): string[] {
+  return [root, ...workspacePackageDirs(root)]
+    .map((dir) => path.join(dir, "package.json"))
+    .filter((file) => existsSync(file))
+    .flatMap((file) => {
+      const scripts: Record<string, unknown> = JSON.parse(readFileSync(file, "utf-8")).scripts ?? {};
+      return LIFECYCLE_HOOKS.filter((hook) => typeof scripts[hook] === "string").map(
+        (hook) => `${path.relative(root, file) || "package.json"}: ${hook}`,
+      );
+    });
+}
+
+describe("boot-time pnpm install", () => {
+  it("runs no lifecycle hook from any manifest it installs", () => {
+    expect(bootInstallHooks(REPO_ROOT)).toEqual([]);
+  });
+
+  it("installs the CLI package without running its lifecycle hooks", () => {
+    const scripts: Record<string, string> = JSON.parse(
+      readFileSync(path.join(REPO_ROOT, "package.json"), "utf-8"),
+    ).scripts;
+    const cliInstalls = Object.values(scripts).flatMap((v) => v.match(/npm --prefix \.agro\/cli ci[^)&|;]*/g) ?? []);
+    expect(cliInstalls.length).toBeGreaterThan(0);
+    for (const install of cliInstalls) expect(install).toContain("--ignore-scripts");
   });
 });

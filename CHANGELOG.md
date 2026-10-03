@@ -23,11 +23,15 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Removed
 
+- Remove the 145 eval probes after moving the 21 floor guards, including the deny hooks and sandbox privilege boundary, into vitest ([#1269](https://github.com/mifunedev/agro/issues/1269)).
+- Remove the `/eval` skill and runner, the `eval-probes` CI jobs, the `eval-weekly` cron, `/audit eval-quality`, and `/audit implementation` Gate 2 ([#1271](https://github.com/mifunedev/agro/issues/1271)).
+- Remove the eval experiments, datasets, capability benchmark, `/benchmark` skill, and finished task folders ([#1265](https://github.com/mifunedev/agro/issues/1265)).
 - Remove the project Pi recap package so new sessions no longer load `/recap` by default ([#1179](https://github.com/mifunedev/agro/issues/1179)).
 - Remove `.agro/knowledge/` and the `/wiki` skill so plans and skills no longer query a frozen knowledge tree and `agro vendor` stops shipping it ([#1277](https://github.com/mifunedev/agro/issues/1277)).
 
 ### Changed
 
+- Point the public-documentation surface check in `AGENTS.md` at `docs/` instead of `mifunedev/agro-web` ([#1267](https://github.com/mifunedev/agro/issues/1267)).
 - Set the Codex project default to `gpt-6-sol` at medium reasoning effort ([#1201](https://github.com/mifunedev/agro/issues/1201)).
 - Document host Codex updates when another npm global prefix shadows the selected installation ([#1201](https://github.com/mifunedev/agro/issues/1201)).
 - Use a YAML Slack app manifest for Pi setup and provide a copyable version in the Slack docs while preserving the app's permissions, events, and admin commands ([#1177](https://github.com/mifunedev/agro/issues/1177)).
@@ -35,6 +39,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Fixed
 
+- Run the Hermes install smoke through the installed `.hermes/bin/hermes --run-module` launcher, since the current Hermes installer no longer creates `scripts/_hermes-python` ([#1273](https://github.com/mifunedev/agro/issues/1273)).
 - Pin the `agro` shebang to the nvm Node that `get-agro.sh` installs, so cron, systemd, cloud-init, and plain `ssh` commands run `~/.local/bin/agro` by its absolute path ([#1262](https://github.com/mifunedev/agro/issues/1262)).
 - Pin PR evidence links to the head commit SHA so screenshots still render after the branch is deleted, and drop `### Visual Reference` from the feature issue template ([#1239](https://github.com/mifunedev/agro/issues/1239)).
 - Restore the running container image after a failed upgrade of an unpinned sandbox, or refuse the upgrade if that image cannot be inspected ([#1217](https://github.com/mifunedev/agro/issues/1217)).
