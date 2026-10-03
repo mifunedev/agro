@@ -23,6 +23,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Removed
 
+- Remove the 145 eval probes after moving the 21 floor guards, including the deny hooks and sandbox privilege boundary, into vitest ([#1269](https://github.com/mifunedev/agro/issues/1269)).
 - Remove the eval experiments, datasets, capability benchmark, `/benchmark` skill, and finished task folders ([#1265](https://github.com/mifunedev/agro/issues/1265)).
 - Remove the project Pi recap package so new sessions no longer load `/recap` by default ([#1179](https://github.com/mifunedev/agro/issues/1179)).
 
