@@ -601,13 +601,51 @@ describe("baked-in tools", () => {
     }
   });
 
-  // #948: herdr and cloudflared enter only through `agro tool install`. The
-  // inverse of the check above — an installable tool must NOT be in the
-  // Dockerfile — lives in .agro/evals/probes/harness-one-door.sh, which matches
-  // on the pinned project URL rather than the bare binary name.
   it("no longer claims herdr or cloudflared", () => {
     for (const id of ["herdr", "cloudflared"]) {
       expect(findTool(id)!.kind, id).toBe("installable");
+    }
+  });
+});
+
+describe("installable entries stay out of the image", () => {
+  const dockerfileCode = read(".devcontainer/Dockerfile")
+    .split("\n")
+    .filter((line) => !/^\s*#/.test(line))
+    .join("\n");
+
+  function fingerprints(argv: readonly string[]): string[] {
+    const text = argv.join(" ");
+    const found = new Set<string>([
+      ...(text.match(/https:\/\/[a-z0-9.-]+(\/[A-Za-z0-9._-]+){1,2}/g) ?? []),
+      ...(text.match(/[A-Za-z0-9@._/-]+@\d+\.\d+\.\d+/g) ?? []),
+    ]);
+    if (argv[0] === "npm") {
+      const pkg = argv.filter((a) => !a.startsWith("-") && !["npm", "install", HARNESS_PREFIX_TOKEN].includes(a)).at(-1);
+      if (pkg) found.add(pkg);
+    }
+    return [...found];
+  }
+
+  const userLevel = [
+    ...HARNESS_CATALOG.filter((h) => h.kind === "installable").map((h) => ({ id: h.id, argv: h.installArgv, binary: undefined })),
+    ...TOOL_CATALOG.filter((t) => t.kind === "installable" && t.hostInstallUser !== "root").map((t) => ({
+      id: t.id,
+      argv: t.installArgv ?? [],
+      binary: t.binary,
+    })),
+  ];
+
+  it("covers user-level installable harnesses and tools", () => {
+    expect(userLevel.length).toBeGreaterThan(HARNESS_CATALOG.filter((h) => h.kind === "installable").length);
+  });
+
+  it.each(userLevel)("$id is installed only by its install verb", ({ id, argv, binary }) => {
+    const prints = fingerprints(argv);
+    expect(prints, `${id} yields no package or download fingerprint`).not.toEqual([]);
+    for (const print of prints) expect(dockerfileCode, `${id} is baked into the image via ${print}`).not.toContain(print);
+    if (binary) {
+      expect(dockerfileCode).not.toMatch(new RegExp(`(install|cp|mv|ln)[^#\\n]*/bin/${binary}\\b`));
     }
   });
 });
