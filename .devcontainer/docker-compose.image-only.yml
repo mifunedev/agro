@@ -19,6 +19,7 @@ services:
       - GIT_USER_NAME=${GIT_USER_NAME:-}
       - GIT_USER_EMAIL=${GIT_USER_EMAIL:-}
       - GH_TOKEN=${GH_TOKEN:-}
+      - TYPESAFE_API_KEY=${TYPESAFE_API_KEY:-}
     stdin_open: true
     tty: true
     cgroup: private
