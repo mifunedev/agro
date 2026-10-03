@@ -99,6 +99,14 @@ only in the dedicated `client-slack-pi` tmux session (managed by `.agro/scripts/
 you don't run `pi install` yourself. Full setup (tokens, trust, the sibling Hermes gateway)
 lives in [Slack integration](./integrations/slack.md).
 
+## Property Tests
+
+Property tests use the `*.property.test.ts` naming convention and live in
+`.agro/scripts/__tests__/` beside the example tests for the same module. They
+assert an invariant over generated inputs, with [fast-check](https://fast-check.dev)
+as the generator library. Run the full suite, including property tests, with
+`pnpm test` from the repo root.
+
 ## Branch Naming
 
 All feature branches follow the format `<prefix>/<issue#>-<short-desc>`.

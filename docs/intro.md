@@ -18,6 +18,12 @@ Key capabilities:
 - **Cloudflared previews.** Share sandbox app ports through Cloudflared tunnels; SSH and pack-supplied services remain opt-in Docker Compose overlays.
 - **Multi-agent messaging.** Bridge Slack (and other messengers) to a Pi agent with the [`pi-messenger-bridge`](/docs/integrations/slack) npm package; SSH and pack-supplied services remain opt-in Docker Compose overlays.
 
+## License
+
+AGRO ships under [Apache-2.0](../LICENSE). Mifune's hosted control plane (the
+Mifune Console, provisioning, billing, and enterprise policy) is separate and
+proprietary.
+
 ## How it works
 
 The harness uses Docker Compose to build a sandbox image from `.devcontainer/`. Bring it up with `agro sandbox install docker`, attach with `agro shell <name>` (or VS Code), then run `agro tool install herdr` and `herdr` first — nothing installs at boot. Authenticate GitHub and your chosen provider and launch agents from Herdr panes. `agro stop` preserves state; `agro destroy` is the destructive teardown, and it asks before it wipes the volumes. Every one of those verbs runs `.agro/scripts/docker-compose.sh` — see [lifecycle commands](/docs/lifecycle-commands).
@@ -67,7 +73,6 @@ If you already have a sandbox running, jump directly to the page you need.
 ## Where to get help
 
 - Source code and issues: [github.com/mifunedev/agro](https://github.com/mifunedev/agro)
-- Learning material: [Resources](/docs/resources)
 - Philosophy: [How AGRO embodies compound engineering](https://github.com/mifunedev/agro-web/tree/main/blog) — why each unit of work here should make the next one easier.
 
 [Connecting to the Sandbox](/docs/connecting)

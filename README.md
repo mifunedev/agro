@@ -334,7 +334,7 @@ Browse the [documentation](docs/README.md) or jump to a topic below.
 | Configuration | [Settings and secrets](docs/configuration.md) |
 | Agent procedures | [Shared skills and hooks](docs/README.md#how-the-primitive-pack-ships) · [Directory layout](docs/agro-directory-layout.md) |
 | Integrations | [GitHub](docs/integrations/github.md) · [Slack](docs/integrations/slack.md) · [Langfuse](docs/integrations/langfuse.md) |
-| Debugging and testing | [DebugMCP](docs/integrations/debugmcp.md) · [Property testing](docs/property-testing.md) |
+| Debugging and testing | [DebugMCP](docs/integrations/debugmcp.md) · [Property testing](docs/contributing.md#property-tests) |
 | Security | [Permissions and trust boundaries](docs/security-considerations.md) |
 | Contributing | [Contribution workflow](docs/contributing.md) · [Docs site source](https://github.com/mifunedev/agro-web) |
 
@@ -353,7 +353,7 @@ Contributions, bug reports, and feedback are welcome.
 
 [Apache License 2.0](LICENSE) — copyright Ryan Eggleston, d/b/a Mifune Dev (mifune.dev). Prior MIT releases remain available under MIT; this change governs new code and future releases and does not revoke past grants.
 
-Apache-2.0 covers the runtime, the `agro` CLI, container definitions, and the harness spec. The Mifune Console, the provisioning and fleet-management control plane, and billing / enterprise policy / RBAC / hosted operations are proprietary — see the [open-core boundary](docs/open-core.md).
+Apache-2.0 covers the runtime, the `agro` CLI, container definitions, and the harness spec. The Mifune Console, the provisioning and fleet-management control plane, and billing / enterprise policy / RBAC / hosted operations are proprietary — see the [license section](docs/intro.md#license).
 
 ## Trademarks
 

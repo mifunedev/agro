@@ -37,7 +37,7 @@ Runtimes:
 
 ```
 agro sandbox install: microsandbox is not a provisionable runtime yet; see
-docs/rfcs/rfc-runtime-support.md. Inside a sandbox run `agro tool install microsandbox`.
+https://github.com/mifunedev/agro/issues/592. Inside a sandbox run `agro tool install microsandbox`.
 ```
 
 `agro sandbox install` is host-scoped. Run from inside the sandbox it refuses
@@ -45,11 +45,20 @@ with a host-only error, because it changes the sandbox's own Docker
 configuration. See
 [Lifecycle commands → Where you are standing when you type `agro`](../lifecycle-commands.md#where-you-are-standing-when-you-type-agro).
 
+## The Docker daemon
+
+The Docker daemon runs on the machine holding the `agro` binary, not inside the
+sandbox. `agro sandbox install` is host-only and refuses with a host-only error
+when run inside a sandbox. The host Docker socket (`/var/run/docker.sock`) is
+off by default; mounting it into the sandbox is effectively host root, so it is
+opt-in — the wizard asks, and `access.dockerSocket` in the entry's `agro.json`
+records the answer. See [security considerations](../security-considerations.md).
+
 ## What is in the catalog
 
 | Runtime | Tier | State | How you reach it |
 |---|---|---|---|
-| [Docker container](docker.md) | shared host kernel, namespaces + cgroups | **provisionable** | `agro sandbox install docker` |
+| [Docker container](#the-docker-daemon) | shared host kernel, namespaces + cgroups | **provisionable** | `agro sandbox install docker` |
 | [MicroSandbox](microsandbox.md) | microVM — one real kernel per sandbox, KVM-backed | planned | `agro tool install microsandbox` installs the `msb` binary inside a sandbox; running AGRO *on* msb is a manual host recipe |
 
 Two entries rather than one is deliberate. A single-entry catalog would encode a
@@ -69,7 +78,7 @@ Two proposals name the selector differently — `sandbox.substrate` (the substra
 plan, [#802](https://github.com/mifunedev/agro/issues/802) P4) and
 `sandbox.runtime` (the EPIC [#731](https://github.com/mifunedev/agro/issues/731)
 sysbox slice). The open decision, and the axes taxonomy behind it, live in
-[the runtime-support RFC](../rfcs/rfc-runtime-support.md); settling it outside
+[issue #592](https://github.com/mifunedev/agro/issues/592); settling it outside
 #731 forks the `ExecutionTarget` seam.
 
 So the entry records only what it was actually provisioned on: `runtime:

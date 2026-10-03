@@ -73,9 +73,10 @@ source and accepted decision records are authority.
 1. Read every applicable `AGENTS.md` from the repository root down to the
    directories the change touches. Local instructions win; in one directory
    `AGENTS.md` is canonical.
-2. Read the RFC/ADR index at `docs/rfcs/README.md` and any listed proposal that
-   already constrains this decision. An accepted decision is a constraint until
-   a new proposal supersedes it.
+2. Search GitHub issues titled `ADR: ...` or `RFC: ...`
+   (`gh issue list --search "ADR: in:title"` and `--search "RFC: in:title"`) for
+   any accepted decision that already constrains this one. An accepted decision
+   is a constraint until a new issue supersedes it.
 3. Query tracked repository knowledge when it is available:
    `/wiki query <subsystem> --patterns` returns failure modes this harness has
    already paid for. Cite the `[[pattern-...]]` slugs that changed the
@@ -109,10 +110,9 @@ Prefer deleting an abstraction to growing a second one next to it.
 
 ## 4. Record durable decisions
 
-Durable architecture decisions reuse the existing convention in
-[`docs/rfcs/README.md`](../../../docs/rfcs/README.md): a GitHub issue titled
-`ADR: <title>` (or `RFC: <title>`), moving through `Draft` → `Accepted` →
-`Superseded`, indexed on that page.
+Durable architecture decisions live as a GitHub issue titled `ADR: <title>`
+(or `RFC: <title>`), moving through `Draft` → `Accepted` → `Superseded` labels.
+Put the architect brief in the issue body or an issue comment.
 
 Do not invent an architecture database, service, document taxonomy, decision
 directory, or per-skill decision store. Do not require a record for every

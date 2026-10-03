@@ -23,6 +23,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Removed
 
+- Delete 22 docs with no operator journey, merge 4 into surviving docs, retire `docs/rfcs/`, and repoint `/architect`/`/git` to GitHub issues as the decision record ([#1275](https://github.com/mifunedev/agro/issues/1275)).
 - Remove the 145 eval probes after moving the 21 floor guards, including the deny hooks and sandbox privilege boundary, into vitest ([#1269](https://github.com/mifunedev/agro/issues/1269)).
 - Remove the `/eval` skill and runner, the `eval-probes` CI jobs, the `eval-weekly` cron, `/audit eval-quality`, and `/audit implementation` Gate 2 ([#1271](https://github.com/mifunedev/agro/issues/1271)).
 - Remove the eval experiments, datasets, capability benchmark, `/benchmark` skill, and finished task folders ([#1265](https://github.com/mifunedev/agro/issues/1265)).

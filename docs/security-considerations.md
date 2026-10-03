@@ -160,7 +160,7 @@ expose to whichever trust level you choose.
   restart-loops — so an affected operator sees it immediately in `agro logs`. Tracked as
   [#960](https://github.com/mifunedev/agro/issues/960); the supported host baseline
   remains Debian/Ubuntu per
-  [Runtimes → Docker](runtimes/docker.md).
+  [Runtimes → Overview](runtimes/overview.md).
 
   This is the minimum proven necessary, established by testing in increasing order of
   authority against Docker 29.7.2 / cgroup v2 / `cgroupfs` driver:
@@ -257,7 +257,7 @@ application code.
   `autopilot` loop's `OWNED_PATHS` clean-state check and scoped restore. Both
   were removed with the loop. The boundary is now doctrine, not a running check.
 - **Boundary:** the path set is recorded in
-  [`docs/repair-operator-registry.md`](repair-operator-registry.md) § Tier 1,
+  [issue #525](https://github.com/mifunedev/agro/issues/525) § Tier 1,
   which is now its source of truth.
 - **Scope guard:** "harness-infra only … never sandbox application code" — see
   `AGENTS.md` § "Agent work stays inside the sandbox," which is normative.

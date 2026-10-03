@@ -9,7 +9,7 @@ source of truth for the verbs; every other document links here rather than
 restating them.
 
 `agro` is the only executable; AGRO retired the legacy `oh` alias (see the
-[AGRO naming cutover](agro-compatibility.md)). Two verbs are easy to confuse:
+[AGRO naming cutover](https://github.com/mifunedev/agro/issues/1061)). Two verbs are easy to confuse:
 [`agro self-upgrade`](#upgrading-the-cli-agro-self-upgrade) upgrades the
 installed CLI, and [`agro vendor`](#equipping-a-checkout-agro-vendor) writes the
 `.agro/` control plane into a checkout.
@@ -87,7 +87,7 @@ agro shell <name>                # attach as the sandbox user
   [`agro sandbox install docker`](deployment-prebuilt-image.md).
 - `docker` is the only provisionable runtime today. `agro sandbox install
   microsandbox` refuses and points at
-  [the runtime RFC](rfcs/rfc-runtime-support.md); inside a sandbox,
+  [issue #592](https://github.com/mifunedev/agro/issues/592); inside a sandbox,
   `agro tool install microsandbox` installs the `msb` binary.
 
 `agro sandbox` with no subcommand prints help and exits non-zero.

@@ -63,7 +63,7 @@ Registry materialization writes generated copies under `${AGRO_HOME:-~/.agro}/sa
 | `.agro/scripts/` | Generated lifecycle wrapper and its helpers. |
 
 The registry is user-level state, not the repository's `.agro/` directory.
-Legacy `${AGRO_HOME:-~/.oh}` state follows the [compatibility contract](agro-compatibility.md).
+Legacy `${AGRO_HOME:-~/.oh}` state follows the [compatibility contract retirement](https://github.com/mifunedev/agro/issues/1061).
 The image uses `/home/sandbox/harness` as `AGRO_PROJECT_ROOT`, inside the persistent sandbox home.
 Repository scripts still read the environment variable; do not confuse the image default with a universal host path.
 
@@ -111,4 +111,3 @@ The task contract stays repository-local; changing that contract does not expand
 - [Lifecycle commands](lifecycle-commands.md)
 - [Configuration](configuration.md)
 - [Sandbox Python](sandbox-python.md)
-- [Descriptive harness manifest](harness-manifest.md)

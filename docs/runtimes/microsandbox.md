@@ -10,7 +10,7 @@ one real kernel per sandbox, KVM-backed. It is **planned**, not provisionable �
 
 ```
 agro sandbox install: microsandbox is not a provisionable runtime yet; see
-docs/rfcs/rfc-runtime-support.md. Inside a sandbox run `agro tool install microsandbox`.
+https://github.com/mifunedev/agro/issues/592. Inside a sandbox run `agro tool install microsandbox`.
 ```
 
 What *is* shipped is the `msb` binary, as an ordinary installable tool:
@@ -103,7 +103,7 @@ installed on the host. If
 [#731](https://github.com/mifunedev/agro/issues/731) settles it the other
 way, the tool's target changes — and that is a reason it writes no config
 today. The axes taxonomy behind the decision is in
-[the runtime-support RFC](../rfcs/rfc-runtime-support.md).
+[issue #592](https://github.com/mifunedev/agro/issues/592).
 
 ## Running AGRO on MicroSandbox
 
@@ -379,6 +379,6 @@ user-selection flag is shown above because none is confirmed.
 ## Related
 
 - [Runtimes overview](overview.md) — the catalog, and why the CLI selects no substrate key
-- [Runtime support RFC](../rfcs/rfc-runtime-support.md) — the axes taxonomy and the open selector decision
+- [Issue #592](https://github.com/mifunedev/agro/issues/592) — the axes taxonomy and the open selector decision
 - [#805](https://github.com/mifunedev/agro/issues/805) — the two measured requirements
 - [#803](https://github.com/mifunedev/agro/pull/803) — the P0 measurement record

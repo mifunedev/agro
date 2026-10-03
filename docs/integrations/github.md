@@ -90,7 +90,7 @@ ssh -T git@github.com    # "Hi <user>! You've successfully authenticated…"
 
 `agro config repo` (and `agro config repo`) creates a repository and re-points `origin` for
 the retired clone-and-own recipe. It stays supported through the
-[AGRO compatibility](../agro-compatibility.md) window, asks before it runs, defaults to no,
+[AGRO compatibility](https://github.com/mifunedev/agro/issues/1061) window, asks before it runs, defaults to no,
 and skips itself entirely in a non-interactive shell. It is not the canonical onboarding
 path. If `gh` is missing or unauthenticated it prints the equivalent commands instead of
 running them:

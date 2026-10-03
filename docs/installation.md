@@ -134,7 +134,7 @@ Omit the name when the registry holds exactly one sandbox, or when you stand in 
 
 Creating the sandbox needs no GitHub account, and local sandbox use stays available without one. Pushing, creating a repository, and opening a pull request need one. First, complete the GitHub-login prerequisite inside the sandbox: `gh auth login`, `gh auth setup-git`, `gh auth status`, and an account check. Only then hand the workspace to a coding agent. [Quickstart → Authenticate GitHub before any repository work](./quickstart.md#authenticate-github-before-any-repository-work) holds the five steps and the two optional agent prompts (private versioning; AGRO contribution). [GitHub auth](./integrations/github.md) holds command-level detail and recovery. [Contributing](./contributing.md) holds the contribution workflow.
 
-`agro config repo` (and `agro config repo`) creates a repository and re-points `origin` for the retired clone-and-own recipe. It stays supported through the [AGRO compatibility](./agro-compatibility.md) window and is not the canonical onboarding path.
+`agro config repo` (and `agro config repo`) creates a repository and re-points `origin` for the retired clone-and-own recipe. It stays supported through the [AGRO compatibility](https://github.com/mifunedev/agro/issues/1061) window and is not the canonical onboarding path.
 
 ## Equip an existing repo
 
