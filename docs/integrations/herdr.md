@@ -1,10 +1,10 @@
 # Herdr
 
-[Herdr](https://herdr.dev/) is AGRO's primary interactive workspace. It is not in the image. It enters the sandbox only through `agro tool install herdr`.
+[Herdr](https://herdr.dev/) is the primary interactive workspace of AGRO. The image does not include Herdr. Only `agro tool install herdr` puts Herdr in the sandbox.
 
 ## Start here
 
-A fresh sandbox has no `herdr`. After entering the sandbox, install it, then run it:
+A fresh sandbox has no `herdr`. After you enter the sandbox, install Herdr. Next, run `herdr`:
 
 ```bash
 # host
@@ -63,6 +63,6 @@ herdr server stop              # end a broken Herdr server
 herdr --no-session             # run Herdr without its server/client session
 ```
 
-Herdr is pinned in the tool catalog (`.agro/cli/src/lib/tools/catalog.ts`) and provisioned into `~/.local/bin/herdr` at boot from a checksum-verified binary. Upgrade it by bumping that pin and running `agro tool install herdr`, not by self-updating the binary in place.
+The AGRO tool catalog (`.agro/cli/src/lib/tools/catalog.ts`) pins the Herdr version and checksum. `agro tool install herdr` downloads that binary, verifies the checksum, and installs the binary at `~/.local/bin/herdr`. Nothing installs Herdr at boot. To upgrade, change the pin and run `agro tool install herdr`. Do not self-update the binary in place.
 
 See the upstream [quick start](https://herdr.dev/docs/quick-start/), [agents guide](https://herdr.dev/docs/agents/), and [configuration reference](https://herdr.dev/docs/configuration/).
