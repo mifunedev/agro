@@ -41,6 +41,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 
+- Default Pi to `openai-codex/gpt-6.1-sol` at `medium` thinking; Pi 1.0.1 or newer resolves the model ([#1298](https://github.com/mifunedev/agro/issues/1298)).
 - Cut 55 test units with no unique coverage, make the herdr-default order checks able to fail, and run the `node:test` suites under vitest ([#1288](https://github.com/mifunedev/agro/issues/1288)).
 - Point the documented installer commands at the `get-agro.sh` GitHub release asset and the `install.sh` raw file instead of `agro.mifune.dev` ([#1280](https://github.com/mifunedev/agro/issues/1280)).
 - Point the public-documentation surface check in `AGENTS.md` at `docs/` instead of `mifunedev/agro-web` ([#1267](https://github.com/mifunedev/agro/issues/1267)).
