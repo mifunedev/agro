@@ -93,8 +93,8 @@
         "`bash .agro/scripts/link-providers.sh --check` prints `Providers OK`."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: frontmatter name/description with TRIGGER when:/license/compatibility/metadata.mifune.category agro, delimiters lines 1 and 20 (advisor read). 2 executed: first body paragraph defines remote sandbox (advisor read). 3 and 4 executed: advisor read Rules, Main scenario, contract sections. 5 executed: grep n4|capi|PROVISION_KEY|console_|pricing in references/*.md finds nothing. 6 executed: ste-check exit 0 on SKILL.md, rationale.md, providers.md on the integrated branch. 7 executed: link-providers.sh --check Providers OK. Worker code observations recorded for Lessons: driver_rows also runs after fresh-install and cg-probe (R09 needs tmux in the VM); KEEP=1 logs end without RUN DONE; summarize.sh skips fresh-install and cg-probe logs.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -103,7 +103,8 @@
       "files": [
         ".agro/skills/remote-sandbox/SKILL.md",
         ".agro/skills/remote-sandbox/references/"
-      ]
+      ],
+      "commit": "2cfc2ec4"
     },
     {
       "id": "US-005",
