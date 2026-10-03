@@ -33,13 +33,13 @@ npx @mifune/agro sandbox install docker
 npm does **not** install Node. Without Node, bootstrap with `get-agro.sh`. It downloads the prebuilt single-file `agro` artifact from the latest GitHub release into `~/.local/bin/agro` and never clones or builds on your host. If Node.js ≥ 20 is missing, it offers to install nvm + Node 22:
 
 ```bash
-curl -fsSL https://agro.mifune.dev/get-agro.sh | bash
+curl -fsSL https://github.com/mifunedev/agro/releases/latest/download/get-agro.sh | bash
 ```
 
 Review-first (no extra dependency):
 
 ```bash
-curl -fsSL -o get-agro.sh https://agro.mifune.dev/get-agro.sh
+curl -fsSL -o get-agro.sh https://github.com/mifunedev/agro/releases/latest/download/get-agro.sh
 # Review get-agro.sh in your editor or pager before running it.
 bash get-agro.sh
 ```
@@ -60,13 +60,13 @@ Upgrade the installed CLI later with `agro self-upgrade`. The upgrade follows th
 Bootstrap with `get-agro.sh`. The script installs the single self-contained `agro` binary to `~/.local/bin/agro`. The script clones no repo and does not touch an existing `~/.agro` checkout. If Node.js ≥ 20 is missing, the script offers to install nvm + Node 22. The script then sources nvm, so `agro` works in the same shell:
 
 ```bash
-curl -fsSL https://agro.mifune.dev/get-agro.sh | bash
+curl -fsSL https://github.com/mifunedev/agro/releases/latest/download/get-agro.sh | bash
 ```
 
-`source <(curl -fsSL https://agro.mifune.dev/get-agro.sh)` installs *and* puts `agro` on the running shell's PATH. After the plain piped form, `export PATH="$HOME/.local/bin:$PATH"` does the same. Review-first alternative:
+`source <(curl -fsSL https://github.com/mifunedev/agro/releases/latest/download/get-agro.sh)` installs *and* puts `agro` on the running shell's PATH. After the plain piped form, `export PATH="$HOME/.local/bin:$PATH"` does the same. Review-first alternative:
 
 ```bash
-curl -fsSL -o get-agro.sh https://agro.mifune.dev/get-agro.sh
+curl -fsSL -o get-agro.sh https://github.com/mifunedev/agro/releases/latest/download/get-agro.sh
 # Review get-agro.sh in your editor or pager before running it.
 bash get-agro.sh
 ```

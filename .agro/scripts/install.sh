@@ -85,8 +85,8 @@ print_help() {
 AGRO — Installer
 
 Usage:
-  curl -fsSL https://agro.mifune.dev/install.sh | bash [-s -- <flags>]
-  curl -fsSL -o agro-install.sh https://agro.mifune.dev/install.sh
+  curl -fsSL https://raw.githubusercontent.com/mifunedev/agro/main/.agro/scripts/install.sh | bash [-s -- <flags>]
+  curl -fsSL -o agro-install.sh https://raw.githubusercontent.com/mifunedev/agro/main/.agro/scripts/install.sh
   # Review agro-install.sh in your editor or pager, then:
   bash agro-install.sh [<flags>]
   ./.agro/scripts/install.sh [<flags>]
@@ -123,11 +123,11 @@ Env vars:
                        and --yes/--no keep it off.
 
 Examples:
-  curl -fsSL https://agro.mifune.dev/install.sh | bash
-  curl -fsSL -o agro-install.sh https://agro.mifune.dev/install.sh
+  curl -fsSL https://raw.githubusercontent.com/mifunedev/agro/main/.agro/scripts/install.sh | bash
+  curl -fsSL -o agro-install.sh https://raw.githubusercontent.com/mifunedev/agro/main/.agro/scripts/install.sh
   # Review agro-install.sh before running it.
   bash agro-install.sh
-  curl -fsSL https://agro.mifune.dev/install.sh | bash -s -- --yes
+  curl -fsSL https://raw.githubusercontent.com/mifunedev/agro/main/.agro/scripts/install.sh | bash -s -- --yes
   ./.agro/scripts/install.sh
   AGRO_GITHUB_REPO=myorg/my-harness curl -fsSL \
     https://raw.githubusercontent.com/myorg/my-harness/main/.agro/scripts/install.sh | bash

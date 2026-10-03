@@ -22,7 +22,7 @@ still uses the old names.
 | Image seed | `/opt/agro-seed` |
 | First-boot marker | `.agro/.image-seeded` |
 | systemd units | `agro-bootstrap.service`, `agro-cron.service` |
-| Repository, install host | `mifunedev/agro`, `agro.mifune.dev` |
+| Repository, install host | `mifunedev/agro`, GitHub Releases |
 
 The TypeScript module that holds these names is
 [`.agro/cli/src/lib/layout.ts`](../.agro/cli/src/lib/layout.ts). The boot-safe

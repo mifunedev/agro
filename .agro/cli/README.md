@@ -31,7 +31,7 @@ installs the prebuilt `agro` artifact from the latest GitHub release — it neve
 clones or builds on your machine:
 
 ```bash
-curl -fsSL https://agro.mifune.dev/get-agro.sh | bash
+curl -fsSL https://github.com/mifunedev/agro/releases/latest/download/get-agro.sh | bash
 ```
 
 ### Requirements
