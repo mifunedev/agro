@@ -44,15 +44,16 @@
         "The test fails before the Dockerfile change."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: final-stage RUN appends install -d -m 0755 /etc/agro and install -m 0644 /dev/null /etc/agro/sandbox (advisor read the diff). 2 executed: vitest sandbox-marker.test.ts 3/3 on the integrated task branch; the test imports SANDBOX_MARKER_FILE and asserts no earlier stage names the path. 3 executed: worker showed the final-stage case failing before the Dockerfile edit. Reasoned: hadolint is not installed locally; CI boot-lint runs it.",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         ".devcontainer/Dockerfile",
         ".agro/scripts/__tests__/sandbox-marker.test.ts"
-      ]
+      ],
+      "commit": "56576d7f"
     },
     {
       "id": "US-003",
