@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Fixed
+
+- Flush the first-boot seed to disk before the entrypoint writes `.agro/.image-seeded`, and restore 0-byte seed files when `agro.json` or `package.json` has 0 bytes after a power loss ([#1303](https://github.com/mifunedev/agro/issues/1303)).
+
 ## [0.16.1] - 2026-10-03
 
 ### Added

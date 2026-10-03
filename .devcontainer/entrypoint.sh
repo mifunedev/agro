@@ -127,14 +127,31 @@ seed_workspace_volume() {
   fi
   control="$(agro_control_dir "$dest")"
   if [ -d "$control" ] && [ -f "$control/.image-seeded" ]; then
+    local _file _truncated=0
+    for _file in agro.json package.json; do
+      if [ -f "$dest/$_file" ] && [ ! -s "$dest/$_file" ]; then
+        _truncated=1
+      fi
+    done
+    if [ "$_truncated" = "1" ] && [ -n "$src" ] && [ -d "$src" ]; then
+      echo "[entrypoint] restoring 0-byte seed files in $dest from $src after an interrupted first-boot seed"
+      while IFS= read -r -d '' _file; do
+        if [ -f "$dest/$_file" ] && [ ! -L "$dest/$_file" ] && [ ! -s "$dest/$_file" ]; then
+          cp -a "$src/$_file" "$dest/$_file" 2>/dev/null || true
+        fi
+      done < <(cd "$src" && find . -type f -size +0 -printf '%P\0')
+      sync 2>/dev/null || true
+    fi
     return 0
   fi
   if [ -n "$src" ] && [ -d "$src" ] && [ ! -d "$control" ]; then
     cp -a "$src/." "$dest/" 2>/dev/null || true
+    sync 2>/dev/null || true
   fi
   if [ -d "$control" ]; then
     marker="$control/.image-seeded"
     : > "$marker" 2>/dev/null || true
+    sync 2>/dev/null || true
     AGRO_IMAGE_SEEDED_THIS_BOOT=1
   fi
   return 0

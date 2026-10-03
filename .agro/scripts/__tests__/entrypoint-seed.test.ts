@@ -86,6 +86,64 @@ describe("entrypoint seed_workspace_volume", () => {
     expect(existsSync(join(dest, ".agro", ".image-seeded"))).toBe(true);
   });
 
+  it("flushes the seeded files to disk before it writes the marker", () => {
+    const dest = tmp();
+    const src = seedSource();
+    const bin = tmp();
+    const log = join(bin, "sync.log");
+    const marker = join(dest, ".agro", ".image-seeded");
+    writeFileSync(
+      join(bin, "sync"),
+      `#!/usr/bin/env bash\nif [ -e "${marker}" ]; then echo marker; elif [ -e "${join(dest, "AGENTS.md")}" ]; then echo seeded; else echo empty; fi >> "${log}"\n`,
+      { mode: 0o755 },
+    );
+    expect(runSeed(dest, { AGRO_IMAGE_SEED_SRC: src, PATH: `${bin}:${process.env.PATH}` })).toBe("1");
+    expect(readFileSync(log, "utf8").trim().split("\n")).toEqual(["seeded", "marker"]);
+  });
+
+  it("restores 0-byte seed files after an interrupted first-boot seed and keeps user edits", () => {
+    const dest = tmp();
+    const src = seedSource();
+    writeFileSync(join(src, "agro.json"), '{"name":"seed"}\n');
+    writeFileSync(join(src, "package.json"), '{"name":"seed"}\n');
+    writeFileSync(join(src, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
+    writeFileSync(join(src, ".gitkeep"), "");
+    mkdirSync(join(dest, ".agro"), { recursive: true });
+    writeFileSync(join(dest, ".agro", ".image-seeded"), "");
+    writeFileSync(join(dest, "agro.json"), "");
+    writeFileSync(join(dest, "package.json"), "");
+    writeFileSync(join(dest, "pnpm-lock.yaml"), "");
+    writeFileSync(join(dest, ".gitkeep"), "");
+    writeFileSync(join(dest, "AGENTS.md"), "user edit\n");
+
+    const out = runSeed(dest, { AGRO_IMAGE_SEED_SRC: src });
+
+    expect(out).toContain("[entrypoint] restoring 0-byte seed files");
+    expect(out.endsWith("0")).toBe(true);
+    expect(readFileSync(join(dest, "agro.json"), "utf8")).toBe('{"name":"seed"}\n');
+    expect(readFileSync(join(dest, "package.json"), "utf8")).toBe('{"name":"seed"}\n');
+    expect(readFileSync(join(dest, "pnpm-lock.yaml"), "utf8")).toBe("lockfileVersion: '9.0'\n");
+    expect(readFileSync(join(dest, "AGENTS.md"), "utf8")).toBe("user edit\n");
+    expect(existsSync(join(dest, ".agro", "README.md"))).toBe(false);
+  });
+
+  it("leaves a seeded workspace alone when agro.json and package.json are not empty", () => {
+    const dest = tmp();
+    const src = seedSource();
+    writeFileSync(join(src, "agro.json"), '{"name":"seed"}\n');
+    writeFileSync(join(src, "package.json"), '{"name":"seed"}\n');
+    writeFileSync(join(src, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
+    mkdirSync(join(dest, ".agro"), { recursive: true });
+    writeFileSync(join(dest, ".agro", ".image-seeded"), "");
+    writeFileSync(join(dest, "agro.json"), '{"name":"user"}\n');
+    writeFileSync(join(dest, "package.json"), '{"name":"user"}\n');
+    writeFileSync(join(dest, "pnpm-lock.yaml"), "");
+
+    expect(runSeed(dest, { AGRO_IMAGE_SEED_SRC: src })).toBe("0");
+    expect(readFileSync(join(dest, "agro.json"), "utf8")).toBe('{"name":"user"}\n');
+    expect(readFileSync(join(dest, "pnpm-lock.yaml"), "utf8")).toBe("");
+  });
+
   it("resolves /opt/agro-seed when AGRO_IMAGE_SEED_SRC is unset", () => {
     const env: Record<string, string> = {};
     for (const [key, value] of Object.entries(process.env)) {
