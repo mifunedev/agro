@@ -409,7 +409,7 @@ describe("authored config surfaces in this repository", () => {
     const retired = `devcontainer/.example${dotenv}`;
     const hits = git("grep", "-lF", retired, "--", ".", ":!CHANGELOG.md", ":!docs/rfcs")
       .stdout.split("\n")
-      .filter((f) => f && !f.startsWith(".agro/evals/probes/") && !f.endsWith("agro-config.test.ts"));
+      .filter(Boolean);
     expect(hits).toEqual([]);
   });
 });

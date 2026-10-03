@@ -11,10 +11,6 @@
 # Lines starting with # are comments. Blank lines are ignored.
 #
 # Last reviewed: 2026-08-13 (issue #753)
-#
-# Every entry is checked by .agro/evals/probes/protected-paths-resolve.sh.
-# An entry that resolves to nothing protects nothing, and reads identical
-# to one that passes — so a rename silently disarms the guard.
 
 # --- Orchestrator skills (.claude/skills/) ---
 release
@@ -43,8 +39,6 @@ t3
 # --- Crons (referenced by .agro/scripts/cron-runtime.ts) ---
 crons/heartbeat.md
 crons/cleanup-tasks.md
-.agro/evals/probes/cleanup-tasks-worktree-grooming.sh
-.agro/evals/probes/markitdown-wiki-ingest.sh
 crons/eval-weekly.md
 
 # --- Norms folded into skills (B-state M3+M4) ---

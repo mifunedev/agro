@@ -6,11 +6,11 @@ if [ -n "${AUDIT_ROOT:-}" ]; then
   ROOT="$(cd "$AUDIT_ROOT" && pwd -P)"
 else
   ROOT="$SCRIPT_DIR"
-  while [ "$ROOT" != "/" ] && [ ! -d "$ROOT/.agro/evals/probes" ]; do
+  while [ "$ROOT" != "/" ] && [ ! -d "$ROOT/.agro/evals" ]; do
     ROOT="$(dirname "$ROOT")"
   done
 fi
-[ -d "$ROOT/.agro/evals/probes" ] || { echo "could not locate repo root from $SCRIPT_DIR" >&2; exit 1; }
+[ -d "$ROOT/.agro/evals" ] || { echo "could not locate repo root from $SCRIPT_DIR" >&2; exit 1; }
 PROBES_DIR="$ROOT/.agro/evals/probes"
 RESULTS="$ROOT/.agro/evals/RESULTS.md"
 TIMEOUT_SECS=30
