@@ -10,6 +10,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
+- Add a docs reference test that fails when `docs/` or `README.md` names an unknown `agro` verb, a missing repository path, an unknown `agro.json` key, or a broken link or anchor ([#1283](https://github.com/mifunedev/agro/issues/1283)).
 - Add a GitHub Codespaces badge near the top of the README to open AGRO in Codespaces ([#1259](https://github.com/mifunedev/agro/issues/1259)).
 - Add `escalate-timeouts.sh` to permit one 24-hour reminder and 72-hour expiry without granting approval ([#1192](https://github.com/mifunedev/agro/issues/1192)).
 - Add `manual-review-check.sh` to reject branch-pinned evidence links and screenshots without `Callouts:`, and `annotate-screenshot.sh` to add numbered callouts to agent-browser screenshots ([#1239](https://github.com/mifunedev/agro/issues/1239)).

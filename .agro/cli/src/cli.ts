@@ -69,6 +69,23 @@ import {
   type FetchRemoteSourceOptions,
 } from "./lib/remote.js";
 import { AGRO_VERSION as VERSION } from "./lib/version.js";
+import {
+  AGRO_COMMANDS,
+  CONFIG_VERBS,
+  HARNESS_SUBCOMMANDS,
+  LANGFUSE_VERBS,
+  SECRET_VERBS,
+  TOOL_SUBCOMMANDS,
+  WORKSPACE_SUBCOMMANDS,
+  isOneOf,
+  type ConfigIntegration,
+  type ConfigVerb,
+  type HarnessSubcommand,
+  type LangfuseVerb,
+  type SecretVerb,
+  type ToolSubcommand,
+  type WorkspaceSubcommand,
+} from "./command-table.js";
 
 const DEFAULT_SOURCE_CONTROL_DIR = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -89,7 +106,7 @@ const INTEGRATIONS: Record<string, Integration> = {
         { stdout: (s) => process.stdout.write(s), stderr: (s) => process.stderr.write(s) },
       ),
   },
-};
+} satisfies Record<ConfigIntegration, Integration>;
 
 export function isHelpFlag(arg: string | undefined): boolean {
   return arg === "--help" || arg === "-h" || arg === "help";
@@ -505,10 +522,6 @@ export function extractSandboxFlag(
   return { ok: true, args: sandbox === undefined ? { rest: kept } : { rest: kept, sandbox } };
 }
 
-export const LANGFUSE_VERBS = ["apply", "status", "disable"] as const;
-
-export type LangfuseVerb = (typeof LANGFUSE_VERBS)[number];
-
 export interface LangfuseArgs {
   help: boolean;
   verb?: LangfuseVerb;
@@ -530,10 +543,6 @@ export function parseLangfuseArgs(rest: string[], bin: string = AGRO_PRODUCT.bin
   }
   return { ok: true, args: { help: false, verb: head as LangfuseVerb } };
 }
-
-export const CONFIG_VERBS = ["show", "set", "repo"] as const;
-
-export type ConfigVerb = (typeof CONFIG_VERBS)[number];
 
 export interface ConfigArgs {
   help: boolean;
@@ -601,10 +610,6 @@ export function parseConfigArgs(input: string[], bin: string = AGRO_PRODUCT.bin)
   }
   return { ok: true, args: { ...args, verb, key, value } };
 }
-
-export const SECRET_VERBS = ["set", "list"] as const;
-
-export type SecretVerb = (typeof SECRET_VERBS)[number];
 
 export interface SecretArgs {
   help: boolean;
@@ -835,7 +840,7 @@ export function parseShellArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): 
 
 export interface WorkspaceArgs {
   help: boolean;
-  subcommand?: "create" | "list";
+  subcommand?: WorkspaceSubcommand;
   name?: string;
   json: boolean;
   path?: string;
@@ -885,7 +890,7 @@ export function parseWorkspaceArgs(
   }
 
   const [sub, name, ...extra] = positionals;
-  if (sub !== "create" && sub !== "list") {
+  if (!isOneOf(WORKSPACE_SUBCOMMANDS, sub)) {
     return {
       ok: false,
       error: `${bin} workspace: unknown subcommand "${sub}" — expected create or list`,
@@ -917,7 +922,7 @@ export function parseWorkspaceArgs(
 
 export interface HarnessArgs {
   help: boolean;
-  subcommand?: "list" | "install" | "status" | "uninstall";
+  subcommand?: HarnessSubcommand;
   name?: string;
   json: boolean;
   host: boolean;
@@ -985,7 +990,7 @@ export function parseHarnessArgs(rest: string[], bin: string = AGRO_PRODUCT.bin)
   }
 
   const [sub, name, ...extra] = positionals;
-  if (sub !== "list" && sub !== "install" && sub !== "status" && sub !== "uninstall") {
+  if (!isOneOf(HARNESS_SUBCOMMANDS, sub)) {
     return {
       ok: false,
       error: `${bin} harness: unknown subcommand "${sub}" — expected list, install, uninstall, or status`,
@@ -1022,7 +1027,7 @@ interface ToolArgs {
   host: boolean;
   force: boolean;
   path?: string;
-  subcommand?: "list" | "install" | "status" | "uninstall";
+  subcommand?: ToolSubcommand;
   name?: string;
 }
 
@@ -1056,7 +1061,7 @@ export function parseToolArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): P
   }
 
   const [sub, name, ...extra] = positionals;
-  if (sub !== "list" && sub !== "install" && sub !== "status" && sub !== "uninstall") {
+  if (!isOneOf(TOOL_SUBCOMMANDS, sub)) {
     return {
       ok: false,
       error: `${bin} tool: unknown subcommand "${sub}" — expected list, install, uninstall, or status`,
@@ -1190,6 +1195,7 @@ async function main(argv: string[]): Promise<number> {
     process.stdout.write(`${VERSION}\n`);
     return 0;
   }
+  if (!Object.hasOwn(AGRO_COMMANDS, first)) return unknownCommand(first, product);
 
   if (first === "config") {
     const parsed = parseConfigArgs(argv.slice(1), bin);
@@ -1514,7 +1520,11 @@ async function main(argv: string[]): Promise<number> {
     return runGateway(parsed.args.passthrough, { bin });
   }
 
-  process.stderr.write(`${bin}: unknown command "${first}"\n\n`);
+  return unknownCommand(first, product);
+}
+
+function unknownCommand(first: string, product: Product): number {
+  process.stderr.write(`${product.bin}: unknown command "${first}"\n\n`);
   printAgroHelp(product);
   return 1;
 }
