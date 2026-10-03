@@ -25,6 +25,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Fixed
 
+- Build the CLI bundle once in a vitest global setup so test files no longer race to build or read `.agro/cli/dist/agro.js` in a fresh worktree ([#1264](https://github.com/mifunedev/agro/issues/1264)).
 - Read Slack tokens in the gateway, entrypoint, escalate, and healthcheck scripts from the `.env` that `agro secret set` writes, so a missing `.devcontainer/.env` link no longer hides them ([#1282](https://github.com/mifunedev/agro/issues/1282)).
 - Fix stale links, commands, and names across `docs/` and trim each doc to its operator journey with one owner per topic, in Simplified Technical English ([#1278](https://github.com/mifunedev/agro/issues/1278)).
 

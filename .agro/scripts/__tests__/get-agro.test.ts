@@ -169,16 +169,6 @@ describe("get-agro.sh end to end", () => {
 
   it("installs the real built agro.js bundle and reports its version in a new shell", () => {
     const bundle = join(REPO_ROOT, ".agro", "cli", "dist", "agro.js");
-    if (!existsSync(bundle)) {
-      const ci = spawnSync("npm", ["--prefix", join(REPO_ROOT, ".agro", "cli"), "ci", "--ignore-scripts"], {
-        encoding: "utf8",
-      });
-      expect(ci.status, ci.stderr).toBe(0);
-      const build = spawnSync("npm", ["--prefix", join(REPO_ROOT, ".agro", "cli"), "run", "build"], {
-        encoding: "utf8",
-      });
-      expect(build.status, build.stderr).toBe(0);
-    }
     const real = readFileSync(bundle);
     expect(real.toString("utf8").startsWith("#!/usr/bin/env node\n")).toBe(true);
     expect(real.equals(Buffer.from(FAKE_ARTIFACT))).toBe(false);

@@ -215,7 +215,11 @@ describe("cli-first-install-smoke.sh", () => {
   });
 
   it("refuses --bootstrap-without-node when node is present", () => {
-    const result = run(["--phase", "bootstrap", "--bootstrap-without-node"]);
+    const dir = mkdtempSync(join(tmpdir(), "cli-first-no-node-"));
+    cleanups.push(dir);
+    const bundle = join(dir, "agro.js");
+    writeFileSync(bundle, '#!/usr/bin/env node\nconsole.log("9.9.9")\n');
+    const result = run(["--phase", "bootstrap", "--bundle", bundle, "--bootstrap-without-node"]);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("bootstrap-without-node requires node to be absent");
   });

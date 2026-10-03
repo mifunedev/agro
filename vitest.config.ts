@@ -30,6 +30,7 @@ export default defineConfig({
       ".agro/cli/**/__tests__/**/*.test.ts",
     ],
     globals: true,
+    globalSetup: [".agro/cli/vitest.global-setup.mjs"],
     env: {
       AGRO_EXECUTION_TARGET: "docker-compose",
     },
