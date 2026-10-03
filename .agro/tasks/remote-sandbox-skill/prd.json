@@ -116,14 +116,15 @@
         "The PR body states the merge order: the mifunedev/skills PR that publishes `remote-sandbox` (ADR step 2) merges first."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: four ALLOW AGRO-PATH entries for skills/remote-sandbox (agro-rows.sh x3, restart-test.sh x1). 2 executed: advisor reran registry-portability.sh against the scratch registry copy with remote-sandbox (deltas: SKILL.md:40 example path, added LICENSE): findings 9, suppressed 9, neither 0, stale 0, exit 0. Against registry master without remote-sandbox: neither 0, stale exceptions 4 (the new entries), as expected. 3 reasoned: the PR #1316 body states that the registry publish PR (ADR step 2) merges first.",
       "dependsOn": [
         "US-004"
       ],
       "files": [
         ".agro/scripts/registry-portability.md"
-      ]
+      ],
+      "commit": "784e50ec"
     },
     {
       "id": "US-006",
