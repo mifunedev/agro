@@ -77,6 +77,7 @@ Source decision: ADR #1314, migration step 1. The operator accepted the ADR on 2
 - [ ] `run.sh` calls `driver_rows` only when the check is `checks/agro-rows.sh`.
 - [ ] A run of any other check prints no `R09-disconnect`, `R10-ssh-inbound`, or `R11-https-port` line.
 - [ ] A run of `checks/agro-rows.sh` still prints the `R09`, `R10`, and `R11` lines.
+- [ ] `SKILL.md` states that the driver rows run only after `checks/agro-rows.sh`, at the `scripts/run.sh` row and at the driver-rows paragraph.
 - [ ] `pnpm exec vitest run .agro/scripts/__tests__/remote-sandbox.test.ts` passes, and the new case fails before the change.
 
 ### US-006: Manual review on exe.dev
