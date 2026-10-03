@@ -104,7 +104,7 @@ Runs on different providers are independent. Start one run at a time on each pro
 
 | Command | Use |
 |---|---|
-| `scripts/run.sh <provider> [<check>\|--preflight]` | Create a VM, run `<check>`, and run the driver rows. The default check is `checks/fresh-install.sh`. A check path resolves against the skill directory first. |
+| `scripts/run.sh <provider> [<check>\|--preflight]` | Create a VM and run `<check>`. After `checks/agro-rows.sh`, run the driver rows. The default check is `checks/fresh-install.sh`. A check path resolves against the skill directory first. |
 | `scripts/restart-test.sh <provider> <sync\|settled>` | Run `R08-vm-restart`. `sync` calls `sync` before the restart. `settled` waits 300 seconds before the restart. |
 | `scripts/summarize.sh [<dir>]` | Print the matrix table from the logs in `<dir>`. The default is `MATRIX_OUT`. |
 
@@ -123,7 +123,7 @@ Runs on different providers are independent. Start one run at a time on each pro
 
 `run.sh` forwards `INSTALL_URL`, `AGRO_JS_URL`, and `SANDBOX_IMAGE` into the VM and writes the build under test into the log. `run.sh` names each VM `agro-mx-<date>-<time>`. `run.sh` writes each log to `$MATRIX_OUT/<provider>-<check>-<YYYYmmdd-HHMMSS>.log`. `restart-test.sh` writes each log to `$MATRIX_OUT/<provider>-restart-<mode>-<YYYYmmdd-HHMMSS>.log`.
 
-After the check prints `SUMMARY` or `PROBE-END`, the driver runs three rows from outside the VM: `R09-disconnect`, `R10-ssh-inbound`, and `R11-https-port`.
+The driver rows run only after `checks/agro-rows.sh`. After that check prints `SUMMARY`, the driver runs three rows from outside the VM: `R09-disconnect`, `R10-ssh-inbound`, and `R11-https-port`. A run of any other check prints no driver row.
 
 ## Adapter contract
 

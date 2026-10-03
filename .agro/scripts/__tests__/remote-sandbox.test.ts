@@ -53,6 +53,7 @@ function makeSkill(): Skill {
   }
   writeFileSync(join(skill, "adapters", "builtin.sh"), BUILTIN_ADAPTER);
   copyFileSync(join(FIXTURES, "checks/env-check.sh"), join(skill, "checks/fresh-install.sh"));
+  copyFileSync(join(FIXTURES, "checks/env-check.sh"), join(skill, "checks/agro-rows.sh"));
   chmodSync(join(FIXTURES, "bin/tmux"), 0o755);
   const state = join(temp, "state");
   mkdirSync(join(state, "vms"), { recursive: true });
@@ -149,7 +150,7 @@ describe("remote-sandbox adapter discovery and contract", () => {
 });
 
 describe.concurrent("remote-sandbox driver run", { timeout: 30_000 }, () => {
-  it("runs the default check, forwards INSTALL_URL only, skips missing hooks, and cleans up", async () => {
+  it("runs the default check, forwards INSTALL_URL only, prints no driver rows, and cleans up", async () => {
     const skill = makeSkill();
     const result = await launch(skill, ["fake"], {
       INSTALL_URL: "https://example.test/install.sh",
@@ -165,6 +166,19 @@ describe.concurrent("remote-sandbox driver run", { timeout: 30_000 }, () => {
     expect(log).toContain("CHECK AGRO_JS_URL=https://example.test/agro.js");
     expect(log).toContain("CHECK SANDBOX_IMAGE=unset");
     expect(log).toContain("CHECK GET_AGRO_URL=unset");
+    expect(log).not.toContain("R09-disconnect");
+    expect(log).not.toContain("R10-ssh-inbound");
+    expect(log).not.toContain("R11-https-port");
+    expect(log.trimEnd()).toMatch(/remaining agro-matrix resources on fake: 0\nRUN DONE$/);
+    expect(destroyedCount(skill)).toBe(1);
+  });
+
+  it("runs the driver rows after checks/agro-rows.sh and skips missing hooks", async () => {
+    const skill = makeSkill();
+    const result = await launch(skill, ["fake", "checks/agro-rows.sh"]).done;
+    expect(result.code).toBe(0);
+    const log = readFileSync(logPath(result.stdout), "utf8");
+    expect(log).toContain("check=agro-rows.sh");
     expect(log).toContain("RESULT R09-disconnect PASS");
     expect(log).toContain("RESULT R10-ssh-inbound SKIPPED no adapter hook");
     expect(log).toContain("RESULT R11-https-port SKIPPED no adapter hook");
@@ -173,9 +187,21 @@ describe.concurrent("remote-sandbox driver run", { timeout: 30_000 }, () => {
     expect(destroyedCount(skill)).toBe(1);
   });
 
-  it("calls a row hook only when the adapter defines it", async () => {
+  it("prints no driver rows after a check other than checks/agro-rows.sh", async () => {
     const skill = makeSkill();
     const result = await launch(skill, ["hooked", join(FIXTURES, "checks/env-check.sh")]).done;
+    expect(result.code).toBe(0);
+    const log = readFileSync(logPath(result.stdout), "utf8");
+    expect(log).toContain("SUMMARY env-check");
+    expect(log).not.toContain("R09-disconnect");
+    expect(log).not.toContain("R10-ssh-inbound");
+    expect(log).not.toContain("R11-https-port");
+    expect(log.trimEnd()).toMatch(/remaining agro-matrix resources on hooked: 0\nRUN DONE$/);
+  });
+
+  it("calls a row hook only when the adapter defines it", async () => {
+    const skill = makeSkill();
+    const result = await launch(skill, ["hooked", "checks/agro-rows.sh"]).done;
     expect(result.code).toBe(0);
     const log = readFileSync(logPath(result.stdout), "utf8");
     expect(log).toMatch(/RESULT R10-ssh-inbound PASS hook saw agro-mx-/);

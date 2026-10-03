@@ -29,4 +29,4 @@ fwd="T_CREATE_REQ=$t0 T_FIRST_SHELL=$t2"
 for v in INSTALL_URL AGRO_JS_URL SANDBOX_IMAGE; do [ -n "${!v:-}" ] && fwd+=" $v=${!v}"; done
 echo "build under test: install=${INSTALL_URL:-release} agro_js=${AGRO_JS_URL:-release} sandbox_image=${SANDBOX_IMAGE:-cli default} vm_image=${IMAGE:-provider default}"
 run_detached "$CHECK" "$fwd" || exit 1
-poll_log 2400 && driver_rows
+poll_log 2400 && { [ "$CHECK" != "$SKILL_DIR/checks/agro-rows.sh" ] || driver_rows; }
