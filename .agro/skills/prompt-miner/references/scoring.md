@@ -153,7 +153,7 @@ key is an error. Pass it as a single shell token (the SKILL.md uses
 join** (dedupe + merge resumed sessions by id across files), with **weighted
 scoring**, **dual-schema normalization** (Claude vs. Pi), a **redaction pass**,
 and an **optional `git` shell-out** for ground truth. Expressing that in jq would
-be unreadable and untestable; a zero-dependency Node engine with `node --test`
+be unreadable and untestable; a zero-dependency Node engine with vitest (`pnpm test`)
 unit coverage is the maintainable choice. The `git` binary is the one allowed
 external dependency, documented here and gated behind `--no-git`.
 
