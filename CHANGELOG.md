@@ -21,8 +21,13 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 - Print a one-time star line after the first successful `agro sandbox install` in an interactive terminal; set `AGRO_NO_STAR_PROMPT=1` to suppress it ([#1175](https://github.com/mifunedev/agro/issues/1175)).
 - Read operator Slack decisions by message timestamp and report sender timestamps for unattended escalations ([#1181](https://github.com/mifunedev/agro/issues/1181)).
 
+### Fixed
+
+- Fix stale links, commands, and names across `docs/` and trim each doc to its operator journey with one owner per topic, in Simplified Technical English ([#1278](https://github.com/mifunedev/agro/issues/1278)).
+
 ### Removed
 
+- Delete 22 docs with no operator journey, merge 4 into surviving docs, retire `docs/rfcs/`, and repoint `/architect`/`/git` to GitHub issues as the decision record ([#1275](https://github.com/mifunedev/agro/issues/1275)).
 - Remove the 145 eval probes after moving the 21 floor guards, including the deny hooks and sandbox privilege boundary, into vitest ([#1269](https://github.com/mifunedev/agro/issues/1269)).
 - Remove the `/eval` skill and runner, the `eval-probes` CI jobs, the `eval-weekly` cron, `/audit eval-quality`, and `/audit implementation` Gate 2 ([#1271](https://github.com/mifunedev/agro/issues/1271)).
 - Remove the eval experiments, datasets, capability benchmark, `/benchmark` skill, and finished task folders ([#1265](https://github.com/mifunedev/agro/issues/1265)).

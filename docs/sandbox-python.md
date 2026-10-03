@@ -33,13 +33,3 @@ Verification checks both default commands, the kernel base interpreter, and the 
 Base-command checks use an explicit PATH independent of the caller's active project environment.
 `verify-sandbox-image.sh` restores `/opt/home-seed` in an ephemeral container with networking disabled.
 It checks Python 3.13 defaults and the kernel as `sandbox`, without a login shell.
-
-Run the real-uv regression matrix as a non-root sandbox user:
-
-```bash
-bash .agro/scripts/__tests__/provision-python.integration.sh
-```
-
-The matrix downloads interpreters and packages into a disposable HOME.
-It checks fresh provisioning, migration, rollback, command resolution, verification failures, and project isolation.
-It deletes the test HOME on exit.

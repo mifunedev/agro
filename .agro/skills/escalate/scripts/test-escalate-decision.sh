@@ -107,8 +107,6 @@ PI_SLACK_BOT_TOKEN=env-token EXPECTED_TOKEN=env-token bash "$SCRIPT_DIR/escalate
 printf 'PI_SLACK_BOT_TOKEN=env-file-token\n' >"$tmp/root/.devcontainer/.env"
 EXPECTED_TOKEN=env-file-token bash "$SCRIPT_DIR/escalate.sh" --channel C123 --summary s --needs n >/dev/null || fail 'sender ignored env-file token'
 manifest="$SCRIPT_DIR/../../../../.pi/install/slack-manifest.yaml"
-doc="$SCRIPT_DIR/../../../../docs/integrations/slack.md"
-diff -u "$manifest" <(awk '/^```yaml$/{capture=1;next} capture && /^```$/{exit} capture{print}' "$doc") || fail 'documented YAML differs from canonical manifest'
 [[ $(grep -c '^    - command: /' "$manifest") == 7 ]] || fail 'manifest must declare seven slash commands'
 for command in help trusted revoke channels enable disable toggletools; do
   [[ $(grep -Fxc "    - command: /$command" "$manifest") == 1 ]] || fail "manifest lacks /$command"

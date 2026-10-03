@@ -59,7 +59,7 @@ echo "task-graph: $((total - unfinished))/$total stories pass"
 ```
 
 **(b) Artifact contract.** If the `prd.json` declares an `artifact_contract` block
-(see the [artifact-contract schema](../../../../docs/artifact-contract-schema.md)), every
+(the field table below documents the schema), every
 path in `artifact_contract.required_artifacts` must exist on disk. This is a
 **gating** sub-check — a declared-but-missing artifact is a hard `AUDIT-FAIL`, not
 an advisory warning. The block is **optional and additive**: a `prd.json` with no
@@ -84,6 +84,21 @@ A non-conformant graph **or** a missing required artifact is `AUDIT-FAIL` →
 not advance to the later gates. A worked fixture proving the artifact sub-check
 fails on a missing path lives at
 [`../fixtures/artifact-contract.prd.json`](../fixtures/artifact-contract.prd.json).
+
+An `artifact_contract` block sits at the root of `prd.json`, a sibling of
+`userStories`. Every field is an optional `string[]`; omitting a field makes no
+promise on that axis. Gate 1 enforces only `required_artifacts`; the rest are
+declarative contract terms a reviewer holds the work to.
+
+| Field | Meaning |
+|-------|---------|
+| `required_artifacts` | Repo-relative paths the finished task must leave on disk. **Enforced** by Gate 1. |
+| `allowed_locations` | Path prefixes the task's edits may land within. |
+| `forbidden_destructive_edits` | Paths or globs that must not be deleted or destructively rewritten. |
+| `verification_commands` | The exact shell commands that prove the work. |
+| `acceptance_criteria` | Contract-level acceptance gates for the whole unit. |
+| `rollback_conditions` | The observable conditions under which the change must be reverted. |
+| `final_handoff_requirements` | What must be true before the unit is handed off for human merge. |
 
 ### Gate 2 — Promotable / CI state
 

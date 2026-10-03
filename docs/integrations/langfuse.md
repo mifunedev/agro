@@ -99,8 +99,7 @@ See the [field reference](../configuration.md#langfuse-tracing) for the four
 | `~/.codex/langfuse.json` | `0600` | `enabled`, `tags`, and `environment` |
 
 The fragment holds the only credential at rest. The three harness files carry no
-key. The Codex file keeps mode `0600`, which matches the
-[manual procedure](#-manual-configuration) and costs nothing.
+key.
 
 **The fragment carries bare `KEY=value` lines and no `export`.** systemd rejects
 an `EnvironmentFile` that uses `export`, and
@@ -249,7 +248,7 @@ LANGFUSE_CODEX_DEBUG=true codex    # Codex
 | Traces reach the wrong project | The key pair belongs to another project. Query `/api/public/projects` to resolve it. |
 | `/api/public/traces` returns 404 | The deployment runs Langfuse v4 in `events_only` mode. Ingestion still works; read traces in the interface. |
 | Your own API call returns 403 | A content delivery network blocks non-browser clients. This affects your calls, not the plugins. |
-| No traces after `agro destroy` | The command removes the named volumes, so every plugin install is gone. The entrypoint re-applies the settings at boot; run `agro config langfuse` to reinstall the plugins. |
+| No traces after `agro destroy` | The command deletes the home volume, so every plugin install is gone. The entrypoint re-applies the settings at boot; run `agro config langfuse` to reinstall the plugins. |
 
 ## 🔒 Before a sensitive session
 
@@ -291,40 +290,6 @@ it. The generated fragment is the one exception, because systemd reads that file
 too.
 
 Restart the harness after any change. Each plugin reads the environment at start.
-
-To scope settings to one harness, write the file that `agro langfuse apply`
-generates:
-
-```json
-// ~/.claude/settings.json — Claude Code
-{
-  "env": {
-    "LANGFUSE_BASE_URL": "https://langfuse.example.com",
-    "LANGFUSE_TRACING_ENVIRONMENT": "agro-sbx-local"
-  }
-}
-```
-
-```json
-// ~/.pi/agent/langfuse.json — Pi
-{
-  "environment": "agro-sbx-local",
-  "userId": "operator"
-}
-```
-
-```bash
-# ~/.codex/langfuse.json — Codex
-cat > ~/.codex/langfuse.json <<'JSON'
-{
-  "enabled": true,
-  "tags": ["codex"],
-  "environment": "agro-sbx-local"
-}
-JSON
-
-chmod 600 ~/.codex/langfuse.json
-```
 
 ## 📚 Sources
 

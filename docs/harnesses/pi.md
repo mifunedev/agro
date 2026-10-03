@@ -4,134 +4,76 @@ title: "Pi"
 
 # Pi
 
-Pi is a lightweight, customizable harness — a hackable agent framework you can shape to your project. Install it with `agro harness install pi`.
+Pi is a lightweight, customizable harness — a hackable agent framework you can shape to your project. Install Pi with `agro harness install pi`.
 
-## Verify installation
+## Install
+
+```bash
+agro harness install pi
+```
+
+Verify the install:
 
 ```bash
 pi --version
 ```
 
+## Uninstall
+
+```bash
+agro harness uninstall pi
+```
+
 ## Authentication
 
-Pi's subscription login runs its own OAuth flow with a local callback server on `http://localhost:1455`. For the login to complete, the browser on your laptop has to reach port 1455 inside the container.
+Pi's subscription login runs its own OAuth flow with a local callback server on `http://localhost:1455`. AGRO publishes no host port for that callback by default. VS Code's Attach-to-Container forwards the port automatically while you stay attached (see [Connecting to the Sandbox](../connecting.md)). Over plain SSH with no VS Code attach, open a tunnel yourself before you log in:
 
-The base `.devcontainer/docker-compose.yml` publishes `127.0.0.1:1455:1455` so the callback port lands on the host loopback:
+```bash
+ssh -L 1455:localhost:1455 user@your-host
+```
 
-- **VS Code Remote SSH (works out of the box):** VS Code automatically forwards the loopback port to your laptop — just run the Pi login, the redirect completes with no extra step.
-- **Direct terminal (plain `ssh`):** plain SSH does not auto-forward ports. Open the tunnel yourself before logging in:
-
-  ```bash
-  ssh -L 1455:localhost:1455 user@your-host
-  ```
-
-This is Pi-specific. The Codex CLI has its own headless path (`codex login --device-auth`) and does not need port 1455 — see [Codex § Authentication](./codex.md#authentication).
+This login flow is Pi-specific. Codex has its own headless path (`codex login --device-auth`) and needs no port 1455. See [Codex § Authentication](./codex.md#authentication).
 
 ## Upstream
 
-[`@earendil-works/pi-coding-agent` on npm](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) — see the upstream repository at [earendil-works/pi-mono](https://github.com/earendil-works/pi-mono) for documentation, configuration, and roadmap. (The previous package, `@mariozechner/pi-coding-agent`, is deprecated — install the `@earendil-works/...` successor instead.)
+[`@earendil-works/pi-coding-agent` on npm](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) — see the upstream repository at [earendil-works/pi-mono](https://github.com/earendil-works/pi-mono) for documentation, configuration, and roadmap.
 
 ## Default packages
 
 AGRO loads these project-local Pi packages from `.pi/settings.json`:
 
-- [`@tintinweb/pi-subagents`](https://pi.dev/packages/@tintinweb/pi-subagents) — Claude Code-style sub-agent commands for Pi, including FleetView (enabled by default). With an empty prompt, press `↓` (or `←`) to focus the agent list, then `↑`/`↓` to select and `Enter` to open an agent; toggle it via `/agents` → Settings → Fleet view.
-- [`@tintinweb/pi-tasks`](https://github.com/tintinweb/pi-tasks) — task tracking for Pi with `TaskCreate`, `TaskList`, `TaskGet`, `TaskUpdate`, `TaskOutput`, `TaskStop`, and `TaskExecute` tools; a `/tasks` menu; and a persistent task widget. `TaskExecute` integrates with `@tintinweb/pi-subagents` so tracked tasks can run through configured subagents.
-- [`@narumitw/pi-goal`](https://pi.dev/packages/@narumitw/pi-goal?name=goal) — `/goal <task>` mode that keeps Pi working until it verifies completion and calls the `goal_complete` tool. Use `/goal pause`, `/goal resume`, or `/goal clear` to manage the active goal.
-- [`@narumitw/pi-codex-usage`](https://github.com/narumiruna/pi-extensions/tree/main/extensions/pi-codex-usage) — `/codex-status` plus a compact `openai-codex` statusline for 5-hour session usage and weekly usage. AGRO pins `0.6.2`, which includes the upstream stale-`ExtensionContext` statusline timer fix that prevents crashes after Pi replaces an extension context.
-- [`@trevonistrevon/pi-loop`](https://pi.dev/packages/@trevonistrevon/pi-loop?name=monitor) — Monitor and loop tools for background command monitoring and scheduled re-wakes. Use `MonitorCreate`, `MonitorList`, and `MonitorStop` for long-running commands; use `/loop` or `LoopCreate` for cron/event-triggered follow-up prompts.
-- [`@guwidoe/pi-prompt-suggester`](https://github.com/guwidoe/pi-prompt-suggester) — intent-aware next-prompt suggestions after assistant completions. Suggestions can appear as ghost text in the editor, with `/suggesterSettings` for interactive configuration and `/suggester status` / `/suggester reseed` for inspection and manual reseeding.
+- [`@tintinweb/pi-subagents`](https://pi.dev/packages/@tintinweb/pi-subagents) — Claude Code-style sub-agent commands, including FleetView (`/agents` → Settings → Fleet view).
+- [`@tintinweb/pi-tasks`](https://github.com/tintinweb/pi-tasks) — task tracking with `TaskCreate`, `TaskList`, `TaskGet`, `TaskUpdate`, `TaskOutput`, `TaskStop`, `TaskExecute`, and a `/tasks` menu.
+- [`@narumitw/pi-goal`](https://pi.dev/packages/@narumitw/pi-goal?name=goal) — `/goal <task>` mode that keeps Pi working until it verifies completion. Use `/goal pause`, `/goal resume`, or `/goal clear`.
+- [`@narumitw/pi-codex-usage`](https://github.com/narumiruna/pi-extensions/tree/main/extensions/pi-codex-usage) — `/codex-status` plus a statusline for ChatGPT Codex subscription usage.
+- [`@trevonistrevon/pi-loop`](https://pi.dev/packages/@trevonistrevon/pi-loop?name=monitor) — `MonitorCreate`/`MonitorList`/`MonitorStop` for background commands, and `/loop`/`LoopCreate` for scheduled or event-triggered follow-up prompts.
+- [`@guwidoe/pi-prompt-suggester`](https://github.com/guwidoe/pi-prompt-suggester) — ghost-text prompt suggestions after assistant completions; configure with `/suggesterSettings`.
+- [`@ff-labs/pi-fff`](../integrations/pi-fff.md) — fast file search (`ffgrep`, `ffind`); see the integration page for detail.
 
-Pi installs missing project packages automatically on startup after the project is trusted. AGRO also auto-loads project-local extensions from `.pi/extensions/`.
+Pi installs missing project packages automatically once you trust the project. AGRO also auto-loads project-local extensions from `.pi/extensions/`.
 
-## Optional Langfuse observability
-
-[Langfuse](../integrations/langfuse.md#2-pi) is an opt-in extension, not a default
-`.pi/settings.json` package. The plugin captures prompts, outputs, tool calls,
-and cost, and tags each trace `pi`.
-
-Run `agro config langfuse` to configure the plugin. The wizard offers to install
-`@langfuse/pi-observability-plugin` in user scope, writes `environment` and
-`userId` to `~/.pi/agent/langfuse.json`, and renders the endpoint and both keys
-into the credential fragment `~/.config/agro/langfuse.env`. The Pi config file
-holds no `baseUrl` field, so Pi reads the endpoint from the environment.
-
-### Codex stale-response recovery
-
-The installed `@earendil-works/pi-ai` Codex Responses provider can reuse WebSocket cached continuation state by sending `previous_response_id`. If the upstream Codex backend forgets that response id, it returns `previous_response_not_found`; Pi clears the stale continuation but the failed user turn would otherwise be lost. AGRO keeps a small auto-loaded `.pi/extensions/codex-stale-response-retry.ts` extension that re-injects non-Slack failed turns once via `sendUserMessage(..., { deliverAs: "followUp" })`, causing the next request to start from fresh/full context. Slack-prefixed turns remain owned by the dedicated `.pi/bridge-recovery/` extension that is co-loaded with `pi-messenger-bridge`.
-
-Outside this project, try the packages manually with `pi -e npm:@narumitw/pi-goal`, `pi -e npm:@narumitw/pi-codex-usage@0.6.2`, `pi -e npm:@trevonistrevon/pi-loop`, or `pi -e npm:@guwidoe/pi-prompt-suggester@0.3.10`.
-
-## Prompt suggestions
-
-AGRO enables `@guwidoe/pi-prompt-suggester` by default for interactive Pi sessions. The package watches completed turns, builds a lightweight project intent seed, and proposes the next likely user prompt.
-
-```text
-/suggesterSettings
-/suggester status
-/suggester reseed
-/suggester config set suggestion.ghostAcceptKeys ["space","right"]
-```
-
-By default, compatible suggestions appear as ghost text when the editor is empty. Press `Space` to accept the full suggestion, or change the accept key and other behavior in `/suggesterSettings`. Suggester state, overrides, and logs live under Pi's agent data directory (`${PI_CODING_AGENT_DIR:-~/.pi/agent}/prompt-suggester/`), not in the workspace.
+Outside this project, load a package manually with `pi -e npm:<package>`.
 
 ## Monitor and loops
 
-Use Monitor for background commands that should keep running while the agent continues other work:
-
 ```text
 MonitorCreate command="tail -n0 -f build.log" description="Watch build"
-MonitorCreate command="python train.py" onDone="Analyze results and report best loss"
 MonitorList
 MonitorStop monitorId="1"
-```
-
-`onDone` creates a one-shot completion wake so the agent can inspect results without polling. Prefer Monitor over raw shell `while`/`sleep` loops for CI polling, experiments, long downloads, training jobs, log tails, and other parallel work.
-
-Use loops for scheduled or event-triggered follow-up prompts:
-
-```text
-/loop 5m check the deploy
 LoopCreate trigger="5m" prompt="Check if the build passed"
-LoopCreate trigger="tool_execution_start" prompt="Log the tool being used" triggerType="event"
 LoopList
-LoopDelete id="1"
 ```
 
-The package keeps a compact status line when loops, monitors, or native fallback tasks are active. AGRO leaves `PI_LOOP_SCOPE` unset, which means `session` scope: loop state is stored under `.pi/loops/loops-<sessionId>.json` and stays isolated across concurrent sessions and worktree agents. `.pi/loops/` is gitignored. Set `PI_LOOP_SCOPE=memory` for disposable no-disk state, `PI_LOOP_SCOPE=project` only when intentionally sharing loops across sessions, or `PI_LOOP=off` to disable the package store.
-
-## Codex usage status
-
-Use `/codex-status` to show ChatGPT Codex subscription usage without leaving Pi. AGRO enables `@narumitw/pi-codex-usage@0.6.2` by default; this fixed pin includes the upstream stale-`ExtensionContext` statusline timer cleanup, preventing timer callbacks from crashing after Pi replaces the extension context:
-
-```text
-/codex-status
-/codex-status --refresh
-/codex-status --no-statusline
-/codex-status --clear-statusline
-/codex-status --timeout 30
-```
-
-When the selected Pi model provider is `openai-codex`, the package refreshes a compact statusline item every five minutes, for example `📊 codex 59% 5h 61% wk`, so 5-hour session usage and weekly usage stay visible during the session. `/codex-status --refresh` bypasses the short in-memory cache.
-
-Auth is layered: the extension uses Pi's own `openai-codex` provider auth first, then falls back to `codex app-server --listen stdio://` only when Pi auth cannot provide usable ChatGPT subscription auth. OpenAI API keys do not expose this quota.
+Prefer Monitor over a raw shell `while`/`sleep` loop for CI polling, long downloads, training jobs, and log tails.
 
 ## Task tracking
 
-The default task runtime state lives under `.pi/tasks/`, which is gitignored. Leave the default for per-checkout task state; set `PI_TASKS=off` to disable task tracking; set `PI_TASKS=<named-list>` to select a named task list; or pass an explicit task-list path when you intentionally want a shared list outside the gitignored default.
-
-`pi-loop` detects `@tintinweb/pi-tasks` over Pi's event bus. Because AGRO loads `pi-tasks` by default, `pi-loop` delegates task management to that package; its native fallback `TaskCreate`/`TaskList`/`TaskUpdate`/`TaskDelete` tools and `/tasks` command only register in projects where `pi-tasks` is absent.
-
-Removing the project recap package declaration does not delete existing runtime state or cached installations. A running Pi session retains `pi-recap` until you reload or restart the session. Personal package declarations and explicit `pi -e` arguments can still load `pi-recap`.
-
-## Dynamic workflow retirement
-
-AGRO no longer pins a dynamic workflow package, so a new Pi session registers no `workflow` tool. Use `/delegate` for bounded delegation over the Pi `Agent` tools.
-
-A Pi session that is already running keeps the tool until you reload or restart it. A global installation or an explicit `pi -e` argument also registers the tool, so removing the project pin does not remove every registration source.
+The default task runtime state lives under the gitignored `.pi/tasks/` directory. Set `PI_TASKS=off` to disable task tracking, or `PI_TASKS=<named-list>` to select a named list.
 
 ## Slack integration
 
-The harness ships Slack via the **pi-messenger-bridge** npm package, loaded only in the dedicated `client-slack-pi` tmux session via `--extension` (not pinned in `.pi/settings.json`). Create/update the Slack app from `.pi/install/slack-manifest.yaml`, set `PI_SLACK_APP_TOKEN` and `PI_SLACK_BOT_TOKEN` in `.devcontainer/.env`, manage the session with `gateway pi` (`gateway status` to check, `gateway pi --restart` after token edits), and use the Pi-side `/msg-bridge` command for bridge status/configuration. Access control is challenge-based (deny-by-default, no static allowlist); trusted-user/channel admin is handled by manifest-backed Slack admin commands or `.pi/msg-bridge.json` pre-seeding, and inbound Slack messages route into the agent via the package using Pi's native `sendUserMessage()` / `turn_end`.
+The harness ships Slack via the **pi-messenger-bridge** npm package, loaded only in the dedicated `client-slack-pi` tmux session. See [Slack integration](../integrations/slack.md) for setup and the `agro gateway pi` session commands.
 
-See [Slack integration](../integrations/slack.md) for setup steps.
+## Optional Langfuse observability
+
+See [Langfuse → Pi](../integrations/langfuse.md#2-pi) for the plugin and the `agro config langfuse` wizard.

@@ -4,15 +4,9 @@ title: "Claude Code"
 
 # Claude Code
 
-Claude Code is Anthropic's terminal-based AI coding agent. It reads your codebase, plans multi-step changes, writes and edits files, runs commands, and iterates until the task is done — all from an interactive terminal session.
-
-## Purpose
-
-Claude Code is the general-purpose agent most AGRO operators install first. It handles everything from one-off file edits to multi-file refactors, test generation, and debugging. It works best for tasks that benefit from a persistent conversational loop where you can steer the agent mid-task.
+Claude Code is Anthropic's terminal-based AI coding agent. Claude Code reads the codebase, plans multi-step changes, writes and edits files, and runs commands from an interactive terminal session. Claude Code is the general-purpose agent most AGRO operators install first.
 
 ## Install
-
-Claude Code enters the sandbox only through the door:
 
 ```bash
 agro harness install claude-code
@@ -37,38 +31,25 @@ claude update                        # the harness updates itself
 agro harness install claude-code     # or re-run the door
 ```
 
-Both write to `/home/sandbox/.local`, because the sandbox exports
-`NPM_CONFIG_PREFIX` as that prefix. Do not use `sudo`: `claude` is not on sudo's
-`secure_path`, and a root-owned install would leave the home volume.
+Both write to `/home/sandbox/.local`, because the sandbox exports `NPM_CONFIG_PREFIX` as that prefix. Do not use `sudo`: `claude` is not on sudo's `secure_path`, and a root-owned install would leave the home volume.
 
 ## Authentication
-
-Sign in explicitly with the `auth` subcommand (verified against Claude Code v2.1.198) and
-follow the OAuth prompt:
 
 ```bash
 claude auth login      # sign in to your Anthropic account (OAuth)
 claude auth status     # confirm you're authenticated
+claude auth logout
 ```
 
-`claude auth` also has `logout`. Launching a bare `claude` when unauthenticated will start
-the same OAuth flow, but `claude auth login` is the explicit, scriptable path.
+Launching a bare `claude` when unauthenticated starts the same OAuth flow, but `claude auth login` is the explicit, scriptable path.
 
-Credentials are stored in `~/.claude/.credentials.json` inside the sandbox (persisted via the
-`/home/sandbox` mount). The sandbox banner at login indicates whether credentials are present.
+Claude Code stores credentials in `~/.claude/.credentials.json` inside the sandbox. The `/home/sandbox` mount persists that file across a container recreate. The sandbox banner at login shows whether credentials are present.
 
-## Optional Langfuse observability
+## Uninstall
 
-For optional Claude Code end-to-end traces, use Langfuse's official marketplace
-plugin. The plugin is not a native OTEL setup. Native OpenTelemetry export
-emits runtime spans, not prompts or cost. The plugin is user-scoped and
-captures conversation and tool data. Each trace carries the tag `claude-code`.
-
-Run `agro config langfuse` to configure the plugin. The wizard offers to install
-the plugin, writes the base URL and the trace environment into the `env` block
-of `~/.claude/settings.json`, and keeps both keys in one `0600` fragment. Run
-`agro langfuse disable` before a sensitive session. See
-[Langfuse](../integrations/langfuse.md#1-claude-code).
+```bash
+agro harness uninstall claude-code
+```
 
 ## Common usage
 
@@ -80,23 +61,19 @@ claude
 
 # Ask a one-shot question without entering the interactive loop
 claude -p "Explain the structure of the packages/ directory"
-
-# Point at a specific working directory
-claude --cwd /home/sandbox/harness
 ```
 
-Run inside a dedicated tmux session to keep the agent alive across disconnects:
-
-```bash
-tmux new-session -d -s agent-claude 'claude'
-tmux attach -t agent-claude
-```
+Run interactive sessions in Herdr so the session survives a disconnect: `agro tool install herdr`, then `herdr`, then start `claude` in a pane.
 
 ## Tips
 
 - Use worktrees to give Claude Code its own branch: `git worktree add -b agent/claude .worktrees/agent/claude development`
 - Place a `SOUL.md` in the workspace to set the agent's persona and project context.
-- Crons in `crons/` (parsed by `scripts/cron-runtime.ts`) can fire Claude Code on a schedule for autonomous tasks.
+- Crons in `crons/` (parsed by `.agro/scripts/cron-runtime.ts`) can fire Claude Code on a schedule for autonomous tasks.
+
+## Optional Langfuse observability
+
+See [Langfuse → Claude Code](../integrations/langfuse.md#1-claude-code) for the plugin and `agro config langfuse` wizard.
 
 ## Upstream documentation
 

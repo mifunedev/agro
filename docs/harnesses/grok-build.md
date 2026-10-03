@@ -4,66 +4,50 @@ title: "Grok Build"
 
 # Grok Build
 
-Grok Build is xAI's proprietary terminal coding agent, shipped as the `grok` CLI. AGRO installs it with xAI's official installer from `https://x.ai/cli/install.sh`.
-
-Grok Build is never baked into the sandbox image. Install it only when you want the xAI Grok Build CLI available in the sandbox.
+Grok Build is xAI's terminal coding agent, shipped as the `grok` CLI. AGRO installs Grok Build with xAI's official installer from `https://x.ai/cli/install.sh`. Grok Build is never baked into the sandbox image; install Grok Build only when you want the `grok` CLI available in the sandbox.
 
 ## Install
-
-`agro harness install <id>` is the only door. It installs Grok Build into the
-already-running sandbox without a rebuild:
 
 ```bash
 agro harness install grok-build
 ```
 
-Nothing installs Grok Build at boot, and no configuration key selects it. See
-[Harnesses Overview](./overview.md#installing-a-harness) for what the verb does
-and what happens when the sandbox is not running.
+Nothing installs Grok Build at boot, and no configuration key selects it. See [Harnesses Overview](./overview.md#installing-a-harness) for what the verb does and what happens when the sandbox is not running.
 
-### What the door runs
-
-AGRO uses the upstream installer as the `sandbox` user, pinned to the version verified when this support was added, with the binary directed into the home mount:
+AGRO uses the upstream installer as the `sandbox` user, pinned to a verified version, with the binary directed into the home mount:
 
 ```bash
 curl -fsSL https://x.ai/cli/install.sh | GROK_BIN_DIR="$HOME/.local/bin" bash -s 0.2.39
 ```
 
-Review-first equivalent for manual inspection:
-
-```bash
-curl -fsSL -o grok-install.sh https://x.ai/cli/install.sh
-# Review grok-install.sh in your editor or pager before running it.
-bash grok-install.sh 0.2.39
-```
-
-If you already use [`vet`](https://github.com/vet-run/vet), `vet https://x.ai/cli/install.sh 0.2.39` gives the same third-party installer a fetch, review, and approve gate. `vet` is optional and is not required by AGRO.
-
-Verify the install inside the sandbox:
+Verify the install:
 
 ```bash
 grok --version
 ```
 
-If `grok` is not found, run `agro harness install grok-build`. It installs into `~/.local/bin` in the persistent home volume. A fresh home volume has no `grok` until you run the verb again.
+## Uninstall
+
+```bash
+agro harness uninstall grok-build
+```
 
 ## Authentication
 
 Use one of the Grok Build auth flows inside the sandbox:
 
 ```bash
-# Recommended for headless/remote sandboxes
-grok login --device-auth
-
-# Interactive OAuth flow
-grok login
+grok login --device-auth   # recommended for headless/remote sandboxes
+grok login                 # interactive OAuth flow
 ```
 
-For service-account or automation-style setup, provide an xAI API key through
-the `XAI_API_KEY` environment variable, either in `.devcontainer/.env` or in
-the shell that launches `grok`. Treat `.devcontainer/.env` and Compose
-environment variables as convenience secret storage only; users and processes
-with Docker/container access may be able to inspect them.
+For service-account or automation-style setup, store an xAI API key with AGRO's secret store:
+
+```bash
+agro secret set XAI_API_KEY
+```
+
+`XAI_API_KEY` is in AGRO's secret allow-list, so `agro secret set` writes it to the gitignored root `.env` at mode `0600`.
 
 :::warning Auth precedence
 Cached OAuth/session state in `~/.grok/auth.json` takes precedence over `XAI_API_KEY`. If Grok Build appears to ignore a new API key, run `grok logout` or delete `~/.grok`, then try again.
@@ -72,44 +56,27 @@ Cached OAuth/session state in `~/.grok/auth.json` takes precedence over `XAI_API
 ## Common usage
 
 ```bash
-# Start an interactive Grok Build session
-grok
-
-# Run a one-shot prompt/headless task
-grok -p "Summarize the changes on this branch"
-
-# ACP stdio mode
-grok agent stdio
+grok                                              # start an interactive session
+grok -p "Summarize the changes on this branch"    # run a one-shot prompt
+grok agent stdio                                  # ACP stdio mode
 ```
 
-Run interactive sessions in tmux so they survive SSH or editor disconnects:
-
-```bash
-tmux new-session -d -s agent-grok 'grok'
-tmux attach -t agent-grok
-```
+Run interactive sessions in Herdr so the session survives a disconnect: `agro tool install herdr`, then `herdr`, then start `grok` in a pane.
 
 ## State persistence
 
-AGRO persists `~/.grok` in the single `/home/sandbox` mount, alongside every other agent's state. That keeps **Grok user state written under `~/.grok`** across container rebuilds, such as:
-
-- auth and cached sessions (`auth.json`)
-- config
-- sessions and conversation state
-- memory
-- skills/plugins
-- logs
+AGRO persists `~/.grok` in the single `/home/sandbox` mount, alongside every other agent's state: auth and cached sessions (`auth.json`), config, sessions, memory, skills/plugins, and logs.
 
 :::warning Volume removal deletes Grok state
-`agro destroy` and `docker compose down -v` delete the sandbox home volume, `~/.grok` included. Use `agro stop` when you want Grok Build state under `~/.grok` to survive.
+`agro destroy` and `docker compose down -v` delete the sandbox home volume, `~/.grok` included. Use `agro stop` when you want Grok Build state to survive.
 :::
 
 ## Dangerous flags
 
-Grok Build exposes flags that can bypass approval or permission prompts, including `--always-approve`, `--yolo`, and `--permission-mode bypassPermissions`.
+Grok Build exposes flags that bypass approval or permission prompts, including `--always-approve`, `--yolo`, and `--permission-mode bypassPermissions`.
 
 :::warning Use only for trusted tasks
-These flags can allow broad tool use inside the sandbox. Only use them when you understand and accept the risk for the specific task and repository. AGRO documents these flags as warning-only; it does not normalize or recommend yolo-mode examples.
+These flags allow broad tool use inside the sandbox. Use them only when you understand and accept the risk for the specific task and repository.
 :::
 
 ## Upstream documentation
