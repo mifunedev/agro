@@ -4,7 +4,7 @@ title: "OpenCode"
 
 # OpenCode
 
-OpenCode is a terminal coding agent that can run interactively or execute one-shot tasks. Like every other harness it installs into `~/.local` rather than the image, and only when you run `agro harness install opencode`.
+OpenCode is a terminal coding agent. OpenCode runs interactively or executes one-shot tasks. Like every other harness, OpenCode installs into `~/.local` rather than the image, and only when you run `agro harness install opencode`.
 
 ## Install
 
@@ -55,12 +55,7 @@ opencode
 opencode run "Add input validation to the signup form"
 ```
 
-Run inside a dedicated tmux session to keep the agent alive across disconnects:
-
-```bash
-tmux new-session -d -s agent-opencode 'opencode'
-tmux attach -t agent-opencode
-```
+Run interactive sessions in Herdr so the session survives a disconnect: `agro tool install herdr`, then `herdr`, then start `opencode` in a pane.
 
 ## Upstream documentation
 
