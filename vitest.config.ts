@@ -24,7 +24,8 @@ export default defineConfig({
   ],
   test: {
     include: [
-      ".agro/scripts/__tests__/**/*.test.ts",
+      ".agro/scripts/__tests__/**/*.test.{ts,mjs}",
+      ".agro/skills/**/__tests__/**/*.test.mjs",
       ".pi/**/__tests__/**/*.test.ts",
       ".agro/cli/**/__tests__/**/*.test.ts",
     ],
