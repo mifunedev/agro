@@ -165,8 +165,8 @@
         "The transcript is in `.agro/tasks/remote-sandbox-skill/evidence/manual-review.md`."
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: US-007 passes (accepted 080de78a). 2 executed: operator approved the VM spend on 2026-10-03. 3 executed: run.sh exedev (default check) against v0.16.2 on agro-mx-1003-164118: F1-F4 PASS rc=0 0.16.2, no driver rows. 4 executed: run.sh exedev checks/agro-rows.sh on agro-mx-1003-164155: all 14 rows match the 2026-10-03T20:51:03Z baseline status (R03 and R11 SKIPPED in both). 5 executed: both logs end with remaining agro-matrix resources on exedev: 0 and RUN DONE; ssh exe.dev ls --json lists 0 VMs. Transcript: .agro/tasks/remote-sandbox-skill/evidence/manual-review.md (local; gitignored by design).",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -177,7 +177,8 @@
       ],
       "files": [
         ".agro/tasks/remote-sandbox-skill/evidence/"
-      ]
+      ],
+      "commit": "58cce2e8"
     }
   ]
 }
