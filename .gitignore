@@ -36,6 +36,7 @@ projects/*
 **/node_modules/
 **/dist/
 *.tsbuildinfo
+/coverage/
 
 # IDE
 .vscode/

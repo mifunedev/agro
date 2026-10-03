@@ -32,5 +32,12 @@ export default defineConfig({
     env: {
       AGRO_EXECUTION_TARGET: "docker-compose",
     },
+    coverage: {
+      provider: "v8",
+      include: [".agro/cli/src/**/*.ts", ".agro/scripts/**/*.{ts,mjs}", ".pi/**/*.ts"],
+      exclude: ["**/__tests__/**", "**/*.test.*", "**/dist/**", "**/node_modules/**"],
+      reporter: ["text-summary", "json-summary"],
+      reportsDirectory: "coverage",
+    },
   },
 });
