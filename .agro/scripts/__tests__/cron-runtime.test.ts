@@ -20,6 +20,7 @@ const RELOAD_CRONS_DIR = `/tmp/cron-reload-test-crons-${process.pid}`;
 import {
   acquireLock,
   buildCronAgentCommand,
+  buildTmuxWrapper,
   decideOverlap,
   fire,
   holdEventLoopForSignals,
@@ -128,6 +129,175 @@ describe("resolveAgentBin", () => {
     process.env.PATH = "/nonexistent-path-for-cron-agent-bin";
     resetAgentBinCache();
     expect(resolveAgentBin()).toBe("claude");
+  });
+});
+
+describe("buildTmuxWrapper", () => {
+  const wrapper = buildTmuxWrapper({
+    session: "cron-autopilot-0610-1805",
+    id: "autopilot",
+    agentBin: "claude",
+    promptFile: "/tmp/cron-autopilot-0610-1805.prompt",
+  });
+
+  const runWrapper = (opts: { agentBin: string; status: number }) => {
+    const session = `vitest-cron-wrapper-${process.pid}-${Date.now()}-${Math.random()
+      .toString(16)
+      .slice(2)}`;
+    const id = `vitest-${process.pid}-${Math.random().toString(16).slice(2)}`;
+    const promptFile = path.join(tmp, `${session}.prompt`);
+    const binDir = path.join(tmp, `${session}-bin`);
+    const agentPath = path.isAbsolute(opts.agentBin)
+      ? opts.agentBin
+      : path.join(binDir, opts.agentBin);
+    mkdirSync(path.dirname(agentPath), { recursive: true });
+    writeFileSync(promptFile, "prompt body");
+    writeFileSync(
+      agentPath,
+      `#!/usr/bin/env bash\nprintf 'agent-ran:%s\\n' "$1"\nexit ${opts.status}\n`,
+      { mode: 0o755 },
+    );
+    const command = buildTmuxWrapper({
+      session,
+      id,
+      agentBin: opts.agentBin,
+      promptFile,
+    });
+    const result = spawnSync("bash", ["-c", command], {
+      env: { ...process.env, PATH: `${binDir}:${process.env.PATH ?? ""}` },
+      encoding: "utf-8",
+    });
+    const pidFile = `/tmp/cron-${id}.pid`;
+    const logFile = `/tmp/${session}.log`;
+    const keepFile = `/tmp/${session}.keep`;
+    const resumeFile = `/tmp/${session}.agent`;
+    const logText = existsSync(logFile) ? readFileSync(logFile, "utf-8") : "";
+    rmSync(pidFile, { force: true });
+    rmSync(logFile, { force: true });
+    rmSync(keepFile, { force: true });
+    rmSync(resumeFile, { force: true });
+    return { result, command, pidFile, logText };
+  };
+
+  it("writes the per-id pidfile and cleans it up", () => {
+    expect(wrapper).toContain("echo $$ > '/tmp/cron-autopilot.pid';");
+    expect(wrapper).toContain("rm -f '/tmp/cron-autopilot.pid';");
+  });
+
+  it("rejects unsafe ids before generating shell wrapper text", () => {
+    expect(() =>
+      buildTmuxWrapper({
+        session: "cron-bad-0101-0000",
+        id: "bad;touch-pwned",
+        agentBin: "claude",
+        promptFile: "/tmp/prompt",
+      }),
+    ).toThrow("invalid cron id");
+  });
+
+  it("rejects unsafe agent binaries before generating shell wrapper text", () => {
+    expect(() =>
+      buildTmuxWrapper({
+        session: "cron-bad-0101-0000",
+        id: "autopilot",
+        agentBin: "pi;touch-pwned",
+        promptFile: "/tmp/prompt",
+      }),
+    ).toThrow("invalid agent bin");
+  });
+
+  it("runs cleanup after a non-Claude agent command instead of bypassing it", () => {
+    const { result, command, pidFile, logText } = runWrapper({
+      agentBin: path.join(tmp, "pi-agent"),
+      status: 7,
+    });
+
+    expect(command).not.toContain("exit $status; rm -f");
+    expect(command.indexOf("status=$?;")).toBeLessThan(command.indexOf("rm -f"));
+    expect(command.indexOf("rm -f")).toBeLessThan(command.lastIndexOf("exit $status"));
+    expect(result.status).toBe(7);
+    expect(result.stderr).toBe("");
+    expect(existsSync(pidFile)).toBe(false);
+    expect(logText).toContain("agent-ran:-p");
+  });
+
+  it("runs cleanup after the Claude command path and preserves the original status", () => {
+    const { result, command, pidFile, logText } = runWrapper({
+      agentBin: "claude",
+      status: 9,
+    });
+
+    expect(command).not.toContain("exit $status; rm -f");
+    expect(command.indexOf("status=$?;")).toBeLessThan(command.indexOf("rm -f"));
+    expect(command.indexOf("rm -f")).toBeLessThan(command.lastIndexOf("exit $status"));
+    expect(result.status).toBe(9);
+    expect(result.stderr).toBe("");
+    expect(existsSync(pidFile)).toBe(false);
+    expect(logText).toContain("agent-ran:-p");
+  });
+
+  it("exports the session, keep-marker, and overlap pidfile env vars", () => {
+    expect(wrapper).toContain(
+      "export CRON_TMUX_SESSION='cron-autopilot-0610-1805' CRON_KEEP_MARKER='/tmp/cron-autopilot-0610-1805.keep' CRON_OVERLAP_PIDFILE='/tmp/cron-autopilot.pid';",
+    );
+  });
+
+  it("exports the configured repo and resolved remote into tmux wrappers", () => {
+    const repoWrapper = buildTmuxWrapper({
+      session: "cron-autopilot-0610-1805",
+      id: "autopilot",
+      agentBin: "pi",
+      promptFile: "/tmp/cron-autopilot-0610-1805.prompt",
+      repo: "mifunedev/agro",
+      remote: "upstream",
+    });
+
+    expect(repoWrapper).toContain(
+      "CRON_REPO='mifunedev/agro' CRON_REMOTE='upstream';",
+    );
+  });
+
+  it("defaults to the id-scoped pidfile and never exports CRON_WORKTREE", () => {
+    expect(wrapper).toContain("echo $$ > '/tmp/cron-autopilot.pid';");
+    expect(wrapper).not.toContain("CRON_WORKTREE=");
+  });
+
+  it("runs the agent against the prompt file and tees the log", () => {
+    expect(wrapper).toContain(
+      'claude -p "$(cat \'/tmp/cron-autopilot-0610-1805.prompt\')" 2>&1 | tee \'/tmp/cron-autopilot-0610-1805.log\'',
+    );
+    expect(wrapper).toContain("AGENT_START");
+    expect(wrapper).toContain("cron-runtime: Claude limit detected; retrying with Codex");
+    expect(wrapper).toContain("AGENT_FALLBACK");
+    expect(wrapper).toContain(
+      'codex exec --sandbox danger-full-access "$(cat \'/tmp/cron-autopilot-0610-1805.prompt\')" 2>&1 | tee -a \'/tmp/cron-autopilot-0610-1805.log\'',
+    );
+    expect(wrapper).toContain("AGENT_DONE");
+    expect(wrapper).toContain('agent=$active_agent exit=$status');
+  });
+
+  it("persists a kept session as a resumed live agent, using Codex after fallback", () => {
+    expect(wrapper).toContain(
+      '[ "$(cat \'/tmp/cron-autopilot-0610-1805.agent\' 2>/dev/null || echo \'claude\')" = codex ]; then codex; else \'claude\' --continue; fi;',
+    );
+  });
+
+  it("runs kept Pi tmux sessions as attachable TUI sessions", () => {
+    const piWrapper = buildTmuxWrapper({
+      session: "cron-autopilot-0610-1805",
+      id: "autopilot",
+      agentBin: "pi",
+      promptFile: "/tmp/cron-autopilot-0610-1805.prompt",
+    });
+
+    expect(piWrapper).toContain('\'pi\' "$(cat \'/tmp/cron-autopilot-0610-1805.prompt\')";');
+    expect(piWrapper).not.toContain('pi -p "$(cat /tmp/cron-autopilot-0610-1805.prompt)"');
+    expect(piWrapper).not.toContain("tee /tmp/cron-autopilot-0610-1805.log");
+    expect(piWrapper).toContain("AGENT_START");
+    expect(piWrapper).toContain("AGENT_DONE");
+    expect(piWrapper).toContain(
+      '[ "$(cat \'/tmp/cron-autopilot-0610-1805.agent\' 2>/dev/null || echo \'pi\')" = codex ]; then codex; else \'pi\' --continue; fi;',
+    );
   });
 });
 
