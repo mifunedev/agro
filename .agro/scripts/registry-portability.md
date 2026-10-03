@@ -50,9 +50,9 @@ The linter reads every `*.md` and `*.sh` file under each folder in
 `<registry>/skills/`. It discovers the folders by scanning that directory and
 hardcodes no skill name. It applies three rules.
 
-### `OH-PATH`
+### `AGRO-PATH`
 
-Reports any `.agro/…` or `.agro/…` path in a scanned file. An installer has neither tree, so
+Reports any `.agro/…` path in a scanned file. An installer has no `.agro/` tree, so
 the reference cannot resolve.
 
 ### `HARNESS-SKILL`
@@ -81,8 +81,8 @@ Reports a backticked span that begins with `references/<f>.md` or
 The published folder is the installer's whole copy of the skill, so a sibling
 file that is not in it cannot be opened.
 
-The rule never double-reports a path that `OH-PATH` already reported on the same
-line. A `.agro/` or `.agro/` path is counted once.
+The rule never double-reports a path that `AGRO-PATH` already reported on the same
+line. A `.agro/` path is counted once.
 
 ## Running the check
 
@@ -196,7 +196,7 @@ exit code alone, unless you pass `--strict-exceptions`.
   backticks is not reported.
 - `HARNESS-SKILL` reads single-word routes only. A two-word route is not
   reported.
-- `OH-PATH` covers `.agro/` and `.agro/` only. The adjacent class is real and larger: the
+- `AGRO-PATH` covers `.agro/` only. The adjacent class is real and larger: the
   registry carries 82 `.claude/` references across 15 of its 18 skills, measured
   at `1d11ab6`. Widening the rule is a follow-up, deliberately left out of this
   change.
@@ -258,16 +258,16 @@ dated record of what they were.
 
 ```allow
 # CLASS | RULE | registry-relative path | 12-hex line hash | reason
-ALLOW | OH-PATH | skills/ste/references/rules.md | 4a60b23b3dfd | example prose that teaches path-naming style; the reader is shown a path shape, not told to open it
-ALLOW | OH-PATH | skills/ste/references/rules.md | 15b94149666f | example prose that teaches path-naming style; the reader is shown a path shape, not told to open it
-ALLOW | OH-PATH | skills/ste/references/rules.md | 0a19004bd4ad | example prose that teaches path-naming style; the reader is shown a path shape, not told to open it
-ALLOW | OH-PATH | skills/ste/SKILL.md | 1a27405c7e92 | inside the [ -x ] existence guard; the whole block is a no-op outside a harness checkout
-ALLOW | OH-PATH | skills/ste/SKILL.md | dc032d4b6850 | inside the [ -x ] existence guard; the whole block is a no-op outside a harness checkout
-ALLOW | OH-PATH | skills/ste/SKILL.md | e6bc73aa7bbf | inside the [ -x ] existence guard; the whole block is a no-op outside a harness checkout
+ALLOW | AGRO-PATH | skills/ste/references/rules.md | 4a60b23b3dfd | example prose that teaches path-naming style; the reader is shown a path shape, not told to open it
+ALLOW | AGRO-PATH | skills/ste/references/rules.md | 15b94149666f | example prose that teaches path-naming style; the reader is shown a path shape, not told to open it
+ALLOW | AGRO-PATH | skills/ste/references/rules.md | 0a19004bd4ad | example prose that teaches path-naming style; the reader is shown a path shape, not told to open it
+ALLOW | AGRO-PATH | skills/ste/SKILL.md | 1a27405c7e92 | inside the [ -x ] existence guard; the whole block is a no-op outside a harness checkout
+ALLOW | AGRO-PATH | skills/ste/SKILL.md | dc032d4b6850 | inside the [ -x ] existence guard; the whole block is a no-op outside a harness checkout
+ALLOW | AGRO-PATH | skills/ste/SKILL.md | e6bc73aa7bbf | inside the [ -x ] existence guard; the whole block is a no-op outside a harness checkout
 ALLOW | HARNESS-SKILL | skills/reflect/SKILL.md | 7d0773a55384 | names a Claude Code built-in command, which an installer on that client already has
-ALLOW | OH-PATH | skills/agro-host-matrix/SKILL.md | ffc6a77da7f6 | raw GitHub URL of a candidate get-agro.sh in a GET_AGRO_URL example; curl fetches the URL, and no local path exists
-ALLOW | OH-PATH | skills/agro-host-matrix/scripts/restart-test.sh | eaf8abe9e58e | path inside the AGRO VM under test; the matrix driver runs the command on that VM and never opens the path locally
-ALLOW | OH-PATH | skills/agro-host-matrix/scripts/rows.sh | bb0bf234d2da | path inside the AGRO VM under test; the matrix driver runs the command on that VM and never opens the path locally
-ALLOW | OH-PATH | skills/agro-host-matrix/scripts/rows.sh | 9e06208319c8 | path inside the AGRO VM under test; the matrix driver runs the command on that VM and never opens the path locally
-ALLOW | OH-PATH | skills/agro-host-matrix/scripts/rows.sh | f34a62c6a090 | path inside the AGRO VM under test; the matrix driver runs the command on that VM and never opens the path locally
+ALLOW | AGRO-PATH | skills/agro-host-matrix/SKILL.md | ffc6a77da7f6 | raw GitHub URL of a candidate get-agro.sh in a GET_AGRO_URL example; curl fetches the URL, and no local path exists
+ALLOW | AGRO-PATH | skills/agro-host-matrix/scripts/restart-test.sh | eaf8abe9e58e | path inside the AGRO VM under test; the matrix driver runs the command on that VM and never opens the path locally
+ALLOW | AGRO-PATH | skills/agro-host-matrix/scripts/rows.sh | bb0bf234d2da | path inside the AGRO VM under test; the matrix driver runs the command on that VM and never opens the path locally
+ALLOW | AGRO-PATH | skills/agro-host-matrix/scripts/rows.sh | 9e06208319c8 | path inside the AGRO VM under test; the matrix driver runs the command on that VM and never opens the path locally
+ALLOW | AGRO-PATH | skills/agro-host-matrix/scripts/rows.sh | f34a62c6a090 | path inside the AGRO VM under test; the matrix driver runs the command on that VM and never opens the path locally
 ```

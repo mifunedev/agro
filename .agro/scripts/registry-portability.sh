@@ -9,7 +9,7 @@ readonly PROG=registry-portability
 readonly UNIX_ROOTS=" bin boot dev etc home lib media mnt opt proc root run sbin srv sys tmp usr var "
 readonly META_PREFIXES=(foo bar baz qux)
 
-readonly RE_OH='\.agro/[A-Za-z0-9._/-]+'
+readonly RE_AGRO_PATH='\.agro/[A-Za-z0-9._/-]+'
 readonly RE_SPAN='`([^`]+)`'
 readonly RE_REF='^(references|scripts)/[A-Za-z0-9._-]+\.(md|sh)'
 readonly RE_NAME='^[a-z][a-z0-9-]*$'
@@ -209,10 +209,10 @@ scan_line() {
   AGRO_TOKENS=()
 
   rest=$line
-  while [[ $rest =~ $RE_OH ]]; do
+  while [[ $rest =~ $RE_AGRO_PATH ]]; do
     token=${BASH_REMATCH[0]}
     AGRO_TOKENS+=("$token")
-    FINDINGS+=("$rel"$'\t'"$lineno"$'\t'"OH-PATH"$'\t'"$token")
+    FINDINGS+=("$rel"$'\t'"$lineno"$'\t'"AGRO-PATH"$'\t'"$token")
     rest=${rest#*"$token"}
   done
 
