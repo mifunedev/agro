@@ -30,11 +30,8 @@ compliance**. STEMG publishes and maintains ASD-STE100. STEMG neither endorses
 nor certifies this skill. The authoritative standard lives at
 `https://www.asd-ste100.org/`.
 
-This skill follows the published shape of that standard: a set of writing rules
-plus a controlled vocabulary. Every rule statement and every word entry here
-carries our own wording. This skill reproduces no text from ASD-STE100 Issue 9
-and no entry from its controlled dictionary. Read the standard itself when you
-need the standard itself.
+Every rule and word entry here carries our own wording. This skill reproduces
+no text and no dictionary entry from ASD-STE100 Issue 9.
 
 ## Priority order
 
@@ -93,11 +90,8 @@ a compressed draft to STE rules before you commit the draft, post the draft, or
 write the draft to disk. Never run a compression pass against a file that `/ste`
 governs.
 
-Two clauses hold whichever mode runs:
-
-- never compress code, commands, identifiers, or error strings;
-- drop back to plain prose for security warnings and for irreversible-action
-  confirmations.
+Whichever mode runs, write security warnings and irreversible-action
+confirmations in plain prose.
 
 ## Rewrite mode
 
@@ -114,9 +108,6 @@ Run these eight steps against an existing document.
 7. Mark each `missing` value with a placeholder. Never supply a value.
 8. Run `scripts/ste-check.sh` against the file. Fix each finding. Repeat until
    the checker exits 0.
-
-Steps 1 and 2 come before any edit. An agent that edits before it reads loses
-the ambiguities that the original wording carried.
 
 ## Authoring mode
 
@@ -252,23 +243,17 @@ one line at a time, so a question-7 detector cannot tell the two apart.
 ## Guardrails
 
 - Never edit the checker to make a document pass. Fix the document.
-- Never simplify a code block, a command, or an error string.
 - Never remove a warning to shorten a procedure.
-- Never resolve an ambiguity by guessing. Mark the gap and ask.
 - Keep a rewrite reviewable: change wording, keep every technical claim.
 
 ## Reference
 
-| File | Holds |
-|---|---|
-| `references/rules.md` | 53 rules across 9 sections |
-| `references/dictionary.md` | 198 non-approved words mapped to replacements |
-| `references/examples.md` | 24 before/after pairs across 13 domains |
-| `scripts/ste-check.sh` | the deterministic checker |
-
-Read `references/rules.md` when you need the rule behind a finding. Read
-`references/dictionary.md` when you need a replacement word. Read
-`references/examples.md` when you need the shape of a rewrite.
+| File | Holds | Read when you need |
+|---|---|---|
+| `references/rules.md` | 53 rules across 9 sections | the rule behind a finding |
+| `references/dictionary.md` | 198 non-approved words mapped to replacements | a replacement word |
+| `references/examples.md` | 24 before/after pairs across 13 domains | the shape of a rewrite |
+| `scripts/ste-check.sh` | the deterministic checker | |
 
 The `before` blocks in `references/examples.md` double as the checker's
 regression fixture. `--blocks before` must exit 1. `--blocks after` must exit 0.

@@ -18,11 +18,6 @@ disable-model-invocation: true
 
 # T3 Code
 
-Run T3 Code as a long-running sandbox process: start `t3 serve` in tmux, report
-the pairing URL, and leave the session running. The operator opens it at
-`localhost:3773` through host/VS Code port forwarding, or — with `--tailscale` —
-from a phone on the same private tailnet.
-
 `npx t3` (no subcommand) is the desktop GUI launcher and is not what this skill
 runs. Headless and remote access use `npx t3 serve`; a new device is added to an
 already-running server with `npx t3 pair`.
@@ -46,8 +41,6 @@ Arguments received: `$ARGUMENTS`
 - `--log`: log file; default `/tmp/<session>.log`
 - `--tailscale`: publish over Tailscale Serve on the tailnet (`t3 serve --tailscale-serve`, `t3 pair --tailscale`)
 - `--tailscale-port`: alternate Tailscale Serve HTTPS port; default `443`
-
-If the user does not specify an action, use `start`.
 
 ## Preconditions
 
@@ -115,7 +108,6 @@ After `start`, report:
 - local URL, normally `http://localhost:3773`
 - in Tailscale mode, the tailnet HTTPS port and that the URL is the node's
   MagicDNS name
-- that `/t3 pair` adds a second device without restarting the server
 - reminder: over SSH/remote host without a tailnet, use VS Code port forwarding
   or see `docs/connecting.md`
 - revocation paths:
@@ -125,20 +117,6 @@ After `start`, report:
   - `tailscale logout`, or delete the node in the Tailscale admin console —
     remove the device from the tailnet
 
-Never echo a pairing URL into a file the repository tracks.
-
 For public sharing beyond a private tailnet, use `/cloudflared 3773` only after
 confirming the operator wants a public bearer URL. Tailscale is private; a
 Cloudflared tunnel is not.
-
-## Examples
-
-```bash
-/t3
-/t3 doctor --tailscale
-/t3 start --tailscale
-/t3 pair --tailscale
-/t3 status
-/t3 logs --session agent-t3code
-/t3 stop
-```
