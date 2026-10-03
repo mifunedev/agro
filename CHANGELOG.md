@@ -37,6 +37,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Fixed
 
+- Run the Hermes install smoke through the installed `.hermes/bin/hermes --run-module` launcher, since the current Hermes installer no longer creates `scripts/_hermes-python` ([#1273](https://github.com/mifunedev/agro/issues/1273)).
 - Pin the `agro` shebang to the nvm Node that `get-agro.sh` installs, so cron, systemd, cloud-init, and plain `ssh` commands run `~/.local/bin/agro` by its absolute path ([#1262](https://github.com/mifunedev/agro/issues/1262)).
 - Pin PR evidence links to the head commit SHA so screenshots still render after the branch is deleted, and drop `### Visual Reference` from the feature issue template ([#1239](https://github.com/mifunedev/agro/issues/1239)).
 - Restore the running container image after a failed upgrade of an unpinned sandbox, or refuse the upgrade if that image cannot be inspected ([#1217](https://github.com/mifunedev/agro/issues/1217)).
