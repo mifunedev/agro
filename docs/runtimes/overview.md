@@ -4,94 +4,54 @@ title: "Runtimes Overview"
 
 # Runtimes Overview
 
-A **runtime** is the isolation boundary the sandbox runs *on*. A **harness** is
-an agent CLI that runs *inside* it. They are different things with different
-lifecycles, which is why the runtime catalog lives under `agro sandbox` and
-[`agro harness`](../harnesses/overview.md) is its own command over its own
-catalog.
+A **runtime** is the isolation boundary that the sandbox runs on. A **harness**
+is an agent CLI that runs inside the sandbox. `agro sandbox` owns the runtime
+catalog. [`agro harness`](../harnesses/overview.md) owns the harness catalog.
 
-AGRO runs on a **Docker container** today. Nothing on this page changes
-that.
+AGRO runs on a Docker container. `agro` provisions only the Docker runtime.
 
 ## The commands
 
-```bash
-agro sandbox install docker    # create a sandbox on the only provisionable runtime
-agro sandbox list              # every sandbox: name, runtime, status, checkout
-agro sandbox --help            # the catalog: which runtimes exist, and their state
-```
+Run these commands on the host:
 
-```
-$ agro sandbox --help
-...
-Runtimes:
-  docker        provisionable
-  microsandbox  planned
+```bash
+agro sandbox install docker    # create a sandbox on the Docker runtime
+agro sandbox list              # every sandbox: name, runtime, status, checkout
+agro sandbox --help            # the runtime catalog and the state of each runtime
 ```
 
 `agro sandbox install docker` writes a registry entry under
-`${AGRO_HOME:-~/.agro}/sandboxes/<name>/` and boots the container — see
+`${AGRO_HOME:-~/.agro}/sandboxes/<name>/` and starts the container. See
 [`agro sandbox install docker`](../deployment-prebuilt-image.md).
 
-`agro sandbox install microsandbox` refuses:
-
-```
-agro sandbox install: microsandbox is not a provisionable runtime yet; see
-https://github.com/mifunedev/agro/issues/592. Inside a sandbox run `agro tool install microsandbox`.
-```
-
-`agro sandbox install` is host-scoped. Run from inside the sandbox it refuses
-with a host-only error, because it changes the sandbox's own Docker
-configuration. See
+`agro sandbox install` is host-only. Inside a sandbox, the command exits with a
+host-only error. See
 [Lifecycle commands → Where you are standing when you type `agro`](../lifecycle-commands.md#where-you-are-standing-when-you-type-agro).
 
 ## The Docker daemon
 
-The Docker daemon runs on the machine holding the `agro` binary, not inside the
-sandbox. `agro sandbox install` is host-only and refuses with a host-only error
-when run inside a sandbox. The host Docker socket (`/var/run/docker.sock`) is
-off by default; mounting it into the sandbox is effectively host root, so it is
-opt-in — the wizard asks, and `access.dockerSocket` in the entry's `agro.json`
-records the answer. See [security considerations](../security-considerations.md).
+The Docker daemon runs on the machine that holds the `agro` binary, not inside
+the sandbox. The sandbox does not mount the host Docker socket
+(`/var/run/docker.sock`) by default.
 
-## What is in the catalog
+> **Warning.** A mounted socket gives the sandbox host root. The
+> `agro sandbox install docker` wizard asks about the socket and records the
+> answer in `access.dockerSocket` in the `agro.json` of the entry. The default
+> answer is no. See [Security considerations](../security-considerations.md).
 
-| Runtime | Tier | State | How you reach it |
+## The catalog
+
+| Runtime | Isolation | State | Entry point |
 |---|---|---|---|
-| [Docker container](#the-docker-daemon) | shared host kernel, namespaces + cgroups | **provisionable** | `agro sandbox install docker` |
-| [MicroSandbox](microsandbox.md) | microVM — one real kernel per sandbox, KVM-backed | planned | `agro tool install microsandbox` installs the `msb` binary inside a sandbox; running AGRO *on* msb is a manual host recipe |
+| [Docker container](#the-docker-daemon) | shared host kernel, namespaces and cgroups | provisionable | `agro sandbox install docker` |
+| [MicroSandbox](microsandbox.md) | microVM with its own kernel, KVM-backed | planned | `agro tool install microsandbox` installs the `msb` binary only |
 
-Two entries rather than one is deliberate. A single-entry catalog would encode a
-false singleton and need a schema change the moment a second runtime lands.
+`agro sandbox install microsandbox` exits with this error:
 
-### The two are reached differently
+```text
+agro sandbox install: microsandbox is not a provisionable runtime yet; see
+https://github.com/mifunedev/agro/issues/592. Inside a sandbox run `agro tool install microsandbox`.
+```
 
-Docker is what the compose stack already drives, so `agro sandbox install docker`
-provisions it end to end. MicroSandbox is **not** a Docker runtime — it is its
-own VM manager, so it cannot plug into the boot path and instead
-[replaces it, running the published image directly](microsandbox.md#running-agro-on-microsandbox).
-That asymmetry is why the two need different framing.
-
-## Why the CLI selects no substrate key
-
-Two proposals name the selector differently — `sandbox.substrate` (the substrate
-plan, [#802](https://github.com/mifunedev/agro/issues/802) P4) and
-`sandbox.runtime` (the EPIC [#731](https://github.com/mifunedev/agro/issues/731)
-sysbox slice). The open decision, and the axes taxonomy behind it, live in
-[issue #592](https://github.com/mifunedev/agro/issues/592); settling it outside
-#731 forks the `ExecutionTarget` seam.
-
-So the entry records only what it was actually provisioned on: `runtime:
-"docker"` in its `agro.json`. Nothing chooses a deeper tier for you.
-
-## What this does not do
-
-- It does not change how the sandbox boots. Only `docker` is provisionable.
-- It adds no Dockerfile build arg. A build arg would bake a guaranteed-failing
-  install into every image (see [MicroSandbox](microsandbox.md)).
-- `agro tool install microsandbox` installs a binary and nothing else: it rebuilds
-  no image, restarts no sandbox, and writes no configuration.
-
-None of that stops you running AGRO **on** a different runtime yourself —
-it just means the CLI is not how you do it. See
-[Running AGRO on MicroSandbox](microsandbox.md#running-agro-on-microsandbox).
+Each registry entry records the runtime that created the entry: `runtime:
+"docker"` in its `agro.json`. No configuration field selects another runtime.
