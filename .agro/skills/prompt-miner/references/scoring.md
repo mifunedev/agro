@@ -89,7 +89,7 @@ corrective; **the density itself is still divided in code**, because Jev is expl
 not a calculator.
 
 The flag is **off by default** and the default output is byte-identical to a
-lexicon-only run — `.agro/evals/probes/prompt-miner-judge-default-off.sh` pins that.
+lexicon-only run.
 With the flag on, every session row carries `correctionSource`, `"judge"` or
 `"lexicon"`, so a fallback can never be mistaken for a judgment.
 

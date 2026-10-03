@@ -46,11 +46,6 @@ These names describe separate layers, not interchangeable jobs:
   pass.
   Source: [`.agro/skills/git/SKILL.md`](../.agro/skills/git/SKILL.md) § Draft PR for a task.
 
-- **evaluator / eval** — A deterministic, exit-code-scored probe that checks
-  harness state against a recorded lesson; the probe corpus and the `/eval`
-  skill that runs it form the harness's fitness function, reporting PASS /
-  REGRESSION / SKIPPED per probe. Source: [`.agro/evals/`](../.agro/evals/).
-
 - **harness** — The whole portable setup: one git repo that boots one Docker
   sandbox, wraps your project inside it, and versions the agent's identity,
   skills, crons, and memory. "AGRO" names both this project and any

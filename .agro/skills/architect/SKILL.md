@@ -80,7 +80,7 @@ source and accepted decision records are authority.
    `/wiki query <subsystem> --patterns` returns failure modes this harness has
    already paid for. Cite the `[[pattern-...]]` slugs that changed the
    recommendation.
-4. Inspect the authoritative code, tests, probes, and docs for the surfaces in
+4. Inspect the authoritative code, tests, and docs for the surfaces in
    scope. Read them; do not infer their shape.
 5. Name the actual decision or decisions. A feature request restated is not a
    decision.
@@ -116,7 +116,7 @@ Durable architecture decisions reuse the existing convention in
 
 Do not invent an architecture database, service, document taxonomy, decision
 directory, or per-skill decision store. Do not require a record for every
-change — most decisions are captured well enough by the code and its probes.
+change — most decisions are captured well enough by the code and its tests.
 Propose a record only when the decision is architecturally significant and
 expensive to rediscover.
 

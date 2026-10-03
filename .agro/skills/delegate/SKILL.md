@@ -143,7 +143,7 @@ A per-dispatch model overrides the default.
 When every story has `passes: true`, do these steps:
 
 1. Validate the integrated result with the checks of the repository: lint,
-   typecheck, test, and build, or its probe suite. Record each exit status.
+   typecheck, test, and build. Record each exit status.
 2. Write `## Lessons` at the end of `prd.md`. Give each lesson a claim,
    evidence, and exactly one outcome:
    - fixed in this PR;
@@ -155,7 +155,7 @@ When every story has `passes: true`, do these steps:
    exposed the finding, or the finding breaks the chain in use. For each
    other defect, propose one issue for each defect surface. If an open issue
    already covers the surface, propose a comment on that issue. Drop
-   judgment and process observations, and findings that a probe already
+   judgment and process observations, and findings that a test already
    catches. List the proposed issues in the final report. Before the
    operator approves the proposed issues at Close, create no issue.
 

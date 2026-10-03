@@ -55,7 +55,7 @@ locks, or service boundaries instead of hidden terminal state.
 
 Do not add explanatory comments to tracked code. Comments create a second,
 unverified description that drifts from behavior. Express intent through names,
-types, structure, tests, and deterministic probes. Keep only machine-read
+types, structure, and tests. Keep only machine-read
 directives and comment-shaped data that a verified tool or oracle requires.
 
 ## One advisor, bounded workers
@@ -140,7 +140,7 @@ silently skip a surface.
   state?
 - **Public documentation:** Does user-facing behavior or terminology require a
   matching change in `docs/`?
-- **Verification:** Which tests, probes, and CI paths prove the changed behavior?
+- **Verification:** Which tests and CI paths prove the changed behavior?
 
 ## How to work in this repository
 
@@ -166,10 +166,9 @@ Host prerequisites are Docker, Git, and Node 20 or newer. The verb reference is
 
 ## How the system fits together
 
-Tests and deterministic probes verify the control plane against real repository
-state.
+Tests verify the control plane against real repository state.
 
-The repository has one sandbox definition and four control-plane areas:
+The repository has one sandbox definition and three control-plane areas:
 
 - `.devcontainer/` defines the sandbox image, Compose configuration, and entrypoint.
   This directory stays outside the `.agro/` control plane.
@@ -177,7 +176,6 @@ The repository has one sandbox definition and four control-plane areas:
   behavior.
 - `.agro/skills/` and `.agro/hooks/` hold portable primitives; skills encode roles.
 - `.agro/tasks/` holds task-specific plans, graphs, progress, and evidence.
-- `.agro/evals/` holds regression probes and decision records.
 
 Read the nearest directory `README.md` before changing unfamiliar machinery.
 
@@ -186,6 +184,6 @@ Read the nearest directory `README.md` before changing unfamiliar machinery.
 - Prefer a smaller truthful model over a complete-looking abstraction.
 - Make ownership and execution location obvious.
 - Keep one source of truth for each policy and behavior.
-- Use code, tests, and probes as evidence.
+- Use code and tests as evidence.
 - Preserve human judgment where automation cannot prove the decision.
 - Delete obsolete paths instead of leaving dormant alternatives.

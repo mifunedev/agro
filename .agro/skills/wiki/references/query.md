@@ -64,8 +64,7 @@ cite them, not results.
 
 `<topic>` is one or more whitespace-separated words. The interface is locked to
 `<topic>` plus the `--patterns` flag; adding further flags or positional
-arguments requires editing this reference and
-`.agro/evals/probes/wiki-query-pattern-isolation.sh`.
+arguments requires editing this reference.
 
 ## Two disjoint modes
 
@@ -241,7 +240,7 @@ a schema finding.
 
 The cap is set by the mode in step 1: **3** for the default entity mode and **5**
 for `--patterns`. Neither is configurable by a further flag; changing either
-requires editing this reference and its probe.
+requires editing this reference.
 
 ```bash
 MATCH_COUNT=${#SORTED_PATHS[@]}
@@ -311,6 +310,3 @@ in one will not work in another.
   tracked boundary), § 3 (entry schema), § 7 (cross-links), § 9 (extraction)
 - `/wiki ingest` — add or update an entity page
 - `/wiki lint` — health-check the knowledge base and regenerate the index
-- `.agro/evals/probes/wiki-query-pattern-isolation.sh` — the guard on the mode split
-- `.agro/evals/probes/knowledge-tracked-query-boundary.sh` — the guard on the
-  tracked/local boundary

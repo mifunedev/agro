@@ -30,7 +30,6 @@ below.
 | --- | --- | --- | --- |
 | `.agro/skills/*/SKILL.md` | Behavioral norms (prescriptive) | Deliberate orchestrator revision | Knowledge holds **facts**, skills hold **how to behave**. A `kind: pattern` entry sits closest to this line: it records that a workaround *worked*, which is evidence; the skill records that the workaround *must be applied*, which is a norm. When a pattern's workaround becomes a rule, it is promoted into a skill and the pattern stays as the evidence for it |
 | `docs/` | Human-facing prose | Orchestrator / contributors | Knowledge is LLM-readable; docs are human-readable |
-| `.agro/evals/decisions/` | Accepted/rejected proposal history (`skill-impact.md`) | `/builder` | A decision ledger is a record of judgments, not synthesis about a topic |
 | `.agro/knowledge/raw/` | Immutable external captures (snapshots of fetched pages, papers) | `/wiki ingest` | Same surface; raw is upstream evidence, entity pages are synthesis |
 | `.agro/knowledge/local/` | Per-machine scratch | anyone | **Nothing reads it.** A page only one machine can see must never inform a plan another machine cannot reproduce |
 
@@ -88,7 +87,7 @@ updated: 2026-08-31
 sources:
   - .devcontainer/docker-compose.yml
   - .devcontainer/entrypoint.sh
-  - .agro/evals/probes/compose-env-boundary.sh
+  - .agro/scripts/__tests__/sandbox-privilege-boundary.test.ts
 verified_at: 1c5f37230822ec2bbc5ed316be92ad295722b693
 related: [sandbox-dependency-installs]
 confidence: confirmed
@@ -198,21 +197,21 @@ so patterns need no structural exception and no special case in `/wiki lint`.
 **Root cause.** <Why it happens, cited to `path:line`.>
 
 **Workaround.** <The actionable change. Append-only across amendments; a superseded
-workaround is annotated `(superseded YYYY-MM-DD, SI-nnnn)`, never deleted.>
+workaround is annotated `(superseded YYYY-MM-DD, #<PR>)`, never deleted.>
 
 ## See Also
 - [[<motivating entity page>]]
 ```
 
 Title a pattern for the failure mode, not the incident that revealed it:
-`pattern-evals-probe-provenance-decay`, not `pattern-2026-08-31-run-findings`.
+`pattern-audit-remote-head-verdict`, not `pattern-2026-08-31-run-findings`.
 One page per failure mode, never one per run — a dated per-run page is a session
 journal, which this knowledge base is not.
 
 **`sources:` for a pattern.** A pattern entry MUST carry at least one `sources:`
 entry, each a pinned repository-evidence path of the form
 `<repo-relative-path>@<short-sha>` — for example
-`.agro/tasks/<slug>/progress.txt@a1b2c3d`, `.agro/evals/RESULTS.md@a1b2c3d`. The
+`.agro/tasks/<slug>/progress.txt@a1b2c3d`. The
 `@<short-sha>` suffix is required: it buys for a mutable tracked file the same
 reproducibility that immutability buys for a `raw/` snapshot. A pattern grounded
 in an ingested external source may additionally cite that `raw/` snapshot.
@@ -222,12 +221,6 @@ holds snapshots of external sources. A session report is this harness's own
 ephemeral output; persisting it
 under `raw/` would recreate the per-session journal tier the harness deliberately
 removed, wearing a new name.
-
-**Authoring constraint.** Pattern prose discusses harness subsystems, so it is
-the most likely place for retired vocabulary to reappear.
-`.agro/evals/probes/audit-stale-references.sh` greps every tracked file, this
-knowledge base included, for retired route and skill names. Read that probe's
-pattern before writing about an audit subsystem, and use the current route names.
 
 ### Word cap
 
@@ -250,7 +243,7 @@ An entry in `sources:` is one of three forms:
 | --- | --- | --- |
 | Repository path or glob | `.devcontainer/docker-compose*.yml` | **yes** — this is a live dependency |
 | Immutable external snapshot | `raw/2026-07-04-runtime-isolation-landscape.md` | no — the file never changes |
-| Pinned repository evidence | `.agro/evals/RESULTS.md@a1b2c3d` | no — the sha names a fixed revision |
+| Pinned repository evidence | `.agro/tasks/<slug>/progress.txt@a1b2c3d` | no — the sha names a fixed revision |
 | Bare upstream reference | `https://arxiv.org/abs/2607.21653v1` | no — but it is the **weakest** form |
 
 Only the first form participates in freshness. A `kind: repo` page must carry at
@@ -379,9 +372,8 @@ orchestrator; automation only reads it.
 ```
 
 **Patterns.** A `kind: pattern` entry is created `provisional` by the orchestrator.
-The orchestrator promotes it to `confirmed` when a skill proposal it motivated is
-recorded `ACCEPTED` in `.agro/evals/decisions/skill-impact.md`. **A `REJECTED`
-proposal never demotes or deprecates its motivating pattern** — see § 12.
+The orchestrator promotes it to `confirmed` when a skill change it motivated
+merges. **A rejected proposal never demotes or deprecates its motivating pattern** — see § 12.
 
 ---
 
@@ -418,11 +410,6 @@ current tracked `source/*.md` and `patterns/*.md` frontmatter exactly: one row
 per entry slug, fields derived from `slug`, `title`, `tags`, and `updated`,
 sorted by `updated` descending with the deterministic tie behavior `/wiki lint`
 uses.
-
-The tier-A probe `.agro/evals/probes/wiki-readme-index.sh` is the drift guard. It
-reconstructs the expected table from the § 9 extraction and exits REGRESSION when
-the committed README has missing, extra, stale, or out-of-order rows. Any change
-to `/wiki lint` index generation must keep that probe green.
 
 ---
 
@@ -464,7 +451,7 @@ sentence statement of the current understanding.
   evidence contradicts them. New corroborating evidence adds a citation, not a
   rewrite.
 - `**Workaround.**` is **append-only**. A new workaround is appended. A
-  workaround shown not to work is annotated `(superseded YYYY-MM-DD, SI-nnnn)`
+  workaround shown not to work is annotated `(superseded YYYY-MM-DD, #<PR>)`
   and left in place. It is never deleted.
 
 **8'. The word cap is met by compressing older evidence into one clause, never by
@@ -488,9 +475,7 @@ covers the skill artifact **only**. The pattern page that motivated the proposal
 stays, its `confidence` is unchanged, its `sources:` list is unchanged, and its
 accumulated `**Workaround.**` text is unchanged. The orchestrator records the
 rejection as evidence — annotating the workaround that failed with
-`(superseded YYYY-MM-DD, SI-nnnn)` — rather than deleting it. The
-`.agro/evals/decisions/skill-impact.md` record of the rejected proposal is likewise
-never removed.
+`(superseded YYYY-MM-DD, #<PR>)` — rather than deleting it.
 
 **Reverting a `.agro/knowledge/` path as collateral of a skill revert is
 forbidden.**
@@ -499,9 +484,3 @@ Rationale: the knowledge that an approach was tried and did not work is the most
 valuable output of a rejected cycle, and it is the only thing preventing the same
 proposal being made again. Rolling it back with the code destroys exactly the
 persistence this layer exists to provide.
-
-Prose is not enforcement. The oracles are
-`.agro/evals/probes/wiki-pattern-persistence.sh` (pattern pages present at the
-merge-base are present at HEAD, and no pattern's `sources:` list has shrunk) and
-`.agro/evals/probes/wiki-skill-impact-append-only.sh` (ledger records are added,
-never removed or edited in place).

@@ -32,7 +32,7 @@ Keep these out of this directory:
 - architecture and non-negotiable constraints, which the root `AGENTS.md` owns;
 - a compiled failure mode, which `.agro/knowledge/patterns/` owns;
 - task evidence for one build, which `.agro/tasks/<slug>/evidence.md` owns;
-- a machine-checkable assertion, which `.agro/evals/probes/` owns.
+- a machine-checkable assertion, which a test owns.
 
 ## How to write an entry
 
@@ -44,7 +44,7 @@ evidence that proves the action:
 ```
 
 Add an entry when the lesson survives the session that produced it. A lesson
-that a command can prove belongs in a probe instead. A preference the operator
+that a command can prove belongs in a test instead. A preference the operator
 stated once belongs in `USER.md` instead.
 
 Never rewrite an existing entry to match a new opinion. Add the correction as a
@@ -56,8 +56,8 @@ Change `SOUL.md` only when the operator asks. Report every change to that file.
 
 A lesson graduates through the `## Lessons` section of a task plan at
 `.agro/tasks/<slug>/prd.md`. Give the lesson exactly one outcome there: fixed in
-the PR, issue #N, or dropped with the reason. Fix a lesson that a deterministic
-probe can guard with a probe under `.agro/evals/probes/`. Remove the entry from
+the PR, issue #N, or dropped with the reason. Fix a lesson that a test can guard
+with a test. Remove the entry from
 `MEMORY.md` after the graduation lands, because one fact belongs in one place.
 
 ## What this directory never carries upstream

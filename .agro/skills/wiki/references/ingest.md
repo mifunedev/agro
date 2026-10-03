@@ -409,7 +409,7 @@ Proceed to § 6 with `SNAPSHOT_REL` as the new `sources:` value. In the entity's
 
 ##### Pilot rollback and removal contract
 
-A rollback reverts the ordinary tracked ingest reference, curated wiki/index, task artifacts, and changelog changes. The protected Tier-A contract probe and its `.claude/protected-paths.txt` registration may be removed only in a separate reviewed PR with a changelog explanation. Already-published immutable raw original/Markdown provenance remains by default; an operator may manually remove it only when it is local-only and unreferenced. No schema migration or entity-page format makes existing wiki entries depend on MarkItDown.
+A rollback reverts the ordinary tracked ingest reference, curated wiki/index, task artifacts, and changelog changes. Already-published immutable raw original/Markdown provenance remains by default; an operator may manually remove it only when it is local-only and unreferenced. No schema migration or entity-page format makes existing wiki entries depend on MarkItDown.
 
 #### 4b-ii. Attached image / screenshot ingest
 

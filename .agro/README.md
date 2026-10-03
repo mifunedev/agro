@@ -8,7 +8,6 @@ AGRO keeps its portable machinery here. The sandbox definition stays in
 | `cli/` | The `agro` package. |
 | `scripts/`, `install/` | Lifecycle scripts, runtime helpers, and image inputs. |
 | `skills/`, `hooks/`, `skills.lock` | Shared procedures, hooks, and pack metadata. |
-| `evals/` | Regression probes, capability tasks, datasets, and scoreboards. |
 | `knowledge/` | Tracked synthesis, external snapshots, and a generated index. |
 | `tasks/` | Local task plans, structured state, and execution records. |
 | `logs/`, `memories/` | Local logs and operator-context files with scoped contracts. |

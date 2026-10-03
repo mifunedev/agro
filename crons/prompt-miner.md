@@ -121,7 +121,7 @@ printf '[%s]\tprompt-miner\t%s\t%s\n' "$(date -Iseconds)" "<STATUS>" "<msg>" \
 - **Never auto-merge.** This cron opens a PR and labels it; a human merges.
 - **Never edit tracked harness files directly.** Improvements land as
   PRs through `/prd` and `/delegate`, never as unattended mutations. The interactive `/prompt-miner` Step-4 gate only
-  proposes a probe, and it requires human `APPROVE`.
+  proposes a test, and it requires human `APPROVE`.
 - **Origin-only.** Issue, PR, and ground-truth cross-ref target
   `mifunedev/agro` / `origin/development` — never `upstream`/`mifunedev`.
 - **Harness-infra scope only** (skills/rules/docs/scripts/crons/wiki).

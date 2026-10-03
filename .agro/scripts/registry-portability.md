@@ -121,26 +121,6 @@ A `stale exception` line names an entry that matches no line in the file it
 names. It does not fail the run. It means a repair landed and the entry can go —
 which is how the five day-one `KNOWN` entries were retired.
 
-## The two probes
-
-| Probe | Reads | Skips when |
-|---|---|---|
-| `.agro/evals/probes/registry-portability.sh` | the published registry | `AGRO_REGISTRY_CHECKOUT` is unset |
-| `.agro/evals/probes/registry-portability-gate.sh` | this repository | never |
-
-The first probe scans the registry, so it needs a checkout and reports SKIPPED
-without one. That is every run in CI, which has no registry clone. It is the
-right result for that contract — a tree you do not have cannot be scanned — but
-it means the first probe guards nothing by default.
-
-The second probe carries the half of the contract that lives in this repository,
-so it is always armed. It asserts the linter is present and still fails closed,
-the `allow` block parses and every entry is well formed, and the publishing step
-in `.agro/skills/builder/references/skill.md` still names the gate. Those are the
-ways this check gets silently disarmed: deleted, made unparseable, or left with
-no caller. None of them would turn the first probe red, because the first probe
-is not running.
-
 ## Exit codes
 
 | Code | Meaning |
@@ -229,19 +209,8 @@ exit code alone, unless you pass `--strict-exceptions`.
 
 ## When this check actually runs
 
-Nothing runs the registry scan automatically. `AGRO_REGISTRY_CHECKOUT` is set in no
-GitHub workflow and no cron; it appears only in the probe that reads it and in
-this file. CI runs the probe suite (`.github/workflows/ci-harness.yml` and
-`release.yml` both call `.agro/skills/eval/run.sh`), so the gate probe fires on
-every run — but the registry-scanning probe finds no checkout there and reports
-SKIPPED every time.
-
-So the two halves have different triggers:
-
-| What | Runs when | Automatic |
-|---|---|---|
-| Gate wiring (`registry-portability-gate.sh`) | every CI run | yes |
-| Registry scan (the linter, and the probe that wraps it) | a human runs it | no |
+Nothing runs the registry scan automatically. No GitHub workflow and no cron
+invokes `.agro/scripts/registry-portability.sh`.
 
 The scan's intended trigger is the publishing step in
 `.agro/skills/builder/references/skill.md`: run it against a checkout before
@@ -250,16 +219,15 @@ automated gate, and it catches drift only on the path that goes through this
 repository.
 
 To close that gap, a scheduled job under `crons/` would clone the registry
-and run the probe armed. That is the only option that also catches a commit made
+and run the scan. That is the only option that also catches a commit made
 directly against the registry, which the publishing step cannot see.
 
 That job was blocked at first, for a stated reason: the check exited 1 against
 live master until the five recorded defects were repaired there, so a cron added
 then would have paged on a known backlog from its first run. mifunedev/skills#8
 repaired all five and merged as `eab0a14`. The check now reports `findings: 9`,
-`labelled KNOWN: 0`, `neither: 0`, exit 0 against live master, and the armed
-probe passes. **The cron is unblocked and remains unbuilt.** Whoever adds it
-starts from a green baseline, so its first page means real drift.
+`labelled KNOWN: 0`, `neither: 0`, exit 0 against live master. **The cron is
+unblocked and remains unbuilt.** Whoever adds it starts from a green baseline, so its first page means real drift.
 
 ## How far this check reaches
 

@@ -16,8 +16,7 @@ page instead of re-deriving the boundary.
 > **The safe tier is guarded by a path set, not a hook.** There is no
 > `owned-surface-guard` *hook* on disk, and since 0.3.0 there is no enforcing
 > script either: the `OWNED_PATHS` array lived in `.agro/skills/autopilot/SKILL.md`
-> and was removed with that loop, along with the
-> `.agro/evals/probes/owned-surface-guard.sh` probe that tested it. **This page is
+> and was removed with that loop. **This page is
 > now the source of truth for the tier-1 path set** — it is doctrine a reviewer
 > applies, not a check a runtime performs.
 
@@ -30,10 +29,10 @@ standard build ⇄ audit loop and the human merge.
 **Source of truth — the tier-1 path set, defined here since 0.3.0:**
 
 ```bash
-OWNED_PATHS=(.claude/ docs/ scripts/ crons/ .agro/skills/wiki/ .agro/evals/ .agro/tasks/ CHANGELOG.md)
+OWNED_PATHS=(.claude/ docs/ scripts/ crons/ .agro/skills/wiki/ .agro/tasks/ CHANGELOG.md)
 ```
 
-The tier-1 surface is exactly those ten tokens, verbatim:
+The tier-1 surface is exactly those seven tokens, verbatim:
 
 ```
 .claude/
@@ -41,7 +40,6 @@ docs/
 scripts/
 crons/
 .agro/skills/wiki/
-.agro/evals/
 .agro/tasks/
 CHANGELOG.md
 ```

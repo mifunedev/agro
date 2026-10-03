@@ -20,23 +20,6 @@ forms, and confidence lifecycle all live in
 `.agro/skills/wiki/references/schema.md`. This reference defers to those rules — it
 does not redefine them.
 
-## Why this list is short
-
-A health check nobody gates on converges on never being run
-(`[[pattern-wiki-ungated-check-drift]]`). Each surviving check below therefore
-has a deterministic oracle in `.agro/evals/probes/` that fails on the *finding*,
-not on the check having been run. This document is the procedure; the probes are
-the enforcement:
-
-| Check | Oracle |
-|---|---|
-| 1 · schema validity | `.agro/evals/probes/wiki-kind-schema-contract.sh` |
-| 2 · source/dependency paths resolve | `.agro/evals/probes/knowledge-source-freshness.sh` |
-| 3 · source-change freshness | `.agro/evals/probes/knowledge-source-freshness.sh` |
-| 4 · broken `[[...]]` links | `.agro/evals/probes/wiki-related-slugs.sh` |
-| 5 · broken `related:` slugs | `.agro/evals/probes/wiki-related-slugs.sh` |
-| 6 · generated index consistency | `.agro/evals/probes/wiki-readme-index.sh` |
-
 ## What this check list deliberately dropped
 
 - **Orphan detection.** A queryable page with zero inbound `[[slug]]` references
@@ -319,8 +302,7 @@ while IFS= read -r line; do
 done < <(printf '%s\n' "${RANK_LINES[@]}" | sort -r)
 ```
 
-The domain is every entry in `source/` and `patterns/`. It matches
-`.agro/evals/probes/wiki-readme-index.sh` exactly; the two must never diverge.
+The domain is every entry in `source/` and `patterns/`.
 
 #### 9b. Build the content
 
@@ -362,12 +344,6 @@ echo ".agro/knowledge/README.md regenerated (${ENTRIES_COUNT} entries)"
 Write to tmp → validate non-empty and header present → atomic rename. On
 validation failure the original stays intact, the reason is printed, and the tmp
 file is removed. A partial write never leaves the index corrupt.
-
-Verify:
-
-```bash
-bash .agro/evals/probes/wiki-readme-index.sh
-```
 
 ### 10. Informational telemetry (decides nothing)
 

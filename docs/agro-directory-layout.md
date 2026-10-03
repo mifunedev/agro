@@ -12,7 +12,6 @@ Canonical skills own reusable procedures. Documentation under `docs/` explains A
 | `.agro/cli/` | The `agro` CLI package. |
 | `.agro/scripts/`, `.agro/install/` | Lifecycle scripts, runtime helpers, and image installation inputs. |
 | `.agro/skills/`, `.agro/hooks/`, `.agro/skills.lock` | Vendored shared procedures, hooks, and pack metadata. |
-| `.agro/evals/` | Regression probes and decision records. |
 | `.agro/knowledge/` | Tracked source pages, patterns, external captures, and a generated index; ignored `local/` scratch. |
 | `.agro/tasks/` | Task plans (`prd.md`) and story state (`prd.json`). |
 | `.agro/logs/`, `.agro/memories/` | Local logs and operator context, each with a scoped contract. |
@@ -89,7 +88,7 @@ An equal version is a no-op without `--force`; a downgrade requires `--force`.
 - `exclude` applies to both lists and wins over an include match.
 - Symlinks, `node_modules`, and `dist` directories do not enter the file walk.
 
-The current payload includes `cli`, `scripts`, `install`, `evals`, `knowledge`, `skills`, and `hooks`.
+The current payload includes `cli`, `scripts`, `install`, `knowledge`, `skills`, and `hooks`.
 It also includes `skills.lock`, `README.md`, and the manifest itself.
 The payload omits `tasks`, `logs`, `memories`, dependency patches, and root `docs/`.
 The omissions describe the current manifest, not every file present in the repository.
@@ -111,6 +110,5 @@ The task contract stays repository-local; changing that contract does not expand
 
 - [Lifecycle commands](lifecycle-commands.md)
 - [Configuration](configuration.md)
-- [Regression evals](evals.md)
 - [Sandbox Python](sandbox-python.md)
 - [Descriptive harness manifest](harness-manifest.md)

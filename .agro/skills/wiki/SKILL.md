@@ -97,8 +97,6 @@ These hold across all three subcommands; the reference docs assume them.
 - A **session journal** entry ("this run showed Y") → the run's report. A
   *recurring failure mode* the run revealed is different: that is a
   `kind: pattern` entry, named for the mode not the run.
-- A **proposal decision record** → `.agro/evals/decisions/skill-impact.md`, not a
-  knowledge page.
 - **Human-facing prose** → `docs/` (knowledge pages are LLM-readable synthesis).
 - Full-text body search → direct `grep`; `query` is intentionally
   frontmatter-only.
@@ -109,5 +107,3 @@ These hold across all three subcommands; the reference docs assume them.
 - `.agro/skills/wiki/references/ingest.md` · `query.md` · `lint.md` — full procedures
 - `.agro/skills/wiki/scripts/knowledge-impact.sh` — dependency-aware invalidation
 - `.agro/knowledge/README.md` — the generated index
-- `.agro/evals/decisions/skill-impact.md` — the skill-change ledger the proposer reads
-- `.agro/evals/probes/wiki-readme-index.sh` — drift guard for the generated index

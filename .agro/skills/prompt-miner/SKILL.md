@@ -175,28 +175,28 @@ then gate it:
 
 1. **Qualify filter.** Drop any candidate that is a secret, raw command output, a
    step-by-step plan, or anything re-derivable in under a minute.
-2. **Dedup against existing probes.** For each surviving candidate, grep
-   `.agro/evals/probes/` for a probe that already asserts the same invariant; if it
+2. **Dedup against existing tests.** For each surviving candidate, grep the
+   `__tests__/` directories for a test that already asserts the same invariant; if it
    is already captured, link or skip — never double-write.
 3. **Promotability.** A marker that is merely descriptive ("this corpus shows X
    prompt trait correlates with better `<type>` sessions") is **reported, not
    promoted** — say it in the report and stop there. Only a marker that has
    generalized across many sessions into a prescriptive principle ("always include
-   acceptance criteria") earns a proposed probe under `.agro/evals/probes/` — and a
-   probe is **never** auto-written.
+   acceptance criteria") earns a proposed test — and a test is **never**
+   auto-written.
 4. **Propose, then wait.** Present the block and stop until the user responds:
 
    ```
-   Proposed probe(s) under .agro/evals/probes/:
-   - <probe name> asserts <prescriptive principle> [prompt-miner · <stratum>] — basis: <one clause>
+   Proposed test(s):
+   - <test name> asserts <prescriptive principle> [prompt-miner · <stratum>] — basis: <one clause>
 
    Type APPROVE to record, SKIP to discard any item, or EDIT <n> <new text> to revise.
    ```
 
-5. **Record approved items.** On `APPROVE`, add each approved probe proposal to the
+5. **Record approved items.** On `APPROVE`, add each approved test proposal to the
    run report in `$TMPDIR`, beside the weakness records and the ranked marker
    table. `/prompt-miner` writes no tracked file; an approved proposal becomes a
-   real probe only through a plan: `/prd` plans it and `/delegate` builds it. `--report-only` and
+   real test only through a plan: `/prd` plans it and `/delegate` builds it. `--report-only` and
    `--dry-run` skip this step entirely.
 
 Announce `RESULT: MINING-COMPLETE` once the gate has run.
@@ -209,7 +209,7 @@ Announce `RESULT: MINING-COMPLETE` once the gate has run.
   `NO-CORPUS` and stop. Do not manufacture noise-driven markers.
 - **Committing transcripts.** Artifacts are gitignored; never stage them, and never
   commit `--include-prompt-text` output.
-- **Auto-promoting a marker.** Step 4 is propose-then-confirm. Never record a probe
+- **Auto-promoting a marker.** Step 4 is propose-then-confirm. Never record a test
   proposal without an explicit `APPROVE`, and never from a single run's evidence.
 - **Word-splitting `--weights`.** Always invoke the engine via the `args=($ARGUMENTS)`
   array form so the JSON stays one token.

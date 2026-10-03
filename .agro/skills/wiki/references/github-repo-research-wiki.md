@@ -28,8 +28,8 @@ In `.agro/knowledge/source/<slug>.md`, include:
 3. Local integration recommendation, explicitly separating:
    - required dependency fit
    - optional/documentation fit
-   - probe/eval fit
-4. A quantitative judgment when the user asks to “quantify and judge” (e.g. `conceptual fit 9/10`, `direct dependency fit 5/10`, `docs/probe fit 8/10`).
+   - test fit
+4. A quantitative judgment when the user asks to “quantify and judge” (e.g. `conceptual fit 9/10`, `direct dependency fit 5/10`, `docs/test fit 8/10`).
 5. Limitations and failure modes, especially where the tool can be misused.
 
 Keep the wiki entry under the standard 600-word cap. Put raw excerpts and scan details in the raw snapshot.
