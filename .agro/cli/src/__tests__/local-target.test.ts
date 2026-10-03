@@ -1,10 +1,14 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  DOCKERENV_FILE,
   HostOnlyError,
   LocalExecutionTarget,
   resolveExecutionTarget,
   runningInsideSandbox,
   SANDBOX_MARKER_FILE,
+  sandboxFallbackWarning,
   type LifecycleRunner,
   type RunResult,
 } from "../lib/execution/index.js";
@@ -37,32 +41,98 @@ function target(uid: number, run: LifecycleRunner): LocalExecutionTarget {
 }
 
 describe("runningInsideSandbox", () => {
-  const present = (p: string): boolean => p === SANDBOX_MARKER_FILE;
-  const absent = (): boolean => false;
+  const files = (...paths: string[]) => (p: string): boolean => paths.includes(p);
+  const absent = files();
 
-  it("is true when the container marker and SANDBOX_NAME are both present", () => {
-    expect(runningInsideSandbox({ SANDBOX_NAME: "agro" }, present)).toBe(true);
+  it("names /etc/agro/sandbox as the sandbox marker", () => {
+    expect(SANDBOX_MARKER_FILE).toBe("/etc/agro/sandbox");
   });
 
-  it("is false on a host without the container marker", () => {
+  it("is true when the marker exists without /.dockerenv or SANDBOX_NAME", () => {
+    expect(runningInsideSandbox({}, files(SANDBOX_MARKER_FILE))).toBe(true);
+  });
+
+  it("is true when the marker, /.dockerenv, and SANDBOX_NAME are all present", () => {
+    expect(
+      runningInsideSandbox({ SANDBOX_NAME: "agro" }, files(SANDBOX_MARKER_FILE, DOCKERENV_FILE)),
+    ).toBe(true);
+  });
+
+  it("falls back to /.dockerenv with SANDBOX_NAME when the marker is absent", () => {
+    expect(runningInsideSandbox({ SANDBOX_NAME: "agro" }, files(DOCKERENV_FILE))).toBe(true);
+  });
+
+  it("is false when the marker is absent and SANDBOX_NAME is unset inside a container", () => {
+    expect(runningInsideSandbox({}, files(DOCKERENV_FILE))).toBe(false);
+  });
+
+  it("is false when the marker is absent and SANDBOX_NAME is empty inside a container", () => {
+    expect(runningInsideSandbox({ SANDBOX_NAME: "" }, files(DOCKERENV_FILE))).toBe(false);
+  });
+
+  it("is false on a host without the marker or /.dockerenv", () => {
     expect(runningInsideSandbox({ SANDBOX_NAME: "agro" }, absent)).toBe(false);
-  });
-
-  it("is false inside a container that is not an AGRO sandbox", () => {
-    expect(runningInsideSandbox({}, present)).toBe(false);
   });
 
   it("honours AGRO_EXECUTION_TARGET=local on a host", () => {
     expect(runningInsideSandbox({ AGRO_EXECUTION_TARGET: "local" }, absent)).toBe(true);
   });
 
-  it("honours AGRO_EXECUTION_TARGET=docker-compose inside the sandbox", () => {
+  it("honours AGRO_EXECUTION_TARGET=docker-compose when the marker exists", () => {
     expect(
       runningInsideSandbox(
         { AGRO_EXECUTION_TARGET: "docker-compose", SANDBOX_NAME: "agro" },
-        present,
+        files(SANDBOX_MARKER_FILE, DOCKERENV_FILE),
       ),
     ).toBe(false);
+  });
+
+  it("honours AGRO_EXECUTION_TARGET=docker-compose on the fallback path", () => {
+    expect(
+      runningInsideSandbox(
+        { AGRO_EXECUTION_TARGET: "docker-compose", SANDBOX_NAME: "agro" },
+        files(DOCKERENV_FILE),
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("sandboxFallbackWarning", () => {
+  const files = (...paths: string[]) => (p: string): boolean => paths.includes(p);
+
+  it("returns one stderr line that names the marker and asks for an image upgrade on the fallback path", () => {
+    const warning = sandboxFallbackWarning({ SANDBOX_NAME: "agro" }, files(DOCKERENV_FILE));
+    expect(warning).toBeDefined();
+    expect(warning).toContain("/etc/agro/sandbox");
+    expect(warning).toMatch(/upgrade/i);
+    expect(warning).toMatch(/^[^\n]+\n$/);
+  });
+
+  it("returns nothing when the marker exists", () => {
+    expect(
+      sandboxFallbackWarning({ SANDBOX_NAME: "agro" }, files(SANDBOX_MARKER_FILE, DOCKERENV_FILE)),
+    ).toBeUndefined();
+  });
+
+  it("returns nothing under either override", () => {
+    for (const target of ["local", "docker-compose"]) {
+      expect(
+        sandboxFallbackWarning(
+          { AGRO_EXECUTION_TARGET: target, SANDBOX_NAME: "agro" },
+          files(DOCKERENV_FILE),
+        ),
+      ).toBeUndefined();
+    }
+  });
+
+  it("returns nothing outside the sandbox", () => {
+    expect(sandboxFallbackWarning({}, files(DOCKERENV_FILE))).toBeUndefined();
+    expect(sandboxFallbackWarning({ SANDBOX_NAME: "agro" }, files())).toBeUndefined();
+  });
+
+  it("is written by exactly one call in the CLI entry point", () => {
+    const source = readFileSync(fileURLToPath(new URL("../cli.ts", import.meta.url)), "utf8");
+    expect(source.match(/sandboxFallbackWarning\(/g)).toHaveLength(1);
   });
 });
 

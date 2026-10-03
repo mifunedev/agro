@@ -18,6 +18,7 @@ import {
   runGateway,
   runSandbox,
   runShell,
+  configuredContainerName,
   DEFAULT_CONTAINER_NAME,
   type LifecycleIO,
   type LifecycleRunner,
@@ -455,6 +456,16 @@ describe("runSandbox", () => {
   });
 });
 
+
+describe("configuredContainerName", () => {
+  it("returns the agro.json name when SANDBOX_NAME is unset", () => {
+    vi.stubEnv("SANDBOX_NAME", undefined);
+    const root = makeRepo();
+    writeOhJson(root, { name: "from-json" });
+
+    expect(configuredContainerName(root)).toBe("from-json");
+  });
+});
 
 describe("runShell", () => {
   it("resolves the entry by name and execs into its container", () => {

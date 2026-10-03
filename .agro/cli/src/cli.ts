@@ -63,6 +63,7 @@ import { hostCapableToolIds, installableToolIds, toolIds } from "./lib/tools/cat
 import { sourceDocsUrl } from "./lib/docs.js";
 import { AGRO_PRODUCT, resolveProduct, stateNames, type Product } from "./lib/product.js";
 import { resolveControlDir } from "./lib/layout.js";
+import { sandboxFallbackWarning } from "./lib/execution/index.js";
 import {
   fetchRemoteSource,
   DEFAULT_REPO_URL,
@@ -1196,6 +1197,9 @@ async function main(argv: string[]): Promise<number> {
     return 0;
   }
   if (!Object.hasOwn(AGRO_COMMANDS, first)) return unknownCommand(first, product);
+
+  const fallbackWarning = sandboxFallbackWarning();
+  if (fallbackWarning !== undefined) process.stderr.write(fallbackWarning);
 
   if (first === "config") {
     const parsed = parseConfigArgs(argv.slice(1), bin);

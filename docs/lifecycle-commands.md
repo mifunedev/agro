@@ -173,8 +173,12 @@ execution target for each. On the host it drives the container through Docker
 Compose. Inside the sandbox it runs commands directly, because the sandbox *is*
 the environment those commands target.
 
-Detection is automatic: `agro` treats itself as in-sandbox when `/.dockerenv`
-exists **and** `SANDBOX_NAME` holds a value. Override the detection with
+Detection is automatic. `agro` treats itself as in-sandbox when the image marker
+`/etc/agro/sandbox` exists. When the marker is absent, `agro` uses the fallback
+rule: `/.dockerenv` exists **and** `SANDBOX_NAME` holds a value. The fallback
+covers a newer CLI that runs on an older image. When only the fallback rule
+matches, `agro` prints one warning line on stderr that names `/etc/agro/sandbox`.
+Upgrade the sandbox image to remove the warning. Override the detection with
 `AGRO_EXECUTION_TARGET=local` or `AGRO_EXECUTION_TARGET=docker-compose`.
 
 | Verb | On the host | Inside the sandbox |
