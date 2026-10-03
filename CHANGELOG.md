@@ -27,6 +27,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 
+- Point the public-documentation surface check in `AGENTS.md` at `docs/` instead of `mifunedev/agro-web` ([#1267](https://github.com/mifunedev/agro/issues/1267)).
 - Set the Codex project default to `gpt-6-sol` at medium reasoning effort ([#1201](https://github.com/mifunedev/agro/issues/1201)).
 - Document host Codex updates when another npm global prefix shadows the selected installation ([#1201](https://github.com/mifunedev/agro/issues/1201)).
 - Use a YAML Slack app manifest for Pi setup and provide a copyable version in the Slack docs while preserving the app's permissions, events, and admin commands ([#1177](https://github.com/mifunedev/agro/issues/1177)).

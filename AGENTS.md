@@ -139,7 +139,7 @@ silently skip a surface.
 - **Parallel operation:** Can two agents perform the work without sharing mutable
   state?
 - **Public documentation:** Does user-facing behavior or terminology require a
-  matching change in `mifunedev/agro-web`?
+  matching change in `docs/`?
 - **Verification:** Which tests, probes, and CI paths prove the changed behavior?
 
 ## How to work in this repository
