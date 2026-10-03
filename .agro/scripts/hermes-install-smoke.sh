@@ -11,7 +11,12 @@ if [ -S /var/run/docker.sock ] || [ "$(id -un)" != sandbox ]; then
 fi
 
 hermes_dir="$HOME/.local/lib/hermes-agent"
-program=$(mktemp "$hermes_dir/agro-smoke-XXXXXX.py")
+launcher="$hermes_dir/.hermes/bin/hermes"
+if [ ! -x "$launcher" ]; then
+  echo "ERROR: Hermes launcher not found at $launcher; run agro harness install hermes" >&2
+  exit 1
+fi
+program=$(mktemp "$hermes_dir/agro_smoke_XXXXXX.py")
 trap 'rm -f "$program"' EXIT
 cat >"$program" <<'PY'
 import hashlib
@@ -83,4 +88,4 @@ print(json.dumps({'home': str(home), 'cwd': os.getcwd(), 'uid': os.getuid(),
                   'canonical_files_unchanged': len(before), 'atomic_replace': True,
                   'skill_count': len(names), 'result': 'PASS'}, sort_keys=True))
 PY
-"$hermes_dir/scripts/_hermes-python" "$program"
+"$launcher" --run-module "$(basename "$program" .py)"
