@@ -25,45 +25,4 @@ describe("installer host prerequisite docs", () => {
     expect(text).not.toMatch(/only host dependency is \[?Docker/i);
     expect(text).not.toMatch(/Docker remains the only required host dependency/i);
   });
-
-  it("installer help and missing-git diagnostic explain the Git prerequisite", () => {
-    const install = readRepoFile(".agro", "scripts", "install.sh");
-
-    expect(install).toContain("Docker with the Compose plugin");
-    expect(install).toContain("git (used to clone or update AGRO)");
-    expect(install).toContain("git is required to clone or update AGRO");
-  });
-
-  it("installer requires Node >= 20 and reuses get-agro.sh's ensure_node", () => {
-    const install = readRepoFile(".agro", "scripts", "install.sh");
-
-    expect(install).toContain("Node.js >= 20");
-    expect(install).toContain('. "$REPO_DIR/.agro/scripts/get-agro.sh"');
-    expect(install).toContain("command -v agro >/dev/null 2>&1 || die");
-    expect(install).not.toMatch(/command -v make/);
-    expect(install).not.toContain("make not found");
-    expect(install).not.toContain("ensure_node() {");
-  });
-
-  it("refuses to overwrite a sandbox that already exists under the same name", () => {
-    const install = readRepoFile(".agro", "scripts", "install.sh");
-
-    expect(install).toContain("docker ps -a --format");
-    expect(install).toContain('die "A sandbox named');
-    expect(install).toContain("already exists");
-    expect(install).toContain("AGRO_REPLACE");
-  });
-
-  it("installs nothing itself and closes with the harness and tool install verbs", () => {
-    const install = readRepoFile(".agro", "scripts", "install.sh");
-
-    for (const id of ["claude-code", "codex", "pi"]) {
-      expect(install).toContain(`agro harness install ${id}`);
-    }
-    for (const id of ["herdr", "cloudflared"]) {
-      expect(install).toContain(`agro tool install ${id}`);
-    }
-    expect(install).not.toContain('prompt_yn "Install ');
-    expect(install).not.toMatch(/INSTALL_(HERMES|OPENCODE|GROK_BUILD|AGENT_BROWSER|TAILSCALE)/);
-  });
 });

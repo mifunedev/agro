@@ -136,7 +136,7 @@ executable:
 | Installation | Detected as | What `agro self-upgrade` does |
 |---|---|---|
 | `npm install -g @mifune/agro` | realpath under `node_modules/@mifune/agro/` | reads the registry version with `npm view`, then runs `npm install -g --prefix <owning prefix> @mifune/agro@<version>` |
-| `get-agro.sh` | a plain file | downloads `AGRO_JS_URL` (default `https://github.com/mifunedev/agro/releases/latest/download/agro.js`) into the same directory, checks its shebang and `--version`, renames it over the executable, and keeps `<path>.prev` until the new file verifies |
+| `install.sh` | a plain file | downloads `AGRO_JS_URL` (default `https://github.com/mifunedev/agro/releases/latest/download/agro.js`) into the same directory, checks its shebang and `--version`, renames it over the executable, and keeps `<path>.prev` until the new file verifies |
 
 `agro self-upgrade` refuses, and prints the supported procedure, in each of these
 cases: the sandbox image ships the executable (`/opt/agro`); the executable is a

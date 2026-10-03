@@ -8,6 +8,14 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Changed
+
+- Rename the curl installer from `get-agro.sh` to `install.sh`. Releases also upload `install.sh` as `get-agro.sh` until 0.18.0, which removes that alias ([#1309](https://github.com/mifunedev/agro/issues/1309)).
+
+### Removed
+
+- Remove the earlier `.agro/scripts/install.sh` checkout installer. It cloned into `~/.agro` and stopped at a bare `agro sandbox` ([#1309](https://github.com/mifunedev/agro/issues/1309)).
+
 ### Fixed
 
 - Flush the first-boot seed to disk before the entrypoint writes `.agro/.image-seeded`, and restore 0-byte seed files when `agro.json` or `package.json` has 0 bytes after a power loss ([#1303](https://github.com/mifunedev/agro/issues/1303)).

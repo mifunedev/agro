@@ -478,7 +478,7 @@ describe("release workflow contract", () => {
     expect(source).toContain("npm --prefix .agro/cli ci --ignore-scripts");
     expect(source).toContain("npm --prefix .agro/cli run build");
     expect(source).toMatch(
-      /gh release upload "v\$\{RELEASE_VERSION\}" --clobber \\\n\s+\.agro\/cli\/dist\/agro\.js \\\n\s+\.agro\/scripts\/get-agro\.sh/,
+      /cp \.agro\/scripts\/install\.sh "\$RUNNER_TEMP\/get-agro\.sh"\n\s+gh release upload "v\$\{RELEASE_VERSION\}" --clobber \\\n\s+\.agro\/cli\/dist\/agro\.js \\\n\s+\.agro\/scripts\/install\.sh \\\n\s+"\$RUNNER_TEMP\/get-agro\.sh"\n/,
     );
     expect(source).toMatch(/finalize:\n[\s\S]*?GH_TOKEN: \$\{\{ secrets\.GITHUB_TOKEN \}\}/);
     expect(build).toBeGreaterThan(source.indexOf("  finalize:\n"));

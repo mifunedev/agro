@@ -10,7 +10,7 @@
 #     --name-prefix <str>        Sandbox name prefix (default: agro-cli-first).
 #     --bundle <path>            Candidate agro.js (default: .agro/cli/dist/agro.js).
 #     --require-docker           Fail when docker is missing (CI).
-#     --bootstrap-without-node   Require node to be absent, then run get-agro.sh nvm provisioning.
+#     --bootstrap-without-node   Require node to be absent, then run install.sh nvm provisioning.
 #     --cleanup-only             Remove only resources recorded in --workdir/manifest.
 #     --keep                     Keep recorded resources after success.
 #
@@ -19,7 +19,7 @@ set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
-GET_AGRO="$REPO_ROOT/.agro/scripts/get-agro.sh"
+INSTALLER="$REPO_ROOT/.agro/scripts/install.sh"
 HEALTH_CMD=${CLI_FIRST_HEALTH_CMD:-bash /home/sandbox/harness/.agro/scripts/sandbox-healthcheck.sh}
 
 PHASE=all
@@ -46,14 +46,14 @@ Options:
   --name-prefix <str>        Sandbox name prefix (default: agro-cli-first)
   --bundle <path>            Candidate agro.js (default: <repo>/.agro/cli/dist/agro.js)
   --require-docker           Fail when docker is missing
-  --bootstrap-without-node   Require node absent; exercise get-agro.sh nvm/Node provisioning
+  --bootstrap-without-node   Require node absent; exercise install.sh nvm/Node provisioning
   --cleanup-only             Remove only resources recorded in the workdir manifest
   --keep                     Keep recorded resources after success
   -h, --help                 Print this contract
 
 Phases:
   pack        npm pack @mifune/agro, install the tarball into an isolated prefix, run agro
-  bootstrap   run get-agro.sh against the real built agro.js in an isolated HOME
+  bootstrap   run install.sh against the real built agro.js in an isolated HOME
   seed        agro sandbox install docker with empty storage, no --checkout, explicit --image
   recreate    saved access.dockerSocket false and true; agro stop then agro sandbox install
   all         pack, bootstrap, seed, recreate
@@ -236,7 +236,7 @@ phase_bootstrap() {
   record home "$home"
   local bin_dir="$home/.local/bin"
   mkdir -p "$bin_dir"
-  # get-agro.sh and nvm only append PATH to an existing profile. debian:bookworm-slim
+  # install.sh and nvm only append PATH to an existing profile. debian:bookworm-slim
   # and an isolated HOME have none — create .profile before install so a new login
   # shell can find both nvm Node and agro.
   if [ ! -f "$home/.profile" ]; then
@@ -244,8 +244,8 @@ phase_bootstrap() {
   fi
   local url="file://$BUNDLE"
   HOME="$home" AGRO_BIN_DIR="$bin_dir" AGRO_JS_URL="$url" AGRO_ASSUME_YES=1 \
-    bash "$GET_AGRO" --yes
-  [ -x "$bin_dir/agro" ] || die "get-agro.sh did not install $bin_dir/agro"
+    bash "$INSTALLER" --yes
+  [ -x "$bin_dir/agro" ] || die "install.sh did not install $bin_dir/agro"
   verify_installed_bundle "$home" "$bin_dir/agro"
   local login_out
   login_out=$(HOME="$home" bash -lc '

@@ -48,7 +48,7 @@ Use `npx @mifune/agro` in place of `agro` in later commands.
 
 ```bash
 # Install AGRO to ~/.local/bin; offers Node.js setup if needed
-curl -fsSL https://github.com/mifunedev/agro/releases/latest/download/get-agro.sh | bash
+curl -fsSL https://github.com/mifunedev/agro/releases/latest/download/install.sh | bash
 ```
 
 For a download-and-review alternative, see [Installation](docs/installation.md).

@@ -19,7 +19,7 @@ other file.
 |---|---|---|
 | Docker with the Compose plugin | The sandbox | [docs.docker.com/get-docker](https://docs.docker.com/get-docker/) |
 | Git | `agro vendor --from-remote` and `agro workspace create` | [git-scm.com](https://git-scm.com/) |
-| Node.js ≥ 20 (22 recommended) | The `agro` CLI | [nodejs.org](https://nodejs.org/), or let `get-agro.sh` install nvm and Node 22 |
+| Node.js ≥ 20 (22 recommended) | The `agro` CLI | [nodejs.org](https://nodejs.org/), or let `install.sh` install nvm and Node 22 |
 
 The host needs nothing else. pnpm, Python, and every agent CLI run inside the
 sandbox.
@@ -34,28 +34,28 @@ npm install -g @mifune/agro          # puts `agro` on your PATH
 npx @mifune/agro sandbox install docker   # or run it without a global install
 ```
 
-npm does not install Node. Without Node, use `get-agro.sh`. The script downloads
+npm does not install Node. Without Node, use `install.sh`. The script downloads
 the prebuilt `agro` file from the latest GitHub release into `~/.local/bin/agro`.
 It clones nothing and builds nothing. When Node.js ≥ 20 is missing, the script
 offers to install nvm and Node 22:
 
 ```bash
-curl -fsSL https://github.com/mifunedev/agro/releases/latest/download/get-agro.sh | bash
+curl -fsSL https://github.com/mifunedev/agro/releases/latest/download/install.sh | bash
 ```
 
 To review the script before it runs:
 
 ```bash
-curl -fsSL -o get-agro.sh https://github.com/mifunedev/agro/releases/latest/download/get-agro.sh
-# Read get-agro.sh, then:
-bash get-agro.sh
+curl -fsSL -o install.sh https://github.com/mifunedev/agro/releases/latest/download/install.sh
+# Read install.sh, then:
+bash install.sh
 ```
 
-`source <(curl -fsSL https://github.com/mifunedev/agro/releases/latest/download/get-agro.sh)` installs `agro` and puts
+`source <(curl -fsSL https://github.com/mifunedev/agro/releases/latest/download/install.sh)` installs `agro` and puts
 it on the PATH of the current shell. After the piped form, run
 `export PATH="$HOME/.local/bin:$PATH"` to do the same.
 
-`get-agro.sh` reads these options:
+`install.sh` reads these options:
 
 | Option | Effect |
 |---|---|
@@ -75,7 +75,7 @@ See [Lifecycle commands → `agro self-upgrade`](lifecycle-commands.md#upgrading
 ### Package and PATH rules
 
 - `@mifune/agro` ships one executable, `agro`.
-- An npm install and a `get-agro.sh` install can coexist. `agro self-upgrade`
+- An npm install and an `install.sh` install can coexist. `agro self-upgrade`
   refuses when another `agro` comes earlier on PATH than the file it replaces.
   Remove or reorder one install first.
 - The CLI reads only AGRO state: `~/.agro/`, the `.agro/` control plane,
@@ -83,12 +83,12 @@ See [Lifecycle commands → `agro self-upgrade`](lifecycle-commands.md#upgrading
 
 ### Non-interactive shells
 
-A login shell reads the PATH line that `get-agro.sh` adds to your profile. A
+A login shell reads the PATH line that `install.sh` adds to your profile. A
 cron job, a systemd unit, cloud-init, and `ssh host cmd` do not. In those
 contexts, run `agro` by its absolute path, for example
 `/home/<user>/.local/bin/agro --version`.
 
-When `node` resolves under `$NVM_DIR`, `get-agro.sh` links that Node to
+When `node` resolves under `$NVM_DIR`, `install.sh` links that Node to
 `~/.local/share/agro/node` and sets the shebang of `agro` to that link. `agro`
 then runs without nvm on PATH. `agro self-upgrade` keeps that shebang.
 

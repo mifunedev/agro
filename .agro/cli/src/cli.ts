@@ -239,7 +239,7 @@ The upgrade follows whichever mechanism installed this executable:
   npm-managed    realpath under node_modules/${AGRO_PRODUCT.packageName}/: reads the registry
                  version with \`npm view\`, then runs
                  \`npm install -g --prefix <owning prefix> ${AGRO_PRODUCT.packageName}@<version>\`.
-  standalone     a plain file (get-agro.sh): downloads AGRO_JS_URL (default
+  standalone     a plain file (install.sh): downloads AGRO_JS_URL (default
                  ${DEFAULT_ARTIFACT_URL})
                  into the same directory, checks its shebang and \`--version\`,
                  renames it over the executable, and keeps <path>.prev until the

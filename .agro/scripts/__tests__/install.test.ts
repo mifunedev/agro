@@ -16,7 +16,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 const REPO_ROOT = resolve(import.meta.dirname, "../../..");
-const SCRIPT = join(REPO_ROOT, ".agro", "scripts", "get-agro.sh");
+const SCRIPT = join(REPO_ROOT, ".agro", "scripts", "install.sh");
 const NPM_ALTERNATIVE = "npm install -g @mifune/agro";
 const FAKE_ARTIFACT = '#!/usr/bin/env node\nconsole.log("9.9.9")\n';
 
@@ -58,7 +58,7 @@ interface Home {
 }
 
 function makeHome(artifact: string | null = FAKE_ARTIFACT): Home {
-  const home = mkdtempSync(join(tmpdir(), "get-agro-"));
+  const home = mkdtempSync(join(tmpdir(), "agro-install-"));
   cleanups.push(home);
   const profile = join(home, ".profile");
   writeFileSync(profile, "# existing profile\n");
@@ -72,7 +72,7 @@ function install(h: Home, env: Record<string, string>): ShellResult {
   return run([], { HOME: h.home, ...env });
 }
 
-describe("get-agro.sh env resolution", () => {
+describe("install.sh env resolution", () => {
   it("reports the AGRO_ spelling as the source when it is set", () => {
     const result = run(["--resolve", "JS_URL", "https://example.invalid/agro.js"], {
       AGRO_JS_URL: "https://example.invalid/override.js",
@@ -97,7 +97,7 @@ describe("get-agro.sh env resolution", () => {
   });
 });
 
-describe("get-agro.sh end to end", () => {
+describe("install.sh end to end", () => {
   it("installs the artifact, records the PATH line, and reports the version", () => {
     const h = makeHome();
     const binDir = join(h.home, "bin");
@@ -109,7 +109,7 @@ describe("get-agro.sh end to end", () => {
     expect(readFileSync(installed, "utf8")).toBe(FAKE_ARTIFACT);
 
     const profile = readFileSync(h.profile, "utf8");
-    expect(profile).toContain("# Added by AGRO get-agro.sh");
+    expect(profile).toContain("# Added by AGRO install.sh");
     expect(profile).toContain(`export PATH="${binDir}:$PATH"`);
 
     expect(result.stdout).toContain("agro 9.9.9");
@@ -145,7 +145,7 @@ describe("get-agro.sh end to end", () => {
   it("fails on a missing artifact with the URL and the npm alternative, without building", () => {
     const h = makeHome(null);
     const binDir = join(h.home, "bin");
-    const url = "file:///nonexistent/get-agro-test/agro.js";
+    const url = "file:///nonexistent/agro-install-test/agro.js";
     const result = install(h, { AGRO_BIN_DIR: binDir, AGRO_JS_URL: url });
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain(url);
@@ -154,7 +154,7 @@ describe("get-agro.sh end to end", () => {
     const output = result.stdout + result.stderr;
     expect(output).not.toMatch(/git clone/);
     expect(output).not.toMatch(/build/i);
-    expect(readFileSync(h.profile, "utf8")).not.toContain("get-agro.sh");
+    expect(readFileSync(h.profile, "utf8")).not.toContain("Added by AGRO");
   });
 
   it("rejects an artifact without a shebang", () => {
@@ -188,6 +188,16 @@ describe("get-agro.sh end to end", () => {
     });
     expect(fresh.status, fresh.stderr).toBe(0);
     expect(fresh.stdout.trim()).toBe(version.stdout.trim());
+  });
+
+  it("appends no second PATH line to a profile that an earlier get-agro.sh edited", () => {
+    const h = makeHome();
+    const binDir = join(h.home, "bin");
+    const legacy = `# existing profile\n\n# Added by AGRO get-agro.sh\nexport PATH="${binDir}:$PATH"\n`;
+    writeFileSync(h.profile, legacy);
+    const result = install(h, { AGRO_BIN_DIR: binDir, AGRO_JS_URL: `file://${h.artifact}` });
+    expect(result.status, result.stderr).toBe(0);
+    expect(readFileSync(h.profile, "utf8")).toBe(legacy);
   });
 
   it("skips the profile edit when the bin dir is already on PATH", () => {
@@ -262,7 +272,7 @@ function nvmWhich(nvmDir: string, tools: string): string {
   }).stdout.trim();
 }
 
-describe("get-agro.sh nvm Node pin", () => {
+describe("install.sh nvm Node pin", () => {
   it("links the nvm Node and pins the installed shebang when no node is on PATH", () => {
     const h = makeHome();
     const tools = nodelessPath(h);
@@ -309,7 +319,7 @@ describe("get-agro.sh nvm Node pin", () => {
     const h = makeHome();
     const tools = nodelessPath(h);
     const { nodeBin, nvmDir } = fakeNvm(h);
-    const outside = mkdtempSync(join(tmpdir(), "get-agro-bin-"));
+    const outside = mkdtempSync(join(tmpdir(), "agro-install-bin-"));
     cleanups.push(outside);
     const env = { NVM_DIR: nvmDir, AGRO_JS_URL: `file://${h.artifact}`, ASSUME_YES: "true" };
     expect(install(h, { ...env, PATH: tools }).status).toBe(0);
@@ -334,7 +344,7 @@ describe("get-agro.sh nvm Node pin", () => {
   });
 });
 
-describe("get-agro.sh static contract", () => {
+describe("install.sh static contract", () => {
   const source = readFileSync(SCRIPT, "utf8");
 
   it("is executable and shebanged", () => {
@@ -359,7 +369,7 @@ describe("get-agro.sh static contract", () => {
 
   it("pins the artifact URL, install path, and help contract", () => {
     expect(source).toContain('install -m 0755 "$TMP/agro.js" "$AGRO_BIN_DIR/agro"');
-    expect(source).toContain("# Added by AGRO get-agro.sh");
+    expect(source).toContain("# Added by AGRO install.sh");
     const help = run(["--help"]);
     expect(help.status).toBe(0);
     expect(help.stdout).toContain("https://github.com/mifunedev/agro/releases/latest/download/agro.js");

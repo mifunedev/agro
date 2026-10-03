@@ -8,483 +8,222 @@ banner() { printf "\n${CYAN}==> %s${NC}\n" "$*"; }
 ok()     { printf "${GREEN} ✓  %s${NC}\n" "$*"; }
 warn()   { printf "${YELLOW}WARN: %s${NC}\n" "$*" >&2; }
 die()    { printf "${RED}ERROR: %s${NC}\n" "$*" >&2; exit 1; }
+cleanup() { [ -n "${TMP:-}" ] && rm -rf "$TMP" 2>/dev/null || true; }
 
-normalize_gh_slug() {
-  local _url="$1"
-  _url="${_url#https://github.com/}"
-  _url="${_url#git@github.com:}"
-  _url="${_url%.git}"
-  printf '%s' "$_url"
-}
-
-
-prompt_input() {
-  local __var="$1"; local __msg="$2"; local __default="${3:-}"; local __secret="${4:-}"
-  if [ -n "${!__var:-}" ]; then
-    ok "Using $__var from environment"
+agro_env() {
+  local agro_key="AGRO_$1" agro_value
+  agro_value="${!agro_key:-}"
+  if [ -n "$agro_value" ]; then
+    printf 'agro\t%s\n' "$agro_value"
     return 0
   fi
-  if [ -r /dev/tty ]; then
-    if [ -n "$__default" ]; then
-      printf "  %s [%s]: " "$__msg" "$__default"
-    else
-      printf "  %s: " "$__msg"
-    fi
-    local reply
-    if [ "$__secret" = "-s" ]; then
-      read -rs reply </dev/tty || reply=""
-      printf "\n"
-    else
-      read -r reply </dev/tty || reply=""
-    fi
-    printf -v "$__var" '%s' "${reply:-$__default}"
-  else
-    if [ -n "$__default" ]; then
-      printf -v "$__var" '%s' "$__default"
-      warn "$__var defaulted (no TTY available)"
-    else
-      die "$__var required but no TTY available. Set ${__var}=<value> as env var and re-run."
-    fi
-  fi
+  printf 'none\t%s\n' "$2"
 }
+
+AGRO_GITHUB_REPO="$(agro_env GITHUB_REPO "" | cut -f2-)"
+AGRO_GITHUB_REPO="${AGRO_GITHUB_REPO:-mifunedev/agro}"
+if [[ ! "$AGRO_GITHUB_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+  die "AGRO_GITHUB_REPO must be <owner>/<repo>: got '$AGRO_GITHUB_REPO'"
+fi
+RELEASE_BASE="https://github.com/$AGRO_GITHUB_REPO/releases/latest/download"
+
+if [ "${1:-}" = "--resolve" ]; then
+  [ $# -eq 3 ] || die "--resolve takes exactly <SUFFIX> <default>"
+  agro_env "$2" "$3"
+  exit 0
+fi
 
 prompt_yn() {
   local __msg="$1"; local __default="${2:-y}"
-  if [ "${ASSUME_YES:-false}" = true ]; then
-    return 0
-  fi
-  if [ "${ASSUME_NO:-false}" = true ]; then
-    return 1
-  fi
+  if [ "${ASSUME_YES:-false}" = true ]; then return 0; fi
+  if [ "${ASSUME_NO:-false}" = true ]; then return 1; fi
   local __bracket
-  if [ "$__default" = "y" ] || [ "$__default" = "Y" ]; then
-    __bracket="[Y/n]"
-  else
-    __bracket="[y/N]"
-  fi
+  if [ "$__default" = "y" ] || [ "$__default" = "Y" ]; then __bracket="[Y/n]"; else __bracket="[y/N]"; fi
   if [ -r /dev/tty ]; then
     local __reply
     printf "  %s %s: " "$__msg" "$__bracket"
     read -r __reply </dev/tty || __reply=""
     __reply="${__reply:-$__default}"
-    case "$__reply" in
-      [Yy]*) return 0 ;;
-      *)     return 1 ;;
-    esac
+    case "$__reply" in [Yy]*) return 0 ;; *) return 1 ;; esac
   else
     warn "No TTY available — using default for: $__msg"
-    case "$__default" in
-      [Yy]*) return 0 ;;
-      *)     return 1 ;;
-    esac
+    case "$__default" in [Yy]*) return 0 ;; *) return 1 ;; esac
   fi
 }
 
 print_help() {
   cat <<HELPEOF
-AGRO — Installer
+AGRO — install the standalone 'agro' CLI
 
 Usage:
-  curl -fsSL https://raw.githubusercontent.com/mifunedev/agro/main/.agro/scripts/install.sh | bash [-s -- <flags>]
-  curl -fsSL -o agro-install.sh https://raw.githubusercontent.com/mifunedev/agro/main/.agro/scripts/install.sh
-  # Review agro-install.sh in your editor or pager, then:
-  bash agro-install.sh [<flags>]
-  ./.agro/scripts/install.sh [<flags>]
+  curl -fsSL $RELEASE_BASE/install.sh | bash
+  curl -fsSL -o install.sh $RELEASE_BASE/install.sh
+  # Review install.sh in your editor or pager, then:
+  bash install.sh
 
-Clones (or pulls) the repo into ~/.agro, prepares host auth dirs,
-installs the 'agro' CLI, and brings up the sandbox with 'agro sandbox'. A bare
-'get-agro.sh' is a separate path that installs only 'agro' and equips an existing
-project repo instead (see docs/installation.md).
+Installs the prebuilt single-file 'agro' artifact to ~/.local/bin/agro. Nothing
+is cloned or built on this host. Then: agro sandbox install docker
 
 Prerequisites:
-  Docker with the Compose plugin
-  git (used to clone or update AGRO)
-  Node.js >= 20 — required to run 'agro', the only lifecycle door. When it is
-                  missing this installer offers to install nvm + Node 22,
-                  through the same ensure_node that get-agro.sh uses.
+  curl
+  Node.js >= 20   (to RUN 'agro'; if missing, this script offers to install nvm + Node 22)
 
 Flags:
-  -y, --yes            Accept default at any prompt.
-  -n, --no             Decline at any prompt (abort path).
+  -y, --yes            Accept prompts (e.g. auto-install nvm + Node 22).
+  -n, --no             Decline prompts.
   -h, --help           Show this help and exit.
 
 Env vars:
-  AGRO_INSTALL_REF       Git ref (tag/SHA) to clone instead of main
-  AGRO_ASSUME_YES        Set to 1 for --yes
-  SANDBOX_NAME         Skip the "Container name" prompt
-  AGRO_GITHUB_REPO       GitHub repo to clone (default: mifunedev/agro)
-  AGRO_GITHUB_REF        Git ref to clone (alias: AGRO_INSTALL_REF)
-  AGRO_REPLACE           Set to 1 to rebuild in place even when a sandbox of the
-                       same name is already running (default: refuse, so a live
-                       sandbox is never overwritten)
-  DOCKER_SOCKET=true   Mount the host Docker socket into the sandbox
-                       non-interactively. OFF by default (socket access is
-                       effectively host root). Otherwise you're prompted (TTY),
-                       and --yes/--no keep it off.
+  AGRO_BIN_DIR         Where to install 'agro' (default: ~/.local/bin)
+  AGRO_JS_URL          Prebuilt artifact URL
+                       (default: $RELEASE_BASE/agro.js)
+  AGRO_GITHUB_REPO     <owner>/<repo> whose latest GitHub release hosts the artifacts
+                       (default: mifunedev/agro)
+  AGRO_NVM_VERSION     nvm version tag for the Node install (default: v0.40.3)
+  AGRO_ASSUME_YES      Non-empty accepts prompts (same as --yes)
+
+Alternative:
+  npm install -g @mifune/agro
 
 Examples:
-  curl -fsSL https://raw.githubusercontent.com/mifunedev/agro/main/.agro/scripts/install.sh | bash
-  curl -fsSL -o agro-install.sh https://raw.githubusercontent.com/mifunedev/agro/main/.agro/scripts/install.sh
-  # Review agro-install.sh before running it.
-  bash agro-install.sh
-  curl -fsSL https://raw.githubusercontent.com/mifunedev/agro/main/.agro/scripts/install.sh | bash -s -- --yes
-  ./.agro/scripts/install.sh
-  AGRO_GITHUB_REPO=myorg/my-harness curl -fsSL \
-    https://raw.githubusercontent.com/myorg/my-harness/main/.agro/scripts/install.sh | bash
-  curl -fsSL -o agro-install.sh \
-    https://raw.githubusercontent.com/myorg/my-harness/main/.agro/scripts/install.sh
-  # Review agro-install.sh, then run it against your fork.
-  AGRO_GITHUB_REPO=myorg/my-harness bash agro-install.sh
+  curl -fsSL $RELEASE_BASE/install.sh | bash -s -- --yes
+  AGRO_BIN_DIR=/usr/local/bin bash install.sh
 HELPEOF
 }
 
-ASSUME_YES="${AGRO_ASSUME_YES:+true}"; ASSUME_YES="${ASSUME_YES:-false}"
-ASSUME_NO=false
-
+ASSUME_YES="${ASSUME_YES:-}"
+if [ -z "$ASSUME_YES" ] && [ -n "$(agro_env ASSUME_YES "" | cut -f2-)" ]; then ASSUME_YES=true; fi
+ASSUME_YES="${ASSUME_YES:-false}"
+ASSUME_NO="${ASSUME_NO:-false}"
 while [ $# -gt 0 ]; do
   case "$1" in
-    -y|--yes)
-      ASSUME_YES=true
-      ;;
-    -n|--no)
-      ASSUME_NO=true
-      ;;
-    -h|--help)
-      print_help; exit 0
-      ;;
-    --yes=*|--no=*)
-      die "Flags do not take =value (got '$1'). Use space-separated form, e.g. '--yes'."
-      ;;
-    *)
-      warn "Unknown argument: $1 (ignoring)"
-      ;;
+    -y|--yes) ASSUME_YES=true ;;
+    -n|--no)  ASSUME_NO=true ;;
+    -h|--help) print_help; exit 0 ;;
+    --yes=*|--no=*) die "Flags do not take =value (got '$1'). Use '--yes'." ;;
+    *) warn "Unknown argument: $1 (ignoring)" ;;
   esac
   shift
 done
-
 [ "$ASSUME_YES" = true ] && [ "$ASSUME_NO" = true ] && die "--yes and --no are mutually exclusive."
 
+AGRO_BIN_DIR="$(agro_env BIN_DIR "$HOME/.local/bin" | cut -f2-)"
+AGRO_JS_URL="$(agro_env JS_URL "$RELEASE_BASE/agro.js" | cut -f2-)"
+AGRO_NVM_VERSION="$(agro_env NVM_VERSION "v0.40.3" | cut -f2-)"
+
+node_major() { node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0; }
+
+install_node_via_nvm() {
+  banner "Installing nvm + Node 22"
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+    curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${AGRO_NVM_VERSION}/install.sh" | bash
+  fi
+  set +eu
+  # shellcheck source=/dev/null
+  . "$NVM_DIR/nvm.sh"
+  nvm install 22
+  nvm use 22
+  set -eu
+}
+
+ensure_node() {
+  banner "Checking Node.js"
+  if command -v node >/dev/null 2>&1 && [ "$(node_major)" -ge 20 ] 2>/dev/null; then
+    ok "Node.js $(node --version) — OK"; return 0
+  fi
+  if command -v node >/dev/null 2>&1; then
+    warn "Node.js $(node --version) is too old (need >= 20)"
+  else
+    warn "Node.js not found (need >= 20 to run 'agro')"
+  fi
+  if prompt_yn "Install nvm + Node 22 now?" y; then
+    install_node_via_nvm
+  else
+    die "Node.js >= 20 is required to run 'agro'. Install it from https://nodejs.org and re-run."
+  fi
+  command -v node >/dev/null 2>&1 && [ "$(node_major)" -ge 20 ] 2>/dev/null \
+    || die "Node.js >= 20 still not available after install."
+  ok "Node.js $(node --version) — OK"
+}
+
+pin_nvm_node() {
+  local node_path nvm_dir node_link
+  nvm_dir="${NVM_DIR:-$HOME/.nvm}"
+  nvm_dir="${nvm_dir%/}"
+  node_path="$(command -v node)"
+  case "$node_path" in
+    "$nvm_dir"/*) ;;
+    *) return 0 ;;
+  esac
+  node_link="$HOME/.local/share/agro/node"
+  mkdir -p "$(dirname "$node_link")"
+  ln -sfn "$node_path" "$node_link"
+  { printf '#!%s\n' "$node_link"; tail -n +2 "$TMP/agro.js"; } > "$TMP/agro.pinned"
+  mv "$TMP/agro.pinned" "$TMP/agro.js"
+  ok "Pinned the 'agro' shebang to $node_link -> $node_path"
+  case "$AGRO_BIN_DIR" in
+    "$HOME"/*) ;;
+    *) warn "$AGRO_BIN_DIR is outside $HOME: the 'agro' CLI there runs with the Node of the installing user through $node_link" ;;
+  esac
+}
+
 printf "\n${CYAN}╔══════════════════════════════════════╗${NC}\n"
-printf "${CYAN}║   AGRO — Installer                   ║${NC}\n"
+printf "${CYAN}║       AGRO — install 'agro' CLI      ║${NC}\n"
 printf "${CYAN}╚══════════════════════════════════════╝${NC}\n\n"
 
-banner "Checking Docker"
-if ! command -v docker >/dev/null 2>&1; then
-  die "Docker is not installed. Install Docker from: https://docs.docker.com/get-docker/"
-fi
-if ! docker compose version >/dev/null 2>&1; then
-  die "Docker Compose plugin is not installed. Install it from: https://docs.docker.com/compose/install/"
-fi
-ok "Docker $(docker --version | awk '{print $3}') — OK"
-ok "Docker Compose $(docker compose version --short) — OK"
+command -v curl >/dev/null 2>&1 || die "curl is required to download the 'agro' artifact. Install curl and re-run, or use: npm install -g @mifune/agro"
 
-banner "Checking git"
-if ! command -v git >/dev/null 2>&1; then
-  die "git is required to clone or update AGRO. Install git from: https://git-scm.com"
-fi
-ok "git $(git --version | awk '{print $3}') — OK"
+ensure_node
 
-banner "Resolving repository"
+TMP="$(mktemp -d)"
+trap 'cleanup' EXIT
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd)"
-REPO_CANDIDATE="$(cd "$SCRIPT_DIR/../.." 2>/dev/null && pwd)"
+banner "Fetching the 'agro' CLI"
+fetch_failed="Could not download a valid 'agro' artifact from $AGRO_JS_URL. Retry later, set AGRO_JS_URL to a reachable release asset, or install with: npm install -g @mifune/agro"
+curl -fsSL "$AGRO_JS_URL" -o "$TMP/agro.js" 2>/dev/null || die "$fetch_failed"
+head -n1 "$TMP/agro.js" | grep -q '^#!' || die "$fetch_failed"
+ok "Downloaded prebuilt 'agro' from $AGRO_JS_URL"
 
-if [ -n "$REPO_CANDIDATE" ] && [ -f "$REPO_CANDIDATE/.devcontainer/docker-compose.yml" ] && [ -f "$REPO_CANDIDATE/.agro/scripts/install.sh" ]; then
-  REPO_DIR="$REPO_CANDIDATE"
-  ok "Using local repo: $REPO_DIR"
-else
-  OLD_REPO="$HOME/agro"
-  REPO_DIR="$HOME/.agro"
+banner "Installing 'agro' to $AGRO_BIN_DIR/agro"
+mkdir -p "$AGRO_BIN_DIR"
+pin_nvm_node
+install -m 0755 "$TMP/agro.js" "$AGRO_BIN_DIR/agro"
+ok "Installed $AGRO_BIN_DIR/agro"
 
-  AGRO_GITHUB_REPO="${AGRO_GITHUB_REPO:-mifunedev/agro}"
-  if [[ ! "$AGRO_GITHUB_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
-    die "AGRO_GITHUB_REPO must be <owner>/<repo>: got '$AGRO_GITHUB_REPO'"
-  fi
-  if [ "$AGRO_GITHUB_REPO" != "mifunedev/agro" ]; then
-    warn "Cloning from fork: $AGRO_GITHUB_REPO"
-  fi
-
-  if [ -n "${AGRO_GITHUB_REF:-}" ] && [ -n "${AGRO_INSTALL_REF:-}" ] && [ "$AGRO_GITHUB_REF" != "$AGRO_INSTALL_REF" ]; then
-    warn "AGRO_GITHUB_REF and AGRO_INSTALL_REF both set with different values; AGRO_GITHUB_REF wins."
-  fi
-  AGRO_GITHUB_REF="${AGRO_GITHUB_REF:-${AGRO_INSTALL_REF:-}}"
-
-  __HAS_OLD=0; __HAS_NEW=0
-  [ -d "$OLD_REPO/.git" ] && __HAS_OLD=1
-  if [ -d "$REPO_DIR" ] && [ ! -d "$REPO_DIR/.git" ]; then
-    # shellcheck disable=SC2088  # ~ is intentional display text in this user-facing message; do not substitute $HOME
-    die "~/.agro exists but is not a git clone. Inspect and remove it, then re-run."
-  fi
-  [ -d "$REPO_DIR/.git" ] && __HAS_NEW=1
-
-  if [ "$__HAS_OLD" = "1" ] && [ "$__HAS_NEW" = "1" ]; then
-    __OLD_DIRTY=0; __NEW_DIRTY=0
-    git -C "$OLD_REPO" diff --quiet 2>/dev/null && git -C "$OLD_REPO" diff --cached --quiet 2>/dev/null || __OLD_DIRTY=1
-    git -C "$REPO_DIR" diff --quiet 2>/dev/null && git -C "$REPO_DIR" diff --cached --quiet 2>/dev/null || __NEW_DIRTY=1
-    if [ "$__OLD_DIRTY" = "1" ] && [ "$__NEW_DIRTY" = "0" ]; then
-      __ARCHIVE="${REPO_DIR}.legacy.$(date +%Y%m%d%H%M%S)"
-      mv "$REPO_DIR" "$__ARCHIVE"
-      warn "Archived $REPO_DIR → $__ARCHIVE"
-      git -C "$OLD_REPO" stash push -u -m "install.sh: pre-rename autostash" 2>/dev/null || true
-      mv "$OLD_REPO" "$REPO_DIR"
-      ok "Migrated $OLD_REPO → $REPO_DIR (had local changes — autostashed)"
-    elif [ "$__NEW_DIRTY" = "1" ] && [ "$__OLD_DIRTY" = "0" ]; then
-      __ARCHIVE="${OLD_REPO}.legacy.$(date +%Y%m%d%H%M%S)"
-      mv "$OLD_REPO" "$__ARCHIVE"
-      warn "Archived $OLD_REPO → $__ARCHIVE"
-      ok "Keeping $REPO_DIR (had local changes)"
-    else
-      __ARCHIVE="${REPO_DIR}.legacy.$(date +%Y%m%d%H%M%S)"
-      mv "$REPO_DIR" "$__ARCHIVE"
-      warn "Archived $REPO_DIR → $__ARCHIVE"
-      git -C "$OLD_REPO" stash push -u -m "install.sh: pre-rename autostash" 2>/dev/null || true
-      mv "$OLD_REPO" "$REPO_DIR"
-      ok "Migrated $OLD_REPO → $REPO_DIR"
+EXPORT_LINE="export PATH=\"$AGRO_BIN_DIR:\$PATH\""
+case ":$PATH:" in
+  *":$AGRO_BIN_DIR:"*) PATH_OK=1 ;;
+  *) PATH_OK=0 ;;
+esac
+if [ "$PATH_OK" = "0" ]; then
+  for prof in "$HOME/.zprofile" "$HOME/.profile" "$HOME/.bashrc"; do
+    if [ -f "$prof" ] && ! grep -qsF "$AGRO_BIN_DIR" "$prof"; then
+      printf '\n# Added by AGRO install.sh\n%s\n' "$EXPORT_LINE" >> "$prof"
+      ok "Added $AGRO_BIN_DIR to PATH in $prof (for new shells)"
+      break
     fi
-    unset __OLD_DIRTY __NEW_DIRTY __ARCHIVE
-  elif [ "$__HAS_OLD" = "1" ] && [ "$__HAS_NEW" = "0" ]; then
-    git -C "$OLD_REPO" stash push -u -m "install.sh: pre-rename autostash" 2>/dev/null || true
-    mv "$OLD_REPO" "$REPO_DIR"
-    ok "Migrated $OLD_REPO → $REPO_DIR"
-  fi
-  unset __HAS_OLD __HAS_NEW OLD_REPO
-
-  if [ -d "$REPO_DIR/.git" ]; then
-    __ORIGIN_RAW="$(git -C "$REPO_DIR" remote get-url origin 2>/dev/null || true)"
-    __ORIGIN_SLUG="$(normalize_gh_slug "${__ORIGIN_RAW:-}")"
-    __EXPECTED_SLUG="$(normalize_gh_slug "$AGRO_GITHUB_REPO")"
-    if [ -z "$__ORIGIN_RAW" ] || [ "$__ORIGIN_SLUG" != "$__EXPECTED_SLUG" ]; then
-      warn "Existing clone origin (${__ORIGIN_RAW:-<none>}) does not match AGRO_GITHUB_REPO=${AGRO_GITHUB_REPO}."
-      warn "Skipping pull. To switch sources:"
-      warn "  1. Back up customizations:  cp ~/.agro/.devcontainer/.env /tmp/oh.env.bak"
-      warn "  2. Remove the clone:        rm -rf ~/.agro"
-      warn "  3. Re-run with the desired AGRO_GITHUB_REPO and (if needed) AGRO_GITHUB_REF."
-      warn "  Note: rm -rf also discards any local changes and pinned AGRO_INSTALL_REF state."
-    else
-      if git -C "$REPO_DIR" diff --quiet 2>/dev/null && git -C "$REPO_DIR" diff --cached --quiet 2>/dev/null; then
-        printf "  Repository exists — pulling latest changes...\n"
-        git -C "$REPO_DIR" pull --ff-only
-        ok "Repository updated: $REPO_DIR"
-      else
-        warn "Local changes detected in $REPO_DIR — skipping git pull. Stash or commit them, then re-run if you want the latest main."
-      fi
-    fi
-    unset __ORIGIN_RAW __ORIGIN_SLUG __EXPECTED_SLUG
-  else
-    if [ -n "$AGRO_GITHUB_REF" ]; then
-      git clone --branch "$AGRO_GITHUB_REF" "https://github.com/${AGRO_GITHUB_REPO}.git" "$REPO_DIR"
-      ok "Repository cloned at ref '$AGRO_GITHUB_REF': $REPO_DIR"
-    else
-      git clone "https://github.com/${AGRO_GITHUB_REPO}.git" "$REPO_DIR"
-      ok "Repository cloned: $REPO_DIR"
-    fi
-  fi
-
-  printf "\n"
-  warn "If your current shell is still in ~/agro, run: cd ~/.agro"
-  printf "\n"
+  done
 fi
 
-cd "$REPO_DIR"
+banner "Done"
+ok "agro $("$AGRO_BIN_DIR/agro" --version 2>/dev/null || echo '(run: agro --version)')"
+cat <<DONEEOF
 
-if [ -x .agro/scripts/link-providers.sh ]; then
-  bash .agro/scripts/link-providers.sh --init
+Next steps:
+  agro sandbox install docker   # create and start a sandbox (needs Docker + Compose)
+  agro shell <name>             # open a shell in it
+  agro tool install herdr       # then run: herdr
+  agro update                   # upgrade this installed CLI later
+
+'agro' is a single file at $AGRO_BIN_DIR/agro — nothing was cloned or built.
+DONEEOF
+
+if [ "$PATH_OK" = "0" ]; then
+  printf "\n${YELLOW}╔══════════════════════════════════════════════════════════════╗${NC}\n"
+  printf "${YELLOW}║  ACTION REQUIRED — activate 'agro' in your CURRENT shell      ║${NC}\n"
+  printf "${YELLOW}╚══════════════════════════════════════════════════════════════╝${NC}\n"
+  printf "  '%s' is on PATH for NEW shells. For THIS shell, run:\n\n" "$AGRO_BIN_DIR"
+  printf "    ${GREEN}%s${NC}\n\n" "$EXPORT_LINE"
+  printf "  …or just open a new terminal.\n"
 fi
-
-banner "Installing the 'agro' CLI"
-AGRO_SKIP_EPILOGUE=1
-export AGRO_SKIP_EPILOGUE
-# shellcheck source=/dev/null
-if ! . "$REPO_DIR/.agro/scripts/get-agro.sh"; then
-  unset _AGRO_SOURCED AGRO_SKIP_EPILOGUE
-  die "Could not install the 'agro' CLI. 'agro' is the only lifecycle door — see docs/installation.md."
-fi
-unset _AGRO_SOURCED AGRO_SKIP_EPILOGUE
-command -v agro >/dev/null 2>&1 || die "'agro' is not on PATH after install — expected $AGRO_BIN_DIR/agro."
-ok "agro $(agro --version 2>/dev/null || echo '(version unavailable)')"
-
-banner "Configuring sandbox"
-
-DEFAULT_NAME=$(basename "$REPO_DIR"); DEFAULT_NAME="${DEFAULT_NAME#.}"
-[ -n "$DEFAULT_NAME" ] || DEFAULT_NAME="agro"
-prompt_input SANDBOX_NAME "Container name" "$DEFAULT_NAME"
-ok "Name: $SANDBOX_NAME"
-
-if [ "${AGRO_REPLACE:-}" != "1" ] && docker ps -a --format '{{.Names}}' 2>/dev/null | grep -Fxq "$SANDBOX_NAME"; then
-  die "A sandbox named '$SANDBOX_NAME' already exists (a container with that name is present — running or stopped) — refusing to overwrite it and risk losing its .devcontainer/.env or .hermes state. Choose a unique name (re-run with SANDBOX_NAME=<name>), or pass AGRO_REPLACE=1 to rebuild this one in place."
-fi
-
-mkdir -p "$REPO_DIR/.devcontainer"
-
-[ -f "$REPO_DIR/agro.json" ] \
-  || warn "agro.json missing at the repository root — non-secret settings will fall back to compose defaults (see docs/configuration.md)."
-
-ENV_FILE="$REPO_DIR/.env"
-if [ ! -f "$ENV_FILE" ]; then
-  if [ -f "$REPO_DIR/.example.env" ]; then
-    cp "$REPO_DIR/.example.env" "$ENV_FILE"
-    ok "Created .env from .example.env — every key commented out, so it is inert until you fill one in"
-  else
-    : > "$ENV_FILE"
-    warn ".example.env missing — sandbox will boot without any secrets."
-  fi
-  __FIRST_INSTALL=1
-else
-  ok "Existing .env preserved — updating keys in place"
-  __FIRST_INSTALL=0
-fi
-chmod 600 "$ENV_FILE" 2>/dev/null || true
-
-DEVCONTAINER_ENV_LINK="$REPO_DIR/.devcontainer/.env"
-if [ ! -L "$DEVCONTAINER_ENV_LINK" ] || [ "$(readlink "$DEVCONTAINER_ENV_LINK")" != "../.env" ]; then
-  rm -f "$DEVCONTAINER_ENV_LINK"
-  ln -s ../.env "$DEVCONTAINER_ENV_LINK"
-  ok "Linked .devcontainer/.env -> ../.env for VS Code \"Reopen in Container\""
-fi
-
-if [ -f "$REPO_DIR/harness.yaml" ] && [ -f "$REPO_DIR/.agro/scripts/migrate-harness-yaml.sh" ]; then
-  sh "$REPO_DIR/.agro/scripts/migrate-harness-yaml.sh" "$REPO_DIR"
-fi
-
-_config_get() {
-  ( cd "$REPO_DIR" && agro config show 2>/dev/null ) | node -e '
-    let raw = "";
-    process.stdin.on("data", (d) => { raw += d; });
-    process.stdin.on("end", () => {
-      let value;
-      try {
-        value = process.argv[1]
-          .split(".")
-          .reduce((node, key) => (node === null || node === undefined ? undefined : node[key]), JSON.parse(raw));
-      } catch {
-        value = undefined;
-      }
-      process.stdout.write(value === undefined || value === null ? "" : String(value));
-    });
-  ' "$1"
-}
-
-_config_set() {
-  [ -n "${2:-}" ] || return 0
-  ( cd "$REPO_DIR" && agro config set "$1" "$2" ) >/dev/null || return 1
-  ok "agro.json: $1"
-}
-
-_sedi() {
-  if sed --version >/dev/null 2>&1; then
-    sed -i "$@"
-  else
-    sed -i '' "$@"
-  fi
-}
-_sed_val() {
-  printf '%s' "$1" \
-    | sed 's/\\/\\\\/g' \
-    | sed 's/|/\\|/g' \
-    | sed 's/&/\\&/g'
-}
-
-banner "Writing non-secret settings to agro.json"
-__TZ="$(cat /etc/timezone 2>/dev/null || echo America/Los_Angeles)"
-__GIT_NAME="$(git config --get user.name 2>/dev/null || true)"
-__GIT_EMAIL="$(git config --get user.email 2>/dev/null || true)"
-
-_config_set name "$SANDBOX_NAME"
-if [ "$__FIRST_INSTALL" = "1" ]; then
-  _config_set timezone      "$__TZ"
-  _config_set git.userName  "$__GIT_NAME"
-  _config_set git.userEmail "$__GIT_EMAIL"
-fi
-
-unset __TZ __GIT_NAME __GIT_EMAIL
-
-__GH_AUTOCONFIGURED=0
-if command -v gh >/dev/null 2>&1 && ! grep -qE '^GH_TOKEN=.+' "$ENV_FILE"; then
-  if __GH_TOKEN_RAW="$(gh auth token 2>/dev/null)" && [ -n "$__GH_TOKEN_RAW" ]; then
-    banner "Detected host gh token"
-    if prompt_yn "Share host gh token with sandbox? (skips in-sandbox 'gh auth login')" y; then
-      __GHT_SAFE="$(_sed_val "$__GH_TOKEN_RAW")"
-      _sedi "s|^#\\{0,1\\}[[:space:]]*GH_TOKEN=.*|GH_TOKEN=${__GHT_SAFE}|" "$ENV_FILE"
-      chmod 600 "$ENV_FILE" 2>/dev/null || true
-      ok "Wrote GH_TOKEN to .env"
-      __GH_AUTOCONFIGURED=1
-      unset __GHT_SAFE
-    else
-      ok "Skipped — you'll run 'gh auth login' inside the sandbox"
-    fi
-    unset __GH_TOKEN_RAW
-  fi
-fi
-
-banner "Host Docker socket (off by default)"
-if [ "$(_config_get access.dockerSocket)" = "true" ]; then
-  ok "access.dockerSocket already true — leaving it alone"
-elif [ "${DOCKER_SOCKET:-}" = "true" ]; then
-  _config_set access.dockerSocket true
-  ok "access.dockerSocket=true (from environment) — host Docker socket will be mounted"
-elif [ "$ASSUME_YES" = true ] || [ "$ASSUME_NO" = true ] || [ ! -r /dev/tty ]; then
-  _config_set access.dockerSocket false
-elif prompt_yn "Mount host Docker socket into the sandbox? (effectively host root — enable only if the agent must drive Docker)" n; then
-  _config_set access.dockerSocket true
-  ok "access.dockerSocket=true — host Docker socket will be mounted"
-else
-  _config_set access.dockerSocket false
-fi
-
-
-banner "Building and starting sandbox"
-printf "${CYAN}==> Building image — ~10 min on cold cache, ~30s on warm cache. Compose output below.${NC}\n"
-(
-  cd "$REPO_DIR"
-  agro sandbox
-)
-ok "Sandbox '$SANDBOX_NAME' started"
-
-printf "\n${GREEN}Installation complete!${NC}\n\n"
-printf "  ${CYAN}Configuration${NC}\n"
-printf "  ──────────────────────────────────────\n"
-printf "       ${CYAN}agro.json${NC}      — the tracked home for every NON-secret setting. Your\n"
-printf "                      installer answers were written here with 'agro config set'.\n"
-printf "                      Field reference: docs/configuration.md.\n"
-printf "       ${CYAN}.env${NC}         — gitignored and 0600, seeded from the tracked .example.env,\n"
-printf "                      which documents every allow-listed secret. Secrets only;\n"
-printf "                      .devcontainer/.env symlinks to it so VS Code \"Reopen in\n"
-printf "                      Container\" reads the same file.\n"
-printf "\n"
-printf "  ${CYAN}Lifecycle — 'agro' is the only front door${NC}\n"
-printf "  ──────────────────────────────────────\n"
-printf "       cd %s\n" "$REPO_DIR"
-printf "       agro shell                         # enter the sandbox\n"
-printf "                                        # then pick your agent: claude, codex, opencode, pi, ...\n"
-printf "       agro ps | agro logs | agro restart     # inspect and control it\n"
-printf "       agro stop                          # stop it, keeping the volumes\n"
-printf "       agro destroy                       # tear it down (wipes the volumes)\n"
-printf "       agro --help                        # every subcommand\n"
-printf "       docs/lifecycle-commands.md       # the verb reference\n"
-printf "\n"
-printf "  ${CYAN}Harnesses and tools${NC}  (nothing installs at boot — the verb is the only door)\n"
-printf "  ──────────────────────────────────────\n"
-printf "       agro harness install claude-code   — Claude Code\n"
-printf "       agro harness install codex         — Codex\n"
-printf "       agro harness install pi            — Pi\n"
-printf "       agro tool install herdr            — Herdr terminal workspace manager\n"
-printf "       agro tool install cloudflared      — public preview tunnels\n"
-printf "       agro harness list | agro tool list   — every id, kind, and install state\n"
-printf "\n"
-printf "  ${CYAN}Messaging gateways${NC}\n"
-printf "  ──────────────────────────────────────\n"
-printf "       agro gateway pi | agro gateway hermes | agro gateway status\n"
-printf "       details: docs/integrations/slack.md\n"
-printf "\n"
-printf "  ${CYAN}VS Code (alternative)${NC}\n"
-printf "  ──────────────────────────────────────\n"
-printf "       Open the repo → Cmd+Shift+P → \"Attach to Running Container\"\n"
-
-if [ "${__GH_AUTOCONFIGURED:-0}" = "0" ]; then
-  printf "\n"
-  printf "  ${CYAN}First run inside the sandbox${NC}\n"
-  printf "  ──────────────────────────────────────\n"
-  printf "       gh auth login && gh auth setup-git\n"
-fi
-
-printf "\n"

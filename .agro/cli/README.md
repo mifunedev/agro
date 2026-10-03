@@ -26,17 +26,17 @@ Or run it once without installing:
 npx @mifune/agro sandbox install docker
 ```
 
-Prefer a `curl | bash` bootstrap (also installs Node when missing)? `get-agro.sh`
+Prefer a `curl | bash` bootstrap (also installs Node when missing)? `install.sh`
 installs the prebuilt `agro` artifact from the latest GitHub release — it never
 clones or builds on your machine:
 
 ```bash
-curl -fsSL https://github.com/mifunedev/agro/releases/latest/download/get-agro.sh | bash
+curl -fsSL https://github.com/mifunedev/agro/releases/latest/download/install.sh | bash
 ```
 
 ### Requirements
 
-- **Node.js ≥ 20** (22 recommended) on your `PATH`. Unlike the `get-agro.sh` bootstrap,
+- **Node.js ≥ 20** (22 recommended) on your `PATH`. Unlike the `install.sh` bootstrap,
   npm will not install Node for you.
 - **Docker** and **git** for the sandbox lifecycle commands (`agro sandbox install`, `agro shell`).
 

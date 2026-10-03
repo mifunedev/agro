@@ -275,9 +275,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
         run: |
+          cp .agro/scripts/install.sh "$RUNNER_TEMP/get-agro.sh"
           gh release upload "v${RELEASE_VERSION}" --clobber \
             .agro/cli/dist/agro.js \
-            .agro/scripts/get-agro.sh
+            .agro/scripts/install.sh \
+            "$RUNNER_TEMP/get-agro.sh"
 
       - name: Extract release notes from CHANGELOG
         env:

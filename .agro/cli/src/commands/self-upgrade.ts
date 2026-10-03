@@ -189,7 +189,7 @@ function refuseUnsupported(installation: Installation, bin: string): Error {
       return new Error(`${at} — rebuild from the checkout: npm --prefix .agro/cli run build`);
     default:
       return new Error(
-        `unknown installation (${reason ?? target}) — install with npm install -g ${PACKAGE} or get-agro.sh`,
+        `unknown installation (${reason ?? target}) — install with npm install -g ${PACKAGE} or install.sh`,
       );
   }
 }
@@ -312,7 +312,7 @@ async function upgradeStandalone(
     deps.access(dir, constants.W_OK);
   } catch {
     throw new Error(
-      `${dir} is not writable; re-run as the user who owns ${target}, or reinstall into a writable directory with get-agro.sh`,
+      `${dir} is not writable; re-run as the user who owns ${target}, or reinstall into a writable directory with install.sh`,
     );
   }
 

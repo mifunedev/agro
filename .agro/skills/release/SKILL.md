@@ -31,8 +31,9 @@ One release produces, from one build and one commit:
   `:sha-<sha>`, `ghcr.io/mifunedev/agro:<version>`, and `:sha-<sha>`, verified to
   share one manifest digest (`.agro/scripts/verify-release-aliases.sh`), then
   `latest` on both repositories (`.agro/scripts/promote-release-latest.sh`).
-- Four GitHub Release assets: `agro.js`, `oh.js`, `get-agro.sh`, and `get-agro.sh`,
-  attached before the release is undrafted so
+- Three GitHub Release assets: `agro.js`, `install.sh`, and a copy of
+  `install.sh` under the earlier installer name for one minor release. The
+  workflow attaches them before it undrafts the release, so
   `releases/latest/download/<asset>` resolves on publication.
 
 ## Version sites
@@ -197,7 +198,8 @@ npm view "@mifune/agro@${TAG#v}" version
 printf 'Images: ghcr.io/mifunedev/{agro,agro}:%s and :sha-%s\n' "${TAG#v}" "$SHA"
 ```
 
-The asset list must name `agro.js`, `oh.js`, `get-agro.sh`, and `get-agro.sh`.
+The asset list must name `agro.js`, `install.sh`, and the copy of `install.sh`
+under the earlier installer name.
 
 The canonical mutable/latest branch is `main` when it exists, otherwise
 `master`. Immediately before promotion, the workflow freshly reads both remote

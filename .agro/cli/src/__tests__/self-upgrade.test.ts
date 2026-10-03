@@ -570,7 +570,7 @@ describe("runSelfUpgrade — refusals shared by every kind", () => {
     const world = fakeWorld();
     expect(await runSelfUpgrade({ dryRun: false, argv1: missing }, world.deps, world.io)).toBe(1);
     expect(world.err()).toMatch(/^agro update: unknown installation \(cannot resolve .*nope\/agro: ENOENT/);
-    expect(world.err()).toContain("install with npm install -g @mifune/agro or get-agro.sh");
+    expect(world.err()).toContain("install with npm install -g @mifune/agro or install.sh");
   });
 
   it("refuses when another agro is earlier on PATH", async () => {

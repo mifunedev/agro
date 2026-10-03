@@ -5,7 +5,7 @@ Use `agro` for lifecycle operations; each script's callers determine its executi
 
 | Scripts | Purpose |
 | --- | --- |
-| `get-agro.sh`, `get-agro.sh`, `install.sh` | CLI bootstrap and checkout installation. |
+| `install.sh` | Standalone `agro` CLI installer. |
 | `docker-compose.sh`, `paths.sh`, `check-host-port.sh`, `agro-path` | Lifecycle execution, compatibility, and path resolution. |
 | `link-providers.sh` | Create or check canonical provider links. |
 | `cron-runtime.ts`, `gateway.sh` | Scheduled jobs and named messaging sessions. |
