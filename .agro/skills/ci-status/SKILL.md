@@ -103,7 +103,6 @@ gh api "repos/$REPO/actions/jobs/$JOB_ID/logs" 2>&1 \
 - **NO RUN**: No workflow's `on:` filter matched the push, or `PR_NUMBER` was set but `gh pr checks` returned no rows (the PR exists but no workflows were triggered yet). *(Note: the workflow names below reflect this harness's layout and may differ in other checkouts.)*
   - `ci-harness.yml` — `.agro/**`, `docs/**`, `.devcontainer/**`, `package.json`, `pnpm-lock.yaml`, itself
   - `sandbox-boot-guard.yml` — `.devcontainer/**`, `.agro/cli/**`, `.agro/scripts/**`, `.agro/install/**`
-  - Docs site CI/deploy lives in `mifunedev/agro-web`; this repo has no `docs.yml` Docusaurus workflow.
   - `release.yml` — every push to `main` or `master`; validation precedes automatic release publication
 
   Diagnose with: `git diff --name-only HEAD~1 HEAD` and compare against each workflow's `on:` block.

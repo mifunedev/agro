@@ -350,31 +350,4 @@ jobs:
               make_latest: process.env.MAKE_LATEST,
             });
 
-  notify-docs:
-    name: Notify the docs site
-    needs: [reserve, finalize]
-    if: ${{ needs.reserve.outputs.publishedNoop != 'true' && needs.finalize.result == 'success' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: Send the agro-release repository_dispatch
-        env:
-          AGRO_WEB_DISPATCH_TOKEN: ${{ secrets.AGRO_WEB_DISPATCH_TOKEN }}
-          AGRO_WEB_REPO: ${{ vars.AGRO_WEB_REPO || 'mifunedev/agro-web' }}
-          RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
-        run: |
-          if [ -z "$AGRO_WEB_DISPATCH_TOKEN" ]; then
-            echo "::notice::Secret AGRO_WEB_DISPATCH_TOKEN is not set; skipping the agro-release dispatch to $AGRO_WEB_REPO"
-            exit 0
-          fi
-          GH_TOKEN="$AGRO_WEB_DISPATCH_TOKEN" gh api --method POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "/repos/${AGRO_WEB_REPO}/dispatches" \
-            -f event_type=agro-release \
-            -f "client_payload[ref]=${RELEASE_SHA}"
-          echo "Dispatched agro-release for $RELEASE_SHA to $AGRO_WEB_REPO"
-
   # publish-cli.yml also remains independently dispatchable with an explicit ref.

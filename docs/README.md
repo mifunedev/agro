@@ -1,8 +1,7 @@
 # AGRO documentation
 
-Start with the guides below for documentation maintained alongside AGRO.
-The [docs website](https://agro.mifune.dev) is a separate presentation, with its
-source in [`mifunedev/agro-web`](https://github.com/mifunedev/agro-web).
+The `docs/` directory is the documentation source for AGRO.
+Start with the guides below.
 
 ## Start here
 
@@ -34,7 +33,6 @@ Codex and Pi access shared skills through `.agents/skills`; Claude Code uses
 - [Connecting to the sandbox](connecting.md)
 - [Contributing](contributing.md)
 - [AGRO compatibility contract](agro-compatibility.md)
-- [AGRO cutover runbook](agro-cutover-runbook.md)
 
 ## Harnesses
 

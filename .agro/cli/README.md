@@ -1,6 +1,6 @@
 # @mifune/agro
 
-The **AGRO CLI** (`agro`) — create an [AGRO](https://agro.mifune.dev)
+The **AGRO CLI** (`agro`) — create an [AGRO](https://github.com/mifunedev/agro)
 Docker sandbox for coding agents and drive its lifecycle from the command line.
 
 AGRO is a portable harness for running coding agents (Claude Code, Codex, Pi,
@@ -147,8 +147,8 @@ The CLI writes no scaffold. It creates no `AGENTS.md`, no provider configuration
 
 ## Documentation
 
-- **Docs:** https://agro.mifune.dev
-- **Installation guide:** https://agro.mifune.dev/docs/installation
+- **Docs:** https://github.com/mifunedev/agro/tree/main/docs
+- **Installation guide:** https://github.com/mifunedev/agro/blob/main/docs/installation.md
 - **Source & issues:** https://github.com/mifunedev/agro
 
 ## License

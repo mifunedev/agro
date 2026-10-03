@@ -402,36 +402,15 @@ describe("release workflow contract", () => {
 
   it("skips publication cleanly when the reservation is a no-op", () => {
     const guard = /if: \$\{\{[^}]*needs\.reserve\.outputs\.publishedNoop != 'true'/g;
-    expect(source.match(guard)?.length).toBe(4);
+    expect(source.match(guard)?.length).toBe(3);
     expect(source).toMatch(/publish-image:\n[\s\S]*?if: \$\{\{ needs\.reserve\.outputs\.publishedNoop != 'true' \}\}/);
     expect(source).toMatch(/publish-cli:\n[\s\S]*?if: \$\{\{ needs\.reserve\.outputs\.publishedNoop != 'true' \}\}/);
     expect(source).toMatch(/finalize:\n[\s\S]*?needs\.reserve\.outputs\.publishedNoop != 'true'/);
-    expect(source).toMatch(/notify-docs:\n[\s\S]*?needs\.reserve\.outputs\.publishedNoop != 'true'/);
   });
 
   it("names the smoke sandbox after agro", () => {
     expect(source.match(/SANDBOX_NAME: agro-release-smoke-\$\{\{ github\.run_id \}\}/g)?.length).toBe(3);
     expect(source).not.toContain("oh-release-smoke");
-  });
-
-  it("notifies the docs site only after a real release is finalized", () => {
-    const notify = source.indexOf("  notify-docs:\n");
-    const job = source.slice(notify, source.indexOf("  # publish-cli.yml", notify));
-
-    expect(notify).toBeGreaterThan(source.indexOf("  finalize:\n"));
-    expect(job).toMatch(/needs: \[reserve, finalize\]/);
-    expect(job).toContain("needs.finalize.result == 'success'");
-    expect(job).toContain("AGRO_WEB_DISPATCH_TOKEN: ${{ secrets.AGRO_WEB_DISPATCH_TOKEN }}");
-    expect(job).toContain("AGRO_WEB_REPO: ${{ vars.AGRO_WEB_REPO || 'mifunedev/agro-web' }}");
-    expect(job).toContain("RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}");
-    expect(job).toMatch(/if \[ -z "\$AGRO_WEB_DISPATCH_TOKEN" \]; then\n\s+echo "::notice::Secret AGRO_WEB_DISPATCH_TOKEN[^"]*"\n\s+exit 0\n\s+fi/);
-    expect(job).toMatch(/GH_TOKEN="\$AGRO_WEB_DISPATCH_TOKEN" gh api --method POST/);
-    expect(job).toContain('"/repos/${AGRO_WEB_REPO}/dispatches"');
-    expect(job).toContain("-f event_type=agro-release");
-    expect(job).toContain('-f "client_payload[ref]=${RELEASE_SHA}"');
-    expect(job.match(/secrets\.AGRO_WEB_DISPATCH_TOKEN/g)?.length).toBe(1);
-    expect(job).not.toMatch(/echo[^\n]*\$AGRO_WEB_DISPATCH_TOKEN/);
-    expect(job).not.toMatch(/set -x/);
   });
 
   it("publishes bare version tags and promotes latest by digest", () => {

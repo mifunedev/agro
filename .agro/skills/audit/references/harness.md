@@ -59,7 +59,6 @@ ls "$AUDIT_ROOT/.agro/knowledge/" 2>/dev/null | head -20
 
 # Package health
 cat "$AUDIT_ROOT/package.json" 2>/dev/null | head -30
-printf 'docs site: migrated to mifunedev/agro-web\n'
 
 # CI definition
 ls "$AUDIT_ROOT/.github/workflows/" 2>/dev/null
@@ -93,7 +92,6 @@ Assemble a **Context Snapshot** (compact markdown, ~300 words):
 
 ### Packages
 - root: [version, dep count]
-- docs site: external repo `mifunedev/agro-web`
 
 ### CI workflows
 [list]
@@ -145,7 +143,7 @@ Launch 4 Agent tool calls **in a single message**. Each receives the Context Sna
 >
 > 1. **Startup reliability** — Read `.devcontainer/docker-compose.yml` and `.devcontainer/entrypoint.sh`. Look for: race conditions (services starting before deps are ready), silent failure paths (errors swallowed without exit codes), stale workspace auto-start hooks, missing healthchecks on compose services.
 >
-> 2. **Test coverage** — Check `.agro/scripts/__tests__/` for harness script tests and `.github/workflows/` for CI job definitions. The docs site is externalized to `mifunedev/agro-web` and is not part of this repo's CI surface.
+> 2. **Test coverage** — Check `.agro/scripts/__tests__/` for harness script tests and `.github/workflows/` for CI job definitions.
 >
 > 3. **CI/CD completeness** — Read each workflow file. Are there gaps: missing lint, missing type-check, no test job, no release job, no deploy step?
 >
@@ -325,5 +323,4 @@ Return this structured observation to the outer dispatcher; do not report a run 
 | Compose | `.devcontainer/docker-compose.yml` |
 | Entrypoint | `.devcontainer/entrypoint.sh` |
 | CI workflows | `.github/workflows/` |
-| Docs site | external repo `mifunedev/agro-web` |
 | Orchestrator scripts | `.agro/scripts/` (with tests in `.agro/scripts/__tests__/`) |

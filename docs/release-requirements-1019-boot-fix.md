@@ -128,6 +128,3 @@ The guidance must state four points, all verified:
    existing volume, because an upgrade never rewrites the workspace's own
    `package.json`. Each affected volume needs the procedure run once.
 4. A fresh sandbox created from the patched image needs nothing.
-
-**Public documentation surface.** Check whether `mifunedev/agro-web` carries
-installation or troubleshooting copy that must match.

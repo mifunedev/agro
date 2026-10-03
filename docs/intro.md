@@ -68,6 +68,5 @@ If you already have a sandbox running, jump directly to the page you need.
 
 - Source code and issues: [github.com/mifunedev/agro](https://github.com/mifunedev/agro)
 - Learning material: [Resources](/docs/resources)
-- Philosophy: [How AGRO embodies compound engineering](https://github.com/mifunedev/agro-web/tree/main/blog) — why each unit of work here should make the next one easier.
 
 [Connecting to the Sandbox](/docs/connecting)

@@ -88,7 +88,7 @@ pnpm run build          # fast non-docs build
 pnpm run test:scripts   # root script + .pi extension tests
 ```
 
-The rendered docs site is maintained in [`mifunedev/agro-web`](https://github.com/mifunedev/agro-web). In this core repo, validate docs by checking the Markdown links and the GitHub-readable index at `docs/README.md`; no Docusaurus build runs here.
+`docs/` is the documentation source. Validate docs by checking the Markdown links and the GitHub-readable index at `docs/README.md`; no Docusaurus build runs here.
 
 ### Multi-agent messaging (Slack)
 
@@ -228,29 +228,6 @@ The smoke sandbox name is `agro-release-smoke-<run id>`.
 `ghcr.io/mifunedev/agro ghcr.io/mifunedev/agro`.
 The `agro` digest is the reference that the legacy image alias must match.
 The GHCR package `mifunedev/agro` must be public before consumers can pull its tags.
-
-### Documentation notification
-
-After a real release's `finalize` succeeds, `notify-docs` sends `repository_dispatch`:
-
-| Field | Value |
-| --- | --- |
-| Repository | `AGRO_WEB_REPO`, default `mifunedev/agro-web`. |
-| Event type | `agro-release`. |
-| Payload | `{ "ref": "<released sha>" }`, from `needs.reserve.outputs.releaseSha`. |
-| Credential | `AGRO_WEB_DISPATCH_TOKEN`, passed as `GH_TOKEN`. |
-
-The token needs Contents read/write access on the docs repository.
-A classic token needs the `repo` scope.
-If the secret is absent, the job prints a notice and exits 0 without dispatching.
-Set the destination and upload the token from a file:
-
-```bash
-gh secret set AGRO_WEB_DISPATCH_TOKEN --repo mifunedev/agro < token-file
-gh variable set AGRO_WEB_REPO --repo mifunedev/agro --body mifunedev/agro-web
-```
-
-Do not place the token value in shell history or logs.
 
 ---
 

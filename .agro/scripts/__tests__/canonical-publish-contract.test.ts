@@ -117,12 +117,10 @@ describe("canonical publish-cli contract", () => {
   const release = readFileSync(RELEASE, "utf8");
   const bodies = extractRunBodies(source);
 
-  it("keeps image publication before CLI publication and docs notify after finalize", () => {
+  it("keeps image publication before CLI publication", () => {
     expect(release).toMatch(/publish-cli:\n[\s\S]*?needs: \[reserve, publish-image\]/);
     expect(release).toContain("uses: ./.github/workflows/publish-cli.yml");
-    expect(release).toMatch(/notify-docs:\n[\s\S]*?needs: \[reserve, finalize\]/);
     expect(release).not.toMatch(/publish-cli:[\s\S]*?continue-on-error:/);
-    expect(release).not.toMatch(/notify-docs:[\s\S]*?continue-on-error:/);
   });
 
   it("exposes the agro guard and publish run bodies and no legacy npm bodies", () => {
