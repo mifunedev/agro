@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Changed
+
+- Detect the AGRO sandbox from the image marker `/etc/agro/sandbox`. The image now writes the marker. A VM that boots the AGRO image now counts as the sandbox. When the marker is absent, `agro` uses the old rule (`/.dockerenv` and `SANDBOX_NAME`) and prints one warning line that tells the operator to upgrade the sandbox image ([#1304](https://github.com/mifunedev/agro/issues/1304)).
+
 ### Added
 
 - Add the `remote-sandbox` skill (`.agro/skills/remote-sandbox/`). `scripts/run.sh <provider>` creates a VM on exe.dev or Vercel Sandbox, runs a check detached in the VM, polls the check log, and destroys the VM. The default check, `checks/fresh-install.sh`, installs AGRO from `INSTALL_URL` and runs `agro --version` four ways (F1 to F4). `checks/agro-rows.sh`, `checks/cg-probe.sh`, and `scripts/restart-test.sh` hold the AGRO hosting matrix. A provider adapter defines five functions and up to three hooks, and `REMOTE_SANDBOX_ADAPTERS` adds adapter directories ([#1315](https://github.com/mifunedev/agro/issues/1315), ADR [#1314](https://github.com/mifunedev/agro/issues/1314)).
