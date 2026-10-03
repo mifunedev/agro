@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1304-sandbox-marker-detection",
+  "description": "Detect the AGRO sandbox without /.dockerenv (C10a, #1304): an image-owned marker /etc/agro/sandbox, the old rule as a warned fallback.",
+  "userStories": [
+    {
+      "id": "US-002",
+      "title": "The CLI detects the sandbox from the marker",
+      "description": "As an operator, I want `agro` to read the AGRO marker, so that a VM with the AGRO image runs commands in place.",
+      "acceptanceCriteria": [
+        "`SANDBOX_MARKER_FILE` in `.agro/cli/src/lib/execution/detect.ts` is `/etc/agro/sandbox`.",
+        "`runningInsideSandbox()` returns true when the marker exists, with or without `/.dockerenv` and with or without `SANDBOX_NAME`.",
+        "`runningInsideSandbox()` returns true when `/.dockerenv` exists and `SANDBOX_NAME` holds a value, without the marker. This fallback covers a newer CLI in the home volume of an older image.",
+        "`runningInsideSandbox()` returns false when the marker is absent and `/.dockerenv` exists without `SANDBOX_NAME`.",
+        "When detection succeeds only through the fallback, the CLI prints one warning line on stderr. The line names `/etc/agro/sandbox` and tells the operator to upgrade the image.",
+        "When the marker exists, the CLI prints no fallback warning.",
+        "`AGRO_EXECUTION_TARGET=local` and `AGRO_EXECUTION_TARGET=docker-compose` keep their override meaning.",
+        "A test proves that `configuredContainerName()` returns the `name` field of `agro.json` when `SANDBOX_NAME` is unset.",
+        "`docs/lifecycle-commands.md` states the new detection rule and the fallback.",
+        "`pnpm exec vitest run .agro/cli/src/__tests__/local-target.test.ts` passes. Each new case fails before the change."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/execution/detect.ts",
+        ".agro/cli/src/lib/execution/index.ts",
+        ".agro/cli/src/__tests__/local-target.test.ts",
+        ".agro/cli/src/__tests__/<configuredContainerName test>",
+        ".agro/cli/src/cli.ts",
+        "docs/lifecycle-commands.md"
+      ]
+    },
+    {
+      "id": "US-001",
+      "title": "The image declares the sandbox marker",
+      "description": "As the AGRO image, I want an AGRO-owned marker file, so that the CLI detects the sandbox in container mode and VM mode.",
+      "acceptanceCriteria": [
+        "The `final` stage of `.devcontainer/Dockerfile` creates the file `/etc/agro/sandbox`.",
+        "A test reads `.devcontainer/Dockerfile` and proves that the `final` stage creates the path that `SANDBOX_MARKER_FILE` names.",
+        "The test fails before the Dockerfile change."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/__tests__/sandbox-marker.test.ts"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Manual review in container mode",
+      "description": "As the operator, I want a transcript that shows the detection in this sandbox, so that I confirm the change without VM spend.",
+      "acceptanceCriteria": [
+        "`agro sandbox list` shows no entry named `zz-detect-probe`.",
+        "Inside the sandbox, `node .agro/cli/dist/agro.js sandbox upgrade zz-detect-probe --version 0.16.2` from the branch build prints `agro sandbox upgrade: host-only — run this command on the host` and exits 1.",
+        "With `AGRO_EXECUTION_TARGET=docker-compose`, the same command prints `agro sandbox upgrade: no sandbox entry named \"zz-detect-probe\"` and exits 1. The command writes no file under `$AGRO_HOME/sandboxes/`.",
+        "The transcript states that this sandbox has no marker, so the run proves the fallback path. The unit tests prove the marker path.",
+        "The transcript is in `.agro/tasks/sandbox-marker-detection/evidence/manual-review.md`."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/sandbox-marker-detection/evidence/"
+      ]
+    }
+  ]
+}
