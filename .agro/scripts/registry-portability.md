@@ -264,7 +264,6 @@ ALLOW | AGRO-PATH | skills/ste/references/rules.md | 0a19004bd4ad | example pros
 ALLOW | AGRO-PATH | skills/ste/SKILL.md | 1a27405c7e92 | inside the [ -x ] existence guard; the whole block is a no-op outside a harness checkout
 ALLOW | AGRO-PATH | skills/ste/SKILL.md | dc032d4b6850 | inside the [ -x ] existence guard; the whole block is a no-op outside a harness checkout
 ALLOW | AGRO-PATH | skills/ste/SKILL.md | e6bc73aa7bbf | inside the [ -x ] existence guard; the whole block is a no-op outside a harness checkout
-ALLOW | HARNESS-SKILL | skills/reflect/SKILL.md | 7d0773a55384 | names a Claude Code built-in command, which an installer on that client already has
 ALLOW | AGRO-PATH | skills/agro-host-matrix/SKILL.md | ffc6a77da7f6 | raw GitHub URL of a candidate get-agro.sh in a GET_AGRO_URL example; curl fetches the URL, and no local path exists
 ALLOW | AGRO-PATH | skills/agro-host-matrix/scripts/restart-test.sh | eaf8abe9e58e | path inside the AGRO VM under test; the matrix driver runs the command on that VM and never opens the path locally
 ALLOW | AGRO-PATH | skills/agro-host-matrix/scripts/rows.sh | bb0bf234d2da | path inside the AGRO VM under test; the matrix driver runs the command on that VM and never opens the path locally
