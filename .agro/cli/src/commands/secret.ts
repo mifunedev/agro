@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { appendGitignoreLines } from "../lib/gitignore.js";
@@ -30,8 +31,17 @@ function secretsRoot(opts: SecretOptions): string {
     : resolveSandboxRoot({ name: opts.sandbox });
 }
 
+function isGitIgnored(root: string, path: string): boolean {
+  const result = spawnSync("git", ["check-ignore", "-q", "--no-index", path], {
+    cwd: root,
+    stdio: "ignore",
+  });
+  return result.status === 0;
+}
+
 function ignoreSecretsFile(root: string): void {
   if (!existsSync(join(root, ".git"))) return;
+  if (isGitIgnored(root, ".env")) return;
   appendGitignoreLines(root, [".env"]);
 }
 

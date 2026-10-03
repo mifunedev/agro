@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -187,6 +188,28 @@ describe("--sandbox <name>", () => {
 
     expect(await runSecretSet("GH_TOKEN", { bin: "agro", cwd: project }, io)).toBe(0);
     expect(readFileSync(join(project, ".gitignore"), "utf8")).toBe(".env\n");
+  });
+
+  it("`agro secret set` appends no .env line when an existing rule already ignores it", async () => {
+    const project = makeRepo();
+    expect(spawnSync("git", ["init", "-q"], { cwd: project }).status).toBe(0);
+    writeFileSync(join(project, ".gitignore"), "**/.env*\n");
+    const { io } = makeIo();
+    io.askSecret = async () => "ghp_project";
+
+    expect(await runSecretSet("GH_TOKEN", { bin: "agro", cwd: project }, io)).toBe(0);
+    expect(readFileSync(join(project, ".gitignore"), "utf8")).toBe("**/.env*\n");
+  });
+
+  it("`agro secret set` appends .env in a git checkout with no matching rule", async () => {
+    const project = makeRepo();
+    expect(spawnSync("git", ["init", "-q"], { cwd: project }).status).toBe(0);
+    writeFileSync(join(project, ".gitignore"), "node_modules/\n");
+    const { io } = makeIo();
+    io.askSecret = async () => "ghp_project";
+
+    expect(await runSecretSet("GH_TOKEN", { bin: "agro", cwd: project }, io)).toBe(0);
+    expect(readFileSync(join(project, ".gitignore"), "utf8")).toBe("node_modules/\n.env\n");
   });
 
   it("writes no .gitignore when the project root is not a git checkout", async () => {
