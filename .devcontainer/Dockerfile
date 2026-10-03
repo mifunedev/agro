@@ -145,7 +145,9 @@ COPY .devcontainer/agro-bootstrap.service .devcontainer/agro-cron.service /usr/l
 COPY .devcontainer/agro-env-generator.sh /usr/lib/systemd/system-environment-generators/10-agro
 RUN chmod 0755 /usr/lib/systemd/system-environment-generators/10-agro \
  && systemctl enable agro-bootstrap.service agro-cron.service \
- && systemctl mask cron.service ssh.service ssh.socket
+ && systemctl mask cron.service ssh.service ssh.socket \
+ && install -d -m 0755 /etc/agro \
+ && install -m 0644 /dev/null /etc/agro/sandbox
 
 COPY --from=home --chown=sandbox:sandbox /home/sandbox /opt/home-seed
 RUN rm -rf /opt/home-seed/harness /home/sandbox \
