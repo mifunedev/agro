@@ -65,8 +65,8 @@
         "A test runs `checks/fresh-install.sh` locally with `INSTALL_URL` set to a `file://` fixture installer that writes a stub `agro` to `$HOME/.local/bin`. The test expects four `PASS` lines and a final `SUMMARY` line."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: vitest remote-sandbox-suite runs fresh-install.sh with INSTALL_URL=file:// fixture; static check of the release install.sh default. 2 executed: vitest four F PASS lines, last line SUMMARY. 3 executed: diff vs agro-host-matrix rows.sh changes only the R02 install line (INSTALL_URL, install.log); cg-probe.sh byte-identical; vitest row-ID coverage across agro-rows.sh, restart-test.sh, lib.sh. 4 executed: vitest restart-test.sh exits 2 for the fake adapter without fake_restart, unknown provider, bad mode. 5 executed: advisor reran suite+adapters+US-001 tests on the integrated task branch: 27/27; bash -n on every skill script. Interface choice: restart-test.sh <provider> <sync|settled>. Hook note: CC Safety Net denied one python-heredoc edit as unanalyzable (strict mode, verify manually); the worker made the same four plain-text edits to owned files restart-test.sh and summarize.sh with the Edit tool; the advisor reviewed the verbatim command, deny message, and resulting diff, and judged the edits safe; reported to the operator.",
       "dependsOn": [
         "US-001"
       ],
@@ -76,7 +76,8 @@
         ".agro/skills/remote-sandbox/scripts/summarize.sh",
         ".agro/scripts/__tests__/remote-sandbox-suite.test.ts",
         ".agro/scripts/__tests__/fixtures/remote-sandbox-suite/"
-      ]
+      ],
+      "commit": "d1b813b4"
     },
     {
       "id": "US-004",
