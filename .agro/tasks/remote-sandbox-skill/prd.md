@@ -189,4 +189,8 @@ None. The operator approved the plan on 2026-10-03 with the recommended answer t
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. Claim: the driver ran `R09` to `R11` after every check, so a fresh-install log could show a false `R09` result. Evidence: the US-004 worker read `run.sh`, and the US-007 test failed on the old `run.sh`. Outcome: fixed in this PR (US-007).
+2. Claim: a run with `KEEP=1` never logs `RUN DONE`. Evidence: `finish` in `scripts/lib.sh` returns before the `remaining` line. Outcome: issue #1317.
+3. Claim: `summarize.sh` skips fresh-install and cgroup-probe logs. Evidence: the script globs only `*-rows-*.log` and `*-restart-*.log`. Outcome: issue #1318.
+4. Claim: `Closes #N` in a PR into `development` did not close the issue at merge time. Evidence: #1305 and #1309 showed `OPEN` right after the merges of #1306 and #1311. Outcome: issue #1319.
+5. Claim: the portability exceptions for `agro-host-matrix` go stale when mifunedev/skills#14 retires the skill. Evidence: the gate against the #14 branch reported `stale exceptions: 5`. Outcome: fixed in this PR; ADR #1314 step 4 folded in.
