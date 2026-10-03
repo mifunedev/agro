@@ -193,7 +193,7 @@ describe("decideOverlap", () => {
 describe("isValidCronId", () => {
   it("accepts kebab-case ids that begin with a lowercase letter or digit", () => {
     expect(isValidCronId("heartbeat")).toBe(true);
-    expect(isValidCronId("eval-weekly")).toBe(true);
+    expect(isValidCronId("prompt-miner")).toBe(true);
     expect(isValidCronId("cron2-task")).toBe(true);
   });
 

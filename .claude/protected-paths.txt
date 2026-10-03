@@ -21,7 +21,6 @@ prd
 architect
 audit
 delegate
-eval
 health-check
 t3
 # --- Orchestrator scripts (.agro/scripts/) ---
@@ -39,7 +38,6 @@ t3
 # --- Crons (referenced by .agro/scripts/cron-runtime.ts) ---
 crons/heartbeat.md
 crons/cleanup-tasks.md
-crons/eval-weekly.md
 
 # --- Norms folded into skills (B-state M3+M4) ---
 .agro/skills/git/SKILL.md

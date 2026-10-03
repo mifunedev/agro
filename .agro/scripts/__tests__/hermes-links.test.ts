@@ -108,7 +108,7 @@ describe("Hermes-only additive linking", () => {
     const root = fixture();
     const files = [
       ".claude/protected-paths.txt", ".agro/skills/t3/references/sandbox-processes.md",
-      ".agro/skills/wiki/references/schema.md", ".agro/skills/eval/run.sh",
+      ".agro/skills/wiki/references/schema.md",
       ".agro/hooks/deny-env-dump.sh", ".agro/hooks/deny-secret-paths.sh", ".agro/hooks/warn-devtcp.sh",
       ".agro/skills/cloudflared/scripts/run.sh", ".agro/skills/health-check/scripts/scope-preflight.sh",
       ".agro/skills/t3/scripts/t3-code.sh",
