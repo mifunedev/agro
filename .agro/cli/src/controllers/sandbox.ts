@@ -5,6 +5,7 @@ import { AGRO_PRODUCT, stateNames } from "../lib/product.js";
 import { DEFAULT_NAME_PREFIX } from "../lib/registry.js";
 import { RUNTIME_CATALOG } from "../lib/runtimes/catalog.js";
 import { AGRO_VERSION as VERSION, officialImageRef, parseReleaseVersion } from "../lib/version.js";
+import type { SandboxSubcommand } from "../command-table.js";
 
 type ParseResult<T> =
   | { ok: true; args: T }
@@ -79,7 +80,7 @@ Next: ${bin} shell <name>
 
 export interface SandboxArgs {
   help: boolean;
-  subcommand?: "install" | "list" | "upgrade";
+  subcommand?: SandboxSubcommand;
   runtime?: string;
   version?: string;
   name?: string;
