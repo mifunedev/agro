@@ -67,15 +67,16 @@
         "The transcript is in `.agro/tasks/sandbox-marker-detection/evidence/manual-review.md`."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed inside this sandbox (no marker, /.dockerenv present, SANDBOX_NAME set): sandbox list shows no zz-detect-probe entry; sandbox upgrade zz-detect-probe --version 0.16.2 prints the fallback warning and agro sandbox upgrade: host-only — run this command on the host, exit 1; with AGRO_EXECUTION_TARGET=docker-compose it prints agro sandbox upgrade: no sandbox entry named \"zz-detect-probe\", exit 1, and $AGRO_HOME/sandboxes/zz-detect-probe does not exist. Transcript: .agro/tasks/sandbox-marker-detection/evidence/manual-review.md.",
       "dependsOn": [
         "US-001",
         "US-002"
       ],
       "files": [
         ".agro/tasks/sandbox-marker-detection/evidence/"
-      ]
+      ],
+      "commit": "3df94900"
     }
   ]
 }
