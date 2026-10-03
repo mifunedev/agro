@@ -153,7 +153,7 @@ always prints the reason to stderr and returns the reason in the JSON.
 - **Supervisor target**: `--supervisor`, else `AGRO_SUPERVISOR_PANE`. A target
   is a Herdr pane id, a terminal id, or a unique agent name.
 - **Token**: `PI_SLACK_BOT_TOKEN` from the environment, else from
-  `.devcontainer/.env`, else `.slack.botToken` from the bridge config. The
+  the `.env` file that `agro secret set` writes, else `.slack.botToken` from the bridge config. The
   scripts pass the token to `curl` through a header file, never on the command
   line where `/proc` would expose it.
 - **Channel**: `--channel`, else the first `enabled` entry in
