@@ -1,4 +1,0 @@
-US-002 passed.
-
-**Decisions for you:**
-1. Keep US-003 open.

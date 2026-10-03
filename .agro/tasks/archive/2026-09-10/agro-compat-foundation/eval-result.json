@@ -1,9 +1,0 @@
-{
-  "commit": "e05ebe003eaea8bf35ac5f532c3ff91035f4fefb",
-  "runnerExit": 0,
-  "ranAt": "2026-09-06T17:47:07Z",
-  "runId": "phase0-eval5",
-  "newRegressions": [],
-  "preExistingReds": ["skills-vendored"],
-  "note": "skills-vendored is red on the base and in this environment (cc-safety-net binary absent from PATH); unchanged delta. Run from a PATH that includes the uv python bin, matching the environment that produced the prior scoreboard."
-}

@@ -7,7 +7,7 @@ created: 2026-06-27
 updated: 2026-09-21
 sources:
   - raw/2026-06-27-recursive-language-models.md
-  - .agro/tasks/retire-unproven-skill-machinery/prd.md
+  - .agro/tasks/retire-unproven-skill-machinery/prd.md@18e0fe06
 related: [recursive-self-improvement-survey, molt-agentic-reinforcement-learning]
 confidence: provisional
 ---
@@ -16,7 +16,7 @@ confidence: provisional
 
 ## Relevant Source Files
 - `raw/2026-06-27-recursive-language-models.md` — external RLM ecosystem snapshot: the paper, the blog, the five projects, and the prior-art URLs.
-- `.agro/tasks/retire-unproven-skill-machinery/prd.md:102` — the per-skill retirement verdicts for the two harness skills that implemented this pattern.
+- `.agro/tasks/retire-unproven-skill-machinery/prd.md@18e0fe06:102` — the per-skill retirement verdicts for the two harness skills that implemented this pattern.
 
 ## Summary
 Recursive Language Models (RLM) is an inference-time pattern in which a root language model treats its context not as a flat prompt to ingest but as an **environment** — a REPL/filesystem it greps, slices, and recurses sub-LM calls over — to beat "context rot" on very long inputs. A sibling idea, **weighted-trajectory selection**, samples N candidate paths and picks among them with an explicit scoring function rather than a single greedy decode. The harness built both as skills, never measured either, and retired them; the external research below stands on its own, the harness implementation no longer exists.

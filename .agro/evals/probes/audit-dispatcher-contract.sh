@@ -26,7 +26,7 @@ for old in pr-audit harness-audit context-audit skill-lint eval-lint drift-check
   [[ ! -d "$ROOT/.agro/skills/$old" ]] || fail "legacy skill remains: $old"
 done
 [[ ! -e "$ROOT/.agro/agents/auditor.md" ]] || fail 'legacy auditor remains'
-for kept in eval benchmark ci-status health-check wiki; do
+for kept in eval ci-status health-check wiki; do
   [[ -f "$ROOT/.agro/skills/$kept/SKILL.md" ]] || fail "retained instrument missing: $kept"
 done
 for retired in critique approve; do

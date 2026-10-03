@@ -18,7 +18,7 @@ usage() {
 | harness | `/audit harness [--focus area] [--external URL|path] [actions]` | Tier 1/2/3 + Recommended Next 3 Actions |
 | context | `/audit context [all|--baseline]` | `KEEP` / `TRIM` / `DEMOTE` / `CUT` |
 | skills | `/audit skills [all|root|name]` | `CURRENT` / `STALE` / `BROKEN` / `DELETE` |
-| eval-quality | `/audit eval-quality [all|probes|capability|id]` | `KEEP` / `GROOM` / `CUT` |
+| eval-quality | `/audit eval-quality [all|probes|id]` | `KEEP` / `GROOM` / `CUT` |
 | drift | `/audit drift` | per-class `OK` / aggregate `DRIFT:` |
 | full | `/audit full [--repo O/N] [--focus area] [--health-target target]` | `AUDIT-CAMPAIGN-COMPLETE` / `AUDIT-CAMPAIGN-PARTIAL` |
 EOF
@@ -98,7 +98,7 @@ case $target in
     case ${#args[@]}:${args[0]:-} in 0:|1:all|1:--baseline) :;; *) usage;; esac
     ;;
   skills) ((${#args[@]} <= 1)) && [[ ${args[0]:-all} =~ ^(all|root|[A-Za-z0-9._-]+)$ ]] || usage;;
-  eval-quality) ((${#args[@]} <= 1)) && [[ ${args[0]:-all} =~ ^(all|probes|capability|[A-Za-z0-9._-]+)$ ]] || usage;;
+  eval-quality) ((${#args[@]} <= 1)) && [[ ${args[0]:-all} =~ ^(all|probes|[A-Za-z0-9._-]+)$ ]] || usage;;
   drift) ((${#args[@]} == 0)) || usage;;
   full)
     i=0; while ((i < ${#args[@]})); do

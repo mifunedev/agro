@@ -1,8 +1,0 @@
-# progress
-
-2026-09-06T18:15Z plan: base 9261d512 (origin/development after #987 merge); queries "cli install release update" (+--patterns); read release-versioning (NEEDS-REVIEW), oh-cli-portable-lifecycle, pattern-cli-bundled-asset-relative-import; inventories by two read-only workers; six stories; owner orchestrates, workers implement disjoint files per wave.
-2026-09-06T18:26:46Z wave1 done: US-001, US-003 pass (commits d7dfd568); T3+T4 launched
-2026-09-06T18:41:55Z wave2 done: US-002, US-004 pass (c4787782); T3 worker hit a rate limit after implementation — owner completed its verification; T5 launched
-2026-09-06T18:50:22Z wave3 done: US-005 pass (17bc5379); knowledge worker launched for US-006
-2026-09-06T18:54:58Z fix: CI eval regressions (oh-lifecycle-surface, oh-shipped-repo-overridable) and compose-verbs test repaired (16a39922); pushed
-2026-09-06T19:07:46Z gates: eval run2 runnerExit=0 at 07e7399f; slop tsOverCcn=[] (1 simplicity round); benchmark BENEFICIAL (justified hold, 1.44/1.44); knowledge 4 pages FRESH + 2 patterns; evidence.md written; gate1 run — see next line

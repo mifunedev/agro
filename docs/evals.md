@@ -1,8 +1,6 @@
 # Regression evals
 
 The deterministic probe suite checks real repository and runtime state.
-The [capability benchmark](capability-benchmark.md) measures end-to-end progress instead.
-Trajectory examples live in [the dataset catalogue](../.agro/evals/datasets/README.md).
 
 ## Probe oracle
 

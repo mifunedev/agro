@@ -1,18 +1,18 @@
 # Eval Lint
 
-Score every eval **probe** and **capability benchmark task** across seven
+Score every eval **probe** across five
 deterministic anti-Goodhart failure modes and produce a **KEEP / GROOM / CUT**
 verdict for each. No LLM judgment — verdicts come from file stats, grep counts,
 git history, and the last `/eval` scoreboard only.
 
 The probe suite is now ~75 probes. Once the harness can improve itself it can
-also *overfit its own probes* — so the probes and capability tasks need the same
+also *overfit its own probes* — so the probes need the same
 cheap, high-value grooming pass that `/audit skills` gives skills. `/audit eval-quality` is
 that pass. It is a **skill/report, not a probe**: it must not add machinery to
 the very suite it grooms.
 
 **Read-only by default.** This skill only reads and prints. It never edits,
-deletes, or rewrites a probe or capability file. After any run,
+deletes, or rewrites a probe. After any run,
 `git status --porcelain .agro/evals/` MUST be empty. Grooming and cutting are
 follow-up edits a human (or a separate task) applies deliberately — never a side
 effect of the lint.
@@ -25,40 +25,36 @@ Arguments received: `$ARGUMENTS`
 
 | Argument | Scope |
 |----------|-------|
-| `all` (default, or empty) | All probes **and** all capability tasks |
-| `probes` | `.agro/evals/probes/*.sh` only |
-| `capability` | `.agro/evals/capability/tasks/CB-*.md` only |
-| `<probe-or-task-id>` | A single probe id (e.g. `skill-paths`) or task id (e.g. `CB-001`) |
+| `all` (default, or empty) | All probes |
+| `probes` | `.agro/evals/probes/*.sh` (same as `all`) |
+| `<probe-id>` | A single probe id (e.g. `skill-paths`) |
 
 ### 2. Discover targets
 
-Two target classes, discovered from the neutral `.agro/evals/` source tree:
+One target class, discovered from the neutral `.agro/evals/` source tree:
 
 - **Probes** — every `.agro/evals/probes/*.sh`. Id = basename without `.sh`.
-- **Capability tasks** — every `.agro/evals/capability/tasks/CB-*.md`. Id = the
-  `CB-NNN` prefix.
 
 > Concrete copy-pasteable discovery + scoring driver blocks and a sample matrix
 > live in **§ Scoring procedure** below.
 
-### 3. Score each target against the seven failure modes
+### 3. Score each target against the five failure modes
 
-Each target is checked against seven named failure modes. Every check emits a
-**flag** (raised or clear); three checks are **fatal** (a single hit is enough to
+Each target is checked against five named failure modes. Every check emits a
+**flag** (raised or clear); two checks are **fatal** (a single hit is enough to
 CUT). All signals are deterministic — same inputs, same flags.
 
 ---
 
 #### Check 1 — stale
 
-*The probe/task guards a lesson, issue, or path that no longer exists, or has
+*The probe guards a lesson, issue, or path that no longer exists, or has
 rotted while what it guards moved on.*
 
 Signal: read the probe's `# source:` header (and any bare path in the body) and
-verify each cited file/path still resolves (`[ -e "$path" ]`); a capability
-task's `datasets:` refs and "most-recent real instance" pointer must resolve
-too. Secondary signal: file mtime age via `stat -c %Y` — a very old probe whose
-guarded target changed *more recently* is drifting.
+verify each cited file/path still resolves (`[ -e "$path" ]`). Secondary
+signal: file mtime age via `stat -c %Y` — a very old probe whose guarded target
+changed *more recently* is drifting.
 
 Groomable (refresh the source pointer / re-anchor the assertion), not fatal.
 
@@ -95,19 +91,7 @@ a probe breaks on harmless refactors and passes on real regressions.
 
 Groomable — rewrite to assert the user outcome, not the mechanism.
 
-#### Check 5 — no-longer-held-out
-
-*A capability benchmark task (or its fixtures) has been tuned-to / special-cased,
-violating the held-out discipline in `.agro/evals/capability/AGENTS.md`.*
-
-Signal: the task's guarded assertion is now baked into the very file it inspects,
-or the benchmark manifest (a task's fixtures) is
-referenced by non-eval harness code — evidence the harness was special-cased *to*
-the benchmark. Per the capability contract, special-casing the harness to ace a
-task corrupts the instrument. **Fatal** — a no-longer-held-out task measures
-nothing.
-
-#### Check 6 — too-easy/too-narrow/special-cased
+#### Check 5 — too-easy/too-narrow/special-cased
 
 *A probe that trivially passes (a tautology), tests a single hardcoded literal,
 or is special-cased so it can never meaningfully fail.*
@@ -117,17 +101,6 @@ suspiciously tiny body, or a guard that special-cases the exact path it checks.
 A probe that cannot fail is indistinguishable from no probe.
 
 Groomable — broaden the case or add the assertion it is missing.
-
-#### Check 7 — machinery-growth-without-capability-movement
-
-*The meta check: the probe count keeps growing while the capability suite score
-stays flat — the "redirect" signal in `.agro/evals/capability/AGENTS.md`.*
-
-Signal: count probes now vs. an earlier git revision, compared against the
-capability `RESULTS.md` suite-score delta over the same span. Growing floor
-machinery with a flat ceiling means the harness is busy but not *better*. This
-is a **suite-level advisory** annotated in the report footer, not a per-row
-flag.
 
 ---
 
@@ -183,9 +156,8 @@ verdict that depends on it until it is answered.
 
 ### 4. Compute the verdict — KEEP / GROOM / CUT
 
-Tally each target's raised flags from checks 1–6 (check 7 is a suite-level
-footer note, not a per-row flag). `fatal` checks are **3 (always-SKIP)**,
-**2 (exact duplicate)**, and **5 (no-longer-held-out)**.
+Tally each target's raised flags from checks 1–5. `fatal` checks are
+**3 (always-SKIP)** and **2 (exact duplicate)**.
 
 | Condition | Verdict |
 |-----------|---------|
@@ -193,13 +165,13 @@ footer note, not a per-row flag). `fatal` checks are **3 (always-SKIP)**,
 | 1–2 non-fatal flags | **GROOM** |
 | Any fatal flag, **or** 3+ flags | **CUT** |
 
-- **KEEP** — the target guards a real, still-held invariant/capability and earns
+- **KEEP** — the target guards a real, still-held invariant and earns
   its place. No action.
 - **GROOM** — fixable in place: refresh a stale source pointer, rewrite an
   implementation-detail assertion into a user-outcome one, merge/differentiate a
   near-duplicate, or broaden a too-narrow case. Keep after grooming.
 - **CUT** — remove or fully redesign: a probe that only ever SKIPs, an exact
-  duplicate, or a benchmark task the harness has been tuned to. **CUT is a
+  duplicate. **CUT is a
   recommendation only** — this skill never deletes anything.
 
 ### 5. Emit report
@@ -207,8 +179,7 @@ footer note, not a per-row flag). `fatal` checks are **3 (always-SKIP)**,
 Print today's date as `YYYY-MM-DD` (`date +%F`), then a summary line, the
 KEEP/GROOM/CUT matrix (one row per target, worst verdict first), and the
 per-target recommendations. The concrete emit block and a sample matrix are in
-**§ Scoring procedure**. Close with the check-7 suite-level machinery-growth
-footnote.
+**§ Scoring procedure**.
 
 ### 6. Return to the dispatcher
 
@@ -218,7 +189,7 @@ reporting a run record of your own; the outer dispatcher prints the single recor
 ```markdown
 ## [Eval Lint] — HH:MM UTC
 - **Result**: OP
-- **Action**: scored N probes + M capability tasks
+- **Action**: scored N probes
 - **Keep**: K | **Groom**: G | **Cut**: C
 - **Observation**: [one sentence — top finding]
 ```
@@ -226,9 +197,9 @@ reporting a run record of your own; the outer dispatcher prints the single recor
 ## Scoring procedure
 
 One self-contained, copy-pasteable driver (the established deterministic lint idiom). It discovers every
-probe + capability task, cross-references the `.agro/evals/RESULTS.md` SKIPPED
+probe, cross-references the `.agro/evals/RESULTS.md` SKIPPED
 oracle, computes the deterministic checks from § 3, emits the KEEP/GROOM/CUT
-matrix (worst verdict first) with the check-7 suite footer, and closes with the
+matrix (worst verdict first), and closes with the
 `git status --porcelain .agro/evals/` read-only proof. It reads and prints only —
 nothing under `.agro/evals/` is ever written.
 
@@ -241,7 +212,6 @@ RESULTS="$EVALS/RESULTS.md"
 
 # ── Discover targets ────────────────────────────────────────────────────────
 mapfile -t PROBES < <(ls "$EVALS"/probes/*.sh 2>/dev/null | sort)
-mapfile -t CAPS   < <(ls "$EVALS"/capability/tasks/CB-*.md 2>/dev/null | sort)
 
 # ── Oracle: persistently-SKIPPED probe ids from the last /eval (RESULTS.md) ──
 # The "always-SKIP" verdict is REAL DATA — the status column, never grep 'exit 2'.
@@ -269,7 +239,7 @@ verdict() {  # $1 = fatal(≥1) · $2 = non-fatal flag count → KEEP/GROOM/CUT
 
 ROWS=""; KEEP=0; GROOM=0; CUT=0
 
-# ── Score probes (checks 1,2,3,4,6) ─────────────────────────────────────────
+# ── Score probes (checks 1,2,3,4,5) ─────────────────────────────────────────
 for f in "${PROBES[@]}"; do
   id=$(basename "$f" .sh); fatal=0; nf=0; flags=""
 
@@ -286,44 +256,20 @@ for f in "${PROBES[@]}"; do
   # Check 4 — asserts-implementation-detail (GROOM): a line-number pin into files
   grep -qE "sed -n '[0-9]+p'|head -n?[0-9]+ .*tail" "$f" && { nf=$((nf+1)); flags+="4 "; }
 
-  # Check 6 — too-easy/too-narrow (GROOM): tiny body (< 8 non-comment lines)
+  # Check 5 — too-easy/too-narrow (GROOM): tiny body (< 8 non-comment lines)
   sloc=$(grep -vcE '^[[:space:]]*#|^[[:space:]]*$' "$f")
-  [ "$sloc" -lt 8 ] && { nf=$((nf+1)); flags+="6 "; }
+  [ "$sloc" -lt 8 ] && { nf=$((nf+1)); flags+="5 "; }
 
   v=$(verdict "$fatal" "$nf")
   case "$v" in KEEP) KEEP=$((KEEP+1));; GROOM) GROOM=$((GROOM+1));; CUT) CUT=$((CUT+1));; esac
   ROWS+="$v|probe|$id|${flags:-—}"$'\n'
 done
 
-# ── Score capability tasks (checks 1,5,6) ────────────────────────────────────
-for f in "${CAPS[@]}"; do
-  id=$(grep -m1 '^id:' "$f" | awk '{print $2}')
-  fatal=0; nf=0; flags=""
-
-  slug=$(grep -m1 '^slug:' "$f" | awk '{print $2}')
-  # Check 5 — no-longer-held-out (FATAL): executable harness LOGIC (NOT the eval
-  # scorer, NOT docs) hardcodes the task's slug ⇒ the harness was special-cased.
-  if git -C "$ROOT" grep -lF "$slug" -- '.agro/scripts/' '.agro/hooks/' 2>/dev/null \
-       | grep -qviE 'benchmark-score|README'; then fatal=1; flags+="5 "; fi
-  # Check 1 — stale (GROOM): a declared datasets: DS-NNN ref that no longer
-  # resolves under datasets/**/ (datasets are nested dirs, not bare files).
-  for ds in $(grep -m1 '^datasets:' "$f" | grep -oE 'DS-[0-9]+'); do
-    find "$EVALS/datasets" -maxdepth 2 -name "${ds}*" 2>/dev/null | grep -q . \
-      || { nf=$((nf+1)); flags+="1 "; break; }
-  done
-  # Check 6 — too-narrow (GROOM): missing a scoring rubric / success signal
-  grep -qE '^## Rubric|^## Success signal' "$f" || { nf=$((nf+1)); flags+="6 "; }
-
-  v=$(verdict "$fatal" "$nf")
-  case "$v" in KEEP) KEEP=$((KEEP+1));; GROOM) GROOM=$((GROOM+1));; CUT) CUT=$((CUT+1));; esac
-  ROWS+="$v|task|$id|${flags:-—}"$'\n'
-done
-
 # ── Emit matrix (worst verdict first) ────────────────────────────────────────
 echo "## Eval Lint — $(date +%F)"
 echo
 echo "### Summary"
-echo "${#PROBES[@]} probes + ${#CAPS[@]} capability tasks scored | KEEP $KEEP | GROOM $GROOM | CUT $CUT"
+echo "${#PROBES[@]} probes scored | KEEP $KEEP | GROOM $GROOM | CUT $CUT"
 echo
 echo "| Target | Class | Flags | Verdict |"
 echo "|--------|-------|-------|---------|"
@@ -332,13 +278,6 @@ printf '%s' "$ROWS" | awk -F'|' '
   { print ord[$1]"\t"$0 }' | sort -k1,1n | cut -f2- | while IFS='|' read -r v cls id fl; do
     printf '| %-42s | %-5s | %-6s | %-5s |\n' "$id" "$cls" "$fl" "$v"
   done
-
-# ── Check 7 — machinery-growth footer (suite-level advisory, not a per-row flag)
-SUITE=$(grep -oE 'suite score = [^·]*' "$EVALS/capability/RESULTS.md" | head -1)
-echo
-echo "_Check 7 (suite advisory): ${#PROBES[@]} probes now; capability ${SUITE:-score n/a}."
-echo "Growing probe count against a flat ceiling ⇒ machinery-without-capability; compare"
-echo "\`git -C \"\$ROOT\" grep -c '' -- .agro/evals/probes | wc -l\` at an earlier revision._"
 
 # ── Read-only proof (this skill only reads + prints) ─────────────────────────
 echo
@@ -352,7 +291,7 @@ fi
 
 ### Sample matrix
 
-Real output against the current tree (77 targets: 75 probes + 2 `CB-*` tasks).
+Sample output for a 75-probe tree.
 Only the two probes RESULTS.md records as persistently
 `SKIPPED` fire the fatal check-3 CUT; every other target is a clean KEEP:
 
@@ -360,18 +299,14 @@ Only the two probes RESULTS.md records as persistently
 ## Eval Lint — 2026-07-03
 
 ### Summary
-75 probes + 2 capability tasks scored | KEEP 75 | GROOM 0 | CUT 2
+75 probes scored | KEEP 73 | GROOM 0 | CUT 2
 
 | Target | Class | Flags | Verdict |
 |--------|-------|-------|---------|
 | autopilot-preflight-gate                   | probe | 3      | CUT   |
 | (probe retired in #1212)                   | probe | 3      | CUT   |
 | advisor-execution-contract                 | probe | —      | KEEP  |
-| … (73 more probes) …                       | probe | —      | KEEP  |
-| CB-001                                     | task  | —      | KEEP  |
-| CB-002                                     | task  | —      | KEEP  |
-
-_Check 7 (suite advisory): 75 probes now; capability suite score = mean of task scores…_
+| … (72 more probes) …                       | probe | —      | KEEP  |
 
 read-only proof: git status --porcelain .agro/evals/ is EMPTY ✓
 ```
@@ -390,18 +325,16 @@ byte-identical verdicts (deterministic), and `.agro/evals/` stays unmodified.
   `grep 'exit 2'`. A probe can legitimately `exit 2` in *this* environment yet
   assert normally elsewhere; only a probe RESULTS.md records as persistently
   `SKIPPED` is a true always-SKIP finding.
-- **Read-only, always.** Never edit, move, or delete a probe or capability file.
+- **Read-only, always.** Never edit, move, or delete a probe.
   If a run leaves `git status --porcelain .agro/evals/` non-empty, the run is a
   bug — it mutated state it was only allowed to read.
 - **CUT is advisory.** A `CUT` verdict is a recommendation for a human/follow-up
-  task, mirroring `/audit skills`'s `DELETE`. Deleting a hard capability task to
-  inflate the suite score is the cardinal sin the capability README forbids —
-  this skill flags, it does not act.
+  task, mirroring `/audit skills`'s `DELETE`. This skill flags, it does not act.
 - Do not Goodhart the linter itself: `/audit eval-quality` is markdown-driven and ships
   no probe of its own. It must **not** be registered under `.agro/evals/probes/`
   or `link-providers.sh` — adding a probe for it grows the machinery it exists
   to groom.
-- For the single-target mode (`$ARGUMENTS` = a probe or task id), run all seven
+- For the single-target mode (`$ARGUMENTS` = a probe id), run all five
   checks and emit the same matrix for just that target, plus its recommendation.
 
 ## Reference
@@ -411,9 +344,8 @@ byte-identical verdicts (deterministic), and `.agro/evals/` stays unmodified.
 | Class | Root | Id |
 |-------|------|----|
 | Probe | `.agro/evals/probes/*.sh` | basename without `.sh` |
-| Capability task | `.agro/evals/capability/tasks/CB-*.md` | `CB-NNN` prefix |
 
-### The seven failure modes
+### The five failure modes
 
 | # | Failure mode | Fatal? | Fix |
 |---|--------------|--------|-----|
@@ -421,9 +353,7 @@ byte-identical verdicts (deterministic), and `.agro/evals/` stays unmodified.
 | 2 | duplicate | exact dup → yes | merge or differentiate |
 | 3 | always-SKIP-in-CI | yes | run it or remove it |
 | 4 | asserts-implementation-detail-not-user-outcome | no | assert the user outcome |
-| 5 | no-longer-held-out | yes | restore held-out discipline or retire |
-| 6 | too-easy/too-narrow/special-cased | no | broaden the case |
-| 7 | machinery-growth-without-capability-movement | suite footer | redirect, don't add machinery |
+| 5 | too-easy/too-narrow/special-cased | no | broaden the case |
 
 ### Probe status oracle (from `.agro/evals/RESULTS.md`)
 
@@ -443,4 +373,3 @@ Exit-code semantics written by `/eval`: `0=PASS`, `1=REGRESSION`, `2=SKIPPED`,
 
 - `/audit skills` — the sibling grooming pass this skill mirrors (skills ↔ evals).
 - `/eval` — writes the `.agro/evals/RESULTS.md` status oracle check 3 reads.
-- `/benchmark` — consumes the capability ceiling check 7 watches for movement.

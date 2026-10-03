@@ -1,9 +1,0 @@
-{
-  "commit": "07e7399fe3b5a762d4f52b2fa985784791b9b085",
-  "runnerExit": 0,
-  "ranAt": "2026-09-06T19:04:42Z",
-  "runId": "phase1-eval2",
-  "newRegressions": [],
-  "preExistingReds": ["skills-vendored"],
-  "note": "Run 1 at d631ae61 surfaced tool-catalog-boundary (probe pinned the literal oh tool usage line; fixed in 07e7399f); run 2 at 07e7399f is clean apart from the pre-existing skills-vendored red (cc-safety-net binary absent from this environment). Run with LC_ALL=C.UTF-8 and the uv python bin on PATH."
-}

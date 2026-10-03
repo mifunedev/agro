@@ -1,3 +1,0 @@
-US-002 passed.
-
-1. Confirm that US-003 stays out of scope.

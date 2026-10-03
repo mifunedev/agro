@@ -2,30 +2,26 @@
 # tier: A
 # source: .agro/tasks/spec-simplification/ (issue #816, US-006) — /eval ran 3x per cycle on the
 #         same commit: 318 probe executions to learn one thing.
-# desc: /audit implementation Gate 2 and /benchmark Signal 1 READ a cycle's
+# desc: /audit implementation Gate 2 READS a cycle's
 #       .agro/tasks/<slug>/eval-result.json instead of re-running the suite, but only after they
 #       compare its `commit` against HEAD — inheriting a record from an earlier HEAD would report
-#       a floor that was never measured — and both fall back to a real run when the record is
-#       stale or absent, so neither treats a missing record as a pass.
+#       a floor that was never measured — and falls back to a real run when the record is
+#       stale or absent, so it never treats a missing record as a pass.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 IMPL="$ROOT/.agro/skills/audit/references/implementation.md"
-BENCH="$ROOT/.agro/skills/benchmark/SKILL.md"
 
-for f in "$IMPL" "$BENCH"; do
-  if [[ ! -f "$f" ]]; then
-    echo "REGRESSION: required eval-result reader absent: $f" >&2
-    exit 1
-  fi
-done
+if [[ ! -f "$IMPL" ]]; then
+  echo "REGRESSION: required eval-result reader absent: $IMPL" >&2
+  exit 1
+fi
 
 missing=()
 
 IMPL_GATE="$(awk '/^### Gate 2 /{f=1} f{print} f && /^### Gate 3 /{exit}' "$IMPL")"
-BENCH_GATE="$(awk '/^### Signal 1 /{f=1} f{print} f && /^### Signal 2 /{exit}' "$BENCH")"
 
-for pair in "audit-implementation:$IMPL_GATE" "benchmark:$BENCH_GATE"; do
+for pair in "audit-implementation:$IMPL_GATE"; do
   name="${pair%%:*}"
   file="${pair#*:}"
   if [ -z "$file" ]; then
@@ -52,5 +48,5 @@ if (( ${#missing[@]} )); then
   exit 1
 fi
 
-echo "PASS: /audit implementation and /benchmark read eval-result.json, validate its commit against HEAD, and fall back to a real run when it is stale or absent" >&2
+echo "PASS: /audit implementation reads eval-result.json, validates its commit against HEAD, and falls back to a real run when it is stale or absent" >&2
 exit 0

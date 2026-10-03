@@ -23,6 +23,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Removed
 
+- Remove the eval experiments, datasets, capability benchmark, `/benchmark` skill, and finished task folders ([#1265](https://github.com/mifunedev/agro/issues/1265)).
 - Remove the project Pi recap package so new sessions no longer load `/recap` by default ([#1179](https://github.com/mifunedev/agro/issues/1179)).
 
 ### Changed

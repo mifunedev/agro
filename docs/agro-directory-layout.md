@@ -12,7 +12,7 @@ Canonical skills own reusable procedures. Documentation under `docs/` explains A
 | `.agro/cli/` | The `agro` CLI package. |
 | `.agro/scripts/`, `.agro/install/` | Lifecycle scripts, runtime helpers, and image installation inputs. |
 | `.agro/skills/`, `.agro/hooks/`, `.agro/skills.lock` | Vendored shared procedures, hooks, and pack metadata. |
-| `.agro/evals/` | Regression probes, capability benchmark, datasets, and decision records. |
+| `.agro/evals/` | Regression probes and decision records. |
 | `.agro/knowledge/` | Tracked source pages, patterns, external captures, and a generated index; ignored `local/` scratch. |
 | `.agro/tasks/` | Task plans (`prd.md`) and story state (`prd.json`). |
 | `.agro/logs/`, `.agro/memories/` | Local logs and operator context, each with a scoped contract. |
@@ -112,6 +112,5 @@ The task contract stays repository-local; changing that contract does not expand
 - [Lifecycle commands](lifecycle-commands.md)
 - [Configuration](configuration.md)
 - [Regression evals](evals.md)
-- [Capability benchmark](capability-benchmark.md)
 - [Sandbox Python](sandbox-python.md)
 - [Descriptive harness manifest](harness-manifest.md)

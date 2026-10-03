@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"; cd "$ROOT"
 pat='(^|[^A-Za-z0-9-])(pr-audit|harness-audit|context-audit|skill-lint|eval-lint|drift-check)([^A-Za-z0-9-]|$)|\.agro/skills/(pr-audit|harness-audit|context-audit|skill-lint|eval-lint|drift-check)(/|$)|auditor\.md'
 set +e
-hits=$(git grep -n -E "$pat" -- ':!CHANGELOG.md' ':!docs/rfcs/preserved-changelog-rationale.md' ':!.agro/evals/RESULTS.md' ':!.agro/evals/datasets/**' ':!.agro/evals/experiments/*/corpus/**' ':!.agro/evals/experiments/*/archive/**' ':!.agro/evals/experiments/*/runs/*/outputs/**' ':!.agro/tasks/archive/**')
+hits=$(git grep -n -E "$pat" -- ':!CHANGELOG.md' ':!docs/rfcs/preserved-changelog-rationale.md' ':!.agro/evals/RESULTS.md' ':!.agro/tasks/archive/**')
 rc=$?; set -e
 [[ $rc -eq 0 || $rc -eq 1 ]] || { echo 'REGRESSION: stale-reference inventory failed' >&2; exit 1; }
 bad=()
@@ -27,7 +27,6 @@ if ((${#bad[@]})); then printf '%s\n' "${bad[@]}" >&2; echo 'REGRESSION: active 
 bare_audit='`/audit`'
 for caller in \
   .agro/knowledge/source/recursive-language-models.md \
-  .agro/skills/benchmark/SKILL.md \
   docs/artifact-contract-schema.md
 do
   if git grep -nF "$bare_audit" -- "$caller"; then
@@ -41,7 +40,7 @@ fi
 canonical_skills='$AUDIT_ROOT/.agro/skills/'
 grep -qF "$canonical_skills" .agro/skills/audit/references/skills.md \
   || { echo 'REGRESSION: skills audit does not scan canonical .agro/skills' >&2; exit 1; }
-for path in AGENTS.md docs/README.md docs/artifact-contract-schema.md crons/heartbeat.md .github/workflows/ci-harness.yml .agro/evals/capability/tasks/CB-001-ship-harness-change.md .agro/skills/benchmark/SKILL.md; do
+for path in AGENTS.md docs/README.md docs/artifact-contract-schema.md crons/heartbeat.md .github/workflows/ci-harness.yml; do
   git ls-files --error-unmatch "$path" >/dev/null || { echo "REGRESSION: stale-reference coverage path missing: $path" >&2; exit 1; }
 done
 echo 'PASS: no active legacy audit references across tracked active surfaces' >&2

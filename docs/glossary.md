@@ -40,12 +40,6 @@ These names describe separate layers, not interchangeable jobs:
   writes and `/delegate` reads and updates.
   Source: [`.agro/tasks/AGENTS.md`](../.agro/tasks/AGENTS.md).
 
-- **capability** — What the harness can actually do end-to-end, measured by the
-  capability benchmark rather than by how much machinery it accumulates. The
-  `.agro/evals/capability/` suite grades concrete deliverables (a shipped PR, a
-  passing eval), so a rising score is evidence the loop got
-  better. Source: [`.agro/evals/capability/`](../.agro/evals/capability/).
-
 - **checkpoint** — An intermediate, observable stage output that is explicitly
   *not* the terminal state. For example, the draft PR opens with the plan
   before implementation, and the advisor marks it ready only after the gates

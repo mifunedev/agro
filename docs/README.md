@@ -70,7 +70,6 @@ Codex and Pi access shared skills through `.agents/skills`; Claude Code uses
 - [Registry portability contract and exception list](../.agro/scripts/registry-portability.md)
 - [`.agro/` directory layout](agro-directory-layout.md)
 - [Regression evals](evals.md)
-- [Capability benchmark](capability-benchmark.md)
 - [Sandbox Python](sandbox-python.md)
 - [Descriptive `.agro/harness.yml` example](harness-manifest.md)
 - [Glossary](glossary.md)

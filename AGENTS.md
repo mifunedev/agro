@@ -177,7 +177,7 @@ The repository has one sandbox definition and four control-plane areas:
   behavior.
 - `.agro/skills/` and `.agro/hooks/` hold portable primitives; skills encode roles.
 - `.agro/tasks/` holds task-specific plans, graphs, progress, and evidence.
-- `.agro/evals/` holds regression probes and capability benchmarks.
+- `.agro/evals/` holds regression probes and decision records.
 
 Read the nearest directory `README.md` before changing unfamiliar machinery.
 

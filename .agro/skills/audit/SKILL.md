@@ -33,7 +33,7 @@ usage: /audit <implementation|pr|prs|harness|context|skills|eval-quality|drift|f
 | `harness` | `/audit harness [--focus area] [--external URL|path] [actions]` | Tier 1/2/3 + Recommended Next 3 Actions |
 | `context` | `/audit context [all|--baseline]` | `KEEP` / `TRIM` / `DEMOTE` / `CUT` |
 | `skills` | `/audit skills [all|root|name]` | `CURRENT` / `STALE` / `BROKEN` / `DELETE` |
-| `eval-quality` | `/audit eval-quality [all|probes|capability|id]` | `KEEP` / `GROOM` / `CUT` |
+| `eval-quality` | `/audit eval-quality [all|probes|id]` | `KEEP` / `GROOM` / `CUT` |
 | `drift` | `/audit drift` | per-class `OK` / aggregate `DRIFT:` |
 | `full` | `/audit full [--repo O/N] [--focus area] [--health-target target]` | `AUDIT-CAMPAIGN-COMPLETE` / `AUDIT-CAMPAIGN-PARTIAL` |
 

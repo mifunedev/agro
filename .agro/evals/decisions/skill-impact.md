@@ -3,9 +3,9 @@
 Append-only. One record per skill-edit proposal, one record per verdict. Records are
 appended at the end and never edited in place; `SI-nnnn` ids increase monotonically.
 
-Written by exactly two skills: `/builder` appends the `PROPOSED` record at the moment
-its edit lands, and `/benchmark` appends the matching `SI-nnnn-V` verdict record when
-it scores that change. Read by `/builder`, before it proposes — a record marked
+Written by `/builder`, which appends the `PROPOSED` record at the moment its edit
+lands. A matching `SI-nnnn-V` verdict record is appended when the change is scored.
+Read by `/builder`, before it proposes — a record marked
 `REJECTED` is a change already tried and refused, and must not be re-proposed without
 new evidence that contradicts the recorded validation.
 
@@ -26,9 +26,9 @@ the opposite.
 |---|---|
 | One entry per **skill invocation** — every run, whatever the outcome | One record per **skill-edit proposal** — a durable change to a tracked artifact |
 | Growth unbounded in sessions | Growth bounded by merged changes that edit `.oh/skills/` |
-| No consumer; nothing read it | Two consumers: `/builder` reads it before proposing, `/benchmark` reads it for the redirect signal |
+| No consumer; nothing read it | One consumer: `/builder` reads it before proposing |
 | Duplicated what `git log` already held | Holds what `git log` does **not**: the motivating pattern, the validation result, and — critically — **rejected proposals, which leave no git trace at all after a revert** |
-| Any skill could write | Exactly two writers, both orchestrator-only |
+| Any skill could write | Orchestrator-only writers |
 
 The sharp test is `/retro`'s own anti-pattern, "inventing a file to save a lesson
 in". This file saves no lessons — lessons live in `corpus/pattern-*.md`. It records
@@ -37,7 +37,7 @@ in". This file saves no lessons — lessons live in `corpus/pattern-*.md`. It re
 ## Record format
 
 A proposal record and its verdict record are two separate appends, never one record
-mutated twice. `/builder` lands the edit; a human merges it; `/benchmark` scores it
+mutated twice. `/builder` lands the edit; a human merges it; the verdict is scored
 later. Mutating the `PROPOSED` record in place to add a verdict would break
 append-only and make the invariant unenforceable.
 

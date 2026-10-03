@@ -30,7 +30,7 @@ below.
 | --- | --- | --- | --- |
 | `.agro/skills/*/SKILL.md` | Behavioral norms (prescriptive) | Deliberate orchestrator revision | Knowledge holds **facts**, skills hold **how to behave**. A `kind: pattern` entry sits closest to this line: it records that a workaround *worked*, which is evidence; the skill records that the workaround *must be applied*, which is a norm. When a pattern's workaround becomes a rule, it is promoted into a skill and the pattern stays as the evidence for it |
 | `docs/` | Human-facing prose | Orchestrator / contributors | Knowledge is LLM-readable; docs are human-readable |
-| `.agro/evals/decisions/` | Accepted/rejected proposal history (`skill-impact.md`) | `/builder`, `/benchmark` | A decision ledger is a record of judgments, not synthesis about a topic |
+| `.agro/evals/decisions/` | Accepted/rejected proposal history (`skill-impact.md`) | `/builder` | A decision ledger is a record of judgments, not synthesis about a topic |
 | `.agro/knowledge/raw/` | Immutable external captures (snapshots of fetched pages, papers) | `/wiki ingest` | Same surface; raw is upstream evidence, entity pages are synthesis |
 | `.agro/knowledge/local/` | Per-machine scratch | anyone | **Nothing reads it.** A page only one machine can see must never inform a plan another machine cannot reproduce |
 

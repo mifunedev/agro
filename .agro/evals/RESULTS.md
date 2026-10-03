@@ -41,7 +41,6 @@ probe id; git history is the time series.** Schema and exit-code semantics are i
 | builder-no-agent-artifact | A | 2026-09-23 17:59 | PASS | ADR #929 — /builder agent is retired; a reusable role is authored as a skill |
 | builder-skill-consolidation | A | 2026-09-23 17:59 | PASS | issue #643 — consolidate artifact builders behind one /builder dispatcher |
 | builder-wiki-proposer | A | 2026-09-23 17:59 | PASS | wikiskill arXiv:2608.27454 — the skill proposer reads accumulated knowledge first |
-| capability-benchmark-schema | A | 2026-09-23 17:59 | PASS | issue #167 — capability benchmark instrument |
 | cc-safety-net-wiring | A | 2026-09-23 17:59 | PASS | .agro/tasks/cc-safety-net/prd.json US-007 2026-07-19 |
 | changelog-entry-length | A | 2026-09-23 17:59 | PASS | conversation 2026-08-24 — CHANGELOG.md grew to 259KB of bullet prose because "one line" was unquantified |
 | cleanup-no-agent-session-coupling | A | 2026-09-23 17:59 | PASS | issue #928 — retire automated /spec agent handoff; |
@@ -62,7 +61,6 @@ probe id; git history is the time series.** Schema and exit-code semantics are i
 | cron-systemd-service | A | 2026-09-23 17:59 | PASS | issue #956 (systemd PID 1; cron supervision leaves tmux) 2026-09-04 |
 | crons-directory-guide | A | 2026-09-23 17:59 | PASS | issue #874 |
 | curl-bash-safe-alternatives | A | 2026-09-23 17:59 | PASS | vet-run/vet integration — public curl|bash examples need review-first alternatives |
-| datasets-schema | A | 2026-09-23 17:59 | PASS | issue #196 — .agro/evals/datasets verifiable trajectory corpus (Repo2RLEnv-inspired) |
 | debugmcp-availability | A | 2026-09-23 17:59 | PASS | issue #297 — DebugMCP MCP debug-server availability |
 | delegate-model-effort-policy | A | 2026-09-23 17:59 | PASS | issue #988 / ADR #989, issue #1147 (portable model policy; provider defaults in provider settings) |
 | delegate-worker-boundary | A | 2026-09-23 17:59 | PASS | ADR #929, issue #988 / ADR #989, issue #1003, issue #1147 (advisor/worker pattern over prd.json) |
