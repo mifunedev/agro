@@ -8,8 +8,14 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Add `AGRO_REF` to the `remote-sandbox` skill. `scripts/run.sh` forwards `AGRO_REF` into the VM, and row `R02` runs `agro workspace create --ref "$AGRO_REF"` in host mode. A branch run now tests the host workspace scripts of the branch. Image mode ignores `AGRO_REF` and uses the image seed ([#1327](https://github.com/mifunedev/agro/issues/1327)).
+- Add `scripts/clipboard-read.mjs` and the "Copy-button checks" section to the `agent-browser` skill. `node .agro/skills/agent-browser/scripts/clipboard-read.mjs --session <name>` grants the clipboard permission through CDP, keeps the grant while it reads the clipboard, and prints the clipboard text. A plain `agent-browser clipboard read` fails with `Read permission denied` ([#1332](https://github.com/mifunedev/agro/issues/1332)).
+
 ### Fixed
 
+- Brace the variables in the `/release` push refspec, so the command works in zsh. zsh read `$SHA:r` as the `:r` modifier and mangled the refspec. A new test fails on an unbraced variable before a colon and a letter in a skill or doc shell block ([#1331](https://github.com/mifunedev/agro/issues/1331)).
 - Update Pi goal and loop pins to remove their host-dependency warnings; retain the subagents and tasks warnings ([#1323](https://github.com/mifunedev/agro/issues/1323)).
 
 ## [0.17.0] - 2026-10-04
