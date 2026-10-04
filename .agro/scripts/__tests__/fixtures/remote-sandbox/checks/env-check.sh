@@ -1,5 +1,6 @@
 echo "CHECK INSTALL_URL=${INSTALL_URL:-unset}"
 echo "CHECK AGRO_JS_URL=${AGRO_JS_URL:-unset}"
 echo "CHECK SANDBOX_IMAGE=${SANDBOX_IMAGE:-unset}"
+echo "CHECK AGRO_REF=${AGRO_REF:-unset}"
 echo "CHECK GET_AGRO_URL=${GET_AGRO_URL:-unset}"
 echo "SUMMARY env-check"

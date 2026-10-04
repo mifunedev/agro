@@ -29,9 +29,6 @@ const BUILTIN_ADAPTER = [
   "",
 ].join("\n");
 
-const ENV_CHECK =
-  'echo "CHECK AGRO_REF=${AGRO_REF:-unset}"\n' + readFileSync(join(FIXTURES, "checks/env-check.sh"), "utf8");
-
 const cleanups: string[] = [];
 afterAll(() => {
   while (cleanups.length > 0) rmSync(cleanups.pop()!, { recursive: true, force: true });
@@ -55,8 +52,8 @@ function makeSkill(): Skill {
     copyFileSync(join(SOURCE, file), join(skill, "scripts", file));
   }
   writeFileSync(join(skill, "adapters", "builtin.sh"), BUILTIN_ADAPTER);
-  writeFileSync(join(skill, "checks/fresh-install.sh"), ENV_CHECK);
-  writeFileSync(join(skill, "checks/agro-rows.sh"), ENV_CHECK);
+  copyFileSync(join(FIXTURES, "checks/env-check.sh"), join(skill, "checks/fresh-install.sh"));
+  copyFileSync(join(FIXTURES, "checks/env-check.sh"), join(skill, "checks/agro-rows.sh"));
   chmodSync(join(FIXTURES, "bin/tmux"), 0o755);
   const state = join(temp, "state");
   mkdirSync(join(state, "vms"), { recursive: true });
