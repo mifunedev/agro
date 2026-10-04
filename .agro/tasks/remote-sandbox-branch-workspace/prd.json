@@ -21,15 +21,16 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Commits 4713eb3f (story) and e2432a46 (advisor-requested repair: AGRO_REF line moved into fixtures/remote-sandbox/checks/env-check.sh, an approved extra file). 1-4 executed by diff review on task branch: AGRO_REF in fwd loop; build-under-test prints agro_ref=${AGRO_REF:-default branch}; R02 runs agro workspace create ${AGRO_REF:+--ref \"$AGRO_REF\"}; PASS detail adds ref=<abbrev-ref>@<short sha>. 5-6 executed: new and extended cases assert CHECK AGRO_REF=feat/example / unset and the R02 line text. 7 executed by worker: 3 red failures before script change (CHECK AGRO_REF=unset could not go red alone; agro_ref=default branch supplies the red). 8 executed on task branch: 18/18 pass. 9 executed: bash -n both scripts exit 0. 10 executed: pnpm typecheck exit 0. VM proof deferred to US-003.",
       "dependsOn": [],
       "files": [
         ".agro/skills/remote-sandbox/scripts/run.sh",
         ".agro/skills/remote-sandbox/checks/agro-rows.sh",
         ".agro/scripts/__tests__/remote-sandbox.test.ts",
         ".agro/scripts/__tests__/remote-sandbox-suite.test.ts"
-      ]
+      ],
+      "commit": "e2432a46"
     },
     {
       "id": "US-002",
