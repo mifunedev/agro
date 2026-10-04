@@ -79,14 +79,15 @@
         "`CHANGELOG.md` holds one entry for the fix in the `## [Unreleased]` section."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed on task branch: grep host-install sentence in docs/harnesses/hermes.md -> 1 match; grep \"fixed in mifunedev/agro#1325\" in rationale.md -> 1 match (/.dockerenv part still open); [Unreleased] holds exactly 1 #1325 entry under ### Fixed; ste-check docs/harnesses/hermes.md exit 0.",
       "dependsOn": [],
       "files": [
         "docs/harnesses/hermes.md",
         ".agro/skills/remote-sandbox/references/rationale.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "96b05422"
     },
     {
       "id": "US-005",
