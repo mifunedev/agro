@@ -93,6 +93,9 @@ describe("Hermes-only additive linking", () => {
     const result = run(root, "--init", { HERMES_HOME: "" });
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("launch environment");
+    expect(result.stderr.match(/^ERROR: HERMES_HOME is unset; /gm)).toHaveLength(1);
+    expect(result.stderr).toMatch(/^Remediation: .*HERMES_HOME.*agro harness install hermes$/m);
+    expect(result.stderr).not.toContain("Remediation: bash .agro/scripts/link-providers.sh --init");
     expect(existsSync(join(root, ".hermes"))).toBe(false);
   });
 

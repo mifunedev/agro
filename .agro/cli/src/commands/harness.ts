@@ -311,6 +311,10 @@ function hermesTargetRoot(target: ExecutionTarget): string {
   return target.kind === "docker-compose" ? "/home/sandbox/harness" : target.workspace.targetRoot;
 }
 
+function hermesEnv(root: string): Record<string, string> {
+  return { ...agroEnvPair("PROJECT_ROOT", root), HERMES_HOME: `${root}/.hermes` };
+}
+
 async function reconcileHermes(
   target: ExecutionTarget,
   io: HarnessIO,
@@ -320,7 +324,7 @@ async function reconcileHermes(
 ): Promise<number> {
   const result = await target.exec({
     argv: remoteControlDirScript(root, "scripts/link-providers.sh", ["--init", "--hermes-only"]),
-    env: agroEnvPair("PROJECT_ROOT", root),
+    env: hermesEnv(root),
     ...(user ? { user } : {}),
     stdio: "inherit",
   });
@@ -436,10 +440,7 @@ async function installOnHost(
   }
 
   const hermes = entry.id === "hermes";
-  const installEnv = hermes ? {
-    ...agroEnvPair("PROJECT_ROOT", root),
-    HERMES_HOME: `${root}/.hermes`,
-  } : undefined;
+  const installEnv = hermes ? hermesEnv(root) : undefined;
   if (hermes) {
     const code = await reconcileHermes(target, io, bin, undefined, root);
     if (code !== 0) return code;
@@ -680,10 +681,7 @@ export async function runHarnessInstall(
   }
 
   const hermes = entry.id === "hermes";
-  const installEnv = hermes ? {
-    ...agroEnvPair("PROJECT_ROOT", hermesTargetRoot(target)),
-    HERMES_HOME: `${hermesTargetRoot(target)}/.hermes`,
-  } : undefined;
+  const installEnv = hermes ? hermesEnv(hermesTargetRoot(target)) : undefined;
   if (hermes) {
     const code = await reconcileHermes(target, io, opts.bin, "sandbox");
     if (code !== 0) return code;

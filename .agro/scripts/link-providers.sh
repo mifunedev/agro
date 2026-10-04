@@ -377,7 +377,7 @@ if [ "$hermes_only" = true ]; then
   if [ "$mode" = "--init" ]; then
     init_hermes_link || true
   fi
-  check_hermes_link || true
+  [ "$failures" -ne 0 ] || check_hermes_link || true
 else
   if [ "$mode" = "--init" ]; then
     init_links
@@ -386,7 +386,11 @@ else
 fi
 
 if [ "$failures" -ne 0 ]; then
-  print_state
+  if [ "$hermes_only" = true ]; then
+    echo "Remediation: resolve each ERROR above, set HERMES_HOME=$repo_root/.hermes in the launch environment, then run agro harness install hermes" >&2
+  else
+    print_state
+  fi
   exit 1
 fi
 
