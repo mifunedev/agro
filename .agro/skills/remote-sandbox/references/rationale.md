@@ -106,7 +106,7 @@ AGRO findings from the baseline:
 |---|---|---|
 | `C8` | `entrypoint.sh` copies the seed with `cp -a` and writes the `.image-seeded` marker with no `sync`. A hard reset in the first seconds after the first boot left `agro.json`, `package.json`, and `pnpm-lock.yaml` at 0 bytes. | open |
 | `C9` | nvm Node made `agro` fail in non-interactive shells. | fixed in mifunedev/agro#1263 |
-| `C10` | The image booted as a VM has no `/.dockerenv` and no Dockerfile `ENV`. `agro harness install hermes` refuses, then fails with `HERMES_HOME is unset`. | open |
+| `C10` | The image booted as a VM has no `/.dockerenv` and no Dockerfile `ENV`. `agro harness install hermes` refuses, then fails with `HERMES_HOME is unset`. | `/.dockerenv` detection: open. `HERMES_HOME is unset`: fixed in mifunedev/agro#1325 (`hermes-host-install-home`) |
 
 ## Known failure modes of the driver
 

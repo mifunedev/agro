@@ -16,6 +16,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 - Detect the AGRO sandbox from the image marker `/etc/agro/sandbox`. The image now writes the marker. A VM that boots the AGRO image now counts as the sandbox. When the marker is absent, `agro` uses the old rule (`/.dockerenv` and `SANDBOX_NAME`) and prints one warning line that tells the operator to upgrade the sandbox image ([#1304](https://github.com/mifunedev/agro/issues/1304)).
 
+### Fixed
+
+- Set `HERMES_HOME` for the link step of a host `agro harness install hermes`, and print each Hermes link failure once with a Hermes remediation ([#1325](https://github.com/mifunedev/agro/issues/1325)).
+
 ## [0.16.2] - 2026-10-03
 
 ### Changed

@@ -58,6 +58,8 @@ The image sets `HERMES_HOME=/home/sandbox/harness/.hermes` for config, memory, r
 
 Repeated installation repairs a missing link without reinstalling an existing executable. Boot uses the same provider linker.
 
+A host install sets `HERMES_HOME` to `<workspace>/.hermes` for the install and the link step. The operator does not need to export `HERMES_HOME` on the host.
+
 Auth lives directly inside `HERMES_HOME` (`~/harness/.hermes/auth.json`). Keep `auth.json` on the same filesystem as its temporary files; do not symlink it to another volume. The sandbox banner reports Hermes as authenticated only when `~/harness/.hermes/auth.json` exists and is non-empty; a generated config file alone does not count as authentication.
 
 ## State persistence
