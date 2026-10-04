@@ -10,7 +10,9 @@
       "description": "As the advisor, I want one tested way to read the clipboard in the sandbox browser. Then copy-button evidence does not change the page under test.",
       "acceptanceCriteria": [
         "A local fixture page `.agro/skills/agent-browser/scripts/tests/fixtures/copy-button.html` has one button that calls `navigator.clipboard.writeText(\"agro-copy-check\")`.",
-        "The worker tries each candidate on that fixture in the sandbox and records the command and the result in `.agro/tasks/agent-browser-clipboard-read/evidence/spike.md`:"
+        "The worker tries each candidate on that fixture in the sandbox and records the command and the result in `.agro/tasks/agent-browser-clipboard-read/evidence/spike.md`: `agent-browser clipboard read` after a click, with no launch flag; the same command with `--args \"--enable-features=ClipboardReadWrite\"` or another documented Chromium flag; `agent-browser clipboard read` in headed mode, if a display is available; a page-side capture that wraps `navigator.clipboard.writeText` before the click and reads the captured text with `agent-browser eval`.",
+        "`spike.md` names one method that returns `agro-copy-check`, or states that no method returns the text.",
+        "Each candidate command in `spike.md` shows its exit status and its output."
       ],
       "priority": 1,
       "passes": false,
