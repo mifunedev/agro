@@ -112,8 +112,8 @@
         "The advisor completes this story before the PR leaves draft."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 reasoned: ran after US-001..US-004 passed. 2 executed: operator approved push, prerelease and exe.dev run. 3 executed: npm --prefix .agro/cli run build exit 0; bundle holds hermesEnv. 4 executed: gh release create validate-hermes-host-install-home --prerelease (plan name renamed from -rc per operator). 5 executed: latest stayed v0.16.2. 6 executed: run.sh exedev checks/agro-rows.sh in tmux rs-hermes1325 with INSTALL_URL/AGRO_JS_URL from the prerelease (INSTALL_URL used the prerelease asset, as planned after the tag rename). 7 executed: build under test line names the prerelease. 8 executed: RESULT R15-hermes-host-install PASS and RESULT R14-hermes-install PASS install=0; SUMMARY fails=0. 9 executed: remaining agro-matrix resources on exedev: 0; RUN DONE. 10 executed: evidence/manual-review.md written. 11 executed: grep token|secret|auth.json -> no match. 12 executed: gh release delete --cleanup-tag; release view exit 1; ls-remote tag empty. 13 reasoned: completed before gh pr ready.",
       "dependsOn": [
         "US-001",
         "US-002",
