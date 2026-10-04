@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1332-agent-browser-clipboard-read",
+  "description": "Agent-browser clipboard read. Find and document a supported clipboard read for copy-button evidence in the agent-browser skill (#1332).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Find a supported clipboard read after a copy-button click",
+      "description": "As the advisor, I want one tested way to read the clipboard in the sandbox browser. Then copy-button evidence does not change the page under test.",
+      "acceptanceCriteria": [
+        "A local fixture page `.agro/skills/agent-browser/scripts/tests/fixtures/copy-button.html` has one button that calls `navigator.clipboard.writeText(\"agro-copy-check\")`.",
+        "The worker tries each candidate on that fixture in the sandbox and records the command and the result in `.agro/tasks/agent-browser-clipboard-read/evidence/spike.md`:"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/agent-browser/scripts/tests/fixtures/copy-button.html",
+        ".agro/tasks/agent-browser-clipboard-read/evidence/spike.md"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Document the clipboard check in the agent-browser skill",
+      "description": "As an agent that captures evidence, I want the agent-browser skill to give the clipboard check. Then I prove a copy button the same way each time.",
+      "acceptanceCriteria": [
+        "The story depends on US-001.",
+        "`.agro/skills/agent-browser/SKILL.md` has a section \"Copy-button checks\" that gives the method from `spike.md` as numbered steps with exact commands.",
+        "If no method reads the clipboard, the section gives the paste procedure from mifunedev/agro-console#275 and states that the paste adds a temporary field to the page.",
+        "`.agro/skills/agent-browser/scripts/tests/` holds a test that runs the documented method against the fixture and expects `agro-copy-check`. The test skips with a message when agent-browser or Chromium is absent.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/agent-browser/SKILL.md` exits 0.",
+        "`CHANGELOG.md` `## [Unreleased]` holds one entry that links issue #1332."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/skills/agent-browser/SKILL.md",
+        ".agro/skills/agent-browser/scripts/tests/",
+        "CHANGELOG.md"
+      ]
+    }
+  ]
+}
