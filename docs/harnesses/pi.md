@@ -54,6 +54,22 @@ Pi installs missing project packages automatically once you trust the project. A
 
 Outside this project, load a package manually with `pi -e npm:<package>`.
 
+### Reconcile package updates
+
+After updating `.pi/settings.json`, run this command from the trusted project directory inside the sandbox:
+
+```bash
+pi update --extensions
+```
+
+Exact pins do not advance to the latest release. The update command skips pinned packages.
+Run `/reload` in Pi to reconcile changed pins and load the declared versions.
+
+The goal `0.54.8` and loop `0.7.15` pins remove their host-dependency warnings.
+Subagents `0.12.0` and tasks `0.7.0` remain unchanged and still declare host-provided packages as runtime dependencies.
+Track their upstream fixes in [pi-subagents PR #359](https://github.com/tintinweb/pi-subagents/pull/359) and [pi-tasks PR #67](https://github.com/tintinweb/pi-tasks/pull/67).
+These warnings describe package manifests; they do not establish a runtime failure.
+
 ## Monitor and loops
 
 ```text

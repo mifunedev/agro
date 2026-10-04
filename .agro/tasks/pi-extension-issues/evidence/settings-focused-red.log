@@ -1,0 +1,45 @@
+
+ RUN  v4.1.11 <worktree>
+
+ ❯ .pi/extensions/__tests__/settings.test.ts (4 tests | 1 failed) 6ms
+     × pins the default Pi packages used by the harness 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  .pi/extensions/__tests__/settings.test.ts > project Pi settings > pins the default Pi packages used by the harness
+AssertionError: expected [ …(8) ] to deeply equal [ …(8) ]
+
+- Expected
++ Received
+
+  [
+    "npm:@tintinweb/pi-subagents@0.12.0",
+    "npm:@tintinweb/pi-tasks@0.7.0",
+-   "npm:@narumitw/pi-goal@0.54.8",
++   "npm:@narumitw/pi-goal@0.4.2",
+    "npm:@narumitw/pi-codex-usage@0.6.2",
+-   "npm:@trevonistrevon/pi-loop@0.7.15",
++   "npm:@trevonistrevon/pi-loop@0.5.5",
+    "npm:@guwidoe/pi-prompt-suggester@0.3.10",
+    "npm:@ff-labs/pi-fff@0.9.5",
+    "npm:cc-safety-net@1.0.6",
+  ]
+
+ ❯ .pi/extensions/__tests__/settings.test.ts:38:31
+     36|     const settings = readPiSettings();
+     37|
+     38|     expect(settings.packages).toEqual([
+       |                               ^
+     39|       "npm:@tintinweb/pi-subagents@0.12.0",
+     40|       "npm:@tintinweb/pi-tasks@0.7.0",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  09:36:12
+   Duration  301ms (transform 12ms, setup 0ms, import 18ms, tests 6ms, environment 0ms)
+
+
+EXIT=1
