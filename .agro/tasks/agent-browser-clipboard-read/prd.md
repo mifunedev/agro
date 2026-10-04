@@ -99,4 +99,5 @@ N/A. The change adds no persistent state.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. Claim: a Chromium clipboard grant through CDP lasts only while the granting client stays connected. Evidence: `spike.md` candidates e1 and e2; the permission state returns to `"prompt"` when the client disconnects. Outcome: fixed in this PR, because `clipboard-read.mjs` holds the connection open during the read.
+2. Claim: `annotate-screenshot.test.sh` leaves its named agent-browser session open. Evidence: the cleanup trap runs `agent-browser close` without `--session`, and `agent-browser session list` showed `annotate-test-<pid>` after a run. Outcome: proposed issue, pending operator approval: "annotate-screenshot test leaks its browser session".
