@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1331-release-refspec-zsh-braces",
+  "description": "Release refspec zsh braces. Brace the /release push refspec so it works in zsh, and guard skill and doc shell blocks against unbraced $NAME:<letter> (#1331).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Brace the release push refspec and guard skill code blocks",
+      "description": "As the advisor, I want the `/release` push command to work in zsh. Then a release push from the sandbox does not fail on a mangled refspec.",
+      "acceptanceCriteria": [
+        "`.agro/skills/release/SKILL.md` \u00a7 3 gives `git push \"${REMOTE}\" \"${SHA}:refs/heads/${TARGET}\"`.",
+        "A new test file `.agro/scripts/__tests__/skill-shell-portability.test.ts` scans each fenced `bash` or `sh` block in `.agro/skills/**/*.md` and `docs/**/*.md`. The test fails on an unbraced variable that a colon and a letter follow, for example `$SHA:r`.",
+        "The test reports the file, the line, and the variable for each finding.",
+        "The test fails on the current `development` branch with the finding `.agro/skills/release/SKILL.md` line 162 `$SHA`, and the test passes after the change.",
+        "`pnpm vitest run .agro/scripts/__tests__/skill-shell-portability.test.ts` exits 0.",
+        "`CHANGELOG.md` `## [Unreleased]` holds one `### Fixed` entry that links issue #1331.",
+        "Typecheck passes.",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/release/SKILL.md",
+        ".agro/scripts/__tests__/skill-shell-portability.test.ts",
+        "CHANGELOG.md"
+      ]
+    }
+  ]
+}
