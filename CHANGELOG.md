@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Add `scripts/clipboard-read.mjs` and the "Copy-button checks" section to the `agent-browser` skill. `node .agro/skills/agent-browser/scripts/clipboard-read.mjs --session <name>` grants the clipboard permission through CDP, keeps the grant while it reads the clipboard, and prints the clipboard text. A plain `agent-browser clipboard read` fails with `Read permission denied` ([#1332](https://github.com/mifunedev/agro/issues/1332)).
+
 ## [0.17.0] - 2026-10-04
 
 ### Added
