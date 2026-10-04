@@ -43,13 +43,14 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/remote-sandbox/SKILL.md` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1-4 executed by diff review on task branch: AGRO_REF table row (default branch), forwarding sentence names AGRO_REF, three-sources paragraph, image mode ignores AGRO_REF. 5 executed: ste-check SKILL.md exit 0. CHANGELOG [Unreleased] holds one ### Added #1327 entry. Text describes US-001 behavior; accuracy re-checked when US-001 lands.",
       "dependsOn": [],
       "files": [
         ".agro/skills/remote-sandbox/SKILL.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "1c624bf1"
     },
     {
       "id": "US-003",
