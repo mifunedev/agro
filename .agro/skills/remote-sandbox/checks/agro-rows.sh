@@ -27,8 +27,9 @@ if [ $MODE = host ]; then
   if agro --version >/dev/null 2>&1; then result R02b-noninteractive-cli PASS "agro runs in a non-interactive shell"
   else result R02b-noninteractive-cli FAIL "$(agro --version 2>&1 | head -1); node from nvm loads only in interactive shells"; fi
   export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" >/dev/null 2>&1
-  agro workspace create >/tmp/ws.log 2>&1
-  [ -d "$HOME/.agro/workspaces/harness/.git" ] && result R02-workspace PASS "agro $(agro --version 2>/dev/null)" || result R02-workspace FAIL "$(tail -3 /tmp/install.log /tmp/ws.log | tr '\n' ' ')"
+  agro workspace create ${AGRO_REF:+--ref "$AGRO_REF"} >/tmp/ws.log 2>&1
+  WS="$HOME/.agro/workspaces/harness"
+  [ -d "$WS/.git" ] && result R02-workspace PASS "agro $(agro --version 2>/dev/null) ref=$(git -C "$WS" rev-parse --abbrev-ref HEAD)@$(git -C "$WS" rev-parse --short HEAD)" || result R02-workspace FAIL "$(tail -3 /tmp/install.log /tmp/ws.log | tr '\n' ' ')"
 
   echo "== R03"
   if command -v docker >/dev/null && $SUDO docker info >/dev/null 2>&1; then

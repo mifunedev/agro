@@ -83,6 +83,13 @@ describe("checks/agro-rows.sh", () => {
     );
     expect(source()).not.toMatch(/GET_AGRO_URL|agro\.mifune\.dev|get-agro/);
   });
+
+  it("creates the host workspace at AGRO_REF only when it is set", () => {
+    const line = source()
+      .split("\n")
+      .find((text) => text.includes("agro workspace create"));
+    expect(line).toContain('${AGRO_REF:+--ref "$AGRO_REF"}');
+  });
 });
 
 describe("scripts/restart-test.sh", () => {
