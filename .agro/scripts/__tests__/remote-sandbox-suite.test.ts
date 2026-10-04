@@ -60,18 +60,18 @@ describe("checks/agro-rows.sh", () => {
   const source = () => readFileSync(join(SKILL, "checks/agro-rows.sh"), "utf8");
 
   it("keeps the in-VM row IDs", () => {
-    for (const id of ["R01", "R02", "R02b", "R03", "R04", "R05", "R06", "R07", "R12", "R13", "R14"]) {
+    for (const id of ["R01", "R02", "R02b", "R03", "R04", "R05", "R06", "R07", "R12", "R13", "R14", "R15"]) {
       expect(source()).toMatch(new RegExp(`result ${id}-[a-z-]+ `));
     }
     expect(source()).toContain("== R11 server");
   });
 
-  it("covers R01 to R14 and R02b across the suite", () => {
+  it("covers R01 to R15 and R02b across the suite", () => {
     const suite = ["checks/agro-rows.sh", "scripts/restart-test.sh", "scripts/lib.sh"]
       .map((file) => readFileSync(join(SKILL, file), "utf8"))
       .join("\n");
     const ids = [
-      ...Array.from({ length: 14 }, (_, i) => `R${String(i + 1).padStart(2, "0")}`),
+      ...Array.from({ length: 15 }, (_, i) => `R${String(i + 1).padStart(2, "0")}`),
       "R02b",
     ];
     for (const id of ids) expect(suite).toMatch(new RegExp(`(RESULT|result|row_hook \\w+) ${id}-`));
@@ -82,6 +82,13 @@ describe("checks/agro-rows.sh", () => {
       "${INSTALL_URL:-https://github.com/mifunedev/agro/releases/latest/download/install.sh}",
     );
     expect(source()).not.toMatch(/GET_AGRO_URL|agro\.mifune\.dev|get-agro/);
+  });
+
+  it("creates the host workspace at AGRO_REF only when it is set", () => {
+    const line = source()
+      .split("\n")
+      .find((text) => text.includes("agro workspace create"));
+    expect(line).toContain('${AGRO_REF:+--ref "$AGRO_REF"}');
   });
 });
 

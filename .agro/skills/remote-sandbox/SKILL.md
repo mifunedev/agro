@@ -113,6 +113,7 @@ Runs on different providers are independent. Start one run at a time on each pro
 | `INSTALL_URL` | `https://github.com/mifunedev/agro/releases/latest/download/install.sh` | The curl installer under test. |
 | `AGRO_JS_URL` | release | The `agro.js` bundle that the installer installs. |
 | `SANDBOX_IMAGE` | CLI default | The image for `agro sandbox install docker --image=<ref>`. |
+| `AGRO_REF` | default branch | The ref that row `R02` clones into the host workspace. |
 | `IMAGE` | provider default | The OCI image that the VM boots. The `exedev` adapter reads `IMAGE`. |
 | `KEEP` | `0` | `1` keeps the VM after the run. The log then ends with `== keep <name>`. |
 | `MATRIX_OUT` | `$PWD/matrix-evidence` | The log directory. Per-run state goes to `$MATRIX_OUT/.state`. |
@@ -121,7 +122,9 @@ Runs on different providers are independent. Start one run at a time on each pro
 | `REMOTE_SANDBOX_ADAPTERS` | empty | A colon-separated list of extra adapter directories. |
 | `VERCEL_SCOPE` | none | The Vercel team slug. The `vercel` adapter needs this variable. |
 
-`run.sh` forwards `INSTALL_URL`, `AGRO_JS_URL`, and `SANDBOX_IMAGE` into the VM and writes the build under test into the log. `run.sh` names each VM `agro-mx-<date>-<time>`. `run.sh` writes each log to `$MATRIX_OUT/<provider>-<check>-<YYYYmmdd-HHMMSS>.log`. `restart-test.sh` writes each log to `$MATRIX_OUT/<provider>-restart-<mode>-<YYYYmmdd-HHMMSS>.log`.
+`run.sh` forwards `INSTALL_URL`, `AGRO_JS_URL`, `SANDBOX_IMAGE`, and `AGRO_REF` into the VM and writes the build under test into the log. `run.sh` names each VM `agro-mx-<date>-<time>`. `run.sh` writes each log to `$MATRIX_OUT/<provider>-<check>-<YYYYmmdd-HHMMSS>.log`. `restart-test.sh` writes each log to `$MATRIX_OUT/<provider>-restart-<mode>-<YYYYmmdd-HHMMSS>.log`.
+
+A branch run has three sources. `AGRO_JS_URL` sets the CLI bundle. `AGRO_REF` sets the host workspace scripts. `SANDBOX_IMAGE` sets the sandbox image. Image mode ignores `AGRO_REF`, because image mode uses the image seed.
 
 The driver rows run only after `checks/agro-rows.sh`. After that check prints `SUMMARY`, the driver runs three rows from outside the VM: `R09-disconnect`, `R10-ssh-inbound`, and `R11-https-port`. A run of any other check prints no driver row.
 

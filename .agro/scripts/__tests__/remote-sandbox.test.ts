@@ -69,7 +69,7 @@ interface RunResult {
 
 function launch(skill: Skill, args: string[], env: Record<string, string> = {}) {
   const base = { ...process.env };
-  for (const name of ["INSTALL_URL", "AGRO_JS_URL", "SANDBOX_IMAGE", "GET_AGRO_URL", "KEEP", "IMAGE"]) {
+  for (const name of ["INSTALL_URL", "AGRO_JS_URL", "SANDBOX_IMAGE", "AGRO_REF", "GET_AGRO_URL", "KEEP", "IMAGE"]) {
     delete base[name];
   }
   const child = spawn("bash", [skill.runSh, ...args], {
@@ -165,12 +165,23 @@ describe.concurrent("remote-sandbox driver run", { timeout: 30_000 }, () => {
     expect(log).toContain("CHECK INSTALL_URL=https://example.test/install.sh");
     expect(log).toContain("CHECK AGRO_JS_URL=https://example.test/agro.js");
     expect(log).toContain("CHECK SANDBOX_IMAGE=unset");
+    expect(log).toContain("CHECK AGRO_REF=unset");
+    expect(log).toContain("agro_ref=default branch");
     expect(log).toContain("CHECK GET_AGRO_URL=unset");
     expect(log).not.toContain("R09-disconnect");
     expect(log).not.toContain("R10-ssh-inbound");
     expect(log).not.toContain("R11-https-port");
     expect(log.trimEnd()).toMatch(/remaining agro-matrix resources on fake: 0\nRUN DONE$/);
     expect(destroyedCount(skill)).toBe(1);
+  });
+
+  it("forwards AGRO_REF and prints it on the build under test line", async () => {
+    const skill = makeSkill();
+    const result = await launch(skill, ["fake"], { AGRO_REF: "feat/example" }).done;
+    expect(result.code).toBe(0);
+    const log = readFileSync(logPath(result.stdout), "utf8");
+    expect(log).toContain("agro_ref=feat/example");
+    expect(log).toContain("CHECK AGRO_REF=feat/example");
   });
 
   it("runs the driver rows after checks/agro-rows.sh and skips missing hooks", async () => {
