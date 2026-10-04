@@ -8,6 +8,12 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Fixed
+
+- Update Pi goal and loop pins to remove their host-dependency warnings; retain the subagents and tasks warnings ([#1323](https://github.com/mifunedev/agro/issues/1323)).
+
+## [0.17.0] - 2026-10-04
+
 ### Added
 
 - Add the `remote-sandbox` skill (`.agro/skills/remote-sandbox/`). `scripts/run.sh <provider>` creates a VM on exe.dev or Vercel Sandbox, runs a check detached in the VM, polls the check log, and destroys the VM. The default check, `checks/fresh-install.sh`, installs AGRO from `INSTALL_URL` and runs `agro --version` four ways (F1 to F4). `checks/agro-rows.sh`, `checks/cg-probe.sh`, and `scripts/restart-test.sh` hold the AGRO hosting matrix. A provider adapter defines five functions and up to three hooks, and `REMOTE_SANDBOX_ADAPTERS` adds adapter directories ([#1315](https://github.com/mifunedev/agro/issues/1315), ADR [#1314](https://github.com/mifunedev/agro/issues/1314)).
@@ -19,9 +25,6 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Fixed
 
 - Set `HERMES_HOME` for the link step of a host `agro harness install hermes`, and print each Hermes link failure once with a Hermes remediation ([#1325](https://github.com/mifunedev/agro/issues/1325)).
-- Update Pi goal and loop pins to remove their host-dependency warnings; retain the subagents and tasks warnings ([#1323](https://github.com/mifunedev/agro/issues/1323)).
-
-## [0.17.0] - 2026-10-04
 
 ## [0.16.2] - 2026-10-03
 
