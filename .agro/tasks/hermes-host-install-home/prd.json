@@ -18,13 +18,14 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: new host-path case asserts HERMES_HOME=<root>/.hermes on both --hermes-only calls, passes. 2 executed: grep .hermes literal in harness.ts -> 1 (hermesEnv), used by reconcileHermes and both installEnv. 3 executed: case \"sets the workspace home for each link step on the host path\". 4 executed by worker: failed before fix (expected undefined to be .../workspaces/harness/.hermes), passes after. 5 executed: 0 removed lines in existing test assertions. 6 executed: pnpm vitest run hermes-integration+hermes-links+harness tests exit 0 (87 passed, 2 skipped). 7 executed: pnpm typecheck exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/commands/harness.ts",
         ".agro/cli/src/__tests__/hermes-integration.test.ts"
-      ]
+      ],
+      "commit": "eec68060"
     },
     {
       "id": "US-002",
@@ -39,13 +40,14 @@
         "`pnpm vitest run .agro/scripts/__tests__/hermes-links.test.ts` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1-3,5 executed: hermes-links.test.ts asserts one ERROR line, Hermes remediation naming HERMES_HOME and agro harness install hermes, and no general --init remediation; worker showed red before fix (length 2 vs 1). 4 reasoned: print_state unchanged and only bypassed when hermes_only=true; worker ran plain --check and saw the 4-line block. 6 executed: pnpm vitest run (3 files) exit 0 on task branch.",
       "dependsOn": [],
       "files": [
         ".agro/scripts/link-providers.sh",
         ".agro/scripts/__tests__/hermes-links.test.ts"
-      ]
+      ],
+      "commit": "fad512a8"
     },
     {
       "id": "US-003",
