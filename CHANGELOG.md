@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Add `AGRO_REF` to the `remote-sandbox` skill. `scripts/run.sh` forwards `AGRO_REF` into the VM, and row `R02` runs `agro workspace create --ref "$AGRO_REF"` in host mode. A branch run now tests the host workspace scripts of the branch. Image mode ignores `AGRO_REF` and uses the image seed ([#1327](https://github.com/mifunedev/agro/issues/1327)).
+
 ## [0.17.0] - 2026-10-04
 
 ### Added
