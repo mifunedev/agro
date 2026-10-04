@@ -1,7 +1,8 @@
 {
   "enabledMcpjsonServers": ["debugmcp"],
   "env": {
-    "CLAUDE_CODE_SUBAGENT_MODEL": "opus"
+    "CLAUDE_CODE_SUBAGENT_MODEL": "opus",
+    "CLAUDE_CODE_AUTO_CONNECT_IDE": "false"
   },
   "permissions": {
     "deny": [
@@ -154,7 +155,7 @@
   "model": "claude-opus-5-5[1m]",
   "statusLine": {
     "type": "command",
-    "command": "bash -lc 'input=$(cat); model=$(jq -r \".model.display_name // \\\"Claude\\\"\" <<<\"$input\"); pct=$(jq -r \"(.context_window.used_percentage // 0 | tostring)\" <<<\"$input\"); branch=$(git branch --show-current 2>/dev/null); [ -n \"$branch\" ] || branch=$(git rev-parse --short HEAD 2>/dev/null || echo detached); printf \"[%s] %s%% context | %s\\n\" \"$model\" \"$pct\" \"$branch\"'",
+    "command": "bash -lc 'input=$(cat); model=$(jq -r \".model.display_name // \\\"Claude\\\"\" <<<\"$input\"); effort=$(jq -r \".effort.level // empty\" <<<\"$input\"); [ -z \"$effort\" ] || model=\"$model · $effort\"; pct=$(jq -r \"(.context_window.used_percentage // 0 | tostring)\" <<<\"$input\"); branch=$(git branch --show-current 2>/dev/null); [ -n \"$branch\" ] || branch=$(git rev-parse --short HEAD 2>/dev/null || echo detached); printf \"[%s] %s%% context | %s\\n\" \"$model\" \"$pct\" \"$branch\"'",
     "padding": 0
   }
 }
