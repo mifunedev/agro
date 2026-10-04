@@ -178,6 +178,6 @@ Write each new unit case first. Each new unit case must fail before the change.
 
 ## Lessons
 
-1. Claim: a remote-sandbox run on a branch build tests only the CLI bundle. Evidence: the VM workspace comes from the released image seed in `/opt/agro-seed`, so the run used the released `link-providers.sh`. Outcome: proposed issue, pending operator approval: "remote-sandbox validates workspace scripts from a branch build".
+1. Claim: a remote-sandbox run on a branch build tests only the CLI bundle. Evidence: the VM workspace comes from the released image seed in `/opt/agro-seed`, so the run used the released `link-providers.sh`. Outcome: issue #1327.
 2. Claim: the VM-boot part of `C10` stays open after this task. Evidence: the image `ENV` is missing when the AGRO image boots as a VM. Outcome: issue #1320.
-3. Claim: the agro-console node setup guide lists no Hermes install command. Evidence: `apps/web/components/node-setup-guide.tsx` lists only `claude-code` and `pi`. Outcome: proposed issue in `mifunedev/agro-console`, pending operator approval: "node setup guide: add Hermes host install".
+3. Claim: the agro-console node setup guide lists no Hermes install command. Evidence: `apps/web/components/node-setup-guide.tsx` lists only `claude-code` and `pi`. Outcome: issue mifunedev/agro-console#273.
