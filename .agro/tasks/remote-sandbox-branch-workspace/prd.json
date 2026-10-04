@@ -67,15 +67,16 @@
         "`.agro/tasks/remote-sandbox-branch-workspace/evidence/manual-review.md` holds the command, the `build under test:` line, each `RESULT` line, and the cleanup line."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 reasoned: ran after US-001/US-002 passed. 2 executed: operator approved push and exe.dev run (\"Approve 003\"). 3 executed: AGRO_REF=feat/1327-remote-sandbox-branch-workspace run.sh exedev checks/agro-rows.sh in tmux rs-1327. 4 executed: build under test line shows agro_ref=feat/1327-remote-sandbox-branch-workspace. 5 executed: RESULT R02-workspace PASS agro 0.17.0 ref=feat/1327-remote-sandbox-branch-workspace@0eefaae0; pushed head was 0eefaae0. 6 executed: remaining agro-matrix resources on exedev: 0; RUN DONE; SUMMARY fails=0. 7 executed: evidence/manual-review.md written.",
       "dependsOn": [
         "US-001",
         "US-002"
       ],
       "files": [
         ".agro/tasks/remote-sandbox-branch-workspace/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "eabbcd56"
     }
   ]
 }
