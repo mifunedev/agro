@@ -68,6 +68,31 @@ describe("Hermes installation postconditions", () => {
     expect(t.out.join("")).toContain("installed —");
   });
 
+  it("sets the workspace home for each link step on the host path", async () => {
+    const t = setup();
+    const state = mkdtempSync(join(tmpdir(), "oh-hermes-state-"));
+    const user = mkdtempSync(join(tmpdir(), "oh-hermes-user-"));
+    roots.push(state, user);
+    const workspace = join(state, "workspaces", "harness");
+    mkdirSync(join(workspace, ".git"), { recursive: true });
+    const calls: { cmd: string; args: string[]; env?: NodeJS.ProcessEnv }[] = [];
+    let probes = 0;
+    const run: LifecycleRunner = (cmd, args, opts) => {
+      calls.push({ cmd, args: [...args], env: opts.env });
+      if (cmd === "docker" && args[0] === "inspect") return { status: 0, stdout: "exited\n", stderr: "" };
+      if (cmd === "hermes") return { status: probes++ === 0 ? 1 : 0, stdout: "", stderr: "" };
+      return { status: 0, stdout: "", stderr: "" };
+    };
+    const { HERMES_HOME: _unset, ...parent } = process.env;
+    expect(await runHarnessInstall("hermes", { bin: "agro",
+      cwd: t.root, run, homedir: () => user, interactive: false, host: true,
+      env: { ...parent, AGRO_HOME: state },
+    }, { stdout: () => {}, stderr: () => {} })).toBe(0);
+    const links = calls.filter(c => c.args.includes("--hermes-only"));
+    expect(links).toHaveLength(2);
+    for (const link of links) expect(link.env?.HERMES_HOME).toBe(join(workspace, ".hermes"));
+  });
+
   it("repairs an already-installed integration without invoking the installer", async () => {
     const t = setup({ installed: true });
     expect(await t.invoke()).toBe(0);
