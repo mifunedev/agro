@@ -84,4 +84,4 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. Claim: the new test also flags `$NAME:<letter>` inside single quotes, where the shell does not expand the variable. Evidence: the detector does not parse quotes. Outcome: dropped, because no skill or doc block triggers the case and a braced form is correct in both quote styles.
