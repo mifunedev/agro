@@ -63,13 +63,14 @@
         "`bash -n .agro/skills/remote-sandbox/checks/agro-rows.sh` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 reasoned: row wrapped in if [ $MODE = host ]. 2 reasoned: row at line 81, after R05 (49/59) and before R14 (90); runs agro stop \"$SBX\" before install. 3 reasoned: env -u HERMES_HOME agro harness install hermes --host from $HOME/.agro/workspaces/harness, no sudo. 4 reasoned: PASS needs rc 0 plus grep -qF of the Hermes OK line, else FAIL with exit and tail -2, via result helper. 5 reasoned: agro restart \"$SBX\" (docs/lifecycle-commands.md) then waits up to 300s for healthy before R14/R11. 6 executed: SKILL.md lines 8 and 81 say R01 to R15; no R01 to R14 left; ste-check exit 0. 7 executed: bash -n exit 0. End-to-end proof deferred to US-005.",
       "dependsOn": [],
       "files": [
         ".agro/skills/remote-sandbox/checks/agro-rows.sh",
         ".agro/skills/remote-sandbox/SKILL.md"
-      ]
+      ],
+      "commit": "252f968e"
     },
     {
       "id": "US-004",
