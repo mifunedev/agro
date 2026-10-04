@@ -159,7 +159,7 @@ Promote the exact checked source SHA. The branch push—not a manually created
 tag—is the release trigger.
 
 ```bash
-git push "$REMOTE" "$SHA:refs/heads/$TARGET"
+git push "${REMOTE}" "${SHA}:refs/heads/${TARGET}"
 ```
 
 The workflow reads the version from root `package.json` on the pushed commit, so

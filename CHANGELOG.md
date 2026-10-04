@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Fixed
+
+- Brace the variables in the `/release` push refspec, so the command works in zsh. zsh read `$SHA:r` as the `:r` modifier and mangled the refspec. A new test fails on an unbraced variable before a colon and a letter in a skill or doc shell block ([#1331](https://github.com/mifunedev/agro/issues/1331)).
+
 ## [0.17.0] - 2026-10-04
 
 ### Added
