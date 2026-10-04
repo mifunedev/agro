@@ -5,7 +5,7 @@ description: |
   exe.dev or Vercel Sandbox, uploads a check, runs the check detached in the
   VM, polls the check log, and destroys the VM. The main scenario is the
   fresh install (F1 to F4). The second scenario is the AGRO hosting matrix
-  (R01 to R14, R02b), the cgroup probe, and the VM restart test. A provider
+  (R01 to R15, R02b), the cgroup probe, and the VM restart test. A provider
   adapter of five functions and three optional hooks adds a provider.
   TRIGGER when: asked to validate an AGRO release or candidate build on a
   fresh VM, run the fresh-install check, test the curl installer on a new VM,
@@ -78,7 +78,7 @@ Run these steps in order. A failed probe makes the later steps on that provider 
    tmux new-session -d -s rs-probe "bash $SKILL/scripts/run.sh exedev checks/cg-probe.sh"
    ```
 
-2. Run the rows `R01` to `R14` and `R02b`. On a plain VM, `checks/agro-rows.sh` uses host mode. On a VM that booted the AGRO image, the check uses image mode:
+2. Run the rows `R01` to `R15` and `R02b`. On a plain VM, `checks/agro-rows.sh` uses host mode. On a VM that booted the AGRO image, the check uses image mode:
 
    ```bash
    tmux new-session -d -s rs-rows "bash $SKILL/scripts/run.sh exedev checks/agro-rows.sh"

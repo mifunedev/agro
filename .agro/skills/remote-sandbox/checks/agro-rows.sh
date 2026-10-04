@@ -77,6 +77,16 @@ fi
 echo "== R12"
 in_sbx 'git ls-remote https://github.com/mifunedev/agro.git HEAD' >/tmp/r12.log 2>&1 && result R12-egress-tls PASS "$(cut -c1-12 /tmp/r12.log)" || result R12-egress-tls FAIL "$(tail -2 /tmp/r12.log | tr '\n' ' ')"
 
+if [ $MODE = host ]; then
+  echo "== R15"
+  agro stop "$SBX" >/tmp/r15s.log 2>&1
+  (cd "$HOME/.agro/workspaces/harness" && env -u HERMES_HOME agro harness install hermes --host) >/tmp/r15.log 2>&1; rc=$?
+  [ $rc = 0 ] && grep -qF 'Hermes OK: .hermes/skills/agro -> .agro/skills' /tmp/r15.log && result R15-hermes-host-install PASS || result R15-hermes-host-install FAIL "exit=$rc $(tail -2 /tmp/r15.log | tr '\n' ' ')"
+  agro restart "$SBX" >>/tmp/r15s.log 2>&1; st=missing
+  for i in $(seq 1 60); do st=$(docker inspect --format '{{.State.Health.Status}}' "$SBX" 2>/dev/null || echo missing); [ "$st" = healthy ] && break; sleep 5; done
+  [ "$st" = healthy ] || { echo "-- r15 restart: health=$st"; tail -5 /tmp/r15s.log; }
+fi
+
 echo "== R14"
 in_sbx 'cd /home/sandbox/harness && agro harness install hermes' >/tmp/r14i.log 2>&1; irc=$?
 if [ $irc != 0 ] && [ $MODE = image ]; then
