@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1327-remote-sandbox-branch-workspace",
+  "description": "Remote-sandbox branch workspace. Forward AGRO_REF so a remote-sandbox branch run clones the VM workspace at the branch (#1327).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Forward AGRO_REF and clone the VM workspace at that ref",
+      "description": "As the advisor, I want `run.sh` to forward `AGRO_REF` and row `R02` to clone the workspace at that ref. Then a branch run tests the workspace scripts of the branch.",
+      "acceptanceCriteria": [
+        "`.agro/skills/remote-sandbox/scripts/run.sh` adds `AGRO_REF` to the forwarded variables next to `INSTALL_URL`, `AGRO_JS_URL`, and `SANDBOX_IMAGE`.",
+        "The `build under test:` line prints `agro_ref=<value>`, or `agro_ref=default branch` when `AGRO_REF` is unset.",
+        "In host mode, row `R02` in `.agro/skills/remote-sandbox/checks/agro-rows.sh` runs `agro workspace create` with `--ref \"$AGRO_REF\"` only when `AGRO_REF` is set.",
+        "Row `R02` adds `ref=<branch>@<short sha>` of `$HOME/.agro/workspaces/harness` to its `PASS` detail.",
+        "A new case in `.agro/scripts/__tests__/remote-sandbox.test.ts` sets `AGRO_REF` and asserts that the check receives `AGRO_REF=<value>`. The existing forwarding case asserts `AGRO_REF=unset` when the variable is unset.",
+        "A new case in `.agro/scripts/__tests__/remote-sandbox-suite.test.ts` asserts that `agro-rows.sh` holds `${AGRO_REF:+--ref \"$AGRO_REF\"}` on the `agro workspace create` line.",
+        "Each new case fails before the change and passes after the change.",
+        "`pnpm vitest run .agro/scripts/__tests__/remote-sandbox.test.ts .agro/scripts/__tests__/remote-sandbox-suite.test.ts` exits 0.",
+        "`bash -n` exits 0 for `run.sh` and `agro-rows.sh`.",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/remote-sandbox/scripts/run.sh",
+        ".agro/skills/remote-sandbox/checks/agro-rows.sh",
+        ".agro/scripts/__tests__/remote-sandbox.test.ts",
+        ".agro/scripts/__tests__/remote-sandbox-suite.test.ts"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Document branch validation scope",
+      "description": "As an operator, I want the remote-sandbox skill to state what a branch run validates. Then a reviewer knows which branch files the VM uses.",
+      "acceptanceCriteria": [
+        "The variable table in `.agro/skills/remote-sandbox/SKILL.md` holds a row for `AGRO_REF`: default `default branch`, effect \"the ref that row `R02` clones into the host workspace\".",
+        "The sentence that lists the forwarded variables names `AGRO_REF`.",
+        "`SKILL.md` states the three sources of a branch run: `AGRO_JS_URL` sets the CLI bundle, `AGRO_REF` sets the host workspace scripts, and `SANDBOX_IMAGE` sets the sandbox image.",
+        "`SKILL.md` states that image mode ignores `AGRO_REF`, because image mode uses the image seed.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/remote-sandbox/SKILL.md` exits 0."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/remote-sandbox/SKILL.md",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Record manual review evidence",
+      "description": "As the advisor, I want one exe.dev run with `AGRO_REF` set to the task branch. Then the PR shows that the VM workspace used the branch.",
+      "acceptanceCriteria": [
+        "The story depends on US-001 and US-002.",
+        "The operator approves the billable exe.dev run and the push of the task branch before the run starts.",
+        "The advisor runs `AGRO_REF=<task branch> bash .agro/skills/remote-sandbox/scripts/run.sh exedev checks/agro-rows.sh` in a named tmux session.",
+        "The run log shows `agro_ref=<task branch>` on the `build under test:` line.",
+        "The run log shows `RESULT R02-workspace PASS` with `ref=<task branch>@<short sha>`, and the short sha equals the pushed head of the task branch.",
+        "The run log ends with `remaining agro-matrix resources on exedev: 0` and `RUN DONE`.",
+        "`.agro/tasks/remote-sandbox-branch-workspace/evidence/manual-review.md` holds the command, the `build under test:` line, each `RESULT` line, and the cleanup line."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/remote-sandbox-branch-workspace/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
