@@ -130,4 +130,6 @@ None. A failed compatibility check blocks publication readiness rather than expa
 
 ## Lessons
 
-Filled by the advisor before undraft.
+Pi skips exact pins during package updates; resource resolution replaces changed pins.
+Evidence: the isolated runtime transcript reproduces update followed by successful reload.
+Outcome: fixed in this PR through explicit reconciliation documentation.
