@@ -15,13 +15,14 @@
         "Each candidate command in `spike.md` shows its exit status and its output."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: fixtures/copy-button.html has one #copy button calling navigator.clipboard.writeText(\"agro-copy-check\"); secure context on http://127.0.0.1 and file://. 2 executed by worker, recorded in spike.md: (a) plain read exit 1 Read permission denied; (b1-b3) three launch flags exit 1; (c) --headed exit 1 CDP timeout; (e1) CDP grant then disconnect exit 1; (e2) CDP Browser.grantPermissions held open during clipboard read exit 0 agro-copy-check; (d) page-side writeText capture exit 0, page HTML and screenshot byte-identical. 3 executed: spike.md names e2 (direct read) with d as the capture alternative. Root cause of agro-console#275 failure: Chromium drops the grant when the granting CDP client disconnects. 4 executed: each candidate lists exit status and output.",
       "dependsOn": [],
       "files": [
         ".agro/skills/agent-browser/scripts/tests/fixtures/copy-button.html",
         ".agro/tasks/agent-browser-clipboard-read/evidence/spike.md"
-      ]
+      ],
+      "commit": "df9fe5a4"
     },
     {
       "id": "US-002",
