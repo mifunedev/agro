@@ -112,7 +112,7 @@ N/A. The change adds no persistent state.
 
 ## Open Questions
 
-None. PR #1326 is merged. Its evidence file states the wrong workspace source; the advisor records that finding in `## Lessons` of this task.
+None. The operator merged PR #1326. Its evidence file states the wrong workspace source, and the advisor records that finding in `## Lessons` of this task.
 
 ## Acceptance Criteria
 
