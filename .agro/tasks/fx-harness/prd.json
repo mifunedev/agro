@@ -126,15 +126,16 @@
         "The transcript links `.agro/tasks/fx-harness/evidence/exedev-validation.md`."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: operator approved and signed in (fx login, fx login codex) in Herdr; branch CLI node .agro/cli/dist/agro.js harness install fx exit 0 (status read by re-run; zsh lacks PIPESTATUS); fx --version 0.0.13 exit 0; harness list shows 'fx installable yes'; fx ask from /home/sandbox/harness quoted 'Do not add explanatory comments to tracked code.' and grep -c of that line in AGENTS.md = 1; fx listed 22 skills each once matching 22 .agro/skills dirs, git entries = 1, no truncation reported; harness uninstall fx exit 0; command -v fx exit 1. Evidence: grep -xF loop over transcript miss=0; ste-check exit 0; file links ./exedev-validation.md; no credential recorded.",
       "dependsOn": [
         "US-003",
         "US-004"
       ],
       "files": [
         ".agro/tasks/fx-harness/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "e1cb22ae"
     }
   ]
 }
