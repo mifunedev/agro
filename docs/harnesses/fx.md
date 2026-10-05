@@ -85,11 +85,15 @@ fx discovers AGRO skills through `.agents/skills` and `.claude/skills`. Both lin
 .claude/skills -> ../.agro/skills
 ```
 
+fx checks `.claude/skills` before `.agents/skills`. fx resolves each skill directory to its real path and keeps the first copy of each directory. Each AGRO skill appears once, with `.claude/skills` as its source. fx merges only copies of the same directory. Two separate directories with the same skill name both appear. Source: `src/builtins/skills.zig` and `src/core/skills/skill_runtime.zig` in vercel-labs/fx.
+
 `.agro/scripts/link-providers.sh` creates and repairs both links. AGRO adds no `.fx/skills` link.
 
 ### MCP servers
 
 fx reads the project MCP configuration. Run `fx status --json` to list the MCP servers that fx found.
+
+fx does not start a project MCP server until the operator approves it. `fx ask` skips an unapproved project server and prints `skipped unapproved project MCP servers: <name>`. Approve a server with `fx mcp trust approve <name>`.
 
 ### Hooks and guards
 
