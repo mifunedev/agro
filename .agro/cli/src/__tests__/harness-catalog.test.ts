@@ -73,6 +73,7 @@ describe("harness catalog", () => {
         "antigravity-cli",
         "claude-code",
         "codex",
+        "fx",
         "grok-build",
         "hermes",
         "muse-code",
@@ -160,6 +161,10 @@ describe("harness catalog", () => {
       const grok = findHarness("grok-build");
       expect(versionPins(grok!.installArgv)).toEqual(["0.2.39"]);
       expect(DOCKERFILE).not.toContain("bash -s 0.2.39");
+    });
+
+    it("keeps the fx pin in the catalog", () => {
+      expect(findHarness("fx")!.installArgv.join("\n")).toContain("bash -s v0.0.13");
     });
 
     it("gates the Hermes wiring on the binary, never on INSTALL_HERMES", () => {
@@ -262,6 +267,15 @@ describe("harness catalog", () => {
     expect(findHarness("nope")).toBeUndefined();
   });
 
+  it("registers fx with a home-local installer and version verification", () => {
+    expect(findHarness("fx")).toMatchObject({
+      title: "fx", binary: "fx", kind: "installable",
+      installUser: "sandbox", verifyArgv: ["fx", "--version"],
+      uninstallArgv: ["rm", "-f", `${HARNESS_PREFIX_TOKEN}/bin/fx`],
+      docsPath: "docs/harnesses/fx.md",
+    });
+  });
+
   it("registers Muse with a home-local native installer and version verification", () => {
     const muse = findHarness("muse-code")!;
     expect(muse).toMatchObject({
@@ -292,6 +306,7 @@ describe("prefix token and resolvers", () => {
     ["hermes", ["bash", "-lc", expandSandboxHome("curl -fsSL https://hermes-agent.nousresearch.com/install.sh | HERMES_INSTALL_DIR=\"$HOME/.local/lib/hermes-agent\" bash -s -- --skip-setup --skip-browser && \"$HOME/.local/bin/hermes\" pm install --extra slack --extra teams")]],
     ["muse-code", ["bash", "-lc", expandSandboxHome("set -o pipefail; curl -fsSL https://dev.meta.ai/install.sh | MUSE_INSTALL_DIR=\"$HOME/.local/bin\" MUSE_NO_MODIFY_PATH=1 MUSE_LOGIN=0 bash")]],
     ["antigravity-cli", ["bash", "-lc", expandSandboxHome("set -o pipefail; curl -fsSL https://antigravity.google/cli/install.sh | bash -s -- --dir \"$HOME/.local/bin\"")]],
+    ["fx", ["bash", "-lc", expandSandboxHome("set -o pipefail; curl -fsSL https://fx.sh/setup.sh | FX_INSTALL_DIR=\"$HOME/.local/bin\" bash -s v0.0.13")]],
     ["t3code", ["npx", "--yes", "t3", "--version"]],
   ];
 
@@ -320,7 +335,7 @@ describe("prefix token and resolvers", () => {
     }
   });
 
-  it.each(["grok-build", "hermes", "muse-code", "antigravity-cli"])(
+  it.each(["grok-build", "hermes", "muse-code", "antigravity-cli", "fx"])(
     "%s: resolves to a host prefix with no sandbox path and no shell home left",
     (id) => {
       const argv = resolveInstallArgv(findHarness(id)!, "/home/me/.agro").join("\n");
@@ -407,7 +422,7 @@ describe("uninstall knowledge", () => {
     for (const h of HARNESS_CATALOG) {
       const argv = resolveUninstallArgv(h, HOST_PREFIX);
       if (argv === null || argv[0] !== "rm") continue;
-      expect(argv[1], h.id).toBe("-rf");
+      expect(argv[1], h.id).toMatch(/^-r?f$/);
       expect(argv.length, h.id).toBeGreaterThan(2);
     }
   });

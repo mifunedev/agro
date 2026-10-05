@@ -166,6 +166,21 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     bypassPermissionsFlag: "--dangerously-skip-permissions",
   },
   {
+    id: "fx",
+    title: "fx",
+    binary: "fx",
+    installArgv: [
+      "bash",
+      "-lc",
+      `set -o pipefail; curl -fsSL https://fx.sh/setup.sh | FX_INSTALL_DIR="${HARNESS_PREFIX_TOKEN}/bin" bash -s v0.0.13`,
+    ],
+    installUser: "sandbox",
+    verifyArgv: ["fx", "--version"],
+    uninstallArgv: ["rm", "-f", `${HARNESS_PREFIX_TOKEN}/bin/fx`],
+    docsPath: "docs/harnesses/fx.md",
+    kind: "installable",
+  },
+  {
     id: "t3code",
     title: "T3 Code",
     binary: "t3",
