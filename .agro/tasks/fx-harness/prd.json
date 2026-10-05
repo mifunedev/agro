@@ -69,15 +69,16 @@
         "`npm run typecheck` exits 0 at the repository root."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed on integrated task branch: npm test -> 89 files, 1866 passed, 2 skipped; npm run typecheck exit 0; red-first reported by worker (6 failed/71 passed before catalog edit, incl. installable list, fx pin, registers fx, host-prefix, shipped-argv). reasoned from diff: entry fields, installArgv, verifyArgv, uninstallArgv match plan exactly; pin case asserts literal 'bash -s v0.0.13' without versionPins. Divergences: built together with US-004 in one worker because harness-catalog.test.ts:55 requires docsPath to exist (commit e6dd0711 carried a docs stub); existing idempotent-uninstall test loosened from toBe('-rf') to toMatch(/^-r?f$/) to admit the planned 'rm -f'.",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         ".agro/cli/src/lib/harnesses/catalog.ts",
         ".agro/cli/src/__tests__/harness-catalog.test.ts"
-      ]
+      ],
+      "commit": "e6dd0711"
     },
     {
       "id": "US-004",
@@ -97,8 +98,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/harnesses/fx.md` exits 0."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: ste-check docs/harnesses/fx.md exit 0; sections Install/Uninstall/Authentication/Common usage/AGRO integration/References present (grep '^## '); grep counts >=1 for fx login, fx login codex, fx login grok, fx setup, all five guard names, Herdr, .agents/skills, .claude/skills; overview.md line 7 and table row 74 list fx; docs/README.md links harnesses/fx.md; CHANGELOG one Added entry linking #1339; link-providers.sh --check exit 0. reasoned: skill_catalog_bytes omitted because no truncation recorded (US-005 pending). Login-target wording sourced from the vercel-labs/fx README.",
       "dependsOn": [
         "US-002",
         "US-003"
@@ -108,7 +109,8 @@
         "docs/harnesses/overview.md",
         "docs/README.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "f03c2e04"
     },
     {
       "id": "US-005",
