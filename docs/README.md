@@ -26,7 +26,7 @@ Start with the guides below.
 - [Overview](harnesses/overview.md)
 - [Claude Code](harnesses/claude-code.md) · [Codex](harnesses/codex.md) · [Pi](harnesses/pi.md)
 - [OpenCode](harnesses/opencode.md) · [Hermes](harnesses/hermes.md) · [Grok Build](harnesses/grok-build.md)
-- [Muse Code](harnesses/muse-code.md) · [Antigravity CLI](harnesses/antigravity-cli.md) · [T3 Code](harnesses/t3code.md)
+- [Muse Code](harnesses/muse-code.md) · [Antigravity CLI](harnesses/antigravity-cli.md) · [fx](harnesses/fx.md) · [T3 Code](harnesses/t3code.md)
 
 ## Integrations
 

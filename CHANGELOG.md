@@ -13,6 +13,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
+- Add the experimental Vercel Labs `fx` coding agent to the harness catalog: `agro harness install fx` installs `fx` `v0.0.13` into `~/.local/bin` ([#1339](https://github.com/mifunedev/agro/issues/1339)).
 - Add `AGRO_REF` to the `remote-sandbox` skill. `scripts/run.sh` forwards `AGRO_REF` into the VM, and row `R02` runs `agro workspace create --ref "$AGRO_REF"` in host mode. A branch run now tests the host workspace scripts of the branch. Image mode ignores `AGRO_REF` and uses the image seed ([#1327](https://github.com/mifunedev/agro/issues/1327)).
 - Add `scripts/clipboard-read.mjs` and the "Copy-button checks" section to the `agent-browser` skill. `node .agro/skills/agent-browser/scripts/clipboard-read.mjs --session <name>` grants the clipboard permission through CDP, keeps the grant while it reads the clipboard, and prints the clipboard text. A plain `agent-browser clipboard read` fails with `Read permission denied` ([#1332](https://github.com/mifunedev/agro/issues/1332)).
 

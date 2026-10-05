@@ -4,7 +4,7 @@ title: "Harnesses Overview"
 
 # Harnesses Overview
 
-AGRO installs no agent CLI at boot. A harness enters the sandbox only when you run `agro harness install <id>`. **Claude Code**, **Codex**, **Pi**, **OpenCode**, **Hermes**, **Grok Build**, **Muse Code**, and **Antigravity CLI** install through that door. The install lands in `~/.local` inside the persistent home volume. The install survives a container recreate, because AGRO bakes no harness into the image. **T3 Code** is on demand: the `/t3` skill (or `npx t3`) fetches the T3 Code package and serves a browser UI on port 3773.
+AGRO installs no agent CLI at boot. A harness enters the sandbox only when you run `agro harness install <id>`. **Claude Code**, **Codex**, **Pi**, **OpenCode**, **Hermes**, **Grok Build**, **Muse Code**, **Antigravity CLI**, and **fx** install through that door. The install lands in `~/.local` inside the persistent home volume. The install survives a container recreate, because AGRO bakes no harness into the image. **T3 Code** is on demand: the `/t3` skill (or `npx t3`) fetches the T3 Code package and serves a browser UI on port 3773.
 
 Inside the sandbox, run `agro tool install herdr`, then run `herdr`, then launch whichever agent you prefer from its panes and switch between them at any time. Herdr is for interactive agents. Named tmux sessions are for AGRO's headless gateway, tunnel, and detached cron-fire infrastructure; systemd supervises the cron runtime itself.
 
@@ -71,6 +71,7 @@ Each catalog entry has a `kind`. `installable` harnesses install through the ver
 | [Grok Build](./grok-build.md) | xAI's terminal coding agent | `grok` | `agro harness install grok-build` |
 | [Muse Code](./muse-code.md) | Meta's terminal coding agent | `muse` | `agro harness install muse-code` |
 | [Antigravity CLI](./antigravity-cli.md) | Google's terminal coding agent | `agy` | `agro harness install antigravity-cli` |
+| [fx](./fx.md) | Vercel Labs' native coding agent (experimental) | `fx` | `agro harness install fx` |
 | [T3 Code](./t3code.md) | Browser UI over Claude/Codex/OpenCode (port 3773) | `/t3` or `npx t3` | on demand, no install |
 
 ## Verifying installation
@@ -85,6 +86,7 @@ hermes --version
 grok --version
 muse --version
 agy --version
+fx --version
 
 npx t3 --version        # T3 Code — on demand, fetched by npx
 ```
@@ -101,6 +103,7 @@ Install a harness with `agro harness install <id>`, then authenticate it. Authen
 - **Muse Code**: run `muse login` inside the sandbox, or provide `META_API_KEY` to the launching process (see [Muse Code](./muse-code.md)).
 - **Grok Build**: run `grok login --device-auth` for headless/remote auth, `grok login` for interactive OAuth, or set `XAI_API_KEY` as a fallback (see [Grok Build](./grok-build.md)). Cached `~/.grok/auth.json` takes precedence over `XAI_API_KEY`.
 - **Antigravity CLI**: run `agy` and complete Google Sign-In; a remote sandbox prints an authorization URL and accepts a pasted code (see [Antigravity CLI](./antigravity-cli.md)). AGRO has not yet validated login inside the sandbox.
+- **fx**: run `fx login` for Vercel AI Gateway, `fx login codex` or `fx login grok` for a subscription, or `fx setup` for an AI Gateway API key (see [fx](./fx.md)).
 - **T3 Code**: authenticate one of Claude / Codex / OpenCode first, then run `/t3` (or `npx t3`) and open the printed pairing URL (see [T3 Code](./t3code.md)).
 
 ## Default surfaces
