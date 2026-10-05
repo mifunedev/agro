@@ -15,7 +15,7 @@ Story US-002, task fx-harness, issue #1339.
 IMAGE=ghcr.io/mifunedev/agro:latest bash .agro/skills/remote-sandbox/scripts/run.sh exedev .agro/tasks/fx-harness/checks/fx-harness.sh
 ```
 
-Image digest: <image digest>
+Image reference: ghcr.io/mifunedev/agro:latest at 2026-10-05T04:16:36Z. The operator accepted the tag and the run time in place of the image digest.
 
 ## Result lines
 
