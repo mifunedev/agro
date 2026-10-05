@@ -44,14 +44,15 @@
         "If row `X7` shows more than one `git` entry, the advisor opens a follow-up issue for Decision 1 option B and links the issue in the evidence file."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: operator approved run; driver started in tmux rs-fx with IMAGE=ghcr.io/mifunedev/agro:latest run.sh exedev check; log ends 'remaining agro-matrix resources on exedev: 0' and 'RUN DONE'; grep -xF loop: every RESULT/SUMMARY/remaining/RUN DONE line and both fx JSON outputs present in evidence (only the VM-creation JSON is omitted, not required); X0 X1 X2 X3 X8 PASS, SUMMARY fails=0; ste-check exit 0. reasoned: Decisions 1 and 2 recorded as deferred to US-005 because fx status/doctor list neither instructions nor skills; no follow-up issue since X7 listed no skills. Divergence: operator accepted tag latest plus run time 2026-10-05T04:16:36Z in place of the image digest (digest lookups blocked by secret guard and missing read:packages scope).",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/tasks/fx-harness/evidence/exedev-validation.md"
-      ]
+      ],
+      "commit": "bdcb5041"
     },
     {
       "id": "US-003",
