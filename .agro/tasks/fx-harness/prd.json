@@ -22,12 +22,13 @@
         "The check reads no token, no `.env` file, and no fx credential."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted static only; VM run is US-002. executed: bash -n exit 0; grep for comments = 0; grep token/.env/credential exit 1 (no match); all row ids X0-X8 and 'SUMMARY fails' present; grep -F pin FX_VERSION=v0.0.13 and 'bash -s $FX_VERSION' present. reasoned: image mode reuses agro-rows.sh detection, su - sandbox -c (sudo when non-root), cwd /home/sandbox/harness; X0 readlink -f equals .agro/skills; X1 exact plan command with pipefail; X2/X3/X8 exit-code logic per criteria; X4/X5 capture stdout+stderr, INFO unless binary missing; X6 PASS on AGENTS.md else INFO (FAIL if instructions reported without AGENTS.md); X7 INFO with git counts per source. File force-added past the task gitignore, matching tracked evidence precedent.",
       "dependsOn": [],
       "files": [
         ".agro/tasks/fx-harness/checks/fx-harness.sh"
-      ]
+      ],
+      "commit": "8fe1d4fb"
     },
     {
       "id": "US-002",
