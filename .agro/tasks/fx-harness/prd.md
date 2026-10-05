@@ -215,4 +215,7 @@ One question stays open until US-002 runs: do `fx status --json` and `fx doctor 
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. **Claim:** fx runs no AGRO hook. **Evidence:** the fx source registers only first-party handlers, and the fx documentation names no hook setting. **Outcome:** fixed in this PR. `docs/harnesses/fx.md` names each absent guard.
+2. **Claim:** the sandbox banner shows no status line for fx, Hermes, or Muse Code. **Evidence:** `.agro/install/banner.sh` has status lines for Claude Code, Codex, Pi, OpenCode, Grok Build, and Antigravity CLI only. **Outcome:** proposed issue `bug: banner omits fx, hermes, and muse-code harness status`. The advisor creates the issue only after operator approval.
+3. **Claim:** a `remote-sandbox` run records no image digest. **Evidence:** the US-002 log names only the tag `latest`. The secret guard refused the GHCR lookup, and the packages API needs the `read:packages` scope. **Outcome:** proposed issue `feat: remote-sandbox logs the booted image digest`. The advisor creates the issue only after operator approval.
+4. **Claim:** the catalog test requires each `docsPath` to exist, so US-003 and US-004 could not pass apart. **Evidence:** `.agro/cli/src/__tests__/harness-catalog.test.ts:55`. **Outcome:** dropped. The observation concerns plan sequencing, and the PR records the merged stories under Where it diverged.
