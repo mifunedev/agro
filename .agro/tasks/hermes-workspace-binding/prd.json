@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1344-hermes-workspace-binding",
+  "description": "Bind Hermes installation and fresh sessions to the resolved AGRO workspace.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Set the workspace during install and repair",
+      "description": "As an operator, I want installation to set the terminal workspace so that fresh sessions run commands in my checkout.",
+      "acceptanceCriteria": [
+        "First installation sets `terminal.cwd` through `hermes config set` in `<target-root>/.hermes` before reporting success.",
+        "Existing installations repair missing or stale cwd without downloading the executable again.",
+        "Local and host paths use the resolved workspace; Docker uses `/home/sandbox/harness`.",
+        "Configuration failures return a nonzero exit status and an actionable diagnostic without an installation-success message.",
+        "Conflicting runtime homes receive explicit selection guidance; installation preserves credentials and unrelated state.",
+        "Tests cover default, recorded, and explicit workspace selection, repair, configuration failure, and non-Hermes installation.",
+        "Regression tests fail before the fix and pass after the fix."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/commands/harness.ts",
+        ".agro/cli/src/__tests__/hermes-integration.test.ts",
+        ".agro/cli/src/__tests__/harness.test.ts",
+        ".agro/scripts/hermes-workspace.sh"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Align the launch contract and gateway",
+      "description": "As an operator, I want launches to select the workspace home so that installation and gateway sessions use the same configuration.",
+      "acceptanceCriteria": [
+        "Interactive launch guidance explicitly selects `<workspace>/.hermes`; documentation states that bare `hermes` does not bind a workspace.",
+        "Gateway startup sets cwd through the supported Hermes configuration interface and returns configuration failures before starting tmux.",
+        "Installation and gateway startup use the same target-root and runtime-home contract without a second YAML editor.",
+        "Explicit gateway home and cwd overrides remain documented; conflicting inherited homes receive a diagnostic before mutation.",
+        "Configuration, authentication, secrets, memory, skills, and session files remain unchanged except for the selected terminal cwd and existing provider-link repair.",
+        "Documentation explains safe home selection and restarting an existing gateway; installation does not restart the live gateway.",
+        "Tests verify launch environment selection and failure handling; the changelog links issue #1344."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/scripts/gateway.sh",
+        ".agro/scripts/hermes-workspace.sh",
+        ".agro/scripts/__tests__/gateway.test.ts",
+        "docs/harnesses/hermes.md",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Record fresh-session and failure evidence",
+      "description": "As a maintainer, I want executable evidence so that reviewers can verify the workspace contract without trusting installer output.",
+      "acceptanceCriteria": [
+        "A run uses installed Hermes with an isolated runtime home; a fresh terminal session starts in the selected workspace.",
+        "The run starts outside the selected workspace and does not use a previous session-level `cd` as evidence.",
+        "Evidence records commands, actual output, exit status, a failure path, and cleanup in `.agro/tasks/hermes-workspace-binding/evidence/manual-review.md`.",
+        "The local run does not use provider credentials, send Slack messages, alter the active Hermes home, or restart the live gateway.",
+        "Repository tests, typecheck, build, and the configured lint command exit 0; the evidence reports unavailable checks as blockers."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/hermes-workspace-binding/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
