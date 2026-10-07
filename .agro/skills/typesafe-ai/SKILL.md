@@ -32,6 +32,13 @@ bash .agro/skills/typesafe-ai/scripts/preflight.sh          # is the key set?
 bash .agro/skills/typesafe-ai/scripts/preflight.sh --live   # does the key work?
 ```
 
+The adapter automatically reads `TYPESAFE_API_KEY` from the workspace root `.env`.
+A nonempty saved key takes precedence over the inherited process environment.
+If the saved key is absent or blank, the adapter uses the process environment.
+The adapter reads the file on each call, so key rotation needs no restart.
+The lookup does not depend on the current directory. Do not source `.env` for the adapter.
+Explicit environment objects use only their supplied values.
+
 It always exits 0. An unconfigured sandbox is an operator fact, not a failure:
 report exactly what it prints, then continue with work that does not need TypeSafe.
 Without this you discover the problem at the first API call, as an opaque 401.
