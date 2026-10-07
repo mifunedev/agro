@@ -153,6 +153,23 @@ describe("Hermes gateway workspace contract", () => {
     expect(readFileSync(join(t.home, ".env"))).toEqual(bytes);
   });
 
+  it.each(["", "''", '""'])("rejects empty canonical Teams assignments (%j) before config or tmux", empty => {
+    const t = hermesFixture();
+    const legacy = { CLIENT_ID: "private-client", CLIENT_SECRET: "private-secret", TENANT_ID: "private-tenant" };
+    const before = Object.entries(legacy).map(([key, value]) => `${key}=${value}\r\nexport TEAMS_${key} = ${empty}\r\n`).join("");
+    writeFileSync(join(t.home, ".env"), before);
+    const bytes = readFileSync(join(t.home, ".env"));
+    const result = t.launch();
+    expect(result.status).toBe(1);
+    expect(result.stderr).toBe(Object.keys(legacy).map(key => `[gateway] legacy Teams key ${key} requires TEAMS_${key}.\n`).join("")
+      + "[gateway] configure the required TEAMS_* keys in the selected home's .env or environment, then retry.\n"
+      + "[gateway] gateway startup does not copy credential values or rewrite .env.\n");
+    for (const value of Object.values(legacy)) expect(result.stdout + result.stderr).not.toContain(value);
+    expect(existsSync(t.configLog)).toBe(false);
+    expect(existsSync(t.tmuxLog)).toBe(false);
+    expect(readFileSync(join(t.home, ".env"))).toEqual(bytes);
+  });
+
   it.each(["file", "environment", "mixed"])("respects canonical Teams keys from %s without rewriting legacy keys", source => {
     const t = hermesFixture();
     const canonical = { TEAMS_CLIENT_ID: "canonical-client", TEAMS_CLIENT_SECRET: "canonical-secret", TEAMS_TENANT_ID: "canonical-tenant" };

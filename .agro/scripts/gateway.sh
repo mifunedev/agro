@@ -5,6 +5,7 @@ set -u
 HARNESS="${HARNESS:-${AGRO_PROJECT_ROOT:-/home/sandbox/harness}}"
 # shellcheck source=paths.sh
 . "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/paths.sh"
+# shellcheck source=hermes-workspace.sh
 . "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/hermes-workspace.sh"
 SLACK_ENV="$(agro_env_file "$HARNESS")"
 FORK_PIN="github:ryaneggz/pi-messenger-bridge#c8b96e9d0fb69611c4e67ae298d1d10d83792a26"
@@ -177,7 +178,7 @@ start_pi() {
 
 hermes_env_key_supplied() {
   local key="$1" env_file="$2"
-  [ -n "${!key:-}" ] || { [ -f "$env_file" ] && grep -Eq "^[[:space:]]*(export[[:space:]]+)?${key}[[:space:]]*=" "$env_file"; }
+  [ -n "${!key:-}" ] || { [ -f "$env_file" ] && grep -Eq "^[[:space:]]*(export[[:space:]]+)?${key}[[:space:]]*=[[:space:]]*(\"[^\"]+\"|'[^']+'|[^[:space:]\"'#])" "$env_file"; }
 }
 
 check_hermes_teams_keys() {

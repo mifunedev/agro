@@ -380,7 +380,7 @@ async function configureHermes(
     stdio: "inherit",
   });
   if (result.exitCode !== 0) {
-    io.stderr(`${bin} harness: Hermes workspace configuration failed (exit ${result.exitCode}); run HERMES_HOME=${shellPath(`${root}/.hermes`)} hermes config set terminal.cwd ${shellPath(root)}.\n`);
+    io.stderr(`${bin} harness: Hermes workspace configuration failed (exit ${result.exitCode}); run HERMES_HOME=${shellPath(`${root}/.hermes`)} hermes config set terminal.cwd ${shellPath(root)}\n`);
   }
   return result.exitCode;
 }

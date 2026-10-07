@@ -199,10 +199,10 @@ describe("Hermes installation postconditions", () => {
     expect(t.err.join("")).toContain("unset HERMES_HOME");
   });
 
-  it("prints an executable recovery command for a workspace containing a quote", async () => {
+  it("executes the printed recovery command unchanged for a workspace containing spaces and a quote", async () => {
     const t = setup({ configExit: 7, rootPrefix: "hermes 'quoted workspace-" });
     expect(await t.invoke()).toBe(7);
-    const command = t.err.join("").split("; run ")[1]!.trim().slice(0, -1);
+    const command = t.err.join("").split("; run ")[1]!;
     const log = join(t.root, "recovery-call");
     const bin = join(t.root, "bin");
     mkdirSync(bin);
