@@ -13,13 +13,13 @@ Source: mifunedev/agro issue #1344.
 
 **Acceptance Criteria:**
 
-- [ ] First installation sets `terminal.cwd` through `hermes config set` in `<target-root>/.hermes` before reporting success.
-- [ ] Existing installations repair missing or stale cwd without downloading the executable again.
-- [ ] Local and host paths use the resolved workspace; Docker uses `/home/sandbox/harness`.
-- [ ] Configuration failures return a nonzero exit status and an actionable diagnostic without an installation-success message.
-- [ ] Conflicting runtime homes receive explicit selection guidance; installation preserves credentials and unrelated state.
-- [ ] Tests cover default, recorded, and explicit workspace selection, repair, configuration failure, and non-Hermes installation.
-- [ ] Regression tests fail before the fix and pass after the fix.
+- [x] First installation sets `terminal.cwd` through `hermes config set` in `<target-root>/.hermes` before reporting success.
+- [x] Existing installations repair missing or stale cwd without downloading the executable again.
+- [x] Local and host paths use the resolved workspace; Docker uses `/home/sandbox/harness`.
+- [x] Configuration failures return a nonzero exit status and an actionable diagnostic without an installation-success message.
+- [x] Conflicting runtime homes receive explicit selection guidance; installation preserves credentials and unrelated state.
+- [x] Tests cover default, recorded, and explicit workspace selection, repair, configuration failure, and non-Hermes installation.
+- [x] Regression tests fail before the fix and pass after the fix.
 
 ### US-002: Align the launch contract and gateway
 
@@ -27,13 +27,13 @@ Source: mifunedev/agro issue #1344.
 
 **Acceptance Criteria:**
 
-- [ ] Interactive launch guidance explicitly selects `<workspace>/.hermes`; documentation states that bare `hermes` does not bind a workspace.
-- [ ] Gateway startup sets cwd through the supported Hermes configuration interface and returns configuration failures before starting tmux.
-- [ ] Installation and gateway startup use the same target-root and runtime-home contract without a second YAML editor.
-- [ ] Explicit gateway home and cwd overrides remain documented; conflicting inherited homes receive a diagnostic before mutation.
-- [ ] Configuration, authentication, secrets, memory, skills, and session files remain unchanged except for the selected terminal cwd and existing provider-link repair.
-- [ ] Documentation explains safe home selection and restarting an existing gateway; installation does not restart the live gateway.
-- [ ] Tests verify launch environment selection and failure handling; the changelog links issue #1344.
+- [x] Interactive launch guidance explicitly selects `<workspace>/.hermes`; documentation states that bare `hermes` does not bind a workspace.
+- [x] Gateway startup sets cwd through the supported Hermes configuration interface and returns configuration failures before starting tmux.
+- [x] Installation and gateway startup use the same target-root and runtime-home contract without a second YAML editor.
+- [x] Explicit gateway home and cwd overrides remain documented; conflicting inherited homes receive a diagnostic before mutation.
+- [x] Configuration, authentication, secrets, memory, skills, and session files remain unchanged except for the selected terminal cwd and existing provider-link repair.
+- [x] Documentation explains safe home selection and restarting an existing gateway; installation does not restart the live gateway.
+- [x] Tests verify launch environment selection and failure handling; the changelog links issue #1344.
 
 ### US-003: Record fresh-session and failure evidence
 
@@ -41,11 +41,11 @@ Source: mifunedev/agro issue #1344.
 
 **Acceptance Criteria:**
 
-- [ ] A run uses installed Hermes with an isolated runtime home; a fresh terminal session starts in the selected workspace.
-- [ ] The run starts outside the selected workspace and does not use a previous session-level `cd` as evidence.
-- [ ] Evidence records commands, actual output, exit status, a failure path, and cleanup in `.agro/tasks/hermes-workspace-binding/evidence/manual-review.md`.
-- [ ] The local run does not use provider credentials, send Slack messages, alter the active Hermes home, or restart the live gateway.
-- [ ] Repository tests, typecheck, build, and the configured lint command exit 0; the evidence reports unavailable checks as blockers.
+- [x] A run uses installed Hermes with an isolated runtime home; a fresh terminal session starts in the selected workspace.
+- [x] The run starts outside the selected workspace and does not use a previous session-level `cd` as evidence.
+- [x] Evidence records commands, actual output, exit status, a failure path, and cleanup in `.agro/tasks/hermes-workspace-binding/evidence/manual-review.md`.
+- [x] The local run does not use provider credentials, send Slack messages, alter the active Hermes home, or restart the live gateway.
+- [x] Repository tests, typecheck, build, and the configured lint command exit 0; the evidence reports unavailable checks as blockers.
 
 ## Summary
 
@@ -98,10 +98,13 @@ Do not commit generated absolute paths for this machine into `.hermes/config.yam
 3. Supported interactive launches explicitly set `HERMES_HOME`; do not replace the upstream executable with a workspace-specific wrapper.
 4. Installation prints the launch contract for first-install and repair paths.
 5. Gateway startup uses the Hermes configuration interface instead of editing YAML.
-6. An explicit foreign home requires selection guidance before mutation; documented gateway overrides remain operator choices.
+6. A foreign inherited home or configured default home requires explicit selection before mutation; documented gateway overrides remain operator choices.
 7. Preserve separate homes and explain migration instead of copying authentication.
-8. Reuse a shared configuration helper if it removes duplicated install and gateway behavior without adding a second lifecycle door.
-9. Configuration failure prevents success; active gateways remain untouched.
+8. Detect legacy-only Teams credential names before startup; give explicit `TEAMS_*` guidance without rewriting credentials.
+9. Reuse a shared configuration helper if it removes duplicated install and gateway behavior without adding a second lifecycle door.
+10. Configuration failure prevents success; active gateways remain untouched.
+11. Refresh only the `source-map-js` lockfile entry to `1.2.2`; the existing audit failure blocks CI before implementation checks.
+12. Isolate the two lifecycle negative fixtures from equipped scratch ancestors; the baseline reproduces both failures without this fix.
 
 ## Test Plan (TDD)
 
@@ -139,11 +142,15 @@ None. Issue #1344 permits an explicit supported launch mechanism instead of chan
 
 ## Acceptance Criteria
 
-- [ ] All stories pass independent advisor verification.
-- [ ] The implementation meets the issue's installation, launch, safety, testing, and documentation criteria.
-- [ ] The PR targets `development`, links issue #1344, and includes command evidence.
-- [ ] CI passes on the pushed head before the PR leaves draft.
+- [x] All stories pass independent advisor verification.
+- [x] The implementation meets the issue's installation, launch, safety, testing, and documentation criteria.
+- [x] The PR targets `development`, links issue #1344, and includes command evidence.
+Readiness gate: CI must pass on the pushed head before the PR leaves draft.
 
 ## Lessons
 
-The advisor fills this section before the PR leaves draft.
+- Claim: Process cwd does not select the terminal workspace. Evidence: the real baseline returned fixture HOME; CLI repair returned workspace. Outcome: fixed in this PR.
+- Claim: Runtime home selection must include configured defaults. Evidence: conflict regressions and independent review. Outcome: fixed in this PR.
+- Claim: Compatibility checks must preserve stored credentials. Evidence: Teams rejection tests kept fixture bytes unchanged. Outcome: fixed in this PR.
+- Claim: Negative fixtures must isolate equipped ancestors. Evidence: two baseline failures became 98 passing lifecycle tests. Outcome: fixed in this PR.
+- Claim: The unrelated test timeout came from concurrency. Evidence: the bounded suite passed without changing that test. Outcome: dropped; the task excludes a production fix.
