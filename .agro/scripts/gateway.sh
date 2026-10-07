@@ -5,6 +5,8 @@ set -u
 HARNESS="${HARNESS:-${AGRO_PROJECT_ROOT:-/home/sandbox/harness}}"
 # shellcheck source=paths.sh
 . "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/paths.sh"
+# shellcheck source=hermes-workspace.sh
+. "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/hermes-workspace.sh"
 SLACK_ENV="$(agro_env_file "$HARNESS")"
 FORK_PIN="github:ryaneggz/pi-messenger-bridge#c8b96e9d0fb69611c4e67ae298d1d10d83792a26"
 
@@ -174,122 +176,51 @@ start_pi() {
   fi
 }
 
-hermes_teams_configured() {
-  local hermes_home="$1"
-  local env_file="$hermes_home/.env"
-  if [ -n "${TEAMS_CLIENT_ID:-}" ] || [ -n "${CLIENT_ID:-}" ]; then
-    return 0
+hermes_env_key_supplied() {
+  local key="$1" env_file="$2"
+  [ -n "${!key:-}" ] || { [ -f "$env_file" ] && grep -Eq "^[[:space:]]*(export[[:space:]]+)?${key}[[:space:]]*=[[:space:]]*(\"[^\"]+\"|'[^']+'|[^[:space:]\"'#])" "$env_file"; }
+}
+
+check_hermes_teams_keys() {
+  local env_file="$1/.env" legacy canonical status=0
+  for legacy in CLIENT_ID CLIENT_SECRET TENANT_ID; do
+    canonical="TEAMS_$legacy"
+    if hermes_env_key_supplied "$legacy" "$env_file" && ! hermes_env_key_supplied "$canonical" "$env_file"; then
+      echo "[gateway] legacy Teams key $legacy requires $canonical." >&2
+      status=1
+    fi
+  done
+  if [ "$status" -ne 0 ]; then
+    echo "[gateway] configure the required TEAMS_* keys in the selected home's .env or environment, then retry." >&2
+    echo "[gateway] gateway startup does not copy credential values or rewrite .env." >&2
   fi
-  [ -f "$env_file" ] && grep -Eq '^[[:space:]]*(export[[:space:]]+)?(TEAMS_CLIENT_ID|CLIENT_ID)=' "$env_file"
-}
-
-sync_hermes_teams_env_aliases() {
-  local hermes_home="$1"
-  local env_file="$hermes_home/.env"
-  [ -f "$env_file" ] || return 0
-  command -v python3 >/dev/null 2>&1 || return 0
-  python3 - "$env_file" <<'PY'
-from pathlib import Path
-import sys
-
-path = Path(sys.argv[1])
-try:
-    lines = path.read_text(encoding="utf-8").splitlines()
-except FileNotFoundError:
-    raise SystemExit(0)
-
-values = {}
-for line in lines:
-    stripped = line.strip()
-    if not stripped or stripped.startswith("#") or "=" not in stripped:
-        continue
-    if stripped.startswith("export "):
-        stripped = stripped[len("export "):].lstrip()
-    key, raw_value = stripped.split("=", 1)
-    key = key.strip()
-    if key:
-        values.setdefault(key, raw_value)
-
-aliases = {
-    "TEAMS_CLIENT_ID": "CLIENT_ID",
-    "TEAMS_CLIENT_SECRET": "CLIENT_SECRET",
-    "TEAMS_TENANT_ID": "TENANT_ID",
-}
-additions = [f"{dest}={values[src]}" for dest, src in aliases.items() if dest not in values and values.get(src)]
-if not additions:
-    raise SystemExit(0)
-if lines and lines[-1].strip():
-    lines.append("")
-lines.append("# Microsoft Teams Bot Framework credentials (Hermes expects TEAMS_* names).")
-lines.extend(additions)
-path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-PY
+  return "$status"
 }
 
 ensure_hermes_gateway_cwd() {
-  local hermes_home="$1" gateway_cwd="$2"
-  local config_file="$hermes_home/config.yaml"
-  mkdir -p "$hermes_home"
-  command -v python3 >/dev/null 2>&1 || { echo "[gateway] warning: python3 unavailable; cannot persist terminal.cwd" >&2; return 0; }
-  python3 - "$config_file" "$gateway_cwd" <<'PY'
-from pathlib import Path
-import json
-import re
-import sys
-
-path = Path(sys.argv[1])
-cwd = sys.argv[2]
-quoted = json.dumps(cwd)
-lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
-
-def is_top_level_key(line: str) -> bool:
-    return bool(line and not line.startswith((" ", "\t")) and not line.lstrip().startswith("#") and re.match(r"^[A-Za-z0-9_][A-Za-z0-9_-]*\s*:", line))
-
-start = next((i for i, line in enumerate(lines) if re.match(r"^terminal\s*:\s*(?:#.*)?$", line)), None)
-changed = False
-if start is None:
-    if lines and lines[-1].strip():
-        lines.append("")
-    lines.extend(["terminal:", f"  cwd: {quoted}"])
-    changed = True
-else:
-    end = len(lines)
-    for i in range(start + 1, len(lines)):
-        if is_top_level_key(lines[i]):
-            end = i
-            break
-    cwd_idx = next((i for i in range(start + 1, end) if re.match(r"^\s+cwd\s*:", lines[i])), None)
-    desired = f"  cwd: {quoted}"
-    if cwd_idx is None:
-        lines.insert(start + 1, desired)
-        changed = True
-    elif lines[cwd_idx] != desired:
-        lines[cwd_idx] = desired
-        changed = True
-
-if changed:
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-PY
+  hermes_workspace_configure "$HARNESS" "$1" "$2" "$3"
 }
 
 start_hermes() {
   local session="client-slack-hermes" log="/tmp/client-slack-hermes.log"
   local hermes_home="${HERMES_GATEWAY_HOME:-$HARNESS/.hermes}"
   local gateway_cwd="${HERMES_GATEWAY_CWD:-$HARNESS}"
+  local inherited_home="${HERMES_HOME:-}"
+  [ -n "${HERMES_GATEWAY_HOME:-}" ] && inherited_home="$hermes_home"
+  hermes_workspace_check "$HARNESS" "$hermes_home" "$inherited_home" || return 1
+  check_hermes_teams_keys "$hermes_home" || return 1
   local hermes_bin="/usr/local/bin/hermes"
   if [ ! -x "$hermes_bin" ]; then
     hermes_bin=$(command -v hermes 2>/dev/null) \
       || { echo "[gateway] 'hermes' not found on PATH" >&2; return 1; }
   fi
-  mkdir -p "$hermes_home"
-  sync_hermes_teams_env_aliases "$hermes_home" || return 1
-  ensure_hermes_gateway_cwd "$hermes_home" "$gateway_cwd"
+  ensure_hermes_gateway_cwd "$hermes_home" "$gateway_cwd" "$hermes_bin" || return 1
 
   local run_cmd
   printf -v run_cmd 'cd %q && export HERMES_HOME=%q HERMES_GATEWAY_CWD=%q && exec %q gateway run' \
     "$gateway_cwd" "$hermes_home" "$gateway_cwd" "$hermes_bin"
 
-  local envf; envf=$(mktemp /tmp/client-slack-hermes-env.XXXXXX) || return 1
+  local envf; envf=$(mktemp "${TMPDIR:-/tmp}/client-slack-hermes-env.XXXXXX") || return 1
   chmod 600 "$envf"
   {
     printf 'export HARNESS=%q\n'         "$HARNESS"
@@ -298,8 +229,10 @@ start_hermes() {
     printf 'export SUPERVISE_CMD=%q\n'   "$run_cmd"
   } >>"$envf"
 
-  if tmux new-session -d -s "$session" \
-       "bash -c '. \"$envf\"; rm -f \"$envf\"; exec bash \"$HARNESS/.devcontainer/client-slack-supervise.sh\"'"; then
+  local supervisor_cmd
+  printf -v supervisor_cmd '. %q; rm -f %q; exec bash "$HARNESS/.devcontainer/client-slack-supervise.sh"' "$envf" "$envf"
+  printf -v supervisor_cmd 'bash -c %q' "$supervisor_cmd"
+  if tmux new-session -d -s "$session" "$supervisor_cmd"; then
     tmux pipe-pane -o -t "$session" "$ANSI_STRIP >> $log" 2>/dev/null || true
   else
     rm -f "$envf"

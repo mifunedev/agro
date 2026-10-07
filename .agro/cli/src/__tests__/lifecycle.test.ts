@@ -7,13 +7,18 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
+import * as fs from "node:fs";
+
+vi.mock("node:fs", async (importOriginal) => ({
+  ...await importOriginal<typeof import("node:fs")>(),
+}));
 import { tmpdir } from "node:os";
 
 vi.mock("node:os", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:os")>();
   return { ...actual, userInfo: () => ({ ...actual.userInfo(), username: "sandbox", uid: 1000 }) };
 });
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import {
   runGateway,
   runSandbox,
@@ -164,11 +169,25 @@ describe("runSandbox", () => {
   it.each(["agro"])("errors under %s when not inside an equipped repo", async (bin) => {
     const bare = mkdtempSync(join(tmpdir(), "oh-lifecycle-bare-"));
     cleanups.push(bare);
+    const ancestorMarkers = new Set<string>();
+    for (let dir = dirname(bare); ; dir = dirname(dir)) {
+      ancestorMarkers.add(join(dir, ".agro"));
+      if (dirname(dir) === dir) break;
+    }
+    const realStatSync = fs.statSync;
+    const stat = vi.spyOn(fs, "statSync").mockImplementation(((path, options) =>
+      ancestorMarkers.has(String(path)) ? undefined : realStatSync(path, options)
+    ) as typeof fs.statSync);
+    const { calls, run } = makeRunner();
     await withInvokedBinAsync(bin, async () => {
       await expect(
-        runSandbox({ bin, cwd: bare, run: makeRunner().run }, makeIo().io),
+        runSandbox({ bin, cwd: bare, run }, makeIo().io),
       ).rejects.toThrow(`not an AGRO-equipped repo — run \`${bin} vendor\` first`);
     });
+    expect(stat).toHaveBeenCalledWith(join(bare, ".agro"), { throwIfNoEntry: false });
+    expect(stat).toHaveBeenCalledWith(join(dirname(bare), ".agro"), { throwIfNoEntry: false });
+    expect(stat).toHaveBeenCalledWith("/.agro", { throwIfNoEntry: false });
+    expect(calls).toEqual([]);
   });
 
   it("prompts and records access.dockerSocket=true in agro.json on yes", async () => {
@@ -642,9 +661,23 @@ describe("runGateway", () => {
   it("errors when not inside an equipped repo", () => {
     const bare = mkdtempSync(join(tmpdir(), "oh-lifecycle-bare-"));
     cleanups.push(bare);
-    expect(() => runGateway(["pi"], { bin: "agro", cwd: bare, run: makeRunner().run })).toThrow(
+    const ancestorMarkers = new Set<string>();
+    for (let dir = dirname(bare); ; dir = dirname(dir)) {
+      ancestorMarkers.add(join(dir, ".agro"));
+      if (dirname(dir) === dir) break;
+    }
+    const realStatSync = fs.statSync;
+    const stat = vi.spyOn(fs, "statSync").mockImplementation(((path, options) =>
+      ancestorMarkers.has(String(path)) ? undefined : realStatSync(path, options)
+    ) as typeof fs.statSync);
+    const { calls, run } = makeRunner();
+    expect(() => runGateway(["pi"], { bin: "agro", cwd: bare, run })).toThrow(
       "not an AGRO-equipped repo",
     );
+    expect(stat).toHaveBeenCalledWith(join(bare, ".agro"), { throwIfNoEntry: false });
+    expect(stat).toHaveBeenCalledWith(join(dirname(bare), ".agro"), { throwIfNoEntry: false });
+    expect(stat).toHaveBeenCalledWith("/.agro", { throwIfNoEntry: false });
+    expect(calls).toEqual([]);
   });
 });
 

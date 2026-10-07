@@ -311,6 +311,14 @@ function hermesTargetRoot(target: ExecutionTarget): string {
   return target.kind === "docker-compose" ? "/home/sandbox/harness" : target.workspace.targetRoot;
 }
 
+function shellPath(path: string): string {
+  return `'${path.replaceAll("'", "'\\''")}'`;
+}
+
+function hermesLaunch(io: HarnessIO, root: string): void {
+  io.stdout(`Run Hermes in the AGRO workspace: HERMES_HOME=${shellPath(`${root}/.hermes`)} hermes\n`);
+}
+
 function hermesEnv(root: string): Record<string, string> {
   return { ...agroEnvPair("PROJECT_ROOT", root), HERMES_HOME: `${root}/.hermes` };
 }
@@ -330,6 +338,49 @@ async function reconcileHermes(
   });
   if (result.exitCode !== 0) {
     io.stderr(`${bin} harness: Hermes integration failed (exit ${result.exitCode}); no installation success reported.\n`);
+  }
+  return result.exitCode;
+}
+
+async function validateHermesHome(
+  target: ExecutionTarget,
+  io: HarnessIO,
+  bin: string,
+  user: InstallUser,
+  inheritedHome: string | undefined,
+  root: string = hermesTargetRoot(target),
+): Promise<number> {
+  const result = await target.exec({
+    argv: remoteControlDirScript(root, "scripts/hermes-workspace.sh", [
+      "check", root, `${root}/.hermes`, inheritedHome ?? "",
+    ]),
+    env: hermesEnv(root),
+    ...(user ? { user } : {}),
+    stdio: "capture",
+  });
+  if (result.exitCode !== 0) {
+    io.stderr(result.stderr || `${bin} harness: could not validate Hermes runtime home; explicitly select HERMES_HOME=${shellPath(`${root}/.hermes`)} before retrying.\n`);
+  }
+  return result.exitCode;
+}
+
+async function configureHermes(
+  target: ExecutionTarget,
+  io: HarnessIO,
+  bin: string,
+  user: InstallUser,
+  root: string = hermesTargetRoot(target),
+): Promise<number> {
+  const result = await target.exec({
+    argv: remoteControlDirScript(root, "scripts/hermes-workspace.sh", [
+      "configure", root, `${root}/.hermes`, root, "hermes",
+    ]),
+    env: hermesEnv(root),
+    ...(user ? { user } : {}),
+    stdio: "inherit",
+  });
+  if (result.exitCode !== 0) {
+    io.stderr(`${bin} harness: Hermes workspace configuration failed (exit ${result.exitCode}); run HERMES_HOME=${shellPath(`${root}/.hermes`)} hermes config set terminal.cwd ${shellPath(root)}\n`);
   }
   return result.exitCode;
 }
@@ -426,6 +477,12 @@ async function installOnHost(
   const prefix = hostPrefix(home);
   const target = hostTargetFor(root, prefix, run, env);
 
+  const hermes = entry.id === "hermes";
+  if (hermes) {
+    const code = await validateHermesHome(target, io, bin, undefined, env.HERMES_HOME, root);
+    if (code !== 0) return code;
+  }
+
   const linked = await target.exec({
     argv: remoteControlDirScript(root, "scripts/link-providers.sh", ["--init"]),
     env: agroEnvPair("PROJECT_ROOT", root),
@@ -439,7 +496,6 @@ async function installOnHost(
     return 1;
   }
 
-  const hermes = entry.id === "hermes";
   const installEnv = hermes ? hermesEnv(root) : undefined;
   if (hermes) {
     const code = await reconcileHermes(target, io, bin, undefined, root);
@@ -457,6 +513,10 @@ async function installOnHost(
     await probeInstalled(target, entry, prefix, undefined, installEnv) === true &&
     (hasReceipt || !hostBinaryUnderPrefix(entry, prefix))
   ) {
+    if (hermes) {
+      const code = await configureHermes(target, io, bin, undefined, root);
+      if (code !== 0) return code;
+    }
     io.stdout(`${entry.id}: already installed (${entry.binary})\n`);
     try {
       recordHarnessRoot(root, env, home);
@@ -464,6 +524,7 @@ async function installOnHost(
       io.stderr(`${bin} harness: could not record the harness root: ${messageOf(err)}\n`);
       return 1;
     }
+    if (hermes) hermesLaunch(io, root);
     return 0;
   }
 
@@ -485,6 +546,8 @@ async function installOnHost(
     }
     const code = await reconcileHermes(target, io, bin, undefined, root);
     if (code !== 0) return code;
+    const configured = await configureHermes(target, io, bin, undefined, root);
+    if (configured !== 0) return configured;
   }
 
   const receipt: HostHarnessReceipt = {
@@ -514,7 +577,8 @@ async function installOnHost(
   if (!onPath(prefix, env)) {
     io.stdout(`Add this line to your shell profile: export PATH="${harnessBinPath(prefix)}:$PATH"\n`);
   }
-  io.stdout(`Run ${entry.title} in the AGRO workspace: cd ${root} && ${harnessLaunchCommand(entry)}\n`);
+  if (hermes) hermesLaunch(io, root);
+  else io.stdout(`Run ${entry.title} in the AGRO workspace: cd ${root} && ${harnessLaunchCommand(entry)}\n`);
   return 0;
 }
 
@@ -683,13 +747,20 @@ export async function runHarnessInstall(
   const hermes = entry.id === "hermes";
   const installEnv = hermes ? hermesEnv(hermesTargetRoot(target)) : undefined;
   if (hermes) {
+    const checked = await validateHermesHome(target, io, opts.bin, "sandbox", env.HERMES_HOME);
+    if (checked !== 0) return checked;
     const code = await reconcileHermes(target, io, opts.bin, "sandbox");
     if (code !== 0) return code;
   }
 
   const already = await probeInstalled(target, entry, SANDBOX_HARNESS_PREFIX, "sandbox", installEnv);
   if (already === true && await sandboxMarkerExists(target, entry)) {
+    if (hermes) {
+      const code = await configureHermes(target, io, opts.bin, "sandbox");
+      if (code !== 0) return code;
+    }
     io.stdout(`${entry.id}: already installed (${entry.binary})\n`);
+    if (hermes) hermesLaunch(io, hermesTargetRoot(target));
     return 0;
   }
   if (already === null) {
@@ -716,6 +787,8 @@ export async function runHarnessInstall(
     }
     const code = await reconcileHermes(target, io, opts.bin, "sandbox");
     if (code !== 0) return code;
+    const configured = await configureHermes(target, io, opts.bin, "sandbox");
+    if (configured !== 0) return configured;
   }
 
   const marker = sandboxMarkerPath(entry);
@@ -730,5 +803,6 @@ export async function runHarnessInstall(
   }
 
   io.stdout(`${entry.id}: installed — see ${sourceDocsUrl(entry.docsPath)} for authentication\n`);
+  if (hermes) hermesLaunch(io, hermesTargetRoot(target));
   return 0;
 }

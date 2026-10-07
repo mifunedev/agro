@@ -50,7 +50,7 @@ function makeRepo(): string {
 function emptyStateHome(): { dir: string; env: NodeJS.ProcessEnv } {
   const dir = mkdtempSync(join(tmpdir(), "oh-harness-home-"));
   cleanups.push(dir);
-  return { dir, env: { ...process.env, AGRO_HOME: dir } };
+  return { dir, env: { ...process.env, HOME: dir, AGRO_HOME: dir } };
 }
 
 function fakeHome(): { dir: string; homedir: () => string; prefix: string } {
@@ -264,6 +264,33 @@ describe("agro harness — inside the sandbox", () => {
 
 
 describe("runHarnessInstall on the host when the sandbox is not running", () => {
+  it.each(["default", "recorded", "path", "workspace"].flatMap(selection => [false, true].map(installed => ({ selection, installed }))))("configures Hermes in the $selection selected host workspace (installed=$installed)", async ({ selection, installed }) => {
+    const repo = makeRepo();
+    const state = emptyStateHome();
+    const user = fakeHome();
+    const selected = seedWorkspace(selection === "default" ? defaultRoot(state) : workspace(state, "selected"));
+    if (selection === "recorded") {
+      writeFileSync(hostConfigFile(state.dir), JSON.stringify({ version: 1, harnessRoot: selected }));
+    }
+    let probes = 0;
+    const { run, calls } = makeRunner((cmd, args) => {
+      if (isInspect(cmd, args)) return exited;
+      if (cmd === "hermes") return { status: probes++ === 0 && !installed ? 1 : 0, stdout: "", stderr: "" };
+      return undefined;
+    });
+    const { io, out } = makeIo();
+    const { HERMES_HOME: _home, ...env } = state.env;
+    expect(await runHarnessInstall("hermes", {
+      bin: "agro", cwd: repo, run, host: true, interactive: false,
+      env, homedir: user.homedir,
+      ...(selection === "path" ? { path: selected } : {}),
+      ...(selection === "workspace" ? { workspace: "selected" } : {}),
+    }, io)).toBe(0);
+    const configure = calls.find(c => c.args.includes("configure"))!;
+    expect(configure.args.slice(-5)).toEqual(["configure", selected, join(selected, ".hermes"), selected, "hermes"]);
+    expect(calls.some(c => c.args.some(a => a.includes("install.sh")))).toBe(!installed);
+    expect(text(out)).toContain(`HERMES_HOME='${selected}/.hermes' hermes`);
+  });
   interface HostRunner {
     calls: RecordedCall[];
     run: LifecycleRunner;
@@ -357,7 +384,7 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
       "-g",
       "@anthropic-ai/claude-code",
     ]);
-    expect(install.args.some((a) => a.includes("/home/sandbox"))).toBe(false);
+    expect(install.args.some((a) => a.includes(SANDBOX_HARNESS_PREFIX))).toBe(false);
     expect(install.args.some((a) => a.includes(home.dir))).toBe(false);
 
     const rendered = text(out);
