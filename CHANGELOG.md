@@ -18,6 +18,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Fixed
 
+- Bind Hermes installation, repair, and gateway launches to the selected workspace home and terminal cwd ([#1344](https://github.com/mifunedev/agro/issues/1344)).
 - Brace the variables in the `/release` push refspec, so the command works in zsh. zsh read `$SHA:r` as the `:r` modifier and mangled the refspec. A new test fails on an unbraced variable before a colon and a letter in a skill or doc shell block ([#1331](https://github.com/mifunedev/agro/issues/1331)).
 - Update Pi goal and loop pins to remove their host-dependency warnings; retain the subagents and tasks warnings ([#1323](https://github.com/mifunedev/agro/issues/1323)).
 

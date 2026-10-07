@@ -16,6 +16,11 @@ hermes_workspace_check() {
 
 hermes_workspace_configure() {
   local root="$1" hermes_home="$2" terminal_cwd="$3" hermes_bin="$4"
+  hermes_workspace_check "$root" "$hermes_home" || return 1
+  case "$terminal_cwd" in
+    /*) [ -d "$terminal_cwd" ] ;;
+    *) false ;;
+  esac || { echo "[hermes] terminal cwd must be an existing absolute directory: $terminal_cwd" >&2; return 1; }
   local status=0
   HERMES_HOME="$hermes_home" "$hermes_bin" config set terminal.cwd "$terminal_cwd" || status=$?
   if [ "$status" -ne 0 ]; then
