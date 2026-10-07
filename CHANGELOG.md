@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-10-07
+
 ### Changed
 - Set the Hermes default model in `.hermes/config.yaml` to `gpt-6.1-sol-900k` ([#1346](https://github.com/mifunedev/agro/issues/1346)).
 - Show the thinking effort level in the Claude Code status line and disable IDE auto-connect in project settings ([#1337](https://github.com/mifunedev/agro/issues/1337)).
