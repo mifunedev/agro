@@ -1,22 +1,41 @@
 #!/usr/bin/env bash
 
 hermes_workspace_check() {
-  local root="$1" hermes_home="$2" inherited_home="${3:-}"
-  case "$root:$hermes_home" in
-    /*:/*) ;;
-    *) echo "[hermes] workspace and HERMES_HOME must be absolute paths" >&2; return 1 ;;
-  esac
+  local root="$1" hermes_home="$2" inherited_home="${3:-}" path
+  for path in "$root" "$hermes_home"; do
+    case "$path" in
+      /*) ;;
+      *) echo "[hermes] workspace and HERMES_HOME must be absolute paths" >&2; return 1 ;;
+    esac
+  done
   [ -d "$root" ] || { echo "[hermes] workspace does not exist: $root" >&2; return 1; }
-  if [ -n "$inherited_home" ] && [ "${inherited_home%/}" != "${hermes_home%/}" ]; then
-    echo "[hermes] conflicting HERMES_HOME=$inherited_home; selected workspace home is $hermes_home." >&2
-    echo "[hermes] unset HERMES_HOME or explicitly select $hermes_home before retrying. Keep separate authentication and sessions; no state is migrated." >&2
+  local selected_home default_home="${HOME:-}/.hermes" conflict_home=""
+  selected_home=$(readlink -m -- "$hermes_home") || return 1
+  if [ -n "$inherited_home" ]; then
+    case "$inherited_home" in
+      /*) ;;
+      *) echo "[hermes] inherited HERMES_HOME must be an absolute path" >&2; return 1 ;;
+    esac
+    [ "$(readlink -m -- "$inherited_home")" = "$selected_home" ] || conflict_home="$inherited_home"
+  elif [ -n "${HOME:-}" ] && [ "$(readlink -m -- "$default_home")" != "$selected_home" ]; then
+    for path in auth.json .env config.yaml; do
+      if [ -f "$default_home/$path" ] && [ -s "$default_home/$path" ]; then
+        conflict_home="$default_home"
+        break
+      fi
+    done
+  fi
+  if [ -n "$conflict_home" ]; then
+    echo "[hermes] conflicting Hermes home=$conflict_home; selected workspace home is $hermes_home." >&2
+    printf '[hermes] explicitly select the workspace home before retrying: HERMES_HOME=%q\n' "$hermes_home" >&2
+    echo "[hermes] unset HERMES_HOME only if the default home is unconfigured. No state is migrated." >&2
     return 1
   fi
 }
 
 hermes_workspace_configure() {
   local root="$1" hermes_home="$2" terminal_cwd="$3" hermes_bin="$4"
-  hermes_workspace_check "$root" "$hermes_home" || return 1
+  hermes_workspace_check "$root" "$hermes_home" "$hermes_home" || return 1
   case "$terminal_cwd" in
     /*) [ -d "$terminal_cwd" ] ;;
     *) false ;;

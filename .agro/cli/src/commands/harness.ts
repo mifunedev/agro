@@ -359,7 +359,7 @@ async function validateHermesHome(
     stdio: "capture",
   });
   if (result.exitCode !== 0) {
-    io.stderr(result.stderr || `${bin} harness: could not validate Hermes runtime home; unset HERMES_HOME or select '${root}/.hermes' before retrying.\n`);
+    io.stderr(result.stderr || `${bin} harness: could not validate Hermes runtime home; explicitly select HERMES_HOME=${shellPath(`${root}/.hermes`)} before retrying.\n`);
   }
   return result.exitCode;
 }
@@ -380,7 +380,7 @@ async function configureHermes(
     stdio: "inherit",
   });
   if (result.exitCode !== 0) {
-    io.stderr(`${bin} harness: Hermes workspace configuration failed (exit ${result.exitCode}); run HERMES_HOME='${root}/.hermes' hermes config set terminal.cwd '${root}'.\n`);
+    io.stderr(`${bin} harness: Hermes workspace configuration failed (exit ${result.exitCode}); run HERMES_HOME=${shellPath(`${root}/.hermes`)} hermes config set terminal.cwd ${shellPath(root)}.\n`);
   }
   return result.exitCode;
 }

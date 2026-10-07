@@ -14,8 +14,8 @@ vi.mock("node:os", async importOriginal => {
 const roots: string[] = [];
 afterEach(() => roots.splice(0).forEach(root => rmSync(root, { recursive: true, force: true })));
 
-function setup({ installed = false, installExit = 0, linkExit = 0, verify = true, configExit = 0, inheritedHome = "" } = {}) {
-  const root = mkdtempSync(join(tmpdir(), "oh-hermes-install-"));
+function setup({ installed = false, installExit = 0, linkExit = 0, verify = true, configExit = 0, inheritedHome = "", rootPrefix = "oh-hermes-install-" } = {}) {
+  const root = mkdtempSync(join(tmpdir(), rootPrefix));
   roots.push(root);
   mkdirSync(join(root, ".agro"));
   const calls: { cmd: string; args: string[]; env?: NodeJS.ProcessEnv }[] = [];
@@ -34,13 +34,31 @@ function setup({ installed = false, installExit = 0, linkExit = 0, verify = true
     return { status, stdout: "", stderr: "" };
   };
   const out: string[] = [], err: string[] = [];
-  return { root, calls, out, err, invoke: () => runHarnessInstall("hermes", { bin: "agro",
+  return { root, calls, out, err, invoke: (env: NodeJS.ProcessEnv = {}) => runHarnessInstall("hermes", { bin: "agro",
     cwd: tmpdir(), run,
-    env: { AGRO_EXECUTION_TARGET: "local", AGRO_PROJECT_ROOT: root, HERMES_HOME: inheritedHome },
+    env: { HOME: join(root, "user"), AGRO_EXECUTION_TARGET: "local", AGRO_PROJECT_ROOT: root, HERMES_HOME: inheritedHome, ...env },
   }, { stdout: s => out.push(s), stderr: s => err.push(s) }) };
 }
 
 describe("Hermes workspace configuration interface", () => {
+  it("accepts normalized equivalent inherited home paths", () => {
+    const t = setup();
+    const home = `${t.root}/.hermes`;
+    const result = spawnSync("bash", [join(import.meta.dirname, "../../../scripts/hermes-workspace.sh"),
+      "check", t.root, home, `${t.root}//nested/../.hermes/./`], { encoding: "utf8", env: { PATH: process.env.PATH, HOME: join(t.root, "user") } });
+    expect(result.status, result.stderr).toBe(0);
+  });
+
+  it("rejects a relative home even when the absolute root contains a colon", () => {
+    const t = setup();
+    const root = join(t.root, "colon:", "root");
+    mkdirSync(root, { recursive: true });
+    const result = spawnSync("bash", [join(import.meta.dirname, "../../../scripts/hermes-workspace.sh"),
+      "check", root, "relative/.hermes"], { encoding: "utf8", env: { PATH: process.env.PATH, HOME: join(t.root, "user") } });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("absolute paths");
+  });
+
   it.each([0, 7])("calls the supported config CLI and preserves its exit status %s", status => {
     const t = setup();
     const home = join(t.root, "runtime home");
@@ -118,7 +136,7 @@ describe("Hermes installation postconditions", () => {
     const { HERMES_HOME: _unset, ...parent } = process.env;
     expect(await runHarnessInstall("hermes", { bin: "agro",
       cwd: t.root, run, homedir: () => user, interactive: false, host: true,
-      env: { ...parent, AGRO_HOME: state },
+      env: { ...parent, HOME: user, AGRO_HOME: state, HERMES_HOME: join(workspace, ".hermes") },
     }, { stdout: () => {}, stderr: () => {} })).toBe(0);
     const links = calls.filter(c => c.args.includes("--hermes-only"));
     expect(links).toHaveLength(2);
@@ -134,6 +152,44 @@ describe("Hermes installation postconditions", () => {
     expect(t.out.join("")).toContain("already installed");
   });
 
+  it.each(["auth.json", ".env", "config.yaml"])("refuses a configured default home (%s) before installation mutation", async file => {
+    const t = setup();
+    const fallback = join(t.root, "user", ".hermes");
+    mkdirSync(fallback, { recursive: true });
+    const secret = "default-home-private-fixture\n";
+    writeFileSync(join(fallback, file), secret);
+    expect(await t.invoke()).toBe(1);
+    expect(t.calls).toHaveLength(1);
+    expect(t.err.join("")).toContain(fallback);
+    expect(t.err.join("")).toContain("explicitly select");
+    expect(t.err.join("")).not.toContain(secret.trim());
+    expect(readFileSync(join(fallback, file), "utf8")).toBe(secret);
+  });
+
+  it("accepts a configured default home when it is the normalized workspace home", async () => {
+    const t = setup();
+    mkdirSync(join(t.root, ".hermes"));
+    writeFileSync(join(t.root, ".hermes", "auth.json"), "fixture-state\n");
+    expect(await t.invoke({ HOME: `${t.root}//nested/../.` })).toBe(0);
+    expect(t.err.join("")).toBe("");
+  });
+
+  it("accepts empty default-home marker files without implicit identity conflicts", async () => {
+    const t = setup();
+    const fallback = join(t.root, "user", ".hermes");
+    mkdirSync(fallback, { recursive: true });
+    for (const file of ["auth.json", ".env", "config.yaml"]) writeFileSync(join(fallback, file), "");
+    expect(await t.invoke()).toBe(0);
+  });
+
+  it("accepts explicit workspace selection despite a configured default home", async () => {
+    const t = setup();
+    const fallback = join(t.root, "user", ".hermes");
+    mkdirSync(fallback, { recursive: true });
+    writeFileSync(join(fallback, "auth.json"), "fixture-state\n");
+    expect(await t.invoke({ HERMES_HOME: join(t.root, ".hermes") })).toBe(0);
+  });
+
   it("rejects a foreign inherited home before any state mutation", async () => {
     const t = setup({ inheritedHome: "/foreign/hermes" });
     expect(await t.invoke()).toBe(1);
@@ -141,6 +197,19 @@ describe("Hermes installation postconditions", () => {
     expect(t.calls.some(c => c.args.some(a => a.includes("install.sh")))).toBe(false);
     expect(t.err.join("")).toContain("HERMES_HOME");
     expect(t.err.join("")).toContain("unset HERMES_HOME");
+  });
+
+  it("prints an executable recovery command for a workspace containing a quote", async () => {
+    const t = setup({ configExit: 7, rootPrefix: "hermes 'quoted workspace-" });
+    expect(await t.invoke()).toBe(7);
+    const command = t.err.join("").split("; run ")[1]!.trim().slice(0, -1);
+    const log = join(t.root, "recovery-call");
+    const bin = join(t.root, "bin");
+    mkdirSync(bin);
+    writeFileSync(join(bin, "hermes"), '#!/usr/bin/env bash\nprintf \'%s\\n\' "$HERMES_HOME" "$@" > "$CONFIG_LOG"\n', { mode: 0o755 });
+    const result = spawnSync("bash", ["-c", command], { encoding: "utf8", env: { PATH: `${bin}:${process.env.PATH}`, CONFIG_LOG: log } });
+    expect(result.status, result.stderr).toBe(0);
+    expect(readFileSync(log, "utf8")).toBe([join(t.root, ".hermes"), "config", "set", "terminal.cwd", t.root, ""].join("\n"));
   });
 
   it.each([false, true])("prevents success when cwd configuration fails (installed=%s)", async installed => {

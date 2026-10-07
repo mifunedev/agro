@@ -175,6 +175,27 @@ start_pi() {
   fi
 }
 
+hermes_env_key_supplied() {
+  local key="$1" env_file="$2"
+  [ -n "${!key:-}" ] || { [ -f "$env_file" ] && grep -Eq "^[[:space:]]*(export[[:space:]]+)?${key}[[:space:]]*=" "$env_file"; }
+}
+
+check_hermes_teams_keys() {
+  local env_file="$1/.env" legacy canonical status=0
+  for legacy in CLIENT_ID CLIENT_SECRET TENANT_ID; do
+    canonical="TEAMS_$legacy"
+    if hermes_env_key_supplied "$legacy" "$env_file" && ! hermes_env_key_supplied "$canonical" "$env_file"; then
+      echo "[gateway] legacy Teams key $legacy requires $canonical." >&2
+      status=1
+    fi
+  done
+  if [ "$status" -ne 0 ]; then
+    echo "[gateway] configure the required TEAMS_* keys in the selected home's .env or environment, then retry." >&2
+    echo "[gateway] gateway startup does not copy credential values or rewrite .env." >&2
+  fi
+  return "$status"
+}
+
 ensure_hermes_gateway_cwd() {
   hermes_workspace_configure "$HARNESS" "$1" "$2" "$3"
 }
@@ -184,8 +205,9 @@ start_hermes() {
   local hermes_home="${HERMES_GATEWAY_HOME:-$HARNESS/.hermes}"
   local gateway_cwd="${HERMES_GATEWAY_CWD:-$HARNESS}"
   local inherited_home="${HERMES_HOME:-}"
-  [ -n "${HERMES_GATEWAY_HOME:-}" ] && inherited_home=""
+  [ -n "${HERMES_GATEWAY_HOME:-}" ] && inherited_home="$hermes_home"
   hermes_workspace_check "$HARNESS" "$hermes_home" "$inherited_home" || return 1
+  check_hermes_teams_keys "$hermes_home" || return 1
   local hermes_bin="/usr/local/bin/hermes"
   if [ ! -x "$hermes_bin" ]; then
     hermes_bin=$(command -v hermes 2>/dev/null) \

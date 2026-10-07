@@ -50,7 +50,7 @@ function makeRepo(): string {
 function emptyStateHome(): { dir: string; env: NodeJS.ProcessEnv } {
   const dir = mkdtempSync(join(tmpdir(), "oh-harness-home-"));
   cleanups.push(dir);
-  return { dir, env: { ...process.env, AGRO_HOME: dir } };
+  return { dir, env: { ...process.env, HOME: dir, AGRO_HOME: dir } };
 }
 
 function fakeHome(): { dir: string; homedir: () => string; prefix: string } {

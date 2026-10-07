@@ -75,9 +75,23 @@ Install Herdr with `agro tool install herdr`, then run `herdr`.
 ### Separate or conflicting homes
 
 If inherited `HERMES_HOME` selects another home, installation refuses before modifying workspace state.
-Gateway startup also refuses this conflict unless the operator supplies `HERMES_GATEWAY_HOME` explicitly.
-The diagnostic names the conflicting home and the selected workspace home.
-Unset `HERMES_HOME` or explicitly select `<workspace>/.hermes` before retrying installation.
+If `HERMES_HOME` is unset, AGRO checks the target user's default `~/.hermes` before installation or gateway configuration.
+A non-empty `auth.json`, `.env`, or `config.yaml` identifies a configured default home.
+AGRO refuses when that default home differs from the workspace home and the operator has not explicitly selected a home.
+Equivalent absolute paths select the same home.
+The check reads no credential values.
+
+Unset `HERMES_HOME` only when the default home contains no configured state.
+To select the workspace identity explicitly, run inside the Docker sandbox:
+
+```bash
+HERMES_HOME=/home/sandbox/harness/.hermes agro harness install hermes
+HERMES_HOME=/home/sandbox/harness/.hermes agro gateway hermes
+```
+
+For a local or host workspace, replace `/home/sandbox/harness` with the selected target root.
+`HERMES_GATEWAY_HOME` explicitly selects a gateway identity and overrides inherited `HERMES_HOME`.
+The diagnostic names the conflicting home and the workspace home.
 
 An existing `~/.hermes` can hold separate authentication, messaging configuration, memory, skills, and sessions.
 AGRO does not copy credentials, merge homes, delete the other home, or change a running gateway's identity.
@@ -101,8 +115,13 @@ For Nous Portal OAuth, use `hermes setup --portal`.
 On the host, replace the exported path with the workspace home that installation prints.
 Authentication resides in `HERMES_HOME/auth.json`; configuration alone does not establish authentication.
 Keep API keys and messaging tokens in the selected home's `.env`.
-Gateway startup does not rewrite credential aliases.
-If Teams needs different credential names, configure the credential names explicitly with Hermes setup.
+Gateway startup preserves `.env` bytes and does not copy credential aliases.
+If a legacy Teams key lacks its canonical key, startup refuses before configuration or tmux launch.
+The diagnostic lists key names, not values.
+Supply `TEAMS_CLIENT_ID`, `TEAMS_CLIENT_SECRET`, and `TEAMS_TENANT_ID` through the selected home's `.env` or the environment.
+These canonical keys replace `CLIENT_ID`, `CLIENT_SECRET`, and `TENANT_ID`, respectively.
+Use Hermes gateway setup to configure Teams for the selected home.
+Canonical keys already supplied through `.env` or the environment take precedence over legacy keys.
 
 ## State persistence
 

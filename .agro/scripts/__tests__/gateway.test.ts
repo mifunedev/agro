@@ -96,6 +96,29 @@ esac
 }
 
 describe("Hermes gateway workspace contract", () => {
+  it.each(["auth.json", ".env", "config.yaml"])("rejects configured default home (%s) before config or tmux", file => {
+    const t = hermesFixture();
+    const fallback = join(t.env.HOME!, ".hermes");
+    mkdirSync(fallback, { recursive: true });
+    writeFileSync(join(fallback, file), "private-default-fixture\n");
+    const result = t.launch();
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(fallback);
+    expect(result.stderr).toContain("explicitly select");
+    expect(result.stderr).not.toContain("private-default-fixture");
+    expect(existsSync(t.configLog)).toBe(false);
+    expect(existsSync(t.tmuxLog)).toBe(false);
+    expect(readFileSync(join(fallback, file), "utf8")).toBe("private-default-fixture\n");
+  });
+
+  it.each(["HERMES_HOME", "HERMES_GATEWAY_HOME"])("accepts deliberate %s selection with configured default home", key => {
+    const t = hermesFixture();
+    const fallback = join(t.env.HOME!, ".hermes");
+    mkdirSync(fallback, { recursive: true });
+    writeFileSync(join(fallback, "auth.json"), "fixture-state\n");
+    expect(t.launch({ [key]: t.home }).status).toBe(0);
+  });
+
   it("launches a workspace path containing a single quote as data", () => {
     const t = hermesFixture("workspace 'quoted");
     const result = t.launch();
@@ -115,12 +138,52 @@ describe("Hermes gateway workspace contract", () => {
     expect(readFileSync(join(t.home, ".env"), "utf8")).toBe(before);
   });
 
+  it.each(["file", "environment"])("rejects legacy-only Teams keys from %s before config or tmux", source => {
+    const t = hermesFixture();
+    const legacy = { CLIENT_ID: "private-client", CLIENT_SECRET: "private-secret", TENANT_ID: "private-tenant" };
+    const before = "# Keep these bytes\r\nexport CLIENT_ID = 'private-client'\r\nCLIENT_SECRET=private-secret\r\nTENANT_ID=private-tenant\r\n";
+    writeFileSync(join(t.home, ".env"), source === "file" ? before : "# untouched\n");
+    const bytes = readFileSync(join(t.home, ".env"));
+    const result = t.launch(source === "environment" ? legacy : {});
+    expect(result.status).toBe(1);
+    for (const key of ["TEAMS_CLIENT_ID", "TEAMS_CLIENT_SECRET", "TEAMS_TENANT_ID"]) expect(result.stderr).toContain(key);
+    for (const value of Object.values(legacy)) expect(result.stdout + result.stderr).not.toContain(value);
+    expect(existsSync(t.configLog)).toBe(false);
+    expect(existsSync(t.tmuxLog)).toBe(false);
+    expect(readFileSync(join(t.home, ".env"))).toEqual(bytes);
+  });
+
+  it.each(["file", "environment", "mixed"])("respects canonical Teams keys from %s without rewriting legacy keys", source => {
+    const t = hermesFixture();
+    const canonical = { TEAMS_CLIENT_ID: "canonical-client", TEAMS_CLIENT_SECRET: "canonical-secret", TEAMS_TENANT_ID: "canonical-tenant" };
+    const pairs = Object.entries(canonical);
+    const inFile = source === "environment" ? [] : source === "mixed" ? pairs.slice(0, 1) : pairs;
+    const inEnv = source === "file" ? {} : source === "mixed" ? Object.fromEntries(pairs.slice(1)) : canonical;
+    const before = "CLIENT_ID=unrelated-client\nCLIENT_SECRET=unrelated-secret\nTENANT_ID=unrelated-tenant\n" + inFile.map(([key, value]) => `export ${key} = '${value}'\r\n`).join("");
+    writeFileSync(join(t.home, ".env"), before);
+    const result = t.launch(inEnv);
+    expect(result.status, result.stderr).toBe(0);
+    expect(readFileSync(join(t.home, ".env"), "utf8")).toBe(before);
+    expect(result.stdout + result.stderr).not.toContain("canonical-secret");
+  });
+
+  it("rejects partial canonical Teams keys rather than silently losing a legacy credential", () => {
+    const t = hermesFixture();
+    writeFileSync(join(t.home, ".env"), "CLIENT_ID=legacy\nCLIENT_SECRET=private-secret\nTEAMS_CLIENT_ID=canonical\n");
+    const result = t.launch();
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("TEAMS_CLIENT_SECRET");
+    expect(result.stderr).not.toContain("private-secret");
+    expect(existsSync(t.configLog)).toBe(false);
+    expect(existsSync(t.tmuxLog)).toBe(false);
+  });
+
   it("preserves unrelated runtime files", () => {
     const t = hermesFixture();
     const files = [".env", "auth.json", "memories/MEMORY.md", "skills/custom/SKILL.md", "sessions/state.json"];
     for (const file of files) {
       mkdirSync(join(t.home, file, ".."), { recursive: true });
-      writeFileSync(join(t.home, file), file === ".env" ? "CLIENT_ID=fixture-client\nCLIENT_SECRET=fixture-secret\n" : "fixture-state\n");
+      writeFileSync(join(t.home, file), file === ".env" ? "CLIENT_ID=fixture-client\nCLIENT_SECRET=fixture-secret\nTEAMS_CLIENT_ID=canonical-client\nTEAMS_CLIENT_SECRET=canonical-secret\n" : "fixture-state\n");
     }
     const before = files.map(file => readFileSync(join(t.home, file)));
     expect(t.launch().status).toBe(0);
