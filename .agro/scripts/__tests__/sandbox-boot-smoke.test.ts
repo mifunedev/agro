@@ -267,7 +267,7 @@ describe("sandbox boot smoke", { timeout: SMOKE_TEST_TIMEOUT_MS }, () => {
     expect(dockerCalls).toContain("htop --version");
     expect(dockerCalls).toContain("command -v telnet");
     expect(dockerCalls).toContain("telnet --version");
-    expect(dockerCalls).toContain("ldconfig -p | grep -q libatomic.so.1");
+    expect(dockerCalls).toContain("/sbin/ldconfig -p | grep -q libatomic.so.1");
     expect(dockerCalls).toContain("id -u; id -g");
     expect(dockerCalls).toContain("stat -c %u:%g");
     expect(result.stdout).toContain(

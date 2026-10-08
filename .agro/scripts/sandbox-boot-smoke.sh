@@ -238,7 +238,7 @@ while [ "$(date +%s)" -le "$end" ]; do
     # shellcheck disable=SC2086 # HEALTH_CMD intentionally splits into command argv.
     if docker exec "$cid" $HEALTH_CMD >/tmp/sandbox-boot-smoke-health.out 2>/tmp/sandbox-boot-smoke-health.err; then
       if ! docker exec -u sandbox "$cid" sh -lc \
-        'test -w "$HOME/.config" && test -w "$HOME/.herdr" && command -v lsof >/dev/null && lsof -v >/dev/null 2>&1 && command -v htop >/dev/null && htop --version >/dev/null && command -v telnet >/dev/null && telnet --version >/dev/null && ldconfig -p | grep -q libatomic.so.1'; then
+        'test -w "$HOME/.config" && test -w "$HOME/.herdr" && command -v lsof >/dev/null && lsof -v >/dev/null 2>&1 && command -v htop >/dev/null && htop --version >/dev/null && command -v telnet >/dev/null && telnet --version >/dev/null && /sbin/ldconfig -p | grep -q libatomic.so.1'; then
         echo "sandbox boot smoke failed: required utilities, Herdr runtime, or writable state is unavailable" >&2
         status_diagnostics "$cid"
         exit 1
