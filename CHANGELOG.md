@@ -8,6 +8,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Fixed
+- Ship `libatomic1` in the sandbox image so the T3 Code native installer (`curl -fsSL https://t3.codes/install.sh | sh`) produces a working `t3` binary ([#1352](https://github.com/mifunedev/agro/issues/1352)).
+
 ## [0.18.0] - 2026-10-07
 
 ### Changed
