@@ -11,10 +11,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-client openssh-server build-essential ca-certificates curl wget sudo gosu git jq gnupg \
     lsb-release nano ripgrep tmux unzip bash-completion procps less \
     iproute2 zsh cron lsof htop inetutils-telnet \
-    systemd systemd-sysv dbus \
+    systemd systemd-sysv dbus libatomic1 \
  && command -v lsof >/dev/null \
  && command -v htop >/dev/null \
  && command -v telnet >/dev/null \
+ && ldconfig -p | grep -q libatomic.so.1 \
  && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \

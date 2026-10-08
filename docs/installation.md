@@ -188,7 +188,7 @@ See [Security considerations](security-considerations.md).
 See [Connecting → Mobile access over Tailscale](connecting.md#mobile-access-over-tailscale).
 
 The image also ships Node.js 22, pnpm, Bun, uv, git, tmux, jq, ripgrep, curl,
-wget, lsof, htop, telnet, nano, and openssh-client.
+wget, lsof, htop, telnet, nano, openssh-client, and libatomic1.
 
 ### Host tools
 
