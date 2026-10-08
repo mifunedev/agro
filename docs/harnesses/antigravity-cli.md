@@ -17,8 +17,10 @@ Nothing installs Antigravity CLI at boot, and no configuration key selects it. S
 AGRO runs the upstream installer as the `sandbox` user, with the binary directed into the home mount:
 
 ```bash
-curl -fsSL https://antigravity.google/cli/install.sh | bash -s -- --dir "$HOME/.local/bin"
+curl -fsSL https://antigravity.google/cli/install.sh | gzip -cdf | bash -s -- --dir "$HOME/.local/bin"
 ```
+
+`gzip -cdf` decompresses the installer when the upstream endpoint serves it gzip-compressed and passes a plain body through unchanged.
 
 The installer writes `agy` into `~/.local/bin`. It reads a SHA-512 checksum from an upstream manifest, compares the downloaded artifact against that checksum, and aborts on a mismatch.
 

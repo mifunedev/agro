@@ -156,7 +156,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     installArgv: [
       "bash",
       "-lc",
-      `set -o pipefail; curl -fsSL https://antigravity.google/cli/install.sh | bash -s -- --dir "${HARNESS_PREFIX_TOKEN}/bin"`,
+      `set -o pipefail; curl -fsSL https://antigravity.google/cli/install.sh | gzip -cdf | bash -s -- --dir "${HARNESS_PREFIX_TOKEN}/bin"`,
     ],
     installUser: "sandbox",
     verifyArgv: ["agy", "--version"],
