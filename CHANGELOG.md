@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.18.1] - 2026-10-08
+
 ### Fixed
 - Ship `libatomic1` in the sandbox image so the T3 Code native installer (`curl -fsSL https://t3.codes/install.sh | sh`) produces a working `t3` binary ([#1352](https://github.com/mifunedev/agro/issues/1352)).
 - Install Antigravity CLI when the upstream installer endpoint serves a gzip-compressed body ([#1354](https://github.com/mifunedev/agro/issues/1354)).
