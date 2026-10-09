@@ -243,6 +243,42 @@ describe("agro harness — inside the sandbox", () => {
     expect(calls.some((c) => c.args.includes("opencode-ai"))).toBe(true);
   });
 
+  it("runs the install again for a harness AGRO installed", async () => {
+    const root = makeRepo();
+    const { calls, run } = makeRunner();
+    const { io, out } = makeIo();
+    expect(await runHarnessInstall("pi", { bin: "agro", cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(text(out)).toContain("updating Pi in the sandbox…");
+    expect(text(out)).not.toContain("already installed");
+    expect(calls.filter((c) => c.args.includes("@earendil-works/pi-coding-agent"))).toHaveLength(1);
+    expect(calls.some((c) => c.args.some((a) => a.endsWith("pi.installed")) && c.args.includes("mkdir -p \"$(dirname \"$1\")\" && : > \"$1\""))).toBe(true);
+  });
+
+  it("configures Hermes after it runs the install again", async () => {
+    const root = makeRepo();
+    const { calls, run } = makeRunner();
+    const { io, out } = makeIo();
+    expect(await runHarnessInstall("hermes", { bin: "agro", cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(text(out)).toContain("updating Hermes in the sandbox…");
+    const install = calls.findIndex((c) => c.args.some((a) => a.includes("install.sh")));
+    const configure = calls.findIndex((c) => c.args.includes("configure"));
+    expect(install).toBeGreaterThanOrEqual(0);
+    expect(configure).toBeGreaterThan(install);
+  });
+
+  it("installs when the binary exists without the install marker", async () => {
+    const root = makeRepo();
+    const { calls, run } = makeRunner((cmd, args) =>
+      cmd === "test" && args.some((a) => a.endsWith("pi.installed"))
+        ? { status: 1, stdout: "", stderr: "" }
+        : undefined,
+    );
+    const { io, out } = makeIo();
+    expect(await runHarnessInstall("pi", { bin: "agro", cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(text(out)).toContain("installing Pi into the sandbox…");
+    expect(calls.filter((c) => c.args.includes("@earendil-works/pi-coding-agent"))).toHaveLength(1);
+  });
+
   it("verifies as the sandbox user, never through sudo", async () => {
     const root = makeRepo();
     const { calls, run } = makeRunner();
@@ -1066,6 +1102,45 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
     expect(text(second.out)).not.toContain("already installed");
     const config = readConfig(home.dir) as { hostHarnesses?: Record<string, unknown> };
     expect(config.hostHarnesses?.["claude-code"]).toBeDefined();
+  });
+
+  it("runs the install again on the host for a recorded harness", async () => {
+    const root = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    const harness = seedWorkspace(defaultRoot(home));
+    writeFileSync(
+      hostConfigFile(home.dir),
+      JSON.stringify({
+        version: 1,
+        harnessRoot: harness,
+        hostHarnesses: {
+          "claude-code": {
+            prefix: user.prefix,
+            binary: "claude",
+            binPath: join(user.prefix, "bin"),
+            installedAt: "2026-01-01T00:00:00.000Z",
+            workspaceRoot: harness,
+          },
+        },
+      }),
+    );
+    const { calls, run } = hostRunner();
+    const { out, io } = makeIo();
+
+    expect(
+      await runHarnessInstall(
+        "claude-code",
+        { bin: "agro", cwd: root, run, env: home.env, homedir: user.homedir, interactive: false, host: true },
+        io,
+      ),
+    ).toBe(0);
+    expect(text(out)).toContain("updating Claude Code on the host…");
+    expect(text(out)).not.toContain("already installed");
+    expect(npmCalls(calls)).toHaveLength(1);
+    expect(npmCalls(calls)[0].args).toContain("@anthropic-ai/claude-code");
+    const config = readConfig(home.dir) as { hostHarnesses?: Record<string, { installedAt: string }> };
+    expect(config.hostHarnesses?.["claude-code"]?.installedAt).not.toBe("2026-01-01T00:00:00.000Z");
   });
 
   it("rewrites nothing when the already-installed selection is unchanged", async () => {

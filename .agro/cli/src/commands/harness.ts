@@ -509,10 +509,8 @@ async function installOnHost(
     io.stderr(`${bin} harness: ${messageOf(err)}\n`);
     return 1;
   }
-  if (
-    await probeInstalled(target, entry, prefix, undefined, installEnv) === true &&
-    (hasReceipt || !hostBinaryUnderPrefix(entry, prefix))
-  ) {
+  const present = await probeInstalled(target, entry, prefix, undefined, installEnv) === true;
+  if (present && !hasReceipt && !hostBinaryUnderPrefix(entry, prefix)) {
     if (hermes) {
       const code = await configureHermes(target, io, bin, undefined, root);
       if (code !== 0) return code;
@@ -528,7 +526,7 @@ async function installOnHost(
     return 0;
   }
 
-  io.stdout(`installing ${entry.title} on the host…\n`);
+  io.stdout(`${present && hasReceipt ? "updating" : "installing"} ${entry.title} on the host…\n`);
   const r = await target.exec({
     argv: resolveInstallArgv(entry, prefix),
     stdio: "inherit",
@@ -754,21 +752,16 @@ export async function runHarnessInstall(
   }
 
   const already = await probeInstalled(target, entry, SANDBOX_HARNESS_PREFIX, "sandbox", installEnv);
-  if (already === true && await sandboxMarkerExists(target, entry)) {
-    if (hermes) {
-      const code = await configureHermes(target, io, opts.bin, "sandbox");
-      if (code !== 0) return code;
-    }
-    io.stdout(`${entry.id}: already installed (${entry.binary})\n`);
-    if (hermes) hermesLaunch(io, hermesTargetRoot(target));
-    return 0;
-  }
   if (already === null) {
     io.stderr("docker is required to install into the running sandbox but was not found on PATH\n");
     return 1;
   }
 
-  io.stdout(`installing ${entry.title} into the sandbox…\n`);
+  if (already && await sandboxMarkerExists(target, entry)) {
+    io.stdout(`updating ${entry.title} in the sandbox…\n`);
+  } else {
+    io.stdout(`installing ${entry.title} into the sandbox…\n`);
+  }
   const r = await target.exec({
     argv: resolveInstallArgv(entry, SANDBOX_HARNESS_PREFIX),
     user: entry.installUser,
