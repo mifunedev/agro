@@ -143,8 +143,8 @@
         "The transcript ends with `agro harness uninstall openclaw` and the removal of each created resource."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor reviewed evidence/manual-review.md at 66ae9f99 (real sandbox booted from the branch image agro-oc-us005:test, Node v24.21.0, npm 11.19.0): (1) depends on US-001..US-004, all passes=true; (2) every block shows $ command, output, exit=<n> (docker rmi exit not captured; following image ls shows it gone); (3) sections 1-4: install exit 0, OpenClaw 2026.9.9, workspace /home/sandbox/harness, skipBootstrap true, gateway.mode local, porcelain empty, ignored list gains only .openclaw/; (4) section 5: agro gateway openclaw exit 0, [gateway] ready, status healthy, listener 127.0.0.1/[::1]:18789 only, --stop exit 0, no tmux server; (5) section 6: conflicting OPENCLAW_STATE_DIR -> install exit 1 and gateway exit 1 naming both paths; (6) no credential, no channel, no onboard; (7) sections 7-8: uninstall exit 0, command -v openclaw exit 1, compose down -v, image removed, no containers/volumes/networks remain.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -153,7 +153,8 @@
       ],
       "files": [
         ".agro/tasks/openclaw-harness-support/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "66ae9f99"
     }
   ]
 }
