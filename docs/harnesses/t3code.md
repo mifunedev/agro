@@ -12,7 +12,7 @@ Use T3 Code when you want a browser or phone UI over the same providers the othe
 
 ## Requirements
 
-T3 Code's server package requires Node `^22.16 || ^23.11 || >=24.10`. The sandbox base image is `node:22-trixie-slim`, so a 22.x version older than 22.16 is the realistic failure. Check before you launch:
+T3 Code's server package requires Node `^22.16 || ^23.11 || >=24.10`. The sandbox base image is `node:24-trixie-slim`. That tag tracks the latest Node 24 release, which satisfies `>=24.10`. A sandbox built from an old local image can hold a 24.x version older than 24.10, and that version fails. Check before you launch:
 
 ```bash
 node -v
