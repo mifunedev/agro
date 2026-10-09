@@ -91,15 +91,16 @@
         "The smoke records each failed harness by id and exit code."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor re-verified on task branch at fc6e142e: (1) executed `bash .agro/scripts/sandbox-upgrade-smoke.sh` -> exit 0; harnesses installed with ghcr.io/mifunedev/agro:latest node v22.23.3, booted agro-upgrade-smoke image node v24.21.0 on the same volume; (2) executed: HARNESS claude-code/codex/pi/opencode exit=0 after upgrade; (3) executed: docs/harnesses/overview.md states `agro harness install <id>` repairs a harness after a Node major upgrade (repair path reasoned, no harness failed); (4) executed: smoke prints `HARNESS <id> exit=<n>` per harness and fails on any nonzero (failure branch reasoned from code, not triggered). Teardown executed: no agro-upgrade containers or volumes remain. Unit: sandbox-upgrade-smoke.test.ts 11 passed; worker showed 3 red before implementation.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/scripts/sandbox-upgrade-smoke.sh",
         "docs/harnesses/overview.md"
-      ]
+      ],
+      "commit": "fc6e142e"
     },
     {
       "id": "US-005",
