@@ -13,9 +13,9 @@ Status: DRAFT
 - [ ] `HARNESS_CATALOG` in `.agro/cli/src/lib/harnesses/catalog.ts` holds one entry with `id: "openclaw"`, `binary: "openclaw"`, `kind: "installable"`, and `docsPath: "docs/harnesses/openclaw.md"`.
 - [ ] The install argv is `npm --prefix {{prefix}} install -g --allow-scripts=openclaw openclaw@2026.9.9`. The exact pin follows the `grok-build` and `fx` entries.
 - [ ] The uninstall argv is `npm --prefix {{prefix}} uninstall -g openclaw`.
-- [ ] The evidence records the output of `npm --version` in the Node 24 sandbox.
-- [ ] If that npm version is 11.16 or later, the install argv keeps `--allow-scripts=openclaw`. If not, the install argv omits the flag.
-- [ ] `.agro/scripts/verify-sandbox-image.sh` fails when the image npm version is lower than the version that the install argv assumes.
+- [ ] The install argv keeps `--allow-scripts=openclaw`. The Node 24 image ships npm `11.19.0`, and npm accepts the flag from 11.16.
+- [ ] After install, `{{prefix}}/bin/openclaw` links to `../lib/node_modules/openclaw/openclaw.mjs`, and `openclaw --version` prints `OpenClaw 2026.9.9`.
+- [ ] `.agro/scripts/verify-sandbox-image.sh` fails when the image npm version is lower than `11.16.0`.
 - [ ] The test "covers claude-code, codex, opencode and pi" in `harness-catalog.test.ts` lists `openclaw` as an npm harness.
 - [ ] The `SHIPPED_SANDBOX_INSTALL_ARGV` table in `.agro/cli/src/__tests__/harness-catalog.test.ts` holds the expanded `openclaw` row.
 - [ ] The story starts only after `.agro/tasks/node-24-runtime/` merges. `.devcontainer/Dockerfile` line 1 then reads `FROM node:24-trixie-slim AS base`.
@@ -29,6 +29,7 @@ Status: DRAFT
 
 - [ ] Installation sets `agents.defaults.workspace` to `<target-root>` through `OPENCLAW_STATE_DIR="<target-root>/.openclaw" openclaw config set` before it reports success. The implementation uses the single-key form or the batch form that upstream supports.
 - [ ] `git grep -n 'openclaw.json' -- .agro/scripts .agro/cli/src` returns no direct edit of the file.
+- [ ] Installation sets `agents.defaults.skipBootstrap` to `true` through `openclaw config set agents.defaults.skipBootstrap true --strict-json`.
 - [ ] `.agro/scripts/openclaw-workspace.sh` holds the OpenClaw state-directory check. The task does not change `.agro/scripts/hermes-workspace.sh`.
 - [ ] Docker targets use `/home/sandbox/harness` as `<target-root>`. Local and host targets use the resolved absolute path.
 - [ ] A repeated install repairs a missing or stale workspace value and does not download the executable again.
@@ -46,7 +47,8 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] `agro gateway openclaw` starts `openclaw gateway run` in the tmux session `client-openclaw` with `OPENCLAW_STATE_DIR=<target-root>/.openclaw` exported.
+- [ ] `agro gateway openclaw` starts `openclaw gateway run --bind loopback` in the tmux session `client-openclaw` with `OPENCLAW_STATE_DIR=<target-root>/.openclaw` exported.
+- [ ] Without `--bind loopback`, OpenClaw detects the container and refuses to start with exit 78. A test asserts that the run command holds `--bind loopback`.
 - [ ] `agro gateway openclaw --restart` and `agro gateway openclaw --stop` act on `client-openclaw` only.
 - [ ] `agro gateway status` lists `client-openclaw` with its state.
 - [ ] No AGRO code path runs `openclaw gateway install` or `openclaw onboard --install-daemon`.
@@ -112,6 +114,15 @@ Rejected alternatives:
 - Run the upstream OpenClaw Docker image as a Compose service. This choice puts agent work outside the sandbox and breaks non-negotiable 1.
 - Adopt the OpenClaw workspace file map in the checkout. The council record rejected option O1, and `CHANGELOG.md` records the retirement of a root `context/` tier in #868.
 - Use `--install-daemon`. systemd in the sandbox supervises only the bootstrap oneshot and the cron runtime.
+
+Probe results from a `node:24-trixie-slim` container on 2026-10-09:
+
+- npm `11.19.0` installs `openclaw@2026.9.9` with `--allow-scripts=openclaw`. No native addon needs a build step.
+- `openclaw config set agents.defaults.workspace <path>` and `openclaw config get` work as single-key commands.
+- `openclaw setup --baseline` and `openclaw onboard` seed `IDENTITY.md`, `SOUL.md`, and `USER.md` into the checkout. `agents.defaults.skipBootstrap` set to `true` stops the seeding.
+- `openclaw skills list` lists `prd` from `.agents/skills` with source `agents-skills-project`.
+- In a container, `openclaw gateway run` defaults to `bind=auto` and exits 78 without auth. `--bind loopback` starts the gateway on `127.0.0.1:18789` with no systemd unit and no API key.
+- The gateway writes logs to `/tmp/openclaw/`.
 
 ## Key Integration Points
 
