@@ -246,16 +246,16 @@ function nodelessPath(h: Home): string {
 function fakeNvm(h: Home): { nvmDir: string; nodeBin: string } {
   const nvmDir = join(h.home, ".nvm");
   mkdirSync(nvmDir);
-  const binDir = join(nvmDir, "versions", "node", "v22.0.0", "bin");
+  const binDir = join(nvmDir, "versions", "node", "v24.0.0", "bin");
   const nodeBin = join(binDir, "node");
   writeFileSync(
     join(nvmDir, "nvm.sh"),
     [
       "nvm() {",
       '  case "$1 $2" in',
-      `    "install 22") mkdir -p "${binDir}" && ln -sf "${process.execPath}" "${nodeBin}" ;;`,
-      `    "use 22") export PATH="${binDir}:$PATH" ;;`,
-      `    "which 22") printf '%s\\n' "${nodeBin}" ;;`,
+      `    "install 24") mkdir -p "${binDir}" && ln -sf "${process.execPath}" "${nodeBin}" ;;`,
+      `    "use 24") export PATH="${binDir}:$PATH" ;;`,
+      `    "which 24") printf '%s\\n' "${nodeBin}" ;;`,
       "    *) return 1 ;;",
       "  esac",
       "}",
@@ -266,7 +266,7 @@ function fakeNvm(h: Home): { nvmDir: string; nodeBin: string } {
 }
 
 function nvmWhich(nvmDir: string, tools: string): string {
-  return spawnSync("bash", ["-c", `. "${nvmDir}/nvm.sh" && nvm which 22`], {
+  return spawnSync("bash", ["-c", `. "${nvmDir}/nvm.sh" && nvm which 24`], {
     encoding: "utf8",
     env: { HOME: tmpdir(), PATH: tools },
   }).stdout.trim();
@@ -284,6 +284,7 @@ describe("install.sh nvm Node pin", () => {
       ASSUME_YES: "true",
     });
     expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toContain("Installing nvm + Node 24");
 
     const link = join(h.home, ".local", "share", "agro", "node");
     expect(lstatSync(link).isSymbolicLink()).toBe(true);
@@ -380,5 +381,19 @@ describe("install.sh static contract", () => {
     for (const item of ["AGRO_BIN_DIR", "AGRO_JS_URL", "AGRO_NVM_VERSION", "AGRO_ASSUME_YES", NPM_ALTERNATIVE]) {
       expect(help.stdout).toContain(item);
     }
+  });
+
+  it("offers Node 24 and keeps the Node 20 floor", () => {
+    const help = run(["--help"]);
+    expect(help.stdout).toContain("install nvm + Node 24");
+    expect(help.stdout).toContain("auto-install nvm + Node 24");
+    expect(help.stdout).toContain("Node.js >= 20");
+    expect(source).toContain('prompt_yn "Install nvm + Node 24 now?" y');
+    expect(source).toContain("nvm install 24");
+    expect(source).toContain("nvm use 24");
+    expect(source).not.toMatch(/Node 22|nvm (install|use) 22/);
+    const floors = source.split("\n").filter((line) => line.includes("$(node_major)\" -ge"));
+    expect(floors).toHaveLength(2);
+    for (const line of floors) expect(line).toContain('"$(node_major)" -ge 20');
   });
 });

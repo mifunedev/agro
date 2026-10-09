@@ -41,7 +41,7 @@ function fixture(o: Overrides = {}) {
     dockerSuite: "trixie",
     uid: "1000",
     gid: "1000",
-    node: "v22.14.0",
+    node: "v24.21.0",
     pnpm: "10.33.0",
     agroVersion: "0.8.0",
     legacyEntryPoint: false,
@@ -156,7 +156,7 @@ describe("verify-sandbox-image", () => {
     expect(result.stdout).toContain("base distribution is Debian trixie");
     expect(result.stdout).toContain("Docker apt suite is trixie");
     expect(result.stdout).toContain("built-in sandbox user is 1000:1000");
-    expect(result.stdout).toContain("node is major 22");
+    expect(result.stdout).toContain("node is major 24");
     expect(result.stdout).toContain("pnpm is exactly 10.33.0");
     expect(result.stdout).toContain("agro reports CLI version 0.8.0");
     expect(result.stdout).toContain("no harness is baked into the image");
@@ -187,7 +187,7 @@ describe("verify-sandbox-image", () => {
     ["a Bookworm base", { codename: "bookworm" }, "base distribution codename is 'bookworm'"],
     ["a Bookworm Docker suite", { dockerSuite: "bookworm" }, "Docker apt suite is not trixie"],
     ["a shifted sandbox UID", { uid: "1001" }, "built-in sandbox user is 1001:1000"],
-    ["a wrong Node major", { node: "v20.19.0" }, "node major is not 22"],
+    ["a wrong Node major", { node: "v22.14.0" }, "node major is not 24"],
     ["a drifted pnpm version", { pnpm: "10.34.0" }, "pnpm is 10.34.0"],
     ["a missing required tool", { missingTool: "uv --version" }, "uv --version produced no version output"],
   ])("rejects %s", (_label, overrides, expected) => {

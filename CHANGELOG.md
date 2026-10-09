@@ -8,6 +8,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Changed
+- Ship Node.js 24 in the sandbox image and offer Node 24 in `install.sh`; the host `agro` CLI still requires Node 20 or later ([#1361](https://github.com/mifunedev/agro/issues/1361)).
+
 ## [0.18.1] - 2026-10-08
 
 ### Fixed

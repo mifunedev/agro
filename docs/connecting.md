@@ -225,7 +225,7 @@ failure.
 | Backend state is not `Running` | node never joined, or logged out | `tailscale up`, then complete the browser login |
 | No `ts.net` URL in the T3 output | Serve not configured | confirm `tailscale status` shows `Running`, then `/t3 start --tailscale` |
 | Serve answers after T3 Code stops | the Serve mapping persists | `tailscale serve --https=443 off` |
-| T3 Code fails with an engine error | Node outside `^22.16 \|\| ^23.11 \|\| >=24.10` | check `node -v`; upgrade Node 22 past 22.16 |
+| T3 Code fails with an engine error | Node outside `^22.16 \|\| ^23.11 \|\| >=24.10` | check `node -v`; rebuild the sandbox on Node 24.10 or later |
 | Phone cannot reach the URL | phone not on the tailnet | sign the phone in to the same tailnet; confirm it in `tailscale status` |
 | Phone on the tailnet, URL times out | Serve on another port, or server stopped | `tailscale serve status`; `/t3 status` |
 | `https://app.t3.codes` cannot connect | mixed content: an HTTPS page blocks a plain-HTTP endpoint | use `--tailscale-serve` (HTTPS) or the native app |

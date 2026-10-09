@@ -19,7 +19,7 @@ other file.
 |---|---|---|
 | Docker with the Compose plugin | The sandbox | [docs.docker.com/get-docker](https://docs.docker.com/get-docker/) |
 | Git | `agro vendor --from-remote` and `agro workspace create` | [git-scm.com](https://git-scm.com/) |
-| Node.js ≥ 20 (22 recommended) | The `agro` CLI | [nodejs.org](https://nodejs.org/), or let `install.sh` install nvm and Node 22 |
+| Node.js ≥ 20 (24 recommended) | The `agro` CLI | [nodejs.org](https://nodejs.org/), or let `install.sh` install nvm and Node 24 |
 
 The host needs nothing else. pnpm, Python, and every agent CLI run inside the
 sandbox.
@@ -37,7 +37,7 @@ npx @mifune/agro sandbox install docker   # or run it without a global install
 npm does not install Node. Without Node, use `install.sh`. The script downloads
 the prebuilt `agro` file from the latest GitHub release into `~/.local/bin/agro`.
 It clones nothing and builds nothing. When Node.js ≥ 20 is missing, the script
-offers to install nvm and Node 22:
+offers to install nvm and Node 24:
 
 ```bash
 curl -fsSL https://github.com/mifunedev/agro/releases/latest/download/install.sh | bash
@@ -190,7 +190,7 @@ See [Security considerations](security-considerations.md).
 `agro tool install tailscale` installs the binaries only. It starts no daemon.
 See [Connecting → Mobile access over Tailscale](connecting.md#mobile-access-over-tailscale).
 
-The image also ships Node.js 22, pnpm, Bun, uv, git, tmux, jq, ripgrep, curl,
+The image also ships Node.js 24, pnpm, Bun, uv, git, tmux, jq, ripgrep, curl,
 wget, lsof, htop, telnet, nano, openssh-client, and libatomic1.
 
 ### Host tools
