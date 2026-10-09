@@ -55,8 +55,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor re-verified on feat branch at 81c4fa8e: `pnpm test` exit 0 (89 files, 1959 passed); `pnpm typecheck` exit 0; `git grep openclaw.json -- .agro/scripts .agro/cli/src` -> no line; hermes-workspace.sh unchanged; link-providers.sh --check exit 0; .gitignore line 75 `/.openclaw/`. Live in throwaway node:24-trixie-slim container with openclaw@2026.9.9 and the branch openclaw-workspace.sh: check with conflicting OPENCLAW_STATE_DIR -> exit 1; configure -> exit 0; config get workspace -> /home/node/harness; skipBootstrap -> true; onboard --non-interactive exit 0; `git status --porcelain` -> empty; `openclaw skills list` -> prd ready, source agents-skills-project. Root selection (Docker /home/sandbox/harness vs resolved host/local path), repair without re-download, config-failure exit with no success message, and launch text are asserted by 21 harness.test.ts cases (worker showed 21 red before implementation).",
       "dependsOn": [
         "US-001"
       ],
@@ -65,7 +65,8 @@
         ".agro/scripts/openclaw-workspace.sh",
         ".gitignore",
         ".agro/cli/src/__tests__/harness.test.ts"
-      ]
+      ],
+      "commit": "81c4fa8e"
     },
     {
       "id": "US-003",
