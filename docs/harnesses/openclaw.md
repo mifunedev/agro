@@ -83,11 +83,12 @@ Inside the Docker sandbox, run:
 
 ```bash
 export OPENCLAW_STATE_DIR=/home/sandbox/harness/.openclaw
-openclaw onboard
+openclaw onboard --no-install-daemon
 ```
 
 To change the configuration later, run `openclaw configure` with the same state directory selected.
-Do not pass `--install-daemon` to `openclaw onboard`.
+The `--no-install-daemon` option skips the gateway service install.
+`agro gateway openclaw` runs the gateway.
 The operator keeps provider keys in `<target-root>/.openclaw/.env`.
 Never commit the `.env` file.
 
