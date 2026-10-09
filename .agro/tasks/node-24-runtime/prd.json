@@ -18,8 +18,8 @@
         "`bash .agro/scripts/verify-sandbox-image.sh` exits 0 against the rebuilt image."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor re-verified on task branch after cherry-pick: (1) executed `head -1 .devcontainer/Dockerfile` -> FROM node:24-trixie-slim AS base; (2) executed grep -> EXPECTED_NODE_MAJOR=24; (3) executed `pnpm exec vitest run sandbox-base-image.test.ts node-pnpm-parity.test.ts` -> 8 passed, exit 0; worker showed 2 failures against old Dockerfile (TDD red); (4) executed: parity fixtures use node:24-bookworm-slim/node:24-trixie-slim; (5) executed grep sandbox-compatibility.yml lines 58-59 -> node:24 bases; (6) executed `bash .agro/scripts/node-pnpm-parity.sh` -> both v24.21.0 / pnpm 10.33.0, PARITY, exit 0; (7) executed `docker build` (exit 0) + `verify-sandbox-image.sh agro-node24-accept:test` -> all checks passed; image removed.",
       "dependsOn": [],
       "files": [
         ".devcontainer/Dockerfile",
@@ -27,7 +27,8 @@
         ".agro/scripts/__tests__/sandbox-base-image.test.ts",
         ".agro/scripts/__tests__/node-pnpm-parity.test.ts",
         ".github/workflows/sandbox-compatibility.yml"
-      ]
+      ],
+      "commit": "3b7f0a67"
     },
     {
       "id": "US-002",
