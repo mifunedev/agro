@@ -34,6 +34,9 @@ Run `agro sandbox install docker` on the host, from any directory:
 agro sandbox install docker
 ```
 
+![The editor terminal runs agro sandbox install docker, accepts each default, and starts the sandbox.](img/quickstart-sandbox-install.png)
+Callouts: 1 is the command. 2 is the started container. 3 is the next command.
+
 The wizard asks for the sandbox name, the timezone, your git identity, SSH, the
 host Docker socket, and the host path for `/home/sandbox`. `--yes` keeps every
 default. The default name is `agro-sbx-<n>`. The entry lands in
@@ -49,6 +52,9 @@ checkout. To bind your own checkout at `/home/sandbox/harness`, see
 agro sandbox list   # name, runtime, status, checkout
 agro shell <name>   # zsh in the container, as the sandbox user
 ```
+
+![The editor terminal shows the agro shell banner and the zsh prompt in the sandbox.](img/quickstart-shell.png)
+Callouts: 1 is the sandbox name. 2 is the next step. 3 is the shell in the sandbox.
 
 Omit `<name>` when the registry holds one sandbox. The working directory is
 `/home/sandbox/harness`. To attach VS Code or connect from another machine, see
@@ -78,6 +84,9 @@ agro harness install claude-code
 claude auth login
 claude auth status
 ```
+
+![A Herdr pane in the sandbox runs agro harness install claude-code.](img/quickstart-harness-install.png)
+Callouts: 1 is the command in a **Herdr** pane. 2 is the install result.
 
 Each install lands in `~/.local` in the persistent home volume. Run
 `agro harness list` for every harness id. Each

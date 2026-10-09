@@ -55,6 +55,9 @@ bash install.sh
 it on the PATH of the current shell. After the piped form, run
 `export PATH="$HOME/.local/bin:$PATH"` to do the same.
 
+![The editor terminal runs agro --version and prints the installed version.](img/installation-version.png)
+Callouts: 1 is the command. 2 is the installed version.
+
 `install.sh` reads these options:
 
 | Option | Effect |
