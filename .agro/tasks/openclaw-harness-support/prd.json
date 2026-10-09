@@ -113,8 +113,8 @@
         "`.agro/cli/src/__tests__/docs-reference.test.ts` and `.agro/cli/src/__tests__/docs.test.ts` exit 0."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor re-verified on feat branch at bf91feca: (1) executed review of docs/harnesses/openclaw.md: sections Install, State directory, Workspace binding, Authentication, Gateway session, State persistence incl. agro destroy; (2) executed grep: page states AGRO does not seed SOUL.md, IDENTITY.md, or USER.md; (3) executed grep: page names the provider-key file inside the state directory and says never commit it; (4) executed diff: overview.md install sentence and Supported agents row name OpenClaw; (5) executed diff: docs/README.md links harnesses/openclaw.md; (6) executed diff: .agro/cli/README.md gateway row names openclaw; (7) executed: CHANGELOG Added entry under Unreleased links #1362; (8) executed docs-reference.test.ts + docs.test.ts -> 14 passed, exit 0. Review repair bf91feca: onboard uses --no-install-daemon. ste-check exit 0 on the three docs pages.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -126,7 +126,8 @@
         "docs/README.md",
         "CHANGELOG.md",
         ".agro/cli/README.md"
-      ]
+      ],
+      "commit": "1808e9c3 bf91feca"
     },
     {
       "id": "US-005",
