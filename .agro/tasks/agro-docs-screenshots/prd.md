@@ -10,12 +10,12 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] The operator creates a free node in the Mifune Console with the capture public key `agro-docs-capture`.
-- [ ] The capture reaches the code-server of the node over SSH port forwarding. The capture uses no Console session.
+- [ ] The capture signs in to the local development Console as `dev+demo@agro.local`, and creates one free node with the SSH key of that account.
+- [ ] The capture opens the node in **Connect** → **Browser editor (code-server)**.
 - [ ] The node host runs the latest AGRO release, and `agro --version` prints that version in the editor terminal.
-- [ ] agent-browser opens the editor at a fixed zoom of 150%.
-- [ ] The git identity on the node is `Demo User <demo@example.com>`. The capture signs in to no account. No screenshot shows a real name, email address, token, or IP address.
-- [ ] A teardown step removes the capture key from the node, and the operator destroys the node.
+- [ ] agent-browser shows the editor in a 1280x720 viewport at device scale 1.5. Each PNG is 1920x1080, and the editor keeps a desktop layout.
+- [ ] The git identity on the node is `Demo User <demo@example.com>`. The capture signs in to no other account. No screenshot shows a real name, email address, token, or public IP address.
+- [ ] A teardown step lists the node and the key for the operator to delete.
 
 ### US-002: Add screenshots to the quickstart and installation pages
 
@@ -25,7 +25,7 @@ Status: DRAFT
 
 - [ ] `docs/quickstart.md` shows the sandbox creation, the shell in the sandbox, and a harness install, each in the editor terminal.
 - [ ] `docs/installation.md` shows `agro --version` after the install.
-- [ ] Each image is a PNG at 1280x720 in `docs/img/`, with a name of the form `<page>-<step>.png`.
+- [ ] Each image is a PNG at 1920x1080 in `docs/img/`, with a name of the form `<page>-<step>.png`.
 - [ ] Each image has alt text and a `Callouts:` line under it that names each numbered callout.
 - [ ] Verify in browser using agent-browser skill.
 
@@ -60,7 +60,7 @@ Status: DRAFT
 
 - [ ] A test fails when an image link in `docs/` names a file that does not exist.
 - [ ] The test fails when an image has no alt text, or has no `Callouts:` line within the next 3 lines.
-- [ ] The test fails when a file in `docs/img/` has no reference from `docs/`, or when a PNG is not 1280x720.
+- [ ] The test fails when a file in `docs/img/` has no reference from `docs/`, or when a PNG is not 1920x1080.
 - [ ] The test is `.agro/scripts/__tests__/docs-images.test.ts`. The `ci-harness.yml` job runs the test through `pnpm test:scripts` on each change to `docs/**`.
 
 ### US-006: Manual review evidence
@@ -70,7 +70,7 @@ Status: DRAFT
 **Acceptance Criteria:**
 
 - [ ] Depends on US-001 through US-005.
-- [ ] `.agro/tasks/agro-docs-screenshots/evidence/manual-review.md` holds an annotated screenshot of each changed page at 1280x720, from a local agro-web build that uses the changed `docs/`.
+- [ ] `.agro/tasks/agro-docs-screenshots/evidence/manual-review.md` holds an annotated screenshot of each changed page at 1920x1080, from a local agro-web build that uses the changed `docs/`.
 - [ ] The review confirms that each image loads and shows no personal data.
 - [ ] The run stops each process that the run starts.
 
@@ -80,7 +80,7 @@ The AGRO docs have no image. The site at `https://agro.mifune.dev/docs/agro/` co
 
 The Mifune Console opens a node in code-server, and the editor terminal is a shell on the node host. The operator asked for screenshots from the Console editor at a zoom level that makes the terminal text readable.
 
-mifunedev/agro-web#72 added screenshots to the Console guide with the same rules: 1280x720 PNG files, numbered callouts, a `Callouts:` line under each image, and a CI guard.
+mifunedev/agro-web#72 added screenshots to the Console guide with these rules: 1280x720 PNG files, numbered callouts, a `Callouts:` line under each image, and a CI guard.
 
 ## Key Integration Points
 
@@ -120,7 +120,7 @@ The screenshots are PNG files in `docs/img/`. The capture sandbox is temporary, 
 ## Design Principles
 
 - Show the command and the result that the step names. Put one callout on each value that the reader checks.
-- Use one theme and one zoom level for each image.
+- Use one theme, one viewport, and one font size for each image. The editor must look like a full desktop editor, not a small window.
 - Apply `/ste` to each sentence and each `Callouts:` line.
 
 ## Out of Scope
@@ -131,7 +131,7 @@ The screenshots are PNG files in `docs/img/`. The capture sandbox is temporary, 
 
 ## Open Questions
 
-None. The capture source is a Console free node. The capture reaches its browser editor over SSH, because the agent cannot sign in to the Console. The zoom is 150%, and the guard is `.agro/scripts/__tests__/docs-images.test.ts`. The advisor tried a local sandbox first and dropped it: code-server inside a sandbox cannot run the host commands that the quickstart shows.
+None. The capture source is a free node in the local development Console of the operator, under the account `dev+demo@agro.local`. The capture uses a 1280x720 viewport at device scale 1.5. The image guard is `.agro/scripts/__tests__/docs-images.test.ts`. The advisor tried a local sandbox first and dropped it. Code-server inside a sandbox cannot run the host commands that the quickstart shows.
 
 ## Acceptance Criteria
 
