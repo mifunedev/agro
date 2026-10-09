@@ -18,8 +18,8 @@
         "`bash .agro/scripts/verify-sandbox-image.sh` exits 0 against the rebuilt image."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "Reopened: full suite in the Node 24 image fails 6 tests in .agro/scripts/__tests__/verify-sandbox-image.test.ts (fixtures still expect Node 22). Acceptance missed the full-suite run.",
+      "passes": true,
+      "notes": "Advisor re-verified on task branch: (1) executed head -1 Dockerfile -> FROM node:24-trixie-slim AS base; (2) executed grep -> EXPECTED_NODE_MAJOR=24; (3) executed sandbox-base-image.test.ts -> pass; worker showed TDD red against old Dockerfile; (4) executed: parity fixtures use node:24 bases; (5) executed grep sandbox-compatibility.yml:58-59 -> node:24 bases; (6) executed node-pnpm-parity.sh -> v24.21.0 / pnpm 10.33.0 on both, exit 0; (7) executed docker build + verify-sandbox-image.sh -> all checks passed. Repair 48e7581a aligned verify-sandbox-image.test.ts fixtures. Full suite executed inside the rebuilt Node 24 sandbox image (v24.21.0, user sandbox, fresh clone of task branch at 48e7581a): pnpm install exit 0; .agro/cli typecheck exit 0; `pnpm test` exit 0, 89 files, 1928 tests passed.",
       "dependsOn": [],
       "files": [
         ".devcontainer/Dockerfile",
@@ -27,7 +27,8 @@
         ".agro/scripts/__tests__/sandbox-base-image.test.ts",
         ".agro/scripts/__tests__/node-pnpm-parity.test.ts",
         ".github/workflows/sandbox-compatibility.yml"
-      ]
+      ],
+      "commit": "3b7f0a67 48e7581a"
     },
     {
       "id": "US-002",
@@ -44,8 +45,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor re-verified on task branch: (1) executed grep -> node-version \"24\" on all 5 setup-node steps; (2) executed: 4 step names read Setup Node 24.x; (3) executed: sandbox-boot-guard.yml:109 comment names Node 24.x; (4) executed cat .nvmrc -> 24; (5) executed: @types/node ^24.0.0, lockfile resolves 24.19.1, engines.node >=20; (6) executed git grep node-version 22 under .github -> no line (exit 1); (7) Full suite executed inside the rebuilt Node 24 sandbox image (v24.21.0, user sandbox, fresh clone of task branch at 48e7581a): pnpm install exit 0; .agro/cli typecheck exit 0; `pnpm test` exit 0, 89 files, 1928 tests passed.; (8) Typecheck passes: executed on Node 22 (worker) and Node 24 (advisor), exit 0.",
       "dependsOn": [],
       "files": [
         ".github/workflows/ci-harness.yml",
@@ -55,7 +56,8 @@
         ".nvmrc",
         ".agro/cli/package.json",
         ".agro/cli/package-lock.json"
-      ]
+      ],
+      "commit": "b628c20d"
     },
     {
       "id": "US-003",
