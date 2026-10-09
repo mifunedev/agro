@@ -115,8 +115,8 @@
         "`.agro/cli/src/__tests__/docs-reference.test.ts` exits 0."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor re-verified on task branch at 1651f8f7: (1) executed diff: docs/installation.md lines 22/40/190 name Node 24 for image and install.sh, minimum stays 20; (2) executed: t3code.md names node:24-trixie-slim; (3) executed: connecting.md:225 remedy is rebuild on Node 24.10 or later; (4) executed `sed -n 164p AGENTS.md` -> Node 20 or newer, unchanged; (5) executed: CHANGELOG.md ### Changed under [Unreleased] links #1361; (6) executed `pnpm exec vitest run .agro/cli/src/__tests__/docs-reference.test.ts` -> 4 passed, exit 0. ste-check exit 0 on the three docs files.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -128,7 +128,8 @@
         "docs/harnesses/t3code.md",
         "docs/connecting.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "1651f8f7"
     },
     {
       "id": "US-006",
