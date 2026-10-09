@@ -56,8 +56,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "Reopened: US-003 live check showed `openclaw gateway run` exits 78 on a state dir that configure produced, because configure does not set gateway.mode.",
+      "passes": true,
+      "notes": "Advisor re-verified on feat branch at a0892d8a: `pnpm test` exit 0 (89 files, 1971 passed); typecheck exit 0; no openclaw.json edit; hermes-workspace.sh unchanged; configure sets workspace, skipBootstrap, and gateway.mode local (argv test; worker red before fix); conflicting OPENCLAW_STATE_DIR refusal, root selection, repair, config failure, and launch text asserted by harness.test.ts. Live end-to-end in a throwaway node:24-trixie-slim container (user sandbox, openclaw@2026.9.9, branch gateway.sh + openclaw-workspace.sh + client-slack-supervise.sh): configure, onboard --non-interactive, then `gateway.sh openclaw` start=0, log `[gateway] ready`, status `✓ client-openclaw healthy`, listeners only 127.0.0.1:18789 and ::1:18789, `--stop` stop=0, tmux no server, `git status --porcelain` empty after onboard and gateway. Container removed (0 left). The fixture lacked paths.sh, so gateway.sh printed a sourcing warning; the warning comes from the fixture, not the branch.",
       "dependsOn": [
         "US-001"
       ],
@@ -66,7 +66,8 @@
         ".agro/scripts/openclaw-workspace.sh",
         ".gitignore",
         ".agro/cli/src/__tests__/harness.test.ts"
-      ]
+      ],
+      "commit": "81c4fa8e a0892d8a"
     },
     {
       "id": "US-003",
@@ -85,8 +86,8 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor re-verified on feat branch at a0892d8a: gateway.test.ts covers start (OPENCLAW_STATE_DIR, cwd, `gateway run --bind loopback`), restart and stop acting only on client-openclaw, status rows, missing executable exit 1 before tmux, no gateway install/install-daemon in gateway.sh; worker showed 10 red before implementation; exit 78 without --bind loopback reasoned from probe evidence section 6; `git grep 18789 -- .devcontainer` empty (worker); usage text names openclaw in gateway.sh and cli.ts; typecheck exit 0. Live end-to-end in a throwaway node:24-trixie-slim container (user sandbox, openclaw@2026.9.9, branch gateway.sh + openclaw-workspace.sh + client-slack-supervise.sh): configure, onboard --non-interactive, then `gateway.sh openclaw` start=0, log `[gateway] ready`, status `✓ client-openclaw healthy`, listeners only 127.0.0.1:18789 and ::1:18789, `--stop` stop=0, tmux no server, `git status --porcelain` empty after onboard and gateway. Container removed (0 left). The fixture lacked paths.sh, so gateway.sh printed a sourcing warning; the warning comes from the fixture, not the branch.",
       "dependsOn": [
         "US-002"
       ],
@@ -94,7 +95,8 @@
         ".agro/scripts/gateway.sh",
         ".agro/cli/src/cli.ts",
         ".agro/scripts/__tests__/gateway.test.ts"
-      ]
+      ],
+      "commit": "8955249b"
     },
     {
       "id": "US-004",
