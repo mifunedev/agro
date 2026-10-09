@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1367-harness-install-update",
+  "description": "Harness install updates an installed harness. `runHarnessInstall` in `.agro/cli/src/commands/harness.ts` probes the harness in the sandbox. If the probe passes and the marker `share/agro/harnesses/<id>.installed` exists, the command prints `already installed` and returns 0. `installOnHost` has the same early return. \"Updating a harness\" in `docs/harnesses/overview.md` says that the command installs the latest version. Each catalog install command installs the latest version, for example `npm --prefix <prefix> install -g @anthropic-ai/claude-code`. The fix removes the early return for a harness that AGRO installed, so the command runs the install command again.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Run the install again for an installed harness",
+      "description": "As a sandbox user, I want `agro harness install <id>` to update an installed harness, so that the command matches the docs.",
+      "acceptanceCriteria": [
+        "In the sandbox, if the harness binary and the install marker exist, `agro harness install <id>` prints `updating <title> in the sandbox…` and runs the install command of the catalog entry again.",
+        "On the host, if the host config records the harness, `agro harness install <id>` runs the install command again. If a binary exists outside the AGRO prefix without a record, the command still prints `already installed` and changes nothing.",
+        "For `hermes`, the update path keeps the configuration step.",
+        "The section \"Updating a harness\" in `docs/harnesses/overview.md` states this behavior.",
+        "Tests in `.agro/cli/src/__tests__/harness.test.ts` cover the command for an installed harness in the sandbox and on the host. The tests fail before the fix.",
+        "`pnpm test:scripts` and `pnpm typecheck` exit 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/commands/harness.ts",
+        ".agro/cli/src/__tests__/harness.test.ts",
+        "docs/harnesses/overview.md"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Record the manual review on a new VM",
+      "description": "As a reviewer, I want a transcript from a new exe.dev VM, so that I can see the update run.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/harness-install-update/evidence/manual-review.md` holds the transcript of two runs of `agro harness install pi` in the sandbox, before and after the fix.",
+        "The VM is destroyed after the run, and the driver log ends with `remaining agro-matrix resources on exedev: 0`."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/tasks/harness-install-update/evidence/"
+      ]
+    }
+  ]
+}
