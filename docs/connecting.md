@@ -27,6 +27,9 @@ agents, tests, and development servers in Herdr panes.
 agro shell <name>
 ```
 
+![The browser editor shows the node workspace and a terminal that runs agro shell into the sandbox.](img/connecting-editor-shell.png)
+Callouts: 1 is the node workspace in the **Explorer**. 2 is the command. 3 is the shell in the sandbox.
+
 `agro shell` attaches as the `sandbox` user. `agro sandbox list` prints the
 names. If the target container has no `sandbox` user, run
 `docker exec -it -u <user> <container> zsh`.

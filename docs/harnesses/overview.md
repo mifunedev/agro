@@ -21,6 +21,9 @@ agro harness uninstall opencode   # remove it again
 agro harness status hermes        # one harness
 ```
 
+![The editor terminal runs agro harness install opencode in the sandbox.](../img/harnesses-overview-install.png)
+Callouts: 1 is the command. 2 is the install target. 3 is the install result.
+
 When the sandbox is not running, `install` offers a host installation instead. See [Lifecycle commands → Host workspaces](../lifecycle-commands.md#host-workspaces-agro-workspace) for the host workspace model, precedence rules, and flags. One refusal matters here: the state home itself (`~/.agro`) can never be a harness root. If the resolved root is `~/.agro`, move it out first, for example `mv ~/.agro ~/agro`. Then re-run the install.
 
 Flags:

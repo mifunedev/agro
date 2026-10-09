@@ -23,6 +23,9 @@ gh auth setup-git   # register gh as Git's credential helper
 gh auth status      # confirm the account and its access
 ```
 
+![A Herdr pane runs gh auth status before any login.](../img/github-auth-status.png)
+Callouts: 1 is the command. 2 is no signed-in account.
+
 `gh auth login` runs a browser or device OAuth flow and saves the token in
 `~/.config/gh/`. `gh auth setup-git` makes `gh` the Git credential helper, so
 `git` uses the stored token without a prompt. `gh auth status` prints the host,
