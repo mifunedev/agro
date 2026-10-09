@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
@@ -1851,5 +1852,209 @@ describe("harness commands on the host with a registered sandbox", () => {
     await runHarnessInstall("claude-code", { bin: "agro", cwd: repo, run, env: HOST, homedir: fakeHome().homedir }, makeIo().io);
 
     expect(calls.find((c) => isInspect(c.cmd, c.args))!.args).toContain("probe");
+  });
+});
+
+describe("OpenClaw workspace binding", () => {
+  const SCRIPT = join(import.meta.dirname, "../../../scripts/openclaw-workspace.sh");
+
+  interface EnvCall {
+    cmd: string;
+    args: string[];
+    env?: NodeJS.ProcessEnv;
+  }
+
+  function openclawRunner({ installed = false, configExit = 0, docker = false } = {}): { calls: EnvCall[]; run: LifecycleRunner } {
+    const calls: EnvCall[] = [];
+    let probes = 0;
+    const run: LifecycleRunner = (cmd, args, opts) => {
+      calls.push({ cmd, args: [...args], env: opts.env });
+      if (isInspect(cmd, args)) return docker ? running : exited;
+      if (args.includes("scripts/openclaw-workspace.sh") && args.includes("check")) {
+        if (docker) return { status: 0, stdout: "", stderr: "" };
+        return spawnSync("bash", [SCRIPT, ...args.slice(args.indexOf("check"))], { encoding: "utf8", env: opts.env });
+      }
+      if (args.includes("scripts/openclaw-workspace.sh") && args.includes("configure")) {
+        return { status: configExit, stdout: "", stderr: "" };
+      }
+      if ((cmd === "openclaw" || args.includes("openclaw")) && args.includes("--version")) {
+        return { status: probes++ === 0 && !installed ? 1 : 0, stdout: "", stderr: "" };
+      }
+      return { status: 0, stdout: "", stderr: "" };
+    };
+    return { calls, run };
+  }
+
+  const isConfigure = (c: EnvCall): boolean => c.args.includes("scripts/openclaw-workspace.sh") && c.args.includes("configure");
+  const isNpmInstall = (c: EnvCall): boolean => c.args.includes("openclaw@2026.9.9");
+  const isLink = (c: EnvCall): boolean => c.args.includes("scripts/link-providers.sh");
+  const success = /installed at|installed —|already installed/;
+
+  function sandboxRoot(): string {
+    const root = mkdtempSync(join(tmpdir(), "oh-openclaw-root-"));
+    cleanups.push(root);
+    mkdirSync(join(root, ".agro"));
+    return root;
+  }
+
+  function inside(root: string, extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
+    return { PATH: process.env.PATH, HOME: join(root, "user"), AGRO_EXECUTION_TARGET: "local", AGRO_PROJECT_ROOT: root, ...extra };
+  }
+
+  it.each(["default", "recorded", "path", "workspace"].flatMap(selection => [false, true].map(installed => ({ selection, installed }))))("binds OpenClaw to the $selection selected host workspace (installed=$installed)", async ({ selection, installed }) => {
+    const repo = makeRepo();
+    const state = emptyStateHome();
+    const user = fakeHome();
+    const selected = seedWorkspace(selection === "default" ? defaultRoot(state) : workspace(state, "selected"));
+    if (selection === "recorded") {
+      writeFileSync(hostConfigFile(state.dir), JSON.stringify({ version: 1, harnessRoot: selected }));
+    }
+    const { calls, run } = openclawRunner({ installed });
+    const { io, out } = makeIo();
+    const { OPENCLAW_STATE_DIR: _state, ...env } = state.env;
+    expect(await runHarnessInstall("openclaw", {
+      bin: "agro", cwd: repo, run, host: true, interactive: false,
+      env, homedir: user.homedir,
+      ...(selection === "path" ? { path: selected } : {}),
+      ...(selection === "workspace" ? { workspace: "selected" } : {}),
+    }, io)).toBe(0);
+    const configure = calls.find(isConfigure)!;
+    expect(configure.args.slice(-4)).toEqual(["configure", selected, join(selected, ".openclaw"), "openclaw"]);
+    expect(configure.env?.OPENCLAW_STATE_DIR).toBe(join(selected, ".openclaw"));
+    expect(calls.some(isNpmInstall)).toBe(!installed);
+    if (!installed) expect(calls.indexOf(configure)).toBeGreaterThan(calls.findIndex(isNpmInstall));
+    expect(text(out)).toContain(`OPENCLAW_STATE_DIR=${selected}/.openclaw openclaw\n`);
+  });
+
+  it.each([false, true])("uses /home/sandbox/harness through Docker (installed=%s)", async installed => {
+    const repo = makeRepo();
+    const { calls, run } = openclawRunner({ installed, docker: true });
+    const { io, out } = makeIo();
+    expect(await runHarnessInstall("openclaw", {
+      bin: "agro", cwd: repo, run, env: { AGRO_EXECUTION_TARGET: "docker-compose" },
+    }, io)).toBe(0);
+    const check = calls.find(c => c.args.includes("scripts/openclaw-workspace.sh") && c.args.includes("check"))!;
+    expect(check.args).toContain("OPENCLAW_STATE_DIR=/home/sandbox/harness/.openclaw");
+    const configure = calls.find(isConfigure)!;
+    expect(configure.args.slice(-4)).toEqual(["configure", "/home/sandbox/harness", "/home/sandbox/harness/.openclaw", "openclaw"]);
+    expect(configure.args).toContain("OPENCLAW_STATE_DIR=/home/sandbox/harness/.openclaw");
+    expect(calls.some(isNpmInstall)).toBe(true);
+    expect(calls.indexOf(configure)).toBeGreaterThan(calls.findIndex(isNpmInstall));
+    expect(calls.flatMap(c => c.args).some(arg => arg.includes(repo))).toBe(false);
+    expect(text(out)).toContain("OPENCLAW_STATE_DIR=/home/sandbox/harness/.openclaw openclaw\n");
+  });
+
+  it("anchors to the sandbox project root and configures after the install", async () => {
+    const root = sandboxRoot();
+    const { calls, run } = openclawRunner();
+    const { io, out } = makeIo();
+    expect(await runHarnessInstall("openclaw", { bin: "agro", cwd: tmpdir(), run, env: inside(root) }, io)).toBe(0);
+    const install = calls.find(isNpmInstall)!;
+    expect(install.env?.OPENCLAW_STATE_DIR).toBe(join(root, ".openclaw"));
+    const configure = calls.find(isConfigure)!;
+    expect(configure.args.slice(-4)).toEqual(["configure", root, join(root, ".openclaw"), "openclaw"]);
+    expect(calls.indexOf(configure)).toBeGreaterThan(calls.indexOf(install));
+    expect(text(out)).toContain("openclaw: installed —");
+    expect(text(out)).toContain(`OPENCLAW_STATE_DIR=${root}/.openclaw openclaw\n`);
+  });
+
+  it("updates an installed OpenClaw and configures it once", async () => {
+    const root = sandboxRoot();
+    const { calls, run } = openclawRunner({ installed: true });
+    const { io, out } = makeIo();
+    expect(await runHarnessInstall("openclaw", { bin: "agro", cwd: tmpdir(), run, env: inside(root) }, io)).toBe(0);
+    expect(calls.some(isNpmInstall)).toBe(true);
+    expect(calls.filter(isConfigure)).toHaveLength(1);
+    expect(text(out)).toContain("updating OpenClaw in the sandbox…");
+  });
+
+  it.each([false, true])("reports no success when the configuration fails (installed=%s)", async installed => {
+    const root = sandboxRoot();
+    const { run } = openclawRunner({ installed, configExit: 7 });
+    const { io, out, err } = makeIo();
+    expect(await runHarnessInstall("openclaw", { bin: "agro", cwd: tmpdir(), run, env: inside(root) }, io)).toBe(7);
+    expect(text(out)).not.toMatch(success);
+    expect(text(out)).not.toContain("OPENCLAW_STATE_DIR=");
+    expect(text(err)).toContain("OpenClaw workspace configuration failed (exit 7)");
+  });
+
+  it("reports no success when the host configuration fails", async () => {
+    const repo = makeRepo();
+    const state = emptyStateHome();
+    const user = fakeHome();
+    seedWorkspace(defaultRoot(state));
+    const { run } = openclawRunner({ configExit: 3 });
+    const { io, out } = makeIo();
+    const { OPENCLAW_STATE_DIR: _state, ...env } = state.env;
+    expect(await runHarnessInstall("openclaw", {
+      bin: "agro", cwd: repo, run, host: true, interactive: false, env, homedir: user.homedir,
+    }, io)).toBe(3);
+    expect(text(out)).not.toMatch(success);
+    expect(existsSync(hostConfigFile(state.dir))).toBe(false);
+  });
+
+  it("refuses a conflicting inherited state directory before any change", async () => {
+    const root = sandboxRoot();
+    const { calls, run } = openclawRunner();
+    const { io, out, err } = makeIo();
+    expect(await runHarnessInstall("openclaw", {
+      bin: "agro", cwd: tmpdir(), run, env: inside(root, { OPENCLAW_STATE_DIR: "/foreign/openclaw" }),
+    }, io)).toBe(1);
+    expect(calls).toHaveLength(1);
+    expect(text(err)).toContain("/foreign/openclaw");
+    expect(text(err)).toContain(`${root}/.openclaw`);
+    expect(text(out)).not.toMatch(success);
+  });
+
+  it("refuses a conflicting inherited state directory on the host before linking providers", async () => {
+    const repo = makeRepo();
+    const state = emptyStateHome();
+    const user = fakeHome();
+    const selected = seedWorkspace(defaultRoot(state));
+    const { calls, run } = openclawRunner();
+    const { io, err } = makeIo();
+    expect(await runHarnessInstall("openclaw", {
+      bin: "agro", cwd: repo, run, host: true, interactive: false, homedir: user.homedir,
+      env: { ...state.env, OPENCLAW_STATE_DIR: join(user.dir, ".openclaw") },
+    }, io)).toBe(1);
+    expect(calls.some(c => isLink(c) || isConfigure(c) || isNpmInstall(c))).toBe(false);
+    expect(text(err)).toContain(join(user.dir, ".openclaw"));
+    expect(text(err)).toContain(`${selected}/.openclaw`);
+    expect(existsSync(hostConfigFile(state.dir))).toBe(false);
+  });
+
+  it("accepts an inherited state directory that normalizes to the workspace state directory", async () => {
+    const root = sandboxRoot();
+    const { run } = openclawRunner({ installed: true });
+    const { io } = makeIo();
+    expect(await runHarnessInstall("openclaw", {
+      bin: "agro", cwd: tmpdir(), run, env: inside(root, { OPENCLAW_STATE_DIR: `${root}//nested/../.openclaw/` }),
+    }, io)).toBe(0);
+  });
+
+  it.each([0, 7])("sets the workspace and skipBootstrap through the config CLI (exit %s)", status => {
+    const root = sandboxRoot();
+    const log = join(root, "config-calls");
+    const binary = join(root, "openclaw");
+    writeFileSync(binary, `#!/usr/bin/env bash\nprintf '%s|%s\\n' "$OPENCLAW_STATE_DIR" "$*" >> "$CONFIG_LOG"\nexit ${status}\n`, { mode: 0o755 });
+    const stateDir = join(root, ".openclaw");
+    const result = spawnSync("bash", [SCRIPT, "configure", root, stateDir, binary], {
+      encoding: "utf8", env: { PATH: process.env.PATH, CONFIG_LOG: log },
+    });
+    expect(result.status).toBe(status);
+    const expected = [`${stateDir}|config set agents.defaults.workspace ${root}`];
+    if (status === 0) expected.push(`${stateDir}|config set agents.defaults.skipBootstrap true --strict-json`);
+    expect(readFileSync(log, "utf8")).toBe(`${expected.join("\n")}\n`);
+    if (status) expect(result.stderr).toContain("could not configure");
+  });
+
+  it("names both paths when the check refuses a foreign state directory", () => {
+    const root = sandboxRoot();
+    const result = spawnSync("bash", [SCRIPT, "check", root, join(root, ".openclaw"), "/elsewhere/.openclaw"], {
+      encoding: "utf8", env: { PATH: process.env.PATH },
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("/elsewhere/.openclaw");
+    expect(result.stderr).toContain(join(root, ".openclaw"));
   });
 });
