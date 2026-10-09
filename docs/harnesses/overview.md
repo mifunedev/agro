@@ -43,9 +43,17 @@ Flags:
 Two paths update a harness in the sandbox. Both land in `/home/sandbox/.local` in the persistent home volume.
 
 ```bash
-agro harness install claude-code   # re-run the door; installs the latest version
+agro harness install claude-code   # runs the install command again; installs the latest version
 claude update                      # the harness updates itself
 ```
+
+If AGRO installed the harness, `agro harness install <id>` runs the install command of the catalog entry again. Each install command installs the latest version.
+
+- In the sandbox, AGRO writes the marker `/home/sandbox/.local/share/agro/harnesses/<id>.installed` after an install. If the marker exists and the binary runs, the command prints `updating <title> in the sandbox…`.
+- On the host, AGRO records the install in the host config. If the record exists and the binary runs, the command prints `updating <title> on the host…`.
+- On the host, if the binary runs but is outside `~/.local/bin` and has no record, AGRO did not install the binary. The command prints `already installed` and changes nothing.
+
+For Hermes, the update also configures the Hermes workspace again.
 
 The harness self-update path works because npm's global prefix in the sandbox is `/home/sandbox/.local`, not `/usr/local`. Never run a harness update through `sudo`. The harness binaries are not on sudo's `secure_path`. A root-owned install would also land outside the home volume and disappear on the next recreate.
 

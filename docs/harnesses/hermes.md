@@ -33,7 +33,7 @@ HERMES_HOME="<target-root>/.hermes" hermes config set terminal.cwd "<target-root
 
 Replace `<target-root>` with the path that installation prints.
 A configuration error returns a nonzero status and prevents an installation-success message.
-Repeated installation repairs missing or stale cwd and provider links without downloading an already-installed executable.
+If AGRO installed Hermes, `agro harness install hermes` runs the install command again and installs the latest version. The command also repairs missing or stale cwd and provider links and configures the Hermes workspace again.
 The supported configuration command changes `terminal.cwd`; it preserves unrelated settings.
 Installation does not restart an active gateway.
 

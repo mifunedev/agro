@@ -74,7 +74,7 @@ describe("Hermes workspace configuration interface", () => {
 });
 
 describe("Hermes installation postconditions", () => {
-  it.each([false, true])("uses container paths rather than host checkout paths through Docker (installed=%s)", async installed => {
+  it.each([false, true])("uses container paths and runs the installer through Docker (installed=%s)", async installed => {
     const t = setup();
     const calls: string[][] = [];
     let probes = 0;
@@ -94,7 +94,7 @@ describe("Hermes installation postconditions", () => {
     expect(link).toContain("AGRO_PROJECT_ROOT=/home/sandbox/harness");
     const configure = calls.find(args => args.includes("configure"))!;
     expect(configure.slice(-5)).toEqual(["configure", "/home/sandbox/harness", "/home/sandbox/harness/.hermes", "/home/sandbox/harness", "hermes"]);
-    expect(calls.some(args => args.some(a => a.includes("install.sh")))).toBe(!installed);
+    expect(calls.some(args => args.some(a => a.includes("install.sh")))).toBe(true);
     expect(calls.flat().some(arg => arg.includes(t.root))).toBe(false);
   });
 
@@ -143,13 +143,12 @@ describe("Hermes installation postconditions", () => {
     for (const link of links) expect(link.env?.HERMES_HOME).toBe(join(workspace, ".hermes"));
   });
 
-  it("repairs an already-installed integration without invoking the installer", async () => {
+  it("updates an installed integration and configures it once", async () => {
     const t = setup({ installed: true });
     expect(await t.invoke()).toBe(0);
-    expect(t.calls.filter(c => c.args.includes("--hermes-only"))).toHaveLength(1);
-    expect(t.calls.some(c => c.args.some(a => a.includes("install.sh")))).toBe(false);
+    expect(t.calls.some(c => c.args.some(a => a.includes("install.sh")))).toBe(true);
     expect(t.calls.filter(c => c.args.includes("configure"))).toHaveLength(1);
-    expect(t.out.join("")).toContain("already installed");
+    expect(t.out.join("")).toContain("updating Hermes in the sandbox…");
   });
 
   it.each(["auth.json", ".env", "config.yaml"])("refuses a configured default home (%s) before installation mutation", async file => {
