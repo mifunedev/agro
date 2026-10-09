@@ -15,6 +15,7 @@ type Overrides = Partial<{
   gid: string;
   node: string;
   pnpm: string;
+  npm: string;
   agroVersion: string;
   legacyEntryPoint: boolean;
   missingTool: string;
@@ -43,6 +44,7 @@ function fixture(o: Overrides = {}) {
     gid: "1000",
     node: "v24.21.0",
     pnpm: "10.33.0",
+    npm: "11.19.0",
     agroVersion: "0.8.0",
     legacyEntryPoint: false,
     missingTool: "",
@@ -84,6 +86,7 @@ case "$cmd" in
   *"id -u sandbox"*) printf '%s\\n%s\\n' ${JSON.stringify(v.uid)} ${JSON.stringify(v.gid)} ;;
   "node --version") printf '%s\\n' ${JSON.stringify(v.node)} ;;
   "pnpm --version") printf '%s\\n' ${JSON.stringify(v.pnpm)} ;;
+  "npm --version") printf '%s\\n' ${JSON.stringify(v.npm)} ;;
   "agro --version") printf '%s\\n' ${JSON.stringify(v.agroVersion)} ;;
   "command -v oh") [ "${v.legacyEntryPoint ? "1" : "0"}" = "1" ] && printf '/usr/local/bin/oh\\n' || exit 1 ;;
   *"agro harness list --json"*)
@@ -158,6 +161,7 @@ describe("verify-sandbox-image", () => {
     expect(result.stdout).toContain("built-in sandbox user is 1000:1000");
     expect(result.stdout).toContain("node is major 24");
     expect(result.stdout).toContain("pnpm is exactly 10.33.0");
+    expect(result.stdout).toContain("npm is 11.19.0, at least 11.16.0");
     expect(result.stdout).toContain("agro reports CLI version 0.8.0");
     expect(result.stdout).toContain("no harness is baked into the image");
     expect(result.stdout).toContain("no installable tool is baked into the image");
@@ -189,6 +193,8 @@ describe("verify-sandbox-image", () => {
     ["a shifted sandbox UID", { uid: "1001" }, "built-in sandbox user is 1001:1000"],
     ["a wrong Node major", { node: "v22.14.0" }, "node major is not 24"],
     ["a drifted pnpm version", { pnpm: "10.34.0" }, "pnpm is 10.34.0"],
+    ["an npm older than 11.16.0", { npm: "10.9.2" }, "npm is 10.9.2, expected at least 11.16.0"],
+    ["an npm one minor short of 11.16.0", { npm: "11.15.9" }, "npm is 11.15.9, expected at least 11.16.0"],
     ["a missing required tool", { missingTool: "uv --version" }, "uv --version produced no version output"],
   ])("rejects %s", (_label, overrides, expected) => {
     const result = run(fixture(overrides));

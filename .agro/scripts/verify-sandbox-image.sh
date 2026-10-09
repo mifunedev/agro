@@ -8,6 +8,7 @@ EXPECTED_UID=1000
 EXPECTED_GID=1000
 EXPECTED_NODE_MAJOR=24
 EXPECTED_PNPM=10.33.0
+MINIMUM_NPM=11.16.0
 
 usage() {
   echo "usage: ${0##*/} <image-ref>" >&2
@@ -68,6 +69,14 @@ if [ "$pnpm_version" = "$EXPECTED_PNPM" ]; then
   ok "pnpm is exactly $EXPECTED_PNPM"
 else
   fail "pnpm is $pnpm_version, expected exactly $EXPECTED_PNPM"
+fi
+
+npm_version=$(run 'npm --version')
+if [[ "$npm_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] &&
+   [ "$(printf '%s\n%s\n' "$MINIMUM_NPM" "$npm_version" | sort -V | head -1)" = "$MINIMUM_NPM" ]; then
+  ok "npm is $npm_version, at least $MINIMUM_NPM"
+else
+  fail "npm is $npm_version, expected at least $MINIMUM_NPM"
 fi
 
 agro_version=$(run 'agro --version' 2>/dev/null || true)
