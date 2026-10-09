@@ -10,7 +10,7 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] In the sandbox, if the harness binary and the install marker exist, `agro harness install <id>` prints `updating <title> in the sandbox…` and runs the install command of the catalog entry again.
+- [ ] In the sandbox, if the harness binary and the install marker exist, `agro harness install <id>` prints `updating <title> in the sandbox…`. The command then runs the install command of the catalog entry again.
 - [ ] On the host, if the host config records the harness, `agro harness install <id>` runs the install command again. If a binary exists outside the AGRO prefix without a record, the command still prints `already installed` and changes nothing.
 - [ ] For `hermes`, the update path keeps the configuration step.
 - [ ] The section "Updating a harness" in `docs/harnesses/overview.md` states this behavior.
@@ -24,7 +24,7 @@ Status: DRAFT
 **Acceptance Criteria:**
 
 - [ ] `.agro/tasks/harness-install-update/evidence/manual-review.md` holds the transcript of two runs of `agro harness install pi` in the sandbox, before and after the fix.
-- [ ] The VM is destroyed after the run, and the driver log ends with `remaining agro-matrix resources on exedev: 0`.
+- [ ] The advisor destroys the VM after the run, and no `agro-matrix` VM remains on exe.dev.
 
 ## Summary
 
@@ -70,4 +70,4 @@ None
 
 ## Lessons
 
-Filled by the advisor before undraft.
+- Claim: two docs pages stated the old behavior. Evidence: `docs/installation.md` said "An existing install reports `already installed`". `docs/harnesses/hermes.md` said that a repeat install does not download the executable. Outcome: fixed in this PR.

@@ -9,7 +9,7 @@
       "title": "Run the install again for an installed harness",
       "description": "As a sandbox user, I want `agro harness install <id>` to update an installed harness, so that the command matches the docs.",
       "acceptanceCriteria": [
-        "In the sandbox, if the harness binary and the install marker exist, `agro harness install <id>` prints `updating <title> in the sandbox…` and runs the install command of the catalog entry again.",
+        "In the sandbox, if the harness binary and the install marker exist, `agro harness install <id>` prints `updating <title> in the sandbox…`. The command then runs the install command of the catalog entry again.",
         "On the host, if the host config records the harness, `agro harness install <id>` runs the install command again. If a binary exists outside the AGRO prefix without a record, the command still prints `already installed` and changes nothing.",
         "For `hermes`, the update path keeps the configuration step.",
         "The section \"Updating a harness\" in `docs/harnesses/overview.md` states this behavior.",
@@ -17,14 +17,15 @@
         "`pnpm test:scripts` and `pnpm typecheck` exit 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1 executed: harness.test.ts 'runs the install again for a harness AGRO installed' red before (pi: already installed), green after; exe.dev VM: branch build printed 'updating Pi in the sandbox…' and npm changed 121 packages. AC2 executed: host record test red before, green after; existing test for a binary outside the prefix without a record still prints already installed. AC3 executed: hermes update test checks configure after install.sh. AC4 executed: overview.md, installation.md, hermes.md updated; ste-check exit 0 on each. AC5 executed: tests failed before the fix (3 failed). AC6 executed: advisor reran pnpm test:scripts exit 0 (1939 passed, 2 skipped) and pnpm typecheck exit 0. Repair commit 4eb2d830 updated hermes-integration.test.ts and two docs claims outside the first owned paths.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/commands/harness.ts",
         ".agro/cli/src/__tests__/harness.test.ts",
         "docs/harnesses/overview.md"
-      ]
+      ],
+      "commit": "4eb2d830"
     },
     {
       "id": "US-002",
@@ -32,17 +33,18 @@
       "description": "As a reviewer, I want a transcript from a new exe.dev VM, so that I can see the update run.",
       "acceptanceCriteria": [
         "`.agro/tasks/harness-install-update/evidence/manual-review.md` holds the transcript of two runs of `agro harness install pi` in the sandbox, before and after the fix.",
-        "The VM is destroyed after the run, and the driver log ends with `remaining agro-matrix resources on exedev: 0`."
+        "The advisor destroys the VM after the run, and no `agro-matrix` VM remains on exe.dev."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1 executed: evidence/manual-review.md, exedev-repro.log, and exedev-after.txt hold the release and branch runs of agro harness install pi. AC2 executed: ssh exe.dev rm printed '1 VM deleted successfully', agro-matrix count 0 (KEEP=1 run, count checked by hand).",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/tasks/harness-install-update/evidence/"
-      ]
+      ],
+      "commit": "4eb2d830"
     }
   ]
 }

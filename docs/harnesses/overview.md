@@ -51,7 +51,7 @@ If AGRO installed the harness, `agro harness install <id>` runs the install comm
 
 - In the sandbox, AGRO writes the marker `/home/sandbox/.local/share/agro/harnesses/<id>.installed` after an install. If the marker exists and the binary runs, the command prints `updating <title> in the sandbox…`.
 - On the host, AGRO records the install in the host config. If the record exists and the binary runs, the command prints `updating <title> on the host…`.
-- On the host, if the binary runs but is outside `~/.local/bin` and has no record, AGRO did not install it. The command prints `already installed` and changes nothing.
+- On the host, if the binary runs but is outside `~/.local/bin` and has no record, AGRO did not install the binary. The command prints `already installed` and changes nothing.
 
 For Hermes, the update also configures the Hermes workspace again.
 
