@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1366-banner-alias-harness",
+  "description": "The onboarding banner reports each harness from its binary. Each interactive shell runs `.agro/install/banner.sh`. The shell defines aliases for `claude`, `codex`, and `agy` in `.agro/install/.zshrc` and in the `.bashrc` that `.devcontainer/Dockerfile` writes. The banner tests `opencode`, `grok`, `agy`, and `hermes` with `command -v`. In an interactive shell, the builtin `command -v` also prints an alias. The banner then marks an alias-only harness as installed. The banner tests `claude`, `codex`, and `pi` only for an authentication file. The banner then shows \"not authenticated\" for a harness without a binary. The fix adds one helper that accepts only a path from `command -v`. The fix also adds an installed check for `claude`, `codex`, and `pi`.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Detect a harness only from its binary",
+      "description": "As a sandbox user, I want the `agro shell` banner to show the true state of each harness, so that I know which harness to install.",
+      "acceptanceCriteria": [
+        "`.agro/install/banner.sh` marks a harness as installed only when an executable file for the harness exists on `PATH`. An alias or a shell function does not count.",
+        "For `claude`, `codex`, and `pi`, the banner shows `not installed — run: agro harness install <id>` when the binary is absent. The banner shows the authentication state only when the binary exists.",
+        "For `opencode` and `agy`, the banner shows `not installed` when only an alias exists.",
+        "The `Recovery commands` line lists only the commands that have a binary.",
+        "A test in `.agro/scripts/__tests__/boot-banner.test.ts` runs `banner.sh` in an interactive shell with a temporary `HOME`. The test covers a harness with only an alias and a harness with a binary. The test fails before the fix.",
+        "`pnpm test:scripts` and `pnpm typecheck` exit 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/install/banner.sh",
+        ".agro/scripts/__tests__/boot-banner.test.ts"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Record the manual review and retake the quickstart screenshot",
+      "description": "As a reviewer, I want the banner on a real sandbox before and after the fix, so that I can see the corrected states.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/banner-alias-harness/evidence/manual-review.md` holds the banner output from a new exe.dev VM, before and after the fix.",
+        "If the docs-capture node runs, `docs/img/quickstart-shell.png` shows the corrected banner, as a 1920x1080 PNG, with a `Callouts:` line in `docs/quickstart.md`. If the node does not run, the PR lists the retake as unverified.",
+        "The VM is destroyed after the run, and the driver log ends with `remaining agro-matrix resources on exedev: 0`."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/tasks/banner-alias-harness/evidence/",
+        "docs/img/quickstart-shell.png",
+        "docs/quickstart.md"
+      ]
+    }
+  ]
+}
