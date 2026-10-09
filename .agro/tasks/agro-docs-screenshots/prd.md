@@ -4,17 +4,18 @@ Status: DRAFT
 
 ## User Stories
 
-### US-001: Prepare a capture sandbox with the browser editor
+### US-001: Prepare a Console node for the capture
 
-**Description:** As a docs maintainer, I want a clean AGRO sandbox with the browser editor. Then each screenshot shows the released AGRO behavior and no personal data.
+**Description:** As a docs maintainer, I want the Console browser editor on a free node. Then each screenshot shows the editor and the node host that a Console user sees.
 
 **Acceptance Criteria:**
 
-- [ ] The capture runs in a local AGRO sandbox with code-server. The capture uses no Console node and no Console sign-in.
-- [ ] The sandbox runs the latest AGRO release, and `agro --version` prints that version.
-- [ ] code-server runs in the sandbox, and agent-browser opens the editor at a fixed zoom of 150%.
-- [ ] The git identity in the sandbox is `Demo User <demo@example.com>`. No screenshot shows a real name, email address, token, or host path of the operator.
-- [ ] A teardown step stops each process and deletes the capture sandbox and its volume.
+- [ ] The operator creates a free node in the Mifune Console with the capture public key `agro-docs-capture`.
+- [ ] The capture reaches the code-server of the node over SSH port forwarding. The capture uses no Console session.
+- [ ] The node host runs the latest AGRO release, and `agro --version` prints that version in the editor terminal.
+- [ ] agent-browser opens the editor at a fixed zoom of 150%.
+- [ ] The git identity on the node is `Demo User <demo@example.com>`. The capture signs in to no account. No screenshot shows a real name, email address, token, or IP address.
+- [ ] A teardown step removes the capture key from the node, and the operator destroys the node.
 
 ### US-002: Add screenshots to the quickstart and installation pages
 
@@ -77,7 +78,7 @@ Status: DRAFT
 
 The AGRO docs have no image. The site at `https://agro.mifune.dev/docs/agro/` copies the AGRO `docs/` folder from the latest release. The copy includes image files. An image under `docs/img/` therefore reaches the site with the next release. A relative link that leaves `docs/` becomes a GitHub link, so each image must live under `docs/`.
 
-The Mifune Console opens a node in code-server. A local AGRO sandbox runs the same editor after `agro tool install code-server`. The operator asked for screenshots from the Console editor at a zoom level that makes the terminal text readable.
+The Mifune Console opens a node in code-server, and the editor terminal is a shell on the node host. The operator asked for screenshots from the Console editor at a zoom level that makes the terminal text readable.
 
 mifunedev/agro-web#72 added screenshots to the Console guide with the same rules: 1280x720 PNG files, numbered callouts, a `Callouts:` line under each image, and a CI guard.
 
@@ -105,7 +106,7 @@ The screenshots are PNG files in `docs/img/`. The capture sandbox is temporary, 
 ## Architectural Decisions
 
 - **Released behavior only.** The capture runs the latest AGRO release. A later release that changes a captured output needs a new capture.
-- **No personal data.** The capture uses a demo git identity and a fresh home volume. No image shows a token, a one-time code, or a host path of the operator.
+- **No personal data.** The capture uses a demo git identity on a new free node. No image shows a token, a one-time code, or a host path of the operator.
 - **One source.** The AGRO repo owns the images, beside the pages that show them. agro-web keeps no copy.
 
 ## Test Plan (TDD)
@@ -130,7 +131,7 @@ The screenshots are PNG files in `docs/img/`. The capture sandbox is temporary, 
 
 ## Open Questions
 
-None. The operator accepted each recommendation: a local capture sandbox with code-server, a zoom of 150%, and the guard at `.agro/scripts/__tests__/docs-images.test.ts`.
+None. The capture source is a Console free node. The capture reaches its browser editor over SSH, because the agent cannot sign in to the Console. The zoom is 150%, and the guard is `.agro/scripts/__tests__/docs-images.test.ts`. The advisor tried a local sandbox first and dropped it: code-server inside a sandbox cannot run the host commands that the quickstart shows.
 
 ## Acceptance Criteria
 

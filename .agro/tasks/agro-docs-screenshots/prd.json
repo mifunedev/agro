@@ -6,14 +6,15 @@
   "userStories": [
     {
       "id": "US-001",
-      "title": "Prepare a capture sandbox with the browser editor",
-      "description": "As a docs maintainer, I want a clean AGRO sandbox with the browser editor. Then each screenshot shows the released AGRO behavior and no personal data.",
+      "title": "Prepare a Console node for the capture",
+      "description": "As a docs maintainer, I want the Console browser editor on a free node. Then each screenshot shows the editor and the node host that a Console user sees.",
       "acceptanceCriteria": [
-        "The capture runs in a local AGRO sandbox with code-server. The capture uses no Console node and no Console sign-in.",
-        "The sandbox runs the latest AGRO release, and `agro --version` prints that version.",
-        "code-server runs in the sandbox, and agent-browser opens the editor at a fixed zoom of 150%.",
-        "The git identity in the sandbox is `Demo User <demo@example.com>`. No screenshot shows a real name, email address, token, or host path of the operator.",
-        "A teardown step stops each process and deletes the capture sandbox and its volume.",
+        "The operator creates a free node in the Mifune Console with the capture public key `agro-docs-capture`.",
+        "The capture reaches the code-server of the node over SSH port forwarding. The capture uses no Console session.",
+        "The node host runs the latest AGRO release, and `agro --version` prints that version in the editor terminal.",
+        "agent-browser opens the editor at a fixed zoom of 150%.",
+        "The git identity on the node is `Demo User <demo@example.com>`. The capture signs in to no account. No screenshot shows a real name, email address, token, or IP address.",
+        "A teardown step removes the capture key from the node, and the operator destroys the node.",
         "Typecheck passes"
       ],
       "priority": 1,
