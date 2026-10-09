@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1365-harness-probe-sandbox",
+  "description": "Host harness commands find the registered sandbox. `runHarnessInstall` and `collectStates` in `.agro/cli/src/commands/harness.ts` resolve the project root with `resolveProjectRoot(opts.cwd)`. `targetFor` then takes the container name from `configuredContainerName(root)` and falls back to `DEFAULT_CONTAINER_NAME`, which is `agro`. `agro sandbox install docker` names a new sandbox `agro-sbx-<n>` and registers it under `~/.agro/sandboxes/<name>`. `agro ps` and `agro shell` resolve the root through `resolveSandboxRoot` in `.agro/cli/src/lib/registry.ts`, so they find the container. On a host where the working directory is not a sandbox checkout, `harness` probes the container `agro`, gets \"absent\", and refuses. The fix resolves the container through the same registry lookup that the lifecycle verbs use.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Resolve the sandbox container from the registry",
+      "description": "As a self-host user, I want `agro harness install <id>` on the host to find my running sandbox, so that the install goes into that sandbox.",
+      "acceptanceCriteria": [
+        "On the host, with one registered sandbox `agro-sbx-1` and a working directory outside a checkout, `agro harness install <id>` probes the container `agro-sbx-1`, not `agro`.",
+        "`agro harness list`, `agro harness status`, and `agro harness uninstall` use the same container name as `install`.",
+        "A test in `.agro/cli/src/__tests__/harness.test.ts` covers the probe of a running registered sandbox from the host. The test fails before the fix.",
+        "If `SANDBOX_NAME` or the `name` field of the project config sets the container, the commands keep that name.",
+        "`pnpm test:scripts` and `pnpm typecheck` exit 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/commands/harness.ts",
+        ".agro/cli/src/__tests__/harness.test.ts"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Record the manual review on a new VM",
+      "description": "As a reviewer, I want a transcript from a new exe.dev VM, so that I can see the fix work on a real host.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/harness-probe-sandbox/evidence/manual-review.md` holds the transcript of `agro sandbox install docker`, `agro ps agro-sbx-1`, and `agro harness install claude-code` on the VM host, before and after the fix.",
+        "The VM is destroyed after the run, and the driver log ends with `remaining agro-matrix resources on exedev: 0`."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/tasks/harness-probe-sandbox/evidence/"
+      ]
+    }
+  ]
+}
