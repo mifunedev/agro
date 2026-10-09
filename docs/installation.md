@@ -162,7 +162,8 @@ password. Change its default on any network-reachable sandbox.
 The image contains no agent CLI. Nothing installs one at boot. Run
 `agro harness install <id>` to install one into `~/.local`, inside the home
 volume. Run `agro harness list` for every id. The installer pins every download
-and verifies its checksum. An existing install reports `already installed` and exits 0.
+and verifies its checksum. If AGRO installed the harness, the command runs the
+install command again and installs the latest version.
 `agro destroy` removes the home volume and every install in it. See the
 [harnesses overview](harnesses/overview.md).
 
