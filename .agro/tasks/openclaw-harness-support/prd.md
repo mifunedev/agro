@@ -229,4 +229,8 @@ None. The operator resolved each question on 2026-10-08:
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. Claim: the US-002 acceptance run never started the gateway, so the run missed a required config value. Evidence: the US-003 live check showed `Gateway start blocked: existing config is missing gateway.mode` and exit 78 on a state directory that `configure` produced. Outcome: fixed in this PR (`a0892d8a`).
+2. Claim: the plan put `docs/harnesses/openclaw.md` in US-004, but the catalog test requires one page for each catalog id at US-001. Evidence: `documents every harness under docs/harnesses/<id>.md` failed with ENOENT. Outcome: fixed in this PR; US-001 wrote the Install stub, and US-004 completed the page.
+3. Claim: `agro harness uninstall openclaw` keeps `<target-root>/.openclaw/`, and the page did not say so. Evidence: `evidence/manual-review.md` section 7. Outcome: fixed in this PR (`2a111fb3`).
+4. Claim: the supervisor state file records `session=client-slack-openclaw` for the `client-openclaw` session. Evidence: the US-003 worker report. Outcome: dropped, because no code reads that field.
+5. Claim: npm warns that four OpenClaw dependencies have install scripts outside `--allow-scripts`. Evidence: `evidence/probe-node24.md` and the US-005 install output. Outcome: dropped, because the install exits 0 and `openclaw` runs.
