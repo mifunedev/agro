@@ -375,3 +375,138 @@ describe("gateway pi: launches client-slack-pi handling tokens as data", () => {
     );
   });
 });
+
+function openclawFixture({ executable = true } = {}) {
+  const temp = mkdtempSync(join(tmpdir(), "gateway-openclaw-"));
+  hermesFixtures.push(temp);
+  const harness = join(temp, "workspace 'quoted");
+  const bin = join(temp, "bin");
+  mkdirSync(join(harness, ".devcontainer"), { recursive: true });
+  mkdirSync(bin);
+  const sessions = join(temp, "sessions");
+  const tmuxLog = join(temp, "tmux-calls");
+  const launchLog = join(temp, "launch-call");
+  const stateDir = join(temp, "gateway-state");
+  writeFileSync(sessions, "");
+  if (executable) {
+    writeFileSync(join(bin, "openclaw"), `#!/usr/bin/env bash
+printf '%s\\n' "$OPENCLAW_STATE_DIR" "$PWD" "$@" > "$LAUNCH_LOG"
+`, { mode: 0o755 });
+  }
+  writeFileSync(join(bin, "tmux"), `#!/usr/bin/env bash
+printf '%s\\n' "$*" >> "$TMUX_LOG"
+case "$1" in
+  ls) cat "$SESSIONS" ;;
+  kill-session) grep -Fxv "$3" "$SESSIONS" > "$SESSIONS.next"; mv "$SESSIONS.next" "$SESSIONS" ;;
+  new-session) printf '%s\\n' "$4" >> "$SESSIONS"; bash -c "\${!#}" ;;
+esac
+exit 0
+`, { mode: 0o755 });
+  writeFileSync(join(harness, ".devcontainer/client-slack-supervise.sh"), '#!/usr/bin/env bash\nprintf "%s\\n" "$GATEWAY_BACKEND" "$LOG" > "$SUPERVISOR_LOG"\nexec bash -c "$SUPERVISE_CMD"\n', { mode: 0o755 });
+  const env: NodeJS.ProcessEnv = {
+    PATH: `${bin}:/usr/bin:/bin`, HOME: join(temp, "user"), HARNESS: harness, TMPDIR: temp,
+    SESSIONS: sessions, TMUX_LOG: tmuxLog, LAUNCH_LOG: launchLog, SUPERVISOR_LOG: join(temp, "supervisor"),
+    GATEWAY_STATE_DIR: stateDir,
+  };
+  const run = (args: string[], extra: NodeJS.ProcessEnv = {}) =>
+    spawnSync("bash", [GATEWAY, ...args], { encoding: "utf8", env: { ...env, ...extra }, cwd: temp });
+  const tmuxCalls = () => existsSync(tmuxLog) ? readFileSync(tmuxLog, "utf8").trim().split("\n") : [];
+  const live = () => readFileSync(sessions, "utf8").trim().split("\n").filter(Boolean);
+  return { temp, harness, sessions, launchLog, stateDir, env, run, tmuxCalls, live };
+}
+
+describe("gateway openclaw: client-openclaw tmux session", () => {
+  it("holds --bind loopback in the run command because a container refuses bind=auto with exit 78", () => {
+    expect(gateway()).toContain("gateway run --bind loopback");
+  });
+
+  it("never installs a daemon", () => {
+    expect(gateway()).not.toMatch(/gateway install|install-daemon/);
+  });
+
+  it("names openclaw in the usage text", () => {
+    const t = openclawFixture();
+    expect(t.run(["--help"]).stdout).toContain("<pi|hermes|openclaw>");
+  });
+
+  it("starts `openclaw gateway run --bind loopback` in client-openclaw with the checkout state dir", () => {
+    const t = openclawFixture();
+    const result = t.run(["openclaw"]);
+    expect(result.status, result.stderr).toBe(0);
+    expect(t.live()).toEqual(["client-openclaw"]);
+    expect(t.tmuxCalls().some(c => c.startsWith("new-session -d -s client-openclaw "))).toBe(true);
+    expect(readFileSync(t.launchLog, "utf8")).toBe(
+      [join(t.harness, ".openclaw"), t.harness, "gateway", "run", "--bind", "loopback", ""].join("\n"));
+    expect(readFileSync(t.env.SUPERVISOR_LOG!, "utf8")).toBe(["openclaw", "/tmp/client-openclaw.log", ""].join("\n"));
+    expect(result.stdout).toContain("tmux attach -t client-openclaw");
+  });
+
+  it("does not start a second session when client-openclaw is live", () => {
+    const t = openclawFixture();
+    writeFileSync(t.sessions, "client-openclaw\n");
+    const result = t.run(["openclaw"]);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("client-openclaw already running");
+    expect(t.tmuxCalls().some(c => c.startsWith("new-session"))).toBe(false);
+  });
+
+  it("restarts client-openclaw only", () => {
+    const t = openclawFixture();
+    writeFileSync(t.sessions, "client-slack-pi\nclient-slack-hermes\nclient-openclaw\n");
+    const result = t.run(["openclaw", "--restart"]);
+    expect(result.status, result.stderr).toBe(0);
+    const kills = t.tmuxCalls().filter(c => c.startsWith("kill-session"));
+    expect(kills).toEqual(["kill-session -t client-openclaw"]);
+    expect(t.tmuxCalls().some(c => c.startsWith("new-session -d -s client-openclaw "))).toBe(true);
+    expect(t.live()).toEqual(["client-slack-pi", "client-slack-hermes", "client-openclaw"]);
+  });
+
+  it("stops client-openclaw only", () => {
+    const t = openclawFixture();
+    writeFileSync(t.sessions, "client-slack-pi\nclient-slack-hermes\nclient-openclaw\n");
+    const result = t.run(["openclaw", "--stop"]);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("stopped client-openclaw");
+    expect(t.tmuxCalls().filter(c => c.startsWith("kill-session"))).toEqual(["kill-session -t client-openclaw"]);
+    expect(t.live()).toEqual(["client-slack-pi", "client-slack-hermes"]);
+  });
+
+  it("lists client-openclaw with its state", () => {
+    const t = openclawFixture();
+    expect(t.run(["status"]).stdout).toContain("· client-openclaw  stopped   (gateway openclaw)");
+    writeFileSync(t.sessions, "client-openclaw\n");
+    expect(t.run(["status"]).stdout).toContain("✓ client-openclaw  running   (tmux attach -t client-openclaw)");
+    mkdirSync(t.stateDir, { recursive: true });
+    writeFileSync(join(t.stateDir, "openclaw.state"), "backend=openclaw\nbridge_token=n/a\nlaunches=1\n");
+    writeFileSync(join(t.stateDir, "openclaw.heartbeat"), `${Math.floor(Date.now() / 1000)}\n`);
+    const status = t.run(["status"]).stdout;
+    expect(status).toContain("✓ client-openclaw  healthy   (tmux attach -t client-openclaw)");
+    expect(status).toContain("· client-slack-pi  stopped");
+    expect(status).toContain("· client-slack-hermes  stopped");
+  });
+
+  it("exits nonzero before tmux starts a session when openclaw is absent", () => {
+    const t = openclawFixture({ executable: false });
+    const result = t.run(["openclaw"]);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("'openclaw' not found");
+    expect(t.tmuxCalls().some(c => c.startsWith("new-session"))).toBe(false);
+    expect(t.live()).toEqual([]);
+  });
+
+  it("refuses a conflicting OPENCLAW_STATE_DIR before tmux starts a session", () => {
+    const t = openclawFixture();
+    const result = t.run(["openclaw"], { OPENCLAW_STATE_DIR: join(t.temp, "foreign") });
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("conflicting OPENCLAW_STATE_DIR");
+    expect(t.tmuxCalls().some(c => c.startsWith("new-session"))).toBe(false);
+    expect(existsSync(t.launchLog)).toBe(false);
+  });
+
+  it("accepts an inherited OPENCLAW_STATE_DIR that names the checkout state dir", () => {
+    const t = openclawFixture();
+    const result = t.run(["openclaw"], { OPENCLAW_STATE_DIR: join(t.harness, ".openclaw") });
+    expect(result.status, result.stderr).toBe(0);
+    expect(t.live()).toEqual(["client-openclaw"]);
+  });
+});

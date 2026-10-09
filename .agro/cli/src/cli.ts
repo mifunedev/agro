@@ -147,7 +147,7 @@ Usage:
   ${bin} workspace <args...>    Create and list host AGRO workspaces (create|list)
   ${bin} harness <args...>      Install and inspect agent CLI harnesses
   ${bin} tool <args...>         Install and inspect sandbox tooling
-  ${bin} gateway <args...>      Manage a messaging client session (pi|hermes)
+  ${bin} gateway <args...>      Manage a messaging client session (pi|hermes|openclaw)
   ${bin} --version              Print version
   ${bin} --help                 Show this help
 
@@ -364,10 +364,10 @@ export function printGatewayHelp(bin: string = AGRO_PRODUCT.bin): void {
   process.stdout.write(`${bin} gateway — Manage a messaging client session (Slack bridge)
 
 Usage:
-  ${bin} gateway <pi|hermes> [--attach]   start the client session (--attach after)
-  ${bin} gateway <pi|hermes> --restart    restart the session
-  ${bin} gateway <pi|hermes> --stop       stop the session
-  ${bin} gateway status                   show both sessions
+  ${bin} gateway <pi|hermes|openclaw> [--attach]   start the client session (--attach after)
+  ${bin} gateway <pi|hermes|openclaw> --restart    restart the session
+  ${bin} gateway <pi|hermes|openclaw> --stop       stop the session
+  ${bin} gateway status                            show all sessions
 
 Only a LEADING --help/-h is intercepted here; everything else passes through
 verbatim to the vendored ${stateNames(bin).controlDir}/scripts/gateway.sh with ${stateNames(bin).envPrefix}PROJECT_ROOT set to
