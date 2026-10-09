@@ -66,10 +66,10 @@ is cloned or built on this host. Then: agro sandbox install docker
 
 Prerequisites:
   curl
-  Node.js >= 20   (to RUN 'agro'; if missing, this script offers to install nvm + Node 22)
+  Node.js >= 20   (to RUN 'agro'; if missing, this script offers to install nvm + Node 24)
 
 Flags:
-  -y, --yes            Accept prompts (e.g. auto-install nvm + Node 22).
+  -y, --yes            Accept prompts (e.g. auto-install nvm + Node 24).
   -n, --no             Decline prompts.
   -h, --help           Show this help and exit.
 
@@ -114,7 +114,7 @@ AGRO_NVM_VERSION="$(agro_env NVM_VERSION "v0.40.3" | cut -f2-)"
 node_major() { node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0; }
 
 install_node_via_nvm() {
-  banner "Installing nvm + Node 22"
+  banner "Installing nvm + Node 24"
   export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
   if [ ! -s "$NVM_DIR/nvm.sh" ]; then
     curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${AGRO_NVM_VERSION}/install.sh" | bash
@@ -122,8 +122,8 @@ install_node_via_nvm() {
   set +eu
   # shellcheck source=/dev/null
   . "$NVM_DIR/nvm.sh"
-  nvm install 22
-  nvm use 22
+  nvm install 24
+  nvm use 24
   set -eu
 }
 
@@ -137,7 +137,7 @@ ensure_node() {
   else
     warn "Node.js not found (need >= 20 to run 'agro')"
   fi
-  if prompt_yn "Install nvm + Node 22 now?" y; then
+  if prompt_yn "Install nvm + Node 24 now?" y; then
     install_node_via_nvm
   else
     die "Node.js >= 20 is required to run 'agro'. Install it from https://nodejs.org and re-run."
