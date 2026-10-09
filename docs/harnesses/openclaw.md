@@ -50,8 +50,8 @@ OPENCLAW_STATE_DIR="<target-root>/.openclaw" openclaw config set gateway.mode lo
 Replace `<target-root>` with the path that installation prints.
 The commands run in the order shown.
 A configuration error returns a nonzero status and prevents an installation-success message.
-A repeated installation repairs a missing or stale workspace value.
-A repeated installation does not download an installed executable again.
+If AGRO installed OpenClaw, `agro harness install openclaw` runs the install command again and installs the pinned version.
+The command then repairs a missing or stale workspace value.
 
 The workspace value makes the checkout the OpenClaw agent workspace.
 OpenClaw reads the root `AGENTS.md`.
