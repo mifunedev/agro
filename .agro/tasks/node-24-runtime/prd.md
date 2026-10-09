@@ -175,4 +175,6 @@ None. The operator resolved each question on 2026-10-08. The Architectural Decis
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. Claim: story-scoped checks missed a Node 22 fixture outside the story's owned paths. Evidence: the full suite in the Node 24 image failed 6 tests in `.agro/scripts/__tests__/verify-sandbox-image.test.ts`. Outcome: fixed in this PR (`48e7581a`).
+2. Claim: `F2-new-interactive-shell` of the fresh-install check fails in a clean `debian:trixie-slim` container. `bash -ic "agro --version"` exits 127. Evidence: the released installer and this branch fail the same way (`evidence/manual-review.md` section 5). Outcome: proposed issue, pending operator approval.
+3. Claim: the exe.dev account has no plan, so the remote fresh-install check created no VM. Evidence: the run log prints `Choose a plan to start creating VMs.` Outcome: dropped, because the account state is an operator setting and not a repository defect.

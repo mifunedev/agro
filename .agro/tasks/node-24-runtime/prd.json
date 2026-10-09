@@ -143,8 +143,8 @@
         "The run builds images and volumes only with operator approval, and the transcript ends with the removal of each created image, container, and volume."
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor-assembled from executed runs: (1) executed: depends on US-001..US-005, all passes=true; (2) executed: evidence/manual-review.md records each command, output, exit status; (3) executed: node --version v24.21.0 in the rebuilt image; (4) executed: verify-sandbox-image.sh, node-pnpm-parity.sh, pnpm test (1928 passed), upgrade smoke (exit 0) recorded; (5) executed: operator authorized Docker builds and exe.dev; exe.dev created no VM (account has no plan); fresh-install check ran in a clean debian:trixie-slim container instead and installed Node v24.21.0 via nvm; cleanup shows 0 test containers/volumes and 0 exedev resources.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -154,7 +154,8 @@
       ],
       "files": [
         ".agro/tasks/node-24-runtime/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "evidence"
     }
   ]
 }
