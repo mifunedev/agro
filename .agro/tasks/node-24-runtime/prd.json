@@ -69,13 +69,14 @@
         "`.agro/scripts/__tests__/install.test.ts` covers the Node 24 prompt text and exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor re-verified on task branch after cherry-pick: (1) executed `grep -c \"Node 22\" .agro/scripts/install.sh` -> 0, help/banner/prompt name Node 24; (2) executed: install.sh runs `nvm install 24`/`nvm use 24`, nvm tests pass; (3) executed `grep -n -- \"-ge 20\" install.sh` -> lines 132,145; (4) executed grep: package.json engines >=20.0.0, .agro/cli/package.json >=20, build.mjs target node20; (5) executed `pnpm exec vitest run .agro/scripts/__tests__/install.test.ts` -> 19 passed, exit 0; worker showed 4 failures against old install.sh (TDD red).",
       "dependsOn": [],
       "files": [
         ".agro/scripts/install.sh",
         ".agro/scripts/__tests__/install.test.ts"
-      ]
+      ],
+      "commit": "e9925bab"
     },
     {
       "id": "US-004",
