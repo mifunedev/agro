@@ -31,6 +31,7 @@ Status: DRAFT
 - [ ] Installation sets `agents.defaults.workspace` to `<target-root>` through `OPENCLAW_STATE_DIR="<target-root>/.openclaw" openclaw config set` before it reports success. The implementation uses the single-key form or the batch form that upstream supports.
 - [ ] `git grep -n 'openclaw.json' -- .agro/scripts .agro/cli/src` returns no direct edit of the file.
 - [ ] Installation sets `agents.defaults.skipBootstrap` to `true` through `openclaw config set agents.defaults.skipBootstrap true --strict-json`.
+- [ ] Installation sets `gateway.mode` to `local` through `openclaw config set gateway.mode local`. Without the value, `openclaw gateway run` exits 78 with `existing config is missing gateway.mode`.
 - [ ] `.agro/scripts/openclaw-workspace.sh` holds the OpenClaw state-directory check. The task does not change `.agro/scripts/hermes-workspace.sh`.
 - [ ] Docker targets use `/home/sandbox/harness` as `<target-root>`. Local and host targets use the resolved absolute path.
 - [ ] A repeated install repairs a missing or stale workspace value and does not download the executable again.
