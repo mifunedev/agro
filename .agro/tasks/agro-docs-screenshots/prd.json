@@ -10,7 +10,7 @@
       "description": "As a docs maintainer, I want the Console browser editor on a free node. Then each screenshot shows the editor and the node host that a Console user sees.",
       "acceptanceCriteria": [
         "The capture signs in to the local development Console as `dev+demo@agro.local`, and creates one free node with the SSH key of that account.",
-        "The capture opens the node in **Connect** → **Browser editor (code-server)**.",
+        "The capture opens the node in **Connect** \u2192 **Browser editor (code-server)**.",
         "The node host runs the latest AGRO release, and `agro --version` prints that version in the editor terminal.",
         "agent-browser shows the editor in a 1280x720 viewport at device scale 1.5. Each PNG is 1920x1080, and the editor keeps a desktop layout.",
         "The git identity on the node is `Demo User <demo@example.com>`. The capture signs in to no other account. No screenshot shows a real name, email address, token, or public IP address.",
@@ -135,7 +135,7 @@
       "description": "As the operator, I want a recorded review of each page with its images. Then I accept the change from evidence.",
       "acceptanceCriteria": [
         "Depends on US-001 through US-005.",
-        "`.agro/tasks/agro-docs-screenshots/evidence/manual-review.md` holds an annotated screenshot of each changed page at 1920x1080, from a local agro-web build that uses the changed `docs/`.",
+        "`.agro/tasks/agro-docs-screenshots/evidence/manual-review.md` holds an annotated screenshot of each changed page at 1280x720, from a local agro-web build that uses the changed `docs/`.",
         "The review confirms that each image loads and shows no personal data.",
         "The run stops each process that the run starts.",
         "Typecheck passes"

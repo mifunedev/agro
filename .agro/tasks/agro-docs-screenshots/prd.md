@@ -70,7 +70,7 @@ Status: DRAFT
 **Acceptance Criteria:**
 
 - [ ] Depends on US-001 through US-005.
-- [ ] `.agro/tasks/agro-docs-screenshots/evidence/manual-review.md` holds an annotated screenshot of each changed page at 1920x1080, from a local agro-web build that uses the changed `docs/`.
+- [ ] `.agro/tasks/agro-docs-screenshots/evidence/manual-review.md` holds an annotated screenshot of each changed page at 1280x720, from a local agro-web build that uses the changed `docs/`.
 - [ ] The review confirms that each image loads and shows no personal data.
 - [ ] The run stops each process that the run starts.
 
