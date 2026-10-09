@@ -39,8 +39,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed: quickstart.md shows agro sandbox install docker (recreated agro-sbx-1, cached image), agro shell agro-sbx-1, and a harness install in a Herdr pane; installation.md shows agro --version 0.18.1. All captured in the Console browser editor on the dev free node (AGRO 0.18.1), 1280x720 viewport at device scale 1.5 (1920x1080 PNG), terminal font 18, status bar hidden, no injected CSS; a local agent-browser wrapper moves only the callout badges before the screenshot. Each image shows login sandbox, the node-ID hostname, the sandbox container hostname, and AGRO output: no IP, email, token, or code. STE exit 0 on each changed page; pnpm test:scripts exit 0. Retakes in b540f6d2 and 9513c9e6.",
       "dependsOn": [
         "US-001"
       ],
@@ -49,7 +49,8 @@
         "docs/installation.md",
         "docs/img/quickstart-*",
         "docs/img/installation-*"
-      ]
+      ],
+      "commit": "9513c9e6"
     },
     {
       "id": "US-003",
@@ -63,8 +64,8 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed: lifecycle-commands.md shows agro ps and agro sandbox list; connecting.md shows the editor with the node workspace and a shell in the sandbox. All captured in the Console browser editor on the dev free node (AGRO 0.18.1), 1280x720 viewport at device scale 1.5 (1920x1080 PNG), terminal font 18, status bar hidden, no injected CSS; a local agent-browser wrapper moves only the callout badges before the screenshot. Each image shows login sandbox, the node-ID hostname, the sandbox container hostname, and AGRO output: no IP, email, token, or code. STE exit 0 on each changed page; pnpm test:scripts exit 0. Retakes in b540f6d2 and 9513c9e6.",
       "dependsOn": [
         "US-001"
       ],
@@ -73,7 +74,8 @@
         "docs/connecting.md",
         "docs/img/lifecycle-commands-*",
         "docs/img/connecting-*"
-      ]
+      ],
+      "commit": "7b4d2e64"
     },
     {
       "id": "US-004",
@@ -88,8 +90,8 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed: harnesses/overview.md shows agro harness install with its result; integrations/herdr.md shows a Herdr workspace with two panes; integrations/github.md shows gh auth status with no account. Findings: host-side harness install reports the running sandbox as absent; the onboarding banner marks alias-only harnesses as installed; harness install on an installed harness does not update. All captured in the Console browser editor on the dev free node (AGRO 0.18.1), 1280x720 viewport at device scale 1.5 (1920x1080 PNG), terminal font 18, status bar hidden, no injected CSS; a local agent-browser wrapper moves only the callout badges before the screenshot. Each image shows login sandbox, the node-ID hostname, the sandbox container hostname, and AGRO output: no IP, email, token, or code. STE exit 0 on each changed page; pnpm test:scripts exit 0. Retakes in b540f6d2 and 9513c9e6.",
       "dependsOn": [
         "US-001"
       ],
@@ -100,7 +102,8 @@
         "docs/img/harnesses-overview-*",
         "docs/img/herdr-*",
         "docs/img/github-*"
-      ]
+      ],
+      "commit": "4a7f26f8"
     },
     {
       "id": "US-005",
