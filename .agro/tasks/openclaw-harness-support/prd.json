@@ -23,15 +23,16 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor re-verified on feat branch at 79427870: (1-3,7,8,10) executed `pnpm test` -> 89 files, 1938 passed, exit 0; catalog entry openclaw, install argv `npm --prefix {{prefix}} install -g --allow-scripts=openclaw openclaw@2026.9.9`, uninstall argv, npm-harness list and SHIPPED_SANDBOX_INSTALL_ARGV row asserted by tests; worker showed 5+3 red before implementation; (4) executed: argv keeps --allow-scripts; node:24-trixie-slim npm 11.19.0; (5) executed in throwaway node:24-trixie-slim container: install=0, readlink ../lib/node_modules/openclaw/openclaw.mjs, `OpenClaw 2026.9.9 (bcfc888)`; (6) executed docker build + verify-sandbox-image.sh -> `ok: npm is 11.19.0, at least 11.16.0`, all checks passed; unit tests cover npm 10.9.2 and 11.15.9 failures; (9) executed head -1 Dockerfile -> node:24-trixie-slim; docs stub: docs/harnesses/openclaw.md exists with ## Install, ste-check exit 0; Typecheck passes: executed `pnpm typecheck` exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/harnesses/catalog.ts",
         ".agro/cli/src/__tests__/harness-catalog.test.ts",
         ".agro/scripts/verify-sandbox-image.sh",
         "docs/harnesses/openclaw.md"
-      ]
+      ],
+      "commit": "cbdd5dfe 79427870"
     },
     {
       "id": "US-002",
