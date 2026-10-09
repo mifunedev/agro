@@ -20,6 +20,7 @@ Status: DRAFT
 - [ ] The `SHIPPED_SANDBOX_INSTALL_ARGV` table in `.agro/cli/src/__tests__/harness-catalog.test.ts` holds the expanded `openclaw` row.
 - [ ] The story starts only after `.agro/tasks/node-24-runtime/` merges. `.devcontainer/Dockerfile` line 1 then reads `FROM node:24-trixie-slim AS base`.
 - [ ] A new catalog test fails before the entry exists and passes after the entry exists.
+- [ ] `docs/harnesses/openclaw.md` exists with an `## Install` section. The harness catalog test requires one page for each catalog id. US-004 completes the page.
 
 ### US-002: Bind OpenClaw state and workspace to the AGRO checkout
 
@@ -63,7 +64,7 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] `docs/harnesses/openclaw.md` exists and documents install, the state directory, the workspace binding, authentication, the gateway session, state persistence, and `agro destroy` behavior.
+- [ ] `docs/harnesses/openclaw.md` documents install, the state directory, the workspace binding, authentication, the gateway session, state persistence, and `agro destroy` behavior.
 - [ ] The page states that AGRO does not seed `SOUL.md`, `IDENTITY.md`, or `USER.md` in the checkout.
 - [ ] The page states that the operator keeps provider keys in `<target-root>/.openclaw/.env`.
 - [ ] `docs/harnesses/overview.md` lists OpenClaw in the install sentence and in the "Supported agents" table.
