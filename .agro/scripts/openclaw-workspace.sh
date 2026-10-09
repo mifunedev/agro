@@ -26,9 +26,12 @@ openclaw_workspace_configure() {
   if [ "$status" -eq 0 ]; then
     OPENCLAW_STATE_DIR="$state_dir" "$openclaw_bin" config set agents.defaults.skipBootstrap true --strict-json || status=$?
   fi
+  if [ "$status" -eq 0 ]; then
+    OPENCLAW_STATE_DIR="$state_dir" "$openclaw_bin" config set gateway.mode local || status=$?
+  fi
   if [ "$status" -ne 0 ]; then
-    printf '[openclaw] could not configure the workspace in %s; run: OPENCLAW_STATE_DIR=%q %q config set agents.defaults.workspace %q && OPENCLAW_STATE_DIR=%q %q config set agents.defaults.skipBootstrap true --strict-json\n' \
-      "$state_dir" "$state_dir" "$openclaw_bin" "$root" "$state_dir" "$openclaw_bin" >&2
+    printf '[openclaw] could not configure the workspace in %s; run: OPENCLAW_STATE_DIR=%q %q config set agents.defaults.workspace %q && OPENCLAW_STATE_DIR=%q %q config set agents.defaults.skipBootstrap true --strict-json && OPENCLAW_STATE_DIR=%q %q config set gateway.mode local\n' \
+      "$state_dir" "$state_dir" "$openclaw_bin" "$root" "$state_dir" "$openclaw_bin" "$state_dir" "$openclaw_bin" >&2
   fi
   return "$status"
 }

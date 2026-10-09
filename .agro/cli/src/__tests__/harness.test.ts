@@ -2032,7 +2032,7 @@ describe("OpenClaw workspace binding", () => {
     }, io)).toBe(0);
   });
 
-  it.each([0, 7])("sets the workspace and skipBootstrap through the config CLI (exit %s)", status => {
+  it.each([0, 7])("sets the workspace, skipBootstrap, and gateway.mode through the config CLI (exit %s)", status => {
     const root = sandboxRoot();
     const log = join(root, "config-calls");
     const binary = join(root, "openclaw");
@@ -2043,9 +2043,23 @@ describe("OpenClaw workspace binding", () => {
     });
     expect(result.status).toBe(status);
     const expected = [`${stateDir}|config set agents.defaults.workspace ${root}`];
-    if (status === 0) expected.push(`${stateDir}|config set agents.defaults.skipBootstrap true --strict-json`);
+    if (status === 0) {
+      expected.push(`${stateDir}|config set agents.defaults.skipBootstrap true --strict-json`);
+      expected.push(`${stateDir}|config set gateway.mode local`);
+    }
     expect(readFileSync(log, "utf8")).toBe(`${expected.join("\n")}\n`);
     if (status) expect(result.stderr).toContain("could not configure");
+  });
+
+  it("fails with a recovery command when only gateway.mode cannot be set", () => {
+    const root = sandboxRoot();
+    const binary = join(root, "openclaw");
+    writeFileSync(binary, `#!/usr/bin/env bash\n[ "$3" = gateway.mode ] && exit 5\nexit 0\n`, { mode: 0o755 });
+    const result = spawnSync("bash", [SCRIPT, "configure", root, join(root, ".openclaw"), binary], {
+      encoding: "utf8", env: { PATH: process.env.PATH },
+    });
+    expect(result.status).toBe(5);
+    expect(result.stderr).toContain("config set gateway.mode local");
   });
 
   it("names both paths when the check refuses a foreign state directory", () => {
