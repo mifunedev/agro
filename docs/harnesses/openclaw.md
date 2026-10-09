@@ -152,6 +152,16 @@ Git ignores state contents; never commit credentials.
 `agro destroy` removes the home volume, including image-only OpenClaw state.
 The command does not remove a host checkout's `.openclaw/` directory.
 
+`agro harness uninstall openclaw` removes the npm package and the `~/.local/bin/openclaw` launcher.
+The command keeps `<target-root>/.openclaw/`.
+To remove the OpenClaw state, the operator deletes that directory.
+
+> **Warning:** The next command deletes the OpenClaw credentials, sessions, and configuration.
+
+```bash
+rm -r <target-root>/.openclaw
+```
+
 ## Upstream documentation
 
 - [OpenClaw install](https://docs.openclaw.ai/install)
