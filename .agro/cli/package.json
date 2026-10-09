@@ -34,7 +34,7 @@
     "prepublishOnly": "npm run typecheck:build"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^24.0.0",
     "esbuild": "^0.28.1",
     "typescript": "^5.6.0"
   }

@@ -1773,3 +1773,83 @@ describe("a host with no container runtime", () => {
     await expect(runHarnessUninstall("claude-code", opts, makeIo().io)).rejects.toThrow(/kernel panic/);
   });
 });
+
+describe("harness commands on the host with a registered sandbox", () => {
+  const HOST: NodeJS.ProcessEnv = { ...process.env, AGRO_EXECUTION_TARGET: "docker-compose" };
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  function registeredSandbox(name: string): string {
+    const home = mkdtempSync(join(tmpdir(), "oh-harness-registry-"));
+    cleanups.push(home);
+    const agroHome = join(home, ".agro");
+    vi.stubEnv("AGRO_HOME", agroHome);
+    vi.stubEnv("SANDBOX_NAME", undefined);
+    const entry = join(agroHome, "sandboxes", name);
+    mkdirSync(join(entry, ".agro"), { recursive: true });
+    writeFileSync(agroConfigPath(entry), `${JSON.stringify(defaultAgroConfig(name), null, 2)}\n`);
+    return home;
+  }
+
+  function sandboxRunner(): { calls: RecordedCall[]; run: LifecycleRunner } {
+    return makeRunner((cmd, args) => (isInspect(cmd, args) ? running : undefined));
+  }
+
+  const containersOf = (calls: RecordedCall[]): string[] =>
+    calls
+      .filter((c) => c.cmd === "docker" && (c.args[0] === "inspect" || c.args[0] === "exec"))
+      .map((c) => c.args.find((a) => a.startsWith("agro")) ?? "");
+
+  it("install probes the running registered sandbox from outside a checkout", async () => {
+    const cwd = registeredSandbox("agro-sbx-1");
+    const { calls, run } = sandboxRunner();
+    const { err, io } = makeIo();
+
+    await runHarnessInstall("claude-code", { bin: "agro", cwd, run, env: HOST, homedir: fakeHome().homedir }, io);
+
+    expect(text(err)).not.toContain("the sandbox is not running");
+    const inspect = calls.find((c) => isInspect(c.cmd, c.args))!;
+    expect(inspect.args).toContain("agro-sbx-1");
+    expect(inspect.args).not.toContain("agro");
+    expect(execCalls(calls).length).toBeGreaterThan(0);
+    expect(new Set(containersOf(calls))).toEqual(new Set(["agro-sbx-1"]));
+  });
+
+  it("list, status, and uninstall probe the same registered sandbox", async () => {
+    const cwd = registeredSandbox("agro-sbx-1");
+    const home = fakeHome().homedir;
+    const listed = sandboxRunner();
+    await runHarnessList({ bin: "agro", cwd, run: listed.run, json: true, env: HOST, homedir: home }, makeIo().io);
+    const status = sandboxRunner();
+    await runHarnessStatus("claude-code", { bin: "agro", cwd, run: status.run, json: true, env: HOST, homedir: home }, makeIo().io);
+    const removed = sandboxRunner();
+    await runHarnessUninstall("claude-code", { bin: "agro", cwd, run: removed.run, env: HOST, homedir: home }, makeIo().io);
+
+    for (const calls of [listed.calls, status.calls, removed.calls]) {
+      expect(containersOf(calls).length).toBeGreaterThan(0);
+      expect(new Set(containersOf(calls))).toEqual(new Set(["agro-sbx-1"]));
+    }
+  });
+
+  it("keeps the container that SANDBOX_NAME sets", async () => {
+    const cwd = registeredSandbox("agro-sbx-1");
+    vi.stubEnv("SANDBOX_NAME", "agro-chosen");
+    const { calls, run } = sandboxRunner();
+
+    await runHarnessInstall("claude-code", { bin: "agro", cwd, run, env: HOST, homedir: fakeHome().homedir }, makeIo().io);
+
+    expect(calls.find((c) => isInspect(c.cmd, c.args))!.args).toContain("agro-chosen");
+  });
+
+  it("keeps the container that the project config name sets", async () => {
+    registeredSandbox("agro-sbx-1");
+    const repo = makeRepo();
+    const { calls, run } = sandboxRunner();
+
+    await runHarnessInstall("claude-code", { bin: "agro", cwd: repo, run, env: HOST, homedir: fakeHome().homedir }, makeIo().io);
+
+    expect(calls.find((c) => isInspect(c.cmd, c.args))!.args).toContain("probe");
+  });
+});

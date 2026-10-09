@@ -57,6 +57,8 @@ For Hermes, the update also configures the Hermes workspace again.
 
 The harness self-update path works because npm's global prefix in the sandbox is `/home/sandbox/.local`, not `/usr/local`. Never run a harness update through `sudo`. The harness binaries are not on sudo's `secure_path`. A root-owned install would also land outside the home volume and disappear on the next recreate.
 
+A new image can change the Node major, for example from Node 22 to Node 24. The home volume keeps the harnesses that npm built on the old Node. If a harness fails after the upgrade, run `agro harness install <id>`. The install rebuilds the harness on the new Node.
+
 ## Removing a harness
 
 `agro harness uninstall <id>` undoes an install. The command resolves its target exactly as `install` does: the running sandbox when one is reachable, the host when none is.

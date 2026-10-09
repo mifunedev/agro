@@ -30,10 +30,10 @@ jobs:
       - name: Ensure Mifune submodule
         run: bash .agro/scripts/link-providers.sh --init
 
-      - name: Setup Node 22.x
+      - name: Setup Node 24.x
         uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
@@ -260,10 +260,10 @@ jobs:
         with:
           ref: ${{ needs.reserve.outputs.releaseSha }}
 
-      - name: Setup Node 22.x
+      - name: Setup Node 24.x
         uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Build the CLI bundles at the released commit
         run: |

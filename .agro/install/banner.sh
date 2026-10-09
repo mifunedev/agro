@@ -6,6 +6,18 @@ case $- in *i*) ;; *) return 0 ;; esac
 export AGRO_BANNER_SHOWN=1
 
 
+_agro_has_binary() {
+  if [ -n "${ZSH_VERSION:-}" ]; then
+    _agro_binary_path=$(whence -p "$1" 2>/dev/null)
+  else
+    _agro_binary_path=$(type -P "$1" 2>/dev/null)
+  fi
+  case "$_agro_binary_path" in
+    /*) [ -x "$_agro_binary_path" ] ;;
+    *) return 1 ;;
+  esac
+}
+
 cli_bin="${AGRO_BIN:-${AGRO_BIN:-agro}}"
 sandbox_name="${SANDBOX_NAME:-$(hostname)}"
 timezone="${TZ:-$(date +%Z 2>/dev/null)}"
@@ -14,7 +26,7 @@ project_dir="${HOME}/harness"
 overlays=""
 config_json="${HOME}/harness/.agro/config.json"
 [ -f "$config_json" ] || config_json="${HOME}/harness/config.json"
-if command -v jq >/dev/null 2>&1; then
+if _agro_has_binary jq; then
   overlays=$(jq -r \
     '.composeOverrides[]? | sub("^\\.devcontainer/docker-compose\\."; "") | sub("\\.yml$"; "")' \
     "$config_json" 2>/dev/null \
@@ -49,7 +61,7 @@ esac
 
 gh_status="$status_x"
 gh_detail="not authenticated — run: gh auth login"
-if command -v gh >/dev/null 2>&1 && gh auth status -h github.com >/dev/null 2>&1; then
+if _agro_has_binary gh && gh auth status -h github.com >/dev/null 2>&1; then
   gh_user=$(gh api user --jq .login 2>/dev/null)
   if [ -n "$gh_user" ]; then
     gh_status="$status_ok"
@@ -61,29 +73,38 @@ if command -v gh >/dev/null 2>&1 && gh auth status -h github.com >/dev/null 2>&1
 fi
 
 claude_status="$status_x"
-claude_detail="not authenticated — run: claude"
-if [ -s "${HOME}/.claude/.credentials.json" ]; then
-  claude_status="$status_ok"
-  claude_detail="authenticated"
+claude_detail="not installed — run: ${cli_bin} harness install claude-code"
+if _agro_has_binary claude; then
+  claude_detail="not authenticated — run: claude"
+  if [ -s "${HOME}/.claude/.credentials.json" ]; then
+    claude_status="$status_ok"
+    claude_detail="authenticated"
+  fi
 fi
 
 codex_status="$status_x"
-codex_detail="not authenticated — run: codex"
-if [ -s "${HOME}/.codex/auth.json" ]; then
-  codex_status="$status_ok"
-  codex_detail="authenticated"
+codex_detail="not installed — run: ${cli_bin} harness install codex"
+if _agro_has_binary codex; then
+  codex_detail="not authenticated — run: codex"
+  if [ -s "${HOME}/.codex/auth.json" ]; then
+    codex_status="$status_ok"
+    codex_detail="authenticated"
+  fi
 fi
 
 pi_status="$status_x"
-pi_detail="not authenticated — run: pi"
-if [ -s "${HOME}/.pi/agent/auth.json" ]; then
-  pi_status="$status_ok"
-  pi_detail="authenticated"
+pi_detail="not installed — run: ${cli_bin} harness install pi"
+if _agro_has_binary pi; then
+  pi_detail="not authenticated — run: pi"
+  if [ -s "${HOME}/.pi/agent/auth.json" ]; then
+    pi_status="$status_ok"
+    pi_detail="authenticated"
+  fi
 fi
 
 opencode_status="$status_x"
 opencode_detail="not installed — run: ${cli_bin} harness install opencode"
-if command -v opencode >/dev/null 2>&1; then
+if _agro_has_binary opencode; then
   if [ -s "${HOME}/.local/share/opencode/auth.json" ]; then
     opencode_status="$status_ok"
     opencode_detail="authenticated"
@@ -95,7 +116,7 @@ fi
 
 grok_status="$status_x"
 grok_detail="not installed — run: ${cli_bin} harness install grok-build"
-if command -v grok >/dev/null 2>&1; then
+if _agro_has_binary grok; then
   if [ -s "${HOME}/.grok/auth.json" ]; then
     grok_status="$status_ok"
     grok_detail="authenticated"
@@ -110,14 +131,14 @@ fi
 
 antigravity_status="$status_x"
 antigravity_detail="not installed — run: ${cli_bin} harness install antigravity-cli"
-if command -v agy >/dev/null 2>&1; then
+if _agro_has_binary agy; then
   antigravity_status="$status_ok"
   antigravity_detail="installed — run: agy"
 fi
 
 hermes_status="$status_x"
 hermes_detail="not installed — run: ${cli_bin} harness install hermes"
-if command -v hermes >/dev/null 2>&1; then
+if _agro_has_binary hermes; then
   if [ -s "${HERMES_HOME:-${AGRO_PROJECT_ROOT:-/home/sandbox/harness}/.hermes}/auth.json" ]; then
     hermes_status="$status_ok"
     hermes_detail="authenticated"
@@ -129,10 +150,10 @@ fi
 
 dashboard_status=""
 dashboard_detail=""
-if command -v hermes >/dev/null 2>&1; then
+if _agro_has_binary hermes; then
   dashboard_enabled=""
   dashboard_port=9119
-  if command -v jq >/dev/null 2>&1 && [ -f "$project_dir/agro.json" ]; then
+  if _agro_has_binary jq && [ -f "$project_dir/agro.json" ]; then
     dashboard_enabled="$(jq -r '.hermesDashboard.enabled // false' "$project_dir/agro.json" 2>/dev/null)"
     dashboard_port="$(jq -r '.hermesDashboard.port // 9119' "$project_dir/agro.json" 2>/dev/null)"
   fi
@@ -153,7 +174,7 @@ fi
 # agro CLI — verify the bind-mounted package built and symlinked
 agro_status="$status_x"
 agro_detail="not installed — check entrypoint logs"
-if command -v agro >/dev/null 2>&1; then
+if _agro_has_binary agro; then
   agro_version=$(agro --version 2>/dev/null | head -1)
   agro_status="$status_ok"
   agro_detail="${agro_version:-installed}"
@@ -180,7 +201,7 @@ printf '    %-6s %-11s %s\n' "$agro_status"        "agro"        "$agro_detail"
 printf '\n'
 shortcuts=""
 for _agro_binary in claude codex pi opencode grok agy hermes herdr cloudflared tailscale agent-browser; do
-  command -v "$_agro_binary" >/dev/null 2>&1 || continue
+  _agro_has_binary "$_agro_binary" || continue
   if [ -z "$shortcuts" ]; then shortcuts="$_agro_binary"; else shortcuts="$shortcuts · $_agro_binary"; fi
 done
 if [ -n "$shortcuts" ]; then
@@ -190,7 +211,7 @@ else
   printf '  No harness or tool is installed. Add one with `%s harness install <id>` or `%s tool install <id>`.\n' "$cli_bin" "$cli_bin"
 fi
 printf '\n'
-if command -v herdr >/dev/null 2>&1; then
+if _agro_has_binary herdr; then
   printf '  Next: run `herdr` to open your persistent AGRO workspace.\n'
 else
   printf '  Next: run `%s tool install herdr`, then `herdr`, to open your persistent AGRO workspace.\n' "$cli_bin"
@@ -198,6 +219,9 @@ fi
 printf '  Complete setup, authentication, agents, tests, and servers inside Herdr.\n'
 printf '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
 printf '\n'
+
+unset -f _agro_has_binary
+unset _agro_binary_path _agro_binary
 
 if [ -d "/home/orchestrator" ] && [ "$(whoami)" = "sandbox" ]; then
   printf '\n'

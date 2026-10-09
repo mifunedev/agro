@@ -41,10 +41,10 @@ jobs:
           ref: ${{ inputs.ref }}
           submodules: recursive
 
-      - name: Setup Node 22.x
+      - name: Setup Node 24.x
         uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
       - name: Skip @mifune/agro if the version is already published
