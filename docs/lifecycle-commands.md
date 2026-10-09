@@ -51,6 +51,9 @@ Host prerequisites and the CLI install are in [Installation](installation.md).
 `agro <verb> -- <args>` forwards extra arguments to `docker compose`, e.g.
 `agro logs -- --tail 50`.
 
+![The editor terminal runs agro ps for one sandbox and shows its running container.](img/lifecycle-commands-ps.png)
+Callouts: 1 is the command. 2 is the running sandbox container.
+
 ## Creating a sandbox
 
 `agro sandbox install docker` is the one command that creates a sandbox. It runs
@@ -89,6 +92,9 @@ agro shell <name>                # attach as the sandbox user
 4. otherwise an error listing every registered name.
 
 `agro sandbox list` prints that list, with the container status of each.
+
+![The editor terminal runs agro sandbox list and shows one registry entry.](img/lifecycle-commands-sandbox-list.png)
+Callouts: 1 is the command. 2 is name, runtime, status, and checkout.
 
 `agro sandbox list --json` prints the same entries as JSON. Each entry carries the
 bound directory under the key `checkout`. The JSON output keeps the key `repo` as
