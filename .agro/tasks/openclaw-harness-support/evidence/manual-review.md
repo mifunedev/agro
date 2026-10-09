@@ -398,3 +398,216 @@ exit=0
 | Conflicting `OPENCLAW_STATE_DIR` refusal | 6 |
 | No provider credential, no messaging channel | header, 5 |
 | `agro harness uninstall openclaw` and removal of each created resource | 7, 8 |
+
+## 9. Real AGRO workspace on an exe.dev VM
+
+Sections 0 to 8 ran in an image-only sandbox. The image seed holds no `.git`, so those sections cannot prove alignment with a real checkout. This section closes that gap.
+
+The advisor ran `exedev-workspace-check.sh` on 2026-10-09 with the `/remote-sandbox` driver on the operator host:
+
+```bash
+AGRO_REF=feat/1362-openclaw-harness-support bash .agro/skills/remote-sandbox/scripts/run.sh exedev .agro/tasks/openclaw-harness-support/evidence/exedev-workspace-check.sh
+```
+
+The check installs the AGRO CLI on a fresh Ubuntu VM and runs `agro workspace create --ref feat/1362-openclaw-harness-support`. Then `agro sandbox install docker --checkout <workspace>` builds the sandbox from the branch Dockerfile with the real git checkout mounted at `/home/sandbox/harness`. The run used no provider credential and no messaging channel. The log below omits the VM connection record and the bundled OpenClaw skill rows.
+
+An earlier run omitted `--checkout`. That run booted the published Node 22 image without the checkout, and this file does not count it.
+
+```text
+== exedev agro-mx-1009-013612 check=openclaw-workspace-check.sh image=default date=2026-10-09T07:36:12Z
+TIMING create_return_s=1.4 first_shell_s=2.0
+build under test: install=release agro_js=release sandbox_image=cli default agro_ref=feat/1362-openclaw-harness-support vm_image=provider default
+started
+== A host and sandbox
+host: Ubuntu 24.04.5 LTS user=exedev
+RESULT A1-host-cli PASS agro 0.18.1
+RESULT A2-workspace PASS ref=feat/1362-openclaw-harness-support@9d843b89
+RESULT A3-docker PASS server=29.1.3
+sandbox install exit=0
+RESULT A4-sandbox-boot PASS 78s, built from the workspace Dockerfile
+== B sandbox identity
+ Container oc-mx  Creating
+ Container oc-mx  Created
+ Container oc-mx  Starting
+ Container oc-mx  Started
+next: agro shell oc-mx
+RESULT B1-checkout-mounted PASS feat/1362-openclaw-harness-support@9d843b89
+RESULT B2-node24 PASS v24.21.0
+$ node --version; npm --version; agro --version; readlink -f "$(command -v agro)"; git rev-parse --abbrev-ref HEAD; git rev-parse --short HEAD; mount | grep " /home/sandbox/harness " | cut -d" " -f1-5
+v24.21.0
+11.19.0
+0.18.1
+/opt/agro/dist/agro.js
+feat/1362-openclaw-harness-support
+9d843b89
+/dev/vda on /home/sandbox/harness type ext4
+exit=0
+$ git status --porcelain; echo porcelain_lines=$(git status --porcelain | wc -l)
+porcelain_lines=0
+exit=0
+$ agro harness list | grep -E "HARNESS|openclaw"
+HARNESS          KIND         INSTALLED
+openclaw         installable  no
+exit=0
+== C install
+$ agro harness install openclaw
+installing OpenClaw into the sandbox…
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+added 343 packages in 28s
+
+112 packages are looking for funding
+  run `npm fund` for details
+npm warn install-scripts 4 packages have install scripts not yet covered by allowScripts:
+npm warn install-scripts   @google/genai@2.23.0 (preinstall: echo 'preinstall: no-op')
+npm warn install-scripts   esbuild@0.28.2 (postinstall: node install.js)
+npm warn install-scripts   koffi@3.3.1 (install: node ./cnoke.cjs -P . -D src/koffi --prebuild --release)
+npm warn install-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+npm warn install-scripts
+npm warn install-scripts Run `npm install -g --allow-scripts=@google/genai,esbuild,koffi,protobufjs` to allow these scripts once, or `npm config set allow-scripts=@google/genai,esbuild,koffi,protobufjs --location=user` to allow them for all global installs.
+Updated agents.defaults.workspace. Change will apply without restarting the gateway.
+Updated agents.defaults.skipBootstrap. Change will apply without restarting the gateway.
+Updated gateway.mode. Restart the gateway to apply.
+openclaw: installed — see https://github.com/mifunedev/agro/blob/main/docs/harnesses/openclaw.md for authentication
+Run OpenClaw in the AGRO workspace: OPENCLAW_STATE_DIR=/home/sandbox/harness/.openclaw openclaw
+exit=0
+RESULT C1-install PASS 
+$ openclaw --version
+OpenClaw 2026.9.9 (bcfc888)
+exit=0
+== D workspace alignment
+RESULT D1-workspace-is-checkout PASS /home/sandbox/harness
+$ export OPENCLAW_STATE_DIR=/home/sandbox/harness/.openclaw; openclaw config get agents.defaults.skipBootstrap; openclaw config get gateway.mode; openclaw config file
+true
+local
+/home/sandbox/harness/.openclaw/openclaw.json
+exit=0
+$ ls -A /home/sandbox/harness/.openclaw; if test -e /home/sandbox/.openclaw; then echo "default ~/.openclaw: present"; else echo "default ~/.openclaw: absent"; fi
+config-journal-fingerprint.key
+openclaw.json
+openclaw.json.bak
+openclaw.json.bak.1
+state
+default ~/.openclaw: absent
+exit=0
+$ git status --porcelain; echo porcelain_lines=$(git status --porcelain | wc -l); git check-ignore -v .openclaw/
+porcelain_lines=0
+.gitignore:75:/.openclaw/	.openclaw/
+exit=0
+RESULT D2-checkout-clean-after-install PASS 
+$ export OPENCLAW_STATE_DIR=/home/sandbox/harness/.openclaw; openclaw skills list 2>/dev/null | grep agents-skills-project
+│ ✓ ready       │ agent-browser            │ Open a URL in the headless agent-browser, with a  │ agents-skills-project │
+│ ✓ ready       │ architect                │ Decide what the system should become before /prd  │ agents-skills-project │
+│ ✓ ready       │ audit                    │ Explicit eight-target audit dispatcher for        │ agents-skills-project │
+│ ✓ ready       │ builder                  │ Author and refine reference skills, task-style    │ agents-skills-project │
+│ ✓ ready       │ ci-status                │ Check the CI pipeline status for the current      │ agents-skills-project │
+│ ✓ ready       │ cloudflared              │ Start or explain a Cloudflared tunnel for a       │ agents-skills-project │
+│ ✓ ready       │ compact-handoff          │ Generate exactly two ready-to-paste prompts from  │ agents-skills-project │
+│ ✓ ready       │ council                  │ Compare independent perspectives on a bounded     │ agents-skills-project │
+│ ✓ ready       │ delegate                 │ TRIGGER when: asked to "delegate this", "run      │ agents-skills-project │
+│ ✓ ready       │ escalate                 │ Deliver a human-addressed escalation from an      │ agents-skills-project │
+│ ✓ ready       │ git                      │ AGRO git workflow: issues, branches, commits, PR  │ agents-skills-project │
+│ ✓ ready       │ health-check             │ Triage memory, swap, disk and CPU where you are   │ agents-skills-project │
+│ ✓ ready       │ herdr                    │ Drive the Herdr terminal workspace manager from   │ agents-skills-project │
+│ ✓ ready       │ prd                      │ Write or revise a repository-grounded plan for    │ agents-skills-project │
+│ ✓ ready       │ prompt-miner             │ Rank past prompts by session outcome and mine     │ agents-skills-project │
+│ ✓ ready       │ release                  │ Release a validated AGRO commit by pushing it to  │ agents-skills-project │
+│ ✓ ready       │ remote-sandbox           │ Test AGRO on a new provider VM with one command.  │ agents-skills-project │
+│ ✓ ready       │ ste                      │ Write and rewrite technical prose in Simplified   │ agents-skills-project │
+│ ✓ ready       │ supervisor               │ Supervise, babysit, watch, or drive advisor       │ agents-skills-project │
+│ ✓ ready       │ t3                       │ Start, inspect, pair, or stop T3 Code in the      │ agents-skills-project │
+│ ✓ ready       │ typesafe-ai              │ Build AI-powered software with TypeSafe: small    │ agents-skills-project │
+│ ✓ ready       │ worktrees                │ Manage .worktrees/ lifecycle: create worktree,    │ agents-skills-project │
+exit=0
+RESULT D3-agro-skills-visible PASS 22 of 22 .agro/skills through .agents/skills
+$ export OPENCLAW_STATE_DIR=/home/sandbox/harness/.openclaw; openclaw agents list 2>&1 | head -20
+Agents:
+- main (default)
+  Workspace: ~/harness
+  Agent dir: ~/harness/.openclaw/agents/main/agent
+  Routing rules: 0
+  Routing: default (no explicit rules)
+Routing rules map channel/account/peer to an agent. Use --bindings for full rules.
+Channel status reflects local config/creds. For live health: openclaw channels status --probe.
+exit=0
+$ export OPENCLAW_STATE_DIR=/home/sandbox/harness/.openclaw; timeout 90 openclaw doctor --non-interactive </dev/null 2>&1 | grep -i -E 'workspace|agents.md|bootstrap|skill|context' | head -25
+◇  Skills ─────────────────────────────────────────────────────────────────╮
+│  28 allowed skills are not usable in this environment (missing           │
+│  Disable unused skills: openclaw doctor --fix                            │
+│  Inspect details: openclaw skills check --agent <id> or openclaw skills  │
+◇  Workspace ────────────────────────────────────────────────────────────────────────────╮
+│  Memory system not found in workspace.                                                 │
+exit=0
+== E onboard without credentials
+$ export OPENCLAW_STATE_DIR=/home/sandbox/harness/.openclaw; timeout 180 openclaw onboard --non-interactive --accept-risk --mode local --auth-choice skip --workspace /home/sandbox/harness --no-install-daemon --skip-channels --skip-health --skip-ui --skip-search --skip-skills --skip-hooks --gateway-bind loopback </dev/null 2>&1 | tail -6
+Workspace OK: ~/harness
+Sessions OK: ~/harness/.openclaw/agents/main/sessions
+Updated config: ~/harness/.openclaw/openclaw.json
+  Backup: ~/harness/.openclaw/openclaw.json.bak
+Tip: run `openclaw configure --section web` to store your Brave API key for web_search. Docs: https://docs.openclaw.ai/tools/web
+exit=0
+$ git status --porcelain; echo porcelain_lines=$(git status --porcelain | wc -l); ls SOUL.md IDENTITY.md USER.md BOOTSTRAP.md 2>&1
+porcelain_lines=0
+ls: cannot access 'SOUL.md': No such file or directory
+ls: cannot access 'IDENTITY.md': No such file or directory
+ls: cannot access 'USER.md': No such file or directory
+ls: cannot access 'BOOTSTRAP.md': No such file or directory
+exit=2
+RESULT E1-checkout-clean-after-onboard PASS 
+== F gateway
+$ agro gateway openclaw
+[gateway] starting client-openclaw …
+[gateway] client-openclaw started
+[gateway] attach with:  tmux attach -t client-openclaw
+exit=0
+00:38:57 [gateway] ready
+RESULT F1-gateway-ready PASS 
+$ agro gateway status
+  · client-slack-pi  stopped   (gateway pi)
+  · client-slack-hermes  stopped   (gateway hermes)
+  ✓ client-openclaw  healthy   (tmux attach -t client-openclaw)
+exit=0
+$ ss -ltn | grep 18789
+LISTEN 0      0          127.0.0.1:18789      0.0.0.0:*   
+LISTEN 0      0              [::1]:18789            *:*   
+exit=0
+$ agro gateway openclaw --stop; tmux ls 2>&1 | head -1
+[gateway] stopped client-openclaw
+no server running on /tmp/tmux-1000/default
+exit=0
+== G host view of the same checkout
+$ git -C /home/exedev/.agro/workspaces/harness status --porcelain
+exit=0 lines=0
+$ ls -A /home/exedev/.agro/workspaces/harness/.openclaw
+agents
+cache
+config-journal-fingerprint.key
+migration
+openclaw.json
+openclaw.json.bak
+openclaw.json.bak.1
+openclaw.json.bak.2
+openclaw.json.bak.3
+plugin-skills
+== H conflict refusal
+$ OPENCLAW_STATE_DIR=/tmp/foreign agro harness install openclaw
+[openclaw] conflicting OPENCLAW_STATE_DIR=/tmp/foreign; selected workspace state directory is /home/sandbox/harness/.openclaw.
+[openclaw] select the workspace state directory before retrying: OPENCLAW_STATE_DIR=/home/sandbox/harness/.openclaw
+[openclaw] No state is migrated.
+exit=1
+RESULT H1-conflict-refused PASS 
+== I uninstall
+$ agro harness uninstall openclaw; command -v openclaw || echo openclaw-absent
+removing OpenClaw from /home/sandbox/.local…
+
+removed 489 packages in 1s
+openclaw: removed from /home/sandbox/.local
+openclaw-absent
+exit=0
+fails=0
+SUMMARY
+== destroy agro-mx-1009-013612
+1 VM deleted successfully
+remaining agro-matrix resources on exedev: 1
+RUN DONE
+```

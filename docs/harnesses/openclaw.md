@@ -58,6 +58,8 @@ OpenClaw reads the root `AGENTS.md`.
 OpenClaw reads skills from `.agents/skills`, which links to `.agro/skills`.
 The `skipBootstrap` value stops OpenClaw from creating default agent workspace files.
 AGRO does not seed `SOUL.md`, `IDENTITY.md`, or `USER.md` in the checkout.
+`openclaw doctor` reports `Memory system not found in workspace.` for an AGRO workspace.
+AGRO expects the message, and the message needs no action.
 
 Bare `openclaw` does not bind an AGRO workspace.
 Use the launch command that installation prints.
