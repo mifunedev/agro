@@ -15,6 +15,9 @@ agro tool install herdr
 herdr
 ```
 
+![Herdr shows the harness workspace with two panes in the sandbox.](../img/herdr-two-panes.png)
+Callouts: 1 is the workspace in the **spaces** list. 2 is the first pane. 3 is the second pane.
+
 The install lands in `~/.local/bin` inside the persistent home volume, so later
 boots find `herdr` on PATH immediately. `agro destroy` removes the volume and
 the install with it.
