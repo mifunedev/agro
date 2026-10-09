@@ -27,6 +27,7 @@ import {
 } from "../lib/host-workspace.js";
 import { ask as promptAsk } from "../lib/prompt.js";
 import { resolveProjectRoot } from "../lib/project.js";
+import { resolveSandboxRoot } from "../lib/registry.js";
 import {
   findHarness,
   harnessBinPath,
@@ -87,12 +88,21 @@ function isReachable(status: string): boolean {
   return status === "ready" || status === "starting";
 }
 
+function registeredContainerName(cwd: string | undefined): string | undefined {
+  try {
+    return configuredContainerName(resolveSandboxRoot(cwd === undefined ? {} : { cwd }));
+  } catch {
+    return undefined;
+  }
+}
+
 function targetFor(
   root: string,
+  cwd: string | undefined,
   run: LifecycleRunner,
   env?: NodeJS.ProcessEnv,
 ): ExecutionTarget {
-  const name = configuredContainerName(root) ?? DEFAULT_CONTAINER_NAME;
+  const name = configuredContainerName(root) ?? registeredContainerName(cwd) ?? DEFAULT_CONTAINER_NAME;
   return resolveExecutionTarget({
     projectRoot: root,
     container: name,
@@ -206,13 +216,14 @@ function probeableHost(env: NodeJS.ProcessEnv, home: string): HostProbe | undefi
 
 async function collectStates(
   root: string,
+  cwd: string | undefined,
   run: LifecycleRunner,
   home: string,
   env?: NodeJS.ProcessEnv,
   only?: readonly HarnessEntry[],
 ): Promise<CollectedStates> {
   const entries = only ? [...only] : [...HARNESS_CATALOG];
-  const target = targetFor(root, run, env);
+  const target = targetFor(root, cwd, run, env);
 
   const reachable = isReachable(await resolveTargetStatus(target));
 
@@ -269,7 +280,7 @@ function renderTable(collected: CollectedStates, io: HarnessIO, bin: string): vo
 export async function runHarnessList(opts: HarnessOptions, io: HarnessIO): Promise<number> {
   const run = opts.run ?? spawnRunner;
   const root = resolveProjectRoot(opts.cwd);
-  const collected = await collectStates(root, run, homeOf(opts), opts.env);
+  const collected = await collectStates(root, opts.cwd, run, homeOf(opts), opts.env);
   if (opts.json) {
     io.stdout(`${JSON.stringify(collected.states, null, 2)}\n`);
   } else {
@@ -298,7 +309,7 @@ export async function runHarnessStatus(
     if (!only) return unknownHarness(name, io, opts.bin);
   }
 
-  const collected = await collectStates(root, run, homeOf(opts), opts.env, only ? [only] : undefined);
+  const collected = await collectStates(root, opts.cwd, run, homeOf(opts), opts.env, only ? [only] : undefined);
   if (opts.json) {
     io.stdout(`${JSON.stringify(only ? collected.states[0] : collected.states, null, 2)}\n`);
   } else {
@@ -700,7 +711,7 @@ export async function runHarnessUninstall(
   const entry = findHarness(name);
   if (!entry) return unknownHarness(name, io, opts.bin);
 
-  const target = targetFor(root, run, opts.env);
+  const target = targetFor(root, opts.cwd, run, opts.env);
   if (!isReachable(await resolveTargetStatus(target))) {
     return await uninstallOnHost(entry, opts, io, run);
   }
@@ -737,7 +748,7 @@ export async function runHarnessInstall(
   const entry = findHarness(name);
   if (!entry) return unknownHarness(name, io, opts.bin);
 
-  const target = targetFor(root, run, opts.env);
+  const target = targetFor(root, opts.cwd, run, opts.env);
   const status = await resolveTargetStatus(target);
 
   if (!isReachable(status)) {
