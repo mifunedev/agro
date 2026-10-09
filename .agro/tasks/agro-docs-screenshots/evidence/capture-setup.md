@@ -106,7 +106,33 @@ demo@example.com
 
 Do not run `gh auth login`. Do not sign in to a harness.
 
+## Upgrade AGRO on the node
+
+The node image can hold an older AGRO release than the docs describe. Run these
+commands in the editor terminal:
+
+```bash
+agro self-upgrade
+agro --version
+agro ps
+```
+
+The capture run printed this output:
+
+```text
+agro update: standalone installation at /home/sandbox/.local/bin/agro
+agro update: current v0.17.0, available v0.18.1
+agro update: upgraded to v0.18.1
+0.18.1
+agro: no sandbox is registered in /home/sandbox/.agro/sandboxes — create one with `agro sandbox install docker`
+```
+
+If `agro ps` shows a sandbox, run `agro sandbox upgrade <name> --version 0.18.1`.
+The capture node had no sandbox, so the capture run skipped `agro sandbox upgrade`.
+
 ## Take a screenshot
+
+Close each editor tab, so that the editor area is empty. Then run:
 
 ```bash
 agent-browser --session <session> keyboard type 'agro --version'
@@ -114,8 +140,10 @@ agent-browser --session <session> press Enter
 agent-browser --session <session> screenshot <file>.png
 ```
 
-The capture run printed `0.17.0`. The latest release was `0.18.1`. The node
-image therefore did not run the latest release.
+Expected output of `agro --version`: `0.18.1`.
+
+The status bar shows `v0.17.0`. The status bar value is the git tag of the workspace
+checkout, not the version of the `agro` executable.
 
 The terminal prompt shows the login `sandbox` and the node ID as the host
 name. The screenshot shows no IP address and no email address other than
