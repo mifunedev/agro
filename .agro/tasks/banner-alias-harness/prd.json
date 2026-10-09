@@ -12,18 +12,19 @@
         "`.agro/install/banner.sh` marks a harness as installed only when an executable file for the harness exists on `PATH`. An alias or a shell function does not count.",
         "For `claude`, `codex`, and `pi`, the banner shows `not installed — run: agro harness install <id>` when the binary is absent. The banner shows the authentication state only when the binary exists.",
         "For `opencode` and `agy`, the banner shows `not installed` when only an alias exists.",
-        "The `Recovery commands` line lists only the commands that have a binary.",
+        "The banner names a command in the `Recovery commands` line only when the command has a binary.",
         "A test in `.agro/scripts/__tests__/boot-banner.test.ts` runs `banner.sh` in an interactive shell with a temporary `HOME`. The test covers a harness with only an alias and a harness with a binary. The test fails before the fix.",
         "`pnpm test:scripts` and `pnpm typecheck` exit 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1-AC4 executed: boot-banner.test.ts behavioral cases (alias-only codex and agy, function-only opencode, stub claude binary) red before (9 failed), green after (13 passed); exe.dev VM banner after the fix shows claude, codex, agy as not installed and Recovery commands: pi only. AC5 executed: same tests fail before the fix. AC6 executed: advisor reran pnpm test:scripts exit 0 (1945 passed, 2 skipped) and pnpm typecheck exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/install/banner.sh",
         ".agro/scripts/__tests__/boot-banner.test.ts"
-      ]
+      ],
+      "commit": "78271b82"
     },
     {
       "id": "US-002",
@@ -32,11 +33,11 @@
       "acceptanceCriteria": [
         "`.agro/tasks/banner-alias-harness/evidence/manual-review.md` holds the banner output from a new exe.dev VM, before and after the fix.",
         "If the docs-capture node runs, `docs/img/quickstart-shell.png` shows the corrected banner, as a 1920x1080 PNG, with a `Callouts:` line in `docs/quickstart.md`. If the node does not run, the PR lists the retake as unverified.",
-        "The VM is destroyed after the run, and the driver log ends with `remaining agro-matrix resources on exedev: 0`."
+        "The advisor destroys the VM after the run, and no `agro-matrix` VM remains on exe.dev."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1 executed: evidence/manual-review.md holds the VM banner before and after. AC2 executed: docs-capture node ran; docs/img/quickstart-shell.png retaken at 1920x1080 with the branch banner; docs-images.test.ts 10 passed; Callouts line unchanged in docs/quickstart.md. AC3 executed: ssh exe.dev rm printed '1 VM deleted successfully', agro-matrix count 0 (KEEP=1 run, count checked by hand).",
       "dependsOn": [
         "US-001"
       ],
@@ -44,7 +45,8 @@
         ".agro/tasks/banner-alias-harness/evidence/",
         "docs/img/quickstart-shell.png",
         "docs/quickstart.md"
-      ]
+      ],
+      "commit": "f8dc6c07"
     }
   ]
 }

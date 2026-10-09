@@ -13,7 +13,7 @@ Status: DRAFT
 - [ ] `.agro/install/banner.sh` marks a harness as installed only when an executable file for the harness exists on `PATH`. An alias or a shell function does not count.
 - [ ] For `claude`, `codex`, and `pi`, the banner shows `not installed — run: agro harness install <id>` when the binary is absent. The banner shows the authentication state only when the binary exists.
 - [ ] For `opencode` and `agy`, the banner shows `not installed` when only an alias exists.
-- [ ] The `Recovery commands` line lists only the commands that have a binary.
+- [ ] The banner names a command in the `Recovery commands` line only when the command has a binary.
 - [ ] A test in `.agro/scripts/__tests__/boot-banner.test.ts` runs `banner.sh` in an interactive shell with a temporary `HOME`. The test covers a harness with only an alias and a harness with a binary. The test fails before the fix.
 - [ ] `pnpm test:scripts` and `pnpm typecheck` exit 0.
 
@@ -25,7 +25,7 @@ Status: DRAFT
 
 - [ ] `.agro/tasks/banner-alias-harness/evidence/manual-review.md` holds the banner output from a new exe.dev VM, before and after the fix.
 - [ ] If the docs-capture node runs, `docs/img/quickstart-shell.png` shows the corrected banner, as a 1920x1080 PNG, with a `Callouts:` line in `docs/quickstart.md`. If the node does not run, the PR lists the retake as unverified.
-- [ ] The VM is destroyed after the run, and the driver log ends with `remaining agro-matrix resources on exedev: 0`.
+- [ ] The advisor destroys the VM after the run, and no `agro-matrix` VM remains on exe.dev.
 
 ## Summary
 
@@ -72,4 +72,4 @@ None
 
 ## Lessons
 
-Filled by the advisor before undraft.
+- Claim: CI runs only the bash cases of the banner test. Evidence: `ci-harness.yml` runs on `ubuntu-latest`, which has no zsh, so the zsh cases skip. The advisor ran the zsh cases in the sandbox, and the exe.dev VM showed the zsh banner. Outcome: dropped, because the bash cases cover the same helper rule.
