@@ -70,6 +70,7 @@ Status: DRAFT
 - [ ] The page states that the operator keeps provider keys in `<target-root>/.openclaw/.env`.
 - [ ] `docs/harnesses/overview.md` lists OpenClaw in the install sentence and in the "Supported agents" table.
 - [ ] `docs/README.md` links `harnesses/openclaw.md`.
+- [ ] The `agro gateway` row in `.agro/cli/README.md` names `openclaw` next to `pi` and `hermes`.
 - [ ] `CHANGELOG.md` holds an `Added` entry under `## [Unreleased]` that links the task issue.
 - [ ] `.agro/cli/src/__tests__/docs-reference.test.ts` and `.agro/cli/src/__tests__/docs.test.ts` exit 0.
 
