@@ -4,7 +4,7 @@ title: "Harnesses Overview"
 
 # Harnesses Overview
 
-AGRO installs no agent CLI at boot. A harness enters the sandbox only when you run `agro harness install <id>`. **Claude Code**, **Codex**, **Pi**, **OpenCode**, **Hermes**, **Grok Build**, **Muse Code**, **Antigravity CLI**, and **fx** install through that door. The install lands in `~/.local` inside the persistent home volume. The install survives a container recreate, because AGRO bakes no harness into the image. **T3 Code** is on demand: the `/t3` skill (or `npx t3`) fetches the T3 Code package and serves a browser UI on port 3773.
+AGRO installs no agent CLI at boot. A harness enters the sandbox only when you run `agro harness install <id>`. **Claude Code**, **Codex**, **Pi**, **OpenCode**, **Hermes**, **OpenClaw**, **Grok Build**, **Muse Code**, **Antigravity CLI**, and **fx** install through that door. The install lands in `~/.local` inside the persistent home volume. The install survives a container recreate, because AGRO bakes no harness into the image. **T3 Code** is on demand: the `/t3` skill (or `npx t3`) fetches the T3 Code package and serves a browser UI on port 3773.
 
 Inside the sandbox, run `agro tool install herdr`, then run `herdr`, then launch whichever agent you prefer from its panes and switch between them at any time. Herdr is for interactive agents. Named tmux sessions are for AGRO's headless gateway, tunnel, and detached cron-fire infrastructure; systemd supervises the cron runtime itself.
 
@@ -81,6 +81,7 @@ Each catalog entry has a `kind`. `installable` harnesses install through the ver
 | [OpenCode](./opencode.md) | Terminal coding agent with OpenAI OAuth support | `opencode` | `agro harness install opencode` |
 | [Pi](./pi.md) | Lightweight, customizable agent | `pi` | `agro harness install pi` |
 | [Hermes](./hermes.md) | Nous Research's self-improving terminal agent | `hermes` | `agro harness install hermes` |
+| [OpenClaw](./openclaw.md) | Gateway-first personal agent runtime | `OPENCLAW_STATE_DIR=<target-root>/.openclaw openclaw` | `agro harness install openclaw` |
 | [Grok Build](./grok-build.md) | xAI's terminal coding agent | `grok` | `agro harness install grok-build` |
 | [Muse Code](./muse-code.md) | Meta's terminal coding agent | `muse` | `agro harness install muse-code` |
 | [Antigravity CLI](./antigravity-cli.md) | Google's terminal coding agent | `agy` | `agro harness install antigravity-cli` |

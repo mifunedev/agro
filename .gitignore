@@ -72,6 +72,8 @@ crons/*.log
 !/.hermes/config.yaml
 !/.hermes/config.yml
 
+/.openclaw/
+
 **/scheduled_tasks.lock
 # Legacy/future workspace package build artifacts
 packages/*/build/

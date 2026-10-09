@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-#   hermes  client-slack-hermes  `hermes gateway run` — Hermes' native messaging
+#   hermes    client-slack-hermes  `hermes gateway run` — Hermes' native messaging
+#   openclaw  client-openclaw      `openclaw gateway run --bind loopback` — OpenClaw's gateway
 set -u
 
 HARNESS="${HARNESS:-${AGRO_PROJECT_ROOT:-/home/sandbox/harness}}"
@@ -7,16 +8,18 @@ HARNESS="${HARNESS:-${AGRO_PROJECT_ROOT:-/home/sandbox/harness}}"
 . "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/paths.sh"
 # shellcheck source=hermes-workspace.sh
 . "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/hermes-workspace.sh"
+# shellcheck source=openclaw-workspace.sh
+. "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/openclaw-workspace.sh"
 SLACK_ENV="$(agro_env_file "$HARNESS")"
 FORK_PIN="github:ryaneggz/pi-messenger-bridge#c8b96e9d0fb69611c4e67ae298d1d10d83792a26"
 
 usage() {
   echo "Usage:"
-  echo "  gateway <pi|hermes> [--attach]      start the client session (--attach after)"
-  echo "  gateway <pi|hermes> --restart       restart the session"
-  echo "  gateway <pi|hermes> --stop          stop the session"
-  echo "  gateway msg-bridge [--no-attach]    open the Pi /msg-bridge config UI"
-  echo "  gateway status                      show both sessions"
+  echo "  gateway <pi|hermes|openclaw> [--attach]  start the client session (--attach after)"
+  echo "  gateway <pi|hermes|openclaw> --restart   restart the session"
+  echo "  gateway <pi|hermes|openclaw> --stop      stop the session"
+  echo "  gateway msg-bridge [--no-attach]         open the Pi /msg-bridge config UI"
+  echo "  gateway status                           show all sessions"
 }
 
 msg_bridge_usage() {
@@ -25,6 +28,13 @@ msg_bridge_usage() {
   echo
   echo "Starts client-slack-pi if needed, sends /msg-bridge to the Pi TUI,"
   echo "then attaches automatically when stdin/stdout are interactive."
+}
+
+session_name() {
+  case "$1" in
+    openclaw) printf 'client-openclaw' ;;
+    *)        printf 'client-slack-%s' "$1" ;;
+  esac
 }
 
 session_live() { tmux ls -F '#{session_name}' 2>/dev/null | grep -Fxq "$1"; }
@@ -66,8 +76,8 @@ backend_health() {
 
 show_status() {
   local b s health
-  for b in pi hermes; do
-    s="client-slack-$b"
+  for b in pi hermes openclaw; do
+    s=$(session_name "$b")
     if session_live "$s"; then
       if [ -f "$STATE_DIR/$b.state" ]; then
         health=$(backend_health "$b")
@@ -241,12 +251,46 @@ start_hermes() {
   fi
 }
 
+start_openclaw() {
+  local session="client-openclaw" log="/tmp/client-openclaw.log"
+  local state_dir="$HARNESS/.openclaw"
+  openclaw_workspace_check "$HARNESS" "$state_dir" "${OPENCLAW_STATE_DIR:-}" || return 1
+  local openclaw_bin
+  openclaw_bin=$(command -v openclaw 2>/dev/null) || openclaw_bin="$HOME/.local/bin/openclaw"
+  [ -x "$openclaw_bin" ] \
+    || { echo "[gateway] 'openclaw' not found on PATH — run: agro harness install openclaw" >&2; return 1; }
+
+  local run_cmd
+  printf -v run_cmd 'cd %q && export OPENCLAW_STATE_DIR=%q && exec %q gateway run --bind loopback' \
+    "$HARNESS" "$state_dir" "$openclaw_bin"
+
+  local envf; envf=$(mktemp "${TMPDIR:-/tmp}/client-openclaw-env.XXXXXX") || return 1
+  chmod 600 "$envf"
+  {
+    printf 'export HARNESS=%q\n'         "$HARNESS"
+    printf 'export LOG=%q\n'             "$log"
+    printf 'export GATEWAY_BACKEND=%q\n' "openclaw"
+    printf 'export SUPERVISE_CMD=%q\n'   "$run_cmd"
+  } >>"$envf"
+
+  local supervisor_cmd
+  printf -v supervisor_cmd '. %q; rm -f %q; exec bash "$HARNESS/.devcontainer/client-slack-supervise.sh"' "$envf" "$envf"
+  printf -v supervisor_cmd 'bash -c %q' "$supervisor_cmd"
+  if tmux new-session -d -s "$session" "$supervisor_cmd"; then
+    tmux pipe-pane -o -t "$session" "$ANSI_STRIP >> $log" 2>/dev/null || true
+  else
+    rm -f "$envf"
+    echo "[gateway] failed to start $session" >&2
+    return 1
+  fi
+}
+
 cmd="${1:-}"
 case "$cmd" in
   status|--status) show_status; exit 0 ;;
   msg-bridge|msgbridge) shift; open_msg_bridge "$@"; exit $? ;;
   -h|--help)       usage; exit 0 ;;
-  pi|hermes)       ;;
+  pi|hermes|openclaw) ;;
   "")              usage >&2; exit 2 ;;
   *)               echo "[gateway] unknown client/command: $cmd" >&2; usage >&2; exit 2 ;;
 esac
@@ -261,7 +305,7 @@ case "${1:-}" in
   *)         echo "[gateway] unknown option: $1" >&2; usage >&2; exit 2 ;;
 esac
 
-session="client-slack-$backend"
+session=$(session_name "$backend")
 
 case "$action" in
   stop)
@@ -281,8 +325,9 @@ if session_live "$session"; then
 else
   echo "[gateway] starting $session …"
   case "$backend" in
-    pi)     start_pi     || exit 1 ;;
-    hermes) start_hermes || exit 1 ;;
+    pi)       start_pi       || exit 1 ;;
+    hermes)   start_hermes   || exit 1 ;;
+    openclaw) start_openclaw || exit 1 ;;
   esac
   echo "[gateway] $session started"
 fi

@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1362-openclaw-harness-support",
+  "description": "OpenClaw harness support. OpenClaw is a gateway-first personal agent runtime. Its gateway serves channels, a Control UI, and agent sessions on port 18789.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Install OpenClaw through the harness door",
+      "description": "As an operator, I want `agro harness install openclaw` to install OpenClaw into the persistent home so that OpenClaw survives a container recreate like every other harness.",
+      "acceptanceCriteria": [
+        "`HARNESS_CATALOG` in `.agro/cli/src/lib/harnesses/catalog.ts` holds one entry with `id: \"openclaw\"`, `binary: \"openclaw\"`, `kind: \"installable\"`, and `docsPath: \"docs/harnesses/openclaw.md\"`.",
+        "The install argv is `npm --prefix {{prefix}} install -g --allow-scripts=openclaw openclaw@2026.9.9`. The exact pin follows the `grok-build` and `fx` entries.",
+        "The uninstall argv is `npm --prefix {{prefix}} uninstall -g openclaw`.",
+        "The install argv keeps `--allow-scripts=openclaw`. The Node 24 image ships npm `11.19.0`, and npm accepts the flag from 11.16.",
+        "After install, `{{prefix}}/bin/openclaw` links to `../lib/node_modules/openclaw/openclaw.mjs`, and `openclaw --version` prints `OpenClaw 2026.9.9`.",
+        "`.agro/scripts/verify-sandbox-image.sh` fails when the image npm version is lower than `11.16.0`.",
+        "The test \"covers claude-code, codex, opencode and pi\" in `harness-catalog.test.ts` lists `openclaw` as an npm harness.",
+        "The `SHIPPED_SANDBOX_INSTALL_ARGV` table in `.agro/cli/src/__tests__/harness-catalog.test.ts` holds the expanded `openclaw` row.",
+        "The story starts only after `.agro/tasks/node-24-runtime/` merges. `.devcontainer/Dockerfile` line 1 then reads `FROM node:24-trixie-slim AS base`.",
+        "A new catalog test fails before the entry exists and passes after the entry exists.",
+        "`docs/harnesses/openclaw.md` exists with an `## Install` section. The harness catalog test requires one page for each catalog id. US-004 completes the page.",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Advisor re-verified on feat branch at 79427870: (1-3,7,8,10) executed `pnpm test` -> 89 files, 1938 passed, exit 0; catalog entry openclaw, install argv `npm --prefix {{prefix}} install -g --allow-scripts=openclaw openclaw@2026.9.9`, uninstall argv, npm-harness list and SHIPPED_SANDBOX_INSTALL_ARGV row asserted by tests; worker showed 5+3 red before implementation; (4) executed: argv keeps --allow-scripts; node:24-trixie-slim npm 11.19.0; (5) executed in throwaway node:24-trixie-slim container: install=0, readlink ../lib/node_modules/openclaw/openclaw.mjs, `OpenClaw 2026.9.9 (bcfc888)`; (6) executed docker build + verify-sandbox-image.sh -> `ok: npm is 11.19.0, at least 11.16.0`, all checks passed; unit tests cover npm 10.9.2 and 11.15.9 failures; (9) executed head -1 Dockerfile -> node:24-trixie-slim; docs stub: docs/harnesses/openclaw.md exists with ## Install, ste-check exit 0; Typecheck passes: executed `pnpm typecheck` exit 0.",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/harnesses/catalog.ts",
+        ".agro/cli/src/__tests__/harness-catalog.test.ts",
+        ".agro/scripts/verify-sandbox-image.sh",
+        "docs/harnesses/openclaw.md"
+      ],
+      "commit": "cbdd5dfe 79427870"
+    },
+    {
+      "id": "US-002",
+      "title": "Bind OpenClaw state and workspace to the AGRO checkout",
+      "description": "As an operator, I want OpenClaw to use `<target-root>/.openclaw` as its state directory and the checkout as its agent workspace. OpenClaw then reads the root `AGENTS.md` and the canonical skills.",
+      "acceptanceCriteria": [
+        "Installation sets `agents.defaults.workspace` to `<target-root>` through `OPENCLAW_STATE_DIR=\"<target-root>/.openclaw\" openclaw config set` before it reports success. The implementation uses the single-key form or the batch form that upstream supports.",
+        "`git grep -n 'openclaw.json' -- .agro/scripts .agro/cli/src` returns no direct edit of the file.",
+        "Installation sets `agents.defaults.skipBootstrap` to `true` through `openclaw config set agents.defaults.skipBootstrap true --strict-json`.",
+        "Installation sets `gateway.mode` to `local` through `openclaw config set gateway.mode local`. Without the value, `openclaw gateway run` exits 78 with `existing config is missing gateway.mode`.",
+        "`.agro/scripts/openclaw-workspace.sh` holds the OpenClaw state-directory check. The task does not change `.agro/scripts/hermes-workspace.sh`.",
+        "Docker targets use `/home/sandbox/harness` as `<target-root>`. Local and host targets use the resolved absolute path.",
+        "A repeated install repairs a missing or stale workspace value and does not download the executable again.",
+        "If the inherited `OPENCLAW_STATE_DIR` differs from `<target-root>/.openclaw`, installation exits nonzero before it changes any file. The diagnostic names both paths.",
+        "Installation prints the launch command `OPENCLAW_STATE_DIR=<target-root>/.openclaw openclaw`.",
+        "`.gitignore` ignores `/.openclaw/`.",
+        "After `openclaw onboard` runs with the workspace home selected, `git status --porcelain` at `<target-root>` lists no new file outside `.openclaw/`.",
+        "`openclaw skills list` with the workspace home selected lists the `prd` skill from `.agents/skills`.",
+        "A configuration failure returns a nonzero exit status. The command prints no installation-success message.",
+        "Tests in `.agro/cli/src/__tests__/harness.test.ts` cover default, recorded, and explicit roots, repair, configuration failure, and a conflicting inherited state directory.",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Advisor re-verified on feat branch at a0892d8a: `pnpm test` exit 0 (89 files, 1971 passed); typecheck exit 0; no openclaw.json edit; hermes-workspace.sh unchanged; configure sets workspace, skipBootstrap, and gateway.mode local (argv test; worker red before fix); conflicting OPENCLAW_STATE_DIR refusal, root selection, repair, config failure, and launch text asserted by harness.test.ts. Live end-to-end in a throwaway node:24-trixie-slim container (user sandbox, openclaw@2026.9.9, branch gateway.sh + openclaw-workspace.sh + client-slack-supervise.sh): configure, onboard --non-interactive, then `gateway.sh openclaw` start=0, log `[gateway] ready`, status `✓ client-openclaw healthy`, listeners only 127.0.0.1:18789 and ::1:18789, `--stop` stop=0, tmux no server, `git status --porcelain` empty after onboard and gateway. Container removed (0 left). The fixture lacked paths.sh, so gateway.sh printed a sourcing warning; the warning comes from the fixture, not the branch.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/cli/src/commands/harness.ts",
+        ".agro/scripts/openclaw-workspace.sh",
+        ".gitignore",
+        ".agro/cli/src/__tests__/harness.test.ts"
+      ],
+      "commit": "81c4fa8e a0892d8a"
+    },
+    {
+      "id": "US-003",
+      "title": "Run the OpenClaw gateway in a named tmux session",
+      "description": "As an operator, I want `agro gateway openclaw` to run the OpenClaw gateway in a named tmux session. The gateway then survives a terminal disconnect without a systemd user unit.",
+      "acceptanceCriteria": [
+        "`agro gateway openclaw` starts `openclaw gateway run --bind loopback` in the tmux session `client-openclaw` with `OPENCLAW_STATE_DIR=<target-root>/.openclaw` exported.",
+        "Without `--bind loopback`, OpenClaw detects the container and refuses to start with exit 78. A test asserts that the run command holds `--bind loopback`.",
+        "`agro gateway openclaw --restart` and `agro gateway openclaw --stop` act on `client-openclaw` only.",
+        "`agro gateway status` lists `client-openclaw` with its state.",
+        "No AGRO code path runs `openclaw gateway install` or `openclaw onboard --install-daemon`.",
+        "If the `openclaw` executable is absent, `agro gateway openclaw` exits nonzero before tmux starts a session.",
+        "The gateway binds to loopback. AGRO publishes no new Compose port.",
+        "The usage text in `.agro/scripts/gateway.sh` and in `.agro/cli/src/cli.ts` names `openclaw`.",
+        "Tests in `.agro/scripts/__tests__/gateway.test.ts` cover start, restart, stop, status, and the missing-executable path.",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Advisor re-verified on feat branch at a0892d8a: gateway.test.ts covers start (OPENCLAW_STATE_DIR, cwd, `gateway run --bind loopback`), restart and stop acting only on client-openclaw, status rows, missing executable exit 1 before tmux, no gateway install/install-daemon in gateway.sh; worker showed 10 red before implementation; exit 78 without --bind loopback reasoned from probe evidence section 6; `git grep 18789 -- .devcontainer` empty (worker); usage text names openclaw in gateway.sh and cli.ts; typecheck exit 0. Live end-to-end in a throwaway node:24-trixie-slim container (user sandbox, openclaw@2026.9.9, branch gateway.sh + openclaw-workspace.sh + client-slack-supervise.sh): configure, onboard --non-interactive, then `gateway.sh openclaw` start=0, log `[gateway] ready`, status `✓ client-openclaw healthy`, listeners only 127.0.0.1:18789 and ::1:18789, `--stop` stop=0, tmux no server, `git status --porcelain` empty after onboard and gateway. Container removed (0 left). The fixture lacked paths.sh, so gateway.sh printed a sourcing warning; the warning comes from the fixture, not the branch.",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/scripts/gateway.sh",
+        ".agro/cli/src/cli.ts",
+        ".agro/scripts/__tests__/gateway.test.ts"
+      ],
+      "commit": "8955249b"
+    },
+    {
+      "id": "US-004",
+      "title": "Document OpenClaw",
+      "description": "As an operator, I want a harness page for OpenClaw so that I can install, authenticate, and run OpenClaw without reading the AGRO source.",
+      "acceptanceCriteria": [
+        "`docs/harnesses/openclaw.md` documents install, the state directory, the workspace binding, authentication, the gateway session, state persistence, and `agro destroy` behavior.",
+        "The page states that AGRO does not seed `SOUL.md`, `IDENTITY.md`, or `USER.md` in the checkout.",
+        "The page states that the operator keeps provider keys in `<target-root>/.openclaw/.env`.",
+        "`docs/harnesses/overview.md` lists OpenClaw in the install sentence and in the \"Supported agents\" table.",
+        "`docs/README.md` links `harnesses/openclaw.md`.",
+        "The `agro gateway` row in `.agro/cli/README.md` names `openclaw` next to `pi` and `hermes`.",
+        "`CHANGELOG.md` holds an `Added` entry under `## [Unreleased]` that links the task issue.",
+        "`.agro/cli/src/__tests__/docs-reference.test.ts` and `.agro/cli/src/__tests__/docs.test.ts` exit 0."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Advisor re-verified on feat branch at bf91feca: (1) executed review of docs/harnesses/openclaw.md: sections Install, State directory, Workspace binding, Authentication, Gateway session, State persistence incl. agro destroy; (2) executed grep: page states AGRO does not seed SOUL.md, IDENTITY.md, or USER.md; (3) executed grep: page names the provider-key file inside the state directory and says never commit it; (4) executed diff: overview.md install sentence and Supported agents row name OpenClaw; (5) executed diff: docs/README.md links harnesses/openclaw.md; (6) executed diff: .agro/cli/README.md gateway row names openclaw; (7) executed: CHANGELOG Added entry under Unreleased links #1362; (8) executed docs-reference.test.ts + docs.test.ts -> 14 passed, exit 0. Review repair bf91feca: onboard uses --no-install-daemon. ste-check exit 0 on the three docs pages.",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        "docs/harnesses/openclaw.md",
+        "docs/harnesses/overview.md",
+        "docs/README.md",
+        "CHANGELOG.md",
+        ".agro/cli/README.md"
+      ],
+      "commit": "1808e9c3 bf91feca"
+    },
+    {
+      "id": "US-005",
+      "title": "Record manual review evidence",
+      "description": "As a maintainer, I want a command transcript so that a reviewer can verify install, workspace binding, and gateway behavior. The reviewer then needs no trust in installer output.",
+      "acceptanceCriteria": [
+        "The story depends on US-001, US-002, US-003, and US-004.",
+        "`.agro/tasks/openclaw-harness-support/evidence/manual-review.md` records each command, its output, and its exit status.",
+        "The transcript shows `agro harness install openclaw`, `openclaw --version`, `openclaw config get agents.defaults.workspace`, and `git status --porcelain` in the sandbox.",
+        "The transcript shows `agro gateway openclaw`, `agro gateway status`, and `agro gateway openclaw --stop`.",
+        "The transcript shows one failure path: a conflicting `OPENCLAW_STATE_DIR` refusal.",
+        "The run uses no provider credential and connects no messaging channel unless the operator approves the resource.",
+        "The transcript ends with `agro harness uninstall openclaw` and the removal of each created resource."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Advisor reviewed evidence/manual-review.md at 66ae9f99 (real sandbox booted from the branch image agro-oc-us005:test, Node v24.21.0, npm 11.19.0): (1) depends on US-001..US-004, all passes=true; (2) every block shows $ command, output, exit=<n> (docker rmi exit not captured; following image ls shows it gone); (3) sections 1-4: install exit 0, OpenClaw 2026.9.9, workspace /home/sandbox/harness, skipBootstrap true, gateway.mode local, porcelain empty, ignored list gains only .openclaw/; (4) section 5: agro gateway openclaw exit 0, [gateway] ready, status healthy, listener 127.0.0.1/[::1]:18789 only, --stop exit 0, no tmux server; (5) section 6: conflicting OPENCLAW_STATE_DIR -> install exit 1 and gateway exit 1 naming both paths; (6) no credential, no channel, no onboard; (7) sections 7-8: uninstall exit 0, command -v openclaw exit 1, compose down -v, image removed, no containers/volumes/networks remain.",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        ".agro/tasks/openclaw-harness-support/evidence/manual-review.md"
+      ],
+      "commit": "66ae9f99"
+    }
+  ]
+}

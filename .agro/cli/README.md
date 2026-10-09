@@ -105,7 +105,7 @@ with `AGRO_EXECUTION_TARGET=local` or `AGRO_EXECUTION_TARGET=docker-compose`.
 | `agro compose config` | Print the resolved compose configuration. |
 | `agro harness <list\|install\|status>` | Install and inspect agent CLI harnesses. `install` is the only door: it probes the running sandbox, installs into the persistent home volume, and reports. It reads and writes no `agro.json` field, and needs no rebuild. |
 | `agro tool <list\|install\|status>` | Install and inspect sandbox tooling that is not an agent CLI. `herdr`, `cloudflared`, `agent-browser`, `microsandbox`, and `tailscale` are `installable`; `gh` and the Docker CLI are `baked-in` and cannot be installed. Nothing installs at boot. A large download is confirmed first, and `--yes` accepts it. |
-| `agro gateway <args…>` | Manage a messaging client session (Slack bridge for `pi`/`hermes`). |
+| `agro gateway <args…>` | Manage a messaging client session (Slack bridge for `pi`/`hermes`, or the `openclaw` gateway). |
 | `agro --version` | Print the CLI version. |
 | `agro --help` | Show help; every subcommand also accepts `--help`. |
 
