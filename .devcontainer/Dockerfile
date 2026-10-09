@@ -1,4 +1,4 @@
-FROM node:22-trixie-slim AS base
+FROM node:24-trixie-slim AS base
 
 ENV AGRO_PROJECT_ROOT=/home/sandbox/harness
 ENV HERMES_HOME=/home/sandbox/harness/.hermes
