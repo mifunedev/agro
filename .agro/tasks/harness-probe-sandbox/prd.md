@@ -23,7 +23,7 @@ Status: DRAFT
 **Acceptance Criteria:**
 
 - [ ] `.agro/tasks/harness-probe-sandbox/evidence/manual-review.md` holds the transcript of `agro sandbox install docker`, `agro ps agro-sbx-1`, and `agro harness install claude-code` on the VM host, before and after the fix.
-- [ ] The VM is destroyed after the run, and the driver log ends with `remaining agro-matrix resources on exedev: 0`.
+- [ ] The advisor destroys the VM after the run, and no `agro-matrix` VM remains on exe.dev.
 
 ## Summary
 
@@ -68,4 +68,5 @@ None
 
 ## Lessons
 
-Filled by the advisor before undraft.
+- Claim: `agro tool` resolves the sandbox container with the same default. Evidence: `.agro/cli/src/commands/tool.ts:101` uses `configuredContainerName(root) ?? DEFAULT_CONTAINER_NAME` with `root` from `resolveProjectRoot(opts.cwd)`. Outcome: proposed issue, which waits for operator approval.
+- Claim: the registry lookup reads `process.env`, not the `env` option of the command. Evidence: `resolveSandboxRoot` calls `agroHome()`, and the lifecycle verbs share that behavior. Outcome: dropped, because the behavior matches `agro ps` and `agro shell`.
