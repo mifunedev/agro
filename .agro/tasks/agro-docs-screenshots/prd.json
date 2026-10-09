@@ -117,8 +117,8 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed on dc025029: .agro/scripts/__tests__/docs-images.test.ts checks missing file, empty alt text, missing Callouts line within 3 lines, unreferenced file in docs/img, and PNG not 1920x1080 (IHDR); 10 tests pass (pnpm exec vitest run, exit 0). Advisor probe: renaming quickstart-shell.png in docs/quickstart.md made the test exit 1; reverted. ci-harness.yml runs pnpm test:scripts on docs/** changes. pnpm typecheck exit 0 (covers .agro/cli only).",
       "dependsOn": [
         "US-002",
         "US-003",
@@ -126,7 +126,8 @@
       ],
       "files": [
         ".agro/scripts/__tests__/docs-images.test.ts"
-      ]
+      ],
+      "commit": "dc025029"
     },
     {
       "id": "US-006",
