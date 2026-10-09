@@ -142,4 +142,10 @@ None. The capture source is a free node in the local development Console of the 
 
 ## Lessons
 
-Filled by the advisor before undraft.
+- **A sandbox cannot host the capture.** Evidence: code-server inside a local sandbox could not run `agro sandbox install docker` or `agro shell`. Outcome: fixed in this PR. The capture used the browser editor of a free node in the development Console.
+- **The Console starts each node one minor release behind the docs.** Evidence: the new node ran AGRO `0.17.0`, because the Console pins `DEFAULT_AGRO_VERSION` to `0.17.0`. The capture ran `agro self-upgrade` to reach `0.18.1`. Outcome: proposed agro-console issue, not open yet; it waits for operator approval.
+- **The host-side harness install does not find a running sandbox.** Evidence: `agro harness install <id>` on the node host reported the running `agro-sbx-1` as absent. Outcome: proposed issue on agro, not open yet.
+- **The onboarding banner reports wrong harness states.** Evidence: the banner marked alias-only harnesses as installed. Outcome: proposed issue on agro, not open yet.
+- **A repeat harness install does not update.** Evidence: `agro harness install` on an installed harness printed "already installed", which contradicts "Updating a harness" in `docs/harnesses/overview.md`. Outcome: proposed issue on agro, not open yet.
+- **Screenshots are hard to read in the docs column.** Evidence: the docs page shows each 1920x1080 image 703px wide. Outcome: the operator chose click-to-zoom, in mifunedev/agro-web#75.
+- **Captures must show real output at one font size.** Evidence: the first set mixed font sizes and added CSS spacing between terminal rows. Outcome: fixed in this PR. Each image uses font size 18 and real terminal output.
