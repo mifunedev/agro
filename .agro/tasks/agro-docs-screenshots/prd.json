@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1359-agro-docs-screenshots",
+  "description": "Add annotated screenshots from the browser editor in a local AGRO sandbox at 150% zoom to the quickstart, installation, lifecycle, connecting, harness, Herdr, and GitHub pages, and guard the images in CI.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Prepare a capture sandbox with the browser editor",
+      "description": "As a docs maintainer, I want a clean AGRO sandbox with the browser editor. Then each screenshot shows the released AGRO behavior and no personal data.",
+      "acceptanceCriteria": [
+        "The capture runs in a local AGRO sandbox with code-server. The capture uses no Console node and no Console sign-in.",
+        "The sandbox runs the latest AGRO release, and `agro --version` prints that version.",
+        "code-server runs in the sandbox, and agent-browser opens the editor at a fixed zoom of 150%.",
+        "The git identity in the sandbox is `Demo User <demo@example.com>`. No screenshot shows a real name, email address, token, or host path of the operator.",
+        "A teardown step stops each process and deletes the capture sandbox and its volume.",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/tasks/agro-docs-screenshots/evidence/capture-setup.md"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Add screenshots to the quickstart and installation pages",
+      "description": "As a new self-host user, I want to see each first command and its output. Then I recognize a correct result.",
+      "acceptanceCriteria": [
+        "`docs/quickstart.md` shows the sandbox creation, the shell in the sandbox, and a harness install, each in the editor terminal.",
+        "`docs/installation.md` shows `agro --version` after the install.",
+        "Each image is a PNG at 1280x720 in `docs/img/`, with a name of the form `<page>-<step>.png`.",
+        "Each image has alt text and a `Callouts:` line under it that names each numbered callout.",
+        "Verify in browser using agent-browser skill.",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        "docs/quickstart.md",
+        "docs/installation.md",
+        "docs/img/quickstart-*",
+        "docs/img/installation-*"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Add screenshots to the lifecycle and connecting pages",
+      "description": "As a self-host user, I want to see the lifecycle commands and the ways to connect. Then I pick the correct command.",
+      "acceptanceCriteria": [
+        "`docs/lifecycle-commands.md` shows `agro ps` and one other verb that the page documents, each with its output.",
+        "`docs/connecting.md` shows the editor connected to the sandbox and one shell session.",
+        "Each image follows the file, size, alt-text, and `Callouts:` rules of US-002.",
+        "Verify in browser using agent-browser skill.",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        "docs/lifecycle-commands.md",
+        "docs/connecting.md",
+        "docs/img/lifecycle-commands-*",
+        "docs/img/connecting-*"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Add screenshots to the harness, Herdr, and GitHub pages",
+      "description": "As a self-host user, I want to see a harness install, a Herdr workspace, and the GitHub sign-in. Then I complete each setup step.",
+      "acceptanceCriteria": [
+        "`docs/harnesses/overview.md` shows `agro harness install <id>` and its output.",
+        "`docs/integrations/herdr.md` shows a Herdr workspace with two panes.",
+        "`docs/integrations/github.md` shows `gh auth status` for a signed-in demo account, or the first prompt of `gh auth login` when no demo account exists. No image shows a token or a one-time code.",
+        "Each image follows the file, size, alt-text, and `Callouts:` rules of US-002.",
+        "Verify in browser using agent-browser skill.",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        "docs/harnesses/overview.md",
+        "docs/integrations/herdr.md",
+        "docs/integrations/github.md",
+        "docs/img/harnesses-overview-*",
+        "docs/img/herdr-*",
+        "docs/img/github-*"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Guard the images",
+      "description": "As a docs maintainer, I want CI to stop a missing image or a missing callout line. Then each docs page stays complete.",
+      "acceptanceCriteria": [
+        "A test fails when an image link in `docs/` names a file that does not exist.",
+        "The test fails when an image has no alt text, or has no `Callouts:` line within the next 3 lines.",
+        "The test fails when a file in `docs/img/` has no reference from `docs/`, or when a PNG is not 1280x720.",
+        "The test is `.agro/scripts/__tests__/docs-images.test.ts`. The `ci-harness.yml` job runs the test through `pnpm test:scripts` on each change to `docs/**`.",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002",
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        ".agro/scripts/__tests__/docs-images.test.ts"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Manual review evidence",
+      "description": "As the operator, I want a recorded review of each page with its images. Then I accept the change from evidence.",
+      "acceptanceCriteria": [
+        "Depends on US-001 through US-005.",
+        "`.agro/tasks/agro-docs-screenshots/evidence/manual-review.md` holds an annotated screenshot of each changed page at 1280x720, from a local agro-web build that uses the changed `docs/`.",
+        "The review confirms that each image loads and shows no personal data.",
+        "The run stops each process that the run starts.",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004",
+        "US-005"
+      ],
+      "files": [
+        ".agro/tasks/agro-docs-screenshots/evidence/"
+      ]
+    }
+  ]
+}
