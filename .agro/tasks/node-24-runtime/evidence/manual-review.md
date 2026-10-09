@@ -81,7 +81,33 @@ smoke=0
 
 ## 5. Fresh host install offers Node 24
 
-The exe.dev run did not create a VM. The account has no plan:
+exe.dev VM, Ubuntu 24.04.5 LTS, `INSTALL_URL` at commit `2b668b66`:
+
+```text
+$ bash .agro/skills/remote-sandbox/scripts/run.sh exedev
+== exedev agro-mx-1009-003441 check=fresh-install.sh image=default date=2026-10-09T06:34:41Z
+TIMING create_return_s=1.5 first_shell_s=2.2
+build under test: install=https://raw.githubusercontent.com/mifunedev/agro/2b668b66dd42aa388ff81b1145afea730595a525/.agro/scripts/install.sh agro_js=release sandbox_image=cli default agro_ref=default branch vm_image=provider default
+started
+== fresh install from https://raw.githubusercontent.com/mifunedev/agro/2b668b66dd42aa388ff81b1145afea730595a525/.agro/scripts/install.sh on Ubuntu 24.04.5 LTS, node before: none
+install exit=0
+WARN: Node.js not found (need >= 20 to run 'agro')
+ ✓  Pinned the 'agro' shebang to /home/exedev/.local/share/agro/node -> /home/exedev/.nvm/versions/node/v24.21.0/bin/node
+ ✓  Installed /home/exedev/.local/bin/agro
+ ✓  agro 0.18.1
+RESULT F1-new-login-shell PASS rc=0 0.18.1
+RESULT F2-new-interactive-shell PASS rc=0 0.18.1
+RESULT F3-absolute-path PASS rc=0 0.18.1
+RESULT F4-empty-environment PASS rc=0 0.18.1
+shebang: #!/home/exedev/.local/share/agro/node
+SUMMARY
+== destroy agro-mx-1009-003441
+1 VM deleted successfully
+remaining agro-matrix resources on exedev: 0
+RUN DONE
+```
+
+The first exe.dev run did not create a VM, because the account had no plan:
 
 ```text
 == exedev agro-mx-1009-001416 check=fresh-install.sh image=default date=2026-10-09T06:14:16Z
@@ -114,7 +140,7 @@ Downloading and installing node v24.21.0...
 v24.21.0
 ```
 
-`F2-new-interactive-shell` also fails with the released installer in the same container, so this task did not cause the failure:
+`F2-new-interactive-shell` fails only in the container. The released installer fails the same way there. F2 passes on the exe.dev VM:
 
 ```text
  ✓  Pinned the 'agro' shebang to /home/probe/.local/share/agro/node -> /home/probe/.nvm/versions/node/v22.23.3/bin/node
