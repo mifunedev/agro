@@ -8,6 +8,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+- Add OpenClaw to the harness catalog: `agro harness install openclaw` binds OpenClaw to the AGRO checkout, and `agro gateway openclaw` runs its gateway in the `client-openclaw` tmux session ([#1362](https://github.com/mifunedev/agro/issues/1362)).
+
 ### Changed
 - Ship Node.js 24 in the sandbox image and offer Node 24 in `install.sh`; the host `agro` CLI still requires Node 20 or later ([#1361](https://github.com/mifunedev/agro/issues/1361)).
 
