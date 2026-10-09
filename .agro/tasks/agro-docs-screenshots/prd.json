@@ -10,7 +10,7 @@
       "description": "As a docs maintainer, I want the Console browser editor on a free node. Then each screenshot shows the editor and the node host that a Console user sees.",
       "acceptanceCriteria": [
         "The capture signs in to the local development Console as `dev+demo@agro.local`, and creates one free node with the SSH key of that account.",
-        "The capture opens the node in **Connect** \u2192 **Browser editor (code-server)**.",
+        "The capture opens the node in **Connect** → **Browser editor (code-server)**.",
         "The node host runs the latest AGRO release, and `agro --version` prints that version in the editor terminal.",
         "agent-browser shows the editor in a 1280x720 viewport at device scale 1.5. Each PNG is 1920x1080, and the editor keeps a desktop layout.",
         "The git identity on the node is `Demo User <demo@example.com>`. The capture signs in to no other account. No screenshot shows a real name, email address, token, or public IP address.",
@@ -18,12 +18,13 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed: signed in to the dev Console at localhost:3005 as dev+demo@agro.local; created free node docs-capture (152f0689) with the account key agro-demo; Waiting for IP -> Waiting for boot -> Running in about 2.5 minutes. Connect opened code-server in a new tab. agro self-upgrade moved the node CLI from v0.17.0 to v0.18.1; agro --version prints 0.18.1 in the editor terminal (node001.png). Viewport 1280x720 at device scale 1.5 gives 1920x1080 with a desktop layout; terminal.integrated.gpuAcceleration off. Git identity Demo User <demo@example.com>; no sign-ins; image shows login sandbox and the node ID hostname, no IP, no email. Teardown in evidence/capture-setup.md: the operator destroys the node and removes the key. Finding: the Console pins AGRO 0.17.0 (DEFAULT_AGRO_VERSION), one minor behind the docs. Typecheck: not affected (docs and task files only).",
       "dependsOn": [],
       "files": [
         ".agro/tasks/agro-docs-screenshots/evidence/capture-setup.md"
-      ]
+      ],
+      "commit": "b32c6b76"
     },
     {
       "id": "US-002",
