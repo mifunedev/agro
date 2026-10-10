@@ -8,6 +8,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Removed
+- Remove the Claude Code `Stop` hook from project settings, so Claude Code no longer runs `notify_slack.sh` after every turn ([#1373](https://github.com/mifunedev/agro/issues/1373)).
+
 ## [0.19.0] - 2026-10-09
 
 ### Added
