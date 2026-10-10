@@ -43,29 +43,29 @@ function run(fx: { bin: string }, args: string[] = []) {
 describe("node-pnpm-parity", () => {
   it("reads the node base image tag and pnpm pin straight from the Dockerfile", () => {
     const fx = fixture({
-      "node:22-bookworm-slim": "v22.14.0 10.33.0",
-      "node:22-trixie-slim": "v22.14.0 10.33.0",
+      "node:24-bookworm-slim": "v24.11.1 10.33.0",
+      "node:24-trixie-slim": "v24.11.1 10.33.0",
     });
 
     const result = run(fx);
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("node base:  node:22-trixie-slim");
+    expect(result.stdout).toContain("node base:  node:24-trixie-slim");
     expect(result.stdout).toContain("pnpm pin:   10.33.0");
-    expect(result.stdout).toContain("PARITY: node:22-bookworm-slim and node:22-trixie-slim");
+    expect(result.stdout).toContain("PARITY: node:24-bookworm-slim and node:24-trixie-slim");
   });
 
   it("reports a divergence between the two bases", () => {
     const fx = fixture({
-      "node:22-bookworm-slim": "v22.14.0 10.33.0",
-      "node:22-trixie-slim": "v22.15.1 10.33.0",
+      "node:24-bookworm-slim": "v24.11.1 10.33.0",
+      "node:24-trixie-slim": "v24.12.0 10.33.0",
     });
 
     const result = run(fx);
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("DIVERGENCE");
-    expect(result.stderr).toContain("v22.15.1 10.33.0");
+    expect(result.stderr).toContain("v24.12.0 10.33.0");
   });
 
   it("fails loudly when the Dockerfile carries no readable pins", () => {

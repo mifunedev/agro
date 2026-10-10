@@ -8,7 +8,7 @@ set -euo pipefail
 verdict=$2
 [[ $AUDIT_RUN_ID =~ ^audit-[0-9]{8}T[0-9]{6}Z-[A-Za-z0-9._-]+$ ]] \
   || { echo 'audit-evidence: invalid run ID' >&2; exit 64; }
-[[ $AUDIT_TARGET =~ ^(implementation|pr|prs|harness|context|skills|eval-quality|drift|full)$ ]] \
+[[ $AUDIT_TARGET =~ ^(implementation|pr|prs|harness|context|skills|drift|full)$ ]] \
   || { echo 'audit-evidence: invalid target' >&2; exit 64; }
 [[ $verdict =~ ^[A-Z][A-Z0-9_-]{1,63}$ ]] \
   || { echo 'audit-evidence: verdict must be an uppercase machine token' >&2; exit 64; }

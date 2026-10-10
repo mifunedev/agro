@@ -1,6 +1,6 @@
 # @mifune/agro
 
-The **AGRO CLI** (`agro`) — create an [AGRO](https://agro.mifune.dev)
+The **AGRO CLI** (`agro`) — create an [AGRO](https://github.com/mifunedev/agro)
 Docker sandbox for coding agents and drive its lifecycle from the command line.
 
 AGRO is a portable harness for running coding agents (Claude Code, Codex, Pi,
@@ -26,17 +26,17 @@ Or run it once without installing:
 npx @mifune/agro sandbox install docker
 ```
 
-Prefer a `curl | bash` bootstrap (also installs Node when missing)? `get-agro.sh`
+Prefer a `curl | bash` bootstrap (also installs Node when missing)? `install.sh`
 installs the prebuilt `agro` artifact from the latest GitHub release — it never
 clones or builds on your machine:
 
 ```bash
-curl -fsSL https://agro.mifune.dev/get-agro.sh | bash
+curl -fsSL https://github.com/mifunedev/agro/releases/latest/download/install.sh | bash
 ```
 
 ### Requirements
 
-- **Node.js ≥ 20** (22 recommended) on your `PATH`. Unlike the `get-agro.sh` bootstrap,
+- **Node.js ≥ 20** (22 recommended) on your `PATH`. Unlike the `install.sh` bootstrap,
   npm will not install Node for you.
 - **Docker** and **git** for the sandbox lifecycle commands (`agro sandbox install`, `agro shell`).
 
@@ -105,7 +105,7 @@ with `AGRO_EXECUTION_TARGET=local` or `AGRO_EXECUTION_TARGET=docker-compose`.
 | `agro compose config` | Print the resolved compose configuration. |
 | `agro harness <list\|install\|status>` | Install and inspect agent CLI harnesses. `install` is the only door: it probes the running sandbox, installs into the persistent home volume, and reports. It reads and writes no `agro.json` field, and needs no rebuild. |
 | `agro tool <list\|install\|status>` | Install and inspect sandbox tooling that is not an agent CLI. `herdr`, `cloudflared`, `agent-browser`, `microsandbox`, and `tailscale` are `installable`; `gh` and the Docker CLI are `baked-in` and cannot be installed. Nothing installs at boot. A large download is confirmed first, and `--yes` accepts it. |
-| `agro gateway <args…>` | Manage a messaging client session (Slack bridge for `pi`/`hermes`). |
+| `agro gateway <args…>` | Manage a messaging client session (Slack bridge for `pi`/`hermes`, or the `openclaw` gateway). |
 | `agro --version` | Print the CLI version. |
 | `agro --help` | Show help; every subcommand also accepts `--help`. |
 
@@ -147,8 +147,8 @@ The CLI writes no scaffold. It creates no `AGENTS.md`, no provider configuration
 
 ## Documentation
 
-- **Docs:** https://agro.mifune.dev
-- **Installation guide:** https://agro.mifune.dev/docs/installation
+- **Docs:** https://github.com/mifunedev/agro/tree/main/docs
+- **Installation guide:** https://github.com/mifunedev/agro/blob/main/docs/installation.md
 - **Source & issues:** https://github.com/mifunedev/agro
 
 ## License

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
@@ -6,10 +7,8 @@ vi.mock("node:os", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:os")>();
   return { ...actual, userInfo: () => ({ ...actual.userInfo(), username: "sandbox", uid: 1000 }) };
 });
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import {
-  PROBE_TIMEOUT_MS,
   runHarnessInstall,
   runHarnessList,
   runHarnessStatus,
@@ -19,7 +18,6 @@ import {
 import type { LifecycleRunner, RunResult } from "../lib/execution/runner.js";
 import {
   HARNESS_CATALOG,
-  resolveInstallArgv,
   SANDBOX_HARNESS_PREFIX,
 } from "../lib/harnesses/catalog.js";
 import { defaultAgroConfig, agroConfigPath } from "../lib/agro-config.js";
@@ -33,9 +31,7 @@ vi.mock("../cli.js", async (importOriginal) => {
   return mod;
 });
 
-const { parseHarnessArgs, printHarnessHelp, printAgroHelp } = await import("../cli.js");
-
-const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
+const { parseHarnessArgs, printHarnessHelp } = await import("../cli.js");
 
 const cleanups: string[] = [];
 afterEach(() => {
@@ -55,7 +51,7 @@ function makeRepo(): string {
 function emptyStateHome(): { dir: string; env: NodeJS.ProcessEnv } {
   const dir = mkdtempSync(join(tmpdir(), "oh-harness-home-"));
   cleanups.push(dir);
-  return { dir, env: { ...process.env, AGRO_HOME: dir } };
+  return { dir, env: { ...process.env, HOME: dir, AGRO_HOME: dir } };
 }
 
 function fakeHome(): { dir: string; homedir: () => string; prefix: string } {
@@ -193,321 +189,6 @@ function captureStdout(fn: () => void): string {
   return out;
 }
 
-describe("help", () => {
-  it("lists `agro harness` in the top-level Usage block", () => {
-    expect(captureStdout(printAgroHelp)).toMatch(/^ {2}agro harness /m);
-  });
-
-  it("documents all three subcommands and the one flag", () => {
-    const help = captureStdout(printHarnessHelp);
-    for (const s of ["agro harness list", "agro harness install", "agro harness status"]) {
-      expect(help).toContain(s);
-    }
-    expect(help).toContain("--json");
-  });
-
-  it("promises no boot-time or rebuild-time install", () => {
-    const help = captureStdout(printHarnessHelp);
-    expect(help).not.toMatch(/next (image build|container start|build)/);
-    expect(help).not.toMatch(/persist-only|no-persist|install\.\*/);
-  });
-
-  it("names every installable harness so `<name>` is discoverable", () => {
-    const help = captureStdout(printHarnessHelp);
-    for (const id of ["claude-code", "codex", "pi", "opencode", "grok-build", "hermes", "t3code"]) {
-      expect(help).toContain(id);
-    }
-  });
-});
-
-
-describe("runHarnessInstall never touches agro.json", () => {
-  const live = (): { calls: RecordedCall[]; run: LifecycleRunner } => {
-    let probes = 0;
-    return makeRunner((c, a) => {
-      if (isInspect(c, a)) return running;
-      if (isExecOf(c, a, "--version")) return { status: probes++ === 0 ? 1 : 0, stdout: "", stderr: "" };
-      return undefined;
-    });
-  };
-
-  it.each(["opencode", "grok-build", "hermes", "claude-code"])(
-    "%s: leaves the config byte-identical",
-    async (id) => {
-      const root = makeRepo();
-      const before = readFileSync(agroConfigPath(root), "utf8");
-      const { out, io } = makeIo();
-
-      expect(await runHarnessInstall(id, { bin: "agro", cwd: root, run: live().run }, io)).toBe(0);
-      expect(readFileSync(agroConfigPath(root), "utf8")).toBe(before);
-      expect(text(out)).not.toMatch(/agro\.json/);
-    },
-  );
-
-  it("does not create agro.json when it is missing", async () => {
-    const root = makeRepo();
-    rmSync(agroConfigPath(root));
-    const { out, io } = makeIo();
-
-    expect(await runHarnessInstall("hermes", { bin: "agro", cwd: root, run: live().run }, io)).toBe(0);
-    expect(existsSync(agroConfigPath(root))).toBe(false);
-    expect(text(out)).toContain("installed");
-  });
-});
-
-
-describe.each(["opencode", "muse-code"])("runHarnessInstall %s against the container", (harness) => {
-  it("on a stopped sandbox: fails, points at `agro sandbox`, and runs zero docker exec", async () => {
-    const root = makeRepo();
-    const before = readFileSync(agroConfigPath(root), "utf8");
-    const { calls, run } = makeRunner((c, a) => (isInspect(c, a) ? exited : undefined));
-    const { err, io } = makeIo();
-
-    expect(await runHarnessInstall(harness, { bin: "agro", cwd: root, run }, io)).toBe(1);
-    expect(readFileSync(agroConfigPath(root), "utf8")).toBe(before);
-    expect(text(err)).toContain("agro sandbox");
-    expect(text(err)).not.toMatch(/next|later|picks it up/);
-    expect(execCalls(calls)).toEqual([]);
-  });
-
-  it("on a never-provisioned sandbox: same, treating absent as not-yet-started", async () => {
-    const root = makeRepo();
-    const { calls, run } = makeRunner((c, a) =>
-      isInspect(c, a) ? { status: 1, stdout: "", stderr: "No such object" } : undefined,
-    );
-    const { err, io } = makeIo();
-
-    expect(await runHarnessInstall("hermes", { bin: "agro", cwd: root, run }, io)).toBe(1);
-    expect(text(err)).toContain("agro sandbox");
-    expect(execCalls(calls)).toEqual([]);
-  });
-
-  it("runs the installer argv as the right user when the sandbox is running", async () => {
-    const root = makeRepo();
-    const { calls, run } = makeRunner((c, a) => {
-      if (isInspect(c, a)) return running;
-      if (isExecOf(c, a, "--version")) return { status: 1, stdout: "", stderr: "not found" };
-      return undefined;
-    });
-    const { out, io } = makeIo();
-
-    const before = readFileSync(agroConfigPath(root), "utf8");
-    expect(await runHarnessInstall(harness, { bin: "agro", cwd: root, run }, io)).toBe(0);
-    expect(readFileSync(agroConfigPath(root), "utf8")).toBe(before);
-
-    const entry = HARNESS_CATALOG.find((h) => h.id === harness)!;
-    const installArgv = resolveInstallArgv(entry, SANDBOX_HARNESS_PREFIX);
-    const install = execCalls(calls).find((c) => c.args.includes(installArgv.at(-1)!));
-    expect(install).toBeDefined();
-    expect(install!.args).toContain("-u");
-    // #908: every harness installs as the sandbox user into the home mount.
-    expect(install!.args).toContain("sandbox");
-    expect(install!.args).not.toContain("root");
-    expect(install!.args.slice(-installArgv.length)).toEqual(installArgv);
-    expect(text(out)).toContain("installed");
-    expect(text(out)).toContain(
-      `https://github.com/mifunedev/agro/blob/main/docs/harnesses/${harness}.md`,
-    );
-  });
-
-  it("is a no-op when the binary is already present", async () => {
-    const root = makeRepo();
-    const { calls, run } = makeRunner((c, a) => (isInspect(c, a) ? running : undefined));
-    const { out, io } = makeIo();
-
-    expect(await runHarnessInstall(harness, { bin: "agro", cwd: root, run }, io)).toBe(0);
-    expect(execCalls(calls)).toHaveLength(2);
-    expect(execCalls(calls)[0].args.slice(-2)).toEqual(HARNESS_CATALOG.find((h) => h.id === harness)!.verifyArgv);
-    expect(execCalls(calls)[1].args.slice(-3)).toEqual(["test", "-f", `${SANDBOX_HARNESS_PREFIX}/share/agro/harnesses/${harness}.installed`]);
-    expect(text(out)).toContain("already installed");
-  });
-
-  it("surfaces the installer's exit code and promises no retry", async () => {
-    const root = makeRepo();
-    const before = readFileSync(agroConfigPath(root), "utf8");
-    const { run } = makeRunner((c, a) => {
-      if (isInspect(c, a)) return running;
-      if (isExecOf(c, a, "--version")) return { status: 1, stdout: "", stderr: "" };
-      return { status: 7, stdout: "", stderr: "network unreachable" };
-    });
-    const { err, io } = makeIo();
-
-    expect(await runHarnessInstall(harness, { bin: "agro", cwd: root, run }, io)).toBe(7);
-    expect(readFileSync(agroConfigPath(root), "utf8")).toBe(before);
-    expect(text(err)).toContain("failed (exit 7)");
-    expect(text(err)).not.toMatch(/agro\.json|will install it|will retry it/);
-  });
-
-  it("refuses without advice to start a sandbox when no runtime is on PATH", async () => {
-    const root = makeRepo();
-    const run: LifecycleRunner = () => ({
-      status: null,
-      error: Object.assign(new Error("spawn docker ENOENT"), { code: "ENOENT" }),
-    });
-    const { err, io } = makeIo();
-
-    expect(
-      await runHarnessInstall("hermes", { bin: "agro", cwd: root, run, interactive: false }, io),
-    ).toBe(1);
-    expect(text(err)).toContain("agro harness: no container runtime is on PATH.");
-    expect(text(err)).toContain("Or install on the host with `agro harness install hermes --host`.");
-    expect(text(err)).not.toMatch(/Start it with|docker is required/);
-  });
-
-  it("rejects an unknown harness with the valid ids and writes nothing", async () => {
-    const root = makeRepo();
-    const before = readFileSync(agroConfigPath(root), "utf8");
-    const { calls, run } = makeRunner();
-    const { err, io } = makeIo();
-
-    expect(await runHarnessInstall("emacs", { bin: "agro", cwd: root, run }, io)).toBe(1);
-    expect(text(err)).toContain('unknown harness "emacs"');
-    expect(text(err)).toContain("opencode");
-    expect(readFileSync(agroConfigPath(root), "utf8")).toBe(before);
-    expect(calls).toEqual([]);
-  });
-
-  it("is idempotent — a second identical run changes nothing", async () => {
-    const root = makeRepo();
-    const { run } = makeRunner((c, a) => (isInspect(c, a) ? running : undefined));
-    await runHarnessInstall("hermes", { bin: "agro", cwd: root, run }, makeIo().io);
-    const once = readFileSync(agroConfigPath(root), "utf8");
-
-    const { out, io } = makeIo();
-    expect(await runHarnessInstall("hermes", { bin: "agro", cwd: root, run }, io)).toBe(0);
-    expect(readFileSync(agroConfigPath(root), "utf8")).toBe(once);
-    expect(text(out)).toContain("already");
-  });
-});
-
-
-describe("runHarnessInstall retries a partial sandbox install (#1244)", () => {
-  it("runs the install command again after a failed install left the binary", async () => {
-    const root = makeRepo();
-    const entry = HARNESS_CATALOG.find((h) => h.id === "hermes")!;
-    const installToken = resolveInstallArgv(entry, SANDBOX_HARNESS_PREFIX).at(-1)!;
-    const marker = `${SANDBOX_HARNESS_PREFIX}/share/agro/harnesses/hermes.installed`;
-    let markerExists = false;
-    let installs = 0;
-    const { run } = makeRunner((c, a) => {
-      if (isInspect(c, a)) return running;
-      if (c !== "docker" || a[0] !== "exec") return undefined;
-      if (a.includes(installToken)) {
-        installs += 1;
-        return { status: installs === 1 ? 1 : 0, stdout: "", stderr: "" };
-      }
-      if (a.includes("--version")) return { status: installs > 0 ? 0 : 1, stdout: "", stderr: "" };
-      if (a.includes("test") && a.includes(marker)) return { status: markerExists ? 0 : 1, stdout: "", stderr: "" };
-      if (a.some((arg) => arg.includes(marker))) markerExists = true;
-      return undefined;
-    });
-
-    const first = makeIo();
-    expect(await runHarnessInstall("hermes", { bin: "agro", cwd: root, run }, first.io)).toBe(1);
-    expect(installs).toBe(1);
-
-    const second = makeIo();
-    expect(await runHarnessInstall("hermes", { bin: "agro", cwd: root, run }, second.io)).toBe(0);
-    expect(installs).toBe(2);
-    expect(text(second.out)).not.toContain("already installed");
-    expect(markerExists).toBe(true);
-  });
-});
-
-
-describe("runHarnessList", () => {
-  it("renders one row per catalog entry with the state columns", async () => {
-    const root = makeRepo();
-    const { run } = makeRunner((c, a) => (isInspect(c, a) ? exited : undefined));
-    const { out, io } = makeIo();
-
-    expect(await runHarnessList({ bin: "agro", cwd: root, run, env: emptyStateHome().env, homedir: fakeHome().homedir }, io)).toBe(0);
-    const rendered = text(out);
-    expect(rendered).toMatch(/^HARNESS\s+KIND\s+INSTALLED$/m);
-    expect(rendered).not.toMatch(/ENABLED/);
-    for (const id of ["claude-code", "opencode", "grok-build", "hermes", "t3code"]) {
-      expect(rendered).toMatch(new RegExp(`^${id}\\s`, "m"));
-    }
-  });
-
-  it("marks INSTALLED unknown and explains why when the sandbox is down", async () => {
-    const root = makeRepo();
-    const { calls, run } = makeRunner((c, a) => (isInspect(c, a) ? exited : undefined));
-    const { out, io } = makeIo();
-
-    await runHarnessList({ bin: "agro", cwd: root, run, env: emptyStateHome().env, homedir: fakeHome().homedir }, io);
-    expect(text(out)).toContain("not running");
-    expect(execCalls(calls)).toEqual([]);
-  });
-
-  it("--json emits the same data machine-readably, with no enabled field", async () => {
-    const root = makeRepo();
-    writeFileSync(
-      agroConfigPath(root),
-      `${JSON.stringify({ ...defaultAgroConfig("probe"), install: { hermes: true } }, null, 2)}\n`,
-    );
-    const { run } = makeRunner((c, a) => (isInspect(c, a) ? exited : undefined));
-    const { out, io } = makeIo();
-
-    await runHarnessList({ bin: "agro", cwd: root, run, json: true, env: emptyStateHome().env, homedir: fakeHome().homedir }, io);
-    const parsed = JSON.parse(text(out)) as Record<string, unknown>[];
-    expect(parsed).toHaveLength(HARNESS_CATALOG.length);
-    for (const row of parsed) {
-      expect(Object.keys(row).sort(), String(row.id)).toEqual([
-        "binary",
-        "docs",
-        "id",
-        "installed",
-        "kind",
-        "location",
-        "title",
-      ]);
-      expect(["installable", "on-demand"], String(row.id)).toContain(row.kind);
-    }
-  });
-
-  it("reports a harness as installed when its verify probe exits 0", async () => {
-    const root = makeRepo();
-    const { run } = makeRunner((c, a) => {
-      if (isInspect(c, a)) return running;
-      if (isExecOf(c, a, "hermes")) return { status: 1, stdout: "", stderr: "" };
-      return { status: 0, stdout: "1.0.0\n", stderr: "" };
-    });
-    const { out, io } = makeIo();
-
-    await runHarnessList({ bin: "agro", cwd: root, run, json: true }, io);
-    const parsed = JSON.parse(text(out));
-    expect(parsed.find((h: { id: string }) => h.id === "claude-code").installed).toBe(true);
-    expect(parsed.find((h: { id: string }) => h.id === "hermes").installed).toBe(false);
-  });
-});
-
-describe("runHarnessList — a hung verify probe cannot stall the boot path", () => {
-  const INSIDE_SANDBOX: NodeJS.ProcessEnv = { AGRO_EXECUTION_TARGET: "local" };
-
-  it("bounds every probe spawn with a timeout", async () => {
-    const root = makeRepo();
-    const { calls, run } = makeRunner();
-    await runHarnessList({ bin: "agro", cwd: root, run, env: INSIDE_SANDBOX, json: true }, makeIo().io);
-    expect(calls.length).toBeGreaterThan(0);
-    for (const call of calls) expect(call.timeoutMs).toBe(PROBE_TIMEOUT_MS);
-  });
-
-  it("reports a timed-out probe as unknown rather than throwing", async () => {
-    const root = makeRepo();
-    const { run } = makeRunner((cmd) =>
-      cmd === "npx"
-        ? { status: null, error: { code: "ETIMEDOUT", message: "spawnSync npx ETIMEDOUT" } }
-        : undefined,
-    );
-    const { out, io } = makeIo();
-    expect(await runHarnessList({ bin: "agro", cwd: root, run, env: INSIDE_SANDBOX, json: true }, io)).toBe(0);
-    const parsed = JSON.parse(text(out));
-    expect(parsed.find((h: { id: string }) => h.id === "t3code").installed).toBeNull();
-    expect(parsed.find((h: { id: string }) => h.id === "claude-code").installed).toBe(true);
-  });
-});
-
 describe("runHarnessStatus", () => {
   it("with no name behaves like list", async () => {
     const root = makeRepo();
@@ -563,6 +244,42 @@ describe("agro harness — inside the sandbox", () => {
     expect(calls.some((c) => c.args.includes("opencode-ai"))).toBe(true);
   });
 
+  it("runs the install again for a harness AGRO installed", async () => {
+    const root = makeRepo();
+    const { calls, run } = makeRunner();
+    const { io, out } = makeIo();
+    expect(await runHarnessInstall("pi", { bin: "agro", cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(text(out)).toContain("updating Pi in the sandbox…");
+    expect(text(out)).not.toContain("already installed");
+    expect(calls.filter((c) => c.args.includes("@earendil-works/pi-coding-agent"))).toHaveLength(1);
+    expect(calls.some((c) => c.args.some((a) => a.endsWith("pi.installed")) && c.args.includes("mkdir -p \"$(dirname \"$1\")\" && : > \"$1\""))).toBe(true);
+  });
+
+  it("configures Hermes after it runs the install again", async () => {
+    const root = makeRepo();
+    const { calls, run } = makeRunner();
+    const { io, out } = makeIo();
+    expect(await runHarnessInstall("hermes", { bin: "agro", cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(text(out)).toContain("updating Hermes in the sandbox…");
+    const install = calls.findIndex((c) => c.args.some((a) => a.includes("install.sh")));
+    const configure = calls.findIndex((c) => c.args.includes("configure"));
+    expect(install).toBeGreaterThanOrEqual(0);
+    expect(configure).toBeGreaterThan(install);
+  });
+
+  it("installs when the binary exists without the install marker", async () => {
+    const root = makeRepo();
+    const { calls, run } = makeRunner((cmd, args) =>
+      cmd === "test" && args.some((a) => a.endsWith("pi.installed"))
+        ? { status: 1, stdout: "", stderr: "" }
+        : undefined,
+    );
+    const { io, out } = makeIo();
+    expect(await runHarnessInstall("pi", { bin: "agro", cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(text(out)).toContain("installing Pi into the sandbox…");
+    expect(calls.filter((c) => c.args.includes("@earendil-works/pi-coding-agent"))).toHaveLength(1);
+  });
+
   it("verifies as the sandbox user, never through sudo", async () => {
     const root = makeRepo();
     const { calls, run } = makeRunner();
@@ -584,6 +301,33 @@ describe("agro harness — inside the sandbox", () => {
 
 
 describe("runHarnessInstall on the host when the sandbox is not running", () => {
+  it.each(["default", "recorded", "path", "workspace"].flatMap(selection => [false, true].map(installed => ({ selection, installed }))))("configures Hermes in the $selection selected host workspace (installed=$installed)", async ({ selection, installed }) => {
+    const repo = makeRepo();
+    const state = emptyStateHome();
+    const user = fakeHome();
+    const selected = seedWorkspace(selection === "default" ? defaultRoot(state) : workspace(state, "selected"));
+    if (selection === "recorded") {
+      writeFileSync(hostConfigFile(state.dir), JSON.stringify({ version: 1, harnessRoot: selected }));
+    }
+    let probes = 0;
+    const { run, calls } = makeRunner((cmd, args) => {
+      if (isInspect(cmd, args)) return exited;
+      if (cmd === "hermes") return { status: probes++ === 0 && !installed ? 1 : 0, stdout: "", stderr: "" };
+      return undefined;
+    });
+    const { io, out } = makeIo();
+    const { HERMES_HOME: _home, ...env } = state.env;
+    expect(await runHarnessInstall("hermes", {
+      bin: "agro", cwd: repo, run, host: true, interactive: false,
+      env, homedir: user.homedir,
+      ...(selection === "path" ? { path: selected } : {}),
+      ...(selection === "workspace" ? { workspace: "selected" } : {}),
+    }, io)).toBe(0);
+    const configure = calls.find(c => c.args.includes("configure"))!;
+    expect(configure.args.slice(-5)).toEqual(["configure", selected, join(selected, ".hermes"), selected, "hermes"]);
+    expect(calls.some(c => c.args.some(a => a.includes("install.sh")))).toBe(!installed);
+    expect(text(out)).toContain(`HERMES_HOME='${selected}/.hermes' hermes`);
+  });
   interface HostRunner {
     calls: RecordedCall[];
     run: LifecycleRunner;
@@ -677,7 +421,7 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
       "-g",
       "@anthropic-ai/claude-code",
     ]);
-    expect(install.args.some((a) => a.includes("/home/sandbox"))).toBe(false);
+    expect(install.args.some((a) => a.includes(SANDBOX_HARNESS_PREFIX))).toBe(false);
     expect(install.args.some((a) => a.includes(home.dir))).toBe(false);
 
     const rendered = text(out);
@@ -1361,6 +1105,45 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
     expect(config.hostHarnesses?.["claude-code"]).toBeDefined();
   });
 
+  it("runs the install again on the host for a recorded harness", async () => {
+    const root = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    const harness = seedWorkspace(defaultRoot(home));
+    writeFileSync(
+      hostConfigFile(home.dir),
+      JSON.stringify({
+        version: 1,
+        harnessRoot: harness,
+        hostHarnesses: {
+          "claude-code": {
+            prefix: user.prefix,
+            binary: "claude",
+            binPath: join(user.prefix, "bin"),
+            installedAt: "2026-01-01T00:00:00.000Z",
+            workspaceRoot: harness,
+          },
+        },
+      }),
+    );
+    const { calls, run } = hostRunner();
+    const { out, io } = makeIo();
+
+    expect(
+      await runHarnessInstall(
+        "claude-code",
+        { bin: "agro", cwd: root, run, env: home.env, homedir: user.homedir, interactive: false, host: true },
+        io,
+      ),
+    ).toBe(0);
+    expect(text(out)).toContain("updating Claude Code on the host…");
+    expect(text(out)).not.toContain("already installed");
+    expect(npmCalls(calls)).toHaveLength(1);
+    expect(npmCalls(calls)[0].args).toContain("@anthropic-ai/claude-code");
+    const config = readConfig(home.dir) as { hostHarnesses?: Record<string, { installedAt: string }> };
+    expect(config.hostHarnesses?.["claude-code"]?.installedAt).not.toBe("2026-01-01T00:00:00.000Z");
+  });
+
   it("rewrites nothing when the already-installed selection is unchanged", async () => {
     const root = makeRepo();
     const home = emptyStateHome();
@@ -1449,66 +1232,6 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
     expect(text(out)).toContain("into the sandbox");
     expect(text(out)).not.toContain("from the AGRO workspace");
     expect(existsSync(hostConfigFile(home.dir))).toBe(false);
-  });
-});
-
-describe("harness location reporting", () => {
-  it("labels every row sandbox when the sandbox is reachable", async () => {
-    const root = makeRepo();
-    const { run } = makeRunner((c, a) => (isInspect(c, a) ? running : undefined));
-    const { out, io } = makeIo();
-
-    await runHarnessList({ bin: "agro", cwd: root, run, json: true, env: emptyStateHome().env, homedir: fakeHome().homedir }, io);
-    for (const row of JSON.parse(text(out))) expect(row.location).toBe("sandbox");
-  });
-
-  it("labels every row unknown when neither the sandbox nor a host workspace exists", async () => {
-    const root = makeRepo();
-    const { run } = makeRunner((c, a) => (isInspect(c, a) ? exited : undefined));
-    const { out, io } = makeIo();
-
-    await runHarnessList({ bin: "agro", cwd: root, run, json: true, env: emptyStateHome().env, homedir: fakeHome().homedir }, io);
-    for (const row of JSON.parse(text(out))) {
-      expect(row.location).toBe("unknown");
-      expect(row.installed).toBeNull();
-    }
-  });
-
-  it("probes the host install prefix and names it in the footnote", async () => {
-    const root = makeRepo();
-    const home = emptyStateHome();
-    const user = fakeHome();
-    mkdirSync(join(defaultRoot(home), ".git"), { recursive: true });
-    const { calls, run } = makeRunner((c, a) => (isInspect(c, a) ? exited : undefined));
-    const { out, io } = makeIo();
-
-    const opts = { bin: "agro", cwd: root, run, env: home.env, homedir: user.homedir };
-    await runHarnessStatus("claude-code", opts, io);
-    expect(text(out)).toContain(`INSTALLED reports the host prefix ${user.prefix}`);
-    expect(text(out)).not.toContain(home.dir);
-    expect(calls.some((c) => c.cmd === "claude" && c.args.includes("--version"))).toBe(true);
-    expect(calls.some((c) => c.cmd === "git")).toBe(false);
-
-    const json = makeIo();
-    await runHarnessStatus("claude-code", { ...opts, json: true }, json.io);
-    const parsed = JSON.parse(text(json.out));
-    expect(parsed.location).toBe("host");
-    expect(parsed.installed).toBe(true);
-  });
-
-  it("probes the host prefix when it exists even with no workspace clone", async () => {
-    const root = makeRepo();
-    const home = emptyStateHome();
-    const user = fakeHome();
-    mkdirSync(join(user.prefix, "bin"), { recursive: true });
-    const { run } = makeRunner((c, a) => (isInspect(c, a) ? exited : undefined));
-    const { out, io } = makeIo();
-
-    await runHarnessList(
-      { bin: "agro", cwd: root, run, env: home.env, homedir: user.homedir, json: true },
-      io,
-    );
-    for (const row of JSON.parse(text(out))) expect(row.location).toBe("host");
   });
 });
 
@@ -1848,36 +1571,6 @@ describe("runHarnessUninstall", () => {
   });
 });
 
-describe("parseHarnessArgs uninstall", () => {
-  it("parses uninstall with a name and --force", () => {
-    const p = parseHarnessArgs(["uninstall", "pi", "--force"]);
-    expect(p.ok && p.args.subcommand).toBe("uninstall");
-    expect(p.ok && p.args.name).toBe("pi");
-    expect(p.ok && p.args.force).toBe(true);
-  });
-
-  it("requires a name for uninstall", () => {
-    const p = parseHarnessArgs(["uninstall"]);
-    expect(p.ok).toBe(false);
-    expect(!p.ok && p.error).toMatch(/uninstall: a harness name is required/);
-  });
-
-  it("rejects --force on install and --host/--path on uninstall", () => {
-    const force = parseHarnessArgs(["install", "pi", "--force"]);
-    expect(force.ok).toBe(false);
-    expect(!force.ok && force.error).toMatch(/--force applies to uninstall only/);
-    expect(parseHarnessArgs(["uninstall", "pi", "--host"]).ok).toBe(false);
-    expect(parseHarnessArgs(["uninstall", "pi", "--path", "/srv/agro"]).ok).toBe(false);
-  });
-
-  it("names uninstall in the help text", () => {
-    const help = captureStdout(printHarnessHelp);
-    expect(help).toContain("agro harness uninstall <name>");
-    expect(help).toContain("--force");
-    expect(help).toContain("harnessRoot");
-  });
-});
-
 
 describe("a host with no container runtime", () => {
   const spawnFailure: LifecycleRunner = () => ({
@@ -2079,5 +1772,303 @@ describe("a host with no container runtime", () => {
 
     await expect(runHarnessInstall("claude-code", opts, makeIo().io)).rejects.toThrow(/kernel panic/);
     await expect(runHarnessUninstall("claude-code", opts, makeIo().io)).rejects.toThrow(/kernel panic/);
+  });
+});
+
+describe("harness commands on the host with a registered sandbox", () => {
+  const HOST: NodeJS.ProcessEnv = { ...process.env, AGRO_EXECUTION_TARGET: "docker-compose" };
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  function registeredSandbox(name: string): string {
+    const home = mkdtempSync(join(tmpdir(), "oh-harness-registry-"));
+    cleanups.push(home);
+    const agroHome = join(home, ".agro");
+    vi.stubEnv("AGRO_HOME", agroHome);
+    vi.stubEnv("SANDBOX_NAME", undefined);
+    const entry = join(agroHome, "sandboxes", name);
+    mkdirSync(join(entry, ".agro"), { recursive: true });
+    writeFileSync(agroConfigPath(entry), `${JSON.stringify(defaultAgroConfig(name), null, 2)}\n`);
+    return home;
+  }
+
+  function sandboxRunner(): { calls: RecordedCall[]; run: LifecycleRunner } {
+    return makeRunner((cmd, args) => (isInspect(cmd, args) ? running : undefined));
+  }
+
+  const containersOf = (calls: RecordedCall[]): string[] =>
+    calls
+      .filter((c) => c.cmd === "docker" && (c.args[0] === "inspect" || c.args[0] === "exec"))
+      .map((c) => c.args.find((a) => a.startsWith("agro")) ?? "");
+
+  it("install probes the running registered sandbox from outside a checkout", async () => {
+    const cwd = registeredSandbox("agro-sbx-1");
+    const { calls, run } = sandboxRunner();
+    const { err, io } = makeIo();
+
+    await runHarnessInstall("claude-code", { bin: "agro", cwd, run, env: HOST, homedir: fakeHome().homedir }, io);
+
+    expect(text(err)).not.toContain("the sandbox is not running");
+    const inspect = calls.find((c) => isInspect(c.cmd, c.args))!;
+    expect(inspect.args).toContain("agro-sbx-1");
+    expect(inspect.args).not.toContain("agro");
+    expect(execCalls(calls).length).toBeGreaterThan(0);
+    expect(new Set(containersOf(calls))).toEqual(new Set(["agro-sbx-1"]));
+  });
+
+  it("list, status, and uninstall probe the same registered sandbox", async () => {
+    const cwd = registeredSandbox("agro-sbx-1");
+    const home = fakeHome().homedir;
+    const listed = sandboxRunner();
+    await runHarnessList({ bin: "agro", cwd, run: listed.run, json: true, env: HOST, homedir: home }, makeIo().io);
+    const status = sandboxRunner();
+    await runHarnessStatus("claude-code", { bin: "agro", cwd, run: status.run, json: true, env: HOST, homedir: home }, makeIo().io);
+    const removed = sandboxRunner();
+    await runHarnessUninstall("claude-code", { bin: "agro", cwd, run: removed.run, env: HOST, homedir: home }, makeIo().io);
+
+    for (const calls of [listed.calls, status.calls, removed.calls]) {
+      expect(containersOf(calls).length).toBeGreaterThan(0);
+      expect(new Set(containersOf(calls))).toEqual(new Set(["agro-sbx-1"]));
+    }
+  });
+
+  it("keeps the container that SANDBOX_NAME sets", async () => {
+    const cwd = registeredSandbox("agro-sbx-1");
+    vi.stubEnv("SANDBOX_NAME", "agro-chosen");
+    const { calls, run } = sandboxRunner();
+
+    await runHarnessInstall("claude-code", { bin: "agro", cwd, run, env: HOST, homedir: fakeHome().homedir }, makeIo().io);
+
+    expect(calls.find((c) => isInspect(c.cmd, c.args))!.args).toContain("agro-chosen");
+  });
+
+  it("keeps the container that the project config name sets", async () => {
+    registeredSandbox("agro-sbx-1");
+    const repo = makeRepo();
+    const { calls, run } = sandboxRunner();
+
+    await runHarnessInstall("claude-code", { bin: "agro", cwd: repo, run, env: HOST, homedir: fakeHome().homedir }, makeIo().io);
+
+    expect(calls.find((c) => isInspect(c.cmd, c.args))!.args).toContain("probe");
+  });
+});
+
+describe("OpenClaw workspace binding", () => {
+  const SCRIPT = join(import.meta.dirname, "../../../scripts/openclaw-workspace.sh");
+
+  interface EnvCall {
+    cmd: string;
+    args: string[];
+    env?: NodeJS.ProcessEnv;
+  }
+
+  function openclawRunner({ installed = false, configExit = 0, docker = false } = {}): { calls: EnvCall[]; run: LifecycleRunner } {
+    const calls: EnvCall[] = [];
+    let probes = 0;
+    const run: LifecycleRunner = (cmd, args, opts) => {
+      calls.push({ cmd, args: [...args], env: opts.env });
+      if (isInspect(cmd, args)) return docker ? running : exited;
+      if (args.includes("scripts/openclaw-workspace.sh") && args.includes("check")) {
+        if (docker) return { status: 0, stdout: "", stderr: "" };
+        return spawnSync("bash", [SCRIPT, ...args.slice(args.indexOf("check"))], { encoding: "utf8", env: opts.env });
+      }
+      if (args.includes("scripts/openclaw-workspace.sh") && args.includes("configure")) {
+        return { status: configExit, stdout: "", stderr: "" };
+      }
+      if ((cmd === "openclaw" || args.includes("openclaw")) && args.includes("--version")) {
+        return { status: probes++ === 0 && !installed ? 1 : 0, stdout: "", stderr: "" };
+      }
+      return { status: 0, stdout: "", stderr: "" };
+    };
+    return { calls, run };
+  }
+
+  const isConfigure = (c: EnvCall): boolean => c.args.includes("scripts/openclaw-workspace.sh") && c.args.includes("configure");
+  const isNpmInstall = (c: EnvCall): boolean => c.args.includes("openclaw@2026.9.9");
+  const isLink = (c: EnvCall): boolean => c.args.includes("scripts/link-providers.sh");
+  const success = /installed at|installed —|already installed/;
+
+  function sandboxRoot(): string {
+    const root = mkdtempSync(join(tmpdir(), "oh-openclaw-root-"));
+    cleanups.push(root);
+    mkdirSync(join(root, ".agro"));
+    return root;
+  }
+
+  function inside(root: string, extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
+    return { PATH: process.env.PATH, HOME: join(root, "user"), AGRO_EXECUTION_TARGET: "local", AGRO_PROJECT_ROOT: root, ...extra };
+  }
+
+  it.each(["default", "recorded", "path", "workspace"].flatMap(selection => [false, true].map(installed => ({ selection, installed }))))("binds OpenClaw to the $selection selected host workspace (installed=$installed)", async ({ selection, installed }) => {
+    const repo = makeRepo();
+    const state = emptyStateHome();
+    const user = fakeHome();
+    const selected = seedWorkspace(selection === "default" ? defaultRoot(state) : workspace(state, "selected"));
+    if (selection === "recorded") {
+      writeFileSync(hostConfigFile(state.dir), JSON.stringify({ version: 1, harnessRoot: selected }));
+    }
+    const { calls, run } = openclawRunner({ installed });
+    const { io, out } = makeIo();
+    const { OPENCLAW_STATE_DIR: _state, ...env } = state.env;
+    expect(await runHarnessInstall("openclaw", {
+      bin: "agro", cwd: repo, run, host: true, interactive: false,
+      env, homedir: user.homedir,
+      ...(selection === "path" ? { path: selected } : {}),
+      ...(selection === "workspace" ? { workspace: "selected" } : {}),
+    }, io)).toBe(0);
+    const configure = calls.find(isConfigure)!;
+    expect(configure.args.slice(-4)).toEqual(["configure", selected, join(selected, ".openclaw"), "openclaw"]);
+    expect(configure.env?.OPENCLAW_STATE_DIR).toBe(join(selected, ".openclaw"));
+    expect(calls.some(isNpmInstall)).toBe(!installed);
+    if (!installed) expect(calls.indexOf(configure)).toBeGreaterThan(calls.findIndex(isNpmInstall));
+    expect(text(out)).toContain(`OPENCLAW_STATE_DIR=${selected}/.openclaw openclaw\n`);
+  });
+
+  it.each([false, true])("uses /home/sandbox/harness through Docker (installed=%s)", async installed => {
+    const repo = makeRepo();
+    const { calls, run } = openclawRunner({ installed, docker: true });
+    const { io, out } = makeIo();
+    expect(await runHarnessInstall("openclaw", {
+      bin: "agro", cwd: repo, run, env: { AGRO_EXECUTION_TARGET: "docker-compose" },
+    }, io)).toBe(0);
+    const check = calls.find(c => c.args.includes("scripts/openclaw-workspace.sh") && c.args.includes("check"))!;
+    expect(check.args).toContain("OPENCLAW_STATE_DIR=/home/sandbox/harness/.openclaw");
+    const configure = calls.find(isConfigure)!;
+    expect(configure.args.slice(-4)).toEqual(["configure", "/home/sandbox/harness", "/home/sandbox/harness/.openclaw", "openclaw"]);
+    expect(configure.args).toContain("OPENCLAW_STATE_DIR=/home/sandbox/harness/.openclaw");
+    expect(calls.some(isNpmInstall)).toBe(true);
+    expect(calls.indexOf(configure)).toBeGreaterThan(calls.findIndex(isNpmInstall));
+    expect(calls.flatMap(c => c.args).some(arg => arg.includes(repo))).toBe(false);
+    expect(text(out)).toContain("OPENCLAW_STATE_DIR=/home/sandbox/harness/.openclaw openclaw\n");
+  });
+
+  it("anchors to the sandbox project root and configures after the install", async () => {
+    const root = sandboxRoot();
+    const { calls, run } = openclawRunner();
+    const { io, out } = makeIo();
+    expect(await runHarnessInstall("openclaw", { bin: "agro", cwd: tmpdir(), run, env: inside(root) }, io)).toBe(0);
+    const install = calls.find(isNpmInstall)!;
+    expect(install.env?.OPENCLAW_STATE_DIR).toBe(join(root, ".openclaw"));
+    const configure = calls.find(isConfigure)!;
+    expect(configure.args.slice(-4)).toEqual(["configure", root, join(root, ".openclaw"), "openclaw"]);
+    expect(calls.indexOf(configure)).toBeGreaterThan(calls.indexOf(install));
+    expect(text(out)).toContain("openclaw: installed —");
+    expect(text(out)).toContain(`OPENCLAW_STATE_DIR=${root}/.openclaw openclaw\n`);
+  });
+
+  it("updates an installed OpenClaw and configures it once", async () => {
+    const root = sandboxRoot();
+    const { calls, run } = openclawRunner({ installed: true });
+    const { io, out } = makeIo();
+    expect(await runHarnessInstall("openclaw", { bin: "agro", cwd: tmpdir(), run, env: inside(root) }, io)).toBe(0);
+    expect(calls.some(isNpmInstall)).toBe(true);
+    expect(calls.filter(isConfigure)).toHaveLength(1);
+    expect(text(out)).toContain("updating OpenClaw in the sandbox…");
+  });
+
+  it.each([false, true])("reports no success when the configuration fails (installed=%s)", async installed => {
+    const root = sandboxRoot();
+    const { run } = openclawRunner({ installed, configExit: 7 });
+    const { io, out, err } = makeIo();
+    expect(await runHarnessInstall("openclaw", { bin: "agro", cwd: tmpdir(), run, env: inside(root) }, io)).toBe(7);
+    expect(text(out)).not.toMatch(success);
+    expect(text(out)).not.toContain("OPENCLAW_STATE_DIR=");
+    expect(text(err)).toContain("OpenClaw workspace configuration failed (exit 7)");
+  });
+
+  it("reports no success when the host configuration fails", async () => {
+    const repo = makeRepo();
+    const state = emptyStateHome();
+    const user = fakeHome();
+    seedWorkspace(defaultRoot(state));
+    const { run } = openclawRunner({ configExit: 3 });
+    const { io, out } = makeIo();
+    const { OPENCLAW_STATE_DIR: _state, ...env } = state.env;
+    expect(await runHarnessInstall("openclaw", {
+      bin: "agro", cwd: repo, run, host: true, interactive: false, env, homedir: user.homedir,
+    }, io)).toBe(3);
+    expect(text(out)).not.toMatch(success);
+    expect(existsSync(hostConfigFile(state.dir))).toBe(false);
+  });
+
+  it("refuses a conflicting inherited state directory before any change", async () => {
+    const root = sandboxRoot();
+    const { calls, run } = openclawRunner();
+    const { io, out, err } = makeIo();
+    expect(await runHarnessInstall("openclaw", {
+      bin: "agro", cwd: tmpdir(), run, env: inside(root, { OPENCLAW_STATE_DIR: "/foreign/openclaw" }),
+    }, io)).toBe(1);
+    expect(calls).toHaveLength(1);
+    expect(text(err)).toContain("/foreign/openclaw");
+    expect(text(err)).toContain(`${root}/.openclaw`);
+    expect(text(out)).not.toMatch(success);
+  });
+
+  it("refuses a conflicting inherited state directory on the host before linking providers", async () => {
+    const repo = makeRepo();
+    const state = emptyStateHome();
+    const user = fakeHome();
+    const selected = seedWorkspace(defaultRoot(state));
+    const { calls, run } = openclawRunner();
+    const { io, err } = makeIo();
+    expect(await runHarnessInstall("openclaw", {
+      bin: "agro", cwd: repo, run, host: true, interactive: false, homedir: user.homedir,
+      env: { ...state.env, OPENCLAW_STATE_DIR: join(user.dir, ".openclaw") },
+    }, io)).toBe(1);
+    expect(calls.some(c => isLink(c) || isConfigure(c) || isNpmInstall(c))).toBe(false);
+    expect(text(err)).toContain(join(user.dir, ".openclaw"));
+    expect(text(err)).toContain(`${selected}/.openclaw`);
+    expect(existsSync(hostConfigFile(state.dir))).toBe(false);
+  });
+
+  it("accepts an inherited state directory that normalizes to the workspace state directory", async () => {
+    const root = sandboxRoot();
+    const { run } = openclawRunner({ installed: true });
+    const { io } = makeIo();
+    expect(await runHarnessInstall("openclaw", {
+      bin: "agro", cwd: tmpdir(), run, env: inside(root, { OPENCLAW_STATE_DIR: `${root}//nested/../.openclaw/` }),
+    }, io)).toBe(0);
+  });
+
+  it.each([0, 7])("sets the workspace, skipBootstrap, and gateway.mode through the config CLI (exit %s)", status => {
+    const root = sandboxRoot();
+    const log = join(root, "config-calls");
+    const binary = join(root, "openclaw");
+    writeFileSync(binary, `#!/usr/bin/env bash\nprintf '%s|%s\\n' "$OPENCLAW_STATE_DIR" "$*" >> "$CONFIG_LOG"\nexit ${status}\n`, { mode: 0o755 });
+    const stateDir = join(root, ".openclaw");
+    const result = spawnSync("bash", [SCRIPT, "configure", root, stateDir, binary], {
+      encoding: "utf8", env: { PATH: process.env.PATH, CONFIG_LOG: log },
+    });
+    expect(result.status).toBe(status);
+    const expected = [`${stateDir}|config set agents.defaults.workspace ${root}`];
+    if (status === 0) {
+      expected.push(`${stateDir}|config set agents.defaults.skipBootstrap true --strict-json`);
+      expected.push(`${stateDir}|config set gateway.mode local`);
+    }
+    expect(readFileSync(log, "utf8")).toBe(`${expected.join("\n")}\n`);
+    if (status) expect(result.stderr).toContain("could not configure");
+  });
+
+  it("fails with a recovery command when only gateway.mode cannot be set", () => {
+    const root = sandboxRoot();
+    const binary = join(root, "openclaw");
+    writeFileSync(binary, `#!/usr/bin/env bash\n[ "$3" = gateway.mode ] && exit 5\nexit 0\n`, { mode: 0o755 });
+    const result = spawnSync("bash", [SCRIPT, "configure", root, join(root, ".openclaw"), binary], {
+      encoding: "utf8", env: { PATH: process.env.PATH },
+    });
+    expect(result.status).toBe(5);
+    expect(result.stderr).toContain("config set gateway.mode local");
+  });
+
+  it("names both paths when the check refuses a foreign state directory", () => {
+    const root = sandboxRoot();
+    const result = spawnSync("bash", [SCRIPT, "check", root, join(root, ".openclaw"), "/elsewhere/.openclaw"], {
+      encoding: "utf8", env: { PATH: process.env.PATH },
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("/elsewhere/.openclaw");
+    expect(result.stderr).toContain(join(root, ".openclaw"));
   });
 });

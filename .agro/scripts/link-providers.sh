@@ -8,8 +8,6 @@ CC_SAFETY_NET_PIN="1.0.6"
 required_files=(
   ".agro/skills/git/SKILL.md"
   ".agro/skills/t3/references/sandbox-processes.md"
-  ".agro/skills/wiki/references/schema.md"
-  ".agro/skills/eval/run.sh"
 )
 
 required_execs=(
@@ -18,7 +16,6 @@ required_execs=(
   ".agro/hooks/warn-devtcp.sh"
   ".agro/skills/cloudflared/scripts/run.sh"
   ".agro/skills/health-check/scripts/scope-preflight.sh"
-  ".agro/skills/eval/run.sh"
   ".agro/skills/t3/scripts/t3-code.sh"
 )
 
@@ -380,7 +377,7 @@ if [ "$hermes_only" = true ]; then
   if [ "$mode" = "--init" ]; then
     init_hermes_link || true
   fi
-  check_hermes_link || true
+  [ "$failures" -ne 0 ] || check_hermes_link || true
 else
   if [ "$mode" = "--init" ]; then
     init_links
@@ -389,7 +386,11 @@ else
 fi
 
 if [ "$failures" -ne 0 ]; then
-  print_state
+  if [ "$hermes_only" = true ]; then
+    echo "Remediation: resolve each ERROR above, set HERMES_HOME=$repo_root/.hermes in the launch environment, then run agro harness install hermes" >&2
+  else
+    print_state
+  fi
   exit 1
 fi
 

@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1339-fx-harness",
+  "description": "Add fx as an optional harness: validate the fx installer and AGRO discovery on exe.dev, add the fx catalog entry, and document how fx uses AGENTS.md, AGRO skills, and the absent AGRO hooks.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Write the fx validation check",
+      "description": "As the advisor, I want a credential-free `remote-sandbox` check for fx. An exe.dev VM then proves the installer, the pin, and fx discovery before the catalog change.",
+      "acceptanceCriteria": [
+        "The check is at `.agro/tasks/fx-harness/checks/fx-harness.sh`. The check prints `RESULT <id> <PASS|FAIL|INFO> <detail>` lines and ends with `SUMMARY fails=<n>`.",
+        "The check uses image mode: the VM boots `ghcr.io/mifunedev/agro:latest`, and the check runs each fx command as `su - sandbox -c` in `/home/sandbox/harness`.",
+        "Row `X0-workspace` passes only when `/home/sandbox/harness/AGENTS.md` exists and `/home/sandbox/harness/.agents/skills` resolves to `.agro/skills`.",
+        "Row `X1-install` runs `curl -fsSL https://fx.sh/setup.sh | FX_INSTALL_DIR=\"/home/sandbox/.local/bin\" bash -s v0.0.13` and passes on exit code 0.",
+        "Row `X2-version` passes when `fx --version` exits 0. The row prints the version output.",
+        "Row `X3-binary-path` passes when `command -v fx` prints `/home/sandbox/.local/bin/fx`.",
+        "Row `X4-status` and row `X5-doctor` print the output of `fx status --json` and `fx doctor --json` to the log.",
+        "Row `X6-instructions` reports PASS when the X4 or X5 output names `AGENTS.md`, and INFO when the output does not name instruction files.",
+        "Row `X7-skills` reports the number of entries for the `git` skill when the X4 or X5 output lists skills, and INFO when the output does not list skills.",
+        "Row `X8-uninstall` runs `rm -f /home/sandbox/.local/bin/fx` and passes when `command -v fx` then exits 1.",
+        "The check reads no token, no `.env` file, and no fx credential."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Accepted static only; VM run is US-002. executed: bash -n exit 0; grep for comments = 0; grep token/.env/credential exit 1 (no match); all row ids X0-X8 and 'SUMMARY fails' present; grep -F pin FX_VERSION=v0.0.13 and 'bash -s $FX_VERSION' present. reasoned: image mode reuses agro-rows.sh detection, su - sandbox -c (sudo when non-root), cwd /home/sandbox/harness; X0 readlink -f equals .agro/skills; X1 exact plan command with pipefail; X2/X3/X8 exit-code logic per criteria; X4/X5 capture stdout+stderr, INFO unless binary missing; X6 PASS on AGENTS.md else INFO (FAIL if instructions reported without AGENTS.md); X7 INFO with git counts per source. File force-added past the task gitignore, matching tracked evidence precedent.",
+      "dependsOn": [],
+      "files": [
+        ".agro/tasks/fx-harness/checks/fx-harness.sh"
+      ],
+      "commit": "8fe1d4fb"
+    },
+    {
+      "id": "US-002",
+      "title": "Run the fx validation on exe.dev",
+      "description": "As the advisor, I want the US-001 check to run on a fresh exe.dev VM so that the plan uses observed fx behavior.",
+      "acceptanceCriteria": [
+        "The operator approves the run before the advisor starts the driver.",
+        "The advisor starts `IMAGE=ghcr.io/mifunedev/agro:latest bash .agro/skills/remote-sandbox/scripts/run.sh exedev .agro/tasks/fx-harness/checks/fx-harness.sh` detached in a named tmux session.",
+        "The log ends with `remaining agro-matrix resources on exedev: 0` and `RUN DONE`.",
+        "`.agro/tasks/fx-harness/evidence/exedev-validation.md` holds each `RESULT` line copied from the log, the log path, and the image digest.",
+        "Rows `X0`, `X1`, `X2`, `X3`, and `X8` show PASS. If a row shows FAIL, the advisor sets the plan status to `BLOCKED` and records the cause.",
+        "The evidence file states the result for Decision 1 and Decision 2 as `confirmed`, `deferred to US-005`, or `failed`.",
+        "If row `X7` shows more than one `git` entry, the advisor opens a follow-up issue for Decision 1 option B and links the issue in the evidence file."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "executed: operator approved run; driver started in tmux rs-fx with IMAGE=ghcr.io/mifunedev/agro:latest run.sh exedev check; log ends 'remaining agro-matrix resources on exedev: 0' and 'RUN DONE'; grep -xF loop: every RESULT/SUMMARY/remaining/RUN DONE line and both fx JSON outputs present in evidence (only the VM-creation JSON is omitted, not required); X0 X1 X2 X3 X8 PASS, SUMMARY fails=0; ste-check exit 0. reasoned: Decisions 1 and 2 recorded as deferred to US-005 because fx status/doctor list neither instructions nor skills; no follow-up issue since X7 listed no skills. Divergence: operator accepted tag latest plus run time 2026-10-05T04:16:36Z in place of the image digest (digest lookups blocked by secret guard and missing read:packages scope).",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/tasks/fx-harness/evidence/exedev-validation.md"
+      ],
+      "commit": "bdcb5041"
+    },
+    {
+      "id": "US-003",
+      "title": "Add the fx catalog entry",
+      "description": "As an operator, I want `agro harness install fx` so that I can run the Vercel Labs fx coding agent in the sandbox without an image rebuild.",
+      "acceptanceCriteria": [
+        "`HARNESS_CATALOG` in `.agro/cli/src/lib/harnesses/catalog.ts` holds an entry with `id: \"fx\"`, `title: \"fx\"`, `binary: \"fx\"`, `installUser: \"sandbox\"`, `kind: \"installable\"`, and `docsPath: \"docs/harnesses/fx.md\"`.",
+        "The fx `installArgv` is `[\"bash\", \"-lc\", \"set -o pipefail; curl -fsSL https://fx.sh/setup.sh | FX_INSTALL_DIR=\\\"{{prefix}}/bin\\\" bash -s v0.0.13\"]`, with `HARNESS_PREFIX_TOKEN` as the prefix.",
+        "The fx `verifyArgv` is `[\"fx\", \"--version\"]`.",
+        "The fx `uninstallArgv` is `[\"rm\", \"-f\", \"{{prefix}}/bin/fx\"]`, with `HARNESS_PREFIX_TOKEN` as the prefix.",
+        "A test case asserts that the fx `installArgv` contains the literal `bash -s v0.0.13`. The case does not use `versionPins`.",
+        "Red first: the new cases in `.agro/cli/src/__tests__/harness-catalog.test.ts` fail before the catalog change and pass after the catalog change.",
+        "`npm test` exits 0 at the repository root.",
+        "`npm run typecheck` exits 0 at the repository root."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "executed on integrated task branch: npm test -> 89 files, 1866 passed, 2 skipped; npm run typecheck exit 0; red-first reported by worker (6 failed/71 passed before catalog edit, incl. installable list, fx pin, registers fx, host-prefix, shipped-argv). reasoned from diff: entry fields, installArgv, verifyArgv, uninstallArgv match plan exactly; pin case asserts literal 'bash -s v0.0.13' without versionPins. Divergences: built together with US-004 in one worker because harness-catalog.test.ts:55 requires docsPath to exist (commit e6dd0711 carried a docs stub); existing idempotent-uninstall test loosened from toBe('-rf') to toMatch(/^-r?f$/) to admit the planned 'rm -f'.",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/cli/src/lib/harnesses/catalog.ts",
+        ".agro/cli/src/__tests__/harness-catalog.test.ts"
+      ],
+      "commit": "e6dd0711"
+    },
+    {
+      "id": "US-004",
+      "title": "Document fx and its AGRO integration",
+      "description": "As an operator, I want a `docs/harnesses/fx.md` page so that I know how to install fx, sign in, and which AGRO primitives fx uses.",
+      "acceptanceCriteria": [
+        "`docs/harnesses/fx.md` exists and has the sections Install, Uninstall, Authentication, Common usage, AGRO integration, and References.",
+        "The Authentication section names `fx login`, `fx login codex`, `fx login grok`, and `fx setup`.",
+        "The AGRO integration section states that fx loads the root `AGENTS.md` and each nested `AGENTS.md` that applies to the target file.",
+        "The AGRO integration section states that fx discovers AGRO skills through `.agents/skills` and `.claude/skills`, and that both links resolve to `.agro/skills`.",
+        "If US-002 or US-005 records a truncated skill catalog, the AGRO integration section shows `context_limits.skill_catalog_bytes` in `~/.fx/settings.json`.",
+        "The AGRO integration section states that AGRO hooks in `.agro/hooks/` do not run under fx, and names each guard that is absent: `deny-env-dump.sh`, `deny-secret-paths.sh`, `warn-devtcp.sh`, `notify_slack.sh`, and `cc-safety-net`.",
+        "The AGRO integration section states that fx reports its state to Herdr through its built-in Herdr provider.",
+        "`docs/harnesses/overview.md` lists fx in the installable sentence on line 7 and in the harness table.",
+        "`docs/README.md` links to `harnesses/fx.md`.",
+        "`CHANGELOG.md` has one `### Added` entry under `## [Unreleased]` that links issue #1339.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh docs/harnesses/fx.md` exits 0."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "executed: ste-check docs/harnesses/fx.md exit 0; sections Install/Uninstall/Authentication/Common usage/AGRO integration/References present (grep '^## '); grep counts >=1 for fx login, fx login codex, fx login grok, fx setup, all five guard names, Herdr, .agents/skills, .claude/skills; overview.md line 7 and table row 74 list fx; docs/README.md links harnesses/fx.md; CHANGELOG one Added entry linking #1339; link-providers.sh --check exit 0. reasoned: skill_catalog_bytes omitted because no truncation recorded (US-005 pending). Login-target wording sourced from the vercel-labs/fx README.",
+      "dependsOn": [
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        "docs/harnesses/fx.md",
+        "docs/harnesses/overview.md",
+        "docs/README.md",
+        "CHANGELOG.md"
+      ],
+      "commit": "f03c2e04"
+    },
+    {
+      "id": "US-005",
+      "title": "Record the manual review evidence",
+      "description": "As the advisor, I want a signed-in command transcript from the local sandbox. The transcript proves the AGRO integration that the credential-free run cannot prove, for the PR `## Manual review` section.",
+      "acceptanceCriteria": [
+        "The transcript is at `.agro/tasks/fx-harness/evidence/manual-review.md`.",
+        "The transcript shows `agro harness install fx` with exit code 0 inside the local sandbox.",
+        "The transcript shows `agro harness list` with an `fx` row.",
+        "With operator approval and operator sign-in in a Herdr pane, the transcript shows an fx session that names one rule from the root `AGENTS.md`.",
+        "The same session lists the `git` skill. The transcript records the number of `git` entries and any skill-catalog truncation notice.",
+        "The transcript shows `agro harness uninstall fx` with exit code 0, and `command -v fx` with exit code 1 after the uninstall.",
+        "The transcript links `.agro/tasks/fx-harness/evidence/exedev-validation.md`."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "executed: operator approved and signed in (fx login, fx login codex) in Herdr; branch CLI node .agro/cli/dist/agro.js harness install fx exit 0 (status read by re-run; zsh lacks PIPESTATUS); fx --version 0.0.13 exit 0; harness list shows 'fx installable yes'; fx ask from /home/sandbox/harness quoted 'Do not add explanatory comments to tracked code.' and grep -c of that line in AGENTS.md = 1; fx listed 22 skills each once matching 22 .agro/skills dirs, git entries = 1, no truncation reported; harness uninstall fx exit 0; command -v fx exit 1. Evidence: grep -xF loop over transcript miss=0; ste-check exit 0; file links ./exedev-validation.md; no credential recorded.",
+      "dependsOn": [
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        ".agro/tasks/fx-harness/evidence/manual-review.md"
+      ],
+      "commit": "e1cb22ae"
+    }
+  ]
+}

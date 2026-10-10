@@ -64,12 +64,30 @@ import { hostCapableToolIds, installableToolIds, toolIds } from "./lib/tools/cat
 import { sourceDocsUrl } from "./lib/docs.js";
 import { AGRO_PRODUCT, resolveProduct, stateNames, type Product } from "./lib/product.js";
 import { resolveControlDir } from "./lib/layout.js";
+import { sandboxFallbackWarning } from "./lib/execution/index.js";
 import {
   fetchRemoteSource,
   DEFAULT_REPO_URL,
   type FetchRemoteSourceOptions,
 } from "./lib/remote.js";
 import { AGRO_VERSION as VERSION } from "./lib/version.js";
+import {
+  AGRO_COMMANDS,
+  CONFIG_VERBS,
+  HARNESS_SUBCOMMANDS,
+  LANGFUSE_VERBS,
+  SECRET_VERBS,
+  TOOL_SUBCOMMANDS,
+  WORKSPACE_SUBCOMMANDS,
+  isOneOf,
+  type ConfigIntegration,
+  type ConfigVerb,
+  type HarnessSubcommand,
+  type LangfuseVerb,
+  type SecretVerb,
+  type ToolSubcommand,
+  type WorkspaceSubcommand,
+} from "./command-table.js";
 
 const DEFAULT_SOURCE_CONTROL_DIR = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -90,7 +108,7 @@ const INTEGRATIONS: Record<string, Integration> = {
         { stdout: (s) => process.stdout.write(s), stderr: (s) => process.stderr.write(s) },
       ),
   },
-};
+} satisfies Record<ConfigIntegration, Integration>;
 
 export function isHelpFlag(arg: string | undefined): boolean {
   return arg === "--help" || arg === "-h" || arg === "help";
@@ -130,7 +148,7 @@ Usage:
   ${bin} workspace <args...>    Create and list host AGRO workspaces (create|list)
   ${bin} harness <args...>      Install and inspect agent CLI harnesses
   ${bin} tool <args...>         Install and inspect sandbox tooling
-  ${bin} gateway <args...>      Manage a messaging client session (pi|hermes)
+  ${bin} gateway <args...>      Manage a messaging client session (pi|hermes|openclaw)
   ${bin} --version              Print version
   ${bin} --help                 Show this help
 
@@ -223,7 +241,7 @@ The upgrade follows whichever mechanism installed this executable:
   npm-managed    realpath under node_modules/${AGRO_PRODUCT.packageName}/: reads the registry
                  version with \`npm view\`, then runs
                  \`npm install -g --prefix <owning prefix> ${AGRO_PRODUCT.packageName}@<version>\`.
-  standalone     a plain file (get-agro.sh): downloads AGRO_JS_URL (default
+  standalone     a plain file (install.sh): downloads AGRO_JS_URL (default
                  ${DEFAULT_ARTIFACT_URL})
                  into the same directory, checks its shebang and \`--version\`,
                  renames it over the executable, and keeps <path>.prev until the
@@ -347,10 +365,10 @@ export function printGatewayHelp(bin: string = AGRO_PRODUCT.bin): void {
   process.stdout.write(`${bin} gateway — Manage a messaging client session (Slack bridge)
 
 Usage:
-  ${bin} gateway <pi|hermes> [--attach]   start the client session (--attach after)
-  ${bin} gateway <pi|hermes> --restart    restart the session
-  ${bin} gateway <pi|hermes> --stop       stop the session
-  ${bin} gateway status                   show both sessions
+  ${bin} gateway <pi|hermes|openclaw> [--attach]   start the client session (--attach after)
+  ${bin} gateway <pi|hermes|openclaw> --restart    restart the session
+  ${bin} gateway <pi|hermes|openclaw> --stop       stop the session
+  ${bin} gateway status                            show all sessions
 
 Only a LEADING --help/-h is intercepted here; everything else passes through
 verbatim to the vendored ${stateNames(bin).controlDir}/scripts/gateway.sh with ${stateNames(bin).envPrefix}PROJECT_ROOT set to
@@ -506,10 +524,6 @@ export function extractSandboxFlag(
   return { ok: true, args: sandbox === undefined ? { rest: kept } : { rest: kept, sandbox } };
 }
 
-export const LANGFUSE_VERBS = ["apply", "status", "disable"] as const;
-
-export type LangfuseVerb = (typeof LANGFUSE_VERBS)[number];
-
 export interface LangfuseArgs {
   help: boolean;
   verb?: LangfuseVerb;
@@ -531,10 +545,6 @@ export function parseLangfuseArgs(rest: string[], bin: string = AGRO_PRODUCT.bin
   }
   return { ok: true, args: { help: false, verb: head as LangfuseVerb } };
 }
-
-export const CONFIG_VERBS = ["show", "set", "repo"] as const;
-
-export type ConfigVerb = (typeof CONFIG_VERBS)[number];
 
 export interface ConfigArgs {
   help: boolean;
@@ -602,10 +612,6 @@ export function parseConfigArgs(input: string[], bin: string = AGRO_PRODUCT.bin)
   }
   return { ok: true, args: { ...args, verb, key, value } };
 }
-
-export const SECRET_VERBS = ["set", "list"] as const;
-
-export type SecretVerb = (typeof SECRET_VERBS)[number];
 
 export interface SecretArgs {
   help: boolean;
@@ -836,7 +842,7 @@ export function parseShellArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): 
 
 export interface WorkspaceArgs {
   help: boolean;
-  subcommand?: "create" | "list";
+  subcommand?: WorkspaceSubcommand;
   name?: string;
   json: boolean;
   path?: string;
@@ -886,7 +892,7 @@ export function parseWorkspaceArgs(
   }
 
   const [sub, name, ...extra] = positionals;
-  if (sub !== "create" && sub !== "list") {
+  if (!isOneOf(WORKSPACE_SUBCOMMANDS, sub)) {
     return {
       ok: false,
       error: `${bin} workspace: unknown subcommand "${sub}" — expected create or list`,
@@ -918,7 +924,7 @@ export function parseWorkspaceArgs(
 
 export interface HarnessArgs {
   help: boolean;
-  subcommand?: "list" | "install" | "status" | "uninstall";
+  subcommand?: HarnessSubcommand;
   name?: string;
   json: boolean;
   host: boolean;
@@ -986,7 +992,7 @@ export function parseHarnessArgs(rest: string[], bin: string = AGRO_PRODUCT.bin)
   }
 
   const [sub, name, ...extra] = positionals;
-  if (sub !== "list" && sub !== "install" && sub !== "status" && sub !== "uninstall") {
+  if (!isOneOf(HARNESS_SUBCOMMANDS, sub)) {
     return {
       ok: false,
       error: `${bin} harness: unknown subcommand "${sub}" — expected list, install, uninstall, or status`,
@@ -1023,7 +1029,7 @@ interface ToolArgs {
   host: boolean;
   force: boolean;
   path?: string;
-  subcommand?: "list" | "install" | "status" | "uninstall";
+  subcommand?: ToolSubcommand;
   name?: string;
 }
 
@@ -1057,7 +1063,7 @@ export function parseToolArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): P
   }
 
   const [sub, name, ...extra] = positionals;
-  if (sub !== "list" && sub !== "install" && sub !== "status" && sub !== "uninstall") {
+  if (!isOneOf(TOOL_SUBCOMMANDS, sub)) {
     return {
       ok: false,
       error: `${bin} tool: unknown subcommand "${sub}" — expected list, install, uninstall, or status`,
@@ -1191,6 +1197,10 @@ async function main(argv: string[]): Promise<number> {
     process.stdout.write(`${VERSION}\n`);
     return 0;
   }
+  if (!Object.hasOwn(AGRO_COMMANDS, first)) return unknownCommand(first, product);
+
+  const fallbackWarning = sandboxFallbackWarning();
+  if (fallbackWarning !== undefined) process.stderr.write(fallbackWarning);
 
   if (first === "config") {
     const parsed = parseConfigArgs(argv.slice(1), bin);
@@ -1515,7 +1525,11 @@ async function main(argv: string[]): Promise<number> {
     return runGateway(parsed.args.passthrough, { bin });
   }
 
-  process.stderr.write(`${bin}: unknown command "${first}"\n\n`);
+  return unknownCommand(first, product);
+}
+
+function unknownCommand(first: string, product: Product): number {
+  process.stderr.write(`${product.bin}: unknown command "${first}"\n\n`);
   printAgroHelp(product);
   return 1;
 }

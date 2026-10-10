@@ -6,7 +6,7 @@ if [[ ${1:-} == --audit-signals-reset ]]; then
 else
   exec env --default-signal=INT,TERM,HUP bash "$0" --audit-signals-reset "$@"
 fi
-usage_line='usage: /audit <implementation|pr|prs|harness|context|skills|eval-quality|drift|full> [target options]'
+usage_line='usage: /audit <implementation|pr|prs|harness|context|skills|drift|full> [target options]'
 usage() {
   printf '%s\n' "$usage_line" >&2
   cat >&2 <<'EOF'
@@ -18,7 +18,6 @@ usage() {
 | harness | `/audit harness [--focus area] [--external URL|path] [actions]` | Tier 1/2/3 + Recommended Next 3 Actions |
 | context | `/audit context [all|--baseline]` | `KEEP` / `TRIM` / `DEMOTE` / `CUT` |
 | skills | `/audit skills [all|root|name]` | `CURRENT` / `STALE` / `BROKEN` / `DELETE` |
-| eval-quality | `/audit eval-quality [all|probes|capability|id]` | `KEEP` / `GROOM` / `CUT` |
 | drift | `/audit drift` | per-class `OK` / aggregate `DRIFT:` |
 | full | `/audit full [--repo O/N] [--focus area] [--health-target target]` | `AUDIT-CAMPAIGN-COMPLETE` / `AUDIT-CAMPAIGN-PARTIAL` |
 EOF
@@ -26,7 +25,7 @@ EOF
 }
 [[ $# -gt 0 ]] || usage
 target=$1; shift
-case $target in implementation|pr|prs|harness|context|skills|eval-quality|drift|full) ;; *) usage;; esac
+case $target in implementation|pr|prs|harness|context|skills|drift|full) ;; *) usage;; esac
 args=(); command=()
 while (($#)); do
   if [[ $1 == -- ]]; then shift; command=("$@"); break; fi
@@ -78,27 +77,25 @@ case $target in
     [[ ! ($have_author == true && $mine == true) && $close == "$close_days" ]] || usage
     ;;
   harness)
-    external=false; focus=false; apply=false; confirm=false; wiki=false; i=0
+    external=false; focus=false; apply=false; confirm=false; i=0
     while ((i < ${#args[@]})); do
       case ${args[$i]} in
         --focus) value "$i" "$((i+1))" || usage; focus=true; ((i+=2));;
         --external) value "$i" "$((i+1))" || usage; external=true; ((i+=2));;
         --apply) value "$i" "$((i+1))" && [[ ${args[$((i+1))]} == issue ]] || usage; apply=true; ((i+=2));;
         --confirm) confirm=true; ((i+=1));;
-        --wiki-ingest) wiki=true; ((i+=1));;
         --dry-run) ((i+=1));;
         *) usage;;
       esac
     done
     [[ ! ($external == true && $focus == true) ]] || usage
-    if [[ $apply == true || $confirm == true || $wiki == true ]]; then [[ $external == true ]] || usage; fi
+    if [[ $apply == true || $confirm == true ]]; then [[ $external == true ]] || usage; fi
     [[ $confirm == false || $apply == true ]] || usage
     ;;
   context)
     case ${#args[@]}:${args[0]:-} in 0:|1:all|1:--baseline) :;; *) usage;; esac
     ;;
   skills) ((${#args[@]} <= 1)) && [[ ${args[0]:-all} =~ ^(all|root|[A-Za-z0-9._-]+)$ ]] || usage;;
-  eval-quality) ((${#args[@]} <= 1)) && [[ ${args[0]:-all} =~ ^(all|probes|capability|[A-Za-z0-9._-]+)$ ]] || usage;;
   drift) ((${#args[@]} == 0)) || usage;;
   full)
     i=0; while ((i < ${#args[@]})); do

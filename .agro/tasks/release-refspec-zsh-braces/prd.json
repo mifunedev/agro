@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1331-release-refspec-zsh-braces",
+  "description": "Release refspec zsh braces. Brace the /release push refspec so it works in zsh, and guard skill and doc shell blocks against unbraced $NAME:<letter> (#1331).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Brace the release push refspec and guard skill code blocks",
+      "description": "As the advisor, I want the `/release` push command to work in zsh. Then a release push from the sandbox does not fail on a mangled refspec.",
+      "acceptanceCriteria": [
+        "`.agro/skills/release/SKILL.md` § 3 gives `git push \"${REMOTE}\" \"${SHA}:refs/heads/${TARGET}\"`.",
+        "A new test file `.agro/scripts/__tests__/skill-shell-portability.test.ts` scans each fenced `bash` or `sh` block in `.agro/skills/**/*.md` and `docs/**/*.md`. The test fails on an unbraced variable that a colon and a letter follow, for example `$SHA:r`.",
+        "The test reports the file, the line, and the variable for each finding.",
+        "The test fails on the current `development` branch with the finding `.agro/skills/release/SKILL.md` line 162 `$SHA`, and the test passes after the change.",
+        "`pnpm vitest run .agro/scripts/__tests__/skill-shell-portability.test.ts` exits 0.",
+        "`CHANGELOG.md` `## [Unreleased]` holds one `### Fixed` entry that links issue #1331.",
+        "Typecheck passes.",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "1 executed: diff shows git push \"${REMOTE}\" \"${SHA}:refs/heads/${TARGET}\"; no other match in the file. 2-3 executed: skill-shell-portability.test.ts scans fenced bash/sh blocks in .agro/skills and docs, reports file/line/variable via toEqual([]). 4 executed by worker: red with finding {file: .agro/skills/release/SKILL.md, line: 162, variable: $SHA}, exit 1; green after. Detector cases: \"$SHA:refs\" one finding; \"${SHA}:refs\", \"$PATH:/usr/local/bin\", text block none. 5 executed on task branch: pnpm test exit 0 (89 files, 1857 passed). 6 executed: [Unreleased] ### Fixed entry links #1331. 7 executed: pnpm typecheck exit 0. Also pnpm build and pnpm lint exit 0; git grep for quoted $NAME:<letter> in .agro/skills and docs prints no line.",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/release/SKILL.md",
+        ".agro/scripts/__tests__/skill-shell-portability.test.ts",
+        "CHANGELOG.md"
+      ],
+      "commit": "c3b14872"
+    }
+  ]
+}

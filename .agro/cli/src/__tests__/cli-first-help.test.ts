@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -87,7 +87,6 @@ describe("cli-first help — verb dispatch", () => {
 
 const CLI_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const AGRO_JS = join(CLI_DIR, "dist", "agro.js");
-const ESBUILD_AVAILABLE = existsSync(join(CLI_DIR, "node_modules", "esbuild"));
 
 function run(
   bundle: string,
@@ -107,13 +106,9 @@ function run(
   }
 }
 
-describe.skipIf(!ESBUILD_AVAILABLE)(
-  "cli-first help — the built bundle (skipped when esbuild is absent)",
+describe(
+  "cli-first help — the built bundle",
   () => {
-    beforeAll(() => {
-      execFileSync("npm", ["run", "build"], { cwd: CLI_DIR, stdio: "ignore" });
-    }, 120_000);
-
     it("builds exactly one executable bundle", () => {
       expect(existsSync(AGRO_JS)).toBe(true);
       expect(existsSync(join(CLI_DIR, "dist", "oh.js"))).toBe(false);

@@ -93,6 +93,9 @@ describe("Hermes-only additive linking", () => {
     const result = run(root, "--init", { HERMES_HOME: "" });
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("launch environment");
+    expect(result.stderr.match(/^ERROR: HERMES_HOME is unset; /gm)).toHaveLength(1);
+    expect(result.stderr).toMatch(/^Remediation: .*HERMES_HOME.*agro harness install hermes$/m);
+    expect(result.stderr).not.toContain("Remediation: bash .agro/scripts/link-providers.sh --init");
     expect(existsSync(join(root, ".hermes"))).toBe(false);
   });
 
@@ -108,7 +111,6 @@ describe("Hermes-only additive linking", () => {
     const root = fixture();
     const files = [
       ".claude/protected-paths.txt", ".agro/skills/t3/references/sandbox-processes.md",
-      ".agro/skills/wiki/references/schema.md", ".agro/skills/eval/run.sh",
       ".agro/hooks/deny-env-dump.sh", ".agro/hooks/deny-secret-paths.sh", ".agro/hooks/warn-devtcp.sh",
       ".agro/skills/cloudflared/scripts/run.sh", ".agro/skills/health-check/scripts/scope-preflight.sh",
       ".agro/skills/t3/scripts/t3-code.sh",
@@ -138,5 +140,39 @@ describe("Hermes-only additive linking", () => {
     });
     expect(result.status).toBe(64);
     expect(result.stderr).toContain("disposable oh-hermes-*");
+  });
+
+  const dockerSocket = (() => { try { return lstatSync("/var/run/docker.sock").isSocket(); } catch { return false; } })();
+
+  function smokeHome(launcherBody?: string) {
+    const home = fixture();
+    const bin = join(home, "bin");
+    mkdirSync(bin);
+    writeFileSync(join(bin, "id"), "#!/bin/sh\necho sandbox\n", { mode: 0o755 });
+    const hermesBin = join(home, ".local/lib/hermes-agent/.hermes/bin");
+    mkdirSync(hermesBin, { recursive: true });
+    if (launcherBody) writeFileSync(join(hermesBin, "hermes"), launcherBody, { mode: 0o755 });
+    return spawnSync("bash", [resolve(".agro/scripts/hermes-install-smoke.sh")], {
+      encoding: "utf8",
+      env: { ...process.env, HOME: home, PATH: `${bin}:${process.env.PATH}`,
+        AGRO_HERMES_SMOKE: "1", SANDBOX_NAME: "oh-hermes-test" },
+    });
+  }
+
+  it.skipIf(dockerSocket)("runs the smoke module through the installed Hermes launcher", () => {
+    const result = smokeHome([
+      "#!/bin/sh",
+      '[ "$1" = --run-module ] || exit 9',
+      'test -f "$(dirname "$0")/../../$2.py" || exit 8',
+      'echo "module=$2"',
+    ].join("\n") + "\n");
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toMatch(/^module=agro_smoke_[A-Za-z0-9]+$/m);
+  });
+
+  it.skipIf(dockerSocket)("fails clearly when the Hermes launcher is missing", () => {
+    const result = smokeHome();
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("Hermes launcher not found");
   });
 });

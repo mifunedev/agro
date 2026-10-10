@@ -194,6 +194,42 @@ bash .agro/skills/agent-browser/scripts/annotate-screenshot.sh "$SCREENSHOT_PATH
 
 The script adds one numbered red callout for each `<selector>=<label>` pair, takes the screenshot, and removes the callouts. It prints the `Callouts:` line for the screenshot, for example `Callouts: 1 is the card title. 2 is the Baseline time.`. Put that line under the screenshot. If a selector matches no element, the script names the selector, exits 1, and writes no file. On bad usage, the script exits 2.
 
+### Copy-button checks
+
+A plain `agent-browser clipboard read` fails with `Read permission denied`. Chromium keeps a clipboard permission grant only while the DevTools client that set it stays connected. `scripts/clipboard-read.mjs` grants the clipboard permission for the page origin through CDP, reads the clipboard while it stays connected, and disconnects after the read.
+
+To prove that a copy button writes the expected text, do these steps:
+
+1. Open the page in a named session:
+
+   ```bash
+   agent-browser --session "$SESSION" open "$URL"
+   ```
+
+2. Click the copy button:
+
+   ```bash
+   agent-browser --session "$SESSION" click '#copy'
+   ```
+
+3. Read the clipboard:
+
+   ```bash
+   node .agro/skills/agent-browser/scripts/clipboard-read.mjs --session "$SESSION"
+   ```
+
+4. Compare the output with the expected text. The script prints only the clipboard text. On a failure, the script prints one reason line on stderr and exits 1. On bad usage, the script exits 2.
+
+5. Close the session:
+
+   ```bash
+   agent-browser --session "$SESSION" close
+   ```
+
+The script works for `http://`, `https://`, and `file://` pages. For a `file://` page, the script grants the origin `file://`. The test `scripts/tests/clipboard-read.test.sh` runs these steps on `scripts/tests/fixtures/copy-button.html` and expects `agro-copy-check`.
+
+If CDP is not available, wrap `navigator.clipboard.writeText` with `agent-browser eval` before the click, and read the captured text after the click. This fallback proves only the text that the page gave to `writeText`, not that the write succeeded.
+
 ### Step 5 — Report
 
 ```

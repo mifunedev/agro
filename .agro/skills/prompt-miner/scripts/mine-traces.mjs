@@ -568,14 +568,14 @@ const WEAKNESS_SIGNALS = Object.freeze([
     match: (s) => Number(s?.abandoned) > 0,
     summary: "Sessions abandoned before a clean terminal status",
     likely_harness_layer: "terminal status",
-    recommended_repair_surface: "probe",
+    recommended_repair_surface: "test",
   },
   {
     key: "incomplete",
     match: (s) => Number(s?.incomplete) > 0,
     summary: "Sessions ended without a clean terminal status",
     likely_harness_layer: "terminal status",
-    recommended_repair_surface: "probe",
+    recommended_repair_surface: "test",
   },
 ]);
 

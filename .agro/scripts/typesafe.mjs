@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 
@@ -45,7 +46,7 @@ const HEADLINES = Object.freeze({
 
 const CONFIG_FIX = [
   `  Set it:   agro secret set ${ENV_VAR}`,
-  `  Or add it to .env, then:  set -a; source .env; set +a`,
+  `  Or save ${ENV_VAR} in the workspace root .env; the adapter reads it automatically.`,
   "  Docs:     https://docs.typesafe.ai/sdk/javascript",
 ];
 
@@ -79,14 +80,43 @@ export function report(cause, opts = {}) {
   return text;
 }
 
-export function readKey(env = process.env) {
+function savedKey() {
+  let content;
+  try {
+    content = readFileSync(new URL("../../.env", import.meta.url), "utf8");
+  } catch (err) {
+    if (err.code === "ENOENT") return null;
+    throw err;
+  }
+  for (const line of content.split("\n")) {
+    if (/^\s*#/.test(line)) continue;
+    const equals = line.indexOf("=");
+    if (equals < 1 || line.slice(0, equals).trim() !== ENV_VAR) continue;
+    let value = line.slice(equals + 1).trim();
+    if (value.length >= 2 && (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    )) {
+      value = value.slice(1, -1);
+    }
+    return value.trim() || null;
+  }
+  return null;
+}
+
+export function readKey(env) {
+  if (env === undefined) {
+    const saved = savedKey();
+    if (saved) return saved;
+    env = process.env;
+  }
   const raw = env[ENV_VAR];
   if (typeof raw !== "string") return null;
   const trimmed = raw.trim();
   return trimmed === "" ? null : trimmed;
 }
 
-export function preflight(env = process.env) {
+export function preflight(env) {
   const key = readKey(env);
   if (key) return { ok: true, reason: null, diagnostic: null };
   return {
@@ -153,7 +183,7 @@ export async function systemOne(request = {}, opts = {}) {
       model = DEFAULT_MODEL,
     } = request;
     const {
-      env = process.env,
+      env,
       fetchImpl = globalThis.fetch,
       timeoutMs = DEFAULT_TIMEOUT_MS,
       maxRetries = DEFAULT_MAX_RETRIES,

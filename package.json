@@ -1,6 +1,6 @@
 {
   "name": "agro",
-  "version": "0.15.0",
+  "version": "0.19.0",
   "private": true,
   "description": "AGRO — Agent Governance Runtime Orchestrator",
   "license": "Apache-2.0",
@@ -12,6 +12,7 @@
     "build:harness": "(test -d .agro/cli/node_modules || npm --prefix .agro/cli ci --ignore-scripts) && npm --prefix .agro/cli run build",
     "test": "vitest run",
     "test:scripts": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "lint": "echo \"No root lint configured\"",
     "format:check": "echo \"No root format check configured\"",
     "typecheck": "(test -d .agro/cli/node_modules || npm --prefix .agro/cli ci --ignore-scripts) && npm --prefix .agro/cli run typecheck",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@sinclair/typebox": "^0.34.0",
+    "@vitest/coverage-v8": "^4.1.11",
     "diff": "^8.0.2",
     "fast-check": "^4.8.0",
     "vitest": "^4.1.11",
@@ -35,7 +37,8 @@
     "overrides": {
       "esbuild": "^0.28.1",
       "nanoid": "^3.3.17",
-      "postcss": "^8.5.18"
+      "postcss": "^8.5.18",
+      "undici": "^7.29.1"
     }
   }
 }

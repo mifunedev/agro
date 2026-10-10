@@ -1,3 +1,0 @@
-US-002 passed.
-
-**Your call:** keep or discard the generated results file.

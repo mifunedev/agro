@@ -106,9 +106,9 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
-          # Match the devcontainer image (Dockerfile installs Node 22.x) so the
+          # Match the devcontainer image (Dockerfile installs Node 24.x) so the
           # pre-seeded tree matches what the container runs — spec §9 parity.
-          node-version: 22
+          node-version: "24"
           cache: pnpm
 
       - name: Build candidate CLI

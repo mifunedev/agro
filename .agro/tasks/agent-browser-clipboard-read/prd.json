@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1332-agent-browser-clipboard-read",
+  "description": "Agent-browser clipboard read. Find and document a supported clipboard read for copy-button evidence in the agent-browser skill (#1332).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Find a supported clipboard read after a copy-button click",
+      "description": "As the advisor, I want one tested way to read the clipboard in the sandbox browser. Then copy-button evidence does not change the page under test.",
+      "acceptanceCriteria": [
+        "A local fixture page `.agro/skills/agent-browser/scripts/tests/fixtures/copy-button.html` has one button that calls `navigator.clipboard.writeText(\"agro-copy-check\")`.",
+        "The worker tries each candidate on that fixture in the sandbox and records the command and the result in `.agro/tasks/agent-browser-clipboard-read/evidence/spike.md`: `agent-browser clipboard read` after a click, with no launch flag; the same command with `--args \"--enable-features=ClipboardReadWrite\"` or another documented Chromium flag; `agent-browser clipboard read` in headed mode, if a display is available; a page-side capture that wraps `navigator.clipboard.writeText` before the click and reads the captured text with `agent-browser eval`.",
+        "`spike.md` names one method that returns `agro-copy-check`, or states that no method returns the text.",
+        "Each candidate command in `spike.md` shows its exit status and its output."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "1 executed: fixtures/copy-button.html has one #copy button calling navigator.clipboard.writeText(\"agro-copy-check\"); secure context on http://127.0.0.1 and file://. 2 executed by worker, recorded in spike.md: (a) plain read exit 1 Read permission denied; (b1-b3) three launch flags exit 1; (c) --headed exit 1 CDP timeout; (e1) CDP grant then disconnect exit 1; (e2) CDP Browser.grantPermissions held open during clipboard read exit 0 agro-copy-check; (d) page-side writeText capture exit 0, page HTML and screenshot byte-identical. 3 executed: spike.md names e2 (direct read) with d as the capture alternative. Root cause of agro-console#275 failure: Chromium drops the grant when the granting CDP client disconnects. 4 executed: each candidate lists exit status and output.",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/agent-browser/scripts/tests/fixtures/copy-button.html",
+        ".agro/tasks/agent-browser-clipboard-read/evidence/spike.md"
+      ],
+      "commit": "df9fe5a4"
+    },
+    {
+      "id": "US-002",
+      "title": "Document the clipboard check in the agent-browser skill",
+      "description": "As an agent that captures evidence, I want the agent-browser skill to give the clipboard check. Then I prove a copy button the same way each time.",
+      "acceptanceCriteria": [
+        "The story depends on US-001.",
+        "`.agro/skills/agent-browser/SKILL.md` has a section \"Copy-button checks\" that gives the method from `spike.md` as numbered steps with exact commands.",
+        "If no method reads the clipboard, the section gives the paste procedure from mifunedev/agro-console#275 and states that the paste adds a temporary field to the page.",
+        "`.agro/skills/agent-browser/scripts/tests/` holds a test that runs the documented method against the fixture and expects `agro-copy-check`. The test skips with a message when agent-browser or Chromium is absent.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/agent-browser/SKILL.md` exits 0.",
+        "`CHANGELOG.md` `## [Unreleased]` holds one entry that links issue #1332."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "1 reasoned: depends on US-001, accepted first. 2 executed by diff review: SKILL.md Copy-button checks section gives 5 numbered steps with exact commands; scripts/clipboard-read.mjs holds the CDP grant open during agent-browser clipboard read. 3 N/A: a direct read works, so no paste procedure. 4 executed on task branch: bash scripts/tests/clipboard-read.test.sh exit 0 (5 ok lines incl. agro-copy-check); worker showed red (module missing) before the script and the skip path exit 0 without agent-browser. 5 executed: ste-check SKILL.md exit 0. 6 executed: [Unreleased] ### Added entry links #1332. Also pnpm test/typecheck/build/lint exit 0.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/skills/agent-browser/SKILL.md",
+        ".agro/skills/agent-browser/scripts/tests/",
+        "CHANGELOG.md"
+      ],
+      "commit": "bb56cab1"
+    }
+  ]
+}

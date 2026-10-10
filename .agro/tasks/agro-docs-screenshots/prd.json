@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1359-agro-docs-screenshots",
+  "description": "Add annotated screenshots from the browser editor in a local AGRO sandbox at device scale 1.5 to the quickstart, installation, lifecycle, connecting, harness, Herdr, and GitHub pages, and guard the images in CI.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Prepare a Console node for the capture",
+      "description": "As a docs maintainer, I want the Console browser editor on a free node. Then each screenshot shows the editor and the node host that a Console user sees.",
+      "acceptanceCriteria": [
+        "The capture signs in to the local development Console as `dev+demo@agro.local`, and creates one free node with the SSH key of that account.",
+        "The capture opens the node in **Connect** → **Browser editor (code-server)**.",
+        "The node host runs the latest AGRO release, and `agro --version` prints that version in the editor terminal.",
+        "agent-browser shows the editor in a 1280x720 viewport at device scale 1.5. Each PNG is 1920x1080, and the editor keeps a desktop layout.",
+        "The git identity on the node is `Demo User <demo@example.com>`. The capture signs in to no other account. No screenshot shows a real name, email address, token, or public IP address.",
+        "A teardown step lists the node and the key for the operator to delete.",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Executed: signed in to the dev Console at localhost:3005 as dev+demo@agro.local; created free node docs-capture (152f0689) with the account key agro-demo; Waiting for IP -> Waiting for boot -> Running in about 2.5 minutes. Connect opened code-server in a new tab. agro self-upgrade moved the node CLI from v0.17.0 to v0.18.1; agro --version prints 0.18.1 in the editor terminal (node001.png). Viewport 1280x720 at device scale 1.5 gives 1920x1080 with a desktop layout; terminal.integrated.gpuAcceleration off. Git identity Demo User <demo@example.com>; no sign-ins; image shows login sandbox and the node ID hostname, no IP, no email. Teardown in evidence/capture-setup.md: the operator destroys the node and removes the key. Finding: the Console pins AGRO 0.17.0 (DEFAULT_AGRO_VERSION), one minor behind the docs. Typecheck: not affected (docs and task files only).",
+      "dependsOn": [],
+      "files": [
+        ".agro/tasks/agro-docs-screenshots/evidence/capture-setup.md"
+      ],
+      "commit": "b32c6b76"
+    },
+    {
+      "id": "US-002",
+      "title": "Add screenshots to the quickstart and installation pages",
+      "description": "As a new self-host user, I want to see each first command and its output. Then I recognize a correct result.",
+      "acceptanceCriteria": [
+        "`docs/quickstart.md` shows the sandbox creation, the shell in the sandbox, and a harness install, each in the editor terminal.",
+        "`docs/installation.md` shows `agro --version` after the install.",
+        "Each image is a PNG at 1920x1080 in `docs/img/`, with a name of the form `<page>-<step>.png`.",
+        "Each image has alt text and a `Callouts:` line under it that names each numbered callout.",
+        "Verify in browser using agent-browser skill.",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Executed: quickstart.md shows agro sandbox install docker (recreated agro-sbx-1, cached image), agro shell agro-sbx-1, and a harness install in a Herdr pane; installation.md shows agro --version 0.18.1. All captured in the Console browser editor on the dev free node (AGRO 0.18.1), 1280x720 viewport at device scale 1.5 (1920x1080 PNG), terminal font 18, status bar hidden, no injected CSS; a local agent-browser wrapper moves only the callout badges before the screenshot. Each image shows login sandbox, the node-ID hostname, the sandbox container hostname, and AGRO output: no IP, email, token, or code. STE exit 0 on each changed page; pnpm test:scripts exit 0. Retakes in b540f6d2 and 9513c9e6.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        "docs/quickstart.md",
+        "docs/installation.md",
+        "docs/img/quickstart-*",
+        "docs/img/installation-*"
+      ],
+      "commit": "9513c9e6"
+    },
+    {
+      "id": "US-003",
+      "title": "Add screenshots to the lifecycle and connecting pages",
+      "description": "As a self-host user, I want to see the lifecycle commands and the ways to connect. Then I pick the correct command.",
+      "acceptanceCriteria": [
+        "`docs/lifecycle-commands.md` shows `agro ps` and one other verb that the page documents, each with its output.",
+        "`docs/connecting.md` shows the editor connected to the sandbox and one shell session.",
+        "Each image follows the file, size, alt-text, and `Callouts:` rules of US-002.",
+        "Verify in browser using agent-browser skill.",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Executed: lifecycle-commands.md shows agro ps and agro sandbox list; connecting.md shows the editor with the node workspace and a shell in the sandbox. All captured in the Console browser editor on the dev free node (AGRO 0.18.1), 1280x720 viewport at device scale 1.5 (1920x1080 PNG), terminal font 18, status bar hidden, no injected CSS; a local agent-browser wrapper moves only the callout badges before the screenshot. Each image shows login sandbox, the node-ID hostname, the sandbox container hostname, and AGRO output: no IP, email, token, or code. STE exit 0 on each changed page; pnpm test:scripts exit 0. Retakes in b540f6d2 and 9513c9e6.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        "docs/lifecycle-commands.md",
+        "docs/connecting.md",
+        "docs/img/lifecycle-commands-*",
+        "docs/img/connecting-*"
+      ],
+      "commit": "7b4d2e64"
+    },
+    {
+      "id": "US-004",
+      "title": "Add screenshots to the harness, Herdr, and GitHub pages",
+      "description": "As a self-host user, I want to see a harness install, a Herdr workspace, and the GitHub sign-in. Then I complete each setup step.",
+      "acceptanceCriteria": [
+        "`docs/harnesses/overview.md` shows `agro harness install <id>` and its output.",
+        "`docs/integrations/herdr.md` shows a Herdr workspace with two panes.",
+        "`docs/integrations/github.md` shows `gh auth status` for a signed-in demo account, or the first prompt of `gh auth login` when no demo account exists. No image shows a token or a one-time code.",
+        "Each image follows the file, size, alt-text, and `Callouts:` rules of US-002.",
+        "Verify in browser using agent-browser skill.",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Executed: harnesses/overview.md shows agro harness install with its result; integrations/herdr.md shows a Herdr workspace with two panes; integrations/github.md shows gh auth status with no account. Findings: host-side harness install reports the running sandbox as absent; the onboarding banner marks alias-only harnesses as installed; harness install on an installed harness does not update. All captured in the Console browser editor on the dev free node (AGRO 0.18.1), 1280x720 viewport at device scale 1.5 (1920x1080 PNG), terminal font 18, status bar hidden, no injected CSS; a local agent-browser wrapper moves only the callout badges before the screenshot. Each image shows login sandbox, the node-ID hostname, the sandbox container hostname, and AGRO output: no IP, email, token, or code. STE exit 0 on each changed page; pnpm test:scripts exit 0. Retakes in b540f6d2 and 9513c9e6.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        "docs/harnesses/overview.md",
+        "docs/integrations/herdr.md",
+        "docs/integrations/github.md",
+        "docs/img/harnesses-overview-*",
+        "docs/img/herdr-*",
+        "docs/img/github-*"
+      ],
+      "commit": "4a7f26f8"
+    },
+    {
+      "id": "US-005",
+      "title": "Guard the images",
+      "description": "As a docs maintainer, I want CI to stop a missing image or a missing callout line. Then each docs page stays complete.",
+      "acceptanceCriteria": [
+        "A test fails when an image link in `docs/` names a file that does not exist.",
+        "The test fails when an image has no alt text, or has no `Callouts:` line within the next 3 lines.",
+        "The test fails when a file in `docs/img/` has no reference from `docs/`, or when a PNG is not 1920x1080.",
+        "The test is `.agro/scripts/__tests__/docs-images.test.ts`. The `ci-harness.yml` job runs the test through `pnpm test:scripts` on each change to `docs/**`.",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Executed on dc025029: .agro/scripts/__tests__/docs-images.test.ts checks missing file, empty alt text, missing Callouts line within 3 lines, unreferenced file in docs/img, and PNG not 1920x1080 (IHDR); 10 tests pass (pnpm exec vitest run, exit 0). Advisor probe: renaming quickstart-shell.png in docs/quickstart.md made the test exit 1; reverted. ci-harness.yml runs pnpm test:scripts on docs/** changes. pnpm typecheck exit 0 (covers .agro/cli only).",
+      "dependsOn": [
+        "US-002",
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        ".agro/scripts/__tests__/docs-images.test.ts"
+      ],
+      "commit": "dc025029"
+    },
+    {
+      "id": "US-006",
+      "title": "Manual review evidence",
+      "description": "As the operator, I want a recorded review of each page with its images. Then I accept the change from evidence.",
+      "acceptanceCriteria": [
+        "Depends on US-001 through US-005.",
+        "`.agro/tasks/agro-docs-screenshots/evidence/manual-review.md` holds an annotated screenshot of each changed page at 1280x720, from a local agro-web build that uses the changed `docs/`.",
+        "The review confirms that each image loads and shows no personal data.",
+        "The run stops each process that the run starts.",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Executed on ca5bd059: syncAgroDocs ran offline on a git archive of the branch docs/ (tag v0.18.1): 31 pages, 10 images; docusaurus build exit 0; pnpm serve --port 3298. On 7 pages every article img had complete=true and naturalWidth 1920. 7 annotated page screenshots at 1280x720. All 10 images checked: no public IP, email, token, or code. Server stopped by PID, port free, session closed, review worktree removed. Review defects: three callouts fixed in 00fb2a13 (guard test passes); in-page readability addressed by click-to-zoom in agro-web#75 (operator decision); opencode state differs across images because the sandbox was recreated (banner defect). Typecheck: pnpm typecheck exit 0.",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004",
+        "US-005"
+      ],
+      "files": [
+        ".agro/tasks/agro-docs-screenshots/evidence/"
+      ],
+      "commit": "ca5bd059"
+    }
+  ]
+}

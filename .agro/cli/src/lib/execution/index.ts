@@ -49,9 +49,11 @@ function nonEmpty(value: string | undefined): string | undefined {
 
 export { DockerComposeExecutionTarget, type DockerComposeTargetOptions };
 export {
+  DOCKERENV_FILE,
   EXECUTION_TARGET_ENV,
   runningInsideSandbox,
   SANDBOX_MARKER_FILE,
+  sandboxFallbackWarning,
 } from "./detect.js";
 export {
   HostOnlyError,

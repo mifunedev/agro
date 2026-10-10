@@ -27,6 +27,7 @@ import {
 } from "../lib/host-workspace.js";
 import { ask as promptAsk } from "../lib/prompt.js";
 import { resolveProjectRoot } from "../lib/project.js";
+import { resolveSandboxRoot } from "../lib/registry.js";
 import {
   findHarness,
   harnessBinPath,
@@ -87,12 +88,21 @@ function isReachable(status: string): boolean {
   return status === "ready" || status === "starting";
 }
 
+function registeredContainerName(cwd: string | undefined): string | undefined {
+  try {
+    return configuredContainerName(resolveSandboxRoot(cwd === undefined ? {} : { cwd }));
+  } catch {
+    return undefined;
+  }
+}
+
 function targetFor(
   root: string,
+  cwd: string | undefined,
   run: LifecycleRunner,
   env?: NodeJS.ProcessEnv,
 ): ExecutionTarget {
-  const name = configuredContainerName(root) ?? DEFAULT_CONTAINER_NAME;
+  const name = configuredContainerName(root) ?? registeredContainerName(cwd) ?? DEFAULT_CONTAINER_NAME;
   return resolveExecutionTarget({
     projectRoot: root,
     container: name,
@@ -206,13 +216,14 @@ function probeableHost(env: NodeJS.ProcessEnv, home: string): HostProbe | undefi
 
 async function collectStates(
   root: string,
+  cwd: string | undefined,
   run: LifecycleRunner,
   home: string,
   env?: NodeJS.ProcessEnv,
   only?: readonly HarnessEntry[],
 ): Promise<CollectedStates> {
   const entries = only ? [...only] : [...HARNESS_CATALOG];
-  const target = targetFor(root, run, env);
+  const target = targetFor(root, cwd, run, env);
 
   const reachable = isReachable(await resolveTargetStatus(target));
 
@@ -269,7 +280,7 @@ function renderTable(collected: CollectedStates, io: HarnessIO, bin: string): vo
 export async function runHarnessList(opts: HarnessOptions, io: HarnessIO): Promise<number> {
   const run = opts.run ?? spawnRunner;
   const root = resolveProjectRoot(opts.cwd);
-  const collected = await collectStates(root, run, homeOf(opts), opts.env);
+  const collected = await collectStates(root, opts.cwd, run, homeOf(opts), opts.env);
   if (opts.json) {
     io.stdout(`${JSON.stringify(collected.states, null, 2)}\n`);
   } else {
@@ -298,7 +309,7 @@ export async function runHarnessStatus(
     if (!only) return unknownHarness(name, io, opts.bin);
   }
 
-  const collected = await collectStates(root, run, homeOf(opts), opts.env, only ? [only] : undefined);
+  const collected = await collectStates(root, opts.cwd, run, homeOf(opts), opts.env, only ? [only] : undefined);
   if (opts.json) {
     io.stdout(`${JSON.stringify(only ? collected.states[0] : collected.states, null, 2)}\n`);
   } else {
@@ -307,8 +318,20 @@ export async function runHarnessStatus(
   return 0;
 }
 
-function hermesTargetRoot(target: ExecutionTarget): string {
+function sandboxTargetRoot(target: ExecutionTarget): string {
   return target.kind === "docker-compose" ? "/home/sandbox/harness" : target.workspace.targetRoot;
+}
+
+function shellPath(path: string): string {
+  return `'${path.replaceAll("'", "'\\''")}'`;
+}
+
+function hermesLaunch(io: HarnessIO, root: string): void {
+  io.stdout(`Run Hermes in the AGRO workspace: HERMES_HOME=${shellPath(`${root}/.hermes`)} hermes\n`);
+}
+
+function hermesEnv(root: string): Record<string, string> {
+  return { ...agroEnvPair("PROJECT_ROOT", root), HERMES_HOME: `${root}/.hermes` };
 }
 
 async function reconcileHermes(
@@ -316,16 +339,118 @@ async function reconcileHermes(
   io: HarnessIO,
   bin: string,
   user: InstallUser,
-  root: string = hermesTargetRoot(target),
+  root: string = sandboxTargetRoot(target),
 ): Promise<number> {
   const result = await target.exec({
     argv: remoteControlDirScript(root, "scripts/link-providers.sh", ["--init", "--hermes-only"]),
-    env: agroEnvPair("PROJECT_ROOT", root),
+    env: hermesEnv(root),
     ...(user ? { user } : {}),
     stdio: "inherit",
   });
   if (result.exitCode !== 0) {
     io.stderr(`${bin} harness: Hermes integration failed (exit ${result.exitCode}); no installation success reported.\n`);
+  }
+  return result.exitCode;
+}
+
+async function validateHermesHome(
+  target: ExecutionTarget,
+  io: HarnessIO,
+  bin: string,
+  user: InstallUser,
+  inheritedHome: string | undefined,
+  root: string = sandboxTargetRoot(target),
+): Promise<number> {
+  const result = await target.exec({
+    argv: remoteControlDirScript(root, "scripts/hermes-workspace.sh", [
+      "check", root, `${root}/.hermes`, inheritedHome ?? "",
+    ]),
+    env: hermesEnv(root),
+    ...(user ? { user } : {}),
+    stdio: "capture",
+  });
+  if (result.exitCode !== 0) {
+    io.stderr(result.stderr || `${bin} harness: could not validate Hermes runtime home; explicitly select HERMES_HOME=${shellPath(`${root}/.hermes`)} before retrying.\n`);
+  }
+  return result.exitCode;
+}
+
+async function configureHermes(
+  target: ExecutionTarget,
+  io: HarnessIO,
+  bin: string,
+  user: InstallUser,
+  root: string = sandboxTargetRoot(target),
+): Promise<number> {
+  const result = await target.exec({
+    argv: remoteControlDirScript(root, "scripts/hermes-workspace.sh", [
+      "configure", root, `${root}/.hermes`, root, "hermes",
+    ]),
+    env: hermesEnv(root),
+    ...(user ? { user } : {}),
+    stdio: "inherit",
+  });
+  if (result.exitCode !== 0) {
+    io.stderr(`${bin} harness: Hermes workspace configuration failed (exit ${result.exitCode}); run HERMES_HOME=${shellPath(`${root}/.hermes`)} hermes config set terminal.cwd ${shellPath(root)}\n`);
+  }
+  return result.exitCode;
+}
+
+function openclawStateDir(root: string): string {
+  return `${root}/.openclaw`;
+}
+
+function shellWord(value: string): string {
+  return /^[\w./-]+$/.test(value) ? value : shellPath(value);
+}
+
+function openclawLaunch(io: HarnessIO, root: string): void {
+  io.stdout(`Run OpenClaw in the AGRO workspace: OPENCLAW_STATE_DIR=${shellWord(openclawStateDir(root))} openclaw\n`);
+}
+
+function openclawEnv(root: string): Record<string, string> {
+  return { ...agroEnvPair("PROJECT_ROOT", root), OPENCLAW_STATE_DIR: openclawStateDir(root) };
+}
+
+async function validateOpenclawState(
+  target: ExecutionTarget,
+  io: HarnessIO,
+  bin: string,
+  user: InstallUser,
+  inheritedDir: string | undefined,
+  root: string = sandboxTargetRoot(target),
+): Promise<number> {
+  const result = await target.exec({
+    argv: remoteControlDirScript(root, "scripts/openclaw-workspace.sh", [
+      "check", root, openclawStateDir(root), inheritedDir ?? "",
+    ]),
+    env: openclawEnv(root),
+    ...(user ? { user } : {}),
+    stdio: "capture",
+  });
+  if (result.exitCode !== 0) {
+    io.stderr(result.stderr || `${bin} harness: could not validate the OpenClaw state directory; select OPENCLAW_STATE_DIR=${shellWord(openclawStateDir(root))} before retrying.\n`);
+  }
+  return result.exitCode;
+}
+
+async function configureOpenclaw(
+  target: ExecutionTarget,
+  io: HarnessIO,
+  bin: string,
+  user: InstallUser,
+  root: string = sandboxTargetRoot(target),
+): Promise<number> {
+  const result = await target.exec({
+    argv: remoteControlDirScript(root, "scripts/openclaw-workspace.sh", [
+      "configure", root, openclawStateDir(root), "openclaw",
+    ]),
+    env: openclawEnv(root),
+    ...(user ? { user } : {}),
+    stdio: "inherit",
+  });
+  if (result.exitCode !== 0) {
+    io.stderr(`${bin} harness: OpenClaw workspace configuration failed (exit ${result.exitCode}); no installation success reported.\n`);
   }
   return result.exitCode;
 }
@@ -422,6 +547,17 @@ async function installOnHost(
   const prefix = hostPrefix(home);
   const target = hostTargetFor(root, prefix, run, env);
 
+  const hermes = entry.id === "hermes";
+  const openclaw = entry.id === "openclaw";
+  if (hermes) {
+    const code = await validateHermesHome(target, io, bin, undefined, env.HERMES_HOME, root);
+    if (code !== 0) return code;
+  }
+  if (openclaw) {
+    const code = await validateOpenclawState(target, io, bin, undefined, env.OPENCLAW_STATE_DIR, root);
+    if (code !== 0) return code;
+  }
+
   const linked = await target.exec({
     argv: remoteControlDirScript(root, "scripts/link-providers.sh", ["--init"]),
     env: agroEnvPair("PROJECT_ROOT", root),
@@ -435,11 +571,7 @@ async function installOnHost(
     return 1;
   }
 
-  const hermes = entry.id === "hermes";
-  const installEnv = hermes ? {
-    ...agroEnvPair("PROJECT_ROOT", root),
-    HERMES_HOME: `${root}/.hermes`,
-  } : undefined;
+  const installEnv = hermes ? hermesEnv(root) : openclaw ? openclawEnv(root) : undefined;
   if (hermes) {
     const code = await reconcileHermes(target, io, bin, undefined, root);
     if (code !== 0) return code;
@@ -452,10 +584,16 @@ async function installOnHost(
     io.stderr(`${bin} harness: ${messageOf(err)}\n`);
     return 1;
   }
-  if (
-    await probeInstalled(target, entry, prefix, undefined, installEnv) === true &&
-    (hasReceipt || !hostBinaryUnderPrefix(entry, prefix))
-  ) {
+  const present = await probeInstalled(target, entry, prefix, undefined, installEnv) === true;
+  if (present && !hasReceipt && !hostBinaryUnderPrefix(entry, prefix)) {
+    if (hermes) {
+      const code = await configureHermes(target, io, bin, undefined, root);
+      if (code !== 0) return code;
+    }
+    if (openclaw) {
+      const code = await configureOpenclaw(target, io, bin, undefined, root);
+      if (code !== 0) return code;
+    }
     io.stdout(`${entry.id}: already installed (${entry.binary})\n`);
     try {
       recordHarnessRoot(root, env, home);
@@ -463,10 +601,12 @@ async function installOnHost(
       io.stderr(`${bin} harness: could not record the harness root: ${messageOf(err)}\n`);
       return 1;
     }
+    if (hermes) hermesLaunch(io, root);
+    if (openclaw) openclawLaunch(io, root);
     return 0;
   }
 
-  io.stdout(`installing ${entry.title} on the host…\n`);
+  io.stdout(`${present && hasReceipt ? "updating" : "installing"} ${entry.title} on the host…\n`);
   const r = await target.exec({
     argv: resolveInstallArgv(entry, prefix),
     stdio: "inherit",
@@ -484,6 +624,12 @@ async function installOnHost(
     }
     const code = await reconcileHermes(target, io, bin, undefined, root);
     if (code !== 0) return code;
+    const configured = await configureHermes(target, io, bin, undefined, root);
+    if (configured !== 0) return configured;
+  }
+  if (openclaw) {
+    const configured = await configureOpenclaw(target, io, bin, undefined, root);
+    if (configured !== 0) return configured;
   }
 
   const receipt: HostHarnessReceipt = {
@@ -513,7 +659,9 @@ async function installOnHost(
   if (!onPath(prefix, env)) {
     io.stdout(`Add this line to your shell profile: export PATH="${harnessBinPath(prefix)}:$PATH"\n`);
   }
-  io.stdout(`Run ${entry.title} in the AGRO workspace: cd ${root} && ${harnessLaunchCommand(entry)}\n`);
+  if (hermes) hermesLaunch(io, root);
+  else if (openclaw) openclawLaunch(io, root);
+  else io.stdout(`Run ${entry.title} in the AGRO workspace: cd ${root} && ${harnessLaunchCommand(entry)}\n`);
   return 0;
 }
 
@@ -635,7 +783,7 @@ export async function runHarnessUninstall(
   const entry = findHarness(name);
   if (!entry) return unknownHarness(name, io, opts.bin);
 
-  const target = targetFor(root, run, opts.env);
+  const target = targetFor(root, opts.cwd, run, opts.env);
   if (!isReachable(await resolveTargetStatus(target))) {
     return await uninstallOnHost(entry, opts, io, run);
   }
@@ -664,7 +812,7 @@ export async function runHarnessInstall(
   const env = opts.env ?? process.env;
   const projectRoot = agroEnvValue(env, "PROJECT_ROOT");
   const root = resolveProjectRoot(
-    name === "hermes" && runningInsideSandbox(env) && projectRoot !== undefined
+    (name === "hermes" || name === "openclaw") && runningInsideSandbox(env) && projectRoot !== undefined
       ? projectRoot
       : opts.cwd,
   );
@@ -672,7 +820,7 @@ export async function runHarnessInstall(
   const entry = findHarness(name);
   if (!entry) return unknownHarness(name, io, opts.bin);
 
-  const target = targetFor(root, run, opts.env);
+  const target = targetFor(root, opts.cwd, run, opts.env);
   const status = await resolveTargetStatus(target);
 
   if (!isReachable(status)) {
@@ -680,26 +828,31 @@ export async function runHarnessInstall(
   }
 
   const hermes = entry.id === "hermes";
-  const installEnv = hermes ? {
-    ...agroEnvPair("PROJECT_ROOT", hermesTargetRoot(target)),
-    HERMES_HOME: `${hermesTargetRoot(target)}/.hermes`,
-  } : undefined;
+  const openclaw = entry.id === "openclaw";
+  const targetRoot = sandboxTargetRoot(target);
+  const installEnv = hermes ? hermesEnv(targetRoot) : openclaw ? openclawEnv(targetRoot) : undefined;
   if (hermes) {
+    const checked = await validateHermesHome(target, io, opts.bin, "sandbox", env.HERMES_HOME);
+    if (checked !== 0) return checked;
     const code = await reconcileHermes(target, io, opts.bin, "sandbox");
     if (code !== 0) return code;
   }
+  if (openclaw) {
+    const checked = await validateOpenclawState(target, io, opts.bin, "sandbox", env.OPENCLAW_STATE_DIR);
+    if (checked !== 0) return checked;
+  }
 
   const already = await probeInstalled(target, entry, SANDBOX_HARNESS_PREFIX, "sandbox", installEnv);
-  if (already === true && await sandboxMarkerExists(target, entry)) {
-    io.stdout(`${entry.id}: already installed (${entry.binary})\n`);
-    return 0;
-  }
   if (already === null) {
     io.stderr("docker is required to install into the running sandbox but was not found on PATH\n");
     return 1;
   }
 
-  io.stdout(`installing ${entry.title} into the sandbox…\n`);
+  if (already && await sandboxMarkerExists(target, entry)) {
+    io.stdout(`updating ${entry.title} in the sandbox…\n`);
+  } else {
+    io.stdout(`installing ${entry.title} into the sandbox…\n`);
+  }
   const r = await target.exec({
     argv: resolveInstallArgv(entry, SANDBOX_HARNESS_PREFIX),
     user: entry.installUser,
@@ -718,6 +871,12 @@ export async function runHarnessInstall(
     }
     const code = await reconcileHermes(target, io, opts.bin, "sandbox");
     if (code !== 0) return code;
+    const configured = await configureHermes(target, io, opts.bin, "sandbox");
+    if (configured !== 0) return configured;
+  }
+  if (openclaw) {
+    const configured = await configureOpenclaw(target, io, opts.bin, "sandbox");
+    if (configured !== 0) return configured;
   }
 
   const marker = sandboxMarkerPath(entry);
@@ -732,5 +891,7 @@ export async function runHarnessInstall(
   }
 
   io.stdout(`${entry.id}: installed — see ${sourceDocsUrl(entry.docsPath)} for authentication\n`);
+  if (hermes) hermesLaunch(io, targetRoot);
+  if (openclaw) openclawLaunch(io, targetRoot);
   return 0;
 }

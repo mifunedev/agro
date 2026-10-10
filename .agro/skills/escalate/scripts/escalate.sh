@@ -2,7 +2,14 @@
 set -euo pipefail
 
 HARNESS="${AGRO_PROJECT_ROOT:-${AGRO_PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)}}"
-SLACK_ENV="$HARNESS/.devcontainer/.env"
+PATHS_SH="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../../scripts/paths.sh"
+if [ -f "$PATHS_SH" ]; then
+  # shellcheck source=../../../scripts/paths.sh
+  . "$PATHS_SH"
+  SLACK_ENV="$(agro_env_file "$HARNESS")"
+else
+  SLACK_ENV="$HARNESS/.devcontainer/.env"
+fi
 BRIDGE_CONFIG="${ESCALATE_BRIDGE_CONFIG:-$HOME/.pi/msg-bridge.json}"
 if [ -n "${ESCALATE_STATE_DIR:-}" ]; then
   STATE_DIR="$ESCALATE_STATE_DIR"
@@ -85,7 +92,7 @@ if [ -z "${PI_SLACK_BOT_TOKEN:-}" ] && [ -f "$BRIDGE_CONFIG" ]; then
   PI_SLACK_BOT_TOKEN=$(jq -r '.slack.botToken // empty' "$BRIDGE_CONFIG" 2>/dev/null) || PI_SLACK_BOT_TOKEN=''
 fi
 if [ -z "${PI_SLACK_BOT_TOKEN:-}" ]; then
-  slack_reason='no PI_SLACK_BOT_TOKEN in the environment, .devcontainer/.env, or bridge config'
+  slack_reason="no PI_SLACK_BOT_TOKEN in the environment, $SLACK_ENV, or bridge config"
 elif [ -z "$channel" ]; then
   if [ ! -f "$BRIDGE_CONFIG" ]; then
     slack_reason="no --channel and no bridge config at $BRIDGE_CONFIG"

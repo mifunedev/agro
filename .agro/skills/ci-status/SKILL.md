@@ -10,8 +10,6 @@ description: |
 
 # CI Status
 
-Monitor the GitHub Actions CI pipeline for the current branch. A feature is not done until CI passes.
-
 ## Instructions
 
 1. **Identify the current branch, commit, and target repo:**
@@ -21,9 +19,7 @@ BRANCH=$(git branch --show-current)
 SHA=$(git rev-parse --short HEAD)
 echo "Branch: $BRANCH | Commit: $SHA"
 
-# Repo: explicit --repo owner/name, else derive from the current checkout's origin.
-# gh repo view resolves the checkout's origin remote — the repo where the branch/PR lives.
-# To override (e.g. when testing against a different fork), set REPO_OVERRIDE=owner/name.
+# Set REPO_OVERRIDE=owner/name to target another fork; otherwise use the checkout's origin.
 if [ -n "$REPO_OVERRIDE" ]; then
   case "$REPO_OVERRIDE" in
     */*) REPO="$REPO_OVERRIDE" ;;
@@ -38,7 +34,7 @@ echo "Repo: $REPO"
 
 2. **Prefer an open PR's checks (PR-first path):**
 
-Derive the PR number for the current branch. When multiple open PRs share the head branch (stacked PRs), the first/most-recent is used. An empty `PR_NUMBER` means no open PR and routes to the branch-runs fallback in steps 3–6.
+With stacked PRs on one head branch, the most recent is used. No open PR routes to steps 3–6.
 
 ```bash
 PR_NUMBER=$(gh pr list --head "$BRANCH" --state open --repo "$REPO" \
@@ -47,10 +43,8 @@ PR_NUMBER=$(gh pr list --head "$BRANCH" --state open --repo "$REPO" \
 if [ -n "$PR_NUMBER" ]; then
   echo "Open PR found: #$PR_NUMBER — checking PR checks directly"
   gh pr checks "$PR_NUMBER" --repo "$REPO"
-  # Also available: gh pr view "$PR_NUMBER" --repo "$REPO" --json statusCheckRollup
-  # If gh pr checks returns no rows, report NO-RUN (see step 7 — no checks were triggered).
-  # Exit here if the PR checks output is definitive (pass/fail visible).
-  # Otherwise fall through to the branch-runs fallback below for more detail.
+  # If gh pr checks returns no rows, report NO-RUN (step 7). Stop if pass/fail is visible;
+  # otherwise continue to steps 3–6 for detail.
 else
   echo "No open PR for branch $BRANCH — using branch-runs fallback"
 fi
@@ -96,8 +90,6 @@ gh api "repos/$REPO/actions/jobs/$JOB_ID/logs" 2>&1 \
   | grep -B 15 "Process completed with exit code" | head -25
 ```
 
-For Eval Probe Regression Gate failures, immediately inspect the failed probe name from the log and run that probe locally. If the product behavior intentionally changed, patch the probe to assert the durable invariant instead of an obsolete exact literal; otherwise fix the product/skill/docs that regressed. Then amend/commit, push, and re-run PR checks.
-
 7. **Report the result:**
 
 - **PASS**: Report "CI green" with the run URL
@@ -105,7 +97,6 @@ For Eval Probe Regression Gate failures, immediately inspect the failed probe na
 - **NO RUN**: No workflow's `on:` filter matched the push, or `PR_NUMBER` was set but `gh pr checks` returned no rows (the PR exists but no workflows were triggered yet). *(Note: the workflow names below reflect this harness's layout and may differ in other checkouts.)*
   - `ci-harness.yml` — `.agro/**`, `docs/**`, `.devcontainer/**`, `package.json`, `pnpm-lock.yaml`, itself
   - `sandbox-boot-guard.yml` — `.devcontainer/**`, `.agro/cli/**`, `.agro/scripts/**`, `.agro/install/**`
-  - Docs site CI/deploy lives in `mifunedev/agro-web`; this repo has no `docs.yml` Docusaurus workflow.
   - `release.yml` — every push to `main` or `master`; validation precedes automatic release publication
 
   Diagnose with: `git diff --name-only HEAD~1 HEAD` and compare against each workflow's `on:` block.
@@ -120,12 +111,6 @@ This project's CI (`CI: Harness`) runs these steps in order:
 4. Build (`pnpm run build:harness`)
 5. Test (`pnpm test:scripts`)
 
-Sibling jobs: Boot Path Lint (shellcheck + hadolint) and Eval Probe Regression Gate.
+Sibling job: Boot Path Lint (shellcheck + hadolint).
 
-## Local Pre-flight
-
-Before pushing, you can run the same checks locally to catch issues early:
-
-```bash
-pnpm run typecheck && pnpm run build:harness && pnpm test
-```
+Run the checks locally before pushing: `pnpm run typecheck && pnpm run build:harness && pnpm test`.

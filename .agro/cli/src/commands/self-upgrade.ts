@@ -189,7 +189,7 @@ function refuseUnsupported(installation: Installation, bin: string): Error {
       return new Error(`${at} — rebuild from the checkout: npm --prefix .agro/cli run build`);
     default:
       return new Error(
-        `unknown installation (${reason ?? target}) — install with npm install -g ${PACKAGE} or get-agro.sh`,
+        `unknown installation (${reason ?? target}) — install with npm install -g ${PACKAGE} or install.sh`,
       );
   }
 }
@@ -277,6 +277,17 @@ function copyFile(deps: SelfUpgradeDeps, from: string, to: string): void {
   deps.writeFile(to, deps.readFile(from), deps.stat(from).mode & 0o777);
 }
 
+const ABSOLUTE_NODE_SHEBANG = /^#!\/\S*\/node$/;
+
+function withPinnedShebang(current: Buffer, artifact: Buffer): Buffer {
+  const currentEnd = current.indexOf(0x0a);
+  const artifactEnd = artifact.indexOf(0x0a);
+  if (currentEnd < 0 || artifactEnd < 0) return artifact;
+  const firstLine = current.subarray(0, currentEnd);
+  if (!ABSOLUTE_NODE_SHEBANG.test(firstLine.toString("utf8"))) return artifact;
+  return Buffer.concat([firstLine, artifact.subarray(artifactEnd)]);
+}
+
 function removeQuietly(deps: SelfUpgradeDeps, path: string, io: SelfUpgradeIO): void {
   try {
     deps.unlink(path);
@@ -301,7 +312,7 @@ async function upgradeStandalone(
     deps.access(dir, constants.W_OK);
   } catch {
     throw new Error(
-      `${dir} is not writable; re-run as the user who owns ${target}, or reinstall into a writable directory with get-agro.sh`,
+      `${dir} is not writable; re-run as the user who owns ${target}, or reinstall into a writable directory with install.sh`,
     );
   }
 
@@ -319,11 +330,11 @@ async function upgradeStandalone(
   let prevPresent = false;
   let replaced = false;
   try {
-    deps.writeFile(tmp, artifact, 0o755);
-    tmpPresent = true;
     if (artifact.subarray(0, 2).toString("utf8") !== "#!") {
       throw new Error(`invalid artifact from ${url}: no #! shebang`);
     }
+    deps.writeFile(tmp, withPinnedShebang(deps.readFile(target), artifact), 0o755);
+    tmpPresent = true;
     const probe = deps.runNode(tmp, ["--version"]);
     const available = versionOf(probe);
     if (parseSemver(available) === undefined) {

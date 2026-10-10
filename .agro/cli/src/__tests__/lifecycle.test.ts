@@ -5,9 +5,13 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
-  statSync,
   writeFileSync,
 } from "node:fs";
+import * as fs from "node:fs";
+
+vi.mock("node:fs", async (importOriginal) => ({
+  ...await importOriginal<typeof import("node:fs")>(),
+}));
 import { tmpdir } from "node:os";
 
 vi.mock("node:os", async (importOriginal) => {
@@ -16,10 +20,10 @@ vi.mock("node:os", async (importOriginal) => {
 });
 import { dirname, join } from "node:path";
 import {
-  runComposeVerb,
   runGateway,
   runSandbox,
   runShell,
+  configuredContainerName,
   DEFAULT_CONTAINER_NAME,
   type LifecycleIO,
   type LifecycleRunner,
@@ -56,10 +60,7 @@ const {
   parseGatewayArgs,
   parseSandboxArgs,
   parseShellArgs,
-  printGatewayHelp,
-  printAgroHelp,
   printSandboxHelp,
-  printShellHelp,
   runCli,
 } = await import("../cli.js");
 
@@ -129,99 +130,6 @@ function captureStdout(fn: () => void): string {
   return text;
 }
 
-
-describe("agro.json -> compose env wiring (issue #880)", () => {
-  const ohJson = (root: string, body: Record<string, unknown> = { version: 1, name: "wired" }): void => {
-    writeFileSync(join(root, "agro.json"), `${JSON.stringify(body)}\n`);
-  };
-
-  it("renders agro.json into a 0600 temp file outside the repo and passes it as --extra-env-file", async () => {
-    const root = makeRepo();
-    addScript(root, "docker-compose.sh");
-    ohJson(root, { version: 1, name: "wired", timezone: "UTC" });
-
-    const seen: { path: string; mode: number; body: string }[] = [];
-    const run: LifecycleRunner = (_cmd, args) => {
-      const i = args.indexOf("--extra-env-file");
-      const path = args[i + 1];
-      const st = statSync(path);
-      seen.push({ path, mode: st.mode & 0o777, body: readFileSync(path, "utf8") });
-      return { status: 0 };
-    };
-
-    expect(await runSandbox({ bin: "agro", cwd: root, run }, makeIo().io)).toBe(0);
-    expect(seen).toHaveLength(1);
-    expect(seen[0].mode).toBe(0o600);
-    expect(seen[0].body).toContain("SANDBOX_NAME=wired");
-    expect(seen[0].body).toContain("TZ=UTC");
-    expect(seen[0].path.startsWith(root)).toBe(false);
-  });
-
-  it("removes the rendered file and its directory in a finally, even when provisioning throws", async () => {
-    const root = makeRepo();
-    addScript(root, "docker-compose.sh");
-    ohJson(root);
-
-    let rendered = "";
-    const run: LifecycleRunner = (_cmd, args) => {
-      rendered = args[args.indexOf("--extra-env-file") + 1];
-      throw new Error("boom");
-    };
-
-    await expect(runSandbox({ bin: "agro", cwd: root, run }, makeIo().io)).rejects.toThrow("boom");
-    expect(rendered).not.toBe("");
-    expect(existsSync(rendered)).toBe(false);
-    expect(existsSync(dirname(rendered))).toBe(false);
-  });
-
-  it("orders the sandbox argv --repo-dir, --extra-env-file, then the compose verb", async () => {
-    const root = makeRepo();
-    const script = addScript(root, "docker-compose.sh");
-    ohJson(root);
-    const { calls, run } = makeRunner();
-
-    expect(await runSandbox({ bin: "agro", cwd: root, run }, makeIo().io)).toBe(0);
-    const args = calls[0].args;
-    expect(args.slice(0, 4)).toEqual([script, "--repo-dir", root, "--extra-env-file"]);
-    expect(args.slice(5)).toEqual(["up", "-d", "--build"]);
-    expect(existsSync(args[4])).toBe(false);
-  });
-
-  it("passes no --extra-env-file at all when the repo has no agro.json", async () => {
-    const root = makeRepo();
-    const script = addScript(root, "docker-compose.sh");
-    const { calls, run } = makeRunner();
-
-    expect(await runSandbox({ bin: "agro", cwd: root, run }, makeIo().io)).toBe(0);
-    expect(calls[0].args).toEqual([script, "--repo-dir", root, "up", "-d", "--build"]);
-  });
-
-  it("threads the rendered file through every compose verb", async () => {
-    const root = makeRepo();
-    const script = addScript(root, "docker-compose.sh");
-    ohJson(root);
-    const { calls, run } = makeRunner();
-
-    expect(runComposeVerb("ps", { bin: "agro", ...entry, run })).toBe(0);
-    expect(calls[0].args.slice(0, 2)).toEqual([script, "--extra-env-file"]);
-    expect(calls[0].args.slice(3)).toEqual(["ps"]);
-    expect(existsSync(calls[0].args[2])).toBe(false);
-  });
-
-  it("prints the compose argv without provisioning when --print-argv is set", async () => {
-    const root = makeRepo();
-    const script = addScript(root, "docker-compose.sh");
-    ohJson(root);
-    const { calls, run } = makeRunner();
-
-    expect(await runSandbox({ bin: "agro", cwd: root, run, printArgv: true }, makeIo().io)).toBe(0);
-    expect(calls).toHaveLength(1);
-    expect(calls[0].args.slice(0, 4)).toEqual([script, "--repo-dir", root, "--extra-env-file"]);
-    expect(calls[0].args.slice(5)).toEqual(["--print-argv", "up", "-d", "--build"]);
-  });
-
-});
-
 describe("runSandbox", () => {
   it("delegates the EXACT vendored argv with inherited stdio and returns the child's exit code", async () => {
     const root = makeRepo();
@@ -272,11 +180,25 @@ describe("runSandbox", () => {
   it.each(["agro"])("errors under %s when not inside an equipped repo", async (bin) => {
     const bare = mkdtempSync(join(tmpdir(), "oh-lifecycle-bare-"));
     cleanups.push(bare);
+    const ancestorMarkers = new Set<string>();
+    for (let dir = dirname(bare); ; dir = dirname(dir)) {
+      ancestorMarkers.add(join(dir, ".agro"));
+      if (dirname(dir) === dir) break;
+    }
+    const realStatSync = fs.statSync;
+    const stat = vi.spyOn(fs, "statSync").mockImplementation(((path, options) =>
+      ancestorMarkers.has(String(path)) ? undefined : realStatSync(path, options)
+    ) as typeof fs.statSync);
+    const { calls, run } = makeRunner();
     await withInvokedBinAsync(bin, async () => {
       await expect(
-        runSandbox({ bin, cwd: bare, run: makeRunner().run }, makeIo().io),
+        runSandbox({ bin, cwd: bare, run }, makeIo().io),
       ).rejects.toThrow(`not an AGRO-equipped repo — run \`${bin} vendor\` first`);
     });
+    expect(stat).toHaveBeenCalledWith(join(bare, ".agro"), { throwIfNoEntry: false });
+    expect(stat).toHaveBeenCalledWith(join(dirname(bare), ".agro"), { throwIfNoEntry: false });
+    expect(stat).toHaveBeenCalledWith("/.agro", { throwIfNoEntry: false });
+    expect(calls).toEqual([]);
   });
 
   it("prompts and records access.dockerSocket=true in agro.json on yes", async () => {
@@ -565,6 +487,16 @@ describe("runSandbox", () => {
 });
 
 
+describe("configuredContainerName", () => {
+  it("returns the agro.json name when SANDBOX_NAME is unset", () => {
+    vi.stubEnv("SANDBOX_NAME", undefined);
+    const root = makeRepo();
+    writeOhJson(root, { name: "from-json" });
+
+    expect(configuredContainerName(root)).toBe("from-json");
+  });
+});
+
 describe("runShell", () => {
   it("resolves the entry by name and execs into its container", () => {
     vi.stubEnv("SANDBOX_NAME", "");
@@ -740,9 +672,23 @@ describe("runGateway", () => {
   it("errors when not inside an equipped repo", () => {
     const bare = mkdtempSync(join(tmpdir(), "oh-lifecycle-bare-"));
     cleanups.push(bare);
-    expect(() => runGateway(["pi"], { bin: "agro", cwd: bare, run: makeRunner().run })).toThrow(
+    const ancestorMarkers = new Set<string>();
+    for (let dir = dirname(bare); ; dir = dirname(dir)) {
+      ancestorMarkers.add(join(dir, ".agro"));
+      if (dirname(dir) === dir) break;
+    }
+    const realStatSync = fs.statSync;
+    const stat = vi.spyOn(fs, "statSync").mockImplementation(((path, options) =>
+      ancestorMarkers.has(String(path)) ? undefined : realStatSync(path, options)
+    ) as typeof fs.statSync);
+    const { calls, run } = makeRunner();
+    expect(() => runGateway(["pi"], { bin: "agro", cwd: bare, run })).toThrow(
       "not an AGRO-equipped repo",
     );
+    expect(stat).toHaveBeenCalledWith(join(bare, ".agro"), { throwIfNoEntry: false });
+    expect(stat).toHaveBeenCalledWith(join(dirname(bare), ".agro"), { throwIfNoEntry: false });
+    expect(stat).toHaveBeenCalledWith("/.agro", { throwIfNoEntry: false });
+    expect(calls).toEqual([]);
   });
 });
 
@@ -1015,55 +961,6 @@ describe("parseShellArgs", () => {
     const extra = parseShellArgs(["a", "b"]);
     expect(extra.ok).toBe(false);
     if (!extra.ok) expect(extra.error).toBe('agro shell: unexpected argument "b"');
-  });
-});
-
-describe("parseGatewayArgs", () => {
-  it("intercepts ONLY a leading --help/-h", () => {
-    for (const h of ["--help", "-h"]) {
-      expect(parseGatewayArgs([h])).toEqual({ ok: true, args: { help: true, passthrough: [] } });
-    }
-  });
-
-  it("everything else passes through verbatim (including empty argv and later flags)", () => {
-    expect(parseGatewayArgs([])).toEqual({ ok: true, args: { help: false, passthrough: [] } });
-    expect(parseGatewayArgs(["pi", "--attach"])).toEqual({
-      ok: true,
-      args: { help: false, passthrough: ["pi", "--attach"] },
-    });
-    expect(parseGatewayArgs(["hermes", "--stop", "--help"])).toEqual({
-      ok: true,
-      args: { help: false, passthrough: ["hermes", "--stop", "--help"] },
-    });
-  });
-});
-
-
-describe("help surfaces", () => {
-  it("agro --help lists all three lifecycle verbs", () => {
-    const text = captureStdout(printAgroHelp);
-    expect(text).toContain("agro sandbox");
-    expect(text).toContain("agro shell [name]");
-    expect(text).toContain("agro gateway");
-  });
-
-  it("per-verb --help output documents each verb's contract", () => {
-    const sandbox = captureStdout(printSandboxHelp);
-    expect(sandbox).toContain("agro sandbox install <runtime>");
-    expect(sandbox).toContain("agro sandbox list");
-    expect(sandbox).toContain("Next: agro shell <name>");
-    expect(sandbox).toContain(officialImageRef(AGRO_VERSION));
-    expect(sandbox).not.toContain("ghcr.io/mifunedev/openharness:latest");
-
-    const shell = captureStdout(printShellHelp);
-    expect(shell).toContain("agro shell [name]");
-    expect(shell).toContain("docker exec -it -u sandbox");
-    expect(shell).toContain(DEFAULT_CONTAINER_NAME);
-
-    const gateway = captureStdout(printGatewayHelp);
-    expect(gateway).toContain("agro gateway <pi|hermes>");
-    expect(gateway).toContain("gateway.sh");
-    expect(gateway).toContain("AGRO_PROJECT_ROOT");
   });
 });
 

@@ -3,6 +3,8 @@
 set -u
 
 HARNESS="${HARNESS:-${AGRO_PROJECT_ROOT:-/home/sandbox/harness}}"
+# shellcheck source=paths.sh
+. "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/paths.sh"
 TMUX_BIN="${TMUX_BIN:-tmux}"
 SYSTEMCTL_BIN="${SYSTEMCTL_BIN:-systemctl}"
 HERMES_BIN="${HERMES_BIN:-hermes}"
@@ -56,7 +58,8 @@ oh_config_truthy() {
 
 compose_env_value() {
   local key="$1"
-  local env_file="$HARNESS/.devcontainer/.env"
+  local env_file
+  env_file="$(agro_env_file "$HARNESS")"
   [ -f "$env_file" ] || return 0
   grep -E "^${key}=" "$env_file" 2>/dev/null | tail -1 | cut -d= -f2-
 }

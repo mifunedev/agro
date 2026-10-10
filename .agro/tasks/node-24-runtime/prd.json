@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1361-node-24-runtime",
+  "description": "Node 24 runtime. The sandbox image uses `FROM node:22-trixie-slim` (`.devcontainer/Dockerfile:1`). The operator reports recent tools that require Node 24. OpenClaw requires Node 24.16 or later (`https://docs.openclaw.ai/install`). The plan at `.agro/tasks/openclaw-harness-support/prd.md` depends on this task.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Build the sandbox image on Node 24",
+      "description": "As an application agent, I want the sandbox to run Node 24. Tools that require Node 24, such as OpenClaw, then run without a private runtime.",
+      "acceptanceCriteria": [
+        "`.devcontainer/Dockerfile` line 1 reads `FROM node:24-trixie-slim AS base`.",
+        "`.agro/scripts/verify-sandbox-image.sh` sets `EXPECTED_NODE_MAJOR=24`.",
+        "`.agro/scripts/__tests__/sandbox-base-image.test.ts` expects `node:24-trixie-slim`. The test fails against the old Dockerfile and passes against the new Dockerfile.",
+        "`.agro/scripts/__tests__/node-pnpm-parity.test.ts` fixtures use `node:24-bookworm-slim` and `node:24-trixie-slim`.",
+        "`.github/workflows/sandbox-compatibility.yml` passes `node:24-bookworm-slim` and `node:24-trixie-slim` to `node-pnpm-parity.sh`.",
+        "`bash .agro/scripts/node-pnpm-parity.sh` exits 0 and reports pnpm `10.33.0` on both Node 24 bases.",
+        "`bash .agro/scripts/verify-sandbox-image.sh` exits 0 against the rebuilt image."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Advisor re-verified on task branch: (1) executed head -1 Dockerfile -> FROM node:24-trixie-slim AS base; (2) executed grep -> EXPECTED_NODE_MAJOR=24; (3) executed sandbox-base-image.test.ts -> pass; worker showed TDD red against old Dockerfile; (4) executed: parity fixtures use node:24 bases; (5) executed grep sandbox-compatibility.yml:58-59 -> node:24 bases; (6) executed node-pnpm-parity.sh -> v24.21.0 / pnpm 10.33.0 on both, exit 0; (7) executed docker build + verify-sandbox-image.sh -> all checks passed. Repair 48e7581a aligned verify-sandbox-image.test.ts fixtures. Full suite executed inside the rebuilt Node 24 sandbox image (v24.21.0, user sandbox, fresh clone of task branch at 48e7581a): pnpm install exit 0; .agro/cli typecheck exit 0; `pnpm test` exit 0, 89 files, 1928 tests passed.",
+      "dependsOn": [],
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/verify-sandbox-image.sh",
+        ".agro/scripts/__tests__/sandbox-base-image.test.ts",
+        ".agro/scripts/__tests__/node-pnpm-parity.test.ts",
+        ".github/workflows/sandbox-compatibility.yml"
+      ],
+      "commit": "3b7f0a67 48e7581a"
+    },
+    {
+      "id": "US-002",
+      "title": "Align CI and development pins with Node 24",
+      "description": "As a maintainer, I want CI and local development to use the same Node major as the sandbox. A test then passes in CI only when the test passes in the sandbox.",
+      "acceptanceCriteria": [
+        "Each `actions/setup-node` step in `.github/workflows/ci-harness.yml`, `.github/workflows/publish-cli.yml`, `.github/workflows/release.yml`, and `.github/workflows/sandbox-boot-guard.yml` sets `node-version: \"24\"`.",
+        "Each step name that reads `Setup Node 22.x` reads `Setup Node 24.x`.",
+        "The `sandbox-boot-guard.yml` comment at line 109 names Node 24.x.",
+        "`.nvmrc` holds `24`.",
+        "`.agro/cli/package.json` declares `@types/node` `^24.0.0`, and the lockfile matches.",
+        "`git grep -n -E 'node-version: \"?22' -- .github` returns no line.",
+        "`pnpm test` and `pnpm --dir .agro/cli typecheck` exit 0 on Node 24.",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Advisor re-verified on task branch: (1) executed grep -> node-version \"24\" on all 5 setup-node steps; (2) executed: 4 step names read Setup Node 24.x; (3) executed: sandbox-boot-guard.yml:109 comment names Node 24.x; (4) executed cat .nvmrc -> 24; (5) executed: @types/node ^24.0.0, lockfile resolves 24.19.1, engines.node >=20; (6) executed git grep node-version 22 under .github -> no line (exit 1); (7) Full suite executed inside the rebuilt Node 24 sandbox image (v24.21.0, user sandbox, fresh clone of task branch at 48e7581a): pnpm install exit 0; .agro/cli typecheck exit 0; `pnpm test` exit 0, 89 files, 1928 tests passed.; (8) Typecheck passes: executed on Node 22 (worker) and Node 24 (advisor), exit 0.",
+      "dependsOn": [],
+      "files": [
+        ".github/workflows/ci-harness.yml",
+        ".github/workflows/publish-cli.yml",
+        ".github/workflows/release.yml",
+        ".github/workflows/sandbox-boot-guard.yml",
+        ".nvmrc",
+        ".agro/cli/package.json",
+        ".agro/cli/package-lock.json"
+      ],
+      "commit": "b628c20d"
+    },
+    {
+      "id": "US-003",
+      "title": "Offer Node 24 in the host installer",
+      "description": "As an operator on a host, I want `install.sh` to offer Node 24 when Node is missing. A new host then matches the sandbox Node major.",
+      "acceptanceCriteria": [
+        "`.agro/scripts/install.sh` help text and prompts name `Node 24` in place of `Node 22`.",
+        "The nvm path in `install.sh` installs Node 24.",
+        "The minimum host Node for `agro` stays 20. `node_major` checks keep `-ge 20`.",
+        "Root `package.json` and `.agro/cli/package.json` keep `engines.node` at `>=20`. `.agro/cli/build.mjs` keeps `target: \"node20\"`.",
+        "`.agro/scripts/__tests__/install.test.ts` covers the Node 24 prompt text and exits 0."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Advisor re-verified on task branch after cherry-pick: (1) executed `grep -c \"Node 22\" .agro/scripts/install.sh` -> 0, help/banner/prompt name Node 24; (2) executed: install.sh runs `nvm install 24`/`nvm use 24`, nvm tests pass; (3) executed `grep -n -- \"-ge 20\" install.sh` -> lines 132,145; (4) executed grep: package.json engines >=20.0.0, .agro/cli/package.json >=20, build.mjs target node20; (5) executed `pnpm exec vitest run .agro/scripts/__tests__/install.test.ts` -> 19 passed, exit 0; worker showed 4 failures against old install.sh (TDD red).",
+      "dependsOn": [],
+      "files": [
+        ".agro/scripts/install.sh",
+        ".agro/scripts/__tests__/install.test.ts"
+      ],
+      "commit": "e9925bab"
+    },
+    {
+      "id": "US-004",
+      "title": "Keep existing sandboxes working after the upgrade",
+      "description": "As an operator with an existing sandbox, I want my installed harnesses to keep working after the image changes to Node 24. The persistent home volume holds packages that npm built on Node 22.",
+      "acceptanceCriteria": [
+        "`.agro/scripts/sandbox-upgrade-smoke.sh` runs an upgrade from a Node 22 image to the Node 24 image on one home volume.",
+        "After the upgrade, `<binary> --version` exits 0 for each npm harness that the smoke installs before the upgrade: `claude`, `codex`, `pi`, and `opencode`.",
+        "If a harness fails after the upgrade, `agro harness install <id>` repairs the harness. `docs/harnesses/overview.md` states this repair step.",
+        "The smoke records each failed harness by id and exit code."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Advisor re-verified on task branch at fc6e142e: (1) executed `bash .agro/scripts/sandbox-upgrade-smoke.sh` -> exit 0; harnesses installed with ghcr.io/mifunedev/agro:latest node v22.23.3, booted agro-upgrade-smoke image node v24.21.0 on the same volume; (2) executed: HARNESS claude-code/codex/pi/opencode exit=0 after upgrade; (3) executed: docs/harnesses/overview.md states `agro harness install <id>` repairs a harness after a Node major upgrade (repair path reasoned, no harness failed); (4) executed: smoke prints `HARNESS <id> exit=<n>` per harness and fails on any nonzero (failure branch reasoned from code, not triggered). Teardown executed: no agro-upgrade containers or volumes remain. Unit: sandbox-upgrade-smoke.test.ts 11 passed; worker showed 3 red before implementation.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/scripts/sandbox-upgrade-smoke.sh",
+        "docs/harnesses/overview.md"
+      ],
+      "commit": "fc6e142e"
+    },
+    {
+      "id": "US-005",
+      "title": "Update documentation",
+      "description": "As an operator, I want the documentation to name the Node version that the sandbox ships. I then diagnose engine errors without reading the Dockerfile.",
+      "acceptanceCriteria": [
+        "`docs/installation.md` states that the image ships Node.js 24. The prerequisites row names Node 24 as the recommended host version and keeps Node 20 as the minimum.",
+        "`docs/harnesses/t3code.md` names `node:24-trixie-slim` as the base image.",
+        "`docs/connecting.md` line 225 gives a remedy that matches Node 24.",
+        "`AGENTS.md` line 164 keeps \"Node 20 or newer\" for the host.",
+        "`CHANGELOG.md` holds a `Changed` entry under `## [Unreleased]` that links the task issue.",
+        "`.agro/cli/src/__tests__/docs-reference.test.ts` exits 0."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Advisor re-verified on task branch at 1651f8f7: (1) executed diff: docs/installation.md lines 22/40/190 name Node 24 for image and install.sh, minimum stays 20; (2) executed: t3code.md names node:24-trixie-slim; (3) executed: connecting.md:225 remedy is rebuild on Node 24.10 or later; (4) executed `sed -n 164p AGENTS.md` -> Node 20 or newer, unchanged; (5) executed: CHANGELOG.md ### Changed under [Unreleased] links #1361; (6) executed `pnpm exec vitest run .agro/cli/src/__tests__/docs-reference.test.ts` -> 4 passed, exit 0. ste-check exit 0 on the three docs files.",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        "docs/installation.md",
+        "docs/harnesses/t3code.md",
+        "docs/connecting.md",
+        "CHANGELOG.md"
+      ],
+      "commit": "1651f8f7"
+    },
+    {
+      "id": "US-006",
+      "title": "Record manual review evidence",
+      "description": "As a maintainer, I want a command transcript. A reviewer then verifies the image, the tests, and the upgrade path on Node 24 from the transcript.",
+      "acceptanceCriteria": [
+        "The story depends on US-001, US-002, US-003, US-004, and US-005.",
+        "`.agro/tasks/node-24-runtime/evidence/manual-review.md` records each command, its output, and its exit status.",
+        "The transcript shows `node --version` inside the rebuilt sandbox with a `v24.` prefix.",
+        "The transcript shows `verify-sandbox-image.sh`, `node-pnpm-parity.sh`, `pnpm test`, and the upgrade smoke.",
+        "The run builds images and volumes only with operator approval, and the transcript ends with the removal of each created image, container, and volume."
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Advisor-assembled from executed runs: (1) executed: depends on US-001..US-005, all passes=true; (2) executed: evidence/manual-review.md records each command, output, exit status; (3) executed: node --version v24.21.0 in the rebuilt image; (4) executed: verify-sandbox-image.sh, node-pnpm-parity.sh, pnpm test (1928 passed), upgrade smoke (exit 0) recorded; (5) executed: operator authorized Docker builds and exe.dev; exe.dev created no VM (account has no plan); fresh-install check ran in a clean debian:trixie-slim container instead and installed Node v24.21.0 via nvm; cleanup shows 0 test containers/volumes and 0 exedev resources.",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004",
+        "US-005"
+      ],
+      "files": [
+        ".agro/tasks/node-24-runtime/evidence/manual-review.md"
+      ],
+      "commit": "evidence"
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 const ROOT = join(import.meta.dirname, "../../..");
 const SCRIPT = join(ROOT, ".agro", "scripts", "sandbox-upgrade-smoke.sh");
 const WORKFLOW = join(ROOT, ".github", "workflows", "sandbox-boot-guard.yml");
+const OVERVIEW = join(ROOT, "docs", "harnesses", "overview.md");
 const script = readFileSync(SCRIPT, "utf8");
 
 describe("sandbox upgrade smoke script", () => {
@@ -49,7 +50,7 @@ describe("sandbox upgrade smoke script", () => {
   it("states its scope: the seed image itself is never booted, and the .oh layout is retired", () => {
     expect(script).toContain("This script never boots that");
     expect(script).toContain("The legacy `.oh` layout is retired");
-    expect(script).toContain("docs/agro-compatibility.md");
+    expect(script).toContain("https://github.com/mifunedev/agro/issues/1061");
     expect(script).toContain('del(.scripts["pnpm:devPreinstall"])');
   });
 
@@ -68,6 +69,35 @@ describe("sandbox upgrade smoke script", () => {
     expect(script).toContain('a retired $PROJECT_ROOT/.oh was created by the upgrade');
     expect(script).toContain('grep -q "not seeding"');
     expect(script).toContain('grep -q "seeded control plane into"');
+  });
+
+  it("installs each npm harness into the volume with the seed image, using the catalog argv", () => {
+    expect(script).toContain('"claude-code:claude:@anthropic-ai/claude-code"');
+    expect(script).toContain('"codex:codex:@openai/codex"');
+    expect(script).toContain('"pi:pi:--ignore-scripts @earendil-works/pi-coding-agent"');
+    expect(script).toContain('"opencode:opencode:opencode-ai"');
+    expect(script).toContain("npm --prefix /home/sandbox/.local install -g");
+    expect(script).toMatch(/docker run --rm[^\n]*-u sandbox[^\n]*-v "\$vol:\/home\/sandbox" "\$SEED_IMAGE"/);
+    const installCall = script.indexOf('install_npm_harnesses "$VOLUME"');
+    const bootCall = script.indexOf('compose up -d --no-build "$SERVICE"');
+    expect(installCall).toBeGreaterThan(-1);
+    expect(installCall).toBeLessThan(bootCall);
+  });
+
+  it("runs each harness --version as the sandbox user after the upgrade and records failures by id and exit code", () => {
+    const verifyCall = script.indexOf('docker exec -u sandbox "$new_cid" "$binary" --version');
+    const bootCall = script.indexOf('compose up -d --no-build "$SERVICE"');
+    expect(verifyCall).toBeGreaterThan(bootCall);
+    expect(verifyCall).toBeLessThan(script.indexOf('RESULT="PASS"'));
+    expect(script).toContain('log "HARNESS $id exit=$code');
+    expect(script).toMatch(/fail "npm harnesses failed after the upgrade:[^"]*\$\{failed_harnesses/);
+  });
+
+  it("documents the harness repair step after a Node major upgrade of the image", () => {
+    const overview = readFileSync(OVERVIEW, "utf8");
+    const updating = overview.slice(overview.indexOf("## Updating a harness"), overview.indexOf("## Removing a harness"));
+    expect(updating).toContain("Node major");
+    expect(updating).toContain("agro harness install <id>");
   });
 
   it("runs in the sandbox boot guard workflow with its log uploaded", () => {

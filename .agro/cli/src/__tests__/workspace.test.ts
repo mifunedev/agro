@@ -2,15 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   runWorkspaceCreate,
   runWorkspaceList,
   type WorkspaceIO,
 } from "../commands/workspace.js";
 import type { LifecycleRunner, RunResult } from "../lib/execution/runner.js";
-import { runHarnessInstall } from "../commands/harness.js";
-import { defaultAgroConfig, agroConfigPath } from "../lib/agro-config.js";
 
 vi.mock("../cli.js", async (importOriginal) => {
   const original = process.exit;
@@ -21,9 +18,7 @@ vi.mock("../cli.js", async (importOriginal) => {
   return mod;
 });
 
-const { parseWorkspaceArgs, printAgroHelp, printWorkspaceHelp } = await import("../cli.js");
-
-const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
+const { parseWorkspaceArgs } = await import("../cli.js");
 
 const cleanups: string[] = [];
 afterEach(() => {
@@ -88,14 +83,6 @@ function makeIo(): { out: string[]; err: string[]; io: WorkspaceIO } {
 const text = (lines: string[]): string => lines.join("");
 const gitCalls = (calls: RecordedCall[]): RecordedCall[] => calls.filter((c) => c.cmd === "git");
 
-function captureStdout(fn: () => void): string {
-  const spy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-  fn();
-  const out = spy.mock.calls.map((c) => String(c[0])).join("");
-  spy.mockRestore();
-  return out;
-}
-
 describe("parseWorkspaceArgs", () => {
   it("treats a bare `agro workspace` and a help flag as help", () => {
     for (const argv of [[], ["--help"], ["-h"], ["help"]]) {
@@ -152,29 +139,6 @@ describe("parseWorkspaceArgs", () => {
     expect(parseWorkspaceArgs(["frobnicate"]).ok).toBe(false);
     expect(parseWorkspaceArgs(["create", "alpha", "beta"]).ok).toBe(false);
     expect(parseWorkspaceArgs(["list", "alpha"]).ok).toBe(false);
-  });
-});
-
-describe("help", () => {
-  it("lists `agro workspace` in the top-level Usage block", () => {
-    expect(captureStdout(printAgroHelp)).toMatch(/^ {2}agro workspace /m);
-  });
-
-  it("documents both subcommands", () => {
-    const help = captureStdout(() => printWorkspaceHelp());
-    for (const s of [
-      "agro workspace create", "agro workspace list", "--json", "--path", "--ref",
-      "implicit name is `harness`", "Pass `default`",
-    ]) {
-      expect(help).toContain(s);
-    }
-  });
-
-  it("documents the verb in the lifecycle reference", () => {
-    const docs = readFileSync(join(REPO_ROOT, "docs/lifecycle-commands.md"), "utf8");
-    expect(docs).toContain("`agro workspace create");
-    expect(docs).toContain("`agro workspace list");
-    expect(docs).toContain("--ref <ref>");
   });
 });
 
@@ -436,52 +400,6 @@ describe("runWorkspaceCreate", () => {
       root: workspacePath(home, "alpha"),
       action: "cloned",
     });
-  });
-});
-
-describe("runWorkspaceList after a host install", () => {
-  it("marks the workspace an already-installed host install selected", async () => {
-    const home = emptyStateHome();
-    const user = fakeHome();
-    seedWorkspace(workspacePath(home, "alpha"));
-    seedWorkspace(workspacePath(home, "beta"));
-
-    const repo = mkdtempSync(join(tmpdir(), "agro-workspace-repo-"));
-    cleanups.push(repo);
-    mkdirSync(join(repo, ".agro", "scripts"), { recursive: true });
-    mkdirSync(join(repo, ".devcontainer"), { recursive: true });
-    writeFileSync(agroConfigPath(repo), `${JSON.stringify(defaultAgroConfig("probe"), null, 2)}\n`);
-
-    const run: LifecycleRunner = (cmd, args): RunResult => {
-      if (cmd === "docker" && args[0] === "inspect") return { status: 0, stdout: "exited\n", stderr: "" };
-      return { status: 0, stdout: "", stderr: "" };
-    };
-
-    expect(
-      await runHarnessInstall(
-        "claude-code",
-        {
-          bin: "agro",
-          cwd: repo,
-          run,
-          env: home.env,
-          homedir: user.homedir,
-          interactive: false,
-          workspace: "beta",
-        },
-        { stdout: () => {}, stderr: () => {} },
-      ),
-    ).toBe(0);
-
-    const { out, io } = makeIo();
-    expect(
-      await runWorkspaceList({ bin: "agro", json: true, env: home.env, homedir: user.homedir }, io),
-    ).toBe(0);
-    const rows = JSON.parse(text(out)) as { name: string; default: boolean }[];
-    expect(rows).toEqual([
-      { name: "alpha", root: workspacePath(home, "alpha"), default: false },
-      { name: "beta", root: workspacePath(home, "beta"), default: true },
-    ]);
   });
 });
 

@@ -3,8 +3,6 @@
     "cli/**",
     "scripts/**",
     "install/**",
-    "evals/**",
-    "knowledge/**",
     "skills/**",
     "hooks/**",
     "skills.lock",

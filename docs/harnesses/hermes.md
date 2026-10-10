@@ -4,293 +4,231 @@ title: "Hermes"
 
 # Hermes
 
-Hermes is [Nous Research](https://nousresearch.com)'s Python-based agent CLI
-with a self-improving learning loop — persistent memory, auto-generated
-skills from experience, scheduled task automation, sub-agent delegation,
-container sandboxing across multiple backends, and bridges to chat
-platforms (Telegram, Discord, Slack, WhatsApp, Signal, Email).
-
-Install Hermes with `agro harness install hermes`. It then sits alongside `claude`, `codex`,
-`pi`, and `opencode` as a sandbox CLI primitive. See the
-upstream documentation below for canonical facts about Hermes.
-
-## Purpose
-
-- Multi-platform agent runtime with persistent memory and an
-  auto-skill-generation loop (skills written from real interactions
-  rather than handed in up-front).
-- Container-sandboxed task execution across multiple backends (local,
-  Docker, SSH, Singularity, Modal).
-- Messaging gateway for bridging the same in-sandbox agent into
-  Telegram, Discord, Slack, WhatsApp, Signal, Email, and other
-  surfaces — though AGRO recommends running Hermes in CLI mode
-  unless you have a specific reason to enable a bridge.
-- MIT-licensed. Run `hermes --version` to identify the installed upstream revision.
+Hermes is the agent runtime from [Nous Research](https://nousresearch.com).
+Hermes provides persistent memory, skills, scheduled tasks, and messaging gateways.
+AGRO installs Hermes alongside the other coding harnesses.
 
 ## Install
 
-`agro harness install <id>` is the only door. It installs Hermes into the
-already-running sandbox without a rebuild:
+Run the installation command inside the sandbox:
 
 ```bash
 agro harness install hermes
 ```
 
-Nothing installs Hermes at boot, and no configuration key selects it. See
-[Harnesses Overview](./overview.md#installing-a-harness) for what the verb does
-and what happens when the sandbox is not running.
+Nothing installs Hermes at boot.
+See [Harnesses Overview](./overview.md#installing-a-harness) for host installation options.
+On the host, select an existing workspace with `--workspace <name>` or `--path <absolute-path>`.
+Without either option, AGRO uses the recorded harness root or the default harness workspace.
 
-The install lands in the persistent home volume, so later boots find it on PATH
-immediately:
-
-```bash
-hermes --version
-```
-
-### What the door runs
-
-AGRO runs the official installer as the `sandbox` user with setup and
-browser installation disabled, directing it into the home mount:
+The installer uses the resolved workspace as its target root.
+Local and host targets use the selected absolute path.
+Docker targets use `/home/sandbox/harness`, not the host checkout path.
+AGRO selects `<target-root>/.hermes` as `HERMES_HOME`.
+Before reporting success, AGRO runs the supported configuration command:
 
 ```bash
-export HERMES_HOME="${HERMES_HOME:-/home/sandbox/harness/.hermes}"
-curl -fsSL https://hermes-agent.nousresearch.com/install.sh \
-  | HERMES_INSTALL_DIR="$HOME/.local/lib/hermes-agent" bash -s -- --skip-setup --skip-browser
+HERMES_HOME="<target-root>/.hermes" hermes config set terminal.cwd "<target-root>"
 ```
 
-Review-first equivalent for manual inspection:
+Replace `<target-root>` with the path that installation prints.
+A configuration error returns a nonzero status and prevents an installation-success message.
+If AGRO installed Hermes, `agro harness install hermes` runs the install command again and installs the latest version. The command also repairs missing or stale cwd and provider links and configures the Hermes workspace again.
+The supported configuration command changes `terminal.cwd`; it preserves unrelated settings.
+Installation does not restart an active gateway.
 
-```bash
-curl -fsSL -o hermes-install.sh https://hermes-agent.nousresearch.com/install.sh
-less hermes-install.sh
-```
+### Installer details
 
-If you already use [`vet`](https://github.com/vet-run/vet), `vet https://hermes-agent.nousresearch.com/install.sh --skip-setup --skip-browser` gives the installer a fetch, review, and approve gate. `vet` is optional and is not required by AGRO.
+AGRO runs the official installer with setup and browser installation disabled.
+The sandbox user owns the installation in the persistent home volume.
+The package resides at `~/.local/lib/hermes-agent`; the launcher resides at `~/.local/bin/hermes`.
+The Hermes package manager owns its Python environment.
+AGRO installs the `slack` and `teams` extras through the package manager.
 
-That keeps `agro sandbox install docker` non-interactive. User setup remains explicit
-inside the running sandbox.
-
-## Authentication
-
-Inside the sandbox:
-
-```bash
-hermes setup            # interactive setup wizard
-hermes setup --portal   # Nous Portal OAuth integration
-hermes doctor           # health check
-```
-
-The image sets `HERMES_HOME=/home/sandbox/harness/.hermes` for config, memory,
-runtime skills, and sessions. The managed installer sets that home before running
-upstream code. The Hermes package manager (pm) owns the Hermes Python environment.
-AGRO adds the `slack` and `teams` extras with `hermes pm install --extra slack --extra teams`.
-Installation reconciles `.hermes/skills/agro` with `.agro/skills`
-immediately, without a restart.
+Installation and boot reconcile this canonical skill link:
 
 ```text
 .hermes/skills/agro -> ../../.agro/skills
 ```
- Repeated installation repairs missing integration
-without reinstalling an existing executable. Boot uses the same provider linker.
 
-The `agro` child link preserves Hermes-native skills beside it. A foreign
-symlink, occupied file or directory, linked runtime parent, or unset, relative, or conflicting
-`HERMES_HOME` stops managed installation without replacing that path. Resolve the
-conflict explicitly; do not merge populated homes automatically. Standalone Hermes
-launches and `HERMES_GATEWAY_HOME` retain their explicit override behavior.
+## Select the runtime home
 
-Hermes can warn that linked shared content resolves outside its trusted skills
-directory. The tested upstream loader still lists and reads that content. The link
-is not a trust bypass or a security boundary. Duplicate skill names follow upstream
-resolution rules; use a qualified path when Hermes reports ambiguity.
+Bare `hermes` does not bind an AGRO workspace.
+The upstream launcher uses its inherited `HERMES_HOME` or the upstream default home.
+Changing the shell cwd does not select a runtime home or configure fresh messaging terminals.
+Use the explicit launch command that installation prints.
+For the Docker workspace, run:
 
-Auth lives directly inside `HERMES_HOME` (`~/harness/.hermes/auth.json`).
-Keep `auth.json` on the same filesystem as its temporary files; do not symlink auth to another volume.
-The current design uses no separate auth symlink or auth volume. An earlier design symlinked
-`auth.json` into a home-scoped Docker volume of its own, but that
-volume sits on a different filesystem from the bind-mounted checkout and
-caused Hermes' atomic-replace writes to fail with `EXDEV`. Keeping auth
-on the same bind-mount device fixes this; the entrypoint heals any
-leftover symlink on startup by removing it and copying credentials to
-the real path. The sandbox banner mirrors the Claude Code pattern: it
-reports Hermes as authenticated only when `~/harness/.hermes/auth.json`
-exists and is non-empty; generated config files alone do not count as
-authentication.
+```bash
+HERMES_HOME=/home/sandbox/harness/.hermes hermes
+```
+
+For a local or host workspace, use its actual path:
+
+```bash
+HERMES_HOME="<workspace>/.hermes" hermes
+```
+
+Run long-lived interactive sessions in a Herdr pane.
+Install Herdr with `agro tool install herdr`, then run `herdr`.
+
+### Separate or conflicting homes
+
+If inherited `HERMES_HOME` selects another home, installation refuses before modifying workspace state.
+If `HERMES_HOME` is unset, AGRO checks the target user's default `~/.hermes` before installation or gateway configuration.
+A non-empty `auth.json`, `.env`, or `config.yaml` identifies a configured default home.
+AGRO refuses when that default home differs from the workspace home and the operator has not explicitly selected a home.
+Equivalent absolute paths select the same home.
+The check reads no credential values.
+
+Unset `HERMES_HOME` only when the default home contains no configured state.
+To select the workspace identity explicitly, run inside the Docker sandbox:
+
+```bash
+HERMES_HOME=/home/sandbox/harness/.hermes agro harness install hermes
+HERMES_HOME=/home/sandbox/harness/.hermes agro gateway hermes
+```
+
+For a local or host workspace, replace `/home/sandbox/harness` with the selected target root.
+`HERMES_GATEWAY_HOME` explicitly selects a gateway identity and overrides inherited `HERMES_HOME`.
+The diagnostic names the conflicting home and the workspace home.
+
+An existing `~/.hermes` can hold separate authentication, messaging configuration, memory, skills, and sessions.
+AGRO does not copy credentials, merge homes, delete the other home, or change a running gateway's identity.
+Choose the intended identity before setup or launch.
+To retain a separate gateway identity, select its home through `HERMES_GATEWAY_HOME`.
+To use the workspace identity, run setup with the workspace home selected.
+Do not symlink `auth.json` across filesystems; its temporary files must share its filesystem.
+
+## Authentication
+
+Select the same runtime home for setup, configuration, and interactive launch.
+Inside the Docker sandbox, run:
+
+```bash
+export HERMES_HOME=/home/sandbox/harness/.hermes
+hermes setup
+hermes doctor
+```
+
+For Nous Portal OAuth, use `hermes setup --portal`.
+On the host, replace the exported path with the workspace home that installation prints.
+Authentication resides in `HERMES_HOME/auth.json`; configuration alone does not establish authentication.
+Keep API keys and messaging tokens in the selected home's `.env`.
+Gateway startup preserves `.env` bytes and does not copy credential aliases.
+If a legacy Teams key lacks its canonical key, startup refuses before configuration or tmux launch.
+The diagnostic lists key names, not values.
+Supply `TEAMS_CLIENT_ID`, `TEAMS_CLIENT_SECRET`, and `TEAMS_TENANT_ID` through the selected home's `.env` or the environment.
+These canonical keys replace `CLIENT_ID`, `CLIENT_SECRET`, and `TENANT_ID`, respectively.
+Use Hermes gateway setup to configure Teams for the selected home.
+Canonical keys already supplied through `.env` or the environment take precedence over legacy keys.
 
 ## State persistence
 
-In an image-only sandbox, `~/harness/.hermes/` resides in the home volume.
-With a checkout bind, the same path resides in the checkout. State survives restart
-and container recreation only while its backing storage remains. Git ignores runtime
-contents; never commit credentials.
+In an image-only sandbox, `~/harness/.hermes/` resides in the persistent home volume.
+With a checkout bind, the runtime directory resides in the checkout.
+State survives container recreation only while its backing storage remains.
+Git ignores runtime contents; never commit credentials or generated machine-specific cwd values.
 
-`agro destroy` removes the home volume, including image-only Hermes state. The command
-does not delete a host checkout's `.hermes/` directory. Teardown requires explicit
-confirmation.
+`agro destroy` removes the home volume, including image-only Hermes state.
+The command does not remove a host checkout's `.hermes/` directory.
 
-`agro harness install hermes` installs the binary into the home volume, at
-`~/.local/lib/hermes-agent` with a `~/.local/bin/hermes` launcher. Nothing about
-it lives in the image, and nothing reinstalls it at boot. `agro destroy` removes
-the home volume and the binary with it. Only checkout-backed state remains outside
-that volume.
+## Model and gateway
 
-### Existing images
-
-Updating the CLI does not change an existing container's image environment. Recreate
-it from the corrected image while retaining its storage. A restart alone cannot add
-an image-level `HERMES_HOME`. Managed installation refuses an unset launch home
-rather than reporting success that the next ordinary launch cannot reproduce.
-Before changing homes, stop Hermes and back up existing
-state. If both `~/.hermes` and `~/harness/.hermes` contain data, choose the intended
-home explicitly. This correction does not migrate credentials or sessions.
-
-## Common usage
-
-### Interactive
+Inside the sandbox, select the workspace home before configuring the provider or gateway:
 
 ```bash
-hermes
+export HERMES_HOME=/home/sandbox/harness/.hermes
+hermes model
+hermes gateway setup
+agro gateway hermes
+agro gateway status
 ```
 
-Run long-lived interactive sessions in Herdr. Install Herdr with `agro tool install herdr`,
-run `herdr`, and start `hermes` in a pane. Named tmux sessions remain the convention
-for headless gateways and dashboards.
+Hermes and Pi use separate Slack apps, configuration, and named tmux sessions.
+Hermes runs `hermes gateway run` in `client-slack-hermes`.
+Pi runs its bridge in `client-slack-pi`.
+See [Slack](../integrations/slack.md) for Pi configuration.
 
-### Model and gateway
+Gateway startup selects the resolved workspace home and configures `terminal.cwd` through the same helper as installation.
+A configuration error stops startup before tmux starts the session.
+Gateway startup exports the selected home and cwd to the supervised process.
+
+### Explicit gateway overrides
+
+`HERMES_GATEWAY_HOME` selects a different runtime home for the gateway only.
+This explicit selection takes precedence over inherited `HERMES_HOME`.
+`HERMES_GATEWAY_CWD` selects the gateway process cwd and the persisted terminal cwd.
+Both overrides must use absolute paths; the cwd directory must exist.
+The selected gateway home receives the cwd setting; AGRO does not migrate state into it.
 
 ```bash
-hermes model            # pick LLM provider
-hermes gateway setup    # configure the messaging gateway (Slack app, trust) — optional
+HERMES_GATEWAY_HOME="<existing-home>" HERMES_GATEWAY_CWD="<workspace>" agro gateway hermes
 ```
 
-The **same** harness lifecycle script, `.agro/scripts/gateway.sh`, manages both
-Hermes' Slack/messaging gateway and Pi's bridge in separate tmux sessions. Pi and Hermes each hold their
-**own** Slack app and config, so the two never compete for one socket: Pi's `client-slack-pi`
-runs the pi-messenger-bridge, while Hermes' `client-slack-hermes` runs Hermes' native
-`hermes gateway run`. `gateway.sh` owns only the session *lifecycle*; configuration is
-separate (`hermes gateway setup` for Hermes, the in-session `/msg-bridge` for Pi). See
-[Slack](../integrations/slack.md) for the Pi side.
+### Run and verify (read-only)
 
-#### Run and verify (read-only)
-
-Run the Hermes gateway **from inside the sandbox** — both `gateway hermes` and
-`agro gateway hermes` require `hermes` on `PATH`, so they only work in the container
-(`gateway.sh` errors otherwise). The launcher pins `HERMES_HOME` to
-`~/harness/.hermes`, persists Hermes `terminal.cwd` to `~/harness` (override with
-`HERMES_GATEWAY_HOME` / `HERMES_GATEWAY_CWD`), and self-installs Teams webhook deps
-when Teams credentials exist:
+An existing gateway keeps its loaded configuration and session state.
+Installation does not restart the existing gateway.
+After choosing the intended home, the operator can restart the gateway explicitly:
 
 ```bash
-gateway hermes            # start the client-slack-hermes session (wraps `hermes gateway run`)
-gateway status            # both gateways + state, e.g.
-                          #   · client-slack-pi        stopped   (gateway pi)
-                          #   · client-slack-hermes    stopped   (gateway hermes)
+agro gateway hermes --restart
+agro gateway status
 ```
 
-To **watch** a running gateway without any risk of stopping it, attach **read-only** with
-`-r`, then detach with `Ctrl-b d` — never `Ctrl-C` or `exit` (those kill the process):
+Use a new messaging session to verify the first terminal `pwd`.
+An old session can retain a session-level cwd from a previous `cd`.
+The first `pwd` in the new session must return the selected workspace or explicit gateway cwd.
+
+Attach read-only to inspect the gateway:
 
 ```bash
-tmux attach -r -t client-slack-hermes    # read-only view; detach: Ctrl-b d
-tail -f /tmp/client-slack-hermes.log     # or just tail the log (no attach needed)
+tmux attach -r -t client-slack-hermes
+tail -f /tmp/client-slack-hermes.log
 ```
+
+Detach with `Ctrl-b d`.
+Do not send `Ctrl-C` or `exit`; those commands stop the gateway process.
 
 ## Web dashboard
 
-Hermes ships a local web UI (`hermes dashboard`) that provides config and
-`.env` editing, session browsing, cron job management, and an embedded TUI.
-AGRO **disables the dashboard by default**. Enable the dashboard explicitly per sandbox.
-
-### Enabling
-
-Set the fields in the tracked `agro.json`:
+AGRO disables the Hermes dashboard by default.
+The dashboard requires the installed `hermes` binary.
+To enable the dashboard, run:
 
 ```bash
 agro config set hermesDashboard.enabled true
-agro config set hermesDashboard.port 9119   # optional; 9119 is the default
-```
-
-Then restart:
-
-```bash
+agro config set hermesDashboard.port 9119
 agro restart <name>
 ```
 
-The dashboard needs the `hermes` binary; without it there is nothing to serve and
-the entrypoint skips the launch.
-
-### What auto-launches
-
-When `hermesDashboard.enabled` is true and the `hermes` executable exists, the entrypoint
-starts the dashboard in a named tmux session:
-
-- **tmux session**: `app-hermes-dashboard`
-- **Container bind**: `127.0.0.1:<port>` — container loopback only
-- **Host publish**: none. The dashboard is no longer published to the host.
-- **URL** (from inside the sandbox): `http://127.0.0.1:9119`
-
-### Inspect and restart
+The entrypoint starts `app-hermes-dashboard` on container loopback at `127.0.0.1:9119`.
+AGRO publishes no host port for the dashboard.
+Inspect the named tmux session or its log:
 
 ```bash
-# Attach to live output
 tmux attach -t app-hermes-dashboard
-
-# Tail the log
 tail -f /tmp/app-hermes-dashboard.log
-
-# Restart (kill session, then relaunch manually or rebuild sandbox)
-tmux kill-session -t app-hermes-dashboard
-tmux new-session -d -s app-hermes-dashboard \
-  "hermes dashboard --port 9119 --host 127.0.0.1 --no-open 2>&1 | tee /tmp/app-hermes-dashboard.log"
 ```
 
-### Security
-
-The dashboard reads and writes `.env` secrets and `config.yaml`. The listener binds
-to **container loopback** only. AGRO publishes no host port. Use an explicit
-tunnel for remote access; a host browser cannot connect directly.
-
-The default loopback mode requires no additional authentication. Treat the dashboard
-as sensitive because processes inside the container can reach it.
-
-Do **not** change the bind to `0.0.0.0`. Network clients could then access dashboard secrets.
-
-### Remote access
-
-To reach the dashboard from another machine, use `/cloudflared 9119` to
-start a Cloudflared tunnel for the loopback bind, or reach it over the tailnet
-with `agro tool install tailscale`. The tunnel handles TLS; the dashboard itself
-stays on loopback.
-
-For sensitive dashboards, add Cloudflare Access or another authentication
-gate before sharing the URL. If you intentionally change Hermes to a
-non-loopback bind with `--host 0.0.0.0`, the upstream fail-closed auth gate
-requires credentials. Set at minimum:
-
-```env
-HERMES_DASHBOARD_BASIC_AUTH_USERNAME=admin
-HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=change-me   # plain-text, or use _HASH
-HERMES_DASHBOARD_SECRET=a-random-32-char-string   # session signing key
-```
-
-OAuth is also supported via `HERMES_DASHBOARD_OAUTH_CLIENT_ID` and related
-vars — see upstream Hermes documentation for the full list.
-
+The dashboard reads and writes configuration and secrets.
+Treat the dashboard as sensitive; container processes can reach loopback.
+Use a Cloudflared tunnel or the tailnet for remote access.
+Do not expose an unauthenticated dashboard on `0.0.0.0`.
+Upstream requires credentials for a non-loopback bind.
+See the upstream documentation for basic authentication and OAuth settings.
 
 ## Banner status
 
-The sandbox onboarding banner reports Hermes as:
-
-- `❌ not installed` — run `agro harness install hermes` — when the binary is absent from PATH.
-- `✅ installed — run: hermes setup` — when the binary is on PATH but
-  `~/harness/.hermes/auth.json` is absent or empty.
-- `✅ authenticated` — when `~/harness/.hermes/auth.json` exists and is
-  non-empty.
-
-Set `AGRO_BANNER_STATUS_STYLE=legacy` to force the old `[✗]` / `[✓]` markers when emoji rendering is unavailable.
+The sandbox banner reports installation from the binary on `PATH`.
+The banner reports authentication only when `~/harness/.hermes/auth.json` exists and is non-empty.
+A generated configuration file does not count as authentication.
+Set `AGRO_BANNER_STATUS_STYLE=legacy` to use the old text markers instead of emoji.
 
 ## Upstream documentation
 
 - [Hermes landing page](https://hermes-agent.nousresearch.com/)
+- [Hermes configuration](https://hermes-agent.nousresearch.com/docs/user-guide/configuration)
 - [Hermes documentation](https://hermes-agent.nousresearch.com/docs/)
 - [`NousResearch/hermes-agent` on GitHub](https://github.com/NousResearch/hermes-agent)

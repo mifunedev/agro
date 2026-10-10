@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
-#   hermes  client-slack-hermes  `hermes gateway run` — Hermes' native messaging
+#   hermes    client-slack-hermes  `hermes gateway run` — Hermes' native messaging
+#   openclaw  client-openclaw      `openclaw gateway run --bind loopback` — OpenClaw's gateway
 set -u
 
 HARNESS="${HARNESS:-${AGRO_PROJECT_ROOT:-/home/sandbox/harness}}"
-SLACK_ENV="$HARNESS/.devcontainer/.env"
+# shellcheck source=paths.sh
+. "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/paths.sh"
+# shellcheck source=hermes-workspace.sh
+. "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/hermes-workspace.sh"
+# shellcheck source=openclaw-workspace.sh
+. "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/openclaw-workspace.sh"
+SLACK_ENV="$(agro_env_file "$HARNESS")"
 FORK_PIN="github:ryaneggz/pi-messenger-bridge#c8b96e9d0fb69611c4e67ae298d1d10d83792a26"
 
 usage() {
   echo "Usage:"
-  echo "  gateway <pi|hermes> [--attach]      start the client session (--attach after)"
-  echo "  gateway <pi|hermes> --restart       restart the session"
-  echo "  gateway <pi|hermes> --stop          stop the session"
-  echo "  gateway msg-bridge [--no-attach]    open the Pi /msg-bridge config UI"
-  echo "  gateway status                      show both sessions"
+  echo "  gateway <pi|hermes|openclaw> [--attach]  start the client session (--attach after)"
+  echo "  gateway <pi|hermes|openclaw> --restart   restart the session"
+  echo "  gateway <pi|hermes|openclaw> --stop      stop the session"
+  echo "  gateway msg-bridge [--no-attach]         open the Pi /msg-bridge config UI"
+  echo "  gateway status                           show all sessions"
 }
 
 msg_bridge_usage() {
@@ -21,6 +28,13 @@ msg_bridge_usage() {
   echo
   echo "Starts client-slack-pi if needed, sends /msg-bridge to the Pi TUI,"
   echo "then attaches automatically when stdin/stdout are interactive."
+}
+
+session_name() {
+  case "$1" in
+    openclaw) printf 'client-openclaw' ;;
+    *)        printf 'client-slack-%s' "$1" ;;
+  esac
 }
 
 session_live() { tmux ls -F '#{session_name}' 2>/dev/null | grep -Fxq "$1"; }
@@ -62,8 +76,8 @@ backend_health() {
 
 show_status() {
   local b s health
-  for b in pi hermes; do
-    s="client-slack-$b"
+  for b in pi hermes openclaw; do
+    s=$(session_name "$b")
     if session_live "$s"; then
       if [ -f "$STATE_DIR/$b.state" ]; then
         health=$(backend_health "$b")
@@ -172,122 +186,51 @@ start_pi() {
   fi
 }
 
-hermes_teams_configured() {
-  local hermes_home="$1"
-  local env_file="$hermes_home/.env"
-  if [ -n "${TEAMS_CLIENT_ID:-}" ] || [ -n "${CLIENT_ID:-}" ]; then
-    return 0
+hermes_env_key_supplied() {
+  local key="$1" env_file="$2"
+  [ -n "${!key:-}" ] || { [ -f "$env_file" ] && grep -Eq "^[[:space:]]*(export[[:space:]]+)?${key}[[:space:]]*=[[:space:]]*(\"[^\"]+\"|'[^']+'|[^[:space:]\"'#])" "$env_file"; }
+}
+
+check_hermes_teams_keys() {
+  local env_file="$1/.env" legacy canonical status=0
+  for legacy in CLIENT_ID CLIENT_SECRET TENANT_ID; do
+    canonical="TEAMS_$legacy"
+    if hermes_env_key_supplied "$legacy" "$env_file" && ! hermes_env_key_supplied "$canonical" "$env_file"; then
+      echo "[gateway] legacy Teams key $legacy requires $canonical." >&2
+      status=1
+    fi
+  done
+  if [ "$status" -ne 0 ]; then
+    echo "[gateway] configure the required TEAMS_* keys in the selected home's .env or environment, then retry." >&2
+    echo "[gateway] gateway startup does not copy credential values or rewrite .env." >&2
   fi
-  [ -f "$env_file" ] && grep -Eq '^[[:space:]]*(export[[:space:]]+)?(TEAMS_CLIENT_ID|CLIENT_ID)=' "$env_file"
-}
-
-sync_hermes_teams_env_aliases() {
-  local hermes_home="$1"
-  local env_file="$hermes_home/.env"
-  [ -f "$env_file" ] || return 0
-  command -v python3 >/dev/null 2>&1 || return 0
-  python3 - "$env_file" <<'PY'
-from pathlib import Path
-import sys
-
-path = Path(sys.argv[1])
-try:
-    lines = path.read_text(encoding="utf-8").splitlines()
-except FileNotFoundError:
-    raise SystemExit(0)
-
-values = {}
-for line in lines:
-    stripped = line.strip()
-    if not stripped or stripped.startswith("#") or "=" not in stripped:
-        continue
-    if stripped.startswith("export "):
-        stripped = stripped[len("export "):].lstrip()
-    key, raw_value = stripped.split("=", 1)
-    key = key.strip()
-    if key:
-        values.setdefault(key, raw_value)
-
-aliases = {
-    "TEAMS_CLIENT_ID": "CLIENT_ID",
-    "TEAMS_CLIENT_SECRET": "CLIENT_SECRET",
-    "TEAMS_TENANT_ID": "TENANT_ID",
-}
-additions = [f"{dest}={values[src]}" for dest, src in aliases.items() if dest not in values and values.get(src)]
-if not additions:
-    raise SystemExit(0)
-if lines and lines[-1].strip():
-    lines.append("")
-lines.append("# Microsoft Teams Bot Framework credentials (Hermes expects TEAMS_* names).")
-lines.extend(additions)
-path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-PY
+  return "$status"
 }
 
 ensure_hermes_gateway_cwd() {
-  local hermes_home="$1" gateway_cwd="$2"
-  local config_file="$hermes_home/config.yaml"
-  mkdir -p "$hermes_home"
-  command -v python3 >/dev/null 2>&1 || { echo "[gateway] warning: python3 unavailable; cannot persist terminal.cwd" >&2; return 0; }
-  python3 - "$config_file" "$gateway_cwd" <<'PY'
-from pathlib import Path
-import json
-import re
-import sys
-
-path = Path(sys.argv[1])
-cwd = sys.argv[2]
-quoted = json.dumps(cwd)
-lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
-
-def is_top_level_key(line: str) -> bool:
-    return bool(line and not line.startswith((" ", "\t")) and not line.lstrip().startswith("#") and re.match(r"^[A-Za-z0-9_][A-Za-z0-9_-]*\s*:", line))
-
-start = next((i for i, line in enumerate(lines) if re.match(r"^terminal\s*:\s*(?:#.*)?$", line)), None)
-changed = False
-if start is None:
-    if lines and lines[-1].strip():
-        lines.append("")
-    lines.extend(["terminal:", f"  cwd: {quoted}"])
-    changed = True
-else:
-    end = len(lines)
-    for i in range(start + 1, len(lines)):
-        if is_top_level_key(lines[i]):
-            end = i
-            break
-    cwd_idx = next((i for i in range(start + 1, end) if re.match(r"^\s+cwd\s*:", lines[i])), None)
-    desired = f"  cwd: {quoted}"
-    if cwd_idx is None:
-        lines.insert(start + 1, desired)
-        changed = True
-    elif lines[cwd_idx] != desired:
-        lines[cwd_idx] = desired
-        changed = True
-
-if changed:
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-PY
+  hermes_workspace_configure "$HARNESS" "$1" "$2" "$3"
 }
 
 start_hermes() {
   local session="client-slack-hermes" log="/tmp/client-slack-hermes.log"
   local hermes_home="${HERMES_GATEWAY_HOME:-$HARNESS/.hermes}"
   local gateway_cwd="${HERMES_GATEWAY_CWD:-$HARNESS}"
+  local inherited_home="${HERMES_HOME:-}"
+  [ -n "${HERMES_GATEWAY_HOME:-}" ] && inherited_home="$hermes_home"
+  hermes_workspace_check "$HARNESS" "$hermes_home" "$inherited_home" || return 1
+  check_hermes_teams_keys "$hermes_home" || return 1
   local hermes_bin="/usr/local/bin/hermes"
   if [ ! -x "$hermes_bin" ]; then
     hermes_bin=$(command -v hermes 2>/dev/null) \
       || { echo "[gateway] 'hermes' not found on PATH" >&2; return 1; }
   fi
-  mkdir -p "$hermes_home"
-  sync_hermes_teams_env_aliases "$hermes_home" || return 1
-  ensure_hermes_gateway_cwd "$hermes_home" "$gateway_cwd"
+  ensure_hermes_gateway_cwd "$hermes_home" "$gateway_cwd" "$hermes_bin" || return 1
 
   local run_cmd
   printf -v run_cmd 'cd %q && export HERMES_HOME=%q HERMES_GATEWAY_CWD=%q && exec %q gateway run' \
     "$gateway_cwd" "$hermes_home" "$gateway_cwd" "$hermes_bin"
 
-  local envf; envf=$(mktemp /tmp/client-slack-hermes-env.XXXXXX) || return 1
+  local envf; envf=$(mktemp "${TMPDIR:-/tmp}/client-slack-hermes-env.XXXXXX") || return 1
   chmod 600 "$envf"
   {
     printf 'export HARNESS=%q\n'         "$HARNESS"
@@ -296,8 +239,44 @@ start_hermes() {
     printf 'export SUPERVISE_CMD=%q\n'   "$run_cmd"
   } >>"$envf"
 
-  if tmux new-session -d -s "$session" \
-       "bash -c '. \"$envf\"; rm -f \"$envf\"; exec bash \"$HARNESS/.devcontainer/client-slack-supervise.sh\"'"; then
+  local supervisor_cmd
+  printf -v supervisor_cmd '. %q; rm -f %q; exec bash "$HARNESS/.devcontainer/client-slack-supervise.sh"' "$envf" "$envf"
+  printf -v supervisor_cmd 'bash -c %q' "$supervisor_cmd"
+  if tmux new-session -d -s "$session" "$supervisor_cmd"; then
+    tmux pipe-pane -o -t "$session" "$ANSI_STRIP >> $log" 2>/dev/null || true
+  else
+    rm -f "$envf"
+    echo "[gateway] failed to start $session" >&2
+    return 1
+  fi
+}
+
+start_openclaw() {
+  local session="client-openclaw" log="/tmp/client-openclaw.log"
+  local state_dir="$HARNESS/.openclaw"
+  openclaw_workspace_check "$HARNESS" "$state_dir" "${OPENCLAW_STATE_DIR:-}" || return 1
+  local openclaw_bin
+  openclaw_bin=$(command -v openclaw 2>/dev/null) || openclaw_bin="$HOME/.local/bin/openclaw"
+  [ -x "$openclaw_bin" ] \
+    || { echo "[gateway] 'openclaw' not found on PATH — run: agro harness install openclaw" >&2; return 1; }
+
+  local run_cmd
+  printf -v run_cmd 'cd %q && export OPENCLAW_STATE_DIR=%q && exec %q gateway run --bind loopback' \
+    "$HARNESS" "$state_dir" "$openclaw_bin"
+
+  local envf; envf=$(mktemp "${TMPDIR:-/tmp}/client-openclaw-env.XXXXXX") || return 1
+  chmod 600 "$envf"
+  {
+    printf 'export HARNESS=%q\n'         "$HARNESS"
+    printf 'export LOG=%q\n'             "$log"
+    printf 'export GATEWAY_BACKEND=%q\n' "openclaw"
+    printf 'export SUPERVISE_CMD=%q\n'   "$run_cmd"
+  } >>"$envf"
+
+  local supervisor_cmd
+  printf -v supervisor_cmd '. %q; rm -f %q; exec bash "$HARNESS/.devcontainer/client-slack-supervise.sh"' "$envf" "$envf"
+  printf -v supervisor_cmd 'bash -c %q' "$supervisor_cmd"
+  if tmux new-session -d -s "$session" "$supervisor_cmd"; then
     tmux pipe-pane -o -t "$session" "$ANSI_STRIP >> $log" 2>/dev/null || true
   else
     rm -f "$envf"
@@ -311,7 +290,7 @@ case "$cmd" in
   status|--status) show_status; exit 0 ;;
   msg-bridge|msgbridge) shift; open_msg_bridge "$@"; exit $? ;;
   -h|--help)       usage; exit 0 ;;
-  pi|hermes)       ;;
+  pi|hermes|openclaw) ;;
   "")              usage >&2; exit 2 ;;
   *)               echo "[gateway] unknown client/command: $cmd" >&2; usage >&2; exit 2 ;;
 esac
@@ -326,7 +305,7 @@ case "${1:-}" in
   *)         echo "[gateway] unknown option: $1" >&2; usage >&2; exit 2 ;;
 esac
 
-session="client-slack-$backend"
+session=$(session_name "$backend")
 
 case "$action" in
   stop)
@@ -346,8 +325,9 @@ if session_live "$session"; then
 else
   echo "[gateway] starting $session …"
   case "$backend" in
-    pi)     start_pi     || exit 1 ;;
-    hermes) start_hermes || exit 1 ;;
+    pi)       start_pi       || exit 1 ;;
+    hermes)   start_hermes   || exit 1 ;;
+    openclaw) start_openclaw || exit 1 ;;
   esac
   echo "[gateway] $session started"
 fi

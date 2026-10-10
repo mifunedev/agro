@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "skill/1315-remote-sandbox-skill",
+  "description": "remote-sandbox skill in mifunedev/agro (ADR #1314, migration step 1): provider-generic VM lifecycle driver, adapter contract, exedev and vercel adapters, and the AGRO expectation suite.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Lifecycle driver and adapter contract",
+      "description": "As an operator, I want one provider-generic VM lifecycle driver, so that every provider shares one copy of the lifecycle code. The driver creates a VM, runs a check detached, polls the check log, and destroys the VM.",
+      "acceptanceCriteria": [
+        "`.agro/skills/remote-sandbox/scripts/lib.sh` holds `wait_shell`, `upload`, `run_detached`, `poll_log`, `driver_rows`, and `finish`, ported from `skills/agro-host-matrix/scripts/lib.sh` in mifunedev/skills. The file holds no `vercel_*`, `exedev_*`, or `console_*` function.",
+        "`lib.sh` loads `adapters/*.sh` from the skill directory first. Then `lib.sh` loads `*.sh` from each directory in the colon-separated `REMOTE_SANDBOX_ADAPTERS`.",
+        "`run.sh <provider> --preflight` exits 2 with a usage line when no loaded adapter defines all five required functions: `<p>_preflight`, `<p>_create`, `<p>_exec`, `<p>_destroy`, and `<p>_list`.",
+        "`driver_rows` calls `<p>_row_ssh`, `<p>_row_https`, and `<p>_restart` only when the adapter defines them. For each missing row hook, `driver_rows` prints `RESULT <row> SKIPPED no adapter hook`. `driver_rows` holds no `case` on `$PROVIDER`.",
+        "When the operator names no check, `run.sh <provider>` runs `checks/fresh-install.sh`.",
+        "`run.sh` forwards `INSTALL_URL`, `AGRO_JS_URL`, and `SANDBOX_IMAGE` to the check. `run.sh` does not read `GET_AGRO_URL`.",
+        "The driver ignores SIGHUP. On exit, SIGINT, or SIGTERM, `finish` destroys the VM unless `KEEP=1`, and the log ends with `remaining … : <n>` and `RUN DONE`.",
+        "`pnpm exec vitest run .agro/scripts/__tests__/remote-sandbox.test.ts` passes. Each US-001 case fails before the implementation exists."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "1 executed: grep for vercel_/exedev_/console_/case \"$PROVIDER\"/GET_AGRO_URL in scripts/*.sh exit 1 (no match). 2 executed: vitest loader case (skill adapters/ then REMOTE_SANDBOX_ADAPTERS, later dir overrides). 3 executed: vitest partial --preflight exit 2 with usage. 4 executed: vitest SKIPPED no adapter hook for R10/R11, hooked R10 via hook; reasoned: driver_rows never calls <p>_restart (restart-test.sh owns restart; calling it mid-rows would disturb rows). 5 executed: vitest default check=fresh-install.sh. 6 executed: vitest INSTALL_URL forwarded, GET_AGRO_URL unset in check. 7 executed: vitest SIGHUP ignored, SIGTERM exit 130 destroy once, KEEP=1, remaining 0 + RUN DONE. 8 executed: pnpm exec vitest run remote-sandbox.test.ts 7/7 on integrated task branch (advisor); worker showed 6/7 fail against unported scripts.",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/remote-sandbox/scripts/lib.sh",
+        ".agro/skills/remote-sandbox/scripts/run.sh",
+        ".agro/scripts/__tests__/remote-sandbox.test.ts",
+        ".agro/scripts/__tests__/fixtures/remote-sandbox/"
+      ],
+      "commit": "615eb1f4"
+    },
+    {
+      "id": "US-002",
+      "title": "exe.dev and Vercel adapters",
+      "description": "As an operator, I want `exedev` and `vercel` adapters that implement the contract, so that the driver has no provider branch.",
+      "acceptanceCriteria": [
+        "`adapters/exedev.sh` defines the five required functions, `exedev_restart`, `exedev_row_ssh`, and `exedev_row_https`. The row hooks print the `R10-ssh-inbound` and `R11-https-port` lines that `driver_rows` prints today for `exedev`.",
+        "`adapters/vercel.sh` defines the five required functions and `vercel_row_ssh`. `vercel_row_ssh` prints `RESULT R10-ssh-inbound FAIL API exec only, no standard SSH endpoint`. `adapters/vercel.sh` defines no `vercel_row_https`, so `driver_rows` prints `RESULT R11-https-port SKIPPED no adapter hook`.",
+        "No adapter writes a secret into a VM. `bash -n` passes on both adapters.",
+        "The test file proves that both adapters define the five required functions after `lib.sh` loads them."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "1 executed: vitest remote-sandbox-adapters (exedev five functions + restart + row hooks; R11 200/302/401/403/500 via curl stub; URL https://vm1.exe.xyz/). 2 executed: vitest vercel five functions + vercel_row_ssh exact FAIL line, no vercel_row_https/vercel_restart, driver prints R11 SKIPPED no adapter hook. 3 executed: bash -n both adapters exit 0; reasoned: adapters only send commands through *_exec and read no secret on the host (VERCEL_SCOPE is a team slug). 4 executed: vitest loads real lib.sh, declare -F + valid_providers lists both. Advisor reran adapters + US-001 suites on the integrated task branch: 20/20.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/skills/remote-sandbox/adapters/exedev.sh",
+        ".agro/skills/remote-sandbox/adapters/vercel.sh",
+        ".agro/scripts/__tests__/remote-sandbox-adapters.test.ts"
+      ],
+      "commit": "506b0a3d"
+    },
+    {
+      "id": "US-003",
+      "title": "AGRO expectation suite",
+      "description": "As an operator, I want the fresh-install and matrix checks in the skill, so that one command tests AGRO on a new VM.",
+      "acceptanceCriteria": [
+        "`checks/fresh-install.sh` installs from `INSTALL_URL`. The default is `https://github.com/mifunedev/agro/releases/latest/download/install.sh`.",
+        "`checks/fresh-install.sh` prints one `RESULT` line for each of `F1-new-login-shell`, `F2-new-interactive-shell`, `F3-absolute-path`, and `F4-empty-environment`, with the commands from the scratch script `fresh-install.sh`. The last line is `SUMMARY`.",
+        "`checks/agro-rows.sh` and `checks/cg-probe.sh` keep the row IDs `R01` to `R14` and `R02b` and the line format `RESULT <id> <status> <detail>` of `rows.sh` and `cg-probe.sh`.",
+        "`scripts/restart-test.sh` calls `<p>_restart` through the contract and exits 2 when the adapter defines no `<p>_restart`.",
+        "A test runs `checks/fresh-install.sh` locally with `INSTALL_URL` set to a `file://` fixture installer that writes a stub `agro` to `$HOME/.local/bin`. The test expects four `PASS` lines and a final `SUMMARY` line."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "1 executed: vitest remote-sandbox-suite runs fresh-install.sh with INSTALL_URL=file:// fixture; static check of the release install.sh default. 2 executed: vitest four F PASS lines, last line SUMMARY. 3 executed: diff vs agro-host-matrix rows.sh changes only the R02 install line (INSTALL_URL, install.log); cg-probe.sh byte-identical; vitest row-ID coverage across agro-rows.sh, restart-test.sh, lib.sh. 4 executed: vitest restart-test.sh exits 2 for the fake adapter without fake_restart, unknown provider, bad mode. 5 executed: advisor reran suite+adapters+US-001 tests on the integrated task branch: 27/27; bash -n on every skill script. Interface choice: restart-test.sh <provider> <sync|settled>. Hook note: CC Safety Net denied one python-heredoc edit as unanalyzable (strict mode, verify manually); the worker made the same four plain-text edits to owned files restart-test.sh and summarize.sh with the Edit tool; the advisor reviewed the verbatim command, deny message, and resulting diff, and judged the edits safe; reported to the operator.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/skills/remote-sandbox/checks/",
+        ".agro/skills/remote-sandbox/scripts/restart-test.sh",
+        ".agro/skills/remote-sandbox/scripts/summarize.sh",
+        ".agro/scripts/__tests__/remote-sandbox-suite.test.ts",
+        ".agro/scripts/__tests__/fixtures/remote-sandbox-suite/"
+      ],
+      "commit": "d1b813b4"
+    },
+    {
+      "id": "US-004",
+      "title": "SKILL.md and references",
+      "description": "As an agent, I want a `SKILL.md` that defines the term and documents the contract, so that I add an adapter without reading the scripts.",
+      "acceptanceCriteria": [
+        "`.agro/skills/remote-sandbox/SKILL.md` has frontmatter with `name: remote-sandbox`, a `description` with `TRIGGER when:`, and `metadata.mifune.category: agro`.",
+        "The first body paragraph states: a remote sandbox is a provider VM, and the AGRO sandbox runs inside the VM.",
+        "`SKILL.md` names the fresh install as the main scenario and the matrix as the second scenario. `SKILL.md` documents the five required functions, the three hooks, `REMOTE_SANDBOX_ADAPTERS`, and `INSTALL_URL`.",
+        "`SKILL.md` states that each run needs operator approval for VM spend, and that tmux is optional for the driver.",
+        "`references/rationale.md` holds the AGRO check rationale only. `references/providers.md` covers `exedev` and `vercel` only.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/remote-sandbox/SKILL.md` exits 0.",
+        "`bash .agro/scripts/link-providers.sh --check` prints `Providers OK`."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "1 executed: frontmatter name/description with TRIGGER when:/license/compatibility/metadata.mifune.category agro, delimiters lines 1 and 20 (advisor read). 2 executed: first body paragraph defines remote sandbox (advisor read). 3 and 4 executed: advisor read Rules, Main scenario, contract sections. 5 executed: grep n4|capi|PROVISION_KEY|console_|pricing in references/*.md finds nothing. 6 executed: ste-check exit 0 on SKILL.md, rationale.md, providers.md on the integrated branch. 7 executed: link-providers.sh --check Providers OK. Worker code observations recorded for Lessons: driver_rows also runs after fresh-install and cg-probe (R09 needs tmux in the VM); KEEP=1 logs end without RUN DONE; summarize.sh skips fresh-install and cg-probe logs.",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".agro/skills/remote-sandbox/SKILL.md",
+        ".agro/skills/remote-sandbox/references/"
+      ],
+      "commit": "2cfc2ec4"
+    },
+    {
+      "id": "US-005",
+      "title": "Portability exceptions",
+      "description": "As the registry maintainer, I want exceptions for the in-VM AGRO paths, so that the published copy passes the portability gate.",
+      "acceptanceCriteria": [
+        "`.agro/scripts/registry-portability.md` holds one `ALLOW | AGRO-PATH | skills/remote-sandbox/<file> | <hash> | <reason>` entry for each in-VM AGRO path in the skill.",
+        "A local registry checkout with a portable copy of `remote-sandbox` at `skills/remote-sandbox/` gives `neither: 0` for the files under `skills/remote-sandbox/`.",
+        "The PR body states the merge order: the mifunedev/skills PR that publishes `remote-sandbox` (ADR step 2) merges first."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "1 executed: four ALLOW AGRO-PATH entries for skills/remote-sandbox (agro-rows.sh x3, restart-test.sh x1). 2 executed: advisor reran registry-portability.sh against the scratch registry copy with remote-sandbox (deltas: SKILL.md:40 example path, added LICENSE): findings 9, suppressed 9, neither 0, stale 0, exit 0. Against registry master without remote-sandbox: neither 0, stale exceptions 4 (the new entries), as expected. 3 reasoned: the PR #1316 body states that the registry publish PR (ADR step 2) merges first.",
+      "dependsOn": [
+        "US-004"
+      ],
+      "files": [
+        ".agro/scripts/registry-portability.md"
+      ],
+      "commit": "784e50ec"
+    },
+    {
+      "id": "US-007",
+      "title": "Driver rows only after the matrix check",
+      "description": "As an operator, I want the driver rows to run only after `checks/agro-rows.sh`, so that a fresh-install log holds only fresh-install results.",
+      "acceptanceCriteria": [
+        "`run.sh` calls `driver_rows` only when the check is `checks/agro-rows.sh`.",
+        "A run of any other check prints no `R09-disconnect`, `R10-ssh-inbound`, or `R11-https-port` line.",
+        "A run of `checks/agro-rows.sh` still prints the `R09`, `R10`, and `R11` lines.",
+        "`SKILL.md` states that the driver rows run only after `checks/agro-rows.sh`, at the `scripts/run.sh` row and at the driver-rows paragraph.",
+        "`pnpm exec vitest run .agro/scripts/__tests__/remote-sandbox.test.ts` passes, and the new case fails before the change."
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "1 executed: run.sh last line gates driver_rows on the resolved path $SKILL_DIR/checks/agro-rows.sh (advisor read); bash -n exit 0. 2 executed: vitest default fresh-install and env-check runs print no R09/R10/R11 line. 3 executed: vitest fake and hooked runs of checks/agro-rows.sh print R09, R10, R11 before the remaining line. 4 executed: SKILL.md table row and driver-rows paragraph state the rule; ste-check exit 0. 5 executed: advisor reran the three remote-sandbox suites on the integrated task branch: 29/29; worker showed 2 failures on the old run.sh. Reasoned: a non-agro-rows run still exits 0; SKILL.md examples pass checks/agro-rows.sh, which resolves to the skill path.",
+      "dependsOn": [
+        "US-001",
+        "US-003"
+      ],
+      "files": [
+        ".agro/skills/remote-sandbox/scripts/run.sh",
+        ".agro/scripts/__tests__/remote-sandbox.test.ts",
+        ".agro/scripts/__tests__/fixtures/remote-sandbox/",
+        ".agro/skills/remote-sandbox/SKILL.md"
+      ],
+      "commit": "080de78a"
+    },
+    {
+      "id": "US-006",
+      "title": "Manual review on exe.dev",
+      "description": "As the operator, I want one live exe.dev run of each scenario, so that I compare the new driver with the 2026-10-03 baseline.",
+      "acceptanceCriteria": [
+        "US-007 passes before the run.",
+        "The operator approves the VM spend before the run.",
+        "`run.sh exedev` against v0.16.2 prints `PASS` for F1 to F4.",
+        "`run.sh exedev checks/agro-rows.sh` matches the 2026-10-03 baseline row for row, `R14` included.",
+        "Each log ends with `remaining … : 0` and `RUN DONE`.",
+        "The transcript is in `.agro/tasks/remote-sandbox-skill/evidence/manual-review.md`."
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "1 executed: US-007 passes (accepted 080de78a). 2 executed: operator approved the VM spend on 2026-10-03. 3 executed: run.sh exedev (default check) against v0.16.2 on agro-mx-1003-164118: F1-F4 PASS rc=0 0.16.2, no driver rows. 4 executed: run.sh exedev checks/agro-rows.sh on agro-mx-1003-164155: all 14 rows match the 2026-10-03T20:51:03Z baseline status (R03 and R11 SKIPPED in both). 5 executed: both logs end with remaining agro-matrix resources on exedev: 0 and RUN DONE; ssh exe.dev ls --json lists 0 VMs. Transcript: .agro/tasks/remote-sandbox-skill/evidence/manual-review.md (local; gitignored by design).",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004",
+        "US-005",
+        "US-007"
+      ],
+      "files": [
+        ".agro/tasks/remote-sandbox-skill/evidence/"
+      ],
+      "commit": "58cce2e8"
+    }
+  ]
+}

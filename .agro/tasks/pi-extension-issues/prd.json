@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "project": "AGRO",
+  "branchName": "bug/1323-pi-extension-issues",
+  "description": "Partial Pi extension dependency fix for goal and loop",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Update goal and loop packages",
+      "description": "As an operator, I want compatible goal and loop packages so that their host-dependency warnings disappear.",
+      "acceptanceCriteria": [
+        "Review published source and dependency manifests for `@narumitw/pi-goal@0.54.8` and `@trevonistrevon/pi-loop@0.7.15` against the installed Pi version.",
+        "Verify that both candidates declare host packages as wildcard peers rather than runtime dependencies.",
+        "Change the exact-pin test first and record its failure against the original settings.",
+        "Update only the goal and loop pins in `.pi/settings.json` and its exact-pin test.",
+        "Leave subagents, tasks, and all unrelated settings unchanged.",
+        "Document reconciliation and the two remaining upstream warnings in `docs/harnesses/pi.md`.",
+        "Add an issue-linked changelog entry under `Unreleased`.",
+        "The focused settings test and repository lint, typecheck, build, and tests pass."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Executed: focused exact-pin red test exit 1 before settings changes, green 4 tests exit 0 afterward; inspected implementation diff confirms only goal/loop pins changed. Published manifests and sources reviewed in manual-review.md; advisor reran real Pi 1.0.2 runtime verification exit 0. Worker lint/typecheck/build/test exit 0 (1851 passed, 2 skipped). Documentation and issue-linked changelog inspected. Reasoned: unrelated settings and subagents/tasks remain byte-equivalent by diff.",
+      "dependsOn": [],
+      "commit": "d9c2f20acf86f6d208da8cf475d8df1b0492d240"
+    },
+    {
+      "id": "US-002",
+      "title": "Record isolated runtime verification",
+      "description": "As a reviewer, I want isolated runtime evidence so that warning removal does not conceal missing extension capabilities.",
+      "acceptanceCriteria": [
+        "Start after US-001 implementation; use disposable sandbox package and runtime state.",
+        "Record clean installation and reconciliation from the original goal and loop versions.",
+        "Record the installed Pi version, exact commands, outputs, and exit statuses in `.agro/tasks/pi-extension-issues/evidence/manual-review.md`.",
+        "Confirm that the original manifests trigger the reported host-dependency condition and that both candidate manifests avoid it.",
+        "Load both candidates through Pi and confirm that their goal and monitor/loop tools and commands register without extension load errors.",
+        "Exercise bounded goal state transitions and a harmless monitor command without a paid model call.",
+        "Clean up disposable resources; leave the current Pi session and global installation unchanged.",
+        "Fill the PR manual-review section from observed evidence, including the original failure case."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Executed: advisor reran timeout 180 node evidence/runtime-check.mjs exit 0: original warnings reproduced, clean and reconciled candidate loads have errors=[] and warnings=[], retained tools/commands register, active/paused/clear goal transitions and monitor printf command complete successfully, disposable state removed. CLI update skips exact pins; resource reload performs reconciliation. Manual-review evidence inspected; no model calls/global changes. PR manual-review section derived from these observed results.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "commit": "d9c2f20acf86f6d208da8cf475d8df1b0492d240"
+    }
+  ]
+}

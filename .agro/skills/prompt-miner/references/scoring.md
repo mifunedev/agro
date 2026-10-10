@@ -89,7 +89,7 @@ corrective; **the density itself is still divided in code**, because Jev is expl
 not a calculator.
 
 The flag is **off by default** and the default output is byte-identical to a
-lexicon-only run — `.agro/evals/probes/prompt-miner-judge-default-off.sh` pins that.
+lexicon-only run.
 With the flag on, every session row carries `correctionSource`, `"judge"` or
 `"lexicon"`, so a fallback can never be mistaken for a judgment.
 
@@ -153,7 +153,7 @@ key is an error. Pass it as a single shell token (the SKILL.md uses
 join** (dedupe + merge resumed sessions by id across files), with **weighted
 scoring**, **dual-schema normalization** (Claude vs. Pi), a **redaction pass**,
 and an **optional `git` shell-out** for ground truth. Expressing that in jq would
-be unreadable and untestable; a zero-dependency Node engine with `node --test`
+be unreadable and untestable; a zero-dependency Node engine with vitest (`pnpm test`)
 unit coverage is the maintainable choice. The `git` binary is the one allowed
 external dependency, documented here and gated behind `--no-git`.
 

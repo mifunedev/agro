@@ -2,6 +2,9 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 interface PiSettings {
+  defaultProvider?: string;
+  defaultModel?: string;
+  defaultThinkingLevel?: string;
   packages?: string[];
   skills?: string[];
 }
@@ -21,15 +24,23 @@ function packageIdentity(spec: string): string {
 }
 
 describe("project Pi settings", () => {
+  it("defaults Pi to openai-codex/gpt-6.1-sol at medium thinking", () => {
+    const settings = readPiSettings();
+
+    expect(settings.defaultProvider).toBe("openai-codex");
+    expect(settings.defaultModel).toBe("gpt-6.1-sol");
+    expect(settings.defaultThinkingLevel).toBe("medium");
+  });
+
   it("pins the default Pi packages used by the harness", () => {
     const settings = readPiSettings();
 
     expect(settings.packages).toEqual([
       "npm:@tintinweb/pi-subagents@0.12.0",
       "npm:@tintinweb/pi-tasks@0.7.0",
-      "npm:@narumitw/pi-goal@0.4.2",
+      "npm:@narumitw/pi-goal@0.54.8",
       "npm:@narumitw/pi-codex-usage@0.6.2",
-      "npm:@trevonistrevon/pi-loop@0.5.5",
+      "npm:@trevonistrevon/pi-loop@0.7.15",
       "npm:@guwidoe/pi-prompt-suggester@0.3.10",
       "npm:@ff-labs/pi-fff@0.9.5",
       "npm:cc-safety-net@1.0.6",

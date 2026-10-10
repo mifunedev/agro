@@ -31,8 +31,9 @@ One release produces, from one build and one commit:
   `:sha-<sha>`, `ghcr.io/mifunedev/agro:<version>`, and `:sha-<sha>`, verified to
   share one manifest digest (`.agro/scripts/verify-release-aliases.sh`), then
   `latest` on both repositories (`.agro/scripts/promote-release-latest.sh`).
-- Four GitHub Release assets: `agro.js`, `oh.js`, `get-agro.sh`, and `get-agro.sh`,
-  attached before the release is undrafted so
+- Three GitHub Release assets: `agro.js`, `install.sh`, and a copy of
+  `install.sh` under the earlier installer name for one minor release. The
+  workflow attaches them before it undrafts the release, so
   `releases/latest/download/<asset>` resolves on publication.
 
 ## Version sites
@@ -45,8 +46,7 @@ fails the build when they drift:
 
 The retained shim at `.agro/cli/legacy/package.json` keeps its own `version` and
 an exact `@mifune/agro` pin that equals that shim version. The shim version does
-not have to match a later canonical version. `` checks that
-internal coherence.
+not have to match a later canonical version.
 
 ## Operator prerequisites this repository cannot verify
 
@@ -57,25 +57,6 @@ internal coherence.
   pull it until the operator changes the visibility.
 - The compatibility SLA clock starts at the first public AGRO release, that is,
   the first release that publishes `@mifune/agro` and `ghcr.io/mifunedev/agro`.
-- The docs-site dispatch token exists. The `notify-docs` job reads the secret
-  `AGRO_WEB_DISPATCH_TOKEN` from the release repository (`mifunedev/agro`) and sends
-  `repository_dispatch` to the docs repository. When the secret is absent the job
-  prints a `::notice::` line and exits green without a dispatch. Issue a fine-grained
-  personal access token for the docs repository with **Contents: Read and write**
-  (`repository_dispatch` requires `contents: write`; a classic token needs the
-  `repo` scope), then store it from a file, never from the command line:
-
-  ```bash
-  gh secret set AGRO_WEB_DISPATCH_TOKEN --repo mifunedev/agro < token-file
-  ```
-
-- The docs repository target is the repository variable `AGRO_WEB_REPO`, default
-  `mifunedev/agro-web`. After the docs repository is renamed, point it at
-  the new name:
-
-  ```bash
-  gh variable set AGRO_WEB_REPO --repo mifunedev/agro --body mifunedev/agro-web
-  ```
 
 ## Pre-releases
 
@@ -138,8 +119,7 @@ Require all of the following before a release push:
 - The source commit is pushed to the canonical remote.
 - CI for the source commit is green.
 - Root `package.json` names the version to publish, `.agro/cli/package.json`
-  matches it (`bash .agro/evals/probes/version-parity.sh`), the retained shim
-  stays internally coherent (`bash .agro/evals/probes/`), and
+  matches it (`pnpm exec vitest run .agro/scripts/__tests__/version-parity-contract.test.ts`), and
   no `v<version>` tag exists yet. An unbumped push is a green no-op that publishes
   nothing. A newly published `@mifune/agro` version is not required.
 - `CHANGELOG.md` has a `## [<version>]` section matching that version (the
@@ -179,7 +159,7 @@ Promote the exact checked source SHA. The branch push—not a manually created
 tag—is the release trigger.
 
 ```bash
-git push "$REMOTE" "$SHA:refs/heads/$TARGET"
+git push "${REMOTE}" "${SHA}:refs/heads/${TARGET}"
 ```
 
 The workflow reads the version from root `package.json` on the pushed commit, so
@@ -204,7 +184,6 @@ After success, fetch tags and identify the SemVer tag pointing to the exact SHA,
 then verify the four immutable image tags, the canonical npm package, the release
 assets, and the GitHub Release. The tag carries the `v` prefix; the image tags
 do not. A newly published `@mifune/agro` version is not a release gate.
-Automatic `notify-docs` dispatch is not the only documentation acceptance path.
 
 ```bash
 git fetch "$REMOTE" --tags
@@ -219,25 +198,11 @@ npm view "@mifune/agro@${TAG#v}" version
 printf 'Images: ghcr.io/mifunedev/{agro,agro}:%s and :sha-%s\n' "${TAG#v}" "$SHA"
 ```
 
-The asset list must name `agro.js`, `oh.js`, `get-agro.sh`, and `get-agro.sh`.
+The asset list must name `agro.js`, `install.sh`, and the copy of `install.sh`
+under the earlier installer name.
 
 The canonical mutable/latest branch is `main` when it exists, otherwise
 `master`. Immediately before promotion, the workflow freshly reads both remote
 refs and promotes the canonical head's versioned image to `latest` by immutable
 digest. Stale canonical runs and every noncanonical-branch run skip `latest`;
 GitHub's `make_latest` flag uses the same rule after a second fresh check.
-
-After `finalize` succeeds on a real release, `notify-docs` sends
-`repository_dispatch` with `event_type: agro-release` and
-`client_payload: { ref: <released sha> }` to `AGRO_WEB_REPO`. The docs site's
-`pages.yml` reads `client_payload.ref` and rebuilds its mirrored installers from
-that commit. Confirm the dispatch landed:
-
-```bash
-gh run list --repo "${AGRO_WEB_REPO:-mifunedev/agro-web}" \
-  --workflow pages.yml --event repository_dispatch --limit 3 \
-  --json databaseId,status,conclusion,createdAt,url
-```
-
-A skipped `notify-docs` step with the `::notice::` line means the secret is not
-set; the daily schedule in `pages.yml` still refreshes the mirror.

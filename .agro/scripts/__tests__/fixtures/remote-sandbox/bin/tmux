@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+case "$1" in
+  new-session) touch "$HOME/.tmux-session" ;;
+  has-session) [ -f "$HOME/.tmux-session" ] ;;
+  *) exit 1 ;;
+esac

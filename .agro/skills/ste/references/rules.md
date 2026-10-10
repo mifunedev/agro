@@ -177,8 +177,8 @@ Right: The runner fetches the branch. The runner verifies the checksum.
 Replace a gerund or a participle with an infinitive or a finite verb. An `-ing` form hides the tense and the actor.
 
 ```text
-Wrong: Running the probe before merging catches the regression.
-Right: Run the probe before you merge. The probe catches the regression.
+Wrong: Running the test before merging catches the regression.
+Right: Run the test before you merge. The test catches the regression.
 ```
 
 ### 18. Name the actor
@@ -387,8 +387,8 @@ Right: (heading) Provisioner startup
 Bound every claim by version, path, branch, or environment. An unbounded claim becomes false at the next change.
 
 ```text
-Wrong: The probe suite runs in CI.
-Right: On `development`, the workspace-and-postgres job runs the probe suite.
+Wrong: The test suite runs in CI.
+Right: On `development`, the workspace-and-postgres job runs the test suite.
 ```
 
 ## 7. Warnings, cautions, and irreversible actions

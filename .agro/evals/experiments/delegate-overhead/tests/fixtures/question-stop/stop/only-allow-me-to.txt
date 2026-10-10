@@ -1,1 +1,0 @@
-The hook blocked the merge. Do it by hand, or allow me to do it.

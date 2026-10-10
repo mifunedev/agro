@@ -1,0 +1,45 @@
+$ pnpm run lint
+
+> agro@0.16.2 lint <worktree>
+> echo "No root lint configured"
+
+No root lint configured
+
+EXIT=0
+
+$ pnpm run typecheck
+
+> agro@0.16.2 typecheck <worktree>
+> (test -d .agro/cli/node_modules || npm --prefix .agro/cli ci --ignore-scripts) && npm --prefix .agro/cli run typecheck
+
+
+> @mifune/agro@0.16.2 typecheck
+> tsc --noEmit
+
+
+EXIT=0
+
+$ pnpm run build:harness
+
+> agro@0.16.2 build:harness <worktree>
+> (test -d .agro/cli/node_modules || npm --prefix .agro/cli ci --ignore-scripts) && npm --prefix .agro/cli run build
+
+
+> @mifune/agro@0.16.2 build
+> node build.mjs
+
+
+  dist/agro.js  266.8kb
+
+⚡ Done in 19ms
+
+EXIT=0
+
+$ pnpm test
+ Test Files  88 passed (88)
+      Tests  1851 passed | 2 skipped (1853)
+   Start at  11:42:02
+   Duration  20.65s (transform 11.21s, setup 0ms, import 19.19s, tests 53.37s, environment 11ms)
+
+
+EXIT=0

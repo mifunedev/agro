@@ -12,6 +12,13 @@
 # hosts.yml/canary fixtures. It then boots ONLY the freshly built image
 # against that volume and asserts the upgrade.
 #
+# Before the boot, a second helper container from the seed image installs the
+# npm harnesses into the volume's /home/sandbox/.local with the catalog argv,
+# so the seed image's Node builds them. After the boot, each harness binary
+# must answer --version as the sandbox user on the new image's Node. The smoke
+# logs one HARNESS <id> exit=<n> line per harness and fails if any exit is
+# nonzero. `agro harness install <id>` repairs a failed harness.
+#
 # The copied package.json may carry a "pnpm:devPreinstall" security-audit hook
 # whose pinned advisory turns `pnpm install` into a permanent failure on a
 # dated manifest. Setting build.skipPnpmInstall would dodge that but also skip
@@ -22,7 +29,7 @@
 #
 # Scope: this proves the freshly built image correctly upgrades a genuine
 # pre-existing workspace volume. The legacy `.oh` layout is retired
-# (docs/agro-compatibility.md) and is no longer exercised here.
+# (https://github.com/mifunedev/agro/issues/1061) and is no longer exercised here.
 
 set -euo pipefail
 
@@ -39,6 +46,12 @@ INTERVAL=${UPGRADE_SMOKE_INTERVAL_SECONDS:-5}
 PROJECT_ROOT=${AGRO_PROJECT_ROOT:-/home/sandbox/harness}
 VOLUME="${PROJECT}_workspace"
 WORKDIR=$(mktemp -d "${TMPDIR:-/tmp}/sandbox-upgrade-smoke.XXXXXX")
+NPM_HARNESSES=(
+  "claude-code:claude:@anthropic-ai/claude-code"
+  "codex:codex:@openai/codex"
+  "pi:pi:--ignore-scripts @earendil-works/pi-coding-agent"
+  "opencode:opencode:opencode-ai"
+)
 
 IMAGE=""
 BUILT_IMAGE=""
@@ -195,6 +208,17 @@ chown -R 1000:1000 /home/sandbox
 EOF
 }
 
+install_npm_harnesses() {
+  local vol="$1" spec id binary args
+  for spec in "${NPM_HARNESSES[@]}"; do
+    IFS=: read -r id binary args <<<"$spec"
+    log "installing $id with $SEED_IMAGE's node $(docker run --rm --entrypoint node "$SEED_IMAGE" --version): npm --prefix /home/sandbox/.local install -g $args"
+    docker run --rm -u sandbox -e HOME=/home/sandbox --entrypoint bash -v "$vol:/home/sandbox" "$SEED_IMAGE" -c "npm --prefix /home/sandbox/.local install -g $args >/dev/null && $binary --version" \
+      | sed 's/^/    /' \
+      || fail "precondition: $id did not install and run on $SEED_IMAGE"
+  done
+}
+
 value_of() {
   printf '%s\n' "$1" | sed -n "s/^$2=//p"
 }
@@ -211,17 +235,17 @@ trap teardown EXIT
 : > "$WORKDIR/empty.env"
 
 log "compose project $PROJECT, compose file ${COMPOSE_FILE#"$REPO_ROOT"/}, workspace volume $VOLUME"
-log "step 1/6: pull $SEED_IMAGE (extraction source only — its entrypoint is never run; see the header comment for why)"
+log "step 1/7: pull $SEED_IMAGE (extraction source only — its entrypoint is never run; see the header comment for why)"
 if ! docker image inspect --format '{{.Id}}' "$SEED_IMAGE" >/dev/null 2>&1; then
   log "pulling $SEED_IMAGE"
   docker pull "$SEED_IMAGE"
 fi
 
-log "step 2/6: seed workspace volume $VOLUME from $SEED_IMAGE's real /opt/agro-seed, plus synthetic canary state"
+log "step 2/7: seed workspace volume $VOLUME from $SEED_IMAGE's real /opt/agro-seed, plus synthetic canary state"
 seed_workspace_fixture "$VOLUME"
 docker run --rm --entrypoint bash -v "$VOLUME:/home/sandbox" "$SEED_IMAGE" -c 'ls -la "$HOME/harness/.agro" 2>&1 | head' | sed 's/^/    /'
 
-log "step 3/6: assert the seeded volume's preconditions, before any boot"
+log "step 3/7: assert the seeded volume's preconditions, before any boot"
 before=$(volume_snapshot "$VOLUME")
 log "pre-boot volume snapshot:"
 printf '%s\n' "$before" | sed 's/^/    /'
@@ -232,24 +256,27 @@ printf '%s\n' "$before" | sed 's/^/    /'
 [ "$(value_of "$before" legacy_dir)" = "absent" ] || fail "precondition: the seeded volume has a retired $PROJECT_ROOT/.oh"
 [ "$(value_of "$before" agro_marker)" = "present" ] || fail "precondition: $PROJECT_ROOT/.agro/.image-seeded was not stamped into the seeded volume"
 
+log "step 4/7: install the npm harnesses into $VOLUME with $SEED_IMAGE's node"
+install_npm_harnesses "$VOLUME"
+
 if [ -n "$NEW_IMAGE" ]; then
-  log "step 4/6: using NEW_IMAGE=$NEW_IMAGE (no build)"
+  log "step 5/7: using NEW_IMAGE=$NEW_IMAGE (no build)"
   IMAGE="$NEW_IMAGE"
 else
   BUILT_IMAGE="agro-upgrade-smoke:$$"
-  log "step 4/6: docker build -f .devcontainer/Dockerfile -t $BUILT_IMAGE $REPO_ROOT"
+  log "step 5/7: docker build -f .devcontainer/Dockerfile -t $BUILT_IMAGE $REPO_ROOT"
   docker build --file "$REPO_ROOT/.devcontainer/Dockerfile" --tag "$BUILT_IMAGE" "$REPO_ROOT"
   IMAGE="$BUILT_IMAGE"
 fi
 
-log "step 5/6: boot $IMAGE against the seeded volume $VOLUME — the only boot this smoke performs"
+log "step 6/7: boot $IMAGE against the seeded volume $VOLUME — the only boot this smoke performs"
 compose up -d --no-build "$SERVICE"
 wait_ready "upgraded boot"
 new_cid="$READY_CID"
 mounted_volume=$(docker inspect --format '{{ range .Mounts }}{{ if eq .Destination "/home/sandbox" }}{{ .Name }}{{ end }}{{ end }}' "$new_cid")
 [ "$mounted_volume" = "$VOLUME" ] || fail "the upgraded container mounted volume '$mounted_volume' at /home/sandbox, not the seeded volume '$VOLUME'"
 
-log "step 6/6: assert state survived"
+log "step 7/7: assert state survived"
 after=$(snapshot "$new_cid")
 log "upgraded snapshot:"
 printf '%s\n' "$after" | sed 's/^/    /'
@@ -292,6 +319,21 @@ fi
 docker exec "$new_cid" systemctl is-active --quiet agro-bootstrap.service || fail "agro-bootstrap.service is not active after the upgrade"
 docker exec "$new_cid" systemctl is-active --quiet agro-cron.service || fail "agro-cron.service is not active after the upgrade"
 log "compose health after upgrade: $(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$new_cid" 2>/dev/null || echo inspect-failed)"
+
+log "npm harnesses after upgrade on $IMAGE's node $(docker exec -u sandbox "$new_cid" node --version)"
+failed_harnesses=""
+for spec in "${NPM_HARNESSES[@]}"; do
+  IFS=: read -r id binary _ <<<"$spec"
+  if output=$(docker exec -u sandbox "$new_cid" "$binary" --version 2>&1); then
+    code=0
+  else
+    code=$?
+  fi
+  log "HARNESS $id exit=$code $(printf '%s' "$output" | head -n 1)"
+  [ "$code" -eq 0 ] || failed_harnesses="$failed_harnesses $id(exit=$code)"
+done
+[ -z "$failed_harnesses" ] \
+  || fail "npm harnesses failed after the upgrade:${failed_harnesses}; repair each with agro harness install <id>"
 
 log "all assertions held"
 RESULT="PASS"

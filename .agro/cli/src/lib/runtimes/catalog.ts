@@ -19,7 +19,7 @@ const CATALOG = [
     tier: "container",
     state: "active",
     provisionable: true,
-    docsPath: "docs/runtimes/docker.md",
+    docsPath: "docs/runtimes/overview.md",
   },
   {
     id: "microsandbox",
@@ -28,7 +28,7 @@ const CATALOG = [
     state: "planned",
     provisionable: false,
     notProvisionableReason: (bin: string): string =>
-      `microsandbox is not a provisionable runtime yet; see docs/rfcs/rfc-runtime-support.md. Inside a sandbox run \`${bin} tool install microsandbox\`.`,
+      `microsandbox is not a provisionable runtime yet; see https://github.com/mifunedev/agro/issues/592. Inside a sandbox run \`${bin} tool install microsandbox\`.`,
     docsPath: "docs/runtimes/microsandbox.md",
   },
   {

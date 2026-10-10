@@ -4,6 +4,14 @@ set -euo pipefail
 HARNESS="${AGRO_PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)}"
 BRIDGE_CONFIG="${ESCALATE_BRIDGE_CONFIG:-$HOME/.pi/msg-bridge.json}"
 TIMEOUT="${ESCALATE_TIMEOUT:-10}"
+PATHS_SH="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../../scripts/paths.sh"
+if [ -f "$PATHS_SH" ]; then
+  # shellcheck source=../../../scripts/paths.sh
+  . "$PATHS_SH"
+  SLACK_ENV="$(agro_env_file "$HARNESS")"
+else
+  SLACK_ENV="$HARNESS/.devcontainer/.env"
+fi
 
 fail() { printf 'escalate-decision: %s\n' "$1" >&2; exit 2; }
 usage() { printf 'Usage: escalate-decision.sh --channel <id> --ts <ts>\n' >&2; exit 64; }
@@ -25,8 +33,8 @@ if [ -z "$operator" ] && [ -f "$BRIDGE_CONFIG" ]; then
 fi
 [[ $operator =~ ^[UW][A-Z0-9]+$ ]] || fail 'operator Slack ID is missing or invalid'
 
-if [ -z "${PI_SLACK_BOT_TOKEN:-}" ] && [ -f "$HARNESS/.devcontainer/.env" ]; then
-  PI_SLACK_BOT_TOKEN=$(grep -E '^PI_SLACK_BOT_TOKEN=' "$HARNESS/.devcontainer/.env" | tail -1 | cut -d= -f2- || true)
+if [ -z "${PI_SLACK_BOT_TOKEN:-}" ] && [ -f "$SLACK_ENV" ]; then
+  PI_SLACK_BOT_TOKEN=$(grep -E '^PI_SLACK_BOT_TOKEN=' "$SLACK_ENV" | tail -1 | cut -d= -f2- || true)
 fi
 if [ -z "${PI_SLACK_BOT_TOKEN:-}" ] && [ -f "$BRIDGE_CONFIG" ]; then
   PI_SLACK_BOT_TOKEN=$(jq -r '.slack.botToken // empty' "$BRIDGE_CONFIG" 2>/dev/null) || PI_SLACK_BOT_TOKEN=''

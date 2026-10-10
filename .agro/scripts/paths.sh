@@ -23,6 +23,14 @@ agro_config_file() {
   printf '%s\n' "$1/$AGRO_CONFIG_FILE"
 }
 
+agro_env_file() {
+  if [ -f "$1/.env" ]; then
+    printf '%s\n' "$1/.env"
+  else
+    printf '%s\n' "$1/.devcontainer/.env"
+  fi
+}
+
 agro_env_value() {
   local key="AGRO_$1"
   printf '%s\n' "${!key:-}"

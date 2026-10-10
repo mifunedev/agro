@@ -30,11 +30,8 @@ compliance**. STEMG publishes and maintains ASD-STE100. STEMG neither endorses
 nor certifies this skill. The authoritative standard lives at
 `https://www.asd-ste100.org/`.
 
-This skill follows the published shape of that standard: a set of writing rules
-plus a controlled vocabulary. Every rule statement and every word entry here
-carries our own wording. This skill reproduces no text from ASD-STE100 Issue 9
-and no entry from its controlled dictionary. Read the standard itself when you
-need the standard itself.
+Every rule and word entry here carries our own wording. This skill reproduces
+no text and no dictionary entry from ASD-STE100 Issue 9.
 
 ## Priority order
 
@@ -93,18 +90,16 @@ a compressed draft to STE rules before you commit the draft, post the draft, or
 write the draft to disk. Never run a compression pass against a file that `/ste`
 governs.
 
-Two clauses hold whichever mode runs:
-
-- never compress code, commands, identifiers, or error strings;
-- drop back to plain prose for security warnings and for irreversible-action
-  confirmations.
+Whichever mode runs, write security warnings and irreversible-action
+confirmations in plain prose.
 
 ## Rewrite mode
 
 Run these eight steps against an existing document.
 
 1. Read the source to the end. Change nothing yet.
-2. List every ambiguity. Mark each one `resolvable` or `missing`.
+2. List every ambiguity against the 10-question check. Mark each one
+   `resolvable` or `missing`.
 3. Rewrite each sentence to carry one idea, in the active voice.
 4. Replace every non-approved word with its approved replacement.
 5. Move each condition ahead of the action the condition guards.
@@ -114,9 +109,6 @@ Run these eight steps against an existing document.
 7. Mark each `missing` value with a placeholder. Never supply a value.
 8. Run `scripts/ste-check.sh` against the file. Fix each finding. Repeat until
    the checker exits 0.
-
-Steps 1 and 2 come before any edit. An agent that edits before it reads loses
-the ambiguities that the original wording carried.
 
 ## Authoring mode
 
@@ -172,40 +164,28 @@ Never drop the condition.
 | `blow away the container` | `delete the agro container` |
 | `the system will handle it` | `the scheduler retries the job three times` |
 
-## Ambiguity detection
+## The 10-question check
 
-Flag each of these during step 2 of rewrite mode:
+Ask these in step 2 of rewrite mode to list each ambiguity. Ask these again of
+every sentence you write or rewrite. A `no` on any question sends the sentence
+back.
 
-- a pronoun with no named antecedent
-- a missing actor: who performs the action
-- a missing object: what the action changes
-- a missing condition: when the reader acts
-- a missing unit, file, directory, or identifier
-- an unstated execution context: host or container
-- an unstated location: local or remote
-- an unstated order between two steps
-- more than one action inside one step
-- a word that carries more than one meaning in software text
+1. Does the sentence carry one idea, and each step one action in a stated order?
+2. Does the instruction name the actor and where the command runs: host or
+   container, local or remote?
+3. Does the instruction name the object?
+4. Does the text state each condition ahead of the action the condition guards?
+5. Does each term carry one meaning and match the term used elsewhere?
+6. Does the text state the unit, the file, the directory, and the identifier?
+7. Does every pronoun point at a named antecedent?
+8. Does the sentence stay clear of hedges, qualifiers, and the unresolved words
+   below?
+9. Does the text keep code, commands, and literals unchanged?
+10. Does the text mark every missing value with a placeholder?
 
 Treat these words as unresolved on sight: `normally`, `usually`, `some`,
 `appropriate`, `proper`, `correct`, `soon`, `as needed`, `if necessary`,
 `a while`.
-
-## The 10-question check
-
-Ask these of every sentence you write or rewrite. A `no` on any question sends
-the sentence back.
-
-1. Does the sentence carry exactly one idea?
-2. Does the instruction name the actor?
-3. Does the instruction name the object?
-4. Does the condition come ahead of the action?
-5. Does the term match the term used elsewhere for the same concept?
-6. Does the text state the unit, the path, and the identifier?
-7. Does every pronoun point at a named antecedent?
-8. Does the sentence stay clear of hedges and qualifiers?
-9. Does the text keep code, commands, and literals unchanged?
-10. Does the text mark every missing value with a placeholder?
 
 ## The checker
 
@@ -252,23 +232,17 @@ one line at a time, so a question-7 detector cannot tell the two apart.
 ## Guardrails
 
 - Never edit the checker to make a document pass. Fix the document.
-- Never simplify a code block, a command, or an error string.
 - Never remove a warning to shorten a procedure.
-- Never resolve an ambiguity by guessing. Mark the gap and ask.
 - Keep a rewrite reviewable: change wording, keep every technical claim.
 
 ## Reference
 
-| File | Holds |
-|---|---|
-| `references/rules.md` | 53 rules across 9 sections |
-| `references/dictionary.md` | 198 non-approved words mapped to replacements |
-| `references/examples.md` | 24 before/after pairs across 13 domains |
-| `scripts/ste-check.sh` | the deterministic checker |
-
-Read `references/rules.md` when you need the rule behind a finding. Read
-`references/dictionary.md` when you need a replacement word. Read
-`references/examples.md` when you need the shape of a rewrite.
+| File | Holds | Read when you need |
+|---|---|---|
+| `references/rules.md` | 53 rules across 9 sections | the rule behind a finding |
+| `references/dictionary.md` | 198 non-approved words mapped to replacements | a replacement word |
+| `references/examples.md` | 24 before/after pairs across 13 domains | the shape of a rewrite |
+| `scripts/ste-check.sh` | the deterministic checker | |
 
 The `before` blocks in `references/examples.md` double as the checker's
 regression fixture. `--blocks before` must exit 1. `--blocks after` must exit 0.

@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1344-hermes-workspace-binding",
+  "description": "Bind Hermes installation and fresh sessions to the resolved AGRO workspace.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Set the workspace during install and repair",
+      "description": "As an operator, I want installation to set the terminal workspace so that fresh sessions run commands in my checkout.",
+      "acceptanceCriteria": [
+        "First installation sets `terminal.cwd` through `hermes config set` in `<target-root>/.hermes` before reporting success.",
+        "Existing installations repair missing or stale cwd without downloading the executable again.",
+        "Local and host paths use the resolved workspace; Docker uses `/home/sandbox/harness`.",
+        "Configuration failures return a nonzero exit status and an actionable diagnostic without an installation-success message.",
+        "Conflicting runtime homes receive explicit selection guidance; installation preserves credentials and unrelated state.",
+        "Tests cover default, recorded, and explicit workspace selection, repair, configuration failure, and non-Hermes installation.",
+        "Regression tests fail before the fix and pass after the fix."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "AC1: Executed: installation/repair target tests and real helper configuration via supported Hermes CLI passed; configuration happens before success.\nAC2: Executed: already-installed tests verify one configure call and no installer invocation.\nAC3: Executed: local/host/default/recorded/explicit roots and Docker container argv contracts passed.\nAC4: Executed: configuration failure tests returned nonzero and suppressed success; literal printed recovery command passed unchanged.\nAC5: Executed: inherited/default-home conflict tests reject before mutation; state-preservation fixtures and no-migration source review passed.\nAC6: Executed: 130 targeted tests and 1901 full-suite tests passed; non-Hermes harness tests remained green.\nAC7: Executed: documented regression red/green and final independent review passed; no security or logic findings.\nIntegrated review repairs: 9c054337 and 0d45625e; independent review passed with empty concerns/errors.",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/commands/harness.ts",
+        ".agro/cli/src/__tests__/hermes-integration.test.ts",
+        ".agro/cli/src/__tests__/harness.test.ts",
+        ".agro/scripts/hermes-workspace.sh"
+      ],
+      "commit": "961d50fc"
+    },
+    {
+      "id": "US-002",
+      "title": "Align the launch contract and gateway",
+      "description": "As an operator, I want launches to select the workspace home so that installation and gateway sessions use the same configuration.",
+      "acceptanceCriteria": [
+        "Interactive launch guidance explicitly selects `<workspace>/.hermes`; documentation states that bare `hermes` does not bind a workspace.",
+        "Gateway startup sets cwd through the supported Hermes configuration interface and returns configuration failures before starting tmux.",
+        "Installation and gateway startup use the same target-root and runtime-home contract without a second YAML editor.",
+        "Explicit gateway home and cwd overrides remain documented; conflicting inherited homes receive a diagnostic before mutation.",
+        "Configuration, authentication, secrets, memory, skills, and session files remain unchanged except for the selected terminal cwd and existing provider-link repair.",
+        "Documentation explains safe home selection and restarting an existing gateway; installation does not restart the live gateway.",
+        "Tests verify launch environment selection and failure handling; the changelog links issue #1344."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "AC1: Executed: launch guidance tests and documentation review verify explicit workspace HERMES_HOME; bare upstream launcher remains unchanged.\nAC2: Executed: gateway config CLI tests reject failure before tmux; shared helper runtime config readback passed.\nAC3: Executed: shared target-side home/cwd helper is used by installation and gateway; no second YAML writer remains.\nAC4: Executed: explicit gateway overrides, configured fallback-home conflicts, and normalized-path tests passed.\nAC5: Executed: credential/runtime fixture files stayed byte-identical; legacy-only and empty canonical Teams keys get key-only rejection.\nAC6: Reasoned: source and documentation show no automatic live gateway restart; active home and upstream checkout remained untouched in verification.\nAC7: Executed: gateway/diagnostic/quoted-path tests passed; docs/changelog link issue1344; STE passed.\nIntegrated review repairs: 9c054337 and 0d45625e; independent review passed with empty concerns/errors.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/scripts/gateway.sh",
+        ".agro/scripts/hermes-workspace.sh",
+        ".agro/scripts/__tests__/gateway.test.ts",
+        "docs/harnesses/hermes.md",
+        "CHANGELOG.md"
+      ],
+      "commit": "2a90e744"
+    },
+    {
+      "id": "US-003",
+      "title": "Record fresh-session and failure evidence",
+      "description": "As a maintainer, I want executable evidence so that reviewers can verify the workspace contract without trusting installer output.",
+      "acceptanceCriteria": [
+        "A run uses installed Hermes with an isolated runtime home; a fresh terminal session starts in the selected workspace.",
+        "The run starts outside the selected workspace and does not use a previous session-level `cd` as evidence.",
+        "Evidence records commands, actual output, exit status, a failure path, and cleanup in `.agro/tasks/hermes-workspace-binding/evidence/manual-review.md`.",
+        "The local run does not use provider credentials, send Slack messages, alter the active Hermes home, or restart the live gateway.",
+        "Repository tests, typecheck, build, and the configured lint command exit 0; the evidence reports unavailable checks as blockers."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "AC1: Executed: installed Hermes with isolated HOME/HERMES_HOME and fresh UUID terminal IDs returned workspace after repair; sectionF records actual output.\nAC2: Executed: probes started outside fixture workspace with no workdir or prior cd; original auto fallback returned fixture HOME.\nAC3: Executed: reproducible driver, exact output, exit statuses, relative/missing failure, timeout17 preservation, and cleanup recorded in committed evidence.\nAC4: Executed: clean runtime env inherited no provider credentials; no provider/Slack requests or active-home/gateway mutation occurred; cleanup returnedTrue.\nAC5: Executed: full suite89files/1901pass/4skip, targeted130pass, typecheck, build, configured lint, audit, Bash syntax, STE and diff checks exited0. Root lint supplies no static analysis.\nIntegrated review repairs: 9c054337 and 0d45625e; independent review passed with empty concerns/errors.",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/hermes-workspace-binding/evidence/manual-review.md",
+        ".agro/cli/src/__tests__/lifecycle.test.ts",
+        "pnpm-lock.yaml"
+      ],
+      "commit": "a78b5967"
+    }
+  ]
+}

@@ -118,8 +118,8 @@ Displaced detail has a destination — put it there, not in the entry:
 |--------|-------------|
 | Rationale, rejected alternatives | The PR body — the `([#N])` link is the pointer |
 | Task decisions | `.agro/tasks/<slug>/prd.md` |
-| Architecture decisions | `docs/rfcs/` |
-| Durable, generalized lessons | A minted probe under `.agro/evals/probes/` |
+| Architecture decisions | A GitHub issue titled `ADR: <title>` or `RFC: <title>` |
+| Durable, generalized lessons | A test under the nearest `__tests__/` directory |
 
 BAD (real entry, 3,579 chars — a design doc wearing a bullet):
 
@@ -132,8 +132,6 @@ GOOD (233 chars — same fact, rationale left to the PR):
 ```markdown
 - Add `agro harness <list|install|status>` to install optional harnesses into a running sandbox without a rebuild, persisting the choice to `install.<key>` for the next build ([#821](https://github.com/mifunedev/agro/pull/821)).
 ```
-
-Enforced by `.agro/evals/probes/changelog-entry-length.sh` (report-only) over `## [Unreleased]`.
 
 Automatic branch-push releases use the matching `## [<VERSION>] - YYYY-MM-DD` section when one already exists; otherwise they publish the current `[Unreleased]` body. Do **not** hand-edit a versioned section after its tag ships, except for a repo-wide reformat that changes no facts.
 
@@ -225,8 +223,8 @@ Keep stacks shallow: one level routine, two levels rare, three levels means a se
 ## Releases
 
 Every push to `main`, `master`, or `experiment/**` triggers `.github/workflows/release.yml`. The
-workflow checks out the exact event SHA and requires validation, boot-path lint,
-and eval probes to pass before it mutates a tag, GitHub Release, or package.
+workflow checks out the exact event SHA and requires validation and boot-path lint
+to pass before it mutates a tag, GitHub Release, or package.
 Do **not** manually pre-create a release tag or `release/<version>` branch.
 
 Versioning is SemVer: `MAJOR.MINOR.PATCH`, tagged `vMAJOR.MINOR.PATCH`. Root
@@ -257,8 +255,8 @@ shim versions remain on the registry. The release path does not publish, wait fo
 or deprecate the shim. The same build still publishes the GHCR tags
 `ghcr.io/mifunedev/agro:<version>`, `:sha-<sha>`,
 `ghcr.io/mifunedev/agro:<version>`, `:sha-<sha>`, verified to share one digest,
-plus `latest` on both repositories; and the release assets `agro.js`, `oh.js`,
-`get-agro.sh`, `get-agro.sh`. Publishing `@mifune/agro` needs npm rights for that
+plus `latest` on both repositories; and the release assets `agro.js`, `install.sh`,
+and a copy of `install.sh` under the earlier installer name. Publishing `@mifune/agro` needs npm rights for that
 name, and the package owner must make the GHCR package `mifunedev/agro` public after its first
 push; neither is verifiable here. The compatibility SLA clock starts at the first
 public AGRO release.
@@ -266,13 +264,13 @@ public AGRO release.
 The artifact sequence is:
 
 ```
-main|master push → validate + boot-lint + eval → read version from package.json
+main|master push → validate + boot-lint → read version from package.json
                  → reserve v<version> tag + draft
                  → build once + boot smoke + agro/agro version smoke
                  → push agro + agro <version> and sha-<full-SHA> GHCR tags
                  → verify one digest → canonical latest-by-digest on both
                  → publish/no-op @mifune/agro
-                 → attach agro.js, oh.js, get-agro.sh, get-agro.sh
+                 → attach agro.js, install.sh, earlier-name copy of install.sh
                  → publish GitHub Release
 ```
 

@@ -9,14 +9,134 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ## [Unreleased]
 
 ### Added
-
 - Add `agro sandbox install openshell` as an experimental, interactive-only NVIDIA OpenShell runtime with a default-deny network policy; remote Linux validation is tracked in #1257 ([#1254](https://github.com/mifunedev/agro/issues/1254)).
+
+### Changed
+- Set `CC_LANGFUSE_CAPTURE_IMAGES=false` in the project Claude Code settings, so the Langfuse plugin no longer uploads transcript images from sessions in this repository ([#1375](https://github.com/mifunedev/agro/issues/1375)).
+
+### Removed
+- Remove the Claude Code `Stop` hook from project settings, so Claude Code no longer runs `notify_slack.sh` after every turn ([#1373](https://github.com/mifunedev/agro/issues/1373)).
+
+## [0.19.0] - 2026-10-09
+
+### Added
+- Add OpenClaw to the harness catalog: `agro harness install openclaw` binds OpenClaw to the AGRO checkout, and `agro gateway openclaw` runs its gateway in the `client-openclaw` tmux session ([#1362](https://github.com/mifunedev/agro/issues/1362)).
+
+### Changed
+- Ship Node.js 24 in the sandbox image and offer Node 24 in `install.sh`; the host `agro` CLI still requires Node 20 or later ([#1361](https://github.com/mifunedev/agro/issues/1361)).
+
+## [0.18.1] - 2026-10-08
+
+### Fixed
+- Ship `libatomic1` in the sandbox image so the T3 Code native installer (`curl -fsSL https://t3.codes/install.sh | sh`) produces a working `t3` binary ([#1352](https://github.com/mifunedev/agro/issues/1352)).
+- Install Antigravity CLI when the upstream installer endpoint serves a gzip-compressed body ([#1354](https://github.com/mifunedev/agro/issues/1354)).
+
+## [0.18.0] - 2026-10-07
+
+### Changed
+- Set the Hermes default model in `.hermes/config.yaml` to `gpt-6.1-sol-900k` ([#1346](https://github.com/mifunedev/agro/issues/1346)).
+- Show the thinking effort level in the Claude Code status line and disable IDE auto-connect in project settings ([#1337](https://github.com/mifunedev/agro/issues/1337)).
+
+### Added
+
+- Add the experimental Vercel Labs `fx` coding agent to the harness catalog: `agro harness install fx` installs `fx` `v0.0.13` into `~/.local/bin` ([#1339](https://github.com/mifunedev/agro/issues/1339)).
+- Add `AGRO_REF` to the `remote-sandbox` skill. `scripts/run.sh` forwards `AGRO_REF` into the VM, and row `R02` runs `agro workspace create --ref "$AGRO_REF"` in host mode. A branch run now tests the host workspace scripts of the branch. Image mode ignores `AGRO_REF` and uses the image seed ([#1327](https://github.com/mifunedev/agro/issues/1327)).
+- Add `scripts/clipboard-read.mjs` and the "Copy-button checks" section to the `agent-browser` skill. `node .agro/skills/agent-browser/scripts/clipboard-read.mjs --session <name>` grants the clipboard permission through CDP, keeps the grant while it reads the clipboard, and prints the clipboard text. A plain `agent-browser clipboard read` fails with `Read permission denied` ([#1332](https://github.com/mifunedev/agro/issues/1332)).
+
+### Fixed
+
+- Make the TypeSafe adapter read `TYPESAFE_API_KEY` from the workspace root dotenv file before the inherited environment, so a rotated key works without a restart ([#1348](https://github.com/mifunedev/agro/issues/1348)).
+- Bind Hermes installation, repair, and gateway launches to the selected workspace home and terminal cwd ([#1344](https://github.com/mifunedev/agro/issues/1344)).
+- Brace the variables in the `/release` push refspec, so the command works in zsh. zsh read `$SHA:r` as the `:r` modifier and mangled the refspec. A new test fails on an unbraced variable before a colon and a letter in a skill or doc shell block ([#1331](https://github.com/mifunedev/agro/issues/1331)).
+- Update Pi goal and loop pins to remove their host-dependency warnings; retain the subagents and tasks warnings ([#1323](https://github.com/mifunedev/agro/issues/1323)).
+
+## [0.17.0] - 2026-10-04
+
+### Added
+
+- Add the `remote-sandbox` skill (`.agro/skills/remote-sandbox/`). `scripts/run.sh <provider>` creates a VM on exe.dev or Vercel Sandbox, runs a check detached in the VM, polls the check log, and destroys the VM. The default check, `checks/fresh-install.sh`, installs AGRO from `INSTALL_URL` and runs `agro --version` four ways (F1 to F4). `checks/agro-rows.sh`, `checks/cg-probe.sh`, and `scripts/restart-test.sh` hold the AGRO hosting matrix. A provider adapter defines five functions and up to three hooks, and `REMOTE_SANDBOX_ADAPTERS` adds adapter directories ([#1315](https://github.com/mifunedev/agro/issues/1315), ADR [#1314](https://github.com/mifunedev/agro/issues/1314)).
+
+### Changed
+
+- Detect the AGRO sandbox from the image marker `/etc/agro/sandbox`. The image now writes the marker. A VM that boots the AGRO image now counts as the sandbox. When the marker is absent, `agro` uses the old rule (`/.dockerenv` and `SANDBOX_NAME`) and prints one warning line that tells the operator to upgrade the sandbox image ([#1304](https://github.com/mifunedev/agro/issues/1304)).
+
+### Fixed
+
+- Set `HERMES_HOME` for the link step of a host `agro harness install hermes`, and print each Hermes link failure once with a Hermes remediation ([#1325](https://github.com/mifunedev/agro/issues/1325)).
+
+## [0.16.2] - 2026-10-03
+
+### Changed
+
+- Rename the curl installer from `get-agro.sh` to `install.sh`. Releases also upload `install.sh` as `get-agro.sh` until 0.18.0, which removes that alias ([#1309](https://github.com/mifunedev/agro/issues/1309)).
+
+### Removed
+
+- Remove the earlier `.agro/scripts/install.sh` checkout installer. It cloned into `~/.agro` and stopped at a bare `agro sandbox` ([#1309](https://github.com/mifunedev/agro/issues/1309)).
+
+### Fixed
+
+- Flush the first-boot seed to disk before the entrypoint writes `.agro/.image-seeded`, and restore 0-byte seed files when `agro.json` or `package.json` has 0 bytes after a power loss ([#1303](https://github.com/mifunedev/agro/issues/1303)).
+
+## [0.16.1] - 2026-10-03
+
+### Added
+
+- Add `pnpm test:coverage`, which reports v8 branch and line coverage for `.agro/cli/src/`, `.agro/scripts/`, and `.pi/` ([#1288](https://github.com/mifunedev/agro/issues/1288)).
+- Add a docs reference test that fails when `docs/` or `README.md` names an unknown `agro` verb, a missing repository path, an unknown `agro.json` key, or a broken link or anchor ([#1283](https://github.com/mifunedev/agro/issues/1283)).
+- Add a GitHub Codespaces badge near the top of the README to open AGRO in Codespaces ([#1259](https://github.com/mifunedev/agro/issues/1259)).
 - Add `escalate-timeouts.sh` to permit one 24-hour reminder and 72-hour expiry without granting approval ([#1192](https://github.com/mifunedev/agro/issues/1192)).
+
+### Fixed
+
+- Build the CLI bundle once in a vitest global setup so test files no longer race to build or read `.agro/cli/dist/agro.js` in a fresh worktree ([#1264](https://github.com/mifunedev/agro/issues/1264)).
+- Pass `TYPESAFE_API_KEY` into the sandbox so new shells, cron fires, and services see the key after a restart, and stop `agro secret set` appending `.env` when a rule already ignores it ([#1289](https://github.com/mifunedev/agro/issues/1289)).
+- Read Slack tokens in the gateway, entrypoint, escalate, and healthcheck scripts from the `.env` that `agro secret set` writes, so a missing `.devcontainer/.env` link no longer hides them ([#1282](https://github.com/mifunedev/agro/issues/1282)).
+- Fix stale links, commands, and names across `docs/` and trim each doc to its operator journey with one owner per topic, in Simplified Technical English ([#1278](https://github.com/mifunedev/agro/issues/1278)).
+- Run the Hermes install smoke through the installed `.hermes/bin/hermes --run-module` launcher, since the current Hermes installer no longer creates `scripts/_hermes-python` ([#1273](https://github.com/mifunedev/agro/issues/1273)).
+- Pin the `agro` shebang to the nvm Node that `get-agro.sh` installs, so cron, systemd, cloud-init, and plain `ssh` commands run `~/.local/bin/agro` by its absolute path ([#1262](https://github.com/mifunedev/agro/issues/1262)).
+
+### Removed
+
+- Remove the `notify-docs` release job and every `mifunedev/agro-web` pointer so releases no longer dispatch to the docs site and `docs/` is the only documentation source ([#1280](https://github.com/mifunedev/agro/issues/1280)).
+- Delete 22 docs with no operator journey, merge 4 into surviving docs, retire `docs/rfcs/`, and repoint `/architect`/`/git` to GitHub issues as the decision record ([#1275](https://github.com/mifunedev/agro/issues/1275)).
+- Remove the 145 eval probes after moving the 21 floor guards, including the deny hooks and sandbox privilege boundary, into vitest ([#1269](https://github.com/mifunedev/agro/issues/1269)).
+- Remove the `/eval` skill and runner, the `eval-probes` CI jobs, the `eval-weekly` cron, `/audit eval-quality`, and `/audit implementation` Gate 2 ([#1271](https://github.com/mifunedev/agro/issues/1271)).
+- Remove the eval experiments, datasets, capability benchmark, `/benchmark` skill, and finished task folders ([#1265](https://github.com/mifunedev/agro/issues/1265)).
+- Remove `.agro/knowledge/` and the `/wiki` skill so plans and skills no longer query a frozen knowledge tree and `agro vendor` stops shipping it ([#1277](https://github.com/mifunedev/agro/issues/1277)).
+
+### Changed
+
+- Default Pi to `openai-codex/gpt-6.1-sol` at `medium` thinking; Pi 1.0.1 or newer resolves the model ([#1298](https://github.com/mifunedev/agro/issues/1298)).
+- Cut 55 test units with no unique coverage, make the herdr-default order checks able to fail, and run the `node:test` suites under vitest ([#1288](https://github.com/mifunedev/agro/issues/1288)).
+- Point the documented installer commands at the `get-agro.sh` GitHub release asset and the `install.sh` raw file instead of `agro.mifune.dev` ([#1280](https://github.com/mifunedev/agro/issues/1280)).
+- Point the public-documentation surface check in `AGENTS.md` at `docs/` instead of `mifunedev/agro-web` ([#1267](https://github.com/mifunedev/agro/issues/1267)).
+
+## [0.16.0] - 2026-09-28
+
+### Added
+
 - Add `manual-review-check.sh` to reject branch-pinned evidence links and screenshots without `Callouts:`, and `annotate-screenshot.sh` to add numbered callouts to agent-browser screenshots ([#1239](https://github.com/mifunedev/agro/issues/1239)).
 - Add `/compact-handoff`, a manual skill that prints a `/compact` carry-forward prompt and a post-compaction prompt for the next unresolved task without executing either ([#1248](https://github.com/mifunedev/agro/issues/1248)).
 - Require a `## Manual review` PR section with reviewer steps and observed results: annotated screenshots for a user journey, commands with example output for a server or CLI change ([#1236](https://github.com/mifunedev/agro/issues/1236)).
 - Add `agro sandbox upgrade <name> --version X.Y.Z` to recreate an image-mode sandbox with a pinned release while preserving its home data ([#1208](https://github.com/mifunedev/agro/issues/1208)).
 - Add `.github/assets/social-preview.jpg`, the 1280x640 repository social preview in the banner style that replaces the retired "Open Harness" image ([#1198](https://github.com/mifunedev/agro/issues/1198)).
+
+### Changed
+
+- Set the Codex project default to `gpt-6-sol` at medium reasoning effort ([#1201](https://github.com/mifunedev/agro/issues/1201)).
+- Document host Codex updates when another npm global prefix shadows the selected installation ([#1201](https://github.com/mifunedev/agro/issues/1201)).
+
+### Fixed
+
+- Pin PR evidence links to the head commit SHA so screenshots still render after the branch is deleted, and drop `### Visual Reference` from the feature issue template ([#1239](https://github.com/mifunedev/agro/issues/1239)).
+- Restore the running container image after a failed upgrade of an unpinned sandbox, or refuse the upgrade if that image cannot be inspected ([#1217](https://github.com/mifunedev/agro/issues/1217)).
+- Record `docker-engine` and `desktop` host installs without a `~/.local` prefix, and make `agro tool uninstall` link manual removal steps for both ([#1185](https://github.com/mifunedev/agro/issues/1185)).
+
+## [0.15.1] - 2026-09-26
+
+### Added
+
 - Link GitHub Discussions from the README community section ([#1173](https://github.com/mifunedev/agro/issues/1173)).
 - Print a one-time star line after the first successful `agro sandbox install` in an interactive terminal; set `AGRO_NO_STAR_PROMPT=1` to suppress it ([#1175](https://github.com/mifunedev/agro/issues/1175)).
 - Read operator Slack decisions by message timestamp and report sender timestamps for unattended escalations ([#1181](https://github.com/mifunedev/agro/issues/1181)).
@@ -27,16 +147,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 
-- Set the Codex project default to `gpt-6-sol` at medium reasoning effort ([#1201](https://github.com/mifunedev/agro/issues/1201)).
-- Document host Codex updates when another npm global prefix shadows the selected installation ([#1201](https://github.com/mifunedev/agro/issues/1201)).
 - Use a YAML Slack app manifest for Pi setup and provide a copyable version in the Slack docs while preserving the app's permissions, events, and admin commands ([#1177](https://github.com/mifunedev/agro/issues/1177)).
 - Use `~/.agro/workspaces/harness` for implicit host installs and `agro workspace create`, while retaining explicitly named `default` workspaces and recorded roots ([#1183](https://github.com/mifunedev/agro/issues/1183)).
-
-### Fixed
-
-- Pin PR evidence links to the head commit SHA so screenshots still render after the branch is deleted, and drop `### Visual Reference` from the feature issue template ([#1239](https://github.com/mifunedev/agro/issues/1239)).
-- Restore the running container image after a failed upgrade of an unpinned sandbox, or refuse the upgrade if that image cannot be inspected ([#1217](https://github.com/mifunedev/agro/issues/1217)).
-- Record `docker-engine` and `desktop` host installs without a `~/.local` prefix, and make `agro tool uninstall` link manual removal steps for both ([#1185](https://github.com/mifunedev/agro/issues/1185)).
 
 ## [0.15.0] - 2026-09-24
 

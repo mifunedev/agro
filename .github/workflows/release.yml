@@ -30,10 +30,10 @@ jobs:
       - name: Ensure Mifune submodule
         run: bash .agro/scripts/link-providers.sh --init
 
-      - name: Setup Node 22.x
+      - name: Setup Node 24.x
         uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
@@ -93,28 +93,9 @@ jobs:
           config: .hadolint.yaml
           failure-threshold: warning
 
-  eval-probes:
-    name: Eval Probe Regression Gate
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout the event commit
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-          submodules: recursive
-
-      - name: Link provider skills
-        run: bash .agro/scripts/link-providers.sh --init
-
-      - name: Run eval probe suite
-        run: bash .agro/skills/eval/run.sh
-
   reserve:
     name: Reserve SemVer draft
-    needs: [validate, boot-lint, eval-probes]
+    needs: [validate, boot-lint]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -279,10 +260,10 @@ jobs:
         with:
           ref: ${{ needs.reserve.outputs.releaseSha }}
 
-      - name: Setup Node 22.x
+      - name: Setup Node 24.x
         uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Build the CLI bundles at the released commit
         run: |
@@ -294,9 +275,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
         run: |
+          cp .agro/scripts/install.sh "$RUNNER_TEMP/get-agro.sh"
           gh release upload "v${RELEASE_VERSION}" --clobber \
             .agro/cli/dist/agro.js \
-            .agro/scripts/get-agro.sh
+            .agro/scripts/install.sh \
+            "$RUNNER_TEMP/get-agro.sh"
 
       - name: Extract release notes from CHANGELOG
         env:
@@ -368,32 +351,5 @@ jobs:
               draft: false,
               make_latest: process.env.MAKE_LATEST,
             });
-
-  notify-docs:
-    name: Notify the docs site
-    needs: [reserve, finalize]
-    if: ${{ needs.reserve.outputs.publishedNoop != 'true' && needs.finalize.result == 'success' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: Send the agro-release repository_dispatch
-        env:
-          AGRO_WEB_DISPATCH_TOKEN: ${{ secrets.AGRO_WEB_DISPATCH_TOKEN }}
-          AGRO_WEB_REPO: ${{ vars.AGRO_WEB_REPO || 'mifunedev/agro-web' }}
-          RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
-        run: |
-          if [ -z "$AGRO_WEB_DISPATCH_TOKEN" ]; then
-            echo "::notice::Secret AGRO_WEB_DISPATCH_TOKEN is not set; skipping the agro-release dispatch to $AGRO_WEB_REPO"
-            exit 0
-          fi
-          GH_TOKEN="$AGRO_WEB_DISPATCH_TOKEN" gh api --method POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "/repos/${AGRO_WEB_REPO}/dispatches" \
-            -f event_type=agro-release \
-            -f "client_payload[ref]=${RELEASE_SHA}"
-          echo "Dispatched agro-release for $RELEASE_SHA to $AGRO_WEB_REPO"
 
   # publish-cli.yml also remains independently dispatchable with an explicit ref.

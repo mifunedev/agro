@@ -50,9 +50,9 @@ The linter reads every `*.md` and `*.sh` file under each folder in
 `<registry>/skills/`. It discovers the folders by scanning that directory and
 hardcodes no skill name. It applies three rules.
 
-### `OH-PATH`
+### `AGRO-PATH`
 
-Reports any `.agro/…` or `.agro/…` path in a scanned file. An installer has neither tree, so
+Reports any `.agro/…` path in a scanned file. An installer has no `.agro/` tree, so
 the reference cannot resolve.
 
 ### `HARNESS-SKILL`
@@ -81,8 +81,8 @@ Reports a backticked span that begins with `references/<f>.md` or
 The published folder is the installer's whole copy of the skill, so a sibling
 file that is not in it cannot be opened.
 
-The rule never double-reports a path that `OH-PATH` already reported on the same
-line. A `.agro/` or `.agro/` path is counted once.
+The rule never double-reports a path that `AGRO-PATH` already reported on the same
+line. A `.agro/` path is counted once.
 
 ## Running the check
 
@@ -120,26 +120,6 @@ triaged — the drift this run is the first to see.
 A `stale exception` line names an entry that matches no line in the file it
 names. It does not fail the run. It means a repair landed and the entry can go —
 which is how the five day-one `KNOWN` entries were retired.
-
-## The two probes
-
-| Probe | Reads | Skips when |
-|---|---|---|
-| `.agro/evals/probes/registry-portability.sh` | the published registry | `AGRO_REGISTRY_CHECKOUT` is unset |
-| `.agro/evals/probes/registry-portability-gate.sh` | this repository | never |
-
-The first probe scans the registry, so it needs a checkout and reports SKIPPED
-without one. That is every run in CI, which has no registry clone. It is the
-right result for that contract — a tree you do not have cannot be scanned — but
-it means the first probe guards nothing by default.
-
-The second probe carries the half of the contract that lives in this repository,
-so it is always armed. It asserts the linter is present and still fails closed,
-the `allow` block parses and every entry is well formed, and the publishing step
-in `.agro/skills/builder/references/skill.md` still names the gate. Those are the
-ways this check gets silently disarmed: deleted, made unparseable, or left with
-no caller. None of them would turn the first probe red, because the first probe
-is not running.
 
 ## Exit codes
 
@@ -216,7 +196,7 @@ exit code alone, unless you pass `--strict-exceptions`.
   backticks is not reported.
 - `HARNESS-SKILL` reads single-word routes only. A two-word route is not
   reported.
-- `OH-PATH` covers `.agro/` and `.agro/` only. The adjacent class is real and larger: the
+- `AGRO-PATH` covers `.agro/` only. The adjacent class is real and larger: the
   registry carries 82 `.claude/` references across 15 of its 18 skills, measured
   at `1d11ab6`. Widening the rule is a follow-up, deliberately left out of this
   change.
@@ -229,19 +209,8 @@ exit code alone, unless you pass `--strict-exceptions`.
 
 ## When this check actually runs
 
-Nothing runs the registry scan automatically. `AGRO_REGISTRY_CHECKOUT` is set in no
-GitHub workflow and no cron; it appears only in the probe that reads it and in
-this file. CI runs the probe suite (`.github/workflows/ci-harness.yml` and
-`release.yml` both call `.agro/skills/eval/run.sh`), so the gate probe fires on
-every run — but the registry-scanning probe finds no checkout there and reports
-SKIPPED every time.
-
-So the two halves have different triggers:
-
-| What | Runs when | Automatic |
-|---|---|---|
-| Gate wiring (`registry-portability-gate.sh`) | every CI run | yes |
-| Registry scan (the linter, and the probe that wraps it) | a human runs it | no |
+Nothing runs the registry scan automatically. No GitHub workflow and no cron
+invokes `.agro/scripts/registry-portability.sh`.
 
 The scan's intended trigger is the publishing step in
 `.agro/skills/builder/references/skill.md`: run it against a checkout before
@@ -250,16 +219,15 @@ automated gate, and it catches drift only on the path that goes through this
 repository.
 
 To close that gap, a scheduled job under `crons/` would clone the registry
-and run the probe armed. That is the only option that also catches a commit made
+and run the scan. That is the only option that also catches a commit made
 directly against the registry, which the publishing step cannot see.
 
 That job was blocked at first, for a stated reason: the check exited 1 against
 live master until the five recorded defects were repaired there, so a cron added
 then would have paged on a known backlog from its first run. mifunedev/skills#8
 repaired all five and merged as `eab0a14`. The check now reports `findings: 9`,
-`labelled KNOWN: 0`, `neither: 0`, exit 0 against live master, and the armed
-probe passes. **The cron is unblocked and remains unbuilt.** Whoever adds it
-starts from a green baseline, so its first page means real drift.
+`labelled KNOWN: 0`, `neither: 0`, exit 0 against live master. **The cron is
+unblocked and remains unbuilt.** Whoever adds it starts from a green baseline, so its first page means real drift.
 
 ## How far this check reaches
 
@@ -280,8 +248,12 @@ and left unfixed.
 
 ## The exception list
 
-Current state, measured against registry master `eab0a14`: 8 `ALLOW` entries and
-no `KNOWN` entries. The check exits 0.
+Current state: 4 `ALLOW` entries and no `KNOWN` entries. The check exits 0
+against registry master after mifunedev/skills#14.
+
+The four `skills/remote-sandbox/` entries guard the published copy of
+`remote-sandbox`. mifunedev/skills#14 publishes `remote-sandbox` and retires
+`agro-host-matrix`, so this list holds no `agro-host-matrix` entry.
 
 Day one held 5 more, all `KNOWN`, recording the defects the first sweep found and
 left standing. mifunedev/skills#8 repaired every one, so those entries matched no
@@ -290,11 +262,8 @@ dated record of what they were.
 
 ```allow
 # CLASS | RULE | registry-relative path | 12-hex line hash | reason
-ALLOW | OH-PATH | skills/ste/references/rules.md | 4a60b23b3dfd | example prose that teaches path-naming style; the reader is shown a path shape, not told to open it
-ALLOW | OH-PATH | skills/ste/references/rules.md | 15b94149666f | example prose that teaches path-naming style; the reader is shown a path shape, not told to open it
-ALLOW | OH-PATH | skills/ste/references/rules.md | 0a19004bd4ad | example prose that teaches path-naming style; the reader is shown a path shape, not told to open it
-ALLOW | OH-PATH | skills/ste/SKILL.md | 1a27405c7e92 | inside the [ -x ] existence guard; the whole block is a no-op outside a harness checkout
-ALLOW | OH-PATH | skills/ste/SKILL.md | dc032d4b6850 | inside the [ -x ] existence guard; the whole block is a no-op outside a harness checkout
-ALLOW | OH-PATH | skills/ste/SKILL.md | e6bc73aa7bbf | inside the [ -x ] existence guard; the whole block is a no-op outside a harness checkout
-ALLOW | HARNESS-SKILL | skills/reflect/SKILL.md | 7d0773a55384 | names a Claude Code built-in command, which an installer on that client already has
+ALLOW | AGRO-PATH | skills/remote-sandbox/checks/agro-rows.sh | bb0bf234d2da | path inside the AGRO VM under test; the remote-sandbox driver uploads the check, runs it on that VM, and never opens the path locally
+ALLOW | AGRO-PATH | skills/remote-sandbox/checks/agro-rows.sh | 9438513d0ff6 | path inside the AGRO VM under test; the remote-sandbox driver uploads the check, runs it on that VM, and never opens the path locally
+ALLOW | AGRO-PATH | skills/remote-sandbox/checks/agro-rows.sh | f34a62c6a090 | path inside the AGRO VM under test; the remote-sandbox driver uploads the check, runs it on that VM, and never opens the path locally
+ALLOW | AGRO-PATH | skills/remote-sandbox/scripts/restart-test.sh | eaf8abe9e58e | path inside the AGRO VM under test; the remote-sandbox driver uploads the check, runs it on that VM, and never opens the path locally
 ```

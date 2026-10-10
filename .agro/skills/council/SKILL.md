@@ -142,7 +142,6 @@ Existing skills keep their contracts; this skill does not migrate their workflow
 | [`/supervisor`](../supervisor/SKILL.md) | External session supervision. |
 | [`/builder`](../builder/SKILL.md) | Skill authoring. |
 | [`/ste`](../ste/SKILL.md) | Artifact prose. |
-| [`/wiki`](../wiki/SKILL.md) | Knowledge promotion. |
 
 ## Validation examples
 

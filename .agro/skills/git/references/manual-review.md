@@ -32,7 +32,7 @@ mifunedev/agro-console#185.
   in to GitHub.
 - "N/A" is not a valid body. If the change has no user interface, server, CLI,
   or API, use the server, CLI, or API shape. Give the command that proves the
-  change, for example the probe that guards the change.
+  change, for example the test that guards the change.
 
 ## Choose the shape
 
