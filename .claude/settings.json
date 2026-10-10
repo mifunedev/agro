@@ -2,7 +2,8 @@
   "enabledMcpjsonServers": ["debugmcp"],
   "env": {
     "CLAUDE_CODE_SUBAGENT_MODEL": "opus",
-    "CLAUDE_CODE_AUTO_CONNECT_IDE": "false"
+    "CLAUDE_CODE_AUTO_CONNECT_IDE": "false",
+    "CC_LANGFUSE_CAPTURE_IMAGES": "false"
   },
   "permissions": {
     "deny": [

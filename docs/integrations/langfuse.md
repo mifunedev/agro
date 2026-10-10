@@ -162,6 +162,11 @@ Optional: `LANGFUSE_USER_ID`, `CC_LANGFUSE_TRACE_TAGS`, `CC_LANGFUSE_MAX_CHARS`
 `CC_LANGFUSE_CAPTURE_SKILL_CONTENT` (default `false`), `CC_LANGFUSE_DEBUG`.
 Environment variables win over `/plugin configure` values.
 
+The project `.claude/settings.json` sets `CC_LANGFUSE_CAPTURE_IMAGES=false`. The
+plugin does not upload transcript images from Claude Code sessions in this
+repository. To capture images, set `CC_LANGFUSE_CAPTURE_IMAGES=true` in
+`.claude/settings.local.json`.
+
 ### 2. Pi
 
 ```bash
