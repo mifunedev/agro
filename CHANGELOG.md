@@ -8,6 +8,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+- Add `agro sandbox install openshell` as an experimental, interactive-only NVIDIA OpenShell runtime with a default-deny network policy; remote Linux validation is tracked in #1257 ([#1254](https://github.com/mifunedev/agro/issues/1254)).
+
 ### Changed
 - Set `CC_LANGFUSE_CAPTURE_IMAGES=false` in the project Claude Code settings, so the Langfuse plugin no longer uploads transcript images from sessions in this repository ([#1375](https://github.com/mifunedev/agro/issues/1375)).
 

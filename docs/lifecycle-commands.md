@@ -75,9 +75,14 @@ agro shell <name>                # attach as the sandbox user
   locally.
   `--repo <dir>` is a deprecated alias. Recipes:
   [Creating a sandbox](deployment-prebuilt-image.md).
-- `docker` is the only provisionable runtime. `agro sandbox install
-  microsandbox` refuses. Inside a sandbox, `agro tool install microsandbox`
-  installs the `msb` binary.
+- `docker` and `openshell` are the provisionable runtimes. `openshell` is
+  experimental and interactive-only: `agro sandbox install openshell` never
+  prompts, refuses `--checkout` and `--home-mount`, and needs the host
+  `openshell` CLI. See [NVIDIA OpenShell](runtimes/openshell.md). On an
+  `openshell` entry, `agro stop`, `restart`, `logs`, `ps`, `compose config`,
+  and `sandbox upgrade` exit 1 and print the `openshell` command to run.
+- `agro sandbox install microsandbox` refuses. Inside a sandbox,
+  `agro tool install microsandbox` installs the `msb` binary.
 
 `agro sandbox` with no subcommand prints help and exits non-zero.
 
