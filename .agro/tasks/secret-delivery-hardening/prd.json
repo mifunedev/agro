@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1407-secret-delivery-hardening",
+  "description": "Secret delivery hardening: deny agent `agro secret get` and restrict `agro secret set --sandbox` to the keys that Compose passes into the container.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Deny agent reads through `agro secret get`",
+      "description": "As the operator, I want the agent hooks to deny `agro secret get` so that an agent cannot print a raw secret into its transcript.",
+      "acceptanceCriteria": [
+        "`.agro/hooks/deny-env-dump.sh` returns `deny` for `agro secret get GH_TOKEN`.",
+        "The hook returns `deny` for `agro secret get SANDBOX_PASSWORD --sandbox box` and for `npx agro secret get GH_TOKEN`.",
+        "The hook returns no decision for `agro secret list` and for `agro secret set GH_TOKEN`.",
+        "The deny message tells the agent to ask the operator to run the command.",
+        "`.agro/scripts/__tests__/hooks.test.ts` holds a case for each command above, and `npx vitest run .agro/scripts/__tests__/hooks.test.ts` exits 0.",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [".agro/hooks/deny-env-dump.sh", ".agro/scripts/__tests__/hooks.test.ts"]
+    },
+    {
+      "id": "US-002",
+      "title": "Restrict `agro secret set --sandbox` to the keys that Compose passes",
+      "description": "As the operator, I want `agro secret set <KEY> --sandbox <name>` to refuse a key that never reaches the container so that a stored secret never fails silently.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/lib/secrets.ts` exports `COMPOSE_SECRET_KEYS` with the values `GH_TOKEN`, `SANDBOX_PASSWORD`, and `TYPESAFE_API_KEY`.",
+        "A test reads `.devcontainer/docker-compose.yml` and asserts that the `${KEY:-}` entries for allow-listed secret keys equal `COMPOSE_SECRET_KEYS`.",
+        "With `--sandbox <name>`, `runSecretSet` exits 1 for `PI_SLACK_BOT_TOKEN` and writes no file.",
+        "The refusal message names the key and tells the operator to run `agro secret set <KEY>` in the project checkout.",
+        "With `--sandbox <name>`, `runSecretSet` exits 0 for `GH_TOKEN` and writes the entry `.env`.",
+        "Without `--sandbox`, `runSecretSet` exits 0 for `PI_SLACK_BOT_TOKEN`.",
+        "`npx vitest run .agro/cli/src/__tests__/config-secret.test.ts` exits 0.",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/secrets.ts",
+        ".agro/cli/src/commands/secret.ts",
+        ".agro/cli/src/__tests__/config-secret.test.ts",
+        ".agro/cli/src/lib/__tests__/secrets.test.ts"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Document the delivery rule",
+      "description": "As the operator, I want the docs to state which keys `--sandbox` accepts so that the docs match the CLI.",
+      "acceptanceCriteria": [
+        "`docs/configuration.md` states that `--sandbox` accepts only `GH_TOKEN`, `SANDBOX_PASSWORD`, and `TYPESAFE_API_KEY`.",
+        "`docs/configuration.md` states that the container reads the other keys from the `.env` of the project checkout.",
+        "`docs/security-considerations.md` states that the hooks deny `agro secret get` for agents.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh docs/configuration.md` reports no new finding on a changed line."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-001", "US-002"],
+      "files": ["docs/configuration.md", "docs/security-considerations.md", "CHANGELOG.md"]
+    },
+    {
+      "id": "US-004",
+      "title": "Record manual review evidence",
+      "description": "As the advisor, I want a command transcript so that the PR shows the changed behavior.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/secret-delivery-hardening/evidence/manual-review.md` holds the hook output for `agro secret get GH_TOKEN` piped through the hook as JSON input.",
+        "The file holds the output and exit code of `runSecretSet` for `PI_SLACK_BOT_TOKEN` with `--sandbox` in a temporary `AGRO_HOME`.",
+        "The transcript holds no secret value.",
+        "The story deletes each temporary directory that it creates."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-001", "US-002"],
+      "files": [".agro/tasks/secret-delivery-hardening/evidence/manual-review.md"]
+    }
+  ]
+}
