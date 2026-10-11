@@ -149,7 +149,6 @@ describe("validateAgroConfig", () => {
       { hermesDashboard: { port: "9119" } },
       /^agro\.json: hermesDashboard\.port must be a number$/,
     ],
-    ["cron.agentBin", { cron: { agentBin: 3 } }, /^agro\.json: cron\.agentBin must be a string$/],
     ["image.ref", { image: { ref: 5 } }, /^agro\.json: image\.ref must be a string$/],
     ["image.mode", { image: { mode: "pull" } }, /^agro\.json: image\.mode must be one of build, image$/],
     [
@@ -189,6 +188,17 @@ describe("validateAgroConfig", () => {
     const read = readAgroConfig(agroConfigPath(root));
     expect(read.name).toBe("legacy");
     expect(() => validateAgroConfig({ version: 1, build: { skipPnpmInstall: "1" } })).not.toThrow();
+  });
+
+  it("loads an agro.json that still carries a retired cron key", () => {
+    const root = makeRoot();
+    writeFileSync(
+      agroConfigPath(root),
+      JSON.stringify({ version: 1, name: "legacy", cron: { agentBin: "claude" } }),
+    );
+    const read = readAgroConfig(agroConfigPath(root));
+    expect(read.name).toBe("legacy");
+    expect(() => validateAgroConfig({ version: 1, cron: { agentBin: 3 } })).not.toThrow();
   });
 
   // #948: the template carries no `install` section, but an agro.json written

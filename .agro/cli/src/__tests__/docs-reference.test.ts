@@ -8,7 +8,7 @@ import { AGRO_CONFIG_FIELDS } from "../lib/agro-config.js";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 const SHELL_FENCES = new Set(["", "bash", "sh", "shell", "console", "zsh"]);
-const REPO_PATH = /(?:^|[\s"'(=])((?:\.agro|\.devcontainer|\.pi|\.claude|\.codex|\.github|crons|docs)\/[^\s`"'()]*)/g;
+const REPO_PATH = /(?:^|[\s"'(=])((?:\.agro|\.devcontainer|\.pi|\.claude|\.codex|\.github|docs)\/[^\s`"'()]*)/g;
 const AGRO_VERB = /(?:^|[\s;&|(])agro\s+([a-z][\w-]*)(?:\s+([a-z][\w-]*))?/g;
 const DOTTED_KEY = /(?<![\w./-])([A-Za-z]\w*)\.([A-Za-z]\w*(?:\.[A-Za-z]\w*)*)(?![\w/-])/g;
 const INLINE_CODE = /(`+)(.+?)\1/g;

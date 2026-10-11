@@ -124,13 +124,13 @@ describe("loadManifest", () => {
       JSON.stringify({
         include: ["cli/**"],
         exclude: ["**/dist/**"],
-        rootInclude: ["crons/**"],
+        rootInclude: ["assets/**"],
       }),
     );
     expect(loadManifest(dir)).toEqual({
       include: ["cli/**"],
       exclude: ["**/dist/**"],
-      rootInclude: ["crons/**"],
+      rootInclude: ["assets/**"],
     });
   });
 

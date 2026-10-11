@@ -173,18 +173,18 @@ describe("copyRootPayload", () => {
   it("ships only rootInclude dirs to the target root, and refuses to escape it", () => {
     const from = mkTmp();
     const target = mkTmp();
-    write(from, "crons/heartbeat.md", "beat\n");
+    write(from, "assets/logo.txt", "logo\n");
     write(from, "docs/intro.md", "docs\n");
     write(
       from,
       ".agro/manifest.json",
-      JSON.stringify({ include: ["cli/**"], rootInclude: ["crons/**"], exclude: [] }),
+      JSON.stringify({ include: ["cli/**"], rootInclude: ["assets/**"], exclude: [] }),
     );
 
     const manifest = loadManifest(path.join(from, ".agro"));
     const res = copyRootPayload(from, target, manifest, {});
 
-    expect(fs.existsSync(path.join(target, "crons/heartbeat.md"))).toBe(true);
+    expect(fs.existsSync(path.join(target, "assets/logo.txt"))).toBe(true);
     expect(fs.existsSync(path.join(target, "docs/intro.md"))).toBe(false);
     expect(res.written).toBe(1);
 
@@ -196,14 +196,14 @@ describe("copyRootPayload", () => {
       });
     }
     expect(() =>
-      assertDestInRoot(path.join(target, "crons/x.md"), target, path.sep),
+      assertDestInRoot(path.join(target, "assets/x.txt"), target, path.sep),
     ).not.toThrow();
   });
 
   it("is a no-op when the manifest declares no rootInclude", () => {
     const from = mkTmp();
     const target = mkTmp();
-    write(from, "crons/heartbeat.md", "beat\n");
+    write(from, "assets/logo.txt", "logo\n");
 
     expect(copyRootPayload(from, target, { include: ["cli/**"], exclude: [] }, {})).toEqual({
       written: 0,

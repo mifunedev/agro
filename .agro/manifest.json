@@ -9,9 +9,7 @@
     "README.md",
     "manifest.json"
   ],
-  "rootInclude": [
-    "crons/**"
-  ],
+  "rootInclude": [],
   "exclude": [
     "**/node_modules/**",
     "**/dist/**",

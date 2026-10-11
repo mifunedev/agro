@@ -19,7 +19,6 @@ on:
       - ".github/workflows/ci-harness.yml"
       - ".claude/hooks/**"
       - ".claude/protected-paths.txt"
-      - "crons/**"
       - ".devcontainer/**"
       - "AGENTS.md"
   pull_request:
@@ -36,7 +35,6 @@ on:
       - ".github/workflows/ci-harness.yml"
       - ".claude/hooks/**"
       - ".claude/protected-paths.txt"
-      - "crons/**"
       - ".devcontainer/**"
       - "AGENTS.md"
 

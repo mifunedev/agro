@@ -192,10 +192,13 @@ describe("renderComposeEnv", () => {
     expect(renderComposeEnv(withRepo)).toContain("AGRO_REPO_DIR=/srv/checkout");
   });
 
-  it("leaves skipPnpmInstall to agro.json — entrypoint.sh reads it through the CLI", () => {
+  it("renders no compose key for retired build and cron settings", () => {
     const config = defaultAgroConfig("demo");
     config.build = { skipPnpmInstall: true };
-    expect(renderComposeEnv(config)).not.toContain("SKIP_PNPM_INSTALL");
+    config.cron = { agentBin: "claude" };
+    const text = renderComposeEnv(config);
+    expect(text).not.toContain("SKIP_PNPM_INSTALL");
+    expect(text).not.toContain("CRON_AGENT_BIN");
   });
 
   it("leaves the sshd mode to agro.json, publishing only the port", () => {

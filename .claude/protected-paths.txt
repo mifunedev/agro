@@ -33,10 +33,6 @@ t3
 .devcontainer/entrypoint.sh
 .devcontainer/Dockerfile
 
-# --- Crons (referenced by .agro/scripts/cron-runtime.ts) ---
-crons/heartbeat.md
-crons/cleanup-tasks.md
-
 # --- Norms folded into skills (B-state M3+M4) ---
 .agro/skills/git/SKILL.md
 .agro/skills/t3/references/sandbox-processes.md

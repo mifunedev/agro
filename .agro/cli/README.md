@@ -4,7 +4,7 @@ The **AGRO CLI** (`agro`) — create an [AGRO](https://github.com/mifunedev/agro
 Docker sandbox for coding agents and drive its lifecycle from the command line.
 
 AGRO is a portable harness for running coding agents (Claude Code, Codex, Pi,
-and others) in an isolated Docker sandbox, with the agent's identity, skills, and crons
+and others) in an isolated Docker sandbox, with the agent's identity and skills
 versioned in git. This package is the standalone `agro` CLI that creates sandboxes and
 manages their lifecycle.
 
@@ -54,7 +54,7 @@ To bind one of your own checkouts into the sandbox, equip it and pass `--checkou
 
 ```bash
 cd your-project
-agro vendor                                       # vendor .agro/ + crons/ — and nothing else (compatibility window)
+agro vendor                                       # vendor .agro/ — and nothing else (compatibility window)
 agro sandbox install docker --checkout "$PWD" --name your-project
 ```
 
@@ -133,7 +133,7 @@ conflicting `AGRO_SANDBOX_IMAGE` values in the host shell or entry `.env` before
 
 `agro update` upgrades only the installed CLI. It does not recreate the sandbox
 or change its image. During the compatibility window `agro vendor` vendors
-`.agro/` + `crons/` into the current directory, equipping an empty checkout and upgrading an
+`.agro/` into the current directory, equipping an empty checkout and upgrading an
 equipped one (`--from <dir>` / `--from-remote [--ref <ref>]`, `--dry-run`, `--force`); it
 writes nothing else and never prompts. `agro update` rejects those flags and points at
 `agro vendor`. `agro vendor` prefers the payload bundled into the CLI itself; with `--from-remote`

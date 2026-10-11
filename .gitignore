@@ -46,10 +46,6 @@ projects/*
 **/.claude/screenshots/*
 !**/.claude/screenshots/.gitkeep
 
-# Croner runtime artifacts (keep crons/*.md tracked)
-crons/.pid
-crons/*.log
-
 **/.next
 **/.ralph/archives/
 **/src/generated/
@@ -78,12 +74,10 @@ crons/*.log
 # Legacy/future workspace package build artifacts
 packages/*/build/
 packages/*/node_modules/
-# Cron runtime state written by entrypoint.sh's seed_workspace_volume when there
+# Seed marker written by entrypoint.sh's seed_workspace_volume when there
 # is no checkout bind. It must never land in a real checkout, so it is ignored on
 # every branch.
 .agro/.image-seeded
-.agro/crons/
-.agro/crons/
 
 # RETIRED COMPATIBILITY TOMBSTONE — .agro/memory/ and .agro/memory/ were deleted as a concept; nothing
 # writes or reads it. This rule exists only so a stale directory left by a

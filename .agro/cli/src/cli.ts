@@ -213,7 +213,7 @@ Usage:
   ${bin} langfuse disable   Set langfuse.enabled=false, delete the credential fragment, rewrite the files
 
 \`${bin} config langfuse\` is the interactive wizard that writes these settings.
-\`apply\` never prompts and never installs anything; bootstrap, systemd, and cron run it.
+\`apply\` never prompts and never installs anything; bootstrap and systemd run it.
 It reads langfuse.* from ${stateNames(bin).configFile} and the keys from the gitignored .env,
 and writes nothing when langfuse.enabled is not true. The generated files live in the
 sandbox home, so \`apply\` and \`disable\` refuse to touch them from the host.
@@ -257,7 +257,7 @@ Flags:
   --dry-run       Report the installation kind, target, and versions without
                   changing anything.
 
-Project payload vendoring (${stateNames(bin).controlDir}/ + crons/) is \`${bin} vendor\`; its --from,
+Project payload vendoring (${stateNames(bin).controlDir}/) is \`${bin} vendor\`; its --from,
 --from-remote, --ref and --force flags are not accepted here.
 `);
 }
@@ -268,7 +268,7 @@ export function printVendorHelp(bin: string = AGRO_PRODUCT.bin): void {
 Usage:
   ${bin} vendor [--from <dir> | --from-remote [--ref <ref>]] [--dry-run] [--force]
 
-Writes ONLY the ${stateNames(bin).controlDir}/ control plane and crons/ (skills, scripts, CLI) into the
+Writes ONLY the ${stateNames(bin).controlDir}/ control plane (skills, scripts, CLI) into the
 current directory. An empty directory is equipped from scratch; everything else
 in your project is left untouched — it writes no ${stateNames(bin).configFile}, .env, AGENTS.md,
 .gitignore or .devcontainer/.

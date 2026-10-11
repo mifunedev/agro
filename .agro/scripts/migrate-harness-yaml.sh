@@ -29,8 +29,8 @@ BEGIN {
     envmap["ssh.enabled"]           = "SANDBOX_SSH"
     envmap["ssh.port"]              = "SANDBOX_SSH_PORT"
     envmap["ssh.password_auth"]     = "SANDBOX_SSH_PASSWORD_AUTH"
-    envmap["crons.agent_bin"]       = "CRON_AGENT_BIN"
-    retiredmap["crons.dir"]         = "crons"
+    retiredmap["crons.agent_bin"]   = ""
+    retiredmap["crons.dir"]         = ""
     retiredmap["paths.worktrees"]   = ".worktrees"
     retiredmap["paths.projects"]    = "projects"
     section  = ""
@@ -138,7 +138,6 @@ _field_for() {
         SANDBOX_SSH)                printf 'access.ssh boolean\n' ;;
         SANDBOX_SSH_PORT)           printf 'access.sshPort number\n' ;;
         SANDBOX_SSH_PASSWORD_AUTH)  printf 'access.sshPasswordAuth boolean\n' ;;
-        CRON_AGENT_BIN)             printf 'cron.agentBin string\n' ;;
         *)                          return 1 ;;
     esac
 }
@@ -257,6 +256,11 @@ if [ -n "$_retired" ]; then
         _rrest=${_row#*=}
         _rval=${_rrest%=*}
         _rfixed=${_rrest##*=}
+        if [ -z "$_rfixed" ]; then
+            printf '  WARNING %s: %s is no longer honoured. AGRO has no cron runtime;\n' "$_rkey" "$_rval"
+            printf '          run recurring work with the native loop of the coding harness.\n'
+            continue
+        fi
         printf '  WARNING %s: %s is no longer honoured. The harness layout is a\n' "$_rkey" "$_rval"
         printf '          convention, not a setting; this directory is always %s at the\n' "$_rfixed"
         printf '          repository root. Move any content there.\n'
