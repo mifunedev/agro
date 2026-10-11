@@ -1,0 +1,5 @@
+{
+  "status": 0,
+  "headers": { "content-type": "application/json" },
+  "body": { "message": "synthetic error" }
+}

@@ -1,0 +1,12 @@
+{
+  "status": 200,
+  "headers": { "content-type": "application/json" },
+  "body": {
+    "data": [
+      { "id": "score-1", "projectId": "proj-fixture", "name": "task-success", "value": 0, "dataType": "NUMERIC", "source": "ANNOTATION", "timestamp": "2026-10-02T12:00:00.000Z", "environment": "dev", "subject": { "kind": "session", "id": "session-a" } },
+      { "id": "score-2", "projectId": "proj-fixture", "name": "helpful", "value": true, "dataType": "BOOLEAN", "source": "API", "timestamp": "2026-10-03T12:00:00.000Z", "environment": "dev", "subject": { "kind": "trace", "id": "trace-b1" } },
+      { "id": "score-3", "projectId": "proj-fixture", "name": "unrelated", "value": "x", "dataType": "CATEGORICAL", "source": "EVAL", "timestamp": "2026-10-03T12:00:00.000Z", "environment": "dev", "subject": { "kind": "trace", "id": "trace-elsewhere" } }
+    ],
+    "meta": {}
+  }
+}
