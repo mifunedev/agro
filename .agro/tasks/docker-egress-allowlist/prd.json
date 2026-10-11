@@ -17,15 +17,16 @@
         "`pnpm exec vitest run .agro/cli/src/lib/__tests__/agro-config.test.ts` exits 0, and `npm --prefix .agro/cli run typecheck` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated. Advisor re-ran: vitest agro-config + config-render exit 0 (99 tests); typecheck exit 0. Worker executed the built CLI: `config set access.egress allowlist` exit 0, `closed` exit 1 with `must be one of open, allowlist`; `access.egressAllow` is a list field parsed like composeOverrides; AGRO_EGRESS rendered next to DOCKER_SOCKET; docs/configuration.md lists both fields, ste-check clean; full vitest exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/agro-config.ts",
         ".agro/cli/src/lib/config-render.ts",
         ".agro/cli/src/lib/__tests__/agro-config.test.ts",
         "docs/configuration.md"
-      ]
+      ],
+      "commit": "6e92d927"
     },
     {
       "id": "US-002",
