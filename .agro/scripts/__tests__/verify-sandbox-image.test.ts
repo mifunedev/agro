@@ -88,6 +88,17 @@ case "$cmd" in
   "pnpm --version") printf '%s\\n' ${JSON.stringify(v.pnpm)} ;;
   "npm --version") printf '%s\\n' ${JSON.stringify(v.npm)} ;;
   "agro --version") printf '%s\\n' ${JSON.stringify(v.agroVersion)} ;;
+  "shellcheck --version")
+    if [ -n ${JSON.stringify(v.missingTool)} ] && [ "$cmd" = ${JSON.stringify(v.missingTool)} ]; then
+      echo 'command not found' >&2
+      exit 127
+    fi
+    if [ -n ${JSON.stringify(v.nonVersionTool)} ] && [ "$cmd" = ${JSON.stringify(v.nonVersionTool)} ]; then
+      printf 'ShellCheck - shell script analysis tool\\n'
+    else
+      printf 'ShellCheck - shell script analysis tool\\nversion: 0.10.0\\nlicense: GNU General Public License, version 3\\n'
+    fi
+    ;;
   "command -v oh") [ "${v.legacyEntryPoint ? "1" : "0"}" = "1" ] && printf '/usr/local/bin/oh\\n' || exit 1 ;;
   *"agro harness list --json"*)
     if [ "${v.harnessCatalogFails ? "1" : "0"}" = "1" ]; then
@@ -163,6 +174,8 @@ describe("verify-sandbox-image", () => {
     expect(result.stdout).toContain("pnpm is exactly 10.33.0");
     expect(result.stdout).toContain("npm is 11.19.0, at least 11.16.0");
     expect(result.stdout).toContain("agro reports CLI version 0.8.0");
+    expect(result.stdout).toContain("ok: shellcheck --version -> version: 0.10.0");
+    expect(result.stdout).toContain("ok: hadolint --version -> hadolint --version 1.2.3 (fake)");
     expect(result.stdout).toContain("no harness is baked into the image");
     expect(result.stdout).toContain("no installable tool is baked into the image");
     expect(result.stdout).toContain("all checks passed");
@@ -196,6 +209,9 @@ describe("verify-sandbox-image", () => {
     ["an npm older than 11.16.0", { npm: "10.9.2" }, "npm is 10.9.2, expected at least 11.16.0"],
     ["an npm one minor short of 11.16.0", { npm: "11.15.9" }, "npm is 11.15.9, expected at least 11.16.0"],
     ["a missing required tool", { missingTool: "uv --version" }, "uv --version produced no version output"],
+    ["a missing hadolint", { missingTool: "hadolint --version" }, "hadolint --version produced no version output"],
+    ["a missing shellcheck", { missingTool: "shellcheck --version" }, "shellcheck --version produced no version output"],
+    ["a shellcheck with no version line", { nonVersionTool: "shellcheck --version" }, "shellcheck --version exited cleanly but reported no numeric dotted version line"],
   ])("rejects %s", (_label, overrides, expected) => {
     const result = run(fixture(overrides));
 
@@ -209,6 +225,7 @@ describe("verify-sandbox-image", () => {
     "docker compose version",
     "bun --version",
     "uv --version",
+    "hadolint --version",
   ])("rejects clean but non-version output from %s", (tool) => {
     const result = run(fixture({ nonVersionTool: tool }));
 

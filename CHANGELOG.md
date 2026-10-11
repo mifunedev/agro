@@ -8,6 +8,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+- Add `shellcheck` and a pinned, checksum-verified `hadolint` 2.12.0 to the sandbox image, so that agents run the CI boot path lint before they push ([#1393](https://github.com/mifunedev/agro/issues/1393)).
+
 ### Changed
 - **BREAKING:** Run the Compose sandbox under Compose init with `sandbox-main.sh` as the main process. The Compose sandbox drops `SYS_ADMIN`, `apparmor=unconfined`, `cgroup: private`, and the tmpfs mounts, and the bootstrap log goes to `agro logs`. The image keeps systemd and `/sbin/init` for VM image mode ([#1393](https://github.com/mifunedev/agro/issues/1393)).
 

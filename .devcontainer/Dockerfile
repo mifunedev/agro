@@ -10,11 +10,12 @@ ENV container=docker
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-client openssh-server build-essential ca-certificates curl wget sudo gosu git jq gnupg \
     lsb-release nano ripgrep tmux unzip bash-completion procps less \
-    iproute2 zsh lsof htop inetutils-telnet \
+    iproute2 zsh lsof htop inetutils-telnet shellcheck \
     systemd systemd-sysv dbus libatomic1 \
  && command -v lsof >/dev/null \
  && command -v htop >/dev/null \
  && command -v telnet >/dev/null \
+ && command -v shellcheck >/dev/null \
  && ldconfig -p | grep -q libatomic.so.1 \
  && rm -rf /var/lib/apt/lists/*
 
@@ -32,6 +33,17 @@ RUN install -m 0755 -d /etc/apt/keyrings \
       > /etc/apt/sources.list.d/docker.list \
  && apt-get update && apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin \
  && rm -rf /var/lib/apt/lists/*
+
+ARG HADOLINT_VERSION=2.12.0
+RUN case "$(dpkg --print-architecture)" in \
+      amd64) asset=hadolint-Linux-x86_64; sha=56de6d5e5ec427e17b74fa48d51271c7fc0d61244bf5c90e828aab8362d55010 ;; \
+      arm64) asset=hadolint-Linux-arm64; sha=5798551bf19f33951881f15eb238f90aef023f11e7ec7e9f4c37961cb87c5df6 ;; \
+      *) echo "no pinned hadolint build for $(dpkg --print-architecture)" >&2; exit 1 ;; \
+    esac \
+ && curl -fsSL "https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/${asset}" -o /tmp/hadolint \
+ && echo "${sha}  /tmp/hadolint" | sha256sum -c - \
+ && install -m 0755 /tmp/hadolint /usr/local/bin/hadolint \
+ && rm -f /tmp/hadolint
 
 RUN BUN_INSTALL=/usr/local curl -fsSL https://bun.sh/install | bash
 

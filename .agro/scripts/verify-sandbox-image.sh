@@ -99,7 +99,7 @@ has_numeric_dotted_version() {
 }
 
 for tool in "gh --version" "docker --version" "docker compose version" \
-            "bun --version" "uv --version"; do
+            "bun --version" "uv --version" "hadolint --version"; do
   if out=$(run "$tool" 2>&1); then
     line=$(first_real_line <<<"$out")
     if has_numeric_dotted_version <<<"$line"; then
@@ -111,6 +111,17 @@ for tool in "gh --version" "docker --version" "docker compose version" \
     fail "$tool produced no version output: $(first_real_line <<<"$out")"
   fi
 done
+
+if out=$(run 'shellcheck --version' 2>&1); then
+  line=$(grep -m1 -E '^version:' <<<"$out" || true)
+  if has_numeric_dotted_version <<<"$line"; then
+    ok "shellcheck --version -> $line"
+  else
+    fail "shellcheck --version exited cleanly but reported no numeric dotted version line: $(first_real_line <<<"$out")"
+  fi
+else
+  fail "shellcheck --version produced no version output: $(first_real_line <<<"$out")"
+fi
 
 if python_out=$(docker run --rm --network none --entrypoint /bin/bash "$IMAGE" -c '
   set -euo pipefail
