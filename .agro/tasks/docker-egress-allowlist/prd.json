@@ -91,8 +91,8 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated. Advisor re-ran: full vitest exit 0; typecheck exit 0. egress.test.ts (18 tests) asserts exact argv: log = docker-compose.sh ... exec -T proxy tail -n 1000 /var/log/squid/access.log with TCP_DENIED lines prefixed `DENIED `; reload = materialize() then exec -T proxy squid -k reconfigure; open and OpenShell refusals exit 1 with one line naming the setting. Worker checked help and refusals on the built CLI. Live proof of the log path and exec -T is US-006. Note: egress.ts repeats the few lines of the unexported sandboxRoot() from lifecycle.ts.",
       "dependsOn": [
         "US-001",
         "US-003"
@@ -102,7 +102,8 @@
         ".agro/cli/src/cli.ts",
         ".agro/cli/src/command-table.ts",
         ".agro/cli/src/__tests__/egress.test.ts"
-      ]
+      ],
+      "commit": "3737a29e"
     },
     {
       "id": "US-005",
