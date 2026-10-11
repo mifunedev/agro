@@ -70,8 +70,8 @@
         "The inventory summary counts sessions by harness, model, environment, session length, tool errors, latency, cost, and outcome signal, and lists each unavailable field."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: red run failed on missing langfuse.mjs (worker evidence); executed: vitest access.test.ts 34/34 on integrated branch: agro.json baseUrl -> --host, config root via AGRO_PROJECT_ROOT, root dotenv file passed only via CLI --env, no key in argv/run files/errors, exit 3 -> missing-credentials, 401/403 -> forbidden, 404/missing schema op -> incompatible-endpoint, exit 4 -> unreachable, 429/5xx retried max 3, 422 once, auth never retried, legacy ops refused, empty exit 3 vs failed exit 1; executed LIVE (read-only, metadata-only) against https://langfuse-dev.mifune.dev: preflight recorded project AGRO cmubtljuf0005ph07rx51agye, CLI 1.2.4, API 4.35.0; inventory window 2026-09-11..2026-10-11 completed after 2 resumes: 60 pages, 58070 observations, 327 sessions, summary by harness/model/environment/length/tool errors/latency/cost/outcome; transient 422 found and fixed; executed: langfuse-adapter.md ste-check exit 0.",
       "dependsOn": [
         "US-002"
       ],
@@ -81,7 +81,8 @@
         ".agro/skills/behavioral-training/references/langfuse-adapter.md",
         ".agro/scripts/__tests__/behavioral-training-access.test.ts",
         ".agro/scripts/__tests__/fixtures/behavioral-training/access/"
-      ]
+      ],
+      "commit": "401ad035"
     },
     {
       "id": "US-004",
