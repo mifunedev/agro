@@ -1,0 +1,101 @@
+== exedev agro-mx-1011-112806 check=hermes-home.sh image=default date=2026-10-11T17:28:06Z
+{"vm_name":"agro-mx-1011-112806","tags":["agro-matrix"],"ssh_command":"ssh agro-mx-1011-112806.exe.xyz","ssh_dest":"agro-mx-1011-112806.exe.xyz","ssh_host":"agro-mx-1011-112806.exe.xyz","ssh_port":22,"https_url":"https://agro-mx-1011-112806.exe.xyz","proxy_port":8000,"shelley_url":"https://agro-mx-1011-112806.shelley.exe.xyz","vscode_url":"vscode://vscode-remote/ssh-remote+agro-mx-1011-112806.exe.xyz/home/exedev?windowId=_blank","xterm_url":"https://agro-mx-1011-112806.xterm.exe.xyz"}
+TIMING create_return_s=1.3 first_shell_s=2.1
+build under test: install=release agro_js=release sandbox_image=cli default agro_ref=task/1400-hermes-generated-home vm_image=provider default
+started
+== hermes generated home on Ubuntu 24.04.5 LTS, ref=task/1400-hermes-generated-home
+== H01
+RESULT H01-install-agro PASS released agro 0.20.0 node v24.21.0
+== H02
+RESULT H02-clone-ref PASS /home/exedev/.agro/workspaces/harness ref=task/1400-hermes-generated-home@cd575617
+== H03
+RESULT H03-cli-source PASS source=/home/exedev/.agro/workspaces/harness/.agro/cli/dist/agro.js version=0.20.0 built from cd575617 node=v24.21.0
+== H04
+RESULT H04-untracked-home PASS git ls-files .hermes is empty
+== H05
+-- first install log
+  Docs:         https://hermes-agent.nousresearch.com/docs/user-guide/features/curator
+
+→ Preparing pinned cua-driver (Computer Use)...
+✓ app products and hermes command ready
+✓ Hermes Agent install complete. Run: hermes
+  → Installing Python dependencies…
+  ✓ Installing Python dependencies
+✓ venv +slack +teams
+Hermes OK: .hermes/skills/agro -> .agro/skills
+✓ Set terminal.cwd = /home/exedev/.agro/workspaces/harness in /home/exedev/.agro/workspaces/harness/.hermes/config.yaml
+hermes: installed at /home/exedev/.local — see https://github.com/mifunedev/agro/blob/main/docs/harnesses/hermes.md for authentication
+Run Hermes in the AGRO workspace: HERMES_HOME='/home/exedev/.agro/workspaces/harness/.hermes' hermes
+RESULT H05-first-install PASS exit=0
+== H06
+-- /home/exedev/.agro/workspaces/harness/.hermes/config.yaml
+model:
+  default: gpt-6.1-sol-900k
+  provider: openai-codex
+  base_url: https://chatgpt.com/backend-api/codex
+compression:
+  codex_gpt55_autoraise: false
+  auto_compact_percent: 85
+onboarding:
+  seen:
+    profile_build_offered: true
+_config_version: 50
+terminal:
+  cwd: /home/exedev/.agro/workspaces/harness
+RESULT H06-seed-config PASS ok _config_version=bigint:50
+== H07
+-- second install log
+  Preview now:  hermes curator run --dry-run
+  Pause it:     hermes curator pause
+  Docs:         https://hermes-agent.nousresearch.com/docs/user-guide/features/curator
+
+→ Preparing pinned cua-driver (Computer Use)...
+✓ app products and hermes command ready
+✓ Hermes Agent install complete. Run: hermes
+✓ venv +slack +teams
+Hermes OK: .hermes/skills/agro -> .agro/skills
+✓ Set terminal.cwd = /home/exedev/.agro/workspaces/harness in /home/exedev/.agro/workspaces/harness/.hermes/config.yaml
+hermes: installed at /home/exedev/.local — see https://github.com/mifunedev/agro/blob/main/docs/harnesses/hermes.md for authentication
+Run Hermes in the AGRO workspace: HERMES_HOME='/home/exedev/.agro/workspaces/harness/.hermes' hermes
+-- /home/exedev/.agro/workspaces/harness/.hermes/config.yaml
+model:
+  default: agro-rcheck-sentinel-model
+  provider: openai-codex
+  base_url: https://chatgpt.com/backend-api/codex
+compression:
+  codex_gpt55_autoraise: false
+  auto_compact_percent: 85
+onboarding:
+  seen:
+    profile_build_offered: true
+_config_version: 50
+terminal:
+  cwd: /home/exedev/.agro/workspaces/harness
+RESULT H07-operator-value-kept PASS exit=0 model.default=agro-rcheck-sentinel-model ok _config_version=bigint:50
+== H08
+RESULT H08-clean-status PASS git status --short .hermes is empty
+== H09
+-- ls -la .hermes/skills
+total 60
+drwx------ 14 exedev exedev 4096 Oct 11 17:30 .
+drwx------ 17 exedev exedev 4096 Oct 11 17:30 ..
+lrwxrwxrwx  1 exedev exedev   18 Oct 11 17:28 agro -> ../../.agro/skills
+drwxr-xr-x  6 exedev exedev 4096 Oct 11 17:29 apple
+drwxr-xr-x  7 exedev exedev 4096 Oct 11 17:29 autonomous-ai-agents
+-rw-r--r--  1 exedev exedev 2727 Oct 11 17:30 .bundled_manifest
+drwxr-xr-x 12 exedev exedev 4096 Oct 11 17:29 creative
+drwxr-xr-x  3 exedev exedev 4096 Oct 11 17:29 devops
+drwxr-xr-x  4 exedev exedev 4096 Oct 11 17:29 email
+drwxr-xr-x  5 exedev exedev 4096 Oct 11 17:29 media
+drwxr-xr-x  3 exedev exedev 4096 Oct 11 17:29 note-taking
+drwxr-xr-x 16 exedev exedev 4096 Oct 11 17:29 productivity
+drwxr-xr-x  6 exedev exedev 4096 Oct 11 17:29 research
+drwxr-xr-x  3 exedev exedev 4096 Oct 11 17:29 social-media
+drwxr-xr-x 14 exedev exedev 4096 Oct 11 17:29 software-development
+drwxr-xr-x  3 exedev exedev 4096 Oct 11 17:29 web
+RESULT H09-skills-link PASS agro -> ../../.agro/skills
+SUMMARY fails=0
+== destroy agro-mx-1011-112806
+1 VM deleted successfully
+remaining agro-matrix resources on exedev: 1
+RUN DONE
