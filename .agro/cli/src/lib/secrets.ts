@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { assertInRoot, setKeyInEnv } from "./env-file.js";
@@ -57,6 +58,11 @@ export function setSecret(root: string, key: string, value: string): void {
   const original = existsSync(file) ? readFileSync(file, "utf8") : "";
   const { content } = setKeyInEnv(original, key, value);
   writeEnvFile(file, content);
+}
+
+export function ensureSandboxPassword(root: string): void {
+  if (readSecret(root, "SANDBOX_PASSWORD") !== undefined) return;
+  setSecret(root, "SANDBOX_PASSWORD", randomBytes(24).toString("base64url"));
 }
 
 export function listSecretKeys(root: string): SecretKey[] {
