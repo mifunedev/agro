@@ -87,8 +87,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh` reports no new finding on each changed document."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated (42a65d12, 3d52bb30). Advisor re-ran: `grep -rln test1234` over the four docs prints nothing (exit 1); ste-check on each doc reports no findings; each doc names `agro secret get SANDBOX_PASSWORD`. Worker edited and checked .example.env with the Edit and Read tools (the shell hook blocks .env paths). CHANGELOG bullet (248 chars) names ADR #1378 and links #1379; repair R1 made the bullet describe the behaviour.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -101,7 +101,8 @@
         "docs/security-considerations.md",
         "docs/configuration.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "3d52bb30"
     },
     {
       "id": "US-005",
