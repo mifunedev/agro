@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 set -uo pipefail
 export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
 fails=0
