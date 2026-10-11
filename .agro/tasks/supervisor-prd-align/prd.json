@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1402-supervisor-prd-align",
+  "description": "Align the supervisor skill with the prd task artifacts: replace retired progress.txt and evidence.md references with prd.json and the PR body, and pass /ste on every changed prose file.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Replace retired artifact names in the supervisor skill",
+      "description": "As a supervisor, I want /supervisor to name prd.json and the PR body as the advisor record so that no advisor writes the retired progress.txt.",
+      "acceptanceCriteria": [
+        "`git grep -n -E 'progress\\.txt|progress/evidence|evidence\\.md|evidence artifact' -- .agro/skills/supervisor` prints nothing and exits 1.",
+        "Each replaced passage names `prd.json` (`passes`, `commit`, `notes`) or the PR body evidence sections as the advisor record.",
+        "The `description` and `allowed-tools` frontmatter lines are byte-identical to `origin/development`.",
+        "The description text has 1024 characters or fewer.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/supervisor/SKILL.md` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [".agro/skills/supervisor/SKILL.md"]
+    },
+    {
+      "id": "US-002",
+      "title": "Replace retired artifact names in other control-plane surfaces",
+      "description": "As an advisor, I want each .agro/ and docs/ surface to name only current task artifacts so that no procedure routes me to a retired file.",
+      "acceptanceCriteria": [
+        "`.agro/logs/AGENTS.md`, `.agro/memories/AGENTS.md`, and `.agro/skills/audit/references/implementation.md` name no retired artifact.",
+        "`git grep -n -I -E 'progress\\.txt|evidence\\.md|progress/evidence' -- .agro docs ':!.agro/tasks'` prints only `.agro/scripts/registry-portability.md:65` and `.agro/skills/audit/references/reviewer-evidence-doc.md:13`.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 for each of the three edited files."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [".agro/logs/AGENTS.md", ".agro/memories/AGENTS.md", ".agro/skills/audit/references/implementation.md"]
+    }
+  ],
+  "definitionOfDone": [
+    "`git grep -n -I -E 'progress\\.txt|evidence\\.md|progress/evidence' -- .agro docs ':!.agro/tasks'` prints only the two kept lines, and the PR body lists each kept line with its reason.",
+    "The supervisor description has 1024 characters or fewer, and the `description` line is unchanged.",
+    "`bash .agro/scripts/link-providers.sh --check` exits 0.",
+    "`pnpm vitest run .agro/scripts/__tests__/standard-skills-link.test.ts .agro/scripts/__tests__/skill-shell-portability.test.ts .agro/scripts/__tests__/hermes-links.test.ts` exits 0.",
+    "`bash .agro/skills/ste/scripts/ste-check.sh <file>` exits 0 for prd.md and for each changed .md file; the advisor reviews each change by hand against the /ste rules the checker cannot catch; the PR body holds each command and its exit 0 output; the PR opens only after this criterion passes.",
+    "A PR from task/1402-supervisor-prd-align to development exists with each criterion's command output in its body. The PR is not merged."
+  ],
+  "openQuestions": [
+    "Claude Code exposes Monitor and TaskStop, not MonitorCreate, MonitorList, or MonitorStop. Which tool names must /supervisor require? Blocked until supervisor direction."
+  ]
+}
