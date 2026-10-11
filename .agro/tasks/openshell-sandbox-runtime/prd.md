@@ -296,7 +296,8 @@ None. The operator approved `git push` on 2026-09-28. The v0.1.2 source settles 
 ## Lessons
 
 1. **Claim:** OpenShell 0.1.2 cannot provision a sandbox on WSL 2 with Docker Desktop. **Evidence:** step E of `evidence/manual-review.md` shows `ControlSupervisorStartFailed` and `failed to connect to OpenShell server`. The supervisor uses host networking, and on Docker Desktop that network is the Docker Desktop VM. **Outcome:** fixed in this PR. Commit `a00a9859` prints the cleanup command after a failed create and documents the limit in `docs/runtimes/openshell.md`.
-2. **Claim:** The Claude Code sign-in, its login hosts, and an authenticated `git push` have no live evidence yet. **Evidence:** the `## Not run` list in `evidence/manual-review.md`. Step F proves every other live check on exe.dev. **Outcome:** issue #1257.
+2. **Claim:** An authenticated `git push` has no live evidence yet. **Evidence:** the `## Not run` list in `evidence/manual-review.md`. Steps F and G prove every other live check on exe.dev. **Outcome:** issue #1257.
+9. **Claim:** The Claude Code sign-in needs `platform.claude.com`, which the first policy denied. **Evidence:** step G of `evidence/manual-review.md`. **Outcome:** fixed in this PR, commit `a3bdac4a`.
 3. **Claim:** An OpenShell entry took its sandbox name from `SANDBOX_NAME` before `agro.json`, so `agro destroy` could delete another sandbox. **Evidence:** the built CLI printed `openshell sandbox stop agro-sbx-local` for the entry `osb`. **Outcome:** fixed in this PR, commit `97797b28`.
 4. **Claim:** The empty-registry message names only `agro sandbox install docker`. **Evidence:** step D of `evidence/manual-review.md`. **Outcome:** issue #1258.
 5. **Claim:** A hand-written YAML parser in a test limited the policy syntax. **Evidence:** the first US-002 commit `892e36a3`. **Outcome:** fixed in this PR. Commit `b174b4e1` parses the policy with `yaml@2.9.0`, which the lockfile already held.
