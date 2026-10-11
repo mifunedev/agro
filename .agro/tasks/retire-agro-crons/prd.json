@@ -18,14 +18,15 @@
         "`pnpm test:scripts -- .agro/cli/src/__tests__/docs-reference.test.ts` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1-5 executed: git grep -n -i -E 'agro-cron|cron-runtime|crons/|cron\\.agentBin|cron runtime|Markdown crons' -- docs .github/ISSUE_TEMPLATE exit 1 (no hits); intro.md points to Claude Code /loop. 6 executed: grep -c BREAKING cron bullet in CHANGELOG.md = 1 under [Unreleased] ### Removed. 7 executed: npx vitest run .agro/cli/src/__tests__/docs-reference.test.ts exit 0 (4 passed). Worker also updated docs/runtimes/openshell.md (in owned docs/ path).",
       "dependsOn": [],
       "files": [
         "docs/",
         "CHANGELOG.md",
         ".github/ISSUE_TEMPLATE/bug.md"
-      ]
+      ],
+      "commit": "65431232"
     },
     {
       "id": "US-002",
