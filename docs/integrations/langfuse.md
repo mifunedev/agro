@@ -288,8 +288,8 @@ chmod 600 ~/.zshenv
 
 Use `export` in your own profile. A bare assignment creates a shell parameter,
 not an environment variable, and a hook runs in a child process that never sees
-it. The generated fragment is the one exception, because systemd reads that file
-too.
+it. The generated fragment uses bare assignments. The tracked `.zshenv` reads
+that file between `set -a` and `set +a`, so zsh exports each assignment.
 
 Restart the harness after any change. Each plugin reads the environment at start.
 

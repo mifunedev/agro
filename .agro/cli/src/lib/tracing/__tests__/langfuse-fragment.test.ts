@@ -37,27 +37,6 @@ function makeDir(prefix: string): string {
   return d;
 }
 
-const SYSTEMD_ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
-
-function parseAsSystemdEnvironmentFile(text: string): Record<string, string> {
-  const env: Record<string, string> = {};
-  for (const rawLine of text.split("\n")) {
-    const line = rawLine.trim();
-    if (line === "" || line.startsWith("#") || line.startsWith(";")) continue;
-    const eq = line.indexOf("=");
-    if (eq < 0) continue;
-    const key = line.slice(0, eq).trim();
-    if (!SYSTEMD_ENV_NAME.test(key)) continue;
-    let value = line.slice(eq + 1).trim();
-    if (value.length >= 2 && value.startsWith("'") && value.endsWith("'")) value = value.slice(1, -1);
-    else if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
-      value = value.slice(1, -1).replace(/\\(.)/g, "$1");
-    }
-    env[key] = value;
-  }
-  return env;
-}
-
 function readThroughTrackedZshenv(home: string, keys: readonly string[]): Record<string, string> {
   copyFileSync(TRACKED_ZSHENV, join(home, ".zshenv"));
   const env: Record<string, string> = { PATH: process.env.PATH ?? "/usr/bin:/bin", HOME: home, ZDOTDIR: home };
@@ -83,22 +62,14 @@ describe("renderLangfuseFragment", () => {
     );
   });
 
-  it("systemd EnvironmentFile drops any line whose key is not a plain name, so no line starts with `export`", () => {
-    const text = renderLangfuseFragment(INPUT);
-    expect(text).not.toMatch(/\bexport\b/);
-    expect(parseAsSystemdEnvironmentFile(text)).toEqual({
-      LANGFUSE_PUBLIC_KEY: INPUT.publicKey,
-      LANGFUSE_SECRET_KEY: INPUT.secretKey,
-      LANGFUSE_BASE_URL: INPUT.baseUrl,
-      LANGFUSE_TRACING_ENVIRONMENT: INPUT.environment,
-    });
-    expect(parseAsSystemdEnvironmentFile(`export LANGFUSE_BASE_URL=${INPUT.baseUrl}\n`)).toEqual({});
+  it("renders no line that starts with `export`", () => {
+    const lines = renderLangfuseFragment(INPUT).split("\n");
+    expect(lines.some((line) => line.startsWith("export"))).toBe(false);
   });
 
-  it("single-quotes a value the shell would otherwise split or expand, and systemd reads the quoted form", () => {
-    const text = renderLangfuseFragment({ ...INPUT, environment: "sbx one&two $HOME" });
-    expect(text).toContain("LANGFUSE_TRACING_ENVIRONMENT='sbx one&two $HOME'\n");
-    expect(parseAsSystemdEnvironmentFile(text).LANGFUSE_TRACING_ENVIRONMENT).toBe("sbx one&two $HOME");
+  it("single-quotes a value the shell would otherwise split or expand", () => {
+    const lines = renderLangfuseFragment({ ...INPUT, environment: "sbx one&two $HOME" }).split("\n");
+    expect(lines).toContain("LANGFUSE_TRACING_ENVIRONMENT='sbx one&two $HOME'");
   });
 
   it.each([
@@ -145,11 +116,11 @@ describe("writeLangfuseFragment", () => {
   });
 
   it.skipIf(!existsSync(TRACKED_ZSHENV) || !hasZsh())(
-    "one rendered file feeds both consumers: the tracked .zshenv exports it to a child and the systemd parse yields the same values",
+    "the tracked .zshenv exports every fragment value to a child process unchanged",
     () => {
       const home = makeDir("oh-lf-home-");
       const input = { ...INPUT, environment: "sbx one&two" };
-      const { path } = writeLangfuseFragment(home, input);
+      writeLangfuseFragment(home, input);
       const expected = {
         LANGFUSE_PUBLIC_KEY: input.publicKey,
         LANGFUSE_SECRET_KEY: input.secretKey,
@@ -157,7 +128,6 @@ describe("writeLangfuseFragment", () => {
         LANGFUSE_TRACING_ENVIRONMENT: input.environment,
       };
       expect(readThroughTrackedZshenv(home, LANGFUSE_FRAGMENT_KEYS)).toEqual(expected);
-      expect(parseAsSystemdEnvironmentFile(readFileSync(path, "utf8"))).toEqual(expected);
     },
   );
 });

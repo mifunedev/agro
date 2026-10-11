@@ -62,7 +62,7 @@ function quoteFragmentValue(key: LangfuseFragmentKey, value: string): string {
   if (UNCARRIABLE_IN_VALUE.test(value)) {
     throw new Error(
       `${key} must not contain a newline, a control character, or a single quote — ` +
-        "zsh and systemd read the same fragment and neither carries that value safely",
+        "zsh reads the fragment and does not carry that value safely",
     );
   }
   return BARE_SAFE_VALUE.test(value) ? value : `'${value}'`;
