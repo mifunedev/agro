@@ -194,8 +194,8 @@
         "`npx vitest run .agro/scripts/__tests__/remote-sandbox-suite.test.ts .agro/scripts/__tests__/remote-sandbox-adapters.test.ts` exits 0."
       ],
       "priority": 8,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: ci-harness.yml and release.yml shellcheck lines include the three remote-sandbox globs. 2 reasoned from diff: shebang on executed checks, shell=bash directive on sourced files. 3 executed: ci-harness.yml shellcheck line run with v0.10.0 exit 0; disable directives carry same-line reasons. 4 executed: remote-sandbox suite + adapters tests pass.",
       "dependsOn": [],
       "files": [
         ".github/workflows/ci-harness.yml",
@@ -203,7 +203,8 @@
         ".agro/skills/remote-sandbox/adapters/",
         ".agro/skills/remote-sandbox/checks/",
         ".agro/skills/remote-sandbox/scripts/"
-      ]
+      ],
+      "commit": "a10b8ba9"
     },
     {
       "id": "US-009",
