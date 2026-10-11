@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { parse } from "yaml";
 import { runHarnessInstall } from "../commands/harness.js";
 import type { LifecycleRunner } from "../lib/execution/runner.js";
 
@@ -14,7 +15,7 @@ vi.mock("node:os", async importOriginal => {
 const roots: string[] = [];
 afterEach(() => roots.splice(0).forEach(root => rmSync(root, { recursive: true, force: true })));
 
-function setup({ installed = false, installExit = 0, linkExit = 0, verify = true, configExit = 0, inheritedHome = "", rootPrefix = "oh-hermes-install-" } = {}) {
+function setup({ installed = false, installExit = 0, linkExit = 0, verify = true, configExit = 0, seedExit = 0, inheritedHome = "", rootPrefix = "oh-hermes-install-" } = {}) {
   const root = mkdtempSync(join(tmpdir(), rootPrefix));
   roots.push(root);
   mkdirSync(join(root, ".agro"));
@@ -28,6 +29,7 @@ function setup({ installed = false, installExit = 0, linkExit = 0, verify = true
         ...args.slice(args.indexOf("check"))], { encoding: "utf8", env: opts.env });
     }
     if (args.includes("configure")) status = configExit;
+    else if (args.includes("seed")) status = seedExit;
     else if (args.includes("--hermes-only")) status = linkExit;
     else if (cmd === "hermes") status = (probes++ === 0 ? installed : verify) ? 0 : 1;
     else if (args.some(a => a.includes("install.sh"))) status = installExit;
@@ -70,6 +72,75 @@ describe("Hermes workspace configuration interface", () => {
     expect(readFileSync(log, "utf8")).toBe([home, "config", "set", "terminal.cwd", t.root, ""].join("\n"));
     expect(result.status).toBe(status);
     if (status) expect(result.stderr).toContain("could not configure terminal.cwd");
+  });
+
+  function configureWithStub() {
+    const t = setup();
+    const log = join(t.root, "config-call");
+    const binary = join(t.root, "hermes");
+    writeFileSync(binary, `#!/usr/bin/env bash\n{ [ -f "$HERMES_HOME/config.yaml" ] && echo seeded; printf '%s\\n' "$@"; } > "$CONFIG_LOG"\n`, { mode: 0o755 });
+    const run = () => spawnSync("bash", [join(import.meta.dirname, "../../../scripts/hermes-workspace.sh"),
+      "configure", t.root, join(t.root, ".hermes"), t.root, binary], { encoding: "utf8", env: { PATH: process.env.PATH, CONFIG_LOG: log } });
+    return { root: t.root, log, run };
+  }
+
+  it("seeds the AGRO defaults into an empty home before setting terminal.cwd", () => {
+    const c = configureWithStub();
+    const result = c.run();
+    expect(result.status, result.stderr).toBe(0);
+    const config = parse(readFileSync(join(c.root, ".hermes", "config.yaml"), "utf8"));
+    expect(config.model.default).toBe("gpt-6.1-sol-900k");
+    expect(config.model.provider).toBe("openai-codex");
+    expect(config.model.base_url).toBe("https://chatgpt.com/backend-api/codex");
+    expect(config.compression.codex_gpt55_autoraise).toBe(false);
+    expect(config.compression.auto_compact_percent).toBe(85);
+    expect(typeof config.compression.auto_compact_percent).toBe("number");
+    expect(config.onboarding.seen.profile_build_offered).toBe(true);
+    expect(config).not.toHaveProperty("_config_version");
+    expect(config).not.toHaveProperty("terminal");
+    expect(readFileSync(c.log, "utf8")).toBe(["seeded", "config", "set", "terminal.cwd", c.root, ""].join("\n"));
+  });
+
+  it("keeps an existing config.yaml byte for byte and sets only terminal.cwd", () => {
+    const c = configureWithStub();
+    mkdirSync(join(c.root, ".hermes"));
+    const operator = "model:\n  default: operator-model\n# operator note\n";
+    writeFileSync(join(c.root, ".hermes", "config.yaml"), operator);
+    const result = c.run();
+    expect(result.status, result.stderr).toBe(0);
+    expect(readFileSync(join(c.root, ".hermes", "config.yaml"), "utf8")).toBe(operator);
+    expect(readFileSync(c.log, "utf8")).toBe(["seeded", "config", "set", "terminal.cwd", c.root, ""].join("\n"));
+  });
+
+  it("seeds an empty home and keeps an existing config.yaml through the seed command", () => {
+    const t = setup();
+    const home = join(t.root, ".hermes");
+    const seed = () => spawnSync("bash", [join(import.meta.dirname, "../../../scripts/hermes-workspace.sh"),
+      "seed", t.root, home], { encoding: "utf8", env: { PATH: process.env.PATH } });
+    const first = seed();
+    expect(first.status, first.stderr).toBe(0);
+    expect(parse(readFileSync(join(home, "config.yaml"), "utf8")).model.provider).toBe("openai-codex");
+    const operator = "model:\n  default: operator-model\n";
+    writeFileSync(join(home, "config.yaml"), operator);
+    const second = seed();
+    expect(second.status, second.stderr).toBe(0);
+    expect(readFileSync(join(home, "config.yaml"), "utf8")).toBe(operator);
+  });
+
+  it("fails without a partial config.yaml or a config call when the seed cannot be written", () => {
+    const c = configureWithStub();
+    const home = join(c.root, ".hermes");
+    mkdirSync(home);
+    chmodSync(home, 0o555);
+    try {
+      const result = c.run();
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain(join(home, "config.yaml"));
+      expect(readdirSync(home)).toEqual([]);
+      expect(existsSync(c.log)).toBe(false);
+    } finally {
+      chmodSync(home, 0o755);
+    }
   });
 });
 
@@ -118,6 +189,24 @@ describe("Hermes installation postconditions", () => {
     expect(t.out.join("")).toContain("installed —");
   });
 
+  it("seeds the sandbox home before the installer runs", async () => {
+    const t = setup();
+    expect(await t.invoke()).toBe(0);
+    const seed = t.calls.find(c => c.args.includes("seed"))!;
+    const install = t.calls.find(c => c.args.some(a => a.includes("install.sh")))!;
+    expect(seed.args.slice(-3)).toEqual(["seed", t.root, join(t.root, ".hermes")]);
+    expect(seed.env?.HERMES_HOME).toBe(join(t.root, ".hermes"));
+    expect(t.calls.indexOf(seed)).toBeLessThan(t.calls.indexOf(install));
+  });
+
+  it("stops before the installer when the seed write fails", async () => {
+    const t = setup({ seedExit: 5 });
+    expect(await t.invoke()).toBe(5);
+    expect(t.calls.some(c => c.args.some(a => a.includes("install.sh")))).toBe(false);
+    expect(t.calls.some(c => c.args.includes("configure"))).toBe(false);
+    expect(t.err.join("")).toContain(join(t.root, ".hermes", "config.yaml"));
+  });
+
   it("sets the workspace home for each link step on the host path", async () => {
     const t = setup();
     const state = mkdtempSync(join(tmpdir(), "oh-hermes-state-"));
@@ -141,6 +230,11 @@ describe("Hermes installation postconditions", () => {
     const links = calls.filter(c => c.args.includes("--hermes-only"));
     expect(links).toHaveLength(2);
     for (const link of links) expect(link.env?.HERMES_HOME).toBe(join(workspace, ".hermes"));
+    const seed = calls.find(c => c.args.includes("seed"))!;
+    const install = calls.find(c => c.args.some(a => a.includes("install.sh")))!;
+    expect(seed.args.slice(-3)).toEqual(["seed", workspace, join(workspace, ".hermes")]);
+    expect(seed.env?.HERMES_HOME).toBe(join(workspace, ".hermes"));
+    expect(calls.indexOf(seed)).toBeLessThan(calls.indexOf(install));
   });
 
   it("updates an installed integration and configures it once", async () => {

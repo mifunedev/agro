@@ -1,5 +1,32 @@
 #!/usr/bin/env bash
 
+HERMES_CONFIG_SEED=(
+  "model:"
+  "  default: gpt-6.1-sol-900k"
+  "  provider: openai-codex"
+  "  base_url: https://chatgpt.com/backend-api/codex"
+  "compression:"
+  "  codex_gpt55_autoraise: false"
+  "  auto_compact_percent: 85"
+  "onboarding:"
+  "  seen:"
+  "    profile_build_offered: true"
+)
+
+hermes_workspace_seed() {
+  local config="$1/config.yaml" seed
+  [ -e "$config" ] && return 0
+  if ! { mkdir -p -- "$1" && seed=$(mktemp "$config.XXXXXX"); } 2>/dev/null; then
+    echo "[hermes] could not write default config: $config" >&2
+    return 1
+  fi
+  if ! { printf '%s\n' "${HERMES_CONFIG_SEED[@]}" > "$seed" && mv -- "$seed" "$config"; } 2>/dev/null; then
+    rm -f -- "$seed"
+    echo "[hermes] could not write default config: $config" >&2
+    return 1
+  fi
+}
+
 hermes_workspace_check() {
   local root="$1" hermes_home="$2" inherited_home="${3:-}" path
   for path in "$root" "$hermes_home"; do
@@ -40,6 +67,7 @@ hermes_workspace_configure() {
     /*) [ -d "$terminal_cwd" ] ;;
     *) false ;;
   esac || { echo "[hermes] terminal cwd must be an existing absolute directory: $terminal_cwd" >&2; return 1; }
+  hermes_workspace_seed "$hermes_home" || return 1
   local status=0
   HERMES_HOME="$hermes_home" "$hermes_bin" config set terminal.cwd "$terminal_cwd" || status=$?
   if [ "$status" -ne 0 ]; then
@@ -51,6 +79,7 @@ hermes_workspace_configure() {
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   case "${1:-}" in
     check) shift; hermes_workspace_check "$@" ;;
+    seed) shift; hermes_workspace_check "$1" "$2" "$2" && hermes_workspace_seed "$2" ;;
     configure) shift; hermes_workspace_configure "$@" ;;
     *) exit 2 ;;
   esac
