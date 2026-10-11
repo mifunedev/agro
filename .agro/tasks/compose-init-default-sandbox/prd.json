@@ -89,7 +89,7 @@
       ],
       "priority": 4,
       "passes": true,
-      "notes": "1-5 executed: diff reviewed (verify_compose_init requires docker-init + readiness file; upgrade smoke waits on readiness file, reads docker logs, fails fast on sandbox-main warning; verify_compose_init_ready; banner recovery by PID 1 type; agro-rows host R06/R07 use docker-init + healthcheck, image mode keeps systemd; host-mode R04 reports SKIPPED, accepted as consistent with the brief). 6 executed: full npx vitest run 92 files, 2035 passed, 2 skipped. 7 executed: CI shellcheck set exit 0.",
+      "notes": "1-5 executed: diff reviewed (verify_compose_init requires docker-init + readiness file; upgrade smoke waits on readiness file, reads docker logs, fails fast on sandbox-main warning; verify_compose_init_ready; banner recovery by PID 1 type; agro-rows host R06/R07 use docker-init + healthcheck, image mode keeps systemd; host-mode R04 reports SKIPPED, accepted as consistent with the brief). 6 executed: full npx vitest run 92 files, 2035 passed, 2 skipped. 7 executed: CI shellcheck set exit 0. Merge repair 62a28060: docker-egress.sh (from #1398) E07/E15 use the readiness file and docker logs instead of systemctl/journalctl; git grep systemctl|journalctl on the check exit 1; CI shellcheck line exit 0.",
       "dependsOn": [
         "US-003"
       ],
