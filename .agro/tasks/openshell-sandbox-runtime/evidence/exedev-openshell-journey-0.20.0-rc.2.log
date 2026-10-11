@@ -1,0 +1,84 @@
+== exedev agro-mx-1010-214512 check=openshell-journey.sh image=default date=2026-10-11T03:45:12Z
+TIMING create_return_s=17.0 first_shell_s=18.0
+build under test: install=https://github.com/mifunedev/agro/releases/download/v0.20.0-rc.2/install.sh agro_js=https://github.com/mifunedev/agro/releases/download/v0.20.0-rc.2/agro.js sandbox_image=cli default agro_ref=default branch vm_image=provider default
+started
+== env: Ubuntu 24.04.5 LTS kernel=6.12.93 arch=x86_64 user=exedev
+== lsm: capability,landlock,selinux
+== docker: 29.1.3
+== install agro from https://github.com/mifunedev/agro/releases/download/v0.20.0-rc.2/install.sh with AGRO_JS_URL=https://github.com/mifunedev/agro/releases/download/v0.20.0-rc.2/agro.js
+install exit=0
+== node: /home/exedev/.nvm/versions/node/v24.21.0/bin/node v24.21.0
+RESULT O01-agro-version PASS 0.20.0-rc.2
+RESULT O02-docker PASS server=29.1.3
+== install openshell v0.1.2
+openshell install exit=0
+    | ✓ TLS certificates present
+    | openshell: waiting for local gateway listener to become reachable...
+    | openshell: local gateway listener is reachable
+    | openshell: waiting for openshell status to report connected...
+    | openshell: openshell status reports connected
+RESULT O03-gateway-connected PASS openshell 0.1.2
+== O04 gateway stopped
+    | agro sandbox install: the OpenShell gateway is not connected; start the local gateway and register it:
+    |   systemctl --user restart openshell-gateway
+    |   openshell gateway add https://127.0.0.1:17670 --local --name openshell
+    | then confirm with: openshell status
+RESULT O04-gateway-down-hint PASS rc=1
+RESULT O05-checkout-refusal PASS agro sandbox install: --checkout is not supported on the openshell runtime
+    | openshell sandbox create --name os-review --from ghcr.io/mifunedev/agro:0.20.0-rc.2 --policy /home/exedev/.agro/sandboxes/os-review/openshell-policy.yaml --env AGRO_EXECUTION_TARGET=local --env SANDBOX_NAME=os-review --env HOME=/home/sandbox --detach -- /usr/local/bin/openshell-main.sh
+RESULT O06-print-argv PASS rc=0
+== O07 install
+    | [11.5s] Pulling image Pull complete 7e81f6e07c8b
+    | [11.5s] Pulling image Pull complete 69685d44277f
+    | [11.5s] Pulling image Pull complete 4f4fb700ef54
+    | [11.5s] Pulling image Digest: sha256:037c56730bedbc2144221ede9722e9fa1a6a538da2b28ce1da5ff75066adad27
+    | [11.5s] Pulling image Status: Downloaded newer image for ghcr.io/mifunedev/agro:0.20.0-rc.2
+    | [11.5s] Image pulled
+    | [11.8s] Starting sandbox Container created
+    | next: agro shell os-review
+RESULT O07-install PASS rc=0 secs=13
+    | os-review  openshell  ready  -
+RESULT O08-list-ready PASS ready
+== workload environment
+    | exec HOME=/home/sandbox PATH=/home/sandbox/.local/bin:/home/sandbox/.local/share/pnpm:/home/sandbox/.local/bin:/home/sandbox/.local/bin:/home/sandbox/.local/share/pnpm:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    | no-login HOME=/home/sandbox PATH=/home/sandbox/.local/bin:/home/sandbox/.local/share/pnpm:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    | bash -l HOME=/home/sandbox PATH=/home/sandbox/.local/bin:/home/sandbox/.local/share/pnpm:/home/sandbox/.local/bin:/home/sandbox/.local/bin:/home/sandbox/.local/share/pnpm:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    | zsh -l HOME=/home/sandbox PATH=/home/sandbox/.local/bin:/home/sandbox/.local/share/pnpm:/home/sandbox/.local/bin:/home/sandbox/.local/share/pnpm:/home/sandbox/.local/bin:/home/sandbox/.local/bin:/home/sandbox/.local/share/pnpm:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+RESULT O09-exec-identity PASS sandbox /home/sandbox/harness
+RESULT O10-agro-shell PASS rc=0
+RESULT O11-seeded PASS /home/sandbox/.zshrc /home/sandbox/harness/AGENTS.md
+RESULT O12-github-read PASS rc=0 783815eec29196ac48ac2ecb32e2a0ce64a98906	HEAD
+RESULT O13-npm-read PASS rc=0 eases/tag/v12.2.0 npm notice To update run: npm install -g npm@12.2.0 npm notice
+RESULT O14-deny-example PASS rc=7 curl: (7) Failed to connect to example.com port 443 after 1 ms: Could not connect to server
+    | fatal: could not read Username for 'https://github.com': terminal prompts disabled
+RESULT O15-push-egress PASS github asked for credentials: receive-pack reachable
+    | npm warn install-scripts   @anthropic-ai/claude-code@2.1.296 (postinstall: node install.cjs)
+    | npm warn install-scripts
+    | npm warn install-scripts Run `npm install -g --allow-scripts=@anthropic-ai/claude-code` to allow these scripts once, or `npm config set allow-scripts=@anthropic-ai/claude-code --location=user` to allow them for all global installs.
+    | claude-code: installed — see https://github.com/mifunedev/agro/blob/main/docs/harnesses/claude-code.md for authentication
+RESULT O16-claude-install PASS rc=0 claude=2.1.296 (Claude Code)
+    | Invalid API key · Fix external API key
+RESULT O17-anthropic-egress PASS api.anthropic.com answered 401
+RESULT O18-refuse-stop PASS agro stop: the openshell runtime does not support stop; run: openshell sandbox stop os-review
+RESULT O18-refuse-restart PASS agro restart: the openshell runtime does not support restart; run: openshell sandbox stop os-review && openshell sandbox start os-review
+RESULT O18-refuse-logs PASS agro logs: the openshell runtime does not support logs; run: openshell logs os-review
+RESULT O18-refuse-ps PASS agro ps: the openshell runtime does not support ps; run: openshell sandbox get os-review
+RESULT O18-refuse-config PASS agro compose config: the openshell runtime does not support compose config; run: openshell policy get os-review
+RESULT O18-refuse-upgrade PASS agro sandbox upgrade: the openshell runtime does not support sandbox upgrade; run: agro destroy os-review, then agro sandbox install openshell --name os-review --image=<ref>
+== O19 stop/start keeps the workspace
+RESULT O19-stop-start PASS marker kept; main=/.openshell/runtime/openshell-sandbox --bootstrap /.openshell/channel/sandbox/bootstrap.json
+== O20 destroy
+    | ✓ Sandbox os-review deletion accepted; cleanup is pending
+    | removed the sandbox entry /home/exedev/.agro/sandboxes/os-review
+RESULT O20-destroy PASS rc=0 both lists empty
+== O21 failed create prints the cleanup hint
+    |   │ mifunedev/agro:does-not-exist: not found
+    | 
+    | agro sandbox install: openshell sandbox create os-bad exited 1
+    | agro sandbox install: the OpenShell gateway can keep a failed sandbox record in the Error phase; if os-bad is not another sandbox, remove it with: openshell sandbox delete os-bad
+RESULT O21-failed-create-hint PASS rc=1
+SUMMARY
+== destroy agro-mx-1010-214512
+1 VM deleted successfully
+remaining agro-matrix resources on exedev: 0
+RUN DONE
