@@ -5,16 +5,16 @@ satisfy its task graph and is it promotable?* — and emits exactly one verdict 
 
 **Core principle: compose, don't re-derive — and never infer green from silence.**
 This skill owns the *verdict*, not the checks. Each gate below is an existing
-primitive; `/audit implementation` runs them in fail-fast order and integrates their results
-into a single `AUDIT-PASS` / `AUDIT-FAIL`. It is **read-only**: it decides, it
-does not mutate (no `gh pr ready`, no `gh pr merge`) and does not fix — promotion
-is a downstream concern and remediation belongs to the build step on
-`AUDIT-FAIL` (single-owner handoff: the outcome is decided here, acted on elsewhere).
+primitive. `/audit implementation` runs the gates in fail-fast order and integrates their results
+into a single `AUDIT-PASS` / `AUDIT-FAIL`. The route stays **read-only**: it decides. The route
+does not mutate (no `gh pr ready`, no `gh pr merge`) and does not fix. Promotion
+is a downstream concern. Remediation belongs to the build step on
+`AUDIT-FAIL` (single-owner handoff: this route decides the outcome, and another owner acts on it).
 
 > **Not a survey target.** `/audit prs` triages the *whole* open-PR queue in one
 > bulk query (*"never loop per-PR"*, `audit/references/prs.md`); `/audit implementation`
-> is the opposite shape — a single unit (1 impl vs. 1 `prd.json`). It consumes the
-> same focused classifier used by `/audit pr`; it does not replace or fork it.
+> is the opposite shape — a single unit (1 impl vs. 1 `prd.json`). The route consumes the
+> focused classifier that `/audit pr` uses. The route does not replace or fork that classifier.
 
 ---
 
@@ -22,7 +22,7 @@ is a downstream concern and remediation belongs to the build step on
 
 | Arg | Meaning |
 |-----|---------|
-| `<slug>` | The task slug — locates `.agro/tasks/<slug>/prd.json` and `.agro/tasks/<slug>/progress.txt`. Required. |
+| `<slug>` | The task slug — locates `.agro/tasks/<slug>/prd.json`. Required. |
 | `--pr <N>` | The PR for this unit, if one exists. When set, gate 2 uses the shared focused classifier (which reads `statusCheckRollup`, subsuming `/ci-status`). |
 | `--repo <owner/name>` | Repository passed unchanged to focused PR acquisition. Required with `--pr`; never inferred from the process checkout or a hard-coded default. |
 | `--base <branch>` | Expected PR base for focused classification. Defaults to `development`; set it to the parent branch for a stacked PR. |
@@ -45,7 +45,7 @@ the snippets below explain its behavior and are not a second implementation. The
 driver (`scripts/route-driver.sh`) runs this helper first and reports `gate1: FAIL` on a
 non-zero exit.
 
-**(a) Task-graph conformance.** Every user story in the task graph must be marked
+**(a) Task-graph conformance.** The owner must mark every user story in the task graph
 complete. The implementation owner flips `passes: false → true` only after validating each story, so
 the graph is conformant only when **zero** stories remain unfinished:
 
@@ -60,7 +60,7 @@ echo "task-graph: $((total - unfinished))/$total stories pass"
 
 **(b) Artifact contract.** If the `prd.json` declares an `artifact_contract` block
 (the field table below documents the schema), every
-path in `artifact_contract.required_artifacts` must exist on disk. This is a
+path in `artifact_contract.required_artifacts` must exist on disk. The artifact sub-check is a
 **gating** sub-check — a declared-but-missing artifact is a hard `AUDIT-FAIL`, not
 an advisory warning. The block is **optional and additive**: a `prd.json` with no
 `artifact_contract` key yields an empty list and passes this sub-check unchanged,
@@ -94,11 +94,11 @@ declarative contract terms a reviewer holds the work to.
 |-------|---------|
 | `required_artifacts` | Repo-relative paths the finished task must leave on disk. **Enforced** by Gate 1. |
 | `allowed_locations` | Path prefixes the task's edits may land within. |
-| `forbidden_destructive_edits` | Paths or globs that must not be deleted or destructively rewritten. |
+| `forbidden_destructive_edits` | Paths or globs the task must not delete or destructively rewrite. |
 | `verification_commands` | The exact shell commands that prove the work. |
 | `acceptance_criteria` | Contract-level acceptance gates for the whole unit. |
-| `rollback_conditions` | The observable conditions under which the change must be reverted. |
-| `final_handoff_requirements` | What must be true before the unit is handed off for human merge. |
+| `rollback_conditions` | The observable conditions under which the owner must revert the change. |
+| `final_handoff_requirements` | What must be true before the owner hands the unit off for human merge. |
 
 ### Gate 2 — Promotable / CI state
 
@@ -114,20 +114,20 @@ clean.
   Never parse Markdown or a human routing token. The acquisition reads
   `statusCheckRollup`, so do not also poll CI.
 - **No PR yet:** fall back to `/ci-status` on `--branch`. A `NO-RUN` CI status is
-  **not** a pass (no run ≠ green) — that is `AUDIT-FAIL` until a run is dispatched
-  and lands green.
+  **not** a pass (no run ≠ green). The verdict stays `AUDIT-FAIL` until a dispatched run
+  lands green.
 
 The scripted driver runs the `classify-pr` helper when the caller passes `--pr`. Without
 `--pr` the driver queries `gh run list --branch <branch>` and passes only when every run
 for `HEAD` has status `completed` and conclusion `success`; no run for `HEAD` fails with
 `gate2: FAIL (no green CI run for HEAD)`.
 
-**A gate that could not run is not a gate that failed.** When the installed `gh` does not
+**A blocked gate is not a failed gate.** When the installed `gh` does not
 support a field the acquisition requires — `closingIssuesReferences` needs `gh >= 2.101.0`
 — `pr-acquire.sh` exits `69` with a `TOOLING-BLOCKED:` line and the driver reports
 `TOOLING-BLOCKED: gate2: <reason>` and publishes `AUDIT-TOOLING-BLOCKED` instead of
-`AUDIT-FAIL`. The run still fails closed: the verdict is not a pass, no gate is credited,
-and nothing may be promoted on it. The distinction matters because
+`AUDIT-FAIL`. The run still fails closed: the verdict is not a pass, the driver credits no gate,
+and no one may promote the change on that verdict. The distinction matters because
 `gate2: FAIL (classification exited 1)` reads as a defect in the reviewed change, sending
 the owner to debug a pull request whose only problem is the auditor's toolchain.
 
@@ -218,7 +218,7 @@ which emits one JSON object. Report every number in the verdict:
 |---|---|
 | `netAdded` / `netRemoved` | Lines the unit's diff adds and removes vs. `--base`, excluding lockfiles and symlinked provider mirrors. `netAdded` is the headline number the loop drives down. |
 | `tsOverCcn` | Functions in the changed `.ts`/`.js`/`.mjs` files over `ccnMax` (default 10), from `uvx lizard`. **Real per-function cyclomatic complexity.** |
-| `shBranchPoints` | The *net* change in branch tokens across changed `.sh` files. No complexity tool parses bash, so this is an explicit **proxy** — never report it as CCN. |
+| `shBranchPoints` | The *net* change in branch tokens across changed `.sh` files. No complexity tool parses bash, so the field is an explicit **proxy** — never report the field as CCN. |
 | `tool` | `lizard <version>`, `lizard n/a (no analysable files changed)`, or `unavailable`. |
 
 `tool: unavailable` means `uvx lizard` could not resolve (an offline runner). The
@@ -235,9 +235,9 @@ criterion requiring it, a new file where editing an existing one would do, a pat
 story exercises.
 
 A finding is **blocking** only when its alternative satisfies every acceptance criterion
-with no new work. Anything else is disclosed, non-gating. A function the diff
-*introduces* above `ccnMax` is blocking; one already over the threshold on the base is
-disclosed only.
+with no new work. The report discloses every other finding as non-gating. A function the diff
+*introduces* above `ccnMax` is blocking. The report only discloses a function already over the
+threshold on the base.
 
 **Who produces the findings.** A fresh read-only reviewer who did not write the code
 under review reads the diff at `HEAD` and returns findings in the shape above. The task
@@ -306,7 +306,7 @@ a `PASS` that hides residual slop is the one thing this gate exists to prevent.
 ## What this skill does NOT do
 
 - **Mutate PR state.** No `gh pr ready`, no `gh pr merge`, no labels. The verdict
-  is read-only; undrafting/merging is a separate, downstream decision.
+  stays read-only; undrafting/merging is a separate, downstream decision.
 - **Fix anything.** Remediation is the `implement` node's job on `AUDIT-FAIL`.
 - **Fork PR classification.** It consumes the same private classifier JSON as
   `/audit pr` and `/audit prs`.
@@ -318,9 +318,8 @@ a `PASS` that hides residual slop is the one thing this gate exists to prevent.
   reviewer produce it.
 - **Apply the simplification.** Gate 4 names the smaller alternative; removing the
   code is the `implement` node's job, like every other `AUDIT-FAIL`.
-- **Write the reviewer evidence.** The per-gate observations above are what the
-  **PR body**'s evidence sections are built from, but the orchestrating caller writes
-  them — see [`reviewer-evidence-doc.md`](reviewer-evidence-doc.md).
+- **Write the reviewer evidence.** The **PR body**'s evidence sections draw on the
+  per-gate observations above, but the orchestrating caller writes those sections — see [`reviewer-evidence-doc.md`](reviewer-evidence-doc.md).
 
 ---
 
