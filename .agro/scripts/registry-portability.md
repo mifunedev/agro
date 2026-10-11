@@ -209,8 +209,8 @@ exit code alone, unless you pass `--strict-exceptions`.
 
 ## When this check actually runs
 
-Nothing runs the registry scan automatically. No GitHub workflow and no cron
-invokes `.agro/scripts/registry-portability.sh`.
+Nothing runs the registry scan automatically. No GitHub workflow and no harness
+loop invokes `.agro/scripts/registry-portability.sh`.
 
 The scan's intended trigger is the publishing step in
 `.agro/skills/builder/references/skill.md`: run it against a checkout before
@@ -218,16 +218,16 @@ opening the registry pull request. That is a documented manual procedure, not an
 automated gate, and it catches drift only on the path that goes through this
 repository.
 
-To close that gap, a scheduled job under `crons/` would clone the registry
-and run the scan. That is the only option that also catches a commit made
-directly against the registry, which the publishing step cannot see.
+The gap is still open. A recurring check must clone the registry and run the
+scan. Only a recurring check also catches a commit made directly against the
+registry, which the publishing step cannot see. A harness loop (for example
+Claude Code `/loop`) or a scheduled GitHub workflow can run the check. Nobody has
+built one.
 
-That job was blocked at first, for a stated reason: the check exited 1 against
-live master until the five recorded defects were repaired there, so a cron added
-then would have paged on a known backlog from its first run. mifunedev/skills#8
-repaired all five and merged as `eab0a14`. The check now reports `findings: 9`,
-`labelled KNOWN: 0`, `neither: 0`, exit 0 against live master. **The cron is
-unblocked and remains unbuilt.** Whoever adds it starts from a green baseline, so its first page means real drift.
+The baseline is green. mifunedev/skills#8 repaired the five recorded defects and
+merged as `eab0a14`. The check now reports `findings: 9`, `labelled KNOWN: 0`,
+`neither: 0`, exit 0 against live master. A recurring check starts from this
+baseline, so its first alert means real drift.
 
 ## How far this check reaches
 
