@@ -85,4 +85,4 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. Claim: `.agro/scripts/__tests__/sandbox-privilege-boundary.test.ts` keeps its own allow-list of Compose keys, and the plan did not name the file. Evidence: the US-001 worker reported a failure in that test. Outcome: fixed in this PR, because the advisor added the file to the owned paths of US-001.
