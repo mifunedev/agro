@@ -33,8 +33,8 @@ Read the role boundary before any procedure.
 - Advisors and workers must not send Herdr messages back to the supervisor.
   This ban includes direct sends, `/escalate --supervisor`, inherited destinations,
   and relays. Workers report to the advisor through native worker output only.
-  Advisors report through normal output, `prd.json`, and the PR body, as `/delegate`
-  and `/prd` define.
+  Advisors report through normal output, `prd.json`, and the PR body, as
+  `/delegate` and `/prd` define.
 - The supervisor owns operator escalation. Advisors and workers must not bypass
   the supervisor through Slack or invoke `/escalate` to notify the supervisor.
 
@@ -471,19 +471,20 @@ artifacts through monitors; keep operator escalation with the supervisor.
 
 **10. A green status field is a claim, not evidence.**
 Symptom: the supervisor reported a pull request as reviewed and its gates as
-passing. The reviewer had never read the pull request, and one committed probe could not fail
-under any repository state. Cause: the supervisor verified each gate by its
-status bucket rather than by what the gate did. A third-party reviewer returned
-`SUCCESS` when it skipped a draft, and returned `SUCCESS` again when it declined
-on a rate limit. A probe that shipped with a shell quoting defect swallowed its
-own predicate and printed `PASS`. Correction: read the body, not the bucket. For
-a review gate, confirm from the API that a review or a substantive comment
-landed, with a timestamp after any event that triggers a skip. For a
-check the contract adds, require it to be seen failing against a deliberate
-break before it counts as a gate. No one knows that a guard works until the
-guard fails once. Treat a pass with zero elapsed time as suspect on principle. Carry the
-same rule into the monitor: render draft state and skipped or neutral
-sub-states, or the monitor will launder an unearned green into a report.
+passing. The reviewer had never read the pull request, and one committed probe
+could not fail under any repository state. Cause: the supervisor verified each
+gate by its status bucket rather than by what the gate did. A third-party
+reviewer returned `SUCCESS` when it skipped a draft, and returned `SUCCESS`
+again when it declined on a rate limit. A probe that shipped with a shell
+quoting defect swallowed its own predicate and printed `PASS`. Correction: read
+the body, not the bucket. For a review gate, confirm from the API that a review
+or a substantive comment landed, with a timestamp after any event that triggers
+a skip. For a check the contract adds, require it to be seen failing against a
+deliberate break before it counts as a gate. No one knows that a guard works
+until the guard fails once. Treat a pass with zero elapsed time as suspect on
+principle. Carry the same rule into the monitor: render draft state and skipped
+or neutral sub-states, or the monitor will launder an unearned green into a
+report.
 
 The general form is worth more than the three instances. A claim without a check
 rots; a check without a test of the check is itself an unverified claim; and a
