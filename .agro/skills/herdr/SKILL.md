@@ -10,9 +10,8 @@ description: |
   split/focus/close panes or tabs, open or create a worktree in Herdr,
   wait for a pane's output or an agent's status, check Herdr server/session
   status, or install a Herdr provider integration.
-  Do NOT trigger for tmux-managed headless services (cron, Slack gateway,
-  tunnels) — those stay in their own tmux sessions, and the cron runtime is
-  the systemd service agro-cron.service.
+  Do NOT trigger for tmux-managed headless services (Slack gateway, tunnels) —
+  those stay in their own tmux sessions.
 allowed-tools: Bash, Read
 ---
 

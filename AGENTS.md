@@ -11,13 +11,13 @@ Every coding harness reads this file directly.
 
 AGRO is a portable home for autonomous coding agents. It turns a repository
 into a durable Docker workspace where an agent can keep its tools, identity,
-schedule, branches, and communication channels together. The operator can use the
+branches, and communication channels together. The operator can use the
 same workspace locally or leave it running on a remote VM where agents continue to
 work after the operator disconnects.
 
 AGRO does not replace Claude Code, Codex, Pi, or another coding harness. It
 surrounds each harness with two layers: `.devcontainer/` defines the isolated
-runtime, and `.agro/` provides the portable control plane for identity, schedules,
+runtime, and `.agro/` provides the portable control plane for identity,
 task procedures, and checks. The operator chooses the coding harness.
 
 The following properties are non-negotiable.
@@ -40,9 +40,9 @@ canonical `.agro/` source. Do not patch a generated mirror.
 ### 3. Remote and unattended operation are normal
 
 A terminal disconnect must not end useful work. systemd is PID 1 in the sandbox and
-supervises container infrastructure: the bootstrap oneshot and the cron runtime.
-Interactive agents, tests, and development servers run in Herdr. Gateways, tunnels, and
-detached cron fires run in named tmux sessions. A raw shell is a recovery path. Design
+supervises only container infrastructure: the bootstrap oneshot.
+Interactive agents, tests, and development servers run in Herdr. Gateways and tunnels
+run in named tmux sessions. A raw shell is a recovery path. Design
 every persistent process for restart, inspection, and operation from another machine.
 
 ### 4. Parallel work does not share mutable state
@@ -93,7 +93,7 @@ cross the sandbox boundary or make persistent work depend on an attached termina
 - **sandbox** means the project container defined by `.devcontainer/` and the
   persistent agent environment inside it.
 - **control plane** means only the portable `.agro/` machinery that manages lifecycle,
-  agent identity, schedules, task procedures, and checks.
+  agent identity, task procedures, and checks.
 - **coding harness** means Claude Code, Codex, Pi, or another agent interface running
   in the sandbox.
 - **agent session** means one running instance of a coding harness acting with an

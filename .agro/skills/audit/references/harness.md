@@ -22,8 +22,8 @@ flowchart TD
 
     C --> PM["PM Auditor<br>onboarding · skill consistency<br>issue templates"]
     C --> IMP["Implementer Auditor<br>startup reliability · CI/CD<br>test coverage · package health"]
-    C --> CRIT["Critic Auditor<br>security · heartbeat reliability<br>worktree cleanup · state corruption"]
-    C --> EXP["Explorer Auditor<br>memory quality · heartbeat health<br>skill staleness"]
+    C --> CRIT["Critic Auditor<br>security<br>worktree cleanup · state corruption"]
+    C --> EXP["Explorer Auditor<br>memory quality · worktree status<br>skill staleness"]
 
     PM & IMP & CRIT & EXP --> VAL["Validate auditor outputs<br/>non-empty sentinels"]
     VAL --> SYN["Synthesize: deduplicate + tier-rank"]
@@ -53,8 +53,6 @@ Read the following before spawning agents. Pass the assembled snapshot to every 
 
 # Harness structure
 ls "$AUDIT_ROOT/.claude/skills/"
-ls "$AUDIT_ROOT/crons/" 2>/dev/null || echo "no crons"
-tail -20 "$AUDIT_ROOT/crons/.cron.log" 2>/dev/null
 
 # Package health
 cat "$AUDIT_ROOT/package.json" 2>/dev/null | head -30
@@ -79,9 +77,6 @@ Assemble a **Context Snapshot** (compact markdown, ~300 words):
 
 ### Agents present
 [list or "none"]
-
-### Heartbeats
-[list files + frontmatter status if readable]
 
 ### Memory logs (recent)
 [last 10 daily log files]
@@ -165,11 +160,9 @@ Launch 4 Agent tool calls **in a single message**. Each receives the Context Sna
 >
 > 1. **Security posture** — Check: is the Docker socket mounted into containers (`/var/run/docker.sock`)? Are any containers running with `--privileged` or `user: root`? Are there default passwords or hardcoded secrets in compose files or entrypoints? Is sudo unrestricted inside the sandbox?
 >
-> 2. **Cron reliability** — Read all cron definitions in `crons/`. For each: is there a watchdog/restart mechanism? What happens if the cron runtime crashes — does it auto-recover? Is the cron/daemon config present and valid?
+> 2. **Worktree cleanup** — In the source checkout listed as `AUDIT_ROOT`, run `git worktree list`. Identify orphaned agent branches (`agent/*`) with no recent commits (check `git log --since="7 days ago"`). Is there any automated cleanup?
 >
-> 3. **Worktree cleanup** — In the source checkout listed as `AUDIT_ROOT`, run `git worktree list`. Identify orphaned agent branches (`agent/*`) with no recent commits (check `git log --since="7 days ago"`). Is there any automated cleanup?
->
-> 4. **State corruption risks** — Look for: shared files written by multiple agents concurrently (e.g., `crons/.cron.log`), no file locking on append operations, mid-commit crash scenarios (partial writes to critical files), compose volumes that could diverge.
+> 3. **State corruption risks** — Look for: shared files written by multiple agents concurrently (e.g., `.agro/logs/escalations.jsonl`), no file locking on append operations, mid-commit crash scenarios (partial writes to critical files), compose volumes that could diverge.
 >
 > **Return format (Ultra compression):**
 > ```
@@ -189,11 +182,9 @@ Launch 4 Agent tool calls **in a single message**. Each receives the Context Sna
 >
 > **Audit areas:**
 >
-> 1. **Cron health** — For each cron definition in `crons/`, classify: ACTIVE (recently logged evidence), STALE (defined but no recent log evidence), MISCONFIGURED (broken frontmatter or missing schedule). Check `crons/.cron.log` for cron execution traces.
+> 1. **Agent worktree status** — In the source checkout listed as `AUDIT_ROOT`, run `git worktree list` and `git branch -a | grep agent/`. Classify each: ACTIVE (commits in last 7 days), IDLE (commits 7-30 days ago), ORPHANED (no commits in 30+ days or branch deleted).
 >
-> 2. **Agent worktree status** — In the source checkout listed as `AUDIT_ROOT`, run `git worktree list` and `git branch -a | grep agent/`. Classify each: ACTIVE (commits in last 7 days), IDLE (commits 7-30 days ago), ORPHANED (no commits in 30+ days or branch deleted).
->
-> 3. **Skill usage patterns** — Use the Context Snapshot's `crons/.cron.log` excerpt plus in-repo references; keep `.claude/skills/` existence checks on `AUDIT_ROOT`. Which skills are referenced by a cron, a workflow, or another skill (evidence of use)? Which exist in `.claude/skills/` but are referenced nowhere (potentially stale or unknown)?
+> 2. **Skill usage patterns** — Use in-repo references; keep `.claude/skills/` existence checks on `AUDIT_ROOT`. Which skills are referenced by a workflow or another skill (evidence of use)? Which exist in `.claude/skills/` but are referenced nowhere (potentially stale or unknown)?
 >
 > **Return format (Ultra compression):**
 > ```
@@ -293,8 +284,8 @@ Return this structured observation to the outer dispatcher; do not report a run 
 |---------|--------------|
 | PM | Onboarding, skill consistency, issue templates |
 | Implementer | Startup reliability, test coverage, CI/CD, package health, compose overlays |
-| Critic | Security, heartbeat reliability, worktree cleanup, state corruption |
-| Explorer | Memory quality, heartbeat health, worktree status, skill usage |
+| Critic | Security, worktree cleanup, state corruption |
+| Explorer | Memory quality, worktree status, skill usage |
 
 ### Severity and effort definitions
 
@@ -309,8 +300,6 @@ Return this structured observation to the outer dispatcher; do not report a run 
 | Resource | Path |
 |----------|------|
 | Orchestrator skills | `.claude/skills/` |
-| Crons | `crons/` |
-| Cron liveness | `crons/.cron.log` |
 | Compose | `.devcontainer/docker-compose.yml` |
 | Entrypoint | `.devcontainer/entrypoint.sh` |
 | CI workflows | `.github/workflows/` |

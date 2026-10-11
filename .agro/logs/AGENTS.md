@@ -15,9 +15,8 @@ escalation the operator has not answered, a decision made without consent becaus
 none could be obtained, a finding that would otherwise exist only in a tmux
 scrollback.
 
-Do not use it for process logs a service already owns (`/tmp/cron-*.log`,
-`/tmp/client-slack-*.log`), for anything a test already asserts,
-or as a substitute for `evidence.md` in a task folder.
+Do not use it for process logs a service already owns (`/tmp/client-slack-*.log`),
+for anything a test already asserts, or as a substitute for `evidence.md` in a task folder.
 
 Each record is one line of JSON so the file stays append-only and greppable
 without a parser:

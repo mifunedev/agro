@@ -26,5 +26,5 @@ jq -e 'all(.userStories[]; .passes == true)' .agro/tasks/<slug>/prd.json
 ```
 
 A task with no readable `prd.json` is not complete. Keep it in place and report the gap.
-The `cleanup-tasks` cron archives completed tasks under `.agro/tasks/archive/<YYYY-MM-DD>/<slug>/`.
+The operator or a harness loop archives completed tasks to `.agro/tasks/archive/<YYYY-MM-DD>/<slug>/`.
 Passing stories does not bypass the PR readiness gates.

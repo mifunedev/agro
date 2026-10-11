@@ -6,7 +6,7 @@ description: >-
   correlated full campaigns. TRIGGER when: audit this task; verify this
   implementation; is this the simplest approach; audit PR N; classify this pull request; audit open PRs; triage
   the PR queue; audit the harness; find harness improvements; audit context budget;
-  audit skills; find stale or broken skills; check framework drift; cron staleness; run a full audit
+  audit skills; find stale or broken skills; check framework drift; run a full audit
   campaign; audit everything; cross-target next actions.
 argument-hint: "<implementation|pr|prs|harness|context|skills|drift|full> [target options]"
 ---

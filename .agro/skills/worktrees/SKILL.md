@@ -211,7 +211,7 @@ bash .agro/scripts/git-maintenance.sh worktree-remove "$WORKTREES_ROOT/$BRANCH"
 bash .agro/scripts/git-maintenance.sh branch-delete "$BRANCH"
 ```
 
-Scope: only **non-agent-mediated** invocations (raw scheduler/tmux shell scripts) bypass PreToolUse hooks. Agent-driven crons do **not** bypass them, so they must use the shim too. Plain `git worktree remove` (no `--force`) stays allowed.
+Scope: only **non-agent-mediated** invocations (raw scheduler/tmux shell scripts) bypass PreToolUse hooks. Agent-driven sessions, including harness loops, pass through the guard and must use the shim. Plain `git worktree remove` (no `--force`) stays allowed.
 
 ## STALE AUDIT — review only, no auto-delete
 

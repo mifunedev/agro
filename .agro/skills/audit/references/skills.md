@@ -51,16 +51,15 @@ AGE_DAYS=$(( (NOW - MTIME) / 86400 ))
 #### Dimension B — Usage (0-2)
 
 ```bash
-# Count daily memory logs that mention this skill name (case-insensitive)
 SKILL_NAME="<skill-name>"
-MENTION_COUNT=$(grep -rli "$SKILL_NAME" "$AUDIT_ROOT/crons/.cron.log" 2>/dev/null | wc -l)
+MENTION_COUNT=$(git -C "$AUDIT_ROOT" grep -l -i -F "$SKILL_NAME" -- . ":(exclude).agro/skills/$SKILL_NAME/" 2>/dev/null | wc -l)
 ```
 
 | Mentions | Score |
 |----------|-------|
-| >= 2 log files | 2 |
-| 1 log file | 1 |
-| 0 log files | 0 |
+| >= 2 tracked files outside the skill directory | 2 |
+| 1 tracked file outside the skill directory | 1 |
+| 0 tracked files outside the skill directory | 0 |
 
 ---
 
@@ -148,8 +147,8 @@ For each skill that is not CURRENT, produce one concrete recommendation line. Us
 |----------------|------------------------|
 | Format score = 0 | `Missing frontmatter — add YAML block with name/description` |
 | Integrity score = 0 | `Fix broken references — N paths/skills no longer exist` |
-| Freshness = 0, Usage = 0 | `Never triggered and not updated in 30+ days — remove or redesign` |
-| Usage = 0, Freshness >= 1 | `Never triggered — confirm still needed or add to a heartbeat` |
+| Freshness = 0, Usage = 0 | `Never referenced and not updated in 30+ days — remove or redesign` |
+| Usage = 0, Freshness >= 1 | `Never referenced — confirm still needed or reference it from a workflow or another skill` |
 | Deps score = 0 | `Depends on deleted or dead skills — update or remove cross-skill calls` |
 | Freshness = 0, Format < 2 | `Pattern drift — rewrite to current conventions` |
 
@@ -199,8 +198,7 @@ Return this structured observation to the outer dispatcher and suppress target l
 - When checking integrity references, skip references to standard Unix paths (`/bin`, `/usr`, `$AUDIT_ROOT` itself as a directory) — only flag references to specific files or skills that do not exist.
 - A skill that is the target of `argument-hint: "all | root | <skill-name>"` style hints should not be penalized for referencing those placeholder tokens.
 - For the single-skill target mode (`$ARGUMENTS` = a skill name), run all 5 dimensions and emit the same table for just that skill, plus its recommendation.
-- Usage evidence comes from in-repo references and `crons/.cron.log`; source and cron integrity checks stay under `AUDIT_ROOT`.
-- Heartbeat/cron coverage is a bonus signal, not a scored dimension — note it in the Recommendation line if a skill has 0 usage and no cron reference in `crons/`.
+- Usage evidence comes from in-repo references under `AUDIT_ROOT`. Source and integrity checks stay under `AUDIT_ROOT`.
 
 ## Reference
 
@@ -215,7 +213,7 @@ Return this structured observation to the outer dispatcher and suppress target l
 | Dimension | 2 (healthy) | 1 (warning) | 0 (stale) |
 |-----------|------------|-------------|-----------|
 | Freshness | <= 7 days | 8-30 days | 31+ days |
-| Usage | 2+ log mentions | 1 log mention | 0 mentions |
+| Usage | 2+ referencing files | 1 referencing file | 0 referencing files |
 | Integrity | 0 broken refs | 1-2 broken refs | 3+ broken refs |
 | Format | FM + memory protocol + guidelines/ref | FM only | No FM |
 | Dependencies | All deps score >= 6 or none | Deps score 3-5 | Deps deleted or score <= 2 |

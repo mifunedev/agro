@@ -189,7 +189,7 @@ bash .agro/scripts/git-maintenance.sh worktree-remove <path>
 bash .agro/scripts/git-maintenance.sh push-force <remote> <branch>   # uses --force-with-lease
 ```
 
-**Scope rule:** only **non-agent-mediated** invocations — raw scheduler/tmux shell scripts that never spawn a provider — bypass the PreToolUse hooks. Agent-driven crons do **not** bypass the hooks. `cron-runtime.ts` runs agent-driven crons as `pi --continue` / `claude -p` prompts, so their Bash passes through the guard. Agent-driven crons must use the shim too. The shim is a compatibility shim, not a security control. The same script-file gap is also an evasion route; Docker is the security boundary.
+**Scope rule:** only **non-agent-mediated** invocations — raw scheduler/tmux shell scripts that never spawn a provider — bypass the PreToolUse hooks. Agent-driven sessions, including harness loops, pass through the guard and must use the shim. The shim is a compatibility shim, not a security control. The same script-file gap is also an evasion route; Docker is the security boundary.
 
 ## Catching Up Feature Branches
 

@@ -7,10 +7,9 @@ agents, background workers, heartbeats — MUST run inside a named tmux
 session. This is the single mechanism for inspection, attach/detach,
 restart, and log capture across all internal apps.
 
-The one boundary: **systemd owns OS/container process supervision, AGRO
-owns scheduling semantics.** systemd is PID 1 in the sandbox and
-supervises `agro-bootstrap.service` and `agro-cron.service`.
-Those two are not tmux sessions and must not be wrapped in one. Everything
+The one boundary: **systemd owns OS/container process supervision.**
+systemd is PID 1 in the sandbox and supervises only `agro-bootstrap.service`.
+That unit is not a tmux session and must not be wrapped in one. Everything
 above the container-init layer stays under the tmux rule.
 
 `tmux` is preinstalled in the sandbox image; a default `.tmux.conf` is
@@ -18,7 +17,7 @@ baked in (see commit `b30cef9`).
 
 ### Agent task workflows are not a tmux exception
 
-This rule covers **headless infrastructure** — cron runtime and detached fires, messaging
+This rule covers **headless infrastructure** — messaging
 gateways, supervisors and watchdogs, tunnels, the T3 Code server. It does not reach an agent
 task workflow. The agent that the operator started owns the task in Herdr, so the task has no
 tmux session to name, log, attach to, or kill.
@@ -33,7 +32,6 @@ Format: `<category>-<identifier>` (kebab-case inside each segment).
 | `cloudflared-` | `cloudflared-3000` | Cloudflare tunnels for shared previews |
 | `agent-` | `agent-watcher`, `agent-batch`, `agent-t3code`, `agent-tailscaled` | Headless / long-running agent processes, including the T3 Code server (`t3 serve`) and the userspace `tailscaled` that fronts it. Interactive CLIs (`claude`, `codex`, `opencode`) are normally foreground in a terminal or VS Code, not detached in tmux. |
 | `client-` | `client-slack-pi`, `client-slack-hermes`, `client-discord` | External-surface clients that bridge an in-sandbox agent to a third-party UI |
-| `cron-` | `cron-heartbeat`, `cron-cleanup-tasks-0613-1805` | Detached fires of `tmux: true` cron jobs. The runtime that schedules them is `agro-cron.service`, not a tmux session. |
 
 Reserved prefix: `system-`. Do not use for user apps.
 

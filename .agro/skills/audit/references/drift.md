@@ -1,6 +1,6 @@
 # Audit drift
 
-Read-only harness drift detector. Reports three drift classes and prints a
+Read-only harness drift detector. Reports two drift classes and prints a
 recommended remediation command for each finding — never executes any
 remediation. This skill never mutates local branches, the working tree,
 committed history, the remote, or host state. The sole permitted write is
@@ -9,7 +9,7 @@ non-destructive.
 
 ## Instructions
 
-Run all three sections in order and collect the one-line summary for each.
+Run both sections in order and collect the one-line summary for each.
 At the end, emit the aggregate `DRIFT:` line only when at least one class
 is non-clean.
 
@@ -91,10 +91,9 @@ rename history), print `  (no changed paths detected — inspect manually)`.
 
 **Goal**: detect whether HEAD is behind its remote tracking branch, the
 working tree is dirty, or the current branch is unexpected. This section
-is motivated by the append-only-file stale-view trap: `crons/.cron.log`
-is appended by concurrent sessions; if HEAD
-drifts behind `origin/<branch>`, the in-context view of these files lags
-behind reality.
+is motivated by the stale-view trap: concurrent sessions push to the same
+branch; if HEAD drifts behind `origin/<branch>`, the in-context view of
+tracked files lags behind reality.
 
 **Step B-1 — identify current branch:**
 
@@ -174,272 +173,28 @@ When behind count > 0, print:
 
 ---
 
-### (C) Host/state drift (cron-staleness)
-
-**Goal**: detect schedulable cron files changed after the running
-cron runtime started. Cron body text is hot-reloaded at fire time,
-but restart-required frontmatter/config (`schedule`, `enabled`, `agent`,
-`tmux`, `worktree`, `preflight`) is loaded when the scheduler arms the cron;
-a changed cron file may therefore leave the live runtime using stale config
-until a SIGUSR1 reschedule or runtime restart.
-
-This detector is conservative: without a runtime snapshot it cannot prove
-which field changed. It reports that restart-required frontmatter/config **may**
-be stale when a schedulable cron file is newer than the live runtime.
-
-For deep host resource triage (memory, disk, CPU, Docker), defer to
-`/health-check` — this section targets only cron-staleness.
-
-**Step C-1 — resolve runtime start time:**
-
-Prefer the PID stored in `crons/.pid` via `/proc/<pid>/stat`:
-
-```bash
-PID=$(cat crons/.pid 2>/dev/null)
-if [ -n "$PID" ] && [ -r "/proc/$PID/stat" ]; then
-  # Field 22 of /proc/<pid>/stat is process start time in clock ticks
-  # since system boot. Combine with btime from /proc/stat for wall-clock.
-  BTIME=$(grep '^btime ' /proc/stat | awk '{print $2}')
-  STARTTIME_TICKS=$(awk '{print $22}' /proc/$PID/stat)
-  CLK_TCK=$(getconf CLK_TCK 2>/dev/null || echo 100)
-  RUNTIME_START=$(( BTIME + STARTTIME_TICKS / CLK_TCK ))
-  echo "DRIFT-CHECK (C): cron runtime start time (from /proc): $(date -d @$RUNTIME_START -u '+%Y-%m-%d %H:%M:%S UTC' 2>/dev/null || date -r $RUNTIME_START -u '+%Y-%m-%d %H:%M:%S UTC' 2>/dev/null || echo $RUNTIME_START)"
-else
-  RUNTIME_START=""
-fi
-```
-
-If `/proc/<pid>/stat` is inaccessible (PID namespace isolation, non-Linux
-host, stale PID), fall back to the `agro-cron.service` start
-timestamp:
-
-```bash
-if [ -z "$RUNTIME_START" ]; then
-  UNIT_START=$(systemctl show -p ExecMainStartTimestamp --value agro-cron.service 2>/dev/null)
-  if [ -n "$UNIT_START" ]; then
-    RUNTIME_START=$(date -d "$UNIT_START" +%s 2>/dev/null || echo "")
-    if [ -n "$RUNTIME_START" ]; then
-      echo "DRIFT-CHECK (C): cron runtime start time (from systemd): $(date -d @$RUNTIME_START -u '+%Y-%m-%d %H:%M:%S UTC' 2>/dev/null || echo $RUNTIME_START)"
-    fi
-  fi
-fi
-```
-
-If neither source resolves a start time, print and skip the comparison:
-
-```
-DRIFT-CHECK: cron runtime start time unavailable — restart runtime if a cron was recently merged
-```
-
-Then print a single `OK` token for class C:
-
-```
-(C) Cron-staleness drift: OK (start time unavailable — assumed clean)
-```
-
-**Step C-2 — compare cron file mtimes:**
-
-When `RUNTIME_START` is set, check each **schedulable cron file** for a
-mtime strictly after the runtime start time. A `crons/*.md` file qualifies
-only if it passes the predicate below (a leading `---` frontmatter block
-declaring a non-empty `schedule:` key that parses with the same Croner
-constructor used by `scripts/cron-runtime.ts`, not `enabled: false`, valid
-cron id, filename/id match, and safe `agent:` override) — so non-cron docs like
-`crons/AGENTS.md` and malformed cron files the runtime logs as `SCHED_INVALID`
-are skipped by the predicate, never mtime-compared, and never counted.
-Qualification is property-based, not a hard-coded name list. The block also
-extracts the restart-required frontmatter field set for the diagnostic line:
-
-```bash
-INERT=()
-# Qualify each crons/*.md as a SCHEDULABLE cron BEFORE the mtime check, mirroring
-# scripts/cron-runtime.ts parseCronFile + loadCrons: a file the runtime never
-# loads cannot be "inert". A file qualifies IFF all of:
-#   1. first line is literally '---' (trailing \r stripped, CRLF-safe) — so a
-#      '---' inside a fenced code block (the crons/AGENTS.md trap) cannot match,
-#   2. a closing '---' delimiter exists on a later line (well-formed frontmatter),
-#   3. the leading frontmatter has a non-empty, anchored, comment-excluding
-#      schedule: key (^[[:space:]]*schedule: — skips '# schedule:' and substring
-#      'pre_schedule:'),
-#   4. it is not disabled (no enabled: set to false, bare or quoted),
-#   5. the id is a valid cron id and matches the filename stem,
-#   6. any agent: override is safe by the runtime's isValidAgentBin() contract,
-#   7. the schedule parses with Croner, matching the runtime's isValidSchedule()
-#      / SCHED_INVALID path so malformed schedules are skipped, not flagged inert.
-# Non-qualifying files (e.g. crons/AGENTS.md or invalid schedules) are skipped
-# silently — never mtime-compared, never counted toward the inert aggregate. The
-# predicate is property-based: no hard-coded cron name list or count.
-RESTART_REQUIRED_FRONTMATTER_FIELDS="schedule enabled agent tmux worktree preflight"
-
-cron_fm_value() {
-  local key="$1"
-  awk -v wanted="$key" '
-    /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
-    {
-      i = index($0, ":")
-      if (i == 0) next
-      k = substr($0, 1, i - 1)
-      v = substr($0, i + 1)
-      gsub(/^[[:space:]]+|[[:space:]]+$/, "", k)
-      if (k != wanted) next
-      gsub(/^[[:space:]]+|[[:space:]]+$/, "", v)
-      sub(/^["\047]/, "", v)
-      sub(/["\047]$/, "", v)
-      print v
-      found = 1
-      exit
-    }
-    END { exit !found }
-  '
-}
-
-is_valid_cron_id() {
-  printf '%s' "$1" | grep -Eq '^[a-z0-9][a-z0-9-]*$'
-}
-
-is_valid_agent_bin() {
-  local agent="$1"
-  [ -n "$agent" ] || return 1
-  case "$agent" in -*|*..*) return 1 ;; esac
-  printf '%s' "$agent" | grep -Eq '^[A-Za-z0-9_./-]+$'
-}
-
-cron_fm_fingerprint() {
-  local fm="$1" key value out=()
-  for key in $RESTART_REQUIRED_FRONTMATTER_FIELDS; do
-    if value=$(printf '%s\n' "$fm" | cron_fm_value "$key"); then
-      out+=("$key=$value")
-    else
-      out+=("$key=<unset>")
-    fi
-  done
-  printf '%s' "${out[*]}"
-}
-
-is_valid_cron_schedule() {
-  local schedule="$1" root
-  root="${DRIFT_CHECK_ROOT:-}"
-  if [ -z "$root" ]; then
-    root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-  fi
-
-  DRIFT_CHECK_ROOT="$root" node --input-type=module -e '
-    import { createRequire } from "node:module";
-    const schedule = process.argv[1] ?? "";
-    const root = (process.env.DRIFT_CHECK_ROOT || process.cwd()).replace(/\/$/, "");
-    const requireFromRoot = createRequire(`${root}/package.json`);
-    const mod = await import(requireFromRoot.resolve("croner"));
-    const CronCtor = mod.Cron ?? mod.default?.Cron ?? mod.default;
-    let probe;
-    let ok = false;
-    try {
-      probe = new CronCtor(schedule);
-      ok = true;
-    } catch {
-      ok = false;
-    } finally {
-      probe?.stop?.();
-    }
-    process.exit(ok ? 0 : 1);
-  ' "$schedule" >/dev/null 2>&1
-}
-
-is_schedulable_cron() {
-  local f="$1" fm schedule enabled id expected_id agent
-
-  [ "$(head -n1 "$f" | tr -d '\r')" = '---' ] || return 1
-  awk 'NR>1 { sub(/\r$/,""); if ($0 ~ /^---[[:space:]]*$/) { ok=1; exit } } END { exit !ok }' "$f" || return 1
-
-  fm=$(awk 'NR>1 { sub(/\r$/,""); if ($0 ~ /^---[[:space:]]*$/) exit; print }' "$f")
-
-  schedule=$(printf '%s\n' "$fm" | cron_fm_value schedule) || return 1
-  [ -n "$schedule" ] || return 1
-  is_valid_cron_schedule "$schedule" || return 1
-
-  if enabled=$(printf '%s\n' "$fm" | cron_fm_value enabled); then
-    [ "$enabled" = "false" ] && return 1
-  fi
-
-  expected_id=$(basename "$f" .md)
-  id=$(printf '%s\n' "$fm" | cron_fm_value id || printf '%s' "$expected_id")
-  is_valid_cron_id "$id" || return 1
-  is_valid_cron_id "$expected_id" || return 1
-  [ "$id" = "$expected_id" ] || return 1
-
-  if agent=$(printf '%s\n' "$fm" | cron_fm_value agent); then
-    is_valid_agent_bin "$agent" || return 1
-  fi
-
-  return 0
-}
-for f in crons/*.md; do
-  is_schedulable_cron "$f" || continue
-  FILE_MTIME=$(stat -c '%Y' "$f" 2>/dev/null || stat -f '%m' "$f" 2>/dev/null)
-  if [ -n "$FILE_MTIME" ] && [ "$FILE_MTIME" -gt "$RUNTIME_START" ]; then
-    fm=$(awk 'NR>1 { sub(/\r$/,""); if ($0 ~ /^---[[:space:]]*$/) exit; print }' "$f")
-    INERT+=("$f")
-    echo "DRIFT-CHECK (C): $f modified after runtime start — restart-required frontmatter/config may be stale until SIGUSR1 reschedule or runtime restart (${RESTART_REQUIRED_FRONTMATTER_FIELDS}; current $(cron_fm_fingerprint "$fm"))"
-  fi
-done
-```
-
-If `INERT` is empty, print a single `OK` token for class C:
-
-```
-(C) Cron-staleness drift: OK
-```
-
-**Step C-3 — recommend restart (only when inert files found):**
-
-Print (do not execute):
-
-```
-  Recommended: reschedule or restart the cron runtime
-    # preferred live reschedule:
-    systemctl reload agro-cron.service
-    # or restart the service:
-    systemctl restart agro-cron.service
-```
-
-Note: this recommendation names the reschedule/restart commands but never runs
-them. Reschedule/restart is an intentional operator action, not performed by
-this read-only skill.
-
----
-
 ## Output Contract
 
-- Each class prints exactly one summary line when clean: `(A) Framework drift: OK`, `(B) Branch-behind drift: OK`, `(C) Cron-staleness drift: OK`. The `(C) Cron-staleness drift: OK` clean token is unchanged by the predicate — it still prints whenever no schedulable cron is inert.
+- Each class prints exactly one summary line when clean: `(A) Framework drift: OK`, `(B) Branch-behind drift: OK`.
 - When a class has findings, it prints one or more `DRIFT-CHECK (<letter>): ...` detail lines followed by a `Recommended:` block.
-- Class (C) evaluates only **schedulable cron files** — `crons/*.md` files that pass the Step C-2 predicate (a leading `---` frontmatter block declaring a non-empty, Croner-valid `schedule:` key, not `enabled: false`, valid cron id, filename/id match, and safe `agent:` override). Non-scheduled docs such as `crons/AGENTS.md` and malformed schedules the runtime would log as `SCHED_INVALID` are never evaluated, never emitted as a `DRIFT-CHECK (C)` line, and never counted toward the inert aggregate. Qualification is predicate-based, not a hard-coded name list, so a future non-cron file dropped into `crons/` is handled generically. Detail lines name the restart-required field set (`schedule enabled agent tmux worktree preflight`) and say the frontmatter/config may be stale until SIGUSR1 reschedule or runtime restart.
 - When at least one class is non-clean, print a final aggregate line:
 
 ```
 DRIFT: <comma-separated summary of non-clean classes>
 ```
 
-- The aggregate's `cron-staleness drift (N inert file)` term counts only **schedulable cron files**; a non-scheduled doc such as `crons/AGENTS.md` never increments it, and any inline example names a real cron (e.g. `crons/heartbeat.md`).
-
 Example (all clean):
 
 ```
 (A) Framework drift: OK
 (B) Branch-behind drift: OK
-(C) Cron-staleness drift: OK
 ```
 
-Example (A and C non-clean):
+Example (A non-clean):
 
 ```
 DRIFT-CHECK (A): origin/development is 3 behind upstream/development (0 ahead)
-  Recommended: git checkout upstream/development -- .claude/skills/git/SKILL.md scripts/cron-runtime.ts
-DRIFT-CHECK (B): ...
+  Recommended: git checkout upstream/development -- .agro/skills/git/SKILL.md
 (B) Branch-behind drift: OK
-DRIFT-CHECK (C): crons/heartbeat.md modified after runtime start — restart-required frontmatter/config may be stale until SIGUSR1 reschedule or runtime restart (schedule enabled agent tmux worktree preflight; current schedule=0 * * * * enabled=true agent=pi tmux=<unset> worktree=<unset> preflight=<unset>)
-  Recommended: reschedule or restart the cron runtime ...
-DRIFT: framework drift (3 behind upstream), cron-staleness drift (1 inert file)
+DRIFT: framework drift (3 behind upstream)
 ```
-
-The heartbeat surfaces the `DRIFT:` aggregate line in its log entry and
-reply when drift is found. When all classes are clean, the heartbeat
-appends nothing extra — the existing `HEARTBEAT_OK` reply is unchanged.

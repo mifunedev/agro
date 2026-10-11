@@ -5,7 +5,7 @@ description: |
   supervisor session and to the operator's Slack channel, so a finding that
   needs a person does not die in a log nobody tails or a GitHub thread that
   notifies no one.
-  TRIGGER when: an unattended, detached, cron, or background session is blocked
+  TRIGGER when: an unattended, detached, harness-loop, or background session is blocked
   and needs an operator decision; a finding requires consent the session cannot
   give (restart infrastructure, spend budget, change identity, publish
   externally); a guard or cap refuses and only a human can lift it; asked to
@@ -80,7 +80,7 @@ herdr agent start <name> --cwd <harness root> --env AGRO_SUPERVISOR_PANE=<pane>
 2. **Pass a `--key` for every recurring finding.** The script suppresses the same key
    for 12 hours (`ESCALATE_QUIET_HOURS`). A repeating session that escalates one
    finding every run trains the operator to ignore the channel. The
-   `prompt-miner` cron sent one escalation nine times before anyone acted. Use
+   `prompt-miner` loop sent one escalation nine times before anyone acted. Use
    `--force` only when the situation changed.
 3. **Never assume delivery. Exit 0 is not proof.** An unavailable destination is
    a **no-op**, not an error. The script exits `0` so a dead channel does not
@@ -166,7 +166,7 @@ always prints the reason to stderr and returns the reason in the JSON.
 - **Log**: every attempt appends one JSON line to
   `$AGRO_PROJECT_ROOT/.agro/logs/escalations.jsonl` (`ESCALATE_LOG`). The line
   carries the per-destination result. The path resolves to the **harness root**,
-  so sessions in worktrees and cron checkouts write one canonical trail. Logging
+  so sessions in worktrees and other checkouts write one canonical trail. Logging
   never fails the send.
 
   ```bash
