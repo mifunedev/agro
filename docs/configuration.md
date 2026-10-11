@@ -42,10 +42,12 @@ shows which keys hold a value with the values redacted. Both accept
 `--sandbox <name>` to act on a registry entry instead of the project.
 `agro secret set --sandbox` accepts only `GH_TOKEN`, `SANDBOX_PASSWORD`, and
 `TYPESAFE_API_KEY`, because Compose passes only these keys to the container. For
-any other key, the command exits with status 1. The container reads the other
-keys, such as `PI_SLACK_APP_TOKEN`, from the `.env` of the project checkout at
-`/home/sandbox/harness`. Write these keys with `agro secret set <KEY>` and no
-flag. `agro config set` refuses a secret key and `agro secret set` refuses a non-secret
+any other key, the command exits with status 1. Container processes read
+`PI_SLACK_APP_TOKEN` and `PI_SLACK_BOT_TOKEN` from the `.env` of the project
+checkout at `/home/sandbox/harness`. `agro langfuse apply` reads
+`LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` from the same file. Write these
+keys with `agro secret set <KEY>` and no flag. No container process reads
+`XAI_API_KEY` or `META_API_KEY` from a `.env` file. `agro config set` refuses a secret key and `agro secret set` refuses a non-secret
 key, each pointing at the other command. Apply a change with
 `agro stop <name> && agro sandbox install docker --name <name>`.
 
