@@ -77,8 +77,8 @@
         "hadolint with `.hadolint.yaml` exits 0 on `.devcontainer/Dockerfile`."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1-4,6-8 executed: git grep -n -E 'cron-runtime|agro-cron|croner|CRONS_PATH' over .devcontainer, agro-path, scripts README, package.json, pnpm-lock.yaml exit 1; diff reviewed (ssh masks kept, bootstrap test kept). 5 executed: pnpm install --frozen-lockfile exit 0. 9 executed: hadolint --config .hadolint.yaml (hadolint/hadolint:latest-alpine via stdin tar) exit 0. Extra: full npx vitest run 91 files, 2029 passed, 2 skipped.",
       "dependsOn": [
         "US-001"
       ],
@@ -92,7 +92,8 @@
         "package.json",
         "pnpm-lock.yaml",
         ".claude/protected-paths.txt"
-      ]
+      ],
+      "commit": "d02a0ebb"
     },
     {
       "id": "US-004",
@@ -158,7 +159,8 @@
         "agro.json",
         "docs/configuration.md",
         ".github/workflows/sandbox-boot-guard.yml",
-        ".agro/scripts/sandbox-upgrade-smoke.sh"
+        ".agro/scripts/sandbox-upgrade-smoke.sh",
+        "docs/deployment-prebuilt-image.md"
       ]
     },
     {
