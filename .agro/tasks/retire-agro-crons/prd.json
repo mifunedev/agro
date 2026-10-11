@@ -43,8 +43,8 @@
         "`bash .agro/scripts/link-providers.sh --check` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1-7 executed: git grep -n -i -E 'agro-cron|cron-runtime|crons/|cron runtime|cron fires|cleanup-tasks|cron.staleness' over owned paths exit 1 (no hits); diff review of AGENTS.md, tasks/AGENTS.md, git/SKILL.md, ste rules.md. 6 executed: git diff --quiet on prompt-miner/scripts exit 0 (classifier unchanged). 8 executed: link-providers.sh --check exit 0. Extra: vitest herdr-default + standard-skills-link 48 passed. audit skills.md Usage score now counts tracked references outside the skill dir.",
       "dependsOn": [],
       "files": [
         "AGENTS.md",
@@ -58,7 +58,8 @@
         ".agro/skills/t3/references/sandbox-processes.md",
         ".agro/skills/prompt-miner/SKILL.md",
         ".agro/skills/ste/references/rules.md"
-      ]
+      ],
+      "commit": "f79eb3a4"
     },
     {
       "id": "US-003",
