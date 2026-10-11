@@ -79,4 +79,4 @@ None.
 
 ## Lessons
 
-1. Claim: `rl.question` settles only on a line that ends in a newline, so a piped value without a newline left the promise pending and Node exited 0. Evidence: the new tests in `prompt-piped.test.ts` timed out before the fix. Outcome: fixed in this PR.
+1. Claim: `rl.question` settles only on a line that ends in a newline. A piped value without a newline left the promise pending, and Node exited 0. Evidence: the new tests in `prompt-piped.test.ts` timed out before the fix. Outcome: fixed in this PR.
