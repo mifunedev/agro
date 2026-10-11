@@ -73,18 +73,19 @@
       "title": "Add the supervisor entry to the root glossary",
       "description": "As an operator, I want the root glossary to define \"supervisor\" so that every harness reads one meaning of the role.",
       "acceptanceCriteria": [
-        "`AGENTS.md` \u00a7 A small glossary has one entry that starts with `- **supervisor** means`.",
+        "`AGENTS.md` § A small glossary has one entry that starts with `- **supervisor** means`.",
         "The entry defines the behavior of launching, monitoring, and escalating for advisor sessions in other Herdr panes. The entry states that the supervisor is not an identity and is distinct from the root orchestrator.",
         "The entry matches the style of the other glossary entries: one bullet, a bold term, \"means\", and a wrap at 80 to 85 columns.",
         "`bash .agro/skills/ste/scripts/ste-check.sh AGENTS.md` exits 0."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Commit 2be5cbd3. C1 executed: grep -n -A2 ^- **supervisor** means AGENTS.md finds one entry at lines 92-94 inside the glossary, exit 0. C2 reasoned: the entry names launching, monitoring, and escalating for advisor sessions in other Herdr panes, not an identity, distinct from the root orchestrator. C3 executed: added lines are 80, 81, 38, 70 columns; one bullet, bold term, means. C4 executed: ste-check.sh AGENTS.md exit 0 (baseline line 163 PASSIVE fixed: AGRO retired the legacy oh alias); hand review: no trailing condition, no opening pronoun.",
       "dependsOn": [],
       "files": [
         "AGENTS.md"
-      ]
+      ],
+      "commit": "2be5cbd3"
     }
   ],
   "definitionOfDone": [
