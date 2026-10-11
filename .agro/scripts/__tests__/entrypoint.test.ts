@@ -48,7 +48,7 @@ describe("devcontainer entrypoint home mount ownership", () => {
   it("runs home mount repair after host UID reconciliation", () => {
     const text = entrypoint();
     const uidSync = text.indexOf("usermod -u \"$HOST_UID\" sandbox");
-    const secondRepair = text.indexOf('PW="${SANDBOX_PASSWORD:-test1234}"');
+    const secondRepair = text.indexOf('if [ -n "${SANDBOX_PASSWORD:-}" ]; then');
 
     expect(secondRepair).toBeGreaterThan(uidSync);
     const postUidSync = text.slice(secondRepair);
@@ -64,7 +64,7 @@ describe("devcontainer entrypoint home mount ownership", () => {
     const text = entrypoint();
     const block = text.slice(
       text.indexOf("uid_reconcile_step() {"),
-      text.indexOf('PW="${SANDBOX_PASSWORD:-test1234}"'),
+      text.indexOf('if [ -n "${SANDBOX_PASSWORD:-}" ]; then'),
     );
 
     expect(block).toContain("uid_reconcile_step()");
@@ -76,6 +76,31 @@ describe("devcontainer entrypoint home mount ownership", () => {
     expect(reconBranch).not.toContain("2>/dev/null || true");
     expect(reconBranch).not.toContain("groupmod -g \"$HOST_GID\" sandbox 2>/dev/null");
     expect(reconBranch).not.toContain("usermod -u \"$HOST_UID\" sandbox 2>/dev/null");
+  });
+
+  it("sets the sandbox password when SANDBOX_PASSWORD is non-empty, else locks it with a named recovery command", () => {
+    const text = entrypoint();
+    const start = text.indexOf('if [ -n "${SANDBOX_PASSWORD:-}" ]; then');
+    expect(start).toBeGreaterThan(-1);
+    const end = text.indexOf("repair_home_mount_ownership", start);
+    expect(end).toBeGreaterThan(start);
+    const block = text.slice(start, end);
+
+    expect(block).toContain('echo "sandbox:${SANDBOX_PASSWORD}" | chpasswd');
+    expect(block).toContain("WARNING: failed to set sandbox password");
+    expect(block).toContain("passwd -l sandbox");
+    expect(block).toContain("WARNING: failed to lock sandbox password");
+    expect(block).toContain("agro secret set SANDBOX_PASSWORD");
+  });
+
+  it("runs the password step after host UID reconciliation and before home mount repair", () => {
+    const text = entrypoint();
+    const uidSync = text.indexOf('usermod -u "$HOST_UID" sandbox');
+    const passwordStep = text.indexOf('if [ -n "${SANDBOX_PASSWORD:-}" ]; then');
+    const repair = text.indexOf("repair_home_mount_ownership", passwordStep);
+
+    expect(passwordStep).toBeGreaterThan(uidSync);
+    expect(repair).toBeGreaterThan(passwordStep);
   });
 
   it("aligns the sandbox user with the docker socket GID without swallowing failures", () => {
@@ -96,7 +121,7 @@ describe("devcontainer entrypoint home mount ownership", () => {
     const text = entrypoint();
     const block = text.slice(
       text.indexOf("uid_reconcile_step() {"),
-      text.indexOf('PW="${SANDBOX_PASSWORD:-test1234}"'),
+      text.indexOf('if [ -n "${SANDBOX_PASSWORD:-}" ]; then'),
     );
     const usermod = block.indexOf("uid_reconcile_step \"set sandbox UID to host UID $HOST_UID\" usermod -u \"$HOST_UID\" sandbox");
     const success = block.indexOf("sandbox UID synced to host");
