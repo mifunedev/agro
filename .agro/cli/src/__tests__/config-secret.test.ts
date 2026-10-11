@@ -204,6 +204,15 @@ describe("--sandbox <name>", () => {
     expect(existsSync(join(entry, ".gitignore"))).toBe(false);
   });
 
+  it("`agro secret set --sandbox` accepts XAI_API_KEY and writes the entry .env", async () => {
+    const entry = registryEntry("box");
+    const { io } = makeIo();
+    io.askSecret = async () => "xai-registry";
+
+    expect(await runSecretSet("XAI_API_KEY", { bin: "agro", sandbox: "box" }, io)).toBe(0);
+    expect(readFileSync(join(entry, ".env"), "utf8")).toContain("XAI_API_KEY=xai-registry");
+  });
+
   it("`agro secret set --sandbox` refuses a key that compose does not pass and writes nothing", async () => {
     const entry = registryEntry("box");
     const { io, err } = makeIo();
