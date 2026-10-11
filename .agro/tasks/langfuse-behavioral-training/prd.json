@@ -204,8 +204,8 @@
         "`publish` exits non-zero on a conflict between a ledger entry and the remote item."
       ],
       "priority": 8,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: red run failed on missing publish.mjs (worker evidence); executed: vitest publish.test.ts 16/16 through main() on integrated branch (6 files 195/195): default dry run zero runner calls + plan lines, exit 0; --apply writes <prefix>/regression|demonstrations|holdout-v1 and --dataset-prefix; deterministic bt-item/bt-score ids; interrupted apply then --resume -> zero duplicate writes; ledger rerun skips all 12; unreviewed demonstration refused; human vs judge/agent score names; conflict exits 1; retract deletes only ledger ids; reads cannot reach write ops. Live publish (dataset-name path encoding) is verified in US-011. Dispatcher resumeAlways added for publish (d9a88516 + 69415d07).",
       "dependsOn": [
         "US-003",
         "US-007"
@@ -214,7 +214,8 @@
         ".agro/skills/behavioral-training/scripts/lib/publish.mjs",
         ".agro/scripts/__tests__/behavioral-training-publish.test.ts",
         ".agro/scripts/__tests__/fixtures/behavioral-training/publish/"
-      ]
+      ],
+      "commit": "69415d07"
     },
     {
       "id": "US-009",
