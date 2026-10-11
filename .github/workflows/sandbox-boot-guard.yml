@@ -83,33 +83,10 @@ jobs:
       - name: Verify sandbox image contract
         run: bash .agro/scripts/verify-sandbox-image.sh agro-sandbox-boot-guard:${{ github.sha }}
 
-      # ── Option C: pre-seed node_modules on the runner, BEFORE boot ──────────
-      # The devcontainer bind-mounts the checkout (..:/home/sandbox/harness) and
-      # can run a synchronous `pnpm install` during boot when the root dependency
-      # tree is missing or its manifest marker is stale — a cold install can
-      # overrun the healthcheck's ~690s unhealthy deadline and fail the boot with
-      # "systemd unit not active: agro-cron.service". Seeding node_modules here
-      # moves that slow/variable install OUT of the healthcheck-timed window; the
-      # step below also sets build.skipPnpmInstall in agro.json so the pre-seeded CI
-      # path remains an explicit boot-window escape hatch even before a marker
-      # exists. The runner workspace is a named volume shared at the same path
-      # with the dind daemon, so the node_modules written here is exactly what the
-      # container's bind mount sees. The container's UID is synced to the
-      # bind-mount owner on boot, so the runner-written node_modules is
-      # readable/writable by the sandbox user. See
-      # .claude/specs/boot-guard-cold-boot/spec.md (Option C).
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 10.33.0
-
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
-          # Match the devcontainer image (Dockerfile installs Node 24.x) so the
-          # pre-seeded tree matches what the container runs — spec §9 parity.
           node-version: "24"
-          cache: pnpm
 
       - name: Build candidate CLI
         run: |
@@ -153,33 +130,6 @@ jobs:
           name: cli-first-install-smoke-log-${{ github.run_id }}
           path: cli-first-install-smoke.log
           if-no-files-found: warn
-
-      - name: Pre-seed node_modules in the checkout (out of the boot window)
-        run: pnpm install --frozen-lockfile
-
-      # Prove the pre-seed actually lands where the sandbox will read it. The
-      # devcontainer bind mount (..:/home/sandbox/harness) is resolved by the
-      # SAME Docker daemon this step talks to, so mounting the workspace into a
-      # throwaway container exercises the exact path the sandbox sees. If the
-      # runner workspace were NOT shared with the boot daemon, croner would be
-      # absent here and we fail fast and loud — instead of silently letting the
-      # in-container install run inside the healthcheck window (the flake).
-      - name: Verify pre-seeded node_modules is visible to the boot daemon
-        run: |
-          docker run --rm -v "${{ github.workspace }}:/mnt" busybox \
-            sh -c 'ls -la /mnt/node_modules/croner/package.json'
-          echo "OK: pre-seeded node_modules is visible to the daemon that boots the sandbox"
-
-      # Deps are pre-seeded above and proven visible; build.skipPnpmInstall keeps
-      # the in-container install out of the healthcheck-timed window. This is the
-      # Option C contract: pnpm slowness can no longer trip the ~690s unhealthy
-      # deadline. entrypoint.sh reads this through `agro config show`, so it is set
-      # in agro.json rather than passed as an environment knob.
-      - name: Skip the in-container pnpm install
-        run: |
-          tmp=$(mktemp)
-          jq '.build.skipPnpmInstall = true' agro.json > "$tmp"
-          mv "$tmp" agro.json
 
       # This step is the ONLY place a full boot on a fresh home volume runs end to
       # end (the smoke tears down with `down -v`), and the smoke asserts that the

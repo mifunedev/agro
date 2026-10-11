@@ -18,7 +18,6 @@
   },
   "hermesDashboard": { "enabled": false, "port": 9119 },
   "cron": { "agentBin": "claude" },
-  "build": { "skipPnpmInstall": false },
   "image": { "mode": "build", "pullPolicy": "missing" },
   "langfuse": { "enabled": false },
   "composeOverrides": []

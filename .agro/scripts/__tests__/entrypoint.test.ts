@@ -318,6 +318,10 @@ describe("devcontainer bootstrap supervision", () => {
     }
   });
 
+  it("runs no root pnpm install at boot", () => {
+    expect(entrypoint()).not.toContain("pnpm install");
+  });
+
   it("runs as a finite bootstrap oneshot and only execs a command when one is given", () => {
     const unit = readFileSync(BOOTSTRAP_UNIT, "utf8");
 

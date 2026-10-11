@@ -114,12 +114,6 @@ at boot. The install lands in `~/.local` inside the persistent home volume, and
 | `hermesDashboard.enabled` | boolean | `false` | — | Auto-starts the web dashboard in the `app-hermes-dashboard` tmux session, bound to container loopback. |
 | `hermesDashboard.port` | number (1–65535) | `9119` | — | Container loopback port for the dashboard. Compose does not publish the port to the host. Reach the dashboard from inside the sandbox, or over cloudflared or Tailscale. |
 
-### Build behaviour
-
-| Field | Type | Default | Compose variable | What the field does |
-| --- | --- | --- | --- | --- |
-| `build.skipPnpmInstall` | boolean | `false` | — | `true` skips the entrypoint's root `pnpm install`. Use `true` when a process outside the sandbox manages the dependency tree. |
-
 ### Langfuse tracing
 
 `agro config langfuse` writes these four fields. The two Langfuse keys are

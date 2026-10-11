@@ -105,9 +105,9 @@ that file and `image.mode` is `build`. A cold build takes about ten minutes.
 ## Boot
 
 systemd is PID 1. On each boot, `agro-bootstrap.service` runs `entrypoint.sh`
-once. The entrypoint syncs the host UID and GID when a checkout is bound, repairs
-the provider links, and runs `pnpm install` at the repository root when the
-lockfile changed. The boot installs no harness and no tool.
+once. The entrypoint syncs the host UID and GID when a checkout is bound, and
+repairs the provider links. The boot installs no harness, no tool, and no
+root `node_modules`.
 
 ## Run the image without `agro`
 

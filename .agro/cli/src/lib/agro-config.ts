@@ -52,10 +52,6 @@ export interface CronSettings {
   agentBin?: string;
 }
 
-export interface BuildSettings {
-  skipPnpmInstall?: boolean;
-}
-
 export interface ImageSettings {
   ref?: string;
   mode?: ImageMode;
@@ -89,7 +85,6 @@ export interface AgroConfig {
   access?: AccessSettings;
   hermesDashboard?: HermesDashboardSettings;
   cron?: CronSettings;
-  build?: BuildSettings;
   image?: ImageSettings;
   langfuse?: LangfuseSettings;
   composeOverrides?: string[];
@@ -120,7 +115,6 @@ export function defaultAgroConfig(name: string): AgroConfig {
     },
     hermesDashboard: { enabled: false, port: 9119 },
     cron: { agentBin: "claude" },
-    build: { skipPnpmInstall: false },
     image: { mode: "build", pullPolicy: "missing" },
     langfuse: {},
     composeOverrides: [],
@@ -229,9 +223,6 @@ export function validateAgroConfig(value: unknown): AgroConfig {
 
   const cron = expectSection(record, "cron");
   if (cron) expectString(cron, "agentBin", "cron.");
-
-  const build = expectSection(record, "build");
-  if (build) expectBoolean(build, "skipPnpmInstall", "build.");
 
   const image = expectSection(record, "image");
   if (image) {
@@ -342,7 +333,6 @@ export const AGRO_CONFIG_FIELDS: readonly AgroConfigField[] = [
   { path: "hermesDashboard.enabled", type: "boolean" },
   { path: "hermesDashboard.port", type: "port" },
   { path: "cron.agentBin", type: "string" },
-  { path: "build.skipPnpmInstall", type: "boolean" },
   { path: "image.ref", type: "string" },
   { path: "image.mode", type: "enum", values: ["build", "image"] },
   { path: "image.pullPolicy", type: "enum", values: ["missing", "always", "never"] },

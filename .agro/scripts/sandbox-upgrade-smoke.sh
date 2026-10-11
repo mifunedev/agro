@@ -19,14 +19,6 @@
 # logs one HARNESS <id> exit=<n> line per harness and fails if any exit is
 # nonzero. `agro harness install <id>` repairs a failed harness.
 #
-# The copied package.json may carry a "pnpm:devPreinstall" security-audit hook
-# whose pinned advisory turns `pnpm install` into a permanent failure on a
-# dated manifest. Setting build.skipPnpmInstall would dodge that but also skip
-# installing node_modules entirely, which starves agro-cron.service of the
-# real dependencies (e.g. croner) it needs to start — so instead this script
-# deletes just that one lifecycle script before the boot. The rest of
-# `pnpm install` still runs for real.
-#
 # Scope: this proves the freshly built image correctly upgrades a genuine
 # pre-existing workspace volume. The legacy `.oh` layout is retired
 # (https://github.com/mifunedev/agro/issues/1061) and is no longer exercised here.
@@ -188,9 +180,6 @@ set -eu
 mkdir -p /home/sandbox/harness
 cp -a /opt/agro-seed/. /home/sandbox/harness/
 : > /home/sandbox/harness/.agro/.image-seeded
-tmp_pkg_json=\$(mktemp)
-jq 'del(.scripts["pnpm:devPreinstall"])' /home/sandbox/harness/package.json > "\$tmp_pkg_json"
-mv "\$tmp_pkg_json" /home/sandbox/harness/package.json
 mkdir -p /home/sandbox/.config/gh
 cat > /home/sandbox/.config/gh/hosts.yml <<'HOSTS'
 github.com:

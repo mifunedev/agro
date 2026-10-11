@@ -51,7 +51,12 @@ describe("sandbox upgrade smoke script", () => {
     expect(script).toContain("This script never boots that");
     expect(script).toContain("The legacy `.oh` layout is retired");
     expect(script).toContain("https://github.com/mifunedev/agro/issues/1061");
-    expect(script).toContain('del(.scripts["pnpm:devPreinstall"])');
+  });
+
+  it("leaves the seeded package.json untouched and names no retired pnpm workaround", () => {
+    expect(script).not.toContain("pnpm:devPreinstall");
+    expect(script).not.toContain("skipPnpmInstall");
+    expect(script).not.toContain("croner");
   });
 
   it("writes only synthetic credentials and never a bare docker inspect", () => {
