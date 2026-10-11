@@ -88,8 +88,8 @@
         "The CI shellcheck command exits 0."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1-5 executed: diff reviewed (verify_compose_init requires docker-init + readiness file; upgrade smoke waits on readiness file, reads docker logs, fails fast on sandbox-main warning; verify_compose_init_ready; banner recovery by PID 1 type; agro-rows host R06/R07 use docker-init + healthcheck, image mode keeps systemd; host-mode R04 reports SKIPPED, accepted as consistent with the brief). 6 executed: full npx vitest run 92 files, 2035 passed, 2 skipped. 7 executed: CI shellcheck set exit 0.",
       "dependsOn": [
         "US-003"
       ],
@@ -104,7 +104,8 @@
         ".agro/scripts/__tests__/sandbox-upgrade-smoke.test.ts",
         ".agro/scripts/__tests__/cli-first-install-smoke.test.ts",
         ".agro/scripts/__tests__/boot-banner.test.ts"
-      ]
+      ],
+      "commit": "41e61bb4"
     },
     {
       "id": "US-005",
