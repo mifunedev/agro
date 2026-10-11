@@ -147,8 +147,8 @@
         "This story depends on US-001, US-002, US-003, US-004, and US-005."
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1,2 executed: evidence file holds git grep (no line, exit 1), npx vitest run (2035 passed, 2 skipped), typecheck 0, shellcheck 0, compose config 0 with rendered init/entrypoint/stop_signal keys, failure-path tests. 3 executed: CI on 13eaa973 all six checks pass; boot smoke 'Compose init (docker-init) is PID 1 and the bootstrap readiness file exists'; upgrade smoke wrote /run/agro/bootstrap.ready; CLI-first smoke phase all complete. 4 executed: no live rebuild; VM image mode rows R05-R08 not run; command shape recorded. 5 reasoned.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -158,7 +158,8 @@
       ],
       "files": [
         ".agro/tasks/compose-init-default-sandbox/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "cdc0f07a"
     }
   ]
 }

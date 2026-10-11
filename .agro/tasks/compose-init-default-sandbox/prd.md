@@ -178,4 +178,6 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. The first Architecture Brief and the issue body stated that `docker-engine` and `desktop` need systemd inside the sandbox. Both tools install on the host only. Evidence: `hostInstallArgv` and `notInstallableReason` in `.agro/cli/src/lib/tools/catalog.ts`, and `--host` in `docs/installation.md`. Outcome: fixed in this PR. The correction comment on #1393 records the fact, and the operator selected the plan without the overlay.
+2. The Langfuse fragment still has a systemd `EnvironmentFile` parse, and `docs/integrations/langfuse.md` states that systemd reads the fragment. No systemd unit reads the fragment since #1391. Outcome: proposed issue "Remove the systemd EnvironmentFile consumer from the Langfuse fragment".
+3. The remote-sandbox VM image mode rows R05 to R08 did not run. Image mode keeps the unchanged image `CMD ["/sbin/init"]`. Outcome: dropped as a lesson. The PR lists the run under "What remains unverified".
