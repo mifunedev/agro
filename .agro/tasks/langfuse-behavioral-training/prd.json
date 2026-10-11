@@ -43,15 +43,16 @@
         "The dispatcher parses `--since`, `--until`, `--environment`, `--harness`, `--sample-size` (default 100), `--seed` (default 42), `--run-dir`, `--resume`, `--max-sessions`, `--max-bytes`, and `--max-judge-calls`, and rejects a non-UTC timestamp."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: red run failed with missing module before code (worker evidence); executed: dispatcher --help exit 0 lists 7 stages; executed: each stage --help exit 0 (all 7, modules missing); executed: run-files.md ste-check exit 0, defines all 13 run files + stage contract; executed: vitest behavioral-training-report.test.ts 42/42 covering TMPDIR 0700/0600, worktree refusal exit 5, two-process lock collision naming PID, atomic rename, --resume skip/rerun, option parsing and non-UTC rejection exit 2; executed: link-providers --check exit 0. Note: stage-not-implemented precedes flag parsing by design.",
       "dependsOn": [],
       "files": [
         ".agro/skills/behavioral-training/scripts/behavioral-training.mjs",
         ".agro/skills/behavioral-training/scripts/lib/run-store.mjs",
         ".agro/skills/behavioral-training/references/run-files.md",
         ".agro/scripts/__tests__/behavioral-training-report.test.ts"
-      ]
+      ],
+      "commit": "c7fa39ac"
     },
     {
       "id": "US-003",
