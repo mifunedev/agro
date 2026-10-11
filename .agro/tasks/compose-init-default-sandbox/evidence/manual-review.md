@@ -188,18 +188,7 @@ Exit status: 0.
 
 ## What remains unverified
 
-- No live sandbox was rebuilt for this review. The container boot evidence comes only from the CI runs in section B.
-- The remote-sandbox VM image mode rows were not run. This includes `R05-sandbox-boot`, `R06-systemd`, `R07-container-restart`, and `R08-vm-restart`. VM image mode boots the image `CMD` (`/sbin/init`) as PID 1, so these rows prove the systemd path that this change keeps.
-
-To run the image mode rows, get operator approval first, because each run creates billable VMs. Set up the exe.dev provider as `.agro/skills/remote-sandbox/SKILL.md` describes. Run these commands on the driver host from the harness root. Replace `<version>` with the image tag under test:
-
-```bash
-SKILL=.agro/skills/remote-sandbox
-bash "$SKILL/scripts/run.sh" exedev --preflight
-tmux new-session -d -s rs-image "IMAGE=ghcr.io/mifunedev/agro:<version> bash $SKILL/scripts/run.sh exedev checks/agro-rows.sh"
-tmux new-session -d -s rs-sync "IMAGE=ghcr.io/mifunedev/agro:<version> bash $SKILL/scripts/restart-test.sh exedev sync"
-bash "$SKILL/scripts/summarize.sh" "$MATRIX_OUT"
-```
+Section D now records a live throwaway sandbox check. Section E now records the VM image mode rows `R05` to `R08`. Section F lists the items that remain unverified.
 
 ## C. Folded stories (US-007, US-008, US-009)
 
@@ -387,3 +376,141 @@ Output (trimmed):
 ```
 
 Exit status: 0.
+
+## D. Live throwaway sandbox check
+
+Each output below is from an observed run on 2026-10-11. The operator approved this check.
+
+Location: the sandbox, local. The advisor operated `docker compose` through the Docker socket, because `agro sandbox` refuses to run inside a sandbox. The image is from the PR head `08f2dbb0`.
+
+The running operator sandbox was not rebuilt. The throwaway sandbox ran under a separate Compose project, `agro-1393-check`. The base is the image-only Compose file plus the ssh overlay.
+
+### D1. Boot
+
+Output (transcript lines):
+
+```text
+image: agro-1393-check:pr built from 08f2dbb0 (sha256:76c255fdb371e03233d0a23585e826811263529842c7d3a8421072fb4bff52f2)
+compose: docker compose -p agro-1393-check -f .devcontainer/docker-compose.image-only.yml -f .devcontainer/docker-compose.ssh.yml (SANDBOX_NAME=agro-1393-check AGRO_SANDBOX_IMAGE=agro-1393-check:pr AGRO_PULL_POLICY=never SANDBOX_SSH_PORT=2399)
+health=healthy
+pid1=docker-init
+hostconfig: caps=[] secopt=[] cgroupns=private init=true privileged=false
+```
+
+The container is healthy. PID 1 is `docker-init`. The container has no added capability, no security option, and no privileged mode.
+
+### D2. SSH
+
+The advisor generated a throwaway key inside the check container. The advisor set `access.ssh` and that key in the container `agro.json`, then ran `docker restart`. This file does not show the key.
+
+Output (transcript lines):
+
+```text
+ready=-rw-r--r-- 1 root root 0 Oct 11 18:31 /run/agro/bootstrap.ready
+[entrypoint] sshd started (password auth: no, pubkeys: present)
+SSH_OK user=sandbox pid1=docker-init
+```
+
+The restart recreated the readiness file. The first boot time was 18:30. The time after the restart is 18:31. A key login to `sandbox@127.0.0.1:22` from inside the container printed `SSH_OK`.
+
+Limitation: the host port 2399 was not tested from outside the container.
+
+### D3. Shell
+
+`agro shell` refuses to run inside a sandbox. The advisor ran its documented command under a pty:
+
+```bash
+docker exec -it -u sandbox <container> zsh
+```
+
+Output:
+
+```text
+SHELL_OK shell=zsh user=sandbox cwd=/home/sandbox/harness agro=0.20.0
+```
+
+### D4. Herdr
+
+```bash
+agro tool install herdr
+herdr --session check
+herdr session list
+```
+
+Output (transcript lines):
+
+```text
+herdr 0.7.4
+check                running  /home/sandbox/.config/herdr/sessions/check       /home/sandbox/.config/herdr/sessions/check/herdr.sock
+651 herdr --session check
+652 /home/sandbox/.local/bin/herdr server
+```
+
+The session `check` is running, and `herdr server` runs.
+
+### D5. Cleanup
+
+```bash
+docker compose -p agro-1393-check … down -v
+```
+
+The command removed the container, the volume `agro-1393-check_workspace`, and the network. A listing then showed 0 containers, 0 volumes, and 0 networks with a name that contains `1393`. The advisor removed the local image tags.
+
+## E. VM image mode rows on exe.dev
+
+Each output below is from an observed run on 2026-10-11. The operator approved this check.
+
+Location: the driver ran in the sandbox. Each check ran on a new exe.dev VM. The VM booted the image below, with systemd as PID 1.
+
+Image: `ttl.sh/agro-1393-c11c9d6ec127:2h`. The image is ephemeral and has a 2 hour expiry. The push printed the digest `sha256:f38a49c880e9efea3293ef1f7d169039dab53b04e464bb8db430ad291c1afa5b`.
+
+### E1. Matrix rows
+
+Log: `exedev-agro-rows-20261011-123300.log`.
+
+```text
+== mode=image user=root kernel=6.12.93 cgroupfs=cgroup2fs
+RESULT R13-time-to-shell PASS 22.1s
+RESULT R04-cgroup-delegation PASS enabled: io memory pids
+RESULT R02-workspace SKIPPED image mode: workspace seeded from /opt/agro-seed
+RESULT R03-docker-engine-host SKIPPED image mode: no host layer
+RESULT R01-docker SKIPPED image mode: docker CLI present, daemon inactive
+RESULT R05-sandbox-boot PASS bootstrap active, healthcheck ok, uptime 11s
+RESULT R06-systemd PASS failed units: systemd-modules-load.service 
+RESULT R07-container-restart SKIPPED image mode: no container
+RESULT R12-egress-tls PASS 7f1bb6572edb
+RESULT R14-hermes-install FAIL install=0 smoke=1            ^^^^^^^^^^^^^^^^^^^^^^^^ AssertionError: /home/sandbox/.hermes 
+SUMMARY fails=1
+RESULT R09-disconnect PASS tmux session survives the client exit
+RESULT R10-ssh-inbound PASS ssh agro-mx-1011-123300.exe.xyz
+RESULT R11-https-port SKIPPED proxy answers 307: private by default, needs share
+remaining agro-matrix resources on exedev: 0
+RUN DONE
+```
+
+`R05` and `R06` pass. The check skips `R07` in image mode by design.
+
+`R14-hermes-install` fails. The failure is a known baseline failure, not a regression. The baseline table in `.agro/skills/remote-sandbox/references/rationale.md` lists `R14-hermes-install` as `FAIL, see C10` for the exe.dev image VM. This PR does not change `hermes-install-smoke.sh` or `agro-image-env.sh`. The `git diff` against `origin/development` is empty for both files.
+
+### E2. VM restart
+
+Log: `exedev-restart-sync-20261011-123635.log`.
+
+```text
+== exedev agro-mx-rs-sync-123635 mode=sync image=ttl.sh/agro-1393-c11c9d6ec127:2h date=2026-10-11T18:36:35Z
+TIMING restart_to_settled_s=8.1
+RESULT R08-vm-restart PASS mode=sync
+remaining agro-matrix resources on exedev: 0
+RUN DONE
+```
+
+`R08` passes in sync mode.
+
+### E3. Cleanup
+
+Both logs end with `remaining agro-matrix resources on exedev: 0` and `RUN DONE`. An independent `exedev_list` after the runs printed 0.
+
+## F. Items that remain unverified
+
+- The SSH host port 2399 was not tested from outside the container.
+- `R14-hermes-install` fails on the exe.dev image VM. The failure is in the baseline before this PR.
