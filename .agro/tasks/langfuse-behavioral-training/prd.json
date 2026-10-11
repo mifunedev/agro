@@ -258,8 +258,8 @@
         "`bash .agro/scripts/link-providers.sh --check` exits 0, and `.claude/skills/behavioral-training/SKILL.md` and `.agents/skills/behavioral-training/SKILL.md` resolve."
       ],
       "priority": 10,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: red run 8 failed/1 passed in behavioral-training-docs.test.ts (worker evidence); executed: vitest 8 files 227/227 on integrated branch incl. docs test (stage order, review gates, every documented command/flag exists in --help, provider discovery, skills.lock langfuse pin b86532b7 + recomputed checksum, LICENSE present); executed: ste-check exit 0 on SKILL.md, docs/integrations/langfuse.md, run-files.md; executed: link-providers --check exit 0; .claude/skills/behavioral-training/SKILL.md and .agents/skills/langfuse/SKILL.md resolve; reasoned: CHANGELOG has one Added and one Removed entry under Unreleased, each <=250 chars linking #1414. Note: vendored official skill text recommends unpinned/global CLI installs; behavioral-training SKILL.md overrides with the pinned npx form.",
       "dependsOn": [
         "US-001",
         "US-003",
@@ -277,7 +277,8 @@
         "docs/integrations/langfuse.md",
         "CHANGELOG.md",
         ".agro/scripts/__tests__/standard-skills-link.test.ts"
-      ]
+      ],
+      "commit": "cfd7b282"
     },
     {
       "id": "US-011",
