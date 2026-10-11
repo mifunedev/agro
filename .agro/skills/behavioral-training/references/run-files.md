@@ -138,12 +138,15 @@ The manifest holds one checkpoint for each stage.
   `partial`, `empty`, or `failed`.
 - The dispatcher also runs the stage again when a recorded file changed or
   does not exist.
+- The dispatcher always runs a stage again when the stage module exports
+  `resumeAlways = true`. The checkpoint status and the checksums then do not
+  matter.
 - A new attempt receives the previous checkpoint in `ctx.previous`.
 
 ## Stage module contract
 
 A stage module is `scripts/lib/<stage>.mjs`. The module exports one required
-function and two optional values:
+function and three optional values:
 
 ```js
 export const options = {
@@ -152,6 +155,8 @@ export const options = {
 };
 
 export const help = "Extra help text for this stage.";
+
+export const resumeAlways = true;
 
 export async function run(ctx) {
   return { status: "complete", counters: { sessions: 12 } };
@@ -171,6 +176,16 @@ together with the run options.
 - A stage flag must not use the name of a run option.
 
 `<stage> --help` lists each stage flag and prints `help` at the end.
+
+### `resumeAlways`
+
+`resumeAlways` is optional. The default is `false`.
+
+- If the value is `false`, `--resume` skips the stage after a `complete`
+  checkpoint with matching checksums.
+- If the value is `true`, `--resume` runs the stage again each time.
+- Set `true` only when a repeated run changes no data. `publish` sets `true`,
+  because `publication-ledger.json` makes each rerun skip each completed write.
 
 ### `run(ctx)` result
 

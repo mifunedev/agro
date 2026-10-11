@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 import { EXIT, main } from "../../skills/behavioral-training/scripts/behavioral-training.mjs";
-import { createManifest, createRandom, openStore, writeManifest } from "../../skills/behavioral-training/scripts/lib/run-store.mjs";
+import { createManifest, writeManifest } from "../../skills/behavioral-training/scripts/lib/run-store.mjs";
 import { deriveItemId } from "../../skills/behavioral-training/scripts/lib/curate.mjs";
 import {
   READ_OPERATIONS,
@@ -147,41 +147,6 @@ const readJsonl = (file: string) => readFileSync(file, "utf8").split("\n").filte
 const ledgerOf = (runDir: string) => JSON.parse(readFileSync(join(runDir, "publication-ledger.json"), "utf8"));
 const checkpoint = (runDir: string) => JSON.parse(readFileSync(join(runDir, "manifest.json"), "utf8")).stages.publish;
 
-function directCtx(runDir: string, root: string, fake: ReturnType<typeof fakeLangfuse>, options: Record<string, unknown>) {
-  const out: string[] = [];
-  const err: string[] = [];
-  let manifest = JSON.parse(readFileSync(join(runDir, "manifest.json"), "utf8"));
-  let client: any;
-  const ctx = {
-    stage: "publish",
-    runDir,
-    repoRoot: root,
-    env: {},
-    options: { seed: 42, apply: false, retract: false, datasetPrefix: null, requireCalibrated: false, ...options },
-    get manifest() {
-      return structuredClone(manifest);
-    },
-    updateManifest(change: (m: any) => any) {
-      const draft = structuredClone(manifest);
-      manifest = change(draft) ?? draft;
-      return structuredClone(manifest);
-    },
-    previous: null,
-    saveProgress() {},
-    store: openStore(runDir),
-    now: () => new Date("2026-10-10T00:00:00Z"),
-    seed: 42,
-    random: createRandom(42),
-    langfuse() {
-      client ??= createClient(ctx, { runner: fake.runner, sleep: async () => {} });
-      return Promise.resolve(client);
-    },
-    stdout: (line: string) => out.push(line),
-    stderr: (line: string) => err.push(line),
-  };
-  return { ctx, out, err };
-}
-
 describe("publish dry run", () => {
   it("exits 0 for publish --help and lists the publish flags", async () => {
     const out: string[] = [];
@@ -193,10 +158,10 @@ describe("publish dry run", () => {
   it("makes zero write calls, curates dataset-items.jsonl, and prints each planned write without item content", async () => {
     const { runDir, root } = setup();
     const t = harness(runDir, root);
-    expect(await t.run()).toBe(EXIT.partial);
+    expect(await t.run()).toBe(EXIT.complete);
     expect(t.fake.calls).toEqual([]);
     expect(t.factoryCalls()).toBe(0);
-    expect(checkpoint(runDir).cause).toBe("dry-run");
+    expect(checkpoint(runDir)).toMatchObject({ status: "complete", cause: null, counters: { pending: 12 } });
 
     const items = readJsonl(join(runDir, "dataset-items.jsonl"));
     expect(items).toHaveLength(5);
@@ -247,7 +212,7 @@ describe("publish --apply", () => {
   it("writes the three namespaced datasets, each item, and each score after a dry run", async () => {
     const { runDir, root } = setup();
     const t = harness(runDir, root);
-    expect(await t.run()).toBe(EXIT.partial);
+    expect(await t.run()).toBe(EXIT.complete);
     expect(await t.run("--apply")).toBe(EXIT.complete);
 
     expect([...t.fake.datasets.keys()].sort()).toEqual([
@@ -342,12 +307,11 @@ describe("publish --apply", () => {
 
     const before = fake.writes().length;
     const again = harness(runDir, root, fake);
+    expect(await again.run()).toBe(EXIT.complete);
+    expect(again.out.filter((l) => l.startsWith("plan:") && l.includes("(ledger)"))).toHaveLength(12);
+    expect(again.out.join("\n")).not.toMatch(/skipped$/m);
     expect(await again.run("--apply")).toBe(EXIT.complete);
-    const dry = directCtx(runDir, root, fake, {});
-    expect((await publish.run(dry.ctx)).status).toBe("partial");
-    expect(dry.out.filter((l) => l.startsWith("plan:") && l.includes("(ledger)"))).toHaveLength(12);
-    const rerun = directCtx(runDir, root, fake, { apply: true });
-    expect(await publish.run(rerun.ctx)).toMatchObject({ status: "complete", counters: { written: 0, adopted: 0, skipped: 12 } });
+    expect(checkpoint(runDir).counters).toMatchObject({ written: 0, adopted: 0, skipped: 12 });
     expect(fake.writes().length).toBe(before);
   });
 
@@ -443,22 +407,22 @@ describe("publish --retract", () => {
     fake.scores.set("foreign-score", { id: "foreign-score" });
     const published = ledgerOf(runDir).entries;
 
-    const dry = directCtx(runDir, root, fake, { retract: true });
+    const dry = harness(runDir, root, fake);
     const before = fake.calls.length;
-    expect((await publish.run(dry.ctx)).status).toBe("partial");
+    expect(await dry.run("--retract")).toBe(EXIT.complete);
     expect(fake.calls.length).toBe(before);
     expect(dry.out.filter((l) => l.startsWith("plan: item delete"))).toHaveLength(5);
     expect(dry.out.filter((l) => l.startsWith("plan: score delete"))).toHaveLength(4);
 
-    const live = directCtx(runDir, root, fake, { retract: true, apply: true });
-    expect((await publish.run(live.ctx)).status).toBe("complete");
+    const live = harness(runDir, root, fake);
+    expect(await live.run("--retract", "--apply")).toBe(EXIT.complete);
     const deleted = fake.calls.filter((c) => c.operation.endsWith(" delete")).map((c) => c.positional[0]).sort();
     expect(deleted).toEqual(published.filter((e: any) => e.kind !== "dataset").map((e: any) => e.key).sort());
     expect([...fake.items.keys()]).toEqual(["foreign-item"]);
     expect([...fake.scores.keys()]).toEqual(["foreign-score"]);
     expect(live.out.filter((l) => l.startsWith("dataset remains"))).toHaveLength(3);
     for (const entry of ledgerOf(runDir).entries) {
-      expect(entry.retractedAt).toBe(entry.kind === "dataset" ? null : "2026-10-10T00:00:00.000Z");
+      expect(entry.retractedAt).toBe(entry.kind === "dataset" ? null : "2026-10-09T00:00:00.000Z");
     }
   });
 });

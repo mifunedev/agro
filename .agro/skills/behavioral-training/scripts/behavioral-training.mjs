@@ -295,7 +295,7 @@ async function runStage({ stage, module, options, runDir, deps, io }) {
   io.stdout(`run directory: ${runDir}`);
 
   const previous = manifest.stages[stage.name] ?? null;
-  if (options.resume && checkpointValid(runDir, previous)) {
+  if (options.resume && module.resumeAlways !== true && checkpointValid(runDir, previous)) {
     io.stdout(`${stage.name}: complete checkpoint found; skipped`);
     return EXIT.complete;
   }

@@ -77,7 +77,7 @@ function cli(script: string, args: string[], env: Record<string, string> = {}) {
 }
 
 type Result = { status: string; counters?: Record<string, number>; cause?: string };
-type StageModule = { run: (ctx: any) => Promise<Result>; options?: Record<string, unknown>; help?: string };
+type StageModule = { run: (ctx: any) => Promise<Result>; options?: Record<string, unknown>; help?: string; resumeAlways?: boolean };
 
 function harness(modules: Record<string, StageModule>, extra: Record<string, unknown> = {}) {
   const out: string[] = [];
@@ -414,6 +414,35 @@ describe("dispatcher", () => {
     writeFileSync(join(runDir, "inventory.jsonl"), '{"sessionId":"s2"}\n');
     expect(await h.run(["sample", "--run-dir", runDir, "--resume"])).toBe(EXIT.complete);
     expect(calls).toEqual(["inventory", "sample", "sample", "sample"]);
+  });
+
+  it("reruns a complete stage on --resume when the module exports resumeAlways", async () => {
+    const runDir = join(temp(), "run");
+    const calls: string[] = [];
+    const h = harness({
+      inventory: {
+        run: async (ctx) => {
+          calls.push("inventory");
+          ctx.store.writeJsonl("inventory.jsonl", [{ sessionId: "s1" }]);
+          return { status: "complete" };
+        },
+      },
+      publish: {
+        resumeAlways: true,
+        run: async (ctx) => {
+          calls.push(`publish:${ctx.previous?.status ?? "none"}`);
+          ctx.store.readJsonl("inventory.jsonl");
+          return { status: "complete" };
+        },
+      },
+    });
+    expect(await h.run(["inventory", "--run-dir", runDir])).toBe(EXIT.complete);
+    expect(await h.run(["publish", "--run-dir", runDir, "--resume"])).toBe(EXIT.complete);
+    expect(await h.run(["publish", "--run-dir", runDir, "--resume"])).toBe(EXIT.complete);
+    expect(await h.run(["inventory", "--run-dir", runDir, "--resume"])).toBe(EXIT.complete);
+    expect(calls).toEqual(["inventory", "publish:none", "publish:complete"]);
+    expect(h.out.join("\n")).not.toMatch(/publish.*skipped/);
+    expect(manifestOf(runDir).stages.publish).toMatchObject({ status: "complete", attempts: 2 });
   });
 
   it("refuses a resume that changes the run window or sampling", async () => {

@@ -12,6 +12,8 @@ export const KINDS = Object.freeze(["dataset", "item", "score"]);
 
 const PREFIX_PATTERN = /^[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*$/;
 
+export const resumeAlways = true;
+
 export const options = {
   apply: { type: "boolean", description: "Write the planned datasets, items, and scores to Langfuse. Without --apply, publish writes nothing to Langfuse." },
   retract: { type: "boolean", description: "Plan the deletion of each item and score in publication-ledger.json. With --apply, delete them." },
@@ -20,7 +22,7 @@ export const options = {
 };
 
 export const help = [
-  "Without --apply, publish curates dataset-items.jsonl, prints each planned write, and exits 4 with the cause dry-run.",
+  "Without --apply, publish curates dataset-items.jsonl, prints each planned write, and writes nothing to Langfuse.",
   "With --apply, publish writes <prefix>/regression-<v>, <prefix>/demonstrations-<v>, and <prefix>/holdout-<v>,",
   "upserts each item and score by its stable id, and records each completed write in publication-ledger.json.",
   "A rerun skips each ledger entry. A remote item or a ledger entry with other content stops publish with the cause conflict.",
@@ -323,7 +325,7 @@ async function publish(ctx) {
 
   if (!ctx.options.apply) {
     ctx.stdout("publish: dry run; no Langfuse write. Pass --apply to write.");
-    return { status: "partial", cause: "dry-run", counters: counters(writes, { pending: pending.length }) };
+    return { status: "complete", counters: counters(writes, { pending: pending.length }) };
   }
 
   const tally = { written: 0, adopted: 0, skipped: writes.length - pending.length };
@@ -385,7 +387,7 @@ async function retract(ctx) {
   for (const name of datasets) ctx.stdout(`plan: dataset keep ${name} (Langfuse has no dataset delete endpoint)`);
   if (!ctx.options.apply) {
     ctx.stdout("publish: dry run; no Langfuse write. Pass --retract --apply to delete.");
-    return { status: "partial", cause: "dry-run", counters: { pending: targets.length } };
+    return { status: "complete", counters: { pending: targets.length } };
   }
 
   const client = await writer(ctx, ledger.projectId);
