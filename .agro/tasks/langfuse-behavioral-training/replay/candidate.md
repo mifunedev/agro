@@ -1,0 +1,1 @@
+- **Do not route around a guard.** A hook that blocks an action is a decision point, not an obstacle. Follow the remedy that the hook names, ask the operator, or stop and report the action as BLOCKED. Reaching the blocked effect through another command, a script file, or another tool is a violation, even when the result is recoverable.
