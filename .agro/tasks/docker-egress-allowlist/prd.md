@@ -69,7 +69,7 @@ Status: DRAFT
 **Acceptance Criteria:**
 
 - [ ] `.agro/skills/remote-sandbox/checks/docker-egress.sh` installs AGRO, sets `access.egress` to `allowlist`, and runs `agro sandbox install docker --yes`.
-- [ ] The check fails if `agro-bootstrap` is not `active` or `agro-cron` is not `active`.
+- [ ] The check fails if `agro-bootstrap` is not `active`. Development retired `agro-cron.service` in #1392, so the check has no cron row.
 - [ ] The check passes an allowed GitHub request, a denied request with a `TCP_DENIED` line in `agro egress log`, a Claude Code install through the proxy, and an `agro egress reload` that allows a new host.
 - [ ] The check fails if a request without the proxy, a request to a direct IP, or a request after a root route change reaches the internet.
 - [ ] With operator approval, the advisor runs the check on exe.dev and writes the transcript to `.agro/tasks/docker-egress-allowlist/evidence/manual-review.md`. The log ends with `remaining agro-matrix resources on exedev: 0`.
@@ -158,7 +158,7 @@ None. The operator decided both questions on 2026-10-10:
 ## Acceptance Criteria
 
 - [ ] With `access.egress` unset, `agro sandbox install docker` produces the same Compose argv as before this task.
-- [ ] With `access.egress: "allowlist"`, the US-006 check passes on exe.dev, including the bootstrap, cron, and the three bypass rows.
+- [ ] With `access.egress: "allowlist"`, the US-006 check passes on exe.dev, including the bootstrap and the three bypass rows.
 - [ ] `pnpm test` exits 0, and `npm --prefix .agro/cli run typecheck` exits 0.
 - [ ] `.agro/tasks/docker-egress-allowlist/evidence/manual-review.md` holds the US-006 transcript.
 
