@@ -16,10 +16,13 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/supervisor/SKILL.md` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Commits 7f6cb80f, 4063766c (rewrap repair). C1 executed: git grep retired names in .agro/skills/supervisor, no output, exit 1. C2 reasoned: lines 36, 174, 294, 342, 351 now name prd.json (passes, commit, notes) or the PR body evidence sections and point at /delegate and /prd. C3 executed: diff of frontmatter lines 1-6 vs origin/development, exit 0. C4 executed: description length 721 <= 1024. C5 executed: ste-check.sh SKILL.md exit 0, no findings (baseline 4 fixed); hand review against /ste questions 4 and 7 found no trailing condition and no antecedent-less pronoun.",
       "dependsOn": [],
-      "files": [".agro/skills/supervisor/SKILL.md"]
+      "files": [
+        ".agro/skills/supervisor/SKILL.md"
+      ],
+      "commit": "7f6cb80f"
     },
     {
       "id": "US-002",
@@ -34,7 +37,11 @@
       "passes": false,
       "notes": "",
       "dependsOn": [],
-      "files": [".agro/logs/AGENTS.md", ".agro/memories/AGENTS.md", ".agro/skills/audit/references/implementation.md"]
+      "files": [
+        ".agro/logs/AGENTS.md",
+        ".agro/memories/AGENTS.md",
+        ".agro/skills/audit/references/implementation.md"
+      ]
     }
   ],
   "definitionOfDone": [
