@@ -137,10 +137,16 @@ async function askSecretPiped(question: string): Promise<string> {
 
   try {
     return await new Promise<string>((resolve) => {
-      rl.question(`  ${question} `, (answer) => {
+      let settled = false;
+      const settle = (answer: string): void => {
+        if (settled) return;
+        settled = true;
         process.stdout.write("\n");
         resolve(answer.trim());
-      });
+      };
+      rl.question(`  ${question} `, settle);
+      rl.once("line", settle);
+      rl.once("close", () => settle(rl.line));
     });
   } finally {
     process.removeListener("SIGINT", onSigint);

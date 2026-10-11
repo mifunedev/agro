@@ -8,6 +8,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Fixed
+- Fix `agro secret set` so that it writes a piped value that has no trailing newline instead of exiting 0 without a write ([#1409](https://github.com/mifunedev/agro/issues/1409)) ([#1411](https://github.com/mifunedev/agro/pull/1411)).
+
 ## [0.21.0] - 2026-10-11
 
 ### Added
