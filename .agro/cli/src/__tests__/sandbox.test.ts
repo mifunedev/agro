@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runSandboxInstall, runSandboxList, type SandboxIO } from "../commands/sandbox.js";
@@ -1034,6 +1034,71 @@ describe("the canonical OpenShell policy", () => {
     materialize(root);
     expect(existsSync(join(root, "openshell-policy.yaml"))).toBe(false);
     expect(existsSync(join(root, ".devcontainer", "docker-compose.yml"))).toBe(true);
+  });
+});
+
+describe("the egress allowlist", () => {
+  function policyHosts(): string[] {
+    const policy = parse(openshellPolicy) as OpenShellPolicy;
+    const hosts = new Set<string>();
+    for (const rule of Object.values(policy.network_policies)) {
+      for (const endpoint of rule.endpoints) hosts.add(endpoint.host);
+    }
+    return [...hosts].sort();
+  }
+
+  it("writes the union of the policy hosts and access.egressAllow, sorted and deduplicated", () => {
+    registry();
+    const root = entryRoot("egress-box");
+    mkdirSync(root, { recursive: true });
+    writeFileSync(
+      join(root, "agro.json"),
+      `${JSON.stringify({
+        version: 1,
+        name: "egress-box",
+        access: { egress: "allowlist", egressAllow: ["example.com", "api.github.com", "zzz.test"] },
+      })}\n`,
+    );
+    materialize(root);
+
+    const written = readFileSync(join(root, "egress-allow.txt"), "utf8");
+    const expected = [...new Set([...policyHosts(), "example.com", "api.github.com", "zzz.test"])].sort();
+    expect(written).toBe(`${expected.join("\n")}\n`);
+    const lines = written.split("\n").filter(Boolean);
+    expect(lines).toEqual([...new Set(lines)]);
+  });
+
+  it("writes nothing for an open entry, and deletes nothing an operator already wrote", () => {
+    registry();
+    const root = entryRoot("open-box");
+    mkdirSync(root, { recursive: true });
+    writeFileSync(join(root, "agro.json"), `${JSON.stringify({ version: 1, name: "open-box" })}\n`);
+    writeFileSync(join(root, "egress-allow.txt"), "operator.example\n");
+
+    materialize(root);
+
+    expect(readFileSync(join(root, "egress-allow.txt"), "utf8")).toBe("operator.example\n");
+  });
+
+  it("rewrites the existing inode in place rather than replacing it", () => {
+    registry();
+    const root = entryRoot("reload-box");
+    mkdirSync(root, { recursive: true });
+    writeFileSync(
+      join(root, "agro.json"),
+      `${JSON.stringify({ version: 1, name: "reload-box", access: { egress: "allowlist", egressAllow: [] } })}\n`,
+    );
+    materialize(root);
+    const before = statSync(join(root, "egress-allow.txt")).ino;
+
+    writeFileSync(
+      join(root, "agro.json"),
+      `${JSON.stringify({ version: 1, name: "reload-box", access: { egress: "allowlist", egressAllow: ["added.example"] } })}\n`,
+    );
+    materialize(root);
+
+    expect(statSync(join(root, "egress-allow.txt")).ino).toBe(before);
+    expect(readFileSync(join(root, "egress-allow.txt"), "utf8")).toContain("added.example\n");
   });
 });
 
