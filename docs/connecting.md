@@ -179,9 +179,11 @@ when the sandbox runs on a remote host. Access stays private to your tailnet.
    ```
 
    The skill runs `npx --yes t3 serve --tailscale-serve` in the `agent-t3code`
-   tmux session. T3 Code configures Serve on HTTPS 443 and prints a pairing URL
-   and a QR code. Add `--tailscale-port 8443` when port 443 is in use on the
-   node. `/t3 url` prints the URL again.
+   tmux session. T3 Code configures Serve on HTTPS 443. The server prints a
+   `localhost` pairing URL, which the phone cannot use. The skill then runs
+   `npx --yes t3 pair --tailscale` one time. That command prints a QR code and
+   the `ts.net` pairing URL. Add `--tailscale-port 8443` when port 443 is in use
+   on the node.
 
 5. Pair the phone. Scan the QR code, or paste the
    `https://<machine>.<tailnet>.ts.net/...` URL into the T3 Code app.
@@ -189,6 +191,12 @@ when the sandbox runs on a remote host. Access stays private to your tailnet.
 The pairing token is single-use. The paired session persists. To add another
 device, do not restart the server. Run `/t3 pair --tailscale` and pair with the
 new URL.
+
+Run the next command in another sandbox terminal to print a fresh QR code:
+
+```bash
+npx --yes t3 pair --tailscale --label <device> --ttl 15m
+```
 
 ### Lifecycle
 
@@ -212,6 +220,18 @@ tailscale logout                 # sign the sandbox node out of the tailnet
 ```
 
 Then delete the device in the Tailscale admin console.
+
+### Rename the node
+
+A rename of the Tailscale node does not move the Serve mapping. The mapping
+stays on the old MagicDNS name. Run these commands in the sandbox to remove the
+old mapping and start the server on the new name:
+
+```bash
+tailscale serve reset
+/t3 stop
+/t3 start --tailscale
+```
 
 ### Troubleshooting
 

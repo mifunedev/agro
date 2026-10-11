@@ -122,6 +122,26 @@ docker exec -it -u sandbox agro \
   tmux new-session -d -s app-docs 'pnpm ... 2>&1 | tee /tmp/app-docs.log'
 ```
 
+## Herdr variables
+
+A Herdr pane sets `HERDR_*` variables, for example `HERDR_PANE_ID` and
+`HERDR_SOCKET_PATH`. A `tmux new-session` command copies the environment of the
+launching shell and the global environment of the tmux server. A headless
+process that an agent starts from a Herdr pane gets the `HERDR_*` variables.
+Each terminal that the process opens gets the variables too. In that terminal,
+`herdr` exits with the message `nested herdr is disabled by default`.
+
+When you start a headless tmux session from a Herdr pane, remove every
+`HERDR_*` variable inside the session command. Do not use a fixed list of names.
+The tmux server can hold the variables in its global environment. A cleanup in
+the launching shell does not remove the variables from the tmux server. `.agro/skills/t3/scripts/t3-code.sh`
+shows the pattern:
+
+```bash
+tmux new-session -d -s agent-t3code \
+  'for herdr_var in $(env | sed -n "s/^\(HERDR_[A-Za-z0-9_]*\)=.*/\1/p"); do unset "$herdr_var"; done; npx --yes t3 serve 2>&1 | tee /tmp/agent-t3code.log'
+```
+
 ## Anti-patterns
 
 - **Foregrounded inside another session** — starting a dev server in the

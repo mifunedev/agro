@@ -8,6 +8,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Fixed
+- Fix `/t3 start` and `/t3 pair` so that `t3 serve` and `t3 pair` start without `HERDR_*` variables, and `herdr` runs in a T3 Code terminal. Fix `/t3 start --tailscale` so that it runs `t3 pair --tailscale` one time and prints the `ts.net` pairing URL and the QR code.
+
 ### Changed
 - Set `CC_LANGFUSE_CAPTURE_IMAGES=false` in the project Claude Code settings, so the Langfuse plugin no longer uploads transcript images from sessions in this repository ([#1375](https://github.com/mifunedev/agro/issues/1375)).
 

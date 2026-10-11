@@ -33,6 +33,7 @@ TAILSCALE="false"
 TAILSCALE_PORT=""
 TAILSCALED_SESSION="agent-tailscaled"
 NODE_RANGE="^22.16 || ^23.11 || >=24.10"
+CLEAR_HERDR_ENV='for herdr_var in $(env | sed -n "s/^\\(HERDR_[A-Za-z0-9_]*\\)=.*/\\1/p"); do unset "$herdr_var"; done'
 
 if [[ $# -gt 0 ]]; then
   case "$1" in
@@ -186,6 +187,13 @@ pair_argv() {
   printf '%s\n' "${argv[*]}"
 }
 
+run_pair() {
+  local -a argv
+  read -ra argv <<<"$(pair_argv)"
+  eval "$CLEAR_HERDR_ENV"
+  "${argv[@]}"
+}
+
 recent_output() {
   if has_session; then
     tmux capture-pane -t "$SESSION" -p -S -160 2>/dev/null || true
@@ -204,7 +212,10 @@ pairing_url() {
 
 print_summary() {
   local url
-  url="$(pairing_url || true)"
+  url="${1-$(pairing_url || true)}"
+  if [[ "$TAILSCALE" == "true" && ! "$url" =~ \.ts\.net ]]; then
+    url=""
+  fi
   echo "T3 Code session: $SESSION"
   echo "Log: $LOG"
   echo "Local: http://localhost:${PORT}"
@@ -281,15 +292,7 @@ case "$ACTION" in
     doctor >/dev/null || exit 1
     echo "Minting a one-time pairing URL against the running server (no restart)."
     echo "Command: $(pair_argv)"
-    if [[ "$TAILSCALE" == "true" ]]; then
-      if [[ -n "$TAILSCALE_PORT" ]]; then
-        npx --yes t3 pair --tailscale --tailscale-serve-port "$TAILSCALE_PORT"
-      else
-        npx --yes t3 pair --tailscale
-      fi
-    else
-      npx --yes t3 pair
-    fi
+    run_pair
     echo
     echo "Treat that URL and token as a secret. Do not paste it into an issue, PR, or tracked file."
     exit 0
@@ -328,7 +331,7 @@ case "$ACTION" in
     mkdir -p "$(dirname "$LOG")"
     (umask 077; : > "$LOG")
     chmod 600 "$LOG" 2>/dev/null || true
-    tmux new-session -d -s "$SESSION" "$(serve_argv) 2>&1 | tee $(printf '%q' "$LOG")"
+    tmux new-session -d -s "$SESSION" "${CLEAR_HERDR_ENV}; $(serve_argv) 2>&1 | tee $(printf '%q' "$LOG")"
     echo "Started T3 Code in tmux session: $SESSION"
     echo "Launch command: $(serve_argv)"
 
@@ -344,7 +347,18 @@ case "$ACTION" in
       sleep 0.5
     done
 
-    print_summary
+    if [[ "$TAILSCALE" == "true" ]]; then
+      tailnet_url=""
+      if [[ -n "$(pairing_url || true)" ]]; then
+        echo "Minting a tailnet pairing URL: $(pair_argv)"
+        pair_output="$(run_pair)" || true
+        printf '%s\n' "$pair_output"
+        tailnet_url="$(printf '%s\n' "$pair_output" | grep -Eo 'https://[^[:space:]]*\.ts\.net[^[:space:]]*' | tail -n 1 || true)"
+      fi
+      print_summary "$tailnet_url"
+    else
+      print_summary
+    fi
     echo
     echo "Revoke: 't3 auth' manages T3 sessions and credentials."
     if [[ "$TAILSCALE" == "true" ]]; then

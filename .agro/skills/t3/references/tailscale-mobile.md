@@ -45,9 +45,17 @@ recreate does not force a re-login.
 /t3 start --tailscale
 ```
 
-The server prints a connection string, a one-time pairing token, a pairing URL,
-and a QR code. Install the T3 Code mobile app, then scan the QR code or paste the
-`https://<machine>.<tailnet>.ts.net/...` URL.
+The server prints a `localhost` pairing URL. The phone cannot use that URL. Then
+`/t3 start --tailscale` runs `npx --yes t3 pair --tailscale` one time. The
+command prints a QR code and a `https://<machine>.<tailnet>.ts.net/...` pairing
+URL. Install the T3 Code mobile app. Then scan the QR code or paste the
+`ts.net` URL.
+
+Run the next command in another sandbox terminal to print a fresh QR code:
+
+```bash
+npx --yes t3 pair --tailscale --label <device> --ttl 15m
+```
 
 The pairing token is one-time. To add a second device later, do **not** restart
 the server:
@@ -79,6 +87,18 @@ tailscale logout                      # remove this node's tailnet identity
 
 Delete the node in the Tailscale admin console to revoke it from the other side.
 
+## Rename the node
+
+A rename of the Tailscale node does not move the Serve mapping. The mapping
+stays on the old MagicDNS name. Run these commands in the sandbox to remove the
+old mapping and start the server on the new name:
+
+```bash
+tailscale serve reset
+/t3 stop
+/t3 start --tailscale
+```
+
 ## Troubleshooting
 
 | Symptom | Fix |
@@ -89,6 +109,7 @@ Delete the node in the Tailscale admin console to revoke it from the other side.
 | Node does not satisfy the range | the T3 server needs `^22.16 \|\| ^23.11 \|\| >=24.10`; raise the Node pin in `.devcontainer/Dockerfile` and rebuild |
 | port 3773 not answering | read `/t3 logs`; the provider backend may have failed to start |
 | phone shows the page but cannot connect | confirm the phone is on the same tailnet and the MagicDNS name resolves |
+| Serve answers on the old name after a node rename | run `tailscale serve reset`, then restart with `/t3 stop` and `/t3 start --tailscale` |
 
 ## Secrets
 

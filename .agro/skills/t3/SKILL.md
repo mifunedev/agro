@@ -89,9 +89,17 @@ Launch commands the script emits, verbatim:
 | `/t3 pair` | `npx --yes t3 pair` |
 | `/t3 pair --tailscale` | `npx --yes t3 pair --tailscale` |
 
+In Tailscale mode, `t3 serve` prints a `localhost` pairing URL. A phone cannot
+use that URL. After the server prints the URL, `/t3 start --tailscale` runs
+`npx --yes t3 pair --tailscale` one time. The script prints the `t3 pair` output
+unchanged, so the QR code appears. The script reports the `ts.net` URL as the
+pairing URL.
+
 The server always runs under the sandbox tmux convention
 (`tmux new-session -d -s agent-t3code '... 2>&1 | tee /tmp/agent-t3code.log'`),
-so it survives a terminal disconnect. It stays bound to container loopback; the
+so it survives a terminal disconnect. The launch command removes every `HERDR_*`
+variable before it starts `t3 serve`, and `/t3 pair` does the same before it
+starts `t3 pair`. It stays bound to container loopback; the
 skill never binds T3 Code to a public interface.
 
 For the phone-side recipe and the tailnet session layout, read
@@ -105,6 +113,8 @@ After `start`, report:
 - tmux session name and log path
 - the exact launch command that was used
 - pairing URL if found, otherwise the command to inspect logs
+- in Tailscale mode, the tailnet pairing URL and the QR code that
+  `start --tailscale` prints
 - local URL, normally `http://localhost:3773`
 - in Tailscale mode, the tailnet HTTPS port and that the URL is the node's
   MagicDNS name
