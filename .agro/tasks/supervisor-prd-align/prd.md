@@ -10,11 +10,11 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] `git grep -n -E 'progress\.txt|progress/evidence|evidence\.md|evidence artifact' -- .agro/skills/supervisor` prints nothing and exits 1.
-- [ ] Each replaced passage names `prd.json` (`passes`, `commit`, `notes`) or the PR body evidence sections as the advisor record.
-- [ ] The `description` and `allowed-tools` frontmatter lines are byte-identical to `origin/development`.
-- [ ] The description text has 1024 characters or fewer.
-- [ ] `bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/supervisor/SKILL.md` exits 0.
+- [x] `git grep -n -E 'progress\.txt|progress/evidence|evidence\.md|evidence artifact' -- .agro/skills/supervisor` prints nothing and exits 1.
+- [x] Each replaced passage names `prd.json` (`passes`, `commit`, `notes`) or the PR body evidence sections as the advisor record.
+- [x] The `description` and `allowed-tools` frontmatter lines are byte-identical to `origin/development`.
+- [x] The description text has 1024 characters or fewer.
+- [x] `bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/supervisor/SKILL.md` exits 0.
 
 ### US-002: Replace retired artifact names in other control-plane surfaces
 
@@ -22,9 +22,9 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] `.agro/logs/AGENTS.md`, `.agro/memories/AGENTS.md`, and `.agro/skills/audit/references/implementation.md` name no retired artifact.
-- [ ] `git grep -n -I -E 'progress\.txt|evidence\.md|progress/evidence' -- .agro docs ':!.agro/tasks'` prints only `.agro/scripts/registry-portability.md:65` and `.agro/skills/audit/references/reviewer-evidence-doc.md:13`.
-- [ ] `bash .agro/skills/ste/scripts/ste-check.sh` exits 0 for each of the three edited files.
+- [x] `.agro/logs/AGENTS.md`, `.agro/memories/AGENTS.md`, and `.agro/skills/audit/references/implementation.md` name no retired artifact.
+- [x] `git grep -n -I -E 'progress\.txt|evidence\.md|progress/evidence' -- .agro docs ':!.agro/tasks'` prints only `.agro/scripts/registry-portability.md:65` and `.agro/skills/audit/references/reviewer-evidence-doc.md:13`.
+- [x] `bash .agro/skills/ste/scripts/ste-check.sh` exits 0 for each of the three edited files.
 
 ## Summary
 
@@ -102,13 +102,15 @@ N/A. The change edits prose only and adds no state.
 
 ## Acceptance Criteria
 
-- [ ] `git grep -n -I -E 'progress\.txt|evidence\.md|progress/evidence' -- .agro docs ':!.agro/tasks'` prints only the two kept lines, and the PR body lists each kept line with its reason.
-- [ ] The supervisor description has 1024 characters or fewer, and the `description` line is unchanged.
-- [ ] `bash .agro/scripts/link-providers.sh --check` exits 0.
-- [ ] `pnpm vitest run .agro/scripts/__tests__/standard-skills-link.test.ts .agro/scripts/__tests__/skill-shell-portability.test.ts .agro/scripts/__tests__/hermes-links.test.ts` exits 0.
-- [ ] `bash .agro/skills/ste/scripts/ste-check.sh <file>` exits 0 for `prd.md` and for each changed `.md` file. The advisor also reviews each change by hand against the `/ste` rules that the checker cannot catch. The PR body holds each command and its exit 0 output under this criterion. The PR opens only after this criterion passes.
-- [ ] A PR from `task/1402-supervisor-prd-align` to `development` exists with each criterion's command output in its body. The PR is not merged.
+- [x] `git grep -n -I -E 'progress\.txt|evidence\.md|progress/evidence' -- .agro docs ':!.agro/tasks'` prints only the two kept lines, and the PR body lists each kept line with its reason.
+- [x] The supervisor description has 1024 characters or fewer, and the `description` line is unchanged.
+- [x] `bash .agro/scripts/link-providers.sh --check` exits 0.
+- [x] `pnpm vitest run .agro/scripts/__tests__/standard-skills-link.test.ts .agro/scripts/__tests__/skill-shell-portability.test.ts .agro/scripts/__tests__/hermes-links.test.ts` exits 0.
+- [x] `bash .agro/skills/ste/scripts/ste-check.sh <file>` exits 0 for `prd.md` and for each changed `.md` file. The advisor also reviews each change by hand against the `/ste` rules that the checker cannot catch. The PR body holds each command and its exit 0 output under this criterion. The PR opens only after this criterion passes.
+- [x] A PR from `task/1402-supervisor-prd-align` to `development` exists with each criterion's command output in its body. The PR is not merged.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. Claim: an operator rule that requires `ste-check.sh` exit 0 on each changed file makes the edit fix earlier findings in that file. Evidence: the three edited files carried 30 earlier findings, 4 in the supervisor skill and 26 in US-002. Outcome: fixed in this PR.
+2. Claim: `/supervisor` requires `MonitorCreate`, `MonitorList`, and `MonitorStop`, and Claude Code exposes `Monitor` and `TaskStop`. Evidence: the supervisor `description` and `allowed-tools`, and the Claude Code session that runs the supervisor. Outcome: dropped from this PR, because the decision belongs to the supervisor. The plan keeps the decision as an open question.
+3. Claim: `registry-portability.md:65` keeps `tasks/<slug>/progress.txt` as a false-hit example. Evidence: `registry-portability.sh` reads the file as its exceptions source, and the line names no task procedure. Outcome: dropped, because the example still describes the pattern rule.
