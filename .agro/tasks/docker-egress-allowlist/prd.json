@@ -40,8 +40,8 @@
         "`pnpm exec vitest run .agro/scripts/__tests__/compose-args.test.ts .agro/scripts/__tests__/sandbox-privilege-boundary.test.ts .agro/scripts/__tests__/docs-compose-overlays.test.ts` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated (ebe3cfaa, d76e29a3). Advisor re-ran: full vitest exit 0 (91 files, 2054 tests); typecheck exit 0; overlay holds the pinned squid digest, `internal: true`, and NODE_USE_ENV_PROXY=1. Worker executed `docker compose config` (sandbox only on egress-internal), argv tests (byte-identical unless AGRO_EGRESS=allowlist), shellcheck clean, and a local live run: no default route, api.github.com TCP_TUNNEL 200, example.com and port 8443 TCP_DENIED 403, no-proxy/direct-IP/root-route bypasses fail. Allowlist mount: <entry>/egress-allow.txt read-only at /etc/squid/egress-allow.txt; inline squid.conf allows only listed hosts on 80/443. Notes for later stories: write egress-allow.txt in place (bind mount), gitignore it in checkout mode, document that SANDBOX_SSH does not work in allowlist mode and that Compose 2.23+ is required.",
       "dependsOn": [],
       "files": [
         ".devcontainer/docker-compose.egress.yml",
@@ -51,7 +51,8 @@
         ".agro/scripts/__tests__/compose-args.test.ts",
         ".agro/scripts/__tests__/sandbox-privilege-boundary.test.ts",
         ".agro/scripts/__tests__/docs-compose-overlays.test.ts"
-      ]
+      ],
+      "commit": "d76e29a3"
     },
     {
       "id": "US-003",
