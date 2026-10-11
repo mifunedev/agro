@@ -17,8 +17,9 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "commit": "d903277c",
+      "notes": "AC1-3 executed: hooks.test.ts cases for get (deny x3), list and set (no decision); new cases failed before the hook change. AC4 reasoned: the shared deny message names `agro secret get` and tells the agent to ask the operator. AC5 executed on the integrated task branch: npx vitest run .agro/scripts/__tests__/hooks.test.ts exit 0 (138 passed). AC6 executed by the worker: npm run typecheck exit 0.",
       "dependsOn": [],
       "files": [".agro/hooks/deny-env-dump.sh", ".agro/scripts/__tests__/hooks.test.ts"]
     },
