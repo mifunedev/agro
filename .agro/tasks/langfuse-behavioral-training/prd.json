@@ -230,8 +230,8 @@
         "`compare` refuses to read holdout results until `compare-thresholds.json` exists."
       ],
       "priority": 9,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: red run 13 failed/42 passed before modules existed (worker evidence); executed: vitest report.test.ts 55/55 on integrated branch (4 files 151/151): allowlisted metadata-only report.json/report.md, planted transcript markers absent, redaction of planted keys across outputs/stdout/stderr, compare counts only replayable cases with start revision+fixture, reused-response rejected, per-dimension results/unknowns/cost/latency/regressions/run ids, holdout refused without compare-thresholds.json (thresholds-not-frozen); executed: report/compare --help exit 0; executed LIVE (local, metadata-only) report on the dev-project run: complete, not-run inputs reported as not-run. Deviation accepted: compare writes comparison.json (keeps report checkpoint checksums stable).",
       "dependsOn": [
         "US-002",
         "US-006"
@@ -240,7 +240,8 @@
         ".agro/skills/behavioral-training/scripts/lib/report.mjs",
         ".agro/skills/behavioral-training/scripts/lib/compare.mjs",
         ".agro/scripts/__tests__/behavioral-training-report.test.ts"
-      ]
+      ],
+      "commit": "23cbf7dd"
     },
     {
       "id": "US-010",
