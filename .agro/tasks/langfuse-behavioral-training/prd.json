@@ -177,15 +177,16 @@
         "A session that a prior exploratory step exposed carries `holdoutEligible: false`."
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: red runs failed on missing curate.mjs then stub (worker evidence); executed: vitest sample.test.ts 23/23 on integrated branch (4 files 134/134): attempts grouped before split, exact-duplicate removal and uncertain groupings reported and kept out of holdout, 80/20 group-level rounding recorded for 1-12 groups, assertDisjoint throws on session/group leakage, failed trajectory without approved correction -> regression only, exposure -> holdoutEligible false. Deviation accepted: a development group enters demonstrations only when every item qualifies (keeps groups single-split).",
       "dependsOn": [
         "US-004"
       ],
       "files": [
         ".agro/skills/behavioral-training/scripts/lib/curate.mjs",
         ".agro/scripts/__tests__/behavioral-training-sample.test.ts"
-      ]
+      ],
+      "commit": "c3508291"
     },
     {
       "id": "US-008",
