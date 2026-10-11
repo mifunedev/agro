@@ -144,7 +144,7 @@ tmux new-session -d -s rs-hermes "AGRO_REF=<branch> bash $SKILL/scripts/run.sh e
 
 `checks/docker-egress.sh` tests `access.egress` `allowlist` on a new VM. The check installs AGRO with the curl installer at `INSTALL_URL`. Then the check clones `AGRO_REF` (default `development`), builds the CLI from the clone, and runs `agro config set access.egress allowlist` in the clone. `agro sandbox install docker --checkout <clone> --yes` reads that setting and builds the sandbox image from the clone.
 
-The rows `E01` to `E20` check the install, the health, and `agro-bootstrap`. The rows also check the routes, an allowed GitHub request, a denied request with a `TCP_DENIED` line in `agro egress log`, `npm view`, and the Claude Code install. Then the rows check `agro egress reload` with a new host, three bypass attempts as root, and `agro destroy`.
+The rows `E01` to `E20` check the install, the health, and the bootstrap readiness file `/run/agro/bootstrap.ready`. The rows also check the routes, an allowed GitHub request, a denied request with a `TCP_DENIED` line in `agro egress log`, `npm view`, and the Claude Code install. Then the rows check `agro egress reload` with a new host, three bypass attempts as root, and `agro destroy`.
 
 To test a branch, start the run detached on the driver host. Set `<branch>` to the branch name:
 

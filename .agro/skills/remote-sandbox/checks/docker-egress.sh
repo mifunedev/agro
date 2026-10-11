@@ -7,6 +7,7 @@ URL=${INSTALL_URL:-https://github.com/mifunedev/agro/releases/latest/download/in
 CLONE="$HOME/agro-branch"
 BRANCH_BIN="$HOME/.agro-branch/bin"
 DIRECT_IP=140.82.112.3
+READY_FILE=/run/agro/bootstrap.ready
 fails=0
 
 res() { echo "RESULT $1 $2 $3"; [ "$2" = FAIL ] && fails=$((fails+1)); return 0; }
@@ -16,7 +17,8 @@ flat() { tr '\n' ' ' | cut -c1-"${1:-160}"; }
 sx() { docker exec -u sandbox -w /home/sandbox/harness "$N" "$@"; }
 rx() { docker exec -u root "$N" "$@"; }
 code() { sx curl -sS --max-time 20 -o /dev/null -w '%{http_code}' "$1" 2>/dev/null; }
-unit() { docker exec "$N" systemctl is-active "$1" 2>/dev/null; }
+ready() { docker exec "$N" test -f "$READY_FILE" 2>/dev/null; }
+bootstrap_failed() { docker logs "$N" 2>&1 | grep '\[sandbox-main\] WARNING: entrypoint.sh exited' >/dev/null; }
 started() { docker inspect --format '{{.State.StartedAt}}' "$N" 2>/dev/null; }
 health() { docker inspect --format '{{.State.Health.Status}}' "$N" 2>/dev/null || echo missing; }
 bypass() {
@@ -80,9 +82,13 @@ st=missing
 for i in $(seq 1 90); do st=$(health); [ "$st" = healthy ] && break; [ "$st" = missing ] && [ "$i" -gt 6 ] && break; sleep 10; done
 if [ "$st" = healthy ]; then res E06-health PASS "healthy after $(( $(date +%s) - t0 ))s"; else docker logs --tail 15 "$N" 2>&1 | quote; res E06-health FAIL "health=$st"; fi
 
-for _ in $(seq 1 60); do b=$(unit agro-bootstrap); [ "$b" = active ] || [ "$b" = failed ] && break; sleep 5; done
-b=$(unit agro-bootstrap)
-if [ "$b" = active ]; then res E07-bootstrap PASS "agro-bootstrap=active"; else docker exec "$N" journalctl -u agro-bootstrap --no-pager -n 15 2>&1 | quote; res E07-bootstrap FAIL "agro-bootstrap=${b:-unknown}"; fi
+b=timeout
+for _ in $(seq 1 60); do
+  if ready; then b=ready; break; fi
+  if bootstrap_failed; then b=entrypoint-failed; break; fi
+  sleep 5
+done
+if [ "$b" = ready ]; then res E07-bootstrap PASS "$READY_FILE present"; else docker logs --tail 15 "$N" 2>&1 | quote; res E07-bootstrap FAIL "bootstrap=$b no $READY_FILE"; fi
 
 echo "== routes in the sandbox"
 rx ip route 2>&1 | quote
@@ -123,10 +129,10 @@ else
   res E14-reload-allows FAIL "set=$setrc reload=$rlrc example.com http=$c"
 fi
 s1=$(started); run=$(docker inspect --format '{{.State.Running}}' "$N" 2>/dev/null)
-if [ "$run" = true ] && [ -n "$s0" ] && [ "$s0" = "$s1" ] && [ "$(unit agro-bootstrap)" = active ]; then
+if [ "$run" = true ] && [ -n "$s0" ] && [ "$s0" = "$s1" ] && ready; then
   res E15-running-after-reload PASS "started=$s1 not restarted"
 else
-  res E15-running-after-reload FAIL "running=$run started_before=$s0 started_after=$s1 bootstrap=$(unit agro-bootstrap)"
+  res E15-running-after-reload FAIL "running=$run started_before=$s0 started_after=$s1 ready_file=$(ready && echo present || echo missing)"
 fi
 
 echo "== bypass attempts as root"
