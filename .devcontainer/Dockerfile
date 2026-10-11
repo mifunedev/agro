@@ -139,8 +139,8 @@ LABEL org.opencontainers.image.description="AGRO sandbox image"
 
 COPY --chown=sandbox:sandbox . /opt/agro-seed/
 
-COPY .devcontainer/entrypoint.sh .devcontainer/openshell-main.sh /usr/local/bin/
-RUN chmod 0755 /usr/local/bin/entrypoint.sh /usr/local/bin/openshell-main.sh
+COPY .devcontainer/entrypoint.sh .devcontainer/sandbox-main.sh .devcontainer/openshell-main.sh /usr/local/bin/
+RUN chmod 0755 /usr/local/bin/entrypoint.sh /usr/local/bin/sandbox-main.sh /usr/local/bin/openshell-main.sh
 COPY .devcontainer/agro-image-env.sh /etc/profile.d/agro-image-env.sh
 
 COPY .devcontainer/agro-bootstrap.service /usr/lib/systemd/system/

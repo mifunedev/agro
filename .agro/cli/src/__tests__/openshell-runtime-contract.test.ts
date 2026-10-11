@@ -61,7 +61,7 @@ describe("the openshell runtime contract", () => {
     const main = read(".devcontainer/openshell-main.sh").split("\n");
     expect(main.indexOf(". /etc/profile.d/agro-image-env.sh")).toBeGreaterThan(0);
     expect(main.indexOf(". /etc/profile.d/agro-image-env.sh")).toBeLessThan(
-      main.findIndex((line) => line.startsWith("/usr/local/bin/entrypoint.sh")),
+      main.indexOf("exec /usr/local/bin/sandbox-main.sh"),
     );
   });
 
