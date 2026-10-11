@@ -10,7 +10,7 @@ ENV container=docker
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-client openssh-server build-essential ca-certificates curl wget sudo gosu git jq gnupg \
     lsb-release nano ripgrep tmux unzip bash-completion procps less \
-    iproute2 zsh cron lsof htop inetutils-telnet \
+    iproute2 zsh lsof htop inetutils-telnet \
     systemd systemd-sysv dbus libatomic1 \
  && command -v lsof >/dev/null \
  && command -v htop >/dev/null \
@@ -143,11 +143,11 @@ COPY .devcontainer/entrypoint.sh .devcontainer/openshell-main.sh /usr/local/bin/
 RUN chmod 0755 /usr/local/bin/entrypoint.sh /usr/local/bin/openshell-main.sh
 COPY .devcontainer/agro-image-env.sh /etc/profile.d/agro-image-env.sh
 
-COPY .devcontainer/agro-bootstrap.service .devcontainer/agro-cron.service /usr/lib/systemd/system/
+COPY .devcontainer/agro-bootstrap.service /usr/lib/systemd/system/
 COPY .devcontainer/agro-env-generator.sh /usr/lib/systemd/system-environment-generators/10-agro
 RUN chmod 0755 /usr/lib/systemd/system-environment-generators/10-agro \
- && systemctl enable agro-bootstrap.service agro-cron.service \
- && systemctl mask cron.service ssh.service ssh.socket \
+ && systemctl enable agro-bootstrap.service \
+ && systemctl mask ssh.service ssh.socket \
  && install -d -m 0755 /etc/agro \
  && install -m 0644 /dev/null /etc/agro/sandbox \
  && env | grep -vE '^(HOME|HOSTNAME|PWD|OLDPWD|SHLVL|_)=' | LC_ALL=C sort > /etc/agro/image-environment \

@@ -8,7 +8,7 @@ Use `agro` for lifecycle operations; each script's callers determine its executi
 | `install.sh` | Standalone `agro` CLI installer. |
 | `docker-compose.sh`, `paths.sh`, `check-host-port.sh`, `agro-path` | Lifecycle execution, compatibility, and path resolution. |
 | `link-providers.sh` | Create or check canonical provider links. |
-| `cron-runtime.ts`, `gateway.sh` | Scheduled jobs and named messaging sessions. |
+| `gateway.sh` | Named messaging sessions. |
 | `provision-python.sh` | Sandbox Python defaults and kernel environment. |
 | `sandbox-healthcheck.sh`, `sandbox-boot-smoke.sh`, `sandbox-upgrade-smoke.sh` | Runtime health, boot, and upgrade checks. |
 | `verify-sandbox-image.sh`, `node-pnpm-parity.sh`, `check-pnpm-pin.sh` | Image and dependency parity checks. |

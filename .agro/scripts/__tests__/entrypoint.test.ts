@@ -302,8 +302,7 @@ describe("client-slack bridge supervisor", () => {
   });
 });
 
-describe("devcontainer entrypoint cron supervision", () => {
-  const CRON_UNIT = join(ROOT, ".devcontainer/agro-cron.service");
+describe("devcontainer bootstrap supervision", () => {
   const BOOTSTRAP_UNIT = join(ROOT, ".devcontainer/agro-bootstrap.service");
 
   it("owns no cron supervision — systemd does", () => {
@@ -327,25 +326,6 @@ describe("devcontainer entrypoint cron supervision", () => {
     expect(unit).toContain("ExecStart=/usr/local/bin/entrypoint.sh");
     expect(unit).toContain("KillMode=process");
     expect(entrypoint()).toContain('if [ "$#" -gt 0 ]; then\n  exec "$@"\nfi');
-  });
-
-  it("supervises cron-runtime.ts with a native systemd service", () => {
-    const unit = readFileSync(CRON_UNIT, "utf8");
-
-    expect(unit).toContain(
-      "ExecStart=/usr/local/bin/node --experimental-strip-types /home/sandbox/harness/.agro/scripts/cron-runtime.ts",
-    );
-    const execStart = unit.split("\n").find((line) => line.startsWith("ExecStart=")) ?? "";
-    expect(execStart).not.toContain("$");
-    expect(unit).toContain("User=sandbox");
-    expect(unit).toContain("WorkingDirectory=/home/sandbox/harness");
-    expect(unit).toContain("ExecReload=/bin/kill -USR1 $MAINPID");
-    expect(unit).toContain("Restart=on-failure");
-    expect(unit).toContain("StartLimitIntervalSec=");
-    expect(unit).toContain("StartLimitBurst=");
-    expect(unit).toContain("Requires=agro-bootstrap.service");
-    expect(unit).toContain("After=agro-bootstrap.service");
-    expect(unit).toContain("KillMode=process");
   });
 });
 

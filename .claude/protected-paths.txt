@@ -24,7 +24,6 @@ delegate
 health-check
 t3
 # --- Orchestrator scripts (.agro/scripts/) ---
-.agro/scripts/cron-runtime.ts
 .agro/scripts/sandbox-healthcheck.sh
 .agro/scripts/link-providers.sh
 

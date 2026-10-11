@@ -3,7 +3,6 @@ Description=AGRO sandbox bootstrap
 Documentation=https://github.com/mifunedev/agro
 After=network-online.target
 Wants=network-online.target
-Before=agro-cron.service
 
 [Service]
 Type=oneshot
