@@ -139,22 +139,21 @@ verify_nothing_installed() {
   [ "$failed" = "0" ]
 }
 
-verify_systemd_supervision() {
+verify_compose_init() {
   local cid="$1"
   local pid1
 
   pid1=$(docker exec "$cid" ps -p 1 -o comm= 2>/dev/null | tr -d ' ') || pid1=""
-  if [ "$pid1" != "systemd" ]; then
-    echo "sandbox boot smoke failed: PID 1 is '${pid1:-<unreadable>}', not systemd" >&2
+  if [ "$pid1" != "docker-init" ]; then
+    echo "sandbox boot smoke failed: PID 1 is '${pid1:-<unreadable>}', not docker-init (Compose init)" >&2
     return 1
   fi
 
-  if ! docker exec "$cid" systemctl is-active --quiet agro-bootstrap.service; then
-    echo "sandbox boot smoke failed: agro-bootstrap.service is not active" >&2
-    docker exec "$cid" systemctl status agro-bootstrap.service --no-pager >&2 || true
+  if ! docker exec "$cid" test -f /run/agro/bootstrap.ready; then
+    echo "sandbox boot smoke failed: bootstrap readiness file /run/agro/bootstrap.ready is missing" >&2
     return 1
   fi
-  echo "sandbox boot smoke: systemd is PID 1 and agro-bootstrap.service is active"
+  echo "sandbox boot smoke: Compose init (docker-init) is PID 1 and the bootstrap readiness file exists"
 }
 
 trap teardown EXIT
@@ -190,11 +189,11 @@ while [ "$(date +%s)" -le "$end" ]; do
         status_diagnostics "$cid"
         exit 1
       fi
-      if ! verify_systemd_supervision "$cid"; then
+      if ! verify_compose_init "$cid"; then
         status_diagnostics "$cid"
         exit 1
       fi
-      echo "sandbox boot smoke ok: $SERVICE ($cid) passed $HEALTH_CMD, systemd PID-1 supervision (bootstrap), Herdr runtime, bind-ownership, and installed no harness or tool at boot"
+      echo "sandbox boot smoke ok: $SERVICE ($cid) passed $HEALTH_CMD, Compose init PID 1 with bootstrap readiness, Herdr runtime, bind-ownership, and installed no harness or tool at boot"
       exit 0
     fi
     last_status=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$cid" 2>/dev/null || echo "inspect-failed")

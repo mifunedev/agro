@@ -23,7 +23,7 @@ function fixture(
     noInstallableHarnesses?: boolean;
     noInstallableTools?: boolean;
     pid1?: string;
-    bootstrapUnitInactive?: boolean;
+    readyFileMissing?: boolean;
   } = {},
 ) {
   const runtimeUid = opts.runtimeUid ?? HOST_UID;
@@ -76,15 +76,11 @@ case "$1" in
     all="$*"
     case "$all" in
       *"ps -p 1 -o comm="*)
-        printf '%s\n' ${JSON.stringify(opts.pid1 ?? "systemd")}
+        printf '%s\n' ${JSON.stringify(opts.pid1 ?? "docker-init")}
         exit 0
         ;;
-      *"systemctl is-active --quiet agro-bootstrap.service"*)
-        exit ${opts.bootstrapUnitInactive ? "1" : "0"}
-        ;;
-      *"systemctl status"*)
-        printf 'unit status\n'
-        exit 0
+      *"test -f /run/agro/bootstrap.ready"*)
+        exit ${opts.readyFileMissing ? "1" : "0"}
         ;;
       *"id -u; id -g"*)
         printf '%s\n%s\n%s\n%s\n' ${JSON.stringify(runtimeUid)} ${JSON.stringify(HOST_GID)} ${JSON.stringify(runtimeUid)} ${JSON.stringify(HOST_GID)}
@@ -172,26 +168,32 @@ function runSmoke(fx: ReturnType<typeof fixture>, extraEnv: Record<string, strin
   });
 }
 
-describe("sandbox boot smoke systemd supervision", { timeout: SMOKE_TEST_TIMEOUT_MS }, () => {
-  it("fails when PID 1 is not systemd", () => {
-    const result = runSmoke(fixture({ pid1: "docker-init" }));
+describe("sandbox boot smoke Compose init", { timeout: SMOKE_TEST_TIMEOUT_MS }, () => {
+  it("fails when PID 1 is systemd", () => {
+    const result = runSmoke(fixture({ pid1: "systemd" }));
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("PID 1 is 'docker-init', not systemd");
+    expect(result.stderr).toContain("PID 1 is 'systemd', not docker-init (Compose init)");
   });
 
-  it("fails when the bootstrap oneshot is not active", () => {
-    const result = runSmoke(fixture({ bootstrapUnitInactive: true }));
+  it("fails when the bootstrap readiness file is missing", () => {
+    const fx = fixture({ readyFileMissing: true });
+
+    const result = runSmoke(fx);
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("agro-bootstrap.service is not active");
+    expect(result.stderr).toContain("bootstrap readiness file /run/agro/bootstrap.ready is missing");
+    expect(readFileSync(fx.dockerLog, "utf8")).toContain("exec cid-123 test -f /run/agro/bootstrap.ready");
   });
 
-  it("proves PID 1 and bootstrap unit state on a healthy boot", () => {
+  it("proves Compose init and bootstrap readiness on a healthy boot", () => {
     const result = runSmoke(fixture());
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("systemd is PID 1 and agro-bootstrap.service is active");
+    expect(result.stdout).toContain(
+      "Compose init (docker-init) is PID 1 and the bootstrap readiness file exists",
+    );
+    expect(result.stdout).toContain("Compose init PID 1 with bootstrap readiness");
   });
 });
 

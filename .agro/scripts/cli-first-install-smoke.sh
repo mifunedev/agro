@@ -295,13 +295,13 @@ wait_health() {
   die "timed out waiting for health on $cid"
 }
 
-verify_systemd() {
+verify_compose_init_ready() {
   local cid="$1"
   local pid1
   pid1=$(docker exec "$cid" sh -lc 'ps -p 1 -o comm=' | tr -d ' \r')
-  [ "$pid1" = "systemd" ] || die "PID 1 is '$pid1', not systemd"
-  docker exec "$cid" systemctl is-active --quiet agro-bootstrap.service \
-    || die "agro-bootstrap.service is not active"
+  [ "$pid1" = "docker-init" ] || die "PID 1 is '$pid1', not docker-init (Compose init)"
+  docker exec "$cid" test -f /run/agro/bootstrap.ready \
+    || die "bootstrap readiness file /run/agro/bootstrap.ready is missing"
 }
 
 verify_seed() {
@@ -381,7 +381,7 @@ phase_seed() {
   [ -n "$cid" ] || die "no container for $name"
   record container "$cid"
   wait_health "$cid"
-  verify_systemd "$cid"
+  verify_compose_init_ready "$cid"
   verify_seed "$cid"
   echo "seed_sandbox=$name"
   echo "seed_container=$cid"
@@ -423,7 +423,7 @@ recreate_one() {
   [ -n "$cid" ] || die "no container after applying dockerSocket=$socket_value"
   record container "$cid"
   wait_health "$cid"
-  verify_systemd "$cid"
+  verify_compose_init_ready "$cid"
   verify_seed "$cid"
   if [ "$socket_value" = "true" ]; then
     assert_socket_enabled "$cid"
@@ -462,7 +462,7 @@ recreate_one() {
   [ -n "$after_cid" ] || die "no container after recreation"
   record container "$after_cid"
   wait_health "$after_cid"
-  verify_systemd "$after_cid"
+  verify_compose_init_ready "$after_cid"
   verify_seed "$after_cid"
 
   [ "$after_cid" != "$before_cid" ] || die "recreation kept container id $before_cid"

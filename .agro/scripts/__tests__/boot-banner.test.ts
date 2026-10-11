@@ -68,13 +68,15 @@ function resolveTool(name: string): string {
   return found;
 }
 
-function renderBanner(shell: string[]): string {
+function renderBanner(shell: string[], pid1Comm = "docker-init"): string {
   const root = mkdtempSync(path.join(tmpdir(), "agro-banner-"));
   try {
     const home = path.join(root, "home");
     const stubs = path.join(root, "stubs");
     const tools = path.join(root, "tools");
     for (const dir of [home, stubs, tools]) spawnSync("mkdir", ["-p", dir]);
+    const pid1CommFile = path.join(root, "pid1-comm");
+    writeFileSync(pid1CommFile, `${pid1Comm}\n`);
     for (const tool of BANNER_TOOLS) symlinkSync(resolveTool(tool), path.join(tools, tool));
     const claude = path.join(stubs, "claude");
     writeFileSync(claude, "#!/bin/sh\nexit 0\n");
@@ -89,7 +91,14 @@ function renderBanner(shell: string[]): string {
     const result = spawnSync(shell[0], [...shell.slice(1), script], {
       encoding: "utf-8",
       cwd: home,
-      env: { HOME: home, PATH: `${stubs}:${tools}`, LANG: "C", SANDBOX_NAME: "banner-test", TZ: "UTC" },
+      env: {
+        HOME: home,
+        PATH: `${stubs}:${tools}`,
+        LANG: "C",
+        SANDBOX_NAME: "banner-test",
+        TZ: "UTC",
+        AGRO_PID1_COMM_FILE: pid1CommFile,
+      },
     });
     expect(result.status, result.stderr).toBe(0);
     return result.stdout;
@@ -129,7 +138,14 @@ describe.each(shells)("interactive %s banner harness detection", (_name, shell) 
     expect(onboardingLine(output, "pi")).toBe("[✗] pi not installed — run: agro harness install pi");
   });
 
-  it("lists only commands with a binary as recovery commands", () => {
-    expect(output).toContain("  Recovery commands: claude · systemctl status agro-bootstrap.service\n");
+  it("lists only commands with a binary and the host log command under Compose init", () => {
+    expect(output).toContain("  Recovery commands: claude · agro logs (on the host)\n");
+    expect(output).not.toContain("systemctl");
+  });
+
+  it("names the bootstrap unit status only when PID 1 is systemd", () => {
+    const systemdOutput = renderBanner(shell, "systemd");
+    expect(systemdOutput).toContain("  Recovery commands: claude · systemctl status agro-bootstrap.service\n");
+    expect(systemdOutput).not.toContain("agro logs");
   });
 });

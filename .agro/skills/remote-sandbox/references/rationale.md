@@ -12,7 +12,7 @@
 
 ## The question the checks answer
 
-AGRO turns a host into a durable workspace for coding agents. The AGRO sandbox is a container with systemd as PID 1. The sandbox needs `cgroup: private`, `SYS_ADMIN`, `apparmor=unconfined`, and a tmpfs on `/sys/fs`. Agents keep working after the operator disconnects.
+AGRO turns a host into a durable workspace for coding agents. The Docker sandbox is a container with Compose init (`docker-init`) as PID 1. Compose init runs `sandbox-main.sh`, which runs the bootstrap once and writes `/run/agro/bootstrap.ready`. The sandbox needs no added capability and no private cgroup. In VM image mode, the VM boots the image `/sbin/init`, and systemd is PID 1. Agents keep working after the operator disconnects.
 
 The checks ask one question for each VM: which AGRO operations hold on this VM? Each row is an AGRO operation, not a provider feature. A new `FAIL` against the baseline is a regression in AGRO or a change in the provider. Find the cause before you report the cell.
 
@@ -32,14 +32,14 @@ The fresh install is the first thing that a new operator does. Each row runs `ag
 | Row | AGRO expectation | A failure means |
 |---|---|---|
 | `R13-time-to-shell` | An operator gets a shell fast. | The provider is slow on the first session. The driver measures seconds from the `create` request to the first successful `exec`. |
-| `R04-cgroup-delegation` | The VM delegates the `memory` and `io` cgroup controllers. | systemd cannot run as PID 1 in a container. runc puts the container cgroup in `threaded` mode, and systemd exits with `Structure needs cleaning`. Every sandbox row then fails. |
+| `R04-cgroup-delegation` | Image mode: the VM delegates the `memory` and `io` cgroup controllers. Host mode: the row reports the controllers. The row is `SKIPPED` if the controllers are not delegated, because the Compose init sandbox does not need delegation. | Image mode: systemd cannot run as PID 1. runc puts the cgroup in `threaded` mode, and systemd exits with `Structure needs cleaning`. Every sandbox row then fails. Host mode: the row does not fail. |
 | `R02-workspace` | The installer at `INSTALL_URL` installs the CLI, and `agro workspace create` clones a workspace. | The documented host install path is broken. |
 | `R02b-noninteractive-cli` | `agro --version` succeeds in a non-interactive shell after the install. | Cron, systemd units, cloud-init, and `ssh host cmd` cannot run `agro`. mifunedev/agro#1262 fixed this case for nvm installs. |
 | `R03-docker-engine-host` | `agro tool install docker-engine --host` installs Docker. | The documented Docker path is broken on that base image. |
 | `R01-docker` | `dockerd` runs and `docker compose` is present. | The VM cannot run the sandbox container. |
 | `R05-sandbox-boot` | `agro sandbox install docker --yes` reaches `healthy`. In image mode, `agro-bootstrap` is active and the healthcheck passes. | The AGRO sandbox does not start. |
-| `R06-systemd` | PID 1 is `systemd`. The `agro-bootstrap` unit is active and reports `success`. | The sandbox does not boot under systemd supervision. |
-| `R07-container-restart` | `agro-bootstrap` is active again after `docker restart`. | A container restart does not boot the sandbox again. |
+| `R06-systemd` | Host mode: PID 1 in the sandbox container is `docker-init`, and the healthcheck passes. Image mode: PID 1 is `systemd`, and the `agro-bootstrap` unit is active and reports `success`. | Host mode: the sandbox does not boot under Compose init, or the bootstrap did not write the readiness file. Image mode: the VM does not boot under systemd supervision. |
+| `R07-container-restart` | Host mode: the healthcheck passes again after `docker restart`. Image mode: the row is `SKIPPED`, because no container exists. | A container restart does not boot the sandbox again. |
 | `R08-vm-restart` | The sandbox is healthy again after a VM restart, and files keep their content. | A VM restart loses work or corrupts state. |
 | `R09-disconnect` | A tmux session survives the client exit. | Work stops with the terminal. This breaks the AGRO rule that remote and unattended operation is normal. |
 | `R10-ssh-inbound` | A standard SSH client outside the provider reaches the VM. | `agro shell`, editors, and remote operators cannot attach. |

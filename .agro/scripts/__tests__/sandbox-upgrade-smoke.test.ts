@@ -67,8 +67,20 @@ describe("sandbox upgrade smoke script", () => {
     }
   });
 
-  it("asserts the control plane, the marker, the bootstrap unit, and a clean entrypoint log", () => {
-    expect(script).toContain("agro-bootstrap.service");
+  it("waits for the bootstrap readiness file and reads the bootstrap log from docker logs", () => {
+    expect(script).toContain("READY_FILE=/run/agro/bootstrap.ready");
+    expect(script).toContain('docker exec "$cid" test -f "$READY_FILE"');
+    expect(script).toContain('fail "$label: container $cid is $state, not running"');
+    expect(script).toContain('fail "$label: timed out after ${TIMEOUT}s waiting for $READY_FILE"');
+    expect(script).toContain('bootstrap_log=$(docker logs "$new_cid" 2>&1 || true)');
+    expect(script).toContain('docker logs --tail 200 "$cid"');
+    expect(script).not.toContain("agro-bootstrap.service");
+    expect(script).not.toContain("systemctl");
+    expect(script).not.toContain("journalctl");
+  });
+
+  it("asserts the control plane, the marker, bootstrap readiness, and a clean entrypoint log", () => {
+    expect(script).toContain('docker exec "$new_cid" test -f "$READY_FILE"');
     expect(script).toContain(".agro/.image-seeded");
     expect(script).toContain('a retired $PROJECT_ROOT/.oh was created by the upgrade');
     expect(script).toContain('grep -q "not seeding"');

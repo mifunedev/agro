@@ -36,6 +36,7 @@ KEEP=${KEEP:-0}
 TIMEOUT=${UPGRADE_SMOKE_TIMEOUT_SECONDS:-600}
 INTERVAL=${UPGRADE_SMOKE_INTERVAL_SECONDS:-5}
 PROJECT_ROOT=${AGRO_PROJECT_ROOT:-/home/sandbox/harness}
+READY_FILE=/run/agro/bootstrap.ready
 VOLUME="${PROJECT}_workspace"
 WORKDIR=$(mktemp -d "${TMPDIR:-/tmp}/sandbox-upgrade-smoke.XXXXXX")
 NPM_HARNESSES=(
@@ -75,8 +76,8 @@ diagnostics() {
   if [ -n "$cid" ]; then
     echo "--- container state ($cid)"
     docker inspect --format '{{.State.Status}} exit={{.State.ExitCode}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$cid" || true
-    echo "--- systemd units ($cid)"
-    docker exec "$cid" systemctl status agro-bootstrap.service --no-pager || true
+    echo "--- bootstrap readiness ($cid)"
+    docker exec "$cid" ls -l "$READY_FILE" 2>&1 || true
     echo "--- container logs tail ($cid)"
     docker logs --tail 200 "$cid" 2>&1 || true
   fi
@@ -113,9 +114,9 @@ teardown() {
 READY_CID=""
 
 wait_ready() {
-  local label="$1" end cid state
+  local label="$1" end cid state boot_log
   end=$(( $(date +%s) + TIMEOUT ))
-  log "waiting up to ${TIMEOUT}s for $label: systemd unit agro-bootstrap.service"
+  log "waiting up to ${TIMEOUT}s for $label: bootstrap readiness file $READY_FILE"
   while [ "$(date +%s)" -le "$end" ]; do
     cid=$(container_id)
     if [ -n "$cid" ]; then
@@ -123,18 +124,19 @@ wait_ready() {
       if [ "$state" != "running" ]; then
         fail "$label: container $cid is $state, not running"
       fi
-      if docker exec "$cid" systemctl is-failed --quiet agro-bootstrap.service 2>/dev/null; then
-        fail "$label: agro-bootstrap.service failed"
-      fi
-      if docker exec "$cid" systemctl is-active --quiet agro-bootstrap.service 2>/dev/null; then
-        log "$label ready: container $cid, bootstrap oneshot succeeded"
+      if docker exec "$cid" test -f "$READY_FILE" 2>/dev/null; then
+        log "$label ready: container $cid, bootstrap wrote $READY_FILE"
         READY_CID="$cid"
         return 0
+      fi
+      boot_log=$(docker logs "$cid" 2>&1 || true)
+      if grep -q "\[sandbox-main\] WARNING: entrypoint.sh exited" <<<"$boot_log"; then
+        fail "$label: the bootstrap entrypoint failed"
       fi
     fi
     sleep "$INTERVAL"
   done
-  fail "$label: timed out after ${TIMEOUT}s waiting for systemd units"
+  fail "$label: timed out after ${TIMEOUT}s waiting for $READY_FILE"
 }
 
 sandbox_sh() {
@@ -270,10 +272,7 @@ log "upgraded snapshot:"
 printf '%s\n' "$after" | sed 's/^/    /'
 log_shape "$new_cid" "upgraded"
 
-bootstrap_log=$(docker exec "$new_cid" journalctl -u agro-bootstrap.service --no-pager -o cat 2>/dev/null || true)
-if [ -z "$bootstrap_log" ]; then
-  bootstrap_log=$(docker logs "$new_cid" 2>&1 || true)
-fi
+bootstrap_log=$(docker logs "$new_cid" 2>&1 || true)
 
 [ "$(value_of "$after" hosts_sha)" = "$(value_of "$before" hosts_sha)" ] \
   || fail "\$HOME/.config/gh/hosts.yml changed across the upgrade (before $(value_of "$before" hosts_sha), after $(value_of "$after" hosts_sha))"
@@ -304,7 +303,7 @@ fi
 if printf '%s\n' "$bootstrap_log" | grep -q "seeded control plane into"; then
   fail "the upgraded entrypoint re-seeded the workspace over the existing .agro/ control plane"
 fi
-docker exec "$new_cid" systemctl is-active --quiet agro-bootstrap.service || fail "agro-bootstrap.service is not active after the upgrade"
+docker exec "$new_cid" test -f "$READY_FILE" || fail "the bootstrap readiness file $READY_FILE is missing after the upgrade"
 log "compose health after upgrade: $(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$new_cid" 2>/dev/null || echo inspect-failed)"
 
 log "npm harnesses after upgrade on $IMAGE's node $(docker exec -u sandbox "$new_cid" node --version)"

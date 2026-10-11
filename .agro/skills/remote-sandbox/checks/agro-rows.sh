@@ -17,6 +17,8 @@ else result R13-time-to-shell SKIPPED "no driver timestamps"; fi
 echo "== R04"
 if grep -qw memory /sys/fs/cgroup/cgroup.subtree_control && grep -qw io /sys/fs/cgroup/cgroup.subtree_control; then
   result R04-cgroup-delegation PASS "already delegated: $(cat /sys/fs/cgroup/cgroup.subtree_control)"
+elif [ $MODE = host ]; then
+  result R04-cgroup-delegation SKIPPED "host mode: the Compose init sandbox needs no delegation; subtree_control=$(cat /sys/fs/cgroup/cgroup.subtree_control)"
 elif echo "+memory +io" | $SUDO tee /sys/fs/cgroup/cgroup.subtree_control >/dev/null 2>/tmp/r04; then
   result R04-cgroup-delegation PASS "enabled: $(cat /sys/fs/cgroup/cgroup.subtree_control)"
 else result R04-cgroup-delegation FAIL "memory/io: $(tr -d '\n' </tmp/r04)"; fi
@@ -63,16 +65,21 @@ else
 fi
 
 echo "== R06"
-if [ $MODE = image ]; then q() { bash -c "$1"; }; else q() { docker exec "$SBX" bash -c "$1"; }; fi
-pid1=$(q 'ps -p 1 -o comm=' 2>&1); boot=$(q 'systemctl show -p Result --value agro-bootstrap; systemctl is-active agro-bootstrap' 2>&1 | tr '\n' ' ')
-[ "$pid1" = systemd ] && [[ "$boot" == "success active"* ]] && result R06-systemd PASS "failed units: $(q 'systemctl --failed --no-legend --plain | cut -d" " -f1 | tr "\n" " "' 2>/dev/null)" || result R06-systemd FAIL "pid1=$pid1 boot=$boot"
+if [ $MODE = image ]; then
+  pid1=$(ps -p 1 -o comm= 2>&1); boot=$( { systemctl show -p Result --value agro-bootstrap; systemctl is-active agro-bootstrap; } 2>&1 | tr '\n' ' ')
+  [ "$pid1" = systemd ] && [[ "$boot" == "success active"* ]] && result R06-systemd PASS "failed units: $(systemctl --failed --no-legend --plain | cut -d" " -f1 | tr "\n" " ")" || result R06-systemd FAIL "pid1=$pid1 boot=$boot"
+else
+  pid1=$(docker exec "$SBX" ps -p 1 -o comm= 2>&1)
+  docker exec "$SBX" $HC >/tmp/r06.log 2>&1 && hc=ok || hc="fail: $(tail -2 /tmp/r06.log | tr '\n' ' ')"
+  [ "$pid1" = docker-init ] && [ "$hc" = ok ] && result R06-systemd PASS "pid1=docker-init healthcheck=ok" || result R06-systemd FAIL "pid1=$pid1 healthcheck=$hc"
+fi
 
 echo "== R07"
 if [ $MODE = image ]; then result R07-container-restart SKIPPED "image mode: no container"
 else
-  t0=$(date +%s); docker restart "$SBX" >/dev/null 2>&1; boot=down
-  for i in $(seq 1 60); do boot=$(docker exec "$SBX" systemctl is-active agro-bootstrap 2>/dev/null); [ "$boot" = active ] && break; sleep 3; done
-  [ "$boot" = active ] && result R07-container-restart PASS "$(( $(date +%s)-t0 ))s" || result R07-container-restart FAIL "agro-bootstrap=$boot"
+  t0=$(date +%s); docker restart "$SBX" >/dev/null 2>&1; hc=down
+  for i in $(seq 1 60); do docker exec "$SBX" $HC >/tmp/r07.log 2>&1 && { hc=ok; break; }; hc="fail: $(tail -1 /tmp/r07.log)"; sleep 3; done
+  [ "$hc" = ok ] && result R07-container-restart PASS "$(( $(date +%s)-t0 ))s" || result R07-container-restart FAIL "healthcheck=$hc"
 fi
 
 echo "== R12"

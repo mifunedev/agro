@@ -34,7 +34,15 @@ function run(args: string[], env: Record<string, string> = {}, opts: { path?: st
   });
 }
 
-function fixtureDocker(opts: { keepId?: boolean; inheritHost?: boolean; socketMounted?: boolean } = {}) {
+function fixtureDocker(
+  opts: {
+    keepId?: boolean;
+    inheritHost?: boolean;
+    socketMounted?: boolean;
+    pid1?: string;
+    readyFileMissing?: boolean;
+  } = {},
+) {
   const dir = mkdtempSync(join(tmpdir(), "cli-first-smoke-"));
   cleanups.push(dir);
   const bin = join(dir, "bin");
@@ -76,8 +84,8 @@ function fixtureDocker(opts: { keepId?: boolean; inheritHost?: boolean; socketMo
       "  exec)",
       '    all="$*"',
       '    if [[ "$all" == *healthcheck* ]]; then exit 0; fi',
-      "    if [[ \"\$all\" == *'ps -p 1'* ]]; then printf 'systemd\\n'; exit 0; fi",
-      '    if [[ "$all" == *systemctl* ]]; then exit 0; fi',
+      `    if [[ "$all" == *'ps -p 1'* ]]; then printf '%s\\n' ${JSON.stringify(opts.pid1 ?? "docker-init")}; exit 0; fi`,
+      `    if [[ "$all" == *'test -f /run/agro/bootstrap.ready'* ]]; then exit ${opts.readyFileMissing ? "1" : "0"}; fi`,
       "    if [[ \"\$all\" == *'.agro/.image-seeded'* && \"\$all\" == *test* ]]; then exit 0; fi",
       "    if [[ \"\$all\" == *'test -d /home/sandbox/harness/.agro'* ]]; then exit 0; fi",
       "    if [[ \"\$all\" == *'test ! -e /home/sandbox/harness/.agro'* ]]; then exit 0; fi",
@@ -281,6 +289,42 @@ describe("cli-first-install-smoke.sh", () => {
     expect(agroLog).toContain("sandbox install docker");
     expect(agroLog).toContain("--image=agro-sandbox-boot-guard:abc");
     expect(agroLog).not.toContain("--repo");
+  });
+
+  it("requires Compose init as PID 1 and the bootstrap readiness file", () => {
+    const fx = fixtureDocker();
+    const workdir = join(fx.dir, "work");
+    mkdirSync(workdir);
+    const result = run(
+      ["--phase", "seed", "--image", "candidate:sha", "--workdir", workdir, "--keep"],
+      { CLI_FIRST_AGRO: join(fx.bin, "agro"), CLI_FIRST_TIMEOUT_SECONDS: "1", CLI_FIRST_INTERVAL_SECONDS: "0" },
+      { path: `${fx.bin}:${process.env.PATH ?? ""}` },
+    );
+    expect(result.status, result.stderr + result.stdout).toBe(0);
+    const dockerLog = readFileSync(join(fx.state, "docker.log"), "utf8");
+    expect(dockerLog).toContain("ps -p 1 -o comm=");
+    expect(dockerLog).toContain("test -f /run/agro/bootstrap.ready");
+    expect(dockerLog).not.toContain("systemctl");
+  });
+
+  it.each([
+    { name: "PID 1 is systemd", opts: { pid1: "systemd" }, message: "PID 1 is 'systemd', not docker-init (Compose init)" },
+    {
+      name: "the readiness file is missing",
+      opts: { readyFileMissing: true },
+      message: "bootstrap readiness file /run/agro/bootstrap.ready is missing",
+    },
+  ])("fails the seed phase when $name", ({ opts, message }) => {
+    const fx = fixtureDocker(opts);
+    const workdir = join(fx.dir, "work");
+    mkdirSync(workdir);
+    const result = run(
+      ["--phase", "seed", "--image", "candidate:sha", "--workdir", workdir, "--keep"],
+      { CLI_FIRST_AGRO: join(fx.bin, "agro"), CLI_FIRST_TIMEOUT_SECONDS: "1", CLI_FIRST_INTERVAL_SECONDS: "0" },
+      { path: `${fx.bin}:${process.env.PATH ?? ""}` },
+    );
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain(message);
   });
 
   it("rejects recreation that keeps the container id", () => {

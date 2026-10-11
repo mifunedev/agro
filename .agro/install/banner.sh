@@ -204,10 +204,17 @@ for _agro_binary in claude codex pi opencode grok agy hermes herdr cloudflared t
   _agro_has_binary "$_agro_binary" || continue
   if [ -z "$shortcuts" ]; then shortcuts="$_agro_binary"; else shortcuts="$shortcuts · $_agro_binary"; fi
 done
-if [ -n "$shortcuts" ]; then
-  printf '  Recovery commands: %s · systemctl status agro-bootstrap.service\n' "$shortcuts"
+_agro_pid1_comm=""
+{ read -r _agro_pid1_comm < "${AGRO_PID1_COMM_FILE:-/proc/1/comm}"; } 2>/dev/null || true
+if [ "$_agro_pid1_comm" = "systemd" ]; then
+  bootstrap_recovery="systemctl status agro-bootstrap.service"
 else
-  printf '  Recovery commands: systemctl status agro-bootstrap.service\n'
+  bootstrap_recovery="agro logs (on the host)"
+fi
+if [ -n "$shortcuts" ]; then
+  printf '  Recovery commands: %s · %s\n' "$shortcuts" "$bootstrap_recovery"
+else
+  printf '  Recovery commands: %s\n' "$bootstrap_recovery"
   printf '  No harness or tool is installed. Add one with `%s harness install <id>` or `%s tool install <id>`.\n' "$cli_bin" "$cli_bin"
 fi
 printf '\n'
@@ -221,7 +228,7 @@ printf '━━━━━━━━━━━━━━━━━━━━━━━━
 printf '\n'
 
 unset -f _agro_has_binary
-unset _agro_binary_path _agro_binary
+unset _agro_binary_path _agro_binary _agro_pid1_comm
 
 if [ -d "/home/orchestrator" ] && [ "$(whoami)" = "sandbox" ]; then
   printf '\n'
