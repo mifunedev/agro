@@ -60,8 +60,9 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/configuration.md` reports no new finding on a changed line."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "commit": "08627e9e",
+      "notes": "AC1-3 reasoned from the diff: configuration.md names the three --sandbox keys and the checkout .env for other keys; security-considerations.md lists `agro secret get` among denied commands. AC4 executed on the integrated task branch: ste-check.sh docs/configuration.md docs/security-considerations.md exit 0. CHANGELOG Security entry added (222 chars).",
       "dependsOn": ["US-001", "US-002"],
       "files": ["docs/configuration.md", "docs/security-considerations.md", "CHANGELOG.md"]
     },
