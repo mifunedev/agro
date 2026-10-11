@@ -10,7 +10,8 @@ description: |
   TRIGGER when: asked to validate an AGRO release or candidate build on a
   fresh VM, run the fresh-install check, test the curl installer on a new VM,
   run the AGRO hosting matrix or a matrix row, run the cgroup probe or the VM
-  restart test, run the OpenShell journey check, or add a provider adapter.
+  restart test, run the OpenShell journey check, run the Docker egress check,
+  or add a provider adapter.
 license: MIT
 compatibility: Needs bash, ssh, curl, jq, awk, and python3 on the driver host, plus an account on each provider under test (an exe.dev SSH key or the vercel CLI). tmux is optional on the driver host.
 metadata:
@@ -110,6 +111,19 @@ To test a release candidate, start the run detached on the driver host. Set `<re
 
 ```bash
 INSTALL_URL=<release>/install.sh AGRO_JS_URL=<release>/agro.js setsid nohup bash "$SKILL/scripts/run.sh" exedev checks/openshell-journey.sh > run.out 2>&1 < /dev/null &
+cat run.out
+```
+
+## Fourth scenario: the Docker egress allowlist
+
+`checks/docker-egress.sh` tests `access.egress` `allowlist` on a new VM. The check installs AGRO with the curl installer at `INSTALL_URL`. Then the check clones `AGRO_REF` (default `development`), builds the CLI from the clone, and runs `agro config set access.egress allowlist` in the clone. `agro sandbox install docker --checkout <clone> --yes` reads that setting and builds the sandbox image from the clone.
+
+The rows `E01` to `E20` check the install, the health, `agro-bootstrap`, and `agro-cron`. The rows also check the routes, an allowed GitHub request, a denied request with a `TCP_DENIED` line in `agro egress log`, `npm view`, and the Claude Code install. Then the rows check `agro egress reload` with a new host, three bypass attempts as root, and `agro destroy`. If the image has no `agro-cron.service`, the rows `E08` and `E16` print `SKIPPED`.
+
+To test a branch, start the run detached on the driver host. Set `<branch>` to the branch name:
+
+```bash
+AGRO_REF=<branch> setsid nohup bash "$SKILL/scripts/run.sh" exedev checks/docker-egress.sh > run.out 2>&1 < /dev/null &
 cat run.out
 ```
 
