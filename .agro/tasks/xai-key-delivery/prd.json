@@ -43,14 +43,15 @@
         "The story deletes each temporary directory that it creates."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1-2 executed by the worker and copied from the observed run: secret set XAI_API_KEY --sandbox exit 0, list shows XAI_API_KEY set; compose config filtered line shows XAI_API_KEY: dummy-not-a-secret, exit 0. AC3 executed by the advisor: only the dummy string appears. AC4 executed by the worker: test -e printed removed.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/tasks/xai-key-delivery/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "1aa4886e"
     }
   ]
 }
