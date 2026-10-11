@@ -181,8 +181,8 @@
         "`pnpm run typecheck` exits 0."
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Commits d37dd581 + 7b558694 repair (registry-portability.md cron proposal). 1 executed: test -e crons exit 1. 2,3,5,7,8,9 executed: git grep -n -i -E 'agro-cron|cron-runtime|croner|crons/|cron\\.agentBin|CRONS_DIR|CRON_AGENT_BIN' shows only RETIRED_KEYS lines, docs/configuration.md retired-key line, and a negative croner assertion; diff reviewed. 4 executed: full npx vitest run 90 files, 2021 passed, 2 skipped (stale cron key load test). 6 worker-executed: migrate-harness-yaml.sh on fixture exit 0, cron keys warn as retired. 10 executed: pnpm run typecheck exit 0.",
       "dependsOn": [
         "US-001",
         "US-003",
@@ -196,8 +196,10 @@
         ".agro/scripts/migrate-harness-yaml.sh",
         ".github/workflows/ci-harness.yml",
         ".claude/protected-paths.txt",
-        ".gitignore"
-      ]
+        ".gitignore",
+        ".agro/scripts/registry-portability.md"
+      ],
+      "commit": "d37dd581"
     },
     {
       "id": "US-007",
