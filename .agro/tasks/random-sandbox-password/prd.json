@@ -42,8 +42,8 @@
         "`pnpm exec vitest run .agro/scripts/__tests__/entrypoint.test.ts .agro/scripts/__tests__/sandbox-privilege-boundary.test.ts .agro/scripts/__tests__/compose-config-path-parity.test.ts` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated. Advisor re-ran: vitest entrypoint/sandbox-privilege-boundary/compose-config-path-parity exit 0 (63 tests); `git grep -n test1234 -- .devcontainer .agro/cli/src .agro/scripts` prints nothing (exit 1); entrypoint holds `passwd -l sandbox`. Worker executed the image build and showed `passwd -S sandbox` reports L when empty and P when set; shellcheck -S warning clean.",
       "dependsOn": [],
       "files": [
         ".devcontainer/docker-compose.yml",
@@ -51,7 +51,8 @@
         ".devcontainer/entrypoint.sh",
         ".agro/scripts/__tests__/entrypoint.test.ts",
         ".agro/scripts/__tests__/sandbox-privilege-boundary.test.ts"
-      ]
+      ],
+      "commit": "6cc634e0"
     },
     {
       "id": "US-003",
@@ -66,14 +67,15 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated (6eca4324, a45089d3). Advisor re-ran: full vitest exit 0 (2130 tests); typecheck exit 0; SECRET_VERBS = [set, get, list] is the only verb list. C1-C4 executed by config-secret tests (raw value, missing value exits 1 with one stderr line, unknown key uses assertSecretKey, list stays redacted). Repair R1 removed a local verb type that duplicated SECRET_VERBS.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/commands/secret.ts",
         ".agro/cli/src/cli.ts",
         ".agro/cli/src/__tests__/config-secret.test.ts"
-      ]
+      ],
+      "commit": "a45089d3"
     },
     {
       "id": "US-004",
