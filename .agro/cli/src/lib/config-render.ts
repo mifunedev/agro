@@ -52,6 +52,7 @@ export function renderComposeVars(config: AgroConfig): RenderedVar[] {
   put("GIT_USER_EMAIL", config.git?.userEmail);
 
   put("DOCKER_SOCKET", config.access?.dockerSocket);
+  put("AGRO_EGRESS", config.access?.egress);
   put("SANDBOX_SSH", config.access?.ssh);
   put("SANDBOX_SSH_PORT", config.access?.sshPort);
 
