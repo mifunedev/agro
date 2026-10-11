@@ -11,7 +11,7 @@ The adapter runs the pinned official CLI `@langfuse/cli@1.2.4` through `npx`.
 The adapter does not install the CLI globally.
 
 ```bash
-npx -y @langfuse/cli@1.2.4 --env <repoRoot>/.env --host <baseUrl> --api-version <version> api <resource> <action> [flags] --json
+npx -y @langfuse/cli@1.2.4 --env <configRoot>/.env --host <baseUrl> --api-version <version> api <resource> <action> [flags] --json
 ```
 
 - The adapter starts the CLI with an argument list. The adapter never starts a shell.
@@ -28,11 +28,31 @@ npx -y @langfuse/cli@1.2.4 --env <repoRoot>/.env --host <baseUrl> --api-version 
 The adapter reuses the AGRO Langfuse configuration. The adapter adds no second
 configuration store.
 
+### Configuration root
+
+The configuration root is the directory that holds `agro.json` and `.env`. The
+adapter selects the first directory in this order:
+
+1. `AGRO_PROJECT_ROOT` from the process environment, when the directory holds
+   `agro.json`. The sandbox sets `AGRO_PROJECT_ROOT` to the main project
+   checkout. `.agro/scripts/link-providers.sh` uses the same variable.
+2. `ctx.repoRoot`. The dispatcher derives this directory from the script
+   location.
+
+A git worktree under `.worktrees/` holds no `.env` and no local `agro.json`
+settings of the operator. Run a stage from a worktree only when
+`AGRO_PROJECT_ROOT` names the main checkout. If `AGRO_PROJECT_ROOT` names a
+directory without `agro.json`, the adapter ignores the variable.
+
+`preflight()` returns the selected directory in `configRoot`. The client also
+exposes `client.configRoot` and `client.envFile`. Both values are paths and
+hold no credential.
+
 ### Base URL
 
 The adapter selects the first value in this order:
 
-1. `langfuse.baseUrl` in `<repoRoot>/agro.json`.
+1. `langfuse.baseUrl` in `<configRoot>/agro.json`.
 2. `LANGFUSE_BASE_URL` in the process environment.
 3. `https://cloud.langfuse.com`. This default is equal to the default of
    `resolveLangfuse` in `.agro/cli/src/commands/langfuse.ts`.
@@ -45,9 +65,9 @@ cannot change the host, because `--host` has precedence in the CLI.
 
 - The root `.env` file holds `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY`.
   The same file is the source of `loadLangfuseCredentials`.
-- If `<repoRoot>/.env` exists, the adapter passes the path through `--env`. The
+- If `<configRoot>/.env` exists, the adapter passes the path through `--env`. The
   CLI reads the keys from the file.
-- If `<repoRoot>/.env` does not exist, the adapter omits `--env`. The CLI then
+- If `<configRoot>/.env` does not exist, the adapter omits `--env`. The CLI then
   reads the keys from the process environment.
 - The adapter never reads the `.env` file. The adapter checks only that the
   file exists.
@@ -102,25 +122,47 @@ The adapter ignores the nested `organization` object.
 - An empty `data` list fails with `bad-response`.
 - A `data` list with more than one entry fails with `ambiguous-project`.
 
-`preflight()` returns `{ baseUrl, cliVersion, apiVersion, project, capabilities }`.
+`preflight()` returns `{ baseUrl, configRoot, cliVersion, apiVersion, project, capabilities }`.
 The result holds no credential.
 
 ## Pagination
 
-`client.listObservations(query, { cursor })` and
+`client.listObservations(query, { cursor })`,
+`client.listSessionObservations(sessionId, { cursor })`, and
 `client.listScores(query, { cursor })` read one page. Each method returns
-`{ items, cursor }`. `cursor` is `null` on the last page.
+`{ items, cursor }`. `cursor` is `null` on the last page. Each method uses the
+same retries and the same redaction.
 
 - `listObservations` requests the field groups `core`, `basic`, `model`,
   `usage`, and `trace_context`. The method never requests `io` or `metadata`.
 - `listObservations` sends `--from-start-time`, `--to-start-time`, and
   `--environment` from the query. The page size is 1000.
+- `listSessionObservations` sends `--session-id` and requests the field groups
+  in `CONTENT_FIELDS`: `core`, `basic`, `time`, `io`, `metadata`, `model`,
+  `usage`, `metrics`, and `trace_context`. The page size is 100. The method
+  sends no window filter.
 - `listScores` requests the field group `subject` and the data types
   `NUMERIC`, `BOOLEAN`, and `CATEGORICAL`. The method never requests `TEXT`,
   `CORRECTION`, or the `details` group, because these hold free text. The page
   size is 100.
 - The adapter does not use the CLI flag `--all`. The stage reads one page at a
   time, and saves the cursor after each page.
+
+## Content reads
+
+The field groups `io` and `metadata` hold transcript content. A content read is
+an `observations list` call that requests one of these groups.
+
+- Only the `normalize` stage requests content.
+- `normalize` reads content only for the sessions in `sample.json`.
+- `normalize` reads content only through `listSessionObservations`.
+- The adapter refuses a content read without `--session-id`. The cause is
+  `unsupported-operation`, and the adapter starts no process.
+- `listObservations` never requests `io` or `metadata`. The `inventory` stage
+  stays metadata-only.
+- The adapter does not send `--expand-metadata`. The API truncates each
+  metadata value above 200 characters and documents no truncation marker.
+  `normalize` therefore never treats a metadata value as complete.
 
 ## Errors
 
@@ -136,7 +178,7 @@ Each failure is a `LangfuseError`. `error.cause` is one cause code.
 | `http-error` | Another HTTP status, or HTTP 429 or 5xx after the last retry |
 | `bad-response` | The output is not JSON, has no envelope, or has an unexpected shape |
 | `ambiguous-project` | The key sees more than one project |
-| `unsupported-operation` | The call names an operation outside the read list |
+| `unsupported-operation` | The call names an operation outside the read list, or a content read has no session id |
 | `cli-unavailable` | `npx` cannot start the CLI |
 | `cli-failed` | The CLI exits with another code |
 | `bad-config` | `agro.json` is not valid JSON |

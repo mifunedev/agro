@@ -6,11 +6,13 @@ import { join, resolve } from "node:path";
 import { EXIT, main } from "../../skills/behavioral-training/scripts/behavioral-training.mjs";
 import {
   CLI_PACKAGE,
+  CONTENT_FIELDS,
   DEFAULT_BASE_URL,
   MAX_RETRIES,
   createClient,
   redact,
   resolveBaseUrl,
+  resolveConfigRoot,
 } from "../../skills/behavioral-training/scripts/lib/langfuse.mjs";
 import * as inventory from "../../skills/behavioral-training/scripts/lib/inventory.mjs";
 
@@ -135,6 +137,39 @@ describe("Langfuse adapter configuration", () => {
     const { client, calls } = clientFor(healthyRoutes(), { root });
     await client.preflight();
     for (const call of calls) expect(call.args).not.toContain("--env");
+  });
+
+  it("reads agro.json and .env from AGRO_PROJECT_ROOT when that directory holds agro.json", async () => {
+    const worktree = repo({ baseUrl: "https://worktree.example.test", envFile: false });
+    const project = repo({ baseUrl: "https://project.example.test" });
+    expect(resolveConfigRoot(worktree, { AGRO_PROJECT_ROOT: project })).toBe(project);
+    const { client, calls } = clientFor(healthyRoutes(), { root: worktree, env: { AGRO_PROJECT_ROOT: project } });
+    const result = await client.preflight();
+    expect(result.configRoot).toBe(project);
+    const api = calls.find((c) => c.operation === "projects list")!;
+    expect(api.args[api.args.indexOf("--env") + 1]).toBe(join(project, ".env"));
+    expect(api.args[api.args.indexOf("--host") + 1]).toBe("https://project.example.test");
+  });
+
+  it("ignores an AGRO_PROJECT_ROOT that holds no agro.json", async () => {
+    const worktree = repo({ baseUrl: "https://worktree.example.test" });
+    const bare = temp("bt-bare-");
+    writeFileSync(join(bare, ".env"), "LANGFUSE_PUBLIC_KEY=unused\n");
+    expect(resolveConfigRoot(worktree, { AGRO_PROJECT_ROOT: bare })).toBe(worktree);
+    const { client, calls } = clientFor(healthyRoutes(), { root: worktree, env: { AGRO_PROJECT_ROOT: bare } });
+    expect((await client.preflight()).configRoot).toBe(worktree);
+    const api = calls.find((c) => c.operation === "projects list")!;
+    expect(api.args[api.args.indexOf("--env") + 1]).toBe(join(worktree, ".env"));
+    expect(api.args[api.args.indexOf("--host") + 1]).toBe("https://worktree.example.test");
+  });
+
+  it("falls back to the repository root without AGRO_PROJECT_ROOT", async () => {
+    const worktree = repo({ baseUrl: "https://worktree.example.test" });
+    expect(resolveConfigRoot(worktree, {})).toBe(worktree);
+    expect(resolveConfigRoot(worktree, { AGRO_PROJECT_ROOT: "" })).toBe(worktree);
+    const { client } = clientFor(healthyRoutes(), { root: worktree });
+    expect(client.configRoot).toBe(worktree);
+    expect(client.envFile).toBe(join(worktree, ".env"));
   });
 
   it("uses LANGFUSE_BASE_URL only when agro.json holds no base URL, then the Langfuse Cloud default", () => {
@@ -270,6 +305,51 @@ describe("Langfuse adapter pagination", () => {
   });
 });
 
+describe("Langfuse adapter session content read", () => {
+  it("requests content fields for one session id and follows the cursor", async () => {
+    const { client, calls } = clientFor(
+      healthyRoutes({
+        "observations list": (call) =>
+          ok(call.cursor === "cursor-page-2" ? fixture("observations-page-2.json") : fixture("observations-page-1.json")),
+      }),
+    );
+    await client.preflight();
+    const first = await client.listSessionObservations("session-a");
+    expect(first.items).toHaveLength(4);
+    expect(first.cursor).toBe("cursor-page-2");
+    const second = await client.listSessionObservations("session-a", { cursor: first.cursor });
+    expect(second).toEqual({ items: expect.any(Array), cursor: null });
+    const [a, b] = calls.filter((c) => c.operation === "observations list");
+    for (const call of [a, b]) {
+      expect(call.args[call.args.indexOf("--session-id") + 1]).toBe("session-a");
+      expect(call.args[call.args.indexOf("--fields") + 1]).toBe(CONTENT_FIELDS.join(","));
+      expect(call.args).not.toContain("--from-start-time");
+    }
+    expect(CONTENT_FIELDS).toEqual(expect.arrayContaining(["io", "metadata"]));
+    expect(b.cursor).toBe("cursor-page-2");
+  });
+
+  it("retries a session content read like each other read", async () => {
+    const { client, sleeps } = clientFor(
+      healthyRoutes({
+        "observations list": (_call, count) => (count < 2 ? { exitCode: 5, stdout: envelope(500) } : ok(fixture("observations-page-2.json"))),
+      }),
+    );
+    await client.preflight();
+    expect((await client.listSessionObservations("session-a")).items).toHaveLength(3);
+    expect(sleeps).toEqual([1000]);
+  });
+
+  it("refuses a content read without one session id", async () => {
+    const { client, calls } = clientFor(healthyRoutes());
+    await client.preflight();
+    expect((await causeOf(client.listSessionObservations(""))).cause).toBe("unsupported-operation");
+    expect((await causeOf(client.call("observations", "list", { fields: "core,io" }))).cause).toBe("unsupported-operation");
+    expect((await causeOf(client.call("observations", "list", { fields: "core,metadata" }))).cause).toBe("unsupported-operation");
+    expect(calls.filter((c) => c.operation === "observations list")).toHaveLength(0);
+  });
+});
+
 describe("inventory stage", () => {
   function setup(routes: Record<string, Route>) {
     const root = repo({ baseUrl: "https://langfuse.example.test" });
@@ -327,6 +407,10 @@ describe("inventory stage", () => {
     expect(text).not.toContain("synthetic failure");
     expect(text).not.toMatch(/"(input|output)":\s*"/);
     for (const call of t.calls.filter((c) => c.operation === "observations list")) {
+      const fields = call.args[call.args.indexOf("--fields") + 1].split(",");
+      expect(fields).not.toContain("io");
+      expect(fields).not.toContain("metadata");
+      expect(call.args).not.toContain("--session-id");
       expect(call.args).toEqual(expect.arrayContaining(["--from-start-time", "2026-10-01T00:00:00.000Z", "--to-start-time", "2026-10-08T00:00:00.000Z"]));
     }
   });

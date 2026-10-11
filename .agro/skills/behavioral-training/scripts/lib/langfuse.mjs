@@ -7,7 +7,10 @@ export const DEFAULT_BASE_URL = "https://cloud.langfuse.com";
 export const MAX_RETRIES = 3;
 export const BACKOFF_MS = 1000;
 export const OBSERVATION_FIELDS = Object.freeze(["core", "basic", "model", "usage", "trace_context"]);
+export const CONTENT_FIELDS = Object.freeze(["core", "basic", "time", "io", "metadata", "model", "usage", "metrics", "trace_context"]);
+export const CONTENT_FIELD_GROUPS = Object.freeze(["io", "metadata"]);
 export const OBSERVATION_PAGE_LIMIT = 1000;
+export const SESSION_PAGE_LIMIT = 100;
 export const SCORE_PAGE_LIMIT = 100;
 export const SCORE_DATA_TYPES = Object.freeze(["NUMERIC", "BOOLEAN", "CATEGORICAL"]);
 
@@ -54,8 +57,14 @@ function trimSlash(url) {
   return url.replace(/\/+$/, "");
 }
 
-export function resolveBaseUrl(repoRoot, env = {}) {
-  const file = path.join(repoRoot, "agro.json");
+export function resolveConfigRoot(repoRoot, env = {}) {
+  const candidate = typeof env.AGRO_PROJECT_ROOT === "string" ? env.AGRO_PROJECT_ROOT.trim() : "";
+  if (candidate && existsSync(path.join(candidate, "agro.json"))) return path.resolve(candidate);
+  return path.resolve(repoRoot);
+}
+
+export function resolveBaseUrl(configRoot, env = {}) {
+  const file = path.join(configRoot, "agro.json");
   let configured;
   if (existsSync(file)) {
     try {
@@ -134,6 +143,11 @@ function flagList(query) {
   return flags;
 }
 
+function readsContent(query) {
+  const fields = typeof query.fields === "string" ? query.fields.split(",") : ["core", "basic"];
+  return fields.some((field) => CONTENT_FIELD_GROUPS.includes(field.trim()));
+}
+
 function page(body, label) {
   if (!body || !Array.isArray(body.data)) throw new LangfuseError("bad-response", `${label}: the response holds no data list`);
   const next = body.meta?.cursor;
@@ -142,8 +156,9 @@ function page(body, label) {
 
 export function createClient(ctx, { runner = spawnRunner, sleep = defaultSleep } = {}) {
   const env = ctx.env ?? process.env;
-  const baseUrl = resolveBaseUrl(ctx.repoRoot, env);
-  const envPath = path.join(ctx.repoRoot, ".env");
+  const configRoot = resolveConfigRoot(ctx.repoRoot, env);
+  const baseUrl = resolveBaseUrl(configRoot, env);
+  const envPath = path.join(configRoot, ".env");
   const envFile = existsSync(envPath) ? envPath : null;
   let apiVersion = null;
 
@@ -165,6 +180,9 @@ export function createClient(ctx, { runner = spawnRunner, sleep = defaultSleep }
     const operation = `${resource} ${action}`;
     if (!READ_OPERATIONS.includes(operation)) {
       throw new LangfuseError("unsupported-operation", `${operation}: the adapter reads only ${READ_OPERATIONS.join(", ")}`);
+    }
+    if (operation === "observations list" && readsContent(query) && !query["session-id"]) {
+      throw new LangfuseError("unsupported-operation", "observations list: a content read needs one session id");
     }
     const args = [...globals(apiVersion), "api", resource, action, ...flagList(query), "--json"];
     for (let attempt = 0; ; attempt += 1) {
@@ -229,6 +247,7 @@ export function createClient(ctx, { runner = spawnRunner, sleep = defaultSleep }
     }
     return {
       baseUrl,
+      configRoot,
       cliVersion: version,
       apiVersion,
       project: { id: project.id, name: project.name },
@@ -253,6 +272,19 @@ export function createClient(ctx, { runner = spawnRunner, sleep = defaultSleep }
     return page(body, "observations list");
   }
 
+  async function listSessionObservations(sessionId, { cursor = null, limit = SESSION_PAGE_LIMIT } = {}) {
+    if (typeof sessionId !== "string" || sessionId.length === 0) {
+      throw new LangfuseError("unsupported-operation", "observations list: a content read needs one session id");
+    }
+    const body = await call("observations", "list", {
+      fields: CONTENT_FIELDS.join(","),
+      limit,
+      "session-id": sessionId,
+      cursor,
+    });
+    return page(body, "observations list");
+  }
+
   async function listScores(query = {}, { cursor = null, limit = SCORE_PAGE_LIMIT } = {}) {
     const body = await call("scores", "list", {
       fields: "subject",
@@ -266,5 +298,5 @@ export function createClient(ctx, { runner = spawnRunner, sleep = defaultSleep }
     return page(body, "scores list");
   }
 
-  return { baseUrl, envFile, call, preflight, listObservations, listScores };
+  return { baseUrl, configRoot, envFile, call, preflight, listObservations, listSessionObservations, listScores };
 }
