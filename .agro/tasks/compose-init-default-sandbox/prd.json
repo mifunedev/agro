@@ -179,8 +179,7 @@
       "files": [
         ".agro/cli/src/lib/tracing/",
         ".agro/cli/src/lib/tracing/__tests__/langfuse-fragment.test.ts",
-        "docs/integrations/langfuse.md",
-        "CHANGELOG.md"
+        "docs/integrations/langfuse.md"
       ]
     },
     {
@@ -219,9 +218,7 @@
       "priority": 9,
       "passes": false,
       "notes": "",
-      "dependsOn": [
-        "US-007"
-      ],
+      "dependsOn": [],
       "files": [
         ".devcontainer/Dockerfile",
         ".agro/scripts/verify-sandbox-image.sh",
