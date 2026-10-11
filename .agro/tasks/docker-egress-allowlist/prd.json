@@ -142,8 +142,8 @@
         "With operator approval, the advisor runs the check on exe.dev and writes the transcript to `.agro/tasks/docker-egress-allowlist/evidence/manual-review.md`. The log ends with `remaining agro-matrix resources on exedev: 0`."
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Static rows written by a worker (e64d0c2b, 81315fbe; cron rows removed after #1392). Operator approved one exe.dev VM on 2026-10-11. Advisor ran `AGRO_REF=feat/1397-docker-egress-allowlist run.sh exedev checks/docker-egress.sh`: 18 of 18 rows PASS, `SUMMARY fails=0`, `remaining agro-matrix resources on exedev: 0`. Key rows: bootstrap active, no default route, api.github.com 200, example.com TCP_DENIED in `agro egress log`, Claude Code 2.1.296 via the proxy, reload allows example.com without a restart, three root bypasses fail, destroy leaves no container. Transcript: evidence/manual-review.md and evidence/exedev-docker-egress.log.",
       "dependsOn": [
         "US-001",
         "US-002",

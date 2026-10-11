@@ -164,4 +164,7 @@ None. The operator decided both questions on 2026-10-10:
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. **Claim:** Node.js `fetch` ignores `HTTPS_PROXY`, so corepack failed behind the proxy in the proof of concept. **Evidence:** ADR #1378, comment 6105841237. **Outcome:** fixed in this PR; the overlay sets `NODE_USE_ENV_PROXY=1`.
+2. **Claim:** Development retired `agro-cron.service` and the boot-time `pnpm install` in #1392 while this task ran. **Evidence:** development commit `e284433d`. **Outcome:** fixed in this PR; the plan and the check dropped the cron criterion.
+3. **Claim:** `egress.ts` repeats the few lines of the unexported `sandboxRoot()` from `lifecycle.ts`. **Evidence:** the US-004 notes in `prd.json`. **Outcome:** dropped, because an export would change `lifecycle.ts`, which this PR does not otherwise touch, for four lines.
+4. **Claim:** The CLI reads the policy hosts with a line-based extraction instead of a YAML parser. **Evidence:** `policyHosts()` in `.agro/cli/src/lib/registry.ts`. **Outcome:** dropped, because a test compares the extraction with a full YAML parse and fails on drift.
