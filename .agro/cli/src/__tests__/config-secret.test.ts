@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runConfigSet, runConfigShow, type ConfigIO } from "../commands/config.js";
-import { runSecretList, runSecretSet, type SecretIO } from "../commands/secret.js";
+import { runSecretGet, runSecretList, runSecretSet, type SecretIO } from "../commands/secret.js";
 import { setSecret } from "../lib/secrets.js";
 import { agroConfigPath } from "../lib/agro-config.js";
 
@@ -95,6 +95,25 @@ describe("parseSecretArgs", () => {
     });
   });
 
+  it("routes get", () => {
+    expect(parseSecretArgs(["get", "GH_TOKEN"])).toEqual({
+      ok: true,
+      args: { help: false, verb: "get", key: "GH_TOKEN" },
+    });
+  });
+
+  it("requires a key for get", () => {
+    const parsed = parseSecretArgs(["get"]);
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) expect(parsed.error).toMatch(/a key is required/);
+  });
+
+  it("refuses an extra argument after the get key", () => {
+    const parsed = parseSecretArgs(["get", "GH_TOKEN", "extra"]);
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) expect(parsed.error).toMatch(/takes only a key/);
+  });
+
   it("never accepts the value as an argument", () => {
     const parsed = parseSecretArgs(["set", "GH_TOKEN", "ghp_example"]);
     expect(parsed.ok).toBe(false);
@@ -104,7 +123,7 @@ describe("parseSecretArgs", () => {
   it("rejects an unknown subcommand", () => {
     const parsed = parseSecretArgs(["show"]);
     expect(parsed.ok).toBe(false);
-    if (!parsed.ok) expect(parsed.error).toMatch(/expected set or list/);
+    if (!parsed.ok) expect(parsed.error).toMatch(/expected set, list, or get/);
   });
 });
 
@@ -165,6 +184,14 @@ describe("--sandbox <name>", () => {
     await expect(runConfigShow({ bin: "agro", sandbox: "absent" }, io)).rejects.toThrow(
       "no sandbox named `absent`",
     );
+  });
+
+  it("`agro secret get --sandbox` reads the entry .env", async () => {
+    const entry = registryEntry("box");
+    setSecret(entry, "GH_TOKEN", "ghp_registry");
+    const { io, out } = makeIo();
+    expect(await runSecretGet("GH_TOKEN", { bin: "agro", sandbox: "box" }, io)).toBe(0);
+    expect(out.join("")).toBe("ghp_registry\n");
   });
 
   it("`agro secret set --sandbox` writes the entry .env and no .gitignore", async () => {
@@ -319,6 +346,33 @@ describe("agro secret set", () => {
     expect(await runSecretSet("GH_TOKEN", { bin: "agro", cwd: root }, io)).toBe(1);
     expect(err.join("")).toMatch(/no value entered/);
     expect(existsSync(join(root, ".env"))).toBe(false);
+  });
+});
+
+describe("agro secret get", () => {
+  it("prints the raw value and exits 0", async () => {
+    const root = makeRepo();
+    setSecret(root, "GH_TOKEN", "ghp_supersecretvalue");
+    const { io, out } = makeIo();
+    expect(await runSecretGet("GH_TOKEN", { bin: "agro", cwd: root }, io)).toBe(0);
+    expect(out.join("")).toBe("ghp_supersecretvalue\n");
+  });
+
+  it("prints nothing to stdout and one line to stderr, and exits 1, when the key has no value", async () => {
+    const root = makeRepo();
+    const { io, out, err } = makeIo();
+    expect(await runSecretGet("GH_TOKEN", { bin: "agro", cwd: root }, io)).toBe(1);
+    expect(out.join("")).toBe("");
+    expect(err).toHaveLength(1);
+    expect(err[0]).toMatch(/\n$/);
+  });
+
+  it("exits 1 with the assertSecretKey message for a key outside SECRET_KEYS", async () => {
+    const root = makeRepo();
+    const { io, out, err } = makeIo();
+    expect(await runSecretGet("SANDBOX_NAME", { bin: "agro", cwd: root }, io)).toBe(1);
+    expect(out.join("")).toBe("");
+    expect(err.join("")).toContain("SANDBOX_NAME is not a secret");
   });
 });
 
