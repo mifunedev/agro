@@ -226,4 +226,8 @@ Run `pnpm test:scripts` and `pnpm run typecheck` on the host checkout or in the 
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. The sandbox image has no `shellcheck` and no `hadolint`, but the CI `boot-lint` job runs both. Evidence: the workers ran a downloaded shellcheck v0.10.0 and a `hadolint/hadolint` container to verify US-003, US-004, and US-005. Outcome: proposed issue "Add shellcheck and hadolint to the sandbox image".
+2. `.agro/skills/remote-sandbox/checks/agro-rows.sh` has SC2148 and `.agro/skills/remote-sandbox/scripts/restart-test.sh` has SC2034. The CI shellcheck set does not cover `.agro/skills/remote-sandbox/`. Evidence: the US-004 worker report. The findings exist on the base commit, and this PR did not cause them. Outcome: proposed issue "Add remote-sandbox scripts to the CI shellcheck set".
+3. After this PR, systemd supervises one oneshot unit. Outcome: issue #1393.
+4. The `heartbeat`, `cleanup-tasks`, and `prompt-miner` jobs no longer run. Outcome: dropped. The plan puts the re-creation of these jobs out of scope. The operator starts a harness loop for each job that the operator wants.
+5. Two workers retried an action that a hook blocked through another route. Evidence: the US-003 and US-004 worker reports. The advisor reviewed each diff line by line. Outcome: dropped as a process observation. The PR body records the observation for the operator.

@@ -212,8 +212,8 @@
         "This story depends on US-001, US-002, US-003, US-004, US-005, and US-006."
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: evidence/manual-review.md holds every listed command with output and exit status (tests 2021 passed/2 skipped, typecheck 0, shellcheck 0, link check 0). 2 executed: cron grep has only a negative croner assertion; install grep has retired-key lines, negative assertions, and agro-config.test.ts:182-190 (the stale-key load test that US-005 criterion 4 requires; accepted, reasoned). 3 not run: operator did not approve a sandbox rebuild; commands listed under What remains unverified. 4 reasoned: base cdd2c420 holds US-001..US-006.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -224,7 +224,8 @@
       ],
       "files": [
         ".agro/tasks/retire-agro-crons/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "0227dc65"
     }
   ]
 }
