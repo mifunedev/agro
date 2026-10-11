@@ -372,7 +372,7 @@ describe("inventory stage", () => {
     const manifest = () => JSON.parse(readFileSync(join(runDir, "manifest.json"), "utf8"));
     const records = () =>
       readFileSync(join(runDir, "inventory.jsonl"), "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line));
-    return { run, runDir, manifest, records, calls: fake.calls, out, err };
+    return { run, runDir, root, manifest, records, calls: fake.calls, out, err };
   }
 
   it("writes one metadata-only record per session within the window", async () => {
@@ -421,6 +421,8 @@ describe("inventory stage", () => {
     const manifest = t.manifest();
     expect(manifest.project).toEqual({ id: "proj-fixture", name: "Fixture Project" });
     expect(manifest.endpoint.baseUrl).toBe("https://langfuse.example.test");
+    expect(manifest.endpoint.configRoot).toBe(resolve(t.root));
+    noCredential(JSON.stringify(manifest.endpoint));
     expect(manifest.versions).toMatchObject({ cli: "1.2.4", api: "4.35.0", harnesses: ["claude-code", "codex"], models: ["model-alpha", "model-beta"] });
     const summary = manifest.completeness.inventory;
     expect(summary).toMatchObject({

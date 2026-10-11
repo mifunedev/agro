@@ -210,7 +210,8 @@ never holds a response body.
 `lib/inventory.mjs` is the first stage that uses the adapter.
 
 1. The stage runs `preflight()`. The stage writes `endpoint`, `project`,
-   `versions.cli`, and `versions.api` to `manifest.json`.
+   `versions.cli`, and `versions.api` to `manifest.json`. `endpoint` holds
+   `baseUrl`, `configRoot`, and `capabilities`, and holds no credential.
 2. The stage reads observation pages in the run window. After each page, the
    stage appends the page to `inventory-pages.jsonl` and saves the cursors with
    `ctx.saveProgress`.

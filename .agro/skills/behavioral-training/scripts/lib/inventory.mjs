@@ -346,7 +346,7 @@ export async function run(ctx) {
   }
   const { project, capabilities, baseUrl } = preflight;
   ctx.updateManifest((manifest) => {
-    manifest.endpoint = { baseUrl, capabilities };
+    manifest.endpoint = { baseUrl, configRoot: preflight.configRoot, capabilities };
     manifest.project = project;
     manifest.versions = { ...manifest.versions, cli: preflight.cliVersion, api: preflight.apiVersion };
   });
