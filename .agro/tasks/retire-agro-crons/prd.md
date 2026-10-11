@@ -15,7 +15,7 @@ Status: DRAFT
 - [ ] `docs/lifecycle-commands.md`, `docs/installation.md`, and `docs/agro-directory-layout.md` do not name `crons/` or `agro-cron.service`.
 - [ ] `docs/deployment-prebuilt-image.md`, `docs/integrations/langfuse.md`, `docs/integrations/sshd.md`, `docs/integrations/herdr.md`, `docs/harnesses/overview.md`, `docs/harnesses/claude-code.md`, `docs/harnesses/codex.md`, and `docs/harnesses/antigravity-cli.md` do not name `agro-cron.service`, `cron-runtime.ts`, the cron runtime, or detached cron fires.
 - [ ] `.github/ISSUE_TEMPLATE/bug.md` does not list cron as a runtime or workflow hint.
-- [ ] `CHANGELOG.md` has one `**BREAKING:**` bullet under `### Removed` in `## [Unreleased]`. The bullet names `agro-cron.service`, `cron-runtime.ts`, `crons/`, `cron.agentBin`, and the `croner` dependency, and it names native harness loops as the replacement.
+- [ ] `CHANGELOG.md` has one `**BREAKING:**` bullet under `### Removed` in `## [Unreleased]`. The bullet names `agro-cron.service`, `cron-runtime.ts`, `crons/`, `cron.agentBin`, the `croner` dependency, the boot-time root `pnpm install`, and `build.skipPnpmInstall`. The bullet names native harness loops as the replacement.
 - [ ] `pnpm test:scripts -- .agro/cli/src/__tests__/docs-reference.test.ts` exits 0.
 
 ### US-002: Remove cron guidance from skills and context files
@@ -44,7 +44,6 @@ Status: DRAFT
 - [ ] `.devcontainer/agro-bootstrap.service` has no `Before=agro-cron.service` line.
 - [ ] `.devcontainer/entrypoint.sh` does not define `CRONS_PATH` and does not create `crons/`.
 - [ ] `package.json` has no `croner` dependency, and `pnpm install --frozen-lockfile` exits 0 with the regenerated `pnpm-lock.yaml`.
-- [ ] `.github/workflows/sandbox-boot-guard.yml` probes a root dependency other than `croner` in the pre-seeded `node_modules` step, and the step comment does not cite `agro-cron.service`.
 - [ ] `.agro/scripts/agro-path` has no `crons)` case. `.agro/scripts/README.md` does not list `cron-runtime.ts`.
 - [ ] `.agro/scripts/__tests__/entrypoint.test.ts` has no test that reads `agro-cron.service`. The bootstrap-oneshot test stays.
 - [ ] `.claude/protected-paths.txt` does not list `.agro/scripts/cron-runtime.ts`.
@@ -64,7 +63,24 @@ Status: DRAFT
 - [ ] The tests `sandbox-healthcheck.test.ts`, `sandbox-boot-smoke.test.ts`, `sandbox-upgrade-smoke.test.ts`, and `boot-banner.test.ts` have no cron fixture or cron assertion, and they pass.
 - [ ] The CI shellcheck command exits 0.
 
-### US-005: Remove cron configuration and the crons scaffold
+### US-005: Remove the boot-time root pnpm install
+
+**Description:** As an operator, I want the sandbox to boot without a root `pnpm install` so that a network or registry failure cannot stop the boot.
+
+**Acceptance Criteria:**
+
+- [ ] `.devcontainer/entrypoint.sh` has no `pnpm_manifest_fingerprint` function, no `PNPM_INSTALL_*` variables, and no `pnpm install` command.
+- [ ] `.agro/scripts/__tests__/entrypoint-pnpm-install.test.ts` does not exist. `.agro/scripts/__tests__/entrypoint.test.ts` asserts that `entrypoint.sh` does not contain `pnpm install`.
+- [ ] `.agro/cli/src/lib/agro-config.ts` has no `BuildSettings`, no `build` default, no `build` validation, and no `build.skipPnpmInstall` entry in `AGRO_CONFIG_FIELDS`. `agro.json` has no `build` key.
+- [ ] An `agro.json` that still contains `build.skipPnpmInstall` loads without an error.
+- [ ] `.agro/cli/src/lib/config-render.ts` keeps `SKIP_PNPM_INSTALL` in `RETIRED_KEYS`.
+- [ ] `docs/configuration.md` has no `build.skipPnpmInstall` row.
+- [ ] `.github/workflows/sandbox-boot-guard.yml` has no step that pre-seeds `node_modules`, no step that checks `node_modules/croner`, and no step that sets `build.skipPnpmInstall`.
+- [ ] `.agro/scripts/sandbox-upgrade-smoke.sh` does not delete the `pnpm:devPreinstall` script and does not name `build.skipPnpmInstall` or `croner`.
+- [ ] `pnpm run build:harness` exits 0 in a checkout without root `node_modules`.
+- [ ] `pnpm test:scripts` exits 0.
+
+### US-006: Remove cron configuration and the crons scaffold
 
 **Description:** As an operator, I want the `cron` config key and the `crons/` folder removed so that `agro vendor` and `agro.json` carry no dead cron state.
 
@@ -81,7 +97,7 @@ Status: DRAFT
 - [ ] `manifest.test.ts`, `vendor.test.ts`, and `docs-reference.test.ts` use neutral fixture paths instead of `crons/`. `agro-config.test.ts` has no `cron.agentBin` case.
 - [ ] `pnpm run typecheck` exits 0.
 
-### US-006: Record manual review evidence
+### US-007: Record manual review evidence
 
 **Description:** As the advisor, I want a command transcript that proves the cron removal so that the PR `## Manual review` section has evidence.
 
@@ -93,15 +109,18 @@ Status: DRAFT
   - `pnpm run typecheck`
   - the CI shellcheck command
   - `bash .agro/scripts/link-providers.sh --check`
-- [ ] The `git grep` output holds no line outside the retired-key lists in `config-render.ts`, `config-render.test.ts`, and `docs/configuration.md`.
-- [ ] If the operator approves a sandbox rebuild, the transcript holds `agro ps <name>` and `bash .agro/scripts/sandbox-healthcheck.sh` from the rebuilt sandbox, and `systemctl list-units 'agro-*'` shows only `agro-bootstrap.service`.
-- [ ] This story depends on US-001, US-002, US-003, US-004, and US-005.
+  - `git grep -n -E 'skipPnpmInstall|PNPM_INSTALL' -- ':!CHANGELOG.md' ':!.agro/tasks/**'`
+- [ ] Each `git grep` output holds no line outside the retired-key lists in `config-render.ts`, `config-render.test.ts`, and `docs/configuration.md`, and outside the negative assertions in tests.
+- [ ] If the operator approves a sandbox rebuild, the transcript holds `agro ps <name>` and `bash .agro/scripts/sandbox-healthcheck.sh` from the rebuilt sandbox, and `systemctl list-units 'agro-*'` shows only `agro-bootstrap.service`. `journalctl -u agro-bootstrap.service` shows no `pnpm install` line.
+- [ ] This story depends on US-001, US-002, US-003, US-004, US-005, and US-006.
 
 ## Summary
 
 AGRO runs a Markdown cron scheduler. `.agro/scripts/cron-runtime.ts` reads `crons/*.md`, holds a lock at `crons/.pid`, and starts each fire in a detached tmux session. systemd starts the scheduler as `agro-cron.service`. The `croner` package serves only this script. No `agro cron` verb exists.
 
 The operator retires this feature. Recurring agent work moves to the native loop of each coding harness, for example Claude Code `/loop`. Three explorers mapped the scope across runtime, control-plane primitives, docs, tests, and CI. No other code imports the cron runtime. The healthcheck and smoke scripts mix cron checks with PID 1 and bootstrap checks, so the change removes only the cron lines.
+
+The `croner` package is the only entry in the root `dependencies`. The other root packages are test tooling, and `pnpm-workspace.yaml` lists no packages. The entrypoint runs a root `pnpm install` on each boot and stops the boot when the install fails. The CI boot guard pre-seeds `node_modules` and sets `build.skipPnpmInstall` to keep that install out of the healthcheck window. The comments in `sandbox-boot-guard.yml` and `sandbox-upgrade-smoke.sh` give `agro-cron.service` as the reason for this machinery. After `croner` goes, no boot step needs root `node_modules`, so US-005 deletes the boot-time install. `build:harness` and `typecheck` install `.agro/cli` dependencies with `npm` and do not use root `node_modules`.
 
 The stories remove references first and delete files second. The test `docs-reference.test.ts` fails on each missing doc path. The docs story US-001 therefore lands before the deletion stories US-003 and US-005.
 
@@ -114,6 +133,9 @@ The stories remove references first and delete files second. The test `docs-refe
 | `.devcontainer/agro-bootstrap.service` | `Before=agro-cron.service` | Orders bootstrap before cron. Edit. |
 | `.devcontainer/entrypoint.sh` | `CRONS_PATH` | Creates `crons/`. Edit. |
 | `package.json`, `pnpm-lock.yaml` | `croner` | Scheduler dependency. Remove. |
+| `.devcontainer/entrypoint.sh` | `pnpm_manifest_fingerprint`, `PNPM_INSTALL_MARKER` | Boot-time root install. Delete. |
+| `.agro/cli/src/lib/agro-config.ts` | `BuildSettings`, `build.skipPnpmInstall` | Skips the boot-time install. Remove. |
+| `.github/workflows/sandbox-boot-guard.yml` | pre-seed, visibility, and skip steps | CI workaround for the boot-time install. Delete. |
 | `.agro/scripts/sandbox-healthcheck.sh` | `require_unit agro-cron.service` | Health gate. Edit. |
 | `.agro/scripts/sandbox-boot-smoke.sh` | `verify_systemd_supervision` | Boot smoke in CI. Edit. |
 | `.agro/scripts/sandbox-upgrade-smoke.sh` | readiness wait, final assertion | Upgrade smoke in CI. Edit. |
@@ -133,6 +155,8 @@ The stories remove references first and delete files second. The test `docs-refe
 | `agro.json` key `cron.agentBin` | Removed | The schema drops the key. A stale key loads without an error. |
 | `agro vendor` output | Changed | The command copies `.agro/` only, not `crons/`. |
 | `agro path crons` | Removed | `.agro/scripts/agro-path` drops the case. |
+| `agro.json` key `build.skipPnpmInstall` | Removed | The schema drops the key. A stale key loads without an error. |
+| Sandbox boot | Changed | The boot does not install root `node_modules`. An agent runs `pnpm install` before `pnpm test:scripts` in a fresh checkout. |
 | Boot banner | Changed | Recovery lines drop `agro-cron.service`. |
 
 ## Storage
@@ -146,6 +170,7 @@ The runtime state files `crons/.pid` and `crons/.cron.log` disappear with the `c
 - `RETIRED_KEYS` keeps `CRONS_DIR` and `CRON_AGENT_BIN`, so an old env file loses the keys on the next render.
 - `AgroConfig` accepts unknown keys, so an old `agro.json` with a `cron` key still loads.
 - The `rootInclude` mechanism in the manifest stays with an empty list. Open question 1 covers its deletion.
+- Root `node_modules` holds test tooling only. The agent installs the tree on demand. The boot does not install the tree.
 - `locked-append.sh` stays. The script is a general helper.
 - The `cron` session-type classifier in `prompt-miner` stays, because historical transcripts carry that type.
 
@@ -158,7 +183,9 @@ The runtime state files `crons/.pid` and `crons/.cron.log` disappear with the `c
 | `.agro/scripts/__tests__/sandbox-boot-smoke.test.ts` | `cronUnitInactive` fixture, cron cases | Boot smoke passes with no cron unit. |
 | `.agro/scripts/__tests__/sandbox-upgrade-smoke.test.ts` | `agro-cron.service` assertion | Upgrade smoke has no cron wait. |
 | `.agro/scripts/__tests__/boot-banner.test.ts` | recovery line | Banner text matches `banner.sh`. |
-| `.agro/cli/src/lib/__tests__/agro-config.test.ts` | `cron.agentBin` case; stale `cron` key loads | Schema removal and tolerance of a stale key. |
+| `.agro/cli/src/lib/__tests__/agro-config.test.ts` | `cron.agentBin` and `build.skipPnpmInstall` cases; stale `cron` and `build` keys load | Schema removal and tolerance of stale keys. |
+| `.agro/scripts/__tests__/entrypoint-pnpm-install.test.ts` | all | Deleted with the boot-time install. |
+| `.agro/scripts/__tests__/entrypoint.test.ts` | no `pnpm install` in `entrypoint.sh` | The boot does not install root dependencies. |
 | `.agro/cli/src/__tests__/manifest.test.ts`, `vendor.test.ts` | `rootInclude` fixtures | Fixtures use neutral paths. |
 | `.agro/cli/src/__tests__/docs-reference.test.ts` | `REPO_PATH` regex, doc links | Docs name no deleted path or key. |
 | `.agro/scripts/__tests__/standard-skills-link.test.ts` | provider links | Skill edits keep links valid. |
@@ -180,14 +207,17 @@ Run `pnpm test:scripts` and `pnpm run typecheck` on the host checkout or in the 
 - Deletion of the generic `rootInclude` mechanism in `agro vendor`.
 - Edits to historical task evidence under `.agro/tasks/**` and to past `CHANGELOG.md` entries.
 - Gateway heartbeat files for the Slack gateway. That heartbeat is not cron.
+- Replacement of systemd as PID 1. After this task, systemd supervises only `agro-bootstrap.service`, but the `docker-engine` and `desktop` tools in `.agro/cli/src/lib/tools/catalog.ts` use systemd. A separate `/architect` decision owns this question.
 
 ## Open Questions
 
 1. The manifest `rootInclude` list becomes empty. Keep the `rootInclude` mechanism (default), or delete the mechanism and its tests in this PR?
 2. `cleanup-tasks` archived completed tasks automatically. Accept manual or loop-driven archiving (default), or add a documented `/loop` recipe to `.agro/tasks/AGENTS.md`?
+3. A fresh checkout has no root `node_modules` after boot. Accept that the agent runs `pnpm install` before tests (default), or install root dependencies in the image?
 
 ## Acceptance Criteria
 - [ ] `pnpm test:scripts` exits 0.
+- [ ] `.devcontainer/entrypoint.sh` contains no `pnpm install` command.
 - [ ] `pnpm run typecheck` exits 0.
 - [ ] The CI shellcheck command and hadolint exit 0.
 - [ ] `bash .agro/scripts/link-providers.sh --check` exits 0.
