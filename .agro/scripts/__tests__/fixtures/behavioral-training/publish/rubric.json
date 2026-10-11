@@ -1,0 +1,21 @@
+{
+  "version": "rubric-v1",
+  "positiveClass": "fail",
+  "dimensions": [
+    {
+      "id": "task-completion",
+      "name": "Task completion",
+      "question": "Did the agent complete the task?",
+      "deterministicChecks": [],
+      "judge": null
+    }
+  ],
+  "gate": {
+    "minLabeled": 30,
+    "minFail": 10,
+    "minPass": 10,
+    "minTruePositiveRate": 0.8,
+    "minTrueNegativeRate": 0.8,
+    "minCoverage": 0.8
+  }
+}

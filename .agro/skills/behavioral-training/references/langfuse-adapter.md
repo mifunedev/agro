@@ -20,8 +20,9 @@ npx -y @langfuse/cli@1.2.4 --env <configRoot>/.env --host <baseUrl> --api-versio
 - The adapter reads `body` from the envelope. The adapter reads `status` from
   the envelope when the CLI exits with code 5.
 - Tests inject a fake runner through `createClient(ctx, { runner, sleep })`.
-  The runner receives `(command, args, { env })` and returns
-  `{ exitCode, stdout, stderr }`.
+  The runner receives `(command, args, { env, input })` and returns
+  `{ exitCode, stdout, stderr }`. `input` is the request body of a write, or
+  is absent on a read.
 
 ## Configuration
 
@@ -85,8 +86,198 @@ The adapter calls only the read operations in this list:
 
 A call to each other operation fails with `unsupported-operation`, and the
 adapter starts no process. The adapter never calls a `legacy-*` resource. The
-adapter never calls `traces list` or `traces get`. The adapter never writes to
-Langfuse. US-008 adds the write operations of `publish --apply`.
+adapter never calls `traces list` or `traces get`. `client.call()` never
+writes to Langfuse. Only the write client writes.
+
+## Write operations
+
+The write client is the only path to a write. `client.writer({ apply: true })`
+returns the write client. `publish --apply` is the only caller.
+
+- `client.writer()` without `apply: true` fails with `unsupported-operation`.
+- `client.writer({ apply: true })` before `preflight()` fails with
+  `unsupported-operation`. The preflight confirms the project of the key.
+- `client.call()` refuses each write operation. A read stage therefore cannot
+  write through `call()`.
+
+The write client calls only the operations in `WRITE_OPERATIONS`:
+
+| Operation | Endpoint | Method |
+|---|---|---|
+| `datasets get` | `GET /api/public/v2/datasets/{datasetName}` | `getDataset(name)` |
+| `datasets create` | `POST /api/public/v2/datasets` | `createDataset(body)` |
+| `dataset-items get` | `GET /api/public/dataset-items/{id}` | `getItem(id)` |
+| `dataset-items create` | `POST /api/public/dataset-items` | `upsertItem(body)` |
+| `dataset-items delete` | `DELETE /api/public/dataset-items/{id}` | `deleteItem(id)` |
+| `scores create` | `POST /api/public/scores` | `upsertScore(body)` |
+| `scores delete` | `DELETE /api/public/scores/{scoreId}` | `deleteScore(id)` |
+
+The list holds no `traces` operation and no `observations` operation. The
+write client therefore cannot change trace content.
+
+### Write transport
+
+```bash
+npx -y @langfuse/cli@1.2.4 --env <configRoot>/.env --host <baseUrl> --api-version <version> api <resource> <action> [<path id>] [--body-file -] --json
+```
+
+- The adapter passes a path id, for example a dataset name or an item id, as
+  a positional argument. The CLI encodes the path id.
+- The adapter writes the JSON request body to the standard input of the CLI
+  and passes `--body-file -`. The body never appears in the argument list.
+
+### Ids and retries
+
+- `upsertItem` needs a caller-supplied `id` and `datasetName`. Langfuse
+  upserts a dataset item on its `id`.
+- `upsertScore` needs a caller-supplied `id` and `name`. Langfuse upserts a
+  score on its `id`.
+- `createDataset` needs a `name`.
+- If a required field is missing, the call fails with `unsupported-operation`,
+  and the adapter starts no process.
+
+Each write carries its id, so a repeated write changes no data. The adapter
+retries HTTP 429 and 5xx on a write with the read rules. The adapter does
+not retry HTTP 422 on a write. A write error uses the read causes and the read
+redaction. `error.status` holds the HTTP status, or `null`.
+
+### Absent records
+
+- `getDataset` and `getItem` return `null` on HTTP 404.
+- `deleteItem` and `deleteScore` return `true` after a delete. They return
+  `false` on HTTP 404.
+- Langfuse has no dataset delete endpoint. The write client cannot delete a
+  dataset.
+
+## Publish stage
+
+`lib/publish.mjs` is the only stage that writes to Langfuse.
+
+| Flag | Effect |
+|---|---|
+| `--apply` | Writes the planned datasets, items, and scores |
+| `--retract` | Plans the deletion of each item and score in the ledger |
+| `--dataset-prefix <prefix>` | Sets the dataset namespace. Default: the manifest prefix, else `agro/behavior` |
+| `--require-calibrated` | Refuses each automated label of a provisional dimension |
+
+### Dry run
+
+Without `--apply`, the stage makes zero Langfuse calls.
+
+1. The stage reads `dataset-items.jsonl`. A record with `itemId`, `split`, and
+   `contentHash` is a frozen item. Each other record is a candidate.
+2. The stage curates the candidates and the frozen items with
+   `curateDatasetItems`. A frozen item keeps its split and its group.
+3. The stage writes the curated items to `dataset-items.jsonl` atomically.
+4. The stage prints one `plan:` line for each planned write. A line holds ids,
+   the dataset name, the content hash, and counts. A line holds no item
+   content.
+5. The stage reports `partial` with the cause `dry-run` and exits 4.
+
+The dispatcher skips a stage with a `complete` checkpoint on `--resume`. The
+`partial` status of a dry run therefore lets a later `publish --apply --resume`
+run on the same run directory.
+
+### Datasets and items
+
+The stage ensures three datasets:
+
+- `<prefix>/regression-<version>`
+- `<prefix>/demonstrations-<version>`
+- `<prefix>/holdout-<version>`
+
+`<version>` is `manifest.datasets.version`, else `v1`. The stage writes the
+prefix and the version to `manifest.datasets`.
+
+Each item write holds these fields:
+
+| Field | Content |
+|---|---|
+| `id` | The `itemId` from `dataset-items.jsonl` |
+| `datasetName` | The dataset of the item split |
+| `input` | `input` |
+| `expectedOutput` | `{ expectedBehavior, acceptanceOracle, correction }` |
+| `metadata` | The session linkage, the provenance, `split`, `groupId`, `contentHash`, `rubricVersion`, and `datasetVersion` |
+| `sourceTraceId` | The trace id, when the item has exactly one trace |
+| `sourceObservationId` | The observation id, when the item also has exactly one observation |
+| `status` | `ACTIVE` |
+
+### Scores
+
+The stage publishes each label as a session score with `dataType`
+`CATEGORICAL`. The value is `pass`, `fail`, `unknown`, or `not_applicable`.
+
+| Label | Source | Score name | `source` | Metadata |
+|---|---|---|---|---|
+| Human | The first non-rejected human label of each session and dimension in `annotations.jsonl` | `behavior.<dimension>.human` | `ANNOTATION` | `labelKind: human`, `reviewStatus` |
+| Automated | The first label of each session, dimension, and annotator type in `calibration.json` `judgeLabels` | `behavior.<dimension>.<agent or judge>` | `API` | `labelKind: automated`, `calibrationStatus` |
+
+- The score id is `bt-score-<32 hex>`. The hex is the SHA-256 of the project
+  id, the session id, the dimension, the annotator type, the rubric version,
+  and the dataset version.
+- The stage skips each automated label with a `reason`, for example
+  `budget-exhausted`.
+- A score holds no `comment`, no `traceId`, and no `observationId`.
+- `--require-calibrated` refuses a provisional automated label with the cause
+  `provisional-label`. Without the flag, the stage publishes the label with
+  `calibrationStatus: provisional`.
+
+### Refusals
+
+Each refusal happens before the first write.
+
+| Cause | Condition |
+|---|---|
+| `unreviewed-demonstration` | A `demonstrations` item lacks `reviewStatus: "approved"` |
+| `provisional-label` | The operator gives `--require-calibrated`, and an automated label is provisional |
+| `missing-calibration` | `annotations.jsonl` holds an automated label, and `calibration.json` does not exist |
+| `missing-project` | `manifest.json` holds no project id |
+| `missing-rubric-version` | `manifest.json` and `rubric.json` hold no rubric version |
+| `ledger-mismatch` | The ledger records another project, prefix, dataset version, or rubric version |
+| `conflict` | A ledger entry holds another content hash than the planned write |
+| `project-mismatch` | The key sees another project than the run records |
+
+### Ledger
+
+`publication-ledger.json` holds `projectId`, `datasetPrefix`,
+`datasetVersion`, `rubricVersion`, and `entries`. The stage writes the ledger
+atomically after each completed write.
+
+Each entry holds `key`, `kind`, `dataset`, `remoteId`, `contentHash`,
+`outcome`, `writtenAt`, and `retractedAt`. `kind` is `dataset`, `item`, or
+`score`. `outcome` is `created` or `adopted`.
+
+`--apply` runs the planned writes in this order: datasets, items, scores.
+
+1. The stage skips each write with a live ledger entry.
+2. For a dataset, the stage calls `getDataset`. If the dataset exists, the
+   stage records the entry as `adopted`. Otherwise, the stage creates the
+   dataset.
+3. For an item, the stage calls `getItem`.
+   - If the item is absent, the stage upserts the item.
+   - If `metadata.contentHash` and the dataset name are equal, the stage
+     records the entry as `adopted`, and writes nothing.
+   - Otherwise, the stage stops with the cause `conflict` and exits 1. The
+     message names the item id.
+4. For a score, the stage upserts the score.
+
+An interrupted `--apply` keeps each completed entry. A later
+`publish --apply --resume` skips each entry and writes zero duplicates.
+
+### Retraction
+
+`--retract` is for a synthetic test publication.
+
+- Without `--apply`, the stage prints one `plan:` line for each live item and
+  score entry, and exits 4 with the cause `dry-run`.
+- With `--apply`, the stage deletes each live score entry, then each live item
+  entry. The stage deletes no other record.
+- The stage sets `retractedAt` on each deleted entry, and writes the ledger
+  after each delete.
+- The stage prints `dataset remains <name>` for each dataset. Langfuse has no
+  dataset delete endpoint.
+- Without `publication-ledger.json`, the stage reports `empty` with the cause
+  `no-ledger`.
 
 ## Preflight
 
@@ -178,7 +369,7 @@ Each failure is a `LangfuseError`. `error.cause` is one cause code.
 | `http-error` | Another HTTP status, or HTTP 422, 429, or 5xx after the last retry |
 | `bad-response` | The output is not JSON, has no envelope, or has an unexpected shape |
 | `ambiguous-project` | The key sees more than one project |
-| `unsupported-operation` | The call names an operation outside the read list, or a content read has no session id |
+| `unsupported-operation` | The call names an operation outside the read list or the write list. Or a content read has no session id. Or a write has no id |
 | `cli-unavailable` | `npx` cannot start the CLI |
 | `cli-failed` | The CLI exits with another code |
 | `bad-config` | `agro.json` is not valid JSON |

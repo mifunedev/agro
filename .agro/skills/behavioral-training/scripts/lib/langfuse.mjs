@@ -16,6 +16,15 @@ export const SCORE_PAGE_LIMIT = 100;
 export const SCORE_DATA_TYPES = Object.freeze(["NUMERIC", "BOOLEAN", "CATEGORICAL"]);
 
 export const READ_OPERATIONS = Object.freeze(["projects list", "observations list", "scores list"]);
+export const WRITE_OPERATIONS = Object.freeze([
+  "datasets get",
+  "datasets create",
+  "dataset-items get",
+  "dataset-items create",
+  "dataset-items delete",
+  "scores create",
+  "scores delete",
+]);
 const REQUIRED_OPERATIONS = Object.freeze(["projects list", "observations list"]);
 
 export const CAUSES = Object.freeze([
@@ -35,10 +44,11 @@ export const CAUSES = Object.freeze([
 const MAX_DETAIL = 300;
 
 export class LangfuseError extends Error {
-  constructor(cause, message) {
+  constructor(cause, message, status = null) {
     super(redact(message));
     this.name = "LangfuseError";
     this.cause = cause;
+    this.status = status;
   }
 }
 
@@ -95,9 +105,14 @@ export function resolveBaseUrl(configRoot, env = {}) {
   return DEFAULT_BASE_URL;
 }
 
-export function spawnRunner(command, args, { env } = {}) {
+export function spawnRunner(command, args, { env, input } = {}) {
   return new Promise((resolve) => {
-    const child = spawn(command, args, { env, stdio: ["ignore", "pipe", "pipe"], shell: false });
+    const piped = typeof input === "string";
+    const child = spawn(command, args, { env, stdio: [piped ? "pipe" : "ignore", "pipe", "pipe"], shell: false });
+    if (piped) {
+      child.stdin.on("error", () => {});
+      child.stdin.end(input);
+    }
     const stdout = [];
     const stderr = [];
     child.stdout.on("data", (chunk) => stdout.push(chunk));
@@ -188,8 +203,8 @@ export function createClient(ctx, { runner = spawnRunner, sleep = defaultSleep }
     ...(version ? ["--api-version", version] : []),
   ];
 
-  const exec = async (args) => {
-    const result = await runner("npx", args, { env });
+  const exec = async (args, input) => {
+    const result = await runner("npx", args, input === undefined ? { env } : { env, input });
     return { exitCode: result.exitCode, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
   };
 
@@ -202,10 +217,14 @@ export function createClient(ctx, { runner = spawnRunner, sleep = defaultSleep }
       throw new LangfuseError("unsupported-operation", "observations list: a content read needs one session id");
     }
     const args = [...globals(apiVersion), "api", resource, action, ...flagList(query), "--json"];
+    return execute(operation, args, { unprocessableRetries: MAX_UNPROCESSABLE_RETRIES });
+  }
+
+  async function execute(operation, args, { input, unprocessableRetries }) {
     let retries = 0;
     let unprocessable = 0;
     for (;;) {
-      const result = await exec(args);
+      const result = await exec(args, input);
       if (result.exitCode === 0) {
         const envelope = parseJson(result.stdout, operation);
         if (!envelope || typeof envelope !== "object" || !("body" in envelope)) {
@@ -217,7 +236,7 @@ export function createClient(ctx, { runner = spawnRunner, sleep = defaultSleep }
         const envelope = parseJson(result.stdout, operation);
         const status = Number(envelope?.status);
         const transient = retryable(status) && retries - unprocessable < MAX_RETRIES;
-        const repeatable = status === 422 && unprocessable < MAX_UNPROCESSABLE_RETRIES;
+        const repeatable = status === 422 && unprocessable < unprocessableRetries;
         if (transient || repeatable) {
           await sleep(BACKOFF_MS * 2 ** retries);
           retries += 1;
@@ -229,6 +248,7 @@ export function createClient(ctx, { runner = spawnRunner, sleep = defaultSleep }
         throw new LangfuseError(
           httpCause(status),
           `${operation}: HTTP ${Number.isFinite(status) ? status : "unknown"}${after}${reason ? `: ${reason}` : ""}`,
+          Number.isFinite(status) ? status : null,
         );
       }
       const cause = exitCause(result.exitCode);
@@ -326,5 +346,58 @@ export function createClient(ctx, { runner = spawnRunner, sleep = defaultSleep }
     return page(body, "scores list");
   }
 
-  return { baseUrl, configRoot, envFile, call, preflight, listObservations, listSessionObservations, listScores };
+  function writer({ apply = false } = {}) {
+    if (apply !== true) throw new LangfuseError("unsupported-operation", "the write client needs { apply: true }");
+    if (!apiVersion) throw new LangfuseError("unsupported-operation", "the write client needs a preflight first");
+
+    const send = async (resource, action, { path: params = [], body } = {}) => {
+      const operation = `${resource} ${action}`;
+      if (!WRITE_OPERATIONS.includes(operation)) {
+        throw new LangfuseError("unsupported-operation", `${operation}: the write client calls only ${WRITE_OPERATIONS.join(", ")}`);
+      }
+      for (const param of params) {
+        if (typeof param !== "string" || param === "") throw new LangfuseError("unsupported-operation", `${operation}: a path id is required`);
+      }
+      const bodyFlags = body === undefined ? [] : ["--body-file", "-"];
+      const args = [...globals(apiVersion), "api", resource, action, ...params, ...bodyFlags, "--json"];
+      const input = body === undefined ? undefined : JSON.stringify(body);
+      return execute(operation, args, { input, unprocessableRetries: 0 });
+    };
+    const absent = async (promise, fallback) => {
+      try {
+        return await promise;
+      } catch (err) {
+        if (err instanceof LangfuseError && err.status === 404) return fallback;
+        throw err;
+      }
+    };
+    const keyed = (operation, body, key) => {
+      if (!body || typeof body[key] !== "string" || body[key] === "") {
+        throw new LangfuseError("unsupported-operation", `${operation}: a write needs a caller-supplied ${key}`);
+      }
+    };
+
+    return {
+      getDataset: (name) => absent(send("datasets", "get", { path: [name] }), null),
+      async createDataset(body) {
+        keyed("datasets create", body, "name");
+        return send("datasets", "create", { body });
+      },
+      getItem: (id) => absent(send("dataset-items", "get", { path: [id] }), null),
+      async upsertItem(body) {
+        keyed("dataset-items create", body, "id");
+        keyed("dataset-items create", body, "datasetName");
+        return send("dataset-items", "create", { body });
+      },
+      deleteItem: (id) => absent(send("dataset-items", "delete", { path: [id] }).then(() => true), false),
+      async upsertScore(body) {
+        keyed("scores create", body, "id");
+        keyed("scores create", body, "name");
+        return send("scores", "create", { body });
+      },
+      deleteScore: (id) => absent(send("scores", "delete", { path: [id] }).then(() => true), false),
+    };
+  }
+
+  return { baseUrl, configRoot, envFile, call, preflight, listObservations, listSessionObservations, listScores, writer };
 }
