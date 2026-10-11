@@ -30,6 +30,7 @@ const PRE_CONTROL_PLANE_LITERALS = [
   "CC_SAFETY_NET_WORKTREE",
   "GH_TOKEN",
   "TYPESAFE_API_KEY",
+  "XAI_API_KEY",
 ];
 
 function read(file: string): string {

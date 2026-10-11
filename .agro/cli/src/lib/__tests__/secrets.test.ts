@@ -57,7 +57,12 @@ describe("allow-list", () => {
       .map((match) => match[1]!)
       .filter(isSecretKey);
     expect([...new Set(passed)].sort()).toEqual([...COMPOSE_SECRET_KEYS].sort());
-    expect([...COMPOSE_SECRET_KEYS]).toEqual(["GH_TOKEN", "SANDBOX_PASSWORD", "TYPESAFE_API_KEY"]);
+    expect([...COMPOSE_SECRET_KEYS]).toEqual([
+      "GH_TOKEN",
+      "SANDBOX_PASSWORD",
+      "TYPESAFE_API_KEY",
+      "XAI_API_KEY",
+    ]);
   });
 });
 
