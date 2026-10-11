@@ -18,8 +18,8 @@
         "`npm run typecheck` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1-3 executed: compose line added; secrets.test.ts parity and config-secret.test.ts --sandbox XAI_API_KEY cases failed first, then pass. sandbox-privilege-boundary.test.ts allow-list updated (owned path widened by the advisor). AC4 executed: ste-check.sh docs/configuration.md exit 0; the doc lists XAI_API_KEY and names only META_API_KEY as unread. AC5 reasoned from the diff: one Fixed entry links #1412. AC6-7 executed on the integrated branch: vitest on three files exit 0 (92 passed); npm run typecheck exit 0.",
       "dependsOn": [],
       "files": [
         ".devcontainer/docker-compose.yml",
@@ -29,7 +29,8 @@
         "docs/configuration.md",
         "CHANGELOG.md",
         ".agro/scripts/__tests__/sandbox-privilege-boundary.test.ts"
-      ]
+      ],
+      "commit": "111871fe"
     },
     {
       "id": "US-002",
