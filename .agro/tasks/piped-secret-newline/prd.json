@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1409-piped-secret-newline",
+  "description": "Piped secret without a trailing newline: make `agro secret set` write a piped value that has no trailing newline.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Write a piped value that has no trailing newline",
+      "description": "As the operator, I want `agro secret set <KEY>` to write a piped value without a trailing newline so that a script never hides an unwritten secret.",
+      "acceptanceCriteria": [
+        "A test in `.agro/cli/src/lib/__tests__/` pipes `value` with no trailing newline into `askSecretPiped` through `askSecret` and asserts that the result is `value`.",
+        "A test asserts that empty piped input resolves to an empty string, so that `runSecretSet` exits 1 with `no value entered`.",
+        "The new tests fail before the change in `.agro/cli/src/lib/prompt.ts`.",
+        "`npx vitest run .agro/cli/src/lib/__tests__/` exits 0.",
+        "`npm run typecheck` exits 0.",
+        "`CHANGELOG.md` has one `### Fixed` entry under `## [Unreleased]` that links #1409."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [".agro/cli/src/lib/prompt.ts", ".agro/cli/src/lib/__tests__/prompt-piped.test.ts", "CHANGELOG.md"]
+    },
+    {
+      "id": "US-002",
+      "title": "Record manual review evidence",
+      "description": "As the advisor, I want a command transcript so that the PR shows the changed behavior.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/piped-secret-newline/evidence/manual-review.md` holds the output and exit code of `printf '%s' dummy-not-a-secret | node .agro/cli/dist/agro.js secret set GH_TOKEN --sandbox review-box` in a temporary `AGRO_HOME`, and of `agro secret list --sandbox review-box` after the write.",
+        "The file holds the output and exit code of `printf '' | node .agro/cli/dist/agro.js secret set GH_TOKEN --sandbox review-box`, and that exit code is 1.",
+        "The transcript holds no secret value.",
+        "The story deletes each temporary directory that it creates."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-001"],
+      "files": [".agro/tasks/piped-secret-newline/evidence/manual-review.md"]
+    }
+  ]
+}
