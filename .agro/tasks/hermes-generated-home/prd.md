@@ -142,4 +142,7 @@ None
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. Claim: the plan placed the seed only in the configure step, which runs after the Hermes installer. Evidence: the upstream `install.sh` `stage_config()` copies `cli-config.yaml.example` to `config.yaml` when the file is absent, and `--skip-setup` does not skip the copy. Outcome: fixed in this PR. `seedHermes()` in `harness.ts` runs the `seed` subcommand before the installer on the host path and the sandbox path. Remote row H06 shows the AGRO seed after a first install.
+2. Claim: the US-002 command `git check-ignore -q <three paths>` exits 128, because git accepts `-q` with one path only. Evidence: the worker ran the command on git 2.47.3. Outcome: dropped. The plan is closed, and the check passes per path.
+3. Claim: the US-001 criterion "Both new cases fail before the change" cannot hold for the existing-config case. The old code also left the file unchanged. Evidence: the worker red run shows 2 of 3 new cases red. Outcome: dropped. The case guards a regression and passes.
+4. Claim: the remote-sandbox driver counts every VM with the `agro-matrix` tag on the account, so a clean run reports a non-zero `remaining` count while another session runs. Evidence: run `exedev-hermes-home-20261011-112806.log` reports `remaining agro-matrix resources on exedev: 1`; the one VM is `agro-mx-1011-112912` of a concurrent `docker-egress` run. Outcome: issue proposed (a per-run tag or a per-name check in `scripts/run.sh`); not created before operator approval.
