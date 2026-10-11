@@ -334,11 +334,16 @@ a value. Each timestamp is a UTC ISO-8601 string that ends in `Z`.
 | `sampling` | `{ policy, sampleSize, seed }`; `policy` is `stratified-50-25-25` |
 | `budgets` | `{ maxSessions, maxBytes, maxJudgeCalls }` |
 | `sources` | A list of `{ id, kind, checksum }` for each source export or fixture |
-| `versions` | `{ node, cli, skill, api, harnesses, models }`; the dispatcher sets `node`, preflight sets `cli` and `api`, and `inventory` sets `harnesses` and `models` |
+| `versions` | `{ node, cli, skill, api, harnesses, models }`; the dispatcher sets `node` and `skill`, preflight sets `cli` and `api`, and `inventory` sets `harnesses` and `models` |
 | `completeness` | Counters that each stage adds; see `inventory.jsonl` |
 | `datasets` | `{ prefix, version }` |
 | `rubric` | `{ version }` |
 | `stages` | One checkpoint for each stage that ran |
+
+The dispatcher sets `versions.skill` when the dispatcher creates the run. The
+value is `skills.langfuse.commit` from `.agro/skills.lock` in the repository
+root. If the lock does not exist, does not parse, or has no `langfuse` entry,
+the value is `null`.
 
 The manifest never holds a credential. The run store refuses a manifest that
 holds `sk-lf-` or `pk-lf-`.
@@ -510,7 +515,7 @@ One record for each judgment.
 | `observedBehavior` | What the session shows |
 | `proposedCause` | A causal hypothesis, kept apart from `observedBehavior` |
 | `annotator` | `{ type, id }`; `type` is `human`, `agent`, or `judge` |
-| `rubricVersion`, `judgeVersion` | Versions; `judgeVersion` is `null` for a human |
+| `rubricVersion`, `judgeVersion` | Versions; `rubricVersion` is a non-empty string; `judgeVersion` is `null` for a human |
 | `reviewStatus` | `pending`, `approved`, or `rejected` |
 | `createdAt` | Timestamp |
 | `judgeExample` | Optional. `true`, `false`, or `null`; `true` marks a human label that a judge prompt uses as an example |
@@ -524,7 +529,7 @@ needs one evidence item with a kind other than `assistant-claim`.
 | Field | Content |
 |---|---|
 | `version` | The taxonomy version |
-| `rubricVersion` | The rubric version |
+| `rubricVersion` | The rubric version, a non-empty string |
 | `approval` | `{ approvedBy, approvedAt }`, or `null` before operator approval |
 | `categories` | A list of `{ id, name, dimension, definition, counterexamples, sourceIds }` |
 
@@ -532,7 +537,7 @@ needs one evidence item with a kind other than `assistant-claim`.
 
 | Field | Content |
 |---|---|
-| `version` | The rubric version |
+| `version` | The rubric version, a non-empty string, for example `rubric-v1` |
 | `positiveClass` | `fail` |
 | `dimensions` | A list of `{ id, name, question, deterministicChecks, judge }` |
 | `gate` | The calibration gate |
@@ -583,6 +588,9 @@ Each dimension entry holds these fields:
 - If `annotations.jsonl` does not exist or holds no record, the stage reports
   `empty` with the cause `no-annotations`.
 - The starting `rubric.json` is the JSON block in `rubric.md`.
+- Each rubric version is a non-empty string: `version` in `rubric.json`, and
+  `rubricVersion` in `taxonomy.json` and in each annotation. `publish` needs
+  the same string.
 
 ### `dataset-items.jsonl`
 

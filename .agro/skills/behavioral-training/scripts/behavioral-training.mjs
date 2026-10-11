@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { constants as osConstants } from "node:os";
 import path from "node:path";
 import process from "node:process";
@@ -22,6 +22,7 @@ import {
 } from "./lib/run-store.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const DEFAULT_REPO_ROOT = path.resolve(SCRIPT_DIR, "../../../..");
 const COMMAND = "node .agro/skills/behavioral-training/scripts/behavioral-training.mjs";
 
 export const EXIT = Object.freeze({
@@ -221,7 +222,16 @@ function resolveWindow(options, now) {
   return { since, until };
 }
 
-function newManifest(options, now) {
+function lockedSkillCommit(repoRoot) {
+  try {
+    const commit = JSON.parse(readFileSync(path.join(repoRoot, ".agro", "skills.lock"), "utf8"))?.skills?.langfuse?.commit;
+    return typeof commit === "string" && commit !== "" ? commit : null;
+  } catch {
+    return null;
+  }
+}
+
+function newManifest(options, now, repoRoot) {
   return createManifest({
     runId: randomUUID(),
     now,
@@ -229,7 +239,7 @@ function newManifest(options, now) {
     filters: { environment: options.environment, harness: options.harness },
     sampling: { policy: "stratified-50-25-25", sampleSize: options.sampleSize, seed: options.seed },
     budgets: { maxSessions: options.maxSessions, maxBytes: options.maxBytes, maxJudgeCalls: options.maxJudgeCalls },
-    versions: { node: process.version },
+    versions: { node: process.version, skill: lockedSkillCommit(repoRoot) },
   });
 }
 
@@ -286,7 +296,7 @@ async function runStage({ stage, module, options, runDir, deps, io }) {
     );
   }
   if (manifest) reconcile(manifest, options);
-  else manifest = newManifest(options, now());
+  else manifest = newManifest(options, now(), deps.repoRoot ?? DEFAULT_REPO_ROOT);
   const save = () => {
     manifest.updatedAt = now().toISOString();
     writeManifest(runDir, manifest);
@@ -320,7 +330,7 @@ async function runStage({ stage, module, options, runDir, deps, io }) {
   const ctx = {
     stage: stage.name,
     runDir,
-    repoRoot: deps.repoRoot ?? path.resolve(SCRIPT_DIR, "../../../.."),
+    repoRoot: deps.repoRoot ?? DEFAULT_REPO_ROOT,
     env: deps.env ?? process.env,
     options: effectiveOptions(manifest, options, runDir),
     get manifest() {

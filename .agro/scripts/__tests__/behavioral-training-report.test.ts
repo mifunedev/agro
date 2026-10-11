@@ -324,6 +324,23 @@ describe("dispatcher", () => {
     expect(h.out.join("\n")).toContain(runDir);
   });
 
+  it.each([
+    ["the pinned commit", JSON.stringify({ skills: { langfuse: { commit: "b86532b77f16f1e27c7cffa32bb632aa3cd9a352" } } }), "b86532b77f16f1e27c7cffa32bb632aa3cd9a352"],
+    ["null without a langfuse entry", JSON.stringify({ skills: {} }), null],
+    ["null for a malformed lock", "{not json", null],
+    ["null without a lock", undefined, null],
+  ])("records the official Langfuse skill commit as versions.skill: %s", async (_label, lock, expected) => {
+    let runDir = "";
+    const repoRoot = temp("bt-repo-");
+    if (lock !== undefined) {
+      mkdirSync(join(repoRoot, ".agro"), { recursive: true });
+      writeFileSync(join(repoRoot, ".agro", "skills.lock"), lock);
+    }
+    const h = harness({ inventory: { run: async (ctx) => { runDir = ctx.runDir; return { status: "complete" }; } } }, { repoRoot });
+    expect(await h.run(["inventory"])).toBe(EXIT.complete);
+    expect(manifestOf(runDir).versions).toMatchObject({ node: process.version, skill: expected });
+  });
+
   it("creates the default run directory under TMPDIR from the command line", () => {
     const script = workspace({
       inventory: 'export async function run(ctx) { ctx.store.writeJson("inventory-summary.json", {}); return { status: "complete" }; }',

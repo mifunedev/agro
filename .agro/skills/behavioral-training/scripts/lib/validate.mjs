@@ -114,7 +114,7 @@ function annotationProblems(record, { dimensions, categories, rubricVersion }) {
   const type = isObject(record.annotator) ? record.annotator.type : undefined;
   need(ANNOTATOR_TYPES.includes(type), "annotator.type", `must be one of ${ANNOTATOR_TYPES.join(", ")}`);
   if (isObject(record.annotator)) need(isOptionalText(record.annotator.id), "annotator.id", "must be a string or null");
-  if (!isVersion(record.rubricVersion)) problems.push(["rubricVersion", "must be a non-empty version"]);
+  if (!isText(record.rubricVersion)) problems.push(["rubricVersion", "must be a non-empty string"]);
   else need(rubricVersion === undefined || record.rubricVersion === rubricVersion, "rubricVersion", "must match the version in rubric.json");
   const judgeVersionSet = record.judgeVersion !== undefined && record.judgeVersion !== null;
   if (type === "human") need(!judgeVersionSet, "judgeVersion", "must be null for a human annotator");
@@ -169,7 +169,7 @@ function uniqueIds(list, prefix, problems) {
 export function validateRubric(rubric) {
   const problems = [];
   if (!isObject(rubric)) return [issue(RUBRIC_FILE, null, null, "file must hold a JSON object")];
-  if (!isVersion(rubric.version)) problems.push(["version", "must be a non-empty version"]);
+  if (!isText(rubric.version)) problems.push(["version", "must be a non-empty string"]);
   if (rubric.positiveClass !== "fail") problems.push(["positiveClass", "must be fail"]);
   if (!Array.isArray(rubric.dimensions) || rubric.dimensions.length === 0) {
     problems.push(["dimensions", "must list at least one dimension"]);
@@ -209,7 +209,7 @@ export function validateTaxonomy(taxonomy, rubric = null) {
   const problems = [];
   if (!isObject(taxonomy)) return [issue(TAXONOMY_FILE, null, null, "file must hold a JSON object")];
   if (!isVersion(taxonomy.version)) problems.push(["version", "must be a non-empty version"]);
-  if (!isVersion(taxonomy.rubricVersion)) problems.push(["rubricVersion", "must be a non-empty version"]);
+  if (!isText(taxonomy.rubricVersion)) problems.push(["rubricVersion", "must be a non-empty string"]);
   else if (rubric && taxonomy.rubricVersion !== rubric.version) problems.push(["rubricVersion", "must match the version in rubric.json"]);
   const approval = taxonomy.approval;
   if (approval !== null && approval !== undefined) {

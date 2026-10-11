@@ -272,6 +272,14 @@ describe("rubric and taxonomy schema", () => {
     ]);
   });
 
+  it.each([1, "", "   ", null])("requires a non-empty string rubric version, not %j", (version) => {
+    const rubric = { ...fixture("rubric.json"), version };
+    expect(fields(validateRubric(rubric))).toEqual(["version"]);
+    const taxonomy = { ...fixture("taxonomy.json"), rubricVersion: version };
+    expect(fields(validateTaxonomy(taxonomy, null))).toEqual(["rubricVersion"]);
+    expect(fields(check([annotation({ rubricVersion: version })], { rubric: null }))).toEqual(["rubricVersion"]);
+  });
+
   it("accepts a taxonomy before operator approval", () => {
     const taxonomy = fixture("taxonomy.json");
     taxonomy.approval = null;

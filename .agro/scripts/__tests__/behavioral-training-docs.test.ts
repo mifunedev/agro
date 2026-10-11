@@ -103,5 +103,6 @@ describe("behavioral-training documentation", () => {
     const entry = lock.skills.langfuse;
     expect(entry).toMatchObject({ source: "github:langfuse/skills", commit: langfuseCommit, installed_paths: [".agro/skills/langfuse"] });
     expect(entry.checksum).toBe(treeChecksum(".agro/skills/langfuse"));
+    expect(read(".agro/skills/langfuse/LICENSE")).toMatch(/^MIT License\n\nCopyright \(c\) 2026 Langfuse GmbH\n/);
   });
 });
