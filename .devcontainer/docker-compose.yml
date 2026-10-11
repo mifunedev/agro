@@ -26,15 +26,9 @@ services:
       - TYPESAFE_API_KEY=${TYPESAFE_API_KEY:-}
     stdin_open: true
     tty: true
-    cgroup: private
-    cap_add:
-      - SYS_ADMIN
-    security_opt:
-      - apparmor=unconfined
-    tmpfs:
-      - /run
-      - /run/lock
-      - /sys/fs
+    init: true
+    entrypoint: ["/usr/local/bin/sandbox-main.sh"]
+    stop_signal: SIGTERM
     healthcheck:
       test: ["CMD", "bash", "-c", "exec bash /home/sandbox/harness/.agro/scripts/sandbox-healthcheck.sh"]
       interval: 30s

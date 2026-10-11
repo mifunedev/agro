@@ -9,7 +9,6 @@ const composeFiles = readdirSync(devcontainer)
   .sort();
 const serviceFiles = ["docker-compose.yml", "docker-compose.image-only.yml"];
 
-const ALLOWED_CAPABILITIES = ["SYS_ADMIN"];
 const T3_PORT = "3773";
 const PRE_CONTROL_PLANE_LITERALS = [
   "SANDBOX_PASSWORD",
@@ -63,15 +62,9 @@ describe("sandbox privilege boundary", () => {
     expect(text, "privileged: true is prohibited as a systemd shortcut").not.toMatch(/^\s*privileged:\s*true/m);
     expect(text, "the sandbox exposes no host device").not.toMatch(/^\s*devices:/m);
     expect(text, "the sandbox never binds the host cgroup tree").not.toMatch(/\/sys\/fs\/cgroup/);
-    expect(text, "nothing may take PID 1 ahead of systemd").not.toMatch(/^\s*init:\s*true/m);
-    expect(text, "nothing may wrap systemd").not.toMatch(/^\s*entrypoint:/m);
-    expect(text, "systemd owns the container lifecycle").not.toMatch(/^\s*command:\s*sleep infinity/m);
-  });
-
-  it.each(composeFiles)("%s adds no capability outside the allowlist", (file) => {
-    const text = read(file);
-    expect(text, "declare capabilities as a block list").not.toMatch(/^\s*cap_add:\s*\[/m);
-    for (const cap of blockEntries(text, "cap_add")) expect(ALLOWED_CAPABILITIES).toContain(cap);
+    expect(text, "the sandbox adds no capability").not.toMatch(/^\s*cap_add:/m);
+    expect(text, "the sandbox keeps the default security profile").not.toMatch(/^\s*security_opt:/m);
+    expect(text, "the sandbox keeps the default cgroup namespace").not.toMatch(/^\s*cgroup:/m);
   });
 
   it.each(composeFiles)("%s publishes no T3 Code port", (file) => {
@@ -79,7 +72,16 @@ describe("sandbox privilege boundary", () => {
   });
 });
 
-describe("systemd sandbox init", () => {
+describe("compose init", () => {
+  it.each(serviceFiles)("%s runs sandbox-main.sh under Compose init", (file) => {
+    const text = read(file);
+    expect(text).toMatch(/^\s*init:\s*true\s*$/m);
+    expect(text).toMatch(/^\s*entrypoint:\s*\["\/usr\/local\/bin\/sandbox-main\.sh"\]\s*$/m);
+    expect(text).toMatch(/^\s*stop_signal:\s*SIGTERM\s*$/m);
+  });
+});
+
+describe("VM image mode contract", () => {
   const dockerfile = readFileSync(join(devcontainer, "Dockerfile"), "utf8");
 
   it("boots /sbin/init as PID 1 with the container marker and systemd stop signal", () => {
@@ -88,14 +90,6 @@ describe("systemd sandbox init", () => {
     expect(dockerfile).toMatch(/^ENTRYPOINT \[\]$/m);
     expect(dockerfile).toMatch(/^CMD \["\/sbin\/init"\]$/m);
     expect(dockerfile.match(/^ENTRYPOINT\b.*$/gm)).toEqual(["ENTRYPOINT []"]);
-  });
-
-  it.each(serviceFiles)("%s grants systemd the minimum cgroup access", (file) => {
-    const text = read(file);
-    expect(text).toMatch(/^\s*cgroup:\s*private\s*$/m);
-    expect(blockEntries(text, "cap_add")).toEqual(["SYS_ADMIN"]);
-    expect(blockEntries(text, "security_opt")).toContain("apparmor=unconfined");
-    expect(blockEntries(text, "tmpfs")).toEqual(expect.arrayContaining(["/run", "/run/lock", "/sys/fs"]));
   });
 });
 
