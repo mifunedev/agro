@@ -27,7 +27,8 @@
         ".agro/cli/src/lib/__tests__/secrets.test.ts",
         ".agro/cli/src/__tests__/config-secret.test.ts",
         "docs/configuration.md",
-        "CHANGELOG.md"
+        "CHANGELOG.md",
+        ".agro/scripts/__tests__/sandbox-privilege-boundary.test.ts"
       ]
     },
     {
@@ -43,8 +44,12 @@
       "priority": 2,
       "passes": false,
       "notes": "",
-      "dependsOn": ["US-001"],
-      "files": [".agro/tasks/xai-key-delivery/evidence/manual-review.md"]
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/tasks/xai-key-delivery/evidence/manual-review.md"
+      ]
     }
   ]
 }
