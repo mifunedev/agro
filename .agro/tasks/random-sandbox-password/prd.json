@@ -18,8 +18,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated on the task branch. Advisor re-ran: vitest secrets/lifecycle/sandbox exit 0 (207 tests); typecheck exit 0. C1-C5 executed by unit tests (32-char base64url from randomBytes(24); byte-identical when set; docker provision calls it, openshell path never reaches runSandbox; --print-argv writes nothing; two entries differ). Worker ran full suite exit 0 (2119 tests). Note: sandbox upgrade re-provisions through runSandbox, so an existing entry gains a password at upgrade; one upgrade test expectation updated. US-004 docs must state this.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/secrets.ts",
@@ -27,7 +27,8 @@
         ".agro/cli/src/lib/__tests__/secrets.test.ts",
         ".agro/cli/src/__tests__/lifecycle.test.ts",
         ".agro/cli/src/__tests__/sandbox.test.ts"
-      ]
+      ],
+      "commit": "3979d550"
     },
     {
       "id": "US-002",
