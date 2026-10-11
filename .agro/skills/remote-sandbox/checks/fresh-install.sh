@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 set -uo pipefail
 URL=${INSTALL_URL:-https://github.com/mifunedev/agro/releases/latest/download/install.sh}
 echo "== fresh install from $URL on $(. /etc/os-release; echo $PRETTY_NAME), node before: $(command -v node || echo none)"

@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 exedev_preflight() { timeout 30 ssh "${SSHO[@]}" exe.dev whoami --json >/dev/null; }
 exedev_create() { local img=(); [ -n "${IMAGE:-}" ] && img=(--image "$IMAGE"); timeout 300 ssh "${SSHO[@]}" exe.dev new --json --name "$1" --tag "$MATRIX_TAG" "${img[@]}"; }
 exedev_exec() { local n=$1; shift; timeout 120 ssh "${SSHO[@]}" "$n.exe.xyz" "$*"; }

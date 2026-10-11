@@ -24,7 +24,7 @@ echo "== $PROVIDER $NAME mode=$MODE image=$IMAGE date=$(date -u +%FT%TZ)"
 t0=$(now); px create "$NAME" >/dev/null; t1=$(now)
 wait_shell || { echo "RESULT R13-time-to-shell FAIL"; exit 1; }
 t2=$(now)
-for i in $(seq 1 60); do [ "$(px exec "$NAME" "$HC" 2>/dev/null)" = ok ] && break; sleep 5; done
+for _ in $(seq 1 60); do [ "$(px exec "$NAME" "$HC" 2>/dev/null)" = ok ] && break; sleep 5; done
 t3=$(now)
 echo "TIMING create_return_s=$(elapsed "$t0" "$t1") first_shell_s=$(elapsed "$t0" "$t2") healthy_s=$(elapsed "$t0" "$t3")"
 case "$MODE" in
@@ -33,7 +33,7 @@ case "$MODE" in
 esac
 r0=$(now); px restart "$NAME"; wait_shell
 state=""
-for i in $(seq 1 36); do
+for _ in $(seq 1 36); do
   state=$(px exec "$NAME" 'systemctl is-active agro-bootstrap' 2>/dev/null)
   case "$state" in active|failed*) break;; esac; sleep 5
 done

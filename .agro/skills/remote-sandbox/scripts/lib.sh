@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 SKILL_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 MATRIX_OUT=${MATRIX_OUT:-$PWD/matrix-evidence}
 MATRIX_TAG=${MATRIX_TAG:-agro-matrix}
@@ -8,6 +9,7 @@ mkdir -p "$MATRIX_OUT" "$STATE_DIR"
 
 now() { date +%s.%N | cut -c1-14; }
 elapsed() { awk "BEGIN{printf \"%.1f\", $2-$1}"; }
+# shellcheck disable=SC2034  # SSHO is read by adapters/exedev.sh, which load_adapters sources
 SSHO=(-o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o LogLevel=ERROR -o UserKnownHostsFile="$STATE_DIR/known_hosts")
 
 load_adapters() {
@@ -15,6 +17,7 @@ load_adapters() {
   [ -n "${REMOTE_SANDBOX_ADAPTERS:-}" ] && IFS=: read -ra extra <<<"$REMOTE_SANDBOX_ADAPTERS" && dirs+=("${extra[@]}")
   for dir in "${dirs[@]}"; do
     [ -n "$dir" ] && [ -d "$dir" ] || continue
+    # shellcheck source=/dev/null
     for file in "$dir"/*.sh; do [ -f "$file" ] && . "$file"; done
   done
 }
@@ -35,8 +38,8 @@ load_adapters
 px() { "${PROVIDER}_$1" "${@:2}"; }
 
 wait_shell() {
-  local i
-  for i in $(seq 1 60); do px exec "$NAME" true >/dev/null 2>&1 && return 0; sleep 3; done
+  local _
+  for _ in $(seq 1 60); do px exec "$NAME" true >/dev/null 2>&1 && return 0; sleep 3; done
   return 1
 }
 
