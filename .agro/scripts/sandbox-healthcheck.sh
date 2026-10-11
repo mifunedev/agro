@@ -69,10 +69,27 @@ has_value() {
   [ -n "$value" ] && [ "$value" != "''" ] && [ "$value" != '""' ]
 }
 
-if ! command_exists "$SYSTEMCTL_BIN"; then
-  record_failure "systemctl binary not found: $SYSTEMCTL_BIN"
+pid1_comm() {
+  local comm=""
+  { read -r comm < "${AGRO_PID1_COMM_FILE:-/proc/1/comm}"; } 2>/dev/null || true
+  printf '%s' "$comm"
+}
+
+require_ready_file() {
+  local ready_file="${AGRO_READY_FILE:-/run/agro/bootstrap.ready}"
+  if [ ! -f "$ready_file" ]; then
+    record_failure "bootstrap not ready: $ready_file"
+  fi
+}
+
+if [ "$(pid1_comm)" = "systemd" ]; then
+  if ! command_exists "$SYSTEMCTL_BIN"; then
+    record_failure "systemctl binary not found: $SYSTEMCTL_BIN"
+  else
+    require_unit agro-bootstrap.service
+  fi
 else
-  require_unit agro-bootstrap.service
+  require_ready_file
 fi
 
 if ! command_exists "$TMUX_BIN"; then

@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -9,7 +9,7 @@ const ROOT = join(import.meta.dirname, "../../..");
 const SCRIPT = join(ROOT, ".agro", "scripts", "sandbox-healthcheck.sh");
 const COMPOSE = join(ROOT, ".devcontainer", "docker-compose.yml");
 
-function fixture() {
+function fixture(pid1Comm = "systemd") {
   const dir = mkdtempSync(join(tmpdir(), "sandbox-healthcheck-"));
   const bin = join(dir, "bin");
   const harness = join(dir, "harness");
@@ -20,6 +20,7 @@ function fixture() {
   writeFileSync(
     systemctl,
     `#!/usr/bin/env bash
+printf '%s\\n' "$*" >> "${join(dir, "systemctl.calls")}"
 if [ "$1" = "is-active" ]; then
   unit="\${*: -1}"
   case ",\${HEALTHCHECK_ACTIVE_UNITS:-},"  in
@@ -48,7 +49,17 @@ exit 1
   );
   chmodSync(tmux, 0o755);
 
-  return { dir, bin, harness, tmux, systemctl };
+  const pid1CommFile = join(dir, "pid1-comm");
+  writeFileSync(pid1CommFile, `${pid1Comm}\n`);
+  const readyFile = join(dir, "run", "agro", "bootstrap.ready");
+  const systemctlCalls = join(dir, "systemctl.calls");
+
+  return { dir, bin, harness, tmux, systemctl, pid1CommFile, readyFile, systemctlCalls };
+}
+
+function writeReadyFile(readyFile: string) {
+  mkdirSync(join(readyFile, ".."), { recursive: true });
+  writeFileSync(readyFile, "");
 }
 
 const ALL_UNITS = "agro-bootstrap.service";
@@ -65,11 +76,12 @@ function runHealthcheck(env: Record<string, string>) {
 }
 
 describe("sandbox healthcheck", () => {
-  it("passes when the AGRO bootstrap unit is active", () => {
-    const { harness, tmux, systemctl } = fixture();
+  it("passes under systemd when the AGRO bootstrap unit is active", () => {
+    const { harness, tmux, systemctl, pid1CommFile } = fixture();
 
     const result = runHealthcheck({
       HARNESS: harness,
+      AGRO_PID1_COMM_FILE: pid1CommFile,
       TMUX_BIN: tmux,
       SYSTEMCTL_BIN: systemctl,
       HEALTHCHECK_ACTIVE_UNITS: ALL_UNITS,
@@ -79,11 +91,12 @@ describe("sandbox healthcheck", () => {
     expect(result.stdout).toContain("sandbox healthcheck ok");
   });
 
-  it("fails when the bootstrap oneshot is not active", () => {
-    const { harness, tmux, systemctl } = fixture();
+  it("fails under systemd when the bootstrap oneshot is not active", () => {
+    const { harness, tmux, systemctl, pid1CommFile } = fixture();
 
     const result = runHealthcheck({
       HARNESS: harness,
+      AGRO_PID1_COMM_FILE: pid1CommFile,
       TMUX_BIN: tmux,
       SYSTEMCTL_BIN: systemctl,
       HEALTHCHECK_ACTIVE_UNITS: "",
@@ -91,6 +104,60 @@ describe("sandbox healthcheck", () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("systemd unit not active: agro-bootstrap.service");
+  });
+
+  it("passes under docker-init when the readiness file exists", () => {
+    const { harness, tmux, systemctl, pid1CommFile, readyFile, systemctlCalls } =
+      fixture("docker-init");
+    writeReadyFile(readyFile);
+
+    const result = runHealthcheck({
+      HARNESS: harness,
+      AGRO_PID1_COMM_FILE: pid1CommFile,
+      AGRO_READY_FILE: readyFile,
+      TMUX_BIN: tmux,
+      SYSTEMCTL_BIN: systemctl,
+      HEALTHCHECK_ACTIVE_UNITS: "",
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("sandbox healthcheck ok");
+    expect(existsSync(systemctlCalls)).toBe(false);
+  });
+
+  it("fails under docker-init when the readiness file is missing", () => {
+    const { harness, tmux, systemctl, pid1CommFile, readyFile, systemctlCalls } =
+      fixture("docker-init");
+
+    const result = runHealthcheck({
+      HARNESS: harness,
+      AGRO_PID1_COMM_FILE: pid1CommFile,
+      AGRO_READY_FILE: readyFile,
+      TMUX_BIN: tmux,
+      SYSTEMCTL_BIN: systemctl,
+      HEALTHCHECK_ACTIVE_UNITS: ALL_UNITS,
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(`bootstrap not ready: ${readyFile}`);
+    expect(existsSync(systemctlCalls)).toBe(false);
+  });
+
+  it("treats an unreadable PID 1 comm file as not systemd", () => {
+    const { dir, harness, tmux, systemctl, readyFile, systemctlCalls } = fixture();
+
+    const result = runHealthcheck({
+      HARNESS: harness,
+      AGRO_PID1_COMM_FILE: join(dir, "missing-comm"),
+      AGRO_READY_FILE: readyFile,
+      TMUX_BIN: tmux,
+      SYSTEMCTL_BIN: systemctl,
+      HEALTHCHECK_ACTIVE_UNITS: ALL_UNITS,
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(`bootstrap not ready: ${readyFile}`);
+    expect(existsSync(systemctlCalls)).toBe(false);
   });
 
   it("no longer requires any cron tmux session", () => {
@@ -102,7 +169,7 @@ describe("sandbox healthcheck", () => {
   });
 
   it("checks optional Hermes dashboard only when enabled in agro.json and installed", () => {
-    const { bin, harness, tmux, systemctl } = fixture();
+    const { bin, harness, tmux, systemctl, pid1CommFile } = fixture();
     const hermes = join(bin, "hermes");
     writeFileSync(hermes, "#!/usr/bin/env bash\nexit 0\n");
     chmodSync(hermes, 0o755);
@@ -113,6 +180,7 @@ describe("sandbox healthcheck", () => {
 
     const result = runHealthcheck({
       HARNESS: harness,
+      AGRO_PID1_COMM_FILE: pid1CommFile,
       TMUX_BIN: tmux,
       HERMES_BIN: hermes,
       SYSTEMCTL_BIN: systemctl,
@@ -124,7 +192,7 @@ describe("sandbox healthcheck", () => {
   });
 
   it("checks Slack session when Slack credentials are configured", () => {
-    const { bin, harness, tmux, systemctl } = fixture();
+    const { bin, harness, tmux, systemctl, pid1CommFile } = fixture();
     const pi = join(bin, "pi");
     writeFileSync(pi, "#!/usr/bin/env bash\nexit 0\n");
     chmodSync(pi, 0o755);
@@ -140,6 +208,7 @@ describe("sandbox healthcheck", () => {
 
     const result = runHealthcheck({
       HARNESS: harness,
+      AGRO_PID1_COMM_FILE: pid1CommFile,
       TMUX_BIN: tmux,
       PI_BIN: pi,
       SYSTEMCTL_BIN: systemctl,
