@@ -1,0 +1,9 @@
+{
+  "version": "taxonomy-v1",
+  "rubricVersion": "rubric-v1",
+  "approval": { "approvedBy": "operator", "approvedAt": "2026-10-10T09:00:00Z" },
+  "categories": [
+    { "id": "ignored-tool-error", "name": "Ignored tool error", "dimension": "tool-use-recovery", "definition": "Synthetic definition A.", "counterexamples": ["Synthetic counterexample A."], "sourceIds": ["s01"] },
+    { "id": "unverified-success", "name": "Unverified success", "dimension": "task-completion", "definition": "Synthetic definition B.", "counterexamples": [], "sourceIds": ["s02"] }
+  ]
+}
