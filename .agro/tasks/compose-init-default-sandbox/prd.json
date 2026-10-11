@@ -173,14 +173,15 @@
         "`npx vitest run .agro/cli/src/lib/tracing` and `pnpm run typecheck` exit 0."
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1,3,4 executed: git grep -n -i systemd -- .agro/cli/src/lib/tracing docs/integrations/langfuse.md exit 1; docs wording matches .agro/install/.zshenv set -a load. 2 reasoned from diff: parse helper removed, tests assert rendered text directly, zshenv round trip kept. 5 executed: vitest tracing + docs-reference pass.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/tracing/",
         ".agro/cli/src/lib/tracing/__tests__/langfuse-fragment.test.ts",
         "docs/integrations/langfuse.md"
-      ]
+      ],
+      "commit": "283660fa"
     },
     {
       "id": "US-008",
