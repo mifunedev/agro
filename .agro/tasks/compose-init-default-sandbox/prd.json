@@ -239,8 +239,8 @@
         "This story depends on US-007, US-008, and US-009."
       ],
       "priority": 10,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1,2 executed: evidence section C covers US-007 (git grep systemd exit 1, tracing 41 passed), US-008 (CI shellcheck line exit 0, failure path SC2148 on a scratch copy, remote-sandbox tests 21 passed), US-009 (Dockerfile pins, verify-sandbox-image tests 38 passed, CI run 38161083662 hadolint 2.12.0 / shellcheck 0.10.0 lines). 3 reasoned.",
       "dependsOn": [
         "US-007",
         "US-008",
@@ -248,7 +248,8 @@
       ],
       "files": [
         ".agro/tasks/compose-init-default-sandbox/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "63db6379"
     }
   ]
 }
