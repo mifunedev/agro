@@ -115,8 +115,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh` reports no new finding on each changed document."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated. Advisor re-ran: ste-check clean on security-considerations.md, configuration.md, lifecycle-commands.md; each names `agro egress reload`; docs tests exit 0. Worker compared ste baselines (CHANGELOG keeps only its 2 pre-existing findings); changelog bullet 217 chars names ADR #1378 and links #1397. Docs cover the default hosts, access.egressAllow, the log/reload fix flow, the boundary statement, and the limits (SANDBOX_SSH, Compose 2.23+, NODE_USE_ENV_PROXY, git over SSH, UDP, host.docker.internal, cloudflared, tailscale).",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -127,7 +127,8 @@
         "docs/security-considerations.md",
         "docs/configuration.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "607ab8b4"
     },
     {
       "id": "US-006",
