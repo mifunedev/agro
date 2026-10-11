@@ -375,6 +375,25 @@ async function validateHermesHome(
   return result.exitCode;
 }
 
+async function seedHermes(
+  target: ExecutionTarget,
+  io: HarnessIO,
+  bin: string,
+  user: InstallUser,
+  root: string = sandboxTargetRoot(target),
+): Promise<number> {
+  const result = await target.exec({
+    argv: remoteControlDirScript(root, "scripts/hermes-workspace.sh", ["seed", root, `${root}/.hermes`]),
+    env: hermesEnv(root),
+    ...(user ? { user } : {}),
+    stdio: "inherit",
+  });
+  if (result.exitCode !== 0) {
+    io.stderr(`${bin} harness: could not write the Hermes defaults to ${root}/.hermes/config.yaml (exit ${result.exitCode}); nothing was installed.\n`);
+  }
+  return result.exitCode;
+}
+
 async function configureHermes(
   target: ExecutionTarget,
   io: HarnessIO,
@@ -606,6 +625,10 @@ async function installOnHost(
     return 0;
   }
 
+  if (hermes) {
+    const code = await seedHermes(target, io, bin, undefined, root);
+    if (code !== 0) return code;
+  }
   io.stdout(`${present && hasReceipt ? "updating" : "installing"} ${entry.title} on the host…\n`);
   const r = await target.exec({
     argv: resolveInstallArgv(entry, prefix),
@@ -848,6 +871,10 @@ export async function runHarnessInstall(
     return 1;
   }
 
+  if (hermes) {
+    const code = await seedHermes(target, io, opts.bin, "sandbox");
+    if (code !== 0) return code;
+  }
   if (already && await sandboxMarkerExists(target, entry)) {
     io.stdout(`updating ${entry.title} in the sandbox…\n`);
   } else {

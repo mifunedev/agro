@@ -25,6 +25,14 @@ function run(root: string, mode = "--init", env = {}) {
 
 const slot = (root: string) => join(root, ".hermes/skills/agro");
 
+describe("Hermes runtime home tracking", () => {
+  it("tracks no file under .hermes", () => {
+    const result = spawnSync("git", ["ls-files", ".hermes"], { cwd: resolve("."), encoding: "utf8" });
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toBe("");
+  });
+});
+
 describe("Hermes-only additive linking", () => {
   it("requires integration without requiring Claude scaffolding", () => {
     const root = fixture();

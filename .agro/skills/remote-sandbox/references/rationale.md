@@ -5,10 +5,11 @@
 1. [The question the checks answer](#the-question-the-checks-answer)
 2. [Why each fresh-install row](#why-each-fresh-install-row)
 3. [Why each matrix row](#why-each-matrix-row)
-4. [Why each probe and scenario](#why-each-probe-and-scenario)
-5. [Why the driver works this way](#why-the-driver-works-this-way)
-6. [Baseline results](#baseline-results)
-7. [Known failure modes of the driver](#known-failure-modes-of-the-driver)
+4. [Why each Hermes generated-home row](#why-each-hermes-generated-home-row)
+5. [Why each probe and scenario](#why-each-probe-and-scenario)
+6. [Why the driver works this way](#why-the-driver-works-this-way)
+7. [Baseline results](#baseline-results)
+8. [Known failure modes of the driver](#known-failure-modes-of-the-driver)
 
 ## The question the checks answer
 
@@ -52,6 +53,22 @@ The fresh install is the first thing that a new operator does. Each row runs `ag
 - **host mode:** the VM is a plain host. The check installs AGRO and runs the sandbox container.
 - **image mode:** the VM booted the AGRO image. `/opt/agro-seed` exists, PID 1 is systemd, and the `agro-bootstrap` unit exists. The check skips the host rows and checks the VM itself.
 
+## Why each Hermes generated-home row
+
+Git tracks no file under `.hermes/`. `agro harness install hermes` writes the AGRO defaults into `.hermes/config.yaml` on the first install (mifunedev/agro#1400). The rows prove this behavior on a new VM with the CLI and the scripts of one branch. A unit test with a stub `hermes` binary cannot prove this behavior, because the real Hermes binary also writes the file.
+
+| Row | AGRO expectation | A failure means |
+|---|---|---|
+| `H01-install-agro` | The curl installer installs `agro` and Node 20 or later. | The host prerequisites are missing. The later rows cannot run. |
+| `H02-clone-ref` | `AGRO_REF` names a branch that the VM can clone. | The run tests no branch. A run without `AGRO_REF` fails on purpose. |
+| `H03-cli-source` | The CLI builds from the clone. | The log does not prove which CLI ran. The check skips the install rows. |
+| `H04-untracked-home` | `git ls-files .hermes` prints nothing. | A tracked file under `.hermes/` remains. |
+| `H05-first-install` | The host install exits 0 in a workspace with no `.hermes/config.yaml`. | The install fails without a tracked seed file. |
+| `H06-seed-config` | Each seed key has the AGRO value and YAML type, and `terminal.cwd` is the workspace path. | The seed is missing, has a wrong type, or Hermes changed it. |
+| `H07-operator-value-kept` | A second install keeps an operator value for `model.default`. | The install writes over operator configuration. |
+| `H08-clean-status` | `git status --short .hermes` prints nothing after both installs. | Generated state is visible to git. |
+| `H09-skills-link` | `.hermes/skills/agro` links to `../../.agro/skills`. | Hermes cannot find the AGRO skills. |
+
 ## Why each probe and scenario
 
 | Script | Why |
@@ -59,6 +76,7 @@ The fresh install is the first thing that a new operator does. Each row runs `ag
 | `checks/fresh-install.sh` | The main scenario. `fresh-install.sh` runs the curl installer on a new VM with no AGRO state. |
 | `checks/cg-probe.sh` | The cheapest test that decides whether a provider can host the AGRO sandbox. The probe installs Docker, tries to enable each controller, and starts a plain `jrei/systemd-ubuntu:24.04` container. A failure with a plain image proves that the cause is the provider, not AGRO. Run the probe first on a new provider. |
 | `checks/agro-rows.sh` | The full set of in-VM rows, one `RESULT` line each. Each row runs when an earlier row fails, so one run gives the whole column. |
+| `checks/hermes-home.sh` | The Hermes generated home on one branch. The check builds the CLI from the clone, because the released `agro.js` does not hold the change under test. |
 | `checks/openshell-journey.sh` | The operator journey of the experimental OpenShell runtime, from the OpenShell install to `agro destroy`. The rows prove the default-deny policy with real egress: the policy denies `example.com`, and `api.anthropic.com` returns 401 for an invalid placeholder key. |
 | `checks/docker-egress.sh` | The boundary of `access.egress` `allowlist` on the Docker runtime, from a branch build to `agro destroy`. The sandbox has no default route, and the proxy allows, denies, logs, and reloads. Root in the sandbox tries three bypasses: a request without the proxy, a request to a direct IP, and a request after `ip route add default`. Each bypass must fail. |
 | `scripts/restart-test.sh <p> sync` | Restarts the VM after `sync`. This run separates a hard reset by the provider from a defect in AGRO. |

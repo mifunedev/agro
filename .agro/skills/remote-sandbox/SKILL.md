@@ -6,12 +6,14 @@ description: |
   VM, polls the check log, and destroys the VM. The main scenario is the
   fresh install (F1 to F4). The second scenario is the AGRO hosting matrix
   (R01 to R15, R02b), the cgroup probe, and the VM restart test. A provider
-  adapter of five functions and three optional hooks adds a provider.
+  adapter of five functions and three optional hooks adds a provider. The
+  Hermes generated-home check (H01 to H09) tests a branch on a new VM.
   TRIGGER when: asked to validate an AGRO release or candidate build on a
   fresh VM, run the fresh-install check, test the curl installer on a new VM,
   run the AGRO hosting matrix or a matrix row, run the cgroup probe or the VM
-  restart test, run the OpenShell journey check, run the Docker egress check,
-  or add a provider adapter.
+  restart test, run the OpenShell journey check, run the Hermes
+  generated-home check, run the Docker egress check, or add a provider
+  adapter.
 license: MIT
 compatibility: Needs bash, ssh, curl, jq, awk, and python3 on the driver host, plus an account on each provider under test (an exe.dev SSH key or the vercel CLI). tmux is optional on the driver host.
 metadata:
@@ -114,7 +116,31 @@ INSTALL_URL=<release>/install.sh AGRO_JS_URL=<release>/agro.js setsid nohup bash
 cat run.out
 ```
 
-## Fourth scenario: the Docker egress allowlist
+## Fourth scenario: the Hermes generated home
+
+`checks/hermes-home.sh` tests that `agro harness install hermes --host` generates `.hermes/config.yaml` in a workspace that tracks no `.hermes/` file. The check uses host mode on a plain VM. The rows run in this order:
+
+| Row | PASS when |
+|---|---|
+| `H01-install-agro` | The curl installer at `INSTALL_URL` exits 0 and `agro --version` runs. |
+| `H02-clone-ref` | `git clone --branch "$AGRO_REF"` of `https://github.com/mifunedev/agro` into `$HOME/.agro/workspaces/harness` succeeds. The row fails when `AGRO_REF` is unset. |
+| `H03-cli-source` | The CLI build from the clone succeeds. The detail holds the CLI path, the CLI version, the clone commit, and the Node version. |
+| `H04-untracked-home` | `git ls-files .hermes` in the workspace prints nothing. |
+| `H05-first-install` | `env -u HERMES_HOME agro harness install hermes --host` exits 0. |
+| `H06-seed-config` | `.hermes/config.yaml` holds each AGRO seed key with the correct YAML type, and `terminal.cwd` is the workspace path. |
+| `H07-operator-value-kept` | After `hermes config set model.default agro-rcheck-sentinel-model`, a second install exits 0 and keeps the sentinel value. |
+| `H08-clean-status` | `git status --short .hermes` prints nothing after both installs. |
+| `H09-skills-link` | `.hermes/skills/agro` is the link `../../.agro/skills`. |
+
+The CLI under test comes from the clone, not from the released `agro.js`. Row `H03` runs `npm ci --ignore-scripts` and `npm run build` in `.agro/cli` of the clone. Each `agro harness install hermes` call then runs `node .agro/cli/dist/agro.js`. The installer supplies Node 20 or later: with `--yes`, the installer installs nvm and Node 24 when the VM has no usable Node. Row `H06` parses the file with the `yaml` package at the version in the clone `package.json`. The parse reads integers as `bigint`, so the row tells `85` from `85.0`. The log holds the file content after each install.
+
+Set `AGRO_REF` to the branch under test. Start the run detached on the driver host:
+
+```bash
+tmux new-session -d -s rs-hermes "AGRO_REF=<branch> bash $SKILL/scripts/run.sh exedev checks/hermes-home.sh"
+```
+
+## Fifth scenario: the Docker egress allowlist
 
 `checks/docker-egress.sh` tests `access.egress` `allowlist` on a new VM. The check installs AGRO with the curl installer at `INSTALL_URL`. Then the check clones `AGRO_REF` (default `development`), builds the CLI from the clone, and runs `agro config set access.egress allowlist` in the clone. `agro sandbox install docker --checkout <clone> --yes` reads that setting and builds the sandbox image from the clone.
 
@@ -140,7 +166,7 @@ cat run.out
 | `INSTALL_URL` | `https://github.com/mifunedev/agro/releases/latest/download/install.sh` | The curl installer under test. |
 | `AGRO_JS_URL` | release | The `agro.js` bundle that the installer installs. |
 | `SANDBOX_IMAGE` | CLI default | The image for `agro sandbox install docker --image=<ref>`. |
-| `AGRO_REF` | default branch | The ref that row `R02` clones into the host workspace. |
+| `AGRO_REF` | default branch | The ref that row `R02` clones into the host workspace. `checks/hermes-home.sh` needs `AGRO_REF` and builds the CLI from that ref. |
 | `IMAGE` | provider default | The OCI image that the VM boots. The `exedev` adapter reads `IMAGE`. |
 | `KEEP` | `0` | `1` keeps the VM after the run. The log then ends with `== keep <name>`. |
 | `MATRIX_OUT` | `$PWD/matrix-evidence` | The log directory. Per-run state goes to `$MATRIX_OUT/.state`. |

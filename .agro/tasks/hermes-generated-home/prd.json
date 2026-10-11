@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1400-hermes-generated-home",
+  "description": "Generate the Hermes home at install and stop tracking .hermes/: agro harness install hermes writes a typed YAML seed of the AGRO defaults into an absent <target-root>/.hermes/config.yaml, sets terminal.cwd, and git ignores the whole .hermes/ directory.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Seed the Hermes configuration defaults at install",
+      "description": "As an operator, I want `agro harness install hermes` to write the AGRO Hermes defaults into `<target-root>/.hermes/config.yaml` so that a fresh checkout needs no tracked Hermes file.",
+      "acceptanceCriteria": [
+        "When `<hermes_home>/config.yaml` does not exist before the call, `hermes_workspace_configure()` in `.agro/scripts/hermes-workspace.sh` writes the AGRO defaults to that path as one YAML seed. Then the function sets `terminal.cwd` through `hermes config set`.",
+        "The seed holds these keys and values: `model.default: gpt-6.1-sol-900k`, `model.provider: openai-codex`, `model.base_url: https://chatgpt.com/backend-api/codex`, `compression.codex_gpt55_autoraise: false`, `compression.auto_compact_percent: 85`, and `onboarding.seen.profile_build_offered: true`.",
+        "The seed writes `auto_compact_percent` as a YAML integer and writes `codex_gpt55_autoraise` and `profile_build_offered` as YAML booleans.",
+        "The seed holds no `_config_version` key and no `terminal.cwd` key.",
+        "`.agro/scripts/hermes-workspace.sh` holds the seed in one list. No other tracked file holds a second copy of the values.",
+        "When `<hermes_home>/config.yaml` exists before the call, the function sets only `terminal.cwd`. The function writes no seed.",
+        "A new case in `.agro/cli/src/__tests__/hermes-integration.test.ts` runs the configure step against an empty home with a stub `hermes` binary. The case parses `config.yaml` with the `yaml` package and asserts each seed key, the number type of `auto_compact_percent`, the boolean type of both boolean keys, and the absence of `_config_version`.",
+        "The same case asserts that the stub `hermes` binary receives `config set terminal.cwd <target-root>` after the seed write.",
+        "A second new case writes a `config.yaml` with operator values before the configure step. The case asserts that the file bytes are unchanged after the step and that the stub `hermes` binary receives only `config set terminal.cwd <target-root>`.",
+        "Both new cases fail before the change and pass after the change.",
+        "When the seed write fails, the function returns a non-zero exit status, leaves no partial `config.yaml`, and prints a message that names `<hermes_home>/config.yaml`. The function does not run `hermes config set` after a failed seed write."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Commits: ed8c77c9 (seed in configure), cd4b8970 (seed subcommand + seedHermes() before the installer on host and sandbox paths; advisor-directed repair because the upstream installer stage_config copies cli-config.yaml.example when config.yaml is absent).\nAC1 executed: bash hermes-workspace.sh seed on empty home -> exit 0, config.yaml written; configure-path order covered by vitest case 1 (seeded marker precedes config set terminal.cwd).\nAC2 executed: node+yaml parse of seeded file shows all six keys with expected values.\nAC3 executed: typeof auto_compact_percent=number, codex_gpt55_autoraise=boolean, profile_build_offered=boolean.\nAC4 executed: parsed seed has no _config_version and no terminal key.\nAC5 executed: git grep gpt-6.1-sol-900k (excluding CHANGELOG/.agro/tasks) -> only hermes-workspace.sh seed array and one test assertion; tracked .hermes/config.yaml removed by US-002.\nAC6 executed: seed on home with 'x: 1' -> exit 0, bytes unchanged; vitest case 2 asserts only config set terminal.cwd.\nAC7-AC9 executed: pnpm exec vitest run hermes-integration, harness, gateway, hermes-links -> 189 passed, 2 skipped, exit 0.\nAC10 reasoned: cases 1 and 3 were red before the change (worker evidence: 2 failed). Case 2 (existing config untouched) cannot be red because pre-change code already left config.yaml untouched; criterion wording defect, recorded as a lesson.\nAC11 executed: vitest case 3 (read-only home) -> non-zero, stderr names <home>/config.yaml, no partial/temp file, stub hermes not invoked; plus seedHermes failure case: installer not run.\nExtra: worker ran pnpm typecheck exit 0, pnpm build exit 0, full .agro/cli vitest 1252/1252.",
+      "dependsOn": [],
+      "files": [
+        ".agro/scripts/hermes-workspace.sh",
+        ".agro/cli/src/__tests__/hermes-integration.test.ts"
+      ],
+      "commit": "cd4b8970"
+    },
+    {
+      "id": "US-002",
+      "title": "Remove `.hermes/` from git and ignore the whole directory",
+      "description": "As a maintainer, I want git to track no file under `.hermes/` so that runtime state and generated configuration stay out of the repository.",
+      "acceptanceCriteria": [
+        "`git rm --cached` removes `.hermes/README.md` and `.hermes/config.yaml` from the index. `git ls-files .hermes` prints nothing.",
+        "`.gitignore` replaces the `/.hermes/*` block and its four `!` exemptions with the one line `/.hermes/`.",
+        "`git check-ignore -q .hermes/config.yaml .hermes/README.md .hermes/skills/agro` exits 0.",
+        "A new test in `.agro/scripts/__tests__/hermes-links.test.ts` runs `git ls-files .hermes` at the repository root and asserts empty output.",
+        "The `.hermes/README.md` content has a home in `docs/harnesses/hermes.md`. The page states that `HERMES_HOME` is `<target-root>/.hermes`, that the directory holds gitignored runtime state, and that the program lives at `~/.local/lib/hermes-agent`.",
+        "`docs/harnesses/hermes.md` states that `agro harness install hermes` generates `config.yaml` with the AGRO defaults on first install.",
+        "`docs/harnesses/hermes.md` tells an operator with local edits in `.hermes/config.yaml` to copy the file to a backup path before the operator pulls this change.",
+        "`CHANGELOG.md` holds one `### Removed` entry under `## [Unreleased]` for the removal of the tracked `.hermes/` files."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "AC1 executed: git ls-files .hermes | wc -l -> 0 on integrated task branch (exit 0).\nAC2 executed: git diff shows /.hermes/* and four ! exemptions replaced by /.hermes/.\nAC3 executed: git check-ignore -q per path for .hermes/config.yaml, .hermes/README.md, .hermes/skills/agro -> exit 0 each. The three-path -q form exits 128 (git allows -q with one path only); criterion wording defect, intent met.\nAC4 executed: pnpm exec vitest run hermes-links.test.ts standard-skills-link.test.ts -> 57 passed, 2 skipped, exit 0; worker showed the new case red before git rm --cached.\nAC5 reasoned: docs/harnesses/hermes.md states HERMES_HOME=<target-root>/.hermes, gitignored runtime state, program at ~/.local/lib/hermes-agent.\nAC6 reasoned: docs Install section states first install generates config.yaml with the AGRO defaults.\nAC7 reasoned: docs subsection 'Back up an edited configuration before you pull' gives the backup steps.\nAC8 executed: CHANGELOG.md has one ### Removed entry under [Unreleased] linking #1401.\nExtra: link-providers.sh --check exit 0; ste-check on docs page 0 findings.",
+      "dependsOn": [],
+      "files": [
+        ".gitignore",
+        ".hermes/README.md",
+        ".hermes/config.yaml",
+        ".agro/scripts/__tests__/hermes-links.test.ts",
+        "docs/harnesses/hermes.md",
+        "CHANGELOG.md"
+      ],
+      "commit": "0daf8193"
+    },
+    {
+      "id": "US-003",
+      "title": "Record manual review evidence",
+      "description": "As the advisor, I want a command transcript of a real Hermes install so that the PR `## Manual review` section proves the generated home.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/hermes-generated-home/evidence/manual-review.md` holds a transcript of `agro harness install hermes` in a sandbox with no `.hermes/config.yaml`.",
+        "The transcript shows `cat .hermes/config.yaml` with each seed key, `terminal.cwd`, and the `_config_version` value that Hermes writes.",
+        "The transcript shows a second `agro harness install hermes` after a manual `hermes config set model.default <other-model>`. The second run keeps `<other-model>`.",
+        "The transcript shows `git status --short .hermes` with empty output after both runs.",
+        "The transcript shows `ls -la .hermes/skills` with the link `agro -> ../../.agro/skills`.",
+        "The story uses a sandbox only with operator approval and deletes each resource that the story creates."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Check: cd575617 (worker commit 10e469d8, .agro/skills/remote-sandbox/checks/hermes-home.sh). Run: exedev VM agro-mx-1011-112806, AGRO_REF=task/1400-hermes-generated-home@cd575617, CLI built from the clone (H03).\nAC1 executed: evidence/manual-review.md + exedev-hermes-home-20261011-112806.log hold the transcript; H04 confirms no tracked .hermes and the fresh workspace had no config.yaml before H05 (H05 exit 0). Reasoned: the VM host workspace (agro harness install hermes --host) stands in for 'a sandbox'.\nAC2 executed: H06 prints config.yaml with each seed key, terminal.cwd, and _config_version: 50 written by Hermes; ycheck parse PASS.\nAC3 executed: H07 hermes config set model.default agro-rcheck-sentinel-model, second install exit 0, value kept, PASS.\nAC4 executed: H08 git status --short .hermes empty after both installs, PASS.\nAC5 executed: H09 ls -la .hermes/skills shows agro -> ../../.agro/skills, PASS.\nAC6 executed: run approved by operator per supervisor brief item 6; driver log '1 VM deleted successfully' for agro-mx-1011-112806; ssh exe.dev ls --json shows it absent. 'remaining ... : 1' counts agro-mx-1011-112912 from a concurrent docker-egress run of another session, not touched.",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/hermes-generated-home/evidence/manual-review.md"
+      ],
+      "commit": "be02248b"
+    }
+  ]
+}

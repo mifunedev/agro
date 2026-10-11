@@ -61,12 +61,8 @@ projects/*
 .prime/agent/sessions/
 .prime/agent/telemetry.json
 
-# Hermes project-local runtime state (keep README tracked)
-/.hermes/*
-!/.hermes/README.md
-!/.hermes/hooks/
-!/.hermes/config.yaml
-!/.hermes/config.yml
+# Hermes project-local runtime state
+/.hermes/
 
 /.openclaw/
 
