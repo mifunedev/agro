@@ -77,8 +77,9 @@
         "The story deletes each temporary directory that it creates."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "commit": "71b8923f",
+      "notes": "AC1-2 executed by the worker and copied from the observed run: hook JSON deny for get, empty output for list; built CLI refused PI_SLACK_BOT_TOKEN with --sandbox, accepted GH_TOKEN, list showed GH_TOKEN set. AC3 executed by the advisor: the dummy string appears only in the commands, no value is printed. AC4 executed by the worker: test -e printed removed.",
       "dependsOn": ["US-001", "US-002"],
       "files": [".agro/tasks/secret-delivery-hardening/evidence/manual-review.md"]
     }
