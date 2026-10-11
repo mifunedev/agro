@@ -204,6 +204,31 @@ describe("--sandbox <name>", () => {
     expect(existsSync(join(entry, ".gitignore"))).toBe(false);
   });
 
+  it("`agro secret set --sandbox` refuses a key that compose does not pass and writes nothing", async () => {
+    const entry = registryEntry("box");
+    const { io, err } = makeIo();
+    let asked = false;
+    io.askSecret = async () => {
+      asked = true;
+      return "xoxb-registry";
+    };
+
+    expect(await runSecretSet("PI_SLACK_BOT_TOKEN", { bin: "agro", sandbox: "box" }, io)).toBe(1);
+    expect(asked).toBe(false);
+    expect(existsSync(join(entry, ".env"))).toBe(false);
+    expect(err.join("")).toContain("PI_SLACK_BOT_TOKEN");
+    expect(err.join("")).toContain("agro secret set PI_SLACK_BOT_TOKEN");
+  });
+
+  it("`agro secret set` without --sandbox accepts a key that compose does not pass", async () => {
+    const project = makeRepo();
+    const { io } = makeIo();
+    io.askSecret = async () => "xoxb-project";
+
+    expect(await runSecretSet("PI_SLACK_BOT_TOKEN", { bin: "agro", cwd: project }, io)).toBe(0);
+    expect(readFileSync(join(project, ".env"), "utf8")).toContain("PI_SLACK_BOT_TOKEN=xoxb-project");
+  });
+
   it("`agro secret set` appends .env to the project .gitignore exactly once", async () => {
     const project = makeRepo();
     mkdirSync(join(project, ".git"), { recursive: true });

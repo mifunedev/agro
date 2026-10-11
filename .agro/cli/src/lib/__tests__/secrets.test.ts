@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
+  COMPOSE_SECRET_KEYS,
   SECRET_KEYS,
   ensureSandboxPassword,
   isSecretKey,
@@ -12,6 +14,8 @@ import {
   setSecret,
 } from "../secrets.js";
 import { withInvokedBin } from "../../__tests__/invoked-bin.js";
+
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", "..");
 
 const cleanups: string[] = [];
 afterEach(() => {
@@ -45,6 +49,15 @@ describe("allow-list", () => {
     for (const key of ["SANDBOX_NAME", "TZ", "GIT_USER_EMAIL", "SANDBOX_SSH_AUTHORIZED_KEYS"]) {
       expect(isSecretKey(key)).toBe(false);
     }
+  });
+
+  it("names exactly the secret keys that docker-compose.yml passes into the container", () => {
+    const compose = readFileSync(join(REPO_ROOT, ".devcontainer", "docker-compose.yml"), "utf8");
+    const passed = [...compose.matchAll(/\$\{([A-Z0-9_]+):-\}/g)]
+      .map((match) => match[1]!)
+      .filter(isSecretKey);
+    expect([...new Set(passed)].sort()).toEqual([...COMPOSE_SECRET_KEYS].sort());
+    expect([...COMPOSE_SECRET_KEYS]).toEqual(["GH_TOKEN", "SANDBOX_PASSWORD", "TYPESAFE_API_KEY"]);
   });
 });
 
