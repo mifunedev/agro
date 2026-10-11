@@ -97,8 +97,8 @@
         "The sample uses no prompt-miner score, marker, or ranking."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: red run failed on missing sample.mjs (worker evidence); executed: vitest sample.test.ts 13/13 incl. byte-identical sample.json across two runs and shuffled input; executed: 50/25/25 targets on 400-session corpus; executed: reallocation with no duplicates; executed: memberships/eligible/reason fields asserted; executed: small corpus selects all 13 eligible; executed: source has no legacy reference (grep count 0). Contract additions for sample.json deferred to US-010 run-files.md update; repeated-correction listed as unavailableSignal (no metadata field).",
       "dependsOn": [
         "US-002"
       ],
@@ -106,7 +106,8 @@
         ".agro/skills/behavioral-training/scripts/lib/sample.mjs",
         ".agro/scripts/__tests__/behavioral-training-sample.test.ts",
         ".agro/scripts/__tests__/fixtures/behavioral-training/sample/"
-      ]
+      ],
+      "commit": "2e6a5235"
     },
     {
       "id": "US-005",
