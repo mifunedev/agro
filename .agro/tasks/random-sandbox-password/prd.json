@@ -87,8 +87,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh` reports no new finding on each changed document."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "Reopened by the advisor: docs/security-considerations.md does not name `agro secret get SANDBOX_PASSWORD` (grep -c returned 0). The other four docs and the changelog pass.",
+      "passes": true,
+      "notes": "Integrated (e6c58240, daadb07f). Advisor re-ran: `grep -rln test1234` over the four docs prints nothing (exit 1); ste-check on each doc reports no findings; each doc names `agro secret get SANDBOX_PASSWORD` (security-considerations.md wraps the code span across lines 151-152, which a single-line grep misses). Worker edited .example.env with the Edit and Read tools. CHANGELOG bullet (248 chars) names ADR #1378 and links #1379.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -101,7 +101,8 @@
         "docs/security-considerations.md",
         "docs/configuration.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "daadb07f"
     },
     {
       "id": "US-005",
