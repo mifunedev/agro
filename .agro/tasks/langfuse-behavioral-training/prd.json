@@ -150,8 +150,8 @@
         "`validate` stops judge work at `--max-judge-calls` and records the remaining items as `unknown` with the reason `budget-exhausted`."
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: red run failed on missing validate.mjs (worker evidence); executed: vitest evaluation.test.ts 39 cases pass on integrated branch (3 files 94/94): missing required fields rejected with file:line, verdict set enforced, assistant-claim-only pass rejected, hand-computed confusion fixture (tp3 fp2 tn2 fn1), null+reason for undefined metrics, unknown/not_applicable excluded from passRate, gate edges 29/30, 9/10, 0.80, coverage 24/30, budget exhaustion -> unknown budget-exhausted (exit 4); executed: validate --help exit 0; executed: rubric.md ste-check exit 0.",
       "dependsOn": [
         "US-002"
       ],
@@ -160,7 +160,8 @@
         ".agro/skills/behavioral-training/references/rubric.md",
         ".agro/scripts/__tests__/behavioral-training-evaluation.test.ts",
         ".agro/scripts/__tests__/fixtures/behavioral-training/evaluation/"
-      ]
+      ],
+      "commit": "91563733"
     },
     {
       "id": "US-007",
