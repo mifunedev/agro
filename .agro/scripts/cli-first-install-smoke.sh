@@ -302,8 +302,6 @@ verify_systemd() {
   [ "$pid1" = "systemd" ] || die "PID 1 is '$pid1', not systemd"
   docker exec "$cid" systemctl is-active --quiet agro-bootstrap.service \
     || die "agro-bootstrap.service is not active"
-  docker exec "$cid" systemctl is-active --quiet agro-cron.service \
-    || die "agro-cron.service is not active"
 }
 
 verify_seed() {

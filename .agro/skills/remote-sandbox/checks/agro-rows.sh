@@ -64,15 +64,15 @@ fi
 
 echo "== R06"
 if [ $MODE = image ]; then q() { bash -c "$1"; }; else q() { docker exec "$SBX" bash -c "$1"; }; fi
-pid1=$(q 'ps -p 1 -o comm=' 2>&1); cron=$(q 'systemctl is-active agro-cron' 2>&1); boot=$(q 'systemctl show -p Result --value agro-bootstrap; systemctl is-active agro-bootstrap' 2>&1 | tr '\n' ' ')
-[ "$pid1" = systemd ] && [ "$cron" = active ] && [[ "$boot" == "success active"* ]] && result R06-systemd PASS "failed units: $(q 'systemctl --failed --no-legend --plain | cut -d" " -f1 | tr "\n" " "' 2>/dev/null)" || result R06-systemd FAIL "pid1=$pid1 cron=$cron boot=$boot"
+pid1=$(q 'ps -p 1 -o comm=' 2>&1); boot=$(q 'systemctl show -p Result --value agro-bootstrap; systemctl is-active agro-bootstrap' 2>&1 | tr '\n' ' ')
+[ "$pid1" = systemd ] && [[ "$boot" == "success active"* ]] && result R06-systemd PASS "failed units: $(q 'systemctl --failed --no-legend --plain | cut -d" " -f1 | tr "\n" " "' 2>/dev/null)" || result R06-systemd FAIL "pid1=$pid1 boot=$boot"
 
 echo "== R07"
 if [ $MODE = image ]; then result R07-container-restart SKIPPED "image mode: no container"
 else
-  t0=$(date +%s); docker restart "$SBX" >/dev/null 2>&1; cron=down
-  for i in $(seq 1 60); do cron=$(docker exec "$SBX" systemctl is-active agro-cron 2>/dev/null); [ "$cron" = active ] && break; sleep 3; done
-  [ "$cron" = active ] && result R07-container-restart PASS "$(( $(date +%s)-t0 ))s" || result R07-container-restart FAIL "agro-cron=$cron"
+  t0=$(date +%s); docker restart "$SBX" >/dev/null 2>&1; boot=down
+  for i in $(seq 1 60); do boot=$(docker exec "$SBX" systemctl is-active agro-bootstrap 2>/dev/null); [ "$boot" = active ] && break; sleep 3; done
+  [ "$boot" = active ] && result R07-container-restart PASS "$(( $(date +%s)-t0 ))s" || result R07-container-restart FAIL "agro-bootstrap=$boot"
 fi
 
 echo "== R12"

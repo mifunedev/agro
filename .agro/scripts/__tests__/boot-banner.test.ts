@@ -130,6 +130,6 @@ describe.each(shells)("interactive %s banner harness detection", (_name, shell) 
   });
 
   it("lists only commands with a binary as recovery commands", () => {
-    expect(output).toContain("  Recovery commands: claude · systemctl status agro-cron.service\n");
+    expect(output).toContain("  Recovery commands: claude · systemctl status agro-bootstrap.service\n");
   });
 });

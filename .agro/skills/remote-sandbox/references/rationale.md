@@ -38,8 +38,8 @@ The fresh install is the first thing that a new operator does. Each row runs `ag
 | `R03-docker-engine-host` | `agro tool install docker-engine --host` installs Docker. | The documented Docker path is broken on that base image. |
 | `R01-docker` | `dockerd` runs and `docker compose` is present. | The VM cannot run the sandbox container. |
 | `R05-sandbox-boot` | `agro sandbox install docker --yes` reaches `healthy`. In image mode, `agro-bootstrap` is active and the healthcheck passes. | The AGRO sandbox does not start. |
-| `R06-systemd` | PID 1 is `systemd`. The `agro-cron` unit runs. The `agro-bootstrap` unit reports `success`. | Unattended schedules do not run. |
-| `R07-container-restart` | `agro-cron` is active again after `docker restart`. | A container restart loses the unattended runtime. |
+| `R06-systemd` | PID 1 is `systemd`. The `agro-bootstrap` unit is active and reports `success`. | The sandbox does not boot under systemd supervision. |
+| `R07-container-restart` | `agro-bootstrap` is active again after `docker restart`. | A container restart does not boot the sandbox again. |
 | `R08-vm-restart` | The sandbox is healthy again after a VM restart, and files keep their content. | A VM restart loses work or corrupts state. |
 | `R09-disconnect` | A tmux session survives the client exit. | Work stops with the terminal. This breaks the AGRO rule that remote and unattended operation is normal. |
 | `R10-ssh-inbound` | A standard SSH client outside the provider reaches the VM. | `agro shell`, editors, and remote operators cannot attach. |

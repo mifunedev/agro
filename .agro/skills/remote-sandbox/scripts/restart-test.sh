@@ -34,11 +34,11 @@ esac
 r0=$(now); px restart "$NAME"; wait_shell
 state=""
 for i in $(seq 1 36); do
-  state=$(px exec "$NAME" 'echo $(systemctl is-active agro-bootstrap) $(systemctl is-active agro-cron)' 2>/dev/null)
-  case "$state" in "active active"|failed*) break;; esac; sleep 5
+  state=$(px exec "$NAME" 'systemctl is-active agro-bootstrap' 2>/dev/null)
+  case "$state" in active|failed*) break;; esac; sleep 5
 done
 r1=$(now)
-px exec "$NAME" 'echo "state: $(systemctl is-active agro-bootstrap) $(systemctl is-active agro-cron)"; echo "marker: $(cat /root/marker 2>/dev/null || echo missing)"; stat -c "%s %n" /home/sandbox/harness/agro.json /home/sandbox/harness/package.json /home/sandbox/harness/pnpm-lock.yaml; dmesg | grep -c "recovery complete" | sed "s/^/ext4_recovery_lines: /"'
+px exec "$NAME" 'echo "state: $(systemctl is-active agro-bootstrap)"; echo "marker: $(cat /root/marker 2>/dev/null || echo missing)"; stat -c "%s %n" /home/sandbox/harness/agro.json /home/sandbox/harness/package.json /home/sandbox/harness/pnpm-lock.yaml; dmesg | grep -c "recovery complete" | sed "s/^/ext4_recovery_lines: /"'
 h=$(px exec "$NAME" "$HC" 2>/dev/null)
 echo "TIMING restart_to_settled_s=$(elapsed "$r0" "$r1")"
 [ "$h" = ok ] && echo "RESULT R08-vm-restart PASS mode=$MODE" || echo "RESULT R08-vm-restart FAIL mode=$MODE state=[$state]"

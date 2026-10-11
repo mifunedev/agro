@@ -62,9 +62,8 @@ describe("sandbox upgrade smoke script", () => {
     }
   });
 
-  it("asserts the control plane, the marker, both systemd units, and a clean entrypoint log", () => {
+  it("asserts the control plane, the marker, the bootstrap unit, and a clean entrypoint log", () => {
     expect(script).toContain("agro-bootstrap.service");
-    expect(script).toContain("agro-cron.service");
     expect(script).toContain(".agro/.image-seeded");
     expect(script).toContain('a retired $PROJECT_ROOT/.oh was created by the upgrade');
     expect(script).toContain('grep -q "not seeding"');

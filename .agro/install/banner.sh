@@ -205,9 +205,9 @@ for _agro_binary in claude codex pi opencode grok agy hermes herdr cloudflared t
   if [ -z "$shortcuts" ]; then shortcuts="$_agro_binary"; else shortcuts="$shortcuts · $_agro_binary"; fi
 done
 if [ -n "$shortcuts" ]; then
-  printf '  Recovery commands: %s · systemctl status agro-cron.service\n' "$shortcuts"
+  printf '  Recovery commands: %s · systemctl status agro-bootstrap.service\n' "$shortcuts"
 else
-  printf '  Recovery commands: systemctl status agro-cron.service\n'
+  printf '  Recovery commands: systemctl status agro-bootstrap.service\n'
   printf '  No harness or tool is installed. Add one with `%s harness install <id>` or `%s tool install <id>`.\n' "$cli_bin" "$cli_bin"
 fi
 printf '\n'

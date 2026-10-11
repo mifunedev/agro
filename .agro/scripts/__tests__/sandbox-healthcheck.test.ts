@@ -15,7 +15,6 @@ function fixture() {
   const harness = join(dir, "harness");
   mkdirSync(bin, { recursive: true });
   mkdirSync(join(harness, ".agro", "scripts"), { recursive: true });
-  writeFileSync(join(harness, ".agro", "scripts", "cron-runtime.ts"), "// fixture\n");
 
   const systemctl = join(bin, "systemctl");
   writeFileSync(
@@ -52,7 +51,7 @@ exit 1
   return { dir, bin, harness, tmux, systemctl };
 }
 
-const ALL_UNITS = "agro-bootstrap.service,agro-cron.service";
+const ALL_UNITS = "agro-bootstrap.service";
 
 function runHealthcheck(env: Record<string, string>) {
   return spawnSync("bash", [SCRIPT], {
@@ -66,7 +65,7 @@ function runHealthcheck(env: Record<string, string>) {
 }
 
 describe("sandbox healthcheck", () => {
-  it("passes when both AGRO systemd units are active", () => {
+  it("passes when the AGRO bootstrap unit is active", () => {
     const { harness, tmux, systemctl } = fixture();
 
     const result = runHealthcheck({
@@ -80,20 +79,6 @@ describe("sandbox healthcheck", () => {
     expect(result.stdout).toContain("sandbox healthcheck ok");
   });
 
-  it("fails when the cron service is not active", () => {
-    const { harness, tmux, systemctl } = fixture();
-
-    const result = runHealthcheck({
-      HARNESS: harness,
-      TMUX_BIN: tmux,
-      SYSTEMCTL_BIN: systemctl,
-      HEALTHCHECK_ACTIVE_UNITS: "agro-bootstrap.service",
-    });
-
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain("systemd unit not active: agro-cron.service");
-  });
-
   it("fails when the bootstrap oneshot is not active", () => {
     const { harness, tmux, systemctl } = fixture();
 
@@ -101,7 +86,7 @@ describe("sandbox healthcheck", () => {
       HARNESS: harness,
       TMUX_BIN: tmux,
       SYSTEMCTL_BIN: systemctl,
-      HEALTHCHECK_ACTIVE_UNITS: "agro-cron.service",
+      HEALTHCHECK_ACTIVE_UNITS: "",
     });
 
     expect(result.status).toBe(1);

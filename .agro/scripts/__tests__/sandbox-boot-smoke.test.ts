@@ -23,9 +23,7 @@ function fixture(
     noInstallableHarnesses?: boolean;
     noInstallableTools?: boolean;
     pid1?: string;
-    cronUnitInactive?: boolean;
-    reloadIsInert?: boolean;
-    noRestartRecovery?: boolean;
+    bootstrapUnitInactive?: boolean;
   } = {},
 ) {
   const runtimeUid = opts.runtimeUid ?? HOST_UID;
@@ -37,10 +35,6 @@ function fixture(
   const composeLog = join(dir, "compose.log");
   const dockerLog = join(dir, "docker.log");
   const execCount = join(dir, "exec-count");
-  const mainPidFile = join(dir, "main-pid");
-  const reloadCount = join(dir, "reload-count");
-  writeFileSync(mainPidFile, "1234");
-  writeFileSync(reloadCount, "0");
 
   const compose = join(dir, "compose.sh");
   writeFileSync(
@@ -85,35 +79,8 @@ case "$1" in
         printf '%s\n' ${JSON.stringify(opts.pid1 ?? "systemd")}
         exit 0
         ;;
-      *"systemctl is-active --quiet agro-cron.service"*)
-        exit ${opts.cronUnitInactive ? "1" : "0"}
-        ;;
-      *"systemctl is-active"*)
-        exit 0
-        ;;
-      *"systemctl show -p MainPID"*)
-        cat ${JSON.stringify(mainPidFile)}
-        exit 0
-        ;;
-      *"crons/.pid"*)
-        cat ${JSON.stringify(mainPidFile)}
-        exit 0
-        ;;
-      *RELOAD*)
-        cat ${JSON.stringify(reloadCount)}
-        exit 0
-        ;;
-      *"systemctl reload"*)
-        if [ "${opts.reloadIsInert ? "1" : "0"}" != "1" ]; then
-          printf '%s' "$(( $(cat ${JSON.stringify(reloadCount)}) + 1 ))" > ${JSON.stringify(reloadCount)}
-        fi
-        exit 0
-        ;;
-      *"kill -9"*)
-        if [ "${opts.noRestartRecovery ? "1" : "0"}" != "1" ]; then
-          printf '%s' '4242' > ${JSON.stringify(mainPidFile)}
-        fi
-        exit 0
+      *"systemctl is-active --quiet agro-bootstrap.service"*)
+        exit ${opts.bootstrapUnitInactive ? "1" : "0"}
         ;;
       *"systemctl status"*)
         printf 'unit status\n'
@@ -185,7 +152,7 @@ exit 2
   );
   chmodSync(docker, 0o755);
 
-  return { dir, bin, compose, composeLog, dockerLog, mainPidFile, reloadCount };
+  return { dir, bin, compose, composeLog, dockerLog };
 }
 
 function runSmoke(fx: ReturnType<typeof fixture>, extraEnv: Record<string, string> = {}) {
@@ -197,8 +164,6 @@ function runSmoke(fx: ReturnType<typeof fixture>, extraEnv: Record<string, strin
       BOOT_SMOKE_COMPOSE: fx.compose,
       BOOT_SMOKE_TIMEOUT_SECONDS: "3",
       BOOT_SMOKE_INTERVAL_SECONDS: "1",
-      BOOT_SMOKE_RELOAD_TIMEOUT_SECONDS: "2",
-      BOOT_SMOKE_RECOVERY_TIMEOUT_SECONDS: "2",
       SANDBOX_NAME: "agro-test",
       NPM_USER_PREFIX: PREFIX,
       ...extraEnv,
@@ -215,34 +180,18 @@ describe("sandbox boot smoke systemd supervision", { timeout: SMOKE_TEST_TIMEOUT
     expect(result.stderr).toContain("PID 1 is 'docker-init', not systemd");
   });
 
-  it("fails when the cron service is not active", () => {
-    const result = runSmoke(fixture({ cronUnitInactive: true }));
+  it("fails when the bootstrap oneshot is not active", () => {
+    const result = runSmoke(fixture({ bootstrapUnitInactive: true }));
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("agro-cron.service is not active");
+    expect(result.stderr).toContain("agro-bootstrap.service is not active");
   });
 
-  it("fails when systemctl reload never reaches the runtime's SIGUSR1 path", () => {
-    const result = runSmoke(fixture({ reloadIsInert: true }));
-
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain("did not reach the runtime's SIGUSR1 path");
-  });
-
-  it("fails when systemd does not recover the scheduler after SIGKILL", () => {
-    const result = runSmoke(fixture({ noRestartRecovery: true }));
-
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain("did not recover the scheduler after SIGKILL");
-  });
-
-  it("proves PID 1, unit state, PID agreement, reload, and kill recovery on a healthy boot", () => {
+  it("proves PID 1 and bootstrap unit state on a healthy boot", () => {
     const result = runSmoke(fixture());
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("systemd is PID 1 and supervises cron-runtime.ts at PID 1234");
-    expect(result.stdout).toContain("exercised the SIGUSR1 reschedule");
-    expect(result.stdout).toContain("recovered the killed scheduler at PID 4242");
+    expect(result.stdout).toContain("systemd is PID 1 and agro-bootstrap.service is active");
   });
 });
 

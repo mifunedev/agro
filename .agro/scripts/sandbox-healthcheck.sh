@@ -73,10 +73,6 @@ if ! command_exists "$SYSTEMCTL_BIN"; then
   record_failure "systemctl binary not found: $SYSTEMCTL_BIN"
 else
   require_unit agro-bootstrap.service
-
-  if [ -f "$HARNESS/.agro/scripts/cron-runtime.ts" ]; then
-    require_unit agro-cron.service
-  fi
 fi
 
 if ! command_exists "$TMUX_BIN"; then
