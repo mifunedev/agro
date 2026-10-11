@@ -300,6 +300,7 @@ the run directory holds only metadata-class content.
 | File | Writer | Story | Privacy |
 |---|---|---|---|
 | `manifest.json` | dispatcher and each stage | US-002 | metadata |
+| `inventory-pages.jsonl` | `inventory` | US-003 | metadata |
 | `inventory.jsonl` | `inventory` | US-003 | metadata |
 | `sample.json` | `sample` | US-004 | metadata |
 | `normalized-sessions.jsonl` | `normalize` | US-005 | transcript |
@@ -307,11 +308,14 @@ the run directory holds only metadata-class content.
 | `taxonomy.json` | the agent; the operator approves; `validate` checks | US-006 | transcript |
 | `rubric.json` | the agent from the starting rubric; `validate` checks | US-006 | metadata |
 | `calibration.json` | `validate` | US-006 | metadata |
-| `dataset-items.jsonl` | `publish` | US-007 | transcript |
+| `dataset-items.jsonl` | the agent writes candidates; `publish` curates | US-007 | transcript |
 | `publication-ledger.json` | `publish` | US-008 | metadata |
 | `report.json` | `report` | US-009 | metadata |
 | `report.md` | `report` | US-009 | metadata |
 | `compare-thresholds.json` | the advisor; `compare` reads | US-009 and US-012 | metadata |
+| `baseline-results.jsonl` | the advisor, from fresh replay runs; `compare` reads | US-009 | metadata |
+| `candidate-results.jsonl` | the advisor, from fresh replay runs; `compare` reads | US-009 | metadata |
+| `comparison.json` | `compare` | US-009 | metadata |
 
 Each field that the source does not supply holds `null`. A stage never invents
 a value. Each timestamp is a UTC ISO-8601 string that ends in `Z`.
@@ -323,14 +327,14 @@ a value. Each timestamp is a UTC ISO-8601 string that ends in `Z`.
 | `schemaVersion` | `1` |
 | `runId` | A random UUID |
 | `createdAt`, `updatedAt` | Timestamps |
-| `endpoint` | `{ baseUrl }` from `agro.json`, or `null` before preflight |
+| `endpoint` | `{ baseUrl, configRoot, capabilities }` from preflight, or `null` before preflight |
 | `project` | `{ id, name }` from preflight, or `null` |
 | `window` | `{ since, until }` |
 | `filters` | `{ environment, harness }` |
 | `sampling` | `{ policy, sampleSize, seed }`; `policy` is `stratified-50-25-25` |
 | `budgets` | `{ maxSessions, maxBytes, maxJudgeCalls }` |
 | `sources` | A list of `{ id, kind, checksum }` for each source export or fixture |
-| `versions` | `{ node, cli, skill, api, harnesses, models }` |
+| `versions` | `{ node, cli, skill, api, harnesses, models }`; the dispatcher sets `node`, preflight sets `cli` and `api`, and `inventory` sets `harnesses` and `models` |
 | `completeness` | Counters that each stage adds; see `inventory.jsonl` |
 | `datasets` | `{ prefix, version }` |
 | `rubric` | `{ version }` |
@@ -367,38 +371,77 @@ One record for each session. The file holds metadata only.
 | `harness` | The coding harness |
 | `models` | The model names from the observations |
 | `traceCount`, `observationCount` | Counts |
-| `toolErrorCount` | The count of tool observations with an error level or an error status |
+| `toolErrorCount` | The count of `TOOL` observations with the level `ERROR`; `null` when the session has no `TOOL` observation |
 | `latencyMs` | `lastSeenAt` minus `firstSeenAt` in milliseconds |
 | `costUsd` | The total cost |
-| `tokens` | `{ input, output, total }` |
-| `scores` | A list of `{ name, value, source }` from existing Langfuse scores |
+| `tokens` | `{ input, output, total }`, or `null` |
+| `scores` | A list of `{ name, value, source }` from existing Langfuse scores; `null` when the API contract has no `scores list` |
+| `sourceLink` | `<baseUrl>/project/<projectId>/sessions/<sessionId>` |
 | `unavailable` | The field names that the source did not supply |
 
-`inventory` adds `completeness.inventory` to the manifest. The summary counts
-sessions by harness, model, environment, session length, tool errors, latency,
-cost, and outcome signal. `completeness.inventory.unavailableFields` lists each
-field that no session supplied.
+`inventory` also writes `inventory-pages.jsonl`. Each row is one compact
+observation or score from one page. A row holds ids, types, timestamps, the
+environment, the level, the model name, the harness tag, token counts, the
+cost, and the score subject. A row holds no input, no output, no status
+message, and no metadata value. `--resume` reads this file and continues from
+the saved cursor.
+
+`inventory` adds `completeness.inventory` to the manifest:
+
+| Field | Content |
+|---|---|
+| `status` | The stage status |
+| `truncated` | `true` when `--max-sessions` stopped the read |
+| `pages` | The count of pages read |
+| `sessions`, `observations` | Counts |
+| `sessionlessObservations`, `sessionlessTraces` | Observations and traces without a `sessionId`; the stage creates no session for these |
+| `sessionsOverBudget` | Sessions after the `--max-sessions` budget |
+| `excludedByHarness` | Sessions that `--harness` removed |
+| `byHarness`, `byModel`, `byEnvironment`, `bySessionLength`, `byToolErrors`, `byLatency`, `byCost`, `byOutcomeSignal` | Session counts for each bucket |
+| `unavailableFields` | Each field that no session supplied |
+
+On a failed read, `completeness.inventory` holds only `{ status, cause, message }`.
 
 ### `sample.json`
 
 | Field | Content |
 |---|---|
 | `policy` | `stratified-50-25-25` |
+| `rateLabel` | `discovery-sample` |
 | `seed`, `sampleSize` | From the manifest |
 | `inventoryChecksum` | The checksum of `inventory.jsonl` |
+| `inventoryCount` | The count of inventory records |
 | `eligibleCount` | The count of eligible sessions |
+| `excluded` | `{ missing-session-id, no-traces, duplicate-session-id, duplicate-content }` counts |
+| `rounding` | `flagged` and `heavy` each target `floor(sampleSize / 4)`; `baseline` targets the remainder |
+| `order` | `["baseline", "flagged", "heavy"]`, the order in which the strata take sessions |
+| `thresholds` | See the next table |
+| `unavailableSignals` | Each signal that no eligible session can supply |
 | `strata` | `{ baseline, flagged, heavy }`; each holds `{ target, eligible, selected }` |
 | `reallocation` | A list of `{ from, to, slots }` for each moved slot |
 | `sessions` | A list of `{ sessionId, stratum, memberships, reason }` |
 
+`thresholds` holds these fields:
+
+| Field | Content |
+|---|---|
+| `observationCount`, `costUsd`, `latencyMs` | `{ quantile: 0.75, threshold, minimum }`, or `null` when no eligible session supplies the field |
+| `scores` | `{ <score name>: { quantile: 0.25, threshold, maximum } }` |
+
 `flagged` holds flagged, low-score, and tool-error sessions. `heavy` holds long,
 high-cost, high-latency, and repeated-correction sessions. `memberships` lists
-each stratum that the session matches. `reason` names the rule that selected
-the session.
+each stratum that the session matches, and always holds `baseline`. `reason`
+is `<stratum>:<rule>`. `rule` is `uniform`, `tool-error`, `low-score`,
+`long-session`, `high-cost`, or `high-latency`.
+
+A content duplicate is a second session with the same `projectId` and the same
+set of `traceIds`. The inventory holds no content hash and no correction count.
+Thus `repeated-correction` is always in `unavailableSignals`.
 
 ### `normalized-sessions.jsonl`
 
 One record for each session, or one record for each chunk of a large session.
+`normalize` reads `sample.json` and `inventory.jsonl`.
 
 | Field | Content |
 |---|---|
@@ -409,14 +452,48 @@ One record for each session, or one record for each chunk of a large session.
 | `costUsd`, `tokens` | Totals for the session |
 | `traces` | A list of `{ traceId, timestamp, name }` in time order |
 | `events` | A list of events in time order |
-| `sourceLinks` | Langfuse URLs for the session and each trace |
-| `capture` | `{ truncated, complete, missing }` |
+| `sourceLinks` | `{ session, traces: { <traceId>: <url> } }` |
+| `capture` | `{ truncated, complete, missing, window }` |
+
+Each chunk repeats each session-level field: `traces`, `sourceLinks`,
+`capture`, and the totals. Only `chunk` and `events` change between chunks.
+
+- `traces[].timestamp` is the earliest start time of the observations of the
+  trace.
+- `taskGroupId` comes only from the metadata key `taskGroupId` or
+  `task_group_id`. `attempt` comes only from the metadata key `attempt`.
+  `normalize` sets each field only when the session holds exactly one distinct
+  value. Otherwise the field is `null`.
 
 Each event holds `observationId`, `traceId`, `parentObservationId`, `type`,
-`name`, `startTime`, `endTime`, `role`, `input`, `output`, `model`, `level`,
-`statusMessage`, and `dedupedFrom`. `capture.truncated` is `true` only on an
-explicit truncation marker. `capture.complete` is `true`, `false`, or
-`"unknown"`. `capture.missing` lists each missing source item.
+`name`, `startTime`, `endTime`, `role`, `input`, `output`, `metadata`,
+`model`, `level`, `statusMessage`, and `dedupedFrom`.
+
+`capture.truncated` is `true` only on an explicit truncation marker.
+`capture.complete` is `true`, `false`, or `"unknown"`. `capture.window` is
+`{ from, to, source, splits }`. `source` is `inventory` or `run`. `window` is
+`null` when a caller runs `normalizeSession` directly.
+
+`capture.missing` lists each missing source item. A known gap sets
+`complete` to `false`:
+
+| Kind | Fields |
+|---|---|
+| `parent` | `observationId`, `traceId`, `referencedBy` |
+| `trace` | `traceId` |
+| `observations` | `expected`, `found` |
+| `truncated` | `observationId`, `field` |
+
+Each other kind sets `complete` to `"unknown"`, unless a known gap exists:
+
+| Kind | Fields |
+|---|---|
+| `capture-limit` | `observationId`, `field`, `length` |
+| `start-time` | `observationId` |
+| `inventory-record` | `sessionId` |
+
+`normalize` adds `completeness.normalize` to the manifest:
+`{ status, cause, sessions, chunks, complete, incomplete, unknown, truncated }`.
 
 ### `annotations.jsonl`
 
@@ -436,6 +513,7 @@ One record for each judgment.
 | `rubricVersion`, `judgeVersion` | Versions; `judgeVersion` is `null` for a human |
 | `reviewStatus` | `pending`, `approved`, or `rejected` |
 | `createdAt` | Timestamp |
+| `judgeExample` | Optional. `true`, `false`, or `null`; `true` marks a human label that a judge prompt uses as an example |
 
 `evidence[].kind` is `tool-result`, `command-exit`, `test-result`,
 `file-change`, `user-message`, or `assistant-claim`. A `pass` on task completion
@@ -472,18 +550,39 @@ gate value.
 | `gate` | A copy of the gate from `rubric.json` |
 | `judgeCalls` | `{ used, budget }` |
 | `dimensions` | One entry for each dimension id |
+| `judgeLabels` | A list of `{ annotationId, sessionId, dimension, annotatorType, verdict, status, reason }` for each `agent` and `judge` label |
 
 Each dimension entry holds these fields:
 
 - `sampleSize`
+- `classes` as `{ fail, pass }`, the counts of human reference labels
 - `confusion` as `{ truePositive, falsePositive, trueNegative, falseNegative }`
-- `unknown` and `notApplicable` counts
+- `pass`, `fail`, `unknown`, and `notApplicable` counts
 - `precision`, `recall`, `f1`, `truePositiveRate`, `trueNegativeRate`,
   `coverage`, and `passRate`
 - `status`, which is `calibrated` or `provisional`
+- `gateFailures`, which names each gate condition that failed
 - `reasons`, which maps each `null` metric to its reason
 
 `passRate` excludes `unknown` and `not_applicable` from the denominator.
+
+`validate` applies these rules:
+
+- The human reference label is the first human label for each session and
+  dimension with a review status other than `rejected`. A label with
+  `judgeExample: true` is not a reference label.
+- The judge label is the first `agent` or `judge` label for each session and
+  dimension, after the budget.
+- Only a `judge` annotation uses a call from `--max-judge-calls`. After the
+  budget, each remaining `judge` label holds the verdict `unknown` and the
+  reason `budget-exhausted` in `judgeLabels`. The stage reports `partial`.
+- `validate` never changes `annotations.jsonl`.
+- A schema error prints `<file>:<line>: <field> <rule>` and never prints a
+  field value. The stage then writes no `calibration.json` and reports
+  `failed` with the cause `invalid-run-files`.
+- If `annotations.jsonl` does not exist or holds no record, the stage reports
+  `empty` with the cause `no-annotations`.
+- The starting `rubric.json` is the JSON block in `rubric.md`.
 
 ### `dataset-items.jsonl`
 
@@ -491,9 +590,9 @@ One record for each dataset item.
 
 | Field | Content |
 |---|---|
-| `itemId` | Derived from project, source, rubric version, and dataset version |
+| `itemId` | `bt-item-<32 hex>`, derived from project, source, rubric version, and dataset version |
 | `split` | `regression`, `demonstrations`, or `holdout` |
-| `groupId` | The task group id |
+| `groupId` | `task:<taskGroupId>` or `session:<sessionId>` |
 | `source` | `{ projectId, sessionId, traceIds, observationIds }` |
 | `sourceLinks` | Langfuse URLs |
 | `input` | The case input |
@@ -506,7 +605,27 @@ One record for each dataset item.
 | `replayable` | `true`, `false`, or `"unknown"` |
 | `provenance` | `{ annotationIds, rubricVersion, createdBy }` |
 | `datasetVersion` | The dataset version |
-| `contentHash` | The SHA-256 of the item content |
+| `contentHash` | `sha256:<hex>` of the item content |
+
+The agent writes each candidate to `dataset-items.jsonl` without `itemId`,
+`split`, and `contentHash`. A candidate needs `source.sessionId` and
+`reviewStatus`. The other fields are optional and default to `null`.
+`publish` curates the candidates and writes the curated items back to the
+file. A record with `itemId`, `split`, and `contentHash` is a frozen item and
+keeps its split and its group.
+
+- The hex of `itemId` is the first 32 characters of the SHA-256 of the
+  canonical JSON of the project id, the session id, the sorted trace ids, the
+  sorted observation ids, the rubric version, and the dataset version.
+- `contentHash` covers the canonical JSON of `input`, `expectedBehavior`,
+  `acceptanceOracle`, `correction`, and `fixture`.
+- A development group enters `demonstrations` only when each item of the group
+  qualifies. An item qualifies when its review status is `approved` and one
+  condition is true: the item has a `correction`, or the annotations in
+  `provenance.annotationIds` hold no `fail` and at least one approved `pass`.
+  Otherwise the group enters `regression`.
+- Each session in `sample.json` counts as exposed by default, so its items
+  hold `holdoutEligible: false`.
 
 ### `publication-ledger.json`
 
@@ -515,26 +634,85 @@ One record for each dataset item.
 | `projectId` | The Langfuse project id |
 | `datasetPrefix` | For example `agro/behavior` |
 | `datasetVersion` | The dataset version |
+| `rubricVersion` | The rubric version |
 | `entries` | A list of completed writes |
 
-Each entry holds `key`, `kind`, `dataset`, `remoteId`, `contentHash`, and
-`writtenAt`. `kind` is `item` or `score`. `key` is the stable item id or the
-stable score id.
+Each entry holds `key`, `kind`, `dataset`, `remoteId`, `contentHash`,
+`outcome`, `writtenAt`, and `retractedAt`. `kind` is `dataset`, `item`, or
+`score`. `key` is the dataset name, the stable item id, or the stable score id.
+`outcome` is `created` or `adopted`. `retractedAt` is `null` until
+`publish --retract --apply` deletes the record.
+
+If the ledger records another project, prefix, dataset version, or rubric
+version, `publish` fails with the cause `ledger-mismatch`. The item write
+puts `correction` in `expectedOutput`. The score names are
+`behavior.<dimension>.human` with the source `ANNOTATION`, and
+`behavior.<dimension>.judge` or `behavior.<dimension>.agent` with the source
+`API`. The score metadata holds `calibrationStatus` for an automated label.
 
 ### `report.json` and `report.md`
 
 `report.json` holds these fields:
 
-- `runId`, `window`, `filters`, and `project`
+- `schemaVersion`, `runId`, `generatedAt`, `window`, `filters`, `project`,
+  `endpoint`, and `versions`
+- `rateLabel` and `rateNote`
+- `inputs`, which maps each input file to `read`, `invalid`, or `not-run`
+- `stages` with `{ status, cause, attempts, finishedAt }` of each other stage
 - `counts` and `denominators`
-- `categories` as a list of `{ id, count, denominator, sessionIds, sourceLinks }`
+- `inventory` and `sample` summaries
+- `categoryDenominator`, and `categories` as a list of
+  `{ id, dimension, count, denominator, calibrationStatus, sessionIds, sourceLinks }`
 - `captureGaps`
 - `calibration` with the status of each dimension
 - `datasets` with the dataset versions
+- `comparison`, a summary of `comparison.json`
 - `errors` with the cause code and the redacted message of each error
+
+The stage marks a missing input file `not-run`, never zero. If an input file
+does not parse, the stage marks the file `invalid`, lists the file in
+`errors`, and reports `partial`.
 
 `report.md` presents the content of `report.json`. Both files hold ids, counts,
 and links only. Both files hold no message text.
+
+### Result records
+
+`compare` reads one result file for each arm. `--baseline` names the baseline
+file; the default is `baseline-results.jsonl`. `--candidate` names the
+candidate file; the default is `candidate-results.jsonl`. Each line is one
+case:
+
+| Field | Content |
+|---|---|
+| `caseId` | The dataset item id; each case occurs once in each arm |
+| `arm` | `baseline` or `candidate`; must match the file |
+| `runId` | The id of the fresh agent run |
+| `split` | `regression`, `demonstrations`, or `holdout` |
+| `startRevision` | The starting repository revision, or `null` |
+| `fixture` | The sandbox-safe execution fixture, or `null` |
+| `replayable` | `true`, `false`, or `"unknown"` |
+| `finalResponseHash` | The hash of the final response of the run, or `null` |
+| `evaluator`, `budget` | Objects; both arms hold equal values |
+| `dimensions` | `{ <dimension>: <verdict> }` |
+| `costUsd`, `latencyMs` | Numbers, or `null` |
+
+### `comparison.json`
+
+| Field | Content |
+|---|---|
+| `status`, `cause` | The stage status and the cause code |
+| `generatedAt` | Timestamp |
+| `files` | `{ baseline, candidate }` file names |
+| `thresholds` | `{ file, checksum, rubricVersion, createdAt, createdBy, dimensions }`, or `null` |
+| `counts` | `{ cases, counted, reviewOnly, holdout, rejected, mismatches }` |
+| `cases` | A list of `{ caseId, split, status, reasons, runIds }`; `status` is `counted` or `review-only` |
+| `mismatches` | A list of `{ caseId, field }` |
+| `rejected` | A list of `{ caseId, cause }` |
+| `dimensions` | The per-dimension results, unknowns, regressions, and improvements |
+| `cost`, `latency` | Totals and means for each arm, and the delta |
+| `runIds` | `{ baseline, candidate }` run ids of the counted cases |
+| `verdict` | `meets-thresholds`, `below-thresholds`, `undefined`, or `null` without thresholds |
 
 ### `compare-thresholds.json`
 
@@ -543,6 +721,10 @@ and links only. Both files hold no message text.
 | `createdAt`, `createdBy` | Timestamp and author |
 | `rubricVersion` | The rubric version |
 | `dimensions` | `{ <dimension>: { minImprovement, maxRegression } }` |
+
+`minImprovement` is the minimum pass-rate delta, from -1 to 1.
+`maxRegression` is the maximum count of cases that move from `pass` to
+`fail`.
 
 The advisor writes this file before the advisor reads a holdout result. `compare`
 refuses to read holdout results while this file does not exist.

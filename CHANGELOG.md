@@ -8,6 +8,12 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+- Add `/behavioral-training` to analyze Langfuse sessions in resumable, operator-reviewed stages and publish reviewed evaluation datasets on request, and vendor the official Langfuse skill ([#1414](https://github.com/mifunedev/agro/pull/1414)).
+
+### Removed
+- Remove the `prompt-miner` skill; `/behavioral-training` replaces it, and old prompt-miner rankings do not carry over as labels ([#1414](https://github.com/mifunedev/agro/pull/1414)).
+
 ### Fixed
 - Fix `agro secret set` so that it writes a piped value that has no trailing newline instead of exiting 0 without a write ([#1409](https://github.com/mifunedev/agro/issues/1409)) ([#1411](https://github.com/mifunedev/agro/pull/1411)).
 - Pass `XAI_API_KEY` into the sandbox through Compose, so that `agro secret set --sandbox` accepts the key and the banner reads it from the environment ([#1412](https://github.com/mifunedev/agro/pull/1412)).

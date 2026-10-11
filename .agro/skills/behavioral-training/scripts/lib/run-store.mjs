@@ -28,6 +28,7 @@ export const FILE_MODE = 0o600;
 
 export const RUN_FILES = Object.freeze([
   "manifest.json",
+  "inventory-pages.jsonl",
   "inventory.jsonl",
   "sample.json",
   "normalized-sessions.jsonl",
@@ -40,6 +41,9 @@ export const RUN_FILES = Object.freeze([
   "report.json",
   "report.md",
   "compare-thresholds.json",
+  "baseline-results.jsonl",
+  "candidate-results.jsonl",
+  "comparison.json",
 ]);
 
 const RESERVED = new Set([MANIFEST_FILE, LOCK_FILE]);
