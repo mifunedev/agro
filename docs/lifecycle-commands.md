@@ -36,6 +36,8 @@ Host prerequisites and the CLI install are in [Installation](installation.md).
 | `agro ps [name]` | `docker-compose.sh ps` |
 | `agro destroy [name] [--yes]` | `docker-compose.sh down -v`, then remove the registry entry — see below |
 | `agro compose config` | `docker-compose.sh config` — the resolved compose file |
+| `agro egress log [name]` | print the last 1000 lines of the proxy access log; mark each denied line `DENIED` — needs `access.egress: "allowlist"` |
+| `agro egress reload [name]` | rewrite `egress-allow.txt` and send the proxy `squid -k reconfigure`; the sandbox container keeps running — needs `access.egress: "allowlist"` |
 | `agro self-upgrade [--dry-run]` (alias `agro update`) | upgrade the installed `agro` executable through the mechanism that installed it — see below |
 | `agro vendor [--from <dir> \| --from-remote [--ref <ref>]] [--dry-run] [--force]` | equip an empty checkout with `.agro/`, and upgrade an equipped one |
 | `agro config show [--sandbox <name>]` · `agro config set <field> <value> [--sandbox <name>]` | read and write `agro.json` |

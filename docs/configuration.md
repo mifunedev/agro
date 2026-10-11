@@ -109,6 +109,37 @@ at boot. The install lands in `~/.local` inside the persistent home volume, and
 | `access.egress` | enum: `open`, `allowlist` | `open` | `AGRO_EGRESS` | Selects the sandbox's outbound network mode. `allowlist` routes traffic through a proxy that permits only known hosts. |
 | `access.egressAllow` | array of strings | `[]` | — | Extra hosts the `allowlist` proxy permits, beyond the built-in policy hosts. |
 
+### Egress allowlist
+
+Set `access.egress` to `allowlist` to remove the sandbox's direct route out. The
+[`docker-compose.egress.yml`](../.devcontainer/docker-compose.egress.yml) overlay
+puts the sandbox on an `internal: true` network and adds a `proxy` service. The
+sandbox reaches the internet only through that proxy, and the proxy denies every
+host outside `egress-allow.txt`.
+
+`materialize()` writes `egress-allow.txt` from one source: the `host` entries
+under `network_policies` in
+[`.devcontainer/openshell-policy.yaml`](../.devcontainer/openshell-policy.yaml),
+plus `access.egressAllow`. The built-in hosts are `github.com`,
+`api.github.com`, `release-assets.githubusercontent.com`,
+`registry.npmjs.org`, `api.anthropic.com`, and `platform.claude.com`. Add
+another host with `agro config set access.egressAllow "<hosts>" --sandbox
+<name>`, then run `agro egress reload` to apply the change.
+
+`agro egress log [name]` prints the last 1000 lines of the proxy access log and
+marks each denied line `DENIED`. `agro egress reload [name]` rewrites
+`egress-allow.txt` and sends the proxy `squid -k reconfigure`; the sandbox
+container keeps running. Both verbs exit 1 on a sandbox whose `access.egress`
+is `open` and on an `openshell` entry.
+
+Allowlist mode needs Compose 2.23 or later, because the overlay defines the
+proxy configuration with the inline `configs.content` field. The overlay also
+sets `NODE_USE_ENV_PROXY=1`, so a Node.js `fetch` call, including the one
+corepack makes, uses the proxy.
+
+See [Security considerations § Egress allowlist](security-considerations.md#8-egress-allowlist--enforced-opt-in)
+for the limits of this mode and the security boundary it enforces.
+
 ### Hermes dashboard
 
 | Field | Type | Default | Compose variable | What the field does |
