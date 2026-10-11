@@ -45,8 +45,8 @@
         "`CHANGELOG.md` holds one `### Removed` entry under `## [Unreleased]` for the removal of the tracked `.hermes/` files."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1 executed: git ls-files .hermes | wc -l -> 0 on integrated task branch (exit 0).\nAC2 executed: git diff shows /.hermes/* and four ! exemptions replaced by /.hermes/.\nAC3 executed: git check-ignore -q per path for .hermes/config.yaml, .hermes/README.md, .hermes/skills/agro -> exit 0 each. The three-path -q form exits 128 (git allows -q with one path only); criterion wording defect, intent met.\nAC4 executed: pnpm exec vitest run hermes-links.test.ts standard-skills-link.test.ts -> 57 passed, 2 skipped, exit 0; worker showed the new case red before git rm --cached.\nAC5 reasoned: docs/harnesses/hermes.md states HERMES_HOME=<target-root>/.hermes, gitignored runtime state, program at ~/.local/lib/hermes-agent.\nAC6 reasoned: docs Install section states first install generates config.yaml with the AGRO defaults.\nAC7 reasoned: docs subsection 'Back up an edited configuration before you pull' gives the backup steps.\nAC8 executed: CHANGELOG.md has one ### Removed entry under [Unreleased] linking #1401.\nExtra: link-providers.sh --check exit 0; ste-check on docs page 0 findings.",
       "dependsOn": [],
       "files": [
         ".gitignore",
@@ -55,7 +55,8 @@
         ".agro/scripts/__tests__/hermes-links.test.ts",
         "docs/harnesses/hermes.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "0daf8193"
     },
     {
       "id": "US-003",
