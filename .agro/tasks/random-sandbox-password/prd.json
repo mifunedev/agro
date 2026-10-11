@@ -116,8 +116,8 @@
         "The transcript ends with `agro destroy <name> --yes` and an `agro sandbox list` without the entry."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Operator approved one exe.dev VM on 2026-10-10. The remote-sandbox check built the branch (f1c4550) on the VM; 11 of 11 rows PASS: install exit 0 (70 s), healthy, `agro secret get` 32-char base64url value (sha256 prefix 6f44bce1bf02, never printed), sudo with the value exit 0, sudo with test1234 exit 1 (`1 incorrect password attempt`), passwd -S status P, re-provision keeps the value (same hash), unknown key exit 1 with the assertSecretKey message, `secret list` redacted, destroy exit 0. Log ends with `remaining agro-matrix resources on exedev: 0`. Transcript: evidence/manual-review.md.",
       "dependsOn": [
         "US-001",
         "US-002",
