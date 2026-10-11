@@ -72,15 +72,16 @@
         "The story uses a sandbox only with operator approval and deletes each resource that the story creates."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Check: cd575617 (worker commit 10e469d8, .agro/skills/remote-sandbox/checks/hermes-home.sh). Run: exedev VM agro-mx-1011-112806, AGRO_REF=task/1400-hermes-generated-home@cd575617, CLI built from the clone (H03).\nAC1 executed: evidence/manual-review.md + exedev-hermes-home-20261011-112806.log hold the transcript; H04 confirms no tracked .hermes and the fresh workspace had no config.yaml before H05 (H05 exit 0). Reasoned: the VM host workspace (agro harness install hermes --host) stands in for 'a sandbox'.\nAC2 executed: H06 prints config.yaml with each seed key, terminal.cwd, and _config_version: 50 written by Hermes; ycheck parse PASS.\nAC3 executed: H07 hermes config set model.default agro-rcheck-sentinel-model, second install exit 0, value kept, PASS.\nAC4 executed: H08 git status --short .hermes empty after both installs, PASS.\nAC5 executed: H09 ls -la .hermes/skills shows agro -> ../../.agro/skills, PASS.\nAC6 executed: run approved by operator per supervisor brief item 6; driver log '1 VM deleted successfully' for agro-mx-1011-112806; ssh exe.dev ls --json shows it absent. 'remaining ... : 1' counts agro-mx-1011-112912 from a concurrent docker-egress run of another session, not touched.",
       "dependsOn": [
         "US-001",
         "US-002"
       ],
       "files": [
         ".agro/tasks/hermes-generated-home/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "be02248b"
     }
   ]
 }
