@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-10-11
+
 ### Added
 - Add `shellcheck` and a pinned, checksum-verified `hadolint` 2.12.0 to the sandbox image, so that agents run the CI boot path lint before they push ([#1393](https://github.com/mifunedev/agro/issues/1393)).
 - Add `access.egress: "allowlist"`, which removes the sandbox's direct route out and routes traffic through a proxy that enforces an egress allowlist (ADR #1378) ([#1397](https://github.com/mifunedev/agro/issues/1397)).
