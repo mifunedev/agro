@@ -172,11 +172,7 @@ Without `--apply`, the stage makes zero Langfuse calls.
 4. The stage prints one `plan:` line for each planned write. A line holds ids,
    the dataset name, the content hash, and counts. A line holds no item
    content.
-5. The stage reports `partial` with the cause `dry-run` and exits 4.
-
-The dispatcher skips a stage with a `complete` checkpoint on `--resume`. The
-`partial` status of a dry run therefore lets a later `publish --apply --resume`
-run on the same run directory.
+5. The stage reports `complete` and exits 0.
 
 ### Datasets and items
 
@@ -269,7 +265,7 @@ An interrupted `--apply` keeps each completed entry. A later
 `--retract` is for a synthetic test publication.
 
 - Without `--apply`, the stage prints one `plan:` line for each live item and
-  score entry, and exits 4 with the cause `dry-run`.
+  score entry, and exits 0.
 - With `--apply`, the stage deletes each live score entry, then each live item
   entry. The stage deletes no other record.
 - The stage sets `retractedAt` on each deleted entry, and writes the ledger
@@ -319,7 +315,7 @@ The result holds no credential.
 ## Pagination
 
 `client.listObservations(query, { cursor })`,
-`client.listSessionObservations(sessionId, { cursor })`, and
+`client.listSessionObservations(sessionId, { cursor, fromStartTime, toStartTime })`, and
 `client.listScores(query, { cursor })` read one page. Each method returns
 `{ items, cursor }`. `cursor` is `null` on the last page. Each method uses the
 same retries and the same redaction.
@@ -330,8 +326,13 @@ same retries and the same redaction.
   `--environment` from the query. The page size is 1000.
 - `listSessionObservations` sends `--session-id` and requests the field groups
   in `CONTENT_FIELDS`: `core`, `basic`, `time`, `io`, `metadata`, `model`,
-  `usage`, `metrics`, and `trace_context`. The page size is 100. The method
-  sends no window filter.
+  `usage`, `metrics`, and `trace_context`. The page size is 50, the API
+  default, because one page of `io` can hold many full message histories.
+- If the caller gives `fromStartTime` and `toStartTime`,
+  `listSessionObservations` sends `--from-start-time` and `--to-start-time`.
+- `listSessionObservations` sends `--expand-metadata` with the keys in
+  `EXPANDED_METADATA_KEYS`: `input_meta`, `output_meta`, `user_text`, and
+  `assistant_text`.
 - `listScores` requests the field group `subject` and the data types
   `NUMERIC`, `BOOLEAN`, and `CATEGORICAL`. The method never requests `TEXT`,
   `CORRECTION`, or the `details` group, because these hold free text. The page
@@ -351,9 +352,35 @@ an `observations list` call that requests one of these groups.
   `unsupported-operation`, and the adapter starts no process.
 - `listObservations` never requests `io` or `metadata`. The `inventory` stage
   stays metadata-only.
-- The adapter does not send `--expand-metadata`. The API truncates each
-  metadata value above 200 characters and documents no truncation marker.
-  `normalize` therefore never treats a metadata value as complete.
+- The Claude Code plugin records its truncation flag `truncated: true` in the
+  metadata keys `input_meta`, `output_meta`, `user_text`, and
+  `assistant_text`. The adapter expands these keys, so the API never cuts the
+  flag.
+- The API truncates each other metadata value above 200 characters and
+  documents no truncation marker. `normalize` therefore never treats another
+  metadata value as complete.
+
+### Session windows
+
+A content read without a time window failed on the dev deployment. Langfuse
+returned HTTP 422 with the message "Please narrow your request by adding more
+specific filters (e.g., a shorter date range)." `normalize` therefore sends a
+window on each content read.
+
+1. The window starts 1 hour before `firstSeenAt` and ends 1 hour after
+   `lastSeenAt` of the inventory record of the session.
+2. If the inventory record has no `firstSeenAt` or no `lastSeenAt`, the window
+   is the run window.
+3. `isNarrowRequest(error)` is `true` for an HTTP 422 whose message asks for a
+   narrower request. Each other HTTP 422 keeps the normal error rules.
+4. On a narrow-request HTTP 422, `normalize` splits the window into two halves
+   and reads each half. The stage merges the observations by id.
+5. The stage splits a window again until the window is 10 minutes or shorter.
+   A narrow-request HTTP 422 on such a window fails the stage with
+   `http-error`.
+6. `capture.window` in `normalized-sessions.jsonl` records `from`, `to`,
+   `source` (`inventory` or `run`), and `splits`. The value holds metadata
+   only.
 
 ## Errors
 

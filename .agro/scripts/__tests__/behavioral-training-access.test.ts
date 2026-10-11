@@ -8,8 +8,12 @@ import {
   CLI_PACKAGE,
   CONTENT_FIELDS,
   DEFAULT_BASE_URL,
+  EXPANDED_METADATA_KEYS,
+  LangfuseError,
   MAX_RETRIES,
+  SESSION_PAGE_LIMIT,
   createClient,
+  isNarrowRequest,
   redact,
   resolveBaseUrl,
   resolveConfigRoot,
@@ -373,6 +377,36 @@ describe("Langfuse adapter session content read", () => {
     }
     expect(CONTENT_FIELDS).toEqual(expect.arrayContaining(["io", "metadata"]));
     expect(b.cursor).toBe("cursor-page-2");
+  });
+
+  it("sends the session window, the page size, and the expanded metadata keys on a content read", async () => {
+    const { client, calls } = clientFor(healthyRoutes({ "observations list": ok(fixture("observations-page-2.json")) }));
+    await client.preflight();
+    await client.listSessionObservations("session-a", {
+      fromStartTime: "2026-10-02T09:00:00.000Z",
+      toStartTime: "2026-10-02T12:00:00.000Z",
+    });
+    const [call] = calls.filter((c) => c.operation === "observations list");
+    const flag = (name: string) => call.args[call.args.indexOf(name) + 1];
+    expect(flag("--from-start-time")).toBe("2026-10-02T09:00:00.000Z");
+    expect(flag("--to-start-time")).toBe("2026-10-02T12:00:00.000Z");
+    expect(flag("--limit")).toBe(String(SESSION_PAGE_LIMIT));
+    expect(SESSION_PAGE_LIMIT).toBe(50);
+    expect(flag("--expand-metadata")).toBe("input_meta,output_meta,user_text,assistant_text");
+    expect(EXPANDED_METADATA_KEYS).toEqual(["input_meta", "output_meta", "user_text", "assistant_text"]);
+  });
+
+  it("recognizes only the HTTP 422 that asks for a narrower request", async () => {
+    const narrow =
+      "Your query could not be completed. Please narrow your request by adding more specific filters (e.g., a shorter date range).";
+    const { client } = clientFor(healthyRoutes({ "observations list": { exitCode: 5, stdout: envelope(422, { message: narrow }) } }));
+    await client.preflight();
+    const failure = await client.listSessionObservations("session-a").catch((err: unknown) => err);
+    expect(failure).toBeInstanceOf(LangfuseError);
+    expect(isNarrowRequest(failure)).toBe(true);
+    expect(isNarrowRequest(new LangfuseError("http-error", "observations list: HTTP 422: synthetic cursor rejection", 422))).toBe(false);
+    expect(isNarrowRequest(new LangfuseError("http-error", "observations list: HTTP 500: narrow your request", 500))).toBe(false);
+    expect(isNarrowRequest(new Error("narrow your request"))).toBe(false);
   });
 
   it("retries a session content read like each other read", async () => {

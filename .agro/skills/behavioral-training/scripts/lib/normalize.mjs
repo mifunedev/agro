@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { HARNESSES } from "./inventory.mjs";
-import { LangfuseError } from "./langfuse.mjs";
+import { LangfuseError, isNarrowRequest } from "./langfuse.mjs";
 import { RunStoreError, sha256File } from "./run-store.mjs";
 
 export const SAMPLE_FILE = "sample.json";
@@ -9,6 +9,8 @@ export const INVENTORY_FILE = "inventory.jsonl";
 export const NORMALIZED_FILE = "normalized-sessions.jsonl";
 
 export const CAPTURE_LIMITS = Object.freeze([20000]);
+export const WINDOW_MARGIN_MS = 60 * 60 * 1000;
+export const MIN_WINDOW_MS = 10 * 60 * 1000;
 
 export const TRUNCATION_MARKERS = Object.freeze([
   Object.freeze({ source: "claude-code", field: "metadata", marker: "an object in metadata holds truncated: true" }),
@@ -32,6 +34,9 @@ export const help = [
   "a Claude Code metadata flag truncated: true, or a Codex suffix …[truncated <n> chars].",
   "A value at a capture limit (20000 characters) without a marker makes capture.complete unknown.",
   "A session larger than --max-bytes splits into chunks { index, count }; an event is never cut.",
+  "Each session read uses the inventory firstSeenAt minus 1 hour to lastSeenAt plus 1 hour, or the run",
+  "window when the inventory lacks a timestamp. An HTTP 422 that asks for a narrower request splits the",
+  "window in halves down to 10 minutes. capture.window records { from, to, source, splits }.",
   "Exit 1: a read failed; finished sessions stay in the file and --resume fetches only the rest.",
   "Exit 4: --max-sessions stopped the run; --resume with a larger budget continues.",
 ].join("\n");
@@ -252,7 +257,7 @@ function dedupe(events) {
   }
 }
 
-function captureOf(rows, { sessionId, expected, traceIds }) {
+function captureOf(rows, { sessionId, expected, traceIds, window }) {
   const missing = [];
   const ids = new Set(rows.map((row) => row.id));
   const reportedParents = new Set();
@@ -289,7 +294,7 @@ function captureOf(rows, { sessionId, expected, traceIds }) {
   }
   const truncated = missing.some((item) => item.kind === "truncated");
   const complete = missing.some((item) => KNOWN_GAPS.has(item.kind)) ? false : missing.length > 0 ? "unknown" : true;
-  return { truncated, complete, missing };
+  return { truncated, complete, missing, window };
 }
 
 function tracesOf(rows) {
@@ -336,7 +341,7 @@ function chunked(base, events, maxBytes) {
   }));
 }
 
-export function normalizeSession(observations, { sessionId, projectId, baseUrl, maxBytes, expected = null }) {
+export function normalizeSession(observations, { sessionId, projectId, baseUrl, maxBytes, expected = null, window = null }) {
   const unique = new Map();
   for (const observation of observations) {
     if (observation && observation.id !== undefined && observation.id !== null && !unique.has(String(observation.id))) {
@@ -346,7 +351,7 @@ export function normalizeSession(observations, { sessionId, projectId, baseUrl, 
   const sources = [...unique.values()];
   const rows = chronological(sources.map((o) => ({ ...shape(o), raw: { input: o.input ?? null, output: o.output ?? null } })));
   const traces = tracesOf(rows);
-  const capture = captureOf(rows, { sessionId, expected, traceIds: traces.map((t) => t.traceId) });
+  const capture = captureOf(rows, { sessionId, expected, traceIds: traces.map((t) => t.traceId), window });
   const events = rows.map((row) => ({
     observationId: row.id,
     traceId: row.traceId,
@@ -387,22 +392,48 @@ export function normalizeSession(observations, { sessionId, projectId, baseUrl, 
   return chunked(base, events, maxBytes);
 }
 
-async function fetchSession(client, sessionId) {
-  const byId = new Map();
+export function sessionWindow(record, runWindow) {
+  const first = time(record?.firstSeenAt);
+  const last = time(record?.lastSeenAt);
+  if (first === null || last === null) return { from: runWindow.since, to: runWindow.until, source: "run" };
+  return {
+    from: new Date(first - WINDOW_MARGIN_MS).toISOString(),
+    to: new Date(last + WINDOW_MARGIN_MS).toISOString(),
+    source: "inventory",
+  };
+}
+
+async function readWindow(client, sessionId, from, to, byId, stats) {
   let cursor = null;
-  do {
-    const page = await client.listSessionObservations(sessionId, { cursor });
-    if (!page || !Array.isArray(page.items)) throw new LangfuseError("bad-response", "observations list: the page holds no item list");
-    for (const item of page.items) {
-      if (item && item.id !== undefined && item.id !== null && !byId.has(String(item.id))) byId.set(String(item.id), item);
-    }
-    const next = page.cursor ?? null;
-    if (next !== null && next === cursor) {
-      throw new LangfuseError("bad-response", "observations list: the next cursor repeats the current cursor");
-    }
-    cursor = next;
-  } while (cursor !== null);
-  return [...byId.values()];
+  try {
+    do {
+      const page = await client.listSessionObservations(sessionId, { cursor, fromStartTime: from, toStartTime: to });
+      if (!page || !Array.isArray(page.items)) throw new LangfuseError("bad-response", "observations list: the page holds no item list");
+      for (const item of page.items) {
+        if (item && item.id !== undefined && item.id !== null && !byId.has(String(item.id))) byId.set(String(item.id), item);
+      }
+      const next = page.cursor ?? null;
+      if (next !== null && next === cursor) {
+        throw new LangfuseError("bad-response", "observations list: the next cursor repeats the current cursor");
+      }
+      cursor = next;
+    } while (cursor !== null);
+  } catch (err) {
+    const start = Date.parse(from);
+    const end = Date.parse(to);
+    if (!isNarrowRequest(err) || !(end - start > MIN_WINDOW_MS)) throw err;
+    const middle = new Date(start + Math.floor((end - start) / 2)).toISOString();
+    stats.splits += 1;
+    await readWindow(client, sessionId, from, middle, byId, stats);
+    await readWindow(client, sessionId, middle, to, byId, stats);
+  }
+}
+
+async function fetchSession(client, sessionId, window) {
+  const byId = new Map();
+  const stats = { splits: 0 };
+  await readWindow(client, sessionId, window.from, window.to, byId, stats);
+  return { observations: [...byId.values()], window: { ...window, splits: stats.splits } };
 }
 
 function restore(ctx, { projectId, sampleChecksum, sampled }) {
@@ -482,13 +513,15 @@ export async function run(ctx) {
     let records;
     try {
       client ??= await ctx.langfuse();
-      const observations = await fetchSession(client, sessionId);
-      records = normalizeSession(observations, {
+      const record = expected.get(sessionId) ?? null;
+      const read = await fetchSession(client, sessionId, sessionWindow(record, ctx.options));
+      records = normalizeSession(read.observations, {
         sessionId,
         projectId,
         baseUrl,
         maxBytes: ctx.options.maxBytes,
-        expected: expected.get(sessionId) ?? null,
+        expected: record,
+        window: read.window,
       });
     } catch (err) {
       if (!(err instanceof LangfuseError)) throw err;

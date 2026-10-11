@@ -8,14 +8,21 @@ import { LangfuseError } from "../../skills/behavioral-training/scripts/lib/lang
 import { createManifest, writeManifest } from "../../skills/behavioral-training/scripts/lib/run-store.mjs";
 import * as normalize from "../../skills/behavioral-training/scripts/lib/normalize.mjs";
 
-const { CAPTURE_LIMITS, TRUNCATION_MARKERS, normalizeSession } = normalize;
+const { CAPTURE_LIMITS, MIN_WINDOW_MS, TRUNCATION_MARKERS, WINDOW_MARGIN_MS, normalizeSession, sessionWindow } = normalize;
 
 const fixtureDir = join(import.meta.dirname, "fixtures/behavioral-training/normalize");
 const load = (name: string): any[] => JSON.parse(readFileSync(join(fixtureDir, name), "utf8"));
 
 const BASE_URL = "https://langfuse.example.test";
 const PROJECT = "proj-synthetic";
-const ccExpected = { sessionId: "sess-cc", projectId: PROJECT, traceIds: ["trace-cc-1", "trace-cc-2"], observationCount: 8 };
+const ccExpected = {
+  sessionId: "sess-cc",
+  projectId: PROJECT,
+  traceIds: ["trace-cc-1", "trace-cc-2"],
+  observationCount: 8,
+  firstSeenAt: "2026-10-02T10:00:00.000Z",
+  lastSeenAt: "2026-10-02T10:05:04.000Z",
+};
 const cxExpected = { sessionId: "sess-cx", projectId: PROJECT, traceIds: ["trace-cx-1"], observationCount: 4 };
 
 const scratch: string[] = [];
@@ -88,7 +95,7 @@ describe("normalizeSession", () => {
     expect(record.models).toEqual(["model-alpha", "model-beta"]);
     expect(record.costUsd).toBeCloseTo(0.06, 10);
     expect(record.tokens).toEqual({ input: 600, output: 27, total: 627 });
-    expect(record.capture).toEqual({ truncated: false, complete: true, missing: [] });
+    expect(record.capture).toEqual({ truncated: false, complete: true, missing: [], window: null });
   });
 
   it("orders tool calls after their generation and breaks start-time ties by parent depth, then id", () => {
@@ -168,6 +175,7 @@ describe("normalizeSession", () => {
       truncated: true,
       complete: false,
       missing: [{ kind: "truncated", observationId: "cc-tool-1", field: "metadata" }],
+      window: null,
     });
   });
 
@@ -183,12 +191,13 @@ describe("normalizeSession", () => {
       truncated: false,
       complete: "unknown",
       missing: [{ kind: "capture-limit", observationId: "cc-tool-1", field: "output", length: 20000 }],
+      window: null,
     });
   });
 
   it("marks completeness unknown when no inventory record can confirm the session", () => {
     const record = single(load("claude-code-session.json"), { sessionId: "sess-cc", expected: null });
-    expect(record.capture).toEqual({ truncated: false, complete: "unknown", missing: [{ kind: "inventory-record", sessionId: "sess-cc" }] });
+    expect(record.capture).toEqual({ truncated: false, complete: "unknown", missing: [{ kind: "inventory-record", sessionId: "sess-cc" }], window: null });
   });
 
   it("marks completeness false and lists missing parents, traces, and observations", () => {
@@ -253,7 +262,7 @@ describe("normalizeSession", () => {
     ];
     const record = single(observations, { expected: { sessionId: "s", traceIds: ["t"], observationCount: 2 } });
     expect(record.events.map((e: any) => e.observationId)).toEqual(["early", "late"]);
-    expect(record.capture).toEqual({ truncated: false, complete: "unknown", missing: [{ kind: "start-time", observationId: "late" }] });
+    expect(record.capture).toEqual({ truncated: false, complete: "unknown", missing: [{ kind: "start-time", observationId: "late" }], window: null });
   });
 
   it("sets the task group and attempt only from explicit metadata", () => {
@@ -291,18 +300,46 @@ describe("normalizeSession", () => {
   });
 });
 
+describe("sessionWindow", () => {
+  const runWindow = { since: "2026-10-01T00:00:00.000Z", until: "2026-10-08T00:00:00.000Z" };
+
+  it("widens the inventory first and last timestamps by one hour", () => {
+    expect(WINDOW_MARGIN_MS).toBe(60 * 60 * 1000);
+    expect(sessionWindow(ccExpected, runWindow)).toEqual({
+      from: "2026-10-02T09:00:00.000Z",
+      to: "2026-10-02T11:05:04.000Z",
+      source: "inventory",
+    });
+  });
+
+  it("falls back to the run window when the inventory lacks a timestamp", () => {
+    expect(sessionWindow({ ...ccExpected, lastSeenAt: null }, runWindow)).toEqual({ ...{ from: runWindow.since, to: runWindow.until }, source: "run" });
+    expect(sessionWindow(null, runWindow)).toEqual({ from: runWindow.since, to: runWindow.until, source: "run" });
+  });
+
+  it("records the window in capture", () => {
+    const window = { from: "2026-10-02T09:00:00.000Z", to: "2026-10-02T11:05:04.000Z", source: "inventory", splits: 0 };
+    expect(single(load("claude-code-session.json"), { expected: ccExpected, window }).capture.window).toEqual(window);
+  });
+});
+
 describe("normalize stage", () => {
   type Page = { items: any[]; cursor: string | null };
 
-  function fakeClient(pages: Record<string, Page[] | Error>) {
-    const calls: Array<{ sessionId: string; cursor: string | null }> = [];
+  type Read = { cursor?: string | null; fromStartTime?: string | null; toStartTime?: string | null };
+  type Source = Page[] | Error | ((read: Read) => Page);
+
+  function fakeClient(pages: Record<string, Source>) {
+    const calls: Array<{ sessionId: string; cursor: string | null; from: string | null; to: string | null }> = [];
     return {
       calls,
       client: {
-        async listSessionObservations(sessionId: string, { cursor = null }: { cursor?: string | null } = {}) {
-          calls.push({ sessionId, cursor });
+        async listSessionObservations(sessionId: string, read: Read = {}) {
+          const cursor = read.cursor ?? null;
+          calls.push({ sessionId, cursor, from: read.fromStartTime ?? null, to: read.toStartTime ?? null });
           const source = pages[sessionId];
           if (source instanceof Error) throw source;
+          if (typeof source === "function") return source(read);
           if (!source) return { items: [], cursor: null };
           const index = cursor === null ? 0 : Number(cursor.slice(1));
           return source[index];
@@ -374,15 +411,19 @@ describe("normalize stage", () => {
     const fake = fakeClient({ "sess-cc": paged(load("claude-code-session.json"), 3), "sess-cx": paged(load("codex-session.json"), 10) });
     const result = await normalizeRun(runDir, fake.client);
     expect(result.code).toBe(EXIT.complete);
+    const cxWindow = { from: "2026-10-01T00:00:00.000Z", to: "2026-10-08T00:00:00.000Z" };
+    const ccWindow = { from: "2026-10-02T09:00:00.000Z", to: "2026-10-02T11:05:04.000Z" };
     expect(fake.calls).toEqual([
-      { sessionId: "sess-cx", cursor: null },
-      { sessionId: "sess-cc", cursor: null },
-      { sessionId: "sess-cc", cursor: "p1" },
-      { sessionId: "sess-cc", cursor: "p2" },
+      { sessionId: "sess-cx", cursor: null, ...cxWindow },
+      { sessionId: "sess-cc", cursor: null, ...ccWindow },
+      { sessionId: "sess-cc", cursor: "p1", ...ccWindow },
+      { sessionId: "sess-cc", cursor: "p2", ...ccWindow },
     ]);
     const written = records(runDir);
     expect(written.map((r: any) => r.sessionId)).toEqual(["sess-cx", "sess-cc"]);
     expect(written[1].capture.complete).toBe(true);
+    expect(written[0].capture.window).toEqual({ ...cxWindow, source: "run", splits: 0 });
+    expect(written[1].capture.window).toEqual({ ...ccWindow, source: "inventory", splits: 0 });
     expect(written[1].events).toHaveLength(8);
     expect(statSync(join(runDir, "normalized-sessions.jsonl")).mode & 0o777).toBe(0o600);
     expect(result.checkpoint.status).toBe("complete");
@@ -446,6 +487,59 @@ describe("normalize stage", () => {
     expect((await normalizeRun(runDir, second.client, ["--max-sessions", "5"])).code).toBe(EXIT.complete);
     expect(second.calls.map((c) => c.sessionId)).toEqual(["sess-cx"]);
     expect(records(runDir).map((r: any) => r.sessionId)).toEqual(["sess-cc", "sess-cx"]);
+  });
+
+  const narrow = () =>
+    new LangfuseError(
+      "http-error",
+      "observations list: HTTP 422 after 1 retry: Your query could not be completed. Please narrow your request by adding more specific filters (e.g., a shorter date range).",
+      422,
+    );
+
+  function windowed(items: any[], maxSpanMs: number) {
+    return (read: Read): Page => {
+      const from = Date.parse(read.fromStartTime as string);
+      const to = Date.parse(read.toStartTime as string);
+      if (to - from > maxSpanMs) throw narrow();
+      return { items: items.filter((o) => Date.parse(o.startTime) >= from && Date.parse(o.startTime) < to), cursor: null };
+    };
+  }
+
+  it("splits the window in halves on a narrow-request HTTP 422 and merges the halves by observation id", async () => {
+    const runDir = setup({ sessions: ["sess-cc"] });
+    const fake = fakeClient({ "sess-cc": windowed(load("claude-code-session.json"), 60 * 60 * 1000) });
+    const result = await normalizeRun(runDir, fake.client);
+    expect(result.code).toBe(EXIT.complete);
+    const [record] = records(runDir);
+    expect(record.events).toHaveLength(8);
+    expect(record.capture.complete).toBe(true);
+    expect(record.capture.window).toEqual({ from: "2026-10-02T09:00:00.000Z", to: "2026-10-02T11:05:04.000Z", source: "inventory", splits: 3 });
+    const leaves = fake.calls.filter((c) => Date.parse(c.to as string) - Date.parse(c.from as string) <= 60 * 60 * 1000);
+    expect(fake.calls).toHaveLength(7);
+    expect(leaves).toHaveLength(4);
+    expect(leaves[0].from).toBe("2026-10-02T09:00:00.000Z");
+    expect(leaves.at(-1)?.to).toBe("2026-10-02T11:05:04.000Z");
+    leaves.slice(1).forEach((leaf, i) => expect(leaf.from).toBe(leaves[i].to));
+  });
+
+  it("fails with the HTTP 422 cause when a window at the minimum span still asks for a narrower request", async () => {
+    expect(MIN_WINDOW_MS).toBe(10 * 60 * 1000);
+    const runDir = setup({ sessions: ["sess-cc", "sess-cx"] });
+    const fake = fakeClient({ "sess-cc": paged(load("claude-code-session.json"), 100), "sess-cx": windowed(load("codex-session.json"), 0) });
+    const result = await normalizeRun(runDir, fake.client);
+    expect(result.code).toBe(EXIT.failed);
+    expect(result.checkpoint.cause).toBe("http-error");
+    const spans = fake.calls.filter((c) => c.sessionId === "sess-cx").map((c) => Date.parse(c.to as string) - Date.parse(c.from as string));
+    expect(Math.min(...spans)).toBeGreaterThan(MIN_WINDOW_MS / 2);
+    expect(Math.min(...spans)).toBeLessThanOrEqual(MIN_WINDOW_MS);
+    expect(records(runDir).map((r: any) => r.sessionId)).toEqual(["sess-cc"]);
+  });
+
+  it("does not split the window on another HTTP 422", async () => {
+    const runDir = setup({ sessions: ["sess-cc"] });
+    const fake = fakeClient({ "sess-cc": new LangfuseError("http-error", "observations list: HTTP 422 after 1 retry: synthetic cursor rejection", 422) });
+    expect((await normalizeRun(runDir, fake.client)).code).toBe(EXIT.failed);
+    expect(fake.calls).toHaveLength(1);
   });
 
   it("fails with bad-response when the adapter repeats a cursor", async () => {

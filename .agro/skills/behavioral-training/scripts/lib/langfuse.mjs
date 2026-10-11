@@ -11,7 +11,9 @@ export const OBSERVATION_FIELDS = Object.freeze(["core", "basic", "model", "usag
 export const CONTENT_FIELDS = Object.freeze(["core", "basic", "time", "io", "metadata", "model", "usage", "metrics", "trace_context"]);
 export const CONTENT_FIELD_GROUPS = Object.freeze(["io", "metadata"]);
 export const OBSERVATION_PAGE_LIMIT = 1000;
-export const SESSION_PAGE_LIMIT = 100;
+export const SESSION_PAGE_LIMIT = 50;
+export const EXPANDED_METADATA_KEYS = Object.freeze(["input_meta", "output_meta", "user_text", "assistant_text"]);
+const NARROW_REQUEST = /narrow your request/i;
 export const SCORE_PAGE_LIMIT = 100;
 export const SCORE_DATA_TYPES = Object.freeze(["NUMERIC", "BOOLEAN", "CATEGORICAL"]);
 
@@ -50,6 +52,10 @@ export class LangfuseError extends Error {
     this.cause = cause;
     this.status = status;
   }
+}
+
+export function isNarrowRequest(error) {
+  return error instanceof LangfuseError && error.status === 422 && NARROW_REQUEST.test(error.message);
 }
 
 export function redact(text) {
@@ -320,7 +326,10 @@ export function createClient(ctx, { runner = spawnRunner, sleep = defaultSleep }
     return page(body, "observations list");
   }
 
-  async function listSessionObservations(sessionId, { cursor = null, limit = SESSION_PAGE_LIMIT } = {}) {
+  async function listSessionObservations(
+    sessionId,
+    { cursor = null, limit = SESSION_PAGE_LIMIT, fromStartTime = null, toStartTime = null } = {},
+  ) {
     if (typeof sessionId !== "string" || sessionId.length === 0) {
       throw new LangfuseError("unsupported-operation", "observations list: a content read needs one session id");
     }
@@ -328,6 +337,9 @@ export function createClient(ctx, { runner = spawnRunner, sleep = defaultSleep }
       fields: CONTENT_FIELDS.join(","),
       limit,
       "session-id": sessionId,
+      "from-start-time": fromStartTime,
+      "to-start-time": toStartTime,
+      "expand-metadata": EXPANDED_METADATA_KEYS.join(","),
       cursor,
     });
     return page(body, "observations list");
