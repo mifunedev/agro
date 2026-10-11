@@ -1,8 +1,19 @@
 ---
 name: supervisor
 description: |
-  Supervise, babysit, watch, or drive advisor sessions from outside them. Run or drive an agent in another pane, including a second-pane build, and own a long build through its Definition of Done. Handle advisor briefs, compaction decisions, escalation routes, and status questions. Require MonitorCreate with onDone for observation and waits; use MonitorList and MonitorStop for handles. Never poll or use LoopCreate. Use Herdr only for launch and guarded downward steering. Block reverse Herdr messages. Do not write or review code. Own context budgets and operator escalation. Do NOT trigger for active-session implementation, code review, bounded worker dispatch via /delegate, or one-off `herdr` commands (use /herdr).
-allowed-tools: Bash, Read, Grep, MonitorCreate, MonitorList, MonitorStop
+  Supervise, babysit, watch, or drive advisor sessions from outside them.
+  Run or drive an agent in another pane, including a second-pane build, and
+  own a long build through its Definition of Done. Handle advisor briefs,
+  compaction decisions, escalation routes, and status questions. Require a
+  bounded background monitor with a completion notice for observation and
+  waits; use the harness stop and list operations for handles (Claude Code:
+  Monitor, TaskStop; Pi: MonitorCreate, MonitorList, MonitorStop). Never poll
+  or use LoopCreate. Use Herdr only for launch and guarded downward steering.
+  Block reverse Herdr messages. Do not write or review code. Own context
+  budgets and operator escalation. Do NOT trigger for active-session
+  implementation, code review, bounded worker dispatch via /delegate, or
+  one-off `herdr` commands (use /herdr).
+allowed-tools: Bash, Read, Grep, Monitor, TaskStop, MonitorCreate, MonitorList, MonitorStop
 ---
 
 # Supervisor
@@ -20,16 +31,16 @@ Read the role boundary before any procedure.
 - The supervisor changes no file the advisor owns.
 - The supervisor stays accountable for the advisor reaching its Definition of
   Done.
-- Require `MonitorCreate`, `MonitorList`, and `MonitorStop` before launching or
-  claiming supervision. If any tool is unavailable, stop and report the blocker.
-- Use `MonitorCreate` with `onDone` for all advisor observation, readiness waits,
-  status checks, output reads, and progress or evidence reads.
+- Before launching or claiming supervision, confirm the monitor capabilities
+  that § Monitor capabilities names.
+- Use the bounded monitor for all advisor observation, readiness waits, status
+  checks, output reads, and progress or evidence reads.
 - Never call `LoopCreate`, including event variants. Never use a recurring
   scheduler, shell polling, sleep loops, or a blocking Bash wait fallback.
 - Use inline Herdr commands only for launch and guarded downward steering.
   Short launch, working-directory, and send-target checks can use Bash as action
   prerequisites. These checks are not a monitoring fallback.
-  Run all Herdr observation commands through `MonitorCreate`.
+  Run all Herdr observation commands through the bounded monitor.
 - Advisors and workers must not send Herdr messages back to the supervisor.
   This ban includes direct sends, `/escalate --supervisor`, inherited destinations,
   and relays. Workers report to the advisor through native worker output only.
@@ -52,6 +63,35 @@ for worker limits and model policy. Restate neither here.
 
 `/prd` owns the contract documents. `/herdr` owns the full pane command catalog. `/escalate`
 owns the operator channel. `/ste` owns the prose of every artifact.
+
+## Monitor capabilities
+
+The supervisor requires three harness capabilities:
+
+1. **A bounded monitor.** The bounded monitor runs one finite command in the
+   background, enforces a timeout, and delivers a completion notice when the
+   command exits or times out.
+2. **A stop operation.** The stop operation ends one monitor by its handle.
+3. **A list operation.** The list operation reports the active monitor handles.
+
+This section holds the only mapping from capabilities to harness tools.
+
+| Capability | Claude Code | Pi with `@trevonistrevon/pi-loop` |
+|---|---|---|
+| Bounded monitor | `Monitor` with `timeout_ms` | `MonitorCreate` with `timeout` and `onDone` |
+| Stop operation | `TaskStop` | `MonitorStop` |
+| List operation | None | `MonitorList` |
+
+Each monitor example in this skill gives a command, a description, a timeout,
+and a completion instruction. In Pi, pass the completion instruction as the
+`onDone` value. In Claude Code, when the completion notice arrives, apply the
+completion instruction.
+
+If the harness has no bounded monitor with a completion notice, do not launch
+or claim supervision. Stop and report the blocker.
+
+If the harness has no list operation, reconcile handles from the run record.
+The run record then holds the only handle inventory.
 
 ## Duty 1 — start an advisor session
 
@@ -103,16 +143,24 @@ command on every restart.
 herdr pane run w7:p4 "env -u AGRO_SUPERVISOR_PANE claude --dangerously-skip-permissions"
 ```
 
-Submit this finite readiness command through `MonitorCreate`, not inline Bash.
-Record its handle as Duty 3 requires. Inspect the mode before briefing.
+Submit this finite readiness command through the bounded monitor, not inline
+Bash. Record its handle as Duty 3 requires. Inspect the mode before briefing.
 
-```json
-{
-  "command": "bash -c 'set +e; herdr agent wait w7:p4 --status idle --timeout 90000; wait_rc=$?; herdr agent list; list_rc=$?; herdr pane read w7:p4 --source recent --lines 5; read_rc=$?; printf \"\\nwait_rc=%s\\nlist_rc=%s\\nread_rc=%s\\n\" \"$wait_rc\" \"$list_rc\" \"$read_rc\"; exit \"$wait_rc\"'",
-  "description": "advisor-1 readiness at w7:p4",
-  "timeout": 120000,
-  "onDone": "Reconcile this monitor ID with advisor-1 at w7:p4. Check wait_rc, list_rc, read_rc, and required status/output under Duty 3. On any snapshot failure or missing required output, do not brief, steer, or re-arm; report a blocker. A timeout remains an inspection checkpoint. Verify root and bypass mode before the first brief. Startup idle is not brief completion. Do not retry or relaunch automatically."
-}
+```bash
+bash -c 'set +e; herdr agent wait w7:p4 --status idle --timeout 90000; wait_rc=$?; herdr agent list; list_rc=$?; herdr pane read w7:p4 --source recent --lines 5; read_rc=$?; printf "\nwait_rc=%s\nlist_rc=%s\nread_rc=%s\n" "$wait_rc" "$list_rc" "$read_rc"; exit "$wait_rc"'
+```
+
+- Description: `advisor-1 readiness at w7:p4`.
+- Timeout: 120000 milliseconds.
+- Completion instruction:
+
+```text
+Reconcile this monitor ID with advisor-1 at w7:p4. Check wait_rc, list_rc,
+read_rc, and required status/output under Duty 3. On any snapshot failure or
+missing required output, do not brief, steer, or re-arm; report a blocker.
+A timeout remains an inspection checkpoint. Verify root and bypass mode before
+the first brief. Startup idle is not brief completion. Do not retry or
+relaunch automatically.
 ```
 
 The status line reports the mode in this shape:
@@ -228,21 +276,30 @@ instructions.
 ## Duty 3 — monitor
 
 Never attach. `herdr agent attach` takes over the operator's client.
-Submit observation commands through `MonitorCreate`; never run observation inline.
-Keep one active monitor per advisor, including readiness and artifact reads.
-Record the monitor ID, advisor pane ID, contract path, and expected wait state
-in the supervisor's run record.
+Submit observation commands through the bounded monitor; never run observation
+inline. Keep one active monitor per advisor, including readiness and artifact
+reads. Record the monitor ID, advisor pane ID, contract path, and expected wait
+state in the supervisor's run record.
 
-For a working advisor, submit this `MonitorCreate` call. Substitute the owned
-pane and contract before submission.
+For a working advisor, submit this command through the bounded monitor.
+Substitute the owned pane and contract before submission.
 
-```json
-{
-  "command": "bash -c 'set +e; herdr agent wait w6:p7 --status idle --timeout 900000; wait_rc=$?; herdr agent list; list_rc=$?; herdr pane read w6:p7 --source recent --lines 120; read_rc=$?; printf \"\\nwait_rc=%s\\nlist_rc=%s\\nread_rc=%s\\n\" \"$wait_rc\" \"$list_rc\" \"$read_rc\"; exit \"$wait_rc\"'",
-  "description": "advisor at w6:p7: bounded idle wait",
-  "timeout": 930000,
-  "onDone": "Reconcile this monitor ID, pane w6:p7, and the recorded contract. Check wait_rc, list_rc, read_rc, and required status/output under Duty 3. On any snapshot failure or missing required output, do not brief, steer, or re-arm; report a blocker. A timeout remains an inspection checkpoint. Review fresh artifacts. Judge completion, context, and blockers. Re-arm only after judgment if unfinished and unblocked; otherwise stop. Never infer Definition of Done from idle or the wait exit."
-}
+```bash
+bash -c 'set +e; herdr agent wait w6:p7 --status idle --timeout 900000; wait_rc=$?; herdr agent list; list_rc=$?; herdr pane read w6:p7 --source recent --lines 120; read_rc=$?; printf "\nwait_rc=%s\nlist_rc=%s\nread_rc=%s\n" "$wait_rc" "$list_rc" "$read_rc"; exit "$wait_rc"'
+```
+
+- Description: `advisor at w6:p7: bounded idle wait`.
+- Timeout: 930000 milliseconds.
+- Completion instruction:
+
+```text
+Reconcile this monitor ID, pane w6:p7, and the recorded contract. Check
+wait_rc, list_rc, read_rc, and required status/output under Duty 3. On any
+snapshot failure or missing required output, do not brief, steer, or re-arm;
+report a blocker. A timeout remains an inspection checkpoint. Review fresh
+artifacts. Judge completion, context, and blockers. Re-arm only after judgment
+if unfinished and unblocked; otherwise stop. Never infer Definition of Done
+from idle or the wait exit.
 ```
 
 The Herdr wait blocks server-side for at most 900000 milliseconds. The monitor
@@ -256,8 +313,9 @@ even if partial output looks valid. Missing labels or required status/output
 also block these actions. A monitor timeout can interrupt the command before
 labels appear; never treat absent labels as zero.
 `herdr pane read` returns plain text. `herdr agent list` returns JSON.
-`onDone` can internally schedule a completion wake. Never add a separate
-`LoopCreate` call or claim monitor persistence beyond the `MonitorCreate` contract.
+The completion notice can wake the supervisor. Never add a separate
+`LoopCreate` call or claim monitor persistence beyond the bounded monitor
+contract.
 
 ### Choose the next observation
 
@@ -298,14 +356,16 @@ fidelity and completion from these artifacts, not from pane claims. Review no co
 
 ### Reconcile handles and resume
 
-Use `MonitorList` before creating or replacing a monitor. Match each handle to
-its recorded pane and contract. Use `MonitorStop` to stop duplicate or obsolete
-handles before creating a replacement. Stop remaining handles at terminal states.
+Before creating or replacing a monitor, list the active handles with the list
+operation. Match each handle to its recorded pane and contract. Before creating
+a replacement, stop duplicate or obsolete handles with the stop operation. Stop
+remaining handles at terminal states.
 
-On a late callback, compare its monitor ID with the current record. Ignore stale
-callbacks for steering and re-arming. After a supervisor restart, reconcile
-`MonitorList` with the record. Keep a matching active monitor and review its
-output when it completes. Then inspect fresh artifacts through a finite monitor.
+On a late completion notice, compare its monitor ID with the current record.
+Ignore stale completion notices for steering and re-arming. After a supervisor
+restart, reconcile the output of the list operation with the record. Keep a
+matching active monitor and review its output when it completes. Then inspect
+fresh artifacts through a finite monitor.
 If no matching monitor exists, inspect the pane and artifacts through one finite
 monitor before deciding the next wait. Never duplicate a launch because a monitor
 handle is missing. Herdr session persistence does not prove monitor persistence.
@@ -465,7 +525,7 @@ must revert the work and stop.
 
 **9. A reverse message can remain in the supervisor's input.**
 Symptom: the supervisor sees no actionable completion notice. Cause: reverse
-Herdr text enters an input buffer instead of a monitor completion callback.
+Herdr text enters an input buffer instead of a monitor completion notice.
 Correction: prohibit advisor and worker reverse sends. Read their output and
 artifacts through monitors; keep operator escalation with the supervisor.
 
