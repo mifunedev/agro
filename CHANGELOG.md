@@ -13,6 +13,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 - Set `CC_LANGFUSE_CAPTURE_IMAGES=false` in the project Claude Code settings, so the Langfuse plugin no longer uploads transcript images from sessions in this repository ([#1375](https://github.com/mifunedev/agro/issues/1375)).
+- Document the generated `SANDBOX_PASSWORD` and `agro secret get SANDBOX_PASSWORD`, per ADR #1378 ([#1379](https://github.com/mifunedev/agro/issues/1379)).
 
 ### Removed
 - Remove the Claude Code `Stop` hook from project settings, so Claude Code no longer runs `notify_slack.sh` after every turn ([#1373](https://github.com/mifunedev/agro/issues/1373)).

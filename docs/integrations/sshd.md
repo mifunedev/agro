@@ -12,8 +12,8 @@ sandboxes on one VM.
 
 SSH is off by default. When you turn it on, the host port binds to loopback
 only. `sshd` accepts public keys only and refuses `root`. Password auth is
-opt-in. Two choices weaken this posture, and you own both: a `0.0.0.0` bind in
-your own overlay, and password auth with the default password.
+opt-in. One choice weakens this posture, and you own it: a `0.0.0.0` bind in
+your own overlay.
 
 ## 1. Prerequisites
 
@@ -108,12 +108,13 @@ host.
 ## 5. Optional: password auth
 
 Use key auth when you can. Password auth uses the `SANDBOX_PASSWORD` secret of
-the `sandbox` user.
+the `sandbox` user. `agro sandbox install docker` generates a random
+32-character `SANDBOX_PASSWORD` for each sandbox. Run
+`agro secret get SANDBOX_PASSWORD --sandbox <name>` to read the generated value.
 
-> **Warning.** The default `SANDBOX_PASSWORD` is `test1234`, which is weak and
-> public. Before you turn on password auth, set a strong password with
-> `agro secret set SANDBOX_PASSWORD --sandbox <name>`. Never turn on password auth
-> on a `0.0.0.0` bind while the password is the default.
+> **Warning.** Never turn on password auth on a `0.0.0.0` bind. Set a password
+> of your own choice with `agro secret set SANDBOX_PASSWORD --sandbox <name>`
+> if you do not want the generated value.
 
 ```bash
 agro config set access.sshPasswordAuth true --sandbox <name>
