@@ -662,9 +662,9 @@ Each entry holds `key`, `kind`, `dataset`, `remoteId`, `contentHash`,
 If the ledger records another project, prefix, dataset version, or rubric
 version, `publish` fails with the cause `ledger-mismatch`. The item write
 puts `correction` in `expectedOutput`. The score names are
-`behavior.<dimension>.human` with the source `ANNOTATION`, and
-`behavior.<dimension>.judge` or `behavior.<dimension>.agent` with the source
-`API`. The score metadata holds `calibrationStatus` for an automated label.
+`behavior.<dimension>.human`, `behavior.<dimension>.judge`, and
+`behavior.<dimension>.agent`. Each score holds the source `API`. The score
+metadata holds `calibrationStatus` for an automated label.
 
 ### `report.json` and `report.md`
 

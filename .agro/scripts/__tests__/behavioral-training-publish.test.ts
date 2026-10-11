@@ -378,7 +378,11 @@ describe("publish scores", () => {
       expect(score.observationId).toBeUndefined();
       expect(score.comment).toBeUndefined();
     }
-    for (const score of byName("behavior.task-completion.human")) expect(score).toMatchObject({ source: "ANNOTATION", metadata: { labelKind: "human" } });
+    for (const score of scores) {
+      expect(score.source).toBe("API");
+      expect(score.configId).toBeUndefined();
+    }
+    for (const score of byName("behavior.task-completion.human")) expect(score).toMatchObject({ metadata: { labelKind: "human" } });
     for (const score of [...byName("behavior.task-completion.judge"), ...byName("behavior.task-completion.agent")]) {
       expect(score).toMatchObject({ source: "API", metadata: { labelKind: "automated", calibrationStatus: "provisional" } });
     }

@@ -203,10 +203,15 @@ Each item write holds these fields:
 The stage publishes each label as a session score with `dataType`
 `CATEGORICAL`. The value is `pass`, `fail`, `unknown`, or `not_applicable`.
 
-| Label | Source | Score name | `source` | Metadata |
-|---|---|---|---|---|
-| Human | The first non-rejected human label of each session and dimension in `annotations.jsonl` | `behavior.<dimension>.human` | `ANNOTATION` | `labelKind: human`, `reviewStatus` |
-| Automated | The first label of each session, dimension, and annotator type in `calibration.json` `judgeLabels` | `behavior.<dimension>.<agent or judge>` | `API` | `labelKind: automated`, `calibrationStatus` |
+| Label | Source | Score name | Metadata |
+|---|---|---|---|
+| Human | The first non-rejected human label of each session and dimension in `annotations.jsonl` | `behavior.<dimension>.human` | `labelKind: human`, `reviewStatus` |
+| Automated | The first label of each session, dimension, and annotator type in `calibration.json` `judgeLabels` | `behavior.<dimension>.<agent or judge>` | `labelKind: automated`, `calibrationStatus` |
+
+Each score holds `source: API` and no `configId`. Langfuse requires a score
+config for the source `ANNOTATION`, and `publish` creates no score config. The
+score name and `metadata.labelKind` keep human labels apart from automated
+labels.
 
 - The score id is `bt-score-<32 hex>`. The hex is the SHA-256 of the project
   id, the session id, the dimension, the annotator type, the rubric version,
@@ -467,6 +472,12 @@ this order:
 1. The `message` field of the response body in the CLI `--json` envelope.
 2. The `error` field of the response body.
 3. The first non-empty line of the CLI output on stderr.
+
+The `error` field can hold a list of validation issues `{ path, message }`.
+In that case, the adapter appends the first 3 issues to the `message` field.
+Each issue reads `<path>: <message>`, and `;` separates the parts. The adapter
+joins the path segments with `.`. If an issue has no path, the issue reads
+`<message>`.
 
 The adapter applies `redact()` to the server detail and keeps at most 300
 characters. An error message holds no other part of a response body.

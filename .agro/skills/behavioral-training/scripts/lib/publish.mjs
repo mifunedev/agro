@@ -214,7 +214,7 @@ function scoreBody(label, versions) {
     value: label.verdict,
     dataType: "CATEGORICAL",
     sessionId: label.sessionId,
-    source: label.annotatorType === "human" ? "ANNOTATION" : "API",
+    source: "API",
     metadata: {
       ...label.metadata,
       annotationId: label.annotationId,

@@ -309,6 +309,36 @@ describe("Langfuse adapter errors", () => {
     expect((await causeOf(fromStderr.client.preflight())).message).toBe("projects list: HTTP 400: first synthetic line");
   });
 
+  it("appends the path and the message of the first validation issues to the server detail", async () => {
+    const issue = (path: string[], message: string) => ({ code: "custom", path, message });
+    const live = {
+      message: "Invalid request data",
+      error: [issue(["configId"], "configId is required when source is ANNOTATION (except for CORRECTION scores).")],
+    };
+    const withMessage = clientFor(healthyRoutes({ "projects list": { exitCode: 5, stdout: envelope(400, live) } }));
+    expect((await causeOf(withMessage.client.preflight())).message).toBe(
+      "projects list: HTTP 400: Invalid request data; configId: configId is required when source is ANNOTATION (except for CORRECTION scores).",
+    );
+    const issues = {
+      error: [
+        issue(["metadata", "split"], "synthetic first"),
+        issue([], `synthetic second ${SECRET_KEY}`),
+        issue(["value"], "synthetic third"),
+        issue(["name"], "synthetic fourth"),
+        "not an issue",
+      ],
+    };
+    const onlyIssues = clientFor(healthyRoutes({ "projects list": { exitCode: 5, stdout: envelope(400, issues) } }));
+    const message = (await causeOf(onlyIssues.client.preflight())).message;
+    expect(message).toBe("projects list: HTTP 400: metadata.split: synthetic first; synthetic second <redacted>; value: synthetic third");
+    noCredential(message);
+    const long = { message: "Invalid request data", error: [issue(["a"], "y".repeat(500)), issue(["b"], "z".repeat(50))] };
+    const clipped = clientFor(healthyRoutes({ "projects list": { exitCode: 5, stdout: envelope(400, long) } }));
+    const detail = (await causeOf(clipped.client.preflight())).message.slice("projects list: HTTP 400: ".length);
+    expect(detail.startsWith("Invalid request data; a: yyy")).toBe(true);
+    expect(detail.length).toBeLessThanOrEqual(300);
+  });
+
   it("redacts a key that the server error body holds and truncates the detail", async () => {
     const body = { message: `rejected ${SECRET_KEY} for ${PUBLIC_KEY} with ${BASIC} ${"x".repeat(400)}` };
     const { client } = clientFor(healthyRoutes({ "observations list": { exitCode: 5, stdout: envelope(422, body) } }));

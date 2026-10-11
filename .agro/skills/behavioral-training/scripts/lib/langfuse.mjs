@@ -76,11 +76,27 @@ function clip(value) {
   return text.length > MAX_DETAIL ? `${text.slice(0, MAX_DETAIL - 1)}…` : text;
 }
 
+const MAX_ISSUES = 3;
+
+function issueText(error) {
+  if (!Array.isArray(error)) return "";
+  return error
+    .filter((entry) => entry && typeof entry === "object" && typeof entry.message === "string" && entry.message.trim())
+    .slice(0, MAX_ISSUES)
+    .map((entry) => {
+      const path = Array.isArray(entry.path) ? entry.path.join(".") : "";
+      return path ? `${path}: ${entry.message}` : entry.message;
+    })
+    .join("; ");
+}
+
 export function serverDetail(envelope, stderr) {
   const body = envelope && typeof envelope === "object" ? envelope.body : null;
+  const issues = issueText(body && typeof body === "object" ? body.error : undefined);
   for (const key of ["message", "error"]) {
     const value = body && typeof body === "object" ? body[key] : undefined;
-    if (typeof value === "string" && value.trim()) return clip(value);
+    if (key === "error" && issues) return clip(issues);
+    if (typeof value === "string" && value.trim()) return clip(key === "message" && issues ? `${value}; ${issues}` : value);
     if (value && typeof value === "object") return clip(JSON.stringify(value));
   }
   const line = String(stderr ?? "").split("\n").find((entry) => entry.trim());
