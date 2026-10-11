@@ -120,8 +120,8 @@
         "`npx vitest run .agro/cli/src/__tests__/docs-reference.test.ts` exits 0."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1,3,7 executed: diff reviewed (AGENTS.md non-negotiable 3 names Compose init and VM image mode systemd; deployment-prebuilt-image docker run uses --init --entrypoint sandbox-main.sh, no systemd flags; CHANGELOG ### Changed BREAKING bullet with #1393). 2,4,5,6 reasoned from worker diff and sweep: security-considerations, openshell.md, t3 sandbox-processes, installation.md, cli.ts help updated; remaining systemd mentions are host-side or VM image mode. 8 executed: docs-reference.test.ts 4 passed; pnpm run typecheck exit 0.",
       "dependsOn": [
         "US-003"
       ],
@@ -131,7 +131,8 @@
         "CHANGELOG.md",
         ".agro/skills/t3/references/sandbox-processes.md",
         ".agro/cli/src/cli.ts"
-      ]
+      ],
+      "commit": "5e10f130"
     },
     {
       "id": "US-006",
