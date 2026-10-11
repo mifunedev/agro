@@ -40,7 +40,12 @@ after that, the entry is authoritative. The CLI writes nothing else into a check
 credential with the input hidden and writes it to `.env`, and `agro secret list`
 shows which keys hold a value with the values redacted. Both accept
 `--sandbox <name>` to act on a registry entry instead of the project.
-`agro config set` refuses a secret key and `agro secret set` refuses a non-secret
+`agro secret set --sandbox` accepts only `GH_TOKEN`, `SANDBOX_PASSWORD`, and
+`TYPESAFE_API_KEY`, because Compose passes only these keys to the container. For
+any other key, the command exits with status 1. The container reads the other
+keys, such as `PI_SLACK_APP_TOKEN`, from the `.env` of the project checkout at
+`/home/sandbox/harness`. Write these keys with `agro secret set <KEY>` and no
+flag. `agro config set` refuses a secret key and `agro secret set` refuses a non-secret
 key, each pointing at the other command. Apply a change with
 `agro stop <name> && agro sandbox install docker --name <name>`.
 

@@ -8,6 +8,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Security
+- Refuse `agro secret set --sandbox` for keys other than `GH_TOKEN`, `SANDBOX_PASSWORD`, and `TYPESAFE_API_KEY`, and deny `agro secret get` for agents in the hooks ([#1408](https://github.com/mifunedev/agro/pull/1408)).
+
 ## [0.21.0] - 2026-10-11
 
 ### Added

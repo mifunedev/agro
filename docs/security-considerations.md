@@ -40,8 +40,9 @@ before each tool call. `.claude/hooks` is a symlink to `.agro/hooks`.
 - [`deny-env-dump.sh`](../.agro/hooks/deny-env-dump.sh) checks each `Bash`
   command. The hook denies environment dumps, shell history dumps, and `echo` of
   a secret-named variable. The hook denies token-printing commands such as
-  `gh auth token`, and reads of secret files such as `.env*`, `*.pem`, and
+  `gh auth token` and `agro secret get`, and reads of secret files such as `.env*`, `*.pem`, and
   `id_rsa*`. The hook also denies any command that names a `.config/` path.
+  The operator runs `agro secret get` on the host.
 - [`deny-secret-paths.sh`](../.agro/hooks/deny-secret-paths.sh) checks the file
   tools (`Read`, `Write`, `Edit`, `NotebookEdit`, `Grep`, `Glob`). The hook denies
   the same secret paths, `.config/`, and `settings.local.json`.
