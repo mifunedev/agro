@@ -235,6 +235,97 @@ describe("scripts/docker-compose.sh", () => {
   });
 });
 
+describe("scripts/docker-compose.sh egress overlay (issue #1397)", () => {
+  const base = (): string => path.join(tmp, ".devcontainer", "docker-compose.yml");
+  const egress = (): string => path.join(tmp, ".devcontainer", "docker-compose.egress.yml");
+
+  function argvWith(env: NodeJS.ProcessEnv, args: string[] = ["config"]): string[] {
+    const result = spawnSync("bash", [SCRIPT, "--repo-dir", tmp, "--print-argv", ...args], {
+      encoding: "utf8",
+      env: { ...process.env, ...env },
+    });
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+    return result.stdout.trimEnd().split("\n");
+  }
+
+  it("adds the egress overlay right after docker-compose.yml when AGRO_EGRESS is allowlist", () => {
+    writeFileSync(
+      path.join(tmp, ".env"),
+      "AGRO_EGRESS=allowlist\nDOCKER_SOCKET=true\nSANDBOX_SSH=true\n",
+    );
+    expect(argvWith({})).toEqual([
+      "docker",
+      "compose",
+      "--env-file",
+      path.join(tmp, ".env"),
+      "-f",
+      base(),
+      "-f",
+      egress(),
+      "-f",
+      path.join(tmp, ".devcontainer", "docker-compose.docker-sock.yml"),
+      "-f",
+      path.join(tmp, ".devcontainer", "docker-compose.ssh.yml"),
+      "config",
+    ]);
+  });
+
+  it("reads AGRO_EGRESS from the rendered env file", () => {
+    const file = path.join(tmp, "rendered.list");
+    writeFileSync(file, "AGRO_EGRESS=allowlist\n");
+    const result = spawnSync(
+      "bash",
+      [SCRIPT, "--repo-dir", tmp, "--extra-env-file", file, "--print-argv", "config"],
+      { encoding: "utf8" },
+    );
+    expect(result.status).toBe(0);
+    expect(result.stdout.trimEnd().split("\n")).toEqual([
+      "docker",
+      "compose",
+      "--env-file",
+      file,
+      "-f",
+      base(),
+      "-f",
+      egress(),
+      "config",
+    ]);
+  });
+
+  it("lets the process environment override the env file", () => {
+    writeFileSync(path.join(tmp, ".env"), "AGRO_EGRESS=allowlist\n");
+    expect(argvWith({ AGRO_EGRESS: "open" })).not.toContain(egress());
+    rmSync(path.join(tmp, ".env"));
+    expect(argvWith({ AGRO_EGRESS: "allowlist" })).toContain(egress());
+  });
+
+  it.each(["", "open", "closed", "true", "1", "allow"])(
+    "keeps the argv byte-identical when AGRO_EGRESS is %j",
+    (value) => {
+      const unset = argvWith({ AGRO_EGRESS: undefined }, ["up", "-d", "--build"]);
+      writeFileSync(path.join(tmp, ".env"), `AGRO_EGRESS=${value}\n`);
+      const withEnvFile = argvWith({ AGRO_EGRESS: undefined }, ["up", "-d", "--build"]);
+      rmSync(path.join(tmp, ".env"));
+      const viaProcess = argvWith({ AGRO_EGRESS: value }, ["up", "-d", "--build"]);
+
+      expect(unset).toEqual(["docker", "compose", "-f", base(), "up", "-d", "--build"]);
+      expect(viaProcess).toEqual(unset);
+      expect(withEnvFile).toEqual([
+        "docker",
+        "compose",
+        "--env-file",
+        path.join(tmp, ".env"),
+        "-f",
+        base(),
+        "up",
+        "-d",
+        "--build",
+      ]);
+    },
+  );
+});
+
 describe("scripts/docker-compose.sh --extra-env-file (issue #880)", () => {
   const rendered = (): string => {
     const file = path.join(tmp, "rendered.list");

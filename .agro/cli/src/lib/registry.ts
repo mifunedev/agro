@@ -4,6 +4,7 @@ import composeRepo from "agro-asset:.devcontainer/docker-compose.yml";
 import composeImageOnly from "agro-asset:.devcontainer/docker-compose.image-only.yml";
 import composeSsh from "agro-asset:.devcontainer/docker-compose.ssh.yml";
 import composeDockerSock from "agro-asset:.devcontainer/docker-compose.docker-sock.yml";
+import composeEgress from "agro-asset:.devcontainer/docker-compose.egress.yml";
 import composeWrapper from "agro-asset:.agro/scripts/docker-compose.sh";
 import pathsShell from "agro-asset:.agro/scripts/paths.sh";
 import checkHostPort from "agro-asset:.agro/scripts/check-host-port.sh";
@@ -109,6 +110,7 @@ function dockerFiles(entry: string, opts: MaterializeOptions): MaterializedFile[
     },
     { dest: join(entry, ".devcontainer", "docker-compose.ssh.yml"), body: composeSsh, mode: 0o644 },
     { dest: join(entry, ".devcontainer", "docker-compose.docker-sock.yml"), body: composeDockerSock, mode: 0o644 },
+    { dest: join(entry, ".devcontainer", "docker-compose.egress.yml"), body: composeEgress, mode: 0o644 },
     { dest: join(scripts, "docker-compose.sh"), body: composeWrapper, mode: 0o755 },
     { dest: join(scripts, "paths.sh"), body: pathsShell, mode: 0o644 },
     { dest: join(scripts, "check-host-port.sh"), body: checkHostPort, mode: 0o755 },
