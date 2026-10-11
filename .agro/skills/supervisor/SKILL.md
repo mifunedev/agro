@@ -33,7 +33,8 @@ Read the role boundary before any procedure.
 - Advisors and workers must not send Herdr messages back to the supervisor.
   This ban includes direct sends, `/escalate --supervisor`, inherited destinations,
   and relays. Workers report to the advisor through native worker output only.
-  Advisors report through normal output and own existing progress/evidence files.
+  Advisors report through normal output, `prd.json`, and the PR body, as `/delegate`
+  and `/prd` define.
 - The supervisor owns operator escalation. Advisors and workers must not bypass
   the supervisor through Slack or invoke `/escalate` to notify the supervisor.
 
@@ -170,10 +171,10 @@ You and your workers must not send Herdr messages back to the supervisor.
 Do not use direct sends, /escalate --supervisor, AGRO_SUPERVISOR_PANE,
 other inherited destinations, or relays. Do not invoke /escalate to notify
 this supervisor. Do not bypass the supervisor through Slack.
-Workers report to you through native worker output only. You own the existing
-progress/evidence files and report progress, blockers, and decisions there
-and in your normal output. Required decisions remain blocked until supervisor
-direction. The supervisor owns operator escalation.
+Workers report to you through native worker output only. Report progress,
+blockers, and decisions in prd.json, the PR body, and your normal output.
+Required decisions remain blocked until supervisor direction. The supervisor
+owns operator escalation.
 ```
 
 `/delegate` owns the worker count, the wave policy, and the model policy. Name
@@ -290,9 +291,9 @@ The status line carries the percentage in this shape:
 
 Read existing artifacts through finite monitors, not inline observation tools.
 Use read-only commands such as `git log`, `jq`, and `cat` against the advisor's
-worktree and recorded contract paths. Inspect the commit log for edit ownership,
-`prd.json` for `passes` flags, and `progress.txt` for the advisor's narrative.
-Read the contract's existing evidence artifact for criterion results. Judge role
+worktree and recorded contract paths. Inspect the commit log for edit ownership
+and `prd.json` for `passes`, `commit`, and `notes`. Read the PR body evidence
+sections for criterion results. `/delegate` defines both records. Judge role
 fidelity and completion from these artifacts, not from pane claims. Review no code.
 
 ### Reconcile handles and resume
@@ -339,8 +340,8 @@ six items:
 - the decisions since the last compaction;
 - the open deviations;
 - the communication boundary: workers report to advisors through native worker
-  output only. Advisors own progress/evidence files and report there and in normal
-  output. Both roles must not use reverse Herdr sends, `/escalate --supervisor`,
+  output only. Advisors report in `prd.json`, the PR body, and normal output.
+  Both roles must not use reverse Herdr sends, `/escalate --supervisor`,
   inherited destinations, relays, or a Slack bypass. Required decisions remain
   blocked until supervisor direction. The supervisor owns operator escalation.
 
@@ -348,8 +349,9 @@ The compaction drops tool output and file dumps. Re-anchor the advisor
 afterward by pointing at the files. A file read costs less than a file dump
 that survived the compaction.
 
-Durable state belongs outside the session. An advisor that appends `progress.txt`
-once per story and keeps the PR body current loses little to a compaction.
+Durable state belongs outside the session. An advisor that writes `prd.json`
+`notes` at each acceptance and keeps the PR body current loses little to a
+compaction.
 
 ## Duty 5 — escalate
 
@@ -469,24 +471,25 @@ artifacts through monitors; keep operator escalation with the supervisor.
 
 **10. A green status field is a claim, not evidence.**
 Symptom: the supervisor reported a pull request as reviewed and its gates as
-passing. The reviewer had never read it, and one committed probe could not fail
+passing. The reviewer had never read the pull request, and one committed probe could not fail
 under any repository state. Cause: the supervisor verified each gate by its
 status bucket rather than by what the gate did. A third-party reviewer returned
 `SUCCESS` when it skipped a draft, and returned `SUCCESS` again when it declined
 on a rate limit. A probe that shipped with a shell quoting defect swallowed its
 own predicate and printed `PASS`. Correction: read the body, not the bucket. For
 a review gate, confirm from the API that a review or a substantive comment
-landed, with a timestamp after the event that would have caused a skip. For a
+landed, with a timestamp after any event that triggers a skip. For a
 check the contract adds, require it to be seen failing against a deliberate
-break before it counts as a gate — a guard that has never failed is not known to
-work. Treat a pass with zero elapsed time as suspect on principle. Carry the
+break before it counts as a gate. No one knows that a guard works until the
+guard fails once. Treat a pass with zero elapsed time as suspect on principle. Carry the
 same rule into the monitor: render draft state and skipped or neutral
 sub-states, or the monitor will launder an unearned green into a report.
 
 The general form is worth more than the three instances. A claim without a check
 rots; a check without a test of the check is itself an unverified claim; and a
 gate's status field is a claim too, green for reasons unrelated to what it
-checks. Each level is assumed sound while auditing the level below it.
+checks. An auditor assumes each level is sound while the auditor checks the
+level below.
 
 ## What the first run got right
 
