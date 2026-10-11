@@ -219,7 +219,7 @@
       ],
       "priority": 9,
       "passes": true,
-      "notes": "1,2 executed: Dockerfile diff reviewed; shellcheck apt package + command -v check; hadolint v2.12.0 (the CI action's version) pinned per arch, SHA-256 values re-fetched by the advisor from the release .sha256 files and matched; other arch exits 1. 3 executed: verify-sandbox-image.test.ts cases for missing hadolint/shellcheck pass. 4 executed: hadolint --config .hadolint.yaml exit 0. 5 pending CI on the next push (image build). Full vitest + typecheck + CI shellcheck pass.",
+      "notes": "1,2 executed: Dockerfile diff reviewed; shellcheck apt package + command -v check; hadolint v2.12.0 (the CI action's version) pinned per arch, SHA-256 values re-fetched by the advisor from the release .sha256 files and matched; other arch exits 1. 3 executed: verify-sandbox-image.test.ts cases for missing hadolint/shellcheck pass. 4 executed: hadolint --config .hadolint.yaml exit 0. 5 executed: CI run 38161083662 on df139bfa built the image (/tmp/hadolint: OK) and verify-sandbox-image logged 'ok: hadolint --version -> Haskell Dockerfile Linter 2.12.0' and 'ok: shellcheck --version -> version: 0.10.0'. Full vitest + typecheck + CI shellcheck pass.",
       "dependsOn": [],
       "files": [
         ".devcontainer/Dockerfile",
