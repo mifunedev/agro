@@ -4,7 +4,7 @@ Story: US-006 of `.agro/tasks/compose-init-default-sandbox/prd.md`. Issue #1393.
 
 Shape: server, CLI, or API (`.agro/skills/git/references/manual-review.md`).
 
-Each output below is from an observed run on 2026-10-11. This file trims long output to the lines that matter. No step creates a resource, so no step needs cleanup.
+Each output below is from an observed run on 2026-10-11. This file trims long output to the lines that matter. Sections A to C create no resource. Sections D and E create a throwaway sandbox and exe.dev VMs, and each section records the cleanup.
 
 ## Prerequisites
 
