@@ -141,7 +141,9 @@ describe("agro sandbox upgrade", () => {
     expect(argsSeen[0]).not.toContain("down");
     expect(argsSeen[0]).not.toContain("-v");
     expect(readJson(join(root, "agro.json"))).toEqual({ ...before, image: { mode: "image", ref: target } });
-    expect(readFileSync(join(root, ".env"), "utf8")).toBe("GH_TOKEN=keep-this\n");
+    const envAfter = readFileSync(join(root, ".env"), "utf8");
+    expect(envAfter).toContain("GH_TOKEN=keep-this\n");
+    expect(envAfter).toMatch(/^SANDBOX_PASSWORD=[A-Za-z0-9_-]{32}$/m);
     expect(readFileSync(join(root, ".devcontainer", "docker-compose.yml"), "utf8")).toBe(composeBefore);
     expect(existsSync(join(root, ".sandbox-upgrade.lock"))).toBe(false);
   });
@@ -439,6 +441,20 @@ describe("agro sandbox install — build mode inference and the home mount", () 
     const wrapper = calls.find((c) => c.cmd === "bash");
     expect(wrapper?.args).not.toContain("--build");
     expect(wrapper?.args).toContain("--no-build");
+  });
+
+  it("--print-argv writes no SANDBOX_PASSWORD dotenv value", async () => {
+    const registryPath = registry();
+    const { run } = makeRunner();
+
+    expect(
+      await runSandboxInstall(
+        { bin: "agro", runtime: "docker", name: "box", yes: true, printArgv: true, run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    expect(existsSync(join(registryPath, "box"))).toBe(false);
+    expect(existsSync(join(entryRoot("box"), ".env"))).toBe(false);
   });
 
   it("lets an explicit image.mode in the seed outrank the inference", async () => {
@@ -1159,6 +1175,16 @@ describe("agro sandbox install openshell", () => {
       createArgv({ name: "box", image: officialImageRef(AGRO_VERSION), entryRoot: root }),
     );
     expect(out.join("")).toContain("next: agro shell box\n");
+  });
+
+  it("writes no SANDBOX_PASSWORD dotenv for the openshell runtime", async () => {
+    registry();
+    const root = entryRoot("box");
+    const { run } = openshellRunner();
+
+    expect(await runSandboxInstall({ bin: "agro", runtime: "openshell", name: "box", run }, makeIo().io)).toBe(0);
+
+    expect(existsSync(join(root, ".env"))).toBe(false);
   });
 
   it("never prompts and seeds name, timezone and git identity from the defaults", async () => {

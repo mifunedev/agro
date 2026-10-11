@@ -153,8 +153,9 @@ Flags are in [Lifecycle commands → `agro vendor`](lifecycle-commands.md#equipp
 ## What's installed
 
 The image is Debian Trixie (slim). The `sandbox` user is in sudoers with
-`ALL=(ALL) ALL`, so `sudo` asks for the password. `SANDBOX_PASSWORD` sets that
-password. Change its default on any network-reachable sandbox.
+`ALL=(ALL) ALL`, so `sudo` asks for the password. `agro sandbox install docker`
+generates a random `SANDBOX_PASSWORD` for each sandbox. Run
+`agro secret get SANDBOX_PASSWORD` to read the generated value.
 
 ### Agent CLIs
 

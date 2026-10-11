@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1379-random-sandbox-password",
+  "description": "Random sandbox password: generate one sudo password for each Docker sandbox, remove the known default, and add agro secret get.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Generate one password for each Docker sandbox",
+      "description": "As an operator, I want a random sudo password for each Docker sandbox so that nobody can use a published default.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/lib/secrets.ts` exports `ensureSandboxPassword(root)`. If the entry `.env` has no `SANDBOX_PASSWORD` value, the function writes a value of 32 URL-safe base64 characters from `node:crypto` `randomBytes(24)`.",
+        "If `SANDBOX_PASSWORD` already has a value, `ensureSandboxPassword(root)` leaves the `.env` file byte-identical.",
+        "`runSandbox()` in `.agro/cli/src/commands/lifecycle.ts` calls `ensureSandboxPassword(root)` before it provisions a `docker` entry. The OpenShell path does not call the function.",
+        "`agro sandbox install docker --print-argv` writes no `.env` value.",
+        "Two new entries receive two different values.",
+        "`pnpm exec vitest run .agro/cli/src/lib/__tests__/secrets.test.ts .agro/cli/src/__tests__/lifecycle.test.ts .agro/cli/src/__tests__/sandbox.test.ts` exits 0.",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Integrated on the task branch. Advisor re-ran: vitest secrets/lifecycle/sandbox exit 0 (207 tests); typecheck exit 0. C1-C5 executed by unit tests (32-char base64url from randomBytes(24); byte-identical when set; docker provision calls it, openshell path never reaches runSandbox; --print-argv writes nothing; two entries differ). Worker ran full suite exit 0 (2119 tests). Note: sandbox upgrade re-provisions through runSandbox, so an existing entry gains a password at upgrade; one upgrade test expectation updated. US-004 docs must state this.",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/secrets.ts",
+        ".agro/cli/src/commands/lifecycle.ts",
+        ".agro/cli/src/lib/__tests__/secrets.test.ts",
+        ".agro/cli/src/__tests__/lifecycle.test.ts",
+        ".agro/cli/src/__tests__/sandbox.test.ts"
+      ],
+      "commit": "3979d550"
+    },
+    {
+      "id": "US-002",
+      "title": "Remove the known default",
+      "description": "As an operator, I want no default password in the image and the Compose files. A sandbox without a configured password then has no usable password.",
+      "acceptanceCriteria": [
+        "`.devcontainer/docker-compose.yml` and `.devcontainer/docker-compose.image-only.yml` pass `SANDBOX_PASSWORD=${SANDBOX_PASSWORD:-}`. `git grep -n test1234 -- .devcontainer .agro/cli/src .agro/scripts` prints nothing.",
+        "If `SANDBOX_PASSWORD` is set, `.devcontainer/entrypoint.sh` sets the `sandbox` password with `chpasswd`, as today.",
+        "If `SANDBOX_PASSWORD` is empty, `.devcontainer/entrypoint.sh` locks the `sandbox` password with `passwd -l sandbox` and prints one warning line that names `agro secret set SANDBOX_PASSWORD`.",
+        "`.agro/scripts/__tests__/entrypoint.test.ts` asserts both branches and the order of the password step relative to the ownership repairs.",
+        "`pnpm exec vitest run .agro/scripts/__tests__/entrypoint.test.ts .agro/scripts/__tests__/sandbox-privilege-boundary.test.ts .agro/scripts/__tests__/compose-config-path-parity.test.ts` exits 0."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Integrated. Advisor re-ran: vitest entrypoint/sandbox-privilege-boundary/compose-config-path-parity exit 0 (63 tests); `git grep -n test1234 -- .devcontainer .agro/cli/src .agro/scripts` prints nothing (exit 1); entrypoint holds `passwd -l sandbox`. Worker executed the image build and showed `passwd -S sandbox` reports L when empty and P when set; shellcheck -S warning clean.",
+      "dependsOn": [],
+      "files": [
+        ".devcontainer/docker-compose.yml",
+        ".devcontainer/docker-compose.image-only.yml",
+        ".devcontainer/entrypoint.sh",
+        ".agro/scripts/__tests__/entrypoint.test.ts",
+        ".agro/scripts/__tests__/sandbox-privilege-boundary.test.ts"
+      ],
+      "commit": "6cc634e0"
+    },
+    {
+      "id": "US-003",
+      "title": "Read the password back",
+      "description": "As an operator, I want one command that prints the sandbox password. I use the password for `sudo` or SSH password auth without opening the secrets file.",
+      "acceptanceCriteria": [
+        "`agro secret get <KEY> [--sandbox <name>]` prints the raw value of an allowed secret key and exits 0.",
+        "For a key without a value, `agro secret get` prints nothing to stdout, prints one line to stderr, and exits 1.",
+        "For a key outside `SECRET_KEYS`, `agro secret get` exits 1 with the existing `assertSecretKey()` message.",
+        "`agro secret list` keeps its redacted output.",
+        "`pnpm exec vitest run .agro/cli/src/__tests__/config-secret.test.ts` exits 0.",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Integrated (6eca4324, a45089d3). Advisor re-ran: full vitest exit 0 (2130 tests); typecheck exit 0; SECRET_VERBS = [set, get, list] is the only verb list. C1-C4 executed by config-secret tests (raw value, missing value exits 1 with one stderr line, unknown key uses assertSecretKey, list stays redacted). Repair R1 removed a local verb type that duplicated SECRET_VERBS.",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/commands/secret.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/__tests__/config-secret.test.ts"
+      ],
+      "commit": "a45089d3"
+    },
+    {
+      "id": "US-004",
+      "title": "Update the documents",
+      "description": "As an operator, I want the documents to describe the generated password so that no page tells me the old default.",
+      "acceptanceCriteria": [
+        "`.example.env`, `docs/installation.md`, `docs/integrations/sshd.md`, `docs/security-considerations.md`, and `docs/configuration.md` name the generated password and `agro secret get SANDBOX_PASSWORD`, and contain no `test1234`.",
+        "`CHANGELOG.md` has one bullet under `## [Unreleased]` that names #1378.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh` reports no new finding on each changed document."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Integrated (e6c58240, daadb07f). Advisor re-ran: `grep -rln test1234` over the four docs prints nothing (exit 1); ste-check on each doc reports no findings; each doc names `agro secret get SANDBOX_PASSWORD` (security-considerations.md wraps the code span across lines 151-152, which a single-line grep misses). Worker edited .example.env with the Edit and Read tools. CHANGELOG bullet (248 chars) names ADR #1378 and links #1379.",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".example.env",
+        "docs/installation.md",
+        "docs/integrations/sshd.md",
+        "docs/security-considerations.md",
+        "docs/configuration.md",
+        "CHANGELOG.md"
+      ],
+      "commit": "daadb07f"
+    },
+    {
+      "id": "US-005",
+      "title": "Record manual review evidence",
+      "description": "As the advisor, I want a live transcript so that the PR proves the password flow on a real sandbox. This story depends on US-001 through US-004.",
+      "acceptanceCriteria": [
+        "The operator approves the use of a local or exe.dev Docker sandbox before the first live command.",
+        "`.agro/tasks/random-sandbox-password/evidence/manual-review.md` holds each command, its trimmed output, and its exit status, in the shape of `.agro/skills/git/references/manual-review.md`.",
+        "The transcript shows that `agro secret get SANDBOX_PASSWORD --sandbox <name>` prints a value of 32 characters. The transcript redacts the value.",
+        "The transcript shows that `sudo -S true` in the sandbox exits 0 with the generated value and exits non-zero with `test1234`.",
+        "The transcript ends with `agro destroy <name> --yes` and an `agro sandbox list` without the entry."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Operator approved one exe.dev VM on 2026-10-10. The remote-sandbox check built the branch (f1c4550) on the VM; 11 of 11 rows PASS: install exit 0 (70 s), healthy, `agro secret get` 32-char base64url value (sha256 prefix 6f44bce1bf02, never printed), sudo with the value exit 0, sudo with test1234 exit 1 (`1 incorrect password attempt`), passwd -S status P, re-provision keeps the value (same hash), unknown key exit 1 with the assertSecretKey message, `secret list` redacted, destroy exit 0. Log ends with `remaining agro-matrix resources on exedev: 0`. Transcript: evidence/manual-review.md.",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        ".agro/tasks/random-sandbox-password/evidence/manual-review.md"
+      ]
+    }
+  ]
+}

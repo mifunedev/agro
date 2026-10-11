@@ -182,6 +182,13 @@ describe("egress overlay", () => {
   });
 });
 
+describe("sandbox password default", () => {
+  it.each(serviceFiles)("%s passes SANDBOX_PASSWORD with no default value", (file) => {
+    const text = read(file);
+    expect(text).toContain("SANDBOX_PASSWORD=${SANDBOX_PASSWORD:-}");
+  });
+});
+
 describe("build context", () => {
   it(".dockerignore keeps env files out of the build context", () => {
     const patterns = readFileSync(join(root, ".dockerignore"), "utf8").split("\n").map((l) => l.trim());

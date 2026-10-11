@@ -21,6 +21,7 @@ import { resolveProjectRoot } from "../lib/project.js";
 import { DEFAULT_SANDBOX_NAME, agroEnvPair, agroEnvValue } from "../lib/layout.js";
 import { materialize, registryRoot, resolveSandboxRoot } from "../lib/registry.js";
 import { setEnvValue } from "../lib/env-file.js";
+import { ensureSandboxPassword } from "../lib/secrets.js";
 import * as prompt from "../lib/prompt.js";
 import { AGRO_VERSION, officialImageRef } from "../lib/version.js";
 import { entrySandboxName, routeVerb, shellFailureHint } from "../lib/runtimes/verbs.js";
@@ -197,6 +198,7 @@ export async function runSandbox(opts: SandboxOptions, io: LifecycleIO): Promise
   }
   await maybePromptDockerSocket(root, io, opts.bin);
   requireLifecycleScript(root, "docker-compose.sh");
+  ensureSandboxPassword(root);
 
   if (imageRef !== undefined) {
     io.stdout(`image mode: ${imageRef} (skipping local build)\n`);

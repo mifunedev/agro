@@ -12,6 +12,7 @@ import {
   type ConfigIO,
 } from "./commands/config.js";
 import {
+  runSecretGet,
   runSecretList,
   runSecretSet,
   secretKeyList,
@@ -138,7 +139,7 @@ Usage:
   ${bin} sandbox <args...>      Create, list, and upgrade sandboxes (install|list|upgrade)
   ${bin} shell [name]           Open a zsh shell in the running sandbox container
   ${bin} config <args...>       Read and write ${stateNames(bin).configFile} (show|set), or run a wizard
-  ${bin} secret <args...>       Read and write the gitignored root .env (set|list)
+  ${bin} secret <args...>       Read and write the gitignored root .env (set|get|list)
   ${bin} langfuse <args...>     Render, check, or disable Langfuse tracing files (apply|status|disable)
   ${bin} self-upgrade           Upgrade the installed ${bin} CLI
   ${bin} vendor                 Vendor or upgrade the ${stateNames(bin).controlDir}/ control plane
@@ -194,14 +195,16 @@ export function printSecretHelp(bin: string = AGRO_PRODUCT.bin): void {
 
 Usage:
   ${bin} secret set <KEY> [--sandbox <name>]   Prompt for the value (input hidden)
+  ${bin} secret get <KEY> [--sandbox <name>]   Print the raw value
   ${bin} secret list [--sandbox <name>]        List the keys that hold a value
 
-Without --sandbox both verbs write the equipped project root; with it they write
-the registry entry \`${bin} sandbox list\` names.
+Without --sandbox all three verbs act on the equipped project root; with it they
+act on the registry entry \`${bin} sandbox list\` names.
 
 The value is never read from the command line — an argument would land in your
-shell history. \`${bin} secret list\` never prints a raw value. .env is mode 0600 and
-gitignored; every non-secret setting belongs in ${stateNames(bin).configFile} (\`${bin} config set\`).
+shell history. \`${bin} secret get\` is the only command that prints a raw value;
+\`${bin} secret list\` never does. .env is mode 0600 and gitignored; every non-secret
+setting belongs in ${stateNames(bin).configFile} (\`${bin} config set\`).
 
 Keys:
 ${secretKeyList()}
@@ -680,7 +683,7 @@ export function parseSecretArgs(input: string[], bin: string = AGRO_PRODUCT.bin)
   if (!(SECRET_VERBS as readonly string[]).includes(head)) {
     return {
       ok: false,
-      error: `${bin} secret: unknown subcommand "${head}" — expected set or list`,
+      error: `${bin} secret: unknown subcommand "${head}" — expected set, list, or get`,
       showHelp: true,
     };
   }
@@ -697,13 +700,15 @@ export function parseSecretArgs(input: string[], bin: string = AGRO_PRODUCT.bin)
 
   const [key, ...extra] = tail;
   if (key === undefined) {
-    return { ok: false, error: `${bin} secret set: a key is required`, showHelp: true };
+    return { ok: false, error: `${bin} secret ${verb}: a key is required`, showHelp: true };
   }
   if (extra.length > 0) {
     return {
       ok: false,
       error:
-        `${bin} secret set: takes only a key — the value is prompted for, never passed on the command line where your shell history would keep it`,
+        verb === "get"
+          ? `${bin} secret get: takes only a key`
+          : `${bin} secret set: takes only a key — the value is prompted for, never passed on the command line where your shell history would keep it`,
     };
   }
   return { ok: true, args: { ...args, verb, key } };
@@ -1306,6 +1311,7 @@ async function main(argv: string[]): Promise<number> {
     };
     const scope = a.sandbox === undefined ? { bin } : { bin, sandbox: a.sandbox };
     if (a.verb === "list") return await runSecretList(scope, io);
+    if (a.verb === "get") return await runSecretGet(a.key as string, scope, io);
     return await runSecretSet(a.key as string, scope, io);
   }
 

@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1402-supervisor-prd-align",
+  "description": "Align the supervisor skill with the prd task artifacts: replace retired progress.txt and evidence.md references with prd.json and the PR body, and pass /ste on every changed prose file.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Replace retired artifact names in the supervisor skill",
+      "description": "As a supervisor, I want /supervisor to name prd.json and the PR body as the advisor record so that no advisor writes the retired progress.txt.",
+      "acceptanceCriteria": [
+        "`git grep -n -E 'progress\\.txt|progress/evidence|evidence\\.md|evidence artifact' -- .agro/skills/supervisor` prints nothing and exits 1.",
+        "Each replaced passage names `prd.json` (`passes`, `commit`, `notes`) or the PR body evidence sections as the advisor record.",
+        "The `description` and `allowed-tools` frontmatter lines are byte-identical to `origin/development`.",
+        "The description text has 1024 characters or fewer.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/supervisor/SKILL.md` exits 0."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Commits 7f6cb80f, 4063766c (rewrap repair). C1 executed: git grep retired names in .agro/skills/supervisor, no output, exit 1. C2 reasoned: lines 36, 174, 294, 342, 351 now name prd.json (passes, commit, notes) or the PR body evidence sections and point at /delegate and /prd. C3 executed: diff of frontmatter lines 1-6 vs origin/development, exit 0. C4 executed: description length 721 <= 1024. C5 executed: ste-check.sh SKILL.md exit 0, no findings (baseline 4 fixed); hand review against /ste questions 4 and 7 found no trailing condition and no antecedent-less pronoun.",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/supervisor/SKILL.md"
+      ],
+      "commit": "7f6cb80f"
+    },
+    {
+      "id": "US-002",
+      "title": "Replace retired artifact names in other control-plane surfaces",
+      "description": "As an advisor, I want each .agro/ and docs/ surface to name only current task artifacts so that no procedure routes me to a retired file.",
+      "acceptanceCriteria": [
+        "`.agro/logs/AGENTS.md`, `.agro/memories/AGENTS.md`, and `.agro/skills/audit/references/implementation.md` name no retired artifact.",
+        "`git grep -n -I -E 'progress\\.txt|evidence\\.md|progress/evidence' -- .agro docs ':!.agro/tasks'` prints only `.agro/scripts/registry-portability.md:65` and `.agro/skills/audit/references/reviewer-evidence-doc.md:13`.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 for each of the three edited files."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Commits e109baa5, 53f8ba1a (rewrap repair). C1 executed: sweep below lists none of logs/AGENTS.md, memories/AGENTS.md, audit/references/implementation.md. C2 executed: git grep retired names over .agro docs excluding .agro/tasks printed only registry-portability.md:65 and reviewer-evidence-doc.md:13, exit 0. C3 executed: ste-check.sh on the three files exit 0, no findings (baseline 26 fixed); hand review: conditions lead actions, no antecedent-less pronouns, word-diff of the rewrap shows only blockquote markers. Four table rows stay over 90 columns because Markdown table rows cannot wrap.",
+      "dependsOn": [],
+      "files": [
+        ".agro/logs/AGENTS.md",
+        ".agro/memories/AGENTS.md",
+        ".agro/skills/audit/references/implementation.md"
+      ],
+      "commit": "e109baa5"
+    },
+    {
+      "id": "US-003",
+      "title": "Make the supervisor skill harness-neutral about monitor tools",
+      "description": "As a supervisor in any coding harness, I want `/supervisor` to name monitor capabilities so that the skill works in Claude Code and in Pi.",
+      "acceptanceCriteria": [
+        "The skill requires three capabilities by name: a bounded background monitor that reports on completion, a stop operation, and a list operation.",
+        "One section of the skill holds the only tool mapping. Claude Code provides `Monitor` (create, with a completion notice) and `TaskStop` (stop), and has no list operation. Pi with `@trevonistrevon/pi-loop` provides `MonitorCreate`, `MonitorStop`, and `MonitorList`.",
+        "`git grep -n -E 'MonitorCreate|MonitorList|MonitorStop|TaskStop|onDone' -- .agro/skills/supervisor/SKILL.md` prints only lines of the `description`, `allowed-tools`, and the mapping section.",
+        "The skill states: when the harness has no list operation, the supervisor reconciles handles from its run record.",
+        "The skill states: when the harness has no bounded monitor with a completion notice, the supervisor stops and reports the blocker.",
+        "The bans on `LoopCreate`, polling, and sleep loops stay.",
+        "The description text has 1024 characters or fewer.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/supervisor/SKILL.md` exits 0."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Commit a81d518c. C1 reasoned: Monitor capabilities section (lines 67-95) names a bounded monitor with a completion notice, a stop operation, and a list operation; the body uses these terms. C2 executed: the mapping table at lines 81-83 is the only mapping; Claude Code Monitor (timeout_ms) and TaskStop, no list; Pi MonitorCreate, MonitorStop, MonitorList; advisor confirmed Monitor timeout_ms and TaskStop against the live Claude Code tool schemas. C3 executed: git grep tool names and onDone hits only lines 10 (description), 16 (allowed-tools), 81, 82, 83, 87 (mapping). C4 and C5 executed: grep finds the no-list-operation fallback at line 93 and the no-bounded-monitor blocker at line 90. C6 executed: LoopCreate, polling, and sleep-loop bans at lines 11, 38, 39, 317. C7 executed: description 825 chars <= 1024. C8 executed: ste-check.sh SKILL.md exit 0; hand review: conditions lead actions, no opening pronoun. JSON monitor examples became a command block plus description, timeout, and completion instruction, because field names differ by harness.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/skills/supervisor/SKILL.md"
+      ],
+      "commit": "a81d518c"
+    },
+    {
+      "id": "US-004",
+      "title": "Add the supervisor entry to the root glossary",
+      "description": "As an operator, I want the root glossary to define \"supervisor\" so that every harness reads one meaning of the role.",
+      "acceptanceCriteria": [
+        "`AGENTS.md` § A small glossary has one entry that starts with `- **supervisor** means`.",
+        "The entry defines the behavior of launching, monitoring, and escalating for advisor sessions in other Herdr panes. The entry states that the supervisor is not an identity and is distinct from the root orchestrator.",
+        "The entry matches the style of the other glossary entries: one bullet, a bold term, \"means\", and a wrap at 80 to 85 columns.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh AGENTS.md` exits 0."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Commit 2be5cbd3. C1 executed: grep -n -A2 ^- **supervisor** means AGENTS.md finds one entry at lines 92-94 inside the glossary, exit 0. C2 reasoned: the entry names launching, monitoring, and escalating for advisor sessions in other Herdr panes, not an identity, distinct from the root orchestrator. C3 executed: added lines are 80, 81, 38, 70 columns; one bullet, bold term, means. C4 executed: ste-check.sh AGENTS.md exit 0 (baseline line 163 PASSIVE fixed: AGRO retired the legacy oh alias); hand review: no trailing condition, no opening pronoun.",
+      "dependsOn": [],
+      "files": [
+        "AGENTS.md"
+      ],
+      "commit": "2be5cbd3"
+    }
+  ],
+  "definitionOfDone": [
+    "`git grep -n -I -E 'progress\\.txt|evidence\\.md|progress/evidence' -- .agro docs ':!.agro/tasks'` prints only the two kept lines, and the PR body lists each kept line with its reason.",
+    "The supervisor description has 1024 characters or fewer.",
+    "`bash .agro/scripts/link-providers.sh --check` exits 0.",
+    "`pnpm vitest run .agro/scripts/__tests__/standard-skills-link.test.ts .agro/scripts/__tests__/skill-shell-portability.test.ts .agro/scripts/__tests__/hermes-links.test.ts` exits 0.",
+    "`bash .agro/skills/ste/scripts/ste-check.sh <file>` exits 0 for prd.md and for each changed .md file; the advisor reviews each change by hand against the /ste rules the checker cannot catch; the PR body holds each command and its exit 0 output; the PR opens only after this criterion passes.",
+    "A PR from task/1402-supervisor-prd-align to development exists with each criterion's command output in its body. The PR is not merged."
+  ],
+  "openQuestions": []
+}

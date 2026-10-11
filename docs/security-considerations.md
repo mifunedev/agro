@@ -147,9 +147,10 @@ The base container publishes no ports.
   [`docker-compose.ssh.yml`](../.devcontainer/docker-compose.ssh.yml). The
   default posture is a `127.0.0.1` bind, public-key auth, `PermitRootLogin no`,
   and password auth off. Before `agro sandbox install docker` creates the
-  container, a port-collision preflight refuses a port in use. You own two
-  weaker choices: a `0.0.0.0` bind, and password auth with the default
-  `SANDBOX_PASSWORD` (`test1234`). See [SSH](integrations/sshd.md).
+  container, a port-collision preflight refuses a port in use. `agro sandbox
+  install docker` generates a random `SANDBOX_PASSWORD`; run `agro secret get
+  SANDBOX_PASSWORD` to read the generated value. You own the remaining weaker choice: a
+  `0.0.0.0` bind. See [SSH](integrations/sshd.md).
 - **Tailscale (opt-in).** `agro tool install tailscale` adds no capability and
   no compose change. `tailscaled` runs in userspace-networking mode as
   `sandbox`. Nothing joins a tailnet at boot. AGRO ships no Funnel command. Never

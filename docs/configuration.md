@@ -105,7 +105,7 @@ at boot. The install lands in `~/.local` inside the persistent home volume, and
 | `access.ssh` | boolean | `false` | `SANDBOX_SSH` | Applies the `docker-compose.ssh.yml` overlay, which runs sshd for direct container SSH. See [sshd](integrations/sshd.md). |
 | `access.sshPort` | number (1–65535) | `2222` | `SANDBOX_SSH_PORT` | Host loopback port published for SSH. |
 | `access.sshAuthorizedKeys` | string | unset | — | One or more public keys, newline or literal `\n` separated, read by `entrypoint.sh` through `agro config show`. The field holds public key material, not a secret. Without a key and without password auth nobody can log in, and sshd warns loudly. |
-| `access.sshPasswordAuth` | boolean | `false` | — | Enables SSH password auth, which uses the `SANDBOX_PASSWORD` secret. Never enable password auth on a public-facing bind while `SANDBOX_PASSWORD` is the default. |
+| `access.sshPasswordAuth` | boolean | `false` | — | Enables SSH password auth, which uses the `SANDBOX_PASSWORD` secret. `agro sandbox install docker` generates this value; run `agro secret get SANDBOX_PASSWORD` to read the generated value. Never enable password auth on a public-facing bind. |
 | `access.egress` | enum: `open`, `allowlist` | `open` | `AGRO_EGRESS` | Selects the sandbox's outbound network mode. `allowlist` routes traffic through a proxy that permits only known hosts. |
 | `access.egressAllow` | array of strings | `[]` | — | Extra hosts the `allowlist` proxy permits, beyond the built-in policy hosts. |
 

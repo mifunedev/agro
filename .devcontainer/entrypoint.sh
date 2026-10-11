@@ -314,9 +314,12 @@ else
   fi
 fi
 
-PW="${SANDBOX_PASSWORD:-test1234}"
-echo "sandbox:${PW}" | chpasswd || echo "[entrypoint] WARNING: failed to set sandbox password" >&2
-unset PW
+if [ -n "${SANDBOX_PASSWORD:-}" ]; then
+  echo "sandbox:${SANDBOX_PASSWORD}" | chpasswd || echo "[entrypoint] WARNING: failed to set sandbox password" >&2
+else
+  passwd -l sandbox || echo "[entrypoint] WARNING: failed to lock sandbox password" >&2
+  echo "[entrypoint] WARNING: SANDBOX_PASSWORD is not set; the sandbox password is locked. Run: agro secret set SANDBOX_PASSWORD" >&2
+fi
 
 repair_home_mount_ownership
 reconcile_shell_env_exports
