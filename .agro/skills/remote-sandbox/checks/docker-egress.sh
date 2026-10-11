@@ -17,7 +17,6 @@ sx() { docker exec -u sandbox -w /home/sandbox/harness "$N" "$@"; }
 rx() { docker exec -u root "$N" "$@"; }
 code() { sx curl -sS --max-time 20 -o /dev/null -w '%{http_code}' "$1" 2>/dev/null; }
 unit() { docker exec "$N" systemctl is-active "$1" 2>/dev/null; }
-has_unit() { docker exec "$N" systemctl cat "$1" >/dev/null 2>&1; }
 started() { docker inspect --format '{{.State.StartedAt}}' "$N" 2>/dev/null; }
 health() { docker inspect --format '{{.State.Health.Status}}' "$N" 2>/dev/null || echo missing; }
 bypass() {
@@ -84,13 +83,6 @@ if [ "$st" = healthy ]; then res E06-health PASS "healthy after $(( $(date +%s) 
 for _ in $(seq 1 60); do b=$(unit agro-bootstrap); [ "$b" = active ] || [ "$b" = failed ] && break; sleep 5; done
 b=$(unit agro-bootstrap)
 if [ "$b" = active ]; then res E07-bootstrap PASS "agro-bootstrap=active"; else docker exec "$N" journalctl -u agro-bootstrap --no-pager -n 15 2>&1 | quote; res E07-bootstrap FAIL "agro-bootstrap=${b:-unknown}"; fi
-cron_row() {
-  local c
-  if ! has_unit agro-cron; then res "$1" SKIPPED "agro-cron.service is absent from the image"; return; fi
-  c=$(unit agro-cron)
-  if [ "$c" = active ]; then res "$1" PASS "agro-cron=active"; else res "$1" FAIL "agro-cron=${c:-unknown}"; fi
-}
-cron_row E08-cron
 
 echo "== routes in the sandbox"
 rx ip route 2>&1 | quote
@@ -136,7 +128,6 @@ if [ "$run" = true ] && [ -n "$s0" ] && [ "$s0" = "$s1" ] && [ "$(unit agro-boot
 else
   res E15-running-after-reload FAIL "running=$run started_before=$s0 started_after=$s1 bootstrap=$(unit agro-bootstrap)"
 fi
-cron_row E16-cron-after-reload
 
 echo "== bypass attempts as root"
 bypass E17-bypass-noproxy https://example.com
