@@ -39,8 +39,8 @@ canonical `.agro/` source. Do not patch a generated mirror.
 
 ### 3. Remote and unattended operation are normal
 
-A terminal disconnect must not end useful work. systemd is PID 1 in the sandbox and
-supervises only container infrastructure: the bootstrap oneshot.
+A terminal disconnect must not end useful work. Compose init is PID 1 in the sandbox
+and runs the bootstrap once. The image keeps systemd for VM image mode.
 Interactive agents, tests, and development servers run in Herdr. Gateways and tunnels
 run in named tmux sessions. A raw shell is a recovery path. Design
 every persistent process for restart, inspection, and operation from another machine.

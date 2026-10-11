@@ -8,6 +8,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING:** Run the Compose sandbox under Compose init with `sandbox-main.sh` as the main process. The Compose sandbox drops `SYS_ADMIN`, `apparmor=unconfined`, `cgroup: private`, and the tmpfs mounts, and the bootstrap log goes to `agro logs`. The image keeps systemd and `/sbin/init` for VM image mode ([#1393](https://github.com/mifunedev/agro/issues/1393)).
+
 ### Fixed
 - Fix `/t3` so that `herdr` runs in a T3 Code terminal and `/t3 start --tailscale` prints the `ts.net` pairing URL and QR code ([#1394](https://github.com/mifunedev/agro/issues/1394)).
 

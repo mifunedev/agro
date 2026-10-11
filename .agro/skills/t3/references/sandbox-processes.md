@@ -7,10 +7,11 @@ agents, background workers, heartbeats — MUST run inside a named tmux
 session. This is the single mechanism for inspection, attach/detach,
 restart, and log capture across all internal apps.
 
-The one boundary: **systemd owns OS/container process supervision.**
-systemd is PID 1 in the sandbox and supervises only `agro-bootstrap.service`.
-That unit is not a tmux session and must not be wrapped in one. Everything
-above the container-init layer stays under the tmux rule.
+The one boundary: **container init owns the bootstrap.**
+Compose init is PID 1 in the sandbox and runs `sandbox-main.sh`, which runs
+`entrypoint.sh` once. The bootstrap is not a tmux session and must not be
+wrapped in one. Everything above the container-init layer stays under the tmux
+rule.
 
 `tmux` is preinstalled in the sandbox image; a default `.tmux.conf` is
 baked in (see commit `b30cef9`).

@@ -119,22 +119,23 @@ With the socket present, the entrypoint adds `sandbox` to the group that owns th
 socket GID. On a Debian host, that group can be `systemd-journal`, which also
 grants journal read access.
 
-**Privilege posture.** systemd is PID 1 and needs a writable cgroup2 mount. The
-compose files grant the minimum set:
+**Privilege posture.** The compose files use Compose init (`init: true`). PID 1
+is `docker-init`, which runs `sandbox-main.sh`. `sandbox-main.sh` runs
+`entrypoint.sh` once and stays up. The compose files grant no extra privilege:
 
-- `cap_add: [SYS_ADMIN]`, the only added capability;
-- `security_opt: [apparmor=unconfined]`, because the default AppArmor profile
-  denies `mount` even with `SYS_ADMIN`;
-- `tmpfs` on `/run`, `/run/lock`, and `/sys/fs`;
-- `cgroup: private`, so systemd mounts only the cgroup subtree of the container.
+- no added capability;
+- the default AppArmor profile;
+- the default cgroup namespace, with no private cgroup;
+- no `tmpfs` mount.
 
-The sandbox never sets `privileged: true` and never binds the host cgroup tree.
-`SYS_ADMIN` with `apparmor=unconfined` still allows mounts inside the container.
+The sandbox never sets `privileged: true`, exposes no host device, and never
+binds the host cgroup tree.
 [`sandbox-privilege-boundary.test.ts`](../.agro/scripts/__tests__/sandbox-privilege-boundary.test.ts)
-fails on `privileged: true`, a host cgroup bind, or any capability other than
-`SYS_ADMIN`. Nobody has tested this posture on SELinux hosts. On such a host, PID 1
-can exit at boot and the container restarts in a loop. `agro logs` shows the
-error.
+fails when a compose file contains `privileged: true`, `devices:`, a host cgroup
+bind, `cap_add:`, `security_opt:`, or `cgroup:`.
+
+VM image mode is different. A VM that boots the image runs the image `CMD`,
+`/sbin/init`, as PID 1. systemd then runs `agro-bootstrap.service`.
 
 **Permission engine off.** `CLAUDE_DANGEROUSLY_SKIP_PERMISSIONS=true` turns off
 interactive permission prompts. The hooks in sections 2 and 3 still run.

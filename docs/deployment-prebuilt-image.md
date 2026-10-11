@@ -104,20 +104,28 @@ that file and `image.mode` is `build`. A cold build takes about ten minutes.
 
 ## Boot
 
-systemd is PID 1. On each boot, `agro-bootstrap.service` runs `entrypoint.sh`
-once. The entrypoint syncs the host UID and GID when a checkout is bound, and
-repairs the provider links. The boot installs no harness, no tool, and no
-root `node_modules`.
+Compose init is PID 1. On each boot, it starts `sandbox-main.sh`, which runs
+`entrypoint.sh` once. The entrypoint syncs the host UID and GID when a checkout
+is bound, and repairs the provider links. The boot installs no harness, no tool,
+and no root `node_modules`.
+
+When `entrypoint.sh` succeeds, `sandbox-main.sh` writes
+`/run/agro/bootstrap.ready`. When `entrypoint.sh` fails, the container stays up
+for recovery and the healthcheck reports the container as unhealthy. The
+bootstrap log goes to the container log. To read the log, run `agro logs <name>` or `docker logs <name>`.
+
+The image `CMD` stays `/sbin/init` for VM image mode. A VM that boots the image
+runs systemd as PID 1, and systemd runs `agro-bootstrap.service`.
 
 ## Run the image without `agro`
 
 `agro` applies the overlays and the healthcheck. Use `agro` when you can. To run
-the image directly, keep the systemd flags and mount the home volume:
+the image directly, set `--init` and the main script as the entrypoint, and
+mount the home volume:
 
 ```bash
 docker run -d --name <name> --restart unless-stopped \
-  --cgroupns private --cap-add SYS_ADMIN --security-opt apparmor=unconfined \
-  --tmpfs /run --tmpfs /run/lock --tmpfs /sys/fs \
+  --init --entrypoint /usr/local/bin/sandbox-main.sh \
   -e GIT_USER_NAME="<your-name>" -e GIT_USER_EMAIL="<you@example.com>" \
   -v <name>_workspace:/home/sandbox \
   ghcr.io/mifunedev/agro:<X.Y.Z>

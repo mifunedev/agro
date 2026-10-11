@@ -128,8 +128,8 @@ agro ps <name>
 docker inspect --format '{{json .State.Health}}' <name>
 ```
 
-A healthy sandbox has `agro-bootstrap.service` active.
-To find the failing unit, run
+A healthy sandbox has the `/run/agro/bootstrap.ready` file.
+To find the failing check, run
 `bash /home/sandbox/harness/.agro/scripts/sandbox-healthcheck.sh` in the sandbox.
 
 Then continue with the [Quickstart](quickstart.md#3-enter-the-sandbox).

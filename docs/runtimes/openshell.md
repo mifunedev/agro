@@ -196,9 +196,10 @@ openshell policy set <name> --policy <file> --wait
 1. OpenShell replaces the image `ENTRYPOINT`, `CMD`, and `USER` with its
    supervisor.
 2. The supervisor starts `/usr/local/bin/openshell-main.sh` as the main process.
-3. `openshell-main.sh` runs the non-root steps of `entrypoint.sh`: home seed,
+3. `openshell-main.sh` loads the image environment and runs `sandbox-main.sh`.
+4. `sandbox-main.sh` runs the non-root steps of `entrypoint.sh`: home seed,
    workspace seed, provider links, and git identity.
-4. `openshell-main.sh` then runs `exec sleep infinity`.
+5. `sandbox-main.sh` then runs `exec sleep infinity`.
 
 No systemd runs in an OpenShell sandbox.
 

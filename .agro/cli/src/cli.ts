@@ -213,7 +213,7 @@ Usage:
   ${bin} langfuse disable   Set langfuse.enabled=false, delete the credential fragment, rewrite the files
 
 \`${bin} config langfuse\` is the interactive wizard that writes these settings.
-\`apply\` never prompts and never installs anything; bootstrap and systemd run it.
+\`apply\` never prompts and never installs anything; the bootstrap runs it.
 It reads langfuse.* from ${stateNames(bin).configFile} and the keys from the gitignored .env,
 and writes nothing when langfuse.enabled is not true. The generated files live in the
 sandbox home, so \`apply\` and \`disable\` refuse to touch them from the host.
