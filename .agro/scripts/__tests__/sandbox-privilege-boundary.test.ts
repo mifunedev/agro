@@ -59,7 +59,7 @@ describe("sandbox privilege boundary", () => {
 
   it.each(composeFiles)("%s grants no blanket privilege", (file) => {
     const text = read(file);
-    expect(text, "privileged: true is prohibited as a systemd shortcut").not.toMatch(/^\s*privileged:\s*true/m);
+    expect(text, "the sandbox never runs privileged").not.toMatch(/^\s*privileged:\s*true/m);
     expect(text, "the sandbox exposes no host device").not.toMatch(/^\s*devices:/m);
     expect(text, "the sandbox never binds the host cgroup tree").not.toMatch(/\/sys\/fs\/cgroup/);
     expect(text, "the sandbox adds no capability").not.toMatch(/^\s*cap_add:/m);
