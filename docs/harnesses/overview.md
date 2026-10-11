@@ -6,7 +6,7 @@ title: "Harnesses Overview"
 
 AGRO installs no agent CLI at boot. A harness enters the sandbox only when you run `agro harness install <id>`. **Claude Code**, **Codex**, **Pi**, **OpenCode**, **Hermes**, **OpenClaw**, **Grok Build**, **Muse Code**, **Antigravity CLI**, and **fx** install through that door. The install lands in `~/.local` inside the persistent home volume. The install survives a container recreate, because AGRO bakes no harness into the image. **T3 Code** is on demand: the `/t3` skill (or `npx t3`) fetches the T3 Code package and serves a browser UI on port 3773.
 
-Inside the sandbox, run `agro tool install herdr`, then run `herdr`, then launch whichever agent you prefer from its panes and switch between them at any time. Herdr is for interactive agents. Named tmux sessions are for AGRO's headless gateway, tunnel, and detached cron-fire infrastructure; systemd supervises the cron runtime itself.
+Inside the sandbox, run `agro tool install herdr`, then run `herdr`, then launch whichever agent you prefer from its panes and switch between them at any time. Herdr is for interactive agents. Named tmux sessions are for AGRO's headless gateway and tunnel infrastructure.
 
 AGRO is the harness; the **agent** is your call. To go beyond the catalog, install via `npm` / `pip` / `cargo` inside the sandbox or edit the Dockerfile. The product surface is one developer, one project, one agent — not racing or stacking multiple CLIs against each other.
 

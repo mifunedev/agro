@@ -10,7 +10,7 @@ persistent storage of a sandbox. The verb reference is in
 
 You do not clone AGRO onto your host. You install the CLI, create a sandbox, and
 work inside it. The CLI writes a registry entry under `~/.agro/sandboxes/<name>/`.
-`agro vendor` also writes `.agro/` and `crons/` into a checkout. The CLI writes no
+`agro vendor` also writes `.agro/` into a checkout. The CLI writes no
 other file.
 
 ## Prerequisites
@@ -128,7 +128,7 @@ agro ps <name>
 docker inspect --format '{{json .State.Health}}' <name>
 ```
 
-A healthy sandbox has `agro-bootstrap.service` and `agro-cron.service` active.
+A healthy sandbox has `agro-bootstrap.service` active.
 To find the failing unit, run
 `bash /home/sandbox/harness/.agro/scripts/sandbox-healthcheck.sh` in the sandbox.
 
@@ -136,8 +136,7 @@ Then continue with the [Quickstart](quickstart.md#3-enter-the-sandbox).
 
 ## Equip an existing repo
 
-`agro vendor` writes the `.agro/` control plane and `crons/` into the current
-directory:
+`agro vendor` writes the `.agro/` control plane into the current directory:
 
 ```bash
 cd <your-project>

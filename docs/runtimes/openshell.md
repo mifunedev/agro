@@ -9,8 +9,7 @@ image as a non-root workload under a default-deny policy. The `openshell`
 runtime is **provisionable**.
 
 > **Experimental.** The `openshell` runtime is experimental in v1. The runtime
-> is **interactive-only**: no cron runtime and no unattended schedule run in an
-> OpenShell sandbox. The runtime supports **Claude Code only**: the policy gives
+> is **interactive-only**: no unattended schedule runs in an OpenShell sandbox. The runtime supports **Claude Code only**: the policy gives
 > network access to Anthropic hosts and to no other model provider.
 
 V1 proves one loop: install, shell, list, and destroy. Every other lifecycle
@@ -201,7 +200,7 @@ openshell policy set <name> --policy <file> --wait
    workspace seed, provider links, and git identity.
 4. `openshell-main.sh` then runs `exec sleep infinity`.
 
-No systemd runs in an OpenShell sandbox, and no cron runtime runs in v1.
+No systemd runs in an OpenShell sandbox.
 
 OpenShell gives each `openshell sandbox exec` session a clean environment and
 runs the command in a `bash` login shell. The CLI sets `HOME=/home/sandbox` at
@@ -271,7 +270,7 @@ openshell sandbox delete <name>
 
 V1 does not include these items. Each item gets one follow-up issue.
 
-- The cron runtime and every unattended schedule. A gateway restart stops every
+- Every unattended schedule. A gateway restart stops every
   process, so the design waits for live evidence.
 - Routed `stop`, `restart`, `logs`, and `ps` verbs. V1 prints the `openshell`
   command instead.

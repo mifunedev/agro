@@ -81,7 +81,7 @@ Docker is the isolation boundary in AGRO, so Antigravity CLI runs in zero-confir
 - `agro harness install antigravity-cli` prints the launch line with `--dangerously-skip-permissions`.
 - Sandbox provisioning pre-seeds `~/.gemini/antigravity-cli/settings.json` with `{"defaultPermissionMode": "bypassPermissions"}`.
 
-This lets unattended tasks and cron jobs run with no interactive prompt blocks.
+This lets unattended tasks run with no interactive prompt blocks.
 
 `--mode` accepts three values: `default` (ask for approval before an edit), `accept-edits` (accept file edits with no prompt), and `plan` (plan the work with no edit).
 

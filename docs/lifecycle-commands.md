@@ -37,7 +37,7 @@ Host prerequisites and the CLI install are in [Installation](installation.md).
 | `agro destroy [name] [--yes]` | `docker-compose.sh down -v`, then remove the registry entry — see below |
 | `agro compose config` | `docker-compose.sh config` — the resolved compose file |
 | `agro self-upgrade [--dry-run]` (alias `agro update`) | upgrade the installed `agro` executable through the mechanism that installed it — see below |
-| `agro vendor [--from <dir> \| --from-remote [--ref <ref>]] [--dry-run] [--force]` | equip an empty checkout with `.agro/` + `crons/`, and upgrade an equipped one |
+| `agro vendor [--from <dir> \| --from-remote [--ref <ref>]] [--dry-run] [--force]` | equip an empty checkout with `.agro/`, and upgrade an equipped one |
 | `agro config show [--sandbox <name>]` · `agro config set <field> <value> [--sandbox <name>]` | read and write `agro.json` |
 | `agro config repo` · `agro config <integration>` | create a GitHub repo and point `origin` at it; run an integration wizard |
 | `agro secret set <KEY> [--sandbox <name>]` · `agro secret list [--sandbox <name>]` | read and write the gitignored `.env` |
@@ -166,7 +166,7 @@ and `--force` and points at `agro vendor`.
 ## Equipping a checkout: `agro vendor`
 
 `agro vendor` is the command that vendors the
-`.agro/` control plane and `crons/` into the current directory. `agro vendor`
+`.agro/` control plane into the current directory. `agro vendor`
 equips an empty directory from scratch and upgrades an equipped directory. Payload precedence:
 `--from <dir>`, then `--from-remote [--ref <ref>]`, then the CLI's own bundled
 payload, then a remote fetch announced on one line. `--dry-run` previews the

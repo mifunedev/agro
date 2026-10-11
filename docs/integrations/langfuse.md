@@ -101,10 +101,7 @@ See the [field reference](../configuration.md#langfuse-tracing) for the four
 The fragment holds the only credential at rest. The three harness files carry no
 key.
 
-**The fragment carries bare `KEY=value` lines and no `export`.** systemd rejects
-an `EnvironmentFile` that uses `export`, and
-`.devcontainer/agro-cron.service` loads this same file with
-`EnvironmentFile=-`. The tracked `.agro/install/.zshenv` wraps its `source` in
+**The fragment carries bare `KEY=value` lines and no `export`.** The tracked `.agro/install/.zshenv` wraps its `source` in
 `set -a` and `set +a`, so an interactive shell exports every key anyway. In your
 own shell profile, keep `export` — see [manual
 configuration](#-manual-configuration).

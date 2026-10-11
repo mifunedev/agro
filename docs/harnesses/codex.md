@@ -72,7 +72,7 @@ The sandbox alias runs Codex with prompts disabled and Codex's own sandbox disab
 codex "Add input validation to the user registration endpoint"
 
 # Explicit no-prompt/no-Codex-sandbox invocation
-codex --dangerously-bypass-approvals-and-sandbox "Write unit tests for .agro/scripts/cron-runtime.ts"
+codex --dangerously-bypass-approvals-and-sandbox "Write unit tests for .agro/scripts/sandbox-healthcheck.sh"
 
 # Prompt before higher-risk actions and keep Codex workspace sandboxing enabled
 codex --ask-for-approval on-request --sandbox workspace-write "Refactor .agro/scripts/install.sh to use a single prompt helper"

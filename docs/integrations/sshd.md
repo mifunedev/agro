@@ -78,8 +78,8 @@ the entrypoint does these steps:
    PasswordAuthentication no
    ```
 
-3. Starts `sshd` next to the main process. The cron runtime, the healthcheck,
-   and `agro shell` stay the same.
+3. Starts `sshd` next to the main process. The healthcheck and `agro shell`
+   stay the same.
 
 When `access.sshAuthorizedKeys` is empty, the entrypoint keeps an existing
 `authorized_keys` file in the home volume. To mount a host `authorized_keys`

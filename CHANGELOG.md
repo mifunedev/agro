@@ -15,6 +15,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 - Set `CC_LANGFUSE_CAPTURE_IMAGES=false` in the project Claude Code settings, so the Langfuse plugin no longer uploads transcript images from sessions in this repository ([#1375](https://github.com/mifunedev/agro/issues/1375)).
 
 ### Removed
+- **BREAKING:** Remove the AGRO cron feature and the boot-time root `pnpm install`: `agro-cron.service`, `.agro/scripts/cron-runtime.ts`, the `crons/` folder, the `cron.agentBin` config key, the `croner` dependency, and the `build.skipPnpmInstall` config key no longer exist. Use the native loop of your coding harness for recurring work, for example Claude Code `/loop` ([#1391](https://github.com/mifunedev/agro/issues/1391)).
 - Remove the Claude Code `Stop` hook from project settings, so Claude Code no longer runs `notify_slack.sh` after every turn ([#1373](https://github.com/mifunedev/agro/issues/1373)).
 
 ## [0.19.0] - 2026-10-09

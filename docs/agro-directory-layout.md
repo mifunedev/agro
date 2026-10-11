@@ -17,7 +17,6 @@ obligations. Canonical skills own reusable procedures.
 | `.agro/manifest.json` | The declared control-plane and root payload. |
 | `.devcontainer/` | Dockerfile, Compose configuration, entrypoint, and sandbox bootstrap assets. |
 | `docs/` | Human-facing documentation source. |
-| `crons/` | Operator schedule definitions that the cron runtime reads. |
 | `.worktrees/` | Isolated branch checkouts for this repository. |
 | `projects/` | Independent repository clones; each clone keeps its own `.worktrees/`. |
 | `agro.json`, `.example.env` | Tracked non-secret settings and the secret-variable template. |
@@ -65,7 +64,7 @@ is `/home/sandbox/harness`, inside the persistent sandbox home.
 [`.agro/manifest.json`](../.agro/manifest.json) declares the payload:
 
 - `include` lists globs relative to `.agro/`.
-- `rootInclude` lists repository-relative globs. The current list is `crons/**`.
+- `rootInclude` lists repository-relative globs. The current list is empty.
 - `exclude` applies to both lists and wins over an include match.
 
 The payload omits `tasks`, `logs`, `memories`, and the root `docs/`. A
