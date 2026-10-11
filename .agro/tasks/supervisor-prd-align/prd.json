@@ -34,14 +34,15 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 for each of the three edited files."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Commits e109baa5, 53f8ba1a (rewrap repair). C1 executed: sweep below lists none of logs/AGENTS.md, memories/AGENTS.md, audit/references/implementation.md. C2 executed: git grep retired names over .agro docs excluding .agro/tasks printed only registry-portability.md:65 and reviewer-evidence-doc.md:13, exit 0. C3 executed: ste-check.sh on the three files exit 0, no findings (baseline 26 fixed); hand review: conditions lead actions, no antecedent-less pronouns, word-diff of the rewrap shows only blockquote markers. Four table rows stay over 90 columns because Markdown table rows cannot wrap.",
       "dependsOn": [],
       "files": [
         ".agro/logs/AGENTS.md",
         ".agro/memories/AGENTS.md",
         ".agro/skills/audit/references/implementation.md"
-      ]
+      ],
+      "commit": "e109baa5"
     }
   ],
   "definitionOfDone": [
