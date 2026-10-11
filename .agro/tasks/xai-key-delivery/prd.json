@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1410-xai-key-delivery",
+  "description": "XAI_API_KEY delivery: pass `XAI_API_KEY` into the sandbox through Compose.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Pass `XAI_API_KEY` through Compose",
+      "description": "As the operator, I want `agro secret set XAI_API_KEY` to reach the sandbox environment so that the Grok Build CLI can use the key.",
+      "acceptanceCriteria": [
+        "`.devcontainer/docker-compose.yml` passes `XAI_API_KEY=${XAI_API_KEY:-}` in the `environment:` list of the sandbox service.",
+        "`COMPOSE_SECRET_KEYS` in `.agro/cli/src/lib/secrets.ts` holds `XAI_API_KEY`, and the parity test in `.agro/cli/src/lib/__tests__/secrets.test.ts` passes.",
+        "With `--sandbox <name>`, `runSecretSet` exits 0 for `XAI_API_KEY`, and a test covers the case.",
+        "`docs/configuration.md` lists `XAI_API_KEY` among the keys that `--sandbox` accepts, and states that no container process reads `META_API_KEY` from a `.env` file.",
+        "`CHANGELOG.md` has one `### Fixed` entry under `## [Unreleased]` that links #1410.",
+        "`npx vitest run .agro/cli/src/lib/__tests__/secrets.test.ts .agro/cli/src/__tests__/config-secret.test.ts` exits 0.",
+        "`npm run typecheck` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".devcontainer/docker-compose.yml",
+        ".agro/cli/src/lib/secrets.ts",
+        ".agro/cli/src/lib/__tests__/secrets.test.ts",
+        ".agro/cli/src/__tests__/config-secret.test.ts",
+        "docs/configuration.md",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Record manual review evidence",
+      "description": "As the advisor, I want a transcript so that the PR shows the changed behavior.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/xai-key-delivery/evidence/manual-review.md` holds the output and exit code of `printf '%s\\n' dummy-not-a-secret | node .agro/cli/dist/agro.js secret set XAI_API_KEY --sandbox review-box` in a temporary `AGRO_HOME`, and that exit code is 0.",
+        "The file holds the output of `docker compose -f .devcontainer/docker-compose.yml config` with `XAI_API_KEY=dummy-not-a-secret` in the environment, trimmed to the `XAI_API_KEY` line, or the reason that the command cannot run.",
+        "The transcript holds no real secret value.",
+        "The story deletes each temporary directory that it creates."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-001"],
+      "files": [".agro/tasks/xai-key-delivery/evidence/manual-review.md"]
+    }
+  ]
+}
