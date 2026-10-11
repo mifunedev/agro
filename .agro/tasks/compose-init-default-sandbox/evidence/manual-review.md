@@ -8,7 +8,7 @@ Each output below is from an observed run on 2026-10-11. This file trims long ou
 
 ## Prerequisites
 
-- A checkout of the AGRO harness at commit `13eaa973474d4f27a7e75685f293862d935bce35` (the PR #1399 head).
+- A checkout of the AGRO harness at commit `13eaa973474d4f27a7e75685f293862d935bce35` for sections A and B. Section C uses commit `df139bfa0b402104070e0507d265a1151fec2ab4` (the PR #1399 head).
 - Node 20 or newer, pnpm, git, and `gh` signed in to GitHub.
 - shellcheck v0.10.0 (the CI version).
 - No Docker daemon is necessary. No step starts a container, runs `docker run`, or pulls an image.
@@ -200,3 +200,190 @@ tmux new-session -d -s rs-image "IMAGE=ghcr.io/mifunedev/agro:<version> bash $SK
 tmux new-session -d -s rs-sync "IMAGE=ghcr.io/mifunedev/agro:<version> bash $SKILL/scripts/restart-test.sh exedev sync"
 bash "$SKILL/scripts/summarize.sh" "$MATRIX_OUT"
 ```
+
+## C. Folded stories (US-007, US-008, US-009)
+
+Story: US-010. Each output below is from an observed run on 2026-10-11.
+
+Location: the sandbox, local, in the worktree `.worktrees/task/1393-us010`. The worktree is at `3754e50f`. That commit differs from the PR head `df139bfa` only in `prd.json`, so the code under test is the PR head code. The CI steps read GitHub Actions results with `gh`. No step starts a container or pulls an image. No step creates a resource in the repository.
+
+### C1. US-007: The Langfuse fragment names no systemd reader
+
+```bash
+git grep -n -i systemd -- .agro/cli/src/lib/tracing docs/integrations/langfuse.md
+```
+
+Output: no line.
+
+Exit status: 1 (git grep found no match; this is the expected result).
+
+```bash
+npx vitest run .agro/cli/src/lib/tracing
+```
+
+Output (trimmed):
+
+```text
+ Test Files  2 passed (2)
+      Tests  41 passed (41)
+```
+
+Exit status: 0.
+
+```bash
+pnpm run typecheck
+```
+
+Output (trimmed):
+
+```text
+> tsc --noEmit
+```
+
+Exit status: 0.
+
+### C2. US-008: CI lints the remote-sandbox scripts
+
+The CI shellcheck command, `.github/workflows/ci-harness.yml` line 110, with shellcheck v0.10.0:
+
+```bash
+shellcheck -S warning .devcontainer/*.sh .agro/install/*.sh .agro/scripts/*.sh .agro/skills/audit/scripts/*.sh .agro/skills/escalate/scripts/*.sh .agro/skills/typesafe-ai/scripts/*.sh .agro/skills/remote-sandbox/adapters/*.sh .agro/skills/remote-sandbox/checks/*.sh .agro/skills/remote-sandbox/scripts/*.sh .claude/hooks/*.sh
+```
+
+Output: no line.
+
+Exit status: 0.
+
+Both workflows include the remote-sandbox globs:
+
+```bash
+grep -c 'remote-sandbox' .github/workflows/ci-harness.yml .github/workflows/release.yml
+```
+
+Output:
+
+```text
+.github/workflows/ci-harness.yml:1
+.github/workflows/release.yml:1
+```
+
+Exit status: 0. Each count is one shellcheck line. That line holds the three globs `remote-sandbox/adapters/*.sh`, `remote-sandbox/checks/*.sh`, and `remote-sandbox/scripts/*.sh`.
+
+```bash
+npx vitest run .agro/scripts/__tests__/remote-sandbox-suite.test.ts .agro/scripts/__tests__/remote-sandbox-adapters.test.ts
+```
+
+Output (trimmed):
+
+```text
+ Test Files  2 passed (2)
+      Tests  21 passed (21)
+```
+
+Exit status: 0.
+
+Failure path. Copy `.agro/skills/remote-sandbox/checks/agro-rows.sh` without its first line (`#!/usr/bin/env bash`) to a scratch folder outside the repository. Then run shellcheck on the copy:
+
+```bash
+tail -n +2 .agro/skills/remote-sandbox/checks/agro-rows.sh > "$SCRATCH/no-shebang.sh"
+shellcheck -S warning "$SCRATCH/no-shebang.sh"
+```
+
+Output (trimmed):
+
+```text
+In .../no-shebang.sh line 1:
+set -uo pipefail
+^-- SC2148 (error): Tips depend on target shell and yours is unknown. Add a shebang or a 'shell' directive.
+```
+
+Exit status: 1.
+
+Cleanup: delete `"$SCRATCH/no-shebang.sh"`. This review deleted the copy after the run.
+
+### C3. US-009: The sandbox image has shellcheck and hadolint
+
+```bash
+grep -n -E 'shellcheck|HADOLINT|hadolint|sha256sum' .devcontainer/Dockerfile
+```
+
+Output:
+
+```text
+13:    iproute2 zsh lsof htop inetutils-telnet shellcheck \
+18: && command -v shellcheck >/dev/null \
+37:ARG HADOLINT_VERSION=2.12.0
+39:      amd64) asset=hadolint-Linux-x86_64; sha=56de6d5e5ec427e17b74fa48d51271c7fc0d61244bf5c90e828aab8362d55010 ;; \
+40:      arm64) asset=hadolint-Linux-arm64; sha=5798551bf19f33951881f15eb238f90aef023f11e7ec7e9f4c37961cb87c5df6 ;; \
+41:      *) echo "no pinned hadolint build for $(dpkg --print-architecture)" >&2; exit 1 ;; \
+43: && curl -fsSL "https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/${asset}" -o /tmp/hadolint \
+44: && echo "${sha}  /tmp/hadolint" | sha256sum -c - \
+45: && install -m 0755 /tmp/hadolint /usr/local/bin/hadolint \
+46: && rm -f /tmp/hadolint
+```
+
+Exit status: 0.
+
+```bash
+npx vitest run .agro/scripts/__tests__/verify-sandbox-image.test.ts
+```
+
+Output (trimmed):
+
+```text
+ Test Files  1 passed (1)
+      Tests  38 passed (38)
+```
+
+Exit status: 0.
+
+CI log of run 38161083662 ("CI: Sandbox Boot Guard", head `df139bfa`, conclusion `success`):
+
+```bash
+gh run view 38161083662 --log | grep -E '/tmp/hadolint: OK|ok: hadolint --version|ok: shellcheck --version'
+```
+
+Output:
+
+```text
+Validate sandbox compose and image build	Build sandbox image locally	2026-10-11T17:47:43.6796682Z #10 0.452 /tmp/hadolint: OK
+Validate sandbox compose and image build	Verify sandbox image contract	2026-10-11T17:48:21.2368436Z ok: hadolint --version -> Haskell Dockerfile Linter 2.12.0
+Validate sandbox compose and image build	Verify sandbox image contract	2026-10-11T17:48:21.4428815Z ok: shellcheck --version -> version: 0.10.0
+Boot a legacy volume against the fresh image	Upgrade a legacy workspace volume to the freshly built image	2026-10-11T17:48:31.8270828Z #10 0.529 /tmp/hadolint: OK
+```
+
+Exit status: 0. The `/tmp/hadolint: OK` lines are the `sha256sum -c` check in the image build. The `ok:` lines come from `verify-sandbox-image.sh`.
+
+### C4. CI on the PR head `df139bfa`
+
+```bash
+gh pr checks 1399
+```
+
+Output:
+
+```text
+Boot Path Lint (shellcheck + hadolint)	pass	18s
+Boot a legacy volume against the fresh image	pass	2m11s
+Install every optional harness through the CLI	pass	5m22s
+Typecheck, Build & Test	pass	49s
+Validate sandbox compose and image build	pass	2m27s
+Verify exact Node and pnpm parity across Debian bases	pass	20s
+```
+
+Exit status: 0.
+
+### C5. Full unit suite
+
+```bash
+npx vitest run
+```
+
+Output (trimmed):
+
+```text
+ Test Files  92 passed (92)
+      Tests  2046 passed | 2 skipped (2048)
+```
+
+Exit status: 0.
