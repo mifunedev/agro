@@ -38,14 +38,15 @@
         "The story deletes each temporary directory that it creates."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1-2 executed by the worker and copied from the observed run: no-newline pipe exit 0 then list shows GH_TOKEN set; empty pipe prints no value entered and exits 1, list shows no secrets set. AC3 executed by the advisor: only the dummy string appears. AC4 executed by the worker: both temp homes removed.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/tasks/piped-secret-newline/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "426bcdd8"
     }
   ]
 }
