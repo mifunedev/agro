@@ -66,8 +66,8 @@
         "`npm --prefix .agro/cli run typecheck` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated. Advisor re-ran: vitest sandbox + registry exit 0; typecheck exit 0. C1, C2, C4 executed by tests (file written only for allowlist entries; union of policy hosts and access.egressAllow, sorted and deduplicated, compared against yaml.parse of the live policy). C3 reasoned: the US-002 squid.conf allows only `dstdomain \"/etc/squid/egress-allow.txt\"` and denies all else. The CLI reads policy hosts with a line-based extraction (no new runtime dependency); the yaml-based test guards drift. File written in place by the materialize loop; /egress-allow.txt gitignored for checkout mode.",
       "dependsOn": [
         "US-001",
         "US-002"
@@ -76,7 +76,8 @@
         ".agro/cli/src/lib/registry.ts",
         ".agro/cli/src/__tests__/sandbox.test.ts",
         ".devcontainer/docker-compose.egress.yml"
-      ]
+      ],
+      "commit": "d661b52a"
     },
     {
       "id": "US-004",
