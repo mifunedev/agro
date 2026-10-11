@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1397-docker-egress-allowlist",
+  "description": "Docker egress allowlist: an opt-in proxy sidecar on an internal network, enforced outside the container (ADR #1378).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add the egress setting",
+      "description": "As an operator, I want one `agro.json` setting that selects open or allowlist egress so that the hardened mode is a single toggle.",
+      "acceptanceCriteria": [
+        "`AgroConfig` accepts `access.egress` with the values `\"open\"` and `\"allowlist\"`. The default is `\"open\"`.",
+        "`AgroConfig` accepts `access.egressAllow` as an array of host strings. The default is an empty array.",
+        "`agro config set access.egress allowlist --sandbox <name>` exits 0, and `agro config set access.egress closed --sandbox <name>` exits 1.",
+        "`config-render.ts` renders `AGRO_EGRESS` from `access.egress`, as `DOCKER_SOCKET` renders from `access.dockerSocket`.",
+        "`docs/configuration.md` lists both fields.",
+        "`pnpm exec vitest run .agro/cli/src/lib/__tests__/agro-config.test.ts` exits 0, and `npm --prefix .agro/cli run typecheck` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/agro-config.ts",
+        ".agro/cli/src/lib/config-render.ts",
+        ".agro/cli/src/lib/__tests__/agro-config.test.ts",
+        "docs/configuration.md"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Add the egress overlay",
+      "description": "As an operator, I want an overlay that removes the direct route out and adds a proxy. Root in the sandbox then has no path past the allowlist.",
+      "acceptanceCriteria": [
+        "`.devcontainer/docker-compose.egress.yml` defines a `proxy` service from `ubuntu/squid@sha256:6a097f68bae708cedbabd6188d68c7e2e7a38cedd05a176e1cc0ba29e3bbe029`, an `internal: true` network for the sandbox, and an egress network for the proxy only.",
+        "The overlay sets `HTTPS_PROXY`, `HTTP_PROXY`, `https_proxy`, `http_proxy`, `NO_PROXY`, `no_proxy`, and `NODE_USE_ENV_PROXY=1` on the sandbox service.",
+        "If `AGRO_EGRESS` is `allowlist`, `.agro/scripts/docker-compose.sh` adds the overlay after `docker-compose.yml`. Otherwise the argv stays byte-identical to the current argv.",
+        "`materialize()` writes the overlay into each Docker entry from an `agro-asset:` import, and the Dockerfile `/opt/agro-assets` COPY ships the overlay.",
+        "`pnpm exec vitest run .agro/scripts/__tests__/compose-args.test.ts .agro/scripts/__tests__/sandbox-privilege-boundary.test.ts .agro/scripts/__tests__/docs-compose-overlays.test.ts` exits 0."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".devcontainer/docker-compose.egress.yml",
+        ".agro/scripts/docker-compose.sh",
+        ".agro/cli/src/lib/registry.ts",
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/__tests__/compose-args.test.ts",
+        ".agro/scripts/__tests__/sandbox-privilege-boundary.test.ts",
+        ".agro/scripts/__tests__/docs-compose-overlays.test.ts"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Generate the allowlist from one source",
+      "description": "As a maintainer, I want the proxy allowlist built from the OpenShell policy hosts plus `access.egressAllow` so that the two runtimes share one host list.",
+      "acceptanceCriteria": [
+        "On each lifecycle call, `materialize()` writes `<entry>/egress-allow.txt` for a Docker entry with `access.egress: \"allowlist\"`.",
+        "The file holds the union of each `host` in the `network_policies` of `.devcontainer/openshell-policy.yaml` and each entry of `access.egressAllow`, sorted and without duplicates.",
+        "The proxy reads `egress-allow.txt` and denies each other host.",
+        "A test proves that the file equals the policy hosts plus the extra hosts for a fixture `agro.json`.",
+        "`npm --prefix .agro/cli run typecheck` exits 0."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/cli/src/lib/registry.ts",
+        ".agro/cli/src/__tests__/sandbox.test.ts",
+        ".devcontainer/docker-compose.egress.yml"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Add the egress log and reload verbs",
+      "description": "As an operator, I want to see blocked hosts and apply a new allowlist without a restart. I can then fix a blocked host in one step.",
+      "acceptanceCriteria": [
+        "`agro egress log [name]` prints the proxy access log lines of the sandbox, with the denied lines marked.",
+        "`agro egress reload [name]` regenerates `egress-allow.txt` and sends the proxy its reconfigure signal. The sandbox container keeps running.",
+        "For an entry with `access.egress: \"open\"` or an OpenShell entry, both verbs exit 1 with one line that names the setting.",
+        "`pnpm exec vitest run` covers the argv of both verbs, and the run exits 0.",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-003"
+      ],
+      "files": [
+        ".agro/cli/src/commands/egress.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/command-table.ts",
+        ".agro/cli/src/__tests__/egress.test.ts"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Document the egress mode",
+      "description": "As an operator, I want a page that states what allowlist mode blocks and how to fix a blocked host.",
+      "acceptanceCriteria": [
+        "`docs/security-considerations.md` and `docs/configuration.md` describe allowlist mode, the hosts in the default list, `access.egressAllow`, `agro egress log`, `agro egress reload`, and the limits in `## Out of Scope`.",
+        "`CHANGELOG.md` has one bullet under `## [Unreleased]` that names ADR #1378.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh` reports no new finding on each changed document."
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        "docs/security-considerations.md",
+        "docs/configuration.md",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Prove the boundary on a new VM",
+      "description": "As the advisor, I want a remote-sandbox check for the shipped overlay. The check repeats the proof of concept, and the PR proves the boundary with the result. This story depends on US-001 through US-005.",
+      "acceptanceCriteria": [
+        "`.agro/skills/remote-sandbox/checks/docker-egress.sh` installs AGRO, sets `access.egress` to `allowlist`, and runs `agro sandbox install docker --yes`.",
+        "The check fails if `agro-bootstrap` is not `active` or `agro-cron` is not `active`.",
+        "The check passes an allowed GitHub request, a denied request with a `TCP_DENIED` line in `agro egress log`, a Claude Code install through the proxy, and an `agro egress reload` that allows a new host.",
+        "The check fails if a request without the proxy, a request to a direct IP, or a request after a root route change reaches the internet.",
+        "With operator approval, the advisor runs the check on exe.dev and writes the transcript to `.agro/tasks/docker-egress-allowlist/evidence/manual-review.md`. The log ends with `remaining agro-matrix resources on exedev: 0`."
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004",
+        "US-005"
+      ],
+      "files": [
+        ".agro/skills/remote-sandbox/checks/docker-egress.sh",
+        ".agro/tasks/docker-egress-allowlist/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
