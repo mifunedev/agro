@@ -78,7 +78,7 @@ export async function runSecretSet(
     return 1;
   }
 
-  io.stdout(`.env: set ${key}=${prompt.redact(value)}\n`);
+  io.stdout(`.env: set ${key}\n`);
   return 0;
 }
 
@@ -116,7 +116,7 @@ export async function runSecretList(opts: SecretOptions, io: SecretIO): Promise<
   const width = Math.max(...keys.map((key) => key.length));
   for (const key of keys) {
     const value = readSecret(root, key);
-    io.stdout(`${key.padEnd(width)}  ${value === undefined ? "—" : prompt.redact(value)}\n`);
+    io.stdout(`${key.padEnd(width)}  ${value === undefined ? "—" : "set"}\n`);
   }
   return 0;
 }

@@ -326,8 +326,16 @@ describe("agro secret set", () => {
     expect(asked).toHaveLength(1);
     expect(asked[0]).toContain("input hidden");
     expect(out.join("")).not.toContain("ghp_supersecretvalue");
-    expect(out.join("")).toContain("ghp_s");
+    expect(out.join("")).not.toContain("ghp_s");
     expect(readFileSync(join(root, ".env"), "utf8")).toContain("GH_TOKEN=ghp_supersecretvalue");
+  });
+
+  it("confirms the key without printing any character of the value", async () => {
+    const root = makeRepo();
+    const { io, out } = makeIo();
+    io.askSecret = async () => "ghp_supersecretvalue";
+    expect(await runSecretSet("GH_TOKEN", { bin: "agro", cwd: root }, io)).toBe(0);
+    expect(out.join("")).toBe(".env: set GH_TOKEN\n");
   });
 
   it("refuses a non-secret key and points at `agro config set`", async () => {
@@ -388,7 +396,19 @@ describe("agro secret list", () => {
     expect(printed).toContain("XAI_API_KEY");
     expect(printed).not.toContain("ghp_supersecretvalue");
     expect(printed).not.toContain("xai_anotherlongsecret");
-    expect(printed).toMatch(/\*{4}/);
+    expect(printed).toMatch(/\bset\b/);
+  });
+
+  it("prints the exact list line with no part of a fixture value", async () => {
+    const root = makeRepo();
+    const value = "fixture-value-0123456789-abcdefghijklmnopq";
+    setSecret(root, "GH_TOKEN", value);
+    const { io, out } = makeIo();
+    expect(await runSecretList({ bin: "agro", cwd: root }, io)).toBe(0);
+    expect(out.join("")).toBe("GH_TOKEN  set\n");
+    for (let n = 2; n <= value.length; n++) {
+      expect(out.join("")).not.toContain(value.slice(0, n));
+    }
   });
 
   it("says so when nothing is set", async () => {
