@@ -126,4 +126,7 @@ Write each test first. Confirm that each new test fails before the change.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. Claim: `agro secret set <KEY>` exits 0 and writes nothing when the piped value has no trailing newline. Evidence: `evidence/manual-review.md` side note, observed with `printf '%s' dummy-not-a-secret`. Outcome: proposed issue, not created.
+2. Claim: Compose does not pass `XAI_API_KEY` into the container, and `.agro/install/banner.sh:123` reads the key from the environment. Evidence: `.devcontainer/docker-compose.yml:16-26`. Outcome: proposed issue, not created.
+3. Claim: the jq branch of `.agro/hooks/deny-env-dump.sh` denies a jq program that holds a file name such as `deny-env-dump.sh` in a string literal. Evidence: the advisor's `prd.json` conversion command was denied in this task. Outcome: proposed issue, not created.
+4. Claim: the worker brief named `npm ci` for the root, and the root uses pnpm. Evidence: US-001 and US-002 worker reports. Outcome: dropped, because the observation is about process and the advisor reran each check on the task branch.
