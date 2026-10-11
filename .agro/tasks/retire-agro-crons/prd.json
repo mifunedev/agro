@@ -143,8 +143,8 @@
         "`pnpm test:scripts` exits 0."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: grep -c 'pnpm install' .devcontainer/entrypoint.sh = 0. 2,4,10 executed: full npx vitest run 90 files, 2021 passed, 2 skipped (entrypoint no-pnpm-install test, stale build key load test). 3,5,6,7,8 executed: git grep skipPnpmInstall|PNPM_INSTALL|node_modules/croner|devPreinstall shows only RETIRED_KEYS lines, negative tests, and config-render.test.ts:195 (stale fixture; US-006 tidies); workflow diff reviewed (also drops unused Set up pnpm step). 9 worker-executed: pnpm run build:harness exit 0 in fresh worktree without root node_modules; reasoned: script uses only .agro/cli npm deps. Extra: pnpm run typecheck exit 0; shellcheck CI set exit 0.",
       "dependsOn": [
         "US-001",
         "US-003",
@@ -161,7 +161,8 @@
         ".github/workflows/sandbox-boot-guard.yml",
         ".agro/scripts/sandbox-upgrade-smoke.sh",
         "docs/deployment-prebuilt-image.md"
-      ]
+      ],
+      "commit": "3c88a5b0"
     },
     {
       "id": "US-006",
