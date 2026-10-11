@@ -8,6 +8,7 @@ export const SANDBOX_SUBCOMMANDS = ["install", "list", "upgrade"] as const;
 export const WORKSPACE_SUBCOMMANDS = ["create", "list"] as const;
 export const HARNESS_SUBCOMMANDS = ["list", "install", "status", "uninstall"] as const;
 export const TOOL_SUBCOMMANDS = ["list", "install", "status", "uninstall"] as const;
+export const EGRESS_VERBS = ["log", "reload"] as const;
 
 export type ConfigVerb = (typeof CONFIG_VERBS)[number];
 export type ConfigIntegration = (typeof CONFIG_INTEGRATIONS)[number];
@@ -17,6 +18,7 @@ export type SandboxSubcommand = (typeof SANDBOX_SUBCOMMANDS)[number];
 export type WorkspaceSubcommand = (typeof WORKSPACE_SUBCOMMANDS)[number];
 export type HarnessSubcommand = (typeof HARNESS_SUBCOMMANDS)[number];
 export type ToolSubcommand = (typeof TOOL_SUBCOMMANDS)[number];
+export type EgressVerb = (typeof EGRESS_VERBS)[number];
 
 export function isOneOf<T extends string>(values: readonly T[], value: string | undefined): value is T {
   return value !== undefined && (values as readonly string[]).includes(value);
@@ -36,5 +38,6 @@ export const AGRO_COMMANDS: Readonly<Record<string, readonly string[] | null>> =
   harness: HARNESS_SUBCOMMANDS,
   tool: TOOL_SUBCOMMANDS,
   gateway: null,
+  egress: EGRESS_VERBS,
   ...Object.fromEntries(composeVerbs().map((verb) => [verb, null])),
 });
