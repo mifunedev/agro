@@ -59,14 +59,15 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/supervisor/SKILL.md` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Commit a81d518c. C1 reasoned: Monitor capabilities section (lines 67-95) names a bounded monitor with a completion notice, a stop operation, and a list operation; the body uses these terms. C2 executed: the mapping table at lines 81-83 is the only mapping; Claude Code Monitor (timeout_ms) and TaskStop, no list; Pi MonitorCreate, MonitorStop, MonitorList; advisor confirmed Monitor timeout_ms and TaskStop against the live Claude Code tool schemas. C3 executed: git grep tool names and onDone hits only lines 10 (description), 16 (allowed-tools), 81, 82, 83, 87 (mapping). C4 and C5 executed: grep finds the no-list-operation fallback at line 93 and the no-bounded-monitor blocker at line 90. C6 executed: LoopCreate, polling, and sleep-loop bans at lines 11, 38, 39, 317. C7 executed: description 825 chars <= 1024. C8 executed: ste-check.sh SKILL.md exit 0; hand review: conditions lead actions, no opening pronoun. JSON monitor examples became a command block plus description, timeout, and completion instruction, because field names differ by harness.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/skills/supervisor/SKILL.md"
-      ]
+      ],
+      "commit": "a81d518c"
     },
     {
       "id": "US-004",

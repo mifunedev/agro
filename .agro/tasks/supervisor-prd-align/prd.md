@@ -32,14 +32,14 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] The skill requires three capabilities by name: a bounded background monitor that reports on completion, a stop operation, and a list operation.
-- [ ] One section of the skill holds the only tool mapping. Claude Code provides `Monitor` (create, with a completion notice) and `TaskStop` (stop), and has no list operation. Pi with `@trevonistrevon/pi-loop` provides `MonitorCreate`, `MonitorStop`, and `MonitorList`.
-- [ ] `git grep -n -E 'MonitorCreate|MonitorList|MonitorStop|TaskStop|onDone' -- .agro/skills/supervisor/SKILL.md` prints only lines of the `description`, `allowed-tools`, and the mapping section.
-- [ ] The skill states: when the harness has no list operation, the supervisor reconciles handles from its run record.
-- [ ] The skill states: when the harness has no bounded monitor with a completion notice, the supervisor stops and reports the blocker.
-- [ ] The bans on `LoopCreate`, polling, and sleep loops stay.
-- [ ] The description text has 1024 characters or fewer.
-- [ ] `bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/supervisor/SKILL.md` exits 0.
+- [x] The skill requires three capabilities by name: a bounded background monitor that reports on completion, a stop operation, and a list operation.
+- [x] One section of the skill holds the only tool mapping. Claude Code provides `Monitor` (create, with a completion notice) and `TaskStop` (stop), and has no list operation. Pi with `@trevonistrevon/pi-loop` provides `MonitorCreate`, `MonitorStop`, and `MonitorList`.
+- [x] `git grep -n -E 'MonitorCreate|MonitorList|MonitorStop|TaskStop|onDone' -- .agro/skills/supervisor/SKILL.md` prints only lines of the `description`, `allowed-tools`, and the mapping section.
+- [x] The skill states: when the harness has no list operation, the supervisor reconciles handles from its run record.
+- [x] The skill states: when the harness has no bounded monitor with a completion notice, the supervisor stops and reports the blocker.
+- [x] The bans on `LoopCreate`, polling, and sleep loops stay.
+- [x] The description text has 1024 characters or fewer.
+- [x] `bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/supervisor/SKILL.md` exits 0.
 
 ### US-004: Add the supervisor entry to the root glossary
 
@@ -47,10 +47,10 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] `AGENTS.md` § A small glossary has one entry that starts with `- **supervisor** means`.
-- [ ] The entry defines the behavior of launching, monitoring, and escalating for advisor sessions in other Herdr panes. The entry states that the supervisor is not an identity and is distinct from the root orchestrator.
-- [ ] The entry matches the style of the other glossary entries: one bullet, a bold term, "means", and a wrap at 80 to 85 columns.
-- [ ] `bash .agro/skills/ste/scripts/ste-check.sh AGENTS.md` exits 0.
+- [x] `AGENTS.md` § A small glossary has one entry that starts with `- **supervisor** means`.
+- [x] The entry defines the behavior of launching, monitoring, and escalating for advisor sessions in other Herdr panes. The entry states that the supervisor is not an identity and is distinct from the root orchestrator.
+- [x] The entry matches the style of the other glossary entries: one bullet, a bold term, "means", and a wrap at 80 to 85 columns.
+- [x] `bash .agro/skills/ste/scripts/ste-check.sh AGENTS.md` exits 0.
 
 ## Summary
 
@@ -131,14 +131,15 @@ None. Supervisor direction resolved the monitor tool question with US-003. Claud
 ## Acceptance Criteria
 
 - [x] `git grep -n -I -E 'progress\.txt|evidence\.md|progress/evidence' -- .agro docs ':!.agro/tasks'` prints only the two kept lines, and the PR body lists each kept line with its reason.
-- [ ] The supervisor description has 1024 characters or fewer.
+- [x] The supervisor description has 1024 characters or fewer.
 - [x] `bash .agro/scripts/link-providers.sh --check` exits 0.
 - [x] `pnpm vitest run .agro/scripts/__tests__/standard-skills-link.test.ts .agro/scripts/__tests__/skill-shell-portability.test.ts .agro/scripts/__tests__/hermes-links.test.ts` exits 0.
-- [ ] `bash .agro/skills/ste/scripts/ste-check.sh <file>` exits 0 for `prd.md` and for each changed `.md` file. The advisor also reviews each change by hand against the `/ste` rules that the checker cannot catch. The PR body holds each command and its exit 0 output under this criterion. The PR opens only after this criterion passes.
-- [ ] A PR from `task/1402-supervisor-prd-align` to `development` exists with each criterion's command output in its body. The PR is not merged.
+- [x] `bash .agro/skills/ste/scripts/ste-check.sh <file>` exits 0 for `prd.md` and for each changed `.md` file. The advisor also reviews each change by hand against the `/ste` rules that the checker cannot catch. The PR body holds each command and its exit 0 output under this criterion. The PR opens only after this criterion passes.
+- [x] A PR from `task/1402-supervisor-prd-align` to `development` exists with each criterion's command output in its body. The PR is not merged.
 
 ## Lessons
 
 1. Claim: an operator rule that requires `ste-check.sh` exit 0 on each changed file makes the edit fix earlier findings in that file. Evidence: the three edited files carried 30 earlier findings, 4 in the supervisor skill and 26 in US-002. Outcome: fixed in this PR.
 2. Claim: `/supervisor` requires `MonitorCreate`, `MonitorList`, and `MonitorStop`, and Claude Code exposes `Monitor` and `TaskStop`. Evidence: the supervisor `description` and `allowed-tools`, and the Claude Code session that runs the supervisor. Outcome: fixed in this PR by US-003, after supervisor direction.
 3. Claim: `registry-portability.md:65` keeps `tasks/<slug>/progress.txt` as a false-hit example. Evidence: `registry-portability.sh` reads the file as its exceptions source, and the line names no task procedure. Outcome: dropped, because the example still describes the pattern rule.
+4. Claim: the Claude Code `Monitor` tool caps `timeout_ms` at 1800000 milliseconds. Evidence: the `Monitor` tool schema. The Duty 3 wait of 930000 milliseconds fits under the cap. Outcome: dropped, because no current example exceeds the cap.
