@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1407-secret-delivery-hardening",
+  "description": "Secret delivery hardening: deny agent `agro secret get` and restrict `agro secret set --sandbox` to the keys that Compose passes into the container.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Deny agent reads through `agro secret get`",
+      "description": "As the operator, I want the agent hooks to deny `agro secret get` so that an agent cannot print a raw secret into its transcript.",
+      "acceptanceCriteria": [
+        "`.agro/hooks/deny-env-dump.sh` returns `deny` for `agro secret get GH_TOKEN`.",
+        "The hook returns `deny` for `agro secret get SANDBOX_PASSWORD --sandbox box` and for `npx agro secret get GH_TOKEN`.",
+        "The hook returns no decision for `agro secret list` and for `agro secret set GH_TOKEN`.",
+        "The deny message tells the agent to ask the operator to run the command.",
+        "`.agro/scripts/__tests__/hooks.test.ts` holds a case for each command above, and `npx vitest run .agro/scripts/__tests__/hooks.test.ts` exits 0.",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "commit": "d903277c",
+      "notes": "AC1-3 executed: hooks.test.ts cases for get (deny x3), list and set (no decision); new cases failed before the hook change. AC4 reasoned: the shared deny message names `agro secret get` and tells the agent to ask the operator. AC5 executed on the integrated task branch: npx vitest run .agro/scripts/__tests__/hooks.test.ts exit 0 (138 passed). AC6 executed by the worker: npm run typecheck exit 0.",
+      "dependsOn": [],
+      "files": [".agro/hooks/deny-env-dump.sh", ".agro/scripts/__tests__/hooks.test.ts"]
+    },
+    {
+      "id": "US-002",
+      "title": "Restrict `agro secret set --sandbox` to the keys that Compose passes",
+      "description": "As the operator, I want `agro secret set <KEY> --sandbox <name>` to refuse a key that never reaches the container so that a stored secret never fails silently.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/lib/secrets.ts` exports `COMPOSE_SECRET_KEYS` with the values `GH_TOKEN`, `SANDBOX_PASSWORD`, and `TYPESAFE_API_KEY`.",
+        "A test reads `.devcontainer/docker-compose.yml` and asserts that the `${KEY:-}` entries for allow-listed secret keys equal `COMPOSE_SECRET_KEYS`.",
+        "With `--sandbox <name>`, `runSecretSet` exits 1 for `PI_SLACK_BOT_TOKEN` and writes no file.",
+        "The refusal message names the key and tells the operator to run `agro secret set <KEY>` in the project checkout.",
+        "With `--sandbox <name>`, `runSecretSet` exits 0 for `GH_TOKEN` and writes the entry `.env`.",
+        "Without `--sandbox`, `runSecretSet` exits 0 for `PI_SLACK_BOT_TOKEN`.",
+        "`npx vitest run .agro/cli/src/__tests__/config-secret.test.ts` exits 0.",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "commit": "4cdf8dc4",
+      "notes": "AC1-6 executed: secrets.test.ts and config-secret.test.ts cases (compose parity, --sandbox refusal with no file and no prompt, message names key and checkout command, GH_TOKEN with --sandbox, PI_SLACK_BOT_TOKEN without --sandbox); new cases failed before the change. AC7 executed on the integrated task branch: npx vitest run on both files exit 0 (62 passed). AC8 executed on the integrated task branch: npm run typecheck exit 0 (the worker worktree lacked root deps; pnpm install fixed it).",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/secrets.ts",
+        ".agro/cli/src/commands/secret.ts",
+        ".agro/cli/src/__tests__/config-secret.test.ts",
+        ".agro/cli/src/lib/__tests__/secrets.test.ts"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Document the delivery rule",
+      "description": "As the operator, I want the docs to state which keys `--sandbox` accepts so that the docs match the CLI.",
+      "acceptanceCriteria": [
+        "`docs/configuration.md` states that `--sandbox` accepts only `GH_TOKEN`, `SANDBOX_PASSWORD`, and `TYPESAFE_API_KEY`.",
+        "`docs/configuration.md` states that the container reads the other keys from the `.env` of the project checkout.",
+        "`docs/security-considerations.md` states that the hooks deny `agro secret get` for agents.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh docs/configuration.md` reports no new finding on a changed line."
+      ],
+      "priority": 3,
+      "passes": true,
+      "commit": "08627e9e",
+      "notes": "AC1-3 reasoned from the diff: configuration.md names the three --sandbox keys and the checkout .env for other keys; security-considerations.md lists `agro secret get` among denied commands. AC4 executed on the integrated task branch: ste-check.sh docs/configuration.md docs/security-considerations.md exit 0. CHANGELOG Security entry added (222 chars).",
+      "dependsOn": ["US-001", "US-002"],
+      "files": ["docs/configuration.md", "docs/security-considerations.md", "CHANGELOG.md"]
+    },
+    {
+      "id": "US-004",
+      "title": "Record manual review evidence",
+      "description": "As the advisor, I want a command transcript so that the PR shows the changed behavior.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/secret-delivery-hardening/evidence/manual-review.md` holds the hook output for `agro secret get GH_TOKEN` piped through the hook as JSON input.",
+        "The file holds the output and exit code of `runSecretSet` for `PI_SLACK_BOT_TOKEN` with `--sandbox` in a temporary `AGRO_HOME`.",
+        "The transcript holds no secret value.",
+        "The story deletes each temporary directory that it creates."
+      ],
+      "priority": 4,
+      "passes": true,
+      "commit": "71b8923f",
+      "notes": "AC1-2 executed by the worker and copied from the observed run: hook JSON deny for get, empty output for list; built CLI refused PI_SLACK_BOT_TOKEN with --sandbox, accepted GH_TOKEN, list showed GH_TOKEN set. AC3 executed by the advisor: the dummy string appears only in the commands, no value is printed. AC4 executed by the worker: test -e printed removed.",
+      "dependsOn": ["US-001", "US-002"],
+      "files": [".agro/tasks/secret-delivery-hardening/evidence/manual-review.md"]
+    }
+  ]
+}

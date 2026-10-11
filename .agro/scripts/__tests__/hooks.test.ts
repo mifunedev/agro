@@ -145,6 +145,12 @@ describe("secret-exposure guard (deny-env-dump.sh)", () => {
     ["allow", "python3 -m pytest -c tox.ini -k env -q"],
     ["allow", "python3 -c 'print(1)' && ls env/"],
     ["allow", "node -e 'console.log(1)' | grep --env x"],
+
+    ["deny", "agro secret get GH_TOKEN"],
+    ["deny", "agro secret get SANDBOX_PASSWORD --sandbox box"],
+    ["deny", "npx agro secret get GH_TOKEN"],
+    ["allow", "agro secret list"],
+    ["allow", "agro secret set GH_TOKEN"],
   ];
 
   it.each(cases)("%s: %s", (want, command) => {

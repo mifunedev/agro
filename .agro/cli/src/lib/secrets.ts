@@ -21,6 +21,12 @@ export const SECRET_KEYS = [
 
 export type SecretKey = (typeof SECRET_KEYS)[number];
 
+export const COMPOSE_SECRET_KEYS = [
+  "GH_TOKEN",
+  "SANDBOX_PASSWORD",
+  "TYPESAFE_API_KEY",
+] as const satisfies readonly SecretKey[];
+
 const ALLOWED = new Set<string>(SECRET_KEYS);
 
 export function secretsFilePath(root: string): string {

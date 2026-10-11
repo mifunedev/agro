@@ -6,6 +6,7 @@ import { resolveProjectRoot } from "../lib/project.js";
 import * as prompt from "../lib/prompt.js";
 import { resolveSandboxRoot } from "../lib/registry.js";
 import {
+  COMPOSE_SECRET_KEYS,
   isSecretKey,
   listSecretKeys,
   readSecret,
@@ -58,6 +59,14 @@ export async function runSecretSet(
     io.stderr(
       `${opts.bin} secret set: ${key} is not a secret — non-secret settings live in agro.json.\n` +
         `Set it with \`${opts.bin} config set ${key}\` instead.\n\nKeys:\n${secretKeyList()}\n`,
+    );
+    return 1;
+  }
+
+  if (opts.sandbox !== undefined && !(COMPOSE_SECRET_KEYS as readonly string[]).includes(key)) {
+    io.stderr(
+      `${opts.bin} secret set: ${key} does not reach the container from --sandbox ${opts.sandbox} — Compose passes only ${COMPOSE_SECRET_KEYS.join(", ")}.\n` +
+        `Run \`${opts.bin} secret set ${key}\` in the project checkout instead.\n`,
     );
     return 1;
   }
