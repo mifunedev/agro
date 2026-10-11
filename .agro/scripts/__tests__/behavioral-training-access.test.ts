@@ -396,6 +396,52 @@ describe("Langfuse adapter session content read", () => {
     expect(EXPANDED_METADATA_KEYS).toEqual(["input_meta", "output_meta", "user_text", "assistant_text"]);
   });
 
+  it("reads the observation ids of one trace with metadata fields only", async () => {
+    const page = envelope(200, {
+      data: [
+        { id: "obs-p", traceId: "trace-a1", sessionId: "session-b", type: "SPAN", name: "Conversational Turn", isRootObservation: true, input: "x", metadata: { k: "v" }, startTime: "2026-10-02T10:00:00.000Z" },
+      ],
+      meta: { cursor: "cursor-2" },
+    });
+    const { client, calls } = clientFor(healthyRoutes({ "observations list": ok(page) }));
+    await client.preflight();
+    const result = await client.listTraceObservations("trace-a1", {
+      cursor: "cursor-1",
+      fromStartTime: "2026-10-02T08:00:00.000Z",
+      toStartTime: "2026-10-02T12:00:00.000Z",
+    });
+    expect(result).toEqual({
+      items: [{ id: "obs-p", sessionId: "session-b", type: "SPAN", name: "Conversational Turn", isRootObservation: true }],
+      cursor: "cursor-2",
+    });
+    const [call] = calls.filter((c) => c.operation === "observations list");
+    const flag = (name: string) => call.args[call.args.indexOf(name) + 1];
+    expect(flag("--trace-id")).toBe("trace-a1");
+    expect(flag("--fields")).toBe("core,basic");
+    expect(flag("--from-start-time")).toBe("2026-10-02T08:00:00.000Z");
+    expect(flag("--to-start-time")).toBe("2026-10-02T12:00:00.000Z");
+    expect(flag("--cursor")).toBe("cursor-1");
+    expect(call.args).not.toContain("--expand-metadata");
+    expect(call.args).not.toContain("--session-id");
+  });
+
+  it("keeps null for a trace lookup field that the source does not supply", async () => {
+    const page = envelope(200, { data: [{ id: "obs-q" }], meta: {} });
+    const { client } = clientFor(healthyRoutes({ "observations list": ok(page) }));
+    await client.preflight();
+    expect(await client.listTraceObservations("trace-a1")).toEqual({
+      items: [{ id: "obs-q", sessionId: null, type: null, name: null, isRootObservation: null }],
+      cursor: null,
+    });
+  });
+
+  it("refuses a trace lookup without one trace id", async () => {
+    const { client, calls } = clientFor(healthyRoutes());
+    await client.preflight();
+    expect((await causeOf(client.listTraceObservations(""))).cause).toBe("unsupported-operation");
+    expect(calls.filter((c) => c.operation === "observations list")).toHaveLength(0);
+  });
+
   it("recognizes only the HTTP 422 that asks for a narrower request", async () => {
     const narrow =
       "Your query could not be completed. Please narrow your request by adding more specific filters (e.g., a shorter date range).";

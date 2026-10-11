@@ -11,6 +11,7 @@ export const NORMALIZED_FILE = "normalized-sessions.jsonl";
 export const CAPTURE_LIMITS = Object.freeze([20000]);
 export const WINDOW_MARGIN_MS = 60 * 60 * 1000;
 export const MIN_WINDOW_MS = 10 * 60 * 1000;
+export const MAX_PARENT_LOOKUPS = 50;
 
 export const TRUNCATION_MARKERS = Object.freeze([
   Object.freeze({ source: "claude-code", field: "metadata", marker: "an object in metadata holds truncated: true" }),
@@ -37,6 +38,8 @@ export const help = [
   "Each session read uses the inventory firstSeenAt minus 1 hour to lastSeenAt plus 1 hour, or the run",
   "window when the inventory lacks a timestamp. An HTTP 422 that asks for a narrower request splits the",
   "window in halves down to 10 minutes. capture.window records { from, to, source, splits }.",
+  "A parent id outside the content read triggers one metadata-only lookup of its trace (at most 50",
+  "traces per session). A parent in another session goes to capture.crossSessionParents, not a gap.",
   "Exit 1: a read failed; finished sessions stay in the file and --resume fetches only the rest.",
   "Exit 4: --max-sessions stopped the run; --resume with a larger budget continues.",
 ].join("\n");
@@ -257,15 +260,29 @@ function dedupe(events) {
   }
 }
 
-function captureOf(rows, { sessionId, expected, traceIds, window }) {
+function parentEntry(parent, row, { sessionId, parentLookups }) {
+  const lookup = row.traceId === null ? null : (parentLookups?.get(row.traceId) ?? null);
+  const gap = { kind: "parent", observationId: parent, traceId: row.traceId, referencedBy: row.id };
+  if (lookup === null) return { missing: gap };
+  if (lookup.capped) return { missing: { ...gap, kind: "parent-lookup-capped" } };
+  if (typeof lookup.cause === "string") return { missing: { ...gap, kind: "parent-lookup", cause: lookup.cause } };
+  const found = lookup.items.find((item) => item.id === parent);
+  if (!found || found.sessionId === sessionId) return { missing: gap };
+  return { crossSession: { observationId: parent, sessionId: found.sessionId, referencedBy: row.id } };
+}
+
+function captureOf(rows, { sessionId, expected, traceIds, window, parentLookups }) {
   const missing = [];
+  const crossSessionParents = [];
   const ids = new Set(rows.map((row) => row.id));
   const reportedParents = new Set();
   for (const row of rows) {
     const parent = row.parentObservationId;
     if (parent !== null && !ids.has(parent) && !reportedParents.has(parent)) {
       reportedParents.add(parent);
-      missing.push({ kind: "parent", observationId: parent, traceId: row.traceId, referencedBy: row.id });
+      const entry = parentEntry(parent, row, { sessionId, parentLookups });
+      if (entry.missing) missing.push(entry.missing);
+      else crossSessionParents.push(entry.crossSession);
     }
     const flagged = hasMetadataFlag(row.metadata);
     for (const field of ["input", "output", "statusMessage"]) {
@@ -294,7 +311,7 @@ function captureOf(rows, { sessionId, expected, traceIds, window }) {
   }
   const truncated = missing.some((item) => item.kind === "truncated");
   const complete = missing.some((item) => KNOWN_GAPS.has(item.kind)) ? false : missing.length > 0 ? "unknown" : true;
-  return { truncated, complete, missing, window };
+  return { truncated, complete, missing, crossSessionParents, window };
 }
 
 function tracesOf(rows) {
@@ -341,7 +358,10 @@ function chunked(base, events, maxBytes) {
   }));
 }
 
-export function normalizeSession(observations, { sessionId, projectId, baseUrl, maxBytes, expected = null, window = null }) {
+export function normalizeSession(
+  observations,
+  { sessionId, projectId, baseUrl, maxBytes, expected = null, window = null, parentLookups = null },
+) {
   const unique = new Map();
   for (const observation of observations) {
     if (observation && observation.id !== undefined && observation.id !== null && !unique.has(String(observation.id))) {
@@ -351,7 +371,7 @@ export function normalizeSession(observations, { sessionId, projectId, baseUrl, 
   const sources = [...unique.values()];
   const rows = chronological(sources.map((o) => ({ ...shape(o), raw: { input: o.input ?? null, output: o.output ?? null } })));
   const traces = tracesOf(rows);
-  const capture = captureOf(rows, { sessionId, expected, traceIds: traces.map((t) => t.traceId), window });
+  const capture = captureOf(rows, { sessionId, expected, traceIds: traces.map((t) => t.traceId), window, parentLookups });
   const events = rows.map((row) => ({
     observationId: row.id,
     traceId: row.traceId,
@@ -429,6 +449,57 @@ async function readWindow(client, sessionId, from, to, byId, stats) {
   }
 }
 
+function unresolvedTraces(observations) {
+  const ids = new Set(observations.map((o) => String(o.id)));
+  const traces = [];
+  for (const o of observations) {
+    const parent = text(o.parentObservationId);
+    const traceId = text(o.traceId);
+    if (parent !== null && traceId !== null && !ids.has(parent) && !traces.includes(traceId)) traces.push(traceId);
+  }
+  return traces.sort(byText);
+}
+
+async function readTrace(client, traceId, window) {
+  const items = [];
+  let cursor = null;
+  do {
+    const page = await client.listTraceObservations(traceId, { cursor, fromStartTime: window.from, toStartTime: window.to });
+    items.push(...page.items);
+    const next = page.cursor ?? null;
+    if (next !== null && next === cursor) {
+      throw new LangfuseError("bad-response", "observations list: the next cursor repeats the current cursor");
+    }
+    cursor = next;
+  } while (cursor !== null);
+  return { items };
+}
+
+export async function lookupParents(client, { observations, window, cache }) {
+  const lookups = new Map();
+  const widened = {
+    from: new Date(Date.parse(window.from) - WINDOW_MARGIN_MS).toISOString(),
+    to: new Date(Date.parse(window.to) + WINDOW_MARGIN_MS).toISOString(),
+  };
+  for (const [index, traceId] of unresolvedTraces(observations).entries()) {
+    if (index >= MAX_PARENT_LOOKUPS) {
+      lookups.set(traceId, { capped: true });
+      continue;
+    }
+    const key = `${traceId} ${widened.from} ${widened.to}`;
+    if (!cache.has(key)) {
+      try {
+        cache.set(key, await readTrace(client, traceId, widened));
+      } catch (err) {
+        if (!(err instanceof LangfuseError)) throw err;
+        cache.set(key, { cause: err.cause });
+      }
+    }
+    lookups.set(traceId, cache.get(key));
+  }
+  return lookups;
+}
+
 async function fetchSession(client, sessionId, window) {
   const byId = new Map();
   const stats = { splits: 0 };
@@ -482,6 +553,7 @@ function summarize(kept) {
     incomplete: captures.filter((c) => c.complete === false).length,
     unknown: captures.filter((c) => c.complete === "unknown").length,
     truncated: captures.filter((c) => c.truncated).length,
+    crossSessionParents: captures.reduce((total, c) => total + (c.crossSessionParents?.length ?? 0), 0),
   };
 }
 
@@ -508,6 +580,7 @@ export async function run(ctx) {
 
   let failure = null;
   let client = null;
+  const traceCache = new Map();
   for (const sessionId of sessionIds.slice(0, ctx.options.maxSessions)) {
     if (done.has(sessionId)) continue;
     let records;
@@ -515,6 +588,7 @@ export async function run(ctx) {
       client ??= await ctx.langfuse();
       const record = expected.get(sessionId) ?? null;
       const read = await fetchSession(client, sessionId, sessionWindow(record, ctx.options));
+      const parentLookups = await lookupParents(client, { observations: read.observations, window: read.window, cache: traceCache });
       records = normalizeSession(read.observations, {
         sessionId,
         projectId,
@@ -522,6 +596,7 @@ export async function run(ctx) {
         maxBytes: ctx.options.maxBytes,
         expected: record,
         window: read.window,
+        parentLookups,
       });
     } catch (err) {
       if (!(err instanceof LangfuseError)) throw err;

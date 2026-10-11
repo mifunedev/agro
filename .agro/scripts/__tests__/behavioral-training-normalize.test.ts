@@ -8,7 +8,16 @@ import { LangfuseError } from "../../skills/behavioral-training/scripts/lib/lang
 import { createManifest, writeManifest } from "../../skills/behavioral-training/scripts/lib/run-store.mjs";
 import * as normalize from "../../skills/behavioral-training/scripts/lib/normalize.mjs";
 
-const { CAPTURE_LIMITS, MIN_WINDOW_MS, TRUNCATION_MARKERS, WINDOW_MARGIN_MS, normalizeSession, sessionWindow } = normalize;
+const {
+  CAPTURE_LIMITS,
+  MAX_PARENT_LOOKUPS,
+  MIN_WINDOW_MS,
+  TRUNCATION_MARKERS,
+  WINDOW_MARGIN_MS,
+  lookupParents,
+  normalizeSession,
+  sessionWindow,
+} = normalize;
 
 const fixtureDir = join(import.meta.dirname, "fixtures/behavioral-training/normalize");
 const load = (name: string): any[] => JSON.parse(readFileSync(join(fixtureDir, name), "utf8"));
@@ -95,7 +104,7 @@ describe("normalizeSession", () => {
     expect(record.models).toEqual(["model-alpha", "model-beta"]);
     expect(record.costUsd).toBeCloseTo(0.06, 10);
     expect(record.tokens).toEqual({ input: 600, output: 27, total: 627 });
-    expect(record.capture).toEqual({ truncated: false, complete: true, missing: [], window: null });
+    expect(record.capture).toEqual({ truncated: false, complete: true, missing: [], window: null, crossSessionParents: [] });
   });
 
   it("orders tool calls after their generation and breaks start-time ties by parent depth, then id", () => {
@@ -176,6 +185,7 @@ describe("normalizeSession", () => {
       complete: false,
       missing: [{ kind: "truncated", observationId: "cc-tool-1", field: "metadata" }],
       window: null,
+      crossSessionParents: [],
     });
   });
 
@@ -192,12 +202,13 @@ describe("normalizeSession", () => {
       complete: "unknown",
       missing: [{ kind: "capture-limit", observationId: "cc-tool-1", field: "output", length: 20000 }],
       window: null,
+      crossSessionParents: [],
     });
   });
 
   it("marks completeness unknown when no inventory record can confirm the session", () => {
     const record = single(load("claude-code-session.json"), { sessionId: "sess-cc", expected: null });
-    expect(record.capture).toEqual({ truncated: false, complete: "unknown", missing: [{ kind: "inventory-record", sessionId: "sess-cc" }], window: null });
+    expect(record.capture).toEqual({ truncated: false, complete: "unknown", missing: [{ kind: "inventory-record", sessionId: "sess-cc" }], window: null, crossSessionParents: [] });
   });
 
   it("marks completeness false and lists missing parents, traces, and observations", () => {
@@ -262,7 +273,7 @@ describe("normalizeSession", () => {
     ];
     const record = single(observations, { expected: { sessionId: "s", traceIds: ["t"], observationCount: 2 } });
     expect(record.events.map((e: any) => e.observationId)).toEqual(["early", "late"]);
-    expect(record.capture).toEqual({ truncated: false, complete: "unknown", missing: [{ kind: "start-time", observationId: "late" }], window: null });
+    expect(record.capture).toEqual({ truncated: false, complete: "unknown", missing: [{ kind: "start-time", observationId: "late" }], window: null, crossSessionParents: [] });
   });
 
   it("sets the task group and attempt only from explicit metadata", () => {
@@ -297,6 +308,124 @@ describe("normalizeSession", () => {
     const oversized = chunks.find((chunk: any) => chunk.events.some((e: any) => e.observationId === "cc-tool-2"));
     expect(oversized.events).toHaveLength(1);
     expect(oversized.events[0].output).toBe(big);
+  });
+});
+
+describe("parents in other sessions", () => {
+  const withoutRoot2 = () => load("claude-code-session.json").filter((o) => o.id !== "cc-root-2");
+  const expected7 = { ...ccExpected, observationCount: 7 };
+  const root2 = { id: "cc-root-2", sessionId: "sess-other", type: "SPAN", name: "Conversational Turn", isRootObservation: true };
+  const lookups = (entry: unknown) => new Map([["trace-cc-2", entry]]);
+
+  it("records a parent from another session apart from the gaps", () => {
+    const record = single(withoutRoot2(), { expected: expected7, parentLookups: lookups({ items: [root2] }) });
+    expect(record.capture).toMatchObject({
+      complete: true,
+      missing: [],
+      crossSessionParents: [{ observationId: "cc-root-2", sessionId: "sess-other", referencedBy: "cc-gen-3" }],
+    });
+  });
+
+  it("keeps a parent gap when the parent is in the same session but not in the content read", () => {
+    const record = single(withoutRoot2(), { expected: expected7, parentLookups: lookups({ items: [{ ...root2, sessionId: "sess-cc" }] }) });
+    expect(record.capture.complete).toBe(false);
+    expect(record.capture.missing).toEqual([{ kind: "parent", observationId: "cc-root-2", traceId: "trace-cc-2", referencedBy: "cc-gen-3" }]);
+    expect(record.capture.crossSessionParents).toEqual([]);
+  });
+
+  it("keeps a parent gap when the trace lookup does not find the parent", () => {
+    const record = single(withoutRoot2(), { expected: expected7, parentLookups: lookups({ items: [] }) });
+    expect(record.capture.complete).toBe(false);
+    expect(record.capture.missing.map((m: any) => m.kind)).toEqual(["parent"]);
+  });
+
+  it("marks completeness unknown when the trace lookup failed", () => {
+    const record = single(withoutRoot2(), { expected: expected7, parentLookups: lookups({ cause: "unreachable" }) });
+    expect(record.capture.complete).toBe("unknown");
+    expect(record.capture.missing).toEqual([
+      { kind: "parent-lookup", observationId: "cc-root-2", traceId: "trace-cc-2", referencedBy: "cc-gen-3", cause: "unreachable" },
+    ]);
+  });
+
+  it("marks completeness unknown when the lookup cap skipped the trace", () => {
+    const record = single(withoutRoot2(), { expected: expected7, parentLookups: lookups({ capped: true }) });
+    expect(record.capture.complete).toBe("unknown");
+    expect(record.capture.missing).toEqual([
+      { kind: "parent-lookup-capped", observationId: "cc-root-2", traceId: "trace-cc-2", referencedBy: "cc-gen-3" },
+    ]);
+  });
+
+  function traceClient(handler: (traceId: string, read: any) => { items: any[]; cursor: string | null }) {
+    const calls: Array<{ traceId: string; read: any }> = [];
+    return {
+      calls,
+      client: {
+        async listTraceObservations(traceId: string, read: any = {}) {
+          calls.push({ traceId, read });
+          return handler(traceId, read);
+        },
+      },
+    };
+  }
+
+  const window = { from: "2026-10-02T09:00:00.000Z", to: "2026-10-02T11:05:04.000Z", source: "inventory", splits: 0 };
+
+  it("looks up each trace with an unresolved parent once, inside the session window widened by the margin", async () => {
+    const observations = withoutRoot2().map((o) => (o.id === "cc-tool-2" ? { ...o, parentObservationId: "cc-gone" } : o));
+    const gone = { id: "cc-gone", sessionId: "sess-other", type: "SPAN", name: null, isRootObservation: false };
+    const fake = traceClient((_traceId, read) => (read.cursor === null ? { items: [root2], cursor: "next" } : { items: [gone], cursor: null }));
+    const result = await lookupParents(fake.client, { observations, window, cache: new Map() });
+    expect(fake.calls.map((c) => [c.traceId, c.read.cursor])).toEqual([
+      ["trace-cc-2", null],
+      ["trace-cc-2", "next"],
+    ]);
+    expect(fake.calls[0].read).toMatchObject({ fromStartTime: "2026-10-02T08:00:00.000Z", toStartTime: "2026-10-02T12:05:04.000Z" });
+    expect(result.get("trace-cc-2").items.map((i: any) => i.id)).toEqual(["cc-root-2", "cc-gone"]);
+  });
+
+  it("reuses the cache across sessions that share a trace and window", async () => {
+    const fake = traceClient(() => ({ items: [root2], cursor: null }));
+    const cache = new Map();
+    await lookupParents(fake.client, { observations: withoutRoot2(), window, cache });
+    await lookupParents(fake.client, { observations: withoutRoot2(), window, cache });
+    expect(fake.calls).toHaveLength(1);
+  });
+
+  it("records the adapter cause of a failed lookup and rethrows each other error", async () => {
+    const failing = traceClient(() => {
+      throw new LangfuseError("forbidden", "observations list: HTTP 403");
+    });
+    const result = await lookupParents(failing.client, { observations: withoutRoot2(), window, cache: new Map() });
+    expect(result.get("trace-cc-2")).toEqual({ cause: "forbidden" });
+    const broken = traceClient(() => {
+      throw new TypeError("bug");
+    });
+    await expect(lookupParents(broken.client, { observations: withoutRoot2(), window, cache: new Map() })).rejects.toThrow("bug");
+  });
+
+  it("caps the lookups of one session and marks the rest capped", async () => {
+    expect(MAX_PARENT_LOOKUPS).toBe(50);
+    const observations = Array.from({ length: MAX_PARENT_LOOKUPS + 2 }, (_, i) => ({
+      id: `o-${i}`,
+      traceId: `t-${String(i).padStart(3, "0")}`,
+      sessionId: "s",
+      type: "SPAN",
+      parentObservationId: `p-${i}`,
+      startTime: "2026-10-02T10:00:00.000Z",
+    }));
+    const fake = traceClient(() => ({ items: [], cursor: null }));
+    const result = await lookupParents(fake.client, { observations, window, cache: new Map() });
+    expect(fake.calls).toHaveLength(MAX_PARENT_LOOKUPS);
+    expect(result.get("t-049")).toEqual({ items: [] });
+    expect(result.get("t-050")).toEqual({ capped: true });
+    expect(result.get("t-051")).toEqual({ capped: true });
+  });
+
+  it("makes no lookup when every parent resolves", async () => {
+    const fake = traceClient(() => ({ items: [], cursor: null }));
+    const result = await lookupParents(fake.client, { observations: load("claude-code-session.json"), window, cache: new Map() });
+    expect(fake.calls).toHaveLength(0);
+    expect(result.size).toBe(0);
   });
 });
 
@@ -540,6 +669,46 @@ describe("normalize stage", () => {
     const fake = fakeClient({ "sess-cc": new LangfuseError("http-error", "observations list: HTTP 422 after 1 retry: synthetic cursor rejection", 422) });
     expect((await normalizeRun(runDir, fake.client)).code).toBe(EXIT.failed);
     expect(fake.calls).toHaveLength(1);
+  });
+
+  it("classifies a parent in another session during the stage and keeps the session complete", async () => {
+    const observations = load("claude-code-session.json").filter((o) => o.id !== "cc-root-2");
+    const runDir = setup({ sessions: ["sess-cc"], inventory: [{ ...ccExpected, observationCount: 7 }] });
+    const fake = fakeClient({ "sess-cc": paged(observations, 100) });
+    const traceCalls: string[] = [];
+    const client = {
+      ...fake.client,
+      async listTraceObservations(traceId: string) {
+        traceCalls.push(traceId);
+        return { items: [{ id: "cc-root-2", sessionId: "sess-other", type: "SPAN", name: "Conversational Turn", isRootObservation: true }], cursor: null };
+      },
+    };
+    const result = await normalizeRun(runDir, client);
+    expect(result.code).toBe(EXIT.complete);
+    expect(traceCalls).toEqual(["trace-cc-2"]);
+    const [record] = records(runDir);
+    expect(record.capture.complete).toBe(true);
+    expect(record.capture.crossSessionParents).toEqual([{ observationId: "cc-root-2", sessionId: "sess-other", referencedBy: "cc-gen-3" }]);
+    expect(result.checkpoint.counters).toMatchObject({ complete: 1, crossSessionParents: 1 });
+  });
+
+  it("keeps the session when a parent lookup fails and marks completeness unknown", async () => {
+    const observations = load("claude-code-session.json").filter((o) => o.id !== "cc-root-2");
+    const runDir = setup({ sessions: ["sess-cc"], inventory: [{ ...ccExpected, observationCount: 7 }] });
+    const fake = fakeClient({ "sess-cc": paged(observations, 100) });
+    const client = {
+      ...fake.client,
+      async listTraceObservations() {
+        throw new LangfuseError("unreachable", "observations list: unreachable (CLI exit 4)");
+      },
+    };
+    const result = await normalizeRun(runDir, client);
+    expect(result.code).toBe(EXIT.complete);
+    const [record] = records(runDir);
+    expect(record.capture.complete).toBe("unknown");
+    expect(record.capture.missing).toEqual([
+      { kind: "parent-lookup", observationId: "cc-root-2", traceId: "trace-cc-2", referencedBy: "cc-gen-3", cause: "unreachable" },
+    ]);
   });
 
   it("fails with bad-response when the adapter repeats a cursor", async () => {

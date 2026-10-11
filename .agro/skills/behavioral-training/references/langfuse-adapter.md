@@ -315,7 +315,8 @@ The result holds no credential.
 ## Pagination
 
 `client.listObservations(query, { cursor })`,
-`client.listSessionObservations(sessionId, { cursor, fromStartTime, toStartTime })`, and
+`client.listSessionObservations(sessionId, { cursor, fromStartTime, toStartTime })`,
+`client.listTraceObservations(traceId, { cursor, fromStartTime, toStartTime })`, and
 `client.listScores(query, { cursor })` read one page. Each method returns
 `{ items, cursor }`. `cursor` is `null` on the last page. Each method uses the
 same retries and the same redaction.
@@ -333,6 +334,10 @@ same retries and the same redaction.
 - `listSessionObservations` sends `--expand-metadata` with the keys in
   `EXPANDED_METADATA_KEYS`: `input_meta`, `output_meta`, `user_text`, and
   `assistant_text`.
+- `listTraceObservations` sends `--trace-id` and requests only the field groups
+  `core` and `basic`. The page size is 1000. Each item holds only `id`,
+  `sessionId`, `type`, `name`, and `isRootObservation`. A missing field is
+  `null`. A call without a trace id fails with `unsupported-operation`.
 - `listScores` requests the field group `subject` and the data types
   `NUMERIC`, `BOOLEAN`, and `CATEGORICAL`. The method never requests `TEXT`,
   `CORRECTION`, or the `details` group, because these hold free text. The page
@@ -381,6 +386,31 @@ window on each content read.
 6. `capture.window` in `normalized-sessions.jsonl` records `from`, `to`,
    `source` (`inventory` or `run`), and `splits`. The value holds metadata
    only.
+
+### Parents in other sessions
+
+One trace can hold observations of more than one session. On the dev
+deployment, one trace held 89 observations of one session and 7 observations
+of a second session. The root `SPAN` of the trace belonged to the second
+session. A parent id outside the content read is therefore not always a gap.
+
+1. After the content read of a session, `normalize` finds each trace with a
+   parent id that the read did not return.
+2. For each such trace, `normalize` reads the trace with
+   `listTraceObservations`. The window is the session window plus 1 hour on
+   each side. The stage reads each cursor page.
+3. `normalize` keeps one result for each trace and window in a cache for the
+   run. Two sessions with the same trace and window cause one lookup.
+4. `normalize` looks up at most 50 traces for each session.
+5. If the trace lookup finds the parent with another `sessionId`,
+   `capture.crossSessionParents` records
+   `{ observationId, sessionId, referencedBy }`. The parent is not a gap.
+6. If the trace lookup finds the parent in the same session, or does not find
+   the parent, `capture.missing` holds a `parent` gap.
+7. If the trace lookup fails, `capture.missing` holds a `parent-lookup` entry
+   with the adapter cause. The stage continues with the next session.
+8. If the limit of 50 traces stops the lookup, `capture.missing` holds a
+   `parent-lookup-capped` entry.
 
 ## Errors
 

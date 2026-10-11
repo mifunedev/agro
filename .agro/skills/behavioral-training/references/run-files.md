@@ -458,7 +458,7 @@ One record for each session, or one record for each chunk of a large session.
 | `traces` | A list of `{ traceId, timestamp, name }` in time order |
 | `events` | A list of events in time order |
 | `sourceLinks` | `{ session, traces: { <traceId>: <url> } }` |
-| `capture` | `{ truncated, complete, missing, window }` |
+| `capture` | `{ truncated, complete, missing, crossSessionParents, window }` |
 
 Each chunk repeats each session-level field: `traces`, `sourceLinks`,
 `capture`, and the totals. Only `chunk` and `events` change between chunks.
@@ -496,9 +496,17 @@ Each other kind sets `complete` to `"unknown"`, unless a known gap exists:
 | `capture-limit` | `observationId`, `field`, `length` |
 | `start-time` | `observationId` |
 | `inventory-record` | `sessionId` |
+| `parent-lookup` | `observationId`, `traceId`, `referencedBy`, `cause` |
+| `parent-lookup-capped` | `observationId`, `traceId`, `referencedBy` |
+
+A `parent` gap means that the trace lookup found the parent in the same
+session, or did not find the parent. A parent in another session is not a gap.
+`capture.crossSessionParents` lists each such parent as
+`{ observationId, sessionId, referencedBy }`. The adapter contract describes
+the trace lookup.
 
 `normalize` adds `completeness.normalize` to the manifest:
-`{ status, cause, sessions, chunks, complete, incomplete, unknown, truncated }`.
+`{ status, cause, sessions, chunks, complete, incomplete, unknown, truncated, crossSessionParents }`.
 
 ### `annotations.jsonl`
 

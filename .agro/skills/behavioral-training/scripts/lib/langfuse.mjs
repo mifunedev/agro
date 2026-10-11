@@ -10,6 +10,7 @@ export const BACKOFF_MS = 1000;
 export const OBSERVATION_FIELDS = Object.freeze(["core", "basic", "model", "usage", "trace_context"]);
 export const CONTENT_FIELDS = Object.freeze(["core", "basic", "time", "io", "metadata", "model", "usage", "metrics", "trace_context"]);
 export const CONTENT_FIELD_GROUPS = Object.freeze(["io", "metadata"]);
+export const TRACE_LOOKUP_FIELDS = Object.freeze(["core", "basic"]);
 export const OBSERVATION_PAGE_LIMIT = 1000;
 export const SESSION_PAGE_LIMIT = 50;
 export const EXPANDED_METADATA_KEYS = Object.freeze(["input_meta", "output_meta", "user_text", "assistant_text"]);
@@ -345,6 +346,35 @@ export function createClient(ctx, { runner = spawnRunner, sleep = defaultSleep }
     return page(body, "observations list");
   }
 
+  async function listTraceObservations(
+    traceId,
+    { cursor = null, limit = OBSERVATION_PAGE_LIMIT, fromStartTime = null, toStartTime = null } = {},
+  ) {
+    if (typeof traceId !== "string" || traceId.length === 0) {
+      throw new LangfuseError("unsupported-operation", "observations list: a trace lookup needs one trace id");
+    }
+    const body = await call("observations", "list", {
+      fields: TRACE_LOOKUP_FIELDS.join(","),
+      limit,
+      "trace-id": traceId,
+      "from-start-time": fromStartTime,
+      "to-start-time": toStartTime,
+      cursor,
+    });
+    const result = page(body, "observations list");
+    const textOrNull = (value) => (typeof value === "string" && value.length > 0 ? value : null);
+    return {
+      items: result.items.filter((item) => item?.id !== undefined && item?.id !== null).map((item) => ({
+        id: String(item?.id),
+        sessionId: textOrNull(item?.sessionId),
+        type: textOrNull(item?.type),
+        name: textOrNull(item?.name),
+        isRootObservation: typeof item?.isRootObservation === "boolean" ? item.isRootObservation : null,
+      })),
+      cursor: result.cursor,
+    };
+  }
+
   async function listScores(query = {}, { cursor = null, limit = SCORE_PAGE_LIMIT } = {}) {
     const body = await call("scores", "list", {
       fields: "subject",
@@ -411,5 +441,5 @@ export function createClient(ctx, { runner = spawnRunner, sleep = defaultSleep }
     };
   }
 
-  return { baseUrl, configRoot, envFile, call, preflight, listObservations, listSessionObservations, listScores, writer };
+  return { baseUrl, configRoot, envFile, call, preflight, listObservations, listSessionObservations, listTraceObservations, listScores, writer };
 }
