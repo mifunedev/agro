@@ -5,6 +5,7 @@ import path from "node:path";
 export const CLI_PACKAGE = "@langfuse/cli@1.2.4";
 export const DEFAULT_BASE_URL = "https://cloud.langfuse.com";
 export const MAX_RETRIES = 3;
+export const MAX_UNPROCESSABLE_RETRIES = 1;
 export const BACKOFF_MS = 1000;
 export const OBSERVATION_FIELDS = Object.freeze(["core", "basic", "model", "usage", "trace_context"]);
 export const CONTENT_FIELDS = Object.freeze(["core", "basic", "time", "io", "metadata", "model", "usage", "metrics", "trace_context"]);
@@ -51,6 +52,22 @@ export function redact(text) {
 function detail(stderr) {
   const text = redact(stderr).trim().split("\n").filter(Boolean).slice(-2).join(" ");
   return text.length > MAX_DETAIL ? `${text.slice(0, MAX_DETAIL - 1)}…` : text;
+}
+
+function clip(value) {
+  const text = redact(value).replace(/\s+/g, " ").trim();
+  return text.length > MAX_DETAIL ? `${text.slice(0, MAX_DETAIL - 1)}…` : text;
+}
+
+export function serverDetail(envelope, stderr) {
+  const body = envelope && typeof envelope === "object" ? envelope.body : null;
+  for (const key of ["message", "error"]) {
+    const value = body && typeof body === "object" ? body[key] : undefined;
+    if (typeof value === "string" && value.trim()) return clip(value);
+    if (value && typeof value === "object") return clip(JSON.stringify(value));
+  }
+  const line = String(stderr ?? "").split("\n").find((entry) => entry.trim());
+  return line ? clip(line) : "";
 }
 
 function trimSlash(url) {
@@ -185,7 +202,9 @@ export function createClient(ctx, { runner = spawnRunner, sleep = defaultSleep }
       throw new LangfuseError("unsupported-operation", "observations list: a content read needs one session id");
     }
     const args = [...globals(apiVersion), "api", resource, action, ...flagList(query), "--json"];
-    for (let attempt = 0; ; attempt += 1) {
+    let retries = 0;
+    let unprocessable = 0;
+    for (;;) {
       const result = await exec(args);
       if (result.exitCode === 0) {
         const envelope = parseJson(result.stdout, operation);
@@ -195,13 +214,22 @@ export function createClient(ctx, { runner = spawnRunner, sleep = defaultSleep }
         return envelope.body;
       }
       if (result.exitCode === 5) {
-        const status = Number(parseJson(result.stdout, operation)?.status);
-        if (retryable(status) && attempt < MAX_RETRIES) {
-          await sleep(BACKOFF_MS * 2 ** attempt);
+        const envelope = parseJson(result.stdout, operation);
+        const status = Number(envelope?.status);
+        const transient = retryable(status) && retries - unprocessable < MAX_RETRIES;
+        const repeatable = status === 422 && unprocessable < MAX_UNPROCESSABLE_RETRIES;
+        if (transient || repeatable) {
+          await sleep(BACKOFF_MS * 2 ** retries);
+          retries += 1;
+          if (status === 422) unprocessable += 1;
           continue;
         }
-        const retries = retryable(status) ? ` after ${attempt} retries` : "";
-        throw new LangfuseError(httpCause(status), `${operation}: HTTP ${Number.isFinite(status) ? status : "unknown"}${retries}`);
+        const after = retries > 0 ? ` after ${retries} ${retries === 1 ? "retry" : "retries"}` : "";
+        const reason = serverDetail(envelope, result.stderr);
+        throw new LangfuseError(
+          httpCause(status),
+          `${operation}: HTTP ${Number.isFinite(status) ? status : "unknown"}${after}${reason ? `: ${reason}` : ""}`,
+        );
       }
       const cause = exitCause(result.exitCode);
       throw new LangfuseError(cause, `${operation}: ${cause} (CLI exit ${result.exitCode ?? "none"}) ${detail(result.stderr)}`.trim());

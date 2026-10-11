@@ -270,6 +270,52 @@ describe("Langfuse adapter errors", () => {
     expect(sleeps).toEqual([1000, 2000]);
   });
 
+  it("retries HTTP 422 once and recovers when the retry succeeds", async () => {
+    const { client, calls, sleeps } = clientFor(
+      healthyRoutes({
+        "observations list": (_call, count) =>
+          count < 2 ? { exitCode: 5, stdout: envelope(422, { message: "synthetic cursor rejection" }) } : ok(fixture("observations-page-2.json")),
+      }),
+    );
+    await client.preflight();
+    const page = await client.listObservations({}, { cursor: "cursor-page-2" });
+    expect(page.items).toHaveLength(3);
+    expect(sleeps).toEqual([1000]);
+    expect(calls.filter((c) => c.operation === "observations list").map((c) => c.cursor)).toEqual(["cursor-page-2", "cursor-page-2"]);
+  });
+
+  it("fails a second HTTP 422 as http-error with the server detail", async () => {
+    const { client, calls, sleeps } = clientFor(
+      healthyRoutes({ "observations list": { exitCode: 5, stdout: envelope(422, { message: "synthetic cursor rejection" }) } }),
+    );
+    await client.preflight();
+    const failure = await causeOf(client.listObservations({}, { cursor: "cursor-page-2" }));
+    expect(failure.cause).toBe("http-error");
+    expect(failure.message).toBe("observations list: HTTP 422 after 1 retry: synthetic cursor rejection");
+    expect(calls.filter((c) => c.operation === "observations list")).toHaveLength(2);
+    expect(sleeps).toEqual([1000]);
+  });
+
+  it("takes the detail from the error field or the first stderr line", async () => {
+    const fromError = clientFor(healthyRoutes({ "projects list": { exitCode: 5, stdout: envelope(400, { error: "synthetic bad request" }) } }));
+    expect((await causeOf(fromError.client.preflight())).message).toBe("projects list: HTTP 400: synthetic bad request");
+    const fromStderr = clientFor(
+      healthyRoutes({ "projects list": { exitCode: 5, stdout: envelope(400, null), stderr: "\nfirst synthetic line\nsecond line\n" } }),
+    );
+    expect((await causeOf(fromStderr.client.preflight())).message).toBe("projects list: HTTP 400: first synthetic line");
+  });
+
+  it("redacts a key that the server error body holds and truncates the detail", async () => {
+    const body = { message: `rejected ${SECRET_KEY} for ${PUBLIC_KEY} with ${BASIC} ${"x".repeat(400)}` };
+    const { client } = clientFor(healthyRoutes({ "observations list": { exitCode: 5, stdout: envelope(422, body) } }));
+    await client.preflight();
+    const failure = await causeOf(client.listObservations({}));
+    noCredential(failure.message);
+    expect(failure.message).toContain("<redacted>");
+    const detail = failure.message.slice(failure.message.indexOf(": rejected") + 2);
+    expect(detail.length).toBeLessThanOrEqual(300);
+  });
+
   it("reports bad-response for output that is not a JSON envelope", async () => {
     const { client } = clientFor(healthyRoutes({ "projects list": ok("not json") }));
     expect((await causeOf(client.preflight())).cause).toBe("bad-response");

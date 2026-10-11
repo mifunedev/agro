@@ -175,7 +175,7 @@ Each failure is a `LangfuseError`. `error.cause` is one cause code.
 | `forbidden` | HTTP 401 or HTTP 403 |
 | `incompatible-endpoint` | HTTP 404, a required operation is missing, or `api schema` finds no compatible contract |
 | `unreachable` | The CLI exits with code 4 |
-| `http-error` | Another HTTP status, or HTTP 429 or 5xx after the last retry |
+| `http-error` | Another HTTP status, or HTTP 422, 429, or 5xx after the last retry |
 | `bad-response` | The output is not JSON, has no envelope, or has an unexpected shape |
 | `ambiguous-project` | The key sees more than one project |
 | `unsupported-operation` | The call names an operation outside the read list, or a content read has no session id |
@@ -188,9 +188,20 @@ Each failure is a `LangfuseError`. `error.cause` is one cause code.
 - The adapter retries HTTP 429 and HTTP 500 to 599.
 - The adapter retries one call at most 3 times. The waits are 1000 ms,
   2000 ms, and 4000 ms.
+- The adapter retries HTTP 422 on a read operation at most 1 time. This
+  budget is separate from the budget of HTTP 429 and 5xx. A second HTTP 422
+  fails with `http-error` and the server detail.
+- The wait before a retry is 1000 ms times 2 to the power of the earlier
+  retries of the same call.
 - The adapter never retries HTTP 401, HTTP 403, or CLI exit code 3.
 - The adapter does not retry exit code 4. The stage saves the cursor, so
   `--resume` continues after a network failure.
+
+The HTTP 422 retry has a reason. Langfuse 4.41.0 on the dev deployment
+returned HTTP 422 on `observations list` with a cursor two times in about 37
+pages. The same request with the same cursor succeeded on the next attempt. A
+read operation changes no data, so one more attempt is safe. A repeated HTTP 422
+is a real error, and the adapter stops.
 
 ## Redaction
 
@@ -202,8 +213,15 @@ adapter. `redact()` replaces these values with `<redacted>`:
 - the value after `LANGFUSE_PUBLIC_KEY=` or `LANGFUSE_SECRET_KEY=`.
 
 An error message holds the operation, the cause, the HTTP status or the CLI
-exit code, and at most 300 characters of redacted CLI output. An error message
-never holds a response body.
+exit code, and one server detail. The adapter selects the server detail in
+this order:
+
+1. The `message` field of the response body in the CLI `--json` envelope.
+2. The `error` field of the response body.
+3. The first non-empty line of the CLI output on stderr.
+
+The adapter applies `redact()` to the server detail and keeps at most 300
+characters. An error message holds no other part of a response body.
 
 ## Inventory stage
 
