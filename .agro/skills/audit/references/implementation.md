@@ -5,16 +5,18 @@ satisfy its task graph and is it promotable?* — and emits exactly one verdict 
 
 **Core principle: compose, don't re-derive — and never infer green from silence.**
 This skill owns the *verdict*, not the checks. Each gate below is an existing
-primitive. `/audit implementation` runs the gates in fail-fast order and integrates their results
-into a single `AUDIT-PASS` / `AUDIT-FAIL`. The route stays **read-only**: it decides. The route
-does not mutate (no `gh pr ready`, no `gh pr merge`) and does not fix. Promotion
-is a downstream concern. Remediation belongs to the build step on
-`AUDIT-FAIL` (single-owner handoff: this route decides the outcome, and another owner acts on it).
+primitive. `/audit implementation` runs the gates in fail-fast order and integrates
+their results into a single `AUDIT-PASS` / `AUDIT-FAIL`. The route stays
+**read-only**: it decides. The route does not mutate (no `gh pr ready`, no
+`gh pr merge`) and does not fix. Promotion is a downstream concern. Remediation
+belongs to the build step on `AUDIT-FAIL` (single-owner handoff: this route
+decides the outcome, and another owner acts on it).
 
 > **Not a survey target.** `/audit prs` triages the *whole* open-PR queue in one
 > bulk query (*"never loop per-PR"*, `audit/references/prs.md`); `/audit implementation`
-> is the opposite shape — a single unit (1 impl vs. 1 `prd.json`). The route consumes the
-> focused classifier that `/audit pr` uses. The route does not replace or fork that classifier.
+> is the opposite shape — a single unit (1 impl vs. 1 `prd.json`). The route
+> consumes the focused classifier that `/audit pr` uses. The route does not
+> replace or fork that classifier.
 
 ---
 
@@ -60,7 +62,8 @@ echo "task-graph: $((total - unfinished))/$total stories pass"
 
 **(b) Artifact contract.** If the `prd.json` declares an `artifact_contract` block
 (the field table below documents the schema), every
-path in `artifact_contract.required_artifacts` must exist on disk. The artifact sub-check is a
+path in `artifact_contract.required_artifacts` must exist on disk. The artifact
+sub-check is a
 **gating** sub-check — a declared-but-missing artifact is a hard `AUDIT-FAIL`, not
 an advisory warning. The block is **optional and additive**: a `prd.json` with no
 `artifact_contract` key yields an empty list and passes this sub-check unchanged,
@@ -126,8 +129,9 @@ for `HEAD` has status `completed` and conclusion `success`; no run for `HEAD` fa
 support a field the acquisition requires — `closingIssuesReferences` needs `gh >= 2.101.0`
 — `pr-acquire.sh` exits `69` with a `TOOLING-BLOCKED:` line and the driver reports
 `TOOLING-BLOCKED: gate2: <reason>` and publishes `AUDIT-TOOLING-BLOCKED` instead of
-`AUDIT-FAIL`. The run still fails closed: the verdict is not a pass, the driver credits no gate,
-and no one may promote the change on that verdict. The distinction matters because
+`AUDIT-FAIL`. The run still fails closed: the verdict is not a pass, the driver
+credits no gate, and no one may promote the change on that verdict. The
+distinction matters because
 `gate2: FAIL (classification exited 1)` reads as a defect in the reviewed change, sending
 the owner to debug a pull request whose only problem is the auditor's toolchain.
 
@@ -235,9 +239,9 @@ criterion requiring it, a new file where editing an existing one would do, a pat
 story exercises.
 
 A finding is **blocking** only when its alternative satisfies every acceptance criterion
-with no new work. The report discloses every other finding as non-gating. A function the diff
-*introduces* above `ccnMax` is blocking. The report only discloses a function already over the
-threshold on the base.
+with no new work. The report discloses every other finding as non-gating. A
+function the diff *introduces* above `ccnMax` is blocking. The report only
+discloses a function already over the threshold on the base.
 
 **Who produces the findings.** A fresh read-only reviewer who did not write the code
 under review reads the diff at `HEAD` and returns findings in the shape above. The task
@@ -319,7 +323,8 @@ a `PASS` that hides residual slop is the one thing this gate exists to prevent.
 - **Apply the simplification.** Gate 4 names the smaller alternative; removing the
   code is the `implement` node's job, like every other `AUDIT-FAIL`.
 - **Write the reviewer evidence.** The **PR body**'s evidence sections draw on the
-  per-gate observations above, but the orchestrating caller writes those sections — see [`reviewer-evidence-doc.md`](reviewer-evidence-doc.md).
+  per-gate observations above, but the orchestrating caller writes those
+  sections — see [`reviewer-evidence-doc.md`](reviewer-evidence-doc.md).
 
 ---
 

@@ -33,5 +33,6 @@ Write here only when the record must survive the session. When a session can
 still act on a finding, the session acts on the finding. When a session cannot
 act, the session leaves the record and says so where a human looks.
 
-Rotation is manual. These files stay small, and humans read these files after a failure.
-When a file stops being useful, truncate the file. Never rewrite a record in place.
+Rotation is manual. These files stay small, and humans read these files after a
+failure. When a file stops being useful, truncate the file. Never rewrite a record
+in place.
