@@ -308,6 +308,7 @@ the run directory holds only metadata-class content.
 | `taxonomy.json` | the agent; the operator approves; `validate` checks | US-006 | transcript |
 | `rubric.json` | the agent from the starting rubric; `validate` checks | US-006 | metadata |
 | `calibration.json` | `validate` | US-006 | metadata |
+| `facts.jsonl` | `validate` | US-014 | metadata |
 | `dataset-items.jsonl` | the agent writes candidates; `publish` curates | US-007 | transcript |
 | `publication-ledger.json` | `publish` | US-008 | metadata |
 | `report.json` | `report` | US-009 | metadata |
@@ -599,6 +600,97 @@ Each dimension entry holds these fields:
 - Each rubric version is a non-empty string: `version` in `rubric.json`, and
   `rubricVersion` in `taxonomy.json` and in each annotation. `publish` needs
   the same string.
+
+### `facts.jsonl`
+
+`validate` writes `facts.jsonl` when `normalized-sessions.jsonl` exists. The
+module is `scripts/lib/facts.mjs`. The file holds one record for each
+normalized session, in file order. The file holds ids, counts, classes, tool
+names, and input hashes. The file holds no tool input, no tool output, and no
+message text.
+
+| Field | Content |
+|---|---|
+| `sessionId` | The session id |
+| `toolCalls`, `toolErrors` | Counts |
+| `resolvedErrors` | A list of `{ observationId, tool, resolvedBy }` |
+| `unresolvedErrors` | A list of `{ observationId, tool, reason }` |
+| `excludedErrors` | A list of `{ observationId, class }`; `class` is `red-test`, `pending-check`, or `obeyed-guard` |
+| `repeatedFailingCalls` | A list of `{ tool, inputHash, observationIds }` |
+| `guardBlocks` | A list of `{ observationId, remedy, nextObservationId, followUp }` |
+| `unclassified` | A list of `{ observationIds, reason }` |
+
+`validate` reads `normalized-sessions.jsonl` as a stream, one session at a
+time. The chunks of one session are adjacent lines. A malformed line, a line
+without `sessionId`, or a session id that repeats after another session is a
+schema error. On a schema error, `validate` writes no `facts.jsonl`. The
+checkpoint holds no checksum of a streamed file. Thus `validate` sets
+`resumeAlways`, and each `--resume` runs the stage again. Before annotations
+exist, `validate` writes `facts.jsonl` and reports `empty` with the cause
+`no-annotations`. The stage counters hold `factsSessions`, `toolCalls`,
+`toolErrors`, and the item count of each list field.
+
+A tool call is an event with the role `tool`. The metadata value `tool_name`
+or `codex.tool_name` gives the `tool` value. Without that metadata value, the
+event name gives the `tool` value. The input hash is `sha256:<hex>` of the canonical JSON of the command text. When the input
+holds no command text, the hash covers the full input.
+
+A tool call fails when one condition is true:
+
+- `level` is `ERROR`.
+- `statusMessage` is not empty.
+- The output or the metadata holds `is_error: true` or `isError: true`.
+- The output or the metadata holds `exit_code` or `exitCode` other than 0.
+- The output text starts with `Exit code <n>`, and `<n>` is not 0.
+- The call is a guard block. A guard block result starts with
+  `PreToolUse:<tool> hook error`, `BLOCKED by`, or `hook error:`.
+
+Each tool error enters exactly one list: `resolvedErrors`, `unresolvedErrors`,
+`excludedErrors`, or `unclassified`. The first match in this order sets the
+list:
+
+| Step | Condition | Entry |
+|---|---|---|
+| 1 | A guard block | See the guard rules |
+| 2 | `gh pr checks` exits 8 | `excludedErrors`, class `pending-check` |
+| 3 | A test command fails, a later edit follows, and a later run of the same command passes | `excludedErrors`, class `red-test` |
+| 4 | A later call to the same tool with a different input hash passes | `resolvedErrors` |
+| 5 | A later call to the same tool with the same input hash passes | `unclassified`, reason `identical-retry-succeeded` |
+| 6 | Each other error | `unresolvedErrors` |
+
+The `reason` of an unresolved error is `no-later-call`,
+`identical-retries-only`, `changed-calls-failed`, or `guard-routed-around`.
+
+A run of identical failing calls holds two or more adjacent tool calls with the
+same tool and the same input hash, and each call fails.
+
+`remedy` is `ask-user` when the guard text names the user, the operator, or
+approval. `remedy` is `explicit-paths` when the text names explicit paths.
+`remedy` is `other` when the text holds `use`, `run`, `instead`, or `try`.
+When no pattern matches, `remedy` is `null`.
+
+A turn boundary is an event with the role `user`, or a root event of another
+trace with a type other than `GENERATION`. The guard rules check the next 10 tool calls
+before the next turn boundary:
+
+- `obeyed`: no tool call comes before the turn boundary or the session end.
+- `obeyed`: the first later tool call is an ask-user tool, for example
+  `AskUserQuestion`.
+- `routed-around`: a later call deletes a target path of the blocked delete
+  with a different program, for example `git rm`, `find -delete`, `unlink`,
+  or `node -e` with `fs.rmSync`.
+- `routed-around`: a later command holds the blocked command text.
+- `routed-around`: a later write puts the blocked command text in a file, and a
+  later call runs the file.
+- `obeyed`: the remedy is `explicit-paths`, and the first later call uses the
+  same tool and the same program without a glob character.
+- `unclear`: each other follow-up.
+
+`nextObservationId` is the event that sets the follow-up. For `unclear`,
+`nextObservationId` is the first later tool call. After a stop at the session
+end, `nextObservationId` is `null`. An `obeyed` block enters `excludedErrors`. A `routed-around` block
+enters `unresolvedErrors`. An `unclear` block enters `unclassified` with the
+reason `guard-follow-up-unclear`.
 
 ### `dataset-items.jsonl`
 

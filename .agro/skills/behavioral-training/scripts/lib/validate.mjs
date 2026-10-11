@@ -1,3 +1,6 @@
+import { FACTS_FILE, fileLines, sessionFactStream } from "./facts.mjs";
+import { NORMALIZED_FILE } from "./normalize.mjs";
+
 export const VERDICTS = Object.freeze(["pass", "fail", "unknown", "not_applicable"]);
 export const ANNOTATOR_TYPES = Object.freeze(["human", "agent", "judge"]);
 export const REVIEW_STATUSES = Object.freeze(["pending", "approved", "rejected"]);
@@ -20,6 +23,7 @@ export const ANNOTATIONS_FILE = "annotations.jsonl";
 export const TAXONOMY_FILE = "taxonomy.json";
 export const RUBRIC_FILE = "rubric.json";
 export const CALIBRATION_FILE = "calibration.json";
+export const resumeAlways = true;
 
 export const help = [
   "validate reads annotations.jsonl, taxonomy.json, and rubric.json when each file exists.",
@@ -27,6 +31,10 @@ export const help = [
   "Annotations need rubric.json, because the rubric holds the dimensions and the calibration gate.",
   "Each judge annotation in file order uses one judge call. After --max-judge-calls, each remaining",
   "judge label counts as unknown with the reason budget-exhausted, and the stage exits 4 (partial).",
+  "When normalized-sessions.jsonl exists, validate streams the file one session at a time and writes",
+  "facts.jsonl: one metadata-only record for each session with tool errors, resolved, unresolved, and",
+  "excluded errors, runs of identical failing calls, and guard blocks, each with observation ids.",
+  "validate runs again on each --resume, because the stage reads normalized-sessions.jsonl as a stream.",
   "See references/rubric.md for the dimensions, the evidence kinds, and the calibration gate.",
 ].join("\n");
 
@@ -407,12 +415,34 @@ function checked(file, validator) {
   return { value: errors.length === 0 ? file.value : null, errors };
 }
 
+const FACT_COUNTERS = Object.freeze(["resolvedErrors", "unresolvedErrors", "excludedErrors", "repeatedFailingCalls", "guardBlocks", "unclassified"]);
+
+export async function collectFacts(store) {
+  if (!store.exists(NORMALIZED_FILE)) return { counters: {}, errors: [] };
+  const records = [];
+  const errors = [];
+  for await (const item of sessionFactStream(fileLines(store.path(NORMALIZED_FILE)))) {
+    if (item.error) errors.push(issue(NORMALIZED_FILE, item.error.line, item.error.field, item.error.message));
+    else records.push(item.facts);
+  }
+  if (errors.length > 0) return { counters: {}, errors };
+  store.writeJsonl(FACTS_FILE, records);
+  const counters = { factsSessions: records.length, toolCalls: 0, toolErrors: 0, ...Object.fromEntries(FACT_COUNTERS.map((key) => [key, 0])) };
+  for (const record of records) {
+    counters.toolCalls += record.toolCalls;
+    counters.toolErrors += record.toolErrors;
+    for (const key of FACT_COUNTERS) counters[key] += record[key].length;
+  }
+  return { counters, errors: [] };
+}
+
 export async function run(ctx) {
   const { store } = ctx;
+  const facts = await collectFacts(store);
   const rubricFile = readJsonFile(store, RUBRIC_FILE);
   const rubric = checked(rubricFile, validateRubric);
   const taxonomy = checked(readJsonFile(store, TAXONOMY_FILE), (value) => validateTaxonomy(value, rubric.value));
-  const errors = [...rubric.errors, ...taxonomy.errors];
+  const errors = [...facts.errors, ...rubric.errors, ...taxonomy.errors];
   let annotations = null;
   if (store.exists(ANNOTATIONS_FILE)) {
     const parsed = parseJsonl(store.readText(ANNOTATIONS_FILE), ANNOTATIONS_FILE);
@@ -426,9 +456,9 @@ export async function run(ctx) {
   const count = annotations?.length ?? 0;
   if (errors.length > 0) {
     for (const error of errors) ctx.stderr(formatError(error));
-    return { status: "failed", cause: "invalid-run-files", counters: { annotations: count, errors: errors.length } };
+    return { status: "failed", cause: "invalid-run-files", counters: { annotations: count, errors: errors.length, ...facts.counters } };
   }
-  if (count === 0) return { status: "empty", cause: "no-annotations", counters: { annotations: 0, errors: 0 } };
+  if (count === 0) return { status: "empty", cause: "no-annotations", counters: { annotations: 0, errors: 0, ...facts.counters } };
 
   const calibration = calibrate({ annotations, rubric: rubric.value, maxJudgeCalls: ctx.options.maxJudgeCalls ?? 0 });
   store.writeJson(CALIBRATION_FILE, calibration);
@@ -441,6 +471,7 @@ export async function run(ctx) {
     budgetExhausted,
     calibrated: statuses.filter((status) => status === "calibrated").length,
     provisional: statuses.filter((status) => status === "provisional").length,
+    ...facts.counters,
   };
   if (budgetExhausted > 0) return { status: "partial", cause: BUDGET_EXHAUSTED, counters };
   return { status: "complete", counters };
