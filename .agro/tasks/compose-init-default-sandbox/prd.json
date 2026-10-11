@@ -160,6 +160,95 @@
         ".agro/tasks/compose-init-default-sandbox/evidence/manual-review.md"
       ],
       "commit": "cdc0f07a"
+    },
+    {
+      "id": "US-007",
+      "title": "Remove the systemd consumer from the Langfuse fragment",
+      "description": "As a maintainer, I want the Langfuse fragment code, tests, and docs to stop naming systemd as a reader. The code then states only the consumer that exists.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/lib/tracing/providers/langfuse.ts` names no systemd reader. The error message for an uncarriable value names zsh only.",
+        "`langfuse-fragment.test.ts` has no `parseAsSystemdEnvironmentFile` helper and no test name that names systemd. The tests keep the bare `KEY=value` format, the single-quote rule, and the `.zshenv` round trip.",
+        "`docs/integrations/langfuse.md` does not state that systemd reads the fragment.",
+        "`git grep -n -i systemd -- .agro/cli/src/lib/tracing docs/integrations/langfuse.md` prints no line.",
+        "`npx vitest run .agro/cli/src/lib/tracing` and `pnpm run typecheck` exit 0."
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/tracing/",
+        ".agro/cli/src/lib/tracing/__tests__/langfuse-fragment.test.ts",
+        "docs/integrations/langfuse.md",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "id": "US-008",
+      "title": "Add the remote-sandbox scripts to the CI shellcheck set",
+      "description": "As a maintainer, I want CI to lint the remote-sandbox scripts so that a shell defect in the VM matrix fails CI.",
+      "acceptanceCriteria": [
+        "The shellcheck commands in `.github/workflows/ci-harness.yml` and `.github/workflows/release.yml` include `.agro/skills/remote-sandbox/adapters/*.sh`, `.agro/skills/remote-sandbox/checks/*.sh`, and `.agro/skills/remote-sandbox/scripts/*.sh`.",
+        "Each script in those three folders has a `#!/usr/bin/env bash` shebang or a `shellcheck shell=bash` directive.",
+        "`shellcheck -S warning .agro/skills/remote-sandbox/adapters/*.sh .agro/skills/remote-sandbox/checks/*.sh .agro/skills/remote-sandbox/scripts/*.sh` exits 0. Each fix keeps the script behavior. A `shellcheck disable` directive is allowed only with a reason that a reviewer can verify in the same line.",
+        "`npx vitest run .agro/scripts/__tests__/remote-sandbox-suite.test.ts .agro/scripts/__tests__/remote-sandbox-adapters.test.ts` exits 0."
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".github/workflows/ci-harness.yml",
+        ".github/workflows/release.yml",
+        ".agro/skills/remote-sandbox/adapters/",
+        ".agro/skills/remote-sandbox/checks/",
+        ".agro/skills/remote-sandbox/scripts/"
+      ]
+    },
+    {
+      "id": "US-009",
+      "title": "Add shellcheck and hadolint to the sandbox image",
+      "description": "As an agent in the sandbox, I want `shellcheck` and `hadolint` in the image so that I run the CI lint commands before I push.",
+      "acceptanceCriteria": [
+        "`.devcontainer/Dockerfile` installs the Debian `shellcheck` package.",
+        "`.devcontainer/Dockerfile` installs a pinned `hadolint` release binary to `/usr/local/bin/hadolint` for `amd64` and `arm64`. The build verifies each binary with a pinned SHA-256 and fails on a mismatch or on another architecture.",
+        "`.agro/scripts/verify-sandbox-image.sh` fails when `shellcheck --version` or `hadolint --version` fails in the image.",
+        "hadolint with `.hadolint.yaml` exits 0 on `.devcontainer/Dockerfile`.",
+        "The CI job \"Validate sandbox compose and image build\" passes on the PR head."
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-007"
+      ],
+      "files": [
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/verify-sandbox-image.sh",
+        ".agro/scripts/__tests__/",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "id": "US-010",
+      "title": "Record evidence for the folded stories",
+      "description": "As the advisor, I want the evidence file to cover US-007, US-008, and US-009 so that the PR `## Manual review` section proves the folded work.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/compose-init-default-sandbox/evidence/manual-review.md` has a section for each of US-007, US-008, and US-009 with each command, its output, and its exit status.",
+        "The section for US-009 quotes the CI log lines of `verify-sandbox-image.sh` that show the `shellcheck` and `hadolint` versions.",
+        "This story depends on US-007, US-008, and US-009."
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-007",
+        "US-008",
+        "US-009"
+      ],
+      "files": [
+        ".agro/tasks/compose-init-default-sandbox/evidence/manual-review.md"
+      ]
     }
   ]
 }

@@ -85,6 +85,51 @@ Status: DRAFT
 - [ ] The transcript states that no live sandbox was rebuilt and that the remote-sandbox VM image mode rows were not run.
 - [ ] This story depends on US-001, US-002, US-003, US-004, and US-005.
 
+### US-007: Remove the systemd consumer from the Langfuse fragment
+
+**Description:** As a maintainer, I want the Langfuse fragment code, tests, and docs to stop naming systemd as a reader. The code then states only the consumer that exists.
+
+**Acceptance Criteria:**
+
+- [ ] `.agro/cli/src/lib/tracing/providers/langfuse.ts` names no systemd reader. The error message for an uncarriable value names zsh only.
+- [ ] `langfuse-fragment.test.ts` has no `parseAsSystemdEnvironmentFile` helper and no test name that names systemd. The tests keep the bare `KEY=value` format, the single-quote rule, and the `.zshenv` round trip.
+- [ ] `docs/integrations/langfuse.md` does not state that systemd reads the fragment.
+- [ ] `git grep -n -i systemd -- .agro/cli/src/lib/tracing docs/integrations/langfuse.md` prints no line.
+- [ ] `npx vitest run .agro/cli/src/lib/tracing` and `pnpm run typecheck` exit 0.
+
+### US-008: Add the remote-sandbox scripts to the CI shellcheck set
+
+**Description:** As a maintainer, I want CI to lint the remote-sandbox scripts so that a shell defect in the VM matrix fails CI.
+
+**Acceptance Criteria:**
+
+- [ ] The shellcheck commands in `.github/workflows/ci-harness.yml` and `.github/workflows/release.yml` include `.agro/skills/remote-sandbox/adapters/*.sh`, `.agro/skills/remote-sandbox/checks/*.sh`, and `.agro/skills/remote-sandbox/scripts/*.sh`.
+- [ ] Each script in those three folders has a `#!/usr/bin/env bash` shebang or a `shellcheck shell=bash` directive.
+- [ ] `shellcheck -S warning .agro/skills/remote-sandbox/adapters/*.sh .agro/skills/remote-sandbox/checks/*.sh .agro/skills/remote-sandbox/scripts/*.sh` exits 0. Each fix keeps the script behavior. A `shellcheck disable` directive is allowed only with a reason that a reviewer can verify in the same line.
+- [ ] `npx vitest run .agro/scripts/__tests__/remote-sandbox-suite.test.ts .agro/scripts/__tests__/remote-sandbox-adapters.test.ts` exits 0.
+
+### US-009: Add shellcheck and hadolint to the sandbox image
+
+**Description:** As an agent in the sandbox, I want `shellcheck` and `hadolint` in the image so that I run the CI lint commands before I push.
+
+**Acceptance Criteria:**
+
+- [ ] `.devcontainer/Dockerfile` installs the Debian `shellcheck` package.
+- [ ] `.devcontainer/Dockerfile` installs a pinned `hadolint` release binary to `/usr/local/bin/hadolint` for `amd64` and `arm64`. The build verifies each binary with a pinned SHA-256 and fails on a mismatch or on another architecture.
+- [ ] `.agro/scripts/verify-sandbox-image.sh` fails when `shellcheck --version` or `hadolint --version` fails in the image.
+- [ ] hadolint with `.hadolint.yaml` exits 0 on `.devcontainer/Dockerfile`.
+- [ ] The CI job "Validate sandbox compose and image build" passes on the PR head.
+
+### US-010: Record evidence for the folded stories
+
+**Description:** As the advisor, I want the evidence file to cover US-007, US-008, and US-009 so that the PR `## Manual review` section proves the folded work.
+
+**Acceptance Criteria:**
+
+- [ ] `.agro/tasks/compose-init-default-sandbox/evidence/manual-review.md` has a section for each of US-007, US-008, and US-009 with each command, its output, and its exit status.
+- [ ] The section for US-009 quotes the CI log lines of `verify-sandbox-image.sh` that show the `shellcheck` and `hadolint` versions.
+- [ ] This story depends on US-007, US-008, and US-009.
+
 ## Summary
 
 Issue #1393 holds the Architecture Brief and its correction. The operator selected the revised option C: Compose init is the default PID 1, and AGRO ships no systemd overlay.
@@ -162,7 +207,6 @@ Run `npx vitest run`, `pnpm run typecheck`, the CI shellcheck command, and hadol
 - A systemd overlay for the Compose sandbox.
 - Removal of systemd, `agro-bootstrap.service`, or the env generator from the image.
 - Changes to `docker-engine`, `desktop`, or the OpenShell gateway.
-- The systemd `EnvironmentFile` parse in the Langfuse fragment and the matching sentence in `docs/integrations/langfuse.md`. No systemd unit reads that file since #1391. A separate issue owns that cleanup.
 - A live sandbox rebuild and the remote-sandbox VM image mode rows.
 
 ## Open Questions
@@ -179,5 +223,5 @@ None.
 ## Lessons
 
 1. The first Architecture Brief and the issue body stated that `docker-engine` and `desktop` need systemd inside the sandbox. Both tools install on the host only. Evidence: `hostInstallArgv` and `notInstallableReason` in `.agro/cli/src/lib/tools/catalog.ts`, and `--host` in `docs/installation.md`. Outcome: fixed in this PR. The correction comment on #1393 records the fact, and the operator selected the plan without the overlay.
-2. The Langfuse fragment still has a systemd `EnvironmentFile` parse, and `docs/integrations/langfuse.md` states that systemd reads the fragment. No systemd unit reads the fragment since #1391. Outcome: proposed issue "Remove the systemd EnvironmentFile consumer from the Langfuse fragment".
+2. The Langfuse fragment still has a systemd `EnvironmentFile` parse, and `docs/integrations/langfuse.md` states that systemd reads the fragment. No systemd unit reads the fragment since #1391. Outcome: fixed in this PR by US-007.
 3. The remote-sandbox VM image mode rows R05 to R08 did not run. Image mode keeps the unchanged image `CMD ["/sbin/init"]`. Outcome: dropped as a lesson. The PR lists the run under "What remains unverified".
