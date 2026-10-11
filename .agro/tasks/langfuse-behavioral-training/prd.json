@@ -16,14 +16,15 @@
         "`bash .agro/scripts/link-providers.sh --check` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: test ! -e .agro/skills/prompt-miner (exit 0); executed: PRD git grep exit 1, no output; executed: grep -c 'prompt-miner --judge' docs/configuration.md = 0; executed: vitest prompt-miner-retirement.test.ts 7/7 pass, red run before change failed 4/7 (worker evidence); executed: link-providers.sh --check exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/skills/prompt-miner/",
         "docs/configuration.md",
         ".agro/scripts/__tests__/prompt-miner-retirement.test.ts"
-      ]
+      ],
+      "commit": "725873ee"
     },
     {
       "id": "US-002",
