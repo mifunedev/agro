@@ -1007,6 +1007,7 @@ describe("the canonical OpenShell policy", () => {
   it("gives only the Claude Code native binary Anthropic access", () => {
     expect(binaries("anthropic")).toEqual([CLAUDE_BINARY_GLOB]);
     expect(hosts("anthropic")).toContain("api.anthropic.com");
+    expect(hosts("anthropic")).toContain("platform.claude.com");
   });
 
   it("lists node in no rule except npm", () => {

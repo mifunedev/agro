@@ -162,7 +162,7 @@ lets through:
 |---|---|---|---|
 | `github` | `github.com`, `api.github.com`, `release-assets.githubusercontent.com` | `/usr/bin/git`, `/usr/bin/gh`, `/usr/bin/curl` | read and write on `github.com` and `api.github.com`; read-only on `release-assets.githubusercontent.com` |
 | `npm` | `registry.npmjs.org` | `/usr/local/bin/node` | read-only |
-| `anthropic` | `api.anthropic.com` | `/home/sandbox/.local/lib/node_modules/@anthropic-ai/claude-code/bin/*` | read and write |
+| `anthropic` | `api.anthropic.com`, `platform.claude.com` | `/home/sandbox/.local/lib/node_modules/@anthropic-ai/claude-code/bin/*` | read and write |
 
 The `github` rule permits `git push` over HTTPS. The operator approved agent
 `git push` on 2026-09-28. The `github` rule also permits the release downloads
@@ -171,13 +171,18 @@ that `agro tool install herdr` uses.
 Claude Code tools, for example WebFetch, reach only the `anthropic` hosts. A
 Claude Code tool cannot fetch a page from any other host.
 
-The Claude Code sign-in can need more hosts than `api.anthropic.com`. The list
-of `<claude login hosts>` waits for a live observation. If the sign-in fails on
-a denied host, add the host to the `anthropic` rule in the live policy.
+The Claude Code sign-in needs `platform.claude.com` in addition to
+`api.anthropic.com`. If the sign-in fails on a denied host, add the host to
+the `anthropic` rule in the live policy.
 
 The policy denies Claude Code telemetry to `http-intake.logs.us5.datadoghq.com`.
 `openshell logs <name>` then shows a `NET:OPEN DENIED` line for that host. This
 denial does not stop Claude Code. Expect this line.
+
+The default policy also denies `claude.exe` requests to
+`mcp-proxy.anthropic.com` (claude.ai connectors) and to
+`raw.githubusercontent.com`. Connectors need an added endpoint in the
+`anthropic` rule.
 
 Network rules reload while the sandbox runs. Filesystem and process fields apply
 only when OpenShell creates the sandbox. To change the live network policy, run

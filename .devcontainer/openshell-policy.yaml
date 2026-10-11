@@ -59,5 +59,10 @@ network_policies:
         protocol: rest
         enforcement: enforce
         access: read-write
+      - host: platform.claude.com
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        access: read-write
     binaries:
       - path: /home/sandbox/.local/lib/node_modules/@anthropic-ai/claude-code/bin/*
