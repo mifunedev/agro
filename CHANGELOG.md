@@ -8,6 +8,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Removed
+- Stop tracking `.hermes/` in git; the whole directory is now gitignored, and `agro harness install hermes` generates `config.yaml` with the AGRO defaults on first install ([#1401](https://github.com/mifunedev/agro/pull/1401)).
+
 ### Fixed
 - Fix `/t3` so that `herdr` runs in a T3 Code terminal and `/t3 start --tailscale` prints the `ts.net` pairing URL and QR code ([#1394](https://github.com/mifunedev/agro/issues/1394)).
 

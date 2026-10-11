@@ -25,6 +25,9 @@ The installer uses the resolved workspace as its target root.
 Local and host targets use the selected absolute path.
 Docker targets use `/home/sandbox/harness`, not the host checkout path.
 AGRO selects `<target-root>/.hermes` as `HERMES_HOME`.
+If `<target-root>/.hermes/config.yaml` does not exist, the first install generates the file with the AGRO defaults.
+The defaults are one YAML seed: the model, provider, and base URL, the compression settings, and `onboarding.seen.profile_build_offered`.
+If `config.yaml` exists, AGRO keeps the file and sets only `terminal.cwd`.
 Before reporting success, AGRO runs the supported configuration command:
 
 ```bash
@@ -125,13 +128,31 @@ Canonical keys already supplied through `.env` or the environment take precedenc
 
 ## State persistence
 
+The `HERMES_HOME` directory, `<target-root>/.hermes`, holds gitignored runtime state: configuration, authentication, memory, skills, and sessions.
+Git tracks no file in this directory.
+The program and its virtual environment live separately at `~/.local/lib/hermes-agent`.
+
 In an image-only sandbox, `~/harness/.hermes/` resides in the persistent home volume.
 With a checkout bind, the runtime directory resides in the checkout.
 State survives container recreation only while its backing storage remains.
-Git ignores runtime contents; never commit credentials or generated machine-specific cwd values.
+Do not commit credentials or generated machine-specific cwd values.
 
 `agro destroy` removes the home volume, including image-only Hermes state.
 The command does not remove a host checkout's `.hermes/` directory.
+
+### Back up an edited configuration before you pull
+
+Earlier versions of AGRO tracked `.hermes/config.yaml` in git.
+If your checkout has an unmodified copy of that file, `git pull` deletes the file.
+If the file has local edits, git refuses the pull.
+Before you pull this change, copy the file to a backup path:
+
+```bash
+cp .hermes/config.yaml "<backup-path>"
+```
+
+Then remove `.hermes/config.yaml`, pull, and copy the backup back to `.hermes/config.yaml`.
+If you do not restore a file, the next `agro harness install hermes` generates `config.yaml` with the AGRO defaults.
 
 ## Model and gateway
 
