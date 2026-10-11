@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runSandboxInstall, runSandboxList, type SandboxIO } from "../commands/sandbox.js";
@@ -141,7 +141,9 @@ describe("agro sandbox upgrade", () => {
     expect(argsSeen[0]).not.toContain("down");
     expect(argsSeen[0]).not.toContain("-v");
     expect(readJson(join(root, "agro.json"))).toEqual({ ...before, image: { mode: "image", ref: target } });
-    expect(readFileSync(join(root, ".env"), "utf8")).toBe("GH_TOKEN=keep-this\n");
+    const envAfter = readFileSync(join(root, ".env"), "utf8");
+    expect(envAfter).toContain("GH_TOKEN=keep-this\n");
+    expect(envAfter).toMatch(/^SANDBOX_PASSWORD=[A-Za-z0-9_-]{32}$/m);
     expect(readFileSync(join(root, ".devcontainer", "docker-compose.yml"), "utf8")).toBe(composeBefore);
     expect(existsSync(join(root, ".sandbox-upgrade.lock"))).toBe(false);
   });
@@ -439,6 +441,20 @@ describe("agro sandbox install — build mode inference and the home mount", () 
     const wrapper = calls.find((c) => c.cmd === "bash");
     expect(wrapper?.args).not.toContain("--build");
     expect(wrapper?.args).toContain("--no-build");
+  });
+
+  it("--print-argv writes no SANDBOX_PASSWORD dotenv value", async () => {
+    const registryPath = registry();
+    const { run } = makeRunner();
+
+    expect(
+      await runSandboxInstall(
+        { bin: "agro", runtime: "docker", name: "box", yes: true, printArgv: true, run },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    expect(existsSync(join(registryPath, "box"))).toBe(false);
+    expect(existsSync(join(entryRoot("box"), ".env"))).toBe(false);
   });
 
   it("lets an explicit image.mode in the seed outrank the inference", async () => {
@@ -1037,6 +1053,71 @@ describe("the canonical OpenShell policy", () => {
   });
 });
 
+describe("the egress allowlist", () => {
+  function policyHosts(): string[] {
+    const policy = parse(openshellPolicy) as OpenShellPolicy;
+    const hosts = new Set<string>();
+    for (const rule of Object.values(policy.network_policies)) {
+      for (const endpoint of rule.endpoints) hosts.add(endpoint.host);
+    }
+    return [...hosts].sort();
+  }
+
+  it("writes the union of the policy hosts and access.egressAllow, sorted and deduplicated", () => {
+    registry();
+    const root = entryRoot("egress-box");
+    mkdirSync(root, { recursive: true });
+    writeFileSync(
+      join(root, "agro.json"),
+      `${JSON.stringify({
+        version: 1,
+        name: "egress-box",
+        access: { egress: "allowlist", egressAllow: ["example.com", "api.github.com", "zzz.test"] },
+      })}\n`,
+    );
+    materialize(root);
+
+    const written = readFileSync(join(root, "egress-allow.txt"), "utf8");
+    const expected = [...new Set([...policyHosts(), "example.com", "api.github.com", "zzz.test"])].sort();
+    expect(written).toBe(`${expected.join("\n")}\n`);
+    const lines = written.split("\n").filter(Boolean);
+    expect(lines).toEqual([...new Set(lines)]);
+  });
+
+  it("writes nothing for an open entry, and deletes nothing an operator already wrote", () => {
+    registry();
+    const root = entryRoot("open-box");
+    mkdirSync(root, { recursive: true });
+    writeFileSync(join(root, "agro.json"), `${JSON.stringify({ version: 1, name: "open-box" })}\n`);
+    writeFileSync(join(root, "egress-allow.txt"), "operator.example\n");
+
+    materialize(root);
+
+    expect(readFileSync(join(root, "egress-allow.txt"), "utf8")).toBe("operator.example\n");
+  });
+
+  it("rewrites the existing inode in place rather than replacing it", () => {
+    registry();
+    const root = entryRoot("reload-box");
+    mkdirSync(root, { recursive: true });
+    writeFileSync(
+      join(root, "agro.json"),
+      `${JSON.stringify({ version: 1, name: "reload-box", access: { egress: "allowlist", egressAllow: [] } })}\n`,
+    );
+    materialize(root);
+    const before = statSync(join(root, "egress-allow.txt")).ino;
+
+    writeFileSync(
+      join(root, "agro.json"),
+      `${JSON.stringify({ version: 1, name: "reload-box", access: { egress: "allowlist", egressAllow: ["added.example"] } })}\n`,
+    );
+    materialize(root);
+
+    expect(statSync(join(root, "egress-allow.txt")).ino).toBe(before);
+    expect(readFileSync(join(root, "egress-allow.txt"), "utf8")).toContain("added.example\n");
+  });
+});
+
 describe("agro sandbox install openshell", () => {
   const connected = JSON.stringify({ status: "connected" });
 
@@ -1094,6 +1175,16 @@ describe("agro sandbox install openshell", () => {
       createArgv({ name: "box", image: officialImageRef(AGRO_VERSION), entryRoot: root }),
     );
     expect(out.join("")).toContain("next: agro shell box\n");
+  });
+
+  it("writes no SANDBOX_PASSWORD dotenv for the openshell runtime", async () => {
+    registry();
+    const root = entryRoot("box");
+    const { run } = openshellRunner();
+
+    expect(await runSandboxInstall({ bin: "agro", runtime: "openshell", name: "box", run }, makeIo().io)).toBe(0);
+
+    expect(existsSync(join(root, ".env"))).toBe(false);
   });
 
   it("never prompts and seeds name, timezone and git identity from the defaults", async () => {

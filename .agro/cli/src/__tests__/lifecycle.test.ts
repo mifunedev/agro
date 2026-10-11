@@ -41,6 +41,7 @@ import {
 } from "../lib/runtimes/verbs.js";
 import { SANDBOX_RUNTIMES } from "../lib/agro-config.js";
 import { agroConfigPath } from "../lib/agro-config.js";
+import { readSecret, secretsFilePath, setSecret } from "../lib/secrets.js";
 import { AGRO_VERSION, officialImageRef } from "../lib/version.js";
 import { withInvokedBinAsync } from "./invoked-bin.js";
 
@@ -483,6 +484,52 @@ describe("runSandbox", () => {
     expect(calls[0].args).toEqual([script, "--repo-dir", root, "up", "-d", "--no-build"]);
     expect(calls[0].opts.env).toBeUndefined();
     expect(out.join("")).toContain("no-build mode");
+  });
+
+  it("writes a random 32-character SANDBOX_PASSWORD before provisioning the docker entry", async () => {
+    const root = makeRepo();
+    addScript(root, "docker-compose.sh");
+    mkdirSync(join(root, ".devcontainer"), { recursive: true });
+    const { run } = makeRunner();
+
+    expect(await runSandbox({ bin: "agro", cwd: root, run }, makeIo().io)).toBe(0);
+    expect(readSecret(root, "SANDBOX_PASSWORD")).toMatch(/^[A-Za-z0-9_-]{32}$/);
+  });
+
+  it("leaves an existing SANDBOX_PASSWORD byte-identical across a re-provision", async () => {
+    const root = makeRepo();
+    addScript(root, "docker-compose.sh");
+    mkdirSync(join(root, ".devcontainer"), { recursive: true });
+    setSecret(root, "SANDBOX_PASSWORD", "already-set");
+    const before = readFileSync(secretsFilePath(root), "utf8");
+    const { run } = makeRunner();
+
+    expect(await runSandbox({ bin: "agro", cwd: root, run }, makeIo().io)).toBe(0);
+    expect(readFileSync(secretsFilePath(root), "utf8")).toBe(before);
+  });
+
+  it("--print-argv writes no SANDBOX_PASSWORD value", async () => {
+    const root = makeRepo();
+    addScript(root, "docker-compose.sh");
+    mkdirSync(join(root, ".devcontainer"), { recursive: true });
+    const { run } = makeRunner();
+
+    expect(await runSandbox({ bin: "agro", cwd: root, run, printArgv: true }, makeIo().io)).toBe(0);
+    expect(existsSync(secretsFilePath(root))).toBe(false);
+  });
+
+  it("gives two new entries two different SANDBOX_PASSWORD values", async () => {
+    const rootA = makeRepo();
+    addScript(rootA, "docker-compose.sh");
+    mkdirSync(join(rootA, ".devcontainer"), { recursive: true });
+    const rootB = makeRepo();
+    addScript(rootB, "docker-compose.sh");
+    mkdirSync(join(rootB, ".devcontainer"), { recursive: true });
+
+    expect(await runSandbox({ bin: "agro", cwd: rootA, run: makeRunner().run }, makeIo().io)).toBe(0);
+    expect(await runSandbox({ bin: "agro", cwd: rootB, run: makeRunner().run }, makeIo().io)).toBe(0);
+
+    expect(readSecret(rootA, "SANDBOX_PASSWORD")).not.toBe(readSecret(rootB, "SANDBOX_PASSWORD"));
   });
 });
 

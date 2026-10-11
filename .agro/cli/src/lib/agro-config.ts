@@ -35,12 +35,18 @@ export interface GitIdentity {
   userEmail?: string;
 }
 
+export type EgressMode = "open" | "allowlist";
+
+export const EGRESS_MODES: readonly EgressMode[] = ["open", "allowlist"];
+
 export interface AccessSettings {
   ssh?: boolean;
   sshPort?: number;
   sshPasswordAuth?: boolean;
   sshAuthorizedKeys?: string;
   dockerSocket?: boolean;
+  egress?: EgressMode;
+  egressAllow?: string[];
 }
 
 export interface HermesDashboardSettings {
@@ -107,6 +113,8 @@ export function defaultAgroConfig(name: string): AgroConfig {
       sshPort: 2222,
       sshPasswordAuth: false,
       dockerSocket: false,
+      egress: "open",
+      egressAllow: [],
     },
     hermesDashboard: { enabled: false, port: 9119 },
     image: { mode: "build", pullPolicy: "missing" },
@@ -207,6 +215,8 @@ export function validateAgroConfig(value: unknown): AgroConfig {
     expectBoolean(access, "sshPasswordAuth", "access.");
     expectString(access, "sshAuthorizedKeys", "access.");
     expectBoolean(access, "dockerSocket", "access.");
+    expectEnum(access, "egress", "access.", EGRESS_MODES);
+    expectStringArray(access, "egressAllow", "access.");
   }
 
   const dashboard = expectSection(record, "hermesDashboard");
@@ -287,6 +297,17 @@ function expectPort(record: Record<string, unknown>, key: string, prefix = ""): 
   }
 }
 
+function expectStringArray(record: Record<string, unknown>, key: string, prefix = ""): void {
+  const value = record[key];
+  if (value === undefined) return;
+  if (!Array.isArray(value)) throw fieldError(`${prefix}${key}`, "must be an array of strings");
+  for (const entry of value) {
+    if (typeof entry !== "string") {
+      throw fieldError(`${prefix}${key}`, "must be an array of strings");
+    }
+  }
+}
+
 function expectEnum(
   record: Record<string, unknown>,
   key: string,
@@ -321,6 +342,8 @@ export const AGRO_CONFIG_FIELDS: readonly AgroConfigField[] = [
   { path: "access.sshPasswordAuth", type: "boolean" },
   { path: "access.sshAuthorizedKeys", type: "string" },
   { path: "access.dockerSocket", type: "boolean" },
+  { path: "access.egress", type: "enum", values: EGRESS_MODES },
+  { path: "access.egressAllow", type: "list" },
   { path: "hermesDashboard.enabled", type: "boolean" },
   { path: "hermesDashboard.port", type: "port" },
   { path: "image.ref", type: "string" },

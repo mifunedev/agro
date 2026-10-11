@@ -1,0 +1,57 @@
+== exedev agro-mx-1011-112912 check=docker-egress.sh image=default date=2026-10-11T17:29:12Z
+TIMING create_return_s=1.3 first_shell_s=2.0
+build under test: install=release agro_js=release sandbox_image=cli default agro_ref=feat/1397-docker-egress-allowlist vm_image=provider default
+started
+== env: Ubuntu 24.04.5 LTS kernel=6.12.93 arch=x86_64 user=exedev
+== install agro from https://github.com/mifunedev/agro/releases/latest/download/install.sh
+RESULT E01-agro-install PASS release=0.20.0 node=v24.21.0
+== build the branch cli from feat/1397-docker-egress-allowlist
+RESULT E02-branch-cli PASS ref=feat/1397-docker-egress-allowlist@81315fb version=0.20.0
+== docker: 29.1.3
+== E03 set access.egress in the checkout
+RESULT E03-egress-setting PASS rc=0 agro.json: set access.egress=allowlist (added)
+== E04 install
+    |  Container agro-egress-proxy-1  Created
+    |  Container agro-egress  Creating
+    |  Container agro-egress  Created
+    |  Container agro-egress-proxy-1  Starting
+    |  Container agro-egress-proxy-1  Started
+    |  Container agro-egress  Starting
+    |  Container agro-egress  Started
+    | next: agro shell agro-egress
+RESULT E04-install PASS rc=0 secs=81
+RESULT E05-entry-allowlist PASS hosts=api.anthropic.com,api.github.com,github.com,platform.claude.com,registry.npmjs.org,release-assets.githubusercontent.com
+RESULT E06-health PASS healthy after 91s
+RESULT E07-bootstrap PASS agro-bootstrap=active
+== routes in the sandbox
+    | 172.19.0.0/16 dev eth0 proto kernel scope link src 172.19.0.3 
+RESULT E09-no-default-route PASS no default route
+RESULT E10-allowed-github PASS api.github.com http=200
+RESULT E11-denied-logged PASS rc=56 log: DENIED 1791739856.505      1 172.19.0.3 TCP_DENIED_ABORTED/403 332 CONNECT example.com:443 - HIER_NONE/- text/html
+RESULT E12-npm-view PASS rc=0 npm notice
+    | npm warn install-scripts   @anthropic-ai/claude-code@2.1.296 (postinstall: node install.cjs)
+    | npm warn install-scripts
+    | npm warn install-scripts Run `npm install -g --allow-scripts=@anthropic-ai/claude-code` to allow these scripts once, or `npm config set allow-scripts=@anthropic-ai/claude-code --location=user` to allow them for all global installs.
+    | claude-code: installed — see https://github.com/mifunedev/agro/blob/main/docs/harnesses/claude-code.md for authentication
+RESULT E13-claude-install PASS claude=2.1.296 (Claude Code)
+== E14 reload
+    | agro.json: set access.egressAllow=example.com (updated)
+    | 2026/10/11 17:31:00| Processing Configuration File: /etc/squid/squid.conf (depth 0)
+    | 2026/10/11 17:31:00| Current Directory is /
+RESULT E14-reload-allows PASS example.com http=200
+RESULT E15-running-after-reload PASS started=2026-10-11T17:30:45.770884098Z not restarted
+== bypass attempts as root
+RESULT E17-bypass-noproxy PASS rc=6 curl: (6) Could not resolve host: example.com 000
+RESULT E18-bypass-direct-ip PASS rc=7 curl: (7) Failed to connect to 140.82.112.3 port 443 after 0 ms: Could not connect to server 000
+    | ip route add default dev eth0: rc=2 RTNETLINK answers: Operation not permitted
+RESULT E19-bypass-root-route PASS rc=7 curl: (7) Failed to connect to 140.82.112.3 port 443 after 0 ms: Could not connect to server 000
+== E20 destroy
+    |  Volume agro-egress_workspace  Removed
+    |  Network agro-egress_egress-internal  Removed
+    | removed the sandbox entry /home/exedev/.agro/sandboxes/agro-egress
+RESULT E20-destroy PASS rc=0 no container left
+SUMMARY fails=0
+== destroy agro-mx-1011-112912
+1 VM deleted successfully
+remaining agro-matrix resources on exedev: 0
+RUN DONE

@@ -148,9 +148,10 @@ The base container publishes no ports.
   [`docker-compose.ssh.yml`](../.devcontainer/docker-compose.ssh.yml). The
   default posture is a `127.0.0.1` bind, public-key auth, `PermitRootLogin no`,
   and password auth off. Before `agro sandbox install docker` creates the
-  container, a port-collision preflight refuses a port in use. You own two
-  weaker choices: a `0.0.0.0` bind, and password auth with the default
-  `SANDBOX_PASSWORD` (`test1234`). See [SSH](integrations/sshd.md).
+  container, a port-collision preflight refuses a port in use. `agro sandbox
+  install docker` generates a random `SANDBOX_PASSWORD`; run `agro secret get
+  SANDBOX_PASSWORD` to read the generated value. You own the remaining weaker choice: a
+  `0.0.0.0` bind. See [SSH](integrations/sshd.md).
 - **Tailscale (opt-in).** `agro tool install tailscale` adds no capability and
   no compose change. `tailscaled` runs in userspace-networking mode as
   `sandbox`. Nothing joins a tailnet at boot. AGRO ships no Funnel command. Never
@@ -175,6 +176,52 @@ the citation. The hooks in sections 2 and 3 are the only deterministic authority
 The scope rule in `AGENTS.md` ("Agent work stays inside the sandbox") and the
 merge gate in section 6 are doctrine. When a boundary matters, prefer a hook over
 a prompt instruction.
+
+## 8. Egress allowlist — ENFORCED, opt-in
+
+`access.egress` defaults to `open`: the sandbox keeps its current, unrestricted
+route out. Set `access.egress: "allowlist"` and `agro sandbox install docker`
+adds [`docker-compose.egress.yml`](../.devcontainer/docker-compose.egress.yml).
+The overlay puts the sandbox on an `internal: true` network and adds a `proxy`
+service on a second, egress-only network. The sandbox has no default route and
+no direct path to the internet. Every outbound request must pass through the
+proxy, and the proxy denies every host outside `egress-allow.txt`.
+
+**Default hosts.** `materialize()` builds `egress-allow.txt` from one source:
+the `host` entries under `network_policies` in
+[`openshell-policy.yaml`](../.devcontainer/openshell-policy.yaml), plus
+`access.egressAllow`. The built-in hosts are `github.com`, `api.github.com`,
+`release-assets.githubusercontent.com`, `registry.npmjs.org`,
+`api.anthropic.com`, and `platform.claude.com`. `access.egressAllow` is an
+array of extra hosts in `agro.json`. See [Configuration → Egress
+allowlist](configuration.md#egress-allowlist).
+
+**Fix a blocked host.** Run `agro egress log [name]` and find the denied host
+in the `TCP_DENIED` lines. Add the host with `agro config set
+access.egressAllow "<hosts>" --sandbox <name>`. Run `agro egress reload
+[name]`. The command rewrites `egress-allow.txt` and sends the proxy `squid -k
+reconfigure`; the sandbox container keeps running.
+
+**The boundary.** The network topology enforces the allowlist, not a rule
+inside the container. The sandbox has no route to the internet other than the
+proxy, and the proxy is a separate container that root in the sandbox cannot
+reach or reconfigure. The proof of concept on ADR #1378 ran as root inside the
+sandbox with `SYS_ADMIN` and found no bypass: a request without the proxy
+variables failed to resolve its host, a request to a direct IP failed to
+connect, and an attempt to add a default route failed with `Operation not
+permitted`.
+
+**Limits.** Allowlist mode blocks git over SSH, UDP other than DNS,
+`host.docker.internal`, `cloudflared`, and `tailscale`; none of these pass
+through an HTTP(S) proxy. `access.ssh` (`SANDBOX_SSH`) does not work in
+allowlist mode: the sandbox has no published port, because the sandbox sits on
+an internal network with no route from the host. Allowlist mode needs Compose
+2.23 or later, because the overlay's proxy configuration uses the inline
+`configs.content` field. The overlay sets `NODE_USE_ENV_PROXY=1`, because a
+Node.js `fetch` call, including the one corepack makes, ignores the proxy
+variables without that setting. Allowlist mode defines no rule for each
+binary, and it uses no credential injection or TLS interception. See [the PRD
+§ Out of Scope](../.agro/tasks/docker-egress-allowlist/prd.md#out-of-scope).
 
 ## Report a vulnerability
 

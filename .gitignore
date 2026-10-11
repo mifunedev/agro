@@ -83,3 +83,5 @@ packages/*/node_modules/
 
 .agro-migrate.lock
 *.migrated
+
+/egress-allow.txt

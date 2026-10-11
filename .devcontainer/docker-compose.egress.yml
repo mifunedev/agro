@@ -1,0 +1,48 @@
+services:
+  sandbox:
+    networks:
+      - egress-internal
+    depends_on:
+      - proxy
+    environment:
+      - HTTPS_PROXY=http://proxy:3128
+      - HTTP_PROXY=http://proxy:3128
+      - https_proxy=http://proxy:3128
+      - http_proxy=http://proxy:3128
+      - NO_PROXY=localhost,127.0.0.1
+      - no_proxy=localhost,127.0.0.1
+      - NODE_USE_ENV_PROXY=1
+
+  proxy:
+    image: ubuntu/squid@sha256:6a097f68bae708cedbabd6188d68c7e2e7a38cedd05a176e1cc0ba29e3bbe029
+    networks:
+      - egress-internal
+      - egress-out
+    configs:
+      - source: egress-squid
+        target: /etc/squid/squid.conf
+    volumes:
+      - type: bind
+        source: ../egress-allow.txt
+        target: /etc/squid/egress-allow.txt
+        read_only: true
+    restart: unless-stopped
+
+configs:
+  egress-squid:
+    content: |
+      http_port 3128
+      acl SSL_ports port 443
+      acl Safe_ports port 80
+      acl Safe_ports port 443
+      acl CONNECT method CONNECT
+      acl egress_allow dstdomain "/etc/squid/egress-allow.txt"
+      http_access deny !Safe_ports
+      http_access deny CONNECT !SSL_ports
+      http_access allow egress_allow
+      http_access deny all
+
+networks:
+  egress-internal:
+    internal: true
+  egress-out: {}

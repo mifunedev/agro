@@ -132,6 +132,7 @@ describe("materialize", () => {
       ".agro/scripts/docker-compose.sh",
       ".agro/scripts/paths.sh",
       ".devcontainer/docker-compose.docker-sock.yml",
+      ".devcontainer/docker-compose.egress.yml",
       ".devcontainer/docker-compose.ssh.yml",
       ".devcontainer/docker-compose.yml",
       "agro.json",
@@ -157,6 +158,7 @@ describe("materialize", () => {
       ".agro/scripts/docker-compose.sh",
       ".agro/scripts/paths.sh",
       ".devcontainer/docker-compose.docker-sock.yml",
+      ".devcontainer/docker-compose.egress.yml",
       ".devcontainer/docker-compose.ssh.yml",
       ".devcontainer/docker-compose.yml",
       "agro.json",
@@ -204,6 +206,17 @@ describe("materialize", () => {
     expect(readFileSync(join(root, ".agro", "scripts", "docker-compose.sh"), "utf8")).toBe(
       readFileSync(join(REPO_ROOT, ".agro/scripts/docker-compose.sh"), "utf8"),
     );
+  });
+
+  it("writes egress-allow.txt only for an allowlist entry", () => {
+    registry();
+    const open = addEntry("open-entry");
+    materialize(open);
+    expect(existsSync(join(open, "egress-allow.txt"))).toBe(false);
+
+    const allowed = addEntry("allow-entry", { access: { egress: "allowlist", egressAllow: [] } });
+    materialize(allowed);
+    expect(walk(allowed)).toContain("egress-allow.txt");
   });
 
   it("writes nothing outside the entry it was given", () => {

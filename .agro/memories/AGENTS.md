@@ -30,7 +30,8 @@ and both carry the evidence that produced them.
 Keep these out of this directory:
 
 - architecture and non-negotiable constraints, which the root `AGENTS.md` owns;
-- task evidence for one build, which `.agro/tasks/<slug>/evidence.md` owns;
+- task evidence for one build, which the task's `prd.json` `notes` and the PR body
+  evidence sections own;
 - a machine-checkable assertion, which a test owns.
 
 ## How to write an entry

@@ -4,12 +4,13 @@ import composeRepo from "agro-asset:.devcontainer/docker-compose.yml";
 import composeImageOnly from "agro-asset:.devcontainer/docker-compose.image-only.yml";
 import composeSsh from "agro-asset:.devcontainer/docker-compose.ssh.yml";
 import composeDockerSock from "agro-asset:.devcontainer/docker-compose.docker-sock.yml";
+import composeEgress from "agro-asset:.devcontainer/docker-compose.egress.yml";
 import composeWrapper from "agro-asset:.agro/scripts/docker-compose.sh";
 import pathsShell from "agro-asset:.agro/scripts/paths.sh";
 import checkHostPort from "agro-asset:.agro/scripts/check-host-port.sh";
 import openshellPolicy from "agro-asset:.devcontainer/openshell-policy.yaml";
 import { spawnRunner, type LifecycleRunner } from "./execution/runner.js";
-import { configCheckout, agroConfigPath, entryRuntime, readAgroConfig } from "./agro-config.js";
+import { configCheckout, agroConfigPath, entryRuntime, readAgroConfig, type AgroConfig } from "./agro-config.js";
 import { activeBin } from "./product.js";
 import { resolveProjectLayout, resolveUserStateHome } from "./layout.js";
 
@@ -99,9 +100,32 @@ function openshellFiles(entry: string): MaterializedFile[] {
   return [{ dest: join(entry, "openshell-policy.yaml"), body: openshellPolicy, mode: 0o644 }];
 }
 
-function dockerFiles(entry: string, opts: MaterializeOptions): MaterializedFile[] {
+function policyHosts(policyText: string): string[] {
+  const marker = "network_policies:";
+  const start = policyText.indexOf(marker);
+  const section = start === -1 ? "" : policyText.slice(start);
+  const hosts = new Set<string>();
+  for (const match of section.matchAll(/^\s*-\s*host:\s*(\S+)/gm)) hosts.add(match[1]);
+  return [...hosts];
+}
+
+function egressAllowHosts(config: AgroConfig): string[] {
+  const hosts = new Set<string>(policyHosts(openshellPolicy));
+  for (const host of config.access?.egressAllow ?? []) hosts.add(host);
+  return [...hosts].sort();
+}
+
+function safeReadAgroConfig(entry: string): AgroConfig {
+  try {
+    return readAgroConfig(agroConfigPath(entry));
+  } catch {
+    return { version: 1 };
+  }
+}
+
+function dockerFiles(entry: string, opts: MaterializeOptions, config: AgroConfig): MaterializedFile[] {
   const scripts = join(resolveProjectLayout(entry).controlDir, "scripts");
-  return [
+  const files: MaterializedFile[] = [
     {
       dest: join(entry, ".devcontainer", "docker-compose.yml"),
       body: (opts.checkout ?? opts.repo) === undefined ? composeImageOnly : composeRepo,
@@ -109,15 +133,25 @@ function dockerFiles(entry: string, opts: MaterializeOptions): MaterializedFile[
     },
     { dest: join(entry, ".devcontainer", "docker-compose.ssh.yml"), body: composeSsh, mode: 0o644 },
     { dest: join(entry, ".devcontainer", "docker-compose.docker-sock.yml"), body: composeDockerSock, mode: 0o644 },
+    { dest: join(entry, ".devcontainer", "docker-compose.egress.yml"), body: composeEgress, mode: 0o644 },
     { dest: join(scripts, "docker-compose.sh"), body: composeWrapper, mode: 0o755 },
     { dest: join(scripts, "paths.sh"), body: pathsShell, mode: 0o644 },
     { dest: join(scripts, "check-host-port.sh"), body: checkHostPort, mode: 0o755 },
   ];
+  if ((config.access?.egress ?? "open") === "allowlist") {
+    files.push({
+      dest: join(entry, "egress-allow.txt"),
+      body: `${egressAllowHosts(config).join("\n")}\n`,
+      mode: 0o644,
+    });
+  }
+  return files;
 }
 
 export function materialize(root: string, opts: MaterializeOptions = {}): void {
   const entry = resolve(root);
-  const files = entryRuntime(entry) === "openshell" ? openshellFiles(entry) : dockerFiles(entry, opts);
+  const config = safeReadAgroConfig(entry);
+  const files = entryRuntime(entry) === "openshell" ? openshellFiles(entry) : dockerFiles(entry, opts, config);
   for (const file of files) {
     const dest = resolve(file.dest);
     if (!dest.startsWith(entry + sep)) {

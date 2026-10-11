@@ -136,6 +136,11 @@ fi
 
 args+=(-f "$(compose_path ".devcontainer/docker-compose.yml")")
 
+egress_value=${AGRO_EGRESS:-$(read_env_value AGRO_EGRESS)}
+if [ "$(printf '%s' "$egress_value" | tr '[:upper:]' '[:lower:]')" = "allowlist" ]; then
+  args+=(-f "$(compose_path ".devcontainer/docker-compose.egress.yml")")
+fi
+
 docker_socket_value=${DOCKER_SOCKET:-$(read_env_value DOCKER_SOCKET)}
 if truthy "$docker_socket_value"; then
   args+=(-f "$(compose_path ".devcontainer/docker-compose.docker-sock.yml")")

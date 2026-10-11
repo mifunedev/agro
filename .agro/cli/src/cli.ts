@@ -12,6 +12,7 @@ import {
   type ConfigIO,
 } from "./commands/config.js";
 import {
+  runSecretGet,
   runSecretList,
   runSecretSet,
   secretKeyList,
@@ -36,6 +37,7 @@ import {
   type LifecycleIO,
 } from "./commands/lifecycle.js";
 import { runSandboxCommand } from "./controllers/sandbox.js";
+import { EGRESS_LOG_LINES, EGRESS_LOG_PATH, runEgress } from "./commands/egress.js";
 import { RuntimeUnsupportedError } from "./lib/runtimes/verbs.js";
 export { parseSandboxArgs, printSandboxHelp, runtimeLines } from "./controllers/sandbox.js";
 export type { SandboxArgs } from "./controllers/sandbox.js";
@@ -74,6 +76,7 @@ import { AGRO_VERSION as VERSION } from "./lib/version.js";
 import {
   AGRO_COMMANDS,
   CONFIG_VERBS,
+  EGRESS_VERBS,
   HARNESS_SUBCOMMANDS,
   LANGFUSE_VERBS,
   SECRET_VERBS,
@@ -82,6 +85,7 @@ import {
   isOneOf,
   type ConfigIntegration,
   type ConfigVerb,
+  type EgressVerb,
   type HarnessSubcommand,
   type LangfuseVerb,
   type SecretVerb,
@@ -135,7 +139,7 @@ Usage:
   ${bin} sandbox <args...>      Create, list, and upgrade sandboxes (install|list|upgrade)
   ${bin} shell [name]           Open a zsh shell in the running sandbox container
   ${bin} config <args...>       Read and write ${stateNames(bin).configFile} (show|set), or run a wizard
-  ${bin} secret <args...>       Read and write the gitignored root .env (set|list)
+  ${bin} secret <args...>       Read and write the gitignored root .env (set|get|list)
   ${bin} langfuse <args...>     Render, check, or disable Langfuse tracing files (apply|status|disable)
   ${bin} self-upgrade           Upgrade the installed ${bin} CLI
   ${bin} vendor                 Vendor or upgrade the ${stateNames(bin).controlDir}/ control plane
@@ -145,6 +149,7 @@ Usage:
   ${bin} ps [name]              Show sandbox service status
   ${bin} destroy [name]         Remove the sandbox and wipe its named volumes
   ${bin} compose config         Print the resolved docker compose configuration
+  ${bin} egress <args...>       Read the egress proxy log or reload its allowlist (log|reload)
   ${bin} workspace <args...>    Create and list host AGRO workspaces (create|list)
   ${bin} harness <args...>      Install and inspect agent CLI harnesses
   ${bin} tool <args...>         Install and inspect sandbox tooling
@@ -190,14 +195,16 @@ export function printSecretHelp(bin: string = AGRO_PRODUCT.bin): void {
 
 Usage:
   ${bin} secret set <KEY> [--sandbox <name>]   Prompt for the value (input hidden)
+  ${bin} secret get <KEY> [--sandbox <name>]   Print the raw value
   ${bin} secret list [--sandbox <name>]        List the keys that hold a value
 
-Without --sandbox both verbs write the equipped project root; with it they write
-the registry entry \`${bin} sandbox list\` names.
+Without --sandbox all three verbs act on the equipped project root; with it they
+act on the registry entry \`${bin} sandbox list\` names.
 
 The value is never read from the command line — an argument would land in your
-shell history. \`${bin} secret list\` never prints a raw value. .env is mode 0600 and
-gitignored; every non-secret setting belongs in ${stateNames(bin).configFile} (\`${bin} config set\`).
+shell history. \`${bin} secret get\` is the only command that prints a raw value;
+\`${bin} secret list\` never does. .env is mode 0600 and gitignored; every non-secret
+setting belongs in ${stateNames(bin).configFile} (\`${bin} config set\`).
 
 Keys:
 ${secretKeyList()}
@@ -481,6 +488,46 @@ See ${sourceDocsUrl("docs/lifecycle-commands.md")} for the full mapping.
 `);
 }
 
+export function printEgressHelp(bin: string = AGRO_PRODUCT.bin): void {
+  process.stdout.write(`${bin} egress — Read the egress proxy log or reload its allowlist
+
+Usage:
+  ${bin} egress log [name]      Print the last ${EGRESS_LOG_LINES} lines of the proxy access log; prefix denied lines with DENIED
+  ${bin} egress reload [name]   Rewrite egress-allow.txt and send the proxy \`squid -k reconfigure\`
+
+Both verbs run ${stateNames(bin).controlDir}/scripts/docker-compose.sh \`exec proxy\` in the sandbox entry.
+The log is ${EGRESS_LOG_PATH} in the proxy container. \`reload\` keeps the sandbox running.
+Both verbs need a docker sandbox with access.egress allowlist; any other sandbox exits 1.
+[name] is a sandbox entry from \`${bin} sandbox list\`; with exactly one registered sandbox it can be omitted.
+
+See ${sourceDocsUrl("docs/lifecycle-commands.md")} for every verb.
+`);
+}
+
+export interface EgressArgs {
+  help: boolean;
+  verb?: EgressVerb;
+  name?: string;
+}
+
+export function parseEgressArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): ParseResult<EgressArgs> {
+  if (rest.length === 0 || isHelpFlag(rest[0])) return { ok: true, args: { help: true } };
+  const [head, ...tail] = rest;
+  if (!isOneOf(EGRESS_VERBS, head)) {
+    return {
+      ok: false,
+      error: `${bin} egress: unknown subcommand "${head}" — expected ${EGRESS_VERBS.join(" or ")}`,
+      showHelp: true,
+    };
+  }
+  if (isHelpFlag(tail[0])) return { ok: true, args: { help: true } };
+  if (tail.length > 0 && tail[0].startsWith("-")) {
+    return { ok: false, error: `${bin} egress ${head}: unknown flag "${tail[0]}"` };
+  }
+  if (tail.length > 1) return { ok: false, error: `${bin} egress ${head}: unexpected argument "${tail[1]}"` };
+  return { ok: true, args: tail.length === 0 ? { help: false, verb: head } : { help: false, verb: head, name: tail[0] } };
+}
+
 export function printComposeHelp(bin: string = AGRO_PRODUCT.bin): void {
   process.stdout.write(`${bin} compose — Inspect the resolved docker compose setup
 
@@ -636,7 +683,7 @@ export function parseSecretArgs(input: string[], bin: string = AGRO_PRODUCT.bin)
   if (!(SECRET_VERBS as readonly string[]).includes(head)) {
     return {
       ok: false,
-      error: `${bin} secret: unknown subcommand "${head}" — expected set or list`,
+      error: `${bin} secret: unknown subcommand "${head}" — expected set, list, or get`,
       showHelp: true,
     };
   }
@@ -653,13 +700,15 @@ export function parseSecretArgs(input: string[], bin: string = AGRO_PRODUCT.bin)
 
   const [key, ...extra] = tail;
   if (key === undefined) {
-    return { ok: false, error: `${bin} secret set: a key is required`, showHelp: true };
+    return { ok: false, error: `${bin} secret ${verb}: a key is required`, showHelp: true };
   }
   if (extra.length > 0) {
     return {
       ok: false,
       error:
-        `${bin} secret set: takes only a key — the value is prompted for, never passed on the command line where your shell history would keep it`,
+        verb === "get"
+          ? `${bin} secret get: takes only a key`
+          : `${bin} secret set: takes only a key — the value is prompted for, never passed on the command line where your shell history would keep it`,
     };
   }
   return { ok: true, args: { ...args, verb, key } };
@@ -1262,6 +1311,7 @@ async function main(argv: string[]): Promise<number> {
     };
     const scope = a.sandbox === undefined ? { bin } : { bin, sandbox: a.sandbox };
     if (a.verb === "list") return await runSecretList(scope, io);
+    if (a.verb === "get") return await runSecretGet(a.key as string, scope, io);
     return await runSecretSet(a.key as string, scope, io);
   }
 
@@ -1387,6 +1437,21 @@ async function main(argv: string[]): Promise<number> {
       return 0;
     }
     return runComposeConfig({ bin }, parsed.args.passthrough);
+  }
+
+  if (first === "egress") {
+    const parsed = parseEgressArgs(argv.slice(1), bin);
+    if (!parsed.ok) {
+      process.stderr.write(`${parsed.error}\n`);
+      if (parsed.showHelp) printEgressHelp(bin);
+      return 1;
+    }
+    const a = parsed.args;
+    if (a.help || a.verb === undefined) {
+      printEgressHelp(bin);
+      return second === undefined ? 1 : 0;
+    }
+    return runEgress(a.verb, a.name === undefined ? { bin } : { bin, name: a.name }, lifecycleIo());
   }
 
   if (first === "workspace") {

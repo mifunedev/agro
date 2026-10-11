@@ -10,6 +10,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 - Add `shellcheck` and a pinned, checksum-verified `hadolint` 2.12.0 to the sandbox image, so that agents run the CI boot path lint before they push ([#1393](https://github.com/mifunedev/agro/issues/1393)).
+- Add `access.egress: "allowlist"`, which removes the sandbox's direct route out and routes traffic through a proxy that enforces an egress allowlist (ADR #1378) ([#1397](https://github.com/mifunedev/agro/issues/1397)).
 
 ### Changed
 - **BREAKING:** Run the Compose sandbox under Compose init with `sandbox-main.sh` as the main process. The Compose sandbox drops `SYS_ADMIN`, `apparmor=unconfined`, `cgroup: private`, and the tmpfs mounts, and the bootstrap log goes to `agro logs`. The image keeps systemd and `/sbin/init` for VM image mode ([#1393](https://github.com/mifunedev/agro/issues/1393)).
@@ -27,6 +28,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 - Set `CC_LANGFUSE_CAPTURE_IMAGES=false` in the project Claude Code settings, so the Langfuse plugin no longer uploads transcript images from sessions in this repository ([#1375](https://github.com/mifunedev/agro/issues/1375)).
+- Generate a random `SANDBOX_PASSWORD` for each Docker sandbox, lock the `sandbox` password when the value is empty, and add `agro secret get`, replacing the known default password (ADR #1378) ([#1379](https://github.com/mifunedev/agro/issues/1379)).
 
 ### Removed
 - **BREAKING:** Remove the AGRO cron feature and the boot-time root `pnpm install`: `agro-cron.service`, `.agro/scripts/cron-runtime.ts`, the `crons/` folder, the `cron.agentBin` config key, the `croner` dependency, and the `build.skipPnpmInstall` config key no longer exist. Use the native loop of your coding harness for recurring work, for example Claude Code `/loop` ([#1391](https://github.com/mifunedev/agro/issues/1391)).

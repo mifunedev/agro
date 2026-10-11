@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1397-docker-egress-allowlist",
+  "description": "Docker egress allowlist: an opt-in proxy sidecar on an internal network, enforced outside the container (ADR #1378).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add the egress setting",
+      "description": "As an operator, I want one `agro.json` setting that selects open or allowlist egress so that the hardened mode is a single toggle.",
+      "acceptanceCriteria": [
+        "`AgroConfig` accepts `access.egress` with the values `\"open\"` and `\"allowlist\"`. The default is `\"open\"`.",
+        "`AgroConfig` accepts `access.egressAllow` as an array of host strings. The default is an empty array.",
+        "`agro config set access.egress allowlist --sandbox <name>` exits 0, and `agro config set access.egress closed --sandbox <name>` exits 1.",
+        "`config-render.ts` renders `AGRO_EGRESS` from `access.egress`, as `DOCKER_SOCKET` renders from `access.dockerSocket`.",
+        "`docs/configuration.md` lists both fields.",
+        "`pnpm exec vitest run .agro/cli/src/lib/__tests__/agro-config.test.ts` exits 0, and `npm --prefix .agro/cli run typecheck` exits 0."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Integrated. Advisor re-ran: vitest agro-config + config-render exit 0 (99 tests); typecheck exit 0. Worker executed the built CLI: `config set access.egress allowlist` exit 0, `closed` exit 1 with `must be one of open, allowlist`; `access.egressAllow` is a list field parsed like composeOverrides; AGRO_EGRESS rendered next to DOCKER_SOCKET; docs/configuration.md lists both fields, ste-check clean; full vitest exit 0.",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/agro-config.ts",
+        ".agro/cli/src/lib/config-render.ts",
+        ".agro/cli/src/lib/__tests__/agro-config.test.ts",
+        "docs/configuration.md"
+      ],
+      "commit": "6e92d927"
+    },
+    {
+      "id": "US-002",
+      "title": "Add the egress overlay",
+      "description": "As an operator, I want an overlay that removes the direct route out and adds a proxy. Root in the sandbox then has no path past the allowlist.",
+      "acceptanceCriteria": [
+        "`.devcontainer/docker-compose.egress.yml` defines a `proxy` service from `ubuntu/squid@sha256:6a097f68bae708cedbabd6188d68c7e2e7a38cedd05a176e1cc0ba29e3bbe029`, an `internal: true` network for the sandbox, and an egress network for the proxy only.",
+        "The overlay sets `HTTPS_PROXY`, `HTTP_PROXY`, `https_proxy`, `http_proxy`, `NO_PROXY`, `no_proxy`, and `NODE_USE_ENV_PROXY=1` on the sandbox service.",
+        "If `AGRO_EGRESS` is `allowlist`, `.agro/scripts/docker-compose.sh` adds the overlay after `docker-compose.yml`. Otherwise the argv stays byte-identical to the current argv.",
+        "`materialize()` writes the overlay into each Docker entry from an `agro-asset:` import, and the Dockerfile `/opt/agro-assets` COPY ships the overlay.",
+        "`pnpm exec vitest run .agro/scripts/__tests__/compose-args.test.ts .agro/scripts/__tests__/sandbox-privilege-boundary.test.ts .agro/scripts/__tests__/docs-compose-overlays.test.ts` exits 0."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Integrated (ebe3cfaa, d76e29a3). Advisor re-ran: full vitest exit 0 (91 files, 2054 tests); typecheck exit 0; overlay holds the pinned squid digest, `internal: true`, and NODE_USE_ENV_PROXY=1. Worker executed `docker compose config` (sandbox only on egress-internal), argv tests (byte-identical unless AGRO_EGRESS=allowlist), shellcheck clean, and a local live run: no default route, api.github.com TCP_TUNNEL 200, example.com and port 8443 TCP_DENIED 403, no-proxy/direct-IP/root-route bypasses fail. Allowlist mount: <entry>/egress-allow.txt read-only at /etc/squid/egress-allow.txt; inline squid.conf allows only listed hosts on 80/443. Notes for later stories: write egress-allow.txt in place (bind mount), gitignore it in checkout mode, document that SANDBOX_SSH does not work in allowlist mode and that Compose 2.23+ is required.",
+      "dependsOn": [],
+      "files": [
+        ".devcontainer/docker-compose.egress.yml",
+        ".agro/scripts/docker-compose.sh",
+        ".agro/cli/src/lib/registry.ts",
+        ".devcontainer/Dockerfile",
+        ".agro/scripts/__tests__/compose-args.test.ts",
+        ".agro/scripts/__tests__/sandbox-privilege-boundary.test.ts",
+        ".agro/scripts/__tests__/docs-compose-overlays.test.ts"
+      ],
+      "commit": "d76e29a3"
+    },
+    {
+      "id": "US-003",
+      "title": "Generate the allowlist from one source",
+      "description": "As a maintainer, I want the proxy allowlist built from the OpenShell policy hosts plus `access.egressAllow` so that the two runtimes share one host list.",
+      "acceptanceCriteria": [
+        "On each lifecycle call, `materialize()` writes `<entry>/egress-allow.txt` for a Docker entry with `access.egress: \"allowlist\"`.",
+        "The file holds the union of each `host` in the `network_policies` of `.devcontainer/openshell-policy.yaml` and each entry of `access.egressAllow`, sorted and without duplicates.",
+        "The proxy reads `egress-allow.txt` and denies each other host.",
+        "A test proves that the file equals the policy hosts plus the extra hosts for a fixture `agro.json`.",
+        "`npm --prefix .agro/cli run typecheck` exits 0."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Integrated. Advisor re-ran: vitest sandbox + registry exit 0; typecheck exit 0. C1, C2, C4 executed by tests (file written only for allowlist entries; union of policy hosts and access.egressAllow, sorted and deduplicated, compared against yaml.parse of the live policy). C3 reasoned: the US-002 squid.conf allows only `dstdomain \"/etc/squid/egress-allow.txt\"` and denies all else. The CLI reads policy hosts with a line-based extraction (no new runtime dependency); the yaml-based test guards drift. File written in place by the materialize loop; /egress-allow.txt gitignored for checkout mode.",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/cli/src/lib/registry.ts",
+        ".agro/cli/src/__tests__/sandbox.test.ts",
+        ".devcontainer/docker-compose.egress.yml"
+      ],
+      "commit": "d661b52a"
+    },
+    {
+      "id": "US-004",
+      "title": "Add the egress log and reload verbs",
+      "description": "As an operator, I want to see blocked hosts and apply a new allowlist without a restart. I can then fix a blocked host in one step.",
+      "acceptanceCriteria": [
+        "`agro egress log [name]` prints the proxy access log lines of the sandbox, with the denied lines marked.",
+        "`agro egress reload [name]` regenerates `egress-allow.txt` and sends the proxy its reconfigure signal. The sandbox container keeps running.",
+        "For an entry with `access.egress: \"open\"` or an OpenShell entry, both verbs exit 1 with one line that names the setting.",
+        "`pnpm exec vitest run` covers the argv of both verbs, and the run exits 0.",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Integrated. Advisor re-ran: full vitest exit 0; typecheck exit 0. egress.test.ts (18 tests) asserts exact argv: log = docker-compose.sh ... exec -T proxy tail -n 1000 /var/log/squid/access.log with TCP_DENIED lines prefixed `DENIED `; reload = materialize() then exec -T proxy squid -k reconfigure; open and OpenShell refusals exit 1 with one line naming the setting. Worker checked help and refusals on the built CLI. Live proof of the log path and exec -T is US-006. Note: egress.ts repeats the few lines of the unexported sandboxRoot() from lifecycle.ts.",
+      "dependsOn": [
+        "US-001",
+        "US-003"
+      ],
+      "files": [
+        ".agro/cli/src/commands/egress.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/command-table.ts",
+        ".agro/cli/src/__tests__/egress.test.ts"
+      ],
+      "commit": "3737a29e"
+    },
+    {
+      "id": "US-005",
+      "title": "Document the egress mode",
+      "description": "As an operator, I want a page that states what allowlist mode blocks and how to fix a blocked host.",
+      "acceptanceCriteria": [
+        "`docs/security-considerations.md` and `docs/configuration.md` describe allowlist mode, the hosts in the default list, `access.egressAllow`, `agro egress log`, `agro egress reload`, and the limits in `## Out of Scope`.",
+        "`CHANGELOG.md` has one bullet under `## [Unreleased]` that names ADR #1378.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh` reports no new finding on each changed document."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Integrated. Advisor re-ran: ste-check clean on security-considerations.md, configuration.md, lifecycle-commands.md; each names `agro egress reload`; docs tests exit 0. Worker compared ste baselines (CHANGELOG keeps only its 2 pre-existing findings); changelog bullet 217 chars names ADR #1378 and links #1397. Docs cover the default hosts, access.egressAllow, the log/reload fix flow, the boundary statement, and the limits (SANDBOX_SSH, Compose 2.23+, NODE_USE_ENV_PROXY, git over SSH, UDP, host.docker.internal, cloudflared, tailscale).",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        "docs/security-considerations.md",
+        "docs/configuration.md",
+        "CHANGELOG.md"
+      ],
+      "commit": "607ab8b4"
+    },
+    {
+      "id": "US-006",
+      "title": "Prove the boundary on a new VM",
+      "description": "As the advisor, I want a remote-sandbox check for the shipped overlay. The check repeats the proof of concept, and the PR proves the boundary with the result. This story depends on US-001 through US-005.",
+      "acceptanceCriteria": [
+        "`.agro/skills/remote-sandbox/checks/docker-egress.sh` installs AGRO, sets `access.egress` to `allowlist`, and runs `agro sandbox install docker --yes`.",
+        "The check fails if `agro-bootstrap` is not `active`. Development retired `agro-cron.service` in #1392, so the check has no cron row.",
+        "The check passes an allowed GitHub request, a denied request with a `TCP_DENIED` line in `agro egress log`, a Claude Code install through the proxy, and an `agro egress reload` that allows a new host.",
+        "The check fails if a request without the proxy, a request to a direct IP, or a request after a root route change reaches the internet.",
+        "With operator approval, the advisor runs the check on exe.dev and writes the transcript to `.agro/tasks/docker-egress-allowlist/evidence/manual-review.md`. The log ends with `remaining agro-matrix resources on exedev: 0`."
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Static rows written by a worker (e64d0c2b, 81315fbe; cron rows removed after #1392). Operator approved one exe.dev VM on 2026-10-11. Advisor ran `AGRO_REF=feat/1397-docker-egress-allowlist run.sh exedev checks/docker-egress.sh`: 18 of 18 rows PASS, `SUMMARY fails=0`, `remaining agro-matrix resources on exedev: 0`. Key rows: bootstrap active, no default route, api.github.com 200, example.com TCP_DENIED in `agro egress log`, Claude Code 2.1.296 via the proxy, reload allows example.com without a restart, three root bypasses fail, destroy leaves no container. Transcript: evidence/manual-review.md and evidence/exedev-docker-egress.log.",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004",
+        "US-005"
+      ],
+      "files": [
+        ".agro/skills/remote-sandbox/checks/docker-egress.sh",
+        ".agro/tasks/docker-egress-allowlist/evidence/manual-review.md"
+      ]
+    }
+  ]
+}

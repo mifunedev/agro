@@ -145,6 +145,21 @@ describe("validateAgroConfig", () => {
       /^agro\.json: access\.dockerSocket must be a boolean$/,
     ],
     [
+      "access.egress",
+      { access: { egress: "closed" } },
+      /^agro\.json: access\.egress must be one of open, allowlist$/,
+    ],
+    [
+      "access.egressAllow",
+      { access: { egressAllow: "example.com" } },
+      /^agro\.json: access\.egressAllow must be an array of strings$/,
+    ],
+    [
+      "access.egressAllow entries",
+      { access: { egressAllow: ["example.com", 2] } },
+      /^agro\.json: access\.egressAllow must be an array of strings$/,
+    ],
+    [
       "hermesDashboard.port",
       { hermesDashboard: { port: "9119" } },
       /^agro\.json: hermesDashboard\.port must be a number$/,
@@ -303,6 +318,56 @@ describe("configCheckout", () => {
   it("round-trips a checkout field through validateAgroConfig", () => {
     const validated = validateAgroConfig({ version: 1, checkout: "/srv/checkout" });
     expect(configCheckout(validated)).toBe("/srv/checkout");
+  });
+});
+
+describe("egress settings", () => {
+  it("defaults to open with no extra hosts", () => {
+    const config = defaultAgroConfig("demo");
+    expect(config.access?.egress).toBe("open");
+    expect(config.access?.egressAllow).toEqual([]);
+  });
+
+  it("registers both paths in AGRO_CONFIG_FIELDS", () => {
+    expect(AGRO_CONFIG_FIELDS.find((field) => field.path === "access.egress")).toEqual({
+      path: "access.egress",
+      type: "enum",
+      values: ["open", "allowlist"],
+    });
+    expect(AGRO_CONFIG_FIELDS.find((field) => field.path === "access.egressAllow")).toEqual({
+      path: "access.egressAllow",
+      type: "list",
+    });
+  });
+
+  it("sets access.egress to allowlist through `agro config set`", () => {
+    const next = setAgroConfigValue(defaultAgroConfig("demo"), "access.egress", "allowlist");
+    expect(next.access?.egress).toBe("allowlist");
+  });
+
+  it("rejects an unsupported access.egress value through `agro config set`", () => {
+    expect(() => setAgroConfigValue(defaultAgroConfig("demo"), "access.egress", "closed")).toThrow(
+      /^agro\.json: access\.egress must be one of open, allowlist$/,
+    );
+  });
+
+  it("sets access.egressAllow through `agro config set` as a comma-separated list", () => {
+    const next = setAgroConfigValue(
+      defaultAgroConfig("demo"),
+      "access.egressAllow",
+      "example.com, pypi.org",
+    );
+    expect(next.access?.egressAllow).toEqual(["example.com", "pypi.org"]);
+  });
+
+  it("round-trips both fields through writeAgroConfig", () => {
+    const root = makeRoot();
+    const config = defaultAgroConfig("demo");
+    config.access = { ...config.access, egress: "allowlist", egressAllow: ["example.com"] };
+    writeAgroConfig(root, config);
+    const read = readAgroConfig(agroConfigPath(root));
+    expect(read.access?.egress).toBe("allowlist");
+    expect(read.access?.egressAllow).toEqual(["example.com"]);
   });
 });
 

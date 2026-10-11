@@ -78,7 +78,30 @@ export async function runSecretSet(
     return 1;
   }
 
-  io.stdout(`.env: set ${key}=${prompt.redact(value)}\n`);
+  io.stdout(`.env: set ${key}\n`);
+  return 0;
+}
+
+export async function runSecretGet(
+  key: string,
+  opts: SecretOptions,
+  io: SecretIO,
+): Promise<number> {
+  const root = secretsRoot(opts);
+  let value: string | undefined;
+  try {
+    value = readSecret(root, key);
+  } catch (error) {
+    io.stderr(`${error instanceof Error ? error.message : String(error)}\n`);
+    return 1;
+  }
+
+  if (value === undefined) {
+    io.stderr(`${opts.bin} secret get: ${key} has no value\n`);
+    return 1;
+  }
+
+  io.stdout(`${value}\n`);
   return 0;
 }
 
@@ -93,7 +116,7 @@ export async function runSecretList(opts: SecretOptions, io: SecretIO): Promise<
   const width = Math.max(...keys.map((key) => key.length));
   for (const key of keys) {
     const value = readSecret(root, key);
-    io.stdout(`${key.padEnd(width)}  ${value === undefined ? "—" : prompt.redact(value)}\n`);
+    io.stdout(`${key.padEnd(width)}  ${value === undefined ? "—" : "set"}\n`);
   }
   return 0;
 }

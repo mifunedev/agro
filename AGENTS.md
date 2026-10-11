@@ -89,6 +89,9 @@ cross the sandbox boundary or make persistent work depend on an attached termina
   accepting work, not an identity, a model, or a terminal.
 - **worker** means a bounded execution context that implements one assignment
   and never accepts its own result.
+- **supervisor** means the behavior of launching, monitoring, and escalating for
+  advisor sessions in other Herdr panes. The supervisor is not an identity and is
+  distinct from the root orchestrator.
 - **host** means the laptop or VM that runs Docker and the root lifecycle commands.
 - **sandbox** means the project container defined by `.devcontainer/` and the
   persistent agent environment inside it.
@@ -160,7 +163,7 @@ Use the lifecycle in this order:
 Run `agro destroy <name>` only for operator-authorized teardown.
 
 `agro` is the only lifecycle door, on the host and in the sandbox, and it calls
-`.agro/scripts/docker-compose.sh`. The legacy `oh` alias is retired.
+`.agro/scripts/docker-compose.sh`. AGRO retired the legacy `oh` alias.
 Host prerequisites are Docker, Git, and Node 20 or newer. The verb reference is
 [`docs/lifecycle-commands.md`](docs/lifecycle-commands.md).
 

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   SECRET_KEYS,
+  ensureSandboxPassword,
   isSecretKey,
   listSecretKeys,
   readSecret,
@@ -125,5 +126,31 @@ describe("listSecretKeys", () => {
 
   it("is empty when no dotenv exists", () => {
     expect(listSecretKeys(makeRoot())).toEqual([]);
+  });
+});
+
+describe("ensureSandboxPassword", () => {
+  it("writes a 32-character URL-safe base64 value when SANDBOX_PASSWORD is missing", () => {
+    const root = makeRoot();
+    ensureSandboxPassword(root);
+    const value = readSecret(root, "SANDBOX_PASSWORD");
+    expect(value).toHaveLength(32);
+    expect(value).toMatch(/^[A-Za-z0-9_-]{32}$/);
+  });
+
+  it("leaves the dotenv byte-identical when SANDBOX_PASSWORD already has a value", () => {
+    const root = makeRoot();
+    setSecret(root, "SANDBOX_PASSWORD", "already-set");
+    const before = read(root);
+    ensureSandboxPassword(root);
+    expect(read(root)).toBe(before);
+  });
+
+  it("writes two different values for two new entries", () => {
+    const a = makeRoot();
+    const b = makeRoot();
+    ensureSandboxPassword(a);
+    ensureSandboxPassword(b);
+    expect(readSecret(a, "SANDBOX_PASSWORD")).not.toBe(readSecret(b, "SANDBOX_PASSWORD"));
   });
 });
