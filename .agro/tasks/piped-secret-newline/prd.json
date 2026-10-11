@@ -17,10 +17,15 @@
         "`CHANGELOG.md` has one `### Fixed` entry under `## [Unreleased]` that links #1409."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1-2 executed: prompt-piped.test.ts swaps process.stdin for a Readable; no-newline input returns value; empty input returns empty string (config-secret.test.ts covers the exit 1 for an empty value). AC3 executed by the worker: both new cases timed out before the fix. AC4 executed on the integrated branch: vitest on lib/__tests__ plus config-secret exit 0 (252 passed). AC5 executed: npm run typecheck exit 0. AC6 reasoned from the diff: one Fixed entry links #1409 and #1411. Root cause: rl.question settles only on a newline-terminated line.",
       "dependsOn": [],
-      "files": [".agro/cli/src/lib/prompt.ts", ".agro/cli/src/lib/__tests__/prompt-piped.test.ts", "CHANGELOG.md"]
+      "files": [
+        ".agro/cli/src/lib/prompt.ts",
+        ".agro/cli/src/lib/__tests__/prompt-piped.test.ts",
+        "CHANGELOG.md"
+      ],
+      "commit": "64ab585d"
     },
     {
       "id": "US-002",
@@ -35,8 +40,12 @@
       "priority": 2,
       "passes": false,
       "notes": "",
-      "dependsOn": ["US-001"],
-      "files": [".agro/tasks/piped-secret-newline/evidence/manual-review.md"]
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/tasks/piped-secret-newline/evidence/manual-review.md"
+      ]
     }
   ]
 }
