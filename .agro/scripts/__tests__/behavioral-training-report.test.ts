@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   copyFileSync,
   existsSync,
@@ -27,6 +28,7 @@ import {
   appendJsonl,
   createRandom,
   findGitWorktree,
+  openStore,
   prepareRunDir,
   readJsonl,
   writeJsonAtomic,
@@ -474,5 +476,378 @@ describe("dispatcher", () => {
     expect(second.stderr).toContain(`PID ${first.pid}`);
     expect(await exited).toBe(EXIT.complete);
     expect(existsSync(join(runDir, LOCK_FILE))).toBe(false);
+  });
+});
+
+const reportFixtures = join(import.meta.dirname, "fixtures/behavioral-training/report");
+const LANGFUSE_KEY = ["sk", "lf", "fixture", "0123456789abcdef"].join("-");
+const PUBLIC_KEY = ["pk", "lf", "fixture", "fedcba9876543210"].join("-");
+const ENV_SECRET = "env-secret-value-7f3a9c";
+const BEARER = "bearer-token-value-5d2e8b";
+const TRANSCRIPT_MARKER = "TRANSCRIPT-MARKER";
+
+async function loadReport(): Promise<any> {
+  return import("../../skills/behavioral-training/scripts/lib/report.mjs");
+}
+
+async function loadCompare(): Promise<any> {
+  return import("../../skills/behavioral-training/scripts/lib/compare.mjs");
+}
+
+function copyFixtures(runDir: string, names: string[]) {
+  for (const name of names) copyFileSync(join(reportFixtures, name), join(runDir, name));
+}
+
+function baseManifest(stages: Record<string, unknown> = {}) {
+  return {
+    schemaVersion: 1,
+    runId: "11111111-2222-3333-4444-555555555555",
+    createdAt: "2026-10-11T10:00:00.000Z",
+    updatedAt: "2026-10-11T10:00:00.000Z",
+    endpoint: { baseUrl: "https://langfuse.example" },
+    project: { id: "p1", name: "synthetic" },
+    window: { since: "2026-10-01T00:00:00.000Z", until: "2026-10-08T00:00:00.000Z" },
+    filters: { environment: "dev", harness: null },
+    sampling: { policy: "stratified-50-25-25", sampleSize: 4, seed: 42 },
+    budgets: { maxSessions: 1000, maxBytes: 262144, maxJudgeCalls: 5 },
+    sources: [],
+    versions: { node: "v20.0.0", cli: "1.2.4", skill: null, api: "4.35.0", harnesses: ["claude-code"], models: ["model-a"] },
+    completeness: { inventory: { sessions: 6, byHarness: { "claude-code": 5, codex: 1 }, unavailableFields: ["costUsd"] } },
+    datasets: { prefix: "agro/behavior/test", version: "v1" },
+    rubric: { version: "rubric-v1" },
+    stages,
+  };
+}
+
+function stageContext(runDir: string, { manifest = baseManifest(), options = {}, env = {} }: any = {}) {
+  const out: string[] = [];
+  const err: string[] = [];
+  const ctx = {
+    stage: "report",
+    runDir,
+    repoRoot: runDir,
+    env,
+    options,
+    manifest,
+    store: openStore(runDir),
+    now: () => new Date("2026-10-11T12:00:00.000Z"),
+    stdout: (line: string) => out.push(line),
+    stderr: (line: string) => err.push(line),
+  };
+  return { ctx, out, err };
+}
+
+const ALL_REPORT_INPUTS = [
+  "sample.json",
+  "normalized-sessions.jsonl",
+  "annotations.jsonl",
+  "taxonomy.json",
+  "calibration.json",
+  "dataset-items.jsonl",
+  "publication-ledger.json",
+];
+
+describe("report", () => {
+  it("writes a metadata-only report.json and report.md with counts, denominators, links, gaps, calibration, and datasets", async () => {
+    const { run } = await loadReport();
+    const runDir = temp("bt-report-");
+    copyFixtures(runDir, ALL_REPORT_INPUTS);
+    const { ctx } = stageContext(runDir);
+    const result = await run(ctx);
+    expect(result.status).toBe("complete");
+    const report = JSON.parse(readFileSync(join(runDir, "report.json"), "utf8"));
+    const markdown = readFileSync(join(runDir, "report.md"), "utf8");
+
+    expect(report).toMatchObject({
+      runId: "11111111-2222-3333-4444-555555555555",
+      window: { since: "2026-10-01T00:00:00.000Z", until: "2026-10-08T00:00:00.000Z" },
+      filters: { environment: "dev", harness: null },
+      project: { id: "p1", name: "synthetic" },
+      rateLabel: "discovery-sample",
+    });
+    expect(report.rateNote).toMatch(/not prevalence/);
+    expect(report.counts).toMatchObject({ inventory: 6, eligible: 5, sampled: 4, normalizedSessions: 3, annotations: 8, datasetItems: 3, ledgerEntries: 2 });
+    expect(report.denominators).toMatchObject({ inventory: 6, eligible: 5, sampled: 4 });
+
+    const categories = Object.fromEntries(report.categories.map((c: any) => [c.id, c]));
+    expect(report.categories.map((c: any) => c.id)).toEqual(["ignored-tool-error", "unverified-success", "skipped-tests"]);
+    expect(categories["ignored-tool-error"]).toMatchObject({ dimension: "tool-use-recovery", count: 2, denominator: 3, sessionIds: ["s01", "s02"] });
+    expect(categories["ignored-tool-error"].sourceLinks).toEqual([
+      "https://langfuse.example/project/p1/sessions/s01",
+      "https://langfuse.example/project/p1/traces/t-s01",
+      "https://langfuse.example/project/p1/sessions/s02",
+      "https://langfuse.example/project/p1/traces/t-s02",
+    ]);
+    expect(categories["unverified-success"]).toMatchObject({ count: 1, denominator: 2, sessionIds: ["s01"] });
+    expect(categories["skipped-tests"]).toMatchObject({ count: 0, denominator: 2, sessionIds: [] });
+
+    expect(report.captureGaps).toMatchObject({
+      sessions: 3,
+      truncated: { count: 1, sessionIds: ["s02"] },
+      completeUnknown: { count: 1, sessionIds: ["s02"] },
+      incomplete: { count: 1, sessionIds: ["s03"] },
+      missingItems: 3,
+      recordsWithoutSessionId: 1,
+      sampledNotNormalized: { count: 1, sessionIds: ["s04"] },
+      unavailableInventoryFields: ["costUsd"],
+      unavailableSignals: ["low-score", "repeated-correction"],
+    });
+
+    expect(report.calibration.dimensions["tool-use-recovery"]).toMatchObject({ status: "calibrated", gateFailures: [] });
+    expect(report.calibration.dimensions["task-completion"]).toMatchObject({ status: "provisional", sampleSize: 2 });
+    expect(report.calibration.dimensions["task-completion"].gateFailures).toContain("minLabeled");
+    expect(report.datasets).toMatchObject({
+      prefix: "agro/behavior/test",
+      versions: ["v1"],
+      items: 3,
+      splits: { regression: 1, demonstrations: 1, holdout: 1 },
+      ledger: { entries: 2, items: 1, scores: 1, datasetVersion: "v1" },
+    });
+
+    const both = JSON.stringify(report) + markdown;
+    expect(both).not.toContain(TRANSCRIPT_MARKER);
+    expect(markdown).toContain("ignored-tool-error");
+    expect(markdown).toContain("2 / 3");
+    expect(markdown).toMatch(/not prevalence/);
+    expect(markdown).toContain("provisional");
+    expect(markdown).toContain("https://langfuse.example/project/p1/sessions/s01");
+  });
+
+  it("reports each missing optional input as not-run, never as zero", async () => {
+    const { run } = await loadReport();
+    const runDir = temp("bt-report-");
+    copyFixtures(runDir, ["sample.json"]);
+    const { ctx } = stageContext(runDir);
+    const result = await run(ctx);
+    expect(result.status).toBe("complete");
+    const report = JSON.parse(readFileSync(join(runDir, "report.json"), "utf8"));
+    expect(report.counts).toMatchObject({ sampled: 4, normalizedSessions: "not-run", annotations: "not-run", datasetItems: "not-run", ledgerEntries: "not-run" });
+    expect(report.inputs).toMatchObject({ "sample.json": "read", "annotations.jsonl": "not-run", "calibration.json": "not-run" });
+    expect(report.categories).toEqual([]);
+    expect(report.captureGaps.status).toBe("not-run");
+    expect(report.calibration.status).toBe("not-run");
+    expect(report.datasets.status).toBe("not-run");
+    expect(report.comparison.status).toBe("not-run");
+    expect(readFileSync(join(runDir, "report.md"), "utf8")).toContain("not-run");
+  });
+
+  it("redacts credentials in errors, run files, stdout, and stderr", async () => {
+    const { redact } = await loadReport();
+    const env = { LANGFUSE_SECRET_KEY: ENV_SECRET, HOME: "/home/user" };
+    expect(redact(`key ${LANGFUSE_KEY} and ${PUBLIC_KEY}`)).not.toMatch(/fixture-/);
+    expect(redact(`Authorization: Bearer ${BEARER}`)).not.toContain(BEARER);
+    expect(redact("Authorization: Basic dXNlcjpwYXNz")).not.toContain("dXNlcjpwYXNz");
+    expect(redact("token sk-proj-abcdefghijklmnop")).not.toContain("abcdefghijklmnop");
+    expect(redact(`value ${ENV_SECRET}`, env)).not.toContain(ENV_SECRET);
+    expect(redact("/home/user/run", env)).toBe("/home/user/run");
+  });
+
+  it("keeps a planted fixture key out of report.json, report.md, stdout, and stderr", async () => {
+    const runDir = join(temp("bt-report-"), "run");
+    mkdirSync(runDir, { mode: 0o700 });
+    copyFixtures(runDir, ALL_REPORT_INPUTS);
+    const plant = (name: string, from: string, to: string) => {
+      const file = join(runDir, name);
+      writeFileSync(file, readFileSync(file, "utf8").replace(from, to));
+    };
+    plant("normalized-sessions.jsonl", "TRANSCRIPT-MARKER-EVENT-OUTPUT", `leaked ${LANGFUSE_KEY}`);
+    plant("normalized-sessions.jsonl", "https://langfuse.example/project/p1/sessions/s01", `https://langfuse.example/project/p1/sessions/s01?key=${LANGFUSE_KEY}`);
+    plant("dataset-items.jsonl", "sha256:1111", `${PUBLIC_KEY}`);
+    plant("sample.json", '"sessionId": "s04"', `"sessionId": "s04-${ENV_SECRET}"`);
+    writeFileSync(join(runDir, "publication-ledger.json"), `{"broken": "${LANGFUSE_KEY}`);
+    const manifest = baseManifest({
+      inventory: {
+        status: "failed",
+        startedAt: "2026-10-11T10:00:00.000Z",
+        finishedAt: "2026-10-11T10:01:00.000Z",
+        attempts: 1,
+        counters: {},
+        cause: `Authorization: Bearer ${BEARER}`,
+        progress: null,
+        inputs: {},
+        outputs: {},
+      },
+    });
+    writeManifest(runDir, manifest);
+    const out: string[] = [];
+    const err: string[] = [];
+    const code = await main(["report", "--run-dir", runDir, "--resume"], {
+      env: { LANGFUSE_SECRET_KEY: ENV_SECRET, LANGFUSE_PUBLIC_KEY: PUBLIC_KEY },
+      now: () => new Date("2026-10-11T12:00:00.000Z"),
+      stdout: (text: string) => out.push(text),
+      stderr: (text: string) => err.push(text),
+    });
+    expect(code).toBe(EXIT.partial);
+    const report = readFileSync(join(runDir, "report.json"), "utf8");
+    const markdown = readFileSync(join(runDir, "report.md"), "utf8");
+    const parsed = JSON.parse(report);
+    expect(parsed.errors.map((e: any) => e.source)).toEqual(expect.arrayContaining(["stage:inventory", "publication-ledger.json"]));
+    for (const text of [report, markdown, out.join("\n"), err.join("\n")]) {
+      expect(text).not.toContain(LANGFUSE_KEY);
+      expect(text).not.toContain(PUBLIC_KEY);
+      expect(text).not.toContain(ENV_SECRET);
+      expect(text).not.toContain(BEARER);
+      expect(text).not.toContain(TRANSCRIPT_MARKER);
+    }
+    expect(manifestOf(runDir).stages.report).toMatchObject({ status: "partial", cause: "invalid-run-files" });
+  });
+});
+
+function compareContext(runDir: string, options: Record<string, unknown> = {}) {
+  return stageContext(runDir, { options: { baseline: "baseline-results.jsonl", candidate: "candidate-results.jsonl", ...options } });
+}
+
+function editResults(runDir: string, name: string, change: (record: any) => any) {
+  const file = join(runDir, name);
+  const records = readJsonl(file).map(change);
+  writeFileSync(file, records.map((r: any) => `${JSON.stringify(r)}\n`).join(""));
+}
+
+const RESULT_FILES = ["baseline-results.jsonl", "candidate-results.jsonl"];
+
+describe("compare", () => {
+  it("declares the result file flags and documents the record shape", async () => {
+    const compare = await loadCompare();
+    expect(Object.keys(compare.options)).toEqual(expect.arrayContaining(["baseline", "candidate"]));
+    expect(compare.help).toMatch(/finalResponseHash/);
+    const result = cli(dispatcher, ["compare", "--help"]);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("--baseline");
+    expect(result.stdout).toContain("--candidate");
+    expect(cli(dispatcher, ["report", "--help"]).status).toBe(0);
+  });
+
+  it("counts only replayable cases with a starting revision and a fixture and marks the others review-only", async () => {
+    const { run } = await loadCompare();
+    const runDir = temp("bt-compare-");
+    copyFixtures(runDir, RESULT_FILES);
+    const { ctx } = compareContext(runDir);
+    const result = await run(ctx);
+    expect(result.status).toBe("complete");
+    const comparison = JSON.parse(readFileSync(join(runDir, "comparison.json"), "utf8"));
+    expect(comparison.counts).toMatchObject({ cases: 4, counted: 2, reviewOnly: 2 });
+    const cases = Object.fromEntries(comparison.cases.map((c: any) => [c.caseId, c]));
+    expect(cases.c1.status).toBe("counted");
+    expect(cases.c2.status).toBe("counted");
+    expect(cases.c3).toMatchObject({ status: "review-only", reasons: ["not-replayable"] });
+    expect(cases.c4.status).toBe("review-only");
+    expect(cases.c4.reasons).toEqual(expect.arrayContaining(["no-start-revision", "no-fixture"]));
+    const task = comparison.dimensions["task-completion"];
+    expect(task.baseline).toMatchObject({ pass: 1, fail: 1, unknown: 0 });
+    expect(task.candidate).toMatchObject({ pass: 2, fail: 0, unknown: 0 });
+    expect(task.improvements).toEqual(["c1"]);
+    expect(task.regressions).toEqual([]);
+  });
+
+  it("reports per dimension results, unknowns, deltas, regressions, cost, latency, and run ids", async () => {
+    const { run } = await loadCompare();
+    const runDir = temp("bt-compare-");
+    copyFixtures(runDir, RESULT_FILES);
+    editResults(runDir, "candidate-results.jsonl", (r) => (r.caseId === "c1" ? { ...r, dimensions: { ...r.dimensions, "tool-use-recovery": "unknown" } } : r));
+    const { ctx } = compareContext(runDir);
+    expect((await run(ctx)).status).toBe("complete");
+    const comparison = JSON.parse(readFileSync(join(runDir, "comparison.json"), "utf8"));
+    const tool = comparison.dimensions["tool-use-recovery"];
+    expect(tool.baseline).toMatchObject({ pass: 2, fail: 0, unknown: 0, notApplicable: 0, passRate: 1 });
+    expect(tool.candidate).toMatchObject({ pass: 0, fail: 1, unknown: 1, passRate: 0 });
+    expect(tool.delta).toMatchObject({ pass: -2, fail: 1, unknown: 1, passRate: -1 });
+    expect(tool.regressions).toEqual(["c2"]);
+    expect(comparison.cost).toMatchObject({ baseline: { total: 0.75, missing: 0 }, candidate: { total: 1.25, missing: 0 }, delta: 0.5 });
+    expect(comparison.latency).toMatchObject({ baseline: { total: 3000, mean: 1500 }, candidate: { total: 4000, mean: 2000 }, delta: 1000 });
+    expect(comparison.runIds).toEqual({ baseline: ["run-b1", "run-b2"], candidate: ["run-c1", "run-c2"] });
+    expect(comparison.thresholds).toBeNull();
+    expect(comparison.verdict).toBeNull();
+  });
+
+  it("rejects a candidate result that reuses the baseline final response", async () => {
+    const { run } = await loadCompare();
+    const runDir = temp("bt-compare-");
+    copyFixtures(runDir, RESULT_FILES);
+    editResults(runDir, "candidate-results.jsonl", (r) => (r.caseId === "c2" ? { ...r, finalResponseHash: "sha256:b2" } : r));
+    const { ctx, err } = compareContext(runDir);
+    const result = await run(ctx);
+    expect(result).toMatchObject({ status: "failed", cause: "reused-response" });
+    const comparison = JSON.parse(readFileSync(join(runDir, "comparison.json"), "utf8"));
+    expect(comparison.rejected).toEqual([{ caseId: "c2", cause: "reused-response" }]);
+    expect(comparison.dimensions).toBeNull();
+    expect(err.join("\n")).toContain("c2");
+  });
+
+  it("fails when the arms differ in cases, evaluator settings, or budgets", async () => {
+    const { run } = await loadCompare();
+    const runDir = temp("bt-compare-");
+    copyFixtures(runDir, RESULT_FILES);
+    editResults(runDir, "candidate-results.jsonl", (r) =>
+      r.caseId === "c1" ? { ...r, budget: { maxTurns: 40 } } : r.caseId === "c2" ? { ...r, evaluator: { rubricVersion: "rubric-v2", judge: null } } : r,
+    );
+    const file = join(runDir, "candidate-results.jsonl");
+    writeFileSync(file, readFileSync(file, "utf8").split("\n").filter((line) => !line.includes('"c4"')).join("\n"));
+    const { ctx } = compareContext(runDir);
+    const result = await run(ctx);
+    expect(result).toMatchObject({ status: "failed", cause: "mismatched-arms" });
+    const comparison = JSON.parse(readFileSync(join(runDir, "comparison.json"), "utf8"));
+    expect(comparison.mismatches).toEqual(
+      expect.arrayContaining([
+        { caseId: "c1", field: "budget" },
+        { caseId: "c2", field: "evaluator" },
+        { caseId: "c4", field: "caseId" },
+      ]),
+    );
+  });
+
+  it("rejects an invalid result record with its file and line", async () => {
+    const { run } = await loadCompare();
+    const runDir = temp("bt-compare-");
+    copyFixtures(runDir, RESULT_FILES);
+    editResults(runDir, "baseline-results.jsonl", (r) => (r.caseId === "c2" ? { ...r, arm: "candidate", dimensions: { "task-completion": "maybe" } } : r));
+    const { ctx, err } = compareContext(runDir);
+    expect(await run(ctx)).toMatchObject({ status: "failed", cause: "invalid-results" });
+    expect(err.join("\n")).toContain("baseline-results.jsonl:2: arm");
+    expect(err.join("\n")).toContain("baseline-results.jsonl:2: dimensions.task-completion");
+  });
+
+  it("refuses holdout results until compare-thresholds.json exists and records its checksum", async () => {
+    const { run } = await loadCompare();
+    const runDir = temp("bt-compare-");
+    copyFixtures(runDir, RESULT_FILES);
+    for (const name of RESULT_FILES) editResults(runDir, name, (r) => (r.caseId === "c1" ? { ...r, split: "holdout" } : r));
+    const first = compareContext(runDir);
+    expect(await run(first.ctx)).toMatchObject({ status: "failed", cause: "thresholds-not-frozen" });
+    const refused = JSON.parse(readFileSync(join(runDir, "comparison.json"), "utf8"));
+    expect(refused.dimensions).toBeNull();
+    expect(refused.cases).toBeNull();
+    expect(JSON.stringify(refused)).not.toContain("run-c1");
+
+    copyFixtures(runDir, ["compare-thresholds.json"]);
+    const second = compareContext(runDir);
+    expect((await run(second.ctx)).status).toBe("complete");
+    const comparison = JSON.parse(readFileSync(join(runDir, "comparison.json"), "utf8"));
+    const checksum = `sha256:${createHash("sha256").update(readFileSync(join(reportFixtures, "compare-thresholds.json"))).digest("hex")}`;
+    expect(comparison.thresholds).toMatchObject({ file: "compare-thresholds.json", checksum, rubricVersion: "rubric-v1" });
+    expect(comparison.dimensions["task-completion"].thresholdVerdict).toBe("meets-thresholds");
+    expect(comparison.dimensions["tool-use-recovery"].thresholdVerdict).toBe("below-thresholds");
+    expect(comparison.verdict).toBe("below-thresholds");
+    expect(second.ctx.store.touched().inputs).toContain("compare-thresholds.json");
+  });
+
+  it("reports an empty comparison when no case is replayable", async () => {
+    const { run } = await loadCompare();
+    const runDir = temp("bt-compare-");
+    copyFixtures(runDir, RESULT_FILES);
+    for (const name of RESULT_FILES) editResults(runDir, name, (r) => ({ ...r, replayable: "unknown" }));
+    const { ctx } = compareContext(runDir);
+    expect(await run(ctx)).toMatchObject({ status: "empty", cause: "no-replayable-cases" });
+  });
+
+  it("feeds the comparison summary into the report", async () => {
+    const compare = await loadCompare();
+    const report = await loadReport();
+    const runDir = temp("bt-compare-");
+    copyFixtures(runDir, [...RESULT_FILES, "compare-thresholds.json"]);
+    expect((await compare.run(compareContext(runDir).ctx)).status).toBe("complete");
+    expect((await report.run(stageContext(runDir).ctx)).status).toBe("complete");
+    const parsed = JSON.parse(readFileSync(join(runDir, "report.json"), "utf8"));
+    expect(parsed.comparison).toMatchObject({ status: "complete", counts: { counted: 2, reviewOnly: 2 }, verdict: "below-thresholds" });
+    expect(parsed.comparison.dimensions["tool-use-recovery"]).toMatchObject({ regressions: 1 });
   });
 });

@@ -1,0 +1,9 @@
+{
+  "projectId": "p1",
+  "datasetPrefix": "agro/behavior/test",
+  "datasetVersion": "v1",
+  "entries": [
+    { "key": "item-1", "kind": "item", "dataset": "agro/behavior/test/regression-v1", "remoteId": "r1", "contentHash": "sha256:1111", "writtenAt": "2026-10-11T00:00:00Z" },
+    { "key": "score-1", "kind": "score", "dataset": null, "remoteId": "r2", "contentHash": "sha256:4444", "writtenAt": "2026-10-11T00:00:01Z" }
+  ]
+}
