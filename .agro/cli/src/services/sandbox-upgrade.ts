@@ -4,6 +4,7 @@ import { agroConfigPath, readAgroConfig, writeAgroConfig } from "../lib/agro-con
 import { runningInsideSandbox } from "../lib/execution/index.js";
 import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import { entryRoot } from "../lib/registry.js";
+import { entrySandboxName, routeVerb } from "../lib/runtimes/verbs.js";
 import { officialImageRef, parseReleaseVersion } from "../lib/version.js";
 import { configuredContainerName, DEFAULT_CONTAINER_NAME, runSandbox, type LifecycleIO } from "../commands/lifecycle.js";
 
@@ -56,6 +57,7 @@ export async function runSandboxUpgrade(opts: SandboxUpgradeOptions, io: Lifecyc
     io.stderr(`${prefix} no sandbox entry named "${opts.name}"\n`);
     return 1;
   }
+  routeVerb(root, "upgrade", entrySandboxName(root) ?? opts.name);
   const lock = join(root, ".sandbox-upgrade.lock");
   let fd: number;
   try {

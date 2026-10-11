@@ -11,6 +11,11 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Fixed
 - Fix `/t3` so that `herdr` runs in a T3 Code terminal and `/t3 start --tailscale` prints the `ts.net` pairing URL and QR code ([#1394](https://github.com/mifunedev/agro/issues/1394)).
 
+## [0.20.0] - 2026-10-10
+
+### Added
+- Add `agro sandbox install openshell` as an experimental, interactive-only NVIDIA OpenShell runtime with a default-deny network policy; remote Linux validation is tracked in #1257 ([#1254](https://github.com/mifunedev/agro/issues/1254)).
+
 ### Changed
 - Set `CC_LANGFUSE_CAPTURE_IMAGES=false` in the project Claude Code settings, so the Langfuse plugin no longer uploads transcript images from sessions in this repository ([#1375](https://github.com/mifunedev/agro/issues/1375)).
 

@@ -2,6 +2,7 @@ import { resolveExecutionTarget } from "../lib/execution/index.js";
 import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import { agroConfigPath, configCheckout, readAgroConfig } from "../lib/agro-config.js";
 import { entryRoot, listEntries, registryRoot } from "../lib/registry.js";
+import { entrySandboxName } from "../lib/runtimes/verbs.js";
 import type { SandboxIO } from "./sandbox.js";
 
 export interface SandboxListOptions {
@@ -20,7 +21,7 @@ interface SandboxRow {
 
 async function entryStatus(root: string, name: string, run: LifecycleRunner): Promise<string> {
   try {
-    const target = resolveExecutionTarget({ projectRoot: root, container: name, run });
+    const target = resolveExecutionTarget({ projectRoot: root, container: entrySandboxName(root) ?? name, run });
     return await target.status();
   } catch {
     return "unknown";

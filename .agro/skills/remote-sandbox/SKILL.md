@@ -10,7 +10,7 @@ description: |
   TRIGGER when: asked to validate an AGRO release or candidate build on a
   fresh VM, run the fresh-install check, test the curl installer on a new VM,
   run the AGRO hosting matrix or a matrix row, run the cgroup probe or the VM
-  restart test, or add a provider adapter.
+  restart test, run the OpenShell journey check, or add a provider adapter.
 license: MIT
 compatibility: Needs bash, ssh, curl, jq, awk, and python3 on the driver host, plus an account on each provider under test (an exe.dev SSH key or the vercel CLI). tmux is optional on the driver host.
 metadata:
@@ -99,6 +99,19 @@ Run these steps in order. A failed probe makes the later steps on that provider 
    ```
 
 Runs on different providers are independent. Start one run at a time on each provider, because a provider plan can cap concurrent VMs. `references/rationale.md` states why each row and probe exists, and holds the baseline.
+
+## Third scenario: the OpenShell journey
+
+`checks/openshell-journey.sh` tests the `agro sandbox install openshell` journey on a new VM. The rows `O01` to `O21` check the AGRO install, the OpenShell install, the gateway, `agro sandbox install openshell`, `agro sandbox list`, and `agro shell`. The rows also check the policy allow and deny rules, the verb refusals, `openshell sandbox stop` and `start`, `agro destroy`, and the hint after a failed create.
+
+The VM must have Docker 28 or later and Landlock. exe.dev qualifies: Ubuntu 24.04, kernel 6.12, and Docker 29. When `AGRO_JS_URL` holds `/releases/download/v<version>/`, row `O01` expects `<version>`. Otherwise row `O01` expects a SemVer string.
+
+To test a release candidate, start the run detached on the driver host. Set `<release>` to the release download URL:
+
+```bash
+INSTALL_URL=<release>/install.sh AGRO_JS_URL=<release>/agro.js setsid nohup bash "$SKILL/scripts/run.sh" exedev checks/openshell-journey.sh > run.out 2>&1 < /dev/null &
+cat run.out
+```
 
 ## Commands and variables
 

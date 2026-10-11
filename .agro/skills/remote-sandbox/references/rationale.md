@@ -59,6 +59,7 @@ The fresh install is the first thing that a new operator does. Each row runs `ag
 | `checks/fresh-install.sh` | The main scenario. `fresh-install.sh` runs the curl installer on a new VM with no AGRO state. |
 | `checks/cg-probe.sh` | The cheapest test that decides whether a provider can host the AGRO sandbox. The probe installs Docker, tries to enable each controller, and starts a plain `jrei/systemd-ubuntu:24.04` container. A failure with a plain image proves that the cause is the provider, not AGRO. Run the probe first on a new provider. |
 | `checks/agro-rows.sh` | The full set of in-VM rows, one `RESULT` line each. Each row runs when an earlier row fails, so one run gives the whole column. |
+| `checks/openshell-journey.sh` | The operator journey of the experimental OpenShell runtime, from the OpenShell install to `agro destroy`. The rows prove the default-deny policy with real egress: the policy denies `example.com`, and `api.anthropic.com` returns 401 for an invalid placeholder key. |
 | `scripts/restart-test.sh <p> sync` | Restarts the VM after `sync`. This run separates a hard reset by the provider from a defect in AGRO. |
 | `scripts/restart-test.sh <p> settled` | Restarts the VM 300 seconds after the sandbox is healthy. This run shows the expected case. |
 | `driver_rows` in `scripts/lib.sh` | `R09`, `R10`, and `R11` need a second client connection from outside the VM, so the driver runs these rows, not the check. |

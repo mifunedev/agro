@@ -45,6 +45,10 @@ identity, SSH (with its host port), the host Docker socket, and the host path
 for /home/sandbox. With --checkout it seeds those answers from that
 checkout's ${stateNames(bin).configFile}.
 
+\`install openshell\` never prompts. The command needs the host \`openshell\` CLI
+and a connected gateway, and runs the prebuilt image. The command refuses
+--checkout, --home-mount, and image.mode "build".
+
 Flags:
   --name <name>    Registry entry name (default: the lowest free ${DEFAULT_NAME_PREFIX}<n>)
   --checkout <dir> Bind this checkout into the sandbox and seed the defaults
@@ -67,7 +71,7 @@ Flags:
                    ${stateNames(bin).configFile} image.ref > ${officialImageRef(VERSION)}
   --image=<ref>    Run a custom image (implies --image); conflicts with --version
   --no-build       Suppress the local build and reuse an existing image
-  --print-argv     Print the docker compose argv that would run, then exit
+  --print-argv     Print the docker compose or openshell argv that would run, then exit
                    without writing an entry
   --json           Machine-readable output (list)
 

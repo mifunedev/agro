@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileS
 import { basename, dirname, resolve } from "node:path";
 import { assertInRoot } from "./env-file.js";
 import { NAMES, resolveProjectLayout } from "./layout.js";
+import { PROVISIONABLE_RUNTIMES, type ProvisionableRuntimeId } from "./runtimes/catalog.js";
 
 const AGRO_CONFIG_FILE = NAMES.configFile;
 const AGRO_CONFIG_MODE = 0o644;
@@ -72,9 +73,9 @@ export interface LangfuseSettings {
   userId?: string;
 }
 
-export type SandboxRuntime = "docker";
+export type SandboxRuntime = ProvisionableRuntimeId;
 
-export const SANDBOX_RUNTIMES: readonly SandboxRuntime[] = ["docker"];
+export const SANDBOX_RUNTIMES: readonly SandboxRuntime[] = PROVISIONABLE_RUNTIMES;
 
 export interface AgroConfig {
   version: 1;
@@ -124,6 +125,14 @@ export function defaultAgroConfig(name: string): AgroConfig {
     langfuse: {},
     composeOverrides: [],
   };
+}
+
+export function entryRuntime(root: string): SandboxRuntime {
+  try {
+    return readAgroConfig(agroConfigPath(root)).runtime ?? "docker";
+  } catch {
+    return "docker";
+  }
 }
 
 export function readAgroConfig(path: string): AgroConfig {

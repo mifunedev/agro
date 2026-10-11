@@ -11,7 +11,19 @@ import {
   readAgroConfig,
   writeAgroConfig,
   type AgroConfig,
+  type SandboxRuntime,
 } from "../lib/agro-config.js";
+import { openshellImage } from "../lib/execution/index.js";
+import {
+  createArgv,
+  OPENSHELL_BIN,
+  OpenShellExecutionTarget,
+  openshellCleanupHint,
+  openshellPreflight,
+} from "../lib/execution/openshell-target.js";
+import { ExecutionExitError } from "../lib/execution/runner.js";
+import { runningInsideSandbox } from "../lib/execution/detect.js";
+import { HostOnlyError } from "../lib/execution/local-target.js";
 import * as prompt from "../lib/prompt.js";
 import {
   assertSandboxName,
@@ -122,10 +134,11 @@ function seedConfig(
   checkout: string | undefined,
   seed: AgroConfig | undefined,
   run: LifecycleRunner,
+  runtime: SandboxRuntime = "docker",
 ): AgroConfig {
   const config = overlaySettings(defaultAgroConfig(name), seed);
   config.name = name;
-  config.runtime = "docker";
+  config.runtime = runtime;
   if (checkout !== undefined) config.checkout = checkout;
   config.timezone = nonEmpty(seed?.timezone) ?? hostTimezone();
   config.git = {
@@ -194,6 +207,7 @@ export async function runSandboxInstall(
     io.stderr(`${opts.bin} sandbox install: ${runtime.notProvisionableReason?.(opts.bin) ?? ""}\n`);
     return 1;
   }
+  if (runtime.id === "openshell") return await installOpenShell(opts, io, run);
 
   const checkout = opts.checkout === undefined ? undefined : resolve(opts.checkout);
   if (checkout !== undefined && !existsSync(checkout)) {
@@ -291,6 +305,76 @@ export async function runSandboxInstall(
     maybePrintStarPrompt(io);
   }
   return code;
+}
+
+async function installOpenShell(
+  opts: SandboxInstallOptions,
+  io: SandboxIO,
+  run: LifecycleRunner,
+): Promise<number> {
+  const fail = (message: string): number => {
+    io.stderr(`${opts.bin} sandbox install: ${message}\n`);
+    return 1;
+  };
+  const unsupported = (what: string): number => fail(`${what} is not supported on the openshell runtime`);
+
+  if (opts.checkout !== undefined) return unsupported("--checkout");
+  if (opts.homeMount !== undefined) return unsupported("--home-mount");
+
+  const name = opts.name ?? nextDefaultName(run);
+  try {
+    assertSandboxName(name);
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : String(error));
+  }
+
+  const config = seedConfig(name, undefined, readEntryConfig(name), run, "openshell");
+  if (configCheckout(config) !== undefined) return unsupported("checkout");
+  if (nonEmpty(config.storage?.homePath) !== undefined) return unsupported("storage.homePath");
+  const imageChosen = opts.image === true || opts.imageRef !== undefined;
+  if (config.image?.mode === "build" && !imageChosen) {
+    return unsupported('image.mode "build"');
+  }
+  config.image = {
+    ...config.image,
+    mode: "image",
+    ...(opts.imageRef !== undefined ? { ref: opts.imageRef } : {}),
+  };
+
+  const root = entryRoot(name);
+  const image = openshellImage(config);
+  if (opts.printArgv === true) {
+    io.stdout(`${[OPENSHELL_BIN, ...createArgv({ name, image, entryRoot: root })].join(" ")}\n`);
+    return 0;
+  }
+
+  if (runningInsideSandbox()) return fail(new HostOnlyError(`\`${opts.bin} sandbox\``).message);
+
+  try {
+    const preflight = openshellPreflight(run);
+    if (!preflight.ok) return fail(preflight.hint);
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : String(error));
+  }
+
+  const created = !existsSync(root);
+  mkdirSync(root, { recursive: true });
+  writeAgroConfig(root, config);
+  materialize(root);
+
+  try {
+    await new OpenShellExecutionTarget({ name, entryRoot: root, image, run }).provision();
+  } catch (error) {
+    if (created) rmSync(root, { recursive: true, force: true });
+    io.stderr(`${opts.bin} sandbox install: ${error instanceof Error ? error.message : String(error)}\n`);
+    if (!(error instanceof ExecutionExitError)) return 1;
+    io.stderr(`${opts.bin} sandbox install: ${openshellCleanupHint(name)}\n`);
+    return error.exitCode;
+  }
+
+  io.stdout(`next: ${opts.bin} shell ${name}\n`);
+  maybePrintStarPrompt(io);
+  return 0;
 }
 
 export { runSandboxList } from "./sandbox-list.js";

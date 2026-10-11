@@ -5,10 +5,12 @@ import { join } from "node:path";
 import {
   ExecutionExitError,
   ExecutionSpawnError,
+  OpenShellExecutionTarget,
   resolveExecutionTarget,
   type LifecycleRunner,
   type RunResult,
 } from "../lib/execution/index.js";
+import { createArgv } from "../lib/execution/openshell-target.js";
 import { requireLifecycleScript } from "../lib/execution/runner.js";
 
 
@@ -295,6 +297,74 @@ describe("DockerComposeExecutionTarget.status", () => {
     const target = resolveExecutionTarget({ projectRoot: root, container: "my-box", run });
 
     expect(await target.status()).toBe("absent");
+  });
+});
+
+describe("resolveExecutionTarget runtime dispatch", () => {
+  const hostEnv = { AGRO_EXECUTION_TARGET: "docker-compose" };
+
+  function entryWith(config: Record<string, unknown>): string {
+    const root = makeRepo();
+    writeFileSync(join(root, "agro.json"), `${JSON.stringify({ version: 1, ...config })}\n`);
+    return root;
+  }
+
+  it('returns OpenShellExecutionTarget on the host when agro.json holds runtime "openshell"', () => {
+    const root = entryWith({ name: "shellbox", runtime: "openshell", image: { ref: "ghcr.io/x/y:1" } });
+    const { run } = makeRunner();
+
+    const target = resolveExecutionTarget({ projectRoot: root, run, env: hostEnv });
+
+    expect(target).toBeInstanceOf(OpenShellExecutionTarget);
+    expect(target.kind).toBe("openshell");
+  });
+
+  it("provisions the entry name and image ref from agro.json", async () => {
+    const root = entryWith({ name: "shellbox", runtime: "openshell", image: { ref: "ghcr.io/x/y:1" } });
+    const { calls, run } = makeRunner();
+
+    await resolveExecutionTarget({ projectRoot: root, run, env: hostEnv }).provision();
+
+    expect(calls[0].cmd).toBe("openshell");
+    expect(calls[0].args).toEqual(createArgv({ name: "shellbox", image: "ghcr.io/x/y:1", entryRoot: root }));
+  });
+
+  it("prefers the caller's container name for the sandbox name", () => {
+    const root = entryWith({ name: "shellbox", runtime: "openshell" });
+    const { calls, run } = makeRunner();
+
+    resolveExecutionTarget({ projectRoot: root, container: "other", run, env: hostEnv }).attach({ argv: ["zsh"] });
+
+    expect(calls[0].args.slice(0, 4)).toEqual(["sandbox", "exec", "-n", "other"]);
+  });
+
+  it.each([
+    ["runtime docker", { runtime: "docker" }],
+    ["no runtime field", {}],
+  ])("keeps DockerComposeExecutionTarget for %s", (_label, config) => {
+    const root = entryWith(config);
+    const { run } = makeRunner();
+
+    expect(resolveExecutionTarget({ projectRoot: root, run, env: hostEnv }).kind).toBe("docker-compose");
+  });
+
+  it("keeps DockerComposeExecutionTarget when agro.json is absent or malformed", () => {
+    const bare = makeRepo();
+    const malformed = makeRepo();
+    writeFileSync(join(malformed, "agro.json"), "{not json");
+    const { run } = makeRunner();
+
+    expect(resolveExecutionTarget({ projectRoot: bare, run, env: hostEnv }).kind).toBe("docker-compose");
+    expect(resolveExecutionTarget({ projectRoot: malformed, run, env: hostEnv }).kind).toBe("docker-compose");
+  });
+
+  it("returns LocalExecutionTarget inside the sandbox even for an openshell entry", () => {
+    const root = entryWith({ runtime: "openshell" });
+    const { run } = makeRunner();
+
+    expect(resolveExecutionTarget({ projectRoot: root, run, env: { AGRO_EXECUTION_TARGET: "local" } }).kind).toBe(
+      "local",
+    );
   });
 });
 
