@@ -1,0 +1,124 @@
+[
+  {
+    "projectId": "proj-synthetic",
+    "sessionId": "sess-cx",
+    "environment": "dev",
+    "tags": [
+      "codex"
+    ],
+    "traceId": "trace-cx-1",
+    "traceName": "codex turn",
+    "parentObservationId": "cx-gen-1",
+    "level": "DEFAULT",
+    "statusMessage": null,
+    "model": null,
+    "usageDetails": {},
+    "costDetails": {},
+    "totalCost": null,
+    "latency": null,
+    "input": "{\"cmd\":\"cat build.log\"}",
+    "output": "line one\n…[truncated 120 chars]",
+    "metadata": {
+      "codex.call_id": "c1",
+      "codex.tool_name": "shell"
+    },
+    "id": "cx-tool-1",
+    "type": "TOOL",
+    "name": "shell",
+    "startTime": "2026-10-03T11:00:02.000Z",
+    "endTime": "2026-10-03T11:00:02.200Z"
+  },
+  {
+    "projectId": "proj-synthetic",
+    "sessionId": "sess-cx",
+    "environment": "dev",
+    "tags": [
+      "codex"
+    ],
+    "traceId": "trace-cx-1",
+    "traceName": "codex turn",
+    "parentObservationId": null,
+    "level": "DEFAULT",
+    "statusMessage": null,
+    "model": null,
+    "usageDetails": {},
+    "costDetails": {},
+    "totalCost": null,
+    "latency": null,
+    "input": "Fix the failing build.",
+    "output": "Fixed the build.",
+    "metadata": {
+      "codex.turn_id": "turn-1",
+      "codex.thread_id": "sess-cx"
+    },
+    "id": "cx-root",
+    "type": "AGENT",
+    "name": "Codex Turn",
+    "startTime": "2026-10-03T11:00:00.000Z",
+    "endTime": "2026-10-03T11:00:05.000Z"
+  },
+  {
+    "projectId": "proj-synthetic",
+    "sessionId": "sess-cx",
+    "environment": "dev",
+    "tags": [
+      "codex"
+    ],
+    "traceId": "trace-cx-1",
+    "traceName": "codex turn",
+    "parentObservationId": "cx-root",
+    "level": "DEFAULT",
+    "statusMessage": null,
+    "model": "model-gamma",
+    "usageDetails": {
+      "input": 50,
+      "output": 8,
+      "total": 58
+    },
+    "costDetails": {},
+    "totalCost": 0.005,
+    "latency": null,
+    "input": "Fix the failing build.",
+    "output": "{\"content\":\"Reading the log.\",\"tool_calls\":[{\"id\":\"c1\",\"name\":\"shell\",\"arguments\":\"{\\\"cmd\\\":\\\"cat build.log\\\"}\"}]}",
+    "metadata": {
+      "codex.step_index": 0
+    },
+    "id": "cx-gen-1",
+    "type": "GENERATION",
+    "name": "LLM",
+    "startTime": "2026-10-03T11:00:01.000Z",
+    "endTime": "2026-10-03T11:00:01.500Z"
+  },
+  {
+    "projectId": "proj-synthetic",
+    "sessionId": "sess-cx",
+    "environment": "dev",
+    "tags": [
+      "codex"
+    ],
+    "traceId": "trace-cx-1",
+    "traceName": "codex turn",
+    "parentObservationId": "cx-root",
+    "level": "DEFAULT",
+    "statusMessage": null,
+    "model": "model-gamma",
+    "usageDetails": {
+      "input": 70,
+      "output": 4,
+      "total": 74
+    },
+    "costDetails": {},
+    "totalCost": 0.006,
+    "latency": null,
+    "input": "[{\"name\":\"shell\",\"output\":\"line one\\n…[truncated 120 chars]\"}]",
+    "output": "{\"content\":\"Fixed the build.\"}",
+    "metadata": {
+      "codex.step_index": 1
+    },
+    "id": "cx-gen-2",
+    "type": "GENERATION",
+    "name": "LLM",
+    "startTime": "2026-10-03T11:00:03.000Z",
+    "endTime": "2026-10-03T11:00:04.000Z"
+  }
+]
