@@ -79,6 +79,7 @@ hermes_workspace_configure() {
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   case "${1:-}" in
     check) shift; hermes_workspace_check "$@" ;;
+    seed) shift; hermes_workspace_check "$1" "$2" "$2" && hermes_workspace_seed "$2" ;;
     configure) shift; hermes_workspace_configure "$@" ;;
     *) exit 2 ;;
   esac
