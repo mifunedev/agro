@@ -616,12 +616,9 @@ export function parseConfigArgs(input: string[], bin: string = AGRO_PRODUCT.bin)
   return { ok: true, args: { ...args, verb, key, value } };
 }
 
-export type SecretReadVerb = "get";
-export type ExtendedSecretVerb = SecretVerb | SecretReadVerb;
-
 export interface SecretArgs {
   help: boolean;
-  verb?: ExtendedSecretVerb;
+  verb?: SecretVerb;
   key?: string;
   sandbox?: string;
 }
@@ -639,7 +636,7 @@ export function parseSecretArgs(input: string[], bin: string = AGRO_PRODUCT.bin)
   }
 
   const [head, ...tail] = rest;
-  if (head !== "get" && !(SECRET_VERBS as readonly string[]).includes(head)) {
+  if (!(SECRET_VERBS as readonly string[]).includes(head)) {
     return {
       ok: false,
       error: `${bin} secret: unknown subcommand "${head}" — expected set, list, or get`,
@@ -647,7 +644,7 @@ export function parseSecretArgs(input: string[], bin: string = AGRO_PRODUCT.bin)
     };
   }
 
-  const verb = head as ExtendedSecretVerb;
+  const verb = head as SecretVerb;
   if (isHelpFlag(tail[0])) return { ok: true, args: { ...args, help: true } };
 
   if (verb === "list") {

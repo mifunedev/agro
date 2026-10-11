@@ -2,7 +2,7 @@ import { composeVerbs } from "./commands/lifecycle.js";
 
 export const CONFIG_VERBS = ["show", "set", "repo"] as const;
 export const CONFIG_INTEGRATIONS = ["langfuse"] as const;
-export const SECRET_VERBS = ["set", "list"] as const;
+export const SECRET_VERBS = ["set", "get", "list"] as const;
 export const LANGFUSE_VERBS = ["apply", "status", "disable"] as const;
 export const SANDBOX_SUBCOMMANDS = ["install", "list", "upgrade"] as const;
 export const WORKSPACE_SUBCOMMANDS = ["create", "list"] as const;
