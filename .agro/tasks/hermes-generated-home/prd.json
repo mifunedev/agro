@@ -22,13 +22,14 @@
         "When the seed write fails, the function returns a non-zero exit status, leaves no partial `config.yaml`, and prints a message that names `<hermes_home>/config.yaml`. The function does not run `hermes config set` after a failed seed write."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Commits: ed8c77c9 (seed in configure), cd4b8970 (seed subcommand + seedHermes() before the installer on host and sandbox paths; advisor-directed repair because the upstream installer stage_config copies cli-config.yaml.example when config.yaml is absent).\nAC1 executed: bash hermes-workspace.sh seed on empty home -> exit 0, config.yaml written; configure-path order covered by vitest case 1 (seeded marker precedes config set terminal.cwd).\nAC2 executed: node+yaml parse of seeded file shows all six keys with expected values.\nAC3 executed: typeof auto_compact_percent=number, codex_gpt55_autoraise=boolean, profile_build_offered=boolean.\nAC4 executed: parsed seed has no _config_version and no terminal key.\nAC5 executed: git grep gpt-6.1-sol-900k (excluding CHANGELOG/.agro/tasks) -> only hermes-workspace.sh seed array and one test assertion; tracked .hermes/config.yaml removed by US-002.\nAC6 executed: seed on home with 'x: 1' -> exit 0, bytes unchanged; vitest case 2 asserts only config set terminal.cwd.\nAC7-AC9 executed: pnpm exec vitest run hermes-integration, harness, gateway, hermes-links -> 189 passed, 2 skipped, exit 0.\nAC10 reasoned: cases 1 and 3 were red before the change (worker evidence: 2 failed). Case 2 (existing config untouched) cannot be red because pre-change code already left config.yaml untouched; criterion wording defect, recorded as a lesson.\nAC11 executed: vitest case 3 (read-only home) -> non-zero, stderr names <home>/config.yaml, no partial/temp file, stub hermes not invoked; plus seedHermes failure case: installer not run.\nExtra: worker ran pnpm typecheck exit 0, pnpm build exit 0, full .agro/cli vitest 1252/1252.",
       "dependsOn": [],
       "files": [
         ".agro/scripts/hermes-workspace.sh",
         ".agro/cli/src/__tests__/hermes-integration.test.ts"
-      ]
+      ],
+      "commit": "cd4b8970"
     },
     {
       "id": "US-002",
