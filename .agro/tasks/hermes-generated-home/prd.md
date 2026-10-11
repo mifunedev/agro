@@ -10,14 +10,17 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] `hermes_workspace_configure()` in `.agro/scripts/hermes-workspace.sh` runs `hermes config set` for each AGRO default when `<hermes_home>/config.yaml` does not exist before the call.
-- [ ] The AGRO defaults are `model.default=gpt-6.1-sol-900k`, `model.provider=openai-codex`, `model.base_url=https://chatgpt.com/backend-api/codex`, `compression.codex_gpt55_autoraise=false`, and `compression.auto_compact_percent=85`.
-- [ ] `.agro/scripts/hermes-workspace.sh` holds the AGRO defaults in one list. No other tracked file holds a second copy of the values.
-- [ ] When `<hermes_home>/config.yaml` exists before the call, the function sets only `terminal.cwd`. The function does not change an operator value for a default key.
-- [ ] A new case in `.agro/cli/src/__tests__/hermes-integration.test.ts` uses a stub `hermes` binary. The case asserts that a configure call against an empty home receives each default key and `terminal.cwd`.
-- [ ] A second new case asserts that a configure call against a home with an existing `config.yaml` receives only `terminal.cwd`.
+- [ ] When `<hermes_home>/config.yaml` does not exist before the call, `hermes_workspace_configure()` in `.agro/scripts/hermes-workspace.sh` writes the AGRO defaults to that path as one YAML seed. Then the function sets `terminal.cwd` through `hermes config set`.
+- [ ] The seed holds these keys and values: `model.default: gpt-6.1-sol-900k`, `model.provider: openai-codex`, `model.base_url: https://chatgpt.com/backend-api/codex`, `compression.codex_gpt55_autoraise: false`, `compression.auto_compact_percent: 85`, and `onboarding.seen.profile_build_offered: true`.
+- [ ] The seed writes `auto_compact_percent` as a YAML integer and writes `codex_gpt55_autoraise` and `profile_build_offered` as YAML booleans.
+- [ ] The seed holds no `_config_version` key and no `terminal.cwd` key.
+- [ ] `.agro/scripts/hermes-workspace.sh` holds the seed in one list. No other tracked file holds a second copy of the values.
+- [ ] When `<hermes_home>/config.yaml` exists before the call, the function sets only `terminal.cwd`. The function writes no seed.
+- [ ] A new case in `.agro/cli/src/__tests__/hermes-integration.test.ts` runs the configure step against an empty home with a stub `hermes` binary. The case parses `config.yaml` with the `yaml` package and asserts each seed key, the number type of `auto_compact_percent`, the boolean type of both boolean keys, and the absence of `_config_version`.
+- [ ] The same case asserts that the stub `hermes` binary receives `config set terminal.cwd <target-root>` after the seed write.
+- [ ] A second new case writes a `config.yaml` with operator values before the configure step. The case asserts that the file bytes are unchanged after the step and that the stub `hermes` binary receives only `config set terminal.cwd <target-root>`.
 - [ ] Both new cases fail before the change and pass after the change.
-- [ ] A failed `hermes config set` for a default key makes the function return a non-zero exit status. The message names the key and the manual `HERMES_HOME=<home> hermes config set <key> <value>` command.
+- [ ] When the seed write fails, the function returns a non-zero exit status, leaves no partial `config.yaml`, and prints a message that names `<hermes_home>/config.yaml`. The function does not run `hermes config set` after a failed seed write.
 
 ### US-002: Remove `.hermes/` from git and ignore the whole directory
 
@@ -41,7 +44,7 @@ Status: DRAFT
 **Acceptance Criteria:**
 
 - [ ] `.agro/tasks/hermes-generated-home/evidence/manual-review.md` holds a transcript of `agro harness install hermes` in a sandbox with no `.hermes/config.yaml`.
-- [ ] The transcript shows `cat .hermes/config.yaml` with each AGRO default key and `terminal.cwd`.
+- [ ] The transcript shows `cat .hermes/config.yaml` with each seed key, `terminal.cwd`, and the `_config_version` value that Hermes writes.
 - [ ] The transcript shows a second `agro harness install hermes` after a manual `hermes config set model.default <other-model>`. The second run keeps `<other-model>`.
 - [ ] The transcript shows `git status --short .hermes` with empty output after both runs.
 - [ ] The transcript shows `ls -la .hermes/skills` with the link `agro -> ../../.agro/skills`.
@@ -65,7 +68,7 @@ Selected approach: extend the existing `configure` step to seed the AGRO default
 
 | File | Function(s) / Symbol(s) | Role |
 |---|---|---|
-| `.agro/scripts/hermes-workspace.sh` | `hermes_workspace_configure()` | Owns the default list. Seeds the defaults on first install. |
+| `.agro/scripts/hermes-workspace.sh` | `hermes_workspace_configure()` | Owns the seed list. Writes the seed on first install. Sets `terminal.cwd`. |
 | `.agro/cli/src/commands/harness.ts` | `configureHermes()`, `installOnHost()`, sandbox install path | Call the configure step. No change expected. |
 | `.agro/scripts/link-providers.sh` | `hermes_paths_safe()`, `init_hermes_link()`, `HERMES_LINK` | Create `.hermes/skills/agro`. No change expected. |
 | `.devcontainer/entrypoint.sh` | Hermes block at lines 344-370 | Creates `$HARNESS/.hermes` at boot. No change expected. |
@@ -86,13 +89,15 @@ Selected approach: extend the existing `configure` step to seed the AGRO default
 
 ## Storage
 
-`<target-root>/.hermes/config.yaml` stays the Hermes configuration file. Hermes owns the file format. AGRO writes values only through `hermes config set`, per the `hermes-workspace-binding` plan. The directory becomes fully gitignored. Auth, memory, sessions, and the skill link keep their current locations.
+`<target-root>/.hermes/config.yaml` stays the Hermes configuration file. Hermes owns the file format and migrates `_config_version`. AGRO writes the file one time, as the YAML seed, only when the file is absent. After the seed, AGRO writes values only through `hermes config set`, per the `hermes-workspace-binding` plan. The directory becomes fully gitignored. Auth, memory, sessions, and the skill link keep their current locations.
 
 ## Architectural Decisions
 
 - `hermes-workspace.sh` is the one source of truth for the AGRO Hermes defaults.
 - The defaults seed only a home with no `config.yaml`. An existing file belongs to the operator.
-- AGRO does not write `_config_version` or `onboarding.seen.profile_build_offered`. Hermes owns those keys.
+- AGRO does not write `_config_version`. Hermes adds and migrates that key.
+- The seed sets `onboarding.seen.profile_build_offered: true`. AGRO runs Hermes unattended, and the current tracked config sets the key. A seed without the key is a regression.
+- The seed is YAML text, not a series of `hermes config set` calls. The YAML text fixes the integer and boolean types by construction.
 - The install does not generate a README. A generated README duplicates `docs/harnesses/hermes.md`.
 - The `!/.hermes/hooks/` exemption goes away. Git tracks no hook file, and YAGNI applies. A later task that adds a tracked hook adds its own exemption.
 
@@ -100,9 +105,9 @@ Selected approach: extend the existing `configure` step to seed the AGRO default
 
 | Test File | Case(s) | Validates |
 |---|---|---|
-| `.agro/cli/src/__tests__/hermes-integration.test.ts` | Configure against an empty home sets each default key and `terminal.cwd` | US-001 seeding |
-| `.agro/cli/src/__tests__/hermes-integration.test.ts` | Configure against a home with `config.yaml` sets only `terminal.cwd` | US-001 operator values kept |
-| `.agro/cli/src/__tests__/hermes-integration.test.ts` | A failed default `config set` returns non-zero and names the key | US-001 failure path |
+| `.agro/cli/src/__tests__/hermes-integration.test.ts` | Configure against an empty home writes the seed with integer and boolean types, no `_config_version`, then sets `terminal.cwd` | US-001 seeding |
+| `.agro/cli/src/__tests__/hermes-integration.test.ts` | Configure against a home with `config.yaml` leaves the file bytes unchanged and sets only `terminal.cwd` | US-001 operator values kept |
+| `.agro/cli/src/__tests__/hermes-integration.test.ts` | A failed seed write returns non-zero, leaves no partial file, names the path, and skips `hermes config set` | US-001 failure path |
 | `.agro/scripts/__tests__/hermes-links.test.ts` | `git ls-files .hermes` is empty | US-002 removal |
 | `.agro/scripts/__tests__/gateway.test.ts` | Existing cases | Regression for gateway home selection |
 | `.agro/skills/remote-sandbox/checks/agro-rows.sh` | Row `R15-hermes-host-install` | Regression for the host install link output |
@@ -113,7 +118,7 @@ Run the suites from the repository root with `pnpm test`. The root `package.json
 
 - Code is the source of truth. Do not add explanatory comments to tracked code.
 - Prefer the smallest truthful change. Extend the existing configure step. Do not add a new verb or template file.
-- Hermes owns its configuration format. AGRO uses `hermes config set` only.
+- Hermes owns its configuration format. AGRO writes one seed into an absent file and uses `hermes config set` for every later change.
 - Keep runtime state out of git.
 
 ## Out of Scope
@@ -125,9 +130,7 @@ Run the suites from the repository root with `pnpm test`. The root `package.json
 
 ## Open Questions
 
-1. Does `hermes config set compression.auto_compact_percent 85` store an integer, and does `hermes config set compression.codex_gpt55_autoraise false` store a boolean? US-003 verifies this with a real Hermes binary. If Hermes stores strings, the plan needs another write path.
-2. Must the defaults also set `onboarding.seen.profile_build_offered: true` to suppress the Hermes profile prompt?
-
+None
 
 ## Acceptance Criteria
 
