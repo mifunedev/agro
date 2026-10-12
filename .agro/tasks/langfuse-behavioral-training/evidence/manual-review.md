@@ -57,6 +57,13 @@ Langfuse tracing stayed disabled (`langfuse.enabled: false`).
      now carry a session time window and split it on that error.
    - A trace can hold observations from two sessions. A parent in another
      session no longer counts as a capture gap.
+3. Rerun `normalize` in a fresh run directory with the parent fix.
+   Observed: exit 0, `sessions=100 chunks=1390 complete=4 incomplete=96
+   truncated=46 crossSessionParents=16`. 749 parent references remain
+   unresolved in 78 sessions. A metadata-only lookup of one such trace returned
+   123 observations in one session and no observation with the parent id.
+   Langfuse never stored these parent observations, so they are real ingestion
+   gaps of the tracing plugins.
 
 ## D. Seed annotations and operator gate 1
 
