@@ -70,12 +70,13 @@ variant that bypasses a deny.
 
 ## 3. Destructive-command guard — ENFORCED
 
-[cc-safety-net](https://github.com/kenryu42/cc-safety-net) `1.0.6` parses each
+[cc-safety-net](https://github.com/kenryu42/cc-safety-net) `2.6.8` parses each
 `Bash` command and denies destructive intent: `rm -rf`, `git reset --hard`,
 `git checkout --`, `git push --force`, `git clean -f`, `find -delete`, `dd`,
 `mkfs`, and destructive interpreter one-liners. The guard follows `bash -c`,
-`xargs`, and command chains. This guard does not scan for secrets. Section 2
-covers secrets.
+`xargs`, and command chains. Version `2.6.8` removes the `shell-quote` dependency
+and its bundled code. It adds secret-path, Git-metadata, policy-tamper, and
+parser protections. Section 2's independent secret hooks remain in place.
 
 - `.devcontainer/Dockerfile` installs the pinned binary. At boot,
   `.agro/scripts/link-providers.sh` fails when the binary is missing or differs
@@ -84,8 +85,21 @@ covers secrets.
   `CC_SAFETY_NET_WORKTREE=1` allows a bare `git reset --hard` inside a linked
   worktree.
 - Claude Code and Codex run the guard as a `Bash` hook. Pi loads
-  `npm:cc-safety-net@1.0.6` from [`.pi/settings.json`](../.pi/settings.json).
+  `npm:cc-safety-net@2.6.8` from [`.pi/settings.json`](../.pi/settings.json).
   Hermes has no guard.
+
+The CLI accepts `cc-safety-net hook --claude-code`. Its supported JSON payload
+includes `hook_event_name: "PreToolUse"`, an absolute `cwd`, `tool_name`, and
+`tool_input`. Without the event name, version `2.6.8` ignores the payload.
+Allow decisions produce no output. Denials return JSON with
+`hookSpecificOutput.permissionDecision: "deny"` and exit code 0.
+
+The new guard denies shell reads of `.env`, SSH private keys, and `.npmrc`.
+Pi also checks file-tool calls. Claude Code and Codex retain their Bash-only
+cc-safety-net matchers; their independent file guards remain unchanged.
+Strict parsing can deny harmless interpreter literals that contain secret-path
+text. Existing v1 custom rules need migration review before use with v2.
+These guards prevent accidents, not deliberate evasion.
 
 To override a false positive, use one of these:
 

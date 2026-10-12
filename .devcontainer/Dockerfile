@@ -60,7 +60,7 @@ RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 SHELL ["/bin/bash", "-c"]
 
-RUN npm install -g cc-safety-net@1.0.6 \
+RUN npm install -g cc-safety-net@2.6.8 \
  && npm cache clean --force \
  && rm -rf /tmp/*
 

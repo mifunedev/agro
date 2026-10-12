@@ -274,16 +274,17 @@ describe("operator-config guard", () => {
 });
 
 describe("cc-safety-net wiring", () => {
-  const pin = "1.0.6";
+  const pin = "2.6.8";
   const hookCommand = "cc-safety-net hook --claude-code";
 
   it.each([SETTINGS_JSON, ".codex/hooks.json"])("%s runs the guard unless CC_SAFETY_NET_OFF is set", (rel) => {
     expect(hookCommands(rel).filter((c) => c.includes(hookCommand) && c.includes("CC_SAFETY_NET_OFF"))).toHaveLength(1);
   });
 
-  it("pins the same version for Pi and the image, and enables strict worktree mode in compose", () => {
+  it("pins the same version for Pi, the image and provider linking, and enables strict worktree mode in compose", () => {
     expect(readFileSync(join(ROOT, ".pi/settings.json"), "utf8")).toContain(`npm:cc-safety-net@${pin}`);
     expect(readFileSync(join(ROOT, ".devcontainer/Dockerfile"), "utf8")).toContain(`npm install -g cc-safety-net@${pin}`);
+    expect(readFileSync(join(ROOT, ".agro/scripts/link-providers.sh"), "utf8")).toContain(`CC_SAFETY_NET_PIN="${pin}"`);
     const compose = readFileSync(join(ROOT, ".devcontainer/docker-compose.yml"), "utf8");
     expect(compose).toMatch(/CC_SAFETY_NET_STRICT[=:]\s*1/);
     expect(compose).toMatch(/CC_SAFETY_NET_WORKTREE[=:]\s*1/);
@@ -291,12 +292,24 @@ describe("cc-safety-net wiring", () => {
 
   const bin = spawnSync("sh", ["-c", "command -v cc-safety-net"], { encoding: "utf8" }).stdout.trim();
 
-  it.skipIf(bin === "")("the installed binary denies a hard reset", () => {
+  it.skipIf(bin === "").each<[Decision, string]>([
+    ["allow", "echo harmless"],
+    ["deny", "git reset --hard HEAD"],
+    ["deny", "bash -c 'git reset --hard HEAD'"],
+  ])("the installed binary returns %s for %s with a PreToolUse event", (want, command) => {
     const result = spawnSync(bin, ["hook", "--claude-code"], {
-      input: JSON.stringify({ tool_name: "Bash", tool_input: { command: "git reset --hard HEAD" } }),
+      input: JSON.stringify({
+        hook_event_name: "PreToolUse",
+        cwd: ROOT,
+        tool_name: "Bash",
+        tool_input: { command },
+      }),
       encoding: "utf8",
     });
-    expect(JSON.parse(result.stdout).hookSpecificOutput.permissionDecision).toBe("deny");
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    if (want === "allow") expect(result.stdout).toBe("");
+    else expect(JSON.parse(result.stdout).hookSpecificOutput.permissionDecision).toBe("deny");
   });
 });
 

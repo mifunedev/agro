@@ -22,12 +22,14 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 - Remove the `prompt-miner` skill; `/behavioral-training` replaces it, and old prompt-miner rankings do not carry over as labels ([#1414](https://github.com/mifunedev/agro/pull/1414)).
 
 ### Fixed
+- Upgrade Pi Subagents to `0.20.0` to remove its TypeBox dependency warning; require Pi `>=1.1.0` ([#1430](https://github.com/mifunedev/agro/issues/1430)).
 - Fix `/behavioral-training` so that it no longer reports the never-exported parent of a Claude Code turn root as a capture gap ([#1421](https://github.com/mifunedev/agro/pull/1421)).
 - Fix `/behavioral-training` facts so that a Claude Code turn root ends a guard follow-up ([#1427](https://github.com/mifunedev/agro/pull/1427)).
 - Fix `agro secret set` so that it writes a piped value that has no trailing newline instead of exiting 0 without a write ([#1409](https://github.com/mifunedev/agro/issues/1409)) ([#1411](https://github.com/mifunedev/agro/pull/1411)).
 - Pass `XAI_API_KEY` into the sandbox through Compose, so that `agro secret set --sandbox` accepts the key and the banner reads it from the environment ([#1412](https://github.com/mifunedev/agro/pull/1412)).
 
 ### Security
+- Upgrade cc-safety-net to `2.6.8` across Pi, the image, and provider checks to remove vulnerable shell-quote code and add secret-path protection ([#1430](https://github.com/mifunedev/agro/issues/1430)).
 - Refuse `agro secret set --sandbox` for keys other than `GH_TOKEN`, `SANDBOX_PASSWORD`, and `TYPESAFE_API_KEY`, and deny `agro secret get` for agents in the hooks ([#1408](https://github.com/mifunedev/agro/pull/1408)).
 
 ## [0.21.0] - 2026-10-11

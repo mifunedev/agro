@@ -3,7 +3,7 @@ set -euo pipefail
 
 PROTECTED_PATHS_FILE=".claude/protected-paths.txt"
 
-CC_SAFETY_NET_PIN="1.0.6"
+CC_SAFETY_NET_PIN="2.6.8"
 
 required_files=(
   ".agro/skills/git/SKILL.md"

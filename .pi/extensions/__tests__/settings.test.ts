@@ -36,14 +36,14 @@ describe("project Pi settings", () => {
     const settings = readPiSettings();
 
     expect(settings.packages).toEqual([
-      "npm:@tintinweb/pi-subagents@0.12.0",
+      "npm:@tintinweb/pi-subagents@0.20.0",
       "npm:@tintinweb/pi-tasks@0.7.0",
       "npm:@narumitw/pi-goal@0.54.8",
       "npm:@narumitw/pi-codex-usage@0.6.2",
       "npm:@trevonistrevon/pi-loop@0.7.15",
       "npm:@guwidoe/pi-prompt-suggester@0.3.10",
       "npm:@ff-labs/pi-fff@0.9.5",
-      "npm:cc-safety-net@1.0.6",
+      "npm:cc-safety-net@2.6.8",
     ]);
     expect(settings.skills).toBeUndefined();
   });
@@ -62,8 +62,8 @@ describe("project Pi settings", () => {
     expect(packageIdentity("npm:Pi-Dynamic-Workflows@1.0.1")).toBe(RETIRED_PACKAGE_NAME);
     expect(packageIdentity("npm:@tintinweb/pi-tasks@0.7.0")).toBe("pi-tasks");
     expect(packageIdentity("git:github.com/tifandotme/pi-recap@v1")).toBe("pi-recap");
-    expect(packageIdentity("npm:@tintinweb/pi-subagents@0.12.0")).toBe("pi-subagents");
-    expect(packageIdentity("npm:cc-safety-net@1.0.6")).toBe("cc-safety-net");
+    expect(packageIdentity("npm:@tintinweb/pi-subagents@0.20.0")).toBe("pi-subagents");
+    expect(packageIdentity("npm:cc-safety-net@2.6.8")).toBe("cc-safety-net");
   });
 
   it("excludes retired packages regardless of source or version", () => {
