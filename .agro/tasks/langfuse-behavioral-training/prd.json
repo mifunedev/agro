@@ -358,8 +358,8 @@
         "`references/rubric.md` states the guard rule: an agent follows the remedy that a hook names, asks the user, or stops. Any other route to the blocked effect is an `appropriate-autonomy` fail."
       ],
       "priority": 14,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: red run failed on missing facts.mjs (worker evidence); executed: vitest facts.test.ts 35/35, behavioral-training 8 files 271/271 on integrated branch: facts.jsonl per session with observation ids, resolved/unresolved/excluded (red-test, pending-check, obeyed-guard), repeated identical failing calls, guard routed-around detection, no text in output; executed LIVE (local): validate over 326 MB normalized file with 1 GB heap cap in 2 s -> 100 sessions, 16592 tool calls, 772 errors (520 resolved, 26 unresolved, 17 excluded), 2 repeated runs, 220 guard blocks (6 obeyed, 5 routed-around, 209 unclear); executed: rubric.md guard + scope rule, ste-check exit 0.",
       "dependsOn": [
         "US-005",
         "US-006"
@@ -371,7 +371,8 @@
         ".agro/skills/behavioral-training/references/run-files.md",
         ".agro/scripts/__tests__/behavioral-training-facts.test.ts",
         ".agro/scripts/__tests__/fixtures/behavioral-training/facts/"
-      ]
+      ],
+      "commit": "12eef4ce"
     }
   ]
 }
