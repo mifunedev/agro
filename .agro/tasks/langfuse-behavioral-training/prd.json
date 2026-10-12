@@ -298,13 +298,14 @@
         "Private run files stay outside every tracked worktree."
       ],
       "priority": 11,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed LIVE against https://langfuse-dev.mifune.dev (project AGRO cmubtljuf0005ph07rx51agye, CLI 1.2.4): preflight recorded project/window/filters/versions; inventory 327 sessions with zero exploratory writes; sample 100 (50/25/25); 40 seed sessions open-coded; operator approved seed set (gate 1, rule level) after US-014 facts and guard rule were applied; operator approved taxonomy-v1 (gate 2) before bulk classification of the other 60; validate 600 annotations, 0 errors; synthetic publish to agro/behavior/test: apply interrupted after 8 writes, resume wrote 4, rerun wrote 0, remote 5 items/4 scores unique, retract deleted all items and scores, 3 empty test datasets remain (no dataset delete endpoint); live resume of inventory/normalize/publish and live lock collision exit 5; run files under TMPDIR scratchpad, outside every worktree.",
       "dependsOn": [
         "US-010",
         "US-014"
       ],
-      "files": []
+      "files": [],
+      "commit": "d3eb7655"
     },
     {
       "id": "US-012",
