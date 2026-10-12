@@ -767,19 +767,48 @@ metadata holds `calibrationStatus` for an automated label.
 - `rateLabel` and `rateNote`
 - `inputs`, which maps each input file to `read`, `invalid`, or `not-run`
 - `stages` with `{ status, cause, attempts, finishedAt }` of each other stage
-- `counts` and `denominators`
+- `counts` and `denominators`; `counts.factsSessions` is the count of
+  distinct session ids in `facts.jsonl`
 - `inventory` and `sample` summaries
+- `taxonomy` as `{ status, version, rubricVersion, approval, approvedAt }`
 - `categoryDenominator`, and `categories` as a list of
   `{ id, dimension, count, denominator, calibrationStatus, sessionIds, sourceLinks }`
 - `captureGaps`
+- `facts`, a count summary of `facts.jsonl`
 - `calibration` with the status of each dimension
 - `datasets` with the dataset versions
 - `comparison`, a summary of `comparison.json`
 - `errors` with the cause code and the redacted message of each error
 
+When `taxonomy.json` holds an `approval` with an `approvedAt` timestamp,
+`taxonomy.approval` is `approved`. Otherwise, `taxonomy.approval` is
+`pending operator approval`, and `approvedAt` is `null`. If `taxonomy.json`
+does not exist, `taxonomy` is `{ status: "not-run" }`.
+
+`facts` holds these fields:
+
+| Field | Content |
+|---|---|
+| `status` | `read`, or `not-run` when `facts.jsonl` does not exist |
+| `sessions` | The count of distinct session ids |
+| `toolCalls`, `toolErrors` | The sums of the record counts |
+| `resolved`, `unresolved`, `excluded`, `unclassified` | The item counts of `resolvedErrors`, `unresolvedErrors`, `excludedErrors`, and `unclassified` |
+| `unresolvedByReason` | The count of `unresolvedErrors` items for each `reason` |
+| `excludedByClass` | The count of `excludedErrors` items for each `class` |
+| `unclassifiedByReason` | The count of `unclassified` items for each `reason` |
+| `repeatedFailingCalls` | The item count of `repeatedFailingCalls` |
+| `guardBlocks` | `{ total, byFollowUp }`; `byFollowUp` counts `obeyed`, `routed-around`, and `unclear` |
+
+Each breakdown holds each value from the `facts.jsonl` contract, also with a
+count of 0. The key `other` counts a value outside the contract. `facts` holds
+no observation id, no tool name, and no input hash.
+
 The stage marks a missing input file `not-run`, never zero. If an input file
 does not parse, the stage marks the file `invalid`, lists the file in
 `errors`, and reports `partial`.
+
+`report` exports `resumeAlways`. Each `--resume` runs `report` again, because
+a later stage can add an input file that the last checkpoint did not record.
 
 `report.md` presents the content of `report.json`. Both files hold ids, counts,
 and links only. Both files hold no message text.
