@@ -1,206 +1,187 @@
 ---
 name: agent-browser
 description: |
-  Open a URL in the headless agent-browser, with a preflight health check.
-  Verifies agent-browser is installed and Chromium launches before navigating.
-  Errors out with a diagnostic trace if anything fails.
+  Open a URL in the headless agent-browser in a named session, with a
+  preflight health check. Take screenshots and record desktop or mobile
+  videos as task evidence or demo source footage.
   TRIGGER when: asked to open a page, browse a URL, take a screenshot,
-  or test a site with agent-browser.
-argument-hint: "<url> [--viewport desktop|mobile] [--session <name>]"
+  test a site with agent-browser, record a browser flow, capture a
+  walkthrough or demo video, or record a bug reproduction.
+argument-hint: "<url> [--viewport desktop|mobile] [--task <slug>] [--session <name>]"
 ---
 
 # Agent Browser
 
-Open a URL in the headless browser. Runs a health check first — if the browser is broken, errors out with a full diagnostic trace so the user can fix it.
+Open a URL in the headless browser in a named session. A preflight health check
+runs first. If the browser is broken, stop and report the full diagnostic trace.
 
-## Instructions
+`.agro/cli/src/lib/tools/catalog.ts` owns the supported agent-browser version.
+This skill states no version. Check commands against `agent-browser --help` of
+the installed version.
 
-### Step 1 — Parse arguments
+## Arguments
 
 Arguments received: `$ARGUMENTS`
 
-- **URL**: `$0` (required)
-- **VIEWPORT**: value after `--viewport` flag if present. Default: `desktop`
-- **SESSION**: value after `--session` flag if present (optional, for session isolation)
+- **URL**: `$0`. If the URL is missing, ask the user for it.
+- **VIEWPORT**: the value after `--viewport`. Default: `desktop`.
+- **TASK**: the value after `--task`. Default: the slug of the current task
+  under `.agro/tasks/`. If no task exists, use `adhoc`.
+- **SESSION**: the value after `--session`. Default: the task slug and the
+  worktree name:
 
-If URL is missing, ask the user to provide it.
+  ```bash
+  SESSION="${SESSION:-$TASK-$(basename "$(git rev-parse --show-toplevel)")}"
+  ```
 
-### Viewport defaults
+Every `agent-browser` command in this skill passes `--session "$SESSION"`. A
+command without it uses the shared `default` session of another agent.
 
-| Name | Width | Height |
-|------|-------|--------|
-| `desktop` | 1280 | 720 |
-| `mobile` | 414 | 896 |
+## Dimensions
 
-Default is `desktop` if `--viewport` is not specified.
+| Profile | Evidence and screenshots | Demo | Mode |
+|---|---|---|---|
+| `desktop` | 1280x720 CSS | 1920x1080 CSS | Viewport only |
+| `mobile` | 414x896 CSS | 414x896 CSS | Viewport only, or device emulation with `--device` |
 
-### Step 2 — Preflight health check
+Set the viewport before `open`. `record.sh start` fixes the viewport of a
+recording. A later `set viewport` does not resize the video.
 
-Run each check sequentially. If any check fails, **stop immediately** and report the full diagnostic trace to the user.
+## Preflight
 
-#### 2a. Check agent-browser is installed
+Run each check in sequence. If a check fails, stop and report the full output.
+
+### 1. Install agent-browser and FFmpeg
 
 ```bash
-command -v agent-browser && agent-browser --version 2>&1 || echo "FAIL: agent-browser not found in PATH"
+command -v agent-browser && agent-browser --version || echo "FAIL: agent-browser not found in PATH"
 ```
 
-If not found, install agent-browser through the CLI — the catalog entry pins the
-version, fixes the binary's mode, and runs `agent-browser install --with-deps`
-for you:
+If agent-browser is missing, install agent-browser through the catalog:
 
 ```bash
 agro tool install agent-browser --yes
 ```
 
-The confirmation gate requires `--yes` whenever stdin is not a TTY: the entry declares a
-`~1 GB` download, and the confirmation gate refuses rather than prompting.
+The catalog entry declares a `~1 GB` download. When stdin is not a TTY, the
+confirmation gate refuses without `--yes`. In the sandbox, the command installs
+the pinned package and Chromium. On the host, the command installs a pinned
+release binary into `~/.local/bin` and downloads no browser. The host then
+needs a Chromium-family browser, or `AGENT_BROWSER_EXECUTABLE_PATH` that points
+at one. Firefox is not a supported target.
 
-That path applies in the sandbox. When no sandbox is reachable, the same
-command installs a pinned release binary into `~/.local/bin` on the host,
-downloads no browser, and needs no `--yes`. It then requires a
-Chromium-family browser already on the host, or
-`AGENT_BROWSER_EXECUTABLE_PATH` pointing at one. Firefox is not a supported
-target.
+Do not use `sudo npm install -g`. That install goes under `/usr/lib/node_modules`,
+and a running sandbox cannot upgrade it in place.
 
-Verify:
-
-```bash
-agent-browser --version     # → agent-browser 0.8.5
-agent-browser open about:blank && agent-browser close
-```
-
-Notes:
-- **0.8.5** — later majors have breaking CLI changes; the rest of this
-  skill targets 0.8.5's flags. The catalog owns the pin.
-- **Do not reach for `sudo npm install -g`.** It lands under
-  `/usr/lib/node_modules`, which no running sandbox can upgrade in place.
-  Use `agro tool install agent-browser`: the catalog installs into `$PNPM_HOME`
-  under the sandbox user's own home.
-- If `agent-browser install --with-deps` ever ends with
-  `sh: 1: playwright: not found`, the playwright CLI is missing:
-  `npx playwright install chromium` after `pnpm add -g playwright@latest`.
-
-After installing, resume the health check from step 2b — **do not stop**.
-
-#### 2b. Check Chromium launches
+Recording also needs `ffmpeg`, `ffprobe`, the `libx264` encoder, and `jq`. If
+`ffmpeg` or `ffprobe` is missing, install both tools:
 
 ```bash
-agent-browser open "about:blank" 2>&1
+agro tool install ffmpeg
 ```
 
-If this fails (non-zero exit, error output mentioning "chrome", "chromium", "ENOENT", "launch", or "sandbox"), report the full error and:
+### 2. Check that Chromium launches
+
+```bash
+agent-browser --session "$SESSION" open about:blank 2>&1
+```
+
+If the command fails, report the full error and these common causes:
 
 ```
 Chromium failed to launch. Common causes:
 
-1. Missing system dependencies:
-   apt-get install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
-     libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 \
-     libpango-1.0-0 libcairo2 libasound2 libxshmfence1 libx11-xcb1 \
-     fonts-liberation xdg-utils
-
-2. Chromium not downloaded:
+1. Missing system dependencies or browser binaries:
    agent-browser install --with-deps
 
-3. Sandbox permission issue (containers):
+2. Sandbox permission issue (containers):
    Ensure --no-sandbox is set or container has SYS_ADMIN capability.
+
+3. A stale install:
+   agent-browser doctor --fix
 ```
 
-**Stop here** — do not continue. Close the failed session first:
+Close the failed session, then stop:
 
 ```bash
-agent-browser close 2>/dev/null
+agent-browser --session "$SESSION" close 2>/dev/null
 ```
 
-#### 2c. Verify page loaded
+### 3. Check that a page renders
 
 ```bash
-agent-browser snapshot -c 2>&1
+agent-browser --session "$SESSION" snapshot -c 2>&1
 ```
 
-If snapshot returns content (even minimal), the browser is healthy. Close the health-check session:
+Content, even minimal content, shows a healthy browser. Keep the session open
+for the next step.
 
-```bash
-agent-browser close
-```
+### 4. Resolve tunnel hostnames
 
-### Step 2d — DNS resolution check (tunnel hostnames)
-
-If the URL contains a hostname served by a Cloudflared tunnel or custom DNS route, the container's DNS may not resolve it yet. Check and fix:
+If a Cloudflared tunnel or a custom DNS route serves the URL host, the container
+DNS may not resolve the host yet:
 
 ```bash
 HOSTNAME=$(echo "$URL" | sed 's|https\?://||; s|/.*||; s|:.*||')
 if ! getent hosts "$HOSTNAME" &>/dev/null; then
-  # Resolve via Cloudflare DNS API
   IP=$(curl -sf "https://cloudflare-dns.com/dns-query?name=${HOSTNAME}&type=A" \
     -H "accept: application/dns-json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['Answer'][0]['data'])" 2>/dev/null)
   if [ -n "$IP" ]; then
     echo "$IP $HOSTNAME" | sudo tee -a /etc/hosts >/dev/null
-    echo "Added $HOSTNAME -> $IP to /etc/hosts (container DNS didn't resolve it)"
   else
     echo "FAIL: $HOSTNAME does not resolve. Check tunnel/DNS routing."
-    # Stop here
   fi
 fi
 ```
 
-This ensures agent-browser can reach tunnel-served sites even when the container's DNS resolver hasn't propagated the CNAME yet.
+## Open and screenshot
 
-### Step 3 — Open the target URL with viewport
-
-Set the viewport size based on the selected viewport, then open the URL:
+Set the viewport from the dimension table, then open the URL:
 
 ```bash
-# Desktop: 1280x720, Mobile: 375x812
-agent-browser open "$URL" --viewport-width $WIDTH --viewport-height $HEIGHT $( [ -n "$SESSION" ] && echo "--session $SESSION" )
+agent-browser --session "$SESSION" set viewport "$WIDTH" "$HEIGHT"
+agent-browser --session "$SESSION" open "$URL"
+agent-browser --session "$SESSION" snapshot -c
 ```
 
-If `agent-browser open` does not support `--viewport-width`/`--viewport-height` flags, open the URL first, then resize:
+Report the page title and the key visible elements.
+
+Save screenshots under the task evidence directory. Use an absolute path. The
+browser daemon resolves a relative path from its own working directory.
 
 ```bash
-agent-browser open "$URL" $( [ -n "$SESSION" ] && echo "--session $SESSION" )
-agent-browser eval "await page.setViewportSize({ width: $WIDTH, height: $HEIGHT })"
-```
-
-If this fails, report the error with the full output.
-
-### Step 4 — Confirm page loaded and screenshot
-
-```bash
-agent-browser snapshot -c
-```
-
-Report a summary of what loaded (page title, key elements visible).
-
-Take a screenshot to `.claude/screenshots/` using a descriptive filename derived from the URL path. **Use an absolute output path** — `agent-browser` 0.8.5 writes relative paths from the daemon's working directory, so relative paths can silently miss the intended repo location.
-
-```bash
-# Generate filename from URL: strip protocol, replace / with --, remove trailing -
 FILENAME=$(echo "$URL" | sed 's|https\?://||; s|/|--|g; s|--$||; s|[^a-zA-Z0-9._-]|-|g')
-SCREENSHOT_PATH="$PWD/.claude/screenshots/${FILENAME}.png"
+SCREENSHOT_PATH="$(git rev-parse --show-toplevel)/.agro/tasks/$TASK/evidence/${FILENAME}-${VIEWPORT}.png"
 mkdir -p "$(dirname "$SCREENSHOT_PATH")"
-agent-browser screenshot "$SCREENSHOT_PATH"
+agent-browser --session "$SESSION" screenshot "$SCREENSHOT_PATH"
 ```
 
-Example: `https://my-app.oh-local.localhost:8443/guide/configuration/` → `$PWD/.claude/screenshots/my-app.oh-local.localhost-8443--guide--configuration.png`
+Git ignores `.agro/tasks/*/*`. To link a screenshot in a PR, follow
+`.agro/skills/git/references/manual-review.md`.
 
 ### Annotated screenshots
 
-To take an annotated screenshot, use `scripts/annotate-screenshot.sh`. The script works on the page that agent-browser has open:
+`scripts/annotate-screenshot.sh` annotates the current page of the session.
+Give the session through `AGENT_BROWSER_SESSION`:
 
 ```bash
-bash .agro/skills/agent-browser/scripts/annotate-screenshot.sh "$SCREENSHOT_PATH" '#title=the card title' '#status=the Baseline time'
+AGENT_BROWSER_SESSION="$SESSION" bash .agro/skills/agent-browser/scripts/annotate-screenshot.sh \
+  "$SCREENSHOT_PATH" '#title=the card title' '#status=the Baseline time'
 ```
 
-The script adds one numbered red callout for each `<selector>=<label>` pair, takes the screenshot, and removes the callouts. It prints the `Callouts:` line for the screenshot, for example `Callouts: 1 is the card title. 2 is the Baseline time.`. Put that line under the screenshot. If a selector matches no element, the script names the selector, exits 1, and writes no file. On bad usage, the script exits 2.
+The script adds one numbered red callout for each `<selector>=<label>` pair,
+takes the screenshot, and removes the callouts. It prints the `Callouts:` line,
+for example `Callouts: 1 is the card title. 2 is the Baseline time.`. Put that
+line under the screenshot. If a selector matches no element, the script names
+the selector, exits 1, and writes no file. On bad usage, the script exits 2.
 
 ### Copy-button checks
 
-A plain `agent-browser clipboard read` fails with `Read permission denied`. Chromium keeps a clipboard permission grant only while the DevTools client that set it stays connected. `scripts/clipboard-read.mjs` grants the clipboard permission for the page origin through CDP, reads the clipboard while it stays connected, and disconnects after the read.
+A plain `agent-browser clipboard read` fails with `Read permission denied`.
+`scripts/clipboard-read.mjs` grants the clipboard permission for the page origin
+through CDP and reads the clipboard while it stays connected.
 
-To prove that a copy button writes the expected text, do these steps:
-
-1. Open the page in a named session:
+1. Open the page:
 
    ```bash
    agent-browser --session "$SESSION" open "$URL"
@@ -218,37 +199,167 @@ To prove that a copy button writes the expected text, do these steps:
    node .agro/skills/agent-browser/scripts/clipboard-read.mjs --session "$SESSION"
    ```
 
-4. Compare the output with the expected text. The script prints only the clipboard text. On a failure, the script prints one reason line on stderr and exits 1. On bad usage, the script exits 2.
+4. Compare the output with the expected text. The script prints only the
+   clipboard text. On a failure, it prints one reason line on stderr and exits 1.
+   On bad usage, it exits 2.
 
-5. Close the session:
+The script works for `http://`, `https://`, and `file://` pages. The test
+`scripts/tests/clipboard-read.test.sh` runs these steps on
+`scripts/tests/fixtures/copy-button.html` and expects `agro-copy-check`.
+
+If CDP is not available, wrap `navigator.clipboard.writeText` with
+`agent-browser --session "$SESSION" eval` before the click, and read the
+captured text after the click. This fallback proves only the text that the page
+gave to `writeText`, not that the write succeeded.
+
+## Recording
+
+A recording is supporting evidence. A recording never satisfies an acceptance
+gate or an audit gate alone. Assertions and tests stay authoritative.
+`captureStatus` tells whether the video is complete. `assertionStatus` tells
+whether the scenario passed. Report the two values separately.
+
+### Select the evidence
+
+The advisor maps each acceptance criterion to an evidence type during planning.
+The worker follows that map and gives the reason with `--reason`.
+
+| Criterion or request | Required evidence |
+|---|---|
+| Static appearance, text, spacing, or responsive layout | Screenshots at relevant desktop/mobile sizes |
+| Multistep navigation, loading transitions, drag-and-drop, animation, or timing-dependent behavior | Video plus outcome assertions |
+| A reproducible bug involving an action sequence or timing | Before/after recordings and a regression assertion |
+| Backend or CLI behavior without visible UI changes | Tests and logs; browser capture is not required |
+| Explicit recording, walkthrough, or marketing demo request | Video using the requested purpose |
+| Responsive interaction that affects desktop and mobile | Separate videos of the same scenario in both profiles |
+
+Record when a still image cannot show the claimed behavior, or when the operator
+asks for a recording. An explicit request takes precedence over this table. A
+change to the planned evidence needs a recorded reason.
+
+Rerun rule: if a failure occurred without a capture, record a safe rerun when
+possible. Start the rerun with `--rerun <original-run>`. A rerun never claims to show
+the original failure. If a reproduction is not available, report that. Never
+fabricate before footage.
+
+### Purpose and profile
+
+Purpose and profile are independent. All four combinations are valid.
+
+| Setting | `evidence` | `demo` |
+|---|---|---|
+| Desktop CSS viewport | 1280x720 | 1920x1080 |
+| Mobile CSS viewport | 414x896 | 414x896 |
+| Frame rate | 30 FPS | 30 FPS; `--fps 60` for motion-heavy scenarios |
+| Pacing | Actual execution, including relevant failures | Deliberate actions and readable pauses |
+| Pointer | None | Visible cursor on desktop; none on mobile |
+| Data | Authorized test data | Clean demo data without unrelated private content |
+| Outputs | `video.mp4`, `manifest.json` | `video.mp4`, `manifest.json`, `thumbnail.png`, `scenario.md` |
+
+### Dimensions
+
+Keep four values distinct:
+
+- **CSS viewport** selects the responsive layout. Set it with `--width` and
+  `--height`, or with `--device`.
+- **Pixel density** is `--scale`. `--scale 2` doubles the encoded pixels, for
+  example 1280x720 CSS to 2560x1440 video.
+- **Encoded size** is the size of the video file. `record.sh stop` reads it
+  with `ffprobe` and writes `encodedSize` and `effectiveScale`.
+- **Export canvas** is the intended downstream canvas, for example `1920x1080`,
+  `1080x1920`, or `1080x1080`. `--export` only records it. Composition belongs
+  to downstream editing.
+
+Rules:
+
+- Never set a `1080x1920` CSS viewport to make a vertical marketing asset. That
+  selects the wrong layout. Capture at 414x896, add `--scale` for detail, and
+  give `--export 1080x1920`.
+- Report the encoded size from the manifest. Never describe upscaled footage as
+  higher-detail capture.
+- A viewport-only capture (`emulation: viewport-only`) never claims device
+  behavior. Only `--device "<name>"` emulates a device, for example
+  `--device "iPhone 12"` gives a 390x844 CSS viewport, 1170x2532 video, and an
+  iPhone user agent. `--device` excludes `--width`, `--height`, and `--scale`.
+- Odd sizes round up to even numbers.
+
+### Record a scenario
+
+1. Start the recording. `record.sh start` opens the URL in a new session, starts
+   the recording, and prints the absolute run directory:
 
    ```bash
-   agent-browser --session "$SESSION" close
+   DIR="$(bash .agro/skills/agent-browser/scripts/record.sh start \
+     --task "$TASK" --run "$RUN" --purpose evidence --profile desktop \
+     --scenario "Open the menu and save the form" --url "$URL" \
+     --criteria "AC-2" --reason "timing-dependent transition")"
    ```
 
-The script works for `http://`, `https://`, and `file://` pages. For a `file://` page, the script grants the origin `file://`. The test `scripts/tests/clipboard-read.test.sh` runs these steps on `scripts/tests/fixtures/copy-button.html` and expects `agro-copy-check`.
+   Full syntax:
 
-If CDP is not available, wrap `navigator.clipboard.writeText` with `agent-browser eval` before the click, and read the captured text after the click. This fallback proves only the text that the page gave to `writeText`, not that the write succeeded.
+   ```
+   record.sh start --task <slug> --run <id> --purpose evidence|demo --profile desktop|mobile
+                   --scenario <text> --url <url> [--criteria <text>] [--reason <text>]
+                   [--width <px> --height <px>] [--scale <n>] [--device <name>]
+                   [--fps <n>] [--max-seconds <n>] [--export <w>x<h>] [--rerun <run>]
+   record.sh stop --dir <dir> --assertions pass|fail|none
+   ```
 
-### Step 5 — Report
+   The run directory is
+   `.agro/tasks/<task>/evidence/browser/<run>/<profile>/` under
+   `$AGRO_EVIDENCE_ROOT` or the git top level. An existing directory is an
+   error; use a new `--run`. The defaults are 30 FPS and 120 seconds. At
+   `--max-seconds`, a watchdog stops the recording.
+
+2. Drive the scenario in the session that `record.sh` owns:
+
+   ```bash
+   REC_SESSION="$TASK-$RUN-desktop"
+   agent-browser --session "$REC_SESSION" click '#menu-toggle'
+   agent-browser --session "$REC_SESSION" fill '#name' 'Ada'
+   agent-browser --session "$REC_SESSION" click '#save'
+   ```
+
+3. Check the outcome with assertions, for example
+   `agent-browser --session "$REC_SESSION" get text '#status'`.
+
+4. Stop the recording, even when an assertion failed:
+
+   ```bash
+   bash .agro/skills/agent-browser/scripts/record.sh stop --dir "$DIR" --assertions pass
+   ```
+
+   The command stops and flushes the recording, closes the session, and prints
+   one summary line. `agent-browser close` alone does not flush a recording.
+   `captureStatus` is `complete`, `timeout`, or `incomplete`. An `incomplete`
+   capture is not a usable video.
+
+Exit status: 0 on success, 1 on an error, 2 on bad usage. Missing `ffmpeg`,
+`ffprobe`, or `libx264` fails before capture with the install command.
+
+For a paired desktop and mobile request, run the same scenario twice with the
+same `--run`: once with `--profile desktop` and once with `--profile mobile`.
+Give each run a suitable starting state. Report each profile as its own result.
+
+Git ignores the run directory. Report the real local path. Never invent a
+shareable URL. Never overwrite an original video with an edited demo.
+
+## Report
 
 ```
 Browser ready.
 
   URL:        $URL
   Viewport:   $VIEWPORT ($WIDTHx$HEIGHT)
-  Session:    $SESSION (or "default")
+  Session:    $SESSION
   Screenshot: $SCREENSHOT_PATH
-
-  Next steps:
-    agent-browser screenshot <absolute-path>  # capture to custom path
-    agent-browser snapshot -i                 # interactive elements
-    agent-browser is visible "<selector>" # wait for element
-    agent-browser close                   # end session (always do this)
 ```
 
-## Session Hygiene
+For a recording, give the `record.sh stop` summary line for each profile, the
+scenario, the tested commit from `manifest.json`, and the assertion results.
 
-- ALWAYS close browser sessions when done: `agent-browser close`
-- Use `--session <name>` for isolation between concurrent test runs
-- If any step errors, close the session before reporting to the user
+## Session hygiene
+
+- Close each session when done: `agent-browser --session "$SESSION" close`.
+- If a step fails, close the session before you report.
+- Never run `agent-browser close --all`. It closes the sessions of other agents.

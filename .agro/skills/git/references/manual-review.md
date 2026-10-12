@@ -62,6 +62,28 @@ Write these parts in this sequence:
 5. **Cleanup.** Give the steps that delete each resource that the scenarios
    create.
 
+### Recordings
+
+Link a recording when a step shows interaction or motion that a screenshot
+cannot show. Make the recording with
+`.agro/skills/agent-browser/scripts/record.sh`. A recording supports the
+expected results. A recording does not replace them.
+
+Under the step, give one line for each profile, from the `manifest.json` of the
+run:
+
+- **Video.** The `blob/<commit-sha>/<path>?raw=true` link to `video.mp4`.
+- **Scenario.** The `scenario` value.
+- **Profile.** `desktop` or `mobile`, the purpose, the CSS viewport, and the
+  emulation mode. A `viewport-only` capture makes no device claim.
+- **Tested revision.** The `commit` value. Add "(dirty)" when `dirty` is `true`.
+- **Assertions.** The `assertionStatus` value and the assertion that it reports.
+- **Capture status.** The `captureStatus` value. Never link an `incomplete`
+  capture as proof. Label a rerun as a rerun.
+
+For a paired request, give the desktop line and the mobile line under the same
+step.
+
 Example, trimmed from mifunedev/agro-console#185:
 
 ```markdown

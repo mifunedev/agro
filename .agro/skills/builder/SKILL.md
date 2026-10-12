@@ -14,7 +14,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 # Builder
 
 Build one artifact through the matching type reference. Run inline and inherit the
-session model; do not fork or override the model unless the artifact being authored
+session model; do not fork or override the model unless the target artifact
 has an independently justified need.
 
 Arguments received: `$ARGUMENTS`
@@ -40,7 +40,7 @@ Arguments received: `$ARGUMENTS`
    ```
 
    `agent` is not an artifact type. A reusable role, procedure, or specialist
-   judgment is authored as a skill; a bounded isolated worker context is an
+   judgment belongs in a skill; a bounded isolated worker context is an
    execution choice made by `/delegate`, not a repository artifact.
 
 4. Read the selected reference completely, then execute its protocol against the
@@ -58,7 +58,7 @@ steps.
   target directory. More local instructions win.
 - Identify the source-of-truth artifact directory. In AGRO and equipped
   projects, edit `.agro/skills/`; provider directories such as `.claude/`,
-  `.codex/`, and `.pi/` are generated or symlinked exposure surfaces.
+  `.codex/`, and `.pi/` only expose canonical skills through generated files or symlinks.
 - Outside an AGRO layout, follow the target project's documented canonical
   path rather than creating `.agro/` speculatively.
 - Inspect two or three nearby artifacts of the same type. Reuse their naming,
@@ -92,14 +92,18 @@ or create unsafe side effects. Otherwise use the request and repository evidence
 
 ### 4. Validate and report
 
-- Validate frontmatter delimiters and required fields without assuming optional YAML
-  libraries are installed.
+- Validate frontmatter delimiters and required fields without a dependency on optional
+  YAML libraries.
 - Check every referenced path, invocation, tool, and supporting file.
 - Enforce the selected reference's size, safety, and semantic checks.
 - When `.agro/scripts/link-providers.sh` exists and canonical `.agro/` primitives were
   changed, run `bash .agro/scripts/link-providers.sh --check`.
 - Run `git diff --check` when inside a Git worktree.
+- When the validation evidence of an artifact covers browser interaction or
+  motion, ask for a recording with
+  `.agro/skills/agent-browser/scripts/record.sh`. Keep the assertions and tests.
+  A recording is supporting evidence and does not replace assertions or tests.
 - Report the files created, updated, or removed; the resulting invocation or loading
-  behavior; key design choices; and validation evidence. Never claim a check ran if
-  it did not.
+  behavior; key design choices; and validation evidence. Report only the checks
+  you ran.
 
