@@ -123,6 +123,11 @@ cross the sandbox boundary or make persistent work depend on an attached termina
 - **Do not treat the closest context file as the only context.** Context is
   cumulative. Read every applicable file and resolve conflicts by target-path
   specificity.
+- **Do not route around a guard.** A hook that blocks an action is a decision point,
+  not an obstacle. Follow the remedy that the hook names, ask the operator, or stop
+  and report the action as BLOCKED. Reaching the blocked effect through another
+  command, a script file, or another tool is a violation, even when the result is
+  recoverable.
 
 ## Think through every affected surface
 

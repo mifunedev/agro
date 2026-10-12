@@ -8,6 +8,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Changed
+- Forbid agents from reaching a hook-blocked effect through another command, script, or tool in root `AGENTS.md` ([#1415](https://github.com/mifunedev/agro/issues/1415)).
+
 ### Fixed
 - Fix `agro secret set` so that it writes a piped value that has no trailing newline instead of exiting 0 without a write ([#1409](https://github.com/mifunedev/agro/issues/1409)) ([#1411](https://github.com/mifunedev/agro/pull/1411)).
 - Pass `XAI_API_KEY` into the sandbox through Compose, so that `agro secret set --sandbox` accepts the key and the banner reads it from the environment ([#1412](https://github.com/mifunedev/agro/pull/1412)).
