@@ -48,8 +48,8 @@
         "When `agent-browser` or Chromium is not available, the test prints `SKIP:` and exits 0, as `clipboard-read.test.sh` does."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: worker showed exit 127 before record.sh. 2-10 executed: advisor reran recording.test.sh on task branch: exit 0, 62 ok, 0 FAIL (21s); worker covered missing ffmpeg/ffprobe/libx264 (exit 1, hint names agro tool install ffmpeg), session <task>-<run>-<profile>, absolute dir incl. space path, defaults 1280x720/1920x1080/414x896 H.264 30fps, watchdog timeout, stop flush and own-session close, ffprobe-incomplete exit 1, 26 manifest keys from ffprobe, demo thumbnail and scenario.md, no overwrite. grep: every session-scoped agent-browser call passes --session. 11 executed: desktop inline nav, mobile toggle, Saved: Ada, paired, failed assertion, concurrent isolation. 12 executed: --scale 2 gives 2560x1440 (effectiveScale 2); --device iPhone 12 gives 390x844 CSS, 1170x2532 encoded (effectiveScale 3). 13 executed: SKIP cases exit 0. Known: one unreproduced flake (paired desktop stop saw no recording); helper reported incomplete and exit 1 as designed. Upstream close does not flush.",
       "dependsOn": [
         "US-001"
       ],
@@ -57,7 +57,8 @@
         ".agro/skills/agent-browser/scripts/record.sh",
         ".agro/skills/agent-browser/scripts/tests/recording.test.sh",
         ".agro/skills/agent-browser/scripts/tests/fixtures/responsive.html"
-      ]
+      ],
+      "commit": "fc05d5c2b7010f4d2b77bd56321930033529a256"
     },
     {
       "id": "US-003",
