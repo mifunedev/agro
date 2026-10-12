@@ -124,8 +124,8 @@
         "The stage splits a session larger than `--max-bytes` into source-addressable chunks and does not summarize tool evidence."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: red run failed on missing normalize.mjs (worker evidence); executed: vitest normalize.test.ts on integrated branch (full suite 103 files, 2398 passed): ids/timestamps/parents/order kept, null root I/O read from GENERATION/TOOL events, overlapping history deduped with dedupedFrom, explicit truncation vs capture-limit unknown, nulls kept, max-bytes chunking without summarization, cross-session parents classified via metadata-only trace lookup; executed LIVE on dev project: 100/100 sampled sessions normalized (1388 chunks, 46 explicitly truncated) after resumes; found and fixed narrow-request HTTP 422 (time-window reads with recursive split) and cross-session parent mislabel (825 false parent gaps).",
       "dependsOn": [
         "US-002",
         "US-003"
@@ -134,7 +134,8 @@
         ".agro/skills/behavioral-training/scripts/lib/normalize.mjs",
         ".agro/scripts/__tests__/behavioral-training-normalize.test.ts",
         ".agro/scripts/__tests__/fixtures/behavioral-training/normalize/"
-      ]
+      ],
+      "commit": "ac96d39c"
     },
     {
       "id": "US-006",
