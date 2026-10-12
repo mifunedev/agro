@@ -737,6 +737,89 @@ describe("report", () => {
     }
     expect(manifestOf(runDir).stages.report).toMatchObject({ status: "partial", cause: "invalid-run-files" });
   });
+
+  it("reruns on --resume and reports an input that appeared after the last report", async () => {
+    const report = await loadReport();
+    expect(report.resumeAlways).toBe(true);
+    const runDir = join(temp("bt-report-"), "run");
+    mkdirSync(runDir, { mode: 0o700 });
+    copyFixtures(runDir, ["sample.json"]);
+    writeManifest(runDir, baseManifest());
+    const out: string[] = [];
+    const deps = {
+      env: {},
+      now: () => new Date("2026-10-11T12:00:00.000Z"),
+      stdout: (text: string) => out.push(text),
+      stderr: (text: string) => out.push(text),
+    };
+    expect(await main(["report", "--run-dir", runDir, "--resume"], deps)).toBe(EXIT.complete);
+    expect(JSON.parse(readFileSync(join(runDir, "report.json"), "utf8")).counts.annotations).toBe("not-run");
+    copyFixtures(runDir, ["annotations.jsonl", "taxonomy.json"]);
+    expect(await main(["report", "--run-dir", runDir, "--resume"], deps)).toBe(EXIT.complete);
+    expect(out.join("\n")).not.toMatch(/report.*skipped/);
+    const parsed = JSON.parse(readFileSync(join(runDir, "report.json"), "utf8"));
+    expect(parsed.counts).toMatchObject({ annotations: 8, annotatedSessions: 4, categories: 3 });
+    expect(parsed.categories.map((c: any) => c.id)).toContain("ignored-tool-error");
+    expect(manifestOf(runDir).stages.report).toMatchObject({ status: "complete", attempts: 2 });
+  });
+
+  it("summarizes facts.jsonl as counts only", async () => {
+    const { run } = await loadReport();
+    const runDir = temp("bt-report-");
+    copyFixtures(runDir, ["facts.jsonl"]);
+    expect((await run(stageContext(runDir).ctx)).status).toBe("complete");
+    const report = JSON.parse(readFileSync(join(runDir, "report.json"), "utf8"));
+    expect(report.inputs["facts.jsonl"]).toBe("read");
+    expect(report.facts).toEqual({
+      status: "read",
+      sessions: 2,
+      toolCalls: 9,
+      toolErrors: 6,
+      errors: { resolved: 1, unresolved: 2, excluded: 2, unclassified: 1 },
+      unresolvedByReason: { "no-later-call": 1, "identical-retries-only": 0, "changed-calls-failed": 0, "guard-routed-around": 1 },
+      excludedByClass: { "red-test": 1, "pending-check": 0, "obeyed-guard": 1 },
+      unclassifiedByReason: { "identical-retry-succeeded": 0, "guard-follow-up-unclear": 1 },
+      repeatedFailingCalls: 1,
+      guardBlocks: { total: 3, byFollowUp: { obeyed: 1, "routed-around": 1, unclear: 1 } },
+    });
+    const markdown = readFileSync(join(runDir, "report.md"), "utf8");
+    expect(markdown).toContain("## Tool facts");
+    expect(markdown).toContain("routed-around 1");
+    const text = JSON.stringify(report) + markdown;
+    for (const id of ["o-s01-1", "sha256:aa", "o-s02-5"]) expect(text).not.toContain(id);
+
+    const empty = temp("bt-report-");
+    await run(stageContext(empty).ctx);
+    const missing = JSON.parse(readFileSync(join(empty, "report.json"), "utf8"));
+    expect(missing.facts).toEqual({ status: "not-run" });
+    expect(missing.counts.factsSessions).toBe("not-run");
+  });
+
+  it("reports the taxonomy approval state", async () => {
+    const { run } = await loadReport();
+    const approved = temp("bt-report-");
+    copyFixtures(approved, ["taxonomy.json"]);
+    await run(stageContext(approved).ctx);
+    expect(JSON.parse(readFileSync(join(approved, "report.json"), "utf8")).taxonomy).toEqual({
+      status: "read",
+      version: "taxonomy-v1",
+      rubricVersion: "rubric-v1",
+      approval: "approved",
+      approvedAt: "2026-10-10T09:00:00Z",
+    });
+
+    const pending = temp("bt-report-");
+    const taxonomy = JSON.parse(readFileSync(join(reportFixtures, "taxonomy.json"), "utf8"));
+    writeFileSync(join(pending, "taxonomy.json"), JSON.stringify({ ...taxonomy, approval: null }));
+    await run(stageContext(pending).ctx);
+    const parsed = JSON.parse(readFileSync(join(pending, "report.json"), "utf8"));
+    expect(parsed.taxonomy).toMatchObject({ status: "read", approval: "pending operator approval", approvedAt: null });
+    expect(readFileSync(join(pending, "report.md"), "utf8")).toContain("pending operator approval");
+
+    const none = temp("bt-report-");
+    await run(stageContext(none).ctx);
+    expect(JSON.parse(readFileSync(join(none, "report.json"), "utf8")).taxonomy).toEqual({ status: "not-run" });
+  });
 });
 
 function compareContext(runDir: string, options: Record<string, unknown> = {}) {

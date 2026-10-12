@@ -11,6 +11,14 @@ export const RATE_NOTE =
 export const DENOMINATOR_NOTE =
   "A category count is the number of sessions with a fail verdict in that category. The denominator is the number of sessions with a pass or fail verdict on the category dimension. Rejected annotations are excluded; a human label takes precedence over an automated label.";
 export const SPLITS = Object.freeze(["regression", "demonstrations", "holdout"]);
+export const PENDING_APPROVAL = "pending operator approval";
+export const FACT_LISTS = Object.freeze({
+  unresolvedByReason: ["unresolvedErrors", "reason", ["no-later-call", "identical-retries-only", "changed-calls-failed", "guard-routed-around"]],
+  excludedByClass: ["excludedErrors", "class", ["red-test", "pending-check", "obeyed-guard"]],
+  unclassifiedByReason: ["unclassified", "reason", ["identical-retry-succeeded", "guard-follow-up-unclear"]],
+});
+export const FOLLOW_UPS = Object.freeze(["obeyed", "routed-around", "unclear"]);
+export const resumeAlways = true;
 
 export const INPUTS = Object.freeze([
   ["inventory.jsonl", "jsonl"],
@@ -18,6 +26,7 @@ export const INPUTS = Object.freeze([
   ["normalized-sessions.jsonl", "jsonl"],
   ["annotations.jsonl", "jsonl"],
   ["taxonomy.json", "json"],
+  ["facts.jsonl", "jsonl"],
   ["calibration.json", "json"],
   ["dataset-items.jsonl", "jsonl"],
   ["publication-ledger.json", "json"],
@@ -28,6 +37,7 @@ export const help = [
   "report reads each run file that exists and writes report.json and report.md in the run directory.",
   "Both files hold ids, counts, denominators, versions, and Langfuse links only. They copy an allowlist of",
   "metadata fields and never copy message text, tool input or output, annotation text, or dataset item text.",
+  "report reruns on each --resume, because a later stage can add an input file.",
   "A missing input file is reported as not-run, never as zero. A file that does not parse is listed under",
   "errors, and the stage exits 4 (partial). Each string in the output passes through credential redaction.",
   RATE_NOTE,
@@ -333,6 +343,55 @@ function buildComparison(comparison) {
   };
 }
 
+function buildFacts(facts) {
+  if (facts === undefined) return { status: NOT_RUN };
+  const records = facts.filter(isObject);
+  const sum = (read) => records.reduce((total, record) => total + read(record), 0);
+  const items = (field) => records.flatMap((record) => listOr(record[field]).filter(isObject));
+  const byKey = ([field, key, keys]) => {
+    const counts = Object.fromEntries(keys.map((name) => [name, 0]));
+    for (const item of items(field)) {
+      const name = keys.includes(item[key]) ? item[key] : "other";
+      counts[name] = (counts[name] ?? 0) + 1;
+    }
+    return counts;
+  };
+  const guardBlocks = items("guardBlocks");
+  const byFollowUp = Object.fromEntries(FOLLOW_UPS.map((followUp) => [followUp, 0]));
+  for (const block of guardBlocks) {
+    const followUp = FOLLOW_UPS.includes(block.followUp) ? block.followUp : "other";
+    byFollowUp[followUp] = (byFollowUp[followUp] ?? 0) + 1;
+  }
+  return {
+    status: "read",
+    sessions: new Set(records.map((record) => record.sessionId).filter(isText)).size,
+    toolCalls: sum((record) => numberOr(record.toolCalls) ?? 0),
+    toolErrors: sum((record) => numberOr(record.toolErrors) ?? 0),
+    errors: {
+      resolved: items("resolvedErrors").length,
+      unresolved: items("unresolvedErrors").length,
+      excluded: items("excludedErrors").length,
+      unclassified: items("unclassified").length,
+    },
+    ...Object.fromEntries(Object.entries(FACT_LISTS).map(([name, spec]) => [name, byKey(spec)])),
+    repeatedFailingCalls: items("repeatedFailingCalls").length,
+    guardBlocks: { total: guardBlocks.length, byFollowUp },
+  };
+}
+
+function buildTaxonomy(taxonomy) {
+  if (taxonomy === undefined) return { status: NOT_RUN };
+  const value = objectOr(taxonomy);
+  const approval = isObject(value.approval) && isText(value.approval.approvedAt) ? value.approval : null;
+  return {
+    status: "read",
+    version: textOr(value.version),
+    rubricVersion: textOr(value.rubricVersion),
+    approval: approval ? "approved" : PENDING_APPROVAL,
+    approvedAt: approval ? approval.approvedAt : null,
+  };
+}
+
 function buildStages(manifest, current) {
   const stages = {};
   for (const [name, raw] of Object.entries(objectOr(manifest.stages))) {
@@ -358,6 +417,7 @@ export function buildReport({ manifest, inputs, stage = "report", now = new Date
   const normalized = value("normalized-sessions.jsonl");
   const annotations = value("annotations.jsonl");
   const taxonomy = value("taxonomy.json");
+  const facts = value("facts.jsonl");
   const calibration = value("calibration.json");
   const items = value("dataset-items.jsonl");
   const sampleValue = sample === undefined ? undefined : objectOr(sample);
@@ -375,6 +435,7 @@ export function buildReport({ manifest, inputs, stage = "report", now = new Date
     annotations: count(annotations, (records) => records.length),
     annotatedSessions: count(annotations, sessionsOf),
     categories: count(taxonomy, (t) => listOr(objectOr(t).categories).length),
+    factsSessions: count(facts, (records) => new Set(records.map((r) => objectOr(r).sessionId).filter(isText)).size),
     datasetItems: count(items, (records) => records.length),
     ledgerEntries: count(value("publication-ledger.json"), (l) => listOr(objectOr(l).entries).length),
   };
@@ -434,9 +495,11 @@ export function buildReport({ manifest, inputs, stage = "report", now = new Date
               .filter(isObject)
               .map((move) => ({ from: textOr(move.from), to: textOr(move.to), slots: numberOr(move.slots) })),
           },
+    taxonomy: buildTaxonomy(taxonomy),
     categoryDenominator: DENOMINATOR_NOTE,
     categories: buildCategories({ annotations, taxonomy, calibration, links }),
     captureGaps: buildCaptureGaps({ normalized, sample: sampleValue, manifest }),
+    facts: buildFacts(facts),
     calibration: buildCalibration(calibration),
     datasets: buildDatasets({ items, ledger: value("publication-ledger.json"), manifest }),
     comparison: buildComparison(value(COMPARISON_FILE)),
@@ -484,6 +547,10 @@ export function renderMarkdown(report) {
     "",
     "## Top failure categories",
     "",
+    report.taxonomy.status === NOT_RUN
+      ? `Taxonomy: taxonomy.json ${NOT_RUN}.`
+      : `Taxonomy: ${cell(report.taxonomy.version)}, ${report.taxonomy.approval}${report.taxonomy.approvedAt ? ` at ${report.taxonomy.approvedAt}` : ""}.`,
+    "",
     report.categoryDenominator,
     "",
     ...table(
@@ -510,9 +577,31 @@ export function renderMarkdown(report) {
       ].map(([gap, value]) => [gap, value === undefined ? NOT_RUN : value]),
     ),
     "",
-    "## Calibration",
+    "## Tool facts",
     "",
   ];
+  const facts = report.facts;
+  if (facts.status === NOT_RUN) lines.push(`facts.jsonl: ${NOT_RUN}`);
+  else {
+    lines.push(
+      ...table(
+        ["Measure", "Value"],
+        [
+          ["sessions", facts.sessions],
+          ["tool calls", facts.toolCalls],
+          ["tool errors", facts.toolErrors],
+          ["errors", facts.errors],
+          ["unresolved by reason", facts.unresolvedByReason],
+          ["excluded by class", facts.excludedByClass],
+          ["unclassified by reason", facts.unclassifiedByReason],
+          ["repeated failing call runs", facts.repeatedFailingCalls],
+          ["guard blocks", facts.guardBlocks.total],
+          ["guard blocks by follow-up", facts.guardBlocks.byFollowUp],
+        ],
+      ),
+    );
+  }
+  lines.push("", "## Calibration", "");
   if (report.calibration.status === NOT_RUN) lines.push(`calibration.json: ${NOT_RUN}`);
   else {
     lines.push(
