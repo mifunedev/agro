@@ -71,9 +71,10 @@ export function parseJsonl(text, file) {
   return { entries, errors };
 }
 
-function evidenceProblems(evidence) {
-  if (!Array.isArray(evidence) || evidence.length === 0) {
-    return [["evidence", "must list at least one evidence reference"]];
+function evidenceProblems(evidence, verdict) {
+  if (!Array.isArray(evidence)) return [["evidence", "must be a list of evidence references"]];
+  if (evidence.length === 0 && LABELS.includes(verdict)) {
+    return [["evidence", "must list at least one evidence reference for a pass or fail verdict"]];
   }
   const problems = [];
   evidence.forEach((item, index) => {
@@ -107,7 +108,7 @@ function annotationProblems(record, { dimensions, categories, rubricVersion }) {
     else need(!categories || categories.has(record.category), "category", "must be a category id in taxonomy.json");
   }
   need(VERDICTS.includes(record.verdict), "verdict", `must be one of ${VERDICTS.join(", ")}`);
-  problems.push(...evidenceProblems(record.evidence));
+  problems.push(...evidenceProblems(record.evidence, record.verdict));
   const claimsOnly =
     Array.isArray(record.evidence) &&
     record.evidence.length > 0 &&

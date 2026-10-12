@@ -178,6 +178,16 @@ describe("annotation schema", () => {
     ]);
   });
 
+  it("accepts an empty evidence list only for an unknown or not_applicable verdict", () => {
+    expect(check([annotation({ verdict: "unknown", evidence: [] })])).toEqual([]);
+    expect(check([annotation({ verdict: "not_applicable", evidence: [] })])).toEqual([]);
+    expect(fields(check([annotation({ verdict: "pass", evidence: [] })]))).toEqual(["evidence"]);
+    expect(fields(check([annotation({ verdict: "fail", evidence: [] })]))).toEqual(["evidence"]);
+    expect(fields(check([annotation({ verdict: "unknown", evidence: undefined })]))).toEqual(["evidence"]);
+    expect(fields(check([annotation({ verdict: "not_applicable", evidence: "none" })]))).toEqual(["evidence"]);
+    expect(fields(check([annotation({ verdict: "pass", evidence: null })]))).toEqual(["evidence"]);
+  });
+
   it("rejects an empty session id, an unknown review status, and a duplicate annotation id", () => {
     expect(fields(check([annotation({ sessionId: "" })]))).toEqual(["sessionId"]);
     expect(fields(check([annotation({ reviewStatus: "done" })]))).toEqual(["reviewStatus"]);

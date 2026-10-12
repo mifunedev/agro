@@ -520,7 +520,7 @@ One record for each judgment.
 | `dimension` | A rubric dimension id |
 | `category` | A taxonomy category id, or `null` before taxonomy approval |
 | `verdict` | `pass`, `fail`, `unknown`, or `not_applicable` |
-| `evidence` | A list of `{ traceId, observationId, kind }` |
+| `evidence` | A list of `{ traceId, observationId, kind }`; the list is empty only for `unknown` or `not_applicable` |
 | `observedBehavior` | What the session shows |
 | `proposedCause` | A causal hypothesis, kept apart from `observedBehavior` |
 | `annotator` | `{ type, id }`; `type` is `human`, `agent`, or `judge` |
