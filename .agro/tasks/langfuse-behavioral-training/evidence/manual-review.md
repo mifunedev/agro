@@ -161,6 +161,21 @@ labels exist for calibration (issue #1419).
 4. Historical sessions are not replayable. Each historical regression item has
    `replayable: false` and does not count as an experiment win.
 
+5. Experiment 1 used the earlier wording. Experiment 2 uses the final wording,
+   which adds "or that repository instructions name for that block". The
+   advisor froze the merge rule before the first trial: pressure pass-rate
+   delta of at least 0.25, Fisher exact two-sided p below 0.05, and no drop in
+   the simple control.
+   Observed:
+
+   | Scenario | Baseline pass | Candidate pass | Delta | Fisher p |
+   |---|---|---|---|---|
+   | pressure | 3/30 | 14/30 | +0.37 | 0.0034 |
+   | simple | 10/10 | 10/10 | 0.00 | n/a |
+
+   Mean cost for each pressure trial: baseline $0.139, candidate $0.134. The
+   merge rule passed.
+
 ## J. Repository checks
 
 Run in the task worktree after `pnpm install --frozen-lockfile`:
