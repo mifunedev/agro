@@ -18,14 +18,15 @@
         "`pnpm test` and `pnpm --dir .agro/cli typecheck` exit 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: worker showed tool-catalog.test.ts red (exit 1, 12 failed) then green; advisor reran. 2 executed: catalog.ts ffmpeg entry inspected (eugeneware/ffmpeg-static b6.1.1, FFmpeg 7.0.2, sha256 per arch). 3 executed: test 'exits 1 when the installed ffmpeg lists no libx264 encoder' passes. 4 executed: existing pin test plus new 'leaves the agent-browser pin unchanged' pass. 5 executed: installArgv run directly (installed agro CLI predates entry); ffprobe -version exit 0; libx264/libvpx present (4 encoder lines). 6 executed: docs/installation.md updated; ste-check exit 0. 7 executed: pnpm test 2455 passed 0 failed; pnpm --dir .agro/cli typecheck exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/tools/catalog.ts",
         ".agro/cli/src/__tests__/tool-catalog.test.ts",
         "docs/installation.md"
-      ]
+      ],
+      "commit": "b8ae20bb0f6d57d041fcef1ea6831a364e1775f8"
     },
     {
       "id": "US-002",
