@@ -78,8 +78,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on each changed Markdown file."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: git grep 0\\.8\\.5|375x812|setViewportSize|.claude/screenshots in .agro/skills -> no match (exit 1). 2 reasoned: SKILL.md line 18 names catalog.ts as version authority; no version stated. 3 executed: one dimension table; setViewportSize fallback removed after worker verified page is undefined on 0.38.1. 4 executed: advisor grep of agent-browser commands lacking --session shows only install/doctor/help/prose lines; worker smoke test on fixture with named session exit 0; screenshots moved to task evidence dir. 5 reasoned: description triggers on recording, walkthrough, reproduction; preflight names agro tool install ffmpeg. 6-7 reasoned: Recording section holds record.sh syntax, matrix, selection table, rerun rule, paired procedure, dimension rules, supporting-evidence rule. 8-9 reasoned: builder bullet and manual-review Recordings subsection inspected. 10 executed: link-providers.sh --check exit 0. 11 executed: ste-check exit 0 on all three files; pnpm test exit 0.",
       "dependsOn": [
         "US-002"
       ],
@@ -87,7 +87,8 @@
         ".agro/skills/agent-browser/SKILL.md",
         ".agro/skills/builder/SKILL.md",
         ".agro/skills/git/references/manual-review.md"
-      ]
+      ],
+      "commit": "72c505df9bd6b1fe3884e85350cb2eb1263f5d07"
     },
     {
       "id": "US-004",
@@ -100,14 +101,15 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/integrations/agent-browser.md` exits 0."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: worker ran every documented example (evidence/demo x desktop/mobile, paired) on fixture: exit 0, captureStatus=complete, documented sizes. 2-3 reasoned: page covers install, output location, manifest, viewport-only limitation, density table, recovery, untracked-video rule quoting .gitignore. 4 executed: advisor ste-check on page exit 0; CHANGELOG findings unchanged vs baseline (2 pre-existing). docs tests pass in pnpm test.",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         "docs/integrations/agent-browser.md"
-      ]
+      ],
+      "commit": "de57c8cb3bc34268c460013bd55389768911c3a2"
     },
     {
       "id": "US-005",
