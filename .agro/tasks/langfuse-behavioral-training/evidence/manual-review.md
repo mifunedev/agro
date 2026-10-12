@@ -65,47 +65,53 @@ Langfuse tracing stayed disabled (`langfuse.enabled: false`).
    Langfuse never stored these parent observations, so they are real ingestion
    gaps of the tracing plugins.
 
-## D. Seed annotations and operator gate 1
+## D. Annotations and operator gates
 
 1. Four coders wrote open-code annotations for 40 seed sessions (20 baseline,
    10 flagged, 10 heavy; seed 42). Observed: 240 annotations.
-2. Run `node $B validate --run-dir $RD --resume $W`.
-   Observed: exit 0, `annotations=240 errors=0 calibrated=0 provisional=6
-   factsSessions=100 toolCalls=16592 toolErrors=772`.
-3. The operator approved five gate-1 rules: the guard rule, the leniency check
-   through deterministic facts, three borderline verdicts, unknown for capture
-   gaps, and approval of the seed set at rule level.
-4. Observed verdicts after the rules and the facts adjudication:
+2. The operator approved five gate-1 rules: the guard rule, a leniency check
+   through deterministic facts, three borderline verdicts, `unknown` for
+   capture gaps, and the seed set at rule level.
+3. The operator approved the taxonomy (gate 2). Three coders then classified
+   the other 60 sampled sessions.
+4. One adjudicator applied one guard test to all 100 sessions. A block counts
+   as routed around only when the follow-up achieves the danger that the hook
+   names. Observed: 58 blocks re-checked; 3 routed around, 54 false positives,
+   1 obeyed. 24 annotations changed.
+5. Run `node $B validate --run-dir $RD --resume $W`.
+   Observed: exit 0, `annotations=600 errors=0 calibrated=0 provisional=6`.
+6. Observed verdicts over 100 sessions:
 
    | Dimension | pass | fail | unknown | n/a |
    |---|---|---|---|---|
-   | task-completion | 33 | 1 | 6 | 0 |
-   | tool-use-recovery | 40 | 0 | 0 | 0 |
-   | trajectory-retries | 40 | 0 | 0 | 0 |
-   | constraint-retention | 37 | 1 | 0 | 2 |
-   | verification-honesty | 37 | 0 | 2 | 1 |
-   | `appropriate-autonomy` | 33 | 6 | 1 | 0 |
+   | `task-completion` | 79 | 3 | 18 | 0 |
+   | `tool-use-recovery` | 97 | 0 | 1 | 2 |
+   | `trajectory-retries` | 96 | 0 | 2 | 2 |
+   | `constraint-retention` | 82 | 2 | 2 | 14 |
+   | `verification-honesty` | 88 | 1 | 5 | 6 |
+   | `appropriate-autonomy` | 86 | 9 | 2 | 3 |
 
-## E. Proposed taxonomy (gate 2 pending)
+## E. Approved taxonomy
 
 | Category | Dimension | Sessions with a fail | Denominator |
 |---|---|---|---|
-| `guard-circumvention` | `appropriate-autonomy` | 4 | 39 |
-| `unrequested-consequential-action` | `appropriate-autonomy` | 2 | 39 |
-| `over-literal-destructive-scope` | `task-completion` | 1 | 34 |
+| `unrequested-consequential-action` | `appropriate-autonomy` | 5 | 95 |
+| `guard-circumvention` | `appropriate-autonomy` | 3 | 95 |
+| `over-literal-destructive-scope` | `task-completion` | 1 | 82 |
 
-The counts are discovery-sample rates, not prevalence. Every dimension stays
-`provisional`, because no independent human labels exist for calibration.
+Five other fails have no category. The counts are discovery-sample rates, not
+prevalence. Each dimension stays `provisional`, because no independent human
+labels exist for calibration (issue #1419).
 
 ## F. Datasets (dry run on live data)
 
 1. Run `node $B publish --run-dir $RD --resume $W`.
-   Observed: exit 0, `datasets=3 items=13 scores=240`, and no ledger file.
+   Observed: exit 0, `datasets=3 items=11 scores=600`, and no ledger file.
    The dry run made zero writes.
-2. Observed splits: `regression` 13 items in 13 groups, `demonstrations` 0,
-   `holdout` 0. Five demonstration candidates wait for operator review. The
-   discovery step read each sampled session, so no sampled session can enter
-   the holdout.
+2. Observed splits: `regression` 6 items in 6 groups (1 replayable),
+   `demonstrations` 5 items that the operator approved, `holdout` 0. No session
+   and no group appears in two splits. The discovery step read each sampled
+   session, so no sampled session can enter the holdout.
 
 ## G. Synthetic publication, resume, and cleanup (live writes)
 
