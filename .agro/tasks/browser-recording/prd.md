@@ -193,4 +193,7 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+- Claim: `agent-browser close` does not flush a recording in 0.38.1. Evidence: the US-002 worker observed a 48-byte MP4 after a plain `close`. Outcome: fixed in this PR. `record.sh stop` runs `record stop` before `close`, and the skill and the guide state the rule.
+- Claim: one paired desktop stop reported `No recording in progress` and left a stub video. Evidence: one US-002 test run. Ten later runs and the advisor rerun did not reproduce the failure. `record.sh` reported `incomplete` and exited 1. Outcome: proposed follow-up issue, which waits for operator approval.
+- Claim: the plan omitted the `docs/README.md` index link for the new guide. Evidence: the US-004 worker found the gap. Outcome: fixed in this PR.
+- Claim: the first US-005 mobile scenario left the menu open over the Save button. Evidence: `capture-1.log`. Outcome: dropped. The cause was the scenario script, and the run shows that a failed assertion keeps a complete capture.

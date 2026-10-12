@@ -122,8 +122,8 @@
         "The advisor deletes each browser session that the capture created. `agent-browser session list` shows no session whose name starts with `browser-recording-`."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: advisor ran record.sh on fixture for evidence/desktop (ev1), evidence/mobile (ev1, rerun ev2), demo/desktop (demo1), and paired (pair1, rerun pair2); every stop exit 0, captureStatus complete. 2 executed: evidence/manual-review.md plus capture-1.log and capture-2.log hold transcripts, manifests, ffprobe output, commit a2abb8d9, and assertion results; committed e90195e2. 3 executed: PR Manual review links desktop and mobile examples by full head SHA; manual-review-check.sh run at Close. 4 executed: agent-browser session list printed No active sessions after each capture script.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -132,7 +132,8 @@
       ],
       "files": [
         ".agro/tasks/browser-recording/evidence/"
-      ]
+      ],
+      "commit": "e90195e21934262b25734e194b3d56b5b9a511f3"
     }
   ]
 }
