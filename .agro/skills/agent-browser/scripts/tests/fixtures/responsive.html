@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recording fixture</title>
+<style>
+  body { margin: 0; font: 18px/1.4 system-ui, sans-serif; background: #f4f4f0; color: #222; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: #1d3557; color: #fff; }
+  #links { display: flex; gap: 24px; list-style: none; margin: 0; padding: 0; }
+  #links a { color: #fff; text-decoration: none; }
+  #menu-toggle { display: none; font-size: 18px; }
+  main { padding: 24px; }
+  form { display: flex; gap: 12px; flex-wrap: wrap; }
+  #status { margin-top: 24px; padding: 16px; border-radius: 8px; background: #ddd; transition: background 0.4s, transform 0.4s; }
+  #status.saved { background: #2a9d8f; color: #fff; transform: translateY(-4px); }
+  @media (max-width: 600px) {
+    #menu-toggle { display: block; }
+    #links { display: none; position: absolute; top: 56px; left: 0; right: 0; flex-direction: column; padding: 16px 24px; background: #1d3557; }
+    #links.open { display: flex; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <strong id="brand">Fixture</strong>
+  <button id="menu-toggle" type="button" aria-expanded="false" aria-controls="links">Menu</button>
+  <ul id="links">
+    <li><a href="#home">Home</a></li>
+    <li><a href="#docs">Docs</a></li>
+    <li><a href="#about">About</a></li>
+  </ul>
+</header>
+<main>
+  <h1>Profile</h1>
+  <form id="form">
+    <label for="name">Name</label>
+    <input id="name" name="name" required>
+    <button id="save" type="submit">Save</button>
+  </form>
+  <p id="status">Not saved</p>
+</main>
+<script>
+  const toggle = document.getElementById('menu-toggle');
+  const links = document.getElementById('links');
+  toggle.addEventListener('click', () => {
+    const open = links.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', String(open));
+  });
+  document.getElementById('form').addEventListener('submit', (event) => {
+    event.preventDefault();
+    const status = document.getElementById('status');
+    status.textContent = 'Saved: ' + document.getElementById('name').value;
+    status.classList.add('saved');
+  });
+</script>
+</body>
+</html>
