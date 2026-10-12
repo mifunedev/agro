@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1428-browser-recording",
+  "description": "Desktop and mobile browser recording for agent-browser, plus agent-browser version-drift correction.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Install FFmpeg through the tool catalog",
+      "description": "As an agent, I want `agro tool install ffmpeg` to install a pinned FFmpeg and FFprobe so that recording prerequisites install on demand inside the sandbox.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/__tests__/tool-catalog.test.ts` has a new `ffmpeg` case that fails before the catalog change and passes after the catalog change.",
+        "`TOOL_CATALOG` has an `installable` entry with `id: \"ffmpeg\"`. The install script downloads a pinned static build for `amd64` and `arm64`, checks a SHA-256 sum, and installs `ffmpeg` and `ffprobe` into `${NPM_USER_PREFIX:-$HOME/.local}/bin`.",
+        "The install script exits 1 when `ffmpeg -hide_banner -encoders` lists no `libx264` encoder.",
+        "The test asserts that the `agent-browser` entry still installs `agent-browser@0.38.1`.",
+        "In the sandbox, `agro tool install ffmpeg` exits 0, and `ffprobe -version` exits 0.",
+        "`docs/installation.md` lists `ffmpeg` in the installable tools and in the host tools table.",
+        "`pnpm test` and `pnpm --dir .agro/cli typecheck` exit 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/tools/catalog.ts",
+        ".agro/cli/src/__tests__/tool-catalog.test.ts",
+        "docs/installation.md"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Add the recording helper and the recording test",
+      "description": "As an agent, I want one helper that starts, bounds, stops, and checks a recording so that each capture produces an honest artifact. The helper uses an owned session.",
+      "acceptanceCriteria": [
+        "`.agro/skills/agent-browser/scripts/tests/recording.test.sh` exists and fails before `scripts/record.sh` exists.",
+        "`record.sh start` accepts `--task`, `--run`, `--purpose evidence|demo`, `--profile desktop|mobile`, `--scenario`, `--url`, and the optional `--criteria`, `--reason`, `--width`, `--height`, `--scale`, `--device`, `--fps`, `--max-seconds`, `--export`, and `--rerun`.",
+        "Before the browser opens, `record.sh start` exits 1 with an install hint that names `agro tool install ffmpeg` when `ffmpeg`, `ffprobe`, or the `libx264` encoder is missing.",
+        "`record.sh start` derives the session name `<task>-<run>-<profile>` and writes to the absolute directory `.agro/tasks/<task>/evidence/browser/<run>/<profile>/`. Every `agent-browser` call in the helper passes `--session`.",
+        "The defaults are H.264 MP4, 30 FPS, and 120 seconds. Evidence desktop is 1280x720. Demo desktop is 1920x1080. Mobile is a 414x896 CSS viewport for both purposes.",
+        "A watchdog stops the recording after `--max-seconds`. The manifest records `captureStatus: \"timeout\"` for that case.",
+        "`record.sh stop --dir <dir> --assertions pass|fail|none` stops and flushes the recording, then closes only the owned session.",
+        "`record.sh stop` runs `ffprobe` on the video. If `ffprobe` fails, the manifest records `captureStatus: \"incomplete\"` and the helper exits 1.",
+        "`manifest.json` records the fields in `## Storage`, with the encoded dimensions read from `ffprobe`, not from the request.",
+        "For `--purpose demo`, `record.sh stop` writes `thumbnail.png` and `scenario.md`. The helper never overwrites an existing run directory.",
+        "The test runs on a local fixture with a responsive navigation menu, a form, and a visible state transition. The test proves: desktop and mobile H.264 output at the documented dimensions and 30 FPS; a paired run with two separate artifacts; a failed assertion with a finalized video and `assertionStatus: \"fail\"`; a timeout; two concurrent sessions where a stop of one leaves the other recording; and an output path that contains a space.",
+        "The test records the result of `--scale 2` and `--device`: the manifest states whether the encoded video has more pixels than the CSS viewport.",
+        "When `agent-browser` or Chromium is not available, the test prints `SKIP:` and exits 0, as `clipboard-read.test.sh` does."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/skills/agent-browser/scripts/record.sh",
+        ".agro/skills/agent-browser/scripts/tests/recording.test.sh",
+        ".agro/skills/agent-browser/scripts/tests/fixtures/responsive.html"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Correct and extend the agent-browser skill",
+      "description": "As an agent, I want current browser instructions and a recording procedure so that outdated version guidance does not block me. The skill also holds the evidence-selection policy.",
+      "acceptanceCriteria": [
+        "`git grep -n \"0\\.8\\.5\" -- .agro/skills` prints no line.",
+        "`SKILL.md` names `.agro/cli/src/lib/tools/catalog.ts` as the version authority and states no version number of its own.",
+        "`SKILL.md` defines desktop and mobile dimensions in one table. The `375x812` example is gone.",
+        "Each `agent-browser` command in the preflight, snapshot, screenshot, recording, and cleanup steps passes `--session \"$SESSION\"`.",
+        "The trigger text includes recording, walkthrough, and reproduction requests.",
+        "`SKILL.md` documents `record.sh` with its implemented syntax, the purpose and profile matrix, the evidence-selection table from mifunedev/agro#1428, the rerun rule, and the dimension rules for CSS viewport, pixel density, encoded size, and export canvas.",
+        "`SKILL.md` states that a recording is supporting evidence and never satisfies an acceptance or audit gate alone.",
+        "`.agro/skills/builder/SKILL.md` asks for a recording when interaction or motion matters and keeps assertions and tests.",
+        "`.agro/skills/git/references/manual-review.md` describes how to link a recording with its scenario, profile, tested revision, assertions, and capture status.",
+        "`bash .agro/scripts/link-providers.sh --check` exits 0.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 on each changed Markdown file."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/skills/agent-browser/SKILL.md",
+        ".agro/skills/builder/SKILL.md",
+        ".agro/skills/git/references/manual-review.md"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Document browser recording",
+      "description": "As an operator, I want public documentation for browser recording so that I can request evidence and demo captures for desktop and mobile.",
+      "acceptanceCriteria": [
+        "`docs/integrations/agent-browser.md` exists and gives one example for each of evidence/desktop, evidence/mobile, demo/desktop, and demo/mobile, plus one paired desktop/mobile run.",
+        "The page states the install steps, the output location, the manifest fields, the viewport-only limitation, the higher-density result from US-002, and the recovery steps for a timeout or an incomplete capture.",
+        "The page states that videos stay untracked because `.gitignore` ignores `.agro/tasks/*/*` except `prd.md` and `prd.json`.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh docs/integrations/agent-browser.md` exits 0."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        "docs/integrations/agent-browser.md"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Capture manual review evidence",
+      "description": "As a reviewer, I want desktop and mobile recordings of the fixture scenario so that I can assess the result. Each recording names the tested revision.",
+      "acceptanceCriteria": [
+        "The advisor runs `record.sh` on the fixture for evidence/desktop, evidence/mobile, and demo/desktop, and for one paired run.",
+        "`.agro/tasks/browser-recording/evidence/manual-review.md` holds the command transcript, each manifest, the `ffprobe` output, the tested commit SHA, and the assertion results.",
+        "The PR `## Manual review` section links one desktop and one mobile example by `blob/<commit-sha>/<path>?raw=true`, in the shape of `.agro/skills/git/references/manual-review.md`.",
+        "The advisor deletes each browser session that the capture created. `agent-browser session list` shows no session whose name starts with `browser-recording-`."
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        ".agro/tasks/browser-recording/evidence/"
+      ]
+    }
+  ]
+}
