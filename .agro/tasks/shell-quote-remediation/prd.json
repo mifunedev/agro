@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "project": "AGRO",
+  "branchName": "bug/1430-shell-quote-remediation",
+  "description": "Remove vulnerable shell-quote dependency and bundled code; publish the accepted Pi/Subagents upgrade.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Upgrade the safety guard and Pi packages",
+      "description": "As an operator, I want maintained guard packages so that AGRO removes the vulnerable dependency and its bundled code.",
+      "acceptanceCriteria": [
+        "Pi, the image, and provider checks pin cc-safety-net `2.6.8`.",
+        "Pi pins Subagents `0.20.0`; documentation requires Pi `>=1.1.0`.",
+        "Valid hook events allow harmless echo and deny direct and nested hard reset.",
+        "The full repository suite, typecheck, build, root audit, and provider checks pass."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Executed: advisor inspected canonical pins and documentation in commit 58f4997. Executed: advisor reran pnpm test (104 files, 2457 passed, 2 skipped), pnpm typecheck, pnpm build, pnpm security:audit and strict provider check with the disposable 2.6.8 binary; monitor #3 exited 0. Hook inputs are data only; no destructive command execution. Docker image rebuild is unverified.",
+      "commit": "58f499734e3bc1a567b5dd048aee08e0e4357705"
+    },
+    {
+      "id": "US-002",
+      "title": "Record remediation evidence",
+      "description": "As a reviewer, I want command evidence so that I can verify the dependency removal and remaining limits.",
+      "acceptanceCriteria": [
+        "A disposable Pi install matches all eight declared package pins.",
+        "Its loader reports 12 extensions, 30 compiled schemas, and no errors.",
+        "Its only warning names Tasks; npm audit reports zero vulnerabilities.",
+        "Its dependency tree contains no shell-quote, and published guard bundles contain no shell-quote identifiers.",
+        "The committed transcript records commands, observed results, and verification limits."
+      ],
+      "priority": 2,
+      "dependsOn": ["US-001"],
+      "passes": true,
+      "notes": "Executed: advisor read committed evidence/manual-review.md and manifest results; independently reran isolated Pi loader, npm audit and published source scan. Monitor #3 exited 0: 12 extensions, 30 schemas, no errors, only Tasks warning, zero vulnerabilities and no candidate shell-quote identifiers. Reasoned: generated dependency tree is absent per npm ls evidence. Real model-backed workers and lifecycle activation are unverified.",
+      "commit": "58f499734e3bc1a567b5dd048aee08e0e4357705"
+    }
+  ]
+}
