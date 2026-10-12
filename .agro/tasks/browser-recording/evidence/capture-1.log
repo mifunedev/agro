@@ -1,0 +1,78 @@
+commit: a2abb8d9f1724e1f92380720b7b323204bf93b71  dirty: false
+
+### ev1 evidence/desktop
+$ bash .agro/skills/agent-browser/scripts/record.sh start --task browser-recording --run ev1 --purpose evidence --profile desktop ...
+dir: /home/sandbox/harness/.worktrees/feat/1428-browser-recording/.agro/tasks/browser-recording/evidence/browser/ev1/desktop
+assert inline nav visible: true
+assert status == 'Saved: Ada': Saved: Ada
+$ bash .agro/skills/agent-browser/scripts/record.sh stop --dir <dir> --assertions pass
+captureStatus=complete assertionStatus=pass encodedSize=1280x720 video=/home/sandbox/harness/.worktrees/feat/1428-browser-recording/.agro/tasks/browser-recording/evidence/browser/ev1/desktop/video.mp4
+stop exit 0
+ffprobe: codec_name=h264|width=1280|height=720|avg_frame_rate=30/1 duration=2.733333 
+manifest:
+{"run":"ev1","profile":"desktop","purpose":"evidence","session":"browser-recording-ev1-desktop","commit":"a2abb8d9f1724e1f92380720b7b323204bf93b71","dirty":false,"cssViewport":{"width":1280,"height":720},"encodedSize":{"width":1280,"height":720},"effectiveScale":1,"emulation":"viewport-only","fps":30,"codec":"h264","captureStatus":"complete","assertionStatus":"pass"}
+manifest.json
+video.mp4
+
+### ev1 evidence/mobile
+$ bash .agro/skills/agent-browser/scripts/record.sh start --task browser-recording --run ev1 --purpose evidence --profile mobile ...
+dir: /home/sandbox/harness/.worktrees/feat/1428-browser-recording/.agro/tasks/browser-recording/evidence/browser/ev1/mobile
+assert menu aria-expanded=true: true
+✗ Element '#save' is covered by <li inside ul#links> at its click point, so the input would land on that element instead. Dismiss or interact with the covering element first (it is often a dialog, banner, or sticky header).
+assert status == 'Saved: Ada': Not saved
+$ bash .agro/skills/agent-browser/scripts/record.sh stop --dir <dir> --assertions fail
+captureStatus=complete assertionStatus=fail encodedSize=414x896 video=/home/sandbox/harness/.worktrees/feat/1428-browser-recording/.agro/tasks/browser-recording/evidence/browser/ev1/mobile/video.mp4
+stop exit 0
+ffprobe: codec_name=h264|width=414|height=896|avg_frame_rate=30/1 duration=3.500000 
+manifest:
+{"run":"ev1","profile":"mobile","purpose":"evidence","session":"browser-recording-ev1-mobile","commit":"a2abb8d9f1724e1f92380720b7b323204bf93b71","dirty":false,"cssViewport":{"width":414,"height":896},"encodedSize":{"width":414,"height":896},"effectiveScale":1,"emulation":"viewport-only","fps":30,"codec":"h264","captureStatus":"complete","assertionStatus":"fail"}
+manifest.json
+video.mp4
+
+### demo1 demo/desktop
+$ bash .agro/skills/agent-browser/scripts/record.sh start --task browser-recording --run demo1 --purpose demo --profile desktop ...
+dir: /home/sandbox/harness/.worktrees/feat/1428-browser-recording/.agro/tasks/browser-recording/evidence/browser/demo1/desktop
+assert inline nav visible: true
+assert status == 'Saved: Ada': Saved: Ada
+$ bash .agro/skills/agent-browser/scripts/record.sh stop --dir <dir> --assertions pass
+captureStatus=complete assertionStatus=pass encodedSize=1920x1080 video=/home/sandbox/harness/.worktrees/feat/1428-browser-recording/.agro/tasks/browser-recording/evidence/browser/demo1/desktop/video.mp4
+stop exit 0
+ffprobe: codec_name=h264|width=1920|height=1080|avg_frame_rate=30/1 duration=2.766667 
+manifest:
+{"run":"demo1","profile":"desktop","purpose":"demo","session":"browser-recording-demo1-desktop","commit":"a2abb8d9f1724e1f92380720b7b323204bf93b71","dirty":false,"cssViewport":{"width":1920,"height":1080},"encodedSize":{"width":1920,"height":1080},"effectiveScale":1,"emulation":"viewport-only","fps":30,"codec":"h264","captureStatus":"complete","assertionStatus":"pass"}
+manifest.json
+scenario.md
+thumbnail.png
+video.mp4
+
+### pair1 evidence/desktop
+$ bash .agro/skills/agent-browser/scripts/record.sh start --task browser-recording --run pair1 --purpose evidence --profile desktop ...
+dir: /home/sandbox/harness/.worktrees/feat/1428-browser-recording/.agro/tasks/browser-recording/evidence/browser/pair1/desktop
+assert inline nav visible: true
+assert status == 'Saved: Ada': Saved: Ada
+$ bash .agro/skills/agent-browser/scripts/record.sh stop --dir <dir> --assertions pass
+captureStatus=complete assertionStatus=pass encodedSize=1280x720 video=/home/sandbox/harness/.worktrees/feat/1428-browser-recording/.agro/tasks/browser-recording/evidence/browser/pair1/desktop/video.mp4
+stop exit 0
+ffprobe: codec_name=h264|width=1280|height=720|avg_frame_rate=30/1 duration=2.766667 
+manifest:
+{"run":"pair1","profile":"desktop","purpose":"evidence","session":"browser-recording-pair1-desktop","commit":"a2abb8d9f1724e1f92380720b7b323204bf93b71","dirty":false,"cssViewport":{"width":1280,"height":720},"encodedSize":{"width":1280,"height":720},"effectiveScale":1,"emulation":"viewport-only","fps":30,"codec":"h264","captureStatus":"complete","assertionStatus":"pass"}
+manifest.json
+video.mp4
+
+### pair1 evidence/mobile
+$ bash .agro/skills/agent-browser/scripts/record.sh start --task browser-recording --run pair1 --purpose evidence --profile mobile ...
+dir: /home/sandbox/harness/.worktrees/feat/1428-browser-recording/.agro/tasks/browser-recording/evidence/browser/pair1/mobile
+assert menu aria-expanded=true: true
+✗ Element '#save' is covered by <li inside ul#links> at its click point, so the input would land on that element instead. Dismiss or interact with the covering element first (it is often a dialog, banner, or sticky header).
+assert status == 'Saved: Ada': Not saved
+$ bash .agro/skills/agent-browser/scripts/record.sh stop --dir <dir> --assertions fail
+captureStatus=complete assertionStatus=fail encodedSize=414x896 video=/home/sandbox/harness/.worktrees/feat/1428-browser-recording/.agro/tasks/browser-recording/evidence/browser/pair1/mobile/video.mp4
+stop exit 0
+ffprobe: codec_name=h264|width=414|height=896|avg_frame_rate=30/1 duration=3.533333 
+manifest:
+{"run":"pair1","profile":"mobile","purpose":"evidence","session":"browser-recording-pair1-mobile","commit":"a2abb8d9f1724e1f92380720b7b323204bf93b71","dirty":false,"cssViewport":{"width":414,"height":896},"encodedSize":{"width":414,"height":896},"effectiveScale":1,"emulation":"viewport-only","fps":30,"codec":"h264","captureStatus":"complete","assertionStatus":"fail"}
+manifest.json
+video.mp4
+
+sessions after cleanup:
+No active sessions

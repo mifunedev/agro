@@ -1,0 +1,34 @@
+{
+  "task": "browser-recording",
+  "run": "pair1",
+  "profile": "mobile",
+  "purpose": "evidence",
+  "session": "browser-recording-pair1-mobile",
+  "commit": "a2abb8d9f1724e1f92380720b7b323204bf93b71",
+  "dirty": false,
+  "scenario": "Open the navigation when collapsed, save the name Ada, and confirm the status",
+  "url": "file:///home/sandbox/harness/.worktrees/feat/1428-browser-recording/.agro/skills/agent-browser/scripts/tests/fixtures/responsive.html",
+  "criteria": "US-005: status shows Saved: Ada",
+  "selectionReason": "The save shows a state transition",
+  "rerun": null,
+  "cssViewport": {
+    "width": 414,
+    "height": 896
+  },
+  "requestedScale": 1,
+  "effectiveScale": 1,
+  "encodedSize": {
+    "width": 414,
+    "height": 896
+  },
+  "exportCanvas": null,
+  "emulation": "viewport-only",
+  "fps": 30,
+  "codec": "h264",
+  "agentBrowserVersion": "0.38.1",
+  "ffmpegVersion": "7.0.2-static",
+  "startedAt": "2026-10-12T05:42:23Z",
+  "stoppedAt": "2026-10-12T05:42:27Z",
+  "captureStatus": "complete",
+  "assertionStatus": "fail"
+}
