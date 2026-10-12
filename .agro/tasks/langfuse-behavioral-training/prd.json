@@ -339,15 +339,16 @@
         "The draft pull request body carries the evidence under `## Manual review`."
       ],
       "priority": 13,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: .agro/tasks/langfuse-behavioral-training/evidence/manual-review.md holds commands, exit codes, and aggregates for US-011 and US-012 (ste-check exit 0); executed: secret-pattern scan of the PR diff found 0 matches, no transcript text; executed: pnpm run lint exit 0 (no-op script, disclosed), typecheck 0, build 0, test 0 (103 files, 2402 passed, 2 skipped), link-providers --check 0; executed: PR #1414 body carries the evidence under ## Manual review linked by head SHA.",
       "dependsOn": [
         "US-011",
         "US-012"
       ],
       "files": [
         ".agro/tasks/langfuse-behavioral-training/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "e201cd8f"
     },
     {
       "id": "US-014",
