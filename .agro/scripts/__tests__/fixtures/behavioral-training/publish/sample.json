@@ -1,0 +1,39 @@
+{
+  "policy": "stratified-50-25-25",
+  "seed": 42,
+  "sampleSize": 4,
+  "sessions": [
+    {
+      "sessionId": "s-reg-1",
+      "stratum": "baseline",
+      "memberships": [
+        "baseline"
+      ],
+      "reason": "baseline:uniform"
+    },
+    {
+      "sessionId": "s-reg-2",
+      "stratum": "baseline",
+      "memberships": [
+        "baseline"
+      ],
+      "reason": "baseline:uniform"
+    },
+    {
+      "sessionId": "s-demo-1",
+      "stratum": "baseline",
+      "memberships": [
+        "baseline"
+      ],
+      "reason": "baseline:uniform"
+    },
+    {
+      "sessionId": "s-demo-2",
+      "stratum": "baseline",
+      "memberships": [
+        "baseline"
+      ],
+      "reason": "baseline:uniform"
+    }
+  ]
+}

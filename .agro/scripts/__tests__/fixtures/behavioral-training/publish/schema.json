@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "apiVersion": "4.35.0",
+  "sourceSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "resources": [
+    {
+      "name": "projects",
+      "actions": [
+        {
+          "name": "list",
+          "aliases": [],
+          "method": "GET",
+          "path": "/api/public/projects",
+          "deprecated": false
+        }
+      ]
+    },
+    {
+      "name": "observations",
+      "actions": [
+        {
+          "name": "list",
+          "aliases": [],
+          "method": "GET",
+          "path": "/api/public/v2/observations",
+          "deprecated": false
+        }
+      ]
+    },
+    {
+      "name": "scores",
+      "actions": [
+        {
+          "name": "list",
+          "aliases": [],
+          "method": "GET",
+          "path": "/api/public/v3/scores",
+          "deprecated": false
+        },
+        {
+          "name": "create",
+          "aliases": [],
+          "method": "POST",
+          "path": "/api/public/scores",
+          "deprecated": false
+        },
+        {
+          "name": "delete",
+          "aliases": [],
+          "method": "DELETE",
+          "path": "/api/public/scores/{scoreId}",
+          "deprecated": false
+        }
+      ]
+    },
+    {
+      "name": "datasets",
+      "actions": [
+        {
+          "name": "create",
+          "aliases": [],
+          "method": "POST",
+          "path": "/api/public/v2/datasets",
+          "deprecated": false
+        },
+        {
+          "name": "get",
+          "aliases": [],
+          "method": "GET",
+          "path": "/api/public/v2/datasets/{datasetName}",
+          "deprecated": false
+        }
+      ]
+    },
+    {
+      "name": "dataset-items",
+      "actions": [
+        {
+          "name": "create",
+          "aliases": [],
+          "method": "POST",
+          "path": "/api/public/dataset-items",
+          "deprecated": false
+        },
+        {
+          "name": "get",
+          "aliases": [],
+          "method": "GET",
+          "path": "/api/public/dataset-items/{id}",
+          "deprecated": false
+        },
+        {
+          "name": "delete",
+          "aliases": [],
+          "method": "DELETE",
+          "path": "/api/public/dataset-items/{id}",
+          "deprecated": false
+        }
+      ]
+    }
+  ]
+}

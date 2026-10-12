@@ -1,0 +1,13 @@
+{
+  "status": 200,
+  "headers": { "content-type": "application/json" },
+  "body": {
+    "data": [
+      { "id": "obs-a1", "traceId": "trace-a1", "type": "GENERATION", "startTime": "2026-10-02T10:00:00.000Z", "endTime": "2026-10-02T10:00:05.000Z", "projectId": "proj-fixture", "parentObservationId": null, "name": "turn", "level": "DEFAULT", "statusMessage": null, "environment": "dev", "sessionId": "session-a", "model": "model-alpha", "usageDetails": { "input": 100, "output": 20, "total": 120 }, "totalCost": 0.5, "tags": ["claude-code"] },
+      { "id": "obs-a2", "traceId": "trace-a1", "type": "TOOL", "startTime": "2026-10-02T10:00:06.000Z", "endTime": "2026-10-02T10:00:07.000Z", "projectId": "proj-fixture", "parentObservationId": "obs-a1", "name": "Bash", "level": "ERROR", "statusMessage": "synthetic failure", "environment": "dev", "sessionId": "session-a", "model": null, "usageDetails": {}, "totalCost": null, "tags": ["claude-code"] },
+      { "id": "obs-b1", "traceId": "trace-b1", "type": "GENERATION", "startTime": "2026-10-03T09:00:00.000Z", "endTime": "2026-10-03T09:01:00.000Z", "projectId": "proj-fixture", "parentObservationId": null, "name": "turn", "level": "DEFAULT", "statusMessage": null, "environment": "dev", "sessionId": "session-b", "model": "model-beta", "usageDetails": { "input": 10, "output": 5, "total": 15 }, "totalCost": 0.25, "tags": ["codex"] },
+      { "id": "obs-x1", "traceId": "trace-x1", "type": "SPAN", "startTime": "2026-10-03T11:00:00.000Z", "endTime": "2026-10-03T11:00:01.000Z", "projectId": "proj-fixture", "parentObservationId": null, "name": "orphan", "level": "DEFAULT", "statusMessage": null, "environment": "dev", "sessionId": null, "model": null, "usageDetails": {}, "totalCost": null, "tags": [] }
+    ],
+    "meta": { "cursor": "cursor-page-2" }
+  }
+}

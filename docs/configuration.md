@@ -201,7 +201,7 @@ out:
 For Muse Code, `agro secret set META_API_KEY` stores the key but does not export it into a running shell.
 See [Muse authentication](harnesses/muse-code.md#authentication) for process injection and credential precedence.
 
-`TYPESAFE_API_KEY` serves the optional `typesafe-ai` skill and `prompt-miner --judge`.
+`TYPESAFE_API_KEY` serves the optional `typesafe-ai` skill.
 See `.agro/skills/typesafe-ai/SKILL.md`.
 
 ## Environment variables

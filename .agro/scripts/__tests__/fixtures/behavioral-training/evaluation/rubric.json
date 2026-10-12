@@ -1,0 +1,17 @@
+{
+  "version": "rubric-v1",
+  "positiveClass": "fail",
+  "dimensions": [
+    { "id": "task-completion", "name": "Task completion", "question": "Did the session reach the requested outcome?", "deterministicChecks": ["command-exit", "test-result"], "judge": null },
+    { "id": "tool-use-recovery", "name": "Tool use and recovery", "question": "Did the agent use tools correctly and recover from tool errors?", "deterministicChecks": ["tool-result"], "judge": { "provider": "synthetic", "model": "synthetic-judge", "promptVersion": "p1" } },
+    { "id": "trajectory-retries", "name": "Trajectory and retries", "question": "Did the agent avoid repeated failed attempts?", "deterministicChecks": [], "judge": null }
+  ],
+  "gate": {
+    "minLabeled": 30,
+    "minFail": 10,
+    "minPass": 10,
+    "minTruePositiveRate": 0.8,
+    "minTrueNegativeRate": 0.8,
+    "minCoverage": 0.8
+  }
+}

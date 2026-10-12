@@ -76,6 +76,15 @@
         ".agro/skills/audit"
       ],
       "note": "Consolidates implementation, PR, harness, context, skill, drift and campaign audits. Migrated LICENSE provenance from context-audit, harness-audit, pr-audit and skill-lint (MIT at time of consolidation, now Apache-2.0)."
+    },
+    "langfuse": {
+      "source": "github:langfuse/skills",
+      "commit": "b86532b77f16f1e27c7cffa32bb632aa3cd9a352",
+      "checksum": "sha256:5bafe9ed7c1b264ff02863517e3828ef9e4906cbe69f5caf57c1daf2e9a4610e",
+      "installed_paths": [
+        ".agro/skills/langfuse"
+      ],
+      "note": "Vendored unchanged: skills/langfuse plus the repository-root LICENSE (MIT, Copyright (c) 2026 Langfuse GmbH). Checksum: from the repository root, find .agro/skills/langfuse -type f -not -path '*/.*' | LC_ALL=C sort | xargs sha256sum | sha256sum."
     }
   }
 }

@@ -1,0 +1,12 @@
+{
+  "status": 200,
+  "headers": { "content-type": "application/json" },
+  "body": {
+    "data": [
+      { "id": "obs-a2", "traceId": "trace-a1", "type": "TOOL", "startTime": "2026-10-02T10:00:06.000Z", "endTime": "2026-10-02T10:00:07.000Z", "projectId": "proj-fixture", "parentObservationId": "obs-a1", "name": "Bash", "level": "ERROR", "statusMessage": "synthetic failure", "environment": "dev", "sessionId": "session-a", "model": null, "usageDetails": {}, "totalCost": null, "tags": ["claude-code"] },
+      { "id": "obs-a3", "traceId": "trace-a2", "type": "GENERATION", "startTime": "2026-10-02T10:10:00.000Z", "endTime": "2026-10-02T10:10:30.000Z", "projectId": "proj-fixture", "parentObservationId": null, "name": "turn", "level": "DEFAULT", "statusMessage": null, "environment": "dev", "sessionId": "session-a", "model": "model-alpha", "usageDetails": { "input": 50, "output": 10, "total": 60 }, "totalCost": 0.25, "tags": ["claude-code"] },
+      { "id": "obs-c1", "traceId": "trace-c1", "type": "SPAN", "startTime": "2026-10-04T08:00:00.000Z", "endTime": null, "projectId": "proj-fixture", "parentObservationId": null, "name": "turn", "level": "DEFAULT", "statusMessage": null, "environment": "prod", "sessionId": "session-c", "model": null, "usageDetails": {}, "totalCost": null, "tags": [] }
+    ],
+    "meta": {}
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "version": "taxonomy-v1",
+  "rubricVersion": "rubric-v1",
+  "approval": { "approvedBy": "operator", "approvedAt": "2026-10-10T09:00:00Z" },
+  "categories": [
+    { "id": "ignored-tool-error", "name": "TRANSCRIPT-MARKER-CATEGORY-NAME", "dimension": "tool-use-recovery", "definition": "TRANSCRIPT-MARKER-DEFINITION", "counterexamples": ["TRANSCRIPT-MARKER-COUNTEREXAMPLE"], "sourceIds": ["s01"] },
+    { "id": "unverified-success", "name": "Unverified success", "dimension": "task-completion", "definition": "TRANSCRIPT-MARKER-DEFINITION", "counterexamples": [], "sourceIds": ["s01"] },
+    { "id": "skipped-tests", "name": "Skipped tests", "dimension": "task-completion", "definition": "TRANSCRIPT-MARKER-DEFINITION", "counterexamples": [], "sourceIds": [] }
+  ]
+}

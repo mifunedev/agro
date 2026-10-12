@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "apiVersion": "4.35.0",
+  "sourceSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "resources": [
+    {
+      "name": "projects",
+      "actions": [
+        { "name": "list", "aliases": [], "operationId": "projects_get", "method": "GET", "path": "/api/public/projects", "deprecated": false }
+      ]
+    },
+    {
+      "name": "observations",
+      "actions": [
+        { "name": "list", "aliases": [], "operationId": "observations_getMany", "method": "GET", "path": "/api/public/v2/observations", "deprecated": false, "pagination": "cursor" }
+      ]
+    },
+    {
+      "name": "scores",
+      "actions": [
+        { "name": "list", "aliases": [], "operationId": "scores_getMany", "method": "GET", "path": "/api/public/v3/scores", "deprecated": false, "pagination": "cursor" }
+      ]
+    },
+    {
+      "name": "legacy-sessions",
+      "actions": [
+        { "name": "list", "aliases": [], "operationId": "sessions_list", "method": "GET", "path": "/api/public/sessions", "deprecated": true }
+      ]
+    },
+    {
+      "name": "legacy-traces",
+      "actions": [
+        { "name": "list", "aliases": [], "operationId": "trace_list", "method": "GET", "path": "/api/public/traces", "deprecated": true }
+      ]
+    }
+  ]
+}

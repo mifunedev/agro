@@ -1,0 +1,9 @@
+{
+  "createdAt": "2026-10-11T08:00:00Z",
+  "createdBy": "advisor",
+  "rubricVersion": "rubric-v1",
+  "dimensions": {
+    "task-completion": { "minImprovement": 0.25, "maxRegression": 0 },
+    "tool-use-recovery": { "minImprovement": 0, "maxRegression": 0 }
+  }
+}

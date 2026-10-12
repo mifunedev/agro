@@ -1,0 +1,14 @@
+{
+  "status": 200,
+  "headers": { "content-type": "application/json" },
+  "body": {
+    "data": [
+      {
+        "id": "proj-fixture",
+        "name": "Fixture Project",
+        "metadata": {},
+        "organization": { "id": "org-fixture", "name": "Fixture Organization" }
+      }
+    ]
+  }
+}

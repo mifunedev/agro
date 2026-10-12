@@ -1,0 +1,53 @@
+{
+  "rubricVersion": "rubric-v1",
+  "gate": {
+    "minLabeled": 30,
+    "minFail": 10,
+    "minPass": 10,
+    "minTruePositiveRate": 0.8,
+    "minTrueNegativeRate": 0.8,
+    "minCoverage": 0.8
+  },
+  "judgeCalls": {
+    "used": 1,
+    "budget": 1
+  },
+  "dimensions": {
+    "task-completion": {
+      "sampleSize": 2,
+      "status": "provisional",
+      "gateFailures": [
+        "minLabeled"
+      ]
+    }
+  },
+  "judgeLabels": [
+    {
+      "annotationId": "ann-j-1",
+      "sessionId": "s-reg-1",
+      "dimension": "task-completion",
+      "annotatorType": "judge",
+      "verdict": "fail",
+      "status": "provisional",
+      "reason": null
+    },
+    {
+      "annotationId": "ann-a-1",
+      "sessionId": "s-demo-2",
+      "dimension": "task-completion",
+      "annotatorType": "agent",
+      "verdict": "pass",
+      "status": "provisional",
+      "reason": null
+    },
+    {
+      "annotationId": "ann-j-2",
+      "sessionId": "s-hold-1",
+      "dimension": "task-completion",
+      "annotatorType": "judge",
+      "verdict": "unknown",
+      "status": "provisional",
+      "reason": "budget-exhausted"
+    }
+  ]
+}

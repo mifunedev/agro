@@ -1,0 +1,281 @@
+[
+  {
+    "projectId": "proj-synthetic",
+    "sessionId": "sess-cc",
+    "environment": "dev",
+    "tags": [
+      "claude-code"
+    ],
+    "version": null,
+    "parentObservationId": "cc-gen-3",
+    "level": "DEFAULT",
+    "statusMessage": null,
+    "model": null,
+    "usageDetails": {},
+    "costDetails": {},
+    "totalCost": null,
+    "latency": null,
+    "input": "{\"command\":\"npm test\"}",
+    "output": "1 passing",
+    "metadata": {
+      "tool_name": "Bash",
+      "tool_id": "call-3",
+      "input_meta": {
+        "truncated": false,
+        "orig_len": 22
+      },
+      "output_meta": {
+        "truncated": false,
+        "orig_len": 9
+      }
+    },
+    "id": "cc-tool-3",
+    "traceId": "trace-cc-2",
+    "traceName": "claude-code turn 2",
+    "type": "TOOL",
+    "name": "Bash",
+    "startTime": "2026-10-02T10:05:02.000Z",
+    "endTime": "2026-10-02T10:05:04.000Z"
+  },
+  {
+    "projectId": "proj-synthetic",
+    "sessionId": "sess-cc",
+    "environment": "dev",
+    "tags": [
+      "claude-code"
+    ],
+    "version": null,
+    "parentObservationId": "cc-root-1",
+    "level": "DEFAULT",
+    "statusMessage": null,
+    "model": "model-alpha",
+    "usageDetails": {
+      "input": 200,
+      "output": 5,
+      "total": 205
+    },
+    "costDetails": {},
+    "totalCost": 0.02,
+    "latency": null,
+    "input": "[{\"role\":\"user\",\"content\":\"List the files.\"},{\"role\":\"assistant\",\"content\":\"Running ls.\",\"tool_calls\":[{\"id\":\"call-1\",\"type\":\"function\",\"function\":{\"name\":\"Bash\"}}]},{\"role\":\"tool\",\"tool_results\":[{\"tool_use_id\":\"call-1\",\"tool_name\":\"Bash\",\"output\":\"a.txt\\nb.txt\"}]}]",
+    "output": "{\"role\":\"assistant\",\"content\":\"Two files.\"}",
+    "metadata": {
+      "history": {
+        "messages": 3
+      }
+    },
+    "id": "cc-gen-2",
+    "traceId": "trace-cc-1",
+    "traceName": "claude-code turn 1",
+    "type": "GENERATION",
+    "name": "Claude Response",
+    "startTime": "2026-10-02T10:00:03.000Z",
+    "endTime": "2026-10-02T10:00:04.000Z"
+  },
+  {
+    "projectId": "proj-synthetic",
+    "sessionId": "sess-cc",
+    "environment": "dev",
+    "tags": [
+      "claude-code"
+    ],
+    "version": null,
+    "parentObservationId": null,
+    "level": "DEFAULT",
+    "statusMessage": null,
+    "model": null,
+    "usageDetails": {},
+    "costDetails": {},
+    "totalCost": null,
+    "latency": null,
+    "input": null,
+    "output": null,
+    "metadata": {
+      "source": "claude-code",
+      "turn_number": 1
+    },
+    "id": "cc-root-1",
+    "traceId": "trace-cc-1",
+    "traceName": "claude-code turn 1",
+    "type": "SPAN",
+    "name": "Claude Code Turn",
+    "startTime": "2026-10-02T10:00:00.000Z",
+    "endTime": "2026-10-02T10:00:04.000Z"
+  },
+  {
+    "projectId": "proj-synthetic",
+    "sessionId": "sess-cc",
+    "environment": "dev",
+    "tags": [
+      "claude-code"
+    ],
+    "version": null,
+    "parentObservationId": "cc-gen-3",
+    "level": "DEFAULT",
+    "statusMessage": null,
+    "model": null,
+    "usageDetails": {},
+    "costDetails": {},
+    "totalCost": null,
+    "latency": null,
+    "input": "{\"command\":\"npm test\"}",
+    "output": "1 passing",
+    "metadata": {
+      "tool_name": "Bash",
+      "tool_id": "call-2",
+      "input_meta": {
+        "truncated": false,
+        "orig_len": 22
+      },
+      "output_meta": {
+        "truncated": false,
+        "orig_len": 9
+      }
+    },
+    "id": "cc-tool-2",
+    "traceId": "trace-cc-2",
+    "traceName": "claude-code turn 2",
+    "type": "TOOL",
+    "name": "Bash",
+    "startTime": "2026-10-02T10:05:02.000Z",
+    "endTime": "2026-10-02T10:05:03.000Z"
+  },
+  {
+    "projectId": "proj-synthetic",
+    "sessionId": "sess-cc",
+    "environment": "dev",
+    "tags": [
+      "claude-code"
+    ],
+    "version": null,
+    "parentObservationId": "cc-root-1",
+    "level": "DEFAULT",
+    "statusMessage": null,
+    "model": "model-alpha",
+    "usageDetails": {
+      "input": 100,
+      "output": 10,
+      "total": 110
+    },
+    "costDetails": {},
+    "totalCost": 0.01,
+    "latency": null,
+    "input": "[{\"role\":\"user\",\"content\":\"List the files.\"}]",
+    "output": "{\"role\":\"assistant\",\"content\":\"Running ls.\",\"tool_calls\":[{\"id\":\"call-1\",\"type\":\"function\",\"function\":{\"name\":\"Bash\"}}]}",
+    "metadata": {
+      "history": {
+        "messages": 1
+      }
+    },
+    "id": "cc-gen-1",
+    "traceId": "trace-cc-1",
+    "traceName": "claude-code turn 1",
+    "type": "GENERATION",
+    "name": "Claude Response",
+    "startTime": "2026-10-02T10:00:01.000Z",
+    "endTime": "2026-10-02T10:00:01.500Z"
+  },
+  {
+    "projectId": "proj-synthetic",
+    "sessionId": "sess-cc",
+    "environment": "dev",
+    "tags": [
+      "claude-code"
+    ],
+    "version": null,
+    "parentObservationId": null,
+    "level": "DEFAULT",
+    "statusMessage": null,
+    "model": null,
+    "usageDetails": {},
+    "costDetails": {},
+    "totalCost": null,
+    "latency": null,
+    "input": null,
+    "output": null,
+    "metadata": {
+      "source": "claude-code",
+      "turn_number": 2
+    },
+    "id": "cc-root-2",
+    "traceId": "trace-cc-2",
+    "traceName": "claude-code turn 2",
+    "type": "SPAN",
+    "name": "Claude Code Turn",
+    "startTime": "2026-10-02T10:05:00.000Z",
+    "endTime": "2026-10-02T10:05:04.000Z"
+  },
+  {
+    "projectId": "proj-synthetic",
+    "sessionId": "sess-cc",
+    "environment": "dev",
+    "tags": [
+      "claude-code"
+    ],
+    "version": null,
+    "parentObservationId": "cc-gen-1",
+    "level": "DEFAULT",
+    "statusMessage": null,
+    "model": null,
+    "usageDetails": {},
+    "costDetails": {},
+    "totalCost": null,
+    "latency": null,
+    "input": "{\"command\":\"ls\"}",
+    "output": "a.txt\nb.txt",
+    "metadata": {
+      "tool_name": "Bash",
+      "tool_id": "call-1",
+      "input_meta": {
+        "truncated": false,
+        "orig_len": 16
+      },
+      "output_meta": {
+        "truncated": false,
+        "orig_len": 11
+      }
+    },
+    "id": "cc-tool-1",
+    "traceId": "trace-cc-1",
+    "traceName": "claude-code turn 1",
+    "type": "TOOL",
+    "name": "Bash",
+    "startTime": "2026-10-02T10:00:02.000Z",
+    "endTime": "2026-10-02T10:00:02.500Z"
+  },
+  {
+    "projectId": "proj-synthetic",
+    "sessionId": "sess-cc",
+    "environment": "dev",
+    "tags": [
+      "claude-code"
+    ],
+    "version": null,
+    "parentObservationId": "cc-root-2",
+    "level": "DEFAULT",
+    "statusMessage": null,
+    "model": "model-beta",
+    "usageDetails": {
+      "input": 300,
+      "output": 12,
+      "total": 312
+    },
+    "costDetails": {},
+    "totalCost": 0.03,
+    "latency": null,
+    "input": "[{\"role\":\"user\",\"content\":\"List the files.\"},{\"role\":\"assistant\",\"content\":\"Running ls.\",\"tool_calls\":[{\"id\":\"call-1\",\"type\":\"function\",\"function\":{\"name\":\"Bash\"}}]},{\"role\":\"tool\",\"tool_results\":[{\"tool_use_id\":\"call-1\",\"tool_name\":\"Bash\",\"output\":\"a.txt\\nb.txt\"}]},{\"role\":\"assistant\",\"content\":\"Two files.\"},{\"role\":\"user\",\"content\":\"Run the tests.\"}]",
+    "output": "{\"role\":\"assistant\",\"content\":\"Running tests.\",\"tool_calls\":[{\"id\":\"call-2\",\"type\":\"function\",\"function\":{\"name\":\"Bash\"}},{\"id\":\"call-3\",\"type\":\"function\",\"function\":{\"name\":\"Bash\"}}]}",
+    "metadata": {
+      "history": {
+        "messages": 5
+      }
+    },
+    "id": "cc-gen-3",
+    "traceId": "trace-cc-2",
+    "traceName": "claude-code turn 2",
+    "type": "GENERATION",
+    "name": "Claude Response",
+    "startTime": "2026-10-02T10:05:01.000Z",
+    "endTime": "2026-10-02T10:05:01.500Z"
+  }
+]

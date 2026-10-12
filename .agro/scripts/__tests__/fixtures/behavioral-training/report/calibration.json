@@ -1,0 +1,27 @@
+{
+  "rubricVersion": "rubric-v1",
+  "gate": { "minLabeled": 30, "minFail": 10, "minPass": 10, "minTruePositiveRate": 0.8, "minTrueNegativeRate": 0.8, "minCoverage": 0.8 },
+  "judgeCalls": { "used": 1, "budget": 5 },
+  "dimensions": {
+    "tool-use-recovery": {
+      "sampleSize": 30, "classes": { "fail": 12, "pass": 18 },
+      "confusion": { "truePositive": 11, "falsePositive": 1, "trueNegative": 17, "falseNegative": 1 },
+      "pass": 18, "fail": 12, "unknown": 2, "notApplicable": 0,
+      "precision": 0.9166666666666666, "recall": 0.9166666666666666, "f1": 0.9166666666666666,
+      "truePositiveRate": 0.9166666666666666, "trueNegativeRate": 0.9444444444444444, "coverage": 1, "passRate": 0.6,
+      "status": "calibrated", "gateFailures": [], "reasons": {}
+    },
+    "task-completion": {
+      "sampleSize": 2, "classes": { "fail": 1, "pass": 1 },
+      "confusion": { "truePositive": 0, "falsePositive": 0, "trueNegative": 0, "falseNegative": 0 },
+      "pass": 1, "fail": 1, "unknown": 0, "notApplicable": 0,
+      "precision": null, "recall": null, "f1": null,
+      "truePositiveRate": null, "trueNegativeRate": null, "coverage": 0, "passRate": 0.5,
+      "status": "provisional", "gateFailures": ["minLabeled", "minFail", "minPass", "minTruePositiveRate", "minTrueNegativeRate", "minCoverage"],
+      "reasons": { "precision": "TRANSCRIPT-MARKER-REASON" }
+    }
+  },
+  "judgeLabels": [
+    { "annotationId": "a08", "sessionId": "s02", "dimension": "tool-use-recovery", "annotatorType": "judge", "verdict": "pass", "status": "calibrated", "reason": null }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "policy": "stratified-50-25-25",
+  "rateLabel": "discovery-sample",
+  "seed": 42,
+  "sampleSize": 4,
+  "inventoryChecksum": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "inventoryCount": 6,
+  "eligibleCount": 5,
+  "excluded": { "missing-session-id": 1, "no-traces": 0, "duplicate-session-id": 0, "duplicate-content": 0 },
+  "rounding": "flagged and heavy each target floor(sampleSize / 4); baseline targets the remainder",
+  "order": ["baseline", "flagged", "heavy"],
+  "thresholds": { "observationCount": null, "costUsd": null, "latencyMs": null, "scores": {} },
+  "unavailableSignals": ["low-score", "repeated-correction"],
+  "strata": {
+    "baseline": { "target": 2, "eligible": 5, "selected": 2 },
+    "flagged": { "target": 1, "eligible": 2, "selected": 1 },
+    "heavy": { "target": 1, "eligible": 1, "selected": 1 }
+  },
+  "reallocation": [],
+  "sessions": [
+    { "sessionId": "s01", "stratum": "baseline", "memberships": ["baseline"], "reason": "baseline:uniform" },
+    { "sessionId": "s02", "stratum": "baseline", "memberships": ["baseline", "flagged"], "reason": "baseline:uniform" },
+    { "sessionId": "s03", "stratum": "flagged", "memberships": ["baseline", "flagged"], "reason": "flagged:tool-error" },
+    { "sessionId": "s04", "stratum": "heavy", "memberships": ["baseline", "heavy"], "reason": "heavy:high-cost" }
+  ]
+}
