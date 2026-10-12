@@ -336,6 +336,7 @@ const HOST_INSTALLERS: ReadonlyArray<readonly [string, string]> = [
   ["microsandbox", "install-msb.sh"],
   ["tailscale", "pkgs.tailscale.com/stable/"],
   ["code-server", "coder/code-server/releases/download/"],
+  ["ffmpeg", "eugeneware/ffmpeg-static/releases/download/"],
 ];
 
 function hostRunner(

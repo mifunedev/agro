@@ -178,7 +178,8 @@ agy     → agy --dangerously-skip-permissions
 ### Tools
 
 `agro tool list` shows every tool and its state. `herdr`, `cloudflared`,
-`agent-browser`, `microsandbox`, `tailscale`, and `code-server` are installable:
+`agent-browser`, `microsandbox`, `tailscale`, `code-server`, and `ffmpeg` are
+installable:
 `agro tool install <name>` puts a pinned, checksum-verified binary into
 `~/.local`. The image ships `gh` and `docker-cli`, and `agro tool install`
 refuses both tools. `agro tool install agent-browser` downloads
@@ -190,6 +191,9 @@ See [Security considerations](security-considerations.md).
 
 `agro tool install tailscale` installs the binaries only. It starts no daemon.
 See [Connecting → Mobile access over Tailscale](connecting.md#mobile-access-over-tailscale).
+
+`agro tool install ffmpeg` installs `ffmpeg` and `ffprobe`. If `ffmpeg` has no
+`libx264` encoder, the install fails.
 
 The image also ships Node.js 24, pnpm, Bun, uv, git, tmux, jq, ripgrep, curl,
 wget, lsof, htop, telnet, nano, openssh-client, and libatomic1.
@@ -206,7 +210,7 @@ install records the id under `hostTools` in `~/.agro/config.json`.
 
 | Tool | Host install | Level | Sandbox |
 |------|--------------|-------|---------|
-| `agent-browser`, `herdr`, `cloudflared`, `microsandbox`, `tailscale` | pinned binary in `~/.local` | invoking user | installs into `~/.local` |
+| `agent-browser`, `herdr`, `cloudflared`, `microsandbox`, `tailscale`, `ffmpeg` | pinned binary in `~/.local` | invoking user | installs into `~/.local` |
 | `code-server` | pinned release in `~/.local/lib/code-server-<version>` | invoking user | installs into `~/.local` |
 | `docker-engine` | Docker Engine and Compose from Docker's apt repository; adds you to the `docker` group | root | refused; names `access.dockerSocket` |
 | `desktop` | XFCE, XRDP, and system Tailscale; serves TCP 3389 only through Tailscale | root | refused |

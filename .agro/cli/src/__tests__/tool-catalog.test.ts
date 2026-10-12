@@ -18,7 +18,7 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", ".."
 const read = (p: string): string => readFileSync(join(REPO_ROOT, p), "utf8");
 
 describe("tool catalog shape", () => {
-  it("lists the ten known tools", () => {
+  it("lists the eleven known tools", () => {
     expect(toolIds()).toEqual([
       "agent-browser",
       "herdr",
@@ -28,6 +28,7 @@ describe("tool catalog shape", () => {
       "gh",
       "tailscale",
       "code-server",
+      "ffmpeg",
       "docker-engine",
       "desktop",
     ]);
@@ -41,6 +42,7 @@ describe("tool catalog shape", () => {
       "microsandbox",
       "tailscale",
       "code-server",
+      "ffmpeg",
     ]);
     for (const t of TOOL_CATALOG) {
       expect(["baked-in", "installable"], t.id).toContain(t.kind);
@@ -89,6 +91,7 @@ describe("tool catalog shape", () => {
       "microsandbox",
       "tailscale",
       "code-server",
+      "ffmpeg",
     ]);
     for (const [id, body] of scripts) {
       expect(body, id).toContain("NPM_USER_PREFIX");
@@ -142,10 +145,13 @@ describe("tool catalog shape", () => {
       "gh",
       "tailscale",
       "code-server",
+      "ffmpeg",
       "docker-engine",
     ]);
     for (const t of TOOL_CATALOG) {
-      if (t.versionArgv) expect(t.versionArgv, t.id).toEqual([t.binary, "--version"]);
+      if (t.versionArgv === undefined) continue;
+      const flag = t.id === "ffmpeg" ? "-version" : "--version";
+      expect(t.versionArgv, t.id).toEqual([t.binary, flag]);
     }
   });
 
@@ -374,6 +380,94 @@ describe("code-server installs a pinned release for the invoking user", () => {
       `${HARNESS_PREFIX_TOKEN}/lib/code-server-${VERSION}`,
     ]);
     expect(cs.hostUninstallArgv).toBeUndefined();
+  });
+});
+
+describe("ffmpeg installs a pinned static build for the invoking user", () => {
+  const ff = findTool("ffmpeg");
+  const script = ff?.installArgv?.join("\n") ?? "";
+  const RELEASE = "b6.1.1";
+  const SHAS = {
+    "ffmpeg-linux-x64.gz": "bfe8a8fc511530457b528c48d77b5737527b504a3797a9bc4866aeca69c2dffa",
+    "ffprobe-linux-x64.gz": "25d9b6ccb05e3d9de9e04e31e2506d8dd7f9f0418981965ac6df12e8d3afd067",
+    "ffmpeg-linux-arm64.gz": "754a678672298bc68156adff58aa7385a592c2b30b1d0ae8750c45c915c4bac0",
+    "ffprobe-linux-arm64.gz": "2ab6aba60ee84412dff9188720703376cb4e7aaf7e0b5e43aa8249f2acae5bf8",
+  };
+
+  it("is an installable, host-capable tool that installs without root", () => {
+    expect(ff).toMatchObject({
+      kind: "installable",
+      binary: "ffmpeg",
+      hostCapable: true,
+      installUser: "sandbox",
+      docsPath: "docs/installation.md",
+    });
+    expect(ff?.hostInstallUser).toBeUndefined();
+    expect(ff?.hostInstallArgv).toBeUndefined();
+    expect(ff?.installArgv?.slice(0, 2)).toEqual(["bash", "-lc"]);
+    expect(script).not.toContain("sudo");
+  });
+
+  it("pins one immutable release and checks all four archive checksums", () => {
+    expect(script).toContain(`release=${RELEASE}`);
+    expect(script).toContain(
+      "https://github.com/eugeneware/ffmpeg-static/releases/download/$release/$name-linux-$arch.gz",
+    );
+    expect(script).toContain("  amd64) arch=x64; ffmpeg_sha=" + SHAS["ffmpeg-linux-x64.gz"] + "; ffprobe_sha=" + SHAS["ffprobe-linux-x64.gz"] + " ;;");
+    expect(script).toContain("  arm64) arch=arm64; ffmpeg_sha=" + SHAS["ffmpeg-linux-arm64.gz"] + "; ffprobe_sha=" + SHAS["ffprobe-linux-arm64.gz"] + " ;;");
+    expect(script).toContain("sha256sum -c -");
+  });
+
+  it("refuses an unpinned architecture by name", () => {
+    expect(script).toContain('*) echo "no pinned FFmpeg build for $(dpkg --print-architecture)" >&2; exit 1 ;;');
+  });
+
+  it("installs ffmpeg and ffprobe into the user prefix", () => {
+    expect(script).toContain('prefix="${NPM_USER_PREFIX:-$HOME/.local}"');
+    expect(script).toContain('install -m 0755 "$tmp/$name" "$prefix/bin/$name"');
+    expect(script).toContain("for name in ffmpeg ffprobe; do");
+  });
+
+  it("fails the install when the build has no libx264 encoder", () => {
+    expect(script).toContain('if ! "$prefix/bin/ffmpeg" -hide_banner -encoders | grep -qw libx264; then');
+    expect(script.indexOf("grep -qw libx264")).toBeLessThan(script.lastIndexOf("exit 1"));
+  });
+
+  it("exits 1 when the installed ffmpeg lists no libx264 encoder", () => {
+    const check = script.slice(script.indexOf('if ! "$prefix/bin/ffmpeg"'));
+    const dir = mkdtempSync(join(tmpdir(), "agro-ffmpeg-encoders-"));
+    try {
+      mkdirSync(join(dir, "bin"));
+      writeFileSync(join(dir, "bin", "ffmpeg"), "#!/bin/sh\necho ' V....D libvpx  libvpx VP8 (codec vp8)'\n");
+      chmodSync(join(dir, "bin", "ffmpeg"), 0o755);
+      const r = spawnSync("/bin/bash", ["-c", `set -e\nprefix=${dir}\n${check}`], { encoding: "utf8" });
+      expect(r.status).toBe(1);
+      expect(r.stderr).toContain("libx264");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("probes the version with the flag ffmpeg accepts", () => {
+    expect(ff?.versionArgv).toEqual(["ffmpeg", "-version"]);
+  });
+
+  it("removes both binaries and nothing else", () => {
+    expect(ff?.uninstallArgv).toEqual([
+      "rm",
+      "-rf",
+      `${HARNESS_PREFIX_TOKEN}/bin/ffmpeg`,
+      `${HARNESS_PREFIX_TOKEN}/bin/ffprobe`,
+    ]);
+    expect(ff?.hostUninstallArgv).toBeUndefined();
+  });
+
+  it("arms no download gate, because each architecture downloads about 55 MB", () => {
+    expect(ff?.downloadSize).toBeUndefined();
+  });
+
+  it("leaves the agent-browser pin unchanged", () => {
+    expect(findTool("agent-browser")!.installArgv!.join(" ")).toContain("agent-browser@0.38.1");
   });
 });
 
