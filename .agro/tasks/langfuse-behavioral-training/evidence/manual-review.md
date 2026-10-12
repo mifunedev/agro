@@ -125,8 +125,8 @@ The counts are discovery-sample rates, not prevalence. Every dimension stays
    resumed five times, and publish resumed after a failed write.
 2. While a live `normalize` held the lock of a second run directory, run
    `node $B report --run-dir <locked run> --resume $W`.
-   Observed: exit 5, "run directory … is locked by PID 1756395 on host
-   846b13add981".
+   Observed: exit 5 and the message
+   `run directory <locked run> is locked by PID 1756395 on host 846b13add981`.
 
 ## I. Baseline and candidate comparison
 
