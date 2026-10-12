@@ -34,6 +34,7 @@ import {
   writeJsonAtomic,
   writeManifest,
 } from "../../skills/behavioral-training/scripts/lib/run-store.mjs";
+import { sessionFacts } from "../../skills/behavioral-training/scripts/lib/facts.mjs";
 
 const repoRoot = resolve(import.meta.dirname, "../../..");
 const scriptsDir = join(repoRoot, ".agro/skills/behavioral-training/scripts");
@@ -583,6 +584,59 @@ function stageContext(runDir: string, { manifest = baseManifest(), options = {},
   return { ctx, out, err };
 }
 
+function syntheticFacts(): any[] {
+  let clock = 0;
+  const event = (observationId: string, fields: Record<string, unknown>) => {
+    clock += 1;
+    const time = new Date(Date.UTC(2026, 9, 5, 9, 0, clock)).toISOString();
+    return {
+      observationId,
+      traceId: "t-1",
+      parentObservationId: "g-root",
+      type: "TOOL",
+      name: null,
+      startTime: time,
+      endTime: time,
+      role: null,
+      input: null,
+      output: null,
+      metadata: null,
+      model: null,
+      level: "DEFAULT",
+      statusMessage: null,
+      dedupedFrom: null,
+      ...fields,
+    };
+  };
+  const tool = (id: string, name: string, input: unknown, output: unknown, extra: Record<string, unknown> = {}) =>
+    event(id, { name, role: "tool", input, output, metadata: { tool_name: name }, ...extra });
+  const bash = (id: string, command: string, output: unknown = "ok", extra: Record<string, unknown> = {}) =>
+    tool(id, "Bash", { command }, output, extra);
+  const failed = (id: string, command: string, output = "Exit code 1") => bash(id, command, output, { level: "ERROR" });
+  const guard = (id: string, command: string, remedy: string) =>
+    failed(id, command, `PreToolUse:Bash hook error: BLOCKED by synthetic-guard. ${remedy}`);
+  const session = (sessionId: string, events: any[]) =>
+    sessionFacts([{ sessionId, projectId: "p1", chunk: { index: 0, count: 1 }, events }]);
+  return [
+    session("s01", [
+      failed("e1", "npm run build"),
+      bash("e2", "npm run build -- --verbose"),
+      tool("r1", "Read", { file_path: "missing.txt" }, "missing", { level: "ERROR" }),
+      guard("g1", "rm -rf build", "Ask the user for approval."),
+    ]),
+    session("s02", [
+      failed("f1", "ls nope"),
+      failed("f2", "ls nope"),
+      guard("g2", "rm -rf dist", "Use explicit paths instead."),
+      bash("h1", "git rm -r dist"),
+    ]),
+    session("s03", [
+      tool("q1", "Grep", { pattern: "x" }, "error", { level: "ERROR" }),
+      tool("q2", "Grep", { pattern: "x" }, "match"),
+    ]),
+  ];
+}
+
 const ALL_REPORT_INPUTS = [
   "sample.json",
   "normalized-sessions.jsonl",
@@ -763,30 +817,44 @@ describe("report", () => {
     expect(manifestOf(runDir).stages.report).toMatchObject({ status: "complete", attempts: 2 });
   });
 
-  it("summarizes facts.jsonl as counts only", async () => {
+  it("summarizes facts.jsonl that sessionFacts produces as counts only", async () => {
     const { run } = await loadReport();
     const runDir = temp("bt-report-");
-    copyFixtures(runDir, ["facts.jsonl"]);
+    const records = syntheticFacts();
+    writeFileSync(join(runDir, "facts.jsonl"), records.map((record: any) => `${JSON.stringify(record)}\n`).join(""));
     expect((await run(stageContext(runDir).ctx)).status).toBe("complete");
     const report = JSON.parse(readFileSync(join(runDir, "report.json"), "utf8"));
     expect(report.inputs["facts.jsonl"]).toBe("read");
     expect(report.facts).toEqual({
       status: "read",
-      sessions: 2,
-      toolCalls: 9,
-      toolErrors: 6,
-      errors: { resolved: 1, unresolved: 2, excluded: 2, unclassified: 1 },
+      sessions: 3,
+      toolCalls: 10,
+      toolErrors: 7,
+      resolved: 3,
+      unresolved: 2,
+      excluded: 1,
+      unclassified: 1,
       unresolvedByReason: { "no-later-call": 1, "identical-retries-only": 0, "changed-calls-failed": 0, "guard-routed-around": 1 },
-      excludedByClass: { "red-test": 1, "pending-check": 0, "obeyed-guard": 1 },
-      unclassifiedByReason: { "identical-retry-succeeded": 0, "guard-follow-up-unclear": 1 },
+      excludedByClass: { "red-test": 0, "pending-check": 0, "obeyed-guard": 1 },
+      unclassifiedByReason: { "identical-retry-succeeded": 1, "guard-follow-up-unclear": 0 },
       repeatedFailingCalls: 1,
-      guardBlocks: { total: 3, byFollowUp: { obeyed: 1, "routed-around": 1, unclear: 1 } },
+      guardBlocks: { total: 2, byFollowUp: { obeyed: 1, "routed-around": 1, unclear: 0 } },
+    });
+    const listed = (field: string) => records.reduce((sum: number, record: any) => sum + record[field].length, 0);
+    expect(report.facts).toMatchObject({
+      resolved: listed("resolvedErrors"),
+      unresolved: listed("unresolvedErrors"),
+      excluded: listed("excludedErrors"),
+      unclassified: listed("unclassified"),
     });
     const markdown = readFileSync(join(runDir, "report.md"), "utf8");
     expect(markdown).toContain("## Tool facts");
+    expect(markdown).toContain("| resolved errors | 3 |");
     expect(markdown).toContain("routed-around 1");
     const text = JSON.stringify(report) + markdown;
-    for (const id of ["o-s01-1", "sha256:aa", "o-s02-5"]) expect(text).not.toContain(id);
+    const hashes = records.flatMap((record: any) => record.repeatedFailingCalls.map((item: any) => item.inputHash));
+    for (const id of ["e1", "r1", "g1", "f1", "h1", ...hashes]) expect(text).not.toContain(`"${id}"`);
+    for (const hash of hashes) expect(text).not.toContain(hash);
 
     const empty = temp("bt-report-");
     await run(stageContext(empty).ctx);
