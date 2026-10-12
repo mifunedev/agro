@@ -10,8 +10,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 - Add `/behavioral-training` to analyze Langfuse sessions in resumable, operator-reviewed stages and publish reviewed evaluation datasets on request, and vendor the official Langfuse skill ([#1414](https://github.com/mifunedev/agro/pull/1414)).
+- Add desktop and mobile browser recording: `agro tool install ffmpeg` installs a pinned FFmpeg, the agent-browser `record.sh` helper writes an H.264 video and a manifest for each evidence or demo capture, and the [browser recording guide](docs/integrations/agent-browser.md) documents the procedure ([#1429](https://github.com/mifunedev/agro/pull/1429)).
 
 ### Changed
+- Correct the agent-browser skill so that it names the tool catalog as the version authority and passes `--session` to each `agent-browser` command ([#1429](https://github.com/mifunedev/agro/pull/1429)).
 - Raise the Claude Code and Pi Langfuse field capture limit that `agro langfuse apply` writes from 20000 to 100000 characters ([#1421](https://github.com/mifunedev/agro/pull/1421)).
 - Run `pnpm install --frozen-lockfile` in each new git worktree in the `/git`, `/worktrees`, and `/delegate` procedures so that tests pass there ([#1426](https://github.com/mifunedev/agro/pull/1426)).
 - Forbid agents from reaching a hook-blocked effect through another command, script, or tool in root `AGENTS.md` ([#1415](https://github.com/mifunedev/agro/issues/1415)).
