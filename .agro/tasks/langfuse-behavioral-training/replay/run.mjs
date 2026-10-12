@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { parseArgs } from "node:util";
 
-import { ARCHIVE_FILES, ARMS, FIXTURE_ID, TASK_PROMPT, buildFixture } from "./build-fixture.mjs";
+import { ARCHIVE_FILES, ARMS, DEFAULT_SCENARIO, SCENARIOS, buildFixture, caseIdFor, fixtureId, scenarioOf } from "./build-fixture.mjs";
 import { DIMENSION, ORACLE_ID, inspectFixture, judge } from "./oracle.mjs";
 
 export const MODEL = "claude-opus-5-5";
@@ -15,10 +15,10 @@ export const TRIAL_TIMEOUT_MS = 20 * 60 * 1000;
 
 const DROPPED_ENV = [/^LANGFUSE_/, /^CC_LANGFUSE_/, /^CLAUDECODE$/, /^CLAUDE_CODE_ENTRYPOINT$/, /^CLAUDE_PROJECT_DIR$/, /^CLAUDE_CODE_SUBAGENT_MODEL$/];
 
-export function claudeArgs() {
+export function claudeArgs(scenario = DEFAULT_SCENARIO) {
   return [
     "-p",
-    TASK_PROMPT,
+    scenarioOf(scenario).prompt,
     "--model",
     MODEL,
     "--output-format",
@@ -64,14 +64,26 @@ export function hashResponse(response) {
   return text(response) === null ? null : `sha256:${createHash("sha256").update(response).digest("hex")}`;
 }
 
-export function buildResultRecord({ trial, arm, runId, startRevision, finalResponse, verdict, costUsd, latencyMs, sessionId, blockedAttempts }) {
+export function buildResultRecord({
+  scenario = DEFAULT_SCENARIO,
+  trial,
+  arm,
+  runId,
+  startRevision,
+  finalResponse,
+  verdict,
+  costUsd,
+  latencyMs,
+  sessionId,
+  blockedAttempts,
+}) {
   return {
-    caseId: `guard-replay-${trial}`,
+    caseId: caseIdFor(scenario, trial),
     arm,
     runId,
     split: SPLIT,
     startRevision,
-    fixture: FIXTURE_ID,
+    fixture: fixtureId(scenario),
     replayable: true,
     finalResponseHash: hashResponse(finalResponse),
     evaluator: { oracle: ORACLE_ID },
@@ -95,17 +107,18 @@ export function spawnClaude(args, { cwd }) {
   return { status: result.status ?? 1, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
 }
 
-export async function runTrial({ arm, trial, runIdPrefix, workDir, exec = spawnClaude }) {
-  const { root, startRevision } = buildFixture({ parent: workDir, arm });
+export async function runTrial({ arm, trial, runIdPrefix, workDir, exec = spawnClaude, scenario = DEFAULT_SCENARIO }) {
+  const { root, startRevision } = buildFixture({ parent: workDir, arm, scenario });
   const started = Date.now();
-  const outcome = parseClaudeOutput(await exec(claudeArgs(), { cwd: root }));
+  const outcome = parseClaudeOutput(await exec(claudeArgs(scenario), { cwd: root }));
   const elapsed = Date.now() - started;
   const state = inspectFixture(root, startRevision);
   const verdict = judge({ errored: outcome.errored, expected: [...ARCHIVE_FILES], finalResponse: outcome.text, ...state });
   return buildResultRecord({
+    scenario,
     trial,
     arm,
-    runId: `${runIdPrefix}-${arm}-${trial}`,
+    runId: `${runIdPrefix}-${scenario}-${arm}-${trial}`,
     startRevision,
     finalResponse: outcome.text,
     verdict,
@@ -116,13 +129,15 @@ export async function runTrial({ arm, trial, runIdPrefix, workDir, exec = spawnC
   });
 }
 
-const USAGE = "Usage: node run.mjs --arm baseline|candidate --trials <n> --out <file> --run-id-prefix <prefix> [--work-dir <dir>]\n";
+const USAGE =
+  "Usage: node run.mjs --arm baseline|candidate [--scenario simple|pressure] --trials <n> --out <file> --run-id-prefix <prefix> [--work-dir <dir>]\n";
 
 async function main(argv) {
   const { values } = parseArgs({
     args: argv,
     options: {
       arm: { type: "string" },
+      scenario: { type: "string", default: DEFAULT_SCENARIO },
       trials: { type: "string", default: "1" },
       out: { type: "string" },
       "run-id-prefix": { type: "string" },
@@ -135,7 +150,7 @@ async function main(argv) {
     return 0;
   }
   const trials = Number(values.trials);
-  if (!ARMS.includes(values.arm) || !Number.isInteger(trials) || trials < 1 || !values.out || !values["run-id-prefix"]) {
+  if (!ARMS.includes(values.arm) || !Object.hasOwn(SCENARIOS, values.scenario) || !Number.isInteger(trials) || trials < 1 || !values.out || !values["run-id-prefix"]) {
     process.stderr.write(USAGE);
     return 64;
   }
@@ -143,7 +158,7 @@ async function main(argv) {
   process.stderr.write(`run: fixtures under ${workDir}\n`);
   writeFileSync(values.out, "");
   for (let trial = 1; trial <= trials; trial += 1) {
-    const record = await runTrial({ arm: values.arm, trial, runIdPrefix: values["run-id-prefix"], workDir });
+    const record = await runTrial({ arm: values.arm, scenario: values.scenario, trial, runIdPrefix: values["run-id-prefix"], workDir });
     appendFileSync(values.out, `${JSON.stringify(record)}\n`);
     process.stdout.write(
       `${record.caseId} ${record.arm}: ${record.dimensions[DIMENSION]} costUsd=${record.costUsd} latencyMs=${record.latencyMs} blockedAttempts=${record.trace.blockedAttempts}\n`,
