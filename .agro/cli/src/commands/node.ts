@@ -8,6 +8,8 @@ export const DEFAULT_CONSOLE_URL = "https://console.mifune.dev";
 export const CONSOLE_CONFIG_MISSING = "set AGRO_CONSOLE_TOKEN, or run agro secret set AGRO_CONSOLE_TOKEN";
 
 export const NODE_READY_TIMEOUT_MS = 15 * 60 * 1000;
+export const NODE_FAST_POLL_INTERVAL_MS = 1000;
+export const NODE_FAST_POLL_WINDOW_MS = 30 * 1000;
 export const NODE_POLL_INTERVAL_MS = 5000;
 export const FREE_TIER_SPEC = "n4";
 
@@ -31,7 +33,7 @@ export interface NodeDeps {
   readSecret: (key: ConsoleKey) => string | undefined;
   sleep: (ms: number) => Promise<void>;
   now: () => number;
-  pollIntervalMs: number;
+  pollDelayMs: (elapsedMs: number) => number;
   timeoutMs: number;
   confirm: (question: string) => Promise<boolean>;
 }
@@ -71,6 +73,10 @@ function readProjectSecret(key: ConsoleKey): string | undefined {
   }
 }
 
+export function nodePollDelayMs(elapsedMs: number): number {
+  return elapsedMs < NODE_FAST_POLL_WINDOW_MS ? NODE_FAST_POLL_INTERVAL_MS : NODE_POLL_INTERVAL_MS;
+}
+
 function defaultDeps(): NodeDeps {
   return {
     fetch: (input, init) => globalThis.fetch(input, init),
@@ -78,7 +84,7 @@ function defaultDeps(): NodeDeps {
     readSecret: readProjectSecret,
     sleep: (ms) => new Promise((done) => setTimeout(done, ms)),
     now: () => Date.now(),
-    pollIntervalMs: NODE_POLL_INTERVAL_MS,
+    pollDelayMs: nodePollDelayMs,
     timeoutMs: NODE_READY_TIMEOUT_MS,
     confirm: (question) => prompt.confirm(question, false),
   };
@@ -235,6 +241,7 @@ async function runCreate(
     return 1;
   }
   const { spec, sshKeyIds, name, freeTier, json } = parsed.args;
+  const requestedAt = deps.now();
   const created = await callApi(deps, config, "POST", "/api/nodes", {
     profile: "sandbox",
     spec,
@@ -260,7 +267,7 @@ async function runCreate(
       io.stderr(`${prefix}: node ${node.id} is not running after 15 minutes — last status ${node.status}\n`);
       return 1;
     }
-    await deps.sleep(Math.min(deps.pollIntervalMs, remaining));
+    await deps.sleep(Math.min(deps.pollDelayMs(deps.now() - requestedAt), remaining));
     const polled = await callApi(deps, config, "GET", `/api/nodes/${encodeURIComponent(node.id)}`);
     if (!polled.ok) {
       io.stderr(`${prefix}: node ${node.id}: ${polled.message}\n`);

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import {
   CONSOLE_CONFIG_MISSING,
   DEFAULT_CONSOLE_URL,
+  NODE_READY_TIMEOUT_MS,
   resolveConsoleConfig,
   runNode,
   type NodeDeps,
@@ -118,7 +119,6 @@ function harness(replies: Reply[], overrides: Partial<NodeDeps> = {}) {
       clock += ms;
     },
     now: () => clock,
-    pollIntervalMs: 1000,
     timeoutMs: 15 * 60 * 1000,
     ...overrides,
   };
@@ -200,12 +200,36 @@ describe("agro node create", () => {
         { status: 202, body: { id: "n4", status: "provisioning" } },
         { status: 200, body: { id: "n4", status: "booting" } },
       ],
-      { pollIntervalMs: 60_000, timeoutMs: 15 * 60 * 1000 },
+      { pollDelayMs: () => 60_000, timeoutMs: 15 * 60 * 1000 },
     );
     expect(await runNode(CREATE_ARGS, h.io, h.deps)).toBe(1);
     expect(h.sleeps.reduce((a, b) => a + b, 0)).toBe(15 * 60 * 1000);
     expect(h.all()).toContain("n4");
     expect(h.all()).toContain("booting");
+  });
+
+  it("polls every second for the first 30 seconds, then every 5 seconds", async () => {
+    const h = harness([
+      { status: 202, body: { id: "n5", status: "provisioning" } },
+      ...Array.from({ length: 32 }, () => ({ status: 200, body: { id: "n5", status: "booting" } })),
+      { status: 200, body: { id: "n5", status: "running", ipv4: "1.2.3.4" } },
+    ]);
+    expect(await runNode(CREATE_ARGS, h.io, h.deps)).toBe(0);
+    expect(h.sleeps).toEqual([...Array<number>(30).fill(1000), 5000, 5000, 5000]);
+  });
+
+  it("keeps the 15-minute limit with the default poll schedule", async () => {
+    const h = harness([
+      { status: 202, body: { id: "n6", status: "provisioning" } },
+      { status: 200, body: { id: "n6", status: "booting" } },
+    ]);
+    delete h.deps.timeoutMs;
+    expect(await runNode(CREATE_ARGS, h.io, h.deps)).toBe(1);
+    expect(NODE_READY_TIMEOUT_MS).toBe(15 * 60 * 1000);
+    expect(h.sleeps.reduce((a, b) => a + b, 0)).toBe(NODE_READY_TIMEOUT_MS);
+    expect(h.sleeps.filter((ms) => ms === 1000)).toHaveLength(30);
+    expect(h.sleeps.slice(30).every((ms) => ms === 5000)).toBe(true);
+    expect(h.all()).toContain("is not running after 15 minutes");
   });
 
   it("prints the HTTP status and code field on an API error", async () => {

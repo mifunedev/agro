@@ -15,6 +15,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 - Derive the default agent-browser session from `agent-browser session id --scope worktree` ([#1440](https://github.com/mifunedev/agro/issues/1440)).
+- Make `agro node create` poll the console every second for the first 30 seconds after the create request, then every 5 seconds, so that a warm create returns about 4 seconds sooner ([#1438](https://github.com/mifunedev/agro/issues/1438)).
 
 ## [0.22.0] - 2026-10-13
 
