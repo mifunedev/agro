@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1442-remote-sandbox-console",
+  "description": "Console provider for the remote-sandbox skill: an adapter that creates agro-console sandbox nodes through the agro node CLI, runs checks over SSH, and destroys the nodes.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add the console adapter",
+      "description": "As an operator, I want `run.sh console` to create an agro-console sandbox node, run a check on it, and destroy it. AGRO checks then run on our own platform, as on exe.dev and Vercel.",
+      "acceptanceCriteria": [
+        "`.agro/skills/remote-sandbox/adapters/console.sh` defines `console_preflight`, `console_create`, `console_exec`, `console_destroy`, and `console_list`.",
+        "`console_preflight` runs `agro node list --json` and exits 0 only when the console answers. The adapter reads `AGRO_CONSOLE_URL` and `AGRO_CONSOLE_TOKEN` on the driver host only, through the `agro` CLI.",
+        "`console_create NAME` runs `agro node create --spec \"${CONSOLE_SPEC:-n4}\" --ssh-key \"$CONSOLE_SSH_KEY_ID\" --name NAME --json`, and adds `--free-tier` unless `CONSOLE_FREE_TIER=0`. The free tier is on by default. The function stores the node ID and the SSH target in `$STATE_DIR/console-NAME`.",
+        "`console_create` exits 2 with a clear message when `IMAGE` is set, because a console node has no image choice.",
+        "`console_exec NAME CMD\u2026` runs `CMD\u2026` through `ssh` with `$CONSOLE_SSH_IDENTITY` and the `SSHO` options to the stored SSH target, under `timeout 120`.",
+        "`console_destroy NAME` runs `agro node delete <id> --yes` and retries a `409` for up to 60 s.",
+        "`console_list` prints the number of nodes from `agro node list --json` whose name starts with `agro-mx-`.",
+        "`console_row_ssh` prints `RESULT R10-ssh-inbound PASS ssh <target>`. The adapter defines no `console_row_https` and no `console_restart`.",
+        "`bash -n` and `shellcheck` pass on the file.",
+        "`.agro/scripts/__tests__/remote-sandbox-adapters.test.ts` covers each function with a stub `agro` and a stub `ssh` on `PATH`. The tests include the `IMAGE` refusal, the `409` retry, the name filter of `console_list`, the default `--free-tier`, and `CONSOLE_FREE_TIER=0`.",
+        "Typecheck passes."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/remote-sandbox/adapters/console.sh",
+        ".agro/scripts/__tests__/remote-sandbox-adapters.test.ts"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Document the console provider",
+      "description": "As an operator, I want setup steps and a manual sweep for the console provider. I can then run and clean up a console run without reading the adapter.",
+      "acceptanceCriteria": [
+        "`references/providers.md` has an \"agro-console\" section. The section lists the variables `AGRO_CONSOLE_URL`, `AGRO_CONSOLE_TOKEN`, `CONSOLE_SSH_KEY_ID`, `CONSOLE_SSH_IDENTITY`, `CONSOLE_SPEC`, and `CONSOLE_FREE_TIER`. The section also gives the preflight command, the free tier limit of one live node, and the manual sweep with `agro node list` and `agro node delete`.",
+        "`SKILL.md` names the console provider in the description, the compatibility line, and the references table.",
+        "`references/providers.md` states that a console sandbox node has no Docker at create, so a check that needs Docker installs it in the VM.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh` reports no finding on each changed file."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/remote-sandbox/references/providers.md",
+        ".agro/skills/remote-sandbox/SKILL.md"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Record a fresh-install run on the console",
+      "description": "As the advisor, I want one real fresh-install run on the console so that the adapter is proven end to end.",
+      "acceptanceCriteria": [
+        "With operator approval, `bash scripts/run.sh console --preflight` prints `preflight ok: console`.",
+        "With operator approval, `bash scripts/run.sh console` reports `F1` to `F4` from the log, and the log ends with `remaining agro-matrix resources on console: 0` and `RUN DONE`.",
+        "The agent writes the transcript to `.agro/tasks/remote-sandbox-console/evidence/manual-review.md`."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/remote-sandbox-console/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
