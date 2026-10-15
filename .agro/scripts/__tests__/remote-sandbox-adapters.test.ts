@@ -47,7 +47,7 @@ function stubConsole(list = "[]") {
       `printf '%s\\n' "$*" >> "${bin}/agro.calls"`,
       'case "$1 $2" in',
       `  "node list") [ "\${AGRO_DOWN:-0}" = 1 ] && { echo "agro node list: HTTP 503 no code" >&2; exit 1; }; cat "${bin}/list.json" ;;`,
-      `  "node create") printf '{"id":"node-1","status":"running","ssh":"ssh sandbox@203.0.113.7"}\\n' ;;`,
+      `  "node create") [ "\${CREATE_FAILS:-0}" = 1 ] && { printf '{"id":"node-1","status":"failed","ssh":null}\\n'; exit 1; }; printf '{"id":"node-1","status":"running","ssh":"ssh sandbox@203.0.113.7"}\\n' ;;`,
       '  "node delete")',
       `    n=$(( $(cat "${bin}/deletes" 2>/dev/null || echo 0) + 1 )); echo "$n" > "${bin}/deletes"`,
       '    [ "$n" -le "${CONFLICTS:-0}" ] && { echo "agro node delete: HTTP 409 conflict: node is busy" >&2; exit 1; }',
@@ -212,13 +212,25 @@ describe("remote-sandbox adapters", () => {
     expect(Number(withLib(`cat "${bin}/deletes"`).stdout)).toBeGreaterThan(1);
   });
 
-  it("console_list counts only agro-mx- nodes", () => {
+  it("console_create keeps the node id when create returns no ssh target", () => {
+    const bin = stubConsole();
+    const result = withConsole(
+      'CREATE_FAILS=1 console_create agro-mx-9; echo "rc=$?"; cat "$STATE_DIR/console-agro-mx-9"; console_exec agro-mx-9 true; echo "exec=$?"; console_destroy agro-mx-9',
+      bin,
+    );
+    expect(result.stdout).toContain("rc=1\nnode-1 \nexec=1\ndeleted node-1\n");
+    expect(withLib(`test -e "${bin}/ssh.calls"`).code).not.toBe(0);
+    expect(withLib(`tail -1 "${bin}/agro.calls"`).stdout).toBe("node delete node-1 --yes\n");
+  });
+
+  it("console_list counts only live agro-mx- nodes", () => {
     const list = JSON.stringify([
       { id: "1", name: "agro-mx-1014-120000", status: "running" },
       { id: "2", name: "agro-mx-1014-120500", status: "provisioning" },
       { id: "3", name: "prod-db", status: "running" },
       { id: "4", name: null, status: "running" },
       { id: "5", name: "x-agro-mx-1", status: "running" },
+      { id: "6", name: "agro-mx-1013-090000", status: "destroyed" },
     ]);
     expect(withConsole("console_list", stubConsole(list)).stdout).toBe("2\n");
   });
