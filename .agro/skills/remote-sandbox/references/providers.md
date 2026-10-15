@@ -86,12 +86,16 @@ A console sandbox node has no Docker at create. `agro node create` has no `--doc
 
 `console_row_ssh` prints `RESULT R10-ssh-inbound PASS ssh <target>`. The driver prints `RESULT R11-https-port SKIPPED no adapter hook`.
 
-A console node has no tag. `console_list` counts the nodes with a name that starts with `agro-mx-`.
+A console node has no tag. `console_list` counts the nodes with a name that starts with `agro-mx-` and a status other than `destroyed`. The console API returns destroyed nodes in the node list.
+
+If `agro node create` returns a node ID with no SSH target, `console_create` keeps the ID. The driver cleanup then deletes the node. If `agro node create` returns no ID, use the manual sweep.
+
+`console_destroy` retries `agro node delete` on HTTP 409 for up to 60 s.
 
 Manual sweep on the driver host:
 
 ```bash
-agro node list --json | jq -r '.[] | select((.name // "") | startswith("agro-mx-")) | .id'
+agro node list --json | jq -r '.[] | select(((.name // "") | startswith("agro-mx-")) and .status != "destroyed") | .id'
 agro node delete <id> --yes
 ```
 
