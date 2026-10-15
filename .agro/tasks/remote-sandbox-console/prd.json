@@ -43,13 +43,13 @@
       ],
       "priority": 2,
       "passes": true,
-      "notes": "Accepted at 14932038 (cherry-pick of 30565309). AC1 reasoned: providers.md agro-console section lists AGRO_CONSOLE_URL, AGRO_CONSOLE_TOKEN, CONSOLE_SSH_KEY_ID, CONSOLE_SSH_IDENTITY, CONSOLE_SPEC, CONSOLE_FREE_TIER, the preflight command, the one-live-node free tier limit, and the manual sweep with agro node list and agro node delete. AC2 reasoned: SKILL.md description, compatibility line, references table, and CONSOLE_* variable rows. AC3 reasoned: providers.md states no Docker at create and that a check installs Docker. AC4 executed: ste-check on SKILL.md and providers.md exit 0. Recheck the docs against the US-001 adapter at Close. Pre-existing unrelated failure: standard-skills-link.test.ts (installed cc-safety-net version).",
+      "notes": "Accepted at 14932038 (cherry-pick of 30565309). AC1 reasoned: providers.md agro-console section lists AGRO_CONSOLE_URL, AGRO_CONSOLE_TOKEN, CONSOLE_SSH_KEY_ID, CONSOLE_SSH_IDENTITY, CONSOLE_SPEC, CONSOLE_FREE_TIER, the preflight command, the one-live-node free tier limit, and the manual sweep with agro node list and agro node delete. AC2 reasoned: SKILL.md description, compatibility line, references table, and CONSOLE_* variable rows. AC3 reasoned: providers.md states no Docker at create and that a check installs Docker. AC4 executed: ste-check on SKILL.md and providers.md exit 0. Recheck the docs against the US-001 adapter at Close. Pre-existing unrelated failure: standard-skills-link.test.ts (installed cc-safety-net version). Docs repair 80ebef6e: the sweep skips destroyed nodes; the section states the console_list filter, the create id fallback, and the 409 retry; ste-check exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/skills/remote-sandbox/references/providers.md",
         ".agro/skills/remote-sandbox/SKILL.md"
       ],
-      "commit": "14932038"
+      "commit": "80ebef6e"
     },
     {
       "id": "US-003",
