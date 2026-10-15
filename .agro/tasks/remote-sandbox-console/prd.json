@@ -22,13 +22,14 @@
         "Typecheck passes."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted at 907c0864 (cherry-picks of 4f71303a, d3d1ebea). Executed: bash -n console.sh exit 0; vitest remote-sandbox-adapters.test.ts and remote-sandbox-suite.test.ts 38/38 pass; pnpm run typecheck exit 0; worker shellcheck 0.11.0 exit 0 on console.sh and -S warning on all adapters and scripts. AC1-AC8 and AC10 executed by the adapter tests (functions defined, preflight success and failure and missing SSH vars, exact create args with default --free-tier and CONSOLE_FREE_TIER=0, state file, IMAGE refusal exit 2, ssh with identity and SSHO, delete with 409 retry capped at 60 s, list counts agro-mx- nodes that are not destroyed, row_ssh line, no row_https or restart). AC2 token isolation reasoned: only the agro CLI reads the token. AC5 timeout 120 reasoned from the code. Repair d3d1ebea: console_list skips destroyed nodes (the console list returns them); create keeps the id when ssh is missing so the cleanup can delete the node. Decision: no SSH wait in create, because run.sh wait_shell retries exec.",
       "dependsOn": [],
       "files": [
         ".agro/skills/remote-sandbox/adapters/console.sh",
         ".agro/scripts/__tests__/remote-sandbox-adapters.test.ts"
-      ]
+      ],
+      "commit": "907c0864"
     },
     {
       "id": "US-002",
