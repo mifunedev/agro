@@ -13,7 +13,7 @@
         "`console_preflight` runs `agro node list --json` and exits 0 only when the console answers. The adapter reads `AGRO_CONSOLE_URL` and `AGRO_CONSOLE_TOKEN` on the driver host only, through the `agro` CLI.",
         "`console_create NAME` runs `agro node create --spec \"${CONSOLE_SPEC:-n4}\" --ssh-key \"$CONSOLE_SSH_KEY_ID\" --name NAME --json`, and adds `--free-tier` unless `CONSOLE_FREE_TIER=0`. The free tier is on by default. The function stores the node ID and the SSH target in `$STATE_DIR/console-NAME`.",
         "`console_create` exits 2 with a clear message when `IMAGE` is set, because a console node has no image choice.",
-        "`console_exec NAME CMD\u2026` runs `CMD\u2026` through `ssh` with `$CONSOLE_SSH_IDENTITY` and the `SSHO` options to the stored SSH target, under `timeout 120`.",
+        "`console_exec NAME CMD…` runs `CMD…` through `ssh` with `$CONSOLE_SSH_IDENTITY` and the `SSHO` options to the stored SSH target, under `timeout 120`.",
         "`console_destroy NAME` runs `agro node delete <id> --yes` and retries a `409` for up to 60 s.",
         "`console_list` prints the number of nodes from `agro node list --json` whose name starts with `agro-mx-`.",
         "`console_row_ssh` prints `RESULT R10-ssh-inbound PASS ssh <target>`. The adapter defines no `console_row_https` and no `console_restart`.",
@@ -41,13 +41,14 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh` reports no finding on each changed file."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted at 14932038 (cherry-pick of 30565309). AC1 reasoned: providers.md agro-console section lists AGRO_CONSOLE_URL, AGRO_CONSOLE_TOKEN, CONSOLE_SSH_KEY_ID, CONSOLE_SSH_IDENTITY, CONSOLE_SPEC, CONSOLE_FREE_TIER, the preflight command, the one-live-node free tier limit, and the manual sweep with agro node list and agro node delete. AC2 reasoned: SKILL.md description, compatibility line, references table, and CONSOLE_* variable rows. AC3 reasoned: providers.md states no Docker at create and that a check installs Docker. AC4 executed: ste-check on SKILL.md and providers.md exit 0. Recheck the docs against the US-001 adapter at Close. Pre-existing unrelated failure: standard-skills-link.test.ts (installed cc-safety-net version).",
       "dependsOn": [],
       "files": [
         ".agro/skills/remote-sandbox/references/providers.md",
         ".agro/skills/remote-sandbox/SKILL.md"
-      ]
+      ],
+      "commit": "14932038"
     },
     {
       "id": "US-003",
