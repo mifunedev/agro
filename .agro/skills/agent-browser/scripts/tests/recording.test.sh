@@ -124,10 +124,12 @@ check "desktop manifest encodedSize comes from ffprobe" test "$(field "$d_desk" 
 check "mobile manifest cssViewport is 414x896" test "$(field "$d_mob" '"\(.cssViewport.width)x\(.cssViewport.height)"')" == "414x896"
 check "mobile manifest records viewport-only emulation" test "$(field "$d_mob" .emulation)" == viewport-only
 check "manifest records session, reason, and criteria" test "$(field "$d_mob" '[.session, .selectionReason, .criteria] | join("|")')" == "$s_mob|layout differs by width|AC-1"
-for key in task run profile purpose session commit dirty scenario criteria selectionReason rerun cssViewport requestedScale effectiveScale encodedSize exportCanvas emulation fps codec agentBrowserVersion ffmpegVersion startedAt stoppedAt captureStatus assertionStatus; do
+for key in task run profile purpose session commit dirty scenario criteria selectionReason rerun cssViewport requestedScale effectiveScale encodedSize exportCanvas emulation fps codec contactSheet agentBrowserVersion ffmpegVersion startedAt stoppedAt captureStatus assertionStatus; do
   jq -e "has(\"$key\")" "$d_desk/manifest.json" >/dev/null || bad "manifest lacks $key"
 done
 check "evidence run writes no thumbnail" test ! -e "$d_desk/thumbnail.png"
+check "desktop run writes a contact sheet" test -s "$d_desk/video.contact-sheet.png"
+check "desktop manifest names the contact sheet" test "$(field "$d_desk" .contactSheet)" == video.contact-sheet.png
 
 got=0
 out="$(start pair evidence desktop 2>&1)" || got=$?
@@ -188,6 +190,17 @@ printf 'observed: --device "iPhone 12" css %s encoded %s effectiveScale %s\n' \
 check "--device manifest records device emulation" test "$(field "$d_dev" .emulation)" == "device:iPhone 12"
 check "--device manifest effectiveScale matches encoded width" \
   test "$(field "$d_dev" '.effectiveScale == (.encodedSize.width / .cssViewport.width)')" == true
+
+state="$TMP/state.json"
+printf '{"cookies":[],"origins":[{"origin":"file://","localStorage":[{"name":"user","value":"ada"}],"sessionStorage":[]}]}' >"$state"
+d_state="$(start state evidence desktop --state "$state")"
+check "--state loads localStorage into the recorded session" test "$(ab "$TASK-state-desktop" eval "localStorage.getItem('user')")" == '"ada"'
+bash "$SCRIPT" stop --dir "$d_state" --assertions pass >/dev/null
+check "--state recording completes" test "$(field "$d_state" .captureStatus)" == complete
+got=0
+start nostate evidence desktop --state "$TMP/missing.json" >/dev/null 2>&1 || got=$?
+check "missing --state file exits 1" test "$got" == 1
+check "missing --state file creates no run directory" test ! -e "$(dir_of nostate desktop)"
 
 check "no test session remains" gone "$TASK-"
 

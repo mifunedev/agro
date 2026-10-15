@@ -8,6 +8,14 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+- Add agent-browser skill references for recording, annotated evidence, the dashboard, and sign-in, plus guidance for refs, diagnostics, accessibility, Web Vitals, and session options ([#1440](https://github.com/mifunedev/agro/issues/1440)).
+- Add `record.sh start --state <file>` to record signed-in scenarios from a sign-in that the operator completes once through the dashboard ([#1440](https://github.com/mifunedev/agro/issues/1440)).
+- Write a timestamped contact sheet with each `record.sh` recording and name it in the manifest `contactSheet` field ([#1440](https://github.com/mifunedev/agro/issues/1440)).
+
+### Changed
+- Derive the default agent-browser session from `agent-browser session id --scope worktree` ([#1440](https://github.com/mifunedev/agro/issues/1440)).
+
 ## [0.22.0] - 2026-10-13
 
 ### Added

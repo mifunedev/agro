@@ -7,6 +7,7 @@ usage: record.sh start --task <slug> --run <id> --purpose evidence|demo --profil
                        --scenario <text> --url <url> [--criteria <text>] [--reason <text>]
                        [--width <px> --height <px>] [--scale <n>] [--device <name>]
                        [--fps <n>] [--max-seconds <n>] [--export <w>x<h>] [--rerun <run>]
+                       [--state <file>]
        record.sh stop --dir <dir> --assertions pass|fail|none
 EOF
   exit 2
@@ -33,7 +34,7 @@ now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
 start() {
   local task="" run="" purpose="" profile="" scenario="" url="" criteria="" reason=""
-  local width="" height="" scale="" device="" fps=30 max_seconds=120 export_canvas="" rerun=""
+  local width="" height="" scale="" device="" fps=30 max_seconds=120 export_canvas="" rerun="" state=""
   while (( $# )); do
     (( $# >= 2 )) || usage
     case "$1" in
@@ -53,6 +54,7 @@ start() {
       --max-seconds) max_seconds="$2" ;;
       --export) export_canvas="$2" ;;
       --rerun) rerun="$2" ;;
+      --state) state="$2" ;;
       *) usage ;;
     esac
     shift 2
@@ -67,6 +69,7 @@ start() {
   [[ -z "$export_canvas" || "$export_canvas" =~ ^[1-9][0-9]*x[1-9][0-9]*$ ]] || usage
   [[ -z "$rerun" || "$rerun" =~ $slug ]] || usage
   [[ -z "$device" || -z "$width$height$scale" ]] || usage
+  [[ -z "$state" || -f "$state" ]] || die "state file not found: $state"
 
   require_tools
 
@@ -96,8 +99,9 @@ start() {
     commit=""
   fi
 
-  local ab=(agent-browser --session "$session")
-  local emulation=viewport-only setup=(set viewport "$width" "$height" "$scale") record_flags=(--fps "$fps")
+  local ab=(agent-browser --session "$session") state_flag=()
+  [[ -n "$state" ]] && state_flag=(--state "$state")
+  local emulation=viewport-only setup=(set viewport "$width" "$height" "$scale") record_flags=(--fps "$fps" --contact-sheet)
   if [[ -n "$device" ]]; then
     emulation="device:$device"
     setup=(set device "$device")
@@ -105,7 +109,7 @@ start() {
   [[ "$purpose" == demo && "$profile" == desktop ]] && record_flags+=(--cursor)
 
   local viewport out
-  if ! out="$("${ab[@]}" "${setup[@]}" 2>&1)" \
+  if ! out="$("${ab[@]}" "${state_flag[@]}" "${setup[@]}" 2>&1)" \
     || ! out="$("${ab[@]}" open "$url" 2>&1)" \
     || ! viewport="$("${ab[@]}" eval 'innerWidth + "x" + innerHeight' 2>&1)" \
     || ! out="$("${ab[@]}" record start "$dir/video.mp4" "${record_flags[@]}" 2>&1)"; then
@@ -135,7 +139,7 @@ start() {
       requestedScale: (if $device == "" then ($scale | tonumber) else null end),
       effectiveScale: null, encodedSize: null,
       exportCanvas: (if $export == "" then null else ($export | size) end),
-      emulation: $emulation, fps: $fps, codec: null,
+      emulation: $emulation, fps: $fps, codec: null, contactSheet: null,
       agentBrowserVersion: $abVersion, ffmpegVersion: $ffVersion,
       startedAt: $startedAt, stoppedAt: null,
       captureStatus: "incomplete", assertionStatus: "none"
@@ -195,10 +199,13 @@ stop() {
     die "ffprobe cannot read $video; captureStatus is incomplete: $probe"
   fi
 
-  jq "${update[@]}" --arg status "$status" --argjson probe "$probe" '
+  local sheet=""
+  [[ -s "$dir/video.contact-sheet.png" ]] && sheet=video.contact-sheet.png
+  jq "${update[@]}" --arg status "$status" --arg sheet "$sheet" --argjson probe "$probe" '
     def round2: . * 100 | round / 100;
     $probe.streams[0] as $s
     | .stoppedAt = $stoppedAt | .assertionStatus = $assertions | .captureStatus = $status
+    | .contactSheet = (if $sheet == "" then null else $sheet end)
     | .codec = $s.codec_name
     | .encodedSize = {width: $s.width, height: $s.height}
     | .fps = ($s.avg_frame_rate | split("/") | (.[0] | tonumber) / (.[1] | tonumber) | round2)

@@ -6,7 +6,9 @@ description: |
   videos as task evidence or demo source footage.
   TRIGGER when: asked to open a page, browse a URL, take a screenshot,
   test a site with agent-browser, record a browser flow, capture a
-  walkthrough or demo video, or record a bug reproduction.
+  walkthrough or demo video, record a bug reproduction, watch browser
+  sessions live in the agent-browser dashboard, or sign in to a page and
+  reuse the saved sign-in state.
 argument-hint: "<url> [--viewport desktop|mobile] [--task <slug>] [--session <name>]"
 ---
 
@@ -19,6 +21,19 @@ runs first. If the browser is broken, stop and report the full diagnostic trace.
 This skill states no version. Check commands against `agent-browser --help` of
 the installed version.
 
+## References
+
+Load each reference when the task needs it:
+
+| Need | Read |
+|---|---|
+| Any screenshot that is evidence for a task, a criterion, or a PR | [`references/annotation.md`](references/annotation.md) |
+| A video: evidence selection, purpose and profile, dimensions, `record.sh`, recovery | [`references/recording.md`](references/recording.md) |
+| A page that needs a sign-in: operator sign-in through the dashboard, saved state, vault | [`references/auth.md`](references/auth.md) |
+| Watch sessions live, or show the operator the browser | [`references/dashboard.md`](references/dashboard.md) |
+| A command or flag that this skill does not name | `agent-browser skills get core --full` (version-matched to the installed CLI) |
+| Operator guide: install, worked recording examples, manifest fields, Git tracking | [Browser recording](https://agro.mifune.dev/docs/agro/integrations/agent-browser) (`docs/integrations/agent-browser.md`) |
+
 ## Arguments
 
 Arguments received: `$ARGUMENTS`
@@ -27,12 +42,15 @@ Arguments received: `$ARGUMENTS`
 - **VIEWPORT**: the value after `--viewport`. Default: `desktop`.
 - **TASK**: the value after `--task`. Default: the slug of the current task
   under `.agro/tasks/`. If no task exists, use `adhoc`.
-- **SESSION**: the value after `--session`. Default: the task slug and the
-  worktree name:
+- **SESSION**: the value after `--session`. Default: a stable id for the task
+  and the worktree:
 
   ```bash
-  SESSION="${SESSION:-$TASK-$(basename "$(git rev-parse --show-toplevel)")}"
+  SESSION="${SESSION:-$(agent-browser session id --scope worktree --prefix "$TASK")}"
   ```
+
+  The id is the same from each directory of the worktree, and differs between
+  worktrees. Parallel agents therefore never share a session.
 
 Every `agent-browser` command in this skill passes `--session "$SESSION"`. A
 command without it uses the shared `default` session of another agent.
@@ -141,10 +159,28 @@ Set the viewport from the dimension table, then open the URL:
 ```bash
 agent-browser --session "$SESSION" set viewport "$WIDTH" "$HEIGHT"
 agent-browser --session "$SESSION" open "$URL"
-agent-browser --session "$SESSION" snapshot -c
+agent-browser --session "$SESSION" snapshot -i
 ```
 
 Report the page title and the key visible elements.
+
+### Target elements by ref
+
+`snapshot` gives each node a ref, for example `[ref=e2]`. Pass the ref as
+`@e2` to `click`, `fill`, `get`, and the other element commands:
+
+```bash
+agent-browser --session "$SESSION" snapshot -i
+agent-browser --session "$SESSION" fill @e2 'Ada'
+agent-browser --session "$SESSION" click @e3
+```
+
+- Read each ref from the latest snapshot. Never guess a ref. Headings and text
+  nodes also get refs, so `@e1` is not always the first control.
+- Take a new snapshot after a navigation or a DOM change. An old ref can point
+  at another element.
+- Use a ref to explore and drive the page. Use a CSS selector in an assertion,
+  a script, or a PR step, because a ref is not stable between runs.
 
 Save screenshots under the task evidence directory. Use an absolute path. The
 browser daemon resolves a relative path from its own working directory.
@@ -161,19 +197,51 @@ Git ignores `.agro/tasks/*/*`. To link a screenshot in a PR, follow
 
 ### Annotated screenshots
 
-`scripts/annotate-screenshot.sh` annotates the current page of the session.
-Give the session through `AGENT_BROWSER_SESSION`:
+Annotate each screenshot that is evidence. `scripts/annotate-screenshot.sh`
+adds numbered callouts, takes the screenshot, and prints the `Callouts:` line
+that goes under it. Read `references/annotation.md` first. It owns the callout
+choice, the script usage, and the PR publication rules.
+
+### Diagnostics
+
+Collect browser logs when an assertion fails, or when a criterion claims "no
+errors". Save each log next to the screenshots:
 
 ```bash
-AGENT_BROWSER_SESSION="$SESSION" bash .agro/skills/agent-browser/scripts/annotate-screenshot.sh \
-  "$SCREENSHOT_PATH" '#title=the card title' '#status=the Baseline time'
+EVIDENCE="$(git rev-parse --show-toplevel)/.agro/tasks/$TASK/evidence"
+agent-browser --session "$SESSION" console > "$EVIDENCE/console.log"
+agent-browser --session "$SESSION" errors --json | jq '.data.errors' > "$EVIDENCE/errors.json"
+agent-browser --session "$SESSION" network requests --filter /api/ > "$EVIDENCE/requests.log"
 ```
 
-The script adds one numbered red callout for each `<selector>=<label>` pair,
-takes the screenshot, and removes the callouts. It prints the `Callouts:` line,
-for example `Callouts: 1 is the card title. 2 is the Baseline time.`. Put that
-line under the screenshot. If a selector matches no element, the script names
-the selector, exits 1, and writes no file. On bad usage, the script exits 2.
+- `console` prints each message as `[<level>] <text>`.
+- Use `errors --json`. The plain output can print an empty `✗` line without
+  the message.
+- `network requests` lists the requests since the page opened. `--clear`
+  resets the list. For a full capture, run `network har start` before the
+  scenario and `network har stop "$EVIDENCE/<name>.har"` after it.
+- A HAR file and a log can contain tokens and cookies. Read the file before
+  you commit it.
+- For before and after comparisons, follow `references/annotation.md`.
+
+### Quality checks
+
+Run these checks when a criterion names accessibility or page performance.
+Both commands exit 0 when they find a problem. Read the JSON result:
+
+```bash
+agent-browser --session "$SESSION" a11y --tags wcag2a,wcag2aa --json \
+  | tee "$EVIDENCE/a11y.json" | jq '.data.counts'
+agent-browser --session "$SESSION" vitals --json \
+  | tee "$EVIDENCE/vitals.json" | jq '.data | {lcp, cls, inp, ttfb, fcp}'
+```
+
+- `a11y` runs axe-core on the page. `--selector '#main'` limits the audit to
+  the changed part. Compare `violations` with the base commit. Report each new
+  violation by rule id and node, not only the count.
+- `vitals` measures the page that is open. Lab values on a sandbox page vary
+  between runs. Use them to compare two builds on the same machine, not as an
+  absolute budget.
 
 ### Copy-button checks
 
@@ -214,135 +282,10 @@ gave to `writeText`, not that the write succeeded.
 
 ## Recording
 
-A recording is supporting evidence. A recording never satisfies an acceptance
-gate or an audit gate alone. Assertions and tests stay authoritative.
-`captureStatus` tells whether the video is complete. `assertionStatus` tells
-whether the scenario passed. Report the two values separately.
-
-### Select the evidence
-
-The advisor maps each acceptance criterion to an evidence type during planning.
-The worker follows that map and gives the reason with `--reason`.
-
-| Criterion or request | Required evidence |
-|---|---|
-| Static appearance, text, spacing, or responsive layout | Screenshots at relevant desktop/mobile sizes |
-| Multistep navigation, loading transitions, drag-and-drop, animation, or timing-dependent behavior | Video plus outcome assertions |
-| A reproducible bug involving an action sequence or timing | Before/after recordings and a regression assertion |
-| Backend or CLI behavior without visible UI changes | Tests and logs; browser capture is not required |
-| Explicit recording, walkthrough, or marketing demo request | Video using the requested purpose |
-| Responsive interaction that affects desktop and mobile | Separate videos of the same scenario in both profiles |
-
-Record when a still image cannot show the claimed behavior, or when the operator
-asks for a recording. An explicit request takes precedence over this table. A
-change to the planned evidence needs a recorded reason.
-
-Rerun rule: if a failure occurred without a capture, record a safe rerun when
-possible. Start the rerun with `--rerun <original-run>`. A rerun never claims to show
-the original failure. If a reproduction is not available, report that. Never
-fabricate before footage.
-
-### Purpose and profile
-
-Purpose and profile are independent. All four combinations are valid.
-
-| Setting | `evidence` | `demo` |
-|---|---|---|
-| Desktop CSS viewport | 1280x720 | 1920x1080 |
-| Mobile CSS viewport | 414x896 | 414x896 |
-| Frame rate | 30 FPS | 30 FPS; `--fps 60` for motion-heavy scenarios |
-| Pacing | Actual execution, including relevant failures | Deliberate actions and readable pauses |
-| Pointer | None | Visible cursor on desktop; none on mobile |
-| Data | Authorized test data | Clean demo data without unrelated private content |
-| Outputs | `video.mp4`, `manifest.json` | `video.mp4`, `manifest.json`, `thumbnail.png`, `scenario.md` |
-
-### Dimensions
-
-Keep four values distinct:
-
-- **CSS viewport** selects the responsive layout. Set it with `--width` and
-  `--height`, or with `--device`.
-- **Pixel density** is `--scale`. `--scale 2` doubles the encoded pixels, for
-  example 1280x720 CSS to 2560x1440 video.
-- **Encoded size** is the size of the video file. `record.sh stop` reads it
-  with `ffprobe` and writes `encodedSize` and `effectiveScale`.
-- **Export canvas** is the intended downstream canvas, for example `1920x1080`,
-  `1080x1920`, or `1080x1080`. `--export` only records it. Composition belongs
-  to downstream editing.
-
-Rules:
-
-- Never set a `1080x1920` CSS viewport to make a vertical marketing asset. That
-  selects the wrong layout. Capture at 414x896, add `--scale` for detail, and
-  give `--export 1080x1920`.
-- Report the encoded size from the manifest. Never describe upscaled footage as
-  higher-detail capture.
-- A viewport-only capture (`emulation: viewport-only`) never claims device
-  behavior. Only `--device "<name>"` emulates a device, for example
-  `--device "iPhone 12"` gives a 390x844 CSS viewport, 1170x2532 video, and an
-  iPhone user agent. `--device` excludes `--width`, `--height`, and `--scale`.
-- Odd sizes round up to even numbers.
-
-### Record a scenario
-
-1. Start the recording. `record.sh start` opens the URL in a new session, starts
-   the recording, and prints the absolute run directory:
-
-   ```bash
-   DIR="$(bash .agro/skills/agent-browser/scripts/record.sh start \
-     --task "$TASK" --run "$RUN" --purpose evidence --profile desktop \
-     --scenario "Open the menu and save the form" --url "$URL" \
-     --criteria "AC-2" --reason "timing-dependent transition")"
-   ```
-
-   Full syntax:
-
-   ```
-   record.sh start --task <slug> --run <id> --purpose evidence|demo --profile desktop|mobile
-                   --scenario <text> --url <url> [--criteria <text>] [--reason <text>]
-                   [--width <px> --height <px>] [--scale <n>] [--device <name>]
-                   [--fps <n>] [--max-seconds <n>] [--export <w>x<h>] [--rerun <run>]
-   record.sh stop --dir <dir> --assertions pass|fail|none
-   ```
-
-   The run directory is
-   `.agro/tasks/<task>/evidence/browser/<run>/<profile>/` under
-   `$AGRO_EVIDENCE_ROOT` or the git top level. An existing directory is an
-   error; use a new `--run`. The defaults are 30 FPS and 120 seconds. At
-   `--max-seconds`, a watchdog stops the recording.
-
-2. Drive the scenario in the session that `record.sh` owns:
-
-   ```bash
-   REC_SESSION="$TASK-$RUN-desktop"
-   agent-browser --session "$REC_SESSION" click '#menu-toggle'
-   agent-browser --session "$REC_SESSION" fill '#name' 'Ada'
-   agent-browser --session "$REC_SESSION" click '#save'
-   ```
-
-3. Check the outcome with assertions, for example
-   `agent-browser --session "$REC_SESSION" get text '#status'`.
-
-4. Stop the recording, even when an assertion failed:
-
-   ```bash
-   bash .agro/skills/agent-browser/scripts/record.sh stop --dir "$DIR" --assertions pass
-   ```
-
-   The command stops and flushes the recording, closes the session, and prints
-   one summary line. `agent-browser close` alone does not flush a recording.
-   `captureStatus` is `complete`, `timeout`, or `incomplete`. An `incomplete`
-   capture is not a usable video.
-
-Exit status: 0 on success, 1 on an error, 2 on bad usage. Missing `ffmpeg`,
-`ffprobe`, or `libx264` fails before capture with the install command.
-
-For a paired desktop and mobile request, run the same scenario twice with the
-same `--run`: once with `--profile desktop` and once with `--profile mobile`.
-Give each run a suitable starting state. Report each profile as its own result.
-
-Git ignores the run directory. Report the real local path. Never invent a
-shareable URL. Never overwrite an original video with an edited demo.
+Read `references/recording.md` before any recording. It owns the evidence
+selection table, the purpose and profile settings, the dimension rules, and the
+`record.sh start` and `record.sh stop` procedure. A recording is supporting
+evidence. Assertions and tests stay authoritative.
 
 ## Report
 
@@ -355,8 +298,26 @@ Browser ready.
   Screenshot: $SCREENSHOT_PATH
 ```
 
-For a recording, give the `record.sh stop` summary line for each profile, the
-scenario, the tested commit from `manifest.json`, and the assertion results.
+For a recording, use the report in `references/recording.md`.
+
+## Session options
+
+A launch option such as `--idle-timeout` or `--color-scheme` applies when the
+session daemon starts. If a later command in the same session leaves the
+option out, the daemon can restart the browser on `about:blank`, and the page
+state is lost. Set launch options with environment variables, which apply to
+every command:
+
+```bash
+export AGENT_BROWSER_IDLE_TIMEOUT_MS=7200000
+```
+
+- The daemon closes a session after 1 hour without commands. For a session that
+  waits on a long build or an operator, raise the limit before the first
+  command. `0` disables the limit. Close the session when you are done.
+- Use `set media dark`, `set media light`, or `set media light reduced-motion`
+  for theme and motion evidence. The command changes a running session and
+  keeps the page.
 
 ## Session hygiene
 

@@ -7,7 +7,13 @@ title: Browser recording
 AGRO records a browser scenario as an H.264 MP4 video. The helper
 `.agro/skills/agent-browser/scripts/record.sh` wraps `agent-browser record`.
 The helper owns one browser session for each recording, stops the recording
-after a time limit, checks the video with `ffprobe`, and writes a manifest.
+after a time limit, checks the video with `ffprobe`, and writes a manifest and
+a contact sheet.
+
+Agents load the canonical procedure from the `agent-browser` skill:
+`.agro/skills/agent-browser/SKILL.md`, with the references for recording,
+annotated screenshots, and the dashboard in
+`.agro/skills/agent-browser/references/`.
 
 A recording is supporting evidence. A recording never replaces an assertion or
 a test. Run the assertions and the tests for each acceptance criterion, and
@@ -34,6 +40,7 @@ record.sh start --task <slug> --run <id> --purpose evidence|demo --profile deskt
                 --scenario <text> --url <url> [--criteria <text>] [--reason <text>]
                 [--width <px> --height <px>] [--scale <n>] [--device <name>]
                 [--fps <n>] [--max-seconds <n>] [--export <w>x<h>] [--rerun <run>]
+                [--state <file>]
 record.sh stop --dir <dir> --assertions pass|fail|none
 ```
 
@@ -46,6 +53,11 @@ Each recording has three steps:
 
 Always stop a recording with `record.sh stop`. `agent-browser close` does not
 flush the video.
+
+`--state` loads a saved sign-in state into the recording session before it
+opens the URL. The agent-browser skill reference
+`.agro/skills/agent-browser/references/auth.md` describes how an operator signs
+in one time through the dashboard and how agents save and reuse that state.
 
 `record.sh` exits 2 on bad usage and exits 1 on an error.
 
@@ -169,6 +181,7 @@ directory that already exists. Use a new `--run` for each retake.
 | File | Purpose | Content |
 |---|---|---|
 | `video.mp4` | all | The H.264 recording. |
+| `video.contact-sheet.png` | all | One timestamped frame for each distinct visual change. |
 | `manifest.json` | all | The recording facts. |
 | `thumbnail.png` | `demo` | One frame from the middle of the video. |
 | `scenario.md` | `demo` | The scenario notes from the manifest. |
@@ -186,6 +199,7 @@ directory that already exists. Use a new `--run` for each retake.
 | `exportCanvas` | The `--export` canvas, or `null`. |
 | `emulation` | `viewport-only` or `device:<name>`. |
 | `fps`, `codec` | The frame rate and the codec from `ffprobe`. |
+| `contactSheet` | `video.contact-sheet.png`, or `null` when no frame was saved. |
 | `agentBrowserVersion`, `ffmpegVersion` | The `agent-browser` version and the `ffmpeg` version. |
 | `startedAt`, `stoppedAt` | The UTC start and stop times. |
 | `captureStatus` | `complete`, `timeout`, or `incomplete`. |
