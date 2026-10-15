@@ -23,11 +23,29 @@ console_exec() {
   read -r id target <"$STATE_DIR/console-$n" 2>/dev/null && [ -n "$id" ] && [ -n "$target" ] || return 1
   timeout 120 ssh "${SSHO[@]}" -o IdentitiesOnly=yes -i "$CONSOLE_SSH_IDENTITY" "$target" "$*"
 }
+console_status() { timeout 60 agro node list --json | python3 -c "import json,sys; print(next((n.get('status') or 'unknown' for n in json.load(sys.stdin) if n.get('id') == sys.argv[1]), 'absent'))" "$1"; }
+console_wait_destroyed() {
+  local status waited=0
+  while :; do
+    status=$(console_status "$1") || status=unknown
+    case $status in destroyed|absent) return 0 ;; esac
+    [ "$waited" -lt 180 ] || break
+    sleep 5
+    waited=$((waited + 5))
+  done
+  echo "console: node $1 is $status after 180 s, not destroyed"
+  return 1
+}
 console_destroy() {
   local id out _
   read -r id _ <"$STATE_DIR/console-$1" 2>/dev/null && [ -n "$id" ] || { echo "console: no node recorded for $1"; return 1; }
   for _ in $(seq 1 12); do
-    out=$(timeout 60 agro node delete "$id" --yes 2>&1) && { printf '%s\n' "$out" | tail -1; rm -f "$STATE_DIR/console-$1"; return 0; }
+    if out=$(timeout 60 agro node delete "$id" --yes 2>&1); then
+      printf '%s\n' "$out" | tail -1
+      console_wait_destroyed "$id" || return 1
+      rm -f "$STATE_DIR/console-$1"
+      return 0
+    fi
     printf '%s\n' "$out" | grep -q 'HTTP 409' || break
     sleep 5
   done

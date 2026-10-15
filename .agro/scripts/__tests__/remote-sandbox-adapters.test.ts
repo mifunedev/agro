@@ -38,15 +38,16 @@ function stubCurl(code: string) {
 
 let consoleBins = 0;
 
-function stubConsole(list = "[]") {
+function stubConsole(list = "[]", lists: string[] = []) {
   const bin = join(temp, `console-${(consoleBins += 1)}`);
   mkdirSync(bin, { recursive: true });
   writeFileSync(join(bin, "list.json"), list);
+  lists.forEach((body, index) => writeFileSync(join(bin, `list-${index + 1}.json`), body));
   const stubs: Record<string, string> = {
     agro: [
       `printf '%s\\n' "$*" >> "${bin}/agro.calls"`,
       'case "$1 $2" in',
-      `  "node list") [ "\${AGRO_DOWN:-0}" = 1 ] && { echo "agro node list: HTTP 503 no code" >&2; exit 1; }; cat "${bin}/list.json" ;;`,
+      `  "node list") [ "\${AGRO_DOWN:-0}" = 1 ] && { echo "agro node list: HTTP 503 no code" >&2; exit 1; }; l=$(( $(cat "${bin}/lists" 2>/dev/null || echo 0) + 1 )); echo "$l" > "${bin}/lists"; if [ -e "${bin}/list-$l.json" ]; then cat "${bin}/list-$l.json"; else cat "${bin}/list.json"; fi ;;`,
       `  "node create") [ "\${CREATE_FAILS:-0}" = 1 ] && { printf '{"id":"node-1","status":"failed","ssh":null}\\n'; exit 1; }; printf '{"id":"node-1","status":"running","ssh":"ssh sandbox@203.0.113.7"}\\n' ;;`,
       '  "node delete")',
       `    n=$(( $(cat "${bin}/deletes" 2>/dev/null || echo 0) + 1 )); echo "$n" > "${bin}/deletes"`,
@@ -191,7 +192,7 @@ describe("remote-sandbox adapters", () => {
     const result = withConsole("console_create agro-mx-5 >/dev/null && console_destroy agro-mx-5", bin);
     expect(result.code).toBe(0);
     expect(result.stdout).toBe("deleted node-1\n");
-    expect(withLib(`tail -1 "${bin}/agro.calls"`).stdout).toBe("node delete node-1 --yes\n");
+    expect(withLib(`grep -c "^node delete node-1 --yes$" "${bin}/agro.calls"`).stdout).toBe("1\n");
   });
 
   it("console_destroy retries a 409", () => {
@@ -212,6 +213,30 @@ describe("remote-sandbox adapters", () => {
     expect(Number(withLib(`cat "${bin}/deletes"`).stdout)).toBeGreaterThan(1);
   });
 
+  it("console_destroy waits until the node reaches destroyed", () => {
+    const node = (status: string) => JSON.stringify([{ id: "node-1", name: "agro-mx-10", status }]);
+    const bin = stubConsole(node("destroyed"), [node("destroying"), node("destroying")]);
+    const result = withConsole(
+      'console_create agro-mx-10 >/dev/null && console_destroy agro-mx-10; echo "rc=$?"; test -e "$STATE_DIR/console-agro-mx-10"; echo "state=$?"',
+      bin,
+    );
+    expect(result.stdout).toContain("rc=0\nstate=1\n");
+    expect(withLib(`cat "${bin}/lists"`).stdout).toBe("3\n");
+    expect(withLib(`cat "${bin}/sleep.calls"`).stdout).toBe("5\n5\n");
+  });
+
+  it("console_destroy keeps the state file when the node never reaches destroyed", () => {
+    const bin = stubConsole(JSON.stringify([{ id: "node-1", name: "agro-mx-11", status: "destroying" }]));
+    const result = withConsole(
+      'console_create agro-mx-11 >/dev/null && console_destroy agro-mx-11; echo "rc=$?"; cat "$STATE_DIR/console-agro-mx-11"',
+      bin,
+    );
+    expect(result.stdout).toContain("rc=1\nnode-1 sandbox@203.0.113.7\n");
+    expect(result.stdout).toContain("console: node node-1 is destroying after 180 s, not destroyed");
+    const waits = withLib(`cat "${bin}/sleep.calls"`).stdout.trim().split("\n").map(Number);
+    expect(waits.reduce((a, b) => a + b, 0)).toBe(180);
+  });
+
   it("console_create keeps the node id when create returns no ssh target", () => {
     const bin = stubConsole();
     const result = withConsole(
@@ -220,7 +245,7 @@ describe("remote-sandbox adapters", () => {
     );
     expect(result.stdout).toContain("rc=1\nnode-1 \nexec=1\ndeleted node-1\n");
     expect(withLib(`test -e "${bin}/ssh.calls"`).code).not.toBe(0);
-    expect(withLib(`tail -1 "${bin}/agro.calls"`).stdout).toBe("node delete node-1 --yes\n");
+    expect(withLib(`grep -c "^node delete node-1 --yes$" "${bin}/agro.calls"`).stdout).toBe("1\n");
   });
 
   it("console_list counts only live agro-mx- nodes", () => {

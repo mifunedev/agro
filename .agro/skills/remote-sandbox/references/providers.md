@@ -90,7 +90,7 @@ A console node has no tag. `console_list` counts the nodes with a name that star
 
 If `agro node create` returns a node ID with no SSH target, `console_create` keeps the ID. The driver cleanup then deletes the node. If `agro node create` returns no ID, use the manual sweep.
 
-`console_destroy` retries `agro node delete` on HTTP 409 for up to 60 s.
+`console_destroy` retries `agro node delete` on HTTP 409 for up to 60 s. The console accepts a delete before the node is gone. After a successful delete, `console_destroy` runs `agro node list --json` every 5 s for up to 180 s until the node has the status `destroyed` or is not in the list. Then `console_destroy` removes the state file and returns 0. If the node does not reach `destroyed` in 180 s, `console_destroy` prints the last status, keeps the state file, and returns 1.
 
 Manual sweep on the driver host:
 
