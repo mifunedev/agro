@@ -2,8 +2,8 @@
 name: remote-sandbox
 description: |
   Test AGRO on a new provider VM with one command. The driver creates a VM on
-  exe.dev or Vercel Sandbox, uploads a check, runs the check detached in the
-  VM, polls the check log, and destroys the VM. The main scenario is the
+  exe.dev, Vercel Sandbox, or agro-console, uploads a check, runs the check
+  detached in the VM, polls the check log, and destroys the VM. The main scenario is the
   fresh install (F1 to F4). The second scenario is the AGRO hosting matrix
   (R01 to R15, R02b), the cgroup probe, and the VM restart test. A provider
   adapter of five functions and three optional hooks adds a provider. The
@@ -15,7 +15,7 @@ description: |
   generated-home check, run the Docker egress check, or add a provider
   adapter.
 license: MIT
-compatibility: Needs bash, ssh, curl, jq, awk, and python3 on the driver host, plus an account on each provider under test (an exe.dev SSH key or the vercel CLI). tmux is optional on the driver host.
+compatibility: Needs bash, ssh, curl, jq, awk, and python3 on the driver host, plus an account on each provider under test (an exe.dev SSH key, the vercel CLI, or an agro-console token and SSH key for the agro CLI). tmux is optional on the driver host.
 metadata:
   mifune:
     category: agro
@@ -174,6 +174,10 @@ cat run.out
 | `POLL_INTERVAL` | `15` | Seconds between two polls of the check log. |
 | `REMOTE_SANDBOX_ADAPTERS` | empty | A colon-separated list of extra adapter directories. |
 | `VERCEL_SCOPE` | none | The Vercel team slug. The `vercel` adapter needs this variable. |
+| `CONSOLE_SSH_KEY_ID` | none | The UUID of the console SSH key. The `console` adapter needs this variable. |
+| `CONSOLE_SSH_IDENTITY` | none | The private key file for `ssh -i`. The `console` adapter needs this variable. |
+| `CONSOLE_SPEC` | `n4` | The node spec of the `console` adapter. |
+| `CONSOLE_FREE_TIER` | `1` | `0` turns off the console free tier. |
 
 `run.sh` forwards `INSTALL_URL`, `AGRO_JS_URL`, `SANDBOX_IMAGE`, and `AGRO_REF` into the VM and writes the build under test into the log. `run.sh` names each VM `agro-mx-<date>-<time>`. `run.sh` writes each log to `$MATRIX_OUT/<provider>-<check>-<YYYYmmdd-HHMMSS>.log`. `restart-test.sh` writes each log to `$MATRIX_OUT/<provider>-restart-<mode>-<YYYYmmdd-HHMMSS>.log`.
 
@@ -212,4 +216,4 @@ To add a provider, follow "Add an adapter" in `references/providers.md`.
 | File | Holds |
 |---|---|
 | `references/rationale.md` | Why each F row, R row, probe, and driver rule exists, the baseline, and the known failure modes |
-| `references/providers.md` | Setup and manual sweep for `exedev` and `vercel`, and the steps to add an adapter |
+| `references/providers.md` | Setup and manual sweep for `exedev`, `vercel`, and `console` (agro-console), and the steps to add an adapter |
