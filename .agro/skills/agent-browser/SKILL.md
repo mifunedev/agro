@@ -81,12 +81,15 @@ If agent-browser is missing, install agent-browser through the catalog:
 agro tool install agent-browser --yes
 ```
 
-The catalog entry declares a `~1 GB` download. When stdin is not a TTY, the
-confirmation gate refuses without `--yes`. In the sandbox, the command installs
-the pinned package and Chromium. On the host, the command installs a pinned
-release binary into `~/.local/bin` and downloads no browser. The host then
-needs a Chromium-family browser, or `AGENT_BROWSER_EXECUTABLE_PATH` that points
-at one. Firefox is not a supported target.
+The catalog entry declares a `~1 GB` download in the sandbox and a `~400 MB`
+download on the host. When stdin is not a TTY, the confirmation gate refuses
+without `--yes`. In the sandbox, the command installs the pinned package and
+Chromium. On the host, the command installs a pinned release binary into
+`~/.local/bin`. When the host has no Chromium-family browser and
+`AGENT_BROWSER_EXECUTABLE_PATH` is not set, the command downloads Chrome for
+Testing into `~/.agent-browser/browsers`. With root or passwordless `sudo`, the
+command also installs the shared libraries that Chrome needs. The install fails
+when headless Chrome does not launch. Firefox is not a supported target.
 
 Do not use `sudo npm install -g`. That install goes under `/usr/lib/node_modules`,
 and a running sandbox cannot upgrade it in place.

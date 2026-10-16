@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -105,6 +105,7 @@ describe("tool catalog shape", () => {
       const body = t.hostInstallArgv.join("\n");
       expect(body, t.id).not.toMatch(/\bapt(-get)?\s/);
       expect(body, t.id).not.toMatch(/\bdpkg\s+-i\b/);
+      if (t.id === "agent-browser") continue;
       expect(body, t.id).not.toContain("sudo");
       expect(body, t.id).not.toContain("--with-deps");
     }
@@ -216,6 +217,117 @@ describe("the catalogs stay separate", () => {
   });
 });
 
+describe("agent-browser on the host leaves a headless browser that launches", () => {
+  const script = findTool("agent-browser")!.hostInstallArgv![2];
+  const tail = script.slice(script.indexOf('browser=""'));
+
+  interface HostRun {
+    browser?: boolean;
+    sudo?: boolean;
+    root?: boolean;
+    launches?: boolean;
+  }
+
+  function runTail(opts: HostRun): { status: number | null; stdout: string; stderr: string; calls: string[] } {
+    const dir = mkdtempSync(join(tmpdir(), "agro-agent-browser-host-"));
+    try {
+      const stubs = join(dir, "stubs");
+      const prefix = join(dir, "prefix");
+      const tmp = join(dir, "tmp");
+      const log = join(dir, "calls.log");
+      mkdirSync(stubs);
+      mkdirSync(join(prefix, "bin"), { recursive: true });
+      mkdirSync(tmp);
+      writeFileSync(log, "");
+      const stub = (path: string, body: string): void => {
+        writeFileSync(path, `#!/bin/sh\n${body}\n`);
+        chmodSync(path, 0o755);
+      };
+      stub(
+        join(prefix, "bin", "agent-browser"),
+        `echo "$*" >> ${log}\ncase "$*" in *" open "*) exit ${opts.launches === false ? 1 : 0} ;; esac\nexit 0`,
+      );
+      stub(join(stubs, "id"), `echo ${opts.root === true ? 0 : 1000}`);
+      stub(join(stubs, "cat"), 'exec /bin/cat "$@"');
+      stub(join(stubs, "chmod"), 'exec /bin/chmod "$@"');
+      if (opts.sudo !== undefined) stub(join(stubs, "sudo"), `exit ${opts.sudo ? 0 : 1}`);
+      if (opts.browser === true) stub(join(stubs, "google-chrome"), "exit 0");
+      const r = spawnSync("/bin/bash", ["-c", `set -e\nprefix=${prefix}\ntmp=${tmp}\n${tail}`], {
+        encoding: "utf8",
+        env: { PATH: stubs, HOME: dir },
+      });
+      const calls = readFileSync(log, "utf8").split("\n").filter((line) => line !== "");
+      return { status: r.status, stdout: r.stdout, stderr: r.stderr, calls };
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  it("uses an existing browser and downloads nothing", () => {
+    const r = runTail({ browser: true, sudo: true });
+    expect(r.status).toBe(0);
+    expect(r.stdout).toContain("agent-browser will drive");
+    expect(r.calls.some((c) => c.startsWith("install"))).toBe(false);
+    expect(r.calls).toEqual(["--session agro-install-check open about:blank", "--session agro-install-check close"]);
+  });
+
+  it("downloads Chrome with its system libraries through passwordless sudo", () => {
+    const r = runTail({ sudo: true });
+    expect(r.status).toBe(0);
+    expect(r.calls[0]).toBe("install --with-deps");
+    expect(r.stdout).toContain("agent-browser launched headless Chrome");
+  });
+
+  it("downloads Chrome with its system libraries as root without sudo", () => {
+    const r = runTail({ root: true });
+    expect(r.status).toBe(0);
+    expect(r.calls[0]).toBe("install --with-deps");
+  });
+
+  it("downloads Chrome at user level without passwordless sudo and succeeds when it launches", () => {
+    const r = runTail({ sudo: false });
+    expect(r.status).toBe(0);
+    expect(r.calls[0]).toBe("install");
+  });
+
+  it("names the library command and fails when Chrome cannot launch without sudo", () => {
+    const r = runTail({ sudo: false, launches: false });
+    expect(r.status).toBe(1);
+    expect(r.calls[0]).toBe("install");
+    expect(r.calls.at(-1)).toBe("--session agro-install-check close");
+    expect(r.stderr).toContain("headless Chrome did not launch");
+    expect(r.stderr).toMatch(/sudo \S+\/bin\/agent-browser install --with-deps/);
+  });
+
+  it("fails without the library hint when an existing browser cannot launch", () => {
+    const r = runTail({ browser: true, launches: false });
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain("headless Chrome did not launch");
+    expect(r.stderr).not.toContain("install --with-deps");
+  });
+
+  it("removes the downloaded browsers on uninstall and keeps the rest of ~/.agent-browser", () => {
+    const dir = mkdtempSync(join(tmpdir(), "agro-agent-browser-uninstall-"));
+    try {
+      const prefix = join(dir, ".local");
+      mkdirSync(join(prefix, "bin"), { recursive: true });
+      writeFileSync(join(prefix, "bin", "agent-browser"), "");
+      mkdirSync(join(dir, ".agent-browser", "browsers", "chrome-1"), { recursive: true });
+      writeFileSync(join(dir, ".agent-browser", "session.config"), "");
+      const argv = findTool("agent-browser")!.hostUninstallArgv!.map((part) =>
+        part.split(HARNESS_PREFIX_TOKEN).join(prefix),
+      );
+      const r = spawnSync(argv[0], argv.slice(1), { encoding: "utf8", env: { PATH: "/usr/bin:/bin", HOME: dir } });
+      expect(r.status).toBe(0);
+      expect(existsSync(join(prefix, "bin", "agent-browser"))).toBe(false);
+      expect(existsSync(join(dir, ".agent-browser", "browsers"))).toBe(false);
+      expect(existsSync(join(dir, ".agent-browser", "session.config"))).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("agent-browser is installed from the catalog, not the boot path", () => {
   const ab = findTool("agent-browser")!;
   const ENTRYPOINT = read(".devcontainer/entrypoint.sh");
@@ -255,6 +367,7 @@ describe("agent-browser is installed from the catalog, not the boot path", () =>
 
   it("arms the download gate with the size the install verb quotes", () => {
     expect(ab.downloadSize).toBe("~1 GB");
+    expect(ab.hostDownloadSize).toBe("~400 MB");
     expect(read(".agro/cli/src/commands/tool.ts")).toContain("downloads ${size}");
   });
 

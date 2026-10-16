@@ -8,6 +8,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Fixed
+- Make a host `agro tool install agent-browser` download Chrome when the host has no browser, install its libraries under root or passwordless `sudo`, and verify a headless launch ([#1446](https://github.com/mifunedev/agro/issues/1446)).
+
 ## [0.23.0] - 2026-10-16
 
 ### Added

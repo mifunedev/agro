@@ -215,9 +215,16 @@ install records the id under `hostTools` in `~/.agro/config.json`.
 | `docker-engine` | Docker Engine and Compose from Docker's apt repository; adds you to the `docker` group | root | refused; names `access.dockerSocket` |
 | `desktop` | XFCE, XRDP, and system Tailscale; serves TCP 3389 only through Tailscale | root | refused |
 
-On the host, `agent-browser` downloads no browser. It uses the first
-Chromium-family browser it finds. Set `AGENT_BROWSER_EXECUTABLE_PATH` to choose
-one.
+On the host, `agent-browser` uses the first Chromium-family browser it finds.
+Set `AGENT_BROWSER_EXECUTABLE_PATH` to choose one. When the host has no such
+browser, the install downloads Chrome for Testing into
+`~/.agent-browser/browsers`. The download gate quotes `~400 MB`. When you are
+root or `sudo -n true` succeeds, the install also installs the shared libraries
+that Chrome needs. The install then opens `about:blank` in headless Chrome.
+When Chrome does not launch, the install exits 1. Without root or passwordless
+`sudo`, it also prints the command that installs the libraries.
+`agro tool uninstall agent-browser` removes the binary and
+`~/.agent-browser/browsers`, and keeps the other files in `~/.agent-browser`.
 
 A root-level install runs through `sudo -n` when you are not root. When
 `sudo -n true` fails, the command exits 1, changes nothing, and names

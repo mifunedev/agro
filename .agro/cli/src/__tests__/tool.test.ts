@@ -421,6 +421,7 @@ describe("agro tool install on the host", () => {
             interactive: false,
             host: true,
             platform: LINUX,
+            yes: true,
           },
           io,
         ),
@@ -438,6 +439,35 @@ describe("agro tool install on the host", () => {
       expect(rendered.trimEnd().endsWith(`cd ${defaultRoot(home)}`)).toBe(true);
     },
   );
+
+  it("names the Chrome download before a non-interactive agent-browser host install", async () => {
+    const repo = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    seedWorkspace(defaultRoot(home));
+    const { calls, run } = hostRunner(absentOnHost("agent-browser"));
+    const { io, err } = makeIo();
+
+    expect(
+      await runToolInstall(
+        "agent-browser",
+        {
+          bin: "agro",
+          cwd: repo,
+          run,
+          env: home.env,
+          homedir: user.homedir,
+          interactive: false,
+          host: true,
+          platform: LINUX,
+        },
+        io,
+      ),
+    ).toBe(1);
+    expect(installerCalls(calls)).toHaveLength(0);
+    expect(hostText(err)).toContain("agent-browser downloads ~400 MB");
+    expect(hostText(err)).toContain("--yes");
+  });
 
   it("records a receipt under hostTools, keeping harnesses separate", async () => {
     const repo = makeRepo();
@@ -732,6 +762,27 @@ describe("agro tool uninstall", () => {
     expect(removal.args).toEqual(["-rf", join(user.prefix, "bin", "herdr")]);
     expect(hostText(out)).toContain(`herdr: removed from ${user.prefix}`);
     expect(hostText(out)).toContain("herdr: cleared the host install record");
+    expect(receiptsIn(home.dir)).toEqual({});
+  });
+
+  it("removes agent-browser and its downloaded browsers from the host", async () => {
+    const repo = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    writeReceipt(home.dir, "agent-browser", user.prefix, "agent-browser");
+    const { calls, run } = hostRunner();
+
+    expect(
+      await runToolUninstall(
+        "agent-browser",
+        { bin: "agro", cwd: repo, run, env: home.env, homedir: user.homedir, interactive: false },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    const removal = calls.find((c) => c.cmd === "bash" && c.args[0] === "-c")!;
+    expect(removal.args[1]).toBe(
+      `rm -rf "${join(user.prefix, "bin", "agent-browser")}" "$HOME/.agent-browser/browsers"`,
+    );
     expect(receiptsIn(home.dir)).toEqual({});
   });
 
