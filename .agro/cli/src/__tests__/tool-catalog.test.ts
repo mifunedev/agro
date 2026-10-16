@@ -252,7 +252,9 @@ describe("agent-browser on the host leaves a headless browser that launches", ()
       stub(join(stubs, "chmod"), 'exec /bin/chmod "$@"');
       if (opts.sudo !== undefined) stub(join(stubs, "sudo"), `exit ${opts.sudo ? 0 : 1}`);
       if (opts.browser === true) stub(join(stubs, "google-chrome"), "exit 0");
-      const r = spawnSync("/bin/bash", ["-c", `set -e\nprefix=${prefix}\ntmp=${tmp}\n${tail}`], {
+      writeFileSync(join(dir, ".bash_logout"), 'if [ "$SHLVL" = 1 ]; then\n  false\nfi\n');
+      const [shell, flags] = findTool("agent-browser")!.hostInstallArgv!;
+      const r = spawnSync(join("/bin", shell), [flags, `set -e\nPATH=${stubs}\nprefix=${prefix}\ntmp=${tmp}\n${tail}`], {
         encoding: "utf8",
         env: { PATH: stubs, HOME: dir },
       });
