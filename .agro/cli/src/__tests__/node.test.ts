@@ -126,6 +126,9 @@ function harness(replies: Reply[], overrides: Partial<NodeDeps> = {}) {
     fetch: fetchStub,
     env: { AGRO_CONSOLE_URL: "https://console.example/", AGRO_CONSOLE_TOKEN: TOKEN },
     readCredentials: () => undefined,
+    homeDir: () => "/home/op",
+    hostname: () => "laptop",
+    readFile: () => undefined,
     sleep: async (ms) => {
       sleeps.push(ms);
       clock += ms;
@@ -309,10 +312,9 @@ describe("agro node create", () => {
     expect(h.calls).toHaveLength(1);
   });
 
-  it("requires --spec and --ssh-key", async () => {
+  it("requires --spec", async () => {
     const h = harness([{ status: 202, body: {} }]);
     expect(await runNode(["create", "--ssh-key", "k"], h.io, h.deps)).toBe(1);
-    expect(await runNode(["create", "--spec", "small"], h.io, h.deps)).toBe(1);
     expect(h.calls).toHaveLength(0);
   });
 
@@ -322,6 +324,113 @@ describe("agro node create", () => {
     expect(h.stderr()).toBe(`${CONSOLE_CONFIG_MISSING}\n`);
     expect(h.all()).not.toContain(TOKEN);
     expect(h.calls).toHaveLength(0);
+  });
+});
+
+const LOCAL_KEY_PATH = "/home/op/.ssh/id_ed25519.pub";
+const LOCAL_KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIlocal op@laptop\n";
+const RUNNING = { status: 202, body: { id: "k1", status: "running", ipv4: "1.2.3.4" } };
+
+function localKey(content = LOCAL_KEY) {
+  const reads: string[] = [];
+  return {
+    reads,
+    readFile: (path: string) => {
+      reads.push(path);
+      return path === LOCAL_KEY_PATH ? content : undefined;
+    },
+  };
+}
+
+describe("agro node create ssh key resolution", () => {
+  it("reuses a console key whose type and body match the local key", async () => {
+    const files = localKey();
+    const h = harness(
+      [
+        {
+          status: 200,
+          body: {
+            sshKeys: [
+              { id: "other", name: "x", publicKey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIother op@laptop" },
+              { id: "match", name: "y", publicKey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIlocal a-different-comment" },
+            ],
+          },
+        },
+        RUNNING,
+      ],
+      { readFile: files.readFile },
+    );
+    expect(await runNode(["create", "--free-tier"], h.io, h.deps)).toBe(0);
+    expect(files.reads).toEqual([LOCAL_KEY_PATH]);
+    expect(h.calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      "GET https://console.example/api/ssh-keys",
+      "POST https://console.example/api/nodes",
+    ]);
+    expect(h.calls[0].headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    expect(h.calls[1].body).toMatchObject({ sshKeyIds: ["match"] });
+  });
+
+  it("registers the local key when no console key matches", async () => {
+    const files = localKey();
+    const h = harness(
+      [
+        { status: 200, body: { sshKeys: [{ id: "other", publicKey: "ssh-rsa AAAAC3NzaC1lZDI1NTE5AAAAIlocal" }] } },
+        { status: 201, body: { sshKey: { id: "new-key", name: "agro-cli@laptop" } } },
+        RUNNING,
+      ],
+      { readFile: files.readFile },
+    );
+    expect(await runNode(["create", "--free-tier"], h.io, h.deps)).toBe(0);
+    expect(h.calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      "GET https://console.example/api/ssh-keys",
+      "POST https://console.example/api/ssh-keys",
+      "POST https://console.example/api/nodes",
+    ]);
+    expect(h.calls[1].body).toEqual({ name: "agro-cli@laptop", publicKey: LOCAL_KEY.trim() });
+    expect(h.calls[1].headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    expect(h.calls[2].body).toMatchObject({ sshKeyIds: ["new-key"] });
+  });
+
+  it("accepts a top-level id in the register response", async () => {
+    const h = harness(
+      [{ status: 200, body: { sshKeys: [] } }, { status: 201, body: { id: "top-key" } }, RUNNING],
+      { readFile: localKey().readFile },
+    );
+    expect(await runNode(["create", "--free-tier"], h.io, h.deps)).toBe(0);
+    expect(h.calls[2].body).toMatchObject({ sshKeyIds: ["top-key"] });
+  });
+
+  it("exits 1 when the local key file does not exist", async () => {
+    const h = harness([RUNNING], { readFile: () => undefined });
+    expect(await runNode(["create", "--free-tier"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain("no --ssh-key given and ~/.ssh/id_ed25519.pub not found");
+    expect(h.calls).toHaveLength(0);
+  });
+
+  it("uses only the given --ssh-key flags and makes no ssh-keys call", async () => {
+    const files = localKey();
+    const h = harness([RUNNING], { readFile: files.readFile });
+    expect(await runNode(["create", "--free-tier", "--ssh-key", "a", "--ssh-key", "b"], h.io, h.deps)).toBe(0);
+    expect(files.reads).toEqual([]);
+    expect(h.calls.map((c) => `${c.method} ${c.url}`)).toEqual(["POST https://console.example/api/nodes"]);
+    expect(h.calls[0].body).toMatchObject({ sshKeyIds: ["a", "b"] });
+  });
+
+  it("exits 1 with the API error when the key list fails", async () => {
+    const h = harness([{ status: 403, body: { error: "forbidden", code: "FORBIDDEN" } }], {
+      readFile: localKey().readFile,
+    });
+    expect(await runNode(["create", "--free-tier"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain("HTTP 403 FORBIDDEN");
+    expect(h.calls).toHaveLength(1);
+  });
+
+  it("exits 1 when the register response has no key id", async () => {
+    const h = harness([{ status: 200, body: { sshKeys: [] } }, { status: 201, body: {} }], {
+      readFile: localKey().readFile,
+    });
+    expect(await runNode(["create", "--free-tier"], h.io, h.deps)).toBe(1);
+    expect(h.calls).toHaveLength(2);
   });
 });
 
