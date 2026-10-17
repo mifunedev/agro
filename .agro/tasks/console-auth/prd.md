@@ -33,7 +33,9 @@ Status: DRAFT
 - [ ] `POST /api/cli/device/token` with a pending device code returns HTTP 400 with the code `authorization_pending`.
 - [ ] `POST /api/cli/device/token` with a denied device code returns HTTP 400 with the code `access_denied`.
 - [ ] `POST /api/cli/device/token` with an expired device code returns HTTP 400 with the code `expired_token`.
-- [ ] `POST /api/cli/device/token` with an approved device code returns the token, the token ID, the token prefix, and the console login.
+- [ ] `POST /api/cli/device/token` with an approved device code mints a token with `createApiToken`, then returns the token, the token ID, the token prefix, and the console login.
+- [ ] The minted token has the name `agro-cli@<clientName>`, the approving user, and the org that the approval recorded.
+- [ ] The poll changes the row from `approved` to `consumed` with a conditional update before the mint. Two concurrent polls mint at most one token.
 - [ ] After the first successful token response, the row has the status `consumed`. A second request with the same device code returns HTTP 400 with the code `expired_token`.
 - [ ] The routes, the controller, and the service follow the five layers in `AGENTS.md` of `mifunedev/agro-console`.
 - [ ] A red test for each response code exists before the implementation. `pnpm test` exits 0 after the implementation.
@@ -47,11 +49,11 @@ Status: DRAFT
 - [ ] The page `/device` requires a signed-in session. The existing `apps/web/middleware.ts` matcher already covers `/device`.
 - [ ] The page accepts a user code, then shows the client host name and the active org.
 - [ ] The page shows Approve and Deny buttons.
-- [ ] Approve calls `createApiToken` with the name `agro-cli@<clientName>` and the active org, then marks the row `approved`.
+- [ ] Approve records the approving user and the active org, then marks the row `approved`. Approve mints no token.
 - [ ] Deny marks the row `denied`. A denied row mints no token.
 - [ ] A user code that is unknown, expired, or not `pending` shows an error message and mints no token.
 - [ ] Only a caller with the role `operator` or higher can approve.
-- [ ] The new token appears on the existing `/tokens` page with the name `agro-cli@<clientName>`.
+- [ ] After the CLI poll succeeds, the new token appears on the existing `/tokens` page with the name `agro-cli@<clientName>`.
 - [ ] Verify in browser using agent-browser skill.
 
 ### US-004: Add token identity and self-revoke to agro-console
@@ -204,7 +206,7 @@ The work spans two repositories and ships as two PRs from this one plan. US-001 
 
 - The device code is the only secret that the unauthenticated poll endpoint accepts. The server stores only its SHA-256 hash.
 - The console adds no general rate limiter. The user-code entropy, the session requirement on `/device`, and the per-code `slow_down` response limit abuse.
-- The console mints the token at approval time, in the session of the approving user, with the active org of that session. The token inherits the role of the approving user.
+- The approval records the approving user and the active org of that session. The poll mints the token for that user and org. The server never stores the raw token, so the mint cannot happen at approval time.
 - The poll endpoint returns the token one time. After that, the row is `consumed`.
 - The CLI resolves the token in this order: `AGRO_CONSOLE_TOKEN`, then the user credentials file. No other source exists.
 - The credentials file lives outside every workspace, so a sandbox mount of the project never exposes the token.
