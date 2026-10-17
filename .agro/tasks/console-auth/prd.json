@@ -154,8 +154,8 @@
         "`.agro/cli/src/__tests__/auth.test.ts` covers each verb with a fake `fetch`, and `npm test` at the repository root exits 0."
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor integrated two commits onto feat/1448-console-auth and reran. AC1-AC13 executed: npx vitest run auth.test.ts cli-first-help.test.ts node.test.ts all pass (verb table, help line, device start with hostname, poll at interval with slow_down +5 s, exact login line, denied and expired write no file, --url then AGRO_CONSOLE_URL then default, status never prints full token, status exit 1 on no token and 401, logout revokes and deletes, env-token logout refusal, token verb). npm run typecheck in .agro/cli exit 0; full vitest fails only the pre-existing standard-skills-link check. Advisor decision added: logout on HTTP 401 deletes the file and exits 0; other failures keep the file and exit 1.",
       "dependsOn": [
         "US-005"
       ],
@@ -164,7 +164,8 @@
         ".agro/cli/src/command-table.ts",
         ".agro/cli/src/cli.ts",
         ".agro/cli/src/__tests__/auth.test.ts"
-      ]
+      ],
+      "commit": "50cc70da"
     },
     {
       "id": "US-007",
