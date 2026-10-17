@@ -38,6 +38,7 @@ import {
 } from "./commands/lifecycle.js";
 import { runSandboxCommand } from "./controllers/sandbox.js";
 import { EGRESS_LOG_LINES, EGRESS_LOG_PATH, runEgress } from "./commands/egress.js";
+import { runAuth } from "./commands/auth.js";
 import { runNode } from "./commands/node.js";
 import { RuntimeUnsupportedError } from "./lib/runtimes/verbs.js";
 export { parseSandboxArgs, printSandboxHelp, runtimeLines } from "./controllers/sandbox.js";
@@ -153,6 +154,7 @@ Usage:
   ${bin} egress <args...>       Read the egress proxy log or reload its allowlist (log|reload)
   ${bin} workspace <args...>    Create and list host AGRO workspaces (create|list)
   ${bin} node <args...>         Manage remote agro-console sandbox nodes (create|list|delete)
+  ${bin} auth <args...>         Sign in to agro-console (login|status|logout|token)
   ${bin} harness <args...>      Install and inspect agent CLI harnesses
   ${bin} tool <args...>         Install and inspect sandbox tooling
   ${bin} gateway <args...>      Manage a messaging client session (pi|hermes|openclaw)
@@ -1454,6 +1456,15 @@ async function main(argv: string[]): Promise<number> {
       return second === undefined ? 1 : 0;
     }
     return runEgress(a.verb, a.name === undefined ? { bin } : { bin, name: a.name }, lifecycleIo());
+  }
+
+  if (first === "auth") {
+    return await runAuth(
+      argv.slice(1),
+      { stdout: (s) => process.stdout.write(s), stderr: (s) => process.stderr.write(s) },
+      {},
+      bin,
+    );
   }
 
   if (first === "node") {

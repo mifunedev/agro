@@ -35,6 +35,11 @@ describe("cli-first help — the single agro identity", () => {
     expect(text).toMatch(/^agro — AGRO CLI/);
   });
 
+  it("top-level help lists agro auth", () => {
+    const text = captureStdout(() => printAgroHelp(AGRO_PRODUCT));
+    expect(text).toMatch(/^ {2}agro auth <args\.\.\.> +Sign in to agro-console \(login\|status\|logout\|token\)$/m);
+  });
+
   it("self-upgrade help covers only the installed CLI", () => {
     const text = captureStdout(() => printSelfUpgradeHelp("agro"));
     expect(text).toContain("Upgrade the installed agro CLI");
