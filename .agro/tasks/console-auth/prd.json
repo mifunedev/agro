@@ -180,15 +180,16 @@
         "`.agro/cli/src/__tests__/node.test.ts` covers the reuse case, the register case, and the missing-file case. `npm test` at the repository root exits 0."
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor integrated onto feat/1448-console-auth and reran. AC1-AC6 executed: npx vitest run .agro/cli/src/__tests__/node.test.ts, all pass (explicit --ssh-key with no ssh-keys call, reads ~/.ssh/id_ed25519.pub, exact missing-file error, reuse by type+body ignoring comment, register as agro-cli@<hostname>, id sent in sshKeyIds). AC7 executed: npm run typecheck in .agro/cli exit 0; npx vitest run exit 1 only from the pre-existing standard-skills-link.test.ts failure that also fails on base 19c26d7d.",
       "dependsOn": [
         "US-005"
       ],
       "files": [
         ".agro/cli/src/commands/node.ts",
         ".agro/cli/src/__tests__/node.test.ts"
-      ]
+      ],
+      "commit": "bb9609d3"
     },
     {
       "id": "US-008",
