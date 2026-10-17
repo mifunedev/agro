@@ -50,8 +50,8 @@
         "A red test for each response code exists before the implementation. `pnpm test` exits 0 after the implementation."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor integrated onto agro-console feat/1448-console-auth and reran. AC1-AC13 executed: npx vitest run cli-device.controller.test.ts cli-device.service.test.ts in apps/web, 34 passed (unauthenticated start, exact body, interval 5, expires_in 900, user-code alphabet and format with collision retry, slow_down under 5 s with last_polled_at, authorization_pending, access_denied, expired_token for expired and unknown, poll-time mint with SHA-256 hash and prefix, name agro-cli@<clientName> with recorded user and org, conditional consume with a losing-consume test and a two-poll Promise.all test, consumed then expired_token). AC14-AC15 executed: pnpm test at the worktree root exit 0, layering pass with LEGACY unchanged; tsc --noEmit in apps/web exit 0. Reasoned, not executed: the new repository createApiToken SQL runs only through in-memory fakes; no database test.",
       "dependsOn": [
         "US-001"
       ],
@@ -59,7 +59,8 @@
         "mifunedev/agro-console:apps/web/app/api/cli/device",
         "mifunedev/agro-console:apps/web/server/controllers/cli-device.controller.ts",
         "mifunedev/agro-console:apps/web/server/services/cli-device.service.ts"
-      ]
+      ],
+      "commit": "mifunedev/agro-console@64764b6d"
     },
     {
       "id": "US-003",
