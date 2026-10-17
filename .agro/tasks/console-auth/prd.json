@@ -99,13 +99,14 @@
         "`pnpm test` in `mifunedev/agro-console` exits 0."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor integrated onto agro-console branch feat/1448-console-auth and reran. AC1-AC6 executed: npx vitest run me.controller.test.ts me.service.test.ts auth.test.ts in apps/web, 61 passed, exit 0 (token caller, session caller with null tokenId/tokenPrefix, no caller 401, self-revoke 200, later request 401 via in-memory token store, session DELETE 400 TOKEN_REQUIRED with no revoke). AC7 executed: pnpm test at the worktree root exit 0, layering LEGACY unchanged. Reasoned: AC5 rests on the existing active-token lookup that skips revoked_at rows; no live Postgres run. Deviation accepted: AuthedCaller.tokenId/tokenPrefix are optional in the type, set on every requireRole path.",
       "dependsOn": [],
       "files": [
         "mifunedev/agro-console:apps/web/app/api/me",
         "mifunedev/agro-console:apps/web/server/controllers/me.controller.ts"
-      ]
+      ],
+      "commit": "mifunedev/agro-console@e7b9d9fd"
     },
     {
       "id": "US-005",
