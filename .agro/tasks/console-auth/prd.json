@@ -78,14 +78,15 @@
         "Verify in browser using agent-browser skill."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor integrated onto agro-console feat/1448-console-auth; pnpm test exit 0, tsc --noEmit in apps/web exit 0. AC1-AC7 executed by controller, service, client, and render tests (session required with 401, host and org shown, Approve and Deny, approve records user and org without a mint, deny, 404/410/409 errors, viewer and token callers 403). AC8-AC9 executed in browser with agent-browser against a dev server on scratch database agro_console_1448: /device?code= prefilled, review shows review-host and Acme, Inc, approve succeeds, CLI poll returns 200 with prefix mfc_nHxMLbFY, second poll expired_token, /tokens lists agro-cli@review-host; deny path returns access_denied; unknown code BBBB-BBBB shows an error. Advisor viewed the review and tokens screenshots.",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         "mifunedev/agro-console:apps/web/app/(console)/device"
-      ]
+      ],
+      "commit": "mifunedev/agro-console@20cebc02"
     },
     {
       "id": "US-004",
