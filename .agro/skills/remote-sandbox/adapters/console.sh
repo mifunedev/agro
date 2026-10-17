@@ -1,18 +1,15 @@
 # shellcheck shell=bash
 console_env() {
-  local key ok=0
-  for key in CONSOLE_SSH_KEY_ID CONSOLE_SSH_IDENTITY; do
-    [ -n "${!key:-}" ] || { echo "console: set $key" >&2; ok=1; }
-  done
-  return $ok
+  [ -n "${CONSOLE_SSH_IDENTITY:-}" ] || { echo "console: set CONSOLE_SSH_IDENTITY" >&2; return 1; }
 }
 console_preflight() { console_env && timeout 30 agro node list --json >/dev/null; }
 console_create() {
-  local out state rc free=(--free-tier)
+  local out state rc free=(--free-tier) key=()
   [ -z "${IMAGE:-}" ] || { echo "console: IMAGE is not supported, a console node has no image choice" >&2; exit 2; }
   console_env || exit 2
   [ "${CONSOLE_FREE_TIER:-1}" = 0 ] && free=()
-  out=$(timeout 960 agro node create --spec "${CONSOLE_SPEC:-n4}" --ssh-key "$CONSOLE_SSH_KEY_ID" --name "$1" --json "${free[@]}"); rc=$?
+  [ -z "${CONSOLE_SSH_KEY_ID:-}" ] || key=(--ssh-key "$CONSOLE_SSH_KEY_ID")
+  out=$(timeout 960 agro node create --spec "${CONSOLE_SPEC:-n4}" "${key[@]}" --name "$1" --json "${free[@]}"); rc=$?
   printf '%s\n' "$out"
   state=$(printf '%s\n' "$out" | python3 -c "import json,sys; n=json.loads(sys.stdin.read().strip().splitlines()[-1]); s=(n.get('ssh') or '').split(); print(n['id'], s[-1] if s else '')" 2>/dev/null) || return 1
   printf '%s\n' "$state" >"$STATE_DIR/console-$1"

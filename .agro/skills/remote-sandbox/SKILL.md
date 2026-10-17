@@ -15,7 +15,7 @@ description: |
   generated-home check, run the Docker egress check, or add a provider
   adapter.
 license: MIT
-compatibility: Needs bash, ssh, curl, jq, awk, and python3 on the driver host, plus an account on each provider under test (an exe.dev SSH key, the vercel CLI, or an agro-console token and SSH key for the agro CLI). tmux is optional on the driver host.
+compatibility: Needs bash, ssh, curl, jq, awk, and python3 on the driver host, plus an account on each provider under test (an exe.dev SSH key, the vercel CLI, or an `agro auth login` sign-in and an SSH key for the agro CLI). tmux is optional on the driver host.
 metadata:
   mifune:
     category: agro
@@ -39,7 +39,7 @@ The driver `scripts/run.sh` creates one VM, runs one check in the VM, and destro
 
 ## Set up
 
-1. Set up each provider with `references/providers.md`.
+1. Set up each provider with `references/providers.md`. To sign in to the `console` provider, run `agro auth login` on the driver host, or set `AGRO_CONSOLE_TOKEN` in the driver environment.
 2. Set `SKILL` to the skill directory, for example `SKILL=.agro/skills/remote-sandbox`.
 3. Run the preflight on the driver host. The command prints `preflight ok: exedev` and exits 0:
 
@@ -174,7 +174,7 @@ cat run.out
 | `POLL_INTERVAL` | `15` | Seconds between two polls of the check log. |
 | `REMOTE_SANDBOX_ADAPTERS` | empty | A colon-separated list of extra adapter directories. |
 | `VERCEL_SCOPE` | none | The Vercel team slug. The `vercel` adapter needs this variable. |
-| `CONSOLE_SSH_KEY_ID` | none | The UUID of the console SSH key. The `console` adapter needs this variable. |
+| `CONSOLE_SSH_KEY_ID` | none | Optional. The UUID of the console SSH key. Without this variable, `agro node create` registers `~/.ssh/id_ed25519.pub` of the driver host. |
 | `CONSOLE_SSH_IDENTITY` | none | The private key file for `ssh -i`. The `console` adapter needs this variable. |
 | `CONSOLE_SPEC` | `n4` | The node spec of the `console` adapter. |
 | `CONSOLE_FREE_TIER` | `1` | `0` turns off the console free tier. |

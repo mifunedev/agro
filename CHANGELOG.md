@@ -8,6 +8,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING:** Add `agro auth login|status|logout|token`; `agro auth login` stores the console token in `~/.config/agro/console.json`; `agro node` no longer reads the project `.env` ([#1448](https://github.com/mifunedev/agro/issues/1448)).
+
 ### Fixed
 - Make a host `agro tool install agent-browser` download Chrome when the host has no browser, install its libraries under root or passwordless `sudo`, and verify a headless launch ([#1446](https://github.com/mifunedev/agro/issues/1446)).
 

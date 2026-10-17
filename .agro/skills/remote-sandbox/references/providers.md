@@ -65,17 +65,17 @@ Variables on the driver host:
 | Variable | Default | Effect |
 |---|---|---|
 | `AGRO_CONSOLE_URL` | CLI default | The console API URL. The `agro` CLI reads this variable. |
-| `AGRO_CONSOLE_TOKEN` | none | The console API token. The `agro` CLI reads this variable from the environment, then from the project `.env`. |
-| `CONSOLE_SSH_KEY_ID` | none | The UUID of an SSH key on the console account. `console_create` passes the UUID to `--ssh-key`. |
-| `CONSOLE_SSH_IDENTITY` | none | The private key file of that SSH key. `console_exec` passes the file to `ssh -i`. |
+| `AGRO_CONSOLE_TOKEN` | none | The console API token. The `agro` CLI reads this variable first, then the credentials file that `agro auth login` writes. |
+| `CONSOLE_SSH_KEY_ID` | none | Optional. The UUID of an SSH key on the console account. When the operator sets this variable, `console_create` passes the UUID to `--ssh-key`. Without this variable, `agro node create` registers `~/.ssh/id_ed25519.pub` of the driver host. |
+| `CONSOLE_SSH_IDENTITY` | none | The private key file for the node SSH key. `console_exec` passes the file to `ssh -i`. The `console` adapter needs this variable. |
 | `CONSOLE_SPEC` | `n4` | The node spec for `agro node create --spec`. |
 | `CONSOLE_FREE_TIER` | `1` | `0` removes `--free-tier` from `agro node create`. Any other value keeps `--free-tier`. |
 
 Prerequisites:
 
 1. Install the `agro` CLI on the driver host.
-2. Set `AGRO_CONSOLE_TOKEN` in the environment, or run `agro secret set AGRO_CONSOLE_TOKEN`. The token stays on the driver host. Do not paste the token into a chat or a log.
-3. Register an SSH public key of the driver host with the console account. Set `CONSOLE_SSH_KEY_ID` to the UUID of that key. Set `CONSOLE_SSH_IDENTITY` to the matching private key file.
+2. Run `agro auth login` on the driver host, or set `AGRO_CONSOLE_TOKEN` in the driver environment. The token stays on the driver host. Do not paste the token into a chat or a log.
+3. Set `CONSOLE_SSH_IDENTITY` to the private key file for the node SSH key. Without `CONSOLE_SSH_KEY_ID`, `agro node create` registers `~/.ssh/id_ed25519.pub` of the driver host. Then `CONSOLE_SSH_IDENTITY` must be the matching private key `~/.ssh/id_ed25519`. With `CONSOLE_SSH_KEY_ID` set to the UUID of a console SSH key, `CONSOLE_SSH_IDENTITY` must be the private key file of that console key.
 4. Run `bash scripts/run.sh console --preflight`. The command prints `preflight ok: console`.
 
 The free tier allows one live node for each account. With the free tier on, start one console run at a time. Before a run, confirm that `agro node list` shows no other live node.

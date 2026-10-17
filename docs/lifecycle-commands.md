@@ -48,7 +48,8 @@ Host prerequisites and the CLI install are in [Installation](installation.md).
 | `agro gateway <pi\|hermes>` · `agro gateway status` | `.agro/scripts/gateway.sh` |
 | `agro harness` · `agro tool` | install and inspect harnesses and tooling |
 | `agro workspace create [<name>] [--path <dir>] [--ref <ref>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
-| `agro node create --spec <spec> --ssh-key <uuid> [--name <name>] [--free-tier] [--json]` · `agro node list [--json]` · `agro node delete <id> [--yes]` | create, list, and delete remote agro-console sandbox nodes — see below |
+| `agro auth login [--url <url>]` · `agro auth status` · `agro auth logout` · `agro auth token` | sign in to agro-console and manage the console token — see below |
+| `agro node create --spec <spec> [--ssh-key <uuid>]... [--name <name>] [--free-tier] [--json]` · `agro node list [--json]` · `agro node delete <id> [--yes]` | create, list, and delete remote agro-console sandbox nodes — see below |
 | `agro --help` · `agro --version` | usage and version |
 
 `agro <verb> -- <args>` forwards extra arguments to `docker compose`, e.g.
@@ -286,31 +287,75 @@ Each verb resolves an existing workspace and exits 1 when none resolves. The
 refusal lists every workspace that exists and names `agro workspace create`. See
 [Harnesses Overview](harnesses/overview.md#installing-a-harness).
 
+## Console sign-in: `agro auth`
+
+`agro auth` signs in to the agro-console API and manages the console token.
+Run `agro auth` on the host that runs `agro node`.
+
+```bash
+agro auth login     # sign in through the browser, store the token
+agro auth status    # show the signed-in identity
+agro auth logout    # revoke the token, delete the credentials file
+agro auth token     # print the token
+```
+
+- `agro auth login` starts a device authorization. The command prints
+  `Open <url> and enter the code <code>`. Open the URL in a browser and approve
+  the code. After the approval, the command writes the credentials file, prints
+  `logged in to <url> as <login>`, and exits 0. If the operator denies the code
+  or the code expires, the command writes no file and exits 1.
+- `agro auth login --url <url>` signs in to that console. Without `--url`, the
+  command uses `AGRO_CONSOLE_URL`, then `https://console.mifune.dev`.
+- The credentials file is `$XDG_CONFIG_HOME/agro/console.json`. When
+  `XDG_CONFIG_HOME` is not set, the file is `~/.config/agro/console.json`. The
+  file has mode `0600`. The CLI does not read a console token from the project
+  `.env`.
+- `agro auth status` prints the URL, the login, the role, the org, the token
+  source (`env` or `file`), and the token prefix. The command never prints the
+  full token. When no token resolves or the console rejects the token, the
+  command exits 1.
+- `agro auth logout` revokes the token in the console, deletes the credentials
+  file, and exits 0. If the console reports that the token is already revoked,
+  the command deletes the credentials file, prints
+  `token was already revoked; removed local credentials`, and exits 0.
+- `agro auth token` prints the token on stdout. When no token resolves, the
+  command exits 1.
+- `AGRO_CONSOLE_TOKEN` and `AGRO_CONSOLE_URL` in the environment override the
+  credentials file. Use the environment variables in CI. When the token comes
+  from `AGRO_CONSOLE_TOKEN`, `agro auth logout` exits 1 and prints
+  `token comes from AGRO_CONSOLE_TOKEN; unset it to log out`.
+
 ## Remote console nodes: `agro node`
 
 `agro node` manages remote VMs through the agro-console API. `agro node` does not manage
 local Docker sandboxes. Use `agro sandbox` for a local sandbox.
 
 ```bash
-agro node create --spec <spec> --ssh-key <uuid>   # create a sandbox node, wait for running
-agro node list                                     # every node: id, name, profile, status, IPv4
-agro node delete <id>                              # destroy one node after a confirmation
+agro node create --spec <spec>   # create a sandbox node, wait for running
+agro node list                   # every node: id, name, profile, status, IPv4
+agro node delete <id>            # destroy one node after a confirmation
 ```
 
-- Each verb reads `AGRO_CONSOLE_URL` and `AGRO_CONSOLE_TOKEN` from the
+- Each verb reads `AGRO_CONSOLE_TOKEN` and `AGRO_CONSOLE_URL` from the
   environment first. When the environment does not set a key, the verb reads
-  the key from the project `.env`. Run `agro secret set AGRO_CONSOLE_URL` and
-  `agro secret set AGRO_CONSOLE_TOKEN` to write the keys there.
-- The console URL is `https://console.mifune.dev` by default. Set
-  `AGRO_CONSOLE_URL` to use a different console. If the token is missing, the
-  verb exits 1 and prints
-  `set AGRO_CONSOLE_TOKEN, or run agro secret set AGRO_CONSOLE_TOKEN`.
-- `agro node create` creates a node with the profile `sandbox`. `--spec` and
-  one or more `--ssh-key` flags are mandatory. `--name` sets the node name.
-  `--free-tier` requests the agro-console free tier and sets the default spec to `n4`.
-  The command waits up to 15 minutes for the status `running`, then prints the
-  node id, the status, and the SSH command. If the node fails or does not reach
-  `running` in 15 minutes, the command exits 1 and prints the last status.
+  the key from the credentials file that `agro auth login` writes.
+- The console URL is `https://console.mifune.dev` by default. If no token
+  resolves, the verb exits 1 and prints
+  `not logged in to agro-console: run agro auth login`.
+- `agro node create` creates a node with the profile `sandbox`. `--spec` is
+  mandatory. `--free-tier` requests the agro-console free tier and sets the
+  default spec to `n4`. `--name` sets the node name.
+- `--ssh-key <uuid>` is optional. When you give one or more `--ssh-key` flags,
+  the command uses only those console SSH keys. When you give no `--ssh-key`,
+  the command reads `~/.ssh/id_ed25519.pub`. The command reuses the console SSH
+  key that matches this public key. If no console key matches, the command
+  registers the public key with the name `agro-cli@<hostname>`. If
+  `~/.ssh/id_ed25519.pub` does not exist, the command exits 1 and prints
+  `no --ssh-key given and ~/.ssh/id_ed25519.pub not found`.
+- `agro node create` waits up to 15 minutes for the status `running`, then
+  prints the node id, the status, and the SSH command. If the node fails or does
+  not reach `running` in 15 minutes, the command exits 1 and prints the last
+  status.
 - `agro node list` prints one row for each node. If no node exists, the command
   prints `no nodes`.
 - `agro node delete <id>` asks for a confirmation. `--yes` skips the
