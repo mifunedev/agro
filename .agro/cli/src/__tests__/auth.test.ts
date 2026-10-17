@@ -271,6 +271,34 @@ describe("agro auth logout", () => {
     expect(existsSync(h.path)).toBe(true);
   });
 
+  it("removes the file when the token was already revoked", async () => {
+    const api = fakeFetch(() => ({ status: 401, body: { code: "unauthorized" } }));
+    const h = harness({}, api.fetch);
+    h.seed(STORED);
+    expect(await runAuth(["logout"], h.io, h.deps)).toBe(0);
+    expect(api.calls[0]).toMatchObject({ method: "DELETE", url: "https://file.example/api/me/token" });
+    expect(h.stdout()).toContain("token was already revoked; removed local credentials\n");
+    expect(existsSync(h.path)).toBe(false);
+  });
+
+  it("keeps the file when the revoke fails with another 4xx", async () => {
+    const api = fakeFetch(() => ({ status: 403, body: { code: "forbidden" } }));
+    const h = harness({}, api.fetch);
+    h.seed(STORED);
+    expect(await runAuth(["logout"], h.io, h.deps)).toBe(1);
+    expect(existsSync(h.path)).toBe(true);
+  });
+
+  it("keeps the file when the request fails", async () => {
+    const failing = (async () => {
+      throw new Error("offline");
+    }) as typeof fetch;
+    const h = harness({}, failing);
+    h.seed(STORED);
+    expect(await runAuth(["logout"], h.io, h.deps)).toBe(1);
+    expect(existsSync(h.path)).toBe(true);
+  });
+
   it("keeps the file when the server revoke fails", async () => {
     const api = fakeFetch(() => ({ status: 500, body: { code: "internal" } }));
     const h = harness({}, api.fetch);

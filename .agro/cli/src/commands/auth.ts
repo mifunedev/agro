@@ -16,6 +16,8 @@ import {
 
 export const ENV_TOKEN_LOGOUT = "token comes from AGRO_CONSOLE_TOKEN; unset it to log out";
 
+export const ALREADY_REVOKED = "token was already revoked; removed local credentials";
+
 const SLOW_DOWN_STEP_S = 5;
 
 export interface AuthDeps {
@@ -223,6 +225,11 @@ async function runLogout(io: NodeIO, deps: AuthDeps, config: ConsoleConfig, bin:
     return 1;
   }
   const revoked = await callApi(deps, config.url, "DELETE", "/api/me/token", { token: config.token });
+  if (!revoked.ok && revoked.status === 401) {
+    deps.deleteCredentials();
+    io.stdout(`${ALREADY_REVOKED}\n`);
+    return 0;
+  }
   if (!revoked.ok) {
     io.stderr(`${bin} auth logout: ${revoked.message}\n`);
     return 1;
