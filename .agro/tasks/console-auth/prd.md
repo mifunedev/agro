@@ -259,4 +259,6 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. Claim: per-key token and URL lookup let an environment token go to a console URL that an earlier login saved. Evidence: `resolveConsoleConfig` after US-005 read `AGRO_CONSOLE_URL`, then the file URL. Outcome: fixed in this PR, commit `b36a009f`. A token now pairs only with a URL from its own source.
+2. Claim: the plan minted the token at approval, but the server stores only a token hash. Evidence: the US-001 worker report. Outcome: fixed in this PR. The poll mints the token, and US-002 and US-003 changed to match.
+3. Claim: `packages/db` has two `createApiToken` functions. Evidence: the legacy export in `packages/db/src/index.ts` and the repository function from US-002. Outcome: proposed follow-up issue in `mifunedev/agro-console`, after operator approval.
