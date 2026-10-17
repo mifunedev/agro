@@ -1,0 +1,243 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1448-console-auth",
+  "description": "agro auth for agro-console: device-code sign-in, per-user token storage, and SSH key auto-registration in agro node create.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Store device authorizations in agro-console",
+      "description": "As the console maintainer, I want a table for pending CLI device authorizations so that the device flow keeps its state on the server.",
+      "acceptanceCriteria": [
+        "The migration `packages/db/migrations/0054_cli_device_auth` creates the table `cli_device_authorizations`.",
+        "The table holds the device-code hash, the user code, the client host name, the status, the approving user, the org, the minted token ID, the last poll time `last_polled_at`, the creation time, and the expiry time.",
+        "The status column accepts only `pending`, `approved`, `denied`, and `consumed`.",
+        "The table stores the SHA-256 hash of the device code and never the device code itself.",
+        "`packages/db/src/repositories/cli-device-auth.repository.ts` exports create, find-by-user-code, find-by-device-code-hash, approve, deny, and consume functions.",
+        "`packages/shared/src/models/cli-device-auth.ts` holds the zod models for the rows and the request bodies.",
+        "`pnpm test` in `mifunedev/agro-console` exits 0, and the layering test includes the new files."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        "mifunedev/agro-console:packages/db/migrations/0054_cli_device_auth",
+        "mifunedev/agro-console:packages/db/src/repositories/cli-device-auth.repository.ts",
+        "mifunedev/agro-console:packages/shared/src/models/cli-device-auth.ts"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Add the device-flow API to agro-console",
+      "description": "As the agro CLI, I want endpoints that start a device authorization and return a token after approval. A headless host then signs in without a copied token.",
+      "acceptanceCriteria": [
+        "`POST /api/cli/device` accepts `{ \"clientName\": \"<string>\" }` without authentication.",
+        "`POST /api/cli/device` returns `device_code`, `user_code`, `verification_uri`, `expires_in`, and `interval`.",
+        "`interval` is `5`, the default interval of RFC 8628.",
+        "`expires_in` is `900`. A row expires 900 seconds after its creation.",
+        "Each `user_code` holds 8 letters from the alphabet `BCDFGHJKLMNPQRSTVWXZ`, printed as two groups of 4 with a `-` between them.",
+        "A poll that arrives less than `interval` seconds after the previous poll of the same device code returns HTTP 400 with the code `slow_down`. Each poll writes `last_polled_at`.",
+        "`POST /api/cli/device/token` with a pending device code returns HTTP 400 with the code `authorization_pending`.",
+        "`POST /api/cli/device/token` with a denied device code returns HTTP 400 with the code `access_denied`.",
+        "`POST /api/cli/device/token` with an expired device code returns HTTP 400 with the code `expired_token`.",
+        "`POST /api/cli/device/token` with an approved device code returns the token, the token ID, the token prefix, and the console login.",
+        "After the first successful token response, the row has the status `consumed`. A second request with the same device code returns HTTP 400 with the code `expired_token`.",
+        "The routes, the controller, and the service follow the five layers in `AGENTS.md` of `mifunedev/agro-console`.",
+        "A red test for each response code exists before the implementation. `pnpm test` exits 0 after the implementation."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        "mifunedev/agro-console:apps/web/app/api/cli/device",
+        "mifunedev/agro-console:apps/web/server/controllers/cli-device.controller.ts",
+        "mifunedev/agro-console:apps/web/server/services/cli-device.service.ts"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Add the device approval page to agro-console",
+      "description": "As an operator, I want a console page where I enter the user code and approve the CLI. The console then mints a token for that host.",
+      "acceptanceCriteria": [
+        "The page `/device` requires a signed-in session. The existing `apps/web/middleware.ts` matcher already covers `/device`.",
+        "The page accepts a user code, then shows the client host name and the active org.",
+        "The page shows Approve and Deny buttons.",
+        "Approve calls `createApiToken` with the name `agro-cli@<clientName>` and the active org, then marks the row `approved`.",
+        "Deny marks the row `denied`. A denied row mints no token.",
+        "A user code that is unknown, expired, or not `pending` shows an error message and mints no token.",
+        "Only a caller with the role `operator` or higher can approve.",
+        "The new token appears on the existing `/tokens` page with the name `agro-cli@<clientName>`.",
+        "Verify in browser using agent-browser skill."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        "mifunedev/agro-console:apps/web/app/(console)/device"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Add token identity and self-revoke to agro-console",
+      "description": "As the agro CLI, I want to read the identity of my token and revoke my own token. Then `agro auth status` and `agro auth logout` work without a browser session.",
+      "acceptanceCriteria": [
+        "`GET /api/me` with a valid bearer token returns `login`, `role`, `orgId`, `via`, `tokenId`, and `tokenPrefix`.",
+        "`GET /api/me` with a signed-in session returns `login`, `role`, `orgId`, and `via`. The values of `tokenId` and `tokenPrefix` are `null`.",
+        "`GET /api/me` without credentials returns HTTP 401.",
+        "`DELETE /api/me/token` with a valid bearer token revokes that token and returns HTTP 200.",
+        "After `DELETE /api/me/token`, a request with the same token returns HTTP 401.",
+        "`DELETE /api/me/token` with a session returns HTTP 400 and revokes no token.",
+        "`pnpm test` in `mifunedev/agro-console` exits 0."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        "mifunedev/agro-console:apps/web/app/api/me",
+        "mifunedev/agro-console:apps/web/server/controllers/me.controller.ts"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Store the console token per user in the agro CLI",
+      "description": "As an operator, I want the agro CLI to keep the console token in my user config. The project `.env` then holds no token that agents in the sandbox can read.",
+      "acceptanceCriteria": [
+        "A new module `.agro/cli/src/lib/console-auth.ts` reads, writes, and deletes `$XDG_CONFIG_HOME/agro/console.json`. When `XDG_CONFIG_HOME` is unset, the path is `~/.config/agro/console.json`.",
+        "The file holds `url`, `token`, `tokenId`, `tokenPrefix`, and `login`.",
+        "The module writes the file with mode `0600` and creates the directory with mode `0700`.",
+        "`resolveConsoleConfig` in `.agro/cli/src/commands/node.ts` reads `AGRO_CONSOLE_TOKEN` and `AGRO_CONSOLE_URL` from the environment first, then from the user credentials file.",
+        "`resolveConsoleConfig` no longer reads the project `.env`.",
+        "`SECRET_KEYS` in `.agro/cli/src/lib/secrets.ts` no longer holds `AGRO_CONSOLE_URL` or `AGRO_CONSOLE_TOKEN`.",
+        "`agro secret set AGRO_CONSOLE_TOKEN` exits 1 with the existing unknown-key error.",
+        "When no token resolves, each `agro node` verb exits 1 and prints `not logged in to agro-console: run agro auth login`.",
+        "`npm test` at the repository root exits 0. `npm run typecheck` in `.agro/cli` exits 0."
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/console-auth.ts",
+        ".agro/cli/src/commands/node.ts",
+        ".agro/cli/src/lib/secrets.ts"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Add the agro auth verbs",
+      "description": "As an operator, I want `agro auth login`, `agro auth status`, `agro auth logout`, and `agro auth token` so that I manage the console sign-in from the CLI.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/command-table.ts` holds `AUTH_VERBS` with `login`, `status`, `logout`, and `token`.",
+        "`.agro/cli/src/cli.ts` sends `agro auth` to `.agro/cli/src/commands/auth.ts`, and the top-level help lists `agro auth`.",
+        "`agro auth login` calls `POST /api/cli/device` with the host name of the machine, then prints the verification URI and the user code.",
+        "`agro auth login` polls `POST /api/cli/device/token` at the returned `interval` until the code is approved, denied, or expired.",
+        "After approval, `agro auth login` writes the credentials file, prints `logged in to <url> as <login>`, and exits 0.",
+        "After a denial or an expiry, `agro auth login` writes no file and exits 1.",
+        "`agro auth login --url <url>` stores `<url>` in the credentials file. Without `--url`, the CLI uses `AGRO_CONSOLE_URL`, then `https://console.mifune.dev`.",
+        "`agro auth status` calls `GET /api/me`, then prints the URL, the login, the role, the org, the token source (`env` or `file`), and the token prefix. The command never prints the full token.",
+        "`agro auth status` exits 1 when no token resolves or when `GET /api/me` returns HTTP 401.",
+        "`agro auth logout` calls `DELETE /api/me/token`, then deletes the credentials file and exits 0.",
+        "When the token comes from `AGRO_CONSOLE_TOKEN`, `agro auth logout` exits 1 and prints `token comes from AGRO_CONSOLE_TOKEN; unset it to log out`.",
+        "`agro auth token` prints the resolved token on stdout and exits 0. It exits 1 when no token resolves.",
+        "`.agro/cli/src/__tests__/auth.test.ts` covers each verb with a fake `fetch`, and `npm test` at the repository root exits 0."
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-005"
+      ],
+      "files": [
+        ".agro/cli/src/commands/auth.ts",
+        ".agro/cli/src/command-table.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/__tests__/auth.test.ts"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "Register the SSH key in agro node create",
+      "description": "As an operator, I want `agro node create` to find or register my SSH key so that I do not look up a key UUID.",
+      "acceptanceCriteria": [
+        "`--ssh-key <uuid>` stays optional. When the operator gives one or more `--ssh-key` flags, the command uses only those keys.",
+        "When the operator gives no `--ssh-key`, the command reads `~/.ssh/id_ed25519.pub`.",
+        "When `~/.ssh/id_ed25519.pub` does not exist, the command exits 1 and prints `no --ssh-key given and ~/.ssh/id_ed25519.pub not found`.",
+        "The command calls `GET /api/ssh-keys` and reuses a key whose key type and base64 body match the local key.",
+        "When no key matches, the command calls `POST /api/ssh-keys` with the name `agro-cli@<hostname>` and the local public key.",
+        "The command sends the found or registered key ID in `sshKeyIds`.",
+        "`.agro/cli/src/__tests__/node.test.ts` covers the reuse case, the register case, and the missing-file case. `npm test` at the repository root exits 0."
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-005"
+      ],
+      "files": [
+        ".agro/cli/src/commands/node.ts",
+        ".agro/cli/src/__tests__/node.test.ts"
+      ]
+    },
+    {
+      "id": "US-008",
+      "title": "Update the docs and the remote-sandbox skill",
+      "description": "As an operator, I want the docs and the remote-sandbox skill to describe `agro auth` so that the written procedure matches the CLI.",
+      "acceptanceCriteria": [
+        "`docs/lifecycle-commands.md` has a section for `agro auth` with the four verbs.",
+        "`docs/lifecycle-commands.md` no longer tells the operator to run `agro secret set AGRO_CONSOLE_TOKEN`.",
+        "The `agro node create` usage in `docs/lifecycle-commands.md` and in `nodeHelp` shows `--ssh-key` as optional.",
+        "`.agro/skills/remote-sandbox/adapters/console.sh` passes `--ssh-key` only when `CONSOLE_SSH_KEY_ID` is set.",
+        "`.agro/skills/remote-sandbox/SKILL.md` and `.agro/skills/remote-sandbox/references/providers.md` show `agro auth login` as the sign-in step and show `CONSOLE_SSH_KEY_ID` as optional.",
+        "`CHANGELOG.md` has an entry under `## [Unreleased]` that states the removal of the `.env` token lookup and the new `agro auth login` step.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh` exits 0 for each changed Markdown file.",
+        "`npm test` at the repository root exits 0, including `.agro/cli/src/__tests__/docs-reference.test.ts`."
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-006",
+        "US-007"
+      ],
+      "files": [
+        "docs/lifecycle-commands.md",
+        ".agro/skills/remote-sandbox",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "id": "US-009",
+      "title": "Record the manual review evidence",
+      "description": "As the advisor, I want a transcript of the full sign-in journey. The PR then shows the behavior, not only the tests.",
+      "acceptanceCriteria": [
+        "Part 1 runs against a local console dev server with the existing dev sign-in in `apps/web/lib/dev-login.ts`.",
+        "`.agro/tasks/console-auth/evidence/manual-review.md` holds the part 1 transcript of `agro auth login --url <local console URL>`, the browser approval, `agro auth status`, and `agro auth token | cut -c1-12`.",
+        "The part 1 transcript holds agent-browser screenshots of the `/device` page before and after approval.",
+        "The part 1 transcript shows `agro auth logout`, then `agro auth status` with exit code 1.",
+        "Part 2 starts only after the console PR deploys to `https://console.mifune.dev` and the operator approves the run.",
+        "The part 2 transcript shows `agro auth login`, then `agro node create --free-tier` with no `--ssh-key` and no `CONSOLE_SSH_KEY_ID`, then `agro node list`, then `agro node delete <id> --yes`.",
+        "`agro node list` at the end of part 2 shows no live node from the review.",
+        "Neither transcript holds a full token value."
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-003",
+        "US-004",
+        "US-008"
+      ],
+      "files": [
+        ".agro/tasks/console-auth/evidence"
+      ]
+    }
+  ]
+}
