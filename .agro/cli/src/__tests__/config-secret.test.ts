@@ -381,6 +381,15 @@ describe("agro secret set", () => {
     expect(existsSync(join(root, ".env"))).toBe(false);
   });
 
+  it("rejects the console token with the unknown-key error", async () => {
+    const root = makeRepo();
+    const { io, err } = makeIo();
+    io.askSecret = async () => "mfc_never_stored";
+    expect(await runSecretSet("AGRO_CONSOLE_TOKEN", { bin: "agro", cwd: root }, io)).toBe(1);
+    expect(err.join("")).toContain("AGRO_CONSOLE_TOKEN is not a secret");
+    expect(existsSync(join(root, ".env"))).toBe(false);
+  });
+
   it("changes nothing when the prompt comes back empty", async () => {
     const root = makeRepo();
     const { io, err } = makeIo();

@@ -1,11 +1,10 @@
 import { isOneOf, NODE_VERBS } from "../command-table.js";
-import { resolveProjectRoot } from "../lib/project.js";
+import { readConsoleCredentials, type ConsoleCredentials } from "../lib/console-auth.js";
 import * as prompt from "../lib/prompt.js";
-import { readSecret } from "../lib/secrets.js";
 
 export const DEFAULT_CONSOLE_URL = "https://console.mifune.dev";
 
-export const CONSOLE_CONFIG_MISSING = "set AGRO_CONSOLE_TOKEN, or run agro secret set AGRO_CONSOLE_TOKEN";
+export const CONSOLE_CONFIG_MISSING = "not logged in to agro-console: run agro auth login";
 
 export const NODE_READY_TIMEOUT_MS = 15 * 60 * 1000;
 export const NODE_FAST_POLL_INTERVAL_MS = 1000;
@@ -15,11 +14,12 @@ export const FREE_TIER_SPEC = "n4";
 
 const FAILURE_STATUSES = new Set(["failed", "destroy_requested", "destroying", "destroyed", "retired"]);
 
-export type ConsoleKey = "AGRO_CONSOLE_URL" | "AGRO_CONSOLE_TOKEN";
+export type ConsoleTokenSource = "env" | "file";
 
 export interface ConsoleConfig {
   url: string;
   token: string;
+  source: ConsoleTokenSource;
 }
 
 export interface NodeIO {
@@ -30,7 +30,7 @@ export interface NodeIO {
 export interface NodeDeps {
   fetch: typeof fetch;
   env: Record<string, string | undefined>;
-  readSecret: (key: ConsoleKey) => string | undefined;
+  readCredentials: () => ConsoleCredentials | undefined;
   sleep: (ms: number) => Promise<void>;
   now: () => number;
   pollDelayMs: (elapsedMs: number) => number;
@@ -51,26 +51,19 @@ type ApiResult = { ok: true; status: number; body: unknown } | { ok: false; stat
 
 export function resolveConsoleConfig(
   env: Record<string, string | undefined>,
-  readSecret: (key: ConsoleKey) => string | undefined,
+  readCredentials: () => ConsoleCredentials | undefined,
 ): ConsoleConfig | undefined {
-  const lookup = (key: ConsoleKey): string | undefined => {
-    const fromEnv = env[key]?.trim();
-    if (fromEnv !== undefined && fromEnv !== "") return fromEnv;
-    const fromSecret = readSecret(key)?.trim();
-    return fromSecret === undefined || fromSecret === "" ? undefined : fromSecret;
+  const present = (value: string | undefined): string | undefined => {
+    const trimmed = value?.trim();
+    return trimmed === undefined || trimmed === "" ? undefined : trimmed;
   };
-  const token = lookup("AGRO_CONSOLE_TOKEN");
+  const envToken = present(env.AGRO_CONSOLE_TOKEN);
+  const envUrl = present(env.AGRO_CONSOLE_URL);
+  const file = envToken !== undefined && envUrl !== undefined ? undefined : readCredentials();
+  const token = envToken ?? present(file?.token);
   if (token === undefined) return undefined;
-  const url = lookup("AGRO_CONSOLE_URL") ?? DEFAULT_CONSOLE_URL;
-  return { url: url.replace(/\/+$/, ""), token };
-}
-
-function readProjectSecret(key: ConsoleKey): string | undefined {
-  try {
-    return readSecret(resolveProjectRoot(), key);
-  } catch {
-    return undefined;
-  }
+  const url = envUrl ?? present(file?.url) ?? DEFAULT_CONSOLE_URL;
+  return { url: url.replace(/\/+$/, ""), token, source: envToken === undefined ? "file" : "env" };
 }
 
 export function nodePollDelayMs(elapsedMs: number): number {
@@ -81,7 +74,7 @@ function defaultDeps(): NodeDeps {
   return {
     fetch: (input, init) => globalThis.fetch(input, init),
     env: process.env,
-    readSecret: readProjectSecret,
+    readCredentials: () => readConsoleCredentials(),
     sleep: (ms) => new Promise((done) => setTimeout(done, ms)),
     now: () => Date.now(),
     pollDelayMs: nodePollDelayMs,
@@ -101,7 +94,7 @@ Usage:
 \`create\` waits up to 15 minutes for the node to reach \`running\`, then prints
 its SSH command. \`--free-tier\` requests the console free tier. The spec
 defaults to n4. The verbs read AGRO_CONSOLE_URL and AGRO_CONSOLE_TOKEN from the
-environment, then from the project .env (\`${bin} secret set <KEY>\`).
+environment, then from the credentials file that \`${bin} auth login\` writes.
 AGRO_CONSOLE_URL defaults to ${DEFAULT_CONSOLE_URL}.
 `;
 }
@@ -387,9 +380,9 @@ export async function runNode(
     return 0;
   }
   const deps = { ...defaultDeps(), ...overrides };
-  const config = resolveConsoleConfig(deps.env, deps.readSecret);
+  const config = resolveConsoleConfig(deps.env, deps.readCredentials);
   if (config === undefined) {
-    io.stderr(`${bin} node ${verb}: ${CONSOLE_CONFIG_MISSING}\n`);
+    io.stderr(`${CONSOLE_CONFIG_MISSING}\n`);
     return 1;
   }
   if (verb === "list") return runList(rest, io, deps, config, bin);

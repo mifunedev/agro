@@ -10,7 +10,8 @@ import {
   runNode,
   type NodeDeps,
 } from "../commands/node.js";
-import { COMPOSE_SECRET_KEYS, readSecret, SECRET_KEYS } from "../lib/secrets.js";
+import type { ConsoleCredentials } from "../lib/console-auth.js";
+import { SECRET_KEYS } from "../lib/secrets.js";
 
 const TOKEN = "mfc_secret_token_value";
 
@@ -27,58 +28,69 @@ function projectWithEnv(content: string): string {
   return root;
 }
 
+const FILE_CREDENTIALS: ConsoleCredentials = {
+  url: "https://file.example//",
+  token: "mfc_file",
+  tokenId: "tok_1",
+  tokenPrefix: "mfc_fil",
+  login: "octocat",
+};
+
+const fromFile = (credentials: Partial<ConsoleCredentials>) => () => ({ ...FILE_CREDENTIALS, ...credentials });
+const noFile = () => undefined;
+
 describe("console config resolution", () => {
-  it("registers the console keys as secrets that Compose never passes", () => {
-    expect(SECRET_KEYS).toContain("AGRO_CONSOLE_URL");
-    expect(SECRET_KEYS).toContain("AGRO_CONSOLE_TOKEN");
-    expect(COMPOSE_SECRET_KEYS as readonly string[]).not.toContain("AGRO_CONSOLE_URL");
-    expect(COMPOSE_SECRET_KEYS as readonly string[]).not.toContain("AGRO_CONSOLE_TOKEN");
+  it("keeps the console keys out of the project secrets", () => {
+    expect(SECRET_KEYS as readonly string[]).not.toContain("AGRO_CONSOLE_URL");
+    expect(SECRET_KEYS as readonly string[]).not.toContain("AGRO_CONSOLE_TOKEN");
   });
 
-  it("prefers the environment over the .env fallback", () => {
-    const root = projectWithEnv("AGRO_CONSOLE_URL=https://file.example\nAGRO_CONSOLE_TOKEN=mfc_file\n");
+  it("prefers the environment over the credentials file", () => {
     const config = resolveConsoleConfig(
       { AGRO_CONSOLE_URL: "https://env.example/", AGRO_CONSOLE_TOKEN: TOKEN },
-      (key) => readSecret(root, key),
+      fromFile({}),
     );
-    expect(config).toEqual({ url: "https://env.example", token: TOKEN });
+    expect(config).toEqual({ url: "https://env.example", token: TOKEN, source: "env" });
   });
 
-  it("falls back to the project .env through readSecret", () => {
-    const root = projectWithEnv("AGRO_CONSOLE_URL=https://file.example\nAGRO_CONSOLE_TOKEN=mfc_file\n");
-    const config = resolveConsoleConfig({ AGRO_CONSOLE_URL: "" }, (key) => readSecret(root, key));
-    expect(config).toEqual({ url: "https://file.example", token: "mfc_file" });
+  it("falls back to the user credentials file", () => {
+    const config = resolveConsoleConfig({ AGRO_CONSOLE_URL: "", AGRO_CONSOLE_TOKEN: " " }, fromFile({}));
+    expect(config).toEqual({ url: "https://file.example", token: "mfc_file", source: "file" });
   });
 
-  it("uses the default URL when AGRO_CONSOLE_URL is unset in the environment and .env", () => {
-    const root = projectWithEnv("AGRO_CONSOLE_TOKEN=mfc_file\n");
+  it("never reads the project .env", async () => {
+    const root = projectWithEnv("AGRO_CONSOLE_URL=https://dotenv.example\nAGRO_CONSOLE_TOKEN=mfc_dotenv\n");
+    const previous = process.cwd();
+    process.chdir(root);
+    try {
+      const err: string[] = [];
+      const io = { stdout: () => {}, stderr: (s: string) => err.push(s) };
+      const fetchStub = (async () => new Response("[]", { status: 200 })) as typeof fetch;
+      expect(await runNode(["list"], io, { env: {}, readCredentials: noFile, fetch: fetchStub })).toBe(1);
+      expect(err.join("")).toBe(`${CONSOLE_CONFIG_MISSING}\n`);
+    } finally {
+      process.chdir(previous);
+    }
+  });
+
+  it("prefers the environment URL, then the file URL, then the default", () => {
     expect(DEFAULT_CONSOLE_URL).toBe("https://console.mifune.dev");
-    expect(resolveConsoleConfig({}, (key) => readSecret(root, key))).toEqual({
-      url: "https://console.mifune.dev",
-      token: "mfc_file",
-    });
-    expect(resolveConsoleConfig({ AGRO_CONSOLE_URL: " ", AGRO_CONSOLE_TOKEN: TOKEN }, () => undefined)).toEqual({
-      url: DEFAULT_CONSOLE_URL,
-      token: TOKEN,
-    });
-  });
-
-  it("prefers the environment URL, then the .env URL, then the default", () => {
-    const root = projectWithEnv("AGRO_CONSOLE_URL=https://file.example//\n");
-    const fromFile = (key: "AGRO_CONSOLE_URL" | "AGRO_CONSOLE_TOKEN") => readSecret(root, key);
-    expect(resolveConsoleConfig({ AGRO_CONSOLE_URL: "https://env.example/", AGRO_CONSOLE_TOKEN: TOKEN }, fromFile)?.url).toBe(
+    expect(resolveConsoleConfig({ AGRO_CONSOLE_URL: "https://env.example/" }, fromFile({}))?.url).toBe(
       "https://env.example",
     );
-    expect(resolveConsoleConfig({ AGRO_CONSOLE_TOKEN: TOKEN }, fromFile)?.url).toBe("https://file.example");
-    expect(resolveConsoleConfig({ AGRO_CONSOLE_TOKEN: TOKEN }, () => undefined)?.url).toBe(DEFAULT_CONSOLE_URL);
+    expect(resolveConsoleConfig({ AGRO_CONSOLE_TOKEN: TOKEN }, fromFile({}))?.url).toBe("https://file.example");
+    expect(resolveConsoleConfig({ AGRO_CONSOLE_TOKEN: TOKEN }, fromFile({ url: "" }))?.url).toBe(DEFAULT_CONSOLE_URL);
+    expect(resolveConsoleConfig({ AGRO_CONSOLE_TOKEN: TOKEN }, noFile)).toEqual({
+      url: DEFAULT_CONSOLE_URL,
+      token: TOKEN,
+      source: "env",
+    });
   });
 
-  it("returns undefined when the token is missing", () => {
-    const root = projectWithEnv("AGRO_CONSOLE_URL=https://file.example\n");
-    expect(resolveConsoleConfig({}, (key) => readSecret(root, key))).toBeUndefined();
-    expect(resolveConsoleConfig({}, () => undefined)).toBeUndefined();
-    expect(CONSOLE_CONFIG_MISSING).toBe("set AGRO_CONSOLE_TOKEN, or run agro secret set AGRO_CONSOLE_TOKEN");
-    expect(CONSOLE_CONFIG_MISSING).not.toContain("AGRO_CONSOLE_URL");
+  it("returns undefined when no token resolves", () => {
+    expect(resolveConsoleConfig({ AGRO_CONSOLE_URL: "https://env.example" }, noFile)).toBeUndefined();
+    expect(resolveConsoleConfig({}, fromFile({ token: "" }))).toBeUndefined();
+    expect(CONSOLE_CONFIG_MISSING).toBe("not logged in to agro-console: run agro auth login");
   });
 });
 
@@ -113,7 +125,7 @@ function harness(replies: Reply[], overrides: Partial<NodeDeps> = {}) {
   const deps: Partial<NodeDeps> = {
     fetch: fetchStub,
     env: { AGRO_CONSOLE_URL: "https://console.example/", AGRO_CONSOLE_TOKEN: TOKEN },
-    readSecret: () => undefined,
+    readCredentials: () => undefined,
     sleep: async (ms) => {
       sleeps.push(ms);
       clock += ms;
@@ -307,7 +319,7 @@ describe("agro node create", () => {
   it("exits 1 with the token message when the token is missing", async () => {
     const h = harness([{ status: 202, body: {} }], { env: { AGRO_CONSOLE_URL: "https://console.example" } });
     expect(await runNode(CREATE_ARGS, h.io, h.deps)).toBe(1);
-    expect(h.stderr()).toContain(CONSOLE_CONFIG_MISSING);
+    expect(h.stderr()).toBe(`${CONSOLE_CONFIG_MISSING}\n`);
     expect(h.all()).not.toContain(TOKEN);
     expect(h.calls).toHaveLength(0);
   });
@@ -356,7 +368,7 @@ describe("agro node list", () => {
   it("exits 1 with the token message when the token is missing", async () => {
     const h = harness([{ status: 200, body: [] }], { env: {} });
     expect(await runNode(["list"], h.io, h.deps)).toBe(1);
-    expect(h.stderr()).toContain(CONSOLE_CONFIG_MISSING);
+    expect(h.stderr()).toBe(`${CONSOLE_CONFIG_MISSING}\n`);
     expect(h.calls).toHaveLength(0);
   });
 });
@@ -414,7 +426,7 @@ describe("agro node delete", () => {
   it("exits 1 with the token message when the token is missing", async () => {
     const h = harness([{ status: 204 }], { env: { AGRO_CONSOLE_URL: "https://console.example" } });
     expect(await runNode(["delete", "n1", "--yes"], h.io, h.deps)).toBe(1);
-    expect(h.stderr()).toContain(CONSOLE_CONFIG_MISSING);
+    expect(h.stderr()).toBe(`${CONSOLE_CONFIG_MISSING}\n`);
     expect(h.calls).toHaveLength(0);
   });
 });

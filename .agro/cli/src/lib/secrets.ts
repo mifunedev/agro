@@ -17,8 +17,6 @@ export const SECRET_KEYS = [
   "LANGFUSE_PUBLIC_KEY",
   "LANGFUSE_SECRET_KEY",
   "TYPESAFE_API_KEY",
-  "AGRO_CONSOLE_URL",
-  "AGRO_CONSOLE_TOKEN",
 ] as const;
 
 export type SecretKey = (typeof SECRET_KEYS)[number];
