@@ -208,8 +208,8 @@
         "`npm test` at the repository root exits 0, including `.agro/cli/src/__tests__/docs-reference.test.ts`."
       ],
       "priority": 8,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor integrated two commits onto feat/1448-console-auth and reran. AC1 and AC3 reasoned from diff and executed via docs-reference.test.ts pass: agro auth section with four verbs, --ssh-key optional in docs and nodeHelp. AC2 executed: git grep 'secret set AGRO_CONSOLE' in docs and .agro/skills returns 0 lines. AC4 executed: remote-sandbox-adapters.test.ts pass, including the no-CONSOLE_SSH_KEY_ID case; bash -n console.sh exit 0. AC5-AC6 reasoned from diff: SKILL.md and providers.md name agro auth login and optional CONSOLE_SSH_KEY_ID; CHANGELOG has a BREAKING entry under Unreleased. AC7 executed: ste-check exit 0 on docs/lifecycle-commands.md, remote-sandbox SKILL.md, providers.md; CHANGELOG.md has two pre-existing findings at lines 3 and 1559, none from this entry. AC8 executed: npx vitest run fails only the pre-existing standard-skills-link check.",
       "dependsOn": [
         "US-006",
         "US-007"
@@ -218,7 +218,8 @@
         "docs/lifecycle-commands.md",
         ".agro/skills/remote-sandbox",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "5aa6ba8e"
     },
     {
       "id": "US-009",
