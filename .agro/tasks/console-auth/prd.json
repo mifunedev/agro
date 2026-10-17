@@ -19,7 +19,7 @@
       ],
       "priority": 1,
       "passes": true,
-      "notes": "Advisor integrated three commits onto agro-console feat/1448-console-auth and reran. AC1-AC6 executed: node --import tsx --test src/__tests__/cli-device-auth*.test.ts in packages/db, 19 pass 0 fail (table, ten columns incl. last_polled_at, status check, hash-only storage, repository functions incl. poll record, consume-then-set-token for poll-time mint, zod models). AC7 executed: pnpm test at the worktree root exit 0; layering test scans the new repository and model files. Reasoned, not executed: real-SQL behavior (constraints, concurrent consume) lives in cli-device-auth.integration.ts, which needs TEST_DATABASE_URL against a scratch database; not run because no scratch database was approved.",
+      "notes": "Advisor integrated three commits onto agro-console feat/1448-console-auth and reran. AC1-AC6 executed: node --import tsx --test src/__tests__/cli-device-auth*.test.ts in packages/db, 19 pass 0 fail (table, ten columns incl. last_polled_at, status check, hash-only storage, repository functions incl. poll record, consume-then-set-token for poll-time mint, zod models). AC7 executed: pnpm test at the worktree root exit 0; layering test scans the new repository and model files. Executed after operator approval of a scratch database: pnpm db:migrate applied 54 migrations to agro_console_1448; TEST_DATABASE_URL=<scratch> node --import tsx --test src/__tests__/cli-device-auth.integration.ts, 5 pass 0 fail (constraints, approve without token, concurrent consume with one winner, set token once).",
       "dependsOn": [],
       "files": [
         "mifunedev/agro-console:packages/db/migrations/0054_cli_device_auth",
