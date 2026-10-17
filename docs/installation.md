@@ -223,6 +223,14 @@ root or `sudo -n true` succeeds, the install also installs the shared libraries
 that Chrome needs. The install then opens `about:blank` in headless Chrome.
 When Chrome does not launch, the install exits 1. Without root or passwordless
 `sudo`, it also prints the command that installs the libraries.
+Ubuntu 23.10 and later restrict unprivileged user namespaces with AppArmor,
+and the downloaded Chrome needs them for its sandbox. When
+`kernel.apparmor_restrict_unprivileged_userns` is `1`, the install writes the
+AppArmor profile `/etc/apparmor.d/agro-agent-browser` and loads it with
+`apparmor_parser -r`. The profile applies only to
+`~/.agent-browser/browsers/*/chrome`. This step needs root or passwordless
+`sudo`. Without them, the install prints the commands that add the profile.
+The install never disables the Chrome sandbox.
 `agro tool uninstall agent-browser` removes the binary and
 `~/.agent-browser/browsers`, and keeps the other files in `~/.agent-browser`.
 

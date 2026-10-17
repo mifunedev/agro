@@ -226,9 +226,17 @@ describe("agent-browser on the host leaves a headless browser that launches", ()
     sudo?: boolean;
     root?: boolean;
     launches?: boolean;
+    userns?: boolean;
   }
 
-  function runTail(opts: HostRun): { status: number | null; stdout: string; stderr: string; calls: string[] } {
+  function runTail(opts: HostRun): {
+    status: number | null;
+    stdout: string;
+    stderr: string;
+    calls: string[];
+    profile: string | undefined;
+    home: string;
+  } {
     const dir = mkdtempSync(join(tmpdir(), "agro-agent-browser-host-"));
     try {
       const stubs = join(dir, "stubs");
@@ -250,16 +258,27 @@ describe("agent-browser on the host leaves a headless browser that launches", ()
       stub(join(stubs, "id"), `echo ${opts.root === true ? 0 : 1000}`);
       stub(join(stubs, "cat"), 'exec /bin/cat "$@"');
       stub(join(stubs, "chmod"), 'exec /bin/chmod "$@"');
-      if (opts.sudo !== undefined) stub(join(stubs, "sudo"), `exit ${opts.sudo ? 0 : 1}`);
+      stub(join(stubs, "tee"), 'exec /usr/bin/tee "$@"');
+      stub(join(stubs, "apparmor_parser"), `echo "apparmor_parser $*" >> ${log}`);
+      if (opts.sudo !== undefined) {
+        stub(join(stubs, "sudo"), opts.sudo ? '[ "$1" = -n ] && exit 0\nexec "$@"' : "exit 1");
+      }
       if (opts.browser === true) stub(join(stubs, "google-chrome"), "exit 0");
+      const sysctl = join(dir, "apparmor_restrict_unprivileged_userns");
+      writeFileSync(sysctl, opts.userns === true ? "1\n" : "0\n");
+      const profile = join(dir, "agro-agent-browser");
       writeFileSync(join(dir, ".bash_logout"), 'if [ "$SHLVL" = 1 ]; then\n  false\nfi\n');
       const [shell, flags] = findTool("agent-browser")!.hostInstallArgv!;
-      const r = spawnSync(join("/bin", shell), [flags, `set -e\nPATH=${stubs}\nprefix=${prefix}\ntmp=${tmp}\n${tail}`], {
+      const r = spawnSync(join("/bin", shell), [
+        flags,
+        `set -e\nPATH=${stubs}\nprefix=${prefix}\ntmp=${tmp}\nuserns_sysctl=${sysctl}\napparmor_profile=${profile}\n${tail}`,
+      ], {
         encoding: "utf8",
         env: { PATH: stubs, HOME: dir },
       });
       const calls = readFileSync(log, "utf8").split("\n").filter((line) => line !== "");
-      return { status: r.status, stdout: r.stdout, stderr: r.stderr, calls };
+      const written = existsSync(profile) ? readFileSync(profile, "utf8") : undefined;
+      return { status: r.status, stdout: r.stdout, stderr: r.stderr, calls, profile: written, home: dir };
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -306,6 +325,49 @@ describe("agent-browser on the host leaves a headless browser that launches", ()
     expect(r.status).toBe(1);
     expect(r.stderr).toContain("headless Chrome did not launch");
     expect(r.stderr).not.toContain("install --with-deps");
+  });
+
+  it("lets the downloaded Chrome create its sandbox when AppArmor restricts user namespaces", () => {
+    const r = runTail({ sudo: true, userns: true });
+    expect(r.status).toBe(0);
+    expect(r.profile).toBe(
+      [
+        "abi <abi/4.0>,",
+        "include <tunables/global>",
+        `profile agro-agent-browser ${r.home}/.agent-browser/browsers/*/chrome flags=(unconfined) {`,
+        "  userns,",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    expect(r.calls).toContain(`apparmor_parser -r ${join(r.home, "agro-agent-browser")}`);
+    expect(r.calls.findIndex((c) => c.startsWith("apparmor_parser"))).toBeLessThan(
+      r.calls.indexOf("--session agro-install-check open about:blank"),
+    );
+    expect(r.calls.join("\n")).not.toContain("--no-sandbox");
+    expect(r.stdout).toContain("agent-browser launched headless Chrome");
+  });
+
+  it("names the AppArmor profile commands and fails when restricted user namespaces block Chrome without sudo", () => {
+    const r = runTail({ sudo: false, userns: true, launches: false });
+    expect(r.status).toBe(1);
+    expect(r.profile).toBeUndefined();
+    expect(r.calls.some((c) => c.startsWith("apparmor_parser"))).toBe(false);
+    expect(r.stderr).toContain(`sudo tee ${join(r.home, "agro-agent-browser")} >/dev/null <<'EOF'`);
+    expect(r.stderr).toContain(
+      `profile agro-agent-browser ${r.home}/.agent-browser/browsers/*/chrome flags=(unconfined) {\n  userns,\n}\nEOF\n`,
+    );
+    expect(r.stderr).toContain(`sudo apparmor_parser -r ${join(r.home, "agro-agent-browser")}`);
+  });
+
+  it("leaves AppArmor alone when user namespaces are unrestricted or a system browser exists", () => {
+    for (const r of [runTail({ sudo: true }), runTail({ sudo: true, userns: true, browser: true })]) {
+      expect(r.status).toBe(0);
+      expect(r.profile).toBeUndefined();
+      expect(r.calls.some((c) => c.startsWith("apparmor_parser"))).toBe(false);
+    }
+    const failed = runTail({ sudo: false, launches: false });
+    expect(failed.stderr).not.toContain("apparmor_parser");
   });
 
   it("removes the downloaded browsers on uninstall and keeps the rest of ~/.agent-browser", () => {

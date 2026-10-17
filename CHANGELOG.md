@@ -8,6 +8,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Fixed
+- Make a host `agro tool install agent-browser` load a scoped AppArmor `userns` profile for downloaded Chrome when Ubuntu restricts user namespaces, or print the commands without sudo ([#1455](https://github.com/mifunedev/agro/issues/1455)).
+
 ## [0.24.0] - 2026-10-17
 
 ### Changed
