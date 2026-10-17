@@ -138,12 +138,20 @@ describe("remote-sandbox adapters", () => {
     expect(withConsole("AGRO_DOWN=1 console_preflight", stubConsole()).code).not.toBe(0);
   });
 
-  it.each(["CONSOLE_SSH_KEY_ID", "CONSOLE_SSH_IDENTITY"])("console_preflight fails fast without %s", (key) => {
+  it("console_preflight fails fast without CONSOLE_SSH_IDENTITY", () => {
     const bin = stubConsole();
-    const result = withConsole(`unset ${key}; console_preflight`, bin);
+    const result = withConsole("unset CONSOLE_SSH_IDENTITY; console_preflight", bin);
     expect(result.code).not.toBe(0);
-    expect(result.stderr).toContain(key);
+    expect(result.stderr).toContain("CONSOLE_SSH_IDENTITY");
     expect(withLib(`test -e "${bin}/agro.calls"`).code).not.toBe(0);
+  });
+
+  it("console_create passes no --ssh-key without CONSOLE_SSH_KEY_ID", () => {
+    const bin = stubConsole();
+    expect(withConsole("unset CONSOLE_SSH_KEY_ID; console_create agro-mx-nokey", bin).code).toBe(0);
+    expect(withLib(`cat "${bin}/agro.calls"`).stdout).toBe(
+      "node create --spec n4 --name agro-mx-nokey --json --free-tier\n",
+    );
   });
 
   it("console_create requests the free tier by default and stores the node", () => {
