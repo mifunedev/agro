@@ -18,14 +18,15 @@
         "`pnpm test` in `mifunedev/agro-console` exits 0, and the layering test includes the new files."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor integrated three commits onto agro-console feat/1448-console-auth and reran. AC1-AC6 executed: node --import tsx --test src/__tests__/cli-device-auth*.test.ts in packages/db, 19 pass 0 fail (table, ten columns incl. last_polled_at, status check, hash-only storage, repository functions incl. poll record, consume-then-set-token for poll-time mint, zod models). AC7 executed: pnpm test at the worktree root exit 0; layering test scans the new repository and model files. Reasoned, not executed: real-SQL behavior (constraints, concurrent consume) lives in cli-device-auth.integration.ts, which needs TEST_DATABASE_URL against a scratch database; not run because no scratch database was approved.",
       "dependsOn": [],
       "files": [
         "mifunedev/agro-console:packages/db/migrations/0054_cli_device_auth",
         "mifunedev/agro-console:packages/db/src/repositories/cli-device-auth.repository.ts",
         "mifunedev/agro-console:packages/shared/src/models/cli-device-auth.ts"
-      ]
+      ],
+      "commit": "mifunedev/agro-console@9df98057"
     },
     {
       "id": "US-002",
