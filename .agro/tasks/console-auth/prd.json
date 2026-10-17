@@ -121,14 +121,15 @@
         "`npm test` at the repository root exits 0. `npm run typecheck` in `.agro/cli` exits 0."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor reran on integrated task branch. AC1-AC3 executed: vitest console-auth.test.ts pass (XDG and ~/.config paths, five fields, 0600 file, 0700 dir). AC4-AC5 executed: node.test.ts resolution cases pass; node.ts no longer imports secrets.ts. AC6-AC7 executed: secrets.test.ts and config-secret.test.ts pass (secret set AGRO_CONSOLE_TOKEN exits 1). AC8 executed: node.test.ts asserts exact stderr 'not logged in to agro-console: run agro auth login' for create, list, delete. AC9 executed: npm run typecheck in .agro/cli exit 0; npx vitest run exit 1 with 2527 passed and 1 failed, standard-skills-link.test.ts, which fails identically on the base commit 19c26d7d (host cc-safety-net 1.0.6 vs pinned 2.6.8), so the failure is pre-existing and outside this story.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/console-auth.ts",
         ".agro/cli/src/commands/node.ts",
         ".agro/cli/src/lib/secrets.ts"
-      ]
+      ],
+      "commit": "ee95a7de"
     },
     {
       "id": "US-006",
