@@ -238,8 +238,8 @@
         "Neither transcript holds a full token value."
       ],
       "priority": 9,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1-AC4 executed (part 1, local console, worker evidence b8534dce): login with browser approval, status, token prefix, file mode 600, logout then status exit 1; advisor confirmed the token revoked in the scratch database. AC5-AC7 executed (part 2, advisor with operator approval, agro-console v1.17.0 on console.mifune.dev): first login in a team org gave HTTP 403 FREE_TIER_INELIGIBLE on create; second login in the personal context; agro node create --free-tier with no --ssh-key and no CONSOLE_SSH_KEY_ID reached running; ssh sandbox@<ip> hostname exit 0 with the auto-registered key; agro node delete --yes; node reached destroyed; final node list shows no live node; logout then status exit 1. AC8 executed: every mfc_ string in manual-review.md is a 12-character prefix.",
       "dependsOn": [
         "US-003",
         "US-004",
@@ -247,7 +247,8 @@
       ],
       "files": [
         ".agro/tasks/console-auth/evidence"
-      ]
+      ],
+      "commit": "b8534dce (part 1); part 2 evidence in this acceptance commit"
     }
   ]
 }

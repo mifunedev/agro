@@ -261,4 +261,5 @@ None.
 
 1. Claim: per-key token and URL lookup let an environment token go to a console URL that an earlier login saved. Evidence: `resolveConsoleConfig` after US-005 read `AGRO_CONSOLE_URL`, then the file URL. Outcome: fixed in this PR, commit `b36a009f`. A token now pairs only with a URL from its own source.
 2. Claim: the plan minted the token at approval, but the server stores only a token hash. Evidence: the US-001 worker report. Outcome: fixed in this PR. The poll mints the token, and US-002 and US-003 changed to match.
-3. Claim: `packages/db` has two `createApiToken` functions. Evidence: the legacy export in `packages/db/src/index.ts` and the repository function from US-002. Outcome: proposed follow-up issue in `mifunedev/agro-console`, after operator approval.
+3. Claim: `packages/db` has two `createApiToken` functions. Evidence: the legacy export in `packages/db/src/index.ts` and the repository function from US-002. Outcome: issue mifunedev/agro-console#445.
+4. Claim: the console mints a CLI token for the active org at approval time. A token for a team org cannot create a free-tier node. Evidence: the part 2 create returned HTTP 403 `FREE_TIER_INELIGIBLE` until the operator approved in the personal context. Outcome: dropped. The `/device` page shows the org before approval, and the console applies the free-tier rule on purpose.

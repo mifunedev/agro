@@ -206,11 +206,87 @@ Expected: no credentials file from the review remains.
 
 ## Part 2: production console
 
-Status: pending: needs the console deploy and operator approval.
+Status: done on 2026-10-17 against agro-console v1.17.0 at
+`https://console.mifune.dev`. The operator approved the run and approved each
+user code in the browser. The review built the CLI under test, `.agro/cli/dist/agro.js`,
+from `feat/1448-console-auth`. Each command ran with `XDG_CONFIG_HOME` set to a
+scratch directory, with `AGRO_CONSOLE_TOKEN` and `AGRO_CONSOLE_URL` unset.
 
-Part 2 starts only after the console PR deploys to
-`https://console.mifune.dev` and the operator approves the run. Part 2 runs
-`agro auth login`, then `agro node create --free-tier` with no `--ssh-key` and
-no `CONSOLE_SSH_KEY_ID`, then `agro node list`, then
-`agro node delete <id> --yes`. The final `agro node list` must show no live
-node from the review.
+**A. First attempt: team org context**
+
+The operator approved code `DDTM-RBPX` while a team org was the active context.
+Login, status, and the token prefix worked. The free-tier create failed:
+
+```text
+$ agro node create --free-tier --name agro-review-1448
+agro node create: HTTP 403 FREE_TIER_INELIGIBLE: Only the owner of a personal context can create a free node
+exit=1
+```
+
+The console free tier accepts only a personal context. The CLI passed the SSH
+key step and reached `POST /api/nodes`. The review then ran `agro auth logout`
+and started again.
+
+**B. Login in the personal context**
+
+```text
+$ agro auth login
+Open https://console.mifune.dev/device and enter the code WNTR-HVFM
+Waiting for approval...
+logged in to https://console.mifune.dev as ryaneggz
+exit=0
+
+$ agro auth status
+token prefix: mfc_Dw09hHTI
+exit=0
+```
+
+**C. Node create with no key flag**
+
+```text
+$ agro node create --free-tier --name agro-review-1448
+agro node create: node 76ad27e1-578b-4a22-b502-90336e78e519 queued
+agro node create: node 76ad27e1-578b-4a22-b502-90336e78e519 bootstrapping
+agro node create: node 76ad27e1-578b-4a22-b502-90336e78e519 running
+id: 76ad27e1-578b-4a22-b502-90336e78e519
+status: running
+ssh sandbox@40.160.99.61
+exit=0
+
+$ ssh sandbox@40.160.99.61 hostname
+76ad27e1-578b-4a22-b502-90336e78e519
+exit=0
+```
+
+The SSH login used only the key that `agro node create` found or registered.
+
+**D. List and delete**
+
+```text
+$ agro node list
+ID                                    NAME              PROFILE  STATUS   IPV4
+76ad27e1-578b-4a22-b502-90336e78e519  agro-review-1448  sandbox  running  40.160.99.61
+
+$ agro node delete 76ad27e1-578b-4a22-b502-90336e78e519 --yes
+deleted 76ad27e1-578b-4a22-b502-90336e78e519
+exit=0
+```
+
+The node reached the status `destroyed` within 180 seconds.
+
+**E. No live node, then logout**
+
+```text
+$ agro node list   # rows other than destroyed
+ID                                    NAME              PROFILE  STATUS     IPV4
+
+$ agro auth logout
+logged out of https://console.mifune.dev
+exit=0
+
+$ agro auth status
+not logged in to agro-console: run agro auth login
+exit=1
+```
+
+The review deleted the scratch credentials directory after the logout.
