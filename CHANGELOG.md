@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-10-17
+
 ### Changed
 - **BREAKING:** Add `agro auth login|status|logout|token`; `agro auth login` stores the console token in `~/.config/agro/console.json`; `agro node` no longer reads the project `.env` ([#1448](https://github.com/mifunedev/agro/issues/1448)).
 
