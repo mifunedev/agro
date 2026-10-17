@@ -64,13 +64,13 @@ export function resolveConsoleConfig(
     const trimmed = value?.trim();
     return trimmed === undefined || trimmed === "" ? undefined : trimmed;
   };
+  const trimUrl = (url: string | undefined): string => (url ?? DEFAULT_CONSOLE_URL).replace(/\/+$/, "");
   const envToken = present(env.AGRO_CONSOLE_TOKEN);
-  const envUrl = present(env.AGRO_CONSOLE_URL);
-  const file = envToken !== undefined && envUrl !== undefined ? undefined : readCredentials();
-  const token = envToken ?? present(file?.token);
-  if (token === undefined) return undefined;
-  const url = envUrl ?? present(file?.url) ?? DEFAULT_CONSOLE_URL;
-  return { url: url.replace(/\/+$/, ""), token, source: envToken === undefined ? "file" : "env" };
+  if (envToken !== undefined) return { url: trimUrl(present(env.AGRO_CONSOLE_URL)), token: envToken, source: "env" };
+  const file = readCredentials();
+  const fileToken = present(file?.token);
+  if (fileToken === undefined) return undefined;
+  return { url: trimUrl(present(file?.url)), token: fileToken, source: "file" };
 }
 
 export function nodePollDelayMs(elapsedMs: number): number {
@@ -109,9 +109,10 @@ Usage:
 
 \`create\` waits up to 15 minutes for the node to reach \`running\`, then prints
 its SSH command. \`--free-tier\` requests the console free tier. The spec
-defaults to n4. The verbs read AGRO_CONSOLE_URL and AGRO_CONSOLE_TOKEN from the
-environment, then from the credentials file that \`${bin} auth login\` writes.
-AGRO_CONSOLE_URL defaults to ${DEFAULT_CONSOLE_URL}.
+defaults to n4. When AGRO_CONSOLE_TOKEN is set, the verbs use it with
+AGRO_CONSOLE_URL. Otherwise the verbs use the token and the URL from the
+credentials file that \`${bin} auth login\` writes. The URL defaults to
+${DEFAULT_CONSOLE_URL}.
 `;
 }
 

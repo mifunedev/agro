@@ -73,18 +73,34 @@ describe("console config resolution", () => {
     }
   });
 
-  it("prefers the environment URL, then the file URL, then the default", () => {
+  it("pairs an environment token with the environment URL or the default and never reads the file", () => {
     expect(DEFAULT_CONSOLE_URL).toBe("https://console.mifune.dev");
-    expect(resolveConsoleConfig({ AGRO_CONSOLE_URL: "https://env.example/" }, fromFile({}))?.url).toBe(
-      "https://env.example",
-    );
-    expect(resolveConsoleConfig({ AGRO_CONSOLE_TOKEN: TOKEN }, fromFile({}))?.url).toBe("https://file.example");
-    expect(resolveConsoleConfig({ AGRO_CONSOLE_TOKEN: TOKEN }, fromFile({ url: "" }))?.url).toBe(DEFAULT_CONSOLE_URL);
-    expect(resolveConsoleConfig({ AGRO_CONSOLE_TOKEN: TOKEN }, noFile)).toEqual({
+    let reads = 0;
+    const tracked = () => {
+      reads += 1;
+      return { ...FILE_CREDENTIALS };
+    };
+    expect(resolveConsoleConfig({ AGRO_CONSOLE_TOKEN: TOKEN }, tracked)).toEqual({
       url: DEFAULT_CONSOLE_URL,
       token: TOKEN,
       source: "env",
     });
+    expect(resolveConsoleConfig({ AGRO_CONSOLE_TOKEN: TOKEN, AGRO_CONSOLE_URL: "https://env.example/" }, tracked)).toEqual(
+      { url: "https://env.example", token: TOKEN, source: "env" },
+    );
+    expect(reads).toBe(0);
+  });
+
+  it("pairs a file token with the file URL or the default and ignores AGRO_CONSOLE_URL", () => {
+    expect(resolveConsoleConfig({ AGRO_CONSOLE_URL: "https://env.example/" }, fromFile({}))).toEqual({
+      url: "https://file.example",
+      token: "mfc_file",
+      source: "file",
+    });
+    expect(resolveConsoleConfig({ AGRO_CONSOLE_URL: "https://env.example/" }, fromFile({ url: "" }))?.url).toBe(
+      DEFAULT_CONSOLE_URL,
+    );
+    expect(resolveConsoleConfig({}, fromFile({}))?.url).toBe("https://file.example");
   });
 
   it("returns undefined when no token resolves", () => {

@@ -320,10 +320,15 @@ agro auth token     # print the token
   `token was already revoked; removed local credentials`, and exits 0.
 - `agro auth token` prints the token on stdout. When no token resolves, the
   command exits 1.
-- `AGRO_CONSOLE_TOKEN` and `AGRO_CONSOLE_URL` in the environment override the
-  credentials file. Use the environment variables in CI. When the token comes
-  from `AGRO_CONSOLE_TOKEN`, `agro auth logout` exits 1 and prints
-  `token comes from AGRO_CONSOLE_TOKEN; unset it to log out`.
+- If the environment sets `AGRO_CONSOLE_TOKEN`, the CLI uses that token with
+  `AGRO_CONSOLE_URL`, then `https://console.mifune.dev`. The CLI does not read
+  the credentials file in this case. Use the environment variables in CI.
+- If the environment does not set `AGRO_CONSOLE_TOKEN`, the CLI uses the token
+  and the URL from the credentials file. `AGRO_CONSOLE_URL` does not change the
+  URL of a token from the credentials file. When the file has no URL, the CLI
+  uses `https://console.mifune.dev`.
+- When the token comes from `AGRO_CONSOLE_TOKEN`, `agro auth logout` exits 1
+  and prints `token comes from AGRO_CONSOLE_TOKEN; unset it to log out`.
 
 ## Remote console nodes: `agro node`
 
@@ -336,9 +341,10 @@ agro node list                   # every node: id, name, profile, status, IPv4
 agro node delete <id>            # destroy one node after a confirmation
 ```
 
-- Each verb reads `AGRO_CONSOLE_TOKEN` and `AGRO_CONSOLE_URL` from the
-  environment first. When the environment does not set a key, the verb reads
-  the key from the credentials file that `agro auth login` writes.
+- Each verb finds the token and the URL in the same order as `agro auth`. If
+  the environment sets `AGRO_CONSOLE_TOKEN`, the verb uses that token with
+  `AGRO_CONSOLE_URL`. Otherwise the verb uses the token and the URL from the
+  credentials file that `agro auth login` writes.
 - The console URL is `https://console.mifune.dev` by default. If no token
   resolves, the verb exits 1 and prints
   `not logged in to agro-console: run agro auth login`.
