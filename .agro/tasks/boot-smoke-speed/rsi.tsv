@@ -2,3 +2,4 @@
 0	9ba4e2c99f7f2b03a62fa145ba83843e357472b0	13.66	0	baseline	evaluator=.agro/scripts/sandbox-boot-smoke.sh vitest.config.ts
 1	279197728b57dbe47969e1daf6fa8211cbbd07bc	0.84	0	keep	metric -12.89 over best, holdout 0 <= 0
 2	642879432858b1ec0d06a813ed91112199824d8e	0.72	0	keep	metric -0.12 over best, holdout 0 <= 0
+3	82f2a113d86f4e145a4f347efc9cb2b8ab5eb91f	0.57	0	keep	metric -0.15 over best, holdout 0 <= 0
