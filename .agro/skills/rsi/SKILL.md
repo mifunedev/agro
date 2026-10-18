@@ -11,8 +11,9 @@ description: |
   measured loops against a metric command, for example a lint count, a
   failing-test count, a benchmark time, or a pass rate.
   Do NOT trigger for fixed stories with binary checks (use /delegate), for
-  Langfuse replay comparisons (use /behavioral-training), for a scope without
-  an external metric command, or for improvement of the /rsi procedure itself.
+  Langfuse replay comparisons (use /behavioral-training), for a Claude-powered
+  app with an eval set (use /claude-api hillclimb), for a scope without an
+  external metric command, or for improvement of the /rsi procedure itself.
 argument-hint: "<scope-paths> --loops <N> --metric \"<cmd>\" --holdout \"<cmd>\" --direction <min|max>"
 ---
 
