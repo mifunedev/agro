@@ -159,7 +159,7 @@ function runSmoke(fx: ReturnType<typeof fixture>, extraEnv: Record<string, strin
       PATH: `${fx.bin}:${process.env.PATH}`,
       BOOT_SMOKE_COMPOSE: fx.compose,
       BOOT_SMOKE_TIMEOUT_SECONDS: "3",
-      BOOT_SMOKE_INTERVAL_SECONDS: "1",
+      BOOT_SMOKE_INTERVAL_SECONDS: "0",
       SANDBOX_NAME: "agro-test",
       NPM_USER_PREFIX: PREFIX,
       ...extraEnv,
