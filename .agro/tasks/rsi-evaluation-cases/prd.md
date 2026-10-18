@@ -29,7 +29,7 @@ Status: DRAFT
 
 - [ ] The run uses the scope `.agro/scripts/__tests__/sandbox-boot-smoke.test.ts` on the local run branch `rsi/boot-smoke-speed` with `--loops 5` and `--direction min`.
 - [ ] The metric command prints the run time of the test file in seconds and exits 0 under `bash -o pipefail -c`.
-- [ ] The holdout command prints `(11 - passed tests) + max(0, 62 - expect calls)` for the test file and exits 0 under `bash -o pipefail -c`.
+- [ ] The holdout command prints `(13 - passed tests) + max(0, 62 - expect calls)` for the test file and exits 0 under `bash -o pipefail -c`.
 - [ ] The evaluator paths include `.agro/scripts/sandbox-boot-smoke.sh` and `vitest.config.ts`.
 - [ ] The committed ledger holds two baseline rows and five loop rows.
 - [ ] The advisor merges `rsi/boot-smoke-speed` into the task branch. `git log` on the task branch shows each loop commit.
@@ -69,7 +69,7 @@ PR #1465 shipped `/rsi` at `.agro/skills/rsi/SKILL.md`. The first run used a fix
 
 This task runs three cases in order of risk. The guard drill proves the safety paths on a fixture. The slow test case adds a real timing metric. The CLI bundle case adds a metric that tempts a worker to delete behavior.
 
-The test file `sandbox-boot-smoke.test.ts` holds 11 tests and 62 `expect(` calls. The test file runs `.agro/scripts/sandbox-boot-smoke.sh` with `BOOT_SMOKE_TIMEOUT_SECONDS=3` and `BOOT_SMOKE_INTERVAL_SECONDS=1`. Three runs of the file took 13.67 to 13.70 seconds.
+The test file `sandbox-boot-smoke.test.ts` holds 11 `it(` blocks, which run 13 tests, and 62 `expect(` calls. The test file runs `.agro/scripts/sandbox-boot-smoke.sh` with `BOOT_SMOKE_TIMEOUT_SECONDS=3` and `BOOT_SMOKE_INTERVAL_SECONDS=1`. Three runs of the file took 13.67 to 13.70 seconds.
 
 The built `.agro/cli/dist/agro.js` has 335,480 bytes. An in-memory build with the same esbuild options gives 335,212 bytes. Of those bytes, `src/commands` holds 141,032, `src/lib` holds 111,158, `src/cli.ts` holds 49,507, and bundled text assets hold 14,538. The build does not minify, so the US-003 metric measures a minified build. A rename or a whitespace edit then gives no gain. The CLI suite holds 1,410 tests, and all 1,410 pass in about 3.1 seconds. CLI tests live in `.agro/cli/src/__tests__`, `.agro/cli/src/commands/__tests__`, `.agro/cli/src/lib/__tests__`, and `.agro/cli/src/lib/tracing/__tests__`.
 
