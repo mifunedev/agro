@@ -40,7 +40,7 @@ function fixture(
   const compose = join(dir, "compose.sh");
   writeFileSync(
     compose,
-    `#!/usr/bin/env bash
+    `#!/bin/bash
 printf '%s\n' "$*" >> ${JSON.stringify(composeLog)}
 if [ "$1" = "ps" ] && [ "\${2:-}" = "-q" ]; then
   printf 'cid-123\n'
@@ -58,12 +58,12 @@ exit 0
   const docker = join(bin, "docker");
   writeFileSync(
     docker,
-    `#!/usr/bin/env bash
+    `#!/bin/bash
 printf '%s\n' "$*" >> ${JSON.stringify(dockerLog)}
 case "$1" in
   exec)
     count=0
-    [ -f ${JSON.stringify(execCount)} ] && count=$(cat ${JSON.stringify(execCount)})
+    [ -f ${JSON.stringify(execCount)} ] && read -r count < ${JSON.stringify(execCount)}
     count=$((count + 1))
     printf '%s' "$count" > ${JSON.stringify(execCount)}
     if [ "${opts.dockerExecAlwaysFails ? "1" : "0"}" = "1" ] || [ "$count" -lt 2 ]; then
@@ -154,9 +154,9 @@ exit 2
     const date = join(bin, "date");
     writeFileSync(
       date,
-      `#!/usr/bin/env bash
+      `#!/bin/bash
 count=0
-[ -f ${JSON.stringify(clockCount)} ] && count=$(cat ${JSON.stringify(clockCount)})
+[ -f ${JSON.stringify(clockCount)} ] && read -r count < ${JSON.stringify(clockCount)}
 count=$((count + 1))
 printf '%s' "$count" > ${JSON.stringify(clockCount)}
 if [ "$count" -le 2 ]; then echo 1000; else echo 1001; fi
