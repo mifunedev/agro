@@ -143,4 +143,10 @@ Each run writes the ledger at `.agro/tasks/<run-slug>/rsi.tsv`. The run slugs ar
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. **Two runs cannot share one task branch.** Evidence: `/rsi` takes the ledger slug from the run branch name, so two runs on `task/1468-rsi-evaluation-cases` would write one `rsi.tsv`. Outcome: dropped. Local run branches merged into the task branch worked for all three cases. A slug argument is a version 2 decision for the operator.
+2. **The noise margin did not follow the metric.** Evidence: US-002 measured 0.07 seconds of noise at 13.7 seconds. The same margin then applied at 0.4 seconds, where a worker observed a spread of about 0.3 seconds. The loop 2 keep can hold noise. Outcome: dropped. A repeated or relative noise measure is the version 2 candidate, with the hillclimb confidence interval as the reference.
+1. **Two runs cannot share one task branch.** Evidence: `/rsi` takes the ledger slug from the run branch name. Two runs on `task/1468-rsi-evaluation-cases` would write one `rsi.tsv`. Outcome: dropped. Local run branches merged into the task branch worked for all three cases. A slug argument is a version 2 decision for the operator.
+4. **The plan miscounted the slow test file.** Evidence: the plan counted 11 `it(` blocks, and Vitest runs 13 tests. Outcome: fixed in this PR, commit `9ba4e2c9`.
+5. **The advisor helper split words under zsh.** Evidence: US-002 attempt 1 rejected an in-scope edit as `edit outside scope`. Outcome: dropped. The helper was scratch tooling, and the case ran again under bash.
+6. **A hook failed on worker heredoc scripts.** Evidence: in US-003 loops 4 and 5, the safety hook reported "command analysis failed". The workers made the same scope edits with `sed` or the Edit tool. Outcome: dropped. The hook refused no policy effect, and the PR lists the event as a reviewer check.
+7. **One local test failed on a tool version.** Evidence: the sandbox has `cc-safety-net` 1.0.6, and the repository pins 2.6.8. Outcome: dropped. The failure is sandbox drift, and CI is the gate.
