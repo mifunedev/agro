@@ -41,6 +41,15 @@ The shipped `.agro/cli/dist/agro.js` went from 335,480 to 330,576 bytes. `node .
 2. Confirm that US-003 loop 3 `const freeze = Object.freeze` is acceptable. The edit improves the metric without a code change of substance.
 3. Confirm the worker edits in US-003 loops 4 and 5. A hook failed on a worker heredoc script with "command analysis failed". Each worker then made the same scope edits with `sed` or the Edit tool. The hook refused no policy effect.
 
+## Operator review
+
+The operator reviewed the flagged edits. Commit `0c3431c2` reverts two kept edits:
+
+- US-002 loop 3: each of the three tests builds its own fixture again. The test file runs in about 0.50 seconds, and 13 of 13 tests pass.
+- US-003 loop 3: `catalog.ts` calls `Object.freeze` directly again. The `commandCheck` helper stays. The minified build is 205,609 bytes.
+
+The ledgers keep every recorded decision. The operator accepted the `#!/bin/bash` change and the two hook events.
+
 ## Paths that the runs did not exercise
 
 - No case had a noisy metric with a wide spread at baseline. US-002 measured a margin of 0.07 s at 13.7 s, and the same margin then applied at 0.4 s.
