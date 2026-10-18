@@ -31,13 +31,13 @@
       ],
       "priority": 1,
       "passes": true,
-      "notes": "Advisor verification on skill/1464-rsi-skill at bff0cce7. c1 executed: test -f + readlink -f match, exit 0. c2 executed: yaml parse name=rsi, description 852 chars, TRIGGER when and Do NOT trigger present. c3 executed: argument-hint names all five inputs. c4 executed: wc -l = 306. c5 executed: ste-check.sh exit 0. c6-c17 executed by grep -cF for each contract string (all >=1) and reasoned by full read of SKILL.md sections 2-6 and Limits; repair bff0cce7 fixed resume after an interrupted loop (reset-hard via shim, leftover loop cleanup). c18 executed: one /rsi Added entry under [Unreleased], 233 chars, links #1465. c19 executed: pnpm run typecheck exit 0.",
+      "notes": "Advisor verification on skill/1464-rsi-skill at bff0cce7. c1 executed: test -f + readlink -f match, exit 0. c2 executed: yaml parse name=rsi, description 852 chars, TRIGGER when and Do NOT trigger present. c3 executed: argument-hint names all five inputs. c4 executed: wc -l = 306. c5 executed: ste-check.sh exit 0. c6-c17 executed by grep -cF for each contract string (all >=1) and reasoned by full read of SKILL.md sections 2-6 and Limits; repair bff0cce7 fixed resume after an interrupted loop (reset-hard via shim, leftover loop cleanup). c18 executed: one /rsi Added entry under [Unreleased], 233 chars, links #1465. c19 executed: pnpm run typecheck exit 0. Re-verified after repair 07ce717e (exposed by US-002: a failed metric command read as a score; resume step 9 missing worktree): wc -l = 317, ste-check.sh exit 0, readlink match exit 0, pnpm run typecheck exit 0, grep pipefail matches.",
       "dependsOn": [],
       "files": [
         ".agro/skills/rsi/SKILL.md",
         "CHANGELOG.md"
       ],
-      "commit": "bff0cce7"
+      "commit": "07ce717e"
     },
     {
       "id": "US-002",
@@ -53,14 +53,15 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor-executed: /rsi requires the advisor to dispatch loop workers, and workers stay flat. c1 executed: fixture scope in temporary worktree rsi/rsi-fixture, --loops 3; operator approved the fixture and the pipefail-safe metric and holdout. c2 executed: evidence holds the invocation, 5 ledger rows (grep -cP = 5), and the RESULT line. c3 executed: interrupt after loop 1 commit be8231f9; fresh read-only session derived next action loop 2 dispatch from git and the committed ledger; loop 1 not re-dispatched; limit disclosed (subagent cannot dispatch). c4 executed: git log shows baseline plus one commit per loop (2965e1e7, be8231f9, f068baa1, 43c4da73). c5 executed: transcript shows worktree-remove and branch-delete for each loop and the run branch; git branch --list rsi/* empty. c6 executed: git add -f, commit 57ab101b. c7 executed: pnpm run typecheck exit 0. Evidence section A commands rerun: exits 0, 1, 1 as stated. Unexercised paths (reject, evaluator BLOCKED, mid-loop interrupt) listed in evidence section C.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/tasks/rsi-skill/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "57ab101b"
     }
   ]
 }
