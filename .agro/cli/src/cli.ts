@@ -9,21 +9,18 @@ import {
   runConfigRepo,
   runConfigSet,
   runConfigShow,
-  type ConfigIO,
 } from "./commands/config.js";
 import {
   runSecretGet,
   runSecretList,
   runSecretSet,
   secretKeyList,
-  type SecretIO,
 } from "./commands/secret.js";
 import {
   runLangfuseApply,
   runLangfuseDisable,
   runLangfuseSetup,
   runLangfuseStatus,
-  type LangfuseIO,
 } from "./commands/langfuse.js";
 import {
   runComposeConfig,
@@ -48,12 +45,10 @@ import {
   runHarnessList,
   runHarnessStatus,
   runHarnessUninstall,
-  type HarnessIO,
 } from "./commands/harness.js";
 import {
   runWorkspaceCreate,
   runWorkspaceList,
-  type WorkspaceIO,
 } from "./commands/workspace.js";
 import { AGRO_REPO_URL } from "./lib/host-workspace.js";
 import { harnessIds } from "./lib/harnesses/catalog.js";
@@ -62,7 +57,6 @@ import {
   runToolList,
   runToolStatus,
   runToolUninstall,
-  type ToolIO,
 } from "./commands/tool.js";
 import { hostCapableToolIds, installableToolIds, toolIds } from "./lib/tools/catalog.js";
 import { sourceDocsUrl } from "./lib/docs.js";
@@ -111,7 +105,7 @@ const INTEGRATIONS: Record<string, Integration> = {
     runner: () =>
       runLangfuseSetup(
         { bin: resolveProduct(process.argv[1]).bin },
-        { stdout: (s) => process.stdout.write(s), stderr: (s) => process.stderr.write(s) },
+        stdio(),
       ),
   },
 } satisfies Record<ConfigIntegration, Integration>;
@@ -1269,10 +1263,7 @@ async function main(argv: string[]): Promise<number> {
     }
 
     if (a.verb !== undefined) {
-      const io: ConfigIO = {
-        stdout: (s) => process.stdout.write(s),
-        stderr: (s) => process.stderr.write(s),
-      };
+      const io = stdio();
       const scope = {
         bin,
         ...(a.sandbox === undefined ? {} : { sandbox: a.sandbox }),
@@ -1309,10 +1300,7 @@ async function main(argv: string[]): Promise<number> {
       printSecretHelp(bin);
       return 0;
     }
-    const io: SecretIO = {
-      stdout: (s) => process.stdout.write(s),
-      stderr: (s) => process.stderr.write(s),
-    };
+    const io = stdio();
     const scope = a.sandbox === undefined ? { bin } : { bin, sandbox: a.sandbox };
     if (a.verb === "list") return await runSecretList(scope, io);
     if (a.verb === "get") return await runSecretGet(a.key as string, scope, io);
@@ -1331,10 +1319,7 @@ async function main(argv: string[]): Promise<number> {
       printLangfuseHelp(bin);
       return second === undefined ? 1 : 0;
     }
-    const io: LangfuseIO = {
-      stdout: (s) => process.stdout.write(s),
-      stderr: (s) => process.stderr.write(s),
-    };
+    const io = stdio();
     if (a.verb === "status") return await runLangfuseStatus({ bin }, io);
     if (a.verb === "disable") return await runLangfuseDisable({ bin }, io);
     return await runLangfuseApply({ bin }, io);
@@ -1351,10 +1336,7 @@ async function main(argv: string[]): Promise<number> {
       printSelfUpgradeHelp(bin);
       return 0;
     }
-    const io = {
-      stdout: (s: string) => process.stdout.write(s),
-      stderr: (s: string) => process.stderr.write(s),
-    };
+    const io = stdio();
     return await runSelfUpgrade(
       { dryRun: parsed.args.dryRun, argv1: process.argv[1] },
       defaultDeps(VERSION),
@@ -1375,10 +1357,7 @@ async function main(argv: string[]): Promise<number> {
     }
 
     const { force, dryRun } = parsed.args;
-    const io = {
-      stdout: (s: string) => process.stdout.write(s),
-      stderr: (s: string) => process.stderr.write(s),
-    };
+    const io = stdio();
     const targetDir = process.cwd();
     const source = resolveVendorSource(parsed.args, { sourceControlDir: DEFAULT_SOURCE_CONTROL_DIR }, bin);
 
@@ -1405,7 +1384,7 @@ async function main(argv: string[]): Promise<number> {
     }
     return runShell(
       parsed.args.name === undefined ? { bin } : { bin, name: parsed.args.name },
-      lifecycleIo(),
+      stdio(),
     );
   }
 
@@ -1425,7 +1404,7 @@ async function main(argv: string[]): Promise<number> {
         yes: parsed.args.yes,
         ...(parsed.args.name !== undefined ? { name: parsed.args.name } : {}),
       },
-      lifecycleIo(),
+      stdio(),
     );
   }
 
@@ -1455,13 +1434,13 @@ async function main(argv: string[]): Promise<number> {
       printEgressHelp(bin);
       return second === undefined ? 1 : 0;
     }
-    return runEgress(a.verb, a.name === undefined ? { bin } : { bin, name: a.name }, lifecycleIo());
+    return runEgress(a.verb, a.name === undefined ? { bin } : { bin, name: a.name }, stdio());
   }
 
   if (first === "auth") {
     return await runAuth(
       argv.slice(1),
-      { stdout: (s) => process.stdout.write(s), stderr: (s) => process.stderr.write(s) },
+      stdio(),
       {},
       bin,
     );
@@ -1470,7 +1449,7 @@ async function main(argv: string[]): Promise<number> {
   if (first === "node") {
     return await runNode(
       argv.slice(1),
-      { stdout: (s) => process.stdout.write(s), stderr: (s) => process.stderr.write(s) },
+      stdio(),
       {},
       bin,
     );
@@ -1488,10 +1467,7 @@ async function main(argv: string[]): Promise<number> {
       return 0;
     }
     const a = parsed.args;
-    const io: WorkspaceIO = {
-      stdout: (s) => process.stdout.write(s),
-      stderr: (s) => process.stderr.write(s),
-    };
+    const io = stdio();
     if (a.subcommand === "list") {
       return await runWorkspaceList({ bin, json: a.json }, io);
     }
@@ -1542,10 +1518,7 @@ async function main(argv: string[]): Promise<number> {
       return 0;
     }
     const a = parsed.args;
-    const io: HarnessIO = {
-      stdout: (s) => process.stdout.write(s),
-      stderr: (s) => process.stderr.write(s),
-    };
+    const io = stdio();
     if (a.subcommand === "list") {
       return await runHarnessList({ bin, json: a.json }, io);
     }
@@ -1579,10 +1552,7 @@ async function main(argv: string[]): Promise<number> {
       return 0;
     }
     const a = parsed.args;
-    const io: ToolIO = {
-      stdout: (s) => process.stdout.write(s),
-      stderr: (s) => process.stderr.write(s),
-    };
+    const io = stdio();
     if (a.subcommand === "list") {
       return await runToolList({ bin, json: a.json }, io);
     }
@@ -1621,7 +1591,7 @@ function unknownCommand(first: string, product: Product): number {
   return 1;
 }
 
-function lifecycleIo(): LifecycleIO {
+function stdio(): LifecycleIO {
   return {
     stdout: (s: string) => process.stdout.write(s),
     stderr: (s: string) => process.stderr.write(s),
