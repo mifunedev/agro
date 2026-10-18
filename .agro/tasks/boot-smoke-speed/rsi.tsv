@@ -4,3 +4,4 @@
 2	642879432858b1ec0d06a813ed91112199824d8e	0.72	0	keep	metric -0.12 over best, holdout 0 <= 0
 3	82f2a113d86f4e145a4f347efc9cb2b8ab5eb91f	0.57	0	keep	metric -0.15 over best, holdout 0 <= 0
 4	625a1c941a6485dac89978a49a83b85ec1fb686e	0.4	0	keep	metric -0.17 over best, holdout 0 <= 0
+5	ff4a0dfebd7c3d7a0ef262ab9873a57d4d280a4d	0.37	0	reject	metric 0.37 does not beat 0.4 by more than margin 0.07
