@@ -2,6 +2,7 @@ import { existsSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
+import { writeTable } from "../lib/execution/status.js";
 import {
   DEFAULT_WORKSPACE_NAME,
   readHostConfig,
@@ -50,13 +51,11 @@ function recordedRoot(env: NodeJS.ProcessEnv, home: string): string | undefined 
 }
 
 function renderTable(rows: WorkspaceRow[], io: WorkspaceIO): void {
-  const header = ["WORKSPACE", "DEFAULT", "PATH"];
-  const cells = rows.map((row) => [row.name, row.default ? "yes" : "no", row.root]);
-  const widths = header.map((h, i) => Math.max(h.length, ...cells.map((c) => c[i].length)));
-  const line = (cols: string[]): string =>
-    cols.map((c, i) => c.padEnd(widths[i])).join("  ").trimEnd() + "\n";
-  io.stdout(line(header));
-  for (const row of cells) io.stdout(line(row));
+  writeTable(
+    io.stdout,
+    ["WORKSPACE", "DEFAULT", "PATH"],
+    rows.map((row) => [row.name, row.default ? "yes" : "no", row.root]),
+  );
 }
 
 export async function runWorkspaceCreate(

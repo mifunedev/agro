@@ -10,6 +10,7 @@ import {
 } from "../lib/execution/index.js";
 import { LocalExecutionTarget, type LocalIdentity } from "../lib/execution/local-target.js";
 import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
+import { installedCell, writeInstalledNote, writeTable } from "../lib/execution/status.js";
 import type { ExecutionTarget } from "../lib/execution/target.js";
 import { sourceDocsUrl } from "../lib/docs.js";
 import { harnessBinPath, SANDBOX_HARNESS_PREFIX } from "../lib/harnesses/catalog.js";
@@ -286,38 +287,17 @@ async function collectRows(
   return { rows, hostPrefix: host.prefix };
 }
 
-function cell(value: boolean | null, absent: string): string {
-  if (value === null) return absent;
-  return value ? "yes" : "no";
-}
-
 function renderTable(collected: CollectedRows, io: ToolIO, bin: string): void {
   const rows = collected.rows;
-  const header = ["TOOL", "KIND", "INSTALLED"];
-  const body = rows.map((r) => [
+  writeTable(io.stdout, ["TOOL", "KIND", "INSTALLED"], rows.map((r) => [
     r.id,
     r.hostRoot ? `${r.kind} (root)` : r.kind,
-    cell(r.installed, "?"),
-  ]);
-  const widths = header.map((h, i) =>
-    Math.max(h.length, ...body.map((b) => b[i].length)),
-  );
-  const line = (cols: string[]): string =>
-    cols.map((c, i) => c.padEnd(widths[i])).join("  ").trimEnd() + "\n";
-  io.stdout(line(header));
-  for (const row of body) io.stdout(line(row));
+    installedCell(r.installed),
+  ]));
   if (rows.some((r) => r.hostRoot)) {
     io.stdout("\n(root) installs on the host as root through `sudo -n`.\n");
   }
-  if (rows.some((r) => r.location === "host")) {
-    io.stdout(
-      `\nINSTALLED reports the host prefix ${collected.hostPrefix} — the sandbox is not running.\n`,
-    );
-    return;
-  }
-  if (rows.some((r) => r.installed === null)) {
-    io.stdout(`\nINSTALLED is \`?\` — the sandbox is not running. Start it with \`${bin} sandbox\`.\n`);
-  }
+  writeInstalledNote(io.stdout, rows, collected.hostPrefix, bin);
 }
 
 function renderDetail(collected: CollectedRows, io: ToolIO, bin: string): void {

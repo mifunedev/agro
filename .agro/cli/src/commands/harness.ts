@@ -12,6 +12,7 @@ import { sourceDocsUrl } from "../lib/docs.js";
 import { runningInsideSandbox } from "../lib/execution/detect.js";
 import { LocalExecutionTarget } from "../lib/execution/local-target.js";
 import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
+import { installedCell, writeInstalledNote, writeTable } from "../lib/execution/status.js";
 import type { ExecutionTarget } from "../lib/execution/target.js";
 import {
   readHostConfig,
@@ -250,31 +251,14 @@ async function collectStates(
   return { states, hostPrefix: host.prefix };
 }
 
-function cell(value: boolean | null, absent: string): string {
-  if (value === null) return absent;
-  return value ? "yes" : "no";
-}
-
 function renderTable(collected: CollectedStates, io: HarnessIO, bin: string): void {
   const states = collected.states;
-  const header = ["HARNESS", "KIND", "INSTALLED"];
-  const rows = states.map((s) => [s.id, s.kind, cell(s.installed, "?")]);
-  const widths = header.map((h, i) =>
-    Math.max(h.length, ...rows.map((r) => r[i].length)),
+  writeTable(
+    io.stdout,
+    ["HARNESS", "KIND", "INSTALLED"],
+    states.map((s) => [s.id, s.kind, installedCell(s.installed)]),
   );
-  const line = (cols: string[]): string =>
-    cols.map((c, i) => c.padEnd(widths[i])).join("  ").trimEnd() + "\n";
-  io.stdout(line(header));
-  for (const row of rows) io.stdout(line(row));
-  if (states.some((s) => s.location === "host")) {
-    io.stdout(
-      `\nINSTALLED reports the host prefix ${collected.hostPrefix} — the sandbox is not running.\n`,
-    );
-    return;
-  }
-  if (states.some((s) => s.installed === null)) {
-    io.stdout(`\nINSTALLED is \`?\` — the sandbox is not running. Start it with \`${bin} sandbox\`.\n`);
-  }
+  writeInstalledNote(io.stdout, states, collected.hostPrefix, bin);
 }
 
 export async function runHarnessList(opts: HarnessOptions, io: HarnessIO): Promise<number> {
