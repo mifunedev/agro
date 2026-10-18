@@ -1,3 +1,4 @@
+import { messageOf } from "../lib/execution/runner.js";
 import { readFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
 import { join } from "node:path";
@@ -175,7 +176,7 @@ async function callApi(
       ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
     });
   } catch (error) {
-    return { ok: false, message: `request failed: ${error instanceof Error ? error.message : String(error)}` };
+    return { ok: false, message: `request failed: ${messageOf(error)}` };
   }
   const text = await response.text();
   let body: unknown = null;

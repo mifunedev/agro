@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
+import { messageOf, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import {
   configCheckout,
   defaultAgroConfig,
@@ -220,7 +220,7 @@ export async function runSandboxInstall(
   try {
     assertSandboxName(name);
   } catch (error) {
-    io.stderr(`${opts.bin} sandbox install: ${error instanceof Error ? error.message : String(error)}\n`);
+    io.stderr(`${opts.bin} sandbox install: ${messageOf(error)}\n`);
     return 1;
   }
 
@@ -245,7 +245,7 @@ export async function runSandboxInstall(
     try {
       config.storage = { ...config.storage, homePath: prepareHomeMount(opts.homeMount) };
     } catch (error) {
-      io.stderr(`${opts.bin} sandbox install: ${error instanceof Error ? error.message : String(error)}\n`);
+      io.stderr(`${opts.bin} sandbox install: ${messageOf(error)}\n`);
       return 1;
     }
   }
@@ -262,7 +262,7 @@ export async function runSandboxInstall(
         config.storage = { ...config.storage, homePath: prepareHomeMount(chosen) };
       } catch (error) {
         io.stderr(
-          `${opts.bin} sandbox install: ${error instanceof Error ? error.message : String(error)}\n`,
+          `${opts.bin} sandbox install: ${messageOf(error)}\n`,
         );
         return 1;
       }
@@ -325,7 +325,7 @@ async function installOpenShell(
   try {
     assertSandboxName(name);
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(messageOf(error));
   }
 
   const config = seedConfig(name, undefined, readEntryConfig(name), run, "openshell");
@@ -354,7 +354,7 @@ async function installOpenShell(
     const preflight = openshellPreflight(run);
     if (!preflight.ok) return fail(preflight.hint);
   } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error));
+    return fail(messageOf(error));
   }
 
   const created = !existsSync(root);
@@ -366,7 +366,7 @@ async function installOpenShell(
     await new OpenShellExecutionTarget({ name, entryRoot: root, image, run }).provision();
   } catch (error) {
     if (created) rmSync(root, { recursive: true, force: true });
-    io.stderr(`${opts.bin} sandbox install: ${error instanceof Error ? error.message : String(error)}\n`);
+    io.stderr(`${opts.bin} sandbox install: ${messageOf(error)}\n`);
     if (!(error instanceof ExecutionExitError)) return 1;
     io.stderr(`${opts.bin} sandbox install: ${openshellCleanupHint(name)}\n`);
     return error.exitCode;

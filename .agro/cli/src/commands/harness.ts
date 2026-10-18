@@ -11,7 +11,7 @@ import { agroEnvPair, agroEnvValue, remoteControlDirScript } from "../lib/layout
 import { sourceDocsUrl } from "../lib/docs.js";
 import { runningInsideSandbox } from "../lib/execution/detect.js";
 import { LocalExecutionTarget } from "../lib/execution/local-target.js";
-import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
+import { messageOf, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import { installedCell, writeInstalledNote, writeTable } from "../lib/execution/status.js";
 import type { ExecutionTarget } from "../lib/execution/target.js";
 import {
@@ -136,10 +136,6 @@ function hostTargetFor(
     run,
     env: { ...env, PATH: path },
   });
-}
-
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 async function probeInstalled(

@@ -1,3 +1,4 @@
+import { messageOf } from "../lib/execution/runner.js";
 import { spawnSync } from "node:child_process";
 import {
   accessSync,
@@ -99,7 +100,7 @@ function resolveTarget(invoked: string, deps: SelfUpgradeDeps): { target: string
   try {
     target = deps.realpath(invoked);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = messageOf(err);
     return { target: invoked, reason: `cannot resolve ${invoked}: ${msg}` };
   }
   if (statOrUndefined(deps, target)?.isFile() !== true) return { target, reason: `${target} is not a regular file` };
@@ -292,7 +293,7 @@ function removeQuietly(deps: SelfUpgradeDeps, path: string, io: SelfUpgradeIO): 
   try {
     deps.unlink(path);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = messageOf(err);
     io.stderr(`${PREFIX}: could not remove ${path}: ${msg}\n`);
   }
 }
@@ -320,7 +321,7 @@ async function upgradeStandalone(
   try {
     artifact = await deps.fetch(url);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = messageOf(err);
     throw new Error(`download failed: ${url}: ${msg}`);
   }
 
@@ -400,7 +401,7 @@ export async function runSelfUpgrade(
       ? await upgradeNpm(installation, opts, deps, io)
       : await upgradeStandalone(installation, opts, deps, io);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = messageOf(err);
     io.stderr(`${PREFIX}: ${msg}\n`);
     return 1;
   }

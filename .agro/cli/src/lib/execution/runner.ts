@@ -86,3 +86,7 @@ export function requireLifecycleScript(root: string, rel: string): string {
   }
   return script;
 }
+
+export function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}

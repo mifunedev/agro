@@ -2,7 +2,7 @@ import { closeSync, existsSync, openSync, readFileSync, unlinkSync, writeSync } 
 import { join } from "node:path";
 import { agroConfigPath, readAgroConfig, writeAgroConfig } from "../lib/agro-config.js";
 import { runningInsideSandbox } from "../lib/execution/index.js";
-import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
+import { messageOf, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import { entryRoot } from "../lib/registry.js";
 import { entrySandboxName, routeVerb } from "../lib/runtimes/verbs.js";
 import { officialImageRef, parseReleaseVersion } from "../lib/version.js";
@@ -14,10 +14,6 @@ export interface SandboxUpgradeOptions {
   version: string;
   run?: LifecycleRunner;
   writeConfig?: typeof writeAgroConfig;
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 function conflictingDotenvImage(root: string, imageRef: string): string | undefined {
@@ -49,7 +45,7 @@ export async function runSandboxUpgrade(opts: SandboxUpgradeOptions, io: Lifecyc
   try {
     root = entryRoot(opts.name);
   } catch (error) {
-    io.stderr(`${prefix} ${errorMessage(error)}\n`);
+    io.stderr(`${prefix} ${messageOf(error)}\n`);
     return 1;
   }
   const configFile = agroConfigPath(root);
@@ -65,7 +61,7 @@ export async function runSandboxUpgrade(opts: SandboxUpgradeOptions, io: Lifecyc
   } catch (error) {
     const message = error instanceof Error && "code" in error && error.code === "EEXIST"
       ? `upgrade already in progress for ${opts.name}; lock: ${lock}. Confirm no upgrade process owns this entry before removing that lock and retrying`
-      : errorMessage(error);
+      : messageOf(error);
     io.stderr(`${prefix} ${message}\n`);
     return 1;
   }
@@ -103,14 +99,14 @@ export async function runSandboxUpgrade(opts: SandboxUpgradeOptions, io: Lifecyc
       const code = await apply(imageRef);
       if (code !== 0) failure = `exit ${code}`;
     } catch (error) {
-      failure = errorMessage(error);
+      failure = messageOf(error);
     }
     if (failure === undefined) {
       try {
         (opts.writeConfig ?? writeAgroConfig)(root, { ...config, image: { ...config.image, ref: imageRef } });
         return 0;
       } catch (error) {
-        failure = `config persistence failed (${errorMessage(error)})`;
+        failure = `config persistence failed (${messageOf(error)})`;
       }
     } else {
       failure = `provisioning failed (${failure})`;
@@ -120,11 +116,11 @@ export async function runSandboxUpgrade(opts: SandboxUpgradeOptions, io: Lifecyc
       const code = await apply(priorRef);
       if (code !== 0) io.stderr(`${prefix} restoration failed (exit ${code})\n`);
     } catch (error) {
-      io.stderr(`${prefix} restoration failed (${errorMessage(error)})\n`);
+      io.stderr(`${prefix} restoration failed (${messageOf(error)})\n`);
     }
     return 1;
   } catch (error) {
-    io.stderr(`${prefix} ${errorMessage(error)}\n`);
+    io.stderr(`${prefix} ${messageOf(error)}\n`);
     return 1;
   } finally {
     closeSync(fd);

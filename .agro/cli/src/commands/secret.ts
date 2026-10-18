@@ -1,3 +1,4 @@
+import { messageOf } from "../lib/execution/runner.js";
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
@@ -83,7 +84,7 @@ export async function runSecretSet(
     setSecret(root, key, value);
     ignoreSecretsFile(root);
   } catch (error) {
-    io.stderr(`${opts.bin} secret set: ${error instanceof Error ? error.message : String(error)}\n`);
+    io.stderr(`${opts.bin} secret set: ${messageOf(error)}\n`);
     return 1;
   }
 
@@ -101,7 +102,7 @@ export async function runSecretGet(
   try {
     value = readSecret(root, key);
   } catch (error) {
-    io.stderr(`${error instanceof Error ? error.message : String(error)}\n`);
+    io.stderr(`${messageOf(error)}\n`);
     return 1;
   }
 

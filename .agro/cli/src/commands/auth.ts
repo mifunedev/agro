@@ -1,3 +1,4 @@
+import { messageOf } from "../lib/execution/runner.js";
 import { hostname } from "node:os";
 import { AUTH_VERBS, isOneOf } from "../command-table.js";
 import {
@@ -97,7 +98,7 @@ async function callApi(
       ...(options.payload === undefined ? {} : { body: JSON.stringify(options.payload) }),
     });
   } catch (error) {
-    return { ok: false, message: `request failed: ${error instanceof Error ? error.message : String(error)}` };
+    return { ok: false, message: `request failed: ${messageOf(error)}` };
   }
   const text = await response.text();
   let body: unknown = null;

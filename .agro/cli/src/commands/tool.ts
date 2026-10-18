@@ -9,7 +9,7 @@ import {
   runtimeIsAbsent,
 } from "../lib/execution/index.js";
 import { LocalExecutionTarget, type LocalIdentity } from "../lib/execution/local-target.js";
-import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
+import { messageOf, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import { installedCell, writeInstalledNote, writeTable } from "../lib/execution/status.js";
 import type { ExecutionTarget } from "../lib/execution/target.js";
 import { sourceDocsUrl } from "../lib/docs.js";
@@ -149,10 +149,6 @@ function hostTargetFor(
     run,
     env: { ...env, PATH: path },
   });
-}
-
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 function homeOf(opts: ToolOptions): string {

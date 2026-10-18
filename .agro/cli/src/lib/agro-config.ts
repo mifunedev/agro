@@ -1,3 +1,4 @@
+import { messageOf } from "./execution/runner.js";
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { assertInRoot } from "./env-file.js";
@@ -138,7 +139,7 @@ export function readAgroConfig(path: string): AgroConfig {
   try {
     raw = readFileSync(path, "utf8");
   } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
+    const detail = messageOf(error);
     throw new Error(`could not read ${path}: ${detail}`);
   }
 

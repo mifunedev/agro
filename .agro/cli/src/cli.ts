@@ -1,3 +1,4 @@
+import { messageOf } from "./lib/execution/runner.js";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
@@ -1613,7 +1614,7 @@ export async function runCli(argv: string[]): Promise<number> {
 runCli(process.argv.slice(2)).then(
   (code) => process.exit(code),
   (err) => {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = messageOf(err);
     process.stderr.write(`${resolveProduct(process.argv[1]).bin}: ${msg}\n`);
     process.exit(2);
   },

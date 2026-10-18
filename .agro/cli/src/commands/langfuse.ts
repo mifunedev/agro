@@ -3,7 +3,7 @@ import { homedir, tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { setConfigField } from "../lib/env-file.js";
 import { runningInsideSandbox } from "../lib/execution/detect.js";
-import { spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
+import { messageOf, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import { HARNESS_CATALOG, type HarnessEntry } from "../lib/harnesses/catalog.js";
 import { agroConfigPath, readAgroConfig, writeAgroConfig, type LangfuseSettings } from "../lib/agro-config.js";
 import { resolveProjectRoot } from "../lib/project.js";
@@ -204,10 +204,6 @@ function hostRefusal(bin: string): string {
   );
 }
 
-function errorText(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
 function displayPath(home: string, path: string): string {
   const rel = relative(home, path);
   return rel.startsWith("..") ? path : `~/${rel}`;
@@ -254,7 +250,7 @@ function renderAll(
       report(render());
     } catch (error) {
       failed = true;
-      io.stderr(`${bin} langfuse ${verb}: ${label} failed — ${errorText(error)}\n`);
+      io.stderr(`${bin} langfuse ${verb}: ${label} failed — ${messageOf(error)}\n`);
     }
   };
 
@@ -283,7 +279,7 @@ function resolveOrReport(
     const ctx = context(opts);
     return { ctx, resolved: resolveLangfuse(ctx.root) };
   } catch (error) {
-    io.stderr(`${opts.bin} ${label}: ${errorText(error)}\n`);
+    io.stderr(`${opts.bin} ${label}: ${messageOf(error)}\n`);
     return undefined;
   }
 }
@@ -365,13 +361,13 @@ export async function runLangfuseStatus(opts: LangfuseOptions, io: LangfuseIO): 
       ),
     );
   } catch (error) {
-    failures.push(`${LANGFUSE_FRAGMENT_LABEL}: ${errorText(error)}`);
+    failures.push(`${LANGFUSE_FRAGMENT_LABEL}: ${messageOf(error)}`);
   }
   for (const entry of tracingHarnesses()) {
     try {
       reports.push(probeGeneratedFile(ctx.home, (home) => entry.tracingWriter(home, resolved.tracing)));
     } catch (error) {
-      failures.push(`${entry.title} file: ${errorText(error)}`);
+      failures.push(`${entry.title} file: ${messageOf(error)}`);
     }
   }
 
@@ -399,7 +395,7 @@ export async function runLangfuseDisable(opts: LangfuseOptions, io: LangfuseIO):
     ctx = context(opts);
     setConfigField(ctx.root, "langfuse.enabled", "false");
   } catch (error) {
-    io.stderr(`${opts.bin} langfuse disable: ${errorText(error)}\n`);
+    io.stderr(`${opts.bin} langfuse disable: ${messageOf(error)}\n`);
     return 1;
   }
   io.stdout("agro.json: set langfuse.enabled=false (other langfuse settings and .env keys retained)\n");
@@ -415,7 +411,7 @@ export async function runLangfuseDisable(opts: LangfuseOptions, io: LangfuseIO):
       unlinkSync(fragment);
       io.stdout(`removed   ${displayPath(ctx.home, fragment)}\n`);
     } catch (error) {
-      io.stderr(`${opts.bin} langfuse disable: could not remove ${LANGFUSE_FRAGMENT_LABEL} — ${errorText(error)}\n`);
+      io.stderr(`${opts.bin} langfuse disable: could not remove ${LANGFUSE_FRAGMENT_LABEL} — ${messageOf(error)}\n`);
       return 1;
     }
   } else {
@@ -585,7 +581,7 @@ export async function runLangfuseSetup(opts: LangfuseSetupOptions, io: LangfuseI
       io.stdout(`.env: set ${key}=${prompt.redact(value)}\n`);
     }
   } catch (error) {
-    io.stderr(`${bin} config langfuse: ${errorText(error)}\n`);
+    io.stderr(`${bin} config langfuse: ${messageOf(error)}\n`);
     return 1;
   }
 

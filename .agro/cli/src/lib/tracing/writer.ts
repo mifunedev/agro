@@ -1,3 +1,4 @@
+import { messageOf } from "../execution/runner.js";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
@@ -44,7 +45,7 @@ export function readJsonObject(path: string, label: string): Record<string, unkn
   try {
     parsed = JSON.parse(raw);
   } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
+    const detail = messageOf(error);
     throw new Error(`${label} is not valid JSON (${detail}); repair it by hand, nothing was written`);
   }
   if (!isPlainObject(parsed)) {

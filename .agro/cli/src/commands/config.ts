@@ -1,4 +1,4 @@
-import { assertSpawned, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
+import { assertSpawned, messageOf, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import { setConfigField } from "../lib/env-file.js";
 import {
   findAgroConfigField,
@@ -110,7 +110,7 @@ export async function runConfigSet(
   try {
     outcome = setConfigField(root, key, value);
   } catch (error) {
-    io.stderr(`${opts.bin} config set: ${error instanceof Error ? error.message : String(error)}\n`);
+    io.stderr(`${opts.bin} config set: ${messageOf(error)}\n`);
     return 1;
   }
 
@@ -240,7 +240,7 @@ export async function runConfigRepo(opts: RepoOptions, io: RepoIO): Promise<numb
   try {
     root = resolveProjectRoot(opts.cwd);
   } catch (error) {
-    io.stderr(`${opts.bin} config repo: ${error instanceof Error ? error.message : String(error)}\n`);
+    io.stderr(`${opts.bin} config repo: ${messageOf(error)}\n`);
     printManual(io, manual, "Nothing was changed. Finish this by hand from your checkout:");
     return 1;
   }
