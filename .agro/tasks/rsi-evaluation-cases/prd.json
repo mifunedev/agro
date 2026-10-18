@@ -45,15 +45,16 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor-executed. Attempt 1 discarded: the advisor's helper ran under zsh, where word splitting differs, and rejected an in-scope edit; the run restarted under bash (transcript kept). c1 executed: scope is the test file on rsi/boot-smoke-speed, --loops 5, --direction min. c2 executed: metric prints seconds, exit 0 under pipefail (13.73/13.66). c3 executed: holdout prints (13 - passed) + max(0, 62 - expect calls) = 0, exit 0; plan corrected from 11 to 13 tests (one it.each expands to 3). c4 executed: evaluator paths sandbox-boot-smoke.sh and vitest.config.ts. c5 executed: ledger holds 2 baseline + 5 loop rows. c6 executed: git merge --ff-only; git log shows 8bb102ee, 37579007, 7b2b4b3a, 540f2cef, 0d904558. c7 executed: pnpm test 2564 passed, 1 failed (standard-skills-link cc-safety-net version mismatch, same sandbox drift as development). c8 executed: pnpm run typecheck exit 0. Result 13.73 s -> 0.40 s, kept 4 of 5; 13/13 passed in 10 of 10 stability runs.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/scripts/__tests__/sandbox-boot-smoke.test.ts",
         ".agro/tasks/boot-smoke-speed/rsi.tsv"
-      ]
+      ],
+      "commit": "0d904558"
     },
     {
       "id": "US-003",
