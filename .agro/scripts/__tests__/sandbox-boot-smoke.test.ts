@@ -24,6 +24,7 @@ function fixture(
     noInstallableTools?: boolean;
     pid1?: string;
     readyFileMissing?: boolean;
+    clockExpiresAfterOnePoll?: boolean;
   } = {},
 ) {
   const runtimeUid = opts.runtimeUid ?? HOST_UID;
@@ -147,6 +148,22 @@ exit 2
 `,
   );
   chmodSync(docker, 0o755);
+
+  if (opts.clockExpiresAfterOnePoll) {
+    const clockCount = join(dir, "clock-count");
+    const date = join(bin, "date");
+    writeFileSync(
+      date,
+      `#!/usr/bin/env bash
+count=0
+[ -f ${JSON.stringify(clockCount)} ] && count=$(cat ${JSON.stringify(clockCount)})
+count=$((count + 1))
+printf '%s' "$count" > ${JSON.stringify(clockCount)}
+if [ "$count" -le 2 ]; then echo 1000; else echo 1001; fi
+`,
+    );
+    chmodSync(date, 0o755);
+  }
 
   return { dir, bin, compose, composeLog, dockerLog };
 }
@@ -315,7 +332,7 @@ describe("sandbox boot smoke", { timeout: SMOKE_TEST_TIMEOUT_MS }, () => {
   });
 
   it("prints compose, health, and log diagnostics on timeout", () => {
-    const fx = fixture({ dockerExecAlwaysFails: true });
+    const fx = fixture({ dockerExecAlwaysFails: true, clockExpiresAfterOnePoll: true });
 
     const result = runSmoke(fx, { BOOT_SMOKE_TIMEOUT_SECONDS: "0" });
 
