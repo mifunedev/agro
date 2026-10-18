@@ -68,7 +68,7 @@ failed check. Write no ledger row and dispatch no worker.
 
 | Check | `BLOCKED` when |
 |---|---|
-| Number | The metric command or the holdout command prints no single number. |
+| Number | The metric command or the holdout command gives no valid reading. |
 | Evaluator overlap | A scope path overlaps an evaluator path. |
 | Task folder overlap | A scope path or an evaluator path overlaps `.agro/tasks/<slug>/`. |
 | Skill overlap | A scope path overlaps `.agro/skills/rsi/`. |
@@ -83,13 +83,19 @@ that holds the other path.
 A command output is a single number when the trimmed standard output matches
 `^-?[0-9]+(\.[0-9]+)?$`.
 
+Run each metric command and each holdout command with
+`bash -o pipefail -c "<cmd>"`. A reading is valid only when the command exits 0
+and the command output is a single number. If the command exits nonzero and
+prints a number, the reading is still not valid.
+
 ## 3. Baseline
 
 1. Record `<start-commit>` with `git rev-parse HEAD` on the run branch.
 2. Run the metric command and the holdout command on `<start-commit>`.
 3. Run the metric command and the holdout command on `<start-commit>` a second time.
-4. Write the two readings to `.agro/tasks/<slug>/rsi.tsv` as two rows with loop `0`.
-5. Commit the two baseline rows. Use the message `task: rsi <slug> baseline`.
+4. If a baseline reading is not valid, stop with `BLOCKED`. Write no ledger row.
+5. Write the two readings to `.agro/tasks/<slug>/rsi.tsv` as two rows with loop `0`.
+6. Commit the two baseline rows. Use the message `task: rsi <slug> baseline`.
 
 ### The ledger
 
@@ -183,6 +189,7 @@ evaluator paths. Write no row for the loop.
 |---|---|---|
 | The worker branch has no new commit. | `reject` | `no worker commit` |
 | A changed file lies outside `<scope-paths>`. | `reject` | `edit outside scope` |
+| A command exits nonzero. | `reject` | `metric or holdout command failed` |
 | A command prints no single number. | `reject` | `metric or holdout printed no single number` |
 | The keep rule holds. | `keep` | The gain over the current best. |
 | Otherwise | `reject` | The failed part of the keep rule. |
@@ -255,8 +262,12 @@ run branch is the only trusted state. Read nothing else.
    2. If the branch exists, delete the branch with
       `bash .agro/scripts/git-maintenance.sh branch-delete rsi/<slug>-loop-<k>`.
 8. If `<k>` equals `<N>`, go to [Report the result](#45-report-the-result).
-9. If the branch `rsi/<slug>-loop-<k+1>` exists, measure that branch. Start at
-   [Check the evaluator](#42-check-the-evaluator). Dispatch no new worker.
+9. If the branch `rsi/<slug>-loop-<k+1>` exists, measure that branch. Dispatch
+   no new worker:
+   1. If the worktree for that branch does not exist, create a worktree for the
+      branch with the "CREATE — existing branch" procedure in
+      [`/worktrees`](../worktrees/SKILL.md).
+   2. Start at [Check the evaluator](#42-check-the-evaluator).
 10. Otherwise, dispatch loop `<k+1>` at [Dispatch one worker](#41-dispatch-one-worker).
 
 ## 6. Delivery paths
