@@ -25,26 +25,24 @@ export interface ToolEntry {
 
 const TOOLS_DOC = "docs/installation.md";
 
-const freeze = Object.freeze;
-
 const commandCheck = (binary: string): readonly string[] =>
-  freeze(["bash", "-lc", `command -v ${binary} >/dev/null`]);
+  Object.freeze(["bash", "-lc", `command -v ${binary} >/dev/null`]);
 
 export const TOOL_HOST_PLATFORM = "linux";
 
-export const TOOL_CATALOG: readonly ToolEntry[] = freeze([
-  freeze({
+export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
+  Object.freeze({
     id: "agent-browser",
     title: "agent-browser",
     kind: "installable",
     binary: "agent-browser",
     verifyArgv: commandCheck("agent-browser"),
-    installArgv: freeze([
+    installArgv: Object.freeze([
       "bash",
       "-lc",
       "pnpm add -g agent-browser@0.38.1 && find \"$PNPM_HOME\" -name \"agent-browser-linux-*\" -exec chmod +x {} \\; && agent-browser install --with-deps",
     ]),
-    hostInstallArgv: freeze([
+    hostInstallArgv: Object.freeze([
       "bash",
       "-lc",
       [
@@ -123,22 +121,22 @@ export const TOOL_CATALOG: readonly ToolEntry[] = freeze([
     downloadSize: "~1 GB",
     hostDownloadSize: "~400 MB",
     hostCapable: true,
-    uninstallArgv: freeze(["bash", "-lc", "pnpm remove -g agent-browser"]),
-    hostUninstallArgv: freeze([
+    uninstallArgv: Object.freeze(["bash", "-lc", "pnpm remove -g agent-browser"]),
+    hostUninstallArgv: Object.freeze([
       "bash",
       "-c",
       `rm -rf "${HARNESS_PREFIX_TOKEN}/bin/agent-browser" "$HOME/.agent-browser/browsers"`,
     ]),
     docsPath: TOOLS_DOC,
   }),
-  freeze({
+  Object.freeze({
     id: "herdr",
     title: "Herdr",
     kind: "installable",
     binary: "herdr",
     verifyArgv: commandCheck("herdr"),
-    versionArgv: freeze(["herdr", "--version"]),
-    installArgv: freeze([
+    versionArgv: Object.freeze(["herdr", "--version"]),
+    installArgv: Object.freeze([
       "bash",
       "-lc",
       [
@@ -161,17 +159,17 @@ export const TOOL_CATALOG: readonly ToolEntry[] = freeze([
     ]),
     installUser: "sandbox",
     hostCapable: true,
-    uninstallArgv: freeze(["rm", "-rf", `${HARNESS_PREFIX_TOKEN}/bin/herdr`]),
+    uninstallArgv: Object.freeze(["rm", "-rf", `${HARNESS_PREFIX_TOKEN}/bin/herdr`]),
     docsPath: TOOLS_DOC,
   }),
-  freeze({
+  Object.freeze({
     id: "cloudflared",
     title: "cloudflared",
     kind: "installable",
     binary: "cloudflared",
     verifyArgv: commandCheck("cloudflared"),
-    versionArgv: freeze(["cloudflared", "--version"]),
-    installArgv: freeze([
+    versionArgv: Object.freeze(["cloudflared", "--version"]),
+    installArgv: Object.freeze([
       "bash",
       "-lc",
       [
@@ -195,17 +193,17 @@ export const TOOL_CATALOG: readonly ToolEntry[] = freeze([
     ]),
     installUser: "sandbox",
     hostCapable: true,
-    uninstallArgv: freeze(["rm", "-rf", `${HARNESS_PREFIX_TOKEN}/bin/cloudflared`]),
+    uninstallArgv: Object.freeze(["rm", "-rf", `${HARNESS_PREFIX_TOKEN}/bin/cloudflared`]),
     docsPath: TOOLS_DOC,
   }),
-  freeze({
+  Object.freeze({
     id: "microsandbox",
     title: "MicroSandbox CLI",
     kind: "installable",
     binary: "msb",
     verifyArgv: commandCheck("msb"),
-    versionArgv: freeze(["msb", "--version"]),
-    installArgv: freeze([
+    versionArgv: Object.freeze(["msb", "--version"]),
+    installArgv: Object.freeze([
       "bash",
       "-lc",
       [
@@ -222,7 +220,7 @@ export const TOOL_CATALOG: readonly ToolEntry[] = freeze([
     ]),
     installUser: "sandbox",
     hostCapable: true,
-    uninstallArgv: freeze([
+    uninstallArgv: Object.freeze([
       "rm",
       "-rf",
       `${HARNESS_PREFIX_TOKEN}/bin/msb`,
@@ -230,47 +228,47 @@ export const TOOL_CATALOG: readonly ToolEntry[] = freeze([
     ]),
     docsPath: "docs/runtimes/microsandbox.md",
   }),
-  freeze({
+  Object.freeze({
     id: "docker-cli",
     title: "Docker CLI + Compose",
     kind: "baked-in",
     binary: "docker",
     verifyArgv: commandCheck("docker"),
-    versionArgv: freeze(["docker", "--version"]),
+    versionArgv: Object.freeze(["docker", "--version"]),
     notInstallableReason: (bin: string): string =>
       `The Docker CLI is installed in the base image. Note that the CLI being present says nothing about whether a daemon is reachable — \`${bin} ps <name>\` answers that.`,
     hostCapable: false,
     uninstallArgv: null,
     docsPath: TOOLS_DOC,
   }),
-  freeze({
+  Object.freeze({
     id: "gh",
     title: "GitHub CLI",
     kind: "baked-in",
     binary: "gh",
     verifyArgv: commandCheck("gh"),
-    versionArgv: freeze(["gh", "--version"]),
+    versionArgv: Object.freeze(["gh", "--version"]),
     notInstallableReason: (): string =>
       "The GitHub CLI is installed in the base image. Run `gh auth login` inside the sandbox to authenticate it.",
     hostCapable: false,
     uninstallArgv: null,
     docsPath: TOOLS_DOC,
   }),
-  freeze({
+  Object.freeze({
     id: "tailscale",
     title: "Tailscale",
     kind: "installable",
     binary: "tailscale",
     verifyArgv: commandCheck("tailscale"),
-    versionArgv: freeze(["tailscale", "--version"]),
-    installArgv: freeze([
+    versionArgv: Object.freeze(["tailscale", "--version"]),
+    installArgv: Object.freeze([
       "bash",
       "-lc",
       "set -e\narch=\"$(dpkg --print-architecture)\"\ncase \"$arch\" in\n  amd64) tarball=tailscale_1.102.3_amd64.tgz; sha=36ddd9b51be57ffc2990cf76323cfa13643bfbb1b8a969f6183fa164741cdef5 ;;\n  arm64) tarball=tailscale_1.102.3_arm64.tgz; sha=a0fa1b154af8c61f862a2259f559f7396d96c0225f4a863eae2333e1546bbe25 ;;\n  *) echo \"no pinned Tailscale build for $arch\" >&2; exit 1 ;;\nesac\nprefix=\"${NPM_USER_PREFIX:-$HOME/.local}\"\ntmp=\"$(mktemp -d)\"\ntrap 'rm -rf \"$tmp\"' EXIT\ncurl -fsSL \"https://pkgs.tailscale.com/stable/$tarball\" -o \"$tmp/$tarball\"\necho \"$sha  $tmp/$tarball\" | sha256sum -c -\ntar -xzf \"$tmp/$tarball\" -C \"$tmp\"\ninstall -d \"$prefix/bin\"\ninstall -m 0755 \"$tmp/tailscale_1.102.3_$arch/tailscale\" \"$prefix/bin/tailscale\"\ninstall -m 0755 \"$tmp/tailscale_1.102.3_$arch/tailscaled\" \"$prefix/bin/tailscaled\"\ninstall -d -m 0700 \"$HOME/.tailscale\"",
     ]),
     installUser: "sandbox",
     hostCapable: true,
-    uninstallArgv: freeze([
+    uninstallArgv: Object.freeze([
       "rm",
       "-rf",
       `${HARNESS_PREFIX_TOKEN}/bin/tailscale`,
@@ -278,14 +276,14 @@ export const TOOL_CATALOG: readonly ToolEntry[] = freeze([
     ]),
     docsPath: TOOLS_DOC,
   }),
-  freeze({
+  Object.freeze({
     id: "code-server",
     title: "code-server",
     kind: "installable",
     binary: "code-server",
     verifyArgv: commandCheck("code-server"),
-    versionArgv: freeze(["code-server", "--version"]),
-    installArgv: freeze([
+    versionArgv: Object.freeze(["code-server", "--version"]),
+    installArgv: Object.freeze([
       "bash",
       "-lc",
       [
@@ -316,7 +314,7 @@ export const TOOL_CATALOG: readonly ToolEntry[] = freeze([
     ]),
     installUser: "sandbox",
     hostCapable: true,
-    uninstallArgv: freeze([
+    uninstallArgv: Object.freeze([
       "rm",
       "-rf",
       `${HARNESS_PREFIX_TOKEN}/bin/code-server`,
@@ -324,14 +322,14 @@ export const TOOL_CATALOG: readonly ToolEntry[] = freeze([
     ]),
     docsPath: TOOLS_DOC,
   }),
-  freeze({
+  Object.freeze({
     id: "ffmpeg",
     title: "FFmpeg + FFprobe",
     kind: "installable",
     binary: "ffmpeg",
-    verifyArgv: freeze(["bash", "-lc", "command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null"]),
-    versionArgv: freeze(["ffmpeg", "-version"]),
-    installArgv: freeze([
+    verifyArgv: Object.freeze(["bash", "-lc", "command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null"]),
+    versionArgv: Object.freeze(["ffmpeg", "-version"]),
+    installArgv: Object.freeze([
       "bash",
       "-lc",
       [
@@ -364,7 +362,7 @@ export const TOOL_CATALOG: readonly ToolEntry[] = freeze([
     ]),
     installUser: "sandbox",
     hostCapable: true,
-    uninstallArgv: freeze([
+    uninstallArgv: Object.freeze([
       "rm",
       "-rf",
       `${HARNESS_PREFIX_TOKEN}/bin/ffmpeg`,
@@ -372,18 +370,18 @@ export const TOOL_CATALOG: readonly ToolEntry[] = freeze([
     ]),
     docsPath: TOOLS_DOC,
   }),
-  freeze({
+  Object.freeze({
     id: "docker-engine",
     title: "Docker Engine + Compose",
     kind: "installable",
     binary: "docker",
-    verifyArgv: freeze([
+    verifyArgv: Object.freeze([
       "bash",
       "-lc",
       'command -v docker >/dev/null && docker compose version >/dev/null && systemctl is-enabled --quiet docker && id -nG "${SUDO_USER:-$(id -un)}" | tr " " "\\n" | grep -qx docker',
     ]),
-    versionArgv: freeze(["docker", "--version"]),
-    hostInstallArgv: freeze([
+    versionArgv: Object.freeze(["docker", "--version"]),
+    hostInstallArgv: Object.freeze([
       "bash",
       "-lc",
       [
@@ -424,17 +422,17 @@ export const TOOL_CATALOG: readonly ToolEntry[] = freeze([
     uninstallArgv: null,
     docsPath: TOOLS_DOC,
   }),
-  freeze({
+  Object.freeze({
     id: "desktop",
     title: "XFCE desktop over XRDP",
     kind: "installable",
     binary: "xrdp",
-    verifyArgv: freeze([
+    verifyArgv: Object.freeze([
       "bash",
       "-lc",
       'command -v xrdp >/dev/null && systemctl is-enabled --quiet xrdp && systemctl is-enabled --quiet tailscaled && test -f /etc/systemd/system/xrdp.service.d/agro-tailscale-only.conf && grep -qx xfce4-session "$HOME/.xsession"',
     ]),
-    hostInstallArgv: freeze([
+    hostInstallArgv: Object.freeze([
       "bash",
       "-lc",
       [

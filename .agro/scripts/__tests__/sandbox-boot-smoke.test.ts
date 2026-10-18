@@ -185,16 +185,6 @@ function runSmoke(fx: ReturnType<typeof fixture>, extraEnv: Record<string, strin
   });
 }
 
-let healthyBootRun: { fx: ReturnType<typeof fixture>; result: ReturnType<typeof runSmoke> } | undefined;
-
-function healthyBoot() {
-  if (!healthyBootRun) {
-    const fx = fixture();
-    healthyBootRun = { fx, result: runSmoke(fx) };
-  }
-  return healthyBootRun;
-}
-
 describe("sandbox boot smoke Compose init", { timeout: SMOKE_TEST_TIMEOUT_MS }, () => {
   it("fails when PID 1 is systemd", () => {
     const result = runSmoke(fixture({ pid1: "systemd" }));
@@ -214,7 +204,7 @@ describe("sandbox boot smoke Compose init", { timeout: SMOKE_TEST_TIMEOUT_MS }, 
   });
 
   it("proves Compose init and bootstrap readiness on a healthy boot", () => {
-    const { result } = healthyBoot();
+    const result = runSmoke(fixture());
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain(
@@ -226,7 +216,9 @@ describe("sandbox boot smoke Compose init", { timeout: SMOKE_TEST_TIMEOUT_MS }, 
 
 describe("sandbox boot smoke", { timeout: SMOKE_TEST_TIMEOUT_MS }, () => {
   it("starts the sandbox service, polls the healthcheck, and tears down", () => {
-    const { fx, result } = healthyBoot();
+    const fx = fixture();
+
+    const result = runSmoke(fx);
 
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
@@ -259,7 +251,7 @@ describe("sandbox boot smoke", { timeout: SMOKE_TEST_TIMEOUT_MS }, () => {
   });
 
   it("ignores on-demand harnesses and baked-in tools, which install nowhere", () => {
-    const { result } = healthyBoot();
+    const result = runSmoke(fixture());
 
     expect(result.status).toBe(0);
     expect(result.stdout).not.toContain("t3code");
