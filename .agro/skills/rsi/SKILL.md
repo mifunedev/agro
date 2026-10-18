@@ -3,9 +3,9 @@ name: rsi
 description: |
   Run a fixed number of measured improvement loops on one scope. A bounded
   worker makes one edit in each loop. The advisor scores each edit with an
-  external metric and a hidden holdout. The advisor keeps an edit only when the
-  metric beats the current best by more than the noise margin and the holdout
-  does not get worse. Each run ends in a retained gain or an honest
+  external metric and a hidden holdout. When the metric beats the current best
+  by more than the noise margin and the holdout does not get worse, the advisor
+  keeps the edit. Otherwise, the advisor rejects the edit. Each run ends in a retained gain or an honest
   "no improvement" result.
   TRIGGER when: /rsi is invoked, or the operator asks to improve a scope in
   measured loops against a metric command, for example a lint count, a
@@ -232,12 +232,14 @@ gain that the ledger does not record.
 
 ## 5. Resume
 
-The committed ledger and git hold the whole run state. Read nothing else.
+The committed ledger and git hold the whole run state. The last commit of the
+run branch is the only trusted state. Read nothing else.
 
-1. Read the ledger from the last commit of the run branch:
+1. If the run checkout has any uncommitted change, discard every uncommitted
+   change with `bash .agro/scripts/git-maintenance.sh reset-hard HEAD`. An
+   interrupted loop can leave a staged worker edit and an uncommitted row.
+2. Read the ledger from the last commit of the run branch:
    `git show HEAD:.agro/tasks/<slug>/rsi.tsv`.
-2. If the working tree holds an uncommitted ledger row, discard the row with
-   `git restore .agro/tasks/<slug>/rsi.tsv`.
 3. If the ledger holds fewer than two baseline rows, discard the ledger and start
    again at [Preflight](#2-preflight).
 4. Read the invocation from the `reason` of the first baseline row. Read the
@@ -245,11 +247,17 @@ The committed ledger and git hold the whole run state. Read nothing else.
    `<start-commit>` from the `commit` of a baseline row.
 5. If the new invocation differs from the recorded invocation, stop with
    `BLOCKED`. Name the difference.
-6. The last row names the last finished loop `<k>`. If `<k>` equals `<N>`, go to
-   [Report the result](#45-report-the-result).
-7. If the branch `rsi/<slug>-loop-<k+1>` exists, measure that branch. Start at
+6. The last row names the last finished loop `<k>`.
+7. If the worktree or the branch for loop `<k>` still exists, clean up loop
+   `<k>`:
+   1. If the worktree exists, remove the worktree with the REMOVE procedure in
+      [`/worktrees`](../worktrees/SKILL.md).
+   2. If the branch exists, delete the branch with
+      `bash .agro/scripts/git-maintenance.sh branch-delete rsi/<slug>-loop-<k>`.
+8. If `<k>` equals `<N>`, go to [Report the result](#45-report-the-result).
+9. If the branch `rsi/<slug>-loop-<k+1>` exists, measure that branch. Start at
    [Check the evaluator](#42-check-the-evaluator). Dispatch no new worker.
-8. Otherwise, dispatch loop `<k+1>` at [Dispatch one worker](#41-dispatch-one-worker).
+10. Otherwise, dispatch loop `<k+1>` at [Dispatch one worker](#41-dispatch-one-worker).
 
 ## 6. Delivery paths
 
