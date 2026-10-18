@@ -2,3 +2,4 @@
 0	cbf63b467538e8936d577cac5ec9e5e79799606a	208941	0	baseline	evaluator=.agro/tasks/rsi-evaluation-cases/measure-cli-size.mjs .agro/cli/build.mjs .agro/cli/package.json .agro/cli/tsconfig.json vitest.config.ts .agro/cli/src/__tests__ .agro/cli/src/commands/__tests__ .agro/cli/src/lib/__tests__ .agro/cli/src/lib/tracing/__tests__
 1	ba36b5dceaf6ebcdbfed071e3516e2d7e5ec94f2	208350	0	keep	metric -591 over best, holdout 0 <= 0
 2	969e373c75903004bfd874e21394ee92f35f97b6	207627	0	keep	metric -723 over best, holdout 0 <= 0
+3	4c4ee678f313e2b13ddc98d4c3eaec1f0c510862	206821	0	keep	metric -806 over best, holdout 0 <= 0
