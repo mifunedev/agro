@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+- Add `/rsi` to run a fixed number of measured improvement loops on one scope, keep only edits that beat the noise margin without a holdout loss, and log each loop in `rsi.tsv` ([#1465](https://github.com/mifunedev/agro/pull/1465)).
 ### Changed
 - Bound follow-up findings: root `AGENTS.md` adds "Do not turn findings into backlog", and the `/delegate` Close step proposes issues only for out-of-scope correctness or security risks, caps open `follow-up` issues at 10, and labels approved issues `follow-up` ([#1457](https://github.com/mifunedev/agro/issues/1457)).
 ### Fixed
