@@ -30,13 +30,14 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor verification on skill/1464-rsi-skill at bff0cce7. c1 executed: test -f + readlink -f match, exit 0. c2 executed: yaml parse name=rsi, description 852 chars, TRIGGER when and Do NOT trigger present. c3 executed: argument-hint names all five inputs. c4 executed: wc -l = 306. c5 executed: ste-check.sh exit 0. c6-c17 executed by grep -cF for each contract string (all >=1) and reasoned by full read of SKILL.md sections 2-6 and Limits; repair bff0cce7 fixed resume after an interrupted loop (reset-hard via shim, leftover loop cleanup). c18 executed: one /rsi Added entry under [Unreleased], 233 chars, links #1465. c19 executed: pnpm run typecheck exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/skills/rsi/SKILL.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "bff0cce7"
     },
     {
       "id": "US-002",
