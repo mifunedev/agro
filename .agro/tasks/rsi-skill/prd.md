@@ -128,4 +128,11 @@ No `run.json` file exists. Git checks the evaluator through `git diff --quiet <s
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. **A failed metric command read as a perfect score.** Evidence: `ste-check.sh` exited 2 on a missing file, and `grep -c` still printed `0`. Under `--direction min`, a worker that deleted the scope earned `keep`. Outcome: fixed in this PR, commit `07ce717e`. The skill runs each command under `pipefail` and accepts a reading only on exit 0.
+2. **Resume left state behind after an interrupt.** Evidence: advisor review found a staged worker edit that survived resume. Advisor review also found a loop branch that no step deleted. The fresh resume session found a loop branch with no worktree. Outcome: fixed in this PR, commits `bff0cce7` and `07ce717e`.
+3. **The root `.gitignore` ignored the ledger and the evidence.** Evidence: `.gitignore` tracks only `prd.md` and `prd.json` in a task folder. Outcome: fixed in this PR. The skill and the evidence story stage both files with `git add -f`.
+4. **`/rsi` and `/claude-api hillclimb` overlapped on Claude API apps.** Evidence: the hillclimb guide in `anthropics/skills` runs the same keep-or-revert loop on prompts, tools, and model settings. Outcome: fixed in this PR. The `/rsi` description routes that case to `/claude-api hillclimb`.
+5. **Two baseline readings measured no noise.** Evidence: the noise margin was 0 in both runs on a deterministic checker. The hillclimb guide uses a paired confidence interval over repeated runs. Outcome: dropped. Version 1 targets deterministic metrics, and a noisy metric is outside the observed evidence.
+6. **The fixture holdout tracked the metric.** Evidence: the holdout used the same checker with a stricter word cap. Both values moved together in every loop. Outcome: dropped. The operator chooses the holdout for each run, and this choice only affected the fixture.
+7. **The run produced no `reject` decision.** Evidence: all three loops met the keep rule in both runs. Outcome: dropped. A forced bad edit gives contrived evidence. The PR lists the reject path as unverified.
+8. **One local test failed on a tool version.** Evidence: the sandbox has `cc-safety-net` `1.0.6`, and the repository pins `2.6.8`. With `CC_SAFETY_NET_OFF=1`, the 41 link tests pass, and CI passed on this branch. Outcome: dropped. The failure comes from sandbox drift, not from this change.
