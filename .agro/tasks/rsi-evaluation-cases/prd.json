@@ -22,12 +22,13 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor-executed (the advisor dispatches /rsi loop workers). c1 executed: fixture on rsi/guard-drill in a temporary worktree. c2-c4 executed: overlap, nonzero metric (exit=1), and dirty tree each gave BLOCKED with no ledger row. c5 executed: evaluator change in a worker worktree on rsi/guard-drill-evaluator (one-loop run, because the 3-loop invocation was already committed); git diff --quiet exit 1, BLOCKED, ledger kept 2 baseline rows only. c6 executed: interrupt after cherry-pick and row append; fresh read-only session derived reset-hard; git status --porcelain empty after the reset. c7 executed: fresh session found rsi/guard-drill-loop-2 (49f4f269) and the advisor measured it with no second dispatch; step 7 also cleaned the leftover loop-1 branch. c8 executed: loop 3 reject (tie at 0), commit 93c39b2e holds the row only (1 file). c9 executed: evidence/guard-drill.md, commit 00710aff. c10 executed: transcript shows worktree-remove and branch-delete for every loop and both run branches; git branch --list rsi/* empty. c11 executed: pnpm run typecheck exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/tasks/rsi-evaluation-cases/evidence/guard-drill.md"
-      ]
+      ],
+      "commit": "00710aff"
     },
     {
       "id": "US-002",
