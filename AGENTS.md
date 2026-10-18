@@ -128,6 +128,12 @@ cross the sandbox boundary or make persistent work depend on an attached termina
   instructions name for that block, ask the operator, or stop and report the action
   as BLOCKED. Reaching the blocked effect through another command, a script file, or
   another tool is a violation, even when the result is recoverable.
+- **Do not turn findings into backlog.** An unbounded follow-up queue displaces the
+  work the operator asked for. Fix a small finding inside the change that exposed it.
+  Record any other finding in the PR's Lessons section. Propose an issue only for a
+  correctness or security risk outside the change, and let the operator decide.
+  Agents never create follow-up issues. The Close step of
+  [`.agro/skills/delegate/SKILL.md`](.agro/skills/delegate/SKILL.md) owns the rule.
 
 ## Think through every affected surface
 

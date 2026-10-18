@@ -154,12 +154,16 @@ When every story has `passes: true`, do these steps:
 
    Fold a finding into the PR only when one of these conditions is true:
    its fix is in a file that the PR already changes and the PR caused or
-   exposed the finding, or the finding breaks the chain in use. For each
-   other defect, propose one issue for each defect surface. If an open issue
-   already covers the surface, propose a comment on that issue. Drop
-   judgment and process observations, and findings that a test already
-   catches. List the proposed issues in the final report. Before the
-   operator approves the proposed issues at Close, create no issue.
+   exposed the finding, or the finding breaks the chain in use. Propose an
+   issue only for a correctness or security risk outside the PR, one issue
+   for each defect surface. If an open issue already covers the surface,
+   propose a comment on that issue. Drop every other finding with its
+   reason, including test flakes, tooling friction, judgment and process
+   observations, and findings that a test already catches. When the
+   repository has 10 or more open issues labeled `follow-up`, propose a
+   new issue only with the open follow-up it replaces. List the proposed
+   issues in the final report. Before the operator approves the proposed
+   issues at Close, create no issue. Label each approved issue `follow-up`.
 
    "None" is a valid body.
 3. Fill the PR evidence sections from the `notes` in `prd.json`.
