@@ -72,7 +72,7 @@ Prerequisites: a checkout of this branch with `pnpm install` and `npm --prefix .
    node .agro/tasks/rsi-evaluation-cases/measure-cli-size.mjs
    ```
 
-   Expected output: `205122`. Expected exit status: 0.
+   Expected output: `205609` after the operator review. Expected exit status: 0.
 
 2. Read the US-002 metric:
 
