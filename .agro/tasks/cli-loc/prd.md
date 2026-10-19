@@ -149,4 +149,9 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+- The bare TypeScript scanner miscounts code after a `${...}` substitution. The scanner reads the code up to the next backtick as one template token. Evidence: the first metric version `58c1bbb4` counted 43 tokens for `lib/tmux.ts`, and the parse tree holds 268 leaf tokens. Outcome: fixed in this PR. Commit `78756f0f` counts the leaf tokens of the parse tree.
+- The root `pnpm install --frozen-lockfile` does not install `.agro/cli/node_modules`, so the metric fails in a new worktree. Evidence: the US-001 worker got `Cannot find module 'typescript'` until `pnpm run typecheck` ran `npm --prefix .agro/cli ci`. Outcome: dropped, because the cause is tooling friction. The advisor ran `npm --prefix .agro/cli ci` in each worker worktree.
+- The holdout does not count uncovered functions. Evidence: the uncovered function count rose from 93 to 106, and the uncovered line and branch counts fell. Outcome: dropped, because the operator confirmed each kept edit. A later run plan can add a function term to the holdout.
+- No test asserts the message `a <noun> name is required` of `agro harness` and `agro tool`. Evidence: a change of that message in a temporary worktree left `harness.test.ts` and `tool.test.ts` at 193 of 193 passed. Outcome: dropped, because the tests are evaluator paths of this run and the gap existed before the run.
+- The loop 1 edit has two missing spaces after a comma in `cli.ts`. Outcome: dropped, because the repository has no formatter and the run does not edit a kept result.
+- The loop 5 worker reported more duplication in the flag-parsing loops and in the `harness` and `tool` branches of `main()` in `cli.ts`. Outcome: dropped, because that duplication is input for a later run plan.

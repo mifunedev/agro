@@ -218,3 +218,32 @@ run 18 rc=0 load=3.23 passed=2572 failed=0
 run 19 rc=0 load=3.50 passed=2572 failed=0
 run 20 rc=0 load=3.38 passed=2572 failed=0
 ```
+
+## Operator review
+
+The operator confirmed each of the 5 `REVIEW` lines. The advisor reverted no kept edit.
+
+## Manual review observations
+
+The advisor ran the PR manual review steps at `d267ab54`. The failure path changes the host-flags text of `agro tool` in a temporary worktree. The advisor removed the temporary worktree after the run.
+
+```text
+== metric at d267ab54
+73614
+exit 0
+== changed-command tests
+ Test Files  5 passed (5)
+      Tests  267 passed (267)
+exit 0
+== failure path
+temporary worktree /home/sandbox/harness/.worktrees/tmp/cli-loc-review
+install exit 0
+-  const verb = parseInstallerVerb("tool", TOOL_SUBCOMMANDS, positionals, args, "--host and --path", bin);
++  const verb = parseInstallerVerb("tool", TOOL_SUBCOMMANDS, positionals, args, "--host", bin);
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 192 passed (193)
+exit 1
+git-maintenance.sh: ran: git worktree remove --force /home/sandbox/harness/.worktrees/tmp/cli-loc-review
+temporary worktree removed
+```
