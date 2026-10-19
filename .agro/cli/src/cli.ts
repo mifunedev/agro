@@ -1232,6 +1232,23 @@ export async function runWithRemoteSource(
   }
 }
 
+function parsedArgs<T extends { help: boolean }>(
+  parsed: ParseResult<T>,
+  printHelp: () => void,
+  helpExit = 0,
+): T | number {
+  if (!parsed.ok) {
+    process.stderr.write(`${parsed.error}\n`);
+    if (parsed.showHelp) printHelp();
+    return 1;
+  }
+  if (parsed.args.help) {
+    printHelp();
+    return helpExit;
+  }
+  return parsed.args;
+}
+
 async function main(argv: string[]): Promise<number> {
   const product = resolveProduct(process.argv[1]);
   const bin = product.bin;
@@ -1251,17 +1268,12 @@ async function main(argv: string[]): Promise<number> {
   if (fallbackWarning !== undefined) process.stderr.write(fallbackWarning);
 
   if (first === "config") {
-    const parsed = parseConfigArgs(argv.slice(1), bin);
-    if (!parsed.ok) {
-      process.stderr.write(`${parsed.error}\n`);
-      if (parsed.showHelp) printConfigHelp(bin);
-      return 1;
-    }
-    const a = parsed.args;
-    if (a.help) {
-      printConfigHelp(bin);
-      return second === undefined ? 1 : 0;
-    }
+    const a = parsedArgs(
+      parseConfigArgs(argv.slice(1), bin),
+      () => printConfigHelp(bin),
+      second === undefined ? 1 : 0,
+    );
+    if (typeof a === "number") return a;
 
     if (a.verb !== undefined) {
       const io = stdio();
@@ -1290,17 +1302,8 @@ async function main(argv: string[]): Promise<number> {
   }
 
   if (first === "secret") {
-    const parsed = parseSecretArgs(argv.slice(1), bin);
-    if (!parsed.ok) {
-      process.stderr.write(`${parsed.error}\n`);
-      if (parsed.showHelp) printSecretHelp(bin);
-      return 1;
-    }
-    const a = parsed.args;
-    if (a.help) {
-      printSecretHelp(bin);
-      return 0;
-    }
+    const a = parsedArgs(parseSecretArgs(argv.slice(1), bin), () => printSecretHelp(bin));
+    if (typeof a === "number") return a;
     const io = stdio();
     const scope = a.sandbox === undefined ? { bin } : { bin, sandbox: a.sandbox };
     if (a.verb === "list") return await runSecretList(scope, io);
@@ -1309,17 +1312,12 @@ async function main(argv: string[]): Promise<number> {
   }
 
   if (first === "langfuse") {
-    const parsed = parseLangfuseArgs(argv.slice(1), bin);
-    if (!parsed.ok) {
-      process.stderr.write(`${parsed.error}\n`);
-      if (parsed.showHelp) printLangfuseHelp(bin);
-      return 1;
-    }
-    const a = parsed.args;
-    if (a.help) {
-      printLangfuseHelp(bin);
-      return second === undefined ? 1 : 0;
-    }
+    const a = parsedArgs(
+      parseLangfuseArgs(argv.slice(1), bin),
+      () => printLangfuseHelp(bin),
+      second === undefined ? 1 : 0,
+    );
+    if (typeof a === "number") return a;
     const io = stdio();
     if (a.verb === "status") return await runLangfuseStatus({ bin }, io);
     if (a.verb === "disable") return await runLangfuseDisable({ bin }, io);
@@ -1327,40 +1325,23 @@ async function main(argv: string[]): Promise<number> {
   }
 
   if (first === "update" || first === "self-upgrade") {
-    const parsed = parseSelfUpgradeArgs(argv.slice(1), bin);
-    if (!parsed.ok) {
-      process.stderr.write(`${parsed.error}\n`);
-      if (parsed.showHelp) printSelfUpgradeHelp(bin);
-      return 1;
-    }
-    if (parsed.args.help) {
-      printSelfUpgradeHelp(bin);
-      return 0;
-    }
-    const io = stdio();
+    const a = parsedArgs(parseSelfUpgradeArgs(argv.slice(1), bin), () => printSelfUpgradeHelp(bin));
+    if (typeof a === "number") return a;
     return await runSelfUpgrade(
-      { dryRun: parsed.args.dryRun, argv1: process.argv[1] },
+      { dryRun: a.dryRun, argv1: process.argv[1] },
       defaultDeps(VERSION),
-      io,
+      stdio(),
     );
   }
 
   if (first === "vendor") {
-    const parsed = parseVendorArgs(argv.slice(1), bin);
-    if (!parsed.ok) {
-      process.stderr.write(`${parsed.error}\n`);
-      if (parsed.showHelp) printVendorHelp(bin);
-      return 1;
-    }
-    if (parsed.args.help) {
-      printVendorHelp(bin);
-      return 0;
-    }
+    const a = parsedArgs(parseVendorArgs(argv.slice(1), bin), () => printVendorHelp(bin));
+    if (typeof a === "number") return a;
 
-    const { force, dryRun } = parsed.args;
+    const { force, dryRun } = a;
     const io = stdio();
     const targetDir = process.cwd();
-    const source = resolveVendorSource(parsed.args, { sourceControlDir: DEFAULT_SOURCE_CONTROL_DIR }, bin);
+    const source = resolveVendorSource(a,{ sourceControlDir: DEFAULT_SOURCE_CONTROL_DIR }, bin);
 
     if (source.kind === "local") {
       return await runUpdate({ bin, targetDir, fromDir: source.fromDir, force, dryRun }, io);
@@ -1374,68 +1355,34 @@ async function main(argv: string[]): Promise<number> {
   if (first === "sandbox") return runSandboxCommand(argv.slice(1), bin);
 
   if (first === "shell") {
-    const parsed = parseShellArgs(argv.slice(1), bin);
-    if (!parsed.ok) {
-      process.stderr.write(`${parsed.error}\n`);
-      return 1;
-    }
-    if (parsed.args.help) {
-      printShellHelp(bin);
-      return 0;
-    }
-    return runShell(
-      parsed.args.name === undefined ? { bin } : { bin, name: parsed.args.name },
-      stdio(),
-    );
+    const a = parsedArgs(parseShellArgs(argv.slice(1), bin), () => printShellHelp(bin));
+    if (typeof a === "number") return a;
+    return runShell(a.name === undefined ? { bin } : { bin, name: a.name }, stdio());
   }
 
   if (first === "destroy") {
-    const parsed = parseDestroyArgs(argv.slice(1), bin);
-    if (!parsed.ok) {
-      process.stderr.write(`${parsed.error}\n`);
-      return 1;
-    }
-    if (parsed.args.help) {
-      printDestroyHelp(bin);
-      return 0;
-    }
+    const a = parsedArgs(parseDestroyArgs(argv.slice(1), bin), () => printDestroyHelp(bin));
+    if (typeof a === "number") return a;
     return await runDestroy(
-      {
-        bin,
-        yes: parsed.args.yes,
-        ...(parsed.args.name !== undefined ? { name: parsed.args.name } : {}),
-      },
+      { bin, yes: a.yes, ...(a.name !== undefined ? { name: a.name } : {}) },
       stdio(),
     );
   }
 
   if (first === "compose") {
-    const parsed = parseComposeArgs(argv.slice(1), bin);
-    if (!parsed.ok) {
-      process.stderr.write(`${parsed.error}\n`);
-      if (parsed.showHelp) printComposeHelp(bin);
-      return 1;
-    }
-    if (parsed.args.help) {
-      printComposeHelp(bin);
-      return 0;
-    }
-    return runComposeConfig({ bin }, parsed.args.passthrough);
+    const a = parsedArgs(parseComposeArgs(argv.slice(1), bin), () => printComposeHelp(bin));
+    if (typeof a === "number") return a;
+    return runComposeConfig({ bin }, a.passthrough);
   }
 
   if (first === "egress") {
-    const parsed = parseEgressArgs(argv.slice(1), bin);
-    if (!parsed.ok) {
-      process.stderr.write(`${parsed.error}\n`);
-      if (parsed.showHelp) printEgressHelp(bin);
-      return 1;
-    }
-    const a = parsed.args;
-    if (a.help || a.verb === undefined) {
-      printEgressHelp(bin);
-      return second === undefined ? 1 : 0;
-    }
-    return runEgress(a.verb, a.name === undefined ? { bin } : { bin, name: a.name }, stdio());
+    const a = parsedArgs(
+      parseEgressArgs(argv.slice(1), bin),
+      () => printEgressHelp(bin),
+      second === undefined ? 1 : 0,
+    );
+    if (typeof a === "number") return a;
+    return runEgress(a.verb as EgressVerb,a.name === undefined ? { bin } : { bin, name: a.name }, stdio());
   }
 
   if (first === "auth") {
@@ -1457,17 +1404,8 @@ async function main(argv: string[]): Promise<number> {
   }
 
   if (first === "workspace") {
-    const parsed = parseWorkspaceArgs(argv.slice(1), bin);
-    if (!parsed.ok) {
-      process.stderr.write(`${parsed.error}\n`);
-      if (parsed.showHelp) printWorkspaceHelp(bin);
-      return 1;
-    }
-    if (parsed.args.help) {
-      printWorkspaceHelp(bin);
-      return 0;
-    }
-    const a = parsed.args;
+    const a = parsedArgs(parseWorkspaceArgs(argv.slice(1), bin), () => printWorkspaceHelp(bin));
+    if (typeof a === "number") return a;
     const io = stdio();
     if (a.subcommand === "list") {
       return await runWorkspaceList({ bin, json: a.json }, io);
@@ -1508,17 +1446,8 @@ async function main(argv: string[]): Promise<number> {
   }
 
   if (first === "harness") {
-    const parsed = parseHarnessArgs(argv.slice(1), bin);
-    if (!parsed.ok) {
-      process.stderr.write(`${parsed.error}\n`);
-      if (parsed.showHelp) printHarnessHelp(bin);
-      return 1;
-    }
-    if (parsed.args.help) {
-      printHarnessHelp(bin);
-      return 0;
-    }
-    const a = parsed.args;
+    const a = parsedArgs(parseHarnessArgs(argv.slice(1), bin), () => printHarnessHelp(bin));
+    if (typeof a === "number") return a;
     const io = stdio();
     if (a.subcommand === "list") {
       return await runHarnessList({ bin, json: a.json }, io);
@@ -1542,17 +1471,8 @@ async function main(argv: string[]): Promise<number> {
   }
 
   if (first === "tool") {
-    const parsed = parseToolArgs(argv.slice(1), bin);
-    if (!parsed.ok) {
-      process.stderr.write(`${parsed.error}\n`);
-      if (parsed.showHelp) printToolHelp(bin);
-      return 1;
-    }
-    if (parsed.args.help) {
-      printToolHelp(bin);
-      return 0;
-    }
-    const a = parsed.args;
+    const a = parsedArgs(parseToolArgs(argv.slice(1), bin), () => printToolHelp(bin));
+    if (typeof a === "number") return a;
     const io = stdio();
     if (a.subcommand === "list") {
       return await runToolList({ bin, json: a.json }, io);
@@ -1571,16 +1491,9 @@ async function main(argv: string[]): Promise<number> {
   }
 
   if (first === "gateway") {
-    const parsed = parseGatewayArgs(argv.slice(1));
-    if (!parsed.ok) {
-      process.stderr.write(`${parsed.error}\n`);
-      return 1;
-    }
-    if (parsed.args.help) {
-      printGatewayHelp(bin);
-      return 0;
-    }
-    return runGateway(parsed.args.passthrough, { bin });
+    const a = parsedArgs(parseGatewayArgs(argv.slice(1)), () => printGatewayHelp(bin));
+    if (typeof a === "number") return a;
+    return runGateway(a.passthrough, { bin });
   }
 
   return unknownCommand(first, product);
