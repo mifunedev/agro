@@ -1,12 +1,12 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { relative, resolve, join } from "node:path";
 
 const root = resolve(import.meta.dirname, "../../..");
 const scratch: string[] = [];
-afterEach(() => { for (const dir of scratch.splice(0)) rmSync(dir, { recursive: true, force: true }); });
+afterAll(() => { for (const dir of scratch.splice(0)) rmSync(dir, { recursive: true, force: true }); });
 
 function fixture(): string {
   const dir = mkdtempSync(join(tmpdir(), "oh-standard-skills-"));
@@ -18,10 +18,15 @@ function fixture(): string {
   return dir;
 }
 
-function link(dir: string, mode: string, pathPrefix = "") {
-  return spawnSync("bash", [join(root, ".agro/scripts/link-providers.sh"), mode], {
-    cwd: dir, encoding: "utf8",
-    env: { PATH: `${pathPrefix}/usr/bin:/bin`, HOME: dir, AGRO_PROJECT_ROOT: dir },
+function link(dir: string, mode: string, pathPrefix = ""): Promise<{ status: number | null; stderr: string }> {
+  return new Promise((done, fail) => {
+    const child = spawn("bash", [join(root, ".agro/scripts/link-providers.sh"), mode], {
+      cwd: dir, stdio: ["ignore", "ignore", "pipe"],
+      env: { PATH: `${pathPrefix}/usr/bin:/bin`, HOME: dir, AGRO_PROJECT_ROOT: dir },
+    });
+    let stderr = "";
+    child.stderr.setEncoding("utf8").on("data", (chunk: string) => { stderr += chunk; });
+    child.on("error", fail).on("close", (status) => done({ status, stderr }));
   });
 }
 
@@ -52,78 +57,78 @@ function manifest(dir: string, base: string = dir): string[] {
   return rows.sort();
 }
 
-describe("standard project skills", () => {
-  it("creates, verifies and repairs a link to canonical skills", () => {
+describe.concurrent("standard project skills", () => {
+  it("creates, verifies and repairs a link to canonical skills", async () => {
     const dir = fixture();
-    const initialized = link(dir, "--init");
+    const initialized = (await link(dir, "--init"));
     expect(initialized.status, initialized.stderr).toBe(0);
     const path = join(dir, ".agents/skills");
     expect(readlinkSync(path)).toBe("../.agro/skills");
     expect(readFileSync(join(path, "git/SKILL.md"), "utf8")).toBe(readFileSync(join(root, ".agro/skills/git/SKILL.md"), "utf8"));
     expect(existsSync(join(dir, ".pi/skills"))).toBe(false);
     expect(lstatSync(join(dir, ".codex/skills"), { throwIfNoEntry: false })).toBeUndefined();
-    expect(link(dir, "--check").status).toBe(0);
+    expect((await link(dir, "--check")).status).toBe(0);
     rmSync(path);
     symlinkSync("../missing", path);
-    expect(link(dir, "--check").status).toBe(1);
-    expect(link(dir, "--init").status).toBe(0);
+    expect((await link(dir, "--check")).status).toBe(1);
+    expect((await link(dir, "--init")).status).toBe(0);
     expect(readlinkSync(path)).toBe("../.agro/skills");
     for (const retired of [".agro/agents", ".claude/agents", ".codex/agents", ".pi/agents"]) expect(existsSync(join(dir, retired))).toBe(false);
   });
 
-  it("retires an old AGRO Pi skill link", () => {
+  it("retires an old AGRO Pi skill link", async () => {
     const dir = fixture();
     mkdirSync(join(dir, ".pi"), { recursive: true });
     symlinkSync("../.agro/skills", join(dir, ".pi/skills"));
-    expect(link(dir, "--check").status).toBe(1);
-    const result = link(dir, "--init");
+    expect((await link(dir, "--check")).status).toBe(1);
+    const result = (await link(dir, "--init"));
     expect(result.status, result.stderr).toBe(0);
     expect(existsSync(join(dir, ".pi/skills"))).toBe(false);
     expect(readlinkSync(join(dir, ".pi/skills.migrated"))).toBe("../.agro/skills");
   });
 
-  it("preserves an existing retired marker", () => {
+  it("preserves an existing retired marker", async () => {
     const dir = fixture();
     mkdirSync(join(dir, ".pi"), { recursive: true });
     symlinkSync("../.agro/skills", join(dir, ".pi/skills"));
     writeFileSync(join(dir, ".pi/skills.migrated"), "operator-owned\n");
-    const result = link(dir, "--init");
+    const result = (await link(dir, "--init"));
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("already exists");
     expect(readlinkSync(join(dir, ".pi/skills"))).toBe("../.agro/skills");
     expect(readFileSync(join(dir, ".pi/skills.migrated"), "utf8")).toBe("operator-owned\n");
   });
 
-  it("preserves a foreign Pi skill link", () => {
+  it("preserves a foreign Pi skill link", async () => {
     const dir = fixture();
     mkdirSync(join(dir, ".pi"), { recursive: true });
     symlinkSync("../custom/skills", join(dir, ".pi/skills"));
-    const result = link(dir, "--init");
+    const result = (await link(dir, "--init"));
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("does not resolve to the vendored .agro/skills pack");
     expect(readlinkSync(join(dir, ".pi/skills"))).toBe("../custom/skills");
   });
 
-  it("preserves the Pi link when .agents/skills cannot become the replacement", () => {
+  it("preserves the Pi link when .agents/skills cannot become the replacement", async () => {
     const dir = fixture();
     mkdirSync(join(dir, ".pi"), { recursive: true });
     symlinkSync("../.agro/skills", join(dir, ".pi/skills"));
     mkdirSync(join(dir, ".agents/skills"), { recursive: true });
     writeFileSync(join(dir, ".agents/skills/keep.txt"), "user-owned");
-    const result = link(dir, "--init");
+    const result = (await link(dir, "--init"));
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("still carries skill discovery");
     expect(readlinkSync(join(dir, ".pi/skills"))).toBe("../.agro/skills");
     expect(discoverable(dir)).toContain("git");
   });
 
-  it("preserves an operator-owned Claude skill directory reached through the Pi link", () => {
+  it("preserves an operator-owned Claude skill directory reached through the Pi link", async () => {
     const dir = fixture();
     mkdirSync(join(dir, ".claude/skills/custom"), { recursive: true });
     writeFileSync(join(dir, ".claude/skills/custom/SKILL.md"), "operator-owned\n");
     mkdirSync(join(dir, ".pi"), { recursive: true });
     symlinkSync("../.claude/skills", join(dir, ".pi/skills"));
-    const result = link(dir, "--init");
+    const result = (await link(dir, "--init"));
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("does not resolve to the vendored .agro/skills pack");
     expect(readlinkSync(join(dir, ".pi/skills"))).toBe("../.claude/skills");
@@ -131,19 +136,19 @@ describe("standard project skills", () => {
     expect(discoverable(dir)).toContain("git");
   });
 
-  it("retires a Pi link that reaches the pack through the Claude link", () => {
+  it("retires a Pi link that reaches the pack through the Claude link", async () => {
     const dir = fixture();
     symlinkSync("../.agro/skills", join(dir, ".claude/skills"));
     mkdirSync(join(dir, ".pi"), { recursive: true });
     symlinkSync("../.claude/skills", join(dir, ".pi/skills"));
-    const result = link(dir, "--init");
+    const result = (await link(dir, "--init"));
     expect(result.status, result.stderr).toBe(0);
     expect(existsSync(join(dir, ".pi/skills"))).toBe(false);
     expect(readlinkSync(join(dir, ".pi/skills.migrated"))).toBe("../.claude/skills");
     expect(discoverable(dir)).toContain("git");
   });
 
-  it("keeps skill discovery when .agents/skills chains through the retired link", () => {
+  it("keeps skill discovery when .agents/skills chains through the retired link", async () => {
     const dir = fixture();
     mkdirSync(join(dir, ".pi"), { recursive: true });
     symlinkSync("../.agro/skills", join(dir, ".pi/skills"));
@@ -151,13 +156,13 @@ describe("standard project skills", () => {
     symlinkSync("../.pi/skills", join(dir, ".agents/skills"));
     const before = discoverable(dir);
     expect(before).toContain("git");
-    const result = link(dir, "--init");
+    const result = (await link(dir, "--init"));
     expect(result.status, result.stderr).toBe(0);
     expect(readlinkSync(join(dir, ".agents/skills"))).toBe("../.agro/skills");
     expect(discoverable(dir)).toEqual(before);
   });
 
-  it("keeps skill discovery when .agents/skills names the pack by absolute path", () => {
+  it("keeps skill discovery when .agents/skills names the pack by absolute path", async () => {
     const dir = fixture();
     mkdirSync(join(dir, ".pi"), { recursive: true });
     symlinkSync("../.agro/skills", join(dir, ".pi/skills"));
@@ -165,72 +170,72 @@ describe("standard project skills", () => {
     symlinkSync(join(dir, ".agro/skills"), join(dir, ".agents/skills"));
     const before = discoverable(dir);
     expect(before).toContain("git");
-    const result = link(dir, "--init");
+    const result = (await link(dir, "--init"));
     expect(result.status, result.stderr).toBe(0);
     expect(readlinkSync(join(dir, ".agents/skills"))).toBe("../.agro/skills");
     expect(discoverable(dir)).toEqual(before);
   });
 
-  it("refuses to retire while .agents/skills only chains through the retired link", () => {
+  it("refuses to retire while .agents/skills only chains through the retired link", async () => {
     const dir = fixture();
     mkdirSync(join(dir, ".pi"), { recursive: true });
     symlinkSync("../.agro/skills", join(dir, ".pi/skills"));
     mkdirSync(join(dir, ".agents"), { recursive: true });
     symlinkSync("../.pi/skills", join(dir, ".agents/skills"));
     const before = manifest(dir);
-    const result = link(dir, "--check");
+    const result = (await link(dir, "--check"));
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("is not an independent link to .agro/skills");
     expect(manifest(dir)).toEqual(before);
     expect(discoverable(dir)).toContain("git");
   });
 
-  it("changes nothing while checking", () => {
+  it("changes nothing while checking", async () => {
     const dir = fixture();
     mkdirSync(join(dir, ".pi"), { recursive: true });
     symlinkSync("../.agro/skills", join(dir, ".pi/skills"));
     const before = manifest(dir);
-    expect(link(dir, "--check").status).toBe(1);
+    expect((await link(dir, "--check")).status).toBe(1);
     expect(manifest(dir)).toEqual(before);
     expect(discoverable(dir)).toContain("git");
   });
 
-  it("refuses a symlinked provider parent without touching its target", () => {
+  it("refuses a symlinked provider parent without touching its target", async () => {
     const dir = fixture();
     const outside = mkdtempSync(join(tmpdir(), "oh-provider-parent-"));
     scratch.push(outside);
     symlinkSync("../.agro/skills", join(outside, "skills"));
     symlinkSync(outside, join(dir, ".pi"));
-    const result = link(dir, "--init");
+    const result = (await link(dir, "--init"));
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(".pi is a symlink");
     expect(readlinkSync(join(outside, "skills"))).toBe("../.agro/skills");
   });
 
   describe.each([".pi", ".codex"])("%s safe retirement", (provider) => {
-    it.each(["../.agro/skills", "../.claude/skills"])("retires %s once and keeps the replacement", (target) => {
+    it.each(["../.agro/skills", "../.claude/skills"])("retires %s once and keeps the replacement", async (target) => {
       const dir = fixture();
-      expect(link(dir, "--init").status).toBe(0);
+      expect((await link(dir, "--init")).status).toBe(0);
       mkdirSync(join(dir, provider), { recursive: true });
       symlinkSync(target, join(dir, provider, "skills"));
       writeFileSync(join(dir, provider, "config.toml"), "operator-owned\n");
       const before = manifest(dir);
-      expect(link(dir, "--check").status).toBe(1);
+      expect((await link(dir, "--check")).status).toBe(1);
       expect(manifest(dir)).toEqual(before);
-      expect(link(dir, "--init").status).toBe(0);
+      expect((await link(dir, "--init")).status).toBe(0);
       expect(lstatSync(join(dir, provider, "skills"), { throwIfNoEntry: false })).toBeUndefined();
       expect(readlinkSync(join(dir, provider, "skills.migrated"))).toBe(target);
       expect(existsSync(join(dir, ".agents/skills/git/SKILL.md"))).toBe(true);
       expect(readFileSync(join(dir, provider, "config.toml"), "utf8")).toBe("operator-owned\n");
       const after = manifest(dir);
-      expect(link(dir, "--init").status).toBe(0);
-      expect(link(dir, "--check").status).toBe(0);
+      expect((await link(dir, "--init")).status).toBe(0);
+      expect((await link(dir, "--check")).status).toBe(0);
       expect(manifest(dir)).toEqual(after);
     });
 
-    it.each(["directory", "foreign", "broken", "collision", "replacement directory", "symlink parent"])("refuses %s without changing user paths", (kind) => {
+    it.each(["directory", "foreign", "broken", "collision", "replacement directory", "symlink parent"])("refuses %s without changing user paths", async (kind) => {
       const dir = fixture();
-      expect(link(dir, "--init").status).toBe(0);
+      expect((await link(dir, "--init")).status).toBe(0);
       mkdirSync(join(dir, "custom/skills"), { recursive: true });
       writeFileSync(join(dir, "custom/skills/keep"), "operator-owned\n");
       if (kind === "symlink parent") symlinkSync("custom", join(dir, provider));
@@ -248,35 +253,35 @@ describe("standard project skills", () => {
         mkdirSync(join(dir, ".agents/skills"));
       }
       const before = manifest(dir);
-      expect(link(dir, "--check").status).toBe(1);
+      expect((await link(dir, "--check")).status).toBe(1);
       expect(manifest(dir)).toEqual(before);
-      expect(link(dir, "--init").status).toBe(1);
+      expect((await link(dir, "--init")).status).toBe(1);
       expect(manifest(dir)).toEqual(before);
     });
 
-    it.each(["chained", "absolute"])("repairs a %s replacement before retirement", (kind) => {
+    it.each(["chained", "absolute"])("repairs a %s replacement before retirement", async (kind) => {
       const dir = fixture();
-      expect(link(dir, "--init").status).toBe(0);
+      expect((await link(dir, "--init")).status).toBe(0);
       mkdirSync(join(dir, provider), { recursive: true });
       symlinkSync("../.agro/skills", join(dir, provider, "skills"));
       rmSync(join(dir, ".agents/skills"));
       symlinkSync(kind === "chained" ? `../${provider}/skills` : join(dir, ".agro/skills"), join(dir, ".agents/skills"));
       const before = manifest(dir);
-      expect(link(dir, "--check").status).toBe(1);
+      expect((await link(dir, "--check")).status).toBe(1);
       expect(manifest(dir)).toEqual(before);
-      expect(link(dir, "--init").status).toBe(0);
+      expect((await link(dir, "--init")).status).toBe(0);
       expect(readlinkSync(join(dir, ".agents/skills"))).toBe("../.agro/skills");
       expect(existsSync(join(dir, ".agents/skills/git/SKILL.md"))).toBe(true);
       expect(lstatSync(join(dir, provider, "skills"), { throwIfNoEntry: false })).toBeUndefined();
     });
   });
 
-  it("refuses a real-directory collision without losing user skills", () => {
+  it("refuses a real-directory collision without losing user skills", async () => {
     const dir = fixture();
     const path = join(dir, ".agents/skills");
     mkdirSync(path, { recursive: true });
     writeFileSync(join(path, "keep.txt"), "user-owned");
-    const result = link(dir, "--init");
+    const result = (await link(dir, "--init"));
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("exists and is not a symlink");
     expect(lstatSync(path).isDirectory()).toBe(true);
@@ -284,23 +289,23 @@ describe("standard project skills", () => {
   });
 });
 
-describe("repository provider surfaces", () => {
-  it.each([".agents/skills", ".claude/skills", ".claude/hooks"])("%s is a tracked symlink that resolves into .agro/", (path) => {
+describe.concurrent("repository provider surfaces", () => {
+  it.each([".agents/skills", ".claude/skills", ".claude/hooks"])("%s is a tracked symlink that resolves into .agro/", async (path) => {
     expect(lstatSync(join(root, path)).isSymbolicLink()).toBe(true);
     expect(realpathSync(join(root, path))).toBe(realpathSync(join(root, ".agro", path.split("/")[1])));
     expect(spawnSync("git", ["ls-files", "--error-unmatch", path], { cwd: root }).status).toBe(0);
   });
 
-  it.each([".pi/skills", ".codex/skills"])("%s stays retired", (path) => {
+  it.each([".pi/skills", ".codex/skills"])("%s stays retired", async (path) => {
     expect(lstatSync(join(root, path), { throwIfNoEntry: false })).toBeUndefined();
   });
 
-  it("passes the link check", () => {
+  it("passes the link check", async () => {
     const result = spawnSync("bash", [join(root, ".agro/scripts/link-providers.sh"), "--check"], { cwd: root, encoding: "utf8" });
     expect(result.status, result.stderr).toBe(0);
   });
 
-  it("keeps the skills scan dir free of loose files a provider would mis-load", () => {
+  it("keeps the skills scan dir free of loose files a provider would mis-load", async () => {
     const skills = join(root, ".agro/skills");
     const loose = readdirSync(skills, { withFileTypes: true })
       .filter((entry) => !entry.isDirectory())
@@ -313,14 +318,14 @@ describe("repository provider surfaces", () => {
     expect(loose).toEqual([]);
   });
 
-  it("links Hermes only when the hermes binary is on PATH", () => {
+  it("links Hermes only when the hermes binary is on PATH", async () => {
     const dir = fixture();
-    expect(link(dir, "--init").status).toBe(0);
+    expect((await link(dir, "--init")).status).toBe(0);
     expect(existsSync(join(dir, ".hermes"))).toBe(false);
     const bin = join(dir, "fake-bin");
     mkdirSync(bin);
     writeFileSync(join(bin, "hermes"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
-    const result = link(dir, "--init", `${bin}:`);
+    const result = (await link(dir, "--init", `${bin}:`));
     expect(result.status, result.stderr).toBe(0);
     expect(readFileSync(join(dir, ".hermes/skills/agro/git/SKILL.md"), "utf8")).toBe(readFileSync(join(root, ".agro/skills/git/SKILL.md"), "utf8"));
   });
