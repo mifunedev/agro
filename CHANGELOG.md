@@ -13,7 +13,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 - Give `/rsi` a `--slug <run-slug>` input, measure the noise margin again after each kept edit in a `margin` ledger column, and print a `REVIEW` line for each kept edit ([#1471](https://github.com/mifunedev/agro/pull/1471)).
-- Show the 5-hour and 7-day subscription usage percentages in the Claude Code status line, and hide each segment when Claude Code omits its `rate_limits` window, and disable idle compaction in Claude Code project settings ([#1480](https://github.com/mifunedev/agro/issues/1480)).
+- Show 5-hour and 7-day usage percentages in the Claude Code status line when Claude Code reports them, and disable idle compaction in project settings ([#1480](https://github.com/mifunedev/agro/issues/1480)).
 
 ### Fixed
 - Enable Pi terminal clipboard forwarding by default in newly scaffolded interactive Herdr shells while preserving explicit overrides ([#1476](https://github.com/mifunedev/agro/issues/1476)).
