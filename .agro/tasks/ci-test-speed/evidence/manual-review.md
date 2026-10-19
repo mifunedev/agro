@@ -219,3 +219,23 @@ run 18 rc=0 load=6.34 passed=2565 failed=0
 run 19 rc=0 load=6.40 passed=2565 failed=0
 run 20 rc=0 load=6.23 passed=2565 failed=0
 ```
+
+## Failure path
+
+```text
+git worktree add --detach .worktrees/review/ci-test-speed-failpath 7047a768
+sed -i "2i exit 0" .agro/scripts/link-providers.sh .agro/hooks/deny-secret-paths.sh
+pnpm exec vitest run .agro/scripts/__tests__/standard-skills-link.test.ts .agro/scripts/__tests__/hooks.test.ts
+ Test Files  2 failed (2)
+      Tests  43 failed | 138 passed (181)
+broken exit=1
+git-maintenance.sh: ran: git worktree remove --force /home/sandbox/harness/.worktrees/review/ci-test-speed-failpath
+
+At the task branch head, unchanged scripts:
+pnpm exec vitest run <the 4 changed test files>
+ Test Files  4 passed (4)
+      Tests  242 passed (242)
+head exit=0
+```
+
+The operator confirmed both REVIEW lines (reply: "Confirm"). The advisor reverted no kept edit.

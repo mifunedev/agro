@@ -49,8 +49,9 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed: evidence/manual-review.md holds both run transcripts (preflight, baselines, each loop evaluation, the loop 2 block and resume, worker worktree and branch deletions), the flake search, the post-run report, a 20-run stress pass (20 of 20 passed), and a failure path (scripts replaced by exit 0: 43 tests fail, exit 1). Coverage totals for lines, branches, and functions are equal at ebfe44e8 and 7e68e678. The development run 39195903117 Test step took 32 s. The operator confirmed both REVIEW lines (reply: Confirm); no kept edit reverted. PR Manual review lists each REVIEW line; manual-review-check.sh exit 0; pnpm run typecheck exit 0. Reasoned: the PR head Test step time exists only after the push, so the advisor records it in the PR body Verification section; the evidence file keeps the <PR head Test step time> placeholder to avoid a third push.",
+      "commit": "7047a768",
       "dependsOn": [
         "US-001"
       ],
