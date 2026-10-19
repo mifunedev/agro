@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1477-ci-test-speed",
+  "description": "rsi run on CI test speed: one /rsi version 2 run on the PR path that makes the CI Test step faster with no loss of tests or coverage.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Run 5 loops on the CI test suite speed",
+      "description": "As the operator, I want a `/rsi` run on the test files so that the CI test step gets faster with no coverage loss.",
+      "acceptanceCriteria": [
+        "The advisor runs `/rsi` on `task/<N>-ci-test-speed` with `--loops 5` and `--slug ci-test-speed`, with the scope, metric, holdout, and direction in the Summary.",
+        "`.agro/tasks/ci-test-speed/rsi.tsv` holds 2 baseline rows and 5 loop rows. Each row has 7 columns.",
+        "`git diff --quiet <start-commit> -- vitest.config.ts .agro/cli/vitest.global-setup.mjs package.json pnpm-lock.yaml .github/workflows/` exits 0 on the task branch.",
+        "`git diff --name-only <start-commit> HEAD` lists only paths under the scope directories and `.agro/tasks/ci-test-speed/rsi.tsv`.",
+        "After loop 5, the advisor runs the holdout on the task branch. The holdout prints `0`.",
+        "After loop 5, the advisor runs the metric on the task branch. If the ledger holds a `keep` row, the metric is lower than the first baseline metric by more than the baseline noise margin.",
+        "The run report prints one `REVIEW` line for each `keep` row.",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/scripts/__tests__/",
+        ".agro/cli/src/__tests__/",
+        ".agro/cli/src/lib/__tests__/",
+        ".agro/cli/src/lib/tracing/__tests__/",
+        ".agro/cli/src/commands/__tests__/",
+        ".pi/extensions/__tests__/",
+        ".pi/bridge-recovery/__tests__/",
+        ".agro/tasks/ci-test-speed/rsi.tsv"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Record manual review evidence",
+      "description": "As a reviewer, I want the run transcript, the coverage totals, and the CI step time in one file.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/ci-test-speed/evidence/manual-review.md` holds the preflight output, the baseline readings, each loop evaluation, the run report, and the deletion of each worker worktree and branch.",
+        "The evidence file holds the coverage totals for lines, branches, and functions at the start commit and at the task branch head.",
+        "The evidence file holds the duration of the `Test` step of the `Typecheck, Build & Test` job for the last `development` run before the PR and for the pushed PR head.",
+        "The PR `## Manual review` section lists each `REVIEW` line.",
+        "The operator confirms each `REVIEW` line before the merge. The advisor reverts each kept edit that fails the review, and records the revert in `## Lessons`.",
+        "`bash .agro/skills/git/scripts/manual-review-check.sh <pr-body-file>` exits 0.",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/tasks/ci-test-speed/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
