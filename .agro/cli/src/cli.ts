@@ -1039,35 +1039,42 @@ export function parseHarnessArgs(rest: string[], bin: string = AGRO_PRODUCT.bin)
     };
   }
 
+  const verb = parseInstallerVerb("harness", HARNESS_SUBCOMMANDS, positionals, args, "--host, --workspace and --path", bin);
+  return verb.ok ? { ok: true, args: { ...args, ...verb.args } } : verb;
+}
+
+function parseInstallerVerb<S extends HarnessSubcommand>(
+  noun: "harness" | "tool",
+  subcommands: readonly S[],
+  positionals: string[],
+  flags: { host: boolean; force: boolean },
+  hostFlags: string,
+  bin: string,
+): ParseResult<{ subcommand: S; name?: string }> {
   const [sub, name, ...extra] = positionals;
-  if (!isOneOf(HARNESS_SUBCOMMANDS, sub)) {
+  if (!isOneOf(subcommands, sub)) {
     return {
       ok: false,
-      error: `${bin} harness: unknown subcommand "${sub}" — expected list, install, uninstall, or status`,
+      error: `${bin} ${noun}: unknown subcommand "${sub}" — expected list, install, uninstall, or status`,
       showHelp: true,
     };
   }
   if (extra.length > 0) {
-    return { ok: false, error: `${bin} harness: unexpected argument "${extra[0]}"` };
+    return { ok: false, error: `${bin} ${noun}: unexpected argument "${extra[0]}"` };
   }
   if ((sub === "install" || sub === "uninstall") && name === undefined) {
-    return { ok: false, error: `${bin} harness ${sub}: a harness name is required`, showHelp: true };
+    return { ok: false, error: `${bin} ${noun} ${sub}: a ${noun} name is required`, showHelp: true };
   }
   if (sub === "list" && name !== undefined) {
-    return { ok: false, error: `${bin} harness list: unexpected argument "${name}"` };
+    return { ok: false, error: `${bin} ${noun} list: unexpected argument "${name}"` };
   }
-  if (sub !== "install" && args.host) {
-    return {
-      ok: false,
-      error: `${bin} harness ${sub}: --host, --workspace and --path apply to install only`,
-    };
+  if (sub !== "install" && flags.host) {
+    return { ok: false, error: `${bin} ${noun} ${sub}: ${hostFlags} apply to install only` };
   }
-  if (sub !== "uninstall" && args.force) {
-    return { ok: false, error: `${bin} harness ${sub}: --force applies to uninstall only` };
+  if (sub !== "uninstall" && flags.force) {
+    return { ok: false, error: `${bin} ${noun} ${sub}: --force applies to uninstall only` };
   }
-  args.subcommand = sub;
-  if (name !== undefined) args.name = name;
-  return { ok: true, args };
+  return { ok: true, args: name === undefined ? { subcommand: sub } : { subcommand: sub, name } };
 }
 
 interface ToolArgs {
@@ -1110,32 +1117,8 @@ export function parseToolArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): P
     return { ok: false, error: `${bin} tool: --path requires a directory` };
   }
 
-  const [sub, name, ...extra] = positionals;
-  if (!isOneOf(TOOL_SUBCOMMANDS, sub)) {
-    return {
-      ok: false,
-      error: `${bin} tool: unknown subcommand "${sub}" — expected list, install, uninstall, or status`,
-      showHelp: true,
-    };
-  }
-  if (extra.length > 0) {
-    return { ok: false, error: `${bin} tool: unexpected argument "${extra[0]}"` };
-  }
-  if ((sub === "install" || sub === "uninstall") && name === undefined) {
-    return { ok: false, error: `${bin} tool ${sub}: a tool name is required`, showHelp: true };
-  }
-  if (sub === "list" && name !== undefined) {
-    return { ok: false, error: `${bin} tool list: unexpected argument "${name}"` };
-  }
-  if (sub !== "install" && args.host) {
-    return { ok: false, error: `${bin} tool ${sub}: --host and --path apply to install only` };
-  }
-  if (sub !== "uninstall" && args.force) {
-    return { ok: false, error: `${bin} tool ${sub}: --force applies to uninstall only` };
-  }
-  args.subcommand = sub;
-  if (name !== undefined) args.name = name;
-  return { ok: true, args };
+  const verb = parseInstallerVerb("tool", TOOL_SUBCOMMANDS, positionals, args, "--host and --path", bin);
+  return verb.ok ? { ok: true, args: { ...args, ...verb.args } } : verb;
 }
 
 
