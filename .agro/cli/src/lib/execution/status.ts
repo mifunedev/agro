@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import { delimiter, join } from "node:path";
 import { harnessBinPath } from "../harnesses/catalog.js";
 import { resolveHarnessRoot } from "../host-config.js";
+import { ask, askYesNo, type Asker } from "../prompt.js";
 import { LocalExecutionTarget } from "./local-target.js";
 import { ExecutionSpawnError, type LifecycleRunner } from "./runner.js";
 import type { ExecutionTarget } from "./target.js";
@@ -113,4 +114,63 @@ export function homeOf(opts: { homedir?: () => string }): string {
 
 export function isInteractive(opts: { interactive?: boolean }): boolean {
   return opts.interactive ?? (process.stdin.isTTY === true && process.stdout.isTTY === true);
+}
+
+export interface RemovalOutcome {
+  code: number;
+  dropReceipt: boolean;
+}
+
+export async function removeInstalled(
+  entry: { id: string; title: string; binary: string },
+  noun: string,
+  argv: string[],
+  installed: boolean | null,
+  target: ExecutionTarget,
+  prefix: string,
+  user: "root" | "sandbox" | undefined,
+  opts: { bin: string; interactive?: boolean },
+  io: { stdout: (s: string) => void; stderr: (s: string) => void; ask?: Asker },
+): Promise<RemovalOutcome> {
+  if (installed !== true) {
+    io.stdout(`${entry.id}: not installed (${entry.binary})\n`);
+    return { code: 0, dropReceipt: true };
+  }
+
+  if (isInteractive(opts) && !(await askYesNo(io.ask ?? ask, `Remove ${entry.title} from ${prefix}?`, false))) {
+    io.stderr(`${opts.bin} ${noun}: removed nothing.\n`);
+    return { code: 1, dropReceipt: false };
+  }
+
+  io.stdout(`removing ${entry.title} from ${prefix}…\n`);
+  const r = await target.exec({
+    argv,
+    ...(user ? { user } : {}),
+    stdio: "inherit",
+  });
+  if (r.exitCode !== 0) {
+    io.stderr(`${opts.bin} ${noun}: removing ${entry.id} failed (exit ${r.exitCode}).\n`);
+    return { code: r.exitCode, dropReceipt: false };
+  }
+  io.stdout(`${entry.id}: removed from ${prefix}\n`);
+  return { code: 0, dropReceipt: true };
+}
+export async function markSandboxInstall(
+  target: ExecutionTarget,
+  marker: string,
+  installed: boolean,
+  bin: string,
+  noun: string,
+  io: { stderr: (s: string) => void },
+): Promise<boolean> {
+  const r = await target.exec({
+    argv: installed ? ["sh", "-c", `mkdir -p "$(dirname "$1")" && : > "$1"`, "sh", marker] : ["rm", "-f", marker],
+    user: "sandbox",
+    stdio: "capture",
+  });
+  if (r.exitCode !== 0) {
+    const failure = installed ? `could not record the install at ${marker}` : "could not clear the install record";
+    io.stderr(`${bin} ${noun}: ${failure} (exit ${r.exitCode}).\n`);
+  }
+  return r.exitCode === 0;
 }

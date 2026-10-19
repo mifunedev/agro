@@ -16,12 +16,15 @@ import {
   installedCell,
   isInteractive,
   isReachable,
+  markSandboxInstall,
   onPath,
   probeableHost,
+  removeInstalled,
   sandboxRefusal,
   unreachableReason,
   writeInstalledNote,
   writeTable,
+  type RemovalOutcome,
 } from "../lib/execution/status.js";
 import type { ExecutionTarget } from "../lib/execution/target.js";
 import { sourceDocsUrl } from "../lib/docs.js";
@@ -36,7 +39,7 @@ import {
 } from "../lib/host-config.js";
 import { resolveExistingWorkspace } from "../lib/host-workspace.js";
 import { resolveProjectRoot } from "../lib/project.js";
-import { ask as promptAsk, confirm } from "../lib/prompt.js";
+import { ask as promptAsk, askYesNo, confirm } from "../lib/prompt.js";
 import {
   findTool,
   hostCapableToolIds,
@@ -380,11 +383,7 @@ async function installOnHost(
   const sticky = opts.path === undefined && recorded !== undefined && recorded !== "";
 
   if (!flagged) {
-    const ask = io.ask ?? promptAsk;
-    const answer = (await ask(
-      `${unreachableReason(status)} Install ${entry.title} on the host? [y/N]`,
-    )).trim().toLowerCase();
-    if (!/^y/.test(answer)) {
+    if (!(await askYesNo(io.ask ?? promptAsk, `${unreachableReason(status)} Install ${entry.title} on the host?`, false))) {
       io.stderr(sandboxRefusal(bin, "tool", status));
       return 1;
     }
@@ -535,24 +534,10 @@ export async function runToolInstall(
     return r.exitCode;
   }
 
-  const marker = sandboxMarkerPath(entry);
-  const marked = await target.exec({
-    argv: ["sh", "-c", `mkdir -p "$(dirname "$1")" && : > "$1"`, "sh", marker],
-    user: "sandbox",
-    stdio: "capture",
-  });
-  if (marked.exitCode !== 0) {
-    io.stderr(`${opts.bin} tool: could not record the install at ${marker} (exit ${marked.exitCode}).\n`);
-    return 1;
-  }
+  if (!(await markSandboxInstall(target, sandboxMarkerPath(entry), true, opts.bin, "tool", io))) return 1;
 
   io.stdout(`${entry.id}: installed — see ${sourceDocsUrl(entry.docsPath)}\n`);
   return 0;
-}
-
-interface RemovalOutcome {
-  code: number;
-  dropReceipt: boolean;
 }
 
 async function removeTool(
@@ -565,33 +550,8 @@ async function removeTool(
   host = false,
 ): Promise<RemovalOutcome> {
   const argv = resolveToolUninstallArgv(entry, prefix, host)!;
-
-  if (await probeInstalled(target, entry, user) !== true) {
-    io.stdout(`${entry.id}: not installed (${entry.binary})\n`);
-    return { code: 0, dropReceipt: true };
-  }
-
-  if (isInteractive(opts)) {
-    const ask = io.ask ?? promptAsk;
-    const answer = (await ask(`Remove ${entry.title} from ${prefix}? [y/N]`)).trim().toLowerCase();
-    if (!/^y/.test(answer)) {
-      io.stderr(`${opts.bin} tool: removed nothing.\n`);
-      return { code: 1, dropReceipt: false };
-    }
-  }
-
-  io.stdout(`removing ${entry.title} from ${prefix}…\n`);
-  const r = await target.exec({
-    argv,
-    ...(user ? { user } : {}),
-    stdio: "inherit",
-  });
-  if (r.exitCode !== 0) {
-    io.stderr(`${opts.bin} tool: removing ${entry.id} failed (exit ${r.exitCode}).\n`);
-    return { code: r.exitCode, dropReceipt: false };
-  }
-  io.stdout(`${entry.id}: removed from ${prefix}\n`);
-  return { code: 0, dropReceipt: true };
+  const installed = await probeInstalled(target, entry, user);
+  return removeInstalled(entry, "tool", argv, installed, target, prefix, user, opts, io);
 }
 
 async function uninstallOnHost(
@@ -675,16 +635,8 @@ export async function runToolUninstall(
   }
 
   const outcome = await removeTool(entry, target, SANDBOX_HARNESS_PREFIX, "sandbox", opts, io);
-  if (outcome.dropReceipt) {
-    const cleared = await target.exec({
-      argv: ["rm", "-f", sandboxMarkerPath(entry)],
-      user: "sandbox",
-      stdio: "capture",
-    });
-    if (cleared.exitCode !== 0) {
-      io.stderr(`${opts.bin} tool: could not clear the install record (exit ${cleared.exitCode}).\n`);
-      return 1;
-    }
+  if (outcome.dropReceipt && !(await markSandboxInstall(target, sandboxMarkerPath(entry), false, opts.bin, "tool", io))) {
+    return 1;
   }
   return outcome.code;
 }
