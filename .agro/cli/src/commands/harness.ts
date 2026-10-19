@@ -23,7 +23,7 @@ import {
   writeInstalledNote,
   writeTable,
 } from "../lib/execution/status.js";
-import type { ExecutionTarget } from "../lib/execution/target.js";
+import type { ExecResult, ExecutionTarget } from "../lib/execution/target.js";
 import {
   readHostConfig,
   recordHarnessRoot,
@@ -277,26 +277,33 @@ function hermesEnv(root: string): Record<string, string> {
   return { ...agroEnvPair("PROJECT_ROOT", root), HERMES_HOME: `${root}/.hermes` };
 }
 
-async function reconcileHermes(
+async function runWorkspaceScript(
+  target: ExecutionTarget,
+  io: HarnessIO,
+  user: InstallUser,
+  request: { argv: string[]; env: Record<string, string>; stdio: "inherit" | "capture" },
+  failure: (result: ExecResult) => string,
+): Promise<number> {
+  const result = await target.exec({ ...request, ...(user ? { user } : {}) });
+  if (result.exitCode !== 0) io.stderr(failure(result));
+  return result.exitCode;
+}
+
+function reconcileHermes(
   target: ExecutionTarget,
   io: HarnessIO,
   bin: string,
   user: InstallUser,
   root: string = sandboxTargetRoot(target),
 ): Promise<number> {
-  const result = await target.exec({
+  return runWorkspaceScript(target, io, user, {
     argv: remoteControlDirScript(root, "scripts/link-providers.sh", ["--init", "--hermes-only"]),
     env: hermesEnv(root),
-    ...(user ? { user } : {}),
     stdio: "inherit",
-  });
-  if (result.exitCode !== 0) {
-    io.stderr(`${bin} harness: Hermes integration failed (exit ${result.exitCode}); no installation success reported.\n`);
-  }
-  return result.exitCode;
+  }, (result) => `${bin} harness: Hermes integration failed (exit ${result.exitCode}); no installation success reported.\n`);
 }
 
-async function validateHermesHome(
+function validateHermesHome(
   target: ExecutionTarget,
   io: HarnessIO,
   bin: string,
@@ -304,58 +311,43 @@ async function validateHermesHome(
   inheritedHome: string | undefined,
   root: string = sandboxTargetRoot(target),
 ): Promise<number> {
-  const result = await target.exec({
+  return runWorkspaceScript(target, io, user, {
     argv: remoteControlDirScript(root, "scripts/hermes-workspace.sh", [
       "check", root, `${root}/.hermes`, inheritedHome ?? "",
     ]),
     env: hermesEnv(root),
-    ...(user ? { user } : {}),
     stdio: "capture",
-  });
-  if (result.exitCode !== 0) {
-    io.stderr(result.stderr || `${bin} harness: could not validate Hermes runtime home; explicitly select HERMES_HOME=${shellPath(`${root}/.hermes`)} before retrying.\n`);
-  }
-  return result.exitCode;
+  }, (result) => result.stderr || `${bin} harness: could not validate Hermes runtime home; explicitly select HERMES_HOME=${shellPath(`${root}/.hermes`)} before retrying.\n`);
 }
 
-async function seedHermes(
+function seedHermes(
   target: ExecutionTarget,
   io: HarnessIO,
   bin: string,
   user: InstallUser,
   root: string = sandboxTargetRoot(target),
 ): Promise<number> {
-  const result = await target.exec({
+  return runWorkspaceScript(target, io, user, {
     argv: remoteControlDirScript(root, "scripts/hermes-workspace.sh", ["seed", root, `${root}/.hermes`]),
     env: hermesEnv(root),
-    ...(user ? { user } : {}),
     stdio: "inherit",
-  });
-  if (result.exitCode !== 0) {
-    io.stderr(`${bin} harness: could not write the Hermes defaults to ${root}/.hermes/config.yaml (exit ${result.exitCode}); nothing was installed.\n`);
-  }
-  return result.exitCode;
+  }, (result) => `${bin} harness: could not write the Hermes defaults to ${root}/.hermes/config.yaml (exit ${result.exitCode}); nothing was installed.\n`);
 }
 
-async function configureHermes(
+function configureHermes(
   target: ExecutionTarget,
   io: HarnessIO,
   bin: string,
   user: InstallUser,
   root: string = sandboxTargetRoot(target),
 ): Promise<number> {
-  const result = await target.exec({
+  return runWorkspaceScript(target, io, user, {
     argv: remoteControlDirScript(root, "scripts/hermes-workspace.sh", [
       "configure", root, `${root}/.hermes`, root, "hermes",
     ]),
     env: hermesEnv(root),
-    ...(user ? { user } : {}),
     stdio: "inherit",
-  });
-  if (result.exitCode !== 0) {
-    io.stderr(`${bin} harness: Hermes workspace configuration failed (exit ${result.exitCode}); run HERMES_HOME=${shellPath(`${root}/.hermes`)} hermes config set terminal.cwd ${shellPath(root)}\n`);
-  }
-  return result.exitCode;
+  }, (result) => `${bin} harness: Hermes workspace configuration failed (exit ${result.exitCode}); run HERMES_HOME=${shellPath(`${root}/.hermes`)} hermes config set terminal.cwd ${shellPath(root)}\n`);
 }
 
 function openclawStateDir(root: string): string {
@@ -374,7 +366,7 @@ function openclawEnv(root: string): Record<string, string> {
   return { ...agroEnvPair("PROJECT_ROOT", root), OPENCLAW_STATE_DIR: openclawStateDir(root) };
 }
 
-async function validateOpenclawState(
+function validateOpenclawState(
   target: ExecutionTarget,
   io: HarnessIO,
   bin: string,
@@ -382,39 +374,29 @@ async function validateOpenclawState(
   inheritedDir: string | undefined,
   root: string = sandboxTargetRoot(target),
 ): Promise<number> {
-  const result = await target.exec({
+  return runWorkspaceScript(target, io, user, {
     argv: remoteControlDirScript(root, "scripts/openclaw-workspace.sh", [
       "check", root, openclawStateDir(root), inheritedDir ?? "",
     ]),
     env: openclawEnv(root),
-    ...(user ? { user } : {}),
     stdio: "capture",
-  });
-  if (result.exitCode !== 0) {
-    io.stderr(result.stderr || `${bin} harness: could not validate the OpenClaw state directory; select OPENCLAW_STATE_DIR=${shellWord(openclawStateDir(root))} before retrying.\n`);
-  }
-  return result.exitCode;
+  }, (result) => result.stderr || `${bin} harness: could not validate the OpenClaw state directory; select OPENCLAW_STATE_DIR=${shellWord(openclawStateDir(root))} before retrying.\n`);
 }
 
-async function configureOpenclaw(
+function configureOpenclaw(
   target: ExecutionTarget,
   io: HarnessIO,
   bin: string,
   user: InstallUser,
   root: string = sandboxTargetRoot(target),
 ): Promise<number> {
-  const result = await target.exec({
+  return runWorkspaceScript(target, io, user, {
     argv: remoteControlDirScript(root, "scripts/openclaw-workspace.sh", [
       "configure", root, openclawStateDir(root), "openclaw",
     ]),
     env: openclawEnv(root),
-    ...(user ? { user } : {}),
     stdio: "inherit",
-  });
-  if (result.exitCode !== 0) {
-    io.stderr(`${bin} harness: OpenClaw workspace configuration failed (exit ${result.exitCode}); no installation success reported.\n`);
-  }
-  return result.exitCode;
+  }, (result) => `${bin} harness: OpenClaw workspace configuration failed (exit ${result.exitCode}); no installation success reported.\n`);
 }
 
 async function installOnHost(
