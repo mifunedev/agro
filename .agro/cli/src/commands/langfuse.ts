@@ -234,6 +234,29 @@ export function probeGeneratedFile(
   return { path, state: outcome === "unchanged" ? "current" : "drifted" };
 }
 
+interface GeneratedFile {
+  readonly label: string;
+  readonly render: (home: string) => TracingWriteResult;
+}
+
+function generatedFiles(root: string, resolved: ResolvedLangfuse): GeneratedFile[] {
+  const harnessFiles = tracingHarnesses().map((entry) => ({
+    label: `${entry.title} file`,
+    render: (home: string) => entry.tracingWriter(home, resolved.tracing),
+  }));
+  if (!resolved.enabled) return harnessFiles;
+  const fragment: GeneratedFile = {
+    label: LANGFUSE_FRAGMENT_LABEL,
+    render: (home) =>
+      writeLangfuseFragment(home, {
+        ...loadLangfuseCredentials(root),
+        baseUrl: resolved.tracing.baseUrl,
+        environment: resolved.tracing.environment,
+      }),
+  };
+  return [fragment, ...harnessFiles];
+}
+
 function renderAll(
   ctx: Context,
   resolved: ResolvedLangfuse,
@@ -242,30 +265,14 @@ function renderAll(
   verb: string,
 ): number {
   let failed = false;
-  const report = (result: TracingWriteResult): void => {
-    io.stdout(`${result.outcome === "written" ? "wrote    " : "unchanged"} ${displayPath(ctx.home, result.path)}\n`);
-  };
-  const attempt = (label: string, render: () => TracingWriteResult): void => {
+  for (const file of generatedFiles(ctx.root, resolved)) {
     try {
-      report(render());
+      const result = file.render(ctx.home);
+      io.stdout(`${result.outcome === "written" ? "wrote    " : "unchanged"} ${displayPath(ctx.home, result.path)}\n`);
     } catch (error) {
       failed = true;
-      io.stderr(`${bin} langfuse ${verb}: ${label} failed — ${messageOf(error)}\n`);
+      io.stderr(`${bin} langfuse ${verb}: ${file.label} failed — ${messageOf(error)}\n`);
     }
-  };
-
-  if (resolved.enabled) {
-    attempt(LANGFUSE_FRAGMENT_LABEL, () => {
-      const credentials = loadLangfuseCredentials(ctx.root);
-      return writeLangfuseFragment(ctx.home, {
-        ...credentials,
-        baseUrl: resolved.tracing.baseUrl,
-        environment: resolved.tracing.environment,
-      });
-    });
-  }
-  for (const entry of tracingHarnesses()) {
-    attempt(`${entry.title} file`, () => entry.tracingWriter(ctx.home, resolved.tracing));
   }
   return failed ? 1 : 0;
 }
@@ -349,25 +356,11 @@ export async function runLangfuseStatus(opts: LangfuseOptions, io: LangfuseIO): 
 
   const reports: GeneratedFileReport[] = [];
   const failures: string[] = [];
-  try {
-    const credentials = loadLangfuseCredentials(ctx.root);
-    reports.push(
-      probeGeneratedFile(ctx.home, (home) =>
-        writeLangfuseFragment(home, {
-          ...credentials,
-          baseUrl: resolved.tracing.baseUrl,
-          environment: resolved.tracing.environment,
-        }),
-      ),
-    );
-  } catch (error) {
-    failures.push(`${LANGFUSE_FRAGMENT_LABEL}: ${messageOf(error)}`);
-  }
-  for (const entry of tracingHarnesses()) {
+  for (const file of generatedFiles(ctx.root, resolved)) {
     try {
-      reports.push(probeGeneratedFile(ctx.home, (home) => entry.tracingWriter(home, resolved.tracing)));
+      reports.push(probeGeneratedFile(ctx.home, file.render));
     } catch (error) {
-      failures.push(`${entry.title} file: ${messageOf(error)}`);
+      failures.push(`${file.label}: ${messageOf(error)}`);
     }
   }
 

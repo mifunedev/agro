@@ -3,3 +3,4 @@
 1	52b42360762015ec8ee16ca38139c938a98c1002	73906	0	keep	metric -349 over best, holdout 0 <= 0; keeps: task: keep every CLI command's parse-error, help output, and exit codes while sharing one parse-result handler	0
 2	d42b8cb96a9b10e1d796c93f838a86677b4ed6c2	73843	0	keep	metric -63 over best, holdout 0 <= 0; keeps: task: harness Hermes and OpenClaw workspace scripts keep their argv, env, user, stdio, and failure messages	0
 3	d9b2dc3fabc95d274d5fff6561936df197e12c51	73713	0	keep	metric -130 over best, holdout 0 <= 0; keeps: task: keep tool and harness removal prompts, messages, and sandbox install markers unchanged through one shared helper	0
+4	a91c2760dc27fa1b8aac6307065b01a7964b87a2	73666	0	keep	metric -47 over best, holdout 0 <= 0; keeps: task: langfuse apply, disable, and status render and probe the same generated files with the same messages	0
