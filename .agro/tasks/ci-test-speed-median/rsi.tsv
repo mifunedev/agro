@@ -2,3 +2,4 @@
 0	ebfe44e8ea6ab9976de1428defff34c86a657199	20454	0	baseline	evaluator=vitest.config.ts .agro/cli/vitest.global-setup.mjs package.json pnpm-lock.yaml .github/workflows/	1849
 1	ee562698b0c4857e2da8acd8ddb479401cdbae3b	15456	0	keep	metric -3149 over best, holdout 0 <= 0; keeps: Provider link tests still verify every link-providers.sh outcome while fixtures run concurrently	287
 2	07ce003cbcdf6bfebf916900bb81f0caf7d91bcd	19058	0	reject	metric 3602 over best, not beyond margin 287	-
+3	cb45b3861fe95b1cc02b36d7cc32d109698dface	18576	0	reject	metric 3120 over best, not beyond margin 287	-
