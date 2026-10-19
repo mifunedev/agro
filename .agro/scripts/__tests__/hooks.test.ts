@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -21,21 +21,37 @@ interface HookSettings {
   hooks?: { PreToolUse?: HookEntry[] };
 }
 
-function runHook(hook: string, toolInput: Record<string, string>) {
-  return spawnSync("bash", [hook], {
-    input: JSON.stringify({ tool_input: toolInput }),
-    encoding: "utf8",
+interface Run {
+  status: number | null;
+  stdout: string;
+  stderr: string;
+}
+
+function runWithInput(file: string, args: string[], input: string): Promise<Run> {
+  return new Promise((done, fail) => {
+    const child = spawn(file, args, { stdio: ["pipe", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8").on("data", (chunk: string) => { stdout += chunk; });
+    child.stderr.setEncoding("utf8").on("data", (chunk: string) => { stderr += chunk; });
+    child.on("error", fail).on("close", (status) => done({ status, stdout, stderr }));
+    child.stdin.on("error", () => {});
+    child.stdin.end(input);
   });
 }
 
-function decision(hook: string, toolInput: Record<string, string>): Decision | string {
-  const result = runHook(hook, toolInput);
+function runHook(hook: string, toolInput: Record<string, string>): Promise<Run> {
+  return runWithInput("bash", [hook], JSON.stringify({ tool_input: toolInput }));
+}
+
+async function decision(hook: string, toolInput: Record<string, string>): Promise<Decision | string> {
+  const result = await runHook(hook, toolInput);
   const out = result.stdout.trim();
   if (out === "") return "allow";
   return JSON.parse(out).hookSpecificOutput?.permissionDecision ?? "?";
 }
 
-function commandDecision(command: string): Decision | string {
+function commandDecision(command: string): Promise<Decision | string> {
   return decision(CMD_HOOK, { command });
 }
 
@@ -59,7 +75,7 @@ const ENV_FILE = "." + "env";
 const JQ_ENV_WORD = "env";
 const JQ_ENV_VAR = "$ENV";
 
-describe("secret-exposure guard (deny-env-dump.sh)", () => {
+describe.concurrent("secret-exposure guard (deny-env-dump.sh)", () => {
   const cases: [Decision, string][] = [
     ["allow", `git commit -m "record ${H} of X"`],
     ["allow", `git commit -m "apply task-${H} signal"`],
@@ -153,12 +169,12 @@ describe("secret-exposure guard (deny-env-dump.sh)", () => {
     ["allow", "agro secret set GH_TOKEN"],
   ];
 
-  it.each(cases)("%s: %s", (want, command) => {
-    expect(commandDecision(command)).toBe(want);
+  it.each(cases)("%s: %s", async (want, command) => {
+    expect(await commandDecision(command)).toBe(want);
   });
 });
 
-describe("docker-inspect env guard (deny-env-dump.sh)", () => {
+describe.concurrent("docker-inspect env guard (deny-env-dump.sh)", () => {
   const envField = ".Config." + "Env";
   const cases: [Decision, string][] = [
     ["deny", "docker inspect agro"],
@@ -186,8 +202,8 @@ describe("docker-inspect env guard (deny-env-dump.sh)", () => {
     ["deny", "docker con" + "fig inspect foo"],
   ];
 
-  it.each(cases)("%s: %s", (want, command) => {
-    expect(commandDecision(command)).toBe(want);
+  it.each(cases)("%s: %s", async (want, command) => {
+    expect(await commandDecision(command)).toBe(want);
   });
 
   it("mirrors the env-shaped inspect patterns in permissions.deny without blanket-blocking inspect", () => {
@@ -204,7 +220,7 @@ describe("docker-inspect env guard (deny-env-dump.sh)", () => {
   });
 });
 
-describe("operator-config guard", () => {
+describe.concurrent("operator-config guard", () => {
   const seg = ".config";
   const localSettings = "settings.local.json";
 
@@ -216,27 +232,27 @@ describe("operator-config guard", () => {
     [`/home/sandbox/harness/.claude/${localSettings}`, "file_path"],
     [`/tmp/${localSettings}`, "file_path"],
     [`/home/sandbox/harness/${ENV_FILE}`, "file_path"],
-  ])("file guard denies %s (%s)", (target, key) => {
-    expect(decision(FILE_HOOK, { [key]: target })).toBe("deny");
+  ])("file guard denies %s (%s)", async (target, key) => {
+    expect(await decision(FILE_HOOK, { [key]: target })).toBe("deny");
   });
 
   it.each([
     "/home/sandbox/harness/jest.config.js",
     "/home/sandbox/harness/.agro/config.json",
     `/home/sandbox/harness/.example${ENV_FILE}`,
-  ])("file guard allows %s", (target) => {
-    expect(decision(FILE_HOOK, { file_path: target })).toBe("allow");
+  ])("file guard allows %s", async (target) => {
+    expect(await decision(FILE_HOOK, { file_path: target })).toBe("allow");
   });
 
   it.each([`/home/sandbox/harness/.claude/${localSettings}`, `/tmp/${localSettings}`])(
     "Codex local-settings guard denies %s",
-    (target) => {
-      expect(decision(CODEX_LOCAL_HOOK, { file_path: target })).toBe("deny");
+    async (target) => {
+      expect(await decision(CODEX_LOCAL_HOOK, { file_path: target })).toBe("deny");
     },
   );
 
-  it("Codex local-settings guard stays scoped to settings.local.json", () => {
-    expect(decision(CODEX_LOCAL_HOOK, { file_path: `/home/sandbox/harness/${ENV_FILE}` })).toBe("allow");
+  it("Codex local-settings guard stays scoped to settings.local.json", async () => {
+    expect(await decision(CODEX_LOCAL_HOOK, { file_path: `/home/sandbox/harness/${ENV_FILE}` })).toBe("allow");
   });
 
   it.each([
@@ -246,14 +262,14 @@ describe("operator-config guard", () => {
     `python3 -c "open('/home/sandbox/${seg}/x')"`,
     `cat .claude/${localSettings}`,
     `python3 -c "open(\\"${localSettings}\\", \\"w\\")"`,
-  ])("command guard denies %s", (command) => {
-    expect(commandDecision(command)).toBe("deny");
+  ])("command guard denies %s", async (command) => {
+    expect(await commandDecision(command)).toBe("deny");
   });
 
   it.each(["npx jest --config jest.config.js", "git config --get user.name", "cat .agro/config.json"])(
     "command guard allows %s",
-    (command) => {
-      expect(commandDecision(command)).toBe("allow");
+    async (command) => {
+      expect(await commandDecision(command)).toBe("allow");
     },
   );
 
@@ -273,7 +289,7 @@ describe("operator-config guard", () => {
   });
 });
 
-describe("cc-safety-net wiring", () => {
+describe.concurrent("cc-safety-net wiring", () => {
   const pin = "2.6.8";
   const hookCommand = "cc-safety-net hook --claude-code";
 
@@ -296,16 +312,13 @@ describe("cc-safety-net wiring", () => {
     ["allow", "echo harmless"],
     ["deny", "git reset --hard HEAD"],
     ["deny", "bash -c 'git reset --hard HEAD'"],
-  ])("the installed binary returns %s for %s with a PreToolUse event", (want, command) => {
-    const result = spawnSync(bin, ["hook", "--claude-code"], {
-      input: JSON.stringify({
-        hook_event_name: "PreToolUse",
-        cwd: ROOT,
-        tool_name: "Bash",
-        tool_input: { command },
-      }),
-      encoding: "utf8",
-    });
+  ])("the installed binary returns %s for %s with a PreToolUse event", async (want, command) => {
+    const result = await runWithInput(bin, ["hook", "--claude-code"], JSON.stringify({
+      hook_event_name: "PreToolUse",
+      cwd: ROOT,
+      tool_name: "Bash",
+      tool_input: { command },
+    }));
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
     if (want === "allow") expect(result.stdout).toBe("");
@@ -313,15 +326,15 @@ describe("cc-safety-net wiring", () => {
   });
 });
 
-describe("warn-devtcp hook", () => {
-  it("warns without blocking on a /dev/tcp command", () => {
-    const result = runHook(DEVTCP_HOOK, { command: "bash -c 'exec 3<>/dev/tcp/10.0.0.1/80'" });
+describe.concurrent("warn-devtcp hook", () => {
+  it("warns without blocking on a /dev/tcp command", async () => {
+    const result = await runHook(DEVTCP_HOOK, { command: "bash -c 'exec 3<>/dev/tcp/10.0.0.1/80'" });
     expect(result.status).toBe(0);
     expect(result.stderr).toContain("warn-devtcp");
   });
 
-  it("stays silent on a .devcontainer path", () => {
-    const result = runHook(DEVTCP_HOOK, { command: "ls .devcontainer/" });
+  it("stays silent on a .devcontainer path", async () => {
+    const result = await runHook(DEVTCP_HOOK, { command: "ls .devcontainer/" });
     expect(result.status).toBe(0);
     expect(result.stderr).not.toContain("warn-devtcp");
   });

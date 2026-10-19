@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { execFileSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -97,58 +97,61 @@ function run(
   bundle: string,
   args: string[],
   extraEnv: NodeJS.ProcessEnv = {},
-): { code: number; stdout: string; stderr: string } {
-  try {
-    const stdout = execFileSync(process.execPath, [bundle, ...args], {
-      encoding: "utf8",
+): Promise<{ code: number; stdout: string; stderr: string }> {
+  return new Promise((done, fail) => {
+    const child = spawn(process.execPath, [bundle, ...args], {
       stdio: ["ignore", "pipe", "pipe"],
       env: { ...process.env, AGRO_EXECUTION_TARGET: "docker-compose", ...extraEnv },
     });
-    return { code: 0, stdout, stderr: "" };
-  } catch (err) {
-    const e = err as { status: number | null; stdout: string; stderr: string };
-    return { code: e.status ?? -1, stdout: String(e.stdout ?? ""), stderr: String(e.stderr ?? "") };
-  }
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8").on("data", (chunk: string) => { stdout += chunk; });
+    child.stderr.setEncoding("utf8").on("data", (chunk: string) => { stderr += chunk; });
+    child.on("error", fail).on("close", (status) => {
+      const code = status ?? -1;
+      done({ code, stdout, stderr: code === 0 ? "" : stderr });
+    });
+  });
 }
 
-describe(
+describe.concurrent(
   "cli-first help — the built bundle",
   () => {
-    it("builds exactly one executable bundle", () => {
+    it("builds exactly one executable bundle", async () => {
       expect(existsSync(AGRO_JS)).toBe(true);
       expect(existsSync(join(CLI_DIR, "dist", "oh.js"))).toBe(false);
     });
 
-    it("agro --help lists both self-upgrade and vendor", () => {
-      const top = run(AGRO_JS, ["--help"]);
+    it("agro --help lists both self-upgrade and vendor", async () => {
+      const top = await run(AGRO_JS, ["--help"]);
       expect(top.code).toBe(0);
       expect(top.stdout).toMatch(/^ {2}agro self-upgrade +Upgrade the installed agro CLI$/m);
       expect(top.stdout).toMatch(/^ {2}agro vendor +Vendor or upgrade the \.agro\/ control plane$/m);
       expect(top.stdout).toMatch(/^ {2}agro sandbox <args\.\.\.> +Create, list, and upgrade sandboxes \(install\|list\|upgrade\)$/m);
     });
 
-    it("agro update is an alias of self-upgrade and refuses payload flags", () => {
-      const cmd = run(AGRO_JS, ["update", "--help"]);
+    it("agro update is an alias of self-upgrade and refuses payload flags", async () => {
+      const cmd = await run(AGRO_JS, ["update", "--help"]);
       expect(cmd.code).toBe(0);
       expect(cmd.stdout).toContain("Upgrade the installed agro CLI");
       expect(cmd.stdout).not.toContain("--from-remote [--ref <ref>]");
       expect(cmd.stdout).not.toContain("sandbox upgrade");
 
-      expect(run(AGRO_JS, ["update", "--from"]).stderr).toMatch(
+      expect((await run(AGRO_JS, ["update", "--from"])).stderr).toMatch(
         /^agro self-upgrade: --from belongs to the project-payload command; run `agro vendor --from` — agro self-upgrade upgrades only the installed CLI\n/,
       );
     });
 
-    it("sandbox upgrade help exits successfully without provisioning", () => {
+    it("sandbox upgrade help exits successfully without provisioning", async () => {
       for (const flag of ["--help", "-h"]) {
-        const result = run(AGRO_JS, ["sandbox", "upgrade", flag]);
+        const result = await run(AGRO_JS, ["sandbox", "upgrade", flag]);
         expect(result.code).toBe(0);
         expect(result.stdout).toMatch(/^  agro sandbox upgrade <name> --version <X\.Y\.Z>$/m);
         expect(result.stderr).toBe("");
       }
     });
 
-    it("sandbox upgrade rejects missing name, version, invalid version, latest, and extra arguments", () => {
+    it("sandbox upgrade rejects missing name, version, invalid version, latest, and extra arguments", async () => {
       const home = mkdtempSync(join(tmpdir(), "agro-upgrade-invalid-"));
       try {
         for (const [tail, error] of [
@@ -160,7 +163,7 @@ describe(
           [["demo", "--latest"], 'unknown flag "--latest"'],
           [["demo", "--version", "1.2.3", "extra"], 'unexpected argument "extra"'],
         ] as const) {
-          const result = run(AGRO_JS, ["sandbox", "upgrade", ...tail], { AGRO_HOME: home });
+          const result = await run(AGRO_JS, ["sandbox", "upgrade", ...tail], { AGRO_HOME: home });
           expect(result.code).toBe(1);
           expect(result.stdout).toBe("");
           expect(result.stderr).toContain(`agro sandbox upgrade: ${error}`);
@@ -171,10 +174,10 @@ describe(
       }
     });
 
-    it("sandbox upgrade refuses the sandbox execution target and an absent host entry", () => {
+    it("sandbox upgrade refuses the sandbox execution target and an absent host entry", async () => {
       const home = mkdtempSync(join(tmpdir(), "agro-upgrade-absent-"));
       try {
-        expect(run(AGRO_JS, ["sandbox", "upgrade", "demo", "--version", "v1.2.3"], {
+        expect(await run(AGRO_JS, ["sandbox", "upgrade", "demo", "--version", "v1.2.3"], {
           AGRO_HOME: home,
           AGRO_EXECUTION_TARGET: "local",
         })).toEqual({
@@ -182,7 +185,7 @@ describe(
           stdout: "",
           stderr: "agro sandbox upgrade: host-only — run this command on the host\n",
         });
-        expect(run(AGRO_JS, ["sandbox", "upgrade", "demo", "--version", "1.2.3"], {
+        expect(await run(AGRO_JS, ["sandbox", "upgrade", "demo", "--version", "1.2.3"], {
           AGRO_HOME: home,
         })).toEqual({
           code: 1,
@@ -195,23 +198,23 @@ describe(
       }
     });
 
-    it("agro --version and agro -v print the bare CLI version", () => {
+    it("agro --version and agro -v print the bare CLI version", async () => {
       const version = JSON.parse(readFileSync(join(CLI_DIR, "package.json"), "utf8")).version as string;
       for (const flag of ["--version", "-v"]) {
-        const result = run(AGRO_JS, [flag]);
+        const result = await run(AGRO_JS, [flag]);
         expect(result.code).toBe(0);
         expect(result.stdout).toBe(`${version}\n`);
       }
     });
 
-    it("agro sandbox install rejects --version without a value or with --image=<ref>, writing no entry", () => {
+    it("agro sandbox install rejects --version without a value or with --image=<ref>, writing no entry", async () => {
       const home = mkdtempSync(join(tmpdir(), "agro-version-pin-"));
       try {
-        const missing = run(AGRO_JS, ["sandbox", "install", "docker", "--yes", "--version"], { AGRO_HOME: home });
+        const missing = await run(AGRO_JS, ["sandbox", "install", "docker", "--yes", "--version"], { AGRO_HOME: home });
         expect(missing.code).toBe(1);
         expect(missing.stderr).toBe("agro sandbox install: --version requires a value\n");
 
-        const both = run(
+        const both = await run(
           AGRO_JS,
           ["sandbox", "install", "docker", "--yes", "--version=0.13.0", "--image=my/img:1"],
           { AGRO_HOME: home },
@@ -225,9 +228,9 @@ describe(
       }
     });
 
-    it("sandbox list help exits successfully without querying the registry", () => {
+    it("sandbox list help exits successfully without querying the registry", async () => {
       for (const flag of ["--help", "-h"]) {
-        const result = run(AGRO_JS, ["sandbox", "list", flag]);
+        const result = await run(AGRO_JS, ["sandbox", "list", flag]);
         expect(result.code).toBe(0);
         expect(result.stdout).toMatch(/^agro sandbox — Create and list sandboxes\n/);
         expect(result.stdout).toMatch(/^  agro sandbox list \[--json\]$/m);
@@ -235,15 +238,15 @@ describe(
       }
     });
 
-    it("sandbox list and --json return exact empty-registry output", () => {
+    it("sandbox list and --json return exact empty-registry output", async () => {
       const home = mkdtempSync(join(tmpdir(), "agro-list-empty-"));
       try {
-        expect(run(AGRO_JS, ["sandbox", "list", "--json"], { AGRO_HOME: home })).toEqual({
+        expect(await run(AGRO_JS, ["sandbox", "list", "--json"], { AGRO_HOME: home })).toEqual({
           code: 0,
           stdout: "[]\n",
           stderr: "",
         });
-        expect(run(AGRO_JS, ["sandbox", "list"], { AGRO_HOME: home })).toEqual({
+        expect(await run(AGRO_JS, ["sandbox", "list"], { AGRO_HOME: home })).toEqual({
           code: 0,
           stdout: `no sandbox is registered in ${join(home, "sandboxes")} — create one with \`agro sandbox install docker\`\n`,
           stderr: "",
@@ -253,7 +256,7 @@ describe(
       }
     });
 
-    it("sandbox list rejects unexpected positionals and unknown flags with exact exit and stderr", () => {
+    it("sandbox list rejects unexpected positionals and unknown flags with exact exit and stderr", async () => {
       const home = mkdtempSync(join(tmpdir(), "agro-list-invalid-"));
       try {
         for (const [tail, error] of [
@@ -262,7 +265,7 @@ describe(
           [["--unknown"], 'agro sandbox list: unknown flag "--unknown"\n'],
           [["--json", "--unknown"], 'agro sandbox list: unknown flag "--unknown"\n'],
         ] as const) {
-          expect(run(AGRO_JS, ["sandbox", "list", ...tail], { AGRO_HOME: home })).toEqual({
+          expect(await run(AGRO_JS, ["sandbox", "list", ...tail], { AGRO_HOME: home })).toEqual({
             code: 1,
             stdout: "",
             stderr: error,
@@ -273,8 +276,8 @@ describe(
       }
     });
 
-    it("agro vendor requires a directory for --from", () => {
-      expect(run(AGRO_JS, ["vendor", "--from"]).stderr).toBe("agro vendor: --from requires a directory\n");
+    it("agro vendor requires a directory for --from", async () => {
+      expect((await run(AGRO_JS, ["vendor", "--from"])).stderr).toBe("agro vendor: --from requires a directory\n");
     });
   },
 );

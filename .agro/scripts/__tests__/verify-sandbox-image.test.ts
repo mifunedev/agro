@@ -1,7 +1,7 @@
 import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { describe, expect, it } from "vitest";
 
 const ROOT = join(import.meta.dirname, "../../..");
@@ -153,17 +153,24 @@ exit 0
   return { bin };
 }
 
-function run(fx: { bin: string }) {
-  return spawnSync("bash", [SCRIPT, "sandbox:test"], {
-    cwd: ROOT,
-    env: { ...process.env, PATH: `${fx.bin}:${process.env.PATH}` },
-    encoding: "utf8",
+function script(args: string[], env?: NodeJS.ProcessEnv): Promise<{ status: number | null; stdout: string; stderr: string }> {
+  return new Promise((done, fail) => {
+    const child = spawn("bash", [SCRIPT, ...args], { cwd: ROOT, env, stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8").on("data", (chunk: string) => { stdout += chunk; });
+    child.stderr.setEncoding("utf8").on("data", (chunk: string) => { stderr += chunk; });
+    child.on("error", fail).on("close", (status) => done({ status, stdout, stderr }));
   });
 }
 
-describe("verify-sandbox-image", () => {
-  it("passes a conforming Trixie image", () => {
-    const result = run(fixture());
+function run(fx: { bin: string }) {
+  return script(["sandbox:test"], { ...process.env, PATH: `${fx.bin}:${process.env.PATH}` });
+}
+
+describe.concurrent("verify-sandbox-image", () => {
+  it("passes a conforming Trixie image", async () => {
+    const result = await run(fixture());
 
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
@@ -181,20 +188,20 @@ describe("verify-sandbox-image", () => {
     expect(result.stdout).toContain("all checks passed");
   });
 
-  it("checks Python in the restored seed as sandbox without network or login activation", () => {
-    const result = run(fixture());
+  it("checks Python in the restored seed as sandbox without network or login activation", async () => {
+    const result = await run(fixture());
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("seeded sandbox defaults and kernel use Python 3.13");
   });
 
-  it.each(["missing python", "wrong python3", "stale kernel", "missing ipykernel", "seed restore failed"])("rejects seeded Python failure: %s", (pythonFailure) => {
-    const result = run(fixture({ pythonFailure }));
+  it.each(["missing python", "wrong python3", "stale kernel", "missing ipykernel", "seed restore failed"])("rejects seeded Python failure: %s", async (pythonFailure) => {
+    const result = await run(fixture({ pythonFailure }));
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(`seeded sandbox Python verification failed: ${pythonFailure}`);
   });
 
-  it("requires an image reference", () => {
-    const result = spawnSync("bash", [SCRIPT], { cwd: ROOT, encoding: "utf8" });
+  it("requires an image reference", async () => {
+    const result = await script([]);
 
     expect(result.status).toBe(2);
     expect(result.stderr).toContain("usage:");
@@ -212,8 +219,8 @@ describe("verify-sandbox-image", () => {
     ["a missing hadolint", { missingTool: "hadolint --version" }, "hadolint --version produced no version output"],
     ["a missing shellcheck", { missingTool: "shellcheck --version" }, "shellcheck --version produced no version output"],
     ["a shellcheck with no version line", { nonVersionTool: "shellcheck --version" }, "shellcheck --version exited cleanly but reported no numeric dotted version line"],
-  ])("rejects %s", (_label, overrides, expected) => {
-    const result = run(fixture(overrides));
+  ])("rejects %s", async (_label, overrides, expected) => {
+    const result = await run(fixture(overrides));
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(expected);
@@ -226,8 +233,8 @@ describe("verify-sandbox-image", () => {
     "bun --version",
     "uv --version",
     "hadolint --version",
-  ])("rejects clean but non-version output from %s", (tool) => {
-    const result = run(fixture({ nonVersionTool: tool }));
+  ])("rejects clean but non-version output from %s", async (tool) => {
+    const result = await run(fixture({ nonVersionTool: tool }));
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(
@@ -235,43 +242,43 @@ describe("verify-sandbox-image", () => {
     );
   });
 
-  it("reports the tool's own version line, not an emulation platform warning", () => {
-    const result = run(fixture({ platformWarning: "1" }));
+  it("reports the tool's own version line, not an emulation platform warning", async () => {
+    const result = await run(fixture({ platformWarning: "1" }));
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("ok: gh --version -> gh --version 1.2.3 (fake)");
     expect(result.stdout).not.toContain("does not match the detected host platform");
   });
 
-  it("rejects an image that still ships the retired oh entry point", () => {
-    const result = run(fixture({ legacyEntryPoint: true }));
+  it("rejects an image that still ships the retired oh entry point", async () => {
+    const result = await run(fixture({ legacyEntryPoint: true }));
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("the retired 'oh' entry point is present");
   });
 
-  it("rejects an image with no agro entry point", () => {
-    const result = run(fixture({ agroVersion: "" }));
+  it("rejects an image with no agro entry point", async () => {
+    const result = await run(fixture({ agroVersion: "" }));
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("agro --version reported nothing");
   });
 
-  it("rejects an unsupported architecture", () => {
-    const result = run(fixture({ architecture: "riscv64" }));
+  it("rejects an unsupported architecture", async () => {
+    const result = await run(fixture({ architecture: "riscv64" }));
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("unsupported image architecture: riscv64");
   });
 
-  it("accepts an arm64 image", () => {
-    const result = run(fixture({ architecture: "arm64" }));
+  it("accepts an arm64 image", async () => {
+    const result = await run(fixture({ architecture: "arm64" }));
 
     expect(result.status).toBe(0);
   });
 
-  it("passes an image that bakes no harness and no installable tool", () => {
-    const result = run(fixture());
+  it("passes an image that bakes no harness and no installable tool", async () => {
+    const result = await run(fixture());
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("no harness is baked into the image");
@@ -279,22 +286,22 @@ describe("verify-sandbox-image", () => {
     expect(result.stdout).toContain("every baked-in tool is present");
   });
 
-  it("rejects an image that bakes an installable harness", () => {
-    const result = run(fixture({ bakedHarnesses: true }));
+  it("rejects an image that bakes an installable harness", async () => {
+    const result = await run(fixture({ bakedHarnesses: true }));
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("the image ships baked harnesss: claude-code (claude)");
   });
 
-  it("rejects an image that bakes an installable tool", () => {
-    const result = run(fixture({ bakedTools: true }));
+  it("rejects an image that bakes an installable tool", async () => {
+    const result = await run(fixture({ bakedTools: true }));
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("the image ships baked installable tools: herdr (herdr)");
   });
 
-  it("rejects an image whose baked-in tool is missing", () => {
-    const result = run(fixture({ missingBakedInTool: true }));
+  it("rejects an image whose baked-in tool is missing", async () => {
+    const result = await run(fixture({ missingBakedInTool: true }));
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("baked-in tools are missing from the image: gh");
@@ -303,22 +310,22 @@ describe("verify-sandbox-image", () => {
   it.each<[string, Overrides]>([
     ["harness", { noHarnesses: true }],
     ["installable tool", { noInstallableTools: true }],
-  ])("refuses to pass vacuously when the image lists no %s", (_noun, overrides) => {
-    const result = run(fixture(overrides));
+  ])("refuses to pass vacuously when the image lists no %s", async (_noun, overrides) => {
+    const result = await run(fixture(overrides));
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("would pass vacuously");
   });
 
-  it("refuses to pass vacuously when the image declares no baked-in tool", () => {
-    const result = run(fixture({ noBakedInTools: true }));
+  it("refuses to pass vacuously when the image declares no baked-in tool", async () => {
+    const result = await run(fixture({ noBakedInTools: true }));
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('declares no kind:"baked-in" tool');
   });
 
-  it("fails loudly when the harness catalog cannot be read out of the image", () => {
-    const result = run(fixture({ harnessCatalogFails: true }));
+  it("fails loudly when the harness catalog cannot be read out of the image", async () => {
+    const result = await run(fixture({ harnessCatalogFails: true }));
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("could not read the harness catalog from the image");
