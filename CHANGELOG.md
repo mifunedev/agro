@@ -14,6 +14,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Changed
 - Give `/rsi` a `--slug <run-slug>` input, measure the noise margin again after each kept edit in a `margin` ledger column, and print a `REVIEW` line for each kept edit ([#1471](https://github.com/mifunedev/agro/pull/1471)).
 
+### Fixed
+- Pin Pi Tasks to `0.9.1` to remove its TypeBox dependency warning ([#1474](https://github.com/mifunedev/agro/issues/1474)).
+
 ## [0.24.1] - 2026-10-18
 
 ### Changed

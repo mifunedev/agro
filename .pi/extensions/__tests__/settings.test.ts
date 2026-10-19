@@ -37,7 +37,7 @@ describe("project Pi settings", () => {
 
     expect(settings.packages).toEqual([
       "npm:@tintinweb/pi-subagents@0.20.0",
-      "npm:@tintinweb/pi-tasks@0.7.0",
+      "npm:@tintinweb/pi-tasks@0.9.1",
       "npm:@narumitw/pi-goal@0.54.8",
       "npm:@narumitw/pi-codex-usage@0.6.2",
       "npm:@trevonistrevon/pi-loop@0.7.15",
@@ -60,7 +60,7 @@ describe("project Pi settings", () => {
       RETIRED_PACKAGE_NAME,
     );
     expect(packageIdentity("npm:Pi-Dynamic-Workflows@1.0.1")).toBe(RETIRED_PACKAGE_NAME);
-    expect(packageIdentity("npm:@tintinweb/pi-tasks@0.7.0")).toBe("pi-tasks");
+    expect(packageIdentity("npm:@tintinweb/pi-tasks@0.9.1")).toBe("pi-tasks");
     expect(packageIdentity("git:github.com/tifandotme/pi-recap@v1")).toBe("pi-recap");
     expect(packageIdentity("npm:@tintinweb/pi-subagents@0.20.0")).toBe("pi-subagents");
     expect(packageIdentity("npm:cc-safety-net@2.6.8")).toBe("cc-safety-net");
