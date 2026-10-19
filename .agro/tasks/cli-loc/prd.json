@@ -44,8 +44,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: floors measured at the start commit before preflight (vitest --coverage: 2572 passed, uncovered lines 4659-3967=692, uncovered branches 3778-2953=825), filled into the holdout as P0/U0/B0; preflight PASS, holdout 0 at start commit 68fbb68f; /rsi run cli-loc-rsi with 5 loops, baseline 74255 margin 0 (24bd6e98); ledger .agro/tasks/cli-loc-rsi/rsi.tsv has 2 baseline + 5 loop rows, all 7 columns; post-run at 4f73dbc8: git diff --quiet 68fbb68f -- <evaluator-paths> exit 0; git diff --name-only 68fbb68f HEAD lists only cli.ts, commands/harness.ts, commands/langfuse.ts, commands/tool.ts, lib/execution/status.ts (all in scope.txt) and the ledger; holdout rerun 0; metric rerun 73614 < first baseline 74255; report printed RESULT kept 5 of 5 and 5 REVIEW lines; pnpm run typecheck exit 0; 20 of 20 stress suite runs rc=0 with 2572 passed, 0 failed.",
       "dependsOn": [
         "US-001"
       ],
@@ -107,7 +107,8 @@
         ".agro/cli/src/lib/version.ts",
         ".agro/cli/src/services/sandbox-upgrade.ts",
         ".agro/tasks/cli-loc-rsi/rsi.tsv"
-      ]
+      ],
+      "commit": "4f73dbc8"
     },
     {
       "id": "US-003",
