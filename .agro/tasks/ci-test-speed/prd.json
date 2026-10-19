@@ -20,8 +20,9 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed on task branch 7e68e678 (start ebfe44e8): ci-test-speed-median ledger 2 baseline + 5 loop rows, all 7 columns; git diff --quiet 60712391 HEAD -- .agro/tasks/ci-test-speed/rsi.tsv exit 0 (first run unchanged, 2 baseline + 1 loop row); git diff --quiet ebfe44e8 -- <evaluator paths> exit 0; git diff --name-only ebfe44e8 HEAD lists cli-first-help.test.ts, hooks.test.ts, standard-skills-link.test.ts, verify-sandbox-image.test.ts and the median rsi.tsv; holdout rerun 0; metric rerun 15491 < 18605 - 1849; report printed RESULT retained gain 18605 -> 14132, kept 2 of 5, and 2 REVIEW lines; pnpm run typecheck exit 0. Loop 2 measurement was BLOCKED once by an invalid margin reading (remote-sandbox.test.ts SIGHUP test timeout) and re-measured under /rsi Resume. Reasoned: /rsi invoked with --loops 5 --slug ci-test-speed-median and the plan inputs (first baseline reason holds the verbatim invocation).",
+      "commit": "7e68e678",
       "dependsOn": [],
       "files": [
         ".agro/scripts/__tests__/",
