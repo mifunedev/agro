@@ -230,3 +230,32 @@ run 18 rc=0 load=3.98 passed=2572 failed=0
 run 19 rc=0 load=4.39 passed=2572 failed=0
 run 20 rc=0 load=4.38 passed=2572 failed=0
 ```
+
+## Operator review
+
+The operator confirmed each of the 4 `REVIEW` lines. The advisor reverted no kept edit.
+
+## Manual review observations
+
+The advisor ran the PR manual review steps at `e2464c45`. The failure path changes the "no record of installing" message of `uninstallFromHost` in a temporary worktree. The advisor removed the temporary worktree after the run.
+
+```text
+== metric at e2464c45
+72607
+exit 0
+== changed-command tests
+ Test Files  6 passed (6)
+      Tests  399 passed (399)
+exit 0
+== failure path
+temporary worktree /home/sandbox/harness/.worktrees/tmp/cli-loc-2-review
+install exit 0
+-      `${bin} ${noun}: no record of installing ${entry.id} on this host.\n` +
++      `${bin} ${noun}: no receipt for ${entry.id} on this host.\n` +
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  2 failed (2)
+      Tests  3 failed | 190 passed (193)
+exit 1
+git-maintenance.sh: ran: git worktree remove --force /home/sandbox/harness/.worktrees/tmp/cli-loc-2-review
+temporary worktree removed
+```

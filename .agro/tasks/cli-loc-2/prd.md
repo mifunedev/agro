@@ -141,4 +141,7 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+- The function term of the holdout rejected an edit that the first holdout accepts. Evidence: loop 1 commit `7e41b5f2` gave 107 uncovered functions against the floor 106, with fewer uncovered lines and branches. Outcome: fixed in this PR. The holdout of this run counts functions.
+- `validateReceipts` neither validates nor rejects a `scope` key on a harness receipt. After loop 4, a hand-edited harness receipt with `scope: "root"` removes from the computed prefix. Outcome: dropped, because the CLI never writes that key on a harness receipt and the operator confirmed the edit.
+- The target hint of the brief went stale after loop 2, because loop 2 removed the named duplication. Evidence: the loop 3 worker reported the hint as done. Outcome: dropped, because the advisor replaced the hint for loops 4 and 5 with the duplication that the loop 3 worker reported.
+- A loop 5 worker sent an empty `python3` heredoc, and cc-safety-net blocked it. Outcome: dropped, because the worker did not retry and used the Edit tool.
