@@ -161,23 +161,7 @@ You may remove a worktree with `git worktree remove` when the worktree is older 
 
 ### Isolating in-flight work
 
-When main checkout has unstaged changes you shouldn't commit in current PR, do **not** stash-and-switch-branches (risk of losing context). Instead:
-
-1. Cut worktree off target base: `git worktree add -b <new> "$WORKTREES_ROOT/<new>" $BASE`.
-2. Copy in-flight files into worktree: plain `cp` preserves main checkout's working tree untouched.
-3. Commit in worktree. Main checkout stays exactly as-is.
-
-Before discarding duplicated state from main checkout, verify byte-equivalence with committed branch:
-
-```bash
-for f in <changed-files>; do
-  a=$(md5sum "$f" | awk '{print $1}')
-  b=$(git show <branch>:"$f" | md5sum | awk '{print $1}')
-  [ "$a" = "$b" ] && echo "same:  $f" || echo "DRIFT: $f"
-done
-```
-
-Only after all files show `same:` run `git restore` / `rm -f` to clean main checkout.
+Some unstaged changes in the main checkout do not belong in the current PR. Move those changes with `/worktrees` § ISOLATE. Do **not** stash the changes and switch branches, because a stash and a branch switch can lose context.
 
 ## Destructive git under the cc-safety-net guard
 

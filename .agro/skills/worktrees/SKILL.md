@@ -15,10 +15,6 @@ allowed-tools: Bash
 
 Manage `.worktrees/` and `projects/`. Full policy: `/git` § Worktrees.
 
-A repository's worktrees live at that repository's own root, in `.worktrees/`.
-The harness is the first instance of that rule; a project clone under `projects/`
-follows it too, in `projects/<owner>/<repo>/.worktrees/`.
-
 ## CHANGE ROUTING — TRACK VS RESET
 
 `~/harness` and `$PROJECTS_ROOT/<owner>/<repo>` are different Git
@@ -156,7 +152,7 @@ done
 
 ## ISOLATE — in-flight work
 
-Main checkout has loose files. Don't stash. Don't switch.
+Use this procedure when the main checkout has loose files. Do not stash the files. Do not switch branches. The plain `cp` in step 2 leaves the main checkout unchanged.
 
 ```bash
 # 1. Cut worktree off base
@@ -182,7 +178,7 @@ for f in path/to/file1 path/to/file2; do
 done
 ```
 
-All `same:`? Then clean:
+When every file shows `same:`, clean the main checkout with `git restore` or `rm -f`:
 
 ```bash
 git restore path/to/file1 path/to/file2
@@ -214,7 +210,7 @@ bash .agro/scripts/git-maintenance.sh worktree-remove "$WORKTREES_ROOT/$BRANCH"
 bash .agro/scripts/git-maintenance.sh branch-delete "$BRANCH"
 ```
 
-Scope: only **non-agent-mediated** invocations (raw scheduler/tmux shell scripts) bypass PreToolUse hooks. Agent-driven sessions, including harness loops, pass through the guard and must use the shim. Plain `git worktree remove` (no `--force`) stays allowed.
+`/git` § Destructive git under the cc-safety-net guard owns the scope rule for the shim. Plain `git worktree remove` (no `--force`) stays allowed.
 
 ## STALE AUDIT — review only, no auto-delete
 
