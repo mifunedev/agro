@@ -24,8 +24,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed on the task branch at 9140d2d3: scope diff vs git ls-files filter exit 0 (68 paths); measure-words.mjs printed 55111 exit 0, second run 55111; ste-floor.tsv 68 rows, floor sum 260; ste-excess.mjs printed 0 exit 0; broken-links.mjs printed 2 exit 0 (both real: langfuse/references/instrumentation.md -> references/cli.md, CHANGELOG.md -> .oh/docs/glossary.md); temporary worktree: line-break change of worktrees/SKILL.md left 55111; deletion of the first fenced code block of ci-status/SKILL.md left 55111; deletion of one prose line of delegate/SKILL.md gave 55099; adding usually to audit/probes/context/probe-advisor.md raised ste-excess to 1; changing one link target in agent-browser/SKILL.md to a missing path raised broken-links from 2 to 3; temporary worktree removed with git-maintenance.sh worktree-remove; pnpm run typecheck exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/tasks/skills-loc/measure-words.mjs",
@@ -33,7 +33,8 @@
         ".agro/tasks/skills-loc/ste-floor.tsv",
         ".agro/tasks/skills-loc/ste-excess.mjs",
         ".agro/tasks/skills-loc/broken-links.mjs"
-      ]
+      ],
+      "commit": "9140d2d3"
     },
     {
       "id": "US-002",
