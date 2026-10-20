@@ -151,4 +151,8 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+- `behavioral-training-docs.test.ts` pins a checksum of the whole `.agro/skills/langfuse/` directory, so each prose edit there fails the tests. Evidence: the loop 4 worker found the `treeChecksum(".agro/skills/langfuse")` assertion. Outcome: dropped, because the test is an evaluator path. The advisor added the constraint to the brief of loop 5.
+- `escalate.sh` keeps two rename leftovers: `${AGRO_PROJECT_ROOT:-${AGRO_PROJECT_ROOT:-...}}` and an `elif` branch whose condition is never true. Evidence: loop 5 removed the two `SKILL.md` sentences that described those fallbacks. Outcome: dropped, because the script is outside the scope and both branches resolve to the default value.
+- Two relative links were broken before the run. `langfuse/references/instrumentation.md` links to `references/cli.md` from inside `references/`, and `CHANGELOG.md` links to `.oh/docs/glossary.md`. Outcome: dropped, because the `langfuse/` checksum test freezes the first file and `CHANGELOG.md` is outside the scope.
+- Loops 1 and 2 removed the incident history behind rules that the skills still state. Evidence: the supervisor failure-mode stories and the health-check anti-pattern emphasis are gone. Outcome: dropped, because the operator confirmed both edits.
+- The link gate does not check heading anchors. Outcome: dropped, because no kept edit removed or renamed a heading that another file links to.

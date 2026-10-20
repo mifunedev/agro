@@ -214,3 +214,41 @@ run 19 rc=0 load=4.90 passed=2572 failed=0
 run 20 rc=0 load=4.36 passed=2572 failed=0
 deleted files since start: 0
 ```
+
+## Operator review
+
+The operator confirmed each of the 5 `REVIEW` lines. The advisor reverted no kept edit.
+
+## Manual review observations
+
+The advisor ran the PR manual review steps at `9384a729`. The failure path adds the hedge word `usually` to `escalate/SKILL.md` in a temporary worktree. The advisor removed the temporary worktree after the run.
+
+```text
+== metric and gates at 9384a729
+54223
+measure-words exit 0
+0
+ste-excess exit 0
+2
+broken-links exit 0
+== tests that read skill Markdown
+ Test Files  8 passed (8)
+      Tests  161 passed | 2 skipped (163)
+exit 0
+== STE check of the changed files
+.agro/skills/behavioral-training/references/langfuse-adapter.md: findings 0, floor 0
+.agro/skills/behavioral-training/references/run-files.md: findings 0, floor 0
+.agro/skills/escalate/SKILL.md: findings 0, floor 0
+.agro/skills/git/SKILL.md: findings 0, floor 0
+.agro/skills/health-check/SKILL.md: findings 49, floor 49
+.agro/skills/supervisor/SKILL.md: findings 0, floor 0
+.agro/skills/worktrees/SKILL.md: findings 0, floor 0
+== failure path
+temporary worktree /home/sandbox/harness/.worktrees/tmp/skills-loc-review
+.agro/skills/escalate/SKILL.md:303: HEDGE remove the hedge "usually"
+ste-check exit 1
+1
+ste-excess exit 0
+git-maintenance.sh: ran: git worktree remove --force /home/sandbox/harness/.worktrees/tmp/skills-loc-review
+temporary worktree removed
+```
