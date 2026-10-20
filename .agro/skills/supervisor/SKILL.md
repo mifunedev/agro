@@ -45,7 +45,8 @@ Read the role boundary before any procedure.
   This ban includes direct sends, `/escalate --supervisor`, inherited destinations,
   and relays. Workers report to the advisor through native worker output only.
   Advisors report through normal output, `prd.json`, and the PR body, as
-  `/delegate` and `/prd` define.
+  `/delegate` and `/prd` define. Reverse Herdr text enters the supervisor's
+  input buffer, not a monitor completion notice.
 - The supervisor owns operator escalation. Advisors and workers must not bypass
   the supervisor through Slack or invoke `/escalate` to notify the supervisor.
 
@@ -58,11 +59,7 @@ behavior, not an identity, a model, or a terminal.
 | advisor | One contract, judgment, verification, acceptance | Silent scope change |
 | worker | One bounded implementation assignment from its advisor | Judgment, acceptance |
 
-`/delegate` owns the worker boundary and the fan-out policy. Read `/delegate`
-for worker limits and model policy. Restate neither here.
-
-`/prd` owns the contract documents. `/herdr` owns the full pane command catalog. `/escalate`
-owns the operator channel. `/ste` owns the prose of every artifact.
+§ Composition names the skill that owns each related rule.
 
 ## Monitor capabilities
 
@@ -271,7 +268,9 @@ to leave the agent selector. Repeat the guarded check before sending.
 
 Never send to an advisor pane without this check. A misrouted brief is
 indistinguishable, from the advisor's side, from a worker that invented its own
-instructions.
+instructions. If a send reached a worker, tell the advisor when the provenance
+surfaces. If the advisor cannot source an instruction, the advisor must revert
+the work and stop.
 
 ## Duty 3 — monitor
 
@@ -468,68 +467,12 @@ A supervisor supervises no supervisor. The chain ends at the operator.
 
 Each entry names a symptom, a cause, and a correction.
 
-**1. A brief that says "implement" produces an implementer.**
-Symptom: the advisor wrote every tracked file itself through two stories.
-Cause: the first brief said "implement, gates green, commit" and named no
-orchestration. Correction: the brief states that the advisor assigns tracked
-edits to bounded workers and keeps judgment and acceptance. The correction cost
-one story of discarded work.
-
-**2. A child tab starts below the harness root.**
-Symptom: a tab opened in the project clone put the advisor below the sandbox
-boundary. Cause: the creation payload reported the requested `--cwd`, and the
-shell resolved a different directory. Correction: run `herdr pane get <pane>`
-after creation and read the resolved `cwd`.
-
-**3. An interrupt for an announcement costs more than the announcement
-delivers.**
-Symptom: a mid-turn message queued and displaced the advisor's next action.
-Cause: the supervisor announced a file the advisor could read. Correction:
-write the file, then point at the file at the next seam.
-
-**4. A task contract without `prd.json` records no completion.**
+**1. A task contract without `prd.json` records no completion.**
 Symptom: the run reached story four with no machine-readable completion state.
 Cause: the task folder carried `prd.md` alone. Correction: generate `prd.json`
 with `.agro/skills/prd/references/tracker.md` when the PRD lands.
 
-**5. `herdr agent send` types text without submitting.**
-Symptom: the brief sat unsent in the advisor's prompt. Cause: `agent send`
-writes literal text. Correction: send the text, then send
-`herdr pane send-keys <pane> Enter`.
-
-**6. An advisor in manual permission mode blocks with no signal.**
-Symptom: the advisor sat at a permission prompt and reported `idle`, so the
-supervisor read the status as progress. Cause: the harness launched without
-bypass permissions. Correction: launch with
-`env -u AGRO_SUPERVISOR_PANE claude --dangerously-skip-permissions`, and read
-`bypass permissions on` through the readiness monitor before the brief.
-
-**7. `herdr agent start` splits the supervisor's own tab.**
-Symptom: the advisor landed as a pane inside the supervisor's tab and halved
-the supervisor's own view. Cause: `herdr agent start` splits by default.
-Correction: create the tab with `herdr tab create --workspace <id>`, then launch
-the harness in it with `herdr pane run`.
-
-**8. A send to an advisor pane reaches the advisor's worker.**
-Symptom: the advisor escalated that a bounded worker had edited a tracked file
-on instructions its dispatcher never sent, and suspected the worker of
-confabulating an operator reply. Cause: the supervisor ran `herdr agent send`
-while the advisor's prompt targeted `@general-purpose`, so Herdr delivered the
-supervisor's escalation reply into the worker channel. The worker acted
-faithfully on real instructions that reached it through no legitimate route.
-Correction: require a successful visible-pane read with the current prompt
-before interpreting the `Message @` count. Failed or missing reads forbid sends.
-Clear the agent selector with `Left` and repeat the guarded check before sending.
-Tell the advisor when the provenance surfaces. If the advisor cannot source an instruction, the advisor
-must revert the work and stop.
-
-**9. A reverse message can remain in the supervisor's input.**
-Symptom: the supervisor sees no actionable completion notice. Cause: reverse
-Herdr text enters an input buffer instead of a monitor completion notice.
-Correction: prohibit advisor and worker reverse sends. Read their output and
-artifacts through monitors; keep operator escalation with the supervisor.
-
-**10. A green status field is a claim, not evidence.**
+**2. A green status field is a claim, not evidence.**
 Symptom: the supervisor reported a pull request as reviewed and its gates as
 passing. The reviewer had never read the pull request, and one committed probe
 could not fail under any repository state. Cause: the supervisor verified each
@@ -564,7 +507,7 @@ level below.
 
 | Skill | Owns |
 |---|---|
-| `/delegate` | Fan-out policy, worker limits, model policy |
+| `/delegate` | Worker boundary, fan-out policy, worker limits, model policy |
 | `/prd` | The contract documents |
 | `/herdr` | The pane command catalog |
 | `/escalate` | The operator channel |
