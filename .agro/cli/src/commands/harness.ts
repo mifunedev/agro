@@ -24,6 +24,7 @@ import {
   unreachableReason,
   writeInstalledNote,
   writeTable,
+  uninstallFromHost,
   type RemovalOutcome,
 } from "../lib/execution/status.js";
 import type { ExecResult, ExecutionTarget } from "../lib/execution/target.js";
@@ -605,66 +606,6 @@ async function removeHarness(
   return removeInstalled(entry, "harness", argv, installed, target, prefix, user, opts, io);
 }
 
-async function uninstallOnHost(
-  entry: HarnessEntry,
-  opts: HarnessOptions,
-  io: HarnessIO,
-  run: LifecycleRunner,
-): Promise<number> {
-  const bin = opts.bin;
-  const env = opts.env ?? process.env;
-  const home = homeOf(opts);
-  const computed = hostPrefix(home);
-
-  if (resolveUninstallArgv(entry, computed) === null) {
-    io.stdout(`${entry.id}: nothing to remove — npx fetches it at each run\n`);
-    return 0;
-  }
-
-  let config;
-  let workspace: string;
-  try {
-    config = readHostConfig(env, home);
-    workspace = resolveHarnessRoot(undefined, env, home);
-  } catch (err) {
-    io.stderr(`${bin} harness: ${messageOf(err)}\n`);
-    return 1;
-  }
-
-  const nested = stateHomeRootRefusal(bin, workspace, home);
-  if (nested !== undefined) {
-    io.stderr(nested);
-    return 1;
-  }
-
-  const receipt = config.hostHarnesses?.[entry.id];
-  if (receipt === undefined && opts.force !== true) {
-    io.stderr(
-      `${bin} harness: no record of installing ${entry.id} on this host.\n` +
-        `Removing it could delete a harness you installed yourself. ` +
-        `Re-run with \`--force\` to remove it from ${computed}.\n`,
-    );
-    return 1;
-  }
-
-  const prefix = receipt?.prefix ?? computed;
-  const target = hostTargetFor(receipt?.workspaceRoot ?? workspace, prefix, run, env);
-  const outcome = await removeHarness(entry, target, prefix, undefined, opts, io);
-
-  if (outcome.dropReceipt && receipt !== undefined) {
-    const remaining = { ...(config.hostHarnesses ?? {}) };
-    delete remaining[entry.id];
-    try {
-      writeHostConfig({ ...config, hostHarnesses: remaining }, env, home);
-    } catch (err) {
-      io.stderr(`${bin} harness: could not clear the install record: ${messageOf(err)}\n`);
-      return 1;
-    }
-    io.stdout(`${entry.id}: cleared the host install record\n`);
-  }
-  return outcome.code;
-}
-
 export async function runHarnessUninstall(
   name: string,
   opts: HarnessOptions,
@@ -678,7 +619,19 @@ export async function runHarnessUninstall(
 
   const target = targetFor(root, opts.cwd, run, opts.env);
   if (!isReachable(await resolveTargetStatus(target))) {
-    return await uninstallOnHost(entry, opts, io, run);
+    if (resolveUninstallArgv(entry, hostPrefix(homeOf(opts))) === null) {
+      io.stdout(`${entry.id}: nothing to remove — npx fetches it at each run\n`);
+      return 0;
+    }
+    return await uninstallFromHost(
+      "harness",
+      entry,
+      opts,
+      io,
+      run,
+      (hostTarget, prefix) => removeHarness(entry, hostTarget, prefix, undefined, opts, io),
+      (workspace) => stateHomeRootRefusal(opts.bin, workspace, homeOf(opts)),
+    );
   }
 
   const outcome = await removeHarness(entry, target, SANDBOX_HARNESS_PREFIX, "sandbox", opts, io);

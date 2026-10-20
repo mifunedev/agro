@@ -24,6 +24,7 @@ import {
   unreachableReason,
   writeInstalledNote,
   writeTable,
+  uninstallFromHost,
   type RemovalOutcome,
 } from "../lib/execution/status.js";
 import type { ExecutionTarget } from "../lib/execution/target.js";
@@ -33,7 +34,6 @@ import {
   readHostConfig,
   recordHarnessRoot,
   resolveHarnessRoot,
-  isRootToolReceipt,
   writeHostConfig,
   type HostToolReceipt,
 } from "../lib/host-config.js";
@@ -554,55 +554,6 @@ async function removeTool(
   return removeInstalled(entry, "tool", argv, installed, target, prefix, user, opts, io);
 }
 
-async function uninstallOnHost(
-  entry: ToolEntry,
-  opts: ToolOptions,
-  io: ToolIO,
-  run: LifecycleRunner,
-): Promise<number> {
-  const bin = opts.bin;
-  const env = opts.env ?? process.env;
-  const home = homeOf(opts);
-  const computed = hostPrefix(home);
-
-  let config;
-  let workspace: string;
-  try {
-    config = readHostConfig(env, home);
-    workspace = resolveHarnessRoot(undefined, env, home);
-  } catch (err) {
-    io.stderr(`${bin} tool: ${messageOf(err)}\n`);
-    return 1;
-  }
-
-  const receipt = config.hostTools?.[entry.id];
-  if (receipt === undefined && opts.force !== true) {
-    io.stderr(
-      `${bin} tool: no record of installing ${entry.id} on this host.\n` +
-        `Removing it could delete a tool you installed yourself. ` +
-        `Re-run with \`--force\` to remove it from ${computed}.\n`,
-    );
-    return 1;
-  }
-
-  const prefix = receipt === undefined || isRootToolReceipt(receipt) ? computed : receipt.prefix;
-  const target = hostTargetFor(receipt?.workspaceRoot ?? workspace, prefix, run, env);
-  const outcome = await removeTool(entry, target, prefix, undefined, opts, io, true);
-
-  if (outcome.dropReceipt && receipt !== undefined) {
-    const remaining = { ...(config.hostTools ?? {}) };
-    delete remaining[entry.id];
-    try {
-      writeHostConfig({ ...config, hostTools: remaining }, env, home);
-    } catch (err) {
-      io.stderr(`${bin} tool: could not clear the install record: ${messageOf(err)}\n`);
-      return 1;
-    }
-    io.stdout(`${entry.id}: cleared the host install record\n`);
-  }
-  return outcome.code;
-}
-
 export async function runToolUninstall(
   name: string,
   opts: ToolOptions,
@@ -631,7 +582,9 @@ export async function runToolUninstall(
 
   const target = targetFor(root, run, opts.env);
   if (!isReachable(await resolveTargetStatus(target))) {
-    return await uninstallOnHost(entry, opts, io, run);
+    return await uninstallFromHost("tool", entry, opts, io, run, (hostTarget, prefix) =>
+      removeTool(entry, hostTarget, prefix, undefined, opts, io, true),
+    );
   }
 
   const outcome = await removeTool(entry, target, SANDBOX_HARNESS_PREFIX, "sandbox", opts, io);

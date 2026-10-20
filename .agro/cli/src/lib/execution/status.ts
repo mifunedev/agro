@@ -2,10 +2,16 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { delimiter, join } from "node:path";
 import { harnessBinPath } from "../harnesses/catalog.js";
-import { resolveHarnessRoot } from "../host-config.js";
+import {
+  isRootToolReceipt,
+  readHostConfig,
+  resolveHarnessRoot,
+  writeHostConfig,
+  type HostConfig,
+} from "../host-config.js";
 import { ask, askYesNo, type Asker } from "../prompt.js";
 import { LocalExecutionTarget } from "./local-target.js";
-import { ExecutionSpawnError, type LifecycleRunner } from "./runner.js";
+import { ExecutionSpawnError, messageOf, type LifecycleRunner } from "./runner.js";
 import type { ExecutionTarget } from "./target.js";
 
 export const RUNTIME_ABSENT_STATUS = "no container runtime";
@@ -173,4 +179,62 @@ export async function markSandboxInstall(
     io.stderr(`${bin} ${noun}: ${failure} (exit ${r.exitCode}).\n`);
   }
   return r.exitCode === 0;
+}
+
+export async function uninstallFromHost(
+  noun: "harness" | "tool",
+  entry: { id: string },
+  opts: { bin: string; env?: NodeJS.ProcessEnv; homedir?: () => string; force?: boolean },
+  io: { stdout: (s: string) => void; stderr: (s: string) => void },
+  run: LifecycleRunner,
+  remove: (target: ExecutionTarget, prefix: string) => Promise<RemovalOutcome>,
+  refuseWorkspace: (workspace: string) => string | undefined = () => undefined,
+): Promise<number> {
+  const bin = opts.bin;
+  const env = opts.env ?? process.env;
+  const home = homeOf(opts);
+  const computed = hostPrefix(home);
+  const key = noun === "harness" ? "hostHarnesses" : "hostTools";
+
+  let config: HostConfig;
+  let workspace: string;
+  try {
+    config = readHostConfig(env, home);
+    workspace = resolveHarnessRoot(undefined, env, home);
+  } catch (err) {
+    io.stderr(`${bin} ${noun}: ${messageOf(err)}\n`);
+    return 1;
+  }
+
+  const refusal = refuseWorkspace(workspace);
+  if (refusal !== undefined) {
+    io.stderr(refusal);
+    return 1;
+  }
+
+  const receipt = config[key]?.[entry.id];
+  if (receipt === undefined && opts.force !== true) {
+    io.stderr(
+      `${bin} ${noun}: no record of installing ${entry.id} on this host.\n` +
+        `Removing it could delete a ${noun} you installed yourself. ` +
+        `Re-run with \`--force\` to remove it from ${computed}.\n`,
+    );
+    return 1;
+  }
+
+  const prefix = receipt === undefined || isRootToolReceipt(receipt) ? computed : receipt.prefix;
+  const outcome = await remove(hostTargetFor(receipt?.workspaceRoot ?? workspace, prefix, run, env), prefix);
+
+  if (outcome.dropReceipt && receipt !== undefined) {
+    const remaining = { ...(config[key] ?? {}) };
+    delete remaining[entry.id];
+    try {
+      writeHostConfig({ ...config, [key]: remaining }, env, home);
+    } catch (err) {
+      io.stderr(`${bin} ${noun}: could not clear the install record: ${messageOf(err)}\n`);
+      return 1;
+    }
+    io.stdout(`${entry.id}: cleared the host install record\n`);
+  }
+  return outcome.code;
 }
