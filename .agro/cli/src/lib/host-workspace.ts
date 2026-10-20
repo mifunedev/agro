@@ -4,6 +4,7 @@ import { NAMES, REGISTRY_SUBDIR } from "./layout.js";
 import { spawnRunner, type LifecycleRunner, type RunResult } from "./execution/runner.js";
 import { workspacesRoot } from "./host-config.js";
 import { SANDBOX_NAME_PATTERN } from "./registry.js";
+import { isDirectory } from "./project.js";
 
 export const AGRO_REPO_URL = "https://github.com/mifunedev/agro.git";
 
@@ -16,10 +17,6 @@ const IGNORABLE_ENTRIES: readonly string[] = [
 export type HostWorkspaceAction = "reused" | "cloned";
 
 const STATE_HOME_DIRS: readonly string[] = [NAMES.userStateDir];
-
-function isDirectory(path: string): boolean {
-  return statSync(path, { throwIfNoEntry: false })?.isDirectory() === true;
-}
 
 function stateHomes(home: string): string[] {
   return STATE_HOME_DIRS.map((name) => join(home, name));

@@ -3,7 +3,7 @@ import { statSync } from "node:fs";
 import { resolveControlDir } from "./layout.js";
 import { activeBin } from "./product.js";
 
-function isDirectory(path: string): boolean {
+export function isDirectory(path: string): boolean {
   return statSync(path, { throwIfNoEntry: false })?.isDirectory() === true;
 }
 

@@ -7,11 +7,11 @@ import { RUNTIME_CATALOG } from "../lib/runtimes/catalog.js";
 import { AGRO_VERSION as VERSION, officialImageRef, parseReleaseVersion } from "../lib/version.js";
 import type { SandboxSubcommand } from "../command-table.js";
 
-type ParseResult<T> =
+export type ParseResult<T> =
   | { ok: true; args: T }
   | { ok: false; error: string; showHelp?: boolean };
 
-function isHelpFlag(arg: string | undefined): boolean {
+export function isHelpFlag(arg: string | undefined): boolean {
   return arg === "--help" || arg === "-h" || arg === "help";
 }
 

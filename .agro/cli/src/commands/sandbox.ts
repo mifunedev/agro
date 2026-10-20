@@ -13,7 +13,7 @@ import {
   type AgroConfig,
   type SandboxRuntime,
 } from "../lib/agro-config.js";
-import { openshellImage } from "../lib/execution/index.js";
+import { nonEmpty, openshellImage } from "../lib/execution/index.js";
 import {
   createArgv,
   OPENSHELL_BIN,
@@ -123,10 +123,6 @@ function mergeSettings(...sources: (AgroConfig | undefined)[]): AgroConfig | und
   const merged: AgroConfig = { version: 1 };
   for (const source of present) overlaySettings(merged, source);
   return merged;
-}
-
-function nonEmpty(value: string | undefined): string | undefined {
-  return value === undefined || value === "" ? undefined : value;
 }
 
 function seedConfig(

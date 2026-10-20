@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { assertInRoot, setKeyInEnv } from "./env-file.js";
+import { assertInRoot, setKeyInEnv, stripQuotes } from "./env-file.js";
 import { loadEnvInto, writeEnvFile } from "./env.js";
 import { activeBin } from "./product.js";
 
@@ -81,11 +81,4 @@ export function listSecretKeys(root: string): SecretKey[] {
     const value = env[key]?.trim();
     return value !== undefined && value !== "";
   });
-}
-
-function stripQuotes(s: string): string {
-  if (s.length >= 2 && ((s[0] === '"' && s.endsWith('"')) || (s[0] === "'" && s.endsWith("'")))) {
-    return s.slice(1, -1);
-  }
-  return s;
 }

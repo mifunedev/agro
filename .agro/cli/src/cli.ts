@@ -34,13 +34,13 @@ import {
   type ComposeVerb,
   type LifecycleIO,
 } from "./commands/lifecycle.js";
-import { runSandboxCommand } from "./controllers/sandbox.js";
+import { isHelpFlag, runSandboxCommand, type ParseResult } from "./controllers/sandbox.js";
 import { EGRESS_LOG_LINES, EGRESS_LOG_PATH, runEgress } from "./commands/egress.js";
 import { runAuth } from "./commands/auth.js";
 import { runNode } from "./commands/node.js";
 import { RuntimeUnsupportedError } from "./lib/runtimes/verbs.js";
-export { parseSandboxArgs, printSandboxHelp, runtimeLines } from "./controllers/sandbox.js";
-export type { SandboxArgs } from "./controllers/sandbox.js";
+export { isHelpFlag, parseSandboxArgs, printSandboxHelp, runtimeLines } from "./controllers/sandbox.js";
+export type { ParseResult, SandboxArgs } from "./controllers/sandbox.js";
 import {
   runHarnessInstall,
   runHarnessList,
@@ -108,10 +108,6 @@ const INTEGRATIONS: Record<string, Integration> = {
       ),
   },
 } satisfies Record<ConfigIntegration, Integration>;
-
-export function isHelpFlag(arg: string | undefined): boolean {
-  return arg === "--help" || arg === "-h" || arg === "help";
-}
 
 export function isVersionFlag(arg: string | undefined): boolean {
   return arg === "--version" || arg === "-v";
@@ -390,10 +386,6 @@ This launches an interactive wizard. It takes no flags.
 `);
 }
 
-
-export type ParseResult<T> =
-  | { ok: true; args: T }
-  | { ok: false; error: string; showHelp?: boolean };
 
 export function printToolHelp(bin: string = AGRO_PRODUCT.bin): void {
   process.stdout.write(`${bin} tool — Install and inspect sandbox tooling

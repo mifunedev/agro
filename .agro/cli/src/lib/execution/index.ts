@@ -43,7 +43,7 @@ export function openshellImage(config: AgroConfig): string {
   return nonEmpty(config.image?.ref) ?? officialImageRef(AGRO_VERSION);
 }
 
-function nonEmpty(value: string | undefined): string | undefined {
+export function nonEmpty(value: string | undefined): string | undefined {
   return value === undefined || value === "" ? undefined : value;
 }
 

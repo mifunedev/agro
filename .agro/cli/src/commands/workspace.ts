@@ -1,8 +1,7 @@
 import { existsSync, rmSync } from "node:fs";
-import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { messageOf, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
-import { writeTable } from "../lib/execution/status.js";
+import { homeOf, writeTable } from "../lib/execution/status.js";
 import {
   DEFAULT_WORKSPACE_NAME,
   readHostConfig,
@@ -35,10 +34,6 @@ interface WorkspaceRow {
   name: string;
   root: string;
   default: boolean;
-}
-
-function homeOf(opts: WorkspaceOptions): string {
-  return (opts.homedir ?? homedir)();
 }
 
 function recordedRoot(env: NodeJS.ProcessEnv, home: string): string | undefined {

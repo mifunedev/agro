@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
 import composeRepo from "agro-asset:.devcontainer/docker-compose.yml";
 import composeImageOnly from "agro-asset:.devcontainer/docker-compose.image-only.yml";
@@ -12,6 +12,7 @@ import openshellPolicy from "agro-asset:.devcontainer/openshell-policy.yaml";
 import { spawnRunner, type LifecycleRunner } from "./execution/runner.js";
 import { configCheckout, agroConfigPath, entryRuntime, readAgroConfig, type AgroConfig } from "./agro-config.js";
 import { activeBin } from "./product.js";
+import { isDirectory } from "./project.js";
 import { resolveProjectLayout, resolveUserStateHome } from "./layout.js";
 
 export const SANDBOX_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
@@ -37,10 +38,6 @@ export function assertSandboxName(name: string): void {
 export function entryRoot(name: string): string {
   assertSandboxName(name);
   return join(registryRoot(), name);
-}
-
-function isDirectory(path: string): boolean {
-  return statSync(path, { throwIfNoEntry: false })?.isDirectory() === true;
 }
 
 export function listEntries(): string[] {

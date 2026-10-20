@@ -15,7 +15,7 @@ export function assertInRoot(dest: string, root: string): void {
   }
 }
 
-function stripQuotes(s: string): string {
+export function stripQuotes(s: string): string {
   if (s.length >= 2 && ((s[0] === '"' && s.endsWith('"')) || (s[0] === "'" && s.endsWith("'")))) {
     return s.slice(1, -1);
   }
