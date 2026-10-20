@@ -21,6 +21,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 - Enable Pi terminal clipboard forwarding by default in newly scaffolded interactive Herdr shells while preserving explicit overrides ([#1476](https://github.com/mifunedev/agro/issues/1476)).
 - Pin Pi Tasks to `0.9.1` to remove its TypeBox dependency warning ([#1474](https://github.com/mifunedev/agro/issues/1474)).
 - Make `/council` stop at its own budget limit instead of pointing to a nonexistent `/delegate` rule ([#1491](https://github.com/mifunedev/agro/pull/1491)).
+- Install zsh in the release `Validate` job so the release test run matches CI ([#1496](https://github.com/mifunedev/agro/issues/1496)).
 
 ### Security
 - Pin `vite` to `7.3.7` to clear the moderate `launch-editor` advisory GHSA-698v-4r3x-3vcv in the test toolchain ([#1495](https://github.com/mifunedev/agro/pull/1495)).
