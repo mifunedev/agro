@@ -251,16 +251,3 @@ echo "=== EXITED ===" && docker ps -a --filter status=exited \
 ```
 
 That is the read-only baseline and is safe to run unprompted. Everything beyond it follows the same gates as in-scope use: tier 1 (`docker builder prune -f`) is free to run, tiers 2–4 need a per-artifact confirm, and `docker stats --no-stream` is a second-pass probe for memory-bound checks only. With `--dry-run`, hand over the baseline and nothing else.
-
-## Anti-patterns
-
-- **Reporting container figures as host figures.** The single worst outcome available here: it looks like an answer, it passes a glance, and it green-lights a build the host cannot fit. Carry `METRICS_SCOPE` into every number.
-- **Retrying Docker after step 0 said no.** One classification, one answer. Nine identical connection errors is what #762 was filed about.
-- **Testing for the `docker` binary instead of the endpoint.** The CLI ships in the sandbox image. Its presence means nothing.
-- **Rating a resource you cannot see.** A RAG row implies a measurement. Under `host-only`, a build-shaped Disk verdict is fabrication with a colour on it — render `N/A` and say why.
-- **Repeating expensive diagnostics.** `docker system df -v`, `docker stats`, `docker exec <container> ps`, and `du` are second-pass probes. Capture each once, reuse the output, and never put verbose Docker calls inside per-object loops.
-- **Auto-removing containers/volumes.** Only tier 1 runs without asking. A container or named volume you didn't create gets a confirm gate every time.
-- **Trusting "it's already running."** Closed ports and missing `.venv`/`node_modules` are silent until you check — verify, then size.
-- **Ranking by yield alone.** A 5G exited container is not a better lever than a 9G cache prune when the prune is risk-free. Safety × yield.
-- **Pushing destructive reclaim that isn't needed.** If tier 1 clears the target, the rest is optional headroom, framed as such — not a recommendation.
-- **Handing over the host procedure and then going quiet.** The report finishes with or without the paste-back; `UNKNOWN` is a result, silence is not.
