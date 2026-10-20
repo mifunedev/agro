@@ -74,19 +74,17 @@ import {
   AGRO_COMMANDS,
   CONFIG_VERBS,
   EGRESS_VERBS,
-  HARNESS_SUBCOMMANDS,
+  INSTALLER_SUBCOMMANDS,
   LANGFUSE_VERBS,
   SECRET_VERBS,
-  TOOL_SUBCOMMANDS,
   WORKSPACE_SUBCOMMANDS,
   isOneOf,
   type ConfigIntegration,
   type ConfigVerb,
   type EgressVerb,
-  type HarnessSubcommand,
+  type InstallerSubcommand,
   type LangfuseVerb,
   type SecretVerb,
-  type ToolSubcommand,
   type WorkspaceSubcommand,
 } from "./command-table.js";
 
@@ -970,89 +968,76 @@ export function parseWorkspaceArgs(
   return { ok: true, args };
 }
 
-export interface HarnessArgs {
+export interface InstallerArgs {
   help: boolean;
-  subcommand?: HarnessSubcommand;
+  subcommand?: InstallerSubcommand;
   name?: string;
   json: boolean;
   host: boolean;
   path?: string;
   workspace?: string;
+  yes?: boolean;
   force: boolean;
 }
 
-export function parseHarnessArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): ParseResult<HarnessArgs> {
-  const args: HarnessArgs = {
-    help: false,
-    json: false,
-    host: false,
-    force: false,
-  };
+export function parseHarnessArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): ParseResult<InstallerArgs> {
+  return parseInstallerArgs("harness", rest, bin);
+}
+
+export function parseToolArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): ParseResult<InstallerArgs> {
+  return parseInstallerArgs("tool", rest, bin);
+}
+
+function parseInstallerArgs(noun: "harness" | "tool", rest: string[], bin: string): ParseResult<InstallerArgs> {
+  const args: InstallerArgs = { help: false, json: false, host: false, force: false };
+  if (noun === "tool") args.yes = false;
   if (rest.length === 0 || isHelpFlag(rest[0])) {
     return { ok: true, args: { ...args, help: true } };
   }
 
+  const valueKeys: ("path" | "workspace")[] = noun === "harness" ? ["path", "workspace"] : ["path"];
   const positionals: string[] = [];
-  let expectPath = false;
-  let expectWorkspace = false;
+  let expectKey: "path" | "workspace" | undefined;
   for (const token of rest) {
-    if (expectPath) {
-      expectPath = false;
-      args.path = token;
+    const key = valueKeys.find((k) => token === `--${k}` || token.startsWith(`--${k}=`));
+    if (expectKey) {
+      args[expectKey] = token;
       args.host = true;
-    } else if (expectWorkspace) {
-      expectWorkspace = false;
-      args.workspace = token;
-      args.host = true;
+      expectKey = undefined;
     } else if (token === "--json") {
       args.json = true;
     } else if (token === "--host") {
       args.host = true;
     } else if (token === "--force") {
       args.force = true;
-    } else if (token === "--path") {
-      expectPath = true;
-    } else if (token.startsWith("--path=")) {
-      args.path = token.slice("--path=".length);
-      args.host = true;
-    } else if (token === "--workspace") {
-      expectWorkspace = true;
-    } else if (token.startsWith("--workspace=")) {
-      args.workspace = token.slice("--workspace=".length);
+    } else if (noun === "tool" && (token === "--yes" || token === "-y")) {
+      args.yes = true;
+    } else if (key && token === `--${key}`) {
+      expectKey = key;
+    } else if (key) {
+      args[key] = token.slice(`--${key}=`.length);
       args.host = true;
     } else if (token.startsWith("-")) {
-      return { ok: false, error: `${bin} harness: unknown flag "${token}"` };
+      return { ok: false, error: `${bin} ${noun}: unknown flag "${token}"` };
     } else {
       positionals.push(token);
     }
   }
-  if (expectPath || args.path === "") {
-    return { ok: false, error: `${bin} harness: --path requires a directory` };
+  if (expectKey === "path" || args.path === "") {
+    return { ok: false, error: `${bin} ${noun}: --path requires a directory` };
   }
-  if (expectWorkspace || args.workspace === "") {
-    return { ok: false, error: `${bin} harness: --workspace requires a name` };
+  if (expectKey === "workspace" || args.workspace === "") {
+    return { ok: false, error: `${bin} ${noun}: --workspace requires a name` };
   }
   if (args.path !== undefined && args.workspace !== undefined) {
     return {
       ok: false,
-      error: `${bin} harness: --workspace names a registry entry and --path names a directory — pass one, not both`,
+      error: `${bin} ${noun}: --workspace names a registry entry and --path names a directory — pass one, not both`,
     };
   }
 
-  const verb = parseInstallerVerb("harness", HARNESS_SUBCOMMANDS, positionals, args, "--host, --workspace and --path", bin);
-  return verb.ok ? { ok: true, args: { ...args, ...verb.args } } : verb;
-}
-
-function parseInstallerVerb<S extends HarnessSubcommand>(
-  noun: "harness" | "tool",
-  subcommands: readonly S[],
-  positionals: string[],
-  flags: { host: boolean; force: boolean },
-  hostFlags: string,
-  bin: string,
-): ParseResult<{ subcommand: S; name?: string }> {
   const [sub, name, ...extra] = positionals;
-  if (!isOneOf(subcommands, sub)) {
+  if (!isOneOf(INSTALLER_SUBCOMMANDS, sub)) {
     return {
       ok: false,
       error: `${bin} ${noun}: unknown subcommand "${sub}" — expected list, install, uninstall, or status`,
@@ -1068,57 +1053,16 @@ function parseInstallerVerb<S extends HarnessSubcommand>(
   if (sub === "list" && name !== undefined) {
     return { ok: false, error: `${bin} ${noun} list: unexpected argument "${name}"` };
   }
-  if (sub !== "install" && flags.host) {
+  if (sub !== "install" && args.host) {
+    const hostFlags = noun === "harness" ? "--host, --workspace and --path" : "--host and --path";
     return { ok: false, error: `${bin} ${noun} ${sub}: ${hostFlags} apply to install only` };
   }
-  if (sub !== "uninstall" && flags.force) {
+  if (sub !== "uninstall" && args.force) {
     return { ok: false, error: `${bin} ${noun} ${sub}: --force applies to uninstall only` };
   }
-  return { ok: true, args: name === undefined ? { subcommand: sub } : { subcommand: sub, name } };
-}
-
-interface ToolArgs {
-  help: boolean;
-  yes: boolean;
-  json: boolean;
-  host: boolean;
-  force: boolean;
-  path?: string;
-  subcommand?: ToolSubcommand;
-  name?: string;
-}
-
-export function parseToolArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): ParseResult<ToolArgs> {
-  const args: ToolArgs = { help: false, yes: false, json: false, host: false, force: false };
-  if (rest.length === 0 || isHelpFlag(rest[0])) {
-    return { ok: true, args: { ...args, help: true } };
-  }
-
-  const positionals: string[] = [];
-  let expectPath = false;
-  for (const token of rest) {
-    if (expectPath) {
-      expectPath = false;
-      args.path = token;
-      args.host = true;
-    } else if (token === "--yes" || token === "-y") args.yes = true;
-    else if (token === "--json") args.json = true;
-    else if (token === "--host") args.host = true;
-    else if (token === "--force") args.force = true;
-    else if (token === "--path") expectPath = true;
-    else if (token.startsWith("--path=")) {
-      args.path = token.slice("--path=".length);
-      args.host = true;
-    } else if (token.startsWith("-")) {
-      return { ok: false, error: `${bin} tool: unknown flag "${token}"` };
-    } else positionals.push(token);
-  }
-  if (expectPath || args.path === "") {
-    return { ok: false, error: `${bin} tool: --path requires a directory` };
-  }
-
-  const verb = parseInstallerVerb("tool", TOOL_SUBCOMMANDS, positionals, args, "--host and --path", bin);
-  return verb.ok ? { ok: true, args: { ...args, ...verb.args } } : verb;
+  args.subcommand = sub;
+  if (name !== undefined) args.name = name;
+  return { ok: true, args };
 }
 
 
@@ -1428,47 +1372,25 @@ async function main(argv: string[]): Promise<number> {
     return runComposeVerb(verb, head.length === 0 ? { bin } : { bin, name: head[0] }, extra);
   }
 
-  if (first === "harness") {
-    const a = parsedArgs(parseHarnessArgs(argv.slice(1), bin), () => printHarnessHelp(bin));
-    if (typeof a === "number") return a;
-    const io = stdio();
-    if (a.subcommand === "list") {
-      return await runHarnessList({ bin, json: a.json }, io);
-    }
-    if (a.subcommand === "status") {
-      return await runHarnessStatus(a.name, { bin, json: a.json }, io);
-    }
-    if (a.subcommand === "uninstall") {
-      return await runHarnessUninstall(a.name as string, { bin, force: a.force }, io);
-    }
-    return await runHarnessInstall(
-      a.name as string,
-      {
-        bin,
-        host: a.host,
-        ...(a.path !== undefined ? { path: a.path } : {}),
-        ...(a.workspace !== undefined ? { workspace: a.workspace } : {}),
-      },
-      io,
+  if (first === "harness" || first === "tool") {
+    const harness = first === "harness";
+    const a = parsedArgs(parseInstallerArgs(first, argv.slice(1), bin), () =>
+      (harness ? printHarnessHelp : printToolHelp)(bin),
     );
-  }
-
-  if (first === "tool") {
-    const a = parsedArgs(parseToolArgs(argv.slice(1), bin), () => printToolHelp(bin));
     if (typeof a === "number") return a;
     const io = stdio();
     if (a.subcommand === "list") {
-      return await runToolList({ bin, json: a.json }, io);
+      return await (harness ? runHarnessList : runToolList)({ bin, json: a.json }, io);
     }
     if (a.subcommand === "status") {
-      return await runToolStatus(a.name, { bin, json: a.json }, io);
+      return await (harness ? runHarnessStatus : runToolStatus)(a.name, { bin, json: a.json }, io);
     }
     if (a.subcommand === "uninstall") {
-      return await runToolUninstall(a.name as string, { bin, force: a.force }, io);
+      return await (harness ? runHarnessUninstall : runToolUninstall)(a.name as string, { bin, force: a.force }, io);
     }
-    return await runToolInstall(
+    return await (harness ? runHarnessInstall : runToolInstall)(
       a.name as string,
-      { bin, yes: a.yes, host: a.host, ...(a.path !== undefined ? { path: a.path } : {}) },
+      { bin, host: a.host, yes: a.yes, path: a.path, workspace: a.workspace },
       io,
     );
   }

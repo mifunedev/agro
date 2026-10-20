@@ -6,8 +6,7 @@ export const SECRET_VERBS = ["set", "get", "list"] as const;
 export const LANGFUSE_VERBS = ["apply", "status", "disable"] as const;
 export const SANDBOX_SUBCOMMANDS = ["install", "list", "upgrade"] as const;
 export const WORKSPACE_SUBCOMMANDS = ["create", "list"] as const;
-export const HARNESS_SUBCOMMANDS = ["list", "install", "status", "uninstall"] as const;
-export const TOOL_SUBCOMMANDS = ["list", "install", "status", "uninstall"] as const;
+export const INSTALLER_SUBCOMMANDS = ["list", "install", "status", "uninstall"] as const;
 export const EGRESS_VERBS = ["log", "reload"] as const;
 export const NODE_VERBS = ["create", "list", "delete"] as const;
 export const AUTH_VERBS = ["login", "status", "logout", "token"] as const;
@@ -18,8 +17,7 @@ export type SecretVerb = (typeof SECRET_VERBS)[number];
 export type LangfuseVerb = (typeof LANGFUSE_VERBS)[number];
 export type SandboxSubcommand = (typeof SANDBOX_SUBCOMMANDS)[number];
 export type WorkspaceSubcommand = (typeof WORKSPACE_SUBCOMMANDS)[number];
-export type HarnessSubcommand = (typeof HARNESS_SUBCOMMANDS)[number];
-export type ToolSubcommand = (typeof TOOL_SUBCOMMANDS)[number];
+export type InstallerSubcommand = (typeof INSTALLER_SUBCOMMANDS)[number];
 export type EgressVerb = (typeof EGRESS_VERBS)[number];
 
 export function isOneOf<T extends string>(values: readonly T[], value: string | undefined): value is T {
@@ -37,8 +35,8 @@ export const AGRO_COMMANDS: Readonly<Record<string, readonly string[] | null>> =
   shell: null,
   compose: null,
   workspace: WORKSPACE_SUBCOMMANDS,
-  harness: HARNESS_SUBCOMMANDS,
-  tool: TOOL_SUBCOMMANDS,
+  harness: INSTALLER_SUBCOMMANDS,
+  tool: INSTALLER_SUBCOMMANDS,
   gateway: null,
   egress: EGRESS_VERBS,
   node: NODE_VERBS,
