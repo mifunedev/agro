@@ -754,12 +754,8 @@ Each entry holds `key`, `kind`, `dataset`, `remoteId`, `contentHash`,
 `outcome` is `created` or `adopted`. `retractedAt` is `null` until
 `publish --retract --apply` deletes the record.
 
-If the ledger records another project, prefix, dataset version, or rubric
-version, `publish` fails with the cause `ledger-mismatch`. The item write
-puts `correction` in `expectedOutput`. The score names are
-`behavior.<dimension>.human`, `behavior.<dimension>.judge`, and
-`behavior.<dimension>.agent`. Each score holds the source `API`. The score
-metadata holds `calibrationStatus` for an automated label.
+`langfuse-adapter.md` defines the item writes, the score writes, and the
+refusals of `publish`.
 
 ### `report.json` and `report.md`
 

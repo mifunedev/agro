@@ -240,13 +240,8 @@ Each refusal happens before the first write.
 
 ### Ledger
 
-`publication-ledger.json` holds `projectId`, `datasetPrefix`,
-`datasetVersion`, `rubricVersion`, and `entries`. The stage writes the ledger
-atomically after each completed write.
-
-Each entry holds `key`, `kind`, `dataset`, `remoteId`, `contentHash`,
-`outcome`, `writtenAt`, and `retractedAt`. `kind` is `dataset`, `item`, or
-`score`. `outcome` is `created` or `adopted`.
+`run-files.md` defines the fields of `publication-ledger.json`. The stage
+writes the ledger atomically after each completed write.
 
 `--apply` runs the planned writes in this order: datasets, items, scores.
 
@@ -547,10 +542,9 @@ characters. An error message holds no other part of a response body.
 
 ### Privacy
 
-`inventory-pages.jsonl` and `inventory.jsonl` hold metadata only. The stage
-keeps ids, types, timestamps, the environment, the level, the model name, the
-harness tag, token counts, and the cost. The stage keeps no `statusMessage`,
-no input, no output, and no metadata value.
+`inventory-pages.jsonl` and `inventory.jsonl` hold metadata only.
+`run-files.md` defines the fields of both files. The stage keeps no
+`statusMessage`, no input, no output, and no metadata value.
 
 ### Resume
 
@@ -567,16 +561,11 @@ no input, no output, and no metadata value.
 
 - `harness` is the most frequent tag that names a harness id from the AGRO
   harness catalog, for example `claude-code`, `codex`, or `pi`.
-- `toolErrorCount` counts the `TOOL` observations with the level `ERROR`. If
-  the session has no `TOOL` observation, the value is `null`.
-- `latencyMs` is `lastSeenAt` minus `firstSeenAt`.
 - `scores` holds the session scores. The list also holds the scores of the
   traces and the observations of the session.
-- `sourceLink` is `<baseUrl>/project/<projectId>/sessions/<sessionId>`.
 
-The stage counts the observations without a `sessionId` in
-`sessionlessObservations` and `sessionlessTraces`. The stage creates no session
-for these observations.
+`run-files.md` defines the other fields of `inventory.jsonl`, and the fields
+of `completeness.inventory` after a success and after a failure.
 
 ### Filters and budgets
 
@@ -596,6 +585,4 @@ for these observations.
 | `empty` | 3 | The stage read each page, and no session remains |
 | `failed` | 1 | A read failed; the checkpoint cause is the adapter cause |
 
-On a failure, the stage writes no `inventory.jsonl`, and
-`completeness.inventory` holds `{ status, cause, message }` with no session
-count. An empty corpus and a failed read never share one exit code.
+On a failure, the stage writes no `inventory.jsonl`.
