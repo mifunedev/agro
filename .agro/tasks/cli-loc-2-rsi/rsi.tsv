@@ -4,3 +4,4 @@
 2	e31f377cf371bf34f2d6a9cc2a64be1ff2e2d984	73045	0	keep	metric -569 over best, holdout 0 <= 0; keeps: task: harness and tool keep every flag, subcommand guard, error message, and run dispatch through one shared parser	0
 3	f99aab5ed9154ebbfbe5a40bbcb828038b4973c8	72830	0	keep	metric -215 over best, holdout 0 <= 0; keeps: task: shared isHelpFlag, ParseResult, nonEmpty, stripQuotes, isDirectory and homeOf helpers keep every caller's behavior	0
 4	63e5ca757820e9aa6bd3454b94ebd4cc58fc1288	72709	0	keep	metric -121 over best, holdout 0 <= 0; keeps: task: host uninstall keeps its receipt check, --force guard, removal, and record clearing for harnesses and tools	0
+5	1ca3c2f2c6149f70cb68764062ad442e52324281	72607	0	keep	metric -102 over best, holdout 0 <= 0; keeps: task: harness and tool status probes keep the same sandbox, host, and unknown rows	0

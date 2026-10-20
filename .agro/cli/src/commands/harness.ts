@@ -1,5 +1,3 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import {
   ExecutionSpawnError,
   resolveExecutionTarget,
@@ -10,7 +8,9 @@ import { sourceDocsUrl } from "../lib/docs.js";
 import { runningInsideSandbox } from "../lib/execution/detect.js";
 import { messageOf, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import {
+  collectProbes,
   homeOf,
+  hostBinaryUnderPrefix,
   hostPrefix,
   hostTargetFor,
   installedCell,
@@ -18,13 +18,13 @@ import {
   isReachable,
   markSandboxInstall,
   onPath,
-  probeableHost,
   removeInstalled,
   sandboxRefusal,
   unreachableReason,
   writeInstalledNote,
   writeTable,
   uninstallFromHost,
+  type Collected,
   type RemovalOutcome,
 } from "../lib/execution/status.js";
 import type { ExecResult, ExecutionTarget } from "../lib/execution/target.js";
@@ -90,11 +90,6 @@ interface HarnessState {
   docs: string;
 }
 
-interface CollectedStates {
-  states: HarnessState[];
-  hostPrefix?: string;
-}
-
 type InstallUser = "root" | "sandbox" | undefined;
 
 export const PROBE_TIMEOUT_MS = 15_000;
@@ -158,10 +153,6 @@ async function sandboxMarkerExists(target: ExecutionTarget, entry: HarnessEntry)
   return r.exitCode === 0;
 }
 
-function hostBinaryUnderPrefix(entry: HarnessEntry, prefix: string): boolean {
-  return existsSync(join(harnessBinPath(prefix), entry.binary));
-}
-
 function stateOf(
   entry: HarnessEntry,
   installed: boolean | null,
@@ -178,44 +169,30 @@ function stateOf(
   };
 }
 
-async function collectStates(
+function collectStates(
   root: string,
   cwd: string | undefined,
   run: LifecycleRunner,
   home: string,
   env?: NodeJS.ProcessEnv,
   only?: readonly HarnessEntry[],
-): Promise<CollectedStates> {
-  const entries = only ? [...only] : [...HARNESS_CATALOG];
-  const target = targetFor(root, cwd, run, env);
-
-  const reachable = isReachable(await resolveTargetStatus(target));
-
-  if (reachable) {
-    const states: HarnessState[] = [];
-    for (const entry of entries) {
-      const installed = await probeInstalled(target, entry, SANDBOX_HARNESS_PREFIX, "sandbox");
-      states.push(stateOf(entry, installed, installed === null ? "unknown" : "sandbox"));
-    }
-    return { states };
-  }
-
-  const host = probeableHost(env ?? process.env, home);
-  if (host === undefined) {
-    return { states: entries.map((entry) => stateOf(entry, null, "unknown")) };
-  }
-
-  const hostTarget = hostTargetFor(host.root, host.prefix, run, env ?? process.env);
-  const states: HarnessState[] = [];
-  for (const entry of entries) {
-    const installed = await probeInstalled(hostTarget, entry, host.prefix, undefined);
-    states.push(stateOf(entry, installed, installed === null ? "unknown" : "host"));
-  }
-  return { states, hostPrefix: host.prefix };
+): Promise<Collected<HarnessState>> {
+  return collectProbes(
+    targetFor(root, cwd, run, env),
+    only ?? HARNESS_CATALOG,
+    run,
+    home,
+    env,
+    async (target, entry, site) => {
+      const installed = await probeInstalled(target, entry, site.prefix, site.user);
+      return stateOf(entry, installed, installed === null ? "unknown" : site.location);
+    },
+    (entry) => stateOf(entry, null, "unknown"),
+  );
 }
 
-function renderTable(collected: CollectedStates, io: HarnessIO, bin: string): void {
-  const states = collected.states;
+function renderTable(collected: Collected<HarnessState>, io: HarnessIO, bin: string): void {
+  const states = collected.items;
   writeTable(
     io.stdout,
     ["HARNESS", "KIND", "INSTALLED"],
@@ -229,7 +206,7 @@ export async function runHarnessList(opts: HarnessOptions, io: HarnessIO): Promi
   const root = resolveProjectRoot(opts.cwd);
   const collected = await collectStates(root, opts.cwd, run, homeOf(opts), opts.env);
   if (opts.json) {
-    io.stdout(`${JSON.stringify(collected.states, null, 2)}\n`);
+    io.stdout(`${JSON.stringify(collected.items, null, 2)}\n`);
   } else {
     renderTable(collected, io, opts.bin);
   }
@@ -258,7 +235,7 @@ export async function runHarnessStatus(
 
   const collected = await collectStates(root, opts.cwd, run, homeOf(opts), opts.env, only ? [only] : undefined);
   if (opts.json) {
-    io.stdout(`${JSON.stringify(only ? collected.states[0] : collected.states, null, 2)}\n`);
+    io.stdout(`${JSON.stringify(only ? collected.items[0] : collected.items, null, 2)}\n`);
   } else {
     renderTable(collected, io, opts.bin);
   }

@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { delimiter, join } from "node:path";
-import { harnessBinPath } from "../harnesses/catalog.js";
+import { harnessBinPath, SANDBOX_HARNESS_PREFIX } from "../harnesses/catalog.js";
 import {
   isRootToolReceipt,
   readHostConfig,
@@ -69,6 +69,10 @@ export function onPath(prefix: string, env: NodeJS.ProcessEnv): boolean {
   return pathEntries(env).includes(harnessBinPath(prefix));
 }
 
+export function hostBinaryUnderPrefix(entry: { binary: string }, prefix: string): boolean {
+  return existsSync(join(harnessBinPath(prefix), entry.binary));
+}
+
 export function hostTargetFor(
   root: string,
   prefix: string,
@@ -96,6 +100,39 @@ export function probeableHost(
   const prefix = hostPrefix(home);
   if (!existsSync(join(root, ".git")) && !existsSync(prefix)) return undefined;
   return { root, prefix };
+}
+
+export interface ProbeSite {
+  user: "sandbox" | undefined;
+  prefix: string;
+  location: "sandbox" | "host";
+}
+
+export interface Collected<Item> {
+  items: Item[];
+  hostPrefix?: string;
+}
+
+export async function collectProbes<Entry, Item>(
+  target: ExecutionTarget,
+  entries: readonly Entry[],
+  run: LifecycleRunner,
+  home: string,
+  env: NodeJS.ProcessEnv | undefined,
+  probe: (target: ExecutionTarget, entry: Entry, site: ProbeSite) => Promise<Item>,
+  unknown: (entry: Entry) => Item,
+): Promise<Collected<Item>> {
+  const reachable = isReachable(await resolveTargetStatus(target));
+  const host = reachable ? undefined : probeableHost(env ?? process.env, home);
+  if (!reachable && host === undefined) return { items: entries.map(unknown) };
+
+  const probeTarget = host ? hostTargetFor(host.root, host.prefix, run, env ?? process.env) : target;
+  const site: ProbeSite = host
+    ? { user: undefined, prefix: host.prefix, location: "host" }
+    : { user: "sandbox", prefix: SANDBOX_HARNESS_PREFIX, location: "sandbox" };
+  const items: Item[] = [];
+  for (const entry of entries) items.push(await probe(probeTarget, entry, site));
+  return { items, hostPrefix: host?.prefix };
 }
 
 export function unreachableReason(status: string): string {
