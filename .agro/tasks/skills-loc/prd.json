@@ -53,8 +53,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: floors measured at the start source before preflight (vitest: 2572 passed; broken-links.mjs: 2), filled into the holdout as P0=2572 and L0=2; preflight PASS, holdout 0 at start commit 777174f9; /rsi run skills-loc-rsi with 5 loops, baseline 55111 margin 0 (4c2dcb43); ledger has 2 baseline + 5 loop rows, all 7 columns; post-run at 0c1dcc45: git diff --quiet 777174f9 -- <evaluator-paths> exit 0; git diff --name-only 777174f9 HEAD lists 7 scope.txt paths and the ledger only; git diff --diff-filter=D --name-only prints nothing; holdout rerun 0; metric rerun 54223 < first baseline 55111; STE findings 260 -> 260, broken links 2 -> 2; report printed RESULT kept 5 of 5 and 5 REVIEW lines; pnpm run typecheck exit 0; 20 of 20 stress suite runs rc=0 with 2572 passed, 0 failed.",
       "dependsOn": [
         "US-001"
       ],
@@ -128,7 +128,8 @@
         ".agro/skills/typesafe-ai/SKILL.md",
         ".agro/skills/worktrees/SKILL.md",
         ".agro/tasks/skills-loc-rsi/rsi.tsv"
-      ]
+      ],
+      "commit": "0c1dcc45"
     },
     {
       "id": "US-003",
