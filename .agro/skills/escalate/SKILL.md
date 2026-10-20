@@ -63,9 +63,6 @@ supervisor acts on a live escalation before the Slack channel reaches a person.
 following `herdr pane send-keys <target> Enter` submits the text. The script
 makes both calls.
 
-The script skips the supervisor destination when no target resolves. The Slack
-delivery then runs exactly as before.
-
 The supervisor session starts an advisor with an environment variable, so the
 advisor resolves the supervisor without a flag:
 
@@ -142,11 +139,9 @@ conditions:
 - the Slack channel is archived;
 - Slack rejects `chat.postMessage`.
 
-A dead destination must not take down the session that reports through it. That
-constraint is the whole reason for a no-op instead of a failure. A no-op is
-still a **non-delivery**. Rule 3 governs what the session owes the operator
-after a no-op. Silence is the exact failure this skill removes, so the script
-always prints the reason to stderr and returns the reason in the JSON.
+A no-op is still a **non-delivery**. Rule 3 governs what the session owes the
+operator after a no-op. The script always prints the reason to stderr and
+returns the reason in the JSON.
 
 ## Resolution
 
@@ -159,10 +154,8 @@ always prints the reason to stderr and returns the reason in the JSON.
 - **Channel**: `--channel`, else the first `enabled` entry in
   `~/.pi/msg-bridge.json` under `auth.channels`.
 - **State**: quiet-window markers in `~/.agro/escalate` (`ESCALATE_STATE_DIR`).
-  The script keeps an existing legacy `~/.agro/escalate` directory in use, so an
-  open quiet window survives.
-- **Harness root**: `AGRO_PROJECT_ROOT`, else the legacy alias
-  `AGRO_PROJECT_ROOT`, else the path four levels above the script.
+- **Harness root**: `AGRO_PROJECT_ROOT`, else the path four levels above the
+  script.
 - **Log**: every attempt appends one JSON line to
   `$AGRO_PROJECT_ROOT/.agro/logs/escalations.jsonl` (`ESCALATE_LOG`). The line
   carries the per-destination result. The path resolves to the **harness root**,
@@ -210,8 +203,7 @@ threshold must be a positive integer. `ESCALATE_EXPIRE_AFTER` must exceed
 
 The script emits one JSON object. A false top-level `.ok` reports at least one
 failed decision read or failed Slack notice. The command can still exit 0 when
-`.ok` is false. A failed expiry notice does not stop the record from reporting
-`state:"expired"`.
+`.ok` is false.
 
 ```json
 {
@@ -297,7 +289,6 @@ or `reject`, counts. A reject wins over an approve. The reader uses
 config's `auth.trustedUsers`. It compares exact Slack IDs. On a missing
 identity, transport failure, or Slack API error, it exits 2 and reports the
 error and any `needed` scope. Never treat exit 2 as `none` or as consent.
-The caller owns its state and decides when to check. Do not poll.
 
 ## Not this skill
 

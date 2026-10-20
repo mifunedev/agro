@@ -4,3 +4,4 @@
 2	080f97e9f9ed55eee70dc747096e8518c966756f	54450	0	keep	metric -234 over best, holdout 0 <= 0; keeps: task: health-check keeps every scope, retry, rating, and reclaim gate rule in its owning step	0
 3	c81ece1cb017b88b547b927c4a579b7116538bb8	54405	0	keep	metric -45 over best, holdout 0 <= 0; keeps: task: keep the in-flight isolation procedure and the shim scope rule in one canonical skill each	0
 4	418ae000a4a60b9e1c06d8a95139975935c4b4e4	54319	0	keep	metric -86 over best, holdout 0 <= 0; keeps: task: each behavioral-training file and publish rule keeps one definition in its owning reference	0
+5	604f235abfc74fe43c393e8aee90aee11f80c7cd	54223	0	keep	metric -96 over best, holdout 0 <= 0; keeps: task: escalate keeps every no-op, resolution, decision, and timeout rule once	0
