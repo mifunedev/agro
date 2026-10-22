@@ -76,7 +76,7 @@
         "Row `P3-binary` passes when `command -v prime-agent` prints `/home/sandbox/.local/bin/prime-agent`.",
         "Row `P4-instructions` passes when `prime-agent prompt` in `/home/sandbox/harness` prints `/home/sandbox/harness/AGENTS.md`.",
         "Row `P5-skills` passes when `prime-agent prompt` prints `/home/sandbox/harness/.agents/skills/prd/SKILL.md`.",
-        "Row `P6-clean` passes when `git -C /home/sandbox/harness status --porcelain` prints the same lines before and after rows `P1` to `P5`.",
+        "Row `P6-clean` passes when `find /home/sandbox/harness -newer <marker>` prints no path. The check creates `<marker>` under `/tmp/prime-agent-harness` before row `P1`. The image-seed workspace is not a git repository.",
         "Row `P7-uninstall` runs the US-001 `uninstallArgv` and passes when `command -v prime-agent` exits 1.",
         "The operator approves the run before the advisor starts the driver.",
         "The advisor starts `IMAGE=ghcr.io/mifunedev/agro:latest bash .agro/skills/remote-sandbox/scripts/run.sh exedev .agro/tasks/prime-agent-harness/checks/prime-agent-harness.sh` detached in a named tmux session.",
