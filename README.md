@@ -162,6 +162,7 @@ claude
 | [Muse Code](docs/harnesses/muse-code.md) | `muse-code` | Install on demand |
 | [Antigravity CLI](docs/harnesses/antigravity-cli.md) | `antigravity-cli` | Install on demand |
 | [fx](docs/harnesses/fx.md) | `fx` | Install on demand |
+| [Prime Agent](docs/harnesses/prime-agent.md) | `prime-agent` | Install on demand |
 | [T3 Code](docs/harnesses/t3code.md) | `t3code` | Run on demand via `npx` |
 
 Use `agro harness install <id>` to install any harness in the table. Follow the linked
