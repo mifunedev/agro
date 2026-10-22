@@ -32,7 +32,8 @@ else
   result P0-workspace FAIL "AGENTS.md=$(in_sbx "test -f $WS/AGENTS.md" && echo present || echo missing) .agents/skills -> ${skills:-unresolved}"
 fi
 
-in_sbx "git -C $WS status --porcelain" >"$OUT/git-before.log" 2>&1; git_before_rc=$?
+MARKER=$OUT/before-install.marker
+in_sbx "touch $MARKER"
 
 echo "== P1"
 in_sbx "set -o pipefail; curl -fsSL https://app.primeintellect.ai/prime-agent/install.sh | PRIME_AGENT_VERSION=$PA_VERSION PRIME_AGENT_RUST_PREFIX=\"$PREFIX\" PRIME_AGENT_UV_BIN_DIR=\"$BIN_DIR\" sh" >"$OUT/install.log" 2>&1; rc=$?
@@ -70,11 +71,11 @@ for row in "P4-instructions:$WS/AGENTS.md" "P5-skills:$WS/.agents/skills/prd/SKI
 done
 
 echo "== P6"
-in_sbx "git -C $WS status --porcelain" >"$OUT/git-after.log" 2>&1; git_after_rc=$?
-if [ $git_before_rc = 0 ] && [ $git_after_rc = 0 ] && cmp -s "$OUT/git-before.log" "$OUT/git-after.log"; then
-  result P6-clean PASS "git status unchanged lines=$(wc -l <"$OUT/git-after.log")"
+in_sbx "find $WS -newer $MARKER" >"$OUT/changed.log" 2>&1; rc=$?
+if [ $rc = 0 ] && [ ! -s "$OUT/changed.log" ]; then
+  result P6-clean PASS "no path under $WS newer than $MARKER"
 else
-  result P6-clean FAIL "before rc=$git_before_rc after rc=$git_after_rc diff: $(diff "$OUT/git-before.log" "$OUT/git-after.log" | tr '\n' ' ' | cut -c1-300)"
+  result P6-clean FAIL "find rc=$rc changed: $(oneline "$OUT/changed.log")"
 fi
 
 echo "== P7"
