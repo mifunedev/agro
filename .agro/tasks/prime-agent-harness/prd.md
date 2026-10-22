@@ -193,4 +193,9 @@ None. The operator chose one authenticated `prime-agent -p` turn in US-004, beca
 
 ## Lessons
 
-Filled by the advisor before undraft.
+1. Claim: the plan assumed that the image-seed workspace is a git repository. Evidence: the first US-003 exe.dev run reported `RESULT P6-clean FAIL before rc=128 after rc=128`. Outcome: fixed in this PR. The advisor amended the P6 criterion (`8e6ac621`), and the worker changed P6 to a marker-based `find` check (`3d240728`, `59f64e9a`).
+2. Claim: the first P6 repair created the marker as the `sandbox` user in a directory that the check user owns. Evidence: advisor review of `3d240728` before the second VM run. Outcome: fixed in this PR (`59f64e9a`). The second run reported `SUMMARY fails=0`.
+3. Claim: with a ChatGPT subscription, `prime-agent -p` without `--provider` and `--model` exited with code 1, and the docs did not say how to select the model. Evidence: `evidence/manual-review.md` Part B, steps 7 and 8. Outcome: fixed in this PR (`cb07b875`).
+4. Claim: the council did not find the earlier integration and its retirement in #918. Evidence: `gh issue list` found #838 and #918 only after the plan approval. Outcome: dropped, because the finding is a process observation. The plan cites #918.
+5. Claim: the safety hook blocked `python3` heredoc edits by workers and the advisor. Evidence: worker reports for US-001, US-002, and US-003. Outcome: dropped, because the finding is tooling friction. Each actor used the Edit tool.
+6. Claim: `.gitignore` line 26 ignores task `checks/` and `evidence/` files, so each worker used `git add -f`. Evidence: worker reports for US-003 and US-004. Outcome: dropped, because the finding is tooling friction with an fx precedent.
