@@ -84,15 +84,16 @@
         "The driver destroys the VM, and the evidence file records the destroy step."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed on exe.dev with the integrated check (59f64e9a): run 2 VM agro-mx-1021-221857, tmux session rs-prime-agent-2, operator-approved, IMAGE=ghcr.io/mifunedev/agro:latest. RESULT P0-P7 all PASS, SUMMARY fails=0; log ends remaining agro-matrix resources on exedev: 0 and RUN DONE; 1 VM deleted. Evidence lines diffed byte-for-byte against the run log. Run 1 (tmux rs-prime-agent) failed P6 with git rc=128 because the image-seed workspace is not a git repository; P6 criterion amended (8e6ac621) and check repaired by the worker (ff4479bd, 6457398a). Output format and sandbox-user execution reasoned from advisor review of the script. No credentials sent.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/tasks/prime-agent-harness/checks/prime-agent-harness.sh",
         ".agro/tasks/prime-agent-harness/evidence/exedev-validation.md"
-      ]
+      ],
+      "commit": "a32cff13"
     },
     {
       "id": "US-004",
