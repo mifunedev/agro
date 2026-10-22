@@ -33,7 +33,7 @@ else
 fi
 
 MARKER=$OUT/before-install.marker
-in_sbx "touch $MARKER"
+touch "$MARKER"
 
 echo "== P1"
 in_sbx "set -o pipefail; curl -fsSL https://app.primeintellect.ai/prime-agent/install.sh | PRIME_AGENT_VERSION=$PA_VERSION PRIME_AGENT_RUST_PREFIX=\"$PREFIX\" PRIME_AGENT_UV_BIN_DIR=\"$BIN_DIR\" sh" >"$OUT/install.log" 2>&1; rc=$?
