@@ -79,7 +79,7 @@ else
 fi
 
 echo "== git status before M3"
-sx "git -C $WS status --porcelain" >"$OUT/status-before.log" 2>&1; brc=$?
+sx "git -c safe.directory=$WS -C $WS status --porcelain" >"$OUT/status-before.log" 2>&1; brc=$?
 quote <"$OUT/status-before.log"
 
 echo "== M3 install"
@@ -120,7 +120,7 @@ else
 fi
 
 echo "== M6 clean"
-sx "git -C $WS status --porcelain" >"$OUT/status-after.log" 2>&1; arc=$?
+sx "git -c safe.directory=$WS -C $WS status --porcelain" >"$OUT/status-after.log" 2>&1; arc=$?
 quote <"$OUT/status-after.log"
 if [ "$brc" != 0 ] || [ "$arc" != 0 ]; then
   result M6-clean FAIL "git status rc before=$brc after=$arc: $(flat 160 <"$OUT/status-after.log")"
