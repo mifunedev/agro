@@ -132,7 +132,7 @@ cat run.out
 | `H08-clean-status` | `git status --short .hermes` prints nothing after both installs. |
 | `H09-skills-link` | `.hermes/skills/agro` is the link `../../.agro/skills`. |
 
-The CLI under test comes from the clone, not from the released `agro.js`. Row `H03` runs `npm ci --ignore-scripts` and `npm run build` in `.agro/cli` of the clone. Each `agro harness install hermes` call then runs `node .agro/cli/dist/agro.js`. The installer supplies Node 20 or later: with `--yes`, the installer installs nvm and Node 24 when the VM has no usable Node. Row `H06` parses the file with the `yaml` package at the version in the clone `package.json`. The parse reads integers as `bigint`, so the row tells `85` from `85.0`. The log holds the file content after each install.
+The CLI under test comes from the clone, not from the released `agro.js`. Row `H03` runs `npm ci --ignore-scripts` and `npm run build` in `.agro/cli` of the clone. Each `agro harness install hermes` call then runs `node .agro/cli/dist/agro.js`. The installer supplies Node 22 or later: with `--yes`, the installer installs nvm and Node 24 when the VM has no usable Node. Row `H06` parses the file with the `yaml` package at the version in the clone `package.json`. The parse reads integers as `bigint`, so the row tells `85` from `85.0`. The log holds the file content after each install.
 
 Set `AGRO_REF` to the branch under test. Start the run detached on the driver host:
 

@@ -53,10 +53,7 @@ jobs:
           persist-credentials: false
 
       - name: Compare fixed Bookworm and Trixie bases
-        run: |
-          bash .agro/scripts/node-pnpm-parity.sh \
-            node:24-bookworm-slim \
-            node:24-trixie-slim
+        run: bash .agro/scripts/node-pnpm-parity.sh
 
   optional-harness-install:
     name: Install every optional harness through the CLI

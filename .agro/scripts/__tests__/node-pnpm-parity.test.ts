@@ -6,6 +6,9 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = join(import.meta.dirname, "../../..");
 const SCRIPT = join(ROOT, ".agro", "scripts", "node-pnpm-parity.sh");
+const TRIXIE =
+  "node:24.22.1-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea";
+const BOOKWORM = "node:24.22.1-bookworm-slim";
 
 function fixture(perBase: Record<string, string>) {
   const dir = mkdtempSync(join(tmpdir(), "node-pnpm-parity-"));
@@ -41,24 +44,24 @@ function run(fx: { bin: string }, args: string[] = []) {
 }
 
 describe("node-pnpm-parity", () => {
-  it("reads the node base image tag and pnpm pin straight from the Dockerfile", () => {
+  it("reads the pinned node base image and pnpm pin straight from the Dockerfile", () => {
     const fx = fixture({
-      "node:24-bookworm-slim": "v24.11.1 10.33.0",
-      "node:24-trixie-slim": "v24.11.1 10.33.0",
+      [BOOKWORM]: "v24.22.1 10.33.0",
+      [TRIXIE]: "v24.22.1 10.33.0",
     });
 
     const result = run(fx);
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("node base:  node:24-trixie-slim");
+    expect(result.stdout).toContain(`node base:  ${TRIXIE}`);
     expect(result.stdout).toContain("pnpm pin:   10.33.0");
-    expect(result.stdout).toContain("PARITY: node:24-bookworm-slim and node:24-trixie-slim");
+    expect(result.stdout).toContain(`PARITY: ${BOOKWORM} and ${TRIXIE}`);
   });
 
   it("reports a divergence between the two bases", () => {
     const fx = fixture({
-      "node:24-bookworm-slim": "v24.11.1 10.33.0",
-      "node:24-trixie-slim": "v24.12.0 10.33.0",
+      [BOOKWORM]: "v24.11.1 10.33.0",
+      [TRIXIE]: "v24.12.0 10.33.0",
     });
 
     const result = run(fx);

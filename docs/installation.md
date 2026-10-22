@@ -19,14 +19,14 @@ other file.
 |---|---|---|
 | Docker with the Compose plugin | The sandbox | [docs.docker.com/get-docker](https://docs.docker.com/get-docker/) |
 | Git | `agro vendor --from-remote` and `agro workspace create` | [git-scm.com](https://git-scm.com/) |
-| Node.js ≥ 20 (24 recommended) | The `agro` CLI | [nodejs.org](https://nodejs.org/), or let `install.sh` install nvm and Node 24 |
+| Node.js ≥ 22 (24 recommended) | The `agro` CLI | [nodejs.org](https://nodejs.org/), or let `install.sh` install nvm and Node 24 |
 
 The host needs nothing else. pnpm, Python, and every agent CLI run inside the
 sandbox.
 
 ## Get the CLI: `agro`
 
-With Node.js ≥ 20 on the host, install the npm package
+With Node.js ≥ 22 on the host, install the npm package
 [`@mifune/agro`](https://www.npmjs.com/package/@mifune/agro):
 
 ```bash
@@ -36,7 +36,7 @@ npx @mifune/agro sandbox install docker   # or run it without a global install
 
 npm does not install Node. Without Node, use `install.sh`. The script downloads
 the prebuilt `agro` file from the latest GitHub release into `~/.local/bin/agro`.
-It clones nothing and builds nothing. When Node.js ≥ 20 is missing, the script
+It clones nothing and builds nothing. When Node.js ≥ 22 is missing, the script
 offers to install nvm and Node 24:
 
 ```bash

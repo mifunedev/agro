@@ -66,7 +66,7 @@ is cloned or built on this host. Then: agro sandbox install docker
 
 Prerequisites:
   curl
-  Node.js >= 20   (to RUN 'agro'; if missing, this script offers to install nvm + Node 24)
+  Node.js >= 22   (to RUN 'agro'; if missing, this script offers to install nvm + Node 24)
 
 Flags:
   -y, --yes            Accept prompts (e.g. auto-install nvm + Node 24).
@@ -129,21 +129,21 @@ install_node_via_nvm() {
 
 ensure_node() {
   banner "Checking Node.js"
-  if command -v node >/dev/null 2>&1 && [ "$(node_major)" -ge 20 ] 2>/dev/null; then
+  if command -v node >/dev/null 2>&1 && [ "$(node_major)" -ge 22 ] 2>/dev/null; then
     ok "Node.js $(node --version) — OK"; return 0
   fi
   if command -v node >/dev/null 2>&1; then
-    warn "Node.js $(node --version) is too old (need >= 20)"
+    warn "Node.js $(node --version) is too old (need >= 22)"
   else
-    warn "Node.js not found (need >= 20 to run 'agro')"
+    warn "Node.js not found (need >= 22 to run 'agro')"
   fi
   if prompt_yn "Install nvm + Node 24 now?" y; then
     install_node_via_nvm
   else
-    die "Node.js >= 20 is required to run 'agro'. Install it from https://nodejs.org and re-run."
+    die "Node.js >= 22 is required to run 'agro'. Install it from https://nodejs.org and re-run."
   fi
-  command -v node >/dev/null 2>&1 && [ "$(node_major)" -ge 20 ] 2>/dev/null \
-    || die "Node.js >= 20 still not available after install."
+  command -v node >/dev/null 2>&1 && [ "$(node_major)" -ge 22 ] 2>/dev/null \
+    || die "Node.js >= 22 still not available after install."
   ok "Node.js $(node --version) — OK"
 }
 

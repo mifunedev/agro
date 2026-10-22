@@ -8,6 +8,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Security
+- Pin the sandbox base image to Node 24.22.1 for the October 2026 Node.js security release and require Node 22 or newer on the host.
+
 ## [0.25.0] - 2026-10-20
 
 ### Added

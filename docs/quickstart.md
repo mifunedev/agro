@@ -5,7 +5,7 @@ title: "Quickstart"
 # Quickstart
 
 This guide takes you from a bare host to an authenticated agent in a sandbox.
-The host needs Docker with the Compose plugin, Git, and Node.js ≥ 20. See
+The host needs Docker with the Compose plugin, Git, and Node.js ≥ 22. See
 [Installation → Prerequisites](./installation.md#prerequisites).
 
 ## 1. Get `agro`

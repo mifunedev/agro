@@ -28,11 +28,11 @@ Start with the quickstart below. See the [documentation](docs/README.md) for mor
 
 AGRO runs one project in one Docker sandbox, and **`agro` is the only
 front door**. Host prerequisites: Docker (with the Compose plugin), Git, and
-Node.js ≥ 20.
+Node.js ≥ 22.
 
 ### 1. Get `agro`
 
-**npm** — you already have Node ≥ 20:
+**npm** — you already have Node ≥ 22:
 
 ```bash
 # Install globally
