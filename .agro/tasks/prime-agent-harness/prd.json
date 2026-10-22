@@ -21,14 +21,15 @@
         "`pnpm typecheck` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "All 10 criteria executed on the integrated task branch. 1-8: harness-catalog.test.ts registration, installable-list, pin, shipped-argv, host-prefix, docs-page and uninstall-prefix tests pass (red first: 6 failed before the entry). 9: pnpm test exit 0 (108 files, 2588 passed, 2 skipped). 10: pnpm typecheck exit 0. Docs stub ste-check exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/harnesses/catalog.ts",
         ".agro/cli/src/__tests__/harness-catalog.test.ts",
         "docs/harnesses/prime-agent.md"
-      ]
+      ],
+      "commit": "03afadcc"
     },
     {
       "id": "US-002",
