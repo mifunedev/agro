@@ -10,6 +10,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Security
 - Pin the sandbox base image to Node 24.22.1 for the October 2026 Node.js security release and require Node 22 or newer on the host.
+- Update Vitest to 4.1.12 to clear the `@vitest/mocker` advisories GHSA-qxg6-89mg-rqv8 and GHSA-xp26-3454-mjgp.
 
 ## [0.25.0] - 2026-10-20
 
