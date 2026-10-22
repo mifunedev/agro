@@ -122,8 +122,8 @@
         "`.agro/tasks/prime-agent-harness/evidence/manual-review.md` holds each `RESULT` line, `SUMMARY fails=0`, and the local transcript with each command, its output, and its exit status."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed. exe.dev branch run (operator-approved, tmux rs-prime-branch, VM agro-mx-1021-222542, AGRO_REF=feat/1500-prime-agent-harness@59bb861, check 18ac334c+0eaadeae): RESULT M1-M8 all PASS, SUMMARY fails=0, remaining agro-matrix resources on exedev: 0, RUN DONE; no credential sent (run.sh forwards only INSTALL_URL, AGRO_JS_URL, SANDBOX_IMAGE, AGRO_REF). Local in this sandbox by the advisor: branch CLI build rc=0 and harness install prime-agent rc=0, version 0.10.0; herdr agent start prime rc=0 and agent list shows w1:p4S prime-agent, pane closed; operator signed in with /login (ChatGPT) and the advisor never handled the credential; prime-agent -p --provider openai-codex --model gpt-6.1-sol printed /home/sandbox/harness/.agents/skills/prd/SKILL.md and prd, rc=0 (without --model: rc=1 gpt-5.5 rejected, recorded as a finding); harness uninstall rc=0, command -v rc=1, ~/.prime/agent present; operator deleted ~/.prime, advisor observed it absent; git status unchanged. manual-review.md RESULT lines diffed against the log; no credential values.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -132,7 +132,8 @@
       "files": [
         ".agro/tasks/prime-agent-harness/checks/prime-agent-branch.sh",
         ".agro/tasks/prime-agent-harness/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "504d6b17"
     }
   ]
 }
