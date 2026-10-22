@@ -83,6 +83,12 @@ prime-agent prompt                                         # print the assembled
 
 Use `--mode <text|json|rpc|acp|daemon>` to select the output mode. These commands manage the daemon and its sessions: `agents`, `list`, `sessions`, `attach`, `stop`, `send`, `schedule`, `status`, and `shutdown`.
 
+With a ChatGPT subscription, a `prime-agent -p` run without `--provider` and `--model` exited with code 1 and the error `Codex error: The 'gpt-5.5' model is not supported when using Codex with a ChatGPT account.` The interactive session showed `gpt-6.1-sol`. To select the model for a `-p` run, use `--provider` and `--model`. Run `prime-agent model list` to see the provider and model names:
+
+```bash
+prime-agent -p --provider openai-codex --model gpt-6.1-sol "<prompt>"
+```
+
 Run interactive sessions in Herdr, so that a session survives a disconnect. Run `agro tool install herdr`, then run `herdr`, then start `prime-agent` in a pane.
 
 ## AGRO integration
