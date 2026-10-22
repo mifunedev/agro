@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1500-prime-agent-harness",
+  "description": "Prime Agent harness support: add a pinned, catalog-tier Prime Agent harness in the shape of fx, validated on exe.dev and in this sandbox. Issue #1500. Replaces the retired integration (#918).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add the pinned Prime Agent catalog entry",
+      "description": "As an operator, I want `agro harness install prime-agent` to install a pinned Prime Agent into the harness prefix. I can then run Prime Agent in the sandbox.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/lib/harnesses/catalog.ts` holds one entry with `id: \"prime-agent\"`, `title: \"Prime Agent\"`, `binary: \"prime-agent\"`, `installUser: \"sandbox\"`, and `kind: \"installable\"`.",
+        "The entry `installArgv` is `[\"bash\", \"-lc\", \"set -o pipefail; curl -fsSL https://app.primeintellect.ai/prime-agent/install.sh | PRIME_AGENT_VERSION=0.10.0 PRIME_AGENT_RUST_PREFIX=\\\"{{prefix}}\\\" PRIME_AGENT_UV_BIN_DIR=\\\"{{prefix}}/bin\\\" sh\"]`. The TypeScript source spells `{{prefix}}` through `HARNESS_PREFIX_TOKEN`.",
+        "The entry `verifyArgv` is `[\"prime-agent\", \"--version\"]`.",
+        "The entry `uninstallArgv` is `[\"rm\", \"-rf\", \"{{prefix}}/bin/prime-agent\", \"{{prefix}}/share/prime-agent\"]`.",
+        "The entry `docsPath` is `docs/harnesses/prime-agent.md`, and that file exists with an `## Install` section.",
+        "`.agro/cli/src/__tests__/harness-catalog.test.ts` adds `prime-agent` to the installable list, the shipped-argv table, and the host-prefix `it.each` list.",
+        "`.agro/cli/src/__tests__/harness-catalog.test.ts` adds one test that asserts the `PRIME_AGENT_VERSION=0.10.0` pin.",
+        "`.agro/cli/src/__tests__/harness-catalog.test.ts` adds one `toMatchObject` registration test in the shape of the fx test at line 272.",
+        "`pnpm test` exits 0.",
+        "`pnpm typecheck` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/harnesses/catalog.ts",
+        ".agro/cli/src/__tests__/harness-catalog.test.ts",
+        "docs/harnesses/prime-agent.md"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Document Prime Agent",
+      "description": "As an operator, I want a complete Prime Agent page and catalog listings. I can then install, sign in, run, and remove Prime Agent without upstream research.",
+      "acceptanceCriteria": [
+        "`docs/harnesses/prime-agent.md` has these sections in order: Install, Uninstall, Authentication, Common usage, AGRO integration, References.",
+        "The AGRO integration section has the subsections Project instructions, Skills, MCP servers, Hooks and guards, and Herdr.",
+        "The Uninstall section states that `~/.prime/agent` stays after `agro harness uninstall prime-agent`, and it gives the command that removes `~/.prime/agent`.",
+        "The Authentication section names `/login` and the provider API-key environment variables `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and `PRIME_API_KEY`.",
+        "The Authentication section states that the operator runs `prime-agent shutdown` after a change to a provider environment variable.",
+        "The Hooks and guards subsection states that AGRO hooks under `.agro/hooks/` do not run under Prime Agent.",
+        "The Herdr subsection tells the operator to start `prime-agent` in a Herdr pane, and it names the Prime Agent daemon as secondary to Herdr.",
+        "`docs/harnesses/overview.md` names **Prime Agent** in the install sentence at line 7 and has one agent-table row with `agro harness install prime-agent`.",
+        "`docs/README.md` line 29 and the `README.md` harness table each link `docs/harnesses/prime-agent.md`.",
+        "`CHANGELOG.md` has one `### Added` entry under `## [Unreleased]` for Prime Agent.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh docs/harnesses/prime-agent.md` exits 0.",
+        "`pnpm test` exits 0."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        "docs/harnesses/prime-agent.md",
+        "docs/harnesses/overview.md",
+        "docs/README.md",
+        "README.md",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Prove the installer on a fresh VM",
+      "description": "As the advisor, I want a credential-free `remote-sandbox` check for Prime Agent. An exe.dev VM then proves the installer, the pin, and discovery on a clean AGRO image.",
+      "acceptanceCriteria": [
+        "The check is at `.agro/tasks/prime-agent-harness/checks/prime-agent-harness.sh`. The check prints `RESULT <id> <PASS|FAIL|INFO> <detail>` lines and ends with `SUMMARY fails=<n>`.",
+        "The check follows the image-mode shape of `.agro/tasks/fx-harness/checks/fx-harness.sh` and runs each Prime Agent command as the `sandbox` user.",
+        "Row `P1-install` runs the same installer command as the US-001 `installArgv`, with the prefix `/home/sandbox/.local`.",
+        "Row `P2-version` passes when `prime-agent --version` prints `0.10.0`.",
+        "Row `P3-binary` passes when `command -v prime-agent` prints `/home/sandbox/.local/bin/prime-agent`.",
+        "Row `P4-instructions` passes when `prime-agent prompt` in `/home/sandbox/harness` prints `/home/sandbox/harness/AGENTS.md`.",
+        "Row `P5-skills` passes when `prime-agent prompt` prints `/home/sandbox/harness/.agents/skills/prd/SKILL.md`.",
+        "Row `P6-clean` passes when `git -C /home/sandbox/harness status --porcelain` prints the same lines before and after rows `P1` to `P5`.",
+        "Row `P7-uninstall` runs the US-001 `uninstallArgv` and passes when `command -v prime-agent` exits 1.",
+        "The operator approves the run before the advisor starts the driver.",
+        "The advisor starts `IMAGE=ghcr.io/mifunedev/agro:latest bash .agro/skills/remote-sandbox/scripts/run.sh exedev .agro/tasks/prime-agent-harness/checks/prime-agent-harness.sh` detached in a named tmux session.",
+        "`.agro/tasks/prime-agent-harness/evidence/exedev-validation.md` records each `RESULT` line and `SUMMARY fails=0`.",
+        "The driver destroys the VM, and the evidence file records the destroy step."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/tasks/prime-agent-harness/checks/prime-agent-harness.sh",
+        ".agro/tasks/prime-agent-harness/evidence/exedev-validation.md"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Record the manual review",
+      "description": "As a reviewer, I want an exe.dev transcript of the task-branch `agro harness install prime-agent` verb. I also want one local authenticated run and one local Herdr launch. The evidence confirms the integrated behavior before merge.",
+      "acceptanceCriteria": [
+        "The branch check is at `.agro/tasks/prime-agent-harness/checks/prime-agent-branch.sh`. The check prints `RESULT <id> <PASS|FAIL|INFO> <detail>` lines and ends with `SUMMARY fails=<n>`.",
+        "Row `M1-branch-cli` clones `AGRO_REF`, builds the CLI, and puts the CLI first on `PATH`, in the shape of `.agro/skills/remote-sandbox/checks/docker-egress.sh`. The row passes when `command -v agro` prints the branch CLI path.",
+        "Row `M2-sandbox` passes when `agro sandbox install docker --name <name> --checkout <clone> --yes` exits 0 and the sandbox reports healthy.",
+        "Row `M3-install` passes when `command -v prime-agent` exits 1 in the sandbox before the install, and `agro harness install prime-agent` then exits 0 as the `sandbox` user.",
+        "Row `M4-version` passes when `prime-agent --version` in the sandbox prints `0.10.0`.",
+        "Row `M5-discovery` passes when `prime-agent prompt` in `/home/sandbox/harness` prints `/home/sandbox/harness/AGENTS.md` and `/home/sandbox/harness/.agents/skills/prd/SKILL.md`.",
+        "Row `M6-clean` passes when `git -C /home/sandbox/harness status --porcelain` in the sandbox prints the same lines before and after rows `M3` to `M5`.",
+        "Row `M7-uninstall` passes when `agro harness uninstall prime-agent` exits 0, and `command -v prime-agent` then exits 1.",
+        "Row `M8-state-kept` passes when `~/.prime/agent` exists in the sandbox after row `M7`.",
+        "The check and the driver environment carry no API key, token, or `.env` file into the VM.",
+        "The branch `feat/1500-prime-agent-harness` holds US-001 on the remote before the run.",
+        "The operator approves the run before the advisor starts the driver.",
+        "The advisor starts `AGRO_REF=feat/1500-prime-agent-harness bash .agro/skills/remote-sandbox/scripts/run.sh exedev .agro/tasks/prime-agent-harness/checks/prime-agent-branch.sh` detached in a named tmux session.",
+        "The driver log ends with `remaining agro-matrix resources on exedev: 0` and `RUN DONE`.",
+        "After the VM run, the advisor builds the task-branch CLI and runs its `harness install prime-agent` in this sandbox. The command exits 0.",
+        "With the operator's provider API key in this sandbox environment, `prime-agent -p \"<prompt that names the prd skill>\"` in `/home/sandbox/harness` exits 0. The output shows that Prime Agent read `/home/sandbox/harness/.agents/skills/prd/SKILL.md`.",
+        "`herdr agent start prime --cwd /home/sandbox/harness -- prime-agent` starts a pane, and `herdr agent list` names that pane. The advisor closes the pane after the check.",
+        "After the local checks, `agro harness uninstall prime-agent` exits 0. The advisor deletes `~/.prime` with operator approval.",
+        "No transcript shows an API key value.",
+        "`.agro/tasks/prime-agent-harness/evidence/manual-review.md` holds each `RESULT` line, `SUMMARY fails=0`, and the local transcript with each command, its output, and its exit status."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".agro/tasks/prime-agent-harness/checks/prime-agent-branch.sh",
+        ".agro/tasks/prime-agent-harness/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
