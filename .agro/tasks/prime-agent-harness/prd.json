@@ -50,8 +50,8 @@
         "`pnpm test` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed on integrated task branch: 1-2 grep of headings shows Install, Uninstall, Authentication, Common usage, AGRO integration (Project instructions, Skills, MCP servers, Hooks and guards, Herdr), References; 8 overview.md line 7 and table row present; 9 docs/README.md line 29 and README.md table link present; 10 one ### Added entry under [Unreleased] linking #1500; 11 ste-check exit 0; 12 pnpm test exit 0 (2588 passed). Reasoned by advisor read: 3 Uninstall keeps ~/.prime/agent with shutdown + rm command; 4 /login and ANTHROPIC_API_KEY, OPENAI_API_KEY, PRIME_API_KEY table; 5 prime-agent shutdown after env change; 6 hooks in .agro/hooks do not run (names match .agro/hooks contents); 7 Herdr primary, daemon secondary.",
       "dependsOn": [
         "US-001"
       ],
@@ -61,7 +61,8 @@
         "docs/README.md",
         "README.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "7064e0fb"
     },
     {
       "id": "US-003",
