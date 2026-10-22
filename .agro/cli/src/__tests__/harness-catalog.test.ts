@@ -80,6 +80,7 @@ describe("harness catalog", () => {
         "openclaw",
         "opencode",
         "pi",
+        "prime-agent",
       ]);
     });
 
@@ -166,6 +167,12 @@ describe("harness catalog", () => {
 
     it("keeps the fx pin in the catalog", () => {
       expect(findHarness("fx")!.installArgv.join("\n")).toContain("bash -s v0.0.13");
+    });
+
+    it("keeps the prime-agent pin in the catalog", () => {
+      const primeAgent = findHarness("prime-agent")!;
+      expect(primeAgent.installArgv.join("\n")).toContain("PRIME_AGENT_VERSION=0.10.0");
+      expect(versionPins(primeAgent.installArgv)).toEqual(["0.10.0"]);
     });
 
     it("gates the Hermes wiring on the binary, never on INSTALL_HERMES", () => {
@@ -278,6 +285,17 @@ describe("harness catalog", () => {
     });
   });
 
+  it("registers Prime Agent with a pinned home-local installer and version verification", () => {
+    expect(findHarness("prime-agent")).toMatchObject({
+      title: "Prime Agent", binary: "prime-agent", kind: "installable",
+      installUser: "sandbox", verifyArgv: ["prime-agent", "--version"],
+      uninstallArgv: [
+        "rm", "-rf", `${HARNESS_PREFIX_TOKEN}/bin/prime-agent`, `${HARNESS_PREFIX_TOKEN}/share/prime-agent`,
+      ],
+      docsPath: "docs/harnesses/prime-agent.md",
+    });
+  });
+
   it("registers OpenClaw as a pinned npm harness that keeps its own install script", () => {
     expect(findHarness("openclaw")).toMatchObject({
       title: "OpenClaw", binary: "openclaw", kind: "installable",
@@ -324,6 +342,7 @@ describe("prefix token and resolvers", () => {
     ["muse-code", ["bash", "-lc", expandSandboxHome("set -o pipefail; curl -fsSL https://dev.meta.ai/install.sh | MUSE_INSTALL_DIR=\"$HOME/.local/bin\" MUSE_NO_MODIFY_PATH=1 MUSE_LOGIN=0 bash")]],
     ["antigravity-cli", ["bash", "-lc", expandSandboxHome("set -o pipefail; curl -fsSL https://antigravity.google/cli/install.sh | gzip -cdf | bash -s -- --dir \"$HOME/.local/bin\"")]],
     ["fx", ["bash", "-lc", expandSandboxHome("set -o pipefail; curl -fsSL https://fx.sh/setup.sh | FX_INSTALL_DIR=\"$HOME/.local/bin\" bash -s v0.0.13")]],
+    ["prime-agent", ["bash", "-lc", expandSandboxHome("set -o pipefail; curl -fsSL https://app.primeintellect.ai/prime-agent/install.sh | PRIME_AGENT_VERSION=0.10.0 PRIME_AGENT_RUST_PREFIX=\"$HOME/.local\" PRIME_AGENT_UV_BIN_DIR=\"$HOME/.local/bin\" sh")]],
     ["t3code", ["npx", "--yes", "t3", "--version"]],
   ];
 
@@ -352,7 +371,7 @@ describe("prefix token and resolvers", () => {
     }
   });
 
-  it.each(["grok-build", "hermes", "muse-code", "antigravity-cli", "fx"])(
+  it.each(["grok-build", "hermes", "muse-code", "antigravity-cli", "fx", "prime-agent"])(
     "%s: resolves to a host prefix with no sandbox path and no shell home left",
     (id) => {
       const argv = resolveInstallArgv(findHarness(id)!, "/home/me/.agro").join("\n");

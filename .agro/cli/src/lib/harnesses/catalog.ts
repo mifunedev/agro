@@ -200,6 +200,21 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     kind: "installable",
   },
   {
+    id: "prime-agent",
+    title: "Prime Agent",
+    binary: "prime-agent",
+    installArgv: [
+      "bash",
+      "-lc",
+      `set -o pipefail; curl -fsSL https://app.primeintellect.ai/prime-agent/install.sh | PRIME_AGENT_VERSION=0.10.0 PRIME_AGENT_RUST_PREFIX="${HARNESS_PREFIX_TOKEN}" PRIME_AGENT_UV_BIN_DIR="${HARNESS_PREFIX_TOKEN}/bin" sh`,
+    ],
+    installUser: "sandbox",
+    verifyArgv: ["prime-agent", "--version"],
+    uninstallArgv: ["rm", "-rf", `${HARNESS_PREFIX_TOKEN}/bin/prime-agent`, `${HARNESS_PREFIX_TOKEN}/share/prime-agent`],
+    docsPath: "docs/harnesses/prime-agent.md",
+    kind: "installable",
+  },
+  {
     id: "t3code",
     title: "T3 Code",
     binary: "t3",
