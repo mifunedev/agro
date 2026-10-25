@@ -96,7 +96,7 @@ gh api "repos/$REPO/actions/jobs/$JOB_ID/logs" 2>&1 \
 - **FAIL**: Report the failing step, error message, and suggest a fix. Then fix the issue, commit, push, and run `/ci-status` again
 - **NO RUN**: No workflow's `on:` filter matched the push, or `PR_NUMBER` was set but `gh pr checks` returned no rows (the PR exists but no workflows were triggered yet). *(Note: the workflow names below reflect this harness's layout and may differ in other checkouts.)*
   - `ci-harness.yml` — `.agro/**`, `docs/**`, `.devcontainer/**`, `package.json`, `pnpm-lock.yaml`, itself
-  - `sandbox-boot-guard.yml` — `.devcontainer/**`, `.agro/cli/**`, `.agro/scripts/**`, `.agro/install/**`
+  - `sandbox-boot-guard.yml` — `.devcontainer/**`, `.agro/cli/**` except `__tests__/**` and `*.md`, the boot-path scripts `docker-compose.sh`, `check-host-port.sh`, `paths.sh`, `provision-python.sh`, `sandbox-healthcheck.sh`, `sandbox-boot-smoke.sh`, `sandbox-upgrade-smoke.sh`, `cli-first-install-smoke.sh`, `verify-sandbox-image.sh`, `install.sh`, and `link-providers.sh` in `.agro/scripts/`, `.agro/install/**`, `agro.json`, `.example.env`, `.dockerignore`, itself
   - `release.yml` — every push to `main` or `master`; validation precedes automatic release publication
 
   Diagnose with: `git diff --name-only HEAD~1 HEAD` and compare against each workflow's `on:` block.
