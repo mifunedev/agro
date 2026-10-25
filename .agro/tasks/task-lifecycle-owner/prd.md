@@ -104,11 +104,10 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] `.agro/tasks/task-lifecycle-owner/evidence/manual-review.md` holds the `next.sh` output at each state of this task, from `story` to `ready`.
+- [ ] `.agro/tasks/task-lifecycle-owner/evidence/manual-review.md` holds the `next.sh` output of each `story` state of this task, from `story US-001` to `story US-006`.
 - [ ] The transcript shows one Claude Code Stop hook block and the session continuing after the block.
 - [ ] The transcript shows the no-progress release after 3 blocks in a fixture worktree.
 - [ ] The transcript records the count of operator nudges between plan approval and `ready`. The target is 0.
-- [ ] The transcript records the reviewer verdict and each blocking finding with its command result.
 - [ ] `bash .agro/skills/git/scripts/manual-review-check.sh <pr-body-file>` exits 0.
 
 ## Summary
@@ -206,6 +205,8 @@ None. US-003 settles Codex `Stop` support by an executed check.
 - [ ] `bash .agro/scripts/link-providers.sh --check` exits 0.
 - [ ] `/ci-status` reports `PASS` on the task branch.
 - [ ] The operator gives 0 nudges between plan approval and `ready`, per the US-006 transcript.
+- [ ] At Close, the advisor appends the `next.sh` output of the `review`, `close`, `push`, `ci`, and `ready` states to the US-006 transcript.
+- [ ] At Close, the advisor appends the reviewer verdict and each blocking finding with its command result to the US-006 transcript.
 
 ## Lessons
 
