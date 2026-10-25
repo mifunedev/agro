@@ -302,9 +302,8 @@ holds the approval rule.
    ```
 
 The advisor commits each accepted story to this branch and does not push it.
-The advisor pushes the task branch only two times: in step 3 for the draft PR,
-and in § Ready for review before `gh pr ready`. Push at another time only when
-the operator explicitly requires it.
+After step 3, the advisor pushes the task branch only when
+`bash .agro/skills/delegate/scripts/next.sh` prints `push`.
 
 ### Ready for review
 
@@ -312,7 +311,7 @@ Do these steps in this sequence:
 
 1. Examine the first three conditions below. If one is false, stop and keep the
    PR in draft.
-2. Push the task branch one time: `git push`.
+2. When `next.sh` prints `push`, push the task branch: `git push`.
 3. Run `/ci-status` to examine the last condition.
 4. Run `gh pr ready` only when all of these conditions are true. If one is
    false, refuse and keep the PR in draft.

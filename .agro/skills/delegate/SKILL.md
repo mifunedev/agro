@@ -131,15 +131,28 @@ A worker report is not acceptance. For each story, the advisor does these steps:
 4. Write `passes: true`, `commit`, and `notes` in `prd.json`. In `notes`,
    mark each criterion executed or reasoned.
 
-If a check fails, the story returns to the same worker with a bounded repair.
-The advisor does not repair. Dependents of a failed story wait.
+### Repair
+
+A failed story check, a red CI check (`ci-red`), or a confirmed blocking review
+finding starts a repair. The advisor reopens the story whose `files` hold the
+failing path: write `passes: false` and add 1 to `rounds`. The same worker
+repairs the story as a bounded repair. The advisor does not repair. Dependents
+of a reopened story wait.
+
+The advisor writes `blocked` in `prd.json` and runs `/escalate` one time in
+each of these cases:
+
+- `rounds` is greater than 2.
+- A round does not decrease the set of failed checks.
+- No story owns the failing path.
+- `/ci-status` reports `NO-RUN` or `TIMEOUT`.
 
 ## Integration
 
 After acceptance, do these steps on the task branch:
 
 1. Commit `prd.json` with the accepted story. Do not push it. `/git` § Draft PR
-   for a task names the two pushes.
+   for a task names the push rule.
 2. Tick the story in the PR `## Stories` checklist.
 3. Remove the worker worktree and branch. Use the git maintenance shim that
    `/git` names.

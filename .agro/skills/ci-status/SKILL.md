@@ -2,13 +2,18 @@
 name: ci-status
 description: |
   Check the CI pipeline status for the current branch after pushing changes.
-  Reports pass/fail with failure details. Use this after every push to confirm
-  your changes are truly done — CI must be green.
+  Reports exactly one of PASS, FAIL, NO-RUN, or TIMEOUT, with failure details,
+  and makes no edit. Use this after every push to confirm your changes are
+  truly done — CI must be green.
   TRIGGER when: after git push, after committing changes, when asked to check CI,
   or when verifying that work is complete.
 ---
 
 # CI Status
+
+`/ci-status` reads CI state and reports exactly one result: PASS, FAIL, NO-RUN,
+or TIMEOUT. `/ci-status` makes no edit and stops after the report.
+[`/delegate` § Acceptance](../delegate/SKILL.md#acceptance) owns the repair.
 
 ## Instructions
 
@@ -34,21 +39,25 @@ echo "Repo: $REPO"
 
 2. **Prefer an open PR's checks (PR-first path):**
 
-With stacked PRs on one head branch, the most recent is used. No open PR routes to steps 3–6.
+With stacked PRs on one head branch, `/ci-status` uses the most recent PR. No open PR routes to steps 3 and 4.
 
 ```bash
 PR_NUMBER=$(gh pr list --head "$BRANCH" --state open --repo "$REPO" \
   --json number --jq '.[0].number')
 
 if [ -n "$PR_NUMBER" ]; then
-  echo "Open PR found: #$PR_NUMBER — checking PR checks directly"
-  gh pr checks "$PR_NUMBER" --repo "$REPO"
-  # If gh pr checks returns no rows, report NO-RUN (step 7). Stop if pass/fail is visible;
-  # otherwise continue to steps 3–6 for detail.
+  echo "Open PR found: #$PR_NUMBER — waiting for PR checks"
+  timeout 900 gh pr checks "$PR_NUMBER" --repo "$REPO" --watch
+  echo "rc=$?"
 else
   echo "No open PR for branch $BRANCH — using branch-runs fallback"
 fi
 ```
+
+When `gh pr checks` prints no rows, report NO-RUN. Otherwise, exit code 0
+reports PASS, exit code 124 reports TIMEOUT, and another nonzero exit code
+reports FAIL. On FAIL, take `RUN_ID` from the failing check link and go to
+step 5.
 
 3. **No-PR fallback: find the latest CI run for this branch:**
 
@@ -57,28 +66,20 @@ gh api "repos/$REPO/actions/runs?branch=$BRANCH&per_page=1" \
   --jq '.workflow_runs[0] | {id: .id, status: .status, conclusion: .conclusion, head_sha: .head_sha[:7], name: .name}'
 ```
 
-4. **If the run is still in progress, poll every 15 seconds (max 5 minutes):**
+When the query returns no run, report NO-RUN.
+
+4. **Wait for the run, at most 900 seconds:**
 
 ```bash
 RUN_ID=<id from step 3>
-for i in $(seq 1 20); do
-  STATUS=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq '.status')
-  if [ "$STATUS" = "completed" ]; then
-    break
-  fi
-  echo "Still running... ($i/20)"
-  sleep 15
-done
+timeout 900 gh run watch "$RUN_ID" --repo "$REPO" --exit-status
+echo "rc=$?"
 ```
 
-5. **Check the result:**
+Exit code 0 reports PASS. Exit code 124 reports TIMEOUT. Another nonzero exit
+code reports FAIL.
 
-```bash
-gh api "repos/$REPO/actions/runs/$RUN_ID" \
-  --jq '{status: .status, conclusion: .conclusion, url: .html_url}'
-```
-
-6. **If failed, get the failure details:**
+5. **On FAIL, get the failure details:**
 
 ```bash
 # Get the failed job ID
@@ -90,11 +91,12 @@ gh api "repos/$REPO/actions/jobs/$JOB_ID/logs" 2>&1 \
   | grep -B 15 "Process completed with exit code" | head -25
 ```
 
-7. **Report the result:**
+6. **Report exactly one result:**
 
-- **PASS**: Report "CI green" with the run URL
-- **FAIL**: Report the failing step, error message, and suggest a fix. Then fix the issue, commit, push, and run `/ci-status` again
-- **NO RUN**: No workflow's `on:` filter matched the push, or `PR_NUMBER` was set but `gh pr checks` returned no rows (the PR exists but no workflows were triggered yet). *(Note: the workflow names below reflect this harness's layout and may differ in other checkouts.)*
+- **PASS**: Report "CI green" with the run URL.
+- **FAIL**: Report the failing step and the error message.
+- **TIMEOUT**: The wait reached 900 seconds with a check still pending. Report the pending checks.
+- **NO-RUN**: No workflow's `on:` filter matched the push, or `PR_NUMBER` was set but `gh pr checks` returned no rows (the PR exists but no workflows were triggered yet). *(Note: the workflow names below reflect this harness's layout and may differ in other checkouts.)*
   - `ci-harness.yml` — `.agro/**`, `docs/**`, `.devcontainer/**`, `package.json`, `pnpm-lock.yaml`, itself
   - `sandbox-boot-guard.yml` — `.devcontainer/**`, `.agro/cli/**` except `__tests__/**` and `*.md`, the boot-path scripts `docker-compose.sh`, `check-host-port.sh`, `paths.sh`, `provision-python.sh`, `sandbox-healthcheck.sh`, `sandbox-boot-smoke.sh`, `sandbox-upgrade-smoke.sh`, `cli-first-install-smoke.sh`, `verify-sandbox-image.sh`, `install.sh`, and `link-providers.sh` in `.agro/scripts/`, `.agro/install/**`, `agro.json`, `.example.env`, `.dockerignore`, itself
   - `release.yml` — every push to `main` or `master`; validation precedes automatic release publication
