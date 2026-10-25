@@ -64,7 +64,7 @@ Status: DRAFT
 - [ ] `.claude/settings.json` has a `Stop` entry that runs `.claude/hooks/task-next-stop.sh`.
 - [ ] `.codex/hooks.json` has a `Stop` entry that runs `.codex/hooks/task-next-stop.sh`. The wrapper calls the canonical hook.
 - [ ] `.agro/tasks/task-lifecycle-owner/evidence/codex-stop.md` records the installed Codex version and one executed Stop hook run. If Codex rejects the `Stop` event, the advisor removes the Codex entry and records the result.
-- [ ] `required_execs` in `.agro/scripts/link-providers.sh` lists both new hook files. `bash .agro/scripts/link-providers.sh --check` exits 0.
+- [ ] `required_execs` in `.agro/scripts/link-providers.sh` lists `.agro/hooks/task-next-stop.sh`. `bash .agro/scripts/link-providers.sh --check` exits 0.
 - [ ] `docs/harnesses/claude-code.md`, `docs/harnesses/codex.md`, and `docs/harnesses/pi.md` state the Stop hook behavior. The Pi page states that the operator or the agent runs `next.sh` by hand.
 - [ ] `pnpm test` exits 0.
 
