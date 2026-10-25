@@ -72,6 +72,17 @@ jobs:
           persist-credentials: false
           submodules: recursive
 
+      - name: Keep the job HOME in login shells
+        shell: bash
+        run: |
+          profile=/etc/profile.d/blacksmith.sh
+          [ -f "$profile" ] || exit 0
+          sudo sed -i 's|^\([[:space:]]*\)export HOME="\$RUNNER_HOME"|\1: export HOME="$RUNNER_HOME"|' "$profile"
+          if grep -Eq '^[[:space:]]*export HOME=' "$profile"; then
+            echo "::error::$profile still exports HOME in login shells"
+            exit 1
+          fi
+
       - name: Ensure Mifune submodule
         run: bash .agro/scripts/link-providers.sh --init
 

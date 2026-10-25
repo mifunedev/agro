@@ -6,9 +6,16 @@ import { parse } from "yaml";
 const ROOT = join(import.meta.dirname, "../../..");
 const WORKFLOWS = join(ROOT, ".github", "workflows");
 
+type Step = {
+  name?: string;
+  run?: string;
+  shell?: string;
+};
+
 type Job = {
   if?: string;
-  steps?: unknown[];
+  "runs-on"?: string;
+  steps?: Step[];
   "timeout-minutes"?: number;
   uses?: string;
 };
@@ -23,6 +30,17 @@ function workflow(file: string): Workflow {
 }
 
 const WORKFLOW_FILES = readdirSync(WORKFLOWS).filter((file) => /\.ya?ml$/.test(file));
+
+const KEEP_HOME_STEP = "Keep the job HOME in login shells";
+
+const CLI_INSTALL_SMOKE_JOBS: [string, string, (step: Step) => boolean][] = [
+  ["ci-harness.yml", "ci", (step) => step.run?.includes("pnpm test:scripts") ?? false],
+  [
+    "sandbox-boot-guard.yml",
+    "sandbox-boot-guard",
+    (step) => step.run?.includes("cli-first-install-smoke.sh") ?? false,
+  ],
+];
 
 const EXPECTED_TIMEOUTS: Record<string, Record<string, number>> = {
   "ci-harness.yml": { ci: 20, "boot-lint": 10 },
@@ -63,6 +81,26 @@ describe("CI workflow contract", () => {
       expect(workflow(file).on.push?.branches ?? []).not.toContain("main");
     },
   );
+
+  it.each(CLI_INSTALL_SMOKE_JOBS)(
+    "%s job %s keeps the job HOME before the first CLI install smoke",
+    (file, job, runsSmoke) => {
+      const steps = workflow(file).jobs[job].steps ?? [];
+      const keepHome = steps.findIndex((step) => step.name === KEEP_HOME_STEP);
+      const firstSmoke = steps.findIndex(runsSmoke);
+      expect(keepHome).toBeGreaterThanOrEqual(0);
+      expect(firstSmoke).toBeGreaterThan(keepHome);
+      expect(steps[keepHome].shell).toBe("bash");
+      expect(steps[keepHome].run).toContain("/etc/profile.d/blacksmith.sh");
+      expect(steps[keepHome].run).toContain("exit 1");
+    },
+  );
+
+  it("base-node-pnpm-parity follows the CI runner variable", () => {
+    expect(workflow("sandbox-compatibility.yml").jobs["base-node-pnpm-parity"]["runs-on"]).toBe(
+      "${{ vars.CI_RUNNER || 'ubuntu-latest' }}",
+    );
+  });
 
   it("optional-harness-install skips pull requests", () => {
     expect(workflow("sandbox-compatibility.yml").jobs["optional-harness-install"].if).toBe(

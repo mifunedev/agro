@@ -37,7 +37,7 @@ permissions:
 jobs:
   base-node-pnpm-parity:
     name: Verify exact Node and pnpm parity across Debian bases
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
 
     steps:
