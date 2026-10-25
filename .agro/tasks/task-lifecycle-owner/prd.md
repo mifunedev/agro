@@ -210,4 +210,3 @@ None. US-003 settles Codex `Stop` support by an executed check.
 
 ## Lessons
 
-Filled by the advisor before undraft.
