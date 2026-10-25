@@ -35,7 +35,7 @@ Status: DRAFT
 - [ ] `--task <slug>` selects the task by slug instead of by branch.
 - [ ] No match prints `none`. More than one match prints `blocked` with the matching slugs.
 - [ ] An unreadable `prd.json` prints `blocked` with the path.
-- [ ] The script evaluates the states in this order: `none`, `blocked`, `story`, `review`, `close`, `push`, `ci`, `ci-red`, `ready`, `done`.
+- [ ] The script evaluates the states in this order: `none`, `blocked`, `story`, `review`, `close`, `push`, `ci-red`, `ci`, `ready`, `done`.
 - [ ] `story <id>` names the lowest-priority story with `passes: false` whose `dependsOn` stories pass.
 - [ ] A story with `rounds` greater than 2 prints `blocked` with the story ID.
 - [ ] `review` prints when `review.verdict` is not `pass`, or when `git diff --quiet <review.commit> HEAD -- . ':!.agro/tasks/<slug>'` exits 1.

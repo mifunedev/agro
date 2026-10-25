@@ -23,7 +23,7 @@
         "`bash .agro/scripts/link-providers.sh --check` exits 0."
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "executed: c1 git grep \"Run the procedure only when the operator accepts\" exit 1; c2 git grep \"authorizes no dispatch\" exit 1; c4 awk row count in ## Task lifecycle = 10; c12 link-providers --check exit 0; ste-check prd/delegate/git SKILL.md exit 0. reasoned: c3 /prd §7 lists issue, convert --issue, /git steps 2-4, /delegate in order; c5 every row fills Next action, Exit condition, Owner; c6-c8 lifecycle paragraph states scope, merge with operator, stop states, live spend sets blocked; c9 Close lists proposed issues and continues; c10 /git § Draft PR links to the lifecycle and restates no scope; c11 description triggers on explicit approval. Residual: /git step 1 and /prd step 2 both name the conversion (redundant, consistent).",
       "dependsOn": [],
       "files": [
@@ -32,7 +32,8 @@
         ".agro/skills/git/SKILL.md",
         "CHANGELOG.md"
       ],
-      "commit": "4cb566ab"
+      "commit": "4cb566ab",
+      "rounds": 1
     },
     {
       "id": "US-002",
@@ -45,7 +46,7 @@
         "`--task <slug>` selects the task by slug instead of by branch.",
         "No match prints `none`. More than one match prints `blocked` with the matching slugs.",
         "An unreadable `prd.json` prints `blocked` with the path.",
-        "The script evaluates the states in this order: `none`, `blocked`, `story`, `review`, `close`, `push`, `ci`, `ci-red`, `ready`, `done`.",
+        "The script evaluates the states in this order: `none`, `blocked`, `story`, `review`, `close`, `push`, `ci-red`, `ci`, `ready`, `done`.",
         "`story <id>` names the lowest-priority story with `passes: false` whose `dependsOn` stories pass.",
         "A story with `rounds` greater than 2 prints `blocked` with the story ID.",
         "`review` prints when `review.verdict` is not `pass`, or when `git diff --quiet <review.commit> HEAD -- . ':!.agro/tasks/<slug>'` exits 1.",
@@ -191,5 +192,11 @@
       "commit": "b498b300"
     }
   ],
-  "pr": 1513
+  "pr": 1513,
+  "review": {
+    "commit": "a0dd320ed411896b10a8592218f489456c150188",
+    "verdict": "fail",
+    "model": "fable (reviewer) vs opus (implementers)",
+    "notes": "Finding 1 (blocking, confirmed by advisor: awk Lessons gate exits 0 on the /prd template placeholder \"Filled by the advisor before undraft.\", so next.sh skips close). Finding 2: US-002 criterion text amended to the tested order ci-red before ci. Findings 3-6 non-blocking."
+  }
 }
