@@ -8,12 +8,6 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
-### Fixed
-- Make the `agro shell` failure hint suggest `agro restart <name>` so a stopped sandbox restarts instead of a new sandbox being created ([#1516](https://github.com/mifunedev/agro/issues/1516)).
-
-### Security
-- Run Python provisioning as the sandbox user at container start and remove the root `/usr/local/bin/gateway` link to agent-writable code; use `agro gateway` ([#1516](https://github.com/mifunedev/agro/issues/1516)).
-
 ### Added
 - Add the Prime Agent harness: run `agro harness install prime-agent` to install Prime Agent `0.10.0` in the sandbox ([#1500](https://github.com/mifunedev/agro/issues/1500)).
 
@@ -23,8 +17,12 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 - Run each read-only CI job on the `CI_RUNNER` runner, and keep the job `HOME` in login shells on Blacksmith runners so the CLI install smokes pass there ([#1507](https://github.com/mifunedev/agro/pull/1507)).
 - Add `git-maintenance.sh push-delete <remote> <branch>` so agents delete merged remote branches without turning off cc-safety-net; the verb refuses `development`, `main`, and `master` ([#1510](https://github.com/mifunedev/agro/pull/1510)).
 
+### Fixed
+- Make the `agro shell` failure hint suggest `agro restart <name>` so a stopped sandbox restarts instead of a new sandbox being created ([#1516](https://github.com/mifunedev/agro/issues/1516)).
+
 ### Security
 - Raise the `undici` override to `^7.30.1` to clear GHSA-xjj6-f33q-929c, GHSA-4qv8-2p9j-2685, and GHSA-f72v-6w45-q472 ([#1504](https://github.com/mifunedev/agro/pull/1504)).
+- Run Python provisioning as the sandbox user at container start and remove the root `/usr/local/bin/gateway` link to agent-writable code; use `agro gateway` ([#1516](https://github.com/mifunedev/agro/issues/1516)).
 
 ## [0.25.1] - 2026-10-22
 
