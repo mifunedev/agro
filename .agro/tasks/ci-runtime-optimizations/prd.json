@@ -21,15 +21,16 @@
         "`pnpm test:scripts` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1-5,9 executed: new release-reservation test 'gates reservation on the reusable CI: Harness workflow' parses both workflows with yaml; failed 2 before the workflow edit, passes after. 6 executed for the expression text (test pins group with github.run_id for called runs); runtime reasoned: in a called workflow github.workflow is the caller's name, so Release resolves ci-harness-call-<run_id> with cancel false. 7 reasoned: direct runs have github.workflow 'CI: Harness', so the group stays ci-harness-<ref> with cancel true. 8 reasoned: README line 7 badge uses branch=development. 10 executed: pnpm test:scripts on the integrated task branch, exit 0 (2589 tests); pnpm run typecheck exit 0.",
       "dependsOn": [],
       "files": [
         ".github/workflows/ci-harness.yml",
         ".github/workflows/release.yml",
         ".agro/scripts/__tests__/release-reservation.test.ts",
         "README.md"
-      ]
+      ],
+      "commit": "4fe7debc"
     },
     {
       "id": "US-002",
