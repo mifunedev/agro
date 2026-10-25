@@ -11,6 +11,9 @@ Subcommands:
   branch-delete <branch>       git branch -D <branch>
   worktree-remove <path>       git worktree remove --force <path>
   push-force <remote> <branch> git push --force-with-lease <remote> <branch>
+  push-delete <remote> <branch>
+                               git push <remote> --delete <branch>
+                               refuses development, main, master
 EOF
 }
 
@@ -60,6 +63,18 @@ case "$subcommand" in
     require_repo
     git push --force-with-lease "$1" "$2"
     log_run "git push --force-with-lease $1 $2"
+    ;;
+  push-delete)
+    [ "$#" -eq 2 ] || { usage; exit 2; }
+    case "${2#refs/heads/}" in
+      development|main|master)
+        echo "git-maintenance.sh: refusing to delete protected branch: $2" >&2
+        exit 2
+        ;;
+    esac
+    require_repo
+    git push "$1" --delete "$2"
+    log_run "git push $1 --delete $2"
     ;;
   *)
     usage
