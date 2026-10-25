@@ -3,8 +3,7 @@
   "env": {
     "CLAUDE_CODE_SUBAGENT_MODEL": "opus",
     "CLAUDE_CODE_AUTO_CONNECT_IDE": "false",
-    "CC_LANGFUSE_CAPTURE_IMAGES": "false",
-    "CLAUDE_CODE_DISABLE_1M_CONTEXT": "1"
+    "CC_LANGFUSE_CAPTURE_IMAGES": "false"
   },
   "permissions": {
     "deny": [
@@ -156,7 +155,8 @@
   "includeGitInstructions": false,
   "spinnerTipsEnabled": false,
   "plansDirectory": ".claude/plans",
-  "model": "claude-opus-5-5",
+  "model": "claude-opus-5-5[1m]",
+  "autoCompactWindow": 200000,
   "statusLine": {
     "type": "command",
     "command": "bash -lc 'input=$(cat); model=$(jq -r \".model.display_name // \\\"Claude\\\"\" <<<\"$input\"); effort=$(jq -r \".effort.level // empty\" <<<\"$input\"); [ -z \"$effort\" ] || model=\"$model · $effort\"; pct=$(jq -r \"(.context_window.used_percentage // 0 | tostring)\" <<<\"$input\"); usage=$(jq -r \"[(.rate_limits.five_hour.used_percentage | numbers | \\\"5h \\(floor)%\\\"), (.rate_limits.seven_day | objects | select(.used_percentage | type == \\\"number\\\") | \\\"7d \\(.used_percentage | floor)%\\\" + ((.resets_at | numbers | \\\" ↻ \\\" + strflocaltime(\\\"%a %b %-d %H:%M\\\")) // \\\"\\\"))]? | map(\\\" | \\\" + .) | join(\\\"\\\")\" <<<\"$input\"); branch=$(git branch --show-current 2>/dev/null); [ -n \"$branch\" ] || branch=$(git rev-parse --short HEAD 2>/dev/null || echo detached); printf \"[%s] %s%% context%s | %s\\n\" \"$model\" \"$pct\" \"$usage\" \"$branch\"'",
