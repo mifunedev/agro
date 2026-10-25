@@ -26,7 +26,7 @@ only at `done`, `blocked`, or `none`. If an action needs live spend, set
 | State | Next action | Exit condition | Owner |
 |---|---|---|---|
 | `story <id>` | Dispatch, verify, and accept the story (§ Waves, § Acceptance) | The story has `passes: true` | Advisor; a worker implements |
-| `review` | Get one fresh-context review of the PR diff (§ Reviewer brief) | `review.verdict` is `pass` for the current diff | Advisor; a reviewer reads |
+| `review` | Get one fresh-context review of the PR diff (§ Reviewer brief, § Acceptance) | `review.verdict` is `pass` for the current diff | Advisor; a reviewer reads |
 | `close` | Write `## Lessons` and fill the PR evidence sections (§ Close) | `prd.md` has a non-empty `## Lessons` section | Advisor |
 | `push` | Push the task branch | The remote task branch head equals local `HEAD` | Advisor |
 | `ci` | Wait for CI with `/ci-status` | No PR check is pending | Advisor |
@@ -121,6 +121,19 @@ Give each worker the dispatch record, the exclusions, and these rules:
 - Never bypass a hook. A rerun of a blocked command through a script file, a
   heredoc, or another tool is a bypass. Report a blocked action as `BLOCKED`.
 
+## Reviewer brief
+
+Give the reviewer the base branch, the task branch, the execution directory,
+the acceptance criteria of the plan, and these rules:
+
+- Start in a fresh context. Never continue an earlier worker.
+- Read `git diff <base>...HEAD` of the task branch and the acceptance criteria.
+- Edit no file. Run no command that writes.
+- Label each finding `blocking` or `non-blocking`. A `blocking` finding names
+  a reproducing command and its observed result. A finding with no command is
+  `non-blocking`.
+- Never accept. Report the findings to the advisor.
+
 ## Acceptance
 
 A worker report is not acceptance. For each story, the advisor does these steps:
@@ -130,6 +143,23 @@ A worker report is not acceptance. For each story, the advisor does these steps:
 3. Rerun the verification on the integrated task branch.
 4. Write `passes: true`, `commit`, and `notes` in `prd.json`. In `notes`,
    mark each criterion executed or reasoned.
+
+### Review
+
+When `next.sh` prints `review`, the advisor does these steps:
+
+1. Dispatch one reviewer with the reviewer brief.
+2. Before a story reopens, run each blocking command. Drop a finding whose
+   command does not reproduce, and write a note.
+3. Write `review.commit` (the reviewed `HEAD`), `review.verdict`, and
+   `review.model` in `prd.json`. When no confirmed blocking finding remains,
+   the verdict is `pass`. Otherwise, the verdict is `fail`.
+4. Repair each confirmed blocking finding (§ Repair).
+5. Write each non-blocking finding in the PR `## What remains unverified`
+   section.
+
+A repair changes the diff, so `next.sh` prints `review` again. Review again
+after each repair.
 
 ### Repair
 
@@ -173,6 +203,9 @@ There is no separate ledger. `prd.json` holds the state.
   record.
 - Never substitute a model silently.
 - A required control that is unavailable blocks the story. Ask the operator.
+- When a model other than the implementer model is available, the reviewer
+  uses that model. Otherwise, the reviewer uses the implementer model in a
+  fresh context, and `review.model` records that fact.
 
 Provider defaults live in provider settings. For Claude Code, the default is
 `CLAUDE_CODE_SUBAGENT_MODEL` in the `env` object of `.claude/settings.json`.
