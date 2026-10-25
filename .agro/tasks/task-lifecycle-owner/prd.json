@@ -122,8 +122,8 @@
         "`pnpm test` exits 0."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed on integrated branch: c1 git grep \"Then fix the issue, commit, push\" exit 1; c3 git grep \"timeout 900 gh pr checks\" ci-status line 50; two-push text grep exit 1; ste-check ci-status/delegate/git/supervisor exit 0; link-providers --check exit 0; c8 pnpm test exit 0 (2673 passed). reasoned: c2 ci-status reports one of four results with read-only commands; c4-c5 delegate § Acceptance ### Repair states reopen, rounds+1, same worker, four blocked cases; c6 /git push rule keys on next.sh push; c7 supervisor reads next.sh and names no states. Residual: next.sh maps no PR check rows to ci while /ci-status maps them to NO-RUN, which /delegate blocks on; a check registration race right after a push can produce a spurious blocked (Lessons).",
       "dependsOn": [
         "US-001",
         "US-002"
@@ -133,7 +133,8 @@
         ".agro/skills/delegate/SKILL.md",
         ".agro/skills/git/SKILL.md",
         ".agro/skills/supervisor/SKILL.md"
-      ]
+      ],
+      "commit": "7ad4d637"
     },
     {
       "id": "US-005",
