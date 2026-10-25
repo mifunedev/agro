@@ -629,7 +629,7 @@ describe("runShell", () => {
 
     expect(runShell({ bin: "agro", ...entry, run }, io)).toBe(126);
     expect(err).toEqual([
-      `container \`${DEFAULT_CONTAINER_NAME}\` not running? start it with \`agro sandbox install docker\`\n`,
+      `container \`${DEFAULT_CONTAINER_NAME}\` not running? start it with \`agro restart ${DEFAULT_CONTAINER_NAME}\`\n`,
     ]);
   });
 

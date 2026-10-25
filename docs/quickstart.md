@@ -168,7 +168,7 @@ Stop the sandbox and keep its home volume, logins included:
 
 ```bash
 agro stop <name>
-agro sandbox install docker --name <name>   # start it again
+agro restart <name>   # start it again
 ```
 
 Warning: `agro destroy` deletes the home volume, with every agent login and

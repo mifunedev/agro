@@ -83,7 +83,7 @@ const RUNTIME_NAMING = Object.freeze({
   docker: Object.freeze({
     entryName: () => undefined,
     shellFailure: (bin: string, name: string) =>
-      `container \`${name}\` not running? start it with \`${bin} sandbox install docker\``,
+      `container \`${name}\` not running? start it with \`${bin} restart ${name}\``,
   }),
   openshell: Object.freeze({
     entryName: entryDeclaredName,
