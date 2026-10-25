@@ -38,6 +38,7 @@ jobs:
     # A pull request that closes without merging must not close any issue.
     if: github.event.pull_request.merged == true
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
 
     steps:
       # Only `.agro/scripts/closing-keywords.mjs` is needed, and it is never executed

@@ -51,6 +51,7 @@ jobs:
   ci:
     name: "Typecheck, Build & Test"
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -98,6 +99,7 @@ jobs:
   boot-lint:
     name: Boot Path Lint (shellcheck + hadolint)
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
 
     steps:
       - name: Checkout

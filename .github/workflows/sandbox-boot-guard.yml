@@ -63,6 +63,7 @@ jobs:
     # job builds AND boots the devcontainer image, which needs an isolated
     # daemon + a non-root runner. The host-socket model can't.
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -170,6 +171,7 @@ jobs:
   sandbox-upgrade-guard:
     name: Boot a legacy volume against the fresh image
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 45
 
     steps:
       - name: Checkout

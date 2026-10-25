@@ -24,6 +24,7 @@ jobs:
     name: Reserve SemVer draft
     needs: [ci-harness]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     outputs:
@@ -62,6 +63,7 @@ jobs:
     needs: reserve
     if: ${{ needs.reserve.outputs.publishedNoop != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     # `needs` is valid in job concurrency expressions. Atomic reservations give
     # distinct push SHAs distinct versions; only same-SHA retries share this key.
     concurrency:
@@ -159,6 +161,7 @@ jobs:
     needs: [reserve, publish-image, publish-cli]
     if: ${{ always() && needs.reserve.outputs.publishedNoop != 'true' && needs.publish-image.result == 'success' && needs.publish-cli.result == 'success' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
 
