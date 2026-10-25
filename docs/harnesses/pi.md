@@ -140,6 +140,16 @@ LoopList
 
 Prefer Monitor over a raw shell `while`/`sleep` loop for CI polling, long downloads, training jobs, and log tails.
 
+## Task lifecycle state
+
+Pi has no `Stop` hook for the task lifecycle. Claude Code and Codex block an early stop through `.agro/hooks/task-next-stop.sh`. In Pi, the operator or the agent runs the state script by hand before the session stops:
+
+```bash
+bash .agro/skills/delegate/scripts/next.sh
+```
+
+The first line holds the state. The second line holds the next action. Do the action, then run the script again. Stop only at `none`, `done`, or `blocked <reason>`.
+
 ## Task tracking
 
 The default task runtime state lives under the gitignored `.pi/tasks/` directory. Set `PI_TASKS=off` to disable task tracking, or `PI_TASKS=<named-list>` to select a named list.

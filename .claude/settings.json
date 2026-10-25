@@ -134,6 +134,17 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/task-next-stop.sh",
+            "timeout": 30
+          }
+        ]
+      }
     ]
   },
   "idleCompaction": false,

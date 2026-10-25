@@ -80,6 +80,18 @@ codex --ask-for-approval on-request --sandbox workspace-write "Refactor .agro/sc
 
 Run interactive sessions in Herdr so the session survives a disconnect: `agro tool install herdr`, then `herdr`, then start `codex` in a pane.
 
+## Task lifecycle Stop hook
+
+The `Stop` entry in `.codex/hooks.json` runs `.codex/hooks/task-next-stop.sh`. The wrapper calls the canonical hook `.agro/hooks/task-next-stop.sh`. The hook runs `bash .agro/skills/delegate/scripts/next.sh` and reads the state on the first line:
+
+- At `story <id>`, `review`, `close`, `push`, `ci`, `ci-red`, or `ready`, the hook blocks the stop. The block reason holds the `next.sh` output.
+- At `none`, `done`, or `blocked <reason>`, the hook allows the stop.
+- If `next.sh` fails or the directory is not a git repository, the hook allows the stop.
+
+The hook keeps a counter at `$(git rev-parse --git-path agro-next-stop)`. Each worktree has its own counter. After 3 blocks with the same state and the same `HEAD`, the hook allows the stop and runs `/escalate` one time.
+
+Codex runs a project hook only after the operator trusts the project and the hook. At startup, the Codex TUI shows `Hooks need review` for a new or changed hook. Select `Trust all and continue` to trust the `Stop` hook.
+
 ## Optional Langfuse observability
 
 See [Langfuse → Codex](../integrations/langfuse.md#3-codex) for the plugin and the `agro config langfuse` wizard.

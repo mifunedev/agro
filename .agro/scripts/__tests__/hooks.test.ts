@@ -1,6 +1,7 @@
-import { spawn, spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ROOT = join(import.meta.dirname, "../../..");
@@ -18,7 +19,7 @@ interface HookEntry {
 
 interface HookSettings {
   permissions?: { deny?: string[] };
-  hooks?: { PreToolUse?: HookEntry[] };
+  hooks?: { PreToolUse?: HookEntry[]; Stop?: HookEntry[]; SubagentStop?: HookEntry[] };
 }
 
 interface Run {
@@ -337,5 +338,185 @@ describe.concurrent("warn-devtcp hook", () => {
     const result = await runHook(DEVTCP_HOOK, { command: "ls .devcontainer/" });
     expect(result.status).toBe(0);
     expect(result.stderr).not.toContain("warn-devtcp");
+  });
+});
+
+const STOP_HOOK = ".agro/hooks/task-next-stop.sh";
+const CODEX_STOP_HOOK = ".codex/hooks/task-next-stop.sh";
+const STOP_BRANCH = "feat/1-demo";
+const FAKE_NEXT = [
+  "#!/usr/bin/env bash",
+  '[ -n "${NEXT_EXIT:-}" ] && exit "$NEXT_EXIT"',
+  "printf '%s\\n%s\\n' \"$NEXT_STATE\" \"Action for $NEXT_STATE.\"",
+  "",
+].join("\n");
+const FAKE_ESCALATE = [
+  "#!/usr/bin/env bash",
+  "printf '%s\\n' \"$*\" >> \"$ESCALATE_CALLS\"",
+  "echo noisy",
+  "exit 3",
+  "",
+].join("\n");
+
+interface StopOptions {
+  cwd?: string;
+  runCwd?: string;
+  exit?: string;
+  hook?: string;
+}
+
+function stopFixture() {
+  const root = mkdtempSync(join(tmpdir(), "agro-stop-"));
+  const work = join(root, "work");
+  const calls = join(root, "escalate.log");
+  const escalate = join(root, "escalate.sh");
+  const env: NodeJS.ProcessEnv = {
+    ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_"))),
+    GIT_AUTHOR_NAME: "t",
+    GIT_AUTHOR_EMAIL: "t@example.com",
+    GIT_COMMITTER_NAME: "t",
+    GIT_COMMITTER_EMAIL: "t@example.com",
+    GIT_CONFIG_GLOBAL: "/dev/null",
+    GIT_CONFIG_NOSYSTEM: "1",
+    AGRO_ESCALATE_SCRIPT: escalate,
+    ESCALATE_CALLS: calls,
+  };
+  const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, env, encoding: "utf8" }).trim();
+  const write = (rel: string, content: string) => {
+    const file = join(work, rel);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, content);
+  };
+  writeFileSync(escalate, FAKE_ESCALATE);
+  chmodSync(escalate, 0o755);
+  writeFileSync(calls, "");
+  for (const rel of [STOP_HOOK, CODEX_STOP_HOOK]) write(rel, readFileSync(join(ROOT, rel), "utf8"));
+  write(".agro/skills/delegate/scripts/next.sh", FAKE_NEXT);
+  write(".agro/tasks/demo/prd.json", JSON.stringify({ branchName: STOP_BRANCH, userStories: [] }));
+  git(work, "init", "-q", "-b", STOP_BRANCH);
+  git(work, "config", "commit.gpgsign", "false");
+  git(work, "add", "-A");
+  const commit = () => git(work, "commit", "-q", "--allow-empty", "-m", "c");
+  commit();
+
+  const stop = (state: string, opts: StopOptions = {}) => {
+    const cwd = opts.cwd ?? work;
+    const result = spawnSync("bash", [join(work, opts.hook ?? STOP_HOOK)], {
+      cwd: opts.runCwd ?? cwd,
+      env: { ...env, NEXT_STATE: state, ...(opts.exit ? { NEXT_EXIT: opts.exit } : {}) },
+      input: JSON.stringify({ hook_event_name: "Stop", cwd, stop_hook_active: false }),
+      encoding: "utf8",
+    });
+    return { status: result.status, stdout: result.stdout };
+  };
+  const decisionOf = (state: string, opts: StopOptions = {}) => JSON.parse(stop(state, opts).stdout).decision;
+  const counter = (cwd: string) => {
+    const file = git(cwd, "rev-parse", "--path-format=absolute", "--git-path", "agro-next-stop");
+    return existsSync(file) ? readFileSync(file, "utf8") : "";
+  };
+  const escalations = () => readFileSync(calls, "utf8").split("\n").filter(Boolean);
+  const cleanup = () => rmSync(root, { recursive: true, force: true });
+  return { root, work, git, commit, stop, decisionOf, counter, escalations, cleanup };
+}
+
+function withStopFixture(test: (f: ReturnType<typeof stopFixture>) => void): () => void {
+  return () => {
+    const f = stopFixture();
+    try {
+      test(f);
+    } finally {
+      f.cleanup();
+    }
+  };
+}
+
+describe("task lifecycle stop hook (task-next-stop.sh)", () => {
+  it.each(["story US-003", "review", "close", "push", "ci", "ci-red", "ready"])("blocks the stop at %s", (state) =>
+    withStopFixture((f) => {
+      const result = f.stop(state);
+      expect(result.status).toBe(0);
+      const out = JSON.parse(result.stdout);
+      expect(out.decision).toBe("block");
+      expect(out.reason).toContain(`${state}\nAction for ${state}.`);
+      expect(out.reason).toContain("Run bash .agro/skills/delegate/scripts/next.sh again after the action.");
+    })(),
+  );
+
+  it.each(["none", "done", "blocked no ready story"])("allows the stop at %s", (state) =>
+    withStopFixture((f) => {
+      expect(f.stop(state)).toEqual({ status: 0, stdout: "" });
+    })(),
+  );
+
+  it("fails open when next.sh exits non-zero", withStopFixture((f) => {
+    expect(f.stop("review", { exit: "1" })).toEqual({ status: 0, stdout: "" });
+  }));
+
+  it("fails open outside a git repository", withStopFixture((f) => {
+    const outside = join(f.root, "outside");
+    mkdirSync(outside);
+    expect(f.stop("review", { cwd: outside })).toEqual({ status: 0, stdout: "" });
+  }));
+
+  it("reads the repository from the event cwd", withStopFixture((f) => {
+    const outside = join(f.root, "outside");
+    mkdirSync(outside);
+    expect(f.decisionOf("review", { runCwd: outside })).toBe("block");
+  }));
+
+  it("releases the stop after 3 blocks without progress and escalates one time", withStopFixture((f) => {
+    for (let i = 0; i < 3; i++) expect(f.decisionOf("review")).toBe("block");
+    expect(f.escalations()).toHaveLength(0);
+    expect(f.stop("review")).toEqual({ status: 0, stdout: "" });
+    expect(f.stop("review")).toEqual({ status: 0, stdout: "" });
+    const calls = f.escalations();
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toContain("--key demo-review");
+    expect(calls[0]).toContain(
+      "--summary demo lifecycle hook released a stop after 3 blocks with no progress at state review",
+    );
+    expect(calls[0]).toContain("--needs Decide how to unblock review");
+  }));
+
+  it("resets the counter when the state changes", withStopFixture((f) => {
+    for (let i = 0; i < 3; i++) f.stop("review");
+    expect(f.decisionOf("push")).toBe("block");
+    expect(f.escalations()).toHaveLength(0);
+  }));
+
+  it("resets the counter when HEAD changes", withStopFixture((f) => {
+    for (let i = 0; i < 3; i++) f.stop("story US-001");
+    f.commit();
+    expect(f.decisionOf("story US-001")).toBe("block");
+    expect(f.escalations()).toHaveLength(0);
+  }));
+
+  it("keeps a separate counter in each worktree", withStopFixture((f) => {
+    const other = join(f.root, "other");
+    f.git(f.work, "worktree", "add", "-q", "-b", "feat/2-other", other);
+    f.stop("review");
+    f.stop("review");
+    const before = f.counter(f.work);
+    expect(before).toMatch(/^review\n[0-9a-f]{40}\n2\n$/);
+    expect(f.counter(other)).toBe("");
+    for (let i = 0; i < 3; i++) expect(f.decisionOf("review", { cwd: other })).toBe("block");
+    expect(f.counter(other)).toMatch(/\n3\n$/);
+    expect(f.counter(f.work)).toBe(before);
+  }));
+
+  it("runs the canonical hook through the Codex wrapper", withStopFixture((f) => {
+    expect(f.decisionOf("ci", { hook: CODEX_STOP_HOOK })).toBe("block");
+    expect(f.stop("done", { hook: CODEX_STOP_HOOK })).toEqual({ status: 0, stdout: "" });
+  }));
+
+  it("wires Stop in Claude Code and Codex without a SubagentStop entry", () => {
+    const stopCommands = (rel: string) =>
+      (settings(rel).hooks?.Stop ?? []).flatMap((e) => e.hooks?.map((h) => h.command ?? "") ?? []);
+    expect(stopCommands(SETTINGS_JSON)).toEqual(['bash "$CLAUDE_PROJECT_DIR"/.claude/hooks/task-next-stop.sh']);
+    expect(settings(SETTINGS_JSON).hooks?.SubagentStop).toBeUndefined();
+    expect(stopCommands(".codex/hooks.json")).toEqual([
+      'bash "$(git rev-parse --show-toplevel)/.codex/hooks/task-next-stop.sh"',
+    ]);
+    expect(readFileSync(join(ROOT, CODEX_STOP_HOOK), "utf8")).toContain(".agro/hooks/task-next-stop.sh");
   });
 });
