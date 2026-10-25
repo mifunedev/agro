@@ -114,6 +114,11 @@ command -v gh >/dev/null 2>&1 || emit "blocked gh unavailable: gh not found"
 err_file="$(mktemp)"
 trap 'rm -f "$err_file"' EXIT
 
+pr_state="$(gh pr view "$pr" --json headRefOid,isDraft -q '"\(.headRefOid) \(.isDraft)"' 2>"$err_file")" ||
+  gh_blocked "$(cat "$err_file")"
+read -r pr_head draft _ <<<"$pr_state" || true
+[ "${pr_head:-}" = "$head_sha" ] || emit ci
+
 checks_status=0
 buckets="$(gh pr checks "$pr" --json bucket -q '.[].bucket' 2>"$err_file")" || checks_status=$?
 if [ "$checks_status" -ne 0 ] && [ -z "$buckets" ]; then
@@ -123,8 +128,7 @@ grep -qxE 'fail|cancel' <<<"$buckets" && emit ci-red
 grep -qx 'pending' <<<"$buckets" && emit ci
 [ -z "$buckets" ] && emit ci
 
-draft="$(gh pr view "$pr" --json isDraft -q .isDraft 2>"$err_file")" || gh_blocked "$(cat "$err_file")"
-case "$draft" in
+case "${draft:-}" in
   true) emit ready ;;
   false) emit "done" ;;
   *) emit "blocked gh unavailable: unexpected isDraft output" ;;

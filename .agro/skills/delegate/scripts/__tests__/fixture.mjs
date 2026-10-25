@@ -18,7 +18,7 @@ case "$1 $2" in
     printf '%s\\n' $GH_STUB_CHECKS
     case " $GH_STUB_CHECKS " in *" fail "*|*" cancel "*) exit 1 ;; *" pending "*) exit 8 ;; esac
     ;;
-  "pr view") echo "\${GH_STUB_DRAFT-false}" ;;
+  "pr view") echo "\${GH_STUB_HEAD-$(git rev-parse HEAD)} \${GH_STUB_DRAFT-false}" ;;
   *) echo "unexpected gh call: $*" >&2; exit 2 ;;
 esac
 `;

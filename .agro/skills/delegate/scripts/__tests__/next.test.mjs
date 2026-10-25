@@ -338,7 +338,30 @@ describe("ci and ci-red", () => {
   test("asks gh about the recorded pr", () => {
     fx.ready();
     fx.run();
-    expect(readFileSync(fx.ghLog, "utf8")).toContain("pr checks 7 --json bucket");
+    const log = readFileSync(fx.ghLog, "utf8");
+    expect(log).toContain("pr checks 7 --json bucket");
+    expect(log).toContain("pr view 7 --json headRefOid,isDraft");
+    expect(log.match(/^pr view /gm)).toHaveLength(1);
+  });
+
+  test("a stale PR head prints ci even when its checks pass", () => {
+    fx.ready();
+    expectState(
+      fx.run([], { GH_STUB_HEAD: "f".repeat(40), GH_STUB_CHECKS: "pass", GH_STUB_DRAFT: "true" }),
+      "ci",
+      "Run /ci-status and wait for the result.",
+    );
+  });
+
+  test("a stale PR head prints ci even when its checks failed", () => {
+    fx.ready();
+    expectState(fx.run([], { GH_STUB_HEAD: "f".repeat(40), GH_STUB_CHECKS: "fail" }), "ci");
+  });
+
+  test("a PR head equal to local HEAD uses the checks", () => {
+    fx.ready();
+    const head = fx.git("rev-parse", "HEAD");
+    expectState(fx.run([], { GH_STUB_HEAD: head, GH_STUB_CHECKS: "pass", GH_STUB_DRAFT: "false" }), "done");
   });
 });
 
