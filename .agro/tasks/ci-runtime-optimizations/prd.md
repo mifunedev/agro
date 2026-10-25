@@ -181,4 +181,8 @@ None. The operator approved the plan on 2026-10-24. The approval accepts the tim
 
 ## Lessons
 
-Filled by the advisor before undraft.
+- Claim: GitHub rejects `timeout-minutes` on a job that calls a reusable workflow. Evidence: `release.yml` jobs `ci-harness` and `publish-cli` use `uses:`. Outcome: fixed in this PR. The contract test exempts `uses:` jobs, and the called jobs carry the timeouts.
+- Claim: in a called workflow, `github.workflow` holds the caller's name. Evidence: the `ci-harness.yml` concurrency expression keys on `'CI: Harness'`, and `release-reservation.test.ts` pins the expression. Outcome: fixed in this PR.
+- Claim: `.agro/skills/git/SKILL.md` described four GHCR tags after the alias checks went away. Evidence: lines 241-244 before this PR. Outcome: fixed in this PR.
+- Claim: the narrowed Boot Guard filter removes about 15% of Boot Guard triggers, because 56 of 98 triggering commits changed only `.agro/cli/**`. Evidence: `git log` over 30 days. Outcome: dropped. `cli-first-install-smoke.sh` tests the whole CLI bundle, and the plan keeps `.agro/cli/**` in scope.
+- Claim: the sandbox has no `actionlint`. Evidence: `command -v actionlint` exits 1. Outcome: dropped. GitHub validates the workflow syntax on push.

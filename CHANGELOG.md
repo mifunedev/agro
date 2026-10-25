@@ -11,6 +11,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Added
 - Add the Prime Agent harness: run `agro harness install prime-agent` to install Prime Agent `0.10.0` in the sandbox ([#1500](https://github.com/mifunedev/agro/issues/1500)).
 
+### Changed
+- Stop re-running CI on `main` pushes, gate releases on the reusable CI: Harness workflow, run optional-harness installs after merge, and cap each CI job with `timeout-minutes` ([#1504](https://github.com/mifunedev/agro/pull/1504)).
+
 ## [0.25.1] - 2026-10-22
 
 ### Security
