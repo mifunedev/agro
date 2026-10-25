@@ -122,4 +122,7 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+- Claim: `pnpm test` exits 1 with 11 failures in `herdr-default.test.ts` and `install.test.ts`. Evidence: the same 11 failures occur on base `1c028039` without this change. `herdr-default.test.ts` reports `spawnSync zsh ENOENT` because this runner has no `zsh`. Outcome: dropped, because the failures predate this change and its paths.
+- Claim: `pnpm build` exits 1 when `pnpm` is available only through `corepack`, because the `build` script calls a bare `pnpm`. Evidence: the US-003 transcript. Outcome: dropped, because the defect is tooling friction in this runner.
+- Claim: the test title "prints the install hint" in `lifecycle.test.ts` now describes a restart hint. Evidence: US-002 diff. Outcome: dropped, because the assertion holds the exact hint text and the title carries no behavior.
+- Claim: the built CLI cannot show the shell hint without a registry entry. Evidence: `agro shell` exits 2 at the registry check before `docker exec`. Outcome: dropped, because the operator accepted the unit test as proof for US-003.

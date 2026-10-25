@@ -65,15 +65,16 @@
         "The story creates no container, volume, or registry entry. If a check needs such a resource, the story stops and asks the operator."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "(1) grep evidence: executed by worker, empty output exit 1; advisor re-ran same grep on task branch, exit 1. (2) built CLI hint: reasoned, operator-approved deviation; built CLI stops at the registry check (exit 2) before docker, so the transcript records the lifecycle unit test that asserts the exact hint through runShell (exit 0). (3) test/typecheck: executed, pnpm test exit 1 with 11 failures in herdr-default.test.ts and install.test.ts that reproduce identically on base 1c028039; pnpm typecheck exit 0. (4) no resources: executed, docker ps/volume grep empty, ~/.agro/config.json checksum unchanged.",
       "dependsOn": [
         "US-001",
         "US-002"
       ],
       "files": [
         ".agro/tasks/sandbox-root-exec/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "9390481c"
     }
   ]
 }
