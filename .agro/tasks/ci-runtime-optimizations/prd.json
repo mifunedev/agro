@@ -66,14 +66,15 @@
         "`pnpm test:scripts` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 reasoned: diff adds if: github.event_name != 'pull_request' to optional-harness-install. 2 reasoned: base-node-pnpm-parity has no if and the pull_request trigger is unchanged. 3 executed: grep -c 'harness list --json' returns 1; ids and binary read from $catalog with jq. 4 reasoned: empty catalog leaves ids empty, so the existing exit 1 branch fires; docker exec failure aborts under set -e. 5 executed: pnpm test:scripts on the integrated task branch, exit 0. Repair: deleted the stale INSTALL_* header comment.",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         ".github/workflows/sandbox-compatibility.yml"
-      ]
+      ],
+      "commit": "453f4a93"
     },
     {
       "id": "US-004",
