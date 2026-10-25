@@ -276,3 +276,14 @@ The advisor ran `bash .agro/skills/delegate/scripts/next.sh` on the task branch 
    ```
 
 6. After the US-002 repair (`abb53611`), `next.sh` printed `review`. Review round 3 reviewed `abb5361163e94bcc32f36634a79439deb656ea7c` and returned `pass` with 7 non-blocking findings.
+7. After the push of `434bf840`, `next.sh` printed `ci`. `timeout 900 gh pr checks 1513 --repo mifunedev/agro --watch` exited 0, and each check passed or skipped. `next.sh` then printed:
+
+   ```text
+   ci
+   Run /ci-status and wait for the result.
+   ready
+   Run gh pr ready 1513.
+   ```
+
+8. The operator sent 0 messages between plan approval ("Approve advisor recommendations.") and the `ready` state.
+9. This transcript commit changes only `.agro/tasks/task-lifecycle-owner/`. The advisor pushes the commit, waits for CI on the new head, and runs `gh pr ready 1513`.
