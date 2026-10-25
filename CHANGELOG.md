@@ -14,6 +14,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Changed
 - Stop re-running CI on `main` pushes, gate releases on the reusable CI: Harness workflow, run optional-harness installs after merge, and cap each CI job with `timeout-minutes` ([#1504](https://github.com/mifunedev/agro/pull/1504)).
 
+### Security
+- Raise the `undici` override to `^7.30.1` to clear GHSA-xjj6-f33q-929c, GHSA-4qv8-2p9j-2685, and GHSA-f72v-6w45-q472 ([#1504](https://github.com/mifunedev/agro/pull/1504)).
+
 ## [0.25.1] - 2026-10-22
 
 ### Security
