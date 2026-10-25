@@ -104,7 +104,7 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] `.agro/tasks/task-lifecycle-owner/evidence/manual-review.md` holds the `next.sh` output of each `story` state of this task, from `story US-001` to `story US-006`.
+- [ ] `.agro/tasks/task-lifecycle-owner/evidence/manual-review.md` holds the `next.sh` output at each accepted-story commit of this task, from `story US-001` to `story US-006`.
 - [ ] The transcript shows one Claude Code Stop hook block and the session continuing after the block.
 - [ ] The transcript shows the no-progress release after 3 blocks in a fixture worktree.
 - [ ] The transcript records the count of operator nudges between plan approval and `ready`. The target is 0.
