@@ -20,15 +20,16 @@
         "`shellcheck -S warning .devcontainer/entrypoint.sh` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor re-verified on integrated task branch. (1) uv dirs: reasoned, repair_home_mount_ownership runs unconditionally at entrypoint.sh:327 before provisioning; worker added .local, .local/bin, .local/share to its install -d list instead of a duplicate block. (2) gosu form: reasoned, diff matches link-providers form. (3) no gateway symlink: executed grep -c usr/local/bin/gateway -> 0. (4) bare CONTROL_DIR grep: executed, no output, exit 1. (5) test assertions: reasoned, new describe block. (6) red-before-green: worker executed, 5 failed before fix. (7) bare gateway docs: reasoned, t3 sandbox-processes.md now names agro gateway status. (8) vitest entrypoint+provision-python: executed, exit 0, 68/68. (9) shellcheck 0.11.0 via npx: executed, exit 0.",
       "dependsOn": [],
       "files": [
         ".devcontainer/entrypoint.sh",
         ".agro/scripts/__tests__/entrypoint.test.ts",
         ".agro/scripts/__tests__/provision-python.test.ts",
         ".agro/skills/t3/references/sandbox-processes.md"
-      ]
+      ],
+      "commit": "b2187a7e"
     },
     {
       "id": "US-002",
