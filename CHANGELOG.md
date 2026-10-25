@@ -14,6 +14,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Changed
 - Stop re-running CI on `main` pushes, gate releases on the reusable CI: Harness workflow, run optional-harness installs after merge, and cap each CI job with `timeout-minutes` ([#1504](https://github.com/mifunedev/agro/pull/1504)).
 - Run each read-only CI job on the `CI_RUNNER` runner, and keep the job `HOME` in login shells on Blacksmith runners so the CLI install smokes pass there ([#1507](https://github.com/mifunedev/agro/pull/1507)).
+- Add `git-maintenance.sh push-delete <remote> <branch>` so agents delete merged remote branches without turning off cc-safety-net; the verb refuses `development`, `main`, and `master` ([#1510](https://github.com/mifunedev/agro/pull/1510)).
 
 ### Security
 - Raise the `undici` override to `^7.30.1` to clear GHSA-xjj6-f33q-929c, GHSA-4qv8-2p9j-2685, and GHSA-f72v-6w45-q472 ([#1504](https://github.com/mifunedev/agro/pull/1504)).
