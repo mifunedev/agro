@@ -119,8 +119,8 @@
         "`pnpm test:scripts` exits 0."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: ci-workflow-contract.test.ts requires timeout-minutes on every steps job and exempts uses: jobs (GitHub rejects timeout-minutes there; release.yml ci-harness and publish-cli are bounded by the called jobs). 2 executed: same test pins the table values. 3 executed: test failed 12 cases before the workflow edits, 22 pass after. 4 executed: pnpm test:scripts on the integrated task branch, exit 0 (2606 tests); pnpm run typecheck exit 0.",
       "dependsOn": [
         "US-003",
         "US-004"
@@ -133,7 +133,8 @@
         ".github/workflows/publish-cli.yml",
         ".github/workflows/close-issues-on-development.yml",
         ".agro/scripts/__tests__/ci-workflow-contract.test.ts"
-      ]
+      ],
+      "commit": "52949c8f"
     }
   ]
 }
