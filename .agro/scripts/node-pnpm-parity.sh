@@ -9,20 +9,21 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
 DOCKERFILE=${PARITY_DOCKERFILE:-$REPO_ROOT/.devcontainer/Dockerfile}
 
-node_tag=$(grep -oE '^FROM node:[0-9]+-[a-z]+-slim' "$DOCKERFILE" | head -1 | cut -d: -f2 || true)
+node_ref=$(grep -oE '^FROM node:[0-9]+(\.[0-9]+)*-[a-z]+-slim(@sha256:[0-9a-f]{64})?' "$DOCKERFILE" | head -1 | cut -d: -f2- || true)
 pnpm_pin=$(grep -oE 'corepack prepare pnpm@[0-9]+\.[0-9]+\.[0-9]+' "$DOCKERFILE" | head -1 | cut -d@ -f2 || true)
 
-if [ -z "$node_tag" ] || [ -z "$pnpm_pin" ]; then
+if [ -z "$node_ref" ] || [ -z "$pnpm_pin" ]; then
   echo "FAIL: could not read the node base image tag or the pnpm pin from ${DOCKERFILE#"$REPO_ROOT"/}" >&2
   exit 1
 fi
 
-node_major=${node_tag%%-*}
+node_tag=${node_ref%%@*}
+node_version=${node_tag%%-*}
 
-BASE_A=${1:-node:$node_major-bookworm-slim}
-BASE_B=${2:-node:$node_tag}
+BASE_A=${1:-node:$node_version-bookworm-slim}
+BASE_B=${2:-node:$node_ref}
 
-echo "node base:  node:$node_tag"
+echo "node base:  node:$node_ref"
 echo "pnpm pin:   $pnpm_pin"
 
 install_snippet=$(cat <<EOF

@@ -1,6 +1,6 @@
 {
   "name": "agro",
-  "version": "0.25.0",
+  "version": "0.25.1",
   "private": true,
   "description": "AGRO — Agent Governance Runtime Orchestrator",
   "license": "Apache-2.0",
@@ -21,21 +21,21 @@
   },
   "devDependencies": {
     "@sinclair/typebox": "^0.34.0",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^4.1.12",
     "diff": "^8.0.2",
     "fast-check": "^4.8.0",
-    "vitest": "^4.1.11",
+    "vitest": "^4.1.12",
     "yaml": "2.9.0"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "pnpm": {
     "overrides": {
       "esbuild": "^0.28.1",
       "nanoid": "^3.3.17",
       "postcss": "^8.5.18",
-      "undici": "^7.29.1",
+      "undici": "^7.30.1",
       "vite": "7.3.7"
     }
   }

@@ -1,15 +1,42 @@
 ---
 name: delegate
 description: |
-  TRIGGER when: asked to "delegate this", "run this plan", "execute the stories",
-  or "parallelize" the work. Writing or reading a plan is not a trigger and
-  authorizes no dispatch. Runs the stories in .agro/tasks/<slug>/prd.json as
+  TRIGGER when: the operator explicitly approves the plan, or asks to
+  "delegate this", "run this plan", "execute the stories", or "parallelize"
+  the work. Writing or reading a plan is not approval. Runs the stories in .agro/tasks/<slug>/prd.json as
   bounded workers in dependency waves. The active session verifies each result,
   accepts it, and records it in prd.json.
 argument-hint: "[<task-slug> | --plan <path>] [--dry-run]"
 ---
 
 # Delegate
+
+## Task lifecycle
+
+An explicit operator approval of the plan authorizes the full run: the issue,
+`prd.json`, the draft PR, all waves, Close, the push, and `gh pr ready`. The
+merge stays with the operator. This section is the only copy of the approval
+scope.
+
+Run `bash .agro/skills/delegate/scripts/next.sh` to print the current state.
+Do the next action of that state, then run the script again. The run stops
+only at `done`, `blocked`, or `none`. If an action needs live spend, set
+`blocked` in `prd.json` and ask the operator. To ask the operator a question
+during the run, set `blocked` in `prd.json` with the question as the reason.
+The Stop hook allows the stop at `blocked`.
+
+| State | Next action | Exit condition | Owner |
+|---|---|---|---|
+| `story <id>` | Dispatch, verify, and accept the story (§ Waves, § Acceptance) | The story has `passes: true` | Advisor; a worker implements |
+| `review` | Get one fresh-context review of the PR diff (§ Reviewer brief, § Acceptance) | `review.verdict` is `pass` for the current diff | Advisor; a reviewer reads |
+| `close` | Write `## Lessons` and fill the PR evidence sections (§ Close) | `prd.md` has a non-empty `## Lessons` section | Advisor |
+| `push` | Push the task branch | The remote task branch head equals local `HEAD` | Advisor |
+| `ci` | Wait for CI with `/ci-status` | No PR check is pending | Advisor |
+| `ci-red` | Reopen the story that owns the failing path as a bounded repair (§ Acceptance) | The reopened story has `passes: true` | Advisor; the same worker repairs |
+| `ready` | Run `gh pr ready` (`/git` § Ready for review) | The PR is not a draft | Advisor |
+| `done` | Stop | The run ends | Operator merges |
+| `blocked` | Stop. Write the reason in the `blocked` field of `prd.json`. Run `/escalate` one time | The operator clears `blocked` | Operator |
+| `none` | Stop. No task is bound to this branch | The run ends | Operator |
 
 ## The advisor/worker pattern
 
@@ -96,6 +123,19 @@ Give each worker the dispatch record, the exclusions, and these rules:
 - Never bypass a hook. A rerun of a blocked command through a script file, a
   heredoc, or another tool is a bypass. Report a blocked action as `BLOCKED`.
 
+## Reviewer brief
+
+Give the reviewer the base branch, the task branch, the execution directory,
+the acceptance criteria of the plan, and these rules:
+
+- Start in a fresh context. Never continue an earlier worker.
+- Read `git diff <base>...HEAD` of the task branch and the acceptance criteria.
+- Edit no file. Run no command that writes.
+- Label each finding `blocking` or `non-blocking`. A `blocking` finding names
+  a reproducing command and its observed result. A finding with no command is
+  `non-blocking`.
+- Never accept. Report the findings to the advisor.
+
 ## Acceptance
 
 A worker report is not acceptance. For each story, the advisor does these steps:
@@ -106,15 +146,45 @@ A worker report is not acceptance. For each story, the advisor does these steps:
 4. Write `passes: true`, `commit`, and `notes` in `prd.json`. In `notes`,
    mark each criterion executed or reasoned.
 
-If a check fails, the story returns to the same worker with a bounded repair.
-The advisor does not repair. Dependents of a failed story wait.
+### Review
+
+When `next.sh` prints `review`, the advisor does these steps:
+
+1. Dispatch one reviewer with the reviewer brief.
+2. Before a story reopens, run each blocking command. Drop a finding whose
+   command does not reproduce, and write a note.
+3. Write `review.commit` (the reviewed `HEAD`), `review.verdict`, and
+   `review.model` in `prd.json`. When no confirmed blocking finding remains,
+   the verdict is `pass`. Otherwise, the verdict is `fail`.
+4. Repair each confirmed blocking finding (§ Repair).
+5. Write each non-blocking finding in the PR `## What remains unverified`
+   section.
+
+A repair changes the diff, so `next.sh` prints `review` again. Review again
+after each repair.
+
+### Repair
+
+A failed story check, a red CI check (`ci-red`), or a confirmed blocking review
+finding starts a repair. The advisor reopens the story whose `files` hold the
+failing path: write `passes: false` and add 1 to `rounds`. The same worker
+repairs the story as a bounded repair. The advisor does not repair. Dependents
+of a reopened story wait.
+
+The advisor writes `blocked` in `prd.json` and runs `/escalate` one time in
+each of these cases:
+
+- `rounds` is greater than 2.
+- A round does not decrease the set of failed checks.
+- No story owns the failing path.
+- `/ci-status` reports `NO-RUN` or `TIMEOUT`.
 
 ## Integration
 
 After acceptance, do these steps on the task branch:
 
 1. Commit `prd.json` with the accepted story. Do not push it. `/git` § Draft PR
-   for a task names the two pushes.
+   for a task names the push rule.
 2. Tick the story in the PR `## Stories` checklist.
 3. Remove the worker worktree and branch. Use the git maintenance shim that
    `/git` names.
@@ -135,6 +205,9 @@ There is no separate ledger. `prd.json` holds the state.
   record.
 - Never substitute a model silently.
 - A required control that is unavailable blocks the story. Ask the operator.
+- When a model other than the implementer model is available, the reviewer
+  uses that model. Otherwise, the reviewer uses the implementer model in a
+  fresh context, and `review.model` records that fact.
 
 Provider defaults live in provider settings. For Claude Code, the default is
 `CLAUDE_CODE_SUBAGENT_MODEL` in the `env` object of `.claude/settings.json`.
@@ -162,8 +235,9 @@ When every story has `passes: true`, do these steps:
    observations, and findings that a test already catches. When the
    repository has 10 or more open issues labeled `follow-up`, propose a
    new issue only with the open follow-up it replaces. List the proposed
-   issues in the final report. Before the operator approves the proposed
-   issues at Close, create no issue. Label each approved issue `follow-up`.
+   issues in the final report. Do not wait for an answer. Continue Close.
+   Create an issue only after the operator approves it. Label each approved
+   issue `follow-up`.
 
    "None" is a valid body.
 3. Fill the PR evidence sections from the `notes` in `prd.json`.

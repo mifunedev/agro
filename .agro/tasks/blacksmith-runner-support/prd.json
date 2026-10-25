@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1506-blacksmith-runner-support",
+  "description": "Blacksmith runner support. Blacksmith's image ships `/etc/profile.d/blacksmith.sh`. For the `runner` user, the file exports `HOME` from `/etc/passwd` in each login shell. `cli-first-install-smoke.sh` and `remote-sandbox-suite.test.ts` set `HOME` to a temporary directory and start `bash -lc`, so `agro` is not on `PATH` (runs 40165681253 and 40165682797, diagnostic run 40166221855). GitHub-hosted runners have no such file. Real users are not affected, because their `HOME` matches `/etc/passwd`.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Keep the job HOME in login shells on Blacksmith runners",
+      "description": "As the operator, I want agro CI to pass on Blacksmith runners. The CLI install smokes then run on the Blacksmith primary, and GitHub-hosted runners stay the fallback.",
+      "acceptanceCriteria": [
+        "The `ci` job in `.github/workflows/ci-harness.yml` and the `sandbox-boot-guard` job in `.github/workflows/sandbox-boot-guard.yml` each have a step named `Keep the job HOME in login shells`. The step runs before the first step that runs the CLI install smoke.",
+        "When `/etc/profile.d/blacksmith.sh` exists, the step disables its `export HOME=\"$RUNNER_HOME\"` line, then fails when the line is still active. When the file does not exist, the step exits 0 and changes nothing.",
+        "The `base-node-pnpm-parity` job in `.github/workflows/sandbox-compatibility.yml` uses `runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}`.",
+        "`.agro/scripts/__tests__/ci-workflow-contract.test.ts` asserts the step in both jobs and the parity runner expression.",
+        "`pnpm test:scripts` exits 0."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "1 executed: contract cases assert the step after Checkout and before the first smoke step in ci and sandbox-boot-guard; they failed before the edit. 2 executed: step script run against fixture copies: present file exit 0 with only the export line changed, missing file exit 0, unmatched export exit 1; on Blacksmith run 40166613427 and 40166615001 the smokes passed. 3 executed: contract case asserts the parity runner expression; run 40166616433 ran parity on Blacksmith. 4 executed: ci-workflow-contract 25 passed. 5 executed: pnpm test:scripts exit 0 (2609 tests) on the integrated branch.",
+      "dependsOn": [],
+      "files": [
+        ".github/workflows/ci-harness.yml",
+        ".github/workflows/sandbox-boot-guard.yml",
+        ".github/workflows/sandbox-compatibility.yml",
+        ".agro/scripts/__tests__/ci-workflow-contract.test.ts"
+      ],
+      "commit": "ec9504db"
+    }
+  ]
+}

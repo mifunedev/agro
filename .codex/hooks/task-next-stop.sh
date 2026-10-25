@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+exec bash "$root/.agro/hooks/task-next-stop.sh"

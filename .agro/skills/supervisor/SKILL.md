@@ -351,7 +351,10 @@ Use read-only commands such as `git log`, `jq`, and `cat` against the advisor's
 worktree and recorded contract paths. Inspect the commit log for edit ownership
 and `prd.json` for `passes`, `commit`, and `notes`. Read the PR body evidence
 sections for criterion results. `/delegate` defines both records. Judge role
-fidelity and completion from these artifacts, not from pane claims. Review no code.
+fidelity from these artifacts, not from pane claims. Review no code. For a
+`/delegate` task, judge completion from the output of
+`bash .agro/skills/delegate/scripts/next.sh` in the advisor's worktree.
+`/delegate` § Task lifecycle owns the states.
 
 ### Reconcile handles and resume
 

@@ -1,17 +1,10 @@
 name: "CI: Sandbox Compatibility"
 
-# Dockerfile-scoped compatibility CI for the sandbox base (#807): compare the
-# exact Node and pnpm versions on fixed Bookworm and Trixie bases, then build one
-# amd64 image with every optional INSTALL_* path enabled. The vendor installers
-# are expensive and mutable, so the path filter stays narrow. This workflow
-# never logs in or pushes.
-
 on:
   workflow_dispatch:
   push:
     branches:
       - development
-      - main
     paths:
       - ".devcontainer/Dockerfile"
       - ".devcontainer/entrypoint.sh"
@@ -44,7 +37,8 @@ permissions:
 jobs:
   base-node-pnpm-parity:
     name: Verify exact Node and pnpm parity across Debian bases
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -53,14 +47,13 @@ jobs:
           persist-credentials: false
 
       - name: Compare fixed Bookworm and Trixie bases
-        run: |
-          bash .agro/scripts/node-pnpm-parity.sh \
-            node:24-bookworm-slim \
-            node:24-trixie-slim
+        run: bash .agro/scripts/node-pnpm-parity.sh
 
   optional-harness-install:
     name: Install every optional harness through the CLI
+    if: github.event_name != 'pull_request'
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -99,9 +92,9 @@ jobs:
           cid=$("${compose[@]}" ps -q sandbox)
           docker exec "$cid" bash /home/sandbox/harness/.agro/scripts/sandbox-healthcheck.sh
 
-          ids=$(docker exec -u sandbox "$cid" bash -lc \
-            'cd /opt/agro-seed && AGRO_EXECUTION_TARGET=local agro harness list --json' \
-            | jq -r '.[] | select(.kind == "installable") | .id')
+          catalog=$(docker exec -u sandbox "$cid" bash -lc \
+            'cd /opt/agro-seed && AGRO_EXECUTION_TARGET=local agro harness list --json')
+          ids=$(jq -r '.[] | select(.kind == "installable") | .id' <<<"$catalog")
           if [ -z "$ids" ]; then
             echo "ERROR: the harness catalog declares no installable harnesses — this job would pass vacuously" >&2
             exit 1
@@ -142,9 +135,7 @@ jobs:
             'bash /home/sandbox/harness/.agro/scripts/hermes-install-smoke.sh'
 
           for id in $ids; do
-            binary=$(docker exec -u sandbox "$cid" bash -lc \
-              'cd /opt/agro-seed && AGRO_EXECUTION_TARGET=local agro harness list --json' \
-              | jq -r --arg id "$id" '.[] | select(.id == $id) | .binary')
+            binary=$(jq -r --arg id "$id" '.[] | select(.id == $id) | .binary' <<<"$catalog")
             echo "--- $binary --version"
             output=$(docker exec -u sandbox "$cid" bash -lc "
               path=\$(type -P '$binary')

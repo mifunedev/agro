@@ -2,10 +2,10 @@ name: "CI: Harness"
 
 on:
   workflow_dispatch:
+  workflow_call:
   push:
     branches:
       - development
-      - main
     paths:
       - ".agro/**"
       - "docs/**"
@@ -17,6 +17,7 @@ on:
       - "pnpm-workspace.yaml"
       - "vitest.config.ts"
       - ".github/workflows/ci-harness.yml"
+      - ".github/workflows/release.yml"
       - ".claude/hooks/**"
       - ".claude/protected-paths.txt"
       - ".devcontainer/**"
@@ -33,14 +34,15 @@ on:
       - "pnpm-workspace.yaml"
       - "vitest.config.ts"
       - ".github/workflows/ci-harness.yml"
+      - ".github/workflows/release.yml"
       - ".claude/hooks/**"
       - ".claude/protected-paths.txt"
       - ".devcontainer/**"
       - "AGENTS.md"
 
 concurrency:
-  group: ci-harness-${{ github.ref }}
-  cancel-in-progress: true
+  group: "${{ github.workflow == 'CI: Harness' && format('ci-harness-{0}', github.ref) || format('ci-harness-call-{0}', github.run_id) }}"
+  cancel-in-progress: "${{ github.workflow == 'CI: Harness' }}"
 
 permissions:
   contents: read
@@ -49,12 +51,24 @@ jobs:
   ci:
     name: "Typecheck, Build & Test"
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
           submodules: recursive
+
+      - name: Keep the job HOME in login shells
+        shell: bash
+        run: |
+          profile=/etc/profile.d/blacksmith.sh
+          [ -f "$profile" ] || exit 0
+          sudo sed -i 's|^\([[:space:]]*\)export HOME="\$RUNNER_HOME"|\1: export HOME="$RUNNER_HOME"|' "$profile"
+          if grep -Eq '^[[:space:]]*export HOME=' "$profile"; then
+            echo "::error::$profile still exports HOME in login shells"
+            exit 1
+          fi
 
       - name: Ensure Mifune submodule
         run: bash .agro/scripts/link-providers.sh --init
@@ -96,6 +110,7 @@ jobs:
   boot-lint:
     name: Boot Path Lint (shellcheck + hadolint)
     runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
 
     steps:
       - name: Checkout

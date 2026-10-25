@@ -120,6 +120,7 @@ describe("Hermes-only additive linking", () => {
     const files = [
       ".claude/protected-paths.txt", ".agro/skills/t3/references/sandbox-processes.md",
       ".agro/hooks/deny-env-dump.sh", ".agro/hooks/deny-secret-paths.sh", ".agro/hooks/warn-devtcp.sh",
+      ".agro/hooks/task-next-stop.sh",
       ".agro/skills/cloudflared/scripts/run.sh", ".agro/skills/health-check/scripts/scope-preflight.sh",
       ".agro/skills/t3/scripts/t3-code.sh",
       "bin/hermes",

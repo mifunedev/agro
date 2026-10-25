@@ -14,92 +14,17 @@ permissions:
   packages: write
 
 jobs:
-  validate:
-    name: Validate
-    runs-on: ubuntu-latest
+  ci-harness:
+    name: "CI: Harness"
     permissions:
       contents: read
-
-    steps:
-      - name: Checkout the event commit
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-          submodules: recursive
-
-      - name: Ensure Mifune submodule
-        run: bash .agro/scripts/link-providers.sh --init
-
-      - name: Setup Node 24.x
-        uses: actions/setup-node@v7
-        with:
-          node-version: "24"
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Cache pnpm store
-        uses: actions/cache@v6
-        with:
-          path: ~/.local/share/pnpm/store/v3
-          key: pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            pnpm-store-
-
-      - name: Run pnpm security audit
-        run: pnpm run security:audit
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Typecheck
-        run: pnpm run typecheck
-
-      - name: Build
-        run: pnpm run build:harness
-
-      - name: Ensure zsh
-        run: command -v zsh >/dev/null 2>&1 || { sudo apt-get update && sudo apt-get install -y zsh; }
-
-      - name: Test
-        run: pnpm test:scripts
-
-      - name: Check pnpm pin drift
-        run: bash .agro/scripts/check-pnpm-pin.sh
-
-  boot-lint:
-    name: Boot Path Lint (shellcheck + hadolint)
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout the event commit
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-          submodules: recursive
-
-      - name: Ensure Mifune submodule
-        run: bash .agro/scripts/link-providers.sh --init
-
-      - name: Shellcheck boot scripts
-        run: |
-          command -v shellcheck >/dev/null 2>&1 || { sudo apt-get update && sudo apt-get install -y shellcheck; }
-          shellcheck --version
-          shellcheck -S warning .devcontainer/*.sh .agro/install/*.sh .agro/scripts/*.sh .agro/skills/audit/scripts/*.sh .agro/skills/remote-sandbox/adapters/*.sh .agro/skills/remote-sandbox/checks/*.sh .agro/skills/remote-sandbox/scripts/*.sh .claude/hooks/*.sh
-
-      - name: Hadolint Dockerfile
-        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
-        with:
-          dockerfile: .devcontainer/Dockerfile
-          config: .hadolint.yaml
-          failure-threshold: warning
+    uses: ./.github/workflows/ci-harness.yml
 
   reserve:
     name: Reserve SemVer draft
-    needs: [validate, boot-lint]
+    needs: [ci-harness]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     outputs:
@@ -138,6 +63,7 @@ jobs:
     needs: reserve
     if: ${{ needs.reserve.outputs.publishedNoop != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     # `needs` is valid in job concurrency expressions. Atomic reservations give
     # distinct push SHAs distinct versions; only same-SHA retries share this key.
     concurrency:
@@ -175,15 +101,12 @@ jobs:
         run: |
           VERSION_IMAGE="ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
           SHA_IMAGE="ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"
-          AGRO_VERSION_IMAGE="ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
-          AGRO_SHA_IMAGE="ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"
           SMOKE_IMAGE="sandbox-${SANDBOX_NAME}"
           docker buildx build --load -f .devcontainer/Dockerfile \
-            -t "$VERSION_IMAGE" -t "$SHA_IMAGE" \
-            -t "$AGRO_VERSION_IMAGE" -t "$AGRO_SHA_IMAGE" -t "$SMOKE_IMAGE" .
+            -t "$VERSION_IMAGE" -t "$SHA_IMAGE" -t "$SMOKE_IMAGE" .
 
       # Keep this pre-push smoke gate between build and publication: it boots
-      # the exact image object that carries all four immutable GHCR tags.
+      # the exact image object that carries both immutable GHCR tags.
       - name: Smoke-test Docker image before publish
         env:
           SANDBOX_NAME: agro-release-smoke-${{ github.run_id }}
@@ -199,13 +122,7 @@ jobs:
         run: |
           SMOKE_IMAGE="sandbox-${SANDBOX_NAME}"
           agro_version=$(docker run --rm --entrypoint /bin/bash "$SMOKE_IMAGE" -lc 'agro --version')
-          oh_version=$(docker run --rm --entrypoint /bin/bash "$SMOKE_IMAGE" -lc 'agro --version')
           echo "agro --version: $agro_version"
-          echo "agro --version: $oh_version"
-          if [ -z "$agro_version" ] || [ "$agro_version" != "$oh_version" ]; then
-            echo "agro --version ('$agro_version') and agro --version ('$oh_version') must be the same non-empty version" >&2
-            exit 1
-          fi
           if [ "$agro_version" != "$RELEASE_VERSION" ]; then
             echo "agro --version ('$agro_version') does not match the release version $RELEASE_VERSION" >&2
             exit 1
@@ -218,16 +135,6 @@ jobs:
         run: |
           docker push "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
           docker push "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"
-          docker push "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
-          docker push "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"
-
-      - name: Verify the agro and agro version tags share one digest
-        env:
-          RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
-        run: |
-          .agro/scripts/verify-release-aliases.sh check \
-            "ghcr.io/mifunedev/agro:${RELEASE_VERSION}" \
-            "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
 
       - name: Promote latest from the canonical branch by digest
         env:
@@ -254,6 +161,7 @@ jobs:
     needs: [reserve, publish-image, publish-cli]
     if: ${{ always() && needs.reserve.outputs.publishedNoop != 'true' && needs.publish-image.result == 'success' && needs.publish-cli.result == 'success' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
 

@@ -165,7 +165,7 @@ Some unstaged changes in the main checkout do not belong in the current PR. Move
 
 ## Destructive git under the cc-safety-net guard
 
-`cc-safety-net` denies inline destructive git — `git reset --hard <ref>`, `git clean -f`, `git branch -D`, `git worktree remove --force`, `git push --force` — in every mode (its built-in git rules are not allowlistable). In agent (hook-mediated) contexts you must route these through the file-invoked shim instead:
+`cc-safety-net` denies inline destructive git — `git reset --hard <ref>`, `git clean -f`, `git branch -D`, `git worktree remove --force`, `git push --force`, `git push --delete` — in every mode (its built-in git rules are not allowlistable). In agent (hook-mediated) contexts you must route these through the file-invoked shim instead:
 
 ```bash
 bash .agro/scripts/git-maintenance.sh reset-hard <ref>
@@ -173,6 +173,7 @@ bash .agro/scripts/git-maintenance.sh clean
 bash .agro/scripts/git-maintenance.sh branch-delete <branch>
 bash .agro/scripts/git-maintenance.sh worktree-remove <path>
 bash .agro/scripts/git-maintenance.sh push-force <remote> <branch>   # uses --force-with-lease
+bash .agro/scripts/git-maintenance.sh push-delete <remote> <branch>  # refuses development, main, master
 ```
 
 **Scope rule:** only **non-agent-mediated** invocations — raw scheduler/tmux shell scripts that never spawn a provider — bypass the PreToolUse hooks. Agent-driven sessions, including harness loops, pass through the guard and must use the shim. The shim is a compatibility shim, not a security control. The same script-file gap is also an evasion route; Docker is the security boundary.
@@ -238,10 +239,9 @@ output, the GHCR image tags, and the concurrency group all stay bare
 One release publishes the canonical npm package `@mifune/agro` (`agro`). The
 `@mifune/agro` shim source remains at `.agro/cli/legacy/` and already-published
 shim versions remain on the registry. The release path does not publish, wait for,
-or deprecate the shim. The same build still publishes the GHCR tags
-`ghcr.io/mifunedev/agro:<version>`, `:sha-<sha>`,
-`ghcr.io/mifunedev/agro:<version>`, `:sha-<sha>`, verified to share one digest,
-plus `latest` on both repositories; and the release assets `agro.js`, `install.sh`,
+or deprecate the shim. The same build still publishes two immutable GHCR tags,
+`ghcr.io/mifunedev/agro:<version>` and `ghcr.io/mifunedev/agro:sha-<sha>`,
+plus `latest`; and the release assets `agro.js`, `install.sh`,
 and a copy of `install.sh` under the earlier installer name. Publishing `@mifune/agro` needs npm rights for that
 name, and the package owner must make the GHCR package `mifunedev/agro` public after its first
 push; neither is verifiable here. The compatibility SLA clock starts at the first
@@ -270,12 +270,12 @@ the fast-forward promotion, monitoring, and verification procedure.
 
 ## Draft PR for a task
 
-Run the steps below after the operator approves `.agro/tasks/<slug>/prd.md`.
-Creating the issue and the PR is outward-facing. Create them only after explicit
-operator approval of the plan. Writing a plan is not approval.
+`/prd` § 7 runs these steps. [`/delegate` § Task lifecycle](../delegate/SKILL.md#task-lifecycle)
+holds the approval rule.
 
 1. Open the issue. Use the `.github/ISSUE_TEMPLATE/feat.md` shape. Fill User
-   Stories, Summary, and Acceptance Criteria from `prd.md`. Record `<N>`:
+   Stories, Summary, and Acceptance Criteria from `prd.md`. Record `<N>`. Then
+   convert `prd.md` to `prd.json` with `--issue <N>` (`/prd` § 7):
 
    ```bash
    gh issue create --title "<prefix>: <shortdesc>" --body-file <issue-body.md>
@@ -302,17 +302,16 @@ operator approval of the plan. Writing a plan is not approval.
    ```
 
 The advisor commits each accepted story to this branch and does not push it.
-The advisor pushes the task branch only two times: in step 3 for the draft PR,
-and in § Ready for review before `gh pr ready`. Push at another time only when
-the operator explicitly requires it.
+After step 3, the advisor pushes the task branch only when
+`bash .agro/skills/delegate/scripts/next.sh` prints `push`.
 
 ### Ready for review
 
 Do these steps in this sequence:
 
-1. Examine the first three conditions below. If one is false, stop and keep the
-   PR in draft.
-2. Push the task branch one time: `git push`.
+1. Examine the first three conditions below. If one is false, keep the PR in
+   draft. Do the action that `bash .agro/skills/delegate/scripts/next.sh` prints.
+2. When `next.sh` prints `push`, push the task branch: `git push`.
 3. Run `/ci-status` to examine the last condition.
 4. Run `gh pr ready` only when all of these conditions are true. If one is
    false, refuse and keep the PR in draft.

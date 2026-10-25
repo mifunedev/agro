@@ -108,7 +108,9 @@ To override a false positive, use one of these:
    Pi, remove the package from `.pi/settings.json` and restart the Pi session.
 2. Run the operation through
    `bash .agro/scripts/git-maintenance.sh <subcommand>`. The guard does not read
-   script files.
+   script files. To delete a remote branch, run
+   `bash .agro/scripts/git-maintenance.sh push-delete <remote> <branch>`. The
+   verb refuses `development`, `main`, and `master`.
 
 The script-file route also lets an agent bypass the guard. cc-safety-net catches
 accidents. Docker is the security boundary (section 4).

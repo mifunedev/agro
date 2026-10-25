@@ -272,6 +272,23 @@ function nvmWhich(nvmDir: string, tools: string): string {
   }).stdout.trim();
 }
 
+describe("install.sh Node floor", () => {
+  it.each(["20.19.0", "21.7.3"])("rejects an end-of-life Node %s on PATH", (version) => {
+    const h = makeHome();
+    const tools = nodelessPath(h);
+    const major = version.split(".")[0];
+    writeFileSync(
+      join(tools, "node"),
+      `#!/bin/sh\ncase "$1" in\n  --version) echo v${version} ;;\n  -p) echo ${major} ;;\nesac\n`,
+      { mode: 0o755 },
+    );
+    const result = install(h, { PATH: tools, AGRO_JS_URL: `file://${h.artifact}`, ASSUME_NO: "true" });
+    expect(result.status).not.toBe(0);
+    expect(result.stderr + result.stdout).toContain(`Node.js v${version} is too old (need >= 22)`);
+    expect(result.stderr + result.stdout).toContain("Node.js >= 22 is required");
+  });
+});
+
 describe("install.sh nvm Node pin", () => {
   it("links the nvm Node and pins the installed shebang when no node is on PATH", () => {
     const h = makeHome();
@@ -383,17 +400,17 @@ describe("install.sh static contract", () => {
     }
   });
 
-  it("offers Node 24 and keeps the Node 20 floor", () => {
+  it("offers Node 24 and keeps the Node 22 floor", () => {
     const help = run(["--help"]);
     expect(help.stdout).toContain("install nvm + Node 24");
     expect(help.stdout).toContain("auto-install nvm + Node 24");
-    expect(help.stdout).toContain("Node.js >= 20");
+    expect(help.stdout).toContain("Node.js >= 22");
     expect(source).toContain('prompt_yn "Install nvm + Node 24 now?" y');
     expect(source).toContain("nvm install 24");
     expect(source).toContain("nvm use 24");
     expect(source).not.toMatch(/Node 22|nvm (install|use) 22/);
     const floors = source.split("\n").filter((line) => line.includes("$(node_major)\" -ge"));
     expect(floors).toHaveLength(2);
-    for (const line of floors) expect(line).toContain('"$(node_major)" -ge 20');
+    for (const line of floors) expect(line).toContain('"$(node_major)" -ge 22');
   });
 });

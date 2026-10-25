@@ -42,7 +42,7 @@ function fixture(o: Overrides = {}) {
     dockerSuite: "trixie",
     uid: "1000",
     gid: "1000",
-    node: "v24.21.0",
+    node: "v24.22.1",
     pnpm: "10.33.0",
     npm: "11.19.0",
     agroVersion: "0.8.0",
@@ -178,6 +178,7 @@ describe.concurrent("verify-sandbox-image", () => {
     expect(result.stdout).toContain("Docker apt suite is trixie");
     expect(result.stdout).toContain("built-in sandbox user is 1000:1000");
     expect(result.stdout).toContain("node is major 24");
+    expect(result.stdout).toContain("node is v24.22.1, at least v24.22.1");
     expect(result.stdout).toContain("pnpm is exactly 10.33.0");
     expect(result.stdout).toContain("npm is 11.19.0, at least 11.16.0");
     expect(result.stdout).toContain("agro reports CLI version 0.8.0");
@@ -186,6 +187,13 @@ describe.concurrent("verify-sandbox-image", () => {
     expect(result.stdout).toContain("no harness is baked into the image");
     expect(result.stdout).toContain("no installable tool is baked into the image");
     expect(result.stdout).toContain("all checks passed");
+  });
+
+  it.each(["v24.22.2", "v24.23.0", "v24.100.0"])("accepts a Node 24 newer than 24.22.1: %s", async (node) => {
+    const result = await run(fixture({ node }));
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(`node is ${node}, at least v24.22.1`);
   });
 
   it("checks Python in the restored seed as sandbox without network or login activation", async () => {
@@ -212,6 +220,8 @@ describe.concurrent("verify-sandbox-image", () => {
     ["a Bookworm Docker suite", { dockerSuite: "bookworm" }, "Docker apt suite is not trixie"],
     ["a shifted sandbox UID", { uid: "1001" }, "built-in sandbox user is 1001:1000"],
     ["a wrong Node major", { node: "v22.14.0" }, "node major is not 24"],
+    ["a Node 24 older than 24.22.1", { node: "v24.21.0" }, "node is v24.21.0, expected at least v24.22.1"],
+    ["a Node 24 one patch short of 24.22.1", { node: "v24.22.0" }, "node is v24.22.0, expected at least v24.22.1"],
     ["a drifted pnpm version", { pnpm: "10.34.0" }, "pnpm is 10.34.0"],
     ["an npm older than 11.16.0", { npm: "10.9.2" }, "npm is 10.9.2, expected at least 11.16.0"],
     ["an npm one minor short of 11.16.0", { npm: "11.15.9" }, "npm is 11.15.9, expected at least 11.16.0"],

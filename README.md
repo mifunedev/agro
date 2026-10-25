@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache--2.0-D4AF37?style=plastic&labelColor=0B1220"></a>
-  <a href="https://github.com/mifunedev/agro/actions/workflows/ci-harness.yml"><img alt="CI: Harness" src="https://img.shields.io/github/actions/workflow/status/mifunedev/agro/ci-harness.yml?branch=main&style=plastic&label=CI&labelColor=0B1220&color=D4AF37"></a>
+  <a href="https://github.com/mifunedev/agro/actions/workflows/ci-harness.yml"><img alt="CI: Harness" src="https://img.shields.io/github/actions/workflow/status/mifunedev/agro/ci-harness.yml?branch=development&style=plastic&label=CI&labelColor=0B1220&color=D4AF37"></a>
   <a href="https://github.com/mifunedev/agro/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/mifunedev/agro?style=plastic&logo=github&logoColor=white&labelColor=0B1220&color=D4AF37"></a>
   <a href="https://github.com/mifunedev/agro/issues"><img alt="Issues" src="https://img.shields.io/github/issues/mifunedev/agro?style=plastic&labelColor=0B1220&color=D4AF37"></a>
   <img alt="Docker required" src="https://img.shields.io/badge/Docker-required-D4AF37?style=plastic&logo=docker&logoColor=white&labelColor=0B1220">
@@ -28,11 +28,11 @@ Start with the quickstart below. See the [documentation](docs/README.md) for mor
 
 AGRO runs one project in one Docker sandbox, and **`agro` is the only
 front door**. Host prerequisites: Docker (with the Compose plugin), Git, and
-Node.js ≥ 20.
+Node.js ≥ 22.
 
 ### 1. Get `agro`
 
-**npm** — you already have Node ≥ 20:
+**npm** — you already have Node ≥ 22:
 
 ```bash
 # Install globally
@@ -162,6 +162,7 @@ claude
 | [Muse Code](docs/harnesses/muse-code.md) | `muse-code` | Install on demand |
 | [Antigravity CLI](docs/harnesses/antigravity-cli.md) | `antigravity-cli` | Install on demand |
 | [fx](docs/harnesses/fx.md) | `fx` | Install on demand |
+| [Prime Agent](docs/harnesses/prime-agent.md) | `prime-agent` | Install on demand |
 | [T3 Code](docs/harnesses/t3code.md) | `t3code` | Run on demand via `npx` |
 
 Use `agro harness install <id>` to install any harness in the table. Follow the linked

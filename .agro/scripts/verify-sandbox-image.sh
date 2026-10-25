@@ -7,6 +7,7 @@ EXPECTED_DOCKER_SUITE=trixie
 EXPECTED_UID=1000
 EXPECTED_GID=1000
 EXPECTED_NODE_MAJOR=24
+MINIMUM_NODE=24.22.1
 EXPECTED_PNPM=10.33.0
 MINIMUM_NPM=11.16.0
 
@@ -62,6 +63,14 @@ if [[ "$node_version" == v"$EXPECTED_NODE_MAJOR".* ]]; then
   ok "node is major $EXPECTED_NODE_MAJOR ($node_version)"
 else
   fail "node major is not $EXPECTED_NODE_MAJOR: $node_version"
+fi
+
+node_semver=${node_version#v}
+if [[ "$node_semver" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] &&
+   [ "$(printf '%s\n%s\n' "$MINIMUM_NODE" "$node_semver" | sort -V | head -1)" = "$MINIMUM_NODE" ]; then
+  ok "node is $node_version, at least v$MINIMUM_NODE"
+else
+  fail "node is $node_version, expected at least v$MINIMUM_NODE"
 fi
 
 pnpm_version=$(run 'pnpm --version')

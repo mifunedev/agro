@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { parse } from "yaml";
 
 import { parseSemVer, reserveReleaseVersion } from "../release-reservation.mjs";
 import {
@@ -12,6 +13,7 @@ import {
 const ROOT = join(import.meta.dirname, "../../..");
 const WORKFLOW = join(ROOT, ".github", "workflows", "release.yml");
 const CLI_WORKFLOW = join(ROOT, ".github", "workflows", "publish-cli.yml");
+const CI_WORKFLOW = join(ROOT, ".github", "workflows", "ci-harness.yml");
 const RELEASE_SHA = "0123456789abcdef0123456789abcdef01234567";
 const FOREIGN_SHA = "fedcba9876543210fedcba9876543210fedcba98";
 const REPOSITORY = "mifunedev/agro";
@@ -387,7 +389,7 @@ describe("release workflow contract", () => {
   });
 
   it("reads the release version from package.json rather than a clock", () => {
-    expect(source).toMatch(/reserve:\n[\s\S]*?needs: \[validate, boot-lint\]/);
+    expect(source).toMatch(/reserve:\n[\s\S]*?needs: \[ci-harness\]/);
     expect(source).toContain(`node -p "require('./package.json').version"`);
     expect(source).toContain("RELEASE_VERSION: ${{ steps.release_version.outputs.version }}");
     expect(source).not.toContain("RELEASE_TIMESTAMP");
@@ -398,6 +400,32 @@ describe("release workflow contract", () => {
     );
     expect(source.indexOf("jobs:\n")).toBeLessThan(source.indexOf("  reserve:\n"));
     expect(source).not.toMatch(/deleteRelease|deleteRef|method:\s*["']DELETE/);
+  });
+
+  it("gates reservation on the reusable CI: Harness workflow", () => {
+    const release = parse(source);
+    const ci = parse(readFileSync(CI_WORKFLOW, "utf8"));
+
+    expect(Object.keys(release.jobs)).not.toContain("validate");
+    expect(Object.keys(release.jobs)).not.toContain("boot-lint");
+    expect(release.jobs["ci-harness"]).toEqual({
+      name: "CI: Harness",
+      permissions: { contents: "read" },
+      uses: "./.github/workflows/ci-harness.yml",
+    });
+    expect(source).toMatch(/ci-harness:\n[\s\S]*?uses: \.\/\.github\/workflows\/ci-harness\.yml\n/);
+    expect(release.jobs.reserve.needs).toEqual(["ci-harness"]);
+
+    expect(ci.name).toBe("CI: Harness");
+    expect(ci.on).toHaveProperty("workflow_call");
+    expect(ci.on.push.branches).toEqual(["development"]);
+    expect(ci.on.push.paths).toContain(".github/workflows/release.yml");
+    expect(ci.on.pull_request.paths).toContain(".github/workflows/release.yml");
+    expect(ci.concurrency).toEqual({
+      group:
+        "${{ github.workflow == 'CI: Harness' && format('ci-harness-{0}', github.ref) || format('ci-harness-call-{0}', github.run_id) }}",
+      "cancel-in-progress": "${{ github.workflow == 'CI: Harness' }}",
+    });
   });
 
   it("skips publication cleanly when the reservation is a no-op", () => {
@@ -436,38 +464,29 @@ describe("release workflow contract", () => {
     expect(publishDraft).toBeGreaterThan(freshGithubCheck);
   });
 
-  it("builds the agro and agro tags once, pushes all four, and verifies one digest", () => {
+  it("builds the version and sha tags once, pushes both, and checks agro --version once", () => {
     const build = source.indexOf("Build immutable Docker image tags");
     const bootSmoke = source.indexOf("Smoke-test Docker image before publish");
     const agroSmoke = source.indexOf("Smoke-test agro as a first-class entry point");
     const immutablePush = source.indexOf("Push immutable SemVer and sha-full-SHA tags");
-    const aliasVerify = source.indexOf("Verify the agro and agro version tags share one digest");
     const latestPromote = source.indexOf("Promote latest from the canonical branch by digest");
 
     expect(source.match(/docker buildx build --load/g)?.length).toBe(1);
-    expect(source).toContain('AGRO_VERSION_IMAGE="ghcr.io/mifunedev/agro:${RELEASE_VERSION}"');
-    expect(source).toContain('AGRO_SHA_IMAGE="ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"');
-    expect(source).toMatch(
-      /-t "\$VERSION_IMAGE" -t "\$SHA_IMAGE" \\\n\s+-t "\$AGRO_VERSION_IMAGE" -t "\$AGRO_SHA_IMAGE" -t "\$SMOKE_IMAGE" \./,
-    );
+    expect(source).not.toContain("AGRO_VERSION_IMAGE");
+    expect(source).not.toContain("AGRO_SHA_IMAGE");
+    expect(source).toMatch(/-t "\$VERSION_IMAGE" -t "\$SHA_IMAGE" -t "\$SMOKE_IMAGE" \./);
     expect(source).toContain('docker push "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"');
     expect(source).toContain('docker push "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"');
-    expect(source).toContain('docker push "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"');
-    expect(source).toContain('docker push "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"');
-    expect(source.match(/docker push "/g)?.length).toBe(4);
-    expect(source).toMatch(
-      /\.agro\/scripts\/verify-release-aliases\.sh check \\\n\s+"ghcr\.io\/mifunedev\/agro:\$\{RELEASE_VERSION\}" \\\n\s+"ghcr\.io\/mifunedev\/agro:\$\{RELEASE_VERSION\}"/,
-    );
-    expect(source).toContain("-lc 'agro --version'");
-    expect(source).toContain("-lc 'agro --version'");
-    expect(source).toContain('[ "$agro_version" != "$oh_version" ]');
+    expect(source.match(/docker push "/g)?.length).toBe(2);
+    expect(source).not.toContain("Verify the agro and agro version tags share one digest");
+    expect(source.match(/-lc 'agro --version'/g)?.length).toBe(1);
+    expect(source).not.toContain("oh_version");
     expect(source).toContain('[ "$agro_version" != "$RELEASE_VERSION" ]');
     expect(build).toBeGreaterThan(0);
     expect(bootSmoke).toBeGreaterThan(build);
     expect(agroSmoke).toBeGreaterThan(bootSmoke);
     expect(immutablePush).toBeGreaterThan(agroSmoke);
-    expect(aliasVerify).toBeGreaterThan(immutablePush);
-    expect(latestPromote).toBeGreaterThan(aliasVerify);
+    expect(latestPromote).toBeGreaterThan(immutablePush);
   });
 
   it("attaches the CLI bundles and installers before the release is undrafted", () => {

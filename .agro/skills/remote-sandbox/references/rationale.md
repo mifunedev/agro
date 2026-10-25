@@ -59,7 +59,7 @@ Git tracks no file under `.hermes/`. `agro harness install hermes` writes the AG
 
 | Row | AGRO expectation | A failure means |
 |---|---|---|
-| `H01-install-agro` | The curl installer installs `agro` and Node 20 or later. | The host prerequisites are missing. The later rows cannot run. |
+| `H01-install-agro` | The curl installer installs `agro` and Node 22 or later. | The host prerequisites are missing. The later rows cannot run. |
 | `H02-clone-ref` | `AGRO_REF` names a branch that the VM can clone. | The run tests no branch. A run without `AGRO_REF` fails on purpose. |
 | `H03-cli-source` | The CLI builds from the clone. | The log does not prove which CLI ran. The check skips the install rows. |
 | `H04-untracked-home` | `git ls-files .hermes` prints nothing. | A tracked file under `.hermes/` remains. |

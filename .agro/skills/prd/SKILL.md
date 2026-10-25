@@ -161,9 +161,10 @@ Status: DRAFT | BLOCKED
 - [ ] <Task-level binary criterion.>
 
 ## Lessons
-
-Filled by the advisor before undraft.
 ```
+
+Leave the `## Lessons` body empty. The advisor fills `## Lessons` at Close.
+While the section is empty, `next.sh` prints `close`.
 
 ### Stories
 
@@ -209,11 +210,13 @@ If the write fails, report `FAILED` with the cause. Do not report a plan that yo
 ## 7. After operator approval
 
 Do these steps only after the operator approves the plan. The approval is an
-explicit operator statement. Writing or revising the plan does not start
-either step.
+explicit operator statement. Writing or revising a plan is never approval.
+[`/delegate` § Task lifecycle](../delegate/SKILL.md#task-lifecycle) holds the approval scope.
 
-1. Convert `prd.md` to `.agro/tasks/<slug>/prd.json`. Follow [`references/tracker.md`](references/tracker.md).
-2. Offer the "Draft PR for a task" procedure in [`.agro/skills/git/SKILL.md`](../git/SKILL.md). Run the procedure only when the operator accepts.
+1. Open the issue. Do step 1 of § Draft PR for a task in [`.agro/skills/git/SKILL.md`](../git/SKILL.md). Record `<N>`.
+2. Convert `prd.md` to `.agro/tasks/<slug>/prd.json` with `--issue <N>`. Follow [`references/tracker.md`](references/tracker.md).
+3. Do steps 2 to 4 of § Draft PR for a task in [`.agro/skills/git/SKILL.md`](../git/SKILL.md).
+4. Run `/delegate <slug>`.
 
 ## Examples
 

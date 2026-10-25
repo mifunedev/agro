@@ -14,7 +14,7 @@ working after you disconnect.
 ## What AGRO gives you
 
 - **One CLI.** `agro` creates, starts, stops, and removes each sandbox.
-- **A clean host.** The host needs Docker, Git, and Node.js ≥ 20. Node runs the
+- **A clean host.** The host needs Docker, Git, and Node.js ≥ 22. Node runs the
   `agro` CLI only. See [Installation](installation.md#prerequisites).
 - **A persistent home.** Logins, tools, and the workspace live in one volume
   that survives a restart.

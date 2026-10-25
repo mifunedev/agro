@@ -36,7 +36,7 @@ curl -fsSL https://github.com/mifunedev/agro/releases/latest/download/install.sh
 
 ### Requirements
 
-- **Node.js ≥ 20** (22 recommended) on your `PATH`. Unlike the `install.sh` bootstrap,
+- **Node.js ≥ 22** (24 recommended) on your `PATH`. Unlike the `install.sh` bootstrap,
   npm will not install Node for you.
 - **Docker** and **git** for the sandbox lifecycle commands (`agro sandbox install`, `agro shell`).
 

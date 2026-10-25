@@ -65,6 +65,16 @@ claude -p "Explain the structure of the packages/ directory"
 
 Run interactive sessions in Herdr so the session survives a disconnect: `agro tool install herdr`, then `herdr`, then start `claude` in a pane.
 
+## Task lifecycle Stop hook
+
+The `Stop` entry in `.claude/settings.json` runs `.claude/hooks/task-next-stop.sh` when the session tries to stop. The hook runs `bash .agro/skills/delegate/scripts/next.sh` in the session directory and reads the state on the first line:
+
+- At `story <id>`, `review`, `close`, `push`, `ci`, `ci-red`, or `ready`, the hook blocks the stop. The block reason holds the `next.sh` output.
+- At `none`, `done`, or `blocked <reason>`, the hook allows the stop.
+- If `next.sh` fails or the directory is not a git repository, the hook allows the stop.
+
+The hook keeps a counter at `$(git rev-parse --git-path agro-next-stop)`. Each worktree has its own counter. After 3 blocks with the same state and the same `HEAD`, the hook allows the stop and runs `/escalate` one time. A subagent sends `SubagentStop`, not `Stop`, so the hook does not block a subagent.
+
 ## Tips
 
 - Use worktrees to give Claude Code its own branch: `git worktree add -b agent/claude .worktrees/agent/claude development`

@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1503-ci-runtime-optimizations",
+  "description": "CI runtime optimizations. The council audit measured CI over 30 days. Each change runs the same checks on the PR, on the `development` push, on the `main` push, and in Release. The repository is public, so the cost is runner capacity and wait time.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Release reuses the CI: Harness workflow",
+      "description": "As the operator, I want `release.yml` to call `ci-harness.yml` so that one definition gates both PRs and releases.",
+      "acceptanceCriteria": [
+        "`ci-harness.yml` declares `workflow_call` in its `on:` block.",
+        "`ci-harness.yml` lists `development` as its only push branch. The list does not contain `main`.",
+        "The `ci-harness.yml` path filters for `push` and `pull_request` contain `.github/workflows/release.yml`.",
+        "`release.yml` has no `validate` job body and no `boot-lint` job body. One job runs `uses: ./.github/workflows/ci-harness.yml`.",
+        "The `reserve` job in `release.yml` needs the job that calls `ci-harness.yml`.",
+        "When `release.yml` calls `ci-harness.yml`, the concurrency group expression resolves to a value that contains `github.run_id`. Two release runs on `main` do not cancel each other.",
+        "When a PR or a `development` push starts `ci-harness.yml`, the concurrency group stays `ci-harness-${{ github.ref }}` with `cancel-in-progress: true`.",
+        "The README badge for `ci-harness.yml` uses `branch=development`.",
+        "`.agro/scripts/__tests__/release-reservation.test.ts` asserts the new `needs` list and the `uses:` line.",
+        "`pnpm test:scripts` exits 0."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "1-5,9 executed: new release-reservation test 'gates reservation on the reusable CI: Harness workflow' parses both workflows with yaml; failed 2 before the workflow edit, passes after. 6 executed for the expression text (test pins group with github.run_id for called runs); runtime reasoned: in a called workflow github.workflow is the caller's name, so Release resolves ci-harness-call-<run_id> with cancel false. 7 reasoned: direct runs have github.workflow 'CI: Harness', so the group stays ci-harness-<ref> with cancel true. 8 reasoned: README line 7 badge uses branch=development. 10 executed: pnpm test:scripts on the integrated task branch, exit 0 (2589 tests); pnpm run typecheck exit 0.",
+      "dependsOn": [],
+      "files": [
+        ".github/workflows/ci-harness.yml",
+        ".github/workflows/release.yml",
+        ".agro/scripts/__tests__/release-reservation.test.ts",
+        "README.md"
+      ],
+      "commit": "4fe7debc"
+    },
+    {
+      "id": "US-002",
+      "title": "Remove main pushes and narrow the Boot Guard path filter",
+      "description": "As the operator, I want Boot Guard and Compatibility to skip `main` pushes and unrelated script changes so that they stop re-testing validated commits.",
+      "acceptanceCriteria": [
+        "`sandbox-boot-guard.yml` and `sandbox-compatibility.yml` list `development` as their only push branch.",
+        "The `sandbox-boot-guard.yml` filters list each boot-path script by name in place of `.agro/scripts/**`. The list holds `docker-compose.sh`, `check-host-port.sh`, `paths.sh`, `provision-python.sh`, `sandbox-healthcheck.sh`, `sandbox-boot-smoke.sh`, `sandbox-upgrade-smoke.sh`, `cli-first-install-smoke.sh`, `verify-sandbox-image.sh`, `install.sh`, and `link-providers.sh`.",
+        "The `sandbox-boot-guard.yml` filters keep `.agro/cli/**` and exclude `.agro/cli/**/__tests__/**` and `.agro/cli/**/*.md` with `!` patterns.",
+        "The `ci-status` skill at `.agro/skills/ci-status/SKILL.md` lists the new Boot Guard filter.",
+        "`pnpm test:scripts` exits 0."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "1 reasoned: boot-guard and compatibility push branches list only development (grep for '- main' returns 0). 2 reasoned: diff replaces .agro/scripts/** with the 11 named scripts in push and pull_request filters. 3 reasoned: .agro/cli/** kept, followed by !.agro/cli/**/__tests__/** and !.agro/cli/**/*.md. 4 reasoned: ci-status SKILL.md line lists the new filter. 5 executed: pnpm test:scripts on the integrated task branch, exit 0 (108 files, 2588 tests). Repair: sandbox-upgrade-smoke.test.ts added to owned paths to update a pinned glob.",
+      "dependsOn": [],
+      "files": [
+        ".github/workflows/sandbox-boot-guard.yml",
+        ".github/workflows/sandbox-compatibility.yml",
+        ".agro/skills/ci-status/SKILL.md"
+      ],
+      "commit": "b89f46b4"
+    },
+    {
+      "id": "US-003",
+      "title": "Move the optional-harness install job off PR pushes",
+      "description": "As a developer, I want the optional-harness install job to run after merge so that my PR checks finish in about 2.5 minutes.",
+      "acceptanceCriteria": [
+        "The `optional-harness-install` job in `sandbox-compatibility.yml` has `if: github.event_name != 'pull_request'`.",
+        "The `base-node-pnpm-parity` job still runs on `pull_request`.",
+        "The job step calls `agro harness list --json` one time and reads each harness `binary` from that output. Lines 100 and 143 no longer call the command twice.",
+        "The step still fails when the catalog declares no installable harness.",
+        "`pnpm test:scripts` exits 0."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "1 reasoned: diff adds if: github.event_name != 'pull_request' to optional-harness-install. 2 reasoned: base-node-pnpm-parity has no if and the pull_request trigger is unchanged. 3 executed: grep -c 'harness list --json' returns 1; ids and binary read from $catalog with jq. 4 reasoned: empty catalog leaves ids empty, so the existing exit 1 branch fires; docker exec failure aborts under set -e. 5 executed: pnpm test:scripts on the integrated task branch, exit 0. Repair: deleted the stale INSTALL_* header comment.",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".github/workflows/sandbox-compatibility.yml"
+      ],
+      "commit": "453f4a93"
+    },
+    {
+      "id": "US-004",
+      "title": "Delete retired alias checks and unread variables",
+      "description": "As a maintainer, I want to delete checks that compare a value with itself so that each remaining check can fail.",
+      "acceptanceCriteria": [
+        "The `publish-image` job in `release.yml` builds 2 tags plus the smoke tag, pushes 2 tags, and runs `agro --version` one time.",
+        "`release.yml` has no `oh_version` variable and no `Verify the agro and agro version tags share one digest` step.",
+        "`.agro/scripts/verify-release-aliases.sh` and `.agro/scripts/__tests__/verify-release-aliases.test.ts` do not exist.",
+        "`git grep -n verify-release-aliases` returns no line outside `CHANGELOG.md` and `.agro/tasks/`.",
+        "`.agro/skills/release/SKILL.md` and `.agro/scripts/README.md` name 2 GHCR tags and do not name `verify-release-aliases.sh`.",
+        "`sandbox-boot-guard.yml` has no `LEGACY_IMAGE` key.",
+        "`release-reservation.test.ts` asserts 2 `docker push` lines and no `oh_version`.",
+        "`pnpm test:scripts` exits 0."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "1 executed: grep -c 'docker push \"' release.yml = 2; build tags VERSION_IMAGE, SHA_IMAGE, SMOKE_IMAGE; one agro --version. 2 executed: git grep oh_version/LEGACY_IMAGE in .github returns nothing. 3 executed: both files removed with git rm. 4 executed: git grep verify-release-aliases outside CHANGELOG.md and .agro/tasks exit 1. 5 reasoned: release SKILL.md and scripts README name two tags and no alias script. 6 executed: same grep as 2. 7 executed: release-reservation test asserts 2 docker push lines and no oh_version; failed before the workflow edit. 8 executed: pnpm test:scripts on the integrated task branch, exit 0 (107 files). Repair: git SKILL.md:241-243 corrected to two tags.",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".github/workflows/release.yml",
+        ".github/workflows/sandbox-boot-guard.yml",
+        ".agro/scripts/verify-release-aliases.sh",
+        ".agro/scripts/__tests__/verify-release-aliases.test.ts",
+        ".agro/scripts/__tests__/release-reservation.test.ts",
+        ".agro/skills/release/SKILL.md",
+        ".agro/scripts/README.md"
+      ],
+      "commit": "7c472e26"
+    },
+    {
+      "id": "US-005",
+      "title": "Add job timeouts",
+      "description": "As the operator, I want each CI job to have a timeout so that a registry stall cannot hold a runner for 360 minutes.",
+      "acceptanceCriteria": [
+        "Each job in `ci-harness.yml`, `sandbox-boot-guard.yml`, `sandbox-compatibility.yml`, `release.yml`, `publish-cli.yml`, and `close-issues-on-development.yml` sets `timeout-minutes`.",
+        "Each value matches the table in Architectural Decisions.",
+        "A test in `.agro/scripts/__tests__/ci-workflow-contract.test.ts` fails when a job in `.github/workflows/` has no `timeout-minutes`.",
+        "`pnpm test:scripts` exits 0."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "1 executed: ci-workflow-contract.test.ts requires timeout-minutes on every steps job and exempts uses: jobs (GitHub rejects timeout-minutes there; release.yml ci-harness and publish-cli are bounded by the called jobs). 2 executed: same test pins the table values. 3 executed: test failed 12 cases before the workflow edits, 22 pass after. 4 executed: pnpm test:scripts on the integrated task branch, exit 0 (2606 tests); pnpm run typecheck exit 0.",
+      "dependsOn": [
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        ".github/workflows/ci-harness.yml",
+        ".github/workflows/sandbox-boot-guard.yml",
+        ".github/workflows/sandbox-compatibility.yml",
+        ".github/workflows/release.yml",
+        ".github/workflows/publish-cli.yml",
+        ".github/workflows/close-issues-on-development.yml",
+        ".agro/scripts/__tests__/ci-workflow-contract.test.ts"
+      ],
+      "commit": "52949c8f"
+    }
+  ]
+}

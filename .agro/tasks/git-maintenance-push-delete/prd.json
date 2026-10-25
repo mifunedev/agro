@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1509-git-maintenance-push-delete",
+  "description": "git-maintenance push-delete. cc-safety-net denies `git push --delete` (rule `git.push-delete`), and nobody can allowlist its built-in git rules. The repository routes other blocked git maintenance through `.agro/scripts/git-maintenance.sh`. The operator chose a shim verb over disabling cc-safety-net.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Delete a remote branch through the git maintenance shim",
+      "description": "As the operator, I want agents to delete a merged remote branch through `git-maintenance.sh`. cc-safety-net then keeps its guard on every other destructive git command.",
+      "acceptanceCriteria": [
+        "`bash .agro/scripts/git-maintenance.sh push-delete <remote> <branch>` runs `git push <remote> --delete <branch>` and prints `git-maintenance.sh: ran: git push <remote> --delete <branch>`.",
+        "For `<branch>` equal to `development`, `main`, or `master`, the verb exits 2, prints a refusal to stderr, and runs no push.",
+        "With a wrong argument count, the verb prints the usage and exits 2.",
+        "The usage text, the `/git` maintenance block in `.agro/skills/git/SKILL.md`, and section 3 of `docs/security-considerations.md` name `push-delete`.",
+        "`.agro/scripts/__tests__/git-maintenance.test.ts` covers a delete against a local bare remote, each refused branch, and the usage error.",
+        "`pnpm test:scripts` exits 0."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "1 executed: git-maintenance.test.ts deletes a branch on a temp bare remote and checks the ran line. 2 executed: test refuses development, main, master (bare and refs/heads/), exit 2, branch kept; manual push-delete origin development exit 2. 3 executed: test covers 0, 1, 3 args with usage and exit 2. 4 reasoned: usage, git SKILL.md shim block, and security-considerations section 3 name push-delete. 5 executed: test failed 10/10 before the change, passes 10/10 after. 6 executed: pnpm test:scripts exit 0 (2619 tests) on the integrated branch.",
+      "dependsOn": [],
+      "files": [
+        ".agro/scripts/git-maintenance.sh",
+        ".agro/skills/git/SKILL.md",
+        "docs/security-considerations.md",
+        ".agro/scripts/__tests__/git-maintenance.test.ts"
+      ],
+      "commit": "a4c8a57f"
+    }
+  ]
+}

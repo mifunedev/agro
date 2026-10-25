@@ -25,6 +25,18 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.codex/hooks/task-next-stop.sh\"",
+            "timeout": 30,
+            "statusMessage": "Checking the task lifecycle state"
+          }
+        ]
+      }
     ]
   }
 }
