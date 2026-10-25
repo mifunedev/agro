@@ -89,8 +89,8 @@
         "`pnpm test` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Round 1 repair: criterion 11 amended so required_execs lists only the canonical hook (the vendored pack); hermes-links.test.ts added to files. executed on integrated branch: c1 worker red run 19 failed before the hook existed; c2-c9 hooks.test.ts cases pass in pnpm test exit 0 (110 files, 2692 passed); live hook on this branch printed decision block with next.sh output, exit 0; live hook in main checkout (development) printed nothing, exit 0; c10 evidence/codex-stop.md records codex-cli 0.162.1, static Stop schema, one codex exec run where the Stop hook fired; c11 link-providers --check exit 0 and line 17 lists .agro/hooks/task-next-stop.sh; c12 ste-check claude-code/codex/pi exit 0; c13 pnpm test exit 0; typecheck exit 0. Residual: a Codex block decision was not exercised live; Codex runs the hook only after the operator trusts it in the TUI.",
       "dependsOn": [
         "US-002"
       ],
@@ -107,7 +107,8 @@
         ".agro/tasks/task-lifecycle-owner/evidence/codex-stop.md",
         ".agro/scripts/__tests__/hermes-links.test.ts"
       ],
-      "rounds": 1
+      "rounds": 1,
+      "commit": "83da4997"
     },
     {
       "id": "US-004",
