@@ -23,7 +23,12 @@
       "passes": false,
       "notes": "",
       "dependsOn": [],
-      "files": [".devcontainer/entrypoint.sh", ".agro/scripts/__tests__/entrypoint.test.ts", ".agro/scripts/__tests__/provision-python.test.ts", ".agro/skills/t3/references/sandbox-processes.md"]
+      "files": [
+        ".devcontainer/entrypoint.sh",
+        ".agro/scripts/__tests__/entrypoint.test.ts",
+        ".agro/scripts/__tests__/provision-python.test.ts",
+        ".agro/skills/t3/references/sandbox-processes.md"
+      ]
     },
     {
       "id": "US-002",
@@ -38,10 +43,15 @@
         "`pnpm typecheck` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor re-verified on integrated task branch. (1) hint text: reasoned, diff shows `${bin} restart ${name}`. (2) test expectation: reasoned, diff line 632; worker executed red run (1 failed). (3) quickstart Tear down: reasoned, diff. (4) config docs unchanged: executed git diff HEAD~1 --stat lists only 3 owned files. (5) vitest lifecycle.test.ts: executed, exit 0, 116/116. (6) pnpm typecheck: executed, exit 0.",
       "dependsOn": [],
-      "files": [".agro/cli/src/lib/runtimes/verbs.ts", ".agro/cli/src/__tests__/lifecycle.test.ts", "docs/quickstart.md"]
+      "files": [
+        ".agro/cli/src/lib/runtimes/verbs.ts",
+        ".agro/cli/src/__tests__/lifecycle.test.ts",
+        "docs/quickstart.md"
+      ],
+      "commit": "36c65d95"
     },
     {
       "id": "US-003",
@@ -56,8 +66,13 @@
       "priority": 3,
       "passes": false,
       "notes": "",
-      "dependsOn": ["US-001", "US-002"],
-      "files": [".agro/tasks/sandbox-root-exec/evidence/manual-review.md"]
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/sandbox-root-exec/evidence/manual-review.md"
+      ]
     }
   ]
 }
