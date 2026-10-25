@@ -46,12 +46,22 @@ The story fields `dependsOn`, `files`, and `commit` are optional:
 - `files`: the paths that the story owns. The advisor uses this field to keep parallel writers apart.
 - `commit`: the accepted commit. The advisor writes this field after acceptance.
 
-The optional fields need no `schemaVersion` change. Each tool must accept a story without them.
-Omit `commit` at conversion time.
+- `rounds`: the number of repair rounds for the story, as an integer. The advisor increments this field each time it reopens the story. At more than 2 rounds, `next.sh` reports `blocked`.
+
+The task also has optional top-level fields:
+
+- `pr`: the number of the task pull request.
+- `blocked`: a reason string. When this string is not empty, the task stops. Only the operator clears this field.
+- `review`: the last task review, as `{"commit": "<sha>", "verdict": "pass|fail", "model": "<model>"}`.
+
+The optional fields need no `schemaVersion` change. Each tool must accept a file without them.
+Omit `commit`, `rounds`, `pr`, `blocked`, and `review` at conversion time.
+`bash .agro/skills/delegate/scripts/next.sh` reads these fields and prints the next task state.
 
 ## Field ownership
 
-- Only the advisor writes `passes`, `commit`, and `notes`, and only after acceptance.
+- Only the advisor writes `passes`, `commit`, `notes`, `rounds`, `pr`, `blocked`, and `review`.
+- The advisor writes `passes`, `commit`, and `notes` only after acceptance.
 - `notes` records each acceptance criterion as executed (command and exit status) or reasoned.
 - Workers never write `prd.json`.
 
