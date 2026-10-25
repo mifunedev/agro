@@ -16,8 +16,17 @@
     "sshPasswordAuth": false,
     "dockerSocket": false
   },
-  "hermesDashboard": { "enabled": false, "port": 9119 },
-  "image": { "mode": "build", "pullPolicy": "missing" },
-  "langfuse": { "enabled": false },
+  "hermesDashboard": {
+    "enabled": false,
+    "port": 9119
+  },
+  "image": {
+    "mode": "build",
+    "pullPolicy": "missing"
+  },
+  "langfuse": {
+    "enabled": false,
+    "baseUrl": "https://langfuse-dev.mifune.dev"
+  },
   "composeOverrides": []
 }

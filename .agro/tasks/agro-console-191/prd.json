@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "project": "agro-console",
+  "branchName": "bug/191-copy-hosts-line",
+  "description": "Copy from a recovery point keeps the source hostname line (issue #191).",
+  "userStories": [],
+  "notes": "Closed as already fixed by PR #438 (#437): every provision, including fromRecoveryPoint, runs agro-set-hostname <alias>, which rewrites the 127.0.1.1 line. Evidence in the close comment. Live check not run (needs an OVH copy)."
+}

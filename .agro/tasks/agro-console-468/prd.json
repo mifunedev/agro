@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "project": "agro-console",
+  "branchName": "bug/468-sandbox-manual-snapshot",
+  "description": "Manual recovery point on a sandbox node takes the image path; archive transport errors carry the SSH stderr reason (issue #468).",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Sandbox manual recovery point uses createImage",
+      "acceptanceCriteria": [
+        "A test shows a sandbox node's manual recovery point calls createImage and opens no archive transport; it fails against the old code",
+        "provisioner tests pass"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Verified by advisor: new tests fail on old code (620-622), pass with fix (728/0); type-check 0."
+    },
+    {
+      "id": "US-002",
+      "title": "Archive transport failure reports stderr reason",
+      "acceptanceCriteria": [
+        "A test shows the recovery point error contains the SSH stderr reason, e.g. Permission denied (publickey)",
+        "pnpm type-check passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Verified by advisor: new tests fail on old code (620-622), pass with fix (728/0); type-check 0."
+    }
+  ],
+  "notes": "PR https://github.com/mifunedev/agro-console/pull/484 merged by the operator on green CI (agro-early-tide runners). No further pushes to the branch. No follow-up issue: option 2 (directive route) is a design choice, not a correctness/security risk."
+}

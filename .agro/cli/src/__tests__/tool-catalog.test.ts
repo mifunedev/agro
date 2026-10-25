@@ -716,6 +716,24 @@ describe("docker-engine installs Docker Engine on an Ubuntu host as root", () =>
   });
 });
 
+describe.each(["docker-engine", "desktop"])("%s waits for the dpkg lock", (id) => {
+  const script = findTool(id)!.hostInstallArgv![2];
+
+  it("sets a dpkg lock timeout before the first apt-get call", () => {
+    const config = script.indexOf('export APT_CONFIG="$tmp/apt.conf"');
+    expect(script).toContain("printf 'DPkg::Lock::Timeout \"600\";\\n' > \"$tmp/apt.conf\"");
+    expect(config).toBeGreaterThan(-1);
+    expect(config).toBeLessThan(script.indexOf("apt-get "));
+  });
+
+  it("retries apt-get update while another process holds the lists lock", () => {
+    expect(script).toContain(
+      "apt_update() { for _ in $(seq 60); do apt-get update && return 0; sleep 10; done; return 1; }",
+    );
+    expect(script.split("\n").filter((line) => /^\s*apt-get update/.test(line))).toEqual([]);
+  });
+});
+
 describe("desktop serves XFCE over XRDP through Tailscale only", () => {
   const dt = findTool("desktop")!;
   const script = dt.hostInstallArgv![2];

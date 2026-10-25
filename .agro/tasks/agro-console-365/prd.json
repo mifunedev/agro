@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "project": "agro-console",
+  "branchName": "feat/365-demo-organizations",
+  "description": "Demo organizations for marketing recordings (issue #365).",
+  "userStories": [],
+  "notes": "BLOCKED: blocked prerequisite (operator decision). Issue #365 leaves the demo node cap <cap> and the weekly running-hours cap <hours> to the operator. No plan, branch, or PR was made. Unblock: the operator states both values on the issue."
+}
