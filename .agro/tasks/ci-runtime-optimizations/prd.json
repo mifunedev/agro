@@ -91,8 +91,8 @@
         "`pnpm test:scripts` exits 0."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: grep -c 'docker push \"' release.yml = 2; build tags VERSION_IMAGE, SHA_IMAGE, SMOKE_IMAGE; one agro --version. 2 executed: git grep oh_version/LEGACY_IMAGE in .github returns nothing. 3 executed: both files removed with git rm. 4 executed: git grep verify-release-aliases outside CHANGELOG.md and .agro/tasks exit 1. 5 reasoned: release SKILL.md and scripts README name two tags and no alias script. 6 executed: same grep as 2. 7 executed: release-reservation test asserts 2 docker push lines and no oh_version; failed before the workflow edit. 8 executed: pnpm test:scripts on the integrated task branch, exit 0 (107 files). Repair: git SKILL.md:241-243 corrected to two tags.",
       "dependsOn": [
         "US-001",
         "US-002"
@@ -105,7 +105,8 @@
         ".agro/scripts/__tests__/release-reservation.test.ts",
         ".agro/skills/release/SKILL.md",
         ".agro/scripts/README.md"
-      ]
+      ],
+      "commit": "7c472e26"
     },
     {
       "id": "US-005",
