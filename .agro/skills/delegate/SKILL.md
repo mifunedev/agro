@@ -1,15 +1,40 @@
 ---
 name: delegate
 description: |
-  TRIGGER when: asked to "delegate this", "run this plan", "execute the stories",
-  or "parallelize" the work. Writing or reading a plan is not a trigger and
-  authorizes no dispatch. Runs the stories in .agro/tasks/<slug>/prd.json as
+  TRIGGER when: the operator explicitly approves the plan, or asks to
+  "delegate this", "run this plan", "execute the stories", or "parallelize"
+  the work. Writing or reading a plan is not approval. Runs the stories in .agro/tasks/<slug>/prd.json as
   bounded workers in dependency waves. The active session verifies each result,
   accepts it, and records it in prd.json.
 argument-hint: "[<task-slug> | --plan <path>] [--dry-run]"
 ---
 
 # Delegate
+
+## Task lifecycle
+
+An explicit operator approval of the plan authorizes the full run: the issue,
+`prd.json`, the draft PR, all waves, Close, the push, and `gh pr ready`. The
+merge stays with the operator. This section is the only copy of the approval
+scope.
+
+Run `bash .agro/skills/delegate/scripts/next.sh` to print the current state.
+Do the next action of that state, then run the script again. The run stops
+only at `done`, `blocked`, or `none`. If an action needs live spend, set
+`blocked` in `prd.json` and ask the operator.
+
+| State | Next action | Exit condition | Owner |
+|---|---|---|---|
+| `story <id>` | Dispatch, verify, and accept the story (§ Waves, § Acceptance) | The story has `passes: true` | Advisor; a worker implements |
+| `review` | Get one fresh-context review of the PR diff (§ Reviewer brief) | `review.verdict` is `pass` for the current diff | Advisor; a reviewer reads |
+| `close` | Write `## Lessons` and fill the PR evidence sections (§ Close) | `prd.md` has a non-empty `## Lessons` section | Advisor |
+| `push` | Push the task branch | The remote task branch head equals local `HEAD` | Advisor |
+| `ci` | Wait for CI with `/ci-status` | No PR check is pending | Advisor |
+| `ci-red` | Reopen the story that owns the failing path as a bounded repair (§ Acceptance) | The reopened story has `passes: true` | Advisor; the same worker repairs |
+| `ready` | Run `gh pr ready` (`/git` § Ready for review) | The PR is not a draft | Advisor |
+| `done` | Stop | The run ends | Operator merges |
+| `blocked` | Stop. Write the reason in the `blocked` field of `prd.json`. Run `/escalate` one time | The operator clears `blocked` | Operator |
+| `none` | Stop. No task is bound to this branch | The run ends | Operator |
 
 ## The advisor/worker pattern
 
@@ -162,8 +187,9 @@ When every story has `passes: true`, do these steps:
    observations, and findings that a test already catches. When the
    repository has 10 or more open issues labeled `follow-up`, propose a
    new issue only with the open follow-up it replaces. List the proposed
-   issues in the final report. Before the operator approves the proposed
-   issues at Close, create no issue. Label each approved issue `follow-up`.
+   issues in the final report. Do not wait for an answer. Continue Close.
+   Create an issue only after the operator approves it. Label each approved
+   issue `follow-up`.
 
    "None" is a valid body.
 3. Fill the PR evidence sections from the `notes` in `prd.json`.

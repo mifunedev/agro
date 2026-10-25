@@ -12,6 +12,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 - Add the Prime Agent harness: run `agro harness install prime-agent` to install Prime Agent `0.10.0` in the sandbox ([#1500](https://github.com/mifunedev/agro/issues/1500)).
 
 ### Changed
+- Run a task from one plan approval to a ready PR: `/prd` opens the issue, writes `prd.json`, and opens the draft PR, then `/delegate` runs the task lifecycle up to the operator merge ([#1512](https://github.com/mifunedev/agro/issues/1512)).
 - Stop re-running CI on `main` pushes, gate releases on the reusable CI: Harness workflow, run optional-harness installs after merge, and cap each CI job with `timeout-minutes` ([#1504](https://github.com/mifunedev/agro/pull/1504)).
 - Run each read-only CI job on the `CI_RUNNER` runner, and keep the job `HOME` in login shells on Blacksmith runners so the CLI install smokes pass there ([#1507](https://github.com/mifunedev/agro/pull/1507)).
 - Add `git-maintenance.sh push-delete <remote> <branch>` so agents delete merged remote branches without turning off cc-safety-net; the verb refuses `development`, `main`, and `master` ([#1510](https://github.com/mifunedev/agro/pull/1510)).

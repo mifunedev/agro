@@ -270,12 +270,12 @@ the fast-forward promotion, monitoring, and verification procedure.
 
 ## Draft PR for a task
 
-Run the steps below after the operator approves `.agro/tasks/<slug>/prd.md`.
-Creating the issue and the PR is outward-facing. Create them only after explicit
-operator approval of the plan. Writing a plan is not approval.
+`/prd` § 7 runs these steps. [`/delegate` § Task lifecycle](../delegate/SKILL.md#task-lifecycle)
+holds the approval rule.
 
 1. Open the issue. Use the `.github/ISSUE_TEMPLATE/feat.md` shape. Fill User
-   Stories, Summary, and Acceptance Criteria from `prd.md`. Record `<N>`:
+   Stories, Summary, and Acceptance Criteria from `prd.md`. Record `<N>`. Then
+   convert `prd.md` to `prd.json` with `--issue <N>` (`/prd` § 7):
 
    ```bash
    gh issue create --title "<prefix>: <shortdesc>" --body-file <issue-body.md>
