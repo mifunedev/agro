@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/sandbox-root-exec",
+  "description": "Stop root execution of agent-writable sandbox code: run provision-python.sh through gosu sandbox, remove the /usr/local/bin/gateway symlink, and point the agro shell failure hint and quickstart at agro restart <name>. Local-only by operator decision (SECURITY.md): no issue, push, or PR.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Entrypoint runs control-plane scripts as the sandbox user",
+      "description": "As an operator, I want the root entrypoint to run no agent-writable script as root so that an agent cannot gain root without sudo.",
+      "acceptanceCriteria": [
+        "The root section of `.devcontainer/entrypoint.sh` creates and chowns the uv directories that `provision-python.sh` lines 35-48 create, before the provisioning call.",
+        "`.devcontainer/entrypoint.sh` starts `provision-python.sh` through `gosu sandbox`, in the same form as the `link-providers.sh` call.",
+        "`.devcontainer/entrypoint.sh` contains no `ln -sf \"$CONTROL_DIR/scripts/gateway.sh\" /usr/local/bin/gateway` line.",
+        "`grep -nE '^[[:space:]]*(if ! )?(bash|sh|source|\\.) \"?\\$\\{?CONTROL_DIR' .devcontainer/entrypoint.sh` prints no line.",
+        "`.agro/scripts/__tests__/entrypoint.test.ts` asserts the `gosu sandbox` form of the provisioning call and asserts the absence of the `/usr/local/bin/gateway` symlink.",
+        "A new assertion fails against the current entrypoint before the fix, and passes after the fix.",
+        "If a tracked document under `.agro/skills` or `docs` tells the reader to run a bare `gateway` command, that document names `agro gateway` instead.",
+        "`pnpm exec vitest run .agro/scripts/__tests__/entrypoint.test.ts .agro/scripts/__tests__/provision-python.test.ts` exits 0.",
+        "`shellcheck -S warning .devcontainer/entrypoint.sh` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [".devcontainer/entrypoint.sh", ".agro/scripts/__tests__/entrypoint.test.ts", ".agro/scripts/__tests__/provision-python.test.ts", ".agro/skills/t3/references/sandbox-processes.md"]
+    },
+    {
+      "id": "US-002",
+      "title": "Shell failure hint restarts the named sandbox",
+      "description": "As a returning operator, I want the `agro shell` failure hint to restart my existing sandbox so that I do not create a second, empty sandbox.",
+      "acceptanceCriteria": [
+        "The docker `shellFailure` hint in `.agro/cli/src/lib/runtimes/verbs.ts` reads ``container `<name>` not running? start it with `<bin> restart <name>` ``.",
+        "The test \"prints the install hint\" in `.agro/cli/src/__tests__/lifecycle.test.ts` expects the new hint text.",
+        "The \"Tear down\" block of `docs/quickstart.md` shows `agro restart <name>` as the command that starts a stopped sandbox again.",
+        "The documents that pair `agro stop <name>` with `agro sandbox install docker --name <name>` to apply configuration stay unchanged.",
+        "`pnpm exec vitest run .agro/cli/src/__tests__/lifecycle.test.ts` exits 0.",
+        "`pnpm typecheck` exits 0."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [".agro/cli/src/lib/runtimes/verbs.ts", ".agro/cli/src/__tests__/lifecycle.test.ts", "docs/quickstart.md"]
+    },
+    {
+      "id": "US-003",
+      "title": "Manual review evidence",
+      "description": "As a reviewer, I want a command transcript of the changed behavior so that I can accept the change without a rebuild.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/sandbox-root-exec/evidence/manual-review.md` records the `grep` command of US-001 and its empty output.",
+        "The transcript records the hint that the built CLI prints for `agro shell <name>` against a stopped or absent container.",
+        "The transcript records the exit status of `pnpm test` and `pnpm typecheck` on the integrated task branch.",
+        "The story creates no container, volume, or registry entry. If a check needs such a resource, the story stops and asks the operator."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-001", "US-002"],
+      "files": [".agro/tasks/sandbox-root-exec/evidence/manual-review.md"]
+    }
+  ]
+}
