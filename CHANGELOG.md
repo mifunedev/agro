@@ -8,6 +8,12 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Fixed
+- Make the `agro shell` failure hint suggest `agro restart <name>` so a stopped sandbox restarts instead of a new sandbox being created ([#1516](https://github.com/mifunedev/agro/issues/1516)).
+
+### Security
+- Run Python provisioning as the sandbox user at container start and remove the root `/usr/local/bin/gateway` link to agent-writable code; use `agro gateway` ([#1516](https://github.com/mifunedev/agro/issues/1516)).
+
 ### Added
 - Add the Prime Agent harness: run `agro harness install prime-agent` to install Prime Agent `0.10.0` in the sandbox ([#1500](https://github.com/mifunedev/agro/issues/1500)).
 

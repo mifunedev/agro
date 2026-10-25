@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "project": "agro",
-  "branchName": "bug/sandbox-root-exec",
-  "description": "Stop root execution of agent-writable sandbox code: run provision-python.sh through gosu sandbox, remove the /usr/local/bin/gateway symlink, and point the agro shell failure hint and quickstart at agro restart <name>. Local-only by operator decision (SECURITY.md): no issue, push, or PR.",
+  "branchName": "bug/1516-sandbox-root-exec",
+  "description": "Stop root execution of agent-writable sandbox code: run provision-python.sh through gosu sandbox, remove the /usr/local/bin/gateway symlink, and point the agro shell failure hint and quickstart at agro restart <name>.",
   "userStories": [
     {
       "id": "US-001",

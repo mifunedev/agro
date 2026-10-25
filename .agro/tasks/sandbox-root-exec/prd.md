@@ -2,7 +2,7 @@
 
 Status: DRAFT
 
-Branch: `bug/sandbox-root-exec`, local only. The operator chose no issue, push, or pull request, per `SECURITY.md`.
+Branch: `bug/1516-sandbox-root-exec`. Issue: #1516.
 
 ## User Stories
 
