@@ -43,14 +43,15 @@
         "`pnpm test:scripts` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 reasoned: boot-guard and compatibility push branches list only development (grep for '- main' returns 0). 2 reasoned: diff replaces .agro/scripts/** with the 11 named scripts in push and pull_request filters. 3 reasoned: .agro/cli/** kept, followed by !.agro/cli/**/__tests__/** and !.agro/cli/**/*.md. 4 reasoned: ci-status SKILL.md line lists the new filter. 5 executed: pnpm test:scripts on the integrated task branch, exit 0 (108 files, 2588 tests). Repair: sandbox-upgrade-smoke.test.ts added to owned paths to update a pinned glob.",
       "dependsOn": [],
       "files": [
         ".github/workflows/sandbox-boot-guard.yml",
         ".github/workflows/sandbox-compatibility.yml",
         ".agro/skills/ci-status/SKILL.md"
-      ]
+      ],
+      "commit": "b89f46b4"
     },
     {
       "id": "US-003",
