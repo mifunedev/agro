@@ -2,10 +2,10 @@ name: "CI: Harness"
 
 on:
   workflow_dispatch:
+  workflow_call:
   push:
     branches:
       - development
-      - main
     paths:
       - ".agro/**"
       - "docs/**"
@@ -17,6 +17,7 @@ on:
       - "pnpm-workspace.yaml"
       - "vitest.config.ts"
       - ".github/workflows/ci-harness.yml"
+      - ".github/workflows/release.yml"
       - ".claude/hooks/**"
       - ".claude/protected-paths.txt"
       - ".devcontainer/**"
@@ -33,14 +34,15 @@ on:
       - "pnpm-workspace.yaml"
       - "vitest.config.ts"
       - ".github/workflows/ci-harness.yml"
+      - ".github/workflows/release.yml"
       - ".claude/hooks/**"
       - ".claude/protected-paths.txt"
       - ".devcontainer/**"
       - "AGENTS.md"
 
 concurrency:
-  group: ci-harness-${{ github.ref }}
-  cancel-in-progress: true
+  group: "${{ github.workflow == 'CI: Harness' && format('ci-harness-{0}', github.ref) || format('ci-harness-call-{0}', github.run_id) }}"
+  cancel-in-progress: "${{ github.workflow == 'CI: Harness' }}"
 
 permissions:
   contents: read
