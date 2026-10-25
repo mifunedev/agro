@@ -1,11 +1,5 @@
 name: "CI: Sandbox Compatibility"
 
-# Dockerfile-scoped compatibility CI for the sandbox base (#807): compare the
-# exact Node and pnpm versions on fixed Bookworm and Trixie bases, then build one
-# amd64 image with every optional INSTALL_* path enabled. The vendor installers
-# are expensive and mutable, so the path filter stays narrow. This workflow
-# never logs in or pushes.
-
 on:
   workflow_dispatch:
   push:
