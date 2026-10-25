@@ -11,27 +11,28 @@
       "acceptanceCriteria": [
         "`git grep -n \"Run the procedure only when the operator accepts\" .agro/skills` exits 1.",
         "`git grep -n \"authorizes no dispatch\" .agro/skills` exits 1.",
-        "`/prd` \u00a7 7 lists these steps in this order: open the issue, convert with `--issue <N>`, run `/git` \u00a7 Draft PR steps 2 to 4, run `/delegate <slug>`.",
+        "`/prd` § 7 lists these steps in this order: open the issue, convert with `--issue <N>`, run `/git` § Draft PR steps 2 to 4, run `/delegate <slug>`.",
         "`.agro/skills/delegate/SKILL.md` has a `## Task lifecycle` section. The section has one table row for each state: `story`, `review`, `close`, `push`, `ci`, `ci-red`, `ready`, `done`, `blocked`, `none`.",
         "Each table row names the next action, the exit condition, and the owner.",
         "`## Task lifecycle` states the approval scope: the issue, `prd.json`, the draft PR, all waves, Close, the push, and `gh pr ready`. The merge stays with the operator.",
         "`## Task lifecycle` states that the run stops only at `done`, `blocked`, or `none`.",
         "`## Task lifecycle` states that live spend sets `blocked` and asks the operator.",
-        "`/delegate` \u00a7 Close puts proposed follow-up issues in the final report. Close does not wait for an answer. Issue creation still needs operator approval.",
-        "`/git` \u00a7 Draft PR links to `/delegate` \u00a7 Task lifecycle for the approval rule and holds no second copy of the approval scope.",
+        "`/delegate` § Close puts proposed follow-up issues in the final report. Close does not wait for an answer. Issue creation still needs operator approval.",
+        "`/git` § Draft PR links to `/delegate` § Task lifecycle for the approval rule and holds no second copy of the approval scope.",
         "The `/delegate` description triggers on an operator approval of the plan.",
         "`bash .agro/scripts/link-providers.sh --check` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: c1 git grep \"Run the procedure only when the operator accepts\" exit 1; c2 git grep \"authorizes no dispatch\" exit 1; c4 awk row count in ## Task lifecycle = 10; c12 link-providers --check exit 0; ste-check prd/delegate/git SKILL.md exit 0. reasoned: c3 /prd §7 lists issue, convert --issue, /git steps 2-4, /delegate in order; c5 every row fills Next action, Exit condition, Owner; c6-c8 lifecycle paragraph states scope, merge with operator, stop states, live spend sets blocked; c9 Close lists proposed issues and continues; c10 /git § Draft PR links to the lifecycle and restates no scope; c11 description triggers on explicit approval. Residual: /git step 1 and /prd step 2 both name the conversion (redundant, consistent).",
       "dependsOn": [],
       "files": [
         ".agro/skills/prd/SKILL.md",
         ".agro/skills/delegate/SKILL.md",
         ".agro/skills/git/SKILL.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "4cb566ab"
     },
     {
       "id": "US-002",
@@ -49,7 +50,7 @@
         "A story with `rounds` greater than 2 prints `blocked` with the story ID.",
         "`review` prints when `review.verdict` is not `pass`, or when `git diff --quiet <review.commit> HEAD -- . ':!.agro/tasks/<slug>'` exits 1.",
         "A commit that changes only `.agro/tasks/<slug>/` does not return the task to `review`.",
-        "`close` prints when `prd.md` has no non-empty `## Lessons` section. The test uses the `awk` check from `/git` \u00a7 Ready for review.",
+        "`close` prints when `prd.md` has no non-empty `## Lessons` section. The test uses the `awk` check from `/git` § Ready for review.",
         "`push` prints when local `HEAD` differs from the remote task branch head.",
         "`ci` prints when a PR check is pending. `ci-red` prints when a PR check failed.",
         "`ready` prints when the PR is a draft. `done` prints when the PR is not a draft.",
@@ -113,9 +114,9 @@
         "`git grep -n \"Then fix the issue, commit, push\" .agro/skills/ci-status/SKILL.md` exits 1.",
         "`/ci-status` reports exactly one of `PASS`, `FAIL`, `NO-RUN`, or `TIMEOUT`. `/ci-status` makes no edit.",
         "`/ci-status` waits with `timeout 900 gh pr checks <N> --watch`. Exit code 124 reports `TIMEOUT`.",
-        "`/delegate` \u00a7 Acceptance states the repair rule. The advisor reopens the story whose `files` hold the failing path: `passes: false` and `rounds` plus 1. The same worker repairs the story.",
-        "`/delegate` \u00a7 Acceptance states that the advisor sets `blocked` and runs `/escalate` one time in each of these cases: `rounds` is greater than 2, a round does not decrease the set of failed checks, no story owns the failing path, or `/ci-status` reports `NO-RUN` or `TIMEOUT`.",
-        "`/git` \u00a7 Draft PR replaces the two-push rule with one rule: the advisor pushes only when `next.sh` prints `push`.",
+        "`/delegate` § Acceptance states the repair rule. The advisor reopens the story whose `files` hold the failing path: `passes: false` and `rounds` plus 1. The same worker repairs the story.",
+        "`/delegate` § Acceptance states that the advisor sets `blocked` and runs `/escalate` one time in each of these cases: `rounds` is greater than 2, a round does not decrease the set of failed checks, no story owns the failing path, or `/ci-status` reports `NO-RUN` or `TIMEOUT`.",
+        "`/git` § Draft PR replaces the two-push rule with one rule: the advisor pushes only when `next.sh` prints `push`.",
         "`/supervisor` reads `next.sh` output to judge done. `/supervisor` does not restate the lifecycle states.",
         "`pnpm test` exits 0."
       ],
@@ -142,9 +143,9 @@
         "The brief states that the reviewer starts in a fresh context, edits no file, and never continues an earlier worker.",
         "The brief states that the reviewer reads `git diff <base>...HEAD`.",
         "The brief states that a `blocking` finding names a reproducing command. A finding with no command is `non-blocking`.",
-        "`/delegate` \u00a7 Acceptance states that the advisor runs each blocking command before it reopens a story.",
+        "`/delegate` § Acceptance states that the advisor runs each blocking command before it reopens a story.",
         "The advisor writes `review.commit`, `review.verdict`, and `review.model` in `prd.json`.",
-        "`/delegate` \u00a7 Model policy states that the reviewer uses a model other than the implementer model when one is available. Otherwise the reviewer uses the implementer model in a fresh context, and `review.model` records that fact.",
+        "`/delegate` § Model policy states that the reviewer uses a model other than the implementer model when one is available. Otherwise the reviewer uses the implementer model in a fresh context, and `review.model` records that fact.",
         "Non-blocking findings go to the PR `## What remains unverified` section."
       ],
       "priority": 5,
@@ -183,5 +184,6 @@
         ".agro/tasks/task-lifecycle-owner/evidence/manual-review.md"
       ]
     }
-  ]
+  ],
+  "pr": 1513
 }
