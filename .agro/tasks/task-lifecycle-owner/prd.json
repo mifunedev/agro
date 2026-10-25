@@ -59,14 +59,15 @@
         "`pnpm test` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed on integrated branch: vitest run .agro/skills/delegate 54/54 exit 0 (one case per criterion c1-c16; worker red run 51 failed before next.sh); pnpm test exit 0 (110 files, 2673 passed); ste-check tracker.md exit 0; next.sh on this task branch printed \"story US-002\" exit 0; next.sh --bogus exit 2; git mode 100755. reasoned: c16 fixtures use temp repos, local bare remote, stub gh, no fetch. Residual: ci-harness shellcheck dir list omits .agro/skills/delegate/scripts (Lessons).",
       "dependsOn": [],
       "files": [
         ".agro/skills/delegate/scripts/next.sh",
         ".agro/skills/delegate/scripts/__tests__/next.test.mjs",
         ".agro/skills/prd/references/tracker.md"
-      ]
+      ],
+      "commit": "d2eff970"
     },
     {
       "id": "US-003",
