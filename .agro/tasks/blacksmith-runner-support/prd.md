@@ -71,4 +71,5 @@ None.
 
 ## Lessons
 
-Filled by the advisor before undraft.
+- Claim: commenting out the only statement inside a shell `if` block leaves an empty `then` and breaks every login shell that sources the file. Evidence: the US-001 fixture run reported a syntax error near `fi`. Outcome: fixed in this PR. The step rewrites the line as a `:` no-op.
+- Claim: Blacksmith images reset `HOME` in login shells through `/etc/profile.d/blacksmith.sh`. Evidence: diagnostic run 40166221855. Outcome: fixed in this PR for agro CI. Real machines are not affected.

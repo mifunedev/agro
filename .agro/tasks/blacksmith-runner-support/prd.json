@@ -16,15 +16,16 @@
         "`pnpm test:scripts` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: contract cases assert the step after Checkout and before the first smoke step in ci and sandbox-boot-guard; they failed before the edit. 2 executed: step script run against fixture copies: present file exit 0 with only the export line changed, missing file exit 0, unmatched export exit 1; on Blacksmith run 40166613427 and 40166615001 the smokes passed. 3 executed: contract case asserts the parity runner expression; run 40166616433 ran parity on Blacksmith. 4 executed: ci-workflow-contract 25 passed. 5 executed: pnpm test:scripts exit 0 (2609 tests) on the integrated branch.",
       "dependsOn": [],
       "files": [
         ".github/workflows/ci-harness.yml",
         ".github/workflows/sandbox-boot-guard.yml",
         ".github/workflows/sandbox-compatibility.yml",
         ".agro/scripts/__tests__/ci-workflow-contract.test.ts"
-      ]
+      ],
+      "commit": "ec9504db"
     }
   ]
 }
