@@ -122,6 +122,7 @@ describe("sandbox upgrade smoke script", () => {
     expect(workflow).toContain("bash .agro/scripts/sandbox-upgrade-smoke.sh 2>&1 | tee sandbox-upgrade-smoke.log");
     expect(workflow).toContain("uses: actions/upload-artifact@v4");
     expect(workflow).toContain("path: sandbox-upgrade-smoke.log");
-    expect(workflow).toContain('- ".agro/scripts/**"');
+    expect(workflow).toContain('- ".agro/scripts/sandbox-upgrade-smoke.sh"');
+    expect(workflow).not.toContain('- ".agro/scripts/**"');
   });
 });
