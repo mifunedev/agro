@@ -309,8 +309,8 @@ After step 3, the advisor pushes the task branch only when
 
 Do these steps in this sequence:
 
-1. Examine the first three conditions below. If one is false, stop and keep the
-   PR in draft.
+1. Examine the first three conditions below. If one is false, keep the PR in
+   draft. Do the action that `bash .agro/skills/delegate/scripts/next.sh` prints.
 2. When `next.sh` prints `push`, push the task branch: `git push`.
 3. Run `/ci-status` to examine the last condition.
 4. Run `gh pr ready` only when all of these conditions are true. If one is

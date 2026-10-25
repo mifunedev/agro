@@ -161,9 +161,10 @@ Status: DRAFT | BLOCKED
 - [ ] <Task-level binary criterion.>
 
 ## Lessons
-
-Filled by the advisor before undraft.
 ```
+
+Leave the `## Lessons` body empty. The advisor fills `## Lessons` at Close.
+While the section is empty, `next.sh` prints `close`.
 
 ### Stories
 

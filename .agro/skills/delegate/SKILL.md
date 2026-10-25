@@ -21,7 +21,9 @@ scope.
 Run `bash .agro/skills/delegate/scripts/next.sh` to print the current state.
 Do the next action of that state, then run the script again. The run stops
 only at `done`, `blocked`, or `none`. If an action needs live spend, set
-`blocked` in `prd.json` and ask the operator.
+`blocked` in `prd.json` and ask the operator. To ask the operator a question
+during the run, set `blocked` in `prd.json` with the question as the reason.
+The Stop hook allows the stop at `blocked`.
 
 | State | Next action | Exit condition | Owner |
 |---|---|---|---|
