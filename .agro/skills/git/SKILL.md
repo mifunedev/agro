@@ -238,10 +238,9 @@ output, the GHCR image tags, and the concurrency group all stay bare
 One release publishes the canonical npm package `@mifune/agro` (`agro`). The
 `@mifune/agro` shim source remains at `.agro/cli/legacy/` and already-published
 shim versions remain on the registry. The release path does not publish, wait for,
-or deprecate the shim. The same build still publishes the GHCR tags
-`ghcr.io/mifunedev/agro:<version>`, `:sha-<sha>`,
-`ghcr.io/mifunedev/agro:<version>`, `:sha-<sha>`, verified to share one digest,
-plus `latest` on both repositories; and the release assets `agro.js`, `install.sh`,
+or deprecate the shim. The same build still publishes two immutable GHCR tags,
+`ghcr.io/mifunedev/agro:<version>` and `ghcr.io/mifunedev/agro:sha-<sha>`,
+plus `latest`; and the release assets `agro.js`, `install.sh`,
 and a copy of `install.sh` under the earlier installer name. Publishing `@mifune/agro` needs npm rights for that
 name, and the package owner must make the GHCR package `mifunedev/agro` public after its first
 push; neither is verifiable here. The compatibility SLA clock starts at the first
