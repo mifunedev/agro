@@ -210,3 +210,10 @@ None. US-003 settles Codex `Stop` support by an executed check.
 
 ## Lessons
 
+1. **The `/prd` template made the `close` state unreachable.** Claim: the placeholder body of `## Lessons` passed the non-empty gate, so `next.sh` skipped Close. Evidence: review round 1 ran the `/git` awk gate on this `prd.md` and observed exit 0. Outcome: fixed in this PR (US-001 round 1, `7e3511fe`).
+2. **`required_execs` covers only the vendored `.agro` pack.** Claim: listing the `.codex` wrapper broke `standard-skills-link.test.ts`. Evidence: the US-003 worker observed 27 failures in `pnpm test`. Outcome: fixed in this PR (US-003 criterion amended, round 1).
+3. **An evidence story cannot record post-story states.** Claim: `review`, `close`, `push`, `ci`, and `ready` occur only after every story passes. Evidence: US-006 criteria 1 and 5. Outcome: dropped, because the advisor moved both checks to the task-level criteria in this PR.
+4. **`next.sh` maps empty PR checks to `ci`, and `/ci-status` maps them to `NO-RUN`.** Claim: a check-registration race right after a push can set a spurious `blocked`. Evidence: review round 2 finding 6. Outcome: dropped, because the loop ends at `blocked` with one escalation and no run observed the race.
+5. **`next.sh` reads `## Lessons` from the working tree.** Claim: uncommitted Lessons can advance the run to `ready`. Evidence: review round 2 finding 5. Outcome: dropped, because `/delegate` § Integration commits each task file and this run committed Lessons before the push.
+6. **CI does not run shellcheck on `.agro/skills/delegate/scripts/`.** Claim: the directory list in `.github/workflows/ci-harness.yml` omits the new script. Evidence: the US-002 worker report; local `shellcheck -S warning` passes. Outcome: dropped, because the finding is lint coverage, not a correctness or security risk.
+7. **Codex runs the new Stop hook only after the operator trusts the hook.** Claim: an untrusted project skips the hook. Evidence: `evidence/codex-stop.md`. Outcome: dropped, because `docs/harnesses/codex.md` states the one-time trust step.

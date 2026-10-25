@@ -243,4 +243,26 @@ Prerequisites: none. Runs in the sandbox, local.
 
 ## Close-time states (appended by the advisor)
 
-Pending.
+The advisor ran `bash .agro/skills/delegate/scripts/next.sh` on the task branch in `/home/sandbox/harness/.worktrees/skill/1512-task-lifecycle-owner` after each step. Each run exited 0.
+
+1. After US-006 acceptance (`a0dd320e`):
+
+   ```text
+   review
+   Review the task diff and record review in prd.json per /delegate.
+   ```
+
+2. Review round 1 reviewed `a0dd320e` and returned `fail` with one blocking finding. The advisor ran the reviewer command and observed exit 0 from the Lessons gate on the placeholder. The advisor reopened US-001 (`rounds: 1`), and `next.sh` printed:
+
+   ```text
+   story US-001
+   Dispatch, verify, and accept US-001 per /delegate.
+   ```
+
+3. After the US-001 repair (`96060362`), `next.sh` printed `review` again. Review round 2 reviewed `960603629e216ce27d422c0e84cc63f934c0c1c0` and returned `pass` with 7 non-blocking findings.
+4. After the review record (`2b0481bc`):
+
+   ```text
+   close
+   Write a non-empty ## Lessons section in prd.md per /git § Ready for review.
+   ```
