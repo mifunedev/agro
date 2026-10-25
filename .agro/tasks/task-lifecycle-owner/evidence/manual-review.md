@@ -266,3 +266,13 @@ The advisor ran `bash .agro/skills/delegate/scripts/next.sh` on the task branch 
    close
    Write a non-empty ## Lessons section in prd.md per /git § Ready for review.
    ```
+5. The advisor committed Lessons (`60d9a750`). `next.sh` printed `push`. After `git push`, `next.sh` printed `ready` while GitHub still reported the previous head. The advisor reopened US-002 (`rounds: 1`) and left the PR in draft.
+
+   ```text
+   push
+   Run git push.
+   ready
+   Run gh pr ready 1513.
+   ```
+
+6. After the US-002 repair (`abb53611`), `next.sh` printed `review`. Review round 3 reviewed `abb5361163e94bcc32f36634a79439deb656ea7c` and returned `pass` with 7 non-blocking findings.

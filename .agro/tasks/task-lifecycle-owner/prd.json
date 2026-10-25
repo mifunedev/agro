@@ -47,6 +47,7 @@
         "No match prints `none`. More than one match prints `blocked` with the matching slugs.",
         "An unreadable `prd.json` prints `blocked` with the path.",
         "The script evaluates the states in this order: `none`, `blocked`, `story`, `review`, `close`, `push`, `ci-red`, `ci`, `ready`, `done`.",
+        "When the PR head differs from local `HEAD`, the script prints `ci` before it reads the checks.",
         "`story <id>` names the lowest-priority story with `passes: false` whose `dependsOn` stories pass.",
         "A story with `rounds` greater than 2 prints `blocked` with the story ID.",
         "`review` prints when `review.verdict` is not `pass`, or when `git diff --quiet <review.commit> HEAD -- . ':!.agro/tasks/<slug>'` exits 1.",
@@ -195,9 +196,9 @@
   ],
   "pr": 1513,
   "review": {
-    "commit": "960603629e216ce27d422c0e84cc63f934c0c1c0",
+    "commit": "abb5361163e94bcc32f36634a79439deb656ea7c",
     "verdict": "pass",
     "model": "fable (reviewer, fresh context) vs opus (implementers)",
-    "notes": "Round 2: round 1 finding fixed; 7 non-blocking findings (Lessons must be the last section; stop_hook_active unused; § Close opens with passes rather than next.sh close; branch fallback grep; uncommitted Lessons; empty checks map to ci vs NO-RUN; Close-time evidence pending)."
+    "notes": "Round 3 after the US-002 stale-head repair: 0 blocking, 7 non-blocking (malformed pr view output maps to ci; permanent head mismatch loops at ci until the hook releases; stub ignores -q; criterion order text; Lessons must be last section; stop_hook_active unused; manual-review-check not re-run)."
   }
 }

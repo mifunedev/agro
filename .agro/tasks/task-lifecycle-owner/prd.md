@@ -36,6 +36,7 @@ Status: DRAFT
 - [ ] No match prints `none`. More than one match prints `blocked` with the matching slugs.
 - [ ] An unreadable `prd.json` prints `blocked` with the path.
 - [ ] The script evaluates the states in this order: `none`, `blocked`, `story`, `review`, `close`, `push`, `ci-red`, `ci`, `ready`, `done`.
+- [ ] When the PR head differs from local `HEAD`, the script prints `ci` before it reads the checks.
 - [ ] `story <id>` names the lowest-priority story with `passes: false` whose `dependsOn` stories pass.
 - [ ] A story with `rounds` greater than 2 prints `blocked` with the story ID.
 - [ ] `review` prints when `review.verdict` is not `pass`, or when `git diff --quiet <review.commit> HEAD -- . ':!.agro/tasks/<slug>'` exits 1.
@@ -217,3 +218,4 @@ None. US-003 settles Codex `Stop` support by an executed check.
 5. **`next.sh` reads `## Lessons` from the working tree.** Claim: uncommitted Lessons can advance the run to `ready`. Evidence: review round 2 finding 5. Outcome: dropped, because `/delegate` § Integration commits each task file and this run committed Lessons before the push.
 6. **CI does not run shellcheck on `.agro/skills/delegate/scripts/`.** Claim: the directory list in `.github/workflows/ci-harness.yml` omits the new script. Evidence: the US-002 worker report; local `shellcheck -S warning` passes. Outcome: dropped, because the finding is lint coverage, not a correctness or security risk.
 7. **Codex runs the new Stop hook only after the operator trusts the hook.** Claim: an untrusted project skips the hook. Evidence: `evidence/codex-stop.md`. Outcome: dropped, because `docs/harnesses/codex.md` states the one-time trust step.
+8. **`next.sh` trusted the checks of a stale PR head.** Claim: right after a push, GitHub still reported the previous head and its passing checks, so `next.sh` printed `ready`. Evidence: the advisor observed `ready` at `60d9a750` seconds before `gh pr checks` showed each check `pending`. Outcome: fixed in this PR (US-002 round 1, `ce598e8c`).
