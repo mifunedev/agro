@@ -27,10 +27,9 @@ One release produces, from one build and one commit:
   The `@mifune/agro` shim source remains at `.agro/cli/legacy/` and
   already-published shim versions remain on the registry. The release path does
   not publish, wait for, or deprecate the shim.
-- Four immutable GHCR tags: `ghcr.io/mifunedev/agro:<version>`,
-  `:sha-<sha>`, `ghcr.io/mifunedev/agro:<version>`, and `:sha-<sha>`, verified to
-  share one manifest digest (`.agro/scripts/verify-release-aliases.sh`), then
-  `latest` on both repositories (`.agro/scripts/promote-release-latest.sh`).
+- Two immutable GHCR tags: `ghcr.io/mifunedev/agro:<version>` and
+  `ghcr.io/mifunedev/agro:sha-<sha>`, then `latest`
+  (`.agro/scripts/promote-release-latest.sh`).
 - Three GitHub Release assets: `agro.js`, `install.sh`, and a copy of
   `install.sh` under the earlier installer name for one minor release. The
   workflow attaches them before it undrafts the release, so
@@ -181,7 +180,7 @@ gh run watch <run-id> --repo "$REPO" --exit-status
 ```
 
 After success, fetch tags and identify the SemVer tag pointing to the exact SHA,
-then verify the four immutable image tags, the canonical npm package, the release
+then verify the two immutable image tags, the canonical npm package, the release
 assets, and the GitHub Release. The tag carries the `v` prefix; the image tags
 do not. A newly published `@mifune/agro` version is not a release gate.
 
@@ -192,10 +191,9 @@ TAG=$(git tag --points-at "$SHA" \
   | sort -V | tail -1)
 test -n "$TAG" || { echo "No SemVer tag found for $SHA" >&2; exit 1; }
 gh release view "$TAG" --repo "$REPO" --json assets -q '.assets[].name'
-.agro/scripts/verify-release-aliases.sh check \
-  "ghcr.io/mifunedev/agro:${TAG#v}" "ghcr.io/mifunedev/agro:${TAG#v}"
+docker buildx imagetools inspect "ghcr.io/mifunedev/agro:${TAG#v}"
+docker buildx imagetools inspect "ghcr.io/mifunedev/agro:sha-${SHA}"
 npm view "@mifune/agro@${TAG#v}" version
-printf 'Images: ghcr.io/mifunedev/{agro,agro}:%s and :sha-%s\n' "${TAG#v}" "$SHA"
 ```
 
 The asset list must name `agro.js`, `install.sh`, and the copy of `install.sh`

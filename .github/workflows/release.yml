@@ -99,15 +99,12 @@ jobs:
         run: |
           VERSION_IMAGE="ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
           SHA_IMAGE="ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"
-          AGRO_VERSION_IMAGE="ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
-          AGRO_SHA_IMAGE="ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"
           SMOKE_IMAGE="sandbox-${SANDBOX_NAME}"
           docker buildx build --load -f .devcontainer/Dockerfile \
-            -t "$VERSION_IMAGE" -t "$SHA_IMAGE" \
-            -t "$AGRO_VERSION_IMAGE" -t "$AGRO_SHA_IMAGE" -t "$SMOKE_IMAGE" .
+            -t "$VERSION_IMAGE" -t "$SHA_IMAGE" -t "$SMOKE_IMAGE" .
 
       # Keep this pre-push smoke gate between build and publication: it boots
-      # the exact image object that carries all four immutable GHCR tags.
+      # the exact image object that carries both immutable GHCR tags.
       - name: Smoke-test Docker image before publish
         env:
           SANDBOX_NAME: agro-release-smoke-${{ github.run_id }}
@@ -123,13 +120,7 @@ jobs:
         run: |
           SMOKE_IMAGE="sandbox-${SANDBOX_NAME}"
           agro_version=$(docker run --rm --entrypoint /bin/bash "$SMOKE_IMAGE" -lc 'agro --version')
-          oh_version=$(docker run --rm --entrypoint /bin/bash "$SMOKE_IMAGE" -lc 'agro --version')
           echo "agro --version: $agro_version"
-          echo "agro --version: $oh_version"
-          if [ -z "$agro_version" ] || [ "$agro_version" != "$oh_version" ]; then
-            echo "agro --version ('$agro_version') and agro --version ('$oh_version') must be the same non-empty version" >&2
-            exit 1
-          fi
           if [ "$agro_version" != "$RELEASE_VERSION" ]; then
             echo "agro --version ('$agro_version') does not match the release version $RELEASE_VERSION" >&2
             exit 1
@@ -142,16 +133,6 @@ jobs:
         run: |
           docker push "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
           docker push "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"
-          docker push "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
-          docker push "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"
-
-      - name: Verify the agro and agro version tags share one digest
-        env:
-          RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
-        run: |
-          .agro/scripts/verify-release-aliases.sh check \
-            "ghcr.io/mifunedev/agro:${RELEASE_VERSION}" \
-            "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"
 
       - name: Promote latest from the canonical branch by digest
         env:

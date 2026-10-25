@@ -464,38 +464,29 @@ describe("release workflow contract", () => {
     expect(publishDraft).toBeGreaterThan(freshGithubCheck);
   });
 
-  it("builds the agro and agro tags once, pushes all four, and verifies one digest", () => {
+  it("builds the version and sha tags once, pushes both, and checks agro --version once", () => {
     const build = source.indexOf("Build immutable Docker image tags");
     const bootSmoke = source.indexOf("Smoke-test Docker image before publish");
     const agroSmoke = source.indexOf("Smoke-test agro as a first-class entry point");
     const immutablePush = source.indexOf("Push immutable SemVer and sha-full-SHA tags");
-    const aliasVerify = source.indexOf("Verify the agro and agro version tags share one digest");
     const latestPromote = source.indexOf("Promote latest from the canonical branch by digest");
 
     expect(source.match(/docker buildx build --load/g)?.length).toBe(1);
-    expect(source).toContain('AGRO_VERSION_IMAGE="ghcr.io/mifunedev/agro:${RELEASE_VERSION}"');
-    expect(source).toContain('AGRO_SHA_IMAGE="ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"');
-    expect(source).toMatch(
-      /-t "\$VERSION_IMAGE" -t "\$SHA_IMAGE" \\\n\s+-t "\$AGRO_VERSION_IMAGE" -t "\$AGRO_SHA_IMAGE" -t "\$SMOKE_IMAGE" \./,
-    );
+    expect(source).not.toContain("AGRO_VERSION_IMAGE");
+    expect(source).not.toContain("AGRO_SHA_IMAGE");
+    expect(source).toMatch(/-t "\$VERSION_IMAGE" -t "\$SHA_IMAGE" -t "\$SMOKE_IMAGE" \./);
     expect(source).toContain('docker push "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"');
     expect(source).toContain('docker push "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"');
-    expect(source).toContain('docker push "ghcr.io/mifunedev/agro:${RELEASE_VERSION}"');
-    expect(source).toContain('docker push "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}"');
-    expect(source.match(/docker push "/g)?.length).toBe(4);
-    expect(source).toMatch(
-      /\.agro\/scripts\/verify-release-aliases\.sh check \\\n\s+"ghcr\.io\/mifunedev\/agro:\$\{RELEASE_VERSION\}" \\\n\s+"ghcr\.io\/mifunedev\/agro:\$\{RELEASE_VERSION\}"/,
-    );
-    expect(source).toContain("-lc 'agro --version'");
-    expect(source).toContain("-lc 'agro --version'");
-    expect(source).toContain('[ "$agro_version" != "$oh_version" ]');
+    expect(source.match(/docker push "/g)?.length).toBe(2);
+    expect(source).not.toContain("Verify the agro and agro version tags share one digest");
+    expect(source.match(/-lc 'agro --version'/g)?.length).toBe(1);
+    expect(source).not.toContain("oh_version");
     expect(source).toContain('[ "$agro_version" != "$RELEASE_VERSION" ]');
     expect(build).toBeGreaterThan(0);
     expect(bootSmoke).toBeGreaterThan(build);
     expect(agroSmoke).toBeGreaterThan(bootSmoke);
     expect(immutablePush).toBeGreaterThan(agroSmoke);
-    expect(aliasVerify).toBeGreaterThan(immutablePush);
-    expect(latestPromote).toBeGreaterThan(aliasVerify);
+    expect(latestPromote).toBeGreaterThan(immutablePush);
   });
 
   it("attaches the CLI bundles and installers before the release is undrafted", () => {

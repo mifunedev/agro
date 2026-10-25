@@ -188,7 +188,6 @@ jobs:
 
       - name: Upgrade a legacy workspace volume to the freshly built image
         env:
-          LEGACY_IMAGE: ghcr.io/mifunedev/agro:0.9.0
           UPGRADE_SMOKE_PROJECT: agro-upgrade-${{ github.run_id }}
           UPGRADE_SMOKE_TIMEOUT_SECONDS: "1200"
           UPGRADE_SMOKE_INTERVAL_SECONDS: "10"
