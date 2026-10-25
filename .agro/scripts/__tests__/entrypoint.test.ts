@@ -236,7 +236,6 @@ describe("devcontainer entrypoint control dir", () => {
       'bash "$CONTROL_DIR/scripts/link-providers.sh" --init',
       'bash "$CONTROL_DIR/scripts/provision-python.sh"',
       'BANNER_SOURCE_LINE="source ${CONTROL_DIR}/install/banner.sh 2>/dev/null"',
-      'ln -sf "$CONTROL_DIR/scripts/gateway.sh" /usr/local/bin/gateway',
       '\\"$CONTROL_DIR\\"/scripts/gateway.sh pi',
     ]) {
       expect(text.indexOf(use), use).toBeGreaterThan(assigned);
@@ -263,12 +262,50 @@ describe("devcontainer entrypoint control dir", () => {
   });
 });
 
-describe("devcontainer entrypoint Slack restore (delegates to gateway.sh)", () => {
-  it("exposes the bare `gateway` command via a live (idempotent) symlink", () => {
-    expect(entrypoint()).toContain(
-      'ln -sf "$CONTROL_DIR/scripts/gateway.sh" /usr/local/bin/gateway',
-    );
+describe("devcontainer entrypoint never runs control-plane scripts as root", () => {
+  const PROVISION_CALL =
+    'gosu sandbox env HOME=/home/sandbox AGRO_PROJECT_ROOT="$HARNESS" bash "$CONTROL_DIR/scripts/provision-python.sh"';
+
+  it("starts provision-python.sh through gosu sandbox in the link-providers form", () => {
+    const text = entrypoint();
+    expect(text).toContain('gosu sandbox env AGRO_PROJECT_ROOT="$HARNESS" bash "$CONTROL_DIR/scripts/link-providers.sh" --init');
+    expect(text).toContain(`if ! ${PROVISION_CALL}; then`);
   });
+
+  it("creates and owns the uv directories as root before provisioning", () => {
+    const text = entrypoint();
+    const repair = text.slice(text.indexOf("repair_home_mount_ownership() {"));
+    const body = repair.slice(0, repair.indexOf("\n}\n"));
+    for (const dir of [
+      ".local",
+      ".local/bin",
+      ".local/share",
+      ".local/share/uv",
+      ".local/share/uv/tools",
+      ".local/share/uv/python",
+      ".cache",
+      ".cache/uv",
+    ]) {
+      expect(body, dir).toMatch(new RegExp(`/home/sandbox/${dir.replace(/\./g, "\\.")}( |$)`, "m"));
+    }
+    expect(body).toContain("install -d -o sandbox -g sandbox");
+    expect(body).toContain('-exec chown -h "$owner" {} +');
+    const repaired = text.lastIndexOf("\nrepair_home_mount_ownership\n");
+    expect(repaired).toBeGreaterThan(-1);
+    expect(text.indexOf(PROVISION_CALL)).toBeGreaterThan(repaired);
+  });
+
+  it("runs no $CONTROL_DIR script directly as root", () => {
+    const bare = /^[ \t]*(if ! )?(bash|sh|source|\.) "?\$\{?CONTROL_DIR/m;
+    expect(entrypoint()).not.toMatch(bare);
+  });
+
+  it("does not place the agent-writable gateway.sh on root's PATH", () => {
+    expect(entrypoint()).not.toContain("/usr/local/bin/gateway");
+  });
+});
+
+describe("devcontainer entrypoint Slack restore (delegates to gateway.sh)", () => {
 
   it("gates on both Slack tokens + pi, then hands off to gateway.sh pi (one launch path)", () => {
     const text = entrypoint();

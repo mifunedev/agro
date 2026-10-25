@@ -314,7 +314,7 @@ describe("entrypoint uv ownership repair", () => {
   it("runs provisioning after provider links and does not abort boot on failure", () => {
     const text = entrypoint();
     const links = text.indexOf('link-providers.sh" --init');
-    const provision = text.indexOf('"$CONTROL_DIR/scripts/provision-python.sh"; then');
+    const provision = text.indexOf('gosu sandbox env HOME=/home/sandbox AGRO_PROJECT_ROOT="$HARNESS" bash "$CONTROL_DIR/scripts/provision-python.sh"; then');
     expect(provision).toBeGreaterThan(links);
     expect(text).toContain('"${AGRO_PROVISION_PYTHON:-true}" = "true"');
     expect(text).toContain("WARNING: Python provisioning did not complete");

@@ -56,6 +56,9 @@ repair_home_mount_ownership() {
   echo "[entrypoint] repairing sandbox home mount ownership as $owner"
 
   install -d -o sandbox -g sandbox \
+    /home/sandbox/.local \
+    /home/sandbox/.local/bin \
+    /home/sandbox/.local/share \
     /home/sandbox/.local/share/uv \
     /home/sandbox/.local/share/uv/tools \
     /home/sandbox/.local/share/uv/python \
@@ -337,7 +340,7 @@ fi
 
 if [ "${AGRO_PROVISION_PYTHON:-true}" = "true" ] \
    && [ -x "$CONTROL_DIR/scripts/provision-python.sh" ]; then
-  if ! bash "$CONTROL_DIR/scripts/provision-python.sh"; then
+  if ! gosu sandbox env HOME=/home/sandbox AGRO_PROJECT_ROOT="$HARNESS" bash "$CONTROL_DIR/scripts/provision-python.sh"; then
     echo "[entrypoint] WARNING: Python provisioning did not complete; run: bash $CONTROL_DIR/scripts/provision-python.sh" >&2
   fi
 fi
@@ -490,7 +493,6 @@ fi
 WORKTREES_PATH="$HARNESS/.worktrees"
 PROJECTS_PATH="$HARNESS/projects"
 mkdir -p "$WORKTREES_PATH" "$PROJECTS_PATH"
-ln -sf "$CONTROL_DIR/scripts/gateway.sh" /usr/local/bin/gateway 2>/dev/null || true
 SLACK_ENV="$(agro_env_file "$HARNESS")"
 if [ -f "$SLACK_ENV" ] \
    && grep -qE '^PI_SLACK_APP_TOKEN=.' "$SLACK_ENV" \

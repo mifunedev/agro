@@ -96,7 +96,7 @@ in-container `supervisord`/`systemd` unit:
   bash supervisor and gain nothing.
 
 The supervisor also stamps non-secret health state under
-`~/.pi/gateway/<backend>.{state,heartbeat,stale}`, which `gateway status` reads to
+`~/.pi/gateway/<backend>.{state,heartbeat,stale}`, which `agro gateway status` reads to
 report **healthy / recovering / disconnected** rather than mere session existence.
 The `hermes` backend runs under the same supervisor in a **generic** crash-restart
 mode (no pi-specific stale-ctx logic), giving it the same restart floor. See the
