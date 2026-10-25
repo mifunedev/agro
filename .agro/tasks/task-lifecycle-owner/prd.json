@@ -194,9 +194,9 @@
   ],
   "pr": 1513,
   "review": {
-    "commit": "a0dd320ed411896b10a8592218f489456c150188",
-    "verdict": "fail",
-    "model": "fable (reviewer) vs opus (implementers)",
-    "notes": "Finding 1 (blocking, confirmed by advisor: awk Lessons gate exits 0 on the /prd template placeholder \"Filled by the advisor before undraft.\", so next.sh skips close). Finding 2: US-002 criterion text amended to the tested order ci-red before ci. Findings 3-6 non-blocking."
+    "commit": "960603629e216ce27d422c0e84cc63f934c0c1c0",
+    "verdict": "pass",
+    "model": "fable (reviewer, fresh context) vs opus (implementers)",
+    "notes": "Round 2: round 1 finding fixed; 7 non-blocking findings (Lessons must be the last section; stop_hook_active unused; § Close opens with passes rather than next.sh close; branch fallback grep; uncommitted Lessons; empty checks map to ci vs NO-RUN; Close-time evidence pending)."
   }
 }
