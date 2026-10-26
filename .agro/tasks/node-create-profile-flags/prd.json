@@ -44,8 +44,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md` reports no finding on a changed line."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "Reopened round 2: CHANGELOG.md has no ## [Unreleased] entry, which /git § Changelog requires for a user-visible change.",
+      "passes": true,
+      "notes": "Round 2 repair 04744ad8 adds the CHANGELOG.md Unreleased Added entry (226 chars, links #1437). Round 1 repair aa9d910a. AC1 executed: docs usage line equals nodeHelp. AC2, AC3 reasoned: the section states default sandbox, --profile agro, the app-flag requirement, and the console defaults. AC4 executed: ste-check docs/lifecycle-commands.md exit 0. Extra executed: pnpm test exit 0.",
       "dependsOn": [
         "US-001"
       ],
@@ -54,7 +54,7 @@
         "CHANGELOG.md"
       ],
       "rounds": 2,
-      "commit": "aa9d910a"
+      "commit": "04744ad8"
     },
     {
       "id": "US-003",
