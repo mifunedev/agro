@@ -125,3 +125,7 @@ None.
 - [ ] CI on the PR is green.
 
 ## Lessons
+
+1. Claim: the docs verb check in `.agro/cli/src/__tests__/docs-reference.test.ts` reads `agro <word>` inside inline code as a CLI verb. Evidence: `pnpm test` failed with `docs/lifecycle-commands.md:355 unknown verb` for the inline string `--profile must be agro or sandbox`. The repair moved the string into a `text` fenced block. Outcome: fixed in this PR (`aa9d910a`).
+2. Claim: the story checks named only `node.test.ts`, so the docs verb check failed first at Close. Evidence: US-002 passed its own criteria. After that, `pnpm test` failed. Outcome: dropped. The reason is that the full suite at Close caught the failure as designed.
+3. Claim: the CC Safety Net hook blocks a Python heredoc edit. Evidence: two workers reported the block and used the Edit tool. Outcome: dropped. The reason is tooling friction with a working remedy.
