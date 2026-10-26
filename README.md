@@ -140,7 +140,7 @@ Choose one harness to start. In a Herdr pane, install and authenticate it:
 agro harness list
 
 # Install Claude Code
-agro harness install claude-code
+agro harness install claude
 
 # Sign in and verify authentication
 claude auth login
@@ -152,7 +152,7 @@ claude
 
 | Harness | ID | Availability |
 | --- | --- | --- |
-| [Claude Code](docs/harnesses/claude-code.md) | `claude-code` | Install on demand |
+| [Claude Code](docs/harnesses/claude-code.md) | `claude` | Install on demand |
 | [Codex](docs/harnesses/codex.md) | `codex` | Install on demand |
 | [Pi](docs/harnesses/pi.md) | `pi` | Install on demand |
 | [OpenCode](docs/harnesses/opencode.md) | `opencode` | Install on demand |

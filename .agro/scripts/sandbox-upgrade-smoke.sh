@@ -40,7 +40,7 @@ READY_FILE=/run/agro/bootstrap.ready
 VOLUME="${PROJECT}_workspace"
 WORKDIR=$(mktemp -d "${TMPDIR:-/tmp}/sandbox-upgrade-smoke.XXXXXX")
 NPM_HARNESSES=(
-  "claude-code:claude:@anthropic-ai/claude-code"
+  "claude:claude:@anthropic-ai/claude-code"
   "codex:codex:@openai/codex"
   "pi:pi:--ignore-scripts @earendil-works/pi-coding-agent"
   "opencode:opencode:opencode-ai"

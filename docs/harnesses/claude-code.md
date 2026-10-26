@@ -9,7 +9,7 @@ Claude Code is Anthropic's terminal-based AI coding agent. Claude Code reads the
 ## Install
 
 ```bash
-agro harness install claude-code
+agro harness install claude
 ```
 
 The verb installs the `@anthropic-ai/claude-code` package into the persistent home volume as the `sandbox` user:
@@ -28,7 +28,7 @@ claude --version
 
 ```bash
 claude update                        # the harness updates itself
-agro harness install claude-code     # or re-run the door
+agro harness install claude     # or re-run the door
 ```
 
 Both write to `/home/sandbox/.local`, because the sandbox exports `NPM_CONFIG_PREFIX` as that prefix. Do not use `sudo`: `claude` is not on sudo's `secure_path`, and a root-owned install would leave the home volume.
@@ -48,7 +48,7 @@ Claude Code stores credentials in `~/.claude/.credentials.json` inside the sandb
 ## Uninstall
 
 ```bash
-agro harness uninstall claude-code
+agro harness uninstall claude
 ```
 
 ## Common usage

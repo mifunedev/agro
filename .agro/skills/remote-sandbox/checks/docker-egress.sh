@@ -110,7 +110,7 @@ fi
 out=$(sx bash -lc 'npm view @anthropic-ai/claude-code version' 2>&1); rc=$?
 res E12-npm-view "$(verdict "$rc")" "rc=$rc $(printf '%s' "$out" | tail -1 | flat 80)"
 
-out=$(sx bash -lc 'agro harness install claude-code' 2>&1); rc=$?
+out=$(sx bash -lc 'agro harness install claude' 2>&1); rc=$?
 printf '%s\n' "$out" | tail -4 | quote
 cv=$(sx zsh -lc 'claude --version' 2>&1); cvrc=$?
 cv=$(printf '%s\n' "$cv" | tail -1)

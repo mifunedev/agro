@@ -110,7 +110,7 @@ ${
   v.noHarnesses
     ? "[]"
     : `[
-  { "id": "claude-code", "binary": "claude", "kind": "installable", "installed": ${v.bakedHarnesses} },
+  { "id": "claude", "binary": "claude", "kind": "installable", "installed": ${v.bakedHarnesses} },
   { "id": "t3code", "binary": "t3", "kind": "on-demand", "installed": false }
 ]`
 }
@@ -300,7 +300,7 @@ describe.concurrent("verify-sandbox-image", () => {
     const result = await run(fixture({ bakedHarnesses: true }));
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("the image ships baked harnesss: claude-code (claude)");
+    expect(result.stderr).toContain("the image ships baked harnesss: claude (claude)");
   });
 
   it("rejects an image that bakes an installable tool", async () => {

@@ -88,7 +88,7 @@ describe("sandbox upgrade smoke script", () => {
   });
 
   it("installs each npm harness into the volume with the seed image, using the catalog argv", () => {
-    expect(script).toContain('"claude-code:claude:@anthropic-ai/claude-code"');
+    expect(script).toContain('"claude:claude:@anthropic-ai/claude-code"');
     expect(script).toContain('"codex:codex:@openai/codex"');
     expect(script).toContain('"pi:pi:--ignore-scripts @earendil-works/pi-coding-agent"');
     expect(script).toContain('"opencode:opencode:opencode-ai"');

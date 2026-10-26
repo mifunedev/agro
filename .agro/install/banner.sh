@@ -73,7 +73,7 @@ if _agro_has_binary gh && gh auth status -h github.com >/dev/null 2>&1; then
 fi
 
 claude_status="$status_x"
-claude_detail="not installed — run: ${cli_bin} harness install claude-code"
+claude_detail="not installed — run: ${cli_bin} harness install claude"
 if _agro_has_binary claude; then
   claude_detail="not authenticated — run: claude"
   if [ -s "${HOME}/.claude/.credentials.json" ]; then

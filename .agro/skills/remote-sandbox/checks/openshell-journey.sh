@@ -135,7 +135,7 @@ else
   res O15-push-egress FAIL "rc=$rc"
 fi
 
-out=$(x bash -lc 'agro harness install claude-code' 2>&1); rc=$?
+out=$(x bash -lc 'agro harness install claude' 2>&1); rc=$?
 printf '%s\n' "$out" | tail -4 | quote
 cv=$(x zsh -lc 'claude --version' 2>&1); cvrc=$?
 cv=$(printf '%s\n' "$cv" | tail -1)

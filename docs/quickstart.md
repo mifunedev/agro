@@ -80,12 +80,12 @@ to reattach. The container keeps running after you detach. See
 The image contains no agent CLI. Install one harness, then authenticate it:
 
 ```bash
-agro harness install claude-code
+agro harness install claude
 claude auth login
 claude auth status
 ```
 
-![A Herdr pane in the sandbox runs agro harness install claude-code.](img/quickstart-harness-install.png)
+![A Herdr pane in the sandbox runs agro harness install claude.](img/quickstart-harness-install.png)
 Callouts: 1 is the command in a **Herdr** pane. 2 is the install result.
 
 Each install lands in `~/.local` in the persistent home volume. Run

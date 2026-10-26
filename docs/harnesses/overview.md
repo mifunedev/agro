@@ -45,7 +45,7 @@ Flags:
 Two paths update a harness in the sandbox. Both land in `/home/sandbox/.local` in the persistent home volume.
 
 ```bash
-agro harness install claude-code   # runs the install command again; installs the latest version
+agro harness install claude   # runs the install command again; installs the latest version
 claude update                      # the harness updates itself
 ```
 
@@ -78,7 +78,7 @@ Each catalog entry has a `kind`. `installable` harnesses install through the ver
 
 | Agent | Role | Start command | Source |
 |---|---|---|---|
-| [Claude Code](./claude-code.md) | Anthropic's terminal coding agent | `claude` | `agro harness install claude-code` |
+| [Claude Code](./claude-code.md) | Anthropic's terminal coding agent | `claude` | `agro harness install claude` |
 | [Codex](./codex.md) | OpenAI's CLI coding agent | `codex` | `agro harness install codex` |
 | [OpenCode](./opencode.md) | Terminal coding agent with OpenAI OAuth support | `opencode` | `agro harness install opencode` |
 | [Pi](./pi.md) | Lightweight, customizable agent | `pi` | `agro harness install pi` |

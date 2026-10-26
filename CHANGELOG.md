@@ -11,6 +11,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Added
 - Add `/improve [project]` to run a five-lens council on the harness or a project under `projects/` and return one recommendation for the next most meaningful improvement ([#1523](https://github.com/mifunedev/agro/issues/1523)).
 
+### Changed
+- Rename the Claude Code harness id from `claude-code` to `claude`. `claude-code` stays a deprecated alias until 0.29.0, which removes that alias ([#1525](https://github.com/mifunedev/agro/issues/1525)).
+
 ### Fixed
 
 - Stop the secret-exposure guard from denying commands whose quoted prose or patterns mention env dumps or env files ([#1520](https://github.com/mifunedev/agro/pull/1520)).

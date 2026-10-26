@@ -99,7 +99,7 @@ ${
   { "id": "t3code", "title": "T3 Code", "binary": "t3", "kind": "on-demand", "installed": true, "docs": "x" }
 ]`
     : `[
-  { "id": "claude-code", "title": "Claude Code", "binary": "claude", "kind": "installable", "installed": ${installed}, "docs": "x" },
+  { "id": "claude", "title": "Claude Code", "binary": "claude", "kind": "installable", "installed": ${installed}, "docs": "x" },
   { "id": "pi", "title": "Pi", "binary": "pi", "kind": "installable", "installed": false, "docs": "x" },
   { "id": "t3code", "title": "T3 Code", "binary": "t3", "kind": "on-demand", "installed": true, "docs": "x" }
 ]`
@@ -243,7 +243,7 @@ describe("sandbox boot smoke", { timeout: SMOKE_TEST_TIMEOUT_MS }, () => {
     );
     expect(dockerCalls).toContain("agro harness list --json");
     expect(dockerCalls).toContain("agro tool list --json");
-    expect(result.stdout).toContain(`claude-code not installed at boot (claude absent from ${PREFIX})`);
+    expect(result.stdout).toContain(`claude not installed at boot (claude absent from ${PREFIX})`);
     expect(result.stdout).toContain(`pi not installed at boot (pi absent from ${PREFIX})`);
     expect(result.stdout).toContain(`herdr not installed at boot (herdr absent from ${PREFIX})`);
     expect(result.stdout).toContain(`cloudflared not installed at boot (cloudflared absent from ${PREFIX})`);
@@ -265,7 +265,7 @@ describe("sandbox boot smoke", { timeout: SMOKE_TEST_TIMEOUT_MS }, () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(
-      "installable harness 'claude-code' reports installed=true on a fresh boot",
+      "installable harness 'claude' reports installed=true on a fresh boot",
     );
     expect(readFileSync(fx.composeLog, "utf8")).toContain("down -v --remove-orphans");
   });
@@ -277,7 +277,7 @@ describe("sandbox boot smoke", { timeout: SMOKE_TEST_TIMEOUT_MS }, () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(
-      `installable harness 'claude-code' left a binary under ${PREFIX} on a fresh boot`,
+      `installable harness 'claude' left a binary under ${PREFIX} on a fresh boot`,
     );
     expect(result.stderr).toContain(`${PREFIX}/bin/claude exists`);
     expect(readFileSync(fx.composeLog, "utf8")).toContain("down -v --remove-orphans");
