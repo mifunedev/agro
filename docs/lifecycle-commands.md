@@ -49,7 +49,7 @@ Host prerequisites and the CLI install are in [Installation](installation.md).
 | `agro harness` · `agro tool` | install and inspect harnesses and tooling |
 | `agro workspace create [<name>] [--path <dir>] [--ref <ref>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
 | `agro auth login [--url <url>]` · `agro auth status` · `agro auth logout` · `agro auth token` | sign in to agro-console and manage the console token — see below |
-| `agro node create --spec <spec> [--ssh-key <uuid>]... [--name <name>] [--free-tier] [--json]` · `agro node list [--json]` · `agro node delete <id> [--yes]` | create, list, and delete remote agro-console sandbox nodes — see below |
+| `agro node create --spec <spec> [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--free-tier] [--json]` · `agro node list [--json]` · `agro node delete <id> [--yes]` | create, list, and delete remote agro-console sandbox nodes — see below |
 | `agro --help` · `agro --version` | usage and version |
 
 `agro <verb> -- <args>` forwards extra arguments to `docker compose`, e.g.
@@ -337,6 +337,7 @@ local Docker sandboxes. Use `agro sandbox` for a local sandbox.
 
 ```bash
 agro node create --spec <spec>   # create a sandbox node, wait for running
+agro node create --spec n4 --profile agro --t3   # create an agro-profile node with T3
 agro node list                   # every node: id, name, profile, status, IPv4
 agro node delete <id>            # destroy one node after a confirmation
 ```
@@ -348,9 +349,20 @@ agro node delete <id>            # destroy one node after a confirmation
 - The console URL is `https://console.mifune.dev` by default. If no token
   resolves, the verb exits 1 and prints
   `not logged in to agro-console: run agro auth login`.
-- `agro node create` creates a node with the profile `sandbox`. `--spec` is
-  mandatory. `--free-tier` requests the agro-console free tier and sets the
-  default spec to `n4`. `--name` sets the node name.
+- `agro node create` creates a node with the profile `sandbox` by default.
+  `--profile agro` creates a node with the profile `agro`. If `--profile` has
+  another value, the command exits 1 and prints
+  `--profile must be agro or sandbox`. `--spec` is mandatory. `--free-tier`
+  requests the agro-console free tier and sets the default spec to `n4`.
+  `--name` sets the node name.
+- `--docker`, `--t3`, and `--code-server` require `--profile agro`. If the
+  profile is `sandbox`, the command exits 1 before it calls the console and
+  prints `<flag> requires --profile agro`. Each given flag turns on its app.
+  If you do not give an app flag, the console default applies: Docker on, T3
+  off, code-server off.
+- If the console turns off runtime settings, `--code-server` makes the command
+  exit 1 and print
+  `HTTP 422 RUNTIME_SETTINGS_DISABLED: Runtime settings are disabled`.
 - `--ssh-key <uuid>` is optional. When you give one or more `--ssh-key` flags,
   the command uses only those console SSH keys. When you give no `--ssh-key`,
   the command reads `~/.ssh/id_ed25519.pub`. The command reuses the console SSH
