@@ -112,8 +112,8 @@
         "The worker deletes the capture sandbox after the capture, and the evidence records the delete command and its exit status."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated by cherry-pick as 77d29a69 (worker 5339f6a8). pnpm test:scripts exit 0 (110 files, 2756 passed; docs-images included). C1 reasoned: operator approved via AskUserQuestion; local Docker failed (session runs inside agro-sbx-local), free node refused HTTP 403 FREE_TIER_INELIGIBLE, operator then approved one paid n4 node. C2 executed: node sandbox + Herdr pane + agent-browser 1280x720 at scale 1.5 -> 1920x1080 PNG, annotate-screenshot.sh exit 0. C3 executed: branch agro.js copied into node sandbox (sha256 match), harness list showed claude, install printed \"claude: installed\". C4 executed: advisor viewed PNG; shows \"$ agro harness install claude\" and result line. C5 executed: advisor viewed PNG; no name, email, token, or IP; demo git identity. C6 executed: grep docs/quickstart.md:88 alt text names agro harness install claude. C7 executed: agro node delete 490e8ec2-e9dc-45b8-9e13-0d8e024c6de0 --yes exit 0; advisor agro node list shows destroyed; lifetime ~5m29s. Evidence file kept local per .gitignore task policy.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -123,7 +123,8 @@
         "docs/img/quickstart-harness-install.png",
         "docs/quickstart.md",
         ".agro/tasks/rename-claude-harness-id/evidence/"
-      ]
+      ],
+      "commit": "77d29a692bbdfcc5500d8ce7779ecb28190205ad"
     },
     {
       "id": "US-005",
