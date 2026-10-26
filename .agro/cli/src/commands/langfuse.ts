@@ -66,7 +66,7 @@ export interface PluginProbe {
 
 export const PLUGIN_PROBES: readonly PluginProbe[] = [
   {
-    harnessId: "claude-code",
+    harnessId: "claude",
     plugin: "langfuse-observability@langfuse-observability",
     listArgv: ["claude", "plugin", "list"],
     installedWhen: (stdout) => stdout.includes("langfuse-observability@langfuse-observability"),

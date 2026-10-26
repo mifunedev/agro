@@ -44,7 +44,9 @@ import { ask as promptAsk, askYesNo } from "../lib/prompt.js";
 import { resolveProjectRoot } from "../lib/project.js";
 import { resolveSandboxRoot } from "../lib/registry.js";
 import {
+  DEPRECATED_HARNESS_ALIASES,
   findHarness,
+  HARNESS_ALIAS_REMOVAL_VERSION,
   harnessBinPath,
   harnessIds,
   harnessLaunchCommand,
@@ -219,6 +221,16 @@ function unknownHarness(name: string, io: HarnessIO, bin: string): number {
   return 1;
 }
 
+function resolveHarness(name: string, io: HarnessIO, bin: string): HarnessEntry | undefined {
+  const entry = findHarness(name);
+  if (entry && Object.hasOwn(DEPRECATED_HARNESS_ALIASES, name)) {
+    io.stderr(
+      `${bin} harness: "${name}" is a deprecated alias for "${entry.id}"; the alias stops working in ${HARNESS_ALIAS_REMOVAL_VERSION}\n`,
+    );
+  }
+  return entry;
+}
+
 export async function runHarnessStatus(
   name: string | undefined,
   opts: HarnessOptions,
@@ -229,7 +241,7 @@ export async function runHarnessStatus(
 
   let only: HarnessEntry | undefined;
   if (name !== undefined) {
-    only = findHarness(name);
+    only = resolveHarness(name, io, opts.bin);
     if (!only) return unknownHarness(name, io, opts.bin);
   }
 
@@ -591,7 +603,7 @@ export async function runHarnessUninstall(
   const run = opts.run ?? spawnRunner;
   const root = resolveProjectRoot(opts.cwd);
 
-  const entry = findHarness(name);
+  const entry = resolveHarness(name, io, opts.bin);
   if (!entry) return unknownHarness(name, io, opts.bin);
 
   const target = targetFor(root, opts.cwd, run, opts.env);
@@ -632,7 +644,7 @@ export async function runHarnessInstall(
       : opts.cwd,
   );
 
-  const entry = findHarness(name);
+  const entry = resolveHarness(name, io, opts.bin);
   if (!entry) return unknownHarness(name, io, opts.bin);
 
   const target = targetFor(root, opts.cwd, run, opts.env);

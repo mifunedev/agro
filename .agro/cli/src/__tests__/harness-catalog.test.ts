@@ -49,9 +49,10 @@ describe("harness catalog", () => {
     }
   });
 
-  it("documents every harness under docs/harnesses/<id>.md", () => {
+  it("documents every harness under docs/harnesses/<id>.md, with claude on the Claude Code page", () => {
+    const docsName = (id: string) => (id === "claude" ? "claude-code" : id);
     for (const h of HARNESS_CATALOG) {
-      expect(h.docsPath).toBe(`docs/harnesses/${h.id}.md`);
+      expect(h.docsPath).toBe(`docs/harnesses/${docsName(h.id)}.md`);
       expect(() => read(h.docsPath)).not.toThrow();
     }
   });
@@ -71,7 +72,7 @@ describe("harness catalog", () => {
     it("covers every harness the verb can install", () => {
       expect(installable.map((h) => h.id).sort()).toEqual([
         "antigravity-cli",
-        "claude-code",
+        "claude",
         "codex",
         "fx",
         "grok-build",
@@ -109,12 +110,12 @@ describe("harness catalog", () => {
       }
     });
 
-    it("names a bypass-permissions flag for claude-code and antigravity-cli and leaves it off elsewhere", () => {
+    it("names a bypass-permissions flag for claude and antigravity-cli and leaves it off elsewhere", () => {
       const byId = new Map(HARNESS_CATALOG.map((h) => [h.id, h]));
-      expect(byId.get("claude-code")!.bypassPermissionsFlag).toBe("--permission-mode bypassPermissions");
+      expect(byId.get("claude")!.bypassPermissionsFlag).toBe("--permission-mode bypassPermissions");
       expect(byId.get("antigravity-cli")!.bypassPermissionsFlag).toBe("--dangerously-skip-permissions");
       expect(byId.get("codex")!.bypassPermissionsFlag).toBeUndefined();
-      expect(harnessLaunchCommand(byId.get("claude-code")!)).toBe(
+      expect(harnessLaunchCommand(byId.get("claude")!)).toBe(
         "claude --permission-mode bypassPermissions",
       );
       expect(harnessLaunchCommand(byId.get("antigravity-cli")!)).toBe(
@@ -203,9 +204,9 @@ describe("harness catalog", () => {
   describe("npm-installed harnesses land in the home mount, not the image", () => {
     const npmHarnesses = HARNESS_CATALOG.filter((h) => h.installArgv[0] === "npm");
 
-    it("covers claude-code, codex, openclaw, opencode and pi", () => {
+    it("covers claude, codex, openclaw, opencode and pi", () => {
       expect(npmHarnesses.map((h) => h.id).sort()).toEqual([
-        "claude-code",
+        "claude",
         "codex",
         "openclaw",
         "opencode",
@@ -249,8 +250,8 @@ describe("harness catalog", () => {
       },
     );
 
-    it("keeps claude-code's postinstall, which copies the native binary over the placeholder", () => {
-      expect(findHarness("claude-code")!.installArgv).not.toContain("--ignore-scripts");
+    it("keeps claude's postinstall, which copies the native binary over the placeholder", () => {
+      expect(findHarness("claude")!.installArgv).not.toContain("--ignore-scripts");
     });
 
     it.each(npmHarnesses.map((h) => [h.id, h] as const))(
@@ -274,6 +275,13 @@ describe("harness catalog", () => {
     expect(findHarness("opencode")?.id).toBe("opencode");
     expect(findHarness("grok-build")?.title).toBe("Grok Build");
     expect(findHarness("nope")).toBeUndefined();
+  });
+
+  it("resolves the deprecated claude-code alias to the canonical claude entry", () => {
+    expect(findHarness("claude-code")?.id).toBe("claude");
+    expect(findHarness("claude-code")).toBe(findHarness("claude"));
+    expect(harnessIds()).toContain("claude");
+    expect(harnessIds()).not.toContain("claude-code");
   });
 
   it("registers fx with a home-local installer and version verification", () => {
@@ -332,7 +340,7 @@ describe("prefix token and resolvers", () => {
     script.split("$HOME/.local").join(SANDBOX_HARNESS_PREFIX);
 
   const SHIPPED_SANDBOX_INSTALL_ARGV: ReadonlyArray<readonly [string, readonly string[]]> = [
-    ["claude-code", ["npm", "--prefix", "/home/sandbox/.local", "install", "-g", "@anthropic-ai/claude-code"]],
+    ["claude", ["npm", "--prefix", "/home/sandbox/.local", "install", "-g", "@anthropic-ai/claude-code"]],
     ["codex", ["npm", "--prefix", "/home/sandbox/.local", "install", "-g", "@openai/codex"]],
     ["pi", ["npm", "--prefix", "/home/sandbox/.local", "install", "-g", "--ignore-scripts", "@earendil-works/pi-coding-agent"]],
     ["opencode", ["npm", "--prefix", "/home/sandbox/.local", "install", "-g", "opencode-ai"]],
@@ -443,7 +451,7 @@ describe("uninstall knowledge", () => {
     expect(resolveUninstallArgv(findHarness("opencode")!, HOST_PREFIX)).toEqual([
       "npm", "--prefix", HOST_PREFIX, "uninstall", "-g", "opencode-ai",
     ]);
-    expect(resolveUninstallArgv(findHarness("claude-code")!, SANDBOX_HARNESS_PREFIX)).toEqual([
+    expect(resolveUninstallArgv(findHarness("claude")!, SANDBOX_HARNESS_PREFIX)).toEqual([
       "npm", "--prefix", SANDBOX_HARNESS_PREFIX, "uninstall", "-g", "@anthropic-ai/claude-code",
     ]);
   });

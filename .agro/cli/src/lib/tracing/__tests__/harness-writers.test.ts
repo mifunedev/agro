@@ -25,7 +25,7 @@ const SETTINGS: HarnessTracingSettings = {
 };
 
 const WRITERS: ReadonlyArray<readonly [string, TracingWriter, (home: string) => string]> = [
-  ["claude-code", claudeCodeTracingWriter, claudeCodeSettingsPath],
+  ["claude", claudeCodeTracingWriter, claudeCodeSettingsPath],
   ["pi", piTracingWriter, piTracingConfigPath],
   ["codex", codexTracingWriter, codexTracingConfigPath],
 ];
@@ -47,13 +47,13 @@ const readJson = (path: string): Record<string, unknown> =>
 describe("catalog seam", () => {
   it("every other harness leaves the field unset", () => {
     for (const h of HARNESS_CATALOG) {
-      if (["claude-code", "pi", "codex"].includes(h.id)) continue;
+      if (["claude", "pi", "codex"].includes(h.id)) continue;
       expect(h.tracingWriter, h.id).toBeUndefined();
     }
   });
 
   it("the catalog references the same writer functions the tracing module exports", () => {
-    expect(findHarness("claude-code")!.tracingWriter).toBe(claudeCodeTracingWriter);
+    expect(findHarness("claude")!.tracingWriter).toBe(claudeCodeTracingWriter);
     expect(findHarness("pi")!.tracingWriter).toBe(piTracingWriter);
     expect(findHarness("codex")!.tracingWriter).toBe(codexTracingWriter);
   });
@@ -88,7 +88,7 @@ describe.each(WRITERS)("%s writer", (_id, writer, pathOf) => {
   });
 });
 
-describe("claude-code writer", () => {
+describe("claude writer", () => {
   it("merges the env block into ~/.claude/settings.json and preserves unrelated keys and env entries", () => {
     const home = makeHome();
     const path = claudeCodeSettingsPath(home);

@@ -28,7 +28,7 @@ export const HARNESS_PREFIX_TOKEN = "{{prefix}}";
 
 export const HARNESS_CATALOG: readonly HarnessEntry[] = [
   {
-    id: "claude-code",
+    id: "claude",
     title: "Claude Code",
     binary: "claude",
     installArgv: [
@@ -227,8 +227,15 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
   },
 ];
 
+export const DEPRECATED_HARNESS_ALIASES: Readonly<Record<string, string>> = {
+  "claude-code": "claude",
+};
+
+export const HARNESS_ALIAS_REMOVAL_VERSION = "0.29.0";
+
 export function findHarness(id: string): HarnessEntry | undefined {
-  return HARNESS_CATALOG.find((h) => h.id === id);
+  const canonical = Object.hasOwn(DEPRECATED_HARNESS_ALIASES, id) ? DEPRECATED_HARNESS_ALIASES[id] : id;
+  return HARNESS_CATALOG.find((h) => h.id === canonical);
 }
 
 export function harnessIds(): string[] {
