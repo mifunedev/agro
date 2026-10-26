@@ -148,6 +148,5 @@
         ".agro/tasks/rename-claude-harness-id/evidence/manual-review.md"
       ]
     }
-  ],
-  "blocked": "US-004: console free node refused (HTTP 403 FREE_TIER_INELIGIBLE: org context). Operator: approve a paid n4 node, supply a personal-context token, run the capture on the real host, or drop the retake."
+  ]
 }
