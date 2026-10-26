@@ -148,6 +148,5 @@
         ".agro/tasks/rename-claude-harness-id/evidence/manual-review.md"
       ]
     }
-  ],
-  "blocked": "US-004 needs a live capture sandbox. Operator: approve creating one (A: temporary agro-console node via agro node create, per agro-docs-screenshots precedent; B: local Docker sandbox via agro sandbox install docker on this host), or drop the screenshot retake."
+  ]
 }
