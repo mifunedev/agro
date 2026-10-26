@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1437-node-create-profile-flags",
+  "description": "agro node create takes --profile agro|sandbox, --docker, --t3, and --code-server, so that the CLI can create an agro-profile node.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Parse and send the profile and app flags in agro node create",
+      "description": "As an operator, I want `agro node create` to accept `--profile agro|sandbox`, `--docker`, `--t3`, and `--code-server` so that I can create an agro-profile node from the CLI.",
+      "acceptanceCriteria": [
+        "Before the change, a new test in `.agro/cli/src/__tests__/node.test.ts` for `create --profile agro` fails (red).",
+        "`create --spec n4 --ssh-key key-1` with no new flag posts the body `{ profile: \"sandbox\", spec: \"n4\", sshKeyIds: [\"key-1\"] }`, with no `docker`, `t3`, or `runtimeSettings` key.",
+        "`create --profile agro --spec n4 --ssh-key key-1` posts `profile: \"agro\"` with no `docker`, `t3`, or `runtimeSettings` key.",
+        "`create --profile=agro` (inline form) posts `profile: \"agro\"`.",
+        "`create --profile agro --docker --t3 --code-server` posts `docker: true`, `t3: true`, and `runtimeSettings: { codeServerEnabled: true }`.",
+        "Each of `--docker`, `--t3`, and `--code-server` alone with `--profile agro` posts only its own field.",
+        "`create --profile desktop` exits 1, prints `--profile must be agro or sandbox` to stderr, and makes no API call.",
+        "`create --profile` with no value exits 1, prints `--profile requires a value`, and makes no API call.",
+        "With the profile `sandbox`, explicit or default, each of `--docker`, `--t3`, and `--code-server` exits 1, prints `<flag> requires --profile agro`, and makes no API call.",
+        "When the console returns HTTP 422 with the code `RUNTIME_SETTINGS_DISABLED`, the command exits 1 and prints `HTTP 422 RUNTIME_SETTINGS_DISABLED: Runtime settings are disabled`.",
+        "`nodeHelp` shows the usage line `node create --spec <spec> [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--free-tier] [--json]` and one sentence for each new flag.",
+        "`npx vitest run .agro/cli/src/__tests__/node.test.ts` exits 0.",
+        "`npm --prefix .agro/cli run typecheck` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [".agro/cli/src/commands/node.ts", ".agro/cli/src/__tests__/node.test.ts"]
+    },
+    {
+      "id": "US-002",
+      "title": "Document the new create flags",
+      "description": "As an operator, I want `docs/lifecycle-commands.md` to describe the new flags so that the documentation matches the CLI.",
+      "acceptanceCriteria": [
+        "The verb table row for `agro node create` in `docs/lifecycle-commands.md` shows the same usage line as `nodeHelp`.",
+        "The `## Remote console nodes: agro node` section states that the profile is `sandbox` by default and that `--profile agro` creates an agro-profile node.",
+        "The section states that `--docker`, `--t3`, and `--code-server` require `--profile agro`, and that an omitted flag lets the console default apply: Docker on, T3 off, code-server off.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md` reports no finding on a changed line."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-001"],
+      "files": ["docs/lifecycle-commands.md"]
+    },
+    {
+      "id": "US-003",
+      "title": "Record the manual review transcript",
+      "description": "As the advisor, I want a command transcript of the new behavior so that the PR `## Manual review` section has evidence.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/node-create-profile-flags/evidence/manual-review.md` holds the output of `node .agro/cli/dist/agro.js node --help` after `npm --prefix .agro/cli run build`, with the new usage line.",
+        "The transcript holds the stderr and exit code of `create --profile desktop` and of `create --t3` with the default profile. Each command runs with `AGRO_CONSOLE_TOKEN=dummy AGRO_CONSOLE_URL=http://127.0.0.1:9`. Each command exits 1 with the flag error and makes no API call.",
+        "The transcript holds the posted request bodies from the stubbed test run for `--profile agro --docker --t3 --code-server` and for the default profile.",
+        "The story creates no live console node. The story calls no live console API."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-001", "US-002"],
+      "files": [".agro/tasks/node-create-profile-flags/evidence/manual-review.md"]
+    }
+  ]
+}
