@@ -81,7 +81,7 @@
   ],
   "pr": 1527,
   "review": {
-    "commit": "2b145e835dc819c6b9cb98fb03cb15ff6214b2a0",
+    "commit": "83ff4443cddc57537c1ce760a01c3f0f891dd85a",
     "verdict": "pass",
     "model": "sonnet"
   }
