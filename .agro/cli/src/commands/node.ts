@@ -112,10 +112,10 @@ Usage:
 its SSH command. \`--free-tier\` requests the console free tier. The spec
 defaults to n4. \`--profile\` sets the node profile. The profile defaults to
 sandbox. \`--docker\` turns on Docker. \`--t3\` turns on T3. \`--code-server\`
-turns on code-server. Each app flag requires \`--profile agro\`. When AGRO_CONSOLE_TOKEN is set, the verbs use it with
-AGRO_CONSOLE_URL. Otherwise the verbs use the token and the URL from the
-credentials file that \`${bin} auth login\` writes. The URL defaults to
-${DEFAULT_CONSOLE_URL}.
+turns on code-server. Each app flag requires \`--profile agro\`. When
+AGRO_CONSOLE_TOKEN is set, the verbs use it with AGRO_CONSOLE_URL. Otherwise
+the verbs use the token and the URL from the credentials file that
+\`${bin} auth login\` writes. The URL defaults to ${DEFAULT_CONSOLE_URL}.
 `;
 }
 
