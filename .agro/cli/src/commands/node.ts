@@ -104,13 +104,15 @@ export function nodeHelp(bin: string): string {
   return `${bin} node — Create, list, and delete agro-console sandbox nodes (remote VMs)
 
 Usage:
-  ${bin} node create --spec <spec> [--ssh-key <uuid>]... [--name <name>] [--free-tier] [--json]
+  ${bin} node create --spec <spec> [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--free-tier] [--json]
   ${bin} node list [--json]
   ${bin} node delete <id> [--yes]
 
 \`create\` waits up to 15 minutes for the node to reach \`running\`, then prints
 its SSH command. \`--free-tier\` requests the console free tier. The spec
-defaults to n4. When AGRO_CONSOLE_TOKEN is set, the verbs use it with
+defaults to n4. \`--profile\` sets the node profile. The profile defaults to
+sandbox. \`--docker\` turns on Docker. \`--t3\` turns on T3. \`--code-server\`
+turns on code-server. Each app flag requires \`--profile agro\`. When AGRO_CONSOLE_TOKEN is set, the verbs use it with
 AGRO_CONSOLE_URL. Otherwise the verbs use the token and the URL from the
 credentials file that \`${bin} auth login\` writes. The URL defaults to
 ${DEFAULT_CONSOLE_URL}.
@@ -191,8 +193,16 @@ async function callApi(
   return { ok: true, status: response.status, body };
 }
 
+const NODE_PROFILES = ["agro", "sandbox"] as const;
+const APP_FLAGS = ["--docker", "--t3", "--code-server"] as const;
+
+type NodeProfile = (typeof NODE_PROFILES)[number];
+type AppFlag = (typeof APP_FLAGS)[number];
+
 interface CreateArgs {
   spec?: string;
+  profile: NodeProfile;
+  apps: Set<AppFlag>;
   sshKeyIds: string[];
   name?: string;
   freeTier: boolean;
@@ -200,7 +210,7 @@ interface CreateArgs {
 }
 
 function parseCreate(tokens: string[]): { ok: true; args: CreateArgs } | { ok: false; error: string } {
-  const args: CreateArgs = { sshKeyIds: [], freeTier: false, json: false };
+  const args: CreateArgs = { profile: "sandbox", apps: new Set(), sshKeyIds: [], freeTier: false, json: false };
   for (let i = 0; i < tokens.length; i += 1) {
     const token = tokens[i];
     if (token === "--json") {
@@ -211,18 +221,27 @@ function parseCreate(tokens: string[]): { ok: true; args: CreateArgs } | { ok: f
       args.freeTier = true;
       continue;
     }
+    if (isOneOf(APP_FLAGS, token)) {
+      args.apps.add(token);
+      continue;
+    }
     const [flag, inline] = token.startsWith("--") && token.includes("=")
       ? [token.slice(0, token.indexOf("=")), token.slice(token.indexOf("=") + 1)]
       : [token, undefined];
-    if (flag !== "--spec" && flag !== "--ssh-key" && flag !== "--name") {
+    if (flag !== "--spec" && flag !== "--ssh-key" && flag !== "--name" && flag !== "--profile") {
       return { ok: false, error: token.startsWith("-") ? `unknown flag "${token}"` : `unexpected argument "${token}"` };
     }
     const value = inline ?? tokens[++i];
     if (value === undefined || value === "") return { ok: false, error: `${flag} requires a value` };
     if (flag === "--spec") args.spec = value;
     else if (flag === "--name") args.name = value;
-    else args.sshKeyIds.push(value);
+    else if (flag === "--profile") {
+      if (!isOneOf(NODE_PROFILES, value)) return { ok: false, error: "--profile must be agro or sandbox" };
+      args.profile = value;
+    } else args.sshKeyIds.push(value);
   }
+  const sandboxApp = APP_FLAGS.find((flag) => args.profile === "sandbox" && args.apps.has(flag));
+  if (sandboxApp !== undefined) return { ok: false, error: `${sandboxApp} requires --profile agro` };
   if (args.spec === undefined && args.freeTier) args.spec = FREE_TIER_SPEC;
   if (args.spec === undefined) return { ok: false, error: "--spec is required" };
   return { ok: true, args };
@@ -288,7 +307,7 @@ async function runCreate(
     io.stderr(`${prefix}: ${parsed.error}\n`);
     return 1;
   }
-  const { spec, name, freeTier, json } = parsed.args;
+  const { spec, profile, apps, name, freeTier, json } = parsed.args;
   let sshKeyIds = parsed.args.sshKeyIds;
   if (sshKeyIds.length === 0) {
     const resolved = await resolveSshKeyId(deps, config);
@@ -300,11 +319,14 @@ async function runCreate(
   }
   const requestedAt = deps.now();
   const created = await callApi(deps, config, "POST", "/api/nodes", {
-    profile: "sandbox",
+    profile,
     spec,
     sshKeyIds,
     ...(name === undefined ? {} : { name }),
     ...(freeTier ? { freeTier: true } : {}),
+    ...(apps.has("--docker") ? { docker: true } : {}),
+    ...(apps.has("--t3") ? { t3: true } : {}),
+    ...(apps.has("--code-server") ? { runtimeSettings: { codeServerEnabled: true } } : {}),
   });
   if (!created.ok) {
     io.stderr(`${prefix}: ${created.message}\n`);

@@ -6,6 +6,7 @@ import {
   CONSOLE_CONFIG_MISSING,
   DEFAULT_CONSOLE_URL,
   NODE_READY_TIMEOUT_MS,
+  nodeHelp,
   resolveConsoleConfig,
   runNode,
   type NodeDeps,
@@ -447,6 +448,107 @@ describe("agro node create ssh key resolution", () => {
     });
     expect(await runNode(["create", "--free-tier"], h.io, h.deps)).toBe(1);
     expect(h.calls).toHaveLength(2);
+  });
+});
+
+const BASE_CREATE = ["create", "--spec", "n4", "--ssh-key", "key-1"];
+const APP_FLAGS = [
+  ["--docker", { docker: true }],
+  ["--t3", { t3: true }],
+  ["--code-server", { runtimeSettings: { codeServerEnabled: true } }],
+] as const;
+const APP_FLAG_NAMES = APP_FLAGS.map(([flag]) => flag);
+
+describe("agro node create profile and app flags", () => {
+  it("posts only the sandbox profile, spec, and keys without a new flag", async () => {
+    const h = harness([RUNNING]);
+    expect(await runNode(BASE_CREATE, h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", spec: "n4", sshKeyIds: ["key-1"] });
+  });
+
+  it("posts the agro profile with --profile agro and no app field", async () => {
+    const h = harness([RUNNING]);
+    expect(await runNode([...BASE_CREATE, "--profile", "agro"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "agro", spec: "n4", sshKeyIds: ["key-1"] });
+  });
+
+  it("posts the agro profile with --profile=agro", async () => {
+    const h = harness([RUNNING]);
+    expect(await runNode([...BASE_CREATE, "--profile=agro"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toMatchObject({ profile: "agro" });
+  });
+
+  it("posts the sandbox profile with --profile sandbox", async () => {
+    const h = harness([RUNNING]);
+    expect(await runNode([...BASE_CREATE, "--profile", "sandbox"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", spec: "n4", sshKeyIds: ["key-1"] });
+  });
+
+  it("posts docker, t3, and codeServerEnabled with all app flags", async () => {
+    const h = harness([RUNNING]);
+    const args = [...BASE_CREATE, "--profile", "agro", "--docker", "--t3", "--code-server"];
+    expect(await runNode(args, h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({
+      profile: "agro",
+      spec: "n4",
+      sshKeyIds: ["key-1"],
+      docker: true,
+      t3: true,
+      runtimeSettings: { codeServerEnabled: true },
+    });
+  });
+
+  it.each(APP_FLAGS)("posts only the field of %s with --profile agro", async (flag, field) => {
+    const h = harness([RUNNING]);
+    expect(await runNode([...BASE_CREATE, "--profile", "agro", flag], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toEqual({ profile: "agro", spec: "n4", sshKeyIds: ["key-1"], ...field });
+  });
+
+  it("rejects a profile other than agro or sandbox before any API call", async () => {
+    const h = harness([RUNNING]);
+    expect(await runNode([...BASE_CREATE, "--profile", "desktop"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain("--profile must be agro or sandbox");
+    expect(h.calls).toHaveLength(0);
+  });
+
+  it("rejects --profile without a value before any API call", async () => {
+    const h = harness([RUNNING]);
+    expect(await runNode([...BASE_CREATE, "--profile"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain("--profile requires a value");
+    expect(h.calls).toHaveLength(0);
+  });
+
+  it.each(APP_FLAG_NAMES)("rejects %s with the default profile before key resolution", async (flag) => {
+    const files = localKey();
+    const h = harness([RUNNING], { readFile: files.readFile });
+    expect(await runNode(["create", "--spec", "n4", flag], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain(`${flag} requires --profile agro`);
+    expect(files.reads).toEqual([]);
+    expect(h.calls).toHaveLength(0);
+  });
+
+  it.each(APP_FLAG_NAMES)("rejects %s with --profile sandbox before any API call", async (flag) => {
+    const h = harness([RUNNING]);
+    expect(await runNode([...BASE_CREATE, "--profile", "sandbox", flag], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain(`${flag} requires --profile agro`);
+    expect(h.calls).toHaveLength(0);
+  });
+
+  it("prints the HTTP status and code when runtime settings are disabled", async () => {
+    const h = harness([
+      { status: 422, body: { error: "Runtime settings are disabled", code: "RUNTIME_SETTINGS_DISABLED" } },
+    ]);
+    expect(await runNode([...BASE_CREATE, "--profile", "agro", "--code-server"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain("HTTP 422 RUNTIME_SETTINGS_DISABLED: Runtime settings are disabled");
+    expect(h.calls).toHaveLength(1);
+  });
+
+  it("shows the new flags in the help", () => {
+    const help = nodeHelp("agro");
+    expect(help).toContain(
+      "agro node create --spec <spec> [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--free-tier] [--json]",
+    );
+    for (const flag of ["--profile", ...APP_FLAG_NAMES]) expect(help).toContain(`\`${flag}`);
   });
 });
 
