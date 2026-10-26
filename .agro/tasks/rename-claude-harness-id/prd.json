@@ -140,14 +140,15 @@
         "The worker creates no live resource and runs no install against a sandbox without operator approval."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor-run evidence (no tracked change; evidence/ is local per .gitignore). C1 executed: pnpm run build:harness exit 0. C2 reasoned: manual-review.md embeds docs/img/quickstart-harness-install.png. C3 executed: harness list exit 0, shows claude, no claude-code. C4 executed: harness status claude-code exit 0 with deprecation line. C5 executed: harness install nope exit 1, lists claude not claude-code. C6 executed: banner did not run (renders sandbox login state); grep banner.sh:76 exit 0 recorded with reason. C7 executed: no live resource created for US-005; no sandbox install run.",
       "dependsOn": [
         "US-004"
       ],
       "files": [
         ".agro/tasks/rename-claude-harness-id/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "15aa36bf092a4f5326daeed6b0c02258013e47f5"
     }
   ]
 }
