@@ -351,10 +351,14 @@ agro node delete <id>            # destroy one node after a confirmation
   `not logged in to agro-console: run agro auth login`.
 - `agro node create` creates a node with the profile `sandbox` by default.
   `--profile agro` creates a node with the profile `agro`. If `--profile` has
-  another value, the command exits 1 and prints
-  `--profile must be agro or sandbox`. `--spec` is mandatory. `--free-tier`
-  requests the agro-console free tier and sets the default spec to `n4`.
-  `--name` sets the node name.
+  another value, the command exits 1 and prints this error:
+
+  ```text
+  --profile must be agro or sandbox
+  ```
+
+  `--spec` is mandatory. `--free-tier` requests the agro-console free tier and
+  sets the default spec to `n4`. `--name` sets the node name.
 - `--docker`, `--t3`, and `--code-server` require `--profile agro`. If the
   profile is `sandbox`, the command exits 1 before it calls the console and
   prints `<flag> requires --profile agro`. Each given flag turns on its app.
