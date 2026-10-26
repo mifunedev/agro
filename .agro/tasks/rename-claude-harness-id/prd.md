@@ -175,3 +175,10 @@ None. The operator selected 0.29.0 as the alias removal release and selected a n
 - [ ] `.agro/tasks/rename-claude-harness-id/evidence/manual-review.md` exists.
 
 ## Lessons
+
+1. Claim: `agro destroy <name>` that runs inside a sandbox stops the current sandbox container. The command does not refuse. Evidence: the US-004 worker ran `agro destroy agro-sbx-1525-capture --yes` inside `agro-sbx-local`. The output was `Container agro-sbx-local Stopping`, and the exit status was 144. The container restarted, and the workspace volume stayed intact. `agro sandbox install` refuses inside a sandbox through `runningInsideSandbox`. Outcome: proposed issue, which waits for operator approval.
+2. Claim: the advisor briefed the US-004 worker as if the session ran on the host, but the session runs inside `agro-sbx-local`. Evidence: `/.dockerenv` exists, and `agro sandbox list` shows no registered sandbox. Outcome: dropped, because the finding is a process observation. Lesson 1 owns the defect that the mistake exposed.
+3. Claim: the console refuses a free node in an organization context. Evidence: `agro node create --free-tier` exited 1 with `HTTP 403 FREE_TIER_INELIGIBLE`. Outcome: dropped, because the refusal is account policy. The operator approved one paid `n4` node. The node lived about 5 minutes 29 seconds.
+4. Claim: the plan step did not set `pr` in `prd.json` when the draft PR opened. Evidence: `next.sh` printed `blocked prd.json has no pr` after US-005. Outcome: dropped, because the finding is tooling friction that `next.sh` already catches.
+5. Claim: the `remote-sandbox.test.ts` SIGTERM case timed out one time at 30 seconds while two workers ran tests in parallel. Evidence: an isolated rerun and a full rerun passed. Outcome: dropped, because the finding is a test flake under load.
+6. Claim: `lib/host-config.ts` now imports `DEPRECATED_HARNESS_ALIASES` from `lib/harnesses/catalog.ts`. Evidence: the review found no import cycle. Outcome: dropped, because the finding is a layering judgment, and the alias map leaves at 0.29.0.

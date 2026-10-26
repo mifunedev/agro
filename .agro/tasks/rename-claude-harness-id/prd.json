@@ -151,5 +151,10 @@
       "commit": "15aa36bf092a4f5326daeed6b0c02258013e47f5"
     }
   ],
-  "pr": 1526
+  "pr": 1526,
+  "review": {
+    "commit": "5a381f7e9d6481b62bf01793b14f9108189195c2",
+    "verdict": "pass",
+    "model": "sonnet"
+  }
 }
