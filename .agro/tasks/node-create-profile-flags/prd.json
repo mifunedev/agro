@@ -24,10 +24,14 @@
         "`npm --prefix .agro/cli run typecheck` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1 executed: new tests against cad345b2 node.ts fail (x posts the agro profile with --profile agro and no app field). AC2-AC11 executed: npx vitest run .agro/cli/src/__tests__/node.test.ts exit 0, 61 passed; each AC has a named test (exact bodies, no-call checks, 422 RUNTIME_SETTINGS_DISABLED, help usage line). AC12 executed: same command exit 0. AC13 executed: npm --prefix .agro/cli run typecheck exit 0.",
       "dependsOn": [],
-      "files": [".agro/cli/src/commands/node.ts", ".agro/cli/src/__tests__/node.test.ts"]
+      "files": [
+        ".agro/cli/src/commands/node.ts",
+        ".agro/cli/src/__tests__/node.test.ts"
+      ],
+      "commit": "ea24da52"
     },
     {
       "id": "US-002",
@@ -42,8 +46,12 @@
       "priority": 2,
       "passes": false,
       "notes": "",
-      "dependsOn": ["US-001"],
-      "files": ["docs/lifecycle-commands.md"]
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        "docs/lifecycle-commands.md"
+      ]
     },
     {
       "id": "US-003",
@@ -58,8 +66,14 @@
       "priority": 3,
       "passes": false,
       "notes": "",
-      "dependsOn": ["US-001", "US-002"],
-      "files": [".agro/tasks/node-create-profile-flags/evidence/manual-review.md"]
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/node-create-profile-flags/evidence/manual-review.md"
+      ]
     }
-  ]
+  ],
+  "pr": 1527
 }
