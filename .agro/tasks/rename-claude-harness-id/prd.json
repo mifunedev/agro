@@ -76,8 +76,8 @@
         "`pnpm test:scripts` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed on integrated task branch: pnpm test:scripts exit 0 (110 files, 2747 passed). C1 executed: grep banner.sh:76 \"harness install claude\". C2 executed: grep sandbox-upgrade-smoke.sh:43 \"claude:claude:@anthropic-ai/claude-code\". C3 reasoned: diff shows both remote-sandbox checks run agro harness install claude. C4 reasoned: diff inspected; README, quickstart (command + alt text), claude-code.md, overview.md name claude. C5 executed: git grep outside .agro/tasks exits 1 (no matches); CHANGELOG has none. C6 reasoned: diff shows three fixtures use claude; suite passes. C7 reasoned: Unreleased ### Changed entry present with #1525 link. C8 executed: see above.",
       "dependsOn": [
         "US-001"
       ],
@@ -94,7 +94,8 @@
         ".agro/scripts/__tests__/sandbox-boot-smoke.test.ts",
         ".agro/scripts/__tests__/verify-sandbox-image.test.ts",
         ".agro/scripts/__tests__/sandbox-upgrade-smoke.test.ts"
-      ]
+      ],
+      "commit": "2baf288343a74a101f73517d97fc3fbb9681faab"
     },
     {
       "id": "US-004",
