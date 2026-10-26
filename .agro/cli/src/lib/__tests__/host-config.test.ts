@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -142,6 +142,44 @@ describe("readHostConfig", () => {
     const env = stateHome(".agro");
     writeFileSync(hostConfigPath(env, OVERRIDDEN_HOME), "{nope");
     expect(() => readHostConfig(env, OVERRIDDEN_HOME)).toThrow(/config\.json is not valid JSON/);
+  });
+
+  const legacyReceipt = {
+    prefix: "/home/u/.local",
+    binary: "claude",
+    binPath: "/home/u/.local/bin",
+    installedAt: "2026-01-01T00:00:00.000Z",
+  };
+
+  it("moves a claude-code receipt to claude", () => {
+    const env = stateHome(".agro");
+    writeFileSync(
+      hostConfigPath(env, OVERRIDDEN_HOME),
+      JSON.stringify({ version: 1, hostHarnesses: { "claude-code": legacyReceipt, codex: { ...legacyReceipt, binary: "codex" } } }),
+    );
+    const harnesses = readHostConfig(env, OVERRIDDEN_HOME).hostHarnesses!;
+    expect(harnesses.claude).toEqual(legacyReceipt);
+    expect(harnesses.codex.binary).toBe("codex");
+    expect(Object.keys(harnesses)).not.toContain("claude-code");
+  });
+
+  it("keeps the claude receipt and drops claude-code when both exist", () => {
+    const env = stateHome(".agro");
+    const current = { ...legacyReceipt, installedAt: "2026-09-01T00:00:00.000Z" };
+    writeFileSync(
+      hostConfigPath(env, OVERRIDDEN_HOME),
+      JSON.stringify({ version: 1, hostHarnesses: { "claude-code": legacyReceipt, claude: current } }),
+    );
+    expect(readHostConfig(env, OVERRIDDEN_HOME).hostHarnesses).toEqual({ claude: current });
+  });
+
+  it("retires the claude-code key on the next write", () => {
+    const env = stateHome(".agro");
+    const path = hostConfigPath(env, OVERRIDDEN_HOME);
+    writeFileSync(path, JSON.stringify({ version: 1, hostHarnesses: { "claude-code": legacyReceipt } }));
+    writeHostConfig(readHostConfig(env, OVERRIDDEN_HOME), env, OVERRIDDEN_HOME);
+    const stored = JSON.parse(readFileSync(path, "utf8")) as { hostHarnesses: Record<string, unknown> };
+    expect(stored.hostHarnesses).toEqual({ claude: legacyReceipt });
   });
 });
 

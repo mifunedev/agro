@@ -141,18 +141,39 @@ async function probeInstalled(
   }
 }
 
-function sandboxMarkerPath(entry: HarnessEntry): string {
-  return `${SANDBOX_HARNESS_PREFIX}/share/agro/harnesses/${entry.id}.installed`;
+function sandboxMarkerPath(id: string): string {
+  return `${SANDBOX_HARNESS_PREFIX}/share/agro/harnesses/${id}.installed`;
+}
+
+function legacySandboxMarkerPaths(entry: HarnessEntry): string[] {
+  return Object.entries(DEPRECATED_HARNESS_ALIASES)
+    .filter(([, canonical]) => canonical === entry.id)
+    .map(([alias]) => sandboxMarkerPath(alias));
 }
 
 async function sandboxMarkerExists(target: ExecutionTarget, entry: HarnessEntry): Promise<boolean> {
-  const r = await target.exec({
-    argv: ["test", "-f", sandboxMarkerPath(entry)],
-    user: "sandbox",
-    stdio: "capture",
-    timeoutMs: PROBE_TIMEOUT_MS,
-  });
-  return r.exitCode === 0;
+  for (const marker of [sandboxMarkerPath(entry.id), ...legacySandboxMarkerPaths(entry)]) {
+    const r = await target.exec({
+      argv: ["test", "-f", marker],
+      user: "sandbox",
+      stdio: "capture",
+      timeoutMs: PROBE_TIMEOUT_MS,
+    });
+    if (r.exitCode === 0) return true;
+  }
+  return false;
+}
+
+async function clearSandboxMarkers(
+  target: ExecutionTarget,
+  markers: readonly string[],
+  bin: string,
+  io: HarnessIO,
+): Promise<boolean> {
+  for (const marker of markers) {
+    if (!(await markSandboxInstall(target, marker, false, bin, "harness", io))) return false;
+  }
+  return true;
 }
 
 function stateOf(
@@ -624,7 +645,8 @@ export async function runHarnessUninstall(
   }
 
   const outcome = await removeHarness(entry, target, SANDBOX_HARNESS_PREFIX, "sandbox", opts, io);
-  if (outcome.dropReceipt && !(await markSandboxInstall(target, sandboxMarkerPath(entry), false, opts.bin, "harness", io))) {
+  const markers = [...legacySandboxMarkerPaths(entry), sandboxMarkerPath(entry.id)];
+  if (outcome.dropReceipt && !(await clearSandboxMarkers(target, markers, opts.bin, io))) {
     return 1;
   }
   return outcome.code;
@@ -710,7 +732,8 @@ export async function runHarnessInstall(
     if (configured !== 0) return configured;
   }
 
-  if (!(await markSandboxInstall(target, sandboxMarkerPath(entry), true, opts.bin, "harness", io))) return 1;
+  if (!(await markSandboxInstall(target, sandboxMarkerPath(entry.id), true, opts.bin, "harness", io))) return 1;
+  if (!(await clearSandboxMarkers(target, legacySandboxMarkerPaths(entry), opts.bin, io))) return 1;
 
   io.stdout(`${entry.id}: installed — see ${sourceDocsUrl(entry.docsPath)} for authentication\n`);
   if (hermes) hermesLaunch(io, targetRoot);

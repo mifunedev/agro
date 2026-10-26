@@ -338,6 +338,51 @@ describe("agro harness — inside the sandbox", () => {
     expect(calls.filter((c) => c.args.includes("@earendil-works/pi-coding-agent"))).toHaveLength(1);
   });
 
+  const MARKERS = `${SANDBOX_HARNESS_PREFIX}/share/agro/harnesses`;
+  const touched = (calls: RecordedCall[], marker: string): boolean =>
+    calls.some((c) => c.cmd === "sh" && c.args.at(-1) === `${MARKERS}/${marker}`);
+  const removed = (calls: RecordedCall[], marker: string): boolean =>
+    calls.some((c) => c.cmd === "rm" && c.args.includes(`${MARKERS}/${marker}`));
+
+  it("updates claude when only the claude-code marker exists", async () => {
+    const root = makeRepo();
+    const { calls, run } = makeRunner((cmd, args) =>
+      cmd === "test" && args.includes(`${MARKERS}/claude.installed`)
+        ? { status: 1, stdout: "", stderr: "" }
+        : undefined,
+    );
+    const { io, out } = makeIo();
+    expect(await runHarnessInstall("claude", { bin: "agro", cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(text(out)).toContain("updating Claude Code in the sandbox…");
+    expect(touched(calls, "claude.installed")).toBe(true);
+    expect(removed(calls, "claude-code.installed")).toBe(true);
+    expect(touched(calls, "claude-code.installed")).toBe(false);
+  });
+
+  it("installs claude when neither claude marker exists", async () => {
+    const root = makeRepo();
+    const { run } = makeRunner((cmd) => (cmd === "test" ? { status: 1, stdout: "", stderr: "" } : undefined));
+    const { io, out } = makeIo();
+    expect(await runHarnessInstall("claude", { bin: "agro", cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(text(out)).toContain("installing Claude Code into the sandbox…");
+  });
+
+  it("clears both claude markers on a sandbox uninstall", async () => {
+    const root = makeRepo();
+    const { calls, run } = makeRunner();
+    expect(await runHarnessUninstall("claude", { bin: "agro", cwd: root, run, env: INSIDE }, makeIo().io)).toBe(0);
+    expect(removed(calls, "claude.installed")).toBe(true);
+    expect(removed(calls, "claude-code.installed")).toBe(true);
+  });
+
+  it("touches only its own marker for a harness with no alias", async () => {
+    const root = makeRepo();
+    const { calls, run } = makeRunner();
+    expect(await runHarnessInstall("pi", { bin: "agro", cwd: root, run, env: INSIDE }, makeIo().io)).toBe(0);
+    expect(calls.filter((c) => c.cmd === "test")).toHaveLength(1);
+    expect(calls.some((c) => c.cmd === "rm")).toBe(false);
+  });
+
   it("verifies as the sandbox user, never through sudo", async () => {
     const root = makeRepo();
     const { calls, run } = makeRunner();
@@ -799,6 +844,39 @@ describe("runHarnessInstall on the host when the sandbox is not running", () => 
     expect(receipt.binPath).toBe(join(user.prefix, "bin"));
     expect(receipt.workspaceRoot).toBe(defaultRoot(home));
     expect(typeof receipt.installedAt).toBe("string");
+  });
+
+  it("records a host install of claude under claude and retires a claude-code receipt", async () => {
+    const root = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    seedWorkspace(defaultRoot(home));
+    writeFileSync(
+      hostConfigFile(home.dir),
+      JSON.stringify({
+        version: 1,
+        hostHarnesses: {
+          "claude-code": {
+            prefix: user.prefix,
+            binary: "claude",
+            binPath: join(user.prefix, "bin"),
+            installedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+      }),
+    );
+    const { run } = hostRunner(missingBinary("claude"));
+
+    expect(
+      await runHarnessInstall(
+        "claude",
+        { bin: "agro", cwd: root, run, env: home.env, homedir: user.homedir, interactive: false, host: true },
+        makeIo().io,
+      ),
+    ).toBe(0);
+    const harnesses = (readConfig(home.dir) as Record<string, unknown>).hostHarnesses as Record<string, { installedAt: string }>;
+    expect(Object.keys(harnesses)).toEqual(["claude"]);
+    expect(harnesses.claude.installedAt).not.toBe("2026-01-01T00:00:00.000Z");
   });
 
   it("writes no harnessRoot and no receipt when the installer fails", async () => {
@@ -1451,6 +1529,27 @@ describe("runHarnessUninstall", () => {
       "@anthropic-ai/claude-code",
     ]);
     expect(text(out)).toContain(`claude: removed from ${user.prefix}`);
+    expect(text(out)).toContain("claude: cleared the host install record");
+    expect(receiptsIn(home.dir)).toEqual({});
+  });
+
+  it("removes claude on the host from a receipt recorded under claude-code", async () => {
+    const root = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    writeReceipt(home.dir, "claude-code", user.prefix, "claude");
+    const { calls, run } = hostRunner();
+    const { out, err, io } = makeIo();
+
+    expect(
+      await runHarnessUninstall(
+        "claude",
+        { bin: "agro", cwd: root, run, env: home.env, homedir: user.homedir, interactive: false },
+        io,
+      ),
+    ).toBe(0);
+    expect(text(err)).not.toContain("no record of installing");
+    expect(removals(calls)[0].args).toContain(user.prefix);
     expect(text(out)).toContain("claude: cleared the host install record");
     expect(receiptsIn(home.dir)).toEqual({});
   });

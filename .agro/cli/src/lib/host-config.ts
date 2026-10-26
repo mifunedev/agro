@@ -1,6 +1,7 @@
 import { messageOf } from "./execution/runner.js";
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { DEPRECATED_HARNESS_ALIASES } from "./harnesses/catalog.js";
 import { resolveUserStateHome } from "./layout.js";
 import { SANDBOX_NAME_PATTERN } from "./registry.js";
 
@@ -157,7 +158,18 @@ export function readHostConfig(env: NodeJS.ProcessEnv, home: string): HostConfig
   } catch {
     throw new Error(`${basename(path)} is not valid JSON: ${path}`);
   }
-  return validateHostConfig(parsed);
+  return withCanonicalHarnessIds(validateHostConfig(parsed));
+}
+
+function withCanonicalHarnessIds(config: HostConfig): HostConfig {
+  if (config.hostHarnesses === undefined) return config;
+  const harnesses = { ...config.hostHarnesses };
+  for (const [alias, canonical] of Object.entries(DEPRECATED_HARNESS_ALIASES)) {
+    if (!Object.hasOwn(harnesses, alias)) continue;
+    harnesses[canonical] ??= harnesses[alias];
+    delete harnesses[alias];
+  }
+  return { ...config, hostHarnesses: harnesses };
 }
 
 export function writeHostConfig(config: HostConfig, env: NodeJS.ProcessEnv, home: string): void {
