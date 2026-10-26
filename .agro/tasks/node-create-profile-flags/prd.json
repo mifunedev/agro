@@ -65,15 +65,16 @@
         "The story creates no live console node. The story calls no live console API."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "AC1 executed: npm --prefix .agro/cli run build exit 0; node .agro/cli/dist/agro.js node --help exit 0, shows the new usage line. AC2 executed: create --profile desktop and create --t3 with dummy token and http://127.0.0.1:9 each exit 1 with the flag error and no request failed line. AC3 executed: npx vitest run .agro/cli/src/__tests__/node.test.ts exit 0, 61 passed; evidence quotes the asserted bodies with file:line. AC4 reasoned: only the unreachable local URL and the stubbed fetch were used; no server, no console node.",
       "dependsOn": [
         "US-001",
         "US-002"
       ],
       "files": [
         ".agro/tasks/node-create-profile-flags/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "7bbab8e5"
     }
   ],
   "pr": 1527
