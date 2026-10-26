@@ -44,15 +44,16 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md` reports no finding on a changed line."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "Reopened: pnpm test fails docs-reference.test.ts: docs/lifecycle-commands.md:355 unknown verb `agro or`.",
+      "passes": true,
+      "notes": "Round 1 repair aa9d910a. AC1 executed: usage line grep in docs equals nodeHelp. AC2 reasoned: section states default sandbox and --profile agro. AC3 reasoned: app-flag bullet states the requirement and the console defaults. AC4 executed: bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md exit 0. Extra executed: npx vitest run .agro/cli/src/__tests__/docs-reference.test.ts exit 0 (4 passed); pnpm test exit 0 (110 files, 2759 passed).",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         "docs/lifecycle-commands.md"
       ],
-      "rounds": 1
+      "rounds": 1,
+      "commit": "aa9d910a"
     },
     {
       "id": "US-003",
