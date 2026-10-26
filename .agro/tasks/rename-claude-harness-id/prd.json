@@ -20,8 +20,8 @@
         "`pnpm run typecheck` exits 0. `pnpm test:scripts` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed on integrated task branch: pnpm run typecheck exit 0; pnpm test:scripts exit 0 (110 files, 2747 passed). C1 executed: catalog id \"claude\", no claude-code entry (harness-catalog id lists). C2 executed: new test findHarness(\"claude-code\") === findHarness(\"claude\"), harnessIds excludes claude-code. C3 executed: harness.test.ts asserts exact deprecation line for install/uninstall/status with bin substitution. C4 executed: install claude test has no deprecation text. C5 executed: list and --json tests show claude only; unknown-harness lists claude only. C6 reasoned: langfuse.ts:69 harnessId \"claude\" (diff inspected). C7 reasoned+executed: npm package and docsPath unchanged; docs test maps claude to claude-code.md. C8 executed: worker reported red AssertionError before change, green after. C9 executed: see above.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/harnesses/catalog.ts",
@@ -30,7 +30,8 @@
         ".agro/cli/src/__tests__/harness-catalog.test.ts",
         ".agro/cli/src/__tests__/harness.test.ts",
         ".agro/cli/src/lib/tracing/__tests__/harness-writers.test.ts"
-      ]
+      ],
+      "commit": "d31b650abb65edf217a40e661a8da7354b53d4a2"
     },
     {
       "id": "US-002",
