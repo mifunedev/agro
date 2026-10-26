@@ -44,15 +44,15 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md` reports no finding on a changed line."
       ],
       "priority": 2,
-      "passes": true,
-      "notes": "AC1 executed: grep of the usage line in docs (pipe unescaped) equals the nodeHelp usage line. AC2 reasoned: the agro node section states default profile sandbox and that --profile agro creates an agro-profile node (diff e8161745). AC3 reasoned: new bullet states the three app flags require --profile agro and the omitted-flag console defaults Docker on, T3 off, code-server off. AC4 executed: bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md exit 0, no findings.",
+      "passes": false,
+      "notes": "Reopened: pnpm test fails docs-reference.test.ts: docs/lifecycle-commands.md:355 unknown verb `agro or`.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         "docs/lifecycle-commands.md"
       ],
-      "commit": "e8161745"
+      "rounds": 1
     },
     {
       "id": "US-003",
