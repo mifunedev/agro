@@ -263,4 +263,22 @@ jobs:
               make_latest: process.env.MAKE_LATEST,
             });
 
+      - name: Notify agro-web of the release
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.AGRO_WEB_DISPATCH_TOKEN }}
+          RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning::AGRO_WEB_DISPATCH_TOKEN is empty; skipped the agro-web release dispatch."
+            exit 0
+          fi
+          if ! gh api --method POST repos/mifunedev/agro-web/dispatches \
+            -f event_type=agro-release \
+            -f "client_payload[ref]=v${RELEASE_VERSION}" 2>"$RUNNER_TEMP/agro-web-dispatch.err"; then
+            status="$(grep -o 'HTTP [0-9]*' "$RUNNER_TEMP/agro-web-dispatch.err" | tail -n 1)"
+            echo "::warning::agro-web release dispatch for v${RELEASE_VERSION} failed (${status:-no HTTP status})."
+            exit 1
+          fi
+
   # publish-cli.yml also remains independently dispatchable with an explicit ref.

@@ -8,6 +8,12 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Changed
+- Send an `agro-release` dispatch to `mifunedev/agro-web` after each release so the site syncs the released docs. A missing token or a failed dispatch prints a warning and does not fail the release ([#1536](https://github.com/mifunedev/agro/issues/1536)).
+
+### Fixed
+- Make `agro destroy`, `agro stop`, and `agro restart` refuse inside a sandbox so an agent cannot remove its own sandbox ([#1531](https://github.com/mifunedev/agro/issues/1531)).
+
 ## [0.27.0] - 2026-10-26
 
 ### Added
