@@ -82,8 +82,8 @@
         "The advisor runs no `destroy`, `stop`, or `restart` command in the sandbox. A failed guard would stop the live sandbox, so the unit tests carry the proof."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor-run. C1 executed: lifecycle guard tests 8 passed and dispatch plus contract tests 13 passed, recorded in manual-review.md. C2 executed: transcript holds the US-003 skill diff. C3 executed: the advisor ran no destroy, stop, or restart command in the sandbox.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -91,7 +91,8 @@
       ],
       "files": [
         ".agro/tasks/sandbox-guard-release-dispatch/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "d6fdc3fe900d5bfd64bce6c40a59434f07fc21b4"
     }
   ],
   "pr": 1537
