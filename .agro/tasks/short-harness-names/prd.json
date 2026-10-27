@@ -47,8 +47,8 @@
         "`pnpm test:scripts` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated ff at 5c373a23. pnpm test:scripts exit 0 (110 files, 2785 passed). C1 executed: grep banner.sh lines 118 and 133 show harness install grok and antigravity. C2 reasoned: diff shows README, overview, and three harness pages name grok, antigravity, muse in each command and id cell. C3 reasoned: each harness page has one supported-names sentence. C4 executed: grep outside .agro/tasks and CHANGELOG exits 1; inside CHANGELOG only released entries 412 and 519. C5 executed: boot-banner.test line 130 expects install antigravity; suite passes. C6 reasoned: Unreleased ### Changed entry names canonical and supported ids with #1529. C7 executed: see above.",
       "dependsOn": [
         "US-001"
       ],
@@ -61,7 +61,8 @@
         "docs/harnesses/muse-code.md",
         "CHANGELOG.md",
         ".agro/scripts/__tests__/boot-banner.test.ts"
-      ]
+      ],
+      "commit": "5c373a2328da2278752be4967c6ea219e5e04d9d"
     },
     {
       "id": "US-003",
