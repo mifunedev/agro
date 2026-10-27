@@ -163,6 +163,13 @@ describe("readHostConfig", () => {
     expect(Object.keys(harnesses)).not.toContain("claude-code");
   });
 
+  it("moves a muse-code receipt to muse", () => {
+    const env = stateHome(".agro");
+    const museReceipt = { ...legacyReceipt, binary: "muse" };
+    writeFileSync(hostConfigPath(env, OVERRIDDEN_HOME), JSON.stringify({ version: 1, hostHarnesses: { "muse-code": museReceipt } }));
+    expect(readHostConfig(env, OVERRIDDEN_HOME).hostHarnesses).toEqual({ muse: museReceipt });
+  });
+
   it("keeps the claude receipt and drops claude-code when both exist", () => {
     const env = stateHome(".agro");
     const current = { ...legacyReceipt, installedAt: "2026-09-01T00:00:00.000Z" };

@@ -44,9 +44,8 @@ import { ask as promptAsk, askYesNo } from "../lib/prompt.js";
 import { resolveProjectRoot } from "../lib/project.js";
 import { resolveSandboxRoot } from "../lib/registry.js";
 import {
-  DEPRECATED_HARNESS_ALIASES,
   findHarness,
-  HARNESS_ALIAS_REMOVAL_VERSION,
+  HARNESS_ALIASES,
   harnessBinPath,
   harnessIds,
   harnessLaunchCommand,
@@ -146,8 +145,8 @@ function sandboxMarkerPath(id: string): string {
 }
 
 function legacySandboxMarkerPaths(entry: HarnessEntry): string[] {
-  return Object.entries(DEPRECATED_HARNESS_ALIASES)
-    .filter(([, canonical]) => canonical === entry.id)
+  return Object.entries(HARNESS_ALIASES)
+    .filter(([, alias]) => alias.canonical === entry.id)
     .map(([alias]) => sandboxMarkerPath(alias));
 }
 
@@ -244,9 +243,10 @@ function unknownHarness(name: string, io: HarnessIO, bin: string): number {
 
 function resolveHarness(name: string, io: HarnessIO, bin: string): HarnessEntry | undefined {
   const entry = findHarness(name);
-  if (entry && Object.hasOwn(DEPRECATED_HARNESS_ALIASES, name)) {
+  const removedIn = Object.hasOwn(HARNESS_ALIASES, name) ? HARNESS_ALIASES[name].removedIn : undefined;
+  if (entry && removedIn !== undefined) {
     io.stderr(
-      `${bin} harness: "${name}" is a deprecated alias for "${entry.id}"; the alias stops working in ${HARNESS_ALIAS_REMOVAL_VERSION}\n`,
+      `${bin} harness: "${name}" is a deprecated alias for "${entry.id}"; the alias stops working in ${removedIn}\n`,
     );
   }
   return entry;

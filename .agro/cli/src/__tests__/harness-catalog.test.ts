@@ -49,8 +49,14 @@ describe("harness catalog", () => {
     }
   });
 
-  it("documents every harness under docs/harnesses/<id>.md, with claude on the Claude Code page", () => {
-    const docsName = (id: string) => (id === "claude" ? "claude-code" : id);
+  it("documents every harness under docs/harnesses/<id>.md, with each short id on its long-name page", () => {
+    const longNames: Record<string, string> = {
+      claude: "claude-code",
+      grok: "grok-build",
+      antigravity: "antigravity-cli",
+      muse: "muse-code",
+    };
+    const docsName = (id: string) => longNames[id] ?? id;
     for (const h of HARNESS_CATALOG) {
       expect(h.docsPath).toBe(`docs/harnesses/${docsName(h.id)}.md`);
       expect(() => read(h.docsPath)).not.toThrow();
@@ -71,13 +77,13 @@ describe("harness catalog", () => {
 
     it("covers every harness the verb can install", () => {
       expect(installable.map((h) => h.id).sort()).toEqual([
-        "antigravity-cli",
+        "antigravity",
         "claude",
         "codex",
         "fx",
-        "grok-build",
+        "grok",
         "hermes",
-        "muse-code",
+        "muse",
         "openclaw",
         "opencode",
         "pi",
@@ -110,15 +116,15 @@ describe("harness catalog", () => {
       }
     });
 
-    it("names a bypass-permissions flag for claude and antigravity-cli and leaves it off elsewhere", () => {
+    it("names a bypass-permissions flag for claude and antigravity and leaves it off elsewhere", () => {
       const byId = new Map(HARNESS_CATALOG.map((h) => [h.id, h]));
       expect(byId.get("claude")!.bypassPermissionsFlag).toBe("--permission-mode bypassPermissions");
-      expect(byId.get("antigravity-cli")!.bypassPermissionsFlag).toBe("--dangerously-skip-permissions");
+      expect(byId.get("antigravity")!.bypassPermissionsFlag).toBe("--dangerously-skip-permissions");
       expect(byId.get("codex")!.bypassPermissionsFlag).toBeUndefined();
       expect(harnessLaunchCommand(byId.get("claude")!)).toBe(
         "claude --permission-mode bypassPermissions",
       );
-      expect(harnessLaunchCommand(byId.get("antigravity-cli")!)).toBe(
+      expect(harnessLaunchCommand(byId.get("antigravity")!)).toBe(
         "agy --dangerously-skip-permissions",
       );
       expect(harnessLaunchCommand(byId.get("codex")!)).toBe("codex");
@@ -160,8 +166,8 @@ describe("harness catalog", () => {
       },
     );
 
-    it("keeps the grok-build pin in the catalog, now that the Dockerfile has none", () => {
-      const grok = findHarness("grok-build");
+    it("keeps the grok pin in the catalog, now that the Dockerfile has none", () => {
+      const grok = findHarness("grok");
       expect(versionPins(grok!.installArgv)).toEqual(["0.2.39"]);
       expect(DOCKERFILE).not.toContain("bash -s 0.2.39");
     });
@@ -273,7 +279,7 @@ describe("harness catalog", () => {
 
   it("findHarness resolves known ids and rejects unknown ones", () => {
     expect(findHarness("opencode")?.id).toBe("opencode");
-    expect(findHarness("grok-build")?.title).toBe("Grok Build");
+    expect(findHarness("grok")?.title).toBe("Grok Build");
     expect(findHarness("nope")).toBeUndefined();
   });
 
@@ -282,6 +288,18 @@ describe("harness catalog", () => {
     expect(findHarness("claude-code")).toBe(findHarness("claude"));
     expect(harnessIds()).toContain("claude");
     expect(harnessIds()).not.toContain("claude-code");
+  });
+
+  it.each([
+    ["grok-build", "grok"],
+    ["agy", "antigravity"],
+    ["antigravity-cli", "antigravity"],
+    ["muse-code", "muse"],
+  ])("resolves the supported name %s to the canonical %s entry", (alias, canonical) => {
+    expect(findHarness(alias)?.id).toBe(canonical);
+    expect(findHarness(alias)).toBe(findHarness(canonical));
+    expect(harnessIds()).toContain(canonical);
+    expect(harnessIds()).not.toContain(alias);
   });
 
   it("registers fx with a home-local installer and version verification", () => {
@@ -319,7 +337,7 @@ describe("harness catalog", () => {
   });
 
   it("registers Muse with a home-local native installer and version verification", () => {
-    const muse = findHarness("muse-code")!;
+    const muse = findHarness("muse")!;
     expect(muse).toMatchObject({
       title: "Muse Code", binary: "muse", kind: "installable",
       installUser: "sandbox", verifyArgv: ["muse", "--version"],
@@ -345,10 +363,10 @@ describe("prefix token and resolvers", () => {
     ["pi", ["npm", "--prefix", "/home/sandbox/.local", "install", "-g", "--ignore-scripts", "@earendil-works/pi-coding-agent"]],
     ["opencode", ["npm", "--prefix", "/home/sandbox/.local", "install", "-g", "opencode-ai"]],
     ["openclaw", ["npm", "--prefix", "/home/sandbox/.local", "install", "-g", "--allow-scripts=openclaw", "openclaw@2026.9.9"]],
-    ["grok-build", ["bash", "-lc", expandSandboxHome("curl -fsSL https://x.ai/cli/install.sh | GROK_BIN_DIR=\"$HOME/.local/bin\" bash -s 0.2.39 && rm -f \"$HOME/.local/bin/agent\"")]],
+    ["grok", ["bash", "-lc", expandSandboxHome("curl -fsSL https://x.ai/cli/install.sh | GROK_BIN_DIR=\"$HOME/.local/bin\" bash -s 0.2.39 && rm -f \"$HOME/.local/bin/agent\"")]],
     ["hermes", ["bash", "-lc", expandSandboxHome("curl -fsSL https://hermes-agent.nousresearch.com/install.sh | HERMES_INSTALL_DIR=\"$HOME/.local/lib/hermes-agent\" bash -s -- --skip-setup --skip-browser && \"$HOME/.local/bin/hermes\" pm install --extra slack --extra teams")]],
-    ["muse-code", ["bash", "-lc", expandSandboxHome("set -o pipefail; curl -fsSL https://dev.meta.ai/install.sh | MUSE_INSTALL_DIR=\"$HOME/.local/bin\" MUSE_NO_MODIFY_PATH=1 MUSE_LOGIN=0 bash")]],
-    ["antigravity-cli", ["bash", "-lc", expandSandboxHome("set -o pipefail; curl -fsSL https://antigravity.google/cli/install.sh | gzip -cdf | bash -s -- --dir \"$HOME/.local/bin\"")]],
+    ["muse", ["bash", "-lc", expandSandboxHome("set -o pipefail; curl -fsSL https://dev.meta.ai/install.sh | MUSE_INSTALL_DIR=\"$HOME/.local/bin\" MUSE_NO_MODIFY_PATH=1 MUSE_LOGIN=0 bash")]],
+    ["antigravity", ["bash", "-lc", expandSandboxHome("set -o pipefail; curl -fsSL https://antigravity.google/cli/install.sh | gzip -cdf | bash -s -- --dir \"$HOME/.local/bin\"")]],
     ["fx", ["bash", "-lc", expandSandboxHome("set -o pipefail; curl -fsSL https://fx.sh/setup.sh | FX_INSTALL_DIR=\"$HOME/.local/bin\" bash -s v0.0.13")]],
     ["prime-agent", ["bash", "-lc", expandSandboxHome("set -o pipefail; curl -fsSL https://app.primeintellect.ai/prime-agent/install.sh | PRIME_AGENT_VERSION=0.10.0 PRIME_AGENT_RUST_PREFIX=\"$HOME/.local\" PRIME_AGENT_UV_BIN_DIR=\"$HOME/.local/bin\" sh")]],
     ["t3code", ["npx", "--yes", "t3", "--version"]],
@@ -379,7 +397,7 @@ describe("prefix token and resolvers", () => {
     }
   });
 
-  it.each(["grok-build", "hermes", "muse-code", "antigravity-cli", "fx", "prime-agent"])(
+  it.each(["grok", "hermes", "muse", "antigravity", "fx", "prime-agent"])(
     "%s: resolves to a host prefix with no sandbox path and no shell home left",
     (id) => {
       const argv = resolveInstallArgv(findHarness(id)!, "/home/me/.agro").join("\n");

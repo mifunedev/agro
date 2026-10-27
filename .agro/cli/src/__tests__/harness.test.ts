@@ -270,6 +270,21 @@ describe("the deprecated claude-code alias", () => {
     expect(text(err)).not.toContain("deprecated alias");
   });
 
+  it.each([
+    ["grok-build", "grok", "Grok Build"],
+    ["agy", "antigravity", "Antigravity CLI"],
+    ["antigravity-cli", "antigravity", "Antigravity CLI"],
+    ["muse-code", "muse", "Muse Code"],
+  ])("installs %s as the canonical %s entry with no deprecation line", async (alias, canonical, title) => {
+    const root = makeRepo();
+    const { calls, run } = makeRunner();
+    const { io, out, err } = makeIo();
+    expect(await runHarnessInstall(alias, { bin: "agro", cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(err).toEqual([]);
+    expect(text(out)).toContain(title);
+    expect(calls.some((c) => c.cmd === "sh" && c.args.at(-1)?.endsWith(`/${canonical}.installed`))).toBe(true);
+  });
+
   it("stays out of list and list --json", async () => {
     const root = makeRepo();
     const table = makeIo();
@@ -373,6 +388,29 @@ describe("agro harness — inside the sandbox", () => {
     expect(await runHarnessUninstall("claude", { bin: "agro", cwd: root, run, env: INSIDE }, makeIo().io)).toBe(0);
     expect(removed(calls, "claude.installed")).toBe(true);
     expect(removed(calls, "claude-code.installed")).toBe(true);
+  });
+
+  it("updates muse when only the muse-code marker exists and retires that marker", async () => {
+    const root = makeRepo();
+    const { calls, run } = makeRunner((cmd, args) =>
+      cmd === "test" && args.includes(`${MARKERS}/muse.installed`)
+        ? { status: 1, stdout: "", stderr: "" }
+        : undefined,
+    );
+    const { io, out } = makeIo();
+    expect(await runHarnessInstall("muse", { bin: "agro", cwd: root, run, env: INSIDE }, io)).toBe(0);
+    expect(text(out)).toContain("updating Muse Code in the sandbox…");
+    expect(touched(calls, "muse.installed")).toBe(true);
+    expect(removed(calls, "muse-code.installed")).toBe(true);
+  });
+
+  it("clears every antigravity alias marker on a sandbox uninstall", async () => {
+    const root = makeRepo();
+    const { calls, run } = makeRunner();
+    expect(await runHarnessUninstall("antigravity", { bin: "agro", cwd: root, run, env: INSIDE }, makeIo().io)).toBe(0);
+    expect(removed(calls, "antigravity.installed")).toBe(true);
+    expect(removed(calls, "antigravity-cli.installed")).toBe(true);
+    expect(removed(calls, "agy.installed")).toBe(true);
   });
 
   it("touches only its own marker for a harness with no alias", async () => {

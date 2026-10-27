@@ -1,7 +1,7 @@
 import { messageOf } from "./execution/runner.js";
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
-import { DEPRECATED_HARNESS_ALIASES } from "./harnesses/catalog.js";
+import { HARNESS_ALIASES } from "./harnesses/catalog.js";
 import { resolveUserStateHome } from "./layout.js";
 import { SANDBOX_NAME_PATTERN } from "./registry.js";
 
@@ -164,7 +164,7 @@ export function readHostConfig(env: NodeJS.ProcessEnv, home: string): HostConfig
 function withCanonicalHarnessIds(config: HostConfig): HostConfig {
   if (config.hostHarnesses === undefined) return config;
   const harnesses = { ...config.hostHarnesses };
-  for (const [alias, canonical] of Object.entries(DEPRECATED_HARNESS_ALIASES)) {
+  for (const [alias, { canonical }] of Object.entries(HARNESS_ALIASES)) {
     if (!Object.hasOwn(harnesses, alias)) continue;
     harnesses[canonical] ??= harnesses[alias];
     delete harnesses[alias];
