@@ -17,13 +17,14 @@
         "`pnpm run typecheck` exits 0. `pnpm test:scripts` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated ff at 1a31b1cd. C1-C2 reasoned: diff shows runningInsideSandbox() as first statement in runDestroy and in runComposeVerb for HOST_ONLY_COMPOSE_VERBS stop/restart/destroy. C3 executed: lifecycle tests assert exact HostOnlyError message, return 1, 0 runner calls. C4 executed: ps and logs tests return 0 with one runner call. C5 executed: worker reported 4 red before, 8 green after; #1531 test uses agro-sbx-1525-capture. C6 executed: pnpm run typecheck exit 0; lifecycle.test.ts 122 passed on integrated branch.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/commands/lifecycle.ts",
         ".agro/cli/src/__tests__/lifecycle.test.ts"
-      ]
+      ],
+      "commit": "1a31b1cd"
     },
     {
       "id": "US-002",
@@ -61,13 +62,14 @@
         "`bash .agro/scripts/link-providers.sh --check` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated by cherry-pick as a42e3c95. C1-C3 reasoned: diff adds Execution location row (marker /etc/agro/sandbox, or /.dockerenv plus SANDBOX_NAME), worker-brief rule against host-only verbs in a sandbox, Waves rule against parallel calls that change directory. C4 reasoned: git SKILL.md PR Bodies rule reserves fork run approval for the operator. C5 executed: worker ran ste-check on both files, no findings before and after. C6 executed: link-providers.sh --check prints Providers OK on integrated branch.",
       "dependsOn": [],
       "files": [
         ".agro/skills/delegate/SKILL.md",
         ".agro/skills/git/SKILL.md"
-      ]
+      ],
+      "commit": "a42e3c958d668a885d6eec920072b754574867b3"
     },
     {
       "id": "US-004",
