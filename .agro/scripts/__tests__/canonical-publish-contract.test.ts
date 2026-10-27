@@ -120,7 +120,7 @@ describe("canonical publish-cli contract", () => {
   it("keeps image publication before CLI publication", () => {
     expect(release).toMatch(/publish-cli:\n[\s\S]*?needs: \[reserve, publish-image\]/);
     expect(release).toContain("uses: ./.github/workflows/publish-cli.yml");
-    expect(release).not.toMatch(/publish-cli:[\s\S]*?continue-on-error:/);
+    expect(release).not.toMatch(/\n  publish-cli:\n(?:(?:    |\s*\n)[^\n]*\n)*?    continue-on-error:/);
   });
 
   it("exposes the agro guard and publish run bodies and no legacy npm bodies", () => {
