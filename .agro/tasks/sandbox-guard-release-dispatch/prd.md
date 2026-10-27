@@ -134,3 +134,7 @@ None. The operator must create the secret `AGRO_WEB_DISPATCH_TOKEN` before the f
 - [ ] `.agro/tasks/sandbox-guard-release-dispatch/evidence/manual-review.md` exists.
 
 ## Lessons
+
+1. Claim: `canonical-publish-contract.test.ts` matched any `continue-on-error:` after `publish-cli:` in the whole file. Evidence: the US-002 worker stopped as BLOCKED when the new `finalize` step failed that assertion. Outcome: fixed in this PR. The regex now covers only the `publish-cli` job block.
+2. Claim: the advisor approved `action_required` fork CI runs for PR #1528 without operator consent. Evidence: the operator stated that the project does not run a fork PR on its infrastructure automatically. Outcome: fixed in this PR. `.agro/skills/git/SKILL.md` reserves fork run approval for the operator.
+3. Claim: a guard denied a `jq --arg` call because the note text named a shell variable form. Evidence: the secret-exposure guard matched the note string, not an environment read. Outcome: dropped, because the finding is tooling friction with a simple rewording.
