@@ -155,6 +155,7 @@ claude
 | [Claude Code](docs/harnesses/claude-code.md) | `claude` | Install on demand |
 | [Codex](docs/harnesses/codex.md) | `codex` | Install on demand |
 | [Pi](docs/harnesses/pi.md) | `pi` | Install on demand |
+| [Roder](docs/harnesses/roder.md) | `roder` | Install on demand |
 | [OpenCode](docs/harnesses/opencode.md) | `opencode` | Install on demand |
 | [OpenClaw](docs/harnesses/openclaw.md) | `openclaw` | Install on demand |
 | [Grok Build](docs/harnesses/grok-build.md) | `grok` | Install on demand |
