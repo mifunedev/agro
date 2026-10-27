@@ -40,14 +40,15 @@
         "`pnpm test:scripts` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated by cherry-pick as eb62afac (worker ef335820). Owned paths extended by the advisor to canonical-publish-contract.test.ts, whose whole-file regex blocked any later continue-on-error; the assertion now covers only the publish-cli job. C1-C5 executed: release-dispatch.test.ts asserts the last step name, POST dispatches, event_type agro-release, the v-prefixed release version ref, secret AGRO_WEB_DISPATCH_TOKEN, empty-token warning with exit 0, and continue-on-error true. C6 reasoned: Unreleased Changed and Fixed entries link #1536 and #1531. C7 executed: pnpm test:scripts exit 0 (112 files, 2808 passed) and build:harness exit 0 on the integrated branch.",
       "dependsOn": [],
       "files": [
         ".github/workflows/release.yml",
         ".agro/scripts/__tests__/release-dispatch.test.ts",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "eb62afac"
     },
     {
       "id": "US-003",
