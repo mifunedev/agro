@@ -115,7 +115,7 @@ if _agro_has_binary opencode; then
 fi
 
 grok_status="$status_x"
-grok_detail="not installed — run: ${cli_bin} harness install grok-build"
+grok_detail="not installed — run: ${cli_bin} harness install grok"
 if _agro_has_binary grok; then
   if [ -s "${HOME}/.grok/auth.json" ]; then
     grok_status="$status_ok"
@@ -130,7 +130,7 @@ if _agro_has_binary grok; then
 fi
 
 antigravity_status="$status_x"
-antigravity_detail="not installed — run: ${cli_bin} harness install antigravity-cli"
+antigravity_detail="not installed — run: ${cli_bin} harness install antigravity"
 if _agro_has_binary agy; then
   antigravity_status="$status_ok"
   antigravity_detail="installed — run: agy"

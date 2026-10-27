@@ -14,6 +14,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 - Rename the Claude Code harness id from `claude-code` to `claude`. `claude-code` stays a deprecated alias until 0.29.0, which removes that alias ([#1525](https://github.com/mifunedev/agro/issues/1525)).
+- Make `grok`, `antigravity`, and `muse` the canonical harness ids. `grok-build`, `agy`, `antigravity-cli`, and `muse-code` stay supported names and print no warning ([#1529](https://github.com/mifunedev/agro/issues/1529)).
 
 ### Fixed
 

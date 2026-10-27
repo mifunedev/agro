@@ -157,10 +157,10 @@ claude
 | [Pi](docs/harnesses/pi.md) | `pi` | Install on demand |
 | [OpenCode](docs/harnesses/opencode.md) | `opencode` | Install on demand |
 | [OpenClaw](docs/harnesses/openclaw.md) | `openclaw` | Install on demand |
-| [Grok Build](docs/harnesses/grok-build.md) | `grok-build` | Install on demand |
+| [Grok Build](docs/harnesses/grok-build.md) | `grok` | Install on demand |
 | [Hermes](docs/harnesses/hermes.md) | `hermes` | Install on demand |
-| [Muse Code](docs/harnesses/muse-code.md) | `muse-code` | Install on demand |
-| [Antigravity CLI](docs/harnesses/antigravity-cli.md) | `antigravity-cli` | Install on demand |
+| [Muse Code](docs/harnesses/muse-code.md) | `muse` | Install on demand |
+| [Antigravity CLI](docs/harnesses/antigravity-cli.md) | `antigravity` | Install on demand |
 | [fx](docs/harnesses/fx.md) | `fx` | Install on demand |
 | [Prime Agent](docs/harnesses/prime-agent.md) | `prime-agent` | Install on demand |
 | [T3 Code](docs/harnesses/t3code.md) | `t3code` | Run on demand via `npx` |

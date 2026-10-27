@@ -127,7 +127,7 @@ describe.each(shells)("interactive %s banner harness detection", (_name, shell) 
 
   it("reports an alias-only harness as not installed", () => {
     expect(onboardingLine(output, "codex")).toBe("[✗] codex not installed — run: agro harness install codex");
-    expect(onboardingLine(output, "agy")).toBe("[✗] agy not installed — run: agro harness install antigravity-cli");
+    expect(onboardingLine(output, "agy")).toBe("[✗] agy not installed — run: agro harness install antigravity");
   });
 
   it("reports a function-only harness as not installed", () => {

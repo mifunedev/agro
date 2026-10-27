@@ -9,8 +9,10 @@ Grok Build is xAI's terminal coding agent, shipped as the `grok` CLI. AGRO insta
 ## Install
 
 ```bash
-agro harness install grok-build
+agro harness install grok
 ```
+
+Each `agro harness` verb also accepts `grok-build` as a supported name for Grok Build.
 
 Nothing installs Grok Build at boot, and no configuration key selects it. See [Harnesses Overview](./overview.md#installing-a-harness) for what the verb does and what happens when the sandbox is not running.
 
@@ -29,7 +31,7 @@ grok --version
 ## Uninstall
 
 ```bash
-agro harness uninstall grok-build
+agro harness uninstall grok
 ```
 
 ## Authentication

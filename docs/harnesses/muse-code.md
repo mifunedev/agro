@@ -9,10 +9,12 @@ Muse Code is Meta's terminal coding agent. AGRO installs the native `muse` CLI t
 ## Install and verify
 
 ```bash
-agro harness install muse-code
+agro harness install muse
 muse --version
-agro harness status muse-code
+agro harness status muse
 ```
+
+Each `agro harness` verb also accepts `muse-code` as a supported name for Muse Code.
 
 Installation runs as `sandbox` and writes into `~/.local/bin` in the persistent home volume. Repeated installation skips the installer when `muse --version` succeeds.
 
@@ -21,7 +23,7 @@ Installation runs as `sandbox` and writes into `~/.local/bin` in the persistent 
 ## Uninstall
 
 ```bash
-agro harness uninstall muse-code
+agro harness uninstall muse
 ```
 
 The command removes `~/.local/bin/muse` and its versioned binaries and metadata, through the same host/sandbox resolution every other harness uses. See [Harnesses Overview → Removing a harness](./overview.md#removing-a-harness).

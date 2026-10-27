@@ -9,8 +9,10 @@ Antigravity CLI is Google's terminal coding agent, shipped as the `agy` binary. 
 ## Install
 
 ```bash
-agro harness install antigravity-cli
+agro harness install antigravity
 ```
+
+Each `agro harness` verb also accepts `agy` and `antigravity-cli` as supported names for Antigravity CLI.
 
 Nothing installs Antigravity CLI at boot, and no configuration key selects it. See [Harnesses Overview](./overview.md#installing-a-harness) for what the verb does and what happens when the sandbox is not running.
 
@@ -33,7 +35,7 @@ agy --version
 ## Uninstall
 
 ```bash
-agro harness uninstall antigravity-cli
+agro harness uninstall antigravity
 ```
 
 ## Authentication
@@ -47,7 +49,7 @@ AGRO has not verified:
 
 - how Antigravity CLI stores or persists credentials inside the sandbox
 - whether skill discovery works across AGRO's directory-per-skill layout
-- login end to end through `agro harness install antigravity-cli`
+- login end to end through `agro harness install antigravity`
 
 Treat each item as pending, not as supported behavior.
 :::
@@ -78,7 +80,7 @@ Run interactive sessions in Herdr so the terminal survives a disconnect.
 Docker is the isolation boundary in AGRO, so Antigravity CLI runs in zero-confirmation mode by default inside the sandbox:
 
 - The sandbox shell alias defines `alias agy='agy --dangerously-skip-permissions'`.
-- `agro harness install antigravity-cli` prints the launch line with `--dangerously-skip-permissions`.
+- `agro harness install antigravity` prints the launch line with `--dangerously-skip-permissions`.
 - Sandbox provisioning pre-seeds `~/.gemini/antigravity-cli/settings.json` with `{"defaultPermissionMode": "bypassPermissions"}`.
 
 This lets unattended tasks run with no interactive prompt blocks.

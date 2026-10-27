@@ -84,9 +84,9 @@ Each catalog entry has a `kind`. `installable` harnesses install through the ver
 | [Pi](./pi.md) | Lightweight, customizable agent | `pi` | `agro harness install pi` |
 | [Hermes](./hermes.md) | Nous Research's self-improving terminal agent | `hermes` | `agro harness install hermes` |
 | [OpenClaw](./openclaw.md) | Gateway-first personal agent runtime | `OPENCLAW_STATE_DIR=<target-root>/.openclaw openclaw` | `agro harness install openclaw` |
-| [Grok Build](./grok-build.md) | xAI's terminal coding agent | `grok` | `agro harness install grok-build` |
-| [Muse Code](./muse-code.md) | Meta's terminal coding agent | `muse` | `agro harness install muse-code` |
-| [Antigravity CLI](./antigravity-cli.md) | Google's terminal coding agent | `agy` | `agro harness install antigravity-cli` |
+| [Grok Build](./grok-build.md) | xAI's terminal coding agent | `grok` | `agro harness install grok` |
+| [Muse Code](./muse-code.md) | Meta's terminal coding agent | `muse` | `agro harness install muse` |
+| [Antigravity CLI](./antigravity-cli.md) | Google's terminal coding agent | `agy` | `agro harness install antigravity` |
 | [fx](./fx.md) | Vercel Labs' native coding agent (experimental) | `fx` | `agro harness install fx` |
 | [Prime Agent](./prime-agent.md) | Prime Intellect's coding agent | `prime-agent` | `agro harness install prime-agent` |
 | [T3 Code](./t3code.md) | Browser UI over Claude/Codex/OpenCode (port 3773) | `/t3` or `npx t3` | on demand, no install |
