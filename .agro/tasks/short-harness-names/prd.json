@@ -20,8 +20,8 @@
         "`pnpm run typecheck` exits 0. `pnpm test:scripts` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Integrated ff at 17308c88. pnpm run typecheck exit 0; pnpm test:scripts exit 0 (110 files, 2785 passed). C1 executed: id-list test expects antigravity, grok, muse. C2 reasoned: diff shows one HARNESS_ALIASES map, only claude-code has removedIn 0.29.0; old exports deleted. C3 executed: catalog test resolves each alias; harnessIds excludes aliases. C4 executed: harness.test \"installs %s as the canonical %s entry with no deprecation line\" for 4 aliases. C5 executed: existing claude-code deprecation tests pass. C6 executed: host-config \"moves a muse-code receipt to muse\"; marker tests for muse-code and antigravity aliases. C7 executed: docs-path test maps short ids to unchanged doc files. C8 executed: worker reported 4 red before change, green after. C9 executed: see above.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/harnesses/catalog.ts",
@@ -30,7 +30,8 @@
         ".agro/cli/src/__tests__/harness-catalog.test.ts",
         ".agro/cli/src/__tests__/harness.test.ts",
         ".agro/cli/src/lib/__tests__/host-config.test.ts"
-      ]
+      ],
+      "commit": "17308c8849be3a781365e5ba1c368183e7a3b0d7"
     },
     {
       "id": "US-002",
