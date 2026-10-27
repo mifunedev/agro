@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1536-sandbox-guard-release-dispatch",
+  "description": "Refuse destroy, stop, and restart inside a sandbox (#1531), send the agro-release dispatch to agro-web after each release, and add execution location, directory, and fork CI rules to the delegate and git procedures.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Refuse `destroy`, `stop`, and `restart` inside a sandbox",
+      "description": "As an operator, I want the guarded lifecycle verbs to refuse inside a sandbox so that an agent cannot wipe its own sandbox.",
+      "acceptanceCriteria": [
+        "`runDestroy` in `.agro/cli/src/commands/lifecycle.ts` checks `runningInsideSandbox()` before `routeVerb`, the confirmation prompt, and any runner call.",
+        "`runComposeVerb` checks `runningInsideSandbox()` before `routeVerb` for the verbs `stop`, `restart`, and `destroy`.",
+        "Inside a sandbox, each of the three verbs writes `` `agro <verb>` manages the sandbox container from the host — you are already inside the sandbox. Run it on the host, at the project root. `` to stderr through `HostOnlyError`, returns 1, and makes 0 runner calls.",
+        "`agro ps` and `agro logs` keep their current behavior inside a sandbox.",
+        "Red tests in `.agro/cli/src/__tests__/lifecycle.test.ts` fail before the change and pass after the change. The destroy test reproduces #1531: `runDestroy({ bin: \"agro\", yes: true, name: \"agro-sbx-1525-capture\", ... })` inside a sandbox makes no runner call.",
+        "`pnpm run typecheck` exits 0. `pnpm test:scripts` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/commands/lifecycle.ts",
+        ".agro/cli/src/__tests__/lifecycle.test.ts"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Send the `agro-release` dispatch to agro-web after each release",
+      "description": "As an operator, I want each AGRO release to trigger the agro-web docs sync so that the site shows the released docs.",
+      "acceptanceCriteria": [
+        "The `finalize` job in `.github/workflows/release.yml` ends with a step named `Notify agro-web of the release`.",
+        "The step sends `POST repos/mifunedev/agro-web/dispatches` with `event_type` `agro-release` and `client_payload.ref` equal to `v${{ needs.reserve.outputs.releaseVersion }}`.",
+        "The step reads the token from the secret `AGRO_WEB_DISPATCH_TOKEN`. The step prints a `::warning::` and exits 0 when the secret is empty.",
+        "A failed dispatch does not fail the release run: the step sets `continue-on-error: true` and prints a `::warning::` with the HTTP status.",
+        "A test in `.agro/scripts/__tests__/` asserts the step name, its position as the last step of `finalize`, the event type, the ref expression, and the secret name.",
+        "`CHANGELOG.md` `## [Unreleased]` holds an entry for the dispatch and for the US-001 guard.",
+        "`pnpm test:scripts` exits 0."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".github/workflows/release.yml",
+        ".agro/scripts/__tests__/release-dispatch.test.ts",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Add execution location, directory, and fork CI rules to the procedures",
+      "description": "As the operator, I want the procedures to state where each worker runs and who approves fork CI. Then no agent acts on infrastructure without consent.",
+      "acceptanceCriteria": [
+        "The `## Dispatch record` table in `.agro/skills/delegate/SKILL.md` holds an `Execution location` row: `host` or `sandbox`. The advisor decides the value with `/etc/agro/sandbox`, or with `/.dockerenv` plus a non-empty `SANDBOX_NAME`.",
+        "The `## Worker brief` list holds a rule: in a sandbox, never run `agro sandbox`, `agro destroy`, `agro stop`, `agro restart`, or raw `docker compose` for the current project.",
+        "The `## Waves` section holds a rule: the advisor never sends parallel shell calls that change the working directory. Each parallel call uses absolute paths, for example `git -C <path>`.",
+        "`.agro/skills/git/SKILL.md` holds a rule for pull requests from a fork: an agent never approves an `action_required` workflow run, for example with `gh api repos/<owner>/<repo>/actions/runs/<id>/approve`. Only the operator approves a fork run. The agent verifies the fork change locally in the sandbox instead.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/delegate/SKILL.md .agro/skills/git/SKILL.md` reports no finding on a changed line.",
+        "`bash .agro/scripts/link-providers.sh --check` exits 0."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/delegate/SKILL.md",
+        ".agro/skills/git/SKILL.md"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Record the manual review evidence",
+      "description": "As the advisor, I want test and workflow evidence for the three changes so that the PR `## Manual review` section shows the observed behavior.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/sandbox-guard-release-dispatch/evidence/manual-review.md` holds the command and output of the US-001 lifecycle tests and the US-002 workflow test.",
+        "The transcript holds the `git diff` of the US-003 skill change.",
+        "The advisor runs no `destroy`, `stop`, or `restart` command in the sandbox. A failed guard would stop the live sandbox, so the unit tests carry the proof."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".agro/tasks/sandbox-guard-release-dispatch/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
