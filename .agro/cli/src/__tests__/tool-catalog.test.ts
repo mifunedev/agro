@@ -96,6 +96,7 @@ describe("tool catalog shape", () => {
     for (const [id, body] of scripts) {
       expect(body, id).toContain("NPM_USER_PREFIX");
       expect(body, id).toContain("sha256sum -c -");
+      expect(body, id).not.toContain("refs/heads/");
     }
   });
 

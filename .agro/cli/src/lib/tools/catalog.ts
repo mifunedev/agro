@@ -208,11 +208,11 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
       "-lc",
       [
         "set -e",
-        "sha=767df6954e09fec9bf8276cc2858fc9038024b3a22fa4740572620370eb719f4",
+        "sha=800af0b3ee6343f25a8f4bb95e1b7cc300cf08812a47aaad4c9fa6e577032be7",
         'prefix="${NPM_USER_PREFIX:-$HOME/.local}"',
         'tmp="$(mktemp -d)"',
         "trap 'rm -rf \"$tmp\"' EXIT",
-        'curl -fsSL "https://raw.githubusercontent.com/superradcompany/microsandbox/refs/heads/main/scripts/install.sh" -o "$tmp/install-msb.sh"',
+        'curl -fsSL "https://raw.githubusercontent.com/superradcompany/microsandbox/4d3fde83546dcbcb2634581a819ff06bca3c4ba5/scripts/install.sh" -o "$tmp/install-msb.sh"',
         'echo "$sha  $tmp/install-msb.sh" | sha256sum -c -',
         'MSB_HOME="$prefix/microsandbox" sh "$tmp/install-msb.sh"',
         '"$prefix/bin/msb" --version >/dev/null',

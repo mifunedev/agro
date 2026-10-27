@@ -18,6 +18,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Fixed
 
+- Pin the microsandbox installer to an immutable upstream commit so `agro tool install microsandbox` passes its checksum again ([#1532](https://github.com/mifunedev/agro/issues/1532)).
 - Stop the secret-exposure guard from denying commands whose quoted prose or patterns mention env dumps or env files ([#1520](https://github.com/mifunedev/agro/pull/1520)).
 - Make the `docker-engine` and `desktop` host installs wait for the dpkg lock and retry `apt-get update` instead of failing while another apt process runs ([#1521](https://github.com/mifunedev/agro/issues/1521)).
 
