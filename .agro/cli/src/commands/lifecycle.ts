@@ -271,11 +271,21 @@ export function composeVerbs(): ComposeVerb[] {
   return Object.keys(COMPOSE_VERBS) as ComposeVerb[];
 }
 
+const HOST_ONLY_COMPOSE_VERBS: ReadonlySet<ComposeVerb> = new Set(["stop", "restart", "destroy"]);
+
+function hostOnlyRefusal(bin: string, verb: string): string {
+  return `${new HostOnlyError(`\`${bin} ${verb}\``).message}\n`;
+}
+
 export function runComposeVerb(
   verb: ComposeVerb,
   opts: SandboxTargetOptions,
   extra: string[] = [],
 ): number {
+  if (HOST_ONLY_COMPOSE_VERBS.has(verb) && runningInsideSandbox()) {
+    process.stderr.write(hostOnlyRefusal(opts.bin, verb));
+    return 1;
+  }
   const run = opts.run ?? spawnRunner;
   const root = sandboxRoot(opts);
   routeVerb(root, verb, sandboxName(root));
@@ -341,6 +351,10 @@ async function destroyThroughTarget(root: string, name: string, run: LifecycleRu
 }
 
 export async function runDestroy(opts: DestroyOptions, io: LifecycleIO): Promise<number> {
+  if (runningInsideSandbox()) {
+    io.stderr(hostOnlyRefusal(opts.bin, "destroy"));
+    return 1;
+  }
   const root = sandboxRoot(opts);
   const name = destroyConfirmationPhrase(root);
   const { via } = routeVerb(root, "destroy", name);

@@ -20,6 +20,8 @@ vi.mock("node:os", async (importOriginal) => {
 });
 import { dirname, join } from "node:path";
 import {
+  runComposeVerb,
+  runDestroy,
   runGateway,
   runSandbox,
   runShell,
@@ -1029,6 +1031,54 @@ describe("lifecycle inside the sandbox", () => {
     const { calls, run } = makeRunner();
     expect(runShell({ bin: "agro", ...entry, run }, makeIo().io)).toBe(0);
     expect(calls[0].cmd).toBe("zsh");
+  });
+
+  const hostOnlyRefusal = (verb: string): string =>
+    `\`agro ${verb}\` manages the sandbox container from the host — you are already inside the sandbox. Run it on the host, at the project root.\n`;
+
+  function captureStderr(): { text: () => string } {
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    return { text: () => spy.mock.calls.map((c) => String(c[0])).join("") };
+  }
+
+  it("refuses to destroy a sandbox from inside a sandbox (#1531)", async () => {
+    vi.stubEnv("AGRO_EXECUTION_TARGET", "local");
+    const home = mkdtempSync(join(tmpdir(), "oh-lifecycle-"));
+    cleanups.push(home);
+    vi.stubEnv("AGRO_HOME", home);
+    const root = join(home, "sandboxes", "agro-sbx-1525-capture");
+    mkdirSync(join(root, ".agro", "scripts"), { recursive: true });
+    addScript(root, "docker-compose.sh");
+    const { calls, run } = makeRunner();
+    const { io, err } = makeIo();
+    const stderr = captureStderr();
+
+    expect(await runDestroy({ bin: "agro", yes: true, name: "agro-sbx-1525-capture", run }, io)).toBe(1);
+    expect(err.join("") + stderr.text()).toBe(hostOnlyRefusal("destroy"));
+    expect(calls.length).toBe(0);
+  });
+
+  it.each(["stop", "restart", "destroy"] as const)("refuses `%s` from inside a sandbox", (verb) => {
+    vi.stubEnv("AGRO_EXECUTION_TARGET", "local");
+    const root = makeRepo();
+    addScript(root, "docker-compose.sh");
+    const { calls, run } = makeRunner();
+    const stderr = captureStderr();
+
+    expect(runComposeVerb(verb, { bin: "agro", ...entry, run })).toBe(1);
+    expect(stderr.text()).toBe(hostOnlyRefusal(verb));
+    expect(calls.length).toBe(0);
+  });
+
+  it.each(["ps", "logs"] as const)("still runs `%s` from inside a sandbox", (verb) => {
+    vi.stubEnv("AGRO_EXECUTION_TARGET", "local");
+    const root = makeRepo();
+    addScript(root, "docker-compose.sh");
+    const { calls, run } = makeRunner();
+
+    expect(runComposeVerb(verb, { bin: "agro", ...entry, run })).toBe(0);
+    expect(calls.length).toBe(1);
+    expect(calls[0].cmd).toBe("bash");
   });
 });
 
