@@ -92,6 +92,7 @@ Write one record for each story before dispatch. Keep only these fields:
 | Deliverable | One commit on the worker branch |
 | Verification | The commands and checks from `acceptanceCriteria`, with expected results |
 | Execution directory | The absolute path of the worktree |
+| Execution location | `host` or `sandbox`. When `/etc/agro/sandbox` exists, or `/.dockerenv` exists and `SANDBOX_NAME` is not empty, the advisor writes `sandbox` |
 | Model and reason | The requested model, or the provider default, and the reason |
 
 ## Waves
@@ -104,6 +105,8 @@ Write one record for each story before dispatch. Keep only these fields:
    `pnpm install --frozen-lockfile` in that worktree.
 4. Stories with overlapping `files` run in sequence.
 5. Workers stay flat. Workers never spawn workers.
+6. The advisor never sends parallel shell calls that change the working directory.
+   Each parallel call uses absolute paths, for example `git -C <path>`.
 
 A single story can use one worker. Parallelism is not mandatory.
 
@@ -113,6 +116,8 @@ Give each worker the dispatch record, the exclusions, and these rules:
 
 - Edit only the owned write paths. Obey the exclusions.
 - Work only in the execution directory.
+- In a sandbox, never run `agro sandbox`, `agro destroy`, `agro stop`,
+  `agro restart`, or raw `docker compose` for the current project.
 - Report each criterion as one of these:
   - **executed**: the command and exit status.
   - **reasoned**: a one-line argument.

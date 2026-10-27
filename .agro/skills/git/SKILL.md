@@ -73,6 +73,9 @@ Example: `FROM feat/42-slack-thread-replies TO development`
 
 - Link issue: `Closes #<issue#>` (or `Fixes`/`Resolves`) in the PR title or body
 - Target default target branch (`development` → `main` → `master`, whichever exists)
+- Never approve an `action_required` workflow run on a PR from a fork, for example with
+  `gh api repos/<owner>/<repo>/actions/runs/<id>/approve`. Only the operator approves a
+  fork run. Verify the fork change locally in the sandbox instead.
 
 > **`Closes #N` closes the issue on merge into `development` — the workflow does it, not
 > GitHub.** GitHub honors a closing trailer only on merge into the **default** branch. PRs
