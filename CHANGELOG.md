@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-10-26
+
 ### Added
 - Add `/improve [project]` to run a five-lens council on the harness or a project under `projects/` and return one recommendation for the next most meaningful improvement ([#1523](https://github.com/mifunedev/agro/issues/1523)).
 - Add `--profile agro|sandbox`, `--docker`, `--t3`, and `--code-server` to `agro node create` so the CLI can create an agro-profile node with Docker, T3, or code-server ([#1437](https://github.com/mifunedev/agro/issues/1437)).
