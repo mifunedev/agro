@@ -123,3 +123,7 @@ None.
 - [ ] `.agro/tasks/short-harness-names/evidence/manual-review.md` exists.
 
 ## Lessons
+
+1. Claim: the advisor ran two setup commands in parallel with relative `cd` paths, and one command ran in the wrong repository. Evidence: the command created the worktree `feat/82-short-harness-names` inside the AGRO checkout and pushed that branch to `mifunedev/agro`. Outcome: dropped, because the finding is a process observation. The advisor deleted the stray worktree, the local branch, and the remote branch, and restored the plan files.
+2. Claim: `withCanonicalHarnessIds` keeps the first alias receipt when two aliases of one id hold receipts. Evidence: the review found that `agy` wins over `antigravity-cli` by map order. Outcome: dropped, because no AGRO release recorded a receipt under `agy`.
+3. Claim: `.agro/skills/behavioral-training/scripts/lib/inventory.mjs` keeps the old ids. Evidence: the list matches Langfuse trace source names. Outcome: dropped, because the plan puts the trace source list out of scope.
