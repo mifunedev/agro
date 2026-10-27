@@ -76,15 +76,16 @@
         "The advisor creates no live resource and runs no lifecycle verb."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor-run. C1 executed: pnpm run build:harness exit 0. C2 executed: harness list exit 0 shows grok, antigravity, muse. C3 executed: status grok-build, agy, antigravity-cli, muse-code each exit 0 with canonical row and no deprecation line. C4 executed: status claude-code exit 0 with deprecation line. C5 executed: no live resource and no lifecycle verb.",
       "dependsOn": [
         "US-001",
         "US-002"
       ],
       "files": [
         ".agro/tasks/short-harness-names/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "491ec1fb02342da09f7085733fffba805f63e896"
     }
   ],
   "pr": 1530
