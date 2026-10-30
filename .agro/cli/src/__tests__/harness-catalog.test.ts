@@ -386,7 +386,7 @@ describe("prefix token and resolvers", () => {
     ["antigravity", ["bash", "-lc", expandSandboxHome("set -o pipefail; curl -fsSL https://antigravity.google/cli/install.sh | gzip -cdf | bash -s -- --dir \"$HOME/.local/bin\"")]],
     ["fx", ["bash", "-lc", expandSandboxHome("set -o pipefail; curl -fsSL https://fx.sh/setup.sh | FX_INSTALL_DIR=\"$HOME/.local/bin\" bash -s v0.0.13")]],
     ["prime-agent", ["bash", "-lc", expandSandboxHome("set -o pipefail; curl -fsSL https://app.primeintellect.ai/prime-agent/install.sh | PRIME_AGENT_VERSION=0.10.0 PRIME_AGENT_RUST_PREFIX=\"$HOME/.local\" PRIME_AGENT_UV_BIN_DIR=\"$HOME/.local/bin\" sh")]],
-    ["t3code", ["npx", "--yes", "t3", "--version"]],
+    ["t3code", ["npx", "--yes", "t3@latest", "--version"]],
   ];
 
   const HOST_PREFIX = "/home/me/.agro/.local";

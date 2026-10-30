@@ -17,7 +17,7 @@ Both processes follow the sandbox tmux convention (see
 | Session | Process | Log |
 | --- | --- | --- |
 | `agent-tailscaled` | `tailscaled` in userspace-networking mode | `/tmp/agent-tailscaled.log` |
-| `agent-t3code` | `npx --yes t3 serve --tailscale-serve` | `/tmp/agent-t3code.log` |
+| `agent-t3code` | `npx --yes t3@latest serve` | `/tmp/agent-t3code.log` |
 
 Neither is started by the container entrypoint. Joining a tailnet is an explicit
 human act.
@@ -40,21 +40,33 @@ recreate does not force a re-login.
 
 ## Start the server and pair the phone
 
+Run these commands in this order:
+
 ```bash
 /t3 doctor --tailscale     # confirm Node, binary, daemon, and tailnet state first
-/t3 start --tailscale
+/t3 start
+tailscale serve --bg --https=443 http://127.0.0.1:3773
+tailscale cert --cert-file /dev/null --key-file /dev/null "$(tailscale status --json | jq -r '.Self.DNSName | rtrimstr(".")')"
+/t3 pair --tailscale
 ```
 
-The server prints a `localhost` pairing URL. The phone cannot use that URL. Then
-`/t3 start --tailscale` runs `npx --yes t3 pair --tailscale` one time. The
-command prints a QR code and a `https://<machine>.<tailnet>.ts.net/...` pairing
-URL. Install the T3 Code mobile app. Then scan the QR code or paste the
-`ts.net` URL.
+`tailscale serve` maps HTTPS port 443 on the tailnet to the T3 Code port on
+container loopback. `tailscale cert` gets the HTTPS certificate for the MagicDNS
+name of the node. If `jq` is not installed, copy the MagicDNS name from
+`tailscale status` and give that name to `tailscale cert`.
+
+`/t3 pair --tailscale` runs `npx --yes t3@latest pair --tailscale`. The command
+prints a QR code and a `https://<machine>.<tailnet>.ts.net/...` pairing URL.
+Install the T3 Code mobile app. Then scan the QR code or paste the `ts.net` URL.
+
+`/t3 start --tailscale` is a shortcut. It runs
+`npx --yes t3@latest serve --tailscale-serve`, so T3 Code makes the Serve
+mapping. Then it runs `npx --yes t3@latest pair --tailscale` one time.
 
 Run the next command in another sandbox terminal to print a fresh QR code:
 
 ```bash
-npx --yes t3 pair --tailscale --label <device> --ttl 15m
+npx --yes t3@latest pair --tailscale --label <device> --ttl 15m
 ```
 
 The pairing token is one-time. To add a second device later, do **not** restart

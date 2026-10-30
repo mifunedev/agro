@@ -10,6 +10,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 - Send an `agro-release` dispatch to `mifunedev/agro-web` after each release so the site syncs the released docs. A missing token or a failed dispatch prints a warning and does not fail the release ([#1536](https://github.com/mifunedev/agro/issues/1536)).
+- Make `/t3` and the `t3code` harness run `npx --yes t3@latest`, so the npx cache cannot hold T3 Code at the version of the first launch. The Tailscale phone guide lists the upstream `tailscale up`, `tailscale serve`, `tailscale cert`, and `t3 pair --tailscale` commands in order ([#1538](https://github.com/mifunedev/agro/issues/1538)).
 
 ### Fixed
 - Make `agro destroy`, `agro stop`, and `agro restart` refuse inside a sandbox so an agent cannot remove its own sandbox ([#1531](https://github.com/mifunedev/agro/issues/1531)).

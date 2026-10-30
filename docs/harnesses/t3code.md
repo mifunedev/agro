@@ -22,7 +22,7 @@ node -v
 
 ## Install
 
-T3 Code is an **on-demand** harness: `agro harness install` does not install T3 Code, and T3 Code is not in the sandbox image. The `/t3` skill starts T3 Code on demand via `npx --yes t3 serve` and keeps the server in tmux:
+T3 Code is an **on-demand** harness: `agro harness install` does not install T3 Code, and T3 Code is not in the sandbox image. The `/t3` skill starts T3 Code on demand via `npx --yes t3@latest serve` and keeps the server in tmux:
 
 ```text
 /t3
@@ -37,7 +37,7 @@ pnpm add -g t3
 Verify:
 
 ```bash
-npx t3 --version
+npx --yes t3@latest --version
 ```
 
 Inside the sandbox, prefer the `/t3` skill over calling `npx` by hand; the skill owns the tmux session and the preflight checks.
@@ -52,7 +52,7 @@ T3 Code currently supports Codex, Claude, and OpenCode as backends. Install and 
 
 Provider authentication is **separate** from T3 pairing. Pairing binds a client (browser or phone) to your running T3 server; pairing grants no provider credentials and does not replace `claude` / `codex login` / `opencode auth login`.
 
-T3 Code itself uses a **pairing-URL** auth model: on start T3 Code prints a one-time URL like `http://localhost:3773/pair#token=...` plus a QR code. Open the URL, or scan the QR from the T3 Code mobile app, to bind the client to the running server. The token is single-use. To add a second device, run `npx t3 pair` against the running server. Do not restart T3 Code for this.
+T3 Code itself uses a **pairing-URL** auth model: on start T3 Code prints a one-time URL like `http://localhost:3773/pair#token=...` plus a QR code. Open the URL, or scan the QR from the T3 Code mobile app, to bind the client to the running server. The token is single-use. To add a second device, run `npx t3@latest pair` against the running server. Do not restart T3 Code for this.
 
 Treat pairing URLs and tokens as secrets. Do not paste them into issues, pull requests, or chat.
 
@@ -65,7 +65,7 @@ Prefer the `/t3` skill when an agent is available: `/t3 doctor`, `/t3 start`, `/
 Manual terminal fallback:
 
 ```bash
-tmux new-session -d -s agent-t3code 'npx --yes t3 serve 2>&1 | tee /tmp/agent-t3code.log'
+tmux new-session -d -s agent-t3code 'npx --yes t3@latest serve 2>&1 | tee /tmp/agent-t3code.log'
 tmux capture-pane -t agent-t3code -p | grep -i pairingUrl
 ```
 

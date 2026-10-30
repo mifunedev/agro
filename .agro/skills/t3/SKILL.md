@@ -18,9 +18,9 @@ disable-model-invocation: true
 
 # T3 Code
 
-`npx t3` (no subcommand) is the desktop GUI launcher and is not what this skill
-runs. Headless and remote access use `npx t3 serve`; a new device is added to an
-already-running server with `npx t3 pair`.
+`npx t3@latest` (no subcommand) is the desktop GUI launcher and is not what this
+skill runs. Headless and remote access use `npx t3@latest serve`. To add a new
+device to a running server, run `npx t3@latest pair`.
 
 ## Arguments
 
@@ -83,15 +83,15 @@ Launch commands the script emits, verbatim:
 
 | Invocation | Command |
 | --- | --- |
-| `/t3 start` | `npx --yes t3 serve` |
-| `/t3 start --tailscale` | `npx --yes t3 serve --tailscale-serve` |
-| `/t3 start --tailscale --tailscale-port 8443` | `npx --yes t3 serve --tailscale-serve --tailscale-serve-port 8443` |
-| `/t3 pair` | `npx --yes t3 pair` |
-| `/t3 pair --tailscale` | `npx --yes t3 pair --tailscale` |
+| `/t3 start` | `npx --yes t3@latest serve` |
+| `/t3 start --tailscale` | `npx --yes t3@latest serve --tailscale-serve` |
+| `/t3 start --tailscale --tailscale-port 8443` | `npx --yes t3@latest serve --tailscale-serve --tailscale-serve-port 8443` |
+| `/t3 pair` | `npx --yes t3@latest pair` |
+| `/t3 pair --tailscale` | `npx --yes t3@latest pair --tailscale` |
 
 In Tailscale mode, `t3 serve` prints a `localhost` pairing URL. A phone cannot
 use that URL. After the server prints the URL, `/t3 start --tailscale` runs
-`npx --yes t3 pair --tailscale` one time. The script prints the `t3 pair` output
+`npx --yes t3@latest pair --tailscale` one time. The script prints the `t3 pair` output
 unchanged, so the QR code appears. The script reports the `ts.net` URL as the
 pairing URL.
 

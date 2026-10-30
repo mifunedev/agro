@@ -237,7 +237,7 @@ export const HARNESS_CATALOG: readonly HarnessEntry[] = [
     id: "t3code",
     title: "T3 Code",
     binary: "t3",
-    installArgv: ["npx", "--yes", "t3", "--version"],
+    installArgv: ["npx", "--yes", "t3@latest", "--version"],
     installUser: "sandbox",
     verifyArgv: ["npx", "--no-install", "t3", "--version"],
     uninstallArgv: null,
