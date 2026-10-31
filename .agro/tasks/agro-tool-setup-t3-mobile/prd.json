@@ -145,9 +145,8 @@
       "files": [
         ".agro/tasks/agro-tool-setup-t3-mobile/evidence/"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Operator approved and ran the live sandbox test. enable from ~/harness: tmux path (agent-tailscaled exit 0), tailscale up login, serve mapped, t3 pair QR; operator paired phone (reported working). status, second enable (already running, no second daemon), pair, disable: executed, transcript in evidence/transcript.txt (device list removed, tokens redacted). Finding: t3 pair needs the server directory (worktree run gave NoRunningServerError, upstream). Cleanup: tailscale logout, kill agent-tailscaled and agent-t3code, all exit 0."
     }
-  ],
-  "blocked": "US-006 waits on the operator: open the tailscale up login link, approve the sandbox, scan the pairing QR in Herdr tab t3-mobile, and report whether the phone paired."
+  ]
 }
