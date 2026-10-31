@@ -27,5 +27,10 @@
       "commit": "ff5a550a"
     }
   ],
-  "pr": 1547
+  "pr": 1547,
+  "review": {
+    "commit": "cafd9ca2",
+    "verdict": "pass",
+    "model": "sonnet"
+  }
 }
