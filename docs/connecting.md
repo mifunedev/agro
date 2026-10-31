@@ -178,10 +178,10 @@ when the sandbox runs on a remote host. Access stays private to your tailnet.
    /t3 start --tailscale
    ```
 
-   The skill runs `npx --yes t3 serve --tailscale-serve` in the `agent-t3code`
+   The skill runs `npx --yes t3@latest serve --tailscale-serve` in the `agent-t3code`
    tmux session. T3 Code configures Serve on HTTPS 443. The server prints a
    `localhost` pairing URL, which the phone cannot use. The skill then runs
-   `npx --yes t3 pair --tailscale` one time. That command prints a QR code and
+   `npx --yes t3@latest pair --tailscale` one time. That command prints a QR code and
    the `ts.net` pairing URL. Add `--tailscale-port 8443` when port 443 is in use
    on the node.
 
@@ -195,7 +195,7 @@ new URL.
 Run the next command in another sandbox terminal to print a fresh QR code:
 
 ```bash
-npx --yes t3 pair --tailscale --label <device> --ttl 15m
+npx --yes t3@latest pair --tailscale --label <device> --ttl 15m
 ```
 
 ### Lifecycle
@@ -203,7 +203,7 @@ npx --yes t3 pair --tailscale --label <device> --ttl 15m
 | tmux session | Process |
 |--------------|---------|
 | `agent-tailscaled` | the Tailscale daemon |
-| `agent-t3code` | `npx t3 serve --tailscale-serve` |
+| `agent-t3code` | `npx --yes t3@latest serve --tailscale-serve` |
 
 Both sessions survive a disconnect. `/t3 status` and `/t3 logs` read the T3
 session without an attach. After a container recreate, the daemon is not

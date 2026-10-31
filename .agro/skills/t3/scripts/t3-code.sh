@@ -166,7 +166,7 @@ doctor() {
 }
 
 serve_argv() {
-  local -a argv=(npx --yes t3 serve)
+  local -a argv=(npx --yes t3@latest serve)
   if [[ "$TAILSCALE" == "true" ]]; then
     argv+=(--tailscale-serve)
     if [[ -n "$TAILSCALE_PORT" ]]; then
@@ -177,7 +177,7 @@ serve_argv() {
 }
 
 pair_argv() {
-  local -a argv=(npx --yes t3 pair)
+  local -a argv=(npx --yes t3@latest pair)
   if [[ "$TAILSCALE" == "true" ]]; then
     argv+=(--tailscale)
     if [[ -n "$TAILSCALE_PORT" ]]; then

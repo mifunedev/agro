@@ -51,6 +51,7 @@ const STUBS: Record<string, string> = {
     "set -euo pipefail",
     'case "$3" in',
     "  serve)",
+    '    echo "$*" >> "$STUB_STATE/serve-calls"',
     `    ${HERDR_NAMES} > "$STUB_STATE/serve-herdr"`,
     `    echo "Pair this device: ${SERVER_URL}"`,
     "    ;;",
@@ -127,7 +128,8 @@ describe("t3-code.sh pairing URL", () => {
     const { run, read } = sandbox();
     const result = run("start", "--tailscale");
     expect(result.status, result.stderr).toBe(0);
-    expect(read("pair-calls")).toBe("--yes t3 pair --tailscale\n");
+    expect(read("serve-calls")).toBe("--yes t3@latest serve --tailscale-serve\n");
+    expect(read("pair-calls")).toBe("--yes t3@latest pair --tailscale\n");
     expect(result.stdout).toContain(`${QR_LINE}\n${TAILNET_URL}\n`);
     const pairingLines = result.stdout.split("\n").filter((line) => line.startsWith("Pairing URL:"));
     expect(pairingLines).toEqual([`Pairing URL: ${TAILNET_URL}`]);
@@ -137,6 +139,7 @@ describe("t3-code.sh pairing URL", () => {
     const { run, read } = sandbox();
     const result = run("start");
     expect(result.status, result.stderr).toBe(0);
+    expect(read("serve-calls")).toBe("--yes t3@latest serve\n");
     expect(read("pair-calls")).toBeNull();
     const pairingLines = result.stdout.split("\n").filter((line) => line.startsWith("Pairing URL:"));
     expect(pairingLines).toEqual([`Pairing URL: ${SERVER_URL}`]);

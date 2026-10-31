@@ -138,7 +138,7 @@ shows the pattern:
 
 ```bash
 tmux new-session -d -s agent-t3code \
-  'for herdr_var in $(env | sed -n "s/^\(HERDR_[A-Za-z0-9_]*\)=.*/\1/p"); do unset "$herdr_var"; done; npx --yes t3 serve 2>&1 | tee /tmp/agent-t3code.log'
+  'for herdr_var in $(env | sed -n "s/^\(HERDR_[A-Za-z0-9_]*\)=.*/\1/p"); do unset "$herdr_var"; done; npx --yes t3@latest serve 2>&1 | tee /tmp/agent-t3code.log'
 ```
 
 ## Anti-patterns

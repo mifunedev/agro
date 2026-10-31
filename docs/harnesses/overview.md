@@ -108,7 +108,7 @@ agy --version
 fx --version
 prime-agent --version
 
-npx t3 --version        # T3 Code — on demand, fetched by npx
+npx --yes t3@latest --version        # T3 Code — on demand, fetched by npx
 ```
 
 ## Authentication
