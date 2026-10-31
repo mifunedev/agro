@@ -90,9 +90,80 @@ export async function runT3MobileSetup(
   opts: T3MobileOptions,
   io: LifecycleIO,
 ): Promise<number> {
-  if (action === "enable") return ensureDaemon(opts, io);
-  io.stderr(`${opts.bin} tool setup t3-mobile ${action}: not implemented\n`);
-  return 1;
+  const ctx = setupContext(opts, io);
+  const pairArgv = ctx.onPath("t3") === undefined ? NPX_PAIR_ARGV : T3_PAIR_ARGV;
+  switch (action) {
+    case "enable": {
+      const failed = await ensureDaemon(ctx);
+      if (failed !== 0) return failed;
+      return runInOrder(ctx, [TAILSCALE_UP_ARGV, SERVE_ARGV, pairArgv]);
+    }
+    case "pair":
+      return runInOrder(ctx, [pairArgv]);
+    case "disable":
+      return runInOrder(ctx, [SERVE_OFF_ARGV]);
+    case "status":
+      return runAll(ctx, [STATUS_ARGV, SERVE_STATUS_ARGV]);
+  }
+}
+
+const TAILSCALE_UP_ARGV = ["tailscale", "up"];
+const SERVE_ARGV = ["tailscale", "serve", "--bg", "--https=443", "http://127.0.0.1:3773"];
+const SERVE_OFF_ARGV = ["tailscale", "serve", "--https=443", "off"];
+const STATUS_ARGV = ["tailscale", "status"];
+const SERVE_STATUS_ARGV = ["tailscale", "serve", "status"];
+const T3_PAIR_ARGV = ["t3", "pair", "--tailscale"];
+const NPX_PAIR_ARGV = ["npx", "--yes", "t3@latest", "pair", "--tailscale"];
+
+interface SetupContext {
+  bin: string;
+  io: LifecycleIO;
+  run: LifecycleRunner;
+  host: T3MobileHost;
+  env: NodeJS.ProcessEnv;
+  binDir: string;
+  onPath: (binary: string) => string | undefined;
+  step: (argv: readonly string[], what?: string) => number | undefined;
+}
+
+function setupContext(opts: T3MobileOptions, io: LifecycleIO): SetupContext {
+  const run = opts.run ?? spawnRunner;
+  const host = opts.host ?? defaultHost();
+  const prefix = host.env.NPM_USER_PREFIX || join(host.home, ".local");
+  const binDir = join(prefix, "bin");
+  const env: NodeJS.ProcessEnv = {
+    ...host.env,
+    HOME: host.home,
+    NPM_USER_PREFIX: prefix,
+    PATH: [binDir, ...(host.env.PATH ?? "").split(delimiter).filter((p) => p !== "" && p !== binDir)].join(delimiter),
+  };
+  const pathDirs = (env.PATH ?? "").split(delimiter);
+  return {
+    bin: opts.bin,
+    io,
+    run,
+    host,
+    env,
+    binDir,
+    onPath: (binary) => pathDirs.find((dir) => host.exists(join(dir, binary))),
+    step: (argv, what = argv.join(" ")) => {
+      const r = run(argv[0], argv.slice(1), { stdio: "inherit", env });
+      return r.error || r.status !== 0 ? stepFailure(io, opts.bin, what, r) : undefined;
+    },
+  };
+}
+
+function runInOrder(ctx: SetupContext, commands: readonly (readonly string[])[]): number {
+  for (const argv of commands) {
+    const failed = ctx.step(argv);
+    if (failed !== undefined) return failed;
+  }
+  return 0;
+}
+
+function runAll(ctx: SetupContext, commands: readonly (readonly string[])[]): number {
+  const results = commands.map((argv) => ctx.step(argv));
+  return results.find((failed) => failed !== undefined) ?? 0;
 }
 
 export function tailscaledUnit(user: string, group: string, home: string, tailscaled: string): string {
@@ -155,30 +226,15 @@ function stepFailure(io: LifecycleIO, bin: string, what: string, r: RunResult): 
   return r.status ?? 1;
 }
 
-async function ensureDaemon(opts: T3MobileOptions, io: LifecycleIO): Promise<number> {
-  const run = opts.run ?? spawnRunner;
-  const host = opts.host ?? defaultHost();
-  const prefix = host.env.NPM_USER_PREFIX || join(host.home, ".local");
-  const binDir = join(prefix, "bin");
-  const env: NodeJS.ProcessEnv = {
-    ...host.env,
-    HOME: host.home,
-    NPM_USER_PREFIX: prefix,
-    PATH: [binDir, ...(host.env.PATH ?? "").split(delimiter).filter((p) => p !== "" && p !== binDir)].join(delimiter),
-  };
-  const pathDirs = (env.PATH ?? "").split(delimiter);
-  const onPath = (binary: string) => pathDirs.find((dir) => host.exists(join(dir, binary)));
-  const step = (argv: string[], what: string): number | undefined => {
-    const r = run(argv[0], argv.slice(1), { stdio: "inherit", env });
-    return r.error || r.status !== 0 ? stepFailure(io, opts.bin, what, r) : undefined;
-  };
+async function ensureDaemon(ctx: SetupContext): Promise<number> {
+  const { io, run, host, env, binDir, onPath, step } = ctx;
   const answers = () =>
     run("tailscale", ["status", "--json"], { stdio: "capture", env, timeoutMs: STATUS_TIMEOUT_MS }).status === 0;
 
   if (onPath("tailscale") === undefined) {
     const installArgv = findTool("tailscale")?.installArgv;
     if (installArgv === undefined) {
-      io.stderr(`${opts.bin} tool setup t3-mobile: the tool catalog has no tailscale installer\n`);
+      io.stderr(`${ctx.bin} tool setup t3-mobile: the tool catalog has no tailscale installer\n`);
       return 1;
     }
     io.stdout("installing Tailscale on this machine…\n");
@@ -236,7 +292,7 @@ async function ensureDaemon(opts: T3MobileOptions, io: LifecycleIO): Promise<num
     await host.sleep(WAIT_INTERVAL_MS);
   }
   io.stderr(
-    `${opts.bin} tool setup t3-mobile: tailscaled did not answer \`tailscale status\` within ${(WAIT_ATTEMPTS * WAIT_INTERVAL_MS) / 1000}s\n`,
+    `${ctx.bin} tool setup t3-mobile: tailscaled did not answer \`tailscale status\` within ${(WAIT_ATTEMPTS * WAIT_INTERVAL_MS) / 1000}s\n`,
   );
   return 1;
 }
