@@ -210,9 +210,10 @@ There is no separate ledger. `prd.json` holds the state.
   record.
 - Never substitute a model silently.
 - A required control that is unavailable blocks the story. Ask the operator.
-- When a model other than the implementer model is available, the reviewer
-  uses that model. Otherwise, the reviewer uses the implementer model in a
-  fresh context, and `review.model` records that fact.
+- The reviewer uses the most capable available model. The reviewer model is
+  never less capable than the implementer model. When the reviewer and the
+  implementer use the same model, the reviewer runs in a fresh context, and
+  `review.model` records the shared model.
 
 Provider defaults live in provider settings. For Claude Code, the default is
 `CLAUDE_CODE_SUBAGENT_MODEL` in the `env` object of `.claude/settings.json`.
