@@ -15,8 +15,15 @@ vi.mock("../cli.js", async (importOriginal) => {
   return mod;
 });
 
-const { parseSelfUpgradeArgs, parseVendorArgs, printAgroHelp, printSandboxHelp, printSelfUpgradeHelp, printVendorHelp } =
-  await import("../cli.js");
+const {
+  parseSelfUpgradeArgs,
+  parseVendorArgs,
+  printAgroHelp,
+  printSandboxHelp,
+  printSelfUpgradeHelp,
+  printToolHelp,
+  printVendorHelp,
+} = await import("../cli.js");
 
 function captureStdout(fn: () => void): string {
   const spy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
@@ -38,6 +45,11 @@ describe("cli-first help — the single agro identity", () => {
   it("top-level help lists agro auth", () => {
     const text = captureStdout(() => printAgroHelp(AGRO_PRODUCT));
     expect(text).toMatch(/^ {2}agro auth <args\.\.\.> +Sign in to agro-console \(login\|status\|logout\|token\)$/m);
+  });
+
+  it("tool help lists setup t3-mobile with its actions", () => {
+    const text = captureStdout(() => printToolHelp("agro"));
+    expect(text).toMatch(/^ {2}agro tool setup t3-mobile <enable\|pair\|disable\|status> +\S/m);
   });
 
   it("self-upgrade help covers only the installed CLI", () => {

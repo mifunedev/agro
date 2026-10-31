@@ -59,6 +59,7 @@ import {
   runToolStatus,
   runToolUninstall,
 } from "./commands/tool.js";
+import { runToolSetup } from "./commands/t3-mobile.js";
 import { hostCapableToolIds, installableToolIds, toolIds } from "./lib/tools/catalog.js";
 import { sourceDocsUrl } from "./lib/docs.js";
 import { AGRO_PRODUCT, resolveProduct, stateNames, type Product } from "./lib/product.js";
@@ -398,6 +399,7 @@ Usage:
   ${bin} tool status [name]             Show installed state and version
   ${bin} tool install <name>            Install a tool into the sandbox or the host
   ${bin} tool uninstall <name>          Remove a tool the same way it was installed
+  ${bin} tool setup t3-mobile <enable|pair|disable|status>  Set up T3 Code phone access on this machine
 
 Most tools are baked into the image and are report-only; \`install\` works on:
 ${installableToolIds().map((t) => `  ${t}`).join("\n")}
@@ -1362,6 +1364,10 @@ async function main(argv: string[]): Promise<number> {
       return 1;
     }
     return runComposeVerb(verb, head.length === 0 ? { bin } : { bin, name: head[0] }, extra);
+  }
+
+  if (first === "tool" && second === "setup") {
+    return await runToolSetup(argv.slice(2), { bin }, stdio());
   }
 
   if (first === "harness" || first === "tool") {

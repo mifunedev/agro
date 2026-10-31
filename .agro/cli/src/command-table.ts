@@ -7,6 +7,7 @@ export const LANGFUSE_VERBS = ["apply", "status", "disable"] as const;
 export const SANDBOX_SUBCOMMANDS = ["install", "list", "upgrade"] as const;
 export const WORKSPACE_SUBCOMMANDS = ["create", "list"] as const;
 export const INSTALLER_SUBCOMMANDS = ["list", "install", "status", "uninstall"] as const;
+export const TOOL_SUBCOMMANDS = [...INSTALLER_SUBCOMMANDS, "setup"] as const;
 export const EGRESS_VERBS = ["log", "reload"] as const;
 export const NODE_VERBS = ["create", "list", "delete"] as const;
 export const AUTH_VERBS = ["login", "status", "logout", "token"] as const;
@@ -36,7 +37,7 @@ export const AGRO_COMMANDS: Readonly<Record<string, readonly string[] | null>> =
   compose: null,
   workspace: WORKSPACE_SUBCOMMANDS,
   harness: INSTALLER_SUBCOMMANDS,
-  tool: INSTALLER_SUBCOMMANDS,
+  tool: TOOL_SUBCOMMANDS,
   gateway: null,
   egress: EGRESS_VERBS,
   node: NODE_VERBS,
