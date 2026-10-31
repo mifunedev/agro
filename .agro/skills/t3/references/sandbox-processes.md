@@ -31,7 +31,7 @@ Format: `<category>-<identifier>` (kebab-case inside each segment).
 |----------|---------|---------|
 | `app-` | `app-docs`, `app-api` | User dev servers |
 | `cloudflared-` | `cloudflared-3000` | Cloudflare tunnels for shared previews |
-| `agent-` | `agent-watcher`, `agent-batch`, `agent-t3code`, `agent-tailscaled` | Headless / long-running agent processes, including the T3 Code server (`t3 serve`) and the userspace `tailscaled` that fronts it. Interactive CLIs (`claude`, `codex`, `opencode`) are normally foreground in a terminal or VS Code, not detached in tmux. |
+| `agent-` | `agent-watcher`, `agent-batch`, `agent-t3code`, `agent-tailscaled` | Headless / long-running agent processes, including the T3 Code server (`t3 serve`) and the userspace `tailscaled` that `agro tool setup t3-mobile enable` starts in front of it. Interactive CLIs (`claude`, `codex`, `opencode`) are normally foreground in a terminal or VS Code, not detached in tmux. |
 | `client-` | `client-slack-pi`, `client-slack-hermes`, `client-discord` | External-surface clients that bridge an in-sandbox agent to a third-party UI |
 
 Reserved prefix: `system-`. Do not use for user apps.

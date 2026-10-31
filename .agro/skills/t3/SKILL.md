@@ -11,7 +11,7 @@ description: |
   phone or another machine, pair a device, get the T3 pairing URL, diagnose why
   T3 Code or the tailnet will not start, check T3 Code status/logs, or stop
   T3 Code.
-argument-hint: "[start|status|url|pair|logs|stop|attach|doctor|help] [--session <name>] [--port <port>] [--log <path>] [--tailscale] [--tailscale-port <p>]"
+argument-hint: "[start|status|url|pair|logs|stop|attach|doctor|help] [--session <name>] [--port <port>] [--log <path>]"
 allowed-tools: Bash, Read
 disable-model-invocation: true
 ---
@@ -30,7 +30,7 @@ Arguments received: `$ARGUMENTS`
   - `start`: run the preflight, then start `t3 serve` in tmux, or report the existing session
   - `status`: show whether the tmux session is running and print recent output
   - `url`: print the latest pairing URL from the log/pane if present
-  - `pair`: mint a fresh one-time pairing URL against the running server, without restarting it
+  - `pair`: mint a fresh one-time local pairing URL against the running server, without restarting it
   - `logs`: print recent log lines
   - `stop`: kill the tmux session
   - `attach`: print the attach command; do not attach from an agent run
@@ -39,8 +39,6 @@ Arguments received: `$ARGUMENTS`
 - `--session`: tmux session name; default `agent-t3code`
 - `--port`: expected T3 Code port; default `3773`
 - `--log`: log file; default `/tmp/<session>.log`
-- `--tailscale`: publish over Tailscale Serve on the tailnet (`t3 serve --tailscale-serve`, `t3 pair --tailscale`)
-- `--tailscale-port`: alternate Tailscale Serve HTTPS port; default `443`
 
 ## Preconditions
 
@@ -58,8 +56,8 @@ opencode auth login
 ```
 
 T3 Code itself prints a single-use pairing URL such as
-`http://localhost:3773/pair#token=...`, or an
-`https://<machine>.<tailnet>.ts.net/...` URL in Tailscale mode. Treat that URL
+`http://localhost:3773/pair#token=...`. The phone-access verb prints an
+`https://<machine>.<tailnet>.ts.net/...` URL. Treat that URL
 and its token as a secret: never paste it into an issue, a PR, a tracked file,
 or a persistent log.
 
@@ -67,8 +65,6 @@ The preflight (`doctor`, and the first step of `start`) checks:
 
 - `tmux`, `npx`, and `node` on `PATH`
 - Node satisfies `^22.16 || ^23.11 || >=24.10` (the T3 server's `engines.node`)
-- with `--tailscale`: the `tailscale` binary is installed, `tailscaled` is
-  running and reachable, and the tailnet backend state is `Running`
 - the T3 port answers on loopback when a session is already up
 
 ## Run
@@ -84,16 +80,7 @@ Launch commands the script emits, verbatim:
 | Invocation | Command |
 | --- | --- |
 | `/t3 start` | `npx --yes t3@latest serve` |
-| `/t3 start --tailscale` | `npx --yes t3@latest serve --tailscale-serve` |
-| `/t3 start --tailscale --tailscale-port 8443` | `npx --yes t3@latest serve --tailscale-serve --tailscale-serve-port 8443` |
 | `/t3 pair` | `npx --yes t3@latest pair` |
-| `/t3 pair --tailscale` | `npx --yes t3@latest pair --tailscale` |
-
-In Tailscale mode, `t3 serve` prints a `localhost` pairing URL. A phone cannot
-use that URL. After the server prints the URL, `/t3 start --tailscale` runs
-`npx --yes t3@latest pair --tailscale` one time. The script prints the `t3 pair` output
-unchanged, so the QR code appears. The script reports the `ts.net` URL as the
-pairing URL.
 
 The server always runs under the sandbox tmux convention
 (`tmux new-session -d -s agent-t3code '... 2>&1 | tee /tmp/agent-t3code.log'`),
@@ -102,7 +89,25 @@ variable before it starts `t3 serve`, and `/t3 pair` does the same before it
 starts `t3 pair`. It stays bound to container loopback; the
 skill never binds T3 Code to a public interface.
 
-For the phone-side recipe and the tailnet session layout, read
+## Phone access
+
+The `agro tool setup t3-mobile` verb owns phone access over a private tailnet.
+Run these commands in this order:
+
+```bash
+/t3 start
+agro tool setup t3-mobile enable
+```
+
+`enable` starts `tailscaled`, joins the tailnet, publishes port 3773 over
+Tailscale Serve, and prints a `ts.net` pairing URL and a QR code. Use the other
+actions later:
+
+- `agro tool setup t3-mobile pair`: mint a pairing URL for one more device.
+- `agro tool setup t3-mobile disable`: withdraw the Serve mapping.
+- `agro tool setup t3-mobile status`: print the tailnet and Serve state.
+
+For the phone-side steps and revocation, read
 [`references/tailscale-mobile.md`](references/tailscale-mobile.md). For the tmux
 rules, read [`references/sandbox-processes.md`](references/sandbox-processes.md).
 
@@ -113,17 +118,14 @@ After `start`, report:
 - tmux session name and log path
 - the exact launch command that was used
 - pairing URL if found, otherwise the command to inspect logs
-- in Tailscale mode, the tailnet pairing URL and the QR code that
-  `start --tailscale` prints
 - local URL, normally `http://localhost:3773`
-- in Tailscale mode, the tailnet HTTPS port and that the URL is the node's
-  MagicDNS name
+- phone access: `agro tool setup t3-mobile enable`
 - reminder: over SSH/remote host without a tailnet, use VS Code port forwarding
   or see `docs/connecting.md`
 - revocation paths:
   - `t3 auth` — issue, inspect, and revoke T3 sessions and credentials
-  - `tailscale serve --https=443 off` — withdraw the Serve mapping (it persists
-    until you do)
+  - `agro tool setup t3-mobile disable` — withdraw the Serve mapping (it
+    persists until you do)
   - `tailscale logout`, or delete the node in the Tailscale admin console —
     remove the device from the tailnet
 

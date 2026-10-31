@@ -8,8 +8,6 @@ const ROOT = join(import.meta.dirname, "../../..");
 const SCRIPT = join(ROOT, ".agro/skills/t3/scripts/t3-code.sh");
 
 const SERVER_URL = "http://localhost:3773/pair#token=server-token";
-const TAILNET_URL = "https://node.tailnet.ts.net/pair#token=tailnet-token";
-const QR_LINE = "QR ▄▀▄▀ stub";
 
 const HERDR_ENV = {
   HERDR_ENV: "1",
@@ -58,19 +56,13 @@ const STUBS: Record<string, string> = {
     "  pair)",
     '    echo "$*" >> "$STUB_STATE/pair-calls"',
     `    ${HERDR_NAMES} > "$STUB_STATE/pair-herdr"`,
-    `    echo "${QR_LINE}"`,
-    '    if [[ " $* " == *" --tailscale "* ]]; then',
-    `      echo "${TAILNET_URL}"`,
-    "    else",
-    `      echo "${SERVER_URL}"`,
-    "    fi",
+    `    echo "${SERVER_URL}"`,
     "    ;;",
     "  *) exit 1 ;;",
     "esac",
     "",
   ].join("\n"),
   node: "#!/usr/bin/env bash\necho v24.10.0\n",
-  tailscale: "#!/usr/bin/env bash\necho '{\"BackendState\": \"Running\"}'\n",
   curl: "#!/usr/bin/env bash\nexit 0\n",
 };
 
@@ -105,14 +97,12 @@ function sandbox() {
 }
 
 describe("t3-code.sh Herdr environment", () => {
-  for (const args of [["start"], ["start", "--tailscale"]]) {
-    it(`${args.join(" ")} launches t3 serve without HERDR_* variables`, () => {
-      const { run, read } = sandbox();
-      const result = run(...args);
-      expect(result.status, result.stderr).toBe(0);
-      expect(read("serve-herdr")).toBe("");
-    });
-  }
+  it("start launches t3 serve without HERDR_* variables", () => {
+    const { run, read } = sandbox();
+    const result = run("start");
+    expect(result.status, result.stderr).toBe(0);
+    expect(read("serve-herdr")).toBe("");
+  });
 
   it("pair runs t3 pair without HERDR_* variables", () => {
     const { run, read } = sandbox();
@@ -124,18 +114,7 @@ describe("t3-code.sh Herdr environment", () => {
 });
 
 describe("t3-code.sh pairing URL", () => {
-  it("start --tailscale runs t3 pair once and reports the tailnet URL with the QR output", () => {
-    const { run, read } = sandbox();
-    const result = run("start", "--tailscale");
-    expect(result.status, result.stderr).toBe(0);
-    expect(read("serve-calls")).toBe("--yes t3@latest serve --tailscale-serve\n");
-    expect(read("pair-calls")).toBe("--yes t3@latest pair --tailscale\n");
-    expect(result.stdout).toContain(`${QR_LINE}\n${TAILNET_URL}\n`);
-    const pairingLines = result.stdout.split("\n").filter((line) => line.startsWith("Pairing URL:"));
-    expect(pairingLines).toEqual([`Pairing URL: ${TAILNET_URL}`]);
-  });
-
-  it("start without --tailscale reports the localhost URL and does not run t3 pair", () => {
+  it("start reports the localhost URL and does not run t3 pair", () => {
     const { run, read } = sandbox();
     const result = run("start");
     expect(result.status, result.stderr).toBe(0);
@@ -143,5 +122,14 @@ describe("t3-code.sh pairing URL", () => {
     expect(read("pair-calls")).toBeNull();
     const pairingLines = result.stdout.split("\n").filter((line) => line.startsWith("Pairing URL:"));
     expect(pairingLines).toEqual([`Pairing URL: ${SERVER_URL}`]);
+  });
+
+  it("pair mints a local pairing URL with plain t3 pair", () => {
+    const { run, read } = sandbox();
+    expect(run("start").status).toBe(0);
+    const result = run("pair");
+    expect(result.status, result.stderr).toBe(0);
+    expect(read("pair-calls")).toBe("--yes t3@latest pair\n");
+    expect(result.stdout).toContain(SERVER_URL);
   });
 });
