@@ -174,7 +174,10 @@ While the section is empty, `next.sh` prints `close`.
 - Make the last story capture the manual review evidence. The story depends on the stories that it proves.
   - For a user interface change, the story records an agent-browser journey with annotated screenshots.
   - For a server, CLI, or API change, the story writes a command transcript to `.agro/tasks/<slug>/evidence/manual-review.md`.
+    - The transcript runs each command through the entry point that a user types, for example `pnpm <script> <flags>`.
+    - The run starts from fresh state with at least one input path that does not exist yet. The story creates a new temp path for that input and deletes no existing data.
   - The story uses a live or local resource only with operator approval, and it deletes each resource that it creates.
+    - Before the story creates a live resource, the story runs one read-only check that costs nothing, through the same path that the resource uses. If the check fails, the story sets `blocked` and creates nothing.
   - Close uses the evidence to fill the PR `## Manual review` section in the shape of [`.agro/skills/git/references/manual-review.md`](../git/references/manual-review.md).
 - If the plan has no user interface change and no server, CLI, or API change, state the reason in `## Out of Scope`. Omit the evidence story.
 
