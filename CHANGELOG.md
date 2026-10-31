@@ -8,6 +8,9 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+- Add `agro tool setup t3-mobile enable|pair|disable|status` to reach T3 Code from a phone over Tailscale Serve on the machine where it runs. `enable` installs Tailscale when it is missing, starts one userspace `tailscaled`, and runs `tailscale up`, `tailscale serve`, and `t3 pair --tailscale` in order. `/t3 start` serves on `127.0.0.1:3773` only, and the `/t3` Tailscale flags are gone ([#1540](https://github.com/mifunedev/agro/issues/1540)).
+
 ### Changed
 - Send an `agro-release` dispatch to `mifunedev/agro-web` after each release so the site syncs the released docs. A missing token or a failed dispatch prints a warning and does not fail the release ([#1536](https://github.com/mifunedev/agro/issues/1536)).
 - Make `/t3` and the `t3code` harness run `npx --yes t3@latest`, so the npx cache cannot hold T3 Code at the version of the first launch. The Tailscale phone guide lists the upstream `tailscale up`, `tailscale serve`, `tailscale cert`, and `t3 pair --tailscale` commands in order ([#1538](https://github.com/mifunedev/agro/issues/1538)).

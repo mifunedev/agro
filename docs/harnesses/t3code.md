@@ -60,7 +60,7 @@ Treat pairing URLs and tokens as secrets. Do not paste them into issues, pull re
 
 T3 Code stays bound to **container loopback** (`127.0.0.1:3773`); the harness publishes no host port for it. Reach it through VSCode port forwarding, an SSH tunnel, or Tailscale Serve — see [Connecting to the Sandbox](../connecting.md).
 
-Prefer the `/t3` skill when an agent is available: `/t3 doctor`, `/t3 start`, `/t3 status`, `/t3 url`, `/t3 pair`, `/t3 stop`. See [`.agro/skills/t3/SKILL.md`](../../.agro/skills/t3/SKILL.md) for the full argument list, including `--tailscale`.
+Prefer the `/t3` skill when an agent is available: `/t3 doctor`, `/t3 start`, `/t3 status`, `/t3 url`, `/t3 pair`, `/t3 stop`. See [`.agro/skills/t3/SKILL.md`](../../.agro/skills/t3/SKILL.md) for the full argument list.
 
 Manual terminal fallback:
 
@@ -79,16 +79,16 @@ The session survives a shell or SSH disconnect. Detach with `Ctrl-b d`.
 
 ## Mobile access over Tailscale
 
-Tailscale is the supported path for reaching T3 Code from a phone, or from a remote sandbox with no published port. Run `/t3 start --tailscale` to configure Tailscale Serve and advertise `https://<machine>.<tailnet>.ts.net/`. Full prerequisites, the end-to-end recipe, and troubleshooting live at [Connecting → Mobile access over Tailscale](../connecting.md#mobile-access-over-tailscale).
+Tailscale is the supported path for reaching T3 Code from a phone, or from a remote sandbox with no published port. Run `/t3 start`, then `agro tool setup t3-mobile enable`. The verb starts `tailscaled`, joins the tailnet, publishes T3 Code at `https://<machine>.<tailnet>.ts.net/` through Tailscale Serve, and prints a pairing QR code. Run `agro tool setup t3-mobile pair` to pair another device, `agro tool setup t3-mobile status` to show the tailnet state and the Serve mapping, and `agro tool setup t3-mobile disable` to remove the Serve mapping. Full prerequisites, the end-to-end recipe, and troubleshooting live at [Connecting → Mobile access over Tailscale](../connecting.md#mobile-access-over-tailscale).
 
 ## Revoking access
 
 Two independent credentials exist. Revoke both when you retire a device.
 
 ```bash
-t3 auth                          # issue, inspect, and revoke T3 sessions and pairing credentials
-tailscale serve --https=443 off  # withdraw the Serve mapping
-tailscale logout                 # sign this node out of the tailnet
+t3 auth                            # issue, inspect, and revoke T3 sessions and pairing credentials
+agro tool setup t3-mobile disable  # withdraw the Serve mapping
+tailscale logout                   # sign this node out of the tailnet
 ```
 
 Remove the device from the tailnet in the Tailscale admin console too; `tailscale logout` signs out the node, and the admin console deletes it.
@@ -100,7 +100,7 @@ Tailscale is the **private** path and the supported mobile path. When you need a
 ## Tips
 
 - T3 Code is a UI over the providers; installing T3 Code does **not** replace `claude` / `codex login` / `opencode auth login`. Authenticate the provider first, then start T3 Code.
-- The hosted page at `https://app.t3.codes` is HTTPS, so it cannot talk to a plain-HTTP tailnet endpoint (mixed content). Use `--tailscale-serve`, which is HTTPS, or the native mobile app.
+- The hosted page at `https://app.t3.codes` is HTTPS, so it cannot talk to a plain-HTTP tailnet endpoint (mixed content). Use the `ts.net` HTTPS URL from `agro tool setup t3-mobile enable`, or the native mobile app.
 - T3 Code uses Node's experimental SQLite at startup; the warning in the log is expected.
 
 ## Upstream documentation

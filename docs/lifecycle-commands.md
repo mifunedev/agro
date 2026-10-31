@@ -47,6 +47,7 @@ Host prerequisites and the CLI install are in [Installation](installation.md).
 | `agro langfuse apply` · `agro langfuse status` · `agro langfuse disable` | render, check, or remove the Langfuse tracing files — see below |
 | `agro gateway <pi\|hermes>` · `agro gateway status` | `.agro/scripts/gateway.sh` |
 | `agro harness` · `agro tool` | install and inspect harnesses and tooling |
+| `agro tool setup t3-mobile <enable\|pair\|disable\|status>` | reach T3 Code from a phone over Tailscale Serve — see below |
 | `agro workspace create [<name>] [--path <dir>] [--ref <ref>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
 | `agro auth login [--url <url>]` · `agro auth status` · `agro auth logout` · `agro auth token` | sign in to agro-console and manage the console token — see below |
 | `agro node create --spec <spec> [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--free-tier] [--json]` · `agro node list [--json]` · `agro node delete <id> [--yes]` | create, list, and delete remote agro-console sandbox nodes — see below |
@@ -204,6 +205,7 @@ Upgrade the sandbox image to remove the warning. Override the detection with
 | `agro tool uninstall` | removes from the running container over Docker Compose; removes the recorded host install when the container is not reachable | removes live, in place |
 | `agro harness list/status` | probes the host install prefix `~/.local` when the container is not reachable; reports `?` when neither a harness root nor that prefix exists | reports the real state of this environment |
 | `agro tool list/status` | probes the host install prefix `~/.local` when the container is not reachable; reports `?` when neither a harness root nor that prefix exists | reports the real state of this environment |
+| `agro tool setup t3-mobile` | acts on the host | acts in the sandbox |
 | `agro sandbox install` | provisions the sandbox | refuses with a host-only error |
 | `agro sandbox upgrade` | recreates one image-mode sandbox with an explicit release image | refuses with a host-only error |
 | `agro shell` | `docker exec` into the container | opens a local `zsh` |
@@ -242,6 +244,23 @@ install again. The uninstall command removes the record. A host binary outside
 `agro tool install <id>` uses the same host path. The host tools, their install
 levels, and the root-level tools are in
 [Installation → Host tools](installation.md#host-tools).
+
+## Phone access to T3 Code: `agro tool setup t3-mobile`
+
+`agro tool setup t3-mobile` connects T3 Code to a phone over Tailscale Serve. The
+verb acts on the machine that runs the verb. Each action passes the upstream
+output and exit status through.
+
+| Action | Effect |
+|---|---|
+| `enable` | installs Tailscale when Tailscale is missing. Starts one userspace `tailscaled`: the `agro-tailscaled.service` unit on a host with systemd, else the tmux session `agent-tailscaled`. Then runs `tailscale up`, `tailscale serve --bg --https=443 http://127.0.0.1:3773`, and the pair command |
+| `pair` | runs the pair command only: `t3 pair --tailscale`, or `npx --yes t3@latest pair --tailscale` when `t3` is not on `PATH` |
+| `disable` | runs `tailscale serve --https=443 off` |
+| `status` | runs `tailscale status`, then `tailscale serve status` |
+
+The verb has no `update` action. Run `t3 update` to update T3 Code. The full
+procedure is in
+[Connecting → Mobile access over Tailscale](connecting.md#mobile-access-over-tailscale).
 
 ## Host workspaces: `agro workspace`
 
