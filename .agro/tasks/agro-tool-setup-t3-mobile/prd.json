@@ -147,5 +147,6 @@
       "passes": false,
       "notes": ""
     }
-  ]
+  ],
+  "blocked": "US-006 needs the operator: approve a live sandbox run, complete the tailscale up browser login, and pair a phone."
 }
