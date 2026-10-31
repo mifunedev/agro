@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-10-31
+
 ### Added
 - Add `agro tool setup t3-mobile enable|pair|disable|status` to reach T3 Code from a phone over Tailscale Serve on the machine where it runs. `enable` installs Tailscale when it is missing, starts one userspace `tailscaled`, and runs `tailscale up`, `tailscale serve`, and `t3 pair --tailscale` in order. `/t3 start` serves on `127.0.0.1:3773` only, and the `/t3` Tailscale flags are gone ([#1540](https://github.com/mifunedev/agro/issues/1540)).
 
