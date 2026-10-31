@@ -248,7 +248,11 @@ async function ensureDaemon(ctx: SetupContext): Promise<number> {
   }
 
   const tailscaled = join(binDir, "tailscaled");
-  if (host.exists(SYSTEMD_RUN_DIR)) {
+  const sudoWorks = () => {
+    const r = run("sudo", ["-n", "true"], { stdio: "capture", env });
+    return !r.error && r.status === 0;
+  };
+  if (host.exists(SYSTEMD_RUN_DIR) && sudoWorks()) {
     const unit = tailscaledUnit(host.user, host.group, host.home, tailscaled);
     if (host.readFile(UNIT_PATH) !== unit) {
       const temp = host.writeTemp(unit);

@@ -93,6 +93,8 @@ const enable = (o: FakeHostOptions, respond: (paths: Set<string>) => Responder) 
 const isStatusProbe = (argv: string[]) => argv[0] === "tailscale" && argv[1] === "status" && argv[2] === "--json";
 const isEnableNow = (argv: string[]) => argv.join(" ") === "sudo -n systemctl enable --now agro-tailscaled.service";
 const isTmuxStart = (argv: string[]) => argv[0] === "tmux" && argv[1] === "new-session";
+const SUDO_PROBE = ["sudo", "-n", "true"];
+const isSudoProbe = (argv: string[]) => argv.join(" ") === SUDO_PROBE.join(" ");
 const nonProbe = (calls: string[][]) => calls.filter((c) => !isStatusProbe(c));
 const UPSTREAM_ENABLE = [
   ["tailscale", "up"],
@@ -124,6 +126,7 @@ describe("agro tool setup t3-mobile enable — daemon", () => {
     expect(r.code).toBe(0);
     expect(r.temps).toEqual([EXPECTED_UNIT]);
     expect(daemonSteps(r.calls)).toEqual([
+      SUDO_PROBE,
       ["sudo", "-n", "install", "-m", "0644", TEMP_PATH, UNIT_PATH],
       ["sudo", "-n", "systemctl", "daemon-reload"],
       ["sudo", "-n", "systemctl", "enable", "--now", "agro-tailscaled.service"],
@@ -137,7 +140,7 @@ describe("agro tool setup t3-mobile enable — daemon", () => {
     const r = await enable({ systemd: true, unit: EXPECTED_UNIT }, () => daemonAnswersAfter(isEnableNow));
     expect(r.code).toBe(0);
     expect(r.temps).toEqual([]);
-    expect(daemonSteps(r.calls)).toEqual([["sudo", "-n", "systemctl", "enable", "--now", "agro-tailscaled.service"]]);
+    expect(daemonSteps(r.calls)).toEqual([SUDO_PROBE, ["sudo", "-n", "systemctl", "enable", "--now", "agro-tailscaled.service"]]);
   });
 
   it("systemd path with a different unit rewrites it", async () => {
@@ -164,6 +167,32 @@ describe("agro tool setup t3-mobile enable — daemon", () => {
     ]);
     expect(r.calls.flat()).not.toContain("sudo");
     expect(r.calls.flat()).not.toContain("docker");
+  });
+
+  it("systemd present but sudo -n true fails takes the tmux path with no other sudo call", async () => {
+    const daemon = daemonAnswersAfter(isTmuxStart);
+    const r = await enable({ systemd: true }, () => (argv) => (isSudoProbe(argv) ? { status: 1 } : daemon(argv)));
+    expect(r.code).toBe(0);
+    expect(r.temps).toEqual([]);
+    expect(r.calls.filter((c) => c[0] === "sudo")).toEqual([SUDO_PROBE]);
+    expect(r.calls.some(isTmuxStart)).toBe(true);
+  });
+
+  it("systemd present and sudo unavailable to spawn takes the tmux path", async () => {
+    const daemon = daemonAnswersAfter(isTmuxStart);
+    const r = await enable({ systemd: true }, () => (argv) =>
+      isSudoProbe(argv) ? { status: null, error: { code: "ENOENT", message: "spawn sudo ENOENT" } } : daemon(argv),
+    );
+    expect(r.code).toBe(0);
+    expect(r.calls.filter((c) => c[0] === "sudo")).toEqual([SUDO_PROBE]);
+    expect(r.calls.some(isTmuxStart)).toBe(true);
+  });
+
+  it("no systemd takes the tmux path without the sudo -n true probe", async () => {
+    const r = await enable({}, () => daemonAnswersAfter(isTmuxStart));
+    expect(r.code).toBe(0);
+    expect(r.calls.some(isSudoProbe)).toBe(false);
+    expect(r.calls.some(isTmuxStart)).toBe(true);
   });
 
   it("tmux path with an existing agent-tailscaled session starts no second daemon", async () => {
@@ -229,11 +258,11 @@ describe("agro tool setup t3-mobile enable — daemon", () => {
   it("stops with the exit status of a failed sudo step", async () => {
     const r = await enable({ systemd: true }, () => (argv) => {
       if (isStatusProbe(argv)) return { status: 1 };
-      if (argv[0] === "sudo") return { status: 4 };
+      if (argv[0] === "sudo" && argv[2] === "install") return { status: 4 };
       return undefined;
     });
     expect(r.code).toBe(4);
-    expect(daemonSteps(r.calls)).toEqual([["sudo", "-n", "install", "-m", "0644", TEMP_PATH, UNIT_PATH]]);
+    expect(daemonSteps(r.calls)).toEqual([SUDO_PROBE, ["sudo", "-n", "install", "-m", "0644", TEMP_PATH, UNIT_PATH]]);
     expect(r.removed).toEqual([TEMP_PATH]);
   });
 });
