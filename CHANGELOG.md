@@ -10,6 +10,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Changed
 
+- `/prd` § Stories makes the evidence story for a server, CLI, or API change run each command through the entry point that a user types, from fresh state with an input path that does not exist yet. Before the evidence story creates a live resource, it runs one read-only check that costs nothing. If the check fails, the story sets `blocked` ([#1546](https://github.com/mifunedev/agro/issues/1546)).
 - `/prd` § 3 adds the tests and fixtures that pin generated output to the `files` of the story that changes the output. `/improve` § 4 reports `PARTIAL` when a performance or cost recommendation has no current measurement of its falsifier, and names a measurement task as the next step ([#1544](https://github.com/mifunedev/agro/issues/1544)).
 
 ## [0.28.0] - 2026-10-31
