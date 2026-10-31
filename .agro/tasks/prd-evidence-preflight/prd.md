@@ -80,3 +80,7 @@ N/A. No test covers skill prose. The checks are `ste-check.sh`, `link-providers.
 - [ ] CI passes on the task PR.
 
 ## Lessons
+
+1. **Claim:** The evidence-story rules now require the user entry point, fresh state with a missing input, and a no-cost preflight before a live resource. **Evidence:** the diff of `.agro/skills/prd/SKILL.md` § Stories and the two downstream plans named in the Summary. **Outcome:** fixed in this PR.
+2. **Claim:** The wording does not say what a library or a command with no path input does. **Evidence:** the review of this PR. **Outcome:** dropped, because the plan author fills the criteria for each story and can mark a rule N/A with a reason.
+3. **Claim:** Safety-hook false positives cost turns in the downstream session. **Evidence:** the `/improve` council of 2026-10-31. **Outcome:** dropped, because the fix belongs in each hook with its exact blocked string, and no string is recorded here.
