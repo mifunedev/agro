@@ -115,8 +115,9 @@
         "docs/connecting.md",
         "CHANGELOG.md"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "25d60052 cherry-picked. lifecycle-commands.md row + section for four actions: reasoned from diff. t3code.md and connecting.md use /t3 start then agro tool setup t3-mobile enable: reasoned from diff; git grep tailscale-serve -- docs exit 1. CHANGELOG Added entry #1540: reasoned from diff. STE on 3 docs exit 0. npm test: worker run exit 1 from 43 timeouts in verify-sandbox-image and provision-python tests at load avg ~167 (both pass alone, 75/75); docs-only change; full suite rerun at Close.",
+      "commit": "ba9db3f8"
     },
     {
       "id": "US-006",
