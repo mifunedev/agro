@@ -76,8 +76,9 @@
         ".agro/cli/src/commands/t3-mobile.ts",
         ".agro/cli/src/__tests__/t3-mobile.test.ts"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "54967f54 cherry-picked. enable order up -> serve -> pair, stop at first failure; pair command choice t3 vs npx t3@latest; pair/disable/status argv; status runs both; stdio inherit; exit passthrough: executed t3-mobile.test.ts (red 17 fail, green); t3-mobile + cli-first-help 64 passed exit 0 on task branch. No update action: executed help output lists 4 actions. typecheck exit 0; build exit 0; dist help exit 0. Interactive tailscale up login URL: reasoned (stdio inherit), US-006 runs it. Note: a nonzero step adds one stderr line naming the command.",
+      "commit": "53a1eefc"
     },
     {
       "id": "US-004",
