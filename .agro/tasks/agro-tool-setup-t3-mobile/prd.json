@@ -95,8 +95,9 @@
         ".agro/skills/t3/",
         ".agro/scripts/__tests__/t3-code.test.ts"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "1a0ea0da cherry-picked. t3-code.sh has no --tailscale/--tailscale-port; /t3 start loopback only: executed git grep tailscale-serve|--tailscale-port -- .agro/skills/t3 exit 1 + reasoned from diff. SKILL.md Phone access section -> /t3 start then agro tool setup t3-mobile enable: reasoned from diff. tailscale-mobile.md four actions + serve reset + revoke notes: reasoned from diff; STE exit 0. t3-code.test.ts 4 passed exit 0. SKILL.md STE: 1 finding at line 49, unchanged line (pre-existing). Full npm test at Close.",
+      "commit": "57afad12"
     },
     {
       "id": "US-005",
