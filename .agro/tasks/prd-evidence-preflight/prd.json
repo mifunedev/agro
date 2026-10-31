@@ -17,13 +17,14 @@
       ],
       "description": "As a plan author, I want stricter evidence-story rules so that evidence catches first-run bugs and live spend waits for a working path.",
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1-2 executed by advisor read-back of the diff: entry point, fresh state with a missing input on a new temp path, and a no-cost read-only preflight that sets blocked. 3 reasoned: CHANGELOG entry links #1546. 4 executed: ste-check no findings. 5 executed: link-providers --check Providers OK. 6 executed: git diff --check exit 0.",
       "dependsOn": [],
       "files": [
         ".agro/skills/prd/SKILL.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "ff5a550a"
     }
   ],
   "pr": 1547
