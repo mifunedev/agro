@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Changed
+
+- `/prd` § 3 adds the tests and fixtures that pin generated output to the `files` of the story that changes the output. `/improve` § 4 reports `PARTIAL` when a performance or cost recommendation has no current measurement of its falsifier, and names a measurement task as the next step ([#1544](https://github.com/mifunedev/agro/issues/1544)).
+
 ## [0.28.0] - 2026-10-31
 
 ### Added
