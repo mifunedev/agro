@@ -148,5 +148,6 @@
       "passes": false,
       "notes": ""
     }
-  ]
+  ],
+  "blocked": "US-006 waits on the operator: open the tailscale up login link, approve the sandbox, scan the pairing QR in Herdr tab t3-mobile, and report whether the phone paired."
 }
