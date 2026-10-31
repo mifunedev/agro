@@ -50,9 +50,9 @@
         ".agro/cli/src/commands/t3-mobile.ts",
         ".agro/cli/src/__tests__/t3-mobile.test.ts"
       ],
-      "passes": false,
-      "notes": "a539c682 cherry-picked. Acts on this machine, no docker: reasoned (grep docker in t3-mobile.ts none) + tests. Missing binary runs catalog installArgv: executed test. Systemd path writes unit via sudo -n install, daemon-reload, enable --now; unit text = console template with user/group/home: executed tests. Tmux path agent-tailscaled: executed test. Idempotent (identical unit, existing session, status up): executed tests. t3-mobile + cli-first-help 48 passed exit 0; typecheck exit 0; build exit 0. Reachability via tailscale status --json exit 0 while logged out: unverified on a real daemon, US-006 checks it.",
-      "commit": "b85f30e7",
+      "passes": true,
+      "notes": "a539c682 cherry-picked. Acts on this machine, no docker: reasoned (grep docker in t3-mobile.ts none) + tests. Missing binary runs catalog installArgv: executed test. Systemd path writes unit via sudo -n install, daemon-reload, enable --now; unit text = console template with user/group/home: executed tests. Tmux path agent-tailscaled: executed test. Idempotent (identical unit, existing session, status up): executed tests. t3-mobile + cli-first-help 48 passed exit 0; typecheck exit 0; build exit 0. Reachability via tailscale status --json exit 0 while logged out: unverified on a real daemon, US-006 checks it. Round 1 (156be507): systemd path only when /run/systemd/system exists AND sudo -n true exits 0, else tmux. Found live: AGRO sandbox runs systemd as PID 1 without passwordless sudo. Tests red 5 fail, green; task branch t3-mobile + help 67 passed exit 0; typecheck exit 0; build exit 0.",
+      "commit": "bd5216dd",
       "rounds": 1
     },
     {
