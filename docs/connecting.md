@@ -146,77 +146,79 @@ when the sandbox runs on a remote host. Access stays private to your tailnet.
 
 ### Steps
 
-1. Install Tailscale in the sandbox. The AGRO tool catalog pins the version and
-   the checksums. The binary lands in `~/.local/bin`.
+1. Start T3 Code in the sandbox:
 
-   ```bash
-   agro tool install tailscale
-   agro tool status tailscale
+   ```text
+   /t3 start
    ```
 
-2. Start the daemon in a named tmux session, so it survives a disconnect:
+   The skill runs `npx --yes t3@latest serve` in the `agent-t3code` tmux session.
+   T3 Code listens on `127.0.0.1:3773`.
+
+2. Enable phone access:
 
    ```bash
-   tmux new-session -d -s agent-tailscaled \
-     'tailscaled --tun=userspace-networking --statedir=$HOME/.tailscale'
+   agro tool setup t3-mobile enable
    ```
 
-3. Join the tailnet. `tailscale up` prints a login URL. Open the URL and approve
-   the node. Then note the MagicDNS name.
+   Run `enable` in the directory where `t3 serve` started. `t3 pair` finds the
+   server through the `.t3` state in the current directory.
 
-   ```bash
-   tailscale up
-   tailscale status
-   ```
+   The verb installs Tailscale when Tailscale is missing. The verb starts one
+   userspace `tailscaled`, so the daemon survives a disconnect:
+   - If `/run/systemd/system` exists and `sudo -n true` succeeds, the verb
+     installs and starts the systemd unit `agro-tailscaled.service`.
+   - Otherwise, the verb starts `tailscaled` in the tmux session
+     `agent-tailscaled`.
+
+   The verb then runs these commands in order and stops at the first failure:
+   1. `tailscale up`. This command prints a login URL. Open the URL and approve
+      the node.
+   2. `tailscale serve --bg --https=443 http://127.0.0.1:3773`. Serve proxies
+      tailnet HTTPS to T3 Code.
+   3. `t3 pair --tailscale`, or `npx --yes t3@latest pair --tailscale` when `t3`
+      is not on `PATH`. This command prints a QR code and the `ts.net` pairing
+      URL.
 
    Never commit a reusable Tailscale auth key. Never print one into a log or a
    tracked file.
 
-4. Start T3 Code in Tailscale mode:
-
-   ```text
-   /t3 start --tailscale
-   ```
-
-   The skill runs `npx --yes t3@latest serve --tailscale-serve` in the `agent-t3code`
-   tmux session. T3 Code configures Serve on HTTPS 443. The server prints a
-   `localhost` pairing URL, which the phone cannot use. The skill then runs
-   `npx --yes t3@latest pair --tailscale` one time. That command prints a QR code and
-   the `ts.net` pairing URL. Add `--tailscale-port 8443` when port 443 is in use
-   on the node.
-
-5. Pair the phone. Scan the QR code, or paste the
+3. Pair the phone. Scan the QR code, or paste the
    `https://<machine>.<tailnet>.ts.net/...` URL into the T3 Code app.
 
 The pairing token is single-use. The paired session persists. To add another
-device, do not restart the server. Run `/t3 pair --tailscale` and pair with the
-new URL.
-
-Run the next command in another sandbox terminal to print a fresh QR code:
+device, do not restart the server. In the directory where `t3 serve` started,
+run the next command and pair with the new URL:
 
 ```bash
-npx --yes t3@latest pair --tailscale --label <device> --ttl 15m
+agro tool setup t3-mobile pair
 ```
+
+To show the tailnet state and the Serve mapping, run
+`agro tool setup t3-mobile status`. To update T3 Code, run `t3 update`.
 
 ### Lifecycle
 
-| tmux session | Process |
-|--------------|---------|
-| `agent-tailscaled` | the Tailscale daemon |
-| `agent-t3code` | `npx --yes t3@latest serve --tailscale-serve` |
+| Runtime | Process | Debug |
+|---------|---------|-------|
+| systemd unit `agro-tailscaled.service` | the Tailscale daemon, on systemd with passwordless `sudo` | `systemctl status agro-tailscaled.service`; `journalctl -u agro-tailscaled.service` |
+| tmux session `agent-tailscaled` | the Tailscale daemon, otherwise | `tmux capture-pane -pt agent-tailscaled` |
+| tmux session `agent-t3code` | `npx --yes t3@latest serve` | `/t3 status`; `/t3 logs` |
 
-Both sessions survive a disconnect. `/t3 status` and `/t3 logs` read the T3
-session without an attach. After a container recreate, the daemon is not
-running: repeat steps 2 and 4. Run `tailscale up` again only after a logout.
+Each runtime survives a disconnect. `/t3 status` and `/t3 logs` read the T3
+session without an attach. The systemd unit starts again at boot. On the tmux
+runtime, the daemon is not running after a container recreate. After a container
+recreate, repeat steps 1 and 2. `tailscale up` asks for a login again only after
+a logout.
 
 ### Revoke access
 
 T3 pairing and tailnet access are separate. Revoke both:
 
 ```bash
-t3 auth                          # inspect and revoke T3 sessions and pairing credentials
-tailscale serve --https=443 off  # remove the Serve mapping; it persists until you do
-tailscale logout                 # sign the sandbox node out of the tailnet
+t3 auth                            # inspect and revoke T3 sessions and pairing credentials
+agro tool setup t3-mobile disable  # remove the Serve mapping; it persists until you do
+tailscale logout                   # sign the sandbox node out of the tailnet
 ```
 
 Then delete the device in the Tailscale admin console.
@@ -225,30 +227,30 @@ Then delete the device in the Tailscale admin console.
 
 A rename of the Tailscale node does not move the Serve mapping. The mapping
 stays on the old MagicDNS name. Run these commands in the sandbox to remove the
-old mapping and start the server on the new name:
+old mapping and publish T3 Code on the new name:
 
 ```bash
 tailscale serve reset
-/t3 stop
-/t3 start --tailscale
+agro tool setup t3-mobile enable
 ```
 
 ### Troubleshooting
 
-`/t3 doctor` runs the Tailscale, Node, and tooling checks and prints one line per
-failure.
+`/t3 doctor` runs the Node and tooling checks and prints one line per failure.
+`agro tool setup t3-mobile status` prints the tailnet state and the Serve
+mapping.
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `/t3 start --tailscale` reports Tailscale missing | binary not installed | `agro tool install tailscale` |
-| `tailscale status` cannot reach the daemon | `tailscaled` not running | repeat step 2; check `tmux ls` for `agent-tailscaled` |
-| Backend state is not `Running` | node never joined, or logged out | `tailscale up`, then complete the browser login |
-| No `ts.net` URL in the T3 output | Serve not configured | confirm `tailscale status` shows `Running`, then `/t3 start --tailscale` |
-| Serve answers after T3 Code stops | the Serve mapping persists | `tailscale serve --https=443 off` |
+| `tailscale status` cannot reach the daemon | `tailscaled` not running | run `agro tool setup t3-mobile enable` again; on systemd, run `systemctl status agro-tailscaled.service` and `journalctl -u agro-tailscaled.service`; on tmux, run `tmux capture-pane -pt agent-tailscaled` |
+| `enable` reports `tailscaled not found` | no `tailscaled` binary on `PATH` | install Tailscale, or put `tailscaled` on `PATH`; then run `enable` again |
+| Backend state is not `Running` | node never joined, or logged out | run `agro tool setup t3-mobile enable`, then complete the browser login |
+| No `ts.net` URL in the pair output | Serve not configured | run `agro tool setup t3-mobile status`; then run `agro tool setup t3-mobile enable` |
+| Serve answers after T3 Code stops | the Serve mapping persists | `agro tool setup t3-mobile disable` |
 | T3 Code fails with an engine error | Node outside `^22.16 \|\| ^23.11 \|\| >=24.10` | check `node -v`; rebuild the sandbox on Node 24.10 or later |
 | Phone cannot reach the URL | phone not on the tailnet | sign the phone in to the same tailnet; confirm it in `tailscale status` |
-| Phone on the tailnet, URL times out | Serve on another port, or server stopped | `tailscale serve status`; `/t3 status` |
-| `https://app.t3.codes` cannot connect | mixed content: an HTTPS page blocks a plain-HTTP endpoint | use `--tailscale-serve` (HTTPS) or the native app |
+| Phone on the tailnet, URL times out | Serve on another port, or server stopped | `agro tool setup t3-mobile status`; `/t3 status` |
+| `https://app.t3.codes` cannot connect | mixed content: an HTTPS page blocks a plain-HTTP endpoint | use the `ts.net` HTTPS URL or the native app |
 
 AGRO never enables Tailscale Funnel and ships no Funnel command. For a public
 preview, use `/cloudflared 3773` instead.

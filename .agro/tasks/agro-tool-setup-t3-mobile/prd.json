@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1540-agro-tool-setup-t3-mobile",
+  "description": "agro tool setup t3-mobile enable|pair|disable|status: a thin AGRO CLI verb that starts a userspace tailscaled (systemd on nodes, tmux in the sandbox), publishes T3 Code over Tailscale Serve, and pairs a phone, replacing raw command chains in the console dialog and the /t3 Tailscale flags. Stacked on #1539.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Parse and dispatch `agro tool setup t3-mobile <action>`",
+      "description": "As an operator, I want `agro tool setup t3-mobile <action>` to be a known command with help and clear errors. I can then discover the verb and get a clear error for a wrong action.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/command-table.ts` gives `tool` its own verb list, `TOOL_SUBCOMMANDS`, with `setup` added. `harness` keeps `INSTALLER_SUBCOMMANDS` unchanged.",
+        "`agro tool setup t3-mobile enable|pair|disable|status` reaches one handler in a new `.agro/cli/src/commands/t3-mobile.ts`.",
+        "`agro tool setup` with no target, an unknown target, or an unknown action prints usage to stderr and exits 2.",
+        "`agro tool setup t3-mobile --help` prints the four actions with one line each and exits 0.",
+        "`agro tool --help` lists `setup t3-mobile <enable|pair|disable|status>`.",
+        "Tests in `.agro/cli/src/__tests__/t3-mobile.test.ts` cover each parse case. The tests fail before the change and pass after the change."
+      ],
+      "priority": 1,
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/command-table.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/commands/t3-mobile.ts",
+        ".agro/cli/src/__tests__/t3-mobile.test.ts",
+        ".agro/cli/src/__tests__/cli-first-help.test.ts"
+      ],
+      "passes": true,
+      "notes": "d168fb75 cherry-picked. TOOL_SUBCOMMANDS for tool only, harness unchanged: reasoned from diff + worker smoke (harness setup rejected). Route to runToolSetup in commands/t3-mobile.ts: executed t3-mobile.test.ts. Usage errors exit 2, help exit 0, tool help lists setup: executed t3-mobile.test.ts + cli-first-help.test.ts on task branch, 38 passed exit 0. Red-first: worker reported exit 1 before. typecheck exit 0; build:harness exit 0. Full npm test deferred to Close (worker run had load timeouts; failing files pass on rerun).",
+      "commit": "db420d54"
+    },
+    {
+      "id": "US-002",
+      "title": "Start the userspace Tailscale daemon where the verb runs",
+      "description": "As a node owner, I want `enable` to install Tailscale and start one userspace daemon on this machine. The plain `tailscale` CLI then works with no `--socket` flag.",
+      "acceptanceCriteria": [
+        "The verb acts on the machine where it runs. The verb never uses `docker exec` and never targets another container.",
+        "If `tailscale` is not on `PATH`, `enable` runs the `tailscale` catalog install argv from `.agro/cli/src/lib/tools/catalog.ts` on this machine.",
+        "If `/run/systemd/system` exists, `enable` writes `/etc/systemd/system/agro-tailscaled.service` through `sudo -n`, runs `sudo -n systemctl daemon-reload`, and runs `sudo -n systemctl enable --now agro-tailscaled.service`.",
+        "The unit text equals the console unit in `mifunedev/agro-console` `packages/shared/src/tailscaled-assets.ts`: - `--tun=userspace-networking --statedir=<home>/.tailscale` - `RuntimeDirectory=tailscale` - `RuntimeDirectoryMode=0755` - `Conflicts=tailscaled.service` - `User=` and `Group=` set to the invoking user",
+        "If `/run/systemd/system` does not exist, `enable` starts `tailscaled --tun=userspace-networking --statedir=$HOME/.tailscale` in the detached tmux session `agent-tailscaled`.",
+        "If the unit file already has the same text, `enable` does not write the file again. If the daemon already answers `tailscale status`, `enable` does not start a second daemon.",
+        "Tests with an injected runner cover the systemd path, the tmux path, the missing-binary install, and the second run with no change."
+      ],
+      "priority": 4,
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/cli/src/commands/t3-mobile.ts",
+        ".agro/cli/src/__tests__/t3-mobile.test.ts"
+      ],
+      "passes": true,
+      "notes": "a539c682 cherry-picked. Acts on this machine, no docker: reasoned (grep docker in t3-mobile.ts none) + tests. Missing binary runs catalog installArgv: executed test. Systemd path writes unit via sudo -n install, daemon-reload, enable --now; unit text = console template with user/group/home: executed tests. Tmux path agent-tailscaled: executed test. Idempotent (identical unit, existing session, status up): executed tests. t3-mobile + cli-first-help 48 passed exit 0; typecheck exit 0; build exit 0. Reachability via tailscale status --json exit 0 while logged out: unverified on a real daemon, US-006 checks it. Round 1 (156be507): systemd path only when /run/systemd/system exists AND sudo -n true exits 0, else tmux. Found live: AGRO sandbox runs systemd as PID 1 without passwordless sudo. Tests red 5 fail, green; task branch t3-mobile + help 67 passed exit 0; typecheck exit 0; build exit 0. Review fix (77b98c26): tailscaled resolved once for both runtimes, early exit 1 when missing; tests 75 passed exit 0.",
+      "commit": "888e89ca",
+      "rounds": 2
+    },
+    {
+      "id": "US-003",
+      "title": "Connect, publish, pair, disable, and report status",
+      "description": "As a node owner, I want `enable`, `pair`, `disable`, and `status` to call the upstream `tailscale` and `t3` commands. I then pair my phone with one command and manage access later.",
+      "acceptanceCriteria": [
+        "After US-002, `enable` runs these commands in order and stops at the first nonzero exit status: 1. `tailscale up`, which prints the login URL; 2. `tailscale serve --bg --https=443 http://127.0.0.1:3773`; 3. the pair command.",
+        "The pair command is `t3 pair --tailscale` when `t3` is on `PATH`. Otherwise the pair command is `npx --yes t3@latest pair --tailscale`.",
+        "`pair` runs the pair command only.",
+        "`disable` runs `tailscale serve --https=443 off`.",
+        "`status` runs `tailscale status` and then `tailscale serve status`.",
+        "Each action passes stdin, stdout, and stderr of the upstream command through. The verb exits with the exit status of the first command that fails, or 0.",
+        "The verb has no `update` action, and the verb parses no upstream output.",
+        "Tests with an injected runner assert the argv order, the stop at the first failure, the exit status passthrough, and the pair-command choice."
+      ],
+      "priority": 5,
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/cli/src/commands/t3-mobile.ts",
+        ".agro/cli/src/__tests__/t3-mobile.test.ts"
+      ],
+      "passes": true,
+      "notes": "54967f54 cherry-picked. enable order up -> serve -> pair, stop at first failure; pair command choice t3 vs npx t3@latest; pair/disable/status argv; status runs both; stdio inherit; exit passthrough: executed t3-mobile.test.ts (red 17 fail, green); t3-mobile + cli-first-help 64 passed exit 0 on task branch. No update action: executed help output lists 4 actions. typecheck exit 0; build exit 0; dist help exit 0. Interactive tailscale up login URL: reasoned (stdio inherit), US-006 runs it. Note: a nonzero step adds one stderr line naming the command.",
+      "commit": "53a1eefc"
+    },
+    {
+      "id": "US-004",
+      "title": "Make `/t3` use the verb",
+      "description": "As a sandbox agent, I want `/t3` to use `agro tool setup t3-mobile` for phone access. The harness and the console then share one procedure.",
+      "acceptanceCriteria": [
+        "`.agro/skills/t3/scripts/t3-code.sh` has no `--tailscale` and no `--tailscale-port` option. `/t3 start` serves on `127.0.0.1:3773` only.",
+        "`.agro/skills/t3/SKILL.md` tells the agent to run `/t3 start`, then `agro tool setup t3-mobile enable` for phone access.",
+        "`.agro/skills/t3/references/tailscale-mobile.md` lists the four verb actions and keeps the `tailscale serve reset` rename note.",
+        "`.agro/scripts/__tests__/t3-code.test.ts` passes, with the Tailscale flag cases removed.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/t3/SKILL.md .agro/skills/t3/references/tailscale-mobile.md` reports no finding on a changed line."
+      ],
+      "priority": 2,
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/t3/",
+        ".agro/scripts/__tests__/t3-code.test.ts"
+      ],
+      "passes": true,
+      "notes": "1a0ea0da cherry-picked. t3-code.sh has no --tailscale/--tailscale-port; /t3 start loopback only: executed git grep tailscale-serve|--tailscale-port -- .agro/skills/t3 exit 1 + reasoned from diff. SKILL.md Phone access section -> /t3 start then agro tool setup t3-mobile enable: reasoned from diff. tailscale-mobile.md four actions + serve reset + revoke notes: reasoned from diff; STE exit 0. t3-code.test.ts 4 passed exit 0. SKILL.md STE: 1 finding at line 49, unchanged line (pre-existing). Full npm test at Close. Review fix (77b98c26): docs and skill reference describe systemd and tmux runtimes with debug commands, and the server directory for pair; STE 4 files exit 0.",
+      "commit": "888e89ca",
+      "rounds": 1
+    },
+    {
+      "id": "US-005",
+      "title": "Document the verb",
+      "description": "As an operator, I want the docs to describe the verb. I can then find the command without reading the source.",
+      "acceptanceCriteria": [
+        "`docs/lifecycle-commands.md` has a row for `agro tool setup t3-mobile` with its four actions.",
+        "`docs/harnesses/t3code.md` and `docs/connecting.md` show `agro tool setup t3-mobile enable` for phone access, in place of the raw `tailscale` and `t3 pair --tailscale` chain.",
+        "`CHANGELOG.md` has one Unreleased entry that references #1540.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md docs/harnesses/t3code.md docs/connecting.md` reports no finding on a changed line."
+      ],
+      "priority": 3,
+      "dependsOn": [],
+      "files": [
+        "docs/lifecycle-commands.md",
+        "docs/harnesses/t3code.md",
+        "docs/connecting.md",
+        "CHANGELOG.md"
+      ],
+      "passes": true,
+      "notes": "25d60052 cherry-picked. lifecycle-commands.md row + section for four actions: reasoned from diff. t3code.md and connecting.md use /t3 start then agro tool setup t3-mobile enable: reasoned from diff; git grep tailscale-serve -- docs exit 1. CHANGELOG Added entry #1540: reasoned from diff. STE on 3 docs exit 0. npm test: worker run exit 1 from 43 timeouts in verify-sandbox-image and provision-python tests at load avg ~167 (both pass alone, 75/75); docs-only change; full suite rerun at Close. Review fix (77b98c26): docs and skill reference describe systemd and tmux runtimes with debug commands, and the server directory for pair; STE 4 files exit 0.",
+      "commit": "888e89ca",
+      "rounds": 1
+    },
+    {
+      "id": "US-006",
+      "title": "Capture manual review evidence in the sandbox",
+      "description": "As the advisor, I want a transcript of the verb in this sandbox. The PR then proves the tmux path and the action order.",
+      "acceptanceCriteria": [
+        "With operator approval, the reviewer runs the built CLI in the sandbox: `agro tool setup t3-mobile enable`. The operator completes the `tailscale up` login, and the operator pairs one phone.",
+        "`.agro/tasks/agro-tool-setup-t3-mobile/evidence/manual-review.md` shows the output of `enable`, `status`, a second `enable` with no change, `pair`, and `disable`.",
+        "The transcript shows `tmux has-session -t agent-tailscaled` exit 0 after `enable`.",
+        "The reviewer runs `tailscale logout` and kills the `agent-tailscaled` session at the end, and the transcript records both."
+      ],
+      "priority": 6,
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004",
+        "US-005"
+      ],
+      "files": [
+        ".agro/tasks/agro-tool-setup-t3-mobile/evidence/"
+      ],
+      "passes": true,
+      "notes": "Operator approved and ran the live sandbox test. enable from ~/harness: tmux path (agent-tailscaled exit 0), tailscale up login, serve mapped, t3 pair QR; operator paired phone (reported working). status, second enable (already running, no second daemon), pair, disable: executed, transcript in evidence/transcript.txt (device list removed, tokens redacted). Finding: t3 pair needs the server directory (worktree run gave NoRunningServerError, upstream). Cleanup: tailscale logout, kill agent-tailscaled and agent-t3code, all exit 0."
+    }
+  ],
+  "pr": 1541,
+  "review": {
+    "commit": "888e89ca",
+    "verdict": "pass",
+    "model": "sonnet"
+  }
+}

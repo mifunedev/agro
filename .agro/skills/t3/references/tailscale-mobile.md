@@ -1,131 +1,124 @@
 # T3 Code on a phone, over a private tailnet
 
-Reaching T3 Code from a phone without exposing it publicly. The tailnet node is
-the **sandbox container**, running `tailscaled` in userspace-networking mode as
-the unprivileged `sandbox` user. No container capability is added, no host port
-is published, and T3 Code stays bound to container loopback. Tailscale Serve
-inside the container terminates HTTPS on the tailnet and proxies to
-`127.0.0.1:3773`.
+Use this procedure to reach T3 Code from a phone. T3 Code stays private on your
+tailnet. The tailnet node is the **sandbox container**. The `tailscaled` daemon
+runs in userspace-networking mode as the unprivileged `sandbox` user. The
+procedure adds no container capability and publishes no host port. T3 Code
+stays bound to container loopback. Tailscale Serve terminates HTTPS on the
+tailnet and proxies to `127.0.0.1:3773`.
 
-A device that is not on the tailnet cannot reach the backend at all.
+Devices outside the tailnet cannot reach the backend.
 
 ## Sessions
 
-Both processes follow the sandbox tmux convention (see
+The tmux sessions follow the sandbox tmux convention (see
 [`sandbox-processes.md`](sandbox-processes.md)).
 
-| Session | Process | Log |
+| Session | Process | Started by |
 | --- | --- | --- |
-| `agent-tailscaled` | `tailscaled` in userspace-networking mode | `/tmp/agent-tailscaled.log` |
-| `agent-t3code` | `npx --yes t3@latest serve` | `/tmp/agent-t3code.log` |
+| `agent-t3code` | `npx --yes t3@latest serve` | `/t3 start` |
+| `agent-tailscaled` | `tailscaled` in userspace-networking mode, when systemd is not available | `agro tool setup t3-mobile enable` |
 
-Neither is started by the container entrypoint. Joining a tailnet is an explicit
-human act.
+The container entrypoint starts neither session. A person joins the tailnet
+explicitly.
 
-## One-time setup
+## Daemon runtime
 
-```bash
-agro tool install tailscale
+`enable` starts one userspace `tailscaled` in one of two runtimes:
 
-tmux new-session -d -s agent-tailscaled \
-  'tailscaled --tun=userspace-networking \
-              --statedir=$HOME/.tailscale 2>&1 | tee /tmp/agent-tailscaled.log'
+| Condition | Runtime | Debug |
+| --- | --- | --- |
+| `/run/systemd/system` exists and `sudo -n true` succeeds | systemd unit `agro-tailscaled.service` | `systemctl status agro-tailscaled.service`; `journalctl -u agro-tailscaled.service` |
+| otherwise | tmux session `agent-tailscaled` | `tmux capture-pane -pt agent-tailscaled` |
 
-tailscale up
-```
+`enable` uses the `tailscaled` binary on `PATH`. If `enable` finds no
+`tailscaled` binary, `enable` exits 1 and names the expected path.
 
-`tailscale up` prints a login URL. Open it in a browser and approve the node.
-State lives in `$HOME/.tailscale`, which is a named Docker volume, so a container
-recreate does not force a re-login.
+## The verb
 
-## Start the server and pair the phone
+The `agro tool setup t3-mobile` verb owns the Tailscale procedure. Each action
+calls upstream `tailscale` and `t3` and passes their output through.
+
+| Action | Commands |
+| --- | --- |
+| `enable` | installs Tailscale when the binary is absent, starts `tailscaled` in the [daemon runtime](#daemon-runtime), then runs `tailscale up`, `tailscale serve --bg --https=443 http://127.0.0.1:3773`, and the pair command |
+| `pair` | the pair command only |
+| `disable` | `tailscale serve --https=443 off` |
+| `status` | `tailscale status`, then `tailscale serve status` |
+
+The pair command is `t3 pair --tailscale` when `t3` is on `PATH`. Otherwise the
+pair command is `npx --yes t3@latest pair --tailscale`.
+
+Run `enable` and `pair` in the directory where `t3 serve` started. `t3 pair`
+finds the server through the `.t3` state in the current directory.
+
+## Pair the phone
 
 Run these commands in this order:
 
 ```bash
-/t3 doctor --tailscale     # confirm Node, binary, daemon, and tailnet state first
 /t3 start
-tailscale serve --bg --https=443 http://127.0.0.1:3773
-tailscale cert --cert-file /dev/null --key-file /dev/null "$(tailscale status --json | jq -r '.Self.DNSName | rtrimstr(".")')"
-/t3 pair --tailscale
+agro tool setup t3-mobile enable
 ```
 
-`tailscale serve` maps HTTPS port 443 on the tailnet to the T3 Code port on
-container loopback. `tailscale cert` gets the HTTPS certificate for the MagicDNS
-name of the node. If `jq` is not installed, copy the MagicDNS name from
-`tailscale status` and give that name to `tailscale cert`.
+`tailscale up` prints a login URL the first time. Open the URL in a browser and
+approve the node. Tailscale keeps its state in `$HOME/.tailscale`, a named
+Docker volume. A container recreate does not force a new login.
 
-`/t3 pair --tailscale` runs `npx --yes t3@latest pair --tailscale`. The command
-prints a QR code and a `https://<machine>.<tailnet>.ts.net/...` pairing URL.
-Install the T3 Code mobile app. Then scan the QR code or paste the `ts.net` URL.
+The pair command prints a QR code and a `https://<machine>.<tailnet>.ts.net/...`
+pairing URL. Install the T3 Code mobile app. Then scan the QR code or paste the
+`ts.net` URL.
 
-`/t3 start --tailscale` is a shortcut. It runs
-`npx --yes t3@latest serve --tailscale-serve`, so T3 Code makes the Serve
-mapping. Then it runs `npx --yes t3@latest pair --tailscale` one time.
-
-Run the next command in another sandbox terminal to print a fresh QR code:
+The pairing token is one-time. To add one more device, do **not** restart the
+server. Run the `pair` action:
 
 ```bash
-npx --yes t3@latest pair --tailscale --label <device> --ttl 15m
-```
-
-The pairing token is one-time. To add a second device later, do **not** restart
-the server:
-
-```bash
-/t3 pair --tailscale
-```
-
-## Ports
-
-Tailscale Serve defaults to HTTPS on **443**. Use another port with:
-
-```bash
-/t3 start --tailscale --tailscale-port 8443
+agro tool setup t3-mobile pair
 ```
 
 The hosted `https://app.t3.codes` page cannot talk to a plain-HTTP backend
-(mixed content). Tailscale Serve gives you real HTTPS, so it works with both the
-hosted page and the native mobile app.
+(mixed content). Tailscale Serve supplies real HTTPS. Thus the hosted page and
+the native mobile app both work.
 
 ## Teardown and revocation
 
 ```bash
+agro tool setup t3-mobile disable     # withdraw the Serve mapping; it persists until you do
+t3 auth session list                  # list T3 sessions
+t3 auth session revoke <session-id>   # revoke one T3 session
 /t3 stop                              # kill the T3 Code session
-tailscale serve --https=443 off       # withdraw the Serve mapping; it persists until you do
-t3 auth                               # inspect and revoke T3 sessions and credentials
 tailscale logout                      # remove this node's tailnet identity
 ```
 
-Delete the node in the Tailscale admin console to revoke it from the other side.
+To revoke the node from the tailnet side, delete the node in the Tailscale
+admin console.
 
 ## Rename the node
 
 A rename of the Tailscale node does not move the Serve mapping. The mapping
 stays on the old MagicDNS name. Run these commands in the sandbox to remove the
-old mapping and start the server on the new name:
+old mapping and publish on the new name:
 
 ```bash
 tailscale serve reset
-/t3 stop
-/t3 start --tailscale
+agro tool setup t3-mobile enable
 ```
 
 ## Troubleshooting
 
 | Symptom | Fix |
 | --- | --- |
-| `tailscale not found in PATH` | `agro tool install tailscale` — the install persists in the home volume |
-| `tailscaled is not running` | start the `agent-tailscaled` session above; check `/tmp/agent-tailscaled.log` |
-| backend state is `NeedsLogin` / `Stopped` | run `tailscale up` interactively and finish the browser login |
+| `enable` stops at `tailscale up` | finish the browser login, then run `enable` again |
+| `tailscaled` does not answer | on systemd, run `systemctl status agro-tailscaled.service` and `journalctl -u agro-tailscaled.service`; on tmux, run `tmux capture-pane -pt agent-tailscaled` |
+| `enable` reports `tailscaled not found` | install Tailscale, or put the `tailscaled` binary on `PATH`, then run `enable` again |
 | Node does not satisfy the range | the T3 server needs `^22.16 \|\| ^23.11 \|\| >=24.10`; raise the Node pin in `.devcontainer/Dockerfile` and rebuild |
-| port 3773 not answering | read `/t3 logs`; the provider backend may have failed to start |
-| phone shows the page but cannot connect | confirm the phone is on the same tailnet and the MagicDNS name resolves |
-| Serve answers on the old name after a node rename | run `tailscale serve reset`, then restart with `/t3 stop` and `/t3 start --tailscale` |
+| port 3773 does not answer | read `/t3 logs`; the provider backend can fail to start |
+| phone shows the page but cannot connect | confirm that the phone is on the same tailnet and that the MagicDNS name resolves |
+| Serve answers on the old name after a node rename | run `tailscale serve reset`, then `agro tool setup t3-mobile enable` |
 
 ## Secrets
 
-Pairing URLs and tokens are credentials. They belong in the terminal and the
-`/tmp` session log only — never in a tracked file, an issue, a PR body, or a
-persistent log. Tailscale auth keys are never printed or committed; the supported
-path is interactive `tailscale up`.
+Pairing URLs and tokens are credentials. Keep them in the terminal and the
+`/tmp` session log only. Never put them in a tracked file, an issue, a PR body,
+or a persistent log. Never print or commit a Tailscale auth key. Use the
+interactive `tailscale up` login.

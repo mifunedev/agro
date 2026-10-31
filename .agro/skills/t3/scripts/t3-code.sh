@@ -9,7 +9,7 @@ Actions:
   start    Run the preflight, then start `t3 serve` in tmux, or report the existing session (default)
   status   Show session status and recent output
   url      Print the latest pairing URL found in the log/pane
-  pair     Mint a fresh pairing URL against the already-running server (no restart)
+  pair     Mint a fresh local pairing URL against the already-running server (no restart)
   logs     Print recent log lines
   stop     Kill the tmux session
   attach   Print the tmux attach command (does not attach)
@@ -20,8 +20,8 @@ Options:
   --session <name>       tmux session name (default: agent-t3code)
   --port <port>          expected T3 Code port (default: 3773)
   --log <path>           log path (default: /tmp/<session>.log)
-  --tailscale            publish over Tailscale Serve (HTTPS on the tailnet)
-  --tailscale-port <p>   alternate Tailscale Serve HTTPS port (default: 443)
+
+Phone access: after 'start', run 'agro tool setup t3-mobile enable'.
 USAGE
 }
 
@@ -29,10 +29,9 @@ ACTION="start"
 SESSION="agent-t3code"
 PORT="3773"
 LOG=""
-TAILSCALE="false"
-TAILSCALE_PORT=""
-TAILSCALED_SESSION="agent-tailscaled"
 NODE_RANGE="^22.16 || ^23.11 || >=24.10"
+SERVE_COMMAND="npx --yes t3@latest serve"
+PAIR_COMMAND="npx --yes t3@latest pair"
 CLEAR_HERDR_ENV='for herdr_var in $(env | sed -n "s/^\\(HERDR_[A-Za-z0-9_]*\\)=.*/\\1/p"); do unset "$herdr_var"; done'
 
 if [[ $# -gt 0 ]]; then
@@ -59,16 +58,6 @@ while [[ $# -gt 0 ]]; do
     --log)
       [[ $# -ge 2 ]] || { echo "ERROR: --log requires a value" >&2; exit 2; }
       LOG="$2"
-      shift 2
-      ;;
-    --tailscale)
-      TAILSCALE="true"
-      shift
-      ;;
-    --tailscale-port)
-      [[ $# -ge 2 ]] || { echo "ERROR: --tailscale-port requires a value" >&2; exit 2; }
-      TAILSCALE_PORT="$2"
-      TAILSCALE="true"
       shift 2
       ;;
     -h|--help)
@@ -104,12 +93,6 @@ node_version_ok() {
   (( major > 24 ))
 }
 
-tailscaled_hint() {
-  cat <<HINT
-       start it in tmux: tmux new-session -d -s ${TAILSCALED_SESSION} 'tailscaled --tun=userspace-networking --statedir=\$HOME/.tailscale'
-HINT
-}
-
 doctor() {
   local failures=0
 
@@ -131,24 +114,6 @@ doctor() {
     failures=$((failures + 1))
   fi
 
-  if [[ "$TAILSCALE" == "true" ]]; then
-    if ! command -v tailscale >/dev/null 2>&1; then
-      echo "ERROR: tailscale not found in PATH; run 'agro tool install tailscale'" >&2
-      failures=$((failures + 1))
-    elif ! tailscale status --json >/dev/null 2>&1; then
-      echo "ERROR: tailscaled is not running or its socket is unreachable" >&2
-      tailscaled_hint >&2
-      failures=$((failures + 1))
-    else
-      local state
-      state="$(tailscale status --json 2>/dev/null | sed -n 's/.*"BackendState"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
-      if [[ "$state" != "Running" ]]; then
-        echo "ERROR: tailnet backend state is '${state:-unknown}', not 'Running'; run 'tailscale up' interactively and complete the browser login" >&2
-        failures=$((failures + 1))
-      fi
-    fi
-  fi
-
   if [[ "$ACTION" == "pair" || "$ACTION" == "doctor" ]]; then
     if command -v tmux >/dev/null 2>&1 && has_session; then
       if command -v curl >/dev/null 2>&1 && ! curl -fsS -o /dev/null --max-time 3 "http://127.0.0.1:${PORT}/" 2>/dev/null; then
@@ -161,37 +126,13 @@ doctor() {
   if (( failures > 0 )); then
     return 1
   fi
-  echo "Preflight OK (Node $(node -v 2>/dev/null), tailscale mode: ${TAILSCALE})"
+  echo "Preflight OK (Node $(node -v 2>/dev/null))"
   return 0
 }
 
-serve_argv() {
-  local -a argv=(npx --yes t3@latest serve)
-  if [[ "$TAILSCALE" == "true" ]]; then
-    argv+=(--tailscale-serve)
-    if [[ -n "$TAILSCALE_PORT" ]]; then
-      argv+=(--tailscale-serve-port "$TAILSCALE_PORT")
-    fi
-  fi
-  printf '%s\n' "${argv[*]}"
-}
-
-pair_argv() {
-  local -a argv=(npx --yes t3@latest pair)
-  if [[ "$TAILSCALE" == "true" ]]; then
-    argv+=(--tailscale)
-    if [[ -n "$TAILSCALE_PORT" ]]; then
-      argv+=(--tailscale-serve-port "$TAILSCALE_PORT")
-    fi
-  fi
-  printf '%s\n' "${argv[*]}"
-}
-
 run_pair() {
-  local -a argv
-  read -ra argv <<<"$(pair_argv)"
   eval "$CLEAR_HERDR_ENV"
-  "${argv[@]}"
+  $PAIR_COMMAND
 }
 
 recent_output() {
@@ -205,30 +146,25 @@ recent_output() {
 
 pairing_url() {
   recent_output \
-    | grep -Eoi 'https?://[^[:space:]]*\.ts\.net[^[:space:]]*|https?://[^[:space:]]*(pairingUrl|pair|token)[^[:space:]]*|pairingUrl[^[:space:]]*[[:space:]]*[:=][[:space:]]*https?://[^[:space:]]+' \
+    | grep -Eoi 'https?://[^[:space:]]*(pairingUrl|pair|token)[^[:space:]]*|pairingUrl[^[:space:]]*[[:space:]]*[:=][[:space:]]*https?://[^[:space:]]+' \
     | sed 's/^[Pp]airing[Uu]rl[^:=]*[:=][[:space:]]*//' \
     | tail -n 1
 }
 
 print_summary() {
   local url
-  url="${1-$(pairing_url || true)}"
-  if [[ "$TAILSCALE" == "true" && ! "$url" =~ \.ts\.net ]]; then
-    url=""
-  fi
+  url="$(pairing_url || true)"
   echo "T3 Code session: $SESSION"
   echo "Log: $LOG"
   echo "Local: http://localhost:${PORT}"
-  if [[ "$TAILSCALE" == "true" ]]; then
-    echo "Tailnet: served over HTTPS on port ${TAILSCALE_PORT:-443} at the node's MagicDNS name"
-  fi
   if [[ -n "$url" ]]; then
     echo "Pairing URL: $url"
   else
     echo "Pairing URL: not found yet"
     echo "Inspect: tmux capture-pane -t ${SESSION} -p | grep -iE 'pair|token|url'"
   fi
-  echo "Pair another device: /t3 pair$([[ "$TAILSCALE" == "true" ]] && echo ' --tailscale')"
+  echo "Pair another device: /t3 pair"
+  echo "Phone access: agro tool setup t3-mobile enable"
   echo "Attach: tmux attach -t ${SESSION}"
   echo "Stop: tmux kill-session -t ${SESSION}"
 }
@@ -290,8 +226,8 @@ case "$ACTION" in
       exit 1
     fi
     doctor >/dev/null || exit 1
-    echo "Minting a one-time pairing URL against the running server (no restart)."
-    echo "Command: $(pair_argv)"
+    echo "Minting a one-time local pairing URL against the running server (no restart)."
+    echo "Command: ${PAIR_COMMAND}"
     run_pair
     echo
     echo "Treat that URL and token as a secret. Do not paste it into an issue, PR, or tracked file."
@@ -323,7 +259,7 @@ case "$ACTION" in
 
     if has_session; then
       echo "T3 Code session already running: $SESSION"
-      echo "To add a device without restarting, use: /t3 pair$([[ "$TAILSCALE" == "true" ]] && echo ' --tailscale')"
+      echo "To add a device without restarting, use: /t3 pair"
       print_summary
       exit 0
     fi
@@ -331,9 +267,9 @@ case "$ACTION" in
     mkdir -p "$(dirname "$LOG")"
     (umask 077; : > "$LOG")
     chmod 600 "$LOG" 2>/dev/null || true
-    tmux new-session -d -s "$SESSION" "${CLEAR_HERDR_ENV}; $(serve_argv) 2>&1 | tee $(printf '%q' "$LOG")"
+    tmux new-session -d -s "$SESSION" "${CLEAR_HERDR_ENV}; ${SERVE_COMMAND} 2>&1 | tee $(printf '%q' "$LOG")"
     echo "Started T3 Code in tmux session: $SESSION"
-    echo "Launch command: $(serve_argv)"
+    echo "Launch command: ${SERVE_COMMAND}"
 
     for _ in $(seq 1 40); do
       if ! has_session; then
@@ -347,24 +283,9 @@ case "$ACTION" in
       sleep 0.5
     done
 
-    if [[ "$TAILSCALE" == "true" ]]; then
-      tailnet_url=""
-      if [[ -n "$(pairing_url || true)" ]]; then
-        echo "Minting a tailnet pairing URL: $(pair_argv)"
-        pair_output="$(run_pair)" || true
-        printf '%s\n' "$pair_output"
-        tailnet_url="$(printf '%s\n' "$pair_output" | grep -Eo 'https://[^[:space:]]*\.ts\.net[^[:space:]]*' | tail -n 1 || true)"
-      fi
-      print_summary "$tailnet_url"
-    else
-      print_summary
-    fi
+    print_summary
     echo
     echo "Revoke: 't3 auth' manages T3 sessions and credentials."
-    if [[ "$TAILSCALE" == "true" ]]; then
-      echo "Withdraw the Serve mapping: tailscale serve --https=${TAILSCALE_PORT:-443} off"
-      echo "Remove the device: tailscale logout, or delete the node in the Tailscale admin console."
-    fi
     ;;
   *)
     echo "ERROR: unknown action: $ACTION" >&2
