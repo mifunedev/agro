@@ -185,3 +185,8 @@ None. Issue #1540 holds the operator decisions.
 - [ ] `git grep -n "tailscale-serve\|--tailscale-port" -- .agro/skills/t3` prints no match.
 
 ## Lessons
+
+1. **The AGRO sandbox runs systemd without passwordless sudo.** Evidence: the US-006 live run found `/run/systemd/system` present and `sudo -n` failing. Outcome: fixed in this PR. US-002 round 1 added the `sudo -n true` probe.
+2. **The systemd unit could name a `tailscaled` that does not exist.** Evidence: the review found that the unit used `<binDir>/tailscaled` even when the binary was elsewhere on `PATH`. Outcome: fixed in this PR. `enable` resolves the binary once and exits 1 early when the binary is missing.
+3. **`t3 pair` depends on the current directory.** Evidence: in a linked git worktree, `t3 pair` reported `NoRunningServerError`. Outcome: dropped, because the behavior comes from upstream. The docs now say where to run the verb.
+4. **The console still writes its own unit and lists raw commands.** Evidence: agro-console `tailscaled-assets.ts` and `T3_MOBILE_STEPS`. Outcome: dropped from this PR. The console change needs an AGRO release with this verb and an `agroVersion` bump. The operator decides after the release.
