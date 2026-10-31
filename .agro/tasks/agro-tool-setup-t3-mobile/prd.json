@@ -25,8 +25,9 @@
         ".agro/cli/src/__tests__/t3-mobile.test.ts",
         ".agro/cli/src/__tests__/cli-first-help.test.ts"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "d168fb75 cherry-picked. TOOL_SUBCOMMANDS for tool only, harness unchanged: reasoned from diff + worker smoke (harness setup rejected). Route to runToolSetup in commands/t3-mobile.ts: executed t3-mobile.test.ts. Usage errors exit 2, help exit 0, tool help lists setup: executed t3-mobile.test.ts + cli-first-help.test.ts on task branch, 38 passed exit 0. Red-first: worker reported exit 1 before. typecheck exit 0; build:harness exit 0. Full npm test deferred to Close (worker run had load timeouts; failing files pass on rerun).",
+      "commit": "db420d54"
     },
     {
       "id": "US-002",
