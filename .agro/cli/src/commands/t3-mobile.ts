@@ -247,7 +247,12 @@ async function ensureDaemon(ctx: SetupContext): Promise<number> {
     return 0;
   }
 
-  const tailscaled = join(binDir, "tailscaled");
+  const daemonDir = onPath("tailscaled");
+  if (daemonDir === undefined) {
+    io.stderr(`${ctx.bin} tool setup t3-mobile: tailscaled not found on PATH or at ${join(binDir, "tailscaled")}\n`);
+    return 1;
+  }
+  const tailscaled = join(daemonDir, "tailscaled");
   const sudoWorks = () => {
     const r = run("sudo", ["-n", "true"], { stdio: "capture", env });
     return !r.error && r.status === 0;
@@ -270,7 +275,6 @@ async function ensureDaemon(ctx: SetupContext): Promise<number> {
   } else {
     const session = run("tmux", ["has-session", "-t", TMUX_SESSION], { stdio: "capture", env });
     if (session.error || session.status !== 0) {
-      const daemon = onPath("tailscaled") ?? binDir;
       const failed = step(
         [
           "tmux",
@@ -278,7 +282,7 @@ async function ensureDaemon(ctx: SetupContext): Promise<number> {
           "-d",
           "-s",
           TMUX_SESSION,
-          join(daemon, "tailscaled"),
+          tailscaled,
           "--tun=userspace-networking",
           `--statedir=${join(host.home, ".tailscale")}`,
         ],

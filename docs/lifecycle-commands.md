@@ -253,7 +253,7 @@ output and exit status through.
 
 | Action | Effect |
 |---|---|
-| `enable` | installs Tailscale when Tailscale is missing. Starts one userspace `tailscaled`: the `agro-tailscaled.service` unit on a host with systemd, else the tmux session `agent-tailscaled`. Then runs `tailscale up`, `tailscale serve --bg --https=443 http://127.0.0.1:3773`, and the pair command |
+| `enable` | installs Tailscale when Tailscale is missing. Starts one userspace `tailscaled`: the systemd unit `agro-tailscaled.service` when systemd runs and `sudo -n true` succeeds, else the tmux session `agent-tailscaled`. Debug the unit with `journalctl -u agro-tailscaled.service`, or the session with `tmux capture-pane -pt agent-tailscaled`. Then runs `tailscale up`, `tailscale serve --bg --https=443 http://127.0.0.1:3773`, and the pair command |
 | `pair` | runs the pair command only: `t3 pair --tailscale`, or `npx --yes t3@latest pair --tailscale` when `t3` is not on `PATH` |
 | `disable` | runs `tailscale serve --https=443 off` |
 | `status` | runs `tailscale status`, then `tailscale serve status` |

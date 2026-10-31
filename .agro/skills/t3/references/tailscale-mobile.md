@@ -11,16 +11,28 @@ Devices outside the tailnet cannot reach the backend.
 
 ## Sessions
 
-Both processes follow the sandbox tmux convention (see
+The tmux sessions follow the sandbox tmux convention (see
 [`sandbox-processes.md`](sandbox-processes.md)).
 
 | Session | Process | Started by |
 | --- | --- | --- |
 | `agent-t3code` | `npx --yes t3@latest serve` | `/t3 start` |
-| `agent-tailscaled` | `tailscaled` in userspace-networking mode | `agro tool setup t3-mobile enable` |
+| `agent-tailscaled` | `tailscaled` in userspace-networking mode, when systemd is not available | `agro tool setup t3-mobile enable` |
 
 The container entrypoint starts neither session. A person joins the tailnet
 explicitly.
+
+## Daemon runtime
+
+`enable` starts one userspace `tailscaled` in one of two runtimes:
+
+| Condition | Runtime | Debug |
+| --- | --- | --- |
+| `/run/systemd/system` exists and `sudo -n true` succeeds | systemd unit `agro-tailscaled.service` | `systemctl status agro-tailscaled.service`; `journalctl -u agro-tailscaled.service` |
+| otherwise | tmux session `agent-tailscaled` | `tmux capture-pane -pt agent-tailscaled` |
+
+`enable` uses the `tailscaled` binary on `PATH`. If `enable` finds no
+`tailscaled` binary, `enable` exits 1 and names the expected path.
 
 ## The verb
 
@@ -29,13 +41,16 @@ calls upstream `tailscale` and `t3` and passes their output through.
 
 | Action | Commands |
 | --- | --- |
-| `enable` | installs Tailscale when the binary is absent, starts `tailscaled` in the `agent-tailscaled` session, then runs `tailscale up`, `tailscale serve --bg --https=443 http://127.0.0.1:3773`, and the pair command |
+| `enable` | installs Tailscale when the binary is absent, starts `tailscaled` in the [daemon runtime](#daemon-runtime), then runs `tailscale up`, `tailscale serve --bg --https=443 http://127.0.0.1:3773`, and the pair command |
 | `pair` | the pair command only |
 | `disable` | `tailscale serve --https=443 off` |
 | `status` | `tailscale status`, then `tailscale serve status` |
 
 The pair command is `t3 pair --tailscale` when `t3` is on `PATH`. Otherwise the
 pair command is `npx --yes t3@latest pair --tailscale`.
+
+Run `enable` and `pair` in the directory where `t3 serve` started. `t3 pair`
+finds the server through the `.t3` state in the current directory.
 
 ## Pair the phone
 
@@ -94,7 +109,8 @@ agro tool setup t3-mobile enable
 | Symptom | Fix |
 | --- | --- |
 | `enable` stops at `tailscale up` | finish the browser login, then run `enable` again |
-| `tailscaled` does not answer | read the `agent-tailscaled` tmux session with `tmux capture-pane -t agent-tailscaled -p` |
+| `tailscaled` does not answer | on systemd, run `systemctl status agro-tailscaled.service` and `journalctl -u agro-tailscaled.service`; on tmux, run `tmux capture-pane -pt agent-tailscaled` |
+| `enable` reports `tailscaled not found` | install Tailscale, or put the `tailscaled` binary on `PATH`, then run `enable` again |
 | Node does not satisfy the range | the T3 server needs `^22.16 \|\| ^23.11 \|\| >=24.10`; raise the Node pin in `.devcontainer/Dockerfile` and rebuild |
 | port 3773 does not answer | read `/t3 logs`; the provider backend can fail to start |
 | phone shows the page but cannot connect | confirm that the phone is on the same tailnet and that the MagicDNS name resolves |

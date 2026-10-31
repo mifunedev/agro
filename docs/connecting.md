@@ -161,9 +161,17 @@ when the sandbox runs on a remote host. Access stays private to your tailnet.
    agro tool setup t3-mobile enable
    ```
 
-   The verb installs Tailscale when Tailscale is missing. The verb starts `tailscaled` in
-   the tmux session `agent-tailscaled`, so the daemon survives a disconnect. The
-   verb then runs these commands in order and stops at the first failure:
+   Run `enable` in the directory where `t3 serve` started. `t3 pair` finds the
+   server through the `.t3` state in the current directory.
+
+   The verb installs Tailscale when Tailscale is missing. The verb starts one
+   userspace `tailscaled`, so the daemon survives a disconnect:
+   - If `/run/systemd/system` exists and `sudo -n true` succeeds, the verb
+     installs and starts the systemd unit `agro-tailscaled.service`.
+   - Otherwise, the verb starts `tailscaled` in the tmux session
+     `agent-tailscaled`.
+
+   The verb then runs these commands in order and stops at the first failure:
    1. `tailscale up`. This command prints a login URL. Open the URL and approve
       the node.
    2. `tailscale serve --bg --https=443 http://127.0.0.1:3773`. Serve proxies
@@ -179,8 +187,8 @@ when the sandbox runs on a remote host. Access stays private to your tailnet.
    `https://<machine>.<tailnet>.ts.net/...` URL into the T3 Code app.
 
 The pairing token is single-use. The paired session persists. To add another
-device, do not restart the server. Run the next command and pair with the new
-URL:
+device, do not restart the server. In the directory where `t3 serve` started,
+run the next command and pair with the new URL:
 
 ```bash
 agro tool setup t3-mobile pair
@@ -191,14 +199,16 @@ To show the tailnet state and the Serve mapping, run
 
 ### Lifecycle
 
-| tmux session | Process |
-|--------------|---------|
-| `agent-tailscaled` | the Tailscale daemon |
-| `agent-t3code` | `npx --yes t3@latest serve` |
+| Runtime | Process | Debug |
+|---------|---------|-------|
+| systemd unit `agro-tailscaled.service` | the Tailscale daemon, on systemd with passwordless `sudo` | `systemctl status agro-tailscaled.service`; `journalctl -u agro-tailscaled.service` |
+| tmux session `agent-tailscaled` | the Tailscale daemon, otherwise | `tmux capture-pane -pt agent-tailscaled` |
+| tmux session `agent-t3code` | `npx --yes t3@latest serve` | `/t3 status`; `/t3 logs` |
 
-Both sessions survive a disconnect. `/t3 status` and `/t3 logs` read the T3
-session without an attach. After a container recreate, the daemon is not
-running: repeat steps 1 and 2. `tailscale up` asks for a login again only after
+Each runtime survives a disconnect. `/t3 status` and `/t3 logs` read the T3
+session without an attach. The systemd unit starts again at boot. On the tmux
+runtime, the daemon is not running after a container recreate. After a container
+recreate, repeat steps 1 and 2. `tailscale up` asks for a login again only after
 a logout.
 
 ### Revoke access
@@ -232,7 +242,8 @@ mapping.
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `tailscale status` cannot reach the daemon | `tailscaled` not running | run `agro tool setup t3-mobile enable` again; check `tmux ls` for `agent-tailscaled` |
+| `tailscale status` cannot reach the daemon | `tailscaled` not running | run `agro tool setup t3-mobile enable` again; on systemd, run `systemctl status agro-tailscaled.service` and `journalctl -u agro-tailscaled.service`; on tmux, run `tmux capture-pane -pt agent-tailscaled` |
+| `enable` reports `tailscaled not found` | no `tailscaled` binary on `PATH` | install Tailscale, or put `tailscaled` on `PATH`; then run `enable` again |
 | Backend state is not `Running` | node never joined, or logged out | run `agro tool setup t3-mobile enable`, then complete the browser login |
 | No `ts.net` URL in the pair output | Serve not configured | run `agro tool setup t3-mobile status`; then run `agro tool setup t3-mobile enable` |
 | Serve answers after T3 Code stops | the Serve mapping persists | `agro tool setup t3-mobile disable` |

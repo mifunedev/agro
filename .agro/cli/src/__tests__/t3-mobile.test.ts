@@ -37,6 +37,7 @@ interface FakeHostOptions {
   installed?: boolean;
   unit?: string;
   t3?: boolean;
+  tailscaledDir?: string | null;
 }
 
 function fakeHost(o: FakeHostOptions) {
@@ -45,7 +46,7 @@ function fakeHost(o: FakeHostOptions) {
   if (o.systemd) paths.add("/run/systemd/system");
   if (o.installed !== false) {
     paths.add(`${PREFIX}/bin/tailscale`);
-    paths.add(`${PREFIX}/bin/tailscaled`);
+    if (o.tailscaledDir !== null) paths.add(`${o.tailscaledDir ?? `${PREFIX}/bin`}/tailscaled`);
   }
   if (o.unit !== undefined) files.set(UNIT_PATH, o.unit);
   if (o.t3) paths.add(`${PREFIX}/bin/t3`);
@@ -134,6 +135,28 @@ describe("agro tool setup t3-mobile enable — daemon", () => {
     expect(r.removed).toEqual([TEMP_PATH]);
     expect(isStatusProbe(r.calls.filter((c) => !isUpstream(c)).at(-1) ?? [])).toBe(true);
     expect(r.calls.flat()).not.toContain("docker");
+  });
+
+  it("systemd path uses a tailscaled found elsewhere on PATH in ConditionPathExists and ExecStart", async () => {
+    const r = await enable({ systemd: true, tailscaledDir: "/usr/bin" }, () => daemonAnswersAfter(isEnableNow));
+    expect(r.code).toBe(0);
+    expect(r.temps).toEqual([EXPECTED_UNIT.replaceAll(`${PREFIX}/bin/tailscaled`, "/usr/bin/tailscaled")]);
+  });
+
+  it("tmux path uses a tailscaled found elsewhere on PATH", async () => {
+    const r = await enable({ tailscaledDir: "/usr/bin" }, () => daemonAnswersAfter(isTmuxStart));
+    expect(r.code).toBe(0);
+    expect(r.calls.find(isTmuxStart)?.[5]).toBe("/usr/bin/tailscaled");
+  });
+
+  it.each([[true], [false]])("no tailscaled anywhere exits 1 with no sudo or tmux call (systemd %s)", async (systemd) => {
+    const r = await enable({ systemd, tailscaledDir: null }, () => daemonAnswersAfter(isTmuxStart));
+    expect(r.code).toBe(1);
+    expect(r.calls.some((c) => c[0] === "sudo" || c[0] === "tmux")).toBe(false);
+    expect(r.temps).toEqual([]);
+    expect(r.stderr).toContain(`${PREFIX}/bin/tailscaled`);
+    expect(r.stderr.trim().split("\n")).toHaveLength(1);
+    expect(r.calls.some(isUpstream)).toBe(false);
   });
 
   it("systemd path with an identical unit skips the write and daemon-reload", async () => {
