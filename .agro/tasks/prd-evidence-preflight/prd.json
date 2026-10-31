@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "skill/1546-prd-evidence-preflight",
+  "description": "Evidence story fresh state and preflight: two clauses in the /prd evidence-story bullets.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Require fresh state and a preflight in the evidence story",
+      "acceptanceCriteria": [
+        "In `.agro/skills/prd/SKILL.md` § Stories, the bullet for a server, CLI, or API change states this rule. The transcript runs each command through the entry point that a user types, for example `pnpm <script> <flags>`. The run starts from fresh state with at least one input path that does not exist yet. The story creates a new temp path for that input and deletes no existing data.",
+        "In the same section, the bullet for a live or local resource states this rule. Before the story creates a live resource, the story runs one read-only check that costs nothing, through the same path that the resource uses. If the check fails, the story sets `blocked` and creates nothing.",
+        "`CHANGELOG.md` has an `[Unreleased]` entry that links the task issue.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/prd/SKILL.md` reports no finding.",
+        "`bash .agro/scripts/link-providers.sh --check` exits 0.",
+        "`git diff --check` exits 0."
+      ],
+      "description": "As a plan author, I want stricter evidence-story rules so that evidence catches first-run bugs and live spend waits for a working path.",
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/prd/SKILL.md",
+        "CHANGELOG.md"
+      ]
+    }
+  ]
+}
