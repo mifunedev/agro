@@ -70,8 +70,9 @@ reduced coverage. Follow `/council` § 2 when fewer than two lenses remain.
 1. Follow `/council` § 4 and § 5. The five proposals rarely agree. Treat
    consensus as the advisor's verified judgment against the criteria, not a vote.
 2. Verify each decisive claim against the scope root before acceptance.
-3. Return one Council Brief with outcome `COMPLETE`, `PARTIAL`, or `BLOCKED`.
-4. In **Next authorized step**, name `/prd` with the recommended change. Do not run `/prd`.
+3. If the recommendation claims a performance or cost gain, find a measurement of its falsifier in the authorized sources. The measurement must be at the current commit or newer than the last change to the measured path. If no such measurement exists, the outcome is `PARTIAL`.
+4. Return one Council Brief with outcome `COMPLETE`, `PARTIAL`, or `BLOCKED`.
+5. In **Next authorized step**, name `/prd` with the recommended change. Do not run `/prd`. For a `PARTIAL` outcome under step 3, name `/prd` with a task that measures the falsifier.
 
 If the recommendation is a security weakness in a public repository, say that
 `SECURITY.md` or the project's disclosure policy governs any issue or pull

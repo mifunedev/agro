@@ -86,6 +86,7 @@ revision of it, ask before you replace it.
    - Do not search again for a symbol that an earlier output located.
    - Ground the plan statically. Do not run the target code, and do not build fixtures, driver scripts, or temporary harnesses.
    - When the issue gives a reproduction, cite the issue. Put the reproduction into the red-test criterion of a story.
+   - When a story changes generated output, such as a rendered script, a template, or a code generator, find the tests and fixtures that pin that output. Examples are golden digests, snapshots, and generated reference files. Search with `git grep -ln <generator symbol> -- '*test*' '*fixture*'`. Add each match to the `files` of that story.
    - Stop the grounding when each Key Integration Point, each Test Plan row, and each cited command has a verified source.
 3. Separate verified facts from assumptions.
 4. Never invent a missing command, path, threshold, or result. Write an explicit placeholder, such as `<test command>`, and add an open question.
