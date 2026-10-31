@@ -148,5 +148,6 @@
       "passes": true,
       "notes": "Operator approved and ran the live sandbox test. enable from ~/harness: tmux path (agent-tailscaled exit 0), tailscale up login, serve mapped, t3 pair QR; operator paired phone (reported working). status, second enable (already running, no second daemon), pair, disable: executed, transcript in evidence/transcript.txt (device list removed, tokens redacted). Finding: t3 pair needs the server directory (worktree run gave NoRunningServerError, upstream). Cleanup: tailscale logout, kill agent-tailscaled and agent-t3code, all exit 0."
     }
-  ]
+  ],
+  "pr": 1541
 }
