@@ -54,7 +54,17 @@ else
 fi
 ```
 
-When `gh pr checks` prints no rows, report NO-RUN. Otherwise, exit code 0
+When `gh pr checks` prints no rows, run this command:
+
+```bash
+gh pr view "$PR_NUMBER" --repo "$REPO" --json mergeable --jq .mergeable
+```
+
+When the command prints `CONFLICTING`, report NO-RUN with this cause: the PR
+conflicts with its base branch, and GitHub runs no `pull_request` workflow
+until the author merges the base branch. For any other value, report NO-RUN.
+
+Otherwise, exit code 0
 reports PASS, exit code 124 reports TIMEOUT, and another nonzero exit code
 reports FAIL. On FAIL, take `RUN_ID` from the failing check link and go to
 step 5.
@@ -96,7 +106,7 @@ gh api "repos/$REPO/actions/jobs/$JOB_ID/logs" 2>&1 \
 - **PASS**: Report "CI green" with the run URL.
 - **FAIL**: Report the failing step and the error message.
 - **TIMEOUT**: The wait reached 900 seconds with a check still pending. Report the pending checks.
-- **NO-RUN**: No workflow's `on:` filter matched the push, or `PR_NUMBER` was set but `gh pr checks` returned no rows (the PR exists but no workflows were triggered yet). *(Note: the workflow names below reflect this harness's layout and may differ in other checkouts.)*
+- **NO-RUN**: No workflow's `on:` filter matched the push, or `PR_NUMBER` was set but `gh pr checks` returned no rows (the PR exists but no workflows were triggered yet). When `mergeable` is `CONFLICTING`, the cause is a merge conflict with the base branch. *(Note: the workflow names below reflect this harness's layout and may differ in other checkouts.)*
   - `ci-harness.yml` — `.agro/**`, `docs/**`, `.devcontainer/**`, `package.json`, `pnpm-lock.yaml`, itself
   - `sandbox-boot-guard.yml` — `.devcontainer/**`, `.agro/cli/**` except `__tests__/**` and `*.md`, the boot-path scripts `docker-compose.sh`, `check-host-port.sh`, `paths.sh`, `provision-python.sh`, `sandbox-healthcheck.sh`, `sandbox-boot-smoke.sh`, `sandbox-upgrade-smoke.sh`, `cli-first-install-smoke.sh`, `verify-sandbox-image.sh`, `install.sh`, and `link-providers.sh` in `.agro/scripts/`, `.agro/install/**`, `agro.json`, `.example.env`, `.dockerignore`, itself
   - `release.yml` — every push to `main` or `master`; validation precedes automatic release publication
