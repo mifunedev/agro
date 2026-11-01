@@ -67,5 +67,10 @@
       "commit": "51a0dd34"
     }
   ],
-  "pr": 1553
+  "pr": 1553,
+  "review": {
+    "commit": "7387f2c8",
+    "verdict": "pass",
+    "model": "opus"
+  }
 }
