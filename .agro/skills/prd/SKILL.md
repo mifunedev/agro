@@ -90,6 +90,7 @@ revision of it, ask before you replace it.
    - Stop the grounding when each Key Integration Point, each Test Plan row, and each cited command has a verified source.
 3. Separate verified facts from assumptions.
 4. Never invent a missing command, path, threshold, or result. Write an explicit placeholder, such as `<test command>`, and add an open question.
+   - Confirm that each route, path, and command that the plan cites resolves on the current node. For each one that does not resolve, write a placeholder and add an open question.
 
 A draft with an unresolved required decision has the status `BLOCKED`.
 
@@ -176,8 +177,10 @@ While the section is empty, `next.sh` prints `close`.
   - For a server, CLI, or API change, the story writes a command transcript to `.agro/tasks/<slug>/evidence/manual-review.md`.
     - The transcript runs each command through the entry point that a user types, for example `pnpm <script> <flags>`.
     - The run starts from fresh state with at least one input path that does not exist yet. The story creates a new temp path for that input and deletes no existing data.
+    - The story passes environment values inline on the command. The story never writes an env file.
   - The story uses a live or local resource only with operator approval, and it deletes each resource that it creates.
     - Before the story creates a live resource, the story runs one read-only check that costs nothing, through the same path that the resource uses. If the check fails, the story sets `blocked` and creates nothing.
+    - Before a live or local boot, the story checks that each port the boot binds is free. If a port is busy, the story sets `blocked`, names the process that holds the port, and stops no process.
   - Close uses the evidence to fill the PR `## Manual review` section in the shape of [`.agro/skills/git/references/manual-review.md`](../git/references/manual-review.md).
 - If the plan has no user interface change and no server, CLI, or API change, state the reason in `## Out of Scope`. Omit the evidence story.
 
