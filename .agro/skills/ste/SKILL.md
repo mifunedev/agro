@@ -95,7 +95,7 @@ confirmations in plain prose.
 
 ## Rewrite mode
 
-Run these eight steps against an existing document.
+Run these nine steps against an existing document.
 
 1. Read the source to the end. Change nothing yet.
 2. List every ambiguity against the 10-question check. Mark each one
@@ -106,8 +106,12 @@ Run these eight steps against an existing document.
 6. Split each step that holds more than one action. Never split a code block.
    A block with more than one command stays one block. The prose around the
    block states the order.
-7. Mark each `missing` value with a placeholder. Never supply a value.
-8. Run `scripts/ste-check.sh` against the file. Fix each finding. Repeat until
+7. Delete each sentence, clause, or table row that restates a fact stated
+   elsewhere in the document, unless the text adds a condition, an actor, a
+   value, or a warning. Never merge steps, and never drop a precedence or an
+   order, to cut length. Rule 53 in `references/rules.md` governs this step.
+8. Mark each `missing` value with a placeholder. Never supply a value.
+9. Run `scripts/ste-check.sh` against the file. Fix each finding. Repeat until
    the checker exits 0.
 
 ## Authoring mode
