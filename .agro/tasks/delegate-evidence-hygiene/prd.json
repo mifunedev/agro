@@ -69,7 +69,7 @@
   ],
   "pr": 1551,
   "review": {
-    "commit": "c9a9d034",
+    "commit": "d3c6b6df",
     "verdict": "pass",
     "model": "opus"
   }
