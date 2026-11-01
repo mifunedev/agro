@@ -16,12 +16,13 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/ste/SKILL.md` reports no finding."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed on the task branch: SKILL.md § Rewrite mode reads nine steps; new step 7 sits after the split step (6) and before the placeholder step (8), with the required delete-restatement wording, the never-merge/never-drop-precedence sentence, and the rule 53 reference; steps run 1 to 9. ste-check.sh SKILL.md exit 0; --blocks after exit 0; --blocks before exit 1 (90 findings). The only other step reference (step 2 of rewrite mode) did not move.",
       "dependsOn": [],
       "files": [
         ".agro/skills/ste/SKILL.md"
-      ]
+      ],
+      "commit": "74464ba4"
     },
     {
       "id": "US-002",
