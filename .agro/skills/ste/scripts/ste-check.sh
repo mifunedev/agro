@@ -134,6 +134,8 @@ for f in "${files[@]}"; do
       word_n = 0
       for (i in WORD) word_n++
       for (i in VERB) VERBSET[VERB[i]] = 1
+      gap_word = "[^ .;:!?]+ "
+      AS_FAR_AS = "(^|[^a-z0-9])as far as " gap_word "(" gap_word ")?(" gap_word ")?(" gap_word ")?is concerned([^a-z0-9]|$)"
     }
 
     # ---- YAML frontmatter -------------------------------------------------
@@ -217,7 +219,9 @@ for f in "${files[@]}"; do
       for (i = 1; i <= word_n; i++) {
         if (has(padded, WORD[i])) report(NR, "WORD", "replace the non-approved word \"" WORD[i] "\"")
       }
-      if (padded ~ / as far as .+ is concerned /) {
+      spaced = tolower(line)
+      gsub(/[ \t]+/, " ", spaced)
+      if (spaced ~ AS_FAR_AS) {
         report(NR, "WORD", "replace the non-approved word \"as far as X is concerned\"")
       }
 

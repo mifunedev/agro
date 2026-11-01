@@ -107,8 +107,8 @@ Run these nine steps against an existing document.
    A block with more than one command stays one block. The prose around the
    block states the order.
 7. Delete each sentence, clause, or table row that restates a fact stated
-   elsewhere in the document, unless the text adds a condition, an actor, a
-   value, or a warning. Never merge steps, and never drop a precedence or an
+   elsewhere in the document, unless the text adds a condition, an actor, or a
+   value, or is a warning. Never merge steps, and never drop a precedence or an
    order, to cut length. Rule 53 in `references/rules.md` governs this step.
 8. Mark each `missing` value with a placeholder. Never supply a value.
 9. Run `scripts/ste-check.sh` against the file. Fix each finding. Repeat until
