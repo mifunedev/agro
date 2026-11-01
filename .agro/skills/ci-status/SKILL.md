@@ -62,9 +62,11 @@ gh pr view "$PR_NUMBER" --repo "$REPO" --json mergeable --jq .mergeable
 
 When the command prints `CONFLICTING`, report NO-RUN with this cause: the PR
 conflicts with its base branch, and GitHub runs no `pull_request` workflow
-until the author merges the base branch. For any other value, report NO-RUN.
+until the author merges the base branch. When the command prints `UNKNOWN`,
+wait 10 seconds and run it one more time, then apply the same rule. For any
+other value, report NO-RUN.
 
-Otherwise, exit code 0
+When `gh pr checks` prints rows, exit code 0
 reports PASS, exit code 124 reports TIMEOUT, and another nonzero exit code
 reports FAIL. On FAIL, take `RUN_ID` from the failing check link and go to
 step 5.
