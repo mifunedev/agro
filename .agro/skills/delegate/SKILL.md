@@ -118,6 +118,12 @@ Give each worker the dispatch record, the exclusions, and these rules:
 - Work only in the execution directory.
 - In a sandbox, never run `agro sandbox`, `agro destroy`, `agro stop`,
   `agro restart`, or raw `docker compose` for the current project.
+- Remove a worktree only with
+  `bash .agro/scripts/git-maintenance.sh worktree-remove <path>`. Delete a
+  branch only with `bash .agro/scripts/git-maintenance.sh branch-delete <branch>`.
+  [`/git`](../git/SKILL.md) lists the other maintenance commands.
+- Stop each process that you start before you report. Report each process that
+  you cannot stop. Never stop a process that you did not start.
 - Report each criterion as one of these:
   - **executed**: the command and exit status.
   - **reasoned**: a one-line argument.
