@@ -37,12 +37,12 @@
       ],
       "priority": 2,
       "passes": true,
-      "notes": "Executed on the task branch: the WORD list adds the dictionary wordy phrases and note that, make sure, be sure to, keep in mind; as far as X is concerned is matched by its own pattern. --blocks after exits 0; --blocks before exits 1 with 94 findings (was 90); ste-check on SKILL.md and rules.md reports no finding; shellcheck exit 0.",
+      "notes": "Executed on the task branch: the WORD list adds the dictionary wordy phrases and note that, make sure, be sure to, keep in mind; as far as X is concerned is matched by its own pattern. --blocks after exits 0; --blocks before exits 1 with 94 findings (was 90); ste-check on SKILL.md and rules.md reports no finding; shellcheck exit 0. Review fold 76d3e5c1: the as-far-as rule stays within one sentence with a 1 to 4 word gap; re-review pass.",
       "dependsOn": [],
       "files": [
         ".agro/skills/ste/scripts/ste-check.sh"
       ],
-      "commit": "3527c2e1"
+      "commit": "76d3e5c1"
     },
     {
       "id": "US-003",
@@ -69,7 +69,7 @@
   ],
   "pr": 1553,
   "review": {
-    "commit": "7387f2c8",
+    "commit": "76d3e5c1",
     "verdict": "pass",
     "model": "opus"
   }
