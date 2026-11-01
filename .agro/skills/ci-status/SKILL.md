@@ -54,7 +54,7 @@ else
 fi
 ```
 
-When `gh pr checks` prints no rows, run this command:
+When `gh pr checks` prints no rows, run the command below:
 
 ```bash
 gh pr view "$PR_NUMBER" --repo "$REPO" --json mergeable --jq .mergeable
