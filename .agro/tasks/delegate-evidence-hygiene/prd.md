@@ -124,3 +124,9 @@ None.
 - [ ] `git diff --name-only origin/development...HEAD` lists only the three skill files and the task files.
 
 ## Lessons
+
+1. Claim: the first `/ci-status` edit made "Otherwise" ambiguous, and GitHub can report `mergeable` as `UNKNOWN` right after a push. Evidence: first review, findings 1 and 2. Outcome: fixed in this PR (US-003 repair round 1). The `UNKNOWN` retry goes beyond the plan criteria, and this lesson records the addition.
+2. Claim: the shim always forces removal, and the process rule has no exception for a service that the brief asks a worker to keep. Evidence: first review, findings 3 and 4. Outcome: dropped, because the advisor removes worker worktrees at Accept and no current brief asks a worker to keep a service.
+3. Claim: "apply the same rule" after a second `UNKNOWN` can read as another retry. Evidence: second review, finding 1. Outcome: dropped, because the text says "one more time".
+4. Claim: a route check cannot run against a server while the plan grounds statically. Evidence: second review, finding 2. Outcome: dropped, because a planner confirms a route in its source definition, which the static grounding rule allows.
+5. Claim: the secret-exposure guard denied `jq` commands whose literal text held the words "env file" or `dev-env`. Evidence: this run and the three agro-console runs. Outcome: dropped, because the plan puts guard changes out of scope. The operator decides on a guard change.
