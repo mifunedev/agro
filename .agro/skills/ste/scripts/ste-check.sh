@@ -112,7 +112,7 @@ for f in "${files[@]}"; do
 
       split("basically|simply|obviously|essentially|probably|perhaps|maybe|somewhat|fairly|quite|really|actually|typically|usually|normally|ideally|arguably|presumably|roughly|more or less|of course|needless to say|kind of|sort of|it seems|i think|we think|should probably|might want to|feel free to", HEDGE, "|")
       split("things|stuff|something|someone|somehow|anything|various|several|a while|soon|appropriate|proper|adequate|sufficient|reasonable|as needed|as appropriate|if necessary|as required|and so on|the system|the tool|the thing", VAGUE, "|")
-      split("utilize|utilise|utilizes|utilises|leverage|leverages|facilitate|facilitates|in order to|prior to|subsequent to|at this point in time|due to the fact that|in the event that|a number of|the majority of|commence|terminate|ascertain|endeavor|endeavour|aforementioned|hereinafter|whilst|amongst|going forward|best in class|seamless|robust|powerful|simply put", WORD, "|")
+      split("utilize|utilise|utilizes|utilises|leverage|leverages|facilitate|facilitates|in order to|prior to|subsequent to|at this point in time|due to the fact that|in the event that|for the purpose of|in the process of|until such time as|in spite of the fact that|with the exception of|in the absence of|by means of|in conjunction with|has the ability to|is able to|is capable of|provides support for|performs a check on|makes use of|gives consideration to|takes into consideration|in terms of|with regard to|with respect to|note that|make sure|be sure to|keep in mind|a number of|the majority of|commence|terminate|ascertain|endeavor|endeavour|aforementioned|hereinafter|whilst|amongst|going forward|best in class|seamless|robust|powerful|simply put", WORD, "|")
       split("run|start|stop|restart|open|close|add|remove|delete|create|install|uninstall|configure|set|unset|enable|disable|check|verify|confirm|copy|move|rename|edit|update|upgrade|build|deploy|push|pull|commit|merge|rebase|clone|fetch|click|select|choose|enter|type|save|load|read|write|send|wait|apply|revert|reset|mount|unmount|export|import|replace|append|prepend|attach|detach|record|report|print|log", VERB, "|")
 
       # Auxiliaries that can head a passive clause.
@@ -216,6 +216,9 @@ for f in "${files[@]}"; do
       # ---- WORD -----------------------------------------------------------
       for (i = 1; i <= word_n; i++) {
         if (has(padded, WORD[i])) report(NR, "WORD", "replace the non-approved word \"" WORD[i] "\"")
+      }
+      if (padded ~ / as far as .+ is concerned /) {
+        report(NR, "WORD", "replace the non-approved word \"as far as X is concerned\"")
       }
 
       # ---- VAGUE ----------------------------------------------------------
