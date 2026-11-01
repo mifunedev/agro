@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "skill/1550-delegate-evidence-hygiene",
+  "description": "Delegate evidence hygiene: worker cleanup route and process cleanup, safe evidence stories in /prd, and a merge-conflict cause for /ci-status NO-RUN.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Name the cleanup route and process cleanup in the worker brief",
+      "description": "As an advisor, I want each worker to clean up worktrees, branches, and processes through the sanctioned route. The advisor then stops resolving guard blocks and orphan processes by hand.",
+      "acceptanceCriteria": [
+        "`.agro/skills/delegate/SKILL.md` § Worker brief has a rule that a worker removes a worktree only with `bash .agro/scripts/git-maintenance.sh worktree-remove <path>` and deletes a branch only with `bash .agro/scripts/git-maintenance.sh branch-delete <branch>`.",
+        "§ Worker brief has a rule that a worker stops each process that the worker starts before the worker reports, and reports each process that the worker cannot stop.",
+        "§ Worker brief has a rule that a worker never stops a process that the worker did not start.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/delegate/SKILL.md` reports no finding on a changed line.",
+        "`pnpm test` exits 0."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "executed: ste-check on .agro/skills/delegate/SKILL.md reports no findings on the integrated branch. reasoned (section read back): Worker brief names git-maintenance.sh worktree-remove and branch-delete and links /git; workers stop each process they start, report each they cannot stop, and never stop a process they did not start. pnpm test runs at Close.",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/delegate/SKILL.md"
+      ],
+      "commit": "59ada0a5"
+    },
+    {
+      "id": "US-002",
+      "title": "Make evidence stories safe to run",
+      "description": "As a worker, I want the evidence rules of `/prd` to match the guards and the shared environment. An evidence story then runs without an advisor decision.",
+      "acceptanceCriteria": [
+        "`.agro/skills/prd/SKILL.md` § Stories states that an evidence story passes environment values inline on the command and never writes an env file.",
+        "§ Stories states that, before a live or local boot, the evidence story checks that each port the boot binds is free. If a port is busy, the story sets `blocked`, names the process that holds the port, and stops no process.",
+        "§ 3 Ground the plan states that each route, path, and command that the plan cites resolves on the current node, and that the plan names a placeholder and an open question for each one that does not resolve.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/prd/SKILL.md` reports no finding on a changed line.",
+        "`pnpm test` exits 0."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "executed: ste-check on .agro/skills/prd/SKILL.md reports no findings on the integrated branch. reasoned (diff read): the Stories section passes environment values inline and never writes an environment file; a port check before a live or local boot sets blocked, names the holder, and stops no process; section 3 requires each cited route, path, and command to resolve on the current node or to get a placeholder and an open question.",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/prd/SKILL.md"
+      ],
+      "commit": "f34c37a0"
+    },
+    {
+      "id": "US-003",
+      "title": "Report a merge conflict as the cause of NO-RUN",
+      "description": "As an advisor, I want `/ci-status` to name a merge conflict when an open PR has no checks. I then merge the base branch at once instead of waiting.",
+      "acceptanceCriteria": [
+        "`.agro/skills/ci-status/SKILL.md` step 2 runs `gh pr view \"$PR_NUMBER\" --repo \"$REPO\" --json mergeable --jq .mergeable` when `gh pr checks` prints no rows.",
+        "When that command prints `CONFLICTING`, the skill reports NO-RUN with the cause: the PR conflicts with its base branch, and GitHub runs no `pull_request` workflow until the author merges the base branch.",
+        "The NO-RUN entry of step 6 names the conflict cause.",
+        "The skill still reports exactly one of PASS, FAIL, NO-RUN, or TIMEOUT.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/ci-status/SKILL.md` reports no finding on a changed line.",
+        "`pnpm test` exits 0."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "executed: ste-check on .agro/skills/ci-status/SKILL.md reports no findings; the worker ran bash -n on the new block. reasoned (section read back): step 2 runs gh pr view with mergeable when gh pr checks prints no rows; CONFLICTING reports NO-RUN with the merge conflict cause; the step 6 NO-RUN entry names the cause; outcomes stay PASS, FAIL, NO-RUN, TIMEOUT. integration: the worker amended its commit, so the advisor applied the diff from 25c41138 to the final 021c2ace; the file equals 021c2ace. round 1 repair: the PASS paragraph names its condition (gh pr checks prints rows), and an UNKNOWN mergeable value is queried once more after 10 seconds. executed: ste-check reports no findings.",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/ci-status/SKILL.md"
+      ],
+      "commit": "941b2086",
+      "rounds": 1
+    }
+  ],
+  "pr": 1551,
+  "review": {
+    "commit": "d3c6b6df",
+    "verdict": "pass",
+    "model": "opus"
+  }
+}
