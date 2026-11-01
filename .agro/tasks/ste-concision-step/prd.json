@@ -55,15 +55,16 @@
         "The story changes no document outside `.agro/skills/ste/` to fix a new finding."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Recorded by the worker and re-run: --blocks after exit 0 with 0 findings; --blocks before exit 1 with 94 (old checker 90; the 4 new are WORD make sure and note that in before specimens). 25 SKILL.md and 12 docs files: 102 findings before, 103 after; the only new finding is WORD note that at .agro/skills/langfuse/SKILL.md:131, a true positive; no false positive. No document outside .agro/skills/ste/ changed. Advisor: ste-check on the evidence exit 0; the commit adds only the evidence file.",
       "dependsOn": [
         "US-001",
         "US-002"
       ],
       "files": [
         ".agro/tasks/ste-concision-step/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "51a0dd34"
     }
   ],
   "pr": 1553
