@@ -100,3 +100,7 @@ None.
 - [ ] The harness CI checks pass on the PR.
 
 ## Lessons
+
+- A line-based checker cannot see the main verbosity of a real rewrite: restated facts and merged steps. Evidence: the council case study of agro-console commit `b1be3820`. Outcome: fixed in this PR. Rewrite step 7 names the cut and forbids a merge of steps.
+- The `WORD` list held a subset of the dictionary's wordy phrases. Evidence: 23 listed phrases were absent from `ste-check.sh`. Outcome: fixed in this PR.
+- The new phrases add one finding in the harness: `Note that` at `.agro/skills/langfuse/SKILL.md:131`. Evidence: the US-003 run. Outcome: dropped, because the plan fixes no document outside `.agro/skills/ste/`; the next edit of that file can fix the finding.
