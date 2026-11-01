@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "skill/1552-ste-concision-step",
+  "description": "A concision step and a synced wordy-phrase list for /ste",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Concision step in rewrite mode",
+      "description": "As a writer, I want rewrite mode to name the concision step. I then cut restated text without a merge of steps or a loss of meaning.",
+      "acceptanceCriteria": [
+        "`.agro/skills/ste/SKILL.md` § Rewrite mode has a step after the step that splits a step with more than one action, and before the placeholder step. The step says: delete each sentence, clause, or table row that restates a fact stated elsewhere in the document, unless the text adds a condition, an actor, a value, or a warning.",
+        "The same step says: never merge steps, and never drop a precedence or an order, to cut length.",
+        "The step cites rule 53 in `references/rules.md`.",
+        "The section intro names the new step count, and the steps stay numbered in sequence.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/ste/SKILL.md` reports no finding."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/ste/SKILL.md"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Wordy phrases in the WORD detector",
+      "description": "As a writer, I want the checker to flag each wordy phrase that the dictionary lists. The checker then enforces the dictionary instead of a subset of it.",
+      "acceptanceCriteria": [
+        "The `WORD` list in `.agro/skills/ste/scripts/ste-check.sh` holds each phrase of `references/dictionary.md` § Wordy phrases, and the phrases `note that`, `make sure`, `be sure to`, and `keep in mind` of § Marketing and filler.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh --blocks after .agro/skills/ste/references/examples.md` exits 0.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh --blocks before .agro/skills/ste/references/examples.md` exits 1.",
+        "A phrase that matches text inside a word of an `after` specimen is left out, and the report names the phrase.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/ste/SKILL.md .agro/skills/ste/references/rules.md` reports no new finding."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/ste/scripts/ste-check.sh"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Manual review evidence",
+      "description": "As the operator, I want a record of the checker on real text. I can then see the new findings before the change lands.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/ste-concision-step/evidence/manual-review.md` records both fixture commands with their exit codes and finding counts.",
+        "The evidence records the finding count of the new phrases on each `SKILL.md` and each `docs/*.md` file of the harness, before and after the change, and quotes up to 10 new findings.",
+        "The evidence marks each quoted finding as a true or a false positive.",
+        "The story changes no document outside `.agro/skills/ste/` to fix a new finding."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/ste-concision-step/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
