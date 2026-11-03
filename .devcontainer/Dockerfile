@@ -189,8 +189,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && install -d -m 0755 /etc/systemd/system.conf.d \
  && printf '[Manager]\nCtrlAltDelBurstAction=poweroff-force\n' > /etc/systemd/system.conf.d/agro-msb-poweroff.conf
 
-STOPSIGNAL SIGRTMIN+3
-ENTRYPOINT []
 CMD ["sleep", "infinity"]
 
 FROM final
