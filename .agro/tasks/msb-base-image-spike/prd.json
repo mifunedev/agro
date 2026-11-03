@@ -193,6 +193,27 @@
         ".agro/skills/remote-sandbox/references/providers.md"
       ],
       "commit": "2e35422e9"
+    },
+    {
+      "id": "US-009",
+      "title": "A0 node-reboot M03 check",
+      "description": "As the operator, I want the M03 restart-persistence check run across an A0 node reboot so that M03 compares like events on both arms.",
+      "acceptanceCriteria": [
+        "Three A0 runs on free-tier n4 nodes, one node at a time: msb-guest.sh with MSB_GUEST=1 MSB_GUEST_PHASE=pre on the node host, then sudo systemctl reboot, then wait for SSH, then msb-guest.sh with MSB_GUEST_PHASE=restart.",
+        "Each run records the M03 RESULT line, seconds from reboot to first SSH, and whether the AGRO sandbox container reports healthy after the reboot.",
+        "Each run writes its log under .agro/tasks/msb-base-image-spike/evidence/ and deletes its node; agro node list shows no live node at the end.",
+        "brief.md gains an A0 reboot column value for M03 and a note on how the result changes the M03 caveat; ste-check exits 0."
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-005"
+      ],
+      "files": [
+        ".agro/tasks/msb-base-image-spike/evidence/",
+        ".agro/tasks/msb-base-image-spike/brief.md"
+      ]
     }
   ],
   "pr": 1555,
