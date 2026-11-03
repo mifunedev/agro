@@ -40,14 +40,15 @@
         "The stage holds no explanatory comment."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "executed: docker build --target agro-msb exit 0 on integrated branch (image sha256:3e516546dc65); in-image smoke dockerd 29.9.2, sandbox in docker group, docker.service enabled; worker: --target final exit 0, sandbox-boot-smoke.sh ok on final, default build (no --target) same 29 layers/config as final after FROM final tail stage; diff only appended lines; no comments; only sandbox user, no password. PENDING: GHCR push of ghcr.io/mifunedev/agro:spike-msb-f737c5e3e failed: unauthenticated (needs write:packages login).",
+      "passes": true,
+      "notes": "executed: docker build --target agro-msb exit 0 on integrated branch (image sha256:3e516546dc65); in-image smoke dockerd 29.9.2, sandbox in docker group, docker.service enabled; worker: --target final exit 0, sandbox-boot-smoke.sh ok on final, default build (no --target) same 29 layers/config as final after FROM final tail stage; diff only appended lines; no comments; only sandbox user, no password. executed: docker push ghcr.io/mifunedev/agro:spike-msb-f737c5e3e exit 0, digest sha256:3e516546dc65…; package visibility public (gh api). Release workflow unchanged.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".devcontainer/Dockerfile"
-      ]
+      ],
+      "commit": "feaa556ee"
     },
     {
       "id": "US-003",
@@ -166,6 +167,5 @@
       ]
     }
   ],
-  "pr": 1555,
-  "blocked": "US-002: docker push ghcr.io/mifunedev/agro:spike-msb-f737c5e3e failed (unauthenticated). Operator must log docker in to ghcr.io with a token that has write:packages."
+  "pr": 1555
 }
