@@ -168,7 +168,8 @@
       ],
       "files": [
         ".agro/tasks/msb-base-image-spike/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "4db61c047"
     }
   ],
   "pr": 1555
