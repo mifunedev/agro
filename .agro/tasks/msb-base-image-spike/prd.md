@@ -167,7 +167,7 @@ Decision rule:
 
 ## Storage
 
-The spike writes logs and the brief under `.agro/tasks/msb-base-image-spike/evidence/` and `.agro/tasks/msb-base-image-spike/brief.md`. Git tracks both. The spike adds no database and no schema.
+The spike writes logs and the brief under `.agro/tasks/msb-base-image-spike/evidence/` and `.agro/tasks/msb-base-image-spike/brief.md`. The `.gitignore` rule `.agro/tasks/*/*` keeps both files local. The advisor copies the result lines and the brief into the PR body at Close. The spike adds no database and no schema.
 
 ## Architectural Decisions
 

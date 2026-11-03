@@ -16,8 +16,8 @@
         "After the probe, `agro node list` shows no node that the probe created."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: agro node create --spec n4 --free-tier accepted under personal org 20b1b272 (after agro-console#665); create exited 1 at 903s on waiting_for_boot, first SSH exit 0 at 918s. executed: kvm-probe.log records ls -l /dev/kvm (crw-rw---- root kvm, exit 0), vmx count 4, kvm_intel loaded, systemd-detect-virt=kvm, msb --version=msb 0.7.13, msb self doctor exit 1 then exit 0 after usermod -aG kvm sandbox. executed: pin v0.7.13 (latest 2026-11-03), install.sh sha256 800af0b3…be7, binary sha256 cf2c59c0…d95b; install.sh resolves latest at runtime. reasoned: KVM present, so no stop. executed: agro node list shows agro-mx-kvm-probe status destroyed. Log stays local per .gitignore .agro/tasks/*/*. Carry to US-003: sandbox user needs kvm group (new login session) and ~/.microsandbox must not be group-writable; msb run alpine exit 0 in 3s after chmod go-w.",
       "dependsOn": [],
       "files": [
         ".agro/tasks/msb-base-image-spike/evidence/kvm-probe.log"
