@@ -163,5 +163,6 @@
       ]
     }
   ],
-  "pr": 1555
+  "pr": 1555,
+  "blocked": "US-001: local console refused --free-tier (403 FREE_TIER_INELIGIBLE: only the owner of a personal context can create a free node). The seeded dev user is in org Acme. Need a personal-context login or operator approval for a non-free n4 node."
 }
