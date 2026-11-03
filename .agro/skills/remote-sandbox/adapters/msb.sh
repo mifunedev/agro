@@ -16,14 +16,15 @@ msb_create() {
   read -r id target <"$STATE_DIR/console-$1" 2>/dev/null && [ -n "$id" ] || return 1
   printf '%s %s %s\n' "$id" "$target" "$1" >"$STATE_DIR/msb-$1"
   [ "$rc" = 0 ] || return 1
-  for _ in $(seq 1 60); do msb_host "$1" 30 true >/dev/null 2>&1 && break; sleep 5; done
+  for _ in $(seq 1 "${MSB_SSH_WAIT_TRIES:-240}"); do msb_host "$1" 30 true >/dev/null 2>&1 && break; sleep 5; done
   msb_host "$1" 60 "sudo usermod -aG kvm sandbox" || return 1
   msb_host "$1" 1800 "set -eo pipefail; curl -fsSL https://raw.githubusercontent.com/superradcompany/microsandbox/$version/scripts/install.sh | sed 's/^    get_latest_version\$/    VERSION=$version/' | sh; msb --version | grep -qF ${version#v}; chmod go-w ~/.microsandbox; msb run --detach --name $(printf %q "$1") --init auto --root-disk flat:40G $(printf %q "$IMAGE")"
 }
 msb_exec() {
-  local n=$1; shift
+  local n=$1 v fwd="MSB_GUEST=1"; shift
   msb_state "$n" || return 1
-  msb_host "$n" 120 "msb exec $(printf %q "$MSB_GUEST") -- bash -c $(printf %q "$*")"
+  for v in MSB_GUEST_PHASE MSB_IDLE_WAIT IMAGE_SIZE_BYTES; do [ -n "${!v:-}" ] && fwd+=" $(printf %q "$v=${!v}")"; done
+  msb_host "$n" 120 "msb exec $(printf %q "$MSB_GUEST") -- env $fwd bash -c $(printf %q "$*")"
 }
 msb_restart() {
   msb_state "$1" || return 1

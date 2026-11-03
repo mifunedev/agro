@@ -310,7 +310,8 @@ function stubMsb(list = "[]", guests = "") {
   return bin;
 }
 
-const MSB_ENV = "export IMAGE=ghcr.io/mifunedev/agro:spike-msb-abc; unset MSB_VERSION;";
+const MSB_ENV =
+  "export IMAGE=ghcr.io/mifunedev/agro:spike-msb-abc; unset MSB_VERSION MSB_SSH_WAIT_TRIES MSB_GUEST MSB_GUEST_PHASE MSB_IDLE_WAIT IMAGE_SIZE_BYTES;";
 
 function withMsb(script: string, bin: string) {
   return withConsole(`${MSB_ENV} STATE_DIR="${bin}/state"; mkdir -p "$STATE_DIR";\n${script}`, bin);
@@ -406,6 +407,16 @@ describe("remote-sandbox msb adapter", () => {
     const result = withMsb('SSH_DOWN=1 msb_create agro-mx-1; echo "rc=$?"; cat "$STATE_DIR/msb-agro-mx-1"', bin);
     expect(result.stdout).toContain("rc=1\nnode-1 sandbox@203.0.113.7 agro-mx-1\n");
     expect(calls(bin, "msb")).toBe("");
+    const waits = calls(bin, "sleep").trim().split("\n").map(Number);
+    expect(waits.reduce((a, b) => a + b, 0)).toBeGreaterThanOrEqual(1200);
+  });
+
+  it("msb_create bounds the ssh wait with MSB_SSH_WAIT_TRIES", () => {
+    const bin = stubMsb();
+    const result = withMsb("SSH_DOWN=1 MSB_SSH_WAIT_TRIES=3 msb_create agro-mx-1", bin);
+    expect(result.code).not.toBe(0);
+    expect(calls(bin, "sleep")).toBe("5\n5\n5\n");
+    expect(calls(bin, "ssh").trim().split("\n").filter((line) => line.endsWith(" true"))).toHaveLength(3);
   });
 
   it("msb_exec runs the command in the guest under timeout 120", () => {
@@ -413,7 +424,46 @@ describe("remote-sandbox msb adapter", () => {
     const result = withMsb('msb_create agro-mx-1 >/dev/null && msb_exec agro-mx-1 "echo a b | tr a z"', bin);
     expect(result.code).toBe(0);
     expect(result.stdout).toBe("z b\n");
-    expect(calls(bin, "msb").trim().split("\n").at(-1)).toBe("exec agro-mx-1 -- bash -c echo a b | tr a z");
+    expect(calls(bin, "msb").trim().split("\n").at(-1)).toBe("exec agro-mx-1 -- env MSB_GUEST=1 bash -c echo a b | tr a z");
+  });
+
+  it("msb_exec always runs the guest command with MSB_GUEST=1", () => {
+    const bin = stubMsb();
+    const result = withMsb('msb_create agro-mx-1 >/dev/null && msb_exec agro-mx-1 \'echo "guest=$MSB_GUEST"\'', bin);
+    expect(result.stdout).toBe("guest=1\n");
+    expect(calls(bin, "msb").trim().split("\n").at(-1)).toMatch(/^exec agro-mx-1 -- env MSB_GUEST=1 bash -c /);
+  });
+
+  it("msb_exec forwards no optional guest variable that the driver does not set", () => {
+    const bin = stubMsb();
+    expect(withMsb("msb_create agro-mx-1 >/dev/null && msb_exec agro-mx-1 true", bin).code).toBe(0);
+    const ssh = calls(bin, "ssh").trim().split("\n").at(-1) ?? "";
+    for (const name of ["MSB_GUEST_PHASE", "MSB_IDLE_WAIT", "IMAGE_SIZE_BYTES"]) expect(ssh).not.toContain(name);
+  });
+
+  it.each([
+    ["MSB_GUEST_PHASE", "restart"],
+    ["MSB_IDLE_WAIT", "30"],
+    ["IMAGE_SIZE_BYTES", "4294967296"],
+  ])("msb_exec forwards %s only when it is set", (name, value) => {
+    const bin = stubMsb();
+    const result = withMsb(`msb_create agro-mx-1 >/dev/null && ${name}=${value} msb_exec agro-mx-1 'echo "v=$${name}"'`, bin);
+    expect(result.stdout).toBe(`v=${value}\n`);
+    const ssh = calls(bin, "ssh").trim().split("\n").at(-1) ?? "";
+    expect(ssh).toContain(`env MSB_GUEST=1 ${name}=${value} bash -c`);
+    for (const other of ["MSB_GUEST_PHASE", "MSB_IDLE_WAIT", "IMAGE_SIZE_BYTES"].filter((n) => n !== name)) {
+      expect(ssh).not.toContain(other);
+    }
+  });
+
+  it("msb_exec quotes forwarded values that hold spaces and shell syntax", () => {
+    const bin = stubMsb();
+    const result = withMsb(
+      `msb_create agro-mx-1 >/dev/null && MSB_GUEST_PHASE='a b; touch "${bin}/pwned"' msb_exec agro-mx-1 'printf "%s\\n" "$MSB_GUEST_PHASE"'`,
+      bin,
+    );
+    expect(result.stdout).toBe(`a b; touch "${bin}/pwned"\n`);
+    expect(withLib(`test -e "${bin}/pwned"`).code).not.toBe(0);
   });
 
   it("msb_exec returns the guest command status", () => {
