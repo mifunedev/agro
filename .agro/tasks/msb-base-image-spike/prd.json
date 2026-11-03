@@ -53,9 +53,9 @@
       "title": "`msb` adapter for `/remote-sandbox`",
       "description": "As the advisor, I want an `msb` adapter so that `run.sh msb <check>` boots the `agro-msb` image as a microVM on the A1 console node through the existing driver.",
       "acceptanceCriteria": [
-        "`.agro/skills/remote-sandbox/adapters/msb.sh` defines the five functions that `SKILL.md` \u00a7 Adapter contract names, with the prefix `msb_`.",
+        "`.agro/skills/remote-sandbox/adapters/msb.sh` defines the five functions that `SKILL.md` § Adapter contract names, with the prefix `msb_`.",
         "`msb_create NAME` runs `msb run --init auto --root-disk flat:40G \"$IMAGE\"` on the A1 console node over SSH and stores the sandbox ID in `$STATE_DIR/msb-NAME`.",
-        "`msb_exec NAME CMD\u2026` runs `CMD\u2026` in the guest under `timeout 120`.",
+        "`msb_exec NAME CMD…` runs `CMD…` in the guest under `timeout 120`.",
         "`msb_restart NAME` runs `msb stop` on the stored sandbox ID. Next, `msb_restart NAME` runs `msb start` on the same ID.",
         "`msb_destroy NAME` removes the guest, and `msb_list` prints the number of guests whose name starts with `agro-mx-`.",
         "`.agro/scripts/__tests__/remote-sandbox-adapters.test.ts` covers each `msb_` function with a stub `ssh` and a stub `msb` on `PATH`.",
@@ -162,5 +162,7 @@
         ".agro/tasks/msb-base-image-spike/evidence/manual-review.md"
       ]
     }
-  ]
+  ],
+  "pr": 1555,
+  "blocked": "US-001 needs agro-console access: run `agro auth login` (or set AGRO_CONSOLE_URL and AGRO_CONSOLE_TOKEN), and provide CONSOLE_SSH_KEY_ID and CONSOLE_SSH_IDENTITY for the free-tier n4 node."
 }
