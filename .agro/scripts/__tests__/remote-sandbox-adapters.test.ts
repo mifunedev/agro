@@ -276,7 +276,7 @@ describe("remote-sandbox adapters", () => {
   });
 });
 
-function stubMsb(list = "[]", guests = "") {
+function stubMsb(list = "[]", guests = "", pid1 = ["systemd"], states = ["running"]) {
   const bin = stubConsole(list);
   const home = join(bin, "home");
   mkdirSync(home, { recursive: true });
@@ -298,20 +298,30 @@ function stubMsb(list = "[]", guests = "") {
     ].join("\n"),
     sudo: `printf '%s\\n' "$*" >> "${bin}/sudo.calls"`,
     timeout: `printf '%s %s\\n' "$1" "$2" >> "${bin}/timeout.calls"\nexec "\${@:2}"`,
+    ps: `[ "$*" = "-p 1 -o comm=" ] || exit 1\nseq_next pid1`,
+    systemctl: `[ "$*" = "is-system-running" ] || exit 1\nprintf '%s\\n' "$*" >> "${bin}/systemctl.calls"\nseq_next states`,
     curl: [
       `printf '%s\\n' "$*" >> "${bin}/curl.calls"`,
       "printf '%s\\n' '#!/bin/sh' '    get_latest_version' 'mkdir -p \"$HOME/.microsandbox\"' 'chmod 777 \"$HOME/.microsandbox\"' 'echo \"installed $VERSION\"'",
     ].join("\n"),
   };
+  const seqNext = [
+    "seq_next() {",
+    `  local n; n=$(( $(cat "${bin}/$1.n" 2>/dev/null || echo 0) + 1 )); echo "$n" > "${bin}/$1.n"`,
+    `  sed -n "\${n}p" "${bin}/$1" | grep . || tail -n 1 "${bin}/$1"`,
+    "}",
+  ].join("\n");
   for (const [name, body] of Object.entries(stubs)) {
-    writeFileSync(join(bin, name), `#!/usr/bin/env bash\n${body}\n`);
+    writeFileSync(join(bin, name), `#!/usr/bin/env bash\n${seqNext}\n${body}\n`);
     chmodSync(join(bin, name), 0o755);
   }
+  writeFileSync(join(bin, "pid1"), `${pid1.join("\n")}\n`);
+  writeFileSync(join(bin, "states"), `${states.join("\n")}\n`);
   return bin;
 }
 
 const MSB_ENV =
-  "export IMAGE=ghcr.io/mifunedev/agro:spike-msb-abc; unset MSB_VERSION MSB_SSH_WAIT_TRIES MSB_GUEST MSB_GUEST_PHASE MSB_IDLE_WAIT IMAGE_SIZE_BYTES;";
+  "export IMAGE=ghcr.io/mifunedev/agro:spike-msb-abc; unset MSB_VERSION MSB_SSH_WAIT_TRIES MSB_SYSTEMD_WAIT_TRIES MSB_GUEST MSB_GUEST_PHASE MSB_IDLE_WAIT IMAGE_SIZE_BYTES;";
 
 function withMsb(script: string, bin: string) {
   return withConsole(`${MSB_ENV} STATE_DIR="${bin}/state"; mkdir -p "$STATE_DIR";\n${script}`, bin);
@@ -484,8 +494,7 @@ describe("remote-sandbox msb adapter", () => {
   it("msb_restart stops and then starts the stored guest", () => {
     const bin = stubMsb();
     expect(withMsb("msb_create agro-mx-1 >/dev/null && msb_restart agro-mx-1", bin).code).toBe(0);
-    const lines = calls(bin, "msb").trim().split("\n");
-    expect(lines.slice(-2)).toEqual(["stop agro-mx-1", "start agro-mx-1"]);
+    expect(calls(bin, "msb")).toContain("stop agro-mx-1\nstart agro-mx-1\nexec agro-mx-1 -- ");
   });
 
   it("msb_destroy removes the guest, then deletes the node", () => {
@@ -536,5 +545,100 @@ describe("remote-sandbox msb adapter", () => {
     expect(withMsb("msb_create agro-mx-1 >/dev/null && msb_row_ssh agro-mx-1", bin).stdout).toBe(
       "RESULT R10-ssh-inbound PASS ssh sandbox@203.0.113.7\n",
     );
+  });
+
+  it("msb_create returns only after the guest reports systemd as PID 1 and a running system", () => {
+    const bin = stubMsb("[]", "", ["init.krun", "systemd", "systemd"], ["offline", "starting", "running"]);
+    const result = withMsb('msb_create agro-mx-1; echo "rc=$?"', bin);
+    expect(result.stdout).toContain("msb: agro-mx-1 pid1=systemd system=running");
+    expect(result.stdout).toContain("rc=0");
+    expect(withLib(`cat "${bin}/pid1.n"`).stdout).toBe("3\n");
+    expect(calls(bin, "sleep")).toBe("5\n5\n");
+    const msb = calls(bin, "msb");
+    expect(msb.indexOf("exec agro-mx-1")).toBeGreaterThan(msb.indexOf("run --detach"));
+  });
+
+  it("msb_create accepts a degraded system and records it", () => {
+    const bin = stubMsb("[]", "", ["systemd"], ["initializing", "degraded"]);
+    const result = withMsb('msb_create agro-mx-1; echo "rc=$?"', bin);
+    expect(result.stdout).toContain("msb: agro-mx-1 pid1=systemd system=degraded");
+    expect(result.stdout).toContain("rc=0");
+  });
+
+  it("msb_create fails with a clear message when the systemd handoff never completes", () => {
+    const bin = stubMsb("[]", "", ["init.krun"], ["offline"]);
+    const result = withMsb('MSB_SYSTEMD_WAIT_TRIES=4 msb_create agro-mx-1; echo "rc=$?"', bin);
+    expect(result.stdout).toContain("rc=1");
+    expect(result.stderr).toContain("msb: agro-mx-1 pid1=init.krun system=offline after 4 tries, systemd handoff not complete");
+    expect(withLib(`cat "${bin}/pid1.n"`).stdout).toBe("4\n");
+  });
+
+  it("msb_wait_systemd waits 120 tries of 5 s by default", () => {
+    const bin = stubMsb("[]", "", ["systemd"], ["starting"]);
+    const result = withMsb('echo "node-1 sandbox@203.0.113.7 agro-mx-1" > "$STATE_DIR/msb-agro-mx-1"; msb_wait_systemd agro-mx-1', bin);
+    expect(result.code).not.toBe(0);
+    expect(calls(bin, "sleep")).toBe("5\n".repeat(120));
+  }, 60000);
+
+  it("msb_restart returns only after the systemd handoff", () => {
+    const bin = stubMsb("[]", "", ["systemd", "init.krun", "systemd"], ["running", "starting", "running"]);
+    const result = withMsb('msb_create agro-mx-1 >/dev/null && msb_restart agro-mx-1; echo "rc=$?"', bin);
+    expect(result.stdout).toContain("rc=0");
+    expect(withLib(`cat "${bin}/pid1.n"`).stdout).toBe("3\n");
+    const msb = calls(bin, "msb");
+    expect(msb.lastIndexOf("exec agro-mx-1")).toBeGreaterThan(msb.indexOf("start agro-mx-1"));
+  });
+
+  it("msb_restart fails when the systemd handoff never completes", () => {
+    const bin = stubMsb("[]", "", ["systemd", "init.krun"], ["running", "offline"]);
+    const result = withMsb('msb_create agro-mx-1 >/dev/null && MSB_SYSTEMD_WAIT_TRIES=2 msb_restart agro-mx-1; echo "rc=$?"', bin);
+    expect(result.stdout).toContain("rc=1");
+  });
+
+  it("msb_snapshot_restore stops, snapshots the disk, restores, starts, and retargets the state", () => {
+    const bin = stubMsb();
+    const result = withMsb(
+      'msb_create agro-mx-1 >/dev/null && : > "${STATE_DIR%/state}/msb.calls" && msb_snapshot_restore agro-mx-1; echo "rc=$?"; cat "$STATE_DIR/msb-agro-mx-1"',
+      bin,
+    );
+    expect(result.stdout).toContain("rc=0\nnode-1 sandbox@203.0.113.7 agro-mx-1-r agro-mx-1\n");
+    expect(result.stdout).toMatch(/TIMING snapshot_restore_s=[0-9.]+ systemd_s=[0-9.]+/);
+    expect(result.stdout).toContain("msb: agro-mx-1-r pid1=systemd system=running");
+    const lines = calls(bin, "msb").trim().split("\n");
+    expect(lines.slice(0, 5)).toEqual([
+      "stop agro-mx-1",
+      "snap create ready --sandbox agro-mx-1",
+      "snap restore agro-mx-1:ready --name agro-mx-1-r",
+      "ls --running --quiet",
+      "start agro-mx-1-r",
+    ]);
+    expect(lines.at(-1)).toMatch(/^exec agro-mx-1-r -- /);
+  });
+
+  it("msb_snapshot_restore skips start when the restored guest already runs", () => {
+    const bin = stubMsb("[]", "agro-mx-1-r\n");
+    expect(withMsb("msb_create agro-mx-1 >/dev/null && msb_snapshot_restore agro-mx-1", bin).code).toBe(0);
+    expect(calls(bin, "msb")).not.toContain("start agro-mx-1-r");
+  });
+
+  it("msb_snapshot_restore fails when the restored guest never reaches systemd", () => {
+    const bin = stubMsb("[]", "", ["systemd", "init.krun"], ["running", "offline"]);
+    const result = withMsb('msb_create agro-mx-1 >/dev/null && MSB_SYSTEMD_WAIT_TRIES=2 msb_snapshot_restore agro-mx-1; echo "rc=$?"', bin);
+    expect(result.stdout).toContain("rc=1");
+    expect(result.stderr).toContain("msb: agro-mx-1-r pid1=init.krun");
+  });
+
+  it("msb_exec targets the restored guest after a snapshot restore", () => {
+    const bin = stubMsb();
+    expect(withMsb("msb_create agro-mx-1 >/dev/null && msb_snapshot_restore agro-mx-1 >/dev/null && msb_exec agro-mx-1 true", bin).code).toBe(0);
+    expect(calls(bin, "msb").trim().split("\n").at(-1)).toBe("exec agro-mx-1-r -- env MSB_GUEST=1 bash -c true");
+  });
+
+  it("msb_destroy removes the original and the restored guests", () => {
+    const bin = stubMsb();
+    const result = withMsb("msb_create agro-mx-1 >/dev/null && msb_snapshot_restore agro-mx-1 >/dev/null && msb_destroy agro-mx-1", bin);
+    expect(result.code).toBe(0);
+    expect(calls(bin, "msb").trim().split("\n").at(-1)).toBe("rm --force agro-mx-1-r agro-mx-1");
+    expect(withLib(`grep -c "^node delete node-1 --yes$" "${bin}/agro.calls"`).stdout).toBe("1\n");
   });
 });
