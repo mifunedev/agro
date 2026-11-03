@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
@@ -89,6 +89,117 @@ describe("checks/agro-rows.sh", () => {
       .split("\n")
       .find((text) => text.includes("agro workspace create"));
     expect(line).toContain('${AGRO_REF:+--ref "$AGRO_REF"}');
+  });
+});
+
+describe("checks/msb-guest.sh", () => {
+  const ROW_IDS = ["M01", "M02", "M03", "M04", "M05", "M06"];
+  const STUBS: Record<string, string> = {
+    systemctl: 'echo "systemctl $*" >>"$STUB_LOG"; echo active; exit "${STUB_SYSTEMCTL_RC:-0}"',
+    docker: 'echo "docker $*" >>"$STUB_LOG"; exit "${STUB_DOCKER_RC:-0}"',
+    ps: 'echo "ps $*" >>"$STUB_LOG"; echo "${STUB_PID1:-systemd}"',
+    tmux: 'echo "tmux $*" >>"$STUB_LOG"; exit "${STUB_TMUX_RC:-0}"',
+    sleep: 'echo "sleep $*" >>"$STUB_LOG"',
+  };
+
+  function guest(env: Record<string, string>) {
+    const dir = tempDir();
+    const bin = join(dir, "bin");
+    mkdirSync(bin);
+    for (const [name, body] of Object.entries(STUBS)) {
+      writeFileSync(join(bin, name), `#!/bin/bash\n${body}\n`);
+      chmodSync(join(bin, name), 0o755);
+    }
+    const log = join(dir, "stub.log");
+    writeFileSync(log, "");
+    const result = spawnSync("bash", [join(SKILL, "checks/msb-guest.sh")], {
+      encoding: "utf8",
+      env: { PATH: `${bin}:/usr/bin:/bin`, HOME: dir, STUB_LOG: log, ...env },
+      timeout: 30_000,
+    });
+    const rows = result.stdout.split("\n").filter((line) => line.startsWith("RESULT "));
+    const row = (id: string) => rows.filter((line) => line.startsWith(`RESULT ${id}-`));
+    return { result, rows, row, calls: readFileSync(log, "utf8") };
+  }
+
+  function expectOneRowEach(rows: string[]) {
+    expect(rows).toHaveLength(ROW_IDS.length);
+    for (const [i, id] of ROW_IDS.entries()) expect(rows[i]).toMatch(new RegExp(`^RESULT ${id}-[a-z0-9-]+ (PASS|FAIL|SKIPPED) `));
+  }
+
+  it("prints one RESULT line per row in the microVM pre phase and creates the probe session", () => {
+    const { result, rows, row, calls } = guest({
+      MSB_GUEST: "1",
+      MSB_IDLE_WAIT: "5",
+      IMAGE_SIZE_BYTES: String(512 * 1024 * 1024),
+    });
+    expectOneRowEach(rows);
+    expect(result.status).toBe(0);
+    expect(row("M01")[0]).toMatch(/^RESULT M01-dockerd PASS /);
+    expect(row("M02")[0]).toMatch(/^RESULT M02-pid1 PASS /);
+    expect(row("M03")[0]).toMatch(/^RESULT M03-restart-persist SKIPPED .*MSB_GUEST_PHASE=restart/);
+    expect(row("M04")[0]).toMatch(/^RESULT M04-idle-memory PASS \d+MiB/);
+    expect(row("M05")[0]).toMatch(/^RESULT M05-snapshot-restore SKIPPED .*MSB_GUEST_PHASE=restore/);
+    expect(row("M06")[0]).toBe("RESULT M06-image-size PASS 512MiB");
+    expect(calls).toContain("tmux new -d -s agro-mx-probe");
+    expect(calls).toContain("docker run --rm hello-world");
+    expect(calls).toContain("sleep 5");
+    expect(result.stdout.trimEnd().split("\n").at(-1)).toBe("SUMMARY fails=0");
+  });
+
+  it("checks dockerd and the probe session in the restart phase", () => {
+    const { result, rows, row, calls } = guest({ MSB_GUEST: "1", MSB_GUEST_PHASE: "restart", MSB_IDLE_WAIT: "0" });
+    expectOneRowEach(rows);
+    expect(row("M03")[0]).toMatch(/^RESULT M03-restart-persist PASS /);
+    expect(row("M05")[0]).toMatch(/^RESULT M05-snapshot-restore SKIPPED /);
+    expect(calls).toContain("tmux has-session -t agro-mx-probe");
+    expect(calls).not.toContain("tmux new");
+    expect(result.status).toBe(0);
+  });
+
+  it("fails M03 when the probe session is gone after the restart", () => {
+    const { result, row } = guest({ MSB_GUEST: "1", MSB_GUEST_PHASE: "restart", MSB_IDLE_WAIT: "0", STUB_TMUX_RC: "1" });
+    expect(row("M03")[0]).toMatch(/^RESULT M03-restart-persist FAIL /);
+    expect(result.status).toBe(1);
+  });
+
+  it("checks PID 1 in the restore phase", () => {
+    const { result, rows, row } = guest({ MSB_GUEST: "1", MSB_GUEST_PHASE: "restore", MSB_IDLE_WAIT: "0" });
+    expectOneRowEach(rows);
+    expect(row("M03")[0]).toMatch(/^RESULT M03-restart-persist SKIPPED /);
+    expect(row("M05")[0]).toMatch(/^RESULT M05-snapshot-restore PASS /);
+    expect(result.status).toBe(0);
+  });
+
+  it("skips M03 and M05 with no microVM on a host-mode node", () => {
+    const { result, rows, row, calls } = guest({ MSB_IDLE_WAIT: "0", MSB_GUEST_PHASE: "restore" });
+    expectOneRowEach(rows);
+    expect(row("M03")[0]).toBe("RESULT M03-restart-persist SKIPPED no microVM");
+    expect(row("M05")[0]).toBe("RESULT M05-snapshot-restore SKIPPED no microVM");
+    expect(row("M06")[0]).toMatch(/^RESULT M06-image-size SKIPPED /);
+    expect(calls).not.toContain("tmux");
+    expect(result.status).toBe(0);
+  });
+
+  it("runs every row after earlier failures and exits with the FAIL count", () => {
+    const { result, rows, row } = guest({
+      MSB_GUEST: "1",
+      MSB_GUEST_PHASE: "restore",
+      MSB_IDLE_WAIT: "0",
+      STUB_DOCKER_RC: "1",
+      STUB_PID1: "init",
+    });
+    expectOneRowEach(rows);
+    expect(row("M01")[0]).toMatch(/^RESULT M01-dockerd FAIL /);
+    expect(row("M02")[0]).toMatch(/^RESULT M02-pid1 FAIL /);
+    expect(row("M05")[0]).toMatch(/^RESULT M05-snapshot-restore FAIL /);
+    expect(result.status).toBe(3);
+  });
+
+  it("fails M06 when IMAGE_SIZE_BYTES is not a number", () => {
+    const { result, row } = guest({ MSB_IDLE_WAIT: "0", IMAGE_SIZE_BYTES: "big" });
+    expect(row("M06")[0]).toMatch(/^RESULT M06-image-size FAIL /);
+    expect(result.status).toBe(1);
   });
 });
 
