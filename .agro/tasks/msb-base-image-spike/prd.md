@@ -218,3 +218,14 @@ None. `<sha>` is the AGRO commit under test, and `<msb-version>` is the release 
 - [ ] The `final` image smoke test passes on the task branch.
 
 ## Lessons
+
+1. Claim: under `msb run --init auto`, msb v0.7.13 also runs the image `CMD` as the startup command, and msb stops the sandbox when that command exits. Evidence: `startup command exited with non-zero status code=1` in `evidence/a1-smoke2-diag.txt`. Outcome: fixed in this PR. The `agro-msb` stage sets `CMD ["sleep", "infinity"]`.
+2. Claim: the msb graceful shutdown reaches systemd as ctrl-alt-del, and the image routes ctrl-alt-del to `reboot.target`. Evidence: `ctrl-alt-del.target` resolves to `reboot.target` with `CtrlAltDelBurstAction=reboot-force` in `evidence/a1-smoke2-live-probe.txt`. Outcome: fixed in this PR. The `agro-msb` stage links `ctrl-alt-del.target` to `poweroff.target`.
+3. Claim: the upstream `install.sh` resolves the latest msb release at run time, so a tag in the URL does not pin the version. Evidence: `get_latest_version` in `install.sh` at `v0.7.13`. Outcome: fixed in this PR. `msb_create` rewrites the version line and checks `msb --version`.
+4. Claim: an msb snapshot restore in v0.7.13 boots without the PID 1 handoff to systemd. Evidence: `M05` FAIL 3 of 3 with `pid1=init.krun`. Outcome: dropped. The limit is upstream, and `references/providers.md` records the limit.
+5. Claim: the plan stated that git tracks task evidence, but the `.gitignore` rule `.agro/tasks/*/*` keeps task evidence local. Evidence: `git add` refused `evidence/kvm-probe.log`. Outcome: fixed in this PR. The `## Storage` section names the rule, and the linked evidence files use `git add -f`.
+6. Claim: the agro-console dev sign-in did not create a personal context, so the free tier refused the `dev` user. Evidence: `403 FREE_TIER_INELIGIBLE`. Outcome: fixed in mifunedev/agro-console#665.
+7. Claim: the local console tunnel pointed at port 3005 while the web server ran on port 3006, so each node stayed in `waiting_for_boot`. Evidence: create to SSH dropped from 918 s to about 190 s after the tunnel change. Outcome: dropped. The cause is an uncommitted local edit in the operator environment, outside this repository.
+8. Claim: `M03` compares a full microVM reboot on A1 against no reboot on A0. Evidence: A0 reports `M03` as SKIPPED. Outcome: dropped. The brief records the caveat, and the operator chose the outcome.
+9. Claim: the Hermes smoke refuses a host with a Docker socket, so `R14` fails on A1. Evidence: `smoke=64 ERROR: Hermes smoke requires sandbox user and no Docker sock`. Outcome: dropped. The finding matters only when the msb path proceeds.
+10. Claim: `herdr-default.test.ts` and `install.test.ts` fail in this sandbox. Evidence: the same 11 failures on unmodified `origin/development`. Outcome: dropped. The failures predate this PR and come from the environment.
