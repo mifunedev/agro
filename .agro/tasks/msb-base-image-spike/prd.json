@@ -40,15 +40,15 @@
         "The stage holds no explanatory comment."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "executed: docker build --target agro-msb exit 0 on integrated branch (image sha256:3e516546dc65); in-image smoke dockerd 29.9.2, sandbox in docker group, docker.service enabled; worker: --target final exit 0, sandbox-boot-smoke.sh ok on final, default build (no --target) same 29 layers/config as final after FROM final tail stage; diff only appended lines; no comments; only sandbox user, no password. executed: docker push ghcr.io/mifunedev/agro:spike-msb-f737c5e3e exit 0, digest sha256:3e516546dc65…; package visibility public (gh api). Release workflow unchanged. REOPENED round 2 (operator-approved image fix): under msb --init auto the image CMD /sbin/init also runs as the startup command, exits 1 (not PID 1), and msb then shuts the sandbox down (evidence/a1-smoke2-diag.txt).",
+      "passes": true,
+      "notes": "executed: docker build --target agro-msb exit 0 on integrated branch (image sha256:3e516546dc65); in-image smoke dockerd 29.9.2, sandbox in docker group, docker.service enabled; worker: --target final exit 0, sandbox-boot-smoke.sh ok on final, default build (no --target) same 29 layers/config as final after FROM final tail stage; diff only appended lines; no comments; only sandbox user, no password. executed: docker push ghcr.io/mifunedev/agro:spike-msb-f737c5e3e exit 0, digest sha256:3e516546dc65…; package visibility public (gh api). Release workflow unchanged. REOPENED round 2 (operator-approved image fix): under msb --init auto the image CMD /sbin/init also runs as the startup command, exits 1 (not PID 1), and msb then shuts the sandbox down (evidence/a1-smoke2-diag.txt). Round 2 accepted (55c35cea4): agro-msb CMD [\"sleep\",\"infinity\"] (msb v0.7.13 --init auto probes /sbin/init from rootfs, not CMD: docs/sandboxes/bootstrap.mdx:292, crates/agentd/lib/handoff.rs:126-145); ctrl-alt-del.target -> poweroff.target; CtrlAltDelBurstAction=poweroff-force. Executed on integrated branch: docker build --target agro-msb exit 0; in-image readlink/drop-in/docker enabled verified; Config.Cmd [sleep,infinity]; pushed ghcr.io/mifunedev/agro:spike-msb-55c35cea4 digest sha256:41aef2e261d5 size 2190546500 B. final stage unchanged (worker: --target final Cmd [/sbin/init]).",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".devcontainer/Dockerfile"
       ],
-      "commit": "feaa556ee",
+      "commit": "55c35cea4",
       "rounds": 1
     },
     {
