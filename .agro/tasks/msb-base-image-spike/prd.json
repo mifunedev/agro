@@ -21,7 +21,8 @@
       "dependsOn": [],
       "files": [
         ".agro/tasks/msb-base-image-spike/evidence/kvm-probe.log"
-      ]
+      ],
+      "commit": "e67006dca"
     },
     {
       "id": "US-002",
