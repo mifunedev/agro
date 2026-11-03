@@ -188,3 +188,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 STOPSIGNAL SIGRTMIN+3
 ENTRYPOINT []
 CMD ["/sbin/init"]
+
+FROM final
