@@ -166,5 +166,6 @@
       ]
     }
   ],
-  "pr": 1555
+  "pr": 1555,
+  "blocked": "US-002: docker push ghcr.io/mifunedev/agro:spike-msb-f737c5e3e failed (unauthenticated). Operator must log docker in to ghcr.io with a token that has write:packages."
 }
