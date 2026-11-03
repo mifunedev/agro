@@ -116,8 +116,8 @@
         "After the last run, `agro node list` and `msb_list` show no node and no guest that the runs created."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: free tier only, one node at a time (sequencer guard live()==0 + console /signin 200|307), 23 nodes all destroyed, msb_list 0, no tmux sessions. A0 x3 valid (053838/054913, 061540/063019, 063332/064825; 055245/060936/061238 void: console outage). A1 x3 on spike-msb-55c35cea4 (rows 080136/083141/092159, chain 081016/084021/093112, restart 082106/085029/094005), all exit 0. Advisor spot-check: M03 FAIL x3 (tmux_has_session=1), M05 FAIL x3 (restored guest pid1=init.krun), R05/R06 PASS x3, R13 218.5/214.6/232.0s, R14 FAIL x3 (Hermes smoke refuses Docker socket). msb v0.7.13 on all runs. DEVIATION: AGRO commit differs (A0 release main@679f1f3d, A1 branch image 55c35cea4). Evidence stays local per .gitignore.",
       "dependsOn": [
         "US-002",
         "US-003",
@@ -125,7 +125,8 @@
       ],
       "files": [
         ".agro/tasks/msb-base-image-spike/evidence/"
-      ]
+      ],
+      "commit": "41169af93"
     },
     {
       "id": "US-006",
