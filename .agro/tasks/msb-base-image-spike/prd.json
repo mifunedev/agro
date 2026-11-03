@@ -65,8 +65,8 @@
         "Typecheck passes."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "executed on integrated task branch (f737c5e3e): bash -n adapters/msb.sh exit 0; shellcheck -S warning adapters/*.sh scripts/*.sh checks/*.sh exit 0; vitest remote-sandbox-adapters + suite + remote-sandbox tests 87/87 pass (worker red runs: 22 failed, then 7 failed in repair round 1); pnpm run typecheck exit 0. reasoned: msb_create composes console_create, refuses unset IMAGE (exit 2), pins MSB_VERSION by rewriting install.sh get_latest_version then verifying msb --version, adds sandbox to kvm group in its own session, chmod go-w ~/.microsandbox, msb run --detach --name --init auto --root-disk flat:40G; msb_exec forwards MSB_GUEST=1 plus MSB_GUEST_PHASE/MSB_IDLE_WAIT/IMAGE_SIZE_BYTES; msb_restart stop+start; msb_destroy rm --force then console_destroy (409 retry); msb_list counts agro-mx-; SSH wait MSB_SSH_WAIT_TRIES default 1200 s. Unverified live: --detach with --init auto on /sbin/init image. REOPENED round 1 (US-005): msb_create returns before systemd owns PID 1 on --init auto guests; uploaded check lost under /tmp tmpfs, restore phase saw pid1=init.krun.",
+      "passes": true,
+      "notes": "executed on integrated task branch (f737c5e3e): bash -n adapters/msb.sh exit 0; shellcheck -S warning adapters/*.sh scripts/*.sh checks/*.sh exit 0; vitest remote-sandbox-adapters + suite + remote-sandbox tests 87/87 pass (worker red runs: 22 failed, then 7 failed in repair round 1); pnpm run typecheck exit 0. reasoned: msb_create composes console_create, refuses unset IMAGE (exit 2), pins MSB_VERSION by rewriting install.sh get_latest_version then verifying msb --version, adds sandbox to kvm group in its own session, chmod go-w ~/.microsandbox, msb run --detach --name --init auto --root-disk flat:40G; msb_exec forwards MSB_GUEST=1 plus MSB_GUEST_PHASE/MSB_IDLE_WAIT/IMAGE_SIZE_BYTES; msb_restart stop+start; msb_destroy rm --force then console_destroy (409 retry); msb_list counts agro-mx-; SSH wait MSB_SSH_WAIT_TRIES default 1200 s. Unverified live: --detach with --init auto on /sbin/init image. REOPENED round 1 (US-005): msb_create returns before systemd owns PID 1 on --init auto guests; uploaded check lost under /tmp tmpfs, restore phase saw pid1=init.krun. Round 2 accepted (c27d4dd56): msb_wait_systemd (pid1=systemd and running|degraded, MSB_SYSTEMD_WAIT_TRIES default 120x5s) called at end of msb_create and msb_restart; msb_snapshot_restore = stop, snap create ready --sandbox, snap restore --name NAME-r, start, retarget state, wait systemd. Executed on integrated branch: bash -n 0, shellcheck -S warning adapters/*.sh 0, vitest 3 remote-sandbox files 98/98, typecheck 0 (worker red run 12 failed). Known risk: v0.7.13 snap restore has no --init flag, restored guest may stay pid1=init.krun so M05 may FAIL truthfully.",
       "dependsOn": [
         "US-001"
       ],
@@ -74,7 +74,7 @@
         ".agro/skills/remote-sandbox/adapters/msb.sh",
         ".agro/scripts/__tests__/remote-sandbox-adapters.test.ts"
       ],
-      "commit": "f737c5e3e",
+      "commit": "c27d4dd56",
       "rounds": 1
     },
     {
