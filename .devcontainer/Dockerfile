@@ -183,10 +183,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && install -d -m 0755 /etc/docker \
  && printf '{\n  "live-restore": true\n}\n' > /etc/docker/daemon.json \
  && groupadd -f docker && usermod -aG docker sandbox \
- && systemctl enable docker.service containerd.service
+ && systemctl enable docker.service containerd.service \
+ && test -f /usr/lib/systemd/system/poweroff.target \
+ && ln -sf /usr/lib/systemd/system/poweroff.target /etc/systemd/system/ctrl-alt-del.target \
+ && install -d -m 0755 /etc/systemd/system.conf.d \
+ && printf '[Manager]\nCtrlAltDelBurstAction=poweroff-force\n' > /etc/systemd/system.conf.d/agro-msb-poweroff.conf
 
 STOPSIGNAL SIGRTMIN+3
 ENTRYPOINT []
-CMD ["/sbin/init"]
+CMD ["sleep", "infinity"]
 
 FROM final
