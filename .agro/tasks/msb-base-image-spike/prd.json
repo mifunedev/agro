@@ -40,15 +40,16 @@
         "The stage holds no explanatory comment."
       ],
       "priority": 2,
-      "passes": true,
-      "notes": "executed: docker build --target agro-msb exit 0 on integrated branch (image sha256:3e516546dc65); in-image smoke dockerd 29.9.2, sandbox in docker group, docker.service enabled; worker: --target final exit 0, sandbox-boot-smoke.sh ok on final, default build (no --target) same 29 layers/config as final after FROM final tail stage; diff only appended lines; no comments; only sandbox user, no password. executed: docker push ghcr.io/mifunedev/agro:spike-msb-f737c5e3e exit 0, digest sha256:3e516546dc65…; package visibility public (gh api). Release workflow unchanged.",
+      "passes": false,
+      "notes": "executed: docker build --target agro-msb exit 0 on integrated branch (image sha256:3e516546dc65); in-image smoke dockerd 29.9.2, sandbox in docker group, docker.service enabled; worker: --target final exit 0, sandbox-boot-smoke.sh ok on final, default build (no --target) same 29 layers/config as final after FROM final tail stage; diff only appended lines; no comments; only sandbox user, no password. executed: docker push ghcr.io/mifunedev/agro:spike-msb-f737c5e3e exit 0, digest sha256:3e516546dc65…; package visibility public (gh api). Release workflow unchanged. REOPENED round 2 (operator-approved image fix): under msb --init auto the image CMD /sbin/init also runs as the startup command, exits 1 (not PID 1), and msb then shuts the sandbox down (evidence/a1-smoke2-diag.txt).",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".devcontainer/Dockerfile"
       ],
-      "commit": "feaa556ee"
+      "commit": "feaa556ee",
+      "rounds": 1
     },
     {
       "id": "US-003",
