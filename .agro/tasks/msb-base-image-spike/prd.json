@@ -213,7 +213,8 @@
       "files": [
         ".agro/tasks/msb-base-image-spike/evidence/",
         ".agro/tasks/msb-base-image-spike/brief.md"
-      ]
+      ],
+      "commit": "a585f402a"
     }
   ],
   "pr": 1555,
