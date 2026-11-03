@@ -40,7 +40,7 @@ A timed row shows the median of 3 runs and the 3 values. Another row shows the p
 | R15-hermes-host-install | 2/3 (run `061540`: `exit=1`, `installing hermes failed`) | SKIPPED: `agro-rows.sh` emits the row in host mode only |
 | M01-dockerd | 3/3 | 3/3 before restart, 3/3 after restart |
 | M02-pid1 | 3/3 (`pid1=systemd`) | 3/3 before restart, 3/3 after restart |
-| M03-restart-persist | SKIPPED: no microVM | 0/3: `docker=active tmux_has_session=1` |
+| M03-restart-persist | SKIPPED: no microVM. A0-reboot: node host 0/3, sandbox container 0/3 (`docker=active tmux_has_session=1`) | 0/3: `docker=active tmux_has_session=1` |
 | M04-idle-memory | median 440 MiB (486, 431, 440) | median 193 MiB (200, 192, 193); after restart 167 MiB (174, 165, 167) |
 | M05-snapshot-restore | SKIPPED: no microVM | 0/3: restored guest stays `pid1=init.krun` after 36 tries |
 | M06-image-size | SKIPPED: no `IMAGE_SIZE_BYTES` from the driver | 2089 MiB in each run |
@@ -66,7 +66,8 @@ Each A1 row gives a lower cost than A0. Decision rule clause 3 does not decide t
 
 ## Findings
 
-- `M03` compares unlike events. On A1, `msb stop` and `msb start` do a full VM reboot, and a reboot ends every `tmux` session. A0 ran no node reboot check. A0 reports `M03` as `SKIPPED`. Thus no A0 value exists for the same event. `R08-vm-restart` on A1 passed 3 of 3 runs, with `docker` active and the workspace files intact after the reboot.
+- `M03` compares unlike events. On A1, `msb stop` and `msb start` do a full VM reboot, and a reboot ends every `tmux` session. The US-005 A0 runs had no node reboot, so those runs report `M03` as `SKIPPED`. US-009 adds the A0 value for the same event. `R08-vm-restart` on A1 passed 3 of 3 runs, with `docker` active and the workspace files intact after the reboot.
+- The A0-reboot check (US-009) runs `M03` across a full A0 node reboot. Logs: `a0-reboot-1-20261103-162614`, `a0-reboot-2-20261103-163036`, `a0-reboot-3-20261103-163526`. Before each reboot, the check started `agro-mx-probe` on the node host and `agro-mx-probe-ctr` in the sandbox container. After `sudo systemctl reboot`, SSH answered in 26.6 s, 27.2 s, and 26.6 s. `docker` was active, and the sandbox container was healthy again after 35.0 s, 35.3 s, and 35.0 s. Both `tmux` sessions were gone in 3 of 3 runs. Thus A0 also fails `M03` after the same event. The `M03` failure on A1 shows a property of a reboot, not a defect of the microVM layer. The outcome does not change, because clause 2 counts only A1 runs.
 - `M05` fails because the restored guest never reaches systemd. In `msb` `v0.7.13`, `msb snap restore` has no init handoff. The restored guest stays `pid1=init.krun` with system state `offline`. The snapshot step took 9.9 s, 6.5 s, and 4.7 s.
 - `R14` fails on A1 because the check precondition conflicts with the A1 design. The Hermes smoke script refuses a Docker socket. The `agro-msb` image runs `dockerd` in the guest, so the guest has a Docker socket. The Hermes install itself exited 0 in each run.
 - The spike found these `msb` lifecycle requirements:

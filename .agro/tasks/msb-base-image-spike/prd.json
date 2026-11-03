@@ -205,8 +205,8 @@
         "brief.md gains an A0 reboot column value for M03 and a note on how the result changes the M03 caveat; ste-check exits 0."
       ],
       "priority": 9,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: 3 A0 runs (a0-reboot-1-20261103-162614, -2-163036, -3-163526), one free-tier n4 node at a time. Advisor grep: M03-restart-persist FAIL (tmux_has_session=1) 3/3 on the node host; M03-container-tmux FAIL 3/3; reboot_to_ssh_s 26.6/27.2/26.6; reboot_to_healthy_s 35.0/35.3/35.0, health=healthy; docker active. agro node list: 0 live (26 destroyed). brief.md M03 row has the A0-reboot value, a findings paragraph, and the caveat line updated; ste-check exit 0. Outcome line unchanged (clause 2 counts only A1). Conclusion: the A1 M03 failure is a property of any reboot, not of the microVM layer.",
       "dependsOn": [
         "US-005"
       ],
