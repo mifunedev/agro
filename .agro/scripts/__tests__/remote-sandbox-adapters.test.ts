@@ -322,6 +322,12 @@ function stubMsb(list = "[]", guests = "", pid1 = ["systemd"], states = ["runnin
   return bin;
 }
 
+function stubSeq(bin: string) {
+  writeFileSync(join(bin, "seq"), `#!/usr/bin/env bash\nprintf '%s\\n' "$*" >> "${bin}/seq.calls"\necho 1\n`);
+  chmodSync(join(bin, "seq"), 0o755);
+  return bin;
+}
+
 const MSB_ENV =
   "export IMAGE=ghcr.io/mifunedev/agro:spike-msb-abc; unset MSB_VERSION MSB_SSH_WAIT_TRIES MSB_SYSTEMD_WAIT_TRIES MSB_GUEST_CPUS MSB_GUEST_MEMORY MSB_GUEST MSB_GUEST_PHASE MSB_IDLE_WAIT IMAGE_SIZE_BYTES;";
 
@@ -422,11 +428,16 @@ describe("remote-sandbox msb adapter", () => {
 
   it("msb_create fails when the host never answers ssh and keeps the node for destroy", () => {
     const bin = stubMsb();
-    const result = withMsb('SSH_DOWN=1 msb_create agro-mx-1; echo "rc=$?"; cat "$STATE_DIR/msb-agro-mx-1"', bin);
+    const result = withMsb('SSH_DOWN=1 MSB_SSH_WAIT_TRIES=2 msb_create agro-mx-1; echo "rc=$?"; cat "$STATE_DIR/msb-agro-mx-1"', bin);
     expect(result.stdout).toContain("rc=1\nnode-1 sandbox@203.0.113.7 agro-mx-1\n");
     expect(calls(bin, "msb")).toBe("");
-    const waits = calls(bin, "sleep").trim().split("\n").map(Number);
-    expect(waits.reduce((a, b) => a + b, 0)).toBeGreaterThanOrEqual(1200);
+  });
+
+  it("msb_create waits 240 ssh tries of 5 s by default", () => {
+    const bin = stubSeq(stubMsb());
+    expect(withMsb("SSH_DOWN=1 msb_create agro-mx-1", bin).code).not.toBe(0);
+    expect(calls(bin, "seq")).toBe("1 240\n");
+    expect(calls(bin, "sleep")).toBe("5\n");
   });
 
   it("msb_create bounds the ssh wait with MSB_SSH_WAIT_TRIES", () => {
@@ -582,11 +593,13 @@ describe("remote-sandbox msb adapter", () => {
   });
 
   it("msb_wait_systemd waits 120 tries of 5 s by default", () => {
-    const bin = stubMsb("[]", "", ["systemd"], ["starting"]);
+    const bin = stubSeq(stubMsb("[]", "", ["systemd"], ["starting"]));
     const result = withMsb('echo "node-1 sandbox@203.0.113.7 agro-mx-1" > "$STATE_DIR/msb-agro-mx-1"; msb_wait_systemd agro-mx-1', bin);
     expect(result.code).not.toBe(0);
-    expect(calls(bin, "sleep")).toBe("5\n".repeat(120));
-  }, 60000);
+    expect(result.stderr).toContain("after 120 tries");
+    expect(calls(bin, "seq")).toBe("1 120\n");
+    expect(calls(bin, "sleep")).toBe("5\n");
+  });
 
   it("msb_restart returns only after the systemd handoff", () => {
     const bin = stubMsb("[]", "", ["systemd", "init.krun", "systemd"], ["running", "starting", "running"]);
