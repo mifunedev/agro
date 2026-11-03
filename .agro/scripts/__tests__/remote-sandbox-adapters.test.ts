@@ -72,14 +72,14 @@ function withConsole(script: string, bin: string) {
 }
 
 describe("remote-sandbox adapters", () => {
-  it.each(["exedev", "vercel", "console"])("%s defines the five required functions", (provider) => {
+  it.each(["exedev", "vercel", "console", "msb"])("%s defines the five required functions", (provider) => {
     for (const fn of REQUIRED) expect(defined(`${provider}_${fn}`), `${provider}_${fn}`).toBe(true);
     expect(withLib(`valid_provider ${provider}`).code).toBe(0);
   });
 
-  it("lists the three adapters as valid providers", () => {
+  it("lists the four adapters as valid providers", () => {
     const providers = withLib("valid_providers").stdout.trim().split("\n");
-    expect(providers).toEqual(expect.arrayContaining(["exedev", "vercel", "console"]));
+    expect(providers).toEqual(expect.arrayContaining(["exedev", "vercel", "console", "msb"]));
   });
 
   it("exedev defines restart and both row hooks", () => {
@@ -271,6 +271,219 @@ describe("remote-sandbox adapters", () => {
   it("console_row_ssh prints the R10 line with the stored target", () => {
     const bin = stubConsole();
     expect(withConsole("console_create agro-mx-8 >/dev/null && console_row_ssh agro-mx-8", bin).stdout).toBe(
+      "RESULT R10-ssh-inbound PASS ssh sandbox@203.0.113.7\n",
+    );
+  });
+});
+
+function stubMsb(list = "[]", guests = "") {
+  const bin = stubConsole(list);
+  const home = join(bin, "home");
+  mkdirSync(home, { recursive: true });
+  writeFileSync(join(bin, "guests"), guests);
+  const stubs: Record<string, string> = {
+    ssh: [
+      `printf '%s\\n' "$*" >> "${bin}/ssh.calls"`,
+      '[ "${SSH_DOWN:-0}" = 1 ] && exit 255',
+      `HOME="${home}" bash -c "\${@: -1}"`,
+    ].join("\n"),
+    msb: [
+      `printf '%s\\n' "$*" >> "${bin}/msb.calls"`,
+      'case "$1" in',
+      '  --version) echo "msb 0.7.13" ;;',
+      `  ls) cat "${bin}/guests" ;;`,
+      '  run) echo "${@: -1}" ;;',
+      '  exec) shift 3; "$@" ;;',
+      "esac",
+    ].join("\n"),
+    sudo: `printf '%s\\n' "$*" >> "${bin}/sudo.calls"`,
+    timeout: `printf '%s %s\\n' "$1" "$2" >> "${bin}/timeout.calls"\nexec "\${@:2}"`,
+    curl: [
+      `printf '%s\\n' "$*" >> "${bin}/curl.calls"`,
+      "printf '%s\\n' '#!/bin/sh' '    get_latest_version' 'mkdir -p \"$HOME/.microsandbox\"' 'chmod 777 \"$HOME/.microsandbox\"' 'echo \"installed $VERSION\"'",
+    ].join("\n"),
+  };
+  for (const [name, body] of Object.entries(stubs)) {
+    writeFileSync(join(bin, name), `#!/usr/bin/env bash\n${body}\n`);
+    chmodSync(join(bin, name), 0o755);
+  }
+  return bin;
+}
+
+const MSB_ENV = "export IMAGE=ghcr.io/mifunedev/agro:spike-msb-abc; unset MSB_VERSION;";
+
+function withMsb(script: string, bin: string) {
+  return withConsole(`${MSB_ENV} STATE_DIR="${bin}/state"; mkdir -p "$STATE_DIR";\n${script}`, bin);
+}
+
+function calls(bin: string, name: string) {
+  return withLib(`cat "${bin}/${name}.calls" 2>/dev/null`).stdout;
+}
+
+describe("remote-sandbox msb adapter", () => {
+  it("msb defines restart and the ssh row hook", () => {
+    for (const fn of ["msb_restart", "msb_row_ssh"]) expect(defined(fn), fn).toBe(true);
+  });
+
+  it("msb_preflight lists nodes through the agro CLI", () => {
+    const bin = stubMsb();
+    expect(withMsb("msb_preflight", bin).code).toBe(0);
+    expect(calls(bin, "agro")).toBe("node list --json\n");
+  });
+
+  it("msb_preflight fails without CONSOLE_SSH_IDENTITY", () => {
+    expect(withMsb("unset CONSOLE_SSH_IDENTITY; msb_preflight", stubMsb()).code).not.toBe(0);
+  });
+
+  it("msb_create refuses an unset IMAGE with exit 2 and creates nothing", () => {
+    const bin = stubMsb();
+    const result = withMsb("unset IMAGE; msb_create agro-mx-1; echo unreachable", bin);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain("msb: set IMAGE");
+    expect(result.stdout).not.toContain("unreachable");
+    expect(calls(bin, "agro")).toBe("");
+  });
+
+  it("msb_create creates a free-tier console node and stores node, target, and guest", () => {
+    const bin = stubMsb();
+    const result = withMsb('msb_create agro-mx-1 && cat "$STATE_DIR/msb-agro-mx-1"', bin);
+    expect(result.code).toBe(0);
+    expect(calls(bin, "agro")).toBe("node create --spec n4 --ssh-key key-uuid --name agro-mx-1 --json --free-tier\n");
+    expect(result.stdout.trim().split("\n").at(-1)).toBe("node-1 sandbox@203.0.113.7 agro-mx-1");
+  });
+
+  it("msb_create adds sandbox to the kvm group in an earlier ssh session than msb run", () => {
+    const bin = stubMsb();
+    expect(withMsb("msb_create agro-mx-1", bin).code).toBe(0);
+    expect(calls(bin, "sudo")).toBe("usermod -aG kvm sandbox\n");
+    const sessions = calls(bin, "ssh").trim().split("\n");
+    const kvm = sessions.findIndex((line) => line.includes("usermod -aG kvm sandbox"));
+    const run = sessions.findIndex((line) => line.includes("msb run"));
+    expect(kvm).toBeGreaterThanOrEqual(0);
+    expect(run).toBeGreaterThan(kvm);
+    expect(sessions[run]).toContain("-i /keys/id_ed25519");
+    expect(sessions[run]).toContain("sandbox@203.0.113.7");
+  });
+
+  it("msb_create installs the pinned msb release", () => {
+    const bin = stubMsb();
+    const result = withMsb("msb_create agro-mx-1", bin);
+    expect(result.code).toBe(0);
+    expect(calls(bin, "curl")).toContain(
+      "https://raw.githubusercontent.com/superradcompany/microsandbox/v0.7.13/scripts/install.sh",
+    );
+    expect(result.stdout).toContain("installed v0.7.13");
+    expect(calls(bin, "msb")).toContain("--version\n");
+  });
+
+  it("msb_create honors MSB_VERSION and fails when the installed version differs", () => {
+    const bin = stubMsb();
+    const result = withMsb("MSB_VERSION=v0.8.0 msb_create agro-mx-1", bin);
+    expect(result.code).not.toBe(0);
+    expect(calls(bin, "curl")).toContain("/microsandbox/v0.8.0/scripts/install.sh");
+    expect(calls(bin, "msb")).not.toContain("run ");
+  });
+
+  it("msb_create removes group write from ~/.microsandbox before msb run", () => {
+    const bin = stubMsb();
+    expect(withMsb("msb_create agro-mx-1", bin).code).toBe(0);
+    expect(withLib(`stat -c %a "${bin}/home/.microsandbox"`).stdout).toBe("755\n");
+    const session = calls(bin, "ssh").split("\n").find((line) => line.includes("msb run")) ?? "";
+    expect(session.indexOf("chmod go-w ~/.microsandbox")).toBeGreaterThanOrEqual(0);
+    expect(session.indexOf("chmod go-w ~/.microsandbox")).toBeLessThan(session.indexOf("msb run"));
+  });
+
+  it("msb_create boots the image detached with the init handoff and a 40G flat root disk", () => {
+    const bin = stubMsb();
+    expect(withMsb("msb_create agro-mx-1", bin).code).toBe(0);
+    expect(calls(bin, "msb")).toContain(
+      "run --detach --name agro-mx-1 --init auto --root-disk flat:40G ghcr.io/mifunedev/agro:spike-msb-abc\n",
+    );
+  });
+
+  it("msb_create fails when the host never answers ssh and keeps the node for destroy", () => {
+    const bin = stubMsb();
+    const result = withMsb('SSH_DOWN=1 msb_create agro-mx-1; echo "rc=$?"; cat "$STATE_DIR/msb-agro-mx-1"', bin);
+    expect(result.stdout).toContain("rc=1\nnode-1 sandbox@203.0.113.7 agro-mx-1\n");
+    expect(calls(bin, "msb")).toBe("");
+  });
+
+  it("msb_exec runs the command in the guest under timeout 120", () => {
+    const bin = stubMsb();
+    const result = withMsb('msb_create agro-mx-1 >/dev/null && msb_exec agro-mx-1 "echo a b | tr a z"', bin);
+    expect(result.code).toBe(0);
+    expect(result.stdout).toBe("z b\n");
+    expect(calls(bin, "msb").trim().split("\n").at(-1)).toBe("exec agro-mx-1 -- bash -c echo a b | tr a z");
+  });
+
+  it("msb_exec returns the guest command status", () => {
+    const bin = stubMsb();
+    expect(withMsb("msb_create agro-mx-1 >/dev/null && msb_exec agro-mx-1 'exit 7'", bin).code).toBe(7);
+  });
+
+  it("msb_exec bounds the ssh call with timeout 120", () => {
+    const bin = stubMsb();
+    expect(withMsb("msb_create agro-mx-1 >/dev/null && msb_exec agro-mx-1 true", bin).code).toBe(0);
+    expect(calls(bin, "timeout").trim().split("\n").at(-1)).toBe("120 ssh");
+  });
+
+  it("msb_exec fails without a stored guest", () => {
+    expect(withMsb("msb_exec agro-mx-none true", stubMsb()).code).not.toBe(0);
+  });
+
+  it("msb_restart stops and then starts the stored guest", () => {
+    const bin = stubMsb();
+    expect(withMsb("msb_create agro-mx-1 >/dev/null && msb_restart agro-mx-1", bin).code).toBe(0);
+    const lines = calls(bin, "msb").trim().split("\n");
+    expect(lines.slice(-2)).toEqual(["stop agro-mx-1", "start agro-mx-1"]);
+  });
+
+  it("msb_destroy removes the guest, then deletes the node", () => {
+    const bin = stubMsb();
+    const result = withMsb(
+      'msb_create agro-mx-1 >/dev/null && msb_destroy agro-mx-1; echo "rc=$?"; test -e "$STATE_DIR/msb-agro-mx-1"; echo "state=$?"',
+      bin,
+    );
+    expect(result.stdout).toContain("deleted node-1\nrc=0\nstate=1\n");
+    expect(calls(bin, "msb").trim().split("\n").at(-1)).toBe("rm --force agro-mx-1");
+    expect(withLib(`grep -c "^node delete node-1 --yes$" "${bin}/agro.calls"`).stdout).toBe("1\n");
+  });
+
+  it("msb_destroy retries a 409 on the node delete", () => {
+    const bin = stubMsb();
+    const result = withMsb("msb_create agro-mx-1 >/dev/null && CONFLICTS=2 msb_destroy agro-mx-1", bin);
+    expect(result.code).toBe(0);
+    expect(withLib(`cat "${bin}/deletes"`).stdout).toBe("3\n");
+  });
+
+  it("msb_destroy deletes the node when the guest removal fails", () => {
+    const bin = stubMsb();
+    const result = withMsb("msb_create agro-mx-1 >/dev/null && SSH_DOWN=1 msb_destroy agro-mx-1", bin);
+    expect(result.code).toBe(0);
+    expect(withLib(`grep -c "^node delete node-1 --yes$" "${bin}/agro.calls"`).stdout).toBe("1\n");
+  });
+
+  it("msb_list counts live agro-mx- nodes and agro-mx- guests on recorded hosts", () => {
+    const list = JSON.stringify([
+      { id: "1", name: "agro-mx-1", status: "running" },
+      { id: "2", name: "prod-db", status: "running" },
+      { id: "3", name: "agro-mx-0", status: "destroyed" },
+    ]);
+    const bin = stubMsb(list, "agro-mx-1\nagro-mx-2\nother\nx-agro-mx-3\n");
+    expect(withMsb("msb_create agro-mx-1 >/dev/null && msb_list", bin).stdout).toBe("3\n");
+    expect(calls(bin, "msb")).toContain("ls --quiet\n");
+  });
+
+  it("msb_list counts only nodes when no host is recorded", () => {
+    const list = JSON.stringify([{ id: "1", name: "agro-mx-1", status: "running" }]);
+    const bin = stubMsb(list, "agro-mx-1\n");
+    expect(withMsb("msb_list", bin).stdout).toBe("1\n");
+    expect(calls(bin, "ssh")).toBe("");
+  });
+
+  it("msb_row_ssh prints the R10 line with the host target", () => {
+    const bin = stubMsb();
+    expect(withMsb("msb_create agro-mx-1 >/dev/null && msb_row_ssh agro-mx-1", bin).stdout).toBe(
       "RESULT R10-ssh-inbound PASS ssh sandbox@203.0.113.7\n",
     );
   });
