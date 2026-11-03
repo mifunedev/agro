@@ -86,15 +86,16 @@
         "`.agro/scripts/__tests__/remote-sandbox-suite.test.ts` asserts that the script prints one `RESULT` line for each row ID with stubbed commands."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed on integrated task branch: bash -n checks/msb-guest.sh exit 0; shellcheck v0.11.0 exit 0; npx vitest run .agro/scripts/__tests__/remote-sandbox-suite.test.ts 15/15 pass (worker red run: 7 failed before script existed); pnpm run typecheck exit 0. reasoned: one RESULT line per row M01-M06 per phase, exit=FAIL count, rows run after failures, host mode (MSB_GUEST unset) prints M03/M05 SKIPPED no microVM — asserted by the suite tests. Design: MSB_GUEST=1 marks microVM mode; MSB_GUEST_PHASE pre|restart|restore; MSB_IDLE_WAIT; IMAGE_SIZE_BYTES. msb_exec must forward these (US-003 repair round 1).",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/skills/remote-sandbox/checks/msb-guest.sh",
         ".agro/scripts/__tests__/remote-sandbox-suite.test.ts"
-      ]
+      ],
+      "commit": "4763bc52a"
     },
     {
       "id": "US-005",
