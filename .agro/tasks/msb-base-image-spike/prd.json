@@ -182,8 +182,8 @@
         "bash .agro/skills/ste/scripts/ste-check.sh exits 0 on each changed Markdown file."
       ],
       "priority": 8,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed on integrated branch (2e35422e9): CHANGELOG ### Added entry 214 chars linking #1555; SKILL.md lists all eight MSB_*/IMAGE_SIZE_BYTES variables with code defaults (grep 8/8); providers.md ## msb section; ste-check exit 0 on SKILL.md and providers.md; vitest remote-sandbox* 104/104; link-providers.sh --check exit 0. reasoned: CHANGELOG.md whole-file ste-check has 262 pre-existing findings; new entry alone passes. Note: SKILL.md points at the task-evidence chain script for multi-phase runs.",
       "dependsOn": [
         "US-007"
       ],
@@ -191,7 +191,8 @@
         "CHANGELOG.md",
         ".agro/skills/remote-sandbox/SKILL.md",
         ".agro/skills/remote-sandbox/references/providers.md"
-      ]
+      ],
+      "commit": "2e35422e9"
     }
   ],
   "pr": 1555,
