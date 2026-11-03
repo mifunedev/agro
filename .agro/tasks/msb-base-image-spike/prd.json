@@ -161,8 +161,8 @@
         "The run uses a live resource only with operator approval. The transcript shows the deletion of each resource that the run created."
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: evidence/manual-review.md built from A1 run 3 logs (msb-guest-chain-20261103-093112, msb-restart-settled-20261103-094005, msb-agro-rows-20261103-092159): pid1=systemd and M02 PASS, M01 hello-world=ok, tmux before (probe session created) and after msb stop/start (tmux_has_session=1, M03 FAIL); operator approval stated; deletion lines for nodes 7e433dcd, 52e53618, 10c814e2; reviewer steps in server/CLI shape. ste-check exit 0. Committed with git add -f per git/references/manual-review.md, plus brief.md and a1-guest-chain.sh (linked by the reviewer steps).",
       "dependsOn": [
         "US-005"
       ],
