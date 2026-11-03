@@ -163,6 +163,5 @@
       ]
     }
   ],
-  "pr": 1555,
-  "blocked": "US-001 needs agro-console access: run `agro auth login` (or set AGRO_CONSOLE_URL and AGRO_CONSOLE_TOKEN), and provide CONSOLE_SSH_KEY_ID and CONSOLE_SSH_IDENTITY for the free-tier n4 node."
+  "pr": 1555
 }
