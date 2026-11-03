@@ -141,14 +141,15 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/tasks/msb-base-image-spike/brief.md` exits 0."
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: brief.md has one A0|A1 table (23 rows R01-R15, R02b, M01-M06; medians re-derived from logs), cost per tenant from provider-catalog.json:25-33 (A0 $0.0450/tenant; A1 $0.0021 at idle-memory bound, $0.0225 at 2 GiB allocation; usable memory unmeasured, 4096 MiB upper bound), one outcome line \"Outcome: stay on HEAD\" naming clause 2 (M03 FAIL 3/3); ste-check exit 0 (advisor rerun). reasoned: criterion \"PR removes agro-msb stage and adapters/msb.sh\" not applied — operator decision 2026-11-03 to keep the spike code; recorded as a deviation. brief.md stays local per .gitignore; Close copies it into the PR body.",
       "dependsOn": [
         "US-005"
       ],
       "files": [
         ".agro/tasks/msb-base-image-spike/brief.md"
-      ]
+      ],
+      "commit": "41169af93"
     },
     {
       "id": "US-007",
