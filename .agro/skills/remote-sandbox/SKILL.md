@@ -2,20 +2,22 @@
 name: remote-sandbox
 description: |
   Test AGRO on a new provider VM with one command. The driver creates a VM on
-  exe.dev, Vercel Sandbox, or agro-console, uploads a check, runs the check
+  exe.dev, Vercel Sandbox, agro-console, or msb (a microVM on an agro-console
+  node), uploads a check, runs the check
   detached in the VM, polls the check log, and destroys the VM. The main scenario is the
   fresh install (F1 to F4). The second scenario is the AGRO hosting matrix
   (R01 to R15, R02b), the cgroup probe, and the VM restart test. A provider
   adapter of five functions and three optional hooks adds a provider. The
-  Hermes generated-home check (H01 to H09) tests a branch on a new VM.
+  Hermes generated-home check (H01 to H09) tests a branch on a new VM. The
+  msb-guest check (M01 to M06) tests the agro-msb image in an msb microVM.
   TRIGGER when: asked to validate an AGRO release or candidate build on a
   fresh VM, run the fresh-install check, test the curl installer on a new VM,
   run the AGRO hosting matrix or a matrix row, run the cgroup probe or the VM
   restart test, run the OpenShell journey check, run the Hermes
-  generated-home check, run the Docker egress check, or add a provider
-  adapter.
+  generated-home check, run the Docker egress check, run the msb-guest check,
+  or add a provider adapter.
 license: MIT
-compatibility: Needs bash, ssh, curl, jq, awk, and python3 on the driver host, plus an account on each provider under test (an exe.dev SSH key, the vercel CLI, or an `agro auth login` sign-in and an SSH key for the agro CLI). tmux is optional on the driver host.
+compatibility: Needs bash, ssh, curl, jq, awk, and python3 on the driver host, plus an account on each provider under test (an exe.dev SSH key, the vercel CLI, or an `agro auth login` sign-in and an SSH key for the agro CLI; the msb provider uses the same sign-in and key). tmux is optional on the driver host.
 metadata:
   mifune:
     category: agro
@@ -153,6 +155,33 @@ AGRO_REF=<branch> setsid nohup bash "$SKILL/scripts/run.sh" exedev checks/docker
 cat run.out
 ```
 
+## Sixth scenario: the msb microVM guest
+
+The `msb` provider creates an agro-console node, installs `msb` on the node, and boots `IMAGE` as an msb microVM with `--init auto`. `references/providers.md` holds the msb setup and the known limits. `IMAGE` must be an `agro-msb` image. Build the image on a host with Docker:
+
+```bash
+docker build --target agro-msb -f .devcontainer/Dockerfile -t ghcr.io/mifunedev/agro:spike-msb-<sha> .
+```
+
+`checks/msb-guest.sh` runs in the guest. `msb_exec` sets `MSB_GUEST=1`, so the check uses microVM mode. Without `MSB_GUEST=1`, the check uses host mode and skips `M03` and `M05`. `MSB_GUEST_PHASE` selects the phase: `pre`, `restart`, or `restore`.
+
+| Row | PASS when |
+|---|---|
+| `M01-dockerd` | `systemctl is-active docker` exits 0 and `docker run --rm hello-world` exits 0. |
+| `M02-pid1` | PID 1 is `systemd`. |
+| `M03-restart-persist` | In phase `restart`, `docker` is active and the tmux session `agro-mx-probe` exists. Phase `pre` creates the session and prints `SKIPPED`. |
+| `M04-idle-memory` | After `MSB_IDLE_WAIT` seconds, `/proc/meminfo` gives the used memory in MiB. |
+| `M05-snapshot-restore` | In phase `restore`, PID 1 is `systemd`. |
+| `M06-image-size` | `IMAGE_SIZE_BYTES` is a byte count. Without `IMAGE_SIZE_BYTES`, the row prints `SKIPPED`. |
+
+`run.sh` runs one phase on one new guest. Start the `pre` phase detached on the driver host:
+
+```bash
+tmux new-session -d -s rs-msb "IMAGE=ghcr.io/mifunedev/agro:spike-msb-<sha> bash $SKILL/scripts/run.sh msb checks/msb-guest.sh"
+```
+
+The `restart` phase needs `msb_restart` after the `pre` phase on the same guest. The `restore` phase needs `msb_snapshot_restore` after the `restart` phase. `.agro/tasks/msb-base-image-spike/evidence/a1-guest-chain.sh` runs the 3 phases in this order.
+
 ## Commands and variables
 
 | Command | Use |
@@ -167,7 +196,7 @@ cat run.out
 | `AGRO_JS_URL` | release | The `agro.js` bundle that the installer installs. |
 | `SANDBOX_IMAGE` | CLI default | The image for `agro sandbox install docker --image=<ref>`. |
 | `AGRO_REF` | default branch | The ref that row `R02` clones into the host workspace. `checks/hermes-home.sh` needs `AGRO_REF` and builds the CLI from that ref. |
-| `IMAGE` | provider default | The OCI image that the VM boots. The `exedev` adapter reads `IMAGE`. |
+| `IMAGE` | provider default | The OCI image that the VM boots. The `exedev` adapter reads `IMAGE`. The `msb` adapter needs `IMAGE` and exits 2 without it. |
 | `KEEP` | `0` | `1` keeps the VM after the run. The log then ends with `== keep <name>`. |
 | `MATRIX_OUT` | `$PWD/matrix-evidence` | The log directory. Per-run state goes to `$MATRIX_OUT/.state`. |
 | `MATRIX_TAG` | `agro-matrix` | The tag on each VM. `<p>_list` counts the VMs with this tag. |
@@ -179,6 +208,14 @@ cat run.out
 | `CONSOLE_SSH_IDENTITY` | none | The private key file for `ssh -i`. The `console` adapter needs this variable. |
 | `CONSOLE_SPEC` | `n4` | The node spec of the `console` adapter. |
 | `CONSOLE_FREE_TIER` | `1` | `0` turns off the console free tier. |
+| `MSB_VERSION` | `v0.7.13` | The `msb` release that the `msb` adapter installs on the node. `msb_create` fails when `msb --version` shows a different release. |
+| `MSB_GUEST_MEMORY` | `2G` | The `--memory` value of each msb guest. |
+| `MSB_GUEST_CPUS` | `2` | The `--cpus` value of each msb guest. |
+| `MSB_SSH_WAIT_TRIES` | `240` | The number of SSH attempts, 5 seconds apart, that `msb_create` makes before the node setup. |
+| `MSB_SYSTEMD_WAIT_TRIES` | `120` | The number of attempts, 5 seconds apart, that the `msb` adapter makes until guest PID 1 is `systemd` and `systemctl is-system-running` prints `running` or `degraded`. |
+| `MSB_GUEST_PHASE` | `pre` | The phase of `checks/msb-guest.sh`: `pre`, `restart`, or `restore`. `msb_exec` forwards the value into the guest. |
+| `MSB_IDLE_WAIT` | `60` | Seconds that `checks/msb-guest.sh` waits before row `M04-idle-memory`. `msb_exec` forwards the value into the guest. |
+| `IMAGE_SIZE_BYTES` | none | The image size in bytes for row `M06-image-size`. `msb_exec` forwards the value into the guest. |
 
 `run.sh` forwards `INSTALL_URL`, `AGRO_JS_URL`, `SANDBOX_IMAGE`, and `AGRO_REF` into the VM and writes the build under test into the log. `run.sh` names each VM `agro-mx-<date>-<time>`. `run.sh` writes each log to `$MATRIX_OUT/<provider>-<check>-<YYYYmmdd-HHMMSS>.log`. `restart-test.sh` writes each log to `$MATRIX_OUT/<provider>-restart-<mode>-<YYYYmmdd-HHMMSS>.log`.
 
@@ -217,4 +254,4 @@ To add a provider, follow "Add an adapter" in `references/providers.md`.
 | File | Holds |
 |---|---|
 | `references/rationale.md` | Why each F row, R row, probe, and driver rule exists, the baseline, and the known failure modes |
-| `references/providers.md` | Setup and manual sweep for `exedev`, `vercel`, and `console` (agro-console), and the steps to add an adapter |
+| `references/providers.md` | Setup and manual sweep for `exedev`, `vercel`, `console` (agro-console), and `msb`, the msb known limits, and the steps to add an adapter |
