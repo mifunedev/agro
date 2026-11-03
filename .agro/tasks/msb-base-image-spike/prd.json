@@ -170,7 +170,34 @@
         ".agro/tasks/msb-base-image-spike/evidence/manual-review.md"
       ],
       "commit": "4db61c047"
+    },
+    {
+      "id": "US-008",
+      "title": "Document the msb provider and agro-msb target",
+      "description": "As an operator, I want the msb provider, the msb-guest check, and the agro-msb build target documented so that I can run the spike path without reading the adapter.",
+      "acceptanceCriteria": [
+        "CHANGELOG.md has one entry under ## [Unreleased] for the msb remote-sandbox provider, the msb-guest check, and the agro-msb Dockerfile target, at most 250 characters, linking https://github.com/mifunedev/agro/pull/1555.",
+        ".agro/skills/remote-sandbox/SKILL.md names the msb provider and the msb-guest check, and its variable table lists MSB_VERSION, MSB_GUEST_MEMORY, MSB_GUEST_CPUS, MSB_SSH_WAIT_TRIES, MSB_SYSTEMD_WAIT_TRIES, MSB_GUEST_PHASE, MSB_IDLE_WAIT, and IMAGE_SIZE_BYTES with their defaults from adapters/msb.sh and checks/msb-guest.sh.",
+        ".agro/skills/remote-sandbox/references/providers.md has an msb section: host prerequisites (KVM, kvm group, ~/.microsandbox not group-writable), the agro-msb image requirement (CMD stays alive under --init auto), and the known limits (snapshot restore loses the systemd handoff; tmux does not survive msb stop/start).",
+        "bash .agro/skills/ste/scripts/ste-check.sh exits 0 on each changed Markdown file."
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-007"
+      ],
+      "files": [
+        "CHANGELOG.md",
+        ".agro/skills/remote-sandbox/SKILL.md",
+        ".agro/skills/remote-sandbox/references/providers.md"
+      ]
     }
   ],
-  "pr": 1555
+  "pr": 1555,
+  "review": {
+    "commit": "5c3bfa245e533637187c5b8389227d53557d7184",
+    "verdict": "pass",
+    "model": "sonnet (fresh context)"
+  }
 }
