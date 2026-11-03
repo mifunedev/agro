@@ -276,7 +276,7 @@ describe("remote-sandbox adapters", () => {
   });
 });
 
-function stubMsb(list = "[]", guests = "", pid1 = ["systemd"], states = ["running"]) {
+function stubMsb(list = "[]", guests = "", pid1 = ["systemd"], states = ["running"], gstate = ["running"]) {
   const bin = stubConsole(list);
   const home = join(bin, "home");
   mkdirSync(home, { recursive: true });
@@ -291,7 +291,8 @@ function stubMsb(list = "[]", guests = "", pid1 = ["systemd"], states = ["runnin
       `printf '%s\\n' "$*" >> "${bin}/msb.calls"`,
       'case "$1" in',
       '  --version) echo "msb 0.7.13" ;;',
-      `  ls) cat "${bin}/guests" ;;`,
+      `  ls) if [ "$#" = 1 ]; then g=$(seq_next gstate); echo "NAME IMAGE STATUS CREATED"; for n in agro-mx-1 agro-mx-1-r; do echo "$n img $g 2026-11-03"; done; else cat "${bin}/guests"; fi ;;`,
+      '  logs) echo "runtime log tail" ;;',
       '  run) echo "${@: -1}" ;;',
       '  exec) shift 3; "$@" ;;',
       "esac",
@@ -317,11 +318,12 @@ function stubMsb(list = "[]", guests = "", pid1 = ["systemd"], states = ["runnin
   }
   writeFileSync(join(bin, "pid1"), `${pid1.join("\n")}\n`);
   writeFileSync(join(bin, "states"), `${states.join("\n")}\n`);
+  writeFileSync(join(bin, "gstate"), `${gstate.join("\n")}\n`);
   return bin;
 }
 
 const MSB_ENV =
-  "export IMAGE=ghcr.io/mifunedev/agro:spike-msb-abc; unset MSB_VERSION MSB_SSH_WAIT_TRIES MSB_SYSTEMD_WAIT_TRIES MSB_GUEST MSB_GUEST_PHASE MSB_IDLE_WAIT IMAGE_SIZE_BYTES;";
+  "export IMAGE=ghcr.io/mifunedev/agro:spike-msb-abc; unset MSB_VERSION MSB_SSH_WAIT_TRIES MSB_SYSTEMD_WAIT_TRIES MSB_GUEST_CPUS MSB_GUEST_MEMORY MSB_GUEST MSB_GUEST_PHASE MSB_IDLE_WAIT IMAGE_SIZE_BYTES;";
 
 function withMsb(script: string, bin: string) {
   return withConsole(`${MSB_ENV} STATE_DIR="${bin}/state"; mkdir -p "$STATE_DIR";\n${script}`, bin);
@@ -408,8 +410,14 @@ describe("remote-sandbox msb adapter", () => {
     const bin = stubMsb();
     expect(withMsb("msb_create agro-mx-1", bin).code).toBe(0);
     expect(calls(bin, "msb")).toContain(
-      "run --detach --name agro-mx-1 --init auto --root-disk flat:40G ghcr.io/mifunedev/agro:spike-msb-abc\n",
+      "run --detach --name agro-mx-1 --cpus 2 --memory 2G --init auto --root-disk flat:40G ghcr.io/mifunedev/agro:spike-msb-abc\n",
     );
+  });
+
+  it("msb_create honors MSB_GUEST_CPUS and MSB_GUEST_MEMORY", () => {
+    const bin = stubMsb();
+    expect(withMsb("MSB_GUEST_CPUS=4 MSB_GUEST_MEMORY=3G msb_create agro-mx-1", bin).code).toBe(0);
+    expect(calls(bin, "msb")).toContain("run --detach --name agro-mx-1 --cpus 4 --memory 3G --init auto ");
   });
 
   it("msb_create fails when the host never answers ssh and keeps the node for destroy", () => {
@@ -494,7 +502,7 @@ describe("remote-sandbox msb adapter", () => {
   it("msb_restart stops and then starts the stored guest", () => {
     const bin = stubMsb();
     expect(withMsb("msb_create agro-mx-1 >/dev/null && msb_restart agro-mx-1", bin).code).toBe(0);
-    expect(calls(bin, "msb")).toContain("stop agro-mx-1\nstart agro-mx-1\nexec agro-mx-1 -- ");
+    expect(calls(bin, "msb")).toContain("stop agro-mx-1\nstart agro-mx-1\nls\nexec agro-mx-1 -- ");
   });
 
   it("msb_destroy removes the guest, then deletes the node", () => {
@@ -608,7 +616,7 @@ describe("remote-sandbox msb adapter", () => {
     expect(lines.slice(0, 5)).toEqual([
       "stop agro-mx-1",
       "snap create ready --sandbox agro-mx-1",
-      "snap restore agro-mx-1:ready --name agro-mx-1-r",
+      "snap restore agro-mx-1:ready --name agro-mx-1-r --cpus 2 --memory 2G",
       "ls --running --quiet",
       "start agro-mx-1-r",
     ]);
@@ -640,5 +648,37 @@ describe("remote-sandbox msb adapter", () => {
     expect(result.code).toBe(0);
     expect(calls(bin, "msb").trim().split("\n").at(-1)).toBe("rm --force agro-mx-1-r agro-mx-1");
     expect(withLib(`grep -c "^node delete node-1 --yes$" "${bin}/agro.calls"`).stdout).toBe("1\n");
+  });
+
+  it("msb_snapshot_restore keeps MSB_GUEST_CPUS and MSB_GUEST_MEMORY on the restored guest", () => {
+    const bin = stubMsb();
+    expect(withMsb("export MSB_GUEST_CPUS=3 MSB_GUEST_MEMORY=1536M; msb_create agro-mx-1 >/dev/null && msb_snapshot_restore agro-mx-1", bin).code).toBe(0);
+    expect(calls(bin, "msb")).toContain("snap restore agro-mx-1:ready --name agro-mx-1-r --cpus 3 --memory 1536M\n");
+  });
+
+  it("msb_wait_systemd checks the guest state before each exec probe", () => {
+    const bin = stubMsb("[]", "", ["init.krun", "systemd"], ["offline", "running"]);
+    expect(withMsb("msb_create agro-mx-1", bin).code).toBe(0);
+    const after = calls(bin, "msb").split("run --detach")[1].trim().split("\n").slice(1).map((line) => line.split(" ")[0]);
+    expect(after).toEqual(["ls", "exec", "ls", "exec"]);
+  });
+
+  it.each(["stopped", "draining"])("msb_wait_systemd fails fast on a %s guest without another exec", (state) => {
+    const bin = stubMsb("[]", "", ["init.krun"], ["offline"], ["running", state]);
+    const result = withMsb('msb_create agro-mx-1; echo "rc=$?"', bin);
+    expect(result.stdout).toContain("rc=1");
+    expect(result.stderr).toContain(`msb: agro-mx-1 state=${state} before systemd handoff`);
+    expect(result.stderr).toContain("runtime log tail");
+    const after = calls(bin, "msb").split("run --detach")[1].trim().split("\n");
+    expect(after.filter((line) => line.startsWith("exec "))).toHaveLength(1);
+    expect(after.at(-1)).toBe("logs agro-mx-1 --source system --tail 20");
+    expect(calls(bin, "sleep")).toBe("5\n");
+  });
+
+  it("msb_wait_systemd fails fast when the guest is already stopped", () => {
+    const bin = stubMsb("[]", "", ["systemd"], ["running"], ["stopped"]);
+    const result = withMsb('echo "node-1 sandbox@203.0.113.7 agro-mx-1" > "$STATE_DIR/msb-agro-mx-1"; msb_wait_systemd agro-mx-1', bin);
+    expect(result.code).toBe(1);
+    expect(calls(bin, "msb")).not.toContain("exec ");
   });
 });
