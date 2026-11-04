@@ -207,8 +207,8 @@
         "The branch has no merge. The operator decides the merge after US-011."
       ],
       "priority": 10,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "agro-console branch task/1557-nprime-pause-notice @ 20b522ca (local, not pushed). C1 reasoned: US-009 picked N′+A, so the prototype adds features.pauseScopeNotice (default false); features.singleWarmPool and features.volumePause apply only to H/V. C2, C3 not applicable (H, V not picked). C4 executed: with the flag on, the Pause dialog and paused snapshot card show the exact notice text; sandbox n4 pool 1/1 is enabled in the AGRO_CONSOLE_CONFIG override (config.yaml pools stay 0/0, matching an existing test); advisor reran the 3 web test files → 36 passed. C5 executed: advisor reran pnpm type-check exit 0; shared tests incl golden cloud-init 786 pass 0 fail; web suite 1 failure \"adds no Stripe client…\" (5 s timeout) also fails on development d4ae1b17 (worker ran both), not caused by this branch. C6 executed: no push, no PR, no merge.",
       "dependsOn": [
         "US-009"
       ],
