@@ -58,8 +58,8 @@
         "`verdict.py` prints the E1 result. H passes when the H agro median is at most 32 s and the H sandbox median is at most 20 s. Each p90 must be at most 1.5 times its bar, and no run may fail."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "C1 executed: e1-seq.sh in tmux wppp-e1 ran N′ agro, H agro, N′ sandbox, H sandbox interleaved 04:32–05:46Z until 10 valid each (42 runs, 0 invalid, 0 failed). C2 executed: every N′ claim had pooled_at set. C3 executed: H agro claimed a warm sandbox node and ran arms/h/after-claim.sh (archive sha 899db69f…); clock from claim request. 2 early H agro runs dropped (hook revision for DRIVER_DOCKER), logs kept. C4 executed: usable probe = workspace list harness + code-server (curl -L) 200 + T3 200; sandbox docker info. C5 executed: E3 PASS, parity holds in all 10 H agro runs (5 docker on, 5 off, claim_ack). C6 executed: python3 -I verdict.py → E1 FAIL H: h agro median 48.8 p90 57.5 (bar 32); h sandbox 7.4/9.2 PASS; reference N′ agro 17.9/22.6, N′ sandbox 8.3/9.5. agro node list → 0 live.",
       "dependsOn": [
         "US-001",
         "US-002"
