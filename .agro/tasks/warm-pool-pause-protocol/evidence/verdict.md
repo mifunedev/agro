@@ -31,13 +31,13 @@ The H agro hook takes about 42 s after the claim. The fetch of the 364 MB agro-l
 
 The plan rule: V becomes the default only when E5 and E6 pass and E7 is under the threshold. E6 fails, so A stays the default.
 
-The two failed V runs have the same cause. The OVH API returned `500 Internal server error` on the volume attach, in 2 of 31 attach calls. Provider errors are not on the list of invalid runs, so the advisor counts both runs as failures.
+The two failed V runs have the same cause. The OVH API returned `500 Internal server error` on the restore attach in 2 V runs. Provider errors are not on the list of invalid runs, so the advisor counts both runs as failures.
 
 V restores in about 28 s at each size, and A restores in 47 s to 336 s. V is faster than A at each size. V does not meet the fixed bar at 4g, and the V attach step does not recover from a provider error. V keeps Docker state, and A does not.
 
 ## Deviations
 
-- A 4g has 7 valid runs and V 4g has 8 valid runs, not 10. The local web console exited 5 times during the campaign. The last 3 A 4g attempts each ended in a console outage. The outcome does not depend on these runs: A has no bar, and V already fails on small and 1g.
+- A 4g has 7 valid runs and V 4g has 8 valid runs, not 10. The local web console exited 5 times during the E6 runs. The last 3 A 4g attempts each ended in a console outage. The outcome does not depend on these runs: A has no bar, and V already fails on small and 1g.
 - The H hook changed once, at the start of the E1 runs, to honor the Docker flag. `runs/` keeps the 2 H agro runs with the earlier hook, and `verdict.py` drops them as `hook revision`.
 - The V hook added a retry for OVH 5xx errors after the first failed V run. The retry did not prevent the second failure.
 - The scope files are `scope-A.json` and `scope-V.json`, with `.md` tables beside them.
