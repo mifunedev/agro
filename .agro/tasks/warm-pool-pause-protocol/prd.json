@@ -79,8 +79,8 @@
         "E2 passes for H when the H diff adds no entry beyond the noise floor. E2 also needs `grep -rl agro` to find no agro file on the H node beyond the noise floor."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "C1 executed: residue/audit.sh collected dpkg-query, getent passwd/group, systemctl list-unit-files, find+sha256sum over the 5 roots on cold 82ce9037 (pooled_at null), N′ warm aedd66e3, H warm d1e54b70. C2 executed: normalization strips host keys, machine-id, instance-id, logs, tokens (summary.json normalization). C3 executed: N′ vs cold noise floor = 14 entries. C4 executed: verdict.py → E2 PASS (H extra entries 0, H agro files beyond floor 0). H and N′ sandbox rows share pool_cloud_init_sha256 f4c99309…, so both designs use the same sandbox build today (advisor checked equality: True).",
       "dependsOn": [
         "US-001"
       ],
