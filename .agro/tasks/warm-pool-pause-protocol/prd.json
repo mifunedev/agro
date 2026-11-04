@@ -252,8 +252,8 @@
         "The page prose passes `bash .agro/skills/ste/scripts/ste-check.sh` after the advisor strips tags, code, and diagrams."
       ],
       "priority": 12,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "C1 executed: PR body What was built states Warm pools N′ (E1, H agro median 48.8 p90 57.5) and Pause default A (E6, V medians 28.0/28.2/30.0, p90 30.4/34.6/34.6, 2 failures) in one sentence each. C2 executed: Manual review follows the user-journey shape; 8 screenshots linked by blob/fe5c4b06577752bd14c6c7f5fd86afb8e4693ef2/...?raw=true, each with a Callouts line. C3 executed: manual-review-check.sh pr-body.md exit 0. C4 executed: index.html (spike worktree) shows both outcomes, the E1–E7 verdict table, and links PR #1558; curl localhost:4500/index.html finds 3 PR #1558 references. C5 executed: tag/code/script-stripped page prose passes ste-check exit 0.",
       "dependsOn": [
         "US-011"
       ],
