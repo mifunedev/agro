@@ -99,8 +99,8 @@
         "E4 favors H when the H ongoing total is lower than the N′ ongoing total."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "C1 reasoned: maintenance.md lists builds, drains, cells with file:line for N′ and H; advisor spot-checked node-pool.service.ts:139-146 (version checks apply to every profile). C2 reasoned: profile-branch sites, fixtures, installer paths, release-bump files (11/11) listed. C3 reasoned: H add/remove sites per file (index.ts 13R/5A, cloud-init-base.ts 1R/8A, node-pool.service.ts 16R/0A). C4 executed: python3 -I parse of maintenance.json → 46 21 True (exit 0); E4 favors H (21 < 46). ste-check maintenance.md exit 0. Evidence at agro-console d4ae1b17.",
       "dependsOn": [],
       "files": [
         ".agro/tasks/warm-pool-pause-protocol/evidence/maintenance.md"
@@ -262,5 +262,6 @@
         ".agro/tasks/msb-base-image-spike/index.html"
       ]
     }
-  ]
+  ],
+  "pr": 1558
 }
