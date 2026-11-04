@@ -17,8 +17,8 @@
         "`python3 -I evidence/verdict.py --fixture evidence/fixtures/` prints the expected verdict for a pass fixture and for a fail fixture."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor reran on task worktree. C1 executed: bash -n driver.sh exit 0; worker dead-URL run wrote one json+log per sample. C2 executed (worker): dead console URL → exit 3 after DRIVER_PREFLIGHT_WAIT_S; default 600 s (reasoned). C3 executed (worker): node_events SQL on baseline node 6af0c785 gave claim start +2.95 s, ack +11.7 s; 0.5 s SSH loop reasoned. C4 reasoned: pooled_at null, console unreachable (2 s monitor, executed), version != PIN_AGRO_VERSION all mark invalid. C5 executed: python3 -I verdict.py prints 7 E lines exit 0 (E4 FAVORS H). C6 executed: bash fixtures/test.sh → ALL FIXTURE TESTS PASS; pass→E1 PASS, fail→p90 50.5 FAIL, invalid→dropped=2 PASS. Not yet run end to end on a node (first live use in US-003). shellcheck unavailable.",
       "dependsOn": [],
       "files": [
         ".agro/tasks/warm-pool-pause-protocol/evidence/driver.sh",
