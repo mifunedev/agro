@@ -1,0 +1,9 @@
+{
+ "home": "kept",
+ "git_workspace": "kept",
+ "filler": "kept",
+ "docker_images": "lost",
+ "containers": "lost",
+ "volumes": "lost",
+ "apt_package": "lost"
+}

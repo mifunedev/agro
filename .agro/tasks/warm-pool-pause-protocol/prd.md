@@ -237,3 +237,10 @@ None. The operator answered on 2026-11-04. The E7 threshold is $2 for each pause
 - [ ] The PR body and the status page state the final result.
 
 ## Lessons
+
+- The H agro claim misses the 32 s bar by a wide margin. Evidence: E1 H agro median 48.8 s, p90 57.5 s. The hook spends about 14 s on the R2 fetch of the 364 MB archive. The apt install takes about 7 s. Outcome: dropped, because the plan rule makes N′ final and the operator owns any new H design.
+- The local dev web process exits about every 2 hours, often during a pause. Evidence: `evidence/web-exits.txt` lists 6 exits with rc=0; a 4 GB pause held `pausing` until the web restart; postgres reset its backends once at 15:49Z. Outcome: proposed issue in mifunedev/agro-console for the operator to approve, because a pause that hangs the web process is a correctness risk outside this PR.
+- The OVH volume attach returned HTTP 500 on 2 of 31 calls. Evidence: runs `e6-v-small-20261104T080527Z` and `e6-v-1g-20261104T130547Z`. Outcome: dropped from this PR; a production V design needs a retry and an idempotent attach, and the operator decides whether V comes back.
+- The gateway key pin uses a fixed `PROVISIONER_EGRESS_IP`, so a host egress change breaks the editor with a 502. Evidence: `evidence/journey/step-1-editor-502.png` and the node sshd log. Outcome: proposed issue in mifunedev/agro-console for the operator to approve, because a stale pin silently breaks browser access.
+- The sandbox pool drains on every agro release because the version check applies to both profiles. Evidence: `node-pool.service.ts:140`, `evidence/maintenance.md`. Outcome: proposed issue in mifunedev/agro-console for the operator to approve; a profile guard lowers the N′ ongoing count from 46 to 36.
+- A worker replaced a denied `scp` with `ssh ... cat`, which reached the same effect as a guarded command. Evidence: US-002 notes. Outcome: dropped; the advisor reports it to the operator, and the guard owner decides whether the pattern is a false positive.

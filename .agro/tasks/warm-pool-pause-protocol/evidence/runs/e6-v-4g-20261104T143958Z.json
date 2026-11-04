@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "experiment": "e6",
+  "arm": "v",
+  "profile": "agro",
+  "size": "4g",
+  "label": "seq-c1",
+  "docker": true,
+  "node_id": "ddb346a7-b5b1-41ac-988e-1fbacc02dd6b",
+  "pooled_at": "2026-11-04 14:43:40.295+00",
+  "t_request": 1793803494833,
+  "claim_start": 1793803496783,
+  "ack": 1793803508051,
+  "ssh_s": 12.120,
+  "usable_s": 34.597,
+  "valid": true,
+  "invalid_reason": null,
+  "failed": false,
+  "failure_reason": null,
+  "agro_version": "0.28.0",
+  "pin_agro_version": "0.28.0",
+  "image": {
+    "image_id": "40c82cd6-c9d0-466a-a1f8-21d0057a9afd",
+    "image_key": "ubuntu-24-04-lts",
+    "pool_cloud_init_sha256": "938089e9dcbea181f466f2b19ee973553f82731e2677c00e4fc05a33ba3030e2"
+  },
+  "archive_sha256": null,
+  "console_commit": "d4ae1b17399d66fd2e7b26e00ee0c51a58e0896e",
+  "usable_components": {
+    "ws": "1",
+    "cs": "200",
+    "t3": "200"
+  },
+  "parity": {
+    "usable": true,
+    "claim_ack": true,
+    "docker_on": true,
+    "docker_off": null
+  },
+  "hook": {
+    "setup": {
+      "volume_id": "f46852d8-84b9-4063-96ca-43df4ead8493",
+      "name": "wppp-20261104t144035z-f2dff9b3",
+      "size_gb": 10,
+      "type": "high-speed",
+      "region": "US-EAST-VA-1",
+      "sizing": "used 1.18 GiB + filler 4 GiB + headroom 2 GiB, OVH minimum 10 GiB",
+      "measure": {
+        "home_bytes": 1271681824,
+        "docker_root": "/var/lib/docker",
+        "docker_bytes": 229437,
+        "containerd_bytes": 65572,
+        "root_avail_bytes": 46857519104
+      },
+      "remote": {
+        "device": "/dev/sdb",
+        "docker_root": "/var/lib/docker",
+        "containerd_on_volume": true,
+        "volume_used_bytes": 1319612416,
+        "device_s": 0.012,
+        "copy_s": 8.277,
+        "total_s": 10.822
+      },
+      "spend": {
+        "existing_usd": 0.03696000000000003,
+        "new_usd": 0.00264,
+        "projected_usd": 0.039600000000000024,
+        "cap_usd": 10
+      },
+      "attach_api_s": 13.28,
+      "pre_attach_s": 9.743,
+      "setup_s": 35.503
+    },
+    "pause": {
+      "volume_id": "f46852d8-84b9-4063-96ca-43df4ead8493",
+      "volume_status": "available",
+      "remote": {
+        "stop_sync_s": 14.719,
+        "umount_s": 0.635
+      },
+      "unmount_s": 15.907,
+      "detach_s": 6.313,
+      "pause_hook_s": 22.220
+    },
+    "restore": {
+      "volume_id": "f46852d8-84b9-4063-96ca-43df4ead8493",
+      "region": "US-EAST-VA-1",
+      "instance": "ab01887b-01c0-452f-9078-7302769274bb",
+      "attach_mount_s": 10.248,
+      "attach_api_s": 14.418,
+      "device_s": 10.114,
+      "docker_ready_s": 12.359,
+      "restore_hook_s": 14.514,
+      "remote_clock_mount_s": 9.665,
+      "remote": {
+        "device": "/dev/sdb",
+        "docker_root": "/var/lib/docker",
+        "t_remote_start": 1793803514132,
+        "t_device": 1793803523663,
+        "t_mounted": 1793803523797,
+        "t_docker": 1793803525908,
+        "docker_stop_s": 0.188
+      }
+    },
+    "attach_mount_s": 10.248
+  },
+  "scope_before": {
+    "home": "kept",
+    "git_workspace": "kept",
+    "filler": "kept",
+    "docker_images": "kept",
+    "containers": "kept",
+    "volumes": "kept",
+    "apt_package": "kept"
+  },
+  "scope": {
+    "home": "kept",
+    "git_workspace": "kept",
+    "filler": "kept",
+    "docker_images": "kept",
+    "containers": "kept",
+    "volumes": "kept",
+    "apt_package": "lost"
+  },
+  "cleanup": {
+    "deleted": true,
+    "live_after": 0
+  },
+  "started_at": "2026-11-04T14:39:58.329Z",
+  "finished_at": "2026-11-04T14:46:10.651Z",
+  "v_hook_sha256": "e56ec356c721741244fd5ee9cb183292140f96c39d684735bd232ee8fa573f47",
+  "seed": {
+    "size": "4g",
+    "filler_mib": 4096,
+    "filler_sha256": "ab051253ffd2dc667c29c1e7197ea1e7a1e3612fb660e4059caed4a2ac7951bf",
+    "commit": "905ce5c61c6f56d7caeaf44651894596361f69ad"
+  },
+  "pause_request": 1793803462775,
+  "paused_s": 29.836,
+  "pause_to_usable_s": 66.655,
+  "web_exits": []
+}
