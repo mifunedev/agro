@@ -231,8 +231,8 @@
         "The journey deletes each node that the journey created. `agro node list --json` shows 0 live nodes at the end."
       ],
       "priority": 11,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "C1 executed: console on :3006 ran agro-console task/1557-nprime-pause-notice @20b522ca with features.pauseScopeNotice true (journey.yaml). C2 executed: agro node wp-journey-agro-2, Create→running 31.9 s, Create→editor open 85.4 s (step-1-editor-open.png). First attempt editor 502 (gateway key pinned to stale PROVISIONER_EGRESS_IP 40.160.8.140); advisor restarted the provisioner with 40.160.94.106 and retired the old-pinned pool node; rerun passed. C3 executed: sandbox node running in 14.9 s; docker info exit 0; command -v agro exit 1. C4 executed: container jc + volume jv started; Pause dialog showed the notice; Resume→running 60.5 s; jc, jv, busybox image lost; home file kept (A behavior). C5 reasoned: US-009 picked N′, so the H one-pool view does not apply; DB shows agro and sandbox n4 pools both pooled. C6 executed: 8 annotated screenshots in journey/, each with a Callouts line (advisor viewed step-3a and step-1-editor-open). C7 executed: agent-browser session wppp-journey-88d5ded922fd. C8 executed: advisor ran agro node list → 0 live. Order deviation: Step 1, 3, then 2 (one live node at a time).",
       "dependsOn": [
         "US-010"
       ],
