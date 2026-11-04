@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "experiment": "e1",
+  "arm": "h",
+  "profile": "agro",
+  "size": null,
+  "label": "fixture",
+  "docker": false,
+  "node_id": "00000000-0000-0000-0000-000000000000",
+  "pooled_at": "2026-11-04T10:00:00Z",
+  "t_request": 1793804200000,
+  "claim_start": 1793804201400,
+  "ack": 1793804209000,
+  "ssh_s": 6.3,
+  "usable_s": 48.5,
+  "valid": true,
+  "invalid_reason": null,
+  "failed": false,
+  "failure_reason": null,
+  "agro_version": "0.28.0",
+  "pin_agro_version": "0.28.0",
+  "parity": {
+    "usable": true,
+    "claim_ack": true,
+    "docker_on": null,
+    "docker_off": true
+  },
+  "hook": {
+    "after_claim": {
+      "archive_sha256": "fixture",
+      "docker": "off"
+    }
+  },
+  "hook_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "levers": "stream:0,apt:1,archive:A1"
+}
