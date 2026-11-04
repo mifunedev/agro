@@ -117,8 +117,8 @@
         "The driver runs 10 pause and restore runs at each workspace size: small, 1 GB, and 4 GB. `verdict.py` prints the median and p90 from pause request to usable for each size."
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "C1 executed: lib/seed.sh seeds git workspace, 2 Docker images, 1 running container with named volume, 1 apt package, filler 0/1/4 GiB. C2 executed: pause via POST /api/nodes/<id>/pause (202), restore via /resume onto a different pool VM (driver checks a different OVH instance; vm_swapped event). C3 executed: scope-A.md/json: home, git_workspace, filler kept; docker_images, containers, volumes, apt_package lost. C4 PARTIAL, deviation: interleaved with V 07:09–16:03Z; verdict.py resume→usable A small n=10 median 46.8 p90 53.8; 1g n=10 120.0/131.1; 4g n=7 335.9/372.2. A 4g stopped at n=7: 5 A 4g attempts were invalid, the last 3 by console outages (dev web exited during the 4 GB pause; postgres backend crash 15:49Z). A has no bar, so the E6 outcome does not depend on the missing 3 runs. Recorded in Where it diverged.",
       "dependsOn": [
         "US-001"
       ],
@@ -140,8 +140,8 @@
         "After the last run, the OVH volume list shows no volume that the runs created."
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "C1 executed: v-spend.json: 31 volumes, spend $0.0409 (cap $10), 0 undeleted. C2 executed: setup.sh puts /home/sandbox + Docker root + containerd on one 10 GiB high-speed volume in US-EAST-VA-1. C3 executed: pause.sh detaches and keeps the volume; driver deletes the node; restore.sh attaches to a new warm pool node, mounts, starts Docker. C4 executed: scope-V.md/json: all kept except apt_package. C5 PARTIAL, deviation: small n=10 median 28.0 p90 30.4 failures 1 (OVH 500 on attach, no retry then; kept as an honest failure); 1g n=10 28.2/34.6 failures 1; 4g n=8 30.0/34.6; attach→mount median 9.5–9.9 s. V 4g stopped at n=8 when the sequencer stopped for A 4g outages; E6 V already fails on small and 1g, so 2 more runs cannot change it. C6 executed: arms/v/list.sh → run_volumes 0.",
       "dependsOn": [
         "US-001"
       ],
