@@ -18,8 +18,8 @@
         "`bash evidence/fixtures/test.sh` passes, with a new fixture for `--steps`."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Commit 66870f54 (worker 1128f3ad, cherry-picked). (1) executed: evidence/ holds driver.sh, e1-seq.sh, lib/, verdict.py, fixtures/, arms/h/after-claim.sh; README.md records source commit aadd3ee3 and per-file sha256. (2) executed: switches parsed at after-claim.sh:11-21; unset path runs fetch, verify, extract, install, docker, apps-started, apps-up (worker local test). (3) executed locally by worker with stubbed fetch: sha/size mismatch gives step=verify result=fail and leaves nothing active (stage dir, hard-link into place after checks). (4) reasoned: background apt started before fetch, waited in install step, failure fails run. (5) reasoned: dpkg check skips apt with apt=skipped apt_ms=0. (6) executed by advisor: python3 -I verdict.py --steps --fixture fixtures/steps prints a table per lever set. (7) executed by advisor: bash fixtures/test.sh exit 0 (ALL FIXTURE TESTS PASS). shellcheck not installed; sh -n passes.",
       "dependsOn": [],
       "files": [
         ".agro/tasks/h-claim-performance-spike/evidence/driver.sh",
@@ -28,7 +28,8 @@
         ".agro/tasks/h-claim-performance-spike/evidence/fixtures/",
         ".agro/tasks/h-claim-performance-spike/evidence/arms/h/after-claim.sh",
         ".agro/tasks/h-claim-performance-spike/evidence/README.md"
-      ]
+      ],
+      "commit": "66870f541"
     },
     {
       "id": "US-002",
@@ -42,8 +43,8 @@
         "Both variants sit in the R2 bucket `agro-console-beta`, under a prefix for this task. A presigned URL for each variant sits in a 0600 file in the session scratchpad. No log prints a URL."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor-run live. (1) executed: claimed pooled agro n4 2539c179 as h-cut-1 (pooled_at 22:13:30Z), ran l2a/cut-variants.sh (output l2a/cut-output.txt), then agro node delete 2539c179 (deleted). (2) executed: A0 uses the same 16 include and 2 exclude paths as warm-pool-pause-protocol l2a; per-root entry counts match except .t3 (T3 0.1.7) - archives.md. (3) executed: archives.md lists 7 removed patterns with byte sizes. (4) executed: archives.json records bytes, sha256, zstd level, entries, localExtractMs per variant. (5) executed: r2.mjs list shows 2 objects under experiments/h-claim-performance-spike/; GET URLs in 0600 scratchpad files h-url-A0/h-url-A1; PUT URL files deleted after upload; grep finds no signed URL in evidence.",
       "dependsOn": [],
       "files": [
         ".agro/tasks/h-claim-performance-spike/evidence/l2a/",
