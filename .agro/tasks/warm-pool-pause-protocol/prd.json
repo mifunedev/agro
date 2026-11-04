@@ -263,5 +263,10 @@
       ]
     }
   ],
-  "pr": 1558
+  "pr": 1558,
+  "review": {
+    "commit": "55173e4126233130426d2375bb2cba6672f95600",
+    "verdict": "pass",
+    "model": "sonnet (fresh context)"
+  }
 }
