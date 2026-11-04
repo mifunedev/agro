@@ -160,8 +160,8 @@
         "E7 passes for V when the V cost of one paused node for each month is at most $2."
       ],
       "priority": 8,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "C1 executed: cost.md gives OVH high-speed $0.000132/GiB-h (catalog URL) and R2 $0.015/GB-month (developers.cloudflare.com/r2/pricing), each with a source URL. C2 executed: 30-day cost of one paused node: V $0.9504 at 1g and 4g (10 GiB minimum volume); A $0.03 at 1g, $0.075 at 4g (median archive 1.46 GB / 4.68 GB from node_recovery_points). C3 executed: verdict.py → E7 PASS (V $0.95 ≤ $2.00). ste-check cost.md exit 0.",
       "dependsOn": [
         "US-006",
         "US-007"
@@ -180,8 +180,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/tasks/warm-pool-pause-protocol/evidence/verdict.md` exits 0."
       ],
       "priority": 9,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "C1 executed: verdict.md holds the verdict.py E1–E7 lines (7 lines appended verbatim) and states Warm pools: N′ and Pause default: A. C2 executed: each outcome names its deciding experiment (E1 for warm pools, E6 for pause). C3 executed: ste-check verdict.md exit 0.",
       "dependsOn": [
         "US-003",
         "US-004",
