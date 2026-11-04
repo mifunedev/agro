@@ -88,7 +88,7 @@
       ],
       "priority": 3,
       "passes": true,
-      "notes": "agro-console commit 4fcd6073 on task/1559-h-sandbox-pool-packages (local, not pushed). (1) executed: git log origin/development..HEAD shows 1 commit on the branch. (2) executed: worker test 'a sandbox pool build installs gh and libatomic1 only with features.sandboxPoolPackages on' plus sandbox.pool golden digest pass; flag read in sandboxLayer() via loadConsoleConfig(). (3) executed: red run exit 1 (2 fail) before change, scratchpad red.txt; green after. (4) executed by advisor: packages/shared node --test src/__tests__/*.test.ts 788 tests, 0 fail; pnpm type-check exit 0. (5) executed: git branch -r --contains HEAD empty; no push, no merge.",
+      "notes": "agro-console commit 4fcd6073 on task/1559-h-sandbox-pool-packages (local, not pushed). (1) executed: git log origin/development..HEAD shows 1 commit on the branch. (2) executed: worker test 'a sandbox pool build installs gh and libatomic1 only with features.sandboxPoolPackages on' plus sandbox.pool golden digest pass; flag read in sandboxLayer() via loadConsoleConfig(). (3) executed: red run exit 1 (2 fail) before change, scratchpad red.txt; green after. (4) executed by advisor: packages/shared node --test src/__tests__/*.test.ts 788 tests, 0 fail; pnpm type-check exit 0. (5) executed: no merge. Pushed on operator instruction 2026-11-04 as draft PR mifunedev/agro-console#680 (deviation from the no-push criterion; record in Where it diverged).",
       "dependsOn": [],
       "files": [
         "projects/mifunedev/agro-console (branch task/1559-h-sandbox-pool-packages)"
