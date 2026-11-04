@@ -86,12 +86,13 @@
         "The branch has no push and no merge. The operator decides the merge."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "agro-console commit 4fcd6073 on task/1559-h-sandbox-pool-packages (local, not pushed). (1) executed: git log origin/development..HEAD shows 1 commit on the branch. (2) executed: worker test 'a sandbox pool build installs gh and libatomic1 only with features.sandboxPoolPackages on' plus sandbox.pool golden digest pass; flag read in sandboxLayer() via loadConsoleConfig(). (3) executed: red run exit 1 (2 fail) before change, scratchpad red.txt; green after. (4) executed by advisor: packages/shared node --test src/__tests__/*.test.ts 788 tests, 0 fail; pnpm type-check exit 0. (5) executed: git branch -r --contains HEAD empty; no push, no merge.",
       "dependsOn": [],
       "files": [
         "projects/mifunedev/agro-console (branch task/1559-h-sandbox-pool-packages)"
-      ]
+      ],
+      "commit": "agro-console:4fcd60735851c80b3af0293fd5e21194af0e19de"
     },
     {
       "id": "US-005",
