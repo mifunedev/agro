@@ -80,6 +80,8 @@ Stream convention:
 
 The columns sum to `usable_s`. The report keeps only `e1 h agro` runs that pass the drop rules and did not fail. The hook revision rule drops a run whose `hook_sha256` differs from the current hook file. The rule ignores the lever set. The report groups runs by `levers` in the run record, then by `levers` in the hook result, then by `levers=` in the log `start` line, else by `none`.
 
+Without `--fixture`, `--steps` reports each run folder that exists, in this order: `runs-apt-at-claim`, `runs-attribution`, `runs`. Each table header and each `dropped` or `failed` line starts with the folder name, so equal lever sets in different folders stay separate. `--base DIR` reads the folders from `DIR` instead of `evidence/`. With `--fixture DIR`, `--steps` reads only `DIR`. The E1 to E7 report reads only `runs/`.
+
 ## Tests
 
-`bash fixtures/test.sh` checks the earlier fixtures, `fixtures/steps/` (two lever sets and one run of an old hook revision), and the local part of the hook against `fixtures/hook/` (a fake `ssh` and an `archives.json` copy for tests only).
+`bash fixtures/test.sh` checks the earlier fixtures, `fixtures/steps/` (two lever sets and one run of an old hook revision), `fixtures/multi/` (the `--base` folder report with `runs/` and `runs-attribution/`), and the local part of the hook against `fixtures/hook/` (a fake `ssh` and an `archives.json` copy for tests only).

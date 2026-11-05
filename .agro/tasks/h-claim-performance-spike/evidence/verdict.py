@@ -21,6 +21,7 @@ STEP_ORDER = ("bind", "ssh", "pre_hook", "handoff", "fetch", "verify", "extract"
 REMOTE_STEP = re.compile(r"^(\S+) remote step=(\S+) elapsed_ms=(\d+) result=(\S+)")
 LOCAL_STAMP = re.compile(r"^(\S+) local (start|url-handoff ok|done exit=0)")
 LEVERS_FIELD = re.compile(r"levers=(\S+)")
+STEP_FOLDERS = ("runs-apt-at-claim", "runs-attribution", "runs")
 
 
 def nearest_rank(values, pct):
@@ -330,25 +331,27 @@ def step_durations(run, lines):
     return steps
 
 
-def steps_report(runs, hook_sha):
+def steps_report(runs, hook_sha, folder=None):
+    where = f"{folder}/" if folder else ""
+    head = f"{folder} " if folder else ""
     groups = {}
     for run in runs:
         if run.get("experiment") != "e1" or run.get("arm") != "h" or run.get("profile") != "agro":
             continue
         reason = drop_reason(run, hook_sha)
         if reason:
-            print(f"dropped {run['_file']}: {reason}")
+            print(f"dropped {where}{run['_file']}: {reason}")
             continue
         if run.get("failed"):
-            print(f"failed {run['_file']}: {run.get('failure_reason')}")
+            print(f"failed {where}{run['_file']}: {run.get('failure_reason')}")
             continue
         lines = read_log(run)
         groups.setdefault(lever_set(run, lines), []).append((run, step_durations(run, lines)))
     if not groups:
-        print("steps: no kept e1 h agro runs")
+        print(f"{head}steps: no kept e1 h agro runs")
     for levers, members in sorted(groups.items()):
         usable = [r["usable_s"] for r, _ in members]
-        print(f"levers {levers}: n={len(members)} usable_median={fmt(statistics.median(usable))} "
+        print(f"{head}levers {levers}: n={len(members)} usable_median={fmt(statistics.median(usable))} "
               f"usable_p90={fmt(nearest_rank(usable, 90))}")
         print(f"  {'step':<13} {'median_s':>8} {'n':>3}")
         for name in STEP_ORDER:
@@ -362,7 +365,15 @@ def main():
     parser = argparse.ArgumentParser(description="Recompute every verdict from run logs.")
     parser.add_argument("--fixture", help="read runs and inputs from this directory instead of evidence/")
     parser.add_argument("--steps", action="store_true", help="print step medians of e1 h agro runs for each lever set")
+    parser.add_argument("--base", help="with --steps and no --fixture, read the run folders from this directory instead of evidence/")
     args = parser.parse_args()
+    if args.steps and not args.fixture:
+        base = os.path.abspath(args.base) if args.base else here
+        hook_sha = current_hook_sha(base)
+        for folder in STEP_FOLDERS:
+            if os.path.isdir(os.path.join(base, folder)):
+                steps_report(load_runs(os.path.join(base, folder)), hook_sha, folder)
+        return
     base = os.path.abspath(args.fixture) if args.fixture else here
     runs = load_runs(base if args.fixture else os.path.join(here, "runs"))
     hook_sha = current_hook_sha(base)

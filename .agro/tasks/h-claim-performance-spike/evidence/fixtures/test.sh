@@ -41,6 +41,9 @@ expect tokenscope '^dropped e6-a-small-legacy404.json: token scope$'
 STEPS=1 expect steps '^levers stream:0,apt:0,archive:A0: n=3 usable_median=48.5 usable_p90=49.0$'
 STEPS=1 expect steps '^levers stream:1,apt:1,archive:A0: n=3 usable_median=36.0 usable_p90=36.5$'
 STEPS=1 expect steps '^dropped e1-h-agro-old.json: hook revision$'
+multi=$(python3 -I "$E/verdict.py" --steps --base "$E/fixtures/multi" 2>&1)
+[ "$(grep -E '^(runs-attribution |runs |dropped )' <<<"$multi" | sed 's/: n=.*//')" = "$(printf '%s\n' 'runs-attribution levers stream:0,apt:0,archive:A0' 'runs-attribution levers stream:1,apt:1,archive:A0' 'dropped runs/e1-h-agro-old.json: hook revision' 'runs levers stream:0,apt:0,archive:A0')" ] \
+  && echo "ok   multi: one table per folder and lever set, in folder order, hook revision dropped per folder" || { echo "FAIL multi:"; sed 's/^/     /' <<<"$multi"; fails=$((fails + 1)); }
 step_medians() {
   python3 -I "$E/verdict.py" --fixture "$E/fixtures/steps" --steps | awk -v set="levers $1:" 'index($0, set) == 1 { on = 1; next } /^levers / { on = 0 } on && $1 != "step" { printf "%s=%s/%s ", $1, $2, $3 }'
 }
