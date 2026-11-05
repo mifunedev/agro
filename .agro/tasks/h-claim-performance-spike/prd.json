@@ -149,8 +149,8 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/tasks/h-claim-performance-spike/evidence/verdict.md` exits 0."
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor. Commit includes worker a375483a (cherry-picked ed68d851): verdict.py --steps prints all three run folders. (1) executed: verdict.md states 'H fails E1, N′ stands', median 33.4 s, p90 39.4 s, lever set H_STREAM=1 + H_ARCHIVE=A1 on the US-004 pool build. (2) executed: verdict.md holds the --steps tables for P (baseline on US-004 build) and the final set. (3) executed: manual-review.md in the server/CLI shape: one final-set H claim (node 5aa7a2bb, 32.178 s) with step timings, usable probe, delete; failure path H_ARCHIVE=A2 exit 2 observed. (4) executed: r2.mjs delete for A0 and A1, list count=0; h-url/h-put files removed from the scratchpad; agro node list --json 0 non-destroyed. (5) executed: ste-check verdict.md exit 0. fixtures/test.sh exit 0.",
       "dependsOn": [
         "US-005",
         "US-006"
