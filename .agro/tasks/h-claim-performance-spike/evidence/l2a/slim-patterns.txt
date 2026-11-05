@@ -15,3 +15,10 @@ home/sandbox/.t3/runtime/versions/*/node_modules/@yuuang/ffi-rs-linux-x64-musl
 home/sandbox/.local/lib/code-server-*/lib/vscode/node_modules/@microsoft/mxc-sdk/bin
 home/sandbox/.local/lib/code-server-*/lib/vscode/out/vs/workbench/workbench.web.main.internal.js
 home/sandbox/.local/lib/code-server-*/lib/vscode/out/vs/workbench/workbench.web.main.internal.css
+home/sandbox/.t3/runtime/versions/*/node_modules/@cursor/sdk/dist/esm
+home/sandbox/.t3/runtime/versions/*/node_modules/@cursor/sdk/dist/bundled
+home/sandbox/.t3/runtime/versions/*/node_modules/zod/src
+home/sandbox/.t3/runtime/versions/*/node_modules/undici/docs
+home/sandbox/.t3/runtime/versions/*/node_modules/*.d.ts
+home/sandbox/.t3/runtime/versions/*/node_modules/*.d.cts
+home/sandbox/.t3/runtime/versions/*/node_modules/*.d.mts
