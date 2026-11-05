@@ -107,16 +107,31 @@ command -v gh >/dev/null 2>&1 || emit "blocked gh unavailable: gh not found"
 err_file="$(mktemp)"
 trap 'rm -f "$err_file"' EXIT
 
-pr_state="$(gh pr view "$pr" --json headRefOid,isDraft -q '"\(.headRefOid) \(.isDraft)"' 2>"$err_file")" ||
+pr_state_query='
+  def start_order:
+    (.startedAt // "") | if . == "" or startswith("0001-") then "9" else . end;
+  def bucket:
+    if .__typename == "StatusContext" then
+      if .state == "SUCCESS" then "pass"
+      elif .state == "PENDING" or .state == "EXPECTED" then "pending"
+      else "fail" end
+    elif .status != "COMPLETED" then "pending"
+    elif .conclusion == "SUCCESS" or .conclusion == "NEUTRAL" then "pass"
+    elif .conclusion == "SKIPPED" then "skipping"
+    elif .conclusion == "CANCELLED" then "cancel"
+    else "fail" end;
+  ((.statusCheckRollup // [])
+    | group_by([.workflowName // "", .name // .context // ""])
+    | map(max_by(start_order) | bucket)
+    | join(" ")) as $buckets
+  | "\(.headRefOid) \(.isDraft | tojson) \($buckets)"'
+
+pr_state="$(gh pr view "$pr" --json headRefOid,isDraft,statusCheckRollup -q "$pr_state_query" 2>"$err_file")" ||
   gh_blocked "$(cat "$err_file")"
-read -r pr_head draft _ <<<"$pr_state" || true
+read -r pr_head draft bucket_list <<<"$pr_state" || true
 [ "${pr_head:-}" = "$head_sha" ] || emit ci
 
-checks_status=0
-buckets="$(gh pr checks "$pr" --json bucket -q '.[].bucket' 2>"$err_file")" || checks_status=$?
-if [ "$checks_status" -ne 0 ] && [ -z "$buckets" ]; then
-  grep -q 'no checks reported' "$err_file" || gh_blocked "$(cat "$err_file")"
-fi
+buckets="$(tr ' ' '\n' <<<"${bucket_list:-}")"
 grep -qxE 'fail|cancel' <<<"$buckets" && emit ci-red
 grep -qx 'pending' <<<"$buckets" && emit ci
 [ -z "$buckets" ] && emit ci

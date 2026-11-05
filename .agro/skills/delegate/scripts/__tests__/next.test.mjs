@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { chmodSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -289,8 +289,8 @@ describe("ci and ci-red", () => {
     fx.ready();
     fx.run();
     const log = readFileSync(fx.ghLog, "utf8");
-    expect(log).toContain("pr checks 7 --json bucket");
-    expect(log).toContain("pr view 7 --json headRefOid,isDraft");
+    expect(log).not.toContain("pr checks");
+    expect(log).toContain("pr view 7 --json headRefOid,isDraft,statusCheckRollup");
     expect(log.match(/^pr view /gm)).toHaveLength(1);
   });
 
@@ -312,6 +312,118 @@ describe("ci and ci-red", () => {
     fx.ready();
     const head = fx.git("rev-parse", "HEAD");
     expectState(fx.run([], { GH_STUB_HEAD: head, GH_STUB_CHECKS: "pass", GH_STUB_DRAFT: "false" }), "done");
+  });
+});
+
+describe("statusCheckRollup mapping", () => {
+  const checkRun = (status, conclusion, overrides = {}) => ({
+    __typename: "CheckRun",
+    workflowName: "CI",
+    name: "test",
+    status,
+    conclusion,
+    startedAt: "2026-01-01T00:00:00Z",
+    ...overrides,
+  });
+  const statusContext = (state, overrides = {}) => ({
+    __typename: "StatusContext",
+    context: "ci/external",
+    state,
+    startedAt: "2026-01-01T00:00:00Z",
+    ...overrides,
+  });
+  const runRollup = (rollup, draft = "false") =>
+    fx.run([], { GH_STUB_ROLLUP: JSON.stringify(rollup), GH_STUB_DRAFT: draft });
+
+  test.each([
+    ["pass", "COMPLETED", "SUCCESS", "done"],
+    ["pass", "COMPLETED", "NEUTRAL", "done"],
+    ["skipping", "COMPLETED", "SKIPPED", "done"],
+    ["cancel", "COMPLETED", "CANCELLED", "ci-red"],
+    ["pending", "IN_PROGRESS", "", "ci"],
+    ["pending", "QUEUED", "", "ci"],
+    ["fail", "COMPLETED", "FAILURE", "ci-red"],
+    ["fail", "COMPLETED", "TIMED_OUT", "ci-red"],
+    ["fail", "COMPLETED", "", "ci-red"],
+  ])("a CheckRun maps to %s for %s %s", (_label, status, conclusion, state) => {
+    fx.ready();
+    expectState(runRollup([checkRun(status, conclusion)]), state);
+  });
+
+  test.each([
+    ["pass", "SUCCESS", "done"],
+    ["pending", "PENDING", "ci"],
+    ["pending", "EXPECTED", "ci"],
+    ["fail", "FAILURE", "ci-red"],
+    ["fail", "ERROR", "ci-red"],
+  ])("a StatusContext maps to %s for %s", (_label, state, expected) => {
+    fx.ready();
+    expectState(runRollup([statusContext(state)]), expected);
+  });
+
+  test("a failed result and a later passing result of one check do not print ci-red", () => {
+    fx.ready();
+    const failed = checkRun("COMPLETED", "FAILURE", { startedAt: "2026-01-01T00:00:00Z" });
+    const passed = checkRun("COMPLETED", "SUCCESS", { startedAt: "2026-01-01T01:00:00Z" });
+    expectState(runRollup([failed, passed]), "done");
+    expectState(runRollup([passed, failed]), "done");
+  });
+
+  test("a passing result and a later failed result of one check print ci-red", () => {
+    fx.ready();
+    const passed = checkRun("COMPLETED", "SUCCESS", { startedAt: "2026-01-01T00:00:00Z" });
+    const failed = checkRun("COMPLETED", "FAILURE", { startedAt: "2026-01-01T01:00:00Z" });
+    expectState(runRollup([passed, failed]), "ci-red");
+  });
+
+  test("a later StatusContext result replaces an earlier result of one context", () => {
+    fx.ready();
+    const failed = statusContext("FAILURE", { startedAt: "2026-01-01T00:00:00Z" });
+    const passed = statusContext("SUCCESS", { startedAt: "2026-01-01T01:00:00Z" });
+    expectState(runRollup([failed, passed]), "done");
+  });
+
+  test("a queued re-run with no start time replaces a failed result", () => {
+    fx.ready();
+    const failed = checkRun("COMPLETED", "FAILURE");
+    const queued = checkRun("QUEUED", "", { startedAt: "0001-01-01T00:00:00Z" });
+    expectState(runRollup([failed, queued]), "ci");
+  });
+
+  test("one check name in two workflows stays two checks", () => {
+    fx.ready();
+    const failed = checkRun("COMPLETED", "FAILURE", { workflowName: "A" });
+    const passed = checkRun("COMPLETED", "SUCCESS", { workflowName: "B", startedAt: "2026-01-01T01:00:00Z" });
+    expectState(runRollup([failed, passed]), "ci-red");
+  });
+
+  test("a CheckRun failure wins over a StatusContext pending state", () => {
+    fx.ready();
+    expectState(runRollup([statusContext("PENDING"), checkRun("COMPLETED", "FAILURE")]), "ci-red");
+  });
+
+  test("a null rollup prints ci", () => {
+    fx.ready();
+    expectState(fx.run([], { GH_STUB_ROLLUP: "null" }), "ci");
+  });
+
+  test("a query failure prints blocked and not a green state", () => {
+    fx.ready();
+    const result = fx.run([], { GH_STUB_ROLLUP: '"not-a-rollup"' });
+    expect(result.status).toBe(0);
+    expect(result.lines[0]).toMatch(/^blocked gh unavailable: /);
+    expect(result.lines[1]).toBe(STOP_BLOCKED);
+  });
+});
+
+describe("gh stub", () => {
+  test("gh pr checks --json fails as gh 2.45.0 does", () => {
+    const result = spawnSync(path.join(fx.root, "bin", "gh"), ["pr", "checks", "7", "--json", "bucket"], {
+      env: { ...process.env, GH_STUB_LOG: fx.ghLog },
+      encoding: "utf8",
+    });
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("unknown flag: --json");
   });
 });
 
