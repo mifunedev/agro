@@ -128,8 +128,8 @@
         "E2 passes when the only extra entries are the packages that the operator allowed."
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor-run live. (1) executed: applicable, US-005 final set uses the US-004 pool build. (2) executed: residue/audit.sh h audited warm sandbox node f25fe484 (pooled_at 01:00:23Z, pool_cloud_init_sha256 fa3d5c7b, US-004 build) against the cold dump 82ce9037 and the noise floor from warm-pool-pause-protocol (copied into residue/cold, residue/nprime); same image 40c82cd6 for all three; node deleted, live=0. DEVIATION: reused the earlier cold dump instead of a new cold claim (claim budget). (3) executed: residue/summary.json lists h_extra = pkg:gh 2.45.0-1ubuntu0.3, pkg:libatomic1 14.2.0-4ubuntu2~24.04.1; h_agro_files_extra = [] (agro files h 17 = noise floor 17). (4) executed: E2 PASS, the only extra entries are the two allowed packages. Claims used so far: 32.",
       "dependsOn": [
         "US-005"
       ],
