@@ -17,8 +17,8 @@
         "`/delegate` § Waves tells the advisor to wait in a foreground call for worker commits."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Main checkout, task branch. Executed: grep -c gh pr checks next.sh printed 0; bash -n exit 0; pnpm exec vitest run next.test.mjs exit 0, 74 passed, including the stub rejection, re-run, and mapping cases. Executed: grep finds the foreground wait in Waves item 14. Reasoned: StatusContext has no skipping or cancel state, so it maps to pass, pending, and fail only.",
       "dependsOn": [],
       "files": [
         ".agro/skills/delegate/scripts/next.sh",
@@ -26,7 +26,8 @@
         ".agro/skills/delegate/scripts/__tests__/next.test.mjs",
         ".agro/skills/delegate/SKILL.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "8f6623c1a"
     }
   ],
   "pr": 1568
