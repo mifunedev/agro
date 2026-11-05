@@ -22,3 +22,4 @@ home/sandbox/.t3/runtime/versions/*/node_modules/undici/docs
 home/sandbox/.t3/runtime/versions/*/node_modules/*.d.ts
 home/sandbox/.t3/runtime/versions/*/node_modules/*.d.cts
 home/sandbox/.t3/runtime/versions/*/node_modules/*.d.mts
+home/sandbox/.local/lib/code-server-*/lib/vscode/extensions/microsoft-authentication
