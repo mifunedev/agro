@@ -42,5 +42,16 @@
     "presignedAt": "2026-11-05T01:30Z",
     "objectKey": "experiments/h-claim-performance-spike/A1/c82b9efe0f7ab2c30b13d53371377c3970d1b6a55f3f107a8226f46f5d62546c.tar.zst",
     "urlFile": "<scratchpad>/h-url-A1 (0600)"
+  },
+  "A2": {
+    "bytes": 247409809,
+    "sha256": "dd78619b17fbca4d2793cddaa8a01ae83859599999d594693c4ec2f47967eee4",
+    "entries": 11488,
+    "zstd": 6,
+    "bucket": "agro-console-beta",
+    "objectKey": "experiments/h-claim-performance-spike/A2/dd78619b17fbca4d2793cddaa8a01ae83859599999d594693c4ec2f47967eee4.tar.zst",
+    "urlFile": "<scratchpad>/h-url-A2 (0600)",
+    "source": "A0 28bb86fa (node 19617cbc) minus l2a/slim-patterns.txt, built by rsi-archive/metric.sh",
+    "presignedAt": "2026-11-05T04:10Z"
   }
 }

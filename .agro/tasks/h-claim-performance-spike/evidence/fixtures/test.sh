@@ -82,8 +82,21 @@ hook_case unset-remote-args 0 'sudo bash -s -- 899db69f[0-9a-f]+ 364036107 off 0
 hook_case unset-json 0 '^\{"archive_sha256":"899db69f[0-9a-f]+","docker":"off","archive":"A0","levers":"stream:0,apt:0,archive:A0"\}$'
 hook_case all-levers 0 'local start .*sha256=a{64} bytes=200000000 docker=off levers=stream:1,apt:1,archive:A1$' H_STREAM=1 H_PARALLEL_APT=1 H_ARCHIVE=A1
 hook_case all-levers-remote-args 0 'sudo bash -s -- a{64} 200000000 off 1 1$' H_STREAM=1 H_PARALLEL_APT=1 H_ARCHIVE=A1
-hook_case bad-archive 64 'H_ARCHIVE must be A0 or A1' H_ARCHIVE=A2
+hook_case bad-archive 64 'H_ARCHIVE must be A0, A1 or A2' H_ARCHIVE=A3
 hook_case bad-stream 64 'H_STREAM must be 0 or 1' H_STREAM=yes
+driver_case() {
+  local name=$1 want_rc=$2 pattern=$3 out rc
+  shift 3
+  out=$(env -u H_STREAM -u H_PARALLEL_APT -u H_ARCHIVE "$@" bash "$E/driver.sh" e1 h agro --docker --dry-run 2>&1)
+  rc=$?
+  if [ "$rc" = "$want_rc" ] && grep -Eq -- "$pattern" <<<"$out"; then
+    echo "ok   driver $name: /$pattern/"
+  else
+    echo "FAIL driver $name: rc=$rc /$pattern/ in:"; sed 's/^/     /' <<<"$out"; fails=$((fails + 1))
+  fi
+}
+driver_case archive-a2 0 'DRY levers stream:0,apt:0,archive:A2$' H_ARCHIVE=A2
+driver_case bad-archive 2 'H_ARCHIVE must be A0, A1 or A2' H_ARCHIVE=A3
 for e in 1 2 3 4 5 6 7; do expect pass "^E$e: "; done
 [ "$(python3 -I "$E/verdict.py" --fixture "$E/fixtures/pass" | grep -c '^E[1-7]: ')" = 7 ] && echo "ok   pass: exactly 7 E lines" || { echo "FAIL pass: E line count"; fails=$((fails + 1)); }
 [ "$fails" = 0 ] && echo "ALL FIXTURE TESTS PASS" || { echo "$fails fixture test(s) failed"; exit 1; }

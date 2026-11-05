@@ -25,9 +25,11 @@ Set the switches in the environment of `driver.sh` or `e1-seq.sh`. The driver va
 |---|---|---|---|
 | `H_STREAM` | `0`, `1` | `0` | `1` fetches, hashes, and extracts in one pass. |
 | `H_PARALLEL_APT` | `0`, `1` | `0` | `1` starts the apt install of the missing packages before the fetch. The hook waits for it in the `install` step. |
-| `H_ARCHIVE` | `A0`, `A1` | `A0` | Selects the archive variant. The pin is `archives.json[<variant>]` (`bytes`, `sha256`). The URL file is `<scratchpad>/h-url-<variant>`. `L2A_URL_FILE` overrides the URL file. |
+| `H_ARCHIVE` | `A0`, `A1`, `A2` | `A0` | Selects the archive variant. The pin is `archives.json[<variant>]` (`bytes`, `sha256`). The URL file is `<scratchpad>/h-url-<variant>`. `L2A_URL_FILE` overrides the URL file. |
 
-The lever set has the form `stream:<0|1>,apt:<0|1>,archive:<A0|A1>`. The hook writes it to the local `start` line and to its JSON result. `e1-seq.sh` counts only runs of the current lever set and the current hook sha256.
+`A2` is `A0` minus `l2a/slim-patterns.txt`. `rsi/metric.sh` selects the variant with `RSI_ARCHIVE` (default `A1`).
+
+The lever set has the form `stream:<0|1>,apt:<0|1>,archive:<A0|A1|A2>`. The hook writes it to the local `start` line and to its JSON result. `e1-seq.sh` counts only runs of the current lever set and the current hook sha256.
 
 Example:
 

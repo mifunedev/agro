@@ -17,8 +17,8 @@ case ${H_PARALLEL_APT:-0} in
   *) echo "H_PARALLEL_APT must be 0 or 1" >&2; exit 64 ;;
 esac
 case ${H_ARCHIVE:-A0} in
-  A0 | A1) variant=${H_ARCHIVE:-A0} ;;
-  *) echo "H_ARCHIVE must be A0 or A1" >&2; exit 64 ;;
+  A0 | A1 | A2) variant=${H_ARCHIVE:-A0} ;;
+  *) echo "H_ARCHIVE must be A0, A1 or A2" >&2; exit 64 ;;
 esac
 levers="stream:$stream,apt:$parallel_apt,archive:$variant"
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)

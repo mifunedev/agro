@@ -30,7 +30,7 @@ while [ "$valid" -lt "$CLAIMS" ]; do
   flags=()
   [ $((i % 2)) = 1 ] && flags+=(--docker)
   before=$(ls "$E/runs" 2>/dev/null)
-  H_STREAM=1 H_PARALLEL_APT=0 H_ARCHIVE=A1 PIN_AGRO_VERSION=0.28.0 \
+  H_STREAM=1 H_PARALLEL_APT=0 H_ARCHIVE=${RSI_ARCHIVE:-A1} PIN_AGRO_VERSION=0.28.0 \
     bash "$E/driver.sh" e1 h agro "${flags[@]}" --label rsi >>"$out/driver.log" 2>&1
   rc=$?
   used=$((used + 1))

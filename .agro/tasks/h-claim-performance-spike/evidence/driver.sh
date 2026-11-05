@@ -19,7 +19,7 @@ usage: driver.sh <experiment> <arm> <profile-or-size> [--label X] [--docker] [--
   e6 a|v      small|1g|4g
 env: PIN_AGRO_VERSION (required), AGRO_CONSOLE_TOKEN_FILE (e6 a; defaults to the session console-api.tok),
      AGRO_CONSOLE_URL (default http://127.0.0.1:3006), AGRO_CONSOLE_REPO,
-     H_STREAM 0|1, H_PARALLEL_APT 0|1, H_ARCHIVE A0|A1 (e1 h agro levers; defaults 0, 0, A0)
+     H_STREAM 0|1, H_PARALLEL_APT 0|1, H_ARCHIVE A0|A1|A2 (e1 h agro levers; defaults 0, 0, A0)
 exit: 0 valid sample, 2 usage, 3 preflight, 4 missing hook, 5 invalid sample, 6 failed sample, 7 cleanup left live nodes
 EOF
   exit 2
@@ -46,8 +46,8 @@ esac
 if [ "$DOCKER" = true ] && [ "$PROFILE" != agro ]; then echo "driver: --docker applies to agro-profile runs only" >&2; exit 2; fi
 H_STREAM=${H_STREAM:-0} H_PARALLEL_APT=${H_PARALLEL_APT:-0} H_ARCHIVE=${H_ARCHIVE:-A0}
 case "$H_STREAM/$H_PARALLEL_APT/$H_ARCHIVE" in
-  [01]/[01]/A0 | [01]/[01]/A1) ;;
-  *) echo "driver: H_STREAM and H_PARALLEL_APT must be 0 or 1, H_ARCHIVE must be A0 or A1" >&2; exit 2 ;;
+  [01]/[01]/A0 | [01]/[01]/A1 | [01]/[01]/A2) ;;
+  *) echo "driver: H_STREAM and H_PARALLEL_APT must be 0 or 1, H_ARCHIVE must be A0, A1 or A2" >&2; exit 2 ;;
 esac
 LEVERS="stream:$H_STREAM,apt:$H_PARALLEL_APT,archive:$H_ARCHIVE"
 
