@@ -23,3 +23,5 @@ home/sandbox/.t3/runtime/versions/*/node_modules/*.d.ts
 home/sandbox/.t3/runtime/versions/*/node_modules/*.d.cts
 home/sandbox/.t3/runtime/versions/*/node_modules/*.d.mts
 home/sandbox/.local/lib/code-server-*/lib/vscode/extensions/microsoft-authentication
+home/sandbox/.t3/runtime/versions/*/client/assets/docx_layout_bg-*.wasm
+home/sandbox/.t3/runtime/versions/*/client/assets/ooxml_opc_bg-*.wasm

@@ -4,3 +4,4 @@
 2	8cd68d7790f47b4185ee0b68433b4ada86d3bba8	254.590	0	keep	metric 261.960 -> 254.590 (gain 7.370 > margin 0.000), holdout 0 -> 0; keeps: code-server still serves its workbench from workbench.js on Linux	0.000
 3	f45dc8c59423a83d53684e67468ece00716863e7	250.487	0	keep	metric 254.590 -> 250.487 (gain 4.103 > margin 0.000), holdout 0 -> 0; keeps: task: slim T3 runtime type files and unused dist flavours, keep cjs Cursor SDK and web UI	0.000
 4	e129773cf5d4da301bc604d57f26962fac31885d	248.680	0	keep	metric 250.487 -> 248.680 (gain 1.807 > margin 0.000), holdout 0 -> 0; keeps: task: slim archive drops microsoft-authentication, keeps editor, git, terminal	0.000
+5	b348c5751c228e5db7fa672e326f35c0f3b025b4	247.410	0	keep	metric 248.680 -> 247.410 (gain 1.270 > margin 0.000), holdout 0 -> 0; keeps: task: rsi h-archive loop 5 keep T3 office previews while dropping unreferenced wasm	0.000
