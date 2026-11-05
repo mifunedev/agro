@@ -81,3 +81,6 @@ None
 - [ ] The advisor verifies the story in the main checkout.
 
 ## Lessons
+
+- **The plan asked `StatusContext` to map to each state.** Evidence: `StatusContext` has no skipping or cancel state. The tests cover pass, pending, and fail for `StatusContext`. Outcome: dropped, because the plan wording was wrong and the code is correct.
+- **The zero-time rule for a queued re-run comes from memory of the `gh` source.** Evidence: the worker did not observe the `0001-` value on real data. A test covers the rule. Outcome: dropped, because the rule makes a queued re-run print `ci`, and `ci` is the safe state.
