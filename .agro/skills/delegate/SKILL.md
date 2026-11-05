@@ -123,6 +123,8 @@ Write one record for each story before dispatch. Keep only these fields:
 12. Workers stay flat. Workers never spawn workers.
 13. The advisor never sends parallel shell calls that change the working directory.
     Each parallel call uses absolute paths, for example `git -C <path>`.
+14. Wait for worker commits in a foreground call. The Stop hook blocks a stop
+    while the story is open, and the hook escalates after 3 blocks.
 
 A single-story wave runs in the main checkout unless § DECIDE answers worktree.
 
