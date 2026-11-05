@@ -99,7 +99,7 @@ See [Langfuse → Codex](../integrations/langfuse.md#3-codex) for the plugin and
 ## Tips
 
 - Pass a clearly scoped task description as the first argument.
-- Use worktrees to isolate Codex's changes on its own branch before merging.
+- Start work in the main checkout. `/worktrees` § DECIDE owns the worktree decision.
 - For long-running autonomous tasks, pair Codex with a heartbeat that re-invokes it on a schedule.
 
 ## Upstream documentation

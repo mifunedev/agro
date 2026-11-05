@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1565-align-worktree-docs-main-checkout",
+  "description": "Align worktree documentation with the main-checkout default. PR #1564 made the main checkout the default and made `/worktrees` § DECIDE the only copy of the worktree rule. Four documents still read as worktree-first:",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Point the advisor section of AGENTS.md at /worktrees",
+      "description": "As an agent that reads `AGENTS.md`, I want the advisor section to name `/worktrees` § DECIDE so that I do not assume a worktree.",
+      "acceptanceCriteria": [
+        "`grep -c 'worktree boundaries' AGENTS.md` prints `0`.",
+        "The section `## One advisor, bounded workers` in `AGENTS.md` names `/worktrees` § DECIDE as the owner of the worktree decision.",
+        "`git diff <base> -- AGENTS.md` shows no change to `### 4. Parallel work does not share mutable state`.",
+        "`pnpm exec vitest run .agro/scripts/__tests__/behavioral-training-replay.test.ts .agro/scripts/__tests__/unrequested-action-replay.test.ts` exits 0."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Main checkout, task branch. Executed: grep -c worktree boundaries printed 0; git diff f4305498d shows no change to section 4, grep count 0; pnpm exec vitest run behavioral-training-replay and unrequested-action-replay exit 0, 68 passed. Executed: grep finds /worktrees DECIDE in the advisor section.",
+      "dependsOn": [],
+      "files": [
+        "AGENTS.md"
+      ],
+      "commit": "073cbb375"
+    },
+    {
+      "id": "US-002",
+      "title": "Show the main checkout first in the README quickstart",
+      "description": "As a new user, I want the quickstart to start work in the project clone so that I learn the default flow first.",
+      "acceptanceCriteria": [
+        "`grep -c 'Then ask for an isolated workspace' README.md` prints `0`.",
+        "The quickstart states that the agent works in the main checkout of the project clone by default.",
+        "The quickstart keeps `Create a worktree in <owner>/<repo> for issue #123.` as a request that the user can make.",
+        "The quickstart keeps the statement that each parallel agent gets its own branch and worktree."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Main checkout, task branch. Executed: grep -c Then ask for an isolated workspace printed 0; grep finds line 306 main checkout default, line 311 worktree request, line 320 parallel statement.",
+      "dependsOn": [],
+      "files": [
+        "README.md"
+      ],
+      "commit": "0c2cb119b"
+    },
+    {
+      "id": "US-003",
+      "title": "Replace the worktree tips in the harness documents",
+      "description": "As a harness user, I want the tips to match `/worktrees` so that the Claude Code and Codex documents give the same guidance.",
+      "acceptanceCriteria": [
+        "`grep -c 'Use worktrees to' docs/harnesses/claude-code.md docs/harnesses/codex.md` prints `0` for each file.",
+        "Each of the two `## Tips` sections states that work starts in the main checkout and names `/worktrees` § DECIDE.",
+        "Neither document restates the § DECIDE conditions."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Main checkout, task branch. Executed: grep -c Use worktrees to printed 0 for each file; grep finds the new tip in each Tips section. Reasoned: the diff has one line per file and restates no DECIDE condition.",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        "docs/harnesses/claude-code.md",
+        "docs/harnesses/codex.md"
+      ],
+      "commit": "b080555de"
+    }
+  ],
+  "pr": 1566
+}
