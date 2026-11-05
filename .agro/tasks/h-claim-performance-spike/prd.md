@@ -192,3 +192,9 @@ None. The operator answered question 1 with A on 2026-11-04: a `sandbox` node ma
 - [ ] The spike uses at most 35 free-tier claims.
 
 ## Lessons
+
+1. A claim that runs apt on a fresh pool node can stall for many minutes. The pool build unmasks the apt timers at the end of the build (`packages/shared/src/index.ts:1049` of agro-console). `unattended-upgrade` then holds the dpkg lock. Evidence: 4 of 6 apt-at-claim runs waited for the lock, and 3 of 6 runs failed (`evidence/attribution.md`). Outcome: proposed issue for agro-console, for the operator to decide. The same lock also blocks a user who runs apt on a new node.
+2. `verdict.py` did not apply the US-006 package allowance, so it printed `E2: FAIL` for an E2 that passes by the plan rule. Evidence: review round 1. Outcome: fixed in this PR (`evidence/residue/allowed.json`).
+3. `verdict.py --steps` read only `runs/`, so the attribution tables were not reproducible from one command. Outcome: fixed in this PR.
+4. A pool node that boots while the web process is down never registers, and the console fails the node after 15 minutes (`READY_TIMEOUT`). Evidence: node `8908908e`, which booted while web listened on port 3005. Outcome: dropped. The existing open item on the tunnel port and the proposed issue on web exits cover the same surface.
+5. The first 3 runs of the final series took 50.2 s to 35.7 s. The last 7 runs took 28.9 s to 34.7 s. Outcome: dropped. The verdict counts all runs, and the cause is not measured.
