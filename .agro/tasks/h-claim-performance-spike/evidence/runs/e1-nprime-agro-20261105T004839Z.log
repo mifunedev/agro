@@ -1,0 +1,29 @@
+2026-11-05T00:48:39.558Z STEP monitor console reachability every 2s for the whole run
+2026-11-05T00:48:39.562Z STEP sweep live leftover protocol nodes (name prefix wp-e) before the preflight
+2026-11-05T00:48:39.946Z STEP preflight: 0 live nodes in 'agro node list --json' and http://127.0.0.1:3006/signin returns 200|307 (wait up to 600s, else exit 3)
+2026-11-05T00:48:40.817Z PREFLIGHT ok
+2026-11-05T00:48:40.823Z STEP agro node create --spec n4 --profile agro --free-tier --json --t3 --code-server --docker --name wp-e1-nprime-agro-20261105t004839z  (background; t_request taken at issue)
+2026-11-05T00:48:40.832Z REQUEST create profile=agro name=wp-e1-nprime-agro-20261105t004839z t=1793839720828
+2026-11-05T00:48:40.847Z STEP find node row by name; claim start = first node_events type = 'bootstrapping' and detail->>'reason' = 'bind' at/after t_request; probe ssh every 500ms from claim start (ip re-read each attempt)
+agro node create: node ee9f259f-ead5-4d47-beb0-8456f0358dd5 queued
+2026-11-05T00:48:41.809Z NODE id=ee9f259f-ead5-4d47-beb0-8456f0358dd5
+2026-11-05T00:48:42.296Z CLAIM_START 1793839721254 (+0.426s)
+agro node create: node ee9f259f-ead5-4d47-beb0-8456f0358dd5 bootstrapping
+sandbox@15.204.217.206: Permission denied (publickey).
+sandbox@15.204.217.206: Permission denied (publickey).
+sandbox@15.204.217.206: Permission denied (publickey).
+sandbox@15.204.217.206: Permission denied (publickey).
+sandbox@15.204.217.206: Permission denied (publickey).
+sandbox@15.204.217.206: Permission denied (publickey).
+sandbox@15.204.217.206: Permission denied (publickey).
+sandbox@15.204.217.206: Permission denied (publickey).
+sandbox@15.204.217.206: Permission denied (publickey).
+agro node create: node ee9f259f-ead5-4d47-beb0-8456f0358dd5 running
+2026-11-05T00:48:55.972Z SSH ip=15.204.217.206 +14.914s
+2026-11-05T00:48:55.978Z STEP usable probe (agro workspace list has harness, code-server :8080 200, T3 :3773 200) until 300s
+2026-11-05T00:48:58.542Z USABLE +17.692s
+2026-11-05T00:48:58.908Z STEP parity: usable, claim->ack order, docker state matches --docker=true
+2026-11-05T00:48:59.802Z STEP wait for 'agro node create' to exit
+2026-11-05T00:48:59.812Z CREATE exit=0 {"id":"ee9f259f-ead5-4d47-beb0-8456f0358dd5","status":"running"}
+2026-11-05T00:49:04.423Z DELETED ee9f259f-ead5-4d47-beb0-8456f0358dd5 status=destroyed
+2026-11-05T00:49:04.749Z RESULT {"experiment":"e1","arm":"nprime","profile":"agro","size":null,"levers":null,"node_id":"ee9f259f-ead5-4d47-beb0-8456f0358dd5","ssh_s":14.914,"usable_s":17.692,"valid":true,"invalid_reason":null,"failed":false}

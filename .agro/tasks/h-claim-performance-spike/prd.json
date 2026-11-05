@@ -107,8 +107,8 @@
         "`agro node list --json` shows 0 live nodes after the last run."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor-run live on agro-console 4fcd6073 with features.sandboxPoolPackages on (config h-final.yaml), final-seq.sh. (1) executed with DEVIATION: final set = H_STREAM=1 + H_ARCHIVE=A1 on the US-004 pool build. The best single US-003 sets were stream 35.7 s and A1 35.9 s; the two levers act on different steps (verify+extract vs fetch size), so the advisor combined them. (2) executed: runs/ holds 10 H agro (docker 5 on, 5 off) and 5 N' agro, interleaved H,H,N. (3) executed: python3 -I verdict.py: E1 FAIL H (h agro median=33.4 p90=39.4 n=10, 0 failures; bar 32/48); N' reference median 15.0 p90 19.1 n=5 (reference only, n below MIN_N). (4) executed: E3 PASS (H agro parity holds in every run, docker on and off, claim and ack). (5) executed: agro node list --json shows 0 non-destroyed nodes after the last run. Claims used so far: 31.",
       "dependsOn": [
         "US-003",
         "US-004"
