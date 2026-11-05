@@ -126,3 +126,4 @@ None
 - **The Stop hook blocks the stop while workers run.** Evidence: the hook printed `story US-001` during wave 1. A third block allows the stop and runs `/escalate` with no real problem. Outcome: dropped as tooling friction. The advisor waited in a foreground call.
 - **The advisor ran a stray `git commit --no-verify`.** Evidence: the US-001 acceptance command made that commit and undid it with a soft reset. The kept commit `a21840128` ran the hooks. Outcome: dropped as a process error. The operator receives this report.
 - **The run did not measure the install cost of each worktree.** Evidence: the wave 1 setup recorded no duration. Outcome: dropped, because the evidence supports no change.
+- **`next.sh` cannot read CI state on `gh` 2.45.0.** Evidence: `next.sh` printed `blocked gh unavailable: unknown flag: --json` after CI passed. Outcome: issue #1567.

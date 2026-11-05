@@ -65,6 +65,5 @@
       "commit": "b080555de"
     }
   ],
-  "pr": 1566,
-  "blocked": "next.sh cannot read CI: gh 2.45.0 has no gh pr checks --json. CI is green at 2c8fe1601. Operator decides: run gh pr ready by hand, or fix next.sh first."
+  "pr": 1566
 }
