@@ -100,18 +100,31 @@ Write one record for each story before dispatch. Keep only these fields:
    `passes: true`.
 2. Before dispatch, run [`/worktrees` § DECIDE](../worktrees/SKILL.md) for each
    story.
-3. A story with the answer main checkout runs in the task checkout on the task
-   branch. Stories with this answer run one at a time.
-4. Only stories that § DECIDE sends to a worktree run in parallel, at most 5
-   workers per wave. Branch each worktree from the task branch. Before dispatch,
+3. Stories with overlapping `files` run in sequence.
+4. Give each worktree story one worker in one worktree, at most 5 workers per
+   wave. Branch each worktree from the current task branch. Before dispatch,
    when a worktree has a `package.json`, run `pnpm install --frozen-lockfile` in
    that worktree.
-5. Stories with overlapping `files` run in sequence.
-6. Workers stay flat. Workers never spawn workers.
-7. The advisor never sends parallel shell calls that change the working directory.
-   Each parallel call uses absolute paths, for example `git -C <path>`.
+5. Run these workers in parallel, except as item 3 requires. The main checkout
+   gets no worker edits while these workers run.
+6. Inspect each commit and bring it onto the task branch in the main checkout.
+   When a worktree holds the task branch, bring the commit onto the task branch
+   in that worktree. A conflict reopens the story (§ Repair).
+7. Verify each of these stories in the main checkout (§ Acceptance).
+8. Send a failed story to § Repair. Keep each worktree until the advisor accepts
+   every worktree story of the wave, because the same worker repairs the story.
+   Consolidation alone does not allow removal.
+9. When the advisor accepts the last worktree story of the wave, remove the
+   worktrees and worker branches of the wave (§ Integration).
+10. Run each story with the answer main checkout in the task checkout on the task
+    branch, one at a time. Verify and accept each story before the next story
+    starts.
+11. Branch the worktrees of the next wave from the updated task branch.
+12. Workers stay flat. Workers never spawn workers.
+13. The advisor never sends parallel shell calls that change the working directory.
+    Each parallel call uses absolute paths, for example `git -C <path>`.
 
-A single story can use one worker. Parallelism is not mandatory.
+A single-story wave runs in the main checkout unless § DECIDE answers worktree.
 
 ## Worker brief
 
@@ -144,8 +157,11 @@ A worker in a worktree can run checks for its own report, but that result is not
 acceptance. For each story, the advisor does these steps:
 
 1. Inspect the worker commit.
-2. If the story used a worktree, bring the commit onto the task branch.
-3. Rerun the verification in the main checkout, on the integrated task branch.
+2. If the story used a worktree, bring the commit onto the task branch (§ Waves).
+3. In the main checkout, on the integrated task branch, run
+   `pnpm install --frozen-lockfile` when the checkout has a `package.json`. Then
+   rerun the verification. When a worktree holds the task branch, use § Verify
+   when a worktree holds the task branch.
 4. Write `passes: true`, `commit`, and `notes` in `prd.json`. In `notes`,
    mark each criterion executed or reasoned.
 
@@ -158,15 +174,19 @@ cannot check out the task branch. Do these steps from the main checkout:
 2. Run `git status --porcelain --untracked-files=no`. If the command prints a
    change, use `/git` § Isolating in-flight work or ask the operator.
 3. Run `git switch --detach <task-branch-head>`.
-4. Run the verification.
+4. Run `pnpm install --frozen-lockfile` when the checkout has a `package.json`.
+   Then run the verification.
 5. Switch the main checkout back to the recorded branch.
+6. If `pnpm-lock.yaml` differs between the two commits, run
+   `pnpm install --frozen-lockfile` again.
 
 ### Repair
 
 A failed story check or a red CI check (`ci-red`) starts a repair. The advisor
 reopens the story whose `files` hold the failing path: write `passes: false`
 and add 1 to `rounds`. The same worker repairs the story as a bounded repair.
-The advisor does not repair. Dependents of a reopened story wait.
+The advisor does not repair. Dependents of a reopened story wait. Before a repair
+in a worktree, the worker merges the current task branch into the worker branch.
 
 The advisor writes `blocked` in `prd.json` and runs `/escalate` one time in
 each of these cases:
@@ -183,8 +203,9 @@ After acceptance, do these steps on the task branch:
 1. Commit `prd.json` with the accepted story. Do not push it. `/git` § Draft PR
    for a task names the push rule.
 2. Tick the story in the PR `## Stories` checklist.
-3. If the story used a worktree, remove the worktree and its branch. Use the git
-   maintenance shim that `/git` names.
+3. When the advisor accepts the last worktree story of the wave, remove the
+   worktrees and worker branches of the wave. Use the git maintenance shim that
+   `/git` names.
 
 ## Resume
 

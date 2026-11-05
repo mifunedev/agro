@@ -105,14 +105,20 @@ in its development environment.
 Answer worktree only when one of these conditions is true:
 
 - The operator asks for a worktree.
-- The story runs at the same time as another writer, or another agent works in
-  the same checkout. `AGENTS.md` non-negotiable 4 requires this.
+- The story shares a wave with another story whose `files` do not overlap, or
+  another agent works in the same checkout. `AGENTS.md` non-negotiable 4 requires
+  this.
 - The scope would interfere with the main checkout. For example, the scope
   changes dependencies or the lockfile, disturbs a running development server or
   process, or needs a base or branch other than the one the main checkout must
   stay on.
 
-A worktree never moves verification. See `/delegate` § Acceptance.
+When a story needs gitignored files or running services of the main checkout,
+answer main checkout. The story runs alone after the advisor accepts the worktree
+stories of its wave. This rule overrides every condition except an operator
+request.
+
+A worktree never moves `/delegate` acceptance. See `/delegate` § Acceptance.
 
 ## DETECT BASE
 

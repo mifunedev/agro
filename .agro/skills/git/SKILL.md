@@ -365,7 +365,9 @@ Do these steps in this sequence:
 2. If the output is not `MERGED`, stop. Do no cleanup. An operator statement is
    not evidence of the merge.
 3. Leave the task branch. If the task ran in the main checkout, switch to the
-   base branch: `git checkout $BASE`. If the task used a worktree, remove the worktree:
+   base branch: `git checkout $BASE`. If `pnpm-lock.yaml` differs between the two
+   branches, run `pnpm install --frozen-lockfile`. If the task used a worktree,
+   remove the worktree:
    `bash .agro/scripts/git-maintenance.sh worktree-remove <path>`.
 4. Delete the local task branch:
    `bash .agro/scripts/git-maintenance.sh branch-delete <branch>`.
