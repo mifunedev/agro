@@ -26,3 +26,7 @@ A1 removes these patterns from A0. Each size is the uncompressed byte count on t
 | `.t3/userdata/logs` | 1,271,536 | T3 logs of the cut node. |
 
 The usable probe of each A1 run in US-003 checks that `agro workspace list` lists `harness`, code-server returns HTTP 200, and T3 returns HTTP 200.
+
+## Re-cut A1
+
+The `/rsi` run cut A1 again on 2026-11-05 from the pooled `agro` n4 node `91e1daec`, with the same script and the same removed path patterns. The new A1 has 272,800,869 bytes, 12,807 entries, and sha256 `c82b9efe0f7ab2c30b13d53371377c3970d1b6a55f3f107a8226f46f5d62546c`. `archives.json` pins the new A1. The output is in `l2a/cut-output-rsi.txt`.

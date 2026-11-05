@@ -1,0 +1,37 @@
+2026-11-05T01:42:27.563Z STEP monitor console reachability every 2s for the whole run
+2026-11-05T01:42:27.567Z STEP sweep live leftover protocol nodes (name prefix wp-e) before the preflight
+2026-11-05T01:42:27.878Z STEP preflight: 0 live nodes in 'agro node list --json' and http://127.0.0.1:3006/signin returns 200|307 (wait up to 600s, else exit 3)
+2026-11-05T01:42:28.658Z PREFLIGHT ok
+2026-11-05T01:42:28.663Z STEP agro node create --spec n4 --profile sandbox --free-tier --json --name wp-e1-h-agro-20261105t014227z  (background; t_request taken at issue)
+2026-11-05T01:42:28.669Z REQUEST create profile=sandbox name=wp-e1-h-agro-20261105t014227z t=1793842948666
+2026-11-05T01:42:28.684Z STEP find node row by name; claim start = first node_events type = 'bootstrapping' and detail->>'reason' = 'bind' at/after t_request; probe ssh every 500ms from claim start (ip re-read each attempt)
+agro node create: node 71544c19-b2b8-4b11-ad53-fa6ed8ea0910 queued
+2026-11-05T01:42:29.555Z NODE id=71544c19-b2b8-4b11-ad53-fa6ed8ea0910
+2026-11-05T01:42:30.009Z CLAIM_START 1793842948994 (+0.328s)
+agro node create: node 71544c19-b2b8-4b11-ad53-fa6ed8ea0910 bootstrapping
+sandbox@15.204.217.206: Permission denied (publickey).
+sandbox@15.204.217.206: Permission denied (publickey).
+sandbox@15.204.217.206: Permission denied (publickey).
+sandbox@15.204.217.206: Permission denied (publickey).
+agro node create: node 71544c19-b2b8-4b11-ad53-fa6ed8ea0910 running
+2026-11-05T01:42:34.946Z SSH ip=15.204.217.206 +6.059s
+2026-11-05T01:42:34.990Z STEP hook after-claim 15.204.217.206  (stdout last line: JSON object merged into .hook.after_claim)
+2026-11-05T01:42:35.117Z local start ip=15.204.217.206 sha256=c82b9efe0f7ab2c30b13d53371377c3970d1b6a55f3f107a8226f46f5d62546c bytes=272800869 docker=off levers=stream:1,apt:0,archive:A1
+2026-11-05T01:42:35.557Z local url-handoff ok
+2026-11-05T01:42:47.294Z remote step=fetch elapsed_ms=11308 result=ok mode=stream bytes=272800869
+2026-11-05T01:42:47.298Z remote step=verify elapsed_ms=11312 result=ok mode=stream sha256=c82b9efe0f7ab2c30b13d53371377c3970d1b6a55f3f107a8226f46f5d62546c
+2026-11-05T01:42:48.061Z remote step=extract elapsed_ms=12075 result=ok mode=stream kept_existing=/usr/local/bin/zmx,/usr/local/libexec/agro-install-zmx,/usr/local/libexec/agro-gateway-session,
+2026-11-05T01:42:48.066Z remote step=stream elapsed_ms=12080 result=ok
+2026-11-05T01:42:48.560Z remote step=install elapsed_ms=12575 result=ok apt_added=none apt=skipped apt_ms=2
+2026-11-05T01:42:53.135Z remote step=docker elapsed_ms=17149 result=ok docker=off
+2026-11-05T01:42:53.695Z remote step=apps-started elapsed_ms=17712 result=ok
+2026-11-05T01:43:00.314Z remote step=apps-up elapsed_ms=24329 result=ok workspace_harness=yes code_server=200 t3=200
+2026-11-05T01:43:00.331Z local done exit=0
+  hook after-claim> {"archive_sha256":"c82b9efe0f7ab2c30b13d53371377c3970d1b6a55f3f107a8226f46f5d62546c","docker":"off","archive":"A1","levers":"stream:1,apt:0,archive:A1"}
+2026-11-05T01:43:00.381Z STEP usable probe (agro workspace list has harness, code-server :8080 200, T3 :3773 200) until 300s
+2026-11-05T01:43:01.206Z USABLE +32.521s
+2026-11-05T01:43:01.591Z STEP parity: usable, claim->ack order, docker state matches --docker=false
+2026-11-05T01:43:02.699Z STEP wait for 'agro node create' to exit
+2026-11-05T01:43:02.717Z CREATE exit=0 {"id":"71544c19-b2b8-4b11-ad53-fa6ed8ea0910","status":"running"}
+2026-11-05T01:43:07.276Z DELETED 71544c19-b2b8-4b11-ad53-fa6ed8ea0910 status=destroyed
+2026-11-05T01:43:07.663Z RESULT {"experiment":"e1","arm":"h","profile":"agro","size":null,"levers":"stream:1,apt:0,archive:A1","node_id":"71544c19-b2b8-4b11-ad53-fa6ed8ea0910","ssh_s":6.059,"usable_s":32.521,"valid":true,"invalid_reason":null,"failed":false}

@@ -1,6 +1,6 @@
 ## Manual review
 
-Paths are relative to `.agro/tasks/h-claim-performance-spike/evidence/`. The observed results come from the run on 2026-11-05 (run log `runs/e1-h-agro-20261105T005514Z.log`).
+Paths are relative to `.agro/tasks/h-claim-performance-spike/evidence/`. The observed results come from the run on 2026-11-05 (run log `runs/e1-h-agro-20261105T022744Z.log`, tuned hook).
 
 **A. Recompute the verdict from the run records**
 
@@ -15,7 +15,7 @@ Prerequisites: a checkout of the task branch. Runs on the host or in the sandbox
    Expected output:
 
    ```text
-   E1: FAIL H (h agro FAIL median=33.4 p90=39.4 n=10; h sandbox PENDING) | reference nprime agro FAIL median=15.0 p90=19.1 n=5
+   E1: FAIL H (h agro PASS median=31.1 p90=33.7 n=10; h sandbox PENDING) | reference nprime agro FAIL median=15.0 p90=19.1 n=5
    E2: PASS (H extra entries=2 allowed=gh,libatomic1, H agro files beyond floor=0, noise floor=14)
    E3: PASS (H agro parity holds in every run)
    ```
@@ -28,7 +28,7 @@ Prerequisites: a checkout of the task branch. Runs on the host or in the sandbox
    python3 -I .agro/tasks/h-claim-performance-spike/evidence/verdict.py --steps
    ```
 
-   Expected output contains `runs levers stream:1,apt:0,archive:A1: n=10 usable_median=33.4 usable_p90=39.4` and the row `stream 11.2 10`. Expected exit status: 0.
+   Expected output contains `runs levers stream:1,apt:0,archive:A1: n=10 usable_median=31.1 usable_p90=33.7` and the row `stream 10.9 10`. Expected exit status: 0.
 
 **B. One H claim with the final lever set**
 
@@ -44,27 +44,27 @@ Runs in the sandbox, local, against a free-tier node.
 
    ```bash
    cd .agro/tasks/h-claim-performance-spike/evidence
-   H_STREAM=1 H_ARCHIVE=A1 PIN_AGRO_VERSION=0.28.0 AGRO_CONSOLE_URL=http://127.0.0.1:3006 bash driver.sh e1 h agro --docker --label review
+   H_STREAM=1 H_ARCHIVE=A1 PIN_AGRO_VERSION=0.28.0 AGRO_CONSOLE_URL=http://127.0.0.1:3006 bash driver.sh e1 h agro --docker --label rsi
    ```
 
-   Observed output, trimmed (node `5aa7a2bb`):
+   Observed output, trimmed (node `a8e9c1a3`):
 
    ```text
-   CLAIM_START 1793840116290 (+0.386s)
-   SSH ip=40.160.98.197 +6.822s
-   local start ... bytes=272625840 docker=on levers=stream:1,apt:0,archive:A1
-   remote step=fetch elapsed_ms=9689 result=ok mode=stream bytes=272625840
-   remote step=verify elapsed_ms=9693 result=ok mode=stream sha256=a03b96e8...
-   remote step=extract elapsed_ms=10366 result=ok mode=stream kept_existing=/usr/local/bin/zmx,...
-   remote step=install elapsed_ms=10863 result=ok apt_added=none apt=skipped apt_ms=3
-   remote step=docker elapsed_ms=16081 result=ok docker=on
-   remote step=apps-up elapsed_ms=23128 result=ok workspace_harness=yes code_server=200 t3=200
-   USABLE +32.178s
-   DELETED 5aa7a2bb-4eca-4ec2-b637-d0b9f20e14e8 status=destroyed
-   RESULT {... "levers":"stream:1,apt:0,archive:A1", ... "usable_s":32.178,"valid":true,"invalid_reason":null,"failed":false}
+   CLAIM_START 1793845666887 (+0.465s)
+   SSH ip=40.160.4.78 +5.635s
+   local start ... bytes=272800869 docker=on levers=stream:1,apt:0,archive:A1
+   remote step=fetch elapsed_ms=10158 result=ok mode=stream bytes=272800869
+   remote step=verify elapsed_ms=10162 result=ok mode=stream sha256=c82b9efe...
+   remote step=extract elapsed_ms=10715 result=ok mode=stream kept_existing=/usr/local/bin/zmx,...
+   remote step=install elapsed_ms=11096 result=ok apt_added=none apt=skipped apt_ms=2
+   remote step=docker elapsed_ms=15925 result=ok docker=on
+   remote step=apps-up elapsed_ms=22659 result=ok workspace_harness=yes code_server=200 t3=200
+   USABLE +30.507s
+   DELETED a8e9c1a3-a942-4aca-a487-bb8bcd25749b status=destroyed
+   RESULT {... "levers":"stream:1,apt:0,archive:A1", ... "usable_s":30.507,"valid":true,"invalid_reason":null,"failed":false}
    ```
 
-   Expected exit status: 0. The run record `runs/e1-h-agro-<UTC stamp>.json` has `"parity":{"usable":true,"claim_ack":true,"docker_on":true}`.
+   Expected exit status: 0. The run record `runs/e1-h-agro-<UTC stamp>.json` has `"parity":{"usable":true,"claim_ack":true,"docker_on":true,"docker_off":null}`.
 
 2. Failure path. Run the driver with the unknown archive variant `A2`:
 
