@@ -1,0 +1,28 @@
+2026-11-04T23:07:53.321Z STEP monitor console reachability every 2s for the whole run
+2026-11-04T23:07:53.329Z STEP sweep live leftover protocol nodes (name prefix wp-e) before the preflight
+2026-11-04T23:07:53.874Z STEP preflight: 0 live nodes in 'agro node list --json' and http://127.0.0.1:3006/signin returns 200|307 (wait up to 600s, else exit 3)
+2026-11-04T23:07:54.925Z PREFLIGHT ok
+2026-11-04T23:07:54.937Z STEP agro node create --spec n4 --profile sandbox --free-tier --json --name wp-e1-h-agro-20261104t230753z  (background; t_request taken at issue)
+2026-11-04T23:07:54.957Z REQUEST create profile=sandbox name=wp-e1-h-agro-20261104t230753z t=1793833674944
+2026-11-04T23:07:54.977Z STEP find node row by name; claim start = first node_events type = 'bootstrapping' and detail->>'reason' = 'bind' at/after t_request; probe ssh every 500ms from claim start (ip re-read each attempt)
+agro node create: node 2d1edd8c-a772-45ee-9c9f-6cff7635a361 queued
+2026-11-04T23:07:56.007Z NODE id=2d1edd8c-a772-45ee-9c9f-6cff7635a361
+2026-11-04T23:07:56.523Z CLAIM_START 1793833675682 (+0.738s)
+agro node create: node 2d1edd8c-a772-45ee-9c9f-6cff7635a361 bootstrapping
+sandbox@40.160.98.44: Permission denied (publickey).
+sandbox@40.160.98.44: Permission denied (publickey).
+sandbox@40.160.98.44: Permission denied (publickey).
+agro node create: node 2d1edd8c-a772-45ee-9c9f-6cff7635a361 running
+2026-11-04T23:08:04.165Z SSH ip=40.160.98.44 +8.786s
+2026-11-04T23:08:04.229Z STEP hook after-claim 40.160.98.44  (stdout last line: JSON object merged into .hook.after_claim)
+2026-11-04T23:08:04.398Z local start ip=40.160.98.44 sha256=1497b6080446660855606b6cdd88963b87dd13907c1333a04852a77338f11974 bytes=366067832 docker=on levers=stream:0,apt:0,archive:A0
+2026-11-04T23:08:05.093Z local url-handoff ok
+2026-11-04T23:08:18.269Z remote step=fetch elapsed_ms=12650 result=ok bytes=366067832
+2026-11-04T23:08:20.233Z remote step=verify elapsed_ms=14613 result=ok sha256=1497b6080446660855606b6cdd88963b87dd13907c1333a04852a77338f11974
+2026-11-04T23:08:36.579Z remote step=extract elapsed_ms=30959 result=ok kept_existing=/usr/local/bin/zmx,/usr/local/libexec/agro-install-zmx,/usr/local/libexec/agro-gateway-session,
+2026-11-04T23:28:41.981Z remote step=install elapsed_ms=1236362 result=fail apt gh libatomic1
+2026-11-04T23:28:41.993Z local done exit=1
+  hook after-claim> 
+2026-11-04T23:28:42.014Z FAILED hook after-claim exit 1
+2026-11-04T23:28:47.513Z DELETED 2d1edd8c-a772-45ee-9c9f-6cff7635a361 status=destroyed
+2026-11-04T23:28:47.960Z RESULT {"experiment":"e1","arm":"h","profile":"agro","size":null,"levers":"stream:0,apt:0,archive:A0","node_id":"2d1edd8c-a772-45ee-9c9f-6cff7635a361","ssh_s":8.786,"usable_s":null,"valid":true,"invalid_reason":null,"failed":true}

@@ -64,8 +64,8 @@
         "`agro node list --json` shows 0 live nodes after the last run."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor-run live. DEVIATION: the planned 5 sets x 3 on the development pool build stopped after 6 runs (runs-apt-at-claim/): unattended-upgrade holds the dpkg lock after the pool build unmasks apt timers, so apt at claim stalled 4 of 6 runs and failed 3; H_PARALLEL_APT failed 2/2 and was dropped. Attribution then ran on the US-004 pool build (agro-console 4fcd6073, features.sandboxPoolPackages on): sets P(A0), P+stream, P+A1, 3 each, interleaved (runs/). (1) executed with deviation above: attr-seq.sh. (2) executed: all 9 runs/ records have pooled_at non-null and valid=true. (3) executed: python3 -I verdict.py --steps prints tables for 3 sets; attribution.md: stream saves 15.7 s, A1 15.5 s against P 51.4 s. (4) executed: 9/9 runs failed=false (usable probe: harness listed, code-server 200, T3 200). (5) executed: agro node list --json shows 0 non-destroyed nodes after run 9. Claims used so far: 16 (1 cut + 6 + 9).",
       "dependsOn": [
         "US-001",
         "US-002"
