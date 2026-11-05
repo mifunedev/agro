@@ -84,7 +84,7 @@ Run interactive sessions in Herdr so the session survives a disconnect: `agro to
 
 The `Stop` entry in `.codex/hooks.json` runs `.codex/hooks/task-next-stop.sh`. The wrapper calls the canonical hook `.agro/hooks/task-next-stop.sh`. The hook runs `bash .agro/skills/delegate/scripts/next.sh` and reads the state on the first line:
 
-- At `story <id>`, `review`, `close`, `push`, `ci`, `ci-red`, or `ready`, the hook blocks the stop. The block reason holds the `next.sh` output.
+- At `story <id>`, `close`, `push`, `ci`, `ci-red`, or `ready`, the hook blocks the stop. The block reason holds the `next.sh` output.
 - At `none`, `done`, or `blocked <reason>`, the hook allows the stop.
 - If `next.sh` fails or the directory is not a git repository, the hook allows the stop.
 

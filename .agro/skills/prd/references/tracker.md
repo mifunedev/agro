@@ -52,15 +52,14 @@ The task also has optional top-level fields:
 
 - `pr`: the number of the task pull request.
 - `blocked`: a reason string. When this string is not empty, the task stops. Only the operator clears this field.
-- `review`: the last task review, as `{"commit": "<sha>", "verdict": "pass|fail", "model": "<model>"}`.
 
 The optional fields need no `schemaVersion` change. Each tool must accept a file without them.
-Omit `commit`, `rounds`, `pr`, `blocked`, and `review` at conversion time.
+Omit `commit`, `rounds`, `pr`, and `blocked` at conversion time.
 `bash .agro/skills/delegate/scripts/next.sh` reads these fields and prints the next task state.
 
 ## Field ownership
 
-- Only the advisor writes `passes`, `commit`, `notes`, `rounds`, `pr`, `blocked`, and `review`.
+- Only the advisor writes `passes`, `commit`, `notes`, `rounds`, `pr`, and `blocked`.
 - The advisor writes `passes`, `commit`, and `notes` only after acceptance.
 - `notes` records each acceptance criterion as executed (command and exit status) or reasoned.
 - Workers never write `prd.json`.

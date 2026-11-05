@@ -1,9 +1,11 @@
 ---
 name: worktrees
 description: |
-  Manage .worktrees/ lifecycle: create worktree, list worktrees, remove worktree,
-  clean worktrees, stale worktrees audit, isolate work, project clone.
-  TRIGGER when: any git worktree operation, branch isolation needed, stale worktrees
+  Decide between the main checkout and a worktree, and manage .worktrees/ lifecycle:
+  create worktree, list worktrees, remove worktree, clean worktrees, stale worktrees
+  audit, isolate work, project clone.
+  TRIGGER when: a task or story must choose the main checkout or a worktree, any git
+  worktree operation, branch isolation needed, stale worktrees
   review, project clone under projects/ (e.g. "clone <owner>/<repo> to projects",
   "add <repo> to projects", "clone this repo into projects"), worktree
   cleanup. A leading-slash harness dir like "/worktrees" still means the repo-relative
@@ -13,7 +15,8 @@ allowed-tools: Bash
 
 # Worktrees
 
-Manage `.worktrees/` and `projects/`. Full policy: `/git` § Worktrees.
+Manage `.worktrees/` and `projects/`. § DECIDE owns the worktree decision. Paths
+and cleanup policy: `/git` § Worktrees.
 
 ## CHANGE ROUTING — TRACK VS RESET
 
@@ -91,6 +94,31 @@ If status is non-empty, stop and classify each path. Preserve intentional work
 by committing it on the project branch, or by making an explicit patch/backup;
 discard only after the owner confirms. Do not use `rm -rf` to remove a project
 clone with dirty, unclassified work.
+
+## DECIDE — main checkout or worktree
+
+This section is the only copy of this rule. Answer for each story or task.
+
+The default answer is the main checkout. Work on that machine keeps continuity
+in its development environment.
+
+Answer worktree only when one of these conditions is true:
+
+- The operator asks for a worktree.
+- The story shares a wave with another story whose `files` do not overlap, or
+  another agent works in the same checkout. `AGENTS.md` non-negotiable 4 requires
+  this.
+- The scope would interfere with the main checkout. For example, the scope
+  changes dependencies or the lockfile, disturbs a running development server or
+  process, or needs a base or branch other than the one the main checkout must
+  stay on.
+
+When a story needs gitignored files or running services of the main checkout,
+answer main checkout. The story runs alone after the advisor accepts the worktree
+stories of its wave. This rule overrides every condition except an operator
+request.
+
+A worktree never moves `/delegate` acceptance. See `/delegate` § Acceptance.
 
 ## DETECT BASE
 

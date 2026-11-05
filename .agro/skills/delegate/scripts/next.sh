@@ -24,7 +24,6 @@ emit() {
     none | done) action="Stop." ;;
     blocked*) action="Stop. The operator clears blocked in prd.json." ;;
     story*) action="Dispatch, verify, and accept ${state#story } per /delegate." ;;
-    review) action="Review the task diff and record review in prd.json per /delegate." ;;
     close) action="Write a non-empty ## Lessons section in prd.md per /git § Ready for review." ;;
     push) action="Run git push." ;;
     ci) action="Run /ci-status and wait for the result." ;;
@@ -96,12 +95,6 @@ fi
 
 pr="$(field '.pr // "" | tostring')"
 [ -n "$pr" ] || emit "blocked prd.json has no pr"
-
-verdict="$(field '.review.verdict // ""')"
-review_commit="$(field '.review.commit // ""')"
-if [ "$verdict" != pass ] || [ -z "$review_commit" ]; then emit review; fi
-git rev-parse --verify --quiet "$review_commit^{commit}" >/dev/null || emit review
-git diff --quiet "$review_commit" HEAD -- . ":!$task_dir" 2>/dev/null || emit review
 
 awk '/^## /{s=($0=="## Lessons");n=0;next} s&&NF{n++} END{exit !(s&&n)}' "$task_dir/prd.md" 2>/dev/null || emit close
 

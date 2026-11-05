@@ -472,7 +472,7 @@ function withStopFixture(test: (f: ReturnType<typeof stopFixture>) => void): () 
 }
 
 describe("task lifecycle stop hook (task-next-stop.sh)", () => {
-  it.each(["story US-003", "review", "close", "push", "ci", "ci-red", "ready"])("blocks the stop at %s", (state) =>
+  it.each(["story US-003", "close", "push", "ci", "ci-red", "ready"])("blocks the stop at %s", (state) =>
     withStopFixture((f) => {
       const result = f.stop(state);
       expect(result.status).toBe(0);
@@ -490,37 +490,37 @@ describe("task lifecycle stop hook (task-next-stop.sh)", () => {
   );
 
   it("fails open when next.sh exits non-zero", withStopFixture((f) => {
-    expect(f.stop("review", { exit: "1" })).toEqual({ status: 0, stdout: "" });
+    expect(f.stop("close", { exit: "1" })).toEqual({ status: 0, stdout: "" });
   }));
 
   it("fails open outside a git repository", withStopFixture((f) => {
     const outside = join(f.root, "outside");
     mkdirSync(outside);
-    expect(f.stop("review", { cwd: outside })).toEqual({ status: 0, stdout: "" });
+    expect(f.stop("close", { cwd: outside })).toEqual({ status: 0, stdout: "" });
   }));
 
   it("reads the repository from the event cwd", withStopFixture((f) => {
     const outside = join(f.root, "outside");
     mkdirSync(outside);
-    expect(f.decisionOf("review", { runCwd: outside })).toBe("block");
+    expect(f.decisionOf("close", { runCwd: outside })).toBe("block");
   }));
 
   it("releases the stop after 3 blocks without progress and escalates one time", withStopFixture((f) => {
-    for (let i = 0; i < 3; i++) expect(f.decisionOf("review")).toBe("block");
+    for (let i = 0; i < 3; i++) expect(f.decisionOf("close")).toBe("block");
     expect(f.escalations()).toHaveLength(0);
-    expect(f.stop("review")).toEqual({ status: 0, stdout: "" });
-    expect(f.stop("review")).toEqual({ status: 0, stdout: "" });
+    expect(f.stop("close")).toEqual({ status: 0, stdout: "" });
+    expect(f.stop("close")).toEqual({ status: 0, stdout: "" });
     const calls = f.escalations();
     expect(calls).toHaveLength(1);
-    expect(calls[0]).toContain("--key demo-review");
+    expect(calls[0]).toContain("--key demo-close");
     expect(calls[0]).toContain(
-      "--summary demo lifecycle hook released a stop after 3 blocks with no progress at state review",
+      "--summary demo lifecycle hook released a stop after 3 blocks with no progress at state close",
     );
-    expect(calls[0]).toContain("--needs Decide how to unblock review");
+    expect(calls[0]).toContain("--needs Decide how to unblock close");
   }));
 
   it("resets the counter when the state changes", withStopFixture((f) => {
-    for (let i = 0; i < 3; i++) f.stop("review");
+    for (let i = 0; i < 3; i++) f.stop("close");
     expect(f.decisionOf("push")).toBe("block");
     expect(f.escalations()).toHaveLength(0);
   }));
@@ -535,12 +535,12 @@ describe("task lifecycle stop hook (task-next-stop.sh)", () => {
   it("keeps a separate counter in each worktree", withStopFixture((f) => {
     const other = join(f.root, "other");
     f.git(f.work, "worktree", "add", "-q", "-b", "feat/2-other", other);
-    f.stop("review");
-    f.stop("review");
+    f.stop("close");
+    f.stop("close");
     const before = f.counter(f.work);
-    expect(before).toMatch(/^review\n[0-9a-f]{40}\n2\n$/);
+    expect(before).toMatch(/^close\n[0-9a-f]{40}\n2\n$/);
     expect(f.counter(other)).toBe("");
-    for (let i = 0; i < 3; i++) expect(f.decisionOf("review", { cwd: other })).toBe("block");
+    for (let i = 0; i < 3; i++) expect(f.decisionOf("close", { cwd: other })).toBe("block");
     expect(f.counter(other)).toMatch(/\n3\n$/);
     expect(f.counter(f.work)).toBe(before);
   }));
