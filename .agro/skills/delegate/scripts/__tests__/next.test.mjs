@@ -208,56 +208,6 @@ describe("story", () => {
   });
 });
 
-describe("review", () => {
-  test("prints review when the review field is missing", () => {
-    fx.write("src/app.txt", "v1\n");
-    fx.commit("code");
-    fx.writePrd(basePrd());
-    fx.writePrdMd("None.");
-    fx.commit("task");
-    fx.push();
-    expectState(fx.run(), "review");
-  });
-
-  test("prints review when the verdict is not pass", () => {
-    const code = fx.ready();
-    fx.writePrd({ ...basePrd(), review: { commit: code, verdict: "fail", model: "opus" } });
-    fx.commit("verdict fail");
-    fx.push();
-    expectState(fx.run(), "review");
-  });
-
-  test("prints review when review.commit is unknown", () => {
-    fx.ready({ prd: { ...basePrd(), review: { commit: "0".repeat(40), verdict: "pass", model: "opus" } } });
-    expectState(fx.run(), "review");
-  });
-
-  test("a code change after the reviewed commit returns to review", () => {
-    fx.ready();
-    fx.write("src/app.txt", "v2\n");
-    fx.commit("more code");
-    fx.push();
-    expectState(fx.run(), "review");
-  });
-
-  test("a commit that changes only the task folder does not return to review", () => {
-    fx.ready();
-    fx.write(`.agro/tasks/${SLUG}/evidence/note.md`, "evidence\n");
-    fx.writePrdMd("Learned a thing.");
-    fx.commit("task folder only");
-    fx.push();
-    expectState(fx.run(), "ready");
-  });
-
-  test("a change to another task folder returns to review", () => {
-    fx.ready();
-    fx.write(".agro/tasks/other/prd.md", "x\n");
-    fx.commit("other task");
-    fx.push();
-    expectState(fx.run(), "review");
-  });
-});
-
 describe("close", () => {
   test("prints close when prd.md has no Lessons section", () => {
     fx.ready({ lessons: null });
@@ -380,6 +330,11 @@ describe("ready and done", () => {
     fx.ready();
     expectState(fx.run([], { GH_STUB_CHECKS: "pass skipping", GH_STUB_DRAFT: "false" }), "done");
   });
+
+  test("a stale review field with verdict fail does not change the state", () => {
+    fx.ready({ prd: { ...basePrd(), review: { commit: "0".repeat(40), verdict: "fail", model: "opus" } } });
+    expectState(fx.run(), "ready", "Run gh pr ready 7.");
+  });
 });
 
 describe("gh failures", () => {
@@ -404,7 +359,7 @@ describe("state order", () => {
     expectState(fx.run(), "blocked hold");
   });
 
-  test("story wins over a missing pr and review", () => {
+  test("story wins over a missing pr", () => {
     const prd = basePrd({ userStories: [story("US-001", { passes: false })] });
     delete prd.pr;
     fx.write("src/app.txt", "v1\n");
@@ -412,13 +367,6 @@ describe("state order", () => {
     fx.writePrd(prd);
     fx.commit("task");
     expectState(fx.run(), "story US-001");
-  });
-
-  test("review wins over close and push", () => {
-    fx.ready({ lessons: null });
-    fx.write("src/app.txt", "v2\n");
-    fx.commit("unpushed code");
-    expectState(fx.run(), "review");
   });
 
   test("close wins over push", () => {

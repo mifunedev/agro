@@ -118,12 +118,11 @@ export function createFixture() {
 
   const ready = ({ prd = basePrd(), lessons = "None." } = {}) => {
     write("src/app.txt", "v1\n");
-    const code = commit("code");
-    writePrd({ ...prd, review: { commit: code, verdict: "pass", model: "opus" }, ...stripReview(prd) });
+    commit("code");
+    writePrd(prd);
     writePrdMd(lessons);
     commit("task state");
     push();
-    return code;
   };
 
   return {
@@ -140,8 +139,4 @@ export function createFixture() {
     ready,
     cleanup: () => rmSync(root, { recursive: true, force: true }),
   };
-}
-
-function stripReview(prd) {
-  return "review" in prd ? { review: prd.review } : {};
 }
