@@ -22,16 +22,16 @@
     "urlFile": "<scratchpad>/h-url-A0 (0600)"
   },
   "A1": {
-    "bytes": 272625840,
-    "sha256": "a03b96e8503d2ebdda01ff234e0f9f5e9596492370c4ed58b6b8ac22246045bb",
+    "bytes": 272800869,
+    "sha256": "c82b9efe0f7ab2c30b13d53371377c3970d1b6a55f3f107a8226f46f5d62546c",
     "entries": 12807,
-    "localExtractMs": 6961,
+    "localExtractMs": 3906,
     "zstd": 6,
     "bucket": "agro-console-beta",
-    "sourceNodeId": "2539c179-d763-4848-9a77-3637c592b1c1",
+    "sourceNodeId": "91e1daec-b7d2-4c1f-a3f6-adabc576f179",
     "sourceProfile": "agro",
     "sourceSpec": "n4",
-    "sourcePooledAt": "2026-11-04T22:13:30.703Z",
+    "sourcePooledAt": "2026-11-05T01:21:06.255Z",
     "agro": "0.28.0",
     "codeServer": "4.129.0",
     "t3": "0.1.7",
@@ -39,8 +39,8 @@
     "workspaceCommit": "679f1f3dfb829782e4d2d2d666487d7d5b518af9",
     "cutScript": "l2a/cut-variants.sh",
     "presignExpiresInSeconds": 604800,
-    "presignedAt": "2026-11-04T22:40Z",
-    "objectKey": "experiments/h-claim-performance-spike/A1/a03b96e8503d2ebdda01ff234e0f9f5e9596492370c4ed58b6b8ac22246045bb.tar.zst",
+    "presignedAt": "2026-11-05T01:30Z",
+    "objectKey": "experiments/h-claim-performance-spike/A1/c82b9efe0f7ab2c30b13d53371377c3970d1b6a55f3f107a8226f46f5d62546c.tar.zst",
     "urlFile": "<scratchpad>/h-url-A1 (0600)"
   }
 }

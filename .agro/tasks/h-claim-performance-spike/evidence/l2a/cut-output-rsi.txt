@@ -1,0 +1,6 @@
+Warning: Permanently added '135.148.232.40' (ED25519) to the list of known hosts.
+tar: home/sandbox/.local/share/code-server/code-server-ipc.sock: socket ignored
+A0 bytes=366208244 sha256=b9567846328c6d0607c8162b7bcb067c5d77373521fe2f500d9e1518e68a7053 entries=17039 zstd=6 extract_ms=5426
+tar: home/sandbox/.local/share/code-server/code-server-ipc.sock: socket ignored
+A1 bytes=272800869 sha256=c82b9efe0f7ab2c30b13d53371377c3970d1b6a55f3f107a8226f46f5d62546c entries=12807 zstd=6 extract_ms=3906
+agro=0.28.0 code_server=4.129.0 t3=0.1.7 node=v24.22.2 workspace_commit=679f1f3dfb829782e4d2d2d666487d7d5b518af9
