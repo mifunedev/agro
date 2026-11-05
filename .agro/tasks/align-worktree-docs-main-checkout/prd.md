@@ -121,3 +121,8 @@ None
 - [ ] `CHANGELOG.md` has an entry under `## [Unreleased]`, or the PR states that the change is a pure chore.
 
 ## Lessons
+
+- **The wave loop ran as written.** Evidence: wave 1 used two worktrees and consolidated with no conflict. Wave 2 ran in the task checkout. The run did not use repair, a consolidation conflict, or the detached switch. Outcome: dropped, because the run found no defect.
+- **The Stop hook blocks the stop while workers run.** Evidence: the hook printed `story US-001` during wave 1. A third block allows the stop and runs `/escalate` with no real problem. Outcome: dropped as tooling friction. The advisor waited in a foreground call.
+- **The advisor ran a stray `git commit --no-verify`.** Evidence: the US-001 acceptance command made that commit and undid it with a soft reset. The kept commit `a21840128` ran the hooks. Outcome: dropped as a process error. The operator receives this report.
+- **The run did not measure the install cost of each worktree.** Evidence: the wave 1 setup recorded no duration. Outcome: dropped, because the evidence supports no change.
