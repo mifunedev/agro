@@ -18,7 +18,7 @@
         "`bash evidence/fixtures/test.sh` passes, with a new fixture for `--steps`."
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "Commit 66870f54 (worker 1128f3ad, cherry-picked). (1) executed: evidence/ holds driver.sh, e1-seq.sh, lib/, verdict.py, fixtures/, arms/h/after-claim.sh; README.md records source commit aadd3ee3 and per-file sha256. (2) executed: switches parsed at after-claim.sh:11-21; unset path runs fetch, verify, extract, install, docker, apps-started, apps-up (worker local test). (3) executed locally by worker with stubbed fetch: sha/size mismatch gives step=verify result=fail and leaves nothing active (stage dir, hard-link into place after checks). (4) reasoned: background apt started before fetch, waited in install step, failure fails run. (5) reasoned: dpkg check skips apt with apt=skipped apt_ms=0. (6) executed by advisor: python3 -I verdict.py --steps --fixture fixtures/steps prints a table per lever set. (7) executed by advisor: bash fixtures/test.sh exit 0 (ALL FIXTURE TESTS PASS). shellcheck not installed; sh -n passes.",
       "dependsOn": [],
       "files": [
@@ -29,7 +29,8 @@
         ".agro/tasks/h-claim-performance-spike/evidence/arms/h/after-claim.sh",
         ".agro/tasks/h-claim-performance-spike/evidence/README.md"
       ],
-      "commit": "66870f541"
+      "commit": "66870f541",
+      "rounds": 1
     },
     {
       "id": "US-002",
@@ -149,7 +150,7 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/tasks/h-claim-performance-spike/evidence/verdict.md` exits 0."
       ],
       "priority": 7,
-      "passes": true,
+      "passes": false,
       "notes": "Advisor. Commit includes worker a375483a (cherry-picked ed68d851): verdict.py --steps prints all three run folders. (1) executed: verdict.md states 'H fails E1, N′ stands', median 33.4 s, p90 39.4 s, lever set H_STREAM=1 + H_ARCHIVE=A1 on the US-004 pool build. (2) executed: verdict.md holds the --steps tables for P (baseline on US-004 build) and the final set. (3) executed: manual-review.md in the server/CLI shape: one final-set H claim (node 5aa7a2bb, 32.178 s) with step timings, usable probe, delete; failure path H_ARCHIVE=A2 exit 2 observed. (4) executed: r2.mjs delete for A0 and A1, list count=0; h-url/h-put files removed from the scratchpad; agro node list --json 0 non-destroyed. (5) executed: ste-check verdict.md exit 0. fixtures/test.sh exit 0.",
       "dependsOn": [
         "US-005",
@@ -158,8 +159,14 @@
       "files": [
         ".agro/tasks/h-claim-performance-spike/evidence/verdict.md",
         ".agro/tasks/h-claim-performance-spike/evidence/manual-review.md"
-      ]
+      ],
+      "rounds": 1
     }
   ],
-  "pr": 1560
+  "pr": 1560,
+  "review": {
+    "commit": "1ee4eeac7e39d9a5f3be614b624dd4d2f550ae2d",
+    "verdict": "fail",
+    "model": "claude-opus-5-5"
+  }
 }
