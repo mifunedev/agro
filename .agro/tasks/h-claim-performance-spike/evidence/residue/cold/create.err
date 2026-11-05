@@ -1,0 +1,6 @@
+agro node create: node 82ce9037-1e79-48a4-879e-05d6d48c2e4d queued
+agro node create: node 82ce9037-1e79-48a4-879e-05d6d48c2e4d creating_vm
+agro node create: node 82ce9037-1e79-48a4-879e-05d6d48c2e4d waiting_for_ip
+agro node create: node 82ce9037-1e79-48a4-879e-05d6d48c2e4d waiting_for_boot
+agro node create: node 82ce9037-1e79-48a4-879e-05d6d48c2e4d bootstrapping
+agro node create: node 82ce9037-1e79-48a4-879e-05d6d48c2e4d running

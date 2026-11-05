@@ -1,0 +1,36 @@
+2026-11-05T00:58:24.691Z STEP monitor console reachability every 2s for the whole run
+2026-11-05T00:58:24.698Z STEP sweep live leftover protocol nodes (name prefix wp-e) before the preflight
+2026-11-05T00:58:25.119Z STEP preflight: 0 live nodes in 'agro node list --json' and http://127.0.0.1:3006/signin returns 200|307 (wait up to 600s, else exit 3)
+2026-11-05T00:58:25.829Z PREFLIGHT ok
+2026-11-05T00:58:25.837Z STEP agro node create --spec n4 --profile agro --free-tier --json --t3 --code-server --docker --name wp-e1-nprime-agro-20261105t005824z  (background; t_request taken at issue)
+2026-11-05T00:58:25.850Z REQUEST create profile=agro name=wp-e1-nprime-agro-20261105t005824z t=1793840305842
+2026-11-05T00:58:25.868Z STEP find node row by name; claim start = first node_events type = 'bootstrapping' and detail->>'reason' = 'bind' at/after t_request; probe ssh every 500ms from claim start (ip re-read each attempt)
+agro node create: node fab05990-5914-439e-a7d5-eb7b157fe7f6 queued
+2026-11-05T00:58:26.755Z NODE id=fab05990-5914-439e-a7d5-eb7b157fe7f6
+2026-11-05T00:58:27.169Z CLAIM_START 1793840306214 (+0.372s)
+agro node create: node fab05990-5914-439e-a7d5-eb7b157fe7f6 bootstrapping
+sandbox@40.160.68.113: Permission denied (publickey).
+sandbox@40.160.68.113: Permission denied (publickey).
+sandbox@40.160.68.113: Permission denied (publickey).
+sandbox@40.160.68.113: Permission denied (publickey).
+sandbox@40.160.68.113: Permission denied (publickey).
+sandbox@40.160.68.113: Permission denied (publickey).
+sandbox@40.160.68.113: Permission denied (publickey).
+sandbox@40.160.68.113: Permission denied (publickey).
+sandbox@40.160.68.113: Permission denied (publickey).
+sandbox@40.160.68.113: Permission denied (publickey).
+sandbox@40.160.68.113: Permission denied (publickey).
+sandbox@40.160.68.113: Permission denied (publickey).
+sandbox@40.160.68.113: Permission denied (publickey).
+sandbox@40.160.68.113: Permission denied (publickey).
+sandbox@40.160.68.113: Permission denied (publickey).
+sandbox@40.160.68.113: Permission denied (publickey).
+agro node create: node fab05990-5914-439e-a7d5-eb7b157fe7f6 running
+2026-11-05T00:58:42.852Z SSH ip=40.160.68.113 +16.800s
+2026-11-05T00:58:42.857Z STEP usable probe (agro workspace list has harness, code-server :8080 200, T3 :3773 200) until 300s
+2026-11-05T00:58:44.942Z USABLE +19.081s
+2026-11-05T00:58:45.304Z STEP parity: usable, claim->ack order, docker state matches --docker=true
+2026-11-05T00:58:46.149Z STEP wait for 'agro node create' to exit
+2026-11-05T00:58:46.159Z CREATE exit=0 {"id":"fab05990-5914-439e-a7d5-eb7b157fe7f6","status":"running"}
+2026-11-05T00:58:50.649Z DELETED fab05990-5914-439e-a7d5-eb7b157fe7f6 status=destroyed
+2026-11-05T00:58:51.102Z RESULT {"experiment":"e1","arm":"nprime","profile":"agro","size":null,"levers":null,"node_id":"fab05990-5914-439e-a7d5-eb7b157fe7f6","ssh_s":16.800,"usable_s":19.081,"valid":true,"invalid_reason":null,"failed":false}

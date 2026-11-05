@@ -1,0 +1,9 @@
+{
+  "id": "aedd66e3-b5bc-41f6-af1b-867381016b90",
+  "mode": "warm",
+  "pooled_at": "2026-11-04 05:48:12.533+00",
+  "pool_cloud_init_sha256": "f4c993095dd6bc7f4466e644c5dc937f2fc61f09b191e1926453400bf417058e",
+  "image_id": "40c82cd6-c9d0-466a-a1f8-21d0057a9afd",
+  "agro_version": "0.28.0",
+  "created_at": "2026-11-04 05:45:57.307359+00"
+}

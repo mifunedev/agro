@@ -1,0 +1,35 @@
+{
+ "schema": 1,
+ "experiment": "e1",
+ "arm": "h",
+ "profile": "agro",
+ "size": null,
+ "label": "fixture",
+ "node_id": "00000000-0000-0000-0000-000000000201",
+ "pooled_at": null,
+ "t_request": 1793920600000,
+ "claim_start": 1793920603000,
+ "ack": 1793920609000,
+ "ssh_s": 148.5,
+ "usable_s": 150.0,
+ "valid": true,
+ "invalid_reason": null,
+ "failed": false,
+ "failure_reason": null,
+ "agro_version": "0.28.0",
+ "pin_agro_version": "0.28.0",
+ "image": {
+  "image_id": "fixture",
+  "image_key": "ubuntu-24-04-lts",
+  "pool_cloud_init_sha256": "fixture"
+ },
+ "archive_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+ "console_commit": "fixture",
+ "docker": false,
+ "parity": {
+  "usable": true,
+  "claim_ack": true,
+  "docker_on": null,
+  "docker_off": true
+ }
+}

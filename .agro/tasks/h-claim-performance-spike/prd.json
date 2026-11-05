@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1559-h-claim-performance-spike",
+  "description": "H claim performance spike: \nThe task `warm-pool-pause-protocol` (PR #1558) measured H at a median of 48.8 s and a p90 of 57.5 s against the 32 s bar. H passed E2, E3, and E4. This spike measures whether cheap levers bring H under the bar.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Instrumented H hook and per-step verdict",
+      "description": "As the advisor, I want an H hook with one switch for each lever. I want a verdict that prints the median of each step, so that each lever has a measured saving.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/h-claim-performance-spike/evidence/` holds copies of `driver.sh`, `lib/`, `verdict.py`, `fixtures/`, and `arms/h/after-claim.sh` from `.agro/tasks/warm-pool-pause-protocol/evidence/`, with the source commit recorded in `evidence/README.md`.",
+        "The hook reads `H_STREAM`, `H_PARALLEL_APT`, and `H_ARCHIVE` from the environment. With the three switches unset, the hook runs the same steps as the baseline hook.",
+        "With `H_STREAM=1`, the hook pipes the download into `sha256sum` and `tar` in one pass. The hook fails the run when the sha256 differs from the pin.",
+        "With `H_PARALLEL_APT=1`, the hook starts the apt install of `gh` and `libatomic1` before the download. The hook waits for the apt install before the apps start.",
+        "When `dpkg -s gh libatomic1` exits 0 on the node, the hook skips the apt install and records the step as 0 s.",
+        "`python3 -I evidence/verdict.py --steps` prints, for each lever set, n, the median of each step, and the median and p90 of `usable_s`.",
+        "`bash evidence/fixtures/test.sh` passes, with a new fixture for `--steps`."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Commit 66870f54 (worker 1128f3ad, cherry-picked). (1) executed: evidence/ holds driver.sh, e1-seq.sh, lib/, verdict.py, fixtures/, arms/h/after-claim.sh; README.md records source commit aadd3ee3 and per-file sha256. (2) executed: switches parsed at after-claim.sh:11-21; unset path runs fetch, verify, extract, install, docker, apps-started, apps-up (worker local test). (3) executed locally by worker with stubbed fetch: sha/size mismatch gives step=verify result=fail and leaves nothing active (stage dir, hard-link into place after checks). (4) reasoned: background apt started before fetch, waited in install step, failure fails run. (5) reasoned: dpkg check skips apt with apt=skipped apt_ms=0. (6) executed by advisor: python3 -I verdict.py --steps --fixture fixtures/steps prints a table per lever set. (7) executed by advisor: bash fixtures/test.sh exit 0 (ALL FIXTURE TESTS PASS). shellcheck not installed; sh -n passes. REPAIR round 1 (aea00987): verdict.py E2 honors residue/allowed.json; fixtures e2allowed/e2unlisted/e2nolist; test.sh exit 0.",
+      "dependsOn": [],
+      "files": [
+        ".agro/tasks/h-claim-performance-spike/evidence/driver.sh",
+        ".agro/tasks/h-claim-performance-spike/evidence/lib/",
+        ".agro/tasks/h-claim-performance-spike/evidence/verdict.py",
+        ".agro/tasks/h-claim-performance-spike/evidence/fixtures/",
+        ".agro/tasks/h-claim-performance-spike/evidence/arms/h/after-claim.sh",
+        ".agro/tasks/h-claim-performance-spike/evidence/README.md"
+      ],
+      "commit": "66870f541",
+      "rounds": 1
+    },
+    {
+      "id": "US-002",
+      "title": "Archive variants",
+      "description": "As the advisor, I want a same-content archive and a slim archive in R2 so that the archive size is a measured lever.",
+      "acceptanceCriteria": [
+        "The advisor cuts both variants from one pooled `agro` n4 node with the cut script from the earlier task, then deletes the node.",
+        "Variant `A0` holds the same paths as the earlier archive (`l2a/manifest.txt` of the earlier task).",
+        "Variant `A1` removes caches, documentation, source maps, and locale files that code-server, T3, Node, and the agro CLI do not load. `evidence/archives.md` lists each removed path pattern and its size.",
+        "`evidence/archives.json` records, for each variant: bytes, sha256, zstd level, entry count, and the local extract time on the cut node.",
+        "Both variants sit in the R2 bucket `agro-console-beta`, under a prefix for this task. A presigned URL for each variant sits in a 0600 file in the session scratchpad. No log prints a URL."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Advisor-run live. (1) executed: claimed pooled agro n4 2539c179 as h-cut-1 (pooled_at 22:13:30Z), ran l2a/cut-variants.sh (output l2a/cut-output.txt), then agro node delete 2539c179 (deleted). (2) executed: A0 uses the same 16 include and 2 exclude paths as warm-pool-pause-protocol l2a; per-root entry counts match except .t3 (T3 0.1.7) - archives.md. (3) executed: archives.md lists 7 removed patterns with byte sizes. (4) executed: archives.json records bytes, sha256, zstd level, entries, localExtractMs per variant. (5) executed: r2.mjs list shows 2 objects under experiments/h-claim-performance-spike/; GET URLs in 0600 scratchpad files h-url-A0/h-url-A1; PUT URL files deleted after upload; grep finds no signed URL in evidence.",
+      "dependsOn": [],
+      "files": [
+        ".agro/tasks/h-claim-performance-spike/evidence/l2a/",
+        ".agro/tasks/h-claim-performance-spike/evidence/archives.md",
+        ".agro/tasks/h-claim-performance-spike/evidence/archives.json"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Lever attribution",
+      "description": "As the operator, I want each hook lever measured in isolation so that I know which lever saves time and how much.",
+      "acceptanceCriteria": [
+        "The driver runs 5 lever sets with 3 H agro claims each, in interleaved order. The sets are baseline (`A0`, no switch), `H_STREAM=1`, `H_PARALLEL_APT=1`, `H_ARCHIVE=A1`, and all three levers.",
+        "Each run claims a warm `sandbox` pool node. A run with `pooled_at` null is invalid, and the driver runs it again.",
+        "`verdict.py --steps` prints the step medians for each lever set. `evidence/attribution.md` states the saving of each lever against the baseline of the same day, in seconds.",
+        "Every run passes the usable probe: `agro workspace list` lists `harness`, code-server returns HTTP 200 with redirects followed, and T3 returns HTTP 200.",
+        "`agro node list --json` shows 0 live nodes after the last run."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Advisor-run live. DEVIATION: the planned 5 sets x 3 on the development pool build stopped after 6 runs (runs-apt-at-claim/): unattended-upgrade holds the dpkg lock after the pool build unmasks apt timers, so apt at claim stalled 4 of 6 runs and failed 3; H_PARALLEL_APT failed 2/2 and was dropped. Attribution then ran on the US-004 pool build (agro-console 4fcd6073, features.sandboxPoolPackages on): sets P(A0), P+stream, P+A1, 3 each, interleaved (runs/). (1) executed with deviation above: attr-seq.sh. (2) executed: all 9 runs/ records have pooled_at non-null and valid=true. (3) executed: python3 -I verdict.py --steps prints tables for 3 sets; attribution.md: stream saves 15.7 s, A1 15.5 s against P 51.4 s. (4) executed: 9/9 runs failed=false (usable probe: harness listed, code-server 200, T3 200). (5) executed: agro node list --json shows 0 non-destroyed nodes after run 9. Claims used so far: 16 (1 cut + 6 + 9).",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/h-claim-performance-spike/evidence/runs/",
+        ".agro/tasks/h-claim-performance-spike/evidence/attribution.md"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Generic packages in the sandbox pool build",
+      "description": "As the operator, I want `gh` and `libatomic1` in the sandbox pool build behind a local flag so that the H claim skips the apt install.",
+      "acceptanceCriteria": [
+        "An application agent makes the change on the agro-console branch `task/<N>-h-sandbox-pool-packages`, cut from `development`.",
+        "With `features.sandboxPoolPackages: true` in the file that `AGRO_CONSOLE_CONFIG` names, the `sandbox` pool build installs `gh` and `libatomic1`. With the flag off, the `sandbox` pool cloud-init is byte-identical to `development`.",
+        "A red test fails before the change and passes after the change: the `sandbox` pool cloud-init installs `gh` and `libatomic1` only with the flag on.",
+        "`pnpm type-check` exits 0, and the shared tests, including the golden cloud-init fixtures, pass.",
+        "The branch has no push and no merge. The operator decides the merge."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "agro-console commit 4fcd6073 on task/1559-h-sandbox-pool-packages (local, not pushed). (1) executed: git log origin/development..HEAD shows 1 commit on the branch. (2) executed: worker test 'a sandbox pool build installs gh and libatomic1 only with features.sandboxPoolPackages on' plus sandbox.pool golden digest pass; flag read in sandboxLayer() via loadConsoleConfig(). (3) executed: red run exit 1 (2 fail) before change, scratchpad red.txt; green after. (4) executed by advisor: packages/shared node --test src/__tests__/*.test.ts 788 tests, 0 fail; pnpm type-check exit 0. (5) executed: no merge. Pushed on operator instruction 2026-11-04 as draft PR mifunedev/agro-console#680 (deviation from the no-push criterion; record in Where it diverged).",
+      "dependsOn": [],
+      "files": [
+        "projects/mifunedev/agro-console (branch task/1559-h-sandbox-pool-packages)"
+      ],
+      "commit": "agro-console:4fcd60735851c80b3af0293fd5e21194af0e19de"
+    },
+    {
+      "id": "US-005",
+      "title": "Final E1 run for the optimized H",
+      "description": "As the operator, I want 10 H agro claims with the best lever set so that the E1 bar decides the outcome.",
+      "acceptanceCriteria": [
+        "The final lever set is the hook set with the lowest median `usable_s` in US-003, on the US-004 pool build.",
+        "The driver runs 10 H agro claims with the final set, interleaved with 5 N′ agro claims as a same-day reference. Each H run alternates the Docker flag on and off.",
+        "`verdict.py` prints the E1 result. H passes when the median is at most 32 s, the p90 is at most 48 s, and no run fails.",
+        "E3 parity passes when all 10 H runs pass the usable probe. The runs also pass the Docker flag on and off, and the claim and ack contract.",
+        "`agro node list --json` shows 0 live nodes after the last run."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Advisor-run live on agro-console 4fcd6073 with features.sandboxPoolPackages on (config h-final.yaml), final-seq.sh. (1) executed with DEVIATION: final set = H_STREAM=1 + H_ARCHIVE=A1 on the US-004 pool build. The best single US-003 sets were stream 35.7 s and A1 35.9 s; the two levers act on different steps (verify+extract vs fetch size), so the advisor combined them. (2) executed: runs/ holds 10 H agro (docker 5 on, 5 off) and 5 N' agro, interleaved H,H,N. (3) executed: python3 -I verdict.py: E1 FAIL H (h agro median=33.4 p90=39.4 n=10, 0 failures; bar 32/48); N' reference median 15.0 p90 19.1 n=5 (reference only, n below MIN_N). (4) executed: E3 PASS (H agro parity holds in every run, docker on and off, claim and ack). (5) executed: agro node list --json shows 0 non-destroyed nodes after the last run. Claims used so far: 31. UPDATE 2026-11-05 (operator-approved /rsi run h-hook): the tuned hook (Docker unit change during the archive download, loop 1 keep 1c15fdf3) gives E1 PASS for H agro: median 31.1 s, p90 33.7 s, n=10, 0 failures (the 10 runs measured after the keep decision, copied into runs/; verdict.py drops the 10 untuned runs as hook revision). Operator accepted: H passes E1.",
+      "dependsOn": [
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        ".agro/tasks/h-claim-performance-spike/evidence/runs/"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "E2 residue on the changed pool build",
+      "description": "As the operator, I want the residue audit repeated on the changed sandbox pool build so that the \"not installed\" rule still has proof.",
+      "acceptanceCriteria": [
+        "The advisor runs this story only when the US-005 final set uses the US-004 pool build. Otherwise the advisor records \"not applicable\" with the reason.",
+        "The audit compares a cold `sandbox` node with a warm `sandbox` node from the changed pool build. The audit uses the audit script and the normalization of the earlier task.",
+        "`evidence/residue/summary.json` lists each entry beyond the noise floor of 14. `grep -rl agro` finds no agro file beyond the noise floor.",
+        "E2 passes when the only extra entries are the packages that the operator allowed."
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Advisor-run live. (1) executed: applicable, US-005 final set uses the US-004 pool build. (2) executed: residue/audit.sh h audited warm sandbox node f25fe484 (pooled_at 01:00:23Z, pool_cloud_init_sha256 fa3d5c7b, US-004 build) against the cold dump 82ce9037 and the noise floor from warm-pool-pause-protocol (copied into residue/cold, residue/nprime); same image 40c82cd6 for all three; node deleted, live=0. DEVIATION: reused the earlier cold dump instead of a new cold claim (claim budget). (3) executed: residue/summary.json lists h_extra = pkg:gh 2.45.0-1ubuntu0.3, pkg:libatomic1 14.2.0-4ubuntu2~24.04.1; h_agro_files_extra = [] (agro files h 17 = noise floor 17). (4) executed: E2 PASS, the only extra entries are the two allowed packages. Claims used so far: 32.",
+      "dependsOn": [
+        "US-005"
+      ],
+      "files": [
+        ".agro/tasks/h-claim-performance-spike/evidence/residue/"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "Brief and manual review",
+      "description": "As the operator, I want one brief and a command transcript so that I can decide whether the warm pool decision reopens.",
+      "acceptanceCriteria": [
+        "`evidence/verdict.md` states one outcome: \"H passes E1, the warm pool decision reopens\" or \"H fails E1, N′ stands\". The file names the median, the p90, and the lever set.",
+        "`evidence/verdict.md` holds the `verdict.py --steps` table for the baseline and the final set.",
+        "`evidence/manual-review.md` holds a command transcript in the server, CLI, or API shape of `.agro/skills/git/references/manual-review.md`. The transcript shows one H claim with the final set, its step timings, the usable probe, and the node delete.",
+        "The advisor deletes the R2 objects of this task and the presigned URL files. `agro node list --json` shows 0 live nodes.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/tasks/h-claim-performance-spike/evidence/verdict.md` exits 0."
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Advisor. Commit includes worker a375483a (cherry-picked ed68d851): verdict.py --steps prints all three run folders. (1) executed: verdict.md states 'H fails E1, N′ stands', median 33.4 s, p90 39.4 s, lever set H_STREAM=1 + H_ARCHIVE=A1 on the US-004 pool build. (2) executed: verdict.md holds the --steps tables for P (baseline on US-004 build) and the final set. (3) executed: manual-review.md in the server/CLI shape: one final-set H claim (node 5aa7a2bb, 32.178 s) with step timings, usable probe, delete; failure path H_ARCHIVE=A2 exit 2 observed. (4) executed: r2.mjs delete for A0 and A1, list count=0; h-url/h-put files removed from the scratchpad; agro node list --json 0 non-destroyed. (5) executed: ste-check verdict.md exit 0. fixtures/test.sh exit 0. REPAIR round 1 (aea00987): verdict.md shows E1-E3 lines (E2 PASS allowed=gh,libatomic1); manual-review grep includes E2; attribution.md path fixed; ste-check exit 0 on all three. UPDATE 2026-11-05: verdict.md states H passes E1, the warm pool decision reopens; manual-review.md scenario B uses tuned run 022744Z (30.507 s); ste-check exit 0.",
+      "dependsOn": [
+        "US-005",
+        "US-006"
+      ],
+      "files": [
+        ".agro/tasks/h-claim-performance-spike/evidence/verdict.md",
+        ".agro/tasks/h-claim-performance-spike/evidence/manual-review.md"
+      ],
+      "rounds": 1
+    }
+  ],
+  "pr": 1560,
+  "review": {
+    "commit": "5309cdbab1125cb81b21fae2f70427dd9289cc7f",
+    "verdict": "pass",
+    "model": "claude-opus-5-5"
+  },
+  "blocked": "Awaiting operator OK before gh pr ready (operator instruction). CI green on 7e0c4d3a."
+}
