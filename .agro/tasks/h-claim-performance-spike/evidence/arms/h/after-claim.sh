@@ -99,6 +99,12 @@ if test -n "$missing" && test "$parallel_apt" = 1; then
   apt_install </dev/null >/dev/null 2>&1 &
   apt_pid=$!
 fi
+if test "$docker_state" = on; then
+  systemctl enable --now docker.socket docker.service containerd.service </dev/null >/dev/null 2>&1 &
+else
+  systemctl disable --now docker.socket docker.service containerd.service </dev/null >/dev/null 2>&1 &
+fi
+docker_pid=$!
 if test "$stream" = 1; then
   rm -rf "$stage" "$pipes" "$listing"
   install -d -m 0700 -o root -g root "$stage" "$pipes" || fail fetch "stage setup"
@@ -161,6 +167,8 @@ step install "result=ok apt_added=${missing:-none} apt=$apt_mode apt_ms=$apt_ms"
 helper() {
   env SSH_ORIGINAL_COMMAND="$1" SSH_CONNECTION=claim /usr/local/libexec/agro-code-server-apply </dev/null >/dev/null 2>&1
 }
+wait "$docker_pid"
+docker_rc=$?
 waited=0
 until helper "runtime-settings apply --generation 1 --action enable"; do
   test "$waited" -lt 120 || fail apps-up "runtime-settings apply"
@@ -170,7 +178,7 @@ done
 if test "$docker_state" = on; then
   start_apps="start-apps --docker --t3"
 else
-  systemctl disable --now docker.socket docker.service containerd.service >/dev/null 2>&1 || fail docker "disable failed"
+  test "$docker_rc" = 0 || fail docker "disable failed"
   if id -nG sandbox | tr ' ' '\n' | grep -qx docker; then gpasswd -d sandbox docker >/dev/null || fail docker "gpasswd failed"; fi
   ! systemctl is-active --quiet docker.service || fail docker "docker still active"
   step docker "result=ok docker=off"
