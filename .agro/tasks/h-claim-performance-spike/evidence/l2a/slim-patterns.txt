@@ -1,0 +1,7 @@
+home/sandbox/.local/lib/code-server-*/lib/vscode/extensions/copilot
+home/sandbox/.local/lib/code-server-*/lib/vscode/node_modules/@github/copilot-linux-x64
+home/sandbox/.local/lib/code-server-*/lib/vscode/extensions/mermaid-markdown-features
+home/sandbox/.nvm/versions/node/*/include
+home/sandbox/.t3/userdata/logs
+*.map
+*/CHANGELOG.md

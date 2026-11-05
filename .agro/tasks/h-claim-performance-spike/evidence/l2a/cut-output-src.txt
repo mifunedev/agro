@@ -1,0 +1,6 @@
+Warning: Permanently added '40.160.4.31' (ED25519) to the list of known hosts.
+tar: home/sandbox/.local/share/code-server/code-server-ipc.sock: socket ignored
+A0 bytes=366262179 sha256=28bb86fa6a1045cab28bf3a2a3f24cfb0c8755e89f963be05ed730a4f1453293 entries=17039 zstd=6 extract_ms=6905
+tar: home/sandbox/.local/share/code-server/code-server-ipc.sock: socket ignored
+A1 bytes=272925055 sha256=e9c70045a8ea5bb188681dae64d81e453e18b2eb3c47f84591fd873f3982afe1 entries=12807 zstd=6 extract_ms=5010
+agro=0.28.0 code_server=4.129.0 t3=0.1.7 node=v24.22.2 workspace_commit=679f1f3dfb829782e4d2d2d666487d7d5b518af9
