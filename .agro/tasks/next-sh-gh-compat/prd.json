@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1567-next-sh-gh-compat",
+  "description": "Read CI state in next.sh on gh 2.45.0. Issue #1567 records the defect.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Read CI state from statusCheckRollup",
+      "description": "As an advisor, I want `next.sh` to read CI state on `gh` 2.45.0 so that a `/delegate` run does not stop at `blocked`.",
+      "acceptanceCriteria": [
+        "`grep -c 'gh pr checks' .agro/skills/delegate/scripts/next.sh` prints `0`.",
+        "The test stub exits non-zero with `unknown flag: --json` for `gh pr checks --json`.",
+        "A test proves that a failed result and a later passing result of one check do not print `ci-red`.",
+        "A test proves that a `CheckRun` and a `StatusContext` both map to each state: pass, skipping, cancel, pending, and fail.",
+        "`pnpm exec vitest run .agro/skills/delegate/scripts/__tests__/next.test.mjs` exits 0.",
+        "`/delegate` § Waves tells the advisor to wait in a foreground call for worker commits."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/delegate/scripts/next.sh",
+        ".agro/skills/delegate/scripts/__tests__/fixture.mjs",
+        ".agro/skills/delegate/scripts/__tests__/next.test.mjs",
+        ".agro/skills/delegate/SKILL.md",
+        "CHANGELOG.md"
+      ]
+    }
+  ]
+}
