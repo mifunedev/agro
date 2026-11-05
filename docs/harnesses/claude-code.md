@@ -77,7 +77,7 @@ The hook keeps a counter at `$(git rev-parse --git-path agro-next-stop)`. Each w
 
 ## Tips
 
-- Use worktrees to give Claude Code its own branch: `git worktree add -b agent/claude .worktrees/agent/claude development`
+- Start work in the main checkout. `/worktrees` § DECIDE owns the worktree decision.
 - Place a `SOUL.md` in the workspace to set the agent's persona and project context.
 - Use `/loop` to run a prompt or slash command on a recurring interval.
 
