@@ -82,6 +82,10 @@ The columns sum to `usable_s`. The report keeps only `e1 h agro` runs that pass 
 
 Without `--fixture`, `--steps` reports each run folder that exists, in this order: `runs-apt-at-claim`, `runs-attribution`, `runs`. Each table header and each `dropped` or `failed` line starts with the folder name, so equal lever sets in different folders stay separate. `--base DIR` reads the folders from `DIR` instead of `evidence/`. With `--fixture DIR`, `--steps` reads only `DIR`. The E1 to E7 report reads only `runs/`.
 
+## E2 package allowance
+
+`residue/allowed.json` lists the package names that the operator allowed on a warm `sandbox` node. E2 treats an `h_extra` entry `pkg:<name> ...` as allowed when `<name>` is in the list. E2 passes when every extra entry is allowed and no agro file is beyond the noise floor. A missing file allows no package.
+
 ## Tests
 
 `bash fixtures/test.sh` checks the earlier fixtures, `fixtures/steps/` (two lever sets and one run of an old hook revision), `fixtures/multi/` (the `--base` folder report with `runs/` and `runs-attribution/`), and the local part of the hook against `fixtures/hook/` (a fake `ssh` and an `archives.json` copy for tests only).

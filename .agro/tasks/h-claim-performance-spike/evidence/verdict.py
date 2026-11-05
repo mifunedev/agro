@@ -217,9 +217,16 @@ def e2_line(base):
     extra, agro_files = count(data.get("h_extra_entries")), count(data.get("h_agro_files_extra"))
     if not isinstance(extra, int) or not isinstance(agro_files, int):
         return "FAIL (residue/summary.json lacks h_extra_entries or h_agro_files_extra)"
-    ok = extra == 0 and agro_files == 0
+    allowance, _ = read_json(base, "residue/allowed.json")
+    allowance = set(allowance) if isinstance(allowance, list) else set()
+    entries = data.get("h_extra") if isinstance(data.get("h_extra"), list) else []
+    names = [str(e)[len("pkg:"):].split(" ", 1)[0] for e in entries if str(e).startswith("pkg:")]
+    allowed = [n for n in names if n in allowance]
+    all_allowed = len(entries) == extra and len(allowed) == extra
+    ok = agro_files == 0 and (extra == 0 or all_allowed)
     floor = count(data.get("noise_floor_entries"))
-    return f"{'PASS' if ok else 'FAIL'} (H extra entries={extra}, H agro files beyond floor={agro_files}, noise floor={floor})"
+    shown = f" allowed={','.join(allowed)}" if allowed else ""
+    return f"{'PASS' if ok else 'FAIL'} (H extra entries={extra}{shown}, H agro files beyond floor={agro_files}, noise floor={floor})"
 
 
 def e4_line(base):

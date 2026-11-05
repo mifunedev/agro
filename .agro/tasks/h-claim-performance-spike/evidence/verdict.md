@@ -89,5 +89,6 @@ The spike used 32 of the 35 free-tier claims. The claims were 1 archive cut, 6 r
 
 ```text
 E1: FAIL H (h agro FAIL median=33.4 p90=39.4 n=10; h sandbox PENDING) | reference nprime agro FAIL median=15.0 p90=19.1 n=5
+E2: PASS (H extra entries=2 allowed=gh,libatomic1, H agro files beyond floor=0, noise floor=14)
 E3: PASS (H agro parity holds in every run)
 ```

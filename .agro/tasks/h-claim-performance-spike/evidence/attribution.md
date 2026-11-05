@@ -1,6 +1,6 @@
 # Lever attribution
 
-All runs used the local dev console on 2026-11-04 and 2026-11-05. Each run claimed a warm `sandbox` n4 pool node, ran the H hook with Docker on, and passed or failed the usable probe. `python3 -I verdict.py --steps` prints the step tables from `runs/`. `python3 -I verdict.py --steps --fixture runs-apt-at-claim` prints the tables of the first series.
+All runs used the local dev console on 2026-11-04 and 2026-11-05. Each run claimed a warm `sandbox` n4 pool node, ran the H hook with Docker on, and passed or failed the usable probe. `python3 -I verdict.py --steps` prints the step tables of `runs-apt-at-claim/`, `runs-attribution/`, and `runs/`. The tables of this file come from `runs-attribution/`. The tables of the first series come from `runs-apt-at-claim/`.
 
 ## Result
 

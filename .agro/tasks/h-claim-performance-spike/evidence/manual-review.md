@@ -6,16 +6,17 @@ Paths are relative to `.agro/tasks/h-claim-performance-spike/evidence/`. The obs
 
 Prerequisites: a checkout of the task branch. Runs on the host or in the sandbox, local. Needs no console and no network.
 
-1. Print the E1 and E3 lines:
+1. Print the E1, E2, and E3 lines:
 
    ```bash
-   python3 -I .agro/tasks/h-claim-performance-spike/evidence/verdict.py | grep -E '^E1|^E3'
+   python3 -I .agro/tasks/h-claim-performance-spike/evidence/verdict.py | grep -E '^E1|^E2|^E3'
    ```
 
    Expected output:
 
    ```text
    E1: FAIL H (h agro FAIL median=33.4 p90=39.4 n=10; h sandbox PENDING) | reference nprime agro FAIL median=15.0 p90=19.1 n=5
+   E2: PASS (H extra entries=2 allowed=gh,libatomic1, H agro files beyond floor=0, noise floor=14)
    E3: PASS (H agro parity holds in every run)
    ```
 
