@@ -52,8 +52,8 @@
         "Neither document restates the § DECIDE conditions."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Main checkout, task branch. Executed: grep -c Use worktrees to printed 0 for each file; grep finds the new tip in each Tips section. Reasoned: the diff has one line per file and restates no DECIDE condition.",
       "dependsOn": [
         "US-001",
         "US-002"
@@ -61,7 +61,8 @@
       "files": [
         "docs/harnesses/claude-code.md",
         "docs/harnesses/codex.md"
-      ]
+      ],
+      "commit": "b080555de"
     }
   ],
   "pr": 1566
