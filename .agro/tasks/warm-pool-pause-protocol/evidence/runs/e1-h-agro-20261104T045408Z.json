@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "experiment": "e1",
+  "arm": "h",
+  "profile": "agro",
+  "size": null,
+  "label": "seq-c2",
+  "docker": false,
+  "node_id": "475f9cc7-7d70-4e9a-ad51-1ab3b3e6fc54",
+  "pooled_at": "2026-11-04 04:53:59.759+00",
+  "t_request": 1793768049767,
+  "claim_start": 1793768050136,
+  "ack": 1793768053842,
+  "ssh_s": 6.050,
+  "usable_s": 52.109,
+  "valid": true,
+  "invalid_reason": null,
+  "failed": false,
+  "failure_reason": null,
+  "agro_version": "0.28.0",
+  "pin_agro_version": "0.28.0",
+  "image": {
+    "image_id": "40c82cd6-c9d0-466a-a1f8-21d0057a9afd",
+    "image_key": "ubuntu-24-04-lts",
+    "pool_cloud_init_sha256": "f4c993095dd6bc7f4466e644c5dc937f2fc61f09b191e1926453400bf417058e"
+  },
+  "archive_sha256": "899db69f08c75f1ac2e78fd0bcbbcdddd751c4936e0efddec628a192380b9a41",
+  "console_commit": "d4ae1b17399d66fd2e7b26e00ee0c51a58e0896e",
+  "usable_components": {
+    "ws": "1",
+    "cs": "200",
+    "t3": "200"
+  },
+  "parity": {
+    "usable": true,
+    "claim_ack": true,
+    "docker_on": null,
+    "docker_off": true
+  },
+  "hook": {
+    "after_claim": {
+      "archive_sha256": "899db69f08c75f1ac2e78fd0bcbbcdddd751c4936e0efddec628a192380b9a41",
+      "docker": "off"
+    }
+  },
+  "scope_before": null,
+  "scope": null,
+  "cleanup": {
+    "deleted": true,
+    "live_after": 0
+  },
+  "started_at": "2026-11-04T04:54:08.936Z",
+  "finished_at": "2026-11-04T04:55:10.958Z",
+  "hook_sha256": "0892f00a9e8709654d70fb0a61093efdfa2bb98e4487ce744b1447db8554a428"
+}

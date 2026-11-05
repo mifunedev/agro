@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "experiment": "e6",
+  "arm": "a",
+  "profile": "agro",
+  "size": "small",
+  "label": "seq-c1",
+  "docker": true,
+  "node_id": "5380c4b2-510d-4fea-bdf2-4f56586ab80b",
+  "pooled_at": "2026-11-04 06:45:51.777+00",
+  "t_request": 1793775708152,
+  "claim_start": 1793775712076,
+  "ack": 1793775752869,
+  "ssh_s": 47.305,
+  "usable_s": 48.576,
+  "valid": true,
+  "invalid_reason": null,
+  "failed": false,
+  "failure_reason": null,
+  "agro_version": "0.28.0",
+  "pin_agro_version": "0.28.0",
+  "image": {
+    "image_id": "40c82cd6-c9d0-466a-a1f8-21d0057a9afd",
+    "image_key": "ubuntu-24-04-lts",
+    "pool_cloud_init_sha256": "938089e9dcbea181f466f2b19ee973553f82731e2677c00e4fc05a33ba3030e2"
+  },
+  "archive_sha256": null,
+  "console_commit": "d4ae1b17399d66fd2e7b26e00ee0c51a58e0896e",
+  "usable_components": {
+    "ws": "1",
+    "cs": "200",
+    "t3": "200"
+  },
+  "parity": {
+    "usable": true,
+    "claim_ack": true,
+    "docker_on": true,
+    "docker_off": null
+  },
+  "hook": {},
+  "scope_before": {
+    "home": "kept",
+    "git_workspace": "kept",
+    "filler": "kept",
+    "docker_images": "kept",
+    "containers": "kept",
+    "volumes": "kept",
+    "apt_package": "kept"
+  },
+  "scope": {
+    "home": "kept",
+    "git_workspace": "kept",
+    "filler": "kept",
+    "docker_images": "lost",
+    "containers": "lost",
+    "volumes": "lost",
+    "apt_package": "lost"
+  },
+  "cleanup": {
+    "deleted": true,
+    "live_after": 0
+  },
+  "started_at": "2026-11-04T06:57:44.238Z",
+  "finished_at": "2026-11-04T07:02:51.660Z",
+  "seed": {
+    "size": "small",
+    "filler_mib": 0,
+    "filler_sha256": "none",
+    "commit": "707de1c2542bb8e8fe7777a0599a8cc618b13e86"
+  },
+  "pause_request": 1793775650352,
+  "pause_http": 202,
+  "paused_s": 57.377,
+  "resume_http": 202,
+  "vm_swapped": 1793775752869,
+  "instance": {
+    "before": "fe1597b2-4a90-409a-920a-f60e8c386313",
+    "after": "fac52505-8712-4ead-9520-9caeeb726104"
+  },
+  "pause_to_usable_s": 106.376
+}

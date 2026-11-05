@@ -1,0 +1,1 @@
+{"schema": 1, "experiment": "e6", "arm": "a", "profile": "agro", "size": "small", "node_id": "n20", "pooled_at": "2026-11-04T06:00:00Z", "t_request": 1793900000020, "usable_s": null, "pause_to_usable_s": null, "valid": true, "invalid_reason": null, "failed": true, "failure_reason": "pause request rejected", "hook": {}, "pause_http": 404}

@@ -1,0 +1,42 @@
+{
+ "h_extra_entries": 0,
+ "h_extra": [],
+ "h_agro_files_extra": [],
+ "noise_floor_entries": 14,
+ "agro_files": {
+  "cold": 16,
+  "nprime": 17,
+  "h": 17
+ },
+ "h_equals_nprime_build": true,
+ "nodes": {
+  "cold": {
+   "id": "82ce9037-1e79-48a4-879e-05d6d48c2e4d",
+   "mode": "cold",
+   "pooled_at": null,
+   "pool_cloud_init_sha256": null,
+   "image_id": "40c82cd6-c9d0-466a-a1f8-21d0057a9afd",
+   "agro_version": "",
+   "created_at": "2026-11-04 05:58:36.001571+00"
+  },
+  "nprime": {
+   "id": "aedd66e3-b5bc-41f6-af1b-867381016b90",
+   "mode": "warm",
+   "pooled_at": "2026-11-04 05:48:12.533+00",
+   "pool_cloud_init_sha256": "f4c993095dd6bc7f4466e644c5dc937f2fc61f09b191e1926453400bf417058e",
+   "image_id": "40c82cd6-c9d0-466a-a1f8-21d0057a9afd",
+   "agro_version": "0.28.0",
+   "created_at": "2026-11-04 05:45:57.307359+00"
+  },
+  "h": {
+   "id": "d1e54b70-7e29-466e-93ba-4de12164b0bd",
+   "mode": "warm",
+   "pooled_at": "2026-11-04 06:02:55.259+00",
+   "pool_cloud_init_sha256": "f4c993095dd6bc7f4466e644c5dc937f2fc61f09b191e1926453400bf417058e",
+   "image_id": "40c82cd6-c9d0-466a-a1f8-21d0057a9afd",
+   "agro_version": "0.28.0",
+   "created_at": "2026-11-04 06:00:57.472985+00"
+  }
+ },
+ "normalization": "dropped host keys, machine-id, instance-id, logs, tokens, shell history; /var/lib/cloud/instances/<id> -> <IID>; /var/lib/cloud file content treated as per-instance"
+}

@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "experiment": "e6",
+  "arm": "a",
+  "profile": "agro",
+  "size": "small",
+  "label": "seq-c1",
+  "docker": true,
+  "node_id": "f608e9a1-ebc4-458c-ba5d-266873bcf609",
+  "pooled_at": "2026-11-04 13:31:37.392+00",
+  "t_request": 1793800630440,
+  "claim_start": 1793800633909,
+  "ack": 1793800684067,
+  "ssh_s": 58.330,
+  "usable_s": 59.458,
+  "valid": true,
+  "invalid_reason": null,
+  "failed": false,
+  "failure_reason": null,
+  "agro_version": "0.28.0",
+  "pin_agro_version": "0.28.0",
+  "image": {
+    "image_id": "40c82cd6-c9d0-466a-a1f8-21d0057a9afd",
+    "image_key": "ubuntu-24-04-lts",
+    "pool_cloud_init_sha256": "938089e9dcbea181f466f2b19ee973553f82731e2677c00e4fc05a33ba3030e2"
+  },
+  "archive_sha256": null,
+  "console_commit": "d4ae1b17399d66fd2e7b26e00ee0c51a58e0896e",
+  "usable_components": {
+    "ws": "1",
+    "cs": "200",
+    "t3": "200"
+  },
+  "parity": {
+    "usable": true,
+    "claim_ack": true,
+    "docker_on": true,
+    "docker_off": null
+  },
+  "hook": {},
+  "scope_before": {
+    "home": "kept",
+    "git_workspace": "kept",
+    "filler": "kept",
+    "docker_images": "kept",
+    "containers": "kept",
+    "volumes": "kept",
+    "apt_package": "kept"
+  },
+  "scope": {
+    "home": "kept",
+    "git_workspace": "kept",
+    "filler": "kept",
+    "docker_images": "lost",
+    "containers": "lost",
+    "volumes": "lost",
+    "apt_package": "lost"
+  },
+  "cleanup": {
+    "deleted": true,
+    "live_after": 0
+  },
+  "started_at": "2026-11-04T13:53:42.125Z",
+  "finished_at": "2026-11-04T13:58:21.627Z",
+  "seed": {
+    "size": "small",
+    "filler_mib": 0,
+    "filler_sha256": "none",
+    "commit": "b8663358f7831c5b5a5c2a5b4300e387609f3848"
+  },
+  "pause_request": 1793800454101,
+  "pause_http": 202,
+  "paused_s": 45.110,
+  "resume_http": 202,
+  "vm_swapped": 1793800684067,
+  "instance": {
+    "before": "e5cacbb9-fb59-49b0-b4be-830f9095f6b2",
+    "after": "da66ba72-8b5b-4f74-aee9-3fa5a17a6183"
+  },
+  "pause_to_usable_s": 235.797,
+  "web_exits": []
+}
