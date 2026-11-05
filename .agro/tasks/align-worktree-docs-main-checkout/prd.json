@@ -15,12 +15,13 @@
         "`pnpm exec vitest run .agro/scripts/__tests__/behavioral-training-replay.test.ts .agro/scripts/__tests__/unrequested-action-replay.test.ts` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Main checkout, task branch. Executed: grep -c worktree boundaries printed 0; git diff f4305498d shows no change to section 4, grep count 0; pnpm exec vitest run behavioral-training-replay and unrequested-action-replay exit 0, 68 passed. Executed: grep finds /worktrees DECIDE in the advisor section.",
       "dependsOn": [],
       "files": [
         "AGENTS.md"
-      ]
+      ],
+      "commit": "073cbb375"
     },
     {
       "id": "US-002",
@@ -33,12 +34,13 @@
         "The quickstart keeps the statement that each parallel agent gets its own branch and worktree."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Main checkout, task branch. Executed: grep -c Then ask for an isolated workspace printed 0; grep finds line 306 main checkout default, line 311 worktree request, line 320 parallel statement.",
       "dependsOn": [],
       "files": [
         "README.md"
-      ]
+      ],
+      "commit": "0c2cb119b"
     },
     {
       "id": "US-003",
