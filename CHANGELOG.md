@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Add the `msb` remote-sandbox provider, the `msb-guest` check, and the `agro-msb` Dockerfile target to boot the AGRO image as a microVM on an agro-console node ([#1555](https://github.com/mifunedev/agro/pull/1555)).
+
 ### Changed
 
 - `/worktrees` § DECIDE owns the choice between the main checkout and a worktree, and the default answer is the main checkout. `/git` § Draft PR for a task and `/delegate` § Waves run that decision. `/delegate` § Waves runs worktree stories in parallel, brings each commit onto the task branch, verifies the stories in the main checkout, and keeps each worktree until the advisor accepts every worktree story of the wave. Main-checkout stories run one at a time. `/delegate` § Acceptance and § Close step 1 run `pnpm install --frozen-lockfile` and then verification in the main checkout, also when a worktree holds the task branch ([#1563](https://github.com/mifunedev/agro/issues/1563)).
