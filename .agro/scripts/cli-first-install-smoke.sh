@@ -10,7 +10,7 @@
 #     --name-prefix <str>        Sandbox name prefix (default: agro-cli-first).
 #     --bundle <path>            Candidate agro.js (default: .agro/cli/dist/agro.js).
 #     --require-docker           Fail when docker is missing (CI).
-#     --bootstrap-without-node   Require node to be absent, then run install.sh nvm provisioning.
+#     --bootstrap-without-node   Require node to be absent, then run install.sh fnm provisioning.
 #     --cleanup-only             Remove only resources recorded in --workdir/manifest.
 #     --keep                     Keep recorded resources after success.
 #
@@ -46,7 +46,7 @@ Options:
   --name-prefix <str>        Sandbox name prefix (default: agro-cli-first)
   --bundle <path>            Candidate agro.js (default: <repo>/.agro/cli/dist/agro.js)
   --require-docker           Fail when docker is missing
-  --bootstrap-without-node   Require node absent; exercise install.sh nvm/Node provisioning
+  --bootstrap-without-node   Require node absent; exercise install.sh fnm/Node provisioning
   --cleanup-only             Remove only resources recorded in the workdir manifest
   --keep                     Keep recorded resources after success
   -h, --help                 Print this contract
@@ -236,9 +236,6 @@ phase_bootstrap() {
   record home "$home"
   local bin_dir="$home/.local/bin"
   mkdir -p "$bin_dir"
-  # install.sh and nvm only append PATH to an existing profile. debian:bookworm-slim
-  # and an isolated HOME have none — create .profile before install so a new login
-  # shell can find both nvm Node and agro.
   if [ ! -f "$home/.profile" ]; then
     : > "$home/.profile"
   fi
@@ -250,8 +247,11 @@ phase_bootstrap() {
   local login_out
   login_out=$(HOME="$home" bash -lc '
     [ -f "$HOME/.profile" ] && . "$HOME/.profile"
-    export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
-    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+    export FNM_DIR="${FNM_DIR:-$HOME/.local/share/fnm}"
+    if [ -x "$FNM_DIR/fnm" ]; then
+      export PATH="$FNM_DIR:$PATH"
+      eval "$(fnm env --shell bash)"
+    fi
     command -v agro >/dev/null 2>&1 || { echo "agro not on PATH in new login shell" >&2; exit 127; }
     echo "bootstrap_version=$(agro --version)"
     if command -v node >/dev/null 2>&1; then
