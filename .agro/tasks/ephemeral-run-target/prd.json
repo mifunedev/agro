@@ -38,8 +38,8 @@
         "`pnpm typecheck` exits 0, and `pnpm test` shows no new failure against the baseline."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, fd2ab4cb): typecheck 0; run.test.ts + ephemeral-target.test.ts 26/26; CLI build 0; real run of the built CLI: agro run -- sh -c \"id -u; echo ok\" printed 1001 and ok, exit 0. worker: pnpm test shows only the 14 baseline failures. Repair: command-table.ts added to owned files (verb registry) after one BLOCKED report.",
       "dependsOn": [
         "US-001"
       ],
@@ -48,7 +48,8 @@
         ".agro/cli/src/commands/run.ts",
         ".agro/cli/src/__tests__/run.test.ts",
         ".agro/cli/src/command-table.ts"
-      ]
+      ],
+      "commit": "fd2ab4cb"
     },
     {
       "id": "US-003",
