@@ -81,15 +81,16 @@
         "`CHANGELOG.md` holds one entry under `## [Unreleased]` that links the task issue."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, merged d088320f): docs.test.ts + compose-verbs.test.ts via agro run 41/41; ste-check no finding on added lines. reasoned: services subsection matches run.ts (fields, network per invocation, alias, ready loop, cleanup, run variables only with services, no secrets in tracked agro.json); CHANGELOG Added entry links #1584 and names the delegate rule.",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         "docs/lifecycle-commands.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "d088320f"
     },
     {
       "id": "US-005",
@@ -102,14 +103,15 @@
         "The run deletes the scratch repository at the end."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Criterion-to-evidence (merged 6078f51b): (1) scratch repo agro.json with postgres service and ready, run connects to postgres:5432: met (exit 0); (2) two simultaneous runs on networks agro-run-537db0d6c0b8 and agro-run-74acdbc2239d with distinct service containers, each reaching its own server IP, each database holding only its own table: met; (3) no agro-run container or network after: met (advisor rechecked 0/0); (4) scratch repo deleted: met. Extra: ready timeout and DNS failure paths clean up.",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         ".agro/tasks/agro-run-services/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "6078f51b"
     }
   ],
   "pr": 1585
