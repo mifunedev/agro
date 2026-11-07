@@ -62,15 +62,16 @@
         "`CHANGELOG.md` holds one entry under `## [Unreleased]` that links the task issue."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, merged c752c8d3): docs.test.ts + compose-verbs.test.ts via agro run 41/41. reasoned: allowlist subsection matches run.ts; open-egress wording narrowed; CHANGELOG Added entry links #1588.",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         "docs/lifecycle-commands.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "c752c8d3"
     },
     {
       "id": "US-004",
@@ -84,14 +85,15 @@
         "After each run, `docker ps -a` and `docker network ls` show no `agro-run-` container or network, and the run deletes the scratch repository."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Criterion-to-evidence (merged f7b0425b): scratch repo with allowlist and example.org: met; example.org 200 and example.com proxy denial: met; direct request bypassing the proxy fails: met; postgres service reachable: met; no agro-run leftovers and scratch repo deleted: met (advisor rechecked 0/0).",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         ".agro/tasks/agro-run-egress/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "f7b0425b"
     }
   ],
   "pr": 1589
