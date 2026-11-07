@@ -47,8 +47,8 @@
         "`git grep -inE \"\\bnvm\\b|NVM_\" -- . ':!CHANGELOG.md' ':!.agro/tasks'` prints only the compatibility path of US-001, its tests, its documentation sentence, and history rows that name a past fix."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed by advisor: under umask 022 (the default on CI), vitest for cli-first-install-smoke.test.ts and self-upgrade.test.ts exits 0. Under this shell umask 0077, 4 self-upgrade cases fail on a mode assertion, 448 vs 493, including two cases US-002 did not touch; src/commands/self-upgrade.ts is unchanged. bash -n exits 0 for the smoke script and four checks. ste-check docs/installation.md exits 0. nvm grep prints only the install.sh compatibility path, its tests, one docs sentence, and history row C9. Reasoned: the four checks did not run on a VM; their load lines match the smoke script.",
       "dependsOn": [
         "US-001"
       ],
@@ -59,7 +59,8 @@
         "docs/installation.md",
         "CHANGELOG.md",
         ".agro/cli/src/__tests__/self-upgrade.test.ts"
-      ]
+      ],
+      "commit": "5fe8c4274"
     },
     {
       "id": "US-003",
