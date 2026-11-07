@@ -23,13 +23,14 @@
         "`pnpm exec vitest run .agro/scripts/__tests__/install.test.ts` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed by advisor after commit inspection: pnpm exec vitest run .agro/scripts/__tests__/install.test.ts exit 0 (38 passed), bash -n install.sh exit 0. All acceptance criteria are covered by named tests with fake fnm, apt-get, sudo, and curl. Worker red run exit 1 (20 failed, 18 passed). Reasoned: an interactive no answer at the unzip prompt reaches the same die path. Real fnm install is deferred to US-003.",
       "dependsOn": [],
       "files": [
         ".agro/scripts/install.sh",
         ".agro/scripts/__tests__/install.test.ts"
-      ]
+      ],
+      "commit": "ce18bd33e"
     },
     {
       "id": "US-002",
@@ -82,5 +83,6 @@
         ".agro/tasks/nvm-to-fnm/evidence/"
       ]
     }
-  ]
+  ],
+  "pr": 1570
 }
