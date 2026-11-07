@@ -72,6 +72,19 @@ export interface LangfuseSettings {
   userId?: string;
 }
 
+export interface RunService {
+  image: string;
+  env?: Record<string, string>;
+  ready?: string;
+}
+
+export interface RunSettings {
+  services?: Record<string, RunService>;
+  env?: Record<string, string>;
+}
+
+const SERVICE_NAME = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
+
 export type SandboxRuntime = ProvisionableRuntimeId;
 
 export const SANDBOX_RUNTIMES: readonly SandboxRuntime[] = PROVISIONABLE_RUNTIMES;
@@ -90,6 +103,7 @@ export interface AgroConfig {
   image?: ImageSettings;
   langfuse?: LangfuseSettings;
   composeOverrides?: string[];
+  run?: RunSettings;
   [key: string]: unknown;
 }
 
@@ -251,6 +265,27 @@ export function validateAgroConfig(value: unknown): AgroConfig {
     }
   }
 
+  const run = expectSection(record, "run");
+  if (run) {
+    const services = run.services === undefined ? {} : expectObject(run.services, "run.services");
+    for (const [name, value] of Object.entries(services)) {
+      const path = `run.services.${name}`;
+      if (!SERVICE_NAME.test(name)) {
+        throw fieldError(
+          path,
+          "must be named with 1-63 lowercase letters, digits, or hyphens, without a leading or trailing hyphen",
+        );
+      }
+      const service = expectObject(value, path);
+      if (typeof service.image !== "string" || service.image === "") {
+        throw fieldError(`${path}.image`, "must be a non-empty string");
+      }
+      expectStringMap(service, "env", `${path}.`);
+      expectString(service, "ready", `${path}.`);
+    }
+    expectStringMap(run, "env", "run.");
+  }
+
   return { ...(record as AgroConfig), version: 1 };
 }
 
@@ -306,6 +341,14 @@ function expectStringArray(record: Record<string, unknown>, key: string, prefix 
     if (typeof entry !== "string") {
       throw fieldError(`${prefix}${key}`, "must be an array of strings");
     }
+  }
+}
+
+function expectStringMap(record: Record<string, unknown>, key: string, prefix = ""): void {
+  if (record[key] === undefined) return;
+  const map = expectObject(record[key], `${prefix}${key}`);
+  for (const [name, value] of Object.entries(map)) {
+    if (typeof value !== "string") throw fieldError(`${prefix}${key}.${name}`, "must be a string");
   }
 }
 
