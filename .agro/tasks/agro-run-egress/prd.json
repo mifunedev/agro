@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1588-agro-run-egress",
+  "description": "agro run egress. ADR #1378 (Accepted) shipped the allowlist for the long-lived sandbox in mifunedev/agro#1398: `.devcontainer/docker-compose.egress.yml` puts the sandbox on an internal network behind a pinned `ubuntu/squid` proxy. `registry.ts` builds the host list from the OpenShell policy hosts plus `access.egressAllow`. ADR #1575 records open egress as a limit of `agro run` (mifunedev/agro#1580, #1585). This plan applies the same policy to `agro run`.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "One allowlist source for the sandbox and agro run",
+      "description": "As a maintainer, I want one allowlist function and one proxy configuration so that the sandbox and `agro run` cannot drift apart.",
+      "acceptanceCriteria": [
+        "`egressAllowHosts` moves from `.agro/cli/src/lib/registry.ts` to an exported function in `.agro/cli/src/lib/egress-policy.ts`, and `registry.ts` imports it.",
+        "`.agro/cli/src/lib/egress-policy.ts` exports `EGRESS_SQUID_CONF` and `EGRESS_PROXY_IMAGE`.",
+        "A test proves that `EGRESS_SQUID_CONF` equals the `egress-squid` content in `.devcontainer/docker-compose.egress.yml`, and that `EGRESS_PROXY_IMAGE` equals the `proxy` image digest there.",
+        "`pnpm typecheck` exits 0, and `pnpm test` through `agro run` shows no new failure against `evidence/baseline.md`."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "executed (advisor, 7472088e, via agro run): typecheck 0; egress-policy.test.ts passes including the compose equality test; full suite shows only the baseline install.sh drift failure. reasoned: egressAllowHosts and policyHosts moved to egress-policy.ts and imported by registry.ts; EGRESS_SQUID_CONF and EGRESS_PROXY_IMAGE exported and pinned to the compose file by test.",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/egress-policy.ts",
+        ".agro/cli/src/lib/registry.ts",
+        ".agro/cli/src/lib/__tests__/egress-policy.test.ts"
+      ],
+      "commit": "7472088e"
+    },
+    {
+      "id": "US-002",
+      "title": "agro run enforces the allowlist",
+      "description": "As an operator, I want `agro run` to honor `access.egress: \"allowlist\"` so that an untrusted command reaches only allowed hosts.",
+      "acceptanceCriteria": [
+        "When `access.egress` is `allowlist`, `agro run` creates an internal network `agro-run-<id>` (`docker network create --internal`) and an egress network `agro-run-<id>-out`.",
+        "`agro run` starts a proxy container from `EGRESS_PROXY_IMAGE` on both networks with the alias `proxy`. The proxy mounts `EGRESS_SQUID_CONF` and the `egressAllowHosts` list read-only from a temp directory.",
+        "The command container and each service join only the internal network. The command container receives `HTTPS_PROXY`, `HTTP_PROXY`, `https_proxy`, `http_proxy`, `NO_PROXY`, `no_proxy`, and `NODE_USE_ENV_PROXY` with the values of the compose file.",
+        "`agro run` waits until the proxy accepts connections on port 3128, then runs the command.",
+        "After the command, and after a failure, `agro run` removes the proxy, each service, both networks, and the temp directory.",
+        "When `access.egress` is `open` or absent, the `docker` argument vectors do not change.",
+        "Tests assert the exact argument vectors and the removal order through a fake runner.",
+        "`pnpm typecheck` exits 0, and `pnpm test` through `agro run` shows no new failure against the baseline."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "executed (advisor, dd70a23d): typecheck 0 via agro run; run.test.ts passes; real allowlist run with the built CLI: example.org 200, example.com refused by the proxy (CONNECT 403); no agro-run containers or networks after. worker: full suite 1 baseline failure; tests cover proxy start failure, readiness timeout, egress network failure, cleanup order, unchanged open-mode argv; direct bypass cannot resolve hosts on the internal network.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/cli/src/commands/run.ts",
+        ".agro/cli/src/lib/execution/ephemeral-target.ts",
+        ".agro/cli/src/__tests__/run.test.ts",
+        ".agro/cli/src/__tests__/ephemeral-target.test.ts"
+      ],
+      "commit": "dd70a23d"
+    },
+    {
+      "id": "US-003",
+      "title": "Documentation and changelog",
+      "description": "As an operator, I want the egress behavior of `agro run` documented so that a project can rely on the allowlist.",
+      "acceptanceCriteria": [
+        "The `agro run` section of `docs/lifecycle-commands.md` describes the allowlist mode, the proxy variables, and the internal network.",
+        "`CHANGELOG.md` holds one entry under `## [Unreleased]` that links the task issue."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "executed (advisor, merged c752c8d3): docs.test.ts + compose-verbs.test.ts via agro run 41/41. reasoned: allowlist subsection matches run.ts; open-egress wording narrowed; CHANGELOG Added entry links #1588.",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        "docs/lifecycle-commands.md",
+        "CHANGELOG.md"
+      ],
+      "commit": "c752c8d3"
+    },
+    {
+      "id": "US-004",
+      "title": "Validation",
+      "description": "As the operator, I want proof that the allowlist holds under `agro run` so that I can close the egress gap of ADR #1575.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/agro-run-egress/evidence/manual-review.md` records a scratch repository with `access.egress: \"allowlist\"` and `access.egressAllow: [\"example.org\"]`.",
+        "Through the proxy, a request to `https://example.org` returns HTTP 200, and a request to `https://example.com` fails with a proxy denial.",
+        "A direct request that bypasses the proxy fails, because the network is internal.",
+        "A declared `postgres` service stays reachable from the command.",
+        "After each run, `docker ps -a` and `docker network ls` show no `agro-run-` container or network, and the run deletes the scratch repository."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Criterion-to-evidence (merged f7b0425b): scratch repo with allowlist and example.org: met; example.org 200 and example.com proxy denial: met; direct request bypassing the proxy fails: met; postgres service reachable: met; no agro-run leftovers and scratch repo deleted: met (advisor rechecked 0/0).",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/agro-run-egress/evidence/manual-review.md"
+      ],
+      "commit": "f7b0425b"
+    }
+  ],
+  "pr": 1589
+}

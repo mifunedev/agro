@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AGRO_COMMANDS } from "../command-table.js";
 import { runRun } from "../commands/run.js";
 import { agroConfigPath } from "../lib/agro-config.js";
+import { EGRESS_PROXY_IMAGE, EGRESS_SQUID_CONF } from "../lib/egress-policy.js";
 import { HostOnlyError } from "../lib/execution/index.js";
 import type { LifecycleRunner, RunResult } from "../lib/execution/runner.js";
 import { AGRO_VERSION, officialImageRef } from "../lib/version.js";
@@ -430,6 +431,268 @@ describe("runRun", () => {
         const { run, calls } = serviceRunner();
         await runRun({ bin: "agro", command: ["true"], image: "img:1", cwd: dir, env: HOST_ENV, run }, io().io);
         expect(dockerArgs(calls)).toEqual([
+          [
+            "run",
+            "--rm",
+            "-v",
+            `${dir}:${dir}`,
+            "-v",
+            expect.stringMatching(/passwd:\/etc\/passwd:ro$/),
+            "-v",
+            expect.stringMatching(/group:\/etc\/group:ro$/),
+            "-w",
+            dir,
+            "--user",
+            expect.stringMatching(/^\d+:\d+$/),
+            "-e",
+            "HOME=/tmp",
+            "img:1",
+            "true",
+          ],
+        ]);
+      }
+    });
+  });
+
+  describe("egress allowlist", () => {
+    const ID = "e9";
+    const NET = `agro-run-${ID}`;
+    const OUT = `${NET}-out`;
+    const PROXY = `${NET}-proxy`;
+    const PG = `${NET}-postgres`;
+    const PROBE = ["exec", PROXY, "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/3128"];
+
+    function withAllowlist(run?: unknown): string {
+      const dir = tempDir();
+      writeFileSync(
+        agroConfigPath(dir),
+        JSON.stringify({
+          version: 1,
+          name: "p",
+          access: { egress: "allowlist", egressAllow: ["example.org"] },
+          ...(run === undefined ? {} : { run }),
+        }),
+      );
+      return dir;
+    }
+
+    function recorder(reply: (args: string[]) => RunResult | undefined = () => undefined, seen?: (args: string[]) => void) {
+      const calls: RecordedCall[] = [];
+      const run: LifecycleRunner = (cmd, args, o) => {
+        calls.push({ cmd, args: [...args], stdio: o.stdio });
+        if (cmd === "git") return { status: 128 };
+        seen?.(args);
+        return reply(args) ?? { status: 0, stdout: "", stderr: "" };
+      };
+      return { run, calls, docker: () => calls.filter((c) => c.cmd === "docker").map((c) => c.args) };
+    }
+
+    function options(dir: string, run: LifecycleRunner, tempRoot: string, sleeps: number[] = []) {
+      return {
+        bin: "agro",
+        command: ["curl", "https://example.org"],
+        image: "img:1",
+        cwd: dir,
+        env: HOST_ENV,
+        run,
+        runId: () => ID,
+        readyIntervalMs: 1000,
+        readyTimeoutMs: 3000,
+        tempRoot,
+        sleep: async (ms: number) => {
+          sleeps.push(ms);
+        },
+      };
+    }
+
+    const confMount = expect.stringMatching(/\/agro-run-egress-[^/]+\/squid\.conf:\/etc\/squid\/squid\.conf:ro$/);
+    const allowMount = expect.stringMatching(
+      /\/agro-run-egress-[^/]+\/egress-allow\.txt:\/etc\/squid\/egress-allow\.txt:ro$/,
+    );
+    const proxyStart = [
+      "run",
+      "-d",
+      "--rm",
+      "--name",
+      PROXY,
+      "--network",
+      OUT,
+      "-v",
+      confMount,
+      "-v",
+      allowMount,
+      EGRESS_PROXY_IMAGE,
+    ];
+    const connect = ["network", "connect", "--alias", "proxy", NET, PROXY];
+
+    function commandArgv(dir: string, env: string[]): unknown[] {
+      return [
+        "run",
+        "--rm",
+        "--network",
+        NET,
+        "-v",
+        `${dir}:${dir}`,
+        "-v",
+        expect.stringMatching(/passwd:\/etc\/passwd:ro$/),
+        "-v",
+        expect.stringMatching(/group:\/etc\/group:ro$/),
+        "-w",
+        dir,
+        "--user",
+        expect.stringMatching(/^\d+:\d+$/),
+        "-e",
+        "HOME=/tmp",
+        ...env.flatMap((e) => ["-e", e]),
+        "img:1",
+        "curl",
+        "https://example.org",
+      ];
+    }
+
+    function proxyEnv(noProxy: string): string[] {
+      return [
+        "HTTPS_PROXY=http://proxy:3128",
+        "HTTP_PROXY=http://proxy:3128",
+        "https_proxy=http://proxy:3128",
+        "http_proxy=http://proxy:3128",
+        `NO_PROXY=${noProxy}`,
+        `no_proxy=${noProxy}`,
+        "NODE_USE_ENV_PROXY=1",
+      ];
+    }
+
+    it("runs the command on an internal network behind the proxy, then removes proxy, networks, and config", async () => {
+      const dir = withAllowlist();
+      const tempRoot = tempDir();
+      let probes = 0;
+      let mounted: { conf: string; allow: string } | undefined;
+      const { run, docker } = recorder(
+        (args) => {
+          if (args[0] === "exec") return { status: ++probes < 2 ? 1 : 0 };
+          if (args[0] === "run" && args[1] === "--rm") return { status: 5 };
+          return undefined;
+        },
+        (args) => {
+          if (!args.includes(EGRESS_PROXY_IMAGE)) return;
+          const source = (i: number) => args[i].split(":")[0];
+          mounted = { conf: readFileSync(source(8), "utf8"), allow: readFileSync(source(10), "utf8") };
+        },
+      );
+      const sleeps: number[] = [];
+      const code = await runRun(options(dir, run, tempRoot, sleeps), io().io);
+      expect(code).toBe(5);
+      expect(sleeps).toEqual([1000]);
+      expect(docker()).toEqual([
+        ["network", "create", "--internal", NET],
+        ["network", "create", OUT],
+        proxyStart,
+        connect,
+        PROBE,
+        PROBE,
+        commandArgv(dir, proxyEnv("localhost,127.0.0.1")),
+        ["rm", "-f", PROXY],
+        ["network", "rm", OUT],
+        ["network", "rm", NET],
+      ]);
+      expect(mounted?.conf).toBe(EGRESS_SQUID_CONF);
+      expect(mounted?.allow.split("\n")).toContain("example.org");
+      expect(mounted?.allow.endsWith("\n")).toBe(true);
+      expect(readdirSync(tempRoot)).toEqual([]);
+    });
+
+    it("keeps services on the internal network only and reachable without the proxy", async () => {
+      const dir = withAllowlist({
+        services: { postgres: { image: "postgres:16", ready: "pg_isready" } },
+        env: { DATABASE_URL: "postgres://postgres/app" },
+      });
+      const { run, docker } = recorder();
+      await runRun(options(dir, run, tempDir()), io().io);
+      expect(docker()).toEqual([
+        ["network", "create", "--internal", NET],
+        ["network", "create", OUT],
+        proxyStart,
+        connect,
+        ["run", "-d", "--rm", "--name", PG, "--network", NET, "--network-alias", "postgres", "postgres:16"],
+        PROBE,
+        ["exec", PG, "sh", "-c", "pg_isready"],
+        commandArgv(dir, ["DATABASE_URL=postgres://postgres/app", ...proxyEnv("localhost,127.0.0.1,postgres")]),
+        ["rm", "-f", PROXY],
+        ["rm", "-f", PG],
+        ["network", "rm", OUT],
+        ["network", "rm", NET],
+      ]);
+    });
+
+    it("exits 1 naming the proxy when it fails to start, and removes both networks and the config", async () => {
+      const dir = withAllowlist();
+      const tempRoot = tempDir();
+      const { run, docker } = recorder((args) =>
+        args.includes(EGRESS_PROXY_IMAGE) ? { status: 125, stderr: "pull access denied\n" } : undefined,
+      );
+      const out = io();
+      expect(await runRun(options(dir, run, tempRoot), out.io)).toBe(1);
+      expect(out.stderr.join("")).toBe(`agro run: could not start proxy ${PROXY}: pull access denied\n`);
+      expect(docker()).toEqual([
+        ["network", "create", "--internal", NET],
+        ["network", "create", OUT],
+        proxyStart,
+        ["network", "rm", OUT],
+        ["network", "rm", NET],
+      ]);
+      expect(readdirSync(tempRoot)).toEqual([]);
+    });
+
+    it("exits 1 naming the proxy after the readiness timeout, and removes everything", async () => {
+      const dir = withAllowlist({ services: { postgres: { image: "postgres:16" } } });
+      const tempRoot = tempDir();
+      const { run, docker } = recorder((args) => (args[0] === "exec" ? { status: 1 } : undefined));
+      const sleeps: number[] = [];
+      const out = io();
+      expect(await runRun(options(dir, run, tempRoot, sleeps), out.io)).toBe(1);
+      expect(out.stderr.join("")).toBe(`agro run: proxy ${PROXY} was not ready after 3 s\n`);
+      expect(sleeps).toEqual([1000, 1000]);
+      expect(docker()).toEqual([
+        ["network", "create", "--internal", NET],
+        ["network", "create", OUT],
+        proxyStart,
+        connect,
+        ["run", "-d", "--rm", "--name", PG, "--network", NET, "--network-alias", "postgres", "postgres:16"],
+        PROBE,
+        PROBE,
+        PROBE,
+        ["rm", "-f", PROXY],
+        ["rm", "-f", PG],
+        ["network", "rm", OUT],
+        ["network", "rm", NET],
+      ]);
+      expect(readdirSync(tempRoot)).toEqual([]);
+    });
+
+    it("removes only the internal network when the egress network cannot be created", async () => {
+      const dir = withAllowlist();
+      const tempRoot = tempDir();
+      const { run, docker } = recorder((args) =>
+        args[0] === "network" && args[2] === OUT ? { status: 1, stderr: "boom" } : undefined,
+      );
+      const out = io();
+      expect(await runRun(options(dir, run, tempRoot), out.io)).toBe(1);
+      expect(out.stderr.join("")).toBe(`agro run: could not create network ${OUT}: boom\n`);
+      expect(docker()).toEqual([
+        ["network", "create", "--internal", NET],
+        ["network", "create", OUT],
+        ["network", "rm", NET],
+      ]);
+      expect(existsSync(tempRoot) && readdirSync(tempRoot)).toEqual([]);
+    });
+
+    it("keeps the docker argv unchanged when access.egress is open or absent", async () => {
+      for (const access of [undefined, { egress: "open" }, { egress: "open", egressAllow: ["example.org"] }]) {
+        const dir = tempDir();
+        writeFileSync(agroConfigPath(dir), JSON.stringify({ version: 1, name: "p", ...(access ? { access } : {}) }));
+        const { run, docker } = recorder();
+        await runRun({ bin: "agro", command: ["true"], image: "img:1", cwd: dir, env: HOST_ENV, run }, io().io);
+        expect(docker()).toEqual([
           [
             "run",
             "--rm",

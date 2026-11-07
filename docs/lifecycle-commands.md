@@ -199,7 +199,8 @@ The container gets these limits:
 - The container runs the command in the current directory as the host uid and gid, with
   `HOME=/tmp`.
 - The container gets no host environment variables, no home directory, and no Docker socket.
-- The container uses the default Docker network when `agro.json` declares no services.
+- When `access.egress` is `open`, the container uses the default Docker network if
+  `agro.json` declares no services. The container then has open egress.
 
 ### Services: `run.services` and `run.env`
 
@@ -244,6 +245,37 @@ When services exist, each `agro run` does these steps:
 4. Run the command on the same network with the variables from `run.env`.
 5. Remove the service containers and the network after the command stops. `agro run`
    also removes them after a failure.
+
+### Egress allowlist: `access.egress: "allowlist"`
+
+When `agro.json` sets `access.egress` to `allowlist`, `agro run` removes the direct
+route out. This applies with or without services. Each `agro run` does these steps:
+
+1. Create the network `agro-run-<id>` with `--internal`. The network has no route to
+   the internet. The command and the services use this network.
+2. Create the network `agro-run-<id>-out` for the proxy.
+3. Start the squid proxy container `agro-run-<id>-proxy` on `agro-run-<id>-out`. The
+   proxy uses the same pinned image and `squid.conf` as the sandbox egress overlay.
+   `agro run` writes `squid.conf` and the host list to a temporary directory and mounts
+   them read-only.
+4. Connect the proxy to `agro-run-<id>` with the network alias `proxy`.
+5. Start the services as described above.
+6. Wait for the proxy to accept connections on port 3128, for a maximum of 60 s. If the
+   proxy is not ready after 60 s, `agro run` exits 1. Then wait for the services and run
+   the command on `agro-run-<id>`.
+
+The proxy permits the OpenShell policy hosts plus the hosts in `access.egressAllow`.
+The command gets these environment variables in addition to `run.env`:
+
+- `HTTPS_PROXY`, `HTTP_PROXY`, `https_proxy`, and `http_proxy`: `http://proxy:3128`.
+- `NO_PROXY` and `no_proxy`: `localhost`, `127.0.0.1`, and each service name.
+- `NODE_USE_ENV_PROXY`: `1`.
+
+A client that ignores the proxy variables cannot reach the internet.
+
+After the command stops, `agro run` removes the proxy container, the service
+containers, both networks, and the temporary directory. `agro run` also removes them
+after a failure.
 
 `agro.json` is a tracked file. Do not put secrets in `run.services` or `run.env`.
 
