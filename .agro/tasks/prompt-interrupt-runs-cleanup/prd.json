@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "bug/1571-prompt-interrupt-runs-cleanup",
+  "description": "Prompt interrupt runs cleanup. Verified state: `askSecret` calls `process.exit(130)` on byte `0x03` at `.agro/cli/src/lib/prompt.ts:82`. `askSecretPiped` calls `process.exit(130)` in its `SIGINT` handler at `.agro/cli/src/lib/prompt.ts:134`. `process.exit` skips every pending `finally` block. A temp directory or a lock file that the caller holds stays on disk.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Ctrl-C at a prompt rejects with a typed error",
+      "description": "As an operator, I want Ctrl-C at an `agro` prompt to unwind the command so that each `finally` block releases its lock or temp directory.",
+      "acceptanceCriteria": [
+        "`git grep -n \"process.exit\" .agro/cli/src/lib/prompt.ts` prints no line.",
+        "`askSecret` rejects with an exported `PromptInterruptedError` when the TTY input contains byte `0x03`.",
+        "`askSecretPiped` rejects with `PromptInterruptedError` when the process receives `SIGINT`, and the function removes its `SIGINT` listener.",
+        "A new test proves that a `finally` block around `askSecret` runs after byte `0x03`. The test failed before the fix.",
+        "`runCli` in `.agro/cli/src/cli.ts` returns exit code `130` for `PromptInterruptedError` and writes no stack trace.",
+        "`pnpm test` exits 0 from the harness root.",
+        "`pnpm typecheck` exits 0 from the harness root."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "executed: git grep process.exit prompt.ts -> exit 1 (no match); executed: prompt-interrupt.test.ts + prompt-piped.test.ts 6/6 pass, red 3 failed before fix (worker); executed: runCli returns 130, empty stderr (test); executed: pnpm typecheck exit 0; executed: pnpm test exit 1 with 14 failed in self-upgrade/agro-config/host-config/herdr-default/install tests; advisor reran those 5 files on HEAD~1: identical 14 failed (umask 0077 mode checks, zsh absent) -> pre-existing environmental, not caused by this story.",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/prompt.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/lib/__tests__/prompt-piped.test.ts",
+        ".agro/cli/src/lib/__tests__/prompt-interrupt.test.ts"
+      ],
+      "commit": "d3b37fd8d"
+    },
+    {
+      "id": "US-002",
+      "title": "Manual review evidence",
+      "description": "As a reviewer, I want a command transcript so that I can confirm the interrupt behavior without a rerun.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/prompt-interrupt-runs-cleanup/evidence/manual-review.md` holds the commands and exit codes of `pnpm test` and `pnpm typecheck`.",
+        "The transcript holds the output of the new interrupt test from US-001."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "executed: evidence/manual-review.md holds pnpm test (exit 1, the 14 pre-existing host-specific failures listed) and pnpm typecheck (exit 0) with commands; executed: holds interrupt test output red 3 failed then green 6 passed; ste-check exit 0.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/tasks/prompt-interrupt-runs-cleanup/evidence/manual-review.md"
+      ],
+      "commit": "b5e6d15f8"
+    }
+  ],
+  "pr": 1572
+}

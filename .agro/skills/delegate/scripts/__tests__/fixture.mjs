@@ -14,11 +14,48 @@ if [ -n "\${GH_STUB_FAIL:-}" ]; then echo "$GH_STUB_FAIL" >&2; exit 4; fi
 echo "$*" >> "$GH_STUB_LOG"
 case "$1 $2" in
   "pr checks")
-    if [ -z "\${GH_STUB_CHECKS:-}" ]; then echo "no checks reported on the 'x' branch" >&2; exit 1; fi
-    printf '%s\\n' $GH_STUB_CHECKS
-    case " $GH_STUB_CHECKS " in *" fail "*|*" cancel "*) exit 1 ;; *" pending "*) exit 8 ;; esac
+    case " $* " in *" --json "*) echo "unknown flag: --json" >&2; exit 1 ;; esac
+    echo "unexpected gh call: $*" >&2; exit 2
     ;;
-  "pr view") echo "\${GH_STUB_HEAD-$(git rev-parse HEAD)} \${GH_STUB_DRAFT-false}" ;;
+  "pr view")
+    fields=""
+    query="."
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --json) fields="$2"; shift 2 ;;
+        -q) query="$2"; shift 2 ;;
+        *) shift ;;
+      esac
+    done
+    rollup="\${GH_STUB_ROLLUP:-}"
+    if [ -z "$rollup" ]; then
+      rollup="$(jq -nc --arg labels "\${GH_STUB_CHECKS:-}" '
+        {
+          pass: {status: "COMPLETED", conclusion: "SUCCESS"},
+          skipping: {status: "COMPLETED", conclusion: "SKIPPED"},
+          cancel: {status: "COMPLETED", conclusion: "CANCELLED"},
+          pending: {status: "IN_PROGRESS", conclusion: ""},
+          fail: {status: "COMPLETED", conclusion: "FAILURE"}
+        } as $results
+        | [$labels | splits(" +") | select(length > 0)]
+        | to_entries
+        | map({__typename: "CheckRun", workflowName: "ci", name: "check-\\(.key)", startedAt: "2026-01-01T00:00:00Z"} + $results[.value])
+        | if length == 0 then null else . end
+      ')" || exit 1
+    fi
+    jq -nc \
+      --arg head "\${GH_STUB_HEAD-$(git rev-parse HEAD)}" \
+      --arg draft "\${GH_STUB_DRAFT-false}" \
+      --argjson rollup "$rollup" \
+      --arg fields "$fields" '
+        {
+          headRefOid: $head,
+          isDraft: (if $draft == "true" then true elif $draft == "false" then false else $draft end),
+          statusCheckRollup: $rollup
+        }
+        | with_entries(select(.key as $key | $fields | split(",") | index($key)))
+      ' | jq -r "$query"
+    ;;
   *) echo "unexpected gh call: $*" >&2; exit 2 ;;
 esac
 `;
@@ -118,12 +155,11 @@ export function createFixture() {
 
   const ready = ({ prd = basePrd(), lessons = "None." } = {}) => {
     write("src/app.txt", "v1\n");
-    const code = commit("code");
-    writePrd({ ...prd, review: { commit: code, verdict: "pass", model: "opus" }, ...stripReview(prd) });
+    commit("code");
+    writePrd(prd);
     writePrdMd(lessons);
     commit("task state");
     push();
-    return code;
   };
 
   return {
@@ -140,8 +176,4 @@ export function createFixture() {
     ready,
     cleanup: () => rmSync(root, { recursive: true, force: true }),
   };
-}
-
-function stripReview(prd) {
-  return "review" in prd ? { review: prd.review } : {};
 }

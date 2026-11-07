@@ -366,9 +366,11 @@ describe("runSelfUpgrade — standalone", () => {
     expect(world.err()).toBe("");
   });
 
-  it("keeps an absolute Node shebang from the current target", async () => {
+  it.each([
+    "#!/abs/path/node",
+    "#!/home/user/.local/share/agro/node",
+  ])("keeps an absolute Node shebang from the current target (%s)", async (pinned) => {
     const { dir, target } = standaloneFixture();
-    const pinned = "#!/abs/path/node";
     writeExecutable(target, bundle(CURRENT, pinned));
     const artifact = bundle(NEWER);
     const world = fakeWorld({ artifact: async () => artifact });

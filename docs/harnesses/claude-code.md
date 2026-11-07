@@ -69,7 +69,7 @@ Run interactive sessions in Herdr so the session survives a disconnect: `agro to
 
 The `Stop` entry in `.claude/settings.json` runs `.claude/hooks/task-next-stop.sh` when the session tries to stop. The hook runs `bash .agro/skills/delegate/scripts/next.sh` in the session directory and reads the state on the first line:
 
-- At `story <id>`, `review`, `close`, `push`, `ci`, `ci-red`, or `ready`, the hook blocks the stop. The block reason holds the `next.sh` output.
+- At `story <id>`, `close`, `push`, `ci`, `ci-red`, or `ready`, the hook blocks the stop. The block reason holds the `next.sh` output.
 - At `none`, `done`, or `blocked <reason>`, the hook allows the stop.
 - If `next.sh` fails or the directory is not a git repository, the hook allows the stop.
 
@@ -77,7 +77,7 @@ The hook keeps a counter at `$(git rev-parse --git-path agro-next-stop)`. Each w
 
 ## Tips
 
-- Use worktrees to give Claude Code its own branch: `git worktree add -b agent/claude .worktrees/agent/claude development`
+- Start work in the main checkout. `/worktrees` § DECIDE owns the worktree decision.
 - Place a `SOUL.md` in the workspace to set the agent's persona and project context.
 - Use `/loop` to run a prompt or slash command on a recurring interval.
 

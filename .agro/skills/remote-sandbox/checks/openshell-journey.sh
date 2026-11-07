@@ -25,8 +25,8 @@ echo "== docker: $(docker version --format '{{.Server.Version}}' 2>&1 | tail -1)
 
 echo "== install agro from $URL with AGRO_JS_URL=${AGRO_JS_URL:-release}"
 curl -fsSL "$URL" | bash >/tmp/install.log 2>&1; echo "install exit=$?"
-export NVM_DIR="$HOME/.nvm"
-if [ -s "$NVM_DIR/nvm.sh" ]; then . "$NVM_DIR/nvm.sh"; fi
+export FNM_DIR="${FNM_DIR:-$HOME/.local/share/fnm}"
+if [ -x "$FNM_DIR/fnm" ]; then export PATH="$FNM_DIR:$PATH"; eval "$(fnm env --shell bash)"; fi
 echo "== node: $(command -v node || echo none) $(node --version 2>/dev/null)"
 v=$(agro --version 2>&1 | tail -1)
 if [ -n "$WANT_VERSION" ]; then

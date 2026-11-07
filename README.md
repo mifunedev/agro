@@ -303,7 +303,9 @@ Example agent response after a successful clone:
 > Cloned `<owner>/<repo>` to `~/harness/projects/<owner>/<repo>`.
 > The clone is a separate repository with its own history and remote.
 
-Then ask for an isolated workspace:
+By default, the agent works in the main checkout of the project clone.
+
+For isolated work, you can ask for a worktree:
 
 ```text
 Create a worktree in <owner>/<repo> for issue #123.
@@ -319,7 +321,7 @@ Each parallel agent gets its own branch and worktree, so agents do not overwrite
 each other's work. The agent manages these folders; you do not need to configure
 them manually.
 
-After the pull request merges, ask:
+If you use a worktree, ask this after the pull request merges:
 
 ```text
 Clean up the merged worktree for issue #123 in <owner>/<repo>.

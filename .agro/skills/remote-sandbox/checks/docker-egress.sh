@@ -31,8 +31,8 @@ echo "== env: $(. /etc/os-release; echo "$PRETTY_NAME") kernel=$(uname -r) arch=
 
 echo "== install agro from $URL"
 curl -fsSL "$URL" -o /tmp/install.sh && bash /tmp/install.sh --yes >/tmp/install.log 2>&1; rc=$?
-export NVM_DIR="$HOME/.nvm"
-if [ -s "$NVM_DIR/nvm.sh" ]; then . "$NVM_DIR/nvm.sh" >/dev/null 2>&1; fi
+export FNM_DIR="${FNM_DIR:-$HOME/.local/share/fnm}"
+if [ -x "$FNM_DIR/fnm" ]; then export PATH="$FNM_DIR:$PATH"; eval "$(fnm env --shell bash)" >/dev/null 2>&1; fi
 hash -r
 v=$(agro --version 2>&1 | tail -1)
 if [ "$rc" = 0 ] && [ -n "$(command -v node)" ]; then res E01-agro-install PASS "release=$v node=$(node --version)"; else res E01-agro-install FAIL "rc=$rc $(tail -3 /tmp/install.log | flat)"; fi

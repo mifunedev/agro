@@ -10,12 +10,13 @@ ENV container=docker
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-client openssh-server build-essential ca-certificates curl wget sudo gosu git jq gnupg \
     lsb-release nano ripgrep tmux unzip bash-completion procps less \
-    iproute2 zsh lsof htop inetutils-telnet shellcheck \
+    iproute2 zsh lsof htop inetutils-telnet shellcheck python3-minimal \
     systemd systemd-sysv dbus libatomic1 \
  && command -v lsof >/dev/null \
  && command -v htop >/dev/null \
  && command -v telnet >/dev/null \
  && command -v shellcheck >/dev/null \
+ && test -x /usr/bin/python3 \
  && ldconfig -p | grep -q libatomic.so.1 \
  && rm -rf /var/lib/apt/lists/*
 

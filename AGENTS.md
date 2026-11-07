@@ -65,7 +65,9 @@ requires no particular model and no handoff. Keep the active session on advice,
 bounded assignments, integration decisions, and evidence review. Assign
 implementation to bounded workers through the canonical delegation procedure in
 [`.agro/skills/delegate/SKILL.md`](.agro/skills/delegate/SKILL.md). Keep one
-accountable owner and preserve the sandbox and worktree boundaries.
+accountable owner and preserve the sandbox boundary. `/worktrees` § DECIDE in
+[`.agro/skills/worktrees/SKILL.md`](.agro/skills/worktrees/SKILL.md) owns the
+choice between the main checkout and a worktree.
 
 ## A note from the maintainer
 

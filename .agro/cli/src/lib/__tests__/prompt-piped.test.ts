@@ -1,6 +1,6 @@
-import { Readable } from "node:stream";
-import { afterEach, describe, expect, it } from "vitest";
-import { askSecret } from "../prompt.js";
+import { PassThrough, Readable } from "node:stream";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { PromptInterruptedError, askSecret } from "../prompt.js";
 
 const originalStdin = Object.getOwnPropertyDescriptor(process, "stdin")!;
 
@@ -26,5 +26,27 @@ describe("askSecret with piped stdin", () => {
   it("returns an empty string for empty input", async () => {
     pipeStdin([]);
     await expect(askSecret("Value:")).resolves.toBe("");
+  });
+});
+
+describe("askSecret with piped stdin on SIGINT", () => {
+  afterEach(() => {
+    Object.defineProperty(process, "stdin", originalStdin);
+    vi.restoreAllMocks();
+  });
+
+  it("rejects with PromptInterruptedError and removes its SIGINT listener", async () => {
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => {}) as never);
+    Object.defineProperty(process, "stdin", { value: new PassThrough(), configurable: true });
+    const before = process.listeners("SIGINT");
+
+    const pending = askSecret("Value:");
+    const added = process.listeners("SIGINT").filter((l) => !before.includes(l));
+    expect(added).toHaveLength(1);
+    added[0]("SIGINT");
+
+    await expect(pending).rejects.toBeInstanceOf(PromptInterruptedError);
+    expect(process.listeners("SIGINT")).toEqual(before);
+    expect(exit).not.toHaveBeenCalled();
   });
 });

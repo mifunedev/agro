@@ -66,10 +66,11 @@ is cloned or built on this host. Then: agro sandbox install docker
 
 Prerequisites:
   curl
-  Node.js >= 22   (to RUN 'agro'; if missing, this script offers to install nvm + Node 24)
+  Node.js >= 22   (to RUN 'agro'; if missing, this script offers to install fnm + Node 24)
+  unzip           (to install fnm; added with apt-get as root or with passwordless sudo)
 
 Flags:
-  -y, --yes            Accept prompts (e.g. auto-install nvm + Node 24).
+  -y, --yes            Accept prompts (e.g. auto-install fnm + Node 24).
   -n, --no             Decline prompts.
   -h, --help           Show this help and exit.
 
@@ -79,7 +80,8 @@ Env vars:
                        (default: $RELEASE_BASE/agro.js)
   AGRO_GITHUB_REPO     <owner>/<repo> whose latest GitHub release hosts the artifacts
                        (default: mifunedev/agro)
-  AGRO_NVM_VERSION     nvm version tag for the Node install (default: v0.40.3)
+  AGRO_FNM_VERSION     fnm release tag for the Node install (default: v1.39.0)
+  FNM_DIR              Where fnm and its Node versions live (default: ~/.local/share/fnm)
   AGRO_ASSUME_YES      Non-empty accepts prompts (same as --yes)
 
 Alternative:
@@ -109,22 +111,56 @@ done
 
 AGRO_BIN_DIR="$(agro_env BIN_DIR "$HOME/.local/bin" | cut -f2-)"
 AGRO_JS_URL="$(agro_env JS_URL "$RELEASE_BASE/agro.js" | cut -f2-)"
-AGRO_NVM_VERSION="$(agro_env NVM_VERSION "v0.40.3" | cut -f2-)"
+AGRO_FNM_VERSION="$(agro_env FNM_VERSION "v1.39.0" | cut -f2-)"
+FNM_DIR="${FNM_DIR:-$HOME/.local/share/fnm}"
+export FNM_DIR="${FNM_DIR%/}"
 
 node_major() { node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0; }
 
-install_node_via_nvm() {
-  banner "Installing nvm + Node 24"
-  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
-  if [ ! -s "$NVM_DIR/nvm.sh" ]; then
-    curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${AGRO_NVM_VERSION}/install.sh" | bash
+ensure_unzip() {
+  command -v unzip >/dev/null 2>&1 && return 0
+  local as_root=""
+  [ "$(id -u)" = 0 ] || as_root="sudo -n"
+  if command -v apt-get >/dev/null 2>&1 \
+    && { [ -z "$as_root" ] || sudo -n true 2>/dev/null; } \
+    && prompt_yn "Install unzip with apt-get now?" y; then
+    banner "Installing unzip"
+    { $as_root apt-get update && $as_root apt-get install -y --no-install-recommends unzip; } || warn "apt-get could not install unzip"
   fi
-  set +eu
-  # shellcheck source=/dev/null
-  . "$NVM_DIR/nvm.sh"
-  nvm install 24
-  nvm use 24
-  set -eu
+  command -v unzip >/dev/null 2>&1 || die "unzip is required to install fnm. Install unzip and re-run."
+}
+
+append_fnm_setup() {
+  local export_line="export PATH=\"$FNM_DIR:\$PATH\""
+  grep -qsF "$export_line" "$1" && return 0
+  printf '\n# Added by AGRO install.sh\n%s\neval "$(fnm env --shell bash)"\n' "$export_line" >> "$1"
+  ok "Added fnm setup to $1 (for new shells)"
+}
+
+add_fnm_setup() {
+  local prof wrote=0
+  for prof in "$HOME/.zshrc" "$HOME/.bashrc"; do
+    [ -f "$prof" ] || continue
+    append_fnm_setup "$prof"
+    wrote=1
+  done
+  [ "$wrote" = 1 ] || append_fnm_setup "$HOME/.profile"
+}
+
+install_node_via_fnm() {
+  banner "Installing fnm + Node 24"
+  if [ ! -x "$FNM_DIR/fnm" ]; then
+    ensure_unzip
+    curl -fsSL "https://raw.githubusercontent.com/Schniz/fnm/${AGRO_FNM_VERSION}/.ci/install.sh" \
+      | bash -s -- --install-dir "$FNM_DIR" --skip-shell --force-no-brew --release "$AGRO_FNM_VERSION" \
+      || die "Could not install fnm $AGRO_FNM_VERSION into $FNM_DIR."
+  fi
+  export PATH="$FNM_DIR:$PATH"
+  eval "$(fnm env --shell bash)"
+  fnm install 24
+  fnm use 24
+  fnm default 24
+  add_fnm_setup
 }
 
 ensure_node() {
@@ -137,8 +173,8 @@ ensure_node() {
   else
     warn "Node.js not found (need >= 22 to run 'agro')"
   fi
-  if prompt_yn "Install nvm + Node 24 now?" y; then
-    install_node_via_nvm
+  if prompt_yn "Install fnm + Node 24 now?" y; then
+    install_node_via_fnm
   else
     die "Node.js >= 22 is required to run 'agro'. Install it from https://nodejs.org and re-run."
   fi
@@ -147,21 +183,30 @@ ensure_node() {
   ok "Node.js $(node --version) — OK"
 }
 
-pin_nvm_node() {
-  local node_path nvm_dir node_link
+real_path() { node -p 'require("fs").realpathSync(process.argv[1])' "$1" 2>/dev/null; }
+
+pin_managed_node() {
+  local node_path nvm_dir pin_target fnm_dir node_link
   nvm_dir="${NVM_DIR:-$HOME/.nvm}"
   nvm_dir="${nvm_dir%/}"
   node_path="$(command -v node)"
   case "$node_path" in
-    "$nvm_dir"/*) ;;
-    *) return 0 ;;
+    "$nvm_dir"/*) pin_target="$node_path" ;;
+    *)
+      pin_target="$(real_path "$node_path")" || return 0
+      fnm_dir="$(real_path "$FNM_DIR")" || return 0
+      case "$pin_target" in
+        "$fnm_dir"/*) ;;
+        *) return 0 ;;
+      esac
+      ;;
   esac
   node_link="$HOME/.local/share/agro/node"
   mkdir -p "$(dirname "$node_link")"
-  ln -sfn "$node_path" "$node_link"
+  ln -sfn "$pin_target" "$node_link"
   { printf '#!%s\n' "$node_link"; tail -n +2 "$TMP/agro.js"; } > "$TMP/agro.pinned"
   mv "$TMP/agro.pinned" "$TMP/agro.js"
-  ok "Pinned the 'agro' shebang to $node_link -> $node_path"
+  ok "Pinned the 'agro' shebang to $node_link -> $pin_target"
   case "$AGRO_BIN_DIR" in
     "$HOME"/*) ;;
     *) warn "$AGRO_BIN_DIR is outside $HOME: the 'agro' CLI there runs with the Node of the installing user through $node_link" ;;
@@ -187,7 +232,7 @@ ok "Downloaded prebuilt 'agro' from $AGRO_JS_URL"
 
 banner "Installing 'agro' to $AGRO_BIN_DIR/agro"
 mkdir -p "$AGRO_BIN_DIR"
-pin_nvm_node
+pin_managed_node
 install -m 0755 "$TMP/agro.js" "$AGRO_BIN_DIR/agro"
 ok "Installed $AGRO_BIN_DIR/agro"
 

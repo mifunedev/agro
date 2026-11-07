@@ -39,9 +39,11 @@ Use sanitized evidence descriptions without weakening the evidence limits.
 2. State each lens's scope and required evidence. Do not create redundant assignments to reach a worker count.
 3. Identify evidence required for a recommendation before dispatch. Disclose any reduced coverage.
 4. Give all members one shared neutral brief: question, criteria, constraints, exclusions, authorized sources, and budget.
-5. Exclude the advisor's preferred answer and peer results from that brief.
-6. Require fresh, isolated first-round contexts. Keep each member's proposal hidden from peers until the proposal round ends.
-7. Disclose inherited context contamination and any tool-enforcement limits. Do not describe prompt-level read-only instructions as runtime enforcement.
+5. In the shared brief, name the source revision of each repository as the full commit SHA of its default branch. Tell each member to read files at that revision with `git show <sha>:<path>`. Members never read files through a checkout that another agent owns.
+6. Search prior decisions in each repository in scope. Run `gh issue list -R <owner>/<repo> --state all --search "ADR: in:title"` and `gh issue list -R <owner>/<repo> --state all --search "RFC: in:title"`. Put the number and state of each matching issue into the shared brief as a constraint or as prior context.
+7. Exclude the advisor's preferred answer and peer results from that brief.
+8. Require fresh, isolated first-round contexts. Keep each member's proposal hidden from peers until the proposal round ends.
+9. Disclose inherited context contamination and any tool-enforcement limits. Do not describe prompt-level read-only instructions as runtime enforcement.
 
 Independence is procedural, not statistical. Separate contexts do not prove independent errors or superior advice.
 A council requires at least two distinct, useful independent member scopes.

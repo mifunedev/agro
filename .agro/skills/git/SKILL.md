@@ -140,6 +140,8 @@ Automatic branch-push releases use the matching `## [<VERSION>] - YYYY-MM-DD` se
 
 ## Worktrees
 
+`/worktrees` § DECIDE owns the choice between the main checkout and a worktree.
+
 Path: `.worktrees/<branch>` at the root of the repository the branch belongs to. A project clone under `projects/` keeps its own worktrees the same way, at `projects/<owner>/<repo>/.worktrees/`. Independent project clones (own `.git`, not harness branches) live under `projects/<owner>/<repo>/`. Neither root is a setting; both roots are conventions — see `.worktrees/AGENTS.md` and `projects/AGENTS.md`.
 
 ```bash
@@ -284,8 +286,22 @@ holds the approval rule.
    gh issue create --title "<prefix>: <shortdesc>" --body-file <issue-body.md>
    ```
 
-2. Create branch `<prefix>/<N>-<slug>` from `$BASE` in an isolated worktree
-   (see § Worktrees).
+2. Run `/worktrees` § DECIDE for the task. If the answer is worktree, create
+   branch `<prefix>/<N>-<slug>` from `$BASE` with § Worktrees. Otherwise, create
+   the branch in the main checkout. Before the switch, examine the tracked files:
+
+   ```bash
+   git status --porcelain --untracked-files=no
+   ```
+
+   If the command prints a change, use § Isolating in-flight work or ask the
+   operator. The command ignores the untracked plan files, and step 3 commits
+   these files. Then create the branch:
+
+   ```bash
+   git checkout -b <prefix>/<N>-<slug> $BASE
+   ```
+
 3. Commit the plan as the first commit. Push the branch:
 
    ```bash
@@ -348,7 +364,10 @@ Do these steps in this sequence:
 
 2. If the output is not `MERGED`, stop. Do no cleanup. An operator statement is
    not evidence of the merge.
-3. Remove the task worktree:
+3. Leave the task branch. If the task ran in the main checkout, switch to the
+   base branch: `git checkout $BASE`. If `pnpm-lock.yaml` differs between the two
+   branches, run `pnpm install --frozen-lockfile`. If the task used a worktree,
+   remove the worktree:
    `bash .agro/scripts/git-maintenance.sh worktree-remove <path>`.
 4. Delete the local task branch:
    `bash .agro/scripts/git-maintenance.sh branch-delete <branch>`.

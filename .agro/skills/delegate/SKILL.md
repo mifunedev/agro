@@ -28,7 +28,6 @@ The Stop hook allows the stop at `blocked`.
 | State | Next action | Exit condition | Owner |
 |---|---|---|---|
 | `story <id>` | Dispatch, verify, and accept the story (§ Waves, § Acceptance) | The story has `passes: true` | Advisor; a worker implements |
-| `review` | Get one fresh-context review of the PR diff (§ Reviewer brief, § Acceptance) | `review.verdict` is `pass` for the current diff | Advisor; a reviewer reads |
 | `close` | Write `## Lessons` and fill the PR evidence sections (§ Close) | `prd.md` has a non-empty `## Lessons` section | Advisor |
 | `push` | Push the task branch | The remote task branch head equals local `HEAD` | Advisor |
 | `ci` | Wait for CI with `/ci-status` | No PR check is pending | Advisor |
@@ -89,31 +88,60 @@ Write one record for each story before dispatch. Keep only these fields:
 | Dependencies | The `dependsOn` IDs, or none |
 | Read scope | The files and directories that the worker reads |
 | Owned write paths | The `files` of the story; the worker edits nothing else |
-| Deliverable | One commit on the worker branch |
-| Verification | The commands and checks from `acceptanceCriteria`, with expected results |
-| Execution directory | The absolute path of the worktree |
+| Deliverable | One commit on the task branch, or on the branch of the story's worktree when `/worktrees` § DECIDE answers worktree |
+| Verification | The commands and checks from `acceptanceCriteria`, with expected results. The location for acceptance is the main checkout (§ Acceptance) |
+| Execution directory | The absolute path of the task checkout, or of the story's worktree when `/worktrees` § DECIDE answers worktree |
 | Execution location | `host` or `sandbox`. When `/etc/agro/sandbox` exists, or `/.dockerenv` exists and `SANDBOX_NAME` is not empty, the advisor writes `sandbox` |
 | Model and reason | The requested model, or the provider default, and the reason |
 
+When the execution location is `host` and `agro --help` lists `agro run`, run
+the baseline, the worker verification, and the acceptance commands as
+`agro run -- <command>`. Without `agro run`, or in a sandbox, run these commands
+directly.
+
 ## Waves
 
-1. Put each story in a wave. A story is ready when every `dependsOn` story has
+1. Before the first wave, run the test and type-check commands of the repository
+   on the task branch, in the command form of § Dispatch record. Record each
+   failing test in `.agro/tasks/<slug>/evidence/baseline.md`.
+2. Put each story in a wave. A story is ready when every `dependsOn` story has
    `passes: true`.
-2. Run the ready stories of a wave in parallel, at most 5 workers per wave.
-3. Give each parallel writer an isolated worktree. Branch it from the task branch.
-   Before dispatch, when a worker worktree has a `package.json`, run
-   `pnpm install --frozen-lockfile` in that worktree.
+3. Before dispatch, run [`/worktrees` § DECIDE](../worktrees/SKILL.md) for each
+   story.
 4. Stories with overlapping `files` run in sequence.
-5. Workers stay flat. Workers never spawn workers.
-6. The advisor never sends parallel shell calls that change the working directory.
-   Each parallel call uses absolute paths, for example `git -C <path>`.
+5. Give each worktree story one worker in one worktree, at most 5 workers per
+   wave. Branch each worktree from the current task branch. Before dispatch,
+   when a worktree has a `package.json`, run `pnpm install --frozen-lockfile` in
+   that worktree.
+6. Run these workers in parallel, except as item 4 requires. The main checkout
+   gets no worker edits while these workers run.
+7. Inspect each commit and bring it onto the task branch in the main checkout.
+   When a worktree holds the task branch, bring the commit onto the task branch
+   in that worktree. A conflict reopens the story (§ Repair).
+8. Verify each of these stories in the main checkout (§ Acceptance).
+9. Send a failed story to § Repair. Keep each worktree until the advisor accepts
+   every worktree story of the wave, because the same worker repairs the story.
+   Consolidation alone does not allow removal.
+10. When the advisor accepts the last worktree story of the wave, remove the
+    worktrees and worker branches of the wave (§ Integration).
+11. Run each story with the answer main checkout in the task checkout on the task
+    branch, one at a time. Verify and accept each story before the next story
+    starts.
+12. Branch the worktrees of the next wave from the updated task branch.
+13. Workers stay flat. Workers never spawn workers.
+14. The advisor never sends parallel shell calls that change the working directory.
+    Each parallel call uses absolute paths, for example `git -C <path>`.
+15. Wait for worker commits in a foreground call. The Stop hook blocks a stop
+    while the story is open, and the hook escalates after 3 blocks.
 
-A single story can use one worker. Parallelism is not mandatory.
+A single-story wave runs in the main checkout unless § DECIDE answers worktree.
 
 ## Worker brief
 
-Give each worker the dispatch record, the exclusions, and these rules:
+Give each worker the dispatch record, the exclusions, the baseline failures, and
+these rules:
 
+- A baseline failure does not fail a criterion of the worker.
 - Edit only the owned write paths. Obey the exclusions.
 - Work only in the execution directory.
 - In a sandbox, never run `agro sandbox`, `agro destroy`, `agro stop`,
@@ -127,60 +155,51 @@ Give each worker the dispatch record, the exclusions, and these rules:
 - Report each criterion as one of these:
   - **executed**: the command and exit status.
   - **reasoned**: a one-line argument.
-- Commit on the worker branch. Never push.
+- Commit on the branch of the execution directory. Never push.
 - Never write `prd.json`.
 - Use no bare `git stash` or `git stash pop`. The stash stack is shared with
   other sessions.
 - Never bypass a hook. A rerun of a blocked command through a script file, a
   heredoc, or another tool is a bypass. Report a blocked action as `BLOCKED`.
 
-## Reviewer brief
-
-Give the reviewer the base branch, the task branch, the execution directory,
-the acceptance criteria of the plan, and these rules:
-
-- Start in a fresh context. Never continue an earlier worker.
-- Read `git diff <base>...HEAD` of the task branch and the acceptance criteria.
-- Edit no file. Run no command that writes.
-- Label each finding `blocking` or `non-blocking`. A `blocking` finding names
-  a reproducing command and its observed result. A finding with no command is
-  `non-blocking`.
-- Never accept. Report the findings to the advisor.
-
 ## Acceptance
 
-A worker report is not acceptance. For each story, the advisor does these steps:
+A worker report is not acceptance. A worktree exists for isolated editing only.
+A worker in a worktree can run checks for its own report, but that result is not
+acceptance. For each story, the advisor does these steps:
 
 1. Inspect the worker commit.
-2. Bring the commit onto the task branch.
-3. Rerun the verification on the integrated task branch.
+2. If the story used a worktree, bring the commit onto the task branch (§ Waves).
+3. In the main checkout, on the integrated task branch, run
+   `pnpm install --frozen-lockfile` when the checkout has a `package.json`. Then
+   rerun the verification in the command form of § Dispatch record. When a
+   worktree holds the task branch, use § Verify when a worktree holds the task
+   branch.
 4. Write `passes: true`, `commit`, and `notes` in `prd.json`. In `notes`,
    mark each criterion executed or reasoned.
 
-### Review
+### Verify when a worktree holds the task branch
 
-When `next.sh` prints `review`, the advisor does these steps:
+When `/worktrees` § DECIDE sent the whole task to a worktree, the main checkout
+cannot check out the task branch. Do these steps from the main checkout:
 
-1. Dispatch one reviewer with the reviewer brief.
-2. Before a story reopens, run each blocking command. Drop a finding whose
-   command does not reproduce, and write a note.
-3. Write `review.commit` (the reviewed `HEAD`), `review.verdict`, and
-   `review.model` in `prd.json`. When no confirmed blocking finding remains,
-   the verdict is `pass`. Otherwise, the verdict is `fail`.
-4. Repair each confirmed blocking finding (§ Repair).
-5. Write each non-blocking finding in the PR `## What remains unverified`
-   section.
-
-A repair changes the diff, so `next.sh` prints `review` again. Review again
-after each repair.
+1. Record the current branch with `git branch --show-current`.
+2. Run `git status --porcelain --untracked-files=no`. If the command prints a
+   change, use `/git` § Isolating in-flight work or ask the operator.
+3. Run `git switch --detach <task-branch-head>`.
+4. Run `pnpm install --frozen-lockfile` when the checkout has a `package.json`.
+   Then run the verification.
+5. Switch the main checkout back to the recorded branch.
+6. If `pnpm-lock.yaml` differs between the two commits, run
+   `pnpm install --frozen-lockfile` again.
 
 ### Repair
 
-A failed story check, a red CI check (`ci-red`), or a confirmed blocking review
-finding starts a repair. The advisor reopens the story whose `files` hold the
-failing path: write `passes: false` and add 1 to `rounds`. The same worker
-repairs the story as a bounded repair. The advisor does not repair. Dependents
-of a reopened story wait.
+A failed story check or a red CI check (`ci-red`) starts a repair. The advisor
+reopens the story whose `files` hold the failing path: write `passes: false`
+and add 1 to `rounds`. The same worker repairs the story as a bounded repair.
+The advisor does not repair. Dependents of a reopened story wait. Before a repair
+in a worktree, the worker merges the current task branch into the worker branch.
 
 The advisor writes `blocked` in `prd.json` and runs `/escalate` one time in
 each of these cases:
@@ -197,7 +216,8 @@ After acceptance, do these steps on the task branch:
 1. Commit `prd.json` with the accepted story. Do not push it. `/git` § Draft PR
    for a task names the push rule.
 2. Tick the story in the PR `## Stories` checklist.
-3. Remove the worker worktree and branch. Use the git maintenance shim that
+3. When the advisor accepts the last worktree story of the wave, remove the
+   worktrees and worker branches of the wave. Use the git maintenance shim that
    `/git` names.
 
 ## Resume
@@ -216,10 +236,6 @@ There is no separate ledger. `prd.json` holds the state.
   record.
 - Never substitute a model silently.
 - A required control that is unavailable blocks the story. Ask the operator.
-- The reviewer uses the most capable available model. The reviewer model is
-  never less capable than the implementer model. When the reviewer and the
-  implementer use the same model, the reviewer runs in a fresh context, and
-  `review.model` records the shared model.
 
 Provider defaults live in provider settings. For Claude Code, the default is
 `CLAUDE_CODE_SUBAGENT_MODEL` in the `env` object of `.claude/settings.json`.
@@ -229,9 +245,16 @@ A per-dispatch model overrides the default.
 
 When every story has `passes: true`, do these steps:
 
-1. Validate the integrated result with the checks of the repository: lint,
-   typecheck, test, and build. Record each exit status.
-2. Write `## Lessons` at the end of `prd.md`. Give each lesson a claim,
+1. In the main checkout, validate the integrated result with the checks of the
+   repository: lint, typecheck, test, and build. Record each exit status. When a
+   worktree holds the task branch, use § Acceptance § Verify when a worktree
+   holds the task branch.
+2. List each task-level criterion from `prd.md` with its evidence. The
+   evidence must match the exact subject that the criterion names, for example
+   a job type, a command, or a file. When the evidence covers a different
+   subject, mark the criterion `unmet`. When any criterion is `unmet`, do not
+   report the task as done.
+3. Write `## Lessons` at the end of `prd.md`. Give each lesson a claim,
    evidence, and exactly one outcome:
    - fixed in this PR;
    - issue #N; or
@@ -252,11 +275,11 @@ When every story has `passes: true`, do these steps:
    issue `follow-up`.
 
    "None" is a valid body.
-3. Fill the PR evidence sections from the `notes` in `prd.json`.
-4. Fill the PR `## Manual review` section from the evidence of the last story.
+4. Fill the PR evidence sections from the `notes` in `prd.json`.
+5. Fill the PR `## Manual review` section from the evidence of the last story.
    Use the shape of [`.agro/skills/git/references/manual-review.md`](../git/references/manual-review.md).
    Write only the expected results that the evidence observed.
-5. Continue with the "Ready for review" step of `/git`.
+6. Continue with the "Ready for review" step of `/git`.
 
 ## Dry run
 

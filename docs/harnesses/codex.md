@@ -84,7 +84,7 @@ Run interactive sessions in Herdr so the session survives a disconnect: `agro to
 
 The `Stop` entry in `.codex/hooks.json` runs `.codex/hooks/task-next-stop.sh`. The wrapper calls the canonical hook `.agro/hooks/task-next-stop.sh`. The hook runs `bash .agro/skills/delegate/scripts/next.sh` and reads the state on the first line:
 
-- At `story <id>`, `review`, `close`, `push`, `ci`, `ci-red`, or `ready`, the hook blocks the stop. The block reason holds the `next.sh` output.
+- At `story <id>`, `close`, `push`, `ci`, `ci-red`, or `ready`, the hook blocks the stop. The block reason holds the `next.sh` output.
 - At `none`, `done`, or `blocked <reason>`, the hook allows the stop.
 - If `next.sh` fails or the directory is not a git repository, the hook allows the stop.
 
@@ -99,7 +99,7 @@ See [Langfuse → Codex](../integrations/langfuse.md#3-codex) for the plugin and
 ## Tips
 
 - Pass a clearly scoped task description as the first argument.
-- Use worktrees to isolate Codex's changes on its own branch before merging.
+- Start work in the main checkout. `/worktrees` § DECIDE owns the worktree decision.
 - For long-running autonomous tasks, pair Codex with a heartbeat that re-invokes it on a schedule.
 
 ## Upstream documentation

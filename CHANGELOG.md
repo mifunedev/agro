@@ -12,11 +12,38 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 - Add the `msb` remote-sandbox provider, the `msb-guest` check, and the `agro-msb` Dockerfile target to boot the AGRO image as a microVM on an agro-console node ([#1555](https://github.com/mifunedev/agro/pull/1555)).
 
+## [0.31.0] - 2026-11-07
+
+### Added
+
+- Add `run.services` and `run.env` to `agro.json`. `agro run` starts each service in a new container on a new network and waits for its `ready` command. `agro run` gives `run.env` to the command. After the command, `agro run` removes the services and the network. `/delegate` verifies stories through `agro run` on the host ([#1584](https://github.com/mifunedev/agro/issues/1584)).
+
+## [0.30.0] - 2026-11-07
+
+### Added
+
+- Add `agro run [--image <ref>] -- <command...>` to run one command on the host in a disposable container that mounts only the repository and gets no host credentials ([#1579](https://github.com/mifunedev/agro/issues/1579)).
+
 ### Changed
 
-- `/delegate` § Model policy makes the reviewer use the most capable available model and never a model less capable than the implementer model ([#1548](https://github.com/mifunedev/agro/issues/1548)).
+- Make the sandbox image install a system `python3` (`python3-minimal`), so scripts that call `python3` also work in `agro run`. The `sandbox` user still resolves `python3` to the uv Python 3.13 ([#1579](https://github.com/mifunedev/agro/issues/1579)).
+
+## [0.29.0] - 2026-11-07
+
+### Changed
+
+- `/worktrees` § DECIDE owns the choice between the main checkout and a worktree, and the default answer is the main checkout. `/git` § Draft PR for a task and `/delegate` § Waves run that decision. `/delegate` § Waves runs worktree stories in parallel, brings each commit onto the task branch, verifies the stories in the main checkout, and keeps each worktree until the advisor accepts every worktree story of the wave. Main-checkout stories run one at a time. `/delegate` § Acceptance and § Close step 1 run `pnpm install --frozen-lockfile` and then verification in the main checkout, also when a worktree holds the task branch ([#1563](https://github.com/mifunedev/agro/issues/1563)).
+- `/delegate` removes the `review` state, the reviewer brief, and the reviewer model policy. `next.sh` ignores a `review` field in `prd.json` ([#1563](https://github.com/mifunedev/agro/issues/1563)).
 - `/prd` § Stories makes the evidence story for a server, CLI, or API change run each command through the entry point that a user types, from fresh state with an input path that does not exist yet. Before the evidence story creates a live resource, it runs one read-only check that costs nothing. If the check fails, the story sets `blocked` ([#1546](https://github.com/mifunedev/agro/issues/1546)).
 - `/prd` § 3 adds the tests and fixtures that pin generated output to the `files` of the story that changes the output. `/improve` § 4 reports `PARTIAL` when a performance or cost recommendation has no current measurement of its falsifier, and names a measurement task as the next step ([#1544](https://github.com/mifunedev/agro/issues/1544)).
+- `next.sh` reads CI state from `statusCheckRollup` in its one `gh pr view` call, so a `/delegate` run does not stop at `blocked` on `gh` 2.45.0, which has no `gh pr checks --json`. A re-run replaces the earlier result of a check. `/delegate` § Waves tells the advisor to wait in a foreground call for worker commits ([#1567](https://github.com/mifunedev/agro/issues/1567)).
+- Make `install.sh` install fnm and Node 24 instead of nvm, and add `unzip` through `apt-get` for the fnm install. A host with an existing nvm Node keeps that Node and its pin ([#1569](https://github.com/mifunedev/agro/issues/1569)).
+- Make `/prd` add each caller and test fake of a changed export to a story and give `CHANGELOG.md` to one story, `/delegate` record baseline test failures, and `/council` pin each source to a commit SHA ([#1573](https://github.com/mifunedev/agro/issues/1573)).
+- Make `/council` search prior ADR and RFC issues, `/delegate` Close map each criterion to literal evidence, and `/prd` label external criteria and protect comparison metrics ([#1576](https://github.com/mifunedev/agro/issues/1576)).
+
+### Fixed
+
+- Make Ctrl-C at an `agro` secret prompt unwind the command, so cleanup in `finally` blocks (locks, temp directories) runs. The CLI still exits with code 130 ([#1571](https://github.com/mifunedev/agro/issues/1571)).
 
 ## [0.28.0] - 2026-10-31
 

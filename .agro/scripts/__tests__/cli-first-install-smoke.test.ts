@@ -4,6 +4,7 @@ import {
   mkdtempSync,
   readFileSync,
   readlinkSync,
+  realpathSync,
   rmSync,
   statSync,
   symlinkSync,
@@ -23,11 +24,11 @@ afterEach(() => {
   while (cleanups.length > 0) rmSync(cleanups.pop()!, { recursive: true, force: true });
 });
 
-function run(args: string[], env: Record<string, string> = {}, opts: { path?: string } = {}) {
+function run(args: string[], env: Record<string, string> = {}, opts: { path?: string; hostEnv?: boolean } = {}) {
   return spawnSync("bash", [SCRIPT, ...args], {
     encoding: "utf8",
     env: {
-      ...process.env,
+      ...(opts.hostEnv === false ? {} : process.env),
       ...env,
       PATH: opts.path ?? process.env.PATH,
     },
@@ -233,23 +234,31 @@ describe("cli-first-install-smoke.sh", () => {
   });
 
   it.each([
-    { nodeUnderNvm: true, pinned: true },
-    { nodeUnderNvm: false, pinned: false },
-  ])("verifies the bootstrap install against the bundle (pinned=$pinned)", ({ nodeUnderNvm, pinned }) => {
+    { pinned: true },
+    { pinned: false },
+  ])("verifies the bootstrap install against the bundle (pinned=$pinned)", ({ pinned }) => {
     const dir = mkdtempSync(join(tmpdir(), "cli-first-bootstrap-"));
     cleanups.push(dir);
     const bundle = join(dir, "agro.js");
     writeFileSync(bundle, '#!/usr/bin/env node\nconsole.log("9.9.9")\n');
-    const nvmDir = join(dir, "nvm");
-    const nodeBinDir = join(nvmDir, "versions", "node", "v22.0.0", "bin");
+    const fnmDir = join(dir, "fnm");
+    const nodeBinDir = join(fnmDir, "node-versions", "v22.0.0", "installation", "bin");
     mkdirSync(nodeBinDir, { recursive: true });
-    symlinkSync(process.execPath, join(nodeBinDir, "node"));
+    const nodeWrapper = join(nodeBinDir, "node");
+    writeFileSync(nodeWrapper, `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} "$@"\n`);
+    chmodSync(nodeWrapper, 0o755);
+    const fnmBinary = join(fnmDir, "fnm");
+    const fnmShellBin = join(dir, "fnm-shell", "bin");
+    mkdirSync(fnmShellBin, { recursive: true });
+    symlinkSync(nodeWrapper, join(fnmShellBin, "node"));
+    writeFileSync(fnmBinary, `#!/bin/sh\necho 'export PATH="${fnmShellBin}:$PATH"'\n`);
+    chmodSync(fnmBinary, 0o755);
     const workdir = join(dir, "work");
     mkdirSync(workdir);
     const result = run(
       ["--phase", "bootstrap", "--workdir", workdir, "--bundle", bundle, "--keep"],
-      { NVM_DIR: nodeUnderNvm ? nvmDir : join(dir, "absent-nvm") },
-      { path: `${nodeBinDir}:${process.env.PATH ?? ""}` },
+      { FNM_DIR: pinned ? fnmDir : join(dir, "absent-fnm") },
+      { path: `${nodeBinDir}:${process.env.PATH ?? ""}`, hostEnv: false },
     );
     expect(result.status, result.stderr + result.stdout).toBe(0);
     expect(result.stdout).toContain("bootstrap_version=9.9.9");
@@ -258,8 +267,9 @@ describe("cli-first-install-smoke.sh", () => {
     const installed = readFileSync(join(home, ".local", "bin", "agro"), "utf8");
     if (pinned) {
       expect(installed.split("\n")[0]).toBe(`#!${link}`);
-      expect(readlinkSync(link)).toBe(join(nodeBinDir, "node"));
+      expect(readlinkSync(link)).toBe(realpathSync(nodeWrapper));
       expect(result.stdout).toContain(`pinned_node=${link}`);
+      expect(result.stdout).toContain(`node_after=${join(fnmShellBin, "node")} version=${process.version}`);
     } else {
       expect(installed).toBe(readFileSync(bundle, "utf8"));
       expect(result.stdout).not.toContain("pinned_node=");

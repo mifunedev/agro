@@ -19,7 +19,7 @@ other file.
 |---|---|---|
 | Docker with the Compose plugin | The sandbox | [docs.docker.com/get-docker](https://docs.docker.com/get-docker/) |
 | Git | `agro vendor --from-remote` and `agro workspace create` | [git-scm.com](https://git-scm.com/) |
-| Node.js ≥ 22 (24 recommended) | The `agro` CLI | [nodejs.org](https://nodejs.org/), or let `install.sh` install nvm and Node 24 |
+| Node.js ≥ 22 (24 recommended) | The `agro` CLI | [nodejs.org](https://nodejs.org/), or let `install.sh` install fnm and Node 24 |
 
 The host needs nothing else. pnpm, Python, and every agent CLI run inside the
 sandbox.
@@ -37,11 +37,15 @@ npx @mifune/agro sandbox install docker   # or run it without a global install
 npm does not install Node. Without Node, use `install.sh`. The script downloads
 the prebuilt `agro` file from the latest GitHub release into `~/.local/bin/agro`.
 It clones nothing and builds nothing. When Node.js ≥ 22 is missing, the script
-offers to install nvm and Node 24:
+offers to install fnm and Node 24:
 
 ```bash
 curl -fsSL https://github.com/mifunedev/agro/releases/latest/download/install.sh | bash
 ```
+
+The fnm install needs `unzip`. When `unzip` is missing, `install.sh` adds `unzip`
+through `apt-get` as root or with passwordless `sudo`. Otherwise, the script
+exits with a message that names `unzip`.
 
 To review the script before it runs:
 
@@ -65,7 +69,8 @@ Callouts: 1 is the command. 2 is the installed version.
 | `AGRO_BIN_DIR=<dir>` | Install location. Default: `~/.local/bin`. |
 | `AGRO_JS_URL=<url>` | URL of the prebuilt `agro` file. |
 | `AGRO_GITHUB_REPO=<owner>/<repo>` | Repository whose latest release hosts the file. Default: `mifunedev/agro`. |
-| `AGRO_NVM_VERSION=<tag>` | nvm version for the Node install. |
+| `AGRO_FNM_VERSION=<tag>` | fnm release tag for the Node install. Default: `v1.39.0`. |
+| `FNM_DIR=<dir>` | Directory of fnm and its Node versions. Default: `~/.local/share/fnm`. |
 | `AGRO_ASSUME_YES=1`, `--yes` | Accept the Node install prompt. |
 | `--no` | Decline the Node install prompt. |
 
@@ -91,9 +96,10 @@ cron job, a systemd unit, cloud-init, and `ssh host cmd` do not. In those
 contexts, run `agro` by its absolute path, for example
 `/home/<user>/.local/bin/agro --version`.
 
-When `node` resolves under `$NVM_DIR`, `install.sh` links that Node to
+When `node` resolves under `$FNM_DIR`, `install.sh` links that Node to
 `~/.local/share/agro/node` and sets the shebang of `agro` to that link. `agro`
-then runs without nvm on PATH. `agro self-upgrade` keeps that shebang.
+then runs without fnm on PATH. `agro self-upgrade` keeps that shebang. A host
+with an existing nvm Node keeps that Node and its pin.
 
 ## Create the sandbox
 

@@ -49,6 +49,13 @@ export function redact(token: string): string {
   return token.slice(0, 5) + "*".repeat(token.length - 5);
 }
 
+export class PromptInterruptedError extends Error {
+  constructor() {
+    super("prompt interrupted");
+    this.name = "PromptInterruptedError";
+  }
+}
+
 export async function ask(question: string): Promise<string> {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   try {
@@ -68,7 +75,7 @@ export async function askSecret(question: string): Promise<string> {
   process.stdin.resume();
 
   const bytes: number[] = [];
-  return await new Promise<string>((resolve) => {
+  return await new Promise<string>((resolve, reject) => {
     const cleanup = (): void => {
       try { process.stdin.setRawMode(false); } catch { }
       process.stdin.pause();
@@ -79,7 +86,8 @@ export async function askSecret(question: string): Promise<string> {
         if (byte === 0x03) {
           cleanup();
           process.stdout.write("\n");
-          process.exit(130);
+          reject(new PromptInterruptedError());
+          return;
         } else if (byte === 0x0d || byte === 0x0a) {
           cleanup();
           process.stdout.write("\n");
@@ -128,16 +136,20 @@ async function askSecretPiped(question: string): Promise<string> {
     try { rl.close(); } catch { }
   };
 
-  const onSigint = (): void => {
-    restore();
-    process.stdout.write("\n");
-    process.exit(130);
-  };
+  let interrupt: () => void = () => {};
+  const onSigint = (): void => interrupt();
   process.on("SIGINT", onSigint);
 
   try {
-    return await new Promise<string>((resolve) => {
+    return await new Promise<string>((resolve, reject) => {
       let settled = false;
+      interrupt = (): void => {
+        if (settled) return;
+        settled = true;
+        restore();
+        process.stdout.write("\n");
+        reject(new PromptInterruptedError());
+      };
       const settle = (answer: string): void => {
         if (settled) return;
         settled = true;
