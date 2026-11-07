@@ -17,6 +17,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 - `next.sh` reads CI state from `statusCheckRollup` in its one `gh pr view` call, so a `/delegate` run does not stop at `blocked` on `gh` 2.45.0, which has no `gh pr checks --json`. A re-run replaces the earlier result of a check. `/delegate` § Waves tells the advisor to wait in a foreground call for worker commits ([#1567](https://github.com/mifunedev/agro/issues/1567)).
 - Make `install.sh` install fnm and Node 24 instead of nvm, and add `unzip` through `apt-get` for the fnm install. A host with an existing nvm Node keeps that Node and its pin ([#1569](https://github.com/mifunedev/agro/issues/1569)).
 
+### Fixed
+
+- Make Ctrl-C at an `agro` secret prompt unwind the command, so cleanup in `finally` blocks (locks, temp directories) runs. The CLI still exits with code 130 ([#1571](https://github.com/mifunedev/agro/issues/1571)).
+
 ## [0.28.0] - 2026-10-31
 
 ### Added
