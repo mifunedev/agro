@@ -39,6 +39,7 @@ export const AGRO_COMMANDS: Readonly<Record<string, readonly string[] | null>> =
   harness: INSTALLER_SUBCOMMANDS,
   tool: TOOL_SUBCOMMANDS,
   gateway: null,
+  run: null,
   egress: EGRESS_VERBS,
   node: NODE_VERBS,
   auth: AUTH_VERBS,

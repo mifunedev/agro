@@ -52,6 +52,7 @@ import {
   runWorkspaceCreate,
   runWorkspaceList,
 } from "./commands/workspace.js";
+import { runRun } from "./commands/run.js";
 import { AGRO_REPO_URL } from "./lib/host-workspace.js";
 import { harnessIds } from "./lib/harnesses/catalog.js";
 import {
@@ -144,6 +145,7 @@ Usage:
   ${bin} compose config         Print the resolved docker compose configuration
   ${bin} egress <args...>       Read the egress proxy log or reload its allowlist (log|reload)
   ${bin} workspace <args...>    Create and list host AGRO workspaces (create|list)
+  ${bin} run -- <command...>    Run a command in an ephemeral container at the repository root
   ${bin} node <args...>         Manage remote agro-console sandbox nodes (create|list|delete)
   ${bin} auth <args...>         Sign in to agro-console (login|status|logout|token)
   ${bin} harness <args...>      Install and inspect agent CLI harnesses
@@ -360,6 +362,27 @@ Flags:
   --ref <ref>      Clone this branch or tag instead of the default branch (create
                    only). A missing ref exits 1 and leaves no target directory.
                    An existing checkout is reused as is.
+`);
+}
+
+export function printRunHelp(bin: string = AGRO_PRODUCT.bin): void {
+  process.stdout.write(`${bin} run — Run a command in an ephemeral container
+
+Usage:
+  ${bin} run [--image <ref>] -- <command...>
+
+\`run\` starts a throwaway container, runs the command, and removes the container.
+It mounts the git repository root, or the current directory outside a repository,
+at the same path, and runs the command in the current directory as the host uid
+and gid. The container uses the default Docker network. The exit code is the exit
+code of the command. Run it on the host; inside a sandbox it exits 1.
+
+The image is \`--image\`, else \`image.ref\` in ${stateNames(bin).configFile}, else the
+official image for this CLI version.
+
+Options:
+  --image <ref>    Image to run the command in
+  -h, --help       Show this help
 `);
 }
 
@@ -963,6 +986,46 @@ export function parseWorkspaceArgs(
   return { ok: true, args };
 }
 
+export interface RunArgs {
+  help: boolean;
+  image?: string;
+  command: string[];
+}
+
+export function parseRunArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): ParseResult<RunArgs> {
+  if (isHelpFlag(rest[0])) return { ok: true, args: { help: true, command: [] } };
+  const sep = rest.indexOf("--");
+  const head = sep === -1 ? rest : rest.slice(0, sep);
+  const command = sep === -1 ? [] : rest.slice(sep + 1);
+  const args: RunArgs = { help: false, command };
+  let expectImage = false;
+  for (const token of head) {
+    if (expectImage) {
+      expectImage = false;
+      args.image = token;
+    } else if (token === "--image") {
+      expectImage = true;
+    } else if (token.startsWith("--image=")) {
+      args.image = token.slice("--image=".length);
+    } else if (token.startsWith("-")) {
+      return { ok: false, error: `${bin} run: unknown flag "${token}"` };
+    } else {
+      return {
+        ok: false,
+        error: `${bin} run: unexpected argument "${token}" — pass the command after \`--\``,
+        showHelp: true,
+      };
+    }
+  }
+  if (expectImage || args.image === "") {
+    return { ok: false, error: `${bin} run: --image requires an image reference` };
+  }
+  if (command.length === 0) {
+    return { ok: false, error: `${bin} run: pass the command after \`--\``, showHelp: true };
+  }
+  return { ok: true, args };
+}
+
 export interface InstallerArgs {
   help: boolean;
   subcommand?: InstallerSubcommand;
@@ -1341,6 +1404,15 @@ async function main(argv: string[]): Promise<number> {
         ...(a.ref !== undefined ? { ref: a.ref } : {}),
       },
       io,
+    );
+  }
+
+  if (first === "run") {
+    const a = parsedArgs(parseRunArgs(argv.slice(1), bin), () => printRunHelp(bin));
+    if (typeof a === "number") return a;
+    return await runRun(
+      { bin, command: a.command, ...(a.image !== undefined ? { image: a.image } : {}) },
+      stdio(),
     );
   }
 
