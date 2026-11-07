@@ -73,3 +73,6 @@ None
 - [ ] CI is green on the pull request.
 
 ## Lessons
+
+1. Claim: `pnpm test` fails 14 tests on this VM. Evidence: the same 14 tests fail on base commit `1988d7bbb`. The causes are umask `0077` file-mode checks and a missing `zsh`. Outcome: dropped, because the failures come from the host and not from this change.
+2. Claim: a `finally` block in a caller of `askSecret` now runs after Ctrl-C. Evidence: `prompt-interrupt.test.ts` proves the `finally` path, and `runCli` returns `130`. Outcome: fixed in this PR.
