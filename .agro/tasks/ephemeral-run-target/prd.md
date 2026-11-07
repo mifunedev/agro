@@ -105,3 +105,9 @@ None
 - [ ] CI is green on the pull request.
 
 ## Lessons
+
+1. Claim: the plan did not give US-002 the verb registry `.agro/cli/src/command-table.ts`. Evidence: the US-002 worker reported BLOCKED because `cli.ts` rejects a verb that `AGRO_COMMANDS` does not list. Outcome: fixed in this PR; the advisor added the file to the story.
+2. Claim: the first `agro run -- pnpm test` failed 78 tests. Evidence: the first US-004 transcript; the image had no passwd entry for the host uid, a worktree had no mounted git directory, and `python3` lived only in `/opt/home-seed`. Outcome: fixed in this PR by the US-001 repair and US-005.
+3. Claim: `install.sh` fails its mode test on the host and in `agro run`. Evidence: `stat -c %a` prints `700`, and `git ls-files -s` prints `100755`; git wrote the file under umask `0077`. Outcome: dropped, because the cause is host checkout drift, and the operator excluded it from the count.
+4. Claim: the official image gains `python3` only at the next release. Evidence: US-004 used the local build `agro-local:1579`. Outcome: dropped, because the next release ships the Dockerfile change.
+5. Claim: the `HostOnlyError` message says that the verb manages the sandbox container, which does not describe `agro run`. Evidence: US-002 report. Outcome: dropped, because the refusal is correct and the wording is cosmetic.
