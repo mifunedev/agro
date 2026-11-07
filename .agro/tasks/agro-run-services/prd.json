@@ -17,13 +17,14 @@
         "`pnpm typecheck` exits 0, and `pnpm test` shows no new failure against `evidence/baseline.md`."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, merged 649c78fb): typecheck 0; agro run -- vitest agro-config.test.ts 96/96; agro run -- pnpm test 1 failed (baseline install.sh drift) / 2946 passed. reasoned: RunService/RunSettings types; expectStringMap with field-path errors; DNS label regex; run.* kept out of AGRO_CONFIG_FIELDS (map types), pinned by a test.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/agro-config.ts",
         ".agro/cli/src/lib/__tests__/agro-config.test.ts"
-      ]
+      ],
+      "commit": "649c78fb"
     },
     {
       "id": "US-002",
@@ -62,12 +63,13 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/delegate/SKILL.md` reports no new finding on the changed lines."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, merged 38f9c831): rule after the Dispatch record table, pointed to from § Waves step 1 and § Acceptance step 3; ste-check same 3 pre-existing findings; link check 0. reasoned: fallback sentence present; the installed host agro (0.28.0) lacks run, so the fallback applies until a self-upgrade.",
       "dependsOn": [],
       "files": [
         ".agro/skills/delegate/SKILL.md"
-      ]
+      ],
+      "commit": "38f9c831"
     },
     {
       "id": "US-004",
