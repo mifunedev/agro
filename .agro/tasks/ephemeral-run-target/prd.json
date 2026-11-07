@@ -46,7 +46,8 @@
       "files": [
         ".agro/cli/src/cli.ts",
         ".agro/cli/src/commands/run.ts",
-        ".agro/cli/src/__tests__/run.test.ts"
+        ".agro/cli/src/__tests__/run.test.ts",
+        ".agro/cli/src/command-table.ts"
       ]
     },
     {
