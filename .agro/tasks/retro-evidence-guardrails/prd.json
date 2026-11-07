@@ -14,12 +14,14 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/council/SKILL.md` reports no new finding on the changed lines."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: council § 2 new step 6 runs gh issue list -R <owner>/<repo> --state all for ADR: and RFC: titles in each repository in scope and puts number and state into the shared brief (repair round 1 added -R); ste-check same single pre-existing finding; link check 0.",
       "dependsOn": [],
       "files": [
         ".agro/skills/council/SKILL.md"
-      ]
+      ],
+      "commit": "e5684047d",
+      "rounds": 1
     },
     {
       "id": "US-002",
