@@ -38,14 +38,15 @@
         "The transcript holds the output of the new interrupt test from US-001."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: evidence/manual-review.md holds pnpm test (exit 1, the 14 pre-existing host-specific failures listed) and pnpm typecheck (exit 0) with commands; executed: holds interrupt test output red 3 failed then green 6 passed; ste-check exit 0.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/tasks/prompt-interrupt-runs-cleanup/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "b5e6d15f8"
     }
   ],
   "pr": 1572
