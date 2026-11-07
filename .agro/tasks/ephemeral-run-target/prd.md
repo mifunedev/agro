@@ -39,7 +39,7 @@ Status: DRAFT
 
 ### US-005: The image ships a system python3
 
-**Description:** As a worker, I want a system `python3` in the AGRO image so that scripts that need `python3` run under `agro run`.
+**Description:** As a worker, I want a system `python3` in the AGRO image so that each script with a `python3` call runs under `agro run`.
 
 **Acceptance Criteria:**
 
@@ -83,7 +83,7 @@ ADR #1575 (Accepted) selects verification hands: an ephemeral per-worker contain
 ## Architectural Decisions
 The target reuses `ExecutionTarget`. The container runs as the host uid and gid, so files in the worktree keep host ownership. Step 2 (per-worker service sidecar) and step 3 (`/delegate` rule) of ADR #1575 need separate plans.
 
-Operator decisions on 2026-11-07: option A after the first validation, so the image ships a system `python3`, and checkout file-mode drift is recorded, not counted. The verb is `agro run`, and the container uses the default Docker network. ADR #1378 owns egress policy.
+Operator decisions on 2026-11-07: option A after the first validation, so the image ships a system `python3`. The evidence records checkout file-mode drift and does not count it. The verb is `agro run`, and the container uses the default Docker network. ADR #1378 owns egress policy.
 
 ## Test Plan (TDD)
 | Test File | Case(s) | Validates |
