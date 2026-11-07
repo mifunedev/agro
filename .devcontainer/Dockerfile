@@ -176,3 +176,20 @@ WORKDIR ${AGRO_PROJECT_ROOT}
 STOPSIGNAL SIGRTMIN+3
 ENTRYPOINT []
 CMD ["/sbin/init"]
+
+FROM final AS agro-msb
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      docker-ce containerd.io docker-buildx-plugin docker-compose-plugin iptables \
+ && rm -rf /var/lib/apt/lists/* \
+ && install -d -m 0755 /etc/docker \
+ && printf '{\n  "live-restore": true\n}\n' > /etc/docker/daemon.json \
+ && groupadd -f docker && usermod -aG docker sandbox \
+ && systemctl enable docker.service containerd.service \
+ && test -f /usr/lib/systemd/system/poweroff.target \
+ && ln -sf /usr/lib/systemd/system/poweroff.target /etc/systemd/system/ctrl-alt-del.target \
+ && install -d -m 0755 /etc/systemd/system.conf.d \
+ && printf '[Manager]\nCtrlAltDelBurstAction=poweroff-force\n' > /etc/systemd/system.conf.d/agro-msb-poweroff.conf
+
+CMD ["sleep", "infinity"]
+
+FROM final

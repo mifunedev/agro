@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Add the `msb` remote-sandbox provider, the `msb-guest` check, and the `agro-msb` Dockerfile target to boot the AGRO image as a microVM on an agro-console node ([#1555](https://github.com/mifunedev/agro/pull/1555)).
+
 ## [0.31.0] - 2026-11-07
 
 ### Added

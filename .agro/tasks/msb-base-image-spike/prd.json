@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1554-msb-base-image-spike",
+  "description": "Spike: measure current HEAD against a microsandbox layer built from one AGRO Dockerfile with an agro-msb target, and decide proceed or stay on HEAD from evidence.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "KVM gate probe",
+      "description": "As the operator, I want proof that one candidate host exposes `/dev/kvm` and runs a pinned `msb`. The spike then stops early when KVM is absent.",
+      "acceptanceCriteria": [
+        "The probe runs on one agro-console free-tier node, created with `agro node create --spec n4 --free-tier`. The probe creates no paid resource.",
+        "`.agro/tasks/msb-base-image-spike/evidence/kvm-probe.log` records `ls -l /dev/kvm`, `msb --version`, and the output of `msb self doctor` on the A1 console node.",
+        "The log records the newest upstream `msb` release on the day of the probe as `<msb-version>`, and the sha256 of the installed binary.",
+        "If `/dev/kvm` is absent or `msb self doctor` exits non-zero, the advisor writes `blocked` in `prd.json` with the reason, and stories US-002 to US-006 do not start.",
+        "After the probe, `agro node list` shows no node that the probe created."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "executed: agro node create --spec n4 --free-tier accepted under personal org 20b1b272 (after agro-console#665); create exited 1 at 903s on waiting_for_boot, first SSH exit 0 at 918s. executed: kvm-probe.log records ls -l /dev/kvm (crw-rw---- root kvm, exit 0), vmx count 4, kvm_intel loaded, systemd-detect-virt=kvm, msb --version=msb 0.7.13, msb self doctor exit 1 then exit 0 after usermod -aG kvm sandbox. executed: pin v0.7.13 (latest 2026-11-03), install.sh sha256 800af0b3…be7, binary sha256 cf2c59c0…d95b; install.sh resolves latest at runtime. reasoned: KVM present, so no stop. executed: agro node list shows agro-mx-kvm-probe status destroyed. Log stays local per .gitignore .agro/tasks/*/*. Carry to US-003: sandbox user needs kvm group (new login session) and ~/.microsandbox must not be group-writable; msb run alpine exit 0 in 3s after chmod go-w.",
+      "dependsOn": [],
+      "files": [
+        ".agro/tasks/msb-base-image-spike/evidence/kvm-probe.log"
+      ],
+      "commit": "e67006dca"
+    },
+    {
+      "id": "US-002",
+      "title": "`agro-msb` build target",
+      "description": "As the advisor, I want one `agro-msb` target in `.devcontainer/Dockerfile` so that the microVM arm uses the AGRO image plus the Docker engine recipe of `ryaneggz/microsandbox-ubuntu-dind`.",
+      "acceptanceCriteria": [
+        "`.devcontainer/Dockerfile` defines a stage `agro-msb` that starts `FROM final`.",
+        "The `agro-msb` stage installs `docker-ce`, `containerd.io`, `docker-buildx-plugin`, and `docker-compose-plugin` from the Docker Debian repository.",
+        "The `agro-msb` stage writes `/etc/docker/daemon.json` with `\"live-restore\": true` and adds the `sandbox` user to the `docker` group.",
+        "The `agro-msb` stage enables `docker.service` under systemd and keeps `CMD [\"/sbin/init\"]`.",
+        "The `agro-msb` stage creates no user other than `sandbox` and sets no password.",
+        "`docker build --target agro-msb -f .devcontainer/Dockerfile .` exits 0.",
+        "The advisor pushes the `agro-msb` image as `ghcr.io/mifunedev/agro:spike-msb-<sha>`. The release workflow does not change.",
+        "`docker build --target final -f .devcontainer/Dockerfile .` exits 0, and the existing image smoke test of `.github/workflows/release.yml` passes on the `final` image.",
+        "The stage holds no explanatory comment."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "executed: docker build --target agro-msb exit 0 on integrated branch (image sha256:3e516546dc65); in-image smoke dockerd 29.9.2, sandbox in docker group, docker.service enabled; worker: --target final exit 0, sandbox-boot-smoke.sh ok on final, default build (no --target) same 29 layers/config as final after FROM final tail stage; diff only appended lines; no comments; only sandbox user, no password. executed: docker push ghcr.io/mifunedev/agro:spike-msb-f737c5e3e exit 0, digest sha256:3e516546dc65…; package visibility public (gh api). Release workflow unchanged. REOPENED round 2 (operator-approved image fix): under msb --init auto the image CMD /sbin/init also runs as the startup command, exits 1 (not PID 1), and msb then shuts the sandbox down (evidence/a1-smoke2-diag.txt). Round 2 accepted (55c35cea4): agro-msb CMD [\"sleep\",\"infinity\"] (msb v0.7.13 --init auto probes /sbin/init from rootfs, not CMD: docs/sandboxes/bootstrap.mdx:292, crates/agentd/lib/handoff.rs:126-145); ctrl-alt-del.target -> poweroff.target; CtrlAltDelBurstAction=poweroff-force. Executed on integrated branch: docker build --target agro-msb exit 0; in-image readlink/drop-in/docker enabled verified; Config.Cmd [sleep,infinity]; pushed ghcr.io/mifunedev/agro:spike-msb-55c35cea4 digest sha256:41aef2e261d5 size 2190546500 B. final stage unchanged (worker: --target final Cmd [/sbin/init]). REOPENED at Close (operator-approved extra round): pnpm test failure caused by this story. Close round accepted (a991e8e46): removed inherited ENTRYPOINT []/STOPSIGNAL from agro-msb; sandbox-privilege-boundary.test.ts 29/29 (red run 1 failed); agro-msb build exit 0 with Cmd [sleep,infinity] StopSignal SIGRTMIN+3. Image on GHCR (55c35cea4) is functionally identical.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".devcontainer/Dockerfile"
+      ],
+      "commit": "a991e8e46",
+      "rounds": 2
+    },
+    {
+      "id": "US-003",
+      "title": "`msb` adapter for `/remote-sandbox`",
+      "description": "As the advisor, I want an `msb` adapter so that `run.sh msb <check>` boots the `agro-msb` image as a microVM on the A1 console node through the existing driver.",
+      "acceptanceCriteria": [
+        "`.agro/skills/remote-sandbox/adapters/msb.sh` defines the five functions that `SKILL.md` § Adapter contract names, with the prefix `msb_`.",
+        "`msb_create NAME` runs `msb run --init auto --root-disk flat:40G \"$IMAGE\"` on the A1 console node over SSH and stores the sandbox ID in `$STATE_DIR/msb-NAME`.",
+        "`msb_exec NAME CMD…` runs `CMD…` in the guest under `timeout 120`.",
+        "`msb_restart NAME` runs `msb stop` on the stored sandbox ID. Next, `msb_restart NAME` runs `msb start` on the same ID.",
+        "`msb_destroy NAME` removes the guest, and `msb_list` prints the number of guests whose name starts with `agro-mx-`.",
+        "`.agro/scripts/__tests__/remote-sandbox-adapters.test.ts` covers each `msb_` function with a stub `ssh` and a stub `msb` on `PATH`.",
+        "`bash -n` and `shellcheck` pass on `adapters/msb.sh`.",
+        "Typecheck passes."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "executed on integrated task branch (f737c5e3e): bash -n adapters/msb.sh exit 0; shellcheck -S warning adapters/*.sh scripts/*.sh checks/*.sh exit 0; vitest remote-sandbox-adapters + suite + remote-sandbox tests 87/87 pass (worker red runs: 22 failed, then 7 failed in repair round 1); pnpm run typecheck exit 0. reasoned: msb_create composes console_create, refuses unset IMAGE (exit 2), pins MSB_VERSION by rewriting install.sh get_latest_version then verifying msb --version, adds sandbox to kvm group in its own session, chmod go-w ~/.microsandbox, msb run --detach --name --init auto --root-disk flat:40G; msb_exec forwards MSB_GUEST=1 plus MSB_GUEST_PHASE/MSB_IDLE_WAIT/IMAGE_SIZE_BYTES; msb_restart stop+start; msb_destroy rm --force then console_destroy (409 retry); msb_list counts agro-mx-; SSH wait MSB_SSH_WAIT_TRIES default 1200 s. Unverified live: --detach with --init auto on /sbin/init image. REOPENED round 1 (US-005): msb_create returns before systemd owns PID 1 on --init auto guests; uploaded check lost under /tmp tmpfs, restore phase saw pid1=init.krun. Round 2 accepted (c27d4dd56): msb_wait_systemd (pid1=systemd and running|degraded, MSB_SYSTEMD_WAIT_TRIES default 120x5s) called at end of msb_create and msb_restart; msb_snapshot_restore = stop, snap create ready --sandbox, snap restore --name NAME-r, start, retarget state, wait systemd. Executed on integrated branch: bash -n 0, shellcheck -S warning adapters/*.sh 0, vitest 3 remote-sandbox files 98/98, typecheck 0 (worker red run 12 failed). Known risk: v0.7.13 snap restore has no --init flag, restored guest may stay pid1=init.krun so M05 may FAIL truthfully. REOPENED round 3 (operator-approved): guests drain under --init auto at 512 MiB default; set guest memory 2 GiB and 2 vCPU. Round 3 accepted (5ed2ae0a7): --cpus ${MSB_GUEST_CPUS:-2} --memory ${MSB_GUEST_MEMORY:-2G} on run and snap restore; msb_wait_systemd checks msb ls STATUS before each probe and fails fast on stopped|draining|crashed with msb logs --source system --tail 20. Executed on integrated branch: bash -n 0, shellcheck -S warning 0, 104/104 tests, typecheck 0 (worker red run 9 failed). Diag shows guest systemd entered reboot.target before draining. REOPENED at Close (operator-approved extra round): pnpm test failure caused by this story. Operator-approved extra round 2026-11-03: operator authorized resetting rounds from 3 to 2 to clear the rounds guard for the Close test-timeout fix. Close round accepted (2c027465f): ssh-down test sets MSB_SSH_WAIT_TRIES=2; default-bound tests stub seq. Integrated pnpm test: only herdr-default (7) and install (4) fail, same 11 failures on unmodified origin/development; typecheck 0; build:harness 0.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/skills/remote-sandbox/adapters/msb.sh",
+        ".agro/scripts/__tests__/remote-sandbox-adapters.test.ts"
+      ],
+      "commit": "2c027465f",
+      "rounds": 2
+    },
+    {
+      "id": "US-004",
+      "title": "microVM guest check",
+      "description": "As the advisor, I want one check script with the microVM rows. Both arms then report Docker, persistence, and footprint results in the `RESULT` format.",
+      "acceptanceCriteria": [
+        "`.agro/skills/remote-sandbox/checks/msb-guest.sh` emits one `RESULT <row-id> <PASS|FAIL|SKIPPED> <detail>` line for each row `M01` to `M06` in `## Summary`.",
+        "Each row runs when an earlier row fails. The script exits with the count of `FAIL` rows.",
+        "On a host-mode node, rows `M03` and `M05` print `SKIPPED` with the reason `no microVM`.",
+        "`bash -n` and `shellcheck` pass on `checks/msb-guest.sh`.",
+        "`.agro/scripts/__tests__/remote-sandbox-suite.test.ts` asserts that the script prints one `RESULT` line for each row ID with stubbed commands."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "executed on integrated task branch: bash -n checks/msb-guest.sh exit 0; shellcheck v0.11.0 exit 0; npx vitest run .agro/scripts/__tests__/remote-sandbox-suite.test.ts 15/15 pass (worker red run: 7 failed before script existed); pnpm run typecheck exit 0. reasoned: one RESULT line per row M01-M06 per phase, exit=FAIL count, rows run after failures, host mode (MSB_GUEST unset) prints M03/M05 SKIPPED no microVM — asserted by the suite tests. Design: MSB_GUEST=1 marks microVM mode; MSB_GUEST_PHASE pre|restart|restore; MSB_IDLE_WAIT; IMAGE_SIZE_BYTES. msb_exec must forward these (US-003 repair round 1).",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/skills/remote-sandbox/checks/msb-guest.sh",
+        ".agro/scripts/__tests__/remote-sandbox-suite.test.ts"
+      ],
+      "commit": "4763bc52a"
+    },
+    {
+      "id": "US-005",
+      "title": "Run both arms",
+      "description": "As the operator, I want three runs of each arm with the same checks so that the decision uses medians, not one sample.",
+      "acceptanceCriteria": [
+        "Every run uses the console free tier. The runs create no paid resource.",
+        "Arm A0 runs `bash run.sh console agro-rows.sh` and `bash run.sh console msb-guest.sh` three times on `CONSOLE_SPEC=n4`.",
+        "Arm A1 runs `IMAGE=ghcr.io/mifunedev/agro:spike-msb-<sha> bash run.sh msb agro-rows.sh` and `IMAGE=ghcr.io/mifunedev/agro:spike-msb-<sha> bash run.sh msb msb-guest.sh` three times on the A1 console node.",
+        "Arm A1 runs `scripts/restart-test.sh msb` three times.",
+        "The free tier allows one live node, so the runs execute one at a time. Each run deletes its node before the next run starts.",
+        "Each run writes its log under `.agro/tasks/msb-base-image-spike/evidence/`.",
+        "Both arms use the same `msb` release `<msb-version>` and the same AGRO commit.",
+        "After the last run, `agro node list` and `msb_list` show no node and no guest that the runs created."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "executed: free tier only, one node at a time (sequencer guard live()==0 + console /signin 200|307), 23 nodes all destroyed, msb_list 0, no tmux sessions. A0 x3 valid (053838/054913, 061540/063019, 063332/064825; 055245/060936/061238 void: console outage). A1 x3 on spike-msb-55c35cea4 (rows 080136/083141/092159, chain 081016/084021/093112, restart 082106/085029/094005), all exit 0. Advisor spot-check: M03 FAIL x3 (tmux_has_session=1), M05 FAIL x3 (restored guest pid1=init.krun), R05/R06 PASS x3, R13 218.5/214.6/232.0s, R14 FAIL x3 (Hermes smoke refuses Docker socket). msb v0.7.13 on all runs. DEVIATION: AGRO commit differs (A0 release main@679f1f3d, A1 branch image 55c35cea4). Evidence stays local per .gitignore.",
+      "dependsOn": [
+        "US-002",
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        ".agro/tasks/msb-base-image-spike/evidence/"
+      ],
+      "commit": "41169af93"
+    },
+    {
+      "id": "US-006",
+      "title": "Decision brief",
+      "description": "As the operator, I want one brief that applies the decision rule to the medians. I then choose between HEAD and the microsandbox layer from evidence.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/msb-base-image-spike/brief.md` holds one table with one column for each arm and one row for each row ID in `R01` to `R14` and `M01` to `M06`.",
+        "The table shows the median of the three runs for each timed row and the pass count for each other row.",
+        "The brief computes the cost per tenant for each arm with the formula in `## Summary` and cites a source for each price.",
+        "The brief states exactly one outcome: `proceed` or `stay on HEAD`, and names the rule clause that decides the outcome.",
+        "If the outcome is `stay on HEAD`, the task PR removes the `agro-msb` stage and `adapters/msb.sh`.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/tasks/msb-base-image-spike/brief.md` exits 0."
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "executed: brief.md has one A0|A1 table (23 rows R01-R15, R02b, M01-M06; medians re-derived from logs), cost per tenant from provider-catalog.json:25-33 (A0 $0.0450/tenant; A1 $0.0021 at idle-memory bound, $0.0225 at 2 GiB allocation; usable memory unmeasured, 4096 MiB upper bound), one outcome line \"Outcome: stay on HEAD\" naming clause 2 (M03 FAIL 3/3); ste-check exit 0 (advisor rerun). reasoned: criterion \"PR removes agro-msb stage and adapters/msb.sh\" not applied — operator decision 2026-11-03 to keep the spike code; recorded as a deviation. brief.md stays local per .gitignore; Close copies it into the PR body.",
+      "dependsOn": [
+        "US-005"
+      ],
+      "files": [
+        ".agro/tasks/msb-base-image-spike/brief.md"
+      ],
+      "commit": "41169af93"
+    },
+    {
+      "id": "US-007",
+      "title": "Manual review evidence",
+      "description": "As the operator, I want a command transcript of one A1 run so that I review the microVM path without a rerun.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/msb-base-image-spike/evidence/manual-review.md` holds the commands and outputs of one A1 run of `msb-guest.sh` and of `scripts/restart-test.sh msb`.",
+        "The transcript shows `systemd` as PID 1 in the guest, a `docker run hello-world` result, and the `tmux` session list before and after `msb stop` and `msb start`.",
+        "The run uses a live resource only with operator approval. The transcript shows the deletion of each resource that the run created."
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "executed: evidence/manual-review.md built from A1 run 3 logs (msb-guest-chain-20261103-093112, msb-restart-settled-20261103-094005, msb-agro-rows-20261103-092159): pid1=systemd and M02 PASS, M01 hello-world=ok, tmux before (probe session created) and after msb stop/start (tmux_has_session=1, M03 FAIL); operator approval stated; deletion lines for nodes 7e433dcd, 52e53618, 10c814e2; reviewer steps in server/CLI shape. ste-check exit 0. Committed with git add -f per git/references/manual-review.md, plus brief.md and a1-guest-chain.sh (linked by the reviewer steps).",
+      "dependsOn": [
+        "US-005"
+      ],
+      "files": [
+        ".agro/tasks/msb-base-image-spike/evidence/manual-review.md"
+      ],
+      "commit": "4db61c047"
+    },
+    {
+      "id": "US-008",
+      "title": "Document the msb provider and agro-msb target",
+      "description": "As an operator, I want the msb provider, the msb-guest check, and the agro-msb build target documented so that I can run the spike path without reading the adapter.",
+      "acceptanceCriteria": [
+        "CHANGELOG.md has one entry under ## [Unreleased] for the msb remote-sandbox provider, the msb-guest check, and the agro-msb Dockerfile target, at most 250 characters, linking https://github.com/mifunedev/agro/pull/1555.",
+        ".agro/skills/remote-sandbox/SKILL.md names the msb provider and the msb-guest check, and its variable table lists MSB_VERSION, MSB_GUEST_MEMORY, MSB_GUEST_CPUS, MSB_SSH_WAIT_TRIES, MSB_SYSTEMD_WAIT_TRIES, MSB_GUEST_PHASE, MSB_IDLE_WAIT, and IMAGE_SIZE_BYTES with their defaults from adapters/msb.sh and checks/msb-guest.sh.",
+        ".agro/skills/remote-sandbox/references/providers.md has an msb section: host prerequisites (KVM, kvm group, ~/.microsandbox not group-writable), the agro-msb image requirement (CMD stays alive under --init auto), and the known limits (snapshot restore loses the systemd handoff; tmux does not survive msb stop/start).",
+        "bash .agro/skills/ste/scripts/ste-check.sh exits 0 on each changed Markdown file."
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "executed on integrated branch (2e35422e9): CHANGELOG ### Added entry 214 chars linking #1555; SKILL.md lists all eight MSB_*/IMAGE_SIZE_BYTES variables with code defaults (grep 8/8); providers.md ## msb section; ste-check exit 0 on SKILL.md and providers.md; vitest remote-sandbox* 104/104; link-providers.sh --check exit 0. reasoned: CHANGELOG.md whole-file ste-check has 262 pre-existing findings; new entry alone passes. Note: SKILL.md points at the task-evidence chain script for multi-phase runs.",
+      "dependsOn": [
+        "US-007"
+      ],
+      "files": [
+        "CHANGELOG.md",
+        ".agro/skills/remote-sandbox/SKILL.md",
+        ".agro/skills/remote-sandbox/references/providers.md"
+      ],
+      "commit": "2e35422e9"
+    },
+    {
+      "id": "US-009",
+      "title": "A0 node-reboot M03 check",
+      "description": "As the operator, I want the M03 restart-persistence check run across an A0 node reboot so that M03 compares like events on both arms.",
+      "acceptanceCriteria": [
+        "Three A0 runs on free-tier n4 nodes, one node at a time: msb-guest.sh with MSB_GUEST=1 MSB_GUEST_PHASE=pre on the node host, then sudo systemctl reboot, then wait for SSH, then msb-guest.sh with MSB_GUEST_PHASE=restart.",
+        "Each run records the M03 RESULT line, seconds from reboot to first SSH, and whether the AGRO sandbox container reports healthy after the reboot.",
+        "Each run writes its log under .agro/tasks/msb-base-image-spike/evidence/ and deletes its node; agro node list shows no live node at the end.",
+        "brief.md gains an A0 reboot column value for M03 and a note on how the result changes the M03 caveat; ste-check exits 0."
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "executed: 3 A0 runs (a0-reboot-1-20261103-162614, -2-163036, -3-163526), one free-tier n4 node at a time. Advisor grep: M03-restart-persist FAIL (tmux_has_session=1) 3/3 on the node host; M03-container-tmux FAIL 3/3; reboot_to_ssh_s 26.6/27.2/26.6; reboot_to_healthy_s 35.0/35.3/35.0, health=healthy; docker active. agro node list: 0 live (26 destroyed). brief.md M03 row has the A0-reboot value, a findings paragraph, and the caveat line updated; ste-check exit 0. Outcome line unchanged (clause 2 counts only A1). Conclusion: the A1 M03 failure is a property of any reboot, not of the microVM layer.",
+      "dependsOn": [
+        "US-005"
+      ],
+      "files": [
+        ".agro/tasks/msb-base-image-spike/evidence/",
+        ".agro/tasks/msb-base-image-spike/brief.md"
+      ],
+      "commit": "a585f402a"
+    }
+  ],
+  "pr": 1555,
+  "review": {
+    "commit": "0dfb47f0d5ce9283e5d5741c4a01d73b1ee8862d",
+    "verdict": "pass",
+    "model": "sonnet (fresh context)"
+  }
+}
