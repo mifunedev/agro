@@ -243,7 +243,12 @@ When every story has `passes: true`, do these steps:
    repository: lint, typecheck, test, and build. Record each exit status. When a
    worktree holds the task branch, use § Acceptance § Verify when a worktree
    holds the task branch.
-2. Write `## Lessons` at the end of `prd.md`. Give each lesson a claim,
+2. List each task-level criterion from `prd.md` with its evidence. The
+   evidence must match the exact subject that the criterion names, for example
+   a job type, a command, or a file. When the evidence covers a different
+   subject, mark the criterion `unmet`. When any criterion is `unmet`, do not
+   report the task as done.
+3. Write `## Lessons` at the end of `prd.md`. Give each lesson a claim,
    evidence, and exactly one outcome:
    - fixed in this PR;
    - issue #N; or
@@ -264,11 +269,11 @@ When every story has `passes: true`, do these steps:
    issue `follow-up`.
 
    "None" is a valid body.
-3. Fill the PR evidence sections from the `notes` in `prd.json`.
-4. Fill the PR `## Manual review` section from the evidence of the last story.
+4. Fill the PR evidence sections from the `notes` in `prd.json`.
+5. Fill the PR `## Manual review` section from the evidence of the last story.
    Use the shape of [`.agro/skills/git/references/manual-review.md`](../git/references/manual-review.md).
    Write only the expected results that the evidence observed.
-5. Continue with the "Ready for review" step of `/git`.
+6. Continue with the "Ready for review" step of `/git`.
 
 ## Dry run
 
