@@ -12,7 +12,7 @@ echo "== hermes generated home on $(. /etc/os-release; echo "$PRETTY_NAME"), ref
 
 echo "== H01"
 curl -fsSL "${INSTALL_URL:-https://github.com/mifunedev/agro/releases/latest/download/install.sh}" -o /tmp/install.sh && bash /tmp/install.sh --yes >/tmp/install.log 2>&1; rc=$?; hash -r
-export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" >/dev/null 2>&1
+export FNM_DIR="${FNM_DIR:-$HOME/.local/share/fnm}"; [ -x "$FNM_DIR/fnm" ] && { export PATH="$FNM_DIR:$PATH"; eval "$(fnm env --shell bash)"; } >/dev/null 2>&1
 [ $rc = 0 ] && agro --version >/dev/null 2>&1 && result H01-install-agro PASS "released agro $(agro --version 2>&1 | tail -1) node $(node --version 2>&1)" || result H01-install-agro FAIL "exit=$rc $(oneline /tmp/install.log)"
 
 echo "== H02"
