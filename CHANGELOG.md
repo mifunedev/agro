@@ -22,6 +22,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 - Make `install.sh` install fnm and Node 24 instead of nvm, and add `unzip` through `apt-get` for the fnm install. A host with an existing nvm Node keeps that Node and its pin ([#1569](https://github.com/mifunedev/agro/issues/1569)).
 - Make `/prd` add each caller and test fake of a changed export to a story and give `CHANGELOG.md` to one story, `/delegate` record baseline test failures, and `/council` pin each source to a commit SHA ([#1573](https://github.com/mifunedev/agro/issues/1573)).
 - Make `/council` search prior ADR and RFC issues, `/delegate` Close map each criterion to literal evidence, and `/prd` label external criteria and protect comparison metrics ([#1576](https://github.com/mifunedev/agro/issues/1576)).
+- Make the sandbox image install a system `python3` (`python3-minimal`), so scripts that call `python3` also work in `agro run`. The `sandbox` user still resolves `python3` to the uv Python 3.13 ([#1579](https://github.com/mifunedev/agro/issues/1579)).
 
 ### Fixed
 
