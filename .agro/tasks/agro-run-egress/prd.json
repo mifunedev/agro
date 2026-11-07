@@ -40,8 +40,8 @@
         "`pnpm typecheck` exits 0, and `pnpm test` through `agro run` shows no new failure against the baseline."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, dd70a23d): typecheck 0 via agro run; run.test.ts passes; real allowlist run with the built CLI: example.org 200, example.com refused by the proxy (CONNECT 403); no agro-run containers or networks after. worker: full suite 1 baseline failure; tests cover proxy start failure, readiness timeout, egress network failure, cleanup order, unchanged open-mode argv; direct bypass cannot resolve hosts on the internal network.",
       "dependsOn": [
         "US-001"
       ],
@@ -50,7 +50,8 @@
         ".agro/cli/src/lib/execution/ephemeral-target.ts",
         ".agro/cli/src/__tests__/run.test.ts",
         ".agro/cli/src/__tests__/ephemeral-target.test.ts"
-      ]
+      ],
+      "commit": "dd70a23d"
     },
     {
       "id": "US-003",
