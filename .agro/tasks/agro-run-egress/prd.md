@@ -94,3 +94,7 @@ None
 - [ ] CI is green on the pull request.
 
 ## Lessons
+
+1. Claim: the proxy variables override a user-set value with the same name. Evidence: US-002 report; the proxy variables come after the run variables map. Outcome: dropped, because the allowlist mode must own the proxy settings.
+2. Claim: a client that ignores the proxy variables fails at name lookup, not at connect time. Evidence: US-004 check 3, `curl: (6) Could not resolve host`. Outcome: dropped, because the internal network blocks the request in both cases.
+3. Claim: the operator chose `sandbox` as the default user for every image path. Evidence: operator message on 2026-11-07. Outcome: dropped from this PR; the microVM backend plan changes the `agro run` fallback user name to `sandbox`.
