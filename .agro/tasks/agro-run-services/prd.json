@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1584-agro-run-services",
+  "description": "agro run services. ADR #1575 (Accepted) sequences step 2 (a per-worker service sidecar from a project declaration) and step 3 (a `/delegate` rule). Step 1 shipped in #1580: `EphemeralExecutionTarget` and `agro run`. Facts: `agro run` reads `agro.json` at the git toplevel for `image.ref` (`.agro/cli/src/commands/run.ts`). Parallel workers in the earlier agro-console tasks shared one `postgres` container and created throwaway databases by hand.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "The run section of agro.json",
+      "description": "As a project owner, I want run services in `agro.json` so that `agro run` starts the declared services for each command.",
+      "acceptanceCriteria": [
+        "`AgroConfig` in `.agro/cli/src/lib/agro-config.ts` has an optional `run` section with `services` and `env`.",
+        "`run.services` maps a service name to an object with a required string `image`, an optional string map `env`, and an optional string `ready`.",
+        "`run.env` is an optional string map.",
+        "The validator rejects three inputs: a service name outside the DNS label format, a missing `image`, and a non-string value in `env`. Each error message names the field path.",
+        "Tests in `.agro/cli/src/lib/__tests__/agro-config.test.ts` cover each accepted shape and each rejection.",
+        "`pnpm typecheck` exits 0, and `pnpm test` shows no new failure against `evidence/baseline.md`."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/agro-config.ts",
+        ".agro/cli/src/lib/__tests__/agro-config.test.ts"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "agro run starts and removes the services",
+      "description": "As a worker, I want `agro run` to give each command its own services so that parallel workers share no database.",
+      "acceptanceCriteria": [
+        "When `run.services` is not empty, `agro run` creates a Docker network `agro-run-<id>` with a unique `<id>` for each invocation.",
+        "`agro run` starts each service with `docker run -d --rm` on that network, with the service name as its network alias and with the service `env`.",
+        "When a service has `ready`, `agro run` runs the `ready` command in the service container once per second. After 60 seconds without success, `agro run` exits 1 and names the service.",
+        "The command container joins the network and receives `run.env`.",
+        "After the command exits, and also after a failure, `agro run` removes each service container and the network.",
+        "When `run.services` is empty or absent, the `docker` argument vector of `agro run` does not change.",
+        "Tests assert the exact `docker` argument vectors and the removal order through a fake runner.",
+        "`pnpm typecheck` exits 0, and `pnpm test` shows no new failure against the baseline."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/cli/src/lib/execution/ephemeral-target.ts",
+        ".agro/cli/src/commands/run.ts",
+        ".agro/cli/src/__tests__/run.test.ts",
+        ".agro/cli/src/__tests__/ephemeral-target.test.ts"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Delegate verifies through agro run",
+      "description": "As an advisor, I want `/delegate` to run verification through `agro run` when the host has it so that verification does not depend on host drift.",
+      "acceptanceCriteria": [
+        "`.agro/skills/delegate/SKILL.md` holds a rule for the `host` execution location. When `agro --help` lists `agro run`, the baseline, the worker verification, and the advisor acceptance commands run as `agro run -- <command>`.",
+        "The rule names the fallback: without `agro run`, or in a sandbox, the commands run directly.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/delegate/SKILL.md` reports no new finding on the changed lines."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/delegate/SKILL.md"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Documentation and changelog",
+      "description": "As an operator, I want the run section in the docs and the changelog so that a project can declare services.",
+      "acceptanceCriteria": [
+        "`docs/lifecycle-commands.md` describes `run.services` and `run.env` in the `agro run` section, with one `postgres` example.",
+        "`CHANGELOG.md` holds one entry under `## [Unreleased]` that links the task issue."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        "docs/lifecycle-commands.md",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Validation",
+      "description": "As the operator, I want proof that services start, isolate, and clean up so that ADR #1575 step 2 meets its validation rule.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/agro-run-services/evidence/manual-review.md` records a scratch repository whose `agro.json` declares a `postgres` service with a `ready` command, and an `agro run` command that connects to `postgres:5432`.",
+        "Two `agro run` invocations run at the same time with different networks and different service containers, and each one reaches its own database.",
+        "After both runs, `docker ps -a` and `docker network ls` show no `agro-run-` container or network.",
+        "The run deletes the scratch repository at the end."
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/agro-run-services/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
