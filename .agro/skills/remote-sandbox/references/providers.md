@@ -5,7 +5,8 @@
 1. [exe.dev](#exedev)
 2. [Vercel Sandbox](#vercel-sandbox)
 3. [agro-console](#agro-console)
-4. [Add an adapter](#add-an-adapter)
+4. [msb](#msb)
+5. [Add an adapter](#add-an-adapter)
 
 ## exe.dev
 
@@ -93,6 +94,49 @@ If `agro node create` returns a node ID with no SSH target, `console_create` kee
 `console_destroy` retries `agro node delete` on HTTP 409 for up to 60 s. The console accepts a delete before the node is gone. After a successful delete, `console_destroy` runs `agro node list --json` every 5 s for up to 180 s until the node has the status `destroyed` or is not in the list. Then `console_destroy` removes the state file and returns 0. If the node does not reach `destroyed` in 180 s, `console_destroy` prints the last status, keeps the state file, and returns 1.
 
 Manual sweep on the driver host:
+
+```bash
+agro node list --json | jq -r '.[] | select(((.name // "") | startswith("agro-mx-")) and .status != "destroyed") | .id'
+agro node delete <id> --yes
+```
+
+## msb
+
+The provider name is `msb`. The adapter is `adapters/msb.sh`. The adapter defines the five required functions and the hooks `msb_restart` and `msb_row_ssh`. The adapter defines no `msb_row_https`. The adapter also defines `msb_snapshot_restore`, which no driver script calls.
+
+The adapter runs a microVM guest on an agro-console node. `msb_preflight` runs `console_preflight`. `msb_create` creates a console node with `console_create` and installs `msb` on the node. Then `msb_create` runs `msb run --detach --init auto --root-disk flat:40G` with `IMAGE`. `msb_exec` runs each command in the guest with `msb exec` over SSH to the node. `msb_destroy` runs `msb rm --force` on each guest, then deletes the node with `console_destroy`. `msb_list` counts the `agro-mx-` console nodes and the `agro-mx-` guests on each node in the state directory.
+
+The console variables in the [agro-console](#agro-console) section apply to the msb node. `SKILL.md` lists the `MSB_*` variables and `IMAGE_SIZE_BYTES`.
+
+Host prerequisites on the node:
+
+1. The node must have `/dev/kvm`. The agro-console `n4` node has KVM.
+2. The `sandbox` user must be in the `kvm` group in a new login session. `msb_create` runs `sudo usermod -aG kvm sandbox` in an SSH session before the `msb run` session.
+3. `~/.microsandbox` must not be group-writable. `msb_create` runs `chmod go-w ~/.microsandbox` before `msb run`.
+
+Prerequisites on the driver host:
+
+1. Do the prerequisites of the [agro-console](#agro-console) section.
+2. Run `bash scripts/run.sh msb --preflight`. The command prints `preflight ok: msb`.
+3. Set `IMAGE` to an `agro-msb` image. Without `IMAGE`, `msb_create` exits 2 and creates no node.
+
+The `agro-msb` target of `.devcontainer/Dockerfile` builds the guest image. The release workflow does not publish the `agro-msb` target. The image must meet two requirements:
+
+- Under `--init auto`, `msb` also runs the image `CMD`. The `CMD` must stay alive, so `agro-msb` sets `CMD ["sleep", "infinity"]`. With `CMD ["/sbin/init"]`, the command exits 1 and `msb` shuts down the guest.
+- `ctrl-alt-del.target` must link to `poweroff.target`. Without this link, guest systemd enters `reboot.target` and the guest drains. `agro-msb` also sets `CtrlAltDelBurstAction=poweroff-force`.
+
+After `msb run`, `msb_restart`, and `msb_snapshot_restore`, the adapter waits until guest PID 1 is `systemd`. If `msb ls` shows the guest as `stopped`, `draining`, or `crashed`, the adapter prints the last 20 lines of `msb logs --source system` and returns 1.
+
+`msb_row_ssh` prints `RESULT R10-ssh-inbound PASS ssh <target>`. The driver prints `RESULT R11-https-port SKIPPED no adapter hook`. `msb_restart` runs `msb stop` and `msb start` on the guest.
+
+Known limits with `msb` `v0.7.13`:
+
+- `msb snap restore` has no init handoff. The restored guest stays at `pid1=init.krun`, so row `M05-snapshot-restore` fails.
+- `msb stop` and `msb start` do a full guest reboot. No tmux session survives the reboot, so row `M03-restart-persist` fails.
+- The Hermes smoke refuses a Docker socket. The `agro-msb` guest runs `dockerd`, so row `R14-hermes-install` fails.
+- A guest with the `msb` default of 512 MiB drains under `--init auto`. The adapter default is 2 GiB and 2 vCPU for each guest.
+
+Manual sweep on the driver host. Delete the node to remove each guest on the node:
 
 ```bash
 agro node list --json | jq -r '.[] | select(((.name // "") | startswith("agro-mx-")) and .status != "destroyed") | .id'
