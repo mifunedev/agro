@@ -36,6 +36,7 @@ Host prerequisites and the CLI install are in [Installation](installation.md).
 | `agro ps [name]` | `docker-compose.sh ps` |
 | `agro destroy [name] [--yes]` | `docker-compose.sh down -v`, then remove the registry entry — see below |
 | `agro compose config` | `docker-compose.sh config` — the resolved compose file |
+| `agro run [--image <ref>] -- <command...>` | run one command in a disposable container on the host — see below |
 | `agro egress log [name]` | print the last 1000 lines of the proxy access log; mark each denied line `DENIED` — needs `access.egress: "allowlist"` |
 | `agro egress reload [name]` | rewrite `egress-allow.txt` and send the proxy `squid -k reconfigure`; the sandbox container keeps running — needs `access.egress: "allowlist"` |
 | `agro self-upgrade [--dry-run]` (alias `agro update`) | upgrade the installed `agro` executable through the mechanism that installed it — see below |
@@ -181,6 +182,27 @@ It writes **nothing else** — no `agro.json`, no `.env`, no `AGENTS.md`, no
 `.gitignore` line, no `.devcontainer/`, no provider configuration. Those files
 are yours. `agro vendor` never prompts. `agro vendor` does not upgrade the CLI
 itself; `agro update` does.
+
+## Running a command in a disposable container: `agro run`
+
+Run `agro run [--image <ref>] -- <command...>` on the host. The command refuses
+inside a sandbox and exits 1. `agro run` runs `docker run --rm` with the command and
+removes the container when the command stops.
+
+The image is `--image <ref>`, else `image.ref` in `agro.json`, else the official
+image for the CLI version.
+
+The container gets these limits:
+
+- The container mounts only the git repository root at the same path. Outside a repository,
+  the container mounts only the current directory at the same path.
+- The container runs the command in the current directory as the host uid and gid, with
+  `HOME=/tmp`.
+- The container gets no host environment variables, no home directory, and no Docker socket.
+- The container uses the default Docker network.
+
+The exit code of `agro run` is the exit code of the command. The decision is
+[ADR #1575](https://github.com/mifunedev/agro/issues/1575).
 
 ## Where you are standing when you type `agro`
 
