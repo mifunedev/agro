@@ -94,3 +94,7 @@ None
 - [ ] CI is green on the pull request.
 
 ## Lessons
+
+1. Claim: the first `/council` search step ran `gh issue list` without `-R`, so the search reached only the repository of the current directory. Evidence: US-001 worker report. Outcome: fixed in this PR by repair round 1.
+2. Claim: the three changed skills hold 10 pre-existing STE findings on unchanged lines. Evidence: the `ste-check.sh` runs in the evidence file. Outcome: dropped, because this PR changes no flagged line.
+3. Claim: `pnpm test` fails 14 tests on this VM. Evidence: `evidence/baseline.md` records the same failures before the first wave. Outcome: dropped, because ADR #1575 owns host drift.
