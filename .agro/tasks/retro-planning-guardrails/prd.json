@@ -49,12 +49,13 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/council/SKILL.md` reports no new finding on the changed lines."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: council SKILL.md § 2 new step 5 names the source revision as a full default-branch SHA, read with git show <sha>:<path>, never a checkout another agent owns; executed: ste-check same single pre-existing finding before/after, none on changed lines; executed: link-providers.sh --check exit 0; reasoned: no in-skill references to § 2 step numbers.",
       "dependsOn": [],
       "files": [
         ".agro/skills/council/SKILL.md"
-      ]
+      ],
+      "commit": "0385691c2"
     },
     {
       "id": "US-004",
