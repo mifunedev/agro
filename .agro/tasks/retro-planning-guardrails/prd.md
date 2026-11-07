@@ -96,3 +96,7 @@ None
 - [ ] CI is green on the pull request.
 
 ## Lessons
+
+1. Claim: `.agro/skills.lock` lists `prd` and `delegate` from `github:mifunedev/skills` with checksums from 2026-05-22. Evidence: PRs #1564 and #1568 edit both skills in place, and no check reads the checksums. Outcome: dropped, because no tool enforces the lock today.
+2. Claim: the three changed skills hold 10 pre-existing STE findings on unchanged lines. Evidence: US-001 to US-003 reports and the `ste-check.sh` runs in the evidence file. Outcome: dropped, because this PR changes no flagged line.
+3. Claim: `pnpm test` fails 14 tests on this VM. Evidence: the same failures on the base commit; the new `/delegate` baseline rule now records such failures. Outcome: dropped, because ADR #1575 owns the host drift.
