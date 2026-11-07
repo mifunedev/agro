@@ -31,12 +31,13 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/delegate/SKILL.md` reports no new finding on the changed lines."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: delegate § Close new step 2 lists each task-level criterion with evidence matching its exact subject, marks mismatches unmet, and forbids reporting done; ste-check same 3 pre-existing findings; link check 0; reasoned: next.sh reads only the Lessons section, no external Close step references.",
       "dependsOn": [],
       "files": [
         ".agro/skills/delegate/SKILL.md"
-      ]
+      ],
+      "commit": "a75e809d7"
     },
     {
       "id": "US-003",
@@ -48,12 +49,13 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/prd/SKILL.md` reports no new finding on the changed lines."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: prd § Acceptance criteria adds the external owner rule and the comparison rule (fresh critic before variant code, two variants per site, production and test lines counted separately); ste-check same 6 pre-existing findings, none on changed lines; link check 0.",
       "dependsOn": [],
       "files": [
         ".agro/skills/prd/SKILL.md"
-      ]
+      ],
+      "commit": "b2ae9707d"
     },
     {
       "id": "US-004",
