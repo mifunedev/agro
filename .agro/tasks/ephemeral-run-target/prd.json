@@ -16,14 +16,15 @@
         "`pnpm typecheck` exits 0, and `pnpm test` shows no new failure against `evidence/baseline.md`."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, dc99dc96): typecheck 0; ephemeral-target.test.ts 10/10; worker: pnpm test shows only the 14 baseline failures (2878 passed). reasoned: argv is docker run --rm with the worktree as the only volume, -w cwd, --user uid:gid, HOME=/tmp plus the request variables only; no socket or home mount; status via docker version; provision omitted because docker run pulls; a request user override throws to keep the host uid. Timeout signal forwarding not run against real Docker (US-004 covers a real run).",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/execution/ephemeral-target.ts",
         ".agro/cli/src/lib/execution/index.ts",
         ".agro/cli/src/__tests__/ephemeral-target.test.ts"
-      ]
+      ],
+      "commit": "dc99dc96"
     },
     {
       "id": "US-002",
