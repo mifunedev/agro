@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1579-ephemeral-run-target",
+  "description": "Ephemeral run target. ADR #1575 (Accepted) selects verification hands: an ephemeral per-worker container from the project image, with the worktree mounted and no credentials. This plan builds step 1 of its sequence: the `ephemeral` target and one `agro` verb. Facts: `ExecutionTarget` in `.agro/cli/src/lib/execution/target.ts` has three kinds. The AGRO image runs user `sandbox` with uid 1000. The VM user `sandbox` has uid 1001. `pnpm test` on this VM fails 14 tests because of umask `0077` and a missing `zsh`.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Ephemeral execution target",
+      "description": "As a worker on an AGRO VM, I want a disposable container target so that a check runs without host drift or host credentials.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/lib/execution/ephemeral-target.ts` exports `EphemeralExecutionTarget` with `kind = \"ephemeral\"` that implements `ExecutionTarget` from `target.ts`.",
+        "`exec` runs `docker run --rm` with the worktree mounted at its host path, the working directory set to the request `cwd`, and `--user <host uid>:<host gid>`.",
+        "The container mounts no Docker socket, no home directory, and no path other than the worktree. The container receives only the environment keys in the request `env`.",
+        "Tests in `.agro/cli/src/__tests__/ephemeral-target.test.ts` assert the exact `docker` argument vector through a fake runner, including the absence of the socket and home mounts.",
+        "`pnpm typecheck` exits 0, and `pnpm test` shows no new failure against `evidence/baseline.md`."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "executed (advisor, 556eb8d1 after repair round 1): typecheck 0; CLI build 0; agro run -- pnpm test: 13 failed / 2912 passed (was 78); passwd/group mounted read-only from a temp dir removed in finally; git common dir mounted for worktrees only; tests 31/31. Remaining 13: 12 remote-sandbox-adapters (python3 lives in /opt/home-seed, unreadable for the host uid without the entrypoint), 1 install.test.ts (host checkout file mode under umask 0077).",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/execution/ephemeral-target.ts",
+        ".agro/cli/src/lib/execution/index.ts",
+        ".agro/cli/src/__tests__/ephemeral-target.test.ts"
+      ],
+      "commit": "556eb8d1",
+      "rounds": 1
+    },
+    {
+      "id": "US-002",
+      "title": "The `agro run` verb",
+      "description": "As a worker, I want one `agro` verb that runs a command in the ephemeral target so that `agro` stays the only lifecycle door.",
+      "acceptanceCriteria": [
+        "`agro run [--image <ref>] -- <command...>` runs the command in `EphemeralExecutionTarget` from the current directory and exits with the exit code of the command.",
+        "The image is `--image` when given, else `image.ref` in `agro.json`, else the official image for the CLI version.",
+        "Inside a sandbox, `agro run` exits 1 with the `HostOnlyError` message.",
+        "Tests cover argument parsing, the image order, the exit code, and the sandbox refusal.",
+        "`pnpm typecheck` exits 0, and `pnpm test` shows no new failure against the baseline."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "executed (advisor, fd2ab4cb): typecheck 0; run.test.ts + ephemeral-target.test.ts 26/26; CLI build 0; real run of the built CLI: agro run -- sh -c \"id -u; echo ok\" printed 1001 and ok, exit 0. worker: pnpm test shows only the 14 baseline failures. Repair: command-table.ts added to owned files (verb registry) after one BLOCKED report.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/commands/run.ts",
+        ".agro/cli/src/__tests__/run.test.ts",
+        ".agro/cli/src/command-table.ts"
+      ],
+      "commit": "fd2ab4cb"
+    },
+    {
+      "id": "US-003",
+      "title": "Documentation and changelog",
+      "description": "As an operator, I want `agro run` in the verb reference and the changelog so that the new verb is discoverable.",
+      "acceptanceCriteria": [
+        "`docs/lifecycle-commands.md` holds one verb-table row and one section for `agro run`, with the mount and credential limits.",
+        "`CHANGELOG.md` holds one entry under `## [Unreleased]` that links the task issue."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "executed (advisor, merged 4b0c32e6): docs.test.ts + compose-verbs.test.ts 41/41; ste-check finding on lifecycle-commands.md is pre-existing at line 485, none on added lines; CHANGELOG Added entry links #1579. reasoned: docs section matches run.ts and ephemeral-target.ts (host only, docker run --rm, image order, root mount, host uid, HOME=/tmp, no host variables, socket, or home, default network, exit code, ADR #1575).",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        "docs/lifecycle-commands.md",
+        "CHANGELOG.md"
+      ],
+      "commit": "4b0c32e6"
+    },
+    {
+      "id": "US-004",
+      "title": "ADR #1575 step 1 validation",
+      "description": "As the operator, I want proof that `agro run` removes host drift so that ADR #1575 step 1 meets its validation rule.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/ephemeral-run-target/evidence/manual-review.md` records `agro run -- pnpm test` from the harness root on this VM, with the exit code and the test summary.",
+        "Each baseline failure that the host umask or a missing host tool causes does not occur in the `agro run` result.",
+        "The `agro run` result has no failure that the host result does not have.",
+        "The transcript records each remaining failure that a host checkout file mode causes as host checkout drift.",
+        "The transcript records the wall time of `agro run -- pnpm test` and of the host `pnpm test`."
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Criterion-to-evidence (repair round 1, 222b185d): (1) transcript records agro run -- pnpm test with exit and summary: met; (2) the 13 host umask/zsh failures do not occur: met (advisor rerun: 1 failed / 2924 passed); (3) no agro run failure that the host lacks: met; (4) install.sh mode 700 recorded as host checkout drift with stat and git ls-files evidence: met; (5) wall times 29.8 s host, 30.8 s agro run: met. Isolation: no Docker socket, host home not mounted, uid 1001 with a passwd entry.",
+      "dependsOn": [
+        "US-002",
+        "US-005"
+      ],
+      "files": [
+        ".agro/tasks/ephemeral-run-target/evidence/manual-review.md"
+      ],
+      "rounds": 1,
+      "commit": "222b185d"
+    },
+    {
+      "id": "US-005",
+      "title": "The image ships a system python3",
+      "description": "As a worker, I want a system `python3` in the AGRO image so that scripts that need `python3` run under `agro run`.",
+      "acceptanceCriteria": [
+        "`.devcontainer/Dockerfile` installs a system `python3` through `apt-get`, and the build fails when `/usr/bin/python3` is absent.",
+        "For the `sandbox` user after the normal boot, `python3` still resolves to the uv Python 3.13, so `.agro/scripts/verify-sandbox-image.sh` passes on a local build.",
+        "`docker build --target final -f .devcontainer/Dockerfile -t agro-local:1579 .` exits 0."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "executed (worker): docker build --target final -t agro-local:1579 exit 0; verify-sandbox-image.sh agro-local:1579 exit 0 (sandbox user python3 still uv 3.13). executed (advisor): agro run --image agro-local:1579 prints /usr/bin/python3 and Python 3.13.5. Dockerfile diff adds python3-minimal and test -x /usr/bin/python3; DL3008 ignored per .hadolint.yaml.",
+      "dependsOn": [],
+      "files": [
+        ".devcontainer/Dockerfile"
+      ],
+      "commit": "8cd40cc0"
+    }
+  ],
+  "pr": 1580
+}

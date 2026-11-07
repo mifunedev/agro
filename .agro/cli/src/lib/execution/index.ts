@@ -56,6 +56,12 @@ export {
   sandboxFallbackWarning,
 } from "./detect.js";
 export {
+  EPHEMERAL_HOME,
+  EphemeralExecutionTarget,
+  type EphemeralTargetOptions,
+  type HostIds,
+} from "./ephemeral-target.js";
+export {
   HostOnlyError,
   LocalExecutionTarget,
   type LocalTargetOptions,

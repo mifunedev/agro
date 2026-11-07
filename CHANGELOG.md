@@ -8,6 +8,14 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Add `agro run [--image <ref>] -- <command...>` to run one command on the host in a disposable container that mounts only the repository and gets no host credentials ([#1579](https://github.com/mifunedev/agro/issues/1579)).
+
+### Changed
+
+- Make the sandbox image install a system `python3` (`python3-minimal`), so scripts that call `python3` also work in `agro run`. The `sandbox` user still resolves `python3` to the uv Python 3.13 ([#1579](https://github.com/mifunedev/agro/issues/1579)).
+
 ## [0.29.0] - 2026-11-07
 
 ### Changed
