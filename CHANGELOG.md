@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Make `agro run` enforce `access.egress: "allowlist"`. `agro run` puts the command and its services on an internal network behind a squid proxy. The proxy permits only the OpenShell policy hosts and `access.egressAllow`. The command gets the proxy variables ([#1588](https://github.com/mifunedev/agro/issues/1588)).
+
 ## [0.31.0] - 2026-11-07
 
 ### Added
