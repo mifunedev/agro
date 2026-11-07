@@ -12,6 +12,7 @@ import openshellPolicy from "agro-asset:.devcontainer/openshell-policy.yaml";
 import { spawnRunner, type LifecycleRunner } from "./execution/runner.js";
 import { configCheckout, agroConfigPath, entryRuntime, readAgroConfig, type AgroConfig } from "./agro-config.js";
 import { activeBin } from "./product.js";
+import { egressAllowHosts } from "./egress-policy.js";
 import { isDirectory } from "./project.js";
 import { resolveProjectLayout, resolveUserStateHome } from "./layout.js";
 
@@ -95,21 +96,6 @@ interface MaterializedFile {
 
 function openshellFiles(entry: string): MaterializedFile[] {
   return [{ dest: join(entry, "openshell-policy.yaml"), body: openshellPolicy, mode: 0o644 }];
-}
-
-function policyHosts(policyText: string): string[] {
-  const marker = "network_policies:";
-  const start = policyText.indexOf(marker);
-  const section = start === -1 ? "" : policyText.slice(start);
-  const hosts = new Set<string>();
-  for (const match of section.matchAll(/^\s*-\s*host:\s*(\S+)/gm)) hosts.add(match[1]);
-  return [...hosts];
-}
-
-function egressAllowHosts(config: AgroConfig): string[] {
-  const hosts = new Set<string>(policyHosts(openshellPolicy));
-  for (const host of config.access?.egressAllow ?? []) hosts.add(host);
-  return [...hosts].sort();
 }
 
 function safeReadAgroConfig(entry: string): AgroConfig {
