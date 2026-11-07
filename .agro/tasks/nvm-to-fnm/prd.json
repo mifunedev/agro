@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1569-nvm-to-fnm",
+  "description": "Replace nvm with fnm: install.sh installs fnm and Node 24, and the smoke script, remote-sandbox checks, and documentation name fnm.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Install fnm and Node 24 from install.sh",
+      "description": "As an operator on a host with no suitable Node, I want `install.sh` to install fnm and Node 24 so that `agro` runs without nvm.",
+      "acceptanceCriteria": [
+        "Before the change, a new test in `.agro/scripts/__tests__/install.test.ts` for the fnm install fails.",
+        "On a host with no Node, `install.sh --yes` installs fnm into `$FNM_DIR` and runs `fnm install 24`, `fnm use 24`, and `fnm default 24`.",
+        "The installer sets the default of `FNM_DIR` to `$HOME/.local/share/fnm`.",
+        "The installer downloads the fnm installer from the tag in `AGRO_FNM_VERSION`. The default tag is `v1.39.0`.",
+        "`install.sh` does not create `~/.nvm`.",
+        "If `unzip` is missing, `apt-get` exists, and the user is root or `sudo -n true` exits 0, `install.sh --yes` installs `unzip` and continues.",
+        "If `unzip` is missing and `install.sh` cannot install `unzip`, `install.sh` exits non-zero and prints a message that names `unzip`.",
+        "`install.sh` adds one fnm setup block to each existing `~/.zshrc` and `~/.bashrc`. If neither file exists, `install.sh` adds the block to `~/.profile`. A second run adds no second block.",
+        "When `command -v node` resolves through a symlink to a file under `$FNM_DIR`, the `~/.local/share/agro/node` link points at the resolved file, not at the per-shell path.",
+        "`env -i HOME=<home> PATH=/usr/bin:/bin <home>/.local/bin/agro --version` exits 0 after a fnm install.",
+        "When `node` resolves under `${NVM_DIR:-$HOME/.nvm}`, `install.sh` keeps the `agro` shebang pinned and does not install fnm.",
+        "`pnpm exec vitest run .agro/scripts/__tests__/install.test.ts` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/scripts/install.sh",
+        ".agro/scripts/__tests__/install.test.ts"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Replace the remaining nvm references",
+      "description": "As a maintainer, I want the smoke script, the remote-sandbox checks, and the documentation to name fnm so that no path depends on nvm.",
+      "acceptanceCriteria": [
+        "`.agro/scripts/cli-first-install-smoke.sh` loads fnm in its new-login check, and `--bootstrap-without-node` help text names fnm.",
+        "`.agro/scripts/__tests__/cli-first-install-smoke.test.ts` uses a fnm directory for its pinned case, and `pnpm exec vitest run .agro/scripts/__tests__/cli-first-install-smoke.test.ts` exits 0.",
+        "`agro-rows.sh`, `docker-egress.sh`, `hermes-home.sh`, and `openshell-journey.sh` under `.agro/skills/remote-sandbox/checks/` load fnm, and `bash -n` exits 0 for each file.",
+        "`.agro/skills/remote-sandbox/SKILL.md` and `.agro/skills/remote-sandbox/references/rationale.md` name fnm for current behavior.",
+        "`docs/installation.md` describes fnm, `AGRO_FNM_VERSION`, and the `unzip` behavior.",
+        "`CHANGELOG.md` has one entry under `## [Unreleased]` that links #1569.",
+        "A new or existing test in `.agro/cli/src/__tests__/self-upgrade.test.ts` proves that `agro self-upgrade` keeps a `~/.local/share/agro/node` shebang.",
+        "`git grep -inE \"\\bnvm\\b|NVM_\" -- . ':!CHANGELOG.md' ':!.agro/tasks'` prints only the compatibility path of US-001, its tests, its documentation sentence, and history rows that name a past fix."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/scripts/cli-first-install-smoke.sh",
+        ".agro/scripts/__tests__/cli-first-install-smoke.test.ts",
+        ".agro/skills/remote-sandbox/",
+        "docs/installation.md",
+        "CHANGELOG.md",
+        ".agro/cli/src/__tests__/self-upgrade.test.ts"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Capture the fresh-install evidence",
+      "description": "As the reviewer, I want a real install transcript so that I can confirm the change without a rerun.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/nvm-to-fnm/evidence/manual-review.md` holds a transcript from `docker run --rm debian:bookworm-slim` with `curl` and `ca-certificates` present and `node` and `unzip` absent at the start.",
+        "The transcript runs `bash .agro/scripts/cli-first-install-smoke.sh --phase bootstrap --bootstrap-without-node --bundle <bundle> --keep` from a new temp work directory, and the command exits 0.",
+        "The transcript shows a Node 24 version, `pinned_node=`, and the absence of `~/.nvm`.",
+        "The transcript shows `unzip -v` exit 0 after the install.",
+        "The story creates only the `--rm` container and the temp directory, and the story deletes the temp directory."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/nvm-to-fnm/evidence/"
+      ]
+    }
+  ]
+}
