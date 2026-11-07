@@ -32,12 +32,13 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/delegate/SKILL.md` reports no new finding on the changed lines."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: delegate SKILL.md § Waves new step 1 records baseline failures in evidence/baseline.md, in-file step reference updated to item 4; § Worker brief passes baseline failures and a baseline failure does not fail a criterion; executed: ste-check same 3 pre-existing findings, none on changed lines; executed: link check exit 0; reasoned: next.sh does not parse step numbers, no external step-number references.",
       "dependsOn": [],
       "files": [
         ".agro/skills/delegate/SKILL.md"
-      ]
+      ],
+      "commit": "f7bcf3e26"
     },
     {
       "id": "US-003",
