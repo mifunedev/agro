@@ -16,6 +16,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 - `/prd` § 3 adds the tests and fixtures that pin generated output to the `files` of the story that changes the output. `/improve` § 4 reports `PARTIAL` when a performance or cost recommendation has no current measurement of its falsifier, and names a measurement task as the next step ([#1544](https://github.com/mifunedev/agro/issues/1544)).
 - `next.sh` reads CI state from `statusCheckRollup` in its one `gh pr view` call, so a `/delegate` run does not stop at `blocked` on `gh` 2.45.0, which has no `gh pr checks --json`. A re-run replaces the earlier result of a check. `/delegate` § Waves tells the advisor to wait in a foreground call for worker commits ([#1567](https://github.com/mifunedev/agro/issues/1567)).
 - Make `install.sh` install fnm and Node 24 instead of nvm, and add `unzip` through `apt-get` for the fnm install. A host with an existing nvm Node keeps that Node and its pin ([#1569](https://github.com/mifunedev/agro/issues/1569)).
+- Make `/prd` add each caller and test fake of a changed export to a story and give `CHANGELOG.md` to one story, `/delegate` record baseline test failures, and `/council` pin each source to a commit SHA ([#1573](https://github.com/mifunedev/agro/issues/1573)).
 
 ### Fixed
 

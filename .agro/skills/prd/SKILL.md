@@ -87,6 +87,7 @@ revision of it, ask before you replace it.
    - Ground the plan statically. Do not run the target code, and do not build fixtures, driver scripts, or temporary harnesses.
    - When the issue gives a reproduction, cite the issue. Put the reproduction into the red-test criterion of a story.
    - When a story changes generated output, such as a rendered script, a template, or a code generator, find the tests and fixtures that pin that output. Examples are golden digests, snapshots, and generated reference files. Search with `git grep -ln <generator symbol> -- '*test*' '*fixture*'`. Add each match to the `files` of that story.
+   - When a story changes the signature of an exported function, find each caller and each test fake. Search with `git grep -n <symbol>` across source and test files. Add each match to the `files` of that story.
    - Stop the grounding when each Key Integration Point, each Test Plan row, and each cited command has a verified source.
 3. Separate verified facts from assumptions.
 4. Never invent a missing command, path, threshold, or result. Write an explicit placeholder, such as `<test command>`, and add an open question.
@@ -172,6 +173,7 @@ While the section is empty, `next.sh` prints `close`.
 
 - Give each story the heading `### US-00N: <title>`, a description in the form "As a <role>, I want <capability> so that <benefit>", and an acceptance-criteria checklist.
 - Size and order the stories by the rules in [`references/tracker.md`](references/tracker.md).
+- For a user-facing change, check `CHANGELOG.md`. When the file has an `## [Unreleased]` section, give `CHANGELOG.md` to one story. Add a changelog criterion to that story.
 - Make the last story capture the manual review evidence. The story depends on the stories that it proves.
   - For a user interface change, the story records an agent-browser journey with annotated screenshots.
   - For a server, CLI, or API change, the story writes a command transcript to `.agro/tasks/<slug>/evidence/manual-review.md`.

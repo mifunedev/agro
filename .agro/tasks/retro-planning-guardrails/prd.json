@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "skill/1573-retro-planning-guardrails",
+  "description": "Retro planning guardrails. The retro of the Effect-TS step-0 run found four process defects:",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "The plan finds callers of a changed signature and adds a changelog criterion",
+      "description": "As an advisor, I want `/prd` to own each caller of a changed signature so that no worker blocks on a test fake.",
+      "acceptanceCriteria": [
+        "`.agro/skills/prd/SKILL.md` § 3 holds a caller rule for a story that changes the signature of an exported function. The advisor runs `git grep -n <symbol>` across source and test files. The advisor adds each caller and each test fake to the `files` of that story.",
+        "`.agro/skills/prd/SKILL.md` § 5 holds a changelog rule for a user-facing change. When `CHANGELOG.md` has an `## [Unreleased]` section, one story owns `CHANGELOG.md` and has a changelog criterion.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/prd/SKILL.md` reports no new finding on the changed lines."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "executed: diff adds caller rule at prd SKILL.md:90 next to generated-output rule and changelog rule at :176 in Stories; executed: ste-check same 6 pre-existing findings before and after, none on changed lines; executed: link-providers.sh --check exit 0.",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/prd/SKILL.md"
+      ],
+      "commit": "e00a6c2d2"
+    },
+    {
+      "id": "US-002",
+      "title": "Delegate records a test baseline before the first wave",
+      "description": "As an advisor, I want a recorded test baseline so that each worker can tell a pre-existing failure from a new failure.",
+      "acceptanceCriteria": [
+        "`.agro/skills/delegate/SKILL.md` § Waves holds a baseline step before the first dispatch. The advisor runs the test and type-check commands on the task branch. The advisor records each failing test in `.agro/tasks/<slug>/evidence/baseline.md`.",
+        "`.agro/skills/delegate/SKILL.md` § Worker brief gives each worker the baseline failures. A baseline failure does not fail a criterion of the worker.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/delegate/SKILL.md` reports no new finding on the changed lines."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "executed: delegate SKILL.md § Waves new step 1 records baseline failures in evidence/baseline.md, in-file step reference updated to item 4; § Worker brief passes baseline failures and a baseline failure does not fail a criterion; executed: ste-check same 3 pre-existing findings, none on changed lines; executed: link check exit 0; reasoned: next.sh does not parse step numbers, no external step-number references.",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/delegate/SKILL.md"
+      ],
+      "commit": "f7bcf3e26"
+    },
+    {
+      "id": "US-003",
+      "title": "Council pins the source revision",
+      "description": "As an advisor, I want each council member to read one pinned revision so that no member reads a checkout that another agent owns.",
+      "acceptanceCriteria": [
+        "`.agro/skills/council/SKILL.md` § 2 holds a revision rule. The shared brief names the source revision of each repository as a full commit SHA of its default branch.",
+        "The rule tells each member to read files at that revision with `git show <sha>:<path>`, and never through a checkout that another agent owns.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/council/SKILL.md` reports no new finding on the changed lines."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "executed: council SKILL.md § 2 new step 5 names the source revision as a full default-branch SHA, read with git show <sha>:<path>, never a checkout another agent owns; executed: ste-check same single pre-existing finding before/after, none on changed lines; executed: link-providers.sh --check exit 0; reasoned: no in-skill references to § 2 step numbers.",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/council/SKILL.md"
+      ],
+      "commit": "0385691c2"
+    },
+    {
+      "id": "US-004",
+      "title": "Changelog and manual review evidence",
+      "description": "As a reviewer, I want a changelog entry and a command transcript so that I can confirm the skill changes without a rerun.",
+      "acceptanceCriteria": [
+        "`CHANGELOG.md` holds one entry under `## [Unreleased]` that names the three rules and links the task issue.",
+        "`.agro/tasks/retro-planning-guardrails/evidence/manual-review.md` holds the commands and exit codes of `bash .agro/scripts/link-providers.sh --check`, `pnpm test`, and the three `ste-check.sh` runs.",
+        "`bash .agro/scripts/link-providers.sh --check` exits 0."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "executed: CHANGELOG.md Unreleased entry names the three rules and links #1573; executed: evidence/manual-review.md holds link check (exit 0, plus usage failure path exit 64), pnpm test (exit 1, 14 baseline host failures), three ste-check runs with pre-existing findings on unchanged lines; executed (advisor): ste-check on evidence exit 0, link check exit 0.",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        "CHANGELOG.md",
+        ".agro/tasks/retro-planning-guardrails/evidence/manual-review.md"
+      ],
+      "commit": "aea77cfc3"
+    }
+  ],
+  "pr": 1574
+}
