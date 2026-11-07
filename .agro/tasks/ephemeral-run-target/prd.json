@@ -84,8 +84,8 @@
         "The transcript records the wall time of `agro run -- pnpm test` and of the host `pnpm test`."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "Evidence cfdd0d09: agro run -- pnpm test 78 failed vs host 14; 13 of 14 baseline failures gone; causes recorded. Re-run after US-001 repair.",
+      "passes": true,
+      "notes": "Criterion-to-evidence (repair round 1, 222b185d): (1) transcript records agro run -- pnpm test with exit and summary: met; (2) the 13 host umask/zsh failures do not occur: met (advisor rerun: 1 failed / 2924 passed); (3) no agro run failure that the host lacks: met; (4) install.sh mode 700 recorded as host checkout drift with stat and git ls-files evidence: met; (5) wall times 29.8 s host, 30.8 s agro run: met. Isolation: no Docker socket, host home not mounted, uid 1001 with a passwd entry.",
       "dependsOn": [
         "US-002",
         "US-005"
@@ -93,7 +93,8 @@
       "files": [
         ".agro/tasks/ephemeral-run-target/evidence/manual-review.md"
       ],
-      "rounds": 1
+      "rounds": 1,
+      "commit": "222b185d"
     },
     {
       "id": "US-005",
