@@ -96,42 +96,47 @@ Write one record for each story before dispatch. Keep only these fields:
 
 ## Waves
 
-1. Put each story in a wave. A story is ready when every `dependsOn` story has
+1. Before the first wave, run the test and type-check commands of the repository
+   on the task branch. Record each failing test in
+   `.agro/tasks/<slug>/evidence/baseline.md`.
+2. Put each story in a wave. A story is ready when every `dependsOn` story has
    `passes: true`.
-2. Before dispatch, run [`/worktrees` § DECIDE](../worktrees/SKILL.md) for each
+3. Before dispatch, run [`/worktrees` § DECIDE](../worktrees/SKILL.md) for each
    story.
-3. Stories with overlapping `files` run in sequence.
-4. Give each worktree story one worker in one worktree, at most 5 workers per
+4. Stories with overlapping `files` run in sequence.
+5. Give each worktree story one worker in one worktree, at most 5 workers per
    wave. Branch each worktree from the current task branch. Before dispatch,
    when a worktree has a `package.json`, run `pnpm install --frozen-lockfile` in
    that worktree.
-5. Run these workers in parallel, except as item 3 requires. The main checkout
+6. Run these workers in parallel, except as item 4 requires. The main checkout
    gets no worker edits while these workers run.
-6. Inspect each commit and bring it onto the task branch in the main checkout.
+7. Inspect each commit and bring it onto the task branch in the main checkout.
    When a worktree holds the task branch, bring the commit onto the task branch
    in that worktree. A conflict reopens the story (§ Repair).
-7. Verify each of these stories in the main checkout (§ Acceptance).
-8. Send a failed story to § Repair. Keep each worktree until the advisor accepts
+8. Verify each of these stories in the main checkout (§ Acceptance).
+9. Send a failed story to § Repair. Keep each worktree until the advisor accepts
    every worktree story of the wave, because the same worker repairs the story.
    Consolidation alone does not allow removal.
-9. When the advisor accepts the last worktree story of the wave, remove the
-   worktrees and worker branches of the wave (§ Integration).
-10. Run each story with the answer main checkout in the task checkout on the task
+10. When the advisor accepts the last worktree story of the wave, remove the
+    worktrees and worker branches of the wave (§ Integration).
+11. Run each story with the answer main checkout in the task checkout on the task
     branch, one at a time. Verify and accept each story before the next story
     starts.
-11. Branch the worktrees of the next wave from the updated task branch.
-12. Workers stay flat. Workers never spawn workers.
-13. The advisor never sends parallel shell calls that change the working directory.
+12. Branch the worktrees of the next wave from the updated task branch.
+13. Workers stay flat. Workers never spawn workers.
+14. The advisor never sends parallel shell calls that change the working directory.
     Each parallel call uses absolute paths, for example `git -C <path>`.
-14. Wait for worker commits in a foreground call. The Stop hook blocks a stop
+15. Wait for worker commits in a foreground call. The Stop hook blocks a stop
     while the story is open, and the hook escalates after 3 blocks.
 
 A single-story wave runs in the main checkout unless § DECIDE answers worktree.
 
 ## Worker brief
 
-Give each worker the dispatch record, the exclusions, and these rules:
+Give each worker the dispatch record, the exclusions, the baseline failures, and
+these rules:
 
+- A baseline failure does not fail a criterion of the worker.
 - Edit only the owned write paths. Obey the exclusions.
 - Work only in the execution directory.
 - In a sandbox, never run `agro sandbox`, `agro destroy`, `agro stop`,
