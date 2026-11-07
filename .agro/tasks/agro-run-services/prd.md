@@ -108,3 +108,8 @@ None
 - [ ] CI is green on the pull request.
 
 ## Lessons
+
+1. Claim: the run variables map reaches the command only when the project declares services. Evidence: US-002 report; the no-service argument vector must stay unchanged. Outcome: dropped, because the plan uses the map to name service hosts.
+2. Claim: the AGRO image has no `psql`. Evidence: US-005 used a Node probe and host-side `docker exec` for the table check. Outcome: dropped, because the validation proves isolation through server addresses and per-database tables.
+3. Claim: the secret-exposure guard blocked commands whose text named `env:` or a dotted `env` path. Two workers then made the same file edit with the Edit tool. Evidence: US-001 and US-002 reports. The guard blocked one advisor command the same way. Outcome: dropped from this PR; the operator decides whether the guard pattern needs a narrower match.
+4. Claim: the installed host `agro` lacked `agro run` until a self-upgrade to v0.30.0. Evidence: US-003 report and `agro --version`. Outcome: fixed on this host; the `/delegate` rule falls back to direct commands elsewhere.
