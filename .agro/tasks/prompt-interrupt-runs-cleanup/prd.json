@@ -18,15 +18,16 @@
         "`pnpm typecheck` exits 0 from the harness root."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: git grep process.exit prompt.ts -> exit 1 (no match); executed: prompt-interrupt.test.ts + prompt-piped.test.ts 6/6 pass, red 3 failed before fix (worker); executed: runCli returns 130, empty stderr (test); executed: pnpm typecheck exit 0; executed: pnpm test exit 1 with 14 failed in self-upgrade/agro-config/host-config/herdr-default/install tests; advisor reran those 5 files on HEAD~1: identical 14 failed (umask 0077 mode checks, zsh absent) -> pre-existing environmental, not caused by this story.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/prompt.ts",
         ".agro/cli/src/cli.ts",
         ".agro/cli/src/lib/__tests__/prompt-piped.test.ts",
         ".agro/cli/src/lib/__tests__/prompt-interrupt.test.ts"
-      ]
+      ],
+      "commit": "d3b37fd8d"
     },
     {
       "id": "US-002",
@@ -46,5 +47,6 @@
         ".agro/tasks/prompt-interrupt-runs-cleanup/evidence/manual-review.md"
       ]
     }
-  ]
+  ],
+  "pr": 1572
 }
