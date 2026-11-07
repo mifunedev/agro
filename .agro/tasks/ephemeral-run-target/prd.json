@@ -16,15 +16,15 @@
         "`pnpm typecheck` exits 0, and `pnpm test` shows no new failure against `evidence/baseline.md`."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "executed (advisor, dc99dc96): typecheck 0; ephemeral-target.test.ts 10/10; worker: pnpm test shows only the 14 baseline failures (2878 passed). reasoned: argv is docker run --rm with the worktree as the only volume, -w cwd, --user uid:gid, HOME=/tmp plus the request variables only; no socket or home mount; status via docker version; provision omitted because docker run pulls; a request user override throws to keep the host uid. Timeout signal forwarding not run against real Docker (US-004 covers a real run). REOPENED by US-004: no passwd entry for host uid (47 failures) and worktree git dir not mounted (18 failures).",
+      "passes": true,
+      "notes": "executed (advisor, 556eb8d1 after repair round 1): typecheck 0; CLI build 0; agro run -- pnpm test: 13 failed / 2912 passed (was 78); passwd/group mounted read-only from a temp dir removed in finally; git common dir mounted for worktrees only; tests 31/31. Remaining 13: 12 remote-sandbox-adapters (python3 lives in /opt/home-seed, unreadable for the host uid without the entrypoint), 1 install.test.ts (host checkout file mode under umask 0077).",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/execution/ephemeral-target.ts",
         ".agro/cli/src/lib/execution/index.ts",
         ".agro/cli/src/__tests__/ephemeral-target.test.ts"
       ],
-      "commit": "dc99dc96",
+      "commit": "556eb8d1",
       "rounds": 1
     },
     {
@@ -92,5 +92,6 @@
       ]
     }
   ],
-  "pr": 1580
+  "pr": 1580,
+  "blocked": "US-004 unmet: under agro run, 13 of 14 baseline failures are gone, but 1 baseline failure remains (install.sh mode 700 from the host checkout under umask 0077) and 12 new failures appear (python3 is only in /opt/home-seed, mode 0700 uid 1000, which agro run never copies because it replaces the image command). Operator decision: (A) change the image to ship python3 outside the home directory and accept the install.sh mode failure as host checkout drift, rewording the criterion; (B) make agro run seed a readable home copy; (C) accept the residual 13 and reword the criterion."
 }
