@@ -105,12 +105,13 @@
         "`docker build --target final -f .devcontainer/Dockerfile -t agro-local:1579 .` exits 0."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (worker): docker build --target final -t agro-local:1579 exit 0; verify-sandbox-image.sh agro-local:1579 exit 0 (sandbox user python3 still uv 3.13). executed (advisor): agro run --image agro-local:1579 prints /usr/bin/python3 and Python 3.13.5. Dockerfile diff adds python3-minimal and test -x /usr/bin/python3; DL3008 ignored per .hadolint.yaml.",
       "dependsOn": [],
       "files": [
         ".devcontainer/Dockerfile"
-      ]
+      ],
+      "commit": "8cd40cc0"
     }
   ],
   "pr": 1580
