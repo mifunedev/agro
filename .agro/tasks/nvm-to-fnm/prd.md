@@ -124,3 +124,7 @@ None.
 - [ ] The `sandbox-boot-guard` workflow passes on the task branch.
 
 ## Lessons
+
+- Claim: `self-upgrade.test.ts` fails under `umask 0077`. Evidence: 4 cases report `expected 448 to be 493`, and two of the cases are not in this change. Outcome: dropped, because the failure is a local test setup problem and the cases pass under `umask 022`.
+- Claim: `herdr-default.test.ts` needs `zsh`, which this host lacks. Evidence: 7 cases report `spawnSync zsh ENOENT`, and this task does not change that test. Outcome: dropped, because the test states the requirement in its error message.
+- Claim: `gh pr edit` exits with a Projects (classic) error and leaves the PR body unchanged on this version of `gh`. Evidence: the US-001 tick did not reach PR #1570. Outcome: dropped, because `gh api` with `PATCH` updates the body, and the problem is tooling friction.
