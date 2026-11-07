@@ -460,6 +460,113 @@ describe("langfuse settings", () => {
   });
 });
 
+describe("run settings", () => {
+  const withRun = (run: unknown): unknown => ({ version: 1, run });
+
+  it("accepts a config without a run section", () => {
+    expect(validateAgroConfig({ version: 1 }).run).toBeUndefined();
+  });
+
+  it("accepts an empty run section and an empty services map", () => {
+    expect(validateAgroConfig(withRun({})).run).toEqual({});
+    expect(validateAgroConfig(withRun({ services: {} })).run).toEqual({ services: {} });
+  });
+
+  it("accepts a service with only an image", () => {
+    const run = { services: { redis: { image: "redis:7" } } };
+    expect(validateAgroConfig(withRun(run)).run).toEqual(run);
+  });
+
+  it("accepts a full service, run env, and DNS-label names at both length bounds", () => {
+    const run = {
+      services: {
+        postgres: {
+          image: "postgres:16",
+          env: { POSTGRES_PASSWORD: "postgres" },
+          ready: "pg_isready -U postgres",
+        },
+        a: { image: "busybox" },
+        ["a".repeat(63)]: { image: "busybox" },
+        "db-2": { image: "postgres:16", env: {} },
+      },
+      env: { DATABASE_URL: "postgres://postgres:postgres@postgres:5432/postgres" },
+    };
+    expect(validateAgroConfig(withRun(run)).run).toEqual(run);
+  });
+
+  it("round-trips the section through writeAgroConfig", () => {
+    const root = makeRoot();
+    const run = {
+      services: { postgres: { image: "postgres:16", ready: "pg_isready" } },
+      env: { PGHOST: "postgres" },
+    };
+    writeAgroConfig(root, { ...defaultAgroConfig("demo"), run });
+    expect(readAgroConfig(agroConfigPath(root)).run).toEqual(run);
+  });
+
+  it.each([
+    ["Postgres", "uppercase"],
+    ["pg_db", "underscore"],
+    ["-pg", "leading hyphen"],
+    ["pg-", "trailing hyphen"],
+    ["a".repeat(64), "64 characters"],
+    ["", "empty"],
+  ])("rejects the service name %j (%s) and names its path", (name) => {
+    expect(() => validateAgroConfig(withRun({ services: { [name]: { image: "x" } } }))).toThrow(
+      `agro.json: run.services.${name} must be named with 1-63 lowercase letters`,
+    );
+  });
+
+  it("rejects a service without an image", () => {
+    expect(() => validateAgroConfig(withRun({ services: { postgres: { ready: "true" } } }))).toThrow(
+      "agro.json: run.services.postgres.image must be a non-empty string",
+    );
+  });
+
+  it("rejects a service whose image is not a string", () => {
+    expect(() => validateAgroConfig(withRun({ services: { postgres: { image: 16 } } }))).toThrow(
+      "agro.json: run.services.postgres.image must be a non-empty string",
+    );
+  });
+
+  it("rejects a non-string value in a service env", () => {
+    const run = { services: { postgres: { image: "postgres:16", env: { PGPORT: 5432 } } } };
+    expect(() => validateAgroConfig(withRun(run))).toThrow(
+      "agro.json: run.services.postgres.env.PGPORT must be a string",
+    );
+  });
+
+  it("rejects a non-string value in run env", () => {
+    expect(() => validateAgroConfig(withRun({ env: { DEBUG: true } }))).toThrow(
+      "agro.json: run.env.DEBUG must be a string",
+    );
+  });
+
+  it.each([
+    [{ run: [] }, "run must be an object"],
+    [{ run: { services: [] } }, "run.services must be an object"],
+    [{ run: { services: { pg: "postgres:16" } } }, "run.services.pg must be an object"],
+    [{ run: { env: ["A=1"] } }, "run.env must be an object"],
+    [
+      { run: { services: { pg: { image: "postgres:16", env: "A=1" } } } },
+      "run.services.pg.env must be an object",
+    ],
+    [
+      { run: { services: { pg: { image: "postgres:16", ready: ["pg_isready"] } } } },
+      "run.services.pg.ready must be a string",
+    ],
+  ])("rejects the malformed shape %j", (config, message) => {
+    expect(() => validateAgroConfig({ version: 1, ...config })).toThrow(`agro.json: ${message}`);
+  });
+
+  it("keeps run maps out of the `agro config set` table", () => {
+    expect(AGRO_CONFIG_FIELDS.filter((field) => field.path.startsWith("run."))).toEqual([]);
+    expect(() => setAgroConfigValue(defaultAgroConfig("demo"), "run.env", "A=1")).toThrow(
+      /unknown agro\.json field "run\.env"/,
+    );
+  });
+});
+
 describe("the tracked agro.json", () => {
   it("carries a langfuse section that validates and holds no credential", () => {
     const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", "..");

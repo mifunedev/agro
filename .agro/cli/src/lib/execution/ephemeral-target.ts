@@ -31,6 +31,8 @@ export interface EphemeralTargetOptions {
   hostIds?: () => HostIds;
   gitCommonDir?: (root: string) => string | undefined;
   tempRoot?: string;
+  network?: string;
+  env?: Record<string, string>;
 }
 
 export class EphemeralExecutionTarget implements ExecutionTarget {
@@ -44,6 +46,8 @@ export class EphemeralExecutionTarget implements ExecutionTarget {
   private readonly hostIds: () => HostIds;
   private readonly gitCommonDir: (root: string) => string | undefined;
   private readonly tempRoot: string;
+  private readonly network: string | undefined;
+  private readonly env: Record<string, string>;
 
   constructor(opts: EphemeralTargetOptions) {
     this.worktreeRoot = opts.worktreeRoot;
@@ -52,6 +56,8 @@ export class EphemeralExecutionTarget implements ExecutionTarget {
     this.hostIds = opts.hostIds ?? defaultHostIds;
     this.gitCommonDir = opts.gitCommonDir ?? ((root) => gitCommonDirVia(this.run, root));
     this.tempRoot = opts.tempRoot ?? tmpdir();
+    this.network = opts.network;
+    this.env = opts.env ?? {};
     this.workspace = { hostRoot: opts.worktreeRoot, targetRoot: opts.worktreeRoot };
   }
 
@@ -97,6 +103,7 @@ export class EphemeralExecutionTarget implements ExecutionTarget {
     const argv = [
       "run",
       "--rm",
+      ...(this.network === undefined ? [] : ["--network", this.network]),
       "-v",
       `${this.worktreeRoot}:${this.worktreeRoot}`,
       ...this.gitCommonDirMount(),
@@ -111,7 +118,7 @@ export class EphemeralExecutionTarget implements ExecutionTarget {
       "-e",
       `HOME=${EPHEMERAL_HOME}`,
     ];
-    for (const [k, v] of Object.entries(request.env ?? {})) argv.push("-e", `${k}=${v}`);
+    for (const [k, v] of Object.entries({ ...this.env, ...request.env })) argv.push("-e", `${k}=${v}`);
     argv.push(this.image, ...request.argv);
     return argv;
   }
