@@ -15,14 +15,15 @@
         "`pnpm typecheck` exits 0, and `pnpm test` through `agro run` shows no new failure against `evidence/baseline.md`."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, 7472088e, via agro run): typecheck 0; egress-policy.test.ts passes including the compose equality test; full suite shows only the baseline install.sh drift failure. reasoned: egressAllowHosts and policyHosts moved to egress-policy.ts and imported by registry.ts; EGRESS_SQUID_CONF and EGRESS_PROXY_IMAGE exported and pinned to the compose file by test.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/egress-policy.ts",
         ".agro/cli/src/lib/registry.ts",
         ".agro/cli/src/lib/__tests__/egress-policy.test.ts"
-      ]
+      ],
+      "commit": "7472088e"
     },
     {
       "id": "US-002",
