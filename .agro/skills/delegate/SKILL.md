@@ -94,11 +94,16 @@ Write one record for each story before dispatch. Keep only these fields:
 | Execution location | `host` or `sandbox`. When `/etc/agro/sandbox` exists, or `/.dockerenv` exists and `SANDBOX_NAME` is not empty, the advisor writes `sandbox` |
 | Model and reason | The requested model, or the provider default, and the reason |
 
+When the execution location is `host` and `agro --help` lists `agro run`, run
+the baseline, the worker verification, and the acceptance commands as
+`agro run -- <command>`. Without `agro run`, or in a sandbox, run these commands
+directly.
+
 ## Waves
 
 1. Before the first wave, run the test and type-check commands of the repository
-   on the task branch. Record each failing test in
-   `.agro/tasks/<slug>/evidence/baseline.md`.
+   on the task branch, in the command form of § Dispatch record. Record each
+   failing test in `.agro/tasks/<slug>/evidence/baseline.md`.
 2. Put each story in a wave. A story is ready when every `dependsOn` story has
    `passes: true`.
 3. Before dispatch, run [`/worktrees` § DECIDE](../worktrees/SKILL.md) for each
@@ -167,8 +172,9 @@ acceptance. For each story, the advisor does these steps:
 2. If the story used a worktree, bring the commit onto the task branch (§ Waves).
 3. In the main checkout, on the integrated task branch, run
    `pnpm install --frozen-lockfile` when the checkout has a `package.json`. Then
-   rerun the verification. When a worktree holds the task branch, use § Verify
-   when a worktree holds the task branch.
+   rerun the verification in the command form of § Dispatch record. When a
+   worktree holds the task branch, use § Verify when a worktree holds the task
+   branch.
 4. Write `passes: true`, `commit`, and `notes` in `prd.json`. In `notes`,
    mark each criterion executed or reasoned.
 
