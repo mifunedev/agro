@@ -60,15 +60,16 @@
         "`CHANGELOG.md` holds one entry under `## [Unreleased]` that links the task issue."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, merged 4b0c32e6): docs.test.ts + compose-verbs.test.ts 41/41; ste-check finding on lifecycle-commands.md is pre-existing at line 485, none on added lines; CHANGELOG Added entry links #1579. reasoned: docs section matches run.ts and ephemeral-target.ts (host only, docker run --rm, image order, root mount, host uid, HOME=/tmp, no host variables, socket, or home, default network, exit code, ADR #1575).",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         "docs/lifecycle-commands.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "4b0c32e6"
     },
     {
       "id": "US-004",
