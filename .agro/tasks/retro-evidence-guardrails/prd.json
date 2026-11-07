@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "skill/1576-retro-evidence-guardrails",
+  "description": "Retro evidence guardrails. The retro of the Effect benchmark and the DoD run found four process defects:",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Council searches prior decisions",
+      "description": "As an advisor, I want `/council` to find prior ADR and RFC issues so that a council does not miss an earlier decision.",
+      "acceptanceCriteria": [
+        "`.agro/skills/council/SKILL.md` § 2 holds a step before dispatch: the advisor runs `gh issue list --state all --search \"ADR: in:title\"` and `--search \"RFC: in:title\"` in each repository in scope.",
+        "The step puts each matching issue number and state into the shared brief as a constraint or as prior context.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/council/SKILL.md` reports no new finding on the changed lines."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/council/SKILL.md"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Close maps each criterion to literal evidence",
+      "description": "As an advisor, I want Close to match each criterion to its evidence so that no report claims an uncovered criterion.",
+      "acceptanceCriteria": [
+        "`.agro/skills/delegate/SKILL.md` § Close holds a step before `## Lessons`. The advisor lists each task-level criterion with its evidence. The evidence must match the exact subject that the criterion names, for example a job type, a command, or a file.",
+        "The step marks a criterion `unmet` when the evidence covers a different subject, and the advisor does not report the task as done.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/delegate/SKILL.md` reports no new finding on the changed lines."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/delegate/SKILL.md"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Plans name criterion owners and protect comparison metrics",
+      "description": "As an advisor, I want criteria to name their owner and comparison plans to protect their metrics so that the result stays true.",
+      "acceptanceCriteria": [
+        "`.agro/skills/prd/SKILL.md` § Acceptance criteria holds an owner rule. A criterion that another agent or the operator controls carries the label `external`. The advisor tracks an `external` criterion, and that criterion does not block Close.",
+        "`.agro/skills/prd/SKILL.md` holds a comparison rule for a plan that compares implementation variants. A fresh critic reviews the metrics file before any variant code exists. Each compared site has at least two variants. Changed-line metrics count production lines and test lines separately.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/prd/SKILL.md` reports no new finding on the changed lines."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/prd/SKILL.md"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Changelog and manual review evidence",
+      "description": "As a reviewer, I want a changelog entry and a command transcript so that I can confirm the skill changes without a rerun.",
+      "acceptanceCriteria": [
+        "`CHANGELOG.md` holds one entry under `## [Unreleased]` that names the four rules and links the task issue.",
+        "`.agro/tasks/retro-evidence-guardrails/evidence/manual-review.md` holds the commands and exit codes of `bash .agro/scripts/link-providers.sh --check`, `pnpm test`, and the three `ste-check.sh` runs.",
+        "`bash .agro/scripts/link-providers.sh --check` exits 0."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        "CHANGELOG.md",
+        ".agro/tasks/retro-evidence-guardrails/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
