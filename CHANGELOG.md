@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Add `run.services` and `run.env` to `agro.json`. `agro run` starts each service in a new container on a new network and waits for its `ready` command. `agro run` gives `run.env` to the command. After the command, `agro run` removes the services and the network. `/delegate` verifies stories through `agro run` on the host ([#1584](https://github.com/mifunedev/agro/issues/1584)).
+
 ## [0.30.0] - 2026-11-07
 
 ### Added

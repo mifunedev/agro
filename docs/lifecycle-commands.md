@@ -199,7 +199,53 @@ The container gets these limits:
 - The container runs the command in the current directory as the host uid and gid, with
   `HOME=/tmp`.
 - The container gets no host environment variables, no home directory, and no Docker socket.
-- The container uses the default Docker network.
+- The container uses the default Docker network when `agro.json` declares no services.
+
+### Services: `run.services` and `run.env`
+
+Declare services in `run.services` of `agro.json`. Each key is the service name. Each
+service has these fields:
+
+- `image`: the image of the service container. Each service must have an `image`.
+- `env`: environment variables for the service container. This field is optional.
+- `ready`: a shell command that `agro run` executes in the service container with
+  `sh -c`. Exit code 0 means that the service is ready. This field is optional.
+
+`run.env` holds environment variables for the command container. `run.env` applies
+only when `run.services` declares at least one service.
+
+This example starts PostgreSQL for a test command:
+
+```json
+{
+  "run": {
+    "services": {
+      "postgres": {
+        "image": "postgres:17-alpine",
+        "env": { "POSTGRES_PASSWORD": "agro" },
+        "ready": "pg_isready -U postgres"
+      }
+    },
+    "env": {
+      "TEST_DATABASE_URL": "postgres://postgres:agro@postgres:5432/postgres"
+    }
+  }
+}
+```
+
+When services exist, each `agro run` does these steps:
+
+1. Create one Docker network with the name `agro-run-<id>`, where `<id>` is new for each invocation.
+2. Start a new container for each service on that network. The container name is
+   `agro-run-<id>-<service>`, and the network alias is the service name. The command
+   reaches the service at the host name `postgres` in the example.
+3. Execute the `ready` command of each service one time each second, for a maximum of
+   60 s. If a service is not ready after 60 s, `agro run` exits 1 and names the service.
+4. Run the command on the same network with the variables from `run.env`.
+5. Remove the service containers and the network after the command stops. `agro run`
+   also removes them after a failure.
+
+`agro.json` is a tracked file. Do not put secrets in `run.services` or `run.env`.
 
 The exit code of `agro run` is the exit code of the command. The decision is
 [ADR #1575](https://github.com/mifunedev/agro/issues/1575).
