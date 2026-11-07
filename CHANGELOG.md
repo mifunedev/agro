@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-11-07
+
 ### Added
 
 - Add `agro run [--image <ref>] -- <command...>` to run one command on the host in a disposable container that mounts only the repository and gets no host credentials ([#1579](https://github.com/mifunedev/agro/issues/1579)).
