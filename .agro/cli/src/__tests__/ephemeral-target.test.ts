@@ -290,4 +290,44 @@ describe("EphemeralExecutionTarget", () => {
     expect(t.provision).toBeUndefined();
     expect(t.describe()).toContain(IMAGE);
   });
+
+  it("joins the network and puts the target env before the request env when given", async () => {
+    let dir = "";
+    const { calls, run } = makeRunner(() => {
+      dir = identityDir();
+      return undefined;
+    });
+    await new EphemeralExecutionTarget({
+      worktreeRoot: ROOT,
+      image: IMAGE,
+      run,
+      hostIds: () => ({ uid: 1001, gid: 1002, name: "sandbox" }),
+      gitCommonDir: () => undefined,
+      tempRoot,
+      network: "agro-run-abc",
+      env: { DATABASE_URL: "postgres://postgres/app", CI: "0" },
+    }).exec({ argv: ["true"], env: { CI: "1" } });
+    expect(calls[0].args).toEqual([
+      "run",
+      "--rm",
+      "--network",
+      "agro-run-abc",
+      "-v",
+      `${ROOT}:${ROOT}`,
+      ...identityMounts(dir),
+      "-w",
+      ROOT,
+      "--user",
+      "1001:1002",
+      "-e",
+      "HOME=/tmp",
+      "-e",
+      "DATABASE_URL=postgres://postgres/app",
+      "-e",
+      "CI=1",
+      IMAGE,
+      "true",
+    ]);
+  });
 });
+

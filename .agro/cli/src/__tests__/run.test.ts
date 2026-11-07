@@ -219,4 +219,237 @@ describe("runRun", () => {
     expect(code).toBe(1);
     expect(out.stderr.join("")).toMatch(/^agro run: failed to run docker run /);
   });
+
+  describe("services", () => {
+    const ID = "abc123";
+    const NET = `agro-run-${ID}`;
+    const PG = `${NET}-postgres`;
+    const CACHE = `${NET}-cache`;
+
+    function withServices(): string {
+      const dir = tempDir();
+      writeFileSync(
+        agroConfigPath(dir),
+        JSON.stringify({
+          version: 1,
+          name: "p",
+          run: {
+            services: {
+              postgres: { image: "postgres:16", env: { POSTGRES_PASSWORD: "pw", POSTGRES_DB: "app" }, ready: "pg_isready" },
+              cache: { image: "redis:7" },
+            },
+            env: { DATABASE_URL: "postgres://postgres:pw@postgres/app" },
+          },
+        }),
+      );
+      return dir;
+    }
+
+    function serviceRunner(
+      reply: (args: string[]) => RunResult | undefined = () => undefined,
+    ): { run: LifecycleRunner; calls: RecordedCall[] } {
+      const calls: RecordedCall[] = [];
+      const run: LifecycleRunner = (cmd, args, o) => {
+        calls.push({ cmd, args: [...args], stdio: o.stdio });
+        if (cmd === "git") return { status: 128 };
+        return reply(args) ?? { status: 0, stdout: "", stderr: "" };
+      };
+      return { run, calls };
+    }
+
+    function dockerArgs(calls: RecordedCall[]): string[][] {
+      return calls.filter((c) => c.cmd === "docker").map((c) => c.args);
+    }
+
+    const startArgv = [
+      ["network", "create", NET],
+      [
+        "run",
+        "-d",
+        "--rm",
+        "--name",
+        PG,
+        "--network",
+        NET,
+        "--network-alias",
+        "postgres",
+        "-e",
+        "POSTGRES_PASSWORD=pw",
+        "-e",
+        "POSTGRES_DB=app",
+        "postgres:16",
+      ],
+      ["run", "-d", "--rm", "--name", CACHE, "--network", NET, "--network-alias", "cache", "redis:7"],
+    ];
+    const readyArgv = ["exec", PG, "sh", "-c", "pg_isready"];
+    const cleanupArgv = [
+      ["rm", "-f", PG],
+      ["rm", "-f", CACHE],
+      ["network", "rm", NET],
+    ];
+
+    function commandArgv(dir: string, command: string[]): unknown[] {
+      return [
+        "run",
+        "--rm",
+        "--network",
+        NET,
+        "-v",
+        `${dir}:${dir}`,
+        "-v",
+        expect.stringMatching(/agro-run-[^/]+\/passwd:\/etc\/passwd:ro$/),
+        "-v",
+        expect.stringMatching(/agro-run-[^/]+\/group:\/etc\/group:ro$/),
+        "-w",
+        dir,
+        "--user",
+        expect.stringMatching(/^\d+:\d+$/),
+        "-e",
+        "HOME=/tmp",
+        "-e",
+        "DATABASE_URL=postgres://postgres:pw@postgres/app",
+        "img:1",
+        ...command,
+      ];
+    }
+
+    function options(dir: string, run: LifecycleRunner, sleeps: number[] = []) {
+      return {
+        bin: "agro",
+        command: ["pnpm", "test"],
+        image: "img:1",
+        cwd: dir,
+        env: HOST_ENV,
+        run,
+        runId: () => ID,
+        readyIntervalMs: 1000,
+        readyTimeoutMs: 3000,
+        sleep: async (ms: number) => {
+          sleeps.push(ms);
+        },
+      };
+    }
+
+    it("starts the services on a private network, runs the command on it, then removes services and network", async () => {
+      const dir = withServices();
+      let readyTries = 0;
+      const { run, calls } = serviceRunner((args) => {
+        if (args[0] === "exec") return { status: ++readyTries < 2 ? 1 : 0 };
+        if (args[0] === "run" && args[1] === "--rm") return { status: 7 };
+        return undefined;
+      });
+      const sleeps: number[] = [];
+      const code = await runRun(options(dir, run, sleeps), io().io);
+      expect(code).toBe(7);
+      expect(sleeps).toEqual([1000]);
+      expect(dockerArgs(calls)).toEqual([
+        ...startArgv,
+        readyArgv,
+        readyArgv,
+        commandArgv(dir, ["pnpm", "test"]),
+        ...cleanupArgv,
+      ]);
+      const command = calls.find((c) => c.cmd === "docker" && c.args[1] === "--rm")!;
+      expect(command.stdio).toBe("inherit");
+      expect(command.args.join(" ")).not.toContain("docker.sock");
+    });
+
+    it("exits 1 naming the service after the ready timeout, and still removes services and network", async () => {
+      const dir = withServices();
+      const { run, calls } = serviceRunner((args) => (args[0] === "exec" ? { status: 1 } : undefined));
+      const sleeps: number[] = [];
+      const out = io();
+      const code = await runRun(options(dir, run, sleeps), out.io);
+      expect(code).toBe(1);
+      expect(out.stderr.join("")).toBe("agro run: service postgres was not ready after 3 s\n");
+      expect(sleeps).toEqual([1000, 1000]);
+      expect(dockerArgs(calls)).toEqual([...startArgv, readyArgv, readyArgv, readyArgv, ...cleanupArgv]);
+    });
+
+    it("waits 60 one-second attempts by default", async () => {
+      const dir = withServices();
+      const { run, calls } = serviceRunner((args) => (args[0] === "exec" ? { status: 1 } : undefined));
+      const sleeps: number[] = [];
+      const out = io();
+      const { readyIntervalMs: _i, readyTimeoutMs: _t, ...defaults } = options(dir, run, sleeps);
+      expect(await runRun(defaults, out.io)).toBe(1);
+      expect(out.stderr.join("")).toBe("agro run: service postgres was not ready after 60 s\n");
+      expect(dockerArgs(calls).filter((a) => a[0] === "exec")).toHaveLength(60);
+      expect(sleeps).toEqual(Array(59).fill(1000));
+    });
+
+    it("removes the services already started when a service fails to start", async () => {
+      const dir = withServices();
+      const { run, calls } = serviceRunner((args) =>
+        args.includes(CACHE) && args[0] === "run" ? { status: 125, stderr: "pull access denied\n" } : undefined,
+      );
+      const out = io();
+      const code = await runRun(options(dir, run), out.io);
+      expect(code).toBe(1);
+      expect(out.stderr.join("")).toBe("agro run: could not start service cache: pull access denied\n");
+      expect(dockerArgs(calls)).toEqual([...startArgv, ["rm", "-f", PG], ["network", "rm", NET]]);
+    });
+
+    it("removes nothing but reports the error when the network cannot be created", async () => {
+      const dir = withServices();
+      const { run, calls } = serviceRunner((args) => (args[0] === "network" ? { status: 1, stderr: "boom" } : undefined));
+      const out = io();
+      expect(await runRun(options(dir, run), out.io)).toBe(1);
+      expect(out.stderr.join("")).toBe(`agro run: could not create network ${NET}: boom\n`);
+      expect(dockerArgs(calls)).toEqual([["network", "create", NET]]);
+    });
+
+    it("removes services and network when the command cannot spawn", async () => {
+      const dir = withServices();
+      const { run, calls } = serviceRunner((args) =>
+        args[0] === "run" && args[1] === "--rm" ? { status: null, error: { code: "ENOENT", message: "gone" } } : undefined,
+      );
+      const out = io();
+      expect(await runRun(options(dir, run), out.io)).toBe(1);
+      expect(out.stderr.join("")).toMatch(/^agro run: failed to run docker run img:1/);
+      expect(dockerArgs(calls).slice(-3)).toEqual(cleanupArgv);
+    });
+
+    it("uses a fresh network id per invocation by default", async () => {
+      const dir = withServices();
+      const networks: string[] = [];
+      for (let i = 0; i < 2; i++) {
+        const { run, calls } = serviceRunner();
+        const { runId: _r, ...rest } = options(dir, run);
+        await runRun(rest, io().io);
+        networks.push(dockerArgs(calls)[0][2]);
+      }
+      expect(networks[0]).toMatch(/^agro-run-[0-9a-f]{12}$/);
+      expect(networks[1]).not.toBe(networks[0]);
+    });
+
+    it("keeps the docker argv unchanged when run.services is empty or absent", async () => {
+      for (const runSection of [undefined, {}, { services: {} }, { services: {}, env: { A: "1" } }]) {
+        const dir = tempDir();
+        writeFileSync(agroConfigPath(dir), JSON.stringify({ version: 1, name: "p", run: runSection }));
+        const { run, calls } = serviceRunner();
+        await runRun({ bin: "agro", command: ["true"], image: "img:1", cwd: dir, env: HOST_ENV, run }, io().io);
+        expect(dockerArgs(calls)).toEqual([
+          [
+            "run",
+            "--rm",
+            "-v",
+            `${dir}:${dir}`,
+            "-v",
+            expect.stringMatching(/passwd:\/etc\/passwd:ro$/),
+            "-v",
+            expect.stringMatching(/group:\/etc\/group:ro$/),
+            "-w",
+            dir,
+            "--user",
+            expect.stringMatching(/^\d+:\d+$/),
+            "-e",
+            "HOME=/tmp",
+            "img:1",
+            "true",
+          ],
+        ]);
+      }
+    });
+  });
 });
