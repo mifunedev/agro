@@ -78,20 +78,40 @@
       "description": "As the operator, I want proof that `agro run` removes host drift so that ADR #1575 step 1 meets its validation rule.",
       "acceptanceCriteria": [
         "`.agro/tasks/ephemeral-run-target/evidence/manual-review.md` records `agro run -- pnpm test` from the harness root on this VM, with the exit code and the test summary.",
-        "The 14 host-only failures in `evidence/baseline.md` do not occur in the `agro run` result.",
+        "Each baseline failure that the host umask or a missing host tool causes does not occur in the `agro run` result.",
+        "The `agro run` result has no failure that the host result does not have.",
+        "The transcript records each remaining failure that a host checkout file mode causes as host checkout drift.",
         "The transcript records the wall time of `agro run -- pnpm test` and of the host `pnpm test`."
       ],
-      "priority": 4,
+      "priority": 5,
       "passes": false,
       "notes": "Evidence cfdd0d09: agro run -- pnpm test 78 failed vs host 14; 13 of 14 baseline failures gone; causes recorded. Re-run after US-001 repair.",
       "dependsOn": [
-        "US-002"
+        "US-002",
+        "US-005"
       ],
       "files": [
         ".agro/tasks/ephemeral-run-target/evidence/manual-review.md"
+      ],
+      "rounds": 1
+    },
+    {
+      "id": "US-005",
+      "title": "The image ships a system python3",
+      "description": "As a worker, I want a system `python3` in the AGRO image so that scripts that need `python3` run under `agro run`.",
+      "acceptanceCriteria": [
+        "`.devcontainer/Dockerfile` installs a system `python3` through `apt-get`, and the build fails when `/usr/bin/python3` is absent.",
+        "For the `sandbox` user after the normal boot, `python3` still resolves to the uv Python 3.13, so `.agro/scripts/verify-sandbox-image.sh` passes on a local build.",
+        "`docker build --target final -f .devcontainer/Dockerfile -t agro-local:1579 .` exits 0."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".devcontainer/Dockerfile"
       ]
     }
   ],
-  "pr": 1580,
-  "blocked": "US-004 unmet: under agro run, 13 of 14 baseline failures are gone, but 1 baseline failure remains (install.sh mode 700 from the host checkout under umask 0077) and 12 new failures appear (python3 is only in /opt/home-seed, mode 0700 uid 1000, which agro run never copies because it replaces the image command). Operator decision: (A) change the image to ship python3 outside the home directory and accept the install.sh mode failure as host checkout drift, rewording the criterion; (B) make agro run seed a readable home copy; (C) accept the residual 13 and reword the criterion."
+  "pr": 1580
 }

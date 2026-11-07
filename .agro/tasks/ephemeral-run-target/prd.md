@@ -37,6 +37,16 @@ Status: DRAFT
 - [ ] `docs/lifecycle-commands.md` holds one verb-table row and one section for `agro run`, with the mount and credential limits.
 - [ ] `CHANGELOG.md` holds one entry under `## [Unreleased]` that links the task issue.
 
+### US-005: The image ships a system python3
+
+**Description:** As a worker, I want a system `python3` in the AGRO image so that scripts that need `python3` run under `agro run`.
+
+**Acceptance Criteria:**
+
+- [ ] `.devcontainer/Dockerfile` installs a system `python3` through `apt-get`, and the build fails when `/usr/bin/python3` is absent.
+- [ ] For the `sandbox` user after the normal boot, `python3` still resolves to the uv Python 3.13, so `.agro/scripts/verify-sandbox-image.sh` passes on a local build.
+- [ ] `docker build --target final -f .devcontainer/Dockerfile -t agro-local:1579 .` exits 0.
+
 ### US-004: ADR #1575 step 1 validation
 
 **Description:** As the operator, I want proof that `agro run` removes host drift so that ADR #1575 step 1 meets its validation rule.
@@ -44,7 +54,9 @@ Status: DRAFT
 **Acceptance Criteria:**
 
 - [ ] `.agro/tasks/ephemeral-run-target/evidence/manual-review.md` records `agro run -- pnpm test` from the harness root on this VM, with the exit code and the test summary.
-- [ ] The 14 host-only failures in `evidence/baseline.md` do not occur in the `agro run` result.
+- [ ] Each baseline failure that the host umask or a missing host tool causes does not occur in the `agro run` result.
+- [ ] The `agro run` result has no failure that the host result does not have.
+- [ ] The transcript records each remaining failure that a host checkout file mode causes as host checkout drift.
 - [ ] The transcript records the wall time of `agro run -- pnpm test` and of the host `pnpm test`.
 
 ## Summary
@@ -71,7 +83,7 @@ ADR #1575 (Accepted) selects verification hands: an ephemeral per-worker contain
 ## Architectural Decisions
 The target reuses `ExecutionTarget`. The container runs as the host uid and gid, so files in the worktree keep host ownership. Step 2 (per-worker service sidecar) and step 3 (`/delegate` rule) of ADR #1575 need separate plans.
 
-Operator decisions on 2026-11-07: the verb is `agro run`, and the container uses the default Docker network. ADR #1378 owns egress policy.
+Operator decisions on 2026-11-07: option A after the first validation, so the image ships a system `python3`, and checkout file-mode drift is recorded, not counted. The verb is `agro run`, and the container uses the default Docker network. ADR #1378 owns egress policy.
 
 ## Test Plan (TDD)
 | Test File | Case(s) | Validates |
