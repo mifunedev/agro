@@ -196,6 +196,15 @@ Write each criterion as a binary check. An agent must be able to execute or veri
 For each story that changes a user interface, add this criterion:
 "Verify in browser using agent-browser skill".
 
+Give the label `external` to a criterion that another agent or the operator controls.
+The advisor tracks an `external` criterion. An `external` criterion does not block Close.
+
+For a plan that compares implementation variants, add these criteria:
+
+- A fresh critic reviews the metrics file before any variant code exists.
+- Each compared site has at least two variants.
+- Changed-line metrics count production lines and test lines separately.
+
 ## 6. Verify and report
 
 1. Use one Bash call to write the plan and to verify the plan. Do not use the Write tool.
