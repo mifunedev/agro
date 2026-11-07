@@ -69,8 +69,8 @@
         "`bash .agro/scripts/link-providers.sh --check` exits 0."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: CHANGELOG Unreleased Changed entry names the four rules and links #1576; evidence/manual-review.md holds link check, pnpm test (14 baseline host failures), three ste-check runs with pre-existing findings on unchanged lines; advisor: ste-check on evidence exit 0, link check exit 0.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -79,7 +79,8 @@
       "files": [
         "CHANGELOG.md",
         ".agro/tasks/retro-evidence-guardrails/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "04814f724"
     }
   ],
   "pr": 1577
