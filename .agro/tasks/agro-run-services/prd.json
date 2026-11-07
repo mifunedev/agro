@@ -41,8 +41,8 @@
         "`pnpm typecheck` exits 0, and `pnpm test` shows no new failure against the baseline."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, 7f235809): typecheck 0; build 0; agro run -- vitest run.test.ts + ephemeral-target.test.ts 40/40; real run in a scratch repo with a postgres:17-alpine service and ready pg_isready connected to postgres:5432, exit 0, 0 agro-run containers and networks after. worker: full suite via agro run 1 baseline failure only; tests cover argv, ready timeout, start failure, spawn failure, cleanup order, unchanged argv without services. Decision: the run variables map applies only with services, which keeps the no-service argv unchanged.",
       "dependsOn": [
         "US-001"
       ],
@@ -51,7 +51,8 @@
         ".agro/cli/src/commands/run.ts",
         ".agro/cli/src/__tests__/run.test.ts",
         ".agro/cli/src/__tests__/ephemeral-target.test.ts"
-      ]
+      ],
+      "commit": "7f235809"
     },
     {
       "id": "US-003",
