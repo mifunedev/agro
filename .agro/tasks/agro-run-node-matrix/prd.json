@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1594-agro-run-node-matrix",
+  "description": "agro run node matrix. `agro run --isolation microvm` requires msb `0.7.13` exactly (mifunedev/agro#1591), but the `microsandbox` catalog entry installs the msb release of the day from a fixed installer commit. The remote-sandbox msb adapter already pins the version with a `sed` rewrite of the installer. The remote-sandbox skill runs checks that print `RESULT` lines on a new VM. On this host, `agro auth status` returns HTTP 401, so a live console run needs the operator.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "The microsandbox tool installs msb 0.7.13",
+      "description": "As an operator, I want `agro tool install microsandbox` to install msb 0.7.13 so that the microVM mode of `agro run` works after one command.",
+      "acceptanceCriteria": [
+        "The `microsandbox` entry in `.agro/cli/src/lib/tools/catalog.ts` downloads the msb installer at tag `v0.7.13`, checks the script against its `sha256`, and installs version `v0.7.13`.",
+        "The install command fails when `msb --version` does not report `0.7.13`.",
+        "`.agro/cli/src/__tests__/tool-catalog.test.ts` pins the URL, the `sha256`, and the version check.",
+        "`docs/runtimes/microsandbox.md` states that AGRO pins msb `0.7.13`.",
+        "`agro run -- pnpm typecheck` exits 0, and `agro run -- pnpm test` shows no new failure against `evidence/baseline.md`."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/tools/catalog.ts",
+        ".agro/cli/src/__tests__/tool-catalog.test.ts",
+        "docs/runtimes/microsandbox.md"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "The agro run matrix check",
+      "description": "As an operator, I want one remote-sandbox check for the `agro run` modes so that a new node proves the modes with one command.",
+      "acceptanceCriteria": [
+        "`.agro/skills/remote-sandbox/checks/agro-run-matrix.sh` installs AGRO from `INSTALL_URL`, adds the user to the `kvm` group, installs the microsandbox tool, and creates a scratch git repository.",
+        "The check prints one `RESULT` line for each of 8 rows. `X01` checks the container exit code, `X02` service reachability, `X03` egress allow, and `X04` egress deny. `X05` checks the microVM user and exit code, `X06` the microVM boot time from `microvm.jsonl`, `X07` the refusals, and `X08` leftovers.",
+        "The check runs each microVM row through `sg kvm`, because the new group applies only to a new login.",
+        "The check ends with a `SUMMARY` line and deletes the scratch repository.",
+        "`.agro/skills/remote-sandbox/SKILL.md` holds one section that names the check, the rows, and the run command.",
+        "`bash -n` and `shellcheck` pass on the check."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/remote-sandbox/checks/agro-run-matrix.sh",
+        ".agro/skills/remote-sandbox/SKILL.md"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Live run on a new node",
+      "description": "As the operator, I want the matrix run on a new agro-console node so that the modes have proof outside this host.",
+      "acceptanceCriteria": [
+        "`external`: the operator runs `agro auth login` on this host, because `agro auth status` returns HTTP 401.",
+        "Before the run, the console preflight (`console_preflight`) passes, and the run creates no node when the preflight fails.",
+        "`bash .agro/skills/remote-sandbox/scripts/run.sh console checks/agro-run-matrix.sh` on a free-tier `n4` node prints a `RESULT` line for `X01` to `X08`.",
+        "`.agro/tasks/agro-run-node-matrix/evidence/manual-review.md` records the rows, and `agro node list` shows no node that the run created."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/agro-run-node-matrix/evidence/manual-review.md"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Changelog",
+      "description": "As a reviewer, I want a changelog entry so that the pinned msb version and the new check are visible.",
+      "acceptanceCriteria": [
+        "`CHANGELOG.md` holds one entry under `## [Unreleased]` that links the task issue."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        "CHANGELOG.md"
+      ]
+    }
+  ]
+}
