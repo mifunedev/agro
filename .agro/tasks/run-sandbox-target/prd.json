@@ -70,8 +70,8 @@
         "`pnpm vitest run .agro/cli/src/__tests__/microvm-target.test.ts .agro/cli/src/__tests__/run.test.ts` exits 0."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: agro run -- pnpm vitest run microvm-target.test.ts run.test.ts exit 0 (86/86): msb exec -u <user> [-e] <name> -- argv, provision runs only msb --version with shared remedy, status from msb inspect Status line (running/stopped/created/non-zero), no destroy, runRun microvm+sandbox returns 7 with inherit, not-running message, no msb rm/usage log, services+allowlist ignored; executed: agro run -- pnpm typecheck exit 0; executed: agro run -- pnpm test exit 0 (3108); reasoned: checkMsbVersion extracted to one module function (inspected diff).",
       "dependsOn": [
         "US-002"
       ],
@@ -81,7 +81,8 @@
         ".agro/cli/src/commands/run.ts",
         ".agro/cli/src/__tests__/microvm-target.test.ts",
         ".agro/cli/src/__tests__/run.test.ts"
-      ]
+      ],
+      "commit": "5c90c495"
     },
     {
       "id": "US-004",
