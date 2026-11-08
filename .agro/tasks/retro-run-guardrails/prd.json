@@ -96,8 +96,8 @@
         "`.agro/tasks/retro-run-guardrails/evidence/manual-review.md` records `agro node check --free-tier` against the local console, with its output and exit code."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, 0c8de58c, via agro run): remote-sandbox-adapters 82/82 including the failing-check case that never calls node create; shellcheck -S warning clean. reasoned: console_preflight runs agro node check with --free-tier unless CONSOLE_FREE_TIER=0 and --ssh-key when CONSOLE_SSH_KEY_ID is set; console_create runs it first; CONSOLE_SSH_IDENTITY stays required with no default.",
       "dependsOn": [
         "US-004"
       ],
@@ -105,7 +105,8 @@
         ".agro/skills/remote-sandbox/adapters/console.sh",
         ".agro/skills/remote-sandbox/SKILL.md",
         ".agro/scripts/__tests__/remote-sandbox-adapters.test.ts"
-      ]
+      ],
+      "commit": "0c8de58c"
     }
   ],
   "pr": 1597
