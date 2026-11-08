@@ -9,22 +9,23 @@
       "title": "next.sh tracks an external story",
       "description": "As an advisor, I want `next.sh` to skip an external story so that an operator-owned step does not block Close.",
       "acceptanceCriteria": [
-        "`.agro/skills/prd/references/tracker.md` defines an optional story field `external` (boolean) for a story that another agent or the operator controls.",
-        "`.agro/skills/prd/references/tracker.md` defines an optional story field `external` (boolean). The field marks a story that another agent or the operator controls.",
-        "`.agro/skills/delegate/scripts/next.sh` treats a story with `external: true` and `passes` other than `true` as tracked. The script prints no `story <id>` line for the story, and Close, push, CI, and ready proceed.",
+        "The `external` rule in `.agro/skills/prd/SKILL.md` names the field; US-002 owns that edit.",
         "`.agro/skills/delegate/scripts/__tests__/next.test.mjs` covers the skip, the dependency case, and a file without the field.",
-        "The `external` rule in `.agro/skills/prd/SKILL.md` names the field; US-002 owns that edit."
+        "`.agro/skills/delegate/scripts/next.sh` treats a story with `external: true` and `passes` other than `true` as tracked. The script prints no `story <id>` line for the story, and Close, push, CI, and ready proceed.",
+        "`.agro/skills/prd/references/tracker.md` defines an optional story field `external` (boolean) for a story that another agent or the operator controls.",
+        "`.agro/skills/prd/references/tracker.md` defines an optional story field `external` (boolean). The field marks a story that another agent or the operator controls."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, merged c5f7cbd0, via agro run): next.test.mjs passes (9 new external cases: skip to close, dependency blocked message, unchanged without the field, rounds cap still applies); typecheck 0. reasoned: tracker.md schema and optional-field entry for external.",
       "dependsOn": [],
       "files": [
         ".agro/skills/delegate/scripts/next.sh",
         ".agro/skills/delegate/scripts/__tests__/next.test.mjs",
         ".agro/skills/delegate/scripts/__tests__/fixture.mjs",
         ".agro/skills/prd/references/tracker.md"
-      ]
+      ],
+      "commit": "c5f7cbd0"
     },
     {
       "id": "US-002",
@@ -36,12 +37,13 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/prd/SKILL.md` reports no new finding on the changed lines."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, merged 292e13b8): link check 0; ste-check same 6 pre-existing findings. reasoned: probe-story rule in § 5, registry caller rule in § 3, external field sentence in the external rule.",
       "dependsOn": [],
       "files": [
         ".agro/skills/prd/SKILL.md"
-      ]
+      ],
+      "commit": "292e13b8"
     },
     {
       "id": "US-003",
@@ -52,12 +54,13 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/git/SKILL.md` reports no new finding on the changed lines."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, merged 9504f4db): ste-check clean. reasoned: § Releases merge rule after a release, merge preferred over rebase.",
       "dependsOn": [],
       "files": [
         ".agro/skills/git/SKILL.md"
-      ]
+      ],
+      "commit": "9504f4db"
     },
     {
       "id": "US-004",
@@ -73,15 +76,16 @@
         "`agro run -- pnpm typecheck` exits 0, and `agro run -- pnpm test` shows no new failure against `evidence/baseline.md`."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, merged 6f15ae67, via agro run): node.test.ts passes (10 new cases incl. no POST/DELETE); typecheck 0; real check against the local console: fail ssh-key (unknown id), fail free-tier not eligible, exit 1; without --ssh-key: fail with the missing-key remedy. reasoned: NODE_VERBS lists check; help and docs updated.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/commands/node.ts",
         ".agro/cli/src/command-table.ts",
         ".agro/cli/src/__tests__/node.test.ts",
         "docs/lifecycle-commands.md"
-      ]
+      ],
+      "commit": "6f15ae67"
     },
     {
       "id": "US-005",

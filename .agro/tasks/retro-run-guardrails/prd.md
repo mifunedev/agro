@@ -10,7 +10,6 @@ Status: DRAFT
 
 **Acceptance Criteria:**
 
-- [ ] `.agro/skills/prd/references/tracker.md` defines an optional story field `external` (boolean) for a story that another agent or the operator controls.
 - [ ] `.agro/skills/prd/references/tracker.md` defines an optional story field `external` (boolean). The field marks a story that another agent or the operator controls.
 - [ ] `.agro/skills/delegate/scripts/next.sh` treats a story with `external: true` and `passes` other than `true` as tracked. The script prints no `story <id>` line for the story, and Close, push, CI, and ready proceed.
 - [ ] `.agro/skills/delegate/scripts/__tests__/next.test.mjs` covers the skip, the dependency case, and a file without the field.
