@@ -36,7 +36,7 @@ Host prerequisites and the CLI install are in [Installation](installation.md).
 | `agro ps [name]` | `docker-compose.sh ps` |
 | `agro destroy [name] [--yes]` | `docker-compose.sh down -v`, then remove the registry entry — see below |
 | `agro compose config` | `docker-compose.sh config` — the resolved compose file |
-| `agro run [--image <ref>] -- <command...>` | run one command in a disposable container on the host — see below |
+| `agro run [--isolation container\|microvm] [--image <ref>] -- <command...>` | run one command in a disposable container or microVM on the host — see below |
 | `agro egress log [name]` | print the last 1000 lines of the proxy access log; mark each denied line `DENIED` — needs `access.egress: "allowlist"` |
 | `agro egress reload [name]` | rewrite `egress-allow.txt` and send the proxy `squid -k reconfigure`; the sandbox container keeps running — needs `access.egress: "allowlist"` |
 | `agro self-upgrade [--dry-run]` (alias `agro update`) | upgrade the installed `agro` executable through the mechanism that installed it — see below |
@@ -278,6 +278,66 @@ containers, both networks, and the temporary directory. `agro run` also removes 
 after a failure.
 
 `agro.json` is a tracked file. Do not put secrets in `run.services` or `run.env`.
+
+### MicroVM isolation
+
+Run `agro run --isolation microvm -- <command...>` on the host to run the command in
+an msb microVM. The microVM has its own kernel. The default is `--isolation container`.
+
+Before the run, `agro run` does these checks. If a check fails, `agro run` exits 1 and
+prints the remedy:
+
+- `msb --version` must report exactly `0.7.13`. Remedy: install msb 0.7.13 with
+  `agro tool install microsandbox` and keep it pinned at 0.7.13.
+- `/dev/kvm` must open for read and write. Remedy: add the user to the `kvm` group
+  (`sudo usermod -aG kvm $USER`) and start a new login session.
+
+The image is `--image <ref>`, else `run.microvm.image` in `agro.json`, else
+`ghcr.io/mifunedev/agro:<version>-msb` for the CLI version. Each release builds the
+`agro-msb` target of `.devcontainer/Dockerfile` and publishes the `<version>-msb` and
+`sha-<commit>-msb` tags.
+
+```json
+{
+  "run": {
+    "microvm": { "image": "ghcr.io/mifunedev/agro:0.31.0-msb" }
+  }
+}
+```
+
+The microVM gets these limits:
+
+- The microVM mounts only the git repository root at the same path. Outside a
+  repository, the microVM mounts only the current directory at the same path.
+- The microVM runs the command in the current directory as the guest user `sandbox`.
+- The microVM gets no host environment variables, no host home directory, and no
+  Docker socket.
+
+Each run has the sandbox name `agro-run-<id>`, where `<id>` is new for each
+invocation. `agro run` removes the sandbox with `msb rm --force` after the command
+stops, also after a failure. If the removal fails, `agro run` prints a warning.
+
+After each run, `agro run` appends one JSON line to
+`${AGRO_HOME:-~/.agro}/runs/microvm.jsonl`. Each line has these fields:
+
+- `time`: the start time in ISO 8601 format.
+- `image`: the image reference.
+- `digest`: the image digest from `msb image inspect`, or `null`.
+- `bootToExitMs`: the time from the start of `msb run` to the exit of the command, in
+  milliseconds.
+- `exitCode`: the exit code of the command.
+
+If `agro run` cannot write the log, it prints a warning and keeps the exit code of the
+command.
+
+With a cached image, the boot-to-exit time on a KVM host is about 1.4 s.
+
+The microVM mode does not support `run.services` or `access.egress: "allowlist"` yet.
+With either setting, `agro run --isolation microvm` exits 1.
+
+Known caveat: a file that the guest creates in the mount has mode 600 on the host, and
+a directory has mode 700. The host file loses the executable bit. msb keeps the guest
+owner and mode in the extended attribute `user.msb.override_stat`.
 
 The exit code of `agro run` is the exit code of the command. The decision is
 [ADR #1575](https://github.com/mifunedev/agro/issues/1575).

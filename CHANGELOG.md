@@ -10,6 +10,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
+- Add `agro run --isolation microvm -- <command...>` to run one command as the user `sandbox` in a disposable msb 0.7.13 microVM with its own kernel. The default image is `ghcr.io/mifunedev/agro:<version>-msb`; each release publishes the `-msb` image tags. Each run appends one line to `~/.agro/runs/microvm.jsonl` ([#1590](https://github.com/mifunedev/agro/issues/1590)).
 - Make `agro run` enforce `access.egress: "allowlist"`. `agro run` puts the command and its services on an internal network behind a squid proxy. The proxy permits only the OpenShell policy hosts and `access.egressAllow`. The command gets the proxy variables ([#1588](https://github.com/mifunedev/agro/issues/1588)).
 - Add the `msb` remote-sandbox provider, the `msb-guest` check, and the `agro-msb` Dockerfile target to boot the AGRO image as a microVM on an agro-console node ([#1555](https://github.com/mifunedev/agro/pull/1555)).
 

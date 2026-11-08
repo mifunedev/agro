@@ -9,6 +9,10 @@ microVM has its own kernel and uses KVM. AGRO cannot provision a sandbox on
 MicroSandbox. `agro sandbox install microsandbox` exits with an error. AGRO ships
 the `msb` command-line binary as an installable tool.
 
+To run one command in a microVM on a KVM host, use
+`agro run --isolation microvm -- <command...>`. See
+[`agro run`](../lifecycle-commands.md#microvm-isolation).
+
 ## Install `msb`
 
 Run these commands inside a sandbox:
