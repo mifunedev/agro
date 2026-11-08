@@ -120,3 +120,10 @@ None
 - [ ] CI is green on the pull request.
 
 ## Lessons
+
+1. Claim: an exported root filesystem does not boot the `agro-msb` image under msb, and msb reaches a plain-HTTP registry only through `msb pull --insecure`. Evidence: `evidence/probe.md`. Outcome: dropped, because `docker save | msb load` and the published `-msb` tags cover both cases.
+2. Claim: files that the guest creates land on the host as mode 600 or 700, because msb keeps the guest mode in the `user.msb.override_stat` extended attribute. Evidence: `evidence/probe.md`. Outcome: dropped from this PR; the docs record the limit.
+3. Claim: the microVM runs `pnpm --version` in 4817 ms against 1514 ms in a container. Evidence: `evidence/manual-review.md`; a plain shell run boots to exit in about 1.4 s, so Node.js startup on 1 vCPU dominates. Outcome: dropped, because the usage log exists to tune resources and the per-step choice.
+4. Claim: the container mode runs as the host user, so `sandbox` is its user only on a host whose user is `sandbox`. Evidence: US-005 report and `ephemeral-target.ts`. Outcome: dropped, because host ownership of worktree files needs the host uid, and the AGRO VM user is `sandbox`.
+5. Claim: this session predates the `kvm` group change, so each microVM run used `sg kvm -c 'sg sandbox -c ...'`. Evidence: US-001 and US-006 transcripts. Outcome: dropped, because a new login gets the group.
+6. Claim: the release job pushes the `agro-msb` image without a microVM smoke test. Evidence: US-003 report. Outcome: dropped, because the remote-sandbox `msb-guest` check covers the image.
