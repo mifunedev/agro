@@ -8,6 +8,14 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Add the remote-sandbox `checks/agro-run-matrix.sh` check (rows X01–X08) to prove the `agro run` modes on a new node ([#1594](https://github.com/mifunedev/agro/issues/1594)).
+
+### Changed
+
+- Make `agro tool install microsandbox` install msb 0.7.13 from the tag-pinned installer and fail on any other version ([#1594](https://github.com/mifunedev/agro/issues/1594)).
+
 ## [0.32.0] - 2026-11-08
 
 ### Added
