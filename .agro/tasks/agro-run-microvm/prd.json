@@ -40,8 +40,8 @@
         "`pnpm typecheck` exits 0, and `pnpm test` through `agro run` shows no new failure against `evidence/baseline.md`."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, a6b6b6ce, via agro run): typecheck 0; microvm-target + run + ephemeral-target + agro-config tests 176/176; fallback user sandbox. worker: full suite 1 baseline failure; real smoke with a local agro-msb image: agro run --isolation microvm printed sandbox and the worktree path, exit 7 in 2.1 s, msb ls empty after; kvm check refuses without the group; bad --isolation value is a usage error. Follow-up: the unused localImage option is removed in US-004.",
       "dependsOn": [
         "US-001"
       ],
@@ -56,7 +56,8 @@
         ".agro/cli/src/__tests__/run.test.ts",
         ".agro/cli/src/__tests__/ephemeral-target.test.ts",
         ".agro/cli/src/lib/__tests__/agro-config.test.ts"
-      ]
+      ],
+      "commit": "a6b6b6ce"
     },
     {
       "id": "US-003",
