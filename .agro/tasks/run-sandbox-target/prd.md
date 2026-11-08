@@ -154,3 +154,7 @@ None.
 - [ ] `.agro/tasks/run-sandbox-target/evidence/manual-review.md` exists and shows each US-005 command with its exit code.
 
 ## Lessons
+
+- Claim: the live run did not exercise the two not-running messages. Evidence: `evidence/manual-review.md` runs only against the running `agro-console` VM; `run.test.ts` covers both messages with stubbed `docker inspect` and `msb inspect` output. Outcome: dropped, because a live check needs a stop of an operator VM and the unit tests pin the exact text.
+- Claim: `MsbVmExecutionTarget.workspace` holds empty strings, because the mode mounts no host path and the guest workdir is not known to the CLI. Evidence: `microvm-target.ts` in commit `5c90c495`; no caller reads `workspace` for this target. Outcome: dropped, because no behavior depends on the value.
+- Claim: `ste-check.sh docs/lifecycle-commands.md` reports one `PASSIVE` finding. Evidence: the finding is on the `composeOverrides[]` line, which exists on the base at line 631, outside the new section. Outcome: dropped, because the line is outside this change and is not a correctness risk.
