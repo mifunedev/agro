@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-11-08
+
 ### Added
 
 - Add `agro run --isolation microvm -- <command...>` to run one command as the user `sandbox` in a disposable msb 0.7.13 microVM with its own kernel. The default image is `ghcr.io/mifunedev/agro:<version>-msb`; each release publishes the `-msb` image tags. Each run appends one line to `~/.agro/runs/microvm.jsonl` ([#1590](https://github.com/mifunedev/agro/issues/1590)).
