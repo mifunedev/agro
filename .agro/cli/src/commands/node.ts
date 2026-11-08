@@ -101,12 +101,13 @@ function defaultDeps(): NodeDeps {
 }
 
 export function nodeHelp(bin: string): string {
-  return `${bin} node — Create, list, and delete agro-console sandbox nodes (remote VMs)
+  return `${bin} node — Create, list, delete, and check agro-console sandbox nodes (remote VMs)
 
 Usage:
   ${bin} node create --spec <spec> [--profile agro|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--free-tier] [--json]
   ${bin} node list [--json]
   ${bin} node delete <id> [--yes]
+  ${bin} node check [--free-tier] [--ssh-key <uuid>]...
 
 \`create\` waits up to 15 minutes for the node to reach \`running\`, then prints
 its SSH command. \`--free-tier\` requests the console free tier. The spec
@@ -116,6 +117,12 @@ turns on code-server. Each app flag requires \`--profile agro\`. When
 AGRO_CONSOLE_TOKEN is set, the verbs use it with AGRO_CONSOLE_URL. Otherwise
 the verbs use the token and the URL from the credentials file that
 \`${bin} auth login\` writes. The URL defaults to ${DEFAULT_CONSOLE_URL}.
+
+\`check\` sends only GET requests and creates nothing. It finds each
+\`--ssh-key\` id in the console SSH keys. Without \`--ssh-key\`, it finds
+~/.ssh/id_ed25519.pub there. \`--free-tier\` also checks free tier
+eligibility. \`check\` prints one line for each check and exits 0 only when
+each check passes.
 `;
 }
 
@@ -261,19 +268,26 @@ function toKeyList(body: unknown): Record<string, unknown>[] {
   });
 }
 
+function readLocalPublicKey(deps: NodeDeps): string | undefined {
+  const publicKey = deps.readFile(join(deps.homeDir(), ".ssh", "id_ed25519.pub"))?.trim();
+  return publicKey === "" ? undefined : publicKey;
+}
+
+function findKeyIdByIdentity(keys: Record<string, unknown>[], publicKey: string): string | null {
+  const identity = keyIdentity(publicKey);
+  const match = keys.find((key) => typeof key.publicKey === "string" && keyIdentity(key.publicKey) === identity);
+  return asText(match?.id);
+}
+
 async function resolveSshKeyId(
   deps: NodeDeps,
   config: ConsoleConfig,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  const publicKey = deps.readFile(join(deps.homeDir(), ".ssh", "id_ed25519.pub"))?.trim();
-  if (publicKey === undefined || publicKey === "") return { ok: false, error: LOCAL_SSH_KEY_MISSING };
+  const publicKey = readLocalPublicKey(deps);
+  if (publicKey === undefined) return { ok: false, error: LOCAL_SSH_KEY_MISSING };
   const listed = await callApi(deps, config, "GET", "/api/ssh-keys");
   if (!listed.ok) return { ok: false, error: listed.message };
-  const identity = keyIdentity(publicKey);
-  const match = toKeyList(listed.body).find(
-    (key) => typeof key.publicKey === "string" && keyIdentity(key.publicKey) === identity,
-  );
-  const matchId = asText(match?.id);
+  const matchId = findKeyIdByIdentity(toKeyList(listed.body), publicKey);
   if (matchId !== null) return { ok: true, id: matchId };
   const registered = await callApi(deps, config, "POST", "/api/ssh-keys", {
     name: `agro-cli@${deps.hostname()}`,
@@ -446,6 +460,87 @@ async function runDelete(
   return 0;
 }
 
+interface CheckArgs {
+  freeTier: boolean;
+  sshKeyIds: string[];
+}
+
+function parseCheck(tokens: string[]): { ok: true; args: CheckArgs } | { ok: false; error: string } {
+  const args: CheckArgs = { freeTier: false, sshKeyIds: [] };
+  for (let i = 0; i < tokens.length; i += 1) {
+    const token = tokens[i];
+    if (token === "--free-tier") {
+      args.freeTier = true;
+      continue;
+    }
+    const inline = token.startsWith("--ssh-key=") ? token.slice("--ssh-key=".length) : undefined;
+    if (token !== "--ssh-key" && inline === undefined) {
+      return { ok: false, error: token.startsWith("-") ? `unknown flag "${token}"` : `unexpected argument "${token}"` };
+    }
+    const value = inline ?? tokens[++i];
+    if (value === undefined || value === "") return { ok: false, error: "--ssh-key requires a value" };
+    args.sshKeyIds.push(value);
+  }
+  return { ok: true, args };
+}
+
+async function checkSshKeys(deps: NodeDeps, config: ConsoleConfig, sshKeyIds: string[]): Promise<string[]> {
+  const publicKey = sshKeyIds.length === 0 ? readLocalPublicKey(deps) : undefined;
+  if (sshKeyIds.length === 0 && publicKey === undefined) {
+    return [`fail ssh-key: ${LOCAL_SSH_KEY_MISSING} — run ssh-keygen -t ed25519 or pass --ssh-key <uuid>`];
+  }
+  const listed = await callApi(deps, config, "GET", "/api/ssh-keys");
+  if (!listed.ok) return [`fail ssh-key: ${listed.message} — check the console login with agro auth status`];
+  const keys = toKeyList(listed.body);
+  if (publicKey !== undefined) {
+    const id = findKeyIdByIdentity(keys, publicKey);
+    return [
+      id === null
+        ? "fail ssh-key ~/.ssh/id_ed25519.pub: not registered in agro-console — add the key in agro-console or pass --ssh-key <uuid>"
+        : `ok ssh-key ${id} ~/.ssh/id_ed25519.pub`,
+    ];
+  }
+  const known = new Set(keys.map((key) => asText(key.id)));
+  return sshKeyIds.map((id) =>
+    known.has(id)
+      ? `ok ssh-key ${id}`
+      : `fail ssh-key ${id}: not found in agro-console — pass the id of an SSH key in agro-console`,
+  );
+}
+
+async function checkFreeTier(deps: NodeDeps, config: ConsoleConfig): Promise<string> {
+  const read = await callApi(deps, config, "GET", "/api/free-tier");
+  if (!read.ok) {
+    return read.status === 403 && /onboarding/i.test(read.message)
+      ? `fail free-tier: ${read.message} — finish agro-console onboarding, or run agro auth login in the personal context`
+      : `fail free-tier: ${read.message}`;
+  }
+  const body = asRecord(read.body);
+  if (body?.eligible === true) return "ok free-tier";
+  const code = asText(body?.code);
+  const reason = asText(body?.reason) ?? asText(body?.message);
+  const detail = [code, reason].filter((part) => part !== null).join(": ");
+  return `fail free-tier: not eligible${detail === "" ? "" : ` (${detail})`} — run agro auth login in the personal context, or create without --free-tier`;
+}
+
+async function runCheck(
+  tokens: string[],
+  io: NodeIO,
+  deps: NodeDeps,
+  config: ConsoleConfig,
+  bin: string,
+): Promise<number> {
+  const parsed = parseCheck(tokens);
+  if (!parsed.ok) {
+    io.stderr(`${bin} node check: ${parsed.error}\n`);
+    return 1;
+  }
+  const lines = await checkSshKeys(deps, config, parsed.args.sshKeyIds);
+  if (parsed.args.freeTier) lines.push(await checkFreeTier(deps, config));
+  for (const line of lines) io.stdout(`${line}\n`);
+  return lines.every((line) => line.startsWith("ok ")) ? 0 : 1;
+}
+
 export async function runNode(
   args: string[],
   io: NodeIO,
@@ -473,5 +568,6 @@ export async function runNode(
   }
   if (verb === "list") return runList(rest, io, deps, config, bin);
   if (verb === "delete") return runDelete(rest, io, deps, config, bin);
+  if (verb === "check") return runCheck(rest, io, deps, config, bin);
   return runCreate(rest, io, deps, config, bin);
 }
