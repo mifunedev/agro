@@ -77,15 +77,16 @@
         "`CHANGELOG.md` holds one entry under `## [Unreleased]` that links the task issue."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor): CHANGELOG Unreleased holds the Changed entry for the msb 0.7.13 pin and the Added entry for checks/agro-run-matrix.sh, both linking #1594.",
       "dependsOn": [
         "US-001",
         "US-002"
       ],
       "files": [
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "9f019da76"
     }
   ],
   "pr": 1595
