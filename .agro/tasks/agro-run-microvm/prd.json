@@ -16,12 +16,13 @@
         "The probe records the boot-to-exit wall time for 3 runs, and `msb ls` shows no probe sandbox after the runs."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Criterion-to-evidence (946b2450): msb 0.7.13 and /dev/kvm open via the kvm group: met; agro-msb built locally and run via docker save | msb load (rootfs export fails; plain-HTTP registry needs msb pull --insecure): met; sh -c \"id; pwd; exit 7\" with a host-path mount: exit 7, guest user sandbox (uid 1000), workdir correct: met (temp test dir, not the worktree); guest-written file owner 1001:1001 with no mount option under a primary-group sandbox login (sg kvm alone gives 1001:993): met with that condition; 3 runs 1370/1416/1386 ms, msb ls empty after msb rm --force: met. Caveat: guest-created files land as 600/700 on the host (mode in xattr).",
       "dependsOn": [],
       "files": [
         ".agro/tasks/agro-run-microvm/evidence/probe.md"
-      ]
+      ],
+      "commit": "946b2450"
     },
     {
       "id": "US-002",
