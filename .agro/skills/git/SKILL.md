@@ -219,6 +219,8 @@ workflow checks out the exact event SHA and requires validation and boot-path li
 to pass before it mutates a tag, GitHub Release, or package.
 Do **not** manually pre-create a release tag or `release/<version>` branch.
 
+After a release merges into `development`, merge `development` into each open task branch that the advisor owns. Do this merge before the next push of that branch. Prefer a merge to a rebase, as § Catching Up Feature Branches states.
+
 Versioning is SemVer: `MAJOR.MINOR.PATCH`, tagged `vMAJOR.MINOR.PATCH`. Root
 `package.json` holds the release version. The workflow reads that file and never
 derives a version from the clock, so cutting a release is a deliberate bump, not
