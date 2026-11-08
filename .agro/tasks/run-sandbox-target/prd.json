@@ -121,14 +121,15 @@
         "The worker writes the transcript to `.agro/tasks/run-sandbox-target/evidence/manual-review.md`. The worker creates no sandbox and deletes no sandbox."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: npm --prefix .agro/cli run build exit 0; msb inspect agro-console exit 0 Status running; built CLI: microvm --sandbox agro-console ls /home/sandbox exit 0 with listing; sh -c 'exit 7' exit 7 (advisor re-ran: exit 7); unregistered name exit 1 with registry error; --image + --sandbox exit 1 usage error (advisor re-ran); msb ls shows agro-console running, same CREATED. Transcript at evidence/manual-review.md (gitignored, local). No sandbox created or deleted. commit = verified branch head (evidence file is not tracked).",
       "dependsOn": [
         "US-004"
       ],
       "files": [
         ".agro/tasks/run-sandbox-target/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "0acb02ca"
     }
   ],
   "pr": 1601
