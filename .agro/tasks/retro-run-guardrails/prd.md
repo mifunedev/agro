@@ -124,6 +124,6 @@ None
 
 ## Lessons
 
-1. Claim: the console preflight calls the `agro` on `PATH`, and the installed v0.32.0 has no `node check`, so each console create through the adapter stops at the preflight until a release ships `node check`. Evidence: US-006 transcript, `agro node: unknown subcommand "check"`. Outcome: dropped from this PR; the next release ships `node check`, and the operator upgrades the host CLI.
+1. Claim: the console preflight calls the `agro` on `PATH`, and the installed v0.32.0 has no `node check`. Each console create through the adapter stops at the preflight until a release ships `node check`. Evidence: US-006 transcript, `agro node: unknown subcommand "check"`. Outcome: dropped from this PR; the next release ships `node check`, and the operator upgrades the host CLI.
 2. Claim: the plan-to-tracker conversion dropped US-006 from `prd.json`, so `next.sh` printed `close` while US-006 was open. Evidence: `prd.json` held 5 stories after the conversion. Outcome: fixed in this PR; the advisor added US-006 back before acceptance.
 3. Claim: the live free-tier reply carries no code or reason, so the `node check` fail line shows neither. Evidence: US-004 real check. Outcome: dropped, because the line still names the remedy.
