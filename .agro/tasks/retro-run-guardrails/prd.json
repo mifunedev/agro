@@ -107,6 +107,30 @@
         ".agro/scripts/__tests__/remote-sandbox-adapters.test.ts"
       ],
       "commit": "0c8de58c"
+    },
+    {
+      "id": "US-006",
+      "title": "Changelog and evidence",
+      "description": "As a reviewer, I want a changelog entry and a transcript so that I can confirm the node check against a live console.",
+      "acceptanceCriteria": [
+        "`CHANGELOG.md` holds entries under `## [Unreleased]` that link the task issue.",
+        "`.agro/tasks/retro-run-guardrails/evidence/manual-review.md` records `agro node check --free-tier` against the local console, with its output and exit code."
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "executed (advisor, 7c57ae2b): evidence records agro node check --free-tier (fail free-tier, exit 1), node check with an unknown --ssh-key (fail, exit 1), and run.sh console --preflight stopping before any node create; agro node list shows no new active node; ste-check exit 0; CHANGELOG entries link #1596.",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004",
+        "US-005"
+      ],
+      "files": [
+        "CHANGELOG.md",
+        ".agro/tasks/retro-run-guardrails/evidence/manual-review.md"
+      ],
+      "commit": "7c57ae2b"
     }
   ],
   "pr": 1597
