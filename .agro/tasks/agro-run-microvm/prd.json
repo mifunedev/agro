@@ -67,13 +67,14 @@
         "Existing release jobs and their order do not change, and the release tests in `.agro/scripts/__tests__/` pass."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, merged 688cd512, via agro run): release-reservation and ci-workflow-contract tests pass. reasoned: new job publish-msb-image needs reserve and publish-image, skips on a no-op reservation, pushes <version>-msb and sha-<sha>-msb; no existing job needs it, so release finalization and latest promotion do not change; a test pins the two msb tags and the absence of latest.",
       "dependsOn": [],
       "files": [
         ".github/workflows/release.yml",
         ".agro/scripts/__tests__/"
-      ]
+      ],
+      "commit": "688cd512"
     },
     {
       "id": "US-004",
