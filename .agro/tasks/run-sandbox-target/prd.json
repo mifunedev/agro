@@ -95,15 +95,16 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md` reports no finding in the new section."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: grep verb table row shows [--sandbox <name>] (line 39); reasoned: section '### Existing sandbox: --sandbox' (line 345) covers both modes, workspace rule, both not-running messages, registry error, --image refusal (inspected diff); executed: CHANGELOG Unreleased/Added entry, 212 chars, links #1600; executed: ste-check docs/lifecycle-commands.md reports only line 670 PASSIVE, which exists on the base (line 631) outside the new section.",
       "dependsOn": [
         "US-003"
       ],
       "files": [
         "docs/lifecycle-commands.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "e36698b8"
     },
     {
       "id": "US-005",
