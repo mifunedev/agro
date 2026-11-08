@@ -2,11 +2,20 @@
 console_env() {
   [ -n "${CONSOLE_SSH_IDENTITY:-}" ] || { echo "console: set CONSOLE_SSH_IDENTITY" >&2; return 1; }
 }
-console_preflight() { console_env && timeout 30 agro node list --json >/dev/null; }
+console_preflight() {
+  local out rc free=(--free-tier) key=()
+  console_env || return 1
+  [ "${CONSOLE_FREE_TIER:-1}" = 0 ] && free=()
+  [ -z "${CONSOLE_SSH_KEY_ID:-}" ] || key=(--ssh-key "$CONSOLE_SSH_KEY_ID")
+  out=$(timeout 60 agro node check "${free[@]}" "${key[@]}" 2>&1); rc=$?
+  printf '%s\n' "$out"
+  return "$rc"
+}
 console_create() {
   local out state rc free=(--free-tier) key=()
   [ -z "${IMAGE:-}" ] || { echo "console: IMAGE is not supported, a console node has no image choice" >&2; exit 2; }
   console_env || exit 2
+  console_preflight || { echo "console: agro node check failed, no node created" >&2; return 1; }
   [ "${CONSOLE_FREE_TIER:-1}" = 0 ] && free=()
   [ -z "${CONSOLE_SSH_KEY_ID:-}" ] || key=(--ssh-key "$CONSOLE_SSH_KEY_ID")
   out=$(timeout 960 agro node create --spec "${CONSOLE_SPEC:-n4}" "${key[@]}" --name "$1" --json "${free[@]}"); rc=$?

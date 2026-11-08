@@ -50,6 +50,8 @@ The driver `scripts/run.sh` creates one VM, runs one check in the VM, and destro
    bash "$SKILL/scripts/run.sh" exedev --preflight
    ```
 
+4. For the `console` and `msb` providers, the preflight runs `agro node check`. The preflight adds `--free-tier` unless `CONSOLE_FREE_TIER=0`. When `CONSOLE_SSH_KEY_ID` holds a value, the preflight adds `--ssh-key "$CONSOLE_SSH_KEY_ID"`. The preflight prints each check line and fails when one check fails. `console_create` runs the preflight first. When the preflight fails, `console_create` creates no node.
+
 ## Main scenario: fresh install
 
 `checks/fresh-install.sh` is the default check of `run.sh <provider>`. The check installs AGRO on a new VM with the curl installer at `INSTALL_URL`. Then the check runs `agro --version` four ways:
@@ -198,7 +200,7 @@ The `restart` phase needs `msb_restart` after the `pre` phase on the same guest.
 | `X07-refusals` | `--isolation microvm` with `run.services` exits 1, and `--isolation vm` exits 1. |
 | `X08-leftovers` | No `agro-run-` Docker container, Docker network, or msb sandbox is left. |
 
-The check needs the `console` provider, `CONSOLE_SSH_IDENTITY`, an `agro auth login` sign-in on the driver host, and the free tier node spec `n4`. When `INSTALL_URL` is unset and AGRO `0.32.0` or later is installed, the check skips the install. Start the run detached on the driver host:
+The check needs the `console` provider, `CONSOLE_SSH_IDENTITY`, an `agro auth login` sign-in on the driver host, and the free tier node spec `n4`. Before the check creates the node, `agro node check --free-tier` must pass on the driver host. Run `bash "$SKILL/scripts/run.sh" console --preflight` to run the check first. When `INSTALL_URL` is unset and AGRO `0.32.0` or later is installed, the check skips the install. Start the run detached on the driver host:
 
 ```bash
 setsid nohup bash "$SKILL/scripts/run.sh" console checks/agro-run-matrix.sh > run.out 2>&1 < /dev/null &
