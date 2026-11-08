@@ -43,8 +43,8 @@
         "`pnpm vitest run .agro/cli/src/__tests__/run.test.ts` exits 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: agro run -- pnpm vitest run .agro/cli/src/__tests__/run.test.ts exit 0 (57/57): exec as sandbox via docker exec -u sandbox with inherit and no -w, exit codes 0/3/42, not-running message for exited/created/paused, registry error for missing name, no network/services/proxy with services+allowlist configured, HostOnlyError inside sandbox; executed: agro run -- pnpm typecheck exit 0; executed: agro run -- pnpm test exit 0 (3093); reasoned: lifecycle.ts exports resolveSandboxTarget used by runShell and runRun (inspected diff).",
       "dependsOn": [
         "US-001"
       ],
@@ -52,7 +52,8 @@
         ".agro/cli/src/commands/run.ts",
         ".agro/cli/src/commands/lifecycle.ts",
         ".agro/cli/src/__tests__/run.test.ts"
-      ]
+      ],
+      "commit": "eddadd8e"
     },
     {
       "id": "US-003",
