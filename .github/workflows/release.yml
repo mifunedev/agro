@@ -143,6 +143,48 @@ jobs:
           RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
         run: .agro/scripts/promote-release-latest.sh promote
 
+  publish-msb-image:
+    name: Build and publish GHCR agro-msb image
+    needs: [reserve, publish-image]
+    if: ${{ needs.reserve.outputs.publishedNoop != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: release-msb-image-${{ needs.reserve.outputs.releaseVersion }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout the reserved commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.reserve.outputs.releaseSha }}
+          submodules: recursive
+
+      - name: Ensure Mifune submodule
+        run: bash .agro/scripts/link-providers.sh --init
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push immutable agro-msb SemVer and sha-full-SHA tags
+        env:
+          RELEASE_SHA: ${{ needs.reserve.outputs.releaseSha }}
+          RELEASE_VERSION: ${{ needs.reserve.outputs.releaseVersion }}
+        run: |
+          docker buildx build --push --target agro-msb -f .devcontainer/Dockerfile \
+            -t "ghcr.io/mifunedev/agro:${RELEASE_VERSION}-msb" \
+            -t "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}-msb" .
+
   publish-cli:
     name: Publish CLI for the released commit
     needs: [reserve, publish-image]
