@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-11-08
+
 ### Added
 
 - Add `agro node check [--free-tier] [--ssh-key <uuid>]` to check the agro-console SSH key and free-tier eligibility without a change to the account ([#1596](https://github.com/mifunedev/agro/issues/1596)).
