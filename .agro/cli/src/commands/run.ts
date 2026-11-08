@@ -12,11 +12,13 @@ import {
   microvmImageRef,
   nonEmpty,
   openshellImage,
+  resolveExecutionTarget,
   runningInsideSandbox,
   type LifecycleRunner,
 } from "../lib/execution/index.js";
 import { messageOf, spawnRunner } from "../lib/execution/runner.js";
 import { AGRO_VERSION } from "../lib/version.js";
+import { resolveSandboxTarget } from "./lifecycle.js";
 
 export interface RunIO {
   stdout: (s: string) => void;
@@ -32,6 +34,7 @@ export interface RunOptions {
   command: string[];
   image?: string;
   isolation?: RunIsolation;
+  sandbox?: string;
   access?: (path: string, mode: number) => void;
   cwd?: string;
   env?: NodeJS.ProcessEnv;
@@ -276,6 +279,22 @@ async function runMicrovm(
   }
 }
 
+async function runInSandbox(
+  opts: RunOptions,
+  sandbox: string,
+  io: RunIO,
+  run: LifecycleRunner,
+  env: NodeJS.ProcessEnv,
+): Promise<number> {
+  const { root, container } = resolveSandboxTarget({ name: sandbox });
+  const target = resolveExecutionTarget({ projectRoot: root, container, run, env });
+  if ((await target.status()) !== "ready") {
+    io.stderr(`${opts.bin} run: sandbox ${sandbox} is not running — start it with \`${opts.bin} restart ${sandbox}\`\n`);
+    return 1;
+  }
+  return (await target.exec({ argv: opts.command, user: "sandbox", stdio: "inherit" })).exitCode;
+}
+
 export async function runRun(opts: RunOptions, io: RunIO): Promise<number> {
   const env = opts.env ?? process.env;
   if (runningInsideSandbox(env)) {
@@ -286,6 +305,9 @@ export async function runRun(opts: RunOptions, io: RunIO): Promise<number> {
   const cwd = opts.cwd ?? process.cwd();
   let net: RunNetwork | undefined;
   try {
+    if (opts.sandbox !== undefined && opts.isolation !== "microvm") {
+      return await runInSandbox(opts, opts.sandbox, io, run, env);
+    }
     const root = runRoot(cwd, run);
     const config = readAgroConfig(agroConfigPath(root));
     if (opts.isolation === "microvm") return await runMicrovm(opts, io, run, root, cwd, config);

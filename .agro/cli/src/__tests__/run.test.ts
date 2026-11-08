@@ -28,6 +28,7 @@ const cleanups: string[] = [];
 afterEach(() => {
   while (cleanups.length > 0) rmSync(cleanups.pop()!, { recursive: true, force: true });
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 function tempDir(): string {
@@ -996,5 +997,97 @@ describe("runRun", () => {
       );
       expect(calls.filter((c) => c.cmd !== "git")).toEqual([]);
     });
+  });
+});
+
+describe("runRun --sandbox", () => {
+  function registry(name: string, config: Record<string, unknown>): string {
+    const home = tempDir();
+    vi.stubEnv("AGRO_HOME", home);
+    vi.stubEnv("SANDBOX_NAME", "");
+    const root = join(home, "sandboxes", name);
+    mkdirSync(root, { recursive: true });
+    writeFileSync(agroConfigPath(root), `${JSON.stringify({ version: 1, ...config })}\n`);
+    return root;
+  }
+
+  function sandboxRunner(state: string, exitCode = 0): { run: LifecycleRunner; calls: RecordedCall[] } {
+    const calls: RecordedCall[] = [];
+    const run: LifecycleRunner = (cmd, args, o) => {
+      calls.push({ cmd, args, stdio: o.stdio, ...(o.cwd !== undefined ? { cwd: o.cwd } : {}) });
+      if (cmd === "docker" && args[0] === "inspect") return { status: 0, stdout: `${state}\n`, stderr: "" };
+      return { status: exitCode };
+    };
+    return { run, calls };
+  }
+
+  it("execs the command as sandbox in the registered container with inherited stdio and no host cwd", async () => {
+    registry("dev", { name: "dev-box" });
+    const { run, calls } = sandboxRunner("running");
+    const code = await runRun(
+      { bin: "agro", command: ["pnpm", "test"], sandbox: "dev", cwd: tempDir(), env: HOST_ENV, run },
+      io().io,
+    );
+    expect(code).toBe(0);
+    expect(calls).toEqual([
+      { cmd: "docker", args: ["inspect", "-f", "{{.State.Status}}", "dev-box"], stdio: "capture" },
+      { cmd: "docker", args: ["exec", "-u", "sandbox", "dev-box", "pnpm", "test"], stdio: "inherit" },
+    ]);
+  });
+
+  it("passes the exit code of the command through", async () => {
+    registry("dev", { name: "dev-box" });
+    for (const exitCode of [0, 3, 42]) {
+      const { run } = sandboxRunner("running", exitCode);
+      expect(await runRun({ bin: "agro", command: ["false"], sandbox: "dev", env: HOST_ENV, run }, io().io)).toBe(exitCode);
+    }
+  });
+
+  it("exits 1 and runs no command when the sandbox is not running", async () => {
+    registry("dev", { name: "dev-box" });
+    for (const state of ["exited", "created", "paused"]) {
+      const { run, calls } = sandboxRunner(state);
+      const out = io();
+      expect(await runRun({ bin: "agro", command: ["true"], sandbox: "dev", env: HOST_ENV, run }, out.io)).toBe(1);
+      expect(out.stderr.join("")).toBe("agro run: sandbox dev is not running — start it with `agro restart dev`\n");
+      expect(calls.filter((c) => c.args[0] === "exec")).toEqual([]);
+    }
+  });
+
+  it("exits 1 with the registry error when no sandbox has the name", async () => {
+    registry("dev", { name: "dev-box" });
+    const { run, calls } = sandboxRunner("running");
+    const out = io();
+    expect(await runRun({ bin: "agro", command: ["true"], sandbox: "missing", env: HOST_ENV, run }, out.io)).toBe(1);
+    expect(out.stderr.join("")).toMatch(/^agro run: no sandbox named `missing` in .*sandboxes — create one with /);
+    expect(calls).toEqual([]);
+  });
+
+  it("ignores run.services, run.env and access.egress, and starts no network, service or proxy", async () => {
+    const cwd = tempDir();
+    writeFileSync(
+      agroConfigPath(cwd),
+      `${JSON.stringify({
+        version: 1,
+        access: { egress: "allowlist" },
+        run: { env: { A: "1" }, services: { db: { image: "postgres:16" } } },
+      })}\n`,
+    );
+    registry("dev", { name: "dev-box", access: { egress: "allowlist" }, run: { env: { A: "1" }, services: { db: { image: "postgres:16" } } } });
+    const { run, calls } = sandboxRunner("running");
+    expect(await runRun({ bin: "agro", command: ["true"], sandbox: "dev", cwd, env: HOST_ENV, run }, io().io)).toBe(0);
+    expect(calls.map((c) => [c.cmd, ...c.args])).toEqual([
+      ["docker", "inspect", "-f", "{{.State.Status}}", "dev-box"],
+      ["docker", "exec", "-u", "sandbox", "dev-box", "true"],
+    ]);
+  });
+
+  it("refuses inside a sandbox with the HostOnlyError message", async () => {
+    registry("dev", { name: "dev-box" });
+    const { run, calls } = sandboxRunner("running");
+    const out = io();
+    expect(await runRun({ bin: "agro", command: ["true"], sandbox: "dev", env: SANDBOX_ENV, run }, out.io)).toBe(1);
+    expect(out.stderr.join("")).toBe(`${new HostOnlyError("agro run").message}\n`);
+    expect(calls).toEqual([]);
   });
 });
