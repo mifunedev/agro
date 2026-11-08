@@ -89,5 +89,6 @@
       "commit": "9f019da76"
     }
   ],
-  "pr": 1595
+  "pr": 1595,
+  "blocked": "US-003 (external): the live node run needs the operator to run `agro auth login` on this host; `agro auth status` returns HTTP 401. Also needs CONSOLE_SSH_IDENTITY set to the SSH key that agro-console nodes accept. After login, the advisor clears this field and runs the matrix on a free-tier n4 node."
 }
