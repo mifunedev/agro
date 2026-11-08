@@ -22,6 +22,7 @@ emit() {
   local state="$1" action
   case "$state" in
     none | done) action="Stop." ;;
+    blocked*" waits on external "*) action="Stop. The advisor sets passes on the external story when its owner completes it." ;;
     blocked*) action="Stop. The operator clears blocked in prd.json." ;;
     story*) action="Dispatch, verify, and accept ${state#story } per /delegate." ;;
     close) action="Write a non-empty ## Lessons section in prd.md per /git § Ready for review." ;;
@@ -80,16 +81,24 @@ field() {
 blocked="$(field 'if (.blocked | type) == "string" then .blocked else "" end')"
 [ -n "$blocked" ] && emit "blocked $blocked"
 
-if [ "$(field '[.userStories[] | select(.passes != true)] | length')" -gt 0 ]; then
-  capped="$(field '[.userStories[] | select(.passes != true and ((.rounds // 0) | type) == "number" and (.rounds // 0) > 2)] | sort_by(.priority) | .[0].id // ""')"
+if [ "$(field '[.userStories[] | select(.passes != true and .external != true)] | length')" -gt 0 ]; then
+  capped="$(field '[.userStories[] | select(.passes != true and .external != true and ((.rounds // 0) | type) == "number" and (.rounds // 0) > 2)] | sort_by(.priority) | .[0].id // ""')"
   [ -n "$capped" ] && emit "blocked $capped exceeded 2 repair rounds"
   ready_story="$(field '
     [.userStories[] | select(.passes == true) | .id] as $done
     | [.userStories[]
-        | select(.passes != true)
+        | select(.passes != true and .external != true)
         | select(all((.dependsOn // [])[]; . as $d | $done | index($d)))]
     | sort_by(.priority) | .[0].id // ""')"
   [ -n "$ready_story" ] && emit "story $ready_story"
+  external_wait="$(field '
+    [.userStories[] | select(.passes != true and .external == true) | .id] as $waiting
+    | [.userStories[]
+        | select(.passes != true and .external != true)
+        | {id, priority, on: [(.dependsOn // [])[] | select(. as $d | $waiting | index($d))]}
+        | select(.on | length > 0)]
+    | sort_by(.priority) | .[0] // empty | "\(.id) waits on external \(.on | join(" "))"')"
+  [ -n "$external_wait" ] && emit "blocked $external_wait"
   emit "blocked no ready story"
 fi
 
