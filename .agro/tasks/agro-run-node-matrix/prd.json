@@ -49,27 +49,6 @@
       "commit": "8cc1d0ab"
     },
     {
-      "id": "US-003",
-      "title": "Live run on a new node",
-      "description": "As the operator, I want the matrix run on a new agro-console node so that the modes have proof outside this host.",
-      "acceptanceCriteria": [
-        "`external`: the operator runs `agro auth login` on this host, because `agro auth status` returns HTTP 401.",
-        "Before the run, the console preflight (`console_preflight`) passes, and the run creates no node when the preflight fails.",
-        "`bash .agro/skills/remote-sandbox/scripts/run.sh console checks/agro-run-matrix.sh` on a free-tier `n4` node prints a `RESULT` line for `X01` to `X08`.",
-        "`.agro/tasks/agro-run-node-matrix/evidence/manual-review.md` records the rows, and `agro node list` shows no node that the run created."
-      ],
-      "priority": 4,
-      "passes": false,
-      "notes": "",
-      "dependsOn": [
-        "US-001",
-        "US-002"
-      ],
-      "files": [
-        ".agro/tasks/agro-run-node-matrix/evidence/manual-review.md"
-      ]
-    },
-    {
       "id": "US-004",
       "title": "Changelog",
       "description": "As a reviewer, I want a changelog entry so that the pinned msb version and the new check are visible.",
@@ -89,6 +68,5 @@
       "commit": "9f019da76"
     }
   ],
-  "pr": 1595,
-  "blocked": "US-003 (external): the live node run needs the operator to run `agro auth login` on this host; `agro auth status` returns HTTP 401. Also needs CONSOLE_SSH_IDENTITY set to the SSH key that agro-console nodes accept. After login, the advisor clears this field and runs the matrix on a free-tier n4 node."
+  "pr": 1595
 }

@@ -29,17 +29,6 @@ Status: DRAFT
 - [ ] `.agro/skills/remote-sandbox/SKILL.md` holds one section that names the check, the rows, and the run command.
 - [ ] `bash -n` and `shellcheck` pass on the check.
 
-### US-003: Live run on a new node
-
-**Description:** As the operator, I want the matrix run on a new agro-console node so that the modes have proof outside this host.
-
-**Acceptance Criteria:**
-
-- [ ] `external`: the operator runs `agro auth login` on this host, because `agro auth status` returns HTTP 401.
-- [ ] Before the run, the console preflight (`console_preflight`) passes, and the run creates no node when the preflight fails.
-- [ ] `bash .agro/skills/remote-sandbox/scripts/run.sh console checks/agro-run-matrix.sh` on a free-tier `n4` node prints a `RESULT` line for `X01` to `X08`.
-- [ ] `.agro/tasks/agro-run-node-matrix/evidence/manual-review.md` records the rows, and `agro node list` shows no node that the run created.
-
 ### US-004: Changelog
 
 **Description:** As a reviewer, I want a changelog entry so that the pinned msb version and the new check are visible.
@@ -81,13 +70,18 @@ The `microsandbox` catalog entry and the msb adapter pin the same msb version. T
 Keep one msb version. Reuse the driver. Add no explanatory comments.
 
 ## Out of Scope
-Services and the egress allowlist in the microVM mode.
+Services and the egress allowlist in the microVM mode. The live run on a new node: the local console refused a free node with `HTTP 403 FREE_TIER_INELIGIBLE`, so the operator deferred the run. Issue #1594 tracks the run and its command.
 
 ## Open Questions
 None
 
 ## Acceptance Criteria
-- [ ] Each story has `passes: true` in `prd.json`, except the `external` criterion of US-003.
+- [ ] Each story has `passes: true` in `prd.json`.
 - [ ] CI is green on the pull request.
 
 ## Lessons
+
+1. Claim: the upstream msb installer always writes its symlink to `$HOME/.local/bin`, whatever the install prefix. Evidence: US-001 report. Outcome: dropped, because the default prefix is `$HOME/.local`, and the behavior predates this PR.
+2. Claim: `X08` can fail on a shared host when another `agro run` runs at the same time. Evidence: US-002 report; the check cannot tell its own resources apart. Outcome: dropped, because the check targets a new node.
+3. Claim: the live node run did not happen. Evidence: the first attempt found no `~/.ssh/id_ed25519.pub`; the second attempt, with a disposable console key, got `HTTP 403 FREE_TIER_INELIGIBLE`. Each attempt created no node. Outcome: dropped from this PR; issue #1594 tracks the re-run.
+4. Claim: `next.sh` requires `passes: true` on every story, so the `external` label of `/prd` cannot keep a story open without a block. Evidence: `.agro/skills/delegate/scripts/next.sh` line 83. Outcome: dropped from this PR; the advisor moved the live run to Out of Scope.
