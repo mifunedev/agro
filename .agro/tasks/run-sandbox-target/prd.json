@@ -18,13 +18,14 @@
         "`pnpm vitest run .agro/cli/src/__tests__/run.test.ts` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: agro run -- pnpm vitest run .agro/cli/src/__tests__/run.test.ts exit 0 (51/51), covering both --sandbox forms, empty/missing value error, --image conflict, both isolations, help text; executed: agro run -- pnpm typecheck exit 0; reasoned: cli.ts run branch spreads sandbox into runRun options (inspected diff).",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/cli.ts",
         ".agro/cli/src/__tests__/run.test.ts"
-      ]
+      ],
+      "commit": "6216e491"
     },
     {
       "id": "US-002",
@@ -32,10 +33,10 @@
       "description": "As an operator, I want `agro run --sandbox <name> -- <command...>` to run the command in the registered AGRO sandbox `<name>`. Then I can use a persistent sandbox without a shell session.",
       "acceptanceCriteria": [
         "`lifecycle.ts` exports one function that returns the registry root and the container name for a sandbox name. `runShell` and `runRun` both call this function.",
-        "When the target status is not `ready`, `runRun` returns 1 and runs no command. The stderr text is `<bin> run: sandbox <name> is not running \u2014 start it with \\`<bin> restart <name>\\``.",
+        "When the target status is not `ready`, `runRun` returns 1 and runs no command. The stderr text is `<bin> run: sandbox <name> is not running — start it with \\`<bin> restart <name>\\``.",
         "`runRun` passes no host `cwd` to `exec`, so the command runs in the default working directory of the sandbox.",
         "`runRun` returns the exit code of the command.",
-        "When the target status is not `ready`, `runRun` writes `<bin> run: sandbox <name> is not running \u2014 start it with \\`<bin> restart <name>\\`` to stderr and returns 1. `runRun` runs no command.",
+        "When the target status is not `ready`, `runRun` writes `<bin> run: sandbox <name> is not running — start it with \\`<bin> restart <name>\\`` to stderr and returns 1. `runRun` runs no command.",
         "When no registry entry has the name, `runRun` writes the `resolveSandboxRoot` error to stderr and returns 1.",
         "`runRun` with `sandbox` creates no network, starts no service container, starts no proxy, and ignores `run.services`, `run.env`, and `access.egress`.",
         "Inside a sandbox, `runRun` with `sandbox` still writes the `HostOnlyError` message and returns 1.",
@@ -63,7 +64,7 @@
         "`MsbVmExecutionTarget.status` runs `msb inspect <name>`. It returns `ready` when the `Status:` line is `running`, `stopped` for any other status, and `absent` when the command exits non-zero.",
         "`MsbVmExecutionTarget` has no `destroy` method.",
         "`runRun` with `isolation` equal to `microvm` and `sandbox` provisions `MsbVmExecutionTarget`, runs the command with `stdio` equal to `inherit`, and returns the exit code of the command.",
-        "When the status is not `ready`, `runRun` writes `<bin> run: microVM <name> is not running \u2014 start it with \\`msb start <name>\\`` to stderr and returns 1.",
+        "When the status is not `ready`, `runRun` writes `<bin> run: microVM <name> is not running — start it with \\`msb start <name>\\`` to stderr and returns 1.",
         "`runRun` in this mode runs no `msb rm`, writes no line to `microvm.jsonl`, and does not refuse because of `run.services` or `access.egress`.",
         "`pnpm vitest run .agro/cli/src/__tests__/microvm-target.test.ts .agro/cli/src/__tests__/run.test.ts` exits 0."
       ],
@@ -88,7 +89,7 @@
       "acceptanceCriteria": [
         "The verb table row for `agro run` in `docs/lifecycle-commands.md` shows `[--sandbox <name>]`.",
         "`docs/lifecycle-commands.md` has a section that describes both `--sandbox` modes, the workspace rule, the not-running errors, and the `--image` refusal.",
-        "`CHANGELOG.md` has one entry under `## [Unreleased]` \u2192 `### Added` for `--sandbox`. The entry is one sentence of 250 characters or less and links the issue.",
+        "`CHANGELOG.md` has one entry under `## [Unreleased]` → `### Added` for `--sandbox`. The entry is one sentence of 250 characters or less and links the issue.",
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/lifecycle-commands.md` reports no finding in the new section."
       ],
       "priority": 4,
@@ -126,5 +127,6 @@
         ".agro/tasks/run-sandbox-target/evidence/manual-review.md"
       ]
     }
-  ]
+  ],
+  "pr": 1601
 }
