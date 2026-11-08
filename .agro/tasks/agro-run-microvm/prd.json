@@ -88,15 +88,16 @@
         "`CHANGELOG.md` holds one entry under `## [Unreleased]` that links the task issue."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, c7f48bda, via agro run): typecheck 0; run + microvm-target tests 60/60; localImage and --pull never removed (0 references). worker: full suite 1 baseline failure; tests cover the line format, default path with digest null, write-failure warning keeping exit 7, and no line when the command never starts. Real log write checked in US-006.",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         ".agro/cli/src/commands/run.ts",
         ".agro/cli/src/__tests__/run.test.ts"
-      ]
+      ],
+      "commit": "c7f48bda"
     },
     {
       "id": "US-006",
