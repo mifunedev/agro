@@ -9,6 +9,7 @@ import {
   EphemeralExecutionTarget,
   HostOnlyError,
   MicrovmExecutionTarget,
+  MsbVmExecutionTarget,
   microvmImageRef,
   nonEmpty,
   openshellImage,
@@ -295,6 +296,16 @@ async function runInSandbox(
   return (await target.exec({ argv: opts.command, user: "sandbox", stdio: "inherit" })).exitCode;
 }
 
+async function runInMicrovm(opts: RunOptions, name: string, io: RunIO, run: LifecycleRunner): Promise<number> {
+  const target = new MsbVmExecutionTarget({ name, run });
+  await target.provision();
+  if ((await target.status()) !== "ready") {
+    io.stderr(`${opts.bin} run: microVM ${name} is not running — start it with \`msb start ${name}\`\n`);
+    return 1;
+  }
+  return (await target.exec({ argv: opts.command, stdio: "inherit" })).exitCode;
+}
+
 export async function runRun(opts: RunOptions, io: RunIO): Promise<number> {
   const env = opts.env ?? process.env;
   if (runningInsideSandbox(env)) {
@@ -305,8 +316,10 @@ export async function runRun(opts: RunOptions, io: RunIO): Promise<number> {
   const cwd = opts.cwd ?? process.cwd();
   let net: RunNetwork | undefined;
   try {
-    if (opts.sandbox !== undefined && opts.isolation !== "microvm") {
-      return await runInSandbox(opts, opts.sandbox, io, run, env);
+    if (opts.sandbox !== undefined) {
+      return opts.isolation === "microvm"
+        ? await runInMicrovm(opts, opts.sandbox, io, run)
+        : await runInSandbox(opts, opts.sandbox, io, run, env);
     }
     const root = runRoot(cwd, run);
     const config = readAgroConfig(agroConfigPath(root));

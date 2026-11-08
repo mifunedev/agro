@@ -1091,3 +1091,86 @@ describe("runRun --sandbox", () => {
     expect(calls).toEqual([]);
   });
 });
+
+describe("runRun --isolation microvm --sandbox", () => {
+  function vmRunner(opts: { state?: string; inspectStatus?: number; exitCode?: number }): { run: LifecycleRunner; calls: RecordedCall[] } {
+    const calls: RecordedCall[] = [];
+    const run: LifecycleRunner = (cmd, args, o) => {
+      calls.push({ cmd, args, stdio: o.stdio, ...(o.cwd !== undefined ? { cwd: o.cwd } : {}) });
+      if (cmd === "msb" && args[0] === "--version") return { status: 0, stdout: "msb 0.7.13\n" };
+      if (cmd === "msb" && args[0] === "inspect") {
+        return { status: opts.inspectStatus ?? 0, stdout: `Name:                 vm1\nStatus:               ${opts.state ?? "running"}\n` };
+      }
+      return { status: opts.exitCode ?? 0 };
+    };
+    return { run, calls };
+  }
+
+  function vmRun(run: LifecycleRunner, extra: Partial<Parameters<typeof runRun>[0]> = {}) {
+    const out = io();
+    const dir = tempDir();
+    const appendUsage = vi.fn();
+    const done = runRun(
+      { bin: "agro", command: ["sh", "-c", "exit 7"], isolation: "microvm", sandbox: "vm1", cwd: dir, env: HOST_ENV, run, appendUsage, ...extra },
+      out.io,
+    );
+    return { out, done, dir, appendUsage };
+  }
+
+  it("checks msb, execs in the running microVM with inherited stdio, and passes the exit code through", async () => {
+    const { run, calls } = vmRunner({ exitCode: 7 });
+    const { done, appendUsage } = vmRun(run);
+    expect(await done).toBe(7);
+    expect(calls).toEqual([
+      { cmd: "msb", args: ["--version"], stdio: "capture" },
+      { cmd: "msb", args: ["inspect", "vm1"], stdio: "capture" },
+      { cmd: "msb", args: ["exec", "-u", "sandbox", "vm1", "--", "sh", "-c", "exit 7"], stdio: "inherit" },
+    ]);
+    expect(appendUsage).not.toHaveBeenCalled();
+  });
+
+  it("exits 1 and runs no command when the microVM is not running or absent", async () => {
+    for (const opts of [{ state: "stopped" }, { inspectStatus: 1 }]) {
+      const { run, calls } = vmRunner(opts);
+      const { out, done } = vmRun(run);
+      expect(await done).toBe(1);
+      expect(out.stderr.join("")).toBe("agro run: microVM vm1 is not running — start it with `msb start vm1`\n");
+      expect(calls.filter((c) => c.args[0] === "exec" || c.args[0] === "rm")).toEqual([]);
+    }
+  });
+
+  it("runs no msb rm, writes no usage line, and ignores run.services and access.egress", async () => {
+    const { run, calls } = vmRunner({});
+    const out = io();
+    const dir = tempDir();
+    writeFileSync(
+      agroConfigPath(dir),
+      `${JSON.stringify({ version: 1, access: { egress: "allowlist" }, run: { services: { db: { image: "postgres:16" } } } })}\n`,
+    );
+    const usageLogPath = join(dir, "usage.jsonl");
+    const code = await runRun(
+      { bin: "agro", command: ["true"], isolation: "microvm", sandbox: "vm1", cwd: dir, env: HOST_ENV, run, usageLogPath },
+      out.io,
+    );
+    expect(code).toBe(0);
+    expect(out.stderr).toEqual([]);
+    expect(existsSync(usageLogPath)).toBe(false);
+    expect(calls.map((c) => [c.cmd, ...c.args])).toEqual([
+      ["msb", "--version"],
+      ["msb", "inspect", "vm1"],
+      ["msb", "exec", "-u", "sandbox", "vm1", "--", "true"],
+    ]);
+  });
+
+  it("exits 1 with the remedy when msb is the wrong version", async () => {
+    const calls: RecordedCall[] = [];
+    const run: LifecycleRunner = (cmd, args, o) => {
+      calls.push({ cmd, args, stdio: o.stdio });
+      return args[0] === "--version" ? { status: 0, stdout: "msb 0.8.0\n" } : { status: 0 };
+    };
+    const { out, done } = vmRun(run);
+    expect(await done).toBe(1);
+    expect(out.stderr.join("")).toMatch(/^agro run: msb reports "msb 0\.8\.0", not 0\.7\.13; install msb/);
+    expect(calls.map((c) => c.args[0])).toEqual(["--version"]);
+  });
+});

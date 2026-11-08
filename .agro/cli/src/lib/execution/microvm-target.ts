@@ -21,6 +21,18 @@ export function microvmImageRef(version: string): string {
   return `${officialImageRef(version)}-msb`;
 }
 
+function checkMsbVersion(run: LifecycleRunner): void {
+  const remedy = `install msb ${MSB_VERSION} with \`agro tool install microsandbox\` and keep it pinned at ${MSB_VERSION}`;
+  const r = run("msb", ["--version"], { stdio: "capture" });
+  if (r.error !== undefined || r.status !== 0) {
+    throw new Error(`msb is not available; ${remedy}`);
+  }
+  const reported = (r.stdout ?? "").trim();
+  if (!reported.split(/\s+/).some((token) => token.replace(/^v/, "") === MSB_VERSION)) {
+    throw new Error(`msb reports "${reported}", not ${MSB_VERSION}; ${remedy}`);
+  }
+}
+
 export interface MicrovmTargetOptions {
   worktreeRoot: string;
   image: string;
@@ -53,13 +65,13 @@ export class MicrovmExecutionTarget implements ExecutionTarget {
   }
 
   async provision(): Promise<void> {
-    this.checkMsbVersion();
+    checkMsbVersion(this.run);
     this.checkKvm();
   }
 
   async status(): Promise<ExecutionStatus> {
     try {
-      this.checkMsbVersion();
+      checkMsbVersion(this.run);
       return "ready";
     } catch {
       return "absent";
@@ -115,18 +127,6 @@ export class MicrovmExecutionTarget implements ExecutionTarget {
     return argv;
   }
 
-  private checkMsbVersion(): void {
-    const remedy = `install msb ${MSB_VERSION} with \`agro tool install microsandbox\` and keep it pinned at ${MSB_VERSION}`;
-    const r = this.run("msb", ["--version"], { stdio: "capture" });
-    if (r.error !== undefined || r.status !== 0) {
-      throw new Error(`msb is not available; ${remedy}`);
-    }
-    const reported = (r.stdout ?? "").trim();
-    if (!reported.split(/\s+/).some((token) => token.replace(/^v/, "") === MSB_VERSION)) {
-      throw new Error(`msb reports "${reported}", not ${MSB_VERSION}; ${remedy}`);
-    }
-  }
-
   private checkKvm(): void {
     try {
       this.access(KVM_DEVICE, constants.R_OK | constants.W_OK);
@@ -135,5 +135,65 @@ export class MicrovmExecutionTarget implements ExecutionTarget {
         `${KVM_DEVICE} does not open for read and write; add the user to the kvm group (\`sudo usermod -aG kvm $USER\`) and start a new login session`,
       );
     }
+  }
+}
+
+export interface MsbVmTargetOptions {
+  name: string;
+  run?: LifecycleRunner;
+}
+
+export class MsbVmExecutionTarget implements ExecutionTarget {
+  readonly kind = "msb-vm";
+  readonly contractVersion = 1;
+  readonly workspace = { hostRoot: "", targetRoot: "" };
+
+  private readonly name: string;
+  private readonly run: LifecycleRunner;
+
+  constructor(opts: MsbVmTargetOptions) {
+    this.name = opts.name;
+    this.run = opts.run ?? spawnRunner;
+  }
+
+  async provision(): Promise<void> {
+    checkMsbVersion(this.run);
+  }
+
+  async status(): Promise<ExecutionStatus> {
+    const r = this.run("msb", ["inspect", this.name], { stdio: "capture" });
+    assertSpawned(r, `msb inspect ${this.name}`);
+    if (r.status !== 0) return "absent";
+    const state = /^Status:\s*(\S+)/m.exec(r.stdout ?? "")?.[1];
+    return state === "running" ? "ready" : "stopped";
+  }
+
+  async capabilities(): Promise<ReadonlySet<ExecutionCapability>> {
+    return new Set<ExecutionCapability>(["exec"]);
+  }
+
+  async exec(request: ExecRequest): Promise<ExecResult> {
+    const inherit = request.stdio === "inherit";
+    const r = this.run("msb", this.execArgv(request), {
+      stdio: inherit ? "inherit" : "capture",
+      ...(request.timeoutMs !== undefined ? { timeoutMs: request.timeoutMs } : {}),
+    });
+    assertSpawned(r, `msb exec ${this.name}`);
+    return {
+      exitCode: r.status ?? 1,
+      stdout: r.stdout ?? "",
+      stderr: r.stderr ?? "",
+    };
+  }
+
+  describe(): string {
+    return `existing microVM ${this.name}`;
+  }
+
+  execArgv(request: ExecRequest): string[] {
+    const argv = ["exec", "-u", request.user ?? MICROVM_USER];
+    for (const [k, v] of Object.entries(request.env ?? {})) argv.push("-e", `${k}=${v}`);
+    argv.push(this.name, "--", ...request.argv);
+    return argv;
   }
 }

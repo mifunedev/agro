@@ -72,7 +72,9 @@ export {
   MicrovmExecutionTarget,
   microvmImageRef,
   MSB_VERSION,
+  MsbVmExecutionTarget,
   type MicrovmTargetOptions,
+  type MsbVmTargetOptions,
 } from "./microvm-target.js";
 export {
   OpenShellExecutionTarget,
