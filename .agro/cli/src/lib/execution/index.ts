@@ -67,6 +67,14 @@ export {
   type LocalTargetOptions,
 } from "./local-target.js";
 export {
+  KVM_DEVICE,
+  MICROVM_USER,
+  MicrovmExecutionTarget,
+  microvmImageRef,
+  MSB_VERSION,
+  type MicrovmTargetOptions,
+} from "./microvm-target.js";
+export {
   OpenShellExecutionTarget,
   openshellPreflight,
   type OpenShellPreflight,

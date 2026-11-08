@@ -1,7 +1,7 @@
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   EphemeralExecutionTarget,
   ExecutionSpawnError,
@@ -9,6 +9,19 @@ import {
   type LifecycleRunner,
   type RunResult,
 } from "../lib/execution/index.js";
+
+const osUser = vi.hoisted(() => ({ name: undefined as string | undefined | null }));
+
+vi.mock("node:os", async (importOriginal) => {
+  const original = await importOriginal<typeof import("node:os")>();
+  return {
+    ...original,
+    userInfo: (...args: Parameters<typeof original.userInfo>) => {
+      if (osUser.name === null) throw new Error("no passwd entry");
+      return osUser.name === undefined ? original.userInfo(...args) : { ...original.userInfo(...args), username: osUser.name };
+    },
+  };
+});
 
 
 interface RecordedCall {
@@ -30,6 +43,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  osUser.name = undefined;
   rmSync(tempRoot, { recursive: true, force: true });
 });
 
@@ -180,6 +194,19 @@ describe("EphemeralExecutionTarget", () => {
     expect(passwd).toBe("sandbox:x:1001:1002::/tmp:/bin/sh\n");
     expect(group).toBe("sandbox:x:1002:\n");
     expect(readdirSync(tempRoot)).toEqual([]);
+  });
+
+  it.each([[null], ["bad name!"]])("names the identity sandbox when the host user name is %j", async (name) => {
+    osUser.name = name;
+    let passwd = "";
+    const { run } = makeRunner((cmd) => {
+      if (cmd === "docker") passwd = readFileSync(join(identityDir(), "passwd"), "utf8");
+      return undefined;
+    });
+    await new EphemeralExecutionTarget({ worktreeRoot: ROOT, image: IMAGE, run, gitCommonDir: () => undefined, tempRoot }).exec({
+      argv: ["true"],
+    });
+    expect(passwd).toMatch(/^sandbox:x:\d+:\d+::\/tmp:\/bin\/sh\n$/);
   });
 
   it("removes the identity files when docker cannot spawn", async () => {

@@ -8,21 +8,32 @@ import { EGRESS_PROXY_IMAGE, EGRESS_SQUID_CONF, egressAllowHosts } from "../lib/
 import {
   EphemeralExecutionTarget,
   HostOnlyError,
+  MicrovmExecutionTarget,
+  microvmImageRef,
+  nonEmpty,
   openshellImage,
   runningInsideSandbox,
   type LifecycleRunner,
 } from "../lib/execution/index.js";
 import { messageOf, spawnRunner } from "../lib/execution/runner.js";
+import { AGRO_VERSION } from "../lib/version.js";
 
 export interface RunIO {
   stdout: (s: string) => void;
   stderr: (s: string) => void;
 }
 
+export type RunIsolation = "container" | "microvm";
+
+export const RUN_ISOLATIONS: readonly RunIsolation[] = ["container", "microvm"];
+
 export interface RunOptions {
   bin: string;
   command: string[];
   image?: string;
+  isolation?: RunIsolation;
+  localImage?: boolean;
+  access?: (path: string, mode: number) => void;
   cwd?: string;
   env?: NodeJS.ProcessEnv;
   run?: LifecycleRunner;
@@ -189,6 +200,42 @@ function removeNetwork(run: LifecycleRunner, net: RunNetwork, io: RunIO, bin: st
   if (proxy?.configDir !== undefined) rmSync(proxy.configDir, { recursive: true, force: true });
 }
 
+function newRunId(opts: RunOptions): string {
+  return (opts.runId ?? (() => randomBytes(6).toString("hex")))();
+}
+
+async function runMicrovm(
+  opts: RunOptions,
+  io: RunIO,
+  run: LifecycleRunner,
+  root: string,
+  cwd: string,
+  config: AgroConfig,
+): Promise<number> {
+  const settings = config.run ?? {};
+  if (Object.keys(settings.services ?? {}).length > 0 || config.access?.egress === "allowlist") {
+    throw new Error("--isolation microvm with run.services or access.egress \"allowlist\" is not supported yet");
+  }
+  const target = new MicrovmExecutionTarget({
+    worktreeRoot: root,
+    image: opts.image ?? nonEmpty(settings.microvm?.image) ?? microvmImageRef(AGRO_VERSION),
+    name: `agro-run-${newRunId(opts)}`,
+    run,
+    ...(opts.localImage ? { localImage: true } : {}),
+    ...(opts.access ? { access: opts.access } : {}),
+  });
+  await target.provision();
+  try {
+    return (await target.exec({ argv: opts.command, cwd, stdio: "inherit" })).exitCode;
+  } finally {
+    try {
+      await target.destroy();
+    } catch (err) {
+      io.stderr(`${opts.bin} run: warning: ${messageOf(err)}\n`);
+    }
+  }
+}
+
 export async function runRun(opts: RunOptions, io: RunIO): Promise<number> {
   const env = opts.env ?? process.env;
   if (runningInsideSandbox(env)) {
@@ -201,6 +248,7 @@ export async function runRun(opts: RunOptions, io: RunIO): Promise<number> {
   try {
     const root = runRoot(cwd, run);
     const config = readAgroConfig(agroConfigPath(root));
+    if (opts.isolation === "microvm") return await runMicrovm(opts, io, run, root, cwd, config);
     const image = opts.image ?? openshellImage(config);
     const settings = config.run ?? {};
     const allowlist = config.access?.egress === "allowlist";
@@ -208,7 +256,7 @@ export async function runRun(opts: RunOptions, io: RunIO): Promise<number> {
       const target = new EphemeralExecutionTarget({ worktreeRoot: root, image, run });
       return (await target.exec({ argv: opts.command, cwd, stdio: "inherit" })).exitCode;
     }
-    const id = (opts.runId ?? (() => randomBytes(6).toString("hex")))();
+    const id = newRunId(opts);
     const network = `agro-run-${id}`;
     net = { network, networkCreated: false, containers: [] };
     if (allowlist) {
