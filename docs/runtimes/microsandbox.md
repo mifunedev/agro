@@ -28,8 +28,9 @@ verifies the script against a pinned `sha256`, and runs the script with
 `~/.local/microsandbox/bin/msb`. A symlink at `~/.local/bin/msb` puts `msb` on
 `PATH`.
 
-AGRO pins the installer script, not the `msb` version. The script installs the
-latest upstream release. The install needs network access. The install writes
+AGRO pins msb `0.7.13`. The install downloads the installer script at tag
+`v0.7.13`, sets the script's version to `v0.7.13`, and fails when
+`msb --version` does not report `0.7.13`. The install needs network access. The install writes
 no `agro.json` field and restarts nothing. The binary lives in the home mount,
 so the binary survives a container recreate. `agro destroy <name>` removes the
 binary.

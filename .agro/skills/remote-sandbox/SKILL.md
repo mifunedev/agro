@@ -10,12 +10,13 @@ description: |
   adapter of five functions and three optional hooks adds a provider. The
   Hermes generated-home check (H01 to H09) tests a branch on a new VM. The
   msb-guest check (M01 to M06) tests the agro-msb image in an msb microVM.
+  The agro run matrix check (X01 to X08) tests the agro run modes on a node.
   TRIGGER when: asked to validate an AGRO release or candidate build on a
   fresh VM, run the fresh-install check, test the curl installer on a new VM,
   run the AGRO hosting matrix or a matrix row, run the cgroup probe or the VM
   restart test, run the OpenShell journey check, run the Hermes
   generated-home check, run the Docker egress check, run the msb-guest check,
-  or add a provider adapter.
+  run the agro run matrix check, or add a provider adapter.
 license: MIT
 compatibility: Needs bash, ssh, curl, jq, awk, and python3 on the driver host, plus an account on each provider under test (an exe.dev SSH key, the vercel CLI, or an `agro auth login` sign-in and an SSH key for the agro CLI; the msb provider uses the same sign-in and key). tmux is optional on the driver host.
 metadata:
@@ -181,6 +182,28 @@ tmux new-session -d -s rs-msb "IMAGE=ghcr.io/mifunedev/agro:spike-msb-<sha> bash
 ```
 
 The `restart` phase needs `msb_restart` after the `pre` phase on the same guest. The `restore` phase needs `msb_snapshot_restore` after the `restart` phase. `.agro/tasks/msb-base-image-spike/evidence/a1-guest-chain.sh` runs the 3 phases in this order.
+
+## Seventh scenario: the agro run modes
+
+`checks/agro-run-matrix.sh` tests the `agro run` modes on a new `console` node. The check uses host mode. The check installs AGRO with the curl installer at `INSTALL_URL`, runs `sudo usermod -aG kvm "$USER"`, and installs msb `0.7.13` with `agro tool install microsandbox`. When the installed AGRO installs a different msb release, the check uses the pinned upstream installer. Then the check creates a scratch git repository under `mktemp`, writes `agro.json` in it for each row, and deletes it at the end. The new `kvm` group applies only to a new login, so each microVM row runs through `sg kvm`.
+
+| Row | PASS when |
+|---|---|
+| `X01-container-exit` | `agro run -- sh -c 'exit 7'` exits 7. |
+| `X02-service-reach` | With `run.services.postgres` (`postgres:17-alpine`, ready `pg_isready`), a `node -e` command connects to the host `postgres` on port 5432. |
+| `X03-egress-allow` | With `access.egress` `allowlist` and `access.egressAllow` `["example.org"]`, `curl https://example.org` through the proxy returns 200. |
+| `X04-egress-deny` | With the same configuration, the proxy refuses the CONNECT to `https://example.com` with 403. |
+| `X05-microvm-exit` | `agro run --isolation microvm -- sh -c 'id -un; exit 7'` prints `sandbox` and exits 7. Without `/dev/kvm`, the row prints `SKIPPED`. |
+| `X06-microvm-boot` | `X05` appended a line to `${AGRO_HOME:-~/.agro}/runs/microvm.jsonl`, and that line has `bootToExitMs`. The detail holds the value. Without `/dev/kvm`, the row prints `SKIPPED`. |
+| `X07-refusals` | `--isolation microvm` with `run.services` exits 1, and `--isolation vm` exits 1. |
+| `X08-leftovers` | No `agro-run-` Docker container, Docker network, or msb sandbox is left. |
+
+The check needs the `console` provider, `CONSOLE_SSH_IDENTITY`, an `agro auth login` sign-in on the driver host, and the free tier node spec `n4`. When `INSTALL_URL` is unset and AGRO `0.32.0` or later is installed, the check skips the install. Start the run detached on the driver host:
+
+```bash
+setsid nohup bash "$SKILL/scripts/run.sh" console checks/agro-run-matrix.sh > run.out 2>&1 < /dev/null &
+cat run.out
+```
 
 ## Commands and variables
 

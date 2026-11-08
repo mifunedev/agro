@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1594-agro-run-node-matrix",
+  "description": "agro run node matrix. `agro run --isolation microvm` requires msb `0.7.13` exactly (mifunedev/agro#1591), but the `microsandbox` catalog entry installs the msb release of the day from a fixed installer commit. The remote-sandbox msb adapter already pins the version with a `sed` rewrite of the installer. The remote-sandbox skill runs checks that print `RESULT` lines on a new VM. On this host, `agro auth status` returns HTTP 401, so a live console run needs the operator.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "The microsandbox tool installs msb 0.7.13",
+      "description": "As an operator, I want `agro tool install microsandbox` to install msb 0.7.13 so that the microVM mode of `agro run` works after one command.",
+      "acceptanceCriteria": [
+        "The `microsandbox` entry in `.agro/cli/src/lib/tools/catalog.ts` downloads the msb installer at tag `v0.7.13`, checks the script against its `sha256`, and installs version `v0.7.13`.",
+        "The install command fails when `msb --version` does not report `0.7.13`.",
+        "`.agro/cli/src/__tests__/tool-catalog.test.ts` pins the URL, the `sha256`, and the version check.",
+        "`docs/runtimes/microsandbox.md` states that AGRO pins msb `0.7.13`.",
+        "`agro run -- pnpm typecheck` exits 0, and `agro run -- pnpm test` shows no new failure against `evidence/baseline.md`."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "executed (advisor, merged eb5c1406, via agro run): typecheck 0; tool-catalog and remote-sandbox tests 192/192. worker: installer at tag v0.7.13 has the same sha256 as the old pin; sed pins VERSION=v0.7.13 after the hash check; msb --version must contain 0.7.13; real install into a temp prefix printed msb 0.7.13. Lesson: the upstream script always writes its symlink under $HOME/.local/bin.",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/tools/catalog.ts",
+        ".agro/cli/src/__tests__/tool-catalog.test.ts",
+        "docs/runtimes/microsandbox.md"
+      ],
+      "commit": "eb5c1406"
+    },
+    {
+      "id": "US-002",
+      "title": "The agro run matrix check",
+      "description": "As an operator, I want one remote-sandbox check for the `agro run` modes so that a new node proves the modes with one command.",
+      "acceptanceCriteria": [
+        "`.agro/skills/remote-sandbox/checks/agro-run-matrix.sh` installs AGRO from `INSTALL_URL`, adds the user to the `kvm` group, installs the microsandbox tool, and creates a scratch git repository.",
+        "The check prints one `RESULT` line for each of 8 rows. `X01` checks the container exit code, `X02` service reachability, `X03` egress allow, and `X04` egress deny. `X05` checks the microVM user and exit code, `X06` the microVM boot time from `microvm.jsonl`, `X07` the refusals, and `X08` leftovers.",
+        "The check runs each microVM row through `sg kvm`, because the new group applies only to a new login.",
+        "The check ends with a `SUMMARY` line and deletes the scratch repository.",
+        "`.agro/skills/remote-sandbox/SKILL.md` holds one section that names the check, the rows, and the run command.",
+        "`bash -n` and `shellcheck` pass on the check."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "executed (advisor, merged 8cc1d0ab): bash -n ok; shellcheck at warning level clean (info notes SC2317/SC1091 match existing checks); rows X01-X08 present; SKILL.md section present. worker: local dry run on this host printed X01-X08 PASS and SUMMARY fails=0 with cleanup. Not exercised locally: fresh install from INSTALL_URL and the msb fallback (US-003).",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/remote-sandbox/checks/agro-run-matrix.sh",
+        ".agro/skills/remote-sandbox/SKILL.md"
+      ],
+      "commit": "8cc1d0ab"
+    },
+    {
+      "id": "US-004",
+      "title": "Changelog",
+      "description": "As a reviewer, I want a changelog entry so that the pinned msb version and the new check are visible.",
+      "acceptanceCriteria": [
+        "`CHANGELOG.md` holds one entry under `## [Unreleased]` that links the task issue."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "executed (advisor): CHANGELOG Unreleased holds the Changed entry for the msb 0.7.13 pin and the Added entry for checks/agro-run-matrix.sh, both linking #1594.",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        "CHANGELOG.md"
+      ],
+      "commit": "9f019da76"
+    }
+  ],
+  "pr": 1595
+}

@@ -100,6 +100,16 @@ describe("tool catalog shape", () => {
     }
   });
 
+  it("pins the microsandbox install to msb 0.7.13", () => {
+    const body = findTool("microsandbox")?.installArgv?.join("\n") ?? "";
+    expect(body).toContain(
+      'curl -fsSL "https://raw.githubusercontent.com/superradcompany/microsandbox/v0.7.13/scripts/install.sh"',
+    );
+    expect(body).toContain("sha=800af0b3ee6343f25a8f4bb95e1b7cc300cf08812a47aaad4c9fa6e577032be7");
+    expect(body).toContain("sed -i 's/^    get_latest_version$/    VERSION=v0.7.13/'");
+    expect(body).toContain('"$prefix/bin/msb" --version | grep -qF 0.7.13');
+  });
+
   it("keeps every user-level host installer clear of the operating system package manager", () => {
     for (const t of TOOL_CATALOG) {
       if (t.hostInstallArgv === undefined || t.hostInstallUser === "root") continue;
