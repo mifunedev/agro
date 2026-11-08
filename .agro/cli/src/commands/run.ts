@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { agroConfigPath, readAgroConfig, type AgroConfig, type RunSettings } from "../lib/agro-config.js";
 import { EGRESS_PROXY_IMAGE, EGRESS_SQUID_CONF, egressAllowHosts } from "../lib/egress-policy.js";
@@ -32,7 +32,6 @@ export interface RunOptions {
   command: string[];
   image?: string;
   isolation?: RunIsolation;
-  localImage?: boolean;
   access?: (path: string, mode: number) => void;
   cwd?: string;
   env?: NodeJS.ProcessEnv;
@@ -42,6 +41,9 @@ export interface RunOptions {
   readyTimeoutMs?: number;
   sleep?: (ms: number) => Promise<unknown>;
   tempRoot?: string;
+  now?: () => number;
+  usageLogPath?: string;
+  appendUsage?: (path: string, line: string) => void;
 }
 
 interface RunNetwork {
@@ -204,6 +206,34 @@ function newRunId(opts: RunOptions): string {
   return (opts.runId ?? (() => randomBytes(6).toString("hex")))();
 }
 
+interface MicrovmUsage {
+  time: string;
+  image: string;
+  digest: string | null;
+  bootToExitMs: number;
+  exitCode: number;
+}
+
+function usageLogPath(env: NodeJS.ProcessEnv): string {
+  return join(nonEmpty(env.AGRO_HOME) ?? join(homedir(), ".agro"), "runs", "microvm.jsonl");
+}
+
+function appendUsageLine(path: string, line: string): void {
+  mkdirSync(dirname(path), { recursive: true });
+  appendFileSync(path, line);
+}
+
+function imageDigest(run: LifecycleRunner, image: string): string | null {
+  const r = run("msb", ["image", "inspect", "--format", "json", image], { stdio: "capture" });
+  if (r.error !== undefined || r.status !== 0) return null;
+  try {
+    const digest: unknown = JSON.parse(r.stdout ?? "").digest;
+    return typeof digest === "string" && digest !== "" ? digest : null;
+  } catch {
+    return null;
+  }
+}
+
 async function runMicrovm(
   opts: RunOptions,
   io: RunIO,
@@ -216,17 +246,27 @@ async function runMicrovm(
   if (Object.keys(settings.services ?? {}).length > 0 || config.access?.egress === "allowlist") {
     throw new Error("--isolation microvm with run.services or access.egress \"allowlist\" is not supported yet");
   }
+  const image = opts.image ?? nonEmpty(settings.microvm?.image) ?? microvmImageRef(AGRO_VERSION);
   const target = new MicrovmExecutionTarget({
     worktreeRoot: root,
-    image: opts.image ?? nonEmpty(settings.microvm?.image) ?? microvmImageRef(AGRO_VERSION),
+    image,
     name: `agro-run-${newRunId(opts)}`,
     run,
-    ...(opts.localImage ? { localImage: true } : {}),
     ...(opts.access ? { access: opts.access } : {}),
   });
   await target.provision();
   try {
-    return (await target.exec({ argv: opts.command, cwd, stdio: "inherit" })).exitCode;
+    const now = opts.now ?? Date.now;
+    const started = now();
+    const { exitCode } = await target.exec({ argv: opts.command, cwd, stdio: "inherit" });
+    const bootToExitMs = now() - started;
+    const usage: MicrovmUsage = { time: new Date(started).toISOString(), image, digest: imageDigest(run, image), bootToExitMs, exitCode };
+    try {
+      (opts.appendUsage ?? appendUsageLine)(opts.usageLogPath ?? usageLogPath(opts.env ?? process.env), `${JSON.stringify(usage)}\n`);
+    } catch (err) {
+      io.stderr(`${opts.bin} run: warning: could not write the usage log: ${messageOf(err)}\n`);
+    }
+    return exitCode;
   } finally {
     try {
       await target.destroy();

@@ -25,7 +25,6 @@ export interface MicrovmTargetOptions {
   worktreeRoot: string;
   image: string;
   name: string;
-  localImage?: boolean;
   run?: LifecycleRunner;
   access?: (path: string, mode: number) => void;
   env?: Record<string, string>;
@@ -39,7 +38,6 @@ export class MicrovmExecutionTarget implements ExecutionTarget {
   private readonly worktreeRoot: string;
   private readonly image: string;
   private readonly name: string;
-  private readonly localImage: boolean;
   private readonly run: LifecycleRunner;
   private readonly access: (path: string, mode: number) => void;
   private readonly env: Record<string, string>;
@@ -48,7 +46,6 @@ export class MicrovmExecutionTarget implements ExecutionTarget {
     this.worktreeRoot = opts.worktreeRoot;
     this.image = opts.image;
     this.name = opts.name;
-    this.localImage = opts.localImage ?? false;
     this.run = opts.run ?? spawnRunner;
     this.access = opts.access ?? accessSync;
     this.env = opts.env ?? {};
@@ -106,7 +103,6 @@ export class MicrovmExecutionTarget implements ExecutionTarget {
       "-q",
       "-n",
       this.name,
-      ...(this.localImage ? ["--pull", "never"] : []),
       "-u",
       request.user ?? MICROVM_USER,
       "-v",

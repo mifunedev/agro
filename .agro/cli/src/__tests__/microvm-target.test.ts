@@ -35,7 +35,7 @@ function makeRunner(
 
 function target(
   run: LifecycleRunner,
-  extra: { access?: (path: string, mode: number) => void; localImage?: boolean; env?: Record<string, string> } = {},
+  extra: { access?: (path: string, mode: number) => void; env?: Record<string, string> } = {},
 ): MicrovmExecutionTarget {
   return new MicrovmExecutionTarget({ worktreeRoot: ROOT, image: IMAGE, name: NAME, run, access: () => {}, ...extra });
 }
@@ -65,15 +65,15 @@ describe("MicrovmExecutionTarget", () => {
     ]);
   });
 
-  it("adds --pull never for a locally loaded image, the request user, and env flags", async () => {
+  it("adds the request user and env flags", async () => {
     const { calls, run } = makeRunner();
-    await target(run, { localImage: true, env: { A: "1", B: "target" } }).exec({
+    await target(run, { env: { A: "1", B: "target" } }).exec({
       argv: ["true"],
       env: { B: "request" },
       user: "root",
     });
     expect(calls[0].args).toEqual([
-      "run", "-q", "-n", NAME, "--pull", "never", "-u", "root", "-v", `${ROOT}:${ROOT}`, "-w", ROOT,
+      "run", "-q", "-n", NAME, "-u", "root", "-v", `${ROOT}:${ROOT}`, "-w", ROOT,
       "-e", "A=1", "-e", "B=request", IMAGE, "--", "true",
     ]);
     expect(calls[0].stdio).toBe("capture");

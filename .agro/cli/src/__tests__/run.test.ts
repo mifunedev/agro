@@ -760,6 +760,7 @@ describe("runRun", () => {
       exitCode?: number;
       runError?: boolean;
       rmStatus?: number;
+      inspect?: RunResult;
     }): { run: LifecycleRunner; calls: RecordedCall[] } {
       const calls: RecordedCall[] = [];
       const run: LifecycleRunner = (cmd, args, o) => {
@@ -774,6 +775,7 @@ describe("runRun", () => {
             : { status: opts.exitCode ?? 0 };
         }
         if (args[0] === "rm") return { status: opts.rmStatus ?? 0, stderr: opts.rmStatus ? "busy\n" : "" };
+        if (args[0] === "image") return opts.inspect ?? { status: 1 };
         return { status: 0 };
       };
       return { run, calls };
@@ -784,7 +786,7 @@ describe("runRun", () => {
     function microvm(dir: string, run: LifecycleRunner, extra: Partial<Parameters<typeof runRun>[0]> = {}) {
       const out = io();
       const done = runRun(
-        { bin: "agro", command: ["sh", "-c", "exit 7"], isolation: "microvm", cwd: dir, env: HOST_ENV, run, runId: () => ID, access: allowKvm, ...extra },
+        { bin: "agro", command: ["sh", "-c", "exit 7"], isolation: "microvm", cwd: dir, env: HOST_ENV, run, runId: () => ID, access: allowKvm, usageLogPath: join(dir, "usage.jsonl"), ...extra },
         out.io,
       );
       return { out, done };
@@ -802,6 +804,7 @@ describe("runRun", () => {
       expect(msbArgs(calls)).toEqual([
         ["--version"],
         ["run", "-q", "-n", NAME, "-u", "sandbox", "-v", `${dir}:${dir}`, "-w", dir, "img:1", "--", "sh", "-c", "exit 7"],
+        ["image", "inspect", "--format", "json", "img:1"],
         ["rm", "--force", NAME],
       ]);
       expect(calls.find((c) => c.args[0] === "run")?.stdio).toBe("inherit");
@@ -809,11 +812,56 @@ describe("runRun", () => {
       expect(out.stderr).toEqual([]);
     });
 
-    it("adds --pull never when the image is marked as locally loaded", async () => {
-      const dir = tempDir();
-      const { run, calls } = msbRunner({ toplevel: dir });
-      await microvm(dir, run, { image: "img:1", localImage: true }).done;
-      expect(msbArgs(calls)[1].slice(0, 6)).toEqual(["run", "-q", "-n", NAME, "--pull", "never"]);
+    describe("usage log", () => {
+      const DIGEST = "sha256:0f49f331d9212aff11b932863be4eb01cdf962969aa86dab7d1ee21ac6f5f52b";
+
+      function clock(...times: number[]): () => number {
+        return () => times.shift()!;
+      }
+
+      it("appends one JSON line with the time, image, digest, boot-to-exit milliseconds, and exit code", async () => {
+        const dir = tempDir();
+        const path = join(dir, "home", "runs", "microvm.jsonl");
+        const { run, calls } = msbRunner({ toplevel: dir, exitCode: 7, inspect: { status: 0, stdout: JSON.stringify({ digest: DIGEST }) } });
+        const started = Date.parse("2026-11-08T12:00:00.000Z");
+        const first = microvm(dir, run, { image: "img:1", usageLogPath: path, now: clock(started, started + 1234) });
+        expect(await first.done).toBe(7);
+        const second = microvm(dir, run, { image: "img:1", usageLogPath: path, now: clock(started, started + 5) });
+        expect(await second.done).toBe(7);
+        expect(msbArgs(calls)).toContainEqual(["image", "inspect", "--format", "json", "img:1"]);
+        const line = { time: "2026-11-08T12:00:00.000Z", image: "img:1", digest: DIGEST, bootToExitMs: 1234, exitCode: 7 };
+        expect(readFileSync(path, "utf8")).toBe(`${JSON.stringify(line)}\n${JSON.stringify({ ...line, bootToExitMs: 5 })}\n`);
+        expect(first.out.stderr).toEqual([]);
+      });
+
+      it("defaults to AGRO_HOME/runs/microvm.jsonl and records a null digest when inspect fails", async () => {
+        const dir = tempDir();
+        const home = join(dir, "agro-home");
+        const { run } = msbRunner({ toplevel: dir, inspect: { status: 1, stderr: "not found\n" } });
+        const { done } = microvm(dir, run, { image: "img:1", usageLogPath: undefined, env: { ...HOST_ENV, AGRO_HOME: home }, now: clock(0, 9) });
+        expect(await done).toBe(0);
+        const [line] = readFileSync(join(home, "runs", "microvm.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+        expect(line).toEqual({ time: "1970-01-01T00:00:00.000Z", image: "img:1", digest: null, bootToExitMs: 9, exitCode: 0 });
+      });
+
+      it("warns once on a write failure and keeps the exit code", async () => {
+        const dir = tempDir();
+        const { run } = msbRunner({ toplevel: dir, exitCode: 7 });
+        const failing = () => {
+          throw new Error("EACCES: permission denied");
+        };
+        const { out, done } = microvm(dir, run, { appendUsage: failing });
+        expect(await done).toBe(7);
+        expect(out.stderr).toEqual(["agro run: warning: could not write the usage log: EACCES: permission denied\n"]);
+      });
+
+      it("writes no line when the command does not run", async () => {
+        const dir = tempDir();
+        const path = join(dir, "microvm.jsonl");
+        const { run } = msbRunner({ toplevel: dir, runError: true });
+        expect(await microvm(dir, run, { usageLogPath: path }).done).toBe(1);
+        expect(existsSync(path)).toBe(false);
+      });
     });
 
     describe("image order", () => {
