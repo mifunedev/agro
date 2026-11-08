@@ -110,14 +110,15 @@
         "After the runs, `msb ls` shows no `agro-run-` sandbox, and `microvm.jsonl` holds one line for each run."
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Criterion-to-evidence (merged ed5ee277; local agro-msb image because -msb ships at the next release; runs via sg kvm): id; exit 7 -> exit 7, uid=1000(sandbox): met; pnpm --version microVM median 4817 ms vs container 1514 ms, recorded: met; guest sees only the mounted path under the host home, and no Docker socket: met; msb ls empty after and microvm.jsonl holds one line per run (7 lines): met (advisor rechecked msb ls and image ls empty).",
       "dependsOn": [
         "US-004"
       ],
       "files": [
         ".agro/tasks/agro-run-microvm/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "ed5ee277"
     }
   ],
   "pr": 1591
