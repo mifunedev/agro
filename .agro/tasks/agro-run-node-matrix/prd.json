@@ -16,14 +16,15 @@
         "`agro run -- pnpm typecheck` exits 0, and `agro run -- pnpm test` shows no new failure against `evidence/baseline.md`."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, merged eb5c1406, via agro run): typecheck 0; tool-catalog and remote-sandbox tests 192/192. worker: installer at tag v0.7.13 has the same sha256 as the old pin; sed pins VERSION=v0.7.13 after the hash check; msb --version must contain 0.7.13; real install into a temp prefix printed msb 0.7.13. Lesson: the upstream script always writes its symlink under $HOME/.local/bin.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/tools/catalog.ts",
         ".agro/cli/src/__tests__/tool-catalog.test.ts",
         "docs/runtimes/microsandbox.md"
-      ]
+      ],
+      "commit": "eb5c1406"
     },
     {
       "id": "US-002",
@@ -38,13 +39,14 @@
         "`bash -n` and `shellcheck` pass on the check."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed (advisor, merged 8cc1d0ab): bash -n ok; shellcheck at warning level clean (info notes SC2317/SC1091 match existing checks); rows X01-X08 present; SKILL.md section present. worker: local dry run on this host printed X01-X08 PASS and SUMMARY fails=0 with cleanup. Not exercised locally: fresh install from INSTALL_URL and the msb fallback (US-003).",
       "dependsOn": [],
       "files": [
         ".agro/skills/remote-sandbox/checks/agro-run-matrix.sh",
         ".agro/skills/remote-sandbox/SKILL.md"
-      ]
+      ],
+      "commit": "8cc1d0ab"
     },
     {
       "id": "US-003",
