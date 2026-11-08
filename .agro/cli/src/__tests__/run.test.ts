@@ -119,6 +119,40 @@ describe("parseRunArgs", () => {
   });
 });
 
+describe("parseRunArgs --isolation", () => {
+  it("reads microvm in both forms", () => {
+    for (const head of [["--isolation", "microvm"], ["--isolation=microvm"]]) {
+      expect(parseRunArgs([...head, "--", "true"])).toEqual({
+        ok: true,
+        args: { help: false, isolation: "microvm", command: ["true"] },
+      });
+    }
+  });
+
+  it("treats container and no flag as the current behaviour", () => {
+    expect(parseRunArgs(["--isolation", "container", "--", "true"])).toEqual({
+      ok: true,
+      args: { help: false, command: ["true"] },
+    });
+  });
+
+  it("combines with --image", () => {
+    expect(parseRunArgs(["--image", "img:1", "--isolation", "microvm", "--", "true"])).toEqual({
+      ok: true,
+      args: { help: false, image: "img:1", isolation: "microvm", command: ["true"] },
+    });
+  });
+
+  it("rejects an unknown or missing mode as a usage error", () => {
+    for (const head of [["--isolation", "vm"], ["--isolation="], ["--isolation"]]) {
+      expect(parseRunArgs([...head, "--", "true"], "agro")).toEqual({
+        ok: false,
+        error: "agro run: --isolation must be one of container, microvm",
+      });
+    }
+  });
+});
+
 describe("AGRO_COMMANDS", () => {
   it("registers run as a verb without subcommands", () => {
     expect(Object.hasOwn(AGRO_COMMANDS, "run")).toBe(true);
@@ -713,6 +747,196 @@ describe("runRun", () => {
           ],
         ]);
       }
+    });
+  });
+
+  describe("--isolation microvm", () => {
+    const ID = "abc123";
+    const NAME = `agro-run-${ID}`;
+
+    function msbRunner(opts: {
+      toplevel?: string;
+      version?: string;
+      exitCode?: number;
+      runError?: boolean;
+      rmStatus?: number;
+      inspect?: RunResult;
+    }): { run: LifecycleRunner; calls: RecordedCall[] } {
+      const calls: RecordedCall[] = [];
+      const run: LifecycleRunner = (cmd, args, o) => {
+        calls.push({ cmd, args, stdio: o.stdio });
+        if (cmd === "git") {
+          return opts.toplevel === undefined ? { status: 128 } : { status: 0, stdout: `${opts.toplevel}\n` };
+        }
+        if (args[0] === "--version") return { status: 0, stdout: `msb ${opts.version ?? "0.7.13"}\n` };
+        if (args[0] === "run") {
+          return opts.runError
+            ? { status: null, error: { code: "ENOENT", message: "spawn msb ENOENT" } }
+            : { status: opts.exitCode ?? 0 };
+        }
+        if (args[0] === "rm") return { status: opts.rmStatus ?? 0, stderr: opts.rmStatus ? "busy\n" : "" };
+        if (args[0] === "image") return opts.inspect ?? { status: 1 };
+        return { status: 0 };
+      };
+      return { run, calls };
+    }
+
+    const allowKvm = () => {};
+
+    function microvm(dir: string, run: LifecycleRunner, extra: Partial<Parameters<typeof runRun>[0]> = {}) {
+      const out = io();
+      const done = runRun(
+        { bin: "agro", command: ["sh", "-c", "exit 7"], isolation: "microvm", cwd: dir, env: HOST_ENV, run, runId: () => ID, access: allowKvm, usageLogPath: join(dir, "usage.jsonl"), ...extra },
+        out.io,
+      );
+      return { out, done };
+    }
+
+    function msbArgs(calls: RecordedCall[]): string[][] {
+      return calls.filter((c) => c.cmd === "msb").map((c) => c.args);
+    }
+
+    it("checks msb, runs the command in the microVM, passes the exit code through, and removes the sandbox", async () => {
+      const dir = tempDir();
+      const { run, calls } = msbRunner({ toplevel: dir, exitCode: 7 });
+      const { out, done } = microvm(dir, run, { image: "img:1" });
+      expect(await done).toBe(7);
+      expect(msbArgs(calls)).toEqual([
+        ["--version"],
+        ["run", "-q", "-n", NAME, "-u", "sandbox", "-v", `${dir}:${dir}`, "-w", dir, "img:1", "--", "sh", "-c", "exit 7"],
+        ["image", "inspect", "--format", "json", "img:1"],
+        ["rm", "--force", NAME],
+      ]);
+      expect(calls.find((c) => c.args[0] === "run")?.stdio).toBe("inherit");
+      expect(calls.some((c) => c.cmd === "docker")).toBe(false);
+      expect(out.stderr).toEqual([]);
+    });
+
+    describe("usage log", () => {
+      const DIGEST = "sha256:0f49f331d9212aff11b932863be4eb01cdf962969aa86dab7d1ee21ac6f5f52b";
+
+      function clock(...times: number[]): () => number {
+        return () => times.shift()!;
+      }
+
+      it("appends one JSON line with the time, image, digest, boot-to-exit milliseconds, and exit code", async () => {
+        const dir = tempDir();
+        const path = join(dir, "home", "runs", "microvm.jsonl");
+        const { run, calls } = msbRunner({ toplevel: dir, exitCode: 7, inspect: { status: 0, stdout: JSON.stringify({ digest: DIGEST }) } });
+        const started = Date.parse("2026-11-08T12:00:00.000Z");
+        const first = microvm(dir, run, { image: "img:1", usageLogPath: path, now: clock(started, started + 1234) });
+        expect(await first.done).toBe(7);
+        const second = microvm(dir, run, { image: "img:1", usageLogPath: path, now: clock(started, started + 5) });
+        expect(await second.done).toBe(7);
+        expect(msbArgs(calls)).toContainEqual(["image", "inspect", "--format", "json", "img:1"]);
+        const line = { time: "2026-11-08T12:00:00.000Z", image: "img:1", digest: DIGEST, bootToExitMs: 1234, exitCode: 7 };
+        expect(readFileSync(path, "utf8")).toBe(`${JSON.stringify(line)}\n${JSON.stringify({ ...line, bootToExitMs: 5 })}\n`);
+        expect(first.out.stderr).toEqual([]);
+      });
+
+      it("defaults to AGRO_HOME/runs/microvm.jsonl and records a null digest when inspect fails", async () => {
+        const dir = tempDir();
+        const home = join(dir, "agro-home");
+        const { run } = msbRunner({ toplevel: dir, inspect: { status: 1, stderr: "not found\n" } });
+        const { done } = microvm(dir, run, { image: "img:1", usageLogPath: undefined, env: { ...HOST_ENV, AGRO_HOME: home }, now: clock(0, 9) });
+        expect(await done).toBe(0);
+        const [line] = readFileSync(join(home, "runs", "microvm.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+        expect(line).toEqual({ time: "1970-01-01T00:00:00.000Z", image: "img:1", digest: null, bootToExitMs: 9, exitCode: 0 });
+      });
+
+      it("warns once on a write failure and keeps the exit code", async () => {
+        const dir = tempDir();
+        const { run } = msbRunner({ toplevel: dir, exitCode: 7 });
+        const failing = () => {
+          throw new Error("EACCES: permission denied");
+        };
+        const { out, done } = microvm(dir, run, { appendUsage: failing });
+        expect(await done).toBe(7);
+        expect(out.stderr).toEqual(["agro run: warning: could not write the usage log: EACCES: permission denied\n"]);
+      });
+
+      it("writes no line when the command does not run", async () => {
+        const dir = tempDir();
+        const path = join(dir, "microvm.jsonl");
+        const { run } = msbRunner({ toplevel: dir, runError: true });
+        expect(await microvm(dir, run, { usageLogPath: path }).done).toBe(1);
+        expect(existsSync(path)).toBe(false);
+      });
+    });
+
+    describe("image order", () => {
+      function withMicrovmImage(ref: string | undefined): string {
+        const dir = tempDir();
+        const run = ref === undefined ? {} : { microvm: { image: ref } };
+        writeFileSync(agroConfigPath(dir), JSON.stringify({ version: 1, name: "p", image: { ref: "container:1" }, run }));
+        return dir;
+      }
+
+      async function imageFor(dir: string, image?: string): Promise<string> {
+        const { run, calls } = msbRunner({ toplevel: dir });
+        await microvm(dir, run, image === undefined ? {} : { image }).done;
+        const args = msbArgs(calls)[1];
+        return args[args.indexOf("--") - 1];
+      }
+
+      it("prefers --image, then run.microvm.image, then the published agro-msb image", async () => {
+        expect(await imageFor(withMicrovmImage("configured-msb:1"), "flag:1")).toBe("flag:1");
+        expect(await imageFor(withMicrovmImage("configured-msb:1"))).toBe("configured-msb:1");
+        expect(await imageFor(withMicrovmImage(undefined))).toBe(`${officialImageRef(AGRO_VERSION)}-msb`);
+      });
+    });
+
+    it("exits 1 with the remedy and runs nothing when msb is not 0.7.13", async () => {
+      const dir = tempDir();
+      const { run, calls } = msbRunner({ toplevel: dir, version: "0.7.12" });
+      const { out, done } = microvm(dir, run);
+      expect(await done).toBe(1);
+      expect(out.stderr.join("")).toMatch(/^agro run: msb reports "msb 0\.7\.12", not 0\.7\.13; install msb 0\.7\.13 with `agro tool install microsandbox`/);
+      expect(msbArgs(calls)).toEqual([["--version"]]);
+    });
+
+    it("exits 1 with the kvm group remedy and runs nothing when /dev/kvm is denied", async () => {
+      const dir = tempDir();
+      const { run, calls } = msbRunner({ toplevel: dir });
+      const denied = () => {
+        throw new Error("EACCES");
+      };
+      const { out, done } = microvm(dir, run, { access: denied });
+      expect(await done).toBe(1);
+      expect(out.stderr.join("")).toMatch(/^agro run: \/dev\/kvm does not open for read and write; add the user to the kvm group/);
+      expect(msbArgs(calls)).toEqual([["--version"]]);
+    });
+
+    it("removes the sandbox after a spawn failure and exits 1", async () => {
+      const dir = tempDir();
+      const { run, calls } = msbRunner({ toplevel: dir, runError: true });
+      const { out, done } = microvm(dir, run);
+      expect(await done).toBe(1);
+      expect(out.stderr.join("")).toMatch(/^agro run: failed to run msb run /);
+      expect(msbArgs(calls).at(-1)).toEqual(["rm", "--force", NAME]);
+    });
+
+    it("warns on a removal failure and keeps the exit code", async () => {
+      const dir = tempDir();
+      const { run } = msbRunner({ toplevel: dir, exitCode: 7, rmStatus: 1 });
+      const { out, done } = microvm(dir, run);
+      expect(await done).toBe(7);
+      expect(out.stderr.join("")).toBe(`agro run: warning: could not remove microVM ${NAME}: busy\n`);
+    });
+
+    it.each([
+      [{ run: { services: { cache: { image: "redis:7" } } } }],
+      [{ access: { egress: "allowlist", egressAllow: ["example.org"] } }],
+    ])("refuses %j with not supported yet and runs nothing", async (extra) => {
+      const dir = tempDir();
+      writeFileSync(agroConfigPath(dir), JSON.stringify({ version: 1, name: "p", ...extra }));
+      const { run, calls } = msbRunner({ toplevel: dir });
+      const { out, done } = microvm(dir, run);
+      expect(await done).toBe(1);
+      expect(out.stderr.join("")).toBe(
+        'agro run: --isolation microvm with run.services or access.egress "allowlist" is not supported yet\n',
+      );
+      expect(calls.filter((c) => c.cmd !== "git")).toEqual([]);
     });
   });
 });

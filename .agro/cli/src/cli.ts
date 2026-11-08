@@ -52,7 +52,7 @@ import {
   runWorkspaceCreate,
   runWorkspaceList,
 } from "./commands/workspace.js";
-import { runRun } from "./commands/run.js";
+import { RUN_ISOLATIONS, runRun, type RunIsolation } from "./commands/run.js";
 import { AGRO_REPO_URL } from "./lib/host-workspace.js";
 import { harnessIds } from "./lib/harnesses/catalog.js";
 import {
@@ -66,7 +66,7 @@ import { hostCapableToolIds, installableToolIds, toolIds } from "./lib/tools/cat
 import { sourceDocsUrl } from "./lib/docs.js";
 import { AGRO_PRODUCT, resolveProduct, stateNames, type Product } from "./lib/product.js";
 import { resolveControlDir } from "./lib/layout.js";
-import { sandboxFallbackWarning } from "./lib/execution/index.js";
+import { KVM_DEVICE, MSB_VERSION, sandboxFallbackWarning } from "./lib/execution/index.js";
 import {
   fetchRemoteSource,
   DEFAULT_REPO_URL,
@@ -369,7 +369,7 @@ export function printRunHelp(bin: string = AGRO_PRODUCT.bin): void {
   process.stdout.write(`${bin} run — Run a command in an ephemeral container
 
 Usage:
-  ${bin} run [--image <ref>] -- <command...>
+  ${bin} run [--isolation container|microvm] [--image <ref>] -- <command...>
 
 \`run\` starts a throwaway container, runs the command, and removes the container.
 It mounts the git repository root, or the current directory outside a repository,
@@ -380,9 +380,16 @@ code of the command. Run it on the host; inside a sandbox it exits 1.
 The image is \`--image\`, else \`image.ref\` in ${stateNames(bin).configFile}, else the
 official image for this CLI version.
 
+With \`--isolation microvm\`, the command runs as the user sandbox in a throwaway
+msb microVM with its own kernel. The run needs msb ${MSB_VERSION} and read and write
+access to ${KVM_DEVICE}. The image is \`--image\`, else \`run.microvm.image\` in
+${stateNames(bin).configFile}, else the official agro-msb image for this CLI version.
+The microVM mode does not support \`run.services\` or \`access.egress: "allowlist"\` yet.
+
 Options:
-  --image <ref>    Image to run the command in
-  -h, --help       Show this help
+  --isolation <mode>  container (default) or microvm
+  --image <ref>       Image to run the command in
+  -h, --help          Show this help
 `);
 }
 
@@ -989,6 +996,7 @@ export function parseWorkspaceArgs(
 export interface RunArgs {
   help: boolean;
   image?: string;
+  isolation?: RunIsolation;
   command: string[];
 }
 
@@ -998,15 +1006,21 @@ export function parseRunArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): Pa
   const head = sep === -1 ? rest : rest.slice(0, sep);
   const command = sep === -1 ? [] : rest.slice(sep + 1);
   const args: RunArgs = { help: false, command };
-  let expectImage = false;
+  let expecting: "--image" | "--isolation" | undefined;
+  let isolation: string | undefined;
   for (const token of head) {
-    if (expectImage) {
-      expectImage = false;
+    if (expecting === "--image") {
+      expecting = undefined;
       args.image = token;
-    } else if (token === "--image") {
-      expectImage = true;
+    } else if (expecting === "--isolation") {
+      expecting = undefined;
+      isolation = token;
+    } else if (token === "--image" || token === "--isolation") {
+      expecting = token;
     } else if (token.startsWith("--image=")) {
       args.image = token.slice("--image=".length);
+    } else if (token.startsWith("--isolation=")) {
+      isolation = token.slice("--isolation=".length);
     } else if (token.startsWith("-")) {
       return { ok: false, error: `${bin} run: unknown flag "${token}"` };
     } else {
@@ -1017,8 +1031,15 @@ export function parseRunArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): Pa
       };
     }
   }
-  if (expectImage || args.image === "") {
+  if (expecting === "--image" || args.image === "") {
     return { ok: false, error: `${bin} run: --image requires an image reference` };
+  }
+  if (expecting === "--isolation" || isolation !== undefined) {
+    const mode = RUN_ISOLATIONS.find((m) => m === isolation);
+    if (mode === undefined) {
+      return { ok: false, error: `${bin} run: --isolation must be one of ${RUN_ISOLATIONS.join(", ")}` };
+    }
+    if (mode !== "container") args.isolation = mode;
   }
   if (command.length === 0) {
     return { ok: false, error: `${bin} run: pass the command after \`--\``, showHelp: true };
@@ -1411,7 +1432,12 @@ async function main(argv: string[]): Promise<number> {
     const a = parsedArgs(parseRunArgs(argv.slice(1), bin), () => printRunHelp(bin));
     if (typeof a === "number") return a;
     return await runRun(
-      { bin, command: a.command, ...(a.image !== undefined ? { image: a.image } : {}) },
+      {
+        bin,
+        command: a.command,
+        ...(a.image !== undefined ? { image: a.image } : {}),
+        ...(a.isolation !== undefined ? { isolation: a.isolation } : {}),
+      },
       stdio(),
     );
   }

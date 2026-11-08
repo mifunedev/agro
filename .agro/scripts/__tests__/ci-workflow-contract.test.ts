@@ -46,7 +46,7 @@ const EXPECTED_TIMEOUTS: Record<string, Record<string, number>> = {
   "ci-harness.yml": { ci: 20, "boot-lint": 10 },
   "sandbox-boot-guard.yml": { "sandbox-boot-guard": 45, "sandbox-upgrade-guard": 45 },
   "sandbox-compatibility.yml": { "base-node-pnpm-parity": 10, "optional-harness-install": 45 },
-  "release.yml": { reserve: 10, finalize: 10, "publish-image": 45 },
+  "release.yml": { reserve: 10, finalize: 10, "publish-image": 45, "publish-msb-image": 45 },
   "publish-cli.yml": { "publish-npm": 15 },
   "close-issues-on-development.yml": { "close-linked-issues": 10 },
 };

@@ -536,6 +536,21 @@ describe("run settings", () => {
     );
   });
 
+  it("accepts run.microvm with and without an image", () => {
+    expect(validateAgroConfig(withRun({ microvm: {} })).run).toEqual({ microvm: {} });
+    expect(validateAgroConfig(withRun({ microvm: { image: "img:1-msb" } })).run).toEqual({ microvm: { image: "img:1-msb" } });
+  });
+
+  it.each([[""], [7], [["img"]]])("rejects the run.microvm.image %j", (image) => {
+    expect(() => validateAgroConfig(withRun({ microvm: { image } }))).toThrow(
+      "agro.json: run.microvm.image must be a non-empty string",
+    );
+  });
+
+  it("rejects a run.microvm that is not an object", () => {
+    expect(() => validateAgroConfig(withRun({ microvm: "img" }))).toThrow("agro.json: run.microvm must be an object");
+  });
+
   it("rejects a non-string value in run env", () => {
     expect(() => validateAgroConfig(withRun({ env: { DEBUG: true } }))).toThrow(
       "agro.json: run.env.DEBUG must be a string",

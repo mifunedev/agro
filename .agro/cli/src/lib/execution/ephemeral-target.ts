@@ -16,7 +16,7 @@ import type {
 
 
 export const EPHEMERAL_HOME = "/tmp";
-export const EPHEMERAL_FALLBACK_USER = "agro";
+export const EPHEMERAL_FALLBACK_USER = "sandbox";
 
 export interface HostIds {
   uid: number;

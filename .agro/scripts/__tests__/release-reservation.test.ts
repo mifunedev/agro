@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -430,7 +431,7 @@ describe("release workflow contract", () => {
 
   it("skips publication cleanly when the reservation is a no-op", () => {
     const guard = /if: \$\{\{[^}]*needs\.reserve\.outputs\.publishedNoop != 'true'/g;
-    expect(source.match(guard)?.length).toBe(3);
+    expect(source.match(guard)?.length).toBe(4);
     expect(source).toMatch(/publish-image:\n[\s\S]*?if: \$\{\{ needs\.reserve\.outputs\.publishedNoop != 'true' \}\}/);
     expect(source).toMatch(/publish-cli:\n[\s\S]*?if: \$\{\{ needs\.reserve\.outputs\.publishedNoop != 'true' \}\}/);
     expect(source).toMatch(/finalize:\n[\s\S]*?needs\.reserve\.outputs\.publishedNoop != 'true'/);
@@ -518,6 +519,48 @@ describe("release workflow contract", () => {
     expect(source).toContain("make_latest: process.env.MAKE_LATEST");
     expect(source).toContain("draft: false");
     expect(source).toContain("name: `v${releaseVersion}`");
+  });
+  it("publishes the agro-msb target under -msb tags after the GHCR image without moving latest", () => {
+    const release = parse(source);
+    const msb = release.jobs["publish-msb-image"];
+    const run = msb.steps.map((step: { run?: string }) => step.run ?? "").join("\n");
+    const msbSteps = JSON.stringify(msb.steps);
+
+    expect(Object.keys(release.jobs)).toEqual([
+      "ci-harness",
+      "reserve",
+      "publish-image",
+      "publish-msb-image",
+      "publish-cli",
+      "finalize",
+    ]);
+    expect(msb.needs).toEqual(["reserve", "publish-image"]);
+    expect(msb.if).toBe("${{ needs.reserve.outputs.publishedNoop != 'true' }}");
+    expect(msb.steps[0].with.ref).toBe("${{ needs.reserve.outputs.releaseSha }}");
+    expect(run).toContain("docker buildx build --push --target agro-msb -f .devcontainer/Dockerfile");
+    expect(run).toContain('-t "ghcr.io/mifunedev/agro:${RELEASE_VERSION}-msb"');
+    expect(run).toContain('-t "ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}-msb"');
+    expect(run.match(/-t "/g)?.length).toBe(2);
+    expect(msbSteps).not.toContain(":latest");
+    expect(msbSteps).not.toContain("imagetools");
+    expect(msbSteps).not.toContain("promote-release-latest");
+    expect(release.jobs["publish-cli"].needs).toEqual(["reserve", "publish-image"]);
+    expect(release.jobs.finalize.needs).toEqual(["reserve", "publish-image", "publish-cli"]);
+  });
+
+  it("rejects an -msb tag as a release version for latest promotion", () => {
+    const result = spawnSync(join(ROOT, ".agro", "scripts", "promote-release-latest.sh"), ["promote"], {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        RELEASE_BRANCH: "main",
+        RELEASE_SHA,
+        RELEASE_VERSION: `${VERSION}-msb`,
+      },
+    });
+
+    expect(result.status).toBe(64);
+    expect(result.stderr).toContain("RELEASE_VERSION must be a SemVer version");
   });
 });
 

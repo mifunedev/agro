@@ -78,9 +78,14 @@ export interface RunService {
   ready?: string;
 }
 
+export interface RunMicrovmSettings {
+  image?: string;
+}
+
 export interface RunSettings {
   services?: Record<string, RunService>;
   env?: Record<string, string>;
+  microvm?: RunMicrovmSettings;
 }
 
 const SERVICE_NAME = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
@@ -284,6 +289,10 @@ export function validateAgroConfig(value: unknown): AgroConfig {
       expectString(service, "ready", `${path}.`);
     }
     expectStringMap(run, "env", "run.");
+    const microvm = run.microvm === undefined ? undefined : expectObject(run.microvm, "run.microvm");
+    if (microvm && microvm.image !== undefined && (typeof microvm.image !== "string" || microvm.image === "")) {
+      throw fieldError("run.microvm.image", "must be a non-empty string");
+    }
   }
 
   return { ...(record as AgroConfig), version: 1 };
