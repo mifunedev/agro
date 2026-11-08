@@ -5,12 +5,14 @@ import { join } from "node:path";
 import {
   CONSOLE_CONFIG_MISSING,
   DEFAULT_CONSOLE_URL,
+  LOCAL_SSH_KEY_MISSING,
   NODE_READY_TIMEOUT_MS,
   nodeHelp,
   resolveConsoleConfig,
   runNode,
   type NodeDeps,
 } from "../commands/node.js";
+import { NODE_VERBS } from "../command-table.js";
 import type { ConsoleCredentials } from "../lib/console-auth.js";
 import { SECRET_KEYS } from "../lib/secrets.js";
 
@@ -655,5 +657,88 @@ describe("agro node delete", () => {
     expect(await runNode(["delete", "n1", "--yes"], h.io, h.deps)).toBe(1);
     expect(h.stderr()).toBe(`${CONSOLE_CONFIG_MISSING}\n`);
     expect(h.calls).toHaveLength(0);
+  });
+});
+
+describe("agro node check", () => {
+  const LOCAL_KEY = "ssh-ed25519 AAAAlocal op@laptop";
+  const KEYS = { status: 200, body: { sshKeys: [{ id: "key-1", publicKey: "ssh-ed25519 AAAAlocal other@host" }, { id: "key-2", publicKey: "ssh-ed25519 AAAAother" }] } };
+  const withLocalKey = { readFile: (path: string) => (path === "/home/op/.ssh/id_ed25519.pub" ? `${LOCAL_KEY}\n` : undefined) };
+  const methods = (calls: Recorded[]) => calls.map((c) => `${c.method} ${c.url}`);
+
+  it("finds the local public key by identity with GET only", async () => {
+    const h = harness([KEYS], withLocalKey);
+    expect(await runNode(["check"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toBe("ok ssh-key key-1 ~/.ssh/id_ed25519.pub\n");
+    expect(methods(h.calls)).toEqual(["GET https://console.example/api/ssh-keys"]);
+    expect(h.calls[0].headers.Authorization).toBe(`Bearer ${TOKEN}`);
+  });
+
+  it("fails without a POST when the local public key is not registered", async () => {
+    const h = harness([{ status: 200, body: { sshKeys: [{ id: "key-2", publicKey: "ssh-ed25519 AAAAother" }] } }], withLocalKey);
+    expect(await runNode(["check"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toMatch(/^fail ssh-key ~\/\.ssh\/id_ed25519\.pub: not registered in agro-console — .*--ssh-key <uuid>\n$/);
+    expect(h.calls.every((c) => c.method === "GET")).toBe(true);
+  });
+
+  it("fails with a remedy when the local public key file is missing and calls nothing", async () => {
+    const h = harness([KEYS]);
+    expect(await runNode(["check"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toContain(`fail ssh-key: ${LOCAL_SSH_KEY_MISSING} — run ssh-keygen -t ed25519 or pass --ssh-key <uuid>`);
+    expect(h.calls).toEqual([]);
+  });
+
+  it("finds each --ssh-key id and fails on an unknown id", async () => {
+    const h = harness([KEYS]);
+    expect(await runNode(["check", "--ssh-key", "key-2", "--ssh-key=key-9"], h.io, h.deps)).toBe(1);
+    expect(h.stdout().split("\n")).toEqual([
+      "ok ssh-key key-2",
+      "fail ssh-key key-9: not found in agro-console — pass the id of an SSH key in agro-console",
+      "",
+    ]);
+    expect(methods(h.calls)).toEqual(["GET https://console.example/api/ssh-keys"]);
+  });
+
+  it("passes the free tier check when eligible", async () => {
+    const h = harness([KEYS, { status: 200, body: { eligible: true } }]);
+    expect(await runNode(["check", "--free-tier", "--ssh-key", "key-1"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toBe("ok ssh-key key-1\nok free-tier\n");
+    expect(methods(h.calls)).toEqual([
+      "GET https://console.example/api/ssh-keys",
+      "GET https://console.example/api/free-tier",
+    ]);
+  });
+
+  it("fails the free tier check with the code and the reason from the body", async () => {
+    const h = harness([KEYS, { status: 200, body: { eligible: false, code: "FREE_TIER_INELIGIBLE", reason: "a free node is live" } }]);
+    expect(await runNode(["check", "--free-tier", "--ssh-key", "key-1"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toContain("ok ssh-key key-1\n");
+    expect(h.stdout()).toContain("fail free-tier: not eligible (FREE_TIER_INELIGIBLE: a free node is live) — run agro auth login in the personal context");
+  });
+
+  it("names onboarding and the personal context on a 403 onboarding reply", async () => {
+    const h = harness([KEYS, { status: 403, body: { error: "Onboarding required" } }]);
+    expect(await runNode(["check", "--free-tier", "--ssh-key", "key-1"], h.io, h.deps)).toBe(1);
+    expect(h.stdout()).toContain("fail free-tier: HTTP 403 no code: Onboarding required — finish agro-console onboarding, or run agro auth login in the personal context\n");
+  });
+
+  it("never sends a POST or a DELETE across every check outcome", async () => {
+    const h = harness([{ status: 200, body: { sshKeys: [] } }, { status: 200, body: { eligible: false } }], withLocalKey);
+    expect(await runNode(["check", "--free-tier"], h.io, h.deps)).toBe(1);
+    expect(h.calls.length).toBe(2);
+    expect(h.calls.map((c) => c.method)).toEqual(["GET", "GET"]);
+    expect(h.stdout()).toContain("fail free-tier: not eligible — ");
+  });
+
+  it("rejects an unknown flag before any request", async () => {
+    const h = harness([KEYS]);
+    expect(await runNode(["check", "--spec", "n4"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe('agro node check: unknown flag "--spec"\n');
+    expect(h.calls).toEqual([]);
+  });
+
+  it("lists check in the verbs and the help", () => {
+    expect(NODE_VERBS).toContain("check");
+    expect(nodeHelp("agro")).toContain("agro node check [--free-tier] [--ssh-key <uuid>]...");
   });
 });

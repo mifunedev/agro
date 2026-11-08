@@ -208,6 +208,84 @@ describe("story", () => {
   });
 });
 
+describe("external stories", () => {
+  const STOP_EXTERNAL = "Stop. The advisor sets passes on the external story when its owner completes it.";
+
+  test("an unpassed external story prints no story line and the task proceeds to close", () => {
+    fx.ready({
+      prd: basePrd({ userStories: [story("US-001"), story("US-002", { passes: false, external: true })] }),
+      lessons: null,
+    });
+    expectState(fx.run(), "close");
+  });
+
+  test("an unpassed external story does not hold back ready", () => {
+    fx.ready({ prd: basePrd({ userStories: [story("US-001"), story("US-002", { passes: false, external: true })] }) });
+    expectState(fx.run(), "ready");
+  });
+
+  test("an unpassed external story with rounds greater than 2 does not block", () => {
+    fx.ready({
+      prd: basePrd({ userStories: [story("US-001"), story("US-002", { passes: false, external: true, rounds: 3 })] }),
+    });
+    expectState(fx.run(), "ready");
+  });
+
+  test("a non-external story is dispatched before the external story", () => {
+    fx.ready({
+      prd: basePrd({
+        userStories: [story("US-001", { passes: false, external: true }), story("US-002", { passes: false })],
+      }),
+    });
+    expectState(fx.run(), "story US-002");
+  });
+
+  test("a story that depends on an unpassed external story prints blocked with the dependency", () => {
+    fx.ready({
+      prd: basePrd({
+        userStories: [
+          story("US-001", { passes: false, external: true }),
+          story("US-002", { passes: false, dependsOn: ["US-001"] }),
+        ],
+      }),
+    });
+    expectState(fx.run(), "blocked US-002 waits on external US-001", STOP_EXTERNAL);
+  });
+
+  test("a story that depends on a passed external story is dispatched", () => {
+    fx.ready({
+      prd: basePrd({
+        userStories: [
+          story("US-001", { external: true }),
+          story("US-002", { passes: false, dependsOn: ["US-001"] }),
+        ],
+      }),
+    });
+    expectState(fx.run(), "story US-002");
+  });
+
+  test("the rounds cap still blocks a non-external story", () => {
+    fx.ready({
+      prd: basePrd({
+        userStories: [story("US-001", { passes: false, external: true }), story("US-002", { passes: false, rounds: 3 })],
+      }),
+    });
+    expectState(fx.run(), "blocked US-002 exceeded 2 repair rounds", STOP_BLOCKED);
+  });
+
+  test("an unpassed story without the field is dispatched as before", () => {
+    const prd = basePrd({ userStories: [story("US-001"), story("US-002", { passes: false })] });
+    expect(prd.userStories.some((entry) => "external" in entry)).toBe(false);
+    fx.ready({ prd });
+    expectState(fx.run(), "story US-002");
+  });
+
+  test("external false behaves as a story without the field", () => {
+    fx.ready({ prd: basePrd({ userStories: [story("US-001"), story("US-002", { passes: false, external: false })] }) });
+    expectState(fx.run(), "story US-002");
+  });
+});
+
 describe("close", () => {
   test("prints close when prd.md has no Lessons section", () => {
     fx.ready({ lessons: null });

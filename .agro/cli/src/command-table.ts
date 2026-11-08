@@ -9,7 +9,7 @@ export const WORKSPACE_SUBCOMMANDS = ["create", "list"] as const;
 export const INSTALLER_SUBCOMMANDS = ["list", "install", "status", "uninstall"] as const;
 export const TOOL_SUBCOMMANDS = [...INSTALLER_SUBCOMMANDS, "setup"] as const;
 export const EGRESS_VERBS = ["log", "reload"] as const;
-export const NODE_VERBS = ["create", "list", "delete"] as const;
+export const NODE_VERBS = ["create", "list", "delete", "check"] as const;
 export const AUTH_VERBS = ["login", "status", "logout", "token"] as const;
 
 export type ConfigVerb = (typeof CONFIG_VERBS)[number];

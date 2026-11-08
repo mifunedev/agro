@@ -10,10 +10,15 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
+- Add `agro node check [--free-tier] [--ssh-key <uuid>]` to check the agro-console SSH key and free-tier eligibility without a change to the account ([#1596](https://github.com/mifunedev/agro/issues/1596)).
 - Add the remote-sandbox `checks/agro-run-matrix.sh` check (rows X01–X08) to prove the `agro run` modes on a new node ([#1594](https://github.com/mifunedev/agro/issues/1594)).
 
 ### Changed
 
+- Make `/prd` start a plan for a new runtime path with a probe story and add each central registry file to the story that adds an entry ([#1596](https://github.com/mifunedev/agro/issues/1596)).
+- Make `next.sh` track a story that has the `/prd` `external` field without blocking the plan ([#1596](https://github.com/mifunedev/agro/issues/1596)).
+- Make `/git` merge `development` into each open task branch after a release ([#1596](https://github.com/mifunedev/agro/issues/1596)).
+- Make the remote-sandbox console preflight run `agro node check` and stop before `agro node create` when the check fails ([#1596](https://github.com/mifunedev/agro/issues/1596)).
 - Make `agro tool install microsandbox` install msb 0.7.13 from the tag-pinned installer and fail on any other version ([#1594](https://github.com/mifunedev/agro/issues/1594)).
 
 ## [0.32.0] - 2026-11-08

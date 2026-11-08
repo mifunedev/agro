@@ -51,7 +51,7 @@ Host prerequisites and the CLI install are in [Installation](installation.md).
 | `agro tool setup t3-mobile <enable\|pair\|disable\|status>` | reach T3 Code from a phone over Tailscale Serve — see below |
 | `agro workspace create [<name>] [--path <dir>] [--ref <ref>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
 | `agro auth login [--url <url>]` · `agro auth status` · `agro auth logout` · `agro auth token` | sign in to agro-console and manage the console token — see below |
-| `agro node create --spec <spec> [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--free-tier] [--json]` · `agro node list [--json]` · `agro node delete <id> [--yes]` | create, list, and delete remote agro-console sandbox nodes — see below |
+| `agro node create --spec <spec> [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--free-tier] [--json]` · `agro node list [--json]` · `agro node delete <id> [--yes]` · `agro node check [--free-tier] [--ssh-key <uuid>]...` | create, list, delete, and check remote agro-console sandbox nodes — see below |
 | `agro --help` · `agro --version` | usage and version |
 
 `agro <verb> -- <args>` forwards extra arguments to `docker compose`, e.g.
@@ -519,6 +519,7 @@ agro node create --spec <spec>   # create a sandbox node, wait for running
 agro node create --spec n4 --profile agro --t3   # create an agro-profile node with T3
 agro node list                   # every node: id, name, profile, status, IPv4
 agro node delete <id>            # destroy one node after a confirmation
+agro node check --free-tier      # check the SSH key and the free tier, create nothing
 ```
 
 - Each verb finds the token and the URL in the same order as `agro auth`. If
@@ -563,6 +564,13 @@ agro node delete <id>            # destroy one node after a confirmation
   confirmation. Destroy needs the admin role in agro-console. If the console
   returns HTTP 403, the command exits 1 and prints
   `destroy needs the admin role in agro-console`.
+- `agro node check` sends only `GET` requests and creates nothing. Without
+  `--ssh-key`, the command finds `~/.ssh/id_ed25519.pub` among the console SSH
+  keys by key identity. With `--ssh-key <uuid>`, the command finds each id among
+  the console SSH keys. `--free-tier` also reads the free tier eligibility of
+  the console account. The command prints one line for each check, for example
+  `ok ssh-key <id>` or `fail free-tier: ...`. Each failure line names a remedy.
+  The command exits 0 only when each check passes. Otherwise it exits 1.
 - `--json` on `create` and `list` prints JSON instead of text.
 
 ## Langfuse tracing: `agro config langfuse` and `agro langfuse`

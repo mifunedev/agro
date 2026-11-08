@@ -31,7 +31,8 @@ If `--issue` is missing, stop and write nothing. Print this message:
       "notes": "",
       "dependsOn": [],
       "files": ["<path the story owns>"],
-      "commit": "<accepted commit>"
+      "commit": "<accepted commit>",
+      "external": false
     }
   ]
 }
@@ -40,13 +41,13 @@ If `--issue` is missing, stop and write nothing. Print this message:
 Example: folder `.agro/tasks/install-prereq-detection/`, `--issue 175`, and
 `--prefix task` give `"branchName": "task/175-install-prereq-detection"`.
 
-The story fields `dependsOn`, `files`, and `commit` are optional:
+The story fields `dependsOn`, `files`, `commit`, `rounds`, and `external` are optional:
 
 - `dependsOn`: the IDs of the stories that must pass first. The advisor uses this field to run independent stories in parallel waves.
 - `files`: the paths that the story owns. The advisor uses this field to keep parallel writers apart.
 - `commit`: the accepted commit. The advisor writes this field after acceptance.
-
 - `rounds`: the number of repair rounds for the story, as an integer. The advisor increments this field each time it reopens the story. At more than 2 rounds, `next.sh` reports `blocked`.
+- `external`: a boolean. Set `true` on a story that another agent or the operator controls. `next.sh` does not dispatch an external story. When each other story passes, the task continues to Close, push, CI, and ready. If a story in `dependsOn` is external and does not pass, `next.sh` does not dispatch the dependent story. When no other story is ready, `next.sh` reports `blocked <id> waits on external <id>`. The advisor sets `passes` on the external story when its owner completes it.
 
 The task also has optional top-level fields:
 
