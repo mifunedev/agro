@@ -19,7 +19,7 @@ vi.mock("../cli.js", async (importOriginal) => {
   return mod;
 });
 
-const { parseRunArgs, printAgroHelp } = await import("../cli.js");
+const { parseRunArgs, printAgroHelp, printRunHelp } = await import("../cli.js");
 
 const HOST_ENV: NodeJS.ProcessEnv = { AGRO_EXECUTION_TARGET: "docker-compose" };
 const SANDBOX_ENV: NodeJS.ProcessEnv = { AGRO_EXECUTION_TARGET: "local" };
@@ -150,6 +150,64 @@ describe("parseRunArgs --isolation", () => {
         error: "agro run: --isolation must be one of container, microvm",
       });
     }
+  });
+});
+
+describe("parseRunArgs --sandbox", () => {
+  it("reads --sandbox in both forms", () => {
+    for (const head of [["--sandbox", "dev"], ["--sandbox=dev"]]) {
+      expect(parseRunArgs([...head, "--", "true"])).toEqual({
+        ok: true,
+        args: { help: false, sandbox: "dev", command: ["true"] },
+      });
+    }
+  });
+
+  it("rejects a missing or empty sandbox name as a usage error", () => {
+    for (const head of [["--sandbox"], ["--sandbox="], ["--sandbox", ""]]) {
+      expect(parseRunArgs([...head, "--", "true"], "agro")).toEqual({
+        ok: false,
+        error: "agro run: --sandbox requires a sandbox name",
+      });
+    }
+  });
+
+  it("rejects --image combined with --sandbox", () => {
+    for (const head of [
+      ["--image", "img:1", "--sandbox", "dev"],
+      ["--sandbox=dev", "--image=img:1"],
+    ]) {
+      expect(parseRunArgs([...head, "--", "true"], "agro")).toEqual({
+        ok: false,
+        error: "agro run: --image cannot be combined with --sandbox",
+      });
+    }
+  });
+
+  it("combines with both isolation modes", () => {
+    expect(parseRunArgs(["--isolation", "container", "--sandbox", "dev", "--", "true"])).toEqual({
+      ok: true,
+      args: { help: false, sandbox: "dev", command: ["true"] },
+    });
+    expect(parseRunArgs(["--sandbox", "dev", "--isolation=microvm", "--", "true"])).toEqual({
+      ok: true,
+      args: { help: false, sandbox: "dev", isolation: "microvm", command: ["true"] },
+    });
+  });
+});
+
+describe("agro run --help", () => {
+  it("documents --sandbox", () => {
+    const spy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    printRunHelp("agro");
+    const text = spy.mock.calls.map((c) => String(c[0])).join("");
+    expect(text).toMatch(/^ {2}agro run .*\[--sandbox <name>\].* -- <command\.\.\.>$/m);
+    expect(text).toMatch(/^ {2}--sandbox <name> +\S/m);
+    expect(text).toMatch(/workspace of the sandbox/);
+    expect(text).toMatch(/mounts no host path/);
+    expect(text).toMatch(/leaves the sandbox running/);
+    expect(text).toMatch(/agro shell <name>/);
+    expect(text).toMatch(/--isolation microvm --sandbox <name>/);
   });
 });
 
