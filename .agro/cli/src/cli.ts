@@ -369,7 +369,7 @@ export function printRunHelp(bin: string = AGRO_PRODUCT.bin): void {
   process.stdout.write(`${bin} run — Run a command in an ephemeral container
 
 Usage:
-  ${bin} run [--isolation container|microvm] [--image <ref>] -- <command...>
+  ${bin} run [--isolation container|microvm] [--image <ref>] [--sandbox <name>] -- <command...>
 
 \`run\` starts a throwaway container, runs the command, and removes the container.
 It mounts the git repository root, or the current directory outside a repository,
@@ -386,9 +386,17 @@ access to ${KVM_DEVICE}. The image is \`--image\`, else \`run.microvm.image\` in
 ${stateNames(bin).configFile}, else the official agro-msb image for this CLI version.
 The microVM mode does not support \`run.services\` or \`access.egress: "allowlist"\` yet.
 
+With \`--sandbox <name>\`, the command runs in an existing sandbox in place of a
+throwaway one. The run uses the workspace of the sandbox, mounts no host path, and
+leaves the sandbox running. The sandbox must be running. With the default isolation,
+the target is the registered ${bin} sandbox <name>, as \`${bin} shell <name>\` uses.
+With \`--isolation microvm --sandbox <name>\`, the target is the running msb microVM
+<name>. \`--image\` cannot be combined with \`--sandbox\`.
+
 Options:
   --isolation <mode>  container (default) or microvm
   --image <ref>       Image to run the command in
+  --sandbox <name>    Existing sandbox to run the command in
   -h, --help          Show this help
 `);
 }
@@ -997,6 +1005,7 @@ export interface RunArgs {
   help: boolean;
   image?: string;
   isolation?: RunIsolation;
+  sandbox?: string;
   command: string[];
 }
 
@@ -1006,7 +1015,7 @@ export function parseRunArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): Pa
   const head = sep === -1 ? rest : rest.slice(0, sep);
   const command = sep === -1 ? [] : rest.slice(sep + 1);
   const args: RunArgs = { help: false, command };
-  let expecting: "--image" | "--isolation" | undefined;
+  let expecting: "--image" | "--isolation" | "--sandbox" | undefined;
   let isolation: string | undefined;
   for (const token of head) {
     if (expecting === "--image") {
@@ -1015,12 +1024,17 @@ export function parseRunArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): Pa
     } else if (expecting === "--isolation") {
       expecting = undefined;
       isolation = token;
-    } else if (token === "--image" || token === "--isolation") {
+    } else if (expecting === "--sandbox") {
+      expecting = undefined;
+      args.sandbox = token;
+    } else if (token === "--image" || token === "--isolation" || token === "--sandbox") {
       expecting = token;
     } else if (token.startsWith("--image=")) {
       args.image = token.slice("--image=".length);
     } else if (token.startsWith("--isolation=")) {
       isolation = token.slice("--isolation=".length);
+    } else if (token.startsWith("--sandbox=")) {
+      args.sandbox = token.slice("--sandbox=".length);
     } else if (token.startsWith("-")) {
       return { ok: false, error: `${bin} run: unknown flag "${token}"` };
     } else {
@@ -1033,6 +1047,12 @@ export function parseRunArgs(rest: string[], bin: string = AGRO_PRODUCT.bin): Pa
   }
   if (expecting === "--image" || args.image === "") {
     return { ok: false, error: `${bin} run: --image requires an image reference` };
+  }
+  if (expecting === "--sandbox" || args.sandbox === "") {
+    return { ok: false, error: `${bin} run: --sandbox requires a sandbox name` };
+  }
+  if (args.image !== undefined && args.sandbox !== undefined) {
+    return { ok: false, error: `${bin} run: --image cannot be combined with --sandbox` };
   }
   if (expecting === "--isolation" || isolation !== undefined) {
     const mode = RUN_ISOLATIONS.find((m) => m === isolation);
@@ -1437,6 +1457,7 @@ async function main(argv: string[]): Promise<number> {
         command: a.command,
         ...(a.image !== undefined ? { image: a.image } : {}),
         ...(a.isolation !== undefined ? { isolation: a.isolation } : {}),
+        ...(a.sandbox !== undefined ? { sandbox: a.sandbox } : {}),
       },
       stdio(),
     );

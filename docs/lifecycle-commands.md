@@ -36,7 +36,7 @@ Host prerequisites and the CLI install are in [Installation](installation.md).
 | `agro ps [name]` | `docker-compose.sh ps` |
 | `agro destroy [name] [--yes]` | `docker-compose.sh down -v`, then remove the registry entry — see below |
 | `agro compose config` | `docker-compose.sh config` — the resolved compose file |
-| `agro run [--isolation container\|microvm] [--image <ref>] -- <command...>` | run one command in a disposable container or microVM on the host — see below |
+| `agro run [--isolation container\|microvm] [--image <ref>] [--sandbox <name>] -- <command...>` | run one command in a disposable container or microVM, or in an existing sandbox, on the host — see below |
 | `agro egress log [name]` | print the last 1000 lines of the proxy access log; mark each denied line `DENIED` — needs `access.egress: "allowlist"` |
 | `agro egress reload [name]` | rewrite `egress-allow.txt` and send the proxy `squid -k reconfigure`; the sandbox container keeps running — needs `access.egress: "allowlist"` |
 | `agro self-upgrade [--dry-run]` (alias `agro update`) | upgrade the installed `agro` executable through the mechanism that installed it — see below |
@@ -341,6 +341,45 @@ owner and mode in the extended attribute `user.msb.override_stat`.
 
 The exit code of `agro run` is the exit code of the command. The decision is
 [ADR #1575](https://github.com/mifunedev/agro/issues/1575).
+
+### Existing sandbox: `--sandbox`
+
+Add `--sandbox <name>` to run the command in an existing sandbox. `agro run` does not
+create a disposable target. `--isolation` selects the runtime:
+
+- `agro run --sandbox <name> -- <command...>` runs the command in the registered AGRO
+  sandbox `<name>`, as `agro shell <name>` does. `agro run` runs
+  `docker exec -u sandbox`.
+- `agro run --isolation microvm --sandbox <name> -- <command...>` runs the command in
+  the running msb microVM `<name>`. `agro run` runs `msb exec -u sandbox`. Before the
+  run, `agro run` checks that `msb --version` reports exactly `0.7.13`. `agro run`
+  does not check `/dev/kvm`.
+
+In both modes, these rules apply:
+
+- The command runs as the user `sandbox` in the default working directory of the
+  sandbox. The command uses the workspace of the sandbox, not the host checkout.
+- `agro run` mounts no host path.
+- `agro run` never starts, stops, or removes the sandbox.
+- `agro run` does not apply `run.services`, `run.env`, or `access.egress`.
+- `agro run` writes no line to `microvm.jsonl`.
+- The exit code of `agro run` is the exit code of the command.
+- `agro run` runs only on the host. Inside a sandbox, `agro run` exits 1.
+
+If the sandbox is not running, `agro run` runs no command and exits 1 with one of these
+messages:
+
+```text
+agro run: sandbox <name> is not running — start it with `agro restart <name>`
+agro run: microVM <name> is not running — start it with `msb start <name>`
+```
+
+If no registered AGRO sandbox has the name `<name>`, `agro run` prints the registry
+error and exits 1.
+
+`--image` and `--sandbox` together are a usage error, because the sandbox sets the
+image. `agro run` prints `agro run: --image cannot be combined with --sandbox` and exits
+1.
 
 ## Where you are standing when you type `agro`
 

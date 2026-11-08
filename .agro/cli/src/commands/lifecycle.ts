@@ -94,7 +94,7 @@ export interface SandboxOptions extends LifecycleOptions {
   printArgv?: boolean;
 }
 
-function sandboxRoot(opts: SandboxTargetOptions): string {
+function sandboxRoot(opts: Pick<SandboxTargetOptions, "name" | "cwd">): string {
   const root = resolveSandboxRoot({ name: opts.name, cwd: opts.cwd });
   if (existsSync(agroConfigPath(root))) {
     const repo = configuredString(root, "repo");
@@ -236,10 +236,19 @@ function sandboxName(root: string): string {
   return entrySandboxName(root) ?? configuredContainerName(root) ?? DEFAULT_CONTAINER_NAME;
 }
 
+export interface SandboxTarget {
+  root: string;
+  container: string;
+}
+
+export function resolveSandboxTarget(opts: Pick<SandboxTargetOptions, "name" | "cwd">): SandboxTarget {
+  const root = sandboxRoot(opts);
+  return { root, container: sandboxName(root) };
+}
+
 export function runShell(opts: SandboxTargetOptions, io: LifecycleIO): number {
   const run = opts.run ?? spawnRunner;
-  const root = sandboxRoot(opts);
-  const name = sandboxName(root);
+  const { root, container: name } = resolveSandboxTarget(opts);
   const { runtime } = routeVerb(root, "shell", name);
   const target = resolveExecutionTarget({ projectRoot: root, container: name, run });
   let code: number;

@@ -19,7 +19,7 @@ vi.mock("../cli.js", async (importOriginal) => {
   return mod;
 });
 
-const { parseRunArgs, printAgroHelp } = await import("../cli.js");
+const { parseRunArgs, printAgroHelp, printRunHelp } = await import("../cli.js");
 
 const HOST_ENV: NodeJS.ProcessEnv = { AGRO_EXECUTION_TARGET: "docker-compose" };
 const SANDBOX_ENV: NodeJS.ProcessEnv = { AGRO_EXECUTION_TARGET: "local" };
@@ -28,6 +28,7 @@ const cleanups: string[] = [];
 afterEach(() => {
   while (cleanups.length > 0) rmSync(cleanups.pop()!, { recursive: true, force: true });
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 function tempDir(): string {
@@ -150,6 +151,64 @@ describe("parseRunArgs --isolation", () => {
         error: "agro run: --isolation must be one of container, microvm",
       });
     }
+  });
+});
+
+describe("parseRunArgs --sandbox", () => {
+  it("reads --sandbox in both forms", () => {
+    for (const head of [["--sandbox", "dev"], ["--sandbox=dev"]]) {
+      expect(parseRunArgs([...head, "--", "true"])).toEqual({
+        ok: true,
+        args: { help: false, sandbox: "dev", command: ["true"] },
+      });
+    }
+  });
+
+  it("rejects a missing or empty sandbox name as a usage error", () => {
+    for (const head of [["--sandbox"], ["--sandbox="], ["--sandbox", ""]]) {
+      expect(parseRunArgs([...head, "--", "true"], "agro")).toEqual({
+        ok: false,
+        error: "agro run: --sandbox requires a sandbox name",
+      });
+    }
+  });
+
+  it("rejects --image combined with --sandbox", () => {
+    for (const head of [
+      ["--image", "img:1", "--sandbox", "dev"],
+      ["--sandbox=dev", "--image=img:1"],
+    ]) {
+      expect(parseRunArgs([...head, "--", "true"], "agro")).toEqual({
+        ok: false,
+        error: "agro run: --image cannot be combined with --sandbox",
+      });
+    }
+  });
+
+  it("combines with both isolation modes", () => {
+    expect(parseRunArgs(["--isolation", "container", "--sandbox", "dev", "--", "true"])).toEqual({
+      ok: true,
+      args: { help: false, sandbox: "dev", command: ["true"] },
+    });
+    expect(parseRunArgs(["--sandbox", "dev", "--isolation=microvm", "--", "true"])).toEqual({
+      ok: true,
+      args: { help: false, sandbox: "dev", isolation: "microvm", command: ["true"] },
+    });
+  });
+});
+
+describe("agro run --help", () => {
+  it("documents --sandbox", () => {
+    const spy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    printRunHelp("agro");
+    const text = spy.mock.calls.map((c) => String(c[0])).join("");
+    expect(text).toMatch(/^ {2}agro run .*\[--sandbox <name>\].* -- <command\.\.\.>$/m);
+    expect(text).toMatch(/^ {2}--sandbox <name> +\S/m);
+    expect(text).toMatch(/workspace of the sandbox/);
+    expect(text).toMatch(/mounts no host path/);
+    expect(text).toMatch(/leaves the sandbox running/);
+    expect(text).toMatch(/agro shell <name>/);
+    expect(text).toMatch(/--isolation microvm --sandbox <name>/);
   });
 });
 
@@ -938,5 +997,180 @@ describe("runRun", () => {
       );
       expect(calls.filter((c) => c.cmd !== "git")).toEqual([]);
     });
+  });
+});
+
+describe("runRun --sandbox", () => {
+  function registry(name: string, config: Record<string, unknown>): string {
+    const home = tempDir();
+    vi.stubEnv("AGRO_HOME", home);
+    vi.stubEnv("SANDBOX_NAME", "");
+    const root = join(home, "sandboxes", name);
+    mkdirSync(root, { recursive: true });
+    writeFileSync(agroConfigPath(root), `${JSON.stringify({ version: 1, ...config })}\n`);
+    return root;
+  }
+
+  function sandboxRunner(state: string, exitCode = 0): { run: LifecycleRunner; calls: RecordedCall[] } {
+    const calls: RecordedCall[] = [];
+    const run: LifecycleRunner = (cmd, args, o) => {
+      calls.push({ cmd, args, stdio: o.stdio, ...(o.cwd !== undefined ? { cwd: o.cwd } : {}) });
+      if (cmd === "docker" && args[0] === "inspect") return { status: 0, stdout: `${state}\n`, stderr: "" };
+      return { status: exitCode };
+    };
+    return { run, calls };
+  }
+
+  it("execs the command as sandbox in the registered container with inherited stdio and no host cwd", async () => {
+    registry("dev", { name: "dev-box" });
+    const { run, calls } = sandboxRunner("running");
+    const code = await runRun(
+      { bin: "agro", command: ["pnpm", "test"], sandbox: "dev", cwd: tempDir(), env: HOST_ENV, run },
+      io().io,
+    );
+    expect(code).toBe(0);
+    expect(calls).toEqual([
+      { cmd: "docker", args: ["inspect", "-f", "{{.State.Status}}", "dev-box"], stdio: "capture" },
+      { cmd: "docker", args: ["exec", "-u", "sandbox", "dev-box", "pnpm", "test"], stdio: "inherit" },
+    ]);
+  });
+
+  it("passes the exit code of the command through", async () => {
+    registry("dev", { name: "dev-box" });
+    for (const exitCode of [0, 3, 42]) {
+      const { run } = sandboxRunner("running", exitCode);
+      expect(await runRun({ bin: "agro", command: ["false"], sandbox: "dev", env: HOST_ENV, run }, io().io)).toBe(exitCode);
+    }
+  });
+
+  it("exits 1 and runs no command when the sandbox is not running", async () => {
+    registry("dev", { name: "dev-box" });
+    for (const state of ["exited", "created", "paused"]) {
+      const { run, calls } = sandboxRunner(state);
+      const out = io();
+      expect(await runRun({ bin: "agro", command: ["true"], sandbox: "dev", env: HOST_ENV, run }, out.io)).toBe(1);
+      expect(out.stderr.join("")).toBe("agro run: sandbox dev is not running — start it with `agro restart dev`\n");
+      expect(calls.filter((c) => c.args[0] === "exec")).toEqual([]);
+    }
+  });
+
+  it("exits 1 with the registry error when no sandbox has the name", async () => {
+    registry("dev", { name: "dev-box" });
+    const { run, calls } = sandboxRunner("running");
+    const out = io();
+    expect(await runRun({ bin: "agro", command: ["true"], sandbox: "missing", env: HOST_ENV, run }, out.io)).toBe(1);
+    expect(out.stderr.join("")).toMatch(/^agro run: no sandbox named `missing` in .*sandboxes — create one with /);
+    expect(calls).toEqual([]);
+  });
+
+  it("ignores run.services, run.env and access.egress, and starts no network, service or proxy", async () => {
+    const cwd = tempDir();
+    writeFileSync(
+      agroConfigPath(cwd),
+      `${JSON.stringify({
+        version: 1,
+        access: { egress: "allowlist" },
+        run: { env: { A: "1" }, services: { db: { image: "postgres:16" } } },
+      })}\n`,
+    );
+    registry("dev", { name: "dev-box", access: { egress: "allowlist" }, run: { env: { A: "1" }, services: { db: { image: "postgres:16" } } } });
+    const { run, calls } = sandboxRunner("running");
+    expect(await runRun({ bin: "agro", command: ["true"], sandbox: "dev", cwd, env: HOST_ENV, run }, io().io)).toBe(0);
+    expect(calls.map((c) => [c.cmd, ...c.args])).toEqual([
+      ["docker", "inspect", "-f", "{{.State.Status}}", "dev-box"],
+      ["docker", "exec", "-u", "sandbox", "dev-box", "true"],
+    ]);
+  });
+
+  it("refuses inside a sandbox with the HostOnlyError message", async () => {
+    registry("dev", { name: "dev-box" });
+    const { run, calls } = sandboxRunner("running");
+    const out = io();
+    expect(await runRun({ bin: "agro", command: ["true"], sandbox: "dev", env: SANDBOX_ENV, run }, out.io)).toBe(1);
+    expect(out.stderr.join("")).toBe(`${new HostOnlyError("agro run").message}\n`);
+    expect(calls).toEqual([]);
+  });
+});
+
+describe("runRun --isolation microvm --sandbox", () => {
+  function vmRunner(opts: { state?: string; inspectStatus?: number; exitCode?: number }): { run: LifecycleRunner; calls: RecordedCall[] } {
+    const calls: RecordedCall[] = [];
+    const run: LifecycleRunner = (cmd, args, o) => {
+      calls.push({ cmd, args, stdio: o.stdio, ...(o.cwd !== undefined ? { cwd: o.cwd } : {}) });
+      if (cmd === "msb" && args[0] === "--version") return { status: 0, stdout: "msb 0.7.13\n" };
+      if (cmd === "msb" && args[0] === "inspect") {
+        return { status: opts.inspectStatus ?? 0, stdout: `Name:                 vm1\nStatus:               ${opts.state ?? "running"}\n` };
+      }
+      return { status: opts.exitCode ?? 0 };
+    };
+    return { run, calls };
+  }
+
+  function vmRun(run: LifecycleRunner, extra: Partial<Parameters<typeof runRun>[0]> = {}) {
+    const out = io();
+    const dir = tempDir();
+    const appendUsage = vi.fn();
+    const done = runRun(
+      { bin: "agro", command: ["sh", "-c", "exit 7"], isolation: "microvm", sandbox: "vm1", cwd: dir, env: HOST_ENV, run, appendUsage, ...extra },
+      out.io,
+    );
+    return { out, done, dir, appendUsage };
+  }
+
+  it("checks msb, execs in the running microVM with inherited stdio, and passes the exit code through", async () => {
+    const { run, calls } = vmRunner({ exitCode: 7 });
+    const { done, appendUsage } = vmRun(run);
+    expect(await done).toBe(7);
+    expect(calls).toEqual([
+      { cmd: "msb", args: ["--version"], stdio: "capture" },
+      { cmd: "msb", args: ["inspect", "vm1"], stdio: "capture" },
+      { cmd: "msb", args: ["exec", "-u", "sandbox", "vm1", "--", "sh", "-c", "exit 7"], stdio: "inherit" },
+    ]);
+    expect(appendUsage).not.toHaveBeenCalled();
+  });
+
+  it("exits 1 and runs no command when the microVM is not running or absent", async () => {
+    for (const opts of [{ state: "stopped" }, { inspectStatus: 1 }]) {
+      const { run, calls } = vmRunner(opts);
+      const { out, done } = vmRun(run);
+      expect(await done).toBe(1);
+      expect(out.stderr.join("")).toBe("agro run: microVM vm1 is not running — start it with `msb start vm1`\n");
+      expect(calls.filter((c) => c.args[0] === "exec" || c.args[0] === "rm")).toEqual([]);
+    }
+  });
+
+  it("runs no msb rm, writes no usage line, and ignores run.services and access.egress", async () => {
+    const { run, calls } = vmRunner({});
+    const out = io();
+    const dir = tempDir();
+    writeFileSync(
+      agroConfigPath(dir),
+      `${JSON.stringify({ version: 1, access: { egress: "allowlist" }, run: { services: { db: { image: "postgres:16" } } } })}\n`,
+    );
+    const usageLogPath = join(dir, "usage.jsonl");
+    const code = await runRun(
+      { bin: "agro", command: ["true"], isolation: "microvm", sandbox: "vm1", cwd: dir, env: HOST_ENV, run, usageLogPath },
+      out.io,
+    );
+    expect(code).toBe(0);
+    expect(out.stderr).toEqual([]);
+    expect(existsSync(usageLogPath)).toBe(false);
+    expect(calls.map((c) => [c.cmd, ...c.args])).toEqual([
+      ["msb", "--version"],
+      ["msb", "inspect", "vm1"],
+      ["msb", "exec", "-u", "sandbox", "vm1", "--", "true"],
+    ]);
+  });
+
+  it("exits 1 with the remedy when msb is the wrong version", async () => {
+    const calls: RecordedCall[] = [];
+    const run: LifecycleRunner = (cmd, args, o) => {
+      calls.push({ cmd, args, stdio: o.stdio });
+      return args[0] === "--version" ? { status: 0, stdout: "msb 0.8.0\n" } : { status: 0 };
+    };
+    const { out, done } = vmRun(run);
+    expect(await done).toBe(1);
+    expect(out.stderr.join("")).toMatch(/^agro run: msb reports "msb 0\.8\.0", not 0\.7\.13; install msb/);
+    expect(calls.map((c) => c.args[0])).toEqual(["--version"]);
   });
 });
