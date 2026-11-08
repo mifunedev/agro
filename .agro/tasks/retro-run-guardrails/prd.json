@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "skill/1596-retro-run-guardrails",
+  "description": "Retro run guardrails. The retro of the ADR #1575 cycle found these defects:",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "next.sh tracks an external story",
+      "description": "As an advisor, I want `next.sh` to skip an external story so that an operator-owned step does not block Close.",
+      "acceptanceCriteria": [
+        "`.agro/skills/prd/references/tracker.md` defines an optional story field `external` (boolean) for a story that another agent or the operator controls.",
+        "`.agro/skills/prd/references/tracker.md` defines an optional story field `external` (boolean). The field marks a story that another agent or the operator controls.",
+        "`.agro/skills/delegate/scripts/next.sh` treats a story with `external: true` and `passes` other than `true` as tracked. The script prints no `story <id>` line for the story, and Close, push, CI, and ready proceed.",
+        "`.agro/skills/delegate/scripts/__tests__/next.test.mjs` covers the skip, the dependency case, and a file without the field.",
+        "The `external` rule in `.agro/skills/prd/SKILL.md` names the field; US-002 owns that edit."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/delegate/scripts/next.sh",
+        ".agro/skills/delegate/scripts/__tests__/next.test.mjs",
+        ".agro/skills/delegate/scripts/__tests__/fixture.mjs",
+        ".agro/skills/prd/references/tracker.md"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Probe stories and registry callers in plans",
+      "description": "As an advisor, I want probe stories and registry owners in plans so that no worker blocks on a missed fact.",
+      "acceptanceCriteria": [
+        "`.agro/skills/prd/SKILL.md` § 5 holds a probe rule for a plan that adds a new execution environment or runtime path. The first story of that plan measures the real environment before any design story.",
+        "`.agro/skills/prd/SKILL.md` § 3 extends the caller rule to central registries, for example a verb table, a tool catalog, or a configuration field table. The advisor adds each registry file to the `files` of the story that adds an entry.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/prd/SKILL.md` reports no new finding on the changed lines."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/prd/SKILL.md"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Open branches take development after a release",
+      "description": "As an advisor, I want each open task branch to merge `development` after a release so that the changelog does not conflict at CI time.",
+      "acceptanceCriteria": [
+        "`.agro/skills/git/SKILL.md` § Releases holds a merge rule. After a release merges into `development`, the advisor merges `development` into each open task branch of the advisor before the next push of that branch.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/git/SKILL.md` reports no new finding on the changed lines."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/skills/git/SKILL.md"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "agro node check",
+      "description": "As an operator, I want a read-only node check so that a node create fails before the console creates a node.",
+      "acceptanceCriteria": [
+        "`agro node check [--free-tier] [--ssh-key <uuid>]...` calls only `GET` endpoints of the console in the stored credentials.",
+        "Without `--ssh-key`, the check finds the public key `~/.ssh/id_ed25519.pub` among `GET /api/ssh-keys` by key identity. With `--ssh-key`, the check finds each id in that list.",
+        "With `--free-tier`, the check reads `GET /api/free-tier` and fails unless `eligible` is `true`.",
+        "The check prints one line for each check and exits 0 only when each check passes. A failure names the remedy.",
+        "`NODE_VERBS` in `.agro/cli/src/command-table.ts` lists `check`, and the node help lists the verb.",
+        "Tests in `.agro/cli/src/__tests__/` cover each check, each failure, and the absence of a `POST` call.",
+        "`agro run -- pnpm typecheck` exits 0, and `agro run -- pnpm test` shows no new failure against `evidence/baseline.md`."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/commands/node.ts",
+        ".agro/cli/src/command-table.ts",
+        ".agro/cli/src/__tests__/node.test.ts",
+        "docs/lifecycle-commands.md"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Console preflight uses the node check\n\n- [ ] `console_preflight` in `.agro/skills/remote-sandbox/adapters/console.sh` runs `agro node check` with `--free-tier` unless `CONSOLE_FREE_TIER=0`. When `CONSOLE_SSH_KEY_ID` holds a value, the preflight adds `--ssh-key \"$CONSOLE_SSH_KEY_ID\"`.\n\n**Acceptance Criteria:**\n\n- [ ] `.agro/skills/remote-sandbox/SKILL.md` describes the preflight.\n- [ ] `console_create` runs `console_preflight` first and creates no node when the preflight fails.\n- [ ] `CONSOLE_SSH_IDENTITY` stays required, and the adapter sets no default identity path.\n- [ ] `.agro/skills/remote-sandbox/SKILL.md` describes the preflight.\n- [ ] `agro run -- pnpm exec vitest run .agro/scripts/__tests__/remote-sandbox-adapters.test.ts` passes with a case for the preflight failure.\n\n### US-006: Changelog and evidence",
+      "description": "As a reviewer, I want a changelog entry and a transcript so that I can confirm the node check against a live console.",
+      "acceptanceCriteria": [
+        "`CHANGELOG.md` holds entries under `## [Unreleased]` that link the task issue.",
+        "`.agro/tasks/retro-run-guardrails/evidence/manual-review.md` records `agro node check --free-tier` against the local console, with its output and exit code."
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-004"
+      ],
+      "files": [
+        ".agro/skills/remote-sandbox/adapters/console.sh",
+        ".agro/skills/remote-sandbox/SKILL.md",
+        ".agro/scripts/__tests__/remote-sandbox-adapters.test.ts"
+      ]
+    }
+  ]
+}
