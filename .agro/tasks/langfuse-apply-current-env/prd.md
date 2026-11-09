@@ -127,3 +127,7 @@ None.
 - [ ] CI workflow `ci-harness.yml` passes on the task pull request.
 
 ## Lessons
+
+- Claim: a host shell does not load the credential fragment, so a host apply alone does not export the keys. Evidence: `.devcontainer/Dockerfile` installs `.agro/install/.zshenv` only in the image. Outcome: fixed in this PR. `docs/integrations/langfuse.md` tells a host shell to source the fragment between `set -a` and `set +a`.
+- Claim: `docs/configuration.md` says that `agro langfuse apply` reads the keys from the checkout at `/home/sandbox/harness`. Evidence: `docs/configuration.md:48`. On a host, the CLI reads the `.env` of the project checkout. Outcome: dropped. The sentence describes container processes, the file is outside this PR, and the finding is not a correctness or security risk.
+- Claim: the operator-only path guard refused a direct `test -e` of the fragment path during the evidence run. Evidence: `evidence/manual-review.md`. Outcome: dropped. The CLI output `removed` and the next `status` line `absent` prove the removal, and the friction is tooling only.
