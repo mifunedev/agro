@@ -21,14 +21,15 @@
         "`pnpm run typecheck` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor re-verified on integrated task branch via agro run: (1) grep insideSandbox|hostRefusal|runningInsideSandbox in langfuse.ts count 0 executed; (2) LangfuseOptions {bin,cwd?,home?,run?} reasoned from diff; (3)(4)(5)(6) covered by langfuse.test.ts cases, vitest 35/35 exit 0 executed; (7) git grep insideSandbox in test file exit 1 and typecheck exit 0 executed; (8) help text diff reasoned; (9) vitest exit 0 executed; (10) pnpm run typecheck exit 0 executed. git grep \"exist only in the sandbox\" .agro/cli/src exit 1.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/commands/langfuse.ts",
         ".agro/cli/src/commands/__tests__/langfuse.test.ts",
         ".agro/cli/src/cli.ts"
-      ]
+      ],
+      "commit": "7737283e"
     },
     {
       "id": "US-002",
@@ -44,14 +45,15 @@
         "`bash .agro/skills/ste/scripts/ste-check.sh docs/integrations/langfuse.md` reports no finding on a changed line."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "(1) git grep \"exist only in the sandbox\" docs exit 1 executed; (2)(3)(4) reasoned from diff of docs/integrations/langfuse.md; (5) git grep \"run these verbs in the\" docs exit 1 executed; (6) one Changed entry under [Unreleased] reasoned from diff; (7) ste-check docs/integrations/langfuse.md exit 0 executed.",
       "dependsOn": [],
       "files": [
         "docs/integrations/langfuse.md",
         "docs/lifecycle-commands.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "8e7287b1"
     },
     {
       "id": "US-003",
