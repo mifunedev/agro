@@ -12,6 +12,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 - Add `agro run --sandbox <name>` to run one command in a running AGRO sandbox, or with `--isolation microvm` in a running msb microVM, with no host mount ([#1600](https://github.com/mifunedev/agro/issues/1600)).
 
+### Changed
+
+- Make `agro langfuse apply|status|disable` and `agro config langfuse` run on a host: the verbs write the credential fragment and the harness tracing files under the `$HOME` of the user who runs them, in the sandbox or on a host ([#1602](https://github.com/mifunedev/agro/issues/1602)).
+
 ## [0.33.0] - 2026-11-08
 
 ### Added

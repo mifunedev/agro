@@ -624,8 +624,8 @@ applies the configuration. Without a TTY it runs `agro langfuse apply`.
 | `agro langfuse status` | print the settings and the state of every generated file; exit non-zero on drift |
 | `agro langfuse disable` | set `langfuse.enabled=false` and delete the credential fragment |
 
-The generated files live in the sandbox home, so run these verbs in the
-sandbox. Full reference: [Langfuse](integrations/langfuse.md).
+These verbs write under the `$HOME` of the user who runs them, in the sandbox or
+on a host. Full reference: [Langfuse](integrations/langfuse.md).
 
 ## `agro destroy` and its confirmation policy
 
