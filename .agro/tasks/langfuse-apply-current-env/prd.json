@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1602-langfuse-apply-current-env",
+  "description": "Langfuse apply acts on the current environment: remove the sandbox gate so agro langfuse apply, status, and disable act on the $HOME of the CLI user.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Remove the sandbox gate from the langfuse verbs",
+      "description": "As an operator, I want the langfuse verbs to act on my `$HOME` so that I can configure tracing on a VM.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/commands/langfuse.ts` contains no `insideSandbox`, no `hostRefusal`, and no import of `runningInsideSandbox`.",
+        "`LangfuseOptions` keeps `home?: string` as the only home override and has no `insideSandbox` field.",
+        "`runLangfuseApply` with `langfuse.enabled=true` and an empty fixture home writes every generated file under that home and returns 0.",
+        "`runLangfuseStatus` checks the fragment and every generated file in every environment. Its output never contains `generated in the sandbox`.",
+        "`runLangfuseDisable` removes the fragment under the fixture home, rewrites the harness files, and returns 0.",
+        "The wizard test that expected exit 1 and the text `settings saved; run \\`agro langfuse apply\\` in the sandbox` now expects exit 0 and every path from `generatedPaths(f.home)` present.",
+        "The `sandboxOpts` fixture in `.agro/cli/src/commands/__tests__/langfuse.test.ts` has no `insideSandbox` parameter. Each caller compiles.",
+        "The `agro langfuse` help text in `.agro/cli/src/cli.ts` states that the verbs write under the `$HOME` of the CLI user. The help text makes no claim that `apply` and `disable` refuse on the host.",
+        "`pnpm exec vitest run .agro/cli/src/commands/__tests__/langfuse.test.ts` exits 0.",
+        "`pnpm run typecheck` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/commands/langfuse.ts",
+        ".agro/cli/src/commands/__tests__/langfuse.test.ts",
+        ".agro/cli/src/cli.ts"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Update the Langfuse documentation and changelog",
+      "description": "As an operator, I want the documentation to describe host and sandbox use of the langfuse verbs so that the documentation matches the CLI.",
+      "acceptanceCriteria": [
+        "`docs/integrations/langfuse.md` no longer says that `~/.claude`, `~/.pi`, and `~/.codex` exist only in the sandbox. The text no longer says that the host refuses the file work.",
+        "`docs/integrations/langfuse.md` states that the verbs write under the `$HOME` of the user who runs them, in the sandbox or on a host.",
+        "`docs/integrations/langfuse.md` tells a host shell to source `~/.config/agro/langfuse.env` between `set -a` and `set +a`. The text links to the manual configuration section.",
+        "The wizard instruction at `docs/integrations/langfuse.md:28` no longer requires the sandbox.",
+        "`docs/lifecycle-commands.md` no longer says \"run these verbs in the sandbox\" for the langfuse verbs.",
+        "`CHANGELOG.md` has one entry under `## [Unreleased]` that describes the change.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh docs/integrations/langfuse.md` reports no finding on a changed line."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        "docs/integrations/langfuse.md",
+        "docs/lifecycle-commands.md",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Record the manual review evidence",
+      "description": "As the advisor, I want a host command transcript so that the pull request shows the change through the operator entry point.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/langfuse-apply-current-env/evidence/manual-review.md` holds a transcript of the worktree build of `agro langfuse apply`, `status`, and `disable` on the host. Each command sets `HOME` inline to a new temp directory.",
+        "The transcript shows `apply` exit 0 and the files that it wrote under the temp `HOME`.",
+        "The transcript shows `status` exit 0. Each file shows the state `current`.",
+        "The transcript shows `disable` exit 0 and the fragment removed.",
+        "The story restores `langfuse.enabled` in `agro.json` to its value before the run, and deletes the temp `HOME`.",
+        "The story writes no env file and reads no env file directly."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/langfuse-apply-current-env/evidence/manual-review.md"
+      ]
+    }
+  ]
+}
