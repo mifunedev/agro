@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "feat/1602-langfuse-apply-current-env",
+  "description": "Langfuse apply acts on the current environment: remove the sandbox gate so agro langfuse apply, status, and disable act on the $HOME of the CLI user.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Remove the sandbox gate from the langfuse verbs",
+      "description": "As an operator, I want the langfuse verbs to act on my `$HOME` so that I can configure tracing on a VM.",
+      "acceptanceCriteria": [
+        "`.agro/cli/src/commands/langfuse.ts` contains no `insideSandbox`, no `hostRefusal`, and no import of `runningInsideSandbox`.",
+        "`LangfuseOptions` keeps `home?: string` as the only home override and has no `insideSandbox` field.",
+        "`runLangfuseApply` with `langfuse.enabled=true` and an empty fixture home writes every generated file under that home and returns 0.",
+        "`runLangfuseStatus` checks the fragment and every generated file in every environment. Its output never contains `generated in the sandbox`.",
+        "`runLangfuseDisable` removes the fragment under the fixture home, rewrites the harness files, and returns 0.",
+        "The wizard test that expected exit 1 and the text `settings saved; run \\`agro langfuse apply\\` in the sandbox` now expects exit 0 and every path from `generatedPaths(f.home)` present.",
+        "The `sandboxOpts` fixture in `.agro/cli/src/commands/__tests__/langfuse.test.ts` has no `insideSandbox` parameter. Each caller compiles.",
+        "The `agro langfuse` help text in `.agro/cli/src/cli.ts` states that the verbs write under the `$HOME` of the CLI user. The help text makes no claim that `apply` and `disable` refuse on the host.",
+        "`pnpm exec vitest run .agro/cli/src/commands/__tests__/langfuse.test.ts` exits 0.",
+        "`pnpm run typecheck` exits 0."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Advisor re-verified on integrated task branch via agro run: (1) grep insideSandbox|hostRefusal|runningInsideSandbox in langfuse.ts count 0 executed; (2) LangfuseOptions {bin,cwd?,home?,run?} reasoned from diff; (3)(4)(5)(6) covered by langfuse.test.ts cases, vitest 35/35 exit 0 executed; (7) git grep insideSandbox in test file exit 1 and typecheck exit 0 executed; (8) help text diff reasoned; (9) vitest exit 0 executed; (10) pnpm run typecheck exit 0 executed. git grep \"exist only in the sandbox\" .agro/cli/src exit 1.",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/commands/langfuse.ts",
+        ".agro/cli/src/commands/__tests__/langfuse.test.ts",
+        ".agro/cli/src/cli.ts"
+      ],
+      "commit": "7737283e"
+    },
+    {
+      "id": "US-002",
+      "title": "Update the Langfuse documentation and changelog",
+      "description": "As an operator, I want the documentation to describe host and sandbox use of the langfuse verbs so that the documentation matches the CLI.",
+      "acceptanceCriteria": [
+        "`docs/integrations/langfuse.md` no longer says that `~/.claude`, `~/.pi`, and `~/.codex` exist only in the sandbox. The text no longer says that the host refuses the file work.",
+        "`docs/integrations/langfuse.md` states that the verbs write under the `$HOME` of the user who runs them, in the sandbox or on a host.",
+        "`docs/integrations/langfuse.md` tells a host shell to source `~/.config/agro/langfuse.env` between `set -a` and `set +a`. The text links to the manual configuration section.",
+        "The wizard instruction at `docs/integrations/langfuse.md:28` no longer requires the sandbox.",
+        "`docs/lifecycle-commands.md` no longer says \"run these verbs in the sandbox\" for the langfuse verbs.",
+        "`CHANGELOG.md` has one entry under `## [Unreleased]` that describes the change.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh docs/integrations/langfuse.md` reports no finding on a changed line."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "(1) git grep \"exist only in the sandbox\" docs exit 1 executed; (2)(3)(4) reasoned from diff of docs/integrations/langfuse.md; (5) git grep \"run these verbs in the\" docs exit 1 executed; (6) one Changed entry under [Unreleased] reasoned from diff; (7) ste-check docs/integrations/langfuse.md exit 0 executed.",
+      "dependsOn": [],
+      "files": [
+        "docs/integrations/langfuse.md",
+        "docs/lifecycle-commands.md",
+        "CHANGELOG.md"
+      ],
+      "commit": "8e7287b1"
+    },
+    {
+      "id": "US-003",
+      "title": "Record the manual review evidence",
+      "description": "As the advisor, I want a host command transcript so that the pull request shows the change through the operator entry point.",
+      "acceptanceCriteria": [
+        "`.agro/tasks/langfuse-apply-current-env/evidence/manual-review.md` holds a transcript of the worktree build of `agro langfuse apply`, `status`, and `disable` on the host. Each command sets `HOME` inline to a new temp directory.",
+        "The transcript shows `apply` exit 0 and the files that it wrote under the temp `HOME`.",
+        "The transcript shows `status` exit 0. Each file shows the state `current`.",
+        "The transcript shows `disable` exit 0 and the fragment removed.",
+        "The story restores `langfuse.enabled` in `agro.json` to its value before the run, and deletes the temp `HOME`.",
+        "The story writes no env file and reads no env file directly."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Advisor read evidence/manual-review.md: (1) host node runs dist/agro.js apply/status/disable with HOME inline to new mktemp -u path, reasoned from transcript; (2) apply exit=0, four wrote lines, find lists four files; (3) status exit=0, four current; (4) disable exit=0, removed fragment, follow-up status absent (direct test -e refused by path guard, not bypassed); (5) git diff agro.json identical blob a77689ee after restore, advisor re-ran diff; /tmp/agro-lf-home.* absent (ls exit 2) executed; (6) reasoned: no env write, CLI alone read dotenv.",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/langfuse-apply-current-env/evidence/manual-review.md"
+      ],
+      "commit": "0e0a26ee"
+    }
+  ],
+  "pr": 1603
+}

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import {
   BASE_URL_CHOICES,
   runLangfuseApply,
+  runLangfuseDisable,
   runLangfuseSetup,
   runLangfuseStatus,
   type LangfuseIO,
@@ -64,10 +65,9 @@ const noHarnesses: LifecycleRunner = () => ({ status: null, error: { code: "ENOE
 
 function sandboxOpts(
   f: Fixture,
-  insideSandbox = true,
   run: LifecycleRunner = noHarnesses,
-): { bin: string; cwd: string; home: string; insideSandbox: boolean; run: LifecycleRunner } {
-  return { bin: "agro", cwd: f.root, home: f.home, insideSandbox, run };
+): { bin: string; cwd: string; home: string; run: LifecycleRunner } {
+  return { bin: "agro", cwd: f.root, home: f.home, run };
 }
 
 interface Call {
@@ -134,6 +134,31 @@ function generatedPaths(home: string): string[] {
   return [langfuseFragmentPath(home), claudeCodeSettingsPath(home), piTracingConfigPath(home), codexTracingConfigPath(home)];
 }
 
+describe("agro langfuse apply", () => {
+  it("writes every generated file into an empty home and exits 0", async () => {
+    const f = makeFixture(ENABLED);
+    const { io, out, err } = makeIo();
+    expect(await runLangfuseApply(sandboxOpts(f), io)).toBe(0);
+    for (const path of generatedPaths(f.home)) expect(existsSync(path)).toBe(true);
+    expect(out.join("").match(/^wrote/gm)).toHaveLength(4);
+    expect(err).toEqual([]);
+  });
+});
+
+describe("agro langfuse disable", () => {
+  it("removes the fragment under the current home, rewrites the harness files, and exits 0", async () => {
+    const f = makeFixture(ENABLED);
+    await runLangfuseApply(sandboxOpts(f), makeIo().io);
+    const { io, out } = makeIo();
+    expect(await runLangfuseDisable(sandboxOpts(f), io)).toBe(0);
+    expect(langfuseSection(f.root).enabled).toBe(false);
+    expect(existsSync(langfuseFragmentPath(f.home))).toBe(false);
+    expect(out.join("")).toContain("removed   ~/.config/agro/langfuse.env");
+    expect(JSON.parse(readFileSync(codexTracingConfigPath(f.home), "utf8")).enabled).toBe(false);
+    for (const path of generatedPaths(f.home).slice(1)) expect(existsSync(path)).toBe(true);
+  });
+});
+
 describe("agro langfuse status", () => {
   it("prints the resolved settings and redacted keys, and reports every file current after apply", async () => {
     const f = makeFixture(ENABLED);
@@ -156,7 +181,7 @@ describe("agro langfuse status", () => {
   it("reports not-set keys without a value and defaults for unset fields", async () => {
     const f = makeFixture({ enabled: true }, { keys: false });
     const { io, out } = makeIo();
-    await runLangfuseStatus(sandboxOpts(f, false), io);
+    await runLangfuseStatus(sandboxOpts(f), io);
     const text = out.join("");
     expect(text).toContain("baseUrl:      https://cloud.langfuse.com (default)");
     expect(text).toContain("environment:  demo (default)");
@@ -224,12 +249,17 @@ describe("agro langfuse status", () => {
     expect(err).toEqual([]);
   });
 
-  it("on the host prints the settings and defers the file check to the sandbox", async () => {
+  it("checks the generated files under the current home and never defers to the sandbox", async () => {
     const f = makeFixture(ENABLED);
-    const { io, out } = makeIo();
-    expect(await runLangfuseStatus(sandboxOpts(f, false), io)).toBe(0);
-    expect(out.join("")).toContain("generated in the sandbox");
-    expect(out.join("")).not.toMatch(/missing/);
+    const before = makeIo();
+    expect(await runLangfuseStatus(sandboxOpts(f), before.io)).toBe(1);
+    expect(before.out.join("").match(/^  missing/gm)).toHaveLength(4);
+    expect(before.all()).not.toContain("generated in the sandbox");
+    await runLangfuseApply(sandboxOpts(f), makeIo().io);
+    const after = makeIo();
+    expect(await runLangfuseStatus(sandboxOpts(f), after.io)).toBe(0);
+    expect(after.out.join("").match(/^  current/gm)).toHaveLength(4);
+    expect(after.all()).not.toContain("generated in the sandbox");
   });
 
   it("reports disabled and confirms the fragment is absent, exiting 0", async () => {
@@ -266,7 +296,7 @@ describe("agro config langfuse wizard", () => {
     const step = vi.spyOn(prompt, "step").mockImplementation(() => {});
     const { run, calls } = healthOnly();
     const { io, asked, out } = wizardIo([""]);
-    expect(await runLangfuseSetup(sandboxOpts(f, true, run), io)).toBe(0);
+    expect(await runLangfuseSetup(sandboxOpts(f, run), io)).toBe(0);
     expect(asked[0]).toContain("[y/N]");
     expect(step).toHaveBeenCalledWith(1, 5, "Enable");
     expect(step).toHaveBeenCalledTimes(1);
@@ -297,7 +327,7 @@ describe("agro config langfuse wizard", () => {
     const step = vi.spyOn(prompt, "step").mockImplementation(() => {});
     const { run, calls } = healthOnly();
     const { io, asked, all } = wizardIo(["n"]);
-    expect(await runLangfuseSetup(sandboxOpts(f, true, run), io)).toBe(0);
+    expect(await runLangfuseSetup(sandboxOpts(f, run), io)).toBe(0);
     expect(asked).toEqual(["Langfuse tracing is enabled. Keep it enabled? [Y/n]"]);
     expect(step).toHaveBeenCalledTimes(1);
     expect(calls).toEqual([]);
@@ -316,7 +346,7 @@ describe("agro config langfuse wizard", () => {
     silenceTerminal();
     const { run } = healthOnly();
     const { io, asked } = wizardIo(["", "", "", "", "", "", ""]);
-    expect(await runLangfuseSetup(sandboxOpts(f, true, run), io)).toBe(0);
+    expect(await runLangfuseSetup(sandboxOpts(f, run), io)).toBe(0);
     expect(asked[0]).toBe("Langfuse tracing is enabled. Keep it enabled? [Y/n]");
     expect(langfuseSection(f.root)).toEqual(ENABLED);
   });
@@ -332,7 +362,7 @@ describe("agro config langfuse wizard", () => {
       return curlOk;
     });
     const { io, asked, askedSecret, all } = wizardIo(["y", "2", "", "ryan"], [PUBLIC_KEY, SECRET_KEY]);
-    expect(await runLangfuseSetup(sandboxOpts(f, true, run), io)).toBe(0);
+    expect(await runLangfuseSetup(sandboxOpts(f, run), io)).toBe(0);
 
     expect(step.mock.calls.map((c) => c[0])).toEqual([1, 2, 3, 4, 5]);
     expect(step.mock.calls.every((c) => c[1] === 5)).toBe(true);
@@ -374,7 +404,7 @@ describe("agro config langfuse wizard", () => {
     silenceTerminal();
     const { run } = healthOnly();
     const { io, asked } = wizardIo(["y", "4", "langfuse.example", "https://lf.example.com/", "", ""], [PUBLIC_KEY, SECRET_KEY]);
-    expect(await runLangfuseSetup(sandboxOpts(f, true, run), io)).toBe(0);
+    expect(await runLangfuseSetup(sandboxOpts(f, run), io)).toBe(0);
     expect(asked.filter((q) => q.startsWith("Langfuse base URL"))).toHaveLength(2);
     expect(langfuseSection(f.root).baseUrl).toBe("https://lf.example.com");
   });
@@ -384,7 +414,7 @@ describe("agro config langfuse wizard", () => {
     silenceTerminal();
     const { run } = healthOnly();
     const { io, asked, out } = wizardIo(["y", "9", "", "", ""], [PUBLIC_KEY, SECRET_KEY]);
-    expect(await runLangfuseSetup(sandboxOpts(f, true, run), io)).toBe(0);
+    expect(await runLangfuseSetup(sandboxOpts(f, run), io)).toBe(0);
     expect(asked[1]).toContain("[3]:");
     expect(out.join("")).toContain("Invalid choice");
     expect(langfuseSection(f.root).baseUrl).toBe("http://langfuse-web:3000");
@@ -396,7 +426,7 @@ describe("agro config langfuse wizard", () => {
     const before = readFileSync(join(f.root, ".env"), "utf8");
     const { run } = healthOnly();
     const { io, asked, askedSecret, all } = wizardIo(["", "", "", "", "", "", ""]);
-    expect(await runLangfuseSetup(sandboxOpts(f, true, run), io)).toBe(0);
+    expect(await runLangfuseSetup(sandboxOpts(f, run), io)).toBe(0);
     expect(all()).toContain(`LANGFUSE_PUBLIC_KEY: currently ${prompt.redact(PUBLIC_KEY)}`);
     expect(all()).toContain(`LANGFUSE_SECRET_KEY: currently ${prompt.redact(SECRET_KEY)}`);
     expect(asked.filter((q) => q.startsWith("Keep the current"))).toHaveLength(2);
@@ -413,7 +443,7 @@ describe("agro config langfuse wizard", () => {
     const rotated = "pk-lf-rotated0000000000";
     const { run } = healthOnly();
     const { io, all } = wizardIo(["", "", "", "n", "", "", ""], [rotated]);
-    expect(await runLangfuseSetup(sandboxOpts(f, true, run), io)).toBe(0);
+    expect(await runLangfuseSetup(sandboxOpts(f, run), io)).toBe(0);
     expect(readFileSync(join(f.root, ".env"), "utf8")).toContain(`LANGFUSE_PUBLIC_KEY=${rotated}`);
     expect(readFileSync(join(f.root, ".env"), "utf8")).toContain(`LANGFUSE_SECRET_KEY=${SECRET_KEY}`);
     expect(all()).not.toContain(rotated);
@@ -425,7 +455,7 @@ describe("agro config langfuse wizard", () => {
     silenceTerminal();
     const { run } = healthOnly();
     const { io, all } = wizardIo(["y", "1", "", ""], ["", SECRET_KEY]);
-    expect(await runLangfuseSetup(sandboxOpts(f, true, run), io)).toBe(1);
+    expect(await runLangfuseSetup(sandboxOpts(f, run), io)).toBe(1);
     expect(all()).toContain("agro secret set LANGFUSE_PUBLIC_KEY");
     expect(listSecretKeys(f.root)).toEqual(["LANGFUSE_SECRET_KEY"]);
     expect(langfuseSection(f.root).enabled).toBe(true);
@@ -436,7 +466,7 @@ describe("agro config langfuse wizard", () => {
     silenceTerminal();
     const { run } = healthOnly(curlFail);
     const { io, asked, err, out } = wizardIo(["y", "1", "", "", "n"], [PUBLIC_KEY, SECRET_KEY]);
-    expect(await runLangfuseSetup(sandboxOpts(f, true, run), io)).toBe(0);
+    expect(await runLangfuseSetup(sandboxOpts(f, run), io)).toBe(0);
     expect(err.join("")).toContain("warning: GET https://cloud.langfuse.com/api/public/health failed");
     expect(err.join("")).toContain("may resolve only from inside the sandbox");
     expect(asked[asked.length - 1]).toContain("Save the configuration anyway? [Y/n]");
@@ -451,21 +481,21 @@ describe("agro config langfuse wizard", () => {
     silenceTerminal();
     const { run } = fakeRunner((cmd) => (cmd === "curl" ? { status: null, error: { code: "ENOENT", message: "spawn curl ENOENT" } } : undefined));
     const { io, err } = wizardIo(["y", "1", "", "", ""], [PUBLIC_KEY, SECRET_KEY]);
-    expect(await runLangfuseSetup(sandboxOpts(f, true, run), io)).toBe(0);
+    expect(await runLangfuseSetup(sandboxOpts(f, run), io)).toBe(0);
     expect(err.join("")).toContain("warning: GET");
     expect(langfuseSection(f.root).enabled).toBe(true);
     expect(existsSync(langfuseFragmentPath(f.home))).toBe(true);
   });
 
-  it("on the host saves the settings and relays apply's sandbox-only refusal", async () => {
+  it("saves the settings and writes every generated file under the current home", async () => {
     const f = makeFixture({}, { keys: false });
     silenceTerminal();
     const { run } = healthOnly();
-    const { io, err } = wizardIo(["y", "1", "", ""], [PUBLIC_KEY, SECRET_KEY]);
-    expect(await runLangfuseSetup(sandboxOpts(f, false, run), io)).toBe(1);
+    const { io, all } = wizardIo(["y", "1", "", ""], [PUBLIC_KEY, SECRET_KEY]);
+    expect(await runLangfuseSetup(sandboxOpts(f, run), io)).toBe(0);
     expect(langfuseSection(f.root).enabled).toBe(true);
-    expect(err.join("")).toContain("settings saved; run `agro langfuse apply` in the sandbox");
-    for (const path of generatedPaths(f.home)) expect(existsSync(path)).toBe(false);
+    expect(all()).not.toContain("in the sandbox or restart it");
+    for (const path of generatedPaths(f.home)) expect(existsSync(path)).toBe(true);
   });
 });
 
@@ -493,7 +523,7 @@ describe("US-013 plugin detection", () => {
     await runLangfuseApply(sandboxOpts(f), applyIo);
     const { run } = listings(CLAUDE_LIST_WITH, PI_LIST_WITHOUT, { status: 1, stdout: "", stderr: "boom" });
     const { io, out } = makeIo();
-    expect(await runLangfuseStatus(sandboxOpts(f, true, run), io)).toBe(0);
+    expect(await runLangfuseStatus(sandboxOpts(f, run), io)).toBe(0);
     const text = out.join("");
     expect(text).toContain("plugins:\n");
     expect(text).toMatch(/installed +Claude Code \(langfuse-observability@langfuse-observability\)/);
@@ -517,11 +547,11 @@ describe("US-013 plugin detection", () => {
     await runLangfuseApply(sandboxOpts(f), applyIo);
     const { run } = listings(undefined, undefined, CODEX_LIST_WITHOUT);
     const { io, out } = makeIo();
-    await runLangfuseStatus(sandboxOpts(f, true, run), io);
+    await runLangfuseStatus(sandboxOpts(f, run), io);
     expect(out.join("")).toMatch(/missing +Codex/);
     const installed = listings(undefined, undefined, CODEX_LIST_WITH);
     const second = makeIo();
-    await runLangfuseStatus(sandboxOpts(f, true, installed.run), second.io);
+    await runLangfuseStatus(sandboxOpts(f, installed.run), second.io);
     expect(second.out.join("")).toMatch(/installed +Codex/);
   });
 
@@ -534,7 +564,7 @@ describe("US-013 plugin detection", () => {
       return { status: null, error: { code: "ENOENT" } };
     };
     const { io, out } = makeIo();
-    expect(await runLangfuseStatus(sandboxOpts(f, true, run), io)).toBe(0);
+    expect(await runLangfuseStatus(sandboxOpts(f, run), io)).toBe(0);
     expect(out.join("")).toMatch(/unknown +Claude Code/);
   });
 
@@ -543,7 +573,7 @@ describe("US-013 plugin detection", () => {
     const { run, calls } = listings(CLAUDE_LIST_WITHOUT, PI_LIST_WITHOUT, CODEX_LIST_WITHOUT);
     const ask = vi.spyOn(prompt, "ask").mockRejectedValue(new Error("prompted"));
     const { io } = makeIo();
-    expect(await runLangfuseApply(sandboxOpts(f, true, run), io)).toBe(0);
+    expect(await runLangfuseApply(sandboxOpts(f, run), io)).toBe(0);
     expect(calls).toEqual([]);
     expect(ask).not.toHaveBeenCalled();
   });
@@ -553,7 +583,7 @@ describe("US-013 plugin detection", () => {
     silenceTerminal();
     const { run, calls } = listings(CLAUDE_LIST_WITHOUT, PI_LIST_WITH, CODEX_LIST_WITH);
     const { io, asked, out } = wizardIo(["", "", "", "", "", "", "", ""]);
-    expect(await runLangfuseSetup(sandboxOpts(f, true, run), io)).toBe(0);
+    expect(await runLangfuseSetup(sandboxOpts(f, run), io)).toBe(0);
     const text = out.join("");
     expect(text).toContain("claude plugin marketplace add langfuse/Claude-Observability-Plugin");
     expect(text).toContain("claude plugin install langfuse-observability@langfuse-observability");
@@ -571,7 +601,7 @@ describe("US-013 plugin detection", () => {
     silenceTerminal();
     const { run, calls } = listings(CLAUDE_LIST_WITHOUT, PI_LIST_WITHOUT, CODEX_LIST_WITHOUT);
     const { io, err, asked } = wizardIo(["", "", "", "", "", "", "", "y", "y", "n"]);
-    expect(await runLangfuseSetup(sandboxOpts(f, true, run), io)).toBe(0);
+    expect(await runLangfuseSetup(sandboxOpts(f, run), io)).toBe(0);
     const installs = calls.filter((c) => c.stdio === "inherit").map((c) => [c.cmd, ...c.args].join(" "));
     expect(installs).toEqual([
       "claude plugin marketplace add langfuse/Claude-Observability-Plugin",
@@ -592,7 +622,7 @@ describe("US-013 plugin detection", () => {
     silenceTerminal();
     const { run, calls } = listings(CLAUDE_LIST_WITHOUT, undefined, undefined, { status: 1 });
     const { io, err } = wizardIo(["", "", "", "", "", "", "", "y"]);
-    expect(await runLangfuseSetup(sandboxOpts(f, true, run), io)).toBe(0);
+    expect(await runLangfuseSetup(sandboxOpts(f, run), io)).toBe(0);
     expect(calls.filter((c) => c.stdio === "inherit")).toHaveLength(1);
     expect(err.join("")).toContain("`claude plugin marketplace add langfuse/Claude-Observability-Plugin` failed (exit 1)");
     expect(err.join("")).toContain("the saved configuration is intact");

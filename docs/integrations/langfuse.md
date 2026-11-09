@@ -25,7 +25,7 @@ trace as data that leaves the sandbox.
 
 ## ⚡ Configure Langfuse in one command
 
-Run the wizard in the sandbox:
+Run the wizard in the sandbox or on a host:
 
 ```bash
 agro config langfuse
@@ -133,10 +133,22 @@ configuration](#-manual-configuration).
 configuration survives `agro destroy` and a recreate. A failed apply prints a
 warning and the boot continues.
 
-`~/.claude`, `~/.pi`, and `~/.codex` exist only in the sandbox. On the host the
-wizard and `agro langfuse disable` save the settings, then refuse the file work
-and name the sandbox command. `agro langfuse status` prints the settings and
-says that the files live in the sandbox.
+The wizard and the `agro langfuse` verbs write under the `$HOME` of the user who
+runs them, in the sandbox or on a host. The credential fragment goes to
+`~/.config/agro/langfuse.env`. The tracing files go to `~/.claude`, `~/.pi`, and
+`~/.codex`.
+
+On a host, no shell sources the fragment automatically. Source it between
+`set -a` and `set +a`, so that the shell exports every key:
+
+```bash
+set -a
+. ~/.config/agro/langfuse.env
+set +a
+```
+
+To keep the keys in your shell profile instead, see [manual
+configuration](#-manual-configuration).
 
 ## 🩺 Check the state
 
@@ -267,7 +279,7 @@ LANGFUSE_CODEX_DEBUG=true codex    # Codex
 | --- | --- |
 | No traces from any harness | Run `agro langfuse status`. A missing fragment or a missing plugin shows there. Restart the harness after any change. |
 | `status` reports `drifted` or `missing` | `agro.json` changed after the last render. Run `agro langfuse apply`. |
-| `status` exits 1 on a disabled sandbox | Tracing is off and the credential fragment survives. Run `agro langfuse disable`. |
+| `status` exits 1 with tracing off | Tracing is off and the credential fragment survives. Run `agro langfuse disable`. |
 | Traces continue after `agro langfuse disable` | The running harness keeps the values it loaded. Restart every harness session. |
 | One harness lags after a key rotation | A second copy of the keys outranks `.env`. Delete the copy and run `agro config langfuse` again. |
 | Codex shows no hook | Codex does not trust the `Stop` hook. Start `codex` interactively and approve the hook. |

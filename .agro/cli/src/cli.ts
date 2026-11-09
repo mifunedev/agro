@@ -219,8 +219,8 @@ Usage:
 \`${bin} config langfuse\` is the interactive wizard that writes these settings.
 \`apply\` never prompts and never installs anything; the bootstrap runs it.
 It reads langfuse.* from ${stateNames(bin).configFile} and the keys from the gitignored .env,
-and writes nothing when langfuse.enabled is not true. The generated files live in the
-sandbox home, so \`apply\` and \`disable\` refuse to touch them from the host.
+and writes nothing when langfuse.enabled is not true. Each verb writes under the $HOME
+of the user who runs it.
 
 \`status\` exits non-zero when a generated file is missing or differs from a fresh render,
 so it works as a check. \`disable\` keeps the non-secret settings and the .env keys, so

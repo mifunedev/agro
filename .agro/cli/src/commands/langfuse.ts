@@ -2,7 +2,6 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync,
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { setConfigField } from "../lib/env-file.js";
-import { runningInsideSandbox } from "../lib/execution/detect.js";
 import { messageOf, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import { HARNESS_CATALOG, type HarnessEntry } from "../lib/harnesses/catalog.js";
 import { agroConfigPath, readAgroConfig, writeAgroConfig, type LangfuseSettings } from "../lib/agro-config.js";
@@ -28,7 +27,6 @@ export interface LangfuseOptions {
   bin: string;
   cwd?: string;
   home?: string;
-  insideSandbox?: boolean;
   run?: LifecycleRunner;
 }
 
@@ -163,14 +161,12 @@ export interface ResolvedLangfuse {
 interface Context {
   readonly root: string;
   readonly home: string;
-  readonly insideSandbox: boolean;
 }
 
 function context(opts: LangfuseOptions): Context {
   return {
     root: resolveProjectRoot(opts.cwd),
     home: opts.home ?? homedir(),
-    insideSandbox: opts.insideSandbox ?? runningInsideSandbox(),
   };
 }
 
@@ -194,13 +190,6 @@ function tracingHarnesses(): (HarnessEntry & { tracingWriter: NonNullable<Harnes
   return HARNESS_CATALOG.filter(
     (entry): entry is HarnessEntry & { tracingWriter: NonNullable<HarnessEntry["tracingWriter"]> } =>
       entry.tracingWriter !== undefined,
-  );
-}
-
-function hostRefusal(bin: string): string {
-  return (
-    `~/.claude and ~/.pi exist only in the sandbox — settings saved; ` +
-    `run \`${bin} langfuse apply\` in the sandbox or restart it\n`
   );
 }
 
@@ -300,10 +289,6 @@ export async function runLangfuseApply(opts: LangfuseOptions, io: LangfuseIO): P
     io.stdout(`langfuse: not configured (langfuse.enabled is not true in agro.json) — nothing written\n`);
     return 0;
   }
-  if (!ctx.insideSandbox) {
-    io.stderr(`${opts.bin} langfuse apply: ${hostRefusal(opts.bin)}`);
-    return 1;
-  }
   return renderAll(ctx, resolved, io, opts.bin, "apply");
 }
 
@@ -334,11 +319,6 @@ export async function runLangfuseStatus(opts: LangfuseOptions, io: LangfuseIO): 
   if (state === undefined) return 1;
   const { ctx, resolved } = state;
   printResolved(resolved, ctx.root, io);
-
-  if (!ctx.insideSandbox) {
-    io.stdout(`files: generated in the sandbox — run \`${opts.bin} langfuse status\` there to check them\n`);
-    return 0;
-  }
 
   const fragment = langfuseFragmentPath(ctx.home);
   if (!resolved.enabled) {
@@ -392,11 +372,6 @@ export async function runLangfuseDisable(opts: LangfuseOptions, io: LangfuseIO):
     return 1;
   }
   io.stdout("agro.json: set langfuse.enabled=false (other langfuse settings and .env keys retained)\n");
-
-  if (!ctx.insideSandbox) {
-    io.stderr(`${opts.bin} langfuse disable: ${hostRefusal(opts.bin)}`);
-    return 1;
-  }
 
   const fragment = langfuseFragmentPath(ctx.home);
   if (existsSync(fragment)) {
