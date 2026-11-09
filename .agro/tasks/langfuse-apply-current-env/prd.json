@@ -68,15 +68,16 @@
         "The story writes no env file and reads no env file directly."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Advisor read evidence/manual-review.md: (1) host node runs dist/agro.js apply/status/disable with HOME inline to new mktemp -u path, reasoned from transcript; (2) apply exit=0, four wrote lines, find lists four files; (3) status exit=0, four current; (4) disable exit=0, removed fragment, follow-up status absent (direct test -e refused by path guard, not bypassed); (5) git diff agro.json identical blob a77689ee after restore, advisor re-ran diff; /tmp/agro-lf-home.* absent (ls exit 2) executed; (6) reasoned: no env write, CLI alone read dotenv.",
       "dependsOn": [
         "US-001",
         "US-002"
       ],
       "files": [
         ".agro/tasks/langfuse-apply-current-env/evidence/manual-review.md"
-      ]
+      ],
+      "commit": "0e0a26ee"
     }
   ]
 }
