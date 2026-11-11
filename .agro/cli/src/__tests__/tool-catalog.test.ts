@@ -766,15 +766,43 @@ describe("desktop serves XFCE over XRDP through Tailscale only", () => {
     const verify = dt.verifyArgv.join(" ");
     expect(verify).toContain("command -v xrdp >/dev/null");
     expect(verify).toContain("systemctl is-enabled --quiet xrdp");
-    expect(verify).toContain("systemctl is-enabled --quiet tailscaled");
+    expect(verify).toContain(
+      "{ systemctl is-enabled --quiet tailscaled || systemctl is-enabled --quiet agro-tailscaled; }",
+    );
     expect(verify).toContain(`test -f ${DROP_IN}`);
     expect(verify).toContain('grep -qx xfce4-session "$HOME/.xsession"');
   });
 
+  describe.each([
+    { enabled: ["tailscaled"], status: 0 },
+    { enabled: ["agro-tailscaled"], status: 0 },
+    { enabled: [], status: 1 },
+  ])("the Tailscale verify clause with $enabled enabled", ({ enabled, status }) => {
+    const dirs: string[] = [];
+    afterEach(() => {
+      while (dirs.length > 0) rmSync(dirs.pop()!, { recursive: true, force: true });
+    });
+
+    it(`exits ${status}`, () => {
+      const clause = dt.verifyArgv[2].split(" && ").find((c) => c.includes("tailscaled"))!;
+      const dir = mkdtempSync(join(tmpdir(), "agro-desktop-verify-"));
+      dirs.push(dir);
+      const units = enabled.map((u) => `"is-enabled --quiet ${u}"`).join(" ");
+      writeFileSync(
+        join(dir, "systemctl"),
+        `#!/bin/sh\nfor u in ${units}; do [ "$*" = "$u" ] && exit 0; done\nexit 1\n`,
+      );
+      chmodSync(join(dir, "systemctl"), 0o755);
+      const r = spawnSync("/bin/bash", ["-c", clause], { env: { PATH: dir }, encoding: "utf8" });
+      expect(r.status).toBe(status);
+    });
+  });
+
   describe("system Tailscale", () => {
     const KEYRING = "/usr/share/keyrings/tailscale-archive-keyring.gpg";
-    const guard = "if ! systemctl cat tailscaled.service >/dev/null 2>&1; then";
-    const enable = "systemctl enable --now tailscaled";
+    const guard =
+      "if ! systemctl cat tailscaled.service >/dev/null 2>&1 && ! systemctl cat agro-tailscaled.service >/dev/null 2>&1; then";
+    const enable = "systemctl cat agro-tailscaled.service >/dev/null 2>&1 || systemctl enable --now tailscaled";
     const block = script.slice(script.indexOf(guard), script.indexOf(enable) + enable.length);
     const dirs: string[] = [];
     afterEach(() => {
@@ -815,22 +843,41 @@ describe("desktop serves XFCE over XRDP through Tailscale only", () => {
       expect(end).toBeLessThan(script.indexOf("apt-get install -y xfce4"));
     });
 
-    it("skips the repository and package when the tailscaled unit already exists", () => {
+    function runBlock(units: string[]): string[] {
       const dir = mkdtempSync(join(tmpdir(), "agro-desktop-tailscale-"));
       dirs.push(dir);
       const log = join(dir, "calls.log");
-      for (const cmd of ["systemctl", "curl", "gpg", "install", "apt-get"]) {
+      for (const cmd of ["curl", "gpg", "install", "apt-get"]) {
         writeFileSync(join(dir, cmd), `#!/bin/sh\necho "${cmd} $*" >> "${log}"\n`);
         chmodSync(join(dir, cmd), 0o755);
       }
+      const present = units.map((u) => `"cat ${u}"`).join(" ");
+      writeFileSync(
+        join(dir, "systemctl"),
+        `#!/bin/sh\necho "systemctl $*" >> "${log}"\ncase "$1" in cat) for u in ${present}; do [ "$*" = "$u" ] && exit 0; done; exit 1 ;; esac\n`,
+      );
+      chmodSync(join(dir, "systemctl"), 0o755);
       const r = spawnSync("/bin/bash", ["-c", `set -e\n${block}`], {
         env: { PATH: dir, codename: "noble", tmp: dir },
         encoding: "utf8",
       });
-      expect(r.status).toBe(0);
-      expect(readFileSync(log, "utf8").trim().split("\n")).toEqual([
+      expect(r.status, r.stderr).toBe(0);
+      return readFileSync(log, "utf8").trim().split("\n");
+    }
+
+    it("skips the repository and package when the tailscaled unit already exists", () => {
+      expect(runBlock(["tailscaled.service"])).toEqual([
         "systemctl cat tailscaled.service",
+        "systemctl cat agro-tailscaled.service",
         "systemctl enable --now tailscaled",
+      ]);
+    });
+
+    it("installs no apt daemon and enables no tailscaled when agro-tailscaled exists", () => {
+      expect(runBlock(["agro-tailscaled.service"])).toEqual([
+        "systemctl cat tailscaled.service",
+        "systemctl cat agro-tailscaled.service",
+        "systemctl cat agro-tailscaled.service",
       ]);
     });
   });

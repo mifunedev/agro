@@ -17,6 +17,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 - Make `agro langfuse apply|status|disable` and `agro config langfuse` run on a host: the verbs write the credential fragment and the harness tracing files under the `$HOME` of the user who runs them, in the sandbox or on a host ([#1602](https://github.com/mifunedev/agro/issues/1602)).
 
+### Fixed
+
+- Make `agro tool install desktop --host` keep the `agro-tailscaled.service` daemon from `agro tool setup t3-mobile enable` and install no second Tailscale daemon ([#1605](https://github.com/mifunedev/agro/issues/1605)).
+
 ## [0.33.0] - 2026-11-08
 
 ### Added
