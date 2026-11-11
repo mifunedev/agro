@@ -52,7 +52,7 @@ Host prerequisites and the CLI install are in [Installation](installation.md).
 | `agro workspace create [<name>] [--path <dir>] [--ref <ref>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
 | `agro auth login [--url <url>]` · `agro auth status` · `agro auth logout` · `agro auth token` | sign in to agro-console and manage the console token — see below |
 | `agro node create --spec <spec> [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--free-tier] [--json]` · `agro node list [--json]` · `agro node delete <id> [--yes]` · `agro node check [--free-tier] [--ssh-key <uuid>]...` | create, list, delete, and check remote agro-console sandbox nodes — see below |
-| `agro hands list [--json]` · `agro hands create [--name <name>] [--spec <spec>] [--project <owner>/<repo> \| --clone <owner>/<repo>]` · `agro hands exec <hand> [--project <owner>/<repo>] -- <command...>` · `agro hands fetch <hand> --project <owner>/<repo>` · `agro hands fork\|pause\|resume <hand>` · `agro hands destroy <hand> [--yes]` | on a brain, create and manage hands, and move projects to them over SSH — see below |
+| `agro hands list [--json]` · `agro hands create [--name <name>] [--spec <spec>] [--project <owner>/<repo> \| --clone <owner>/<repo>]` · `agro hands exec <hand> [--project <owner>/<repo>] -- <command...>` · `agro hands fetch <hand> --project <owner>/<repo>` · `agro hands fork <hand> [--spec <spec>] [--name <name>]` · `agro hands pause\|resume <hand>` · `agro hands destroy <hand> [--yes]` | on a brain, create and manage hands, and move projects to them over SSH — see below |
 | `agro --help` · `agro --version` | usage and version |
 
 `agro <verb> -- <args>` forwards extra arguments to `docker compose`, e.g.
@@ -654,7 +654,13 @@ agro hands destroy 4                         # destroy one hand after a confirma
 - SSH connects to `sandbox@<sshHost>` with the default brain key. The first
   contact accepts the host key, and the brain pins the key by the hand uuid. A
   fork has a new uuid and a new host key.
-- `fork`, `pause`, and `resume` call the matching console route.
+- `agro hands fork <hand>` copies the hand with its credentials. The fork
+  takes the spec of the source hand. `--spec` sets another spec, and `--name`
+  sets the fork name. If the console response names the fork, the command
+  waits for the fork as `create` does and prints the same lines. Otherwise, the
+  command prints the job id and tells you to run `agro hands list` to find the
+  fork.
+- `pause` and `resume` call the matching console route.
   `agro hands destroy` asks for a confirmation. `--yes` skips the confirmation.
 - If the console returns HTTP 403, the command prints the console code
   (`BRAIN_TOKEN_FORBIDDEN` or `BRAIN_TOKEN_TARGET_FORBIDDEN`), exits 1, and does
