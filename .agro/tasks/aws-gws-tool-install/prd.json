@@ -3,6 +3,7 @@
   "project": "AGRO",
   "branchName": "feat/1610-aws-gws-tool-install",
   "description": "Add pinned AWS CLI v2 and Google Workspace CLI tool installers.",
+  "pr": 1611,
   "userStories": [
     {
       "id": "US-001",
