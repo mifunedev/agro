@@ -168,8 +168,8 @@ describe("agro hands help", () => {
 
   it("rejects an unknown verb", async () => {
     const h = harness([{ status: 200 }]);
-    expect(await runHands(["exec"], h.io, h.deps)).toBe(1);
-    expect(h.stderr()).toContain('unknown subcommand "exec"');
+    expect(await runHands(["ssh"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain('unknown subcommand "ssh"');
     expect(h.calls).toEqual([]);
   });
 });

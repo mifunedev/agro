@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { HANDS_VERBS, isOneOf } from "../command-table.js";
 import {
@@ -16,6 +16,7 @@ import {
   type ConsoleNode,
   type ConsolePollDeps,
 } from "../lib/console-api.js";
+import { messageOf, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import * as prompt from "../lib/prompt.js";
 
 export const BRAIN_HOME = "/home/sandbox";
@@ -28,6 +29,13 @@ export interface HandsDeps extends ConsolePollDeps {
   homeDir: () => string;
   readFile: (path: string) => string | undefined;
   confirm: (question: string) => Promise<boolean>;
+  run: LifecycleRunner;
+  exists: (path: string) => boolean;
+}
+
+export interface ProjectSlug {
+  owner: string;
+  repo: string;
 }
 
 type ConfigResult = { ok: true; config: ConsoleConfig } | { ok: false; error: string };
@@ -61,6 +69,45 @@ export function normalizeHandRef(ref: string): string {
   return ref.startsWith("#") ? ref.slice(1) : ref;
 }
 
+const SLUG_PART = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+export function parseProjectSlug(value: string): ProjectSlug | undefined {
+  const parts = value.split("/");
+  if (parts.length !== 2 || !parts.every((part) => SLUG_PART.test(part))) return undefined;
+  return { owner: parts[0], repo: parts[1] };
+}
+
+const SAFE_WORD = /^[A-Za-z0-9_\/.,:=@%+-]+$/;
+
+export function shellQuote(words: string[]): string {
+  return words.map((word) => (SAFE_WORD.test(word) ? word : `'${word.replaceAll("'", "'\\''")}'`)).join(" ");
+}
+
+function handProjectPath(slug: ProjectSlug): string {
+  return `projects/${slug.owner}/${slug.repo}`;
+}
+
+function brainProjectPath(home: string, slug: ProjectSlug): string {
+  return join(home, ".agro", "workspaces", "harness", "projects", slug.owner, slug.repo);
+}
+
+function handRemote(hand: ConsoleNode): string {
+  return `hand-${hand.orgIndex}`;
+}
+
+function sshOptions(hand: ConsoleNode): string[] {
+  return ["-o", "StrictHostKeyChecking=accept-new", "-o", `HostKeyAlias=${hand.id}`];
+}
+
+function gitEnv(deps: HandsDeps, hand: ConsoleNode): NodeJS.ProcessEnv {
+  return { ...deps.env, GIT_SSH_COMMAND: ["ssh", ...sshOptions(hand)].join(" ") };
+}
+
+function runSsh(deps: HandsDeps, hand: ConsoleNode, sshHost: string, command: string): number {
+  const result = deps.run("ssh", [...sshOptions(hand), "--", `sandbox@${sshHost}`, command], { stdio: "inherit" });
+  return result.status ?? 255;
+}
+
 function defaultDeps(): HandsDeps {
   return {
     fetch: (input, init) => globalThis.fetch(input, init),
@@ -78,6 +125,8 @@ function defaultDeps(): HandsDeps {
     pollDelayMs: nodePollDelayMs,
     timeoutMs: NODE_READY_TIMEOUT_MS,
     confirm: (question) => prompt.confirm(question, false),
+    run: spawnRunner,
+    exists: (path) => existsSync(path),
   };
 }
 
@@ -86,16 +135,29 @@ export function handsHelp(bin: string): string {
 
 Usage:
   ${bin} hands list [--json]
-  ${bin} hands create [--name <name>] [--spec <spec>]
+  ${bin} hands create [--name <name>] [--spec <spec>] [--project <owner>/<repo> | --clone <owner>/<repo>]
   ${bin} hands fork <hand>
   ${bin} hands pause <hand>
   ${bin} hands resume <hand>
   ${bin} hands destroy <hand> [--yes]
+  ${bin} hands exec <hand> [--project <owner>/<repo>] -- <command...>
+  ${bin} hands fetch <hand> --project <owner>/<repo>
 
 <hand> is #<index>, <index>, an alias, or a uuid. \`create\` requests a
 sandbox hand, waits up to 15 minutes for it to reach \`running\`, then prints
 its index, alias, and SSH host. \`destroy\` asks for confirmation unless
 --yes is given.
+
+A project lives at ~/projects/<owner>/<repo> on the hand and at
+~/.agro/workspaces/harness/projects/<owner>/<repo> on the brain.
+\`create --project\` prepares the hand folder, adds the remote hand-<index>
+to the brain project, and pushes the current branch. \`create --clone\`
+clones https://github.com/<owner>/<repo>.git on the hand with the hand's own
+git credential. \`exec\` runs the command over SSH, in the project folder
+with --project, and exits with its status. \`fetch\` runs
+\`git fetch hand-<index>\` in the brain project. SSH connects to
+sandbox@<sshHost> with the default brain key and pins each hand's host key
+by its uuid.
 
 The verbs read the brain token from ${brainTokenPath(BRAIN_HOME)} and the
 console URL from ${brainConsoleUrlPath(BRAIN_HOME)}. AGRO_CONSOLE_TOKEN and
@@ -167,21 +229,90 @@ async function runList(tokens: string[], io: HandsIO, deps: HandsDeps, config: C
   return 0;
 }
 
-function parseCreate(tokens: string[]): { ok: true; name?: string; spec?: string } | { ok: false; error: string } {
-  const values: { name?: string; spec?: string } = {};
+interface CreateArgs {
+  name?: string;
+  spec?: string;
+  project?: ProjectSlug;
+  clone?: ProjectSlug;
+}
+
+function parseCreate(tokens: string[]): { ok: true; args: CreateArgs } | { ok: false; error: string } {
+  const args: CreateArgs = {};
   for (let i = 0; i < tokens.length; i += 1) {
     const token = tokens[i];
     const [flag, inline] = token.startsWith("--") && token.includes("=")
       ? [token.slice(0, token.indexOf("=")), token.slice(token.indexOf("=") + 1)]
       : [token, undefined];
-    if (flag !== "--name" && flag !== "--spec") {
+    if (flag !== "--name" && flag !== "--spec" && flag !== "--project" && flag !== "--clone") {
       return { ok: false, error: token.startsWith("-") ? `unknown flag "${token}"` : `unexpected argument "${token}"` };
     }
     const value = inline ?? tokens[++i];
     if (value === undefined || value === "") return { ok: false, error: `${flag} requires a value` };
-    values[flag === "--name" ? "name" : "spec"] = value;
+    if (flag === "--name") args.name = value;
+    else if (flag === "--spec") args.spec = value;
+    else {
+      const slug = parseProjectSlug(value);
+      if (slug === undefined) return { ok: false, error: `${flag} must be <owner>/<repo>` };
+      args[flag === "--project" ? "project" : "clone"] = slug;
+    }
   }
-  return { ok: true, ...values };
+  if (args.project !== undefined && args.clone !== undefined) {
+    return { ok: false, error: "--project and --clone exclude each other" };
+  }
+  return { ok: true, args };
+}
+
+function brainProject(deps: HandsDeps, slug: ProjectSlug): { ok: true; path: string } | { ok: false; error: string } {
+  const path = brainProjectPath(deps.homeDir(), slug);
+  return deps.exists(join(path, ".git"))
+    ? { ok: true, path }
+    : { ok: false, error: `brain project ${path} not found` };
+}
+
+function currentBranch(deps: HandsDeps, path: string): string | undefined {
+  const result = deps.run("git", ["-C", path, "symbolic-ref", "--short", "-q", "HEAD"], { stdio: "capture" });
+  const branch = result.stdout?.trim();
+  return result.status === 0 && branch !== undefined && branch !== "" ? branch : undefined;
+}
+
+function pushProject(
+  io: HandsIO,
+  deps: HandsDeps,
+  prefix: string,
+  hand: ConsoleNode,
+  sshHost: string,
+  slug: ProjectSlug,
+  local: { path: string; branch: string },
+): number {
+  const folder = handProjectPath(slug);
+  const remote = handRemote(hand);
+  const prepared = runSsh(
+    deps,
+    hand,
+    sshHost,
+    `mkdir -p projects/${slug.owner} && git init -q -b ${shellQuote([local.branch])} ${folder} && git -C ${folder} config receive.denyCurrentBranch updateInstead`,
+  );
+  if (prepared !== 0) {
+    io.stderr(`${prefix}: preparing ~/${folder} on hand #${hand.orgIndex} failed with status ${prepared}\n`);
+    return prepared;
+  }
+  const added = deps.run("git", ["-C", local.path, "remote", "add", remote, `sandbox@${sshHost}:${folder}`], {
+    stdio: "capture",
+  });
+  if (added.status !== 0) {
+    io.stderr(`${prefix}: git remote add ${remote} failed: ${added.stderr?.trim() || messageOf(added.error)}\n`);
+    return added.status ?? 1;
+  }
+  const pushed = deps.run("git", ["-C", local.path, "push", remote, local.branch], {
+    stdio: "inherit",
+    env: gitEnv(deps, hand),
+  });
+  if (pushed.status !== 0) {
+    io.stderr(`${prefix}: git push ${remote} ${local.branch} failed with status ${pushed.status ?? "none"}\n`);
+    return pushed.status ?? 1;
+  }
+  io.stdout(`remote: ${remote}\n`);
+  return 0;
 }
 
 async function runCreate(tokens: string[], io: HandsIO, deps: HandsDeps, config: ConsoleConfig, prefix: string) {
@@ -190,11 +321,26 @@ async function runCreate(tokens: string[], io: HandsIO, deps: HandsDeps, config:
     io.stderr(`${prefix}: ${parsed.error}\n`);
     return 1;
   }
+  const { name, spec, project, clone } = parsed.args;
+  let local: { path: string; branch: string } | undefined;
+  if (project !== undefined) {
+    const found = brainProject(deps, project);
+    if (!found.ok) {
+      io.stderr(`${prefix}: ${found.error}\n`);
+      return 1;
+    }
+    const branch = currentBranch(deps, found.path);
+    if (branch === undefined) {
+      io.stderr(`${prefix}: brain project ${found.path} has no current branch\n`);
+      return 1;
+    }
+    local = { path: found.path, branch };
+  }
   const requestedAt = deps.now();
   const created = await callApi(deps, config, "POST", "/api/nodes", {
     profile: "sandbox",
-    ...(parsed.name === undefined ? {} : { name: parsed.name }),
-    ...(parsed.spec === undefined ? {} : { spec: parsed.spec }),
+    ...(name === undefined ? {} : { name }),
+    ...(spec === undefined ? {} : { spec }),
   });
   if (!created.ok) return failed(io, prefix, created);
   const hand = toNode(created.body);
@@ -213,8 +359,114 @@ async function runCreate(tokens: string[], io: HandsIO, deps: HandsDeps, config:
     } else io.stderr(`${prefix}: hand ${last.id} failed — last status ${last.status}\n`);
     return 1;
   }
-  const { orgIndex, alias, sshHost } = waited.node;
+  const running = waited.node;
+  const { orgIndex, alias, sshHost } = running;
   io.stdout(`index: ${orgIndex ?? "-"}\nalias: ${alias ?? "-"}\nssh host: ${sshHost ?? "-"}\n`);
+  const slug = project ?? clone;
+  if (slug === undefined) return 0;
+  if (sshHost === null || orgIndex === null) {
+    io.stderr(`${prefix}: hand ${running.id} has no SSH host or index\n`);
+    return 1;
+  }
+  io.stdout(`project: ~/${handProjectPath(slug)}\n`);
+  if (local !== undefined) return pushProject(io, deps, prefix, running, sshHost, slug, local);
+  const cloned = runSsh(
+    deps,
+    running,
+    sshHost,
+    `mkdir -p projects/${slug.owner} && git clone -q https://github.com/${slug.owner}/${slug.repo}.git ${handProjectPath(slug)}`,
+  );
+  if (cloned !== 0) io.stderr(`${prefix}: git clone on hand #${orgIndex} failed with status ${cloned}\n`);
+  return cloned;
+}
+
+async function resolveHand(
+  deps: HandsDeps,
+  config: ConsoleConfig,
+  ref: string,
+): Promise<{ ok: true; hand: ConsoleNode; sshHost: string } | { ok: false; error: string }> {
+  const read = await callApi(deps, config, "GET", handPath(ref));
+  if (!read.ok) return { ok: false, error: read.message };
+  const hand = toNode(read.body);
+  if (hand === undefined) return { ok: false, error: "the console response has no node id" };
+  if (hand.sshHost === null) return { ok: false, error: `hand ${ref} has no SSH host (status ${hand.status})` };
+  return { ok: true, hand, sshHost: hand.sshHost };
+}
+
+function parseHandProject(
+  tokens: string[],
+): { ok: true; ref?: string; project?: ProjectSlug } | { ok: false; error: string } {
+  let ref: string | undefined;
+  let project: ProjectSlug | undefined;
+  for (let i = 0; i < tokens.length; i += 1) {
+    const token = tokens[i];
+    if (token === "--project" || token.startsWith("--project=")) {
+      const value = token === "--project" ? tokens[++i] : token.slice("--project=".length);
+      const slug = value === undefined ? undefined : parseProjectSlug(value);
+      if (slug === undefined) return { ok: false, error: "--project must be <owner>/<repo>" };
+      project = slug;
+    } else if (token.startsWith("-")) return { ok: false, error: `unknown flag "${token}"` };
+    else if (ref === undefined) ref = token;
+    else return { ok: false, error: `unexpected argument "${token}"` };
+  }
+  return { ok: true, ref, project };
+}
+
+async function runExec(tokens: string[], io: HandsIO, deps: HandsDeps, config: ConsoleConfig, prefix: string) {
+  const split = tokens.indexOf("--");
+  const command = split === -1 ? [] : tokens.slice(split + 1);
+  const parsed = parseHandProject(split === -1 ? tokens : tokens.slice(0, split));
+  if (!parsed.ok) {
+    io.stderr(`${prefix}: ${parsed.error}\n`);
+    return 1;
+  }
+  if (parsed.ref === undefined || command.length === 0) {
+    io.stderr(`${prefix}: usage: exec <hand> [--project <owner>/<repo>] -- <command...>\n`);
+    return 1;
+  }
+  const resolved = await resolveHand(deps, config, parsed.ref);
+  if (!resolved.ok) {
+    io.stderr(`${prefix}: ${resolved.error}\n`);
+    return 1;
+  }
+  const quoted = shellQuote(command);
+  const remote = parsed.project === undefined ? quoted : `cd ${handProjectPath(parsed.project)} && ${quoted}`;
+  return runSsh(deps, resolved.hand, resolved.sshHost, remote);
+}
+
+async function runFetch(tokens: string[], io: HandsIO, deps: HandsDeps, config: ConsoleConfig, prefix: string) {
+  const parsed = parseHandProject(tokens);
+  if (!parsed.ok) {
+    io.stderr(`${prefix}: ${parsed.error}\n`);
+    return 1;
+  }
+  if (parsed.ref === undefined || parsed.project === undefined) {
+    io.stderr(`${prefix}: usage: fetch <hand> --project <owner>/<repo>\n`);
+    return 1;
+  }
+  const found = brainProject(deps, parsed.project);
+  if (!found.ok) {
+    io.stderr(`${prefix}: ${found.error}\n`);
+    return 1;
+  }
+  const resolved = await resolveHand(deps, config, parsed.ref);
+  if (!resolved.ok) {
+    io.stderr(`${prefix}: ${resolved.error}\n`);
+    return 1;
+  }
+  if (resolved.hand.orgIndex === null) {
+    io.stderr(`${prefix}: hand ${parsed.ref} has no index\n`);
+    return 1;
+  }
+  const remote = handRemote(resolved.hand);
+  const fetched = deps.run("git", ["-C", found.path, "fetch", remote], {
+    stdio: "inherit",
+    env: gitEnv(deps, resolved.hand),
+  });
+  if (fetched.status !== 0) {
+    io.stderr(`${prefix}: git fetch ${remote} failed with status ${fetched.status ?? "none"}\n`);
+    return fetched.status ?? 1;
+  }
   return 0;
 }
 
@@ -274,7 +526,8 @@ export async function runHands(
     io.stderr(`${bin} hands: unknown subcommand "${verb}" — expected ${HANDS_VERBS.join(", ")}\n`);
     return 1;
   }
-  if (rest.some((token) => token === "--help" || token === "-h")) {
+  const options = rest.includes("--") ? rest.slice(0, rest.indexOf("--")) : rest;
+  if (options.some((token) => token === "--help" || token === "-h")) {
     io.stdout(handsHelp(bin));
     return 0;
   }
@@ -290,5 +543,7 @@ export async function runHands(
   if (verb === "list") return runList(rest, safe, deps, config, prefix);
   if (verb === "create") return runCreate(rest, safe, deps, config, prefix);
   if (verb === "destroy") return runDestroy(rest, safe, deps, config, prefix);
+  if (verb === "exec") return runExec(rest, safe, deps, config, prefix);
+  if (verb === "fetch") return runFetch(rest, safe, deps, config, prefix);
   return runAction(verb, rest, safe, deps, config, prefix);
 }

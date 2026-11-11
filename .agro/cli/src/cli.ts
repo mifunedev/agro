@@ -148,7 +148,7 @@ Usage:
   ${bin} workspace <args...>    Create and list host AGRO workspaces (create|list)
   ${bin} run -- <command...>    Run a command in an ephemeral container at the repository root
   ${bin} node <args...>         Manage remote agro-console sandbox nodes (create|list|delete)
-  ${bin} hands <args...>        Manage hands from a brain (list|create|fork|pause|resume|destroy)
+  ${bin} hands <args...>        Manage hands from a brain (list|create|exec|fetch|fork|pause|resume|destroy)
   ${bin} auth <args...>         Sign in to agro-console (login|status|logout|token)
   ${bin} harness <args...>      Install and inspect agent CLI harnesses
   ${bin} tool <args...>         Install and inspect sandbox tooling
