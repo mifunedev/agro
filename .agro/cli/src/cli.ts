@@ -38,6 +38,7 @@ import { isHelpFlag, runSandboxCommand, type ParseResult } from "./controllers/s
 import { EGRESS_LOG_LINES, EGRESS_LOG_PATH, runEgress } from "./commands/egress.js";
 import { runAuth } from "./commands/auth.js";
 import { runNode } from "./commands/node.js";
+import { runHands } from "./commands/hands.js";
 import { RuntimeUnsupportedError } from "./lib/runtimes/verbs.js";
 import { PromptInterruptedError } from "./lib/prompt.js";
 export { isHelpFlag, parseSandboxArgs, printSandboxHelp, runtimeLines } from "./controllers/sandbox.js";
@@ -147,6 +148,7 @@ Usage:
   ${bin} workspace <args...>    Create and list host AGRO workspaces (create|list)
   ${bin} run -- <command...>    Run a command in an ephemeral container at the repository root
   ${bin} node <args...>         Manage remote agro-console sandbox nodes (create|list|delete)
+  ${bin} hands <args...>        Manage hands from a brain (list|create|fork|pause|resume|destroy)
   ${bin} auth <args...>         Sign in to agro-console (login|status|logout|token)
   ${bin} harness <args...>      Install and inspect agent CLI harnesses
   ${bin} tool <args...>         Install and inspect sandbox tooling
@@ -1422,6 +1424,15 @@ async function main(argv: string[]): Promise<number> {
 
   if (first === "node") {
     return await runNode(
+      argv.slice(1),
+      stdio(),
+      {},
+      bin,
+    );
+  }
+
+  if (first === "hands") {
+    return await runHands(
       argv.slice(1),
       stdio(),
       {},

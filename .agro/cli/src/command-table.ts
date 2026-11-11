@@ -10,6 +10,7 @@ export const INSTALLER_SUBCOMMANDS = ["list", "install", "status", "uninstall"] 
 export const TOOL_SUBCOMMANDS = [...INSTALLER_SUBCOMMANDS, "setup"] as const;
 export const EGRESS_VERBS = ["log", "reload"] as const;
 export const NODE_VERBS = ["create", "list", "delete", "check"] as const;
+export const HANDS_VERBS = ["list", "create", "fork", "pause", "resume", "destroy"] as const;
 export const AUTH_VERBS = ["login", "status", "logout", "token"] as const;
 
 export type ConfigVerb = (typeof CONFIG_VERBS)[number];
@@ -42,6 +43,7 @@ export const AGRO_COMMANDS: Readonly<Record<string, readonly string[] | null>> =
   run: null,
   egress: EGRESS_VERBS,
   node: NODE_VERBS,
+  hands: HANDS_VERBS,
   auth: AUTH_VERBS,
   ...Object.fromEntries(composeVerbs().map((verb) => [verb, null])),
 });
