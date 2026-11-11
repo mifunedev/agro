@@ -113,5 +113,5 @@
     }
   ],
   "pr": 1606,
-  "blocked": "US-004 rerun waits on the operator: (1) merge mifunedev/agro-console#744 (brain console URL file) and the coming #745 PR (brain-token fork gets the brain key and returns forkId) into task/684-sandbox-only-spike, so the local stack runs them; (2) approve about 0.3 instance-hour more for the rerun (round 1 used 0.42 of 0.3)."
+  "blocked": "US-004 rerun waits on the operator: (1) merge mifunedev/agro-console#744 (brain console URL file) and #746 (brain-token fork gets the brain key and returns forkId; CI green) into task/684-sandbox-only-spike, so the local stack runs them; (2) approve a third US-001 repair round: forkId is reserved before the node exists, so GET returns 404 until the provisioner creates it, and waitForRunning must treat 404 as pending for a fork; (3) approve about 0.3 instance-hour more for the rerun (round 1 used 0.42 of 0.3)."
 }
