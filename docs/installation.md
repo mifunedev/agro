@@ -249,6 +249,9 @@ agro tool install docker-engine --host   # then log in again for the docker grou
 agro tool install desktop --host
 ```
 
+When `agro tool setup t3-mobile enable` already installed `agro-tailscaled.service`,
+the desktop install uses that daemon and installs no second Tailscale daemon.
+
 To use the desktop:
 
 1. Run `sudo tailscale up`, and sign in to your tailnet.

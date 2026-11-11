@@ -434,7 +434,7 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
     verifyArgv: Object.freeze([
       "bash",
       "-lc",
-      'command -v xrdp >/dev/null && systemctl is-enabled --quiet xrdp && systemctl is-enabled --quiet tailscaled && test -f /etc/systemd/system/xrdp.service.d/agro-tailscale-only.conf && grep -qx xfce4-session "$HOME/.xsession"',
+      'command -v xrdp >/dev/null && systemctl is-enabled --quiet xrdp && { systemctl is-enabled --quiet tailscaled || systemctl is-enabled --quiet agro-tailscaled; } && test -f /etc/systemd/system/xrdp.service.d/agro-tailscale-only.conf && grep -qx xfce4-session "$HOME/.xsession"',
     ]),
     hostInstallArgv: Object.freeze([
       "bash",
@@ -457,7 +457,7 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
         "apt_update() { for _ in $(seq 60); do apt-get update && return 0; sleep 10; done; return 1; }",
         "apt_update",
         "apt-get install -y ca-certificates curl gnupg nftables",
-        "if ! systemctl cat tailscaled.service >/dev/null 2>&1; then",
+        "if ! systemctl cat tailscaled.service >/dev/null 2>&1 && ! systemctl cat agro-tailscaled.service >/dev/null 2>&1; then",
         "  fingerprint=2596A99EAAB33821893C0A79458CA832957F5868",
         '  curl -fsSL "https://pkgs.tailscale.com/stable/ubuntu/$codename.noarmor.gpg" -o "$tmp/tailscale.gpg"',
         '  actual="$(gpg --homedir "$tmp" --show-keys --with-colons "$tmp/tailscale.gpg" | awk -F: \'$1 == "fpr" { print $10; exit }\')"',
@@ -470,7 +470,7 @@ export const TOOL_CATALOG: readonly ToolEntry[] = Object.freeze([
         "  apt_update",
         "  apt-get install -y tailscale",
         "fi",
-        "systemctl enable --now tailscaled",
+        "systemctl cat agro-tailscaled.service >/dev/null 2>&1 || systemctl enable --now tailscaled",
         "install -d -m 0755 /etc/xrdp /etc/systemd/system/xrdp.service.d",
         "cat > /etc/xrdp/agro-tailscale-only.nft <<'EOF'",
         "table inet agro_xrdp",
