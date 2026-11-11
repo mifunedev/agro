@@ -20,7 +20,7 @@
         "`npm --prefix .agro/cli run typecheck` and `pnpm test:scripts` exit 0."
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "Accepted by the advisor on f6e841a3b in the task worktree, 2026-11-11, no live requests. 1 executed: lib/console-api.ts holds the console config, callApi, node parsing, poll timing, and waitForRunning; node.ts re-exports the moved symbols and node.test.ts passes unedited. 2 executed: hands reads /home/sandbox/.agro/brain-token and /home/sandbox/.agro/brain-console-url through injectable deps; AGRO_CONSOLE_TOKEN and AGRO_CONSOLE_URL override; a missing URL file exits 2 and never falls back to the public console. 3 executed: missing token file exits 2 with the exact message and sends no request. 4 executed: tests check every captured output for a known token, including a 403 body and a fetch error; output also passes through a redacting wrapper. 5 to 8 executed in hands.test.ts (list table and --json, create with polling, fork/pause/resume/destroy with #index, index, alias, uuid, destroy confirmation, 403 codes with one call and no retry). 9 executed by the advisor: typecheck 0; test:scripts 3118 passed, 14 failed, the failure set identical to evidence/baseline.md. Repair round 1 (67c346162): the help leads with the bare index and warns that an unquoted #<index> starts a shell comment; a verb with no hand names that cause and sends no request (tests). The advisor re-ran typecheck 0 and test:scripts 3139 passed with the baseline failures only.",
       "dependsOn": [],
       "files": [
@@ -33,7 +33,7 @@
         ".agro/cli/src/command-table.ts"
       ],
       "commit": "67c346162",
-      "rounds": 1
+      "rounds": 2
     },
     {
       "id": "US-002",
@@ -102,13 +102,14 @@
       ],
       "priority": 4,
       "passes": false,
-      "notes": "",
+      "notes": "Round 1 (evidence f61e1b146, 2026-11-11), not met: on brain #364 the built CLI ran list, create --project (hand #365), exec, a commit on the hand, fetch (84ce12b..027bf46), the brain refusal (403 BRAIN_TOKEN_TARGET_FORBIDDEN), and destroy. hands fork failed with HTTP 400 (the CLI sends no body; the console requires spec). A fork made by curl (#366) got no brain key, so exec failed with Permission denied (publickey). The fork response id is the source. Fixes: CLI US-001 repair round 2; console mifunedev/agro-console#745. The advisor verified cleanup (no live node, key, or token; provider list as before). Spend 0.42 instance-hour against 0.3.",
       "dependsOn": [
         "US-003"
       ],
       "files": [
         ".agro/tasks/agro-hands/evidence/"
-      ]
+      ],
+      "rounds": 1
     }
   ],
   "pr": 1606
