@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "project": "AGRO",
+  "branchName": "feat/1610-aws-gws-tool-install",
+  "description": "Add pinned AWS CLI v2 and Google Workspace CLI tool installers.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Install AWS CLI v2 and Google Workspace CLI",
+      "description": "As an operator, I want AWS CLI v2 and Google Workspace CLI installers so that I can add either tool without rebuilding.",
+      "acceptanceCriteria": [
+        "Add `aws` and `gws` to `.agro/cli/src/lib/tools/catalog.ts` as installable, host-capable tools for the sandbox user.",
+        "Pin AWS CLI to `2.40.1` and Google Workspace CLI to `0.22.5`; verify each architecture-specific download with a recorded SHA-256 value.",
+        "Authenticate both AWS release ZIPs with the official AWS signing key before recording their checksums.",
+        "Support Debian `amd64` and `arm64`; reject other architectures before downloading or writing installation files.",
+        "Install only below `${NPM_USER_PREFIX:-$HOME/.local}` without sudo; verify the installed executable by absolute path.",
+        "Install the AWS bundle below the prefix with `aws` and `aws_completer` launchers; reject missing `unzip` or unsupported whitespace paths before extraction.",
+        "Require the AWS executable to report the pinned v2 version; accept the documented two-line output of `gws --version`.",
+        "Remove only managed launchers and payloads during uninstall; preserve AWS and Google credentials and configuration.",
+        "Add failing tests before implementation for catalog discovery, architecture mapping, integrity failure, download failure, version failure, installation layout, and cleanup.",
+        "Extend command tests for both tools: help, list, status, host installation, repeat installation, failure propagation, and uninstall.",
+        "`pnpm exec vitest run .agro/cli/src/__tests__/tool-catalog.test.ts .agro/cli/src/__tests__/tool.test.ts` exits 0."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/lib/tools/catalog.ts",
+        ".agro/cli/src/__tests__/tool-catalog.test.ts",
+        ".agro/cli/src/__tests__/tool.test.ts",
+        ".agro/tasks/aws-gws-tool-install/evidence/artifact-integrity.md"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Document both optional tools",
+      "description": "As an operator, I want installation instructions so that I can discover the tools and understand their authentication boundary.",
+      "acceptanceCriteria": [
+        "Update `docs/installation.md`, `.agro/cli/README.md`, and `README.md` to name `aws` and `gws` as optional tools.",
+        "Document Linux architecture support, AWS extraction prerequisites, installation layout, removal scope, and separate upstream authentication.",
+        "Add one issue-linked entry under `CHANGELOG.md` → `Unreleased` → `Added`.",
+        "Run the STE checker on changed documentation; report no finding on a changed line."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": ["docs/installation.md", ".agro/cli/README.md", "README.md", "CHANGELOG.md"]
+    },
+    {
+      "id": "US-003",
+      "title": "Record isolated command evidence",
+      "description": "As a reviewer, I want a command transcript so that I can verify the user-facing install path without cloud credentials.",
+      "acceptanceCriteria": [
+        "Record commands, observed output, exit status, and cleanup in `.agro/tasks/aws-gws-tool-install/evidence/manual-review.md`.",
+        "Start with a fresh temporary home and a workspace input path that does not exist; pass environment values inline and write no env file.",
+        "Run the built `agro` entry point to show help, list, install, status, repeat install, and uninstall for both tools.",
+        "Download and run both real amd64 executables through the isolated installation path; make no AWS or Google API request.",
+        "Record unsupported-architecture or integrity-failure behavior with an explicitly labeled offline fixture; never present a fixture as a real installation.",
+        "Preserve pre-existing installations and credentials; delete only temporary resources created by the evidence run."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": ["US-001", "US-002"],
+      "files": [".agro/tasks/aws-gws-tool-install/evidence/manual-review.md"]
+    }
+  ]
+}
