@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-11-11
+
 ### Added
 
 - Add `agro run --sandbox <name>` to run one command in a running AGRO sandbox, or with `--isolation microvm` in a running msb microVM, with no host mount ([#1600](https://github.com/mifunedev/agro/issues/1600)).
