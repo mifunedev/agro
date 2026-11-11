@@ -20,8 +20,8 @@
         "`npm --prefix .agro/cli run typecheck` and `pnpm test:scripts` exit 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on f6e841a3b in the task worktree, 2026-11-11, no live requests. 1 executed: lib/console-api.ts holds the console config, callApi, node parsing, poll timing, and waitForRunning; node.ts re-exports the moved symbols and node.test.ts passes unedited. 2 executed: hands reads /home/sandbox/.agro/brain-token and /home/sandbox/.agro/brain-console-url through injectable deps; AGRO_CONSOLE_TOKEN and AGRO_CONSOLE_URL override; a missing URL file exits 2 and never falls back to the public console. 3 executed: missing token file exits 2 with the exact message and sends no request. 4 executed: tests check every captured output for a known token, including a 403 body and a fetch error; output also passes through a redacting wrapper. 5 to 8 executed in hands.test.ts (list table and --json, create with polling, fork/pause/resume/destroy with #index, index, alias, uuid, destroy confirmation, 403 codes with one call and no retry). 9 executed by the advisor: typecheck 0; test:scripts 3118 passed, 14 failed, the failure set identical to evidence/baseline.md.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/commands/node.ts",
@@ -31,7 +31,8 @@
         ".agro/cli/src/commands/__tests__/",
         ".agro/cli/src/cli.ts",
         ".agro/cli/src/command-table.ts"
-      ]
+      ],
+      "commit": "f6e841a3b"
     },
     {
       "id": "US-002",
