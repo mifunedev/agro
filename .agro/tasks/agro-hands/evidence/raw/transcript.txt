@@ -1,0 +1,110 @@
+# 2026-11-11T16:50:42.799Z
+sandbox@brain$ export AGRO_CONSOLE_URL=https://mifune-console-local-ryaneggz-f1bb.mifune.io
+[exit 0]
+# 2026-11-11T16:50:43.155Z
+sandbox@brain$ AGRO_CONSOLE_URL=https://mifune-console-local-ryaneggz-f1bb.mifune.io node ~/agro-hands-test.js hands list
+no hands
+[exit 0]
+# 2026-11-11T16:50:51.650Z
+sandbox@brain$ P=~/.agro/workspaces/harness/projects/mifunedev/hands-demo; mkdir -p $P && cd $P && git init -q -b main && printf "# hands-demo\n" > README.md && git add README.md && git -c user.name=brain -c user.email=brain@example.invalid commit -qm "brain: first commit" && git log --oneline
+84ce12b brain: first commit
+[exit 0]
+# 2026-11-11T16:50:52.074Z
+sandbox@brain$ cd ~/.agro/workspaces/harness/projects/mifunedev/hands-demo && AGRO_CONSOLE_URL=https://mifune-console-local-ryaneggz-f1bb.mifune.io node ~/agro-hands-test.js hands create --project mifunedev/hands-demo
+agro hands create: hand aec64157-1eba-467a-96cd-20abbf304e49 queued
+agro hands create: hand aec64157-1eba-467a-96cd-20abbf304e49 creating_vm
+index: 365
+alias: lively-clover-iz12kg
+ssh host: ssh-lively-clover-iz12kg.mifune.io
+agro hands create: hand aec64157-1eba-467a-96cd-20abbf304e49 running
+project: ~/projects/mifunedev/hands-demo
+Warning: Permanently added 'aec64157-1eba-467a-96cd-20abbf304e49' (ED25519) to the list of known hosts.
+To ssh-lively-clover-iz12kg.mifune.io:projects/mifunedev/hands-demo
+ * [new branch]      main -> main
+remote: hand-365
+[exit 0]
+# 2026-11-11T16:52:46.156Z
+sandbox@brain$ AGRO_CONSOLE_URL=https://mifune-console-local-ryaneggz-f1bb.mifune.io node ~/agro-hands-test.js hands list
+INDEX  ALIAS                 STATUS   SPEC  SSH HOST
+#365   lively-clover-iz12kg  running  n4    ssh-lively-clover-iz12kg.mifune.io
+[exit 0]
+# 2026-11-11T16:52:49.799Z
+sandbox@brain$ AGRO_CONSOLE_URL=https://mifune-console-local-ryaneggz-f1bb.mifune.io node ~/agro-hands-test.js hands exec 365 --project mifunedev/hands-demo -- git log --oneline
+84ce12b brain: first commit
+[exit 0]
+# 2026-11-11T16:52:51.930Z
+sandbox@brain$ AGRO_CONSOLE_URL=https://mifune-console-local-ryaneggz-f1bb.mifune.io node ~/agro-hands-test.js hands exec 365 --project mifunedev/hands-demo -- sh -c 'echo x > f && git add f && git -c user.name=t -c user.email=t@t commit -qm hand-commit'
+[exit 0]
+# 2026-11-11T16:52:53.588Z
+sandbox@brain$ AGRO_CONSOLE_URL=https://mifune-console-local-ryaneggz-f1bb.mifune.io node ~/agro-hands-test.js hands exec 365 --project mifunedev/hands-demo -- git log --oneline
+027bf46 hand-commit
+84ce12b brain: first commit
+[exit 0]
+# 2026-11-11T16:52:55.099Z
+sandbox@brain$ AGRO_CONSOLE_URL=https://mifune-console-local-ryaneggz-f1bb.mifune.io node ~/agro-hands-test.js hands fetch 365 --project mifunedev/hands-demo
+From ssh-lively-clover-iz12kg.mifune.io:projects/mifunedev/hands-demo
+   84ce12b..027bf46  main       -> hand-365/main
+[exit 0]
+# 2026-11-11T16:52:56.780Z
+sandbox@brain$ cd ~/.agro/workspaces/harness/projects/mifunedev/hands-demo && git log --oneline hand-365/main
+027bf46 hand-commit
+84ce12b brain: first commit
+[exit 0]
+# 2026-11-11T16:52:57.316Z
+sandbox@brain$ AGRO_CONSOLE_URL=https://mifune-console-local-ryaneggz-f1bb.mifune.io node ~/agro-hands-test.js hands exec 364 -- true
+agro hands exec: HTTP 403 BRAIN_TOKEN_TARGET_FORBIDDEN: The brain token allows only hands-node operations
+[exit 1]
+# 2026-11-11T16:53:13.597Z
+sandbox@brain$ AGRO_CONSOLE_URL=https://mifune-console-local-ryaneggz-f1bb.mifune.io node ~/agro-hands-test.js hands fork 365
+agro hands fork: HTTP 400 BAD_REQUEST: Malformed request body
+[exit 1]
+# 2026-11-11T16:53:18.520Z
+sandbox@brain$ AGRO_CONSOLE_URL=https://mifune-console-local-ryaneggz-f1bb.mifune.io node ~/agro-hands-test.js hands list
+INDEX  ALIAS                 STATUS   SPEC  SSH HOST
+#365   lively-clover-iz12kg  running  n4    ssh-lively-clover-iz12kg.mifune.io
+[exit 0]
+# 2026-11-11T16:53:52.781Z
+sandbox@brain$ curl -sS -X POST --oauth2-bearer "$(cat ~/.agro/brain-token)" -H "content-type: application/json" -w "\nHTTP %{http_code}\n" https://mifune-console-local-ryaneggz-f1bb.mifune.io/api/nodes/365/fork -d "{\"spec\":\"n4\"}"
+{"id":"aec64157-1eba-467a-96cd-20abbf304e49","status":"running","jobId":"8e672ffd-8a2b-4cfd-b447-94803ba3e859"}
+HTTP 202
+[exit 0]
+# 2026-11-11T16:54:01.799Z
+sandbox@brain$ for i in $(seq 1 60); do out=$(AGRO_CONSOLE_URL=https://mifune-console-local-ryaneggz-f1bb.mifune.io node ~/agro-hands-test.js hands list); n=$(echo "$out" | grep -c ' running '); echo "$(date -u +%T) $(echo "$out" | tail -n +2 | awk '{print $1, $3}' | tr '\n' ' ')"; [ "$n" -ge 2 ] && echo "$out" | grep -v -- '- *$' | tail -n +1 | grep -q 'ssh-' && [ $(echo "$out" | grep -c 'ssh-') -ge 2 ] && break; sleep 10; done; AGRO_CONSOLE_URL=https://mifune-console-local-ryaneggz-f1bb.mifune.io node ~/agro-hands-test.js hands list
+16:54:02 #366 creating_vm #365 running 
+16:54:13 #366 creating_vm #365 running 
+16:54:24 #366 creating_vm #365 running 
+16:54:35 #366 creating_vm #365 running 
+16:54:45 #366 creating_vm #365 running 
+16:54:56 #366 creating_vm #365 running 
+16:55:07 #366 creating_vm #365 running 
+16:55:17 #366 creating_vm #365 running 
+16:55:28 #366 creating_vm #365 running 
+16:55:39 #366 creating_vm #365 running 
+16:55:49 #366 creating_vm #365 running 
+16:56:00 #366 creating_vm #365 running 
+16:56:11 #366 running #365 running 
+INDEX  ALIAS                 STATUS   SPEC  SSH HOST
+#366   ample-sparrow-aonlbo  running  n4    ssh-ample-sparrow-aonlbo.mifune.io
+#365   lively-clover-iz12kg  running  n4    ssh-lively-clover-iz12kg.mifune.io
+[exit 0]
+# 2026-11-11T16:56:16.160Z
+sandbox@brain$ AGRO_CONSOLE_URL=https://mifune-console-local-ryaneggz-f1bb.mifune.io node ~/agro-hands-test.js hands exec 366 -- true
+Warning: Permanently added 'bc848d6b-383e-4c67-be47-c96364ba8fa4' (ED25519) to the list of known hosts.
+sandbox@ssh-ample-sparrow-aonlbo.mifune.io: Permission denied (publickey).
+[exit 255]
+# 2026-11-11T16:56:21.082Z
+sandbox@brain$ AGRO_CONSOLE_URL=https://mifune-console-local-ryaneggz-f1bb.mifune.io node ~/agro-hands-test.js hands exec 366 --project mifunedev/hands-demo -- sh -c 'hostname; git log --oneline'
+sandbox@ssh-ample-sparrow-aonlbo.mifune.io: Permission denied (publickey).
+[exit 255]
+# 2026-11-11T16:56:22.325Z
+sandbox@brain$ AGRO_CONSOLE_URL=https://mifune-console-local-ryaneggz-f1bb.mifune.io node ~/agro-hands-test.js hands destroy 366 --yes
+destroyed 366
+[exit 0]
+# 2026-11-11T16:56:23.192Z
+sandbox@brain$ AGRO_CONSOLE_URL=https://mifune-console-local-ryaneggz-f1bb.mifune.io node ~/agro-hands-test.js hands destroy 365 --yes
+destroyed 365
+[exit 0]
+# 2026-11-11T16:56:24.045Z
+sandbox@brain$ AGRO_CONSOLE_URL=https://mifune-console-local-ryaneggz-f1bb.mifune.io node ~/agro-hands-test.js hands list
+no hands
+[exit 0]
