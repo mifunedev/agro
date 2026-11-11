@@ -282,7 +282,7 @@ describe("agro hands create", () => {
 });
 
 describe("agro hands fork, pause, resume, and destroy", () => {
-  for (const verb of ["fork", "pause", "resume"] as const) {
+  for (const verb of ["pause", "resume"] as const) {
     it(`${verb} posts to the matching route for each ref form`, async () => {
       for (const [ref, path] of [
         ["#4", "4"],
@@ -303,10 +303,94 @@ describe("agro hands fork, pause, resume, and destroy", () => {
     });
   }
 
-  it("fork prints the new hand id", async () => {
-    const h = harness([{ status: 202, body: { id: "u5", status: "queued" } }]);
+  const SOURCE = { id: "u4", status: "running", orgIndex: 4, alias: "quiet-otter", spec: "n8", sshHost: "hand-4.example" };
+
+  it("fork reads the source spec and sends it in the body", async () => {
+    const h = harness([
+      { status: 200, body: SOURCE },
+      { status: 202, body: { id: "u4", status: "running", jobId: "job-1" } },
+    ]);
     expect(await runHands(["fork", "#4"], h.io, h.deps)).toBe(0);
-    expect(h.stdout()).toBe("forked #4: u5 queued\n");
+    expect(h.calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      "GET https://brain-console.example/api/nodes/4",
+      "POST https://brain-console.example/api/nodes/4/fork",
+    ]);
+    expect(h.calls[1].body).toEqual({ spec: "n8" });
+    expect(h.calls.every((c) => c.headers.Authorization === `Bearer ${TOKEN}`)).toBe(true);
+  });
+
+  it("fork --spec overrides the source spec and --name names the fork", async () => {
+    const h = harness([{ status: 202, body: { id: "u4", status: "running", jobId: "job-1" } }]);
+    expect(await runHands(["fork", "quiet-otter", "--spec", "n16", "--name=copy"], h.io, h.deps)).toBe(0);
+    expect(h.calls).toHaveLength(1);
+    expect(h.calls[0]).toMatchObject({
+      method: "POST",
+      url: "https://brain-console.example/api/nodes/quiet-otter/fork",
+      body: { spec: "n16", name: "copy" },
+    });
+  });
+
+  it("fork waits for the fork when the console returns forkId", async () => {
+    const h = harness([
+      { status: 200, body: SOURCE },
+      { status: 202, body: { id: "u4", status: "running", jobId: "job-1", forkId: "u9" } },
+      { status: 200, body: { id: "u9", status: "provisioning", orgIndex: 9 } },
+      { status: 200, body: { id: "u9", status: "running", orgIndex: 9, slug: "ample-sparrow", sshHost: "hand-9.example" } },
+    ]);
+    expect(await runHands(["fork", "4"], h.io, h.deps)).toBe(0);
+    expect(h.calls.slice(2).map((c) => `${c.method} ${c.url}`)).toEqual([
+      "GET https://brain-console.example/api/nodes/u9",
+      "GET https://brain-console.example/api/nodes/u9",
+    ]);
+    expect(h.stdout()).toBe("index: 9\nalias: ample-sparrow\nssh host: hand-9.example\n");
+    expect(h.all()).not.toContain("u4");
+  });
+
+  it("fork exits 1 when the fork fails", async () => {
+    const h = harness([
+      { status: 200, body: SOURCE },
+      { status: 202, body: { id: "u4", status: "running", forkId: "u9" } },
+      { status: 200, body: { id: "u9", status: "failed" } },
+    ]);
+    expect(await runHands(["fork", "4"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain("hand u9 failed");
+  });
+
+  it("fork without forkId prints the source, the job, and a list hint, not the source as the fork", async () => {
+    const h = harness([
+      { status: 200, body: SOURCE },
+      { status: 202, body: { id: "u4", status: "running", jobId: "job-1" } },
+    ]);
+    expect(await runHands(["fork", "#4"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toBe("fork of #4 requested (job job-1); run agro hands list to find the fork\n");
+    expect(h.all()).not.toContain("u4");
+    expect(h.calls).toHaveLength(2);
+  });
+
+  it("fork fails before the POST when the source has no spec and no --spec is given", async () => {
+    const h = harness([{ status: 200, body: { ...SOURCE, spec: null } }]);
+    expect(await runHands(["fork", "4"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain("--spec");
+    expect(h.calls).toHaveLength(1);
+  });
+
+  it("fork rejects an unknown flag or a missing flag value before any request", async () => {
+    const h = harness([{ status: 202 }]);
+    expect(await runHands(["fork", "4", "--profile", "agro"], h.io, h.deps)).toBe(1);
+    expect(await runHands(["fork", "4", "--spec"], h.io, h.deps)).toBe(1);
+    expect(await runHands(["fork", "4", "5"], h.io, h.deps)).toBe(1);
+    expect(h.calls).toEqual([]);
+  });
+
+  it("fork prints the 403 code of the fork request and does not retry", async () => {
+    const h = harness([
+      { status: 200, body: SOURCE },
+      { status: 403, body: { code: "BRAIN_TOKEN_TARGET_FORBIDDEN" } },
+    ]);
+    expect(await runHands(["fork", "4"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toContain("BRAIN_TOKEN_TARGET_FORBIDDEN");
+    expect(h.calls).toHaveLength(2);
+    expect(h.sleeps).toEqual([]);
   });
 
   it("requires exactly one hand", async () => {

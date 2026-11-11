@@ -2,6 +2,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { HANDS_VERBS, isOneOf } from "../command-table.js";
 import {
+  asRecord,
+  asText,
   callApi,
   NODE_READY_TIMEOUT_MS,
   nodePollDelayMs,
@@ -139,7 +141,7 @@ export function handsHelp(bin: string): string {
 Usage:
   ${bin} hands list [--json]
   ${bin} hands create [--name <name>] [--spec <spec>] [--project <owner>/<repo> | --clone <owner>/<repo>]
-  ${bin} hands fork <hand>
+  ${bin} hands fork <hand> [--spec <spec>] [--name <name>]
   ${bin} hands pause <hand>
   ${bin} hands resume <hand>
   ${bin} hands destroy <hand> [--yes]
@@ -152,6 +154,10 @@ Quote '#4' if you write the # sign: an unquoted #4 starts a shell comment.
 \`create\` requests a sandbox hand, waits up to 15 minutes for it to reach
 \`running\`, then prints its index, alias, and SSH host. \`destroy\` asks for
 confirmation unless --yes is given.
+
+\`fork\` copies a hand with its credentials. The fork takes the spec of the
+source unless --spec is given. When the console names the fork, \`fork\`
+waits for it like \`create\`. Otherwise, run \`${bin} hands list\` to find it.
 
 A project lives at ~/projects/<owner>/<repo> on the hand and at
 ~/.agro/workspaces/harness/projects/<owner>/<repo> on the brain.
@@ -321,6 +327,30 @@ function pushProject(
   return 0;
 }
 
+async function awaitHand(
+  io: HandsIO,
+  deps: HandsDeps,
+  config: ConsoleConfig,
+  prefix: string,
+  hand: ConsoleNode,
+  requestedAt: number,
+): Promise<ConsoleNode | undefined> {
+  const report = (next: ConsoleNode) => io.stderr(`${prefix}: hand ${next.id} ${next.status}\n`);
+  report(hand);
+  const waited = await waitForRunning(deps, config, hand, requestedAt, report);
+  if (!waited.ok) {
+    const last = waited.node;
+    if (waited.reason === "request") io.stderr(`${prefix}: hand ${last.id}: ${waited.message}\n`);
+    else if (waited.reason === "timeout") {
+      io.stderr(`${prefix}: hand ${last.id} is not running after 15 minutes — last status ${last.status}\n`);
+    } else io.stderr(`${prefix}: hand ${last.id} failed — last status ${last.status}\n`);
+    return undefined;
+  }
+  const { orgIndex, alias, sshHost } = waited.node;
+  io.stdout(`index: ${orgIndex ?? "-"}\nalias: ${alias ?? "-"}\nssh host: ${sshHost ?? "-"}\n`);
+  return waited.node;
+}
+
 async function runCreate(tokens: string[], io: HandsIO, deps: HandsDeps, config: ConsoleConfig, prefix: string) {
   const parsed = parseCreate(tokens);
   if (!parsed.ok) {
@@ -354,20 +384,9 @@ async function runCreate(tokens: string[], io: HandsIO, deps: HandsDeps, config:
     io.stderr(`${prefix}: the console response has no node id\n`);
     return 1;
   }
-  const report = (next: ConsoleNode) => io.stderr(`${prefix}: hand ${next.id} ${next.status}\n`);
-  report(hand);
-  const waited = await waitForRunning(deps, config, hand, requestedAt, report);
-  if (!waited.ok) {
-    const last = waited.node;
-    if (waited.reason === "request") io.stderr(`${prefix}: hand ${last.id}: ${waited.message}\n`);
-    else if (waited.reason === "timeout") {
-      io.stderr(`${prefix}: hand ${last.id} is not running after 15 minutes — last status ${last.status}\n`);
-    } else io.stderr(`${prefix}: hand ${last.id} failed — last status ${last.status}\n`);
-    return 1;
-  }
-  const running = waited.node;
-  const { orgIndex, alias, sshHost } = running;
-  io.stdout(`index: ${orgIndex ?? "-"}\nalias: ${alias ?? "-"}\nssh host: ${sshHost ?? "-"}\n`);
+  const running = await awaitHand(io, deps, config, prefix, hand, requestedAt);
+  if (running === undefined) return 1;
+  const { orgIndex, sshHost } = running;
   const slug = project ?? clone;
   if (slug === undefined) return 0;
   if (sshHost === null || orgIndex === null) {
@@ -484,7 +503,70 @@ async function runFetch(tokens: string[], io: HandsIO, deps: HandsDeps, config: 
   return 0;
 }
 
-const ACTION_PAST = { fork: "forked", pause: "paused", resume: "resumed" } as const;
+interface ForkArgs {
+  ref: string;
+  spec?: string;
+  name?: string;
+}
+
+function parseFork(tokens: string[]): { ok: true; args: ForkArgs } | { ok: false; error: string } {
+  const refs: string[] = [];
+  const values: { spec?: string; name?: string } = {};
+  for (let i = 0; i < tokens.length; i += 1) {
+    const token = tokens[i];
+    if (!token.startsWith("-")) {
+      refs.push(token);
+      continue;
+    }
+    const [flag, inline] = token.startsWith("--") && token.includes("=")
+      ? [token.slice(0, token.indexOf("=")), token.slice(token.indexOf("=") + 1)]
+      : [token, undefined];
+    if (flag !== "--spec" && flag !== "--name") return { ok: false, error: `unknown flag "${token}"` };
+    const value = inline ?? tokens[++i];
+    if (value === undefined || value === "") return { ok: false, error: `${flag} requires a value` };
+    values[flag === "--spec" ? "spec" : "name"] = value;
+  }
+  if (refs.length === 0) return { ok: false, error: HAND_MISSING };
+  if (refs.length !== 1) return { ok: false, error: "takes exactly one hand" };
+  return { ok: true, args: { ref: refs[0], ...values } };
+}
+
+async function runFork(tokens: string[], io: HandsIO, deps: HandsDeps, config: ConsoleConfig, prefix: string) {
+  const parsed = parseFork(tokens);
+  if (!parsed.ok) {
+    io.stderr(`${prefix}: ${parsed.error}\n`);
+    return 1;
+  }
+  const { ref, name } = parsed.args;
+  let spec = parsed.args.spec;
+  if (spec === undefined) {
+    const read = await callApi(deps, config, "GET", handPath(ref));
+    if (!read.ok) return failed(io, prefix, read);
+    spec = toNode(read.body)?.spec ?? undefined;
+    if (spec === undefined) {
+      io.stderr(`${prefix}: hand ${ref} has no spec; pass --spec <spec>\n`);
+      return 1;
+    }
+  }
+  const requestedAt = deps.now();
+  const forked = await callApi(deps, config, "POST", `${handPath(ref)}/fork`, {
+    spec,
+    ...(name === undefined ? {} : { name }),
+  });
+  if (!forked.ok) return failed(io, prefix, forked);
+  const body = asRecord(forked.body);
+  const forkId = asText(body?.forkId);
+  if (forkId === null) {
+    const job = asText(body?.jobId);
+    io.stdout(`fork of ${ref} requested${job === null ? "" : ` (job ${job})`}; run agro hands list to find the fork\n`);
+    return 0;
+  }
+  const fork = toNode({ id: forkId, status: "queued" });
+  if (fork === undefined) return 1;
+  return (await awaitHand(io, deps, config, prefix, fork, requestedAt)) === undefined ? 1 : 0;
+}
+
+const ACTION_PAST = { pause: "paused", resume: "resumed" } as const;
 
 async function runAction(
   verb: keyof typeof ACTION_PAST,
@@ -501,9 +583,7 @@ async function runAction(
   }
   const result = await callApi(deps, config, "POST", `${handPath(parsed.ref)}/${verb}`);
   if (!result.ok) return failed(io, prefix, result);
-  const node = toNode(result.body);
-  const detail = verb === "fork" && node !== undefined ? `: ${node.id} ${node.status}` : "";
-  io.stdout(`${ACTION_PAST[verb]} ${parsed.ref}${detail}\n`);
+  io.stdout(`${ACTION_PAST[verb]} ${parsed.ref}\n`);
   return 0;
 }
 
@@ -557,6 +637,7 @@ export async function runHands(
   if (verb === "list") return runList(rest, safe, deps, config, prefix);
   if (verb === "create") return runCreate(rest, safe, deps, config, prefix);
   if (verb === "destroy") return runDestroy(rest, safe, deps, config, prefix);
+  if (verb === "fork") return runFork(rest, safe, deps, config, prefix);
   if (verb === "exec") return runExec(rest, safe, deps, config, prefix);
   if (verb === "fetch") return runFetch(rest, safe, deps, config, prefix);
   return runAction(verb, rest, safe, deps, config, prefix);
