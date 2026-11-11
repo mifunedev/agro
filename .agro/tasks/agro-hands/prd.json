@@ -101,15 +101,16 @@
         "The advisor deletes each node, SSH key, and token of the round. The provider list at the end matches the list before the round."
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "Round 1 (evidence f61e1b146, 2026-11-11), not met: on brain #364 the built CLI ran list, create --project (hand #365), exec, a commit on the hand, fetch (84ce12b..027bf46), the brain refusal (403 BRAIN_TOKEN_TARGET_FORBIDDEN), and destroy. hands fork failed with HTTP 400 (the CLI sends no body; the console requires spec). A fork made by curl (#366) got no brain key, so exec failed with Permission denied (publickey). The fork response id is the source. Fixes: CLI US-001 repair round 2; console mifunedev/agro-console#745. The advisor verified cleanup (no live node, key, or token; provider list as before). Spend 0.42 instance-hour against 0.3.",
+      "passes": true,
+      "notes": "Round 1 (evidence f61e1b146, 2026-11-11), not met: on brain #364 the built CLI ran list, create --project (hand #365), exec, a commit on the hand, fetch (84ce12b..027bf46), the brain refusal (403 BRAIN_TOKEN_TARGET_FORBIDDEN), and destroy. hands fork failed with HTTP 400 (the CLI sends no body; the console requires spec). A fork made by curl (#366) got no brain key, so exec failed with Permission denied (publickey). The fork response id is the source. Fixes: CLI US-001 repair round 2; console mifunedev/agro-console#745. The advisor verified cleanup (no live node, key, or token; provider list as before). Spend 0.42 instance-hour against 0.3. Round 2 (55b2ac0ae), accepted by the advisor: brain #367 against the console at d5e15d25 with agro-console #744 and #746 merged; no AGRO_CONSOLE_URL; ~/.agro/brain-console-url 600 sandbox. 1 executed: list printed no hands before any hand. 2 executed: create --project (#368), list, exec git log, a commit on the hand, fetch (6eebb41..e7efd5c), fork (#369, waited and printed index, alias, ssh host), exec on the fork (brain key attached), and destroy of fork and hand, each exit 0. 3 executed: exec on the brain gave 403 BRAIN_TOKEN_TARGET_FORBIDDEN. 4 executed: the advisor re-ran the provider list (same 3 instances, 2 golden volumes, 2 snapshots) and found no live node, key, or token. 0.26 instance-hour; pool held at max 0 through the round, then one reset with no refill.",
       "dependsOn": [
         "US-003"
       ],
       "files": [
         ".agro/tasks/agro-hands/evidence/"
       ],
-      "rounds": 1
+      "rounds": 1,
+      "commit": "55b2ac0ae"
     }
   ],
   "pr": 1606
