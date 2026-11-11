@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { HANDS_VERBS } from "../../command-table.js";
 import {
   BRAIN_TOKEN_MISSING,
+  HAND_MISSING,
   handsHelp,
   normalizeHandRef,
   resolveBrainConsoleConfig,
@@ -314,6 +315,32 @@ describe("agro hands fork, pause, resume, and destroy", () => {
     expect(await runHands(["pause", "1", "2"], h.io, h.deps)).toBe(1);
     expect(await runHands(["resume", "--now", "1"], h.io, h.deps)).toBe(1);
     expect(h.calls).toEqual([]);
+  });
+
+  it("names the unquoted # as the likely cause when no hand arrives", async () => {
+    const cases = [["fork"], ["pause"], ["resume"], ["destroy"], ["destroy", "--yes"], ["exec"], ["exec", "--", "ls"], ["fetch"]];
+    for (const args of cases) {
+      const h = harness([{ status: 202 }]);
+      expect(await runHands(args, h.io, h.deps)).toBe(1);
+      expect(h.stderr()).toBe(`agro hands ${args[0]}: ${HAND_MISSING}\n`);
+      expect(h.calls).toEqual([]);
+    }
+    expect(HAND_MISSING).toBe(
+      "no <hand> given — an unquoted #<index> starts a shell comment; write the bare index (4) or quote '#4'",
+    );
+  });
+
+  it("still accepts a quoted #4", async () => {
+    const h = harness([{ status: 202 }]);
+    expect(await runHands(["pause", "#4"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].url).toBe("https://brain-console.example/api/nodes/4/pause");
+  });
+
+  it("leads the help with the bare index and warns about #", () => {
+    const help = handsHelp("agro");
+    expect(help).toContain("<hand> is an index (4), an alias, or a uuid.");
+    expect(help).toContain("Quote '#4' if you write the # sign");
+    expect(help).not.toContain("#<index>, <index>");
   });
 
   it("destroy asks for confirmation and aborts without a request", async () => {

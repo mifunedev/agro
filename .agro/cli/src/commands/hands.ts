@@ -22,6 +22,9 @@ import * as prompt from "../lib/prompt.js";
 export const BRAIN_HOME = "/home/sandbox";
 export const BRAIN_TOKEN_MISSING = `not on a brain: ${brainTokenPath(BRAIN_HOME)} not found`;
 
+export const HAND_MISSING =
+  "no <hand> given — an unquoted #<index> starts a shell comment; write the bare index (4) or quote '#4'";
+
 export type HandsIO = ConsoleIO;
 
 export interface HandsDeps extends ConsolePollDeps {
@@ -143,10 +146,12 @@ Usage:
   ${bin} hands exec <hand> [--project <owner>/<repo>] -- <command...>
   ${bin} hands fetch <hand> --project <owner>/<repo>
 
-<hand> is #<index>, <index>, an alias, or a uuid. \`create\` requests a
-sandbox hand, waits up to 15 minutes for it to reach \`running\`, then prints
-its index, alias, and SSH host. \`destroy\` asks for confirmation unless
---yes is given.
+<hand> is an index (4), an alias, or a uuid.
+Quote '#4' if you write the # sign: an unquoted #4 starts a shell comment.
+
+\`create\` requests a sandbox hand, waits up to 15 minutes for it to reach
+\`running\`, then prints its index, alias, and SSH host. \`destroy\` asks for
+confirmation unless --yes is given.
 
 A project lives at ~/projects/<owner>/<repo> on the hand and at
 ~/.agro/workspaces/harness/projects/<owner>/<repo> on the brain.
@@ -183,6 +188,7 @@ function oneHand(tokens: string[], allowed: string[]): { ok: true; ref: string }
   const flag = tokens.find((token) => token.startsWith("-") && !allowed.includes(token));
   if (flag !== undefined) return { ok: false, error: `unknown flag "${flag}"` };
   const refs = tokens.filter((token) => !token.startsWith("-"));
+  if (refs.length === 0) return { ok: false, error: HAND_MISSING };
   if (refs.length !== 1) return { ok: false, error: "takes exactly one hand" };
   return { ok: true, ref: refs[0] };
 }
@@ -420,7 +426,11 @@ async function runExec(tokens: string[], io: HandsIO, deps: HandsDeps, config: C
     io.stderr(`${prefix}: ${parsed.error}\n`);
     return 1;
   }
-  if (parsed.ref === undefined || command.length === 0) {
+  if (parsed.ref === undefined) {
+    io.stderr(`${prefix}: ${HAND_MISSING}\n`);
+    return 1;
+  }
+  if (command.length === 0) {
     io.stderr(`${prefix}: usage: exec <hand> [--project <owner>/<repo>] -- <command...>\n`);
     return 1;
   }
@@ -440,7 +450,11 @@ async function runFetch(tokens: string[], io: HandsIO, deps: HandsDeps, config: 
     io.stderr(`${prefix}: ${parsed.error}\n`);
     return 1;
   }
-  if (parsed.ref === undefined || parsed.project === undefined) {
+  if (parsed.ref === undefined) {
+    io.stderr(`${prefix}: ${HAND_MISSING}\n`);
+    return 1;
+  }
+  if (parsed.project === undefined) {
     io.stderr(`${prefix}: usage: fetch <hand> --project <owner>/<repo>\n`);
     return 1;
   }
