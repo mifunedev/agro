@@ -141,3 +141,11 @@ None. The operator approved these decisions on 2026-11-11:
 - [ ] No node, SSH key, or token that the task created remains.
 
 ## Lessons
+
+1. **`agro hands fork` sent no body.** Claim: the console fork route requires `spec`, so the first live fork returned HTTP 400. Evidence: `evidence/manual-review.md` round 1. Outcome: fixed in this PR (`108b5f9db`).
+2. **A brain-token fork had no SSH key and no fork id.** Claim: the console added the brain key on create only. The fork response named the source node. Evidence: round 1, fork #366. Outcome: fixed in mifunedev/agro-console#746 (issue mifunedev/agro-console#745), merged into `task/684-sandbox-only-spike`.
+3. **The fork id exists before the fork node.** Claim: mifunedev/agro-console#746 reserves `forkId`, so a lookup returns 404 until the disk copy ends. Evidence: the #746 report. Outcome: fixed in this PR (`0ae524d73`); only the fork wait treats 404 as pending.
+4. **An unquoted `#<index>` starts a shell comment.** Claim: `agro hands exec #7 -- ls` passes no hand. Evidence: US-003 report. Outcome: fixed in this PR (`67c346162`); the help, skill, and docs lead with the bare index.
+5. **A brain had no console URL.** Claim: the URL existed only inside the claim script. Evidence: grounding of US-001. Outcome: fixed in mifunedev/agro-console#744 (issue mifunedev/agro-console#743), merged; round 2 read the file with no override.
+6. **The first live round passed its budget.** Claim: pool resets started refills, so round 1 used 0.42 instance-hour against 0.3. Evidence: `evidence/cleanup.md`. Outcome: dropped, a process observation. Round 2 held the pool at 0 and used 0.26.
+7. **`agro node` still sends the retired app flags.** Claim: `agro node create --profile agro --t3 --code-server` sends fields that the console role model ignores. Evidence: grounding of US-001. Outcome: dropped for this PR. The operator approved a follow-up after this task.
