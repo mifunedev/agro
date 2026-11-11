@@ -20,7 +20,7 @@
         "`npm --prefix .agro/cli run typecheck` and `pnpm test:scripts` exit 0."
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "Accepted by the advisor on f6e841a3b in the task worktree, 2026-11-11, no live requests. 1 executed: lib/console-api.ts holds the console config, callApi, node parsing, poll timing, and waitForRunning; node.ts re-exports the moved symbols and node.test.ts passes unedited. 2 executed: hands reads /home/sandbox/.agro/brain-token and /home/sandbox/.agro/brain-console-url through injectable deps; AGRO_CONSOLE_TOKEN and AGRO_CONSOLE_URL override; a missing URL file exits 2 and never falls back to the public console. 3 executed: missing token file exits 2 with the exact message and sends no request. 4 executed: tests check every captured output for a known token, including a 403 body and a fetch error; output also passes through a redacting wrapper. 5 to 8 executed in hands.test.ts (list table and --json, create with polling, fork/pause/resume/destroy with #index, index, alias, uuid, destroy confirmation, 403 codes with one call and no retry). 9 executed by the advisor: typecheck 0; test:scripts 3118 passed, 14 failed, the failure set identical to evidence/baseline.md.",
       "dependsOn": [],
       "files": [
@@ -32,7 +32,8 @@
         ".agro/cli/src/cli.ts",
         ".agro/cli/src/command-table.ts"
       ],
-      "commit": "f6e841a3b"
+      "commit": "f6e841a3b",
+      "rounds": 1
     },
     {
       "id": "US-002",
@@ -74,8 +75,8 @@
         "Typecheck passes (`npm --prefix .agro/cli run typecheck` exits 0)."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on 814bcf77c, 2026-11-11. 1 and 2 executed: .agro/skills/hands/SKILL.md (77 lines) covers when a hand is worth its cost, the create/exec/fetch/destroy flow, destroy or pause, never reading the token, stop on 403, fork credential risk, agro hands --help, and agro harness install <name> --host; STE clean (advisor ran ste-check). 3 executed: link-providers.sh --check prints Providers OK; .claude/skills and .agents/skills are directory symlinks, so no mirror changed. 4 executed: command-table lists the eight verbs (US-002); docs/lifecycle-commands.md has the row and a section; docs-reference and docs tests pass. 5 executed: CHANGELOG Unreleased Added names agro hands and the skill (#1604). 6 executed. 7 executed by the advisor: typecheck 0, build:harness 0, test:scripts 3136 passed with the baseline failures only. Finding: an unquoted #<index> starts a shell comment; the skill and docs use the bare index; the CLI help fix is a US-001 repair.",
       "dependsOn": [
         "US-002"
       ],
@@ -86,7 +87,8 @@
         "docs/lifecycle-commands.md",
         ".agro/cli/src/__tests__/",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "814bcf77c"
     },
     {
       "id": "US-004",
