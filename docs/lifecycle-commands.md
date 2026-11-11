@@ -52,6 +52,7 @@ Host prerequisites and the CLI install are in [Installation](installation.md).
 | `agro workspace create [<name>] [--path <dir>] [--ref <ref>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
 | `agro auth login [--url <url>]` · `agro auth status` · `agro auth logout` · `agro auth token` | sign in to agro-console and manage the console token — see below |
 | `agro node create --spec <spec> [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--free-tier] [--json]` · `agro node list [--json]` · `agro node delete <id> [--yes]` · `agro node check [--free-tier] [--ssh-key <uuid>]...` | create, list, delete, and check remote agro-console sandbox nodes — see below |
+| `agro hands list [--json]` · `agro hands create [--name <name>] [--spec <spec>] [--project <owner>/<repo> \| --clone <owner>/<repo>]` · `agro hands exec <hand> [--project <owner>/<repo>] -- <command...>` · `agro hands fetch <hand> --project <owner>/<repo>` · `agro hands fork\|pause\|resume <hand>` · `agro hands destroy <hand> [--yes]` | on a brain, create and manage hands, and move projects to them over SSH — see below |
 | `agro --help` · `agro --version` | usage and version |
 
 `agro <verb> -- <args>` forwards extra arguments to `docker compose`, e.g.
@@ -611,6 +612,53 @@ agro node check --free-tier      # check the SSH key and the free tier, create n
   `ok ssh-key <id>` or `fail free-tier: ...`. Each failure line names a remedy.
   The command exits 0 only when each check passes. Otherwise it exits 1.
 - `--json` on `create` and `list` prints JSON instead of text.
+
+## Hands from a brain: `agro hands`
+
+`agro hands` runs on a brain. A hand is a sandbox node that the brain creates
+through the console. The brain keeps the project history, and the hand does the
+work. `agro hands` keeps no state. The console lists the hands.
+
+```bash
+agro hands create --project <owner>/<repo>   # create a hand, push the current branch
+agro hands list                              # the hands: index, alias, status, spec, SSH host
+agro hands exec 4 --project <owner>/<repo> -- npm test   # run a command in the hand project
+agro hands fetch 4 --project <owner>/<repo>  # git fetch hand-4 in the brain project
+agro hands destroy 4                         # destroy one hand after a confirmation
+```
+
+- Each verb reads the brain token from `/home/sandbox/.agro/brain-token` and the
+  console URL from `/home/sandbox/.agro/brain-console-url`.
+  `AGRO_CONSOLE_TOKEN` and `AGRO_CONSOLE_URL` override them. If no token
+  resolves, the verb exits 2 and prints
+  `not on a brain: /home/sandbox/.agro/brain-token not found`. If no URL
+  resolves, the verb exits 2. No output holds the token.
+- `<hand>` is `#<index>`, `<index>`, an alias, or a uuid. Quote `#<index>` in a
+  shell, or write the index without `#`.
+- `agro hands create` requests a hand with the profile `sandbox`, waits up to
+  15 minutes for the status `running`, then prints the index, the alias, and
+  the SSH host.
+- `create --project <owner>/<repo>` needs the brain project at
+  `~/.agro/workspaces/harness/projects/<owner>/<repo>`. If the project does not
+  exist, the command exits 1 before it creates a hand. The command prepares
+  `~/projects/<owner>/<repo>` on the hand with `git init` and
+  `receive.denyCurrentBranch updateInstead`, adds the remote `hand-<index>` to
+  the brain project, and pushes the current branch.
+- `create --clone <owner>/<repo>` clones
+  `https://github.com/<owner>/<repo>.git` on the hand with the git credential of
+  the hand. The brain pushes nothing.
+- `agro hands exec` runs the command after `--` over SSH and exits with the
+  exit status of the command. `--project` runs the command in the project
+  folder of the hand.
+- `agro hands fetch` runs `git fetch hand-<index>` in the brain project.
+- SSH connects to `sandbox@<sshHost>` with the default brain key. The first
+  contact accepts the host key, and the brain pins the key by the hand uuid. A
+  fork has a new uuid and a new host key.
+- `fork`, `pause`, and `resume` call the matching console route.
+  `agro hands destroy` asks for a confirmation. `--yes` skips the confirmation.
+- If the console returns HTTP 403, the command prints the console code
+  (`BRAIN_TOKEN_FORBIDDEN` or `BRAIN_TOKEN_TARGET_FORBIDDEN`), exits 1, and does
+  not retry.
 
 ## Langfuse tracing: `agro config langfuse` and `agro langfuse`
 
