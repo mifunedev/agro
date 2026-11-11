@@ -1,0 +1,114 @@
+# 2026-11-11T17:42:48.543Z
+sandbox@brain$ sha256sum ~/agro-hands-test.js; node --version
+d2de64c0feaf87c2c6a0075cdd9856bdb935b9534cdd5cb155b9c17b0dcbee54  /home/sandbox/agro-hands-test.js
+v24.22.2
+[exit 0]
+# 2026-11-11T17:42:48.932Z
+sandbox@brain$ cat ~/.agro/brain-console-url
+https://mifune-console-local-ryaneggz-f1bb.mifune.io
+[exit 0]
+# 2026-11-11T17:42:49.300Z
+sandbox@brain$ stat -c '%a %U' ~/.agro/brain-console-url
+600 sandbox
+[exit 0]
+# 2026-11-11T17:42:49.645Z
+sandbox@brain$ stat -c '%a %U' ~/.agro/brain-token
+600 sandbox
+[exit 0]
+# 2026-11-11T17:42:49.997Z
+sandbox@brain$ node ~/agro-hands-test.js hands list
+no hands
+[exit 0]
+# 2026-11-11T17:42:56.840Z
+sandbox@brain$ P=~/.agro/workspaces/harness/projects/mifunedev/hands-demo; mkdir -p $P && cd $P && git init -q -b main && printf "# hands-demo\n" > README.md && git add README.md && git -c user.name=brain -c user.email=brain@example.invalid commit -qm "brain: first commit" && git log --oneline
+6eebb41 brain: first commit
+[exit 0]
+# 2026-11-11T17:42:57.220Z
+sandbox@brain$ cd ~/.agro/workspaces/harness/projects/mifunedev/hands-demo && node ~/agro-hands-test.js hands create --project mifunedev/hands-demo
+agro hands create: hand ebbf6b65-2a5b-4818-9b3f-5b1163a8dc15 queued
+agro hands create: hand ebbf6b65-2a5b-4818-9b3f-5b1163a8dc15 creating_vm
+agro hands create: hand ebbf6b65-2a5b-4818-9b3f-5b1163a8dc15 running
+index: 368
+alias: smart-beacon-kcvdr2
+ssh host: ssh-smart-beacon-kcvdr2.mifune.io
+project: ~/projects/mifunedev/hands-demo
+Warning: Permanently added 'ebbf6b65-2a5b-4818-9b3f-5b1163a8dc15' (ED25519) to the list of known hosts.
+To ssh-smart-beacon-kcvdr2.mifune.io:projects/mifunedev/hands-demo
+ * [new branch]      main -> main
+remote: hand-368
+[exit 0]
+# 2026-11-11T17:44:42.145Z
+sandbox@brain$ node ~/agro-hands-test.js hands list
+INDEX  ALIAS                STATUS   SPEC  SSH HOST
+#368   smart-beacon-kcvdr2  running  n4    ssh-smart-beacon-kcvdr2.mifune.io
+[exit 0]
+# 2026-11-11T17:44:43.746Z
+sandbox@brain$ node ~/agro-hands-test.js hands exec 368 --project mifunedev/hands-demo -- git log --oneline
+6eebb41 brain: first commit
+[exit 0]
+# 2026-11-11T17:44:45.312Z
+sandbox@brain$ node ~/agro-hands-test.js hands exec 368 --project mifunedev/hands-demo -- sh -c 'echo x > f && git add f && git -c user.name=t -c user.email=t@t commit -qm hand-commit'
+[exit 0]
+# 2026-11-11T17:44:46.720Z
+sandbox@brain$ node ~/agro-hands-test.js hands exec 368 --project mifunedev/hands-demo -- git log --oneline
+e7efd5c hand-commit
+6eebb41 brain: first commit
+[exit 0]
+# 2026-11-11T17:44:47.990Z
+sandbox@brain$ node ~/agro-hands-test.js hands fetch 368 --project mifunedev/hands-demo
+From ssh-smart-beacon-kcvdr2.mifune.io:projects/mifunedev/hands-demo
+   6eebb41..e7efd5c  main       -> hand-368/main
+[exit 0]
+# 2026-11-11T17:44:49.190Z
+sandbox@brain$ cd ~/.agro/workspaces/harness/projects/mifunedev/hands-demo && git log --oneline hand-368/main
+e7efd5c hand-commit
+6eebb41 brain: first commit
+[exit 0]
+# 2026-11-11T17:44:49.534Z
+sandbox@brain$ node ~/agro-hands-test.js hands exec 367 -- true
+agro hands exec: HTTP 403 BRAIN_TOKEN_TARGET_FORBIDDEN: The brain token allows only hands-node operations
+[exit 1]
+# 2026-11-11T17:44:54.402Z
+sandbox@brain$ node ~/agro-hands-test.js hands fork 368
+agro hands fork: hand a1ee5c54-9a93-448a-bdc5-4af9bdf18ab7 queued
+agro hands fork: hand a1ee5c54-9a93-448a-bdc5-4af9bdf18ab7 creating_vm
+agro hands fork: hand a1ee5c54-9a93-448a-bdc5-4af9bdf18ab7 running
+index: 369
+alias: able-comet-m5ko73
+ssh host: ssh-able-comet-m5ko73.mifune.io
+[exit 0]
+# 2026-11-11T17:46:48.903Z
+sandbox@brain$ node ~/agro-hands-test.js hands list
+INDEX  ALIAS                STATUS   SPEC  SSH HOST
+#369   able-comet-m5ko73    running  n4    ssh-able-comet-m5ko73.mifune.io
+#368   smart-beacon-kcvdr2  running  n4    ssh-smart-beacon-kcvdr2.mifune.io
+[exit 0]
+# 2026-11-11T17:46:56.498Z
+sandbox@brain$ node ~/agro-hands-test.js hands exec 369 -- true
+Warning: Permanently added 'a1ee5c54-9a93-448a-bdc5-4af9bdf18ab7' (ED25519) to the list of known hosts.
+[exit 0]
+# 2026-11-11T17:46:59.721Z
+sandbox@brain$ node ~/agro-hands-test.js hands exec 369 --project mifunedev/hands-demo -- git log --oneline
+e7efd5c hand-commit
+6eebb41 brain: first commit
+[exit 0]
+# 2026-11-11T17:47:01.051Z
+sandbox@brain$ node ~/agro-hands-test.js hands exec 369 -- hostname
+able-comet-m5ko73
+[exit 0]
+# 2026-11-11T17:47:08.266Z
+sandbox@brain$ node ~/agro-hands-test.js hands destroy 369 --yes
+destroyed 369
+[exit 0]
+# 2026-11-11T17:47:09.089Z
+sandbox@brain$ node ~/agro-hands-test.js hands destroy 368 --yes
+destroyed 368
+[exit 0]
+# 2026-11-11T17:47:09.901Z
+sandbox@brain$ node ~/agro-hands-test.js hands list
+no hands
+[exit 0]
+# 2026-11-11T17:47:26.292Z
+sandbox@brain$ rm -f ~/agro-hands-test.js; ls ~/agro-hands-test.js
+ls: cannot access '/home/sandbox/agro-hands-test.js': No such file or directory
+[exit 2]

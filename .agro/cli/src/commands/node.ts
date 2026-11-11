@@ -1,81 +1,52 @@
-import { messageOf } from "../lib/execution/runner.js";
 import { readFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
 import { join } from "node:path";
 import { isOneOf, NODE_VERBS } from "../command-table.js";
 import { readConsoleCredentials, type ConsoleCredentials } from "../lib/console-auth.js";
+import {
+  asRecord,
+  asText,
+  callApi,
+  DEFAULT_CONSOLE_URL,
+  NODE_READY_TIMEOUT_MS,
+  nodePollDelayMs,
+  resolveConsoleConfig,
+  toNode,
+  toNodeList,
+  waitForRunning,
+  type ConsoleConfig,
+  type ConsoleIO,
+  type ConsoleNode,
+  type ConsolePollDeps,
+} from "../lib/console-api.js";
 import * as prompt from "../lib/prompt.js";
 
-export const DEFAULT_CONSOLE_URL = "https://console.mifune.dev";
+export {
+  DEFAULT_CONSOLE_URL,
+  NODE_FAST_POLL_INTERVAL_MS,
+  NODE_FAST_POLL_WINDOW_MS,
+  NODE_POLL_INTERVAL_MS,
+  NODE_READY_TIMEOUT_MS,
+  nodePollDelayMs,
+  resolveConsoleConfig,
+  type ConsoleConfig,
+  type ConsoleTokenSource,
+} from "../lib/console-api.js";
 
 export const CONSOLE_CONFIG_MISSING = "not logged in to agro-console: run agro auth login";
 
-export const NODE_READY_TIMEOUT_MS = 15 * 60 * 1000;
-export const NODE_FAST_POLL_INTERVAL_MS = 1000;
-export const NODE_FAST_POLL_WINDOW_MS = 30 * 1000;
-export const NODE_POLL_INTERVAL_MS = 5000;
 export const FREE_TIER_SPEC = "n4";
 export const LOCAL_SSH_KEY_MISSING = "no --ssh-key given and ~/.ssh/id_ed25519.pub not found";
 
-const FAILURE_STATUSES = new Set(["failed", "destroy_requested", "destroying", "destroyed", "retired"]);
+export type NodeIO = ConsoleIO;
 
-export type ConsoleTokenSource = "env" | "file";
-
-export interface ConsoleConfig {
-  url: string;
-  token: string;
-  source: ConsoleTokenSource;
-}
-
-export interface NodeIO {
-  stdout: (s: string) => void;
-  stderr: (s: string) => void;
-}
-
-export interface NodeDeps {
-  fetch: typeof fetch;
+export interface NodeDeps extends ConsolePollDeps {
   env: Record<string, string | undefined>;
   readCredentials: () => ConsoleCredentials | undefined;
   homeDir: () => string;
   hostname: () => string;
   readFile: (path: string) => string | undefined;
-  sleep: (ms: number) => Promise<void>;
-  now: () => number;
-  pollDelayMs: (elapsedMs: number) => number;
-  timeoutMs: number;
   confirm: (question: string) => Promise<boolean>;
-}
-
-interface ConsoleNode {
-  id: string;
-  name: string | null;
-  profile: string | null;
-  status: string;
-  ipv4: string | null;
-  ssh: string | null;
-}
-
-type ApiResult = { ok: true; status: number; body: unknown } | { ok: false; status?: number; message: string };
-
-export function resolveConsoleConfig(
-  env: Record<string, string | undefined>,
-  readCredentials: () => ConsoleCredentials | undefined,
-): ConsoleConfig | undefined {
-  const present = (value: string | undefined): string | undefined => {
-    const trimmed = value?.trim();
-    return trimmed === undefined || trimmed === "" ? undefined : trimmed;
-  };
-  const trimUrl = (url: string | undefined): string => (url ?? DEFAULT_CONSOLE_URL).replace(/\/+$/, "");
-  const envToken = present(env.AGRO_CONSOLE_TOKEN);
-  if (envToken !== undefined) return { url: trimUrl(present(env.AGRO_CONSOLE_URL)), token: envToken, source: "env" };
-  const file = readCredentials();
-  const fileToken = present(file?.token);
-  if (fileToken === undefined) return undefined;
-  return { url: trimUrl(present(file?.url)), token: fileToken, source: "file" };
-}
-
-export function nodePollDelayMs(elapsedMs: number): number {
-  return elapsedMs < NODE_FAST_POLL_WINDOW_MS ? NODE_FAST_POLL_INTERVAL_MS : NODE_POLL_INTERVAL_MS;
 }
 
 function defaultDeps(): NodeDeps {
@@ -126,78 +97,9 @@ each check passes.
 `;
 }
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
-
-function asText(value: unknown): string | null {
-  if (typeof value === "string" && value !== "") return value;
-  if (typeof value === "number") return String(value);
-  return null;
-}
-
-function toNode(value: unknown): ConsoleNode | undefined {
-  const outer = asRecord(value);
-  const record = asRecord(outer?.node) ?? outer;
-  const id = asText(record?.id);
-  if (record === undefined || id === null) return undefined;
-  return {
-    id,
-    name: asText(record.name),
-    profile: asText(record.profile),
-    status: asText(record.status) ?? "unknown",
-    ipv4: asText(record.ipv4),
-    ssh: asText(record.ssh),
-  };
-}
-
 function sshCommand(node: ConsoleNode): string | null {
   if (node.ssh !== null) return node.ssh;
   return node.ipv4 === null ? null : `ssh sandbox@${node.ipv4}`;
-}
-
-function errorDetail(status: number, body: unknown): string {
-  const record = asRecord(body);
-  const nested = asRecord(record?.error);
-  const code = asText(record?.code) ?? asText(nested?.code) ?? "no code";
-  const message = asText(record?.error) ?? asText(nested?.message) ?? asText(record?.message);
-  return `HTTP ${status} ${code}${message === null ? "" : `: ${message}`}`;
-}
-
-async function callApi(
-  deps: NodeDeps,
-  config: ConsoleConfig,
-  method: string,
-  path: string,
-  payload?: unknown,
-): Promise<ApiResult> {
-  let response: Response;
-  try {
-    response = await deps.fetch(`${config.url}${path}`, {
-      method,
-      headers: {
-        Authorization: `Bearer ${config.token}`,
-        Accept: "application/json",
-        ...(payload === undefined ? {} : { "Content-Type": "application/json" }),
-      },
-      ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
-    });
-  } catch (error) {
-    return { ok: false, message: `request failed: ${messageOf(error)}` };
-  }
-  const text = await response.text();
-  let body: unknown = null;
-  try {
-    body = text === "" ? null : JSON.parse(text);
-  } catch {
-    body = null;
-  }
-  if (response.status >= 400) {
-    return { ok: false, status: response.status, message: errorDetail(response.status, body) };
-  }
-  return { ok: true, status: response.status, body };
 }
 
 const NODE_PROFILES = ["agro", "sandbox"] as const;
@@ -352,37 +254,25 @@ async function runCreate(
     return 1;
   }
   io.stderr(`${prefix}: node ${node.id} ${node.status}\n`);
-  const deadline = deps.now() + deps.timeoutMs;
-  while (node.status !== "running" && !FAILURE_STATUSES.has(node.status)) {
-    const remaining = deadline - deps.now();
-    if (remaining <= 0) {
-      printCreateResult(io, node, json);
-      io.stderr(`${prefix}: node ${node.id} is not running after 15 minutes — last status ${node.status}\n`);
-      return 1;
-    }
-    await deps.sleep(Math.min(deps.pollDelayMs(deps.now() - requestedAt), remaining));
-    const polled = await callApi(deps, config, "GET", `/api/nodes/${encodeURIComponent(node.id)}`);
-    if (!polled.ok) {
-      io.stderr(`${prefix}: node ${node.id}: ${polled.message}\n`);
-      return 1;
-    }
-    const previous = node.status;
-    node = toNode(polled.body) ?? { ...node, status: "unknown" };
-    if (node.status !== previous) io.stderr(`${prefix}: node ${node.id} ${node.status}\n`);
+  const waited = await waitForRunning(deps, config, node, requestedAt, (next) =>
+    io.stderr(`${prefix}: node ${next.id} ${next.status}\n`),
+  );
+  node = waited.node;
+  if (!waited.ok && waited.reason === "timeout") {
+    printCreateResult(io, node, json);
+    io.stderr(`${prefix}: node ${node.id} is not running after 15 minutes — last status ${node.status}\n`);
+    return 1;
+  }
+  if (!waited.ok && waited.reason === "request") {
+    io.stderr(`${prefix}: node ${node.id}: ${waited.message}\n`);
+    return 1;
   }
   printCreateResult(io, node, json);
-  if (node.status !== "running") {
+  if (!waited.ok) {
     io.stderr(`${prefix}: node ${node.id} failed — last status ${node.status}\n`);
     return 1;
   }
   return 0;
-}
-
-function toNodeList(body: unknown): ConsoleNode[] {
-  const record = asRecord(body);
-  const items = Array.isArray(body) ? body : record?.nodes ?? record?.data ?? record?.items;
-  if (!Array.isArray(items)) return [];
-  return items.flatMap((item) => toNode(item) ?? []);
 }
 
 async function runList(

@@ -11,6 +11,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Added
 
 - Add `agro run --sandbox <name>` to run one command in a running AGRO sandbox, or with `--isolation microvm` in a running msb microVM, with no host mount ([#1600](https://github.com/mifunedev/agro/issues/1600)).
+- Add `agro hands` (list, create, exec, fetch, fork, pause, resume, destroy) to create and manage hands from a brain with the brain token, and to move projects to hands over SSH, and add the `hands` skill ([#1604](https://github.com/mifunedev/agro/issues/1604)).
 
 ### Changed
 
