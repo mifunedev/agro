@@ -346,6 +346,48 @@ describe("agro hands fork, pause, resume, and destroy", () => {
     expect(h.all()).not.toContain("u4");
   });
 
+  it("fork treats 404 as pending until the fork node appears", async () => {
+    const h = harness([
+      { status: 200, body: SOURCE },
+      { status: 202, body: { id: "u4", status: "running", jobId: "job-1", forkId: "u9" } },
+      { status: 404, body: { code: "NOT_FOUND" } },
+      { status: 404, body: { code: "NOT_FOUND" } },
+      { status: 200, body: { id: "u9", status: "running", orgIndex: 9, alias: "ample-sparrow", sshHost: "hand-9.example" } },
+    ]);
+    expect(await runHands(["fork", "4"], h.io, h.deps)).toBe(0);
+    expect(h.calls.slice(2).map((c) => c.url)).toEqual([
+      "https://brain-console.example/api/nodes/u9",
+      "https://brain-console.example/api/nodes/u9",
+      "https://brain-console.example/api/nodes/u9",
+    ]);
+    expect(h.stdout()).toBe("index: 9\nalias: ample-sparrow\nssh host: hand-9.example\n");
+  });
+
+  it("fork exits 1 with the job id when the fork never appears before the timeout", async () => {
+    const h = harness(
+      [
+        { status: 200, body: SOURCE },
+        { status: 202, body: { id: "u4", status: "running", jobId: "job-1", forkId: "u9" } },
+        { status: 404, body: { code: "NOT_FOUND" } },
+      ],
+      { timeoutMs: 5000 },
+    );
+    expect(await runHands(["fork", "4"], h.io, h.deps)).toBe(1);
+    expect(h.sleeps.reduce((sum, ms) => sum + ms, 0)).toBe(5000);
+    expect(h.stderr()).toContain("agro hands fork: fork u9 never appeared after 15 minutes (job job-1)\n");
+    expect(h.stdout()).toBe("");
+  });
+
+  it("create still fails on a 404 poll", async () => {
+    const h = harness([
+      { status: 202, body: { id: "u9", status: "queued" } },
+      { status: 404, body: { code: "NOT_FOUND" } },
+    ]);
+    expect(await runHands(["create"], h.io, h.deps)).toBe(1);
+    expect(h.calls).toHaveLength(2);
+    expect(h.stderr()).toContain("HTTP 404 NOT_FOUND");
+  });
+
   it("fork exits 1 when the fork fails", async () => {
     const h = harness([
       { status: 200, body: SOURCE },

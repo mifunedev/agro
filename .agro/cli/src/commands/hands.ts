@@ -334,14 +334,18 @@ async function awaitHand(
   prefix: string,
   hand: ConsoleNode,
   requestedAt: number,
+  fork?: { job: string | null },
 ): Promise<ConsoleNode | undefined> {
   const report = (next: ConsoleNode) => io.stderr(`${prefix}: hand ${next.id} ${next.status}\n`);
   report(hand);
-  const waited = await waitForRunning(deps, config, hand, requestedAt, report);
+  const waited = await waitForRunning(deps, config, hand, requestedAt, report, { pendingOn404: fork !== undefined });
   if (!waited.ok) {
     const last = waited.node;
     if (waited.reason === "request") io.stderr(`${prefix}: hand ${last.id}: ${waited.message}\n`);
-    else if (waited.reason === "timeout") {
+    else if (waited.reason === "timeout" && !waited.appeared) {
+      const job = fork?.job ?? null;
+      io.stderr(`${prefix}: fork ${last.id} never appeared after 15 minutes${job === null ? "" : ` (job ${job})`}\n`);
+    } else if (waited.reason === "timeout") {
       io.stderr(`${prefix}: hand ${last.id} is not running after 15 minutes — last status ${last.status}\n`);
     } else io.stderr(`${prefix}: hand ${last.id} failed — last status ${last.status}\n`);
     return undefined;
@@ -556,14 +560,14 @@ async function runFork(tokens: string[], io: HandsIO, deps: HandsDeps, config: C
   if (!forked.ok) return failed(io, prefix, forked);
   const body = asRecord(forked.body);
   const forkId = asText(body?.forkId);
+  const job = asText(body?.jobId);
   if (forkId === null) {
-    const job = asText(body?.jobId);
     io.stdout(`fork of ${ref} requested${job === null ? "" : ` (job ${job})`}; run agro hands list to find the fork\n`);
     return 0;
   }
   const fork = toNode({ id: forkId, status: "queued" });
   if (fork === undefined) return 1;
-  return (await awaitHand(io, deps, config, prefix, fork, requestedAt)) === undefined ? 1 : 0;
+  return (await awaitHand(io, deps, config, prefix, fork, requestedAt, { job })) === undefined ? 1 : 0;
 }
 
 const ACTION_PAST = { pause: "paused", resume: "resumed" } as const;

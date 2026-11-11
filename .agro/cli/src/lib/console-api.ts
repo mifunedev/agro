@@ -51,7 +51,8 @@ export type ApiResult = { ok: true; status: number; body: unknown } | { ok: fals
 
 export type WaitResult =
   | { ok: true; node: ConsoleNode }
-  | { ok: false; reason: "timeout" | "failed"; node: ConsoleNode }
+  | { ok: false; reason: "timeout"; node: ConsoleNode; appeared: boolean }
+  | { ok: false; reason: "failed"; node: ConsoleNode }
   | { ok: false; reason: "request"; node: ConsoleNode; message: string };
 
 export function present(value: string | undefined): string | undefined {
@@ -166,15 +167,19 @@ export async function waitForRunning(
   initial: ConsoleNode,
   requestedAt: number,
   onStatus: (node: ConsoleNode) => void,
+  options: { pendingOn404?: boolean } = {},
 ): Promise<WaitResult> {
   let node = initial;
+  let appeared = options.pendingOn404 !== true;
   const deadline = deps.now() + deps.timeoutMs;
   while (node.status !== "running" && !FAILURE_STATUSES.has(node.status)) {
     const remaining = deadline - deps.now();
-    if (remaining <= 0) return { ok: false, reason: "timeout", node };
+    if (remaining <= 0) return { ok: false, reason: "timeout", node, appeared };
     await deps.sleep(Math.min(deps.pollDelayMs(deps.now() - requestedAt), remaining));
     const polled = await callApi(deps, config, "GET", `/api/nodes/${encodeURIComponent(node.id)}`);
+    if (!polled.ok && polled.status === 404 && options.pendingOn404 === true) continue;
     if (!polled.ok) return { ok: false, reason: "request", node, message: polled.message };
+    appeared = true;
     const previous = node.status;
     node = toNode(polled.body) ?? { ...node, status: "unknown" };
     if (node.status !== previous) onStatus(node);
