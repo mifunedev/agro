@@ -48,8 +48,8 @@
         "`npm --prefix .agro/cli run typecheck` and `pnpm test:scripts` exit 0."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Accepted by the advisor on 9094fa78b in the task worktree, 2026-11-11, no live requests. 1 executed: create --project checks the brain project before the console call, prepares projects/<owner>/<repo> on the hand with git init on the current branch and receive.denyCurrentBranch updateInstead, adds remote hand-<index>, pushes; failures return their status and leave no remote (hands-project.test.ts with a real temp repo). 2 executed: create --clone runs git clone https://github.com/<owner>/<repo>.git on the hand, one SSH call, no brain remote. 3 executed: exec quotes argv (pinned with spaces and quotes), runs in the project folder with --project, returns the remote status. 4 executed: fetch runs git fetch hand-<index> in the brain project. 5 executed: SSH args -o StrictHostKeyChecking=accept-new -o HostKeyAlias=<uuid>, no -i; git uses the same through GIT_SSH_COMMAND; a fork gets its own known_hosts entry by uuid. 6 executed: tests pin remote name, paths, and statuses 0/1/3/128/255. 7 executed by the advisor: typecheck 0; test:scripts 3136 passed, 14 failed, identical to the baseline set. Slug validation rejects .., extra slashes, and shell characters.",
       "dependsOn": [
         "US-001"
       ],
@@ -57,7 +57,8 @@
         ".agro/cli/src/commands/hands.ts",
         ".agro/cli/src/lib/",
         ".agro/cli/src/commands/__tests__/"
-      ]
+      ],
+      "commit": "9094fa78b"
     },
     {
       "id": "US-003",
