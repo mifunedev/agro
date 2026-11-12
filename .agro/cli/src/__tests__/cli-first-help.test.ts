@@ -42,6 +42,13 @@ describe("cli-first help — the single agro identity", () => {
     expect(text).toMatch(/^agro — AGRO CLI/);
   });
 
+  it("top-level help lists clipboard without advertising the private server", () => {
+    const text = captureStdout(() => printAgroHelp(AGRO_PRODUCT));
+    expect(text).toContain("clipboard <args...>");
+    expect(text).toContain("(start|stop)");
+    expect(text).not.toContain("__serve");
+  });
+
   it("top-level help lists agro auth", () => {
     const text = captureStdout(() => printAgroHelp(AGRO_PRODUCT));
     expect(text).toMatch(/^ {2}agro auth <args\.\.\.> +Sign in to agro-console \(login\|status\|logout\|token\)$/m);
@@ -140,6 +147,17 @@ describe.concurrent(
       expect(top.stdout).toMatch(/^ {2}agro self-upgrade +Upgrade the installed agro CLI$/m);
       expect(top.stdout).toMatch(/^ {2}agro vendor +Vendor or upgrade the \.agro\/ control plane$/m);
       expect(top.stdout).toMatch(/^ {2}agro sandbox <args\.\.\.> +Create, list, and upgrade sandboxes \(install\|list\|upgrade\)$/m);
+    });
+
+    it("clipboard help documents lifecycle and default port without running a service", async () => {
+      for (const args of [["--help"], ["start", "--help"], ["stop", "-h"]]) {
+        const result = await run(AGRO_JS, ["clipboard", ...args]);
+        expect(result.code).toBe(0);
+        expect(result.stdout).toContain("clipboard start [--port <port>]");
+        expect(result.stdout).toContain("clipboard stop");
+        expect(result.stdout).toContain("3500");
+        expect(result.stdout).not.toContain("__serve");
+      }
     });
 
     it("agro update is an alias of self-upgrade and refuses payload flags", async () => {
