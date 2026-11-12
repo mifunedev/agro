@@ -71,8 +71,8 @@
         "Verify standalone bundle startup from outside the source checkout with no source-relative asset dependency."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: advisor inspected full lifecycle module, registry/dispatch diff and all changed tests. Clean main at exact6259a24: monitor7 exit0, CI=true frozen install, targeted clipboard/help/bundle/server suites (70 tests),typecheck,build,build typecheck through agro run. Real bundle smoke in sandbox covers default3500,quote-safe detached launch,health/upload,idempotence,port and session collisions,foreign-process preservation,permissions,state/lock errors,startup failure cleanup,batch retention and independent projects. reasoned: tmux survives terminal disconnect, lock serializes commands, bundled source imports need no runtime assets. Main development and operator agro.json restored byte-identically.",
       "dependsOn": [
         "US-001",
         "US-002"
@@ -84,7 +84,8 @@
         ".agro/cli/src/__tests__/clipboard.test.ts",
         ".agro/cli/src/__tests__/cli-first-help.test.ts",
         ".agro/cli/src/__tests__/bundle-identity.test.ts"
-      ]
+      ],
+      "commit": "6259a24fdde512163b42c3df0c12aee5fb61dbb6"
     },
     {
       "id": "US-004",
