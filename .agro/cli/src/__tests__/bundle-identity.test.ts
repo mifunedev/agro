@@ -27,6 +27,59 @@ function run(bundle: string, args: string[]): { code: number; stdout: string; st
 }
 
 describe.skipIf(!existsSync('/etc/agro/sandbox'))('standalone clipboard inside the actual sandbox', () => {
+  it('uses fresh HOME/.agro for standalone mixed files with AGRO_HOME absent', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'clipboard-default-home-'));
+    const home = join(root, 'home');
+    const project = join(home, '.agro', 'reviews', 'clipboard-1612', 'project');
+    const bundle = join(root, 'agro.js');
+    mkdirSync(join(project, '.agro'), { recursive: true });
+    writeFileSync(join(project, '.git'), 'gitdir: /inaccessible/host/worktree');
+    copyFileSync(AGRO_JS, bundle);
+    const env: NodeJS.ProcessEnv = { ...process.env, HOME: home, AGRO_EXECUTION_TARGET: 'local' };
+    delete env.AGRO_HOME;
+    expect(Object.hasOwn(env, 'AGRO_HOME')).toBe(false);
+    const call = (...args: string[]) => execFileSync(process.execPath, [bundle, 'clipboard', ...args], { cwd: project, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    const directory = join(home, '.agro', 'clipboard', clipboardProjectId(project));
+    const statePath = join(directory, 'state.json');
+    const session = `agro-clipboard-${clipboardProjectId(project)}`;
+    const listener = createServer();
+    let stopped = false;
+    try {
+      await new Promise<void>(done => listener.listen(0, '127.0.0.1', done));
+      const port = (listener.address() as { port: number }).port;
+      await new Promise<void>((done, fail) => listener.close(e => e ? fail(e) : done()));
+      expect(call('start', '--port', String(port))).toContain(`http://127.0.0.1:${port}/#token=`);
+      const state = JSON.parse(readFileSync(statePath, 'utf8'));
+      expect(existsSync(join(directory, 'startup.log'))).toBe(true);
+      expect(statSync(directory).mode & 0o777).toBe(0o700);
+      expect(statSync(statePath).mode & 0o777).toBe(0o600);
+      expect(statSync(join(directory, 'startup.log')).mode & 0o777).toBe(0o600);
+      const bytes = [Buffer.from('standalone text\n'), Buffer.from('89504e470d0a1a0a', 'hex')];
+      const upload = await fetch(`http://127.0.0.1:${port}/api/batches`, { method: 'POST', headers: { Authorization: `Bearer ${state.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ files: bytes.map((b, i) => ({ name: ['note.txt', 'image.png'][i], caption: ['text caption', 'image caption'][i], mimeType: ['text/plain', 'image/png'][i], data: b.toString('base64') })) }) });
+      expect(upload.status).toBe(201);
+      const batch = await upload.json() as { manifestPath: string; files: { path: string; caption: string; kind: string }[]; prompt: string };
+      expect(batch.manifestPath.startsWith(join(directory, 'batches') + '/')).toBe(true);
+      const manifest = JSON.parse(readFileSync(batch.manifestPath, 'utf8'));
+      expect(manifest).toMatchObject({ schemaVersion: 1, files: batch.files });
+      expect(batch.files.map(f => f.caption)).toEqual(['text caption', 'image caption']);
+      expect(batch.files.map(f => f.kind)).toEqual(['file', 'image']);
+      batch.files.forEach((f, i) => expect(readFileSync(f.path)).toEqual(bytes[i]));
+      expect(batch.prompt).toContain('file-reading tools');
+      expect(existsSync(join(home, '.clipboard'))).toBe(false);
+      call('stop');
+      call('stop');
+      stopped = true;
+      expect(existsSync(statePath)).toBe(false);
+      expect(existsSync(batch.manifestPath)).toBe(true);
+      expect(() => execFileSync('tmux', ['has-session', '-t', `=${session}`], { stdio: 'pipe' })).toThrow();
+      await expect(fetch(`http://127.0.0.1:${port}/api/health`)).rejects.toThrow();
+      expect(existsSync(join(home, '.clipboard'))).toBe(false);
+    } finally {
+      if (!stopped) call('stop');
+      if (listener.listening) await new Promise<void>((done, fail) => listener.close(e => e ? fail(e) : done()));
+      rmSync(root, { recursive: true, force: true });
+    }
+  }, 30000);
   it('serves, uploads, isolates, refuses collisions, and cleans only owned sessions', async () => {
     const root = mkdtempSync(join(tmpdir(), "clipboard bundle ' spaces-"));
     const bundle = join(root, 'agro.js');
@@ -69,7 +122,7 @@ describe.skipIf(!existsSync('/etc/agro/sandbox'))('standalone clipboard inside t
       const base = 'http://127.0.0.1:3500';
       expect((await fetch(base)).status).toBe(200);
       expect(await (await fetch(base)).text()).toContain('AGRO Clipboard');
-      const upload = await fetch(`${base}/api/batches`, { method: 'POST', headers: { Authorization: `Bearer ${state.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ images: [{ name: "$(touch NEVER) image.png", caption: "'; touch NEVER; #", mimeType: 'image/png', data: Buffer.from('89504e470d0a1a0a', 'hex').toString('base64') }] }) });
+      const upload = await fetch(`${base}/api/batches`, { method: 'POST', headers: { Authorization: `Bearer ${state.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ files: [{ name: "$(touch NEVER) image.png", caption: "'; touch NEVER; #", mimeType: 'image/png', data: Buffer.from('89504e470d0a1a0a', 'hex').toString('base64') }] }) });
       expect(upload.status).toBe(201);
       const batch = await upload.json() as { manifestPath: string };
       expect(existsSync(batch.manifestPath)).toBe(true);

@@ -45,8 +45,19 @@ describe("cli-first help — the single agro identity", () => {
   it("top-level help lists clipboard without advertising the private server", () => {
     const text = captureStdout(() => printAgroHelp(AGRO_PRODUCT));
     expect(text).toContain("clipboard <args...>");
+    expect(text).toContain("Upload file batches");
+    expect(text).not.toContain("Upload image batches");
     expect(text).toContain("(start|stop)");
     expect(text).not.toContain("__serve");
+  });
+
+  it("clipboard help describes file batches and preserves lifecycle guidance", async () => {
+    const { printClipboardHelp } = await import("../commands/clipboard.js");
+    const text = captureStdout(() => printClipboardHelp("agro"));
+    expect(text).toContain("Upload file batches");
+    expect(text).not.toContain("Upload image batches");
+    expect(text).toContain("Default port: 3500");
+    expect(text).toContain("Stop preserves all uploaded batches");
   });
 
   it("top-level help lists agro auth", () => {

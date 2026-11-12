@@ -1,19 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, dirname, isAbsolute } from 'node:path';
+import { join, dirname, basename, isAbsolute } from 'node:path';
 import http, { type Server } from 'node:http';
 import { createClipboardServer, listenClipboardServer, readClipboardJson, CLIPBOARD_LIMITS } from '../server.js';
 
 const png = Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex');
 const jpeg = Buffer.from('ffd8ffe000104a4649460001', 'hex');
 const webp = Buffer.from('52494646040000005745425056503820', 'hex');
-const image = (bytes = png, mimeType = 'image/png', caption = 'first') => ({ name: '../../escape.png', mimeType, data: bytes.toString('base64'), caption });
+const file = (bytes = png, mimeType = 'image/png', caption = 'first', name = '../../escape.png') => ({ name, mimeType, data: bytes.toString('base64'), caption });
 let root: string;
 let storageRoot: string;
 let server: Server;
 let port: number;
-async function request(path = '/api/batches', body: unknown = { images: [image()] }, headers: Record<string, string | undefined> = {}, method = 'POST') {
+async function request(path = '/api/batches', body: unknown = { files: [file()] }, headers: Record<string, string | undefined> = {}, method = 'POST') {
   return new Promise<{ status: number; headers: http.IncomingHttpHeaders; text: string; json: any }>((resolve, reject) => {
     const req = http.request({ hostname: '127.0.0.1', port, path, method, headers: { Authorization: 'Bearer secret', 'Content-Type': 'application/json', ...headers } }, res => {
       let text = '';
@@ -38,30 +38,67 @@ afterEach(async () => {
   if (root) await fs.rm(root, { recursive: true, force: true });
 });
 describe('clipboard HTTP storage boundary', () => {
-  it('stores ordered images and literal captions in private files and a versioned manifest', async () => {
-    const captions = ['<script>alert(1)</script> $(touch /tmp/pwn)', 'second', 'third'];
-    const result = await request('/api/batches', { images: [image(png, 'image/png', captions[0]), image(jpeg, 'image/jpeg', captions[1]), image(webp, 'image/webp', captions[2])] });
+  it('stores ordered mixed files and literal captions in private files and a versioned manifest', async () => {
+    const bytes = [png, jpeg, webp, Buffer.from('hello\n'), Buffer.from('%PDF-1.7\n'), Buffer.from([0, 255, 128, 1])];
+    const mimes = ['image/png', 'image/jpeg', 'image/webp', 'text/plain', 'application/pdf', ''];
+    const captions = ['<script>alert(1)</script> $(touch /tmp/pwn)', 'second', 'third', 'text', 'pdf', 'binary'];
+    const result = await request('/api/batches', { files: bytes.map((b, i) => file(b, mimes[i], captions[i])) });
     expect(result.status).toBe(201);
+    expect(Object.keys(result.json).sort()).toEqual(['files', 'manifestPath', 'prompt']);
     const manifest = JSON.parse(await fs.readFile(result.json.manifestPath, 'utf8'));
-    expect(manifest).toMatchObject({ schemaVersion: 1, projectRoot: root, images: result.json.images });
-    expect(manifest.images.map((i: any) => i.caption)).toEqual(captions);
-    expect(new Set(manifest.images.map((i: any) => i.id)).size).toBe(3);
-    for (const [index, entry] of manifest.images.entries()) {
+    expect(manifest).toMatchObject({ schemaVersion: 1, projectRoot: root, files: result.json.files });
+    expect(manifest.images).toBeUndefined();
+    expect(manifest.files.map((f: any) => f.caption)).toEqual(captions);
+    expect(manifest.files.map((f: any) => f.kind)).toEqual(['image', 'image', 'image', 'file', 'file', 'file']);
+    expect(manifest.files.map((f: any) => f.mimeType)).toEqual([...mimes.slice(0, 5), 'application/octet-stream']);
+    expect(new Set(manifest.files.map((f: any) => f.id)).size).toBe(6);
+    for (const [index, entry] of manifest.files.entries()) {
+      expect(Object.keys(entry).sort()).toEqual(['byteLength', 'caption', 'id', 'kind', 'mimeType', 'name', 'path']);
       expect(isAbsolute(entry.path)).toBe(true);
       expect(dirname(entry.path)).toBe(dirname(result.json.manifestPath));
       expect(entry.name).toBe('../../escape.png');
-      expect(await fs.readFile(entry.path)).toEqual([png, jpeg, webp][index]);
+      expect(basename(entry.path)).toMatch(new RegExp(`^${entry.id}\\.${['png', 'jpg', 'webp', 'png', 'png', 'png'][index]}$`));
+      expect(await fs.readFile(entry.path)).toEqual(bytes[index]);
       expect((await fs.stat(entry.path)).mode & 0o777).toBe(0o600);
-      expect(entry.byteLength).toBe([png, jpeg, webp][index].length);
+      expect(entry.byteLength).toBe(bytes[index].length);
     }
     expect((await fs.stat(result.json.manifestPath)).mode & 0o777).toBe(0o600);
     for (const dir of [storageRoot, dirname(storageRoot), dirname(result.json.manifestPath)]) expect((await fs.stat(dir)).mode & 0o777).toBe(0o700);
     expect(result.json.prompt).toContain(result.json.manifestPath);
-    expect(result.json.prompt).toMatch(/open every image/i);
+    expect(result.json.prompt).toMatch(/every file/i);
+    expect(result.json.prompt).toMatch(/file-reading tools/i);
     expect(result.json.prompt).toMatch(/image-capable tool/i);
-    expect(result.json.prompt).toMatch(/captions.*untrusted/i);
+    expect(result.json.prompt).toMatch(/captions.*content.*untrusted/i);
+    expect(result.json.prompt).toMatch(/do not execute/i);
+    expect(result.json.prompt).toMatch(/extract archives/i);
+    expect(result.json.prompt).toMatch(/paths? alone.*not.*content/i);
     expect(result.json.prompt).not.toContain('secret');
     expect(await fs.readdir(root)).toEqual(['private']);
+  });
+  it.each([
+    ['../../payload.HTML', 'text/html', 'html'], ['C:\\tmp\\payload.SVG', 'image/svg+xml', 'svg'],
+    ['../../run.SH', 'application/x-sh', 'sh'], ['archive.ZIP', 'application/zip', 'zip'],
+    ['../../bad.a-b', 'text/plain', 'bin'], ['../../bad.abcdefghijklmnopq', '', 'bin'],
+    ['no-extension', '', 'bin'], ['a.abcdefghijklmnop', '', 'abcdefghijklmnop'],
+    ['x.txt/../../escape', '', 'bin'], ['x.é', '', 'bin'],
+  ])('keeps %s inert with a generated safe suffix', async (name, mimeType, suffix) => {
+    const bytes = Buffer.from('<script>throw "NEVER"</script>\n$(touch NEVER)');
+    const result = await request('/api/batches', { files: [file(bytes, mimeType, 'untrusted', name)] });
+    expect(result.status).toBe(201);
+    const entry = result.json.files[0];
+    expect(entry).toMatchObject({ name, kind: 'file', mimeType: mimeType || 'application/octet-stream' });
+    expect(basename(entry.path)).toBe(`${entry.id}.${suffix}`);
+    expect(await fs.readFile(entry.path)).toEqual(bytes);
+    expect((await request(entry.path, undefined, {}, 'GET')).status).toBe(404);
+    expect((await request(`/api/batches/${basename(entry.path)}`, undefined, {}, 'GET')).status).toBe(404);
+    expect(await fs.readdir(root)).toEqual(['private']);
+  });
+  it('allows empty generic files but rejects empty raster files', async () => {
+    const result = await request('/api/batches', { files: [file(Buffer.alloc(0), 'text/plain', '', 'empty.txt')] });
+    expect(result.status).toBe(201);
+    expect(result.json.files[0]).toMatchObject({ byteLength: 0, kind: 'file' });
+    expect(await fs.readFile(result.json.files[0].path)).toEqual(Buffer.alloc(0));
+    for (const mime of ['image/png', 'image/jpeg', 'image/webp']) expect((await request('/api/batches', { files: [file(Buffer.alloc(0), mime)] })).status).toBe(400);
   });
   it('serves token-free embedded page and authenticated health identity with restrictive headers', async () => {
     const page = await request('/', undefined, {}, 'GET');
@@ -76,6 +113,7 @@ describe('clipboard HTTP storage boundary', () => {
     expect((await request('/api/health', undefined, { Authorization: '' }, 'GET')).status).toBe(401);
     expect((await request('/api/health?token=secret', undefined, { Authorization: '' }, 'GET')).status).not.toBe(200);
     expect((await request('/etc/passwd', undefined, {}, 'GET')).status).toBe(404);
+    expect((await request('/api/batches', undefined, { 'Content-Type': 'text/plain' })).status).toBe(415);
   });
   it.each([
     { Authorization: '' }, { Authorization: 'Bearer wrong' }, { Host: 'evil.example' },
@@ -90,22 +128,32 @@ describe('clipboard HTTP storage boundary', () => {
     expect((await request()).status).toBe(201);
   });
   it.each([
-    'bad json', {}, { images: [] }, { images: Array.from({ length: 11 }, () => image()) },
-    { images: [image(png, 'image/jpeg')] }, { images: [image(Buffer.from('<html>'), 'image/png')] },
-    { images: [image(Buffer.from('<svg/>'), 'image/svg+xml')] },
-    { images: [{ ...image(), data: 'a===' }] }, { images: [{ ...image(), data: 'AB==' }] },
-    { images: [{ ...image(), data: 'data:image/png;base64,AAAA' }] }, { images: [{ ...image(), data: png.toString('base64') + '\n' }] },
-    { images: [{ ...image(), caption: 'x'.repeat(2001) }] }, { images: [{ ...image(), caption: 1 }] },
-    { images: [{ ...image(), name: null }] }, { images: [image(), image(Buffer.from('bad'))] },
+    'bad json', {}, { images: [file()] }, { files: [] }, { files: Array.from({ length: 11 }, () => file()) },
+    { files: [file(png, 'image/jpeg')] }, { files: [file(Buffer.from('<html>'), 'image/png')] },
+    { files: [file(Buffer.from('bad'), 'image/webp')] },
+    { files: [{ ...file(), data: 'a===' }] }, { files: [{ ...file(), data: 'AB==' }] },
+    { files: [{ ...file(), data: 'data:image/png;base64,AAAA' }] }, { files: [{ ...file(), data: png.toString('base64') + '\n' }] },
+    { files: [{ ...file(), caption: 'x'.repeat(2001) }] }, { files: [{ ...file(), caption: 1 }] },
+    { files: [{ ...file(), name: null }] }, { files: [{ ...file(), name: '' }] },
+    { files: [{ ...file(), name: 'x'.repeat(1025) }] }, { files: [file(), file(Buffer.from('bad'))] },
+    ...['text/plain\r\nX-Evil: yes', 'text/pla\u0000in', 'text/plain\t', 'text', '/plain', 'text/', ' text/plain', 'text/plain; charset=utf-8', 'a/'.concat('b'.repeat(254))].map(mime => ({ files: [file(png, mime)] })),
+    { files: [{ ...file(), mimeType: null }] }, { files: [{ ...file(), data: 'AB==', mimeType: 'text/plain' }] },
   ])('rejects malformed batch without storage writes %#', async body => {
     expect((await request('/api/batches', body)).status).toBe(400);
     await expect(fs.stat(storageRoot)).rejects.toMatchObject({ code: 'ENOENT' });
   });
-  it('enforces decoded image and raw request limits', async () => {
-    expect(CLIPBOARD_LIMITS).toEqual({ requestBytes: 50 * 1024 * 1024, imageBytes: 10 * 1024 * 1024, images: 10, captionCharacters: 2000 });
-    const oversized = Buffer.alloc(CLIPBOARD_LIMITS.imageBytes + 1); png.copy(oversized);
-    expect((await request('/api/batches', { images: [image(oversized)] })).status).toBe(413);
+  it('enforces decoded file and raw request limits', async () => {
+    expect(CLIPBOARD_LIMITS).toEqual({ requestBytes: 50 * 1024 * 1024, fileBytes: 10 * 1024 * 1024, files: 10, captionCharacters: 2000 });
+    const oversized = Buffer.alloc(CLIPBOARD_LIMITS.fileBytes + 1); png.copy(oversized);
+    for (const mime of ['image/png', 'application/octet-stream']) expect((await request('/api/batches', { files: [file(oversized, mime)] })).status).toBe(413);
     expect((await request('/api/batches', {}, { 'Content-Length': String(CLIPBOARD_LIMITS.requestBytes + 1) })).status).toBe(413);
+  });
+  it('accepts exact decoded byte, name, count and caption limits', async () => {
+    const bytes = Buffer.alloc(CLIPBOARD_LIMITS.fileBytes);
+    const result = await request('/api/batches', { files: [file(bytes, 'application/octet-stream', 'x'.repeat(2000), 'n'.repeat(1024)), ...Array.from({ length: 9 }, () => file())] });
+    expect(result.status).toBe(201);
+    expect(result.json.files).toHaveLength(10);
+    expect((await fs.readFile(result.json.files[0].path)).equals(bytes)).toBe(true);
   });
   it('rejects symlink destination and ancestor without touching targets', async () => {
     const target = join(root, 'target'); await fs.mkdir(target);
@@ -120,10 +168,13 @@ describe('clipboard HTTP storage boundary', () => {
   it('cleans only its own staging directory after publication failure and preserves prior batches', async () => {
     const first = await request(); expect(first.status).toBe(201);
     const before = await fs.readdir(storageRoot);
+    const manifest = await fs.readFile(first.json.manifestPath);
+    const bytes = await fs.readFile(first.json.files[0].path);
     vi.spyOn(fs, 'rename').mockRejectedValueOnce(new Error('injected failure'));
     expect((await request()).status).toBe(500);
     expect(await fs.readdir(storageRoot)).toEqual(before);
-    expect(JSON.parse(await fs.readFile(first.json.manifestPath, 'utf8')).batchId).toBe(before[0]);
+    expect(await fs.readFile(first.json.manifestPath)).toEqual(manifest);
+    expect(await fs.readFile(first.json.files[0].path)).toEqual(bytes);
   });
   it('publishes concurrent requests without collisions or staging leftovers', async () => {
     const results = await Promise.all(Array.from({ length: 5 }, () => request()));
@@ -142,11 +193,6 @@ describe('clipboard HTTP storage boundary', () => {
     port = (server.address() as { port: number }).port;
     expect((await request('/', 'x'.repeat(65), { 'Transfer-Encoding': 'chunked' })).status).toBe(413);
   });
-  it('accepts exact count and caption limits', async () => {
-    const result = await request('/api/batches', { images: Array.from({ length: 10 }, () => image(png, 'image/png', 'x'.repeat(2000))) });
-    expect(result.status).toBe(201);
-    expect(result.json.images).toHaveLength(10);
-  });
   it('publishes no partial batch and cleans completed files after a later write failure', async () => {
     await fs.mkdir(storageRoot, { recursive: true, mode: 0o700 });
     const open = fs.open.bind(fs);
@@ -161,7 +207,7 @@ describe('clipboard HTTP storage boundary', () => {
       }
       return open(...args);
     });
-    expect((await request('/api/batches', { images: [image(), image()] })).status).toBe(500);
+    expect((await request('/api/batches', { files: [file(), file()] })).status).toBe(500);
     expect(calls).toBe(2);
     expect(await fs.readdir(storageRoot)).toEqual([]);
   });

@@ -32,7 +32,7 @@ export function parseClipboardArgs(args: string[]): ClipboardArgs {
 }
 
 export function printClipboardHelp(bin = 'agro'): void {
-  process.stdout.write(`${bin} clipboard — Upload image batches inside the sandbox\n\nUsage:\n  ${bin} clipboard start [--port <port>]\n  ${bin} clipboard stop\n\nDefault port: 3500. Ports must be integers from 1 to 65535.\nRuns detached in named tmux; binds only to 127.0.0.1.\nUse operator-managed forwarding or an authenticated proxy for browser access.\nStop preserves all uploaded batches. No sandbox is provisioned or restarted.\n`);
+  process.stdout.write(`${bin} clipboard — Upload file batches inside the sandbox\n\nUsage:\n  ${bin} clipboard start [--port <port>]\n  ${bin} clipboard stop\n\nDefault port: 3500. Ports must be integers from 1 to 65535.\nRuns detached in named tmux; binds only to 127.0.0.1.\nUse operator-managed forwarding or an authenticated proxy for browser access.\nStop preserves all uploaded batches. No sandbox is provisioned or restarted.\n`);
 }
 
 export const clipboardProjectId = (root: string): string => createHash('sha256').update(root).digest('hex');

@@ -154,7 +154,7 @@ Usage:
   ${bin} harness <args...>      Install and inspect agent CLI harnesses
   ${bin} tool <args...>         Install and inspect sandbox tooling
   ${bin} gateway <args...>      Manage a messaging client session (pi|hermes|openclaw)
-  ${bin} clipboard <args...>    Upload image batches in the sandbox (start|stop)
+  ${bin} clipboard <args...>    Upload file batches in the sandbox (start|stop)
   ${bin} --version              Print version
   ${bin} --help                 Show this help
 
