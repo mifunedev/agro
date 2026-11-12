@@ -23,8 +23,9 @@
         "`pnpm exec vitest run .agro/cli/src/__tests__/tool-catalog.test.ts .agro/cli/src/__tests__/tool.test.ts` exits 0."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "commit": "8581a612",
+      "notes": "Executed: advisor inspected all four changed files and integrated ef8235e0 as 8581a612. pnpm install --frozen-lockfile and git diff HEAD^ HEAD --check exit 0. Main-checkout targeted Vitest exits 0: 2 files, 258 tests passed. Main-checkout pnpm run typecheck exits 0. Catalog and executable shell tests cover entry metadata, pins, both architecture mappings, unsupported architecture, prefix scope, unzip/whitespace, exact AWS v2 and multiline GWS verification, failures and temp cleanup, retry repair, credential-preserving removal. Command tests cover help/list/status, host receipts, sandbox no-op markers, failure propagation and uninstall. Worker artifact-integrity.md records official HTTPS ZIP digests and red-before-production test result (46 failed), with no keys/signature claim. Reasoned from inspected catalog: no sudo, cloud login, API, schema or boot changes.",
       "dependsOn": [],
       "files": [
         ".agro/cli/src/lib/tools/catalog.ts",
