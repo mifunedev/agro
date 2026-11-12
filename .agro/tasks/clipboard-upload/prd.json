@@ -42,8 +42,8 @@
         "Update public command help to describe file batches, not image-only batches."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "executed: advisor read all four changed files, checked sole owned-path commit. Independent monitor4 task verification exit0 (34 tests,typecheck,build,build typecheck). Clean main checkout detached at exact bd297d41: monitor6 exit0, CI=true frozen install,34 server tests,typecheck,build through agro run. All HTTP/storage criteria exercised by tests: ordered captions/signatures,limits/auth/origins,symlinks/permissions,atomic cleanup/concurrency,prompt. reasoned: storage root supplied by lifecycle caller; no publication/agent dispatch code. Main development branch and operator agro.json restored byte-identically (cmp exit0). Reopened for operator-requested generic file attachments and AGRO-colocated review. Existing shipping approval applies to this requested refinement.",
+      "passes": true,
+      "notes": "executed: advisor read all four changed files, checked sole owned-path commit. Independent monitor4 task verification exit0 (34 tests,typecheck,build,build typecheck). Clean main checkout detached at exact bd297d41: monitor6 exit0, CI=true frozen install,34 server tests,typecheck,build through agro run. All HTTP/storage criteria exercised by tests: ordered captions/signatures,limits/auth/origins,symlinks/permissions,atomic cleanup/concurrency,prompt. reasoned: storage root supplied by lifecycle caller; no publication/agent dispatch code. Main development branch and operator agro.json restored byte-identically (cmp exit0). Reopened for operator-requested generic file attachments and AGRO-colocated review. Existing shipping approval applies to this requested refinement. File refinement accepted: advisor inspected full server/storage and test/help diffs. Clean-main monitor1 exit0:97targetedtests,both typechecks,build,audit;defaultHOMEsmoke proves state/logs/batches under ~/.agro with AGRO_HOME absent. Mixed bytes/emptygeneric/signatures/inertHTMLSVGscript/safe suffix/auth/permissions/atomicity tested. Config restored byte-identically. Worker disabled commit hooks despite instructions; advisor inspected actual default hooks directory (samples only), so no active hook was skipped; future commits must use normal hooks. UI integration pending US004.",
       "dependsOn": [
         "US-001"
       ],
@@ -56,7 +56,7 @@
         ".agro/cli/src/cli.ts",
         ".agro/cli/src/__tests__/cli-first-help.test.ts"
       ],
-      "commit": "bd297d41dc142a0d2145195ebbd11c7c03ee42cc"
+      "commit": "5635ad55995a34eda8199f06728257c7cccb9419"
     },
     {
       "id": "US-003",
