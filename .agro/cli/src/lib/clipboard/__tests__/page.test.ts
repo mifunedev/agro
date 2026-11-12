@@ -6,6 +6,7 @@ function browserHarness(hash = '#token=' + 'b'.repeat(64), storageDenied = false
   const nodes = new Map<string, any>();
   const listeners: Record<string, (event: any) => void> = {};
   const revoked: string[] = [];
+  const previews: any[] = [];
   const values = new Map();
   let request: any;
   let copied = '';
@@ -18,15 +19,15 @@ function browserHarness(hash = '#token=' + 'b'.repeat(64), storageDenied = false
     return node;
   }
   const storage = { getItem: (key: string) => values.get(key), setItem: (key: string, value: string) => values.set(key, value) };
-  const document = { documentElement: element(), createElement: element, getElementById(id: string) { if (!nodes.has(id)) nodes.set(id, element()); return nodes.get(id); }, addEventListener(name: string, callback: (event: any) => void) { listeners[name] = callback; } };
+  const document = { documentElement: element(), createElement: (tag: string) => Object.assign(element(), { tag }), getElementById(id: string) { if (!nodes.has(id)) nodes.set(id, element()); return nodes.get(id); }, addEventListener(name: string, callback: (event: any) => void) { listeners[name] = callback; } };
   const location = { hash, origin: 'http://localhost:3500', pathname: '/', search: '' };
   let id = 0;
   const context: any = {
     document, location, history: { replaceState() { location.hash = ''; } }, localStorage: storage,
     window: { sessionStorage: storage, matchMedia: () => ({ matches: true, addEventListener() {} }), addEventListener(name: string, callback: (event: any) => void) { listeners[name] = callback; } },
     navigator: { clipboard: { writeText: async (text: string) => { copied = text; } } },
-    crypto: { randomUUID: () => 'stable-' + (++id) }, URL: { createObjectURL: () => 'blob:' + id, revokeObjectURL: (url: string) => revoked.push(url) }, TextEncoder,
-    FileReader: class { result = 'data:image/png;base64,iVBORw0KGgo='; onload?: () => void; readAsDataURL() { this.onload?.(); } },
+    crypto: { randomUUID: () => 'stable-' + (++id) }, URL: { createObjectURL: (file: any) => { previews.push(file); return 'blob:' + id; }, revokeObjectURL: (url: string) => revoked.push(url) }, TextEncoder,
+    FileReader: class { result = ''; onload?: () => void; readAsDataURL(file: any) { this.result = 'data:;base64,' + (file.size ? 'iVBORw0KGgo=' : ''); this.onload?.(); } },
     XMLHttpRequest: class {
       upload = {}; headers: Record<string, string> = {}; status = 0; responseText = ''; body = ''; onload?: () => void; onerror?: () => void;
       constructor() { request = this; }
@@ -41,7 +42,7 @@ function browserHarness(hash = '#token=' + 'b'.repeat(64), storageDenied = false
     Object.defineProperty(context.window, 'sessionStorage', { get: denied });
   }
   runInNewContext(CLIPBOARD_PAGE.match(/<script>([\s\S]*?)<\/script>/)![1], context);
-  return { nodes, listeners, revoked, document, context, location, get request() { return request; }, get copied() { return copied; } };
+  return { nodes, listeners, revoked, previews, document, context, location, get request() { return request; }, get copied() { return copied; } };
 }
 async function flush() { for (let i = 0; i < 10; i++) await Promise.resolve(); }
 function logic() {
@@ -63,12 +64,51 @@ describe('clipboard page', () => {
   it('validates types, counts, bytes, captions and actual JSON UTF-8 size', () => {
     const { validateFiles, validateCards } = logic();
     expect(validateFiles([file()], 9)).toBe('');
-    expect(validateFiles([file()], 10)).toMatch(/10 images/);
-    for (const type of ['image/svg+xml', 'application/pdf', '']) expect(validateFiles([file(type)], 0)).toMatch(/PNG, JPEG/);
+    expect(validateFiles([file()], 10)).toMatch(/10 files/);
+    for (const type of ['image/svg+xml', 'application/pdf', '', 'text/html', 'application/zip']) expect(validateFiles([file(type)], 0)).toBe('');
+    expect(validateFiles([file('text/plain', 0)], 0)).toBe('');
+    expect(validateFiles([{ ...file(), name: '' }], 0)).toMatch(/name/);
+    expect(validateFiles([{ ...file(), name: 'x'.repeat(1025) }], 0)).toMatch(/name/);
+    expect(validateFiles([file('invalid')], 0)).toMatch(/MIME/);
+    expect(validateFiles([file('x/' + 'a'.repeat(254))], 0)).toMatch(/MIME/);
     expect(validateFiles([file('image/png', 10 * 1024 * 1024 + 1)], 0)).toMatch(/10 MiB/);
     expect(validateFiles([file('image/png', 0)], 0)).toMatch(/empty/);
     expect(validateCards([{ caption: 'x'.repeat(2001) }], '{}')).toMatch(/2000/);
     expect(validateCards([{ caption: '' }], 'é'.repeat(26 * 1024 * 1024))).toMatch(/50 MiB/);
+  });
+  it('accepts mixed selection and empty text with inert active-format metadata and no URL calls', async () => {
+    const browser = browserHarness();
+    const empty = { ...file('', 0), name: 'empty.txt' };
+    browser.nodes.get('files').files = [file(), empty]; browser.nodes.get('files').onchange();
+    const caption = browser.nodes.get('cards').children[1].children[1].children[3];
+    caption.value = 'empty caption'; caption.oninput();
+    for (const type of ['text/html', 'image/svg+xml', 'application/pdf', 'application/zip', 'text/javascript']) {
+      browser.listeners.drop({ dataTransfer: { files: [{ ...file(type), name: '<script>active</script>' }] }, preventDefault() {} });
+    }
+    const cards = browser.nodes.get('cards').children;
+    expect(cards.map((card: any) => card.children[0].tag)).toEqual(['img', 'div', 'div', 'div', 'div', 'div', 'div']);
+    expect(browser.previews).toHaveLength(1);
+    expect(cards[1].children[1].children[3].value).toBe('empty caption');
+    cards[2].children[1].children[0].children[1].onclick();
+    expect(browser.revoked).toEqual([]);
+    const upload = browser.nodes.get('upload').onclick(); await flush();
+    const payload = JSON.parse(browser.request.body);
+    expect(payload.images).toBeUndefined();
+    expect(payload.files[1]).toEqual({ name: 'empty.txt', mimeType: 'application/octet-stream', data: '', caption: 'empty caption' });
+    browser.request.onerror(); await upload;
+    expect(browser.nodes.get('cards').children[1].children[1].children[3].value).toBe('empty caption');
+    expect(browser.revoked).toEqual([]);
+    const retry = browser.nodes.get('upload').onclick(); await flush();
+    expect(JSON.parse(browser.request.body)).toEqual(payload);
+    browser.request.status = 201;
+    browser.request.responseText = JSON.stringify({ manifestPath: '/manifest.json', files: payload.files.map((entry: any) => ({ path: '/' + entry.name })), prompt: 'Read every file with tools.' });
+    browser.request.onload(); await retry;
+    expect(browser.revoked).toEqual(['blob:1']);
+    expect(browser.nodes.get('cards').children).toEqual([]);
+    expect(browser.nodes.get('prompt').value).toBe('Read every file with tools.');
+    expect(CLIPBOARD_PAGE).not.toMatch(/accept=|<iframe|<embed|innerHTML/);
+    expect(CLIPBOARD_PAGE).toContain('Ready for files.');
+    expect(CLIPBOARD_PAGE).toContain('Upload files');
   });
   it('consumes fragments, scopes stored credentials by origin and handles blocked storage', () => {
     const { readToken } = logic();
@@ -120,10 +160,10 @@ describe('clipboard page', () => {
     const upload = nodes.get('upload').onclick(); await flush();
     expect(browser.request.path).toBe('/api/batches');
     expect(browser.request.headers.Authorization).toBe('Bearer ' + 'b'.repeat(64));
-    expect(JSON.parse(browser.request.body).images.map((image: any) => image.caption)).toEqual(['second', '']);
-    expect(JSON.parse(browser.request.body).images[0].data).toBe('iVBORw0KGgo=');
+    expect(JSON.parse(browser.request.body).files.map((file: any) => file.caption)).toEqual(['second', '']);
+    expect(JSON.parse(browser.request.body).files[0].data).toBe('iVBORw0KGgo=');
     browser.request.status = 201;
-    browser.request.responseText = JSON.stringify({ manifestPath: '/manifest.json', images: [{ path: '/image.png' }], prompt: '<script>agent prompt</script>' });
+    browser.request.responseText = JSON.stringify({ manifestPath: '/manifest.json', files: [{ path: '/image.png' }], prompt: '<script>agent prompt</script>' });
     browser.request.onload(); await upload;
     expect(nodes.get('cards').children).toEqual([]);
     expect(revoked).toEqual(['blob:1', 'blob:2', 'blob:3']);
@@ -139,9 +179,10 @@ describe('clipboard page', () => {
     browser.listeners.paste({ clipboardData: { files: [file()] }, preventDefault() {} });
     const input = browser.nodes.get('cards').children[0].children[1].children[3];
     input.value = 'keep this'; input.oninput();
-    for (const failure of ['401', 'network', '500']) {
+    for (const failure of ['401', 'network', 'invalid', '500']) {
       const upload = browser.nodes.get('upload').onclick(); await flush();
       if (failure === 'network') browser.request.onerror();
+      else if (failure === 'invalid') { browser.request.status = 201; browser.request.responseText = 'null'; browser.request.onload(); }
       else { browser.request.status = Number(failure); browser.request.responseText = JSON.stringify({ error: '<img onerror=bad>' }); browser.request.onload(); }
       await upload;
       expect(browser.nodes.get('cards').children[0].children[1].children[3].value).toBe('keep this');
