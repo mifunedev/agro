@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { runClipboard } from "./commands/clipboard.js";
 import { runUpdate } from "./commands/update.js";
 import { DEFAULT_ARTIFACT_URL, defaultDeps, runSelfUpgrade } from "./commands/self-upgrade.js";
 import {
@@ -153,6 +154,7 @@ Usage:
   ${bin} harness <args...>      Install and inspect agent CLI harnesses
   ${bin} tool <args...>         Install and inspect sandbox tooling
   ${bin} gateway <args...>      Manage a messaging client session (pi|hermes|openclaw)
+  ${bin} clipboard <args...>    Upload file batches in the sandbox (start|stop)
   ${bin} --version              Print version
   ${bin} --help                 Show this help
 
@@ -1294,6 +1296,8 @@ async function main(argv: string[]): Promise<number> {
 
   const fallbackWarning = sandboxFallbackWarning();
   if (fallbackWarning !== undefined) process.stderr.write(fallbackWarning);
+
+  if (first === "clipboard") return await runClipboard(argv.slice(1), stdio());
 
   if (first === "config") {
     const a = parsedArgs(

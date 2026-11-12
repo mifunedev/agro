@@ -46,6 +46,7 @@ Host prerequisites and the CLI install are in [Installation](installation.md).
 | `agro secret set <KEY> [--sandbox <name>]` · `agro secret list [--sandbox <name>]` | read and write the gitignored `.env` |
 | `agro config langfuse` | the interactive Langfuse tracing wizard — see below |
 | `agro langfuse apply` · `agro langfuse status` · `agro langfuse disable` | render, check, or remove the Langfuse tracing files — see below |
+| `agro clipboard start [--port <port>]` · `agro clipboard stop` | start or stop the project-scoped file upload service inside the sandbox; default port 3500 |
 | `agro gateway <pi\|hermes>` · `agro gateway status` | `.agro/scripts/gateway.sh` |
 | `agro harness` · `agro tool` | install and inspect harnesses and tooling |
 | `agro tool setup t3-mobile <enable\|pair\|disable\|status>` | reach T3 Code from a phone over Tailscale Serve — see below |
@@ -382,6 +383,76 @@ error and exits 1.
 image. `agro run` prints `agro run: --image cannot be combined with --sandbox` and exits
 1.
 
+## Clipboard files: `agro clipboard`
+
+Run these commands inside the existing sandbox, from the project directory.
+The sandbox needs Node and tmux. The service runs detached in a named tmux
+session scoped to the canonical project path.
+
+```bash
+agro clipboard start
+agro clipboard start --port 3501
+agro clipboard stop
+```
+
+Use either start command, not both. The default port is 3500.
+`--port` accepts integers from 1 to 65535. Repeated start returns the same
+credential URL. Stop the service before changing its port.
+An occupied port causes an error; the command leaves its listener running.
+Repeated stop is safe. These commands never provision or restart a sandbox.
+Host execution refuses with an instruction to enter the sandbox.
+
+The service binds only to `127.0.0.1`. The operator must configure private
+forwarding or an authenticated proxy before remote browser access.
+`agro shell` forwards no ports. See [Clipboard access](connecting.md#clipboard-access).
+Treat the printed URL fragment as a credential. Keep the full URL out of logs,
+screenshots, chat, and commits. The page removes the fragment after loading.
+
+Paste images, drop files, or select files in the browser.
+Add a caption to each file, then select **Upload files**.
+The page supports light and dark themes.
+Only PNG, JPEG, and WebP receive image previews.
+Other formats, including SVG and HTML, show inert metadata.
+
+| Limit | Value |
+|---|---|
+| File formats | Arbitrary inert bytes; PNG, JPEG, and WebP require matching signatures |
+| Empty files | Generic files allowed; declared raster images rejected |
+| Files per batch | 1 to 10 |
+| Bytes per file | 10 MiB |
+| Raw HTTP request body | 50 MiB, including JSON and base64 encoding |
+| Caption length | 2000 characters per file |
+| Original name length | 1 to 1024 characters |
+| MIME type length | At most 255 characters; valid type/subtype metadata |
+
+Base64 and JSON consume request space. Total file bytes can require a smaller batch.
+An empty browser MIME type becomes `application/octet-stream`.
+
+Default state, startup logs, and batches live under `~/.agro/clipboard/<project-id>/`.
+Set `AGRO_HOME` only to override the default AGRO state home.
+Completed batches use `${AGRO_HOME:-$HOME/.agro}/clipboard/<project-id>/batches/<batch-id>/`.
+The project ID hashes the canonical project path.
+Private directories use mode `0700`; files and `manifest.json` use mode `0600`.
+The schema-version-1 manifest contains an ordered `files[]` array.
+Each entry records an ID, absolute path, MIME type, byte length, original name, caption, and `kind`.
+Validated PNG, JPEG, and WebP entries use `kind: "image"`; other entries use `kind: "file"`.
+The server generates basenames and preserves only a bounded alphanumeric suffix for generic files.
+
+Copy the completed prompt to an agent with file-reading tools.
+The agent must read every file in manifest order.
+The agent must use an image-capable tool for each `kind: "image"` entry.
+Paths alone do not provide file content.
+For isolated workers, transfer the manifest and files or provide a shared mount.
+Translate absolute paths for the target environment.
+Copying only the manifest does not transfer attachments.
+The service never serves, executes, extracts, converts, or scans uploaded content.
+
+Stop preserves all batches. No retention job deletes uploads.
+After `agro clipboard stop`, inspect the completed paths and manually delete
+only the batch directories that you no longer need.
+There is no file history browser, automatic publication, or agent dispatch.
+See [Security considerations](security-considerations.md#clipboard-upload-boundary).
+
 ## Where you are standing when you type `agro`
 
 `agro` runs on the host **and** inside the sandbox, and it resolves a different
@@ -406,6 +477,7 @@ Upgrade the sandbox image to remove the warning. Override the detection with
 | `agro harness list/status` | probes the host install prefix `~/.local` when the container is not reachable; reports `?` when neither a harness root nor that prefix exists | reports the real state of this environment |
 | `agro tool list/status` | probes the host install prefix `~/.local` when the container is not reachable; reports `?` when neither a harness root nor that prefix exists | reports the real state of this environment |
 | `agro tool setup t3-mobile` | acts on the host | acts in the sandbox |
+| `agro clipboard start/stop` | refuses; enter the existing sandbox | manages the detached project upload service |
 | `agro sandbox install` | provisions the sandbox | refuses with a host-only error |
 | `agro sandbox upgrade` | recreates one image-mode sandbox with an explicit release image | refuses with a host-only error |
 | `agro shell` | `docker exec` into the container | opens a local `zsh` |

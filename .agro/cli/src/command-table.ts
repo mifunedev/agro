@@ -1,5 +1,6 @@
 import { composeVerbs } from "./commands/lifecycle.js";
 
+export const CLIPBOARD_VERBS = ["start", "stop"] as const;
 export const CONFIG_VERBS = ["show", "set", "repo"] as const;
 export const CONFIG_INTEGRATIONS = ["langfuse"] as const;
 export const SECRET_VERBS = ["set", "get", "list"] as const;
@@ -27,6 +28,7 @@ export function isOneOf<T extends string>(values: readonly T[], value: string | 
 }
 
 export const AGRO_COMMANDS: Readonly<Record<string, readonly string[] | null>> = Object.freeze({
+  clipboard: CLIPBOARD_VERBS,
   config: [...CONFIG_VERBS, ...CONFIG_INTEGRATIONS],
   secret: SECRET_VERBS,
   langfuse: LANGFUSE_VERBS,

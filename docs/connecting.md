@@ -76,6 +76,45 @@ SSH uses public-key auth by default and binds only to host loopback. Setup, key
 configuration, the port-collision preflight, and multi-tenant nginx routing are
 in [SSH](integrations/sshd.md).
 
+## Clipboard access
+
+Start `agro clipboard start [--port <port>]` inside the existing sandbox's project
+directory. The default port is 3500. The service binds only to sandbox loopback.
+`agro shell` does not forward ports. Publishing a host port does not reach a
+service bound only to container loopback.
+
+Use VS Code forwarding from an attached sandbox, or configure private SSH
+forwarding. If you enabled SSH inside the same sandbox with forwarding permission,
+run the following command on your laptop:
+
+```bash
+ssh -N -L 127.0.0.1:3500:127.0.0.1:3500 -p <sandbox-ssh-port> sandbox@<sandbox-ssh-endpoint>
+```
+
+The SSH endpoint must run inside the environment where the service's
+`127.0.0.1:3500` runs, not merely on its Docker host.
+Configure sandbox SSH access first; the base sandbox runs no SSH daemon.
+A remote host can require a separate authenticated jump connection.
+If another listener uses laptop port 3500, choose a free laptop port.
+
+Open the forwarded loopback URL with the fragment from `agro clipboard start`.
+The fragment is a credential. Do not put it in transcripts, screenshots, or commits.
+The page removes the fragment after loading and keeps the credential in tab session storage.
+
+An authenticated proxy is another operator-managed option. Require access control
+and configure upstream loopback Host and matching Origin handling.
+The service rejects foreign Host or Origin values. Do not expose the service
+through an unauthenticated public tunnel. AGRO ships no clipboard forwarding infrastructure.
+
+Paste images or attach arbitrary files through the forwarded page.
+Each file keeps its own caption. Generic attachments remain inert, including HTML and SVG.
+Only PNG, JPEG, and WebP receive image previews.
+Default private state, logs, and batches remain inside `~/.agro/clipboard/` in the sandbox.
+`AGRO_HOME` optionally overrides the AGRO state home.
+An agent must read the saved files with tools; browser forwarding does not transfer files to isolated workers.
+For limits, manifest kinds, file-tool handoff, and deletion after stop, see
+[Clipboard files](lifecycle-commands.md#clipboard-files-agro-clipboard).
+
 ## Default exposure
 
 The base sandbox publishes no application ports to the host. Your laptop reaches
