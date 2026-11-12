@@ -10,6 +10,7 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
+- Add sandbox-only `agro clipboard start/stop` for private image uploads with captions and an image-tool handoff prompt ([#1612](https://github.com/mifunedev/agro/issues/1612)).
 - Add `agro run --sandbox <name>` to run one command in a running AGRO sandbox, or with `--isolation microvm` in a running msb microVM, with no host mount ([#1600](https://github.com/mifunedev/agro/issues/1600)).
 
 ### Changed

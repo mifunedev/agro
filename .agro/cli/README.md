@@ -105,6 +105,7 @@ with `AGRO_EXECUTION_TARGET=local` or `AGRO_EXECUTION_TARGET=docker-compose`.
 | `agro compose config` | Print the resolved compose configuration. |
 | `agro harness <list\|install\|status>` | Install and inspect agent CLI harnesses. `install` is the only door: it probes the running sandbox, installs into the persistent home volume, and reports. It reads and writes no `agro.json` field, and needs no rebuild. |
 | `agro tool <list\|install\|status>` | Install and inspect sandbox tooling that is not an agent CLI. `herdr`, `cloudflared`, `agent-browser`, `microsandbox`, and `tailscale` are `installable`; `gh` and the Docker CLI are `baked-in` and cannot be installed. Nothing installs at boot. A large download is confirmed first, and `--yes` accepts it. |
+| `agro clipboard start [--port <port>]` · `agro clipboard stop` | Manage the detached image upload service inside the sandbox; default port 3500. |
 | `agro gateway <args…>` | Manage a messaging client session (Slack bridge for `pi`/`hermes`, or the `openclaw` gateway). |
 | `agro --version` | Print the CLI version. |
 | `agro --help` | Show help; every subcommand also accepts `--help`. |
@@ -144,6 +145,32 @@ documentation instead of a path inside the equipped project.
 
 The CLI writes no scaffold. It creates no `AGENTS.md`, no provider configuration, and no
 `.gitignore` line beyond the `.env` line `agro secret set` adds inside a git checkout.
+
+## Clipboard image handoff
+
+Inside the existing sandbox, run `agro clipboard start` from the project directory.
+Use `--port <port>` to select a port other than 3500.
+The service needs tmux and binds only to loopback. Configure private forwarding
+or an authenticated proxy for browser access. Treat the printed URL fragment as
+a credential; never commit or share the full URL.
+
+Paste, drop, or select PNG, JPEG, or WebP images. Add distinct captions, then
+upload the batch. Limits are 10 images, 10 MiB per image, and 2000 characters
+per caption. The 50 MiB raw request limit includes JSON and base64 overhead;
+total image bytes can be lower.
+
+Private, persistent batches live under
+`${AGRO_HOME:-$HOME/.agro}/clipboard/<project-id>/batches/<batch-id>/`.
+Each batch contains image files and an ordered, versioned manifest with absolute paths.
+Copy the prompt to an image-capable agent. The agent must open every image with
+an image-reading tool. Isolated workers need explicit transfer of images and
+the manifest, or an accessible shared mount with target-valid paths.
+
+Run `agro clipboard stop` before manually deleting unwanted batch directories.
+Repeated start and stop are safe; stop preserves uploaded files.
+The service provides no automatic publication, image history browser, or agent dispatch.
+See the [clipboard command reference](https://github.com/mifunedev/agro/blob/main/docs/lifecycle-commands.md#clipboard-images-agro-clipboard)
+and [access setup](https://github.com/mifunedev/agro/blob/main/docs/connecting.md#clipboard-access).
 
 ## Documentation
 
