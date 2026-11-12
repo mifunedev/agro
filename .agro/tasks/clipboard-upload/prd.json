@@ -16,12 +16,13 @@
         "Stop every probe process. Create no cloud resources and change no existing sandbox lifecycle."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "executed: inspected sole evidence commit, marker and runtime recheck via built agro run --sandbox from main, exit 0; Node v24.22.1, tmux 3.5a, port3500 free inside sandbox. executed: worker browser preflight/title/heading and relay cleanup recorded in runtime-probe.md. executed: advisor host ss/tmux inspection preserves unrelated 3500/3560 listeners, no probe relay. reasoned: absolute paths work across same-namespace worktrees; isolated targets require transfer. No production source changed.",
       "dependsOn": [],
       "files": [
         ".agro/tasks/clipboard-upload/evidence/runtime-probe.md"
-      ]
+      ],
+      "commit": "335ff01407c9272bc9cf3d6e63a5cf92ed4508af"
     },
     {
       "id": "US-002",
@@ -48,7 +49,8 @@
       "files": [
         ".agro/cli/src/lib/clipboard/server.ts",
         ".agro/cli/src/lib/clipboard/storage.ts",
-        ".agro/cli/src/lib/clipboard/__tests__/server.test.ts"
+        ".agro/cli/src/lib/clipboard/__tests__/server.test.ts",
+        ".agro/cli/src/lib/clipboard/page.ts"
       ]
     },
     {
@@ -145,5 +147,6 @@
         ".agro/tasks/clipboard-upload/evidence/"
       ]
     }
-  ]
+  ],
+  "pr": 1613
 }
