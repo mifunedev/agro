@@ -1,0 +1,8 @@
+instance fecb66c6-9365-481e-9eb9-117654b0a258 e6ec3841-2e55-4c9c-bb99-378e90246392 ACTIVE ["135.148.204.74","2604:2dc0:101:100::1f25"] 2026-11-11T05:32:52Z
+instance 6fbdfabd-db7d-4ec3-9cd3-8719b5d7a440 e1f46c7c-a51e-4532-8184-23227d6ec47c ACTIVE ["40.160.69.59","2604:2dc0:101:100::2247"] 2026-11-11T11:35:53Z
+instance 96e111f7-b7f8-43c3-8c8c-086dbe350f8d 4baafa0c-2d70-4262-a648-f002ab50cdb5 ACTIVE ["135.148.235.21","2604:2dc0:101:100::2123"] 2026-11-06T16:46:54Z
+volume af55fb9f-b865-4153-8487-c261fb49584f agro-node-ba14e8125bbde5c2-golden available 50GB attached=
+volume df54a785-9c63-47e5-94f3-735b3b150980 agro-node-05ac271347d3d20a-golden available 50GB attached=
+snapshot 60e720bf-6e16-4d8b-ad1a-1a88e1f0cdfd agro-node-ba14e8125bbde5c2-golden available volume=af55fb9f-b865-4153-8487-c261fb49584f
+snapshot 4ff7af68-83c9-4338-b67c-d7d5de49e022 agro-node-05ac271347d3d20a-golden available volume=df54a785-9c63-47e5-94f3-735b3b150980
+instances=3 volumes=2 snapshots=2

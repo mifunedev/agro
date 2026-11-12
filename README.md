@@ -106,6 +106,8 @@ Run the remaining commands in a Herdr pane. Install only the tools you need:
 | `cloudflared` | Public tunnels for local apps | Install on demand |
 | `microsandbox` | MicroVM runtime CLI | Install on demand |
 | `tailscale` | Private network connectivity | Install on demand |
+| `aws` | AWS CLI v2 | Install on demand |
+| `gws` | Google Workspace CLI | Install on demand |
 | `gh` | GitHub CLI | Included |
 | `docker-cli` | Docker client and Compose | Included |
 

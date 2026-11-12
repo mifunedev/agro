@@ -18,7 +18,7 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", ".."
 const read = (p: string): string => readFileSync(join(REPO_ROOT, p), "utf8");
 
 describe("tool catalog shape", () => {
-  it("lists the eleven known tools", () => {
+  it("lists the thirteen known tools", () => {
     expect(toolIds()).toEqual([
       "agent-browser",
       "herdr",
@@ -31,6 +31,8 @@ describe("tool catalog shape", () => {
       "ffmpeg",
       "docker-engine",
       "desktop",
+      "aws",
+      "gws",
     ]);
   });
 
@@ -43,6 +45,8 @@ describe("tool catalog shape", () => {
       "tailscale",
       "code-server",
       "ffmpeg",
+      "aws",
+      "gws",
     ]);
     for (const t of TOOL_CATALOG) {
       expect(["baked-in", "installable"], t.id).toContain(t.kind);
@@ -92,6 +96,8 @@ describe("tool catalog shape", () => {
       "tailscale",
       "code-server",
       "ffmpeg",
+      "aws",
+      "gws",
     ]);
     for (const [id, body] of scripts) {
       expect(body, id).toContain("NPM_USER_PREFIX");
@@ -159,6 +165,8 @@ describe("tool catalog shape", () => {
       "code-server",
       "ffmpeg",
       "docker-engine",
+      "aws",
+      "gws",
     ]);
     for (const t of TOOL_CATALOG) {
       if (t.versionArgv === undefined) continue;
@@ -184,6 +192,143 @@ describe("tool catalog shape", () => {
       }
     }
   });
+});
+
+describe.each(["aws", "gws"])("%s native installer", (id) => {
+  const dirs: string[] = [];
+  afterEach(() => {
+    for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  });
+
+  function fixture(arch = "amd64", failure = "", fallback = false) {
+    const dir = mkdtempSync(join(tmpdir(), "agro-native-tool-"));
+    dirs.push(dir);
+    const stubs = join(dir, "stubs");
+    const temporary = join(dir, "temporary");
+    const prefix = join(dir, fallback ? ".local" : failure === "whitespace" ? "bad prefix" : "prefix");
+    mkdirSync(stubs);
+    mkdirSync(temporary);
+    const log = join(dir, "calls");
+    writeFileSync(log, "");
+    const stub = (name: string, body: string) => {
+      writeFileSync(join(stubs, name), `#!/bin/sh\nset -e\nprintf '%s\\n' '${name}' >> "$CALLS"\n${body}\n`);
+      chmodSync(join(stubs, name), 0o755);
+    };
+    stub("dpkg", `echo ${arch}`);
+    stub("curl", '[ "$FAILURE" != download ] || exit 7\nprintf "%s\\n" "$*" >> "$CALLS"\nwhile [ "$1" != -o ]; do shift; done\ntouch "$2"');
+    stub("sha256sum", '[ "$FAILURE" != real-checksum ] || exec /usr/bin/sha256sum "$@"\ncat >> "$CALLS"\n[ "$FAILURE" != checksum ]');
+    const executable = `#!/bin/sh\nprintf '%s\\n' '${id === "aws" ? "aws-cli/2.40.1 Python/runtime" : "gws 0.22.5"}'\n${id === "gws" ? "echo Disclaimer\n" : ""}[ "$FAILURE" != version ] || exit 8\n`;
+    writeFileSync(join(dir, "executable"), failure === "mismatch" ? "#!/bin/sh\necho wrong\n" : executable);
+    chmodSync(join(dir, "executable"), 0o755);
+    const extract = '[ "$FAILURE" != extraction ] || exit 6\n';
+    stub("tar", `${extract}while [ "$1" != -C ]; do shift; done\ncp "$FIXTURE/executable" "$2/gws"`);
+    stub("unzip", `${extract}while [ "$1" != -d ]; do shift; done\nmkdir -p "$2/aws"\ncp "$FIXTURE/vendor-install" "$2/aws/install"`);
+    writeFileSync(join(dir, "vendor-install"), '#!/bin/sh\nset -e\n[ "$FAILURE" != vendor ] || exit 5\nprintf "vendor %s\\n" "$*" >> "$CALLS"\nwhile [ "$#" -gt 0 ]; do case "$1" in --install-dir) dest="$2"; shift ;; --bin-dir) bin="$2"; shift ;; --update) ;; *) exit 2 ;; esac; shift; done\n[ ! -d "$dest/v2/2.40.1" ] || exit 0\nmkdir -p "$dest/v2/2.40.1/bin" "$bin"\ncp "$FIXTURE/executable" "$dest/v2/2.40.1/bin/aws"\ntouch "$dest/v2/2.40.1/bin/aws_completer"\nln -sfn "$dest/v2/2.40.1" "$dest/v2/current"\nln -sfn "$dest/v2/current/bin/aws" "$bin/aws"\nln -sfn "$dest/v2/current/bin/aws_completer" "$bin/aws_completer"\n');
+    chmodSync(join(dir, "vendor-install"), 0o755);
+    const env = { PATH: `${stubs}:/usr/bin:/bin`, HOME: dir, TMPDIR: temporary, CALLS: log, FIXTURE: dir, FAILURE: failure, ...(fallback ? {} : { NPM_USER_PREFIX: prefix }) };
+    const run = () => {
+      const script = findTool(id)?.installArgv?.[2];
+      expect(script, `${id} installer`).toBeDefined();
+      return spawnSync("/bin/bash", ["-c", script!], { env, encoding: "utf8" });
+    };
+    return { dir, prefix, temporary, log, run, env };
+  }
+
+  it("declares user installation, separate presence and version probes", () => {
+    expect(findTool(id)).toMatchObject({ kind: "installable", hostCapable: true, installUser: "sandbox", versionArgv: [id, "--version"] });
+    expect(findTool(id)?.verifyArgv[2]).toBe(`command -v ${id} >/dev/null`);
+    expect(findTool(id)?.installArgv?.join(" ")).not.toContain("sudo");
+  });
+
+  it.each(["amd64", "arm64"])("maps %s and installs the owned layout with repeat and incomplete retry", (arch) => {
+    const f = fixture(arch);
+    expect(f.run().status).toBe(0);
+    expect(existsSync(join(f.prefix, "bin", id))).toBe(true);
+    const calls = readFileSync(f.log, "utf8");
+    expect(calls).toContain(arch === "amd64" ? "x86_64" : "aarch64");
+    const shas = id === "aws"
+      ? { amd64: "fddb097a8ea197dc9beed9e4426ef99aded612a52df64581e079b6e8817e1d24", arm64: "ce999da382eac247be6bd000af1ee16f23a2d25e5906e7fd9a83e54c1ecf37c1" }
+      : { amd64: "de78ecdbd2f1a84cca0063a7ecbc440240fc14b6ebccbb17f4646b792a8c5c1f", arm64: "94490295d9580e1e88574e715a0a162991747d12d62f8c7b8dcc8268b6c1cea0" };
+    expect(calls).toContain(`${shas[arch as keyof typeof shas]}  `);
+    expect(f.run().status).toBe(0);
+    rmSync(join(f.prefix, "bin", id));
+    expect(f.run().status).toBe(0);
+    if (id === "aws") {
+      expect(existsSync(join(f.prefix, "lib", "aws-cli", "v2", "current", "bin", "aws"))).toBe(true);
+      expect(existsSync(join(f.prefix, "bin", "aws_completer"))).toBe(true);
+      expect(readFileSync(f.log, "utf8")).toContain("--update");
+      rmSync(join(f.prefix, "lib", "aws-cli", "v2", "2.40.1", "bin", "aws"));
+      expect(f.run().status).toBe(0);
+      expect(existsSync(join(f.prefix, "bin", "aws"))).toBe(true);
+    }
+    expect(spawnSync("/bin/ls", ["-A", f.temporary], { encoding: "utf8" }).stdout).toBe("");
+  });
+
+  it("uses HOME/.local when the prefix is absent", () => {
+    const f = fixture("amd64", "", true);
+    expect(f.run().status).toBe(0);
+    expect(existsSync(join(f.prefix, "bin", id))).toBe(true);
+  });
+
+  it("rejects unsupported architecture before download or prefix writes", () => {
+    const f = fixture("riscv64");
+    expect(f.run().status).not.toBe(0);
+    expect(existsSync(f.prefix)).toBe(false);
+    expect(readFileSync(f.log, "utf8")).not.toContain("curl");
+  });
+
+  it.each(["checksum", "real-checksum", "download", "extraction", "version", "mismatch"]) ("propagates %s failure and cleans temporary downloads", (failure) => {
+    const f = fixture("amd64", failure);
+    expect(f.run().status).not.toBe(0);
+    expect(spawnSync("/bin/ls", ["-A", f.temporary], { encoding: "utf8" }).stdout).toBe("");
+    if (["checksum", "real-checksum", "download", "extraction"].includes(failure)) expect(existsSync(join(f.prefix, "bin", id))).toBe(false);
+  });
+
+  it("preserves credentials, config and unrelated prefix files on uninstall", () => {
+    const f = fixture();
+    expect(f.run().status).toBe(0);
+    const saved = [".aws/credentials", ".config/gws/credentials.json", ".config/gcloud/configurations/default", "prefix/bin/other"];
+    for (const path of saved) {
+      mkdirSync(dirname(join(f.dir, path)), { recursive: true });
+      writeFileSync(join(f.dir, path), "keep");
+    }
+    const argv = findTool(id)!.uninstallArgv!.map((part) => part.split(HARNESS_PREFIX_TOKEN).join(f.prefix));
+    expect(spawnSync(argv[0], argv.slice(1), { env: f.env }).status).toBe(0);
+    expect(existsSync(join(f.prefix, "bin", id))).toBe(false);
+    if (id === "aws") {
+      expect(existsSync(join(f.prefix, "lib", "aws-cli"))).toBe(false);
+      expect(existsSync(join(f.prefix, "bin", "aws_completer"))).toBe(false);
+    }
+    for (const path of saved) expect(readFileSync(join(f.dir, path), "utf8")).toBe("keep");
+  });
+
+  if (id === "aws") {
+    it("rejects whitespace prefix before extraction or prefix writes", () => {
+      const f = fixture("amd64", "whitespace");
+      expect(f.run().status).not.toBe(0);
+      expect(existsSync(f.prefix)).toBe(false);
+      expect(readFileSync(f.log, "utf8")).not.toContain("unzip");
+    });
+    it("propagates vendor installation failure", () => {
+      const f = fixture("amd64", "vendor");
+      expect(f.run().status).toBe(5);
+      expect(existsSync(join(f.prefix, "bin", "aws"))).toBe(false);
+      expect(spawnSync("/bin/ls", ["-A", f.temporary], { encoding: "utf8" }).stdout).toBe("");
+    });
+    it("rejects missing unzip before download", () => {
+      const f = fixture();
+      rmSync(join(f.dir, "stubs", "unzip"));
+      f.env.PATH = join(f.dir, "stubs");
+      expect(f.run().status).not.toBe(0);
+      expect(readFileSync(f.log, "utf8")).not.toContain("curl");
+      expect(existsSync(f.prefix)).toBe(false);
+    });
+    it("checks unzip availability before download", () => {
+      const script = findTool(id)?.installArgv?.[2] ?? "";
+      expect(script.indexOf("command -v unzip")).toBeGreaterThan(-1);
+      expect(script.indexOf("command -v unzip")).toBeLessThan(script.indexOf("curl -fsSL"));
+    });
+  }
 });
 
 describe("the catalogs stay separate", () => {
@@ -766,15 +911,43 @@ describe("desktop serves XFCE over XRDP through Tailscale only", () => {
     const verify = dt.verifyArgv.join(" ");
     expect(verify).toContain("command -v xrdp >/dev/null");
     expect(verify).toContain("systemctl is-enabled --quiet xrdp");
-    expect(verify).toContain("systemctl is-enabled --quiet tailscaled");
+    expect(verify).toContain(
+      "{ systemctl is-enabled --quiet tailscaled || systemctl is-enabled --quiet agro-tailscaled; }",
+    );
     expect(verify).toContain(`test -f ${DROP_IN}`);
     expect(verify).toContain('grep -qx xfce4-session "$HOME/.xsession"');
   });
 
+  describe.each([
+    { enabled: ["tailscaled"], status: 0 },
+    { enabled: ["agro-tailscaled"], status: 0 },
+    { enabled: [], status: 1 },
+  ])("the Tailscale verify clause with $enabled enabled", ({ enabled, status }) => {
+    const dirs: string[] = [];
+    afterEach(() => {
+      while (dirs.length > 0) rmSync(dirs.pop()!, { recursive: true, force: true });
+    });
+
+    it(`exits ${status}`, () => {
+      const clause = dt.verifyArgv[2].split(" && ").find((c) => c.includes("tailscaled"))!;
+      const dir = mkdtempSync(join(tmpdir(), "agro-desktop-verify-"));
+      dirs.push(dir);
+      const units = enabled.map((u) => `"is-enabled --quiet ${u}"`).join(" ");
+      writeFileSync(
+        join(dir, "systemctl"),
+        `#!/bin/sh\nfor u in ${units}; do [ "$*" = "$u" ] && exit 0; done\nexit 1\n`,
+      );
+      chmodSync(join(dir, "systemctl"), 0o755);
+      const r = spawnSync("/bin/bash", ["-c", clause], { env: { PATH: dir }, encoding: "utf8" });
+      expect(r.status).toBe(status);
+    });
+  });
+
   describe("system Tailscale", () => {
     const KEYRING = "/usr/share/keyrings/tailscale-archive-keyring.gpg";
-    const guard = "if ! systemctl cat tailscaled.service >/dev/null 2>&1; then";
-    const enable = "systemctl enable --now tailscaled";
+    const guard =
+      "if ! systemctl cat tailscaled.service >/dev/null 2>&1 && ! systemctl cat agro-tailscaled.service >/dev/null 2>&1; then";
+    const enable = "systemctl cat agro-tailscaled.service >/dev/null 2>&1 || systemctl enable --now tailscaled";
     const block = script.slice(script.indexOf(guard), script.indexOf(enable) + enable.length);
     const dirs: string[] = [];
     afterEach(() => {
@@ -815,22 +988,41 @@ describe("desktop serves XFCE over XRDP through Tailscale only", () => {
       expect(end).toBeLessThan(script.indexOf("apt-get install -y xfce4"));
     });
 
-    it("skips the repository and package when the tailscaled unit already exists", () => {
+    function runBlock(units: string[]): string[] {
       const dir = mkdtempSync(join(tmpdir(), "agro-desktop-tailscale-"));
       dirs.push(dir);
       const log = join(dir, "calls.log");
-      for (const cmd of ["systemctl", "curl", "gpg", "install", "apt-get"]) {
+      for (const cmd of ["curl", "gpg", "install", "apt-get"]) {
         writeFileSync(join(dir, cmd), `#!/bin/sh\necho "${cmd} $*" >> "${log}"\n`);
         chmodSync(join(dir, cmd), 0o755);
       }
+      const present = units.map((u) => `"cat ${u}"`).join(" ");
+      writeFileSync(
+        join(dir, "systemctl"),
+        `#!/bin/sh\necho "systemctl $*" >> "${log}"\ncase "$1" in cat) for u in ${present}; do [ "$*" = "$u" ] && exit 0; done; exit 1 ;; esac\n`,
+      );
+      chmodSync(join(dir, "systemctl"), 0o755);
       const r = spawnSync("/bin/bash", ["-c", `set -e\n${block}`], {
         env: { PATH: dir, codename: "noble", tmp: dir },
         encoding: "utf8",
       });
-      expect(r.status).toBe(0);
-      expect(readFileSync(log, "utf8").trim().split("\n")).toEqual([
+      expect(r.status, r.stderr).toBe(0);
+      return readFileSync(log, "utf8").trim().split("\n");
+    }
+
+    it("skips the repository and package when the tailscaled unit already exists", () => {
+      expect(runBlock(["tailscaled.service"])).toEqual([
         "systemctl cat tailscaled.service",
+        "systemctl cat agro-tailscaled.service",
         "systemctl enable --now tailscaled",
+      ]);
+    });
+
+    it("installs no apt daemon and enables no tailscaled when agro-tailscaled exists", () => {
+      expect(runBlock(["agro-tailscaled.service"])).toEqual([
+        "systemctl cat tailscaled.service",
+        "systemctl cat agro-tailscaled.service",
+        "systemctl cat agro-tailscaled.service",
       ]);
     });
   });

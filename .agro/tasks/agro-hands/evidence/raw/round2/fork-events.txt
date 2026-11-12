@@ -1,0 +1,8 @@
+17:45:01|creating_vm|{"jobId": "7586e3a3-f92f-42c8-b492-4ae419864863", "dataVolume": true}
+17:46:28|phase|{"jobId": "7586e3a3-f92f-42c8-b492-4ae419864863", "phase": "cold.pool_claimed"}
+17:46:28|phase|{"jobId": "7586e3a3-f92f-42c8-b492-4ae419864863", "phase": "cold.volume_available"}
+17:46:28|phase|{"jobId": "7586e3a3-f92f-42c8-b492-4ae419864863", "phase": "cold.dns_written"}
+17:46:34|phase|{"jobId": "7586e3a3-f92f-42c8-b492-4ae419864863", "phase": "cold.attach_requested"}
+17:46:43|running|{"jobId": "7586e3a3-f92f-42c8-b492-4ae419864863", "poolNodeId": "6c0a9e9e-bd9a-4779-9385-221d4bdb2775"}
+17:46:43|vm_swapped|{"poolNodeId": "6c0a9e9e-bd9a-4779-9385-221d4bdb2775", "oldInstanceId": null, "ovhInstanceId": "b536e32d-3b30-4ce1-bb26-cc3543860489"}
+17:46:44|phase|{"jobId": "7586e3a3-f92f-42c8-b492-4ae419864863", "phase": "cold.claim_acknowledged"}

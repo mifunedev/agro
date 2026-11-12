@@ -1,0 +1,36 @@
+2026-11-11T16:47:29.515Z key ab-handslive fc8feca8 201, token ab-handslive a8ecf406 201
+2026-11-11T16:47:30.744Z pool n4 min1 max1: "200 {\"specs\":{\"n4\":{\"min\":1,\"max\":1}}}"
+2026-11-11T16:49:42.308Z pooled: 8f69fd0e-577d-42e6-b38e-a6310738592e proud-zephyr-ip3x9f 16:47:57
+2026-11-11T16:49:52.789Z brain create: 202 8f69fd0e-577d-42e6-b38e-a6310738592e 
+2026-11-11T16:49:55.111Z pool n4 min0 max0: "200 {\"specs\":{\"n4\":{\"min\":0,\"max\":0}}}"
+2026-11-11T16:50:26.121Z brain: 364 proud-zephyr-ip3x9f running 40.160.9.115 40.160.9.115
+2026-11-11T16:50:26.222Z phases: brain.stack_enabled@16:50:08, brain.workspace_created@16:50:16, brain.apps_ready@16:50:22
+0ba58605-c590-40b5-b375-f57cf9ad78e5|silent-rain-pkg0sj|failed|22:56:33|23:45:49
+8f69fd0e-577d-42e6-b38e-a6310738592e|proud-zephyr-ip3x9f|running|16:47:57|16:52:40
+472cad7a-32f0-40d2-b59d-4a025465f8d3|tranquil-fern-8ozjxd|destroyed|16:49:52|16:51:41
+aec64157-1eba-467a-96cd-20abbf304e49|lively-clover-iz12kg|running|16:50:52|16:52:38
+c80bce00-f6eb-4930-bea9-f786531350f8|tidy-mesa-gstwnn|retired|16:50:52|16:52:34
+2026-11-11T16:56:48.549Z hand+fork: 365:destroyed 366:destroyed 365@16:56:45 366@16:56:39
+2026-11-11T16:56:49.491Z delete 8f69fd0e-577d-42e6-b38e-a6310738592e http=202
+2026-11-11T16:57:15.201Z destroyed 8f69fd0e-577d-42e6-b38e-a6310738592e
+2026-11-11T16:57:25.311Z delete key ab-handslive: "200"
+2026-11-11T16:57:27.478Z delete token ab-handslive: "200"
+2026-11-11T16:57:27.585Z brain key rows: 0
+2026-11-11T16:57:27.689Z key ab-handslive rows: 0
+2026-11-11T16:57:27.816Z token rows: a8ecf406-07ce-4693-bf21-ccbfc5814746 revoked=2026-11-11 16:57:27.468504+00
+2026-11-11T16:57:29.124Z pool n4 min0 max1: "200 {\"specs\":{\"n4\":{\"min\":0,\"max\":1}}}"
+brain-token row: ERROR:  column "brain_node_id" does not exist
+brain-token row: LINE 1: ... id, revoked_at is not null from api_tokens where brain_node...
+brain-token row:                                                              ^
+2026-11-11T16:58:06.087Z refill after reset: 78155d08-b311-4e5c-a234-a51e3ba202b2 ample-river-r90x4l creating_vm
+2026-11-11T16:58:14.471Z brain tokens of #364 (id revoked): 53283e24-1d65-4b73-b9f6-fa0a27d46500 true, 938a0112-8754-4c23-be53-c360cc60a9b6 true
+2026-11-11T16:58:14.564Z pool n4 min0 max0: "200 {\"specs\":{\"n4\":{\"min\":0,\"max\":0}}}"
+2026-11-11T17:00:16.050Z refill ample-river-r90x4l: destroyed at 17:00:14
+2026-11-11T17:00:17.911Z pool n4 min0 max1: "200 {\"specs\":{\"n4\":{\"min\":0,\"max\":1}}}"
+2026-11-11T17:00:28.149Z refill after final reset: b81ebeac-da30-4bb1-aebd-12b9a901e0ef snowy-willow-7m6mqo creating_vm
+2026-11-11T17:00:55.470Z pool n4 min0 max0: "200 {\"specs\":{\"n4\":{\"min\":0,\"max\":0}}}"
+2026-11-11T17:02:57.310Z refill snowy-willow-7m6mqo: destroyed at 17:02:53
+2026-11-11T17:10:12.536Z last servable create window: 17:00:27
+2026-11-11T17:10:13.719Z pool n4 min0 max1 (final): "200 {\"specs\":{\"n4\":{\"min\":0,\"max\":1}}}"
+2026-11-11T17:13:15.626Z refill after final reset: none in 180s
+2026-11-11T17:13:15.739Z live nodes: none

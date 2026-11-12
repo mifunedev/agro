@@ -1,0 +1,39 @@
+2026-11-11T17:40:10.232Z key ab-handslive2 5317898a 201, token ab-handslive2 37151f8a 201 (token file deleted, unused)
+"{\"ov\":{\"specs\":{\"n4\":{\"min\":0,\"max\":1}}},\"eff\":{\"min\":0,\"max\":1},\"idle\":15}"
+2026-11-11T17:40:11.000Z pool: "200 {\"specs\":{\"n4\":{\"min\":1,\"max\":1}}}"
+2026-11-11T17:42:02.389Z pooled: 1982607e-88f6-4b0d-a018-68d126915bac vivid-river-fdcwfw 17:40:31
+2026-11-11T17:42:13.199Z brain create: 202 1982607e-88f6-4b0d-a018-68d126915bac 
+2026-11-11T17:42:18.253Z pool: "200 {\"specs\":{\"n4\":{\"min\":0,\"max\":0}}}"
+2026-11-11T17:42:38.953Z brain: 367 vivid-river-fdcwfw running 135.148.170.122
+2026-11-11T17:42:39.148Z phases: brain.stack_enabled@17:42:33, brain.apps_ready@17:42:35
+2026-11-11T17:42:48.423Z scp agro.js ok
+2026-11-11T17:42:48.538Z phases: brain.stack_enabled@17:42:33, brain.apps_ready@17:42:35, brain.workspace_created@17:42:39
+2026-11-11T17:42:56.834Z nodes: 367 vivid-river-fdcwfw running, - vivid-raven-6vhe3i waiting_for_boot
+2026-11-11T17:44:42.139Z nodes: 367 vivid-river-fdcwfw running@17:44:30, - vivid-raven-6vhe3i destroyed@17:44:15, 368 smart-beacon-kcvdr2 running@17:44:31, - rapid-mesa-xavpy6 retired@17:44:30
+2026-11-11T17:44:54.396Z pooled before fork: 0
+fork key: brain #367 vivid-river-fdcwfw
+2026-11-11T17:47:26.286Z hand+fork destroyed: 369@17:47:23 368@17:47:24
+2026-11-11T17:47:27.186Z delete 1982607e-88f6-4b0d-a018-68d126915bac http=202
+2026-11-11T17:47:47.754Z destroyed 1982607e-88f6-4b0d-a018-68d126915bac
+2026-11-11T17:48:00.121Z delete key ab-handslive2: "200"
+2026-11-11T17:48:01.195Z delete token ab-handslive2: "200"
+2026-11-11T17:48:01.331Z key rows: 0
+2026-11-11T17:48:01.456Z token: t
+2026-11-11T17:48:01.591Z brain tokens of #367 (id revoked): 23383953-a955-44f7-9b8f-5f8f2f9f1fc5 true, 502b65e7-8833-4817-8f50-f2ca140742b6 true
+2026-11-11T17:48:01.729Z nodes this round: 367 vivid-river-fdcwfw destroyed 17:40:31-17:48:00, - vivid-raven-6vhe3i destroyed 17:42:13-17:44:15, 368 smart-beacon-kcvdr2 destroyed 17:42:57-17:47:27, - rapid-mesa-xavpy6 retired 17:42:57-17:44:30, 369 able-comet-m5ko73 destroyed 17:45:01-17:47:27, - warm-pond-cizttw retired 17:45:01-17:46:48
+2026-11-11T17:48:01.852Z last create: 17:45:01
+== ebbf6b65-2a5b-4818-9b3f-5b1163a8dc15
+17:42:57.931|creating_vm
+17:44:30.140|vm_swapped
+17:44:30.140|running
+17:45:01.098|fork_created
+17:47:09.845|destroy_requested
+== a1ee5c54-9a93-448a-bdc5-4af9bdf18ab7
+17:45:01.126|creating_vm
+17:46:43.961|vm_swapped
+17:46:43.961|running
+17:47:09.043|destroy_requested
+2026-11-11T18:00:41.059Z last create before reset: 17:45:01
+2026-11-11T18:00:43.249Z pool (final): "200 {\"specs\":{\"n4\":{\"min\":0,\"max\":1}}}"
+2026-11-11T18:03:45.213Z refill after final reset: none in 180s
+2026-11-11T18:03:45.322Z live nodes: none

@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "project": "agro",
+  "branchName": "task/1604-agro-hands",
+  "description": "agro hands commands and the hands skill for agro-console brain nodes.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Brain console client",
+      "description": "As an agent on a brain, I want `agro hands` to call the console API with the brain token. Then I manage hands without curl and without seeing the token.",
+      "acceptanceCriteria": [
+        "A shared console client in `.agro/cli/src/lib/` serves both `agro node` and `agro hands`. `agro node` keeps its behaviour, and its tests pass unchanged.",
+        "`agro hands` reads the token from `/home/sandbox/.agro/brain-token` and the console URL from `/home/sandbox/.agro/brain-console-url`. `AGRO_CONSOLE_TOKEN` and `AGRO_CONSOLE_URL` override both, as in `agro node`.",
+        "When the token file is missing, `agro hands` exits 2 with \"not on a brain: /home/sandbox/.agro/brain-token not found\" and sends no request.",
+        "No output, error message, or log line holds the token. A test feeds a known token and checks every captured output for it.",
+        "`agro hands list [--json]` prints the hands from `GET /api/nodes`: index, alias, status, spec, and SSH host.",
+        "`agro hands create [--name <name>] [--spec <spec>]` sends `POST /api/nodes` with `profile: \"sandbox\"`, waits until the hand runs, and prints its index, alias, and SSH host.",
+        "`agro hands fork|pause|resume <hand>` and `agro hands destroy <hand> [--yes]` call the matching route. `<hand>` accepts `#<index>`, `<index>`, an alias, or a uuid.",
+        "A 403 prints the console error code (`BRAIN_TOKEN_FORBIDDEN` or `BRAIN_TOKEN_TARGET_FORBIDDEN`) and exits 1 with no retry.",
+        "`npm --prefix .agro/cli run typecheck` and `pnpm test:scripts` exit 0."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Accepted by the advisor on f6e841a3b in the task worktree, 2026-11-11, no live requests. 1 executed: lib/console-api.ts holds the console config, callApi, node parsing, poll timing, and waitForRunning; node.ts re-exports the moved symbols and node.test.ts passes unedited. 2 executed: hands reads /home/sandbox/.agro/brain-token and /home/sandbox/.agro/brain-console-url through injectable deps; AGRO_CONSOLE_TOKEN and AGRO_CONSOLE_URL override; a missing URL file exits 2 and never falls back to the public console. 3 executed: missing token file exits 2 with the exact message and sends no request. 4 executed: tests check every captured output for a known token, including a 403 body and a fetch error; output also passes through a redacting wrapper. 5 to 8 executed in hands.test.ts (list table and --json, create with polling, fork/pause/resume/destroy with #index, index, alias, uuid, destroy confirmation, 403 codes with one call and no retry). 9 executed by the advisor: typecheck 0; test:scripts 3118 passed, 14 failed, the failure set identical to evidence/baseline.md. Repair round 1 (67c346162): the help leads with the bare index and warns that an unquoted #<index> starts a shell comment; a verb with no hand names that cause and sends no request (tests). The advisor re-ran typecheck 0 and test:scripts 3139 passed with the baseline failures only. Repair round 2 (108b5f9db, docs 4e2e2f108), from the US-004 live review: fork reads the source hand and sends {spec}, with --spec and --name overrides; with forkId in the response it waits and prints the fork like create; without forkId it prints the job and points to agro hands list, never the source id as the fork (eight fork tests). The advisor re-ran typecheck 0, test:scripts 3145 passed with the baseline failures only, and the docs tests 14/14. Repair round 3 (0ae524d73, operator-approved): waitForRunning takes pendingOn404, used only by the fork path, because mifunedev/agro-console#746 reserves forkId before the node exists; a fork that never appears exits 1 with the job id; create and agro node still fail on 404. The advisor re-ran typecheck 0 and test:scripts 3148 passed with the baseline failures only.",
+      "dependsOn": [],
+      "files": [
+        ".agro/cli/src/commands/node.ts",
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/lib/console-api.ts",
+        ".agro/cli/src/lib/console-auth.ts",
+        ".agro/cli/src/commands/__tests__/",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/command-table.ts"
+      ],
+      "commit": "0ae524d73",
+      "rounds": 3
+    },
+    {
+      "id": "US-002",
+      "title": "Projects on hands over SSH",
+      "description": "As an agent on a brain, I want to move a project to a hand, run commands there, and fetch the result. Then a hand does the heavy work and the brain keeps the history.",
+      "acceptanceCriteria": [
+        "`agro hands create --project <owner>/<repo>` prepares `~/projects/<owner>/<repo>` on the hand with `git init` and `receive.denyCurrentBranch updateInstead`. The command adds the remote `hand-<index>` to the brain project at `~/.agro/workspaces/harness/projects/<owner>/<repo>` and pushes the current branch.",
+        "`agro hands create --clone <owner>/<repo>` runs `git clone` on the hand into `~/projects/<owner>/<repo>` with the hand's own git credential. The brain pushes nothing.",
+        "`agro hands exec <hand> [--project <owner>/<repo>] -- <command>` runs the command over SSH. With `--project`, the command runs in the project folder. `agro hands exec` exits with the exit status of the command.",
+        "`agro hands fetch <hand> --project <owner>/<repo>` runs `git fetch hand-<index>` in the brain project.",
+        "Every SSH call uses `sandbox@<sshHost>` from the console and the default brain key, with no `-i` flag.",
+        "Tests run each command against a fake SSH runner and a temporary git repository. The tests pin the remote name, the paths, and the exit status.",
+        "`npm --prefix .agro/cli run typecheck` and `pnpm test:scripts` exit 0."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Accepted by the advisor on 9094fa78b in the task worktree, 2026-11-11, no live requests. 1 executed: create --project checks the brain project before the console call, prepares projects/<owner>/<repo> on the hand with git init on the current branch and receive.denyCurrentBranch updateInstead, adds remote hand-<index>, pushes; failures return their status and leave no remote (hands-project.test.ts with a real temp repo). 2 executed: create --clone runs git clone https://github.com/<owner>/<repo>.git on the hand, one SSH call, no brain remote. 3 executed: exec quotes argv (pinned with spaces and quotes), runs in the project folder with --project, returns the remote status. 4 executed: fetch runs git fetch hand-<index> in the brain project. 5 executed: SSH args -o StrictHostKeyChecking=accept-new -o HostKeyAlias=<uuid>, no -i; git uses the same through GIT_SSH_COMMAND; a fork gets its own known_hosts entry by uuid. 6 executed: tests pin remote name, paths, and statuses 0/1/3/128/255. 7 executed by the advisor: typecheck 0; test:scripts 3136 passed, 14 failed, identical to the baseline set. Slug validation rejects .., extra slashes, and shell characters.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/cli/src/commands/hands.ts",
+        ".agro/cli/src/lib/",
+        ".agro/cli/src/commands/__tests__/"
+      ],
+      "commit": "9094fa78b"
+    },
+    {
+      "id": "US-003",
+      "title": "Hands skill and docs",
+      "description": "As an agent on a brain, I want a short skill that tells me when and how to use hands. Then I choose hands for the right work and clean up after myself.",
+      "acceptanceCriteria": [
+        "`.agro/skills/hands/SKILL.md` covers when to use a hand and the create, exec, fetch, and destroy flow. The skill tells the agent to destroy or pause hands to save cost, never to read the token, and to stop on a 403. The skill warns that a fork copies credentials and points to `agro hands --help` for flags.",
+        "The skill states that an agent install on a brain needs `agro harness install <name> --host`.",
+        "The provider link check passes for the new skill (`bash .agro/scripts/link-providers.sh` in check mode).",
+        "`command-table.ts` lists the `hands` verbs, and `docs/lifecycle-commands.md` documents them. The docs reference test passes.",
+        "`CHANGELOG.md` `## [Unreleased]` names `agro hands` and the hands skill.",
+        "`bash .agro/skills/ste/scripts/ste-check.sh .agro/skills/hands/SKILL.md` reports no findings.",
+        "Typecheck passes (`npm --prefix .agro/cli run typecheck` exits 0)."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Accepted by the advisor on 814bcf77c, 2026-11-11. 1 and 2 executed: .agro/skills/hands/SKILL.md (77 lines) covers when a hand is worth its cost, the create/exec/fetch/destroy flow, destroy or pause, never reading the token, stop on 403, fork credential risk, agro hands --help, and agro harness install <name> --host; STE clean (advisor ran ste-check). 3 executed: link-providers.sh --check prints Providers OK; .claude/skills and .agents/skills are directory symlinks, so no mirror changed. 4 executed: command-table lists the eight verbs (US-002); docs/lifecycle-commands.md has the row and a section; docs-reference and docs tests pass. 5 executed: CHANGELOG Unreleased Added names agro hands and the skill (#1604). 6 executed. 7 executed by the advisor: typecheck 0, build:harness 0, test:scripts 3136 passed with the baseline failures only. Finding: an unquoted #<index> starts a shell comment; the skill and docs use the bare index; the CLI help fix is a US-001 repair.",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/skills/hands/",
+        ".agro/cli/src/command-table.ts",
+        ".agro/cli/src/cli.ts",
+        "docs/lifecycle-commands.md",
+        ".agro/cli/src/__tests__/",
+        "CHANGELOG.md"
+      ],
+      "commit": "814bcf77c"
+    },
+    {
+      "id": "US-004",
+      "title": "Manual review on a live brain",
+      "description": "As the operator, I want one transcript of `agro hands` on a live brain. Then the PR shows the commands working end to end.",
+      "acceptanceCriteria": [
+        "Before any live resource, a read-only `agro hands list` on the brain succeeds. If it fails, the story sets `blocked` and creates nothing.",
+        "`evidence/manual-review.md` records a run of the built CLI on one live brain. The run covers `agro hands create --project <owner>/<repo>`, `agro hands list`, and `agro hands exec <hand> --project <owner>/<repo> -- git log --oneline`. The run then makes a commit on the hand and covers `agro hands fetch`, `agro hands fork`, and `agro hands destroy` for the hand and the fork.",
+        "The transcript shows `agro hands exec` on a brain node refused with `BRAIN_TOKEN_TARGET_FORBIDDEN`.",
+        "The advisor deletes each node, SSH key, and token of the round. The provider list at the end matches the list before the round."
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Round 1 (evidence f61e1b146, 2026-11-11), not met: on brain #364 the built CLI ran list, create --project (hand #365), exec, a commit on the hand, fetch (84ce12b..027bf46), the brain refusal (403 BRAIN_TOKEN_TARGET_FORBIDDEN), and destroy. hands fork failed with HTTP 400 (the CLI sends no body; the console requires spec). A fork made by curl (#366) got no brain key, so exec failed with Permission denied (publickey). The fork response id is the source. Fixes: CLI US-001 repair round 2; console mifunedev/agro-console#745. The advisor verified cleanup (no live node, key, or token; provider list as before). Spend 0.42 instance-hour against 0.3. Round 2 (55b2ac0ae), accepted by the advisor: brain #367 against the console at d5e15d25 with agro-console #744 and #746 merged; no AGRO_CONSOLE_URL; ~/.agro/brain-console-url 600 sandbox. 1 executed: list printed no hands before any hand. 2 executed: create --project (#368), list, exec git log, a commit on the hand, fetch (6eebb41..e7efd5c), fork (#369, waited and printed index, alias, ssh host), exec on the fork (brain key attached), and destroy of fork and hand, each exit 0. 3 executed: exec on the brain gave 403 BRAIN_TOKEN_TARGET_FORBIDDEN. 4 executed: the advisor re-ran the provider list (same 3 instances, 2 golden volumes, 2 snapshots) and found no live node, key, or token. 0.26 instance-hour; pool held at max 0 through the round, then one reset with no refill.",
+      "dependsOn": [
+        "US-003"
+      ],
+      "files": [
+        ".agro/tasks/agro-hands/evidence/"
+      ],
+      "rounds": 1,
+      "commit": "55b2ac0ae"
+    }
+  ],
+  "pr": 1606
+}

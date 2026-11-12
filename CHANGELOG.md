@@ -11,11 +11,22 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 ### Added
 
 - Add sandbox-only `agro clipboard start/stop` for private image uploads with captions and an image-tool handoff prompt ([#1612](https://github.com/mifunedev/agro/issues/1612)).
+- Add optional `aws` and `gws` tool installers for AWS CLI v2 and Google Workspace CLI without a sandbox rebuild ([#1610](https://github.com/mifunedev/agro/issues/1610)).
+
+## [0.34.0] - 2026-11-11
+
+### Added
+
 - Add `agro run --sandbox <name>` to run one command in a running AGRO sandbox, or with `--isolation microvm` in a running msb microVM, with no host mount ([#1600](https://github.com/mifunedev/agro/issues/1600)).
+- Add `agro hands` (list, create, exec, fetch, fork, pause, resume, destroy) to create and manage hands from a brain with the brain token, and to move projects to hands over SSH, and add the `hands` skill ([#1604](https://github.com/mifunedev/agro/issues/1604)).
 
 ### Changed
 
 - Make `agro langfuse apply|status|disable` and `agro config langfuse` run on a host: the verbs write the credential fragment and the harness tracing files under the `$HOME` of the user who runs them, in the sandbox or on a host ([#1602](https://github.com/mifunedev/agro/issues/1602)).
+
+### Fixed
+
+- Make `agro tool install desktop --host` keep the `agro-tailscaled.service` daemon from `agro tool setup t3-mobile enable` and install no second Tailscale daemon ([#1605](https://github.com/mifunedev/agro/issues/1605)).
 
 ## [0.33.0] - 2026-11-08
 
