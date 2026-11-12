@@ -4,6 +4,7 @@
   "branchName": "feat/1610-aws-gws-tool-install",
   "description": "Add pinned AWS CLI v2 and Google Workspace CLI tool installers.",
   "pr": 1611,
+  "blocked": "US-001: CC Safety Net secret.ext.asc denied /tmp/agro-aws-integrity-aFEwCh/aws.asc while preparing the official public AWS signing key. No implementation changes exist. Operator must authorize a guard-approved method for public-key verification before work resumes; no alternate path/tool retry is permitted.",
   "userStories": [
     {
       "id": "US-001",
@@ -45,7 +46,7 @@
       ],
       "priority": 2,
       "passes": false,
-      "notes": "",
+      "notes": "Worker commit 947fe998eb0b05b4873d94917cf1e026a9acb9c6 is preserved on task/1610-tool-docs. Advisor inspected its four-file diff. Not integrated or accepted because task is blocked on US-001. Worker reports no STE findings on changed lines; integrated verification remains pending.",
       "dependsOn": [],
       "files": ["docs/installation.md", ".agro/cli/README.md", "README.md", "CHANGELOG.md"]
     },

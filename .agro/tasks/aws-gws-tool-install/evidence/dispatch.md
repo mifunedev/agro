@@ -44,5 +44,5 @@
 
 The task uses the main checkout. US-001 and US-002 use isolated worktrees because their wave has disjoint write paths.
 US-003 runs alone in the main task checkout after acceptance of the first wave.
-Dependencies were installed with `pnpm install --frozen-lockfile` in both worker worktrees before dispatch.
+The advisor ran `pnpm install --frozen-lockfile` in both worker worktrees before dispatch.
 Baseline: 3176 tests passed, 2 skipped; typecheck passed.
