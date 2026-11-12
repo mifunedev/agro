@@ -12,7 +12,7 @@ Status: DRAFT
 
 - [ ] Add `aws` and `gws` to `.agro/cli/src/lib/tools/catalog.ts` as installable, host-capable tools for the sandbox user.
 - [ ] Pin AWS CLI to `2.40.1` and Google Workspace CLI to `0.22.5`; verify each architecture-specific download with a recorded SHA-256 value.
-- [ ] Authenticate both AWS release ZIPs with the official AWS signing key before recording their checksums.
+- [ ] Record SHA-256 values from both official HTTPS AWS release ZIPs; require no key material or cloud authentication.
 - [ ] Support Debian `amd64` and `arm64`; reject other architectures before downloading or writing installation files.
 - [ ] Install only below `${NPM_USER_PREFIX:-$HOME/.local}` without sudo; verify the installed executable by absolute path.
 - [ ] Install the AWS bundle below the prefix with `aws` and `aws_completer` launchers; reject missing `unzip` or unsupported whitespace paths before extraction.
@@ -113,6 +113,8 @@ Extend the existing catalog only. Reuse Linux architecture mapping and checksum 
 Use official upstream artifacts; do not run an unconstrained bootstrap or install AWS CLI v1 through pip or apt.
 Preserve the existing presence probe and separate version probe contract.
 Keep installation separate from authentication. Preserve existing no-op behavior for complete managed installs.
+The operator requires no keys for this PR. Derive AWS checksum pins from official HTTPS downloads without PGP key handling.
+SHA-256 pins detect changed artifacts; this procedure does not claim independent signature verification.
 
 ## Test Plan (TDD)
 
@@ -143,7 +145,7 @@ None.
 ## Acceptance Criteria
 
 - [ ] Both tool IDs appear in catalog-derived help and support install, status, repeat installation, and uninstall through existing routing.
-- [ ] Both architectures have pinned, verified artifacts; AWS pins derive from signature-authenticated ZIPs.
+- [ ] Both architectures have pinned, checksum-verified artifacts; AWS pins derive from the official HTTPS ZIP downloads.
 - [ ] Real amd64 installation evidence covers both tools without cloud access or changes to existing installations.
 - [ ] Documentation and changelog describe both optional tools and the authentication boundary.
 - [ ] Repository checks pass; the PR leaves draft only after CI reports PASS.

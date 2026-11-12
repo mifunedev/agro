@@ -9,7 +9,7 @@
 | Read scope | Root context, PRD, CLI README, tool catalog, tool commands, tests, and official AWS/GWS release sources |
 | Owned write paths | `.agro/cli/src/lib/tools/catalog.ts`; `.agro/cli/src/__tests__/tool-catalog.test.ts`; `.agro/cli/src/__tests__/tool.test.ts`; `.agro/tasks/aws-gws-tool-install/evidence/artifact-integrity.md` |
 | Deliverable | One commit on `task/1610-tool-code`; never push |
-| Verification | PRD US-001 criteria; targeted Vitest suite and typecheck pass; record red test and authenticated artifact evidence. Advisor accepts in the main checkout. |
+| Verification | PRD US-001 criteria; targeted Vitest suite and typecheck pass; record red test and official HTTPS artifact checksum evidence. Advisor accepts in the main checkout. |
 | Execution directory | `/home/sandbox/harness/.worktrees/task/1610-tool-code` |
 | Execution location | sandbox |
 | Model and reason | Session-default GPT model; bounded implementation needs shell, TypeScript, and artifact-integrity reasoning. |
