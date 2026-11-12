@@ -338,6 +338,8 @@ const HOST_INSTALLERS: ReadonlyArray<readonly [string, string]> = [
   ["tailscale", "pkgs.tailscale.com/stable/"],
   ["code-server", "coder/code-server/releases/download/"],
   ["ffmpeg", "eugeneware/ffmpeg-static/releases/download/"],
+  ["aws", "awscli.amazonaws.com/"],
+  ["gws", "googleworkspace/cli/releases/download/"],
 ];
 
 function hostRunner(
@@ -398,6 +400,85 @@ function writeReceipt(dir: string, id: string, prefix: string, binary: string): 
 }
 
 const LINUX: NodeJS.Platform = "linux";
+
+describe.each(["aws", "gws"])("agro tool %s integration", (id) => {
+  it("appears in list and reports only the first version line", async () => {
+    const root = makeRepo();
+    const { run } = liveHost((cmd, args) => isExecOf(cmd, args, "--version") ? { status: 0, stdout: `${id} pinned\nDisclaimer\n`, stderr: "" } : undefined);
+    const list = makeIo();
+    expect(await runToolList({ bin: "agro", cwd: root, run, json: true }, list.io)).toBe(0);
+    expect(JSON.parse(list.out.join("")).some((row: { id: string }) => row.id === id)).toBe(true);
+    const status = makeIo();
+    expect(await runToolStatus(id, { bin: "agro", cwd: root, run, json: true }, status.io)).toBe(0);
+    expect(JSON.parse(status.out.join("")).version).toBe(`${id} pinned`);
+  });
+
+  it.each([0, 7])("records a host receipt only on installer success (exit %s)", async (exit) => {
+    const repo = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    seedWorkspace(defaultRoot(home));
+    const { calls, run } = hostRunner((cmd, args) => {
+      if (cmd === "bash" && args.join(" ").includes("NPM_USER_PREFIX")) return { status: exit, stdout: "", stderr: "" };
+      return absentOnHost(id)(cmd, args);
+    });
+    const opts = { bin: "agro", cwd: repo, run, env: home.env, homedir: user.homedir, interactive: false, host: true, platform: LINUX };
+    expect(await runToolInstall(id, opts, makeIo().io)).toBe(exit);
+    expect(installerCalls(calls)).toHaveLength(1);
+    if (exit === 0) expect(receiptsIn(home.dir)[id]).toMatchObject({ prefix: user.prefix, binary: id });
+    else expect(existsSync(hostConfigFile(home.dir))).toBe(false);
+  });
+
+  it.each([false, true])("honors the sandbox repeat-install marker (%s)", async (marker) => {
+    const root = makeRepo();
+    const { calls, run } = liveHost((cmd, args) => {
+      if (isExecOf(cmd, args, `${id}.installed`) && args.includes("test")) return { status: marker ? 0 : 1, stdout: "", stderr: "" };
+      return undefined;
+    });
+    expect(await runToolInstall(id, { bin: "agro", cwd: root, run }, makeIo().io)).toBe(0);
+    const installs = calls.filter((c) => c.args.some((a) => a.includes("NPM_USER_PREFIX")));
+    expect(installs).toHaveLength(marker ? 0 : 1);
+  });
+
+  it("propagates sandbox install failure without writing a marker", async () => {
+    const root = makeRepo();
+    const { calls, run } = liveHost((cmd, args) => {
+      if (isExecOf(cmd, args, `command -v ${id}`)) return { status: 1, stdout: "", stderr: "" };
+      if (isExecOf(cmd, args, "NPM_USER_PREFIX")) return { status: 6, stdout: "", stderr: "" };
+      return undefined;
+    });
+    expect(await runToolInstall(id, { bin: "agro", cwd: root, run }, makeIo().io)).toBe(6);
+    expect(calls.some((c) => c.args.some((a) => a.includes(`${id}.installed`)) && c.args.some((a) => a.includes("mkdir -p")))).toBe(false);
+  });
+
+  it("refuses host removal without a receipt", async () => {
+    const root = makeRepo();
+    const home = emptyStateHome();
+    const { calls, run } = hostRunner();
+    expect(await runToolUninstall(id, { bin: "agro", cwd: root, run, env: home.env, homedir: fakeHome().homedir }, makeIo().io)).toBe(1);
+    expect(calls.some((c) => c.cmd === "rm")).toBe(false);
+  });
+
+  it("does not repeat a present host install", async () => {
+    const root = makeRepo();
+    const home = emptyStateHome();
+    seedWorkspace(defaultRoot(home));
+    const { calls, run } = hostRunner();
+    expect(await runToolInstall(id, { bin: "agro", cwd: root, run, env: home.env, homedir: fakeHome().homedir, host: true, platform: LINUX }, makeIo().io)).toBe(0);
+    expect(installerCalls(calls)).toEqual([]);
+  });
+
+  it("removes the receipt-owned paths and clears its receipt", async () => {
+    const root = makeRepo();
+    const home = emptyStateHome();
+    const user = fakeHome();
+    writeReceipt(home.dir, id, user.prefix, id);
+    const { calls, run } = hostRunner();
+    expect(await runToolUninstall(id, { bin: "agro", cwd: root, run, env: home.env, homedir: user.homedir }, makeIo().io)).toBe(0);
+    expect(calls.find((c) => c.cmd === "rm")?.args).toEqual(resolveToolUninstallArgv(findTool(id)!, user.prefix)!.slice(1));
+    expect(receiptsIn(home.dir)).toEqual({});
+  });
+});
 
 describe("agro tool install on the host", () => {
   it.each(HOST_INSTALLERS)(
@@ -1010,7 +1091,7 @@ describe("tool location reporting", () => {
     );
     const rows = JSON.parse(out.join("")) as Array<Record<string, unknown>>;
     expect(rows.filter((r) => r.hostCapable === true).map((r) => r.id)).toEqual(
-      [...HOST_INSTALLERS.map(([id]) => id), "docker-engine", "desktop"],
+      [...HOST_INSTALLERS.slice(0, -2).map(([id]) => id), "docker-engine", "desktop", "aws", "gws"],
     );
   });
 });
