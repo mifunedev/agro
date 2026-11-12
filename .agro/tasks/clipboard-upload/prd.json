@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "project": "mifunedev/agro",
+  "branchName": "feat/1612-clipboard-upload",
+  "description": "Clipboard image uploads with captions, dark/light theme, and detached start/stop on port 3500",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Probe the service execution path",
+      "description": "As an operator, I want a verified runtime path so that the upload service runs inside the intended boundary.",
+      "acceptanceCriteria": [
+        "Record the sandbox marker, Node version, tmux availability, bundle entry point, and browser access route in `evidence/runtime-probe.md`.",
+        "Before service startup, confirm port 3500 has no listener. For a busy port, report the listener PID; leave the listener running.",
+        "Verify access from the operator-facing browser route to a temporary loopback listener inside the sandbox.",
+        "Record the image-path visibility contract for agents in another worktree or execution target.",
+        "Stop every probe process. Create no cloud resources and change no existing sandbox lifecycle."
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [],
+      "files": [
+        ".agro/tasks/clipboard-upload/evidence/runtime-probe.md"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Persist ordered image and caption batches",
+      "description": "As a headless agent, I want image files paired with captions so that I can open each image in context.",
+      "acceptanceCriteria": [
+        "Add a Node HTTP service with an authenticated upload endpoint and a health endpoint.",
+        "Save each completed batch in a new private directory under the current user's AGRO home, scoped by canonical project path.",
+        "Write a versioned JSON manifest with stable image IDs, order, absolute paths, MIME types, byte lengths, and captions.",
+        "Generate filenames on the server. Never use client filenames as filesystem paths or shell input.",
+        "Accept PNG, JPEG, and WebP only when MIME types match file signatures. Reject SVG and HTML.",
+        "Enforce proposed limits of 10 images, 10 MiB per image, 50 MiB per request, and 2000 characters per caption.",
+        "Reject unauthorized requests, foreign origins, malformed payloads, traversal attempts, and symlink destinations in automated tests.",
+        "Publish a batch manifest only after all files complete. Remove incomplete files on failure and preserve existing batches.",
+        "Return a copyable prompt that names the manifest and instructs an image-capable agent to open every image.",
+        "Never commit uploads, dispatch agents, execute captions, or claim that a path alone provides visual model input."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".agro/cli/src/lib/clipboard/server.ts",
+        ".agro/cli/src/lib/clipboard/storage.ts",
+        ".agro/cli/src/lib/clipboard/__tests__/server.test.ts"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Add clipboard lifecycle commands",
+      "description": "As an operator, I want start and stop commands so that uploads remain available after terminal disconnect.",
+      "acceptanceCriteria": [
+        "Add `agro clipboard start [--port <port>]` and `agro clipboard stop` to command dispatch and help.",
+        "Use port 3500 by default. Reject missing, malformed, zero, and out-of-range port values.",
+        "Start the same installed CLI bundle in a named detached tmux session scoped to the canonical project path.",
+        "Quote every launch argument. Keep filenames and captions out of the launch command.",
+        "Confirm service identity and HTTP readiness before reporting success. Report startup errors and port conflicts.",
+        "Make repeated start and stop calls safe. Reject conflicting start options without replacing a running service.",
+        "Stop only the session owned by this project. Preserve batches and unrelated sessions or listeners.",
+        "Refuse unintended host execution with a sandbox entry instruction. Do not provision or restart a sandbox.",
+        "Bind only to loopback. Use operator-managed forwarding or an authenticated proxy for browser access.",
+        "Verify standalone bundle startup from outside the source checkout with no source-relative asset dependency."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "files": [
+        ".agro/cli/src/commands/clipboard.ts",
+        ".agro/cli/src/command-table.ts",
+        ".agro/cli/src/cli.ts",
+        ".agro/cli/src/__tests__/clipboard.test.ts",
+        ".agro/cli/src/__tests__/cli-first-help.test.ts",
+        ".agro/cli/src/__tests__/bundle-identity.test.ts"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Add the themed browser upload page",
+      "description": "As an operator, I want a simple upload page so that I can paste multiple images and describe each image.",
+      "acceptanceCriteria": [
+        "Support clipboard image paste, file selection, and drag-and-drop with multiple image previews.",
+        "Keep each editable caption associated with its stable image ID through additions and removals.",
+        "Show upload progress, validation errors, completed paths, and a copyable agent prompt.",
+        "Render captions and filenames as text. Never interpret them as HTML.",
+        "Provide keyboard-accessible controls, visible focus, labels, and a layout usable at desktop and mobile widths.",
+        "Default to the browser's preferred color scheme. Persist an explicit light or dark selection in browser storage.",
+        "Use the Studio reference palette: warm paper, near-black ink, green accents, and restrained typography.",
+        "Bundle page assets with the CLI. Load no fonts, scripts, or styles from a third-party service at runtime.",
+        "Verify in browser using agent-browser skill."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003"
+      ],
+      "files": [
+        ".agro/cli/src/lib/clipboard/page.ts",
+        ".agro/cli/src/lib/clipboard/__tests__/page.test.ts"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Document and prove the complete journey",
+      "description": "As a reviewer, I want reproducible evidence so that I can verify uploads and lifecycle behavior before merge.",
+      "acceptanceCriteria": [
+        "Update CLI package guidance, lifecycle commands, connection guidance, security guidance, and the Unreleased changelog.",
+        "Document start, stop, default port, access setup, limits, upload storage, retention, and manual deletion after the service stops.",
+        "Document that an agent must open image files and that isolated execution targets need explicit image transfer.",
+        "Start the command journey from fresh temporary state. Include a newly created input path.",
+        "Record start, upload, repeated start, stop, repeated stop, and an occupied-port failure in `evidence/manual-review.md`.",
+        "Capture annotated screenshots of light mode, dark mode, and multiple images with distinct captions.",
+        "Commit sanitized evidence images and embed full-commit-SHA screenshot links with callouts in the PR description.",
+        "Verify in browser using agent-browser skill.",
+        "Stop each test service. Remove only temporary resources created by the journey.",
+        "Ask the operator for final decisions and shipping confirmation before the final push and PR undraft."
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001",
+        "US-002",
+        "US-003",
+        "US-004"
+      ],
+      "files": [
+        ".agro/cli/README.md",
+        "docs/lifecycle-commands.md",
+        "docs/connecting.md",
+        "docs/security-considerations.md",
+        "CHANGELOG.md",
+        ".agro/tasks/clipboard-upload/evidence/"
+      ]
+    }
+  ]
+}
