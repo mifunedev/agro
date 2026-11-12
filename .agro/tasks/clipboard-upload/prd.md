@@ -196,3 +196,19 @@ Apply existing file-count, byte, caption, authentication, and retention limits t
 - [ ] The full local suite and exact-head CI pass before the existing PR returns to ready for review.
 
 ## Lessons
+
+- Claim: review overrides can obscure the production storage location.
+  Evidence: production already used `~/.agro/clipboard/`; the old journey used a temporary sibling-home override.
+  Outcome: fixed in this PR. A default-home regression and new browser screenshots prove the real AGRO storage path without `AGRO_HOME`.
+- Claim: general file support does not require active document processing.
+  Evidence: mixed byte tests and browser checks preserve captions while HTML/SVG receive metadata only.
+  Outcome: fixed in this PR. Generic attachments remain inert; agents use explicit file tools.
+- Claim: deep equality on a large binary fixture can exhaust the test heap.
+  Evidence: the interrupted backend run failed during a 10 MiB comparison; `Buffer.equals` completed the same byte check.
+  Outcome: fixed in this PR. The byte-limit regression retains its full-size fixture without a deep object diff.
+- Claim: unrelated provider-link tests can exceed their existing time budget under shared load.
+  Evidence: three unchanged tests timed out at 5 seconds; the unchanged full retry passed all 3309 tests with original timeouts.
+  Outcome: dropped, because no provider-link source changed and the retry verified the complete suite without relaxed limits.
+- Claim: workers must leave commit hooks enabled.
+  Evidence: one worker supplied a hooks override; inspection found only sample hooks, and later commits used normal hooks.
+  Outcome: dropped, because no active hook existed to skip and the advisor completed independent clean-main acceptance.
