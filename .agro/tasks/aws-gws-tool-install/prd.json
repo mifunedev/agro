@@ -64,8 +64,9 @@
         "Preserve pre-existing installations and credentials; delete only temporary resources created by the evidence run."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "commit": "58abaa520b5ff40cbe426421cdb117f9853fb66e",
+      "notes": "Executed: advisor read all 395 transcript lines and verified only the evidence file changed. Evidence records fresh initially absent workspace, temporary HOME/AGRO_HOME, inline environment and no env file; real built-CLI help/list/install/status/repeat-install/uninstall for AWS2.40.1 and GWS0.22.5; labeled unsupported-riscv64 failures with no receipts; cleanup and unchanged original AWS version/SHA256. Advisor independently reran real installs/status/no-op/removal for both tools through the built CLI in another fresh temporary home with unreachable Docker socket; monitor3 exit0. Asserted absent managed binaries/payload and no cloud config creation. Main-checkout STE manual-review exit0, git diff --check exit0. Reasoned from isolated paths and version-only invocations: no real credentials, keys, cloud API or original markers touched. Full repository lint/typecheck/build/tests also exit0: 120 files, 3228 tests passed, 2 skipped.",
       "dependsOn": ["US-001", "US-002"],
       "files": [".agro/tasks/aws-gws-tool-install/evidence/manual-review.md"]
     }

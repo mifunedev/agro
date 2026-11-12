@@ -151,3 +151,7 @@ None.
 - [ ] Repository checks pass; the PR leaves draft only after CI reports PASS.
 
 ## Lessons
+
+- Claim: AWS's same-version installer exits before it repairs missing launchers. Evidence: vendor inspection and executable retry tests. Outcome: fixed in this PR.
+- Claim: binary installation needs no cloud login or account keys. Evidence: both real CLIs install and report versions in a fresh home. Outcome: fixed in this PR.
+- Claim: the documentation checker reports 16 findings outside the changed lines. Evidence: checker output and the zero-context diff. Outcome: dropped because those lines are outside this change.
