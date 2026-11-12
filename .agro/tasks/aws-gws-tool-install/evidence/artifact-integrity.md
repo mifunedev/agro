@@ -23,7 +23,7 @@ Downloaded each official HTTPS ZIP with `curl -fsSL <URL> -o <temporary ZIP>`. B
 | amd64 / x86_64 | https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.40.1.zip | `fddb097a8ea197dc9beed9e4426ef99aded612a52df64581e079b6e8817e1d24` |
 | arm64 / aarch64 | https://awscli.amazonaws.com/awscli-exe-linux-aarch64-2.40.1.zip | `ce999da382eac247be6bd000af1ee16f23a2d25e5906e7fd9a83e54c1ecf37c1` |
 
-No signing key, signature, private key, credential, cloud login, or cloud API was requested or accessed. These pins derive from official HTTPS downloads. This procedure does not provide independent signature authentication. The runtime SHA-256 checks reject bytes that differ from these recorded downloads.
+The worker neither requested nor accessed any signing key, signature, private key, credential, cloud login, or cloud API. These pins derive from official HTTPS downloads. This procedure does not provide independent signature authentication. The runtime SHA-256 checks reject bytes that differ from these recorded downloads.
 
 Inspected `aws/install` with `unzip -p <x86_64 ZIP> aws/install`; exit 0. The vendor script accepts `--install-dir`, `--bin-dir`, and `--update`. It rejects an existing `v2/current` symlink without `--update`. It exits successfully for an existing same-version payload before creating launcher symlinks. Therefore, the catalog removes only `lib/aws-cli/v2/2.40.1` after successful download, checksum, and extraction, then invokes the vendor installer with `--update`. This supports fresh installation and repairs incomplete payloads or missing launchers without a new installer abstraction. The absolute installed executable must then report `aws-cli/2.40.1 ` followed by runtime details, with exit 0.
 
@@ -36,7 +36,7 @@ Read both official companion files with `curl -fsSL`; both exited 0 and returned
 - https://github.com/googleworkspace/cli/releases/download/v0.22.5/google-workspace-cli-aarch64-unknown-linux-gnu.tar.gz.sha256
   - `94490295d9580e1e88574e715a0a162991747d12d62f8c7b8dcc8268b6c1cea0  google-workspace-cli-aarch64-unknown-linux-gnu.tar.gz`
 
-The exact artifact URLs are those companion URLs without the final `.sha256`. Only the archive-root `gws` executable is installed. Verification captures the absolute executable's stdout with exit propagation, then compares its first line to `gws 0.22.5`. The second disclaimer line is permitted.
+The exact artifact URLs are those companion URLs without the final `.sha256`. The installer installs only the archive-root `gws` executable. Verification captures the absolute executable's stdout with exit propagation, then compares its first line to `gws 0.22.5`. Verification permits the second disclaimer line.
 
 ## TDD evidence
 
@@ -44,13 +44,13 @@ Before editing `catalog.ts`, added catalog inventories, shell fixture tests, and
 
 `pnpm exec vitest run .agro/cli/src/__tests__/tool-catalog.test.ts .agro/cli/src/__tests__/tool.test.ts`
 
-Red result: exit 1; 46 tests failed (28 catalog tests and 18 command tests). New tool discovery and installer fixtures failed because `aws` and `gws` did not exist. The red output was captured in a temporary `red.log`, not a tracked test artifact.
+Red result: exit 1; 46 tests failed (28 catalog tests and 18 command tests). New tool discovery and installer fixtures failed because `aws` and `gws` did not exist. The worker captured the red output in a temporary `red.log`, not a tracked test artifact.
 
 After catalog implementation, the targeted suite passed. Additional tests strengthened checksum enforcement, missing-unzip failure, vendor failure, and incomplete AWS payload repair.
 
-The shell tests are explicitly offline fixtures, not real cloud-tool installations. They execute the catalog shell bodies with mocked download/extraction commands and real filesystem installation, launcher execution, and removal. They cover both architecture mappings and exact selected digest values; unsupported architecture before network/prefix writes; default and custom prefixes; bad checksums including a real `sha256sum` rejection; download/extraction/vendor failures; wrong version and nonzero executable exit despite correct version output; two-line GWS output; retry and update behavior; temporary-directory cleanup; whitespace and missing-unzip refusal; and preservation of synthetic AWS/Google configuration and unrelated prefix files on removal.
+The shell tests are explicitly offline fixtures, not real cloud-tool installations. They execute the catalog shell bodies with mocked download/extraction commands and real filesystem installation, launcher execution, and removal. The tests cover both architecture mappings and exact selected digest values. They check unsupported architecture rejection before network/prefix writes and both default and custom prefixes. They test bad checksums, including a real `sha256sum` rejection, and download/extraction/vendor failures. They test wrong versions and nonzero executable exits despite correct version output. They cover two-line GWS output, retry and update behavior, temporary-directory cleanup, and whitespace and missing-unzip refusal. They verify preservation of synthetic AWS/Google configuration and unrelated prefix files during removal.
 
-Command tests cover catalog-derived help/list/status, host installation routing, successful receipts, no receipt on failure, sandbox marker/no-marker repeat installation, failed sandbox installation without a success marker, host no-op repeat installation, receipt-owned uninstall, and refusal to uninstall without a receipt.
+Command tests cover catalog-derived help/list/status and host installation routing. They verify successful receipts and no receipt on failure. They cover sandbox marker/no-marker repeat installation and failed sandbox installation without a success marker. They also cover host no-op repeat installation, receipt-owned uninstall, and refusal to uninstall without a receipt.
 
 ## Acceptance mapping
 
@@ -72,4 +72,4 @@ Final verification:
 - `pnpm run typecheck`: exit 0; `tsc --noEmit` reported no error. npm printed existing configuration warnings only.
 - `git diff --check`: exit 0.
 
-No dependency, command, image, boot path, authentication behavior, or shared abstraction changed. Temporary download/test resources created by this worker are removed before handoff. No pre-existing installation or credential was changed.
+No dependency, command, image, boot path, authentication behavior, or shared abstraction changed. The worker removes its temporary download/test resources before handoff. The worker changed no pre-existing installation or credential.
