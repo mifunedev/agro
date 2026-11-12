@@ -202,3 +202,16 @@ Request final shipping confirmation after the operator can inspect the screensho
 - [ ] The operator confirms final shipping. CI passes on the pushed head and the PR is not a draft.
 
 ## Lessons
+
+- Claim: loopback access belongs to the service's execution namespace.
+  Evidence: the probe reached sandbox loopback through an explicit private relay; host port publication did not supply that route.
+  Outcome: fixed in this PR. Connection guidance names the sandbox endpoint and requires private forwarding or an authenticated proxy.
+- Claim: image paths alone do not provide visual input to an agent.
+  Evidence: ordered manifests retain captions, and the generated prompt requires an image-reading tool call for every image.
+  Outcome: fixed in this PR. The page and documentation state the transfer requirements for isolated workers.
+- Claim: the sandbox browser installer needs unavailable system libraries and privilege in this review environment.
+  Evidence: installation failed; host Chromium completed the real upload journey through a temporary private relay.
+  Outcome: dropped, because browser installation changes are outside this upload feature and the fallback verified the complete browser journey.
+- Claim: existing full-document prose findings predate this change.
+  Evidence: the verification artifact records 15 baseline findings and zero findings in added prose.
+  Outcome: dropped, because unrelated prose changes would expand the scope without improving clipboard behavior.
