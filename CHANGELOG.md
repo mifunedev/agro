@@ -8,6 +8,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+### Added
+
+- Add optional `aws` and `gws` tool installers for AWS CLI v2 and Google Workspace CLI without a sandbox rebuild ([#1610](https://github.com/mifunedev/agro/issues/1610)).
+
 ## [0.34.0] - 2026-11-11
 
 ### Added

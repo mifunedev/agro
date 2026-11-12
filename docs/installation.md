@@ -184,8 +184,8 @@ agy     → agy --dangerously-skip-permissions
 ### Tools
 
 `agro tool list` shows every tool and its state. `herdr`, `cloudflared`,
-`agent-browser`, `microsandbox`, `tailscale`, `code-server`, and `ffmpeg` are
-installable:
+`agent-browser`, `microsandbox`, `tailscale`, `code-server`, `ffmpeg`, `aws`,
+and `gws` are optional, installable tools:
 `agro tool install <name>` puts a pinned, checksum-verified binary into
 `~/.local`. The image ships `gh` and `docker-cli`, and `agro tool install`
 refuses both tools. `agro tool install agent-browser` downloads
@@ -202,7 +202,32 @@ See [Connecting → Mobile access over Tailscale](connecting.md#mobile-access-ov
 `libx264` encoder, the install fails.
 
 The image also ships Node.js 24, pnpm, Bun, uv, git, tmux, jq, ripgrep, curl,
-wget, lsof, htop, telnet, nano, openssh-client, and libatomic1.
+wget, lsof, htop, telnet, nano, openssh-client, unzip, and libatomic1.
+
+#### AWS CLI and Google Workspace CLI
+
+Run `agro tool install aws` for AWS CLI v2 `2.40.1`.
+Run `agro tool install gws` for Google Workspace CLI `0.22.5`.
+Both installers use pinned official archives with SHA-256 verification.
+Both support Debian Linux `amd64` (`x86_64`) and `arm64` (`aarch64`) only.
+Neither installer uses `sudo`.
+
+Both installers use `${NPM_USER_PREFIX:-$HOME/.local}` as the prefix.
+AWS requires `unzip` and a prefix without whitespace.
+The sandbox includes `unzip`; host users must supply it before installation.
+AWS stores its bundle in `<prefix>/lib/aws-cli`.
+Its launchers are `<prefix>/bin/aws` and `<prefix>/bin/aws_completer`.
+Google Workspace CLI installs `<prefix>/bin/gws`.
+
+Installation does not authenticate either tool or provision credentials.
+For authentication, follow the upstream
+[AWS configuration and login guide](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html)
+and [Google Workspace CLI authentication guide](https://github.com/googleworkspace/cli/tree/v0.22.5#authentication).
+Cloud and API use are outside these installation instructions.
+
+Run `agro tool uninstall aws` or `agro tool uninstall gws` to remove the managed installation.
+Removal deletes only the managed binaries and AWS bundle.
+Removal preserves `~/.aws` and Google configuration and credentials.
 
 ### Host tools
 
@@ -218,6 +243,8 @@ install records the id under `hostTools` in `~/.agro/config.json`.
 |------|--------------|-------|---------|
 | `agent-browser`, `herdr`, `cloudflared`, `microsandbox`, `tailscale`, `ffmpeg` | pinned binary in `~/.local` | invoking user | installs into `~/.local` |
 | `code-server` | pinned release in `~/.local/lib/code-server-<version>` | invoking user | installs into `~/.local` |
+| `aws` | pinned AWS CLI v2 bundle and launchers in the user prefix; requires `unzip` | invoking user | same layout; includes `unzip` |
+| `gws` | pinned Google Workspace CLI binary in `<prefix>/bin/gws` | invoking user | same layout |
 | `docker-engine` | Docker Engine and Compose from Docker's apt repository; adds you to the `docker` group | root | refused; names `access.dockerSocket` |
 | `desktop` | XFCE, XRDP, and system Tailscale; serves TCP 3389 only through Tailscale | root | refused |
 
