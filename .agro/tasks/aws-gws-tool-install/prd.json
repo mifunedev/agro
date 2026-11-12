@@ -44,8 +44,9 @@
         "Run the STE checker on changed documentation; report no finding on a changed line."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "Worker commit 947fe998eb0b05b4873d94917cf1e026a9acb9c6 is preserved on task/1610-tool-docs. Advisor inspected its four-file diff. Not integrated or accepted because task is blocked on US-001. Worker reports no STE findings on changed lines; integrated verification remains pending.",
+      "passes": true,
+      "commit": "cd0d2553",
+      "notes": "Executed: advisor inspected and integrated worker 947fe998 as cd0d2553. Verified all three inventories and installation/authentication/removal/architecture text in the four-file diff. Verified one issue-linked Unreleased Added entry below 250 characters. pnpm install --frozen-lockfile and git diff HEAD^ HEAD --check exit 0. STE exits 1 for 16 pre-existing findings; comparison with git diff --unified=0 proves zero findings on changed lines.",
       "dependsOn": [],
       "files": ["docs/installation.md", ".agro/cli/README.md", "README.md", "CHANGELOG.md"]
     },
