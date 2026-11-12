@@ -1,39 +1,42 @@
-# PRD: Clipboard image uploads
+# PRD: Clipboard and file uploads
 
 Status: DRAFT
 
-Operator approved this plan with choices 1A and 2A on 2026-11-12.
+The operator approved the original plan and shipping on 2026-11-12.
+The operator then requested colocation under `~/.agro/` and support for files alongside images.
+This revision applies those explicit requests to the existing unmerged PR #1613.
 
 ## User Stories
 
 ### US-001: Probe the service execution path
 
-**Description:** As an operator, I want a verified runtime path so that the upload service runs inside the intended boundary.
+**Description:** As an operator, I want a verified runtime path so that uploads run inside the intended boundary.
 
 **Acceptance Criteria:**
 
-- [ ] Record the sandbox marker, Node version, tmux availability, bundle entry point, and browser access route in `evidence/runtime-probe.md`.
-- [ ] Before service startup, confirm port 3500 has no listener. For a busy port, report the listener PID; leave the listener running.
-- [ ] Verify access from the operator-facing browser route to a temporary loopback listener inside the sandbox.
-- [ ] Record the image-path visibility contract for agents in another worktree or execution target.
-- [ ] Stop every probe process. Create no cloud resources and change no existing sandbox lifecycle.
+- [ ] Record the sandbox marker, Node version, tmux availability, bundle entry point, and browser access route.
+- [ ] Check ports before startup. Report an occupied port without stopping its listener.
+- [ ] Verify browser access to sandbox loopback. Record the absolute-path visibility contract for isolated workers.
+- [ ] Stop every probe process. Create no cloud resources or unrelated lifecycle changes.
 
-### US-002: Persist ordered image and caption batches
+### US-002: Persist ordered file and caption batches
 
-**Description:** As a headless agent, I want image files paired with captions so that I can open each image in context.
+**Description:** As a headless agent, I want file attachments paired with captions so that I can inspect each attachment in context.
 
 **Acceptance Criteria:**
 
-- [ ] Add a Node HTTP service with an authenticated upload endpoint and a health endpoint.
-- [ ] Save each completed batch in a new private directory under the current user's AGRO home, scoped by canonical project path.
-- [ ] Write a versioned JSON manifest with stable image IDs, order, absolute paths, MIME types, byte lengths, and captions.
-- [ ] Generate filenames on the server. Never use client filenames as filesystem paths or shell input.
-- [ ] Accept PNG, JPEG, and WebP only when MIME types match file signatures. Reject SVG and HTML.
-- [ ] Enforce proposed limits of 10 images, 10 MiB per image, 50 MiB per request, and 2000 characters per caption.
-- [ ] Reject unauthorized requests, foreign origins, malformed payloads, traversal attempts, and symlink destinations in automated tests.
-- [ ] Publish a batch manifest only after all files complete. Remove incomplete files on failure and preserve existing batches.
-- [ ] Return a copyable prompt that names the manifest and instructs an image-capable agent to open every image.
-- [ ] Never commit uploads, dispatch agents, execute captions, or claim that a path alone provides visual model input.
+- [ ] Accept `POST /api/batches` JSON with an ordered `files` array containing name, MIME type, canonical base64 data, and caption.
+- [ ] Save arbitrary file bytes as inert attachments. Never render, serve, extract, or execute uploaded files.
+- [ ] Validate PNG, JPEG, and WebP signatures when clients declare those MIME types. Treat other formats as generic files.
+- [ ] Allow empty generic files. Reject empty or invalid declared raster images.
+- [ ] Enforce 1 to 10 files, 10 MiB per file, 50 MiB per raw request, and 2000 characters per caption.
+- [ ] Generate filenames on the server. Preserve only a bounded safe extension for generic files; never use a client path.
+- [ ] Write a schema-version-1 manifest with ordered `files` entries: stable ID, absolute path, MIME type, byte length, caption, original name, and image/file kind.
+- [ ] Return the manifest path, ordered files, and a prompt that requires file-reading tools and image-capable reads for raster images.
+- [ ] Preserve authentication, loopback Host/Origin checks, private permissions, symlink refusal, atomic publication, and failed-batch cleanup.
+- [ ] Test mixed images/text/PDF/binary bytes, inert HTML/SVG/script files, caption order, validation, concurrency, and prior-batch preservation.
+- [ ] Add a standalone-bundle regression for default `HOME/.agro/clipboard/` storage with `AGRO_HOME` unset and no sibling `.clipboard` tree.
+- [ ] Update public command help to describe file batches, not image-only batches.
 
 ### US-003: Add clipboard lifecycle commands
 
@@ -41,177 +44,155 @@ Operator approved this plan with choices 1A and 2A on 2026-11-12.
 
 **Acceptance Criteria:**
 
-- [ ] Add `agro clipboard start [--port <port>]` and `agro clipboard stop` to command dispatch and help.
-- [ ] Use port 3500 by default. Reject missing, malformed, zero, and out-of-range port values.
-- [ ] Start the same installed CLI bundle in a named detached tmux session scoped to the canonical project path.
-- [ ] Quote every launch argument. Keep filenames and captions out of the launch command.
-- [ ] Confirm service identity and HTTP readiness before reporting success. Report startup errors and port conflicts.
-- [ ] Make repeated start and stop calls safe. Reject conflicting start options without replacing a running service.
-- [ ] Stop only the session owned by this project. Preserve batches and unrelated sessions or listeners.
-- [ ] Refuse unintended host execution with a sandbox entry instruction. Do not provision or restart a sandbox.
-- [ ] Bind only to loopback. Use operator-managed forwarding or an authenticated proxy for browser access.
-- [ ] Verify standalone bundle startup from outside the source checkout with no source-relative asset dependency.
+- [ ] Provide `agro clipboard start [--port <port>]` and `agro clipboard stop`, with default port 3500 and strict port validation.
+- [ ] Run the installed CLI bundle in a project-scoped named tmux session. Quote launch arguments and keep tokens in private state.
+- [ ] Verify service identity and readiness. Require idempotent lifecycle operations. Reject conflicting options and foreign sessions.
+- [ ] Preserve batches and unrelated processes. Refuse unintended host execution. Bind only to loopback.
+- [ ] Ship the service and page in the standalone bundle without checkout-relative assets.
 
 ### US-004: Add the themed browser upload page
 
-**Description:** As an operator, I want a simple upload page so that I can paste multiple images and describe each image.
+**Description:** As an operator, I want one upload page so that I can paste images or attach files with distinct captions.
 
 **Acceptance Criteria:**
 
-- [ ] Support clipboard image paste, file selection, and drag-and-drop with multiple image previews.
-- [ ] Keep each editable caption associated with its stable image ID through additions and removals.
-- [ ] Show upload progress, validation errors, completed paths, and a copyable agent prompt.
-- [ ] Render captions and filenames as text. Never interpret them as HTML.
-- [ ] Provide keyboard-accessible controls, visible focus, labels, and a layout usable at desktop and mobile widths.
-- [ ] Default to the browser's preferred color scheme. Persist an explicit light or dark selection in browser storage.
-- [ ] Use the Studio reference palette: warm paper, near-black ink, green accents, and restrained typography.
-- [ ] Bundle page assets with the CLI. Load no fonts, scripts, or styles from a third-party service at runtime.
+- [ ] Support image clipboard paste and arbitrary file selection/drop, including empty text files.
+- [ ] Preview PNG, JPEG, and WebP only. Show inert file metadata for other formats; never create active document previews.
+- [ ] Keep captions associated with stable attachment IDs through additions and removals.
+- [ ] Enforce the server's count, byte, request, and caption limits before upload.
+- [ ] Send the `files` contract and show saved paths plus the file-aware agent prompt.
+- [ ] Preserve captions and attachments after authentication, network, and server failures.
+- [ ] Render filenames, captions, and errors as text, never HTML.
+- [ ] Keep accessible labels, keyboard controls, visible focus, live status, progress, copy fallback, and responsive layout.
+- [ ] Default to browser color preference and persist an explicit light or dark selection.
+- [ ] Use the verified Studio palette and embedded offline assets without new runtime dependencies.
 - [ ] Verify in browser using agent-browser skill.
 
 ### US-005: Document and prove the complete journey
 
-**Description:** As a reviewer, I want reproducible evidence so that I can verify uploads and lifecycle behavior before merge.
+**Description:** As a reviewer, I want reproducible evidence so that I can verify mixed attachments and lifecycle behavior before merge.
 
 **Acceptance Criteria:**
 
-- [ ] Update CLI package guidance, lifecycle commands, connection guidance, security guidance, and the Unreleased changelog.
-- [ ] Document start, stop, default port, access setup, limits, upload storage, retention, and manual deletion after the service stops.
-- [ ] Document that an agent must open image files and that isolated execution targets need explicit image transfer.
-- [ ] Start the command journey from fresh temporary state. Include a newly created input path.
-- [ ] Record start, upload, repeated start, stop, repeated stop, and an occupied-port failure in `evidence/manual-review.md`.
-- [ ] Capture annotated screenshots of light mode, dark mode, and multiple images with distinct captions.
-- [ ] Commit sanitized evidence images and embed full-commit-SHA screenshot links with callouts in the PR description.
+- [ ] Update CLI guidance, lifecycle, connection, security, and Unreleased changelog documentation for images and generic files.
+- [ ] Document formats, limits, default private storage, retention, explicit tool reads, and isolated-worker transfer requirements.
+- [ ] Run a fresh-state journey with `AGRO_HOME` unset. Verify state, logs, manifests, and files under `~/.agro/clipboard/`.
+- [ ] Keep review-owned project/input state under `~/.agro/reviews/clipboard-1612/`; create no sibling home `.clipboard-*` directory.
+- [ ] Record start, repeated start, mixed image/file upload with distinct captions, manifest bytes, prompt copy, stop, repeated stop, and an occupied-port failure.
+- [ ] Capture annotated screenshots of light mode, dark mode with mixed captions, and handoff paths under `~/.agro/`.
+- [ ] Replace evidence only after a real rerun. Label retained historical probe results as historical rather than rewriting observations.
+- [ ] Commit sanitized screenshots and embed full-head-SHA links with exact callouts in the PR description.
 - [ ] Verify in browser using agent-browser skill.
-- [ ] Stop each test service. Remove only temporary resources created by the journey.
-- [ ] Ask the operator for final decisions and shipping confirmation before the final push and PR undraft.
+- [ ] Stop all owned processes. After preservation checks, delete only review-owned resources.
+- [ ] Apply the operator's explicit refinement request and prior shipping approval; keep the PR draft until new exact-head CI passes.
 
 ## Summary
 
-AGRO has no browser image upload service. The CLI ships as one executable bundle.
-Existing tmux helpers provide detached session management. Existing evidence tooling pairs media with a manifest.
-The installed Pi worker transport does not automatically forward image attachments.
+The existing unmerged implementation provides authenticated image uploads, captions, a themed page, and detached lifecycle commands.
+Production already stores data under the AGRO state home. Earlier evidence used a temporary sibling-home override.
+The operator requested general files and colocation under `~/.agro/`.
 
-The proposed service keeps ingestion separate from agent execution. It stores ordered image and caption batches on the sandbox filesystem.
-The browser provides a prompt with explicit image-read instructions. This baseline needs no provider adapter.
-Four read-only explorers covered lifecycle, handoff, theme, and verification. No implementation has started.
+Extend ingestion to inert files, retain raster image validation, and refresh the real journey with default storage.
+The existing code passed 3281 tests, both typechecks, build, audit, and four CI checks before this refinement.
 
 ## Key Integration Points
 
 | File | Function(s) / Symbol(s) | Role |
 |---|---|---|
-| `.agro/cli/src/command-table.ts` | `AGRO_COMMANDS`, `isOneOf` | Register the public command and verbs. |
-| `.agro/cli/src/cli.ts` | `main`, `printAgroHelp` | Dispatch clipboard commands and expose help. |
-| `.agro/cli/src/lib/tmux.ts` | `hasSession`, `newSession`, `killSession` | Reuse detached session management. |
-| `.agro/cli/src/lib/execution/detect.ts` | `runningInsideSandbox` | Preserve the execution boundary. |
-| `.agro/cli/build.mjs` | esbuild configuration | Preserve single-bundle distribution. |
-| `.agro/cli/src/commands/clipboard.ts` (proposed) | Command parser and lifecycle | Own start, readiness, and stop. |
-| `.agro/cli/src/lib/clipboard/` (proposed) | HTTP service, storage, page | Own ingestion and browser presentation. |
-| `docs/lifecycle-commands.md` | Verb reference | Document the public command. |
-| `CHANGELOG.md` | Unreleased | Record the user-visible feature. |
+| `.agro/cli/src/lib/clipboard/server.ts` | HTTP validation and limits | Accept mixed file batches. |
+| `.agro/cli/src/lib/clipboard/storage.ts` | Batch persistence and prompt | Store ordered files without execution. |
+| `.agro/cli/src/lib/clipboard/page.ts` | `CLIPBOARD_PAGE` | Provide mixed file/image controls and captions. |
+| `.agro/cli/src/commands/clipboard.ts` | `runClipboard` | Preserve lifecycle and update help terminology. |
+| `.agro/cli/src/cli.ts` | `printAgroHelp` | Describe file upload capability. |
+| `.agro/cli/src/lib/layout.ts` | `resolveUserStateHome` | Retain the default `~/.agro/` source of truth. |
+| `.agro/cli/src/__tests__/bundle-identity.test.ts` | Standalone smoke tests | Prove default storage and packaged upload. |
+| `docs/lifecycle-commands.md` | Clipboard command reference | Explain mixed uploads and retention. |
+| `CHANGELOG.md` | Unreleased | Record the requested capability. |
 
 ## Interface Integration Points
 
 | Surface | Change Type | Description |
 |---|---|---|
-| Host and sandbox | Applied | Manage git on the host. Run the service inside the sandbox. Use `agro run` for host verification. |
-| Lifecycle door | Applied | Add clipboard start and stop through `agro`; do not add autostart. |
-| Canonical and provider surfaces | Applied | Change `.agro/cli/`; leave provider mirrors unchanged and verify links. |
-| Root and scaffold | Applied | Ship the bundle and vendored CLI sources. Add no initialized-project scaffold or registry fields. |
-| Interactive and headless processes | Applied | Run the persistent upload listener in a named tmux session. |
-| Local and remote operation | Applied | Survive terminal disconnect. Document explicit browser forwarding or approved proxy access. |
-| Parallel operation | Applied | Scope session and storage identity by canonical project path; reject occupied ports. |
-| Public documentation | Applied | Update package help and lifecycle, connection, and security documentation. |
-| Verification | Applied | Run CLI, storage, HTTP, bundle, browser, and CI checks. |
-| Compose publishing and bootstrap | Not applicable | Do not publish port 3500 automatically or start the service at boot. |
+| Host and sandbox | Applied | Host owns git; sandbox owns ingestion and application verification. |
+| Lifecycle door | Applied | Keep existing `agro clipboard start/stop`; add no process manager. |
+| Canonical and provider surfaces | Applied | Edit canonical `.agro/cli/` and verify provider links. |
+| Root and scaffold | Applied | Ship the existing CLI bundle; add no scaffold or registry settings. |
+| Interactive and headless processes | Applied | Keep the service in named tmux and explicit private forwarding. |
+| Local and remote operation | Applied | Retain loopback binding and disconnect independence. |
+| Parallel operation | Applied | Use one worker at a time in the task worktree; preserve project-scoped state. |
+| Public documentation | Applied | Update file terminology, safe handling, default storage, and evidence. |
+| Verification | Applied | Test arbitrary bytes, image validation, UI, standalone storage, and fresh browser evidence. |
+| Compose publishing and bootstrap | Not applicable | Add no public port or autostart. |
 
 ## Storage
 
-Proposed location: `${AGRO_HOME:-$HOME/.agro}/clipboard/<project-id>/batches/<batch-id>/`.
-Derive the project ID from the canonical project path. Generate batch and image IDs on the server.
-Use private directory and file permissions. Refuse symlink-controlled storage paths.
-Keep uploads until the operator removes them. Stop does not delete uploads.
-Do not place access tokens inside manifests, prompts, screenshots, or request logs.
+Keep `${AGRO_HOME:-$HOME/.agro}/clipboard/<project-id>/batches/<batch-id>/`.
+State and startup logs remain in the project-specific clipboard directory.
+Use private directories and files, generated names, and atomic completed batches.
+The refreshed journey leaves `AGRO_HOME` unset and isolates its project under `~/.agro/reviews/clipboard-1612/`.
+Do not migrate or delete unrelated existing data. The earlier review-only sibling directory no longer exists.
 
 ## Architectural Decisions
 
-Classification: ARCHITECTURAL. The feature introduces an HTTP filesystem-write boundary and a service lifecycle.
+Classification: ARCHITECTURAL. General files expand the ingestion contract, not the execution boundary.
 
-Facts: `build.mjs` emits one CLI bundle. `lib/tmux.ts` supports exact session targets.
-Constraint: AGRO requires detached headless processes and sandbox-owned agent data.
-Constraint: accepted ADR #1575 places host verification behind the available ephemeral execution target.
+Keep the existing dependency-free HTTP service, private filesystem store, tmux lifecycle, and bundled page.
+Options considered: add document processing, restrict uploads to a new format allowlist, or store arbitrary bytes inertly.
+Choose inert storage. It satisfies file attachment without parsers, extraction, active previews, or execution.
 
-Options: add a provider-specific agent bridge, create a separate web package, or extend the existing CLI bundle.
-Recommendation: extend the CLI bundle with Node HTTP handling, embedded page assets, and existing tmux helpers.
-This option avoids a new runtime package, process manager, database, or provider protocol.
+Replace the unpublished `images` request and manifest fields with `files` before this feature's first merge.
+Keep schema version 1 for this unreleased contract; do not add a dormant compatibility adapter.
+Each entry records an image/file kind. Only validated PNG/JPEG/WebP entries use image previews.
+Preserve safe extensions for generic tool discovery, but generate the actual file basename.
 
-Use a per-service random access token even for loopback access. Keep the browser token out of URL query strings.
-Validate origins and bound all request bodies. Do not serve arbitrary filesystem paths or active uploaded content.
-Bind only to loopback. The operator approved forwarding or an authenticated proxy, not direct remote binding.
-
-Tradeoff: loopback forwarding requires setup. File-based handoff requires an explicit image-read tool call.
-Falsifier: if an approved target harness cannot read shared image files, revise the handoff design before implementation.
-Retirement: none; no existing upload path exists to replace.
-Decision record: NONE. Capture the bounded service contract in this PR and its tests.
+Retain token authentication, exact loopback origin policy, bounded bodies, and private storage.
+Treat content and captions as untrusted data. Agent tools inspect files explicitly.
+The design needs no new database, package, provider bridge, automatic file processing, or storage migration.
+Falsifier: if uploaded files become executable or browser-served content, reject the implementation.
+Decision record: NONE. Keep the bounded contract in this PR and its tests.
 
 ## Test Plan (TDD)
 
 | Test File | Case(s) | Validates |
 |---|---|---|
-| `.agro/cli/src/__tests__/clipboard.test.ts` (proposed) | Parser, port, tmux identity, readiness, stop, isolation | Public lifecycle behavior. |
-| `.agro/cli/src/lib/clipboard/__tests__/server.test.ts` (proposed) | Auth, origins, limits, signatures, atomic storage, captions, injection | HTTP and storage boundary. |
-| `.agro/cli/src/__tests__/cli-first-help.test.ts` | Clipboard help and default port | CLI discoverability. |
-| `.agro/cli/src/__tests__/bundle-identity.test.ts` | Installed-bundle page and upload smoke test | Distribution independence. |
-| `.agro/cli/src/__tests__/docs-reference.test.ts` | Documented verbs and links | Documentation integrity. |
-| `.agro/tasks/clipboard-upload/evidence/` (proposed) | Annotated browser journey and command transcript | Human review evidence. |
+| `.agro/cli/src/lib/clipboard/__tests__/server.test.ts` | Mixed formats, empty files, signatures, safe extension, limits, auth, atomicity | Inert ingestion boundary. |
+| `.agro/cli/src/lib/clipboard/__tests__/page.test.ts` | Generic selection/drop, preview safety, captions, new payload, retries | Browser attachment behavior. |
+| `.agro/cli/src/__tests__/bundle-identity.test.ts` | Mixed upload and default home without override | Packaged service and colocation. |
+| `.agro/cli/src/__tests__/clipboard.test.ts` | Existing parser, session, quoting, readiness | Lifecycle preservation. |
+| `.agro/cli/src/__tests__/cli-first-help.test.ts` | File terminology and default port | Discoverability. |
+| `.agro/cli/src/__tests__/docs-reference.test.ts` | Verbs, links, paths | Documentation integrity. |
+| `.agro/tasks/clipboard-upload/evidence/` | Fresh mixed upload and annotated screenshots | Human review evidence. |
 
-Write failing tests before each implementation. Probe the environment before service design work.
-Run `pnpm install --frozen-lockfile`, `pnpm run security:audit`, `pnpm run typecheck`, and `pnpm run build:harness`.
-Run `pnpm test:scripts` and `npm --prefix .agro/cli run typecheck:build`.
-The root lint and format scripts are placeholders; do not describe them as substantive validation.
-Use the repository verification execution target when commands run on the host.
-CI must pass on the exact pushed head before the advisor runs `gh pr ready`.
+Write failing tests before each implementation change.
+Run the full suite, frozen install, both typechecks, build, and security audit in clean-main sandbox acceptance.
+Restore the operator's exact `agro.json` edits after each acceptance run.
+Root lint and format scripts are placeholders; substantive CI lint and boot checks must pass on the pushed head.
 
 ## Design Principles
 
-Keep one lifecycle door and one distributable CLI bundle.
-Keep image ingestion independent of harness selection. Treat captions and image content as untrusted input.
-Follow the Studio reference at `github.com/ryaneggz/studio`, especially `brands/mifunedev/STYLE.md` and `brand.ts`.
-Use warm light surfaces and neutral dark surfaces with green controls. Avoid decorative gradients and external asset dependencies.
-Preserve the existing operator change in `agro.json`. Add no explanatory comments to tracked code.
+Keep one lifecycle door and one distributable bundle. Preserve user files as bytes, not executable behavior.
+Keep captions and content untrusted. Require explicit downstream file reads.
+Use the Studio reference palette from `github.com/ryaneggz/studio` without external runtime assets.
+Preserve existing operator configuration. Add no explanatory comments to tracked code.
 
 ## Out of Scope
 
-Automatic agent injection, provider-specific attachment APIs, OCR, image transformation, cloud storage, public tunnels, and automatic publication are outside the proposed baseline.
-Video, audio, arbitrary files, image history browsing, automatic retention jobs, and sandbox port publication are outside this change.
-Do not merge the PR or cut a release. The operator owns merge.
+Document conversion, OCR, archive extraction, executable processing, malware scanning, public downloads, and cloud storage are outside this change.
+Automatic agent dispatch, public tunnels, image history, retention jobs, and storage migration are outside this change.
+Do not merge the PR or cut a release.
 
 ## Open Questions
 
-The operator approved file and caption handoff, loopback access, limits, and persistent local storage.
-US-001 must verify the sandbox and browser route because the advisor runs on a VM without a sandbox marker.
-Request final shipping confirmation after the operator can inspect the screenshots and completed behavior.
+None. The operator requested files alongside images and colocation under `~/.agro/`.
+Apply existing file-count, byte, caption, authentication, and retention limits to the refinement.
 
 ## Acceptance Criteria
 
-- [ ] The operator approves the plan and resolves the handoff and access decisions before implementation.
-- [ ] Public start and stop commands work with default port 3500 and preserve unrelated processes and uploaded batches.
-- [ ] Multiple clipboard images retain their distinct captions and produce an agent-readable manifest and explicit image-read prompt.
-- [ ] Light and dark browser journeys pass with annotated screenshots embedded in the PR description.
-- [ ] Upload tests reject unauthorized, malformed, oversized, and unsafe content without writing outside the private batch store.
-- [ ] The standalone bundle includes the service and page without source-checkout dependencies.
-- [ ] The operator confirms final shipping. CI passes on the pushed head and the PR is not a draft.
+- [ ] Images and arbitrary files retain distinct captions and bytes in an ordered manifest.
+- [ ] Generic files remain inert; raster validation and all existing security boundaries remain active.
+- [ ] Default storage and the refreshed review use `~/.agro/`, with no sibling-home `.clipboard` state.
+- [ ] Start/stop, default port 3500, idempotence, ownership checks, and standalone packaging remain verified.
+- [ ] Light/dark browser evidence shows mixed attachments and AGRO-colocated handoff paths in the PR description.
+- [ ] The full local suite and exact-head CI pass before the existing PR returns to ready for review.
 
 ## Lessons
-
-- Claim: loopback access belongs to the service's execution namespace.
-  Evidence: the probe reached sandbox loopback through an explicit private relay; host port publication did not supply that route.
-  Outcome: fixed in this PR. Connection guidance names the sandbox endpoint and requires private forwarding or an authenticated proxy.
-- Claim: image paths alone do not provide visual input to an agent.
-  Evidence: ordered manifests retain captions, and the generated prompt requires an image-reading tool call for every image.
-  Outcome: fixed in this PR. The page and documentation state the transfer requirements for isolated workers.
-- Claim: the sandbox browser installer needs unavailable system libraries and privilege in this review environment.
-  Evidence: installation failed; host Chromium completed the real upload journey through a temporary private relay.
-  Outcome: dropped, because browser installation changes are outside this upload feature and the fallback verified the complete browser journey.
-- Claim: existing full-document prose findings predate this change.
-  Evidence: the verification artifact records 15 baseline findings and zero findings in added prose.
-  Outcome: dropped, because unrelated prose changes would expand the scope without improving clipboard behavior.
