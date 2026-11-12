@@ -1,5 +1,9 @@
 # US-001 runtime probe
 
+Historical evidence: this probe predates the mixed-file review.
+Any sibling-home paths below identify temporary historical fixtures, not the current default store.
+The current default-home journey appears in [manual review](manual-review.md).
+
 Recorded: 2026-11-12T06:28:12Z. Reader: the clipboard implementation advisor.
 Scope: runtime evidence only. No clipboard service implementation or upload occurred.
 

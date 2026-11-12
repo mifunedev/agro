@@ -106,8 +106,14 @@ and configure upstream loopback Host and matching Origin handling.
 The service rejects foreign Host or Origin values. Do not expose the service
 through an unauthenticated public tunnel. AGRO ships no clipboard forwarding infrastructure.
 
-For limits, private storage, image-tool handoff, and deletion after stop, see
-[Clipboard images](lifecycle-commands.md#clipboard-images-agro-clipboard).
+Paste images or attach arbitrary files through the forwarded page.
+Each file keeps its own caption. Generic attachments remain inert, including HTML and SVG.
+Only PNG, JPEG, and WebP receive image previews.
+Default private state, logs, and batches remain inside `~/.agro/clipboard/` in the sandbox.
+`AGRO_HOME` optionally overrides the AGRO state home.
+An agent must read the saved files with tools; browser forwarding does not transfer files to isolated workers.
+For limits, manifest kinds, file-tool handoff, and deletion after stop, see
+[Clipboard files](lifecycle-commands.md#clipboard-files-agro-clipboard).
 
 ## Default exposure
 

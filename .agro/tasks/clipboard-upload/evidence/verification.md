@@ -1,94 +1,117 @@
-# US-005 verification
+# US-005 mixed-file verification
+
+Tested source: `5d40ae2418dc27973cc4d93b834db716847e0cd4`.
+This document replaces the earlier image-only verification.
+The advisor already accepted US-004 with 75 targeted tests, both typechecks, build, and audit.
+This worker changed only assigned documentation and evidence.
 
 ## Documentation-reference tests
 
-All commands ran on the host through the task bundle, against the existing sandbox.
-The first command used the wrong filter relative to the repository configuration:
+The first run used the existing sandbox:
 
 ```bash
-node .agro/cli/dist/agro.js run --sandbox clipboard-review-1612 -- sh -lc 'cd /home/sandbox/harness/.agro/cli && npx vitest run src/__tests__/docs-reference.test.ts'
-```
-
-Exit 1: "No test files found, exiting with code 1".
-
-The corrected repository-root filter selected all four tests:
-
-```bash
-node .agro/cli/dist/agro.js run --sandbox clipboard-review-1612 -- sh -lc 'cd /home/sandbox/harness && npx vitest run .agro/cli/src/__tests__/docs-reference.test.ts'
+node .agro/cli/dist/agro.js run --sandbox clipboard-review-1612 -- env CI=true pnpm exec vitest run .agro/cli/src/__tests__/docs-reference.test.ts
 ```
 
 Exit 1: three tests passed; the runtime-path test reported ten existing ignored paths as missing.
-The sandbox cannot resolve the linked worktree's host-side `.git` pointer.
-The test uses `git check-ignore` to distinguish absent runtime paths from broken documentation.
-Affected paths were `.devcontainer/.env`, `.agro/.image-seeded`, `.pi/tasks/`,
-`.claude/settings.local.json`, and `.pi/bridge/`.
-No clipboard path or anchor failed.
+The sandbox cannot resolve the worktree's host-side `.git` pointer for `git check-ignore`.
+No clipboard command, config key, link, or anchor failed.
 
-The final run used temporary bare Git metadata with the mounted checkout as its work tree.
-This enabled `git check-ignore` to read the real checkout's ignore rules without changing tracked files.
-The temporary metadata contained no commits or copied credentials.
+The final run mounted the actual host repository, including real git metadata, through public `agro run`:
 
 ```bash
-node .agro/cli/dist/agro.js run --sandbox clipboard-review-1612 -- sh -lc 'test ! -e /tmp/clipboard-us005-git && git init --bare --quiet /tmp/clipboard-us005-git && cd /home/sandbox/harness && GIT_DIR=/tmp/clipboard-us005-git GIT_WORK_TREE=/home/sandbox/harness npx vitest run .agro/cli/src/__tests__/docs-reference.test.ts'
+cd /home/exedev/.agro/workspaces/harness
+node /home/exedev/.agro/workspaces/harness/.worktrees/feat/1612-clipboard-upload/.agro/cli/dist/agro.js run -- env CI=true sh -lc 'cd /home/exedev/.agro/workspaces/harness/.worktrees/feat/1612-clipboard-upload && pnpm exec vitest run .agro/cli/src/__tests__/docs-reference.test.ts'
 ```
 
-Exit 0: one test file passed; all four tests passed.
-The worker removed `/tmp/clipboard-us005-git` after verification.
-The advisor still owns clean-main acceptance and exact-head CI.
+Exit 0: one test file, four tests passed.
+The run used `ghcr.io/mifunedev/agro:0.34.0` and removed its throwaway container.
+The CLI pulled the image because the host lacked that tag.
+The worker created no fake git metadata and changed no sandbox configuration.
+The worker invoked no raw Docker command.
 
-## STE
+## STE and whitespace
 
-The worker extracted added lines from `git diff --unified=0` into a temporary Markdown file.
-The extraction preserved code fences and did not alter tracked prose.
+The worker extracted added documentation lines from `git diff --unified=0` into `/tmp/clipboard-us005-changed.md`.
+The extraction covered the five assigned public documents, including the changelog.
 
 ```bash
-bash .agro/skills/ste/scripts/ste-check.sh /tmp/clipboard-us005-changed.md
-bash .agro/skills/ste/scripts/ste-check.sh .agro/tasks/clipboard-upload/evidence/manual-review.md .agro/tasks/clipboard-upload/evidence/verification.md
+bash .agro/skills/ste/scripts/ste-check.sh /tmp/clipboard-us005-changed.md .agro/tasks/clipboard-upload/evidence/manual-review.md .agro/tasks/clipboard-upload/evidence/runtime-probe.md
+bash .agro/skills/ste/scripts/ste-check.sh .agro/tasks/clipboard-upload/evidence/verification.md
 ```
 
-Changed documentation prose: exit 0, no findings.
-Evidence prose: exit 0, no findings.
-The worker also reviewed conditions, actors, execution locations, and ambiguous references manually.
+Both exited 0 after correction of one compound-step heading in the manual review.
+The worker manually checked actors, execution locations, conditions, and reference clarity.
 
-The full existing documents retain 15 baseline findings:
+A full-file scan of the public documents retains unrelated baseline findings:
 
 ```bash
-bash .agro/skills/ste/scripts/ste-check.sh .agro/cli/README.md docs/lifecycle-commands.md docs/connecting.md docs/security-considerations.md
+bash .agro/skills/ste/scripts/ste-check.sh .agro/cli/README.md docs/lifecycle-commands.md docs/connecting.md docs/security-considerations.md CHANGELOG.md
 ```
 
-Exit 1. The exact final findings follow:
+Exit 1: 284 findings, identical to the five accepted `HEAD` versions.
+The worker compared detector-message multisets from independent baseline and current scans.
+The comparison found zero new findings and zero resolved findings.
+The four guidance documents retain 13 findings; the historical changelog retains 271.
+No changed prose has a finding.
+The worker preserved unrelated historical prose.
 
-```text
-.agro/cli/README.md:17: VAGUE name the object of the verb instead of a pronoun
-.agro/cli/README.md:23: VAGUE name the object of the verb instead of a pronoun
-.agro/cli/README.md:63: VAGUE start the sentence with a named subject, not a bare pronoun
-.agro/cli/README.md:87: VAGUE start the sentence with a named subject, not a bare pronoun
-.agro/cli/README.md:89: PASSIVE rewrite in the active voice with a named actor
-.agro/cli/README.md:97: PASSIVE rewrite in the active voice with a named actor
-.agro/cli/README.md:98: LONG split this sentence: 47 words, cap is 25
-.agro/cli/README.md:100: PASSIVE rewrite in the active voice with a named actor
-.agro/cli/README.md:103: VAGUE name the object of the verb instead of a pronoun
-.agro/cli/README.md:107: VAGUE start the sentence with a named subject, not a bare pronoun
-.agro/cli/README.md:107: PASSIVE rewrite in the active voice with a named actor
-.agro/cli/README.md:113: VAGUE start the sentence with a named subject, not a bare pronoun
-.agro/cli/README.md:135: VAGUE start the sentence with a named subject, not a bare pronoun
-docs/lifecycle-commands.md:730: PASSIVE rewrite in the active voice with a named actor
-docs/connecting.md:175: PASSIVE rewrite in the active voice with a named actor
+```bash
+git diff --check
 ```
 
-An independent scan of the four `HEAD` versions also exited 1 with the same 15 findings.
-README baseline lines 112 and 134 moved to 113 and 135.
-Lifecycle baseline line 670 moved to 730. Connecting baseline line 142 moved to 175.
-No new or changed prose retains a finding.
-The worker left unrelated prose unchanged.
+Exit 0.
+The Unreleased Added clipboard entry contains one sentence and 211 characters, including its issue-1612 link and list marker.
 
-## Other checks
+## Executed browser and lifecycle criteria
 
-- `git diff --check`: exit 0.
-- Changelog entry: one Unreleased Added sentence, below 250 characters, linked to issue 1612.
-- Browser assertions and diagnostics: see [manual review](manual-review.md).
-- Screenshot review: all three images contain readable labels and no token.
-- Scope review: only the five assigned documents and task evidence changed.
-- Cleanup: the worker removed all owned service, relay, fixture, browser, temporary-home, request, input, helper, and test-metadata resources.
-- No production source, tracker, PR, sandbox lifecycle, or unrelated listener changed.
-- No push occurred. Operator shipping confirmation and advisor acceptance remain pending.
+See [manual review](manual-review.md) for commands, exact paths, modes, IDs, byte hashes, and screenshot callouts.
+
+- The fresh equipped project and inputs used `~/.agro/reviews/clipboard-1612/review/` in the sandbox.
+- Startup asserted absent project state and unset `AGRO_HOME`; public commands also used `env -u AGRO_HOME`.
+- State, startup log, manifest, and attachments used the actual default `~/.agro/clipboard/<project-id>/` tree.
+- Public start and repeated start returned identical credential URLs.
+- Real clipboard paste and file input supplied a PNG and nonempty TXT with distinct captions.
+- A dropped third file appeared; removal preserved retained caption IDs and values.
+- SVG and HTML showed inert metadata without extra object URLs or active content.
+- POST `/api/batches` returned HTTP 201 through private forwarding to the real backend.
+- Stored TXT bytes matched the input hash; stored PNG bytes matched Chromium's normalized clipboard PNG hash.
+- The ordered schema-version-1 `files[]` manifest recorded image/file kinds and private modes.
+- The readonly prompt required explicit file tools and image-capable reads; actual clipboard copy matched the prompt.
+- Light and dark screenshots used the existing palette and a 1280x720 viewport.
+- Mobile viewport width and document width both measured 414 pixels with captions present.
+- Axe reported zero WCAG2A/AA violations; final browser errors and console output were empty.
+- Public stop and repeated stop preserved attachment and manifest hashes.
+- Occupied-port startup exited 1 and preserved the review-owned foreign listener's response.
+
+The fixture helper initially used a CSP-blocked data-URL fetch; the worker corrected the helper and reloaded before the successful journey.
+The first PNG hash assertion compared canvas bytes with clipboard-normalized bytes and failed.
+The corrected assertion compared actual clipboard bytes and passed.
+Neither correction changed production code or weakened a guard.
+
+## Reasoned criteria and limits
+
+The documentation describes inert storage, not document processing or malware scanning.
+Backend tests cover arbitrary binary/PDF/ZIP data and validation; this browser run does not claim those formats.
+The accepted US-004 tests cover authentication/network/server retry preservation, validation limits, theme selection, text safety, and copy fallback.
+The three new screenshots support assertions; they do not replace tests.
+No downstream file-reading agent or physical-device interaction ran.
+Isolated workers still need explicit attachment transfer or shared mounts with target-valid paths.
+
+## Scope and cleanup
+
+The worker replaced the three assigned PNGs and reviewed each rendered image for readable callouts and credential absence.
+Historical runtime-probe commands remain unchanged beneath an explicit historical note.
+The worker did not edit source, tests, tracker, plan, dependencies, PR state, or provider mirrors.
+The existing sandbox remained running; no sandbox install, restart, or destroy command ran.
+The worker stopped the public service, occupied-port fixture, private relay, and named browser session.
+The worker removed only the exact review project, its project-specific store, private host inputs, request files, and temporary drivers.
+Parent directories and unrelated AGRO state remain intact.
+The token-free stopped relay helper remains at `/tmp/clipboard-us004-relay.py`.
+Final checks found sandbox 3500 and host 14612 free, with no owned tmux sessions.
+The worker sent no command to stop unrelated host listeners.
+No monitor or late callback remains active.
+
+The operator's prior shipping approval applies to this refinement.
+The advisor owns acceptance, final full-SHA PR links, and exact-head CI.
+The worker performed no push or PR edit.
