@@ -90,6 +90,10 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 - Make Ctrl-C at an `agro` secret prompt unwind the command, so cleanup in `finally` blocks (locks, temp directories) runs. The CLI still exits with code 130 ([#1571](https://github.com/mifunedev/agro/issues/1571)).
 
+### Fixed
+
+- `agro node create` sends `docker: false` without `--docker`, so the API no longer turns on Docker by default ([#1561](https://github.com/mifunedev/agro/issues/1561)).
+
 ## [0.28.0] - 2026-10-31
 
 ### Added

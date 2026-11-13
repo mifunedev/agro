@@ -296,7 +296,7 @@ describe("agro node create", () => {
   it("sends freeTier true with --free-tier", async () => {
     const h = harness([{ status: 202, body: { id: "f1", status: "running", ipv4: "1.2.3.4" } }]);
     expect(await runNode(["create", "--spec", "n4", "--ssh-key", "key-1", "--free-tier"], h.io, h.deps)).toBe(0);
-    expect(h.calls[0].body).toEqual({ profile: "sandbox", spec: "n4", sshKeyIds: ["key-1"], freeTier: true });
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", spec: "n4", sshKeyIds: ["key-1"], docker: false, freeTier: true });
   });
 
   it("sends no freeTier key without --free-tier", async () => {
@@ -456,22 +456,22 @@ describe("agro node create ssh key resolution", () => {
 const BASE_CREATE = ["create", "--spec", "n4", "--ssh-key", "key-1"];
 const APP_FLAGS = [
   ["--docker", { docker: true }],
-  ["--t3", { t3: true }],
-  ["--code-server", { runtimeSettings: { codeServerEnabled: true } }],
+  ["--t3", { docker: false, t3: true }],
+  ["--code-server", { docker: false, runtimeSettings: { codeServerEnabled: true } }],
 ] as const;
 const APP_FLAG_NAMES = APP_FLAGS.map(([flag]) => flag);
 
 describe("agro node create profile and app flags", () => {
-  it("posts only the sandbox profile, spec, and keys without a new flag", async () => {
+  it("posts the sandbox profile, spec, keys, and docker false without a new flag", async () => {
     const h = harness([RUNNING]);
     expect(await runNode(BASE_CREATE, h.io, h.deps)).toBe(0);
-    expect(h.calls[0].body).toEqual({ profile: "sandbox", spec: "n4", sshKeyIds: ["key-1"] });
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", spec: "n4", sshKeyIds: ["key-1"], docker: false });
   });
 
-  it("posts the agro profile with --profile agro and no app field", async () => {
+  it("posts the agro profile with --profile agro and docker false", async () => {
     const h = harness([RUNNING]);
     expect(await runNode([...BASE_CREATE, "--profile", "agro"], h.io, h.deps)).toBe(0);
-    expect(h.calls[0].body).toEqual({ profile: "agro", spec: "n4", sshKeyIds: ["key-1"] });
+    expect(h.calls[0].body).toEqual({ profile: "agro", spec: "n4", sshKeyIds: ["key-1"], docker: false });
   });
 
   it("posts the agro profile with --profile=agro", async () => {
@@ -483,7 +483,19 @@ describe("agro node create profile and app flags", () => {
   it("posts the sandbox profile with --profile sandbox", async () => {
     const h = harness([RUNNING]);
     expect(await runNode([...BASE_CREATE, "--profile", "sandbox"], h.io, h.deps)).toBe(0);
-    expect(h.calls[0].body).toEqual({ profile: "sandbox", spec: "n4", sshKeyIds: ["key-1"] });
+    expect(h.calls[0].body).toEqual({ profile: "sandbox", spec: "n4", sshKeyIds: ["key-1"], docker: false });
+  });
+
+  it("posts docker false without --docker", async () => {
+    const h = harness([RUNNING]);
+    expect(await runNode([...BASE_CREATE, "--profile", "agro"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toHaveProperty("docker", false);
+  });
+
+  it("posts docker true with --docker", async () => {
+    const h = harness([RUNNING]);
+    expect(await runNode([...BASE_CREATE, "--profile", "agro", "--docker"], h.io, h.deps)).toBe(0);
+    expect(h.calls[0].body).toHaveProperty("docker", true);
   });
 
   it("posts docker, t3, and codeServerEnabled with all app flags", async () => {

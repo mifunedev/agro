@@ -240,7 +240,7 @@ async function runCreate(
     sshKeyIds,
     ...(name === undefined ? {} : { name }),
     ...(freeTier ? { freeTier: true } : {}),
-    ...(apps.has("--docker") ? { docker: true } : {}),
+    docker: apps.has("--docker"),
     ...(apps.has("--t3") ? { t3: true } : {}),
     ...(apps.has("--code-server") ? { runtimeSettings: { codeServerEnabled: true } } : {}),
   });
