@@ -1,4 +1,13 @@
-# Provider setup, cleanup, and adapters
+# Validation adapter setup, cleanup, and contracts
+
+These instructions apply only to the validation driver.
+Internal IDs `exedev`, `vercel`, `console`, and `msb` remain unchanged.
+`msb` here is a remote console-node adapter, not the `local/msb` route.
+Run the commands below from the canonical skill directory.
+Use the validation procedure linked directly from SKILL.md before any live run.
+Get explicit operator approval for each billable run and its teardown scope.
+Cleanup examples identify candidates, not authority to delete unrelated resources.
+Match each resource against the run's recorded ownership before deletion.
 
 ## Contents
 
@@ -59,18 +68,10 @@ vercel sandbox remove <name> --scope "$VERCEL_SCOPE"
 
 The provider name is `console`. The adapter is `adapters/console.sh`. The adapter defines the five required functions and the hook `console_row_ssh`. The adapter defines no `console_row_https` and no `console_restart`.
 
-The adapter drives the `agro` CLI on the driver host. `console_preflight` and `console_list` run `agro node list --json`. `console_create` runs `agro node create --json`. `console_destroy` runs `agro node delete <id> --yes`. `console_exec` runs each command with `ssh` to `sandbox@<ip>`. The `sandbox` user has passwordless sudo.
+The adapter drives the `agro` CLI on the driver host. `console_preflight` runs `agro node check`; `console_list` runs `agro node list --json`. `console_create` runs `agro node create --json`. `console_destroy` runs `agro node delete <id> --yes`. `console_exec` runs each command with `ssh` to `sandbox@<ip>`. The `sandbox` user has passwordless sudo.
 
-Variables on the driver host:
-
-| Variable | Default | Effect |
-|---|---|---|
-| `AGRO_CONSOLE_URL` | CLI default | The console API URL. The `agro` CLI reads this variable. |
-| `AGRO_CONSOLE_TOKEN` | none | The console API token. The `agro` CLI reads this variable first, then the credentials file that `agro auth login` writes. |
-| `CONSOLE_SSH_KEY_ID` | none | Optional. The UUID of an SSH key on the console account. When the operator sets this variable, `console_create` passes the UUID to `--ssh-key`. Without this variable, `agro node create` registers `~/.ssh/id_ed25519.pub` of the driver host. |
-| `CONSOLE_SSH_IDENTITY` | none | The private key file for the node SSH key. `console_exec` passes the file to `ssh -i`. The `console` adapter needs this variable. |
-| `CONSOLE_SPEC` | `n4` | The node spec for `agro node create --spec`. |
-| `CONSOLE_FREE_TIER` | `1` | `0` removes `--free-tier` from `agro node create`. Any other value keeps `--free-tier`. |
+The validation reference linked directly from SKILL.md owns the driver variable table.
+Keep console defaults there, not in a second setup table.
 
 Prerequisites:
 
@@ -83,7 +84,8 @@ The free tier allows one live node for each account. With the free tier on, star
 
 A console node has no image choice. When the operator sets `IMAGE`, `console_create` stops and exits 2. The image mode of `checks/agro-rows.sh` does not apply to the console. `scripts/restart-test.sh console` prints a usage line and exits 2.
 
-A console sandbox node has no Docker at create. `agro node create` has no `--docker` flag yet (mifunedev/agro#1437). If a check needs Docker, the check installs Docker in the VM.
+The console adapter does not pass `--docker` during creation.
+If a check needs Docker, the check installs Docker in the VM.
 
 `console_row_ssh` prints `RESULT R10-ssh-inbound PASS ssh <target>`. The driver prints `RESULT R11-https-port SKIPPED no adapter hook`.
 
@@ -106,7 +108,8 @@ The provider name is `msb`. The adapter is `adapters/msb.sh`. The adapter define
 
 The adapter runs a microVM guest on an agro-console node. `msb_preflight` runs `console_preflight`. `msb_create` creates a console node with `console_create` and installs `msb` on the node. Then `msb_create` runs `msb run --detach --init auto --root-disk flat:40G` with `IMAGE`. `msb_exec` runs each command in the guest with `msb exec` over SSH to the node. `msb_destroy` runs `msb rm --force` on each guest, then deletes the node with `console_destroy`. `msb_list` counts the `agro-mx-` console nodes and the `agro-mx-` guests on each node in the state directory.
 
-The console variables in the [agro-console](#agro-console) section apply to the msb node. `SKILL.md` lists the `MSB_*` variables and `IMAGE_SIZE_BYTES`.
+The variable table in `validation.md` owns the console variables, `MSB_*`, and `IMAGE_SIZE_BYTES`.
+The console variables also apply to the msb node.
 
 Host prerequisites on the node:
 
@@ -120,7 +123,10 @@ Prerequisites on the driver host:
 2. Run `bash scripts/run.sh msb --preflight`. The command prints `preflight ok: msb`.
 3. Set `IMAGE` to an `agro-msb` image. Without `IMAGE`, `msb_create` exits 2 and creates no node.
 
-The `agro-msb` target of `.devcontainer/Dockerfile` builds the guest image. The release workflow does not publish the `agro-msb` target. The image must meet two requirements:
+The `agro-msb` target of `.devcontainer/Dockerfile` builds the guest image.
+The release workflow publishes `ghcr.io/mifunedev/agro:${RELEASE_VERSION}-msb` and `ghcr.io/mifunedev/agro:sha-${RELEASE_SHA}-msb` from this target.
+Set `IMAGE` to the release-version or full-commit-SHA tag for the build under test.
+The image must meet two requirements:
 
 - Under `--init auto`, `msb` also runs the image `CMD`. The `CMD` must stay alive, so `agro-msb` sets `CMD ["sleep", "infinity"]`. With `CMD ["/sbin/init"]`, the command exits 1 and `msb` shuts down the guest.
 - `ctrl-alt-del.target` must link to `poweroff.target`. Without this link, guest systemd enters `reboot.target` and the guest drains. `agro-msb` also sets `CtrlAltDelBurstAction=poweroff-force`.
@@ -129,7 +135,9 @@ After `msb run`, `msb_restart`, and `msb_snapshot_restore`, the adapter waits un
 
 `msb_row_ssh` prints `RESULT R10-ssh-inbound PASS ssh <target>`. The driver prints `RESULT R11-https-port SKIPPED no adapter hook`. `msb_restart` runs `msb stop` and `msb start` on the guest.
 
-Known limits with `msb` `v0.7.13`:
+Existing validation findings with `msb` `v0.7.13`:
+
+These findings describe the tested guest configuration, not new release validation results.
 
 - `msb snap restore` has no init handoff. The restored guest stays at `pid1=init.krun`, so row `M05-snapshot-restore` fails.
 - `msb stop` and `msb start` do a full guest reboot. No tmux session survives the reboot, so row `M03-restart-persist` fails.
@@ -146,7 +154,7 @@ agro node delete <id> --yes
 ## Add an adapter
 
 1. Write `<p>.sh`. Put the file in `adapters/` of this skill for a provider that AGRO maintains. Put the file in another directory for a provider that another repository maintains.
-2. Define the five required functions: `<p>_preflight`, `<p>_create`, `<p>_exec`, `<p>_destroy`, and `<p>_list`. `SKILL.md` states the contract of each function.
+2. Define the five required functions: `<p>_preflight`, `<p>_create`, `<p>_exec`, `<p>_destroy`, and `<p>_list`. The validation reference states each function's contract.
 3. Tag or name each VM so that `<p>_list` counts only the VMs of the driver. Use `$MATRIX_TAG` and the name that the driver passes.
 4. Define a hook only when the provider supports the operation: `<p>_row_ssh`, `<p>_row_https`, or `<p>_restart`. Each row hook prints one `RESULT <row> <status> <detail>` line.
 5. Write no secret into the VM. Read a credential on the driver host only.

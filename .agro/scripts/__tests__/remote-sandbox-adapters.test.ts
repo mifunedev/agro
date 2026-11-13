@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
 const ROOT = join(import.meta.dirname, "../../..");
-const LIB = join(ROOT, ".agro/skills/remote-sandbox/scripts/lib.sh");
+const LIB = join(ROOT, ".agro/skills/sandbox/scripts/lib.sh");
 const REQUIRED = ["preflight", "create", "exec", "destroy", "list"];
 
 const temp = mkdtempSync(join(tmpdir(), "remote-sandbox-adapters-"));

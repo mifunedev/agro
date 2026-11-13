@@ -21,6 +21,10 @@ any directory. See
 [Configuration → the two `agro.json` files](configuration.md#the-two-agrojson-files).
 
 Host prerequisites and the CLI install are in [Installation](installation.md).
+For execution route selection, hand offload, and remote validation, use the
+[Sandbox skill](https://github.com/mifunedev/agro/blob/main/.agro/skills/sandbox/SKILL.md).
+The routes are `local/docker`, `local/msb`, `mifune-console`, and `exedev`.
+Here, `local` means the host running `agro`, even on a remote VM.
 
 ## The verbs
 

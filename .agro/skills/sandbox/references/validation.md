@@ -1,40 +1,47 @@
----
-name: remote-sandbox
-description: |
-  Test AGRO on a new provider VM with one command.
-  TRIGGER when: asked to validate an AGRO release or candidate build on a
-  fresh VM, run the fresh-install check, test the curl installer on a new VM,
-  run the AGRO hosting matrix or a matrix row, run the cgroup probe or the VM
-  restart test, run the OpenShell journey check, run the Hermes
-  generated-home check, run the Docker egress check, run the msb-guest check,
-  run the agro run matrix check, or add a provider adapter.
-license: MIT
-compatibility: Needs bash, ssh, curl, jq, awk, and python3 on the driver host, plus an account on each provider under test (an exe.dev SSH key, the vercel CLI, or an `agro auth login` sign-in and an SSH key for the agro CLI; the msb provider uses the same sign-in and key). tmux is optional on the driver host.
-metadata:
-  mifune:
-    category: agro
-    requires-tools: ["bash", "ssh", "curl", "jq", "awk", "python3"]
----
+# Remote validation
 
-# Remote sandbox
+## Contents
 
-A remote sandbox is a provider VM, and the AGRO sandbox runs inside the VM. This skill uses "VM" for the provider machine. This skill uses "sandbox" only for the AGRO container.
+1. [Choose when](#choose-when)
+2. [Prerequisites](#prerequisites)
+3. [Execute](#execute)
+   - [Fresh install](#main-scenario-fresh-install)
+   - [Hosting matrix](#second-scenario-the-agro-hosting-matrix)
+   - [OpenShell journey](#third-scenario-the-openshell-journey)
+   - [Hermes generated home](#fourth-scenario-the-hermes-generated-home)
+   - [Docker egress](#fifth-scenario-the-docker-egress-allowlist)
+   - [msb guest](#sixth-scenario-the-msb-microvm-guest)
+   - [agro run modes](#seventh-scenario-the-agro-run-modes)
+4. [Verify](#verify)
+5. [Cleanup](#cleanup)
+6. [Failure remedies](#failure-remedies)
+7. [Commands and variables](#commands-and-variables)
+8. [Adapter contract](#adapter-contract)
+
+## Choose when
+
+In this validation procedure, "VM" means the provider machine, and "sandbox" means the AGRO container inside that VM.
+This terminology applies to validation rows, not to every execution route in the Sandbox skill.
 
 The driver `scripts/run.sh` creates one VM, runs one check in the VM, and destroys the VM. A check is any script that prints `RESULT <id> <status> <detail>` lines and ends with a `SUMMARY` line or a `PROBE-END` line.
 
-## Rules
+## Prerequisites
 
 1. Get operator approval before each run. Each run creates billable VMs on a third-party host.
 2. Send no GitHub token, Slack token, API token, or `.env` file into a VM.
 3. Start the driver detached: in a named tmux session, or under `setsid nohup`. tmux is optional for the driver. The driver ignores `SIGHUP` and writes its output straight to the log file.
 4. The VM runs no tmux machinery. The only tmux session in the VM is the `R09-disconnect` row under test.
-5. Confirm the cleanup. The driver destroys each tagged VM on exit, `SIGINT`, or `SIGTERM`, unless `KEEP=1`. The log ends with `remaining <tag> resources on <provider>: 0` and `RUN DONE`. If the count is not 0, sweep by hand with `references/providers.md`.
-6. Copy each result from a log. Never write a predicted result.
+5. Record owned resource names and approved teardown scope. Never delete an unrelated resource.
+6. Have bash, ssh, curl, jq, awk, and python3 on the driver host.
 
-## Set up
+## Execute
 
-1. Set up each provider with `references/providers.md`. To sign in to the `console` provider, run `agro auth login` on the driver host, or set `AGRO_CONSOLE_TOKEN` in the driver environment.
-2. Set `SKILL` to the skill directory, for example `SKILL=.agro/skills/remote-sandbox`.
+### Set up
+
+1. Use validation adapter setup in `providers.md`, linked directly from SKILL.md.
+   Sign in to `console` with `agro auth login` on the driver host, or set `AGRO_CONSOLE_TOKEN` in the driver environment.
+2. Set `SKILL` to the canonical directory: `SKILL=.agro/skills/sandbox`.
+   Run commands from the checkout root unless the command uses `$SKILL` explicitly.
 3. Run the preflight on the driver host. The command prints `preflight ok: exedev` and exits 0:
 
    ```bash
@@ -43,7 +50,7 @@ The driver `scripts/run.sh` creates one VM, runs one check in the VM, and destro
 
 4. For the `console` and `msb` providers, the preflight runs `agro node check`. The preflight adds `--free-tier` unless `CONSOLE_FREE_TIER=0`. When `CONSOLE_SSH_KEY_ID` holds a value, the preflight adds `--ssh-key "$CONSOLE_SSH_KEY_ID"`. The preflight prints each check line and fails when one check fails. `console_create` runs the preflight first. When the preflight fails, `console_create` creates no node.
 
-## Main scenario: fresh install
+### Main scenario: fresh install
 
 `checks/fresh-install.sh` is the default check of `run.sh <provider>`. The check installs AGRO on a new VM with the curl installer at `INSTALL_URL`. Then the check runs `agro --version` four ways:
 
@@ -61,13 +68,19 @@ setsid nohup bash "$SKILL/scripts/run.sh" exedev > run.out 2>&1 < /dev/null &
 cat run.out
 ```
 
-The first line of `run.out` is `log: <path>`. Wait for the end of the run with one command per log:
+The first line of `run.out` is `log: <path>`.
+Observe the detached driver with bounded harness completion monitoring.
+In Pi, use `MonitorCreate` with an `onDone` completion wake.
+Set a finite inactivity timeout that covers provider startup, the 2400-second check deadline, driver rows, and cleanup.
+The driver redirects output into its log, so monitor stdout can remain idle throughout the run.
+For monitor-owned execution, pass `setsid bash .agro/skills/sandbox/scripts/run.sh exedev` instead of the background launch above.
+The monitor observes process completion without another shell polling loop.
+The detached session and direct log writes still survive terminal disconnect.
+In other harnesses, use the equivalent bounded completion monitor.
+Do not add a shell polling loop. The driver's internal polling remains unchanged.
+Read the reported log after the completion wake.
 
-```bash
-until grep -q "RUN DONE" <path>; do sleep 15; done
-```
-
-## Second scenario: the AGRO hosting matrix
+### Second scenario: the AGRO hosting matrix
 
 Run these steps in order. A failed probe makes the later steps on that provider unnecessary.
 
@@ -97,9 +110,9 @@ Run these steps in order. A failed probe makes the later steps on that provider 
    bash "$SKILL/scripts/summarize.sh" "$MATRIX_OUT"
    ```
 
-Runs on different providers are independent. Start one run at a time on each provider, because a provider plan can cap concurrent VMs. `references/rationale.md` states why each row and probe exists, and holds the baseline.
+Runs on different providers are independent. Start one run at a time on each provider, because a provider plan can cap concurrent VMs. The rationale reference linked from SKILL.md states each row's purpose and the historical baseline.
 
-## Third scenario: the OpenShell journey
+### Third scenario: the OpenShell journey
 
 `checks/openshell-journey.sh` tests the `agro sandbox install openshell` journey on a new VM. The rows `O01` to `O21` check the AGRO install, the OpenShell install, the gateway, `agro sandbox install openshell`, `agro sandbox list`, and `agro shell`. The rows also check the policy allow and deny rules, the verb refusals, `openshell sandbox stop` and `start`, `agro destroy`, and the hint after a failed create.
 
@@ -112,7 +125,7 @@ INSTALL_URL=<release>/install.sh AGRO_JS_URL=<release>/agro.js setsid nohup bash
 cat run.out
 ```
 
-## Fourth scenario: the Hermes generated home
+### Fourth scenario: the Hermes generated home
 
 `checks/hermes-home.sh` tests that `agro harness install hermes --host` generates `.hermes/config.yaml` in a workspace that tracks no `.hermes/` file. The check uses host mode on a plain VM. The rows run in this order:
 
@@ -136,7 +149,7 @@ Set `AGRO_REF` to the branch under test. Start the run detached on the driver ho
 tmux new-session -d -s rs-hermes "AGRO_REF=<branch> bash $SKILL/scripts/run.sh exedev checks/hermes-home.sh"
 ```
 
-## Fifth scenario: the Docker egress allowlist
+### Fifth scenario: the Docker egress allowlist
 
 `checks/docker-egress.sh` tests `access.egress` `allowlist` on a new VM. The check installs AGRO with the curl installer at `INSTALL_URL`. Then the check clones `AGRO_REF` (default `development`), builds the CLI from the clone, and runs `agro config set access.egress allowlist` in the clone. `agro sandbox install docker --checkout <clone> --yes` reads that setting and builds the sandbox image from the clone.
 
@@ -149,9 +162,12 @@ AGRO_REF=<branch> setsid nohup bash "$SKILL/scripts/run.sh" exedev checks/docker
 cat run.out
 ```
 
-## Sixth scenario: the msb microVM guest
+### Sixth scenario: the msb microVM guest
 
-The `msb` provider creates an agro-console node, installs `msb` on the node, and boots `IMAGE` as an msb microVM with `--init auto`. `references/providers.md` holds the msb setup and the known limits. `IMAGE` must be an `agro-msb` image. Build the image on a host with Docker:
+The validation adapter `msb` creates an agro-console node and installs `msb` on that node.
+It boots `IMAGE` as a microVM with `--init auto`.
+This adapter is not the `local/msb` execution route.
+The validation provider reference holds setup and known limits. `IMAGE` must be an `agro-msb` image. Build the image on a host with Docker:
 
 ```bash
 docker build --target agro-msb -f .devcontainer/Dockerfile -t ghcr.io/mifunedev/agro:spike-msb-<sha> .
@@ -174,9 +190,14 @@ docker build --target agro-msb -f .devcontainer/Dockerfile -t ghcr.io/mifunedev/
 tmux new-session -d -s rs-msb "IMAGE=ghcr.io/mifunedev/agro:spike-msb-<sha> bash $SKILL/scripts/run.sh msb checks/msb-guest.sh"
 ```
 
-The `restart` phase needs `msb_restart` after the `pre` phase on the same guest. The `restore` phase needs `msb_snapshot_restore` after the `restart` phase. `.agro/tasks/msb-base-image-spike/evidence/a1-guest-chain.sh` runs the 3 phases in this order.
+The phases must use the same guest: `pre`, then `msb_restart`, then `restart`, then `msb_snapshot_restore`, then `restore`.
+`run.sh` creates a new guest for each invocation; separate runs cannot prove this phase chain.
+No bundled driver orchestrates the full chain.
+A separately approved orchestration must retain the guest and call these adapter hooks in order.
+Record the guest identity and cleanup ownership before that orchestration.
+Do not depend on an archived task script.
 
-## Seventh scenario: the agro run modes
+### Seventh scenario: the agro run modes
 
 `checks/agro-run-matrix.sh` tests the `agro run` modes on a new `console` node. The check uses host mode. The check installs AGRO with the curl installer at `INSTALL_URL`, runs `sudo usermod -aG kvm "$USER"`, and installs msb `0.7.13` with `agro tool install microsandbox`. When the installed AGRO installs a different msb release, the check uses the pinned upstream installer. Then the check creates a scratch git repository under `mktemp`, writes `agro.json` in it for each row, and deletes it at the end. The new `kvm` group applies only to a new login, so each microVM row runs through `sg kvm`.
 
@@ -189,14 +210,37 @@ The `restart` phase needs `msb_restart` after the `pre` phase on the same guest.
 | `X05-microvm-exit` | `agro run --isolation microvm -- sh -c 'id -un; exit 7'` prints `sandbox` and exits 7. Without `/dev/kvm`, the row prints `SKIPPED`. |
 | `X06-microvm-boot` | `X05` appended a line to `${AGRO_HOME:-~/.agro}/runs/microvm.jsonl`, and that line has `bootToExitMs`. The detail holds the value. Without `/dev/kvm`, the row prints `SKIPPED`. |
 | `X07-refusals` | `--isolation microvm` with `run.services` exits 1, and `--isolation vm` exits 1. |
-| `X08-leftovers` | No `agro-run-` Docker container, Docker network, or msb sandbox is left. |
+| `X08-leftovers` | Cleanup leaves no `agro-run-` Docker container, Docker network, or msb sandbox. |
 
-The check needs the `console` provider, `CONSOLE_SSH_IDENTITY`, an `agro auth login` sign-in on the driver host, and the free tier node spec `n4`. Before the check creates the node, `agro node check --free-tier` must pass on the driver host. Run `bash "$SKILL/scripts/run.sh" console --preflight` to run the check first. When `INSTALL_URL` is unset and AGRO `0.32.0` or later is installed, the check skips the install. Start the run detached on the driver host:
+The check needs the `console` provider, `CONSOLE_SSH_IDENTITY`, an `agro auth login` sign-in on the driver host, and the free tier node spec `n4`. Before the check creates the node, `agro node check --free-tier` must pass on the driver host. Run `bash "$SKILL/scripts/run.sh" console --preflight` to run the check first. When `INSTALL_URL` has no value and the host has AGRO `0.32.0` or later, the check skips the install. Start the run detached on the driver host:
 
 ```bash
 setsid nohup bash "$SKILL/scripts/run.sh" console checks/agro-run-matrix.sh > run.out 2>&1 < /dev/null &
 cat run.out
 ```
+
+## Verify
+
+Copy each result from the actual log. Never write a predicted result.
+A check prints `RESULT <id> <PASS|FAIL|SKIPPED> <detail>` lines.
+The check ends with `SUMMARY` or `PROBE-END`.
+Record the CLI, ref, image, row results, and cleanup evidence.
+
+## Cleanup
+
+The driver destroys its VM on exit, `SIGINT`, or `SIGTERM`, unless `KEEP=1`.
+A cleaned run ends with `remaining <tag> resources on <provider>: 0` and `RUN DONE`.
+With `KEEP=1`, record the retained VM and owner; the log ends with `== keep <name>`.
+If resources remain, inspect the validation provider cleanup instructions.
+Delete only resources recorded for this approved run.
+
+## Failure remedies
+
+If preflight refuses, stop before creation and follow the reported remedy.
+Do not retry a hands HTTP 403 or bypass a provider guard.
+For `poll miss 6` or `poll deadline reached`, inspect the log for failed exec calls or the 2400-second deadline.
+The driver skips later driver rows and cleans up.
+Do not claim a pass from incomplete output.
 
 ## Commands and variables
 
@@ -220,6 +264,8 @@ cat run.out
 | `DISCONNECT_WAIT` | `5` | Seconds between the start of the `r09` tmux session and the `R09-disconnect` check. |
 | `REMOTE_SANDBOX_ADAPTERS` | empty | A colon-separated list of extra adapter directories. |
 | `VERCEL_SCOPE` | none | The Vercel team slug. The `vercel` adapter needs this variable. |
+| `AGRO_CONSOLE_URL` | CLI default | The console API URL. The `agro` CLI reads this variable. |
+| `AGRO_CONSOLE_TOKEN` | none | The console API token on the driver host. The CLI reads it before the credentials file from `agro auth login`. |
 | `CONSOLE_SSH_KEY_ID` | none | Optional. The UUID of the console SSH key. Without this variable, `agro node create` registers `~/.ssh/id_ed25519.pub` of the driver host. |
 | `CONSOLE_SSH_IDENTITY` | none | The private key file for `ssh -i`. The `console` adapter needs this variable. |
 | `CONSOLE_SPEC` | `n4` | The node spec of the `console` adapter. |
@@ -263,11 +309,6 @@ Three hooks are optional:
 | `<p>_row_https NAME` | Print one `RESULT R11-https-port …` line. | The driver prints `RESULT R11-https-port SKIPPED no adapter hook`. |
 | `<p>_restart NAME` | Restart the VM. | `restart-test.sh` prints a usage line and exits 2. |
 
-To add a provider, follow "Add an adapter" in `references/providers.md`.
+For adapter setup, use the validation provider reference linked directly from SKILL.md.
 
-## References
-
-| File | Holds |
-|---|---|
-| `references/rationale.md` | Why each F row, R row, probe, and driver rule exists, the baseline, and the known failure modes |
-| `references/providers.md` | Setup and manual sweep for `exedev`, `vercel`, `console` (agro-console), and `msb`, the msb known limits, and the steps to add an adapter |
+Load validation provider setup and rationale directly from SKILL.md when those details apply.
