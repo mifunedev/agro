@@ -1,16 +1,7 @@
 ---
 name: remote-sandbox
 description: |
-  Test AGRO on a new provider VM with one command. The driver creates a VM on
-  exe.dev, Vercel Sandbox, agro-console, or msb (a microVM on an agro-console
-  node), uploads a check, runs the check
-  detached in the VM, polls the check log, and destroys the VM. The main scenario is the
-  fresh install (F1 to F4). The second scenario is the AGRO hosting matrix
-  (R01 to R15, R02b), the cgroup probe, and the VM restart test. A provider
-  adapter of five functions and three optional hooks adds a provider. The
-  Hermes generated-home check (H01 to H09) tests a branch on a new VM. The
-  msb-guest check (M01 to M06) tests the agro-msb image in an msb microVM.
-  The agro run matrix check (X01 to X08) tests the agro run modes on a node.
+  Test AGRO on a new provider VM with one command.
   TRIGGER when: asked to validate an AGRO release or candidate build on a
   fresh VM, run the fresh-install check, test the curl installer on a new VM,
   run the AGRO hosting matrix or a matrix row, run the cgroup probe or the VM
