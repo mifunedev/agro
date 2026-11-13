@@ -15,13 +15,14 @@
         "Remove temporary resources and leave the running advisor session unchanged."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed: advisor reran fresh npm installation and probe.mjs through agro run from the main checkout detached at the integrated story commit; exit 0. Pi 1.5.2 and package 2.15.0 loaded with no errors/warnings; structured option/custom answers, cancellation, no-UI removal/backstop and sibling preservation passed. Executed cleanup trap; exit 0. Reasoned: isolated HOME/agent directory and no model prompts preserve advisor session. Limit: host dialog responses and tool-state storage are stubbed; no terminal rendering or RPC wire proof.",
       "dependsOn": [],
       "files": [
         ".agro/tasks/pi-ask-user-question/evidence/probe.md",
         ".agro/tasks/pi-ask-user-question/evidence/probe.mjs"
-      ]
+      ],
+      "commit": "2befdf9710c6ff27961c201e0cc85ab625226bbf"
     },
     {
       "id": "US-002",
@@ -71,5 +72,6 @@
         ".agro/tasks/pi-ask-user-question/evidence/manual-review.sh"
       ]
     }
-  ]
+  ],
+  "pr": 1617
 }
