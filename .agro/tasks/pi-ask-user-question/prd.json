@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "project": "AGRO",
+  "branchName": "feat/1616-pi-ask-user-question",
+  "description": "Add pinned ask_user_question support to the project Pi harness.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Probe the published package",
+      "description": "As an advisor, I want package compatibility evidence so that the integration uses a verified release.",
+      "acceptanceCriteria": [
+        "Install Pi and `@juicesharp/rpiv-ask-user-question@2.15.0` in a fresh temporary directory inside the sandbox without model calls.",
+        "Record the Pi version, package version, extension load result, and runtime checks in `evidence/probe.md`.",
+        "Verify tool registration, a structured answer, cancellation, and non-interactive tool removal through the real package entry point.",
+        "Remove temporary resources and leave the running advisor session unchanged."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Executed: advisor reran fresh npm installation and probe.mjs through agro run from the main checkout detached at the integrated story commit; exit 0. Pi 1.5.2 and package 2.15.0 loaded with no errors/warnings; structured option/custom answers, cancellation, no-UI removal/backstop and sibling preservation passed. Executed cleanup trap; exit 0. Reasoned: isolated HOME/agent directory and no model prompts preserve advisor session. Limit: host dialog responses and tool-state storage are stubbed; no terminal rendering or RPC wire proof.",
+      "dependsOn": [],
+      "files": [
+        ".agro/tasks/pi-ask-user-question/evidence/probe.md",
+        ".agro/tasks/pi-ask-user-question/evidence/probe.mjs"
+      ],
+      "commit": "2befdf9710c6ff27961c201e0cc85ab625226bbf"
+    },
+    {
+      "id": "US-002",
+      "title": "Declare and document the default package",
+      "description": "As an operator, I want structured questions in Pi so that the agent can request decisions instead of guessing.",
+      "acceptanceCriteria": [
+        "Add a failing settings regression before the configuration change.",
+        "Pin `npm:@juicesharp/rpiv-ask-user-question@2.15.0` exactly once in `.pi/settings.json` and its expected package list.",
+        "Preserve existing package pins, model defaults, extensions, and skill discovery.",
+        "Document project trust, package installation, fresh-session activation, terminal questions, cancellation, RPC fallback, and headless behavior in `docs/harnesses/pi.md`.",
+        "State that project Pi settings do not ship through `agro vendor`.",
+        "Add an issue-linked entry under `CHANGELOG.md` Unreleased.",
+        "Run `pnpm exec vitest run .pi/extensions/__tests__/settings.test.ts` and the provider-link check successfully."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Executed: worker recorded red test (1 failure/3 pass, exit 1) before config and green afterward (4 pass, exit 0). Advisor inspected exact four-path diff and reran frozen install, settings tests (4 pass), provider-link and Pi guide STE checks from main checkout detached at story revision through agro run; all exit 0. Executed separate exactly-one-pin assertion and no agro.json diff check. Reasoned from full diff: all prior pins/defaults/resource discovery preserved; docs cover trust, targeted install, fresh session, terminal/custom/Esc, RPC, headless and no vendor payload; issue-linked Unreleased changelog added.",
+      "dependsOn": [
+        "US-001"
+      ],
+      "files": [
+        ".pi/settings.json",
+        ".pi/extensions/__tests__/settings.test.ts",
+        "docs/harnesses/pi.md",
+        "CHANGELOG.md"
+      ],
+      "commit": "0d3e34b5bc07858817128dafabb70433882395ac"
+    },
+    {
+      "id": "US-003",
+      "title": "Record manual integration evidence",
+      "description": "As a reviewer, I want reproducible evidence so that I can verify package discovery without spending model tokens.",
+      "acceptanceCriteria": [
+        "Record user-entry-point installation and package-list commands in `evidence/manual-review.md` from a fresh temporary project path.",
+        "Record fresh Pi runtime checks for package loading, structured answers, cancellation, and no-UI behavior.",
+        "Record a failure command, its observed output, and its exit status.",
+        "Run commands inside the sandbox with environment values inline, without env files or persistent services.",
+        "Delete each temporary resource and preserve operator settings."
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Executed: advisor inspected both evidence files and reran frozen install, manual-review.sh, bash -n and evidence STE from main checkout detached at story revision via agro run; all exit 0. Fresh nonexistent install input, inline isolated environment, real pi install --local and pi list succeeded; exact selected settings pin verified. Real package probe passed option/custom answers, cancellation and no-UI removal with stated host stubs. Missing local source printed Path does not exist and exit 1. Cleanup absence and no-personal-settings assertions passed; operator agro.json byte comparison passed. Reasoned: no model calls, env files, services or active-session writes.",
+      "dependsOn": [
+        "US-002"
+      ],
+      "files": [
+        ".agro/tasks/pi-ask-user-question/evidence/manual-review.md",
+        ".agro/tasks/pi-ask-user-question/evidence/manual-review.sh"
+      ],
+      "commit": "e0b340f330ae55591cf5e4d0f50d9b752775a392"
+    }
+  ],
+  "pr": 1617
+}

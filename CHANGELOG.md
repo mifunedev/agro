@@ -10,6 +10,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ### Added
 
+- Add pinned Pi `ask_user_question` support for structured choices and custom answers ([#1616](https://github.com/mifunedev/agro/issues/1616)).
+
 - Add sandbox-only `agro clipboard start/stop` for private image and file uploads with per-file captions, themed previews, and explicit tool-read prompts ([#1612](https://github.com/mifunedev/agro/issues/1612)).
 - Add optional `aws` and `gws` tool installers for AWS CLI v2 and Google Workspace CLI without a sandbox rebuild ([#1610](https://github.com/mifunedev/agro/issues/1610)).
 
