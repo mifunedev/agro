@@ -63,15 +63,16 @@
         "Delete each temporary resource and preserve operator settings."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed: advisor inspected both evidence files and reran frozen install, manual-review.sh, bash -n and evidence STE from main checkout detached at story revision via agro run; all exit 0. Fresh nonexistent install input, inline isolated environment, real pi install --local and pi list succeeded; exact selected settings pin verified. Real package probe passed option/custom answers, cancellation and no-UI removal with stated host stubs. Missing local source printed Path does not exist and exit 1. Cleanup absence and no-personal-settings assertions passed; operator agro.json byte comparison passed. Reasoned: no model calls, env files, services or active-session writes.",
       "dependsOn": [
         "US-002"
       ],
       "files": [
         ".agro/tasks/pi-ask-user-question/evidence/manual-review.md",
         ".agro/tasks/pi-ask-user-question/evidence/manual-review.sh"
-      ]
+      ],
+      "commit": "e0b340f330ae55591cf5e4d0f50d9b752775a392"
     }
   ],
   "pr": 1617

@@ -49,6 +49,29 @@ A separate Node assertion confirmed exactly one question-package pin.
 The advisor confirmed the task revision has no `agro.json` diff from `development`.
 A byte comparison confirmed operator configuration restoration after acceptance.
 
+## US-003
+
+Integrated revision: `e0b340f330ae55591cf5e4d0f50d9b752775a392`.
+The advisor inspected the script and transcript.
+The advisor detached the main checkout at that revision and ran these commands through `agro run --`:
+
+```sh
+pnpm install --frozen-lockfile
+bash .agro/tasks/pi-ask-user-question/evidence/manual-review.sh
+bash -n .agro/tasks/pi-ask-user-question/evidence/manual-review.sh
+bash .agro/skills/ste/scripts/ste-check.sh .agro/tasks/pi-ask-user-question/evidence/manual-review.md
+```
+
+All commands exited 0.
+The fresh root was `/tmp/agro-question-review.e6RuL5/install`.
+Pi `1.5.2` installed package `2.15.0` through `pi install --local`.
+`pi list` showed the exact project pin.
+The real package probe passed structured option/custom answers, cancellation, and no-UI checks.
+The missing-source failure printed `Error: Path does not exist` and exited 1 as expected.
+Cleanup reported `/tmp/agro-question-review.e6RuL5 absent; exit 0`.
+The script verified no personal settings file existed.
+A byte comparison confirmed operator configuration restoration.
+
 ## Main-checkout preservation
 
 The main checkout started on `development` with operator-local `agro.json` changes.
