@@ -38,8 +38,8 @@
         "Run `pnpm exec vitest run .pi/extensions/__tests__/settings.test.ts` and the provider-link check successfully."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed: worker recorded red test (1 failure/3 pass, exit 1) before config and green afterward (4 pass, exit 0). Advisor inspected exact four-path diff and reran frozen install, settings tests (4 pass), provider-link and Pi guide STE checks from main checkout detached at story revision through agro run; all exit 0. Executed separate exactly-one-pin assertion and no agro.json diff check. Reasoned from full diff: all prior pins/defaults/resource discovery preserved; docs cover trust, targeted install, fresh session, terminal/custom/Esc, RPC, headless and no vendor payload; issue-linked Unreleased changelog added.",
       "dependsOn": [
         "US-001"
       ],
@@ -48,7 +48,8 @@
         ".pi/extensions/__tests__/settings.test.ts",
         "docs/harnesses/pi.md",
         "CHANGELOG.md"
-      ]
+      ],
+      "commit": "0d3e34b5bc07858817128dafabb70433882395ac"
     },
     {
       "id": "US-003",
