@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "experiment": "e6",
+  "arm": "a",
+  "profile": "agro",
+  "size": "4g",
+  "label": "seq-c7",
+  "docker": true,
+  "node_id": "c7a41b0b-df4d-4b3a-847c-518a45717256",
+  "pooled_at": "2026-11-04 13:13:24.031+00",
+  "t_request": 1793798505574,
+  "claim_start": 1793798506507,
+  "ack": 1793798837804,
+  "ssh_s": 334.586,
+  "usable_s": 335.931,
+  "valid": true,
+  "invalid_reason": null,
+  "failed": false,
+  "failure_reason": null,
+  "agro_version": "0.28.0",
+  "pin_agro_version": "0.28.0",
+  "image": {
+    "image_id": "40c82cd6-c9d0-466a-a1f8-21d0057a9afd",
+    "image_key": "ubuntu-24-04-lts",
+    "pool_cloud_init_sha256": "938089e9dcbea181f466f2b19ee973553f82731e2677c00e4fc05a33ba3030e2"
+  },
+  "archive_sha256": null,
+  "console_commit": "d4ae1b17399d66fd2e7b26e00ee0c51a58e0896e",
+  "usable_components": {
+    "ws": "1",
+    "cs": "200",
+    "t3": "200"
+  },
+  "parity": {
+    "usable": true,
+    "claim_ack": true,
+    "docker_on": true,
+    "docker_off": null
+  },
+  "hook": {},
+  "scope_before": {
+    "home": "kept",
+    "git_workspace": "kept",
+    "filler": "kept",
+    "docker_images": "kept",
+    "containers": "kept",
+    "volumes": "kept",
+    "apt_package": "kept"
+  },
+  "scope": {
+    "home": "kept",
+    "git_workspace": "kept",
+    "filler": "kept",
+    "docker_images": "lost",
+    "containers": "lost",
+    "volumes": "lost",
+    "apt_package": "lost"
+  },
+  "cleanup": {
+    "deleted": true,
+    "live_after": 0
+  },
+  "started_at": "2026-11-04T13:13:32.803Z",
+  "finished_at": "2026-11-04T13:27:58.473Z",
+  "seed": {
+    "size": "4g",
+    "filler_mib": 4096,
+    "filler_sha256": "30fbd23763fd3b037d81fea5b1a65766375503636ec82a1aa5f564be2458ceda",
+    "commit": "2f7f4e112adf69b10651dea0fd5cf983f6a1a660"
+  },
+  "pause_request": 1793798250234,
+  "pause_http": 202,
+  "paused_s": 255.068,
+  "resume_http": 202,
+  "vm_swapped": 1793798837804,
+  "instance": {
+    "before": "183f35f6-e934-429d-9e1c-1da90d947b8c",
+    "after": "abfc6e6c-6d59-44c4-a41e-6b8e892dca9d"
+  },
+  "pause_to_usable_s": 591.271,
+  "web_exits": []
+}

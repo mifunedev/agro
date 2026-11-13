@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "experiment": "e6",
+  "arm": "v",
+  "profile": "agro",
+  "size": "1g",
+  "label": "seq-c3",
+  "docker": true,
+  "node_id": "2ee40589-1e01-4b44-904b-390827308fdb",
+  "pooled_at": "2026-11-04 09:51:15.119+00",
+  "t_request": 1793785880552,
+  "claim_start": 1793785882371,
+  "ack": null,
+  "ssh_s": 19.593,
+  "usable_s": null,
+  "valid": false,
+  "invalid_reason": "setup before measurement: unknown; console unreachable during run (2 failed checks); console web exit during run; driver interrupted (exit 130)",
+  "failed": false,
+  "failure_reason": null,
+  "agro_version": null,
+  "pin_agro_version": "0.28.0",
+  "image": {
+    "image_id": "40c82cd6-c9d0-466a-a1f8-21d0057a9afd",
+    "image_key": "ubuntu-24-04-lts",
+    "pool_cloud_init_sha256": "938089e9dcbea181f466f2b19ee973553f82731e2677c00e4fc05a33ba3030e2"
+  },
+  "archive_sha256": null,
+  "console_commit": "d4ae1b17399d66fd2e7b26e00ee0c51a58e0896e",
+  "usable_components": {
+    "ws": "1",
+    "cs": "200",
+    "t3": "200"
+  },
+  "parity": null,
+  "hook": {
+    "setup": {
+      "volume_id": "9653ddce-39b8-486f-ae4f-5d54045266de",
+      "name": "wppp-20261104t095153z-2ee40589",
+      "size_gb": 10,
+      "type": "high-speed",
+      "region": "US-EAST-VA-1",
+      "sizing": "used 1.18 GiB + filler 1 GiB + headroom 2 GiB, OVH minimum 10 GiB",
+      "measure": {
+        "home_bytes": 1271683493,
+        "docker_root": "/var/lib/docker",
+        "docker_bytes": 229437,
+        "containerd_bytes": 65572,
+        "root_avail_bytes": 46876094464
+      },
+      "remote": {
+        "device": "/dev/sdb",
+        "docker_root": "/var/lib/docker",
+        "containerd_on_volume": true,
+        "volume_used_bytes": 1319620608,
+        "device_s": 0.019,
+        "copy_s": 11.090,
+        "total_s": 13.232
+      },
+      "spend": {
+        "existing_usd": 0.01452,
+        "new_usd": 0.00264,
+        "projected_usd": 0.01716,
+        "cap_usd": 10
+      },
+      "attach_api_s": 13.391,
+      "pre_attach_s": 10.056,
+      "setup_s": 38.139
+    }
+  },
+  "scope_before": null,
+  "scope": null,
+  "cleanup": {
+    "deleted": true,
+    "live_after": 0
+  },
+  "started_at": "2026-11-04T09:51:17.147Z",
+  "finished_at": "2026-11-04T10:03:13.696Z",
+  "v_hook_sha256": "e56ec356c721741244fd5ee9cb183292140f96c39d684735bd232ee8fa573f47",
+  "seed": {
+    "size": "1g",
+    "filler_mib": 1024,
+    "filler_sha256": "263d1d61fb83ee499c300ad222ccc2f1e90f81f1b6e941cc1271a0787fdca1ec",
+    "commit": "f642cece4d8a0ad40abe81aa6d138de793bf8f0f"
+  },
+  "web_exits": [
+    "2026-11-04T10:02:51Z web exited rc=0"
+  ]
+}

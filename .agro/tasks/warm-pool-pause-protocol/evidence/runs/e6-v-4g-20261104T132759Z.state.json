@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "experiment": "e6",
+  "arm": "v",
+  "profile": "agro",
+  "size": "4g",
+  "label": "seq-c7",
+  "docker": true,
+  "node_id": "0476a81c-2b1d-4003-a40d-c33f4452797f",
+  "pooled_at": "2026-11-04 13:25:36.866+00",
+  "t_request": 1793798879915,
+  "claim_start": 1793798881136,
+  "ack": null,
+  "ssh_s": 18.861,
+  "usable_s": null,
+  "valid": false,
+  "invalid_reason": "setup before measurement: unknown; console unreachable during run (5 failed checks)",
+  "failed": false,
+  "failure_reason": null,
+  "agro_version": "0.28.0",
+  "pin_agro_version": "0.28.0",
+  "image": {
+    "image_id": "40c82cd6-c9d0-466a-a1f8-21d0057a9afd",
+    "image_key": "ubuntu-24-04-lts",
+    "pool_cloud_init_sha256": "938089e9dcbea181f466f2b19ee973553f82731e2677c00e4fc05a33ba3030e2"
+  },
+  "archive_sha256": null,
+  "console_commit": "d4ae1b17399d66fd2e7b26e00ee0c51a58e0896e",
+  "usable_components": {
+    "ws": "1",
+    "cs": "200",
+    "t3": "200"
+  },
+  "parity": null,
+  "hook": {
+    "setup": {
+      "volume_id": "9fbdc25d-05f8-49ed-87a3-7a0ea80cdd34",
+      "name": "wppp-20261104t132833z-0476a81c",
+      "size_gb": 10,
+      "type": "high-speed",
+      "region": "US-EAST-VA-1",
+      "sizing": "used 1.18 GiB + filler 4 GiB + headroom 2 GiB, OVH minimum 10 GiB",
+      "measure": {
+        "home_bytes": 1271719447,
+        "docker_root": "/var/lib/docker",
+        "docker_bytes": 229437,
+        "containerd_bytes": 65572,
+        "root_avail_bytes": 46856847360
+      },
+      "remote": {
+        "device": "/dev/sdb",
+        "docker_root": "/var/lib/docker",
+        "containerd_on_volume": true,
+        "volume_used_bytes": 1319657472,
+        "device_s": 0.010,
+        "copy_s": 9.173,
+        "total_s": 11.977
+      },
+      "spend": {
+        "existing_usd": 0.03300000000000002,
+        "new_usd": 0.00264,
+        "projected_usd": 0.03564000000000002,
+        "cap_usd": 10
+      },
+      "attach_api_s": 13.269,
+      "pre_attach_s": 9.927,
+      "setup_s": 36.467
+    }
+  },
+  "scope_before": null,
+  "scope": null,
+  "cleanup": null,
+  "started_at": "2026-11-04T13:27:59.129Z",
+  "finished_at": null,
+  "v_hook_sha256": "e56ec356c721741244fd5ee9cb183292140f96c39d684735bd232ee8fa573f47",
+  "seed": {
+    "size": "4g",
+    "filler_mib": 4096,
+    "filler_sha256": "7ed3589baf8a34fd9d0566f22847313392fe4db5e9c128e7e8e1d93c35ea79ea",
+    "commit": "42e1ed344885e76626be6b74e7cb212db9f7de73"
+  }
+}

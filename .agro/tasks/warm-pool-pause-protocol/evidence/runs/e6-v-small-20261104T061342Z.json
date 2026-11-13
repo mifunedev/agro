@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "experiment": "e6",
+  "arm": "v",
+  "profile": "agro",
+  "size": "small",
+  "label": "seq-c1",
+  "docker": true,
+  "node_id": "554b1445-1a7f-4dc7-88cc-d4017f04a518",
+  "pooled_at": "2026-11-04 06:13:32.337+00",
+  "t_request": 1793772823649,
+  "claim_start": 1793772824209,
+  "ack": null,
+  "ssh_s": 11.464,
+  "usable_s": null,
+  "valid": false,
+  "invalid_reason": "console unreachable during run (3 failed checks); driver interrupted (exit 130)",
+  "failed": false,
+  "failure_reason": null,
+  "agro_version": null,
+  "pin_agro_version": "0.28.0",
+  "image": {
+    "image_id": "40c82cd6-c9d0-466a-a1f8-21d0057a9afd",
+    "image_key": "ubuntu-24-04-lts",
+    "pool_cloud_init_sha256": "938089e9dcbea181f466f2b19ee973553f82731e2677c00e4fc05a33ba3030e2"
+  },
+  "archive_sha256": null,
+  "console_commit": "d4ae1b17399d66fd2e7b26e00ee0c51a58e0896e",
+  "usable_components": {
+    "ws": "1",
+    "cs": "200",
+    "t3": "200"
+  },
+  "parity": null,
+  "hook": {
+    "setup": {
+      "volume_id": "9ea52ee8-0df1-4544-ad30-e524b0140b62",
+      "name": "wppp-20261104t061404z-554b1445",
+      "size_gb": 10,
+      "type": "high-speed",
+      "region": "US-EAST-VA-1",
+      "sizing": "used 1.19 GiB + filler 0 GiB + headroom 2 GiB, OVH minimum 10 GiB",
+      "measure": {
+        "home_bytes": 1275584133,
+        "docker_root": "/var/lib/docker",
+        "docker_bytes": 229437,
+        "containerd_bytes": 65572,
+        "root_avail_bytes": 46853906432
+      },
+      "remote": {
+        "device": "/dev/sdb",
+        "docker_root": "/var/lib/docker",
+        "containerd_on_volume": true,
+        "volume_used_bytes": 1323216896,
+        "device_s": 0.008,
+        "copy_s": 5.972,
+        "total_s": 7.933
+      },
+      "spend": {
+        "existing_usd": 0,
+        "new_usd": 0.00264,
+        "projected_usd": 0.00264,
+        "cap_usd": 10
+      },
+      "attach_api_s": 13.262,
+      "pre_attach_s": 9.396,
+      "setup_s": 31.946
+    }
+  },
+  "scope_before": null,
+  "scope": null,
+  "cleanup": {
+    "deleted": true,
+    "live_after": 0
+  },
+  "started_at": "2026-11-04T06:13:42.648Z",
+  "finished_at": "2026-11-04T06:37:36.319Z",
+  "seed": {
+    "size": "small",
+    "filler_mib": 0,
+    "filler_sha256": "none",
+    "commit": "3c598020d4482b0c53ea9b9f0de1be6c989bed4a"
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "experiment": "e6",
+  "arm": "a",
+  "profile": "agro",
+  "size": "small",
+  "label": "seq-c1",
+  "docker": true,
+  "node_id": "5bf79627-0434-4240-8d3a-2b0aa4c92a7c",
+  "pooled_at": "2026-11-04 06:16:24.56+00",
+  "t_request": 1793774550361,
+  "claim_start": 1793774305737,
+  "ack": null,
+  "ssh_s": 12.618,
+  "usable_s": null,
+  "valid": false,
+  "invalid_reason": "driver interrupted (exit 130)",
+  "failed": false,
+  "failure_reason": null,
+  "agro_version": null,
+  "pin_agro_version": "0.28.0",
+  "image": {
+    "image_id": "40c82cd6-c9d0-466a-a1f8-21d0057a9afd",
+    "image_key": "ubuntu-24-04-lts",
+    "pool_cloud_init_sha256": "938089e9dcbea181f466f2b19ee973553f82731e2677c00e4fc05a33ba3030e2"
+  },
+  "archive_sha256": null,
+  "console_commit": "d4ae1b17399d66fd2e7b26e00ee0c51a58e0896e",
+  "usable_components": {
+    "ws": "1",
+    "cs": "200",
+    "t3": "200"
+  },
+  "parity": null,
+  "hook": {},
+  "scope_before": {
+    "home": "kept",
+    "git_workspace": "kept",
+    "filler": "kept",
+    "docker_images": "kept",
+    "containers": "kept",
+    "volumes": "kept",
+    "apt_package": "kept"
+  },
+  "scope": null,
+  "cleanup": {
+    "deleted": true,
+    "live_after": 0
+  },
+  "started_at": "2026-11-04T06:38:20.375Z",
+  "finished_at": "2026-11-04T06:57:31.607Z",
+  "seed": {
+    "size": "small",
+    "filler_mib": 0,
+    "filler_sha256": "none",
+    "commit": "71b4903c2999c7099547711ebe76cb893d8fb6c5"
+  },
+  "pause_request": 1793774425419,
+  "pause_http": 202,
+  "paused_s": 41.488,
+  "resume_http": 202
+}

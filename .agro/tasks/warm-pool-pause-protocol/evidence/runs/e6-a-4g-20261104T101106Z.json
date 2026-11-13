@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "experiment": "e6",
+  "arm": "a",
+  "profile": "agro",
+  "size": "4g",
+  "label": "seq-c3",
+  "docker": true,
+  "node_id": "cb4c6dc8-7ee5-4ff0-8a7b-dea5cf93dc04",
+  "pooled_at": "2026-11-04 10:11:03.939+00",
+  "t_request": 1793787422641,
+  "claim_start": 1793787426651,
+  "ack": 1793787693971,
+  "ssh_s": 274.432,
+  "usable_s": 275.651,
+  "valid": true,
+  "invalid_reason": null,
+  "failed": false,
+  "failure_reason": null,
+  "agro_version": "0.28.0",
+  "pin_agro_version": "0.28.0",
+  "image": {
+    "image_id": "40c82cd6-c9d0-466a-a1f8-21d0057a9afd",
+    "image_key": "ubuntu-24-04-lts",
+    "pool_cloud_init_sha256": "938089e9dcbea181f466f2b19ee973553f82731e2677c00e4fc05a33ba3030e2"
+  },
+  "archive_sha256": null,
+  "console_commit": "d4ae1b17399d66fd2e7b26e00ee0c51a58e0896e",
+  "usable_components": {
+    "ws": "1",
+    "cs": "200",
+    "t3": "200"
+  },
+  "parity": {
+    "usable": true,
+    "claim_ack": true,
+    "docker_on": true,
+    "docker_off": null
+  },
+  "hook": {},
+  "scope_before": {
+    "home": "kept",
+    "git_workspace": "kept",
+    "filler": "kept",
+    "docker_images": "kept",
+    "containers": "kept",
+    "volumes": "kept",
+    "apt_package": "kept"
+  },
+  "scope": {
+    "home": "kept",
+    "git_workspace": "kept",
+    "filler": "kept",
+    "docker_images": "lost",
+    "containers": "lost",
+    "volumes": "lost",
+    "apt_package": "lost"
+  },
+  "cleanup": {
+    "deleted": true,
+    "live_after": 0
+  },
+  "started_at": "2026-11-04T10:11:06.721Z",
+  "finished_at": "2026-11-04T10:22:18.265Z",
+  "seed": {
+    "size": "4g",
+    "filler_mib": 4096,
+    "filler_sha256": "cd2f7025ee0a09d3c988d546ff24ee7bdd6e76e2c64e0cf6bb0b7f61305148c5",
+    "commit": "f335a39e0ea26d65d739eb704ed30758f12ba37c"
+  },
+  "pause_request": 1793787168470,
+  "pause_http": 202,
+  "paused_s": 253.564,
+  "resume_http": 202,
+  "vm_swapped": 1793787693971,
+  "instance": {
+    "before": "f74a41a2-8dab-4799-86e6-2165bfe621fb",
+    "after": "346f276a-b458-489f-aaff-ba515fbb45c6"
+  },
+  "pause_to_usable_s": 529.822,
+  "web_exits": []
+}

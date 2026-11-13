@@ -1,0 +1,94 @@
+{
+  "v_monthly_usd_1g": 0.9504,
+  "v_monthly_usd_4g": 0.9504,
+  "a_monthly_usd_1g": 0.03,
+  "a_archive_bytes_1g": 1460147596,
+  "a_unrounded_usd_1g": 0.0219,
+  "a_monthly_usd_4g": 0.075,
+  "a_archive_bytes_4g": 4682254899,
+  "a_unrounded_usd_4g": 0.0702,
+  "period": "30 days = 720 hours",
+  "v_volume_type": "high-speed",
+  "v_volume_gib_1g": 10,
+  "v_volume_gib_4g": 10,
+  "v_usd_per_gib_hour": 0.000132,
+  "v_classic_usd_per_gib_hour": 6.6e-05,
+  "v_classic_monthly_usd": 0.4752,
+  "v_price_source": "https://api.us.ovhcloud.com/1.0/order/catalog/public/cloud?ovhSubsidiary=US",
+  "v_price_page": "https://us.ovhcloud.com/public-cloud/prices/#block-storage",
+  "r2_usd_per_gb_month": 0.015,
+  "r2_class_a_usd_per_million": 4.5,
+  "r2_class_b_usd_per_million": 0.36,
+  "r2_free_tier": "10 GB-month storage, 1M Class A, 10M Class B per month, account-wide; not credited per node",
+  "r2_rounding": "usage rounds up to the next GB-month; GB taken as 10^9 bytes (page does not define)",
+  "r2_price_source": "https://developers.cloudflare.com/r2/pricing/",
+  "runs": {
+    "v_1g": [
+      "e6-v-1g-20261104T073358Z",
+      "e6-v-1g-20261104T081954Z",
+      "e6-v-1g-20261104T090643Z",
+      "e6-v-1g-20261104T100323Z",
+      "e6-v-1g-20261104T104753Z",
+      "e6-v-1g-20261104T113914Z",
+      "e6-v-1g-20261104T122548Z",
+      "e6-v-1g-20261104T130547Z",
+      "e6-v-1g-20261104T141739Z",
+      "e6-v-1g-20261104T145909Z"
+    ],
+    "a_1g": [
+      "e6-a-1g-20261104T072515Z",
+      "e6-a-1g-20261104T081249Z",
+      "e6-a-1g-20261104T090042Z",
+      "e6-a-1g-20261104T094103Z",
+      "e6-a-1g-20261104T104112Z",
+      "e6-a-1g-20261104T113157Z",
+      "e6-a-1g-20261104T121802Z",
+      "e6-a-1g-20261104T125915Z",
+      "e6-a-1g-20261104T140926Z",
+      "e6-a-1g-20261104T144846Z"
+    ],
+    "v_4g": [
+      "e6-v-4g-20261104T083816Z",
+      "e6-v-4g-20261104T091914Z",
+      "e6-v-4g-20261104T102218Z",
+      "e6-v-4g-20261104T110533Z",
+      "e6-v-4g-20261104T115741Z",
+      "e6-v-4g-20261104T123748Z",
+      "e6-v-4g-20261104T143958Z",
+      "e6-v-4g-20261104T152230Z"
+    ],
+    "a_4g": [
+      "e6-a-4g-20261104T082615Z",
+      "e6-a-4g-20261104T101106Z",
+      "e6-a-4g-20261104T105446Z",
+      "e6-a-4g-20261104T114640Z",
+      "e6-a-4g-20261104T131332Z",
+      "e6-a-4g-20261104T142619Z",
+      "e6-a-4g-20261104T150756Z"
+    ]
+  },
+  "e7_threshold_usd": 2.0,
+  "e7_v_pass": true,
+  "v_n_1g": 10,
+  "a_archive_bytes_range_1g": [
+    1460118987,
+    1460185139
+  ],
+  "a_n_1g": 10,
+  "v_n_4g": 8,
+  "a_archive_bytes_range_4g": [
+    4682223862,
+    4682276664
+  ],
+  "a_n_4g": 7,
+  "v_campaign_spend": {
+    "usd_billed_hours": 0.0409,
+    "volumes": 31,
+    "undeleted": 0,
+    "volume_hours": 8.68,
+    "first_created": "2026-11-04T06:14:06.010Z",
+    "last_deleted": "2026-11-04T16:03:17.991Z",
+    "run_volumes_listed_after": 0,
+    "source": "v-spend.json"
+  }
+}

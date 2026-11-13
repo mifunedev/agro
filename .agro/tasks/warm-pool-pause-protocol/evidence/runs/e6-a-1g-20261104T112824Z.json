@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "experiment": "e6",
+  "arm": "a",
+  "profile": "agro",
+  "size": "1g",
+  "label": "seq-c5",
+  "docker": true,
+  "node_id": "e31d1356-2771-4ce0-8ecf-4b46168f802f",
+  "pooled_at": "2026-11-04 11:28:24.12+00",
+  "t_request": 1793791709103,
+  "claim_start": 1793791709460,
+  "ack": null,
+  "ssh_s": 13.141,
+  "usable_s": null,
+  "valid": false,
+  "invalid_reason": "console unreachable during run (5 failed checks); console web exit during run; driver interrupted (exit 130)",
+  "failed": false,
+  "failure_reason": null,
+  "agro_version": null,
+  "pin_agro_version": "0.28.0",
+  "image": {
+    "image_id": "40c82cd6-c9d0-466a-a1f8-21d0057a9afd",
+    "image_key": "ubuntu-24-04-lts",
+    "pool_cloud_init_sha256": "938089e9dcbea181f466f2b19ee973553f82731e2677c00e4fc05a33ba3030e2"
+  },
+  "archive_sha256": null,
+  "console_commit": "d4ae1b17399d66fd2e7b26e00ee0c51a58e0896e",
+  "usable_components": {
+    "ws": "1",
+    "cs": "200",
+    "t3": "200"
+  },
+  "parity": null,
+  "hook": {},
+  "scope_before": {
+    "home": "kept",
+    "git_workspace": "kept",
+    "filler": "kept",
+    "docker_images": "kept",
+    "containers": "kept",
+    "volumes": "kept",
+    "apt_package": "kept"
+  },
+  "scope": null,
+  "cleanup": {
+    "deleted": true,
+    "live_after": 0
+  },
+  "started_at": "2026-11-04T11:28:24.864Z",
+  "finished_at": "2026-11-04T11:31:57.332Z",
+  "seed": {
+    "size": "1g",
+    "filler_mib": 1024,
+    "filler_sha256": "a4d4b308a74569725653b2b53e534108a0702c5f3e4fc95676f3df0d076d4e7c",
+    "commit": "4562a387bf7d88636d3bbf6844bb0e1c2facd615"
+  },
+  "pause_request": 1793791759493,
+  "pause_http": 202,
+  "web_exits": [
+    "2026-11-04T11:31:27Z web exited rc=0"
+  ]
+}

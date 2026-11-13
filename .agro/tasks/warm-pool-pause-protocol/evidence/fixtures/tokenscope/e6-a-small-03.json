@@ -1,0 +1,1 @@
+{"schema": 1, "experiment": "e6", "arm": "a", "profile": "agro", "size": "small", "node_id": "n3", "pooled_at": "2026-11-04T06:00:00Z", "t_request": 1793900000003, "usable_s": 33.0, "pause_to_usable_s": 63.0, "valid": true, "invalid_reason": null, "failed": false, "failure_reason": null, "hook": {}}

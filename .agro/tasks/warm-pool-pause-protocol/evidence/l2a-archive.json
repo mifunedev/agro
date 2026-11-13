@@ -1,0 +1,22 @@
+{
+  "bytes": 364036107,
+  "sha256": "899db69f08c75f1ac2e78fd0bcbbcdddd751c4936e0efddec628a192380b9a41",
+  "agroVersion": "0.28.0",
+  "codeServerVersion": "4.129.0",
+  "t3Version": "0.1.6",
+  "nodeVersion": "v24.22.2",
+  "workspaceCommit": "679f1f3dfb829782e4d2d2d666487d7d5b518af9",
+  "entries": 16888,
+  "format": "tar+zstd, paths relative to /, numeric owners (sandbox uid 1001)",
+  "bucket": "agro-console-beta",
+  "endpoint": "https://5875a632aa95527c18e9f1f153dcc2a6.r2.cloudflarestorage.com",
+  "objectKey": "experiments/warm-pool-pause-protocol/l2a/899db69f08c75f1ac2e78fd0bcbbcdddd751c4936e0efddec628a192380b9a41.tar.zst",
+  "presignExpiresInSeconds": 604800,
+  "presignedAt": "2026-11-04T04:05Z",
+  "sourceNodeId": "b1da9329-484b-4869-818f-c6951f613031",
+  "sourceProfile": "agro",
+  "sourceSpec": "n4",
+  "sourcePooledAt": "2026-11-04T03:55:21.605Z",
+  "cutAt": "2026-11-04T04:00:43Z",
+  "manifest": "l2a/manifest.txt"
+}
