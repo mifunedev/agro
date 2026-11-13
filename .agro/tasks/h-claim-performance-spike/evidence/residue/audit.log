@@ -1,0 +1,7 @@
+2026-11-05T01:00:31Z AUDIT create h (warm) name=wp-e2-h-20261105t010031z
+2026-11-05T01:00:38Z AUDIT node f25fe484-02e1-497c-aaf7-40e5436a4a37 pooled_at=2026-11-05 01:00:23.876+00 pool_sha=fa3d5c7b351d
+2026-11-05T01:00:44Z AUDIT collected h: 1352 lines
+2026-11-05T01:00:48Z AUDIT deleted f25fe484-02e1-497c-aaf7-40e5436a4a37 status=destroyed live=0
+{"h_extra_entries": 2, "h_agro_files_extra": [], "noise_floor_entries": 14, "h_equals_nprime_build": false, "agro_files": {"cold": 16, "nprime": 17, "h": 17}}
+2026-11-05T01:00:48Z AUDIT done live=0
+2026-11-05T01:00:48Z AUDIT EXIT rc=0

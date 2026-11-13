@@ -1,0 +1,13 @@
+file:/usr/local/libexec/agro-claim-restore + 4aa4fbb0bc188d32cc33d098dbb3325d0cdef731bb52270247d3b4d6790b5cf3
+file:/usr/local/libexec/agro-install-docker ~ e43c6759ebe92a953068026a5bba8a624385570647fe5e06205eba4dad760311 -> 2ed4e870f8686f09925a91052758839664ca878607dac0fb01beb9cb4289974a
+file:/usr/local/libexec/agro-node-pull ~ 3ef50ee3bf4192835f09f8c7a9eb1647f76956ad034fc183d176ba62ef2f9429 -> 496042e5c02cc8f0ad6cc5265f15f8e51665e0ff80daef72edf9f0f19fa3f092
+file:/usr/local/libexec/agro-register-runtime-settings ~ e1598ab9f6641ce3b3eec227482b005c7ec160a304483d7fa3f6c17814c513e8 -> efbe27a488b30898eb5317f053daebe471fad81d2394d4285f55c3428ab8bebf
+file:/usr/local/libexec/agro-report-boot-phase ~ 24ae27722992e6f8b9ef4a28b71bdcddc8557f503f2f67abf0c96bdd9de2acd0 -> 7b14169f0ed39638b3e28f9e4ba45b368b4e4eff4dd2ed688451acb4d443ef4d
+group:docker ~ docker:x:1001:sandbox -> docker:x:987:sandbox
+group:sandbox ~ sandbox:x:1002: -> sandbox:x:1001:
+node:/usr/local/libexec/agro-claim-restore + f 755 root:root
+passwd:sandbox ~ sandbox:x:1001:1002::/home/sandbox:/bin/bash -> sandbox:x:1001:1001::/home/sandbox:/bin/bash
+pkg:gh + 2.45.0-1ubuntu0.3
+pkg:libatomic1 + 14.2.0-4ubuntu2~24.04.1
+unit:docker.socket ~ enabled -> disabled
+unit:session-1.scope - transient

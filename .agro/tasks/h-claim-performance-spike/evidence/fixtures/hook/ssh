@@ -1,0 +1,3 @@
+#!/bin/sh
+printf '%s\n' "$*" >>"$FAKE_SSH_LOG"
+cat >/dev/null

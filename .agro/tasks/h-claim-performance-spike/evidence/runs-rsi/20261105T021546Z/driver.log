@@ -1,0 +1,90 @@
+2026-11-05T02:17:59.093Z STEP monitor console reachability every 2s for the whole run
+2026-11-05T02:17:59.099Z STEP sweep live leftover protocol nodes (name prefix wp-e) before the preflight
+2026-11-05T02:17:59.425Z STEP preflight: 0 live nodes in 'agro node list --json' and http://127.0.0.1:3006/signin returns 200|307 (wait up to 600s, else exit 3)
+2026-11-05T02:18:00.422Z PREFLIGHT ok
+2026-11-05T02:18:00.436Z STEP agro node create --spec n4 --profile sandbox --free-tier --json --name wp-e1-h-agro-20261105t021759z  (background; t_request taken at issue)
+2026-11-05T02:18:00.446Z REQUEST create profile=sandbox name=wp-e1-h-agro-20261105t021759z t=1793845080441
+2026-11-05T02:18:00.462Z STEP find node row by name; claim start = first node_events type = 'bootstrapping' and detail->>'reason' = 'bind' at/after t_request; probe ssh every 500ms from claim start (ip re-read each attempt)
+2026-11-05T02:18:01.526Z NODE id=f29b3928-112c-4da4-b112-cc919e47da60
+2026-11-05T02:18:01.997Z CLAIM_START 1793845080902 (+0.461s)
+2026-11-05T02:18:08.125Z SSH ip=40.160.95.253 +7.453s
+2026-11-05T02:18:08.169Z STEP hook after-claim 40.160.95.253  (stdout last line: JSON object merged into .hook.after_claim)
+2026-11-05T02:18:32.680Z STEP usable probe (agro workspace list has harness, code-server :8080 200, T3 :3773 200) until 300s
+2026-11-05T02:18:33.437Z USABLE +32.968s
+2026-11-05T02:18:33.907Z STEP parity: usable, claim->ack order, docker state matches --docker=true
+2026-11-05T02:18:34.577Z STEP wait for 'agro node create' to exit
+2026-11-05T02:18:34.595Z CREATE exit=0 {"id":"f29b3928-112c-4da4-b112-cc919e47da60","status":"running"}
+2026-11-05T02:18:39.254Z DELETED f29b3928-112c-4da4-b112-cc919e47da60 status=destroyed
+2026-11-05T02:18:39.831Z RESULT {"experiment":"e1","arm":"h","profile":"agro","size":null,"levers":"stream:1,apt:0,archive:A1","node_id":"f29b3928-112c-4da4-b112-cc919e47da60","ssh_s":7.453,"usable_s":32.968,"valid":true,"invalid_reason":null,"failed":false}
+2026-11-05T02:20:32.554Z STEP monitor console reachability every 2s for the whole run
+2026-11-05T02:20:32.558Z STEP sweep live leftover protocol nodes (name prefix wp-e) before the preflight
+2026-11-05T02:20:32.840Z STEP preflight: 0 live nodes in 'agro node list --json' and http://127.0.0.1:3006/signin returns 200|307 (wait up to 600s, else exit 3)
+2026-11-05T02:20:33.750Z PREFLIGHT ok
+2026-11-05T02:20:33.758Z STEP agro node create --spec n4 --profile sandbox --free-tier --json --name wp-e1-h-agro-20261105t022032z  (background; t_request taken at issue)
+2026-11-05T02:20:33.768Z REQUEST create profile=sandbox name=wp-e1-h-agro-20261105t022032z t=1793845233762
+2026-11-05T02:20:33.783Z STEP find node row by name; claim start = first node_events type = 'bootstrapping' and detail->>'reason' = 'bind' at/after t_request; probe ssh every 500ms from claim start (ip re-read each attempt)
+2026-11-05T02:20:34.769Z NODE id=86c5c309-9118-4be6-9d8c-aff06434f4cf
+2026-11-05T02:20:35.230Z CLAIM_START 1793845234443 (+0.681s)
+2026-11-05T02:20:41.287Z SSH ip=40.160.68.236 +7.285s
+2026-11-05T02:20:41.350Z STEP hook after-claim 40.160.68.236  (stdout last line: JSON object merged into .hook.after_claim)
+2026-11-05T02:21:04.801Z STEP usable probe (agro workspace list has harness, code-server :8080 200, T3 :3773 200) until 300s
+2026-11-05T02:21:05.587Z USABLE +31.804s
+2026-11-05T02:21:06.010Z STEP parity: usable, claim->ack order, docker state matches --docker=false
+2026-11-05T02:21:06.893Z STEP wait for 'agro node create' to exit
+2026-11-05T02:21:06.909Z CREATE exit=0 {"id":"86c5c309-9118-4be6-9d8c-aff06434f4cf","status":"running"}
+2026-11-05T02:21:11.577Z DELETED 86c5c309-9118-4be6-9d8c-aff06434f4cf status=destroyed
+2026-11-05T02:21:11.909Z RESULT {"experiment":"e1","arm":"h","profile":"agro","size":null,"levers":"stream:1,apt:0,archive:A1","node_id":"86c5c309-9118-4be6-9d8c-aff06434f4cf","ssh_s":7.285,"usable_s":31.804,"valid":true,"invalid_reason":null,"failed":false}
+2026-11-05T02:23:04.561Z STEP monitor console reachability every 2s for the whole run
+2026-11-05T02:23:04.569Z STEP sweep live leftover protocol nodes (name prefix wp-e) before the preflight
+2026-11-05T02:23:05.067Z STEP preflight: 0 live nodes in 'agro node list --json' and http://127.0.0.1:3006/signin returns 200|307 (wait up to 600s, else exit 3)
+2026-11-05T02:23:07.118Z PREFLIGHT ok
+2026-11-05T02:23:07.130Z STEP agro node create --spec n4 --profile sandbox --free-tier --json --name wp-e1-h-agro-20261105t022304z  (background; t_request taken at issue)
+2026-11-05T02:23:07.140Z REQUEST create profile=sandbox name=wp-e1-h-agro-20261105t022304z t=1793845387137
+2026-11-05T02:23:07.158Z STEP find node row by name; claim start = first node_events type = 'bootstrapping' and detail->>'reason' = 'bind' at/after t_request; probe ssh every 500ms from claim start (ip re-read each attempt)
+2026-11-05T02:23:08.120Z NODE id=f63fecdd-7727-4cdc-8e9f-a7194e9d2903
+2026-11-05T02:23:08.641Z CLAIM_START 1793845387660 (+0.523s)
+2026-11-05T02:23:14.655Z SSH ip=40.160.68.164 +7.283s
+2026-11-05T02:23:14.704Z STEP hook after-claim 40.160.68.164  (stdout last line: JSON object merged into .hook.after_claim)
+2026-11-05T02:23:39.991Z STEP usable probe (agro workspace list has harness, code-server :8080 200, T3 :3773 200) until 300s
+2026-11-05T02:23:40.856Z USABLE +33.685s
+2026-11-05T02:23:41.320Z STEP parity: usable, claim->ack order, docker state matches --docker=true
+2026-11-05T02:23:42.021Z STEP wait for 'agro node create' to exit
+2026-11-05T02:23:42.035Z CREATE exit=0 {"id":"f63fecdd-7727-4cdc-8e9f-a7194e9d2903","status":"running"}
+2026-11-05T02:23:47.096Z DELETED f63fecdd-7727-4cdc-8e9f-a7194e9d2903 status=destroyed
+2026-11-05T02:23:47.527Z RESULT {"experiment":"e1","arm":"h","profile":"agro","size":null,"levers":"stream:1,apt:0,archive:A1","node_id":"f63fecdd-7727-4cdc-8e9f-a7194e9d2903","ssh_s":7.283,"usable_s":33.685,"valid":true,"invalid_reason":null,"failed":false}
+2026-11-05T02:25:30.108Z STEP monitor console reachability every 2s for the whole run
+2026-11-05T02:25:30.118Z STEP sweep live leftover protocol nodes (name prefix wp-e) before the preflight
+2026-11-05T02:25:30.872Z STEP preflight: 0 live nodes in 'agro node list --json' and http://127.0.0.1:3006/signin returns 200|307 (wait up to 600s, else exit 3)
+2026-11-05T02:25:32.098Z PREFLIGHT ok
+2026-11-05T02:25:32.106Z STEP agro node create --spec n4 --profile sandbox --free-tier --json --name wp-e1-h-agro-20261105t022530z  (background; t_request taken at issue)
+2026-11-05T02:25:32.118Z REQUEST create profile=sandbox name=wp-e1-h-agro-20261105t022530z t=1793845532114
+2026-11-05T02:25:32.134Z STEP find node row by name; claim start = first node_events type = 'bootstrapping' and detail->>'reason' = 'bind' at/after t_request; probe ssh every 500ms from claim start (ip re-read each attempt)
+2026-11-05T02:25:33.067Z NODE id=80dc1f90-03d9-4e8a-8bb6-1b01aba8c7a7
+2026-11-05T02:25:33.482Z CLAIM_START 1793845532509 (+0.395s)
+2026-11-05T02:25:39.660Z SSH ip=40.160.95.253 +7.324s
+2026-11-05T02:25:39.699Z STEP hook after-claim 40.160.95.253  (stdout last line: JSON object merged into .hook.after_claim)
+2026-11-05T02:26:05.605Z STEP usable probe (agro workspace list has harness, code-server :8080 200, T3 :3773 200) until 300s
+2026-11-05T02:26:06.314Z USABLE +34.179s
+2026-11-05T02:26:06.766Z STEP parity: usable, claim->ack order, docker state matches --docker=false
+2026-11-05T02:26:07.610Z STEP wait for 'agro node create' to exit
+2026-11-05T02:26:07.621Z CREATE exit=0 {"id":"80dc1f90-03d9-4e8a-8bb6-1b01aba8c7a7","status":"running"}
+2026-11-05T02:26:11.971Z DELETED 80dc1f90-03d9-4e8a-8bb6-1b01aba8c7a7 status=destroyed
+2026-11-05T02:26:12.346Z RESULT {"experiment":"e1","arm":"h","profile":"agro","size":null,"levers":"stream:1,apt:0,archive:A1","node_id":"80dc1f90-03d9-4e8a-8bb6-1b01aba8c7a7","ssh_s":7.324,"usable_s":34.179,"valid":true,"invalid_reason":null,"failed":false}
+2026-11-05T02:27:44.542Z STEP monitor console reachability every 2s for the whole run
+2026-11-05T02:27:44.548Z STEP sweep live leftover protocol nodes (name prefix wp-e) before the preflight
+2026-11-05T02:27:44.924Z STEP preflight: 0 live nodes in 'agro node list --json' and http://127.0.0.1:3006/signin returns 200|307 (wait up to 600s, else exit 3)
+2026-11-05T02:27:46.406Z PREFLIGHT ok
+2026-11-05T02:27:46.415Z STEP agro node create --spec n4 --profile sandbox --free-tier --json --name wp-e1-h-agro-20261105t022744z  (background; t_request taken at issue)
+2026-11-05T02:27:46.432Z REQUEST create profile=sandbox name=wp-e1-h-agro-20261105t022744z t=1793845666422
+2026-11-05T02:27:46.448Z STEP find node row by name; claim start = first node_events type = 'bootstrapping' and detail->>'reason' = 'bind' at/after t_request; probe ssh every 500ms from claim start (ip re-read each attempt)
+2026-11-05T02:27:47.434Z NODE id=a8e9c1a3-a942-4aca-a487-bb8bcd25749b
+2026-11-05T02:27:47.933Z CLAIM_START 1793845666887 (+0.465s)
+2026-11-05T02:27:52.272Z SSH ip=40.160.4.78 +5.635s
+2026-11-05T02:27:52.320Z STEP hook after-claim 40.160.4.78  (stdout last line: JSON object merged into .hook.after_claim)
+2026-11-05T02:28:16.073Z STEP usable probe (agro workspace list has harness, code-server :8080 200, T3 :3773 200) until 300s
+2026-11-05T02:28:16.949Z USABLE +30.507s
+2026-11-05T02:28:17.433Z STEP parity: usable, claim->ack order, docker state matches --docker=true
+2026-11-05T02:28:18.231Z STEP wait for 'agro node create' to exit
+2026-11-05T02:28:18.242Z CREATE exit=0 {"id":"a8e9c1a3-a942-4aca-a487-bb8bcd25749b","status":"running"}
+2026-11-05T02:28:22.619Z DELETED a8e9c1a3-a942-4aca-a487-bb8bcd25749b status=destroyed
+2026-11-05T02:28:22.954Z RESULT {"experiment":"e1","arm":"h","profile":"agro","size":null,"levers":"stream:1,apt:0,archive:A1","node_id":"a8e9c1a3-a942-4aca-a487-bb8bcd25749b","ssh_s":5.635,"usable_s":30.507,"valid":true,"invalid_reason":null,"failed":false}

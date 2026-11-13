@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/bin/ssh -o UserKnownHostsFile="${DRIVER_KNOWN_HOSTS:?}" -o StrictHostKeyChecking=accept-new "$@"

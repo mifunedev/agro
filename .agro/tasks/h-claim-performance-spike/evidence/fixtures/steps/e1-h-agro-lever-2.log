@@ -1,0 +1,11 @@
+2026-11-04T14:36:46.700Z local start ip=192.0.2.1 sha256=fixture bytes=1 docker=off levers=stream:1,apt:1,archive:A0
+2026-11-04T14:36:47.200Z local url-handoff ok
+2026-11-04T14:37:02.200Z remote step=fetch elapsed_ms=15000 result=ok
+2026-11-04T14:37:02.210Z remote step=verify elapsed_ms=15010 result=ok
+2026-11-04T14:37:02.600Z remote step=extract elapsed_ms=15400 result=ok
+2026-11-04T14:37:02.600Z remote step=stream elapsed_ms=15400 result=ok
+2026-11-04T14:37:04.100Z remote step=install elapsed_ms=16900 result=ok
+2026-11-04T14:37:08.700Z remote step=docker elapsed_ms=21500 result=ok
+2026-11-04T14:37:08.900Z remote step=apps-started elapsed_ms=21700 result=ok
+2026-11-04T14:37:15.300Z remote step=apps-up elapsed_ms=28100 result=ok
+2026-11-04T14:37:15.700Z local done exit=0

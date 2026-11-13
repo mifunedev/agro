@@ -1,0 +1,4 @@
+{
+  "A0": {"bytes": 364036107, "sha256": "899db69f08c75f1ac2e78fd0bcbbcdddd751c4936e0efddec628a192380b9a41", "zstdLevel": 6, "entries": 16888, "localExtractSeconds": null},
+  "A1": {"bytes": 200000000, "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "zstdLevel": 19, "entries": 9000, "localExtractSeconds": null}
+}

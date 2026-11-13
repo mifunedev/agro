@@ -1,0 +1,27 @@
+2026-11-05T00:53:43.691Z STEP monitor console reachability every 2s for the whole run
+2026-11-05T00:53:43.698Z STEP sweep live leftover protocol nodes (name prefix wp-e) before the preflight
+2026-11-05T00:53:44.014Z STEP preflight: 0 live nodes in 'agro node list --json' and http://127.0.0.1:3006/signin returns 200|307 (wait up to 600s, else exit 3)
+2026-11-05T00:53:44.953Z PREFLIGHT ok
+2026-11-05T00:53:44.960Z STEP agro node create --spec n4 --profile agro --free-tier --json --t3 --code-server --name wp-e1-nprime-agro-20261105t005343z  (background; t_request taken at issue)
+2026-11-05T00:53:44.969Z REQUEST create profile=agro name=wp-e1-nprime-agro-20261105t005343z t=1793840024965
+2026-11-05T00:53:44.982Z STEP find node row by name; claim start = first node_events type = 'bootstrapping' and detail->>'reason' = 'bind' at/after t_request; probe ssh every 500ms from claim start (ip re-read each attempt)
+agro node create: node 4510984e-295a-403e-a742-7b4438fa7203 queued
+2026-11-05T00:53:45.929Z NODE id=4510984e-295a-403e-a742-7b4438fa7203
+2026-11-05T00:53:46.356Z CLAIM_START 1793840025354 (+0.389s)
+agro node create: node 4510984e-295a-403e-a742-7b4438fa7203 bootstrapping
+sandbox@15.204.217.206: Permission denied (publickey).
+sandbox@15.204.217.206: Permission denied (publickey).
+sandbox@15.204.217.206: Permission denied (publickey).
+sandbox@15.204.217.206: Permission denied (publickey).
+sandbox@15.204.217.206: Permission denied (publickey).
+sandbox@15.204.217.206: Permission denied (publickey).
+sandbox@15.204.217.206: Permission denied (publickey).
+agro node create: node 4510984e-295a-403e-a742-7b4438fa7203 running
+2026-11-05T00:53:54.703Z SSH ip=15.204.217.206 +9.557s
+2026-11-05T00:53:54.708Z STEP usable probe (agro workspace list has harness, code-server :8080 200, T3 :3773 200) until 300s
+2026-11-05T00:53:56.870Z USABLE +11.886s
+2026-11-05T00:53:57.314Z STEP parity: usable, claim->ack order, docker state matches --docker=false
+2026-11-05T00:53:58.030Z STEP wait for 'agro node create' to exit
+2026-11-05T00:53:58.041Z CREATE exit=0 {"id":"4510984e-295a-403e-a742-7b4438fa7203","status":"running"}
+2026-11-05T00:54:02.566Z DELETED 4510984e-295a-403e-a742-7b4438fa7203 status=destroyed
+2026-11-05T00:54:02.997Z RESULT {"experiment":"e1","arm":"nprime","profile":"agro","size":null,"levers":null,"node_id":"4510984e-295a-403e-a742-7b4438fa7203","ssh_s":9.557,"usable_s":11.886,"valid":true,"invalid_reason":null,"failed":false}

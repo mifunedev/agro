@@ -1,0 +1,45 @@
+{
+ "h_extra_entries": 2,
+ "h_extra": [
+  "pkg:gh + 2.45.0-1ubuntu0.3",
+  "pkg:libatomic1 + 14.2.0-4ubuntu2~24.04.1"
+ ],
+ "h_agro_files_extra": [],
+ "noise_floor_entries": 14,
+ "agro_files": {
+  "cold": 16,
+  "nprime": 17,
+  "h": 17
+ },
+ "h_equals_nprime_build": false,
+ "nodes": {
+  "cold": {
+   "id": "82ce9037-1e79-48a4-879e-05d6d48c2e4d",
+   "mode": "cold",
+   "pooled_at": null,
+   "pool_cloud_init_sha256": null,
+   "image_id": "40c82cd6-c9d0-466a-a1f8-21d0057a9afd",
+   "agro_version": "",
+   "created_at": "2026-11-04 05:58:36.001571+00"
+  },
+  "nprime": {
+   "id": "aedd66e3-b5bc-41f6-af1b-867381016b90",
+   "mode": "warm",
+   "pooled_at": "2026-11-04 05:48:12.533+00",
+   "pool_cloud_init_sha256": "f4c993095dd6bc7f4466e644c5dc937f2fc61f09b191e1926453400bf417058e",
+   "image_id": "40c82cd6-c9d0-466a-a1f8-21d0057a9afd",
+   "agro_version": "0.28.0",
+   "created_at": "2026-11-04 05:45:57.307359+00"
+  },
+  "h": {
+   "id": "f25fe484-02e1-497c-aaf7-40e5436a4a37",
+   "mode": "warm",
+   "pooled_at": "2026-11-05 01:00:23.876+00",
+   "pool_cloud_init_sha256": "fa3d5c7b351d50466de366c82b5503a26d536f55408a166d37a042d9561faaa7",
+   "image_id": "40c82cd6-c9d0-466a-a1f8-21d0057a9afd",
+   "agro_version": "0.28.0",
+   "created_at": "2026-11-05 00:58:10.488483+00"
+  }
+ },
+ "normalization": "dropped host keys, machine-id, instance-id, logs, tokens, shell history; /var/lib/cloud/instances/<id> -> <IID>; /var/lib/cloud file content treated as per-instance"
+}
