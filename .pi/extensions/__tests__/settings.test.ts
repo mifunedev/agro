@@ -44,6 +44,7 @@ describe("project Pi settings", () => {
       "npm:@guwidoe/pi-prompt-suggester@0.3.10",
       "npm:@ff-labs/pi-fff@0.9.5",
       "npm:cc-safety-net@2.6.8",
+      "npm:@juicesharp/rpiv-ask-user-question@2.15.0",
     ]);
     expect(settings.skills).toBeUndefined();
   });

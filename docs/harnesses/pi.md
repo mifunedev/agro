@@ -91,8 +91,14 @@ AGRO loads these project-local Pi packages from `.pi/settings.json`:
 - [`@guwidoe/pi-prompt-suggester`](https://github.com/guwidoe/pi-prompt-suggester) — ghost-text prompt suggestions after assistant completions; configure with `/suggesterSettings`.
 - [`@ff-labs/pi-fff`](../integrations/pi-fff.md) — fast file search (`ffgrep`, `ffind`); see the integration page for detail.
 - [`cc-safety-net`](https://github.com/kenryu42/cc-safety-net) `2.6.8` — destructive-command and secret-path protection; see [Security considerations](../security-considerations.md#3-destructive-command-guard--enforced).
+- [`@juicesharp/rpiv-ask-user-question`](https://www.npmjs.com/package/@juicesharp/rpiv-ask-user-question) `2.15.0` — structured decisions through `ask_user_question`, with terminal choices and custom answers.
 
-Pi installs missing project packages automatically once you trust the project. AGRO also auto-loads project-local extensions from `.pi/extensions/`.
+Review project package declarations before granting project trust.
+After you trust the project, Pi installs and loads the pinned packages from `.pi/settings.json`.
+AGRO also auto-loads project-local extensions from `.pi/extensions/`.
+
+These project Pi settings belong to this checkout.
+`agro vendor` does not ship these settings because `.agro/manifest.json` has an empty `rootInclude` list.
 
 Outside this project, load a package manually with `pi -e npm:<package>`.
 
@@ -117,8 +123,14 @@ To install the declared safety guard version, run:
 pi install --local npm:cc-safety-net@2.6.8
 ```
 
+To install the declared question package without updating other pins, run the command below from the trusted project directory inside the sandbox:
+
+```bash
+pi install --local npm:@juicesharp/rpiv-ask-user-question@2.15.0
+```
+
 Start a new Pi session to load the installed versions.
-Do not reload an active session solely to verify an upgrade.
+Do not reload the running advisor session solely to activate or verify these packages.
 
 The Goal `0.54.8`, Loop `0.7.15`, and Subagents `0.20.0` pins remove their TypeBox dependency warnings.
 Subagents requires Pi `>=1.1.0`; [PR #384](https://github.com/tintinweb/pi-subagents/pull/384) supersedes the closed, unmerged PR #359.
@@ -127,6 +139,15 @@ Pi `1.1.0` checks runtime dependencies, not those peer ranges, when reporting th
 Tasks `0.7.0` still declares TypeBox as a runtime dependency and emits the warning.
 Track its fix in [pi-tasks PR #67](https://github.com/tintinweb/pi-tasks/pull/67).
 These warnings describe package manifests; they do not establish a runtime failure.
+
+## Structured questions
+
+In the terminal, `ask_user_question` presents choices and accepts a custom answer.
+Press Esc to cancel the question dialog.
+Cancellation returns `cancelled: true` instead of an answer.
+In RPC mode, the package uses native select and input dialogs instead of the custom terminal UI.
+Without a UI, including print and JSON modes, the package removes `ask_user_question` from the active tools.
+The package needs no additional configuration.
 
 ## Monitor and loops
 
