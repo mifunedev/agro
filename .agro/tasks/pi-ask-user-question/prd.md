@@ -134,3 +134,5 @@ None.
 - [ ] Operator-local `agro.json` changes remain outside the PR.
 
 ## Lessons
+
+None.
