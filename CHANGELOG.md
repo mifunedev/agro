@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.37.0] - 2026-11-14
+
 ### Changed
 
 - **BREAKING:** Move `hands.provider` from `agro.json` to the host config `${AGRO_HOME:-~/.agro}/config.json`, because git tracks `agro.json` and the provider is a per-machine setting. `agro config set hands.provider` writes the host config, and `agro config show` reports the value. `agro hands` ignores a `hands` section in `agro.json` and prints a notice. Migrate with `agro config set hands.provider <console|exedev>` ([#1629](https://github.com/mifunedev/agro/issues/1629)).
