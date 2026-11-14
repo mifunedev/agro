@@ -1,5 +1,14 @@
 # local/docker
 
+## Contents
+
+- [Choose when](#choose-when)
+- [Prerequisites](#prerequisites)
+- [Execute](#execute)
+- [Verify](#verify)
+- [Cleanup](#cleanup)
+- [Failure remedies](#failure-remedies)
+
 ## Choose when
 
 Use this route for one command on the host running `agro`.
@@ -58,7 +67,9 @@ Keep secrets out of tracked configuration.
 Each service gets a fresh container and its service name as a network alias.
 The command reaches PostgreSQL at `postgres:5432` on the per-run network.
 Readiness uses `sh -c` inside each service.
-The default interval is 1 second per check, with a 60-second budget per readiness check.
+For services and proxy, readiness defaults to 60 attempts with 1 second between failed attempts.
+Probe execution time adds to the wait. Captured probes have no timeout.
+The attempt limit is not a hard 60-second wall-clock limit.
 Without `ready`, the service has no readiness probe.
 
 `run.env` applies only in the service/allowlist network path.
@@ -72,7 +83,7 @@ The proxy permits OpenShell policy hosts plus `access.egressAllow`.
 The command gets upper/lowercase HTTP proxy variables, `NO_PROXY`/`no_proxy`, and `NODE_USE_ENV_PROXY=1`.
 `NO_PROXY` includes localhost, 127.0.0.1, and service names.
 Clients that ignore the proxy cannot reach the internet.
-The proxy readiness budget is also 60 seconds.
+The proxy uses the same readiness attempt limit.
 
 Before existing-sandbox execution, confirm `--sandbox` support in `agro run --help`.
 After that capability check, use `agro run --sandbox <name> -- <command...>`.
@@ -88,7 +99,7 @@ Inspect the checkout diff for expected writes. Disposable containers provide no 
 ## Cleanup
 
 `agro run` removes the command container and temporary identity files after execution.
-The service/allowlist path also removes services, proxy, networks, and temporary proxy configuration after success or failure.
+The service/allowlist path makes best-effort attempts to remove recorded services, proxy, networks, and temporary proxy configuration after success or failure.
 Inspect cleanup errors. Remove only resources that belong to the approved run.
 Existing-sandbox execution leaves the sandbox running.
 
@@ -96,5 +107,9 @@ Existing-sandbox execution leaves the sandbox running.
 
 Setup errors exit 1 and name the failed operation or readiness check.
 Check the image, Docker access, service configuration, and proxy policy named by the error.
+Before execution, the executing agent sets and records a finite deadline within the operator-approved run scope.
+The agent uses a background monitor with a completion notice.
+At the deadline, the agent stops the run and inspects cleanup errors and owned resources.
+Do not use shell sleep loops.
 Do not silently fall back to host execution or weaker isolation after a refusal.
 Do not disable the allowlist to make a refused request succeed.

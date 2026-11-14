@@ -33,7 +33,7 @@ Set `IMAGE=<oci-ref>` to boot a VM from an image. `IMAGE=ghcr.io/mifunedev/agro:
 
 `exedev_row_https` requests `https://<name>.exe.xyz/`. HTTP 200 gives `PASS`. A redirect, 401, or 403 gives `SKIPPED`, because the exe.dev proxy is private until the operator shares the VM.
 
-An exe.dev VM has no stop command. The VM uses account resources until `rm`.
+The retained exe.dev adapter exposes no stop/pause operation. The VM uses account resources until `rm`.
 
 Manual sweep on the driver host:
 

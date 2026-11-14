@@ -99,6 +99,61 @@ describe("sandbox skill", () => {
     expect(env).toContain("With neither services nor an allowlist, `run.env` does not apply");
   });
 
+  it("requires checked remote isolation for public hands application examples", () => {
+    const docs = readFileSync(join(root, "docs/lifecycle-commands.md"), "utf8");
+    const hands = docs.slice(docs.indexOf("## Hands from a brain:"), docs.indexOf("## Langfuse tracing:"));
+    const examples = [...hands.matchAll(/^agro hands exec .+$/gm)].map((match) => match[0]);
+    const applications = examples.map((line) => line.slice(line.indexOf(" -- ") + 4))
+      .filter((command) => /\bnpm test\b/.test(command));
+    expect(applications).not.toHaveLength(0);
+    for (const command of applications) expect(command).toBe("agro run -- npm test");
+    expect(hands).toContain("SSH transport, not a container or runtime boundary");
+    const prerequisites = hands.slice(0, hands.indexOf("```bash"));
+    expect(prerequisites).toContain("remote `agro run --help`");
+    expect(prerequisites).toContain("runtime checks confirm support");
+    expect(prerequisites).toContain("unavailable or refuses execution, stop");
+    expect(prerequisites).toContain("Do not fall back to raw-host application execution");
+  });
+
+  it("discloses writable linked-worktree metadata and mounted credential risk publicly", () => {
+    const docs = readFileSync(join(root, "docs/lifecycle-commands.md"), "utf8");
+    const container = docs.slice(docs.indexOf("The container gets these limits:"), docs.indexOf("### Services:"));
+    expect(container).toContain("repository root writable");
+    expect(container).toContain("external Git common directory writable");
+    expect(container).toContain("shared repository metadata");
+    expect(container).toContain("credentials already inside the mounted checkout");
+    expect(container).toContain("host uid and gid");
+    expect(container).toContain("`HOME=/tmp`");
+    expect(container).toContain("no host environment variables, no home directory, and no Docker socket");
+    expect(container).not.toContain("mounts only");
+  });
+
+  it("qualifies service and proxy readiness attempts without a hard wall-clock promise", () => {
+    const docs = readFileSync(join(root, "docs/lifecycle-commands.md"), "utf8");
+    const network = docs.slice(docs.indexOf("### Services:"), docs.indexOf("### MicroVM isolation"));
+    for (const text of [reference("local-docker"), network]) {
+      expect(text).toContain("services and proxy");
+      expect(text).toContain("60 attempts");
+      expect(text).toContain("1 second between failed attempts");
+      expect(text).toContain("Probe execution time adds to the wait");
+      expect(text).toContain("no timeout");
+      expect(text).toContain("not a hard 60-second wall-clock limit");
+      expect(text).toContain("operator");
+      expect(text).toContain("monitor");
+      expect(text).not.toMatch(/60-second budget|budget is also 60 seconds|maximum of\s+60 s|not ready after 60 s/);
+    }
+  });
+
+  it("scopes stop limitations to the retained adapter and qualifies cleanup", () => {
+    expect(reference("providers")).toContain("retained exe.dev adapter exposes no stop/pause operation");
+    expect(reference("providers")).not.toContain("An exe.dev VM has no stop command");
+    const cleanup = reference("local-docker").split("## Cleanup")[1].split("## Failure remedies")[0];
+    expect(cleanup).toContain("best-effort");
+    expect(cleanup).toContain("recorded services, proxy, networks, and temporary proxy configuration");
+    expect(cleanup).toContain("after success or failure");
+    expect(cleanup).toContain("Remove only resources that belong to the approved run");
+  });
+
   it("uses the source-backed brain checkout for setup and the hand checkout for SSH retrieval", () => {
     const source = readFileSync(join(root, ".agro/cli/src/commands/hands.ts"), "utf8");
     const brainBody = /function brainProjectPath\([^]*?\n\}/.exec(source)?.[0];
