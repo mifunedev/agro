@@ -59,8 +59,8 @@
         "`.agro/cli/src/lib/__tests__/agro-config.test.ts` covers the valid values, the rejected value, and the absent key."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 reasoned: AGRO_CONFIG_FIELDS has hands.provider enum from HAND_PROVIDER_IDS; validateAgroConfig expectEnum. 2 reasoned: resolveHandProviderId uses readHostConfig().harnessRoot ?? defaultHarnessRoot with userHome dep; exedev exits 2 placeholder; console path unchanged. 3 executed (worker, built CLI): config set exedev exit 0, other exit 1; unit tests via setAgroConfigValue. 4 executed: docs/configuration.md Hands table; docs-reference.test.ts green. 5 reasoned: agro-config.test.ts covers valid, rejected, absent, harnessRoot. 6 executed: typecheck exit 0; test:scripts 3341 passed, 7 baseline herdr-default failures. Follow-up carried to US-005: hands tests read the real home (not hermetic) and the runHands exedev test sits in agro-config.test.ts.",
       "dependsOn": [
         "US-002"
       ],
@@ -71,7 +71,8 @@
         ".agro/cli/src/commands/hands.ts",
         ".agro/cli/src/lib/hands/provider.ts"
       ],
-      "external": false
+      "external": false,
+      "commit": "74146675"
     },
     {
       "id": "US-004",
