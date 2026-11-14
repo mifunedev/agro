@@ -15,14 +15,15 @@
         "The probe creates, forks, pauses, and deletes no VM."
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: probe.md records help for ls,new,cp,pause,resume,rm,tag (all exit 0; `help run` reports unrecognized). 2 executed: `jq -e '.vms|length==2'` exit 0; fixture holds tagged agro-sbx-dev-001 and untagged agro-supervisor with vm_name,ssh_dest,status,tags only. 3 executed: pause and resume list --json; missing-key ls --json exit 255, Permission denied (publickey). 4 reasoned: probe ran only help, ls --json, whoami --json; no email in either file (grep count 0). Evidence is gitignored by .gitignore:26.",
       "dependsOn": [],
       "files": [
         ".agro/tasks/exedev-hands/evidence/probe.md",
         ".agro/cli/src/commands/__tests__/fixtures/exedev-ls.json"
       ],
-      "external": false
+      "external": false,
+      "commit": "19a36dea"
     },
     {
       "id": "US-002",
