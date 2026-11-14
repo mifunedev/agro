@@ -68,8 +68,8 @@
         "`bash .agro/scripts/link-providers.sh --check` exits 0, `corepack pnpm typecheck` exits 0, and `corepack pnpm test:scripts` passes except the known baseline failures."
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1-9, 11-12 reasoned/executed per worker report: SKILL.md default order, status rule, no resume/create, failed-exec stop/offer, no raw host, inner loop local, one agent per project per hand; hands.md Choose when replaced; cases R12-R15; caseIds R1-R15, unknown R16; skill test assertions; docs bullet; CHANGELOG Changed with #1633. 10 executed: 15 fresh decision-only records at afbb9bfc all match oracles; decisions.json a53677f9 with helper provenance. 13 executed: ste-check hands.md and SKILL.md no findings. 14 executed: link-providers --check exit 0; agro run -- pnpm typecheck exit 0; agro run -- vitest sandbox-routing + sandbox-skill 44/44 (advisor rerun); agro run -- pnpm test:scripts 3448 passed, 4 failed = standard-skills-link 5 s timeouts that also fail on origin/development under agro run (evidence/baseline.md).",
       "dependsOn": [
         "US-001"
       ],
@@ -84,7 +84,8 @@
         "docs/lifecycle-commands.md",
         "CHANGELOG.md"
       ],
-      "external": false
+      "external": false,
+      "commit": "afbb9bfc,a53677f9"
     },
     {
       "id": "US-004",
