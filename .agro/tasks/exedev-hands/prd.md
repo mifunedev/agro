@@ -243,3 +243,11 @@ N/A. `agro hands` keeps no local state. The provider API is the only list of han
 - [ ] ADR #1622 status is `Accepted` before the task PR leaves draft. `external`
 
 ## Lessons
+
+1. Claim: content-bound routing evidence goes stale when any instruction file changes. Evidence: US-004 edited `providers.md`, `validation.md`, and `docs/lifecycle-commands.md`, and `sandbox-routing.test.ts` failed with `stale source: instructionFiles` until US-007 recorded fresh decisions. The first fresh replay also found two real gaps (R9 omitted the `agro-run` owner, and no procedure pushed a branch to an existing hand). Outcome: fixed in this PR (`86d75213` documents both gaps; `063bdc44` records 11 matching decisions).
+2. Claim: the hands tests read the real home directory after `hands.provider` resolution arrived. Evidence: US-003 report; `hands.test.ts` had no `userHome` injection. Outcome: fixed in this PR (US-005 injects a temp `userHome`).
+3. Claim: `agro node create --free-tier` prints the sign-in message before the unknown-flag message when no console configuration exists. Evidence: US-008 transcript E3; `runNode` resolves the console configuration before verb flags. Outcome: dropped. Both paths exit 1 and send no console request.
+4. Claim: no run has observed the JSON shape of `ssh exe.dev new --json` and `cp --json`. Evidence: open question 1; the probe created no VM. Outcome: dropped. The provider falls back to `--name` plus `ls --json` and fails closed; the first authorized `create` confirms the shape.
+5. Claim: no run has checked the fallback trigger `PAYMENTS_DISABLED` or brain-token acceptance of `freeTier: true` against the live console. Evidence: open questions 3 and 4; the brain has no console sign-in. Outcome: dropped. A different refusal code leaves the create failing as before, with no regression.
+6. Claim: a named microVM target in `agro run` depends on `msb start` outside the `agro` lifecycle door. Evidence: `run.ts` `runInMicrovm` error text. Outcome: dropped. ADR #1575 owns that lifecycle, and the finding is not a correctness or security risk in this PR.
+7. Claim: validation checks keep the literal `$HOME/.agro/workspaces/harness`. Evidence: US-007 report (`checks/agro-rows.sh`, `checks/hermes-home.sh`, `references/validation.md`). Outcome: dropped. Those paths describe a fresh install, not the brain harness root.
