@@ -96,7 +96,7 @@ describe("sandbox skill", () => {
     const select = entrypoint.slice(entrypoint.indexOf("## Select a route"), entrypoint.indexOf("## Validation and supporting resources"));
     const steps = [...select.matchAll(/^(\d+)\. /gm)].map((match) => Number(match[1]));
     expect(steps).toEqual([1, 2, 3, 4, 5, 6, 7]);
-    for (const term of ["`running`", "`git status --porcelain`", "`agro run --isolation microvm`", "`agro hands list`",
+    for (const term of ["`running`", "`git status --porcelain`", "`agro run --isolation microvm`", "`agro hands list`", "`hand-<hand>`",
       "-- agro run -- <command>", "`local/docker`"]) {
       expect(select).toContain(term);
     }
