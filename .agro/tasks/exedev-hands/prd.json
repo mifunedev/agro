@@ -135,8 +135,8 @@
         "`pnpm typecheck` exits 0, and `pnpm test:scripts` exits 0."
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1-8 executed: hands-exedev.test.ts (16 tests) pins ls --json tag filter, whoami preflight exit 2 with key remedy, exec argv with HostKeyAlias=<vm> and bash -lc quoting, fetch hand-<vm> with GIT_SSH_COMMAND, AGRO_HOME temp project path, untagged/unknown refusal. Advisor grep: hands.ts has no workspaces/harness literal; BRAIN_HOME only for console token and URL files. 9 executed: hands.test.ts and hands-project.test.ts inject a temp userHome; assertions unchanged; 192 tests in affected files pass. 10: typecheck exit 0; test:scripts 3366 passed, 9 failed = 7 baseline herdr-default + sandbox-routing provenance (carried from US-004) + sandbox-skill.test.ts brain-path test that parses the removed literal. Both test files are owned by US-007; carried there.",
       "dependsOn": [
         "US-001",
         "US-002",
@@ -150,7 +150,8 @@
         ".agro/cli/src/commands/hands.ts",
         ".agro/cli/src/commands/__tests__/hands-exedev.test.ts"
       ],
-      "external": false
+      "external": false,
+      "commit": "677f7ab3"
     },
     {
       "id": "US-006",
