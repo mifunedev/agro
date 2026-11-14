@@ -8,6 +8,8 @@ Update policy and release automation live in [`/git`](.claude/skills/git/SKILL.m
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-11-14
+
 ### Added
 
 - Add pinned Pi `ask_user_question` support for structured choices and custom answers ([#1616](https://github.com/mifunedev/agro/issues/1616)).
