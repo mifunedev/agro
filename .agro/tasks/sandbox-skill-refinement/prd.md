@@ -40,7 +40,7 @@ Status: APPROVED by the operator's active goal.
 - [ ] All sixteen moved machinery files retain their original blobs and modes.
 - [ ] Manual review evidence includes a real positive command and an invalid-provider failure from fresh temporary state.
 - [ ] The final commit excludes `agro.json`, runtime code, dependency changes, and unrelated main-checkout edits.
-- [ ] The PR body uses pinned evidence links and records known verification limits.
+- [ ] Manual review evidence records reproducible commands, outputs, and limits for pinned PR links.
 
 ## Summary
 
@@ -123,8 +123,18 @@ None. The active goal authorizes bounded implementation and evaluation through P
 - [ ] A fresh ten-member council explores the immutable candidate before scoring under the unchanged rubric.
 - [ ] The exact unrounded mean is at least 0.930; displayed scores use at most three decimal places.
 - [ ] Material disputes receive bounded independent verification before acceptance.
+- [ ] The published PR body uses pinned evidence links and records known verification limits.
 - [ ] GitHub CI is green for the exact final PR head.
 - [ ] GitHub reports `isDraft: false` only after the score and CI gates pass.
 - [ ] The operator's unrelated changes remain untouched.
 
 ## Lessons
+
+The advisor distinguished source acceptance from final publication so evidence links can use the actual final commit without a self-reference cycle.
+All publication, score, and CI gates remain mandatory before undrafting.
+A provenance audit found two linked public inputs outside the initial hash list.
+The bounded repair hashes those inputs and tests document-byte mutations; it preserves the original model decisions.
+Outcome: fixed in this PR.
+Suggested commands in the decision-only responses remain ungraded and unexecuted.
+Broader live-provider validation needs separate authority and is not evidence from this task.
+Outcome: dropped from this change because the task does not authorize those runs.

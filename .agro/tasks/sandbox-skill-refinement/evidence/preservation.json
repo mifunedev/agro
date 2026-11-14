@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "1a2d35f5940e7b3f316b361557180ce674590c85",
+  "snapshotCommit": "0f45ce5479ead57c61f605c71cdb79fb70b7d3ac",
+  "comparison": "Exact Git blob and mode comparison, not filename-only rename inference.",
+  "preservedFiles": [
+    {
+      "oldPath": ".agro/skills/remote-sandbox/adapters/console.sh",
+      "newPath": ".agro/skills/sandbox/adapters/console.sh",
+      "blob": "0d3c57a88d14e3ca2bec761977630a3661af7048",
+      "mode": "100644"
+    },
+    {
+      "oldPath": ".agro/skills/remote-sandbox/adapters/exedev.sh",
+      "newPath": ".agro/skills/sandbox/adapters/exedev.sh",
+      "blob": "0e3008be80f22b7dab532648f4a54d3a0cc68027",
+      "mode": "100644"
+    },
+    {
+      "oldPath": ".agro/skills/remote-sandbox/adapters/msb.sh",
+      "newPath": ".agro/skills/sandbox/adapters/msb.sh",
+      "blob": "2e10d05580c52ed36f811642633b8b32a8199f1b",
+      "mode": "100644"
+    },
+    {
+      "oldPath": ".agro/skills/remote-sandbox/adapters/vercel.sh",
+      "newPath": ".agro/skills/sandbox/adapters/vercel.sh",
+      "blob": "c557dd285b913ab002d736ae3151238c9b052617",
+      "mode": "100644"
+    },
+    {
+      "oldPath": ".agro/skills/remote-sandbox/checks/agro-rows.sh",
+      "newPath": ".agro/skills/sandbox/checks/agro-rows.sh",
+      "blob": "98bd291ae5eb5ea1bd77eee97550e662b2eba906",
+      "mode": "100755"
+    },
+    {
+      "oldPath": ".agro/skills/remote-sandbox/checks/agro-run-matrix.sh",
+      "newPath": ".agro/skills/sandbox/checks/agro-run-matrix.sh",
+      "blob": "16add214f9aa7a621247e49dcc0f59e103bb6e28",
+      "mode": "100755"
+    },
+    {
+      "oldPath": ".agro/skills/remote-sandbox/checks/cg-probe.sh",
+      "newPath": ".agro/skills/sandbox/checks/cg-probe.sh",
+      "blob": "15edbf002b8f0554d4289fde1550a27eea1123eb",
+      "mode": "100755"
+    },
+    {
+      "oldPath": ".agro/skills/remote-sandbox/checks/docker-egress.sh",
+      "newPath": ".agro/skills/sandbox/checks/docker-egress.sh",
+      "blob": "789b277b29c9bdc1c1e254f9eb9f5e45902e7a2c",
+      "mode": "100755"
+    },
+    {
+      "oldPath": ".agro/skills/remote-sandbox/checks/fresh-install.sh",
+      "newPath": ".agro/skills/sandbox/checks/fresh-install.sh",
+      "blob": "63e80e6fc67edc8cddfabb6824af9cc1a6d61a78",
+      "mode": "100755"
+    },
+    {
+      "oldPath": ".agro/skills/remote-sandbox/checks/hermes-home.sh",
+      "newPath": ".agro/skills/sandbox/checks/hermes-home.sh",
+      "blob": "4782bfc79f8e7ab2b9be00a7667994ea0d17327a",
+      "mode": "100755"
+    },
+    {
+      "oldPath": ".agro/skills/remote-sandbox/checks/msb-guest.sh",
+      "newPath": ".agro/skills/sandbox/checks/msb-guest.sh",
+      "blob": "373c2c1a212d21a9e024d2a9f03533ea3497ba7e",
+      "mode": "100755"
+    },
+    {
+      "oldPath": ".agro/skills/remote-sandbox/checks/openshell-journey.sh",
+      "newPath": ".agro/skills/sandbox/checks/openshell-journey.sh",
+      "blob": "2b9f6a4c0cfee3384c5f1bc7a614d57682842dc7",
+      "mode": "100755"
+    },
+    {
+      "oldPath": ".agro/skills/remote-sandbox/scripts/lib.sh",
+      "newPath": ".agro/skills/sandbox/scripts/lib.sh",
+      "blob": "574db348dfe92065d9b9a7f987a84797cc043525",
+      "mode": "100644"
+    },
+    {
+      "oldPath": ".agro/skills/remote-sandbox/scripts/restart-test.sh",
+      "newPath": ".agro/skills/sandbox/scripts/restart-test.sh",
+      "blob": "2f9c736d21e5b325cc1164602e935ba3c3d567c2",
+      "mode": "100755"
+    },
+    {
+      "oldPath": ".agro/skills/remote-sandbox/scripts/run.sh",
+      "newPath": ".agro/skills/sandbox/scripts/run.sh",
+      "blob": "ba7ead9ccbad5869c4a1ce10a4e5336a819896b8",
+      "mode": "100755"
+    },
+    {
+      "oldPath": ".agro/skills/remote-sandbox/scripts/summarize.sh",
+      "newPath": ".agro/skills/sandbox/scripts/summarize.sh",
+      "blob": "4d8ce34dbfa03f659ec5a4f036d982215460007f",
+      "mode": "100755"
+    }
+  ],
+  "providerSymlinks": {
+    ".agents/skills": "../.agro/skills",
+    ".claude/skills": "../.agro/skills"
+  },
+  "manifestIncludesSkills": true,
+  "excludedFromChange": [
+    "agro.json",
+    ".agro/cli",
+    ".devcontainer",
+    "package.json",
+    "pnpm-lock.yaml"
+  ],
+  "limits": [
+    "This proves source preservation and tracked link targets, not live provider availability."
+  ]
+}

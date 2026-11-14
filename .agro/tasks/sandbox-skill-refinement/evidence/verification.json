@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "verifiedCodeRevision": "11796f0f18eaec3a613725c2eaab43981ca29544",
+  "fullVerification": {
+    "command": "agro run -- sh -c 'set -eu; pnpm run lint; pnpm typecheck; pnpm build; pnpm test'",
+    "monitor": 12,
+    "exitCode": 0,
+    "testFiles": 125,
+    "testsPassed": 3348,
+    "testsSkipped": 0,
+    "typecheck": "passed",
+    "build": "passed",
+    "lint": "The root lint command only prints that no root lint is configured."
+  },
+  "routing": {
+    "cases": 8,
+    "freshContexts": 8,
+    "attemptsPerCase": 1,
+    "routesMatched": 8,
+    "requiredOwnersMatched": 8,
+    "instructionInputs": 10,
+    "instructionSha256": "fd394976beb031489d88706e67e5ee0bfdf71d8927521be3968e4fb5fa3ff233",
+    "casesSha256": "afbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab",
+    "actualResponseRecord": ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json",
+    "captureAudit": ".agro/tasks/sandbox-skill-refinement/evidence/routing-run.json",
+    "limits": "Decision-only routing sample. Suggested command wording is ungraded and unexecuted; no general agent reliability or live provider success is inferred."
+  },
+  "focusedContracts": {
+    "monitor": 11,
+    "exitCode": 0,
+    "testFiles": 8,
+    "testsPassed": 270,
+    "details": ".agro/tasks/sandbox-skill-refinement/evidence/execution-contracts.json"
+  },
+  "manualFailure": {
+    "freshOutputPathAbsentBeforeInvocation": true,
+    "driverExitCode": 2,
+    "reviewWrapperExitCode": 0,
+    "providerOperations": 0,
+    "details": ".agro/tasks/sandbox-skill-refinement/evidence/manual-review.md"
+  },
+  "sourceChecks": {
+    "preservedMachineryFiles": 16,
+    "contentsAndModesMatchBase": true,
+    "providerLinks": "passed",
+    "shellSyntax": "passed",
+    "changedReferenceAndPlanProse": "passed STE",
+    "gitDiffCheck": "passed"
+  },
+  "externalLimits": [
+    "No new live provider VM, PostgreSQL-service boundary, egress boundary, or microVM validation.",
+    "External skill registry publication is outside this change.",
+    "Final PR-head GitHub checks are a separate publication gate."
+  ]
+}

@@ -22,9 +22,11 @@
         "The existing changelog entry describes the added routing evidence and links issue #1618."
       ],
       "priority": 1,
-      "commit": "7bbf3209a6af04513b7f7f8881dc9d10415884a6",
+      "commit": "11796f0f18eaec3a613725c2eaab43981ca29544",
       "passes": true,
-      "notes": "Advisor accepted the inspected bounded diff after source-backed brain-path repair. Executed: monitor8 exit0 for six skill contract tests and thirty grader unit tests in agro run; worker red mutation demonstrated wrong-route rejection. Reasoned: clone setup now matches hands.ts brain/hand paths, public run.env matches services-or-allowlist, historical msb caveat is qualified, eight case prompts/oracles are separate, and unchanged 191-character changelog entry links1618. The unfiltered observed replay test intentionally remains unsatisfied until US-002 supplies genuine records; no synthetic observation or skip can satisfy it.",
+      "rounds": 1,
+      "repairHistory": "Resolved input-closure gap through bounded worker61ed1915-7a0d-479. All ten actual/public instruction inputs are hashed, including two linked R8 documents. Tests mutate either document in isolated fixtures and reject stale provenance. Monitor12 passed all3348 tests with the final helper.",
+      "notes": "Advisor accepted the inspected bounded diff after source-backed brain-path repair. Executed: monitor8 exit0 for six skill contract tests and thirty grader unit tests in agro run; worker red mutation demonstrated wrong-route rejection. Reasoned: clone setup now matches hands.ts brain/hand paths, public run.env matches services-or-allowlist, historical msb caveat is qualified, eight case prompts/oracles are separate, and unchanged 191-character changelog entry links1618. The final unfiltered observed replay test passes with genuine US-002 records; no synthetic observation or skip can satisfy it.",
       "files": [
         ".agro/skills/sandbox/references/mifune-console.md",
         ".agro/skills/sandbox/references/local-msb.md",
@@ -49,8 +51,10 @@
       ],
       "priority": 2,
       "dependsOn": ["US-001"],
+      "commit": "11796f0f18eaec3a613725c2eaab43981ca29544",
       "passes": true,
-      "notes": "Executed: eight unique fresh contexts at immutable7bbf3209 produced the expected R1-R8 routes and required owners on their first attempts; actual JSON responses, observed gpt-6.1-sol model names, handles and prompt hashes were captured, not synthesized. Advisor audited every tool call as git-show-only source inspection, with no oracle/plan access or provider execution. Current instruction digest5a64aa4a1c0d31ace004cbd2a2eaf6afefe7b8167181a834040417b9aa9275f7 and cases hashafbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab match capture. Monitor9 exit0: all37 routing/skill tests passed unfiltered, including the real observed-record gate and negative wrong-route/stale/missing/schema/provenance mutations; no skips. Suggested command wording remains ungraded and unexecuted, explicitly disclosed.",
+      "repairHistory": "Verified all ten input files byte-for-byte against immutable7bbf3209 and refreshed only provenance metadata. The original decisions, cases, models, handles and outcomes are unchanged. No replay or oracle substitution.",
+      "notes": "Executed: eight unique fresh contexts at immutable7bbf3209 produced the expected R1-R8 routes and required owners on their first attempts; actual JSON responses, observed gpt-6.1-sol model names, handles and prompt hashes were captured, not synthesized. Advisor audited every tool call as git-show-only source inspection, with no oracle/plan access or provider execution. Complete instruction digestfd394976beb031489d88706e67e5ee0bfdf71d8927521be3968e4fb5fa3ff233 and cases hashafbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab match the verified original inputs. Monitor12 exit0: all3348 tests passed, including the observed-record gate and negative wrong-route/stale/missing/schema/provenance/public-document-byte mutations; no skips. Suggested command wording remains ungraded and unexecuted, explicitly disclosed.",
       "files": [
         ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json",
         ".agro/tasks/sandbox-skill-refinement/evidence/routing-run.json"
@@ -66,12 +70,12 @@
         "All sixteen moved machinery files retain their original blobs and modes.",
         "Manual review evidence includes a real positive command and an invalid-provider failure from fresh temporary state.",
         "The final commit excludes agro.json, runtime code, dependency changes, and unrelated main-checkout edits.",
-        "The PR body uses pinned evidence links and records known verification limits."
+        "Manual review evidence records reproducible commands, outputs, and limits for pinned PR links."
       ],
       "priority": 3,
       "dependsOn": ["US-001", "US-002"],
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "Executed: monitor12 exit0 for lint command/typecheck/build and3348 tests in125 files. Monitor11 exit0 for270 focused execution-contract tests. Provider links, bash syntax, changed-reference/plan STE, and diff checks passed. Exact Git comparisons preserve all16 machinery blobs/modes and exclude runtime, dependencies and agro.json changes. Manual evidence records the fresh absent-output-path invalid-provider exit2, successful wrapper exit0 and container-scoped cleanup. Reasoned: source-story acceptance prepares reproducible evidence; task-level gates separately require actual final-head pinned PR links, unchanged-rubric council mean and green CI before undrafting. No live provider/microVM success is claimed.",
       "files": [".agro/tasks/sandbox-skill-refinement/evidence/manual-review.md"]
     }
   ]
