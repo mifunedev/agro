@@ -720,11 +720,11 @@ history. A hand is a node that the brain creates and manages through
 `agro hands`. The hand does the work. `agro hands` keeps no state. The provider
 API lists the hands.
 
-One brain uses one provider. The field `hands.provider` in
-`<harness-root>/agro.json` selects it: `console` (the default) or `exedev`.
-`<harness-root>` is `harnessRoot` in `~/.agro/config.json`, else
-`~/.agro/workspaces/harness`. `agro hands --help` states the same rule.
-Run `agro config set hands.provider exedev` to select exe.dev hands.
+One brain uses one provider. The field `hands.provider` in the host config
+`${AGRO_HOME:-~/.agro}/config.json` selects it: `console` (the default) or
+`exedev`. `agro hands --help` states the same rule.
+Run `agro config set hands.provider exedev` to select exe.dev hands. See
+[Configuration → Host config](configuration.md#host-config).
 
 Before application build/test/install workloads, inspect the hand's installed capabilities through SSH.
 After remote `agro run --help` and runtime checks confirm support, use the application example below.

@@ -148,12 +148,6 @@ corepack makes, uses the proxy.
 See [Security considerations § Egress allowlist](security-considerations.md#8-egress-allowlist--enforced-opt-in)
 for the limits of this mode and the security boundary it enforces.
 
-### Hands
-
-| Field | Type | Default | Compose variable | What the field does |
-| --- | --- | --- | --- | --- |
-| `hands.provider` | enum: `console`, `exedev` | `console` | — | Selects the `agro hands` provider. `agro hands` reads the field from the `agro.json` at the brain harness root: the `harnessRoot` in `~/.agro/config.json`, else `~/.agro/workspaces/harness`. `~` is the home directory of the user that runs `agro`. An absent file or field means `console`. |
-
 ### Hermes dashboard
 
 | Field | Type | Default | Compose variable | What the field does |
@@ -191,6 +185,21 @@ Recipe: [Creating a sandbox](deployment-prebuilt-image.md).
 | Field | Type | Default | Compose variable | What the field does |
 | --- | --- | --- | --- | --- |
 | `composeOverrides` | string[] | `[]` | — | Extra `-f` overlay paths, applied after the built-in overlays selected by `access` (last `-f` wins). |
+
+## Host config
+
+The host config `${AGRO_HOME:-~/.agro}/config.json` holds per-machine state. Git
+does not track it, and each machine keeps its own copy. `~` is the home directory
+of the user that runs `agro`. `agro config set hands.provider <value>` writes the
+field, and `agro config show` prints its value to stderr.
+
+| Field | Type | Default | What the field does |
+| --- | --- | --- | --- |
+| `hands.provider` | enum: `console`, `exedev` | `console` | Selects the `agro hands` provider. An absent file or field means `console`. Any other value makes `agro hands` exit 1 with an error that names the field. |
+
+`agro.json` no longer holds `hands.provider`. When an `agro.json` keeps a `hands`
+section, `agro hands` and `agro config` ignore it and print a notice that names
+the host config and `agro config set hands.provider <value>`.
 
 ## Secrets
 

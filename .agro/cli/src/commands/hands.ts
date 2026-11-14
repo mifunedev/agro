@@ -18,6 +18,7 @@ import { createExedevProvider, exedevPreflight, HAND_TAG } from "../lib/hands/ex
 import {
   brainHarnessRoot,
   resolveHandProviderId,
+  retiredHandsNotice,
   shellQuote,
   type Hand,
   type HandProvider,
@@ -25,7 +26,7 @@ import {
 import { DOCKERENV_FILE, SANDBOX_MARKER_FILE } from "../lib/execution/detect.js";
 import { messageOf, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import * as prompt from "../lib/prompt.js";
-import type { HandProviderId } from "../lib/agro-config.js";
+import type { HandProviderId } from "../lib/host-config.js";
 
 export { normalizeHandRef } from "../lib/hands/console-provider.js";
 export { resolveBrainConsoleConfig } from "../lib/console-api.js";
@@ -127,8 +128,9 @@ Usage:
   ${bin} hands fetch <hand> --project <owner>/<repo>
 
 Providers:
-  \`hands.provider\` in <harness-root>/agro.json selects the provider:
-  \`console\` (the default) or \`exedev\`.
+  \`hands.provider\` in the host config \${AGRO_HOME:-~/.agro}/config.json
+  selects the provider: \`console\` (the default) or \`exedev\`.
+  Run \`${bin} config set hands.provider exedev\` to select exe.dev hands.
 
 Console hands:
 <hand> is an index (4), an alias, or a uuid.
@@ -620,6 +622,8 @@ export async function runHands(
     return 0;
   }
   const deps = { ...defaultDeps(), ...overrides };
+  const notice = retiredHandsNotice(brainHarnessRoot(deps.env, deps.userHome()), deps.env, deps.userHome(), bin);
+  if (notice !== undefined) io.stderr(`${bin} hands: ${notice}\n`);
   let providerId: HandProviderId;
   try {
     providerId = resolveHandProviderId(deps.env, deps.userHome());

@@ -1,6 +1,14 @@
 import { readFileSync } from "node:fs";
-import { agroConfigPath, HAND_PROVIDER_IDS, type HandProviderId } from "../agro-config.js";
-import { defaultHarnessRoot, readHostConfig } from "../host-config.js";
+import { agroConfigPath } from "../agro-config.js";
+import {
+  defaultHarnessRoot,
+  handProviderError,
+  HANDS_PROVIDER_FIELD,
+  hostConfigPath,
+  isHandProviderId,
+  readHostConfig,
+  type HandProviderId,
+} from "../host-config.js";
 
 export function brainHarnessRoot(env: NodeJS.ProcessEnv, home: string): string {
   try {
@@ -18,13 +26,28 @@ function readJson(path: string): unknown {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
 export function resolveHandProviderId(env: NodeJS.ProcessEnv, home: string): HandProviderId {
-  const path = agroConfigPath(brainHarnessRoot(env, home));
-  const hands = (readJson(path) as { hands?: { provider?: unknown } } | null | undefined)?.hands;
-  const provider = hands !== null && typeof hands === "object" ? hands.provider : undefined;
+  const path = hostConfigPath(env, home);
+  const config = readJson(path);
+  const hands = isRecord(config) ? config.hands : undefined;
+  const provider = isRecord(hands) ? hands.provider : undefined;
   if (provider === undefined) return "console";
-  if ((HAND_PROVIDER_IDS as readonly unknown[]).includes(provider)) return provider as HandProviderId;
-  throw new Error(`${path}: hands.provider must be one of ${HAND_PROVIDER_IDS.join(", ")}`);
+  if (isHandProviderId(provider)) return provider;
+  throw handProviderError(path);
+}
+
+export function retiredHandsNotice(root: string, env: NodeJS.ProcessEnv, home: string, bin: string): string | undefined {
+  const path = agroConfigPath(root);
+  const config = readJson(path);
+  if (!isRecord(config) || !Object.hasOwn(config, "hands")) return undefined;
+  return (
+    `${path}: agro ignores the hands section. ${HANDS_PROVIDER_FIELD} is in the host config ` +
+    `${hostConfigPath(env, home)}. Run \`${bin} config set ${HANDS_PROVIDER_FIELD} <value>\`, then remove the hands section.`
+  );
 }
 
 const SAFE_WORD = /^[A-Za-z0-9_\/.,:=@%+-]+$/;

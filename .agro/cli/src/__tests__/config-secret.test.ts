@@ -337,6 +337,83 @@ describe("agro config set", () => {
   });
 });
 
+describe("agro config hands.provider", () => {
+  function hostScope() {
+    const home = makeRepo();
+    const agroHome = join(home, ".agro");
+    return { home, agroHome, configFile: join(agroHome, "config.json") };
+  }
+
+  it("writes hands.provider to the host config and leaves agro.json alone", async () => {
+    const root = makeRepo();
+    const host = hostScope();
+    const { io, out, err } = makeIo();
+    const opts = { bin: "agro", cwd: root, env: {}, home: host.home };
+    expect(await runConfigSet("hands.provider", "exedev", opts, io)).toBe(0);
+    expect(JSON.parse(readFileSync(host.configFile, "utf8"))).toEqual({ version: 1, hands: { provider: "exedev" } });
+    expect(existsSync(agroConfigPath(root))).toBe(false);
+    expect(out.join("")).toBe(`${host.configFile}: set hands.provider=exedev\n`);
+    expect(err).toEqual([]);
+  });
+
+  it("keeps the other host config fields", async () => {
+    const host = hostScope();
+    mkdirSync(host.agroHome, { recursive: true });
+    writeFileSync(host.configFile, JSON.stringify({ version: 1, harnessRoot: "/srv/agro" }), "utf8");
+    const { io, out } = makeIo();
+    const opts = { bin: "agro", env: {}, home: host.home };
+    expect(await runConfigSet("hands.provider", "exedev", opts, io)).toBe(0);
+    expect(await runConfigSet("hands.provider", "exedev", opts, io)).toBe(0);
+    expect(JSON.parse(readFileSync(host.configFile, "utf8"))).toEqual({
+      version: 1,
+      harnessRoot: "/srv/agro",
+      hands: { provider: "exedev" },
+    });
+    expect(out.join("")).toContain(`${host.configFile}: hands.provider already exedev`);
+  });
+
+  it("rejects an unknown provider without writing", async () => {
+    const host = hostScope();
+    const { io, err } = makeIo();
+    expect(await runConfigSet("hands.provider", "aws", { bin: "agro", env: {}, home: host.home }, io)).toBe(1);
+    expect(err.join("")).toContain("hands.provider must be one of console, exedev");
+    expect(existsSync(host.configFile)).toBe(false);
+  });
+
+  it("reports hands.provider in `agro config show` and keeps stdout JSON", async () => {
+    const root = makeRepo();
+    const host = hostScope();
+    const { io, out, err } = makeIo();
+    const opts = { bin: "agro", cwd: root, env: {}, home: host.home };
+    expect(await runConfigShow(opts, io)).toBe(0);
+    expect(err.join("")).toBe(`${host.configFile}: hands.provider console\n`);
+    await runConfigSet("hands.provider", "exedev", opts, makeIo().io);
+    const shown = makeIo();
+    expect(await runConfigShow(opts, shown.io)).toBe(0);
+    expect(JSON.parse(shown.out.join("")).hands).toBeUndefined();
+    expect(shown.err.join("")).toBe(`${host.configFile}: hands.provider exedev\n`);
+    expect(JSON.parse(out.join("")).version).toBe(1);
+  });
+
+  it("names the new location when agro.json keeps a hands section", async () => {
+    const root = makeRepo();
+    writeFileSync(agroConfigPath(root), JSON.stringify({ version: 1, hands: { provider: "exedev" } }), "utf8");
+    const host = hostScope();
+    const opts = { bin: "agro", cwd: root, env: {}, home: host.home };
+    for (const run of [
+      (io: ConfigIO) => runConfigShow(opts, io),
+      (io: ConfigIO) => runConfigSet("access.sshPort", "2200", opts, io),
+    ]) {
+      const { io, err } = makeIo();
+      expect(await run(io)).toBe(0);
+      expect(err[0]).toBe(
+        `agro config: ${agroConfigPath(root)}: agro ignores the hands section. hands.provider is in the host config ` +
+          `${host.configFile}. Run \`agro config set hands.provider <value>\`, then remove the hands section.\n`,
+      );
+    }
+  });
+});
+
 describe("agro secret set", () => {
   it("stores a Muse API key through the hidden prompt and redacts its listing", async () => {
     const root = makeRepo();

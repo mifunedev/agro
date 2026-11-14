@@ -13,6 +13,16 @@ export const WORKSPACES_SUBDIR = "workspaces";
 
 export const DEFAULT_WORKSPACE_NAME = "harness";
 
+export const HAND_PROVIDER_IDS = ["console", "exedev"] as const;
+
+export type HandProviderId = (typeof HAND_PROVIDER_IDS)[number];
+
+export const HANDS_PROVIDER_FIELD = "hands.provider";
+
+export interface HostHandsSettings {
+  provider?: HandProviderId;
+}
+
 export interface HostHarnessReceipt {
   prefix: string;
   binary: string;
@@ -39,6 +49,7 @@ export interface HostConfig {
   harnessRoot?: string;
   hostHarnesses?: Record<string, HostHarnessReceipt>;
   hostTools?: Record<string, HostToolReceipt>;
+  hands?: HostHandsSettings;
   [key: string]: unknown;
 }
 
@@ -97,7 +108,24 @@ export function validateHostConfig(value: unknown): HostConfig {
   const hostTools = record.hostTools;
   if (hostTools !== undefined) validateReceipts(hostTools, "hostTools", "tool", true);
 
+  const hands = record.hands;
+  if (hands !== undefined) {
+    if (!hands || typeof hands !== "object" || Array.isArray(hands)) {
+      throw fieldError("hands", "must be a JSON object");
+    }
+    const provider = (hands as Record<string, unknown>).provider;
+    if (provider !== undefined && !isHandProviderId(provider)) throw handProviderError();
+  }
+
   return { ...(record as HostConfig), version: 1 };
+}
+
+export function isHandProviderId(value: unknown): value is HandProviderId {
+  return (HAND_PROVIDER_IDS as readonly unknown[]).includes(value);
+}
+
+export function handProviderError(path = HOST_CONFIG_FILE): Error {
+  return new Error(`${path}: ${HANDS_PROVIDER_FIELD} must be one of ${HAND_PROVIDER_IDS.join(", ")}`);
 }
 
 function absoluteField(value: unknown, path: string): string {
