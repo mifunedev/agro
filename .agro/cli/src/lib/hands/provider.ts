@@ -1,12 +1,30 @@
-import { agroConfigPath, readAgroConfig, type HandProviderId } from "../agro-config.js";
+import { readFileSync } from "node:fs";
+import { agroConfigPath, HAND_PROVIDER_IDS, type HandProviderId } from "../agro-config.js";
 import { defaultHarnessRoot, readHostConfig } from "../host-config.js";
 
 export function brainHarnessRoot(env: NodeJS.ProcessEnv, home: string): string {
-  return readHostConfig(env, home).harnessRoot ?? defaultHarnessRoot(env, home);
+  try {
+    return readHostConfig(env, home).harnessRoot ?? defaultHarnessRoot(env, home);
+  } catch {
+    return defaultHarnessRoot(env, home);
+  }
+}
+
+function readJson(path: string): unknown {
+  try {
+    return JSON.parse(readFileSync(path, "utf8")) as unknown;
+  } catch {
+    return undefined;
+  }
 }
 
 export function resolveHandProviderId(env: NodeJS.ProcessEnv, home: string): HandProviderId {
-  return readAgroConfig(agroConfigPath(brainHarnessRoot(env, home))).hands?.provider ?? "console";
+  const path = agroConfigPath(brainHarnessRoot(env, home));
+  const hands = (readJson(path) as { hands?: { provider?: unknown } } | null | undefined)?.hands;
+  const provider = hands !== null && typeof hands === "object" ? hands.provider : undefined;
+  if (provider === undefined) return "console";
+  if ((HAND_PROVIDER_IDS as readonly unknown[]).includes(provider)) return provider as HandProviderId;
+  throw new Error(`${path}: hands.provider must be one of ${HAND_PROVIDER_IDS.join(", ")}`);
 }
 
 const SAFE_WORD = /^[A-Za-z0-9_\/.,:=@%+-]+$/;

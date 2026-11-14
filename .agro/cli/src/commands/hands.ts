@@ -14,7 +14,7 @@ import {
   type ConsolePollDeps,
 } from "../lib/console-api.js";
 import { createConsoleProvider } from "../lib/hands/console-provider.js";
-import { createExedevProvider, exedevPreflight, HAND_TAG, SPEC_REFUSAL } from "../lib/hands/exedev-provider.js";
+import { createExedevProvider, exedevPreflight, HAND_TAG } from "../lib/hands/exedev-provider.js";
 import {
   brainHarnessRoot,
   resolveHandProviderId,
@@ -22,6 +22,7 @@ import {
   type Hand,
   type HandProvider,
 } from "../lib/hands/provider.js";
+import { DOCKERENV_FILE, SANDBOX_MARKER_FILE } from "../lib/execution/detect.js";
 import { messageOf, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import * as prompt from "../lib/prompt.js";
 import type { HandProviderId } from "../lib/agro-config.js";
@@ -32,6 +33,8 @@ export { shellQuote } from "../lib/hands/provider.js";
 
 export const BRAIN_HOME = "/home/sandbox";
 export const BRAIN_TOKEN_MISSING = `not on a brain: ${brainTokenPath(BRAIN_HOME)} not found`;
+
+export const SPEC_REFUSAL = "--spec applies only to console hands";
 
 export const HAND_MISSING =
   "no <hand> given — an unquoted #<index> starts a shell comment; write the bare index (4) or quote '#4'";
@@ -47,6 +50,7 @@ export interface HandsDeps extends ConsolePollDeps {
   run: LifecycleRunner;
   exists: (path: string) => boolean;
   hostname: () => string;
+  inContainer: () => boolean;
 }
 
 export interface ProjectSlug {
@@ -105,6 +109,7 @@ function defaultDeps(): HandsDeps {
     run: spawnRunner,
     exists: (path) => existsSync(path),
     hostname: () => hostname(),
+    inContainer: () => existsSync(DOCKERENV_FILE) || existsSync(SANDBOX_MARKER_FILE),
   };
 }
 
@@ -158,7 +163,9 @@ and \`rm\`. \`destroy\` asks for confirmation unless --yes is given.
 Guards: \`fork\`, \`pause\`, \`resume\`, and \`destroy\` exit 1 without a
 change when the VM lacks the ${HAND_TAG} tag. Each write verb exits 1 without a
 change when <hand>, the fork name, or the create name names this brain. The
-brain is the VM whose name or SSH host label equals the host name.
+brain is the VM whose name or SSH host label equals the host name. Inside a
+container, \`fork\`, \`pause\`, \`resume\`, and \`destroy\` exit 1 when the host
+name matches no VM; run them from the brain host.
 
 Projects:
 A project lives at ~/projects/<owner>/<repo> on the hand and at

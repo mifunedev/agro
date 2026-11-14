@@ -5,14 +5,16 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { LifecycleRunner, RunResult } from "../../lib/execution/runner.js";
 import { runHands, type HandsDeps } from "../hands.js";
+import { brainHarnessRoot, resolveHandProviderId } from "../../lib/hands/provider.js";
 
 const LS_JSON = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "fixtures", "exedev-ls.json"), "utf8");
 const HAND = "agro-sbx-dev-001";
 const DEST = "agro-sbx-dev-001.exe.xyz";
 const SSH_OPTIONS = ["-o", "StrictHostKeyChecking=accept-new", "-o", `HostKeyAlias=${HAND}`];
 const GIT_SSH = `ssh -o StrictHostKeyChecking=accept-new -o HostKeyAlias=${HAND}`;
-const LS = ["-o", "BatchMode=yes", "exe.dev", "ls", "--json"];
-const WHOAMI = ["-o", "BatchMode=yes", "exe.dev", "whoami", "--json"];
+const EXEDEV = ["-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new", "exe.dev"];
+const LS = [...EXEDEV, "ls", "--json"];
+const WHOAMI = [...EXEDEV, "whoami", "--json"];
 const PROJECT_SUFFIX = ["projects", "acme", "widget"];
 
 const cleanups: string[] = [];
@@ -42,7 +44,7 @@ interface RunCall {
 }
 
 interface Replies {
-  whoami?: number;
+  whoami?: number | RunResult;
   ls?: RunResult | RunResult[];
   write?: RunResult;
   ssh?: number;
@@ -54,12 +56,14 @@ function fakeRunner(replies: Replies = {}) {
   const lsReplies = replies.ls === undefined ? [] : Array.isArray(replies.ls) ? [...replies.ls] : [replies.ls];
   const run: LifecycleRunner = (cmd, args, opts): RunResult => {
     calls.push({ cmd, args, stdio: opts.stdio, gitSsh: opts.env?.GIT_SSH_COMMAND });
-    if (cmd === "ssh" && args.join(" ") === WHOAMI.join(" ")) return { status: replies.whoami ?? 0, stdout: "{}" };
+    if (cmd === "ssh" && args.join(" ") === WHOAMI.join(" ")) {
+      return typeof replies.whoami === "object" ? replies.whoami : { status: replies.whoami ?? 0, stdout: "{}" };
+    }
     if (cmd === "ssh" && args.join(" ") === LS.join(" ")) {
       if (lsReplies.length === 0) return { status: 0, stdout: LS_JSON };
       return lsReplies.length === 1 ? lsReplies[0] : lsReplies.shift()!;
     }
-    if (cmd === "ssh" && args[2] === "exe.dev") return replies.write ?? { status: 0, stdout: "" };
+    if (cmd === "ssh" && args[4] === "exe.dev") return replies.write ?? { status: 0, stdout: "" };
     if (cmd === "ssh") return { status: replies.ssh ?? 0 };
     return { status: replies.git ?? 0 };
   };
@@ -68,8 +72,8 @@ function fakeRunner(replies: Replies = {}) {
 
 function exedevWrites(calls: RunCall[]): string[][] {
   return calls
-    .filter((c) => c.cmd === "ssh" && c.args[2] === "exe.dev" && !["whoami", "ls"].includes(c.args[3]))
-    .map((c) => c.args.slice(3));
+    .filter((c) => c.cmd === "ssh" && c.args[4] === "exe.dev" && !["whoami", "ls"].includes(c.args[5]))
+    .map((c) => c.args.slice(5));
 }
 
 function lsOf(...vms: Record<string, unknown>[]): RunResult {
@@ -95,6 +99,7 @@ function harness(run: LifecycleRunner, overrides: Partial<HandsDeps> = {}) {
     }) as typeof fetch,
     run,
     hostname: () => "agro-supervisor",
+    inContainer: () => false,
     sleep: async () => {},
     now: () => 0,
     pollDelayMs: () => 1000,
@@ -141,15 +146,36 @@ describe("agro hands with hands.provider exedev", () => {
     expect(h.stderr()).toBe("agro hands list: ssh exe.dev ls failed with status 255: connection refused\n");
   });
 
-  it("exits 2 with the key registration remedy when the whoami preflight fails", async () => {
-    const r = fakeRunner({ whoami: 255 });
+  it("exits 2 with the key registration remedy when exe.dev denies the brain key", async () => {
+    const r = fakeRunner({
+      whoami: {
+        status: 255,
+        stderr: 'Load key "/dev/null": error in libcrypto\nuser@exe.dev: Permission denied (publickey,keyboard-interactive).\n',
+      },
+    });
     const h = harness(r.run);
     expect(await runHands(["list"], h.io, h.deps)).toBe(2);
     expect(h.stderr()).toBe(
-      'agro hands: ssh exe.dev whoami failed with status 255; register this brain\'s SSH public key with your exe.dev account: ssh exe.dev ssh-key add "<public key>"\n',
+      'agro hands: ssh exe.dev whoami failed with status 255: Load key "/dev/null": error in libcrypto; register this brain\'s SSH public key with your exe.dev account: ssh exe.dev ssh-key add "<public key>"\n',
     );
     expect(h.stdout()).toBe("");
     expect(r.calls.map((c) => c.args)).toEqual([WHOAMI]);
+  });
+
+  it("reports a host key failure without the key remedy", async () => {
+    const r = fakeRunner({
+      whoami: { status: 255, stderr: "Host key verification failed.\r\nmore detail\n" },
+    });
+    const h = harness(r.run);
+    expect(await runHands(["list"], h.io, h.deps)).toBe(2);
+    expect(h.stderr()).toBe("agro hands: ssh exe.dev whoami failed with status 255: Host key verification failed.\n");
+  });
+
+  it("reports a spawn failure when ssh cannot start", async () => {
+    const r = fakeRunner({ whoami: { status: null, error: new Error("spawn ssh ENOENT") } });
+    const h = harness(r.run);
+    expect(await runHands(["list"], h.io, h.deps)).toBe(2);
+    expect(h.stderr()).toBe("agro hands: ssh exe.dev whoami failed with status none: spawn ssh ENOENT\n");
   });
 
   it("execs in a login shell on the hand with its host key alias and exit status", async () => {
@@ -192,14 +218,15 @@ describe("agro hands with hands.provider exedev", () => {
     expect(r.calls.at(-1)?.args).toEqual(["-C", project, "fetch", `hand-${HAND}`]);
   });
 
-  it.each(["agro-supervisor", "no-such-vm"])("refuses %s because it is not tagged agro-hand", async (name) => {
+  it.each([
+    ["agro-supervisor", "hand agro-supervisor is not tagged agro-hand"],
+    ["no-such-vm", "no exe.dev VM named no-such-vm"],
+  ])("refuses %s on exec and fetch", async (name, error) => {
     const r = fakeRunner();
     const h = harness(r.run);
     expect(await runHands(["exec", name, "--", "ls"], h.io, h.deps)).toBe(1);
     expect(await runHands(["fetch", name, "--project", "acme/widget"], h.io, h.deps)).toBe(1);
-    expect(h.stderr()).toBe(
-      `agro hands exec: hand ${name} is not tagged agro-hand\nagro hands fetch: hand ${name} is not tagged agro-hand\n`,
-    );
+    expect(h.stderr()).toBe(`agro hands exec: ${error}\nagro hands fetch: ${error}\n`);
     expect(r.calls.filter((c) => c.cmd === "git" || c.args.includes("--"))).toEqual([]);
   });
 
@@ -220,7 +247,7 @@ describe("agro hands lifecycle on exedev hands", () => {
     const h = harness(r.run, t);
     expect(await runHands(["create", "--name", "fresh"], h.io, h.deps)).toBe(0);
     expect(exedevWrites(r.calls)).toEqual([["new", "--json", "--name", "fresh", "--tag", "agro-hand"]]);
-    expect(r.calls.find((c) => c.args[3] === "new")?.args.slice(0, 3)).toEqual(["-o", "BatchMode=yes", "exe.dev"]);
+    expect(r.calls.find((c) => c.args[5] === "new")?.args.slice(0, 5)).toEqual(EXEDEV);
     expect(h.stderr()).toBe("agro hands create: hand fresh starting\n");
     expect(h.stdout()).toBe("name: fresh\nssh host: fresh.exe.xyz\n");
   });
@@ -338,7 +365,7 @@ describe("agro hands lifecycle on exedev hands", () => {
     const h = harness(r.run);
     expect(await runHands([verb, HAND], h.io, h.deps)).toBe(0);
     expect(exedevWrites(r.calls)).toEqual([[command, HAND]]);
-    expect(r.calls.find((c) => c.args[3] === command)?.args.slice(0, 3)).toEqual(["-o", "BatchMode=yes", "exe.dev"]);
+    expect(r.calls.find((c) => c.args[5] === command)?.args.slice(0, 5)).toEqual(EXEDEV);
     expect(h.stdout()).toBe(`${past} ${HAND}\n`);
   });
 
@@ -376,8 +403,73 @@ describe("agro hands lifecycle on exedev hands", () => {
     expect(h.stderr()).toBe("agro hands pause: ssh exe.dev pause failed with status 1: busy\n");
   });
 
+  it.each(["fork", "pause", "resume", "destroy"])("%s refuses an unknown VM with no write call", async (verb) => {
+    const r = fakeRunner({ ls: lsOf(vm(HAND)) });
+    const h = harness(r.run);
+    expect(await runHands([verb, "no-such-vm", ...(verb === "destroy" ? ["--yes"] : [])], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(`agro hands ${verb}: no exe.dev VM named no-such-vm\n`);
+    expect(exedevWrites(r.calls)).toEqual([]);
+  });
+
+  it.each(["fork", "pause", "resume", "destroy"])(
+    "%s refuses inside a container when no VM matches the host name",
+    async (verb) => {
+      const r = fakeRunner({ ls: lsOf(vm(HAND)) });
+      const h = harness(r.run, { hostname: () => "3f2a9c1b7d4e", inContainer: () => true });
+      expect(await runHands([verb, HAND, ...(verb === "destroy" ? ["--yes"] : [])], h.io, h.deps)).toBe(1);
+      expect(h.stderr()).toBe(
+        `agro hands ${verb}: cannot identify this brain inside a container; run agro hands from the brain host\n`,
+      );
+      expect(exedevWrites(r.calls)).toEqual([]);
+    },
+  );
+
+  it("pauses inside a container when the host name matches a listed VM", async () => {
+    const r = fakeRunner({ ls: lsOf(vm(HAND), vm("agro-supervisor", "running", [])) });
+    const h = harness(r.run, { inContainer: () => true });
+    expect(await runHands(["pause", HAND], h.io, h.deps)).toBe(0);
+    expect(exedevWrites(r.calls)).toEqual([["pause", HAND]]);
+  });
+
+  it("pauses outside a container when the host name matches no VM", async () => {
+    const r = fakeRunner({ ls: lsOf(vm(HAND)) });
+    const h = harness(r.run, { hostname: () => "laptop" });
+    expect(await runHands(["pause", HAND], h.io, h.deps)).toBe(0);
+    expect(exedevWrites(r.calls)).toEqual([["pause", HAND]]);
+  });
+
+  it("polls ssh exe.dev ls no faster than every 5 seconds while it waits", async () => {
+    const slept: number[] = [];
+    let t = 0;
+    const r = fakeRunner({ ls: [lsOf(), lsOf(vm("fresh", "starting")), lsOf(vm("fresh"))] });
+    const h = harness(r.run, {
+      now: () => t,
+      sleep: async (ms) => void (slept.push(ms), (t += ms)),
+      pollDelayMs: () => 1000,
+    });
+    expect(await runHands(["create", "--name", "fresh"], h.io, h.deps)).toBe(0);
+    expect(slept).toEqual([5000, 5000]);
+  });
+
+  it("keeps polling through a transient ls failure", async () => {
+    const t = clock(5000);
+    const r = fakeRunner({ ls: [{ status: 255, stderr: "timeout\n" }, lsOf(vm("fresh"))] });
+    const h = harness(r.run, t);
+    expect(await runHands(["create", "--name", "fresh"], h.io, h.deps)).toBe(0);
+    expect(h.stdout()).toBe("name: fresh\nssh host: fresh.exe.xyz\n");
+  });
+
+  it("reports the last ls error when the wait times out", async () => {
+    const t = clock(60_000);
+    const r = fakeRunner({ ls: { status: 255, stderr: "connection reset\n" } });
+    const h = harness(r.run, t);
+    expect(await runHands(["create", "--name", "fresh"], h.io, h.deps)).toBe(1);
+    expect(h.stderr()).toBe(
+      "agro hands create: hand fresh never appeared in ssh exe.dev ls after 15 minutes; last error: ssh exe.dev ls failed with status 255: connection reset\n",
+    );
+  });
+
   it.each([
-    ["fork", "no-such-vm"],
     ["fork", "untagged"],
     ["pause", "untagged"],
     ["resume", "untagged"],
@@ -426,3 +518,49 @@ describe("agro hands lifecycle on exedev hands", () => {
 function lsFixture(): RunResult {
   return { status: 0, stdout: LS_JSON };
 }
+
+describe("hands provider selection", () => {
+  function home(agroJson: unknown, hostConfig?: string): string {
+    const dir = tempDir();
+    const root = join(dir, ".agro", "workspaces", "harness");
+    mkdirSync(root, { recursive: true });
+    if (agroJson !== undefined) {
+      writeFileSync(join(root, "agro.json"), typeof agroJson === "string" ? agroJson : JSON.stringify(agroJson), "utf8");
+    }
+    if (hostConfig !== undefined) writeFileSync(join(dir, ".agro", "config.json"), hostConfig, "utf8");
+    return dir;
+  }
+
+  it.each([
+    ["no agro.json", undefined, "console"],
+    ["no hands key", { version: 1 }, "console"],
+    ["an invalid unrelated field", { version: 99, runtime: 7 }, "console"],
+    ["unparseable JSON", "{", "console"],
+    ["exedev beside an invalid field", { version: 99, hands: { provider: "exedev" } }, "exedev"],
+  ])("reads %s leniently", (_, agroJson, expected) => {
+    expect(resolveHandProviderId({}, home(agroJson))).toBe(expected);
+  });
+
+  it("names the field when hands.provider is not a known provider", () => {
+    expect(() => resolveHandProviderId({}, home({ hands: { provider: "aws" } }))).toThrow(
+      /hands\.provider must be one of console, exedev/,
+    );
+  });
+
+  it("falls back to the default harness root when ~/.agro/config.json is broken", () => {
+    const dir = home({ hands: { provider: "exedev" } }, "{");
+    expect(brainHarnessRoot({}, dir)).toBe(join(dir, ".agro", "workspaces", "harness"));
+    expect(resolveHandProviderId({}, dir)).toBe("exedev");
+  });
+
+  it("keeps console verbs working when agro.json has an unrelated invalid field", async () => {
+    const dir = home({ version: 99 });
+    const out: string[] = [];
+    const err: string[] = [];
+    const io = { stdout: (s: string) => out.push(s), stderr: (s: string) => err.push(s) };
+    const r = fakeRunner();
+    expect(await runHands(["list"], io, { env: {}, userHome: () => dir, readFile: () => undefined, run: r.run })).toBe(2);
+    expect(err.join("")).toContain("not on a brain");
+    expect(r.calls).toEqual([]);
+  });
+});

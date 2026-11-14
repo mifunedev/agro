@@ -8,7 +8,8 @@ import {
 } from "./provider.js";
 
 export const HAND_TAG = "agro-hand";
-export const SPEC_REFUSAL = "--spec applies only to console hands";
+export const CONTAINER_REFUSAL = "cannot identify this brain inside a container; run agro hands from the brain host";
+export const EXEDEV_MIN_POLL_MS = 5000;
 export const KEY_REMEDY =
   'register this brain\'s SSH public key with your exe.dev account: ssh exe.dev ssh-key add "<public key>"';
 
@@ -22,6 +23,7 @@ interface ExedevVm {
 export interface ExedevDeps {
   run: LifecycleRunner;
   hostname: () => string;
+  inContainer: () => boolean;
   sleep: (ms: number) => Promise<void>;
   now: () => number;
   pollDelayMs: (elapsedMs: number) => number;
@@ -29,18 +31,23 @@ export interface ExedevDeps {
 }
 
 function exedev(run: LifecycleRunner, args: string[]): RunResult {
-  return run("ssh", ["-o", "BatchMode=yes", "exe.dev", ...args], { stdio: "capture" });
+  return run("ssh", ["-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new", "exe.dev", ...args], { stdio: "capture" });
+}
+
+function firstLine(text: string | undefined): string {
+  return text?.split(/\r?\n/).find((line) => line.trim() !== "")?.trim() ?? "";
 }
 
 function failure(command: string, result: RunResult): string {
-  const detail = result.stderr?.trim() || (result.error === undefined ? "" : messageOf(result.error));
+  const detail = firstLine(result.stderr) || (result.error === undefined ? "" : messageOf(result.error));
   return `ssh exe.dev ${command} failed with status ${result.status ?? "none"}${detail === "" ? "" : `: ${detail}`}`;
 }
 
 export function exedevPreflight(run: LifecycleRunner): HandOutcome<void> {
   const result = exedev(run, ["whoami", "--json"]);
   if (result.status === 0) return { ok: true, value: undefined };
-  return { ok: false, error: `${failure("whoami", { status: result.status })}; ${KEY_REMEDY}` };
+  const denied = result.stderr?.includes("Permission denied (publickey") ?? false;
+  return { ok: false, error: `${failure("whoami", result)}${denied ? `; ${KEY_REMEDY}` : ""}` };
 }
 
 function toVm(value: unknown): ExedevVm | undefined {
@@ -116,14 +123,24 @@ export function createExedevProvider(deps: ExedevDeps): HandProvider {
     return { ok: true, value: listed.value.filter((vm) => vm.tags.includes(HAND_TAG)).map(toHand) };
   }
 
+  function findTagged(vms: ExedevVm[], ref: string): HandOutcome<ExedevVm> {
+    const vm = vms.find((candidate) => candidate.vm_name === ref);
+    if (vm === undefined) return { ok: false, error: `no exe.dev VM named ${ref}` };
+    if (!vm.tags.includes(HAND_TAG)) return { ok: false, error: `hand ${ref} is not tagged ${HAND_TAG}` };
+    return { ok: true, value: vm };
+  }
+
   function guard(verb: string, ref: string): HandOutcome<ExedevVm> {
     if (isBrain(ref)) return refusal(verb, ref);
     const listed = listVms();
     if (!listed.ok) return listed;
-    const vm = listed.value.find((candidate) => candidate.vm_name === ref);
+    const vms = listed.value;
+    if (deps.inContainer() && !vms.some((vm) => isBrain(vm.vm_name, vm.ssh_dest))) {
+      return { ok: false, error: CONTAINER_REFUSAL };
+    }
+    const vm = vms.find((candidate) => candidate.vm_name === ref);
     if (vm !== undefined && isBrain(vm.vm_name, vm.ssh_dest)) return refusal(verb, ref);
-    if (vm === undefined || !vm.tags.includes(HAND_TAG)) return { ok: false, error: `hand ${ref} is not tagged ${HAND_TAG}` };
-    return { ok: true, value: vm };
+    return findTagged(vms, ref);
   }
 
   function write(command: string, args: string[]): HandOutcome<string | undefined> {
@@ -135,10 +152,11 @@ export function createExedevProvider(deps: ExedevDeps): HandProvider {
     const startedAt = deps.now();
     const minutes = Math.round(deps.timeoutMs / 60_000);
     let last: ExedevVm | undefined;
+    let lastError: string | undefined;
     for (;;) {
       const listed = listVms();
-      if (!listed.ok) return listed;
-      const vm = listed.value.find((candidate) => candidate.vm_name === name);
+      lastError = listed.ok ? undefined : listed.error;
+      const vm = listed.ok ? listed.value.find((candidate) => candidate.vm_name === name) : undefined;
       if (vm !== undefined) {
         const seen = { ...vm, ssh_dest: vm.ssh_dest ?? sshDest };
         if (seen.status === "running") return { ok: true, value: toHand(seen) };
@@ -147,11 +165,12 @@ export function createExedevProvider(deps: ExedevDeps): HandProvider {
       }
       const elapsed = deps.now() - startedAt;
       if (elapsed >= deps.timeoutMs) {
+        const cause = lastError === undefined ? "" : `; last error: ${lastError}`;
         return last === undefined
-          ? { ok: false, error: `hand ${name} never appeared in ssh exe.dev ls after ${minutes} minutes` }
-          : { ok: false, error: `hand ${name} is not running after ${minutes} minutes — last status ${last.status}` };
+          ? { ok: false, error: `hand ${name} never appeared in ssh exe.dev ls after ${minutes} minutes${cause}` }
+          : { ok: false, error: `hand ${name} is not running after ${minutes} minutes — last status ${last.status}${cause}` };
       }
-      await deps.sleep(deps.pollDelayMs(elapsed));
+      await deps.sleep(Math.max(EXEDEV_MIN_POLL_MS, deps.pollDelayMs(elapsed)));
     }
   }
 
@@ -166,13 +185,12 @@ export function createExedevProvider(deps: ExedevDeps): HandProvider {
     remoteCommand: (command) => `bash -lc ${shellQuote([command])}`,
     list,
     async resolve(ref) {
-      const listed = await list();
+      const listed = listVms();
       if (!listed.ok) return listed;
-      const hand = listed.value.find((candidate) => candidate.id === ref);
-      return hand === undefined ? { ok: false, error: `hand ${ref} is not tagged ${HAND_TAG}` } : { ok: true, value: hand };
+      const found = findTagged(listed.value, ref);
+      return found.ok ? { ok: true, value: toHand(found.value) } : found;
     },
-    async create({ name, spec }, onStatus) {
-      if (spec !== undefined) return { ok: false, error: SPEC_REFUSAL };
+    async create({ name }, onStatus) {
       if (name !== undefined && isBrain(name)) return refusal("create", name);
       const created = write("new", ["--json", ...(name === undefined ? [] : ["--name", name]), "--tag", HAND_TAG]);
       if (!created.ok) return created;
@@ -183,8 +201,7 @@ export function createExedevProvider(deps: ExedevDeps): HandProvider {
       }
       return awaitRunning(target, output.ssh_dest ?? null, onStatus);
     },
-    async fork(ref, { name, spec }, onStatus) {
-      if (spec !== undefined) return { ok: false, error: SPEC_REFUSAL };
+    async fork(ref, { name }, onStatus) {
       if (name !== undefined && isBrain(name)) return refusal("fork", name);
       const guarded = guard("fork", ref);
       if (!guarded.ok) return guarded;
