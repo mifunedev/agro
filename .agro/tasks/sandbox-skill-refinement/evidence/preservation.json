@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baseCommit": "1a2d35f5940e7b3f316b361557180ce674590c85",
-  "snapshotCommit": "a213be5cc333c9ac71b5aec8677a0b0fdf3bbd14",
+  "snapshotCommit": "cfa577addbf33db1fcd3ea0bafa3621194bb9c00",
   "comparison": "Exact Git blob and mode comparison, not filename-only rename inference.",
   "preservedFiles": [
     {
@@ -115,5 +115,154 @@
   ],
   "limits": [
     "This proves source preservation and tracked link targets, not live provider availability."
-  ]
+  ],
+  "structuralVerification": {
+    "schemaVersion": 1,
+    "baseCommit": "1a2d35f5940e7b3f316b361557180ce674590c85",
+    "subjectCommit": "cfa577addbf33db1fcd3ea0bafa3621194bb9c00",
+    "method": "Executed whole-file byte comparisons after enumerated path-only substitutions; no assertion, comment or whitespace removal.",
+    "activeTestRetargeting": [
+      {
+        "path": ".agro/scripts/__tests__/remote-sandbox.test.ts",
+        "oldLiteral": ".agro/skills/remote-sandbox",
+        "newLiteral": ".agro/skills/sandbox",
+        "replacementCount": 1,
+        "otherBytesIdentical": true,
+        "baseSha256": "2ab4774b409a7b0e2140045a869bbe31d1abff4c2ebbf6d1bc78281818c67c29",
+        "candidateSha256": "28d1935e04b86527e4ff681f8d57b3be53837ad562ad9c519840472533b67619"
+      },
+      {
+        "path": ".agro/scripts/__tests__/remote-sandbox-adapters.test.ts",
+        "oldLiteral": ".agro/skills/remote-sandbox",
+        "newLiteral": ".agro/skills/sandbox",
+        "replacementCount": 1,
+        "otherBytesIdentical": true,
+        "baseSha256": "667e98a2764dcce131779c76043682ac25e47d9451ded4e1d56f7433ee7e641c",
+        "candidateSha256": "a7aabd86b41e9e5bc17f75d26cd13a3050a282736218b532eeeeba5ea2b0bf19"
+      },
+      {
+        "path": ".agro/scripts/__tests__/remote-sandbox-suite.test.ts",
+        "oldLiteral": ".agro/skills/remote-sandbox",
+        "newLiteral": ".agro/skills/sandbox",
+        "replacementCount": 1,
+        "otherBytesIdentical": true,
+        "baseSha256": "6e5a3c893ea6ec041b40440bdf44a6a820493ff9230176ad62c41cafddfb1884",
+        "candidateSha256": "e607ad84014a628ab431918ef929719264a84cb6a41ac3c627b388753b0fb8af"
+      },
+      {
+        "path": ".agro/scripts/__tests__/skill-shell-portability.test.ts",
+        "oldLiteral": ".agro/skills/remote-sandbox",
+        "newLiteral": ".agro/skills/sandbox",
+        "replacementCount": 0,
+        "otherBytesIdentical": true,
+        "baseSha256": "d7d1745f5a1e427b025b8f399c66cb515ca2dd201590603944c7051711d894c4",
+        "candidateSha256": "d7d1745f5a1e427b025b8f399c66cb515ca2dd201590603944c7051711d894c4"
+      }
+    ],
+    "unchangedRemoteFixtures": [
+      {
+        "path": ".agro/scripts/__tests__/fixtures/remote-sandbox/adapters/fake.sh",
+        "treeEntry": "100644 blob 64f6920aa92d5cb16edd5bf1bbda61b3425bf889"
+      },
+      {
+        "path": ".agro/scripts/__tests__/fixtures/remote-sandbox/bin/tmux",
+        "treeEntry": "100755 blob 8379910401e9b3501a13d44562e5624dd5608ab3"
+      },
+      {
+        "path": ".agro/scripts/__tests__/fixtures/remote-sandbox/checks/env-check.sh",
+        "treeEntry": "100644 blob 2acc9a9d2eba8df30fc0ead45cde980f7dc63bed"
+      },
+      {
+        "path": ".agro/scripts/__tests__/fixtures/remote-sandbox/checks/hang.sh",
+        "treeEntry": "100644 blob c56e6dfca27b517b731b7bd8e349aee28f52ab64"
+      },
+      {
+        "path": ".agro/scripts/__tests__/fixtures/remote-sandbox/extra/hooked.sh",
+        "treeEntry": "100644 blob 8368eea43b998de204e5f309f2faa0c418b87b29"
+      },
+      {
+        "path": ".agro/scripts/__tests__/fixtures/remote-sandbox/partial/partial.sh",
+        "treeEntry": "100644 blob 8a7408e475281fe651b40b66c83ff02cb863ab0a"
+      },
+      {
+        "path": ".agro/scripts/__tests__/fixtures/remote-sandbox-suite/installer.sh",
+        "treeEntry": "100644 blob f6aba8cacd856db1c74927183af6d154e59d4489"
+      }
+    ],
+    "activeBindings": {
+      "driver": "Canonical lib.sh/run.sh bytes copied into isolated fixtures, then spawned as Bash.",
+      "adapters": "Canonical lib.sh sourced by the test wrapper.",
+      "suite": "Canonical fresh-install/msb checks and restart scripts read, executed or copied by existing tests.",
+      "ci": "pnpm test:scripts maps to vitest run; its include glob selects the remote test modules."
+    },
+    "ciWorkflow": {
+      "path": ".github/workflows/ci-harness.yml",
+      "replacementCount": 3,
+      "otherBytesIdentical": true,
+      "baseSha256": "dd3a9ae4851a977fe8cc037ebe1553e4cc114a4eaf3e311f7ecc528ad49595dc",
+      "candidateSha256": "82ec1f6fad572985f04b5cf12e56bbb1d070228bb813dcb6a9f23f255ed5bc08",
+      "pushAndPrInclude": ".agro/**",
+      "negativePathPatterns": 0,
+      "sandboxShellcheckTargets": {
+        ".agro/skills/sandbox/adapters/*.sh": [
+          ".agro/skills/sandbox/adapters/console.sh",
+          ".agro/skills/sandbox/adapters/exedev.sh",
+          ".agro/skills/sandbox/adapters/msb.sh",
+          ".agro/skills/sandbox/adapters/vercel.sh"
+        ],
+        ".agro/skills/sandbox/checks/*.sh": [
+          ".agro/skills/sandbox/checks/agro-rows.sh",
+          ".agro/skills/sandbox/checks/agro-run-matrix.sh",
+          ".agro/skills/sandbox/checks/cg-probe.sh",
+          ".agro/skills/sandbox/checks/docker-egress.sh",
+          ".agro/skills/sandbox/checks/fresh-install.sh",
+          ".agro/skills/sandbox/checks/hermes-home.sh",
+          ".agro/skills/sandbox/checks/msb-guest.sh",
+          ".agro/skills/sandbox/checks/openshell-journey.sh"
+        ],
+        ".agro/skills/sandbox/scripts/*.sh": [
+          ".agro/skills/sandbox/scripts/lib.sh",
+          ".agro/skills/sandbox/scripts/restart-test.sh",
+          ".agro/skills/sandbox/scripts/run.sh",
+          ".agro/skills/sandbox/scripts/summarize.sh"
+        ]
+      }
+    },
+    "providerLinks": [
+      {
+        "path": ".agents/skills",
+        "mode": "120000",
+        "target": "../.agro/skills"
+      },
+      {
+        "path": ".claude/skills",
+        "mode": "120000",
+        "target": "../.agro/skills"
+      }
+    ],
+    "retiredTreesAbsent": [
+      ".agro/skills/hands",
+      ".agro/skills/remote-sandbox"
+    ],
+    "payload": {
+      "manifestUnchanged": true,
+      "include": "skills/**",
+      "includedSandboxFiles": 24,
+      "excludedSandboxFiles": 0
+    },
+    "preservedMachineryFiles": 16,
+    "limits": [
+      "Structural verification only; test execution is separately recorded.",
+      "Whole-file equality preserves all existing failure/cleanup test logic, not proof of live resource deletion.",
+      "No production source files are bundled into this evidence or substituted for source inspection."
+    ],
+    "execution": {
+      "command": "agro run -- timeout 120s python3 .agro/tasks/sandbox-skill-refinement/structural-proof.local.py",
+      "exitCode": 0,
+      "location": "Disposable Docker execution from the task checkout; temporary verifier removed afterward.",
+      "outputSha256": "ce6069cd7fabfc7aa700b8b33a13bf7592ded6354e63b2a4cb105963308c0cdc",
+      "verifierSha256": "6fa9c7c14b11d46307dc0909abf7dd36be0e06fd974525d672550e869d694f54"
+    },
+    "verifierPython": "import fnmatch\nimport hashlib\nimport json\nimport subprocess\n\nbase = \"1a2d35f5940e7b3f316b361557180ce674590c85\"\nsubject = \"cfa577addbf33db1fcd3ea0bafa3621194bb9c00\"\nold_root = b\".agro/skills/remote-sandbox\"\nnew_root = b\".agro/skills/sandbox\"\n\n\ndef blob(revision, path):\n    return subprocess.check_output([\"git\", \"show\", revision + \":\" + path])\n\n\ndef tree(revision, path):\n    raw = subprocess.check_output([\"git\", \"ls-tree\", \"-rz\", revision, \"--\", path])\n    return {entry.split(b\"\\t\", 1)[1].decode(): entry.split(b\"\\t\", 1)[0].decode()\n            for entry in raw.split(b\"\\0\") if entry}\n\n\ndef digest(data):\n    return hashlib.sha256(data).hexdigest()\n\n\nretargeted_tests = []\nfor name, count in [(\"remote-sandbox\", 1), (\"remote-sandbox-adapters\", 1),\n                    (\"remote-sandbox-suite\", 1), (\"skill-shell-portability\", 0)]:\n    path = \".agro/scripts/__tests__/\" + name + \".test.ts\"\n    before, after = blob(base, path), blob(subject, path)\n    assert before.count(old_root) == count\n    assert before.replace(old_root, new_root) == after\n    retargeted_tests.append({\"path\": path, \"oldLiteral\": old_root.decode(),\n                            \"newLiteral\": new_root.decode(), \"replacementCount\": count,\n                            \"otherBytesIdentical\": True, \"baseSha256\": digest(before),\n                            \"candidateSha256\": digest(after)})\n\nfixtures = []\nfor name in [\"remote-sandbox\", \"remote-sandbox-suite\"]:\n    path = \".agro/scripts/__tests__/fixtures/\" + name\n    before, after = tree(base, path), tree(subject, path)\n    assert before == after\n    fixtures.extend({\"path\": key, \"treeEntry\": value} for key, value in after.items())\nassert len(fixtures) == 7\n\nbefore_tree, after_tree = tree(base, old_root.decode()), tree(subject, new_root.decode())\nmachinery = [path for path in before_tree\n             if any(\"/\" + directory + \"/\" in path for directory in [\"adapters\", \"checks\", \"scripts\"])]\nassert len(machinery) == 16\nfor path in machinery:\n    assert before_tree[path] == after_tree[path.replace(old_root.decode(), new_root.decode())]\n\nlinks = []\nfor path in [\".agents/skills\", \".claude/skills\"]:\n    assert tree(base, path) == tree(subject, path)\n    entry = tree(subject, path)[path]\n    assert entry.startswith(\"120000 blob \")\n    assert blob(subject, path) == b\"../.agro/skills\"\n    links.append({\"path\": path, \"mode\": \"120000\", \"target\": \"../.agro/skills\"})\nretired = [\".agro/skills/hands\", old_root.decode()]\nfor path in retired:\n    assert not tree(subject, path)\n\nmanifest_path = \".agro/manifest.json\"\nassert blob(base, manifest_path) == blob(subject, manifest_path)\nmanifest = json.loads(blob(subject, manifest_path))\nassert \"skills/**\" in manifest[\"include\"] and len(after_tree) == 24\nfor path in after_tree:\n    relative = path[len(\".agro/\"):]\n    assert any(fnmatch.fnmatchcase(relative, pattern) for pattern in manifest[\"include\"])\n    assert not any(fnmatch.fnmatchcase(relative, pattern) for pattern in manifest[\"exclude\"])\n\nworkflow_path = \".github/workflows/ci-harness.yml\"\nbefore, workflow = blob(base, workflow_path), blob(subject, workflow_path)\nassert before.count(old_root) == 3 and before.replace(old_root, new_root) == workflow\ntext = workflow.decode()\npush = text.split(\"\\n  push:\\n\", 1)[1].split(\"\\n  pull_request:\", 1)[0]\npr = text.split(\"\\n  pull_request:\\n\", 1)[1].split(\"\\nconcurrency:\", 1)[0]\nfor section in [push, pr]:\n    assert \"      - \\\".agro/**\\\"\" in section\n    assert \"!\" not in section\ncommand = next(line.strip() for line in text.splitlines()\n               if line.strip().startswith(\"shellcheck -S warning \"))\nassert old_root.decode() not in command\nci_targets = {}\nfor directory, count in [(\"adapters\", 4), (\"checks\", 8), (\"scripts\", 4)]:\n    pattern = \".agro/skills/sandbox/\" + directory + \"/*.sh\"\n    assert command.split().count(pattern) == 1\n    paths = [path for path in after_tree if fnmatch.fnmatchcase(path, pattern)]\n    assert len(paths) == count\n    ci_targets[pattern] = paths\n\npackage = json.loads(blob(subject, \"package.json\"))\nassert package[\"scripts\"][\"test:scripts\"] == \"vitest run\"\nassert \"run: pnpm test:scripts\" in text\nassert \"\\\".agro/scripts/__tests__/**/*.test.{ts,mjs}\\\"\" in blob(subject, \"vitest.config.ts\").decode()\n\ndriver = blob(subject, \".agro/scripts/__tests__/remote-sandbox.test.ts\").decode()\nassert \"const SOURCE = join(ROOT, \\\".agro/skills/sandbox/scripts\\\");\" in driver\nassert \"for (const file of [\\\"lib.sh\\\", \\\"run.sh\\\"])\" in driver\nassert \"copyFileSync(join(SOURCE, file), join(skill, \\\"scripts\\\", file));\" in driver\nassert \"spawn(\\\"bash\\\", [skill.runSh, ...args]\" in driver\nadapter = blob(subject, \".agro/scripts/__tests__/remote-sandbox-adapters.test.ts\").decode()\nassert \"const LIB = join(ROOT, \\\".agro/skills/sandbox/scripts/lib.sh\\\");\" in adapter\nassert r\"\"\"`. \"$1\"\\n${script}`, \"bash\", LIB\"\"\" in adapter\nsuite = blob(subject, \".agro/scripts/__tests__/remote-sandbox-suite.test.ts\").decode()\nassert \"const SKILL = join(ROOT, \\\".agro/skills/sandbox\\\");\" in suite\nfor binding in [\"join(SKILL, \\\"checks/fresh-install.sh\\\")\", \"join(SKILL, \\\"checks/msb-guest.sh\\\")\",\n                \"copyFileSync(join(SKILL, \\\"scripts\\\", file)\", \"join(skill, \\\"scripts/restart-test.sh\\\")\"]:\n    assert binding in suite\n\nprint(json.dumps({\n    \"schemaVersion\": 1, \"baseCommit\": base, \"subjectCommit\": subject,\n    \"method\": \"Executed whole-file byte comparisons after enumerated path-only substitutions; no assertion, comment or whitespace removal.\",\n    \"activeTestRetargeting\": retargeted_tests,\n    \"unchangedRemoteFixtures\": fixtures,\n    \"activeBindings\": {\n        \"driver\": \"Canonical lib.sh/run.sh bytes copied into isolated fixtures, then spawned as Bash.\",\n        \"adapters\": \"Canonical lib.sh sourced by the test wrapper.\",\n        \"suite\": \"Canonical fresh-install/msb checks and restart scripts read, executed or copied by existing tests.\",\n        \"ci\": \"pnpm test:scripts maps to vitest run; its include glob selects the remote test modules.\"\n    },\n    \"ciWorkflow\": {\"path\": workflow_path, \"replacementCount\": 3,\n                   \"otherBytesIdentical\": True, \"baseSha256\": digest(before),\n                   \"candidateSha256\": digest(workflow), \"pushAndPrInclude\": \".agro/**\",\n                   \"negativePathPatterns\": 0, \"sandboxShellcheckTargets\": ci_targets},\n    \"providerLinks\": links, \"retiredTreesAbsent\": retired,\n    \"payload\": {\"manifestUnchanged\": True, \"include\": \"skills/**\",\n                \"includedSandboxFiles\": 24, \"excludedSandboxFiles\": 0},\n    \"preservedMachineryFiles\": 16,\n    \"limits\": [\"Structural verification only; test execution is separately recorded.\",\n               \"Whole-file equality preserves all existing failure/cleanup test logic, not proof of live resource deletion.\",\n               \"No production source files are bundled into this evidence or substituted for source inspection.\"]\n}, indent=2))\n"
+  }
 }
