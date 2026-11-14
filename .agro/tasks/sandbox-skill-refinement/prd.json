@@ -5,7 +5,6 @@
   "description": "Refine existing PR #1619 under the active goal: fresh ten-member council mean at least 0.930, then undraft on exact-head green CI.",
   "issue": 1618,
   "pr": 1619,
-  "goalId": "5928aadb-abe3-40d8-a0ba-15e061c97f93",
   "rubricSha256": "9b0281a76335f6a25431c8ce0f46521b00eb554e7bf7010708387b772f126f66",
   "minimumCouncilMean": 0.93,
   "userStories": [
@@ -19,15 +18,19 @@
         "MicroVM permission guidance distinguishes historical observations from fresh runtime evidence.",
         "Eight routing cases cover the frozen R1 through R8 tasks without changing the rubric.",
         "Grader tests reject wrong routes, missing or duplicate cases, invalid owners, stale instruction hashes, and invented execution claims.",
-        "The existing changelog entry describes the added routing evidence and links issue #1618."
+        "The existing changelog entry describes the added routing evidence and links issue #1618.",
+        "Public hand application examples require capability-checked sandbox execution; SSH alone is not an application runtime.",
+        "Public mount scope discloses writable external Git metadata; readiness states attempts plus probe duration, cleanup remains best effort, and provider stop limits are adapter scoped."
       ],
       "priority": 1,
       "commit": "11796f0f18eaec3a613725c2eaab43981ca29544",
-      "passes": true,
-      "rounds": 1,
-      "repairHistory": "Resolved input-closure gap through bounded worker61ed1915-7a0d-479. All ten actual/public instruction inputs are hashed, including two linked R8 documents. Tests mutate either document in isolated fixtures and reject stale provenance. Monitor12 passed all3348 tests with the final helper.",
-      "notes": "Advisor accepted the inspected bounded diff after source-backed brain-path repair. Executed: monitor8 exit0 for six skill contract tests and thirty grader unit tests in agro run; worker red mutation demonstrated wrong-route rejection. Reasoned: clone setup now matches hands.ts brain/hand paths, public run.env matches services-or-allowlist, historical msb caveat is qualified, eight case prompts/oracles are separate, and unchanged 191-character changelog entry links1618. The final unfiltered observed replay test passes with genuine US-002 records; no synthetic observation or skip can satisfy it.",
+      "passes": false,
+      "rounds": 2,
+      "repairHistory": "Reopened for council-confirmed public SSH isolation instruction and four bounded truthfulness clarifications. Revised existing guide ownership before sequential dispatch; no runtime changes. Prior repair: resolved input-closure gap through bounded worker61ed1915-7a0d-479. All ten actual/public instruction inputs are hashed, including two linked R8 documents. Tests mutate either document in isolated fixtures and reject stale provenance. Monitor12 passed all3348 tests with the final helper.",
+      "notes": "Historical acceptance before the newly confirmed documentation findings; current repair remains unaccepted. Advisor accepted the inspected bounded diff after source-backed brain-path repair. Executed: monitor8 exit0 for six skill contract tests and thirty grader unit tests in agro run; worker red mutation demonstrated wrong-route rejection. Reasoned: clone setup now matches hands.ts brain/hand paths, public run.env matches services-or-allowlist, historical msb caveat is qualified, eight case prompts/oracles are separate, and unchanged 191-character changelog entry links1618. The final unfiltered observed replay test passes with genuine US-002 records; no synthetic observation or skip can satisfy it.",
       "files": [
+        ".agro/skills/sandbox/references/local-docker.md",
+        ".agro/skills/sandbox/references/providers.md",
         ".agro/skills/sandbox/references/mifune-console.md",
         ".agro/skills/sandbox/references/local-msb.md",
         "docs/lifecycle-commands.md",
@@ -52,9 +55,9 @@
       "priority": 2,
       "dependsOn": ["US-001"],
       "commit": "11796f0f18eaec3a613725c2eaab43981ca29544",
-      "passes": true,
-      "repairHistory": "Verified all ten input files byte-for-byte against immutable7bbf3209 and refreshed only provenance metadata. The original decisions, cases, models, handles and outcomes are unchanged. No replay or oracle substitution.",
-      "notes": "Executed: eight unique fresh contexts at immutable7bbf3209 produced the expected R1-R8 routes and required owners on their first attempts; actual JSON responses, observed gpt-6.1-sol model names, handles and prompt hashes were captured, not synthesized. Advisor audited every tool call as git-show-only source inspection, with no oracle/plan access or provider execution. Complete instruction digestfd394976beb031489d88706e67e5ee0bfdf71d8927521be3968e4fb5fa3ff233 and cases hashafbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab match the verified original inputs. Monitor12 exit0: all3348 tests passed, including the observed-record gate and negative wrong-route/stale/missing/schema/provenance/public-document-byte mutations; no skips. Suggested command wording remains ungraded and unexecuted, explicitly disclosed.",
+      "passes": false,
+      "repairHistory": "Reopened because current instruction bytes will change; a genuinely new eight-context batch is required. Never rehash old responses to represent a new run. Historical batch: verified all ten input files byte-for-byte against immutable7bbf3209 and refreshed only provenance metadata. The original decisions, cases, models, handles and outcomes are unchanged. No replay or oracle substitution.",
+      "notes": "Historical batch only; replacement actual decisions remain pending. Executed: eight unique fresh contexts at immutable7bbf3209 produced the expected R1-R8 routes and required owners on their first attempts; actual JSON responses, observed gpt-6.1-sol model names, handles and prompt hashes were captured, not synthesized. Advisor audited every tool call as git-show-only source inspection, with no oracle/plan access or provider execution. Complete instruction digestfd394976beb031489d88706e67e5ee0bfdf71d8927521be3968e4fb5fa3ff233 and cases hashafbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab match the verified original inputs. Monitor12 exit0: all3348 tests passed, including the observed-record gate and negative wrong-route/stale/missing/schema/provenance/public-document-byte mutations; no skips. Suggested command wording remains ungraded and unexecuted, explicitly disclosed.",
       "files": [
         ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json",
         ".agro/tasks/sandbox-skill-refinement/evidence/routing-run.json"
@@ -74,8 +77,8 @@
       ],
       "priority": 3,
       "dependsOn": ["US-001", "US-002"],
-      "passes": true,
-      "notes": "Executed: monitor12 exit0 for lint command/typecheck/build and3348 tests in125 files. Monitor11 exit0 for270 focused execution-contract tests. Provider links, bash syntax, changed-reference/plan STE, and diff checks passed. Exact Git comparisons preserve all16 machinery blobs/modes and exclude runtime, dependencies and agro.json changes. Manual evidence records the fresh absent-output-path invalid-provider exit2, successful wrapper exit0 and container-scoped cleanup. Reasoned: source-story acceptance prepares reproducible evidence; task-level gates separately require actual final-head pinned PR links, unchanged-rubric council mean and green CI before undrafting. No live provider/microVM success is claimed.",
+      "passes": false,
+      "notes": "Historical candidate verification; revised-source acceptance remains pending. Executed: monitor12 exit0 for lint command/typecheck/build and3348 tests in125 files. Monitor11 exit0 for270 focused execution-contract tests. Provider links, bash syntax, changed-reference/plan STE, and diff checks passed. Exact Git comparisons preserve all16 machinery blobs/modes and exclude runtime, dependencies and agro.json changes. Manual evidence records the fresh absent-output-path invalid-provider exit2, successful wrapper exit0 and container-scoped cleanup. Reasoned: source-story acceptance prepares reproducible evidence; task-level gates separately require actual final-head pinned PR links, unchanged-rubric council mean and green CI before undrafting. No live provider/microVM success is claimed.",
       "files": [".agro/tasks/sandbox-skill-refinement/evidence/manual-review.md"]
     }
   ]

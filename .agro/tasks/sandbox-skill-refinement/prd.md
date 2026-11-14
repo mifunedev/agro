@@ -16,6 +16,8 @@ Status: APPROVED by the operator's active goal.
 - [ ] Eight routing cases cover the frozen R1 through R8 tasks without changing the rubric.
 - [ ] Grader tests reject wrong routes, missing or duplicate cases, invalid owners, stale instruction hashes, and invented execution claims.
 - [ ] The existing changelog entry describes the added routing evidence and links issue #1618.
+- [ ] Public hand application examples require capability-checked sandbox execution. SSH alone is not an application runtime.
+- [ ] Mount scope includes writable external Git metadata. Readiness states attempts plus probe duration. Cleanup remains best effort. Stop limitations stay adapter scoped.
 
 ### US-002: Execute fresh routing decisions and bind their evidence
 
@@ -87,6 +89,27 @@ Keep the original ten-member lenses, source budgets, score weights, and unknown 
 Do not alter the rubric to reach the target or discard a low score.
 A source inspection map can identify relevant implementation and evidence without supplying grades.
 
+## Bounded council repair
+
+The second council's exact raw mean was 5677/6000 (0.946 displayed).
+A fresh critic confirmed a public SSH application-test example that bypasses the required runtime boundary.
+The frozen critical cap is 0.499. The raw mean does not establish readiness.
+Correct that example and the four related truthfulness findings inside the existing PR.
+Retain every earlier member report and score. Do not replace low members.
+Changed instruction bytes require eight genuinely new decision contexts and a new ten-member council.
+
+| Surface | Disposition |
+| --- | --- |
+| Host and sandbox | Applied: host control-plane documentation; all verification uses `agro run`. |
+| Lifecycle door | Applied: align `agro run` and `agro hands` guidance without CLI changes. |
+| Canonical and provider | Applied: canonical sandbox references; preserve provider links. |
+| Root and scaffold | Applied: portable instructions and public documentation. |
+| Interactive and headless | Not applicable: no process-runtime change; checks use bounded monitors. |
+| Local and remote | Applied: disclose mounts and require remote runtime capabilities. |
+| Parallel operation | Applied: one sequential worker in the existing isolated task worktree. |
+| Public documentation | Applied: fix inherited mount and SSH-example contradictions. |
+| Verification | Applied: focused guards, fresh routing decisions, preserved machinery, full checks, fresh council and final-head CI. |
+
 ## Test Plan (TDD)
 
 | Test File | Cases | Validates |
@@ -129,6 +152,11 @@ None. The active goal authorizes bounded implementation and evaluation through P
 - [ ] The operator's unrelated changes remain untouched.
 
 ## Lessons
+
+The second raw council mean exceeded the target, but a source-confirmed unsafe SSH example activated the unchanged safety cap.
+Numerical agreement cannot override a verified isolation violation.
+A bounded repair must align public application examples, writable Git mounts, readiness attempts, best-effort cleanup, and adapter-local capability claims.
+Outcome: fixed in this PR only after the reopened stories receive new acceptance.
 
 The advisor distinguished source acceptance from final publication so evidence links can use the actual final commit without a self-reference cycle.
 All publication, score, and CI gates remain mandatory before undrafting.
