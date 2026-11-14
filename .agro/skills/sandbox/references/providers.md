@@ -80,7 +80,7 @@ Prerequisites:
 3. Set `CONSOLE_SSH_IDENTITY` to the private key file for the node SSH key. Without `CONSOLE_SSH_KEY_ID`, `agro node create` registers `~/.ssh/id_ed25519.pub` of the driver host. Then `CONSOLE_SSH_IDENTITY` must be the matching private key `~/.ssh/id_ed25519`. With `CONSOLE_SSH_KEY_ID` set to the UUID of a console SSH key, `CONSOLE_SSH_IDENTITY` must be the private key file of that console key.
 4. Run `bash scripts/run.sh console --preflight`. The command prints `preflight ok: console`.
 
-The free tier allows one live node for each account. With the free tier on, start one console run at a time. Before a run, confirm that `agro node list` shows no other live node.
+The free tier allows one live node for each account. The console adapter creates `n4` nodes, and `agro node create` falls back to `n4` in the free tier. Start one console run at a time. Before a run, confirm that `agro node list` shows no other live node.
 
 A console node has no image choice. When the operator sets `IMAGE`, `console_create` stops and exits 2. The image mode of `checks/agro-rows.sh` does not apply to the console. `scripts/restart-test.sh console` prints a usage line and exits 2.
 

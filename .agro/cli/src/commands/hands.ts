@@ -3,11 +3,13 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { HANDS_VERBS, isOneOf } from "../command-table.js";
 import {
+  brainConsoleUrlPath,
+  brainTokenPath,
+  confirmDestroy,
+  formatTable,
   NODE_READY_TIMEOUT_MS,
   nodePollDelayMs,
-  present,
-  trimConsoleUrl,
-  type ConsoleConfig,
+  resolveBrainConsoleConfig,
   type ConsoleIO,
   type ConsolePollDeps,
 } from "../lib/console-api.js";
@@ -18,6 +20,7 @@ import * as prompt from "../lib/prompt.js";
 import type { HandProviderId } from "../lib/agro-config.js";
 
 export { normalizeHandRef } from "../lib/hands/console-provider.js";
+export { resolveBrainConsoleConfig } from "../lib/console-api.js";
 
 export const BRAIN_HOME = "/home/sandbox";
 export const BRAIN_TOKEN_MISSING = `not on a brain: ${brainTokenPath(BRAIN_HOME)} not found`;
@@ -40,33 +43,6 @@ export interface HandsDeps extends ConsolePollDeps {
 export interface ProjectSlug {
   owner: string;
   repo: string;
-}
-
-type ConfigResult = { ok: true; config: ConsoleConfig } | { ok: false; error: string };
-
-function brainTokenPath(home: string): string {
-  return join(home, ".agro", "brain-token");
-}
-
-function brainConsoleUrlPath(home: string): string {
-  return join(home, ".agro", "brain-console-url");
-}
-
-export function resolveBrainConsoleConfig(
-  env: Record<string, string | undefined>,
-  homeDir: () => string,
-  readFile: (path: string) => string | undefined,
-): ConfigResult {
-  const envToken = present(env.AGRO_CONSOLE_TOKEN);
-  const tokenPath = brainTokenPath(homeDir());
-  const token = envToken ?? present(readFile(tokenPath));
-  if (token === undefined) return { ok: false, error: `not on a brain: ${tokenPath} not found` };
-  const urlPath = brainConsoleUrlPath(homeDir());
-  const url = present(env.AGRO_CONSOLE_URL) ?? present(readFile(urlPath));
-  if (url === undefined) {
-    return { ok: false, error: `no brain console URL: ${urlPath} not found and AGRO_CONSOLE_URL is unset` };
-  }
-  return { ok: true, config: { url: trimConsoleUrl(url), token, source: envToken === undefined ? "file" : "env" } };
 }
 
 const SLUG_PART = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -220,20 +196,18 @@ async function runList(tokens: string[], io: HandsIO, provider: HandProvider, pr
     io.stdout("no hands\n");
     return 0;
   }
-  const table = [
-    ["INDEX", "ALIAS", "STATUS", "SPEC", "SSH HOST"],
-    ...hands.map((hand) => [
-      hand.index === null ? "-" : `#${hand.index}`,
-      hand.alias ?? "-",
-      hand.status,
-      hand.spec ?? "-",
-      hand.sshHost ?? "-",
-    ]),
-  ];
-  const widths = table[0].map((_, column) => Math.max(...table.map((cells) => cells[column].length)));
-  for (const cells of table) {
-    io.stdout(`${cells.map((cell, column) => cell.padEnd(widths[column])).join("  ").trimEnd()}\n`);
-  }
+  io.stdout(
+    formatTable(
+      ["INDEX", "ALIAS", "STATUS", "SPEC", "SSH HOST"],
+      hands.map((hand) => [
+        hand.index === null ? "-" : `#${hand.index}`,
+        hand.alias ?? "-",
+        hand.status,
+        hand.spec ?? "-",
+        hand.sshHost ?? "-",
+      ]),
+    ),
+  );
   return 0;
 }
 
@@ -537,8 +511,7 @@ async function runDestroy(tokens: string[], io: HandsIO, deps: HandsDeps, provid
   }
   const { ref } = parsed;
   const yes = tokens.includes("--yes") || tokens.includes("-y");
-  if (!yes && !(await deps.confirm(`Destroy hand ${ref}?`))) {
-    io.stderr(`${prefix}: aborted — hand ${ref} unchanged\n`);
+  if (!(await confirmDestroy(io, deps.confirm, { prefix, yes, question: `Destroy hand ${ref}?`, subject: `hand ${ref}` }))) {
     return 1;
   }
   const deleted = await provider.destroy(ref);
@@ -586,8 +559,8 @@ export async function runHands(
   }
   const { config } = resolved;
   const safe = hiding(io, config.token);
-  const provider = createConsoleProvider(deps, config);
   const prefix = `${bin} hands ${verb}`;
+  const provider = createConsoleProvider(deps, config, (notice) => safe.stderr(`${prefix}: ${notice}\n`));
   if (verb === "list") return runList(rest, safe, provider, prefix);
   if (verb === "create") return runCreate(rest, safe, deps, provider, prefix);
   if (verb === "destroy") return runDestroy(rest, safe, deps, provider, prefix);

@@ -56,7 +56,7 @@ Here, `local` means the host running `agro`, even on a remote VM.
 | `agro tool setup t3-mobile <enable\|pair\|disable\|status>` | reach T3 Code from a phone over Tailscale Serve — see below |
 | `agro workspace create [<name>] [--path <dir>] [--ref <ref>] [--json]` · `agro workspace list [--json]` | create and list host AGRO workspaces under `~/.agro/workspaces/` — see below |
 | `agro auth login [--url <url>]` · `agro auth status` · `agro auth logout` · `agro auth token` | sign in to agro-console and manage the console token — see below |
-| `agro node create --spec <spec> [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--free-tier] [--json]` · `agro node list [--json]` · `agro node delete <id> [--yes]` · `agro node check [--free-tier] [--ssh-key <uuid>]...` | create, list, delete, and check remote agro-console sandbox nodes — see below |
+| `agro node create [--spec <spec>] [--profile agro\|sandbox] [--docker] [--t3] [--code-server] [--ssh-key <uuid>]... [--name <name>] [--json]` · `agro node list [--json]` · `agro node delete <id> [--yes]` · `agro node check [--ssh-key <uuid>]...` | create, list, delete, and check remote agro-console sandbox nodes — see below |
 | `agro hands list [--json]` · `agro hands create [--name <name>] [--spec <spec>] [--project <owner>/<repo> \| --clone <owner>/<repo>]` · `agro hands exec <hand> [--project <owner>/<repo>] -- <command...>` · `agro hands fetch <hand> --project <owner>/<repo>` · `agro hands fork <hand> [--spec <spec>] [--name <name>]` · `agro hands pause\|resume <hand>` · `agro hands destroy <hand> [--yes]` | on a brain, create and manage hands, and move projects to them over SSH — see below |
 | `agro --help` · `agro --version` | usage and version |
 
@@ -644,11 +644,12 @@ agro auth token     # print the token
 local Docker sandboxes. Use `agro sandbox` for a local sandbox.
 
 ```bash
-agro node create --spec <spec>   # create a sandbox node, wait for running
+agro node create                 # create an n4 sandbox node, wait for running
+agro node create --spec <spec>   # create a node with another spec
 agro node create --spec n4 --profile agro --t3   # create an agro-profile node with T3
 agro node list                   # every node: id, name, profile, status, IPv4
 agro node delete <id>            # destroy one node after a confirmation
-agro node check --free-tier      # check the SSH key and the free tier, create nothing
+agro node check                  # check the SSH key and the free tier, create nothing
 ```
 
 - Each verb finds the token and the URL in the same order as `agro auth`. If
@@ -666,8 +667,16 @@ agro node check --free-tier      # check the SSH key and the free tier, create n
   --profile must be agro or sandbox
   ```
 
-  `--spec` is mandatory. `--free-tier` requests the agro-console free tier and
-  sets the default spec to `n4`. `--name` sets the node name.
+  `--spec` is optional. The spec is `n4` by default. `--name` sets the node
+  name.
+- If the console refuses the spec with HTTP 403 `PAYMENTS_DISABLED`, the
+  command sends one more request for `n4` in the free tier. Before that
+  request, the command prints
+  `spec <spec> is not in the free tier; creating n4` to stderr. When the
+  requested spec is `n4`, the command prints no notice. Any other error
+  makes the command exit 1 after the first request.
+- A node with the profile `sandbox` from `agro node create` is not a hand. It
+  is a hand only when a brain manages the node.
 - `--docker`, `--t3`, and `--code-server` require `--profile agro`. If the
   profile is `sandbox`, the command exits 1 before it calls the console and
   prints `<flag> requires --profile agro`. Each given flag turns on its app.
@@ -696,10 +705,12 @@ agro node check --free-tier      # check the SSH key and the free tier, create n
 - `agro node check` sends only `GET` requests and creates nothing. Without
   `--ssh-key`, the command finds `~/.ssh/id_ed25519.pub` among the console SSH
   keys by key identity. With `--ssh-key <uuid>`, the command finds each id among
-  the console SSH keys. `--free-tier` also reads the free tier eligibility of
+  the console SSH keys. The command also reads the free tier eligibility of
   the console account. The command prints one line for each check, for example
-  `ok ssh-key <id>` or `fail free-tier: ...`. Each failure line names a remedy.
-  The command exits 0 only when each check passes. Otherwise it exits 1.
+  `ok ssh-key <id>` or `fail ssh-key <id>: ...`. Each failure line names a
+  remedy. An account that is not eligible for the free tier gets a line that
+  starts with `warn free-tier: not eligible`. A warn line does not change the
+  exit status. The command exits 1 when a check fails. Otherwise it exits 0.
 - `--json` on `create` and `list` prints JSON instead of text.
 
 ## Hands from a brain: `agro hands`

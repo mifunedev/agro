@@ -2,6 +2,7 @@ import {
   asRecord,
   asText,
   callApi,
+  createConsoleNode,
   toNode,
   toNodeList,
   waitForRunning,
@@ -36,7 +37,11 @@ function toHand(node: ConsoleNode): Hand {
   };
 }
 
-export function createConsoleProvider(deps: ConsolePollDeps, config: ConsoleConfig): HandProvider {
+export function createConsoleProvider(
+  deps: ConsolePollDeps,
+  config: ConsoleConfig,
+  notice: (message: string) => void,
+): HandProvider {
   async function readNode(ref: string): Promise<HandOutcome<ConsoleNode>> {
     const read = await callApi(deps, config, "GET", handPath(ref));
     if (!read.ok) return { ok: false, error: read.message };
@@ -85,11 +90,16 @@ export function createConsoleProvider(deps: ConsolePollDeps, config: ConsoleConf
 
     async create({ name, spec }, onStatus) {
       const requestedAt = deps.now();
-      const created = await callApi(deps, config, "POST", "/api/nodes", {
-        profile: "sandbox",
-        ...(name === undefined ? {} : { name }),
-        ...(spec === undefined ? {} : { spec }),
-      });
+      const created = await createConsoleNode(
+        deps,
+        config,
+        {
+          profile: "sandbox",
+          ...(name === undefined ? {} : { name }),
+          ...(spec === undefined ? {} : { spec }),
+        },
+        notice,
+      );
       if (!created.ok) return { ok: false, error: created.message };
       const node = toNode(created.body);
       if (node === undefined) return { ok: false, error: NO_NODE_ID };
