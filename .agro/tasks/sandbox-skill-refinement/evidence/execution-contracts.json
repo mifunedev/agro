@@ -1,7 +1,8 @@
 {
   "schemaVersion": 1,
-  "observedSourceRevision": "0f45ce5479ead57c61f605c71cdb79fb70b7d3ac",
-  "command": "agro run -- pnpm test .agro/cli/src/__tests__/run.test.ts .agro/cli/src/__tests__/ephemeral-target.test.ts .agro/cli/src/__tests__/microvm-target.test.ts .agro/cli/src/commands/__tests__/hands-project.test.ts .agro/scripts/__tests__/remote-sandbox.test.ts .agro/scripts/__tests__/remote-sandbox-adapters.test.ts .agro/scripts/__tests__/remote-sandbox-suite.test.ts .agro/scripts/__tests__/standard-skills-link.test.ts --reporter verbose",
+  "observedSourceRevision": "a213be5cc333c9ac71b5aec8677a0b0fdf3bbd14",
+  "monitor": 19,
+  "command": "agro run -- timeout 300s pnpm test .agro/cli/src/__tests__/run.test.ts .agro/cli/src/__tests__/ephemeral-target.test.ts .agro/cli/src/__tests__/microvm-target.test.ts .agro/cli/src/commands/__tests__/hands-project.test.ts .agro/scripts/__tests__/remote-sandbox.test.ts .agro/scripts/__tests__/remote-sandbox-adapters.test.ts .agro/scripts/__tests__/remote-sandbox-suite.test.ts .agro/scripts/__tests__/standard-skills-link.test.ts --reporter verbose",
   "exitCode": 0,
   "testFiles": 8,
   "testsPassed": 270,
@@ -48,7 +49,7 @@
   ],
   "limits": [
     "CLI runner/API tests use injected runners or fixtures; they are not live provider or microVM verification.",
-    "The concurrent test-only provenance repair did not change any source exercised by this focused subset.",
+    "This fresh focused rerun follows the complete3352-test verification; source assertions remain fixture-bound rather than live boundary evidence.",
     "Actual agent route decisions are separately recorded and graded; general agent reliability is not inferred."
   ]
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baseCommit": "1a2d35f5940e7b3f316b361557180ce674590c85",
-  "snapshotCommit": "0f45ce5479ead57c61f605c71cdb79fb70b7d3ac",
+  "snapshotCommit": "a213be5cc333c9ac71b5aec8677a0b0fdf3bbd14",
   "comparison": "Exact Git blob and mode comparison, not filename-only rename inference.",
   "preservedFiles": [
     {

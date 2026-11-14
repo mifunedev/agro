@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "verifiedCodeRevision": "11796f0f18eaec3a613725c2eaab43981ca29544",
+  "verifiedCodeRevision": "a213be5cc333c9ac71b5aec8677a0b0fdf3bbd14",
   "fullVerification": {
-    "command": "agro run -- sh -c 'set -eu; pnpm run lint; pnpm typecheck; pnpm build; pnpm test'",
-    "monitor": 12,
+    "command": "agro run -- timeout 600s sh -c 'set -eu; pnpm run lint; pnpm typecheck; pnpm build; pnpm test'",
+    "monitor": 18,
     "exitCode": 0,
     "testFiles": 125,
-    "testsPassed": 3348,
+    "testsPassed": 3352,
     "testsSkipped": 0,
     "typecheck": "passed",
     "build": "passed",
@@ -19,14 +19,14 @@
     "routesMatched": 8,
     "requiredOwnersMatched": 8,
     "instructionInputs": 10,
-    "instructionSha256": "fd394976beb031489d88706e67e5ee0bfdf71d8927521be3968e4fb5fa3ff233",
+    "instructionSha256": "d92ff76bf9614973f9c77d7a9fed903bd27a9a855a7619ea97b2d648abec74ee",
     "casesSha256": "afbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab",
     "actualResponseRecord": ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json",
     "captureAudit": ".agro/tasks/sandbox-skill-refinement/evidence/routing-run.json",
-    "limits": "Decision-only routing sample. Suggested command wording is ungraded and unexecuted; no general agent reliability or live provider success is inferred."
+    "limits": "Genuinely new decision-only routing sample at immutable1d17ba3c. Suggested commands are unexecuted/ungraded and allowed extra owners are unpenalized; no general agent reliability or live provider success is inferred."
   },
   "focusedContracts": {
-    "monitor": 11,
+    "monitor": 19,
     "exitCode": 0,
     "testFiles": 8,
     "testsPassed": 270,
@@ -44,9 +44,13 @@
     "contentsAndModesMatchBase": true,
     "providerLinks": "passed",
     "shellSyntax": "passed",
-    "changedReferenceAndPlanProse": "passed STE",
+    "changedReferenceAndPlanProse": "passed STE for six complete changed documents; manual prerequisite/actor review also completed",
     "gitDiffCheck": "passed"
   },
+  "launcherNotes": [
+    "Monitor17 exited2 before any test because its default POSIX shell rejects pipefail. Monitor18 used an explicit Bash wrapper and passed; the failed launcher is not test evidence.",
+    "Safety Net declined an unverifiable compound shell source. The named remedy was followed: direct literal check commands, no generated source/trap, no alternate-tool bypass. Literal prose/link/syntax/fresh-negative commands passed."
+  ],
   "externalLimits": [
     "No new live provider VM, PostgreSQL-service boundary, egress boundary, or microVM validation.",
     "External skill registry publication is outside this change.",

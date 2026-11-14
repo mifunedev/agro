@@ -46,7 +46,7 @@ Status: APPROVED by the operator's active goal.
 
 ## Summary
 
-PR #1619 is a draft at `7d4900b71128409f58a9ef2b56aae27d0a658489`.
+PR #1619 opened as a draft at `7d4900b71128409f58a9ef2b56aae27d0a658489`.
 The first ten-member council averaged 0.866 after exact arithmetic correction.
 The operator requires an average of at least 0.930, then a non-draft PR on green CI.
 The original rubric remains unchanged: 60 checks with weights 0.25, 0.20, 0.25, 0.15, 0.10, and 0.05.
@@ -155,8 +155,10 @@ None. The active goal authorizes bounded implementation and evaluation through P
 
 The second raw council mean exceeded the target, but a source-confirmed unsafe SSH example activated the unchanged safety cap.
 Numerical agreement cannot override a verified isolation violation.
-A bounded repair must align public application examples, writable Git mounts, readiness attempts, best-effort cleanup, and adapter-local capability claims.
-Outcome: fixed in this PR only after the reopened stories receive new acceptance.
+The bounded repair aligns public application examples, writable Git mounts, readiness attempts, best-effort cleanup, and adapter-local capability claims.
+Source `1d17ba3c262ee1777f261d24b7ddd1be5269cf8e` corrects those claims and adds four guards.
+A fresh independent critic found no remaining source-confirmed cap instruction or concrete blocker in the inspected scope.
+Outcome: fixed in this PR.
 
 The advisor distinguished source acceptance from final publication so evidence links can use the actual final commit without a self-reference cycle.
 All publication, score, and CI gates remain mandatory before undrafting.
@@ -166,3 +168,9 @@ Outcome: fixed in this PR.
 Suggested commands in the decision-only responses remain ungraded and unexecuted.
 Broader live-provider validation needs separate authority and is not evidence from this task.
 Outcome: dropped from this change because the task does not authorize those runs.
+The critic suggested repeating the public mounted-path credential warning in the execution reference.
+The reference already discloses the extra writable Git mount, and public instructions require review of all mounted paths.
+Outcome: dropped because the additional wording duplicates an existing warning and resolves no false absence claim.
+A monitor launcher assumed Bash and exited before tests. A separate compound check was safety-blocked.
+An explicit Bash wrapper and the guard's literal-command remedy resolved both invocation problems.
+Outcome: dropped because no harness product defect or new implementation work remains.
