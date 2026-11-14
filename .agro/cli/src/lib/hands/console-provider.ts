@@ -77,6 +77,8 @@ export function createConsoleProvider(
   }
 
   return {
+    remoteCommand: (command) => command,
+
     async list() {
       const listed = await callApi(deps, config, "GET", "/api/nodes");
       if (!listed.ok) return { ok: false, error: listed.message };

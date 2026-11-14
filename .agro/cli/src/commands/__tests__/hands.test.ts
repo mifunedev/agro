@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { HANDS_VERBS } from "../../command-table.js";
 import {
   BRAIN_TOKEN_MISSING,
@@ -13,6 +16,8 @@ import {
 const TOKEN = "brn_known_secret_token_4f2a";
 const TOKEN_PATH = "/home/sandbox/.agro/brain-token";
 const URL_PATH = "/home/sandbox/.agro/brain-console-url";
+const USER_HOME = mkdtempSync(join(tmpdir(), "agro-hands-home-"));
+afterAll(() => rmSync(USER_HOME, { recursive: true, force: true }));
 
 interface Recorded {
   method: string;
@@ -59,6 +64,7 @@ function harness(replies: Reply[], overrides: Partial<HandsDeps> = {}) {
     fetch: fetchStub,
     env: {},
     homeDir: () => "/home/sandbox",
+    userHome: () => USER_HOME,
     readFile: files.readFile,
     sleep: async (ms) => {
       sleeps.push(ms);

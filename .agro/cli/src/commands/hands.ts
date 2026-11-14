@@ -14,13 +14,21 @@ import {
   type ConsolePollDeps,
 } from "../lib/console-api.js";
 import { createConsoleProvider } from "../lib/hands/console-provider.js";
-import { resolveHandProviderId, type Hand, type HandProvider } from "../lib/hands/provider.js";
+import { createExedevProvider, exedevPreflight } from "../lib/hands/exedev-provider.js";
+import {
+  brainHarnessRoot,
+  resolveHandProviderId,
+  shellQuote,
+  type Hand,
+  type HandProvider,
+} from "../lib/hands/provider.js";
 import { messageOf, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import * as prompt from "../lib/prompt.js";
 import type { HandProviderId } from "../lib/agro-config.js";
 
 export { normalizeHandRef } from "../lib/hands/console-provider.js";
 export { resolveBrainConsoleConfig } from "../lib/console-api.js";
+export { shellQuote } from "../lib/hands/provider.js";
 
 export const BRAIN_HOME = "/home/sandbox";
 export const BRAIN_TOKEN_MISSING = `not on a brain: ${brainTokenPath(BRAIN_HOME)} not found`;
@@ -53,18 +61,12 @@ export function parseProjectSlug(value: string): ProjectSlug | undefined {
   return { owner: parts[0], repo: parts[1] };
 }
 
-const SAFE_WORD = /^[A-Za-z0-9_\/.,:=@%+-]+$/;
-
-export function shellQuote(words: string[]): string {
-  return words.map((word) => (SAFE_WORD.test(word) ? word : `'${word.replaceAll("'", "'\\''")}'`)).join(" ");
-}
-
 function handProjectPath(slug: ProjectSlug): string {
   return `projects/${slug.owner}/${slug.repo}`;
 }
 
-function brainProjectPath(home: string, slug: ProjectSlug): string {
-  return join(home, ".agro", "workspaces", "harness", "projects", slug.owner, slug.repo);
+function brainProjectPath(deps: HandsDeps, slug: ProjectSlug): string {
+  return join(brainHarnessRoot(deps.env, deps.userHome()), "projects", slug.owner, slug.repo);
 }
 
 function sshOptions(hand: Hand): string[] {
@@ -75,8 +77,9 @@ function gitEnv(deps: HandsDeps, hand: Hand): NodeJS.ProcessEnv {
   return { ...deps.env, GIT_SSH_COMMAND: ["ssh", ...sshOptions(hand)].join(" ") };
 }
 
-function runSsh(deps: HandsDeps, hand: Hand, sshDest: string, command: string): number {
-  const result = deps.run("ssh", [...sshOptions(hand), "--", sshDest, command], { stdio: "inherit" });
+function runSsh(deps: HandsDeps, provider: HandProvider, hand: Hand, sshDest: string, command: string): number {
+  const remote = provider.remoteCommand(command);
+  const result = deps.run("ssh", [...sshOptions(hand), "--", sshDest, remote], { stdio: "inherit" });
   return result.status ?? 255;
 }
 
@@ -128,7 +131,8 @@ source unless --spec is given. When the console names the fork, \`fork\`
 waits for it like \`create\`. Otherwise, run \`${bin} hands list\` to find it.
 
 A project lives at ~/projects/<owner>/<repo> on the hand and at
-~/.agro/workspaces/harness/projects/<owner>/<repo> on the brain.
+<harness-root>/projects/<owner>/<repo> on the brain. The harness root is
+\`harnessRoot\` in ~/.agro/config.json, else ~/.agro/workspaces/harness.
 \`create --project\` prepares the hand folder, adds the remote hand-<index>
 to the brain project, and pushes the current branch. \`create --clone\`
 clones https://github.com/<owner>/<repo>.git on the hand with the hand's own
@@ -171,7 +175,13 @@ function oneHand(tokens: string[], allowed: string[]): { ok: true; ref: string }
   return { ok: true, ref: refs[0] };
 }
 
-async function runList(tokens: string[], io: HandsIO, provider: HandProvider, prefix: string) {
+async function runList(
+  tokens: string[],
+  io: HandsIO,
+  providerId: HandProviderId,
+  provider: HandProvider,
+  prefix: string,
+) {
   const extra = tokens.find((token) => token !== "--json");
   if (extra !== undefined) {
     io.stderr(`${prefix}: ${extra.startsWith("-") ? "unknown flag" : "unexpected argument"} "${extra}"\n`);
@@ -180,6 +190,7 @@ async function runList(tokens: string[], io: HandsIO, provider: HandProvider, pr
   const listed = await provider.list();
   if (!listed.ok) return failed(io, prefix, listed.error);
   const hands = listed.value;
+  if (providerId === "exedev") return printExedevList(io, hands, tokens.includes("--json"));
   if (tokens.includes("--json")) {
     const rows = hands.map(({ id, index, alias, status, spec, sshHost }) => ({
       id,
@@ -207,6 +218,19 @@ async function runList(tokens: string[], io: HandsIO, provider: HandProvider, pr
         hand.sshHost ?? "-",
       ]),
     ),
+  );
+  return 0;
+}
+
+function printExedevList(io: HandsIO, hands: Hand[], json: boolean): number {
+  if (json) {
+    io.stdout(`${JSON.stringify(hands.map(({ id, status, sshHost }) => ({ name: id, status, sshHost })))}\n`);
+    return 0;
+  }
+  io.stdout(
+    hands.length === 0
+      ? "no hands\n"
+      : formatTable(["NAME", "STATUS", "SSH HOST"], hands.map((hand) => [hand.id, hand.status, hand.sshHost ?? "-"])),
   );
   return 0;
 }
@@ -245,7 +269,7 @@ function parseCreate(tokens: string[]): { ok: true; args: CreateArgs } | { ok: f
 }
 
 function brainProject(deps: HandsDeps, slug: ProjectSlug): { ok: true; path: string } | { ok: false; error: string } {
-  const path = brainProjectPath(deps.homeDir(), slug);
+  const path = brainProjectPath(deps, slug);
   return deps.exists(join(path, ".git"))
     ? { ok: true, path }
     : { ok: false, error: `brain project ${path} not found` };
@@ -260,6 +284,7 @@ function currentBranch(deps: HandsDeps, path: string): string | undefined {
 function pushProject(
   io: HandsIO,
   deps: HandsDeps,
+  provider: HandProvider,
   prefix: string,
   hand: Hand,
   sshDest: string,
@@ -270,6 +295,7 @@ function pushProject(
   const folder = handProjectPath(slug);
   const prepared = runSsh(
     deps,
+    provider,
     hand,
     sshDest,
     `mkdir -p projects/${slug.owner} && git init -q -b ${shellQuote([local.branch])} ${folder} && git -C ${folder} config receive.denyCurrentBranch updateInstead`,
@@ -330,9 +356,10 @@ async function runCreate(tokens: string[], io: HandsIO, deps: HandsDeps, provide
     return 1;
   }
   io.stdout(`project: ~/${handProjectPath(slug)}\n`);
-  if (local !== undefined) return pushProject(io, deps, prefix, running, sshDest, remoteName, slug, local);
+  if (local !== undefined) return pushProject(io, deps, provider, prefix, running, sshDest, remoteName, slug, local);
   const cloned = runSsh(
     deps,
+    provider,
     running,
     sshDest,
     `mkdir -p projects/${slug.owner} && git clone -q https://github.com/${slug.owner}/${slug.repo}.git ${handProjectPath(slug)}`,
@@ -394,7 +421,7 @@ async function runExec(tokens: string[], io: HandsIO, deps: HandsDeps, provider:
   }
   const quoted = shellQuote(command);
   const remote = parsed.project === undefined ? quoted : `cd ${handProjectPath(parsed.project)} && ${quoted}`;
-  return runSsh(deps, resolved.hand, resolved.sshDest, remote);
+  return runSsh(deps, provider, resolved.hand, resolved.sshDest, remote);
 }
 
 async function runFetch(tokens: string[], io: HandsIO, deps: HandsDeps, provider: HandProvider, prefix: string) {
@@ -548,20 +575,29 @@ export async function runHands(
     io.stderr(`${bin} hands: ${messageOf(error)}\n`);
     return 1;
   }
-  if (providerId === "exedev") {
-    io.stderr(`${bin} hands: provider exedev is not available yet\n`);
-    return 2;
-  }
-  const resolved = resolveBrainConsoleConfig(deps.env, deps.homeDir, deps.readFile);
-  if (!resolved.ok) {
-    io.stderr(`${resolved.error}\n`);
-    return 2;
-  }
-  const { config } = resolved;
-  const safe = hiding(io, config.token);
   const prefix = `${bin} hands ${verb}`;
-  const provider = createConsoleProvider(deps, config, (notice) => safe.stderr(`${prefix}: ${notice}\n`));
-  if (verb === "list") return runList(rest, safe, provider, prefix);
+  let safe: HandsIO;
+  let provider: HandProvider;
+  if (providerId === "exedev") {
+    const preflight = exedevPreflight(deps.run);
+    if (!preflight.ok) {
+      io.stderr(`${bin} hands: ${preflight.error}\n`);
+      return 2;
+    }
+    safe = io;
+    provider = createExedevProvider(deps.run);
+  } else {
+    const resolved = resolveBrainConsoleConfig(deps.env, deps.homeDir, deps.readFile);
+    if (!resolved.ok) {
+      io.stderr(`${resolved.error}\n`);
+      return 2;
+    }
+    const { config } = resolved;
+    const hidden = hiding(io, config.token);
+    safe = hidden;
+    provider = createConsoleProvider(deps, config, (notice) => hidden.stderr(`${prefix}: ${notice}\n`));
+  }
+  if (verb === "list") return runList(rest, safe, providerId, provider, prefix);
   if (verb === "create") return runCreate(rest, safe, deps, provider, prefix);
   if (verb === "destroy") return runDestroy(rest, safe, deps, provider, prefix);
   if (verb === "fork") return runFork(rest, safe, provider, prefix);

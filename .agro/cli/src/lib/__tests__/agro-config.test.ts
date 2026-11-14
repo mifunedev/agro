@@ -18,7 +18,6 @@ import {
 } from "../agro-config.js";
 import { SECRET_KEYS } from "../secrets.js";
 import { resolveHandProviderId } from "../hands/provider.js";
-import { runHands } from "../../commands/hands.js";
 
 const cleanups: string[] = [];
 afterEach(() => {
@@ -652,19 +651,6 @@ describe("resolveHandProviderId", () => {
     writeHarnessConfig(join(home, ".agro", "workspaces", "harness"), { version: 1, hands: { provider: "console" } });
     writeFileSync(join(home, ".agro", "config.json"), `${JSON.stringify({ version: 1, harnessRoot: root })}\n`, "utf8");
     expect(resolveHandProviderId({}, home)).toBe("exedev");
-  });
-
-  it("makes agro hands report that the exedev provider is not available yet", async () => {
-    const home = makeRoot();
-    writeHarnessConfig(join(home, ".agro", "workspaces", "harness"), { version: 1, hands: { provider: "exedev" } });
-    const err: string[] = [];
-    const code = await runHands(
-      ["list"],
-      { stdout: () => {}, stderr: (s) => err.push(s) },
-      { env: {}, userHome: () => home, readFile: () => undefined },
-    );
-    expect(code).toBe(2);
-    expect(err.join("")).toBe("agro hands: provider exedev is not available yet\n");
   });
 });
 

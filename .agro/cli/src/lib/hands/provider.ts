@@ -1,9 +1,18 @@
 import { agroConfigPath, readAgroConfig, type HandProviderId } from "../agro-config.js";
 import { defaultHarnessRoot, readHostConfig } from "../host-config.js";
 
+export function brainHarnessRoot(env: NodeJS.ProcessEnv, home: string): string {
+  return readHostConfig(env, home).harnessRoot ?? defaultHarnessRoot(env, home);
+}
+
 export function resolveHandProviderId(env: NodeJS.ProcessEnv, home: string): HandProviderId {
-  const harnessRoot = readHostConfig(env, home).harnessRoot ?? defaultHarnessRoot(env, home);
-  return readAgroConfig(agroConfigPath(harnessRoot)).hands?.provider ?? "console";
+  return readAgroConfig(agroConfigPath(brainHarnessRoot(env, home))).hands?.provider ?? "console";
+}
+
+const SAFE_WORD = /^[A-Za-z0-9_\/.,:=@%+-]+$/;
+
+export function shellQuote(words: string[]): string {
+  return words.map((word) => (SAFE_WORD.test(word) ? word : `'${word.replaceAll("'", "'\\''")}'`)).join(" ");
 }
 
 export interface Hand {
@@ -34,6 +43,7 @@ export interface ForkOutcome {
 export type HandStatusReport = (hand: Hand) => void;
 
 export interface HandProvider {
+  remoteCommand(command: string): string;
   list(): Promise<HandOutcome<Hand[]>>;
   resolve(ref: string): Promise<HandOutcome<Hand>>;
   create(request: HandRequest, onStatus: HandStatusReport): Promise<HandOutcome<Hand>>;
