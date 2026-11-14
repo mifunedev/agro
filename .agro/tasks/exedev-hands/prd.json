@@ -236,8 +236,8 @@
         "At the end, `ssh exe.dev ls --json` lists the same VMs and tags as at the start."
       ],
       "priority": 8,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: read-only hands list (AGRO_HOME temp, provider exedev) listed agro-sbx-dev-001, exit 0, before any write. 2 executed: manual-review.md records built CLI on agro-supervisor: existing-hand push of a fresh scratch project, exec git log exit 0, hand commit a5301f0, fetch dd227c5..a5301f0, pause (ls status paused) and resume (running, SSH after 2 s), all exit 0. 3 executed: destroy agro-supervisor --yes exit 1 'it is this brain'; ssh shim saw only whoami preflight. 4 executed: node create --free-tier exit 1 unknown flag with a console URL set, no request; without console config the login message wins first, still exit 1, no request. 5 external, reasoned: no create, fork, destroy, or tag ran. 6 executed: AFTER ls --json equals BEFORE. Cleanup: scratch dir on the hand and temp AGRO_HOME removed. Evidence file is gitignored by design.",
       "dependsOn": [
         "US-005",
         "US-006",
@@ -246,7 +246,8 @@
       "files": [
         ".agro/tasks/exedev-hands/evidence/manual-review.md"
       ],
-      "external": false
+      "external": false,
+      "commit": "evidence-only"
     }
   ]
 }
