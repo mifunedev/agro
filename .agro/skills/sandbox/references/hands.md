@@ -17,7 +17,7 @@ The hand does heavy or parallel work. The brain keeps the history.
 Choose a hand for more CPU, memory, or disk, isolated parallel work, or potentially damaging commands.
 Keep short, light work on the brain. A hand uses paid provider resources from creation until destruction.
 
-One brain uses one provider. `hands.provider` in `<harness-root>/agro.json` selects the provider:
+One brain uses one provider. `hands.provider` in the host config `${AGRO_HOME:-~/.agro}/config.json` selects the provider:
 
 | | `console` (default) | `exedev` |
 |---|---|---|
@@ -29,8 +29,8 @@ One brain uses one provider. `hands.provider` in `<harness-root>/agro.json` sele
 | Authority fence | console token scope | tag guard and brain guard in the CLI |
 
 `<harness-root>` is the brain harness root. `agro hands --help` states how the CLI resolves it.
-Do not guess the provider from the host. Read `hands.provider` in `<harness-root>/agro.json`.
-To select exe.dev on an exe.dev brain, run `agro config set hands.provider exedev` at the harness root.
+Do not guess the provider from the host. Read `hands.provider` in the host config.
+To select exe.dev on an exe.dev brain, run `agro config set hands.provider exedev`.
 
 These operator requests select this route:
 

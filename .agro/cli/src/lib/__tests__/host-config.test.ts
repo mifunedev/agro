@@ -233,6 +233,24 @@ describe("validateHostConfig", () => {
     expect(() => validateHostConfig({ version: 2 })).toThrow(/version must be 1/);
   });
 
+  it.each(["console", "exedev"])("accepts hands.provider %s", (provider) => {
+    expect(validateHostConfig({ hands: { provider } }).hands?.provider).toBe(provider);
+  });
+
+  it("accepts a hands section without a provider", () => {
+    expect(validateHostConfig({ hands: {} }).hands).toEqual({});
+  });
+
+  it("rejects any other hands.provider value", () => {
+    expect(() => validateHostConfig({ hands: { provider: "aws" } })).toThrow(
+      /^config\.json: hands\.provider must be one of console, exedev$/,
+    );
+  });
+
+  it("rejects a hands section that is not an object", () => {
+    expect(() => validateHostConfig({ hands: "exedev" })).toThrow(/^config\.json: hands must be a JSON object$/);
+  });
+
   const receipt = {
     prefix: "/home/dev/.local",
     binary: "claude",

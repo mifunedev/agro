@@ -30,7 +30,8 @@ function tempDir(): string {
 
 function exedevHarnessRoot(root: string, withProject = false): string {
   mkdirSync(root, { recursive: true });
-  writeFileSync(join(root, "agro.json"), `${JSON.stringify({ version: 1, hands: { provider: "exedev" } })}\n`, "utf8");
+  const stateHome = dirname(dirname(root));
+  writeFileSync(join(stateHome, "config.json"), `${JSON.stringify({ version: 1, hands: { provider: "exedev" } })}\n`, "utf8");
   const project = join(root, ...PROJECT_SUFFIX);
   if (withProject) mkdirSync(join(project, ".git"), { recursive: true });
   return project;
@@ -520,47 +521,86 @@ function lsFixture(): RunResult {
 }
 
 describe("hands provider selection", () => {
-  function home(agroJson: unknown, hostConfig?: string): string {
+  function home(hostConfig: unknown, agroJson?: unknown): string {
     const dir = tempDir();
     const root = join(dir, ".agro", "workspaces", "harness");
     mkdirSync(root, { recursive: true });
-    if (agroJson !== undefined) {
-      writeFileSync(join(root, "agro.json"), typeof agroJson === "string" ? agroJson : JSON.stringify(agroJson), "utf8");
+    if (hostConfig !== undefined) {
+      const body = typeof hostConfig === "string" ? hostConfig : JSON.stringify(hostConfig);
+      writeFileSync(join(dir, ".agro", "config.json"), body, "utf8");
     }
-    if (hostConfig !== undefined) writeFileSync(join(dir, ".agro", "config.json"), hostConfig, "utf8");
+    if (agroJson !== undefined) writeFileSync(join(root, "agro.json"), JSON.stringify(agroJson), "utf8");
     return dir;
   }
 
-  it.each([
-    ["no agro.json", undefined, "console"],
-    ["no hands key", { version: 1 }, "console"],
-    ["an invalid unrelated field", { version: 99, runtime: 7 }, "console"],
-    ["unparseable JSON", "{", "console"],
-    ["exedev beside an invalid field", { version: 99, hands: { provider: "exedev" } }, "exedev"],
-  ])("reads %s leniently", (_, agroJson, expected) => {
-    expect(resolveHandProviderId({}, home(agroJson))).toBe(expected);
-  });
-
-  it("names the field when hands.provider is not a known provider", () => {
-    expect(() => resolveHandProviderId({}, home({ hands: { provider: "aws" } }))).toThrow(
-      /hands\.provider must be one of console, exedev/,
-    );
-  });
-
-  it("falls back to the default harness root when ~/.agro/config.json is broken", () => {
-    const dir = home({ hands: { provider: "exedev" } }, "{");
-    expect(brainHarnessRoot({}, dir)).toBe(join(dir, ".agro", "workspaces", "harness"));
-    expect(resolveHandProviderId({}, dir)).toBe("exedev");
-  });
-
-  it("keeps console verbs working when agro.json has an unrelated invalid field", async () => {
-    const dir = home({ version: 99 });
+  function runList(dir: string, env: NodeJS.ProcessEnv = {}) {
     const out: string[] = [];
     const err: string[] = [];
     const io = { stdout: (s: string) => out.push(s), stderr: (s: string) => err.push(s) };
     const r = fakeRunner();
-    expect(await runHands(["list"], io, { env: {}, userHome: () => dir, readFile: () => undefined, run: r.run })).toBe(2);
-    expect(err.join("")).toContain("not on a brain");
-    expect(r.calls).toEqual([]);
+    const deps = { env, userHome: () => dir, readFile: () => undefined, run: r.run };
+    return { result: runHands(["list"], io, deps), stderr: () => err.join(""), calls: r.calls };
+  }
+
+  it.each([
+    ["no host config", undefined, "console"],
+    ["no hands key", { version: 1 }, "console"],
+    ["an invalid unrelated field", { version: 99, harnessRoot: 7 }, "console"],
+    ["unparseable JSON", "{", "console"],
+    ["exedev beside an invalid field", { version: 99, hands: { provider: "exedev" } }, "exedev"],
+  ])("reads %s leniently", (_, hostConfig, expected) => {
+    expect(resolveHandProviderId({}, home(hostConfig))).toBe(expected);
+  });
+
+  it("reads hands.provider from ${AGRO_HOME}/config.json", () => {
+    const agroHome = tempDir();
+    writeFileSync(join(agroHome, "config.json"), JSON.stringify({ hands: { provider: "exedev" } }), "utf8");
+    expect(resolveHandProviderId({ AGRO_HOME: agroHome }, home(undefined))).toBe("exedev");
+  });
+
+  it("ignores hands.provider in the harness agro.json", () => {
+    expect(resolveHandProviderId({}, home(undefined, { version: 1, hands: { provider: "exedev" } }))).toBe("console");
+  });
+
+  it("names the field when hands.provider is not a known provider", () => {
+    const dir = home({ hands: { provider: "aws" } });
+    expect(() => resolveHandProviderId({}, dir)).toThrow(
+      `${join(dir, ".agro", "config.json")}: hands.provider must be one of console, exedev`,
+    );
+  });
+
+  it("exits 1 and names the field when hands.provider is invalid", async () => {
+    const run = runList(home({ hands: { provider: "aws" } }));
+    expect(await run.result).toBe(1);
+    expect(run.stderr()).toContain("hands.provider must be one of console, exedev");
+    expect(run.calls).toEqual([]);
+  });
+
+  it("names the new location when the harness agro.json keeps a hands section", async () => {
+    const dir = home(undefined, { version: 1, hands: { provider: "exedev" } });
+    const run = runList(dir);
+    expect(await run.result).toBe(2);
+    const notice = run.stderr().split("\n")[0];
+    expect(notice).toContain(join(dir, ".agro", "workspaces", "harness", "agro.json"));
+    expect(notice).toContain(join(dir, ".agro", "config.json"));
+    expect(notice).toContain("agro config set hands.provider <value>");
+  });
+
+  it("prints no notice when the harness agro.json has no hands section", async () => {
+    const run = runList(home(undefined, { version: 1 }));
+    expect(await run.result).toBe(2);
+    expect(run.stderr()).not.toContain("hands section");
+  });
+
+  it("falls back to the default harness root when ~/.agro/config.json is broken", () => {
+    const dir = home("{");
+    expect(brainHarnessRoot({}, dir)).toBe(join(dir, ".agro", "workspaces", "harness"));
+  });
+
+  it("keeps console verbs working when agro.json has an unrelated invalid field", async () => {
+    const run = runList(home(undefined, { version: 99 }));
+    expect(await run.result).toBe(2);
+    expect(run.stderr()).toContain("not on a brain");
+    expect(run.calls).toEqual([]);
   });
 });
