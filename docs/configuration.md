@@ -148,6 +148,12 @@ corepack makes, uses the proxy.
 See [Security considerations § Egress allowlist](security-considerations.md#8-egress-allowlist--enforced-opt-in)
 for the limits of this mode and the security boundary it enforces.
 
+### Hands
+
+| Field | Type | Default | Compose variable | What the field does |
+| --- | --- | --- | --- | --- |
+| `hands.provider` | enum: `console`, `exedev` | `console` | — | Selects the `agro hands` provider. `agro hands` reads the field from the `agro.json` at the brain harness root: the `harnessRoot` in `~/.agro/config.json`, else `~/.agro/workspaces/harness`. `~` is the home directory of the user that runs `agro`. An absent file or field means `console`. |
+
 ### Hermes dashboard
 
 | Field | Type | Default | Compose variable | What the field does |

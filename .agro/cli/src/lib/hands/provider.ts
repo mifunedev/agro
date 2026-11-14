@@ -1,3 +1,11 @@
+import { agroConfigPath, readAgroConfig, type HandProviderId } from "../agro-config.js";
+import { defaultHarnessRoot, readHostConfig } from "../host-config.js";
+
+export function resolveHandProviderId(env: NodeJS.ProcessEnv, home: string): HandProviderId {
+  const harnessRoot = readHostConfig(env, home).harnessRoot ?? defaultHarnessRoot(env, home);
+  return readAgroConfig(agroConfigPath(harnessRoot)).hands?.provider ?? "console";
+}
+
 export interface Hand {
   id: string;
   label: string;

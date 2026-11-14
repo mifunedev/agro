@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { HANDS_VERBS, isOneOf } from "../command-table.js";
 import {
@@ -11,9 +12,10 @@ import {
   type ConsolePollDeps,
 } from "../lib/console-api.js";
 import { createConsoleProvider } from "../lib/hands/console-provider.js";
-import type { Hand, HandProvider } from "../lib/hands/provider.js";
+import { resolveHandProviderId, type Hand, type HandProvider } from "../lib/hands/provider.js";
 import { messageOf, spawnRunner, type LifecycleRunner } from "../lib/execution/runner.js";
 import * as prompt from "../lib/prompt.js";
+import type { HandProviderId } from "../lib/agro-config.js";
 
 export { normalizeHandRef } from "../lib/hands/console-provider.js";
 
@@ -28,6 +30,7 @@ export type HandsIO = ConsoleIO;
 export interface HandsDeps extends ConsolePollDeps {
   env: Record<string, string | undefined>;
   homeDir: () => string;
+  userHome: () => string;
   readFile: (path: string) => string | undefined;
   confirm: (question: string) => Promise<boolean>;
   run: LifecycleRunner;
@@ -106,6 +109,7 @@ function defaultDeps(): HandsDeps {
     fetch: (input, init) => globalThis.fetch(input, init),
     env: process.env,
     homeDir: () => BRAIN_HOME,
+    userHome: homedir,
     readFile: (path) => {
       try {
         return readFileSync(path, "utf8");
@@ -564,6 +568,17 @@ export async function runHands(
     return 0;
   }
   const deps = { ...defaultDeps(), ...overrides };
+  let providerId: HandProviderId;
+  try {
+    providerId = resolveHandProviderId(deps.env, deps.userHome());
+  } catch (error) {
+    io.stderr(`${bin} hands: ${messageOf(error)}\n`);
+    return 1;
+  }
+  if (providerId === "exedev") {
+    io.stderr(`${bin} hands: provider exedev is not available yet\n`);
+    return 2;
+  }
   const resolved = resolveBrainConsoleConfig(deps.env, deps.homeDir, deps.readFile);
   if (!resolved.ok) {
     io.stderr(`${resolved.error}\n`);
