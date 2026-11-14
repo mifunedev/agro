@@ -11,6 +11,8 @@ export const instructionFiles = [
   ".agro/skills/sandbox/references/providers.md",
   ".agro/skills/sandbox/references/rationale.md",
   ".agro/skills/sandbox/references/validation.md",
+  "docs/lifecycle-commands.md",
+  "docs/runtimes/openshell.md",
 ] as const;
 export const casesFile = ".agro/scripts/__tests__/fixtures/sandbox-routing/cases.json";
 export const decisionsFile = ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json";

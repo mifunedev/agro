@@ -10,9 +10,11 @@
       ".agro/skills/sandbox/references/mifune-console.md",
       ".agro/skills/sandbox/references/providers.md",
       ".agro/skills/sandbox/references/rationale.md",
-      ".agro/skills/sandbox/references/validation.md"
+      ".agro/skills/sandbox/references/validation.md",
+      "docs/lifecycle-commands.md",
+      "docs/runtimes/openshell.md"
     ],
-    "instructionSha256": "5a64aa4a1c0d31ace004cbd2a2eaf6afefe7b8167181a834040417b9aa9275f7",
+    "instructionSha256": "fd394976beb031489d88706e67e5ee0bfdf71d8927521be3968e4fb5fa3ff233",
     "casesSha256": "afbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab"
   },
   "decisions": [

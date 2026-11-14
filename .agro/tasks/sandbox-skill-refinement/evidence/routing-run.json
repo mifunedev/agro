@@ -3,10 +3,10 @@
   "sourceCommit": "7bbf3209a6af04513b7f7f8881dc9d10415884a6",
   "capturedAt": "2026-11-14T00:58:32.840444+00:00",
   "scope": "Eight fresh decision-only contexts; proposed commands were not executed or validated as live provider operations.",
-  "instructionSha256": "5a64aa4a1c0d31ace004cbd2a2eaf6afefe7b8167181a834040417b9aa9275f7",
+  "instructionSha256": "fd394976beb031489d88706e67e5ee0bfdf71d8927521be3968e4fb5fa3ff233",
   "casesSha256": "afbbb95cab11756a6b5cbbb6e2b34a672513f2dc667f25e6d017bd7d879d8bab",
   "fixturePath": ".agro/scripts/__tests__/fixtures/sandbox-routing/decisions.json",
-  "fixtureSha256": "835037684f877d0e84978086f92126929123c3ede3e5ffc8eb17ba50461799f6",
+  "fixtureSha256": "8482e9325e6e29e09385a1c0907c78a14ce462ecb725be100d7f22f9de912eef",
   "attemptsPerCase": 1,
   "freshContexts": 8,
   "caseDecisions": [
@@ -128,5 +128,29 @@
     "This is an eight-case routing sample, not a general agent reliability estimate.",
     "The grader checks routes, owners, schemas and content provenance; suggested command wording is not automatically graded.",
     "No provider VM or workload was executed."
-  ]
+  ],
+  "initialEightFileInstructionSha256": "5a64aa4a1c0d31ace004cbd2a2eaf6afefe7b8167181a834040417b9aa9275f7",
+  "initialFixtureSha256": "835037684f877d0e84978086f92126929123c3ede3e5ffc8eb17ba50461799f6",
+  "instructionFiles": [
+    ".agro/skills/sandbox/SKILL.md",
+    ".agro/skills/sandbox/references/exedev.md",
+    ".agro/skills/sandbox/references/local-docker.md",
+    ".agro/skills/sandbox/references/local-msb.md",
+    ".agro/skills/sandbox/references/mifune-console.md",
+    ".agro/skills/sandbox/references/providers.md",
+    ".agro/skills/sandbox/references/rationale.md",
+    ".agro/skills/sandbox/references/validation.md",
+    "docs/lifecycle-commands.md",
+    "docs/runtimes/openshell.md"
+  ],
+  "provenanceExtension": {
+    "extendedAt": "2026-11-14T01:09:33.559366+00:00",
+    "addedInputs": [
+      "docs/lifecycle-commands.md",
+      "docs/runtimes/openshell.md"
+    ],
+    "basis": "Actual R8 source reads included these linked public references. All ten current input files were checked byte-for-byte against the original immutable replay revision. Responses, cases, observed models, handles and first-attempt outcomes are unchanged.",
+    "allInputBytesMatchSourceCommit": true,
+    "originalDecisionsPreserved": true
+  }
 }
