@@ -35,15 +35,16 @@
         "After a reboot-equivalent check, `systemctl is-enabled docker` prints `enabled`."
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "",
+      "passes": true,
+      "notes": "1 executed: sudo systemctl enable --now docker exit 0; is-active active. 2 executed: docker info as exedev without sudo prints 29.1.3. 3 executed: agro run -- true exit 0 (pulled ghcr.io/mifunedev/agro:0.37.0); agro run -- sh -c 'id -u' prints 1000 = exedev uid. 4 executed: systemctl is-enabled docker prints enabled. Evidence: evidence/docker-brain.md.",
       "dependsOn": [
         "US-001"
       ],
       "files": [
         ".agro/tasks/hand-default-routing/evidence/docker-brain.md"
       ],
-      "external": false
+      "external": false,
+      "commit": "evidence-only"
     },
     {
       "id": "US-003",
